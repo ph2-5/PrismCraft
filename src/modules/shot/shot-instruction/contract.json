@@ -1,0 +1,15 @@
+{
+  "name": "shot-instruction",
+  "description": "分镜指令解析与提示词构建：将结构化的分镜指令（镜头类型、运动、角度）转换为 AI 可用的提示词文本，提供镜头参数选项常量",
+  "dependencies": ["@/domain/schemas", "@/domain/utils/shot-prompt"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["shotInstructionToPrompt", "SHOT_SIZE_OPTIONS", "CAMERA_MOVEMENT_OPTIONS", "CAMERA_ANGLE_OPTIONS", "buildPromptLayers"],
+    "components": []
+  },
+  "invariants": [
+    "镜头参数选项使用常量数组定义（SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS, CAMERA_ANGLE_OPTIONS）",
+    "shotInstructionToPrompt 和 buildPromptLayers 负责将结构化分镜指令转换为提示词文本",
+    "禁止直接导入 story 和 video 模块"
+  ]
+}

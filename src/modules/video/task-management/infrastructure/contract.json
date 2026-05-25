@@ -1,0 +1,15 @@
+{
+  "name": "task-infrastructure",
+  "description": "任务基础设施：时间戳转换、轮询调度、存储适配",
+  "dependencies": ["task-domain", "infrastructure/di", "infrastructure/safeQuery", "infrastructure/safeRun", "infrastructure/safeTransaction", "domain/VideoTask", "domain/Result"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["index"],
+    "components": []
+  },
+  "invariants": [
+    "时间戳在内存中统一用毫秒，存储层统一用秒",
+    "时间戳转换只在 I/O 边界发生",
+    "轮询调度器自动在终态时停止"
+  ]
+}

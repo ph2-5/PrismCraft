@@ -1,0 +1,16 @@
+{
+  "name": "video-recovery",
+  "description": "视频恢复与重试：视频验证、重复检测、智能重试策略、恢复工作流",
+  "dependencies": ["video-cache", "domain/VideoTaskRecord", "domain/Result", "domain/fromAsyncThrowable", "infrastructure/di"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["verifyVideoUrl", "verifyVideoFile", "verifyMultipleVideos", "checkForDuplicateVideos", "findSimilarTasks", "SmartRetryEngine", "smartRetryEngine", "createRetryEngine", "getTaskRecoveryInfo", "performIntelligentRecovery", "checkForTokenWaste", "registerCacheVideoBlobFn", "saveVideoTask", "getFailedTasks", "getTaskById", "recoverVideoByTaskId", "startBackgroundRecovery", "cleanExpiredTasks", "getAllTaskHistory"],
+    "components": []
+  },
+  "invariants": [
+    "恢复前必须验证视频URL有效性",
+    "智能重试需检测重复任务避免Token浪费",
+    "重试策略由 SmartRetryEngine 统一决策",
+    "恢复成功后必须通过 cache 子域缓存视频"
+  ]
+}

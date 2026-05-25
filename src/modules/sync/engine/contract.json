@@ -1,0 +1,17 @@
+{
+  "name": "sync-engine",
+  "description": "同步引擎核心：变更追踪、向量时钟管理、推送/拉取远程变更、冲突检测与解决策略",
+  "dependencies": ["infrastructure/di", "domain/SyncConfig", "domain/SyncEntityType", "domain/ChangeOperation", "domain/VectorClock", "domain/RemoteChange"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["ensureSyncSchema", "recordChange", "getPendingChanges", "markChangesSynced", "softDelete", "getSyncStatus", "updateLastSyncTime", "cleanupSyncedChanges", "getDeviceId", "initSyncEngine", "updateSyncConfig", "startAutoSync", "stopAutoSync", "performSync", "getSyncConfig", "getServerChangeLog", "appendServerChanges", "getServerVectorClock", "saveServerVectorClock", "clearServerSyncData", "SYNC_TABLES", "SYNCABLE_TABLE_MAP", "DEFAULT_SYNC_CONFIG"],
+    "components": []
+  },
+  "invariants": [
+    "变更记录通过 recordChange 统一入口",
+    "向量时钟用于检测并发冲突",
+    "冲突解决策略：local-wins / remote-wins / last-write-wins / manual",
+    "同步操作在 autoSync 开启时自动定时执行",
+    "engine 子域不依赖 presentation 子域"
+  ]
+}

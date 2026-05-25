@@ -1,0 +1,16 @@
+{
+  "name": "task-domain",
+  "description": "任务领域模型：状态机、类型定义、事件、Schema校验、业务策略",
+  "dependencies": ["domain/Result", "domain/AppError", "domain/ok", "domain/err", "domain/ValidationError"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["TaskMachine", "TransitionError", "pollResultSchema", "mapApiStatus", "checkTimeout", "checkExpiration", "evaluatePolicies"],
+    "components": []
+  },
+  "invariants": [
+    "状态转换必须通过 TaskMachine，禁止直接修改 task.status",
+    "completed 是终态，不可回退",
+    "pending 不能直接跳到 completed（必须经过 processing）",
+    "API 返回值必须经过 pollResultSchema 校验后才能映射为本地状态"
+  ]
+}

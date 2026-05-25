@@ -1,0 +1,196 @@
+import type { Result } from "@/domain/types";
+import { fromAsyncThrowable } from "@/domain/types";
+import type { StoryBeat } from "@/domain/schemas";
+import { extractErrorMessage } from "@/shared/error-logger";
+
+export interface StoryboardTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  genre: string;
+  tone: string;
+  tags: string[];
+  author: string;
+  beats: StoryboardTemplateBeat[];
+  totalDuration: number;
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface StoryboardTemplateBeat {
+  type: string;
+  title: string;
+  content: string;
+  duration: number;
+  shotType?: string;
+  cameraAngle?: string;
+  cameraMovement?: string;
+  cameraDistance?: string;
+  cameraSpeed?: string;
+  generationPrompt?: string;
+  imageGenerationPrompt?: string;
+  firstFramePrompt?: string;
+  lastFramePrompt?: string;
+}
+
+export function createTemplateFromBeats(
+  name: string,
+  description: string,
+  beats: StoryBeat[],
+  options?: {
+    category?: string;
+    genre?: string;
+    tone?: string;
+    tags?: string[];
+    author?: string;
+  },
+): StoryboardTemplate {
+  const now = Date.now();
+  return {
+    id: `tpl_${now}_${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    description,
+    category: options?.category || "custom",
+    genre: options?.genre || "",
+    tone: options?.tone || "",
+    tags: options?.tags || [],
+    author: options?.author || "",
+    beats: beats.map((beat) => ({
+      type: beat.type || "scene",
+      title: beat.title || "",
+      content: beat.content || beat.description || "",
+      duration: beat.duration || 5,
+      shotType: beat.shotType,
+      cameraAngle: beat.camera?.angle,
+      cameraMovement: beat.camera?.movement,
+      cameraDistance: beat.camera?.distance,
+      cameraSpeed: beat.camera?.speed,
+      generationPrompt: beat.generationPrompt,
+      imageGenerationPrompt: beat.imageGenerationPrompt,
+      firstFramePrompt: beat.firstFramePrompt,
+      lastFramePrompt: beat.lastFramePrompt,
+    })),
+    totalDuration: beats.reduce((sum, b) => sum + (b.duration || 5), 0),
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function applyTemplateToBeats(
+  template: StoryboardTemplate,
+): Array<Partial<StoryBeat>> {
+  return template.beats.map((beat, index) => ({
+    type: beat.type as StoryBeat["type"],
+    title: beat.title,
+    content: beat.content,
+    description: beat.content,
+    duration: beat.duration,
+    order: index,
+    shotType: beat.shotType as StoryBeat["shotType"],
+    camera: {
+      angle: beat.cameraAngle,
+      movement: beat.cameraMovement,
+      distance: beat.cameraDistance,
+      speed: beat.cameraSpeed,
+    },
+    generationPrompt: beat.generationPrompt,
+    imageGenerationPrompt: beat.imageGenerationPrompt,
+    firstFramePrompt: beat.firstFramePrompt,
+    lastFramePrompt: beat.lastFramePrompt,
+  }));
+}
+
+export function exportTemplateToFile(template: StoryboardTemplate): void {
+  const json = JSON.stringify(template, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${template.name.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, "_")}_${template.id}.astpl`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function importTemplateFromFile(
+  file: File,
+): Promise<Result<StoryboardTemplate>> {
+  return fromAsyncThrowable(() => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (!data.name || !Array.isArray(data.beats)) {
+          throw new Error("无效的模板文件格式");
+        }
+        const template: StoryboardTemplate = {
+          id: data.id || `tpl_${Date.now()}_imported`,
+          name: data.name,
+          description: data.description || "",
+          category: data.category || "imported",
+          genre: data.genre || "",
+          tone: data.tone || "",
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          author: data.author || "",
+          beats: data.beats,
+          totalDuration: data.totalDuration || data.beats.reduce((s: number, b: { duration?: number }) => s + (b.duration || 5), 0),
+          version: data.version || 1,
+          createdAt: data.createdAt || Date.now(),
+          updatedAt: Date.now(),
+        };
+        resolve(template);
+      } catch (error) {
+        reject(new Error("模板文件解析失败: " + extractErrorMessage(error)));
+      }
+    };
+    reader.onerror = () => reject(new Error("文件读取失败"));
+    reader.readAsText(file);
+  }));
+}
+
+export function exportMultipleTemplates(
+  templates: StoryboardTemplate[],
+): void {
+  const json = JSON.stringify(
+    { format: "astpl-batch", version: 1, templates },
+    null,
+    2,
+  );
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `templates_batch_${Date.now()}.astpl`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export async function importTemplatesFromFile(
+  file: File,
+): Promise<Result<StoryboardTemplate[]>> {
+  return fromAsyncThrowable(() => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.format === "astpl-batch" && Array.isArray(data.templates)) {
+          resolve(data.templates);
+        } else if (data.name && Array.isArray(data.beats)) {
+          resolve([data as StoryboardTemplate]);
+        } else {
+          throw new Error("无效的模板文件格式");
+        }
+      } catch (error) {
+        reject(new Error("模板文件解析失败: " + (error as Error).message));
+      }
+    };
+    reader.onerror = () => reject(new Error("文件读取失败"));
+    reader.readAsText(file);
+  }));
+}

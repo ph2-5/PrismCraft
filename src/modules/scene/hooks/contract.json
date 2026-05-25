@@ -1,0 +1,17 @@
+{
+  "name": "scene-hooks",
+  "description": "场景模块 React Hooks：CRUD 操作、图片生成的 React Query 封装",
+  "dependencies": ["scene-service", "@tanstack/react-query"],
+  "publicAPI": {
+    "hooks": ["useSceneCRUD", "useSceneImage", "useScenes", "useScene", "useSceneCount", "useCreateScene", "useUpdateScene", "useDeleteScene"],
+    "services": [],
+    "components": []
+  },
+  "invariants": [
+    "使用 React Query 进行数据获取和缓存",
+    "mutation 成功后自动 invalidateQueries",
+    "hooks 子域依赖 scene-service 子域",
+    "markClean 必须在保存成功且 setCurrentScene 之后调用，确保 dirty 状态正确清除",
+    "保存失败时 dirty 状态必须保留，用户离开页面时应收到未保存修改警告"
+  ]
+}

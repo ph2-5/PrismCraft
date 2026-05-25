@@ -1,0 +1,16 @@
+{
+  "name": "story-generation",
+  "description": "生成执行：预览图生成、首尾帧生成、视频生成、批量编排",
+  "dependencies": ["story-beat-editor", "story-core", "video-core", "shot-core", "character-core", "scene-core", "domain-services", "prompt"],
+  "publicAPI": {
+    "hooks": ["useAIGeneratorBase", "useBatchGenerator", "useKeyframeGenerator", "useFramePairGenerator", "useVideoGenerator", "useUploadHandlers"],
+    "services": ["generateBeatKeyframe", "generateBeatFramePair", "generateBeatVideo", "generateBeatFullWorkflow", "generateKeyframeChain", "generateFramePairChain", "determineVideoGenerationMode", "generateFramePrompts", "batchGenerateFramePrompts", "generateStyleGuide", "generateStylePromptOnly"],
+    "components": ["ShotGenerationPanel", "KeyframePanel", "KeyframeChainVisualizer", "PromptPreview", "ShotReferenceConfig", "ReferenceVideoUploader"]
+  },
+  "invariants": [
+    "批量生成必须串行执行（非首分镜依赖前一帧）",
+    "每个生成阶段必须可独立暂停/恢复",
+    "生成失败时必须保留已完成的阶段结果",
+    "chain 模式下非首分镜引用上一分镜结果作为参考"
+  ]
+}

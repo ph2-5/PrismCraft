@@ -1,0 +1,15 @@
+{
+  "name": "security",
+  "description": "API Key 安全存储、敏感配置管理",
+  "dependencies": ["electronAPI (IPC: secure-config:save/load/resolve/delete/has)"],
+  "publicAPI": {
+    "hooks": ["useSecureConfig"],
+    "services": [],
+    "components": []
+  },
+  "invariants": [
+    "非 Electron 环境拒绝存储 API Key（不 fallback 到 localStorage）",
+    "API Key 通过 electron-store 加密存储，前端仅通过 IPC 访问",
+    "secure-config:resolve 通道需要 SECURE 权限级别"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "shot-feature-extraction",
+  "description": "特征提取与锚定服务：从角色/场景提取特征标签，验证参考图质量，构建特征锚定配置，提供混合模式策略",
+  "dependencies": ["@/domain/schemas"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["validateReferenceImageQuality", "extractCharacterFeatures", "buildFeatureTags", "buildFeatureAnchor", "buildFeatureAnchoringConfig", "validateFeatureAnchoring", "validateBlendConfig", "getBlendMode", "shouldUseChainReference", "buildBlendPrompt", "performAutoFallback", "validateNoFrameBinding", "performConfigCheck"],
+    "components": []
+  },
+  "invariants": [
+    "extractCharacterFeatures 和 buildFeatureTags 从角色/场景提取特征标签",
+    "buildFeatureAnchoringConfig 构建特征锚定配置，validateFeatureAnchoring 验证配置有效性",
+    "getBlendMode 和 buildBlendPrompt 提供混合模式策略",
+    "禁止直接导入 story 和 video 模块"
+  ]
+}

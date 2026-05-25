@@ -1,0 +1,14 @@
+{
+  "name": "prompt-video",
+  "description": "视频提示词生成：专业视频提示词、增强视频提示词、快速视频提示词",
+  "dependencies": ["prompt-base"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["generateProfessionalVideoPrompt", "generateEnhancedVideoPrompt", "generateQuickVideoPrompt", "generateSingleBeatPrompt"],
+    "components": []
+  },
+  "invariants": [
+    "视频提示词包含质量标签、风格描述、动作描述",
+    "prompt-video 子域依赖 prompt-base 子域"
+  ]
+}

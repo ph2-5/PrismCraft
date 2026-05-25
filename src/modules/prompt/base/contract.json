@@ -1,0 +1,15 @@
+{
+  "name": "prompt-base",
+  "description": "提示词基础模块：关键词常量、场景/风格/情绪/灯光/镜头映射、基础描述构建工具",
+  "dependencies": ["domain/Character", "domain/Scene", "domain/SceneElement", "domain/FixedImageConfig", "domain/ReferenceVideoConfig", "domain/TemplateConfig"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["QUALITY_TAGS_IMAGE", "QUALITY_TAGS_VIDEO", "STYLE_KEYWORDS", "SCENE_TYPE_KEYWORDS", "MOOD_KEYWORDS", "LIGHTING_KEYWORDS", "CAMERA_ANGLE_KEYWORDS", "CAMERA_MOVEMENT_KEYWORDS", "TRANSITION_KEYWORDS", "POSITION_KEYWORDS", "joinParts", "buildCharacterAppearanceDesc", "buildCharacterFullDesc", "buildSceneAtmosphereDesc", "buildSceneVisualDesc", "buildElementEffectDesc", "buildFixedImageDesc", "buildReferenceVideoDesc", "buildTemplateDesc", "getStyleKeywords", "getSceneTypeKeywords", "getMoodKeywords"],
+    "components": []
+  },
+  "invariants": [
+    "关键词映射使用 Record<string, string | string[]> 类型",
+    "描述构建函数返回格式化字符串",
+    "prompt-base 子域是最底层，不依赖其他子域"
+  ]
+}

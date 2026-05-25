@@ -1,0 +1,219 @@
+import type { Result } from "@/domain/types";
+import { fromAsyncThrowable, err, NotFoundError } from "@/domain/types";
+import { container } from "@/infrastructure/di";
+import { cacheVideoBlob } from "@/modules/video/cache";
+import type { VideoTask } from "@/domain/schemas";
+import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { AppError } from "@/domain/types/result";
+import { TaskMachine } from "@/modules/video/task-management";
+
+const EXPIRY_HOURS = 720;
+const MAX_POLL_DURATION_MS = 120 * 60 * 1000;
+const POLL_INTERVAL_MS = 60 * 1000;
+const MAX_RECOVERY_ATTEMPTS = 60;
+
+export interface VideoRecoverySuccessResult {
+  videoUrl?: string;
+  message: string;
+  status?: string;
+}
+
+export async function saveVideoTask(task: VideoTask): Promise<Result<void>> {
+  return fromAsyncThrowable(async () => {
+    const nowIso = new Date().toISOString();
+    const expiresAtIso = task.expiresAt || new Date(Date.now() + EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+    const record = {
+      ...task,
+      expiresAt: expiresAtIso,
+      pollCount: task.pollCount || 0,
+      recoveryAttempts: task.recoveryAttempts || 0,
+      lastPolledAt: nowIso,
+    };
+
+    await container.videoTaskStorage.createVideoTask(record);
+  });
+}
+
+export async function getFailedTasks(): Promise<Result<VideoTask[]>> {
+  return fromAsyncThrowable(async () => {
+    const now = Date.now();
+    const tasks = await container.videoTaskStorage.getVideoTasksByStatus("failed");
+
+    return tasks.filter((t) => !t.expiresAt || new Date(t.expiresAt).getTime() > now);
+  });
+}
+
+export async function getTaskById(
+  taskId: string,
+): Promise<Result<VideoTask | undefined>> {
+  return fromAsyncThrowable(async () => {
+    return (
+      (await container.videoTaskStorage.getVideoTaskById(taskId)) ??
+      undefined
+    );
+  });
+}
+
+export async function recoverVideoByTaskId(taskId: string): Promise<Result<VideoRecoverySuccessResult>> {
+  const taskResult = await getTaskById(taskId);
+  if (!taskResult.ok) return taskResult;
+  const task = taskResult.value;
+
+  if (!task) {
+    return err(new NotFoundError("VideoTask", taskId));
+  }
+
+  if (task.status === "completed" && task.videoUrl) {
+    return { ok: true, value: { videoUrl: task.videoUrl, message: "视频已存在" } };
+  }
+
+  return fromAsyncThrowable(async () => {
+    const result = await container.videoProvider.queryVideoStatus(taskId, {
+      providerId: task.providerId,
+      modelId: task.providerModelId,
+      format: task.providerFormat,
+    });
+
+    if (result.success && result.data) {
+      const status = (result.data.status || "").toLowerCase();
+      const isSuccess = [
+        "done",
+        "completed",
+        "success",
+        "finished",
+        "succeeded",
+      ].includes(status);
+      const isFailed = ["fail", "failed", "error"].includes(status);
+      const isPending = [
+        "pending",
+        "generating",
+        "wait",
+        "running",
+        "queued",
+        "in_progress",
+      ].includes(status);
+
+      if (isSuccess && result.data.videoUrl) {
+        if (!TaskMachine.canTransition(task.status as VideoTask["status"] & string, "completed")) {
+          errorLogger.warn(
+            { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=completed` },
+            "VideoRecovery",
+          );
+          throw new AppError("INVALID_TRANSITION", `状态转换不合法: ${task.status} → completed`);
+        }
+        await container.videoTaskStorage.updateVideoTask(taskId, {
+          status: "completed",
+          videoUrl: result.data.videoUrl,
+          recoveryAttempts: (task.recoveryAttempts || 0) + 1,
+          lastPolledAt: new Date().toISOString(),
+        });
+
+        Promise.resolve(cacheVideoBlob(taskId, result.data.videoUrl)).catch((e) =>
+          errorLogger.warn("[VideoRecovery] Failed to cache recovered video", e),
+        );
+
+        if (typeof window !== "undefined") {
+          try {
+            window.dispatchEvent(
+              new CustomEvent("video-task-recovered", {
+                detail: { taskId, status: "completed", videoUrl: result.data.videoUrl },
+              }),
+            );
+          } catch (e) {
+            errorLogger.warn("[VideoRecovery] 事件派发失败", e);
+          }
+          try {
+            if (window.__VIDEO_TASK_STORE__) {
+              const state = window.__VIDEO_TASK_STORE__.getState();
+              if (state && typeof state.recoverTask === "function") {
+                state.recoverTask(taskId, "completed", result.data.videoUrl);
+              }
+            }
+          } catch (e) {
+            errorLogger.warn("[VideoRecovery] 直接通知失败", e);
+          }
+        }
+
+        return {
+          videoUrl: result.data.videoUrl,
+          message: "视频找回成功！",
+          status: "completed",
+        };
+      }
+
+      if (isFailed) {
+        throw new AppError("RECOVERY_FAILED", "云端任务已确认失败");
+      }
+
+      if (isPending) {
+        throw new AppError("RECOVERY_PENDING", "视频仍在生成中，请稍后重试");
+      }
+
+      throw new AppError("UNKNOWN_STATUS", `未知状态: ${status}，请稍后重试`);
+    }
+
+    throw new AppError("QUERY_FAILED", "查询失败，请检查网络连接");
+  });
+}
+
+let isRecoveryRunning = false;
+
+export async function startBackgroundRecovery(): Promise<Result<void>> {
+  if (isRecoveryRunning) return { ok: true, value: undefined };
+  isRecoveryRunning = true;
+
+  try {
+    const failedTasksResult = await getFailedTasks();
+    if (!failedTasksResult.ok) {
+      isRecoveryRunning = false;
+      return failedTasksResult;
+    }
+    const failedTasks = failedTasksResult.value;
+
+    const eligibleTasks = failedTasks.filter((task) => {
+      const timeSinceCreation = Date.now() - new Date(task.createdAt).getTime();
+      if (timeSinceCreation > MAX_POLL_DURATION_MS) {
+        return false;
+      }
+
+      if (
+        task.recoveryAttempts &&
+        task.recoveryAttempts >= MAX_RECOVERY_ATTEMPTS
+      ) {
+        return false;
+      }
+
+      const timeSinceLastPoll = task.lastPolledAt
+        ? Date.now() - new Date(task.lastPolledAt).getTime()
+        : POLL_INTERVAL_MS;
+
+      if (timeSinceLastPoll < POLL_INTERVAL_MS) {
+        return false;
+      }
+
+      return true;
+    });
+
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < eligibleTasks.length; i += BATCH_SIZE) {
+      const batch = eligibleTasks.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(
+        batch.map((task) => recoverVideoByTaskId(task.taskId)),
+      );
+    }
+
+    isRecoveryRunning = false;
+    return { ok: true, value: undefined };
+  } catch (error) {
+    isRecoveryRunning = false;
+    return err(new AppError("BACKGROUND_RECOVERY_ERROR", extractErrorMessage(error), error));
+  }
+}
+
+export async function cleanExpiredTasks(): Promise<Result<number>> {
+  return fromAsyncThrowable(() => container.videoTaskStorage.deleteExpiredVideoTasks());
+}
+
+export async function getAllTaskHistory(): Promise<Result<VideoTask[]>> {
+  return fromAsyncThrowable(() => container.videoTaskStorage.getVideoTasks());
+}

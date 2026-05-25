@@ -1,0 +1,239 @@
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const deprecatedImportPatterns = [
+  {
+    group: ["@/types/*", "@/types"],
+    message:
+      "\u274C @/types \u5DF2\u5F03\u7528\uFF0C\u8BF7\u4F7F\u7528 @/domain/schemas \u4F5C\u4E3A\u552F\u4E00\u7C7B\u578B\u6E90",
+  },
+  {
+    group: ["@/lib/*", "@/lib"],
+    message:
+      "\u274C @/lib \u5DF2\u5168\u90E8\u8FC1\u79FB\uFF0C\u8BF7\u4F7F\u7528 @/modules/*\u3001@/infrastructure/* \u6216 @/shared/*",
+  },
+  {
+    group: ["@/application/services/*", "@/application/services"],
+    message:
+      "\u274C @/application/services \u5DF2\u5F03\u7528\uFF0C\u8BF7\u76F4\u63A5\u4ECE\u5404\u6A21\u5757\u5BFC\u5165\u670D\u52A1",
+  },
+  {
+    group: ["@/application/hooks/*", "@/application/hooks"],
+    message:
+      "\u274C @/application/hooks \u5DF2\u5F03\u7528\uFF0C\u8BF7\u76F4\u63A5\u4ECE\u5404\u6A21\u5757\u5BFC\u5165 hooks",
+  },
+  {
+    group: ["@/application/stores/*", "@/application/stores"],
+    message:
+      "\u274C @/application/stores \u5DF2\u8FC1\u79FB\uFF0C\u8BF7\u4F7F\u7528 @/shared/app-store \u6216 @/modules/video/use-video-task-manager",
+  },
+  {
+    group: ["@/components/*", "@/components"],
+    message:
+      "\u274C @/components \u5DF2\u8FC1\u79FB\uFF0C\u8BF7\u4F7F\u7528 @/shared/ui\u3001@/shared/presentation \u6216\u5404\u6A21\u5757\u7684 presentation/ \u76EE\u5F55",
+  },
+  {
+    group: ["@/modules/*/*/*"],
+    message:
+      "\u274C \u7981\u6B62\u8DE8\u6A21\u5757\u4E09\u7EA7\u6DF1\u5C42\u5BFC\u5165\uFF0C\u8BF7\u4F7F\u7528\u6A21\u5757\u6876\u5BFC\u5165 @/modules/xxx",
+  },
+];
+
+const infraSubdomainsExceptDi = [
+  "@/infrastructure/api",
+  "@/infrastructure/api/**",
+  "@/infrastructure/ai-providers",
+  "@/infrastructure/ai-providers/**",
+  "@/infrastructure/database",
+  "@/infrastructure/database/**",
+  "@/infrastructure/monitoring",
+  "@/infrastructure/monitoring/**",
+  "@/infrastructure/network",
+  "@/infrastructure/network/**",
+  "@/infrastructure/server",
+  "@/infrastructure/server/**",
+  "@/infrastructure/storage",
+  "@/infrastructure/storage/**",
+  "@/infrastructure/video-utils",
+  "@/infrastructure/video-utils/**",
+  "@/infrastructure/api-config-facade",
+];
+
+const eslintConfig = [
+  {
+    ignores: [
+      ".next/**",
+      "out/**",
+      "build/**",
+      "dist/**",
+      "release/**",
+      "release2/**",
+      "coverage/**",
+      "electron/dist/**",
+      "next-env.d.ts",
+      "scripts/**",
+      "*.cjs",
+      "analyze-coverage.js",
+      "check-db.js",
+      "test-schema.js",
+      "test-pragma.js",
+    ],
+  },
+  ...nextVitals,
+  ...nextTs,
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-restricted-imports": [
+        "error",
+        { patterns: deprecatedImportPatterns },
+      ],
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "react/no-unescaped-entities": "warn",
+    },
+  },
+  {
+    files: ["src/domain/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...deprecatedImportPatterns,
+            {
+              group: ["@/infrastructure", "@/infrastructure/**"],
+              message:
+                "\uD83C\uDFD7\uFE0F DDD: domain \u5C42\u7981\u6B62\u4F9D\u8D56 infrastructure\uFF0Cdomain \u662F\u7EAF\u4E1A\u52A1\u903B\u8F91\u5C42",
+            },
+            {
+              group: ["@/modules", "@/modules/**"],
+              message:
+                "\uD83C\uDFD7\uFE0F DDD: domain \u5C42\u7981\u6B62\u4F9D\u8D56 modules\uFF0Cdomain \u662F\u6700\u5185\u5C42",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/shared/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...deprecatedImportPatterns,
+            {
+              group: ["@/infrastructure", "@/infrastructure/**"],
+              message:
+                "\uD83C\uDFD7\uFE0F DDD: shared \u5C42\u7981\u6B62\u4F9D\u8D56 infrastructure\uFF0C\u8BF7\u901A\u8FC7\u56DE\u8C03/props \u6216 domain \u5C42\u89E3\u8026",
+            },
+            {
+              group: ["@/modules", "@/modules/**"],
+              message:
+                "\uD83C\uDFD7\uFE0F DDD: shared \u5C42\u7981\u6B62\u4F9D\u8D56 modules\uFF0Cshared \u662F\u5E95\u5C42\u901A\u7528\u5C42",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/modules/**/*.{ts,tsx}", "!src/modules/**/__tests__/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...deprecatedImportPatterns,
+            {
+              group: infraSubdomainsExceptDi,
+              message:
+                "\uD83C\uDFD7\uFE0F DDD: modules \u5C42\u7981\u6B62\u76F4\u63A5\u4F9D\u8D56 infrastructure \u5B50\u57DF\uFF0C\u8BF7\u901A\u8FC7 DI \u5BB9\u5668 (@/infrastructure/di) \u89E3\u8026",
+            },
+            {
+              group: [
+                "@/modules/video/*/*",
+                "@/modules/story/*/*",
+                "@/modules/character/*/*",
+                "@/modules/scene/*/*",
+                "@/modules/shot/*/*",
+                "@/modules/prompt/*/*",
+                "@/modules/asset/*/*",
+                "@/modules/sync/*/*",
+                "@/modules/security/*/*",
+                "@/modules/persistence/*/*",
+                "@/modules/integrity/*/*",
+                "@/modules/feedback/*/*",
+              ],
+              message:
+                "\uD83C\uDFD7\uFE0F DDD: \u7981\u6B62\u8DE8\u6A21\u5757\u6DF1\u8DEF\u5F84\u5BFC\u5165\uFF0C\u8BF7\u4F7F\u7528\u6876\u5BFC\u5165 @/modules/xxx \u6216\u901A\u8FC7 DI \u5BB9\u5668\u89E3\u8026",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/modules/**/__tests__/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            ...deprecatedImportPatterns,
+            {
+              group: infraSubdomainsExceptDi,
+              message:
+                "\uD83C\uDFD7\uFE0F DDD: modules \u5C42\u7981\u6B62\u76F4\u63A5\u4F9D\u8D56 infrastructure \u5B50\u57DF\uFF0C\u8BF7\u901A\u8FC7 DI \u5BB9\u5668 (@/infrastructure/di) \u89E3\u8026",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/infrastructure/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: deprecatedImportPatterns },
+      ],
+    },
+  },
+  {
+    files: ["src/app/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: deprecatedImportPatterns },
+      ],
+    },
+  },
+  {
+    files: ["src/__tests__/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        { patterns: deprecatedImportPatterns },
+      ],
+    },
+  },
+  {
+    files: ["electron/**/*.ts", "electron/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+];
+
+export default eslintConfig;

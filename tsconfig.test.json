@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts",
+    "dist/types/**/*.ts",
+    "dist/dev/types/**/*.ts",
+    "out/types/**/*.ts",
+    "out/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "_backup-v2",
+    "release",
+    "scripts/test-config",
+    "scripts/video-test-tool",
+    "playwright-report",
+    "playwright.config.ts",
+    "tests",
+    "test-results",
+    "test-reports",
+    "vitest.coverage.config.ts"
+  ]
+}

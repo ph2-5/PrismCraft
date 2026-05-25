@@ -1,0 +1,30 @@
+graph TB
+    subgraph PL["Presentation Layer"]
+        VTM["VideoTaskMgr 703行"]
+        TC["TaskCard"]
+        TFB["TaskFilterBar"]
+        D5["5 Dialog Components"]
+    end
+    subgraph HL["Hook Layer"]
+        UVTM["useVideoTaskManager Zustand Store + withTransitionGuard"]
+        UVT["useVideoTasks"]
+        UFVT["useFailedVideoTasks"]
+        URV["useRecoverVideo"]
+    end
+    subgraph DL["Domain Layer v2新增"]
+        TM["TaskMachine canTransition transition isPollable"]
+        PE["PolicyEngine checkTimeout checkExpiration evaluateAll"]
+        TS["TaskSchema pollResult mapApiStatus"]
+    end
+    subgraph IL["Infrastructure Layer v2新增"]
+        TB["TimestampBridge toStorage ms-s fromStorage s-ms"]
+        PS["PollingScheduler 5s-60s自适应 1.5x退避因子"]
+    end
+    subgraph SL["Storage Layer video-tasks.ts"]
+        S1["TaskMachine.canTransition校验 INSERT OR REPLACE"]
+        S2["deleteVideoTasksByStatus 原子事务 errorLogger.warn"]
+    end
+    PL --> HL
+    HL --> DL
+    DL --> IL
+    IL --> SL

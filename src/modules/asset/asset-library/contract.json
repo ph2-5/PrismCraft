@@ -1,0 +1,16 @@
+{
+  "name": "asset-library",
+  "description": "资产库服务：角色、场景、分镜资源、收藏集的 CRUD 操作与本地文件管理",
+  "dependencies": ["domain/Character", "domain/Scene", "domain/StoryboardAsset", "domain/Collection", "domain/AsaExportData", "infrastructure/di", "storage/updateOutfitImage"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["characterService", "sceneService", "storyboardAssetService", "collectionService", "assetExportService"],
+    "components": []
+  },
+  "invariants": [
+    "生成的图片文件通过 saveImageToLocal 保存到本地",
+    "删除资产时同步删除关联的本地文件",
+    "角色服装图片通过 updateOutfitImage 更新",
+    "asset-library 子域不依赖其他子域"
+  ]
+}

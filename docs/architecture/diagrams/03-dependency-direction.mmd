@@ -1,0 +1,6 @@
+graph LR
+    APP["app/"] --> MOD["modules/"]
+    MOD --> DOM["domain/"]
+    INF["infrastructure/"] -.->|实现端口接口| DOM
+    SHARED["shared/"] -.->|被所有层引用| APP
+    SHARED -.->|被所有层引用| MOD

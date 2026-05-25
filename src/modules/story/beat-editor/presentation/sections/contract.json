@@ -1,0 +1,14 @@
+{
+  "name": "beat-editor-sections",
+  "description": "分镜编辑器区段组件：头部、基本信息、镜头指令、设置标签页、生成标签页、底部操作栏",
+  "dependencies": ["story-beat-editor", "domain-schemas", "shared-ui"],
+  "publicAPI": {
+    "hooks": [],
+    "services": [],
+    "components": ["BeatHeader", "BasicInfoSection", "ShotInstructionSection", "SettingsTabContent", "GenerateTabContent", "BeatFooter"]
+  },
+  "invariants": [
+    "各 section 组件仅负责自身区域的渲染和交互",
+    "section 组件通过 props 接收数据，不直接访问全局状态"
+  ]
+}

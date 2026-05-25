@@ -1,0 +1,36 @@
+graph TB
+    subgraph L1["Layer 1: Presentation src/app/"]
+        PAGES["Next.js Pages"]
+        APIR["API Routes /api/*"]
+        ELEC["Electron Main Process"]
+    end
+    subgraph L2["Layer 2: Business Modules src/modules/"]
+        VM["video"]
+        SM["story"]
+        SHM["shot"]
+        CM["character"]
+        SCM["scene"]
+    end
+    subgraph L3["Layer 3: Domain Core src/domain/"]
+        SCH["schemas/ Zod验证"]
+        TYP["types/ Result等"]
+        PORT["ports/ 接口定义"]
+    end
+    subgraph L4["Layer 4: Infrastructure src/infrastructure/"]
+        AI["ai-providers 6个提供商"]
+        STOR["storage SQLite"]
+        NET["network 熔断重试"]
+        DI["di/ 容器"]
+    end
+    subgraph SH["Shared Layer src/shared/"]
+        SHOOKS["hooks/"]
+        SPRES["presentation/"]
+        SUI["ui/"]
+        SUTIL["utils/"]
+        SSTORE["app-store"]
+    end
+    L1 --> L2
+    L2 --> L3
+    L4 -.->|实现端口接口| L3
+    SH -.->|被所有层引用| L1
+    SH -.->|被所有层引用| L2

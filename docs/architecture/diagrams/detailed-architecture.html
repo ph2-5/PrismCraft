@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI Animation Studio - Architecture Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { margin: 0; padding: 20px; background: #fff; }
+  .diagram-container {
+    margin: 40px auto;
+    max-width: 1600px;
+    page-break-after: always;
+  }
+  .diagram-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #1a1a2e;
+    font-family: 'Microsoft YaHei', sans-serif;
+  }
+  .mermaid {
+    display: flex;
+    justify-content: center;
+  }
+  .mermaid svg {
+    max-width: 100%;
+  }
+</style>
+</head>
+<body>
+
+<!-- Diagram 1: Overall System Architecture -->
+<div class="diagram-container">
+  <div class="diagram-title">图1：AI Animation Studio 整体系统架构</div>
+  <div class="mermaid">
+graph TB
+    subgraph electron["🖥️ Electron 主进程层"]
+        subgraph main["main-common.ts"]
+            MCW["createWindow()<br/>BrowserWindow<br/>1400×900<br/>contextIsolation: true"]
+            MSS["startStaticServer()<br/>HTTP :3000<br/>静态文件 + API代理"]
+            MAH["setupApiHandlers()<br/>IPC 通道注册"]
+        end
+
+        subgraph api["api-server.ts :30100"]
+            direction LR
+            AG["api-gateway.ts<br/>核心网关"]
+            SS["story-service.ts<br/>故事规划"]
+            VT["video-task-service.ts<br/>视频任务"]
+            PS["prompt-service.ts<br/>提示词生成"]
+            VP["video-providers.ts<br/>策略选择"]
+            MA["model-adapter.ts<br/>模型适配"]
+            RE["reference-engine.ts<br/>参考引擎"]
+            CC["consistency-check.ts<br/>一致性检查"]
+            RC["reference-check.ts<br/>引用检查"]
+            SG["storyboard-generation.ts<br/>分镜生成"]
+            VR["video-recovery.ts<br/>视频恢复"]
+        end
+
+        subgraph security["🔐 安全层"]
+            SSRF["ssrf-guard<br/>5层防护<br/>协议/DNS/白名单/<br/>私有IP/元数据"]
+            KS["key-storage<br/>策略模式<br/>SafeStorage +<br/>AES-256-GCM回退"]
+            RL["Rate Limiter<br/>180 req/min/IP<br/>LRU 10000 IPs"]
+        end
+
+        subgraph db["💾 数据库层"]
+            DB[("SQLite<br/>WAL模式<br/>64MB缓存<br/>256MB mmap<br/>28张表<br/>30+索引")]
+        end
+
+        subgraph handlers["IPC Handlers"]
+            H1["assets.ts"]
+            H2["database.ts"]
+            H3["export.ts"]
+            H4["config.ts"]
+        end
+    end
+
+    subgraph renderer["🌐 前端渲染层 (Next.js)"]
+        subgraph di["DI 容器 - 48个Singleton Token"]
+            direction LR
+            ST["Storage层<br/>9个存储实现"]
+            RP["Repository层<br/>5个仓储"]
+            PR["Provider层<br/>4个AI接口"]
+            AC["API客户端<br/>imageApi/videoApi/textApi"]
+            UT["工具层<br/>eventBus/syncStorage<br/>resolveImageUrl"]
+        end
+
+        subgraph domain["领域层 (DDD)"]
+            direction LR
+            PORTS["Ports 端口<br/>IVideoProvider<br/>IImageProvider<br/>ITextProvider<br/>IFileUploader<br/>IVideoTaskStorage<br/>ICharacterStorage<br/>ISceneStorage<br/>IStoryStorage"]
+            SCHEMAS["Schemas<br/>Zod验证<br/>videoTaskSchema<br/>storyBeatSchema<br/>characterSchema<br/>sceneSchema"]
+            SERVICES["Domain Services<br/>BeatWorkflowService<br/>StoryGenerationService<br/>ReferenceResolver"]
+        end
+
+        subgraph modules["业务模块层"]
+            direction LR
+            M1["🎬 shot<br/>7个子域"]
+            M2["📖 story<br/>5个子域"]
+            M3["✍️ prompt<br/>7个子域"]
+            M4["🎭 character"]
+            M5["🏞️ scene"]
+            M6["📦 asset"]
+            M7["🔄 sync"]
+            M8["🎥 video"]
+        end
+
+        subgraph network["网络层"]
+            CB["Circuit Breaker<br/>closed→open→half-open<br/>per-provider隔离"]
+            RT["Retry Executor<br/>指数退避"]
+            RF["Resilient Fetch<br/>5个拦截器"]
+            DM["Download Manager<br/>断点续传"]
+            NM["Network Monitor<br/>在线/离线检测"]
+        end
+    end
+
+    subgraph providers["☁️ 外部AI服务"]
+        direction LR
+        P1["快手 Kuaishou"]
+        P2["Pixverse"]
+        P3["Seedance"]
+        P4["火山引擎 Volcengine"]
+        P5["智谱 Zhipu"]
+    end
+
+    MCW --> MSS
+    MSS -->|"/* → 静态文件<br/>/api/* → 代理"| AG
+    MCW --> MAH
+    MAH --> H1 & H2 & H3 & H4
+    H2 --> DB
+    AG --> RL
+    AG --> SSRF
+    AG --> KS
+    AG --> SS & VT & PS & VP & MA & RE & CC & RC & SG & VR
+
+    renderer -.->|"IPC / HTTP API<br/>:3000 / :30100"| electron
+    di --> domain
+    domain --> modules
+    modules --> network
+    network -->|"策略模式<br/>CircuitBreaker"| providers
+
+    style electron fill:#e8f4f8,stroke:#2196F3,stroke-width:2px
+    style renderer fill:#f3e5f5,stroke:#9C27B0,stroke-width:2px
+    style providers fill:#fff3e0,stroke:#FF9800,stroke-width:2px
+  </div>
+</div>
+
+<!-- Diagram 2: DI Container - 48 Tokens -->
+<div class="diagram-container">
+  <div class="diagram-title">图2：DI 容器架构 - 48个Singleton Token</div>
+  <div class="mermaid">
+graph TB
+    subgraph container["ModuleContainer (Proxy 懒加载)"]
+        subgraph storage["📦 Storage 存储层"]
+            VTS["videoTaskStorage<br/>IVideoTaskStorage<br/>12个方法"]
+            CHS["characterStorage<br/>ICharacterStorage<br/>9个方法"]
+            SCS["sceneStorage<br/>ISceneStorage<br/>5个方法"]
+            STS["storyStorage<br/>IStoryStorage<br/>6个方法"]
+            VCS["videoCacheStorage"]
+            ELS["elementStorage"]
+            COS["collectionStorage"]
+            SBS["storyboardStorage"]
+            VRS["versionStorage"]
+        end
+
+        subgraph repo["🗄️ Repository 仓储层"]
+            MAR["mediaAssetRepository"]
+            CHR["characterRepository"]
+            SCR["sceneRepository"]
+            STR["storyRepository"]
+            ELR["elementRepository"]
+        end
+
+        subgraph ai["🤖 AI Provider 提供者层"]
+            VIP["videoProvider<br/>IVideoProvider<br/>5个方法"]
+            IIP["imageProvider<br/>IImageProvider<br/>2个方法"]
+            TTP["textProvider<br/>ITextProvider<br/>1个方法"]
+            FUP["fileUploader<br/>IFileUploader<br/>1个方法"]
+        end
+
+        subgraph sync["🔄 同步层"]
+            SYS["syncStorage<br/>ISyncStorage<br/>4个方法"]
+        end
+
+        subgraph sql["🗃️ SQL 工具层"]
+            SQ1["safeQuery"]
+            SQ2["safeRun"]
+            SQ3["safeTransaction"]
+            SQ4["toSqlValue"]
+            SQ5["trackChange"]
+        end
+
+        subgraph api_client["📡 API 客户端"]
+            IAC["imageApi"]
+            VAC["videoApi"]
+            TAC["textApi"]
+        end
+
+        subgraph utils["🔧 工具层"]
+            EB["eventBus"]
+            RIU["resolveImageUrl"]
+            GEM["getErrorMessage"]
+            ISE["isElectron"]
+            LCF["loadConfig"]
+        end
+
+        subgraph outfit["👗 服装合成"]
+            SO["synthesizeOutfit"]
+            BSO["batchSynthesizeOutfits"]
+            UOI["updateOutfitImage"]
+        end
+
+        subgraph model["📐 模型适配"]
+            GSC["getProviderSupportedCodecs"]
+            GMD["getProviderMaxDuration"]
+        end
+
+        subgraph cloud["☁️ 云提供者"]
+            CP["cloudProviders<br/>CLOUD_PROVIDERS<br/>7个条目"]
+            DCP["defaultCloudProvider<br/>DEFAULT_CLOUD_PROVIDER"]
+        end
+
+        subgraph misc["📋 其他"]
+            ROU["registerObjectUrl"]
+            ROV["revokeObjectUrl"]
+            GOU["getObjectUrl"]
+            IES["importExportStorage"]
+            TPS["templateStorage"]
+            ASS["autoSaveStorage"]
+            ELS2["errorLogStorage"]
+            SES["sessionStorage"]
+        end
+    end
+
+    style container fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    style storage fill:#e3f2fd,stroke:#1976D2
+    style repo fill:#e8f5e9,stroke:#388E3C
+    style ai fill:#fff3e0,stroke:#F57C00
+    style sync fill:#fce4ec,stroke:#C2185B
+    style sql fill:#f3e5f5,stroke:#7B1FA2
+    style api_client fill:#e0f2f1,stroke:#00796B
+    style utils fill:#fff9c4,stroke:#F9A825
+    style outfit fill:#f1f8e9,stroke:#689F38
+    style model fill:#ede7f6,stroke:#512DA8
+    style cloud fill:#e1f5fe,stroke:#0288D1
+    style misc fill:#efebe9,stroke:#5D4037
+  </div>
+</div>
+
+<!-- Diagram 3: AI Provider Strategy Pattern -->
+<div class="diagram-container">
+  <div class="diagram-title">图3：AI 提供者策略模式 - 5大视频生成策略</div>
+  <div class="mermaid">
+graph TB
+    subgraph port["领域端口 (Ports)"]
+        IVP["IVideoProvider<br/>─────────────<br/>+ generateVideo(prompt, options?)<br/>+ queryVideoStatus(taskId, options?)<br/>+ generateKeyframe(params)<br/>+ generateFramePair(params)<br/>+ generateVideoWithFrames(params)"]
+        IIP["IImageProvider<br/>─────────────<br/>+ generateImage(prompt, type?, options?)<br/>+ analyzeImage(imageUrl, type?, prompt?)"]
+        ITP["ITextProvider<br/>─────────────<br/>+ generateText(prompt, options?)"]
+        IFU["IFileUploader<br/>─────────────<br/>+ uploadFile(file: File)"]
+    end
+
+    subgraph strategies["策略实现层"]
+        KS["KuaishouStrategy<br/>快手可灵<br/>─────────────<br/>视频生成 | 关键帧 | 帧对<br/>角色参考 | 场景参考"]
+        PVS["PixverseStrategy<br/>Pixverse<br/>─────────────<br/>视频生成 | 图像生成<br/>图像分析"]
+        SD["SeedanceStrategy<br/>Seedance<br/>─────────────<br/>视频生成 | 关键帧<br/>帧对生成"]
+        VE["VolcengineStrategy<br/>火山引擎<br/>─────────────<br/>视频生成 | 图像生成<br/>文本生成"]
+        ZP["ZhipuStrategy<br/>智谱AI<br/>─────────────<br/>文本生成 | 图像分析"]
+    end
+
+    subgraph infra["基础设施层"]
+        CB["Circuit Breaker<br/>per-provider隔离<br/>closed/open/half-open"]
+        RT["Retry Executor<br/>指数退避重试"]
+        OQ["Offline Queue<br/>离线任务队列"]
+        AC["API Cache<br/>响应缓存"]
+        VP["VideoService<br/>视频服务编排"]
+        IP2["ImageService<br/>图像服务编排"]
+        TP["TextService<br/>文本服务编排"]
+    end
+
+    subgraph cloud_entries["云提供者配置 CLOUD_PROVIDERS"]
+        CE1["kuaishou<br/>可灵"]
+        CE2["pixverse"]
+        CE3["seedance"]
+        CE4["volcengine<br/>豆包"]
+        CE5["zhipu<br/>智谱"]
+        CE6["server<br/>服务端代理"]
+        CE7["custom<br/>自定义"]
+    end
+
+    IVP -.->|"implements"| KS & PVS & SD & VE
+    IIP -.->|"implements"| PVS & VE & ZP
+    ITP -.->|"implements"| VE & ZP
+    IFU -.->|"implements"| VP
+
+    KS & PVS & SD & VE & ZP --> CB
+    CB --> RT
+    RT --> OQ
+    VP & IP2 & TP --> AC
+
+    KS <--> CE1
+    PVS <--> CE2
+    SD <--> CE3
+    VE <--> CE4 & CE5
+    VP <--> CE6 & CE7
+
+    style port fill:#e8eaf6,stroke:#3F51B5,stroke-width:2px
+    style strategies fill:#fff3e0,stroke:#FF9800,stroke-width:2px
+    style infra fill:#e8f5e9,stroke:#4CAF50,stroke-width:2px
+    style cloud_entries fill:#e1f5fe,stroke:#03A9F4
+  </div>
+</div>
+
+<!-- Diagram 4: Task Machine State Machine -->
+<div class="diagram-container">
+  <div class="diagram-title">图4：TaskMachine 视频任务状态机</div>
+  <div class="mermaid">
+stateDiagram-v2
+    [*] --> pending : 创建任务
+
+    pending --> processing : 开始处理
+    pending --> failed : 初始化失败
+
+    processing --> completed : 生成成功
+    processing --> failed : 生成失败
+
+    failed --> retrying : 触发重试<br/>recoveryAttempts++
+
+    retrying --> processing : 重新提交
+    retrying --> completed : 重试成功
+    retrying --> failed : 重试失败<br/>达到上限
+
+    completed --> [*]
+    cancelled --> [*]
+
+    note right of pending
+        初始状态
+        可轮询: ✓
+        终态: ✗
+    end note
+
+    note right of processing
+        处理中
+        副作用: lastPolledAt=now<br/>pollFailureCount=0
+        可轮询: ✓
+    end note
+
+    note right of completed
+        终态
+        副作用: progress=100<br/>videoUrl=结果URL
+        message=清空
+    end note
+
+    note right of failed
+        副作用: message=错误信息
+        可转入retrying
+    end note
+
+    note right of retrying
+        副作用: recoveryAttempts++<br/>pollFailureCount=0
+        可轮询: ✓
+    end note
+  </div>
+</div>
+
+<!-- Diagram 5: Network Resilience Layer -->
+<div class="diagram-container">
+  <div class="diagram-title">图5：网络弹性层 - 5层拦截器链</div>
+  <div class="mermaid">
+graph LR
+    REQ["API 请求"] --> I1
+
+    subgraph interceptors["拦截器链 (Interceptor Chain)"]
+        I1["1️⃣ Cache Interceptor<br/>缓存拦截器<br/>─────────────<br/>检查API缓存<br/>命中则直接返回"]
+        I2["2️⃣ Circuit Breaker<br/>熔断拦截器<br/>─────────────<br/>检查provider状态<br/>closed: 放行<br/>open: 拒绝/降级<br/>half-open: 探测"]
+        I3["3️⃣ Retry Interceptor<br/>重试拦截器<br/>─────────────<br/>指数退避<br/>maxRetries配置<br/>可重试错误判断"]
+        I4["4️⃣ Lifecycle Interceptor<br/>生命周期拦截器<br/>─────────────<br/>请求计时<br/>性能指标采集"]
+        I5["5️⃣ Logging Interceptor<br/>日志拦截器<br/>─────────────<br/>请求/响应日志<br/>错误追踪"]
+    end
+
+    I5 --> RF["Resilient Fetch<br/>弹性请求执行"]
+
+    RF --> CB["Circuit Breaker<br/>─────────────<br/>failureThreshold<br/>recoveryTimeout<br/>halfOpenMaxCalls<br/>successThreshold"]
+
+    CB -->|"closed"| EXEC["执行请求 fn()"]
+    CB -->|"open"| FB["Fallback<br/>降级处理"]
+    CB -->|"half-open"| PROBE["探测请求<br/>limited calls"]
+
+    EXEC -->|"成功"| RS["recordSuccess<br/>successCount++"]
+    EXEC -->|"失败"| RF2["recordFailure<br/>failureCount++"]
+
+    RS -->|"count >= threshold"| CLOSED["→ closed"]
+    RF2 -->|"count >= threshold"| OPEN["→ open"]
+    PROBE -->|"成功足够"| CLOSED
+    PROBE -->|"失败"| OPEN
+
+    OPEN -->|"timeout到期"| HO["→ half-open"]
+
+    style interceptors fill:#e3f2fd,stroke:#1976D2,stroke-width:2px
+    style CB fill:#ffebee,stroke:#D32F2F,stroke-width:2px
+  </div>
+</div>
+
+<!-- Diagram 6: SSRF 5-Layer Protection -->
+<div class="diagram-container">
+  <div class="diagram-title">图6：SSRF 五层安全防护</div>
+  <div class="mermaid">
+graph TD
+    URL["输入URL"] --> L1
+
+    subgraph layers["SsrfGuard.validate() 五层验证"]
+        L1["第1层: 协议检查<br/>─────────────<br/>仅允许 http:// https://<br/>拒绝 file:// data:// javascript://"]
+        L1 -->|"✓ 通过"| L2
+        L1 -->|"✗ 拒绝"| REJ["❌ unsafe<br/>reason: 不安全协议"]
+
+        L2["第2层: 元数据端点检查<br/>─────────────<br/>169.254.169.254 (AWS/GCP/Azure)<br/>metadata.google.internal<br/>metadata.goog"]
+        L2 -->|"✓ 通过"| L3
+        L2 -->|"✗ 拒绝"| REJ2["❌ unsafe<br/>reason: 元数据端点"]
+
+        L3["第3层: 自定义白名单<br/>─────────────<br/>用户/管理员配置<br/>addWhitelist(pattern)"]
+        L3 -->|"✓ 匹配"| PASS["✅ safe<br/>resolvedIp"]
+        L3 -->|"未匹配"| L4
+
+        L4["第4层: 主机名私有地址<br/>─────────────<br/>localhost / 127.x<br/>10.x / 172.16-31.x / 192.168.x<br/>::1 / fe80: / fc00:"]
+        L4 -->|"✓ 通过"| L5
+        L4 -->|"✗ 拒绝"| REJ3["❌ unsafe<br/>reason: 私有地址"]
+
+        L5["第5层: DNS解析验证<br/>─────────────<br/>dns.resolve4 (3秒超时)<br/>检查所有解析IP<br/>防止DNS重绑定攻击"]
+        L5 -->|"✓ 通过"| PASS
+        L5 -->|"✗ 拒绝"| REJ4["❌ unsafe<br/>reason: DNS解析到私有IP"]
+    end
+
+    PASS --> ALLOW["允许请求"]
+    REJ & REJ2 & REJ3 & REJ4 --> DENY["拒绝请求"]
+
+    style layers fill:#ffebee,stroke:#C62828,stroke-width:2px
+    style PASS fill:#c8e6c9,stroke:#2E7D32,stroke-width:2px
+    style REJ fill:#ffcdd2,stroke:#C62828
+    style REJ2 fill:#ffcdd2,stroke:#C62828
+    style REJ3 fill:#ffcdd2,stroke:#C62828
+    style REJ4 fill:#ffcdd2,stroke:#C62828
+  </div>
+</div>
+
+<!-- Diagram 7: Key Storage Strategy Pattern -->
+<div class="diagram-container">
+  <div class="diagram-title">图7：密钥存储策略模式</div>
+  <div class="mermaid">
+graph TB
+    subgraph manager["KeyStorageManager (单例)"]
+        INIT["initialize()<br/>自动选择最优策略"]
+        SAVE["save(key, value)"]
+        LOAD["load(key)"]
+        DEL["delete(key)"]
+        LIST["list()"]
+        CLR["clear()"]
+    end
+
+    subgraph interface["KeyStorageStrategy 接口"]
+        INT["─────────────<br/>name: string<br/>priority: number<br/>isAvailable(): boolean<br/>save(key, value): Promise<br/>load(key): Promise<br/>delete(key): Promise<br/>list(): Promise<br/>clear(): Promise"]
+    end
+
+    subgraph strategies["策略实现"]
+        SS["SafeStorageStrategy<br/>优先级: 高<br/>─────────────<br/>使用 Electron safeStorage API<br/>系统密钥链加密<br/>Windows: DPAPI<br/>macOS: Keychain<br/>Linux: libsecret"]
+        PF["PlaintextFallbackStrategy<br/>优先级: 低<br/>─────────────<br/>AES-256-GCM 加密<br/>EncryptedDataPacket:<br/>  alg, iv, tag,<br/>  ciphertext, createdAt,<br/>  strategy"]
+    end
+
+    INIT -->|"遍历 priority 排序"| CHECK1["SafeStorageStrategy<br/>.isAvailable()?"]
+    CHECK1 -->|"true"| ACTIVE1["✅ 选为 activeStrategy"]
+    CHECK1 -->|"false"| CHECK2["PlaintextFallback<br/>.isAvailable()?"]
+    CHECK2 -->|"true"| ACTIVE2["✅ 选为 activeStrategy"]
+    CHECK2 -->|"false"| ERR["❌ 无可用策略"]
+
+    SAVE & LOAD & DEL --> ACTIVE1
+    ACTIVE1 -.->|"fallback"| ACTIVE2
+
+    interface -.->|"implements"| SS
+    interface -.->|"implements"| PF
+
+    style manager fill:#e8eaf6,stroke:#3F51B5,stroke-width:2px
+    style interface fill:#f5f5f5,stroke:#9E9E9E
+    style strategies fill:#fff3e0,stroke:#FF9800,stroke-width:2px
+    style ACTIVE1 fill:#c8e6c9,stroke:#2E7D32,stroke-width:2px
+    style ACTIVE2 fill:#fff9c4,stroke:#F9A825,stroke-width:2px
+  </div>
+</div>
+
+<!-- Diagram 8: Sync Engine -->
+<div class="diagram-container">
+  <div class="diagram-title">图8：同步引擎 - 向量时钟与冲突解决</div>
+  <div class="mermaid">
+graph TB
+    subgraph engine["SyncEngine"]
+        INIT2["initSyncEngine(config)"]
+        AUTO["startAutoSync()<br/>默认30秒间隔"]
+        SYNC["performSync()"]
+    end
+
+    subgraph push["Push 推送流程"]
+        GET["getPendingChanges()<br/>synced=false的变更"]
+        POST["POST /sync/push<br/>Header: X-Sync-Token<br/>Body: changes[]"]
+        MARK["markChangesSynced()"]
+        GET --> POST --> MARK
+    end
+
+    subgraph pull["Pull 拉取流程"]
+        GET2["GET /sync/pull<br/>分页拉取<br/>最多10页"]
+        MERGE["mergeVectorClocks()<br/>取各device最大counter"]
+        GET2 --> MERGE
+    end
+
+    subgraph apply["Apply 应用远程变更"]
+        COMP["compareVectorClocks()<br/>本地 vs 远程"]
+        COMP -->|"remote > local"| UPD["UPDATE<br/>应用远程变更"]
+        COMP -->|"remote不存在"| INS["INSERT OR REPLACE"]
+        COMP -->|"并发冲突"| CONF["sync_status='conflict'"]
+        COMP -->|"local > remote"| IGN["忽略远程变更"]
+    end
+
+    subgraph conflict["冲突解决 (4种策略)"]
+        LW["last-write-wins<br/>比较updated_at<br/>取最新"]
+        LO["local-wins<br/>重置sync_status='pending'"]
+        RM["remote-wins<br/>备份本地+应用远程"]
+        MN["manual<br/>标记conflict<br/>等待用户处理"]
+    end
+
+    subgraph entities["同步实体 (11种)"]
+        E1["character → characters"]
+        E2["scene → scenes"]
+        E3["story → stories"]
+        E4["media_asset → media_assets"]
+        E5["storyboard_asset → storyboard_assets"]
+        E6["video_task → video_tasks"]
+        E7["story_version → story_versions"]
+        E8["collection → collections"]
+        E9["element → elements"]
+        E10["video_template → video_templates"]
+        E11["ast_template → ast_templates"]
+    end
+
+    SYNC --> push
+    SYNC -->|"推送后处理冲突"| conflict
+    SYNC --> pull
+    pull --> apply
+    apply -->|"冲突"| conflict
+
+    style engine fill:#e8eaf6,stroke:#3F51B5,stroke-width:2px
+    style push fill:#e8f5e9,stroke:#4CAF50
+    style pull fill:#e3f2fd,stroke:#2196F3
+    style apply fill:#fff3e0,stroke:#FF9800
+    style conflict fill:#ffebee,stroke:#F44336
+    style entities fill:#f5f5f5,stroke:#9E9E9E
+  </div>
+</div>
+
+<!-- Diagram 9: Database ER Diagram -->
+<div class="diagram-container">
+  <div class="diagram-title">图9：数据库ER关系图 - 28张表</div>
+  <div class="mermaid">
+erDiagram
+    stories ||--o{ story_characters : "1:N"
+    stories ||--o{ story_scenes : "1:N"
+    stories ||--o{ story_beats : "1:N"
+    stories ||--o{ story_elements : "1:N"
+    stories ||--o{ story_versions : "1:N"
+    stories ||--o{ video_tasks : "1:N (story_id)"
+    characters ||--o{ story_characters : "N:M"
+    characters ||--o{ character_outfits : "1:N"
+    scenes ||--o{ story_scenes : "N:M"
+    elements ||--o{ story_elements : "N:M"
+    collections ||--o{ collection_assets : "1:N"
+
+    stories {
+        TEXT id PK
+        TEXT title
+        TEXT genre
+        TEXT style
+        TEXT theme
+        TEXT synopsis
+        INTEGER target_duration
+        TEXT vector_clock
+        TEXT sync_status
+        BOOLEAN is_deleted
+        TEXT updated_at
+        TEXT created_at
+    }
+
+    characters {
+        TEXT id PK
+        TEXT name
+        TEXT style
+        TEXT gender
+        TEXT description
+        TEXT appearance
+        TEXT personality
+        TEXT source
+        TEXT reference_images
+        INTEGER use_count
+        TEXT tags
+        TEXT vector_clock
+        TEXT sync_status
+        BOOLEAN is_deleted
+        TEXT created_at
+    }
+
+    scenes {
+        TEXT id PK
+        TEXT name
+        TEXT type
+        TEXT description
+        TEXT atmosphere
+        TEXT lighting
+        TEXT color_palette
+        TEXT reference_images
+        TEXT tags
+        TEXT vector_clock
+        TEXT sync_status
+        BOOLEAN is_deleted
+        TEXT created_at
+    }
+
+    story_beats {
+        TEXT id PK
+        TEXT story_id FK
+        INTEGER beat_order
+        TEXT title
+        TEXT content
+        TEXT shot_type
+        TEXT camera_angle
+        TEXT camera_movement
+        TEXT action
+        TEXT dialogue
+        TEXT keyframe_url
+        TEXT video_url
+        TEXT prompt
+        REAL duration
+        TEXT elements
+    }
+
+    video_tasks {
+        TEXT task_id PK
+        TEXT story_id
+        TEXT beat_id
+        TEXT status
+        TEXT provider_id
+        TEXT model_id
+        TEXT prompt
+        TEXT video_url
+        INTEGER progress
+        INTEGER recovery_attempts
+        INTEGER poll_failure_count
+        TEXT last_polled_at
+        TEXT expires_at
+        TEXT vector_clock
+        TEXT sync_status
+        BOOLEAN is_deleted
+    }
+
+    character_outfits {
+        TEXT id PK
+        TEXT character_id FK
+        TEXT name
+        TEXT description
+        TEXT image_url
+        TEXT local_image_path
+    }
+
+    elements {
+        TEXT id PK
+        TEXT type
+        TEXT name
+        TEXT description
+        TEXT category
+    }
+
+    media_assets {
+        TEXT id PK
+        TEXT type
+        TEXT url
+        TEXT local_path
+        TEXT thumbnail_url
+        INTEGER file_size
+        TEXT metadata
+        TEXT vector_clock
+        TEXT sync_status
+        BOOLEAN is_deleted
+    }
+
+    collections {
+        TEXT id PK
+        TEXT name
+        TEXT description
+        TEXT type
+        TEXT vector_clock
+        TEXT sync_status
+        BOOLEAN is_deleted
+    }
+
+    video_cache {
+        TEXT task_id PK
+        TEXT video_url
+        TEXT local_path
+        INTEGER file_size
+        TEXT cached_at
+    }
+
+    sync_changelog {
+        TEXT id PK
+        TEXT entity_type
+        TEXT entity_id
+        TEXT operation
+        TEXT data
+        TEXT vector_clock
+        BOOLEAN synced
+        TEXT timestamp
+    }
+  </div>
+</div>
+
+<!-- Diagram 10: Module Architecture -->
+<div class="diagram-container">
+  <div class="diagram-title">图10：业务模块架构 - 子域划分</div>
+  <div class="mermaid">
+graph TB
+    subgraph shot["🎬 Shot 模块 (7个子域)"]
+        direction TB
+        SG["shot-generation<br/>─────────────<br/>story-generation-pipeline<br/>dynamic-few-shot<br/>shot-params<br/>shot-validator"]
+        SI["shot-instruction<br/>─────────────<br/>ShotInstructionService"]
+        SR["shot-reference<br/>─────────────<br/>ReferenceEngine<br/>ShotReferenceService"]
+        EB["element-binding<br/>─────────────<br/>ElementManager<br/>useElementBinding"]
+        FE["feature-extraction<br/>─────────────<br/>FeatureExtractionService<br/>FeatureAnchoringService"]
+        RC2["reference-check<br/>─────────────<br/>ReferenceCheckService"]
+        CC2["consistency-check<br/>─────────────<br/>ConsistencyCheckService<br/>ConfigCheckService"]
+    end
+
+    subgraph story["📖 Story 模块 (5个子域)"]
+        direction TB
+        PL["planning<br/>─────────────<br/>StoryPlanningService<br/>StoryService<br/>useStoryPlanner<br/>useStorySaver"]
+        GE["generation<br/>─────────────<br/>StoryboardGenerationService<br/>useAIGeneratorBase<br/>useBatchGenerator<br/>useVideoGenerator<br/>useKeyframeGenerator<br/>useFramePairGenerator"]
+        BE["beat-editor<br/>─────────────<br/>BeatDetailEditor<br/>BeatOverviewCard<br/>ElementBindingPanel<br/>ProfessionalModeEditor<br/>SortableBeatList"]
+        PE["prompt-editor<br/>─────────────<br/>提示词编辑器"]
+        SC2["shot-generation<br/>─────────────<br/>ShotGenerationPanel<br/>PromptPreview<br/>ReferenceVideoUploader"]
+    end
+
+    subgraph prompt["✍️ Prompt 模块 (7个子域)"]
+        direction TB
+        BA["base<br/>基础提示词"]
+        BU["builder<br/>─────────────<br/>PromptBuilder<br/>QuickMode<br/>StoryPlan"]
+        CH["character<br/>─────────────<br/>CharacterPromptService"]
+        SE["scene<br/>─────────────<br/>ScenePromptService"]
+        VI["video<br/>─────────────<br/>VideoPromptService"]
+        BI["beat-image<br/>节拍图像提示词"]
+        SP["server-prompts<br/>─────────────<br/>ServerPromptService"]
+    end
+
+    subgraph other["其他模块"]
+        direction TB
+        CH2["🎭 Character<br/>─────────────<br/>useCharacterCRUD<br/>useCharacterImage<br/>useCharacters<br/>useOutfitManagement"]
+        SC3["🏞️ Scene<br/>─────────────<br/>useSceneCRUD<br/>useSceneImage<br/>useScenes"]
+        AS["📦 Asset<br/>─────────────<br/>useMediaAssets<br/>useImportExport<br/>useProjectExport<br/>ASAExportService"]
+        SY["🔄 Sync<br/>─────────────<br/>SyncEngine<br/>VectorClock"]
+        VD["🎥 Video<br/>─────────────<br/>TaskMachine<br/>SmartRetryEngine"]
+    end
+
+    shot -->|"依赖"| prompt
+    story -->|"依赖"| shot
+    story -->|"依赖"| prompt
+    CH2 -->|"依赖"| prompt
+    SC3 -->|"依赖"| prompt
+
+    style shot fill:#e3f2fd,stroke:#1976D2,stroke-width:2px
+    style story fill:#f3e5f5,stroke:#7B1FA2,stroke-width:2px
+    style prompt fill:#fff3e0,stroke:#F57C00,stroke-width:2px
+    style other fill:#e8f5e9,stroke:#388E3C,stroke-width:2px
+  </div>
+</div>
+
+</body>
+</html>

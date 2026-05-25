@@ -1,0 +1,15 @@
+{
+  "name": "character-hooks",
+  "description": "角色模块 React Hooks：CRUD 操作、图片生成、服装管理的 React Query 封装",
+  "dependencies": ["character-service", "@tanstack/react-query"],
+  "publicAPI": {
+    "hooks": ["useCharacterCRUD", "useCharacterImage", "useOutfitManagement", "useCharacters", "useCharacter", "useCharacterCount", "useCreateCharacter", "useUpdateCharacter", "useDeleteCharacter"],
+    "services": [],
+    "components": []
+  },
+  "invariants": [
+    "使用 React Query 进行数据获取和缓存",
+    "mutation 成功后自动 invalidateQueries",
+    "hooks 子域依赖 character-service 子域"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "prompt-character",
+  "description": "角色提示词生成：角色图片提示词、详细描述指令",
+  "dependencies": ["prompt-base"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["generateCharacterImagePrompt", "generateOutfitImagePrompt", "generateCharacterDetailedPromptInstruction", "generateSimpleCharacterImagePrompt"],
+    "components": []
+  },
+  "invariants": [
+    "角色提示词包含外观描述、风格标签、质量标签",
+    "prompt-character 子域依赖 prompt-base 子域"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "asset-hooks",
+  "description": "资产模块 React Hooks：媒体资产、导入导出、项目导出的 React Query 封装",
+  "dependencies": ["media-assets", "import-export", "@tanstack/react-query"],
+  "publicAPI": {
+    "hooks": ["useMediaAssets", "useCreateMediaAsset", "useDeleteMediaAsset", "useExportData", "useDownloadExport", "useImportData", "useImportFromFile", "useProjectExport"],
+    "services": [],
+    "components": []
+  },
+  "invariants": [
+    "使用 React Query 进行数据获取和缓存",
+    "mutation 成功后自动 invalidateQueries",
+    "hooks 子域依赖 asset-library、media-assets、import-export 子域"
+  ]
+}

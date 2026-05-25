@@ -1,0 +1,35 @@
+erDiagram
+    STORY ||--o{ STORYBEAT : contains
+    STORYBEAT ||--|| SHOTINSTRUCTION : has
+    STORYBEAT ||--|| VIDEOTASK : has
+    STORYBEAT }o--|| CHARACTER : references
+    STORYBEAT }o--|| SCENE : references
+    ELEMENT {
+        string id PK
+        string type
+        string name
+    }
+    ELEMENT ||--o| CHARACTER : inherits
+    ELEMENT ||--o| PROP : inherits
+    CHARACTER ||--o{ OUTFIT : has
+    STORY {
+        string id PK
+        string title
+    }
+    STORYBEAT {
+        string id PK
+        string story_id FK
+        int sequence
+    }
+    CHARACTER {
+        string id PK
+        string name
+    }
+    VIDEOTASK {
+        string task_id PK
+        string status
+    }
+    OUTFIT {
+        string id PK
+        string character_id FK
+    }

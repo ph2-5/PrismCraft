@@ -1,0 +1,16 @@
+{
+  "name": "import-export",
+  "description": "项目数据导入导出：JSON 格式的完整项目备份与恢复、合并策略",
+  "dependencies": ["domain/Result", "domain/AppError", "domain/ValidationError", "infrastructure/di"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["importData", "exportData", "downloadExport", "importFromFile"],
+    "components": []
+  },
+  "invariants": [
+    "导入数据通过 validateImportData 校验",
+    "合并策略支持 replace / merge / skip",
+    "导出格式为标准 JSON",
+    "import-export 子域不依赖其他子域"
+  ]
+}

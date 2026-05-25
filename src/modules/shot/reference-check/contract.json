@@ -1,0 +1,15 @@
+{
+  "name": "shot-reference-check",
+  "description": "元素引用检查：检查角色、场景、元素是否被故事/分镜引用，用于删除前的安全校验",
+  "dependencies": ["@/domain/schemas"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["checkCharacterReferences", "checkSceneReferences", "checkElementReferences"],
+    "components": []
+  },
+  "invariants": [
+    "checkCharacterReferences、checkSceneReferences、checkElementReferences 检查元素是否被引用",
+    "用于删除前的安全校验，防止误删被引用的元素",
+    "禁止直接导入 story 和 video 模块"
+  ]
+}

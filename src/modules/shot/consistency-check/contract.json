@@ -1,0 +1,15 @@
+{
+  "name": "shot-consistency-check",
+  "description": "分镜视觉一致性检查与配置校验：检查分镜生成配置是否完整，验证特征锚定配置的有效性，评估生成结果的一致性评分",
+  "dependencies": ["@/domain/schemas", "@/domain/types", "@/infrastructure/di"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["checkVisualConsistency", "performConfigCheck", "performConsistencyCheck", "validateFeatureAnchoringConfig", "validateNoFrameBinding"],
+    "components": []
+  },
+  "invariants": [
+    "checkVisualConsistency 评估分镜生成结果的视觉一致性评分",
+    "performConfigCheck 和 validateFeatureAnchoringConfig 确保生成配置完整且有效",
+    "禁止直接导入 story 和 video 模块"
+  ]
+}

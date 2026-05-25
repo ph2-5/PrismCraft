@@ -1,0 +1,15 @@
+{
+  "name": "shot-element-binding",
+  "description": "分镜元素绑定管理：管理分镜与角色、场景等 StoryElement 的绑定关系，提供元素库访问和绑定状态管理",
+  "dependencies": ["@/domain/schemas", "@/infrastructure/di"],
+  "publicAPI": {
+    "hooks": ["useElementBinding"],
+    "services": ["elementManager"],
+    "components": []
+  },
+  "invariants": [
+    "elementManager 管理分镜与 StoryElement 的绑定关系",
+    "useElementBinding 提供元素库访问和绑定状态管理",
+    "禁止直接导入 story 和 video 模块"
+  ]
+}

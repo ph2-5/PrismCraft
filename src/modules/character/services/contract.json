@@ -1,0 +1,16 @@
+{
+  "name": "character-service",
+  "description": "角色服务：角色的 CRUD 操作，使用 Result 模式处理错误，触发领域事件",
+  "dependencies": ["domain/Character", "domain/CreateCharacterInput", "domain/UpdateCharacterInput", "domain/Result", "domain/fromAsyncThrowable", "domain/NotFoundError", "domain/ValidationError", "infrastructure/di", "shared/DomainEvents"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["characterService"],
+    "components": []
+  },
+  "invariants": [
+    "所有操作使用 Result<T> 类型返回",
+    "使用 createCharacterInputSchema 和 updateCharacterInputSchema 校验输入",
+    "创建、更新、删除操作触发对应的领域事件",
+    "character-service 子域不依赖其他子域"
+  ]
+}

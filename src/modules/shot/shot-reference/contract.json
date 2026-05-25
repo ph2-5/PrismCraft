@@ -1,0 +1,15 @@
+{
+  "name": "shot-reference",
+  "description": "分镜引用管理：管理分镜之间的引用关系（链式引用、自定义引用），验证引用的有效性，解析引用目标",
+  "dependencies": ["@/domain/schemas"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["referenceEngine", "validateReference", "getTargetShot", "getReferenceVideoUrl", "buildReferenceDescription"],
+    "components": []
+  },
+  "invariants": [
+    "referenceEngine 负责管理分镜间的链式引用和自定义引用关系",
+    "validateReference 和 getTargetShot 确保引用目标的有效性",
+    "禁止直接导入 story 和 video 模块"
+  ]
+}

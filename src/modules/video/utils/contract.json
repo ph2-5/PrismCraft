@@ -1,0 +1,18 @@
+{
+  "name": "video-utils",
+  "description": "视频工具函数：编解码检测、帧提取、文件导出、视频模板",
+  "dependencies": ["domain/VideoModelFormat", "infrastructure/di", "shared/video-utils", "shared-utils/downloadJSONFile"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["detectVideoCodec", "isCodecSupportedByProvider", "getVideoCodecLabel", "getContainerLabel", "extractVideoFrames", "dataUrlToFile", "downloadJSONFile", "videoTemplates", "templateCategories", "getTemplatesByCategory", "applyVideoTemplate"],
+    "components": []
+  },
+  "invariants": [
+    "编解码检测基于浏览器 MediaCapabilities API",
+    "帧提取使用 canvas 截取视频帧",
+    "工具子域不依赖同模块其他子域，是最底层子域",
+    "模板数据为纯静态配置，无副作用",
+    "detectVideoCodec/getVideoCodecLabel/getContainerLabel/extractVideoFrames/dataUrlToFile 直接从 @/shared/video-utils 导入，不再通过 DI 桥接",
+    "isCodecSupportedByProvider 仍通过 DI 桥接（依赖 model-adapter）"
+  ]
+}

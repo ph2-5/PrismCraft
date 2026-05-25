@@ -1,0 +1,142 @@
+{
+  "name": "ai-animation-studio",
+  "version": "0.7.0-beta.1",
+  "description": "AI 驱动的动画制作工具 - 本地优先，支持从故事创作到视频生成的完整工作流",
+  "author": "AI Animation Studio",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@base-ui/react": "^1.3.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@hookform/resolvers": "^5.2.2",
+    "@tanstack/react-query": "^5.100.9",
+    "ajv": "^8.20.0",
+    "better-sqlite3": "12.10.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "docx": "^9.6.1",
+    "drizzle-orm": "^0.45.2",
+    "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.3",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "lucide-react": "^1.7.0",
+    "next": "16.2.2",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.75.0",
+    "react-window": "^2.2.7",
+    "shadcn": "^4.1.2",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.12"
+  },
+  "main": "electron/dist/main.js",
+  "scripts": {
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "dev": "next dev",
+    "build": "next build",
+    "build:win": "npm run rebuild && electron-builder --win --x64",
+    "build:mac": "npm run rebuild && electron-builder --mac",
+    "build:linux": "npm run rebuild && electron-builder --linux",
+    "typecheck": "tsc --noEmit",
+    "typecheck:electron": "tsc -p electron/tsconfig.json --noEmit",
+    "lint": "eslint src/",
+    "lint:electron": "eslint electron/src/",
+    "lint:arch": "node scripts/check-architecture.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "validate": "npm run typecheck && npm run typecheck:electron && npm run lint && npm run lint:arch && npm run test",
+    "graph": "npx tsx scripts/build-module-graph.ts",
+    "di-docs": "npx tsx scripts/generate-di-docs.ts",
+    "changelog": "npx tsx scripts/generate-changelog.ts",
+    "perf": "npx tsx scripts/perf-regression.ts",
+    "smoke": "powershell -ExecutionPolicy Bypass -File scripts/smoke-test.ps1",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ],
+    "electron/src/**/*.ts": [
+      "eslint --fix"
+    ]
+  },
+  "build": {
+    "appId": "com.ai-animation-studio.app",
+    "productName": "AI Animation Studio",
+    "directories": {
+      "output": "release2"
+    },
+    "files": [
+      "out/**/*",
+      "electron/dist/**/*",
+      "docs/plugin-spec.schema.json",
+      "docs/plugin-specification.md",
+      "!node_modules/**/{test,tests,__tests__,spec}/**",
+      "!node_modules/**/*.md",
+      "!node_modules/**/*.ts",
+      "!node_modules/**/LICENSE*",
+      "!node_modules/@types/**",
+      "!node_modules/{typescript,eslint,prettier,webpack,rollup,vite}/**",
+      "!src/**",
+      "!.next/**",
+      "!release/**",
+      "!release2/**",
+      "!tests/**",
+      "!build-electron.ps1"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "extraResources": [
+      {
+        "from": "out",
+        "to": "app/out",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  },
+  "devDependencies": {
+    "@eslint/config-array": "^0.23.5",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "electron": "^41.5.1",
+    "electron-builder": "^26.8.1",
+    "electron-rebuild": "^3.2.9",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.6",
+    "happy-dom": "^20.9.0",
+    "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.5",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  }
+}

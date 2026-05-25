@@ -1,0 +1,51 @@
+graph TB
+    IDX["index.ts 模块公共API"]
+    subgraph TM["task-management v2重构"]
+        subgraph TMD["domain/"]
+            TMC["task-machine"]
+            TME["task-events"]
+            TMS["task-schema"]
+            subgraph POL["policies/"]
+                TP["timeout-policy"]
+                EP["expiration-policy"]
+                PE["policy-engine"]
+            end
+        end
+        subgraph TMI["infrastructure/"]
+            TB["timestamp-bridge"]
+            PS["polling-scheduler"]
+        end
+        subgraph TMH["hooks/"]
+            UVTM["use-video-task-mgr"]
+            UVT["use-video-tasks"]
+        end
+        subgraph TMSV["services/"]
+            VT["video-tracker"]
+        end
+        subgraph TMP["presentation/"]
+            VTM["VideoTaskManager.tsx"]
+            TC["TaskCard.tsx"]
+            TFB["TaskFilterBar.tsx"]
+            RS["RecoverySection.tsx"]
+            DLG["5个Dialog组件"]
+        end
+    end
+    subgraph CACHE["cache"]
+        CI["index.ts + contract.json"]
+        CH["hooks/"]
+        CS["services/ videoCacheService"]
+    end
+    subgraph REC["recovery"]
+        VER["Verification"]
+        DUP["Duplicate"]
+        RETRY["SmartRetry"]
+        RECOV["Recovery"]
+    end
+    subgraph UTILS["utils"]
+        VC["video-codec"]
+        VTMP["video-temps"]
+    end
+    IDX --> TM
+    IDX --> CACHE
+    IDX --> REC
+    IDX --> UTILS

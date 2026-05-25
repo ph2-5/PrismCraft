@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Architecture Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body { background: white; font-family: Arial, sans-serif; }
+.diagram { margin: 20px; padding: 20px; page-break-after: always; }
+.diagram:last-child { page-break-after: auto; }
+h2 { color: #2B579A; border-bottom: 2px solid #2B579A; padding-bottom: 8px; }
+</style>
+</head><body>
+<div class="diagram" id="dual-mode-architecture">
+<h2>dual-mode-architecture</h2>
+<pre class="mermaid">
+graph TB
+    subgraph STUDIO["AI Animation Studio"]
+        subgraph WEB["Web Mode - Next.js"]
+            BROWSER["Browser + sql.js WASM"]
+            API["API Routes Serverless"]
+        end
+        subgraph DESK["Desktop Mode - Electron"]
+            CHROMIUM["Chromium WebView + better-sqlite3"]
+            MAIN["Main Process + IPC Handlers + Safe Storage + Auto Update"]
+        end
+        SHARED["Shared Code Layer src/"]
+    end
+    SHARED -.-> WEB
+    SHARED -.-> DESK
+</pre>
+</div>
+<div class="diagram" id="four-layer-architecture">
+<h2>four-layer-architecture</h2>
+<pre class="mermaid">
+graph TB
+    subgraph L1["Layer 1: Presentation src/app/"]
+        PAGES["Next.js Pages"]
+        APIR["API Routes /api/*"]
+        ELEC["Electron Main Process"]
+    end
+    subgraph L2["Layer 2: Business Modules src/modules/"]
+        VM["video"]
+        SM["story"]
+        SHM["shot"]
+        CM["character"]
+        SCM["scene"]
+    end
+    subgraph L3["Layer 3: Domain Core src/domain/"]
+        SCH["schemas/"]
+        TYP["types/"]
+        PORT["ports/"]
+    end
+    subgraph L4["Layer 4: Infrastructure src/infrastructure/"]
+        AI["ai-providers"]
+        STOR["storage SQLite"]
+        NET["network"]
+        DI["di/"]
+    end
+    subgraph SH["Shared Layer src/shared/"]
+        SHOOKS["hooks/"]
+        SPRES["presentation/"]
+        SUI["ui/"]
+        SUTIL["utils/"]
+        SSTORE["app-store"]
+    end
+    L1 --> L2
+    L2 --> L3
+    L4 -.-> L3
+    SH -.-> L1
+    SH -.-> L2
+</pre>
+</div>
+<div class="diagram" id="dependency-direction">
+<h2>dependency-direction</h2>
+<pre class="mermaid">
+graph LR
+    APP["app/"] --> MOD["modules/"]
+    MOD --> DOM["domain/"]
+    INF["infrastructure/"] -.-> DOM
+    SHARED["shared/"] -.-> APP
+    SHARED -.-> MOD
+</pre>
+</div>
+<div class="diagram" id="video-module-architecture">
+<h2>video-module-architecture</h2>
+<pre class="mermaid">
+graph TB
+    IDX["index.ts"]
+    subgraph TM["task-management"]
+        subgraph TMD["domain/"]
+            TMC["task-machine"]
+            TME["task-events"]
+            TMS["task-schema"]
+            subgraph POL["policies/"]
+                TP["timeout-policy"]
+                EP["expiration-policy"]
+                PE["policy-engine"]
+            end
+        end
+        subgraph TMI["infrastructure/"]
+            TB["timestamp-bridge"]
+            PS["polling-scheduler"]
+        end
+        subgraph TMH["hooks/"]
+            UVTM["use-video-task-mgr"]
+            UVT["use-video-tasks"]
+        end
+        subgraph TMSV["services/"]
+            VT["video-tracker"]
+        end
+        subgraph TMP["presentation/"]
+            VTM["VideoTaskManager.tsx"]
+            TC["TaskCard.tsx"]
+            TFB["TaskFilterBar.tsx"]
+            RS["RecoverySection.tsx"]
+            DLG["5 Dialogs"]
+        end
+    end
+    subgraph CACHE["cache"]
+        CI["index.ts + contract.json"]
+        CH["hooks/"]
+        CS["videoCacheService"]
+    end
+    subgraph REC["recovery"]
+        VER["Verification"]
+        DUP["Duplicate"]
+        RETRY["SmartRetry"]
+        RECOV["Recovery"]
+    end
+    subgraph UTILS["utils"]
+        VC["video-codec"]
+        VTMP["video-temps"]
+    end
+    IDX --> TM
+    IDX --> CACHE
+    IDX --> REC
+    IDX --> UTILS
+</pre>
+</div>
+<div class="diagram" id="shot-three-layer">
+<h2>shot-three-layer</h2>
+<pre class="mermaid">
+graph TB
+    subgraph TL["Three-Layer Structure"]
+        L3["Layer 3: Manual Refinement"]
+        L2["Layer 2: AI Generation"]
+        L1["Layer 1: User Upload"]
+    end
+    subgraph ORCH["Shot Orchestrator"]
+        CS["Chained Shot"]
+        GS["Global Shot"]
+        EB["Element Bind"]
+        FS["Few-Shot Pipeline"]
+    end
+    L3 --> L2
+    L2 --> L1
+    CS --> FS
+    GS --> FS
+    EB --> FS
+</pre>
+</div>
+<div class="diagram" id="task-management-v2">
+<h2>task-management-v2</h2>
+<pre class="mermaid">
+graph TB
+    subgraph PL["Presentation Layer"]
+        VTM["VideoTaskMgr 703 lines"]
+        TC["TaskCard"]
+        TFB["TaskFilterBar"]
+        D5["5 Dialog Components"]
+    end
+    subgraph HL["Hook Layer"]
+        UVTM["useVideoTaskManager"]
+        UVT["useVideoTasks"]
+        UFVT["useFailedVideoTasks"]
+        URV["useRecoverVideo"]
+    end
+    subgraph DL["Domain Layer v2"]
+        TM["TaskMachine"]
+        PE["PolicyEngine"]
+        TS["TaskSchema"]
+    end
+    subgraph IL["Infrastructure Layer v2"]
+        TB["TimestampBridge"]
+        PS["PollingScheduler"]
+    end
+    subgraph SL["Storage Layer"]
+        S1["INSERT OR REPLACE"]
+        S2["Atomic Transaction"]
+    end
+    PL --> HL
+    HL --> DL
+    DL --> IL
+    IL --> SL
+</pre>
+</div>
+<div class="diagram" id="entity-relationship">
+<h2>entity-relationship</h2>
+<pre class="mermaid">
+erDiagram
+    STORY ||--o{ STORYBEAT : contains
+    STORYBEAT ||--|| SHOTINSTRUCTION : has
+    STORYBEAT ||--|| VIDEOTASK : has
+    STORYBEAT }o--|| CHARACTER : references
+    STORYBEAT }o--|| SCENE : references
+    ELEMENT ||--o| CHARACTER : inherits
+    ELEMENT ||--o| PROP : inherits
+    CHARACTER ||--o{ OUTFIT : has
+</pre>
+</div>
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'default', themeVariables: { fontSize: '16px', fontFamily: 'Arial, Microsoft YaHei, sans-serif' } });
+</script></body></html>

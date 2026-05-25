@@ -1,0 +1,17 @@
+graph TB
+    subgraph TL["三层递进结构"]
+        L3["Layer 3: Manual Refinement 手动精修层 - 关键帧编辑 时间轴调整 特效添加"]
+        L2["Layer 2: AI Generation AI生成层 - 分镜生成 元素合成 提示词优化"]
+        L1["Layer 1: User Upload 用户上传层 - 角色上传 场景上传 参考视频上传"]
+    end
+    subgraph ORCH["分镜编排引擎 Shot Orchestrator"]
+        CS["Chained Shot 链式分镜"]
+        GS["Global Shot 全局分镜"]
+        EB["Element Bind 元素绑定"]
+        FS["Few-Shot Pipeline"]
+    end
+    L3 --> L2
+    L2 --> L1
+    CS --> FS
+    GS --> FS
+    EB --> FS

@@ -1,0 +1,15 @@
+{
+  "name": "sync-presentation",
+  "description": "同步状态展示：冲突解决面板、同步设置面板、状态指示器",
+  "dependencies": ["shared-ui", "domain/SyncConflict", "domain/SyncEntityType", "domain/SyncStatusInfo"],
+  "publicAPI": {
+    "hooks": [],
+    "services": [],
+    "components": ["SyncConflictPanel", "SyncSettingsPanel", "SyncStatusIndicator"]
+  },
+  "invariants": [
+    "冲突面板提供本地/远程/合并三种解决方式",
+    "状态指示器实时反映同步状态",
+    "presentation 子域不依赖 engine 子域的内部实现"
+  ]
+}

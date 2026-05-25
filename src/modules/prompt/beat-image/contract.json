@@ -1,0 +1,14 @@
+{
+  "name": "prompt-beat",
+  "description": "分镜图片提示词生成：分镜图片提示词构建",
+  "dependencies": ["prompt-base"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["generateBeatImagePrompt", "generateSimpleBeatImagePrompt"],
+    "components": []
+  },
+  "invariants": [
+    "分镜提示词包含镜头描述、内容描述、质量标签",
+    "prompt-beat 子域依赖 prompt-base 子域"
+  ]
+}

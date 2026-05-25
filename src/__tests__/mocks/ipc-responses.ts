@@ -1,0 +1,46 @@
+export const ipcResponses = {
+  dbInit: { success: true, dbType: "better-sqlite3" },
+  dbQuery: { success: true, data: [] },
+  dbGet: { success: true, data: null },
+  dbRun: { success: true, data: { changes: 0 } },
+  dbExec: { success: true },
+  dbTransaction: { success: true, data: [] },
+  dbBatchInsert: { success: true, data: { inserted: 0 } },
+  dbSave: { success: true },
+  dbClose: { success: true },
+  dbStats: {
+    success: true,
+    data: {
+      character_count: 0,
+      scene_count: 0,
+      story_count: 0,
+      asset_count: 0,
+      video_task_count: 0,
+      completed_tasks: 0,
+      failed_tasks: 0,
+      collection_count: 0,
+      file_count: 0,
+    },
+  },
+  dbType: { success: true, data: { type: "better-sqlite3" } },
+  dbMigrate: { success: true, message: "Already using better-sqlite3" },
+  dbVacuum: { success: true },
+  dbAnalyze: { success: true },
+  dbCheckpoint: { success: true },
+
+  assetsSaveImage: "/mock/path.png",
+  assetsDeleteFile: undefined,
+  assetsReadFileBase64: "data:image/png;base64,",
+  assetsGetDir: "/mock/assets",
+  assetsSaveBuffer: "/mock/path",
+  assetsFileExists: true,
+  assetsCopyFile: "/mock/copy",
+
+  dialogOpenFile: { canceled: true, filePaths: [] },
+  dialogSaveFile: { canceled: true, filePath: "" },
+
+  configGet: null,
+  configSet: true,
+
+  error: (message: string) => ({ success: false, error: message }),
+};

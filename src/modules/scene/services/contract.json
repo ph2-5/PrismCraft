@@ -1,0 +1,16 @@
+{
+  "name": "scene-service",
+  "description": "场景服务：场景的 CRUD 操作，使用 Result 模式处理错误，触发领域事件",
+  "dependencies": ["domain/Scene", "domain/CreateSceneInput", "domain/UpdateSceneInput", "domain/Result", "domain/fromAsyncThrowable", "domain/NotFoundError", "domain/ValidationError", "infrastructure/di", "shared/DomainEvents"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["sceneService"],
+    "components": []
+  },
+  "invariants": [
+    "所有操作使用 Result<T> 类型返回",
+    "使用 createSceneInputSchema 和 updateSceneInputSchema 校验输入",
+    "创建、更新、删除操作触发对应的领域事件",
+    "scene-service 子域不依赖其他子域"
+  ]
+}

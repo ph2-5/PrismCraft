@@ -1,0 +1,16 @@
+{
+  "name": "video-cache",
+  "description": "视频缓存管理：Blob缓存、内存/IndexedDB双层缓存、缓存统计与清理",
+  "dependencies": ["domain/Result", "domain/fromAsyncThrowable", "infrastructure/di"],
+  "publicAPI": {
+    "hooks": ["useVideoCacheStats"],
+    "services": ["registerRecoveryFn", "cacheVideoBlob", "getCachedVideoUrl", "getVideoUrlWithCache", "removeCachedVideo", "cleanExpiredVideoCache", "getCacheStats", "revokeObjectURL", "touchMemoryCache", "clearMemoryCache", "checkCachedVideo", "getVideoFileStream", "getCachedVideo", "recoverUncachedVideos"],
+    "components": []
+  },
+  "invariants": [
+    "缓存使用内存 + IndexedDB 双层架构",
+    "ObjectURL 必须通过 revokeObjectURL 释放防止内存泄漏",
+    "过期缓存由 cleanExpiredVideoCache 定期清理",
+    "缓存子域不依赖同模块其他子域，是最底层子域"
+  ]
+}

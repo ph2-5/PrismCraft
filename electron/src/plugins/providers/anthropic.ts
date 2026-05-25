@@ -1,0 +1,114 @@
+import type {
+  AIProviderPlugin,
+  ModelCapabilities,
+  VideoCapabilities,
+  ImageCapabilities,
+  VideoBuildContext,
+  ImageBuildContext,
+  TextBuildContext,
+  VisionBuildContext,
+  VideoRequestResult,
+  ImageRequestResult,
+  TextRequestResult,
+  VisionRequestResult,
+  ImageTransportMode,
+  ImagePurpose,
+} from "../types";
+import { BaseAIProviderPlugin } from "../base-provider";
+import { getLogger } from "../../logging/logger";
+
+const logger = getLogger("anthropic");
+
+const VIDEO_CAPABILITIES: VideoCapabilities = {
+  supportsLastFrame: false,
+  supportsReferenceVideo: false,
+  supportsMimicryLevel: false,
+  defaultModel: "claude-3-5-sonnet-20241022",
+  maxDuration: 0,
+  supportedCodecs: [],
+};
+
+const IMAGE_CAPABILITIES: ImageCapabilities = {
+  supportsReferenceImage: false,
+  defaultModel: "claude-3-5-sonnet-20241022",
+};
+
+export class AnthropicPlugin extends BaseAIProviderPlugin {
+  readonly id = "anthropic";
+  readonly displayName = "Anthropic (Claude)";
+
+  match(apiUrl: string, model?: string): boolean {
+    return apiUrl.includes("anthropic.com") || apiUrl.includes("bedrock-runtime");
+  }
+
+  readonly videoCapabilities = VIDEO_CAPABILITIES;
+  readonly imageCapabilities = IMAGE_CAPABILITIES;
+
+  getModelCapabilities(modelId: string): ModelCapabilities {
+    return {
+      maxReferences: 0,
+      maxResolution: 0,
+      maxSizeMB: 0,
+      supportsLastFrame: false,
+      referenceMode: "separate",
+    };
+  }
+
+  buildVideoRequest(_ctx: VideoBuildContext): VideoRequestResult {
+    throw new Error("Anthropic Claude 不支持视频生成");
+  }
+
+  buildImageRequest(_ctx: ImageBuildContext): ImageRequestResult {
+    throw new Error("Anthropic Claude 不支持图片生成");
+  }
+
+  buildTextRequest(ctx: TextBuildContext): TextRequestResult {
+    return {
+      body: {
+        model: ctx.model || "claude-3-5-sonnet-20241022",
+        messages: [{ role: "user", content: ctx.prompt }],
+        max_tokens: ctx.maxTokens,
+        ...(ctx.temperature !== undefined ? { temperature: ctx.temperature } : {}),
+      },
+      endpoint: "/messages",
+    };
+  }
+
+  buildVisionRequest(ctx: VisionBuildContext): VisionRequestResult {
+    return {
+      body: {
+        model: ctx.model || "claude-3-5-sonnet-20241022",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: ctx.prompt },
+              { type: "image_url", image_url: { url: ctx.imageUrl } },
+            ],
+          },
+        ],
+        max_tokens: ctx.maxTokens || 4096,
+      },
+      endpoint: "/messages",
+    };
+  }
+
+  getImageTransportMode(_purpose: ImagePurpose): ImageTransportMode {
+    return "url";
+  }
+
+  getAuthHeaders(apiKey: string, _endpoint?: string): Record<string, string> {
+    return {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    };
+  }
+
+  extractTextContent(response: Record<string, unknown>): string {
+    const content = response.content as Record<string, unknown>[] | undefined;
+    if (content && Array.isArray(content) && content.length > 0) {
+      return (content[0].text as string) || "";
+    }
+    return "";
+  }
+}

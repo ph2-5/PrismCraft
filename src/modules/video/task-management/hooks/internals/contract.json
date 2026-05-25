@@ -1,0 +1,15 @@
+{
+  "name": "video-task-internals",
+  "description": "视频任务内部引擎：轮询调度、状态同步、状态转换守卫",
+  "dependencies": ["video-task-management", "domain/VideoTask", "domain/VideoTaskStatus", "domain/VideoTaskRecord", "infrastructure/di", "video-cache", "video-recovery"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["withTransitionGuard", "pollingState", "registerPollingStore", "stopPolling", "cleanupAllPollingResources", "schedulePolling", "checkAndStartOrStopPolling", "MAX_POLL_COUNT", "MAX_POLL_DURATION", "MAX_POLL_FAILURES", "scheduleSync", "registerSyncStore"],
+    "components": []
+  },
+  "invariants": [
+    "轮询引擎必须遵守 MAX_POLL_COUNT、MAX_POLL_DURATION、MAX_POLL_FAILURES 限制",
+    "状态转换必须通过 withTransitionGuard 校验合法性",
+    "同步引擎使用防抖机制避免频繁写入"
+  ]
+}

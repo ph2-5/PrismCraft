@@ -1,0 +1,15 @@
+{
+  "name": "media-assets",
+  "description": "媒体资产管理：媒体文件的创建、更新、删除、批量操作",
+  "dependencies": ["domain/MediaAsset", "infrastructure/di"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["mediaAssetService"],
+    "components": []
+  },
+  "invariants": [
+    "媒体资产 ID 使用时间戳+随机数生成",
+    "批量删除遍历执行而非批量 SQL",
+    "media-assets 子域不依赖其他子域"
+  ]
+}

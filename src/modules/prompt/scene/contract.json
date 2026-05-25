@@ -1,0 +1,14 @@
+{
+  "name": "prompt-scene",
+  "description": "场景提示词生成：场景图片提示词、场景优化提示词",
+  "dependencies": ["prompt-base"],
+  "publicAPI": {
+    "hooks": [],
+    "services": ["generateSceneImagePrompt", "generateSimpleSceneImagePrompt", "generateScenePromptOptimization"],
+    "components": []
+  },
+  "invariants": [
+    "场景提示词包含场景类型、氛围、视觉描述、灯光",
+    "prompt-scene 子域依赖 prompt-base 子域"
+  ]
+}

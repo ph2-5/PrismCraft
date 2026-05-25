@@ -1,0 +1,273 @@
+import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
+import type { IpcArgs, IpcResult, MenuEventCallback } from "./types/ipc";
+
+type MenuListener = (event: IpcRendererEvent, ...args: IpcArgs) => void;
+const menuListeners = new Map<string, MenuListener>();
+
+function onMenuEvent(channel: string, callback: MenuEventCallback): void {
+  const existingListener = menuListeners.get(channel);
+  if (existingListener) {
+    ipcRenderer.removeListener(channel, existingListener);
+  }
+  const listener: MenuListener = (_event, ...args) => callback(...args);
+  menuListeners.set(channel, listener);
+  ipcRenderer.on(channel, listener);
+}
+
+function removeMenuListeners(): void {
+  for (const [channel, listener] of menuListeners) {
+    ipcRenderer.removeListener(channel, listener);
+  }
+  menuListeners.clear();
+}
+
+const IPC_PERMISSIONS: Record<string, string[]> = {
+  READONLY: [
+    "db:query", "db:get", "db:stats", "db:type",
+    "assets:read-file-base64", "assets:get-dir", "assets:file-exists",
+    "fs:read-file", "cache:get-cache-directory", "fs:get-file-info", "fs:get-disk-space", "image:to-base64", "config:get",
+    "secure-config:load", "secure-config:has",
+    "export:data",
+  ],
+  READWRITE: [
+    "db:run", "db:batch-insert", "db:init", "db:save",
+    "assets:save-image", "assets:save-buffer", "assets:copy-file",
+    "fs:write-file", "image:normalize", "config:set",
+    "secure-config:save", "secure-config:delete",
+  ],
+  DANGEROUS: [
+    "db:transaction", "db:migrate", "db:vacuum",
+    "db:analyze", "db:checkpoint", "assets:delete-file",
+  ],
+  SYSTEM: [
+    "shell:open-external", "dialog:open-file", "dialog:save-file", "db:close",
+  ],
+  SECURE: [
+    "secure-config:resolve",
+  ],
+};
+
+function checkPermission(channel: string): { allowed: boolean; level: string } {
+  for (const [level, channels] of Object.entries(IPC_PERMISSIONS)) {
+    if (channels.includes(channel)) {
+      return { allowed: true, level };
+    }
+  }
+  ipcRenderer.send("log:security", { level: "warn", message: `Unregistered IPC channel blocked: ${channel}` });
+  return { allowed: false, level: "UNKNOWN" };
+}
+
+const SQL_CHANNELS_REQUIRING_DDL_BLOCK = new Set([
+  "db:run",
+  "db:transaction",
+]);
+
+const DDL_PATTERN = /^\s*(DROP|ALTER|CREATE|TRUNCATE|ATTACH|DETACH)\s/i;
+const COMMENT_PATTERN = /\/\*[\s\S]*?\*\//g;
+const LINE_COMMENT_PATTERN = /--[^\n]*/g;
+
+function stripSqlComments(sql: string): string {
+  return sql.replace(COMMENT_PATTERN, " ").replace(LINE_COMMENT_PATTERN, " ");
+}
+
+function validateSqlSafety(channel: string, args: IpcArgs): boolean {
+  if (!SQL_CHANNELS_REQUIRING_DDL_BLOCK.has(channel)) return true;
+  const sqlsToCheck: string[] = [];
+  if (channel === "db:transaction" && Array.isArray(args[0])) {
+    for (const stmt of args[0]) {
+      if (stmt && typeof stmt === "object" && "sql" in stmt && typeof (stmt as Record<string, unknown>).sql === "string") {
+        sqlsToCheck.push((stmt as Record<string, unknown>).sql as string);
+      }
+    }
+  } else {
+    if (typeof args[0] === "string") {
+      sqlsToCheck.push(args[0]);
+    }
+  }
+  for (const sql of sqlsToCheck) {
+    const stripped = stripSqlComments(sql);
+    if (DDL_PATTERN.test(stripped)) {
+      ipcRenderer.send("log:security", { level: "error", message: `Blocked DDL statement on channel ${channel}: ${sql.substring(0, 50)}` });
+      return false;
+    }
+  }
+  return true;
+}
+
+const callHistory = new Map<string, number[]>();
+
+const RATE_LIMITS: Record<string, { maxCalls: number; windowMs: number }> = {
+  default: { maxCalls: 100, windowMs: 60000 },
+  readonly: { maxCalls: 300, windowMs: 60000 },
+};
+
+const GLOBAL_RATE_LIMIT = { maxCalls: 600, windowMs: 60000 };
+const globalCallTimestamps: number[] = [];
+
+const READONLY_CHANNELS = new Set([
+  "db:query", "db:get", "db:stats", "db:type",
+  "assets:read-file-base64", "assets:get-dir", "assets:file-exists",
+  "fs:read-file", "cache:get-cache-directory", "fs:get-file-info", "fs:get-disk-space", "image:to-base64", "config:get",
+]);
+
+function getRateLimit(channel: string): { maxCalls: number; windowMs: number } {
+  if (READONLY_CHANNELS.has(channel)) {
+    return RATE_LIMITS.readonly;
+  }
+  return RATE_LIMITS.default;
+}
+
+const MAX_CALL_HISTORY_CHANNELS = 200;
+
+const cleanupCallHistory = setInterval(() => {
+  const now = Date.now();
+  for (const [channel, history] of callHistory.entries()) {
+    const limit = getRateLimit(channel);
+    const trimmed = history.filter((t) => now - t < limit.windowMs);
+    if (trimmed.length === 0) {
+      callHistory.delete(channel);
+    } else {
+      callHistory.set(channel, trimmed);
+    }
+  }
+  if (callHistory.size > MAX_CALL_HISTORY_CHANNELS) {
+    const entries = Array.from(callHistory.entries());
+    entries.sort((a, b) => a[1].length - b[1].length);
+    for (let i = 0; i < entries.length - MAX_CALL_HISTORY_CHANNELS; i++) {
+      callHistory.delete(entries[i][0]);
+    }
+  }
+  const trimmedGlobal = globalCallTimestamps.filter((t) => now - t < GLOBAL_RATE_LIMIT.windowMs);
+  globalCallTimestamps.length = 0;
+  globalCallTimestamps.push(...trimmedGlobal);
+}, 60000);
+if (cleanupCallHistory.unref) {
+  cleanupCallHistory.unref();
+}
+
+function createSecureIpcInvoker(channel: string): (...args: IpcArgs) => Promise<IpcResult> {
+  return async (...args: IpcArgs) => {
+    const permission = checkPermission(channel);
+    if (!permission.allowed) {
+      throw new Error(`IPC channel "${channel}" is not allowed`);
+    }
+
+    const now = Date.now();
+
+    const recentGlobal = globalCallTimestamps.filter((t) => now - t < GLOBAL_RATE_LIMIT.windowMs);
+    if (recentGlobal.length >= GLOBAL_RATE_LIMIT.maxCalls) {
+      throw new Error(`Global rate limit exceeded (${recentGlobal.length}/${GLOBAL_RATE_LIMIT.maxCalls} in ${GLOBAL_RATE_LIMIT.windowMs / 1000}s)`);
+    }
+
+    const limit = getRateLimit(channel);
+    const history = callHistory.get(channel) || [];
+    const recentCalls = history.filter((t) => now - t < limit.windowMs);
+    if (recentCalls.length >= limit.maxCalls) {
+      throw new Error(`Rate limit exceeded for channel: ${channel} (${recentCalls.length}/${limit.maxCalls} in ${limit.windowMs / 1000}s)`);
+    }
+    recentCalls.push(now);
+    globalCallTimestamps.push(now);
+    callHistory.set(channel, recentCalls);
+    if (recentCalls.length > limit.maxCalls * 2) {
+      const trimmed = recentCalls.filter((t) => now - t < limit.windowMs);
+      if (trimmed.length === 0) {
+        callHistory.delete(channel);
+      } else {
+        callHistory.set(channel, trimmed);
+      }
+    }
+    if (globalCallTimestamps.length > GLOBAL_RATE_LIMIT.maxCalls * 2) {
+      const trimmedGlobal = globalCallTimestamps.filter((t) => now - t < GLOBAL_RATE_LIMIT.windowMs);
+      globalCallTimestamps.length = 0;
+      globalCallTimestamps.push(...trimmedGlobal);
+    }
+
+    if (!validateSqlSafety(channel, args)) {
+      throw new Error(`DDL statements are not allowed from renderer process`);
+    }
+
+    return ipcRenderer.invoke(channel, ...args);
+  };
+}
+
+function createSecureSyncIpcInvoker(channel: string): (...args: IpcArgs) => IpcResult {
+  return (...args: IpcArgs) => {
+    const permission = checkPermission(channel);
+    if (!permission.allowed) {
+      ipcRenderer.send("log:security", { level: "warn", message: `Blocked sync IPC channel: ${channel}` });
+      return null;
+    }
+    return ipcRenderer.sendSync(channel, ...args);
+  };
+}
+
+contextBridge.exposeInMainWorld("electronAPI", {
+  onNavigate: (callback: MenuEventCallback) => {
+    onMenuEvent("navigate", callback);
+  },
+  onMenuNewCharacter: (callback: MenuEventCallback) => {
+    onMenuEvent("menu-new-character", callback);
+  },
+  onMenuNewScene: (callback: MenuEventCallback) => {
+    onMenuEvent("menu-new-scene", callback);
+  },
+  onMenuExport: (callback: MenuEventCallback) => {
+    onMenuEvent("menu-export", callback);
+  },
+  openExternal: createSecureIpcInvoker("shell:open-external"),
+  removeMenuListeners,
+  platform: process.platform,
+  versions: {
+    node: process.versions.node,
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+  },
+  getConfig: (key: string) => {
+    try {
+      const config = createSecureSyncIpcInvoker("config:get")(key);
+      return config ? JSON.stringify(config) : null;
+    } catch (e) {
+      ipcRenderer.send("log:security", { level: "error", message: `getConfig failed: ${e instanceof Error ? e.message : String(e)}` });
+      return null;
+    }
+  },
+  setConfig: (key: string, value: unknown) => {
+    try {
+      let parsedValue = value;
+      if (typeof value === "string") {
+        try {
+          parsedValue = JSON.parse(value);
+        } catch { /* ignore */ }
+      }
+      return createSecureSyncIpcInvoker("config:set")(key, parsedValue);
+    } catch (e) {
+      ipcRenderer.send("log:security", { level: "error", message: `setConfig failed: ${e instanceof Error ? e.message : String(e)}` });
+      return false;
+    }
+  },
+  saveImage: createSecureIpcInvoker("assets:save-image"),
+  deleteFile: createSecureIpcInvoker("assets:delete-file"),
+  readFileAsBase64: createSecureIpcInvoker("assets:read-file-base64"),
+  getAssetsDir: createSecureIpcInvoker("assets:get-dir"),
+  saveBuffer: createSecureIpcInvoker("assets:save-buffer"),
+  fileExists: createSecureIpcInvoker("assets:file-exists"),
+  copyFile: createSecureIpcInvoker("assets:copy-file"),
+  openFileDialog: createSecureIpcInvoker("dialog:open-file"),
+  saveFileDialog: createSecureIpcInvoker("dialog:save-file"),
+  writeFile: createSecureIpcInvoker("fs:write-file"),
+  readFile: createSecureIpcInvoker("fs:read-file"),
+  getCacheDirectory: createSecureIpcInvoker("cache:get-cache-directory"),
+  getFileInfo: createSecureIpcInvoker("fs:get-file-info"),
+  getDiskSpace: createSecureIpcInvoker("fs:get-disk-space"),
+  normalizeImage: createSecureIpcInvoker("image:normalize"),
+  imageToBase64IPC: createSecureIpcInvoker("image:to-base64"),
+  dbQuery: createSecureIpcInvoker("db:query"),
+  dbRun: createSecureIpcInvoker("db:run"),
+  dbTransaction: createSecureIpcInvoker("db:transaction"),
+  secureConfigSave: createSecureIpcInvoker("secure-config:save"),
+  secureConfigLoad: createSecureIpcInvoker("secure-config:load"),
+  secureConfigResolve: createSecureIpcInvoker("secure-config:resolve"),
+  secureConfigDelete: createSecureIpcInvoker("secure-config:delete"),
+  secureConfigHas: createSecureIpcInvoker("secure-config:has"),
+  exportData: createSecureIpcInvoker("export:data"),
+});

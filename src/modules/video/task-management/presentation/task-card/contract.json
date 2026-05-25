@@ -1,0 +1,14 @@
+{
+  "name": "video-task-card",
+  "description": "视频任务卡片展示：任务操作按钮、视频预览缩略图、缓存状态指示",
+  "dependencies": ["video-task-management", "domain/VideoTask", "shared-ui"],
+  "publicAPI": {
+    "hooks": [],
+    "services": [],
+    "components": ["VideoPreview", "TaskActions"]
+  },
+  "invariants": [
+    "TaskActions 仅负责操作按钮渲染和事件触发，不包含业务逻辑",
+    "VideoPreview 仅负责视频缩略图和缓存状态展示"
+  ]
+}

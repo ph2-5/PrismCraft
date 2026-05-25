@@ -1,0 +1,14 @@
+graph TB
+    subgraph STUDIO["AI Animation Studio"]
+        subgraph WEB["Web Mode - Next.js"]
+            BROWSER["Browser + sql.js WASM"]
+            API["API Routes Serverless"]
+        end
+        subgraph DESK["Desktop Mode - Electron"]
+            CHROMIUM["Chromium WebView + better-sqlite3"]
+            MAIN["Main Process + IPC Handlers + Safe Storage + Auto Update"]
+        end
+        SHARED["共享代码层 src/ domain/ modules/ infrastructure/ shared/"]
+    end
+    SHARED -.->|依赖| WEB
+    SHARED -.->|依赖| DESK

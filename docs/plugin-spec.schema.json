@@ -1,0 +1,936 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-animation-studio.local/plugin-spec.schema.json",
+  "title": "AI Animation Studio Plugin Specification",
+  "description": "Schema for user-defined AI provider plugins",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "displayName", "match", "capabilities", "transport", "auth", "endpoints", "request", "response"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+      "description": "Unique plugin identifier: lowercase alphanumeric with hyphens, must start with a letter and not end with a hyphen",
+      "examples": ["my-provider", "acme-video-api"]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Plugin version following Semantic Versioning",
+      "examples": ["1.0.0", "2.3.1-beta.1"]
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable plugin name shown in the UI",
+      "examples": ["My Video Provider", "ACME Image API"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the plugin's purpose"
+    },
+    "author": {
+      "type": "string",
+      "description": "Plugin author or organization",
+      "examples": ["ACME Corp"]
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the plugin's homepage or repository"
+    },
+    "match": {
+      "$ref": "#/$defs/match"
+    },
+    "capabilities": {
+      "$ref": "#/$defs/capabilities"
+    },
+    "models": {
+      "$ref": "#/$defs/models"
+    },
+    "transport": {
+      "$ref": "#/$defs/transport"
+    },
+    "auth": {
+      "$ref": "#/$defs/auth"
+    },
+    "headers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Global HTTP headers to include in every request"
+    },
+    "endpoints": {
+      "$ref": "#/$defs/endpoints"
+    },
+    "request": {
+      "$ref": "#/$defs/request"
+    },
+    "response": {
+      "$ref": "#/$defs/response"
+    },
+    "polling": {
+      "$ref": "#/$defs/polling"
+    },
+    "cloudInfo": {
+      "$ref": "#/$defs/cloudInfo"
+    },
+    "availableModels": {
+      "type": "array",
+      "description": "声明插件支持的所有模型",
+      "items": {
+        "type": "object",
+        "required": ["id", "displayName", "type"],
+        "properties": {
+          "id": { "type": "string", "description": "模型标识符" },
+          "displayName": { "type": "string", "description": "显示名称" },
+          "type": { "type": "string", "enum": ["video", "image", "text"], "description": "模型类型" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "match": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["apiUrlPatterns"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["contains", "prefix", "regex"],
+          "default": "contains",
+          "description": "How apiUrlPatterns are matched against request URLs"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Higher priority plugins take precedence when multiple plugins match the same URL"
+        },
+        "apiUrlPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "description": "URL patterns used to detect which plugin should handle a request",
+          "examples": ["api.example.com/v1"]
+        },
+        "modelPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Model name patterns for additional matching",
+          "examples": ["acme-.*-v2"]
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["video", "image"],
+      "properties": {
+        "video": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["supportsLastFrame", "supportsReferenceVideo", "supportsMimicryLevel", "defaultModel", "maxDuration"],
+          "properties": {
+            "supportsLastFrame": {
+              "type": "boolean",
+              "description": "Whether the provider supports last-frame reference for video generation"
+            },
+            "supportsReferenceVideo": {
+              "type": "boolean",
+              "description": "Whether the provider supports reference video input"
+            },
+            "supportsMimicryLevel": {
+              "type": "boolean",
+              "description": "Whether the provider supports mimicry level control"
+            },
+            "supportsCharacterRef": {
+              "type": "boolean",
+              "description": "Whether the provider supports character reference image input for video generation"
+            },
+            "supportsSceneRef": {
+              "type": "boolean",
+              "description": "Whether the provider supports scene reference image input for video generation"
+            },
+            "defaultModel": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Default model identifier for video generation",
+              "examples": ["acme-video-v2"]
+            },
+            "maxDuration": {
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": 0,
+              "description": "Maximum video duration in seconds"
+            }
+          }
+        },
+        "image": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["supportsReferenceImage", "defaultModel"],
+          "properties": {
+            "supportsReferenceImage": {
+              "type": "boolean",
+              "description": "Whether the provider supports reference image input"
+            },
+            "supportsCharacterRef": {
+              "type": "boolean",
+              "description": "Whether the provider supports character reference image input for image generation"
+            },
+            "supportsSceneRef": {
+              "type": "boolean",
+              "description": "Whether the provider supports scene reference image input for image generation"
+            },
+            "defaultModel": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Default model identifier for image generation",
+              "examples": ["acme-image-v1"]
+            }
+          }
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/modelDefinition"
+      },
+      "description": "Per-model configuration overrides keyed by model identifier"
+    },
+    "modelDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxReferences": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum number of reference inputs allowed"
+        },
+        "maxResolution": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum resolution in pixels"
+        },
+        "maxSizeMB": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Maximum file size in megabytes"
+        },
+        "supportsLastFrame": {
+          "type": "boolean",
+          "description": "Whether this specific model supports last-frame reference"
+        },
+        "referenceMode": {
+          "type": "string",
+          "enum": ["separate", "merged"],
+          "description": "How reference images are sent: separately or merged into the request body"
+        },
+        "defaultImageSize": {
+          "type": "string",
+          "description": "Default image size for this model",
+          "examples": ["1024x1024"]
+        },
+        "supportedImageSizes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imageSizeOption"
+          },
+          "description": "List of supported image size options"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "模型显示名称"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "模型参数选项",
+          "properties": {
+            "durations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["value", "label"],
+                "properties": {
+                  "value": { "type": "number" },
+                  "label": { "type": "string" }
+                }
+              }
+            },
+            "resolutions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["value", "label", "width", "height"],
+                "properties": {
+                  "value": { "type": "string" },
+                  "label": { "type": "string" },
+                  "width": { "type": "number" },
+                  "height": { "type": "number" }
+                }
+              }
+            },
+            "styles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["value", "label"],
+                "properties": {
+                  "value": { "type": "string" },
+                  "label": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            },
+            "negativePrompt": { "type": "boolean" },
+            "seed": { "type": "boolean" },
+            "cfgScale": {
+              "type": "object",
+              "required": ["min", "max", "default", "step"],
+              "properties": {
+                "min": { "type": "number" },
+                "max": { "type": "number" },
+                "default": { "type": "number" },
+                "step": { "type": "number" }
+              }
+            },
+            "lora": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "imageSizeOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "label", "aspectRatio"],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "description": "Image width in pixels"
+        },
+        "height": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "description": "Image height in pixels"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display label for this size option",
+          "examples": ["1024×1024 (1:1)"]
+        },
+        "aspectRatio": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Aspect ratio string",
+          "examples": ["1:1", "16:9"]
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["imageMode", "videoMode"],
+      "properties": {
+        "imageMode": {
+          "type": "string",
+          "enum": ["base64", "url", "upload"],
+          "description": "How image data is transported in requests"
+        },
+        "videoMode": {
+          "type": "string",
+          "enum": ["base64", "url"],
+          "description": "How video data is transported in requests"
+        },
+        "preferLocalData": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prefer using local file data instead of remote URLs when both are available"
+        }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["bearer", "api-key-header", "api-key-query", "custom"],
+          "description": "Authentication method used by the provider"
+        },
+        "headerName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Custom header name for api-key-header auth type",
+          "examples": ["X-API-Key"]
+        },
+        "queryParamName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Query parameter name for api-key-query auth type",
+          "examples": ["api_key"]
+        },
+        "customHeaders": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Custom headers for the 'custom' auth type"
+        }
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["video", "image", "text", "vision"],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "List of model identifiers available through these endpoints",
+          "examples": [["acme-video-v2", "acme-image-v1"]]
+        },
+        "video": {
+          "$ref": "#/$defs/videoEndpoint"
+        },
+        "image": {
+          "$ref": "#/$defs/imageEndpoint"
+        },
+        "text": {
+          "$ref": "#/$defs/textEndpoint"
+        },
+        "vision": {
+          "$ref": "#/$defs/visionEndpoint"
+        },
+        "upload": {
+          "$ref": "#/$defs/uploadEndpoint"
+        }
+      }
+    },
+    "videoEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generate", "status"],
+      "properties": {
+        "generate": {
+          "type": "string",
+          "format": "uri-reference",
+          "description": "URL for video generation requests",
+          "examples": ["https://api.example.com/v1/video/generate"]
+        },
+        "status": {
+          "type": "string",
+          "format": "uri-reference",
+          "description": "URL for polling video generation status",
+          "examples": ["https://api.example.com/v1/video/status"]
+        },
+        "method": {
+          "type": "string",
+          "const": "POST",
+          "default": "POST",
+          "description": "HTTP method for the generate endpoint"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Endpoint-specific HTTP headers overriding global headers"
+        }
+      }
+    },
+    "imageEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generate"],
+      "properties": {
+        "generate": {
+          "type": "string",
+          "format": "uri-reference",
+          "description": "URL for image generation requests",
+          "examples": ["https://api.example.com/v1/image/generate"]
+        },
+        "method": {
+          "type": "string",
+          "const": "POST",
+          "default": "POST",
+          "description": "HTTP method for the generate endpoint"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Endpoint-specific HTTP headers overriding global headers"
+        }
+      }
+    },
+    "textEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generate"],
+      "properties": {
+        "generate": {
+          "type": "string",
+          "format": "uri-reference",
+          "description": "URL for text generation requests",
+          "examples": ["https://api.example.com/v1/text/generate"]
+        },
+        "method": {
+          "type": "string",
+          "const": "POST",
+          "default": "POST",
+          "description": "HTTP method for the generate endpoint"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Endpoint-specific HTTP headers overriding global headers"
+        }
+      }
+    },
+    "visionEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generate"],
+      "properties": {
+        "generate": {
+          "type": "string",
+          "format": "uri-reference",
+          "description": "URL for vision (image understanding) requests",
+          "examples": ["https://api.example.com/v1/vision/analyze"]
+        },
+        "method": {
+          "type": "string",
+          "const": "POST",
+          "default": "POST",
+          "description": "HTTP method for the generate endpoint"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Endpoint-specific HTTP headers overriding global headers"
+        }
+      }
+    },
+    "uploadEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint"],
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "format": "uri-reference",
+          "description": "URL for file upload requests",
+          "examples": ["https://api.example.com/v1/upload"]
+        },
+        "method": {
+          "type": "string",
+          "const": "POST",
+          "default": "POST",
+          "description": "HTTP method for the upload endpoint"
+        },
+        "responseImagePath": {
+          "type": "string",
+          "description": "JSON path to extract the uploaded image URL from the response",
+          "examples": ["data.url"]
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["video", "image", "text", "vision"],
+      "properties": {
+        "video": {
+          "$ref": "#/$defs/videoRequest"
+        },
+        "image": {
+          "$ref": "#/$defs/imageRequest"
+        },
+        "text": {
+          "$ref": "#/$defs/textRequest"
+        },
+        "vision": {
+          "$ref": "#/$defs/visionRequest"
+        }
+      }
+    },
+    "videoRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bodyFormat"],
+      "properties": {
+        "bodyFormat": {
+          "type": "string",
+          "enum": ["openai-content", "flat", "dashscope", "custom"],
+          "description": "Request body format for video generation"
+        },
+        "promptField": {
+          "type": "string",
+          "description": "JSON field name for the prompt text",
+          "examples": ["prompt", "input.text"]
+        },
+        "modelField": {
+          "type": "string",
+          "description": "JSON field name for the model identifier",
+          "examples": ["model"]
+        },
+        "durationField": {
+          "type": "string",
+          "description": "JSON field name for the video duration",
+          "examples": ["duration", "parameters.duration"]
+        },
+        "firstFrameField": {
+          "type": "string",
+          "description": "JSON field name for the first frame image",
+          "examples": ["first_frame_image"]
+        },
+        "lastFrameField": {
+          "type": "string",
+          "description": "JSON field name for the last frame image",
+          "examples": ["last_frame_image"]
+        },
+        "characterRefField": {
+          "type": "string",
+          "description": "JSON field name for the character reference image",
+          "examples": ["character_ref", "ref_image"]
+        },
+        "sceneRefField": {
+          "type": "string",
+          "description": "JSON field name for the scene reference image",
+          "examples": ["scene_ref", "scene_image"]
+        },
+        "referenceVideoField": {
+          "type": "string",
+          "description": "JSON field name for the reference video",
+          "examples": ["reference_video"]
+        },
+        "mimicryLevelField": {
+          "type": "string",
+          "description": "JSON field name for the mimicry level parameter",
+          "examples": ["mimicry_level"]
+        },
+        "extraFields": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional fields to include in the request body"
+        },
+        "customBodyTemplate": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Template for constructing the custom request body when bodyFormat is 'custom'"
+        }
+      }
+    },
+    "imageRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bodyFormat"],
+      "properties": {
+        "bodyFormat": {
+          "type": "string",
+          "enum": ["openai", "flat", "custom"],
+          "description": "Request body format for image generation"
+        },
+        "promptField": {
+          "type": "string",
+          "description": "JSON field name for the prompt text",
+          "examples": ["prompt"]
+        },
+        "modelField": {
+          "type": "string",
+          "description": "JSON field name for the model identifier",
+          "examples": ["model"]
+        },
+        "sizeField": {
+          "type": "string",
+          "description": "JSON field name for the image size",
+          "examples": ["size"]
+        },
+        "referenceImageField": {
+          "type": "string",
+          "description": "JSON field name for the reference image",
+          "examples": ["reference_image"]
+        },
+        "characterRefField": {
+          "type": "string",
+          "description": "JSON field name for the character reference image",
+          "examples": ["character_ref", "character_image"]
+        },
+        "sceneRefField": {
+          "type": "string",
+          "description": "JSON field name for the scene reference image",
+          "examples": ["scene_ref", "scene_image"]
+        },
+        "extraFields": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional fields to include in the request body"
+        },
+        "customBodyTemplate": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Template for constructing the custom request body when bodyFormat is 'custom'"
+        }
+      }
+    },
+    "textRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bodyFormat"],
+      "properties": {
+        "bodyFormat": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "custom"],
+          "description": "Request body format for text generation"
+        },
+        "promptField": {
+          "type": "string",
+          "description": "JSON field name for the prompt text",
+          "examples": ["prompt", "messages"]
+        },
+        "modelField": {
+          "type": "string",
+          "description": "JSON field name for the model identifier",
+          "examples": ["model"]
+        },
+        "maxTokensField": {
+          "type": "string",
+          "description": "JSON field name for the max tokens parameter",
+          "examples": ["max_tokens"]
+        },
+        "temperatureField": {
+          "type": "string",
+          "description": "JSON field name for the temperature parameter",
+          "examples": ["temperature"]
+        },
+        "extraFields": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional fields to include in the request body"
+        },
+        "customBodyTemplate": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Template for constructing the custom request body when bodyFormat is 'custom'"
+        }
+      }
+    },
+    "visionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bodyFormat"],
+      "properties": {
+        "bodyFormat": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "custom"],
+          "description": "Request body format for vision (image understanding) requests"
+        },
+        "promptField": {
+          "type": "string",
+          "description": "JSON field name for the prompt text",
+          "examples": ["prompt"]
+        },
+        "modelField": {
+          "type": "string",
+          "description": "JSON field name for the model identifier",
+          "examples": ["model"]
+        },
+        "imageUrlField": {
+          "type": "string",
+          "description": "JSON field name for the image URL input",
+          "examples": ["image_url"]
+        },
+        "extraFields": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional fields to include in the request body"
+        },
+        "customBodyTemplate": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Template for constructing the custom request body when bodyFormat is 'custom'"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["video", "image", "text"],
+      "properties": {
+        "video": {
+          "$ref": "#/$defs/videoResponse"
+        },
+        "image": {
+          "$ref": "#/$defs/imageResponse"
+        },
+        "text": {
+          "$ref": "#/$defs/textResponse"
+        }
+      }
+    },
+    "videoResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskIdPath": {
+          "type": "string",
+          "description": "JSON path to extract the task ID from the generation response",
+          "examples": ["data.task_id"]
+        },
+        "videoUrlPath": {
+          "type": "string",
+          "description": "JSON path to extract the video URL from the status response",
+          "examples": ["data.video_url"]
+        },
+        "statusPath": {
+          "type": "string",
+          "description": "JSON path to extract the task status from the status response",
+          "examples": ["data.status"]
+        },
+        "statusMapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Maps provider-specific status values to standard statuses (pending, processing, completed, failed)",
+          "examples": [{"SUBMITTED": "pending", "PROCESSING": "processing", "SUCCESS": "completed", "FAIL": "failed"}]
+        },
+        "errorPath": {
+          "type": "string",
+          "description": "JSON path to extract the error message from the response",
+          "examples": ["data.error.message"]
+        },
+        "errorCodePath": {
+          "type": "string",
+          "description": "JSON path to extract the error code from the response",
+          "examples": ["data.error.code"]
+        }
+      }
+    },
+    "imageResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "imageUrlPath": {
+          "type": "string",
+          "description": "JSON path to extract the image URL from the response",
+          "examples": ["data.images[0].url"]
+        },
+        "base64Path": {
+          "type": "string",
+          "description": "JSON path to extract the base64-encoded image data from the response",
+          "examples": ["data.images[0].b64_json"]
+        },
+        "errorPath": {
+          "type": "string",
+          "description": "JSON path to extract the error message from the response",
+          "examples": ["error.message"]
+        },
+        "errorCodePath": {
+          "type": "string",
+          "description": "JSON path to extract the error code from the response",
+          "examples": ["error.code"]
+        }
+      }
+    },
+    "textResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contentPath": {
+          "type": "string",
+          "description": "JSON path to extract the text content from the response",
+          "examples": ["choices[0].message.content"]
+        }
+      }
+    },
+    "polling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intervalSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 5,
+          "description": "Initial polling interval in seconds"
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 120,
+          "description": "Maximum number of polling attempts before giving up"
+        },
+        "backoffMultiplier": {
+          "type": "number",
+          "minimum": 1,
+          "default": 1.0,
+          "description": "Multiplier applied to the polling interval on each attempt for exponential backoff"
+        }
+      }
+    },
+    "cloudInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Cloud provider or service name",
+          "examples": ["ACME Cloud"]
+        },
+        "websiteUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the cloud provider's website"
+        },
+        "taskUrlPattern": {
+          "type": "string",
+          "description": "URL pattern for viewing tasks, with {taskId} placeholder",
+          "examples": ["https://cloud.example.com/tasks/{taskId}"]
+        },
+        "apiDocUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the API documentation"
+        },
+        "howToCheck": {
+          "type": "string",
+          "description": "Instructions for checking API key or account status"
+        }
+      }
+    }
+  }
+}

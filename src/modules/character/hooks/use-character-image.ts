@@ -202,31 +202,33 @@ export function useCharacterImage({
       const result = await container.imageProvider.analyzeImage(imageUrl, "character", undefined, { providerId: analyzeOptions.providerId, modelId: analyzeOptions.modelId });
       if (result.success && result.data?.analyzed) {
         const analyzed = result.data.analyzed as Partial<Character>;
-        const charRef = currentCharacterRef.current;
-        const updatedCharacter = {
-          ...charRef,
-          name: analyzed.name || charRef.name,
-          gender: analyzed.gender || charRef.gender,
-          age: analyzed.age || charRef.age,
-          style: analyzed.style || charRef.style,
-          personality: analyzed.personality || charRef.personality,
+
+        setCurrentCharacter((prev) => ({
+          ...prev,
+          name: analyzed.name || prev.name,
+          gender: analyzed.gender || prev.gender,
+          age: analyzed.age || prev.age,
+          style: analyzed.style || prev.style,
+          personality: analyzed.personality || prev.personality,
           appearance: {
-            hairColor: analyzed.appearance?.hairColor || charRef.appearance.hairColor,
-            hairStyle: analyzed.appearance?.hairStyle || charRef.appearance.hairStyle,
-            eyeColor: analyzed.appearance?.eyeColor || charRef.appearance.eyeColor,
-            height: analyzed.appearance?.height || charRef.appearance.height,
-            build: analyzed.appearance?.build || charRef.appearance.build,
-            clothing: analyzed.appearance?.clothing || charRef.appearance.clothing,
+            hairColor: analyzed.appearance?.hairColor || prev.appearance.hairColor,
+            hairStyle: analyzed.appearance?.hairStyle || prev.appearance.hairStyle,
+            eyeColor: analyzed.appearance?.eyeColor || prev.appearance.eyeColor,
+            height: analyzed.appearance?.height || prev.appearance.height,
+            build: analyzed.appearance?.build || prev.appearance.build,
+            clothing: analyzed.appearance?.clothing || prev.appearance.clothing,
           },
-          description: analyzed.description || charRef.description,
+          description: analyzed.description || prev.description,
           refImagePath: imageUrl,
           generatedImage: imageUrl,
-        };
-
-        setCurrentCharacter(updatedCharacter);
-        if (charRef.id) {
+        }));
+        if (currentCharacterRef.current.id) {
           try {
-            const updateResult = await characterService.update(charRef.id, updatedCharacter);
+            const updateResult = await characterService.update(currentCharacterRef.current.id, {
+              ...currentCharacterRef.current,
+              refImagePath: imageUrl,
+              generatedImage: imageUrl,
+            });
             if (!updateResult.ok) throw updateResult.error;
             queryClient.invalidateQueries({ queryKey: ["characters"] });
           } catch (err) {
@@ -234,10 +236,10 @@ export function useCharacterImage({
           }
         }
 
-        addAssetToLibrary(imageUrl, "image", analyzed.name || currentCharacter.name || "角色图片", {
+        addAssetToLibrary(imageUrl, "image", analyzed.name || currentCharacterRef.current.name || "角色图片", {
           type: "character",
-          id: currentCharacter.id,
-          name: analyzed.name || currentCharacter.name || "未命名角色",
+          id: currentCharacterRef.current.id,
+          name: analyzed.name || currentCharacterRef.current.name || "未命名角色",
         });
         success("分析完成", `已自动填充角色信息：${analyzed.name || "未命名角色"}，并保存到素材库`);
       } else {

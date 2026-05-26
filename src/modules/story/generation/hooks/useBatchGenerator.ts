@@ -27,6 +27,7 @@ interface UseBatchGeneratorProps {
   generateVideoNew: (beatId: string, prevBeatOverride?: StoryBeat | null) => Promise<void>;
   success: (title: string, description?: string) => void;
   showError: (title: string, description?: string) => void;
+  showWarning?: (title: string, description?: string) => void;
 }
 
 export function useBatchGenerator(props: UseBatchGeneratorProps) {
@@ -38,6 +39,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
     generateVideoNew,
     success,
     showError,
+    showWarning,
   } = props;
 
   const getChainMode = useCallback((beat: StoryBeat): ChainMode => {
@@ -154,12 +156,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         if (successCount > 0) parts.push(`成功 ${successCount} 个`);
         if (failCount > 0) parts.push(`失败 ${failCount} 个`);
         if (skippedCount > 0) parts.push(`跳过 ${skippedCount} 个（已上传）`);
-        success("批量生成完成", parts.join("，"));
+        if (failCount > 0 && showWarning) {
+          showWarning("批量生成部分完成", parts.join("，"));
+        } else {
+          success("批量生成完成", parts.join("，"));
+        }
       }
       
       return { success: successCount, failed: failCount, skipped: skippedCount };
     },
-    [beatsRef, generateKeyframe, shouldUseChainReference, getPrevBeatForChain, success, showError, setBeats],
+    [beatsRef, generateKeyframe, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning, setBeats],
   );
 
   const batchGenerateFramePairs = useCallback(
@@ -232,12 +238,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         if (successCount > 0) parts.push(`成功 ${successCount} 个`);
         if (failCount > 0) parts.push(`失败 ${failCount} 个`);
         if (skippedCount > 0) parts.push(`跳过 ${skippedCount} 个（已上传）`);
-        success("批量生成完成", parts.join("，"));
+        if (failCount > 0 && showWarning) {
+          showWarning("批量生成部分完成", parts.join("，"));
+        } else {
+          success("批量生成完成", parts.join("，"));
+        }
       }
       
       return { success: successCount, failed: failCount, skipped: skippedCount };
     },
-    [beatsRef, generateFramePair, shouldUseChainReference, getPrevBeatForChain, success, showError, setBeats],
+    [beatsRef, generateFramePair, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning, setBeats],
   );
 
   const batchGenerateVideos = useCallback(
@@ -303,12 +313,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         if (successCount > 0) parts.push(`成功 ${successCount} 个`);
         if (failCount > 0) parts.push(`失败 ${failCount} 个`);
         if (skippedCount > 0) parts.push(`跳过 ${skippedCount} 个（已上传）`);
-        success("批量提交完成", parts.join("，"));
+        if (failCount > 0 && showWarning) {
+          showWarning("批量提交部分完成", parts.join("，"));
+        } else {
+          success("批量提交完成", parts.join("，"));
+        }
       }
       
       return { success: successCount, failed: failCount, skipped: skippedCount };
     },
-    [beatsRef, generateVideoNew, shouldUseChainReference, getPrevBeatForChain, success, showError],
+    [beatsRef, generateVideoNew, shouldUseChainReference, getPrevBeatForChain, success, showError, showWarning],
   );
 
   return {

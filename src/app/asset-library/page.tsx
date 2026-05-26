@@ -961,7 +961,7 @@ type EditingItem =
                   return imageUrl ? (
                     <div className="aspect-video bg-slate-800 rounded-lg overflow-hidden">
                       <img
-                        src={imageUrl}
+                        src={resolveImageUrl(imageUrl)}
                         alt="预览"
                         className="w-full h-full object-cover"
                       />

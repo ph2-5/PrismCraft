@@ -28,24 +28,24 @@ export default function RootLayout({
       <body className="h-full flex bg-background">
         <ClientProviders>
           <QueryProvider>
-          <ThemeProvider>
-          <MigrationInitializer />
-          <VideoTaskManagerInitializer />
-          <BeforeUnloadGuard />
-          <ToastProvider>
-            <NetworkStatusAlert />
-            <SidebarWithSearch />
-            <main
-              className="flex-1 h-full overflow-y-auto transition-[margin-left] duration-200"
-              style={{ marginLeft: "var(--sidebar-width, 220px)" }}
-            >
-              <ConfigCheckBanner />
-              <div className="p-6">{children}</div>
-            </main>
-          </ToastProvider>
-          <OnboardingGuide />
-          <PerformanceMonitorPanel />
-          </ThemeProvider>
+            <ThemeProvider>
+              <MigrationInitializer />
+              <VideoTaskManagerInitializer />
+              <BeforeUnloadGuard />
+              <ToastProvider>
+                <NetworkStatusAlert />
+                <SidebarWithSearch />
+                <main
+                  className="flex-1 h-full overflow-y-auto transition-[margin-left] duration-200"
+                  style={{ marginLeft: "var(--sidebar-width, 220px)" }}
+                >
+                  <ConfigCheckBanner />
+                  <div className="p-6">{children}</div>
+                </main>
+              </ToastProvider>
+              <OnboardingGuide />
+              <PerformanceMonitorPanel />
+            </ThemeProvider>
           </QueryProvider>
         </ClientProviders>
       </body>

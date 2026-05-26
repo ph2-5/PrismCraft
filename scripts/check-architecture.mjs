@@ -179,6 +179,91 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+async function checkMemoryBeforePersistence() {
+  const files = await glob(join(SRC, "modules"), /\.(ts|tsx)$/);
+  const setStatePattern = /\bset\w+\s*\(/;
+  const asyncDbPattern = /\b(await\s+)?(delete|remove|update|create|save)\w*\s*\(/i;
+  const storagePattern = /\b\w+Storage\.\w+/;
+
+  for (const file of files) {
+    const content = await readFile(file, "utf-8");
+    const lines = content.split("\n");
+    let inAsyncFunction = false;
+    let setStateLine = null;
+    let setStateText = "";
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/async\s+(function|\w+\s*=)/.test(line) || /async\s*\(/.test(line)) {
+        inAsyncFunction = true;
+        setStateLine = null;
+      }
+      if (/^\}/.test(line.trim()) && inAsyncFunction) {
+        inAsyncFunction = false;
+        setStateLine = null;
+      }
+
+      if (inAsyncFunction && setStatePattern.test(line) && !/^\s*\/\//.test(line)) {
+        setStateLine = i + 1;
+        setStateText = line.trim();
+      }
+
+      if (inAsyncFunction && setStateLine && (asyncDbPattern.test(line) || storagePattern.test(line))) {
+        if (!/await\s/.test(lines[setStateLine - 1]) && !/await\s/.test(line)) {
+          warnings.push(
+            `⚠️ ${rel(file)}:${setStateLine} - State updated before async persistence (regression guard): ${setStateText}`
+          );
+        }
+        setStateLine = null;
+      }
+    }
+  }
+}
+
+async function checkDeleteWithoutCascade() {
+  const files = await glob(join(SRC, "modules"), /\.(ts|tsx)$/);
+  const deleteFuncPattern = /\b(delete|remove)(Story|Beat|Task|Character|Project)\w*\s*[=(]/i;
+
+  for (const file of files) {
+    const content = await readFile(file, "utf-8");
+    const lines = content.split("\n");
+    const funcNames = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(deleteFuncPattern);
+      if (match) {
+        funcNames.push({ name: match[0], line: i + 1 });
+      }
+    }
+
+    for (const fn of funcNames) {
+      const startLine = fn.line - 1;
+      let braceCount = 0;
+      let funcBody = "";
+      let started = false;
+
+      for (let i = startLine; i < Math.min(startLine + 60, lines.length); i++) {
+        const line = lines[i];
+        for (const ch of line) {
+          if (ch === "{") { braceCount++; started = true; }
+          if (ch === "}") braceCount--;
+        }
+        funcBody += line + "\n";
+        if (started && braceCount <= 0) break;
+      }
+
+      const hasCleanup = /videoTask|VideoTask|cache|Cache|clean|Clean|clear|Clear/i.test(funcBody);
+      const hasOnlyStateRemove = /filter|splice|\.delete\(/i.test(funcBody) && !hasCleanup;
+
+      if (hasOnlyStateRemove) {
+        warnings.push(
+          `⚠️ ${rel(file)}:${fn.line} - Delete function without cascade cleanup (regression guard): ${fn.name.trim()}`
+        );
+      }
+    }
+  }
+}
+
 async function main() {
   console.log("🔍 Scanning architecture violations...\n");
 
@@ -189,6 +274,8 @@ async function main() {
   await checkModuleImportsInShared();
   await checkDomainPurity();
   await checkContractJsonConsistency();
+  await checkMemoryBeforePersistence();
+  await checkDeleteWithoutCascade();
 
   if (violations.length > 0) {
     for (const v of violations) {

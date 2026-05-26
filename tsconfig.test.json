@@ -5,27 +5,16 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/__tests__/**/*.ts",
+    "src/__tests__/**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts",
-    "dist/types/**/*.ts",
-    "dist/dev/types/**/*.ts",
-    "out/types/**/*.ts",
-    "out/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "_backup-v2",
-    "release",
-    "scripts/test-config",
-    "scripts/video-test-tool",
-    "playwright-report",
-    "playwright.config.ts",
-    "tests",
-    "test-results",
-    "test-reports",
-    "vitest.coverage.config.ts"
+    "release"
   ]
 }

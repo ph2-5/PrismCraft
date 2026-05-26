@@ -473,32 +473,58 @@ describe("useAIGeneratorBase", () => {
       expect(props.setGenerating).toHaveBeenCalledWith(null);
     });
 
-    it("同一 beatId 重复调用时应 abort 前一个 controller", async () => {
+    it("同一 beatId 重复调用时应返回已有 Promise 而非 abort (regression: Bug #7)", async () => {
       const props = createDefaultProps();
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
-      let firstSignal: AbortSignal | null = null;
-      let firstResolve: (() => void) | null = null;
-      const firstFn = vi.fn().mockImplementation((signal: AbortSignal) => {
-        firstSignal = signal;
-        return new Promise<void>((resolve) => {
+      let firstResolve: ((value: string) => void) | null = null;
+      const firstFn = vi.fn().mockImplementation((_signal: AbortSignal) => {
+        return new Promise<string>((resolve) => {
           firstResolve = resolve;
         });
       });
 
       const secondFn = vi.fn().mockResolvedValue("second result");
 
+      let firstResult: string | void | undefined;
+      let secondResult: string | void | undefined;
+
       await act(async () => {
-        result.current.withGenerationState("beat-1", firstFn, "Error");
+        const p1 = result.current.withGenerationState("beat-1", firstFn, "Error");
+        const p2 = result.current.withGenerationState("beat-1", secondFn, "Error");
+
+        expect(secondFn).not.toHaveBeenCalled();
+
+        firstResolve!("first result");
+
+        firstResult = await p1;
+        secondResult = await p2;
+      });
+
+      expect(firstResult).toBe("first result");
+      expect(secondResult).toBe("first result");
+      expect(firstFn).toHaveBeenCalledTimes(1);
+      expect(secondFn).not.toHaveBeenCalled();
+    });
+
+    it("Promise dedup 完成后再次调用应发起新请求 (regression: Bug #7)", async () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const firstFn = vi.fn().mockResolvedValue("first");
+      const secondFn = vi.fn().mockResolvedValue("second");
+
+      await act(async () => {
+        await result.current.withGenerationState("beat-1", firstFn, "Error");
       });
 
       await act(async () => {
         const res = await result.current.withGenerationState("beat-1", secondFn, "Error");
-        expect(res).toBe("second result");
+        expect(res).toBe("second");
       });
 
-      expect((firstSignal as any)?.aborted).toBe(true);
-      expect(secondFn).toHaveBeenCalled();
+      expect(firstFn).toHaveBeenCalledTimes(1);
+      expect(secondFn).toHaveBeenCalledTimes(1);
     });
 
     it("abort 后回调结果应被忽略", async () => {

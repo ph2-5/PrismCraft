@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import { fromAsyncThrowable } from "@/domain/types/result";
+import { emitToast } from "@/shared/utils/toast-bridge";
 
 const MAX_RETRY = 3;
 const MIN_INTERVAL_MINUTES = 0.5;
@@ -37,6 +38,7 @@ export function useAutoSave({ enabled, intervalMinutes, onSave }: UseAutoSaveOpt
       } else {
         retryCountRef.current++;
         if (retryCountRef.current >= MAX_RETRY) {
+          emitToast("error", "自动保存失败", "多次重试后仍无法保存，请手动保存您的更改");
           retryCountRef.current = 0;
           pendingRef.current = false;
           savingRef.current = false;

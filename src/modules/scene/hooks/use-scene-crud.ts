@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Scene, Story } from "@/domain/schemas";
 import { sceneService } from "../services";
@@ -42,9 +42,11 @@ export function useSceneCRUD({
   const [referenceCheck, setReferenceCheck] = useState<DeleteCheckResult | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState("");
+  const savingRef = useRef(false);
 
   const handleSave = async () => {
-    if (saveStatus === "saving") return;
+    if (savingRef.current) return;
+    savingRef.current = true;
 
     const trimmedName = (currentScene.name || "").trim();
     if (!trimmedName) {
@@ -95,6 +97,8 @@ export function useSceneCRUD({
       setSaveStatus("error");
       setSaveError(message);
       showError("保存失败", message);
+    } finally {
+      savingRef.current = false;
     }
   };
 

@@ -69,3 +69,18 @@ export function buildSafeDelete(
     params: whereParams,
   };
 }
+
+export function toSqlValue(value: unknown): unknown {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return Math.floor(value.getTime() / 1000);
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return null;
+    }
+  }
+  return value;
+}

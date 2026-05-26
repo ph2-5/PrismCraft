@@ -1,4 +1,4 @@
-import { container } from "@/infrastructure/di";
+import { isCodecSupportedByProvider } from "@/shared/video-utils/codec-check";
 
 export {
   detectVideoCodec,
@@ -14,7 +14,7 @@ export type {
   VideoCodecInfo,
   ExtractedFrames,
 } from "@/shared/video-utils";
-export const isCodecSupportedByProvider = container.isCodecSupportedByProvider;
+export { isCodecSupportedByProvider };
 export { downloadJSONFile } from "@/shared/utils/file-download";
 export {
   videoTemplates,

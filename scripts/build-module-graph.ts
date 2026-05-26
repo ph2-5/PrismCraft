@@ -194,7 +194,6 @@ function generateMermaid(graph: ModuleGraph): string {
     asset: "#1ABC9C",
     sync: "#3498DB",
     feedback: "#95A5A6",
-    integrity: "#E67E22",
     persistence: "#16A085",
     security: "#C0392B",
   };

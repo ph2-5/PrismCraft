@@ -1027,7 +1027,9 @@ export default function QuickGeneratePage() {
                               variant="outline"
                               size="sm"
                               className="flex-1"
+                              disabled={isGenerating}
                               onClick={() => {
+                                if (isGenerating) return;
                                 if (task.prompt) {
                                   setPromptText(task.prompt);
                                 }

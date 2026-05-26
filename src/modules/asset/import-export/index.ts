@@ -61,6 +61,18 @@ function validateImportData(data: unknown): Result<ImportData> {
   return ok(validData);
 }
 
+async function deleteExcludingIds(table: string, idColumn: string, keepIds: string[]): Promise<void> {
+  if (keepIds.length === 0) {
+    await container.safeRun(`DELETE FROM ${table}`);
+    return;
+  }
+  const placeholders = keepIds.map(() => "?").join(",");
+  await container.safeRun(
+    `DELETE FROM ${table} WHERE ${idColumn} NOT IN (${placeholders})`,
+    keepIds,
+  );
+}
+
 export async function importData(
   data: unknown,
   options: { mergeStrategy?: MergeStrategy } = {},
@@ -90,25 +102,27 @@ export async function importData(
     Object.assign(imported, storageResult);
 
     if (validData.videoTemplates?.length) {
-      if (mergeStrategy === "replace") {
-        await container.safeRun("DELETE FROM video_templates");
-      }
+      const importedIds: string[] = [];
       let count = 0;
       for (const template of validData.videoTemplates) {
         try {
           await container.templateStorage.createVideoTemplate(template);
           count++;
+          if (template.id && typeof template.id === "string") {
+            importedIds.push(template.id);
+          }
         } catch (e) {
           errorLogger.warn({ code: "IMPORT_VIDEO_TEMPLATE_SKIP", message: "[Import] videoTemplate skip" }, String(e));
         }
+      }
+      if (mergeStrategy === "replace" && importedIds.length > 0) {
+        await deleteExcludingIds("video_templates", "id", importedIds);
       }
       imported.videoTemplates = count;
     }
 
     if (validData.autoSaves?.length) {
-      if (mergeStrategy === "replace") {
-        await container.safeRun("DELETE FROM auto_saves");
-      }
+      const importedIds: string[] = [];
       let count = 0;
       for (const save of validData.autoSaves) {
         try {
@@ -119,9 +133,15 @@ export async function importData(
             timestamp: save.timestamp as number,
           });
           count++;
+          if (save.id && typeof save.id === "string") {
+            importedIds.push(save.id as string);
+          }
         } catch (e) {
           errorLogger.warn({ code: "IMPORT_AUTO_SAVE_SKIP", message: "[Import] autoSave skip" }, String(e));
         }
+      }
+      if (mergeStrategy === "replace" && importedIds.length > 0) {
+        await deleteExcludingIds("auto_saves", "id", importedIds);
       }
       imported.autoSaves = count;
     }
@@ -148,17 +168,21 @@ export async function importData(
     }
 
     if (validData.sessions?.length) {
-      if (mergeStrategy === "replace") {
-        await container.safeRun("DELETE FROM sessions");
-      }
+      const importedKeys: string[] = [];
       let count = 0;
       for (const session of validData.sessions) {
         try {
           await container.sessionStorage.setSession(session.key as string, session.value);
           count++;
+          if (session.key && typeof session.key === "string") {
+            importedKeys.push(session.key as string);
+          }
         } catch (e) {
           errorLogger.warn({ code: "IMPORT_SESSION_SKIP", message: "[Import] session skip" }, String(e));
         }
+      }
+      if (mergeStrategy === "replace" && importedKeys.length > 0) {
+        await deleteExcludingIds("sessions", "key", importedKeys);
       }
       imported.sessions = count;
     }

@@ -192,13 +192,25 @@ function ScenesPageContent() {
         const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
         return { ...story, scenes: updatedScenes, beats: updatedBeats };
       });
+      const failedStories: string[] = [];
       for (const updatedStory of updatedStories) {
         const original = storiesList.find((s) => s.id === updatedStory.id);
         const wasAffected = original?.beats?.some((b) => b.scene === sceneId || b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
         if (wasAffected) {
-          const result = await storyService.update(updatedStory.id, updatedStory);
-          if (!result.ok) throw result.error;
+          try {
+            const result = await storyService.update(updatedStory.id, updatedStory);
+            if (!result.ok) {
+              errorLogger.warn("[Scenes] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
+              failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
+            }
+          } catch (e) {
+            errorLogger.warn("[Scenes] 更新关联故事异常", e);
+            failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
+          }
         }
+      }
+      if (failedStories.length > 0) {
+        showError("部分故事更新失败", `以下故事的场景引用未清除: ${failedStories.join("、")}`);
       }
     },
   });

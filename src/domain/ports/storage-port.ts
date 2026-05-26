@@ -13,6 +13,8 @@ export interface IVideoTaskStorage {
   updateVideoTask(taskId: string, updates: Partial<VideoTask>): Promise<void>;
   deleteVideoTask(taskId: string): Promise<void>;
   deleteVideoTasksByStatus(statuses: string[]): Promise<void>;
+  deleteVideoTasksByBeatId(beatId: string): Promise<void>;
+  deleteVideoTasksByStoryId(storyId: string): Promise<void>;
   deleteExpiredVideoTasks(): Promise<number>;
   clearVideoTasks(): Promise<void>;
   bulkPutVideoTasks(tasks: Partial<VideoTask>[]): Promise<void>;

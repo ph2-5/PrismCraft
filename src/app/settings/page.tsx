@@ -291,9 +291,15 @@ export default function SettingsPage() {
   const handleRemoveProvider = async (providerId: string) => {
     const provider = config.providers.find((p) => p.id === providerId);
     if (!provider) return;
+    const hasActiveTasks = provider.models?.some((m) =>
+      m.capabilities?.includes("video"),
+    );
+    const warningSuffix = hasActiveTasks
+      ? "\n\n⚠️ 该提供商包含视频模型，删除后正在进行的视频任务可能无法完成。"
+      : "";
     if (
       !(await confirm(
-        `确定要删除提供商「${provider.name}」吗？此操作不可撤销。`,
+        `确定要删除提供商「${provider.name}」吗？此操作不可撤销。${warningSuffix}`,
         "删除提供商",
       ))
     )

@@ -4,6 +4,7 @@ export {
   buildSafeInsert,
   buildSafeUpdate,
   buildSafeDelete,
+  toSqlValue,
 } from "./sql-sanitizer";
 
 export {

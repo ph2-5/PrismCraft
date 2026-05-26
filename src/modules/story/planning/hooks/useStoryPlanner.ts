@@ -15,6 +15,7 @@ interface UseStoryPlannerProps {
   scenesRef: React.MutableRefObject<Scene[]>;
   setBeats: React.Dispatch<React.SetStateAction<StoryBeat[]>>;
   generationEnhanced: boolean;
+  activeVideoTaskCount?: number;
   success: (title: string, description?: string) => void;
   showError: (title: string, description?: string) => void;
 }
@@ -27,6 +28,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
     scenesRef,
     setBeats,
     generationEnhanced,
+    activeVideoTaskCount,
     success,
     showError,
   } = props;
@@ -54,8 +56,11 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
       );
     }
     if (beatsRef.current.length > 0) {
+      const videoWarning = activeVideoTaskCount && activeVideoTaskCount > 0
+        ? `\n\n⚠️ 当前有 ${activeVideoTaskCount} 个视频任务正在进行中，AI规划将覆盖所有镜头，这些视频任务的结果将无法回写。`
+        : "";
       const confirmed = await confirm(
-        `当前已有 ${beatsRef.current.length} 个镜头，AI 规划将会覆盖所有现有镜头。确定要继续吗？`,
+        `当前已有 ${beatsRef.current.length} 个镜头，AI 规划将会覆盖所有现有镜头。${videoWarning}\n\n确定要继续吗？`,
         "AI 规划确认",
       );
       if (!confirmed) return;
@@ -132,6 +137,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
     scenesRef,
     setBeats,
     generationEnhanced,
+    activeVideoTaskCount,
     success,
     showError,
   ]);

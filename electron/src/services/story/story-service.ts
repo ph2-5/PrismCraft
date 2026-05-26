@@ -3,8 +3,8 @@
  * 对应的 src/ 实现: src/modules/story/story-service.ts, src/modules/story/storyboard-generation-service.ts
  * 参见: src/infrastructure/server/ 用于服务端共享逻辑
  */
-import { generateStoryPlanPrompt } from "./prompt-service";
-import type { RawStoryBeat, StoryBeat, StoryPlanValidationResult } from "./types/story";
+import { generateStoryPlanPrompt } from "../prompt/prompt-service";
+import type { RawStoryBeat, StoryBeat, StoryPlanValidationResult } from "../../types/story";
 
 interface FewShotInput {
   genre: string;
@@ -451,7 +451,7 @@ export async function generateStoryPlanWithValidation(
   const basePrompt = opts.planPrompt || generateStoryPlanPrompt({
     title: story.title, description: story.description, genre: story.genre,
     tone: story.tone, targetDuration: story.targetDuration,
-    characters: (characters || []) as import("./prompt-service").CharacterInput[], scenes: (scenes || []) as import("./prompt-service").SceneInput[],
+    characters: (characters || []) as import("../prompt/prompt-service").CharacterInput[], scenes: (scenes || []) as import("../prompt/prompt-service").SceneInput[],
   });
 
   const fewShotContext: FewShotInput = {

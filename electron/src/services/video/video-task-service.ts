@@ -11,7 +11,7 @@ import {
   type ElementInput,
   type BeatInput,
   type QuickModeParams,
-} from "./prompt-service";
+} from "../prompt/prompt-service";
 
 interface Beat {
   id: string;

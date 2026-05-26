@@ -134,20 +134,30 @@ export function useSceneImage({
       const result = await container.imageProvider.analyzeImage(imageUrl, "scene", undefined, { providerId: analyzeOptions.providerId, modelId: analyzeOptions.modelId });
       if (result.success && result.data?.analyzed) {
         const analyzed = result.data.analyzed as Partial<Scene>;
-        const sceneRef = currentSceneRef.current;
-        const updatedScene = {
-          ...sceneRef, name: analyzed.name || sceneRef.name, type: analyzed.type || sceneRef.type,
-          timeOfDay: analyzed.timeOfDay || sceneRef.timeOfDay, weather: analyzed.weather || sceneRef.weather,
-          mood: analyzed.mood || sceneRef.mood, lighting: analyzed.lighting || sceneRef.lighting,
-          elements: analyzed.elements || sceneRef.elements, colors: analyzed.colors || sceneRef.colors,
-          description: analyzed.description || sceneRef.description, scenePath: imageUrl, generatedImage: imageUrl,
-        };
-        setCurrentScene(updatedScene);
-        if (sceneRef.id) {
-          try { const updateResult = await sceneService.update(sceneRef.id, updatedScene); if (!updateResult.ok) throw updateResult.error; queryClient.invalidateQueries({ queryKey: ["scenes"] }); }
+        setCurrentScene((prev) => ({
+          ...prev,
+          name: analyzed.name || prev.name,
+          type: analyzed.type || prev.type,
+          timeOfDay: analyzed.timeOfDay || prev.timeOfDay,
+          weather: analyzed.weather || prev.weather,
+          mood: analyzed.mood || prev.mood,
+          lighting: analyzed.lighting || prev.lighting,
+          elements: analyzed.elements || prev.elements,
+          colors: analyzed.colors || prev.colors,
+          description: analyzed.description || prev.description,
+          scenePath: imageUrl,
+          generatedImage: imageUrl,
+        }));
+        if (currentSceneRef.current.id) {
+          try {
+            const updateResult = await sceneService.update(currentSceneRef.current.id, {
+              ...currentSceneRef.current,
+              scenePath: imageUrl,
+              generatedImage: imageUrl,
+            }); if (!updateResult.ok) throw updateResult.error; queryClient.invalidateQueries({ queryKey: ["scenes"] }); }
           catch (err) { showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
         }
-        addAssetToLibrary(imageUrl, "image", analyzed.name || sceneRef.name || "场景图片", { type: "scene", id: sceneRef.id, name: analyzed.name || sceneRef.name || "未命名场景" });
+        addAssetToLibrary(imageUrl, "image", analyzed.name || currentSceneRef.current.name || "场景图片", { type: "scene", id: currentSceneRef.current.id, name: analyzed.name || currentSceneRef.current.name || "未命名场景" });
         success("分析完成", `已自动填充场景信息：${analyzed.name || "未命名场景"}，并保存到素材库`);
       } else { showError("分析失败", result.error || result.message || "请重试"); }
     } catch (err) { errorLogger.error("分析失败:", err); showError("分析失败", getErrorMessage(err)); }

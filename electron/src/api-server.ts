@@ -6,18 +6,18 @@ import { handleConfig, handleSecureConfig } from "./handlers/config";
 import { handleTestConnection } from "./handlers/test-connection";
 import { handleSyncConfig, handleSyncTest, handleSyncProxy } from "./handlers/sync";
 import * as apiGateway from "./api-gateway";
-import * as storyService from "./story-service";
-import * as videoTaskService from "./video-task-service";
-import * as promptService from "./prompt-service";
+import * as storyService from "./services/story/story-service";
+import * as videoTaskService from "./services/video/video-task-service";
+import * as promptService from "./services/prompt/prompt-service";
 import { pluginRegistry, saveUserPlugin, deleteUserPlugin, listUserPluginFiles, validatePluginConfig } from "./plugins";
 import type { UserPluginConfig } from "./plugins";
-import * as referenceEngine from "./reference-engine";
-import * as consistencyCheck from "./consistency-check";
-import * as referenceCheck from "./reference-check";
-import * as visualConsistencyCheck from "./visual-consistency-check";
-import * as storyboardGeneration from "./storyboard-generation";
-import * as videoTracker from "./video-tracker";
-import * as videoRecovery from "./video-recovery";
+import * as referenceEngine from "./services/shot/reference-engine";
+import * as consistencyCheck from "./services/shot/consistency-check";
+import * as referenceCheck from "./services/shot/reference-check";
+import * as visualConsistencyCheck from "./services/shot/visual-consistency-check";
+import * as storyboardGeneration from "./services/story/storyboard-generation";
+import * as videoTracker from "./services/video/video-tracker";
+import * as videoRecovery from "./services/video/video-recovery";
 import { getLogger } from "./logging";
 import type { ApiRequest, ApiResponse, RouteHandler } from "./types/api";
 import { API_SERVER_PORT, APP_SERVER_PORT, DEV_SERVER_PORT } from "./config/ports";
@@ -232,7 +232,7 @@ const routes: Record<string, Route> = {
   },
   "character/generate-image": {
     handler: async (_m, b) => {
-      const character = (b.character ?? {}) as import("./prompt-service").CharacterInput;
+      const character = (b.character ?? {}) as import("./services/prompt/prompt-service").CharacterInput;
       const useDetailedPrompt = b.useDetailedPrompt as boolean | undefined;
       const imageSize = b.imageSize as string | undefined;
       const providerId = b.providerId as string | undefined;
@@ -266,7 +266,7 @@ const routes: Record<string, Route> = {
   },
   "scene/generate-image": {
     handler: async (_m, b) => {
-      const scene = (b.scene ?? {}) as import("./prompt-service").SceneInput;
+      const scene = (b.scene ?? {}) as import("./services/prompt/prompt-service").SceneInput;
       const useDetailedPrompt = b.useDetailedPrompt as boolean | undefined;
       const imageSize = b.imageSize as string | undefined;
       const providerId = b.providerId as string | undefined;
@@ -627,9 +627,9 @@ const routes: Record<string, Route> = {
   },
   "shot/validate-reference": {
     handler: async (_m, b) => {
-      const shot = b.shot as import("./reference-engine").Shot;
-      const allShots = b.allShots as import("./reference-engine").Shot[];
-      const reference = b.reference as import("./reference-engine").Reference;
+      const shot = b.shot as import("./services/shot/reference-engine").Shot;
+      const allShots = b.allShots as import("./services/shot/reference-engine").Shot[];
+      const reference = b.reference as import("./services/shot/reference-engine").Reference;
       const result = referenceEngine.validateReference(
         shot,
         allShots,
@@ -641,9 +641,9 @@ const routes: Record<string, Route> = {
   },
   "shot/get-reference-video-url": {
     handler: async (_m, b) => {
-      const shot = b.shot as import("./reference-engine").Shot;
-      const allShots = b.allShots as import("./reference-engine").Shot[];
-      const reference = b.reference as import("./reference-engine").Reference;
+      const shot = b.shot as import("./services/shot/reference-engine").Shot;
+      const allShots = b.allShots as import("./services/shot/reference-engine").Shot[];
+      const reference = b.reference as import("./services/shot/reference-engine").Reference;
       const url = referenceEngine.getReferenceVideoUrl(
         shot,
         allShots,
@@ -655,9 +655,9 @@ const routes: Record<string, Route> = {
   },
   "shot/build-reference-description": {
     handler: async (_m, b) => {
-      const shot = b.shot as import("./reference-engine").Shot;
-      const allShots = b.allShots as import("./reference-engine").Shot[];
-      const reference = b.reference as import("./reference-engine").Reference;
+      const shot = b.shot as import("./services/shot/reference-engine").Shot;
+      const allShots = b.allShots as import("./services/shot/reference-engine").Shot[];
+      const reference = b.reference as import("./services/shot/reference-engine").Reference;
       const desc = referenceEngine.buildReferenceDescription(
         shot,
         allShots,
@@ -676,7 +676,7 @@ const routes: Record<string, Route> = {
   },
   "validate/feature-anchoring": {
     handler: async (_m, b) => {
-      const config = b.config as import("./consistency-check").FeatureAnchoringConfig;
+      const config = b.config as import("./services/shot/consistency-check").FeatureAnchoringConfig;
       const result = consistencyCheck.validateFeatureAnchoringConfig(config);
       return { success: true, data: result };
     },
@@ -692,7 +692,7 @@ const routes: Record<string, Route> = {
   "reference/check-character": {
     handler: async (_m, b) => {
       const characterId = b.characterId as string;
-      const stories = b.stories as import("./reference-check").Story[];
+      const stories = b.stories as import("./services/shot/reference-check").Story[];
       const result = referenceCheck.checkCharacterReferences(
         characterId,
         stories,
@@ -704,7 +704,7 @@ const routes: Record<string, Route> = {
   "reference/check-scene": {
     handler: async (_m, b) => {
       const sceneId = b.sceneId as string;
-      const stories = b.stories as import("./reference-check").Story[];
+      const stories = b.stories as import("./services/shot/reference-check").Story[];
       const result = referenceCheck.checkSceneReferences(sceneId, stories);
       return { success: true, data: result };
     },
@@ -714,9 +714,9 @@ const routes: Record<string, Route> = {
     handler: async (_m, b) => {
       const generatedImageUrl = b.generatedImageUrl as string | undefined;
       const referenceImageUrl = b.referenceImageUrl as string | undefined;
-      const element = (b.element ?? {}) as import("./visual-consistency-check").Element;
+      const element = (b.element ?? {}) as import("./services/shot/visual-consistency-check").Element;
       const result = await visualConsistencyCheck.checkVisualConsistency(
-        apiGateway as unknown as import("./storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("./services/story/storyboard-generation").ApiGateway,
         {
           generatedImageUrl,
           referenceImageUrl,
@@ -729,11 +729,11 @@ const routes: Record<string, Route> = {
   },
   "visual-consistency/check-beat": {
     handler: async (_m, b) => {
-      const beat = b.beat as import("./visual-consistency-check").Beat;
-      const elements = b.elements as import("./visual-consistency-check").Element[];
+      const beat = b.beat as import("./services/shot/visual-consistency-check").Beat;
+      const elements = b.elements as import("./services/shot/visual-consistency-check").Element[];
       const generatedImageMap = b.generatedImageMap as Record<string, string> | undefined;
       const result = await visualConsistencyCheck.checkBeatElementConsistency(
-        apiGateway as unknown as import("./storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("./services/story/storyboard-generation").ApiGateway,
         {
           beat,
           elements,
@@ -747,11 +747,11 @@ const routes: Record<string, Route> = {
   },
   "storyboard/generate-keyframe": {
     handler: async (_m, b) => {
-      const beat = b.beat as import("./storyboard-generation").Beat;
-      const prevBeat = b.prevBeat as import("./storyboard-generation").Beat | undefined;
+      const beat = b.beat as import("./services/story/storyboard-generation").Beat;
+      const prevBeat = b.prevBeat as import("./services/story/storyboard-generation").Beat | undefined;
       const options = (b.options || {}) as Record<string, unknown>;
       const result = await storyboardGeneration.generateBeatKeyframe(
-        apiGateway as unknown as import("./storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("./services/story/storyboard-generation").ApiGateway,
         promptService,
         beat,
         prevBeat,
@@ -763,10 +763,10 @@ const routes: Record<string, Route> = {
   },
   "storyboard/generate-frame-pair": {
     handler: async (_m, b) => {
-      const beat = b.beat as import("./storyboard-generation").Beat;
+      const beat = b.beat as import("./services/story/storyboard-generation").Beat;
       const options = (b.options || {}) as Record<string, unknown>;
       const result = await storyboardGeneration.generateBeatFramePair(
-        apiGateway as unknown as import("./storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("./services/story/storyboard-generation").ApiGateway,
         promptService,
         beat,
         options,
@@ -777,10 +777,10 @@ const routes: Record<string, Route> = {
   },
   "storyboard/generate-video": {
     handler: async (_m, b) => {
-      const beat = b.beat as import("./storyboard-generation").Beat;
+      const beat = b.beat as import("./services/story/storyboard-generation").Beat;
       const options = (b.options || {}) as Record<string, unknown>;
       const result = await storyboardGeneration.generateBeatVideo(
-        apiGateway as unknown as import("./storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("./services/story/storyboard-generation").ApiGateway,
         beat,
         options,
       );
@@ -790,11 +790,11 @@ const routes: Record<string, Route> = {
   },
   "storyboard/generate-full-workflow": {
     handler: async (_m, b) => {
-      const beat = b.beat as import("./storyboard-generation").Beat;
-      const prevBeat = b.prevBeat as import("./storyboard-generation").Beat | undefined;
+      const beat = b.beat as import("./services/story/storyboard-generation").Beat;
+      const prevBeat = b.prevBeat as import("./services/story/storyboard-generation").Beat | undefined;
       const options = (b.options || {}) as Record<string, unknown>;
       const result = await storyboardGeneration.generateBeatFullWorkflow(
-        apiGateway as unknown as import("./storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("./services/story/storyboard-generation").ApiGateway,
         promptService,
         beat,
         prevBeat,
@@ -806,10 +806,10 @@ const routes: Record<string, Route> = {
   },
   "storyboard/generate-keyframe-chain": {
     handler: async (_m, b) => {
-      const beats = b.beats as import("./storyboard-generation").Beat[];
+      const beats = b.beats as import("./services/story/storyboard-generation").Beat[];
       const options = (b.options || {}) as Record<string, unknown>;
       const result = await storyboardGeneration.generateKeyframeChain(
-        apiGateway as unknown as import("./storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("./services/story/storyboard-generation").ApiGateway,
         promptService,
         beats,
         options,
@@ -823,7 +823,7 @@ const routes: Record<string, Route> = {
       const taskId = b.taskId as string;
       const taskRecord = b.taskRecord as Record<string, unknown> | undefined;
       const result = await videoRecovery.recoverVideoByTaskId(
-        apiGateway as unknown as import("./storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("./services/story/storyboard-generation").ApiGateway,
         taskId,
         taskRecord,
       );

@@ -3,7 +3,7 @@
  * 对应的 src/ 实现: src/modules/story/storyboard-generation.ts, src/modules/story/storyboard-generation-service.ts
  * 参见: src/infrastructure/server/ 用于服务端共享逻辑
  */
-import { getLogger } from "./logging";
+import { getLogger } from "../../logging";
 
 const logger = getLogger("storyboard-generation");
 

@@ -21,6 +21,7 @@ import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
 import { Badge } from "@/shared/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import type { Character } from "@/domain/schemas";
 import {
   Plus,
@@ -983,16 +984,17 @@ function CharactersPageContent() {
                   {saveStatus === "saving" ? "保存中..." : "保存角色"}
                 </Button>
                 <div className="flex gap-2">
-                  <select
-                    value={imageSize}
-                    onChange={(e) => setImageSize(e.target.value)}
-                    className="px-3 py-2 border border-purple-700 bg-purple-900/30 text-purple-100 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="1920x1920">1920x1920</option>
-                    <option value="2048x2048">2048x2048</option>
-                    <option value="2560x1440">2560x1440</option>
-                    <option value="3840x2160">3840x2160</option>
-                  </select>
+                  <Select value={imageSize} onValueChange={(v) => { if (v) setImageSize(v); }}>
+                    <SelectTrigger className="w-[140px] border-purple-700 bg-purple-900/30 text-purple-100">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1920x1920">1920x1920</SelectItem>
+                      <SelectItem value="2048x2048">2048x2048</SelectItem>
+                      <SelectItem value="2560x1440">2560x1440</SelectItem>
+                      <SelectItem value="3840x2160">3840x2160</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="outline"
                     className="gap-2 border-purple-700 bg-purple-900/20 hover:bg-purple-900/40 text-purple-200"

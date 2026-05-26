@@ -573,6 +573,40 @@ describe("useVideoTaskStore", () => {
       expect(mockVideoTaskStorage.deleteVideoTasksByStatus).toHaveBeenCalledWith(["completed"]);
     });
 
+    it("should persist before updating state (regression: Bug #3)", async () => {
+      const completed = makeTask({ taskId: "t-comp-reg", status: "completed" });
+      useVideoTaskStore.setState({ allTasks: [completed] });
+
+      const order: string[] = [];
+      mockVideoTaskStorage.deleteVideoTasksByStatus.mockImplementationOnce(async () => {
+        order.push("db");
+      });
+
+      const originalSetAllTasks = useVideoTaskStore.getState().setAllTasks;
+      useVideoTaskStore.setState({
+        setAllTasks: ((fn: unknown) => {
+          order.push("state");
+          return originalSetAllTasks(fn as Parameters<typeof originalSetAllTasks>[0]);
+        }) as typeof originalSetAllTasks,
+      });
+
+      await useVideoTaskStore.getState().clearCompletedTasks();
+
+      expect(order).toEqual(["db", "state"]);
+    });
+
+    it("should not update state when storage delete fails (regression: Bug #3)", async () => {
+      const completed = makeTask({ taskId: "t-comp-fail", status: "completed" });
+      useVideoTaskStore.setState({ allTasks: [completed] });
+
+      mockVideoTaskStorage.deleteVideoTasksByStatus.mockRejectedValueOnce(new Error("db error"));
+
+      await useVideoTaskStore.getState().clearCompletedTasks();
+
+      expect(useVideoTaskStore.getState().allTasks).toHaveLength(1);
+      expect(mockErrorLogger.error).toHaveBeenCalled();
+    });
+
     it("should log error when storage delete fails", async () => {
       mockVideoTaskStorage.deleteVideoTasksByStatus.mockRejectedValueOnce(new Error("db error"));
 

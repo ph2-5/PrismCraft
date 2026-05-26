@@ -210,4 +210,62 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
       expect(statements[1].sql).toContain("DELETE FROM video_cache");
     });
   });
+
+  describe("deleteVideoTasksByBeatId (regression: Bug #4)", () => {
+    it("按 beat_id 删除任务并级联删除 video_cache", async () => {
+      mockSafeQuery.mockResolvedValue([{ id: "t1" }, { id: "t2" }]);
+
+      await videoTaskStorage.deleteVideoTasksByBeatId("beat-1");
+
+      expect(mockSafeQuery).toHaveBeenCalledWith(
+        expect.stringContaining("beat_id"),
+        ["beat-1"],
+      );
+      expect(mockSafeTransaction).toHaveBeenCalled();
+      const statements = mockSafeTransaction.mock.calls[0][0] as {
+        sql: string;
+        params: unknown[];
+      }[];
+      expect(statements[0].sql).toContain("DELETE FROM video_cache");
+      expect(statements[1].sql).toContain("DELETE FROM video_tasks");
+      expect(statements[1].sql).toContain("beat_id");
+    });
+
+    it("无匹配时直接返回", async () => {
+      mockSafeQuery.mockResolvedValue([]);
+
+      await videoTaskStorage.deleteVideoTasksByBeatId("beat-nonexistent");
+
+      expect(mockSafeTransaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteVideoTasksByStoryId (regression: Bug #8)", () => {
+    it("按 story_id 删除任务并级联删除 video_cache", async () => {
+      mockSafeQuery.mockResolvedValue([{ id: "t1" }, { id: "t2" }, { id: "t3" }]);
+
+      await videoTaskStorage.deleteVideoTasksByStoryId("story-1");
+
+      expect(mockSafeQuery).toHaveBeenCalledWith(
+        expect.stringContaining("story_id"),
+        ["story-1"],
+      );
+      expect(mockSafeTransaction).toHaveBeenCalled();
+      const statements = mockSafeTransaction.mock.calls[0][0] as {
+        sql: string;
+        params: unknown[];
+      }[];
+      expect(statements[0].sql).toContain("DELETE FROM video_cache");
+      expect(statements[1].sql).toContain("DELETE FROM video_tasks");
+      expect(statements[1].sql).toContain("story_id");
+    });
+
+    it("无匹配时直接返回", async () => {
+      mockSafeQuery.mockResolvedValue([]);
+
+      await videoTaskStorage.deleteVideoTasksByStoryId("story-nonexistent");
+
+      expect(mockSafeTransaction).not.toHaveBeenCalled();
+    });
+  });
 });

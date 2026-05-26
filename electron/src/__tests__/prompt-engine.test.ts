@@ -12,7 +12,7 @@ import {
   LIGHTING_MAP,
   SHOT_TYPE_MAP,
   CAMERA_MOVEMENT_MAP,
-} from "../prompt-engine";
+} from "../services/prompt/prompt-engine";
 
 describe("常量测试", () => {
   it("QUALITY_TAGS_IMAGE 是非空字符串数组", () => {

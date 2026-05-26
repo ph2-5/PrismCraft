@@ -37,11 +37,7 @@ import { imageCacheStorage } from "@/infrastructure/storage/image-cache";
 import { collectionStorage } from "@/infrastructure/storage/collections";
 import { storyboardStorage } from "@/infrastructure/storage/storyboard";
 import {
-  characterRepository,
-  sceneRepository,
-  storyRepository,
   mediaAssetRepository,
-  elementRepository,
 } from "@/infrastructure/database";
 import {
   generateVideo,
@@ -54,17 +50,12 @@ import { generateImage, analyzeImage } from "@/infrastructure/ai-providers/image
 import { generateText } from "@/infrastructure/ai-providers/text";
 import { uploadFile } from "@/infrastructure/ai-providers/utils";
 import { safeQuery, safeRun, safeTransaction } from "@/infrastructure/storage/sqlite-core";
-import { registerChangeTracker, toSqlValue } from "@/infrastructure/storage/core";
+import { registerChangeTracker } from "@/infrastructure/storage/core";
 import { apiClient, imageApi, videoApi, textApi } from "@/infrastructure/api";
 import { eventBus } from "@/shared/event-bus";
 import { synthesizeOutfit, batchSynthesizeOutfits } from "@/infrastructure/ai-providers/outfit-synthesis";
-import { getProviderSupportedCodecs, getProviderMaxDuration } from "@/infrastructure/ai-providers/model-adapter";
 import { loadConfig } from "@/infrastructure/ai-providers/api-config/storage";
 import { checkConfigStatus, initConfig } from "@/infrastructure/ai-providers/api-config/init";
-import { resolveImageSize, getModelParameterProfile } from "@/infrastructure/ai-providers/model-capabilities";
-import {
-  isCodecSupportedByProvider,
-} from "@/infrastructure/video-utils";
 import { registerObjectUrl, revokeObjectUrl, getObjectUrl } from "@/infrastructure/storage/video-cache";
 import { resilientFetch } from "@/infrastructure/network/resilient-fetch";
 import { importExportStorage } from "@/infrastructure/storage/import-export";
@@ -140,22 +131,15 @@ const tokens = {
 
   // ── D. Repository 实例（Drizzle ORM，模块无法直接导入 infrastructure/database） ──
   mediaAssetRepository: createToken("mediaAssetRepository", () => mediaAssetRepository),
-  characterRepository: createToken("characterRepository", () => characterRepository),
-  sceneRepository: createToken("sceneRepository", () => sceneRepository),
-  storyRepository: createToken("storyRepository", () => storyRepository),
-  elementRepository: createToken("elementRepository", () => elementRepository),
 
   // ── E. Infrastructure 桥接函数（纯函数，但因 ESLint 限制模块无法直接导入 infrastructure） ──
   // 理由：modules/ 层 ESLint 规则禁止直接 import @/infrastructure/*（除 @/infrastructure/di）
-  // 注意：sql-sanitizer 和 schema-registry 的纯函数已通过 ESLint 白名单允许直接导入，不再需要 DI 桥接
+  // 注意：sql-sanitizer、schema-registry、model-capabilities 的纯函数已通过 @/shared/ 代理导出，不再需要 DI 桥接
   safeQuery: createToken("safeQuery", () => safeQuery),
   safeRun: createToken("safeRun", () => safeRun),
   safeTransaction: createToken("safeTransaction", () => safeTransaction),
-  toSqlValue: createToken("toSqlValue", () => toSqlValue),
   synthesizeOutfit: createToken("synthesizeOutfit", () => synthesizeOutfit),
   batchSynthesizeOutfits: createToken("batchSynthesizeOutfits", () => batchSynthesizeOutfits),
-  getProviderSupportedCodecs: createToken("getProviderSupportedCodecs", () => getProviderSupportedCodecs),
-  getProviderMaxDuration: createToken("getProviderMaxDuration", () => getProviderMaxDuration),
   registerObjectUrl: createToken("registerObjectUrl", () => registerObjectUrl),
   revokeObjectUrl: createToken("revokeObjectUrl", () => revokeObjectUrl),
   getObjectUrl: createToken("getObjectUrl", () => getObjectUrl),
@@ -164,9 +148,6 @@ const tokens = {
   loadConfig: createToken("loadConfig", () => loadConfig),
   checkConfigStatus: createToken("checkConfigStatus", () => checkConfigStatus),
   initConfig: createToken("initConfig", () => initConfig),
-  resolveImageSize: createToken("resolveImageSize", () => resolveImageSize),
-  getModelParameterProfile: createToken("getModelParameterProfile", () => getModelParameterProfile),
-  isCodecSupportedByProvider: createToken("isCodecSupportedByProvider", () => isCodecSupportedByProvider),
 
   // ── F. 懒加载模块实例（避免循环依赖） ──────────────────────────────────
   elementManager: createToken("elementManager", async () => {

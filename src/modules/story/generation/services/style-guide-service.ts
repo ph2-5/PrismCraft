@@ -2,7 +2,7 @@ import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
 import type { StoryStyleGuide, Character, Scene } from "@/domain/schemas";
 import type { ITextProvider, IImageProvider } from "@/domain/ports";
-import { container } from "@/infrastructure/di";
+import { resolveImageSize } from "@/infrastructure/ai-providers/model-capabilities";
 
 interface StyleGuideInput {
   storyTitle: string;
@@ -68,7 +68,7 @@ export async function generateStyleGuide(
 
     const imageModelId = modelId || "";
     const resolvedSize = imageModelId
-      ? container.resolveImageSize(imageModelId, "style_guide")
+      ? resolveImageSize(imageModelId, "style_guide")
       : "1920x1920";
 
     const imageResult = await imageProvider.generateImage(stylePrompt, "scene", {

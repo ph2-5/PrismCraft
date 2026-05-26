@@ -33,14 +33,17 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
   } = props;
 
   const activeControllersRef = useRef(new Map<string, AbortController>());
+  const pendingPromisesRef = useRef(new Map<string, Promise<unknown>>());
 
   useEffect(() => {
     const currentControllers = activeControllersRef.current;
+    const currentPromises = pendingPromisesRef.current;
     return () => {
       currentControllers.forEach((controller) => {
         controller.abort();
       });
       currentControllers.clear();
+      currentPromises.clear();
     };
   }, []);
 
@@ -121,30 +124,36 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
       fn: (signal: AbortSignal) => Promise<T>,
       errorTitle: string,
     ): Promise<T | void> => {
-      const existingController = activeControllersRef.current.get(beatId);
-      if (existingController) {
-        existingController.abort();
-        activeControllersRef.current.delete(beatId);
+      const existingPromise = pendingPromisesRef.current.get(beatId);
+      if (existingPromise) {
+        return existingPromise as Promise<T | void>;
       }
 
       const controller = new AbortController();
       activeControllersRef.current.set(beatId, controller);
       setGenerating(beatId);
-      try {
-        const result = await fn(controller.signal);
-        if (controller.signal.aborted) return;
-        return result;
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        showError(errorTitle, getErrorMessage(err));
-      } finally {
-        if (activeControllersRef.current.get(beatId) === controller) {
-          activeControllersRef.current.delete(beatId);
+
+      const promise = (async (): Promise<T | void> => {
+        try {
+          const result = await fn(controller.signal);
+          if (controller.signal.aborted) return;
+          return result;
+        } catch (err) {
+          if (controller.signal.aborted) return;
+          showError(errorTitle, getErrorMessage(err));
+        } finally {
+          if (activeControllersRef.current.get(beatId) === controller) {
+            activeControllersRef.current.delete(beatId);
+          }
+          pendingPromisesRef.current.delete(beatId);
+          if (!controller.signal.aborted) {
+            setGenerating(null);
+          }
         }
-        if (!controller.signal.aborted) {
-          setGenerating(null);
-        }
-      }
+      })();
+
+      pendingPromisesRef.current.set(beatId, promise);
+      return promise;
     },
     [setGenerating, showError],
   );

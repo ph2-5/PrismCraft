@@ -272,8 +272,9 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 
   removeTask: async (taskId) => {
-    get().setAllTasks((prev) => prev.filter((task) => task.taskId !== taskId));
     try {
+      await container.videoTaskStorage.deleteVideoTask(taskId);
+      get().setAllTasks((prev) => prev.filter((task) => task.taskId !== taskId));
       try {
         await removeCachedVideo(taskId);
       } catch (e) {
@@ -282,19 +283,18 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
           e instanceof Error ? e.message : e,
         );
       }
-      await container.videoTaskStorage.deleteVideoTask(taskId);
     } catch (error) {
       errorLogger.error("Failed to remove video task", error);
+      emitToast("error", "删除任务失败", "数据库删除失败，请重试");
     }
   },
 
   removeTasks: async (taskIds) => {
-    const tasksToRemove = get().allTasks.filter((t) => taskIds.includes(t.taskId));
-    get().setAllTasks((prev) =>
-      prev.filter((task) => !taskIds.includes(task.taskId)),
-    );
-    try {
-      await Promise.all(taskIds.map(async (id) => {
+    const deletedIds: string[] = [];
+    for (const id of taskIds) {
+      try {
+        await container.videoTaskStorage.deleteVideoTask(id);
+        deletedIds.push(id);
         try {
           await removeCachedVideo(id);
         } catch (e) {
@@ -303,17 +303,17 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             "VideoTaskManager",
           );
         }
-      }));
-      for (const task of tasksToRemove) {
-        await container.videoTaskStorage.deleteVideoTask(task.taskId).catch((error) => {
-          errorLogger.error(
-            new AppError("REMOVE_TASK_ERROR", `Failed to remove video task: ${task.taskId}`, error),
-            "VideoTaskManager",
-          );
-        });
+      } catch (error) {
+        errorLogger.error(
+          new AppError("REMOVE_TASK_ERROR", `Failed to remove video task: ${id}`, error),
+          "VideoTaskManager",
+        );
       }
-    } catch (error) {
-      errorLogger.error("Failed to remove video tasks batch", error);
+    }
+    if (deletedIds.length > 0) {
+      get().setAllTasks((prev) =>
+        prev.filter((task) => !deletedIds.includes(task.taskId)),
+      );
     }
   },
 
@@ -323,11 +323,11 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         (t) => t.status === "pending" || t.status === "generating",
       )
       .map((t) => t.taskId);
-    get().setAllTasks((prev) =>
-      prev.filter((t) => t.status !== "pending" && t.status !== "generating"),
-    );
-    try {
-      for (const id of activeIds) {
+    const deletedIds: string[] = [];
+    for (const id of activeIds) {
+      try {
+        await container.videoTaskStorage.deleteVideoTask(id);
+        deletedIds.push(id);
         try {
           await removeCachedVideo(id);
         } catch (e) {
@@ -336,38 +336,42 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             "VideoTaskManager",
           );
         }
-        await container.videoTaskStorage.deleteVideoTask(id);
+      } catch (error) {
+        errorLogger.error(
+          new AppError("CLEAR_ACTIVE_TASKS_ERROR", `Failed to delete task ${id}`, error),
+          "VideoTaskManager",
+        );
       }
-    } catch (error) {
-      errorLogger.error(
-        new AppError("CLEAR_ACTIVE_TASKS_ERROR", "Failed to clear active tasks", error),
-        "VideoTaskManager",
+    }
+    if (deletedIds.length > 0) {
+      get().setAllTasks((prev) =>
+        prev.filter((t) => !deletedIds.includes(t.taskId)),
       );
     }
   },
 
   clearAllTasks: async () => {
-    get().setAllTasks([]);
     try {
       await container.videoTaskStorage.clearVideoTasks();
+      get().setAllTasks([]);
     } catch (error) {
       errorLogger.error("Failed to clear all video tasks", error);
     }
   },
 
   clearCompletedTasks: async () => {
-    get().setAllTasks((prev) => prev.filter((t) => t.status !== "completed"));
     try {
       await container.videoTaskStorage.deleteVideoTasksByStatus(["completed"]);
+      get().setAllTasks((prev) => prev.filter((t) => t.status !== "completed"));
     } catch (error) {
       errorLogger.error("Failed to clear completed tasks", error);
     }
   },
 
   clearFailedTasks: async () => {
-    get().setAllTasks((prev) => prev.filter((t) => t.status !== "failed"));
     try {
       await container.videoTaskStorage.deleteVideoTasksByStatus(["failed"]);
+      get().setAllTasks((prev) => prev.filter((t) => t.status !== "failed"));
     } catch (error) {
       errorLogger.error("Failed to clear failed tasks", error);
     }
@@ -463,6 +467,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             "[VideoTaskManager] 持久化任务失败，仅保留在内存中",
             createSaveResult.error instanceof Error ? createSaveResult.error.message : createSaveResult.error,
           );
+          const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
+          emitToast("warning", "任务仅保存在内存中", `「${taskLabel}」持久化失败，刷新页面后任务记录可能丢失`);
         }
 
         get().setAllTasks((prev) => [newTask, ...prev]);
@@ -562,7 +568,9 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
           pollFailureCount: 0,
         });
         updatedTask = { ...updatedTask, ...guarded };
-        emitToast("error", "视频生成失败", `任务 ${taskId.slice(0, 8)} 连续轮询失败`);
+        const taskLabel = task.beatTitle || task.storyTitle || taskId.slice(0, 8);
+        emitToast("error", "视频生成失败", `「${taskLabel}」连续轮询失败`);
+        removeCachedVideo(taskId).catch(() => {});
       }
       get().setAllTasks((prev) =>
         prev.map((t) => (t.taskId === taskId ? updatedTask : t)),

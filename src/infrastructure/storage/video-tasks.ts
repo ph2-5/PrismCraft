@@ -173,6 +173,56 @@ export const videoTaskStorage = {
     }
   },
 
+  async deleteVideoTasksByBeatId(beatId: string): Promise<void> {
+    const deleted = await safeQuery<{ id: string }>(
+      "SELECT id FROM video_tasks WHERE beat_id = ?",
+      [beatId],
+    );
+    if (deleted.length === 0) return;
+    const deletedIds = deleted.map((r) => r.id);
+    const idPlaceholders = deletedIds.map(() => "?").join(",");
+    await safeTransaction([
+      {
+        sql: `DELETE FROM video_cache WHERE task_id IN (${idPlaceholders})`,
+        params: deletedIds,
+      },
+      {
+        sql: "DELETE FROM video_tasks WHERE beat_id = ?",
+        params: [beatId],
+      },
+    ]);
+    for (const id of deletedIds) {
+      try {
+        await trackChange("video_task", id, "delete");
+      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:deleteByBeatId", e); }
+    }
+  },
+
+  async deleteVideoTasksByStoryId(storyId: string): Promise<void> {
+    const deleted = await safeQuery<{ id: string }>(
+      "SELECT id FROM video_tasks WHERE story_id = ?",
+      [storyId],
+    );
+    if (deleted.length === 0) return;
+    const deletedIds = deleted.map((r) => r.id);
+    const idPlaceholders = deletedIds.map(() => "?").join(",");
+    await safeTransaction([
+      {
+        sql: `DELETE FROM video_cache WHERE task_id IN (${idPlaceholders})`,
+        params: deletedIds,
+      },
+      {
+        sql: "DELETE FROM video_tasks WHERE story_id = ?",
+        params: [storyId],
+      },
+    ]);
+    for (const id of deletedIds) {
+      try {
+        await trackChange("video_task", id, "delete");
+      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:deleteByStoryId", e); }
+    }
+  },
+
   async deleteExpiredVideoTasks(): Promise<number> {
     const now = Math.floor(Date.now() / 1000);
     const expiredTasks = await safeQuery<{ id: string }>(

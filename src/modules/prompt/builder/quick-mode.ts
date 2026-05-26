@@ -4,7 +4,7 @@ import {
   buildSceneVisualDesc,
   QUALITY_TAGS_VIDEO,
 } from "../base";
-import { container } from "@/infrastructure/di";
+import { getModelParameterProfile } from "@/infrastructure/ai-providers/model-capabilities";
 
 interface QuickModeParams {
   prompt: string;
@@ -142,21 +142,21 @@ export const RESOLUTION_OPTIONS = [
 
 export function getDurationOptionsForModel(modelId: string | undefined): Array<{ value: number; label: string }> {
   if (!modelId) return DURATION_OPTIONS;
-  const profile = container.getModelParameterProfile(modelId);
+  const profile = getModelParameterProfile(modelId);
   if (profile?.parameters?.durations?.length) return profile.parameters.durations;
   return DURATION_OPTIONS;
 }
 
 export function getResolutionOptionsForModel(modelId: string | undefined): Array<{ value: string; label: string; width: number; height: number }> {
   if (!modelId) return RESOLUTION_OPTIONS;
-  const profile = container.getModelParameterProfile(modelId);
+  const profile = getModelParameterProfile(modelId);
   if (profile?.parameters?.resolutions?.length) return profile.parameters.resolutions;
   return RESOLUTION_OPTIONS;
 }
 
 export function getStyleOptionsForModel(modelId: string | undefined): Array<{ value: string; label: string; description?: string }> {
   if (!modelId) return AVAILABLE_STYLES.map(s => ({ value: s, label: s }));
-  const profile = container.getModelParameterProfile(modelId);
+  const profile = getModelParameterProfile(modelId);
   if (profile?.parameters?.styles?.length) return profile.parameters.styles;
   return AVAILABLE_STYLES.map(s => ({ value: s, label: s }));
 }

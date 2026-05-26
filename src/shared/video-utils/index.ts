@@ -11,3 +11,5 @@ export type {
 } from "./video-codec";
 export { extractVideoFrames, dataUrlToFile } from "./video-frame-extractor";
 export type { ExtractedFrames } from "./video-frame-extractor";
+export { getProviderSupportedCodecs, getProviderMaxDuration } from "./provider-codecs";
+export { isCodecSupportedByProvider } from "./codec-check";

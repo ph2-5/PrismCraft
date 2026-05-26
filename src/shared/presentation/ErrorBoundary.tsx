@@ -248,14 +248,20 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
 
               <div className="space-y-2">
-                <Button
-                  onClick={this.handleRetry}
-                  className="w-full"
-                  variant="outline"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  重试
-                </Button>
+                {this.state.errorCount < 3 ? (
+                  <Button
+                    onClick={this.handleRetry}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    重试
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center">
+                    错误多次重复出现，请尝试刷新页面或重置
+                  </p>
+                )}
 
                 <Button onClick={this.handleReload} className="w-full">
                   <RotateCcw className="w-4 h-4 mr-2" />

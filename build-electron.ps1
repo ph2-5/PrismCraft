@@ -31,7 +31,24 @@ function Restore-ApiDir {
     }
 }
 
+$cleanupRegistered = $false
 try {
+    $bakDir = $apiBakDir
+    $srcDir = $apiDir
+    $lkFile = $lockFile
+    $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+        if (Test-Path -LiteralPath $Event.MessageData.BakDir) {
+            if (Test-Path -LiteralPath $Event.MessageData.SrcDir) {
+                Remove-Item -LiteralPath $Event.MessageData.SrcDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            Move-Item -LiteralPath $Event.MessageData.BakDir $Event.MessageData.SrcDir -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $Event.MessageData.LockFile) {
+            Remove-Item -LiteralPath $Event.MessageData.LockFile -Force -ErrorAction SilentlyContinue
+        }
+    } -MessageData @{ BakDir = $bakDir; SrcDir = $srcDir; LockFile = $lkFile }
+    $cleanupRegistered = $true
+
     $env:BUILD_TARGET = "electron"
 
     if (Test-Path -LiteralPath $apiDir) {
@@ -80,4 +97,8 @@ try {
     Write-Host "Electron build completed successfully!"
 } finally {
     Restore-ApiDir
+    if ($cleanupRegistered) {
+        Get-EventSubscriber -SourceIdentifier PowerShell.Exiting -ErrorAction SilentlyContinue |
+            Unregister-Event -ErrorAction SilentlyContinue
+    }
 }

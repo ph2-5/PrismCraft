@@ -187,7 +187,8 @@ async function handlePollException(
       message: `连续${MAX_POLL_FAILURES}次查询失败，请点击「手动恢复」重试`,
       pollFailureCount: 0,
     }));
-    emitToast("error", "视频生成失败", `任务 ${task.taskId.slice(0, 8)} 查询异常`);
+    const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
+    emitToast("error", "视频生成失败", `「${taskLabel}」查询异常`);
   } else {
     result.taskUpdates.set(task.taskId, {
       pollFailureCount: failCount,
@@ -284,7 +285,8 @@ async function pollSingleTask(
             message: `连续${MAX_POLL_FAILURES}次查询失败，请点击「手动恢复」重试`,
             pollFailureCount: 0,
           }));
-          emitToast("error", "视频生成失败", `任务 ${task.taskId.slice(0, 8)} 连续查询失败`);
+          const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
+          emitToast("error", "视频生成失败", `「${taskLabel}」连续查询失败`);
         }
       }
     }

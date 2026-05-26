@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
 import {
@@ -16,6 +16,7 @@ import {
 import type { Story, StoryBeat } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { fromAsyncThrowable } from "@/domain/types/result";
+import { container } from "@/infrastructure/di";
 
 interface UseStorySaverProps {
   stories: Story[];
@@ -51,6 +52,7 @@ export function useStorySaver(props: UseStorySaverProps) {
   const [savedTemplates, setSavedTemplates] = useState<StoryboardTemplate[]>([]);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string>("");
+  const savingRef = useRef(false);
 
   const updateRecommendedTemplates = useCallback(
     (genre: string, tone: string) => {
@@ -89,6 +91,11 @@ export function useStorySaver(props: UseStorySaverProps) {
 
   const performDeleteStory = useCallback(async () => {
     if (storyToDelete) {
+      try {
+        await container.videoTaskStorage.deleteVideoTasksByStoryId(storyToDelete);
+      } catch (e) {
+        errorLogger.warn("[StorySaver] 删除故事关联VideoTask失败", e);
+      }
       const deleteResult = await fromAsyncThrowable(() => storyService.delete(storyToDelete));
       if (!deleteResult.ok) {
         errorLogger.warn("Failed to delete story from SQLite", deleteResult.error);
@@ -181,6 +188,7 @@ export function useStorySaver(props: UseStorySaverProps) {
   );
 
   const handleSave = useCallback(async () => {
+    if (savingRef.current) return;
     if (beats.length === 0) {
       showError("无法保存", "请至少添加一个镜头");
       return;
@@ -196,57 +204,62 @@ export function useStorySaver(props: UseStorySaverProps) {
       updatedAt: Math.floor(Date.now() / 1000),
     };
 
+    savingRef.current = true;
     setSaveStatus("saving");
     setSaveError("");
 
-    const saveResult = await fromAsyncThrowable(async () => {
-      if (currentStory.id) {
-        return await storyService.update(newStory.id, newStory);
+    try {
+      const saveResult = await fromAsyncThrowable(async () => {
+        if (currentStory.id) {
+          return await storyService.update(newStory.id, newStory);
+        }
+        return await storyService.create(newStory);
+      });
+
+      if (!saveResult.ok) {
+        const err = saveResult.error;
+        errorLogger.error(String(err), "Failed to persist story to SQLite");
+        const detail = extractErrorMessage(err);
+        markDirty("story");
+        setSaveStatus("error");
+        setSaveError(detail);
+        showError(
+          "保存失败",
+          `数据库持久化失败: ${detail}，请重试`,
+        );
+        return;
       }
-      return await storyService.create(newStory);
-    });
 
-    if (!saveResult.ok) {
-      const err = saveResult.error;
-      errorLogger.error(String(err), "Failed to persist story to SQLite");
-      const detail = extractErrorMessage(err);
-      markDirty("story");
-      setSaveStatus("error");
-      setSaveError(detail);
-      showError(
-        "保存失败",
-        `数据库持久化失败: ${detail}，请重试`,
+      const serviceResult = saveResult.value;
+      if (!serviceResult.ok) {
+        const err = serviceResult.error;
+        errorLogger.error(String(err), "Failed to persist story to SQLite");
+        const detail = extractErrorMessage(err);
+        markDirty("story");
+        setSaveStatus("error");
+        setSaveError(detail);
+        showError(
+          "保存失败",
+          `数据库持久化失败: ${detail}，请重试`,
+        );
+        return;
+      }
+
+      setStories((prev) =>
+        currentStory.id
+          ? prev.map((s) => (s.id === newStory.id ? newStory : s))
+          : [...prev, newStory],
       );
-      return;
-    }
-
-    const serviceResult = saveResult.value;
-    if (!serviceResult.ok) {
-      const err = serviceResult.error;
-      errorLogger.error(String(err), "Failed to persist story to SQLite");
-      const detail = extractErrorMessage(err);
-      markDirty("story");
-      setSaveStatus("error");
-      setSaveError(detail);
-      showError(
-        "保存失败",
-        `数据库持久化失败: ${detail}，请重试`,
+      setCurrentStory(newStory, true);
+      markClean("story");
+      setSaveStatus("saved");
+      success(
+        currentStory.id ? "保存成功" : "创建成功",
+        currentStory.id ? "分镜项目已更新" : "新分镜项目已添加",
       );
-      return;
+    } finally {
+      savingRef.current = false;
     }
-
-    setStories((prev) =>
-      currentStory.id
-        ? prev.map((s) => (s.id === newStory.id ? newStory : s))
-        : [...prev, newStory],
-    );
-    setCurrentStory(newStory, true);
-    markClean("story");
-    setSaveStatus("saved");
-    success(
-      currentStory.id ? "保存成功" : "创建成功",
-      currentStory.id ? "分镜项目已更新" : "新分镜项目已添加",
-    );
   }, [
     currentStory,
     beats,

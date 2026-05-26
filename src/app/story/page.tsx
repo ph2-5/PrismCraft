@@ -86,7 +86,7 @@ function StoryPageContent() {
   });
 
   useAutoSave({
-    enabled: autoSaveSettings.enabled && !!story.currentStory?.id && story.hasUnsavedChanges,
+    enabled: autoSaveSettings.enabled && story.hasUnsavedChanges && story.beats.length > 0,
     intervalMinutes: autoSaveSettings.intervalMinutes,
     onSave: () => story.handleSave(),
   });

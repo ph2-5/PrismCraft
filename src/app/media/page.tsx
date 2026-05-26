@@ -243,6 +243,8 @@ export default function MediaLibraryPage() {
     Record<string, { url: string; taskId: string }>
   >({});
 
+  const mediaItemIds = useMemo(() => mediaItems.map((item) => item.id).sort().join(","), [mediaItems]);
+
   useEffect(() => {
     const videoItems = mediaItems.filter(
       (item) => item.type === "video" && item.sourceId,
@@ -280,8 +282,7 @@ export default function MediaLibraryPage() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mediaItems.map((item) => item.id).join(",")]);
+  }, [mediaItemIds]);
 
   const prevCachedUrlsRef = useRef<Record<string, { url: string }>>({});
 
@@ -646,7 +647,10 @@ export default function MediaLibraryPage() {
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLVideoElement;
-                        target.src = item.url;
+                        if (!target.dataset.retried) {
+                          target.dataset.retried = "1";
+                          target.src = item.url;
+                        }
                       }}
                     >
                       <div className="w-full h-full flex flex-col items-center justify-center bg-muted">

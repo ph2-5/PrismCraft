@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useEffect,
   useRef,
+  useCallback,
 } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
@@ -17,7 +18,6 @@ import { storyService } from "@/modules/story";
 import {
   buildVideoUrlUpdates,
   applyVideoUrlUpdates,
-  buildBeatsPersistData,
   buildCacheRequests,
   filterRemoteCacheRequests,
 } from "@/modules/story/generation";
@@ -193,7 +193,10 @@ function useStoryContext(): StoryContextValue {
     success,
     showWarning,
     storyState.selectedVideoModel?.format as VideoModelFormat | undefined,
+    showError,
   );
+
+  const videoTaskManager = useVideoTaskManager();
 
   const planner = useStoryPlanner({
     currentStory: storyState.currentStory,
@@ -202,6 +205,9 @@ function useStoryContext(): StoryContextValue {
     scenesRef: assetLoader.scenesRef,
     setBeats: storyState.setBeats,
     generationEnhanced: storyState.generationEnhanced,
+    activeVideoTaskCount: videoTaskManager.tasks.filter(
+      (t) => t.status === "pending" || t.status === "generating",
+    ).length,
     success,
     showError,
   });
@@ -226,8 +232,6 @@ function useStoryContext(): StoryContextValue {
     showError,
   });
 
-  const videoTaskManager = useVideoTaskManager();
-
   const videoGenerator = useVideoGenerator({
     beatsRef: storyState.beatsRef,
     charactersRef: assetLoader.charactersRef,
@@ -248,6 +252,7 @@ function useStoryContext(): StoryContextValue {
     generateVideoNew: videoGenerator.generateVideoNew,
     success,
     showError,
+    showWarning,
   });
 
   const storySaver = useStorySaver({
@@ -260,6 +265,15 @@ function useStoryContext(): StoryContextValue {
     markClean: storyState.markClean,
     markDirty: storyState.markDirty,
   });
+
+  const deleteBeatWithCleanup = useCallback(async (beatId: string) => {
+    try {
+      await container.videoTaskStorage.deleteVideoTasksByBeatId(beatId);
+    } catch (e) {
+      errorLogger.warn("[StoryProvider] 删除beat关联VideoTask失败", e);
+    }
+    storyState.deleteBeat(beatId);
+  }, [storyState]);
 
   const { updateRecommendedTemplates } = storySaver;
 
@@ -274,7 +288,9 @@ function useStoryContext(): StoryContextValue {
     updateRecommendedTemplates,
   ]);
 
-  const completedTaskUrls = React.useMemo(() => {
+  const currentStoryId = storyState.currentStory?.id;
+
+  const allCompletedTaskUrls = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const task of videoTaskManager.tasks) {
       if (task.beatId && task.status === "completed" && task.videoUrl) {
@@ -283,6 +299,17 @@ function useStoryContext(): StoryContextValue {
     }
     return map;
   }, [videoTaskManager.tasks]);
+
+  const completedTaskUrls = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const task of videoTaskManager.tasks) {
+      if (task.beatId && task.status === "completed" && task.videoUrl) {
+        if (currentStoryId && task.storyId && task.storyId !== currentStoryId) continue;
+        map.set(task.beatId, task.videoUrl);
+      }
+    }
+    return map;
+  }, [videoTaskManager.tasks, currentStoryId]);
 
   const setBeatsRef = useRef(storyState.setBeats);
   useEffect(() => { setBeatsRef.current = storyState.setBeats; }, [storyState.setBeats]);
@@ -303,6 +330,28 @@ function useStoryContext(): StoryContextValue {
 
       if (!cancelled) {
         try {
+          const allPersistData: Array<{
+            id: string;
+            keyframeImageUrl?: string;
+            firstFrameImageUrl?: string;
+            lastFrameImageUrl?: string;
+            videoUrl?: string;
+            localKeyframePath?: string;
+            localFirstFramePath?: string;
+            localLastFramePath?: string;
+            localVideoPath?: string;
+          }> = [];
+
+          for (const [beatId, videoUrl] of allCompletedTaskUrls.entries()) {
+            allPersistData.push({ id: beatId, videoUrl });
+          }
+
+          if (allPersistData.length > 0) {
+            storyService.updateBeatMediaUrls(allPersistData).catch((e) => {
+              errorLogger.warn("自动保存视频URL失败", e);
+            });
+          }
+
           const currentStory = currentStoryRef.current;
           if (currentStory?.id) {
             const result = await storyService.update(currentStory.id, {
@@ -310,13 +359,10 @@ function useStoryContext(): StoryContextValue {
               updatedAt: Math.floor(Date.now() / 1000),
             });
             if (!result.ok) throw result.error;
+          }
 
+          if (!cancelled) {
             setBeatsRef.current((latestBeats) => {
-              const beatsData = buildBeatsPersistData(latestBeats, completedTaskUrls);
-              storyService.updateBeatMediaUrls(beatsData).catch((e) => {
-                errorLogger.warn("自动保存视频URL失败", e);
-              });
-
               const cacheRequests = filterRemoteCacheRequests(buildCacheRequests(latestBeats));
               for (const request of cacheRequests) {
                 const { beatId, field, url } = request;
@@ -348,7 +394,7 @@ function useStoryContext(): StoryContextValue {
     return () => {
       cancelled = true;
     };
-  }, [completedTaskUrls, storyState.beatsRef]);
+  }, [completedTaskUrls, allCompletedTaskUrls, storyState.beatsRef]);
 
   const generatingBeats = useMemo(() => {
     const set = new Set<string>();
@@ -380,7 +426,7 @@ function useStoryContext(): StoryContextValue {
       setSelectedImageModel: storyState.setSelectedImageModel,
       updateBeat: storyState.updateBeat,
       addBeat: storyState.addBeat,
-      deleteBeat: storyState.deleteBeat,
+      deleteBeat: deleteBeatWithCleanup,
       moveBeat: storyState.moveBeat,
       characters: assetLoader.characters,
       scenes: assetLoader.scenes,
@@ -451,7 +497,7 @@ function useStoryContext(): StoryContextValue {
       storyState.setSelectedImageModel,
       storyState.updateBeat,
       storyState.addBeat,
-      storyState.deleteBeat,
+      deleteBeatWithCleanup,
       storyState.moveBeat,
       assetLoader.characters,
       assetLoader.scenes,

@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   isCodecSupportedByProvider,
   type VideoCodecInfo,
-} from "@/infrastructure/video-utils/video-codec";
+} from "@/shared/video-utils/codec-check";
 import { getVideoCodecLabel, getContainerLabel } from "@/shared/video-utils/video-codec";
 
-vi.mock("@/infrastructure/ai-providers/model-adapter", () => ({
+vi.mock("@/shared/video-utils/provider-codecs", () => ({
   getProviderSupportedCodecs: vi.fn(),
   getProviderMaxDuration: vi.fn(),
 }));
 
-import { getProviderSupportedCodecs, getProviderMaxDuration } from "@/infrastructure/ai-providers/model-adapter";
+import { getProviderSupportedCodecs, getProviderMaxDuration } from "@/shared/video-utils/provider-codecs";
 import type { VideoCodec } from "@/shared/video-utils/video-codec";
 
 const mockedGetProviderSupportedCodecs = vi.mocked(getProviderSupportedCodecs);

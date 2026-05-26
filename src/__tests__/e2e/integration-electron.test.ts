@@ -224,7 +224,7 @@ describe("E2E Electron 集成测试", () => {
     it("buildTrackingInfo 不应接受 customConfig 参数", async () => {
       const fs = await import("fs");
       const path = await import("path");
-      const trackerPath = path.resolve(process.cwd(), "electron/src/video-tracker.ts");
+      const trackerPath = path.resolve(process.cwd(), "electron/src/services/video/video-tracker.ts");
       const content = fs.readFileSync(trackerPath, "utf-8");
       expect(content).not.toContain("customConfig");
     });
@@ -234,7 +234,7 @@ describe("E2E Electron 集成测试", () => {
     it("videoStatus 调用不应传递 customConfig", async () => {
       const fs = await import("fs");
       const path = await import("path");
-      const recoveryPath = path.resolve(process.cwd(), "electron/src/video-recovery.ts");
+      const recoveryPath = path.resolve(process.cwd(), "electron/src/services/video/video-recovery.ts");
       const content = fs.readFileSync(recoveryPath, "utf-8");
       expect(content).not.toContain("customConfig");
     });

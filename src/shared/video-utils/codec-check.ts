@@ -1,9 +1,6 @@
 import type { VideoModelFormat } from "@/domain/types";
-import type { VideoCodecInfo } from "@/shared/video-utils/video-codec";
-import { getProviderSupportedCodecs, getProviderMaxDuration } from "@/infrastructure/ai-providers/model-adapter";
-
-export type { VideoCodec, AudioCodec, ContainerFormat, VideoCodecInfo } from "@/shared/video-utils/video-codec";
-export { detectVideoCodec, getVideoCodecLabel, getContainerLabel } from "@/shared/video-utils/video-codec";
+import type { VideoCodecInfo } from "./video-codec";
+import { getProviderSupportedCodecs, getProviderMaxDuration } from "./provider-codecs";
 
 export function isCodecSupportedByProvider(
   codecInfo: VideoCodecInfo,

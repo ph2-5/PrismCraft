@@ -17,7 +17,7 @@ interface StoryBeat {
   scene?: string;
 }
 
-interface ReferenceResult {
+export interface ReferenceResult {
   isReferenced: boolean;
   referencingStories: { storyId: string; storyTitle: string; beatCount: number }[];
   totalBeats: number;

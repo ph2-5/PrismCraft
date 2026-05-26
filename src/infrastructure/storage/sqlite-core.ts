@@ -1,3 +1,4 @@
+import { classifyError } from "@/domain/types";
 import { performanceMonitor } from "@/infrastructure/monitoring";
 import { extractErrorMessage } from "@/shared/error-logger";
 import type { DbRunResult } from "./core";
@@ -17,7 +18,8 @@ export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 5): Promis
     } catch (error) {
       const msg = extractErrorMessage(error);
       lastError = error instanceof Error ? error : new Error(msg);
-      const isRetryable = /busy|locked|timeout/i.test(msg);
+      const category = classifyError(undefined, msg);
+      const isRetryable = category === "database_busy" || category === "timeout";
       if (!isRetryable || attempt === maxRetries) {
         throw lastError;
       }

@@ -1,39 +1,12 @@
+import { classifyError } from "@/domain/types";
+
 export type NetworkErrorCategory = "network" | "timeout" | "offline" | "unknown";
 
-const NETWORK_PATTERNS: Array<{
-  category: NetworkErrorCategory;
-  codes: string[];
-  patterns: RegExp[];
-}> = [
-  {
-    category: "timeout",
-    codes: ["ETIMEDOUT", "TIMEOUT", "REQUEST_TIMEOUT", "DEADLINE_EXCEEDED", "ECONNABORTED", "408", "TIMEOUT_ERROR"],
-    patterns: [/timeout/i, /timed?\s*out/i, /超时/],
-  },
-  {
-    category: "network",
-    codes: ["ECONNREFUSED", "ECONNRESET", "ENOTFOUND", "EAI_AGAIN", "ENETUNREACH", "NET_ERR", "NETWORK_ERROR"],
-    patterns: [/network/i, /econnrefused/i, /enotfound/i, /net::err_/i, /Failed to fetch/i, /NetworkError/i, /网络/],
-  },
-  {
-    category: "offline",
-    codes: ["OFFLINE"],
-    patterns: [],
-  },
-];
-
 export function classifyNetworkError(errorCode?: string, errorMessage?: string): NetworkErrorCategory {
-  if (errorCode) {
-    const upper = errorCode.toUpperCase();
-    for (const group of NETWORK_PATTERNS) {
-      if (group.codes.some((c) => upper.includes(c))) return group.category;
-    }
-  }
-  if (errorMessage) {
-    for (const group of NETWORK_PATTERNS) {
-      if (group.patterns.some((p) => p.test(errorMessage))) return group.category;
-    }
-  }
+  const category = classifyError(errorCode, errorMessage);
+  if (category === "timeout") return "timeout";
+  if (category === "network") return "network";
+  if (category === "database_busy") return "network";
   return "unknown";
 }
 

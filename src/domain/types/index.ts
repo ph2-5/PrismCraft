@@ -6,5 +6,5 @@ export type { GenerationType } from "./result";
 export type { SyncStatus, SyncEntityType, ChangeOperation, VectorClock, SyncChangeLogEntry, SyncPushResult, SyncPullResult, RemoteChange, SyncConflict, SyncStatusInfo, ConflictStrategy, SyncConfig } from "./sync";
 export { SYNC_TABLES, DEFAULT_SYNC_CONFIG, createVectorClock, incrementVectorClock, mergeVectorClocks, compareVectorClocks, isVectorClockConflict } from "./sync";
 export type { VideoTaskRecord, VideoTaskHistory, CustomApiConfig } from "./electron-api";
-export type { ErrorDomain, ErrorCodeEntry } from "./error-codes";
-export { getErrorCodeEntry, isRetryable, getErrorDomain, getAllErrorCodes, getErrorCodesByDomain, isRegisteredCode } from "./error-codes";
+export type { ErrorDomain, ErrorCodeEntry, ErrorCategory } from "./error-codes";
+export { getErrorCodeEntry, isRetryable, getErrorDomain, getAllErrorCodes, getErrorCodesByDomain, isRegisteredCode, classifyError } from "./error-codes";

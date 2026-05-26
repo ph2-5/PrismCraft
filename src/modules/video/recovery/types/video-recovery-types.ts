@@ -1,3 +1,5 @@
+import type { ErrorCategory } from "@/domain/types";
+
 export interface VideoVerificationDetails {
   apiStatus: string;
   urlAccessible: boolean;
@@ -17,7 +19,7 @@ export interface VideoVerificationResult {
 export interface RetryDecision {
   shouldRetry: boolean;
   reason: string;
-  errorCategory?: "timeout" | "rate_limit" | "quota" | "invalid_params" | "network" | "server_error" | "unknown";
+  errorCategory?: ErrorCategory;
   confidence: "high" | "medium" | "low";
   retryAfterMs?: number;
   maxRetries?: number;

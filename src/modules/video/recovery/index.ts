@@ -23,10 +23,10 @@ export {
   SmartRetryEngine,
   smartRetryEngine,
   createRetryEngine,
-  classifyError,
 } from "./services/smart-retry-engine";
 
-export type { ErrorCategory } from "./services/smart-retry-engine";
+export { classifyError } from "@/domain/types";
+export type { ErrorCategory } from "@/domain/types";
 
 export {
   getTaskRecoveryInfo,

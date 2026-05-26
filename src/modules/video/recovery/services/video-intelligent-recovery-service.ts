@@ -10,7 +10,8 @@ import type {
 } from "../types/video-recovery-types";
 import { verifyVideoUrl } from "./video-verification-service";
 import { checkForDuplicateVideos } from "./duplicate-detection-service";
-import { smartRetryEngine, classifyError } from "./smart-retry-engine";
+import { smartRetryEngine } from "./smart-retry-engine";
+import { classifyError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
 import { TaskMachine } from "@/modules/video/task-management";

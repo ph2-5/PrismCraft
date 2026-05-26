@@ -85,3 +85,59 @@ export function getErrorCodesByDomain(domain: ErrorDomain): ErrorCodeEntry[] {
 export function isRegisteredCode(code: string): boolean {
   return codeMap.has(code);
 }
+
+export type ErrorCategory =
+  | "timeout"
+  | "rate_limit"
+  | "quota"
+  | "invalid_params"
+  | "network"
+  | "server_error"
+  | "database_busy"
+  | "auth"
+  | "unknown";
+
+const ERROR_CATEGORY_MAP: Record<string, ErrorCategory> = {
+  TIMEOUT_ERROR: "timeout",
+  RATE_LIMIT_ERROR: "rate_limit",
+  NETWORK_ERROR: "network",
+  DATABASE_ERROR: "database_busy",
+  AUTHENTICATION_ERROR: "auth",
+  VALIDATION_ERROR: "invalid_params",
+  API_ERROR: "server_error",
+  GENERATION_ERROR: "server_error",
+  STORAGE_ERROR: "database_busy",
+  CONFIGURATION_ERROR: "invalid_params",
+  NOT_FOUND: "invalid_params",
+};
+
+const CATEGORY_PATTERNS: Array<{
+  category: ErrorCategory;
+  patterns: RegExp[];
+}> = [
+  { category: "timeout", patterns: [/timeout/i, /timed?\s*out/i, /超时/, /ETIMEDOUT/, /ECONNABORTED/] },
+  { category: "rate_limit", patterns: [/rate[\s_-]?limit/i, /限流/, /请求过于频繁/, /429/] },
+  { category: "quota", patterns: [/quota/i, /余额/, /额度/, /配额/, /insufficient/i, /402/] },
+  { category: "invalid_params", patterns: [/invalid/i, /参数错误/, /bad.?request/i, /400/] },
+  { category: "network", patterns: [/ECONNREFUSED|ECONNRESET|ENOTFOUND/i, /network/i, /Failed to fetch/i, /NetworkError/i, /网络/, /连接/] },
+  { category: "server_error", patterns: [/internal[\s_-]?error/i, /服务器错误/, /service[\s_-]?unavailable/i, /50[234]/] },
+  { category: "database_busy", patterns: [/busy|locked/i] },
+  { category: "auth", patterns: [/unauthorized/i, /forbidden/i, /401/, /403/] },
+];
+
+export function classifyError(errorCode?: string, errorMessage?: string): ErrorCategory {
+  if (errorCode) {
+    const mapped = ERROR_CATEGORY_MAP[errorCode];
+    if (mapped) return mapped;
+    const upperCode = errorCode.toUpperCase();
+    for (const group of CATEGORY_PATTERNS) {
+      if (group.patterns.some((p) => p.test(upperCode))) return group.category;
+    }
+  }
+  if (errorMessage) {
+    for (const group of CATEGORY_PATTERNS) {
+      if (group.patterns.some((p) => p.test(errorMessage))) return group.category;
+    }
+  }
+  return "unknown";
+}

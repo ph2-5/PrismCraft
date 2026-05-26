@@ -1,76 +1,10 @@
 import type { VideoTask } from "@/domain/schemas";
+import { classifyError } from "@/domain/types";
 import type {
   RetryDecision,
   RetryConfig,
   VideoVerificationResult,
 } from "../types/video-recovery-types";
-
-export type ErrorCategory =
-  | "timeout"
-  | "rate_limit"
-  | "quota"
-  | "invalid_params"
-  | "network"
-  | "server_error"
-  | "unknown";
-
-const ERROR_CODE_PATTERNS: Array<{
-  category: ErrorCategory;
-  codes: string[];
-  patterns: RegExp[];
-}> = [
-  {
-    category: "timeout",
-    codes: ["TIMEOUT", "ETIMEDOUT", "REQUEST_TIMEOUT", "DEADLINE_EXCEEDED", "TIMEOUT_ERROR"],
-    patterns: [/timeout/i, /超时/],
-  },
-  {
-    category: "rate_limit",
-    codes: ["RATE_LIMITED", "RATE_LIMIT", "TOO_MANY_REQUESTS", "429", "THROTTLED"],
-    patterns: [/rate[\s_-]?limit/i, /限流/, /请求过于频繁/],
-  },
-  {
-    category: "quota",
-    codes: ["QUOTA_EXCEEDED", "INSUFFICIENT_QUOTA", "QUOTA", "BILLING", "PAYMENT_REQUIRED", "402"],
-    patterns: [/quota/i, /余额/, /额度/, /配额/, /insufficient/i],
-  },
-  {
-    category: "invalid_params",
-    codes: ["INVALID_PARAMS", "INVALID_ARGUMENT", "BAD_REQUEST", "400", "VALIDATION_ERROR", "PARAM_ERROR"],
-    patterns: [/invalid/i, /参数错误/, /bad.?request/i],
-  },
-  {
-    category: "network",
-    codes: ["NETWORK_ERROR", "ECONNREFUSED", "ECONNRESET", "ENOTFOUND", "EAI_AGAIN", "FETCH_ERROR"],
-    patterns: [/network/i, /网络/, /connection/i, /连接/],
-  },
-  {
-    category: "server_error",
-    codes: ["INTERNAL_ERROR", "SERVER_ERROR", "500", "502", "503", "504", "SERVICE_UNAVAILABLE"],
-    patterns: [/internal[\s_-]?error/i, /服务器错误/, /service[\s_-]?unavailable/i],
-  },
-];
-
-export function classifyError(errorCode?: string, errorMessage?: string): ErrorCategory {
-  if (errorCode) {
-    const upperCode = errorCode.toUpperCase();
-    for (const group of ERROR_CODE_PATTERNS) {
-      if (group.codes.some((c) => upperCode.includes(c))) {
-        return group.category;
-      }
-    }
-  }
-
-  if (errorMessage) {
-    for (const group of ERROR_CODE_PATTERNS) {
-      if (group.patterns.some((p) => p.test(errorMessage))) {
-        return group.category;
-      }
-    }
-  }
-
-  return "unknown";
-}
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 60,

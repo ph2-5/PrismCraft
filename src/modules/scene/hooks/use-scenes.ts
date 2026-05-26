@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sceneService } from "../services";
 import type { CreateSceneInput, UpdateSceneInput } from "@/domain/schemas";
+import { deleteSceneWithRefs } from "@/modules/persistence";
 
 const SCENES_KEY = ["scenes"] as const;
 const SCENE_KEY = (id: string) => ["scenes", id] as const;
@@ -71,7 +72,7 @@ export function useDeleteScene() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await sceneService.delete(id);
+      const result = await deleteSceneWithRefs(id);
       if (!result.ok) throw result.error;
     },
     onSuccess: () => {

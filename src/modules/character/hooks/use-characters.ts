@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { characterService } from "../services";
 import type { CreateCharacterInput, UpdateCharacterInput } from "@/domain/schemas";
+import { deleteCharacterWithRefs } from "@/modules/persistence";
 
 const CHARACTERS_KEY = ["characters"] as const;
 const CHARACTER_KEY = (id: string) => ["characters", id] as const;
@@ -71,7 +72,7 @@ export function useDeleteCharacter() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await characterService.delete(id);
+      const result = await deleteCharacterWithRefs(id);
       if (!result.ok) throw result.error;
     },
     onSuccess: () => {

@@ -2,7 +2,7 @@ import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
 import type { StoryStyleGuide, Character, Scene } from "@/domain/schemas";
 import type { ITextProvider, IImageProvider } from "@/domain/ports";
-import { resolveImageSize } from "@/infrastructure/ai-providers/model-capabilities";
+import { resolveImageSize } from "@/shared/model-capabilities";
 
 interface StyleGuideInput {
   storyTitle: string;

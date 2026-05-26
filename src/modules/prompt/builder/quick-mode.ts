@@ -4,7 +4,7 @@ import {
   buildSceneVisualDesc,
   QUALITY_TAGS_VIDEO,
 } from "../base";
-import { getModelParameterProfile } from "@/infrastructure/ai-providers/model-capabilities";
+import { getModelParameterProfile } from "@/shared/model-capabilities";
 
 interface QuickModeParams {
   prompt: string;

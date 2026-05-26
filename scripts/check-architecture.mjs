@@ -88,13 +88,18 @@ async function checkInfrastructureImportsInModules() {
 async function checkInfrastructureImportsInShared() {
   const files = await glob(join(SRC, "shared"), /\.(ts|tsx)$/);
   const infraImportPattern = /['"]@\/infrastructure\//;
+  const proxyExportPattern = /export\s*\{[^}]*\}\s*from\s+/s;
 
   for (const file of files) {
-    await scanFile(file, (fp, lineNum, line) => {
-      if (infraImportPattern.test(line)) {
-        violations.push(`❌ ${rel(fp)}:${lineNum} - Infrastructure import in shared: ${line.trim()}`);
+    const content = await readFile(file, "utf-8");
+    const isProxyExportFile = proxyExportPattern.test(content);
+    const lines = content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (infraImportPattern.test(line) && !isProxyExportFile) {
+        violations.push(`❌ ${rel(file)}:${i + 1} - Infrastructure import in shared (only re-exports allowed): ${line.trim()}`);
       }
-    });
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable, err, ok, ValidationError } from "@/domain/types";
-import { container } from "@/infrastructure/di";
+import { safeQuery, safeTransaction } from "@/shared/db-core";
 import { z } from "zod";
 
 export interface AssetExportService {
@@ -109,7 +109,7 @@ export async function exportCharacters(
   return fromAsyncThrowable(async () => {
     const characters = [];
     for (const id of characterIds) {
-      const rows = await container.safeQuery(
+      const rows = await safeQuery(
         "SELECT * FROM characters WHERE id = ?",
         [id],
       );
@@ -120,7 +120,7 @@ export async function exportCharacters(
 
     const outfits = [];
     for (const id of characterIds) {
-      const rows = await container.safeQuery(
+      const rows = await safeQuery(
         "SELECT * FROM character_outfits WHERE character_id = ?",
         [id],
       );
@@ -146,7 +146,7 @@ export async function exportScenes(
   return fromAsyncThrowable(async () => {
     const scenes = [];
     for (const id of sceneIds) {
-      const rows = await container.safeQuery(
+      const rows = await safeQuery(
         "SELECT * FROM scenes WHERE id = ?",
         [id],
       );
@@ -175,7 +175,7 @@ export async function exportStoryboards(
     const beats = [];
 
     for (const id of storyboardIds) {
-      const rows = await container.safeQuery(
+      const rows = await safeQuery(
         "SELECT * FROM stories WHERE id = ?",
         [id],
       );
@@ -183,7 +183,7 @@ export async function exportStoryboards(
         storyboards.push(rows[0]);
       }
 
-      const beatRows = await container.safeQuery(
+      const beatRows = await safeQuery(
         'SELECT * FROM story_beats WHERE story_id = ? ORDER BY "order"',
         [id],
       );
@@ -209,7 +209,7 @@ export async function exportCollections(
   return fromAsyncThrowable(async () => {
     const collections = [];
     for (const id of collectionIds) {
-      const rows = await container.safeQuery(
+      const rows = await safeQuery(
         "SELECT * FROM asset_collections WHERE id = ?",
         [id],
       );
@@ -294,7 +294,7 @@ async function importCharacters(
       });
     }
 
-    await container.safeTransaction(statements);
+    await safeTransaction(statements);
     return { imported: data.characters.length, errors: [] };
   });
 }
@@ -316,7 +316,7 @@ async function importScenes(
       });
     }
 
-    await container.safeTransaction(statements);
+    await safeTransaction(statements);
     return { imported: data.scenes.length, errors: [] };
   });
 }
@@ -341,7 +341,7 @@ async function importStoryboards(
       });
     }
 
-    await container.safeTransaction(statements);
+    await safeTransaction(statements);
     return { imported: data.storyboards.length, errors: [] };
   });
 }
@@ -359,7 +359,7 @@ async function importCollections(
       });
     }
 
-    await container.safeTransaction(statements);
+    await safeTransaction(statements);
     return { imported: data.collections.length, errors: [] };
   });
 }

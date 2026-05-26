@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Result } from "@/domain/types";
 import { ok, err, AppError, ValidationError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
+import { safeRun, safeQuery } from "@/shared/db-core";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 
 export const importDataSchema = z.object({
@@ -63,11 +64,11 @@ function validateImportData(data: unknown): Result<ImportData> {
 
 async function deleteExcludingIds(table: string, idColumn: string, keepIds: string[]): Promise<void> {
   if (keepIds.length === 0) {
-    await container.safeRun(`DELETE FROM ${table}`);
+    await safeRun(`DELETE FROM ${table}`);
     return;
   }
   const placeholders = keepIds.map(() => "?").join(",");
-  await container.safeRun(
+  await safeRun(
     `DELETE FROM ${table} WHERE ${idColumn} NOT IN (${placeholders})`,
     keepIds,
   );
@@ -148,7 +149,7 @@ export async function importData(
 
     if (validData.errorLogs?.length) {
       if (mergeStrategy === "replace") {
-        await container.safeRun("DELETE FROM error_logs");
+        await safeRun("DELETE FROM error_logs");
       }
       let count = 0;
       for (const log of validData.errorLogs) {
@@ -200,7 +201,7 @@ export async function exportData(): Promise<Result<ImportData>> {
       container.importExportStorage.exportAll(),
       container.autoSaveStorage.getAutoSaves(),
       container.errorLogStorage.getErrorLogs(),
-      container.safeQuery("SELECT * FROM sessions"),
+      safeQuery("SELECT * FROM sessions"),
     ]);
 
     const result: ImportData = {

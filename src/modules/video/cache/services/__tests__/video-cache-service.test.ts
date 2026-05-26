@@ -31,13 +31,16 @@ vi.mock("@/infrastructure/di", () => {
         getVideoTasksByStatus: vi.fn(),
         getVideoTaskById: vi.fn().mockResolvedValue(null),
       },
-      registerObjectUrl: vi.fn(),
-      revokeObjectUrl: vi.fn(),
-      getObjectUrl: vi.fn(),
-      resilientFetch: vi.fn(),
     },
   };
 });
+
+vi.mock("@/shared/video-cache", () => ({
+  registerObjectUrl: vi.fn(),
+  revokeObjectUrl: vi.fn(),
+  getObjectUrl: vi.fn(),
+  resilientFetch: vi.fn(),
+}));
 
 vi.mock("@/shared/utils/platform", () => ({
   isElectron: vi.fn(() => false),
@@ -57,6 +60,7 @@ vi.mock("@/modules/video/recovery", () => ({
 }));
 
 import { container } from "@/infrastructure/di";
+import { registerObjectUrl, revokeObjectUrl, resilientFetch } from "@/shared/video-cache";
 import { isElectron } from "@/shared/utils/platform";
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
 
@@ -84,7 +88,7 @@ describe("video-cache-service", () => {
     if (!URL.revokeObjectURL) {
       (globalThis as any).URL.revokeObjectURL = vi.fn();
     }
-    (container.resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Download failed"));
+    (resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Download failed"));
     (recoverVideoByTaskId as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, error: new Error("Recovery failed") });
   });
 
@@ -132,7 +136,7 @@ describe("video-cache-service", () => {
         count: 0,
         totalSize: 0,
       });
-      (container.resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+      (resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
 
       const result = await cacheVideoBlob("task-1", "https://example.com/video.mp4");
       expect(result.ok).toBe(true);
@@ -148,7 +152,7 @@ describe("video-cache-service", () => {
         count: 0,
         totalSize: 0,
       });
-      (container.resilientFetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (resilientFetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         success: false,
         totalBytes: 0,
         duration: 100,
@@ -169,7 +173,7 @@ describe("video-cache-service", () => {
         count: 0,
         totalSize: 0,
       });
-      (container.resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+      (resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
 
       const result = await cacheVideoBlob("task-3", "https://example.com/error.mp4");
       expect(result.ok).toBe(true);
@@ -277,7 +281,7 @@ describe("video-cache-service", () => {
         count: 0,
         totalSize: 0,
       });
-      (container.resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+      (resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
 
       const result = await getVideoUrlWithCache("nonexistent", "https://example.com/remote.mp4");
       expect(result.ok).toBe(true);

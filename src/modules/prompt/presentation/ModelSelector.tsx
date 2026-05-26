@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { container } from "@/infrastructure/di";
 import type { ApiCapability } from "@/infrastructure/di";
+import { loadConfig } from "@/shared/api-config";
 import type { ModelSelection } from "@/domain/schemas";
 import {
   Select,
@@ -60,7 +61,7 @@ export function ModelSelector({
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    container.loadConfig()
+    loadConfig()
       .then((config) => {
         const models: typeof availableModels = [];
         for (const provider of config.providers) {

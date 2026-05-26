@@ -1,5 +1,6 @@
 import { container } from "@/infrastructure/di";
 import type { AsaExportData, Character, Collection, Scene, StoryboardAsset } from "@/domain/schemas";
+import { updateOutfitImage } from "@/shared/outfit";
 import { errorLogger } from "@/shared/error-logger";
 import { normalizeGender } from "@/shared/utils/utils";
 
@@ -131,7 +132,7 @@ export const characterService = {
           );
           if (localPath) {
             outfit.imageUrl = localPath;
-            await container.updateOutfitImage(outfit.id, localPath, localPath);
+            await updateOutfitImage(outfit.id, localPath, localPath);
           }
         }
       }

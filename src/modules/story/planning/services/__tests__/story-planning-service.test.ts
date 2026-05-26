@@ -4,8 +4,11 @@ import type { Story, Character, Scene } from "@/domain/schemas";
 vi.mock("@/infrastructure/di", () => ({
   container: {
     elementStorage: { getAllElements: vi.fn() },
-    loadConfig: vi.fn(),
   },
+}));
+
+vi.mock("@/shared/api-config", () => ({
+  loadConfig: vi.fn(),
 }));
 
 vi.mock(
@@ -17,6 +20,7 @@ vi.mock(
 
 import { planStory, checkTextApiConfig } from "../story-planning-service";
 import { container } from "@/infrastructure/di";
+import { loadConfig } from "@/shared/api-config";
 import { generateStoryPlanWithValidation } from "@/modules/shot/shot-generation/story-generation-pipeline";
 
 const mockStory: Story = {
@@ -180,7 +184,7 @@ describe("checkTextApiConfig", () => {
   });
 
   it("有 text 能力的 provider 时应返回 true", async () => {
-    (container.loadConfig as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (loadConfig as ReturnType<typeof vi.fn>).mockResolvedValue({
       providers: [
         {
           models: [{ capabilities: ["text", "image"] }],
@@ -197,7 +201,7 @@ describe("checkTextApiConfig", () => {
   });
 
   it("没有 text 能力的 provider 时应返回 false", async () => {
-    (container.loadConfig as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (loadConfig as ReturnType<typeof vi.fn>).mockResolvedValue({
       providers: [
         {
           models: [{ capabilities: ["image"] }],
@@ -214,7 +218,7 @@ describe("checkTextApiConfig", () => {
   });
 
   it("config 为 null 时应返回 false", async () => {
-    (container.loadConfig as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (loadConfig as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     const result = await checkTextApiConfig();
 
@@ -225,7 +229,7 @@ describe("checkTextApiConfig", () => {
   });
 
   it("config 没有 providers 时应返回 false", async () => {
-    (container.loadConfig as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (loadConfig as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
     const result = await checkTextApiConfig();
 
@@ -236,7 +240,7 @@ describe("checkTextApiConfig", () => {
   });
 
   it("加载配置异常时应返回 false", async () => {
-    (container.loadConfig as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("配置加载失败"));
+    (loadConfig as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("配置加载失败"));
 
     const result = await checkTextApiConfig();
 

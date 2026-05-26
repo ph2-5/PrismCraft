@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import type { Story, StoryBeat, Character, Scene } from "@/domain/schemas";
 import { container } from "@/infrastructure/di";
+import { loadConfig } from "@/shared/api-config";
 import { generateStoryPlanWithValidation, formatValidationResult } from "@/modules/shot/shot-generation";
 import { getErrorMessage } from "@/shared/error-handler";
 import { errorLogger } from "@/shared/error-logger";
@@ -41,7 +42,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
       return;
     }
     try {
-      const config = await container.loadConfig();
+      const config = await loadConfig();
       const hasTextApi = config?.providers?.some((p) =>
         p.models?.some((m) => m.capabilities?.includes("text")),
       );

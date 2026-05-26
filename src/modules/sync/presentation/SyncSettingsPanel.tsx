@@ -45,6 +45,7 @@ import { getSyncStatus } from "@/modules/sync";
 import { SyncConflictPanel } from "./SyncConflictPanel";
 import type { SyncConflict } from "@/modules/sync";
 import { container } from "@/infrastructure/di";
+import { safeRun } from "@/shared/db-core";
 
 interface SyncSettingsPanelProps {
   isOpen: boolean;
@@ -245,7 +246,7 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
     const pk = tableName === "video_tasks" ? "task_id" : "id";
 
     try {
-      const sqliteRun = container.safeRun;
+      const sqliteRun = safeRun;
       if (resolution === "local") {
         await sqliteRun(
           `UPDATE ${tableName} SET sync_status = 'pending' WHERE ${pk} = ?`,

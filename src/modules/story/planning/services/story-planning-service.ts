@@ -2,6 +2,7 @@ import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
 import type { Story, StoryBeat, Character, Scene } from "@/domain/schemas";
 import { container } from "@/infrastructure/di";
+import { loadConfig } from "@/shared/api-config";
 
 export interface StoryPlanningOptions {
   maxRetries?: number;
@@ -68,7 +69,7 @@ export async function planStory(
 export async function checkTextApiConfig(): Promise<Result<boolean>> {
   return fromAsyncThrowable(async () => {
     try {
-      const config = await container.loadConfig();
+      const config = await loadConfig();
       return config?.providers?.some((p) =>
         p.models?.some((m) => m.capabilities?.includes("text")),
       ) ?? false;

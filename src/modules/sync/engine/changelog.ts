@@ -1,4 +1,4 @@
-import { container } from "@/infrastructure/di";
+import { safeQuery, safeRun, safeTransaction } from "@/shared/db-core";
 import type {
   SyncChangeLogEntry,
   SyncEntityType,
@@ -64,7 +64,7 @@ export async function ensureSyncSchema(): Promise<void> {
 
   for (const table of coreTables) {
     try {
-      const columns = await container.safeQuery<{ name: string }>(
+      const columns = await safeQuery<{ name: string }>(
         `PRAGMA table_info(${table})`
       );
       const columnNames = new Set(columns.map((c) => c.name));
@@ -159,7 +159,7 @@ export async function recordChange(
       });
     }
 
-    const readResults = await container.safeTransaction(statements);
+    const readResults = await safeTransaction(statements);
     statements.length = 0;
 
     let currentClock: VectorClock = {};
@@ -220,7 +220,7 @@ export async function recordChange(
       ],
     });
 
-    await container.safeTransaction(statements);
+    await safeTransaction(statements);
   } catch (error) {
     errorLogger.warn("[SyncChangelog] 记录变更失败", error);
   }
@@ -230,7 +230,7 @@ export async function getPendingChanges(
   limit = 100,
 ): Promise<SyncChangeLogEntry[]> {
   try {
-    const rows = await container.safeQuery(
+    const rows = await safeQuery(
       `SELECT * FROM sync_changelog WHERE synced = 0 ORDER BY timestamp ASC LIMIT ?`,
       [limit],
     );
@@ -258,7 +258,7 @@ export async function markChangesSynced(ids: string[]): Promise<void> {
   try {
     const placeholders = ids.map(() => "?").join(",");
 
-    const changes = await container.safeQuery(
+    const changes = await safeQuery(
       `SELECT DISTINCT entity_type, entity_id FROM sync_changelog WHERE id IN (${placeholders})`,
       ids,
     );
@@ -278,7 +278,7 @@ export async function markChangesSynced(ids: string[]): Promise<void> {
       });
     }
 
-    await container.safeTransaction(statements);
+    await safeTransaction(statements);
   } catch (error) {
     errorLogger.warn("[SyncChangelog] 标记同步完成失败", error);
   }
@@ -297,12 +297,12 @@ export async function softDelete(
       ? ""
       : ", updated_at = strftime('%s', 'now')";
 
-    await container.safeRun(
+    await safeRun(
       `UPDATE ${tableName} SET is_deleted = 1, sync_status = 'pending'${updatedAtClause} WHERE ${pkColumn} = ?`,
       [entityId],
     );
   } else {
-    await container.safeRun(
+    await safeRun(
       `DELETE FROM ${tableName} WHERE ${pkColumn} = ?`,
       [entityId],
     );
@@ -314,10 +314,10 @@ export async function softDelete(
 export async function getSyncStatus(): Promise<SyncStatusInfo> {
   try {
     const [pending, meta] = await Promise.all([
-      container.safeQuery(
+      safeQuery(
         `SELECT COUNT(*) as count FROM sync_changelog WHERE synced = 0`,
       ),
-      container.safeQuery(`SELECT value FROM sync_meta WHERE key = 'last_sync_at'`),
+      safeQuery(`SELECT value FROM sync_meta WHERE key = 'last_sync_at'`),
     ]);
 
     let totalConflicts = 0;
@@ -333,7 +333,7 @@ export async function getSyncStatus(): Promise<SyncStatusInfo> {
     ];
     for (const table of conflictTables) {
       try {
-        const result = await container.safeQuery(
+        const result = await safeQuery(
           `SELECT COUNT(*) as count FROM ${table} WHERE sync_status = 'conflict'`,
         );
         totalConflicts +=
@@ -373,7 +373,7 @@ export async function getSyncStatus(): Promise<SyncStatusInfo> {
 
 export async function updateLastSyncTime(): Promise<void> {
   try {
-    await container.safeRun(
+    await safeRun(
       `INSERT OR REPLACE INTO sync_meta (key, value) VALUES ('last_sync_at', ?)`,
       [Math.floor(Date.now() / 1000).toString()],
     );
@@ -390,7 +390,7 @@ export async function cleanupSyncedChanges(
 ): Promise<number> {
   try {
     const cutoff = Math.floor(Date.now() / 1000) - olderThanHours * 3600;
-    const result = await container.safeQuery(
+    const result = await safeQuery(
       `SELECT COUNT(*) as count FROM sync_changelog WHERE synced = 1 AND timestamp < ?`,
       [cutoff],
     );
@@ -398,7 +398,7 @@ export async function cleanupSyncedChanges(
       ((result[0] as Record<string, unknown>)?.count as number) || 0;
 
     if (count > 0) {
-      await container.safeRun(
+      await safeRun(
         `DELETE FROM sync_changelog WHERE synced = 1 AND timestamp < ?`,
         [cutoff],
       );

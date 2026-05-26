@@ -1,6 +1,6 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
-import { container } from "@/infrastructure/di";
+import { safeQuery, safeRun, safeTransaction } from "@/shared/db-core";
 import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParseArray } from "@/shared/utils/safe-json";
@@ -31,7 +31,7 @@ async function removeIdFromJsonArray(
 ): Promise<void> {
   const safeTable = sanitizeTable(table);
   const safeArrayCol = sanitizeIdentifier(arrayColumn);
-  const rows = await container.safeQuery<Record<string, unknown>>(
+  const rows = await safeQuery<Record<string, unknown>>(
     `SELECT id, ${safeArrayCol} FROM ${safeTable} WHERE ${safeArrayCol} LIKE ?`,
     [`%${idValue}%`],
   );
@@ -41,7 +41,7 @@ async function removeIdFromJsonArray(
       const arr = safeJsonParseArray(raw);
       const filtered = arr.filter((item) => item !== idValue);
       if (filtered.length !== arr.length) {
-        await container.safeRun(
+        await safeRun(
           `UPDATE ${safeTable} SET ${safeArrayCol} = ? WHERE id = ?`,
           [JSON.stringify(filtered), row.id],
         );
@@ -54,7 +54,7 @@ async function removeIdFromJsonArray(
 
 export async function deleteCharacterWithRefs(characterId: string): Promise<Result<void>> {
   return fromAsyncThrowable(async () => {
-    const characterRows = await container.safeQuery<Record<string, unknown>>(
+    const characterRows = await safeQuery<Record<string, unknown>>(
       `SELECT ref_image_path, avatar_path, thumbnail_path, preview_path, generated_image FROM characters WHERE id = ?`,
       [characterId],
     );
@@ -70,7 +70,7 @@ export async function deleteCharacterWithRefs(characterId: string): Promise<Resu
       );
     }
 
-    const outfitRows = await container.safeQuery<Record<string, unknown>>(
+    const outfitRows = await safeQuery<Record<string, unknown>>(
       `SELECT image_url, local_image_path FROM character_outfits WHERE character_id = ?`,
       [characterId],
     );
@@ -94,7 +94,7 @@ export async function deleteCharacterWithRefs(characterId: string): Promise<Resu
       params: [characterId],
     });
 
-    await container.safeTransaction(statements);
+    await safeTransaction(statements);
 
     await removeIdFromJsonArray("story_beats", "character", characterId, "character_ids_json");
     await removeIdFromJsonArray("storyboard_assets", "character", characterId, "character_ids");
@@ -108,7 +108,7 @@ export async function deleteCharacterWithRefs(characterId: string): Promise<Resu
       sql: `DELETE FROM characters WHERE id = ?`,
       params: [characterId],
     });
-    await container.safeTransaction(deleteStatements);
+    await safeTransaction(deleteStatements);
 
     await cleanupLocalFiles([...characterPaths, ...outfitPaths]);
   });
@@ -116,7 +116,7 @@ export async function deleteCharacterWithRefs(characterId: string): Promise<Resu
 
 export async function deleteSceneWithRefs(sceneId: string): Promise<Result<void>> {
   return fromAsyncThrowable(async () => {
-    const sceneRows = await container.safeQuery<Record<string, unknown>>(
+    const sceneRows = await safeQuery<Record<string, unknown>>(
       `SELECT ref_image_path, generated_image FROM scenes WHERE id = ?`,
       [sceneId],
     );
@@ -156,7 +156,7 @@ export async function deleteSceneWithRefs(sceneId: string): Promise<Result<void>
       params: [sceneId],
     });
 
-    await container.safeTransaction(statements);
+    await safeTransaction(statements);
 
     await cleanupLocalFiles(scenePaths);
   });

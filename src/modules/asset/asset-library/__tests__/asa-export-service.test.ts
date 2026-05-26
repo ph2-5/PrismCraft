@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ValidationError } from "@/domain/types";
 
-vi.mock("@/infrastructure/di", () => ({
-  container: {
-    safeQuery: vi.fn(),
-    safeTransaction: vi.fn(),
-  },
+vi.mock("@/shared/db-core", () => ({
+  safeQuery: vi.fn(),
+  safeTransaction: vi.fn(),
 }));
 
-import { container } from "@/infrastructure/di";
+import { safeQuery, safeTransaction } from "@/shared/db-core";
 import {
   exportCharacters,
   exportScenes,
@@ -86,7 +84,7 @@ describe("exportCharacters", () => {
   });
 
   it("应成功导出角色数据", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>)
+    (safeQuery as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce([mockCharacterRow])
       .mockResolvedValueOnce([mockOutfitRow]);
 
@@ -105,7 +103,7 @@ describe("exportCharacters", () => {
   });
 
   it("角色不存在时应导出空数组", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>)
+    (safeQuery as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
@@ -132,7 +130,7 @@ describe("exportCharacters", () => {
   });
 
   it("数据库查询失败时应返回错误", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (safeQuery as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("数据库错误"),
     );
 
@@ -148,7 +146,7 @@ describe("exportScenes", () => {
   });
 
   it("应成功导出场景数据", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce([mockSceneRow]);
+    (safeQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce([mockSceneRow]);
 
     const result = await exportScenes(["scene-1"]);
 
@@ -164,7 +162,7 @@ describe("exportScenes", () => {
   });
 
   it("场景不存在时应导出空数组", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+    (safeQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
 
     const result = await exportScenes(["non-existent"]);
 
@@ -183,7 +181,7 @@ describe("exportStoryboards", () => {
   });
 
   it("应成功导出故事板数据", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>)
+    (safeQuery as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce([mockStoryboardRow])
       .mockResolvedValueOnce([mockBeatRow]);
 
@@ -202,7 +200,7 @@ describe("exportStoryboards", () => {
   });
 
   it("故事板不存在但 beats 查询仍应执行", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>)
+    (safeQuery as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
@@ -224,7 +222,7 @@ describe("exportCollections", () => {
   });
 
   it("应成功导出收藏集数据", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce([mockCollectionRow]);
+    (safeQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce([mockCollectionRow]);
 
     const result = await exportCollections(["col-1"]);
 
@@ -240,7 +238,7 @@ describe("exportCollections", () => {
   });
 
   it("收藏集不存在时应导出空数组", async () => {
-    (container.safeQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+    (safeQuery as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
 
     const result = await exportCollections(["non-existent"]);
 
@@ -299,7 +297,7 @@ describe("importFromFile", () => {
   });
 
   it("应成功导入角色数据", async () => {
-    (container.safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
+    (safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
 
     const file = createJsonFile({
       format: "asa-characters",
@@ -327,7 +325,7 @@ describe("importFromFile", () => {
   });
 
   it("应成功导入场景数据", async () => {
-    (container.safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
+    (safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
 
     const file = createJsonFile({
       format: "asa-scenes",
@@ -353,7 +351,7 @@ describe("importFromFile", () => {
   });
 
   it("应成功导入故事板数据", async () => {
-    (container.safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
+    (safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
 
     const file = createJsonFile({
       format: "asa-storyboards",
@@ -380,7 +378,7 @@ describe("importFromFile", () => {
   });
 
   it("应成功导入收藏集数据", async () => {
-    (container.safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
+    (safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
 
     const file = createJsonFile({
       format: "asa-collections",
@@ -472,7 +470,7 @@ describe("importFromFile", () => {
   });
 
   it("导入角色时事务失败应返回错误", async () => {
-    (container.safeTransaction as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (safeTransaction as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("事务失败"),
     );
 
@@ -498,7 +496,7 @@ describe("importFromFile", () => {
   });
 
   it("导入包含 outfits 的角色数据应正确处理", async () => {
-    (container.safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
+    (safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
 
     const file = createJsonFile({
       format: "asa-characters",
@@ -528,7 +526,7 @@ describe("importFromFile", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.imported).toBe(1);
-      expect(container.safeTransaction).toHaveBeenCalledWith(
+      expect(safeTransaction).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ sql: expect.stringContaining("character_outfits") }),
         ]),
@@ -537,7 +535,7 @@ describe("importFromFile", () => {
   });
 
   it("导入包含 beats 的故事板数据应正确处理", async () => {
-    (container.safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
+    (safeTransaction as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
 
     const file = createJsonFile({
       format: "asa-storyboards",
@@ -570,7 +568,7 @@ describe("importFromFile", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.imported).toBe(1);
-      expect(container.safeTransaction).toHaveBeenCalledWith(
+      expect(safeTransaction).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ sql: expect.stringContaining("story_beats") }),
         ]),

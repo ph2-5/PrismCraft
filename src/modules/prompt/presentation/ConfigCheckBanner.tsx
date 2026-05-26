@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { container } from "@/infrastructure/di";
+import { checkConfigStatus, initConfig } from "@/shared/api-config";
 import type { ConfigStatus } from "@/infrastructure/di";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
@@ -30,9 +30,9 @@ export function ConfigCheckBanner() {
 
   useEffect(() => {
     let cancelled = false;
-    container.initConfig();
+    initConfig();
     const loadStatus = async () => {
-      const configStatus = await container.checkConfigStatus();
+      const configStatus = await checkConfigStatus();
       if (!cancelled) {
         setStatus(configStatus);
       }

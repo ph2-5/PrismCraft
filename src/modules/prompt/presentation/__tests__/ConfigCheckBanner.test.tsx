@@ -9,11 +9,9 @@ const mockLocalStorageGetItem = vi.fn<(key: string) => string | null>().mockRetu
 const mockLocalStorageSetItem = vi.fn<(key: string, value: string) => void>();
 const mockLocalStorageRemoveItem = vi.fn<(key: string) => void>();
 
-vi.mock("@/infrastructure/di", () => ({
-  container: {
-    initConfig: (...args: unknown[]) => mockInitConfig(...args),
-    checkConfigStatus: (...args: unknown[]) => mockCheckConfigStatus(...args),
-  },
+vi.mock("@/shared/api-config", () => ({
+  initConfig: (...args: unknown[]) => mockInitConfig(...args),
+  checkConfigStatus: (...args: unknown[]) => mockCheckConfigStatus(...args),
 }));
 
 vi.stubGlobal("localStorage", {
@@ -113,13 +111,13 @@ describe("ConfigCheckBanner", () => {
     expect(screen.getByText(/缺少:.*视觉理解、视频生成/)).toBeInTheDocument();
   });
 
-  it("calls container.initConfig on mount", () => {
+  it("calls initConfig on mount", () => {
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
     expect(mockInitConfig).toHaveBeenCalledTimes(1);
   });
 
-  it("calls container.checkConfigStatus on mount", () => {
+  it("calls checkConfigStatus on mount", () => {
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
     expect(mockCheckConfigStatus).toHaveBeenCalledTimes(1);

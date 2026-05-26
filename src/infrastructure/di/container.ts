@@ -17,17 +17,18 @@ import type {
  *   1. Implementations of domain Port interfaces (IVideoProvider, ICharacterStorage, etc.)
  *   2. Stateful services (eventBus, preferencesStorage, apiClient)
  *   3. Functions that need test replacement via overrideToken()
- *   4. Functions from @/infrastructure/* that modules cannot import directly (ESLint blocks it)
  *
  * ❌ SHOULD NOT register in DI:
  *   1. Pure functions from @/shared/* — import directly (e.g., resolveImageUrl, getErrorMessage)
- *   2. Type-only exports — use `export type` instead
- *   3. Constants or enums — import directly from their source
+ *   2. Pure functions from @/infrastructure/* — use @/shared/ proxy exports instead
+ *   3. Type-only exports — use `export type` instead
+ *   4. Constants or enums — import directly from their source
  *
  * When adding a new token, ask: "Would a test need to mock this?" If no, consider direct import.
+ * If the function is from @/infrastructure/* and modules need it, create a proxy export in @/shared/.
  */
 import { videoTaskStorage } from "@/infrastructure/storage/video-tasks";
-import { characterStorage, updateOutfitImage } from "@/infrastructure/storage/characters";
+import { characterStorage } from "@/infrastructure/storage/characters";
 import { sceneStorage } from "@/infrastructure/storage/scenes";
 import { storyStorage } from "@/infrastructure/storage/stories";
 import { versionStorage } from "@/infrastructure/storage/versions";
@@ -53,11 +54,6 @@ import { safeQuery, safeRun, safeTransaction } from "@/infrastructure/storage/sq
 import { registerChangeTracker } from "@/infrastructure/storage/core";
 import { apiClient, imageApi, videoApi, textApi } from "@/infrastructure/api";
 import { eventBus } from "@/shared/event-bus";
-import { synthesizeOutfit, batchSynthesizeOutfits } from "@/infrastructure/ai-providers/outfit-synthesis";
-import { loadConfig } from "@/infrastructure/ai-providers/api-config/storage";
-import { checkConfigStatus, initConfig } from "@/infrastructure/ai-providers/api-config/init";
-import { registerObjectUrl, revokeObjectUrl, getObjectUrl } from "@/infrastructure/storage/video-cache";
-import { resilientFetch } from "@/infrastructure/network/resilient-fetch";
 import { importExportStorage } from "@/infrastructure/storage/import-export";
 import { templateStorage } from "@/infrastructure/storage/templates";
 import { autoSaveStorage } from "@/infrastructure/storage/auto-save";
@@ -132,24 +128,6 @@ const tokens = {
   // ── D. Repository 实例（Drizzle ORM，模块无法直接导入 infrastructure/database） ──
   mediaAssetRepository: createToken("mediaAssetRepository", () => mediaAssetRepository),
 
-  // ── E. Infrastructure 桥接函数（纯函数，但因 ESLint 限制模块无法直接导入 infrastructure） ──
-  // 理由：modules/ 层 ESLint 规则禁止直接 import @/infrastructure/*（除 @/infrastructure/di）
-  // 注意：sql-sanitizer、schema-registry、model-capabilities 的纯函数已通过 @/shared/ 代理导出，不再需要 DI 桥接
-  safeQuery: createToken("safeQuery", () => safeQuery),
-  safeRun: createToken("safeRun", () => safeRun),
-  safeTransaction: createToken("safeTransaction", () => safeTransaction),
-  synthesizeOutfit: createToken("synthesizeOutfit", () => synthesizeOutfit),
-  batchSynthesizeOutfits: createToken("batchSynthesizeOutfits", () => batchSynthesizeOutfits),
-  registerObjectUrl: createToken("registerObjectUrl", () => registerObjectUrl),
-  revokeObjectUrl: createToken("revokeObjectUrl", () => revokeObjectUrl),
-  getObjectUrl: createToken("getObjectUrl", () => getObjectUrl),
-  resilientFetch: createToken("resilientFetch", () => resilientFetch),
-  updateOutfitImage: createToken("updateOutfitImage", () => updateOutfitImage),
-  loadConfig: createToken("loadConfig", () => loadConfig),
-  checkConfigStatus: createToken("checkConfigStatus", () => checkConfigStatus),
-  initConfig: createToken("initConfig", () => initConfig),
-
-  // ── F. 懒加载模块实例（避免循环依赖） ──────────────────────────────────
   elementManager: createToken("elementManager", async () => {
     const { elementManager } = await import("@/modules/shot/element-binding");
     return elementManager;

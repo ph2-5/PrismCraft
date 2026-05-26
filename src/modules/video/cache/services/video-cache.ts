@@ -1,6 +1,7 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
 import { container } from "@/infrastructure/di";
+import { registerObjectUrl, revokeObjectUrl, resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
 import { AppError } from "@/domain/types/result";
 
@@ -41,7 +42,7 @@ export function touchMemoryCache(taskId: string): void {
 
 export function clearMemoryCache(): void {
   for (const key of memoryCache.keys()) {
-    container.revokeObjectUrl(key);
+    revokeObjectUrl(key);
   }
   memoryCache.clear();
 }
@@ -128,7 +129,7 @@ export async function cacheVideoBlob(
         const abortController = new AbortController();
         const downloadCtx = { data: null as Uint8Array | null };
 
-        const result = await container.resilientFetch({
+        const result = await resilientFetch({
           url: currentUrl,
           destination: async (data: Uint8Array) => {
             downloadCtx.data = data;
@@ -252,7 +253,7 @@ export async function getCachedVideoUrl(taskId: string): Promise<Result<string |
     if (!cached) return null;
 
     const fileUrl = `vcache://${taskId}`;
-    container.registerObjectUrl(taskId, fileUrl);
+    registerObjectUrl(taskId, fileUrl);
     return fileUrl;
   });
 }

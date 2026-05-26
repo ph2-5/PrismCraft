@@ -23,6 +23,7 @@ import {
   recordChange,
 } from "./changelog";
 import { container } from "@/infrastructure/di";
+import { safeQuery, safeRun, safeTransaction } from "@/shared/db-core";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParse } from "@/shared/utils/safe-json";
 import { fromAsyncThrowable } from "@/domain/types/result";
@@ -385,7 +386,7 @@ async function applyRemoteChanges(changes: RemoteChange[]): Promise<void> {
       const selectCols = hasIsDeleted
         ? `SELECT vector_clock, is_deleted, sync_status FROM ${tableName} WHERE ${pk} = ?`
         : `SELECT vector_clock, sync_status FROM ${tableName} WHERE ${pk} = ?`;
-      const readRows = await container.safeQuery(selectCols, [change.entityId]);
+      const readRows = await safeQuery(selectCols, [change.entityId]);
 
       const localRow = (readRows?.[0] || undefined) as {
         vector_clock: string;
@@ -499,7 +500,7 @@ async function applyRemoteChanges(changes: RemoteChange[]): Promise<void> {
 
   if (allStatements.length > 0) {
     const batchResult = await fromAsyncThrowable(async () => {
-      await container.safeTransaction(allStatements);
+      await safeTransaction(allStatements);
     });
     if (!batchResult.ok) {
       errorLogger.warn("[SyncEngine] 批量应用远程变更失败", batchResult.error);
@@ -515,7 +516,7 @@ async function resolveConflict(conflict: SyncConflict): Promise<void> {
       const tableName = getTableName(conflict.entityType);
       if (tableName) {
         const pk = getPkColumn(tableName);
-        await container.safeRun(
+        await safeRun(
           `UPDATE ${tableName} SET sync_status = 'pending' WHERE ${pk} = ?`,
           [conflict.entityId],
         );
@@ -535,14 +536,14 @@ async function resolveConflict(conflict: SyncConflict): Promise<void> {
         );
 
         const backupResult = await fromAsyncThrowable(async () => {
-          const localBackup = await container.safeQuery(
+          const localBackup = await safeQuery(
             `SELECT * FROM ${tableName} WHERE ${pk} = ?`,
             [conflict.entityId],
           );
           if (localBackup && localBackup.length > 0) {
             const backupData = JSON.stringify(localBackup[0]);
             const backupId = `${conflict.entityId}_conflict_${Date.now()}`;
-            await container.safeRun(
+            await safeRun(
               `INSERT INTO sync_conflict_backup (id, entity_type, entity_id, local_data, remote_data, resolved_at)
                VALUES (?, ?, ?, ?, ?, ?)`,
               [backupId, conflict.entityType, conflict.entityId, backupData, JSON.stringify(conflict.remoteData), Date.now()],
@@ -553,7 +554,7 @@ async function resolveConflict(conflict: SyncConflict): Promise<void> {
           errorLogger.warn("[SyncEngine] Failed to backup local data", backupResult.error);
         }
 
-        await container.safeRun(
+        await safeRun(
           `UPDATE ${tableName} SET ${setClauses}, vector_clock = ?, sync_status = 'synced' WHERE ${pk} = ?`,
           [
             ...values,
@@ -575,7 +576,7 @@ async function resolveConflict(conflict: SyncConflict): Promise<void> {
 
       if (remoteTime >= localTime && remoteData) {
         const backupResult = await fromAsyncThrowable(async () => {
-          const localBackup = await container.safeRun(
+          const localBackup = await safeRun(
             `SELECT * FROM ${tableName} WHERE ${pk} = ?`,
             [conflict.entityId],
           );
@@ -583,7 +584,7 @@ async function resolveConflict(conflict: SyncConflict): Promise<void> {
           if (backupArray && backupArray.length > 0) {
             const backupData = JSON.stringify(backupArray[0]);
             const backupId = `${conflict.entityId}_conflict_${Date.now()}`;
-            await container.safeRun(
+            await safeRun(
               `INSERT INTO sync_conflict_backup (id, entity_type, entity_id, local_data, remote_data, resolved_at)
                VALUES (?, ?, ?, ?, ?, ?)`,
               [backupId, conflict.entityType, conflict.entityId, backupData, JSON.stringify(remoteData), Date.now()],
@@ -599,7 +600,7 @@ async function resolveConflict(conflict: SyncConflict): Promise<void> {
         );
         const setClauses = columns.map((k) => `${k} = ?`).join(", ");
         const values = columns.map((k) => remoteData[k]);
-        await container.safeRun(
+        await safeRun(
           `UPDATE ${tableName} SET ${setClauses}, vector_clock = ?, sync_status = 'synced' WHERE ${pk} = ?`,
           [
             ...values,
@@ -624,7 +625,7 @@ async function markConflict(
   if (!tableName) return;
 
   const pk = getPkColumn(tableName);
-  await container.safeRun(
+  await safeRun(
     `UPDATE ${tableName} SET sync_status = 'conflict' WHERE ${pk} = ?`,
     [entityId],
   );

@@ -3,6 +3,7 @@ import { err, fromAsyncThrowable, NotFoundError, ValidationError } from "@/domai
 import type { Story, CreateStoryInput, UpdateStoryInput } from "@/domain/schemas";
 import { createStoryInputSchema, updateStoryInputSchema } from "@/domain/schemas";
 import { container } from "@/infrastructure/di";
+import { safeTransaction } from "@/shared/db-core";
 import { DomainEvents } from "@/shared/event-types";
 import { saveVersion } from "../../template";
 import { errorLogger } from "@/shared/error-logger";
@@ -145,7 +146,7 @@ export const storyService = {
 
     if (allStatements.length > 0) {
       try {
-        await container.safeTransaction(allStatements);
+        await safeTransaction(allStatements);
       } catch (e) {
         errorLogger.warn(
           { code: "StoryServiceUpdateFailed", message: "批量更新分镜数据库记录失败", cause: e },

@@ -1,7 +1,7 @@
 {
   "name": "persistence",
   "description": "自动保存、持久化守护、事务性删除（级联删除+文件清理）",
-  "dependencies": ["@/infrastructure/di", "@/shared/error-logger", "@/domain/types/result"],
+  "dependencies": ["@/shared/db-core", "@/shared/error-logger", "@/domain/types/result"],
   "publicAPI": {
     "hooks": ["useAutoSave", "usePersistenceGuard"],
     "services": ["deleteCharacterWithRefs", "deleteSceneWithRefs"],
@@ -12,6 +12,6 @@
     "自动保存有 MIN_INTERVAL 限制（1 秒），防止过于频繁",
     "usePersistenceGuard 的 cancelledRef 防止组件卸载后继续保存",
     "deleteCharacterWithRefs/deleteSceneWithRefs 在删除时同步清理本地图片文件",
-    "事务性删除使用 container.safeTransaction 保证原子性"
+    "事务性删除使用 safeTransaction 保证原子性"
   ]
 }

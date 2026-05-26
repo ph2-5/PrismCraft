@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Character, CharacterOutfit } from "@/domain/schemas";
-import { container } from "@/infrastructure/di";
+import { synthesizeOutfit, batchSynthesizeOutfits } from "@/shared/outfit";
 import { getErrorMessage } from "@/shared/error-handler";
 import { errorLogger } from "@/shared/error-logger";
 import { AppError } from "@/domain/types/result";
@@ -96,7 +96,7 @@ export function useOutfitManagement({
     try {
       const characterImage = currentCharacter.generatedImage || currentCharacter.refImagePath;
       if (!characterImage) { showError("缺少角色图像", "请先生成或上传角色图像"); return; }
-      const result = await container.synthesizeOutfit({
+      const result = await synthesizeOutfit({
         characterImageUrl: characterImage,
         outfitDescription: outfit.clothing,
         characterName: currentCharacter.name,
@@ -136,7 +136,7 @@ export function useOutfitManagement({
 
     setIsGenerating(true);
     try {
-      const results = await container.batchSynthesizeOutfits(
+      const results = await batchSynthesizeOutfits(
         characterImage,
         outfitsToSynthesize.map((o) => ({ outfitId: o.id, outfitName: o.name, outfitDescription: o.clothing })),
         {

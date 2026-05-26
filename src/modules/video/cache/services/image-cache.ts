@@ -1,6 +1,7 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
 import { container } from "@/infrastructure/di";
+import { resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
 
 const CACHE_RETRY_COUNT = 2;
@@ -80,7 +81,7 @@ export async function cacheImageBlob(
         const abortController = new AbortController();
         const downloadCtx = { data: null as Uint8Array | null };
 
-        const result = await container.resilientFetch({
+        const result = await resilientFetch({
           url: currentUrl,
           destination: async (data: Uint8Array) => {
             downloadCtx.data = data;

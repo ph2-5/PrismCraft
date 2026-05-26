@@ -25,6 +25,27 @@ const nextConfig: NextConfig = {
       ];
     },
   }),
+  ...(isElectron && {
+    webpack(config, { isServer }) {
+      if (isServer) {
+        const originalEntry = config.entry;
+        config.entry = async () => {
+          const entries = await (typeof originalEntry === "function" ? originalEntry() : originalEntry);
+          if (entries && typeof entries === "object" && !Array.isArray(entries)) {
+            const filtered: Record<string, string[]> = {};
+            for (const [key, value] of Object.entries(entries)) {
+              if (!key.includes("api/")) {
+                filtered[key] = value;
+              }
+            }
+            return filtered;
+          }
+          return entries;
+        };
+      }
+      return config;
+    },
+  }),
 };
 
 export default nextConfig;

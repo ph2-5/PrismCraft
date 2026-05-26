@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-imports */
 export {
   synthesizeOutfit,
   batchSynthesizeOutfits,

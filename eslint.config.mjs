@@ -148,7 +148,7 @@ const eslintConfig = [
     },
   },
   {
-    files: ["src/shared/**/*.{ts,tsx}"],
+    files: ["src/shared/**/*.{ts,tsx}", "!src/shared/db-core/**", "!src/shared/api-config/**", "!src/shared/video-cache/**", "!src/shared/outfit/**", "!src/shared/sql-safety/**", "!src/shared/model-capabilities.*"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -158,8 +158,26 @@ const eslintConfig = [
             {
               group: ["@/infrastructure", "@/infrastructure/**"],
               message:
-                "\uD83C\uDFD7\uFE0F DDD: shared \u5C42\u7981\u6B62\u4F9D\u8D56 infrastructure\uFF0C\u8BF7\u901A\u8FC7\u56DE\u8C03/props \u6216 domain \u5C42\u89E3\u8026",
+                "\uD83C\uDFD7\uFE0F DDD: shared \u5C42\u7981\u6B62\u4F9D\u8D56 infrastructure\uFF0C\u4EE3\u7406\u5BFC\u51FA\u76EE\u5F55\u9664\u5916\uFF08db-core, api-config, video-cache, outfit, sql-safety, model-capabilities\uFF09",
             },
+            {
+              group: ["@/modules", "@/modules/**"],
+              message:
+                "\uD83C\uDFD7\uFE0F DDD: shared \u5C42\u7981\u6B62\u4F9D\u8D56 modules\uFF0Cshared \u662F\u5E95\u5C42\u901A\u7528\u5C42",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/shared/db-core/**/*.{ts,tsx}", "src/shared/api-config/**/*.{ts,tsx}", "src/shared/video-cache/**/*.{ts,tsx}", "src/shared/outfit/**/*.{ts,tsx}", "src/shared/sql-safety/**/*.{ts,tsx}", "src/shared/model-capabilities.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...deprecatedImportPatterns,
             {
               group: ["@/modules", "@/modules/**"],
               message:

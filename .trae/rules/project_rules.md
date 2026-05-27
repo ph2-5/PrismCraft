@@ -377,6 +377,16 @@ Note: Pure functions from `@/infrastructure/*` that modules need are exported vi
 > Full regression guard rules (R1-R27) are in [regression-guards.md](./regression-guards.md).
 > These rules prevent known bug patterns from reappearing. They are NOT discovery tools for future audits.
 
+### Bug Audit Methodology
+
+When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-methodology.md`:
+
+1. **Scenario Discovery** — AI simulates real users, finds breakpoints from usage scenarios. NO pre-set checklists.
+2. **Targeted Verification** — Find code evidence for each scenario: [Confirmed] / [Ruled Out] / [Needs Confirmation]
+3. **Rule Consolidation** — Abstract confirmed bugs into reusable detection rules → write to regression-guards.md
+
+**CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
+
 **Quick reference — all 27 guards:**
 
 | Category | Rules | Key Concern |

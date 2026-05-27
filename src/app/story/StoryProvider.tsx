@@ -71,6 +71,7 @@ interface StoryContextValue {
   characters: ReturnType<typeof useAssetLoader>["characters"];
   scenes: ReturnType<typeof useAssetLoader>["scenes"];
   assets: ReturnType<typeof useAssetLoader>["assets"];
+  assetsLoading: ReturnType<typeof useAssetLoader>["isLoading"];
   charactersRef: ReturnType<typeof useAssetLoader>["charactersRef"];
   scenesRef: ReturnType<typeof useAssetLoader>["scenesRef"];
 
@@ -431,6 +432,7 @@ function useStoryContext(): StoryContextValue {
       characters: assetLoader.characters,
       scenes: assetLoader.scenes,
       assets: assetLoader.assets,
+      assetsLoading: assetLoader.isLoading,
       charactersRef: assetLoader.charactersRef,
       scenesRef: assetLoader.scenesRef,
       handleUploadKeyframe: uploadHandlers.handleUploadKeyframe,
@@ -502,6 +504,7 @@ function useStoryContext(): StoryContextValue {
       assetLoader.characters,
       assetLoader.scenes,
       assetLoader.assets,
+      assetLoader.isLoading,
       assetLoader.charactersRef,
       assetLoader.scenesRef,
       uploadHandlers.handleUploadKeyframe,

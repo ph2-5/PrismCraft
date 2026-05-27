@@ -73,6 +73,7 @@ import type {
   ImportMode,
 } from "@/domain/schemas";
 import { confirm } from "@/shared/utils/confirm";
+import { container } from "@/infrastructure/di";
 
 type AssetTab = "characters" | "scenes" | "storyboards" | "collections";
 
@@ -86,11 +87,10 @@ function toDateFromTimestamp(ts: unknown): Date {
 }
 
 async function fetchSecondaryData() {
-  const { storyboardStorage, collectionStorage } = await import("@/infrastructure/storage");
   const [sb, col, colAssets] = await Promise.all([
-    storyboardStorage.getStoryboardAssets(),
-    collectionStorage.getCollections(),
-    collectionStorage.getCollectionAssets(),
+    container.storyboardStorage.getStoryboardAssets(),
+    container.collectionStorage.getCollections(),
+    container.collectionStorage.getCollectionAssets(),
   ]);
   return { storyboards: sb, collections: col, collectionAssets: colAssets };
 }
@@ -149,6 +149,7 @@ type EditingItem =
   | (StoryboardAsset & { _type: "storyboard" });
 
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [addToCollectionId, setAddToCollectionId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1025,8 +1026,10 @@ type EditingItem =
                 取消
               </Button>
               <Button
+                disabled={isSavingEdit}
                 onClick={async () => {
                   if (!editingItem) return;
+                  setIsSavingEdit(true);
                   try {
                     if (editingItem._type === "character") {
                       const result = await characterService.update(editingItem.id, {
@@ -1046,8 +1049,7 @@ type EditingItem =
                       });
                       if (!result.ok) throw result.error;
                     } else if (editingItem._type === "storyboard") {
-                      const { storyboardStorage } = await import("@/infrastructure/storage");
-                      await storyboardStorage.createStoryboardAsset({
+                      await container.storyboardStorage.createStoryboardAsset({
                         id: editingItem.id,
                         script: editingItem.script,
                         duration: editingItem.duration,
@@ -1064,10 +1066,12 @@ type EditingItem =
                       "保存失败",
                       e instanceof Error ? e.message : "未知错误",
                     );
+                  } finally {
+                    setIsSavingEdit(false);
                   }
                 }}
               >
-                保存
+                {isSavingEdit ? "保存中..." : "保存"}
               </Button>
             </DialogFooter>
           </DialogContent>

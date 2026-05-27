@@ -21,6 +21,7 @@ export function useAssetLoader(services: AssetLoaderServices) {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [assets, setAssets] = useState<LoadedAsset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const charactersRef = useRef<Character[]>(characters);
   const scenesRef = useRef<Scene[]>(scenes);
 
@@ -80,9 +81,11 @@ export function useAssetLoader(services: AssetLoaderServices) {
           setCharacters(chars);
           setScenes(scns);
           setAssets(allAssets);
+          setIsLoading(false);
         }
       } catch (error) {
         if (!cancelled) {
+          setIsLoading(false);
           errorLogger.warn(
             { code: "AssetLoadFailed", message: "Failed to load characters/scenes from database", cause: error },
             { component: "useAssetLoader" },
@@ -100,6 +103,7 @@ export function useAssetLoader(services: AssetLoaderServices) {
     characters,
     scenes,
     assets,
+    isLoading,
     charactersRef,
     scenesRef,
   };

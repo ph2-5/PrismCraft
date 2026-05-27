@@ -48,6 +48,7 @@ export function useCharacterCRUD({
   const [referenceCheck, setReferenceCheck] = useState<DeleteCheckResult | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSave = async () => {
     if (saveStatus === "saving") return;
@@ -129,6 +130,7 @@ export function useCharacterCRUD({
   };
 
   const performDelete = async (id: string) => {
+    setIsDeleting(true);
     try {
       const result = await characterService.delete(id);
       if (!result.ok) throw result.error;
@@ -147,6 +149,8 @@ export function useCharacterCRUD({
       success("删除成功", "角色已删除");
     } catch (err) {
       showError("删除失败", err instanceof Error ? err.message : "未知错误");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -177,6 +181,7 @@ export function useCharacterCRUD({
     saveError,
     handleDelete,
     performDelete,
+    isDeleting,
     addTrait,
     removeTrait,
   };

@@ -174,7 +174,9 @@ async function checkContractJsonConsistency() {
       }
     }
 
-    if (contract.invariants && contract.invariants.length === 0) {
+    if (!contract.invariants) {
+      warnings.push(`⚠️ ${rel(contractPath)}: missing 'invariants' field (AI needs invariants to respect business rules)`);
+    } else if (contract.invariants.length === 0) {
       warnings.push(`⚠️ ${rel(contractPath)}: invariants array is empty (should have at least 1 invariant)`);
     }
   }

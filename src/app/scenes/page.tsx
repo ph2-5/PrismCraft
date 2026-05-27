@@ -9,6 +9,7 @@ import {
 } from "@/modules/scene";
 import {
   useStories,
+  storyService,
 } from "@/modules/story";
 import {
   useMediaAssets,
@@ -91,9 +92,9 @@ function ScenesPageContent() {
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("highlight");
 
-  const { data: scenes = [] } = useScenes();
+  const { data: scenes = [], isLoading: scenesLoading } = useScenes();
   const { data: stories = [] } = useStories();
-  const { data: assets = [] } = useMediaAssets();
+  const { data: assets = [], isLoading: _assetsLoading } = useMediaAssets();
   const [showAssetSelector, setShowAssetSelector] = useState(false);
   const [currentScene, setCurrentSceneRaw] = useState<Scene>(defaultScene);
   const currentSceneRef = useRef(currentScene);
@@ -164,6 +165,7 @@ function ScenesPageContent() {
     saveError,
     handleDelete,
     performDelete,
+    isDeleting,
     addItem,
     removeItem,
   } = useSceneCRUD({
@@ -181,7 +183,6 @@ function ScenesPageContent() {
     markDirty,
     markClean,
     onUpdateStoriesAfterDelete: async (sceneId, storiesList) => {
-      const { storyService } = await import("@/modules/story");
       const updatedStories = storiesList.map((story) => {
         const updatedBeats = (story.beats || []).map((beat) => {
           const updated = { ...beat };
@@ -301,7 +302,11 @@ function ScenesPageContent() {
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {scenes.length === 0 ? (
+            {scenesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : scenes.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p className="font-medium">暂无场景</p>
@@ -1004,14 +1009,16 @@ function ScenesPageContent() {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
             >
               取消
             </Button>
             <Button
               variant="destructive"
+              disabled={isDeleting}
               onClick={() => sceneToDelete && performDelete(sceneToDelete)}
             >
-              确认删除
+              {isDeleting ? "删除中..." : "确认删除"}
             </Button>
           </DialogFooter>
         </DialogContent>

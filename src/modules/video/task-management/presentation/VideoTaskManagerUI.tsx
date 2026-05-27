@@ -149,6 +149,13 @@ function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }: TaskDe
                 src={resolveImageUrl(task.videoUrl)}
                 controls
                 className="w-full max-h-48 rounded-lg border border-border"
+                onError={(e) => {
+                  const target = e.target as HTMLVideoElement;
+                  if (!target.dataset.retried) {
+                    target.dataset.retried = "1";
+                    target.src = resolveImageUrl(task.videoUrl) || "";
+                  }
+                }}
               />
             </div>
           )}
@@ -324,6 +331,13 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
                       src={resolveImageUrl(task.videoUrl)}
                       controls
                       className="w-full max-h-48 rounded-lg border border-border"
+                      onError={(e) => {
+                        const target = e.target as HTMLVideoElement;
+                        if (!target.dataset.retried) {
+                          target.dataset.retried = "1";
+                          target.src = resolveImageUrl(task.videoUrl) || "";
+                        }
+                      }}
                     />
                     <div className="mt-2 flex gap-2">
                       <Button

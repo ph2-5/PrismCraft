@@ -45,7 +45,7 @@ import { preferencesStorage } from "@/shared/utils/preferences";
 import { StoryProvider, useStory } from "./StoryProvider";
 
 function useAutoSaveSettings() {
-  const [enabled, setEnabled] = useState(() => {
+  const [enabled, _setEnabled] = useState(() => {
     try {
       const parsed = preferencesStorage.get<{ enabled?: boolean }>("ai-animation-autosave-settings", {});
       return typeof parsed.enabled === "boolean" ? parsed.enabled : true;
@@ -53,7 +53,7 @@ function useAutoSaveSettings() {
       return true;
     }
   });
-  const [intervalMinutes, setIntervalMinutes] = useState(() => {
+  const [intervalMinutes, _setIntervalMinutes] = useState(() => {
     try {
       const parsed = preferencesStorage.get<{ interval?: number }>("ai-animation-autosave-settings", {});
       return typeof parsed.interval === "number" && parsed.interval > 0 ? parsed.interval : 5;
@@ -450,6 +450,7 @@ function StoryPageContent() {
             onPromptChange={handlePromptChange}
             imageProviderId={story.selectedImageModel?.providerId}
             imageModelId={story.selectedImageModel?.modelId}
+            assetsLoading={story.assetsLoading}
           />
         </div>
 
@@ -460,6 +461,13 @@ function StoryPageContent() {
               src={resolveImageUrl(generatedVideo)}
               controls
               className="w-full max-h-48 rounded-lg border border-border"
+              onError={(e) => {
+                const target = e.target as HTMLVideoElement;
+                if (!target.dataset.retried) {
+                  target.dataset.retried = "1";
+                  target.src = resolveImageUrl(generatedVideo) || "";
+                }
+              }}
             />
           </div>
         )}

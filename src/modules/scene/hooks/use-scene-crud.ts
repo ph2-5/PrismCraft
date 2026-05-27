@@ -42,6 +42,7 @@ export function useSceneCRUD({
   const [referenceCheck, setReferenceCheck] = useState<DeleteCheckResult | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
   const savingRef = useRef(false);
 
   const handleSave = async () => {
@@ -123,6 +124,7 @@ export function useSceneCRUD({
   };
 
   const performDelete = async (id: string) => {
+    setIsDeleting(true);
     try {
       const result = await sceneService.delete(id);
       if (!result.ok) throw result.error;
@@ -141,6 +143,8 @@ export function useSceneCRUD({
       success("删除成功", "场景已删除");
     } catch (err) {
       showError("删除失败", err instanceof Error ? err.message : "未知错误");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -156,5 +160,5 @@ export function useSceneCRUD({
     setCurrentScene((prev) => ({ ...prev, [type]: prev[type].filter((item) => item !== value) }));
   };
 
-  return { deleteDialogOpen, setDeleteDialogOpen, sceneToDelete, referenceCheck, handleSave, saveStatus, saveError, handleDelete, performDelete, addItem, removeItem };
+  return { deleteDialogOpen, setDeleteDialogOpen, sceneToDelete, referenceCheck, handleSave, saveStatus, saveError, handleDelete, performDelete, isDeleting, addItem, removeItem };
 }

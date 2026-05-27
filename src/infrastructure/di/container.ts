@@ -128,6 +128,7 @@ const tokens = {
   // ── D. Repository 实例（Drizzle ORM，模块无法直接导入 infrastructure/database） ──
   mediaAssetRepository: createToken("mediaAssetRepository", () => mediaAssetRepository),
 
+  // ── E. 懒加载模块（避免循环依赖，动态 import） ──────────────────────────────────
   elementManager: createToken("elementManager", async () => {
     const { elementManager } = await import("@/modules/shot/element-binding");
     return elementManager;

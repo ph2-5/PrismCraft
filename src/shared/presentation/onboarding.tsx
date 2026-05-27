@@ -5,6 +5,7 @@ import { X, Sparkles, Settings, Image as ImageIcon, Video, FileText } from "luci
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { useRouter } from "next/navigation";
+import { checkConfigStatus } from "@/shared/api-config";
 
 interface OnboardingStep {
   title: string;
@@ -186,11 +187,7 @@ export function ApiKeyAlert() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/config")
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json();
-      })
+    checkConfigStatus()
       .then((data) => {
         if (!data || cancelled) return;
         const hasConfig =

@@ -19,8 +19,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   B: "有状态服务",
   C: "Storage 实例",
   D: "Repository 实例",
-  E: "Infrastructure 桥接",
-  F: "懒加载模块",
+  E: "懒加载模块",
+  F: "Infrastructure 桥接",
 };
 
 function parseContainer(): TokenEntry[] {
@@ -60,6 +60,16 @@ function parseContainer(): TokenEntry[] {
           const anyImport = importLine.match(new RegExp(`\\b${name}\\b.*from\\s+['"]([^'"]+)['"]`));
           if (anyImport) {
             sourceModule = anyImport[1];
+            break;
+          }
+        }
+      }
+
+      if (!sourceModule) {
+        for (const importLine of lines) {
+          const destructuredMatch = importLine.match(new RegExp(`\\{[^}]*\\b${name}\\b[^}]*\\}.*from\\s+['"]([^'"]+)['"]`));
+          if (destructuredMatch) {
+            sourceModule = destructuredMatch[1];
             break;
           }
         }
@@ -142,7 +152,7 @@ function generateMarkdown(tokens: TokenEntry[]): string {
   lines.push("1. Determine the category (A-F)");
   lines.push("2. Add `createToken()` in the appropriate section of `container.ts`");
   lines.push("3. If category E, add a comment explaining why the module cannot import directly");
-  lines.push("4. Run `npm run graph` to update this document");
+  lines.push("4. Run `npm run di-docs` to update this document");
   lines.push("");
 
   return lines.join("\n");

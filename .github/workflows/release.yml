@@ -5,6 +5,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   release:
     strategy:
@@ -12,7 +15,7 @@ jobs:
         include:
           - os: windows-latest
             platform: win
-            build_cmd: npx electron-builder --win --publish always
+            build_cmd: npx electron-builder --win --x64 --publish always
             artifact_pattern: release/*.exe
           - os: macos-latest
             platform: mac
@@ -39,6 +42,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      - name: Build for Electron
+        run: npm run build:electron
+
       - name: Rebuild native modules for Electron (Windows)
         if: matrix.platform == 'win'
         run: npx electron-rebuild -f -w better-sqlite3
@@ -50,9 +56,6 @@ jobs:
         run: npx electron-rebuild -f -w better-sqlite3
         env:
           PYTHON: ${{ env.pythonLocation }}/bin/python3
-
-      - name: Build Next.js app for Electron
-        run: npm run build:electron
 
       - name: Package and publish Electron app
         run: ${{ matrix.build_cmd }}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { logger } from "@/config/constants";
+import { checkConfigStatus } from "@/shared/api-config";
 
 interface NetworkState {
   isOnline: boolean;
@@ -63,18 +64,10 @@ export function useNetworkMonitor(options: NetworkOptions = {}) {
         return false;
       }
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-
       try {
-        const response = await fetch("/api/config", {
-          method: "HEAD",
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        return response.ok;
+        const status = await checkConfigStatus();
+        return !!(status?.text?.configured || status?.image?.configured || status?.video?.configured);
       } catch {
-        clearTimeout(timeoutId);
         return navigator.onLine;
       }
     } catch {

@@ -41,6 +41,7 @@ import {
 import type { Character, Scene, Story } from "@/domain/schemas";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { checkConfigStatus } from "@/shared/api-config";
 
 interface ApiStatus {
   text?: { provider: string; configured: boolean };
@@ -59,10 +60,13 @@ export default function Home() {
     let cancelled = false;
     const checkApiStatus = async () => {
       try {
-        const response = await fetch("/api/config");
-        if (response.ok) {
-          const data = await response.json();
-          if (!cancelled) setApiStatus(data);
+        const status = await checkConfigStatus();
+        if (!cancelled && status) {
+          const mapped: ApiStatus = {};
+          if (status.text?.configured) mapped.text = { provider: status.text.provider, configured: true };
+          if (status.image?.configured) mapped.image = { provider: status.image.provider, configured: true };
+          if (status.video?.configured) mapped.video = { provider: status.video.provider, configured: true };
+          setApiStatus(mapped);
         }
       } catch (error) {
         errorLogger.debug("[App] 检查 API 状态失败:", error instanceof Error ? error.message : error);
@@ -192,7 +196,7 @@ export default function Home() {
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="/create">
+              <Link href="/story">
                 <Button
                   variant="outline"
                   size="lg"
@@ -252,19 +256,19 @@ export default function Home() {
                   API已配置:
                 </span>
                 {apiStatus.text?.configured && (
-                  <Badge
+                  <ApiStatusBadge
                     color="blue"
                     label={`文本: ${apiStatus.text.provider}`}
                   />
                 )}
                 {apiStatus.image?.configured && (
-                  <Badge
+                  <ApiStatusBadge
                     color="purple"
                     label={`图片: ${apiStatus.image.provider}`}
                   />
                 )}
                 {apiStatus.video?.configured && (
-                  <Badge
+                  <ApiStatusBadge
                     color="orange"
                     label={`视频: ${apiStatus.video.provider}`}
                   />
@@ -343,7 +347,7 @@ export default function Home() {
                 都能帮助你将创意变为现实
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                <Link href="/create">
+                <Link href="/story">
                   <Button
                     size="lg"
                     className="gap-2 px-8 py-6 text-base bg-white text-purple-600 hover:bg-white/90 shadow-xl rounded-xl"
@@ -502,7 +506,7 @@ function StatCard({
   );
 }
 
-function Badge({ color, label }: { color: string; label: string }) {
+function ApiStatusBadge({ color, label }: { color: string; label: string }) {
   const colorClasses = {
     blue: "bg-blue-900/50 text-blue-300 border-blue-700/50",
     purple: "bg-purple-900/50 text-purple-300 border-purple-700/50",

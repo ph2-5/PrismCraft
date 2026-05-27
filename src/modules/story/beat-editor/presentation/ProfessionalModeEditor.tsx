@@ -11,6 +11,7 @@ import {
   Image,
   Camera,
   Video,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
@@ -81,6 +82,7 @@ interface ProfessionalModeEditorProps {
   onBatchGenerateKeyframes?: (beatIds?: string[], options?: BatchOptions) => Promise<BatchResult>;
   onBatchGenerateFramePairs?: (beatIds?: string[], options?: BatchOptions) => Promise<BatchResult>;
   onBatchGenerateVideos?: (beatIds?: string[], options?: BatchOptions) => Promise<BatchResult>;
+  assetsLoading?: boolean;
 }
 
 function SortableBeatCard({
@@ -170,6 +172,7 @@ export function ProfessionalModeEditor({
   onBatchGenerateKeyframes,
   onBatchGenerateFramePairs,
   onBatchGenerateVideos,
+  assetsLoading = false,
 }: ProfessionalModeEditorProps) {
   const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
   const [elements, setElements] = useState<StoryElement[]>([]);
@@ -456,7 +459,12 @@ export function ProfessionalModeEditor({
 
         {/* Beat list */}
         <div className="flex-1 overflow-y-auto p-2">
-          {beats.length === 0 ? (
+          {assetsLoading ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm gap-2">
+              <Loader2 className="w-6 h-6 animate-spin opacity-50" />
+              <p>加载素材中...</p>
+            </div>
+          ) : beats.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">
               <Film className="w-8 h-8 mx-auto mb-2 opacity-30" />
               <p>还没有添加镜头</p>

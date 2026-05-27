@@ -232,6 +232,13 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                       }
                       className="w-full h-full"
                       controls
+                      onError={(e) => {
+                        const target = e.target as HTMLVideoElement;
+                        if (!target.dataset.retried && beat.videoGen?.videoUrl) {
+                          target.dataset.retried = "1";
+                          target.src = beat.videoGen.videoUrl;
+                        }
+                      }}
                     />
                   </div>
                 ) : beat.framePair?.firstFrame?.imageUrl ? (

@@ -40,9 +40,10 @@
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "dev": "next dev",
     "build": "next build",
-    "build:win": "npm run rebuild && electron-builder --win --x64",
-    "build:mac": "npm run rebuild && electron-builder --mac",
-    "build:linux": "npm run rebuild && electron-builder --linux",
+    "build:electron": "powershell -ExecutionPolicy Bypass -File build-electron.ps1",
+    "build:win": "npm run build:electron && npm run rebuild && electron-builder --win --x64",
+    "build:mac": "npm run build:electron && npm run rebuild && electron-builder --mac",
+    "build:linux": "npm run build:electron && npm run rebuild && electron-builder --linux",
     "typecheck": "tsc --noEmit",
     "typecheck:electron": "tsc -p electron/tsconfig.json --noEmit",
     "lint": "eslint src/",
@@ -51,7 +52,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "validate": "npm run typecheck && npm run typecheck:electron && npm run lint && npm run lint:arch && npm run test",
+    "validate": "npm run typecheck && npm run typecheck:electron && npm run lint && npm run lint:arch && node scripts/check-module-api-consistency.mjs && node scripts/validate-contracts.mjs && npm run test",
+    "validate:full": "npm run validate && npm run test:coverage",
     "graph": "npx tsx scripts/build-module-graph.ts",
     "di-docs": "npx tsx scripts/generate-di-docs.ts",
     "changelog": "npx tsx scripts/generate-changelog.ts",
@@ -84,6 +86,12 @@
       "!node_modules/**/LICENSE*",
       "!node_modules/@types/**",
       "!node_modules/{typescript,eslint,prettier,webpack,rollup,vite}/**",
+      "!node_modules/next/**",
+      "!node_modules/@next/swc*/**",
+      "!node_modules/@img/sharp-*/**",
+      "!node_modules/sharp/**",
+      "!node_modules/shadcn/**",
+      "!node_modules/better-sqlite3/build/Release/test_extension.node",
       "!src/**",
       "!.next/**",
       "!release/**",
@@ -105,16 +113,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    },
-    "extraResources": [
-      {
-        "from": "out",
-        "to": "app/out",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ]
+    }
   },
   "devDependencies": {
     "@eslint/config-array": "^0.23.5",

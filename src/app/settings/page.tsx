@@ -72,6 +72,7 @@ import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
 import { ErrorLogViewer } from "@/shared/presentation/ErrorBoundary";
 import { container } from "@/infrastructure/di";
 import { preferencesStorage } from "@/shared/utils/preferences";
+import { testConnection } from "@/infrastructure/ai-providers";
 
 const AUTOSAVE_STORAGE_KEY = "ai-animation-autosave-settings";
 
@@ -192,7 +193,7 @@ function AutoSaveSettings() {
 }
 
 export default function SettingsPage() {
-  const { error: showError } = useToastHelpers();
+  const { error: showError, success: showSuccess } = useToastHelpers();
   const [config, setConfig] = useState<ApiConfig>(getDefaultConfig());
   const [_status, setStatus] = useState<ConfigStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -281,6 +282,7 @@ export default function SettingsPage() {
       setNewProviderName("");
       setSelectedTemplate("");
       setShowAddForm(false);
+      showSuccess("添加成功", `提供商「${providerName}」已添加`);
     } catch (e) {
       showError("添加失败", (e as Error).message || "添加提供商时出错");
     } finally {
@@ -308,6 +310,7 @@ export default function SettingsPage() {
     setConfig(updatedConfig);
     saveConfig(updatedConfig);
     setStatus(await checkConfigStatus());
+    showSuccess("已删除", `提供商「${provider.name}」已删除`);
     if (expandedProvider === providerId) {
       setExpandedProvider(null);
     }
@@ -402,6 +405,8 @@ export default function SettingsPage() {
     setConfig(updatedConfig);
     saveConfig(updatedConfig);
     setStatus(await checkConfigStatus());
+    const capName = capabilities.find((c) => c.id === capability)?.name || capability;
+    showSuccess("已保存", `「${capName}」功能映射已更新`);
   };
 
   const handleTestCapability = async (capability: ApiCapability) => {
@@ -409,11 +414,8 @@ export default function SettingsPage() {
 
     try {
       const mappingValue = config.mapping[capability];
-      let providerId = "";
-      let modelId = "";
-      let format = "openai";
-      let baseUrl = "";
-      let apiKey = "";
+      let providerId: string | undefined;
+      let modelId: string | undefined;
 
       if (mappingValue) {
         const firstSlashIndex = mappingValue.indexOf("/");
@@ -421,44 +423,14 @@ export default function SettingsPage() {
           providerId = mappingValue.substring(0, firstSlashIndex);
           modelId = mappingValue.substring(firstSlashIndex + 1);
         }
-        const provider = config.providers.find((p) => p.id === providerId);
-        if (provider) {
-          format = provider.format;
-          baseUrl = provider.baseUrl;
-          apiKey = provider.apiKey;
-        }
       }
 
-      const response = await fetch("/api/test-connection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          capability,
-          providerId,
-          modelId,
-          format,
-          baseUrl,
-          apiKey,
-        }),
-      });
-
-      if (!response.ok) {
-        setTestResults((prev) => ({
-          ...prev,
-          [capability]: {
-            success: false,
-            message: `请求失败: HTTP ${response.status}`,
-          },
-        }));
-        return;
-      }
-
-      const result = await response.json();
+      const result = await testConnection(capability, providerId, modelId);
       setTestResults((prev) => ({
         ...prev,
         [capability]: {
           success: result.success,
-          message: result.success ? "连接成功！" : result.error,
+          message: result.success ? "连接成功！" : result.message,
         },
       }));
     } catch (error) {

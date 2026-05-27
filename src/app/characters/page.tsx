@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
 import { useCharacters } from "@/modules/character";
-import { useStories } from "@/modules/story";
+import { useStories, storyService } from "@/modules/story";
 import { useMediaAssets, useCreateMediaAsset } from "@/modules/asset";
 import { characterService } from "@/modules/character";
 import { errorLogger } from "@/shared/error-logger";
@@ -85,9 +85,9 @@ function CharactersPageContent() {
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("highlight");
 
-  const { data: characters = [] } = useCharacters();
+  const { data: characters = [], isLoading: charactersLoading } = useCharacters();
   const { data: stories = [] } = useStories();
-  const { data: assets = [] } = useMediaAssets();
+  const { data: assets = [], isLoading: _assetsLoading } = useMediaAssets();
   const [showAssetSelector, setShowAssetSelector] = useState(false);
   const [currentCharacter, setCurrentCharacterRaw] =
     useState<Character>(defaultCharacter);
@@ -159,6 +159,7 @@ function CharactersPageContent() {
     saveError,
     handleDelete,
     performDelete,
+    isDeleting,
     addTrait,
     removeTrait,
   } = useCharacterCRUD({
@@ -176,7 +177,6 @@ function CharactersPageContent() {
     markDirty,
     markClean,
     onUpdateStoriesAfterDelete: async (characterId, storiesList) => {
-      const { storyService } = await import("@/modules/story");
       const updatedStories = storiesList.map((story) => {
         const updatedBeats = (story.beats || []).map((beat) => {
           const updated = { ...beat };
@@ -331,7 +331,11 @@ function CharactersPageContent() {
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {characters.length === 0 ? (
+            {charactersLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : characters.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p className="font-medium">暂无角色</p>
@@ -1115,16 +1119,18 @@ function CharactersPageContent() {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
             >
               取消
             </Button>
             <Button
               variant="destructive"
+              disabled={isDeleting}
               onClick={() =>
                 characterToDelete && performDelete(characterToDelete)
               }
             >
-              确认删除
+              {isDeleting ? "删除中..." : "确认删除"}
             </Button>
           </DialogFooter>
         </DialogContent>

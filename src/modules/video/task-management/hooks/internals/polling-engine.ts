@@ -372,6 +372,11 @@ async function cacheCompletedVideos(
         t.taskId === taskId ? { ...t, cacheFailed: !cached } : t,
       ),
     );
+    if (!cached) {
+      const task = state.allTasks.find((t) => t.taskId === taskId);
+      const taskLabel = task?.beatTitle || task?.storyTitle || taskId.slice(0, 8);
+      emitToast("warning", "视频缓存失败", `「${taskLabel}」本地缓存失败，仍可通过远程URL播放`);
+    }
   }
 }
 

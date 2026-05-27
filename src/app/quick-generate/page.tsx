@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -86,8 +86,8 @@ export default function QuickGeneratePage() {
     warning: showWarning,
   } = useToastHelpers();
 
-  const { data: characters = [] } = useCharacters();
-  const { data: scenes = [] } = useScenes();
+  const { data: characters = [], isLoading: charactersLoading } = useCharacters();
+  const { data: scenes = [], isLoading: scenesLoading } = useScenes();
   const createMediaAssetMutation = useCreateMediaAsset();
 
   // 表单状态
@@ -329,7 +329,7 @@ export default function QuickGeneratePage() {
         duration: duration,
       });
       showSuccess("已保存到素材库");
-    } catch (error) {
+    } catch (_error) {
       showError("保存失败");
     } finally {
       setIsSavingToAssets(false);
@@ -556,7 +556,12 @@ export default function QuickGeneratePage() {
                     <User className="w-4 h-4" />
                     锁定主角（可选）
                   </Label>
-                  {characters.length > 0 ? (
+                  {charactersLoading ? (
+                    <div className="flex items-center gap-2 p-3">
+                      <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">加载角色中...</span>
+                    </div>
+                  ) : characters.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {characters.map((char) => (
                         <button
@@ -615,7 +620,12 @@ export default function QuickGeneratePage() {
                     <Image className="w-4 h-4" />
                     锁定场景（可选）
                   </Label>
-                  {scenes.length > 0 ? (
+                  {scenesLoading ? (
+                    <div className="flex items-center gap-2 p-3">
+                      <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">加载场景中...</span>
+                    </div>
+                  ) : scenes.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {scenes.map((scene) => (
                         <button
@@ -918,6 +928,13 @@ export default function QuickGeneratePage() {
                             poster={
                               getSelectedCharacterObjects()[0]?.generatedImage
                             }
+                            onError={(e) => {
+                              const target = e.target as HTMLVideoElement;
+                              if (!target.dataset.retried) {
+                                target.dataset.retried = "1";
+                                target.src = currentTask.videoUrl || "";
+                              }
+                            }}
                           />
                         </div>
 
@@ -1033,7 +1050,7 @@ export default function QuickGeneratePage() {
                                 if (task.prompt) {
                                   setPromptText(task.prompt);
                                 }
-                                setTimeout(() => handleGenerate(), 0);
+                                handleGenerate();
                               }}
                             >
                               <RefreshCw className="w-4 h-4 mr-1" />

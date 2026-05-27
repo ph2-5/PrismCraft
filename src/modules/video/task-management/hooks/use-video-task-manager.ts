@@ -522,21 +522,15 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
           );
         }
         const mappedStatus = mapApiStatus(result.data.status || "failed");
-        const updatedTask = {
-          ...task,
-          ...withTransitionGuard(task, mappedStatus, {
-            progress: result.data.progress || task.progress,
-            videoUrl: result.data.videoUrl,
-            message: result.data.message || task.message,
-          }),
-        };
-
-        get().setAllTasks((prev) =>
-          prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
-        );
+        const guardUpdates = withTransitionGuard(task, mappedStatus, {
+          progress: result.data.progress || task.progress,
+          videoUrl: result.data.videoUrl,
+          message: result.data.message || task.message,
+        });
 
         const pollSaveResult = await saveVideoTask({
-          ...updatedTask,
+          ...task,
+          ...guardUpdates,
           lastPolledAt: new Date().toISOString(),
         });
         if (!pollSaveResult.ok) {
@@ -545,6 +539,12 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             pollSaveResult.error instanceof Error ? pollSaveResult.error.message : pollSaveResult.error,
           );
         }
+
+        get().setAllTasks((prev) =>
+          prev.map((t) =>
+            t.taskId === taskId ? { ...t, ...guardUpdates } : t,
+          ),
+        );
       } else {
         get().setAllTasks((prev) =>
           prev.map((t) =>
@@ -572,9 +572,6 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         emitToast("error", "视频生成失败", `「${taskLabel}」连续轮询失败`);
         removeCachedVideo(taskId).catch(() => {});
       }
-      get().setAllTasks((prev) =>
-        prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
-      );
       try {
         const failSaveResult = await saveVideoTask(updatedTask);
         if (!failSaveResult.ok) {
@@ -589,6 +586,9 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
           saveError,
         );
       }
+      get().setAllTasks((prev) =>
+        prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
+      );
     }
   },
 
@@ -607,9 +607,6 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     }
 
     const updatedTask = result.value;
-    get().setAllTasks((prev) =>
-      prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
-    );
 
     try {
       await container.videoTaskStorage.updateVideoTask(taskId, {
@@ -620,6 +617,10 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     } catch (e) {
       errorLogger.warn("[VideoTaskManager] Failed to persist cancelled task", e);
     }
+
+    get().setAllTasks((prev) =>
+      prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
+    );
 
     checkAndStartOrStopPolling();
   },

@@ -18,8 +18,10 @@ import {
   List,
   Trash2,
   Video,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { confirm } from "@/shared/utils/confirm";
 
 export default function VideoTasksPage() {
@@ -31,6 +33,9 @@ export default function VideoTasksPage() {
     clearFailedTasks,
     recoverTask,
   } = useVideoTaskManager();
+
+  const [isClearingCompleted, setIsClearingCompleted] = useState(false);
+  const [isClearingFailed, setIsClearingFailed] = useState(false);
 
   const tasks = allTasks ?? [];
   const totalTasks = tasks.length;
@@ -61,6 +66,7 @@ export default function VideoTasksPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1"
+                disabled={isClearingCompleted}
                 onClick={async () => {
                   if (
                     await confirm(
@@ -68,12 +74,17 @@ export default function VideoTasksPage() {
                       "清除已完成任务",
                     )
                   ) {
-                    clearCompletedTasks();
+                    setIsClearingCompleted(true);
+                    try {
+                      await clearCompletedTasks();
+                    } finally {
+                      setIsClearingCompleted(false);
+                    }
                   }
                 }}
               >
-                <Trash2 className="w-3 h-3" />
-                清除已完成
+                {isClearingCompleted ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                {isClearingCompleted ? "清除中..." : "清除已完成"}
               </Button>
             )}
             {failedTasks > 0 && (
@@ -81,16 +92,22 @@ export default function VideoTasksPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1 text-red-400 hover:text-red-300"
+                disabled={isClearingFailed}
                 onClick={async () => {
                   if (
                     await confirm(`确定要清除 ${failedTasks} 个失败的任务吗？`, "清除失败任务")
                   ) {
-                    clearFailedTasks();
+                    setIsClearingFailed(true);
+                    try {
+                      await clearFailedTasks();
+                    } finally {
+                      setIsClearingFailed(false);
+                    }
                   }
                 }}
               >
-                <Trash2 className="w-3 h-3" />
-                清除失败
+                {isClearingFailed ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                {isClearingFailed ? "清除中..." : "清除失败"}
               </Button>
             )}
           </div>

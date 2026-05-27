@@ -16,6 +16,11 @@ import {
 import {
   sceneService,
 } from "@/modules/scene";
+import {
+  storyboardAssetService,
+  collectionService,
+  assetExportService,
+} from "@/modules/asset";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { Button } from "@/shared/ui/button";
@@ -62,6 +67,7 @@ import {
   ArrowRight,
   Clock,
   Link,
+  Loader2,
 } from "lucide-react";
 import type {
   Character,
@@ -98,8 +104,8 @@ async function fetchSecondaryData() {
 export default function AssetLibraryPage() {
   const { success, error: showError } = useToastHelpers();
   const queryClient = useQueryClient();
-  const { data: characters = [] } = useCharacters();
-  const { data: scenes = [] } = useScenes();
+  const { data: characters = [], isLoading: charactersLoading } = useCharacters();
+  const { data: scenes = [], isLoading: scenesLoading } = useScenes();
   const [activeTab, setActiveTab] = useState<AssetTab>("characters");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -108,6 +114,7 @@ export default function AssetLibraryPage() {
   const [storyboards, setStoryboards] = useState<StoryboardAsset[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [collectionAssets, setCollectionAssets] = useState<CollectionAsset[]>([]);
+  const [secondaryDataLoading, setSecondaryDataLoading] = useState(true);
 
   const loadSecondaryData = useCallback(async () => {
     try {
@@ -128,10 +135,14 @@ export default function AssetLibraryPage() {
           setStoryboards(data.storyboards);
           setCollections(data.collections);
           setCollectionAssets(data.collectionAssets);
+          setSecondaryDataLoading(false);
         }
       })
       .catch((err) => {
-        if (!cancelled) errorLogger.warn("Failed to load secondary data", err);
+        if (!cancelled) {
+          errorLogger.warn("Failed to load secondary data", err);
+          setSecondaryDataLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -152,6 +163,9 @@ type EditingItem =
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [addToCollectionId, setAddToCollectionId] = useState("");
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+  const [isAddingToCollection, setIsAddingToCollection] = useState(false);
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSelect = (id: string) => {
@@ -173,28 +187,58 @@ type EditingItem =
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     if (!(await confirm(`确定要删除选中的 ${ids.length} 个素材吗？`, "批量删除素材"))) return;
+    setIsBatchDeleting(true);
     try {
-      if (activeTab === "characters") {
-        for (const id of ids) {
-          const result = await characterService.delete(id);
-          if (!result.ok) throw result.error;
+      const deletedIds: string[] = [];
+      const failedLabels: string[] = [];
+      for (const id of ids) {
+        try {
+          if (activeTab === "characters") {
+            const result = await characterService.delete(id);
+            if (!result.ok) {
+              const c = characters.find((ch) => ch.id === id);
+              failedLabels.push(c?.name || id.slice(0, 8));
+              continue;
+            }
+          } else if (activeTab === "scenes") {
+            const result = await sceneService.delete(id);
+            if (!result.ok) {
+              const s = scenes.find((sc) => sc.id === id);
+              failedLabels.push(s?.name || id.slice(0, 8));
+              continue;
+            }
+          } else if (activeTab === "storyboards") {
+            await storyboardAssetService.remove(id);
+          }
+          deletedIds.push(id);
+        } catch (e) {
+          const label = activeTab === "characters"
+            ? characters.find((ch) => ch.id === id)?.name
+            : activeTab === "scenes"
+              ? scenes.find((sc) => sc.id === id)?.name
+              : id.slice(0, 8);
+          failedLabels.push(label || id.slice(0, 8));
         }
-      } else if (activeTab === "scenes") {
-        for (const id of ids) {
-          const result = await sceneService.delete(id);
-          if (!result.ok) throw result.error;
-        }
-      } else if (activeTab === "storyboards") {
-        const { storyboardAssetService } = await import("@/modules/asset/asset-library");
-        for (const id of ids) await storyboardAssetService.remove(id);
       }
-      clearSelection();
-      queryClient.invalidateQueries({ queryKey: ["characters"] });
-      queryClient.invalidateQueries({ queryKey: ["scenes"] });
-      loadSecondaryData();
-      success("删除成功", `已删除 ${ids.length} 个素材`);
+      if (deletedIds.length > 0) {
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          deletedIds.forEach((id) => next.delete(id));
+          return next;
+        });
+        queryClient.invalidateQueries({ queryKey: ["characters"] });
+        queryClient.invalidateQueries({ queryKey: ["scenes"] });
+        loadSecondaryData();
+      }
+      if (failedLabels.length > 0) {
+        showError("部分删除失败", `以下素材删除失败: ${failedLabels.join("、")}`);
+      } else {
+        success("删除成功", `已删除 ${deletedIds.length} 个素材`);
+      }
     } catch (e) {
       showError("删除失败", e instanceof Error ? e.message : "未知错误");
+    } finally {
+      setIsBatchDeleting(false);
     }
   };
 
@@ -202,7 +246,6 @@ type EditingItem =
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     try {
-      const { assetExportService } = await import("@/modules/asset/asset-library");
       let encodedResult: Result<Uint8Array>;
       if (activeTab === "characters")
         encodedResult = await assetExportService.exportCharacters(ids);
@@ -233,8 +276,8 @@ type EditingItem =
 
   const handleAddToCollection = async () => {
     if (!addToCollectionId || selectedIds.size === 0) return;
+    setIsAddingToCollection(true);
     try {
-      const { collectionService } = await import("@/modules/asset/asset-library");
       const assetType: AssetLibraryType =
         activeTab === "characters"
           ? "character"
@@ -249,6 +292,8 @@ type EditingItem =
       success("添加成功", `已将 ${selectedIds.size} 个素材添加到合集`);
     } catch (e) {
       showError("添加失败", e instanceof Error ? e.message : "未知错误");
+    } finally {
+      setIsAddingToCollection(false);
     }
   };
 
@@ -256,7 +301,6 @@ type EditingItem =
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const { assetExportService } = await import("@/modules/asset/asset-library");
       const result = await assetExportService.importFromFile(file, importMode);
       if (!result.ok) {
         showError("导入失败", result.error instanceof Error ? result.error.message : "未知错误");
@@ -280,21 +324,22 @@ type EditingItem =
       showError("输入错误", "请输入合集名称");
       return;
     }
+    setIsCreatingCollection(true);
     try {
-      const { collectionService } = await import("@/modules/asset/asset-library");
       await collectionService.create(newCollectionName.trim());
       setNewCollectionName("");
       setIsNewCollectionDialogOpen(false);
       success("创建成功", "新合集已创建");
     } catch (e) {
       showError("创建失败", e instanceof Error ? e.message : "未知错误");
+    } finally {
+      setIsCreatingCollection(false);
     }
   };
 
   const handleDeleteCollection = async (id: string) => {
     if (!(await confirm("确定要删除此合集吗？合集中的素材不会被删除。", "删除合集"))) return;
     try {
-      const { collectionService } = await import("@/modules/asset");
       await collectionService.remove(id);
       loadSecondaryData();
       success("删除成功", "合集已删除");
@@ -305,7 +350,6 @@ type EditingItem =
 
   const handleExportCollection = async (id: string) => {
     try {
-      const { assetExportService } = await import("@/modules/asset");
       const encodedResult = await assetExportService.exportCollections([id]);
       if (!encodedResult.ok) {
         showError("导出失败", encodedResult.error instanceof Error ? encodedResult.error.message : "未知错误");
@@ -584,8 +628,8 @@ type EditingItem =
               onClick={async (e) => {
                 e.stopPropagation();
                 if (await confirm("确定要删除此分镜吗？", "删除分镜")) {
-                  import("@/modules/asset")
-                    .then(({ storyboardAssetService }) => storyboardAssetService.remove(sb.id))
+                  storyboardAssetService
+                    .remove(sb.id)
                     .then(() => loadSecondaryData())
                     .catch((e: unknown) =>
                       showError(
@@ -837,10 +881,11 @@ type EditingItem =
                 <Button
                   variant="destructive"
                   size="sm"
+                  disabled={isBatchDeleting}
                   onClick={handleBatchDelete}
                 >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  删除
+                  {isBatchDeleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                  {isBatchDeleting ? "删除中..." : "删除"}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={clearSelection}>
                   取消选择
@@ -861,7 +906,11 @@ type EditingItem =
           </div>
 
           <TabsContent value="characters" className="mt-4">
-            {filteredCharacters.length === 0 ? (
+            {charactersLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredCharacters.length === 0 ? (
               <Card>
                 <CardContent className="pt-12 pb-12 text-center">
                   <Users className="w-16 h-16 mx-auto mb-4 text-slate-500" />
@@ -879,7 +928,11 @@ type EditingItem =
           </TabsContent>
 
           <TabsContent value="scenes" className="mt-4">
-            {filteredScenes.length === 0 ? (
+            {scenesLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredScenes.length === 0 ? (
               <Card>
                 <CardContent className="pt-12 pb-12 text-center">
                   <ImageIcon className="w-16 h-16 mx-auto mb-4 text-slate-500" />
@@ -897,7 +950,11 @@ type EditingItem =
           </TabsContent>
 
           <TabsContent value="storyboards" className="mt-4">
-            {filteredStoryboards.length === 0 ? (
+            {secondaryDataLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredStoryboards.length === 0 ? (
               <Card>
                 <CardContent className="pt-12 pb-12 text-center">
                   <Film className="w-16 h-16 mx-auto mb-4 text-slate-500" />
@@ -921,7 +978,11 @@ type EditingItem =
                 新建合集
               </Button>
             </div>
-            {collections.length === 0 ? (
+            {secondaryDataLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : collections.length === 0 ? (
               <Card>
                 <CardContent className="pt-12 pb-12 text-center">
                   <FolderOpen className="w-16 h-16 mx-auto mb-4 text-slate-500" />
@@ -1120,10 +1181,10 @@ type EditingItem =
               </Button>
               <Button
                 onClick={handleAddToCollection}
-                disabled={!addToCollectionId}
+                disabled={!addToCollectionId || isAddingToCollection}
               >
-                <ArrowRight className="w-4 h-4 mr-1" />
-                加入
+                {isAddingToCollection ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ArrowRight className="w-4 h-4 mr-1" />}
+                {isAddingToCollection ? "添加中..." : "加入"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1154,7 +1215,10 @@ type EditingItem =
               >
                 取消
               </Button>
-              <Button onClick={handleCreateCollection}>创建</Button>
+              <Button disabled={isCreatingCollection} onClick={handleCreateCollection}>
+                {isCreatingCollection ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+                {isCreatingCollection ? "创建中..." : "创建"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

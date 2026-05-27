@@ -1173,6 +1173,75 @@ describe("useVideoTaskStore", () => {
       expect(mockExtractErrorMessage).toHaveBeenCalled();
       expect(useVideoTaskStore.getState().allTasks[0].message).toContain("timeout error");
     });
+
+    it("should merge poll result into current task state, not replace (regression: R14)", async () => {
+      const task = makeTask({
+        taskId: "t-poll-r14",
+        status: "generating",
+        storyId: "story-1",
+        storyTitle: "我的故事",
+        beatId: "beat-1",
+        beatTitle: "第一幕",
+        prompt: "原始提示词",
+        fixedImageUrl: "https://img.example.com/ref.png",
+        progress: 20,
+        message: "处理中",
+      });
+      useVideoTaskStore.setState({ allTasks: [task] });
+
+      mockVideoProvider.queryVideoStatus.mockResolvedValueOnce({
+        success: true,
+        data: { status: "generating", progress: 60, message: "正在渲染" },
+      });
+
+      await useVideoTaskStore.getState().pollTask("t-poll-r14");
+
+      const updated = useVideoTaskStore.getState().allTasks[0];
+      expect(updated.progress).toBe(60);
+      expect(updated.message).toBe("正在渲染");
+      expect(updated.storyId).toBe("story-1");
+      expect(updated.storyTitle).toBe("我的故事");
+      expect(updated.beatId).toBe("beat-1");
+      expect(updated.beatTitle).toBe("第一幕");
+      expect(updated.prompt).toBe("原始提示词");
+      expect(updated.fixedImageUrl).toBe("https://img.example.com/ref.png");
+    });
+
+    it("should preserve user edits made during async poll (regression: R14)", async () => {
+      const task = makeTask({
+        taskId: "t-poll-r14b",
+        status: "generating",
+        storyTitle: "旧标题",
+        prompt: "旧提示词",
+      });
+      useVideoTaskStore.setState({ allTasks: [task] });
+
+      let resolvePoll: (value: unknown) => void;
+      const pollPromise = new Promise((resolve) => { resolvePoll = resolve; });
+      mockVideoProvider.queryVideoStatus.mockReturnValueOnce(pollPromise as Promise<never>);
+
+      const pollTaskPromise = useVideoTaskStore.getState().pollTask("t-poll-r14b");
+
+      useVideoTaskStore.setState({
+        allTasks: [{
+          ...useVideoTaskStore.getState().allTasks[0],
+          storyTitle: "用户修改的标题",
+        }],
+      });
+
+      resolvePoll!({
+        success: true,
+        data: { status: "generating", progress: 80, message: "即将完成" },
+      });
+
+      await pollTaskPromise;
+
+      const updated = useVideoTaskStore.getState().allTasks[0];
+      expect(updated.progress).toBe(80);
+      expect(updated.message).toBe("即将完成");
+      expect(updated.storyTitle).toBe("用户修改的标题");
+      expect(updated.prompt).toBe("旧提示词");
+    });
   });
 
   describe("setAllTasks", () => {

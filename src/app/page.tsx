@@ -42,6 +42,7 @@ import type { Character, Scene, Story } from "@/domain/schemas";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { checkConfigStatus } from "@/shared/api-config";
+import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 
 interface ApiStatus {
   text?: { provider: string; configured: boolean };
@@ -50,11 +51,12 @@ interface ApiStatus {
 }
 
 export default function Home() {
-  const { data: characters = [] } = useCharacters();
-  const { data: scenes = [] } = useScenes();
-  const { data: stories = [] } = useStories();
+  const { data: characters = [], isLoading: charactersLoading } = useCharacters();
+  const { data: scenes = [], isLoading: scenesLoading } = useScenes();
+  const { data: stories = [], isLoading: storiesLoading } = useStories();
   const downloadExportMutation = useDownloadExport();
   const [apiStatus, setApiStatus] = useState<ApiStatus>({});
+  const dataLoading = charactersLoading || scenesLoading || storiesLoading;
 
   useEffect(() => {
     let cancelled = false;
@@ -147,6 +149,7 @@ export default function Home() {
   const totalItems = characters.length + scenes.length + stories.length;
 
   return (
+    <PageErrorBoundary pageName="首页">
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center px-4 py-12 lg:py-20 overflow-hidden">
@@ -223,7 +226,23 @@ export default function Home() {
             </div>
           </div>
 
-          {totalItems > 0 && (
+          {dataLoading ? (
+            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto pt-4">
+              {[0, 1, 2].map((i) => (
+                <Card key={i} className="border-2 border-slate-700/50 bg-slate-800/80 backdrop-blur-sm shadow-lg animate-pulse">
+                  <CardContent className="pt-6">
+                    <div className="h-10 w-16 bg-slate-700 rounded mb-2" />
+                    <div className="h-4 w-12 bg-slate-700 rounded mb-4" />
+                    <div className="flex -space-x-2">
+                      <div className="w-8 h-8 rounded-full bg-slate-700" />
+                      <div className="w-8 h-8 rounded-full bg-slate-700" />
+                      <div className="w-8 h-8 rounded-full bg-slate-700" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : totalItems > 0 ? (
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto pt-4">
               <StatCard
                 count={characters.length}
@@ -244,7 +263,7 @@ export default function Home() {
                 stories={stories}
               />
             </div>
-          )}
+          ) : null}
 
           {(apiStatus.text?.configured ||
             apiStatus.image?.configured ||
@@ -363,6 +382,7 @@ export default function Home() {
         </div>
       </section>
     </div>
+    </PageErrorBoundary>
   );
 }
 

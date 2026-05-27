@@ -1,4 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("electron", () => ({
+  app: {
+    getPath: vi.fn(() => "/tmp/test-user-data"),
+    getName: vi.fn(() => "ai-animation-studio"),
+  },
+  safeStorage: {
+    isEncryptionAvailable: vi.fn(() => false),
+    encryptString: vi.fn(),
+    decryptString: vi.fn(),
+  },
+}));
+
+vi.mock("../../../database/db-schema", () => ({
+  getUserDataPath: vi.fn(() => "/tmp/test-user-data"),
+  getDbPaths: vi.fn(() => ({
+    DB_PATH: "/tmp/test-database.db",
+    DB_TYPE_FILE: "/tmp/test-database.db.type",
+  })),
+  ensureDbDir: vi.fn(),
+  getSchemaSQL: vi.fn(() => ""),
+  getAllTableDefs: vi.fn(() => []),
+  CURRENT_SCHEMA_VERSION: 4,
+}));
+
+vi.mock("../../../logging/logger", () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
+}));
+
+vi.mock("node-machine-id", () => ({
+  machineIdSync: vi.fn(() => "test-machine-id"),
+}));
+
 import type { KeyStorageStrategy, StorageResult } from "../types";
 import { KeyStorageManager } from "../key-storage";
 

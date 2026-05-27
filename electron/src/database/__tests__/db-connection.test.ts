@@ -39,6 +39,20 @@ const { mockCreateOptimalDatabase, mockBetterSqlite3Database } = vi.hoisted(() =
   mockBetterSqlite3Database: vi.fn(),
 }));
 
+vi.mock("electron", () => ({
+  app: {
+    getPath: vi.fn(() => "/tmp/test-user-data"),
+    getName: vi.fn(() => "ai-animation-studio"),
+    getVersion: vi.fn(() => "1.0.0"),
+  },
+  ipcMain: { handle: vi.fn(), on: vi.fn() },
+  BrowserWindow: vi.fn(),
+}));
+
+vi.mock("better-sqlite3", () => {
+  return { default: vi.fn() };
+});
+
 vi.mock("fs", () => {
   const fns = {
     existsSync: mockExistsSync,

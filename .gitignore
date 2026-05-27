@@ -30,7 +30,15 @@ stdout.log
 
 # misc
 .DS_Store
+Thumbs.db
+desktop.ini
 *.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # debug
 npm-debug.log*
@@ -65,6 +73,10 @@ rescan-tsc.txt
 .electron-build-disabled
 .api-routes-backup
 .dynamic-routes-backup
+app_asar_del_*
+
+# Buyer/commercial docs
+README_FOR_BUYER.md
 
 # Backup archives
 *.zip

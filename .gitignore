@@ -13,8 +13,13 @@
 # testing
 /coverage
 /test-results/
+/test-results.json
 /playwright-report/
 /test-reports/
+
+# runtime logs
+stderr.log
+stdout.log
 
 # next.js
 /.next/

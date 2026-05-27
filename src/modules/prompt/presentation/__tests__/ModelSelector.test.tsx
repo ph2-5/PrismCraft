@@ -11,10 +11,8 @@ const { mockLoadConfig, mockPreferencesGet, mockPreferencesSet, mockPreferencesR
   mockErrorLoggerWarn: vi.fn(),
 }));
 
-vi.mock("@/infrastructure/di", () => ({
-  container: {
-    loadConfig: mockLoadConfig,
-  },
+vi.mock("@/shared/api-config", () => ({
+  loadConfig: (...args: any[]) => mockLoadConfig(...(args as [any])),
 }));
 
 vi.mock("@/shared/utils/preferences", () => ({
@@ -74,6 +72,10 @@ vi.mock("lucide-react", () => ({
   Video: () => <span data-testid="icon-video">Video</span>,
   Eye: () => <span data-testid="icon-eye">Eye</span>,
   Settings2: () => <span data-testid="icon-settings">Settings2</span>,
+}));
+
+vi.mock("@/infrastructure/di", () => ({
+  container: {},
 }));
 
 import { ModelSelector, useModelSelection } from "@/modules/prompt/presentation/ModelSelector";

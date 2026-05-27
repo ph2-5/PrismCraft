@@ -5,7 +5,6 @@ import { DomainEvents } from "@/shared/event-types";
 import type { Story } from "@/domain/schemas";
 
 const mockSafeTransaction = vi.fn().mockResolvedValue(undefined);
-const mockToSqlValue = vi.fn((v: unknown) => JSON.stringify(v));
 
 vi.mock("@/infrastructure/di", () => ({
   container: {
@@ -18,9 +17,11 @@ vi.mock("@/infrastructure/di", () => ({
       deleteStory: vi.fn(),
     },
     eventBus: { emit: vi.fn() },
-    safeTransaction: (...args: any[]) => mockSafeTransaction(...(args as [any])),
-    toSqlValue: (...args: any[]) => mockToSqlValue(...(args as [any])),
   },
+}));
+
+vi.mock("@/shared/db-core", () => ({
+  safeTransaction: (...args: any[]) => mockSafeTransaction(...(args as [any])),
 }));
 
 vi.mock("@/modules/story/template", () => ({
@@ -334,7 +335,6 @@ describe("storyService", () => {
 
     beforeEach(() => {
       mockSafeTransaction.mockResolvedValue(undefined);
-      mockToSqlValue.mockImplementation((v: unknown) => JSON.stringify(v));
     });
 
     it("应更新 keyframe imageUrl", async () => {

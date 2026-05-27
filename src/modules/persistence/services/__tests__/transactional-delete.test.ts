@@ -14,14 +14,15 @@ const {
   mockSanitizeTable: vi.fn((table: string) => `"${table}"`),
 }));
 
-vi.mock("@/infrastructure/di", () => ({
-  container: {
-    safeQuery: mockSafeQuery,
-    safeRun: mockSafeRun,
-    safeTransaction: mockSafeTransaction,
-    sanitizeIdentifier: mockSanitizeIdentifier,
-    sanitizeTable: mockSanitizeTable,
-  },
+vi.mock("@/shared/db-core", () => ({
+  safeQuery: (...args: any[]) => mockSafeQuery(...(args as [any])),
+  safeRun: (...args: any[]) => mockSafeRun(...(args as [any])),
+  safeTransaction: (...args: any[]) => mockSafeTransaction(...(args as [any])),
+}));
+
+vi.mock("@/shared/sql-safety", () => ({
+  sanitizeIdentifier: (...args: any[]) => mockSanitizeIdentifier(...(args as [any])),
+  sanitizeTable: (...args: any[]) => mockSanitizeTable(...(args as [any])),
 }));
 
 vi.mock("@/shared/error-logger", () => ({
@@ -32,6 +33,15 @@ vi.mock("@/shared/error-logger", () => ({
     debug: vi.fn(),
     fatal: vi.fn(),
   },
+  extractErrorMessage: vi.fn((e: unknown) => e instanceof Error ? e.message : String(e)),
+}));
+
+vi.mock("@/shared/utils/safe-json", () => ({
+  safeJsonParseArray: vi.fn((raw: unknown) => {
+    if (!raw) return [];
+    try { return JSON.parse(raw as string); }
+    catch { return []; }
+  }),
 }));
 
 import {

@@ -63,11 +63,6 @@ describe("useStoryState", () => {
       expect(result.current.beatsRef.current).toEqual([]);
     });
 
-    it("initializes suppressDirtyCountRef as 0", () => {
-      const { result } = renderHook(() => useStoryState());
-      expect(result.current.suppressDirtyCountRef.current).toBe(0);
-    });
-
     it("initializes selectedVideoModel as null", () => {
       const { result } = renderHook(() => useStoryState());
       expect(result.current.selectedVideoModel).toBeNull();
@@ -587,30 +582,7 @@ describe("useStoryState", () => {
       expect(result.current.hasUnsavedChanges).toBe(false);
     });
 
-    it("setCurrentStory with skipDirty increments suppressDirtyCountRef", () => {
-      const { result } = renderHook(() => useStoryState());
-
-      act(() => {
-        result.current.setCurrentStory(
-          { ...result.current.currentStory, title: "New" },
-          true,
-        );
-      });
-
-      expect(result.current.suppressDirtyCountRef.current).toBe(1);
-    });
-
-    it("addBeat marks dirty after initialization", () => {
-      const { result } = renderHook(() => useStoryState());
-
-      act(() => {
-        result.current.addBeat();
-      });
-
-      expect(result.current.hasUnsavedChanges).toBe(true);
-    });
-
-    it("first beat change initializes beatsInitializedRef", () => {
+    it("addBeat marks dirty", () => {
       const { result } = renderHook(() => useStoryState());
 
       act(() => {
@@ -686,76 +658,24 @@ describe("useStoryState", () => {
       expect(result.current.hasUnsavedChanges).toBe(false);
     });
 
-    it("suppressDirtyCountRef decrements on beat change after skipDirty setCurrentStory", () => {
+    it("setBeats marks dirty by default", () => {
       const { result } = renderHook(() => useStoryState());
 
       act(() => {
-        result.current.addBeat();
-      });
-
-      useDirtyState.setState({ dirtyKeys: new Set() });
-
-      act(() => {
-        result.current.setCurrentStory(
-          { ...result.current.currentStory, title: "Skip" },
-          true,
-        );
-      });
-
-      expect(result.current.suppressDirtyCountRef.current).toBe(1);
-
-      act(() => {
-        result.current.updateBeat("uuid-1", { title: "Update" });
-      });
-
-      expect(result.current.suppressDirtyCountRef.current).toBe(0);
-      expect(result.current.hasUnsavedChanges).toBe(false);
-    });
-
-    it("multiple skipDirty calls require multiple beat changes to exhaust", () => {
-      const { result } = renderHook(() => useStoryState());
-
-      act(() => {
-        result.current.addBeat();
-        result.current.addBeat();
-      });
-
-      useDirtyState.setState({ dirtyKeys: new Set() });
-
-      act(() => {
-        result.current.setCurrentStory(
-          { ...result.current.currentStory, title: "Skip1" },
-          true,
-        );
-      });
-      act(() => {
-        result.current.setCurrentStory(
-          { ...result.current.currentStory, title: "Skip2" },
-          true,
-        );
-      });
-
-      expect(result.current.suppressDirtyCountRef.current).toBe(2);
-
-      act(() => {
-        result.current.updateBeat("uuid-1", { title: "A" });
-      });
-
-      expect(result.current.suppressDirtyCountRef.current).toBe(1);
-      expect(result.current.hasUnsavedChanges).toBe(false);
-
-      act(() => {
-        result.current.updateBeat("uuid-2", { title: "B" });
-      });
-
-      expect(result.current.suppressDirtyCountRef.current).toBe(0);
-      expect(result.current.hasUnsavedChanges).toBe(false);
-
-      act(() => {
-        result.current.updateBeat("uuid-1", { title: "C" });
+        result.current.setBeats([{ id: "b1", sequence: 1, order: 1, type: "scene", title: "", content: "", description: "", duration: 5, characters: [], elementIds: [], characterIds: [], enhancedGeneration: true }] as any);
       });
 
       expect(result.current.hasUnsavedChanges).toBe(true);
+    });
+
+    it("setBeats with skipDirty does not mark dirty", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.setBeats([{ id: "b1", sequence: 1, order: 1, type: "scene", title: "", content: "", description: "", duration: 5, characters: [], elementIds: [], characterIds: [], enhancedGeneration: true }] as any, true);
+      });
+
+      expect(result.current.hasUnsavedChanges).toBe(false);
     });
   });
 
@@ -848,7 +768,7 @@ describe("useStoryState", () => {
       expect(result.current.beats[0].id).toBe("b1");
     });
 
-    it("setBeats marks dirty after initialization", () => {
+    it("setBeats marks dirty by default", () => {
       const { result } = renderHook(() => useStoryState());
 
       act(() => {

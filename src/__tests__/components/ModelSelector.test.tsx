@@ -5,10 +5,71 @@ import { ModelSelector } from "@/modules/prompt";
 
 const mockLoadConfig = vi.fn();
 
-vi.mock("@/infrastructure/di", () => ({
-  container: {
-    loadConfig: () => mockLoadConfig(),
+vi.mock("@/shared/api-config", () => ({
+  loadConfig: (...args: any[]) => mockLoadConfig(...(args as [any])),
+}));
+
+vi.mock("@/shared/utils/preferences", () => ({
+  preferencesStorage: {
+    get: vi.fn().mockReturnValue(null),
+    set: vi.fn(),
+    remove: vi.fn(),
+    has: vi.fn().mockReturnValue(false),
   },
+}));
+
+vi.mock("@/shared/error-logger", () => ({
+  errorLogger: {
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    fatal: vi.fn(),
+  },
+}));
+
+vi.mock("next/link", () => ({
+  default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
+}));
+
+vi.mock("@/shared/ui/select", () => ({
+  Select: ({ children, value, onValueChange }: { children: React.ReactNode; value: string; onValueChange: (value: string) => void }) => (
+    <select
+      value={value}
+      onChange={(e) => onValueChange(e.target.value)}
+      data-testid="select"
+    >
+      {children}
+    </select>
+  ),
+  SelectContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SelectItem: ({ value, children }: { value: string; children: React.ReactNode }) => (
+    <option value={value}>{children}</option>
+  ),
+  SelectTrigger: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div data-testid="select-trigger" className={className}>{children}</div>
+  ),
+  SelectValue: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@/shared/ui/badge", () => ({
+  Badge: ({ children }: { children: React.ReactNode }) => (
+    <span data-testid="badge">{children}</span>
+  ),
+}));
+
+vi.mock("lucide-react", () => ({
+  Bot: () => <span>Bot</span>,
+  Image: () => <span>Image</span>,
+  Video: () => <span>Video</span>,
+  Eye: () => <span>Eye</span>,
+  Settings2: () => <span>Settings2</span>,
+}));
+
+vi.mock("@/infrastructure/di", () => ({
+  container: {},
 }));
 
 describe("ModelSelector - API Key 边界状态", () => {
@@ -37,15 +98,21 @@ describe("ModelSelector - API Key 边界状态", () => {
 
   it("已配置 API Key 时应显示模型选择器", async () => {
     mockLoadConfig.mockResolvedValue({
+      version: 1,
       providers: [
         {
           id: "seedance",
           name: "Seedance",
+          format: "openai",
+          baseUrl: "https://api.seedance.com",
+          apiKey: "test-key",
           models: [
             { id: "seedance-v1", name: "Seedance V1", capabilities: ["video"] },
           ],
         },
       ],
+      mapping: {},
+      fallback: { enabled: true, order: ["text", "image", "vision", "video"] },
     });
 
     render(
@@ -57,8 +124,13 @@ describe("ModelSelector - API Key 边界状态", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/默认模型/)).toBeInTheDocument();
+      expect(screen.getByTestId("select")).toBeInTheDocument();
     });
+
+    const select = screen.getByTestId("select");
+    const optionTexts = Array.from(select.querySelectorAll("option")).map((o) => o.textContent);
+    expect(optionTexts.some((t) => t?.includes("默认"))).toBe(true);
+    expect(optionTexts.some((t) => t?.includes("Seedance V1"))).toBe(true);
   });
 
   it("加载配置失败时应显示错误引导", async () => {
@@ -78,19 +150,24 @@ describe("ModelSelector - API Key 边界状态", () => {
   });
 
   it("选择模型时应触发 onChange 回调", async () => {
-    const user = userEvent.setup();
     const onChange = vi.fn();
 
     mockLoadConfig.mockResolvedValue({
+      version: 1,
       providers: [
         {
           id: "seedance",
           name: "Seedance",
+          format: "openai",
+          baseUrl: "https://api.seedance.com",
+          apiKey: "test-key",
           models: [
             { id: "seedance-v1", name: "Seedance V1", capabilities: ["video"] },
           ],
         },
       ],
+      mapping: {},
+      fallback: { enabled: true, order: ["text", "image", "vision", "video"] },
     });
 
     render(
@@ -102,16 +179,11 @@ describe("ModelSelector - API Key 边界状态", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("combobox")).toBeInTheDocument();
+      expect(screen.getByTestId("select")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("combobox"));
-
-    // 使用 findByText 等待异步出现的选项，增加超时到 10 秒
-    const seedanceOption = await screen.findByText(/Seedance V1/, {}, { timeout: 10000 });
-    expect(seedanceOption).toBeInTheDocument();
-
-    await user.click(seedanceOption);
+    const select = screen.getByTestId("select");
+    await userEvent.selectOptions(select, "seedance/seedance-v1");
 
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -124,9 +196,25 @@ describe("ModelSelector - API Key 边界状态", () => {
   });
 
   it("紧凑模式应使用较小尺寸", async () => {
-    mockLoadConfig.mockResolvedValue({ providers: [] });
+    mockLoadConfig.mockResolvedValue({
+      version: 1,
+      providers: [
+        {
+          id: "seedance",
+          name: "Seedance",
+          format: "openai",
+          baseUrl: "https://api.seedance.com",
+          apiKey: "test-key",
+          models: [
+            { id: "seedance-v1", name: "Seedance V1", capabilities: ["video"] },
+          ],
+        },
+      ],
+      mapping: {},
+      fallback: { enabled: true, order: ["text", "image", "vision", "video"] },
+    });
 
-    const { container } = render(
+    render(
       <ModelSelector
         capability="video"
         value={null}
@@ -136,9 +224,10 @@ describe("ModelSelector - API Key 边界状态", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/请先配置视频模型/)).toBeInTheDocument();
+      expect(screen.getByTestId("select-trigger")).toBeInTheDocument();
     });
 
-    expect(container.querySelector(".text-xs")).toBeInTheDocument();
+    const trigger = screen.getByTestId("select-trigger");
+    expect(trigger.className).toContain("w-[180px]");
   });
 });

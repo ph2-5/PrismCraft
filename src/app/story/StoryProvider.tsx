@@ -49,8 +49,6 @@ interface StoryContextValue {
   setStories: ReturnType<typeof useStoryState>["setStories"];
   setCurrentStory: ReturnType<typeof useStoryState>["setCurrentStory"];
   setBeats: ReturnType<typeof useStoryState>["setBeats"];
-  suppressDirtyCountRef: ReturnType<typeof useStoryState>["suppressDirtyCountRef"];
-  incrementSuppressDirtyCount: ReturnType<typeof useStoryState>["incrementSuppressDirtyCount"];
   markClean: ReturnType<typeof useStoryState>["markClean"];
   markDirty: ReturnType<typeof useStoryState>["markDirty"];
   setGenerationEnhanced: ReturnType<
@@ -419,8 +417,6 @@ function useStoryContext(): StoryContextValue {
       setStories: storyState.setStories,
       setCurrentStory: storyState.setCurrentStory,
       setBeats: storyState.setBeats,
-      suppressDirtyCountRef: storyState.suppressDirtyCountRef,
-      incrementSuppressDirtyCount: storyState.incrementSuppressDirtyCount,
       markClean: storyState.markClean,
       markDirty: storyState.markDirty,
       setGenerationEnhanced: storyState.setGenerationEnhanced,
@@ -491,8 +487,6 @@ function useStoryContext(): StoryContextValue {
       storyState.setStories,
       storyState.setCurrentStory,
       storyState.setBeats,
-      storyState.suppressDirtyCountRef,
-      storyState.incrementSuppressDirtyCount,
       storyState.markClean,
       storyState.markDirty,
       storyState.setGenerationEnhanced,

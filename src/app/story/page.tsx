@@ -184,8 +184,7 @@ function StoryPageContent() {
 
   const performSwitchStory = (s: (typeof story.stories)[number]) => {
     story.setCurrentStory(s, true);
-    story.incrementSuppressDirtyCount();
-    story.setBeats(s.beats || []);
+    story.setBeats(s.beats || [], true);
     story.markClean("story");
     setShowProjectDropdown(false);
     setShowSwitchConfirmDialog(false);

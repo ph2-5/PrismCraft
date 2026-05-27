@@ -11,19 +11,9 @@ export function useStoryState() {
   const [stories, setStories] = useState<Story[]>([]);
   const [currentStory, setCurrentStoryRaw] = useState<Story>(DEFAULT_STORY);
 
-  const suppressDirtyCountRef = useRef(0);
-  const beatsInitializedRef = useRef(false);
-  const initialBeatsLoadedRef = useRef(false);
-
-  const incrementSuppressDirtyCount = useCallback(() => {
-    suppressDirtyCountRef.current++;
-  }, []);
-
   const setCurrentStory = useCallback(
     (update: Story | ((prev: Story) => Story), skipDirty = false) => {
-      if (skipDirty) {
-        suppressDirtyCountRef.current++;
-      } else {
+      if (!skipDirty) {
         markDirty("story");
       }
       setCurrentStoryRaw(update);
@@ -31,11 +21,19 @@ export function useStoryState() {
     [markDirty],
   );
 
-  const [beats, setBeats] = useState<StoryBeat[]>([]);
+  const [beats, setBeatsRaw] = useState<StoryBeat[]>([]);
   const beatsRef = useRef<StoryBeat[]>(beats);
   useEffect(() => {
     beatsRef.current = beats;
   }, [beats]);
+
+  const setBeats = useCallback(
+    (update: StoryBeat[] | ((prev: StoryBeat[]) => StoryBeat[]), skipDirty = false) => {
+      setBeatsRaw(update);
+      if (!skipDirty) markDirty("story");
+    },
+    [markDirty],
+  );
 
   const effectiveCurrentStory = useMemo(
     () => ({ ...currentStory, beats }),
@@ -48,27 +46,8 @@ export function useStoryState() {
   const [selectedImageModel, setSelectedImageModel] =
     useModelSelection("story-image-model");
 
-  useEffect(() => {
-    if (!beatsInitializedRef.current) {
-      beatsInitializedRef.current = true;
-      if (beats.length > 0) {
-        initialBeatsLoadedRef.current = true;
-      }
-      return;
-    }
-    if (!initialBeatsLoadedRef.current) {
-      initialBeatsLoadedRef.current = true;
-      return;
-    }
-    if (suppressDirtyCountRef.current > 0) {
-      suppressDirtyCountRef.current--;
-    } else {
-      markDirty("story");
-    }
-  }, [beats, markDirty]);
-
   const addBeat = useCallback((type?: StoryBeat["type"]) => {
-    setBeats((prev) => [
+    setBeatsRaw((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
@@ -98,24 +77,27 @@ export function useStoryState() {
         customChainTarget: undefined,
       },
     ]);
-  }, [generationEnhanced]);
+    markDirty("story");
+  }, [generationEnhanced, markDirty]);
 
   const updateBeat = useCallback((id: string, updates: Partial<StoryBeat>) => {
-    setBeats((prev) =>
+    setBeatsRaw((prev) =>
       prev.map((b) => (b.id === id ? { ...b, ...updates } : b)),
     );
-  }, []);
+    markDirty("story");
+  }, [markDirty]);
 
   const deleteBeat = useCallback((beatId: string) => {
-    setBeats((prev) =>
+    setBeatsRaw((prev) =>
       prev
         .filter((b) => b.id !== beatId)
         .map((b, i) => ({ ...b, order: i + 1, sequence: i + 1 })),
     );
-  }, []);
+    markDirty("story");
+  }, [markDirty]);
 
   const moveBeat = useCallback((id: string, direction: "up" | "down") => {
-    setBeats((prev) => {
+    setBeatsRaw((prev) => {
       const index = prev.findIndex((b) => b.id === id);
       if (
         index === -1 ||
@@ -132,7 +114,8 @@ export function useStoryState() {
       ];
       return newBeats.map((b, i) => ({ ...b, order: i + 1, sequence: i + 1 }));
     });
-  }, []);
+    markDirty("story");
+  }, [markDirty]);
 
   const hasUnsavedChanges = isDirty("story");
 
@@ -146,8 +129,6 @@ export function useStoryState() {
     setBeats,
     beatsRef,
     hasUnsavedChanges,
-    suppressDirtyCountRef,
-    incrementSuppressDirtyCount,
     addBeat,
     updateBeat,
     deleteBeat,

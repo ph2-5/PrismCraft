@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { errorLogger } from "@/shared/error-logger";
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/shared/ui/button";
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
+import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import type { StoryBeat, Story } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
 import { container } from "@/infrastructure/di";
@@ -47,7 +47,7 @@ function Label({
 }
 
 function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
-  const router = useRouter();
+  const { guardedPush } = useNavigationGuard();
   const { success, error: showError } = useToastHelpers();
   const [activeTab, setActiveTab] = useState("video");
   const [videoUrl, setVideoUrl] = useState<string | undefined>(
@@ -169,7 +169,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => router.back()}
+                onClick={() => guardedPush("/story")}
                 className="text-purple-200 hover:text-purple-100 hover:bg-purple-800/50"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -288,7 +288,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 <Button
                   variant="outline"
                   className="gap-2 flex-1"
-                  onClick={() => router.push("/story")}
+                  onClick={() => guardedPush("/story")}
                 >
                   <RotateCcw className="w-4 h-4" />
                   返回故事页重试
@@ -299,7 +299,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 !beat.videoGen?.videoUrl && (
                   <Button
                     className="gap-2 flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
-                    onClick={() => router.push("/story")}
+                    onClick={() => guardedPush("/story")}
                   >
                     <Wand2 className="w-4 h-4" />
                     生成视频
@@ -309,7 +309,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 !beat.framePair?.firstFrame?.imageUrl && (
                   <Button
                     className="gap-2 flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
-                    onClick={() => router.push("/story")}
+                    onClick={() => guardedPush("/story")}
                   >
                     <Image className="w-4 h-4" />
                     生成首尾帧
@@ -318,7 +318,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
               {!beat.keyframe?.imageUrl && (
                 <Button
                   className="gap-2 flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
-                  onClick={() => router.push("/story")}
+                  onClick={() => guardedPush("/story")}
                 >
                   <Wand2 className="w-4 h-4" />
                   生成预览图

@@ -8,6 +8,7 @@ import {
   CardDescription,
 } from "@/shared/ui/card";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
+import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { Button } from "@/shared/ui/button";
 import { useVideoTaskManager } from "@/modules/video";
 import { VideoTaskManager as VideoTaskManagerComponent } from "@/modules/video";
@@ -20,12 +21,11 @@ import {
   Video,
   Loader2,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { confirm } from "@/shared/utils/confirm";
 
 export default function VideoTasksPage() {
-  const router = useRouter();
+  const { guardedPush } = useNavigationGuard();
   const {
     allTasks,
     startBackgroundProcessing,
@@ -216,10 +216,10 @@ export default function VideoTasksPage() {
                   在故事页面编排分镜后生成视频，或使用快速生成模式
                 </p>
                 <div className="flex items-center justify-center gap-3">
-                  <Button onClick={() => router.push("/story")}>
-                    前往故事页面
+                  <Button onClick={() => guardedPush("/story")}>
+                    查看分镜
                   </Button>
-                  <Button variant="outline" onClick={() => router.push("/quick-generate")}>
+                  <Button variant="outline" onClick={() => guardedPush("/quick-generate")}>
                     快速生成
                   </Button>
                 </div>

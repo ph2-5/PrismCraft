@@ -12,6 +12,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 
 interface AssetItem {
   id: string;
@@ -144,6 +145,7 @@ export default function AssetPicker({
                   src={previewAsset.url}
                   className="w-full h-full object-contain"
                   controls
+                  onError={createSimpleVideoErrorHandler()}
                 />
               ) : (
                 <img

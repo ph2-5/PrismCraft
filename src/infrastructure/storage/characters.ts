@@ -8,7 +8,7 @@ import {
   saveOutfitsForCharacter,
   updateOutfitImage,
 } from "./characters/outfit-manager";
-import { parseCharacterWithOutfits } from "./characters/parser";
+import { parseCharacterWithOutfits, parseCharactersWithOutfits } from "./characters/parser";
 import { errorLogger } from "@/shared/error-logger";
 
 const CHARACTER_FIELD_TARGETS: Record<string, FieldTarget> = {
@@ -48,11 +48,7 @@ export const characterStorage = {
     const result = await safeQuery<Record<string, unknown>>(
       "SELECT * FROM characters ORDER BY updated_at DESC",
     );
-    const characters: Character[] = [];
-    for (const record of result) {
-      characters.push(await parseCharacterWithOutfits(record));
-    }
-    return characters as T[];
+    return (await parseCharactersWithOutfits(result)) as T[];
   },
 
   async getCharacterById<T = Character>(id: string): Promise<T | null> {

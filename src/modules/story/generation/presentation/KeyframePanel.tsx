@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { AppCard } from "@/shared/ui/app-card";
-import { resolveImageUrl, resolveMediaUrl } from "@/shared/utils/image-url";
+import { resolveMediaUrl } from "@/shared/utils/image-url";
+import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { PromptEditor, PromptFloatingBall } from "../../prompt-editor";
 import type { PromptEditorContext } from "../../prompt-editor";
@@ -537,6 +538,7 @@ export function KeyframePanel({
                       src={resolveMediaUrl(beat.localVideoPath, beat.videoGen.videoUrl)}
                       controls
                       className="w-full aspect-video rounded-lg border border-border"
+                      onError={createVideoErrorHandler()}
                     />
                   </div>
                 )}

@@ -29,6 +29,7 @@ import { Label } from "@/shared/ui/label";
 import { Switch } from "@/shared/ui/switch";
 import type { ReferenceVideoConfig } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 
 interface MinimalAsset {
   id: string;
@@ -206,6 +207,7 @@ export function ReferenceVideoUploader({
                       src={config.videoUrl}
                       controls
                       className="w-full h-full object-cover"
+                      onError={createSimpleVideoErrorHandler()}
                     />
                   </div>
 
@@ -334,6 +336,7 @@ export function ReferenceVideoUploader({
                       src={asset.url}
                       className="w-full h-full object-cover"
                       muted
+                      onError={createSimpleVideoErrorHandler()}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
                       <p className="text-xs text-white font-medium truncate">

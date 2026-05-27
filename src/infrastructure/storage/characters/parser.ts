@@ -1,7 +1,7 @@
 import { parseRecordWithTable } from "../core";
 import { errorLogger } from "@/shared/error-logger";
 import type { Character, CharacterOutfit } from "@/domain/schemas";
-import { getOutfitsForCharacter } from "./outfit-manager";
+import { getOutfitsForCharacter, getAllOutfits } from "./outfit-manager";
 
 const VALID_VIDEO_GEN_STATUS = new Set(["pending", "generating", "completed", "failed"]);
 
@@ -132,4 +132,38 @@ export async function parseCharacterWithOutfits(
     }
   }
   return char;
+}
+
+export async function parseCharactersWithOutfits(
+  records: Record<string, unknown>[],
+): Promise<Character[]> {
+  let outfitsMap: Map<string, CharacterOutfit[]>;
+  try {
+    outfitsMap = await getAllOutfits();
+  } catch (e) {
+    errorLogger.warn(`[CharacterStorage] Failed to batch-fetch outfits: ${e instanceof Error ? e.message : String(e)}`);
+    outfitsMap = new Map();
+  }
+
+  return records.map((record) => {
+    const char = parseCharacter(record);
+    const outfits = outfitsMap.get(char.id);
+    if (outfits) {
+      char.outfits = outfits;
+    } else {
+      const metaContainer = safeParseContainer(record.meta);
+      if (metaContainer.outfits) {
+        try {
+          char.outfits = Array.isArray(metaContainer.outfits)
+            ? metaContainer.outfits as CharacterOutfit[]
+            : typeof metaContainer.outfits === "string"
+              ? JSON.parse(metaContainer.outfits)
+              : undefined;
+        } catch {
+          char.outfits = undefined;
+        }
+      }
+    }
+    return char;
+  });
 }

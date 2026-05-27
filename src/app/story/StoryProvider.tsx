@@ -370,6 +370,7 @@ function useStoryContext(): StoryContextValue {
                 (async () => {
                   try {
                     const cacheResult = await getImageUrlWithCache(url);
+                    if (cancelled) return;
                     if (cacheResult.ok && cacheResult.value.fromCache && cacheResult.value.url.startsWith("file://")) {
                       const localPath = cacheResult.value.url.replace(/^file:\/\//, "");
                       setBeatsRef.current((prev) =>

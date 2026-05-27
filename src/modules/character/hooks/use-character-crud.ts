@@ -13,7 +13,7 @@ import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
 
 interface UseCharacterCRUDProps {
   currentCharacter: Character;
-  setCurrentCharacter: React.Dispatch<React.SetStateAction<Character>>;
+  setCurrentCharacter: (update: Character | ((prev: Character) => Character), shouldMarkDirty?: boolean) => void;
   generatedImage: string | null;
   setCustomTrait: React.Dispatch<React.SetStateAction<string>>;
   setCustomStyle: React.Dispatch<React.SetStateAction<string>>;
@@ -163,7 +163,7 @@ export function useCharacterCRUD({
       setCurrentCharacter((prev) => {
         if (prev.personality.includes(trait)) return prev;
         return { ...prev, personality: [...prev.personality, trait] };
-      });
+      }, true);
     }
     setCustomTrait("");
   };
@@ -172,7 +172,7 @@ export function useCharacterCRUD({
     setCurrentCharacter((prev) => ({
       ...prev,
       personality: prev.personality.filter((t) => t !== trait),
-    }));
+    }), true);
   };
 
   return {

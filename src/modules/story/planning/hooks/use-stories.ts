@@ -13,6 +13,7 @@ export function useStories() {
       if (!result.ok) throw result.error;
       return result.value;
     },
+    staleTime: 5 * 60 * 1000,
   });
 }
 

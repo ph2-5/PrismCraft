@@ -171,4 +171,34 @@ describe("storage/characters", () => {
       expect(sql).not.toContain("local_image_path");
     });
   });
+
+  describe("getCharacters batch query (regression: R28)", () => {
+    it("should use batch query (2 IPC calls) instead of N+1 loop", async () => {
+      const characters = [
+        { id: "c1", name: "Alice", gender: "female", appearance: "{}", meta: "{}" },
+        { id: "c2", name: "Bob", gender: "male", appearance: "{}", meta: "{}" },
+        { id: "c3", name: "Charlie", gender: "male", appearance: "{}", meta: "{}" },
+      ];
+      const outfits = [
+        { character_id: "c1", id: "o1", name: "Casual", description: "", clothing: "", accessories_json: "[]", is_default: 1, created_at: 1000 },
+        { character_id: "c2", id: "o2", name: "Formal", description: "", clothing: "", accessories_json: "[]", is_default: 0, created_at: 1001 },
+        { character_id: "c2", id: "o3", name: "Sporty", description: "", clothing: "", accessories_json: "[]", is_default: 0, created_at: 1002 },
+      ];
+
+      mockSafeQuery
+        .mockResolvedValueOnce(characters)
+        .mockResolvedValueOnce(outfits);
+
+      const result = await characterStorage.getCharacters();
+
+      expect(mockSafeQuery).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(3);
+
+      const results = result as Character[];
+      expect(results.find((c) => c.id === "c1")?.outfits).toHaveLength(1);
+      expect(results.find((c) => c.id === "c2")?.outfits).toHaveLength(2);
+      const charlieOutfits = results.find((c) => c.id === "c3")?.outfits;
+      expect(charlieOutfits === undefined || charlieOutfits?.length === 0).toBe(true);
+    });
+  });
 });

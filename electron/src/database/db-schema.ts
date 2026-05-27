@@ -342,6 +342,8 @@ const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; prima
       collection_id: { type: "TEXT", notNull: true, ref: "collections(id)" },
       asset_type: { type: "TEXT", check: "IN ('character', 'scene', 'storyboard', 'story', 'media_asset')" },
       asset_id: { type: "TEXT", notNull: true },
+      created_at: { type: "INTEGER", default: "(strftime('%s','now'))" },
+      updated_at: { type: "INTEGER", default: "(strftime('%s','now'))" },
     },
     primaryKey: ["collection_id", "asset_id"],
   },

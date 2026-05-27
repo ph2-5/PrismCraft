@@ -13,7 +13,7 @@ import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
 
 interface UseSceneCRUDProps {
   currentScene: Scene;
-  setCurrentScene: React.Dispatch<React.SetStateAction<Scene>>;
+  setCurrentScene: (update: Scene | ((prev: Scene) => Scene), shouldMarkDirty?: boolean) => void;
   generatedImage: string | null;
   setCustomElement: React.Dispatch<React.SetStateAction<string>>;
   setCustomColor: React.Dispatch<React.SetStateAction<string>>;
@@ -150,14 +150,14 @@ export function useSceneCRUD({
 
   const addItem = (type: "elements" | "colors", value: string) => {
     if (value && !currentScene[type].includes(value)) {
-      setCurrentScene((prev) => ({ ...prev, [type]: [...prev[type], value] }));
+      setCurrentScene((prev) => ({ ...prev, [type]: [...prev[type], value] }), true);
     }
     if (type === "elements") setCustomElement("");
     else setCustomColor("");
   };
 
   const removeItem = (type: "elements" | "colors", value: string) => {
-    setCurrentScene((prev) => ({ ...prev, [type]: prev[type].filter((item) => item !== value) }));
+    setCurrentScene((prev) => ({ ...prev, [type]: prev[type].filter((item) => item !== value) }), true);
   };
 
   return { deleteDialogOpen, setDeleteDialogOpen, sceneToDelete, referenceCheck, handleSave, saveStatus, saveError, handleDelete, performDelete, isDeleting, addItem, removeItem };

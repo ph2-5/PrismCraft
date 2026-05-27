@@ -3,7 +3,7 @@ import { parseRecordWithTable, toSqlValue, trackChange } from "./core";
 import { errorLogger } from "@/shared/error-logger";
 import type { Story } from "@/domain/schemas";
 import { buildBeatInsert } from "./stories/beat-transformer";
-import { fetchStoryRelations } from "./stories/relations";
+import { fetchStoryRelations, fetchAllStoryRelations } from "./stories/relations";
 
 function asRecord(obj: unknown): Record<string, unknown> {
   return (obj && typeof obj === "object" ? obj : {}) as Record<string, unknown>;
@@ -41,14 +41,19 @@ export const storyStorage = {
     const result = await safeQuery<Record<string, unknown>>(
       "SELECT * FROM stories ORDER BY updated_at DESC",
     );
-    const stories = await Promise.all(
-      result.map(async (row) => {
-        const parsed = parseStory(row);
-        const relations = await fetchStoryRelations(parsed.id as string);
-        return { ...parsed, ...relations } as T;
-      }),
-    );
-    return stories;
+    const relationsMap = await fetchAllStoryRelations();
+    return result.map((row) => {
+      const parsed = parseStory(row);
+      const storyId = parsed.id as string;
+      const relations = relationsMap.get(storyId) || {
+        characters: [],
+        scenes: [],
+        beats: [],
+        elementIds: [],
+        elementBindings: {},
+      };
+      return { ...parsed, ...relations } as T;
+    });
   },
 
   async getStoryById<T = Story>(id: string): Promise<T | null> {

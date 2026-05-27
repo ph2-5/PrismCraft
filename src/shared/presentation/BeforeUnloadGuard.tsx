@@ -41,6 +41,7 @@ export function BeforeUnloadGuard() {
 export function useNavigationGuard() {
   const router = useRouter();
   const dirtyCount = useDirtyState((s) => s.dirtyKeys.size);
+  const markAllClean = useDirtyState((s) => s.markAllClean);
   const dirtyRef = useRef(dirtyCount > 0);
 
   useEffect(() => {
@@ -55,10 +56,11 @@ export function useNavigationGuard() {
           "未保存的修改",
         );
         if (!confirmed) return;
+        markAllClean();
       }
       router.push(href);
     },
-    [router],
+    [router, markAllClean],
   );
 
   return { guardedPush };

@@ -13,6 +13,7 @@ export function useStoryState() {
 
   const suppressDirtyCountRef = useRef(0);
   const beatsInitializedRef = useRef(false);
+  const initialBeatsLoadedRef = useRef(false);
 
   const incrementSuppressDirtyCount = useCallback(() => {
     suppressDirtyCountRef.current++;
@@ -50,6 +51,13 @@ export function useStoryState() {
   useEffect(() => {
     if (!beatsInitializedRef.current) {
       beatsInitializedRef.current = true;
+      if (beats.length > 0) {
+        initialBeatsLoadedRef.current = true;
+      }
+      return;
+    }
+    if (!initialBeatsLoadedRef.current) {
+      initialBeatsLoadedRef.current = true;
       return;
     }
     if (suppressDirtyCountRef.current > 0) {

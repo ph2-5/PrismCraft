@@ -2,7 +2,7 @@ import { getLogger } from "../logging/logger";
 
 const logger = getLogger("migrations");
 
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 export interface MigrationDb {
   prepare(sql: string): { get(...params: unknown[]): Record<string, unknown> | undefined; run(...params: unknown[]): unknown };
@@ -18,6 +18,22 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
       { table: "story_beats", column: "local_keyframe_path", type: "TEXT" },
       { table: "story_beats", column: "local_first_frame_path", type: "TEXT" },
       { table: "story_beats", column: "local_last_frame_path", type: "TEXT" },
+    ];
+    for (const { table, column, type } of columns) {
+      try {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes("duplicate column")) {
+          throw e;
+        }
+      }
+    }
+  },
+  4: (db) => {
+    const columns = [
+      { table: "collection_assets", column: "created_at", type: "INTEGER DEFAULT (strftime('%s','now'))" },
+      { table: "collection_assets", column: "updated_at", type: "INTEGER DEFAULT (strftime('%s','now'))" },
     ];
     for (const { table, column, type } of columns) {
       try {

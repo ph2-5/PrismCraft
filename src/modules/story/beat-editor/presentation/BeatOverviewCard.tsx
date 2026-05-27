@@ -18,7 +18,8 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/utils/utils";
-import { resolveImageUrl, resolveMediaUrl } from "@/shared/utils/image-url";
+import { resolveMediaUrl } from "@/shared/utils/image-url";
+import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
 import { beatTypes } from "@/modules/story";
 import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
@@ -116,6 +117,7 @@ export function BeatOverviewCard({
                   className="w-full h-full object-cover"
                   muted
                   playsInline
+                  onError={createSimpleVideoErrorHandler()}
                 />
               ) : keyframeImage ? (
                 <SafeImage

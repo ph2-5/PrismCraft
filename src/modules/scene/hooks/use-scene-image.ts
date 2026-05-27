@@ -14,7 +14,7 @@ import { sceneService } from "../services";
 interface UseSceneImageProps {
   currentScene: Scene;
   currentSceneRef: React.MutableRefObject<Scene>;
-  setCurrentScene: React.Dispatch<React.SetStateAction<Scene>>;
+  setCurrentScene: (update: Scene | ((prev: Scene) => Scene), shouldMarkDirty?: boolean) => void;
   addAssetToLibrary: (
     url: string, type: "image" | "video", name: string,
     boundTo?: { type: "character" | "scene"; id: string; name: string },
@@ -53,7 +53,7 @@ export function useSceneImage({
       const prompt = generateScenePromptOptimization(userDescription);
       const result = await container.textProvider.generateText(prompt, { maxTokens: 300, temperature: 0.8 });
       if (result.success && result.data?.text) {
-        setCurrentScene((prev) => ({ ...prev, imageGenerationPrompt: result.data!.text.trim() }));
+        setCurrentScene((prev) => ({ ...prev, imageGenerationPrompt: result.data!.text.trim() }), true);
         success("提示词优化成功", "提示词已优化完成");
       } else { showError("提示词优化失败", result.error || "请检查 API 配置后重试"); }
     } catch (err) { errorLogger.error("提示词优化失败:", err); showError("提示词优化失败", getErrorMessage(err)); }
@@ -120,6 +120,7 @@ export function useSceneImage({
 
   const analyzeImage = async (imageUrl: string) => {
     if (isAnalyzingRef.current) return;
+    const sceneIdAtStart = currentSceneRef.current.id;
     analyzeTimeoutRef.current = setTimeout(() => {
       setIsAnalyzing((prev) => { if (prev) { isAnalyzingRef.current = false; showError("分析超时", "分析过程超时，已自动重置状态"); return false; } return prev; });
     }, 60000);
@@ -132,6 +133,8 @@ export function useSceneImage({
       const analyzeOptions: { providerId?: string; modelId?: string } = {};
       if (selectedImageModel?.providerId && selectedImageModel?.modelId) { analyzeOptions.providerId = selectedImageModel.providerId; analyzeOptions.modelId = selectedImageModel.modelId; }
       const result = await container.imageProvider.analyzeImage(imageUrl, "scene", undefined, { providerId: analyzeOptions.providerId, modelId: analyzeOptions.modelId });
+      if (currentSceneRef.current.id !== sceneIdAtStart) return;
+
       if (result.success && result.data?.analyzed) {
         const analyzed = result.data.analyzed as Partial<Scene>;
         setCurrentScene((prev) => ({
@@ -147,7 +150,7 @@ export function useSceneImage({
           description: analyzed.description || prev.description,
           scenePath: imageUrl,
           generatedImage: imageUrl,
-        }));
+        }), true);
         if (currentSceneRef.current.id) {
           try {
             const updateResult = await sceneService.update(currentSceneRef.current.id, {

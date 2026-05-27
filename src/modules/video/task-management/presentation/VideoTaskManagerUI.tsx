@@ -34,6 +34,7 @@ import {
 import type { VideoTask } from "@/domain/schemas";
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { resolveImageUrl } from "@/shared/utils/image-url";
+import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { errorLogger } from "@/shared/error-logger";
 
 interface VideoTaskManagerProps {
@@ -149,13 +150,7 @@ function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }: TaskDe
                 src={resolveImageUrl(task.videoUrl)}
                 controls
                 className="w-full max-h-48 rounded-lg border border-border"
-                onError={(e) => {
-                  const target = e.target as HTMLVideoElement;
-                  if (!target.dataset.retried) {
-                    target.dataset.retried = "1";
-                    target.src = resolveImageUrl(task.videoUrl) || "";
-                  }
-                }}
+                onError={createVideoErrorHandler()}
               />
             </div>
           )}
@@ -331,13 +326,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
                       src={resolveImageUrl(task.videoUrl)}
                       controls
                       className="w-full max-h-48 rounded-lg border border-border"
-                      onError={(e) => {
-                        const target = e.target as HTMLVideoElement;
-                        if (!target.dataset.retried) {
-                          target.dataset.retried = "1";
-                          target.src = resolveImageUrl(task.videoUrl) || "";
-                        }
-                      }}
+                      onError={createVideoErrorHandler()}
                     />
                     <div className="mt-2 flex gap-2">
                       <Button

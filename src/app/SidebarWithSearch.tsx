@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Sidebar } from "@/shared/presentation/Sidebar";
+import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { characterService } from "@/modules/character";
 import { sceneService } from "@/modules/scene";
 import { storyService } from "@/modules/story";
@@ -15,7 +15,7 @@ const ROUTE_MAP: Record<SearchResult["type"], string> = {
 };
 
 export function SidebarWithSearch() {
-  const router = useRouter();
+  const { guardedPush } = useNavigationGuard();
 
   const handleSearch = useCallback(async (term: string): Promise<SearchResult[]> => {
     const lowerTerm = term.toLowerCase();
@@ -48,8 +48,8 @@ export function SidebarWithSearch() {
 
   const handleSearchSelect = useCallback((result: SearchResult) => {
     const basePath = ROUTE_MAP[result.type];
-    router.push(`${basePath}?highlight=${encodeURIComponent(result.id)}`);
-  }, [router]);
+    guardedPush(`${basePath}?highlight=${encodeURIComponent(result.id)}`);
+  }, [guardedPush]);
 
   return <Sidebar onSearch={handleSearch} onSearchSelect={handleSearchSelect} />;
 }

@@ -98,10 +98,10 @@ const callHistory = new Map<string, number[]>();
 
 const RATE_LIMITS: Record<string, { maxCalls: number; windowMs: number }> = {
   default: { maxCalls: 100, windowMs: 60000 },
-  readonly: { maxCalls: 300, windowMs: 60000 },
+  readonly: { maxCalls: 1000, windowMs: 60000 },
 };
 
-const GLOBAL_RATE_LIMIT = { maxCalls: 600, windowMs: 60000 };
+const GLOBAL_RATE_LIMIT = { maxCalls: 2000, windowMs: 60000 };
 const globalCallTimestamps: number[] = [];
 
 const READONLY_CHANNELS = new Set([

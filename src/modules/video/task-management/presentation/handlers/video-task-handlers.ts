@@ -4,7 +4,7 @@ import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { getVideoUrlWithCache } from "@/modules/video/cache";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } from "@/modules/video/task-management";
-import { useRouter } from "next/navigation";
+import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { errorLogger } from "@/shared/error-logger";
 import { isAllowedVideoUrl } from "@/shared/utils/url-validation";
 import { useCacheOperations } from "./use-cache-operations";
@@ -22,7 +22,7 @@ interface UseVideoTaskHandlersDeps {
 
 export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   const { tasks, filteredTasks, completedTaskIds, pollTask, removeTasks, onTaskRecovered, openPreview } = deps;
-  const router = useRouter();
+  const { guardedPush } = useNavigationGuard();
   const { success, error } = useToastHelpers();
   const blobUrlTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
@@ -94,7 +94,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   const handleRetryTask = async (task: VideoTask) => {
     if (!task.beatId) { error("无法重试", "该任务没有关联的分镜ID"); return; }
     setRetryingTaskId(task.taskId);
-    try { router.push(`/story/beat/${task.beatId}`); success("跳转成功", "已跳转到分镜详情页，请重新生成视频"); }
+    try { guardedPush(`/story/beat/${task.beatId}`); success("跳转成功", "已跳转到分镜详情页，请重新生成视频"); }
     catch (err) { error("跳转失败", err instanceof Error ? err.message : "未知错误"); }
     finally { setRetryingTaskId(null); }
   };
@@ -107,7 +107,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   };
 
   const handleJumpToBeat = (task: VideoTask) => {
-    if (task.beatId) router.push(`/story/beat/${task.beatId}`);
+    if (task.beatId) guardedPush(`/story/beat/${task.beatId}`);
     else error("无法跳转", "该任务没有关联的分镜");
   };
 

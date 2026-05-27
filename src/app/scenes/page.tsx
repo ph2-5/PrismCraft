@@ -100,9 +100,9 @@ function ScenesPageContent() {
   const currentSceneRef = useRef(currentScene);
   useEffect(() => { currentSceneRef.current = currentScene; }, [currentScene]);
   const setCurrentScene = useCallback(
-    (update: Scene | ((prev: Scene) => Scene)) => {
-      markDirty("scenes");
+    (update: Scene | ((prev: Scene) => Scene), shouldMarkDirty = false) => {
       setCurrentSceneRaw(update);
+      if (shouldMarkDirty) markDirty("scenes");
     },
     [markDirty],
   );
@@ -229,10 +229,9 @@ function ScenesPageContent() {
     if (found) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentSceneRaw(found);
-      markDirty("scenes");
       setGeneratedImage(found.generatedImage || found.scenePath || null);
     }
-  }, [highlightId, scenes, markDirty, setGeneratedImage]);
+  }, [highlightId, scenes, setGeneratedImage]);
 
   return (
     <PageErrorBoundary pageName="场景">
@@ -375,7 +374,7 @@ function ScenesPageContent() {
                         setCurrentScene((prev) => ({
                           ...prev,
                           name: e.target.value,
-                        }))
+                        }), true)
                       }
                     />
                   </div>
@@ -391,7 +390,7 @@ function ScenesPageContent() {
                         setCurrentScene((prev) => ({
                           ...prev,
                           type: e.target.value,
-                        }))
+                        }), true)
                       }
                     />
                     <datalist id="type-suggestions">
@@ -408,7 +407,7 @@ function ScenesPageContent() {
                           }
                           className="cursor-pointer text-xs"
                           onClick={() =>
-                            setCurrentScene((prev) => ({ ...prev, type }))
+                            setCurrentScene((prev) => ({ ...prev, type }), true)
                           }
                         >
                           {type}
@@ -431,7 +430,7 @@ function ScenesPageContent() {
                         setCurrentScene((prev) => ({
                           ...prev,
                           description: e.target.value,
-                        }))
+                        }), true)
                       }
                     />
                   </div>
@@ -450,7 +449,7 @@ function ScenesPageContent() {
                           setCurrentScene((prev) => ({
                             ...prev,
                             timeOfDay: e.target.value,
-                          }))
+                          }), true)
                         }
                       />
                       <datalist id="time-suggestions">
@@ -470,7 +469,7 @@ function ScenesPageContent() {
                           setCurrentScene((prev) => ({
                             ...prev,
                             weather: e.target.value,
-                          }))
+                          }), true)
                         }
                       />
                       <datalist id="weather-suggestions">
@@ -492,7 +491,7 @@ function ScenesPageContent() {
                         setCurrentScene((prev) => ({
                           ...prev,
                           mood: e.target.value,
-                        }))
+                        }), true)
                       }
                     />
                     <datalist id="mood-suggestions">
@@ -509,7 +508,7 @@ function ScenesPageContent() {
                           }
                           className="cursor-pointer text-xs"
                           onClick={() =>
-                            setCurrentScene((prev) => ({ ...prev, mood }))
+                            setCurrentScene((prev) => ({ ...prev, mood }), true)
                           }
                         >
                           {mood}
@@ -653,7 +652,7 @@ function ScenesPageContent() {
                         setCurrentScene((prev) => ({
                           ...prev,
                           camera: { ...prev.camera, angle: e.target.value },
-                        }))
+                        }), true)
                       }
                     />
                     <datalist id="angle-suggestions">
@@ -675,7 +674,7 @@ function ScenesPageContent() {
                             setCurrentScene((prev) => ({
                               ...prev,
                               camera: { ...prev.camera, angle },
-                            }))
+                            }), true)
                           }
                         >
                           {angle}
@@ -698,7 +697,7 @@ function ScenesPageContent() {
                             ...prev.camera,
                             distance: e.target.value,
                           },
-                        }))
+                        }), true)
                       }
                     />
                     <datalist id="distance-suggestions">
@@ -720,7 +719,7 @@ function ScenesPageContent() {
                             setCurrentScene((prev) => ({
                               ...prev,
                               camera: { ...prev.camera, distance },
-                            }))
+                            }), true)
                           }
                         >
                           {distance}
@@ -743,7 +742,7 @@ function ScenesPageContent() {
                             ...prev.camera,
                             movement: e.target.value,
                           },
-                        }))
+                        }), true)
                       }
                     />
                     <datalist id="movement-suggestions">
@@ -765,7 +764,7 @@ function ScenesPageContent() {
                             setCurrentScene((prev) => ({
                               ...prev,
                               camera: { ...prev.camera, movement },
-                            }))
+                            }), true)
                           }
                         >
                           {movement}
@@ -806,7 +805,7 @@ function ScenesPageContent() {
                     setCurrentScene((prev) => ({
                       ...prev,
                       imageGenerationPrompt: e.target.value,
-                    }))
+                    }), true)
                   }
                   placeholder="输入图片生成提示词，或点击 'AI优化' 按钮自动优化..."
                   rows={6}

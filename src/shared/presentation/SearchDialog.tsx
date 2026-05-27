@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Search, X, Loader2 } from "lucide-react";
 import type { SearchResult } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
+import { useNavigationGuard } from "./BeforeUnloadGuard";
 
 interface SearchDialogProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ const ROUTE_MAP: Record<SearchResult["type"], string> = {
 };
 
 export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDialogProps) {
-  const router = useRouter();
+  const { guardedPush } = useNavigationGuard();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -61,9 +61,9 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
       onSelect(result);
       onClose();
       const basePath = ROUTE_MAP[result.type];
-      router.push(`${basePath}?highlight=${encodeURIComponent(result.id)}`);
+      guardedPush(`${basePath}?highlight=${encodeURIComponent(result.id)}`);
     },
-    [onSelect, onClose, router],
+    [onSelect, onClose, guardedPush],
   );
 
   if (!isOpen) return null;

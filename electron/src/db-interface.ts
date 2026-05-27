@@ -185,7 +185,7 @@ export class BetterSqlite3Database extends DatabaseInterface {
 
   checkpoint(): unknown {
     if (!this.db) throw new Error("Database not initialized");
-    return (this.db as import("better-sqlite3").Database).checkpoint();
+    return (this.db as import("better-sqlite3").Database).pragma("wal_checkpoint(TRUNCATE)");
   }
 }
 

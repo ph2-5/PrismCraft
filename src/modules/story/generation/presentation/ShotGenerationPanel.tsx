@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import { resolveImageUrl, resolveMediaUrl } from "@/shared/utils/image-url";
+import { resolveMediaUrl } from "@/shared/utils/image-url";
+import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { Badge } from "@/shared/ui/badge";
 import Link from "next/link";
 import type { StoryBeat, ShotGenerationStatus } from "@/domain/schemas";
@@ -158,7 +159,7 @@ export function ShotGenerationPanel({
 
           {videoUrl && (
             <div className="mt-4">
-              <video src={resolveMediaUrl(localVideoPath, videoUrl)} controls className="w-full rounded-lg" />
+              <video src={resolveMediaUrl(localVideoPath, videoUrl)} controls className="w-full rounded-lg" onError={createVideoErrorHandler()} />
             </div>
           )}
 

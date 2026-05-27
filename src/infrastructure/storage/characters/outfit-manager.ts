@@ -9,39 +9,61 @@ export async function getOutfitsForCharacter(
     "SELECT * FROM character_outfits WHERE character_id = ? ORDER BY is_default DESC, created_at ASC",
     [characterId],
   );
-  return rows.map((row) => {
+  return rows.map(parseOutfitRow);
+}
+
+export async function getAllOutfits(): Promise<Map<string, CharacterOutfit[]>> {
+  const rows = await safeQuery<Record<string, unknown>>(
+    "SELECT * FROM character_outfits ORDER BY is_default DESC, created_at ASC",
+  );
+  const map = new Map<string, CharacterOutfit[]>();
+  for (const row of rows) {
     const parsed = parseRecordWithTable(row, "character_outfits");
-    return {
-      id: String(parsed.id || ""),
-      name: String(parsed.name || ""),
-      description: String(parsed.description || ""),
-      clothing: String(parsed.clothing || ""),
-      accessories: Array.isArray(parsed.accessories_json)
-        ? parsed.accessories_json
-        : typeof parsed.accessories_json === "string"
-          ? (() => {
-              try {
-                return JSON.parse(parsed.accessories_json);
-              } catch {
-                return [];
-              }
-            })()
-          : [],
-      imageUrl: parsed.image_url ? String(parsed.image_url) : undefined,
-      localImagePath: parsed.local_image_path
-        ? String(parsed.local_image_path)
-        : undefined,
-      thumbnailPath: parsed.thumbnail_path
-        ? String(parsed.thumbnail_path)
-        : undefined,
-      isDefault: !!parsed.is_default,
-      createdAt: parsed.created_at
-        ? (typeof parsed.created_at === "number"
-          ? new Date(parsed.created_at * 1000).toISOString()
-          : String(parsed.created_at))
-        : new Date().toISOString(),
-    };
-  });
+    const characterId = String(parsed.character_id || "");
+    if (!characterId) continue;
+    const outfit = parseOutfitRow(row);
+    const list = map.get(characterId);
+    if (list) {
+      list.push(outfit);
+    } else {
+      map.set(characterId, [outfit]);
+    }
+  }
+  return map;
+}
+
+function parseOutfitRow(row: Record<string, unknown>): CharacterOutfit {
+  const parsed = parseRecordWithTable(row, "character_outfits");
+  return {
+    id: String(parsed.id || ""),
+    name: String(parsed.name || ""),
+    description: String(parsed.description || ""),
+    clothing: String(parsed.clothing || ""),
+    accessories: Array.isArray(parsed.accessories_json)
+      ? parsed.accessories_json
+      : typeof parsed.accessories_json === "string"
+        ? (() => {
+            try {
+              return JSON.parse(parsed.accessories_json);
+            } catch {
+              return [];
+            }
+          })()
+        : [],
+    imageUrl: parsed.image_url ? String(parsed.image_url) : undefined,
+    localImagePath: parsed.local_image_path
+      ? String(parsed.local_image_path)
+      : undefined,
+    thumbnailPath: parsed.thumbnail_path
+      ? String(parsed.thumbnail_path)
+      : undefined,
+    isDefault: !!parsed.is_default,
+    createdAt: parsed.created_at
+      ? (typeof parsed.created_at === "number"
+        ? new Date(parsed.created_at * 1000).toISOString()
+        : String(parsed.created_at))
+      : new Date().toISOString(),
+  };
 }
 
 export function buildOutfitStatements(

@@ -227,9 +227,9 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
             const Icon = item.icon;
             const isActive = pathname.startsWith(item.href);
             return (
-              <Link
+              <button
                 key={item.href}
-                href={item.href}
+                onClick={() => guardedPush(item.href)}
                 className={cn(
                   "flex items-center rounded-lg text-sm font-medium transition-colors",
                   collapsed
@@ -249,7 +249,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
                   )}
                 />
                 {!collapsed && <span>{item.label}</span>}
-              </Link>
+              </button>
             );
           })}
         </nav>
@@ -294,9 +294,9 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
             const Icon = item.icon;
             const isActive = pathname.startsWith(item.href);
             return (
-              <Link
+              <button
                 key={item.href}
-                href={item.href}
+                onClick={() => guardedPush(item.href)}
                 className={cn(
                   "flex items-center rounded-lg text-sm font-medium transition-colors",
                   collapsed
@@ -316,7 +316,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
                   )}
                 />
                 {!collapsed && <span>{item.label}</span>}
-              </Link>
+              </button>
             );
           })}
 

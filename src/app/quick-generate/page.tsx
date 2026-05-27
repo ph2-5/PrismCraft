@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import {
   Sparkles,
   User,
@@ -76,10 +75,12 @@ import { getVideoUrlWithCache } from "@/modules/video";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ModelSelector, useModelSelection } from "@/modules/prompt";
 import { errorLogger } from "@/shared/error-logger";
+import { createSimpleVideoErrorHandler, createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { confirm } from "@/shared/utils/confirm";
+import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 
 export default function QuickGeneratePage() {
-  const router = useRouter();
+  const { guardedPush } = useNavigationGuard();
   const {
     success: showSuccess,
     error: showError,
@@ -595,7 +596,7 @@ export default function QuickGeneratePage() {
                         variant="outline"
                         size="sm"
                         className="border-dashed border-slate-600"
-                        onClick={() => router.push("/characters")}
+                        onClick={() => guardedPush("/characters")}
                       >
                         <Plus className="w-4 h-4 mr-1" />
                         新建角色
@@ -606,7 +607,7 @@ export default function QuickGeneratePage() {
                       variant="outline"
                       size="sm"
                       className="border-dashed border-slate-600 w-full"
-                      onClick={() => router.push("/characters")}
+                      onClick={() => guardedPush("/characters")}
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       创建角色以锁定主角形象
@@ -659,7 +660,7 @@ export default function QuickGeneratePage() {
                         variant="outline"
                         size="sm"
                         className="border-dashed border-slate-600"
-                        onClick={() => router.push("/scenes")}
+                        onClick={() => guardedPush("/scenes")}
                       >
                         <Plus className="w-4 h-4 mr-1" />
                         新建场景
@@ -670,7 +671,7 @@ export default function QuickGeneratePage() {
                       variant="outline"
                       size="sm"
                       className="border-dashed border-slate-600 w-full"
-                      onClick={() => router.push("/scenes")}
+                      onClick={() => guardedPush("/scenes")}
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       创建场景以锁定背景环境
@@ -791,6 +792,7 @@ export default function QuickGeneratePage() {
                           src={referenceVideo}
                           controls
                           className="w-full max-h-48 rounded-lg border border-slate-700"
+                          onError={createSimpleVideoErrorHandler()}
                         />
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-sm text-slate-400">
@@ -928,13 +930,7 @@ export default function QuickGeneratePage() {
                             poster={
                               getSelectedCharacterObjects()[0]?.generatedImage
                             }
-                            onError={(e) => {
-                              const target = e.target as HTMLVideoElement;
-                              if (!target.dataset.retried) {
-                                target.dataset.retried = "1";
-                                target.src = currentTask.videoUrl || "";
-                              }
-                            }}
+                            onError={createVideoErrorHandler()}
                           />
                         </div>
 

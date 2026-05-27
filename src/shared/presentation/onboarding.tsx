@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Sparkles, Settings, Image as ImageIcon, Video, FileText } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
-import { useRouter } from "next/navigation";
+import { useNavigationGuard } from "./BeforeUnloadGuard";
 import { checkConfigStatus } from "@/shared/api-config";
 
 interface OnboardingStep {
@@ -69,7 +69,7 @@ export function OnboardingGuide() {
     return !localStorage.getItem("onboarding-completed");
   });
   const [currentStep, setCurrentStep] = useState(0);
-  const router = useRouter();
+  const { guardedPush } = useNavigationGuard();
   const navTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export function OnboardingGuide() {
   const handleActionClick = (href: string) => {
     handleClose();
     navTimerRef.current = setTimeout(() => {
-      router.push(href);
+      guardedPush(href);
     }, 100);
   };
 
@@ -183,7 +183,7 @@ export function OnboardingGuide() {
 // API Key 缺失提示
 export function ApiKeyAlert() {
   const [isVisible, setIsVisible] = useState(false);
-  const router = useRouter();
+  const { guardedPush } = useNavigationGuard();
 
   useEffect(() => {
     let cancelled = false;
@@ -216,7 +216,7 @@ export function ApiKeyAlert() {
             你还没有配置 AI 服务的 API Key。部分功能可能无法正常使用。
           </p>
           <button
-            onClick={() => router.push("/settings")}
+            onClick={() => guardedPush("/settings")}
             className="inline-flex items-center gap-1 text-sm font-medium text-yellow-300 hover:text-yellow-200 mt-2 underline"
           >
             去设置 <Settings className="h-3 w-3" />

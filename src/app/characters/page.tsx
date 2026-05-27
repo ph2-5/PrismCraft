@@ -92,9 +92,9 @@ function CharactersPageContent() {
   const [currentCharacter, setCurrentCharacterRaw] =
     useState<Character>(defaultCharacter);
   const setCurrentCharacter = useCallback(
-    (update: Character | ((prev: Character) => Character)) => {
+    (update: Character | ((prev: Character) => Character), shouldMarkDirty = false) => {
       setCurrentCharacterRaw(update);
-      markDirty("characters");
+      if (shouldMarkDirty) markDirty("characters");
     },
     [markDirty],
   );
@@ -256,10 +256,9 @@ function CharactersPageContent() {
     if (found) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentCharacterRaw(found);
-      markDirty("characters");
       setGeneratedImage(found.generatedImage || found.refImagePath || null);
     }
-  }, [highlightId, characters, markDirty, setGeneratedImage]);
+  }, [highlightId, characters, setGeneratedImage]);
 
   return (
     <PageErrorBoundary pageName="角色">
@@ -416,7 +415,7 @@ function CharactersPageContent() {
                         setCurrentCharacter({
                           ...currentCharacter,
                           name: e.target.value,
-                        })
+                        }, true)
                       }
                     />
                   </div>
@@ -435,7 +434,7 @@ function CharactersPageContent() {
                               setCurrentCharacter({
                                 ...currentCharacter,
                                 gender: currentCharacter.gender === g ? "" : g,
-                              })
+                              }, true)
                             }
                           >
                             {g}
@@ -449,7 +448,7 @@ function CharactersPageContent() {
                             setCurrentCharacter({
                               ...currentCharacter,
                               gender: e.target.value,
-                            })
+                            }, true)
                           }
                         />
                       </div>
@@ -470,7 +469,7 @@ function CharactersPageContent() {
                           setCurrentCharacter({
                             ...currentCharacter,
                             age: parsed,
-                          });
+                          }, true);
                         }}
                       />
                     </div>
@@ -488,7 +487,7 @@ function CharactersPageContent() {
                           setCurrentCharacter({
                             ...currentCharacter,
                             style: e.target.value,
-                          })
+                          }, true)
                         }
                         className="flex-1"
                       />
@@ -512,7 +511,7 @@ function CharactersPageContent() {
                             setCurrentCharacter({
                               ...currentCharacter,
                               style,
-                            })
+                            }, true)
                           }
                         >
                           {style}
@@ -535,7 +534,7 @@ function CharactersPageContent() {
                         setCurrentCharacter({
                           ...currentCharacter,
                           description: e.target.value,
-                        })
+                        }, true)
                       }
                     />
                   </div>
@@ -556,7 +555,7 @@ function CharactersPageContent() {
                               ...currentCharacter.appearance,
                               hairColor: e.target.value,
                             },
-                          })
+                          }, true)
                         }
                       />
                     </div>
@@ -573,7 +572,7 @@ function CharactersPageContent() {
                               ...currentCharacter.appearance,
                               hairStyle: e.target.value,
                             },
-                          })
+                          }, true)
                         }
                       />
                     </div>
@@ -593,7 +592,7 @@ function CharactersPageContent() {
                               ...currentCharacter.appearance,
                               eyeColor: e.target.value,
                             },
-                          })
+                          }, true)
                         }
                       />
                     </div>
@@ -611,7 +610,7 @@ function CharactersPageContent() {
                               ...currentCharacter.appearance,
                               height: e.target.value,
                             },
-                          })
+                          }, true)
                         }
                       />
                       <datalist id="height-suggestions">
@@ -630,14 +629,14 @@ function CharactersPageContent() {
                       placeholder="例如：肌肉发达、骨瘦如柴、丰满..."
                       value={currentCharacter.appearance.build}
                       onChange={(e) =>
-                        setCurrentCharacter({
-                          ...currentCharacter,
-                          appearance: {
-                            ...currentCharacter.appearance,
-                            build: e.target.value,
-                          },
-                        })
-                      }
+                          setCurrentCharacter({
+                            ...currentCharacter,
+                            appearance: {
+                              ...currentCharacter.appearance,
+                              build: e.target.value,
+                            },
+                          }, true)
+                        }
                     />
                     <datalist id="build-suggestions">
                       {buildSuggestions.map((b) => (
@@ -660,7 +659,7 @@ function CharactersPageContent() {
                             ...currentCharacter.appearance,
                             clothing: e.target.value,
                           },
-                        })
+                        }, true)
                       }
                     />
                   </div>
@@ -891,7 +890,7 @@ function CharactersPageContent() {
                                   ...currentCharacter.personality,
                                   trait,
                                 ],
-                              });
+                              }, true);
                             }
                           }}
                         >

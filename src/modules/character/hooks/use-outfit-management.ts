@@ -9,7 +9,7 @@ import { AppError } from "@/domain/types/result";
 
 interface UseOutfitManagementProps {
   currentCharacter: Character;
-  setCurrentCharacter: React.Dispatch<React.SetStateAction<Character>>;
+  setCurrentCharacter: (update: Character | ((prev: Character) => Character), shouldMarkDirty?: boolean) => void;
   setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>;
   addAssetToLibrary: (
     url: string,

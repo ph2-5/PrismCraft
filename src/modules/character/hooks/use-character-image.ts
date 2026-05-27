@@ -14,7 +14,7 @@ import { errorLogger } from "@/shared/error-logger";
 interface UseCharacterImageProps {
   currentCharacter: Character;
   currentCharacterRef: React.MutableRefObject<Character>;
-  setCurrentCharacter: React.Dispatch<React.SetStateAction<Character>>;
+  setCurrentCharacter: (update: Character | ((prev: Character) => Character), shouldMarkDirty?: boolean) => void;
   addAssetToLibrary: (
     url: string,
     type: "image" | "video",
@@ -176,6 +176,7 @@ export function useCharacterImage({
   const analyzeImage = async (imageUrl: string) => {
     if (isAnalyzingRef.current) return;
     isAnalyzingRef.current = true;
+    const characterIdAtStart = currentCharacterRef.current.id;
     analyzeTimeoutRef.current = setTimeout(() => {
       if (isAnalyzingRef.current) {
         isAnalyzingRef.current = false;
@@ -200,6 +201,8 @@ export function useCharacterImage({
       }
 
       const result = await container.imageProvider.analyzeImage(imageUrl, "character", undefined, { providerId: analyzeOptions.providerId, modelId: analyzeOptions.modelId });
+      if (currentCharacterRef.current.id !== characterIdAtStart) return;
+
       if (result.success && result.data?.analyzed) {
         const analyzed = result.data.analyzed as Partial<Character>;
 
@@ -221,7 +224,7 @@ export function useCharacterImage({
           description: analyzed.description || prev.description,
           refImagePath: imageUrl,
           generatedImage: imageUrl,
-        }));
+        }), true);
         if (currentCharacterRef.current.id) {
           try {
             const updateResult = await characterService.update(currentCharacterRef.current.id, {

@@ -26,6 +26,7 @@ import {
   tones,
 } from "@/modules/story";
 import { resolveImageUrl } from "@/shared/utils/image-url";
+import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { getErrorMessage } from "@/shared/error-handler";
 import { extractErrorMessage } from "@/shared/error-logger";
 import { generateProfessionalVideoPrompt } from "@/modules/prompt";
@@ -242,7 +243,7 @@ function StoryPageContent() {
                         );
                         if (!confirmed) return;
                       }
-                      story.setCurrentStory(DEFAULT_STORY);
+                      story.setCurrentStory(DEFAULT_STORY, true);
                       story.setBeats([]);
                       setShowProjectDropdown(false);
                     }}
@@ -461,13 +462,7 @@ function StoryPageContent() {
               src={resolveImageUrl(generatedVideo)}
               controls
               className="w-full max-h-48 rounded-lg border border-border"
-              onError={(e) => {
-                const target = e.target as HTMLVideoElement;
-                if (!target.dataset.retried) {
-                  target.dataset.retried = "1";
-                  target.src = resolveImageUrl(generatedVideo) || "";
-                }
-              }}
+              onError={createVideoErrorHandler()}
             />
           </div>
         )}

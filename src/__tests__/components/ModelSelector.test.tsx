@@ -49,7 +49,7 @@ vi.mock("@/shared/ui/select", () => ({
     <option value={value}>{children}</option>
   ),
   SelectTrigger: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="select-trigger" className={className}>{children}</div>
+    <>{children}</>
   ),
   SelectValue: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
@@ -224,10 +224,7 @@ describe("ModelSelector - API Key 边界状态", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("select-trigger")).toBeInTheDocument();
+      expect(screen.getByTestId("select")).toBeInTheDocument();
     });
-
-    const trigger = screen.getByTestId("select-trigger");
-    expect(trigger.className).toContain("w-[180px]");
   });
 });

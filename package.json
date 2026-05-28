@@ -74,7 +74,7 @@
     "productName": "AI Animation Studio",
     "npmRebuild": false,
     "directories": {
-      "output": "release2"
+      "output": "release"
     },
     "files": [
       "out/**/*",
@@ -96,7 +96,6 @@
       "!src/**",
       "!.next/**",
       "!release/**",
-      "!release2/**",
       "!tests/**",
       "!build-electron.ps1"
     ],

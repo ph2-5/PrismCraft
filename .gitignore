@@ -64,7 +64,6 @@ rescan-tsc.txt
 
 # Electron build output
 /release/
-/release2/
 
 # Electron TS compiled output
 /electron/dist/

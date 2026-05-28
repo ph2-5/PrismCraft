@@ -58,8 +58,10 @@ jobs:
         shell: bash
         run: |
           for i in 1 2 3; do
-            npm ci --ignore-scripts && break
-            if [ $i -lt 3 ]; then
+            if npm ci --ignore-scripts; then
+              echo "Dependencies installed successfully"
+              break
+            elif [ $i -lt 3 ]; then
               echo "Attempt $i failed, retrying in 10 seconds..."
               sleep 10
             else

@@ -39,8 +39,10 @@ jobs:
       - name: Install dependencies
         run: |
           for i in 1 2 3; do
-            npm ci --ignore-scripts && break
-            if [ $i -lt 3 ]; then
+            if npm ci --ignore-scripts; then
+              echo "Dependencies installed successfully"
+              break
+            elif [ $i -lt 3 ]; then
               echo "Attempt $i failed, retrying in 10 seconds..."
               sleep 10
             else
@@ -90,8 +92,10 @@ jobs:
       - name: Install dependencies
         run: |
           for i in 1 2 3; do
-            npm ci --ignore-scripts && break
-            if [ $i -lt 3 ]; then
+            if npm ci --ignore-scripts; then
+              echo "Dependencies installed successfully"
+              break
+            elif [ $i -lt 3 ]; then
               echo "Attempt $i failed, retrying in 10 seconds..."
               sleep 10
             else
@@ -142,8 +146,10 @@ jobs:
       - name: Install dependencies
         run: |
           for i in 1 2 3; do
-            npm ci --ignore-scripts && break
-            if [ $i -lt 3 ]; then
+            if npm ci --ignore-scripts; then
+              echo "Dependencies installed successfully"
+              break
+            elif [ $i -lt 3 ]; then
               echo "Attempt $i failed, retrying in 10 seconds..."
               sleep 10
             else
@@ -199,7 +205,10 @@ jobs:
           $maxAttempts = 3
           for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
             npm ci --ignore-scripts
-            if ($LASTEXITCODE -eq 0) { break }
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Dependencies installed successfully"
+              break
+            }
             if ($attempt -lt $maxAttempts) {
               Write-Host "Attempt $attempt failed, retrying in 10 seconds..."
               Start-Sleep -Seconds 10
@@ -266,8 +275,10 @@ jobs:
       - name: Install dependencies
         run: |
           for i in 1 2 3; do
-            npm ci --ignore-scripts && break
-            if [ $i -lt 3 ]; then
+            if npm ci --ignore-scripts; then
+              echo "Dependencies installed successfully"
+              break
+            elif [ $i -lt 3 ]; then
               echo "Attempt $i failed, retrying in 10 seconds..."
               sleep 10
             else

@@ -4,16 +4,27 @@ import { checkExpiration } from "../policies/expiration-policy";
 import { evaluatePolicies } from "../policies/policy-engine";
 import type { VideoTask } from "@/domain/schemas";
 
+const NOW = new Date("2025-01-15T12:00:00.000Z");
+
 function makeTask(overrides: Partial<VideoTask> = {}): VideoTask {
   return {
     taskId: "task-1",
     status: "pending",
     progress: 0,
     message: "",
-    createdAt: new Date().toISOString(),
+    createdAt: NOW.toISOString(),
     ...overrides,
   };
 }
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("timeout-policy", () => {
   it("should return NONE for a recent pending task", () => {

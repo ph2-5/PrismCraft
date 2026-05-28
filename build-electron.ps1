@@ -3,6 +3,12 @@ $projectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $env:BUILD_TARGET = "electron"
 
+$nextCacheDir = Join-Path $projectDir ".next"
+if (Test-Path $nextCacheDir) {
+    Remove-Item -Path $nextCacheDir -Recurse -Force
+    Write-Host "Cleared .next cache for clean build"
+}
+
 $apiDir = Join-Path $projectDir "src\app\api"
 $apiBackupDir = Join-Path $projectDir "src\app\_api_build_backup"
 $apiBackedUp = $false

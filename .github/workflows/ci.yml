@@ -21,6 +21,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Override .npmrc for CI (use official sources)
+        run: |
+          cat > .npmrc << 'EOF'
+          registry=https://registry.npmjs.org/
+          electron_mirror=https://github.com/electron/electron/releases/download/
+          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          EOF
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -53,6 +61,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Override .npmrc for CI (use official sources)
+        run: |
+          cat > .npmrc << 'EOF'
+          registry=https://registry.npmjs.org/
+          electron_mirror=https://github.com/electron/electron/releases/download/
+          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          EOF
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -88,6 +104,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Override .npmrc for CI (use official sources)
+        run: |
+          cat > .npmrc << 'EOF'
+          registry=https://registry.npmjs.org/
+          electron_mirror=https://github.com/electron/electron/releases/download/
+          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          EOF
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -117,6 +141,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Override .npmrc for CI (use official sources)
+        shell: pwsh
+        run: |
+          Set-Content -Path .npmrc -Value @'
+          registry=https://registry.npmjs.org/
+          electron_mirror=https://github.com/electron/electron/releases/download/
+          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          '@
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -171,6 +204,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Override .npmrc for CI (use official sources)
+        run: |
+          cat > .npmrc << 'EOF'
+          registry=https://registry.npmjs.org/
+          electron_mirror=https://github.com/electron/electron/releases/download/
+          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          EOF
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

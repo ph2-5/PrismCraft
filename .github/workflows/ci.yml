@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+env:
+  npm_config_fetch_timeout: 120000
+  npm_config_fetch_retry_mintimeout: 20000
+  npm_config_fetch_retry_maxtimeout: 120000
+
 jobs:
   lint-and-typecheck:
     runs-on: ubuntu-latest
@@ -93,7 +98,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Rebuild better-sqlite3 for current Node.js
-        run: npm rebuild better-sqlite3
+        run: npm rebuild better-sqlite3 || npm rebuild better-sqlite3
 
       - name: Run unit tests with coverage
         run: npx vitest run --coverage

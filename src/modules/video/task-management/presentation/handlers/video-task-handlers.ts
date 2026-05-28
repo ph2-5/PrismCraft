@@ -87,7 +87,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     if (!pollTask) return;
     setPollingTaskId(task.taskId);
     try { await pollTask(task.taskId); success("查询成功", "已手动查询任务状态已更新"); }
-    catch { error("查询失败", "查询任务状态时出错"); }
+    catch (err) { errorLogger.error("[VideoTaskHandlers] 手动轮询失败", err instanceof Error ? err : undefined); error("查询失败", "查询任务状态时出错"); }
     finally { setPollingTaskId(null); }
   };
 
@@ -115,7 +115,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
 
   const handleCopyTaskId = async (taskId: string) => {
     try { await navigator.clipboard.writeText(taskId); success("已复制", "任务ID已复制到剪贴板"); }
-    catch { error("复制失败", "无法复制到剪贴板"); }
+    catch (err) { errorLogger.error("[VideoTaskHandlers] 复制任务ID失败", err instanceof Error ? err : undefined); error("复制失败", "无法复制到剪贴板"); }
   };
 
   const handleExportCSV = () => {
@@ -166,12 +166,14 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
         const timer = setTimeout(() => URL.revokeObjectURL(url), 60000);
         blobUrlTimersRef.current.add(timer);
         success("下载开始", "正在下载视频");
-      } catch {
+      } catch (err) {
+        errorLogger.error("[VideoTaskHandlers] 视频直接下载失败，回退到新标签页", err instanceof Error ? err : undefined);
         const link = document.createElement("a"); link.href = downloadUrl; link.download = filename; link.target = "_blank"; link.rel = "noopener noreferrer";
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
         success("已打开视频", "直接下载失败，已在新标签页打开视频");
       }
-    } catch {
+    } catch (err) {
+      errorLogger.error("[VideoTaskHandlers] 视频下载失败，回退到新标签页", err instanceof Error ? err : undefined);
       const link = document.createElement("a"); link.href = task.videoUrl; link.target = "_blank"; link.rel = "noopener noreferrer";
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
       success("已打开视频", "下载失败，已在新标签页打开视频");

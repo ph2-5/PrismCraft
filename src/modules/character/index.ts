@@ -19,4 +19,4 @@ export {
   useCharacterCRUD,
 } from "./hooks";
 
-export { CharacterListItem } from "./presentation";
+export { CharacterListItem, OutfitDialog } from "./presentation";

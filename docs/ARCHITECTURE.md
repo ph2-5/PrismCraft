@@ -65,11 +65,11 @@ GitHub Actions 执行完整验证链：lint → typecheck → architecture check
 app/             → Next.js 页面和布局，消费模块提供的 Context
 modules/         → 9 个业务子域模块，每个有 hooks/services/presentation
 infrastructure/  → DI 容器、存储、网络、AI Provider、数据库
-shared/          → 跨切面 UI（Toast、Sidebar、ErrorBoundary）、工具函数、infrastructure 代理导出
+shared/          → 跨切面 UI（Toast、Sidebar、ErrorBoundary、DeleteConfirmDialog、AssetSelectorDialog）、工具函数、infrastructure 代理导出
 domain/          → 纯类型、Schema、Result 类型、错误码。零外部依赖
 ```
 
-**domain 层**是整个系统的核心。它定义了所有业务类型（Story、Character、Scene、VideoTask 等）、Result 类型（`ok(value)` / `err(code, message)`）、12 个语义化错误类（DatabaseError、ValidationError、ApiError 等）和 33 个结构化错误码。domain 层零依赖意味着类型定义不会因基础设施变更而被迫修改——这是 DDD 中"依赖必须向内流动"原则的基石。
+**domain 层**是整个系统的核心。它定义了所有业务类型（Story、Character、Scene、VideoTask 等）、Result 类型（`ok(value)` / `err(code, message)`）、12 个语义化错误类（DatabaseError、ValidationError、ApiError 等）和 28 个结构化错误码。domain 层零依赖意味着类型定义不会因基础设施变更而被迫修改——这是 DDD 中"依赖必须向内流动"原则的基石。
 
 **modules 层**包含 9 个业务模块，每个模块遵循 `index.ts`（桶文件）+ `MODULE.md`（契约）+ 子域目录的结构。模块只能导入 `@/domain/*`、`@/shared/*` 和 `@/infrastructure/di`（通过 DI 容器获取基础设施实例）。
 
@@ -791,9 +791,9 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 
 **ESLint 架构守卫规则**：在编辑器实时执行，禁止 shared→modules 导入、domain→infrastructure 导入、modules 深层路径导入。生产代码中违反为 error，测试代码中为 warn。
 
-### 9.3 33 条回归防护
+### 9.3 36 条回归防护
 
-回归防护规则来自两次 Bug 审计，每条规则对应一个已发生的真实 Bug：
+回归防护规则来自三次 Bug 审计，每条规则对应一个已发生的真实 Bug：
 
 **数据一致性（R1, R2, R8, R9, R13, R14）**：
 
@@ -851,9 +851,15 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 - R28：批量查询优于 N+1 循环查询——Storage 层的 getAll 方法必须使用批量查询（一次查询所有关联数据，内存按父 ID 分组），而非逐条查询关联数据
 - R33：写操作前的存在性检查应尽可能消除——UPDATE WHERE id=? 自然处理不存在的记录（影响 0 行），无需预先 SELECT
 
+**Vibe Coding 审计（R34-R36）**：
+
+- R34：Zustand store 更新必须使用函数式 `set(state => ...)`——`get()+set({})` 模式在并发时会覆盖其他更新
+- R35：Blob URL 必须在组件卸载时 revoke——`URL.createObjectURL()` 创建的预览 URL 需用 `useRef` 跟踪并在 useEffect cleanup 中释放
+- R36：异步 AI 分析结果必须选择性合并——只覆盖 AI 产生的字段（`??` 运算符），不能 spread 覆盖用户正在编辑的 `name`/`description`
+
 ### 9.4 Bug 审计方法论
 
-27 条回归防护来自两次定向 Bug 审计，审计遵循"使用驱动发现 + 结构化验证固化"方法论。完整操作手册见 `docs/bug-audit-methodology.md`，此处记录核心框架。
+36 条回归防护来自三次定向 Bug 审计，审计遵循"使用驱动发现 + 结构化验证固化"方法论。完整操作手册见 `docs/bug-audit-methodology.md`，此处记录核心框架。
 
 **三阶段工作流**：
 

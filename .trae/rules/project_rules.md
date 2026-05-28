@@ -387,7 +387,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 33 guards:**
+**Quick reference — all 36 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
@@ -398,6 +398,9 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 | Electron Compatibility | R21 | No fetch("/api/..."), use DI/IPC/proxy exports |
 | UX Completeness | R22, R23, R24, R25 | Loading states, action feedback, data loading indicators |
 | Code Quality | R3, R26, R27, R28, R33 | Cross-context verify, static imports, DDD layer compliance, batch over N+1 queries, eliminate existence-check before writes |
+| Async Safety | R34 | Zustand functional updates over get()+set() |
+| Resource Safety | R35 | Blob URL revoke on unmount |
+| Data Integrity | R36 | AI analysis selective merge over spread override |
 
 ## Documentation Index
 

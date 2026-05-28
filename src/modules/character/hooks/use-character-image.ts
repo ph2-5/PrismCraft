@@ -118,6 +118,7 @@ export function useCharacterImage({
         });
         success("保存成功", "图像已保存到角色并加入素材库");
       } catch (err) {
+        errorLogger.error("[CharacterImage] 保存图像到角色失败", err instanceof Error ? err : undefined);
         showError("保存失败", err instanceof Error ? err.message : "未知错误");
       }
     }
@@ -147,6 +148,7 @@ export function useCharacterImage({
               name: currentCharacter.name || "未命名角色",
             });
           } catch (err) {
+            errorLogger.error("[CharacterImage] 上传后保存图像到角色失败", err instanceof Error ? err : undefined);
             showError("保存失败", err instanceof Error ? err.message : "未知错误");
           }
         } else {
@@ -208,20 +210,16 @@ export function useCharacterImage({
 
         setCurrentCharacter((prev) => ({
           ...prev,
-          name: analyzed.name || prev.name,
-          gender: analyzed.gender || prev.gender,
-          age: analyzed.age || prev.age,
-          style: analyzed.style || prev.style,
-          personality: analyzed.personality || prev.personality,
+          style: analyzed.style ?? prev.style,
+          personality: analyzed.personality ?? prev.personality,
           appearance: {
-            hairColor: analyzed.appearance?.hairColor || prev.appearance.hairColor,
-            hairStyle: analyzed.appearance?.hairStyle || prev.appearance.hairStyle,
-            eyeColor: analyzed.appearance?.eyeColor || prev.appearance.eyeColor,
-            height: analyzed.appearance?.height || prev.appearance.height,
-            build: analyzed.appearance?.build || prev.appearance.build,
-            clothing: analyzed.appearance?.clothing || prev.appearance.clothing,
+            hairColor: analyzed.appearance?.hairColor ?? prev.appearance.hairColor,
+            hairStyle: analyzed.appearance?.hairStyle ?? prev.appearance.hairStyle,
+            eyeColor: analyzed.appearance?.eyeColor ?? prev.appearance.eyeColor,
+            height: analyzed.appearance?.height ?? prev.appearance.height,
+            build: analyzed.appearance?.build ?? prev.appearance.build,
+            clothing: analyzed.appearance?.clothing ?? prev.appearance.clothing,
           },
-          description: analyzed.description || prev.description,
           refImagePath: imageUrl,
           generatedImage: imageUrl,
         }), true);
@@ -235,6 +233,7 @@ export function useCharacterImage({
             if (!updateResult.ok) throw updateResult.error;
             queryClient.invalidateQueries({ queryKey: ["characters"] });
           } catch (err) {
+            errorLogger.error("[CharacterImage] 分析后保存图像到角色失败", err instanceof Error ? err : undefined);
             showError("保存失败", err instanceof Error ? err.message : "未知错误");
           }
         }

@@ -7,4 +7,4 @@ export type { SyncStatus, SyncEntityType, ChangeOperation, VectorClock, SyncChan
 export { SYNC_TABLES, DEFAULT_SYNC_CONFIG, createVectorClock, incrementVectorClock, mergeVectorClocks, compareVectorClocks, isVectorClockConflict } from "./sync";
 export type { VideoTaskRecord, VideoTaskHistory, CustomApiConfig } from "./electron-api";
 export type { ErrorDomain, ErrorCodeEntry, ErrorCategory } from "./error-codes";
-export { getErrorCodeEntry, isRetryable, getErrorDomain, getAllErrorCodes, getErrorCodesByDomain, isRegisteredCode, classifyError } from "./error-codes";
+export { isRetryable, classifyError } from "./error-codes";

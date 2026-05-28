@@ -19,7 +19,7 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
       video.removeEventListener("error", handleError);
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       URL.revokeObjectURL(url);
-      video.src = "";
+      video.removeAttribute('src');
       video.load();
       video.remove();
     };

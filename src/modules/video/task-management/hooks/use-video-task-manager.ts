@@ -98,7 +98,11 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     const loadTasks = async () => {
       try {
         const tasks = await container.videoTaskStorage.getVideoTasks();
-        set({ allTasks: tasks, isInitialized: true, initError: null });
+        set((state) => {
+          const loadedIds = new Set(tasks.map((t) => t.taskId));
+          const concurrentAdditions = state.allTasks.filter((t) => !loadedIds.has(t.taskId));
+          return { allTasks: [...tasks, ...concurrentAdditions], isInitialized: true, initError: null };
+        });
 
         try {
           const cleanedCountResult = await cleanExpiredVideoCache();
@@ -197,8 +201,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
               xhr.setRequestHeader("Content-Type", "application/json");
               xhr.setRequestHeader("X-Electron-App", "true");
               xhr.send(JSON.stringify({ tasks: bulkData }));
-            } catch {
-              // sync XHR best-effort, ignore failures
+            } catch (err) {
+              errorLogger.error("[VideoTaskManager] beforeunload同步保存失败", err instanceof Error ? err : undefined);
             }
           }
           if (pollingState.syncTimeoutId) {

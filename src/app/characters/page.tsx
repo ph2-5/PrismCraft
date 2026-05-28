@@ -32,27 +32,20 @@ import {
   X,
   Loader2,
   Upload,
-  ImageIcon,
   ScanLine,
-  AlertTriangle,
   Sparkles,
   Folder,
   Shirt,
   GitBranch,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
+import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
+import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
 import { BatchOperations } from "@/modules/asset";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
 import {
   CharacterListItem,
+  OutfitDialog,
 } from "@/modules/character";
 import { MediaExporter } from "@/modules/asset";
 import { ModelSelector } from "@/modules/prompt";
@@ -1085,233 +1078,52 @@ function CharactersPageContent() {
         <MediaExporter type="character" item={currentCharacter} />
       )}
 
-      {/* 删除确认对话框 */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              确认删除角色
-            </DialogTitle>
-            <DialogDescription>
-              {referenceCheck && referenceCheck.references.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-destructive font-medium">
-                    该角色正在被 {referenceCheck.references.length} 个引用关联
-                  </p>
-                  <div className="max-h-40 overflow-y-auto space-y-1">
-                    {referenceCheck.references.map((ref) => (
-                      <div
-                        key={ref.elementId}
-                        className="text-sm bg-muted p-2 rounded"
-                      >
-                        <span className="font-medium">{ref.elementName}</span>
-                        {ref.usedInBeats.length > 0 && (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            ({ref.usedInBeats.length} 个镜头)
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    删除后，相关故事中的角色引用将失效。建议先修改故事内容。
-                  </p>
-                </div>
-              ) : (
-                "确定要删除这个角色吗？此操作不可撤销。"
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
-            >
-              取消
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={isDeleting}
-              onClick={() =>
-                characterToDelete && performDelete(characterToDelete)
-              }
-            >
-              {isDeleting ? "删除中..." : "确认删除"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        entityLabel="角色"
+        isDeleting={isDeleting}
+        onConfirm={() => characterToDelete && performDelete(characterToDelete)}
+        referenceCheck={referenceCheck}
+      />
 
-      {/* 服装编辑对话框 */}
-      <Dialog open={showOutfitDialog} onOpenChange={setShowOutfitDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingOutfit ? "编辑服装" : "添加服装"}</DialogTitle>
-            <DialogDescription>为角色创建不同的服装变体</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="outfit-name">服装名称</Label>
-              <Input
-                id="outfit-name"
-                placeholder="例如：战斗服、日常装、礼服..."
-                value={outfitForm.name || ""}
-                onChange={(e) =>
-                  setOutfitForm({ ...outfitForm, name: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="outfit-description">服装描述</Label>
-              <Textarea
-                id="outfit-description"
-                placeholder="描述这套服装的特点、用途..."
-                rows={2}
-                value={outfitForm.description || ""}
-                onChange={(e) =>
-                  setOutfitForm({
-                    ...outfitForm,
-                    description: e.target.value,
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="outfit-clothing">服装详细描述</Label>
-              <Textarea
-                id="outfit-clothing"
-                placeholder="详细描述穿着：风格、颜色、材质、配饰..."
-                rows={3}
-                value={outfitForm.clothing || ""}
-                onChange={(e) =>
-                  setOutfitForm({
-                    ...outfitForm,
-                    clothing: e.target.value,
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>配饰</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="输入配饰，按回车添加..."
-                  value={customAccessory}
-                  onChange={(e) => setCustomAccessory(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addAccessory();
-                    }
-                  }}
-                  className="flex-1"
-                />
-                <Button onClick={addAccessory}>添加</Button>
-              </div>
-              {outfitForm.accessories && outfitForm.accessories.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {outfitForm.accessories.map((acc) => (
-                    <Badge
-                      key={acc}
-                      className="cursor-pointer px-3 py-1 gap-1"
-                      onClick={() => removeAccessory(acc)}
-                    >
-                      {acc}
-                      <X className="w-3 h-3" />
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowOutfitDialog(false)}
-            >
-              取消
-            </Button>
-            <Button onClick={handleAddOutfit}>
-              {editingOutfit ? "保存修改" : "添加服装"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <OutfitDialog
+        open={showOutfitDialog}
+        onOpenChange={setShowOutfitDialog}
+        editingOutfit={editingOutfit}
+        outfitForm={outfitForm}
+        setOutfitForm={setOutfitForm}
+        customAccessory={customAccessory}
+        setCustomAccessory={setCustomAccessory}
+        onAddOutfit={handleAddOutfit}
+        onAddAccessory={addAccessory}
+        onRemoveAccessory={removeAccessory}
+      />
 
-      {/* 素材选择器 */}
-      <Dialog open={showAssetSelector} onOpenChange={setShowAssetSelector}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>从素材库选择</DialogTitle>
-            <DialogDescription>选择一张图片作为角色图像</DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
-              {assets
-                .filter((a) => a.type === "image")
-                .map((asset) => (
-                  <div
-                    key={asset.id}
-                    onClick={async () => {
-                      setGeneratedImage(asset.url);
-                      if (currentCharacter.id) {
-                        try {
-                          const result = await characterService.update(
-                            currentCharacter.id,
-                            {
-                              ...currentCharacter,
-                              refImagePath: asset.url,
-                              generatedImage: asset.url,
-                            },
-                          );
-                          if (!result.ok) throw result.error;
-                          queryClient.invalidateQueries({
-                            queryKey: ["characters"],
-                          });
-                        } catch (err) {
-                          showError(
-                            "保存失败",
-                            err instanceof Error ? err.message : "未知错误",
-                          );
-                        }
-                      }
-                      setShowAssetSelector(false);
-                      success("选择成功", "已从素材库选择图片");
-                    }}
-                    className="cursor-pointer group relative aspect-square rounded-lg overflow-hidden border border-slate-700 hover:border-amber-500 transition-all"
-                  >
-                    <img
-                      src={asset.url}
-                      alt={asset.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute bottom-0 left-0 right-0 p-2">
-                        <p className="text-xs text-white font-medium truncate">
-                          {asset.name}
-                        </p>
-                        {asset.boundTo && (
-                          <p className="text-xs text-amber-300 truncate">
-                            绑定: {asset.boundTo.name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-            {assets.filter((a) => a.type === "image").length === 0 && (
-              <div className="text-center py-12 text-slate-400">
-                <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>素材库中暂无图片</p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AssetSelectorDialog
+        open={showAssetSelector}
+        onOpenChange={setShowAssetSelector}
+        assets={assets}
+        description="选择一张图片作为角色图像"
+        onSelect={async (asset) => {
+          setGeneratedImage(asset.url);
+          if (currentCharacter.id) {
+            try {
+              const result = await characterService.update(currentCharacter.id, {
+                ...currentCharacter,
+                refImagePath: asset.url,
+                generatedImage: asset.url,
+              });
+              if (!result.ok) throw result.error;
+              queryClient.invalidateQueries({ queryKey: ["characters"] });
+            } catch (err) {
+              showError("保存失败", err instanceof Error ? err.message : "未知错误");
+            }
+          }
+          setShowAssetSelector(false);
+          success("选择成功", "已从素材库选择图片");
+        }}
+      />
     </PageErrorBoundary>
   );
 }

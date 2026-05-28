@@ -82,7 +82,7 @@ export function useSceneImage({
         queryClient.invalidateQueries({ queryKey: ["scenes"] });
         addAssetToLibrary(generatedImage, "image", currentScene.name || "场景图片", { type: "scene", id: currentScene.id, name: currentScene.name || "未命名场景" });
         success("保存成功", "图像已保存到场景并加入素材库");
-      } catch (err) { showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
+      } catch (err) { errorLogger.error("[SceneImage] 保存图像到场景失败", err instanceof Error ? err : undefined); showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
     }
   };
 
@@ -101,7 +101,7 @@ export function useSceneImage({
             if (!updateResult.ok) throw updateResult.error;
             queryClient.invalidateQueries({ queryKey: ["scenes"] });
             addAssetToLibrary(imageUrl, "image", currentScene.name || "场景图片", { type: "scene", id: currentScene.id, name: currentScene.name || "未命名场景" });
-          } catch (err) { showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
+          } catch (err) { errorLogger.error("[SceneImage] 上传后保存图像到场景失败", err instanceof Error ? err : undefined); showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
         } else { addAssetToLibrary(imageUrl, "image", "上传的图片"); }
         success("上传成功", "图片已上传并保存到素材库");
       } else { showError("上传失败", result.error || "请重试"); }
@@ -139,15 +139,12 @@ export function useSceneImage({
         const analyzed = result.data.analyzed as Partial<Scene>;
         setCurrentScene((prev) => ({
           ...prev,
-          name: analyzed.name || prev.name,
-          type: analyzed.type || prev.type,
-          timeOfDay: analyzed.timeOfDay || prev.timeOfDay,
-          weather: analyzed.weather || prev.weather,
-          mood: analyzed.mood || prev.mood,
-          lighting: analyzed.lighting || prev.lighting,
-          elements: analyzed.elements || prev.elements,
-          colors: analyzed.colors || prev.colors,
-          description: analyzed.description || prev.description,
+          elements: analyzed.elements ?? prev.elements,
+          colors: analyzed.colors ?? prev.colors,
+          lighting: analyzed.lighting ?? prev.lighting,
+          mood: analyzed.mood ?? prev.mood,
+          weather: analyzed.weather ?? prev.weather,
+          timeOfDay: analyzed.timeOfDay ?? prev.timeOfDay,
           scenePath: imageUrl,
           generatedImage: imageUrl,
         }), true);
@@ -158,7 +155,7 @@ export function useSceneImage({
               scenePath: imageUrl,
               generatedImage: imageUrl,
             }); if (!updateResult.ok) throw updateResult.error; queryClient.invalidateQueries({ queryKey: ["scenes"] }); }
-          catch (err) { showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
+          catch (err) { errorLogger.error("[SceneImage] 分析后保存图像到场景失败", err instanceof Error ? err : undefined); showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
         }
         addAssetToLibrary(imageUrl, "image", analyzed.name || currentSceneRef.current.name || "场景图片", { type: "scene", id: currentSceneRef.current.id, name: analyzed.name || currentSceneRef.current.name || "未命名场景" });
         success("分析完成", `已自动填充场景信息：${analyzed.name || "未命名场景"}，并保存到素材库`);

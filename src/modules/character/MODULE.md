@@ -53,6 +53,7 @@
 | API | 签名 | 说明 |
 |-----|------|------|
 | `CharacterListItem` | `React.FC<CharacterListItemProps>` | 角色列表项组件 |
+| `OutfitDialog` | `React.FC<OutfitDialogProps>` | 服装编辑对话框组件 |
 
 ---
 

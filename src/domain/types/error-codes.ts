@@ -62,28 +62,8 @@ for (const entry of ERROR_CODES) {
   codeMap.set(entry.code, entry);
 }
 
-export function getErrorCodeEntry(code: string): ErrorCodeEntry | undefined {
-  return codeMap.get(code);
-}
-
 export function isRetryable(code: string): boolean {
   return codeMap.get(code)?.retryable ?? false;
-}
-
-export function getErrorDomain(code: string): ErrorDomain | undefined {
-  return codeMap.get(code)?.domain;
-}
-
-export function getAllErrorCodes(): readonly ErrorCodeEntry[] {
-  return ERROR_CODES;
-}
-
-export function getErrorCodesByDomain(domain: ErrorDomain): ErrorCodeEntry[] {
-  return ERROR_CODES.filter((e) => e.domain === domain);
-}
-
-export function isRegisteredCode(code: string): boolean {
-  return codeMap.has(code);
 }
 
 export type ErrorCategory =

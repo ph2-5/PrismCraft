@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Sparkles,
   User,
@@ -115,6 +115,7 @@ export default function QuickGeneratePage() {
   const [cachedVideoUrl, setCachedVideoUrl] = useState<string | null>(null);
   const [cachedVideoUrlTaskId, setCachedVideoUrlTaskId] = useState<string | null>(null);
   const [isSavingToAssets, setIsSavingToAssets] = useState(false);
+  const referenceVideoBlobRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -126,11 +127,11 @@ export default function QuickGeneratePage() {
 
   useEffect(() => {
     return () => {
-      if (referenceVideo && referenceVideo.startsWith("blob:")) {
-        URL.revokeObjectURL(referenceVideo);
+      if (referenceVideoBlobRef.current) {
+        URL.revokeObjectURL(referenceVideoBlobRef.current);
       }
     };
-  }, [referenceVideo]);
+  }, []);
 
   // 视频任务管理
   const {
@@ -361,6 +362,7 @@ export default function QuickGeneratePage() {
         URL.revokeObjectURL(referenceVideo);
       }
       const blobUrl = URL.createObjectURL(file);
+      referenceVideoBlobRef.current = blobUrl;
       setReferenceVideo(blobUrl);
       setReferenceVideoFile(file);
       setReferenceVideoName(file.name);
@@ -374,6 +376,7 @@ export default function QuickGeneratePage() {
     if (referenceVideo && referenceVideo.startsWith("blob:")) {
       URL.revokeObjectURL(referenceVideo);
     }
+    referenceVideoBlobRef.current = null;
     setReferenceVideo(null);
     setReferenceVideoFile(null);
     setReferenceVideoName(null);

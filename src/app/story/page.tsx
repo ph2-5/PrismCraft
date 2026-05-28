@@ -28,7 +28,7 @@ import {
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { getErrorMessage } from "@/shared/error-handler";
-import { extractErrorMessage } from "@/shared/error-logger";
+import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { generateProfessionalVideoPrompt } from "@/modules/prompt";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
@@ -50,7 +50,8 @@ function useAutoSaveSettings() {
     try {
       const parsed = preferencesStorage.get<{ enabled?: boolean }>("ai-animation-autosave-settings", {});
       return typeof parsed.enabled === "boolean" ? parsed.enabled : true;
-    } catch {
+    } catch (err) {
+      errorLogger.error("[Story] 读取自动保存设置失败", err instanceof Error ? err : undefined);
       return true;
     }
   });
@@ -58,7 +59,8 @@ function useAutoSaveSettings() {
     try {
       const parsed = preferencesStorage.get<{ interval?: number }>("ai-animation-autosave-settings", {});
       return typeof parsed.interval === "number" && parsed.interval > 0 ? parsed.interval : 5;
-    } catch {
+    } catch (err) {
+      errorLogger.error("[Story] 读取自动保存间隔设置失败", err instanceof Error ? err : undefined);
       return 5;
     }
   });
@@ -167,6 +169,7 @@ function StoryPageContent() {
         throw new Error(result.error || "生成失败");
       }
     } catch (err) {
+      errorLogger.error("[Story] 视频生成失败", err instanceof Error ? err : undefined);
       showError("视频生成失败", getErrorMessage(err));
     } finally {
       setIsGenerating(false);
@@ -198,6 +201,7 @@ function StoryPageContent() {
       performSwitchStory(pendingSwitchStory);
       success("已保存并切换", "当前修改已保存");
     } catch (error) {
+      errorLogger.error("[Story] 保存并切换失败", error instanceof Error ? error : undefined);
       showError("保存失败", extractErrorMessage(error));
     }
   };

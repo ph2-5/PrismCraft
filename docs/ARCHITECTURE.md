@@ -359,6 +359,19 @@ const storage = container.videoTaskStorage; // 属性访问，非方法调用
 
 违反此原则的典型反模式：将 `sanitizeIdentifier`、`sanitizeTable` 等纯函数注册到 DI 容器。这些函数无状态、无副作用，测试中不需要 mock——直接从 `@/shared/sql-safety` 导入即可。
 
+### 5.4 @/shared/ 代理导出清单
+
+模块不能直接导入 `@/infrastructure/*`（除 DI），但某些 infrastructure 纯函数是模块运行所必需的。`@/shared/` 通过代理导出解决此约束：
+
+| 代理模块 | 导出函数 | 来源（infrastructure） | 用途 |
+|---------|---------|----------------------|------|
+| `@/shared/db-core` | `safeQuery`, `safeRun`, `safeTransaction`, `withRetry` | `infrastructure/storage/sqlite-core` | 安全数据库操作 |
+| `@/shared/api-config` | `checkConfigStatus`, `testConnection` | `infrastructure/network/api-client` | API 配置检查 |
+| `@/shared/video-cache` | `cacheVideoBlob`, `getCachedVideoUrl` | `infrastructure/storage/video-cache` | 视频缓存操作 |
+| `@/shared/outfit` | `getAllOutfits`, `getOutfitsForCharacter` | `infrastructure/storage/characters/outfit-manager` | 角色服装批量查询 |
+| `@/shared/sql-safety` | `sanitizeIdentifier`, `sanitizeTable`, `buildSafeUpdate`, `buildSafeDelete` | `infrastructure/storage/sql-sanitizer` | SQL 安全工具 |
+| `@/shared/model-capabilities` | `getModelCapabilities`, `ImageSizePurpose` | `infrastructure/ai-providers/model-capabilities` | AI 模型能力查询 |
+
 ## 六、数据模型与存储层
 
 ### 6.1 SQLite 架构
@@ -423,6 +436,142 @@ PRAGMA mmap_size = 268435456;    -- 256MB 内存映射
 
 **为什么需要双重 DDL 检测**：Preload 层的检测在渲染进程中执行，理论上可以被绕过（如直接调用 `ipcRenderer.invoke`）。主进程层的检测是最后一道防线，确保即使渲染进程被恶意代码控制，也无法执行 DDL 语句。
 
+### 6.4 视频任务状态机
+
+视频任务是项目中最复杂的状态实体，其状态转换由 `TaskMachine` 严格管控：
+
+```
+                    ┌──────────┐
+          ┌────────→│ pending  │←──────────┐
+          │         └────┬─────┘           │
+          │              │                 │
+     cancelled    generating,failed   cancelled
+          │              │                 │
+          │         ┌────┴─────┐           │
+          │         │generating│           │
+          │         └────┬─────┘           │
+          │              │                 │
+          │   completed,failed,cancelled   │
+          │         ┌────┴─────┐           │
+          │         │completed │           │
+          │         └──────────┘           │
+          │                                │
+          │         ┌──────┐    ┌────────┐ │
+          └─────────│failed│←──│retrying│←┘
+                    └──┬───┘    └───┬────┘
+                       │            │
+                  retrying    generating,
+                  cancelled   completed,failed,cancelled
+```
+
+**合法转换表**：
+
+| 当前状态 | 可转换到 | 触发条件 |
+|---------|---------|---------|
+| pending | generating | API 接受任务 |
+| pending | failed | API 拒绝任务 |
+| pending | cancelled | 用户取消 |
+| generating | completed | API 返回视频 URL |
+| generating | failed | API 返回错误 / 超时 |
+| generating | cancelled | 用户取消 |
+| completed | pending | 重新生成 |
+| failed | retrying | 智能重试触发 |
+| failed | cancelled | 用户取消 |
+| retrying | generating | 重试请求被接受 |
+| retrying | completed | 重试成功 |
+| retrying | failed | 重试失败 |
+| retrying | cancelled | 用户取消 |
+| cancelled | （终态） | — |
+
+**可轮询状态**：pending、generating、retrying。只有这些状态的任务需要定时轮询 API 查询进度。
+
+**终态**：completed、failed、cancelled。终态任务不参与轮询。
+
+**副作用**：每次转换自动设置副作用字段——generating 时重置 `pollFailureCount`；completed 时设置 `progress: 100` 和 `videoUrl`；failed 时设置 `message`；pending 时清空 `videoUrl` 和 `progress`。
+
+### 6.5 断路器状态机
+
+网络韧性层的断路器按 Provider 隔离：
+
+```
+CLOSED ──(连续失败 ≥ 阈值)──→ OPEN
+  ↑                              │
+  │                              │(等待恢复超时)
+  │                              ↓
+  └──(成功 ≥ 阈值)──── HALF_OPEN
+                              │
+                    (任何失败) │
+                              ↓
+                            OPEN
+```
+
+| 状态 | 行为 | 转换条件 |
+|------|------|---------|
+| CLOSED | 请求直接通过 | 连续失败 ≥ failureThreshold（默认 3）→ OPEN |
+| OPEN | 所有请求快速失败 | 等待 recoveryTimeout（默认 30s）→ HALF_OPEN |
+| HALF_OPEN | 允许有限请求通过 | 成功 ≥ successThreshold（默认 2）→ CLOSED；任何失败 → OPEN |
+
+### 6.6 端到端数据流
+
+**用户保存故事的完整数据流**：
+
+```
+用户点击保存 / Ctrl+S
+  → useStorySaver.handleSave()
+    → savingRef.current = true（并发守卫）
+    → storyIdAtSaveStart = currentStory.id（快照）
+    → storyService.update(id, data)
+      → updateStoryInputSchema.safeParse()（验证）
+      → container.storyStorage.updateStory(id, data)
+        → safeRun(UPDATE stories SET ... WHERE id = ?)（IPC: db:run）
+        → trackChange("stories", id)（变更追踪）
+      → container.eventBus.emit(STORY_UPDATED)（事件通知）
+    → currentStoryIdRef.current === storyIdAtSaveStart?（上下文验证）
+    → setStories() + setCurrentStory()（React 状态更新）
+    → markClean("story")（清除 dirty 标记）
+    → success toast
+    → savingRef.current = false
+```
+
+**视频任务轮询的完整数据流**：
+
+```
+polling-engine (5-15s interval)
+  → getActiveTasks()（IPC: db:query）
+  → for each task where TaskMachine.isPollable(status):
+    → apiClient.pollTask(provider, taskId)
+      → resilient-fetch（断路器检查 → 重试策略 → HTTP 请求）
+    → TaskMachine.transition(task, newStatus, context)
+    → container.videoTaskStorage.updateTask(task)
+      → safeRun(UPDATE video_tasks SET ... WHERE id = ?)（IPC: db:run）
+    → if completed: emitToast("视频生成完成", taskLabel)
+    → if failed: smartRetryEngine.evaluate(task)
+      → if retryable: TaskMachine.transition(task, "retrying")
+      → else: emitToast("error", taskLabel)
+```
+
+**角色删除的完整数据流**：
+
+```
+用户确认删除
+  → characterService.delete(id)
+    → deleteCharacterWithRefs(id)
+      → safeQuery(SELECT image paths)（收集文件路径）
+      → safeTransaction([
+          DELETE FROM story_characters WHERE character_id = ?,
+          UPDATE story_beats SET character = NULL WHERE character = ?,
+          DELETE FROM character_outfits WHERE character_id = ?,
+          DELETE FROM characters WHERE id = ?
+        ])（IPC: db:transaction，原子操作）
+      → removeIdFromJsonArray("story_beats", "character", id, "character_ids_json")
+      → removeIdFromJsonArray("storyboard_assets", "character", id, "character_ids")
+      → cleanupLocalFiles([...paths])（删除本地图片文件）
+    → onUpdateStoriesAfterDelete(id, stories)
+      → for each affected story: storyService.update()（逐个 try-catch）
+      → if partial failure: showError("部分故事引用未清除", failedList)
+    → TanStack Query invalidation → UI 刷新
+```
+
 ## 七、Electron 主进程架构
 
 ### 7.1 进程模型
@@ -461,7 +610,7 @@ Preload (preload.ts)
 | SYSTEM | shell:open-external, dialog:open-file, dialog:save-file, db:close | 系统级操作，涉及外部程序或关键资源 |
 | SECURE | secure-config:resolve | 安全操作，解密 API Key |
 
-**速率限制**：每个通道独立限流。READONLY 通道 300 次/分钟，其他通道 100 次/分钟。全局限制 600 次/分钟。超过限制的调用直接抛出错误。限流历史每 60 秒清理一次，防止内存泄漏。
+**速率限制**：每个通道独立限流。READONLY 通道 5000 次/分钟，其他通道 300 次/分钟。全局限制 10000 次/分钟。超过限制的调用直接抛出错误。限流历史每 60 秒清理一次，防止内存泄漏。
 
 **未注册通道拦截**：调用未在 `IPC_PERMISSIONS` 中注册的通道时，请求被拒绝并通过 `log:security` 通道记录安全日志。这防止了恶意代码通过未授权通道与主进程通信。
 
@@ -642,7 +791,7 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 
 **ESLint 架构守卫规则**：在编辑器实时执行，禁止 shared→modules 导入、domain→infrastructure 导入、modules 深层路径导入。生产代码中违反为 error，测试代码中为 warn。
 
-### 9.3 27 条回归防护
+### 9.3 33 条回归防护
 
 回归防护规则来自两次 Bug 审计，每条规则对应一个已发生的真实 Bug：
 
@@ -670,6 +819,16 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 - R17：级联更新对部分失败有韧性——每个关联实体独立处理，收集失败列表
 - R18：存储配额错误必须通知用户——QuotaExceededError 后 toast 告警
 
+**数据一致性扩展（R30）**：
+
+- R30：级联删除操作必须原子——所有 DELETE/UPDATE 语句在同一 `safeTransaction` 中执行，拆分为多个事务会导致部分完成的数据不一致
+
+**异步安全扩展（R29, R31, R32）**：
+
+- R29：异步回调必须验证实体 ID 一致性——异步操作完成时，检查操作开始时的实体 ID 是否仍为当前实体 ID
+- R31：用户主动触发的异步保存必须验证实体上下文——保存开始时快照实体 ID，保存完成后验证当前实体 ID 未变
+- R32：批量生成循环必须检查组件卸载取消——`cancelledRef` + useEffect cleanup + 循环内 break
+
 **UI 健壮性（R7, R16, R19, R20）**：
 
 - R7/R19：Video onError 必须使用 data-retried 守卫——防止 fallback URL 也失败时的无限循环
@@ -684,11 +843,13 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 - R24：用户显式操作有成功 toast 反馈
 - R25：数据依赖 UI 显示 loading 指示器
 
-**代码质量（R3, R26, R27）**：
+**代码质量（R3, R26, R27, R28, R33）**：
 
 - R3：跨上下文状态更新必须验证所有权
 - R26：不必要的动态导入替换为静态导入
 - R27：App 层访问基础设施必须通过 DI 容器
+- R28：批量查询优于 N+1 循环查询——Storage 层的 getAll 方法必须使用批量查询（一次查询所有关联数据，内存按父 ID 分组），而非逐条查询关联数据
+- R33：写操作前的存在性检查应尽可能消除——UPDATE WHERE id=? 自然处理不存在的记录（影响 0 行），无需预先 SELECT
 
 ### 9.4 Bug 审计方法论
 

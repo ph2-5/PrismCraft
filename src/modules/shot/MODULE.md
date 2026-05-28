@@ -1,71 +1,139 @@
 # Shot Module
 
-## 职责
+## 模块概述
 
-分镜系统：一致性检查、元素绑定、特征提取、镜头指令、引用引擎
+分镜系统：负责分镜的视觉一致性检查、元素绑定、特征提取与锚定、镜头指令转换、分镜生成管道、引用引擎和引用检查。为 story 模块和 API 路由提供分镜相关的核心能力。
 
 ---
 
 ## 子域结构
 
-本模块采用子域架构，包含 7 个内部子域：
-
-| 子域 | 路径 | 职责 |
+| 子域 | 路径 | 描述 |
 |------|------|------|
-| `consistency-check` | [consistency-check/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/shot/consistency-check/) | 视觉一致性检查 |
-| `element-binding` | [element-binding/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/shot/element-binding/) | 元素绑定、元素管理器 |
-| `feature-extraction` | [feature-extraction/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/shot/feature-extraction/) | 特征锚定 |
-| `reference-check` | [reference-check/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/shot/reference-check/) | 引用检查 |
-| `shot-generation` | [shot-generation/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/shot/shot-generation/) | 分镜生成、动态少样本、验证器 |
-| `shot-instruction` | [shot-instruction/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/shot/shot-instruction/) | 镜头指令转换 |
-| `shot-reference` | [shot-reference/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/shot/shot-reference/) | 镜头引用引擎 |
+| `consistency-check` | consistency-check/ | 视觉一致性检查与配置校验：检查分镜生成配置是否完整，验证特征锚定配置有效性，评估生成结果的一致性评分 |
+| `element-binding` | element-binding/ | 分镜元素绑定管理：管理分镜与角色、场景等 StoryElement 的绑定关系，提供元素库访问和绑定状态管理 |
+| `feature-extraction` | feature-extraction/ | 特征提取与锚定服务：从角色/场景提取特征标签，验证参考图质量，构建特征锚定配置，提供混合模式策略 |
+| `shot-generation` | shot-generation/ | 分镜生成管道：编排分镜的完整生成流程（参数校验 → Few-Shot 提示构建 → 故事计划生成 → 结果验证） |
+| `shot-instruction` | shot-instruction/ | 分镜指令解析与提示词构建：将结构化的分镜指令（镜头类型、运动、角度）转换为 AI 可用的提示词文本 |
+| `shot-reference` | shot-reference/ | 分镜引用管理：管理分镜之间的引用关系（链式引用、自定义引用），验证引用有效性，解析引用目标 |
+| `reference-check` | reference-check/ | 元素引用检查：检查角色、场景、元素是否被故事/分镜引用，用于删除前的安全校验 |
 
 ---
 
 ## 公共 API（index.ts）
 
 ### 一致性检查子域
-- `performConsistencyCheck` — 视觉一致性检查
-- `validateFeatureAnchoringConfigFull` — 特征锚定配置完整验证
-- `validateNoFrameBindingParams` — 无帧绑定参数验证
+- `performConsistencyCheck` — 执行视觉一致性检查（含配置校验 + 一致性评分）
+- `validateFeatureAnchoringConfigFull` — 特征锚定配置完整验证（别名导出）
+- `validateNoFrameBindingParams` — 无帧绑定参数验证（别名导出）
+- `checkVisualConsistency(input: ConsistencyCheckInput)` — 评估分镜生成结果的视觉一致性评分
+- `performConfigCheck` — 执行生成配置检查
+- `validateFeatureAnchoringConfig` — 验证特征锚定配置有效性
+- `validateNoFrameBinding` — 验证无帧绑定参数
 
 ### 元素绑定子域
-- `elementManager` — 元素管理器实例
+- `elementManager` — 元素管理器实例（管理分镜与 StoryElement 的绑定关系）
+- `useElementBinding` — 元素绑定 Hook（提供元素库访问和绑定状态管理）
 
 ### 特征提取子域
 - `validateReferenceImageQuality` — 引用图片质量验证
+- `extractCharacterFeatures` — 从角色提取特征标签
+- `buildFeatureTags` — 构建特征标签
+- `buildFeatureAnchor` — 构建特征锚点
 - `buildFeatureAnchoringConfig` — 构建特征锚定配置
+- `validateFeatureAnchoring` — 验证特征锚定有效性
+- `validateBlendConfig` — 验证混合配置
+- `getBlendMode` — 获取混合模式
+- `shouldUseChainReference` — 判断是否应使用链式引用
+- `buildBlendPrompt` — 构建混合提示词
+- `performAutoFallback` — 执行自动降级
+- 类型：`BlendMode`, `BlendConfig`, `AnchoringValidationResult`, `BlendPromptResult`
 
-### 引用检查子域
-- `checkCharacterReferences` — 角色引用检查
-- `checkSceneReferences` — 场景引用检查
-- `checkElementReferences` — 元素引用检查
-- `ReferenceInfo` — 引用信息类型 (type)
-- `DeleteCheckResult` — 删除检查结果类型 (type)
+### 分镜生成子域
+- `validateShotParams` — 校验分镜生成参数
+- `validateStoryBeatOutput` — 校验分镜输出
+- `validateStoryPlanOutput` — 校验故事计划输出
+- `generateFallbackParams` — 生成降级参数
+- `formatValidationResult` — 格式化校验结果
+- `generateStoryPlanWithValidation` — 带校验的故事计划生成管道
+- `selectFewShotExamples` — 选择 Few-Shot 示例
+- `buildFewShotPrompt` — 构建 Few-Shot 提示
+- `enrichPromptWithFewShot` — 用 Few-Shot 丰富提示词
+- Schema：`ShotParamsSchema`, `StoryBeatOutputSchema`, `StoryPlanOutputSchema`
+- 类型：`ShotParamsType`, `ValidationError`, `ValidationResult`, `PipelineProgress`, `PipelineOptions`, `FewShotExample`
+- 常量：`DEFAULT_OPTIONS`, `STRICT_OPTIONS`
 
 ### 镜头指令子域
-- `SHOT_SIZE_OPTIONS` — 镜头尺寸选项
-- `CAMERA_MOVEMENT_OPTIONS` — 镜头运动选项
-- `CAMERA_ANGLE_OPTIONS` — 镜头角度选项
+- `shotInstructionToPrompt` — 将结构化分镜指令转换为提示词文本
+- `buildPromptLayers` — 构建分层提示词
+- `SHOT_SIZE_OPTIONS` — 镜头尺寸选项常量
+- `CAMERA_MOVEMENT_OPTIONS` — 镜头运动选项常量
+- `CAMERA_ANGLE_OPTIONS` — 镜头角度选项常量
 
 ### 引用引擎子域
-- `referenceEngine` — 引用引擎实例
+- `referenceEngine` — 引用引擎实例（管理链式引用和自定义引用关系）
+- `validateReference` — 验证引用有效性
+- `getTargetShot` — 获取引用目标分镜
+- `getReferenceVideoUrl` — 获取引用视频 URL
+- `buildReferenceDescription` — 构建引用描述
+- 类型：`ReferenceValidationResult`
+
+### 引用检查子域
+- `checkCharacterReferences` — 检查角色是否被故事/分镜引用
+- `checkSceneReferences` — 检查场景是否被故事/分镜引用
+- `checkElementReferences` — 检查元素是否被故事/分镜引用
+- 类型：`ReferenceInfo`, `DeleteCheckResult`
 
 ---
 
 ## 依赖
 
-- `@/domain/schemas` - ShotSystem 类型
-- `@/infrastructure/storage` - 元素存储
+| 依赖 | 用途 |
+|------|------|
+| `@/domain/schemas` | ShotSystem 类型、StoryBeat、StoryElement 等 |
+| `@/domain/types` | Result 类型 |
+| `@/domain/utils/shot-prompt` | 分镜提示词工具 |
+| `@/domain/services/reference-check` | 引用检查服务 |
+| `@/infrastructure/di` | 依赖注入容器（elementManager, referenceEngine） |
+| `@/infrastructure/ai-providers` | AI 提供商接口 |
 
 ---
 
 ## 边界约束
 
-⚠️ **重要约束**：
-- 子域之间只能通过各自的 `index.ts` 导出的 API 通信
-- 禁止直接引用其他子域的内部文件（如 `../element-binding/element-manager.ts`）
-- 所有跨子域引用必须通过 `../subdomain` 导入
+1. **子域隔离**：子域之间只能通过各自的 `index.ts` 导出的 API 通信
+2. **禁止直接引用其他子域的内部文件**（如 `../element-binding/element-manager.ts`）
+3. **所有跨子域引用必须通过 `../subdomain` 导入**
+4. **禁止导入路径**：`@/types/*`、`@/lib/*`、`@/modules/*/*/*`
+5. **类型必须从 `@/domain/schemas` 导入**
+
+---
+
+## 不变量
+
+### INV-1: 一致性检查独立性
+`checkVisualConsistency` 评估分镜生成结果的视觉一致性评分，`performConfigCheck` 和 `validateFeatureAnchoringConfig` 确保生成配置完整且有效
+
+### INV-2: 元素绑定隔离
+`elementManager` 管理分镜与 StoryElement 的绑定关系，`useElementBinding` 提供元素库访问和绑定状态管理
+
+### INV-3: 特征锚定流程
+`extractCharacterFeatures` 和 `buildFeatureTags` 从角色/场景提取特征标签；`buildFeatureAnchoringConfig` 构建特征锚定配置，`validateFeatureAnchoring` 验证配置有效性；`getBlendMode` 和 `buildBlendPrompt` 提供混合模式策略
+
+### INV-4: 生成管道顺序
+分镜生成管道按 参数校验 → Few-Shot 提示构建 → 故事计划生成 → 结果验证 的顺序编排
+
+### INV-5: 镜头参数常量化
+镜头参数选项使用常量数组定义（SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS, CAMERA_ANGLE_OPTIONS）
+
+### INV-6: 引用有效性
+`referenceEngine` 负责管理分镜间的链式引用和自定义引用关系，`validateReference` 和 `getTargetShot` 确保引用目标的有效性
+
+### INV-7: 删除前安全校验
+`checkCharacterReferences`、`checkSceneReferences`、`checkElementReferences` 用于删除前的安全校验，防止误删被引用的元素
+
+### INV-8: 禁止跨模块依赖
+所有子域禁止直接导入 story 和 video 模块
 
 ---
 

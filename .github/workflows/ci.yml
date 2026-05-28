@@ -24,11 +24,9 @@ jobs:
 
       - name: Override .npmrc for CI (use official sources)
         run: |
-          cat > .npmrc << 'EOF'
-          registry=https://registry.npmjs.org/
-          electron_mirror=https://github.com/electron/electron/releases/download/
-          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          EOF
+          echo 'registry=https://registry.npmjs.org/' > .npmrc
+          echo 'electron_mirror=https://github.com/electron/electron/releases/download/' >> .npmrc
+          echo 'electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/' >> .npmrc
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -77,11 +75,9 @@ jobs:
 
       - name: Override .npmrc for CI (use official sources)
         run: |
-          cat > .npmrc << 'EOF'
-          registry=https://registry.npmjs.org/
-          electron_mirror=https://github.com/electron/electron/releases/download/
-          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          EOF
+          echo 'registry=https://registry.npmjs.org/' > .npmrc
+          echo 'electron_mirror=https://github.com/electron/electron/releases/download/' >> .npmrc
+          echo 'electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/' >> .npmrc
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -131,11 +127,9 @@ jobs:
 
       - name: Override .npmrc for CI (use official sources)
         run: |
-          cat > .npmrc << 'EOF'
-          registry=https://registry.npmjs.org/
-          electron_mirror=https://github.com/electron/electron/releases/download/
-          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          EOF
+          echo 'registry=https://registry.npmjs.org/' > .npmrc
+          echo 'electron_mirror=https://github.com/electron/electron/releases/download/' >> .npmrc
+          echo 'electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/' >> .npmrc
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -182,11 +176,7 @@ jobs:
       - name: Override .npmrc for CI (use official sources)
         shell: pwsh
         run: |
-          Set-Content -Path .npmrc -Value @'
-          registry=https://registry.npmjs.org/
-          electron_mirror=https://github.com/electron/electron/releases/download/
-          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          '@
+          "registry=https://registry.npmjs.org/", "electron_mirror=https://github.com/electron/electron/releases/download/", "electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/" | Set-Content -Path .npmrc
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -239,6 +229,7 @@ jobs:
         run: npx electron-builder --win --x64 --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
           CODE_SIGN_ENABLED: ${{ secrets.WINDOWS_CERT_BASE64 != '' }}
           WINDOWS_CERT_FILE: ${{ env.WINDOWS_CERT_FILE }}
           WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
@@ -260,11 +251,9 @@ jobs:
 
       - name: Override .npmrc for CI (use official sources)
         run: |
-          cat > .npmrc << 'EOF'
-          registry=https://registry.npmjs.org/
-          electron_mirror=https://github.com/electron/electron/releases/download/
-          electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          EOF
+          echo 'registry=https://registry.npmjs.org/' > .npmrc
+          echo 'electron_mirror=https://github.com/electron/electron/releases/download/' >> .npmrc
+          echo 'electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/' >> .npmrc
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -314,6 +303,7 @@ jobs:
         run: npx electron-builder --mac --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
           CODE_SIGN_ENABLED: ${{ secrets.MAC_CERT_BASE64 != '' }}
           MAC_CERTIFICATE_NAME: ${{ secrets.MAC_CERTIFICATE_NAME }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}

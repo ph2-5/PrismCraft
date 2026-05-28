@@ -36,10 +36,7 @@ jobs:
 
       - name: Override .npmrc for CI (use official sources)
         shell: bash
-        run: |
-          echo 'registry=https://registry.npmjs.org/' > .npmrc
-          echo 'electron_mirror=https://github.com/electron/electron/releases/download/' >> .npmrc
-          echo 'electron_builder_binaries_mirror=https://github.com/electron-userland/electron-builder-binaries/releases/download/' >> .npmrc
+        run: echo 'registry=https://registry.npmjs.org/' > .npmrc
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -87,7 +84,6 @@ jobs:
         run: ${{ matrix.build_cmd }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

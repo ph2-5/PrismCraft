@@ -200,6 +200,7 @@ function CharactersPageContent() {
         );
         return { ...story, characters: updatedCharacters, beats: updatedBeats };
       });
+      const failedStories: string[] = [];
       for (const updatedStory of updatedStories) {
         const original = storiesList.find((s) => s.id === updatedStory.id);
         const wasAffected =
@@ -211,9 +212,18 @@ function CharactersPageContent() {
               b.character === characterId,
           );
         if (wasAffected) {
-          const result = await storyService.update(updatedStory.id, updatedStory);
-          if (!result.ok) throw result.error;
+          try {
+            const result = await storyService.update(updatedStory.id, updatedStory);
+            if (!result.ok) {
+              failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
+            }
+          } catch (e) {
+            failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
+          }
         }
+      }
+      if (failedStories.length > 0) {
+        showError("部分故事引用未清除", `以下故事引用更新失败: ${failedStories.join("、")}`);
       }
     },
   });

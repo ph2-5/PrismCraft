@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import type { StoryBeat, ChainMode } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
@@ -41,6 +41,13 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
     showError,
     showWarning,
   } = props;
+
+  const cancelledRef = useRef(false);
+  useEffect(() => {
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
 
   const getChainMode = useCallback((beat: StoryBeat): ChainMode => {
     if (beat.chainMode) return beat.chainMode;
@@ -118,6 +125,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       let skippedCount = 0;
 
       for (let i = 0; i < targetBeats.length; i++) {
+        if (cancelledRef.current) break;
         const beat = targetBeats[i];
 
         if (beat.uploadedKeyframe) {
@@ -130,6 +138,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
 
         try {
           const result = await generateKeyframe(beat.id, prevBeat);
+          if (cancelledRef.current) break;
           if (result) {
             successCount++;
             setBeats((prev) => prev.map((b) => b.id === result.id ? result : b));
@@ -200,6 +209,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       let skippedCount = 0;
 
       for (let i = 0; i < targetBeats.length; i++) {
+        if (cancelledRef.current) break;
         const beat = targetBeats[i];
 
         if (beat.uploadedFramePair?.lastFrame) {
@@ -212,6 +222,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
 
         try {
           const result = await generateFramePair(beat.id, prevBeat);
+          if (cancelledRef.current) break;
           if (result) {
             successCount++;
             setBeats((prev) => prev.map((b) => b.id === result.id ? result : b));
@@ -282,6 +293,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       let skippedCount = 0;
 
       for (let i = 0; i < targetBeats.length; i++) {
+        if (cancelledRef.current) break;
         const beat = targetBeats[i];
         
         if (beat.uploadedVideo) {
@@ -294,6 +306,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         
         try {
           await generateVideoNew(beat.id, prevBeat);
+          if (cancelledRef.current) break;
           successCount++;
         } catch (err) {
           failCount++;

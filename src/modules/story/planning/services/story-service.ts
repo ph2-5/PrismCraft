@@ -46,10 +46,9 @@ export const storyService = {
       return err(new ValidationError(parsed.error.message));
     }
     return fromAsyncThrowable(async () => {
-      const existing = await container.storyStorage.getStoryById(id);
-      if (!existing) throw new NotFoundError("Story", id);
       await container.storyStorage.updateStory(id, parsed.data);
-      container.eventBus.emit(DomainEvents.STORY_UPDATED, { id, storyTitle: existing.title });
+      const storyTitle = (parsed.data as Partial<Story>).title;
+      container.eventBus.emit(DomainEvents.STORY_UPDATED, { id, storyTitle: storyTitle || id });
     });
   },
 
@@ -96,9 +95,6 @@ export const storyService = {
     const allStatements: { sql: string; params: unknown[] }[] = [];
 
     for (const beat of beats) {
-      const existingStory = await container.storyStorage.getStoryByBeatId(beat.id);
-      if (!existingStory) continue;
-
       const sets: string[] = [];
       const values: unknown[] = [];
 

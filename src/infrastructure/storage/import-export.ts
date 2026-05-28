@@ -270,54 +270,20 @@ export const importExportStorage = {
       if (strategy === "replace") {
         const VALID_TABLE_NAMES = new Set(tables.map((t) => t.tableName));
 
-        // Build all DELETE statements first (including relation tables)
-        const deleteStatements: { sql: string; params: unknown[] }[] = [];
-
-        for (const insTable of tables) {
-          const insItems = data[insTable.key];
-          if (!Array.isArray(insItems) || insItems.length === 0) continue;
-          if (!VALID_TABLE_NAMES.has(insTable.tableName)) continue;
-          deleteStatements.push({
-            sql: `DELETE FROM ${sanitizeTable(insTable.tableName)}`,
-            params: [],
-          });
-        }
-        // Also clean relation tables for stories
-        if (Array.isArray(data.stories) && data.stories.length > 0) {
-          deleteStatements.push({
-            sql: "DELETE FROM story_characters",
-            params: [],
-          });
-          deleteStatements.push({
-            sql: "DELETE FROM story_scenes",
-            params: [],
-          });
-          deleteStatements.push({ sql: "DELETE FROM story_beats", params: [] });
-          deleteStatements.push({
-            sql: "DELETE FROM story_elements",
-            params: [],
-          });
-          deleteStatements.push({
-            sql: "DELETE FROM story_versions",
-            params: [],
-          });
-        }
-
-        // Execute all deletes in a single transaction
-        if (deleteStatements.length > 0) {
-          await safeTransaction(deleteStatements);
-        }
-
-        // Per-table import count
         for (const insTable of tables) {
           const insItems = data[insTable.key];
           if (!Array.isArray(insItems) || insItems.length === 0) continue;
           if (!VALID_TABLE_NAMES.has(insTable.tableName)) continue;
           let tableImported = 0;
+          const importedIds: string[] = [];
+          const pk = TABLE_PRIMARY_KEYS[insTable.tableName] || "id";
           for (const item of insItems) {
             try {
               await insTable.createFn(item as Record<string, unknown>);
               tableImported++;
+              const record = item as Record<string, unknown>;
+              const idValue = record[pk] || record.id;
+              if (idValue) importedIds.push(String(idValue));
             } catch (e) {
               errorLogger.warn(
               `[Import] replace导入 ${insTable.tableName} 记录失败`,
@@ -325,7 +291,31 @@ export const importExportStorage = {
             );
             }
           }
+          if (importedIds.length > 0) {
+            const safeTable = sanitizeTable(insTable.tableName);
+            const safePk = sanitizeIdentifier(pk);
+            const placeholders = importedIds.map(() => "?").join(",");
+            await safeRun(
+              `DELETE FROM ${safeTable} WHERE ${safePk} NOT IN (${placeholders})`,
+              importedIds,
+            );
+          }
           result[insTable.key] = tableImported;
+        }
+
+        if (Array.isArray(data.stories) && data.stories.length > 0) {
+          const importedStoryIds = (data.stories as Record<string, unknown>[])
+            .map((s) => String(s.id || ""))
+            .filter(Boolean);
+          if (importedStoryIds.length > 0) {
+            const placeholders = importedStoryIds.map(() => "?").join(",");
+            await safeTransaction([
+              { sql: `DELETE FROM story_characters WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
+              { sql: `DELETE FROM story_scenes WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
+              { sql: `DELETE FROM story_beats WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
+              { sql: `DELETE FROM story_elements WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
+            ]);
+          }
         }
       } else if (strategy === "merge") {
         let imported = 0;
@@ -434,10 +424,8 @@ export const importExportStorage = {
     }
 
     if (Array.isArray(data.collectionAssets)) {
-      if (strategy === "replace") {
-        await safeRun("DELETE FROM collection_assets", []);
-      }
       let imported = 0;
+      const importedKeys: string[] = [];
       for (const ca of data.collectionAssets) {
         const item = ca as Record<string, unknown>;
         try {
@@ -447,9 +435,17 @@ export const importExportStorage = {
             String(item.assetId || item.asset_id),
           );
           imported++;
+          importedKeys.push(`${String(item.collectionId || item.collection_id)}:${String(item.assetType || item.asset_type)}:${String(item.assetId || item.asset_id)}`);
         } catch (e) {
           errorLogger.warn("[Import] collectionAssets 导入失败", e);
         }
+      }
+      if (strategy === "replace" && importedKeys.length > 0) {
+        const placeholders = importedKeys.map(() => "?").join(",");
+        await safeRun(
+          `DELETE FROM collection_assets WHERE concat(collection_id, ':', asset_type, ':', asset_id) NOT IN (${placeholders})`,
+          importedKeys,
+        );
       }
       result.collectionAssets = imported;
     }

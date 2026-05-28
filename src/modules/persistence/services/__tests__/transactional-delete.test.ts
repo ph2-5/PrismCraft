@@ -78,16 +78,12 @@ describe("transactional-delete", () => {
       const result = await deleteCharacterWithRefs("char-1");
 
       expect(result.ok).toBe(true);
-      expect(mockSafeTransaction).toHaveBeenCalledTimes(2);
+      expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
 
-      const firstTxStatements = mockSafeTransaction.mock.calls[0][0];
-      expect(firstTxStatements).toEqual([
+      const txStatements = mockSafeTransaction.mock.calls[0][0];
+      expect(txStatements).toEqual([
         { sql: "DELETE FROM story_characters WHERE character_id = ?", params: ["char-1"] },
         { sql: "UPDATE story_beats SET character = NULL WHERE character = ?", params: ["char-1"] },
-      ]);
-
-      const secondTxStatements = mockSafeTransaction.mock.calls[1][0];
-      expect(secondTxStatements).toEqual([
         { sql: "DELETE FROM character_outfits WHERE character_id = ?", params: ["char-1"] },
         { sql: "DELETE FROM characters WHERE id = ?", params: ["char-1"] },
       ]);
@@ -114,7 +110,7 @@ describe("transactional-delete", () => {
       const result = await deleteCharacterWithRefs("char-nonexistent");
 
       expect(result.ok).toBe(true);
-      expect(mockSafeTransaction).toHaveBeenCalledTimes(2);
+      expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
     });
 
     it("should handle empty outfit list", async () => {

@@ -175,7 +175,6 @@ describe("storyService", () => {
 
   describe("update", () => {
     it("应成功更新故事并触发 STORY_UPDATED 事件", async () => {
-      storage.getStoryById.mockResolvedValue(mockStory);
       storage.updateStory.mockResolvedValue(undefined);
 
       const result = await storyService.update("story-1", { id: "story-1", title: "更新标题" });
@@ -187,22 +186,20 @@ describe("storyService", () => {
       );
       expect(eventBus.emit).toHaveBeenCalledWith(
         DomainEvents.STORY_UPDATED,
-        expect.objectContaining({ id: "story-1", storyTitle: "测试故事" }),
+        expect.objectContaining({ id: "story-1", storyTitle: "更新标题" }),
       );
     });
 
-    it("故事不存在时应返回 NotFoundError", async () => {
-      storage.getStoryById.mockResolvedValue(null);
+    it("故事不存在时 updateStory 应抛出错误", async () => {
+      storage.updateStory.mockRejectedValue(new Error("Story not found for update: id=\"nonexistent\""));
 
       const result = await storyService.update("nonexistent", { id: "nonexistent", title: "更新标题" });
 
       expectErr(result);
-      expect(result.error).toBeInstanceOf(NotFoundError);
-      expect(storage.updateStory).not.toHaveBeenCalled();
+      expect(result.error).toBeInstanceOf(AppError);
     });
 
     it("存储失败时应返回 AppError", async () => {
-      storage.getStoryById.mockResolvedValue(mockStory);
       storage.updateStory.mockRejectedValue(new Error("更新失败"));
 
       const result = await storyService.update("story-1", { id: "story-1", title: "更新标题" });
@@ -321,26 +318,11 @@ describe("storyService", () => {
   });
 
   describe("updateBeatMediaUrls", () => {
-    const beatWithKeyframe = {
-      id: "beat-1",
-      keyframe: { imageUrl: "old-keyframe.jpg", prompt: "test" },
-      framePair: {
-        firstFrame: { imageUrl: "old-first.jpg", prompt: "first" },
-        lastFrame: { imageUrl: "old-last.jpg", prompt: "last" },
-        firstFrameUrl: "old-first.jpg",
-        lastFrameUrl: "old-last.jpg",
-      },
-      videoGen: { videoUrl: "old-video.mp4" },
-    };
-
     beforeEach(() => {
       mockSafeTransaction.mockResolvedValue(undefined);
     });
 
     it("应更新 keyframe imageUrl", async () => {
-      const story = { ...mockStory, beats: [beatWithKeyframe] };
-      storage.getStoryByBeatId.mockResolvedValue(story);
-
       await storyService.updateBeatMediaUrls([
         { id: "beat-1", keyframeImageUrl: "new-keyframe.jpg" },
       ]);
@@ -352,9 +334,6 @@ describe("storyService", () => {
     });
 
     it("应更新 firstFrame 和 lastFrame imageUrl", async () => {
-      const story = { ...mockStory, beats: [beatWithKeyframe] };
-      storage.getStoryByBeatId.mockResolvedValue(story);
-
       await storyService.updateBeatMediaUrls([
         {
           id: "beat-1",
@@ -372,9 +351,6 @@ describe("storyService", () => {
     });
 
     it("应更新 videoUrl", async () => {
-      const story = { ...mockStory, beats: [beatWithKeyframe] };
-      storage.getStoryByBeatId.mockResolvedValue(story);
-
       await storyService.updateBeatMediaUrls([
         { id: "beat-1", videoUrl: "new-video.mp4" },
       ]);
@@ -385,19 +361,15 @@ describe("storyService", () => {
       expect(statements[0].params).toContain("new-video.mp4");
     });
 
-    it("beat 不存在时应跳过", async () => {
-      storage.getStoryByBeatId.mockResolvedValue(null);
-
+    it("beat 不存在时 UPDATE 影响 0 行，不报错", async () => {
       await storyService.updateBeatMediaUrls([
         { id: "nonexistent", keyframeImageUrl: "new.jpg" },
       ]);
 
-      expect(mockSafeTransaction).not.toHaveBeenCalled();
+      expect(mockSafeTransaction).toHaveBeenCalled();
     });
 
     it("safeTransaction 失败时不应抛出错误", async () => {
-      const story = { ...mockStory, beats: [beatWithKeyframe] };
-      storage.getStoryByBeatId.mockResolvedValue(story);
       mockSafeTransaction.mockRejectedValue(new Error("Transaction failed"));
 
       await expect(

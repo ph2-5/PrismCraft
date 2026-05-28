@@ -82,33 +82,32 @@ export async function deleteCharacterWithRefs(characterId: string): Promise<Resu
       );
     }
 
-    const statements: Array<{ sql: string; params: unknown[] }> = [];
+    const allStatements: Array<{ sql: string; params: unknown[] }> = [];
 
-    statements.push({
+    allStatements.push({
       sql: `DELETE FROM story_characters WHERE character_id = ?`,
       params: [characterId],
     });
 
-    statements.push({
+    allStatements.push({
       sql: `UPDATE story_beats SET character = NULL WHERE character = ?`,
       params: [characterId],
     });
 
-    await safeTransaction(statements);
-
-    await removeIdFromJsonArray("story_beats", "character", characterId, "character_ids_json");
-    await removeIdFromJsonArray("storyboard_assets", "character", characterId, "character_ids");
-
-    const deleteStatements: Array<{ sql: string; params: unknown[] }> = [];
-    deleteStatements.push({
+    allStatements.push({
       sql: `DELETE FROM character_outfits WHERE character_id = ?`,
       params: [characterId],
     });
-    deleteStatements.push({
+
+    allStatements.push({
       sql: `DELETE FROM characters WHERE id = ?`,
       params: [characterId],
     });
-    await safeTransaction(deleteStatements);
+
+    await safeTransaction(allStatements);
+
+    await removeIdFromJsonArray("story_beats", "character", characterId, "character_ids_json");
+    await removeIdFromJsonArray("storyboard_assets", "character", characterId, "character_ids");
 
     await cleanupLocalFiles([...characterPaths, ...outfitPaths]);
   });

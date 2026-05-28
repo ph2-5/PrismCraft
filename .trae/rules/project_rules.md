@@ -387,17 +387,17 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 29 guards:**
+**Quick reference — all 33 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
-| Data Consistency | R1, R2, R8, R9, R13, R14 | Persist before state, cascade delete, rollback on failure |
-| Async Safety | R4, R10, R11, R12, R29 | Dedup, concurrency guard, ownership verify, in-flight warning, entity ID consistency |
+| Data Consistency | R1, R2, R8, R9, R13, R14, R30 | Persist before state, cascade delete, rollback on failure, atomic cascade deletes |
+| Async Safety | R4, R10, R11, R12, R29, R31, R32 | Dedup, concurrency guard, ownership verify, in-flight warning, entity ID consistency, save context verify, batch cancellation |
 | Error Handling | R5, R6, R15, R17, R18 | No silent failure, identifiable labels, partial failure resilience |
 | UI Robustness | R7, R16, R19, R20 | Video onError guard, ErrorBoundary retry limit |
 | Electron Compatibility | R21 | No fetch("/api/..."), use DI/IPC/proxy exports |
 | UX Completeness | R22, R23, R24, R25 | Loading states, action feedback, data loading indicators |
-| Code Quality | R3, R26, R27, R28 | Cross-context verify, static imports, DDD layer compliance, batch over N+1 queries |
+| Code Quality | R3, R26, R27, R28, R33 | Cross-context verify, static imports, DDD layer compliance, batch over N+1 queries, eliminate existence-check before writes |
 
 ## Documentation Index
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
 import {
@@ -187,6 +187,11 @@ export function useStorySaver(props: UseStorySaverProps) {
     [success],
   );
 
+  const currentStoryIdRef = useRef(currentStory.id);
+  useEffect(() => {
+    currentStoryIdRef.current = currentStory.id;
+  }, [currentStory.id]);
+
   const handleSave = useCallback(async () => {
     if (savingRef.current) return;
     if (beats.length === 0) {
@@ -194,6 +199,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       return;
     }
     const storyTitle = currentStory.title?.trim() || "未命名分镜";
+    const storyIdAtSaveStart = currentStory.id;
     const newStory: Story = {
       ...currentStory,
       title: storyTitle,
@@ -210,7 +216,7 @@ export function useStorySaver(props: UseStorySaverProps) {
 
     try {
       const saveResult = await fromAsyncThrowable(async () => {
-        if (currentStory.id) {
+        if (storyIdAtSaveStart) {
           return await storyService.update(newStory.id, newStory);
         }
         return await storyService.create(newStory);
@@ -245,8 +251,13 @@ export function useStorySaver(props: UseStorySaverProps) {
         return;
       }
 
+      if (currentStoryIdRef.current !== storyIdAtSaveStart) {
+        setSaveStatus("idle");
+        return;
+      }
+
       setStories((prev) =>
-        currentStory.id
+        storyIdAtSaveStart
           ? prev.map((s) => (s.id === newStory.id ? newStory : s))
           : [...prev, newStory],
       );
@@ -254,8 +265,8 @@ export function useStorySaver(props: UseStorySaverProps) {
       markClean("story");
       setSaveStatus("saved");
       success(
-        currentStory.id ? "保存成功" : "创建成功",
-        currentStory.id ? "分镜项目已更新" : "新分镜项目已添加",
+        storyIdAtSaveStart ? "保存成功" : "创建成功",
+        storyIdAtSaveStart ? "分镜项目已更新" : "新分镜项目已添加",
       );
     } finally {
       savingRef.current = false;

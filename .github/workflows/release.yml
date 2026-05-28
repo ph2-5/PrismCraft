@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+env:
+  npm_config_fetch_timeout: 300000
+  npm_config_fetch_retry_mintimeout: 20000
+  npm_config_fetch_retry_maxtimeout: 300000
+  npm_config_fetch_retries: 5
+
 jobs:
   release:
     strategy:
@@ -49,7 +55,18 @@ jobs:
           python-version: "3.x"
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            npm ci --ignore-scripts && break
+            if [ $i -lt 3 ]; then
+              echo "Attempt $i failed, retrying in 10 seconds..."
+              sleep 10
+            else
+              echo "All 3 attempts failed"
+              exit 1
+            fi
+          done
 
       - name: Build for Electron
         run: npm run build:electron

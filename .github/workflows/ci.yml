@@ -10,9 +10,10 @@ permissions:
   contents: read
 
 env:
-  npm_config_fetch_timeout: 120000
+  npm_config_fetch_timeout: 300000
   npm_config_fetch_retry_mintimeout: 20000
-  npm_config_fetch_retry_maxtimeout: 120000
+  npm_config_fetch_retry_maxtimeout: 300000
+  npm_config_fetch_retries: 5
 
 jobs:
   lint-and-typecheck:
@@ -36,7 +37,17 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: |
+          for i in 1 2 3; do
+            npm ci --ignore-scripts && break
+            if [ $i -lt 3 ]; then
+              echo "Attempt $i failed, retrying in 10 seconds..."
+              sleep 10
+            else
+              echo "All 3 attempts failed"
+              exit 1
+            fi
+          done
 
       - name: Run linter
         run: npm run lint
@@ -77,7 +88,17 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: |
+          for i in 1 2 3; do
+            npm ci --ignore-scripts && break
+            if [ $i -lt 3 ]; then
+              echo "Attempt $i failed, retrying in 10 seconds..."
+              sleep 10
+            else
+              echo "All 3 attempts failed"
+              exit 1
+            fi
+          done
 
       - name: Run npm audit
         run: npm audit --audit-level=high
@@ -119,7 +140,17 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: |
+          for i in 1 2 3; do
+            npm ci --ignore-scripts && break
+            if [ $i -lt 3 ]; then
+              echo "Attempt $i failed, retrying in 10 seconds..."
+              sleep 10
+            else
+              echo "All 3 attempts failed"
+              exit 1
+            fi
+          done
 
       - name: Rebuild better-sqlite3 for current Node.js
         run: npm rebuild better-sqlite3 || npm rebuild better-sqlite3
@@ -163,7 +194,20 @@ jobs:
           python-version: "3.x"
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        shell: pwsh
+        run: |
+          $maxAttempts = 3
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            npm ci --ignore-scripts
+            if ($LASTEXITCODE -eq 0) { break }
+            if ($attempt -lt $maxAttempts) {
+              Write-Host "Attempt $attempt failed, retrying in 10 seconds..."
+              Start-Sleep -Seconds 10
+            } else {
+              Write-Host "All $maxAttempts attempts failed"
+              exit 1
+            }
+          }
 
       - name: Build for Electron
         run: npm run build:electron
@@ -220,7 +264,17 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: |
+          for i in 1 2 3; do
+            npm ci --ignore-scripts && break
+            if [ $i -lt 3 ]; then
+              echo "Attempt $i failed, retrying in 10 seconds..."
+              sleep 10
+            else
+              echo "All 3 attempts failed"
+              exit 1
+            fi
+          done
 
       - name: Build for Electron
         run: npm run build:electron

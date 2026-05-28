@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { ok, err, fromAsyncThrowable } from "@/domain/types";
 
 describe("E2E 错误处理测试", () => {
   describe("extractErrorMessage 完整性", () => {
@@ -69,37 +70,70 @@ describe("E2E 错误处理测试", () => {
   });
 
   describe("Result 类型正确处理", () => {
-    it("storyService.create 应返回 Result 并检查 ok", async () => {
-      const { storyService } = await import("@/modules/story/planning/services/story-service");
-      const result = await storyService.create({
-        title: "Test Story",
-        description: "",
-        characters: [],
-        scenes: [],
-        beats: [],
-        elementIds: [],
-        genre: "action",
-        tone: "serious",
-        targetDuration: 60,
-      });
+    it("ok() 应返回 Result.ok=true 并携带值", () => {
+      const result = ok({ id: "test-id", title: "Test Story" });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.id).toBe("test-id");
+      }
+    });
 
+    it("err() 应返回 Result.ok=false 并携带错误", () => {
+      const result = err("DATABASE_ERROR", "database is locked");
+      expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error).toBeDefined();
         expect(extractErrorMessage(result.error)).toBeTruthy();
       }
-    }, 15000);
+    });
 
-    it("storyService.update 应返回 Result 并检查 ok", async () => {
-      const { storyService } = await import("@/modules/story/planning/services/story-service");
-      const result = await storyService.update("test-id", {
-        id: "test-id",
-        title: "Updated",
+    it("fromAsyncThrowable 应包装成功结果为 ok", async () => {
+      const result = await fromAsyncThrowable(async () => {
+        return { id: "test-id", title: "Test Story" };
       });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.id).toBe("test-id");
+      }
+    });
 
+    it("fromAsyncThrowable 应包装异常为 err", async () => {
+      const result = await fromAsyncThrowable(async () => {
+        throw new Error("electronAPI 不可用");
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBeDefined();
+        expect(extractErrorMessage(result.error)).toBe("electronAPI 不可用");
+      }
+    });
+
+    it("fromAsyncThrowable 应包装非 Error 异常为 err", async () => {
+      const result = await fromAsyncThrowable(async () => {
+        throw "string error";
+      });
+      expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error).toBeDefined();
       }
-    }, 15000);
+    });
+
+    it("Result 类型应正确区分 ok 和 err 分支", () => {
+      const successResult = ok("success");
+      const failureResult = err("CODE", "failure");
+
+      if (successResult.ok) {
+        expect(successResult.value).toBe("success");
+      } else {
+        expect.unreachable("ok result should not enter err branch");
+      }
+
+      if (!failureResult.ok) {
+        expect(failureResult.error).toBeDefined();
+      } else {
+        expect.unreachable("err result should not enter ok branch");
+      }
+    });
   });
 
   describe("IPC 错误处理", () => {

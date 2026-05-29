@@ -126,8 +126,7 @@ function ConflictCard({
               onChange={(e) => {
                 try {
                   setMergeData(JSON.parse(e.target.value));
-                } catch (_e) {
-                  // ignore invalid JSON during typing - user is still editing
+                } catch {
                 }
               }}
             />

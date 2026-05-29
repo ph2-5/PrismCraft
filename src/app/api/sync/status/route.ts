@@ -26,7 +26,7 @@ export async function GET() {
         maxChangesPerPull: 500,
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },

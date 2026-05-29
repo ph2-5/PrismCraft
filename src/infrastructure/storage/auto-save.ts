@@ -16,8 +16,8 @@ export const autoSaveStorage = {
     timestamp?: number;
   }): Promise<void> {
     const ts = autoSave.timestamp || Math.floor(Date.now() / 1000);
-    await safeRun(
-      "INSERT OR REPLACE INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?)",
+    const result = await safeRun(
+      "INSERT INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET data_json = excluded.data_json, timestamp = excluded.timestamp WHERE timestamp < excluded.timestamp",
       [
         autoSave.id,
         autoSave.type,
@@ -25,12 +25,14 @@ export const autoSaveStorage = {
         ts,
       ],
     );
-    const verify = await safeQuery<{ id: string }>(
-      "SELECT id FROM auto_saves WHERE id = ?",
-      [autoSave.id],
-    );
-    if (verify.length === 0) {
-      throw new Error(`Auto-save verification failed for id: ${autoSave.id}`);
+    if (!result || result.changes === 0) {
+      const existing = await safeQuery<{ timestamp: number }>(
+        "SELECT timestamp FROM auto_saves WHERE id = ?",
+        [autoSave.id],
+      );
+      if (existing.length > 0 && existing[0].timestamp > ts) {
+        return;
+      }
     }
   },
 

@@ -53,6 +53,7 @@ import { getVideoUrlWithCache } from "@/modules/video";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ModelSelector, useModelSelection } from "@/modules/prompt";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { TemplateSelectDialog } from "./TemplateSelectDialog";
 import { TaskResultPanel } from "./TaskResultPanel";
@@ -251,7 +252,7 @@ export default function QuickGeneratePage() {
       showSuccess("开始生成视频");
     } catch (error) {
       errorLogger.error("生成失败:", error);
-      showError("生成失败，请重试");
+      showError("生成失败", mapUserFacingError(error));
     }
   };
 
@@ -299,7 +300,7 @@ export default function QuickGeneratePage() {
       });
       showSuccess("已保存到素材库");
     } catch (_error) {
-      showError("保存失败");
+      showError("保存失败", mapUserFacingError(_error));
     } finally {
       setIsSavingToAssets(false);
     }

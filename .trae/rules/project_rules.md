@@ -387,22 +387,24 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 38 guards:**
+**Quick reference — all 44 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
-| Data Consistency | R1, R2, R8, R9, R13, R14, R30 | Persist before state, cascade delete, rollback on failure, atomic cascade deletes |
+| Data Consistency | R1, R2, R8, R9, R13, R14, R30, R42 | Persist before state, cascade delete, rollback on failure, atomic cascade deletes, auto-save optimistic locking |
 | Async Safety | R4, R10, R11, R12, R29, R31, R32 | Dedup, concurrency guard, ownership verify, in-flight warning, entity ID consistency, save context verify, batch cancellation |
 | Error Handling | R5, R6, R15, R17, R18 | No silent failure, identifiable labels, partial failure resilience |
 | UI Robustness | R7, R16, R19, R20 | Video onError guard, ErrorBoundary retry limit |
 | Electron Compatibility | R21 | No fetch("/api/..."), use DI/IPC/proxy exports |
-| UX Completeness | R22, R23, R24, R25 | Loading states, action feedback, data loading indicators |
+| UX Completeness | R22, R23, R24, R25, R43 | Loading states, action feedback, data loading indicators, destructive operation confirmation |
 | Code Quality | R3, R26, R27, R28, R33 | Cross-context verify, static imports, DDD layer compliance, batch over N+1 queries, eliminate existence-check before writes |
 | Async Safety | R34 | Zustand functional updates over get()+set() |
 | Resource Safety | R35 | Blob URL revoke on unmount |
 | Data Integrity | R36 | AI analysis selective merge over spread override |
 | SQL Safety | R37 | Dynamic table names must be validated against identifier pattern |
 | Race Condition | R38 | Video URL persistence must complete before story switch |
+| IPC Efficiency | R39, R40, R41 | Batch DB operations over per-item IPC, deferred metadata updates, parallel trackChange |
+| Error Messaging | R44 | User-facing errors must use mapUserFacingError, not raw technical messages |
 
 ## Documentation Index
 

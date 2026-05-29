@@ -276,7 +276,7 @@ export default function PluginManager() {
       try {
         const data = await fetchPluginSchema();
         setSchemaData(data);
-      } catch (e) {
+      } catch {
         showError("获取失败", "无法加载插件规范");
         return;
       }
@@ -293,7 +293,7 @@ export default function PluginManager() {
       try {
         const content = await fetchPluginSpecification();
         setSpecContent(content);
-      } catch (e) {
+      } catch {
         showError("获取失败", "无法加载插件规范文档");
         return;
       }

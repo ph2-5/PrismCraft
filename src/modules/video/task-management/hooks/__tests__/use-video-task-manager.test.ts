@@ -154,6 +154,15 @@ vi.mock("@/shared/error-logger", () => ({
   extractErrorMessage: mockExtractErrorMessage,
 }));
 
+vi.mock("@/shared/utils/user-facing-error", () => ({
+  mapUserFacingError: vi.fn((e: unknown) => {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/timeout/i.test(msg)) return "操作超时，请稍后重试";
+    if (/rate/i.test(msg)) return "操作过于频繁，请稍后重试";
+    return "操作失败，请稍后重试";
+  }),
+}));
+
 vi.mock("@/shared/utils/toast-bridge", () => ({
   emitToast: mockEmitToast,
 }));
@@ -1162,17 +1171,15 @@ describe("useVideoTaskStore", () => {
       expect(mockErrorLogger.error).toHaveBeenCalled();
     });
 
-    it("should use extractErrorMessage for poll error message", async () => {
+    it("should use mapUserFacingError for poll error message", async () => {
       const task = makeTask({ taskId: "t-poll-10", status: "generating" });
       useVideoTaskStore.setState({ allTasks: [task] });
 
       mockVideoProvider.queryVideoStatus.mockRejectedValueOnce(new Error("timeout"));
-      mockExtractErrorMessage.mockReturnValueOnce("timeout error");
 
       await useVideoTaskStore.getState().pollTask("t-poll-10");
 
-      expect(mockExtractErrorMessage).toHaveBeenCalled();
-      expect(useVideoTaskStore.getState().allTasks[0].message).toContain("timeout error");
+      expect(useVideoTaskStore.getState().allTasks[0].message).toContain("操作超时");
     });
 
     it("should merge poll result into current task state, not replace (regression: R14)", async () => {

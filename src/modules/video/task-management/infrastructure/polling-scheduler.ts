@@ -68,7 +68,7 @@ export class PollingScheduler {
     const timerId = setTimeout(async () => {
       try {
         await this.onPoll(taskId);
-      } catch (_error) {
+      } catch {
         errorLogger.warn(
           { code: "POLL_EXECUTION_ERROR", message: `Poll execution failed for taskId=${taskId}` },
           "PollingScheduler",

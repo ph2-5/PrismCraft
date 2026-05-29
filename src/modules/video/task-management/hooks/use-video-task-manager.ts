@@ -11,6 +11,7 @@ import {
 } from "@/modules/video/recovery";
 import { cleanExpiredVideoCache, registerRecoveryFn, removeCachedVideo, cacheVideoBlob } from "@/modules/video/cache";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { AppError } from "@/domain/types/result";
 
@@ -551,7 +552,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       let updatedTask: VideoTask = {
         ...task,
         pollFailureCount: failCount,
-        message: `查询失败: ${extractErrorMessage(error)}`,
+        message: `查询失败: ${mapUserFacingError(error)}`,
       };
       if (failCount >= MAX_POLL_FAILURES) {
         const guarded = withTransitionGuard(task, "failed", {

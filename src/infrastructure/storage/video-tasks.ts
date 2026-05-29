@@ -1,5 +1,5 @@
 import { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
-import { toSqlValue, trackChange, buildInsert } from "./core";
+import { trackChange, buildInsert } from "./core";
 import type { VideoTask } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import {
@@ -152,11 +152,13 @@ export const videoTaskStorage = {
       { sql: `DELETE FROM video_cache WHERE task_id IN (${placeholders})`, params: taskIds },
       { sql: `DELETE FROM video_tasks WHERE id IN (${placeholders})`, params: [...taskIds] },
     ]);
-    for (const id of taskIds) {
-      try {
-        await trackChange("video_task", id, "delete");
-      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:batchDelete", e); }
-    }
+    await Promise.allSettled(
+      taskIds.map((id) =>
+        trackChange("video_task", id, "delete").catch((e) => {
+          errorLogger.warn("[Storage] trackChange failed for video_task:batchDelete", e);
+        }),
+      ),
+    );
   },
 
   async deleteVideoTasksByStatus(statuses: string[]): Promise<void> {
@@ -179,11 +181,13 @@ export const videoTaskStorage = {
         params: statuses,
       },
     ]);
-    for (const id of deletedIds) {
-      try {
-        await trackChange("video_task", id, "delete");
-      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:deleteByStatus", e); }
-    }
+    await Promise.allSettled(
+      deletedIds.map((id) =>
+        trackChange("video_task", id, "delete").catch((e) => {
+          errorLogger.warn("[Storage] trackChange failed for video_task:deleteByStatus", e);
+        }),
+      ),
+    );
   },
 
   async deleteVideoTasksByBeatId(beatId: string): Promise<void> {
@@ -204,11 +208,13 @@ export const videoTaskStorage = {
         params: [beatId],
       },
     ]);
-    for (const id of deletedIds) {
-      try {
-        await trackChange("video_task", id, "delete");
-      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:deleteByBeatId", e); }
-    }
+    await Promise.allSettled(
+      deletedIds.map((id) =>
+        trackChange("video_task", id, "delete").catch((e) => {
+          errorLogger.warn("[Storage] trackChange failed for video_task:deleteByBeatId", e);
+        }),
+      ),
+    );
   },
 
   async deleteVideoTasksByStoryId(storyId: string): Promise<void> {
@@ -229,11 +235,13 @@ export const videoTaskStorage = {
         params: [storyId],
       },
     ]);
-    for (const id of deletedIds) {
-      try {
-        await trackChange("video_task", id, "delete");
-      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:deleteByStoryId", e); }
-    }
+    await Promise.allSettled(
+      deletedIds.map((id) =>
+        trackChange("video_task", id, "delete").catch((e) => {
+          errorLogger.warn("[Storage] trackChange failed for video_task:deleteByStoryId", e);
+        }),
+      ),
+    );
   },
 
   async deleteExpiredVideoTasks(): Promise<number> {
@@ -256,11 +264,13 @@ export const videoTaskStorage = {
           params: ids,
         },
       ]);
-      for (const id of ids) {
-        try {
-        await trackChange("video_task", id, "delete");
-      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:deleteExpired", e); }
-      }
+      await Promise.allSettled(
+        ids.map((id) =>
+          trackChange("video_task", id, "delete").catch((e) => {
+            errorLogger.warn("[Storage] trackChange failed for video_task:deleteExpired", e);
+          }),
+        ),
+      );
     }
     return count;
   },
@@ -273,11 +283,13 @@ export const videoTaskStorage = {
       { sql: "DELETE FROM video_tasks", params: [] },
       { sql: "DELETE FROM video_cache", params: [] },
     ]);
-    for (const row of allTasks) {
-      try {
-        await trackChange("video_task", row.id, "delete");
-      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:clearAll", e); }
-    }
+    await Promise.allSettled(
+      allTasks.map((row) =>
+        trackChange("video_task", row.id, "delete").catch((e) => {
+          errorLogger.warn("[Storage] trackChange failed for video_task:clearAll", e);
+        }),
+      ),
+    );
   },
 
   async bulkPutVideoTasks(tasks: Partial<VideoTask>[]): Promise<void> {
@@ -303,16 +315,20 @@ export const videoTaskStorage = {
     }
     if (statements.length === 0) return;
     await safeTransaction(statements);
-    for (const { taskId, updates: taskUpdates } of updates) {
-      try {
-        await trackChange("video_task", taskId, "update");
-      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:batchUpdate", e); }
-      if (taskUpdates.status !== undefined) {
-        try {
-          await videoTaskStorage.syncBeatVideoStatus(taskId, taskUpdates.status as string);
-        } catch (e) { errorLogger.warn("[Storage] syncBeatVideoStatus failed in batchUpdate", e); }
-      }
-    }
+    await Promise.allSettled(
+      updates.map(({ taskId, updates: taskUpdates }) =>
+        (async () => {
+          try {
+            await trackChange("video_task", taskId, "update");
+          } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:batchUpdate", e); }
+          if (taskUpdates.status !== undefined) {
+            try {
+              await videoTaskStorage.syncBeatVideoStatus(taskId, taskUpdates.status as string);
+            } catch (e) { errorLogger.warn("[Storage] syncBeatVideoStatus failed in batchUpdate", e); }
+          }
+        })(),
+      ),
+    );
   },
 
   async syncBeatVideoStatus(taskId: string, status: string): Promise<void> {

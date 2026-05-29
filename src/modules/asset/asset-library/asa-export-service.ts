@@ -1,5 +1,5 @@
 import type { Result } from "@/domain/types";
-import { fromAsyncThrowable, err, ok, ValidationError } from "@/domain/types";
+import { fromAsyncThrowable, err, ValidationError } from "@/domain/types";
 import { safeQuery, safeTransaction } from "@/shared/db-core";
 import { z } from "zod";
 

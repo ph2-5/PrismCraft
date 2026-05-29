@@ -824,3 +824,188 @@ if (story.isVideoUrlPersisting) {
   return;
 }
 ```
+
+### R39: 批量 DB 写入/删除/更新操作必须使用 safeTransaction 或批量方法，禁止逐条 IPC
+When performing batch write operations (INSERT, UPDATE, DELETE) on multiple records, the code MUST use `safeTransaction` with multiple statements, `batchUpdateVideoTasks`, `batchDeleteVideoTasks`, or `SELECT WHERE IN` for existence checks. Looping over items and calling `safeRun`/`safeQuery`/`safeTransaction` per item causes N×M IPC calls that exhaust rate limits. This extends R28 (N+1 reads) and R33 (existence checks) to cover batch writes and deletes.
+
+**BAD**:
+```typescript
+for (const task of timedOutTasks) {
+  await container.videoTaskStorage.updateVideoTask(task.taskId, { status: "failed" });
+}
+```
+
+**GOOD**:
+```typescript
+await container.videoTaskStorage.batchUpdateVideoTasks(
+  timedOutTasks.map(task => ({ taskId: task.taskId, updates: { status: "failed" } }))
+);
+```
+
+**BAD**:
+```typescript
+for (const id of taskIds) {
+  await container.videoTaskStorage.deleteVideoTask(id);
+}
+```
+
+**GOOD**:
+```typescript
+await container.videoTaskStorage.batchDeleteVideoTasks(taskIds);
+```
+
+**BAD**:
+```typescript
+for (const task of tasks) {
+  const existing = await safeQuery("SELECT id FROM video_tasks WHERE id = ?", [task.taskId]);
+  // ... per-item logic
+}
+```
+
+**GOOD**:
+```typescript
+const placeholders = taskIds.map(() => "?").join(",");
+const existingRows = await safeQuery(`SELECT id FROM video_tasks WHERE id IN (${placeholders})`, taskIds);
+const existingIdSet = new Set(existingRows.map(r => r.id));
+```
+
+### R40: 非关键元数据更新必须延迟批量，禁止读后立即写
+When a read operation (e.g., `getCachedImageFile`) triggers a non-critical metadata update (e.g., `last_accessed_at`), the update MUST be deferred and batched rather than executed immediately after the read. Immediate writes double the IPC call count for every read operation, contributing to rate limit exhaustion. Use a debounce/batch timer pattern with a `flush()` method for cleanup on app shutdown.
+
+**BAD**:
+```typescript
+async getCachedImageFile(sourceUrl: string) {
+  const result = await safeQuery("SELECT * FROM image_cache WHERE source_url = ?", [sourceUrl]);
+  if (result.length === 0) return null;
+  await safeRun("UPDATE image_cache SET last_accessed_at = ? WHERE source_url = ?", [Date.now(), sourceUrl]);
+  return result[0];
+}
+```
+
+**GOOD**:
+```typescript
+async getCachedImageFile(sourceUrl: string) {
+  const result = await safeQuery("SELECT * FROM image_cache WHERE source_url = ?", [sourceUrl]);
+  if (result.length === 0) return null;
+  scheduleAccessUpdate(sourceUrl); // Debounced batch update
+  return result[0];
+}
+
+// On app shutdown:
+await imageCacheStorage.flushPendingAccessUpdates();
+```
+
+### R41: trackChange 循环必须并行执行（Promise.allSettled），禁止串行等待
+When calling `trackChange` for multiple entities in a loop (e.g., after batch delete, bulk put), the calls MUST be executed in parallel using `Promise.allSettled` instead of sequential `for...of` with `await`. Each `trackChange` call triggers 2 `safeTransaction` IPC calls (read + write), so serializing N calls takes N×2 time units vs. 2 time units in parallel. Partial failures MUST be handled individually with `.catch()`.
+
+**BAD**:
+```typescript
+for (const id of deletedIds) {
+  try {
+    await trackChange("video_task", id, "delete");
+  } catch (e) { errorLogger.warn("trackChange failed", e); }
+}
+```
+
+**GOOD**:
+```typescript
+await Promise.allSettled(
+  deletedIds.map(id =>
+    trackChange("video_task", id, "delete").catch(e => {
+      errorLogger.warn("trackChange failed", e);
+    })
+  )
+);
+```
+
+## Phase 6: Comprehensive Bug Audit Round 3 (R42-R44)
+
+### R42: Auto-Save Must Use Optimistic Locking, Not INSERT OR REPLACE
+When auto-saving data that may be concurrently modified by the user, the SQL statement MUST use optimistic locking (`ON CONFLICT(id) DO UPDATE SET ... WHERE timestamp < excluded.timestamp`) instead of `INSERT OR REPLACE`. `INSERT OR REPLACE` unconditionally overwrites the existing row, destroying any newer changes the user made between the auto-save snapshot and the actual write. The optimistic lock ensures that only older data is overwritten by newer data. If the write reports `changes === 0`, a secondary query MUST check whether the existing row's timestamp is newer, and silently skip the write if so.
+
+**BAD**:
+```typescript
+await safeRun(
+  "INSERT OR REPLACE INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?)",
+  [autoSave.id, autoSave.type, JSON.stringify(autoSave.data), ts],
+);
+```
+
+**GOOD**:
+```typescript
+const result = await safeRun(
+  "INSERT INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET data_json = excluded.data_json, timestamp = excluded.timestamp WHERE timestamp < excluded.timestamp",
+  [autoSave.id, autoSave.type, JSON.stringify(autoSave.data), ts],
+);
+if (!result || result.changes === 0) {
+  const existing = await safeQuery<{ timestamp: number }>(
+    "SELECT timestamp FROM auto_saves WHERE id = ?",
+    [autoSave.id],
+  );
+  if (existing.length > 0 && existing[0].timestamp > ts) {
+    return;
+  }
+}
+```
+
+### R43: Destructive UI Operations Must Require User Confirmation
+When a UI action will permanently delete data (single item delete, batch delete, clear all), the handler MUST call `confirm()` with `variant: "danger"` before executing the destructive operation. The handler MUST await the confirmation result and abort if the user cancels (`if (!confirmed) return`). This applies to video task deletion, batch deletion, and any other irreversible operations. Without confirmation, accidental clicks cause permanent data loss.
+
+**BAD**:
+```typescript
+const handleRemoveTask = () => {
+  removeTask(detailTask.taskId);
+  setIsDetailOpen(false);
+};
+
+const handleRemoveSelected = () => {
+  removeTasks(Array.from(selectedTaskIds));
+  setSelectedTaskIds(new Set());
+};
+```
+
+**GOOD**:
+```typescript
+const handleRemoveTask = async () => {
+  if (!detailTask) return;
+  const confirmed = await confirm({
+    title: "确认删除",
+    description: "确定删除该视频任务？此操作不可撤销。",
+    confirmText: "删除",
+    cancelText: "取消",
+    variant: "danger",
+  });
+  if (!confirmed) return;
+  removeTask(detailTask.taskId);
+  setIsDetailOpen(false);
+};
+
+const handleRemoveSelected = async () => {
+  if (selectedTaskIds.size === 0) return;
+  const confirmed = await confirm({
+    title: "确认批量删除",
+    description: `确定删除选中的 ${selectedTaskIds.size} 个视频任务？此操作不可撤销。`,
+    confirmText: "删除",
+    cancelText: "取消",
+    variant: "danger",
+  });
+  if (!confirmed) return;
+  removeTasks(Array.from(selectedTaskIds));
+  setSelectedTaskIds(new Set());
+};
+```
+
+### R44: User-Facing Error Messages Must Use mapUserFacingError
+When displaying error messages to users via toast, dialog, or inline text, the code MUST use `mapUserFacingError(error)` from `@/shared/utils/user-facing-error` instead of raw `extractErrorMessage(error)` or `e instanceof Error ? e.message : "未知错误"`. Raw error messages expose technical details (IPC channel names, error codes, English text) that are meaningless or alarming to users. `mapUserFacingError` translates error categories (rate_limit, timeout, network, auth, database_busy, etc.) and IPC rate limit patterns into concise, actionable Chinese messages.
+
+**BAD**:
+```typescript
+showError("保存失败", `数据库持久化失败: ${extractErrorMessage(err)}，请重试`);
+showError("删除失败", e instanceof Error ? e.message : "未知错误");
+```
+
+**GOOD**:
+```typescript
+showError("保存失败", mapUserFacingError(err));
+showError("删除失败", mapUserFacingError(e));
+```

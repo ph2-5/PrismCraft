@@ -18,7 +18,7 @@ const {
   mockSafeTransaction: vi.fn(),
   mockParseRecord: vi.fn((r: unknown) => r),
   mockToSqlValue: vi.fn((v: unknown) => (v === undefined ? null : v)),
-  mockTrackChange: vi.fn(),
+  mockTrackChange: vi.fn(() => Promise.resolve()),
   mockBuildInsert: vi.fn(
     (table: string, _columns: string[], values: unknown[], conflict?: string) => {
       const conflictClause = conflict === "REPLACE" ? " OR REPLACE" : conflict === "IGNORE" ? " OR IGNORE" : "";

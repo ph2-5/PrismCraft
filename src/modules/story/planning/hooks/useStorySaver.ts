@@ -15,6 +15,7 @@ import {
 } from "@/modules/story";
 import type { Story, StoryBeat } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { fromAsyncThrowable } from "@/domain/types/result";
 import { container } from "@/infrastructure/di";
 
@@ -231,7 +232,7 @@ export function useStorySaver(props: UseStorySaverProps) {
         setSaveError(detail);
         showError(
           "保存失败",
-          `数据库持久化失败: ${detail}，请重试`,
+          mapUserFacingError(err),
         );
         return;
       }
@@ -246,7 +247,7 @@ export function useStorySaver(props: UseStorySaverProps) {
         setSaveError(detail);
         showError(
           "保存失败",
-          `数据库持久化失败: ${detail}，请重试`,
+          mapUserFacingError(err),
         );
         return;
       }

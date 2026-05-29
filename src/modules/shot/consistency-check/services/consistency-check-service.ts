@@ -59,7 +59,7 @@ export async function checkVisualConsistency(
     const parsed = parseConsistencyAnalysis(analysis, boundElements);
 
     return ok(parsed);
-  } catch (_error) {
+  } catch {
     return ok({
       passed: false,
       characterScores: boundElements.map((el) => ({

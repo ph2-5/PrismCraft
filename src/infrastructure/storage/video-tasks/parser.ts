@@ -1,6 +1,5 @@
 import type { VideoTask } from "@/domain/schemas";
 import { parseConfig, parseProvider, parseMediaRefs, parseTracking } from "./json-schemas";
-import type { VideoTaskConfig, VideoTaskProvider, VideoTaskMediaRefs, VideoTaskTracking } from "./json-schemas";
 
 const TIMESTAMP_THRESHOLD = 1e12;
 
@@ -16,15 +15,6 @@ function normalizeTaskStatus(raw: unknown): VideoTask["status"] {
 
 export function toStorageStatus(status: string): string {
   return status;
-}
-
-const VALID_SYNC_STATUS = new Set(["pending", "synced", "conflict"]);
-
-function normalizeSyncStatus(raw: unknown): VideoTask["syncStatus"] {
-  if (raw == null) return "pending";
-  const str = String(raw);
-  if (VALID_SYNC_STATUS.has(str)) return str as VideoTask["syncStatus"];
-  return "pending";
 }
 
 export function normalizeTimestamp(value: unknown, fallbackSec: number): string {

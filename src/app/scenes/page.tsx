@@ -17,6 +17,7 @@ import {
 } from "@/modules/asset";
 import { sceneService } from "@/modules/scene";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { Button } from "@/shared/ui/button";
@@ -477,7 +478,7 @@ function ScenesPageContent() {
               if (!result.ok) throw result.error;
               queryClient.invalidateQueries({ queryKey: ["scenes"] });
             } catch (err) {
-              showError("保存失败", err instanceof Error ? err.message : "未知错误");
+              showError("保存失败", mapUserFacingError(err));
             }
           }
           setShowAssetSelector(false);

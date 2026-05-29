@@ -1,5 +1,5 @@
 import { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
-import { parseRecordWithTable, toSqlValue, trackChange, buildInsert } from "./core";
+import { parseRecordWithTable, toSqlValue } from "./core";
 import type { DbRunResult } from "./core";
 import type { StoryVersion } from "@/domain/schemas";
 import { characterStorage } from "./characters";

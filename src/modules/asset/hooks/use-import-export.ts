@@ -1,7 +1,6 @@
-import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { importData, downloadExport, importFromFile } from "../import-export";
-import type { ImportResult, MergeStrategy } from "../import-export";
+import type { MergeStrategy } from "../import-export";
 
 export function useExportData() {
   return useMutation({

@@ -125,8 +125,6 @@ export const VALID_SHOT_TYPES = new Set([
   "wormseye",
 ]);
 
-type ShotTypeValue = "wide" | "medium" | "close" | "extreme_close" | "low" | "high" | "birdseye" | "wormseye";
-
 const shotTypeSchema = z.preprocess(
   (v): unknown => {
     if (typeof v === "string" && VALID_SHOT_TYPES.has(v)) return v;

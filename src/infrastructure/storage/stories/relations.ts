@@ -1,6 +1,5 @@
 import { safeQuery } from "../sqlite-core";
 import { parseRecordWithTable } from "../core";
-import { errorLogger } from "@/shared/error-logger";
 import { VALID_SHOT_TYPES } from "@/domain/schemas/story";
 import { safeJsonParse, safeJsonParseArray } from "@/shared/utils/safe-json";
 
@@ -56,7 +55,7 @@ function parseBeatRow(b: Record<string, unknown>) {
   };
 
   if (cameraContainer && Object.keys(cameraContainer).length > 0) {
-    const { shotType, ...cameraProps } = cameraContainer;
+    const { shotType: _shotType, ...cameraProps } = cameraContainer;
     if (Object.keys(cameraProps).length > 0) {
       beat.camera = cameraProps;
     }

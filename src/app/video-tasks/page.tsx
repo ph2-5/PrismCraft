@@ -23,9 +23,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { confirm } from "@/shared/utils/confirm";
+import { useToastHelpers } from "@/shared/presentation/Toast";
 
 export default function VideoTasksPage() {
   const { guardedPush } = useNavigationGuard();
+  const { success: showSuccess } = useToastHelpers();
   const {
     allTasks,
     startBackgroundProcessing,
@@ -77,6 +79,7 @@ export default function VideoTasksPage() {
                     setIsClearingCompleted(true);
                     try {
                       await clearCompletedTasks();
+                      showSuccess("清除成功", "已完成的任务已清除");
                     } finally {
                       setIsClearingCompleted(false);
                     }
@@ -100,6 +103,7 @@ export default function VideoTasksPage() {
                     setIsClearingFailed(true);
                     try {
                       await clearFailedTasks();
+                      showSuccess("清除成功", "失败的任务已清除");
                     } finally {
                       setIsClearingFailed(false);
                     }

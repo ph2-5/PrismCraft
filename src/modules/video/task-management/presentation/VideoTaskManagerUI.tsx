@@ -36,6 +36,7 @@ import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { errorLogger } from "@/shared/error-logger";
+import { confirm } from "@/shared/utils/confirm";
 
 interface VideoTaskManagerProps {
   tasks: VideoTask[];
@@ -214,18 +215,32 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
     }
   };
 
-  const handleRemoveTask = () => {
-    if (detailTask) {
-      removeTask(detailTask.taskId);
-      setIsDetailOpen(false);
-    }
+  const handleRemoveTask = async () => {
+    if (!detailTask) return;
+    const confirmed = await confirm({
+      title: "确认删除",
+      description: `确定删除该视频任务？此操作不可撤销。`,
+      confirmText: "删除",
+      cancelText: "取消",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    removeTask(detailTask.taskId);
+    setIsDetailOpen(false);
   };
 
-  const handleRemoveSelected = () => {
-    if (selectedTaskIds.size > 0) {
-      removeTasks(Array.from(selectedTaskIds));
-      setSelectedTaskIds(new Set());
-    }
+  const handleRemoveSelected = async () => {
+    if (selectedTaskIds.size === 0) return;
+    const confirmed = await confirm({
+      title: "确认批量删除",
+      description: `确定删除选中的 ${selectedTaskIds.size} 个视频任务？此操作不可撤销。`,
+      confirmText: "删除",
+      cancelText: "取消",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    removeTasks(Array.from(selectedTaskIds));
+    setSelectedTaskIds(new Set());
   };
 
   const sortedTasks = [...tasks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

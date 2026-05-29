@@ -9,6 +9,7 @@ import { useStories, storyService } from "@/modules/story";
 import { useMediaAssets, useCreateMediaAsset } from "@/modules/asset";
 import { characterService } from "@/modules/character";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { Button } from "@/shared/ui/button";
@@ -210,7 +211,7 @@ function CharactersPageContent() {
             if (!result.ok) {
               failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
             }
-          } catch (e) {
+          } catch {
             failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
           }
         }
@@ -1117,7 +1118,7 @@ function CharactersPageContent() {
               if (!result.ok) throw result.error;
               queryClient.invalidateQueries({ queryKey: ["characters"] });
             } catch (err) {
-              showError("保存失败", err instanceof Error ? err.message : "未知错误");
+              showError("保存失败", mapUserFacingError(err));
             }
           }
           setShowAssetSelector(false);

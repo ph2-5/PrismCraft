@@ -22,7 +22,7 @@ export async function generateEnhancedVideo(
       } else {
         fixedImageBase64 = params.fixedImage.imageUrl;
       }
-    } catch (error) {
+    } catch {
       errorLogger.warn(
         { code: "ENHANCED_VIDEO_IMAGE_TO_BASE64_FAILED", message: "固定形象图转 base64 失败，使用原始 URL" },
         "EnhancedVideo",
@@ -48,7 +48,7 @@ export async function generateEnhancedVideo(
         } else {
           featureAnchorImageBase64 = anchorImageUrl;
         }
-      } catch (error) {
+      } catch {
         errorLogger.warn(
         { code: "ENHANCED_VIDEO_ANCHOR_IMAGE_TO_BASE64_FAILED", message: "特征锚定图转 base64 失败，使用原始 URL" },
         "EnhancedVideo",

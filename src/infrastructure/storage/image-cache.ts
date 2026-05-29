@@ -14,22 +14,26 @@ function scheduleAccessUpdate(sourceUrl: string): void {
   if (accessUpdateTimer) return;
   accessUpdateTimer = setTimeout(async () => {
     accessUpdateTimer = null;
-    const updates = new Map(pendingAccessUpdates);
-    pendingAccessUpdates.clear();
-    if (updates.size === 0) return;
-    try {
-      const statements: { sql: string; params: unknown[] }[] = [];
-      for (const [url, timestamp] of updates) {
-        statements.push({
-          sql: "UPDATE image_cache SET last_accessed_at = ? WHERE source_url = ?",
-          params: [timestamp, url],
-        });
-      }
-      await safeTransaction(statements);
-    } catch (e) {
-      errorLogger.warn("[ImageCache] 批量更新last_accessed_at失败", e);
-    }
+    await flushAccessUpdates();
   }, ACCESS_UPDATE_BATCH_INTERVAL);
+}
+
+async function flushAccessUpdates(): Promise<void> {
+  const updates = new Map(pendingAccessUpdates);
+  pendingAccessUpdates.clear();
+  if (updates.size === 0) return;
+  try {
+    const statements: { sql: string; params: unknown[] }[] = [];
+    for (const [url, timestamp] of updates) {
+      statements.push({
+        sql: "UPDATE image_cache SET last_accessed_at = ? WHERE source_url = ?",
+        params: [timestamp, url],
+      });
+    }
+    await safeTransaction(statements);
+  } catch (e) {
+    errorLogger.warn("[ImageCache] 批量更新last_accessed_at失败", e);
+  }
 }
 
 async function withCacheMutex<T>(fn: () => Promise<T>): Promise<T> {
@@ -233,5 +237,13 @@ export const imageCacheStorage = {
     }
 
     return filesToDelete;
+  },
+
+  async flushPendingAccessUpdates(): Promise<void> {
+    if (accessUpdateTimer) {
+      clearTimeout(accessUpdateTimer);
+      accessUpdateTimer = null;
+    }
+    await flushAccessUpdates();
   },
 };

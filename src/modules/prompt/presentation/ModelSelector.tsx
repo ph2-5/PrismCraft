@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { container } from "@/infrastructure/di";
 import type { ApiCapability } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
 import type { ModelSelection } from "@/domain/schemas";

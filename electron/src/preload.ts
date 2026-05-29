@@ -99,6 +99,9 @@ const callHistory = new Map<string, number[]>();
 const RATE_LIMITS: Record<string, { maxCalls: number; windowMs: number }> = {
   default: { maxCalls: 300, windowMs: 60000 },
   readonly: { maxCalls: 5000, windowMs: 60000 },
+  "db:query": { maxCalls: 3000, windowMs: 60000 },
+  "db:run": { maxCalls: 600, windowMs: 60000 },
+  "db:transaction": { maxCalls: 600, windowMs: 60000 },
 };
 
 const GLOBAL_RATE_LIMIT = { maxCalls: 10000, windowMs: 60000 };
@@ -111,6 +114,9 @@ const READONLY_CHANNELS = new Set([
 ]);
 
 function getRateLimit(channel: string): { maxCalls: number; windowMs: number } {
+  if (RATE_LIMITS[channel]) {
+    return RATE_LIMITS[channel];
+  }
   if (READONLY_CHANNELS.has(channel)) {
     return RATE_LIMITS.readonly;
   }

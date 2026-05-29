@@ -22,6 +22,7 @@ import {
 } from "@/modules/asset";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Badge } from "@/shared/ui/badge";
@@ -184,7 +185,7 @@ export default function AssetLibraryPage() {
         success("删除成功", `已删除 ${deletedIds.length} 个素材`);
       }
     } catch (e) {
-      showError("删除失败", e instanceof Error ? e.message : "未知错误");
+      showError("删除失败", mapUserFacingError(e));
     } finally {
       setIsBatchDeleting(false);
     }
@@ -203,7 +204,7 @@ export default function AssetLibraryPage() {
         encodedResult = await assetExportService.exportStoryboards(ids);
       else return;
       if (!encodedResult.ok) {
-        showError("导出失败", encodedResult.error instanceof Error ? encodedResult.error.message : "未知错误");
+        showError("导出失败", mapUserFacingError(encodedResult.error));
         return;
       }
       const blob = new Blob([new Uint8Array(encodedResult.value)], {
@@ -218,7 +219,7 @@ export default function AssetLibraryPage() {
       clearSelection();
       success("导出成功", `已导出 ${ids.length} 个素材为.asa文件`);
     } catch (e) {
-      showError("导出失败", e instanceof Error ? e.message : "未知错误");
+      showError("导出失败", mapUserFacingError(e));
     }
   };
 
@@ -239,7 +240,7 @@ export default function AssetLibraryPage() {
       clearSelection();
       success("添加成功", `已将 ${selectedIds.size} 个素材添加到合集`);
     } catch (e) {
-      showError("添加失败", e instanceof Error ? e.message : "未知错误");
+      showError("添加失败", mapUserFacingError(e));
     } finally {
       setIsAddingToCollection(false);
     }
@@ -251,7 +252,7 @@ export default function AssetLibraryPage() {
     try {
       const result = await assetExportService.importFromFile(file, importMode);
       if (!result.ok) {
-        showError("导入失败", result.error instanceof Error ? result.error.message : "未知错误");
+        showError("导入失败", mapUserFacingError(result.error));
       } else {
         if (result.value.errors.length > 0) {
           showError("部分导入失败", result.value.errors.join("; "));
@@ -262,7 +263,7 @@ export default function AssetLibraryPage() {
       }
       setIsImportDialogOpen(false);
     } catch (e) {
-      showError("导入失败", e instanceof Error ? e.message : "未知错误");
+      showError("导入失败", mapUserFacingError(e));
     }
     e.target.value = "";
   };
@@ -279,7 +280,7 @@ export default function AssetLibraryPage() {
       setIsNewCollectionDialogOpen(false);
       success("创建成功", "新合集已创建");
     } catch (e) {
-      showError("创建失败", e instanceof Error ? e.message : "未知错误");
+      showError("创建失败", mapUserFacingError(e));
     } finally {
       setIsCreatingCollection(false);
     }
@@ -292,7 +293,7 @@ export default function AssetLibraryPage() {
       loadSecondaryData();
       success("删除成功", "合集已删除");
     } catch (e) {
-      showError("删除失败", e instanceof Error ? e.message : "未知错误");
+      showError("删除失败", mapUserFacingError(e));
     }
   };
 
@@ -300,7 +301,7 @@ export default function AssetLibraryPage() {
     try {
       const encodedResult = await assetExportService.exportCollections([id]);
       if (!encodedResult.ok) {
-        showError("导出失败", encodedResult.error instanceof Error ? encodedResult.error.message : "未知错误");
+        showError("导出失败", mapUserFacingError(encodedResult.error));
         return;
       }
       const col = collections.find((c) => c.id === id);
@@ -315,7 +316,7 @@ export default function AssetLibraryPage() {
       URL.revokeObjectURL(url);
       success("导出成功", "合集已导出为.asa文件");
     } catch (e) {
-      showError("导出失败", e instanceof Error ? e.message : "未知错误");
+      showError("导出失败", mapUserFacingError(e));
     }
   };
 
@@ -325,7 +326,7 @@ export default function AssetLibraryPage() {
       .delete(id)
       .then(() => queryClient.invalidateQueries({ queryKey: ["characters"] }))
       .catch((e: unknown) =>
-        showError("删除失败", e instanceof Error ? e.message : "未知错误"),
+        showError("删除失败", mapUserFacingError(e)),
       );
   };
 
@@ -335,7 +336,7 @@ export default function AssetLibraryPage() {
       .delete(id)
       .then(() => queryClient.invalidateQueries({ queryKey: ["scenes"] }))
       .catch((e: unknown) =>
-        showError("删除失败", e instanceof Error ? e.message : "未知错误"),
+        showError("删除失败", mapUserFacingError(e)),
       );
   };
 
@@ -345,7 +346,7 @@ export default function AssetLibraryPage() {
       .remove(id)
       .then(() => loadSecondaryData())
       .catch((e: unknown) =>
-        showError("删除失败", e instanceof Error ? e.message : "未知错误"),
+        showError("删除失败", mapUserFacingError(e)),
       );
   };
 
@@ -389,7 +390,7 @@ export default function AssetLibraryPage() {
       loadSecondaryData();
       success("保存成功", "素材已更新");
     } catch (e) {
-      showError("保存失败", e instanceof Error ? e.message : "未知错误");
+      showError("保存失败", mapUserFacingError(e));
     } finally {
       setIsSavingEdit(false);
     }

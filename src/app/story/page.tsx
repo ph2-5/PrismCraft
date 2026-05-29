@@ -27,8 +27,8 @@ import {
 } from "@/modules/story";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
-import { getErrorMessage } from "@/shared/error-handler";
-import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { generateProfessionalVideoPrompt } from "@/modules/prompt";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
@@ -170,7 +170,7 @@ function StoryPageContent() {
       }
     } catch (err) {
       errorLogger.error("[Story] 视频生成失败", err instanceof Error ? err : undefined);
-      showError("视频生成失败", getErrorMessage(err));
+      showError("视频生成失败", mapUserFacingError(err));
     } finally {
       setIsGenerating(false);
     }
@@ -206,7 +206,7 @@ function StoryPageContent() {
       success("已保存并切换", "当前修改已保存");
     } catch (error) {
       errorLogger.error("[Story] 保存并切换失败", error instanceof Error ? error : undefined);
-      showError("保存失败", extractErrorMessage(error));
+      showError("保存失败", mapUserFacingError(error));
     }
   };
 

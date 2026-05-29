@@ -387,7 +387,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 37 guards:**
+**Quick reference — all 38 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
@@ -402,6 +402,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 | Resource Safety | R35 | Blob URL revoke on unmount |
 | Data Integrity | R36 | AI analysis selective merge over spread override |
 | SQL Safety | R37 | Dynamic table names must be validated against identifier pattern |
+| Race Condition | R38 | Video URL persistence must complete before story switch |
 
 ## Documentation Index
 

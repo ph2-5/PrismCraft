@@ -76,7 +76,7 @@ const PROMPT_FIELD_MAP: Record<PromptEditorContext, "imageGenerationPrompt" | "f
 
 function StoryPageContent() {
   const story = useStory();
-  const { success, error: showError } = useToastHelpers();
+  const { success, error: showError, warning: showWarning } = useToastHelpers();
   const autoSaveSettings = useAutoSaveSettings();
 
   const handleSaveRef = useRef(story.handleSave);
@@ -177,6 +177,10 @@ function StoryPageContent() {
   }, [story, success, showError]);
 
   const switchStory = (s: (typeof story.stories)[number]) => {
+    if (story.isVideoUrlPersisting) {
+      showWarning("请稍候", "视频URL正在保存中，请等待保存完成后再切换故事");
+      return;
+    }
     if (story.hasUnsavedChanges && story.beats.length > 0) {
       setPendingSwitchStory(s);
       setShowSwitchConfirmDialog(true);

@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useState,
 } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
@@ -168,6 +169,9 @@ interface StoryContextValue {
   // Save status
   saveStatus: SaveStatus;
   saveError: string;
+
+  // Video URL persist guard
+  isVideoUrlPersisting: boolean;
 }
 
 const StoryContext = createContext<StoryContextValue | null>(null);
@@ -315,6 +319,9 @@ function useStoryContext(): StoryContextValue {
   const currentStoryRef = useRef(storyState.currentStory);
   useEffect(() => { currentStoryRef.current = storyState.currentStory; }, [storyState.currentStory]);
 
+  const [isVideoUrlPersisting, setIsVideoUrlPersisting] = useState(false);
+  const isPersistingRef = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -346,9 +353,21 @@ function useStoryContext(): StoryContextValue {
           }
 
           if (allPersistData.length > 0) {
-            storyService.updateBeatMediaUrls(allPersistData).catch((e) => {
-              errorLogger.warn("自动保存视频URL失败", e);
-            });
+            isPersistingRef.current = true;
+            setIsVideoUrlPersisting(true);
+            try {
+              await storyService.updateBeatMediaUrls(allPersistData);
+            } catch (e) {
+              if (!cancelled) {
+                errorLogger.warn("自动保存视频URL失败", e);
+                showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
+              }
+            } finally {
+              isPersistingRef.current = false;
+              if (!cancelled) {
+                setIsVideoUrlPersisting(false);
+              }
+            }
           }
 
           const currentStory = currentStoryRef.current;
@@ -472,6 +491,7 @@ function useStoryContext(): StoryContextValue {
       removeTasks: videoTaskManager.removeTasks,
       saveStatus: storySaver.saveStatus,
       saveError: storySaver.saveError,
+      isVideoUrlPersisting,
       success,
       showError,
     }),
@@ -542,6 +562,7 @@ function useStoryContext(): StoryContextValue {
       videoTaskManager.pollTask,
       videoTaskManager.removeTask,
       videoTaskManager.removeTasks,
+      isVideoUrlPersisting,
       success,
       showError,
     ],

@@ -795,3 +795,32 @@ for (const table of tables) {
   db.prepare(`DELETE FROM "${table}" WHERE is_deleted = 1`).run();
 }
 ```
+
+### R38: Video URL Persistence MUST Complete Before Story Switch
+When video URLs are updated in memory (from completed generation tasks), they MUST be persisted to the database via `await` before the user can switch to a different story. Fire-and-forget persistence (`.catch()` without `await`) creates a race condition: if the user switches stories before persistence completes, the URL is lost because the new story's state overwrites the in-memory beats. The `isVideoUrlPersisting` flag MUST be exposed to the UI layer, and story switching MUST be blocked while persistence is in flight.
+
+**BAD**:
+```typescript
+storyService.updateBeatMediaUrls(allPersistData).catch((e) => {
+  errorLogger.warn("自动保存视频URL失败", e);
+});
+```
+
+**GOOD**:
+```typescript
+setIsVideoUrlPersisting(true);
+try {
+  await storyService.updateBeatMediaUrls(allPersistData);
+} catch (e) {
+  errorLogger.warn("自动保存视频URL失败", e);
+  showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
+} finally {
+  setIsVideoUrlPersisting(false);
+}
+
+// In switchStory:
+if (story.isVideoUrlPersisting) {
+  showWarning("请稍候", "视频URL正在保存中，请等待保存完成后再切换故事");
+  return;
+}
+```

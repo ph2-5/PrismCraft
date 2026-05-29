@@ -118,8 +118,7 @@ export const videoTaskStorage = {
       `UPDATE video_tasks SET ${setSql}, updated_at = ? WHERE id = ?`,
       allParams,
     );
-    const updateResult = result;
-    if (!updateResult || updateResult.changes === 0) {
+    if (!result || result.changes === 0) {
       const existing = await safeQuery<{ id: string }>(
         "SELECT id FROM video_tasks WHERE id = ?",
         [taskId],
@@ -144,6 +143,20 @@ export const videoTaskStorage = {
     try {
       await trackChange("video_task", taskId, "delete");
     } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:delete", e); }
+  },
+
+  async batchDeleteVideoTasks(taskIds: string[]): Promise<void> {
+    if (taskIds.length === 0) return;
+    const placeholders = taskIds.map(() => "?").join(",");
+    await safeTransaction([
+      { sql: `DELETE FROM video_cache WHERE task_id IN (${placeholders})`, params: taskIds },
+      { sql: `DELETE FROM video_tasks WHERE id IN (${placeholders})`, params: [...taskIds] },
+    ]);
+    for (const id of taskIds) {
+      try {
+        await trackChange("video_task", id, "delete");
+      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:batchDelete", e); }
+    }
   },
 
   async deleteVideoTasksByStatus(statuses: string[]): Promise<void> {
@@ -268,7 +281,38 @@ export const videoTaskStorage = {
   },
 
   async bulkPutVideoTasks(tasks: Partial<VideoTask>[]): Promise<void> {
-    return bulkPutVideoTasksFn(tasks, this);
+    return bulkPutVideoTasksFn(tasks);
+  },
+
+  async batchUpdateVideoTasks(
+    updates: Array<{ taskId: string; updates: Partial<VideoTask> }>,
+  ): Promise<void> {
+    if (updates.length === 0) return;
+    const statements: { sql: string; params: unknown[] }[] = [];
+    for (const { taskId, updates: taskUpdates } of updates) {
+      if (taskUpdates.videoUrl !== undefined && taskUpdates.urlObtainedAt === undefined) {
+        taskUpdates.urlObtainedAt = Math.floor(Date.now() / 1000);
+      }
+      const { sql: setSql, params: setParams } = buildUpdateSets(taskUpdates);
+      if (setParams.length === 0) continue;
+      const allParams = [...setParams, Math.floor(Date.now() / 1000), taskId];
+      statements.push({
+        sql: `UPDATE video_tasks SET ${setSql}, updated_at = ? WHERE id = ?`,
+        params: allParams,
+      });
+    }
+    if (statements.length === 0) return;
+    await safeTransaction(statements);
+    for (const { taskId, updates: taskUpdates } of updates) {
+      try {
+        await trackChange("video_task", taskId, "update");
+      } catch (e) { errorLogger.warn("[Storage] trackChange failed for video_task:batchUpdate", e); }
+      if (taskUpdates.status !== undefined) {
+        try {
+          await videoTaskStorage.syncBeatVideoStatus(taskId, taskUpdates.status as string);
+        } catch (e) { errorLogger.warn("[Storage] syncBeatVideoStatus failed in batchUpdate", e); }
+      }
+    }
   },
 
   async syncBeatVideoStatus(taskId: string, status: string): Promise<void> {

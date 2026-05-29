@@ -159,23 +159,30 @@ async function handleTimedOutTasks(
     }),
   );
 
+  const batchUpdates: Array<{ taskId: string; updates: Partial<VideoTask> }> = [];
   for (const task of timedOutTasks) {
     if (signal.aborted) return;
-    try {
-      if (!TaskMachine.canTransition(task.status, "failed")) {
-        errorLogger.warn(
-          { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=failed` },
-          "VideoTaskManager",
-        );
-        continue;
-      }
-      await container.videoTaskStorage.updateVideoTask(task.taskId, {
+    if (!TaskMachine.canTransition(task.status, "failed")) {
+      errorLogger.warn(
+        { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=failed` },
+        "VideoTaskManager",
+      );
+      continue;
+    }
+    batchUpdates.push({
+      taskId: task.taskId,
+      updates: {
         status: "failed",
         message: "视频生成超时，请在视频任务管理器中点击「手动恢复」重试",
         pollFailureCount: 0,
-      });
+      },
+    });
+  }
+  if (batchUpdates.length > 0) {
+    try {
+      await container.videoTaskStorage.batchUpdateVideoTasks(batchUpdates);
     } catch (e) {
-      errorLogger.warn("[VideoTaskManager] Failed to persist timeout task", e);
+      errorLogger.warn("[VideoTaskManager] Failed to persist timeout tasks (batch)", e);
     }
   }
 }

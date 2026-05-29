@@ -1,9 +1,36 @@
-import { safeQuery, safeRun } from "./sqlite-core";
+import { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
 import { errorLogger } from "@/shared/error-logger";
 
 const MAX_IMAGE_CACHE_BYTES = 500 * 1024 * 1024;
 
 let cacheMutex: Promise<void> = Promise.resolve();
+
+const ACCESS_UPDATE_BATCH_INTERVAL = 5000;
+const pendingAccessUpdates = new Map<string, number>();
+let accessUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleAccessUpdate(sourceUrl: string): void {
+  pendingAccessUpdates.set(sourceUrl, Math.floor(Date.now() / 1000));
+  if (accessUpdateTimer) return;
+  accessUpdateTimer = setTimeout(async () => {
+    accessUpdateTimer = null;
+    const updates = new Map(pendingAccessUpdates);
+    pendingAccessUpdates.clear();
+    if (updates.size === 0) return;
+    try {
+      const statements: { sql: string; params: unknown[] }[] = [];
+      for (const [url, timestamp] of updates) {
+        statements.push({
+          sql: "UPDATE image_cache SET last_accessed_at = ? WHERE source_url = ?",
+          params: [timestamp, url],
+        });
+      }
+      await safeTransaction(statements);
+    } catch (e) {
+      errorLogger.warn("[ImageCache] 批量更新last_accessed_at失败", e);
+    }
+  }, ACCESS_UPDATE_BATCH_INTERVAL);
+}
 
 async function withCacheMutex<T>(fn: () => Promise<T>): Promise<T> {
   const prev = cacheMutex;
@@ -96,10 +123,7 @@ export const imageCacheStorage = {
     );
     if (result.length === 0) return null;
 
-    await safeRun(
-      "UPDATE image_cache SET last_accessed_at = ? WHERE source_url = ?",
-      [Math.floor(Date.now() / 1000), sourceUrl],
-    );
+    scheduleAccessUpdate(sourceUrl);
 
     return {
       filePath: result[0].file_path,

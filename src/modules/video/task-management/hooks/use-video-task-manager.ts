@@ -294,11 +294,9 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 
   removeTasks: async (taskIds) => {
-    const deletedIds: string[] = [];
-    for (const id of taskIds) {
-      try {
-        await container.videoTaskStorage.deleteVideoTask(id);
-        deletedIds.push(id);
+    try {
+      await container.videoTaskStorage.batchDeleteVideoTasks(taskIds);
+      for (const id of taskIds) {
         try {
           await removeCachedVideo(id);
         } catch (e) {
@@ -307,17 +305,12 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             "VideoTaskManager",
           );
         }
-      } catch (error) {
-        errorLogger.error(
-          new AppError("REMOVE_TASK_ERROR", `Failed to remove video task: ${id}`, error),
-          "VideoTaskManager",
-        );
       }
-    }
-    if (deletedIds.length > 0) {
       get().setAllTasks((prev) =>
-        prev.filter((task) => !deletedIds.includes(task.taskId)),
+        prev.filter((task) => !taskIds.includes(task.taskId)),
       );
+    } catch (error) {
+      errorLogger.error("Failed to remove video tasks", error);
     }
   },
 
@@ -327,11 +320,10 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         (t) => t.status === "pending" || t.status === "generating",
       )
       .map((t) => t.taskId);
-    const deletedIds: string[] = [];
-    for (const id of activeIds) {
-      try {
-        await container.videoTaskStorage.deleteVideoTask(id);
-        deletedIds.push(id);
+    if (activeIds.length === 0) return;
+    try {
+      await container.videoTaskStorage.batchDeleteVideoTasks(activeIds);
+      for (const id of activeIds) {
         try {
           await removeCachedVideo(id);
         } catch (e) {
@@ -340,17 +332,12 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             "VideoTaskManager",
           );
         }
-      } catch (error) {
-        errorLogger.error(
-          new AppError("CLEAR_ACTIVE_TASKS_ERROR", `Failed to delete task ${id}`, error),
-          "VideoTaskManager",
-        );
       }
-    }
-    if (deletedIds.length > 0) {
       get().setAllTasks((prev) =>
-        prev.filter((t) => !deletedIds.includes(t.taskId)),
+        prev.filter((t) => !activeIds.includes(t.taskId)),
       );
+    } catch (error) {
+      errorLogger.error("Failed to clear active tasks", error);
     }
   },
 

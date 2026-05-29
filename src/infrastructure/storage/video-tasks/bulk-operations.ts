@@ -12,48 +12,30 @@ import {
   buildUpdateSets,
 } from "./parser";
 
-interface BulkPutDeps {
-  getVideoTaskById<T = VideoTask>(taskId: string): Promise<T | null>;
-  updateVideoTask(taskId: string, updates: Partial<VideoTask>): Promise<void>;
-  createVideoTask(task: Partial<VideoTask> & { taskId: string }): Promise<void>;
-}
-
 export async function bulkPutVideoTasks(
   tasks: Partial<VideoTask>[],
-  deps: BulkPutDeps,
 ): Promise<void> {
   if (tasks.length === 0) {
-    const results = await Promise.allSettled(
-      tasks.map(async (task) => {
-        const taskId = task.taskId as string;
-        const existing = await deps.getVideoTaskById(taskId);
-        if (existing) {
-          await deps.updateVideoTask(taskId, task);
-        } else {
-          await deps.createVideoTask(task as Partial<VideoTask> & { taskId: string });
-        }
-      }),
-    );
-    const failures = results.filter((r) => r.status === "rejected");
-    if (failures.length > 0) {
-      errorLogger.warn(
-        `[VideoTasks] bulkPut部分失败: ${failures.length}/${tasks.length}`,
-      );
-    }
     return;
   }
+  const taskIds = tasks.map((t) => t.taskId as string);
+  const existingIdSet = new Set<string>();
+  const placeholders = taskIds.map(() => "?").join(",");
+  const existingRows = await safeQuery<{ id: string }>(
+    `SELECT id FROM video_tasks WHERE id IN (${placeholders})`,
+    taskIds,
+  );
+  for (const row of existingRows) {
+    existingIdSet.add(row.id);
+  }
+
   const insertStatements: { sql: string; params: unknown[] }[] = [];
   const updateTasks: Array<{ id: string; updates: Partial<VideoTask> }> =
     [];
-  const taskIds: string[] = [];
+
   for (const task of tasks) {
     const taskId = task.taskId as string;
-    taskIds.push(taskId);
-    const existing = await safeQuery<{ id: string }>(
-      "SELECT id FROM video_tasks WHERE id = ?",
-      [taskId],
-    );
-    if (existing && existing.length > 0) {
+    if (existingIdSet.has(taskId)) {
       const updates: Partial<VideoTask> = {};
       for (const [jsKey, value] of Object.entries(task)) {
         if (value !== undefined) {

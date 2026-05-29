@@ -35,6 +35,8 @@ const {
     clearVideoTasks: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     deleteVideoTasksByStatus: vi.fn<(statuses: string[]) => Promise<void>>().mockResolvedValue(undefined),
     bulkPutVideoTasks: vi.fn<(tasks: Record<string, unknown>[]) => Promise<void>>().mockResolvedValue(undefined),
+    batchDeleteVideoTasks: vi.fn<(ids: string[]) => Promise<void>>().mockResolvedValue(undefined),
+    batchUpdateVideoTasks: vi.fn<(updates: Array<{ taskId: string; updates: Partial<VideoTask> }>) => Promise<void>>().mockResolvedValue(undefined),
   };
 
   const mockVideoProvider = {
@@ -442,15 +444,14 @@ describe("useVideoTaskStore", () => {
       expect(mockRemoveCachedVideo).toHaveBeenCalledWith("task-batch-5");
     });
 
-    it("should delete each task from storage", async () => {
+    it("should delete each task from storage via batch", async () => {
       const task1 = makeTask({ taskId: "task-batch-6" });
       const task2 = makeTask({ taskId: "task-batch-7" });
       useVideoTaskStore.setState({ allTasks: [task1, task2] });
 
       await useVideoTaskStore.getState().removeTasks(["task-batch-6", "task-batch-7"]);
 
-      expect(mockVideoTaskStorage.deleteVideoTask).toHaveBeenCalledWith("task-batch-6");
-      expect(mockVideoTaskStorage.deleteVideoTask).toHaveBeenCalledWith("task-batch-7");
+      expect(mockVideoTaskStorage.batchDeleteVideoTasks).toHaveBeenCalledWith(["task-batch-6", "task-batch-7"]);
     });
 
     it("should warn when removeCachedVideo fails for a task", async () => {
@@ -464,7 +465,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should catch and log error when storage delete fails for a task", async () => {
-      mockVideoTaskStorage.deleteVideoTask.mockRejectedValueOnce(new Error("db error"));
+      mockVideoTaskStorage.batchDeleteVideoTasks.mockRejectedValueOnce(new Error("db error"));
       const task1 = makeTask({ taskId: "task-batch-9" });
       useVideoTaskStore.setState({ allTasks: [task1] });
 
@@ -498,13 +499,13 @@ describe("useVideoTaskStore", () => {
       expect(mockRemoveCachedVideo).toHaveBeenCalledWith("t-generating-2");
     });
 
-    it("should delete each active task from storage", async () => {
+    it("should delete active tasks from storage via batch", async () => {
       const pending = makeTask({ taskId: "t-pending-3", status: "pending" });
       useVideoTaskStore.setState({ allTasks: [pending] });
 
       await useVideoTaskStore.getState().clearActiveTasks();
 
-      expect(mockVideoTaskStorage.deleteVideoTask).toHaveBeenCalledWith("t-pending-3");
+      expect(mockVideoTaskStorage.batchDeleteVideoTasks).toHaveBeenCalledWith(["t-pending-3"]);
     });
 
     it("should not remove completed or failed tasks", async () => {
@@ -519,7 +520,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should log error when storage delete fails", async () => {
-      mockVideoTaskStorage.deleteVideoTask.mockRejectedValueOnce(new Error("db error"));
+      mockVideoTaskStorage.batchDeleteVideoTasks.mockRejectedValueOnce(new Error("db error"));
       const pending = makeTask({ taskId: "t-pending-4", status: "pending" });
       useVideoTaskStore.setState({ allTasks: [pending] });
 

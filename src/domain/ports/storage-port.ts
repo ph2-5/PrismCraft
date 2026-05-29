@@ -18,6 +18,8 @@ export interface IVideoTaskStorage {
   deleteExpiredVideoTasks(): Promise<number>;
   clearVideoTasks(): Promise<void>;
   bulkPutVideoTasks(tasks: Partial<VideoTask>[]): Promise<void>;
+  batchUpdateVideoTasks(updates: Array<{ taskId: string; updates: Partial<VideoTask> }>): Promise<void>;
+  batchDeleteVideoTasks(taskIds: string[]): Promise<void>;
 }
 
 export interface ICharacterStorage {

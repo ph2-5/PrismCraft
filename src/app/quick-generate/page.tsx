@@ -6,20 +6,10 @@ import {
   User,
   Image,
   Wand2,
-  Settings,
-  ChevronDown,
-  ChevronUp,
-  Download,
   RefreshCw,
-  Layers,
   CheckCircle2,
-  AlertCircle,
   Plus,
-  X,
-  Trash2,
-  Film,
   LayoutTemplate,
-  Grid3x3,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
@@ -37,17 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
-import { Switch } from "@/shared/ui/switch";
 import { Label } from "@/shared/ui/label";
-import { Progress } from "@/shared/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/shared/ui/dialog";
 import {
   generateQuickModeVideoPrompt,
   getDurationOptionsForModel,
@@ -55,8 +35,6 @@ import {
   getStyleOptionsForModel,
 } from "@/modules/prompt";
 import {
-  templateCategories,
-  getTemplatesByCategory,
   applyVideoTemplate,
   type VideoTemplate,
 } from "@/modules/video";
@@ -75,9 +53,10 @@ import { getVideoUrlWithCache } from "@/modules/video";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ModelSelector, useModelSelection } from "@/modules/prompt";
 import { errorLogger } from "@/shared/error-logger";
-import { createSimpleVideoErrorHandler, createVideoErrorHandler } from "@/shared/utils/media-error-handler";
-import { confirm } from "@/shared/utils/confirm";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
+import { TemplateSelectDialog } from "./TemplateSelectDialog";
+import { TaskResultPanel } from "./TaskResultPanel";
+import { AdvancedSettingsCard } from "./AdvancedSettingsCard";
 
 export default function QuickGeneratePage() {
   const { guardedPush } = useNavigationGuard();
@@ -91,7 +70,6 @@ export default function QuickGeneratePage() {
   const { data: scenes = [], isLoading: scenesLoading } = useScenes();
   const createMediaAssetMutation = useCreateMediaAsset();
 
-  // 表单状态
   const [promptText, setPromptText] = useState("");
   const [duration, setDuration] = useState(5);
   const [selectedStyle, setSelectedStyle] = useState("电影感");
@@ -111,7 +89,6 @@ export default function QuickGeneratePage() {
   );
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [cachedVideoUrl, setCachedVideoUrl] = useState<string | null>(null);
   const [cachedVideoUrlTaskId, setCachedVideoUrlTaskId] = useState<string | null>(null);
   const [isSavingToAssets, setIsSavingToAssets] = useState(false);
@@ -133,7 +110,6 @@ export default function QuickGeneratePage() {
     };
   }, []);
 
-  // 视频任务管理
   const {
     tasks,
     isGenerating,
@@ -153,7 +129,6 @@ export default function QuickGeneratePage() {
     };
   }, [initialize]);
 
-  // 当前任务
   const currentTask = activeTaskId
     ? tasks.find((t) => t.taskId === activeTaskId)
     : null;
@@ -190,7 +165,6 @@ export default function QuickGeneratePage() {
     return currentTask?.videoUrl || null;
   }, [currentTask?.status, currentTask?.videoUrl, currentTask?.taskId, cachedVideoUrl, cachedVideoUrlTaskId]);
 
-  // 处理角色选择
   const toggleCharacter = (charId: string) => {
     setSelectedCharacters((prev) =>
       prev.includes(charId)
@@ -199,22 +173,18 @@ export default function QuickGeneratePage() {
     );
   };
 
-  // 处理场景选择
   const toggleScene = (sceneId: string) => {
     setSelectedScene((prev) => (prev === sceneId ? null : sceneId));
   };
 
-  // 获取选中的角色对象
   const getSelectedCharacterObjects = useCallback(() => {
     return characters.filter((c) => selectedCharacters.includes(c.id));
   }, [characters, selectedCharacters]);
 
-  // 获取选中的场景对象
   const getSelectedSceneObject = useCallback(() => {
     return scenes.find((s) => s.id === selectedScene) || null;
   }, [scenes, selectedScene]);
 
-  // 开始生成视频
   const handleGenerate = async () => {
     if (!promptText.trim()) {
       showError("请输入视频描述");
@@ -226,7 +196,6 @@ export default function QuickGeneratePage() {
     }
 
     try {
-      // 生成提示词
       const selectedCharObjs = getSelectedCharacterObjects();
       const selectedSceneObj = getSelectedSceneObject();
 
@@ -286,7 +255,6 @@ export default function QuickGeneratePage() {
     }
   };
 
-  // 处理下载
   const handleDownload = async (
     videoUrl: string | undefined,
     filename: string,
@@ -316,7 +284,6 @@ export default function QuickGeneratePage() {
     }
   };
 
-  // 处理保存到素材库
   const handleSaveToAssets = async (task: VideoTask) => {
     if (!task.videoUrl || isSavingToAssets) return;
 
@@ -338,7 +305,6 @@ export default function QuickGeneratePage() {
     }
   };
 
-  // 应用视频模板
   const handleApplyTemplate = useCallback(
     (template: VideoTemplate) => {
       const {
@@ -355,7 +321,6 @@ export default function QuickGeneratePage() {
     [showSuccess],
   );
 
-  // 处理上传参考视频
   const handleUploadReferenceVideo = useCallback(
     (file: File) => {
       if (referenceVideo && referenceVideo.startsWith("blob:")) {
@@ -371,7 +336,6 @@ export default function QuickGeneratePage() {
     [showSuccess, referenceVideo],
   );
 
-  // 处理删除参考视频
   const handleRemoveReferenceVideo = useCallback(() => {
     if (referenceVideo && referenceVideo.startsWith("blob:")) {
       URL.revokeObjectURL(referenceVideo);
@@ -382,7 +346,16 @@ export default function QuickGeneratePage() {
     setReferenceVideoName(null);
   }, [referenceVideo]);
 
-  // 快速示例
+  const handleRetry = useCallback(
+    (task: VideoTask) => {
+      if (task.prompt) {
+        setPromptText(task.prompt);
+      }
+      handleGenerate();
+    },
+    [handleGenerate],
+  );
+
   const quickExamples = [
     "一只白色猫咪在海边沙滩上奔跑，日落暖光，治愈电影感",
     "一个古风美女在樱花树下弹古筝，花瓣飘落，唯美浪漫",
@@ -408,9 +381,7 @@ export default function QuickGeneratePage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 左侧：配置区域 */}
           <div className="lg:col-span-2 space-y-6">
-            {/* 核心输入区 */}
             <Card className="border-2 border-purple-800/30 bg-slate-900/80 backdrop-blur">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -444,7 +415,6 @@ export default function QuickGeneratePage() {
                   提示：可以包含剧情、角色动作、画面风格、氛围描述
                 </p>
 
-                {/* 快速示例 */}
                 <div className="pt-4">
                   <Label className="text-sm text-slate-400 mb-2 block">
                     快速尝试：
@@ -466,13 +436,11 @@ export default function QuickGeneratePage() {
               </CardContent>
             </Card>
 
-            {/* 可视化配置区 */}
             <Card className="border border-slate-800 bg-slate-900/60">
               <CardHeader>
                 <CardTitle className="text-lg">配置视频参数</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* 视频模型选择 */}
                 <div className="space-y-2">
                   <Label className="text-slate-300">视频模型</Label>
                   <ModelSelector
@@ -481,7 +449,6 @@ export default function QuickGeneratePage() {
                     onChange={setSelectedVideoModel}
                   />
                 </div>
-                {/* 时长选择 */}
                 <div className="space-y-2">
                   <Label className="text-slate-300">视频时长</Label>
                   <div className="flex flex-wrap gap-2">
@@ -505,7 +472,6 @@ export default function QuickGeneratePage() {
                   </div>
                 </div>
 
-                {/* 风格选择 */}
                 <div className="space-y-2">
                   <Label className="text-slate-300">画面风格</Label>
                   <div className="flex flex-wrap gap-2">
@@ -531,7 +497,6 @@ export default function QuickGeneratePage() {
                   </div>
                 </div>
 
-                {/* 分辨率选择 */}
                 <div className="space-y-2">
                   <Label className="text-slate-300">分辨率</Label>
                   <Select
@@ -554,7 +519,6 @@ export default function QuickGeneratePage() {
                   </Select>
                 </div>
 
-                {/* 角色选择 */}
                 <div className="space-y-2">
                   <Label className="text-slate-300 flex items-center gap-2">
                     <User className="w-4 h-4" />
@@ -618,7 +582,6 @@ export default function QuickGeneratePage() {
                   )}
                 </div>
 
-                {/* 场景选择 */}
                 <div className="space-y-2">
                   <Label className="text-slate-300 flex items-center gap-2">
                     <Image className="w-4 h-4" />
@@ -684,167 +647,21 @@ export default function QuickGeneratePage() {
               </CardContent>
             </Card>
 
-            {/* 高级设置 */}
-            <Card className="border border-slate-800 bg-slate-900/60">
-              <CardHeader
-                className="cursor-pointer"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-              >
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-slate-400" />
-                    高级设置
-                  </CardTitle>
-                  {showAdvanced ? (
-                    <ChevronUp className="w-5 h-5 text-slate-500" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-500" />
-                  )}
-                </div>
-              </CardHeader>
-              {showAdvanced && (
-                <CardContent className="space-y-4">
-                  {/* 智能优化 */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-slate-300">智能优化</Label>
-                      <p className="text-sm text-slate-500">
-                        自动优化提示词、画面构图和节奏控制
-                      </p>
-                    </div>
-                    <Switch
-                      checked={enableSmartOptimization}
-                      onCheckedChange={setEnableSmartOptimization}
-                    />
-                  </div>
+            <AdvancedSettingsCard
+              showAdvanced={showAdvanced}
+              onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
+              enableSmartOptimization={enableSmartOptimization}
+              onSmartOptimizationChange={setEnableSmartOptimization}
+              negativePrompt={negativePrompt}
+              onNegativePromptChange={setNegativePrompt}
+              referenceImage={referenceImage}
+              onReferenceImageChange={setReferenceImage}
+              referenceVideo={referenceVideo}
+              referenceVideoName={referenceVideoName}
+              onUploadReferenceVideo={handleUploadReferenceVideo}
+              onRemoveReferenceVideo={handleRemoveReferenceVideo}
+            />
 
-                  {/* 负面提示词 */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">负面提示词</Label>
-                    <Textarea
-                      value={negativePrompt}
-                      onChange={(e) => setNegativePrompt(e.target.value)}
-                      placeholder="输入不希望出现的内容，例如：恐怖画面、血腥场景..."
-                      className="bg-slate-800 border-slate-700 text-sm"
-                    />
-                  </div>
-
-                  {/* 参考图片 */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">参考图片</Label>
-                    {referenceImage ? (
-                      <div className="relative inline-block">
-                        <img
-                          src={referenceImage}
-                          alt="参考"
-                          className="w-32 h-32 rounded-lg object-cover border border-slate-700"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
-                          onClick={() => setReferenceImage(null)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center">
-                        <p className="text-slate-500 text-sm mb-2">
-                          点击上传参考图片
-                        </p>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          id="ref-image-upload"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                setReferenceImage(
-                                  event.target?.result as string,
-                                );
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            document.getElementById("ref-image-upload")?.click()
-                          }
-                        >
-                          选择图片
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 参考视频 */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300 flex items-center gap-2">
-                      <Film className="w-4 h-4" />
-                      参考视频（可选）
-                    </Label>
-                    {referenceVideo ? (
-                      <div className="relative">
-                        <video
-                          src={referenceVideo}
-                          controls
-                          className="w-full max-h-48 rounded-lg border border-slate-700"
-                          onError={createSimpleVideoErrorHandler()}
-                        />
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-sm text-slate-400">
-                            {referenceVideoName}
-                          </span>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleRemoveReferenceVideo}
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            移除
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center">
-                        <p className="text-slate-500 text-sm mb-2">
-                          上传参考视频，让AI学习动作和风格
-                        </p>
-                        <input
-                          type="file"
-                          accept="video/*"
-                          className="hidden"
-                          id="ref-video-upload"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleUploadReferenceVideo(file);
-                            }
-                          }}
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            document.getElementById("ref-video-upload")?.click()
-                          }
-                        >
-                          <Film className="w-4 h-4 mr-2" />
-                          选择视频
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-
-            {/* 生成按钮 */}
             <Button
               size="lg"
               className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-xl shadow-purple-900/30"
@@ -880,280 +697,25 @@ export default function QuickGeneratePage() {
             )}
           </div>
 
-          {/* 右侧：结果和历史 */}
-          <div className="space-y-6">
-            {/* 当前任务 */}
-            {currentTask && (
-              <Card className="border-2 border-purple-700/50 bg-slate-900/90">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Film className="w-5 h-5 text-purple-400" />
-                    当前任务
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* 进度 */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">
-                        {currentTask.status === "pending" && "排队中..."}
-                        {currentTask.status === "generating" && "生成中..."}
-                        {currentTask.status === "completed" && "已完成!"}
-                        {currentTask.status === "failed" && "生成失败"}
-                      </span>
-                      <span className="text-slate-500">
-                        {currentTask.progress}%
-                      </span>
-                    </div>
-                    <Progress
-                      value={currentTask.progress}
-                      className="bg-slate-800"
-                    />
-                  </div>
-
-                  {/* 错误信息 */}
-                  {currentTask.status === "failed" && (
-                    <div className="flex items-start gap-2 p-3 bg-red-900/30 rounded-lg border border-red-800/50">
-                      <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                      <p className="text-sm text-red-300">
-                        {currentTask.message || "生成失败，请重试"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* 视频预览 */}
-                  {currentTask.status === "completed" &&
-                    effectiveVideoUrl && (
-                      <div className="space-y-4">
-                        <div className="aspect-video bg-black rounded-lg overflow-hidden border border-slate-700">
-                          <video
-                            src={effectiveVideoUrl}
-                            controls
-                            className="w-full h-full"
-                            poster={
-                              getSelectedCharacterObjects()[0]?.generatedImage
-                            }
-                            onError={createVideoErrorHandler()}
-                          />
-                        </div>
-
-                        {/* 操作按钮 */}
-                        <div className="flex gap-2">
-                          <Button
-                            className="flex-1"
-                            onClick={() =>
-                              handleDownload(
-                                effectiveVideoUrl || "",
-                                `quick-video-${Date.now()}.mp4`,
-                              )
-                            }
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            下载视频
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => handleSaveToAssets(currentTask)}
-                          >
-                            <Layers className="w-4 h-4 mr-2" />
-                            保存
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* 历史任务 */}
-            {tasks.filter((t) => t.taskId !== activeTaskId).length > 0 && (
-              <Card className="border border-slate-800 bg-slate-900/60">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">历史生成</CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        if (
-                          await confirm("确定要清空所有已完成的任务记录吗？", "清空任务记录")
-                        ) {
-                          clearCompletedTasks();
-                        }
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      清空
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 max-h-96 overflow-y-auto">
-                  {tasks
-                    .filter((t) => t.taskId !== activeTaskId)
-                    .slice()
-                    .reverse()
-                    .map((task) => (
-                      <div
-                        key={task.taskId}
-                        className="p-3 rounded-lg bg-slate-800/50 border border-slate-700"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span
-                            className={`
-                              text-xs px-2 py-0.5 rounded-full
-                              ${
-                                task.status === "completed"
-                                  ? "bg-green-900/50 text-green-400"
-                                  : task.status === "failed"
-                                    ? "bg-red-900/50 text-red-400"
-                                    : "bg-yellow-900/50 text-yellow-400"
-                              }
-                            `}
-                          >
-                            {task.status === "completed" && "已完成"}
-                            {task.status === "failed" && "失败"}
-                            {["pending", "generating"].includes(task.status) &&
-                              "处理中"}
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            {new Date(task.createdAt).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        {task.videoUrl && (
-                          <div className="flex gap-2 mt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                              onClick={() =>
-                                handleDownload(
-                                  task.videoUrl,
-                                  `quick-video-${task.taskId}.mp4`,
-                                )
-                              }
-                            >
-                              <Download className="w-4 h-4 mr-1" />
-                              下载
-                            </Button>
-                          </div>
-                        )}
-                        {task.status === "failed" && (
-                          <div className="flex gap-2 mt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                              disabled={isGenerating}
-                              onClick={() => {
-                                if (isGenerating) return;
-                                if (task.prompt) {
-                                  setPromptText(task.prompt);
-                                }
-                                handleGenerate();
-                              }}
-                            >
-                              <RefreshCw className="w-4 h-4 mr-1" />
-                              重试
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* 提示卡片 */}
-            <Card className="border border-slate-800 bg-gradient-to-br from-purple-900/20 to-slate-900/60">
-              <CardHeader>
-                <CardTitle className="text-lg">温馨提示</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-400">
-                <p>💡 详细的描述会获得更好的效果</p>
-                <p>🎭 创建并锁定角色，可以确保视频中角色形象一致</p>
-                <p>🏠 锁定场景，可以保持画面环境的连贯性</p>
-                <p>⚙️ 需要更精细的控制？可以进入专业模式进行编辑</p>
-              </CardContent>
-            </Card>
-          </div>
+          <TaskResultPanel
+            currentTask={currentTask ?? null}
+            effectiveVideoUrl={effectiveVideoUrl}
+            tasks={tasks}
+            activeTaskId={activeTaskId ?? null}
+            isGenerating={isGenerating}
+            onDownload={handleDownload}
+            onSaveToAssets={handleSaveToAssets}
+            onRetry={handleRetry}
+            onClearCompleted={clearCompletedTasks}
+            characterPosterImage={getSelectedCharacterObjects()[0]?.generatedImage}
+          />
         </div>
 
-        {/* 模板选择对话框 */}
-        <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
-          <DialogContent className="max-w-3xl bg-slate-800 border-purple-700 text-slate-200">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-purple-100">
-                <LayoutTemplate className="w-5 h-5" />
-                选择视频模板
-              </DialogTitle>
-              <DialogDescription className="text-purple-300">
-                选择一个预设模板，快速开始你的视频创作
-              </DialogDescription>
-            </DialogHeader>
-
-            {/* 分类选择 */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {templateCategories.map((category) => (
-                <Button
-                  key={category.id}
-                  variant={
-                    selectedCategory === category.id ? "default" : "outline"
-                  }
-                  size="sm"
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={
-                    selectedCategory === category.id
-                      ? "bg-purple-600 hover:bg-purple-700"
-                      : "border-slate-700 text-slate-300 hover:border-purple-600 hover:bg-purple-900/20"
-                  }
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-
-            {/* 模板列表 */}
-            <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-              {getTemplatesByCategory(selectedCategory).map((template) => (
-                <div
-                  key={template.id}
-                  className="p-4 rounded-lg border border-purple-700/50 bg-slate-900/50 hover:bg-slate-900 cursor-pointer transition-all"
-                  onClick={() => handleApplyTemplate(template)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-purple-100 flex items-center gap-2">
-                        <Grid3x3 className="w-4 h-4 text-purple-400" />
-                        {template.name}
-                      </h3>
-                      <p className="text-sm text-purple-300 mt-1">
-                        {template.description}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
-                        {template.duration}秒
-                      </span>
-                      <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
-                        {template.style}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setTemplateDialogOpen(false)}
-                className="border-purple-700 text-purple-200"
-              >
-                取消
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <TemplateSelectDialog
+          open={templateDialogOpen}
+          onOpenChange={setTemplateDialogOpen}
+          onApplyTemplate={handleApplyTemplate}
+        />
       </div>
     </PageErrorBoundary>
   );

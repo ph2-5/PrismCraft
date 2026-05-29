@@ -3,6 +3,10 @@
  * 对应的 src/ 实现: src/modules/video/video-recovery.ts, src/modules/video/video-recovery-service.ts
  * 参见: src/infrastructure/server/ 用于服务端共享逻辑
  */
+import { getLogger } from "../../logging/logger";
+
+const logger = getLogger("video-recovery");
+
 export const EXPIRY_HOURS = 720;
 export const MAX_POLL_DURATION_MS = 30 * 60 * 1000;
 export const POLL_INTERVAL_MS = 60 * 1000;
@@ -106,7 +110,7 @@ export async function recoverVideoByTaskId(
 
     return { success: false, message: "查询失败，请检查网络连接" };
   } catch (error) {
-    console.error("Recovery error:", error);
+    logger.error("Recovery error:", error instanceof Error ? error : undefined);
     return {
       success: false,
       message: error instanceof Error ? error.message : "未知错误",

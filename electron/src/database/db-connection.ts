@@ -33,6 +33,10 @@ let lastBackupTime = 0;
 const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const MAX_BACKUPS = 7;
 const MAX_BACKUP_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const BACKUP_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+const BACKUP_STARTUP_DELAY_MS = 30 * 1000;
+const CLEANUP_STARTUP_DELAY_MS = 10 * 60 * 1000;
+const VALID_TABLE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
 const SOFT_DELETE_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const SOFT_DELETE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -322,7 +326,7 @@ export function saveDatabase(): boolean {
       performCheckpoint();
       consecutiveSaveFailures = 0;
       lastSaveTime = Date.now();
-      if (Date.now() - lastBackupTime > 60 * 60 * 1000) {
+      if (Date.now() - lastBackupTime > BACKUP_CHECK_INTERVAL_MS) {
         createBackup().catch(() => {});
       }
       return true;
@@ -410,7 +414,7 @@ function cleanupOldBackups(): void {
     const base = path.basename(DB_PATH);
     const files = fs.readdirSync(dir);
     const now = Date.now();
-    const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+    const MAX_AGE_MS = MAX_BACKUP_AGE_MS;
     const MAX_CORRUPTED_FILES = 5;
 
     const corruptedFiles: { name: string; path: string; mtime: number }[] = [];
@@ -596,7 +600,7 @@ function startScheduledBackup(): void {
   setTimeout(() => {
     createBackup();
     backupInterval = setInterval(() => createBackup(), BACKUP_INTERVAL_MS);
-  }, 30 * 1000);
+  }, BACKUP_STARTUP_DELAY_MS);
 }
 
 function startSoftDeleteCleanup(): void {
@@ -604,7 +608,7 @@ function startSoftDeleteCleanup(): void {
   setTimeout(() => {
     performSoftDeleteCleanup();
     softDeleteCleanupInterval = setInterval(() => performSoftDeleteCleanup(), SOFT_DELETE_CLEANUP_INTERVAL_MS);
-  }, 10 * 60 * 1000);
+  }, CLEANUP_STARTUP_DELAY_MS);
 }
 
 function performSoftDeleteCleanup(): void {
@@ -614,7 +618,11 @@ function performSoftDeleteCleanup(): void {
     const cutoff = Math.floor((Date.now() - SOFT_DELETE_MAX_AGE_MS) / 1000);
     const tables = ["characters", "scenes"];
     for (const table of tables) {
-      const result = db.prepare(`DELETE FROM ${table} WHERE is_deleted = 1 AND updated_at < ?`).run(cutoff);
+      if (!VALID_TABLE_IDENTIFIER.test(table)) {
+        logger.warn(`[DB] Invalid table name in soft delete cleanup: ${table}`);
+        continue;
+      }
+      const result = db.prepare(`DELETE FROM "${table}" WHERE is_deleted = 1 AND updated_at < ?`).run(cutoff);
       if (result.changes > 0) {
         logger.info(`[DB] Cleaned up ${result.changes} soft-deleted records from ${table}`);
       }

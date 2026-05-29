@@ -6,6 +6,8 @@ import {
   generateFallbackParams,
   formatValidationResult,
 } from "@/modules/shot/shot-generation/shot-validator";
+import type { ValidationResult } from "@/modules/shot/shot-generation/shot-validator";
+import type { ShotParamsType } from "@/modules/shot/shot-generation/shot-params";
 
 describe("shot-validator", () => {
   describe("validateShotParams", () => {
@@ -22,49 +24,49 @@ describe("shot-validator", () => {
     });
 
     it("应自动修复中文景别别名", () => {
-      const result = validateShotParams({
+      const result: ValidationResult<ShotParamsType> = validateShotParams({
         prompt: "英雄的面部特写，眼中闪烁着坚定的光芒",
         shotType: "特写",
         cameraMovement: "推",
         cameraAngle: "平视",
         duration: 3,
       });
-      expect((result.data as any).shotType).toBe("close");
-      expect((result.data as any).cameraMovement).toBe("push");
-      expect((result.data as any).cameraAngle).toBe("eye_level");
+      expect(result.data.shotType).toBe("close");
+      expect(result.data.cameraMovement).toBe("push");
+      expect(result.data.cameraAngle).toBe("eye_level");
       expect(result.autoFixed.length).toBeGreaterThan(0);
     });
 
     it("无效 shotType 应回退为 medium", () => {
-      const result = validateShotParams({
+      const result: ValidationResult<ShotParamsType> = validateShotParams({
         prompt: "一个场景描述，足够长的提示词来通过验证",
         shotType: "invalid_type",
         duration: 5,
       });
-      expect((result.data as any).shotType).toBe("medium");
+      expect(result.data.shotType).toBe("medium");
     });
 
     it("duration 小于 2 应修正为 2", () => {
-      const result = validateShotParams({
+      const result: ValidationResult<ShotParamsType> = validateShotParams({
         prompt: "一个场景描述，足够长的提示词来通过验证",
         duration: 0,
       });
-      expect((result.data as any).duration).toBe(2);
+      expect(result.data.duration).toBe(2);
     });
 
     it("duration 大于 30 应修正为 30", () => {
-      const result = validateShotParams({
+      const result: ValidationResult<ShotParamsType> = validateShotParams({
         prompt: "一个场景描述，足够长的提示词来通过验证",
         duration: 60,
       });
-      expect((result.data as any).duration).toBe(30);
+      expect(result.data.duration).toBe(30);
     });
 
     it("缺少 shotType 应默认为 medium", () => {
-      const result = validateShotParams({
+      const result: ValidationResult<ShotParamsType> = validateShotParams({
         prompt: "一个场景描述，足够长的提示词来通过验证",
       });
-      expect((result.data as any).shotType).toBe("medium");
+      expect(result.data.shotType).toBe("medium");
     });
   });
 
@@ -98,7 +100,7 @@ describe("shot-validator", () => {
         content: "一段足够长的分镜内容描述",
         duration: 5,
       });
-      expect((result.data as any).title).toBeTruthy();
+      expect(result.data.title).toBeTruthy();
       expect(result.autoFixed.some(f => f.includes("title"))).toBe(true);
     });
 
@@ -108,7 +110,7 @@ describe("shot-validator", () => {
         description: "从描述复制的内容",
         duration: 5,
       });
-      expect((result.data as any).content).toBe("从描述复制的内容");
+      expect(result.data.content).toBe("从描述复制的内容");
     });
 
     it("应推断 shotType", () => {
@@ -116,7 +118,7 @@ describe("shot-validator", () => {
         content: "全景展示城市的壮丽景色",
         duration: 5,
       });
-      expect((result.data as any).shotType).toBe("wide");
+      expect(result.data.shotType).toBe("wide");
     });
 
     it("应推断 type", () => {
@@ -124,7 +126,7 @@ describe("shot-validator", () => {
         content: `角色说：\u201C你好\u201D`,
         duration: 5,
       });
-      expect((result.data as any).type).toBe("dialogue");
+      expect(result.data.type).toBe("dialogue");
     });
   });
 
@@ -135,7 +137,7 @@ describe("shot-validator", () => {
         { content: "第二个分镜内容描述", duration: 4 },
       ];
       const result = validateStoryPlanOutput(plan);
-      expect((result.data as any).length).toBe(2);
+      expect(result.data.length).toBe(2);
     });
   });
 

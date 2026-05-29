@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Result } from "@/domain/types";
-import { resolveImageUrl } from "@/shared/utils/image-url";
 import {
   useCharacters,
 } from "@/modules/character";
@@ -24,36 +23,12 @@ import {
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { Button } from "@/shared/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
-import { Textarea } from "@/shared/ui/textarea";
 import { Badge } from "@/shared/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import {
   Search,
-  Plus,
   Trash2,
   Download,
   Upload,
@@ -61,17 +36,10 @@ import {
   Image as ImageIcon,
   Film,
   FolderOpen,
-  CheckSquare,
-  Square,
   Package,
-  ArrowRight,
-  Clock,
-  Link,
   Loader2,
 } from "lucide-react";
 import type {
-  Character,
-  Scene,
   StoryboardAsset,
   Collection,
   CollectionAsset,
@@ -80,26 +48,10 @@ import type {
 } from "@/domain/schemas";
 import { confirm } from "@/shared/utils/confirm";
 import { container } from "@/infrastructure/di";
-
-type AssetTab = "characters" | "scenes" | "storyboards" | "collections";
-
-function toDateFromTimestamp(ts: unknown): Date {
-  if (typeof ts === "number") return new Date(ts * 1000);
-  if (typeof ts === "string") {
-    const d = new Date(ts);
-    if (!isNaN(d.getTime())) return d;
-  }
-  return new Date();
-}
-
-async function fetchSecondaryData() {
-  const [sb, col, colAssets] = await Promise.all([
-    container.storyboardStorage.getStoryboardAssets(),
-    container.collectionStorage.getCollections(),
-    container.collectionStorage.getCollectionAssets(),
-  ]);
-  return { storyboards: sb, collections: col, collectionAssets: colAssets };
-}
+import { AssetCardGrid, fetchSecondaryData } from "./AssetCardGrid";
+import type { AssetTab, EditingItem } from "./AssetCardGrid";
+import { AssetEditDialog } from "./AssetEditDialog";
+import { AssetCollectionDialogs } from "./AssetCollectionDialogs";
 
 export default function AssetLibraryPage() {
   const { success, error: showError } = useToastHelpers();
@@ -154,10 +106,6 @@ export default function AssetLibraryPage() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] =
     useState(false);
-type EditingItem =
-  | (Character & { _type: "character" })
-  | (Scene & { _type: "scene" })
-  | (StoryboardAsset & { _type: "storyboard" });
 
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -211,7 +159,7 @@ type EditingItem =
             await storyboardAssetService.remove(id);
           }
           deletedIds.push(id);
-        } catch (e) {
+        } catch {
           const label = activeTab === "characters"
             ? characters.find((ch) => ch.id === id)?.name
             : activeTab === "scenes"
@@ -371,6 +319,82 @@ type EditingItem =
     }
   };
 
+  const handleDeleteCharacter = async (id: string) => {
+    if (!(await confirm("确定要删除此角色吗？", "删除角色"))) return;
+    characterService
+      .delete(id)
+      .then(() => queryClient.invalidateQueries({ queryKey: ["characters"] }))
+      .catch((e: unknown) =>
+        showError("删除失败", e instanceof Error ? e.message : "未知错误"),
+      );
+  };
+
+  const handleDeleteScene = async (id: string) => {
+    if (!(await confirm("确定要删除此场景吗？", "删除场景"))) return;
+    sceneService
+      .delete(id)
+      .then(() => queryClient.invalidateQueries({ queryKey: ["scenes"] }))
+      .catch((e: unknown) =>
+        showError("删除失败", e instanceof Error ? e.message : "未知错误"),
+      );
+  };
+
+  const handleDeleteStoryboard = async (id: string) => {
+    if (!(await confirm("确定要删除此分镜吗？", "删除分镜"))) return;
+    storyboardAssetService
+      .remove(id)
+      .then(() => loadSecondaryData())
+      .catch((e: unknown) =>
+        showError("删除失败", e instanceof Error ? e.message : "未知错误"),
+      );
+  };
+
+  const handleEditItem = (item: EditingItem) => {
+    setEditingItem(item);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    setIsSavingEdit(true);
+    try {
+      if (editingItem._type === "character") {
+        const result = await characterService.update(editingItem.id, {
+          id: editingItem.id,
+          name: editingItem.name,
+          description: editingItem.description,
+          tags: editingItem.tags,
+        });
+        if (!result.ok) throw result.error;
+      } else if (editingItem._type === "scene") {
+        const result = await sceneService.update(editingItem.id, {
+          id: editingItem.id,
+          name: editingItem.name,
+          description: editingItem.description,
+          tags: editingItem.tags,
+          atmosphere: editingItem.atmosphere,
+        });
+        if (!result.ok) throw result.error;
+      } else if (editingItem._type === "storyboard") {
+        await container.storyboardStorage.createStoryboardAsset({
+          id: editingItem.id,
+          script: editingItem.script,
+          duration: editingItem.duration,
+          shotType: editingItem.shotType,
+        });
+      }
+      setIsEditDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      queryClient.invalidateQueries({ queryKey: ["scenes"] });
+      loadSecondaryData();
+      success("保存成功", "素材已更新");
+    } catch (e) {
+      showError("保存失败", e instanceof Error ? e.message : "未知错误");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const filteredCharacters = useMemo(
     () =>
       characters.filter(
@@ -404,353 +428,6 @@ type EditingItem =
       ),
     [storyboards, searchQuery],
   );
-
-  const getCollectionAssetCount = (collectionId: string) => {
-    return collectionAssets.filter((ca) => ca.collectionId === collectionId)
-      .length;
-  };
-
-  const getCollectionAssets = (collectionId: string) => {
-    return collectionAssets.filter((ca) => ca.collectionId === collectionId);
-  };
-
-  const renderCharacterCard = (char: Character) => {
-    const isSelected = selectedIds.has(char.id);
-    return (
-      <Card
-        key={char.id}
-        className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-purple-500" : "hover:shadow-lg"}`}
-        onClick={() => {
-          setEditingItem({ ...char, _type: "character" });
-          setIsEditDialogOpen(true);
-        }}
-      >
-        <div className="aspect-square bg-slate-800 relative overflow-hidden">
-          {char.generatedImage || char.avatarPath ? (
-            <img
-              src={resolveImageUrl(char.generatedImage || char.avatarPath)}
-              alt={char.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Users className="w-12 h-12 text-slate-600" />
-            </div>
-          )}
-          <div
-            className="absolute top-2 left-2 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleSelect(char.id);
-            }}
-          >
-            {isSelected ? (
-              <CheckSquare className="w-5 h-5 text-purple-400" />
-            ) : (
-              <Square className="w-5 h-5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-            )}
-          </div>
-          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-7 h-7 bg-black/50 hover:bg-red-900/70 text-white"
-              onClick={async (e) => {
-                e.stopPropagation();
-                if (await confirm("确定要删除此角色吗？", "删除角色")) {
-                  characterService
-                    .delete(char.id)
-                    .then(() => queryClient.invalidateQueries({ queryKey: ["characters"] }))
-                    .catch((e: unknown) =>
-                      showError(
-                        "删除失败",
-                        e instanceof Error ? e.message : "未知错误",
-                      ),
-                    );
-                }
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
-        <CardContent className="p-3">
-          <h4 className="font-medium truncate text-sm">
-            {char.name || "未命名角色"}
-          </h4>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {(char.tags || []).slice(0, 2).map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-            {(char.tags || []).length > 2 && (
-              <Badge variant="secondary" className="text-xs">
-                +{(char.tags || []).length - 2}
-              </Badge>
-            )}
-          </div>
-          {char.createdAt && (
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {toDateFromTimestamp(char.createdAt).toLocaleDateString()}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderSceneCard = (scene: Scene) => {
-    const isSelected = selectedIds.has(scene.id);
-    return (
-      <Card
-        key={scene.id}
-        className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-blue-500" : "hover:shadow-lg"}`}
-        onClick={() => {
-          setEditingItem({ ...scene, _type: "scene" });
-          setIsEditDialogOpen(true);
-        }}
-      >
-        <div className="aspect-video bg-slate-800 relative overflow-hidden">
-          {scene.generatedImage || scene.scenePath ? (
-            <img
-              src={resolveImageUrl(scene.generatedImage || scene.scenePath)}
-              alt={scene.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ImageIcon className="w-12 h-12 text-slate-600" />
-            </div>
-          )}
-          <div
-            className="absolute top-2 left-2 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleSelect(scene.id);
-            }}
-          >
-            {isSelected ? (
-              <CheckSquare className="w-5 h-5 text-blue-400" />
-            ) : (
-              <Square className="w-5 h-5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-            )}
-          </div>
-          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-7 h-7 bg-black/50 hover:bg-red-900/70 text-white"
-              onClick={async (e) => {
-                e.stopPropagation();
-                if (await confirm("确定要删除此场景吗？", "删除场景")) {
-                  sceneService
-                    .delete(scene.id)
-                    .then(() => queryClient.invalidateQueries({ queryKey: ["scenes"] }))
-                    .catch((e: unknown) =>
-                      showError(
-                        "删除失败",
-                        e instanceof Error ? e.message : "未知错误",
-                      ),
-                    );
-                }
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
-        <CardContent className="p-3">
-          <h4 className="font-medium truncate text-sm">
-            {scene.name || "未命名场景"}
-          </h4>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {(scene.tags || []).slice(0, 2).map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-          {scene.atmosphere && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {scene.atmosphere}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderStoryboardCard = (sb: StoryboardAsset) => {
-    const isSelected = selectedIds.has(sb.id);
-    return (
-      <Card
-        key={sb.id}
-        className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-amber-500" : "hover:shadow-lg"}`}
-        onClick={() => {
-          setEditingItem({ ...sb, _type: "storyboard" });
-          setIsEditDialogOpen(true);
-        }}
-      >
-        <div className="aspect-video bg-slate-800 relative overflow-hidden">
-          {sb.previewPath ? (
-            <img
-              src={resolveImageUrl(sb.previewPath)}
-              alt="分镜预览"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center p-4">
-              <p className="text-slate-400 text-sm text-center line-clamp-3">
-                {sb.script}
-              </p>
-            </div>
-          )}
-          <div
-            className="absolute top-2 left-2 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleSelect(sb.id);
-            }}
-          >
-            {isSelected ? (
-              <CheckSquare className="w-5 h-5 text-amber-400" />
-            ) : (
-              <Square className="w-5 h-5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-            )}
-          </div>
-          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-7 h-7 bg-black/50 hover:bg-red-900/70 text-white"
-              onClick={async (e) => {
-                e.stopPropagation();
-                if (await confirm("确定要删除此分镜吗？", "删除分镜")) {
-                  storyboardAssetService
-                    .remove(sb.id)
-                    .then(() => loadSecondaryData())
-                    .catch((e: unknown) =>
-                      showError(
-                        "删除失败",
-                        e instanceof Error ? e.message : "未知错误",
-                      ),
-                    );
-                }
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
-        <CardContent className="p-3">
-          <p className="text-sm line-clamp-2">{sb.script}</p>
-          <div className="flex items-center gap-2 mt-1">
-            {sb.duration && (
-              <Badge variant="outline" className="text-xs">
-                {sb.duration}
-              </Badge>
-            )}
-            {sb.shotType && (
-              <Badge variant="outline" className="text-xs">
-                {sb.shotType}
-              </Badge>
-            )}
-          </div>
-          {sb.characterIds?.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <Link className="w-3 h-3" />
-              {sb.characterIds.length} 个角色
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderCollectionCard = (col: Collection) => {
-    const assetCount = getCollectionAssetCount(col.id);
-    return (
-      <Card key={col.id} className="group hover:shadow-lg transition-all">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FolderOpen className="w-4 h-4" />
-              {col.name}
-            </CardTitle>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-7 h-7"
-                onClick={() => handleExportCollection(col.id)}
-                title="导出合集"
-              >
-                <Download className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-7 h-7 hover:text-destructive"
-                onClick={() => handleDeleteCollection(col.id)}
-                title="删除合集"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          </div>
-          <CardDescription className="flex items-center gap-2">
-            <Package className="w-3 h-3" />
-            {assetCount} 个素材
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {assetCount > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {getCollectionAssets(col.id)
-                .slice(0, 5)
-                .map((ca) => {
-                  let name = String(ca.assetId || "");
-                  if (ca.assetType === "character") {
-                    const c = characters.find((ch) => ch.id === ca.assetId);
-                    if (c) name = String(c.name || "");
-                  } else if (ca.assetType === "scene") {
-                    const s = scenes.find((sc) => sc.id === ca.assetId);
-                    if (s) name = String(s.name || "");
-                  }
-                  return (
-                    <Badge
-                      key={String(ca.id || "")}
-                      variant="secondary"
-                      className="text-xs"
-                    >
-                      {ca.assetType === "character"
-                        ? "👤"
-                        : ca.assetType === "scene"
-                          ? "🏞️"
-                          : "🎬"}
-                      {name}
-                    </Badge>
-                  );
-                })}
-              {assetCount > 5 && (
-                <Badge variant="secondary" className="text-xs">
-                  +{assetCount - 5}
-                </Badge>
-              )}
-            </div>
-          )}
-          {col.createdAt && (
-            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {toDateFromTimestamp(col.createdAt).toLocaleDateString()}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
 
   const currentItems =
     activeTab === "characters"
@@ -905,370 +582,60 @@ type EditingItem =
             )}
           </div>
 
-          <TabsContent value="characters" className="mt-4">
-            {charactersLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredCharacters.length === 0 ? (
-              <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  <Users className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-                  <h3 className="text-xl font-bold mb-2">角色库为空</h3>
-                  <p className="text-muted-foreground">
-                    前往角色页面创建角色，素材会自动入库
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredCharacters.map(renderCharacterCard)}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="scenes" className="mt-4">
-            {scenesLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredScenes.length === 0 ? (
-              <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  <ImageIcon className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-                  <h3 className="text-xl font-bold mb-2">场景库为空</h3>
-                  <p className="text-muted-foreground">
-                    前往场景页面创建场景，素材会自动入库
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredScenes.map(renderSceneCard)}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="storyboards" className="mt-4">
-            {secondaryDataLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredStoryboards.length === 0 ? (
-              <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  <Film className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-                  <h3 className="text-xl font-bold mb-2">分镜库为空</h3>
-                  <p className="text-muted-foreground">
-                    在分镜编辑器中保存分镜，素材会自动入库
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredStoryboards.map(renderStoryboardCard)}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="collections" className="mt-4">
-            <div className="mb-4">
-              <Button onClick={() => setIsNewCollectionDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                新建合集
-              </Button>
-            </div>
-            {secondaryDataLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : collections.length === 0 ? (
-              <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  <FolderOpen className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-                  <h3 className="text-xl font-bold mb-2">暂无合集</h3>
-                  <p className="text-muted-foreground">
-                    创建合集来组织你的角色、场景和分镜素材
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {collections.map(renderCollectionCard)}
-              </div>
-            )}
-          </TabsContent>
+          <AssetCardGrid
+            activeTab={activeTab}
+            characters={characters}
+            scenes={scenes}
+            collections={collections}
+            collectionAssets={collectionAssets}
+            filteredCharacters={filteredCharacters}
+            filteredScenes={filteredScenes}
+            filteredStoryboards={filteredStoryboards}
+            charactersLoading={charactersLoading}
+            scenesLoading={scenesLoading}
+            secondaryDataLoading={secondaryDataLoading}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onEditItem={handleEditItem}
+            onDeleteCharacter={handleDeleteCharacter}
+            onDeleteScene={handleDeleteScene}
+            onDeleteStoryboard={handleDeleteStoryboard}
+            onDeleteCollection={handleDeleteCollection}
+            onExportCollection={handleExportCollection}
+            onNewCollection={() => setIsNewCollectionDialogOpen(true)}
+          />
         </Tabs>
 
-        {/* 编辑对话框 */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem?._type === "character"
-                  ? "编辑角色"
-                  : editingItem?._type === "scene"
-                    ? "编辑场景"
-                    : "编辑分镜"}
-              </DialogTitle>
-            </DialogHeader>
-            {editingItem && (
-              <div className="space-y-4">
-                {(() => {
-                  const imageUrl = editingItem._type === "character"
-                    ? (editingItem.generatedImage || editingItem.avatarPath)
-                    : editingItem._type === "scene"
-                      ? (editingItem.generatedImage || editingItem.scenePath)
-                      : editingItem.previewPath;
-                  return imageUrl ? (
-                    <div className="aspect-video bg-slate-800 rounded-lg overflow-hidden">
-                      <img
-                        src={resolveImageUrl(imageUrl)}
-                        alt="预览"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : null;
-                })()}
-                <div>
-                  <label className="text-sm font-medium">名称</label>
-                  <Input
-                    value={editingItem._type === "storyboard" ? "" : (editingItem.name || "")}
-                    onChange={(e) =>
-                      setEditingItem({ ...editingItem, name: e.target.value } as EditingItem)
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">描述</label>
-                  <Textarea
-                    value={editingItem._type === "storyboard" ? (editingItem.script || "") : (editingItem.description || "")}
-                    onChange={(e) => {
-                      if (editingItem._type === "storyboard") {
-                        setEditingItem({
-                          ...editingItem,
-                          script: e.target.value,
-                        } as EditingItem);
-                      } else {
-                        setEditingItem({
-                          ...editingItem,
-                          description: e.target.value,
-                        } as EditingItem);
-                      }
-                    }}
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">
-                    标签（逗号分隔）
-                  </label>
-                  <Input
-                    value={editingItem._type === "storyboard" ? "" : (editingItem.tags || []).join(", ")}
-                    onChange={(e) =>
-                      setEditingItem({
-                        ...editingItem,
-                        tags: e.target.value
-                          .split(",")
-                          .map((t) => t.trim())
-                          .filter(Boolean),
-                      } as EditingItem)
-                    }
-                    placeholder="标签1, 标签2, 标签3"
-                  />
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => setIsEditDialogOpen(false)}
-              >
-                取消
-              </Button>
-              <Button
-                disabled={isSavingEdit}
-                onClick={async () => {
-                  if (!editingItem) return;
-                  setIsSavingEdit(true);
-                  try {
-                    if (editingItem._type === "character") {
-                      const result = await characterService.update(editingItem.id, {
-                        id: editingItem.id,
-                        name: editingItem.name,
-                        description: editingItem.description,
-                        tags: editingItem.tags,
-                      });
-                      if (!result.ok) throw result.error;
-                    } else if (editingItem._type === "scene") {
-                      const result = await sceneService.update(editingItem.id, {
-                        id: editingItem.id,
-                        name: editingItem.name,
-                        description: editingItem.description,
-                        tags: editingItem.tags,
-                        atmosphere: editingItem.atmosphere,
-                      });
-                      if (!result.ok) throw result.error;
-                    } else if (editingItem._type === "storyboard") {
-                      await container.storyboardStorage.createStoryboardAsset({
-                        id: editingItem.id,
-                        script: editingItem.script,
-                        duration: editingItem.duration,
-                        shotType: editingItem.shotType,
-                      });
-                    }
-                    setIsEditDialogOpen(false);
-                    queryClient.invalidateQueries({ queryKey: ["characters"] });
-                    queryClient.invalidateQueries({ queryKey: ["scenes"] });
-                    loadSecondaryData();
-                    success("保存成功", "素材已更新");
-                  } catch (e) {
-                    showError(
-                      "保存失败",
-                      e instanceof Error ? e.message : "未知错误",
-                    );
-                  } finally {
-                    setIsSavingEdit(false);
-                  }
-                }}
-              >
-                {isSavingEdit ? "保存中..." : "保存"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <AssetEditDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          editingItem={editingItem}
+          isSavingEdit={isSavingEdit}
+          onSave={handleSaveEdit}
+          onEditingItemChange={(item) => setEditingItem(item)}
+        />
 
-        {/* 加入合集对话框 */}
-        <Dialog
-          open={isCollectionDialogOpen}
-          onOpenChange={setIsCollectionDialogOpen}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>加入合集</DialogTitle>
-              <DialogDescription>
-                选择一个合集，将选中的 {selectedIds.size} 个素材添加进去
-              </DialogDescription>
-            </DialogHeader>
-            <Select
-              value={addToCollectionId}
-              onValueChange={(v) => {
-                if (v) setAddToCollectionId(v);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="选择合集" />
-              </SelectTrigger>
-              <SelectContent>
-                {collections.map((col) => (
-                  <SelectItem key={col.id} value={col.id}>
-                    {col.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {collections.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                暂无合集，请先创建合集
-              </p>
-            )}
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => setIsCollectionDialogOpen(false)}
-              >
-                取消
-              </Button>
-              <Button
-                onClick={handleAddToCollection}
-                disabled={!addToCollectionId || isAddingToCollection}
-              >
-                {isAddingToCollection ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ArrowRight className="w-4 h-4 mr-1" />}
-                {isAddingToCollection ? "添加中..." : "加入"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* 新建合集对话框 */}
-        <Dialog
-          open={isNewCollectionDialogOpen}
-          onOpenChange={setIsNewCollectionDialogOpen}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>新建合集</DialogTitle>
-              <DialogDescription>创建一个合集来组织你的素材</DialogDescription>
-            </DialogHeader>
-            <Input
-              value={newCollectionName}
-              onChange={(e) => setNewCollectionName(e.target.value)}
-              placeholder="输入合集名称"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreateCollection();
-              }}
-            />
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => setIsNewCollectionDialogOpen(false)}
-              >
-                取消
-              </Button>
-              <Button disabled={isCreatingCollection} onClick={handleCreateCollection}>
-                {isCreatingCollection ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
-                {isCreatingCollection ? "创建中..." : "创建"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* 导入对话框 */}
-        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>导入 .asa 素材包</DialogTitle>
-              <DialogDescription>
-                从.asa文件导入角色、场景、分镜素材
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">导入模式</label>
-                <Select
-                  value={importMode}
-                  onValueChange={(v) => {
-                    if (v) setImportMode(v as ImportMode);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="skip">跳过重复素材</SelectItem>
-                    <SelectItem value="replace">覆盖相同ID素材</SelectItem>
-                    <SelectItem value="merge">合并至现有合集</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                选择 .asa 文件
-              </Button>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => setIsImportDialogOpen(false)}
-              >
-                取消
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <AssetCollectionDialogs
+          isCollectionDialogOpen={isCollectionDialogOpen}
+          setIsCollectionDialogOpen={setIsCollectionDialogOpen}
+          isNewCollectionDialogOpen={isNewCollectionDialogOpen}
+          setIsNewCollectionDialogOpen={setIsNewCollectionDialogOpen}
+          isImportDialogOpen={isImportDialogOpen}
+          setIsImportDialogOpen={setIsImportDialogOpen}
+          collections={collections}
+          selectedIdsCount={selectedIds.size}
+          addToCollectionId={addToCollectionId}
+          setAddToCollectionId={setAddToCollectionId}
+          isAddingToCollection={isAddingToCollection}
+          onAddToCollection={handleAddToCollection}
+          newCollectionName={newCollectionName}
+          setNewCollectionName={setNewCollectionName}
+          isCreatingCollection={isCreatingCollection}
+          onCreateCollection={handleCreateCollection}
+          importMode={importMode}
+          setImportMode={setImportMode}
+          fileInputRef={fileInputRef}
+        />
       </div>
     </PageErrorBoundary>
   );

@@ -12,6 +12,11 @@ const MAX_POLL_DURATION = 120 * 60 * 1000;
 const MAX_POLL_FAILURES = 30;
 const CONCURRENT_LIMIT = 3;
 const CACHE_RETRY_DELAYS = [1000, 2000, 4000];
+const DEFAULT_POLL_INTERVAL = 15000;
+const IDLE_POLL_INTERVAL = 5000;
+const MAX_POLL_INTERVAL_MS = 60000;
+const POLL_BACKOFF_ERROR_FACTOR = 1.5;
+const POLL_BACKOFF_MIXED_FACTOR = 1.2;
 
 export { MAX_POLL_COUNT, MAX_POLL_DURATION, MAX_POLL_FAILURES };
 
@@ -54,7 +59,7 @@ export const pollingState: PollingState = {
   beforeUnloadHandler: null,
   recoveredEventHandler: null,
   pollCount: 0,
-  pollInterval: 15000,
+  pollInterval: DEFAULT_POLL_INTERVAL,
   isSyncing: false,
   isPollingScheduled: false,
   isInitializing: false,
@@ -111,7 +116,7 @@ export function cleanupAllPollingResources() {
     pollingState.recoveredEventHandler = null;
   }
   pollingState.pollCount = 0;
-  pollingState.pollInterval = 15000;
+  pollingState.pollInterval = DEFAULT_POLL_INTERVAL;
   pollingState.isSyncing = false;
   pollingState.isInitializing = false;
   pollingState.pollingInProgress = false;
@@ -382,11 +387,11 @@ async function cacheCompletedVideos(
 
 function adjustPollInterval(hasSuccess: boolean, hasError: boolean): void {
   if (hasSuccess && !hasError) {
-    pollingState.pollInterval = 15000;
+    pollingState.pollInterval = DEFAULT_POLL_INTERVAL;
   } else if (hasError && !hasSuccess) {
-    pollingState.pollInterval = Math.min(pollingState.pollInterval * 1.5, 60000);
+    pollingState.pollInterval = Math.min(pollingState.pollInterval * POLL_BACKOFF_ERROR_FACTOR, MAX_POLL_INTERVAL_MS);
   } else if (hasError && hasSuccess) {
-    pollingState.pollInterval = Math.min(pollingState.pollInterval * 1.2, 60000);
+    pollingState.pollInterval = Math.min(pollingState.pollInterval * POLL_BACKOFF_MIXED_FACTOR, MAX_POLL_INTERVAL_MS);
   }
 }
 
@@ -415,7 +420,7 @@ export function schedulePolling() {
         (t) => t.status === "pending" || t.status === "generating",
       );
       if (!hasActivePolling) {
-        pollingState.pollInterval = 5000;
+        pollingState.pollInterval = IDLE_POLL_INTERVAL;
         pollingState.pollCount = 0;
         return;
       }

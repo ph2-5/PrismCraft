@@ -771,3 +771,27 @@ setCurrentCharacter((prev) => ({
   personality: analysisResult.personality ?? prev.personality,
 }), true);
 ```
+
+### R37: Dynamic SQL Table Names MUST Be Validated Against Identifier Pattern
+When constructing SQL queries with dynamic table names (e.g., iterating over table names in a cleanup loop, building queries from variables), the table name MUST be validated against a strict identifier pattern (`/^[a-zA-Z_][a-zA-Z0-9_]*$/`) and quoted with double quotes before interpolation. String interpolation of unvalidated table names into SQL is a SQL injection vector, even in Electron desktop apps where the attack surface is limited — malformed table names from bugs or corrupted config can still break queries silently.
+
+**BAD**:
+```typescript
+const tables = ["characters", "scenes"];
+for (const table of tables) {
+  db.prepare(`DELETE FROM ${table} WHERE is_deleted = 1`).run();
+}
+```
+
+**GOOD**:
+```typescript
+const VALID_TABLE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+const tables = ["characters", "scenes"];
+for (const table of tables) {
+  if (!VALID_TABLE_IDENTIFIER.test(table)) {
+    logger.warn(`Invalid table name: ${table}`);
+    continue;
+  }
+  db.prepare(`DELETE FROM "${table}" WHERE is_deleted = 1`).run();
+}
+```

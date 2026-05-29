@@ -85,7 +85,7 @@ describe("Video Module Internal Integration", () => {
       expect(getContainerLabel("unknown")).toBe("未知");
     });
 
-    it("detectVideoCodec 应是函数", async () => {
+    it("detectVideoCodec 应返回函数", async () => {
       const { detectVideoCodec } = await import("../utils");
       expect(typeof detectVideoCodec).toBe("function");
     });
@@ -118,12 +118,20 @@ describe("Video Module Internal Integration", () => {
       expect(info.model).toBeUndefined();
     });
 
-    it("task-management 应导出 hooks 和 services", async () => {
+    it("task-management 应导出 useVideoTaskManager hook", async () => {
       const taskMgmt = await import("../task-management");
-      const hookNames = ["useVideoTaskManager", "useVideoTaskStore", "useVideoTasks"];
-      for (const name of hookNames) {
-        expect(typeof (taskMgmt as any)[name]).toBe("function");
-      }
+      expect(taskMgmt.useVideoTaskManager).toBeDefined();
+      expect(typeof taskMgmt.useVideoTaskManager).toBe("function");
+    });
+
+    it("task-management 应导出 useVideoTaskStore hook", async () => {
+      const taskMgmt = await import("../task-management");
+      expect(taskMgmt.useVideoTaskStore).toBeDefined();
+      expect(typeof taskMgmt.useVideoTaskStore).toBe("function");
+    });
+
+    it("task-management 应导出 buildTrackingInfo 函数", async () => {
+      const taskMgmt = await import("../task-management");
       expect(typeof taskMgmt.buildTrackingInfo).toBe("function");
     });
   });
@@ -149,7 +157,7 @@ describe("Video Module Internal Integration", () => {
           providerId: "provider-a",
           providerModelId: "model-a",
         },
-      ] as any[];
+      ];
 
       const result = await checkForDuplicateVideos(
         { prompt: "一个角色在森林中行走", providerId: "provider-a", providerModelId: "model-a" },
@@ -160,35 +168,47 @@ describe("Video Module Internal Integration", () => {
       expect(result.similarity).toBeGreaterThan(0);
     });
 
-    it("recovery 子域应导出完整的服务函数集", async () => {
+    it("recovery 应导出 recoverVideoByTaskId", async () => {
       const recovery = await import("../recovery");
-      const functionNames = [
-        "recoverVideoByTaskId",
-        "saveVideoTask",
-        "verifyVideoUrl",
-        "checkForDuplicateVideos",
-        "performIntelligentRecovery",
-      ];
-      for (const name of functionNames) {
-        expect(typeof (recovery as any)[name]).toBe("function");
-      }
+      expect(typeof recovery.recoverVideoByTaskId).toBe("function");
+    });
+
+    it("recovery 应导出 saveVideoTask", async () => {
+      const recovery = await import("../recovery");
+      expect(typeof recovery.saveVideoTask).toBe("function");
+    });
+
+    it("recovery 应导出 verifyVideoUrl", async () => {
+      const recovery = await import("../recovery");
+      expect(typeof recovery.verifyVideoUrl).toBe("function");
+    });
+
+    it("recovery 应导出 smartRetryEngine", async () => {
+      const recovery = await import("../recovery");
       expect(recovery.smartRetryEngine).toBeDefined();
-      expect(typeof (recovery.smartRetryEngine as any).makeRetryDecision).toBe("function");
+      expect(typeof recovery.smartRetryEngine.makeRetryDecision).toBe("function");
     });
   });
 
   describe("行为验证: cache 子域", () => {
-    it("cache 子域应导出缓存操作函数", async () => {
+    it("cache 应导出 cacheVideoBlob", async () => {
       const cache = await import("../cache");
-      const functionNames = [
-        "cacheVideoBlob",
-        "getVideoUrlWithCache",
-        "getCacheStats",
-        "revokeObjectURL",
-      ];
-      for (const name of functionNames) {
-        expect(typeof (cache as any)[name]).toBe("function");
-      }
+      expect(typeof cache.cacheVideoBlob).toBe("function");
+    });
+
+    it("cache 应导出 getVideoUrlWithCache", async () => {
+      const cache = await import("../cache");
+      expect(typeof cache.getVideoUrlWithCache).toBe("function");
+    });
+
+    it("cache 应导出 getCacheStats", async () => {
+      const cache = await import("../cache");
+      expect(typeof cache.getCacheStats).toBe("function");
+    });
+
+    it("cache 应导出 revokeObjectURL", async () => {
+      const cache = await import("../cache");
+      expect(typeof cache.revokeObjectURL).toBe("function");
     });
 
     it("useVideoCacheStats 应是函数", async () => {

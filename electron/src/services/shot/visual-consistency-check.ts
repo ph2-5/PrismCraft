@@ -3,6 +3,9 @@
  * 对应的 src/ 实现: src/modules/shot/consistency-check-service.ts, src/infrastructure/server/consistency-check.service.ts
  * 参见: src/infrastructure/server/ 用于服务端共享逻辑
  */
+import { getLogger } from "../../logging/logger";
+
+const logger = getLogger("visual-consistency-check");
 export interface Element {
   id: string;
   name: string;
@@ -197,7 +200,7 @@ export async function checkVisualConsistency(
 
     return parseConsistencyAnalysis(result.data.analysis, element);
   } catch (error) {
-    console.error("[VisualConsistency] Check failed:", error);
+    logger.error("[VisualConsistency] Check failed:", error instanceof Error ? error : undefined);
     return {
       score: 0,
       passed: false,

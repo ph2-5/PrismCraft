@@ -116,6 +116,7 @@ hooks ← @/domain/types/result, @/shared/utils/toast-bridge
 - **R8**：自动保存必须覆盖新实体（无 ID 的实体也应可自动保存）
 - **R10**：异步保存操作必须使用 ref 防止并发调用（当前已通过 `savingRef` 实现）
 - **R30**：级联删除操作必须在单个 `safeTransaction` 中完成（当前已实现）
+- **R42**：createAutoSave 使用 `ON CONFLICT...WHERE timestamp < excluded.timestamp` 而非 `INSERT OR REPLACE`，防止覆盖更新的用户修改（乐观锁）
 
 ### 测试
 

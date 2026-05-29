@@ -309,7 +309,9 @@ domain → NOTHING（纯类型）
 
 1. **自动保存的双重限制**：`useAutoSave` 有 MAX_RETRY（3 次）和 MIN_INTERVAL（1 秒）两个限制。重试限制防止网络故障时无限重试消耗资源，最小间隔防止快速连续修改触发过于频繁的保存。超过重试限制后停止重试并通过 toast 通知用户（回归防护 R5）。
 
-2. **事务性删除同步清理本地文件**：`deleteCharacterWithRefs` 和 `deleteSceneWithRefs` 不仅删除数据库记录，还同步清理本地图片文件。如果只删除数据库记录而保留文件，磁盘空间会逐渐被孤立文件占满。这个设计是回归防护 R2（删除必须级联）的实现。
+2. **自动保存乐观锁**：`createAutoSave` 使用 `ON CONFLICT(id) DO UPDATE SET ... WHERE timestamp < excluded.timestamp` 而非 `INSERT OR REPLACE`。当用户在自动保存快照与实际写入之间进行了新修改，乐观锁确保新修改不被覆盖。写入影响 0 行时，二次查询确认现有记录是否更新，若是则静默跳过。这是回归防护 R42 的来源。
+
+3. **事务性删除同步清理本地文件**：`deleteCharacterWithRefs` 和 `deleteSceneWithRefs` 不仅删除数据库记录，还同步清理本地图片文件。如果只删除数据库记录而保留文件，磁盘空间会逐渐被孤立文件占满。这个设计是回归防护 R2（删除必须级联）的实现。
 
 **边界约束**：自动保存有 MAX_RETRY（3 次）和 MIN_INTERVAL（1 秒）限制。`usePersistenceGuard` 的 `cancelledRef` 防止组件卸载后继续保存。
 
@@ -330,13 +332,13 @@ const storage = container.videoTaskStorage; // 属性访问，非方法调用
 
 **overrideToken() 测试替换**：测试中通过 `overrideToken(token, factory)` 替换特定 token 的工厂函数，实现依赖隔离。测试结束后调用 `resetContainer()` 恢复原始状态。
 
-### 5.2 Token 分类（5 类 29 个）
+### 5.2 Token 分类（5 类 30 个）
 
 | 类别 | 数量 | 说明 | 示例 |
 |------|------|------|------|
 | A. Domain Port 实现 | 9 | Port 接口的具体实现 | videoProvider, characterStorage, imageProvider, textProvider, fileUploader, syncStorage, videoTaskStorage, sceneStorage, storyStorage |
 | B. 有状态服务 | 6 | 单例，需测试替换 | eventBus, apiClient, imageApi, videoApi, textApi, preferencesStorage |
-| C. Storage 实例 | 11 | 有状态存储，模块无法直接导入 infrastructure/storage | versionStorage, elementStorage, videoCacheStorage, imageCacheStorage, collectionStorage, storyboardStorage, importExportStorage, templateStorage, autoSaveStorage, errorLogStorage, sessionStorage |
+| C. Storage 实例 | 11 | 有状态存储，模块无法直接导入 infrastructure/storage | versionStorage, elementStorage, videoCacheStorage, imageCacheStorage（暴露 `flushPendingAccessUpdates()` 用于延迟元数据更新）, collectionStorage, storyboardStorage, importExportStorage, templateStorage, autoSaveStorage, errorLogStorage, sessionStorage |
 | D. Repository 实例 | 1 | Drizzle ORM | mediaAssetRepository |
 | E. 懒加载模块 | 2 | 避免循环依赖 | elementManager, referenceEngine |
 
@@ -371,6 +373,7 @@ const storage = container.videoTaskStorage; // 属性访问，非方法调用
 | `@/shared/outfit` | `getAllOutfits`, `getOutfitsForCharacter` | `infrastructure/storage/characters/outfit-manager` | 角色服装批量查询 |
 | `@/shared/sql-safety` | `sanitizeIdentifier`, `sanitizeTable`, `buildSafeUpdate`, `buildSafeDelete` | `infrastructure/storage/sql-sanitizer` | SQL 安全工具 |
 | `@/shared/model-capabilities` | `getModelCapabilities`, `ImageSizePurpose` | `infrastructure/ai-providers/model-capabilities` | AI 模型能力查询 |
+| `@/shared/user-facing-error` | `mapUserFacingError` | `shared/utils/user-facing-error` (uses classifyError from domain) | 用户友好错误消息映射 |
 
 ## 六、数据模型与存储层
 
@@ -542,8 +545,9 @@ polling-engine (5-15s interval)
     → apiClient.pollTask(provider, taskId)
       → resilient-fetch（断路器检查 → 重试策略 → HTTP 请求）
     → TaskMachine.transition(task, newStatus, context)
-    → container.videoTaskStorage.updateTask(task)
-      → safeRun(UPDATE video_tasks SET ... WHERE id = ?)（IPC: db:run）
+    → container.videoTaskStorage.batchUpdateVideoTasks(batchUpdates)（批量更新，单次 safeTransaction）
+      → safeTransaction([UPDATE ...], [UPDATE ...], ...)（IPC: db:transaction，批量）
+    → Promise.allSettled(batchUpdates.map(t => trackChange("video_tasks", t.id)))（并行变更追踪）
     → if completed: emitToast("视频生成完成", taskLabel)
     → if failed: smartRetryEngine.evaluate(task)
       → if retryable: TaskMachine.transition(task, "retrying")
@@ -610,7 +614,7 @@ Preload (preload.ts)
 | SYSTEM | shell:open-external, dialog:open-file, dialog:save-file, db:close | 系统级操作，涉及外部程序或关键资源 |
 | SECURE | secure-config:resolve | 安全操作，解密 API Key |
 
-**速率限制**：每个通道独立限流。READONLY 通道 5000 次/分钟，其他通道 300 次/分钟。全局限制 10000 次/分钟。超过限制的调用直接抛出错误。限流历史每 60 秒清理一次，防止内存泄漏。
+**速率限制**：每个通道独立限流。db:query 通道 3000 次/分钟，db:run/db:transaction 通道 600 次/分钟，READONLY 通道 5000 次/分钟，其他通道 300 次/分钟。全局限制 10000 次/分钟。超过限制的调用直接抛出错误。限流历史每 60 秒清理一次，防止内存泄漏。
 
 **未注册通道拦截**：调用未在 `IPC_PERMISSIONS` 中注册的通道时，请求被拒绝并通过 `log:security` 通道记录安全日志。这防止了恶意代码通过未授权通道与主进程通信。
 
@@ -791,9 +795,9 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 
 **ESLint 架构守卫规则**：在编辑器实时执行，禁止 shared→modules 导入、domain→infrastructure 导入、modules 深层路径导入。生产代码中违反为 error，测试代码中为 warn。
 
-### 9.3 36 条回归防护
+### 9.3 44 条回归防护
 
-回归防护规则来自三次 Bug 审计，每条规则对应一个已发生的真实 Bug：
+回归防护规则来自四次 Bug 审计，每条规则对应一个已发生的真实 Bug：
 
 **数据一致性（R1, R2, R8, R9, R13, R14）**：
 
@@ -857,9 +861,27 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 - R35：Blob URL 必须在组件卸载时 revoke——`URL.createObjectURL()` 创建的预览 URL 需用 `useRef` 跟踪并在 useEffect cleanup 中释放
 - R36：异步 AI 分析结果必须选择性合并——只覆盖 AI 产生的字段（`??` 运算符），不能 spread 覆盖用户正在编辑的 `name`/`description`
 
+**IPC 效率（R39-R41）**：
+
+- R39：批量 DB 操作禁止退化为逐条 IPC——批量更新/删除使用 `batchUpdateVideoTasks`/`batchDeleteVideoTasks`（单次 `safeTransaction`），存在性检查使用 `SELECT WHERE IN` 而非逐条 `safeQuery`
+- R40：元数据更新必须延迟合并——`imageCacheStorage` 的 `last_accessed_at` 更新通过 5s debounce timer 批量合并为单次 `safeTransaction`，而非每次读取触发 `safeRun`
+- R41：trackChange 必须并行执行——批量操作后的 `trackChange` 调用使用 `Promise.allSettled` 而非串行 `for...of` 循环
+
+**数据一致性扩展（R42）**：
+
+- R42：Auto-Save 必须使用乐观锁——`INSERT OR REPLACE` 会无条件覆盖用户新修改，必须使用 `ON CONFLICT(id) DO UPDATE SET ... WHERE timestamp < excluded.timestamp`，写入 0 行时需二次查询确认
+
+**UX 完整性扩展（R43）**：
+
+- R43：破坏性 UI 操作必须确认——删除/批量删除操作必须 `await confirm({ variant: "danger" })` 后才能执行，取消时中止
+
+**错误消息（R44）**：
+
+- R44：用户可见错误消息必须使用 `mapUserFacingError`——禁止 `e.message`、`extractErrorMessage()` 或技术术语直接展示给用户，必须通过 `mapUserFacingError()` 映射为用户友好中文消息
+
 ### 9.4 Bug 审计方法论
 
-36 条回归防护来自三次定向 Bug 审计，审计遵循"使用驱动发现 + 结构化验证固化"方法论。完整操作手册见 `docs/bug-audit-methodology.md`，此处记录核心框架。
+44 条回归防护来自四次定向 Bug 审计，审计遵循"使用驱动发现 + 结构化验证固化"方法论。完整操作手册见 `docs/bug-audit-methodology.md`，此处记录核心框架。
 
 **三阶段工作流**：
 

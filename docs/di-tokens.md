@@ -1,6 +1,6 @@
 # DI Container Token Reference
 
-> Auto-generated from `src/infrastructure/di/container.ts` at 2026-05-27T00:34:32.412Z
+> Auto-generated from `src/infrastructure/di/container.ts` at 2026-05-29T15:26:17.698Z
 
 ## Token Categories
 

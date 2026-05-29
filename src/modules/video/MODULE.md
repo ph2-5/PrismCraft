@@ -112,6 +112,8 @@ interface VideoTaskManagerState {
   addTask(task: Omit<VideoTask, "progress" | "createdAt">): Promise<VideoTask>
   removeTask(taskId: string): Promise<void>
   removeTasks(taskIds: string[]): Promise<void>
+  batchUpdateVideoTasks(updates: Array<{ taskId: string; changes: Partial<VideoTask> }>): Promise<void>
+  batchDeleteVideoTasks(taskIds: string[]): Promise<void>
   clearActiveTasks(): Promise<void>
   clearAllTasks(): Promise<void>
   clearCompletedTasks(): Promise<void>
@@ -160,6 +162,8 @@ function useVideoTaskManager(): {
   recoverTask: VideoTaskManagerState["recoverTask"]
   removeTask: VideoTaskManagerState["removeTask"]
   removeTasks: VideoTaskManagerState["removeTasks"]
+  batchUpdateVideoTasks: VideoTaskManagerState["batchUpdateVideoTasks"]
+  batchDeleteVideoTasks: VideoTaskManagerState["batchDeleteVideoTasks"]
   clearTasks: VideoTaskManagerState["clearActiveTasks"]
   clearAllTasks: VideoTaskManagerState["clearAllTasks"]
   clearCompletedTasks: VideoTaskManagerState["clearCompletedTasks"]
@@ -171,6 +175,8 @@ function useVideoTaskManager(): {
 ```
 
 #### React Query Hooks
+
+> **IPC 效率说明**：`batchUpdateVideoTasks` 和 `batchDeleteVideoTasks` 使用 `safeTransaction` 将多条 SQL 包在单个事务内执行，避免逐条 `safeRun` 的 IPC 开销（R39）；`trackChange` 使用 `Promise.allSettled` 并行触发变更通知，不阻塞主流程（R40）。
 
 ```typescript
 function useVideoTasks(): UseQueryResult<VideoTask[]>

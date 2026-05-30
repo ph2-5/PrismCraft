@@ -198,6 +198,7 @@ describe("storage/stories", () => {
 
   describe("updateStory beat 级联删除", () => {
     it("删除不再存在的 beat 及其关联数据", async () => {
+      mockSafeQuery.mockResolvedValueOnce([{ id: "b1" }, { id: "b2" }]);
       mockSafeTransaction.mockResolvedValueOnce([{ changes: 1 }]);
 
       await storyStorage.updateStory("s1", {
@@ -228,9 +229,40 @@ describe("storage/stories", () => {
       expect(
         sqls.some(
           (s: string) =>
-            s.includes("DELETE FROM story_beats") && s.includes("story_id = ?"),
+            s.includes("DELETE FROM story_beats") && s.includes("id = ?"),
         ),
       ).toBe(true);
+
+      const deleteStmts = statements.filter(
+        (s: any) => s.sql.startsWith("DELETE FROM story_beats"),
+      );
+      expect(deleteStmts.length).toBe(1);
+      expect(deleteStmts[0].params).toEqual(["b2"]);
+    });
+
+    it("保留的 beat 不应删除其关联数据", async () => {
+      mockSafeQuery.mockResolvedValueOnce([{ id: "b1" }, { id: "b2" }]);
+      mockSafeTransaction.mockResolvedValueOnce([{ changes: 1 }]);
+
+      await storyStorage.updateStory("s1", {
+        beats: [{ id: "b1" }, { id: "b2" }] as any,
+      } as any);
+
+      const statements = mockSafeTransaction.mock.calls[0][0];
+      const sqls = statements.map((s: any) => s.sql);
+
+      expect(
+        sqls.some((s: string) => s.includes("DELETE FROM video_tasks")),
+      ).toBe(false);
+      expect(
+        sqls.some((s: string) => s.includes("DELETE FROM generation_tasks")),
+      ).toBe(false);
+      expect(
+        sqls.some((s: string) => s.includes("DELETE FROM media_assets")),
+      ).toBe(false);
+      expect(
+        sqls.some((s: string) => s.includes("DELETE FROM story_beats")),
+      ).toBe(false);
     });
   });
 

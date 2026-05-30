@@ -1009,3 +1009,77 @@ showError("删除失败", e instanceof Error ? e.message : "未知错误");
 showError("保存失败", mapUserFacingError(err));
 showError("删除失败", mapUserFacingError(e));
 ```
+
+## Phase 7: Stability Polish Audit (R45-R46)
+
+### R45: Entity Update Must Not Delete Unrelated Associated Data
+When updating an entity's child collection (e.g., story beats), the update MUST NOT issue blanket DELETE statements on associated tables (video_tasks, generation_tasks, media_assets) for ALL existing children. Instead, it MUST compute the diff (children removed vs. children retained), and only delete associated data for children that are actually being removed. A blanket delete-then-reinsert pattern destroys data that should be preserved (e.g., video tasks for beats that still exist), causing data loss on every save.
+
+**BAD**:
+```typescript
+if (story.beats !== undefined) {
+  statements.push(
+    { sql: "DELETE FROM video_tasks WHERE beat_id IN (SELECT id FROM story_beats WHERE story_id = ?)", params: [id] },
+    { sql: "DELETE FROM story_beats WHERE story_id = ?", params: [id] },
+  );
+  for (const beat of story.beats) {
+    statements.push(buildBeatInsert(beat.id, id, beat));
+  }
+}
+```
+
+**GOOD**:
+```typescript
+if (story.beats !== undefined) {
+  const newBeatIds = new Set(story.beats.map(b => b.id).filter(Boolean));
+  const existingBeats = await safeQuery("SELECT id FROM story_beats WHERE story_id = ?", [id]);
+  const removedBeatIds = existingBeats.map(r => r.id).filter(bid => !newBeatIds.has(bid));
+
+  for (const removedId of removedBeatIds) {
+    statements.push(
+      { sql: "DELETE FROM video_tasks WHERE beat_id = ?", params: [removedId] },
+      { sql: "DELETE FROM generation_tasks WHERE beat_id = ?", params: [removedId] },
+      { sql: "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?", params: [removedId] },
+      { sql: "DELETE FROM story_beats WHERE id = ?", params: [removedId] },
+    );
+  }
+  for (const beat of story.beats) {
+    statements.push(buildBeatInsert(beat.id, id, beat));
+  }
+}
+```
+
+### R46: Polling Engine State Flags Must Reset in Correct Order with Top-Level Catch
+When a polling engine uses `isPollingScheduled` and `pollingInProgress` flags to prevent concurrent scheduling, the `finally` block MUST reset `pollingInProgress` BEFORE `isPollingScheduled`. If `isPollingScheduled` is reset first, a concurrent call to `schedulePolling()` can pass the guard check (`isPollingScheduled === false`) while `pollingInProgress` is still true, leading to duplicate scheduling. Additionally, the polling function MUST have a top-level `catch` block to prevent unhandled exceptions from bypassing the `finally` block, which would leave both flags stuck at `true` and permanently stop polling.
+
+**BAD**:
+```typescript
+const pollTasks = async () => {
+  pollingState.pollingInProgress = true;
+  try {
+    // ... polling logic (may throw unexpectedly)
+  } finally {
+    pollingState.isPollingScheduled = false;  // Reset scheduled first
+    pollingState.pollingInProgress = false;    // Reset in-progress second — RACE CONDITION
+  }
+  if (shouldReschedule) schedulePolling();     // Can enter while pollingInProgress is still true
+};
+```
+
+**GOOD**:
+```typescript
+const pollTasks = async () => {
+  pollingState.pollingInProgress = true;
+  let shouldReschedule = false;
+  try {
+    // ... polling logic
+    shouldReschedule = true;
+  } catch (e) {
+    errorLogger.warn("[PollingEngine] Unexpected error in poll cycle", e);  // Prevent unhandled exception
+  } finally {
+    pollingState.pollingInProgress = false;    // Reset in-progress FIRST
+    pollingState.isPollingScheduled = false;    // Reset scheduled SECOND
+  }
+  if (shouldReschedule && !abortSignal.aborted) schedulePolling();
+};
+```

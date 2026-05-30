@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useCallback } from "react";
+import { errorLogger } from "@/shared/error-logger";
+import { emitToast } from "@/shared/utils/toast-bridge";
 
 const MAX_RETRY = 3;
 
@@ -23,9 +25,11 @@ export function usePersistenceGuard() {
       try {
         await saveFnRef.current();
         retryCountRef.current = 0;
-      } catch {
+      } catch (e) {
         retryCountRef.current++;
+        errorLogger.warn("[PersistenceGuard] Save failed", e);
         if (retryCountRef.current >= MAX_RETRY) {
+          emitToast("error", "保存失败", "多次重试后仍无法保存，请手动保存您的更改");
           retryCountRef.current = 0;
           pendingRef.current = false;
           savingRef.current = false;

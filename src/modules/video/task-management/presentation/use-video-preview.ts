@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { getVideoUrlWithCache } from "@/modules/video/cache";
+import { errorLogger } from "@/shared/error-logger";
 
 export function useVideoPreview() {
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
@@ -22,7 +23,8 @@ export function useVideoPreview() {
         if (result.ok && result.value.url) {
           setCachedVideoUrl(result.value.url);
         }
-      } catch {
+      } catch (e) {
+        errorLogger.warn("[VideoPreview] Failed to load video cache", e);
         setVideoLoadError(true);
       } finally {
         setVideoLoading(false);
@@ -31,12 +33,15 @@ export function useVideoPreview() {
   }, []);
 
   const closePreview = useCallback(() => {
+    if (cachedVideoUrl && cachedVideoUrl.startsWith("blob:")) {
+      try { URL.revokeObjectURL(cachedVideoUrl); } catch {}
+    }
     setPreviewDialogOpen(false);
     setPreviewTask(null);
     setCachedVideoUrl(null);
     setVideoLoadError(false);
     setVideoLoading(false);
-  }, []);
+  }, [cachedVideoUrl]);
 
   return {
     previewDialogOpen,

@@ -59,7 +59,7 @@ export async function checkVisualConsistency(
     const parsed = parseConsistencyAnalysis(analysis, boundElements);
 
     return ok(parsed);
-  } catch {
+  } catch (_e) {
     return ok({
       passed: false,
       characterScores: boundElements.map((el) => ({
@@ -141,7 +141,7 @@ function parseConsistencyAnalysis(
       overallScore,
       recommendation: parsed.recommendation || (overallScore >= 0.8 ? "accept" : overallScore >= 0.6 ? "adjust" : "regenerate"),
     };
-  } catch {
+  } catch (_e) {
     return {
       passed: false,
       characterScores: elements.map((el) => ({

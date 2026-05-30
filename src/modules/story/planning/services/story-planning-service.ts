@@ -3,6 +3,7 @@ import { fromAsyncThrowable } from "@/domain/types";
 import type { Story, StoryBeat, Character, Scene } from "@/domain/schemas";
 import { container } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
+import { errorLogger } from "@/shared/error-logger";
 
 export interface StoryPlanningOptions {
   maxRetries?: number;
@@ -73,7 +74,8 @@ export async function checkTextApiConfig(): Promise<Result<boolean>> {
       return config?.providers?.some((p) =>
         p.models?.some((m) => m.capabilities?.includes("text")),
       ) ?? false;
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[StoryPlanning] Failed to load text API config", e);
       return false;
     }
   });

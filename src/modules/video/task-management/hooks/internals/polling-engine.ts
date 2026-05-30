@@ -449,9 +449,11 @@ export function schedulePolling() {
       adjustPollInterval(pollResult.hasSuccess, pollResult.hasError);
 
       shouldReschedule = true;
+    } catch (e) {
+      errorLogger.warn("[PollingEngine] Unexpected error in poll cycle", e);
     } finally {
-      pollingState.isPollingScheduled = false;
       pollingState.pollingInProgress = false;
+      pollingState.isPollingScheduled = false;
     }
 
     if (shouldReschedule && !abortSignal.aborted) {

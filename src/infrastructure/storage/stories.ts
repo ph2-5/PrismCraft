@@ -230,24 +230,28 @@ export const storyStorage = {
       }
     }
     if (story.beats !== undefined && Array.isArray(story.beats)) {
-      allStatements.push(
-        {
-          sql: `DELETE FROM video_tasks WHERE beat_id IN (SELECT id FROM story_beats WHERE story_id = ?)`,
-          params: [id],
-        },
-        {
-          sql: `DELETE FROM generation_tasks WHERE beat_id IN (SELECT id FROM story_beats WHERE story_id = ?)`,
-          params: [id],
-        },
-        {
-          sql: `DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id IN (SELECT id FROM story_beats WHERE story_id = ?)`,
-          params: [id],
-        },
-        {
-          sql: `DELETE FROM story_beats WHERE story_id = ?`,
-          params: [id],
-        },
+      const newBeatIds = new Set(
+        story.beats
+          .map((b) => asRecord(b).id as string)
+          .filter(Boolean),
       );
+      const existingBeats = await safeQuery<{ id: string }>(
+        "SELECT id FROM story_beats WHERE story_id = ?",
+        [id],
+      );
+      const removedBeatIds = existingBeats
+        .map((r) => r.id)
+        .filter((bid) => !newBeatIds.has(bid));
+
+      for (const removedId of removedBeatIds) {
+        allStatements.push(
+          { sql: "DELETE FROM video_tasks WHERE beat_id = ?", params: [removedId] },
+          { sql: "DELETE FROM generation_tasks WHERE beat_id = ?", params: [removedId] },
+          { sql: "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?", params: [removedId] },
+          { sql: "DELETE FROM story_beats WHERE id = ?", params: [removedId] },
+        );
+      }
+
       const beatNow = Math.floor(Date.now() / 1000);
       for (let i = 0; i < story.beats.length; i++) {
         const beat = asRecord(story.beats[i]);

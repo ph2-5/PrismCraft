@@ -94,55 +94,11 @@ function validateSqlSafety(channel: string, args: IpcArgs): boolean {
   return true;
 }
 
-const callHistory = new Map<string, number[]>();
-
-const RATE_LIMITS: Record<string, { maxCalls: number; windowMs: number }> = {
-  default: { maxCalls: 300, windowMs: 60000 },
-  readonly: { maxCalls: 5000, windowMs: 60000 },
-  "db:query": { maxCalls: 3000, windowMs: 60000 },
-  "db:run": { maxCalls: 600, windowMs: 60000 },
-  "db:transaction": { maxCalls: 600, windowMs: 60000 },
-};
-
-const GLOBAL_RATE_LIMIT = { maxCalls: 10000, windowMs: 60000 };
+const GLOBAL_RATE_LIMIT = { maxCalls: 100000, windowMs: 60000 };
 const globalCallTimestamps: number[] = [];
-
-const READONLY_CHANNELS = new Set([
-  "db:query", "db:get", "db:stats", "db:type",
-  "assets:read-file-base64", "assets:get-dir", "assets:file-exists",
-  "fs:read-file", "cache:get-cache-directory", "fs:get-file-info", "fs:get-disk-space", "image:to-base64", "config:get",
-]);
-
-function getRateLimit(channel: string): { maxCalls: number; windowMs: number } {
-  if (RATE_LIMITS[channel]) {
-    return RATE_LIMITS[channel];
-  }
-  if (READONLY_CHANNELS.has(channel)) {
-    return RATE_LIMITS.readonly;
-  }
-  return RATE_LIMITS.default;
-}
-
-const MAX_CALL_HISTORY_CHANNELS = 200;
 
 const cleanupCallHistory = setInterval(() => {
   const now = Date.now();
-  for (const [channel, history] of callHistory.entries()) {
-    const limit = getRateLimit(channel);
-    const trimmed = history.filter((t) => now - t < limit.windowMs);
-    if (trimmed.length === 0) {
-      callHistory.delete(channel);
-    } else {
-      callHistory.set(channel, trimmed);
-    }
-  }
-  if (callHistory.size > MAX_CALL_HISTORY_CHANNELS) {
-    const entries = Array.from(callHistory.entries());
-    entries.sort((a, b) => a[1].length - b[1].length);
-    for (let i = 0; i < entries.length - MAX_CALL_HISTORY_CHANNELS; i++) {
-      callHistory.delete(entries[i][0]);
-    }
-  }
   const trimmedGlobal = globalCallTimestamps.filter((t) => now - t < GLOBAL_RATE_LIMIT.windowMs);
   globalCallTimestamps.length = 0;
   globalCallTimestamps.push(...trimmedGlobal);
@@ -165,23 +121,8 @@ function createSecureIpcInvoker(channel: string): (...args: IpcArgs) => Promise<
       throw new Error(`Global rate limit exceeded (${recentGlobal.length}/${GLOBAL_RATE_LIMIT.maxCalls} in ${GLOBAL_RATE_LIMIT.windowMs / 1000}s)`);
     }
 
-    const limit = getRateLimit(channel);
-    const history = callHistory.get(channel) || [];
-    const recentCalls = history.filter((t) => now - t < limit.windowMs);
-    if (recentCalls.length >= limit.maxCalls) {
-      throw new Error(`Rate limit exceeded for channel: ${channel} (${recentCalls.length}/${limit.maxCalls} in ${limit.windowMs / 1000}s)`);
-    }
-    recentCalls.push(now);
     globalCallTimestamps.push(now);
-    callHistory.set(channel, recentCalls);
-    if (recentCalls.length > limit.maxCalls * 2) {
-      const trimmed = recentCalls.filter((t) => now - t < limit.windowMs);
-      if (trimmed.length === 0) {
-        callHistory.delete(channel);
-      } else {
-        callHistory.set(channel, trimmed);
-      }
-    }
+
     if (globalCallTimestamps.length > GLOBAL_RATE_LIMIT.maxCalls * 2) {
       const trimmedGlobal = globalCallTimestamps.filter((t) => now - t < GLOBAL_RATE_LIMIT.windowMs);
       globalCallTimestamps.length = 0;

@@ -374,7 +374,7 @@ Note: Pure functions from `@/infrastructure/*` that modules need are exported vi
 
 ## Regression Guards (from Bug Audit)
 
-> Full regression guard rules (R1-R29) are in [regression-guards.md](./regression-guards.md).
+> Full regression guard rules (R1-R46) are in [regression-guards.md](./regression-guards.md).
 > These rules prevent known bug patterns from reappearing. They are NOT discovery tools for future audits.
 
 ### Bug Audit Methodology
@@ -387,11 +387,11 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 44 guards:**
+**Quick reference — all 46 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
-| Data Consistency | R1, R2, R8, R9, R13, R14, R30, R42 | Persist before state, cascade delete, rollback on failure, atomic cascade deletes, auto-save optimistic locking |
+| Data Consistency | R1, R2, R8, R9, R13, R14, R30, R42, R45 | Persist before state, cascade delete, rollback on failure, atomic cascade deletes, auto-save optimistic locking, entity update must not delete unrelated data |
 | Async Safety | R4, R10, R11, R12, R29, R31, R32 | Dedup, concurrency guard, ownership verify, in-flight warning, entity ID consistency, save context verify, batch cancellation |
 | Error Handling | R5, R6, R15, R17, R18 | No silent failure, identifiable labels, partial failure resilience |
 | UI Robustness | R7, R16, R19, R20 | Video onError guard, ErrorBoundary retry limit |
@@ -405,6 +405,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 | Race Condition | R38 | Video URL persistence must complete before story switch |
 | IPC Efficiency | R39, R40, R41 | Batch DB operations over per-item IPC, deferred metadata updates, parallel trackChange |
 | Error Messaging | R44 | User-facing errors must use mapUserFacingError, not raw technical messages |
+| Polling Safety | R46 | Polling engine state flags must reset in correct order with top-level catch |
 
 ## Documentation Index
 

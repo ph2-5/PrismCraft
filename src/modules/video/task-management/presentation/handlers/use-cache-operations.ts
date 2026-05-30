@@ -24,7 +24,8 @@ export function useCacheOperations({ completedTaskIds }: UseCacheOperationsParam
         try {
           const cacheState = await checkCachedVideo(taskId);
           newCacheStates.set(taskId, { exists: cacheState.exists, fileSizeMB: cacheState.fileSizeMB });
-        } catch {
+        } catch (e) {
+          errorLogger.warn("[CacheOps] Failed to check cache state", e);
           newCacheStates.set(taskId, { exists: false });
         }
       }

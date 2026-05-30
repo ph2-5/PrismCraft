@@ -1,0 +1,169 @@
+main:
+  push:
+    - name: lint-and-typecheck
+      docker:
+        image: node:20
+        volumes:
+          - node_modules:copy-on-write
+      stages:
+        - name: override npmrc
+          script: echo 'registry=https://registry.npmjs.org/' > .npmrc
+        - name: install dependencies
+          script: |
+            for i in 1 2 3; do
+              if npm ci --ignore-scripts; then
+                echo "Dependencies installed successfully"
+                break
+              elif [ $i -lt 3 ]; then
+                echo "Attempt $i failed, retrying in 30 seconds..."
+                sleep 30
+              else
+                echo "All 3 attempts failed"
+                exit 1
+              fi
+            done
+        - name: run linter
+          script: npm run lint
+        - name: typecheck root
+          script: npx tsc --noEmit
+        - name: typecheck electron
+          script: npx tsc -p electron/tsconfig.json --noEmit
+        - name: architecture check
+          script: node scripts/check-architecture.mjs
+        - name: module API consistency
+          script: node scripts/check-module-api-consistency.mjs
+        - name: contract validation
+          script: node scripts/validate-contracts.mjs
+
+    - name: unit-tests
+      docker:
+        image: node:20
+        volumes:
+          - node_modules:copy-on-write
+      stages:
+        - name: override npmrc
+          script: echo 'registry=https://registry.npmjs.org/' > .npmrc
+        - name: install dependencies
+          script: |
+            for i in 1 2 3; do
+              if npm ci --ignore-scripts; then
+                echo "Dependencies installed successfully"
+                break
+              elif [ $i -lt 3 ]; then
+                echo "Attempt $i failed, retrying in 30 seconds..."
+                sleep 30
+              else
+                echo "All 3 attempts failed"
+                exit 1
+              fi
+            done
+        - name: rebuild better-sqlite3
+          script: npm rebuild better-sqlite3 || npm rebuild better-sqlite3
+        - name: run unit tests
+          script: npx vitest run
+
+  pull_request:
+    - name: lint-and-typecheck
+      docker:
+        image: node:20
+        volumes:
+          - node_modules:copy-on-write
+      stages:
+        - name: override npmrc
+          script: echo 'registry=https://registry.npmjs.org/' > .npmrc
+        - name: install dependencies
+          script: |
+            for i in 1 2 3; do
+              if npm ci --ignore-scripts; then
+                echo "Dependencies installed successfully"
+                break
+              elif [ $i -lt 3 ]; then
+                echo "Attempt $i failed, retrying in 30 seconds..."
+                sleep 30
+              else
+                echo "All 3 attempts failed"
+                exit 1
+              fi
+            done
+        - name: run linter
+          script: npm run lint
+        - name: typecheck root
+          script: npx tsc --noEmit
+        - name: typecheck electron
+          script: npx tsc -p electron/tsconfig.json --noEmit
+        - name: architecture check
+          script: node scripts/check-architecture.mjs
+        - name: module API consistency
+          script: node scripts/check-module-api-consistency.mjs
+        - name: contract validation
+          script: node scripts/validate-contracts.mjs
+
+    - name: unit-tests
+      docker:
+        image: node:20
+        volumes:
+          - node_modules:copy-on-write
+      stages:
+        - name: override npmrc
+          script: echo 'registry=https://registry.npmjs.org/' > .npmrc
+        - name: install dependencies
+          script: |
+            for i in 1 2 3; do
+              if npm ci --ignore-scripts; then
+                echo "Dependencies installed successfully"
+                break
+              elif [ $i -lt 3 ]; then
+                echo "Attempt $i failed, retrying in 30 seconds..."
+                sleep 30
+              else
+                echo "All 3 attempts failed"
+                exit 1
+              fi
+            done
+        - name: rebuild better-sqlite3
+          script: npm rebuild better-sqlite3 || npm rebuild better-sqlite3
+        - name: run unit tests
+          script: npx vitest run
+
+$:
+  tag_push:
+    - name: release-windows
+      runner:
+        tags: cnb:arch:amd64
+        cpus: 4
+      docker:
+        image: electronuser/electron-builder:wine
+        volumes:
+          - node_modules:copy-on-write
+      stages:
+        - name: override npmrc
+          script: echo 'registry=https://registry.npmjs.org/' > .npmrc
+        - name: install dependencies
+          script: |
+            for i in 1 2 3; do
+              if npm ci --ignore-scripts; then
+                echo "Dependencies installed successfully"
+                break
+              elif [ $i -lt 3 ]; then
+                echo "Attempt $i failed, retrying in 30 seconds..."
+                sleep 30
+              else
+                echo "All 3 attempts failed"
+                exit 1
+              fi
+            done
+        - name: build electron
+          script: npm run build:electron
+        - name: rebuild native modules
+          script: npx electron-rebuild -f -w better-sqlite3
+        - name: package windows
+          script: npx electron-builder --win --x64 --publish=never
+        - name: upload release
+          type: git:release
+          options:
+            title: $CNB_BRANCH
+        - name: upload artifacts
+          image: cnbcool/attachments:latest
+          settings:
+            attachments:
+              - "./release/*.exe"

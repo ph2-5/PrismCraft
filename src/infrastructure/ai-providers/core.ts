@@ -73,7 +73,8 @@ export async function apiCall<T>(
       let errorData: { error?: string; code?: string } = {};
       try {
         errorData = await response.json();
-      } catch {
+      } catch (e) {
+        errorLogger.warn("[ApiClient] 响应 JSON 解析失败", e);
         const text = await response.text().catch(() => "");
         errorData = { error: text || `HTTP ${response.status}` };
       }
@@ -90,7 +91,8 @@ export async function apiCall<T>(
         apiCache.set(endpoint, data, { body: options.body });
       }
       return data;
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[ApiClient] 成功响应 JSON 解析失败", e);
       throw new ApiClientError(
         "响应格式错误：无法解析 JSON",
         response.status,
@@ -254,7 +256,8 @@ export async function checkApiHealth(): Promise<boolean> {
   try {
     await apiCall("config", { method: "GET", timeout: 5000 });
     return true;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[ApiClient] API 健康检查失败", e);
     return false;
   }
 }

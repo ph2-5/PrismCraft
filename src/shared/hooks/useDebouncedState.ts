@@ -15,19 +15,25 @@ export function useDebouncedState<T>(
   const [isPending, setIsPending] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const immediateRef = useRef(options?.immediate ?? false);
+  const valueRef = useRef(value);
+  // eslint-disable-next-line react-hooks/refs
+  valueRef.current = value;
+  const onDebouncedUpdateRef = useRef(options?.onDebouncedUpdate);
+  // eslint-disable-next-line react-hooks/refs
+  onDebouncedUpdateRef.current = options?.onDebouncedUpdate;
 
   const setDebouncedState = useCallback(
     (newValue: T | ((prev: T) => T)) => {
       const actualNewValue =
         typeof newValue === "function"
-          ? (newValue as (prev: T) => T)(value)
+          ? (newValue as (prev: T) => T)(valueRef.current)
           : newValue;
 
       setValue(actualNewValue);
 
       if (immediateRef.current && !timeoutRef.current) {
         setDebouncedValue(actualNewValue);
-        options?.onDebouncedUpdate?.(actualNewValue);
+        onDebouncedUpdateRef.current?.(actualNewValue);
       }
 
       if (timeoutRef.current) {
@@ -37,12 +43,12 @@ export function useDebouncedState<T>(
       setIsPending(true);
       timeoutRef.current = setTimeout(() => {
         setDebouncedValue(actualNewValue);
-        options?.onDebouncedUpdate?.(actualNewValue);
+        onDebouncedUpdateRef.current?.(actualNewValue);
         timeoutRef.current = null;
         setIsPending(false);
       }, delay);
     },
-    [value, delay, options]
+    [delay],
   );
 
   const flush = useCallback(() => {
@@ -51,9 +57,9 @@ export function useDebouncedState<T>(
       timeoutRef.current = null;
       setIsPending(false);
     }
-    setDebouncedValue(value);
-    options?.onDebouncedUpdate?.(value);
-  }, [value, options]);
+    setDebouncedValue(valueRef.current);
+    onDebouncedUpdateRef.current?.(valueRef.current);
+  }, []);
 
   const cancel = useCallback(() => {
     if (timeoutRef.current) {

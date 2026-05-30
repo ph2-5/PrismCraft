@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import {
   Dialog,
@@ -189,35 +189,37 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
   const [visibleCount, setVisibleCount] = useState(20);
   const now = useCurrentTime();
 
-  const toggleTaskSelection = (taskId: string) => {
-    const newSelected = new Set(selectedTaskIds);
-    if (newSelected.has(taskId)) {
-      newSelected.delete(taskId);
-    } else {
-      newSelected.add(taskId);
-    }
-    setSelectedTaskIds(newSelected);
-  };
+  const toggleTaskSelection = useCallback((taskId: string) => {
+    setSelectedTaskIds((prev) => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(taskId)) {
+        newSelected.delete(taskId);
+      } else {
+        newSelected.add(taskId);
+      }
+      return newSelected;
+    });
+  }, []);
 
-  const toggleExpanded = (taskId: string) => {
-    setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
-  };
+  const toggleExpanded = useCallback((taskId: string) => {
+    setExpandedTaskId((prev) => prev === taskId ? null : taskId);
+  }, []);
 
-  const openTaskDetail = (task: VideoTask) => {
+  const openTaskDetail = useCallback((task: VideoTask) => {
     setDetailTask(task);
     setIsDetailOpen(true);
-  };
+  }, []);
 
-  const handleRecoverTask = async () => {
+  const handleRecoverTask = useCallback(async () => {
     if (detailTask) {
       const result = await recoverVideoByTaskId(detailTask.taskId);
       if (!result.ok) {
         errorLogger.warn("[VideoTaskManagerUI] 视频找回失败", result.error);
       }
     }
-  };
+  }, [detailTask]);
 
-  const handleRemoveTask = async () => {
+  const handleRemoveTask = useCallback(async () => {
     if (!detailTask) return;
     const confirmed = await confirm({
       title: "确认删除",
@@ -229,9 +231,9 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
     if (!confirmed) return;
     removeTask(detailTask.taskId);
     setIsDetailOpen(false);
-  };
+  }, [detailTask, removeTask]);
 
-  const handleRemoveSelected = async () => {
+  const handleRemoveSelected = useCallback(async () => {
     if (selectedTaskIds.size === 0) return;
     const confirmed = await confirm({
       title: "确认批量删除",
@@ -243,10 +245,13 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
     if (!confirmed) return;
     removeTasks(Array.from(selectedTaskIds));
     setSelectedTaskIds(new Set());
-  };
+  }, [selectedTaskIds, removeTasks]);
 
-  const sortedTasks = [...tasks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const visibleTasks = sortedTasks.slice(0, visibleCount);
+  const sortedTasks = useMemo(
+    () => [...tasks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [tasks],
+  );
+  const visibleTasks = useMemo(() => sortedTasks.slice(0, visibleCount), [sortedTasks, visibleCount]);
   const hasMore = sortedTasks.length > visibleCount;
 
   return (

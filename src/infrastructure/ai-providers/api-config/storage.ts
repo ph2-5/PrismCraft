@@ -77,8 +77,8 @@ export async function loadConfig(): Promise<ApiConfig> {
       let parsed: Record<string, unknown>;
       try {
         parsed = JSON.parse(stored);
-      } catch {
-        errorLogger.warn("[API Config] 配置 JSON 解析失败，使用默认配置");
+      } catch (e) {
+        errorLogger.warn("[API Config] 配置 JSON 解析失败，使用默认配置", e);
         return getDefaultConfig();
       }
 
@@ -184,7 +184,8 @@ function migrateConfig(oldConfig: Record<string, unknown>): ApiConfig | null {
     }
 
     return newConfig;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[API Config] 配置迁移失败", e);
     return null;
   }
 }

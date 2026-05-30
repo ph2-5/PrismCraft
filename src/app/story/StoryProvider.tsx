@@ -13,14 +13,15 @@ import { useToastHelpers } from "@/shared/presentation/Toast";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
 import { errorLogger } from "@/shared/error-logger";
 import { container } from "@/infrastructure/di";
-import { useVideoTaskManager } from "@/modules/video";
-import { getImageUrlWithCache } from "@/modules/video";
+import { useVideoTaskManager, useVideoTaskStore, removeCachedImage, getImageUrlWithCache } from "@/modules/video";
 import { storyService } from "@/modules/story";
 import {
   buildVideoUrlUpdates,
   applyVideoUrlUpdates,
   buildCacheRequests,
   filterRemoteCacheRequests,
+  collectBeatRemoteImageUrls,
+  syncStoriesWithVideoUrls,
 } from "@/modules/story/generation";
 import { characterService } from "@/modules/character";
 import { sceneService } from "@/modules/scene";
@@ -129,6 +130,7 @@ interface StoryContextValue {
   handleSave: ReturnType<typeof useStorySaver>["handleSave"];
   handleDeleteStory: ReturnType<typeof useStorySaver>["handleDeleteStory"];
   performDeleteStory: ReturnType<typeof useStorySaver>["performDeleteStory"];
+  switchToStory: (storyId: string) => Promise<void>;
   handleRestoreVersion: ReturnType<
     typeof useStorySaver
   >["handleRestoreVersion"];
@@ -267,16 +269,53 @@ function useStoryContext(): StoryContextValue {
     setBeats: storyState.setBeats,
     markClean: storyState.markClean,
     markDirty: storyState.markDirty,
+    onBeforeDeleteStory: async (storyId) => {
+      await useVideoTaskStore.getState().removeTasksByStoryId(storyId);
+    },
   });
 
   const deleteBeatWithCleanup = useCallback(async (beatId: string) => {
+    const beat = storyState.beatsRef.current.find((b) => b.id === beatId);
     try {
-      await container.videoTaskStorage.deleteVideoTasksByBeatId(beatId);
+      await useVideoTaskStore.getState().removeTasksByBeatId(beatId);
     } catch (e) {
       errorLogger.warn("[StoryProvider] 删除beat关联VideoTask失败", e);
     }
+    if (beat) {
+      for (const url of collectBeatRemoteImageUrls(beat)) {
+        try {
+          await removeCachedImage(url);
+        } catch (e) {
+          errorLogger.debug("[StoryProvider] 清理图片缓存失败", e);
+        }
+      }
+    }
     storyState.deleteBeat(beatId);
   }, [storyState]);
+
+  const switchToStory = useCallback(async (storyId: string) => {
+    const result = await storyService.getById(storyId);
+    if (result.ok) {
+      const fresh = result.value;
+      storyState.setStories((prev) =>
+        prev.map((s) => (s.id === fresh.id ? fresh : s)),
+      );
+      storyState.setCurrentStory(fresh, true);
+      storyState.setBeats(fresh.beats || [], true);
+      storyState.markClean("story");
+      return;
+    }
+    const cached = storyState.stories.find((s) => s.id === storyId);
+    if (cached) {
+      storyState.setCurrentStory(cached, true);
+      storyState.setBeats(cached.beats || [], true);
+      storyState.markClean("story");
+      errorLogger.warn("[StoryProvider] 从数据库加载故事失败，使用内存缓存", result.error);
+      return;
+    }
+    errorLogger.warn("[StoryProvider] 切换故事失败", result.error);
+    showError("切换失败", "无法加载故事数据，请重试");
+  }, [storyState, showError]);
 
   const { updateRecommendedTemplates } = storySaver;
 
@@ -316,6 +355,8 @@ function useStoryContext(): StoryContextValue {
 
   const setBeatsRef = useRef(storyState.setBeats);
   useEffect(() => { setBeatsRef.current = storyState.setBeats; }, [storyState.setBeats]);
+  const setStoriesRef = useRef(storyState.setStories);
+  useEffect(() => { setStoriesRef.current = storyState.setStories; }, [storyState.setStories]);
   const currentStoryRef = useRef(storyState.currentStory);
   useEffect(() => { currentStoryRef.current = storyState.currentStory; }, [storyState.currentStory]);
 
@@ -357,6 +398,11 @@ function useStoryContext(): StoryContextValue {
             setIsVideoUrlPersisting(true);
             try {
               await storyService.updateBeatMediaUrls(allPersistData);
+              if (!cancelled) {
+                setStoriesRef.current((prev) =>
+                  syncStoriesWithVideoUrls(prev, allCompletedTaskUrls),
+                );
+              }
             } catch (e) {
               if (!cancelled) {
                 errorLogger.warn("自动保存视频URL失败", e);
@@ -471,6 +517,7 @@ function useStoryContext(): StoryContextValue {
       handleSave: storySaver.handleSave,
       handleDeleteStory: storySaver.handleDeleteStory,
       performDeleteStory: storySaver.performDeleteStory,
+      switchToStory,
       handleRestoreVersion: storySaver.handleRestoreVersion,
       savedTemplates: storySaver.savedTemplates,
       handleSaveTemplate: storySaver.handleSaveTemplate,
@@ -542,6 +589,7 @@ function useStoryContext(): StoryContextValue {
       storySaver.handleSave,
       storySaver.handleDeleteStory,
       storySaver.performDeleteStory,
+      switchToStory,
       storySaver.handleRestoreVersion,
       storySaver.savedTemplates,
       storySaver.handleSaveTemplate,

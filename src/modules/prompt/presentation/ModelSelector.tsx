@@ -60,8 +60,10 @@ export function ModelSelector({
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     loadConfig()
       .then((config) => {
+        if (cancelled) return;
         const models: typeof availableModels = [];
         for (const provider of config.providers) {
           for (const model of provider.models) {
@@ -81,9 +83,11 @@ export function ModelSelector({
         setIsLoading(false);
       })
       .catch(() => {
+        if (cancelled) return;
         setIsLoading(false);
         setLoadError(true);
       });
+    return () => { cancelled = true; };
   }, [capability]);
 
   const currentValue = value

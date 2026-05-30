@@ -5,8 +5,10 @@ import {
   buildBeatsPersistData,
   buildCacheRequests,
   filterRemoteCacheRequests,
+  collectBeatRemoteImageUrls,
+  syncStoriesWithVideoUrls,
 } from "../video-url-sync";
-import type { StoryBeat } from "@/domain/schemas";
+import type { StoryBeat, Story } from "@/domain/schemas";
 
 function makeBeat(overrides: Partial<StoryBeat> = {}): StoryBeat {
   return {
@@ -208,5 +210,59 @@ describe("filterRemoteCacheRequests", () => {
 
   it("should return empty for empty input", () => {
     expect(filterRemoteCacheRequests([])).toEqual([]);
+  });
+});
+
+describe("collectBeatRemoteImageUrls", () => {
+  it("should collect http(s) image and video URLs from beat", () => {
+    const beat = makeBeat({
+      keyframe: { imageUrl: "https://cdn.com/kf.jpg", prompt: "kf", generatedAt: "t" },
+      framePair: {
+        firstFrame: { imageUrl: "https://cdn.com/ff.jpg", prompt: "ff", derivedFrom: "kf" },
+        lastFrame: { imageUrl: "https://cdn.com/lf.jpg", prompt: "lf", derivedFrom: "kf" },
+        generatedAt: "t",
+      },
+      videoGen: { prompt: "v", videoUrl: "https://cdn.com/video.mp4", status: "completed" },
+    } as Partial<StoryBeat>);
+    expect(collectBeatRemoteImageUrls(beat)).toEqual([
+      "https://cdn.com/kf.jpg",
+      "https://cdn.com/ff.jpg",
+      "https://cdn.com/lf.jpg",
+      "https://cdn.com/video.mp4",
+    ]);
+  });
+
+  it("should skip local and data URLs", () => {
+    const beat = makeBeat({
+      keyframe: { imageUrl: "file:///local/kf.jpg", prompt: "kf", generatedAt: "t" },
+    } as Partial<StoryBeat>);
+    expect(collectBeatRemoteImageUrls(beat)).toEqual([]);
+  });
+});
+
+describe("syncStoriesWithVideoUrls", () => {
+  it("should update beats in matching stories", () => {
+    const stories = [
+      {
+        id: "story-1",
+        title: "A",
+        beats: [makeBeat({ id: "beat-1", videoGen: { prompt: "v", videoUrl: "old", status: "generating" } })],
+      },
+      {
+        id: "story-2",
+        title: "B",
+        beats: [makeBeat({ id: "beat-2" })],
+      },
+    ] as Story[];
+    const urls = new Map([["beat-1", "new-url"]]);
+    const result = syncStoriesWithVideoUrls(stories, urls);
+    expect(result[0].beats?.[0].videoGen?.videoUrl).toBe("new-url");
+    expect(result[1]).toBe(stories[1]);
+  });
+
+  it("should return same array reference when no updates needed", () => {
+    const stories = [{ id: "story-1", title: "A", beats: [makeBeat({ id: "beat-1" })] }] as Story[];
+    const urls = new Map<string, string>();
+    expect(syncStoriesWithVideoUrls(stories, urls)).toBe(stories);
   });
 });

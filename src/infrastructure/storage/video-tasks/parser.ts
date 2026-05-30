@@ -73,7 +73,7 @@ export function parseVideoTask(record: Record<string, unknown>): VideoTask {
     prompt: config.prompt ? String(config.prompt) : undefined,
     parameters: config.parameters
       ? (typeof config.parameters === "string"
-        ? (() => { try { return JSON.parse(config.parameters as string) as Record<string, unknown>; } catch { return undefined; } })()
+        ? (() => { try { return JSON.parse(config.parameters as string) as Record<string, unknown>; } catch (e) { console.warn("[VideoTaskParser] parameters JSON 解析失败", e); return undefined; } })()
         : config.parameters as Record<string, unknown>)
       : undefined,
     fixedImageUrl: mediaRefs.fixed_image_url

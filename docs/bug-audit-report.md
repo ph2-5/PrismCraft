@@ -150,10 +150,15 @@
 
 ## 五、修复优先级建议
 
-| 优先级 | Bug | 修复复杂度 | 影响范围 |
-|--------|-----|-----------|---------|
-| P1 | #3 清除任务顺序 | 低（调换两行代码） | video-task-management |
-| P1 | #1 跨故事URL丢失 | 中（需修改 useEffect 逻辑） | StoryProvider |
-| P2 | #4 删除beat无级联 | 中（需增加清理调用） | useStoryState + story-service |
-| P2 | #8 删除故事无级联 | 中（需增加清理调用） | useStorySaver + story-service |
-| P2 | #7 abort改去重 | 中（需重构请求模式） | useAIGeneratorBase |
+| 优先级 | Bug | 修复复杂度 | 影响范围 | 状态 |
+|--------|-----|-----------|---------|------|
+| P1 | #3 清除任务顺序 | 低（调换两行代码） | video-task-management | ✅ 已修复（2026-05-26 前） |
+| P1 | #1 跨故事URL丢失 | 中（需修改 useEffect 逻辑） | StoryProvider + page | ✅ 已修复（2026-05-30） |
+| P2 | #4 删除beat无级联 | 中（需增加清理调用） | StoryProvider + video store | ✅ 已修复（2026-05-30） |
+| P2 | #8 删除故事无级联 | 中（需增加清理调用） | useStorySaver + video store | ✅ 已修复（2026-05-30） |
+| P2 | #7 abort改去重 | 中（需重构请求模式） | useAIGeneratorBase | ✅ 已修复（2026-05-26 前） |
+
+### 2026-05-30 修复摘要
+
+- **Bug #1**：切换故事时通过 `switchToStory` 从数据库重载 beats；视频 URL 持久化后调用 `syncStoriesWithVideoUrls` 同步 `stories` 内存缓存。
+- **Bug #4/#8**：新增 `removeTasksByBeatId` / `removeTasksByStoryId`，取消进行中的任务、清理 DB 与 Zustand 内存；删除 beat 时额外清理 `image_cache`。

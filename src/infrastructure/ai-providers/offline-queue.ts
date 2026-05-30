@@ -445,7 +445,8 @@ export async function getQueueStats(): Promise<{ pending: number; generating: nu
       else if (row.status === "failed") stats.failed = count;
     }
     return stats;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[OfflineQueue] 获取队列统计失败", e);
     return { pending: 0, generating: 0, failed: 0, total: 0 };
   }
 }
@@ -478,7 +479,8 @@ export async function retryFailedTasks(): Promise<number> {
       }
     }
     return retried;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[OfflineQueue] 重试失败任务出错", e);
     return 0;
   }
 }

@@ -67,7 +67,12 @@ export function VideoPreviewDialog({
                 controls
                 className="w-full"
                 style={{ maxHeight: "60vh" }}
-                onError={() => onSetVideoLoadError(true)}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.dataset.retried) return;
+                  target.dataset.retried = "1";
+                  onSetVideoLoadError(true);
+                }}
               />
             </div>
             <div className="flex items-center justify-between">

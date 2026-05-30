@@ -21,7 +21,8 @@ function safeParseContainer(raw: unknown): Record<string, unknown> {
       return parsed as Record<string, unknown>;
     }
     return {};
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[CharacterParser] JSON 容器解析失败", e);
     return {};
   }
 }
@@ -159,7 +160,8 @@ export async function parseCharactersWithOutfits(
             : typeof metaContainer.outfits === "string"
               ? JSON.parse(metaContainer.outfits)
               : undefined;
-        } catch {
+        } catch (e) {
+          errorLogger.warn("[CharacterParser] outfits JSON 解析失败", e);
           char.outfits = undefined;
         }
       }

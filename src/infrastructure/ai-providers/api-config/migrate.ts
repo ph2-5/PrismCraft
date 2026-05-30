@@ -38,7 +38,8 @@ export function migrateFromOldConfig(
   if (typeof oldConfig === "string") {
     try {
       parsedConfig = JSON.parse(oldConfig);
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[API Config] 旧版配置 JSON 解析失败", e);
       return config;
     }
   } else {

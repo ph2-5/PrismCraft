@@ -1,4 +1,4 @@
-import type { StoryBeat } from "@/domain/schemas";
+import type { StoryBeat, Story } from "@/domain/schemas";
 
 export interface VideoUrlUpdate {
   beatId: string;
@@ -97,4 +97,37 @@ export function filterRemoteCacheRequests(requests: CacheRequest[]): CacheReques
   return requests.filter(
     (r) => r.url.startsWith("http://") || r.url.startsWith("https://"),
   );
+}
+
+/** 收集 beat 关联的远程图片 URL，用于删除时清理 image_cache */
+export function collectBeatRemoteImageUrls(beat: StoryBeat): string[] {
+  const urls: string[] = [];
+  if (beat.keyframe?.imageUrl?.startsWith("http")) {
+    urls.push(beat.keyframe.imageUrl);
+  }
+  if (beat.framePair?.firstFrame?.imageUrl?.startsWith("http")) {
+    urls.push(beat.framePair.firstFrame.imageUrl);
+  }
+  if (beat.framePair?.lastFrame?.imageUrl?.startsWith("http")) {
+    urls.push(beat.framePair.lastFrame.imageUrl);
+  }
+  if (beat.videoGen?.videoUrl?.startsWith("http")) {
+    urls.push(beat.videoGen.videoUrl);
+  }
+  return urls;
+}
+
+/** 将视频 URL 更新同步到 stories 内存缓存，避免切换故事时读到陈旧 beats */
+export function syncStoriesWithVideoUrls(
+  stories: Story[],
+  completedTaskUrls: Map<string, string>,
+): Story[] {
+  if (completedTaskUrls.size === 0) return stories;
+  return stories.map((story) => {
+    const beats = story.beats;
+    if (!beats?.length) return story;
+    const updates = buildVideoUrlUpdates(beats, completedTaskUrls);
+    if (updates.length === 0) return story;
+    return { ...story, beats: applyVideoUrlUpdates(beats, updates) };
+  });
 }

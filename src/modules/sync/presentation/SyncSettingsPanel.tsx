@@ -14,6 +14,7 @@ import { Input } from "@/shared/ui/input";
 import { Switch } from "@/shared/ui/switch";
 import { Label } from "@/shared/ui/label";
 import { errorLogger } from "@/shared/error-logger";
+import { emitToast } from "@/shared/utils/toast-bridge";
 import {
   Select,
   SelectContent,
@@ -199,12 +200,15 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
         if (config.enabled) {
           await initSyncEngine(newConfig);
         }
+        emitToast("success", "同步设置已保存");
         onClose();
       } else {
         errorLogger.warn("保存同步配置失败", result.ok ? result.value.error : "请求失败");
+        emitToast("error", "保存同步配置失败");
       }
     } catch (e) {
       errorLogger.warn("保存同步配置失败", e);
+      emitToast("error", "保存同步配置失败");
     } finally {
       setIsSaving(false);
     }
@@ -219,6 +223,7 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
       await refreshStatus();
     } catch (error) {
       errorLogger.warn("手动同步失败", error);
+      emitToast("error", "同步失败");
     } finally {
       setIsSyncing(false);
     }

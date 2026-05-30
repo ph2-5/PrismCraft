@@ -51,7 +51,7 @@ function parseScene(record: Record<string, unknown>): Scene {
   const safeJsonParse = <T>(raw: unknown): T | undefined => {
     if (!raw) return undefined;
     try { return JSON.parse(raw as string) as T; }
-    catch { return undefined; }
+    catch (e) { errorLogger.warn("[SceneStorage] JSON 解析失败", e); return undefined; }
   };
 
   const appearanceContainer = safeJsonParse<Record<string, unknown>>(record.appearance);

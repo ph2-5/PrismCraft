@@ -87,6 +87,7 @@ export function useStoryState() {
     markDirty("story");
   }, [markDirty]);
 
+  /** 内部删除 beat 状态；级联清理（VideoTask、缓存）由 StoryProvider.deleteBeatWithCleanup 负责 */
   const deleteBeat = useCallback((beatId: string) => {
     setBeatsRaw((prev) =>
       prev

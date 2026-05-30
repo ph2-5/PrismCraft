@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
+import { errorLogger } from "@/shared/error-logger";
 import {
   Select,
   SelectContent,
@@ -80,6 +81,10 @@ export function ShotReferenceConfig({
         reference,
       );
       setValidation(result);
+    }).catch((err: unknown) => {
+      if (!cancelled) {
+        errorLogger.warn("[ShotReferenceConfig] 参考验证失败", err);
+      }
     });
     return () => {
       cancelled = true;

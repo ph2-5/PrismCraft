@@ -534,7 +534,7 @@ export async function loadModelProfilesFromServer(): Promise<void> {
     if (response.ok && response.value?.modelProfiles) {
       setModelProfiles(response.value.modelProfiles);
     }
-  } catch {
-    // silently fail, fallback to built-in capabilities
+  } catch (e) {
+    errorLogger.warn("[ModelCapabilities] 获取远程模型配置失败，使用内置配置", e);
   }
 }

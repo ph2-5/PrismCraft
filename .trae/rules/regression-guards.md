@@ -1083,3 +1083,101 @@ const pollTasks = async () => {
   if (shouldReschedule && !abortSignal.aborted) schedulePolling();
 };
 ```
+
+## Phase 8: Code Quality Audit (R47-R49)
+
+### R47: Catch Blocks MUST NOT Silently Swallow Errors
+When a `catch` block catches an error, it MUST either (1) log the error via `errorLogger.warn`/`errorLogger.error`, (2) propagate the error to the caller, or (3) show user feedback via `emitToast`. Empty `catch {}` blocks with no logging or notification are "安慰剂" error handling — they make failures invisible to both developers and users, making debugging impossible. The only exception is cleanup operations (e.g., `URL.revokeObjectURL`) where failure is inconsequential.
+
+**BAD**:
+```typescript
+try {
+  const config = JSON.parse(rawConfig);
+} catch {
+  return defaultConfig;
+}
+```
+
+**GOOD**:
+```typescript
+try {
+  const config = JSON.parse(rawConfig);
+} catch (e) {
+  errorLogger.warn("[Module] 配置 JSON 解析失败，使用默认配置", e);
+  return defaultConfig;
+}
+```
+
+### R48: useEffect Async Operations MUST Have Unmount Protection
+When a `useEffect` contains an async operation (fetch, API call, database query) that updates React state, the effect MUST use a `cancelled` flag or `AbortController` to prevent state updates after component unmount. Without this protection, async callbacks can call `setState` on unmounted components, causing React warnings and potential memory leaks. The cleanup function MUST set the cancellation flag or abort the controller.
+
+**BAD**:
+```typescript
+useEffect(() => {
+  loadConfig().then((config) => {
+    setAvailableModels(config.models);
+    setIsLoading(false);
+  });
+}, [capability]);
+```
+
+**GOOD**:
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  loadConfig().then((config) => {
+    if (cancelled) return;
+    setAvailableModels(config.models);
+    setIsLoading(false);
+  }).catch((error) => {
+    if (cancelled) return;
+    setIsLoading(false);
+    setLoadError(true);
+  });
+  return () => { cancelled = true; };
+}, [capability]);
+```
+
+### R49: React Event Handlers MUST Use e.currentTarget Over e.target
+When a React event handler needs to access the DOM element that the handler is attached to, it MUST use `e.currentTarget` instead of `e.target`. The `e.target` refers to the innermost element that triggered the event (which may be a child element due to event bubbling), while `e.currentTarget` always refers to the element the handler is bound to. Using `e.target` with a type assertion like `e.target as HTMLVideoElement` is unsafe when the element has children, as `e.target` may point to a child node.
+
+**BAD**:
+```tsx
+<video onError={(e) => {
+  const target = e.target as HTMLVideoElement;
+  target.dataset.retried = "1";
+}} />
+```
+
+**GOOD**:
+```tsx
+<video onError={(e) => {
+  const target = e.currentTarget;
+  if (target.dataset.retried) return;
+  target.dataset.retried = "1";
+}} />
+```
+
+### R50: Floating Promises MUST Have .catch() Handlers
+When a Promise chain uses `.then()` without a corresponding `.catch()`, any rejection becomes an unhandled promise rejection. This is especially dangerous in React components where the rejection may occur after unmount, causing both silent failures and potential memory leaks. Every `.then()` chain MUST end with `.catch()` that either logs the error or provides user feedback.
+
+**BAD**:
+```typescript
+container.referenceEngine.then((engine) => {
+  const result = engine.validateReference(beat, allShots, reference);
+  setValidation(result);
+});
+```
+
+**GOOD**:
+```typescript
+container.referenceEngine.then((engine) => {
+  if (cancelled) return;
+  const result = engine.validateReference(beat, allShots, reference);
+  setValidation(result);
+}).catch((err: unknown) => {
+  if (!cancelled) {
+    errorLogger.warn("[Component] 参考验证失败", err);
+  }
+});
+```

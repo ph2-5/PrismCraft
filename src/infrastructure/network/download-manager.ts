@@ -114,7 +114,8 @@ async function processTask(taskId: string): Promise<void> {
 
       scheduleAutoCleanup(taskId);
       return;
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[DownloadManager] 下载源失败", e);
       failedSources.add(source.url);
     }
   }

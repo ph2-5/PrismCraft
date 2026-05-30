@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { create } from "zustand";
 import { container } from "@/infrastructure/di";
 import {
@@ -50,6 +51,8 @@ interface VideoTaskManagerState {
   ) => Promise<VideoTask>;
   removeTask: (taskId: string) => Promise<void>;
   removeTasks: (taskIds: string[]) => Promise<void>;
+  removeTasksByBeatId: (beatId: string) => Promise<void>;
+  removeTasksByStoryId: (storyId: string) => Promise<void>;
   clearActiveTasks: () => Promise<void>;
   clearAllTasks: () => Promise<void>;
   clearCompletedTasks: () => Promise<void>;
@@ -314,6 +317,68 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     } catch (error) {
       errorLogger.error("Failed to remove video tasks", error);
     }
+  },
+
+  removeTasksByBeatId: async (beatId) => {
+    const tasks = get().allTasks.filter((t) => t.beatId === beatId);
+    for (const task of tasks) {
+      if (TaskMachine.isPollable(task.status)) {
+        try {
+          await get().cancelTask(task.taskId);
+        } catch (e) {
+          errorLogger.warn("[VideoTaskManager] 取消beat关联任务失败", e);
+        }
+      }
+    }
+    try {
+      await container.videoTaskStorage.deleteVideoTasksByBeatId(beatId);
+    } catch (error) {
+      errorLogger.error("Failed to remove video tasks by beatId", error);
+      throw error;
+    }
+    for (const task of tasks) {
+      try {
+        await removeCachedVideo(task.taskId);
+      } catch (e) {
+        errorLogger.warn(
+          new AppError("CACHE_CLEANUP_ERROR", "清除视频缓存失败", e),
+          "VideoTaskManager",
+        );
+      }
+    }
+    get().setAllTasks((prev) => prev.filter((t) => t.beatId !== beatId));
+    checkAndStartOrStopPolling();
+  },
+
+  removeTasksByStoryId: async (storyId) => {
+    const tasks = get().allTasks.filter((t) => t.storyId === storyId);
+    for (const task of tasks) {
+      if (TaskMachine.isPollable(task.status)) {
+        try {
+          await get().cancelTask(task.taskId);
+        } catch (e) {
+          errorLogger.warn("[VideoTaskManager] 取消故事关联任务失败", e);
+        }
+      }
+    }
+    try {
+      await container.videoTaskStorage.deleteVideoTasksByStoryId(storyId);
+    } catch (error) {
+      errorLogger.error("Failed to remove video tasks by storyId", error);
+      throw error;
+    }
+    for (const task of tasks) {
+      try {
+        await removeCachedVideo(task.taskId);
+      } catch (e) {
+        errorLogger.warn(
+          new AppError("CACHE_CLEANUP_ERROR", "清除视频缓存失败", e),
+          "VideoTaskManager",
+        );
+      }
+    }
+    get().setAllTasks((prev) => prev.filter((t) => t.storyId !== storyId));
+    checkAndStartOrStopPolling();
   },
 
   clearActiveTasks: async () => {
@@ -671,17 +736,16 @@ export function useVideoTaskManager() {
   const allTasks = store((s) => s.allTasks);
   const isBackgroundProcessing = store((s) => s.isBackgroundProcessing);
 
-  const activeTasks = allTasks.filter(
-    (t) => t.status === "pending" || t.status === "generating",
+  const activeTasks = useMemo(
+    () => allTasks.filter((t) => t.status === "pending" || t.status === "generating"),
+    [allTasks],
   );
   const hasActiveTasks = activeTasks.length > 0;
 
   return {
     tasks: allTasks,
     allTasks,
-    isGenerating: activeTasks.some(
-      (t) => t.status === "pending" || t.status === "generating",
-    ),
+    isGenerating: hasActiveTasks,
     activeTaskId:
       activeTasks.length > 0
         ? activeTasks[activeTasks.length - 1].taskId
@@ -695,6 +759,8 @@ export function useVideoTaskManager() {
     recoverTask: store.getState().recoverTask,
     removeTask: store.getState().removeTask,
     removeTasks: store.getState().removeTasks,
+    removeTasksByBeatId: store.getState().removeTasksByBeatId,
+    removeTasksByStoryId: store.getState().removeTasksByStoryId,
     clearTasks: store.getState().clearActiveTasks,
     clearAllTasks: store.getState().clearAllTasks,
     clearCompletedTasks: store.getState().clearCompletedTasks,

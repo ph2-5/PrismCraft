@@ -11,7 +11,8 @@ function safeParseStringArray(value: unknown): string[] {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed))
         return parsed.filter((v): v is string => typeof v === "string");
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[StoryboardStorage] JSON 数组解析失败", e);
       return value ? [value] : [];
     }
   }

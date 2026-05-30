@@ -71,7 +71,9 @@ export function VideoPreview({
             preload="metadata"
             muted
             onError={(e) => {
-              const target = e.target as HTMLVideoElement;
+              const target = e.currentTarget;
+              if (target.dataset.retried) return;
+              target.dataset.retried = "1";
               target.style.display = "none";
               const parent = target.parentElement;
               if (parent && !parent.querySelector(".video-fallback")) {

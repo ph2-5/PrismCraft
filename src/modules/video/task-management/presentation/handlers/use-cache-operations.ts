@@ -36,15 +36,17 @@ export function useCacheOperations({ completedTaskIds }: UseCacheOperationsParam
   }, [completedTaskIds]);
 
   useEffect(() => {
+    let cancelled = false;
     const loadStats = async () => {
       try {
         const stats = await getCacheStats();
-        if (stats.ok) setCacheStats({ count: stats.value.count, totalSizeMB: stats.value.totalSizeMB });
+        if (!cancelled && stats.ok) setCacheStats({ count: stats.value.count, totalSizeMB: stats.value.totalSizeMB });
       } catch (e) {
         errorLogger.warn({ code: "CACHE_STATS_ERROR", message: "[VideoTaskManager] 获取缓存统计失败" }, String(e));
       }
     };
     loadStats();
+    return () => { cancelled = true; };
   }, [completedTaskIds]);
 
   const refreshCacheStats = async () => {

@@ -398,7 +398,8 @@ async function applyRemoteChanges(changes: RemoteChange[]): Promise<void> {
       try {
         const raw = localRow?.vector_clock;
         localClock = safeJsonParse(raw, {});
-      } catch {
+      } catch (e) {
+        errorLogger.warn("[SyncEngine] vector_clock 解析失败", e);
         localClock = {};
       }
 

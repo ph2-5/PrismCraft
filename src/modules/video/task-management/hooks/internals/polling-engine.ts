@@ -374,21 +374,28 @@ async function cacheCompletedVideos(
   cacheTasks: Array<{ taskId: string; videoUrl: string }>,
   signal: AbortSignal,
 ): Promise<void> {
+  const batchUpdates: Map<string, boolean> = new Map();
   for (const { taskId, videoUrl } of cacheTasks) {
     if (signal.aborted) break;
     const cached = await cacheSingleVideo(taskId, videoUrl, signal);
     if (signal.aborted) break;
-    const state = getStore().getState();
-    state.setAllTasks((prev) =>
-      prev.map((t) =>
-        t.taskId === taskId ? { ...t, cacheFailed: !cached } : t,
-      ),
-    );
+    batchUpdates.set(taskId, cached);
     if (!cached) {
+      const state = getStore().getState();
       const task = state.allTasks.find((t) => t.taskId === taskId);
       const taskLabel = task?.beatTitle || task?.storyTitle || taskId.slice(0, 8);
       emitToast("warning", "视频缓存失败", `「${taskLabel}」本地缓存失败，仍可通过远程URL播放`);
     }
+  }
+  if (batchUpdates.size > 0) {
+    const state = getStore().getState();
+    state.setAllTasks((prev) =>
+      prev.map((t) => {
+        const cached = batchUpdates.get(t.taskId);
+        if (cached === undefined) return t;
+        return { ...t, cacheFailed: !cached };
+      }),
+    );
   }
 }
 

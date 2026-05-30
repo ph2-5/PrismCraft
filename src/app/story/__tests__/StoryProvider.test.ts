@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useCallback } from "react";
 import { renderHook, act } from "@testing-library/react";
 
+const mockVideoTaskStore = {
+  removeTasksByBeatId: vi.fn().mockResolvedValue(undefined),
+  removeTasksByStoryId: vi.fn().mockResolvedValue(undefined),
+};
+
+const mockRemoveCachedImage = vi.fn().mockResolvedValue({ ok: true, value: undefined });
+
 const mockVideoTaskStorage = {
   deleteVideoTasksByBeatId: vi.fn(),
   deleteVideoTasksByStoryId: vi.fn(),
@@ -38,11 +45,17 @@ vi.mock("@/modules/story/generation", () => ({
   applyVideoUrlUpdates: vi.fn(),
   buildCacheRequests: vi.fn(),
   filterRemoteCacheRequests: vi.fn(),
+  collectBeatRemoteImageUrls: vi.fn().mockReturnValue([]),
+  syncStoriesWithVideoUrls: vi.fn((stories: unknown[]) => stories),
 }));
 
 vi.mock("@/modules/video", () => ({
   useVideoTaskManager: vi.fn(),
+  useVideoTaskStore: {
+    getState: () => mockVideoTaskStore,
+  },
   getImageUrlWithCache: vi.fn(),
+  removeCachedImage: (...args: unknown[]) => mockRemoveCachedImage(...args),
 }));
 
 vi.mock("@/shared/presentation/Toast", () => ({
@@ -64,14 +77,18 @@ vi.mock("@/modules/scene", () => ({
 describe("StoryProvider regression tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockVideoTaskStorage.deleteVideoTasksByBeatId.mockResolvedValue(undefined);
+    mockVideoTaskStore.removeTasksByBeatId.mockResolvedValue(undefined);
+    mockVideoTaskStore.removeTasksByStoryId.mockResolvedValue(undefined);
   });
 
   describe("deleteBeatWithCleanup pattern (regression: Bug #4)", () => {
-    function useDeleteBeatWithCleanup(deleteBeat: (beatId: string) => void) {
+    function useDeleteBeatWithCleanup(
+      deleteBeat: (beatId: string) => void,
+      beatsRef: { current: Array<{ id: string }> },
+    ) {
       return useCallback(async (beatId: string) => {
         try {
-          await mockVideoTaskStorage.deleteVideoTasksByBeatId(beatId);
+          await mockVideoTaskStore.removeTasksByBeatId(beatId);
         } catch (e) {
           mockErrorLogger.warn("[StoryProvider] 删除beat关联VideoTask失败", e);
         }
@@ -83,7 +100,7 @@ describe("StoryProvider regression tests", () => {
       const mockDeleteBeat = vi.fn();
 
       const order: string[] = [];
-      mockVideoTaskStorage.deleteVideoTasksByBeatId.mockImplementationOnce(async () => {
+      mockVideoTaskStore.removeTasksByBeatId.mockImplementationOnce(async () => {
         order.push("storage");
       });
       mockDeleteBeat.mockImplementation(() => {
@@ -91,24 +108,24 @@ describe("StoryProvider regression tests", () => {
       });
 
       const { result } = renderHook(() =>
-        useDeleteBeatWithCleanup(mockDeleteBeat),
+        useDeleteBeatWithCleanup(mockDeleteBeat, { current: [{ id: "beat-1" }] }),
       );
 
       await act(async () => {
         await result.current("beat-1");
       });
 
-      expect(mockVideoTaskStorage.deleteVideoTasksByBeatId).toHaveBeenCalledWith("beat-1");
+      expect(mockVideoTaskStore.removeTasksByBeatId).toHaveBeenCalledWith("beat-1");
       expect(mockDeleteBeat).toHaveBeenCalledWith("beat-1");
       expect(order).toEqual(["storage", "state"]);
     });
 
     it("VideoTask清理失败时仍应删除beat状态", async () => {
       const mockDeleteBeat = vi.fn();
-      mockVideoTaskStorage.deleteVideoTasksByBeatId.mockRejectedValueOnce(new Error("db error"));
+      mockVideoTaskStore.removeTasksByBeatId.mockRejectedValueOnce(new Error("db error"));
 
       const { result } = renderHook(() =>
-        useDeleteBeatWithCleanup(mockDeleteBeat),
+        useDeleteBeatWithCleanup(mockDeleteBeat, { current: [{ id: "beat-2" }] }),
       );
 
       await act(async () => {

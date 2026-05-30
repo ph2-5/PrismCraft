@@ -247,7 +247,8 @@ export async function getPendingChanges(
       synced: row.synced as number,
       deviceId: row.device_id as string,
     })) as SyncChangeLogEntry[];
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[SyncChangelog] 查询变更日志失败", e);
     return [];
   }
 }

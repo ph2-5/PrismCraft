@@ -28,6 +28,7 @@ interface UseStorySaverProps {
   setBeats: React.Dispatch<React.SetStateAction<StoryBeat[]>>;
   markClean: (key: string) => void;
   markDirty: (key: string) => void;
+  onBeforeDeleteStory?: (storyId: string) => Promise<void>;
 }
 
 export function useStorySaver(props: UseStorySaverProps) {
@@ -39,6 +40,7 @@ export function useStorySaver(props: UseStorySaverProps) {
     setBeats,
     markClean,
     markDirty,
+    onBeforeDeleteStory,
   } = props;
 
   const { success, error: showError } = useToastHelpers();
@@ -93,7 +95,11 @@ export function useStorySaver(props: UseStorySaverProps) {
   const performDeleteStory = useCallback(async () => {
     if (storyToDelete) {
       try {
-        await container.videoTaskStorage.deleteVideoTasksByStoryId(storyToDelete);
+        if (onBeforeDeleteStory) {
+          await onBeforeDeleteStory(storyToDelete);
+        } else {
+          await container.videoTaskStorage.deleteVideoTasksByStoryId(storyToDelete);
+        }
       } catch (e) {
         errorLogger.warn("[StorySaver] 删除故事关联VideoTask失败", e);
       }
@@ -110,7 +116,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       setStoryToDelete(null);
       success("删除成功", "分镜项目已删除");
     }
-  }, [storyToDelete, setStories, success, showError]);
+  }, [storyToDelete, setStories, success, showError, onBeforeDeleteStory]);
 
   const applyStoryTemplate = useCallback(
     (template: StoryTemplate) => {

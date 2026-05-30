@@ -1,6 +1,7 @@
 import { safeQuery, safeRun, safeTransaction } from "../sqlite-core";
 import { parseRecordWithTable } from "../core";
 import type { CharacterOutfit } from "@/domain/schemas";
+import { errorLogger } from "@/shared/error-logger";
 
 export async function getOutfitsForCharacter(
   characterId: string,
@@ -45,7 +46,8 @@ function parseOutfitRow(row: Record<string, unknown>): CharacterOutfit {
         ? (() => {
             try {
               return JSON.parse(parsed.accessories_json);
-            } catch {
+            } catch (e) {
+              errorLogger.warn("[OutfitManager] accessories JSON 解析失败", e);
               return [];
             }
           })()

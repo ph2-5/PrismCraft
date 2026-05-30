@@ -42,5 +42,7 @@ export {
   buildBeatsPersistData,
   buildCacheRequests,
   filterRemoteCacheRequests,
+  collectBeatRemoteImageUrls,
+  syncStoriesWithVideoUrls,
 } from "./services/video-url-sync";
 export type { VideoUrlUpdate, BeatPersistData, CacheRequest } from "./services/video-url-sync";

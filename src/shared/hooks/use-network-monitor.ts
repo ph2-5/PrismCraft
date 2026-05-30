@@ -67,10 +67,12 @@ export function useNetworkMonitor(options: NetworkOptions = {}) {
       try {
         const status = await checkConfigStatus();
         return !!(status?.text?.configured || status?.image?.configured || status?.video?.configured);
-      } catch {
+      } catch (e) {
+        logger.warn("[NetworkMonitor] 配置状态检查失败", e);
         return navigator.onLine;
       }
-    } catch {
+    } catch (e) {
+      logger.warn("[NetworkMonitor] 连接检查异常", e);
       return navigator.onLine;
     }
   }, []);

@@ -2,6 +2,7 @@ import { safeQuery } from "../sqlite-core";
 import { parseRecordWithTable } from "../core";
 import { VALID_SHOT_TYPES } from "@/domain/schemas/story";
 import { safeJsonParse, safeJsonParseArray } from "@/shared/utils/safe-json";
+import { errorLogger } from "@/shared/error-logger";
 
 function safeParseJson(raw: unknown): Record<string, unknown> | null {
   if (!raw) return null;
@@ -11,7 +12,8 @@ function safeParseJson(raw: unknown): Record<string, unknown> | null {
       return parsed as Record<string, unknown>;
     }
     return null;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[StoryRelations] JSON 解析失败", e);
     return null;
   }
 }

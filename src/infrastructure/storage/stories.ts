@@ -28,7 +28,8 @@ function parseStory(record: Record<string, unknown>): Record<string, unknown> {
       parsed.styleGuide = typeof parsed.style_guide_json === "string"
         ? JSON.parse(parsed.style_guide_json)
         : parsed.style_guide_json;
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[StoryStorage] styleGuide JSON 解析失败", e);
       parsed.styleGuide = undefined;
     }
     delete parsed.style_guide_json;

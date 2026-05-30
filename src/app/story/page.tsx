@@ -187,13 +187,11 @@ function StoryPageContent() {
       setShowSwitchConfirmDialog(true);
       return;
     }
-    performSwitchStory(s);
+    void performSwitchStory(s);
   };
 
-  const performSwitchStory = (s: (typeof story.stories)[number]) => {
-    story.setCurrentStory(s, true);
-    story.setBeats(s.beats || [], true);
-    story.markClean("story");
+  const performSwitchStory = async (s: (typeof story.stories)[number]) => {
+    await story.switchToStory(s.id);
     setShowProjectDropdown(false);
     setShowSwitchConfirmDialog(false);
     setPendingSwitchStory(null);
@@ -203,7 +201,7 @@ function StoryPageContent() {
     if (!pendingSwitchStory) return;
     try {
       await story.handleSave();
-      performSwitchStory(pendingSwitchStory);
+      await performSwitchStory(pendingSwitchStory);
       success("已保存并切换", "当前修改已保存");
     } catch (error) {
       errorLogger.error("[Story] 保存并切换失败", error instanceof Error ? error : undefined);
@@ -567,7 +565,7 @@ function StoryPageContent() {
               <Button
                 variant="outline"
                 className="w-full justify-start text-left"
-                onClick={() => pendingSwitchStory && performSwitchStory(pendingSwitchStory)}
+                onClick={() => pendingSwitchStory && void performSwitchStory(pendingSwitchStory)}
               >
                 直接切换（不保存）
               </Button>

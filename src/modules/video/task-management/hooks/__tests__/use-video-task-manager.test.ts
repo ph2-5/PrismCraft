@@ -37,6 +37,8 @@ const {
     bulkPutVideoTasks: vi.fn<(tasks: Record<string, unknown>[]) => Promise<void>>().mockResolvedValue(undefined),
     batchDeleteVideoTasks: vi.fn<(ids: string[]) => Promise<void>>().mockResolvedValue(undefined),
     batchUpdateVideoTasks: vi.fn<(updates: Array<{ taskId: string; updates: Partial<VideoTask> }>) => Promise<void>>().mockResolvedValue(undefined),
+    deleteVideoTasksByBeatId: vi.fn<(beatId: string) => Promise<void>>().mockResolvedValue(undefined),
+    deleteVideoTasksByStoryId: vi.fn<(storyId: string) => Promise<void>>().mockResolvedValue(undefined),
   };
 
   const mockVideoProvider = {
@@ -742,6 +744,42 @@ describe("useVideoTaskStore", () => {
       await useVideoTaskStore.getState().cancelTask("nonexistent");
 
       expect(mockVideoTaskStorage.updateVideoTask).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("removeTasksByBeatId", () => {
+    it("should cancel pollable tasks, delete from storage, and remove from memory", async () => {
+      const task = makeTask({ taskId: "t-beat-1", beatId: "beat-1", status: "generating" });
+      useVideoTaskStore.setState({ allTasks: [task] });
+
+      await useVideoTaskStore.getState().removeTasksByBeatId("beat-1");
+
+      expect(mockVideoTaskStorage.deleteVideoTasksByBeatId).toHaveBeenCalledWith("beat-1");
+      expect(mockRemoveCachedVideo).toHaveBeenCalledWith("t-beat-1");
+      expect(useVideoTaskStore.getState().allTasks).toHaveLength(0);
+      expect(mockCheckAndStartOrStopPolling).toHaveBeenCalled();
+    });
+
+    it("should still delete from storage when no in-memory tasks", async () => {
+      useVideoTaskStore.setState({ allTasks: [] });
+
+      await useVideoTaskStore.getState().removeTasksByBeatId("beat-empty");
+
+      expect(mockVideoTaskStorage.deleteVideoTasksByBeatId).toHaveBeenCalledWith("beat-empty");
+    });
+  });
+
+  describe("removeTasksByStoryId", () => {
+    it("should cancel pollable tasks, delete from storage, and remove from memory", async () => {
+      const task = makeTask({ taskId: "t-story-1", storyId: "story-1", status: "pending" });
+      useVideoTaskStore.setState({ allTasks: [task] });
+
+      await useVideoTaskStore.getState().removeTasksByStoryId("story-1");
+
+      expect(mockVideoTaskStorage.deleteVideoTasksByStoryId).toHaveBeenCalledWith("story-1");
+      expect(mockRemoveCachedVideo).toHaveBeenCalledWith("t-story-1");
+      expect(useVideoTaskStore.getState().allTasks).toHaveLength(0);
+      expect(mockCheckAndStartOrStopPolling).toHaveBeenCalled();
     });
   });
 

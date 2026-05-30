@@ -39,6 +39,7 @@ import {
 import { ErrorDisplay, LoadingState } from "@/shared/ui/feedback";
 import { container } from "@/infrastructure/di";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { emitToast } from "@/shared/utils/toast-bridge";
 
 interface BatchOperationsProps {
   type: "character" | "scene";
@@ -266,6 +267,7 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
       }
     } catch (error) {
       setGlobalError(extractErrorMessage(error));
+      emitToast("error", "批量生成失败");
     } finally {
       setIsGenerating(false);
       setOverallProgress(0);

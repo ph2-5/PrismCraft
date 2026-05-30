@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { getVideoUrlWithCache } from "@/modules/video/cache";
 import { errorLogger } from "@/shared/error-logger";
@@ -9,6 +9,10 @@ export function useVideoPreview() {
   const [cachedVideoUrl, setCachedVideoUrl] = useState<string | null>(null);
   const [videoLoadError, setVideoLoadError] = useState(false);
   const [videoLoading, setVideoLoading] = useState(false);
+
+  const cachedVideoUrlRef = useRef<string | null>(null);
+  // eslint-disable-next-line react-hooks/refs
+  cachedVideoUrlRef.current = cachedVideoUrl;
 
   const openPreview = useCallback(async (task: VideoTask) => {
     setPreviewTask(task);
@@ -33,15 +37,20 @@ export function useVideoPreview() {
   }, []);
 
   const closePreview = useCallback(() => {
-    if (cachedVideoUrl && cachedVideoUrl.startsWith("blob:")) {
-      try { URL.revokeObjectURL(cachedVideoUrl); } catch {}
+    const url = cachedVideoUrlRef.current;
+    if (url && url.startsWith("blob:")) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        errorLogger.warn("[VideoPreview] 释放 Blob URL 失败", e);
+      }
     }
     setPreviewDialogOpen(false);
     setPreviewTask(null);
     setCachedVideoUrl(null);
     setVideoLoadError(false);
     setVideoLoading(false);
-  }, [cachedVideoUrl]);
+  }, []);
 
   return {
     previewDialogOpen,

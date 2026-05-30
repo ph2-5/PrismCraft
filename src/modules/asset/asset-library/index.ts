@@ -40,7 +40,8 @@ async function saveImageToLocal(
       return imageData.replace(/^file:\/\/\//, "");
     }
     return null;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[AssetLibrary] 图片保存失败", e);
     return null;
   }
 }

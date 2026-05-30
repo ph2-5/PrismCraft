@@ -14,6 +14,7 @@ import {
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { errorLogger } from "@/shared/error-logger";
+import { emitToast } from "@/shared/utils/toast-bridge";
 import type { Story, StoryBeat } from "@/domain/schemas";
 import {
   saveVersion,
@@ -81,6 +82,9 @@ export function VersionDialog({
       const saveResult = await saveVersion(storyToSave, beats, versionName ? `自定义: ${versionName}` : "");
       if (!saveResult.ok) {
         errorLogger.warn("[VersionDialog] 保存版本失败", saveResult.error);
+        emitToast("error", "保存版本失败");
+      } else {
+        emitToast("success", "版本已保存");
       }
       setVersionName("");
       loadVersions();
@@ -118,6 +122,9 @@ export function VersionDialog({
       const deleteResult = await deleteVersion(storyId, confirmVersionId);
       if (!deleteResult.ok) {
         errorLogger.warn("[VersionDialog] 删除版本失败", deleteResult.error);
+        emitToast("error", "删除版本失败");
+      } else {
+        emitToast("success", "版本已删除");
       }
       loadVersions();
     }

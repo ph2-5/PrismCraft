@@ -330,7 +330,7 @@ describe("useFramePairGenerator", () => {
       expect(returned).toBeUndefined();
       expect(mockCheckModelConfig).toHaveBeenCalledWith(
         mockModel,
-        "无法生成首尾帧",
+        "无法生成视频",
         "请先在顶部工具栏选择图像生成模型",
       );
       expect(mockGenerateBeatFramePair).not.toHaveBeenCalled();
@@ -349,7 +349,7 @@ describe("useFramePairGenerator", () => {
       });
 
       expect(returned).toBeUndefined();
-      expect(props.showError).toHaveBeenCalledWith("无法生成首尾帧", "请先生成预览图");
+      expect(props.showError).toHaveBeenCalledWith("无法生成视频");
       expect(mockGenerateBeatFramePair).not.toHaveBeenCalled();
     });
 
@@ -364,7 +364,7 @@ describe("useFramePairGenerator", () => {
       });
 
       expect(returned).toBeUndefined();
-      expect(props.showError).toHaveBeenCalledWith("无法生成首尾帧", "请先生成预览图");
+      expect(props.showError).toHaveBeenCalledWith("无法生成视频");
     });
 
     it("beat 的 keyframe 无 imageUrl 时应调用 showError 并返回", async () => {
@@ -378,7 +378,7 @@ describe("useFramePairGenerator", () => {
       });
 
       expect(returned).toBeUndefined();
-      expect(props.showError).toHaveBeenCalledWith("无法生成首尾帧", "请先生成预览图");
+      expect(props.showError).toHaveBeenCalledWith("无法生成视频");
     });
   });
 

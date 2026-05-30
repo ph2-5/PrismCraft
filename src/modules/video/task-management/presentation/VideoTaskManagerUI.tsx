@@ -37,6 +37,7 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
+import { EmptyState } from "@/shared/ui/empty-state";
 
 interface VideoTaskManagerProps {
   tasks: VideoTask[];
@@ -185,6 +186,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [detailTask, setDetailTask] = useState<VideoTask | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
   const now = useCurrentTime();
 
   const toggleTaskSelection = (taskId: string) => {
@@ -244,6 +246,8 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
   };
 
   const sortedTasks = [...tasks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const visibleTasks = sortedTasks.slice(0, visibleCount);
+  const hasMore = sortedTasks.length > visibleCount;
 
   return (
     <div className="space-y-4">
@@ -260,7 +264,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
       )}
 
       <div className="space-y-3">
-        {sortedTasks.map((task) => (
+        {visibleTasks.map((task) => (
           <Card key={task.taskId} className="overflow-hidden">
             <CardHeader
               className="pb-3 cursor-pointer"
@@ -378,13 +382,23 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
           </Card>
         ))}
 
+        {hasMore && (
+          <div className="flex justify-center py-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setVisibleCount((c) => c + 20)}
+            >
+              加载更多（剩余 {sortedTasks.length - visibleCount} 个）
+            </Button>
+          </div>
+        )}
+
         {sortedTasks.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Clock className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">暂无视频任务</p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Clock}
+            title="暂无视频任务"
+          />
         )}
       </div>
 

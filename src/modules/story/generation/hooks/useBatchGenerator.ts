@@ -4,6 +4,7 @@ import { useCallback, useRef, useEffect } from "react";
 import type { StoryBeat, ChainMode } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants";
 
 export type BatchStrategy = "all_serial" | "skip_completed" | "parallel_batch";
 export type GenerationLevel = "keyframe" | "framepair" | "video";
@@ -108,16 +109,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       }
 
       if (targetBeats.length === 0) {
-        showError("无可生成分镜", strategy === "skip_completed" ? "所有分镜已完成" : "请先添加分镜");
+        showError(t("batch.noBeatsToGenerate"), strategy === "skip_completed" ? t("batch.allCompleted") : t("batch.addBeatsFirst"));
         return { success: 0, failed: 0, skipped: 0 };
       }
 
       const chainMode = options.chainMode || "auto";
       const confirmMessage = chainMode === "isolated"
-        ? `即将为 ${targetBeats.length} 个分镜批量生成预览图（隔离模式，各自独立生成）。\n\n是否继续？`
-        : `即将为 ${targetBeats.length} 个分镜批量生成预览图（串行生成，非首分镜将引用上一分镜的预览图作为参考）。\n\n是否继续？`;
+        ? t("batch.confirmKeyframeIsolated", { count: targetBeats.length })
+        : t("batch.confirmKeyframeChain", { count: targetBeats.length });
 
-      const confirmed = await confirm(confirmMessage, "批量生成预览图");
+      const confirmed = await confirm(confirmMessage, t("batch.confirmKeyframeTitle"));
       if (!confirmed) return { success: 0, failed: 0, skipped: 0 };
 
       let successCount = 0;
@@ -159,16 +160,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       }
 
       if (failCount === 0 && skippedCount === 0) {
-        success("批量生成完成", `成功为 ${successCount} 个分镜生成预览图`);
+        success(t("batch.generateComplete"), t("batch.keyframeSuccessDesc", { count: successCount }));
       } else {
         const parts = [];
-        if (successCount > 0) parts.push(`成功 ${successCount} 个`);
-        if (failCount > 0) parts.push(`失败 ${failCount} 个`);
-        if (skippedCount > 0) parts.push(`跳过 ${skippedCount} 个（已上传）`);
+        if (successCount > 0) parts.push(t("batch.successCount", { count: successCount }));
+        if (failCount > 0) parts.push(t("batch.failedCount", { count: failCount }));
+        if (skippedCount > 0) parts.push(t("batch.skippedCount", { count: skippedCount }));
         if (failCount > 0 && showWarning) {
-          showWarning("批量生成部分完成", parts.join("，"));
+          showWarning(t("batch.partialGenerateComplete"), parts.join("，"));
         } else {
-          success("批量生成完成", parts.join("，"));
+          success(t("batch.generateComplete"), parts.join("，"));
         }
       }
       
@@ -192,16 +193,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       }
 
       if (targetBeats.length === 0) {
-        showError("无可生成分镜", strategy === "skip_completed" ? "所有分镜已完成" : "请先生成预览图");
+        showError(t("batch.noBeatsToGenerate"), strategy === "skip_completed" ? t("batch.allCompleted") : t("batch.generateKeyframesFirst"));
         return { success: 0, failed: 0, skipped: 0 };
       }
 
       const chainMode = options.chainMode || "auto";
       const confirmMessage = chainMode === "isolated"
-        ? `即将为 ${targetBeats.length} 个分镜批量生成首尾帧（隔离模式，各自独立生成）。\n\n是否继续？`
-        : `即将为 ${targetBeats.length} 个分镜批量生成首尾帧（串行生成，非首分镜将引用上一分镜的尾帧作为参考）。\n\n是否继续？`;
+        ? t("batch.confirmFramePairIsolated", { count: targetBeats.length })
+        : t("batch.confirmFramePairChain", { count: targetBeats.length });
 
-      const confirmed = await confirm(confirmMessage, "批量生成首尾帧");
+      const confirmed = await confirm(confirmMessage, t("batch.confirmFramePairTitle"));
       if (!confirmed) return { success: 0, failed: 0, skipped: 0 };
 
       let successCount = 0;
@@ -243,16 +244,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       }
 
       if (failCount === 0 && skippedCount === 0) {
-        success("批量生成完成", `成功为 ${successCount} 个分镜生成首尾帧`);
+        success(t("batch.generateComplete"), t("batch.framePairSuccessDesc", { count: successCount }));
       } else {
         const parts = [];
-        if (successCount > 0) parts.push(`成功 ${successCount} 个`);
-        if (failCount > 0) parts.push(`失败 ${failCount} 个`);
-        if (skippedCount > 0) parts.push(`跳过 ${skippedCount} 个（已上传）`);
+        if (successCount > 0) parts.push(t("batch.successCount", { count: successCount }));
+        if (failCount > 0) parts.push(t("batch.failedCount", { count: failCount }));
+        if (skippedCount > 0) parts.push(t("batch.skippedCount", { count: skippedCount }));
         if (failCount > 0 && showWarning) {
-          showWarning("批量生成部分完成", parts.join("，"));
+          showWarning(t("batch.partialGenerateComplete"), parts.join("，"));
         } else {
-          success("批量生成完成", parts.join("，"));
+          success(t("batch.generateComplete"), parts.join("，"));
         }
       }
       
@@ -276,16 +277,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       }
 
       if (targetBeats.length === 0) {
-        showError("无可生成分镜", strategy === "skip_completed" ? "所有分镜已完成" : "请先生成首尾帧");
+        showError(t("batch.noBeatsToGenerate"), strategy === "skip_completed" ? t("batch.allCompleted") : t("batch.generateFramePairsFirst"));
         return { success: 0, failed: 0, skipped: 0 };
       }
 
       const chainMode = options.chainMode || "auto";
       const confirmMessage = chainMode === "isolated"
-        ? `即将为 ${targetBeats.length} 个分镜批量提交视频生成任务（隔离模式，各自独立生成）。\n\n是否继续？`
-        : `即将为 ${targetBeats.length} 个分镜批量提交视频生成任务（串行提交，非首分镜将引用上一分镜的视频作为参考）。\n\n这可能需要较长时间，是否继续？`;
+        ? t("batch.confirmVideoIsolated", { count: targetBeats.length })
+        : t("batch.confirmVideoChain", { count: targetBeats.length });
 
-      const confirmed = await confirm(confirmMessage, "批量生成视频");
+      const confirmed = await confirm(confirmMessage, t("batch.confirmVideoTitle"));
       if (!confirmed) return { success: 0, failed: 0, skipped: 0 };
 
       let successCount = 0;
@@ -320,16 +321,16 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       }
 
       if (failCount === 0 && skippedCount === 0) {
-        success("批量提交完成", `成功为 ${successCount} 个分镜提交视频生成任务`);
+        success(t("batch.submitComplete"), t("batch.videoSuccessDesc", { count: successCount }));
       } else {
         const parts = [];
-        if (successCount > 0) parts.push(`成功 ${successCount} 个`);
-        if (failCount > 0) parts.push(`失败 ${failCount} 个`);
-        if (skippedCount > 0) parts.push(`跳过 ${skippedCount} 个（已上传）`);
+        if (successCount > 0) parts.push(t("batch.successCount", { count: successCount }));
+        if (failCount > 0) parts.push(t("batch.failedCount", { count: failCount }));
+        if (skippedCount > 0) parts.push(t("batch.skippedCount", { count: skippedCount }));
         if (failCount > 0 && showWarning) {
-          showWarning("批量提交部分完成", parts.join("，"));
+          showWarning(t("batch.partialSubmitComplete"), parts.join("，"));
         } else {
-          success("批量提交完成", parts.join("，"));
+          success(t("batch.submitComplete"), parts.join("，"));
         }
       }
       

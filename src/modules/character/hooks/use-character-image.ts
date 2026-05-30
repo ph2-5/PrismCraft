@@ -10,6 +10,7 @@ import type { CustomApiConfig } from "@/domain/types";
 import { generateCharacterImagePrompt, generateCharacterDetailedPromptInstruction } from "@/modules/prompt";
 import { characterService } from "../services";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 interface UseCharacterImageProps {
   currentCharacter: Character;
@@ -60,7 +61,7 @@ export function useCharacterImage({
   const generateImage = async () => {
     const basicPrompt = generatePrompt(currentCharacter);
     if (!basicPrompt || basicPrompt === "请输入角色信息生成提示词...") {
-      showError("请填写角色信息", "至少需要填写一些角色信息才能生成图像");
+      showError(t("image.fillCharacterInfo"), t("image.fillCharacterInfoHint"));
       return;
     }
 
@@ -183,7 +184,7 @@ export function useCharacterImage({
       if (isAnalyzingRef.current) {
         isAnalyzingRef.current = false;
         setIsAnalyzing(false);
-        showError("分析超时", "分析过程超时，已自动重置状态");
+        showError(t("image.analyzeTimeout"));
       }
     }, 60000);
 

@@ -29,6 +29,7 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
+import { t } from "@/shared/constants";
 import { generateProfessionalVideoPrompt } from "@/modules/prompt";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
@@ -121,7 +122,7 @@ function StoryPageContent() {
       !story.selectedVideoModel?.providerId ||
       !story.selectedVideoModel?.modelId
     ) {
-      story.showError("无法生成视频", "请先在顶部工具栏选择视频生成模型");
+      story.showError(t("story.cannotGenerateVideo"), t("story.selectVideoModel"));
       return;
     }
     setIsGenerating(true);

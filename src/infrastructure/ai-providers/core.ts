@@ -4,7 +4,7 @@ import { enqueueRequest } from "@/infrastructure/ai-providers/offline-queue";
 import { isElectron } from "@/shared/utils/platform";
 import { apiCache } from "./api-cache";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
-import { ELECTRON_APP_HEADERS } from "@/config/constants";
+import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import { isNetworkError as isNetworkErrorClassified } from "@/shared/utils/error-classifier";
 
 export interface QueuedResponse {
@@ -55,7 +55,10 @@ export async function apiCall<T>(
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const response = await fetch(`/api/${endpoint}`, {
+    const baseUrl = isElectron()
+      ? `http://localhost:${API_SERVER_PORT}`
+      : "";
+    const response = await fetch(`${baseUrl}/api/${endpoint}`, {
       method: options.method || "GET",
       headers: {
         "Content-Type": "application/json",

@@ -9,16 +9,6 @@ if (Test-Path $nextCacheDir) {
     Write-Host "Cleared .next cache for clean build"
 }
 
-$apiDir = Join-Path $projectDir "src\app\api"
-$apiBackupDir = Join-Path $projectDir "src\app\_api_build_backup"
-$apiBackedUp = $false
-
-if (Test-Path $apiDir) {
-    Move-Item -Path $apiDir -Destination $apiBackupDir -Force
-    $apiBackedUp = $true
-    Write-Host "Temporarily moved API routes for static export compatibility"
-}
-
 try {
     $buildResult = 0
     try {
@@ -60,11 +50,4 @@ try {
 
     Write-Host "Electron build completed successfully!"
 } finally {
-    if ($apiBackedUp -and (Test-Path $apiBackupDir)) {
-        if (Test-Path $apiDir) {
-            Remove-Item -Path $apiDir -Recurse -Force
-        }
-        Move-Item -Path $apiBackupDir -Destination $apiDir -Force
-        Write-Host "Restored API routes"
-    }
 }

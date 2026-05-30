@@ -7,6 +7,7 @@ import { container } from "@/infrastructure/di";
 import { StoryGenerationService } from "@/domain/services";
 import { useAIGeneratorBase } from "./useAIGeneratorBase";
 import { determineVideoGenerationMode, type VideoGenerationMode } from "../services/storyboard-generation-service";
+import { t } from "@/shared/constants";
 
 interface UseVideoGeneratorProps {
   beatsRef: React.MutableRefObject<StoryBeat[]>;
@@ -67,7 +68,7 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
     async (beatId: string, prevBeatOverride?: StoryBeat | null) => {
       const beat = findBeat(beatId);
       if (!beat?.framePair?.firstFrame?.imageUrl) {
-        showError("无法生成视频", "请先生成首尾帧");
+        showError(t("story.cannotGenerateVideo"));
         return;
       }
       const framePair = beat.framePair!;

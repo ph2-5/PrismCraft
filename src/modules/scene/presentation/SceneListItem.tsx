@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 
 interface SceneListItemProps {
@@ -14,7 +15,7 @@ interface SceneListItemProps {
   onDelete: (e: React.MouseEvent) => void;
 }
 
-export function SceneListItem({
+export const SceneListItem = React.memo(function SceneListItem({
   scene,
   onClick,
   onDelete,
@@ -74,4 +75,4 @@ export function SceneListItem({
       </button>
     </div>
   );
-}
+});

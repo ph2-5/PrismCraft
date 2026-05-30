@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   Clock,
   Edit2,
@@ -38,7 +39,7 @@ interface BeatOverviewCardProps {
   isSelected?: boolean;
 }
 
-export function BeatOverviewCard({
+export const BeatOverviewCard = React.memo(function BeatOverviewCard({
   beat,
   index,
   characters,
@@ -277,4 +278,4 @@ export function BeatOverviewCard({
       {ConfirmDialogComponent}
     </>
   );
-}
+});

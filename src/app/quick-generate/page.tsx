@@ -54,6 +54,7 @@ import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ModelSelector, useModelSelection } from "@/modules/prompt";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
+import { t } from "@/shared/constants";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { TemplateSelectDialog } from "./TemplateSelectDialog";
 import { TaskResultPanel } from "./TaskResultPanel";
@@ -192,7 +193,7 @@ export default function QuickGeneratePage() {
       return;
     }
     if (!selectedVideoModel?.providerId || !selectedVideoModel?.modelId) {
-      showError("请先选择视频生成模型", "请在下方选择视频模型后再生成");
+      showError(t("video.selectModel"), t("video.selectModelHint"));
       return;
     }
 
@@ -225,7 +226,7 @@ export default function QuickGeneratePage() {
       if (referenceVideoFile) {
         const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
         if (referenceVideoFile.size > MAX_VIDEO_SIZE) {
-          showError("文件过大", "参考视频文件不能超过 50MB");
+          showError(t("error.fileTooLarge"), t("video.refVideoSizeLimit"));
           return;
         }
         referenceVideoBase64 = await new Promise<string>((resolve, reject) => {

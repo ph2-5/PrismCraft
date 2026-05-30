@@ -23,6 +23,8 @@ import { Textarea } from "@/shared/ui/textarea";
 import { Badge } from "@/shared/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { EmptyState } from "@/shared/ui/empty-state";
+import { LoadingState } from "@/shared/ui/loading-state";
 import type { Character } from "@/domain/schemas";
 import {
   Plus,
@@ -250,6 +252,38 @@ function CharactersPageContent() {
   const handleSaveRef = useRef(handleSave);
   useEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
 
+  const handleSelectCharacter = useCallback(
+    async (char: Character) => {
+      if (
+        currentCharacter.id &&
+        char.id !== currentCharacter.id &&
+        isDirty("characters")
+      ) {
+        if (
+          !(await confirm(
+            "当前角色有未保存的修改，切换将丢失这些修改。确定要继续吗？",
+            "未保存的修改",
+          ))
+        )
+          return;
+      }
+      setCurrentCharacter(char);
+      setGeneratedImage(
+        resolveImageUrl(char.avatarPath || char.generatedImage || char.refImagePath) || null,
+      );
+    },
+    [currentCharacter.id, isDirty, setCurrentCharacter, setGeneratedImage],
+  );
+
+  const handleDeleteCharacter = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const charId = (e.currentTarget.closest("[data-char-id]") as HTMLElement)?.dataset.charId;
+      if (charId) handleDelete(charId);
+    },
+    [handleDelete],
+  );
+
   useGlobalKeyboardActions({
     onSave: () => handleSaveRef.current(),
   });
@@ -335,52 +369,23 @@ function CharactersPageContent() {
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {charactersLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
+              <LoadingState message="加载角色列表..." />
             ) : characters.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p className="font-medium">暂无角色</p>
-                <p className="text-xs mt-1">点击「创建新角色」开始设计你的动画角色</p>
-              </div>
+              <EmptyState
+                icon={Users}
+                title="暂无角色"
+                description="点击「创建新角色」开始设计你的动画角色"
+              />
             ) : (
-              characters.map((char) => {
-                const getCharacterImage = (
-                  c: Character,
-                ): string | undefined => {
-                  return resolveImageUrl(
-                    c.avatarPath || c.generatedImage || c.refImagePath,
-                  );
-                };
-                return (
+              characters.map((char) => (
+                <div key={char.id} data-char-id={char.id}>
                   <CharacterListItem
-                    key={char.id}
                     character={char}
-                    onClick={async () => {
-                      if (
-                        currentCharacter.id &&
-                        char.id !== currentCharacter.id &&
-                        isDirty("characters")
-                      ) {
-                        if (
-                          !(await confirm(
-                            "当前角色有未保存的修改，切换将丢失这些修改。确定要继续吗？",
-                            "未保存的修改",
-                          ))
-                        )
-                          return;
-                      }
-                      setCurrentCharacter(char);
-                      setGeneratedImage(getCharacterImage(char) || null);
-                    }}
-                    onDelete={(e) => {
-                      e.stopPropagation();
-                      handleDelete(char.id);
-                    }}
+                    onClick={() => handleSelectCharacter(char)}
+                    onDelete={handleDeleteCharacter}
                   />
-                );
-              })
+                </div>
+              ))
             )}
           </div>
         </div>

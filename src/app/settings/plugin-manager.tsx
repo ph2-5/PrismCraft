@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import {
   Card,
   CardContent,
@@ -74,7 +75,7 @@ async function fetchPlugins(): Promise<PluginListData> {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  if (!data.success) throw new Error(data.error || "获取插件列表失败");
+  if (!data.success) throw new Error(data.error || t("plugin.loadListFailed"));
   return data.data;
 }
 
@@ -85,7 +86,7 @@ async function addPlugin(config: Record<string, unknown>): Promise<void> {
     body: JSON.stringify({ config }),
   });
   const data = await res.json();
-  if (!data.success) throw new Error(data.error || "添加插件失败");
+  if (!data.success) throw new Error(data.error || t("plugin.addPluginFailed"));
 }
 
 async function deletePlugin(pluginId: string): Promise<void> {
@@ -95,7 +96,7 @@ async function deletePlugin(pluginId: string): Promise<void> {
     body: JSON.stringify({ pluginId }),
   });
   const data = await res.json();
-  if (!data.success) throw new Error(data.error || "删除插件失败");
+  if (!data.success) throw new Error(data.error || t("plugin.deletePluginFailed"));
 }
 
 async function reloadPlugins(): Promise<{ loaded: number; errors: string[] }> {
@@ -104,7 +105,7 @@ async function reloadPlugins(): Promise<{ loaded: number; errors: string[] }> {
     headers: { ...ELECTRON_APP_HEADERS, "Content-Type": "application/json" },
   });
   const data = await res.json();
-  if (!data.success) throw new Error(data.error || "重载插件失败");
+  if (!data.success) throw new Error(data.error || t("plugin.reloadPluginFailed"));
   return data.data;
 }
 
@@ -115,7 +116,7 @@ async function validatePluginConfig(config: Record<string, unknown>): Promise<{ 
     body: JSON.stringify({ config }),
   });
   const data = await res.json();
-  if (!data.success) throw new Error(data.error || "验证失败");
+  if (!data.success) throw new Error(data.error || t("plugin.validateFailed"));
   return data.data;
 }
 
@@ -125,7 +126,7 @@ async function fetchPluginSchema(): Promise<Record<string, unknown>> {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  if (!data.success) throw new Error(data.error || "获取规范失败");
+  if (!data.success) throw new Error(data.error || t("plugin.loadSchemaFailed"));
   return data.data;
 }
 
@@ -135,7 +136,7 @@ async function fetchPluginSpecification(): Promise<string> {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  if (!data.success) throw new Error(data.error || "获取规范文档失败");
+  if (!data.success) throw new Error(data.error || t("plugin.loadSpecDocFailed"));
   return data.data.content;
 }
 
@@ -200,7 +201,7 @@ export default function PluginManager() {
     } catch (e) {
       setValidationResult({
         valid: false,
-        errors: [`JSON 解析失败: ${e instanceof Error ? e.message : String(e)}`],
+        errors: [t("plugin.jsonParseFailed", { error: e instanceof Error ? e.message : String(e) })],
       });
     } finally {
       setIsValidating(false);
@@ -215,30 +216,30 @@ export default function PluginManager() {
       const result = await validatePluginConfig(parsed);
       if (!result.valid) {
         setValidationResult(result);
-        showError("验证失败", result.errors.join("; "));
+        showError(t("plugin.validateFailed"), result.errors.join("; "));
         return;
       }
       await addPlugin(parsed);
-      showSuccess("添加成功", `插件 "${parsed.displayName || parsed.id}" 已添加`);
+      showSuccess(t("success.added"), t("plugin.addedWithName", { name: parsed.displayName || parsed.id }));
       setJsonInput("");
       setValidationResult(null);
       setShowAddForm(false);
       await loadPlugins();
     } catch (e) {
-      showError("添加失败", e instanceof Error ? e.message : "添加插件时出错");
+      showError(t("plugin.addFailed"), e instanceof Error ? e.message : t("plugin.addError"));
     } finally {
       setIsAdding(false);
     }
   };
 
   const handleDelete = async (pluginId: string, displayName: string) => {
-    if (!(await confirm(`确定要删除插件「${displayName}」吗？此操作不可撤销。`, "删除插件"))) return;
+    if (!(await confirm(t("plugin.confirmDelete", { name: displayName }), t("plugin.confirmDeleteTitle")))) return;
     try {
       await deletePlugin(pluginId);
-      showSuccess("删除成功", `插件「${displayName}」已删除`);
+      showSuccess(t("success.deleted"), t("plugin.deletedWithName", { name: displayName }));
       await loadPlugins();
     } catch (e) {
-      showError("删除失败", e instanceof Error ? e.message : "删除插件时出错");
+      showError(t("plugin.deleteFailed"), e instanceof Error ? e.message : t("plugin.deleteError"));
     }
   };
 
@@ -246,10 +247,10 @@ export default function PluginManager() {
     setIsReloading(true);
     try {
       const result = await reloadPlugins();
-      showSuccess("重载完成", `已加载 ${result.loaded} 个用户插件`);
+      showSuccess(t("success.reloaded"), t("plugin.loaded", { count: result.loaded }));
       await loadPlugins();
     } catch (e) {
-      showError("重载失败", e instanceof Error ? e.message : "重载插件时出错");
+      showError(t("plugin.reloadFailed"), e instanceof Error ? e.message : t("plugin.reloadError"));
     } finally {
       setIsReloading(false);
     }
@@ -277,7 +278,7 @@ export default function PluginManager() {
         const data = await fetchPluginSchema();
         setSchemaData(data);
       } catch {
-        showError("获取失败", "无法加载插件规范");
+        showError(t("error.loadFailed"), t("plugin.loadSpecFailed"));
         return;
       }
     }
@@ -294,7 +295,7 @@ export default function PluginManager() {
         const content = await fetchPluginSpecification();
         setSpecContent(content);
       } catch {
-        showError("获取失败", "无法加载插件规范文档");
+        showError(t("error.loadFailed"), t("plugin.loadSpecDocFailed"));
         return;
       }
     }

@@ -103,23 +103,22 @@ describe("E2E: 统一 Electron 插件架构验证", () => {
       "src/app/api/generate-text/route.ts",
       "src/app/api/generate-keyframe/route.ts",
       "src/app/api/generate-frame-pair/route.ts",
+      "src/app/api/config/route.ts",
+      "src/app/api/validate/route.ts",
+      "src/app/api/secure-config/route.ts",
+      "src/app/api/test-connection/route.ts",
+      "src/app/api/upload/route.ts",
+      "src/app/api/sync/push/route.ts",
+      "src/app/api/sync/pull/route.ts",
+      "src/app/api/sync/status/route.ts",
+      "src/app/api/prompt/build/route.ts",
+      "src/app/api/image/normalize/route.ts",
+      "src/app/api/story/replace-placeholders/route.ts",
     ];
 
     it.each(deletedRoutes)("%s 不应存在", (relativePath) => {
       const fullPath = path.resolve(PROJECT_ROOT, relativePath);
       expect(fs.existsSync(fullPath)).toBe(false);
-    });
-  });
-
-  describe("5. 保留的 API 路由仍然存在", () => {
-    it("src/app/api/config/route.ts 应存在", () => {
-      const fullPath = path.resolve(PROJECT_ROOT, "src/app/api/config/route.ts");
-      expect(fs.existsSync(fullPath)).toBe(true);
-    });
-
-    it("src/app/api/validate/route.ts 应存在", () => {
-      const fullPath = path.resolve(PROJECT_ROOT, "src/app/api/validate/route.ts");
-      expect(fs.existsSync(fullPath)).toBe(true);
     });
   });
 });

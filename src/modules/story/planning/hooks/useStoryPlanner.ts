@@ -8,6 +8,7 @@ import { generateStoryPlanWithValidation, formatValidationResult } from "@/modul
 import { getErrorMessage } from "@/shared/error-handler";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants";
 
 interface UseStoryPlannerProps {
   currentStory: Story;
@@ -38,7 +39,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
 
   const planStoryWithAI = useCallback(async () => {
     if (!currentStory.title && !currentStory.description) {
-      showError("需要分镜信息", "请至少填写项目标题或简介");
+      showError(t("story.addBeatFirst"));
       return;
     }
     try {
@@ -47,7 +48,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
         p.models?.some((m) => m.capabilities?.includes("text")),
       );
       if (!hasTextApi) {
-        showError("无法AI规划", "请先在设置中配置文本生成API");
+        showError(t("error.authFailed"));
         return;
       }
     } catch (e) {
@@ -124,7 +125,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
           );
         }
       } else {
-        showError("AI规划失败", "未能生成有效的分镜数据，请重试");
+        showError(t("error.generateFailed"));
       }
     } catch (err) {
       showError("AI规划失败", getErrorMessage(err));

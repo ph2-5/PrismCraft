@@ -9,6 +9,7 @@ import { container } from "@/infrastructure/di";
 import { handleError } from "@/shared/error-handler";
 import { errorLogger } from "@/shared/error-logger";
 import { useAIGeneratorBase } from "./useAIGeneratorBase";
+import { t } from "@/shared/constants";
 
 interface UseFramePairGeneratorProps {
   beatsRef: React.MutableRefObject<StoryBeat[]>;
@@ -44,7 +45,7 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
       if (
         !checkModelConfig(
           selectedImageModel,
-          "无法生成首尾帧",
+          t("story.cannotGenerateVideo"),
           "请先在顶部工具栏选择图像生成模型",
         )
       ) {
@@ -52,7 +53,7 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
       }
       const beat = findBeat(beatId);
       if (!beat?.keyframe?.imageUrl) {
-        showError("无法生成首尾帧", "请先生成预览图");
+        showError(t("story.cannotGenerateVideo"));
         return;
       }
       return withGenerationState(beatId, async (signal) => {

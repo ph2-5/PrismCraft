@@ -9,6 +9,7 @@ import { container } from "@/infrastructure/di";
 import { getErrorMessage } from "@/shared/error-handler";
 import type { CustomApiConfig } from "@/domain/types";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import { sceneService } from "../services";
 
 interface UseSceneImageProps {
@@ -47,7 +48,7 @@ export function useSceneImage({
 
   const optimizePrompt = async () => {
     const userDescription = currentScene.description || "";
-    if (!userDescription) { showError("请填写场景描述", "需要先填写场景描述才能优化提示词"); return; }
+    if (!userDescription) { showError(t("image.fillDescription"), t("image.fillDescriptionHint")); return; }
     setIsOptimizingPrompt(true);
     try {
       const prompt = generateScenePromptOptimization(userDescription);
@@ -62,7 +63,7 @@ export function useSceneImage({
 
   const generateImage = async () => {
     const basicPrompt = currentScene.imageGenerationPrompt || generateSimpleSceneImagePrompt(currentScene);
-    if (!basicPrompt || basicPrompt === "请输入场景信息生成提示词...") { showError("请填写场景信息", "至少需要填写一些场景信息才能生成图像"); return; }
+    if (!basicPrompt || basicPrompt === "请输入场景信息生成提示词...") { showError(t("image.fillInfo"), t("image.fillInfoHint")); return; }
     setIsGenerating(true);
     try {
       const imageOptions: CustomApiConfig & { size?: string } = { size: imageSize };
@@ -122,7 +123,7 @@ export function useSceneImage({
     if (isAnalyzingRef.current) return;
     const sceneIdAtStart = currentSceneRef.current.id;
     analyzeTimeoutRef.current = setTimeout(() => {
-      setIsAnalyzing((prev) => { if (prev) { isAnalyzingRef.current = false; showError("分析超时", "分析过程超时，已自动重置状态"); return false; } return prev; });
+      setIsAnalyzing((prev) => { if (prev) { isAnalyzingRef.current = false; showError(t("image.analyzeTimeout")); return false; } return prev; });
     }, 60000);
     isAnalyzingRef.current = true;
     setIsAnalyzing(true);

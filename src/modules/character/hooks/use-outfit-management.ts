@@ -6,6 +6,7 @@ import { synthesizeOutfit, batchSynthesizeOutfits } from "@/shared/outfit";
 import { getErrorMessage } from "@/shared/error-handler";
 import { errorLogger } from "@/shared/error-logger";
 import { AppError } from "@/domain/types/result";
+import { t } from "@/shared/constants";
 
 interface UseOutfitManagementProps {
   currentCharacter: Character;
@@ -91,7 +92,7 @@ export function useOutfitManagement({
   };
 
   const handleGenerateOutfitImage = async (outfit: CharacterOutfit) => {
-    if (!currentCharacter.id) { showError("请先保存角色", "保存角色后才能生成服装图像"); return; }
+    if (!currentCharacter.id) { showError(t("error.saveFailed"), t("error.operationFailed")); return; }
     setIsGenerating(true);
     try {
       const characterImage = currentCharacter.generatedImage || currentCharacter.refImagePath;

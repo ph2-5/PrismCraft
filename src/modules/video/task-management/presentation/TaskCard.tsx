@@ -42,7 +42,7 @@ interface TaskCardProps {
   cacheState?: { exists: boolean; fileSizeMB?: number };
 }
 
-export function TaskCard({
+export const TaskCard = React.memo(function TaskCard({
   task,
   index,
   isSelected,
@@ -161,4 +161,4 @@ export function TaskCard({
       </CardContent>
     </Card>
   );
-}
+});

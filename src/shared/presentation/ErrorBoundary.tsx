@@ -14,6 +14,7 @@ import { logger } from "@/config/constants";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
 import { classifyErrorSeverity, type ErrorSeverity } from "@/shared/utils/error-classifier";
+import { t } from "@/shared/constants";
 
 interface Props {
   children: ReactNode;
@@ -51,25 +52,25 @@ export class ErrorBoundary extends Component<Props, State> {
     switch (severity) {
       case "loading":
         return {
-          label: "加载错误",
+          label: t("errorBoundary.loadingLabel"),
           icon: Loader,
-          hint: "资源加载失败，请尝试刷新页面",
+          hint: t("errorBoundary.loadingHint"),
           color: "text-orange-500",
           bg: "bg-orange-50 dark:bg-orange-950/30",
         };
       case "network":
         return {
-          label: "网络错误",
+          label: t("errorBoundary.networkLabel"),
           icon: WifiOff,
-          hint: "网络连接异常，请检查网络设置后重试",
+          hint: t("errorBoundary.networkHint"),
           color: "text-blue-500",
           bg: "bg-blue-50 dark:bg-blue-950/30",
         };
       default:
         return {
-          label: "应用错误",
+          label: t("errorBoundary.appLabel"),
           icon: Bug,
-          hint: "应用遇到了意外错误",
+          hint: t("errorBoundary.appHint"),
           color: "text-destructive",
           bg: "bg-muted",
         };
@@ -106,7 +107,7 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleReset = async () => {
-    if (!(await confirm("重置将清除会话数据，未保存的内容可能丢失。确定要继续吗？", "重置确认"))) {
+    if (!(await confirm(t("errorBoundary.resetConfirm"), t("errorBoundary.resetConfirmTitle")))) {
       return;
     }
     try {
@@ -199,10 +200,10 @@ export class ErrorBoundary extends Component<Props, State> {
             <CardHeader>
               <div className="flex items-center gap-2 text-destructive">
                 <AlertCircle className="w-6 h-6" />
-                <CardTitle>出错了</CardTitle>
+                <CardTitle>{t("errorBoundary.title")}</CardTitle>
               </div>
               <CardDescription>
-                应用遇到了意外错误，请尝试以下操作
+                {t("errorBoundary.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -214,14 +215,14 @@ export class ErrorBoundary extends Component<Props, State> {
                   </span>
                 </div>
                 <p className="font-medium text-destructive">
-                  {this.state.error?.message || "未知错误"}
+                  {this.state.error?.message || t("error.unknown")}
                 </p>
                 <p className="text-muted-foreground mt-1 text-xs">
                   {config.hint}
                 </p>
                 {this.state.errorCount > 1 && (
                   <p className="text-muted-foreground mt-1">
-                    该错误已发生 {this.state.errorCount} 次
+                    {t("errorBoundary.errorCount", { count: this.state.errorCount })}
                   </p>
                 )}
               </div>
@@ -237,7 +238,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     ) : (
                       <ChevronRight className="w-4 h-4" />
                     )}
-                    组件堆栈信息
+                    {t("errorBoundary.componentStack")}
                   </button>
                   {this.state.stackExpanded && (
                     <pre className="px-4 py-3 text-xs text-muted-foreground bg-muted overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
@@ -255,17 +256,17 @@ export class ErrorBoundary extends Component<Props, State> {
                     variant="outline"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    重试
+                    {t("common.retry")}
                   </Button>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center">
-                    错误多次重复出现，请尝试刷新页面或重置
+                    {t("errorBoundary.retryRepeated")}
                   </p>
                 )}
 
                 <Button onClick={this.handleReload} className="w-full">
                   <RotateCcw className="w-4 h-4 mr-2" />
-                  刷新页面
+                  {t("errorBoundary.reloadPage")}
                 </Button>
 
                 <Button
@@ -274,7 +275,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   variant="outline"
                 >
                   <Copy className="w-4 h-4 mr-2" />
-                  {this.state.copied ? "已复制" : "复制错误详情"}
+                  {this.state.copied ? t("errorBoundary.copied") : t("errorBoundary.copyErrorDetail")}
                 </Button>
 
                 <Button
@@ -282,12 +283,12 @@ export class ErrorBoundary extends Component<Props, State> {
                   className="w-full"
                   variant="destructive"
                 >
-                  重置并恢复
+                  {t("errorBoundary.resetAndRecover")}
                 </Button>
               </div>
 
               <p className="text-xs text-muted-foreground text-center">
-                如果问题持续存在，请尝试清除浏览器缓存或重新安装应用
+                {t("errorBoundary.persistentHint")}
               </p>
             </CardContent>
           </Card>
@@ -334,8 +335,8 @@ export function ErrorLogViewer({ loadLogs, clearLogs }: ErrorLogViewerProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>错误日志</CardTitle>
-          <CardDescription>暂无错误记录</CardDescription>
+          <CardTitle>{t("errorBoundary.errorLog")}</CardTitle>
+          <CardDescription>{t("errorBoundary.noErrorRecords")}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -348,12 +349,12 @@ export function ErrorLogViewer({ loadLogs, clearLogs }: ErrorLogViewerProps) {
           <div>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-destructive" />
-              错误日志
+              {t("errorBoundary.errorLog")}
             </CardTitle>
-            <CardDescription>最近 {logs.length} 条错误记录</CardDescription>
+            <CardDescription>{t("errorBoundary.recentErrorCount", { count: logs.length })}</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={handleClearLogs}>
-            清除日志
+            {t("errorBoundary.clearLogs")}
           </Button>
         </div>
       </CardHeader>

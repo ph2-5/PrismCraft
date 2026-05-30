@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 
 interface CharacterListItemProps {
@@ -15,7 +16,7 @@ interface CharacterListItemProps {
   onDelete: (e: React.MouseEvent) => void;
 }
 
-export function CharacterListItem({
+export const CharacterListItem = React.memo(function CharacterListItem({
   character,
   onClick,
   onDelete,
@@ -79,4 +80,4 @@ export function CharacterListItem({
       </button>
     </div>
   );
-}
+});

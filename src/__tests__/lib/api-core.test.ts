@@ -76,7 +76,7 @@ describe("apiCall", () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "/api/generate-video",
+      expect.stringContaining("/api/generate-video"),
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({

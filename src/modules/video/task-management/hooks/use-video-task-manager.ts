@@ -13,6 +13,7 @@ import { cleanExpiredVideoCache, registerRecoveryFn, removeCachedVideo, cacheVid
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { emitToast } from "@/shared/utils/toast-bridge";
+import { t } from "@/shared/constants";
 import { AppError } from "@/domain/types/result";
 
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
@@ -135,7 +136,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         errorLogger.error("Failed to load video tasks", error);
         const msg = extractErrorMessage(error);
         set({ isInitialized: true, initError: msg });
-        emitToast("error", "任务加载失败", msg);
+        emitToast("error", t("video.taskLoadFailed"), msg);
       } finally {
         pollingState.isInitializing = false;
       }
@@ -290,7 +291,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       }
     } catch (error) {
       errorLogger.error("Failed to remove video task", error);
-      emitToast("error", "删除任务失败", "数据库删除失败，请重试");
+      emitToast("error", t("video.taskDeleteTitle"), t("video.taskDeleteFailed"));
     }
   },
 
@@ -420,8 +421,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
           status: "pending",
           progress: 0,
           message: extraOptions?.beatTitle
-            ? `「${extraOptions.beatTitle}」视频生成已提交`
-            : "视频生成已提交",
+            ? t("video.taskSubmittedWithBeat", { beatTitle: extraOptions.beatTitle })
+            : t("video.taskSubmitted"),
           createdAt: new Date().toISOString(),
           prompt,
           fixedImageUrl: extraOptions?.fixedImageUrl,
@@ -460,7 +461,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             createSaveResult.error instanceof Error ? createSaveResult.error.message : createSaveResult.error,
           );
           const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
-          emitToast("warning", "任务仅保存在内存中", `「${taskLabel}」持久化失败，刷新页面后任务记录可能丢失`);
+          emitToast("warning", t("warning.memoryOnly"), t("warning.memoryOnlyDetail", { taskLabel }));
         }
 
         get().setAllTasks((prev) => [newTask, ...prev]);
@@ -539,10 +540,10 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         );
       } else {
         get().setAllTasks((prev) =>
-          prev.map((t) =>
-            t.taskId === taskId
-              ? { ...t, message: "查询无响应，请稍后重试" }
-              : t,
+          prev.map((task) =>
+            task.taskId === taskId
+              ? { ...task, message: t("video.queryNoResponse") }
+              : task,
           ),
         );
       }
@@ -552,16 +553,16 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       let updatedTask: VideoTask = {
         ...task,
         pollFailureCount: failCount,
-        message: `查询失败: ${mapUserFacingError(error)}`,
+        message: t("video.queryFailedReason", { reason: mapUserFacingError(error) }),
       };
       if (failCount >= MAX_POLL_FAILURES) {
         const guarded = withTransitionGuard(task, "failed", {
-          message: `连续${MAX_POLL_FAILURES}次轮询失败，任务已标记为失败`,
+          message: t("video.consecutivePollFailed", { count: MAX_POLL_FAILURES }),
           pollFailureCount: 0,
         });
         updatedTask = { ...updatedTask, ...guarded };
         const taskLabel = task.beatTitle || task.storyTitle || taskId.slice(0, 8);
-        emitToast("error", "视频生成失败", `「${taskLabel}」连续轮询失败`);
+        emitToast("error", t("video.generateFailed"), t("video.pollingFailedDetail", { taskLabel }));
         removeCachedVideo(taskId).catch(() => {});
       }
       try {
@@ -594,7 +595,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=cancelled` },
         "VideoTaskManager",
       );
-      emitToast("warning", "无法取消任务", `任务当前状态 ${task.status} 不允许取消`);
+      emitToast("warning", t("warning.cannotCancel"), t("warning.cannotCancelDetail", { status: task.status }));
       return;
     }
 
@@ -603,7 +604,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     try {
       await container.videoTaskStorage.updateVideoTask(taskId, {
         status: "cancelled",
-        message: "用户手动取消",
+        message: t("video.userCancelled"),
         pollFailureCount: 0,
       });
     } catch (e) {

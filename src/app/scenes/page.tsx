@@ -23,6 +23,8 @@ import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
+import { EmptyState } from "@/shared/ui/empty-state";
+import { LoadingState } from "@/shared/ui/loading-state";
 import type { Scene } from "@/domain/schemas";
 import {
   Plus,
@@ -69,6 +71,7 @@ function ScenesPageContent() {
   const [showAssetSelector, setShowAssetSelector] = useState(false);
   const [currentScene, setCurrentSceneRaw] = useState<Scene>(defaultScene);
   const currentSceneRef = useRef(currentScene);
+
   useEffect(() => { currentSceneRef.current = currentScene; }, [currentScene]);
   const setCurrentScene = useCallback(
     (update: Scene | ((prev: Scene) => Scene), shouldMarkDirty = false) => {
@@ -190,6 +193,32 @@ function ScenesPageContent() {
   const handleSaveRef = useRef(handleSave);
   useEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
 
+  const handleSelectScene = useCallback(
+    async (scene: Scene) => {
+      if (currentScene.id && currentScene.id !== scene.id && isDirty("scenes")) {
+        if (
+          !(await confirm(
+            "当前场景有未保存的修改，切换将丢失这些修改。确定要继续吗？",
+            "未保存的修改",
+          ))
+        )
+          return;
+      }
+      setCurrentScene(scene);
+      setGeneratedImage(resolveImageUrl(scene.scenePath || scene.generatedImage) || null);
+    },
+    [currentScene.id, isDirty, setCurrentScene, setGeneratedImage],
+  );
+
+  const handleDeleteScene = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const sceneId = (e.currentTarget.closest("[data-scene-id]") as HTMLElement)?.dataset.sceneId;
+      if (sceneId) handleDelete(sceneId);
+    },
+    [handleDelete],
+  );
+
   useGlobalKeyboardActions({
     onSave: () => handleSaveRef.current(),
   });
@@ -273,44 +302,23 @@ function ScenesPageContent() {
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {scenesLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
+              <LoadingState message="加载场景列表..." />
             ) : scenes.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p className="font-medium">暂无场景</p>
-                <p className="text-xs mt-1">点击「创建新场景」开始构建你的动画世界</p>
-              </div>
+              <EmptyState
+                icon={ImageIcon}
+                title="暂无场景"
+                description="点击「创建新场景」开始构建你的动画世界"
+              />
             ) : (
-              scenes.map((scene) => {
-                const getSceneImage = (s: Scene): string | undefined => {
-                  return resolveImageUrl(s.scenePath || s.generatedImage);
-                };
-                return (
+              scenes.map((scene) => (
+                <div key={scene.id} data-scene-id={scene.id}>
                   <SceneListItem
-                    key={scene.id}
                     scene={scene}
-                    onClick={async () => {
-                      if (currentScene.id && currentScene.id !== scene.id && isDirty("scenes")) {
-                        if (
-                          !(await confirm(
-                            "当前场景有未保存的修改，切换将丢失这些修改。确定要继续吗？",
-                            "未保存的修改",
-                          ))
-                        )
-                          return;
-                      }
-                      setCurrentScene(scene);
-                      setGeneratedImage(getSceneImage(scene) || null);
-                    }}
-                    onDelete={(e) => {
-                      e.stopPropagation();
-                      handleDelete(scene.id);
-                    }}
+                    onClick={() => handleSelectScene(scene)}
+                    onDelete={handleDeleteScene}
                   />
-                );
-              })
+                </div>
+              ))
             )}
           </div>
         </div>

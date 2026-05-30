@@ -21,10 +21,6 @@ export {
 export {
   secureConfig,
   exportData,
-  buildPrompt,
-  normalizeImageBackend,
-  validateBusiness,
-  replacePlaceholdersBackend,
 } from "./services";
 export { generateEnhancedVideo } from "./enhanced-video";
 export { generateVideoWithMultiAPI, testConnection } from "./multi-api";

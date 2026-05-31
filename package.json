@@ -52,6 +52,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "validate": "npm run typecheck && npm run typecheck:electron && npm run lint && npm run lint:arch && node scripts/check-module-api-consistency.mjs && node scripts/validate-contracts.mjs && npm run test",
     "validate:full": "npm run validate && npm run test:coverage",
     "graph": "npx tsx scripts/build-module-graph.ts",
@@ -117,6 +119,7 @@
   },
   "devDependencies": {
     "@eslint/config-array": "^0.23.5",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

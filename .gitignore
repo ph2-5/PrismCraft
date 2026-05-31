@@ -16,6 +16,7 @@
 /test-results.json
 /playwright-report/
 /test-reports/
+/.playwright-browsers/
 
 # runtime logs
 stderr.log

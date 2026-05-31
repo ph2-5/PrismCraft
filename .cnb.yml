@@ -3,8 +3,8 @@ main:
     - name: lint-and-typecheck
       docker:
         image: node:20
-        volumes:
-          - node_modules:copy-on-write
+      volumes:
+        - node_modules:copy-on-write
       stages:
         - name: override npmrc
           script: echo 'registry=https://registry.npmjs.org/' > .npmrc
@@ -38,8 +38,8 @@ main:
     - name: unit-tests
       docker:
         image: node:20
-        volumes:
-          - node_modules:copy-on-write
+      volumes:
+        - node_modules:copy-on-write
       stages:
         - name: override npmrc
           script: echo 'registry=https://registry.npmjs.org/' > .npmrc
@@ -66,8 +66,8 @@ main:
     - name: lint-and-typecheck
       docker:
         image: node:20
-        volumes:
-          - node_modules:copy-on-write
+      volumes:
+        - node_modules:copy-on-write
       stages:
         - name: override npmrc
           script: echo 'registry=https://registry.npmjs.org/' > .npmrc
@@ -101,8 +101,8 @@ main:
     - name: unit-tests
       docker:
         image: node:20
-        volumes:
-          - node_modules:copy-on-write
+      volumes:
+        - node_modules:copy-on-write
       stages:
         - name: override npmrc
           script: echo 'registry=https://registry.npmjs.org/' > .npmrc
@@ -133,8 +133,8 @@ $:
         cpus: 4
       docker:
         image: electronuser/electron-builder:wine
-        volumes:
-          - node_modules:copy-on-write
+      volumes:
+        - node_modules:copy-on-write
       stages:
         - name: override npmrc
           script: echo 'registry=https://registry.npmjs.org/' > .npmrc
@@ -157,13 +157,62 @@ $:
         - name: rebuild native modules
           script: npx electron-rebuild -f -w better-sqlite3
         - name: package windows
-          script: npx electron-builder --win --x64 --publish=never
+          script: |
+            export ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true
+            npx electron-builder --win --x64 --publish=never
+        - name: list artifacts
+          script: ls -la release/ || true
         - name: upload release
           type: git:release
           options:
             title: $CNB_BRANCH
-        - name: upload artifacts
+        - name: upload windows artifacts
           image: cnbcool/attachments:latest
           settings:
             attachments:
               - "./release/*.exe"
+              - "./release/*.blockmap"
+              - "./release/latest.yml"
+
+    - name: release-linux
+      runner:
+        tags: cnb:arch:amd64
+        cpus: 4
+      docker:
+        image: electronuser/electron-builder:wine
+      volumes:
+        - node_modules:copy-on-write
+      stages:
+        - name: override npmrc
+          script: echo 'registry=https://registry.npmjs.org/' > .npmrc
+        - name: install dependencies
+          script: |
+            for i in 1 2 3; do
+              if npm ci --ignore-scripts; then
+                echo "Dependencies installed successfully"
+                break
+              elif [ $i -lt 3 ]; then
+                echo "Attempt $i failed, retrying in 30 seconds..."
+                sleep 30
+              else
+                echo "All 3 attempts failed"
+                exit 1
+              fi
+            done
+        - name: build electron
+          script: npm run build:electron
+        - name: rebuild native modules
+          script: npx electron-rebuild -f -w better-sqlite3
+        - name: package linux
+          script: |
+            export ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true
+            npx electron-builder --linux --x64 --publish=never
+        - name: list artifacts
+          script: ls -la release/ || true
+        - name: upload linux artifacts
+          image: cnbcool/attachments:latest
+          settings:
+            attachments:
+              - "./release/*.AppImage"
+              - "./release/*.deb"
+              - "./release/*.tar.gz"

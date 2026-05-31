@@ -1,4 +1,4 @@
-name: Release
+name: Release macOS
 
 on:
   push:
@@ -16,27 +16,13 @@ env:
   npm_config_fetch_retries: 10
 
 jobs:
-  release:
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            platform: win
-            build_cmd: npx electron-builder --win --x64 --publish always
-            artifact_pattern: release/*.exe
-          - os: macos-latest
-            platform: mac
-            build_cmd: npx electron-builder --mac --publish always
-            artifact_pattern: release/*.dmg
-
-    runs-on: ${{ matrix.os }}
-
+  release-mac:
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Override .npmrc for CI (use official sources)
-        shell: bash
         run: echo 'registry=https://registry.npmjs.org/' > .npmrc
 
       - name: Setup Node.js
@@ -45,13 +31,7 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Setup Python for node-gyp
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
       - name: Install dependencies
-        shell: bash
         run: |
           for i in 1 2 3; do
             if npm ci --ignore-scripts; then
@@ -69,25 +49,16 @@ jobs:
       - name: Build for Electron
         run: npm run build:electron
 
-      - name: Rebuild native modules for Electron (Windows)
-        if: matrix.platform == 'win'
+      - name: Rebuild native modules for Electron
         run: npx electron-rebuild -f -w better-sqlite3
-        env:
-          PYTHON: ${{ env.pythonLocation }}\python.exe
 
-      - name: Rebuild native modules for Electron (macOS)
-        if: matrix.platform == 'mac'
-        run: npx electron-rebuild -f -w better-sqlite3
-        env:
-          PYTHON: ${{ env.pythonLocation }}/bin/python3
-
-      - name: Package and publish Electron app
-        run: ${{ matrix.build_cmd }}
+      - name: Package Electron app
+        run: npx electron-builder --mac --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: electron-build-${{ matrix.platform }}
-          path: ${{ matrix.artifact_pattern }}
+          name: electron-build-mac
+          path: release/

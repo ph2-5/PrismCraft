@@ -54,6 +54,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:electron": "playwright test --config playwright.electron.config.ts",
     "validate": "npm run typecheck && npm run typecheck:electron && npm run lint && npm run lint:arch && node scripts/check-module-api-consistency.mjs && node scripts/validate-contracts.mjs && npm run test",
     "validate:full": "npm run validate && npm run test:coverage",
     "graph": "npx tsx scripts/build-module-graph.ts",

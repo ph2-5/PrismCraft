@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { installElectronMock } from "./electron-mock";
 
 export async function dismissOverlays(page: Page) {
   const overlay = page.locator("div.fixed.inset-0.z-50").first();
@@ -30,7 +31,10 @@ export async function waitForAppReady(page: Page) {
   await page.locator("main").first().waitFor({ state: "visible", timeout: 15000 });
 }
 
-export async function navigateTo(page: Page, path: string) {
+export async function navigateTo(page: Page, path: string, options?: { withElectronMock?: boolean }) {
+  if (options?.withElectronMock) {
+    await installElectronMock(page);
+  }
   await page.goto(path);
   await waitForAppReady(page);
   await dismissOverlays(page);

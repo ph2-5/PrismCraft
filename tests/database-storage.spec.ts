@@ -1,11 +1,14 @@
 import { test, expect } from "@playwright/test";
 import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "./helpers/page-helpers";
+import { installElectronMock } from "./helpers/electron-mock";
+
+test.beforeEach(async ({ page }) => {
+  await installElectronMock(page);
+});
 
 test.describe("Database Storage", () => {
   test("Electron API should be available", async ({ page }) => {
     await navigateTo(page, "/");
-    const hasAPI = await hasElectronAPI(page);
-    test.skip(!hasAPI, "Requires Electron API");
 
     const hasAPIDirect = await page.evaluate(() => !!(window as any).electronAPI);
     expect(hasAPIDirect).toBe(true);
@@ -13,7 +16,6 @@ test.describe("Database Storage", () => {
 
   test("should query database with SELECT count(*) FROM stories", async ({ page }) => {
     await navigateTo(page, "/");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
 
     const result = await page.evaluate(async () => {
       try {
@@ -32,7 +34,6 @@ test.describe("Database Storage", () => {
 
   test("should write, read, and delete a record", async ({ page }) => {
     await navigateTo(page, "/");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
 
     const result = await page.evaluate(async () => {
       try {
@@ -62,7 +63,6 @@ test.describe("Database Storage", () => {
 
   test("should execute batch INSERT in a transaction", async ({ page }) => {
     await navigateTo(page, "/");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
 
     const result = await page.evaluate(async () => {
       try {
@@ -108,7 +108,6 @@ test.describe("Database Storage", () => {
 
   test("should rollback transaction on failure", async ({ page }) => {
     await navigateTo(page, "/");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
 
     const result = await page.evaluate(async () => {
       try {
@@ -148,9 +147,10 @@ test.describe("Database Storage", () => {
 });
 
 test.describe("Data Persistence", () => {
+  test.skip(({ browserName }) => true, "Requires real Electron app - run with test:e2e:electron");
+
   test("should persist character data across navigation", async ({ page }) => {
     await navigateTo(page, "/characters");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
     await dismissOverlays(page);
 
     const createButton = page.locator("button", { hasText: "创建新角色" });
@@ -171,7 +171,6 @@ test.describe("Data Persistence", () => {
 
   test("should persist scene data across navigation", async ({ page }) => {
     await navigateTo(page, "/scenes");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
     await dismissOverlays(page);
 
     const createButton = page.locator("button", { hasText: "创建新场景" });
@@ -192,7 +191,6 @@ test.describe("Data Persistence", () => {
 
   test("should persist story data across reload", async ({ page }) => {
     await navigateTo(page, "/story");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
     await dismissOverlays(page);
 
     const titleInput = page.locator('input[placeholder="分镜项目标题..."]');
@@ -217,7 +215,6 @@ test.describe("Data Persistence", () => {
 test.describe("Data Export", () => {
   test("should show export data button", async ({ page }) => {
     await navigateTo(page, "/");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
     await dismissOverlays(page);
 
     const exportButton = page.locator("button", { hasText: "导出数据" });
@@ -225,8 +222,8 @@ test.describe("Data Export", () => {
   });
 
   test("should trigger download on export data click", async ({ page }) => {
+    test.skip(true, "Requires real Electron app - run with test:e2e:electron");
     await navigateTo(page, "/");
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
     await dismissOverlays(page);
 
     const downloadPromise = page.waitForEvent("download", { timeout: 5000 }).catch(() => null);

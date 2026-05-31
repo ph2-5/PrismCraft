@@ -16,7 +16,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore } from "react";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useNavigationGuard } from "./BeforeUnloadGuard";
@@ -29,11 +29,6 @@ interface SidebarProps {
   onSearch?: (term: string) => Promise<SearchResult[]>;
   onSearchSelect?: (result: SearchResult) => void;
 }
-
-const isMac =
-  typeof navigator !== "undefined" &&
-  /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-const modKey = isMac ? "⌘" : "Ctrl";
 
 const navItems = [
   { href: "/quick-generate", label: "快速生成", icon: Wand2 },
@@ -50,38 +45,59 @@ const SIDEBAR_WIDTH_EXPANDED = 220;
 const SIDEBAR_WIDTH_COLLAPSED = 60;
 const STORAGE_KEY = "sidebar-collapsed";
 
+const sidebarListeners = new Set<() => void>();
+
+function subscribeSidebar(callback: () => void): () => void {
+  sidebarListeners.add(callback);
+  return () => { sidebarListeners.delete(callback); };
+}
+
+function getSidebarCollapsedSnapshot(): boolean {
+  try {
+    return preferencesStorage.get(STORAGE_KEY, false);
+  } catch {
+    return false;
+  }
+}
+
+function getSidebarCollapsedServerSnapshot(): boolean {
+  return false;
+}
+
+const subscribeNoop = () => () => {};
+
+function getModKeySnapshot(): string {
+  return /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘" : "Ctrl";
+}
+
+function getModKeyServerSnapshot(): string {
+  return "Ctrl";
+}
+
 export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
   const pathname = usePathname();
   const { guardedPush } = useNavigationGuard();
   const [searchOpen, setSearchOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return preferencesStorage.get(STORAGE_KEY, false);
-    } catch (error) {
-      errorLogger.debug("[Sidebar] 读取折叠状态失败:", error instanceof Error ? error.message : error);
-      return false;
-    }
-  });
+  const collapsed = useSyncExternalStore(subscribeSidebar, getSidebarCollapsedSnapshot, getSidebarCollapsedServerSnapshot);
+  const modKey = useSyncExternalStore(subscribeNoop, getModKeySnapshot, getModKeyServerSnapshot);
 
   const toggleCollapsed = useCallback(() => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try {
-        preferencesStorage.set(STORAGE_KEY, next);
-      } catch (e) {
-        errorLogger.warn("[Sidebar] 保存折叠状态失败:", e instanceof Error ? e.message : e);
-      }
-      document.documentElement.style.setProperty(
-        "--sidebar-width",
-        `${next ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}px`,
-      );
-      return next;
-    });
+    const current = getSidebarCollapsedSnapshot();
+    const next = !current;
+    try {
+      preferencesStorage.set(STORAGE_KEY, next);
+    } catch (e) {
+      errorLogger.warn("[Sidebar] 保存折叠状态失败:", e instanceof Error ? e.message : e);
+    }
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      `${next ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}px`,
+    );
+    sidebarListeners.forEach(l => l());
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.style.setProperty(
       "--sidebar-width",
       `${collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}px`,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore, useCallback } from "react";
 import { Button } from "@/shared/ui/button";
 import { X, ChevronRight, Lightbulb } from "lucide-react";
 
@@ -37,17 +37,29 @@ const ONBOARDING_STEPS: GuideStep[] = [
 
 const GUIDE_KEY = "ai-animation-studio-onboarding-complete";
 
+const guideListeners = new Set<() => void>();
+
+function subscribeGuide(callback: () => void): () => void {
+  guideListeners.add(callback);
+  return () => { guideListeners.delete(callback); };
+}
+
+function getGuideVisibleSnapshot(): boolean {
+  return !localStorage.getItem(GUIDE_KEY);
+}
+
+function getGuideVisibleServerSnapshot(): boolean {
+  return false;
+}
+
 export function OnboardingGuide() {
-  const [showGuide, setShowGuide] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !localStorage.getItem(GUIDE_KEY);
-  });
+  const showGuide = useSyncExternalStore(subscribeGuide, getGuideVisibleSnapshot, getGuideVisibleServerSnapshot);
   const [currentStep, setCurrentStep] = useState(0);
 
-  const completeGuide = () => {
+  const completeGuide = useCallback(() => {
     localStorage.setItem(GUIDE_KEY, "true");
-    setShowGuide(false);
-  };
+    guideListeners.forEach(l => l());
+  }, []);
 
   const nextStep = () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
@@ -124,4 +136,5 @@ export function OnboardingGuide() {
 
 export function resetOnboarding() {
   localStorage.removeItem(GUIDE_KEY);
+  guideListeners.forEach(l => l());
 }

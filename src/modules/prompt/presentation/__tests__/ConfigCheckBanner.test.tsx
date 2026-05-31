@@ -5,9 +5,10 @@ import { ConfigCheckBanner } from "../ConfigCheckBanner";
 
 const mockInitConfig = vi.fn();
 const mockCheckConfigStatus = vi.fn();
-const mockLocalStorageGetItem = vi.fn<(key: string) => string | null>().mockReturnValue(null);
-const mockLocalStorageSetItem = vi.fn<(key: string, value: string) => void>();
-const mockLocalStorageRemoveItem = vi.fn<(key: string) => void>();
+const localStorageStore: Record<string, string> = {};
+const mockLocalStorageGetItem = vi.fn<(key: string) => string | null>((key) => localStorageStore[key] ?? null);
+const mockLocalStorageSetItem = vi.fn<(key: string, value: string) => void>((key, value) => { localStorageStore[key] = value; });
+const mockLocalStorageRemoveItem = vi.fn<(key: string) => void>((key) => { delete localStorageStore[key]; });
 
 vi.mock("@/shared/api-config", () => ({
   initConfig: (...args: unknown[]) => mockInitConfig(...args),
@@ -76,7 +77,10 @@ describe("ConfigCheckBanner", () => {
   beforeEach(() => {
     mockInitConfig.mockReset();
     mockCheckConfigStatus.mockReset();
-    mockLocalStorageGetItem.mockReturnValue(null);
+    for (const key of Object.keys(localStorageStore)) {
+      delete localStorageStore[key];
+    }
+    mockLocalStorageGetItem.mockClear();
     mockLocalStorageSetItem.mockClear();
     mockLocalStorageRemoveItem.mockClear();
   });
@@ -154,9 +158,7 @@ describe("ConfigCheckBanner", () => {
 
   it("does not show banner if previously dismissed and not expired", async () => {
     const futureExpiry = Date.now() + 12 * 60 * 60 * 1000;
-    mockLocalStorageGetItem.mockReturnValue(
-      JSON.stringify({ dismissed: true, expiresAt: futureExpiry }),
-    );
+    localStorageStore["config-banner-dismissed"] = JSON.stringify({ dismissed: true, expiresAt: futureExpiry });
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     const { container } = render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());
@@ -165,9 +167,7 @@ describe("ConfigCheckBanner", () => {
 
   it("shows banner again if previously dismissed but expired", async () => {
     const pastExpiry = Date.now() - 12 * 60 * 60 * 1000;
-    mockLocalStorageGetItem.mockReturnValue(
-      JSON.stringify({ dismissed: true, expiresAt: pastExpiry }),
-    );
+    localStorageStore["config-banner-dismissed"] = JSON.stringify({ dismissed: true, expiresAt: pastExpiry });
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());
@@ -175,9 +175,7 @@ describe("ConfigCheckBanner", () => {
   });
 
   it("cleans up localStorage entry if dismissed but no expiresAt", async () => {
-    mockLocalStorageGetItem.mockReturnValue(
-      JSON.stringify({ dismissed: true }),
-    );
+    localStorageStore["config-banner-dismissed"] = JSON.stringify({ dismissed: true });
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());
@@ -186,7 +184,7 @@ describe("ConfigCheckBanner", () => {
   });
 
   it("cleans up localStorage entry on parse error", async () => {
-    mockLocalStorageGetItem.mockReturnValue("not-valid-json{{{");
+    localStorageStore["config-banner-dismissed"] = "not-valid-json{{{";
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());

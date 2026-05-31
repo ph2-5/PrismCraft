@@ -13,6 +13,7 @@ vi.mock("@/infrastructure/monitoring", () => ({
 }));
 
 vi.mock("@/shared/error-logger", () => ({
+  errorLogger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   extractErrorMessage: vi.fn((e: unknown) =>
     e instanceof Error ? e.message : String(e),
   ),

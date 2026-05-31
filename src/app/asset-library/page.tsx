@@ -22,6 +22,7 @@ import {
 } from "@/modules/asset";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { isElectron } from "@/shared/utils/platform";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -82,21 +83,26 @@ export default function AssetLibraryPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchSecondaryData()
-      .then((data) => {
+    (async () => {
+      if (!isElectron()) {
+        if (!cancelled) setSecondaryDataLoading(false);
+        return;
+      }
+      try {
+        const data = await fetchSecondaryData();
         if (!cancelled) {
           setStoryboards(data.storyboards);
           setCollections(data.collections);
           setCollectionAssets(data.collectionAssets);
           setSecondaryDataLoading(false);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         if (!cancelled) {
           errorLogger.warn("Failed to load secondary data", err);
           setSecondaryDataLoading(false);
         }
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };

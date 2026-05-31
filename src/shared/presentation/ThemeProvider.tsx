@@ -3,10 +3,9 @@
 import React, {
   createContext,
   useContext,
-  useState,
+  useSyncExternalStore,
   useCallback,
   useLayoutEffect,
-  useSyncExternalStore,
   useMemo,
 } from "react";
 import { preferencesStorage } from "@/shared/utils/preferences";
@@ -76,22 +75,31 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const subscribeNoop = () => () => {};
+const themeListeners = new Set<() => void>();
+
+function subscribeTheme(callback: () => void): () => void {
+  themeListeners.add(callback);
+  return () => { themeListeners.delete(callback); };
+}
+
+function getThemeSnapshot(): ThemeId {
+  try {
+    const stored = preferencesStorage.get<ThemeId | null>(THEME_STORAGE_KEY, null);
+    if (stored && THEMES.some((t) => t.id === stored)) {
+      return stored;
+    }
+  } catch (e) {
+    errorLogger.warn("[ThemeProvider] Failed to load theme from storage", e);
+  }
+  return "default";
+}
+
+function getThemeServerSnapshot(): ThemeId {
+  return "default";
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>(() => {
-    if (typeof window === 'undefined') return "default";
-    try {
-      const stored = preferencesStorage.get<ThemeId | null>(THEME_STORAGE_KEY, null);
-      if (stored && THEMES.some((t) => t.id === stored)) {
-        return stored;
-      }
-    } catch (e) {
-      errorLogger.warn("[ThemeProvider] Failed to load theme from storage", e);
-    }
-    return "default";
-  });
-  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
+  const theme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getThemeServerSnapshot);
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -100,15 +108,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       root.setAttribute("data-theme", theme);
     }
-    try {
-      preferencesStorage.set(THEME_STORAGE_KEY, theme);
-    } catch (e) {
-      errorLogger.warn("[ThemeProvider] Failed to persist theme", e);
-    }
   }, [theme]);
 
   const setTheme = useCallback((newTheme: ThemeId) => {
-    setThemeState(newTheme);
+    try {
+      preferencesStorage.set(THEME_STORAGE_KEY, newTheme);
+    } catch (e) {
+      errorLogger.warn("[ThemeProvider] Failed to persist theme", e);
+    }
+    themeListeners.forEach(l => l());
   }, []);
 
   const themeInfo = useMemo(
@@ -120,14 +128,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     () => ({ theme, setTheme, themeInfo }),
     [theme, setTheme, themeInfo],
   );
-
-  if (!mounted) {
-    return (
-      <ThemeContext.Provider value={value}>
-        <div style={{ visibility: "hidden" }}>{children}</div>
-      </ThemeContext.Provider>
-    );
-  }
 
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

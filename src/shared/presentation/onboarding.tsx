@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore, useCallback } from "react";
 import { X, Sparkles, Settings, Image as ImageIcon, Video, FileText } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
@@ -63,11 +63,25 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
 ];
 
+const ONBOARDING_KEY = "onboarding-completed";
+
+const onboardingListeners = new Set<() => void>();
+
+function subscribeOnboarding(callback: () => void): () => void {
+  onboardingListeners.add(callback);
+  return () => { onboardingListeners.delete(callback); };
+}
+
+function getOnboardingVisibleSnapshot(): boolean {
+  return !localStorage.getItem(ONBOARDING_KEY);
+}
+
+function getOnboardingVisibleServerSnapshot(): boolean {
+  return false;
+}
+
 export function OnboardingGuide() {
-  const [isVisible, setIsVisible] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !localStorage.getItem("onboarding-completed");
-  });
+  const isVisible = useSyncExternalStore(subscribeOnboarding, getOnboardingVisibleSnapshot, getOnboardingVisibleServerSnapshot);
   const [currentStep, setCurrentStep] = useState(0);
   const { guardedPush } = useNavigationGuard();
   const navTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -78,6 +92,11 @@ export function OnboardingGuide() {
         clearTimeout(navTimerRef.current);
       }
     };
+  }, []);
+
+  const handleClose = useCallback(() => {
+    localStorage.setItem(ONBOARDING_KEY, "true");
+    onboardingListeners.forEach(l => l());
   }, []);
 
   const handlePrev = () => {
@@ -91,11 +110,6 @@ export function OnboardingGuide() {
     navTimerRef.current = setTimeout(() => {
       guardedPush(href);
     }, 100);
-  };
-
-  const handleClose = () => {
-    setIsVisible(false);
-    localStorage.setItem("onboarding-completed", "true");
   };
 
   const handleNext = () => {
@@ -132,7 +146,6 @@ export function OnboardingGuide() {
           </h2>
           <p className="text-gray-600 mb-6">{step.description}</p>
 
-          {/* 进度指示器 */}
           <div className="flex gap-2 mb-6">
             {ONBOARDING_STEPS.map((_, index) => (
               <button
@@ -149,7 +162,6 @@ export function OnboardingGuide() {
             ))}
           </div>
 
-          {/* 操作按钮 */}
           <div className="flex gap-3 w-full">
             {currentStep > 0 && (
               <Button variant="outline" onClick={handlePrev}>
@@ -180,7 +192,6 @@ export function OnboardingGuide() {
   );
 }
 
-// API Key 缺失提示
 export function ApiKeyAlert() {
   const [isVisible, setIsVisible] = useState(false);
   const { guardedPush } = useNavigationGuard();

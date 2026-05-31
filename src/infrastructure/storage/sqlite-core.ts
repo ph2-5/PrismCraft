@@ -1,11 +1,17 @@
 import { classifyError } from "@/domain/types";
 import { performanceMonitor } from "@/infrastructure/monitoring";
-import { extractErrorMessage } from "@/shared/error-logger";
+import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import type { DbRunResult } from "./core";
+
+let _electronApiWarned = false;
 
 function getElectronAPI() {
   if (!window.electronAPI) {
-    throw new Error("electronAPI not available - ensure Electron preload script is loaded");
+    if (!_electronApiWarned) {
+      _electronApiWarned = true;
+      errorLogger.debug("[sqlite-core] electronAPI not available - running in browser mode");
+    }
+    throw new Error("electronAPI not available");
   }
   return window.electronAPI;
 }

@@ -169,6 +169,10 @@ vi.mock("@/shared/utils/toast-bridge", () => ({
   emitToast: mockEmitToast,
 }));
 
+vi.mock("@/shared/utils/platform", () => ({
+  isElectron: () => true,
+}));
+
 vi.mock("../internals", () => ({
   withTransitionGuard: mockWithTransitionGuard,
   pollingState: mockPollingState,

@@ -1181,3 +1181,97 @@ container.referenceEngine.then((engine) => {
   }
 });
 ```
+
+## Phase 9: Console Error & Hydration Audit (R51-R52)
+
+### R51: Electron-Dependent Operations MUST Guard Against Non-Electron Environment
+When a component or hook performs operations that require `electronAPI` (database queries, IPC calls, API server requests), it MUST check `isElectron()` before attempting the operation. In browser dev mode (Next.js dev server without Electron), these operations will always fail with "electronAPI not available" errors, producing console noise and potentially triggering error toasts that mislead developers. The guard MUST be inside an async callback (not synchronous in the effect body) to avoid ESLint `react-hooks/set-state-in-effect` violations.
+
+**BAD**:
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  fetchPlugins()
+    .then((data) => { if (!cancelled) setPlugins(data); })
+    .catch((err) => { errorLogger.error("Failed to load plugins", err); });
+  return () => { cancelled = true; };
+}, []);
+```
+
+**GOOD**:
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    if (!isElectron()) {
+      if (!cancelled) setIsLoading(false);
+      return;
+    }
+    try {
+      const data = await fetchPlugins();
+      if (!cancelled) setPlugins(data);
+    } catch (err) {
+      if (!cancelled) errorLogger.error("Failed to load plugins", err);
+    } finally {
+      if (!cancelled) setIsLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, []);
+```
+
+**Affected patterns** (discovered in console error audit):
+- `useAssetLoader` → `services.getAllCharacters()` / `services.getAllScenes()`
+- `PluginManager` → `fetchPlugins()` (API server)
+- `AssetLibraryPage` → `fetchSecondaryData()` (storage via DI)
+- `useVideoTaskManager` → `container.videoTaskStorage.getAllVideoTasks()`
+- `CrashRecoveryDialog` → `electronAPI.onNavigate`
+- `ProfessionalModeEditor` → element loading
+- `ensureSyncSchema()` → `electronAPI.dbRun`
+
+### R52: localStorage-Dependent Initial State MUST Use useSyncExternalStore
+When a component reads `localStorage` in its initial state (e.g., theme preference, sidebar collapse state, onboarding dismissed state), it MUST use `useSyncExternalStore` with a module-level listeners Set pattern instead of `useState(() => localStorage.getItem(...))`. The `useState` initializer runs during both server-side rendering and client-side hydration, but `localStorage` is only available on the client. This causes hydration mismatches: the server renders with the default value while the client renders with the stored value, producing React hydration warnings and potential UI flicker.
+
+**BAD**:
+```typescript
+const [theme, setTheme] = useState(() => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("theme") || "dark";
+  }
+  return "dark";
+});
+```
+
+**GOOD**:
+```typescript
+const themeListeners = new Set<() => void>();
+
+function subscribeTheme(callback: () => void) {
+  themeListeners.add(callback);
+  return () => themeListeners.delete(callback);
+}
+
+function getThemeSnapshot() {
+  return localStorage.getItem("theme") || "dark";
+}
+
+function getThemeServerSnapshot() {
+  return "dark";
+}
+
+function setThemeValue(theme: string) {
+  localStorage.setItem("theme", theme);
+  themeListeners.forEach((cb) => cb());
+}
+
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const theme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getThemeServerSnapshot);
+  // ...
+}
+```
+
+**Affected components** (discovered in hydration audit):
+- `ThemeProvider` → theme preference
+- `Sidebar` → collapsed state, modKey
+- `OnboardingGuide` / `onboarding` → visibility state
+- `ConfigCheckBanner` → dismissed state

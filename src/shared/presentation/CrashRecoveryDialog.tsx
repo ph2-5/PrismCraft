@@ -11,6 +11,7 @@ import {
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
+import { isElectron } from "@/shared/utils/platform";
 
 interface AutoSaveRecord {
   id: string;
@@ -29,6 +30,7 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    if (!isElectron()) return;
     let cancelled = false;
     (async () => {
       try {

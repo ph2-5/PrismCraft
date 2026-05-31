@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Character, Scene } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
+import { isElectron } from "@/shared/utils/platform";
 
 interface AssetLoaderServices {
   getAllCharacters: () => Promise<{ ok: boolean; value?: Character[] }>;
@@ -86,10 +87,12 @@ export function useAssetLoader(services: AssetLoaderServices) {
       } catch (error) {
         if (!cancelled) {
           setIsLoading(false);
-          errorLogger.warn(
-            { code: "AssetLoadFailed", message: "Failed to load characters/scenes from database", cause: error },
-            { component: "useAssetLoader" },
-          );
+          if (isElectron()) {
+            errorLogger.warn(
+              { code: "AssetLoadFailed", message: "Failed to load characters/scenes from database", cause: error },
+              { component: "useAssetLoader" },
+            );
+          }
         }
       }
     };

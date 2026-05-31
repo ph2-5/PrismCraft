@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore, useCallback } from "react";
 import { checkConfigStatus, initConfig } from "@/shared/api-config";
 import type { ConfigStatus } from "@/infrastructure/di";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
@@ -8,25 +8,49 @@ import { Button } from "@/shared/ui/button";
 import { Settings, X } from "lucide-react";
 import Link from "next/link";
 
+const BANNER_KEY = "config-banner-dismissed";
+
+const bannerListeners = new Set<() => void>();
+
+function subscribeBanner(callback: () => void): () => void {
+  bannerListeners.add(callback);
+  return () => { bannerListeners.delete(callback); };
+}
+
+function getBannerDismissedSnapshot(): boolean {
+  try {
+    const data = JSON.parse(
+      localStorage.getItem(BANNER_KEY) || "{}",
+    );
+    if (data.dismissed && data.expiresAt && Date.now() < data.expiresAt) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
+function getBannerDismissedServerSnapshot(): boolean {
+  return false;
+}
+
 export function ConfigCheckBanner() {
   const [status, setStatus] = useState<ConfigStatus | null>(null);
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
+  const dismissed = useSyncExternalStore(subscribeBanner, getBannerDismissedSnapshot, getBannerDismissedServerSnapshot);
+
+  useEffect(() => {
     try {
       const data = JSON.parse(
-        localStorage.getItem("config-banner-dismissed") || "{}",
+        localStorage.getItem(BANNER_KEY) || "{}",
       );
-      if (data.dismissed && data.expiresAt && Date.now() < data.expiresAt) {
-        return true;
-      }
       if (data.dismissed && !data.expiresAt) {
-        localStorage.removeItem("config-banner-dismissed");
+        localStorage.removeItem(BANNER_KEY);
       }
     } catch {
-      localStorage.removeItem("config-banner-dismissed");
+      localStorage.removeItem(BANNER_KEY);
     }
-    return false;
-  });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,16 +65,16 @@ export function ConfigCheckBanner() {
     return () => { cancelled = true; };
   }, []);
 
-  const handleDismiss = () => {
-    setDismissed(true);
+  const handleDismiss = useCallback(() => {
     localStorage.setItem(
-      "config-banner-dismissed",
+      BANNER_KEY,
       JSON.stringify({
         dismissed: true,
         expiresAt: Date.now() + 24 * 60 * 60 * 1000,
       }),
     );
-  };
+    bannerListeners.forEach(l => l());
+  }, []);
 
   if (!status || status.allConfigured || dismissed) {
     return null;

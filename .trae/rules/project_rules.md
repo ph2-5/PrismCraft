@@ -387,7 +387,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 50 guards:**
+**Quick reference — all 52 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
@@ -395,7 +395,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 | Async Safety | R4, R10, R11, R12, R29, R31, R32, R48 | Dedup, concurrency guard, ownership verify, in-flight warning, entity ID consistency, save context verify, batch cancellation, useEffect unmount protection |
 | Error Handling | R5, R6, R15, R17, R18, R47, R50 | No silent failure, identifiable labels, partial failure resilience, catch blocks must not silently swallow errors, floating promises must have .catch() |
 | UI Robustness | R7, R16, R19, R20, R49 | Video onError guard, ErrorBoundary retry limit, use e.currentTarget over e.target |
-| Electron Compatibility | R21 | No fetch("/api/..."), use DI/IPC/proxy exports |
+| Electron Compatibility | R21, R51 | No fetch("/api/..."), isElectron() guard for electronAPI-dependent operations |
 | UX Completeness | R22, R23, R24, R25, R43 | Loading states, action feedback, data loading indicators, destructive operation confirmation |
 | Code Quality | R3, R26, R27, R28, R33 | Cross-context verify, static imports, DDD layer compliance, batch over N+1 queries, eliminate existence-check before writes |
 | Async Safety | R34 | Zustand functional updates over get()+set() |
@@ -406,6 +406,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 | IPC Efficiency | R39, R40, R41 | Batch DB operations over per-item IPC, deferred metadata updates, parallel trackChange |
 | Error Messaging | R44 | User-facing errors must use mapUserFacingError, not raw technical messages |
 | Polling Safety | R46 | Polling engine state flags must reset in correct order with top-level catch |
+| Hydration Safety | R52 | localStorage-dependent initial state must use useSyncExternalStore |
 
 ## Documentation Index
 
@@ -556,6 +557,63 @@ if (result.ok) {
 }
 ```
 
+#### 7. Unguarded Electron-Dependent Operations in useEffect
+When a `useEffect` performs operations that require `electronAPI` (database queries, IPC calls, API server requests), it MUST check `isElectron()` inside the async callback. Without this guard, browser dev mode produces "electronAPI not available" console errors on every page load, creating noise that hides real issues. The check MUST be inside the async callback (not synchronous in the effect body) to avoid ESLint `react-hooks/set-state-in-effect` violations.
+
+**BAD**:
+```typescript
+useEffect(() => {
+  fetchPlugins()
+    .then(setPlugins)
+    .catch((err) => { errorLogger.error("Failed", err); });
+}, []);
+```
+
+**GOOD**:
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    if (!isElectron()) {
+      if (!cancelled) setIsLoading(false);
+      return;
+    }
+    try {
+      const data = await fetchPlugins();
+      if (!cancelled) setPlugins(data);
+    } catch (err) {
+      if (!cancelled) errorLogger.error("Failed", err);
+    } finally {
+      if (!cancelled) setIsLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, []);
+```
+
+#### 8. localStorage in useState Initializer (Hydration Mismatch)
+When a component needs to read `localStorage` for its initial state, NEVER use `useState(() => localStorage.getItem(...))` with a `typeof window` guard. This causes hydration mismatches because the server renders with the default value while the client renders with the stored value. Use `useSyncExternalStore` with a module-level listeners Set pattern instead.
+
+**BAD**:
+```typescript
+const [theme, setTheme] = useState(() => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("theme") || "dark";
+  }
+  return "dark";
+});
+```
+
+**GOOD**:
+```typescript
+const listeners = new Set<() => void>();
+function subscribe(cb: () => void) { listeners.add(cb); return () => listeners.delete(cb); }
+function getSnapshot() { return localStorage.getItem("theme") || "dark"; }
+function getServerSnapshot() { return "dark"; }
+
+const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+```
+
 ### Modification Checklist
 
 Before submitting any code change, verify:
@@ -574,6 +632,8 @@ Before submitting any code change, verify:
 12. **Async button loading**: Delete/save confirm buttons have loading state (R22/R23)
 13. **Action feedback**: Explicit user actions provide success toast feedback (R24)
 14. **Data loading indicator**: Data-dependent UI shows spinner during fetch (R25)
+15. **Electron environment guard**: useEffect with electronAPI operations checks `isElectron()` (R51)
+16. **No localStorage in useState**: Use `useSyncExternalStore` for localStorage-dependent initial state (R52)
 
 ### Testing Conventions
 

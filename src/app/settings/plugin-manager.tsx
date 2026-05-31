@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { confirm } from "@/shared/utils/confirm";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
+import { isElectron } from "@/shared/utils/platform";
 import PluginCreator from "./plugin-creator";
 
 interface PluginInfo {
@@ -174,6 +175,10 @@ export default function PluginManager() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!isElectron()) {
+        if (!cancelled) setIsLoading(false);
+        return;
+      }
       try {
         const data = await fetchPlugins();
         if (!cancelled) {

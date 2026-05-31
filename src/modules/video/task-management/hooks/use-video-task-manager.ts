@@ -16,6 +16,7 @@ import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
 import { AppError } from "@/domain/types/result";
+import { isElectron } from "@/shared/utils/platform";
 
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
 import { TaskMachine, mapApiStatus } from "../domain";
@@ -136,10 +137,15 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
 
         checkAndStartOrStopPolling();
       } catch (error) {
-        errorLogger.error("Failed to load video tasks", error);
-        const msg = extractErrorMessage(error);
-        set({ isInitialized: true, initError: msg });
-        emitToast("error", t("video.taskLoadFailed"), msg);
+        if (!isElectron()) {
+          errorLogger.debug("Failed to load video tasks (browser mode)", error);
+          set({ isInitialized: true, initError: null });
+        } else {
+          errorLogger.error("Failed to load video tasks", error);
+          const msg = extractErrorMessage(error);
+          set({ isInitialized: true, initError: msg });
+          emitToast("error", t("video.taskLoadFailed"), msg);
+        }
       } finally {
         pollingState.isInitializing = false;
       }

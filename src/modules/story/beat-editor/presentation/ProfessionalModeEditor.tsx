@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
+import { isElectron } from "@/shared/utils/platform";
 import { Switch } from "@/shared/ui/switch";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import {
@@ -222,6 +223,7 @@ export function ProfessionalModeEditor({
         if (!cancelled) setElements(els);
       })
       .catch((err: unknown) => {
+        if (!isElectron()) return;
         errorLogger.warn(
           { code: "ElementLoadFailed", message: "元素加载失败", cause: err },
           { component: "ProfessionalModeEditor", source: "getAllElements" },

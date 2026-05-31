@@ -9,6 +9,7 @@ import type {
 import { incrementVectorClock } from "./types";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParse } from "@/shared/utils/safe-json";
+import { isElectron } from "@/shared/utils/platform";
 
 const DEVICE_ID_STORAGE_KEY = "sync_device_id";
 
@@ -47,6 +48,8 @@ function getDeviceId(): string {
 }
 
 export async function ensureSyncSchema(): Promise<void> {
+  if (!isElectron()) return;
+
   const syncColumnsNoIsDeleted = ["vector_clock", "sync_status", "last_synced_at"];
   const syncColumnsWithIsDeleted = ["vector_clock", "is_deleted", "sync_status", "last_synced_at"];
   const tablesWithIsDeleted = new Set(["characters", "scenes", "stories"]);

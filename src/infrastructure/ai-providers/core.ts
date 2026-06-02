@@ -6,6 +6,9 @@ import { apiCache } from "./api-cache";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import { isNetworkError as isNetworkErrorClassified } from "@/shared/utils/error-classifier";
+import { executeThroughCircuit } from "@/infrastructure/network/circuit-breaker";
+import { executeWithRetry } from "@/infrastructure/network/retry-executor";
+import type { RetryPolicy } from "@/infrastructure/network/types";
 
 export interface QueuedResponse {
   success: false;
@@ -38,6 +41,46 @@ const QUEUEABLE_ENDPOINTS = [
   "upload",
 ];
 
+const API_RETRY_POLICY: RetryPolicy = {
+  maxRetries: 3,
+  baseDelay: 1000,
+  maxDelay: 10000,
+  backoff: "exponential",
+  jitter: true,
+  retryableErrors: [
+    "NETWORK_ERROR",
+    "TIMEOUT",
+    "RATE_LIMITED",
+    "API_SERVER_ERROR",
+    "ECONNREFUSED",
+    "ETIMEDOUT",
+    "CIRCUIT_OPEN",
+    "CIRCUIT_HALF_OPEN_LIMIT",
+  ],
+};
+
+function statusCodeToErrorCode(status: number): string | undefined {
+  switch (status) {
+    case 429:
+      return "RATE_LIMITED";
+    case 408:
+      return "TIMEOUT";
+    case 500:
+    case 502:
+    case 503:
+    case 504:
+      return "API_SERVER_ERROR";
+    default:
+      return undefined;
+  }
+}
+
+function isCircuitBreakerError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as Record<string, unknown>;
+  return e.code === "CIRCUIT_OPEN" || e.code === "CIRCUIT_HALF_OPEN_LIMIT";
+}
+
 export async function apiCall<T>(
   endpoint: string,
   options: ApiRequestOptions = {},
@@ -58,16 +101,22 @@ export async function apiCall<T>(
     const baseUrl = isElectron()
       ? `http://localhost:${API_SERVER_PORT}`
       : "";
-    const response = await fetch(`${baseUrl}/api/${endpoint}`, {
-      method: options.method || "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...ELECTRON_APP_HEADERS,
-        ...options.headers,
-      },
-      body: options.body,
-      signal: controller.signal,
-    });
+    const url = `${baseUrl}/api/${endpoint}`;
+
+    const response = await executeThroughCircuit(
+      endpoint,
+      () =>
+        fetch(url, {
+          method: options.method || "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...ELECTRON_APP_HEADERS,
+            ...options.headers,
+          },
+          body: options.body,
+          signal: controller.signal,
+        }),
+    );
 
     if (!response.ok) {
       let errorData: { error?: string; code?: string } = {};
@@ -81,7 +130,7 @@ export async function apiCall<T>(
       throw new ApiClientError(
         errorData.error || `HTTP ${response.status}`,
         response.status,
-        errorData.code,
+        errorData.code || statusCodeToErrorCode(response.status),
       );
     }
 
@@ -106,11 +155,11 @@ export async function apiCall<T>(
     }
 
     const isNetworkError = isNetworkErrorClassified(error);
-
+    const isCircuitError = isCircuitBreakerError(error);
     const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
     if (
-      (isNetworkError || isOffline) &&
+      (isNetworkError || isOffline || isCircuitError) &&
       QUEUEABLE_ENDPOINTS.some((e) => endpoint.startsWith(e))
     ) {
       try {
@@ -157,41 +206,15 @@ export async function apiCallWithRetry<T>(
   options: ApiRequestOptions = {},
   retries = 3,
 ): Promise<T> {
-  let lastError: Error = new Error("请求失败");
+  const policy: RetryPolicy = {
+    ...API_RETRY_POLICY,
+    maxRetries: retries,
+  };
 
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await apiCall<T>(endpoint, options);
-    } catch (error) {
-      lastError = error as Error;
-
-      const isClientError =
-        error instanceof ApiClientError &&
-        error.statusCode &&
-        error.statusCode >= 400 &&
-        error.statusCode < 500;
-
-      const shouldRetry =
-        !isClientError ||
-        (error instanceof ApiClientError &&
-          (error.statusCode === 429 || error.statusCode === 408));
-
-      if (!shouldRetry) {
-        throw error;
-      }
-
-      if (i < retries - 1) {
-        let delay = Math.pow(2, i) * 1000;
-        if (error instanceof ApiClientError && error.statusCode === 429) {
-          delay = Math.max(delay, 5000);
-        }
-        delay = delay * (0.5 + Math.random() * 0.5);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-  }
-
-  throw lastError!;
+  return executeWithRetry(
+    () => apiCall<T>(endpoint, options),
+    policy,
+  );
 }
 
 export async function apiCallWithFallback<T>(

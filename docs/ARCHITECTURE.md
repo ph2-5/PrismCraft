@@ -1083,6 +1083,6 @@ describe("ComponentName", () => {
 
 ### 10.9 未来发展规划
 
-- **网络层激活**：当前网络层（断路器、重试执行器、请求生命周期、拦截器链、网络监控）已实现但激活度不足。AI Provider 的 `fetch()` 调用未走网络层，apiClient 仅用于本地 IPC。规划：v1.0 后将 AI Provider 的外部 API 调用迁移到 `resilient-fetch`，让断路器保护多 Provider 并发场景，重试器处理 429/500，网络监控驱动离线队列。届时网络层从"预埋基础设施"升级为"必要基础设施"
+- **网络层已激活**：AI Provider 的 `apiCall` 已集成 `executeThroughCircuit`（断路器）和 `executeWithRetry`（重试器）。断路器按 endpoint 粒度保护（如 generate-image、generate-video 独立断路），重试器使用指数退避+抖动策略处理 429/500/超时/网络错误。断路器开启时自动降级到离线队列。网络层从"预埋基础设施"升级为"必要基础设施"
 - **UI 层国际化完成**：840+ 键的 messages.ts 已覆盖核心 UI 文本，但 shared/presentation、app/、modules/*/presentation 中仍有约 1500+ 处中文硬编码需迁移。AI 提示词模板和日志文本按规则不迁移
 - **测试覆盖均衡化**：storage 层测试密集（16个文件），但 character/scene/asset 的 hook 层测试薄弱。规划：优先补充 CRUD hook 和 presentation 组件的行为测试

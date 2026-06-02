@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockApiCache, mockEnqueueRequest, mockIsNetworkError, mockIsElectron, mockExtractErrorMessage } = vi.hoisted(() => ({
+const {
+  mockApiCache,
+  mockEnqueueRequest,
+  mockIsNetworkError,
+  mockIsElectron,
+  mockExtractErrorMessage,
+  mockExecuteThroughCircuit,
+  mockExecuteWithRetry,
+} = vi.hoisted(() => ({
   mockApiCache: {
     get: vi.fn(),
     set: vi.fn(),
@@ -15,6 +23,8 @@ const { mockApiCache, mockEnqueueRequest, mockIsNetworkError, mockIsElectron, mo
     if (typeof e === "string") return e;
     return "Unknown error";
   }),
+  mockExecuteThroughCircuit: vi.fn((_providerId: string, fn: () => Promise<Response>) => fn()),
+  mockExecuteWithRetry: vi.fn(<T>(fn: () => Promise<T>) => fn()),
 }));
 
 vi.mock("@/infrastructure/ai-providers/api-cache", () => ({
@@ -43,12 +53,22 @@ vi.mock("@/config/constants", () => ({
   ELECTRON_APP_HEADERS: { "X-Electron-App": "test" },
 }));
 
+vi.mock("@/infrastructure/network/circuit-breaker", () => ({
+  executeThroughCircuit: mockExecuteThroughCircuit,
+}));
+
+vi.mock("@/infrastructure/network/retry-executor", () => ({
+  executeWithRetry: mockExecuteWithRetry,
+}));
+
 import { apiCall, apiCallWithRetry, apiCallWithFallback, getErrorMessage, checkApiHealth, isQueuedResponse, ApiClientError } from "../core";
 
 describe("ai-providers/core", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockApiCache.get.mockReturnValue(null);
+    mockExecuteThroughCircuit.mockImplementation((_providerId: string, fn: () => Promise<Response>) => fn());
+    mockExecuteWithRetry.mockImplementation(<T>(fn: () => Promise<T>) => fn());
     globalThis.fetch = vi.fn();
   });
 
@@ -265,6 +285,20 @@ describe("ai-providers/core", () => {
       Object.defineProperty(navigator, "onLine", { value: originalOnLine, configurable: true });
     });
 
+    it("queues request on circuit breaker open error for queueable endpoint", async () => {
+      const circuitError = Object.assign(
+        new Error("Circuit breaker is open for provider: generate-image"),
+        { code: "CIRCUIT_OPEN" as const },
+      );
+      mockExecuteThroughCircuit.mockRejectedValue(circuitError);
+      mockEnqueueRequest.mockResolvedValue("queue-id-circuit");
+
+      const result = await apiCall("generate-image");
+
+      expect(mockEnqueueRequest).toHaveBeenCalled();
+      expect(isQueuedResponse(result)).toBe(true);
+    });
+
     it("handles body parse failure in queue by using raw body", async () => {
       mockIsNetworkError.mockReturnValue(true);
       vi.mocked(globalThis.fetch).mockRejectedValue(new Error("Network error"));
@@ -345,6 +379,53 @@ describe("ai-providers/core", () => {
       expect(clearTimeoutSpy).toHaveBeenCalled();
       clearTimeoutSpy.mockRestore();
     });
+
+    it("passes endpoint as providerId to executeThroughCircuit", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ data: 1 }),
+        status: 200,
+      } as Response);
+
+      await apiCall("generate-image");
+
+      expect(mockExecuteThroughCircuit).toHaveBeenCalledWith(
+        "generate-image",
+        expect.any(Function),
+      );
+    });
+
+    it("adds statusCodeToErrorCode for 429 responses", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue({
+        ok: false,
+        status: 429,
+        json: () => Promise.resolve({ error: "Rate limited" }),
+      } as Response);
+
+      try {
+        await apiCall("test-endpoint");
+        expect.unreachable("should have thrown");
+      } catch (e) {
+        expect(e).toBeInstanceOf(ApiClientError);
+        expect((e as ApiClientError).code).toBe("RATE_LIMITED");
+      }
+    });
+
+    it("adds statusCodeToErrorCode for 500 responses", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ error: "Internal error" }),
+      } as Response);
+
+      try {
+        await apiCall("test-endpoint");
+        expect.unreachable("should have thrown");
+      } catch (e) {
+        expect(e).toBeInstanceOf(ApiClientError);
+        expect((e as ApiClientError).code).toBe("API_SERVER_ERROR");
+      }
+    });
   });
 
   describe("apiCallWithRetry", () => {
@@ -359,74 +440,34 @@ describe("ai-providers/core", () => {
       expect(result).toEqual({ value: 1 });
     });
 
-    it("does not retry on 4xx client error (non-429, non-408)", async () => {
-      const error = new ApiClientError("Bad Request", 400);
-      vi.mocked(globalThis.fetch).mockRejectedValue(error);
+    it("delegates to executeWithRetry with correct policy", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ value: 1 }),
+        status: 200,
+      } as Response);
 
-      await expect(apiCallWithRetry("test")).rejects.toBe(error);
+      await apiCallWithRetry("test", {}, 5);
+
+      expect(mockExecuteWithRetry).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ maxRetries: 5 }),
+      );
     });
 
-    it("retries on 429 error", async () => {
-      vi.useFakeTimers();
-      const error429 = new ApiClientError("Rate limited", 429);
-      vi.mocked(globalThis.fetch)
-        .mockRejectedValueOnce(error429)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ value: "retried" }),
-          status: 200,
-        } as Response);
+    it("uses default retries of 3", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ value: 1 }),
+        status: 200,
+      } as Response);
 
-      const promise = apiCallWithRetry("test", {}, 3);
-      await vi.advanceTimersByTimeAsync(10000);
-      const result = await promise;
+      await apiCallWithRetry("test");
 
-      expect(result).toEqual({ value: "retried" });
-      vi.useRealTimers();
-    });
-
-    it("retries on 408 error", async () => {
-      vi.useFakeTimers();
-      const error408 = new ApiClientError("Timeout", 408);
-      vi.mocked(globalThis.fetch)
-        .mockRejectedValueOnce(error408)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ value: "retried" }),
-          status: 200,
-        } as Response);
-
-      const promise = apiCallWithRetry("test", {}, 3);
-      await vi.advanceTimersByTimeAsync(5000);
-      const result = await promise;
-
-      expect(result).toEqual({ value: "retried" });
-      vi.useRealTimers();
-    });
-
-    it("retries on network error (non-ApiClientError)", async () => {
-      vi.useFakeTimers();
-      vi.mocked(globalThis.fetch)
-        .mockRejectedValueOnce(new Error("Network error"))
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ value: "retried" }),
-          status: 200,
-        } as Response);
-
-      const promise = apiCallWithRetry("test", {}, 3);
-      await vi.advanceTimersByTimeAsync(5000);
-      const result = await promise;
-
-      expect(result).toEqual({ value: "retried" });
-      vi.useRealTimers();
-    });
-
-    it("throws last error after all retries fail", async () => {
-      const apiError = new ApiClientError("persistent failure", 500);
-      vi.mocked(globalThis.fetch).mockRejectedValue(apiError);
-
-      await expect(apiCallWithRetry("test", {}, 1)).rejects.toThrow("persistent failure");
+      expect(mockExecuteWithRetry).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ maxRetries: 3 }),
+      );
     });
   });
 

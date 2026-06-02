@@ -115,7 +115,10 @@ export async function executeThroughCircuit<T>(
     if (fallback) {
       return fallback();
     }
-    throw new Error(`Circuit breaker is open for provider: ${providerId}`);
+    throw Object.assign(
+      new Error(`Circuit breaker is open for provider: ${providerId}`),
+      { code: "CIRCUIT_OPEN" as const },
+    );
   }
 
   let wasHalfOpenCall = false;
@@ -124,7 +127,10 @@ export async function executeThroughCircuit<T>(
       if (fallback) {
         return fallback();
       }
-      throw new Error(`Circuit breaker half-open concurrency limit reached for provider: ${providerId}`);
+      throw Object.assign(
+        new Error(`Circuit breaker half-open concurrency limit reached for provider: ${providerId}`),
+        { code: "CIRCUIT_HALF_OPEN_LIMIT" as const },
+      );
     }
     breaker.halfOpenActiveCalls++;
     wasHalfOpenCall = true;

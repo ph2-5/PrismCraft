@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Badge } from "@/shared/ui/badge";
 import {
@@ -10,6 +8,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { SyncStatusInfo } from "@/modules/sync";
+import { t } from "@/shared/constants";
 
 interface SyncStatusIndicatorProps {
   status: SyncStatusInfo;
@@ -24,30 +23,30 @@ export function SyncStatusIndicator({ status, onClick }: SyncStatusIndicatorProp
   const { lastSyncAt, pendingChanges, conflicts, isSyncing } = status;
 
   let icon = <CloudOff className="h-4 w-4" />;
-  let label = "未同步";
+  let label = t("sync.notSynced");
   let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
 
   if (isSyncing) {
     icon = <RefreshCw className="h-4 w-4 animate-spin" />;
-    label = "同步中...";
+    label = t("sync.syncingShort");
     variant = "secondary";
   } else if (conflicts > 0) {
     icon = <AlertTriangle className="h-4 w-4" />;
-    label = `${conflicts} 个冲突`;
+    label = t("sync.conflictCount", { count: conflicts });
     variant = "destructive";
   } else if (pendingChanges > 0) {
     icon = <Cloud className="h-4 w-4" />;
-    label = `${pendingChanges} 个待同步`;
+    label = t("sync.pendingSyncCount", { count: pendingChanges });
     variant = "secondary";
   } else if (lastSyncAt) {
     icon = <CheckCircle2 className="h-4 w-4" />;
-    label = "已同步";
+    label = t("sync.synced");
     variant = "default";
   }
 
   const timeText = lastSyncAt
-    ? `上次同步: ${new Date(lastSyncAt).toLocaleString("zh-CN")}`
-    : "尚未同步";
+    ? t("sync.lastSyncAt", { time: new Date(lastSyncAt).toLocaleString("zh-CN") })
+    : t("sync.notSyncedYetShort");
 
   return (
     <div
@@ -65,9 +64,9 @@ export function SyncStatusIndicator({ status, onClick }: SyncStatusIndicatorProp
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-md shadow-md border whitespace-nowrap z-50">
           <div className="space-y-1">
             <p>{timeText}</p>
-            {pendingChanges > 0 && <p>待同步变更: {pendingChanges}</p>}
-            {conflicts > 0 && <p>冲突: {conflicts}</p>}
-            <p className="text-muted-foreground">点击打开同步面板</p>
+            {pendingChanges > 0 && <p>{t("sync.pendingChanges", { count: pendingChanges })}</p>}
+            {conflicts > 0 && <p>{t("sync.conflictsLabel", { count: conflicts })}</p>}
+            <p className="text-muted-foreground">{t("sync.clickToOpen")}</p>
           </div>
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-popover" />
         </div>

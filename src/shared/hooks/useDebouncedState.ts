@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useCallback, useRef } from "react";
 
 export function useDebouncedState<T>(
@@ -16,10 +14,10 @@ export function useDebouncedState<T>(
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const immediateRef = useRef(options?.immediate ?? false);
   const valueRef = useRef(value);
-  // eslint-disable-next-line react-hooks/refs
+   
   valueRef.current = value;
   const onDebouncedUpdateRef = useRef(options?.onDebouncedUpdate);
-  // eslint-disable-next-line react-hooks/refs
+   
   onDebouncedUpdateRef.current = options?.onDebouncedUpdate;
 
   const setDebouncedState = useCallback(
@@ -95,7 +93,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   const callbackRef = useRef(callback);
   const [isPending, setIsPending] = useState(false);
 
-  // eslint-disable-next-line react-hooks/refs
+   
   callbackRef.current = callback;
 
   const debouncedCallback = useCallback(

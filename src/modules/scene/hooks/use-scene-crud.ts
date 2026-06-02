@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback } from "react";
 import type { Scene, Story } from "@/domain/schemas";
 import { sceneService } from "../services";

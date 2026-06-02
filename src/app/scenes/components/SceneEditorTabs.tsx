@@ -1,5 +1,3 @@
-"use client";
-
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
@@ -8,6 +6,7 @@ import { Button } from "@/shared/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import type { Scene } from "@/domain/schemas";
 import { X } from "lucide-react";
+import { t } from "@/shared/constants";
 import {
   typeSuggestions,
   timeSuggestions,
@@ -44,17 +43,17 @@ export function SceneEditorTabs({
   return (
     <Tabs defaultValue="basic" className="space-y-6">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="basic">基础设定</TabsTrigger>
-        <TabsTrigger value="atmosphere">氛围视觉</TabsTrigger>
-        <TabsTrigger value="camera">镜头设置</TabsTrigger>
+        <TabsTrigger value="basic">{t("scene.tabBasic")}</TabsTrigger>
+        <TabsTrigger value="atmosphere">{t("scene.tabAtmosphere")}</TabsTrigger>
+        <TabsTrigger value="camera">{t("scene.tabCamera")}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="basic" className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">场景名称</Label>
+          <Label htmlFor="name">{t("scene.name")}</Label>
           <Input
             id="name"
-            placeholder="输入场景名称..."
+            placeholder={t("scene.namePlaceholder")}
             value={currentScene.name}
             onChange={(e) =>
               setCurrentScene((prev) => ({
@@ -66,11 +65,11 @@ export function SceneEditorTabs({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="type">场景类型（自由输入）</Label>
+          <Label htmlFor="type">{t("scene.typeLabel")}</Label>
           <Input
             id="type"
             list="type-suggestions"
-            placeholder="例如：赛博朋克街区、魔法森林、太空站..."
+            placeholder={t("scene.typePlaceholder")}
             value={currentScene.type}
             onChange={(e) =>
               setCurrentScene((prev) => ({
@@ -80,8 +79,8 @@ export function SceneEditorTabs({
             }
           />
           <datalist id="type-suggestions">
-            {typeSuggestions.map((t) => (
-              <option key={t} value={t} />
+            {typeSuggestions.map((suggestion) => (
+              <option key={suggestion} value={suggestion} />
             ))}
           </datalist>
           <div className="flex flex-wrap gap-1 mt-2">
@@ -100,16 +99,16 @@ export function SceneEditorTabs({
               </Badge>
             ))}
             <span className="text-xs text-muted-foreground self-center">
-              ...等
+              {t("scene.etc")}
             </span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">场景描述</Label>
+          <Label htmlFor="description">{t("scene.description")}</Label>
           <Textarea
             id="description"
-            placeholder="详细描述场景的布局、特色、重要元素...自由发挥"
+            placeholder={t("scene.descriptionPlaceholder")}
             rows={4}
             value={currentScene.description}
             onChange={(e) =>
@@ -125,11 +124,11 @@ export function SceneEditorTabs({
       <TabsContent value="atmosphere" className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="timeOfDay">时间段</Label>
+            <Label htmlFor="timeOfDay">{t("scene.timeOfDay")}</Label>
             <Input
               id="timeOfDay"
               list="time-suggestions"
-              placeholder="例如：黄昏、午夜、极光之夜..."
+              placeholder={t("scene.timeOfDayPlaceholder")}
               value={currentScene.timeOfDay}
               onChange={(e) =>
                 setCurrentScene((prev) => ({
@@ -139,17 +138,17 @@ export function SceneEditorTabs({
               }
             />
             <datalist id="time-suggestions">
-              {timeSuggestions.map((t) => (
-                <option key={t} value={t} />
+              {timeSuggestions.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
               ))}
             </datalist>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="weather">天气/环境</Label>
+            <Label htmlFor="weather">{t("scene.weather")}</Label>
             <Input
               id="weather"
               list="weather-suggestions"
-              placeholder="例如：雷雨、极光、沙尘暴..."
+              placeholder={t("scene.weatherPlaceholder")}
               value={currentScene.weather}
               onChange={(e) =>
                 setCurrentScene((prev) => ({
@@ -167,11 +166,11 @@ export function SceneEditorTabs({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="mood">场景氛围</Label>
+          <Label htmlFor="mood">{t("scene.mood")}</Label>
           <Input
             id="mood"
             list="mood-suggestions"
-            placeholder="例如：神秘、史诗、压抑..."
+            placeholder={t("scene.moodPlaceholder")}
             value={currentScene.mood}
             onChange={(e) =>
               setCurrentScene((prev) => ({
@@ -201,17 +200,17 @@ export function SceneEditorTabs({
               </Badge>
             ))}
             <span className="text-xs text-muted-foreground self-center">
-              ...等
+              {t("scene.etc")}
             </span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label>场景元素</Label>
+          <Label>{t("scene.elements")}</Label>
           <div className="flex gap-2">
             <Input
               list="element-suggestions"
-              placeholder="输入元素，按回车添加..."
+              placeholder={t("scene.addElementPlaceholder")}
               value={customElement}
               onChange={(e) => setCustomElement(e.target.value)}
               onKeyDown={(e) => {
@@ -225,7 +224,7 @@ export function SceneEditorTabs({
             <Button
               onClick={() => addItem("elements", customElement)}
             >
-              添加
+              {t("common.add")}
             </Button>
           </div>
           <datalist id="element-suggestions">
@@ -263,17 +262,17 @@ export function SceneEditorTabs({
               </Badge>
             ))}
             <span className="text-xs text-muted-foreground self-center">
-              ...等
+              {t("scene.etc")}
             </span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label>色调风格</Label>
+          <Label>{t("scene.colorStyle")}</Label>
           <div className="flex gap-2">
             <Input
               list="color-suggestions"
-              placeholder="输入色调，按回车添加..."
+              placeholder={t("scene.addColorPlaceholder")}
               value={customColor}
               onChange={(e) => setCustomColor(e.target.value)}
               onKeyDown={(e) => {
@@ -285,7 +284,7 @@ export function SceneEditorTabs({
               className="flex-1"
             />
             <Button onClick={() => addItem("colors", customColor)}>
-              添加
+              {t("common.add")}
             </Button>
           </div>
           <datalist id="color-suggestions">
@@ -328,11 +327,11 @@ export function SceneEditorTabs({
 
       <TabsContent value="camera" className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="cameraAngle">镜头角度</Label>
+          <Label htmlFor="cameraAngle">{t("scene.cameraAngle")}</Label>
           <Input
             id="cameraAngle"
             list="angle-suggestions"
-            placeholder="例如：鸟瞰、POV第一人称、过肩镜头..."
+            placeholder={t("scene.cameraAnglePlaceholder")}
             value={currentScene.camera?.angle || ""}
             onChange={(e) =>
               setCurrentScene((prev) => ({
@@ -370,11 +369,11 @@ export function SceneEditorTabs({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="cameraDistance">镜头距离</Label>
+          <Label htmlFor="cameraDistance">{t("scene.cameraDistance")}</Label>
           <Input
             id="cameraDistance"
             list="distance-suggestions"
-            placeholder="例如：特写、全景..."
+            placeholder={t("scene.cameraDistancePlaceholder")}
             value={currentScene.camera?.distance || ""}
             onChange={(e) =>
               setCurrentScene((prev) => ({
@@ -415,11 +414,11 @@ export function SceneEditorTabs({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="cameraMovement">镜头运动</Label>
+          <Label htmlFor="cameraMovement">{t("scene.cameraMovement")}</Label>
           <Input
             id="cameraMovement"
             list="movement-suggestions"
-            placeholder="例如：环绕、跟随、手持晃动..."
+            placeholder={t("scene.cameraMovementPlaceholder")}
             value={currentScene.camera?.movement}
             onChange={(e) =>
               setCurrentScene((prev) => ({

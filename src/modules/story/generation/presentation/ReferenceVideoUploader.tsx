@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef } from "react";
 import {
   Upload,
@@ -29,6 +27,7 @@ import { Label } from "@/shared/ui/label";
 import { Switch } from "@/shared/ui/switch";
 import type { ReferenceVideoConfig } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 
 interface MinimalAsset {
@@ -46,15 +45,15 @@ interface ReferenceVideoUploaderProps {
 }
 
 const mimicryLevelLabels = {
-  light: "轻度模仿",
-  medium: "中度模仿",
-  deep: "深度模仿",
+  light: t("refVideo.lightMimicry"),
+  medium: t("refVideo.mediumMimicry"),
+  deep: t("refVideo.deepMimicry"),
 };
 
 const mimicryLevelDescriptions = {
-  light: "只参考视频的大致风格和氛围",
-  medium: "参考视频的构图和运镜",
-  deep: "深度模仿视频的所有元素",
+  light: t("refVideo.lightMimicryDesc"),
+  medium: t("refVideo.mediumMimicryDesc"),
+  deep: t("refVideo.deepMimicryDesc"),
 };
 
 export function ReferenceVideoUploader({
@@ -81,9 +80,9 @@ export function ReferenceVideoUploader({
         throw new Error(result.error || "上传响应无效");
       }
 
-      return result.data!.url;
+      return result.data.url;
     } catch (error) {
-      errorLogger.error("[ReferenceVideo] 上传失败:", error);
+      errorLogger.error(`[ReferenceVideo] ${t("error.uploadFailed")}:`, error);
       onError?.(extractErrorMessage(error));
       return null;
     }
@@ -91,13 +90,13 @@ export function ReferenceVideoUploader({
 
   const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith("video/")) {
-      onError?.("请选择视频文件");
+      onError?.(t("refVideo.selectVideoFile"));
       return;
     }
 
     const MAX_VIDEO_SIZE = 20 * 1024 * 1024;
     if (file.size > MAX_VIDEO_SIZE) {
-      onError?.("视频文件不能超过20MB，请压缩后上传");
+      onError?.(t("refVideo.videoSizeLimit"));
       return;
     }
 
@@ -117,7 +116,7 @@ export function ReferenceVideoUploader({
         name: file.name,
       });
     } catch {
-      onError?.("视频上传失败，请重试");
+      onError?.(t("refVideo.uploadFailedRetry"));
     } finally {
       setIsUploading(false);
     }
@@ -189,7 +188,7 @@ export function ReferenceVideoUploader({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Video className="w-4 h-4 text-purple-400" />
-          <Label className="text-purple-100">使用参考视频</Label>
+          <Label className="text-purple-100">{t("refVideo.useRefVideo")}</Label>
         </div>
         <Switch checked={config.enabled} onCheckedChange={toggleEnabled} />
       </div>
@@ -215,7 +214,7 @@ export function ReferenceVideoUploader({
                   <div className="flex items-center justify-between">
                     <div className="text-sm">
                       <p className="text-purple-100 font-medium">
-                        {config.name || "参考视频"}
+                        {config.name || t("refVideo.refVideoName")}
                       </p>
                     </div>
                     <Button
@@ -225,7 +224,7 @@ export function ReferenceVideoUploader({
                       className="gap-1"
                     >
                       <Trash2 className="w-4 h-4" />
-                      移除
+                      {t("refVideo.remove")}
                     </Button>
                   </div>
                 </div>
@@ -254,14 +253,14 @@ export function ReferenceVideoUploader({
                 {isUploading ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
-                    <p className="text-purple-100">正在上传...</p>
+                    <p className="text-purple-100">{t("refVideo.uploading")}</p>
                   </div>
                 ) : (
                   <>
                     <Upload className="w-12 h-12 mx-auto mb-4 text-purple-400" />
-                    <p className="text-purple-100 mb-2">上传参考视频</p>
+                    <p className="text-purple-100 mb-2">{t("refVideo.uploadRefVideo")}</p>
                     <p className="text-sm text-purple-300">
-                      点击或拖拽视频文件到此处
+                      {t("refVideo.clickOrDrag")}
                     </p>
                   </>
                 )}
@@ -275,7 +274,7 @@ export function ReferenceVideoUploader({
                   className="w-full bg-slate-800 border-purple-700/50 text-purple-100 hover:bg-purple-900/20"
                 >
                   <FolderOpen className="w-4 h-4 mr-2" />
-                  从素材库选择视频
+                  {t("refVideo.selectFromLibrary")}
                 </Button>
               )}
             </div>
@@ -286,7 +285,7 @@ export function ReferenceVideoUploader({
             <div className="space-y-3">
               <Label className="text-purple-100 flex items-center gap-2">
                 <Sliders className="w-4 h-4" />
-                模仿级别
+                {t("refVideo.mimicryLevel")}
               </Label>
               <Select
                 value={config.mimicryLevel}
@@ -320,7 +319,7 @@ export function ReferenceVideoUploader({
       <Dialog open={assetSelectorOpen} onOpenChange={setAssetSelectorOpen}>
         <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-4xl">
           <DialogHeader>
-            <DialogTitle>从素材库选择视频</DialogTitle>
+            <DialogTitle>{t("refVideo.selectFromLibrary")}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 py-4 max-h-96 overflow-y-auto">
             {assets.filter((asset) => asset.type === "video").length > 0 ? (
@@ -351,9 +350,9 @@ export function ReferenceVideoUploader({
             ) : (
               <div className="col-span-full text-center py-8 text-slate-400">
                 <Video className="w-12 h-12 mx-auto mb-3 text-slate-500" />
-                <p className="text-sm">素材库中还没有可用的视频</p>
+                <p className="text-sm">{t("refVideo.noVideosInLibrary")}</p>
                 <p className="text-xs text-slate-500 mt-1">
-                  请先在素材库中上传视频，或者从角色列表添加图片
+                  {t("refVideo.uploadImageOrVideoFirst")}
                 </p>
               </div>
             )}

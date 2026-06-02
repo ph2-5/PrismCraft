@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef } from "react";
 import { initSyncEngine, performSync } from "@/modules/sync";
 import { processPendingQueue, cleanCompletedRequests } from "@/infrastructure/ai-providers/offline-queue";

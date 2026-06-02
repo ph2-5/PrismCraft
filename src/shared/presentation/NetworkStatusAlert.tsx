@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { Wifi, WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -9,6 +7,7 @@ import {
   AlertTitle,
 } from "@/shared/ui/alert";
 import { useNetworkMonitor } from "@/shared/hooks/use-network-monitor";
+import { t } from "@/shared/constants/messages";
 
 const subscribeNoop = () => () => {};
 
@@ -52,11 +51,11 @@ export function NetworkStatusAlert() {
     const hours = Math.floor(minutes / 60);
 
     if (hours > 0) {
-      return `${hours}小时${minutes % 60}分钟`;
+      return t("network.hoursMinutes", { hours, minutes: minutes % 60 });
     } else if (minutes > 0) {
-      return `${minutes}分钟${seconds % 60}秒`;
+      return t("network.minutesSeconds", { minutes, seconds: seconds % 60 });
     } else {
-      return `${seconds}秒`;
+      return t("network.secondsOnly", { seconds });
     }
   };
 
@@ -69,12 +68,12 @@ export function NetworkStatusAlert() {
       <div className="fixed top-16 left-0 right-0 z-50 px-4">
         <Alert variant="destructive" className="max-w-2xl mx-auto">
           <WifiOff className="h-4 w-4" />
-          <AlertTitle>网络已断开</AlertTitle>
+          <AlertTitle>{t("network.disconnected")}</AlertTitle>
           <AlertDescription className="flex items-center justify-between">
             <span>
               {offlineDuration > 0
-                ? `已离线 ${formatOfflineDuration(offlineDuration)}`
-                : "请检查网络连接，恢复后将自动继续"}
+                ? t("network.offlineDuration", { duration: formatOfflineDuration(offlineDuration) })
+                : t("network.checkConnection")}
             </span>
             <Button
               variant="outline"
@@ -88,7 +87,7 @@ export function NetworkStatusAlert() {
               ) : (
                 <RefreshCw className="h-4 w-4 mr-2" />
               )}
-              {isReconnecting ? "连接中..." : "重新连接"}
+              {isReconnecting ? t("network.reconnecting") : t("network.reconnect")}
             </Button>
           </AlertDescription>
         </Alert>
@@ -101,9 +100,9 @@ export function NetworkStatusAlert() {
       <div className="fixed top-16 left-0 right-0 z-50 px-4">
         <Alert className="max-w-2xl mx-auto bg-green-900/20 border-green-800">
           <Wifi className="h-4 w-4 text-green-400" />
-          <AlertTitle className="text-green-300">网络已恢复</AlertTitle>
+          <AlertTitle className="text-green-300">{t("network.recovered")}</AlertTitle>
           <AlertDescription className="text-green-400">
-            已自动恢复网络连接，继续创作吧！
+            {t("network.recoveredDesc")}
           </AlertDescription>
         </Alert>
       </div>

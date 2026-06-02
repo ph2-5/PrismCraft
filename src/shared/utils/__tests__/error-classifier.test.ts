@@ -88,14 +88,14 @@ describe("error-classifier", () => {
     it("should return true for Error with network code", () => {
       mockClassifyError.mockReturnValue("network");
       const error = new Error("connection lost");
-      (error as Record<string, unknown>).code = "NETWORK_ERROR";
+      (error as unknown as Record<string, unknown>).code = "NETWORK_ERROR";
       expect(isNetworkError(error)).toBe(true);
     });
 
     it("should return true for Error with timeout code", () => {
       mockClassifyError.mockReturnValue("timeout");
       const error = new Error("request timed out");
-      (error as Record<string, unknown>).code = "TIMEOUT_ERROR";
+      (error as unknown as Record<string, unknown>).code = "TIMEOUT_ERROR";
       expect(isNetworkError(error)).toBe(true);
     });
 
@@ -122,14 +122,14 @@ describe("error-classifier", () => {
     it("should return network for network errors", () => {
       mockClassifyError.mockReturnValue("network");
       const error = new Error("network failure");
-      (error as Record<string, unknown>).code = "NETWORK_ERROR";
+      (error as unknown as Record<string, unknown>).code = "NETWORK_ERROR";
       expect(classifyErrorSeverity(error)).toBe("network");
     });
 
     it("should return network for timeout errors", () => {
       mockClassifyError.mockReturnValue("timeout");
       const error = new Error("request timeout");
-      (error as Record<string, unknown>).code = "TIMEOUT_ERROR";
+      (error as unknown as Record<string, unknown>).code = "TIMEOUT_ERROR";
       expect(classifyErrorSeverity(error)).toBe("network");
     });
 

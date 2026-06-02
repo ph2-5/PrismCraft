@@ -1,8 +1,8 @@
 import type { Character, CharacterOutfit } from "@/domain/schemas/character";
 import type { Scene } from "@/domain/schemas/scene";
-import type { Story, StoryBeat, ElementBinding, BeatCamera, ChainMode, BeatInput, FrameInput, VideoInput, PromptLab } from "@/domain/schemas/story";
+import type { Story, StoryBeat, ElementBinding, BeatCamera, PromptLab } from "@/domain/schemas/story";
 import type { VideoTask } from "@/domain/schemas/api";
-import type { StoryElement, ShotInstruction, FeatureAnchoringConfig, ConsistencyCheckResult, ShotReference, ShotGenerationStatus, ShotGenerationResult } from "@/domain/schemas/shot-system";
+import type { StoryElement, ShotInstruction, FeatureAnchoringConfig, ConsistencyCheckResult, ShotReference } from "@/domain/schemas/shot-system";
 
 let idCounter = 0;
 function nextId(prefix = "id") {

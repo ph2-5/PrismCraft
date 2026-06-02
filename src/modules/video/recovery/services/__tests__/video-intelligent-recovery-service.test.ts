@@ -3,7 +3,8 @@ import {
   getTaskRecoveryInfo,
   performIntelligentRecovery,
   checkForTokenWaste,
-} from "@/modules/video/recovery/services/video-intelligent-recovery-service";
+} from "@/modules/video";
+import type { VideoTask } from "@/domain/schemas";
 
 vi.mock("@/modules/video/recovery/services/video-verification-service", () => ({
   verifyVideoUrl: vi.fn().mockResolvedValue({
@@ -85,9 +86,7 @@ vi.mock("@/modules/video/task-management", () => ({
 }));
 
 import { container } from "@/infrastructure/di";
-import { verifyVideoUrl } from "@/modules/video/recovery/services/video-verification-service";
-import { checkForDuplicateVideos } from "@/modules/video/recovery/services/duplicate-detection-service";
-import { smartRetryEngine } from "@/modules/video/recovery/services/smart-retry-engine";
+import { verifyVideoUrl, checkForDuplicateVideos, smartRetryEngine } from "@/modules/video";
 import { TaskMachine } from "@/modules/video/task-management";
 
 function createMockTask(overrides: Record<string, unknown> = {}) {
@@ -187,7 +186,7 @@ describe("video-intelligent-recovery-service", () => {
         createMockTask()
       );
 
-      await getTaskRecoveryInfo("task-1", [createMockTask() as any]);
+      await getTaskRecoveryInfo("task-1", [createMockTask() as unknown as VideoTask]);
       expect(checkForDuplicateVideos).toHaveBeenCalled();
     });
 
@@ -271,7 +270,7 @@ describe("video-intelligent-recovery-service", () => {
         reason: "高度相似",
       });
 
-      const result = await getTaskRecoveryInfo("task-1", [createMockTask() as any]);
+      const result = await getTaskRecoveryInfo("task-1", [createMockTask() as unknown as VideoTask]);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value).not.toBeNull();

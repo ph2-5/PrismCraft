@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Story } from "@/domain/schemas";
@@ -7,9 +5,10 @@ import type { Result } from "@/domain/types";
 import type { DeleteCheckResult } from "@/domain/services";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants/messages";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
 
-interface EntityCRUDConfig<T extends { id: string; name: string; prompt: string }> {
+export interface EntityCRUDConfig<T extends { id: string; name: string; prompt: string }> {
   entity: T;
   setEntity: (update: T | ((prev: T) => T), shouldMarkDirty?: boolean) => void;
   generatedImage: string | null;
@@ -84,7 +83,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
 
     const trimmedName = (entity.name || "").trim();
     if (!trimmedName) {
-      showError("保存失败", nameValidationMessage);
+      showError(t("error.saveFailed"), nameValidationMessage);
       return;
     }
 
@@ -106,7 +105,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       if (entity.id) {
         const result = await service.update(newEntity.id, newEntity);
         if (!result.ok) throw result.error;
-        success("保存成功", `${entityLabel}信息已更新`);
+        success(t("success.saved"), t("crud.infoUpdated", { label: entityLabel }));
       } else {
         const result = await service.create(newEntity);
         if (!result.ok) throw result.error;
@@ -114,10 +113,10 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
           addAssetToLibrary(generatedImage, "image", newEntity.name || assetLabel, {
             type: assetBindType,
             id: result.value.id,
-            name: newEntity.name || `未命名${entityLabel}`,
+            name: newEntity.name || t("crud.unnamed", { label: entityLabel }),
           });
         }
-        success("创建成功", `新${entityLabel}已添加`);
+        success(t("success.created"), t("crud.added", { label: entityLabel }));
       }
 
       queryClient.invalidateQueries({ queryKey });
@@ -128,11 +127,11 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       setSaveStatus("saved");
     } catch (err) {
       errorLogger.error(`[${entityLabel}] Save failed`, err);
-      const message = err instanceof Error ? err.message : "未知错误";
+      const message = err instanceof Error ? err.message : t("error.unknown");
       markDirty(queryKey[0]);
       setSaveStatus("error");
       setSaveError(message);
-      showError("保存失败", message);
+      showError(t("error.saveFailed"), message);
     } finally {
       savingRef.current = false;
     }
@@ -146,10 +145,10 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       setDeleteDialogOpen(true);
     } else {
       const confirmed = await confirm({
-        title: "确认删除",
-        description: `确定删除${entityLabel}「${entity.name}」？此操作可通过恢复功能撤销`,
-        confirmText: "删除",
-        cancelText: "取消",
+        title: t("confirm.deleteTitle"),
+        description: t("crud.confirmDelete", { label: entityLabel, name: entity.name }),
+        confirmText: t("common.delete"),
+        cancelText: t("common.cancel"),
         variant: "danger",
       });
       if (confirmed) {
@@ -175,9 +174,9 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       setDeleteDialogOpen(false);
       setEntityToDelete(null);
       setReferenceCheck(null);
-      success("删除成功", `${entityLabel}已删除`);
+      success(t("success.deleted"), t("crud.deleted", { label: entityLabel }));
     } catch (err) {
-      showError("删除失败", err instanceof Error ? err.message : "未知错误");
+      showError(t("error.deleteFailed"), err instanceof Error ? err.message : t("error.unknown"));
     } finally {
       setIsDeleting(false);
     }

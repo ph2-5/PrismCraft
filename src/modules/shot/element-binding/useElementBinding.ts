@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useEffect } from "react";
 import { elementManager } from "./element-manager";
 import type { StoryElement, ElementType, AssetBinding } from "@/domain/schemas";

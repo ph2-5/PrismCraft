@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { DbRunResult } from "@/domain/ports/sync-port";
 
 const {
   mockSafeQuery,
@@ -60,7 +61,7 @@ let videoTaskStorage: typeof import("../video-tasks").videoTaskStorage;
 beforeEach(async () => {
   vi.clearAllMocks();
   mockSafeQuery.mockResolvedValue([]);
-  mockSafeRun.mockResolvedValue(undefined as any);
+  mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
   mockSafeTransaction.mockResolvedValue([]);
   const mod = await import("../video-tasks");
   videoTaskStorage = mod.videoTaskStorage;
@@ -69,7 +70,7 @@ beforeEach(async () => {
 describe("videoTaskStorage - 存储操作业务规则", () => {
   describe("createVideoTask", () => {
     it("UNIQUE 冲突时使用 IGNORE 策略跳过已存在任务", async () => {
-      mockSafeRun.mockResolvedValue(undefined as any);
+      mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
 
       await videoTaskStorage.createVideoTask({
         taskId: "task1",
@@ -95,7 +96,7 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
       mockSafeRun.mockResolvedValue({ changes: 1 });
 
       await videoTaskStorage.updateVideoTask("task1", {
-        expiresAt: 1700000000000 as any,
+        expiresAt: 1700000000000 as unknown as string,
       });
 
       const params = mockSafeRun.mock.calls[0][1] as unknown[];
@@ -106,7 +107,7 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
       mockSafeRun.mockResolvedValue({ changes: 1 });
 
       await videoTaskStorage.updateVideoTask("task1", {
-        expiresAt: 1700000000 as any,
+        expiresAt: 1700000000 as unknown as string,
       });
 
       const params = mockSafeRun.mock.calls[0][1] as unknown[];
@@ -127,7 +128,7 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
     it("非 Electron 路径使用 Promise.allSettled", async () => {
       mockIsElectron.mockReturnValue(false);
       mockSafeQuery.mockResolvedValue([]);
-      mockSafeRun.mockResolvedValue(undefined as any);
+      mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
 
       await videoTaskStorage.bulkPutVideoTasks([
         { taskId: "t1", status: "pending" },

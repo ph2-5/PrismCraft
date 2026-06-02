@@ -445,7 +445,7 @@ export function setupAssetHandlers(): void {
     },
   );
 
-  let sharpModule: any = null;
+  let sharpModule: typeof import("sharp") | null = null;
   import("sharp")
     .then((mod) => { sharpModule = mod.default || mod; })
     .catch(() => { logger.warn("[Assets] sharp not available, image processing via IPC disabled"); });

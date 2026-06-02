@@ -5,12 +5,9 @@ import {
   consistencyCheckResultSchema,
   shotReferenceSchema,
   shotGenerationStatusSchema,
-  shotGenerationResultSchema,
   fixedImageSchema,
   referenceVideoSchema,
-  templateConfigSchema,
   elementTypeSchema,
-  storyElementSchema,
   elementFeatureAnchorSchema,
 } from "@/domain/schemas/shot-system";
 

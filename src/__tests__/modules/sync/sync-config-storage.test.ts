@@ -1,5 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { SyncConfig } from "@/domain/types/sync";
+
+interface SyncServerInfo {
+  url: string;
+  connected: boolean;
+  lastConnectedAt: number | null;
+  serverVersion: string | null;
+  username?: string;
+  token?: string;
+}
+
+interface SyncConfigResult {
+  success: boolean;
+  error?: string;
+  config?: {
+    enabled: boolean;
+    autoSync: boolean;
+    syncInterval: number;
+    conflictStrategy: string;
+    endpoint: string;
+    deviceId: string;
+    server: SyncServerInfo | null;
+  };
+}
 
 const {
   mockLoadConfigAsync,
@@ -10,13 +32,13 @@ const {
   mockSsrfGuardAddWhitelist,
   mockSsrfGuardRemoveWhitelist,
 } = vi.hoisted(() => ({
-  mockLoadConfigAsync: vi.fn(),
-  mockSaveConfigAsync: vi.fn(),
-  mockKeyStorageSave: vi.fn(),
-  mockKeyStorageLoad: vi.fn(),
-  mockKeyStorageDelete: vi.fn(),
-  mockSsrfGuardAddWhitelist: vi.fn(),
-  mockSsrfGuardRemoveWhitelist: vi.fn(),
+  mockLoadConfigAsync: vi.fn<() => Promise<unknown>>(),
+  mockSaveConfigAsync: vi.fn<(config: unknown) => Promise<boolean>>(),
+  mockKeyStorageSave: vi.fn<(key: string, value: string) => Promise<unknown>>(),
+  mockKeyStorageLoad: vi.fn<(key: string) => Promise<unknown>>(),
+  mockKeyStorageDelete: vi.fn<(key: string) => Promise<unknown>>(),
+  mockSsrfGuardAddWhitelist: vi.fn<(url: string) => void>(),
+  mockSsrfGuardRemoveWhitelist: vi.fn<(url: string) => void>(),
 }));
 
 vi.mock("../../../../electron/src/handlers/config", () => ({
@@ -94,17 +116,17 @@ describe("sync-config-storage", () => {
         value: JSON.stringify({ username: "admin", token: "sk-secret-token" }),
       });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.enabled).toBe(true);
-      expect(result.config.autoSync).toBe(true);
-      expect(result.config.syncInterval).toBe(30000);
-      expect(result.config.conflictStrategy).toBe("last-write-wins");
-      expect(result.config.server.url).toBe("https://sync.example.com");
-      expect(result.config.server.connected).toBe(true);
-      expect(result.config.server.username).toBe("admin");
-      expect(result.config.server.token).toBe("***");
+      expect(result.config!.enabled).toBe(true);
+      expect(result.config!.autoSync).toBe(true);
+      expect(result.config!.syncInterval).toBe(30000);
+      expect(result.config!.conflictStrategy).toBe("last-write-wins");
+      expect(result.config!.server!.url).toBe("https://sync.example.com");
+      expect(result.config!.server!.connected).toBe(true);
+      expect(result.config!.server!.username).toBe("admin");
+      expect(result.config!.server!.token).toBe("***");
     });
 
     it("应将 token 脱敏为 *** 而非返回明文", async () => {
@@ -130,11 +152,11 @@ describe("sync-config-storage", () => {
         value: JSON.stringify({ username: "user1", token: "sk-very-long-secret-token" }),
       });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.server.token).toBe("***");
-      expect(result.config.server.token).not.toContain("sk-very-long-secret-token");
+      expect(result.config!.server!.token).toBe("***");
+      expect(result.config!.server!.token).not.toContain("sk-very-long-secret-token");
     });
 
     it("无加密凭证时应返回空 username 和空 token 标记", async () => {
@@ -157,24 +179,24 @@ describe("sync-config-storage", () => {
       });
       mockKeyStorageLoad.mockResolvedValue({ ok: false, error: "Not found" });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.server.username).toBe("");
-      expect(result.config.server.token).toBe("");
+      expect(result.config!.server!.username).toBe("");
+      expect(result.config!.server!.token).toBe("");
     });
 
     it("无普通配置时应返回默认同步配置", async () => {
       mockLoadConfigAsync.mockResolvedValue({ ...DEFAULT_APP_CONFIG });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.enabled).toBe(false);
-      expect(result.config.autoSync).toBe(true);
-      expect(result.config.syncInterval).toBe(30000);
-      expect(result.config.conflictStrategy).toBe("last-write-wins");
-      expect(result.config.server).toBeNull();
+      expect(result.config!.enabled).toBe(false);
+      expect(result.config!.autoSync).toBe(true);
+      expect(result.config!.syncInterval).toBe(30000);
+      expect(result.config!.conflictStrategy).toBe("last-write-wins");
+      expect(result.config!.server).toBeNull();
     });
 
     it("server 为 null 且有旧 endpoint 时应自动迁移为 server 对象", async () => {
@@ -191,15 +213,15 @@ describe("sync-config-storage", () => {
         },
       });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.endpoint).toBe("https://old-sync.example.com");
-      expect(result.config.server).not.toBeNull();
-      expect(result.config.server.url).toBe("https://old-sync.example.com");
-      expect(result.config.server.connected).toBe(false);
-      expect(result.config.server.username).toBe("");
-      expect(result.config.server.token).toBe("");
+      expect(result.config!.endpoint).toBe("https://old-sync.example.com");
+      expect(result.config!.server).not.toBeNull();
+      expect(result.config!.server!.url).toBe("https://old-sync.example.com");
+      expect(result.config!.server!.connected).toBe(false);
+      expect(result.config!.server!.username).toBe("");
+      expect(result.config!.server!.token).toBe("");
     });
 
     it("keyStorage 返回空值时应视为无凭证", async () => {
@@ -222,11 +244,11 @@ describe("sync-config-storage", () => {
       });
       mockKeyStorageLoad.mockResolvedValue({ ok: true, value: null });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.server.username).toBe("");
-      expect(result.config.server.token).toBe("");
+      expect(result.config!.server!.username).toBe("");
+      expect(result.config!.server!.token).toBe("");
     });
   });
 
@@ -251,17 +273,17 @@ describe("sync-config-storage", () => {
         },
       };
 
-      const result = await handleSyncConfig("POST", { config: newConfig });
+      const result = await handleSyncConfig("POST", { config: newConfig }) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
       expect(mockSaveConfigAsync).toHaveBeenCalled();
 
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0];
+      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, Record<string, unknown>>;
       expect(savedConfig.sync.enabled).toBe(true);
       expect(savedConfig.sync.autoSync).toBe(true);
       expect(savedConfig.sync.syncInterval).toBe(60000);
       expect(savedConfig.sync.conflictStrategy).toBe("local-wins");
-      expect(savedConfig.sync.server.url).toBe("https://sync.example.com");
+      expect((savedConfig.sync.server as Record<string, unknown>).url).toBe("https://sync.example.com");
     });
 
     it("应将敏感字段（username/token）保存到 keyStorage", async () => {
@@ -315,9 +337,9 @@ describe("sync-config-storage", () => {
       });
 
       expect(mockSaveConfigAsync).toHaveBeenCalled();
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0];
-      expect(savedConfig.sync.server.username).toBeUndefined();
-      expect(savedConfig.sync.server.token).toBeUndefined();
+      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, Record<string, unknown>>;
+      expect((savedConfig.sync.server as Record<string, unknown>).username).toBeUndefined();
+      expect((savedConfig.sync.server as Record<string, unknown>).token).toBeUndefined();
     });
 
     it("服务器 URL 变更时应更新 SSRF 白名单（移除旧 URL，添加新 URL）", async () => {
@@ -524,7 +546,7 @@ describe("sync-config-storage", () => {
           deviceId: "device-1",
           server: null,
         },
-      });
+      }) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();

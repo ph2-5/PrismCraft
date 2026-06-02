@@ -1,9 +1,8 @@
-"use client";
-
 import { Layers, Zap, Video, Sparkles } from "lucide-react";
 import type { Character, StoryBeat, StoryElement } from "@/domain/schemas";
 import { ElementBindingPanel } from "../ElementBindingPanel";
 import { ShotReferenceConfig, ReferenceVideoUploader, PromptPreview } from "@/modules/story/generation";
+import { t } from "@/shared/constants";
 
 interface MinimalAsset {
   id: string;
@@ -34,7 +33,7 @@ export function SettingsTabContent({
       <div className="bg-muted/30 rounded-lg p-4 border border-border">
         <h4 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <Layers className="w-4 h-4 text-primary" />
-          元素绑定
+          {t("beat.elementBinding")}
         </h4>
         <ElementBindingPanel
           beat={beat}
@@ -48,7 +47,7 @@ export function SettingsTabContent({
       <div className="bg-muted/30 rounded-lg p-4 border border-border">
         <h4 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <Zap className="w-4 h-4 text-primary" />
-          引用配置
+          {t("beat.referenceConfig")}
         </h4>
         <ShotReferenceConfig
           beat={beat}
@@ -60,7 +59,7 @@ export function SettingsTabContent({
       <div className="bg-muted/30 rounded-lg p-4 border border-border">
         <h4 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <Video className="w-4 h-4 text-primary" />
-          参考视频
+          {t("beat.referenceVideo")}
         </h4>
         <ReferenceVideoUploader
           referenceVideo={beat.referenceVideo}
@@ -74,7 +73,7 @@ export function SettingsTabContent({
       <div className="bg-muted/30 rounded-lg p-4 border border-border">
         <h4 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
-          提示词预览
+          {t("beat.promptPreview")}
         </h4>
         <PromptPreview
           beat={beat}

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 describe("R32: Batch generation loops must check cancellation on component unmount", () => {
   it("should stop batch loop when cancelledRef is set to true", async () => {

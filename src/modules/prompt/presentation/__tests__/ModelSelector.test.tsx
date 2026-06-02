@@ -12,7 +12,7 @@ const { mockLoadConfig, mockPreferencesGet, mockPreferencesSet, mockPreferencesR
 }));
 
 vi.mock("@/shared/api-config", () => ({
-  loadConfig: (...args: any[]) => mockLoadConfig(...(args as [any])),
+  loadConfig: (...args: []) => mockLoadConfig(...args),
 }));
 
 vi.mock("@/shared/utils/preferences", () => ({
@@ -34,9 +34,9 @@ vi.mock("@/shared/error-logger", () => ({
   },
 }));
 
-vi.mock("next/link", () => ({
-  default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => (
-    <a href={href} {...props}>{children}</a>
+vi.mock("react-router-dom", () => ({
+  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string }) => (
+    <a href={to} {...props}>{children}</a>
   ),
 }));
 
@@ -78,7 +78,7 @@ vi.mock("@/infrastructure/di", () => ({
   container: {},
 }));
 
-import { ModelSelector, useModelSelection } from "@/modules/prompt/presentation/ModelSelector";
+import { ModelSelector, useModelSelection } from "@/modules/prompt";
 import type { ModelSelection } from "@/domain/schemas";
 
 const mockConfig = {

@@ -21,7 +21,7 @@ vi.mock(
 import { planStory, checkTextApiConfig } from "../story-planning-service";
 import { container } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
-import { generateStoryPlanWithValidation } from "@/modules/shot/shot-generation/story-generation-pipeline";
+import { generateStoryPlanWithValidation } from "@/modules/shot";
 
 const mockStory: Story = {
   id: "story-1",

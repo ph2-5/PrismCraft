@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useCallback, useRef } from "react";
 import { logger } from "@/config/constants";
 import { errorLogger } from "@/shared/error-logger";

@@ -1,28 +1,17 @@
-"use client";
-
 import React, {
   createContext,
   useContext,
   useMemo,
   useEffect,
   useRef,
-  useCallback,
-  useState,
 } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { t } from "@/shared/constants/messages";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
 import { errorLogger } from "@/shared/error-logger";
 import { container } from "@/infrastructure/di";
-import { useVideoTaskManager, useVideoTaskStore, removeCachedImage, getImageUrlWithCache } from "@/modules/video";
+import { useVideoTaskManager, useVideoTaskStore } from "@/modules/video";
 import { storyService } from "@/modules/story";
-import {
-  buildVideoUrlUpdates,
-  applyVideoUrlUpdates,
-  buildCacheRequests,
-  filterRemoteCacheRequests,
-  collectBeatRemoteImageUrls,
-  syncStoriesWithVideoUrls,
-} from "@/modules/story/generation";
 import { characterService } from "@/modules/character";
 import { sceneService } from "@/modules/scene";
 import type { VideoModelFormat } from "@/domain/types";
@@ -37,9 +26,11 @@ import {
   useBatchGenerator,
   useStorySaver,
 } from "@/modules/story";
+import { useStoryActions } from "./useStoryActions";
+import { useStoryPersistence } from "./useStoryPersistence";
+import { useStoryVideo } from "./useStoryVideo";
 
 interface StoryContextValue {
-  // Story state
   stories: ReturnType<typeof useStoryState>["stories"];
   currentStory: ReturnType<typeof useStoryState>["currentStory"];
   beats: ReturnType<typeof useStoryState>["beats"];
@@ -67,7 +58,6 @@ interface StoryContextValue {
   deleteBeat: ReturnType<typeof useStoryState>["deleteBeat"];
   moveBeat: ReturnType<typeof useStoryState>["moveBeat"];
 
-  // Asset loader
   characters: ReturnType<typeof useAssetLoader>["characters"];
   scenes: ReturnType<typeof useAssetLoader>["scenes"];
   assets: ReturnType<typeof useAssetLoader>["assets"];
@@ -75,7 +65,6 @@ interface StoryContextValue {
   charactersRef: ReturnType<typeof useAssetLoader>["charactersRef"];
   scenesRef: ReturnType<typeof useAssetLoader>["scenesRef"];
 
-  // Upload handlers
   handleUploadKeyframe: ReturnType<
     typeof useUploadHandlers
   >["handleUploadKeyframe"];
@@ -87,11 +76,9 @@ interface StoryContextValue {
   >["handleUploadLastFrame"];
   handleUploadVideo: ReturnType<typeof useUploadHandlers>["handleUploadVideo"];
 
-  // Planner
   planStoryWithAI: ReturnType<typeof useStoryPlanner>["planStoryWithAI"];
   isPlanningStory: ReturnType<typeof useStoryPlanner>["isPlanningStory"];
 
-  // Keyframe generator
   generateKeyframe: ReturnType<typeof useKeyframeGenerator>["generateKeyframe"];
   regenerateKeyframe: ReturnType<
     typeof useKeyframeGenerator
@@ -100,7 +87,6 @@ interface StoryContextValue {
     typeof useKeyframeGenerator
   >["generatingKeyframe"];
 
-  // Frame pair generator
   generateFramePair: ReturnType<
     typeof useFramePairGenerator
   >["generateFramePair"];
@@ -108,14 +94,11 @@ interface StoryContextValue {
     typeof useFramePairGenerator
   >["generatingFramePair"];
 
-  // Video generator
   generateVideoNew: ReturnType<typeof useVideoGenerator>["generateVideoNew"];
   generatingVideo: ReturnType<typeof useVideoGenerator>["generatingVideo"];
 
-  // Combined generation state
   generatingBeats: Set<string>;
 
-  // Batch generator
   batchGenerateKeyframes: ReturnType<
     typeof useBatchGenerator
   >["batchGenerateKeyframes"];
@@ -126,7 +109,6 @@ interface StoryContextValue {
     typeof useBatchGenerator
   >["batchGenerateVideos"];
 
-  // Story saver
   handleSave: ReturnType<typeof useStorySaver>["handleSave"];
   handleDeleteStory: ReturnType<typeof useStorySaver>["handleDeleteStory"];
   performDeleteStory: ReturnType<typeof useStorySaver>["performDeleteStory"];
@@ -156,7 +138,6 @@ interface StoryContextValue {
   deleteDialogOpen: ReturnType<typeof useStorySaver>["deleteDialogOpen"];
   setDeleteDialogOpen: ReturnType<typeof useStorySaver>["setDeleteDialogOpen"];
 
-  // Video task manager
   tasks: ReturnType<typeof useVideoTaskManager>["tasks"];
   addTask: ReturnType<typeof useVideoTaskManager>["addTask"];
   createTask: ReturnType<typeof useVideoTaskManager>["createTask"];
@@ -164,15 +145,12 @@ interface StoryContextValue {
   removeTask: ReturnType<typeof useVideoTaskManager>["removeTask"];
   removeTasks: ReturnType<typeof useVideoTaskManager>["removeTasks"];
 
-  // Toast
   success: (title: string, description?: string) => void;
   showError: (title: string, description?: string) => void;
 
-  // Save status
   saveStatus: SaveStatus;
   saveError: string;
 
-  // Video URL persist guard
   isVideoUrlPersisting: boolean;
 }
 
@@ -274,48 +252,10 @@ function useStoryContext(): StoryContextValue {
     },
   });
 
-  const deleteBeatWithCleanup = useCallback(async (beatId: string) => {
-    const beat = storyState.beatsRef.current.find((b) => b.id === beatId);
-    try {
-      await useVideoTaskStore.getState().removeTasksByBeatId(beatId);
-    } catch (e) {
-      errorLogger.warn("[StoryProvider] 删除beat关联VideoTask失败", e);
-    }
-    if (beat) {
-      for (const url of collectBeatRemoteImageUrls(beat)) {
-        try {
-          await removeCachedImage(url);
-        } catch (e) {
-          errorLogger.debug("[StoryProvider] 清理图片缓存失败", e);
-        }
-      }
-    }
-    storyState.deleteBeat(beatId);
-  }, [storyState]);
-
-  const switchToStory = useCallback(async (storyId: string) => {
-    const result = await storyService.getById(storyId);
-    if (result.ok) {
-      const fresh = result.value;
-      storyState.setStories((prev) =>
-        prev.map((s) => (s.id === fresh.id ? fresh : s)),
-      );
-      storyState.setCurrentStory(fresh, true);
-      storyState.setBeats(fresh.beats || [], true);
-      storyState.markClean("story");
-      return;
-    }
-    const cached = storyState.stories.find((s) => s.id === storyId);
-    if (cached) {
-      storyState.setCurrentStory(cached, true);
-      storyState.setBeats(cached.beats || [], true);
-      storyState.markClean("story");
-      errorLogger.warn("[StoryProvider] 从数据库加载故事失败，使用内存缓存", result.error);
-      return;
-    }
-    errorLogger.warn("[StoryProvider] 切换故事失败", result.error);
-    showError("切换失败", "无法加载故事数据，请重试");
-  }, [storyState, showError]);
+  const { deleteBeatWithCleanup, switchToStory } = useStoryActions({
+    storyState,
+    showError,
+  });
 
   const { updateRecommendedTemplates } = storySaver;
 
@@ -332,142 +272,25 @@ function useStoryContext(): StoryContextValue {
 
   const currentStoryId = storyState.currentStory?.id;
 
-  const allCompletedTaskUrls = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const task of videoTaskManager.tasks) {
-      if (task.beatId && task.status === "completed" && task.videoUrl) {
-        map.set(task.beatId, task.videoUrl);
-      }
-    }
-    return map;
-  }, [videoTaskManager.tasks]);
+  const { allCompletedTaskUrls, completedTaskUrls, generatingBeats } =
+    useStoryVideo({
+      tasks: videoTaskManager.tasks,
+      currentStoryId,
+      generatingKeyframe: keyframeGenerator.generatingKeyframe,
+      generatingFramePair: framePairGenerator.generatingFramePair,
+      generatingVideo: videoGenerator.generatingVideo,
+    });
 
-  const completedTaskUrls = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const task of videoTaskManager.tasks) {
-      if (task.beatId && task.status === "completed" && task.videoUrl) {
-        if (currentStoryId && task.storyId && task.storyId !== currentStoryId) continue;
-        map.set(task.beatId, task.videoUrl);
-      }
-    }
-    return map;
-  }, [videoTaskManager.tasks, currentStoryId]);
-
-  const setBeatsRef = useRef(storyState.setBeats);
-  useEffect(() => { setBeatsRef.current = storyState.setBeats; }, [storyState.setBeats]);
-  const setStoriesRef = useRef(storyState.setStories);
-  useEffect(() => { setStoriesRef.current = storyState.setStories; }, [storyState.setStories]);
-  const currentStoryRef = useRef(storyState.currentStory);
-  useEffect(() => { currentStoryRef.current = storyState.currentStory; }, [storyState.currentStory]);
-
-  const [isVideoUrlPersisting, setIsVideoUrlPersisting] = useState(false);
-  const isPersistingRef = useRef(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const updateVideoUrls = async () => {
-      const currentBeats = storyState.beatsRef.current;
-      const updates = buildVideoUrlUpdates(currentBeats, completedTaskUrls);
-      if (updates.length === 0) return;
-
-      if (!cancelled) {
-        setBeatsRef.current((prev) => applyVideoUrlUpdates(prev, updates));
-      }
-
-      if (!cancelled) {
-        try {
-          const allPersistData: Array<{
-            id: string;
-            keyframeImageUrl?: string;
-            firstFrameImageUrl?: string;
-            lastFrameImageUrl?: string;
-            videoUrl?: string;
-            localKeyframePath?: string;
-            localFirstFramePath?: string;
-            localLastFramePath?: string;
-            localVideoPath?: string;
-          }> = [];
-
-          for (const [beatId, videoUrl] of allCompletedTaskUrls.entries()) {
-            allPersistData.push({ id: beatId, videoUrl });
-          }
-
-          if (allPersistData.length > 0) {
-            isPersistingRef.current = true;
-            setIsVideoUrlPersisting(true);
-            try {
-              await storyService.updateBeatMediaUrls(allPersistData);
-              if (!cancelled) {
-                setStoriesRef.current((prev) =>
-                  syncStoriesWithVideoUrls(prev, allCompletedTaskUrls),
-                );
-              }
-            } catch (e) {
-              if (!cancelled) {
-                errorLogger.warn("自动保存视频URL失败", e);
-                showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
-              }
-            } finally {
-              isPersistingRef.current = false;
-              if (!cancelled) {
-                setIsVideoUrlPersisting(false);
-              }
-            }
-          }
-
-          const currentStory = currentStoryRef.current;
-          if (currentStory?.id) {
-            const result = await storyService.update(currentStory.id, {
-              id: currentStory.id,
-              updatedAt: Math.floor(Date.now() / 1000),
-            });
-            if (!result.ok) throw result.error;
-          }
-
-          if (!cancelled) {
-            setBeatsRef.current((latestBeats) => {
-              const cacheRequests = filterRemoteCacheRequests(buildCacheRequests(latestBeats));
-              for (const request of cacheRequests) {
-                const { beatId, field, url } = request;
-                (async () => {
-                  try {
-                    const cacheResult = await getImageUrlWithCache(url);
-                    if (cancelled) return;
-                    if (cacheResult.ok && cacheResult.value.fromCache && cacheResult.value.url.startsWith("file://")) {
-                      const localPath = cacheResult.value.url.replace(/^file:\/\//, "");
-                      setBeatsRef.current((prev) =>
-                        prev.map((b) => b.id === beatId ? { ...b, [field]: localPath } : b),
-                      );
-                    }
-                  } catch (e) {
-                    errorLogger.debug("[StoryProvider] 图片缓存失败", e);
-                  }
-                })();
-              }
-
-              return latestBeats;
-            });
-          }
-        } catch (e) {
-          errorLogger.warn("自动保存视频URL失败", e);
-          showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
-        }
-      }
-    };
-    updateVideoUrls();
-    return () => {
-      cancelled = true;
-    };
-  }, [completedTaskUrls, allCompletedTaskUrls, storyState.beatsRef]);
-
-  const generatingBeats = useMemo(() => {
-    const set = new Set<string>();
-    if (keyframeGenerator.generatingKeyframe) set.add(keyframeGenerator.generatingKeyframe);
-    if (framePairGenerator.generatingFramePair) set.add(framePairGenerator.generatingFramePair);
-    if (videoGenerator.generatingVideo) set.add(videoGenerator.generatingVideo);
-    return set;
-  }, [keyframeGenerator.generatingKeyframe, framePairGenerator.generatingFramePair, videoGenerator.generatingVideo]);
+  const { isVideoUrlPersisting } = useStoryPersistence({
+    beatsRef: storyState.beatsRef,
+    setBeats: storyState.setBeats,
+    setStories: storyState.setStories,
+    currentStory: storyState.currentStory,
+    currentStoryId,
+    completedTaskUrls,
+    allCompletedTaskUrls,
+    showErrorRef,
+  });
 
   return useMemo(
     () => ({
@@ -637,7 +460,7 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
       .catch((err) => {
         if (!cancelled) {
           errorLogger.warn("Failed to load stories from storyService", err);
-          showErrorRef2.current("加载失败", "故事列表加载失败，请刷新页面重试");
+          showErrorRef2.current(t("error.loadFailed"), "故事列表加载失败，请刷新页面重试");
         }
       });
     return () => {

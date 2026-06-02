@@ -1,11 +1,35 @@
 import { describe, it, expect } from "vitest";
 
+interface TestBeat {
+  id?: string;
+  characterIds?: string[];
+  characters?: string[];
+  character?: string;
+  scene?: string;
+  sceneId?: string;
+  [key: string]: unknown;
+}
+
+interface TestStory {
+  id: string;
+  characters?: string[];
+  scenes?: string[];
+  beats?: TestBeat[];
+  [key: string]: unknown;
+}
+
+interface CleanedStory extends TestStory {
+  characters: string[];
+  scenes: string[];
+  beats: TestBeat[];
+}
+
 function cleanCharacterFromStories(
-  stories: any[],
+  stories: TestStory[],
   characterId: string,
-): any[] {
+): CleanedStory[] {
   return stories.map((story) => {
-    const updatedBeats = (story.beats || []).map((beat: any) => {
+    const updatedBeats = (story.beats || []).map((beat) => {
       const updated = { ...beat };
       if (updated.characterIds?.includes(characterId)) {
         updated.characterIds = updated.characterIds.filter(
@@ -29,13 +53,13 @@ function cleanCharacterFromStories(
       ...story,
       characters: updatedCharacters,
       beats: updatedBeats,
-    };
+    } as CleanedStory;
   });
 }
 
-function cleanSceneFromStories(stories: any[], sceneId: string): any[] {
+function cleanSceneFromStories(stories: TestStory[], sceneId: string): CleanedStory[] {
   return stories.map((story) => {
-    const updatedBeats = (story.beats || []).map((beat: any) => {
+    const updatedBeats = (story.beats || []).map((beat) => {
       const updated = { ...beat };
       if (updated.scene === sceneId) {
         delete updated.scene;
@@ -48,7 +72,7 @@ function cleanSceneFromStories(stories: any[], sceneId: string): any[] {
     const updatedScenes = (story.scenes || []).filter(
       (sid: string) => sid !== sceneId,
     );
-    return { ...story, scenes: updatedScenes, beats: updatedBeats };
+    return { ...story, scenes: updatedScenes, beats: updatedBeats } as CleanedStory;
   });
 }
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { Camera } from "lucide-react";
 import { Label } from "@/shared/ui/label";
 import {
@@ -15,6 +13,7 @@ import {
   CAMERA_MOVEMENT_OPTIONS,
   CAMERA_ANGLE_OPTIONS,
 } from "@/modules/shot";
+import { t } from "@/shared/constants";
 
 interface ShotInstructionSectionProps {
   beat: StoryBeat;
@@ -49,11 +48,11 @@ export function ShotInstructionSection({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
         <Camera className="w-5 h-5 text-primary" />
-        镜头指令
+        {t("beat.shotInstruction")}
       </h3>
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <Label className="text-foreground mb-2 block">景别</Label>
+          <Label className="text-foreground mb-2 block">{t("beat.shotSize")}</Label>
           <Select
             value={currentInstruction.shotSize}
             onValueChange={(value) =>
@@ -75,7 +74,7 @@ export function ShotInstructionSection({
           </Select>
         </div>
         <div>
-          <Label className="text-foreground mb-2 block">运镜</Label>
+          <Label className="text-foreground mb-2 block">{t("beat.cameraMovement")}</Label>
           <Select
             value={currentInstruction.cameraMovement}
             onValueChange={(value) =>
@@ -98,7 +97,7 @@ export function ShotInstructionSection({
           </Select>
         </div>
         <div>
-          <Label className="text-foreground mb-2 block">角度</Label>
+          <Label className="text-foreground mb-2 block">{t("beat.angle")}</Label>
           <Select
             value={currentInstruction.cameraAngle}
             onValueChange={(value) =>

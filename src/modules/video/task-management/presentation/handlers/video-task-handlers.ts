@@ -7,6 +7,7 @@ import { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } fro
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { errorLogger } from "@/shared/error-logger";
 import { isAllowedVideoUrl } from "@/shared/utils/url-validation";
+import { t } from "@/shared/constants/messages";
 import { useCacheOperations } from "./use-cache-operations";
 import { useTaskSelection } from "./use-task-selection";
 
@@ -52,33 +53,33 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   }, []);
 
   const handleRecoverVideo = async () => {
-    if (!recoveryTaskId.trim()) { error("请输入任务ID", "请输入要找回的视频任务ID"); return; }
+    if (!recoveryTaskId.trim()) { error(t("video.enterTaskId"), t("video.enterTaskIdHint")); return; }
     setIsRecovering(true);
     try {
       const result = await recoverVideoByTaskId(recoveryTaskId.trim());
       if (result.ok) {
-        success("找回成功", result.value.message);
+        success(t("video.recovered"), result.value.message);
         setRecoveryTaskId("");
         if (onTaskRecovered && result.value.status) onTaskRecovered(recoveryTaskId.trim(), result.value.status, result.value.videoUrl);
       } else {
-        const errMsg = result.error instanceof Error ? result.error.message : "未知错误";
-        error("找回失败", errMsg);
+        const errMsg = result.error instanceof Error ? result.error.message : t("error.unknown");
+        error(t("error.operationFailed"), errMsg);
       }
-    } catch (err) { error("找回失败", err instanceof Error ? err.message : "未知错误"); }
+    } catch (err) { error(t("error.operationFailed"), err instanceof Error ? err.message : t("error.unknown")); }
     finally { setIsRecovering(false); }
   };
 
   const handleCopyTracking = async (task: VideoTask) => {
     const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
     const result = await copyTrackingInfoToClipboard(trackingInfo);
-    if (result.ok) success("复制成功", "任务追踪信息已复制到剪贴板");
-    else error("复制失败", "无法复制信息到剪贴板");
+    if (result.ok) success(t("video.copySuccess"), t("video.trackingCopied"));
+    else error(t("error.copyFailed"), t("error.clipboardUnavailable"));
   };
 
   const handleOpenCloudLink = (task: VideoTask) => {
     const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
     const opened = openTaskQueryLink(trackingInfo);
-    if (!opened) error("无法打开链接", "请手动打开云服务商控制台查询");
+    if (!opened) error(t("error.cannotOpenLink"), t("video.openCloudConsoleHint"));
   };
 
   const handleOpenPreview = (task: VideoTask) => { if (task.videoUrl) openPreview(task); };
@@ -86,40 +87,40 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   const handleManualPoll = async (task: VideoTask) => {
     if (!pollTask) return;
     setPollingTaskId(task.taskId);
-    try { await pollTask(task.taskId); success("查询成功", "已手动查询任务状态已更新"); }
-    catch (err) { errorLogger.error("[VideoTaskHandlers] 手动轮询失败", err instanceof Error ? err : undefined); error("查询失败", "查询任务状态时出错"); }
+    try { await pollTask(task.taskId); success(t("video.querySuccess"), t("video.querySuccessDesc")); }
+    catch (err) { errorLogger.error("[VideoTaskHandlers] 手动轮询失败", err instanceof Error ? err : undefined); error(t("error.operationFailed"), t("error.queryTaskStatusFailed")); }
     finally { setPollingTaskId(null); }
   };
 
   const handleRetryTask = async (task: VideoTask) => {
-    if (!task.beatId) { error("无法重试", "该任务没有关联的分镜ID"); return; }
+    if (!task.beatId) { error(t("error.cannotRetry"), t("video.noBeatId")); return; }
     setRetryingTaskId(task.taskId);
-    try { guardedPush(`/story/beat/${task.beatId}`); success("跳转成功", "已跳转到分镜详情页，请重新生成视频"); }
-    catch (err) { error("跳转失败", err instanceof Error ? err.message : "未知错误"); }
+    try { guardedPush(`/story/beat/${task.beatId}`); success(t("video.jumpSuccess"), t("video.jumpToBeatDesc")); }
+    catch (err) { error(t("error.operationFailed"), err instanceof Error ? err.message : t("error.unknown")); }
     finally { setRetryingTaskId(null); }
   };
 
   const handleCancelTask = async (task: VideoTask) => {
     setCancellingTaskId(task.taskId);
-    try { await useVideoTaskStore.getState().cancelTask(task.taskId); success("已取消", "视频生成任务已取消"); }
-    catch (err) { error("取消失败", err instanceof Error ? err.message : "未知错误"); }
+    try { await useVideoTaskStore.getState().cancelTask(task.taskId); success(t("video.cancelled"), t("video.taskCancelled")); }
+    catch (err) { error(t("error.operationFailed"), err instanceof Error ? err.message : t("error.unknown")); }
     finally { setCancellingTaskId(null); }
   };
 
   const handleJumpToBeat = (task: VideoTask) => {
     if (task.beatId) guardedPush(`/story/beat/${task.beatId}`);
-    else error("无法跳转", "该任务没有关联的分镜");
+    else error(t("error.cannotJump"), t("video.noBeatAssociated"));
   };
 
   const handleOpenDetail = (task: VideoTask) => { setDetailTask(task); setDetailDrawerOpen(true); };
 
   const handleCopyTaskId = async (taskId: string) => {
-    try { await navigator.clipboard.writeText(taskId); success("已复制", "任务ID已复制到剪贴板"); }
-    catch (err) { errorLogger.error("[VideoTaskHandlers] 复制任务ID失败", err instanceof Error ? err : undefined); error("复制失败", "无法复制到剪贴板"); }
+    try { await navigator.clipboard.writeText(taskId); success(t("success.copied"), t("video.taskIdCopiedToClipboard")); }
+    catch (err) { errorLogger.error("[VideoTaskHandlers] 复制任务ID失败", err instanceof Error ? err : undefined); error(t("error.operationFailed"), t("error.clipboardUnavailable")); }
   };
 
   const handleExportCSV = () => {
-    const headers = ["任务ID", "状态", "进度", "模型", "故事", "分镜", "创建时间", "视频URL"];
+    const headers = [t("task.csvTaskId"), t("task.csvStatus"), t("task.csvProgress"), t("task.csvModel"), t("task.csvStory"), t("task.csvBeat"), t("task.csvCreatedAt"), t("task.csvVideoUrl")];
     const rows = filteredTasks.map((t) => [t.taskId, t.status, `${t.progress}%`, t.model || "", t.storyTitle || "", t.beatTitle || "", new Date(t.createdAt).toLocaleString(), t.videoUrl || ""]);
     const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
@@ -132,7 +133,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     document.body.removeChild(link);
     const timer = setTimeout(() => URL.revokeObjectURL(url), 30000);
     blobUrlTimersRef.current.add(timer);
-    success("导出成功", `已导出 ${rows.length} 个任务到CSV`);
+    success(t("success.exported"), t("video.exportedToCsv", { count: rows.length }));
   };
 
   const handleDownloadVideo = useCallback(async (task: VideoTask) => {
@@ -144,13 +145,13 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
       if (downloadUrl.startsWith("blob:")) {
         const link = document.createElement("a"); link.href = downloadUrl; link.download = filename;
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        success("下载开始", "视频正在下载..."); return;
+        success(t("video.downloadStarted"), t("video.videoDownloading")); return;
       }
       if (!isAllowedVideoUrl(downloadUrl)) {
         errorLogger.warn("[VideoTaskHandlers] 不安全的视频URL", { url: downloadUrl });
         const link = document.createElement("a"); link.href = downloadUrl; link.download = filename; link.target = "_blank"; link.rel = "noopener noreferrer";
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        success("已打开视频", "URL安全验证失败，已在新标签页打开视频"); return;
+        success(t("video.videoOpened"), t("video.urlValidationFailed")); return;
       }
       try {
         const response = await fetch(downloadUrl);
@@ -165,27 +166,27 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
         const timer = setTimeout(() => URL.revokeObjectURL(url), 60000);
         blobUrlTimersRef.current.add(timer);
-        success("下载开始", "正在下载视频");
+        success(t("video.downloadStarted"), t("video.videoDownloadingShort"));
       } catch (err) {
-        errorLogger.error("[VideoTaskHandlers] 视频直接下载失败，回退到新标签页", err instanceof Error ? err : undefined);
+        errorLogger.error(t("error.videoDirectDownloadFailed"), err instanceof Error ? err : undefined);
         const link = document.createElement("a"); link.href = downloadUrl; link.download = filename; link.target = "_blank"; link.rel = "noopener noreferrer";
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        success("已打开视频", "直接下载失败，已在新标签页打开视频");
+        success(t("video.videoOpened"), t("video.directDownloadFailed"));
       }
     } catch (err) {
-      errorLogger.error("[VideoTaskHandlers] 视频下载失败，回退到新标签页", err instanceof Error ? err : undefined);
+      errorLogger.error(t("error.videoDownloadFailedFallback"), err instanceof Error ? err : undefined);
       const link = document.createElement("a"); link.href = task.videoUrl; link.target = "_blank"; link.rel = "noopener noreferrer";
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
-      success("已打开视频", "下载失败，已在新标签页打开视频");
+      success(t("video.videoOpened"), t("video.downloadFailedOpened"));
     }
   }, [success]);
 
   const handleBatchDownload = async () => {
     const selectedTasks = filteredTasks.filter((t) => selection.selectedTaskIds.has(t.taskId));
     const completedTasks = selectedTasks.filter((t) => t.status === "completed" && t.videoUrl);
-    if (completedTasks.length === 0) { error("无法下载", "选中的任务中没有已完成的视频"); return; }
+    if (completedTasks.length === 0) { error(t("error.cannotDownload"), t("video.noCompletedVideos")); return; }
     for (const task of completedTasks) { await handleDownloadVideo(task); await new Promise((r) => setTimeout(r, 500)); }
-    success("批量下载", `已开始下载 ${completedTasks.length} 个视频`);
+    success(t("video.batchDownload"), t("video.batchDownloadStarted", { count: completedTasks.length }));
   };
 
   const hasActiveTasks = tasks.some((task) => task.status === "pending" || task.status === "generating");

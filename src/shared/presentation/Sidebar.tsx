@@ -1,7 +1,5 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/shared/ui/button";
 import {
   Film,
@@ -16,13 +14,15 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore } from "react";
+import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, memo } from "react";
+import type { LucideIcon } from "lucide-react";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useNavigationGuard } from "./BeforeUnloadGuard";
 import { errorLogger } from "@/shared/error-logger";
 import { preferencesStorage } from "@/shared/utils/preferences";
 import { cn } from "@/shared/utils/utils";
+import { t } from "@/shared/constants";
 import type { SearchResult } from "@/domain/schemas";
 
 interface SidebarProps {
@@ -31,15 +31,51 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { href: "/quick-generate", label: "快速生成", icon: Wand2 },
-  { href: "/story", label: "分镜", icon: Film },
-  { href: "/characters", label: "角色", icon: Users },
-  { href: "/scenes", label: "场景", icon: Image },
-  { href: "/asset-library", label: "素材库", icon: Package },
-  { href: "/video-tasks", label: "任务", icon: Video },
+  { href: "/quick-generate", labelKey: "sidebar.quickGenerate", icon: Wand2 },
+  { href: "/story", labelKey: "sidebar.storyboard", icon: Film },
+  { href: "/characters", labelKey: "sidebar.characters", icon: Users },
+  { href: "/scenes", labelKey: "sidebar.scenes", icon: Image },
+  { href: "/asset-library", labelKey: "sidebar.assetLibrary", icon: Package },
+  { href: "/video-tasks", labelKey: "sidebar.tasks", icon: Video },
 ];
 
-const bottomItems = [{ href: "/settings", label: "设置", icon: Settings }];
+const bottomItems = [{ href: "/settings", labelKey: "sidebar.settings", icon: Settings }];
+
+interface NavItemProps {
+  labelKey: string;
+  icon: LucideIcon;
+  isActive: boolean;
+  collapsed: boolean;
+  href: string;
+  onNavigate: (href: string) => void;
+}
+
+const NavItem = memo(function NavItem({ labelKey, icon: Icon, isActive, collapsed, href, onNavigate }: NavItemProps) {
+  return (
+    <button
+      onClick={() => onNavigate(href)}
+      className={cn(
+        "flex items-center rounded-lg text-sm font-medium transition-colors",
+        collapsed
+          ? "justify-center h-10 w-10 mx-auto"
+          : "gap-3 px-3 h-10",
+        isActive
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+      title={collapsed ? t(labelKey) : undefined}
+    >
+      <Icon
+        className={cn(
+          "shrink-0",
+          isActive ? "text-primary" : "",
+          collapsed ? "w-5 h-5" : "w-4 h-4",
+        )}
+      />
+      {!collapsed && <span>{t(labelKey)}</span>}
+    </button>
+  );
+});
 
 const SIDEBAR_WIDTH_EXPANDED = 220;
 const SIDEBAR_WIDTH_COLLAPSED = 60;
@@ -56,6 +92,7 @@ function getSidebarCollapsedSnapshot(): boolean {
   try {
     return preferencesStorage.get(STORAGE_KEY, false);
   } catch {
+    errorLogger.warn("[Sidebar] Failed to read sidebar collapsed state");
     return false;
   }
 }
@@ -75,7 +112,7 @@ function getModKeyServerSnapshot(): string {
 }
 
 export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
-  const pathname = usePathname();
+  const pathname = useLocation().pathname;
   const { guardedPush } = useNavigationGuard();
   const [searchOpen, setSearchOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -96,6 +133,10 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
     );
     sidebarListeners.forEach(l => l());
   }, []);
+
+  const handleNavClick = useCallback((href: string) => {
+    guardedPush(href);
+  }, [guardedPush]);
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty(
@@ -167,17 +208,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
   }, [guardedPush]);
 
   useEffect(() => {
-    const api = (
-      window as unknown as {
-        electronAPI?: {
-          onMenuNewCharacter: (cb: () => void) => void;
-          onMenuNewScene: (cb: () => void) => void;
-          onMenuExport: (cb: () => void) => void;
-          onNavigate: (cb: (targetPath: string) => void) => void;
-          removeMenuListeners: () => void;
-        };
-      }
-    ).electronAPI;
+    const api = window.electronAPI;
     if (!api) return;
 
     const controller = new AbortController();
@@ -192,13 +223,11 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
     api.onMenuExport(() => {
       if (!signal.aborted) guardedPush("/settings");
     });
-    if (api.onNavigate) {
-      api.onNavigate((targetPath: string) => {
-        if (!signal.aborted && targetPath) {
-          guardedPush(targetPath);
-        }
-      });
-    }
+    api.onNavigate((targetPath: string) => {
+      if (!signal.aborted && targetPath) {
+        guardedPush(targetPath);
+      }
+    });
 
     return () => {
       controller.abort();
@@ -223,7 +252,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
           )}
         >
           <Link
-            href="/"
+            to="/"
             className="flex items-center gap-3"
             title="AI Animation Studio"
           >
@@ -239,35 +268,17 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
         </div>
 
         <nav className="flex-1 flex flex-col gap-1 p-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <button
-                key={item.href}
-                onClick={() => guardedPush(item.href)}
-                className={cn(
-                  "flex items-center rounded-lg text-sm font-medium transition-colors",
-                  collapsed
-                    ? "justify-center h-10 w-10 mx-auto"
-                    : "gap-3 px-3 h-10",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                <Icon
-                  className={cn(
-                    "shrink-0",
-                    isActive ? "text-primary" : "",
-                    collapsed ? "w-5 h-5" : "w-4 h-4",
-                  )}
-                />
-                {!collapsed && <span>{item.label}</span>}
-              </button>
-            );
-          })}
+          {navItems.map((item) => (
+            <NavItem
+              key={item.href}
+              labelKey={item.labelKey}
+              icon={item.icon}
+              isActive={pathname.startsWith(item.href)}
+              collapsed={collapsed}
+              href={item.href}
+              onNavigate={handleNavClick}
+            />
+          ))}
         </nav>
 
         <div className="border-t p-2 space-y-1 shrink-0">
@@ -279,12 +290,12 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
                 ? "justify-center h-10 w-10 mx-auto"
                 : "gap-3 px-3 h-9",
             )}
-            title="搜索"
+            title={t("sidebar.search")}
           >
             <Search className="w-4 h-4 shrink-0" />
             {!collapsed && (
               <>
-                <span>搜索</span>
+                <span>{t("sidebar.search")}</span>
                 <kbd className="ml-auto inline-flex h-5 select-none items-center gap-0.5 rounded border border-primary/20 bg-primary/5 px-1.5 font-mono text-[10px] font-medium text-primary">
                   {modKey}K
                 </kbd>
@@ -300,41 +311,23 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
                 ? "justify-center h-10 w-10 mx-auto"
                 : "gap-3 px-3 h-9",
             )}
-            title="快捷键"
+            title={t("sidebar.shortcuts")}
           >
             <Keyboard className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>快捷键</span>}
+            {!collapsed && <span>{t("sidebar.shortcuts")}</span>}
           </button>
 
-          {bottomItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <button
-                key={item.href}
-                onClick={() => guardedPush(item.href)}
-                className={cn(
-                  "flex items-center rounded-lg text-sm font-medium transition-colors",
-                  collapsed
-                    ? "justify-center h-10 w-10 mx-auto"
-                    : "gap-3 px-3 h-10",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                <Icon
-                  className={cn(
-                    "shrink-0",
-                    isActive ? "text-primary" : "",
-                    collapsed ? "w-5 h-5" : "w-4 h-4",
-                  )}
-                />
-                {!collapsed && <span>{item.label}</span>}
-              </button>
-            );
-          })}
+          {bottomItems.map((item) => (
+            <NavItem
+              key={item.href}
+              labelKey={item.labelKey}
+              icon={item.icon}
+              isActive={pathname.startsWith(item.href)}
+              collapsed={collapsed}
+              href={item.href}
+              onNavigate={handleNavClick}
+            />
+          ))}
 
           <ThemeSwitcher collapsed={collapsed} />
 
@@ -346,14 +339,14 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
                 ? "justify-center h-10 w-10 mx-auto"
                 : "gap-3 px-3 h-9",
             )}
-            title={collapsed ? "展开侧边栏" : "收起侧边栏"}
+            title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
           >
             {collapsed ? (
               <ChevronsRight className="w-4 h-4 shrink-0" />
             ) : (
               <>
                 <ChevronsLeft className="w-4 h-4 shrink-0" />
-                <span>收起</span>
+                <span>{t("sidebar.collapseShort")}</span>
               </>
             )}
           </button>
@@ -379,25 +372,25 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Keyboard className="w-5 h-5" />
-                键盘快捷键
+                {t("sidebar.keyboardShortcuts")}
               </h2>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowShortcuts(false)}
               >
-                关闭
+                {t("common.close")}
               </Button>
             </div>
             <div className="space-y-3">
               {[
-                ["全局搜索", `${modKey}K`],
-                ["打开素材库", `${modKey}⇧M`],
-                ["显示快捷键帮助", "?"],
-                ["关闭对话框", "Esc"],
-                ["保存（编辑页面）", `${modKey}S`],
-                ["撤销", `${modKey}Z`],
-                ["重做", `${modKey}Shift Z`],
+                [t("sidebar.globalSearch"), `${modKey}K`],
+                [t("sidebar.openAssetLibrary"), `${modKey}⇧M`],
+                [t("sidebar.showShortcutsHelp"), "?"],
+                [t("sidebar.closeDialog"), "Esc"],
+                [t("sidebar.saveEditPage"), `${modKey}S`],
+                [t("sidebar.undo"), `${modKey}Z`],
+                [t("sidebar.redo"), `${modKey}Shift Z`],
               ].map(([label, key]) => (
                 <div
                   key={label}

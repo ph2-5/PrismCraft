@@ -3,6 +3,7 @@ import { Search, X, Loader2 } from "lucide-react";
 import type { SearchResult } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { useNavigationGuard } from "./BeforeUnloadGuard";
+import { t } from "@/shared/constants";
 
 interface SearchDialogProps {
   isOpen: boolean;
@@ -78,7 +79,7 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
             value={searchTerm}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="搜索角色、场景、故事..."
+            placeholder={t("search.searchPlaceholder")}
             className="flex-1 bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-400"
             autoFocus
           />
@@ -96,7 +97,7 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
         <div className="max-h-[60vh] overflow-y-auto">
           {results.length === 0 && searchTerm && !isSearching && (
             <div className="px-4 py-8 text-center text-gray-500">
-              未找到匹配的结果
+              {t("search.noResults")}
             </div>
           )}
 
@@ -110,10 +111,10 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                     {result.type === "character"
-                      ? "角色"
+                      ? t("search.typeCharacter")
                       : result.type === "scene"
-                        ? "场景"
-                        : "故事"}
+                        ? t("search.typeScene")
+                        : t("search.typeStory")}
                   </span>
                   <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
                     {result.title}

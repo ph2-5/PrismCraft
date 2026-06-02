@@ -105,16 +105,79 @@ describe("TaskMachine", () => {
       }
     });
 
-    it("should apply side effects for failed status", () => {
+    it("should apply side effects for failed status without error context", () => {
       const task = makeTask({ status: "generating" });
-      const result = TaskMachine.transition(task, "failed", {
-        error: "API error",
+      const result = TaskMachine.transition(task, "failed");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.message).toBe("任务失败");
+      }
+    });
+
+    it("should apply side effects for cancelled status with error context", () => {
+      const task = makeTask({ status: "pending" });
+      const result = TaskMachine.transition(task, "cancelled", {
+        error: "User cancelled",
       });
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.message).toBe("API error");
+        expect(result.value.message).toBe("User cancelled");
       }
+    });
+
+    it("should apply side effects for cancelled status without error context", () => {
+      const task = makeTask({ status: "pending" });
+      const result = TaskMachine.transition(task, "cancelled");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.message).toBe("任务已取消");
+      }
+    });
+
+    it("should apply side effects for pending status (re-queue)", () => {
+      const task = makeTask({ status: "completed", progress: 80, videoUrl: "https://example.com/video.mp4", message: "done", pollFailureCount: 3 });
+      const result = TaskMachine.transition(task, "pending");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.progress).toBe(0);
+        expect(result.value.videoUrl).toBeUndefined();
+        expect(result.value.message).toBe("");
+        expect(result.value.pollFailureCount).toBe(0);
+      }
+    });
+
+    it("should apply side effects for retrying status without prior recoveryAttempts", () => {
+      const task = makeTask({ status: "failed" });
+      const result = TaskMachine.transition(task, "retrying");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.recoveryAttempts).toBe(1);
+        expect(result.value.pollFailureCount).toBe(0);
+      }
+    });
+
+    it("should apply side effects for completed status without videoUrl", () => {
+      const task = makeTask({ status: "generating", progress: 50 });
+      const result = TaskMachine.transition(task, "completed");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.progress).toBe(100);
+        expect(result.value.videoUrl).toBeUndefined();
+        expect(result.value.message).toBe("");
+      }
+    });
+
+    it("should return empty side effects for unknown target status", () => {
+      const task = makeTask({ status: "pending" });
+      const result = TaskMachine.applySideEffects(task, "paused" as VideoTaskStatus);
+
+      expect(result).toEqual({});
     });
 
     it("should apply side effects for retrying status", () => {

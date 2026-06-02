@@ -5,9 +5,9 @@ const {
   mockSafeRun,
   mockSafeTransaction,
 } = vi.hoisted(() => ({
-  mockSafeQuery: vi.fn(() => Promise.resolve([])),
-  mockSafeRun: vi.fn(() => Promise.resolve({ changes: 1 })),
-  mockSafeTransaction: vi.fn(() => Promise.resolve([])),
+  mockSafeQuery: vi.fn<(sql: string, params?: unknown[]) => Promise<Record<string, unknown>[]>>(() => Promise.resolve([])),
+  mockSafeRun: vi.fn<(sql: string, params?: unknown[]) => Promise<{ changes: number }>>(() => Promise.resolve({ changes: 1 })),
+  mockSafeTransaction: vi.fn<(statements: { sql: string; params: unknown[] }[]) => Promise<unknown[]>>(() => Promise.resolve([])),
 }));
 
 vi.mock("@/infrastructure/storage/sqlite-core", () => ({
@@ -72,10 +72,10 @@ describe("R40: 图片缓存访问更新必须延迟批量，禁止读后立即�
     await imageCacheStorage.flushPendingAccessUpdates();
 
     expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-    const stmts = mockSafeTransaction.mock.calls[0][0];
+    const stmts = mockSafeTransaction.mock.calls[0]![0]!;
     expect(stmts.length).toBe(2);
-    expect(stmts[0].sql).toContain("last_accessed_at");
-    expect(stmts[1].sql).toContain("last_accessed_at");
+    expect(stmts[0]!.sql).toContain("last_accessed_at");
+    expect(stmts[1]!.sql).toContain("last_accessed_at");
   });
 
   it("多次读取同一 URL 只产生一条 UPDATE 语句", async () => {
@@ -95,7 +95,7 @@ describe("R40: 图片缓存访问更新必须延迟批量，禁止读后立即�
     await imageCacheStorage.flushPendingAccessUpdates();
 
     expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-    const stmts = mockSafeTransaction.mock.calls[0][0];
+    const stmts = mockSafeTransaction.mock.calls[0]![0]!;
     expect(stmts.length).toBe(1);
   });
 

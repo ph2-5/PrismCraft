@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 
 describe("R49: React event handlers must use e.currentTarget over e.target", () => {
   it("e.currentTarget always refers to the handler-bound element", () => {

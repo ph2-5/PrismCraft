@@ -164,8 +164,50 @@ function normalizeEnumValue(
   return undefined;
 }
 
-export function fixShotParams(data: Record<string, any>): {
-  fixed: Record<string, any>;
+interface ShotParamsData {
+  shotType?: string;
+  cameraMovement?: string;
+  cameraAngle?: string;
+  duration?: number;
+  [key: string]: unknown;
+}
+
+interface StoryBeatData {
+  t?: string;
+  title?: string;
+  c?: string;
+  content?: string;
+  desc?: string;
+  description?: string;
+  st?: string;
+  shotType?: string;
+  ca?: string;
+  cameraAngle?: string;
+  cm?: string;
+  cameraMovement?: string;
+  d?: number;
+  duration?: number;
+  tp?: string;
+  type?: string;
+  ci?: string[];
+  characterIds?: string[];
+  si?: string;
+  sceneId?: string;
+  kp?: string;
+  keyframePrompt?: string;
+  fp?: string;
+  firstFramePrompt?: string;
+  lp?: string;
+  lastFramePrompt?: string;
+  ei?: string[];
+  elementIds?: string[];
+  eb?: Record<string, unknown>;
+  elementBindings?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export function fixShotParams(data: ShotParamsData): {
+  fixed: ShotParamsData;
   autoFixed: string[];
 } {
   const fixed = { ...data };
@@ -213,11 +255,11 @@ export function fixShotParams(data: Record<string, any>): {
   return { fixed, autoFixed };
 }
 
-export function fixStoryBeat(data: Record<string, any>): {
-  fixed: Record<string, any>;
+export function fixStoryBeat(data: StoryBeatData): {
+  fixed: StoryBeatData;
   autoFixed: string[];
 } {
-  const normalized: Record<string, any> = {
+  const normalized: StoryBeatData = {
     title: data.t || data.title,
     content: data.c || data.content,
     description: data.desc || data.description,
@@ -323,7 +365,7 @@ export function parseStoryPlanJSON(text: string): RawStoryBeat[] | null {
       try {
         const parsed = JSON.parse(jsonStr.slice(start, end + 1));
         if (Array.isArray(parsed)) return parsed as RawStoryBeat[];
-      } catch { /* ignore */ }
+      } catch { console.warn("[story-service] Failed to parse extracted JSON array"); }
     }
   }
   return null;

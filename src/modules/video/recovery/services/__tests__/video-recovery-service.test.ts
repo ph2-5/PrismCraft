@@ -8,32 +8,45 @@ import {
   cleanExpiredTasks,
   getAllTaskHistory,
   registerCacheVideoBlobFn,
-} from "@/modules/video/recovery/services/video-recovery-service";
+} from "@/modules/video";
+import type { VideoTask } from "@/domain/schemas/api";
+import type { Result } from "@/domain/types/result";
+
+const {
+  mockVideoTaskStorage,
+  mockVideoProvider,
+  mockTaskMachine,
+  mockCacheVideoBlob,
+} = vi.hoisted(() => ({
+  mockVideoTaskStorage: {
+    createVideoTask: vi.fn<(task: Record<string, unknown>) => Promise<void>>(),
+    getVideoTasksByStatus: vi.fn<(status: string) => Promise<unknown[]>>(),
+    getVideoTaskById: vi.fn<(taskId: string) => Promise<unknown>>(),
+    updateVideoTask: vi.fn<(taskId: string, updates: Record<string, unknown>) => Promise<void>>(),
+    deleteExpiredVideoTasks: vi.fn<() => Promise<number>>(),
+    getVideoTasks: vi.fn<() => Promise<unknown[]>>(),
+  },
+  mockVideoProvider: {
+    queryVideoStatus: vi.fn<(taskId: string, options?: Record<string, unknown>) => Promise<unknown>>(),
+  },
+  mockTaskMachine: {
+    canTransition: vi.fn<() => boolean>(),
+    transition: vi.fn<(task: Record<string, unknown>, targetStatus: string, context?: Record<string, unknown>) => unknown>(),
+  },
+  mockCacheVideoBlob: vi.fn<(taskId: string, videoUrl: string) => Promise<unknown>>().mockResolvedValue({ ok: true, value: true }),
+}));
 
 vi.mock("@/infrastructure/storage/video-tasks", () => ({}));
 
-vi.mock("@/infrastructure/di", () => {
-  const mockVideoTaskStorage = {
-    createVideoTask: vi.fn(),
-    getVideoTasksByStatus: vi.fn(),
-    getVideoTaskById: vi.fn(),
-    updateVideoTask: vi.fn(),
-    deleteExpiredVideoTasks: vi.fn(),
-    getVideoTasks: vi.fn(),
-  };
-  const mockVideoProvider = {
-    queryVideoStatus: vi.fn(),
-  };
-  return {
-    container: {
-      videoTaskStorage: mockVideoTaskStorage,
-      videoProvider: mockVideoProvider,
-    },
-  };
-});
+vi.mock("@/infrastructure/di", () => ({
+  container: {
+    videoTaskStorage: mockVideoTaskStorage,
+    videoProvider: mockVideoProvider,
+  },
+}));
 
 vi.mock("@/modules/video/cache", () => ({
-  cacheVideoBlob: vi.fn().mockResolvedValue({ ok: true, value: true }),
+  cacheVideoBlob: mockCacheVideoBlob,
 }));
 
 vi.mock("@/shared/error-logger", () => ({
@@ -47,13 +60,7 @@ vi.mock("@/shared/error-logger", () => ({
 }));
 
 vi.mock("@/modules/video/task-management", () => ({
-  TaskMachine: {
-    canTransition: vi.fn(() => true),
-    transition: vi.fn((task: any, targetStatus: string, context?: any) => ({
-      ok: true,
-      value: { ...task, status: targetStatus, updatedAt: new Date().toISOString(), videoUrl: context?.videoUrl, progress: targetStatus === "completed" ? 100 : task.progress, message: "" },
-    })),
-  },
+  TaskMachine: mockTaskMachine,
 }));
 
 vi.mock("@/shared/utils/platform", () => ({
@@ -61,8 +68,6 @@ vi.mock("@/shared/utils/platform", () => ({
 }));
 
 import { container } from "@/infrastructure/di";
-import { cacheVideoBlob } from "@/modules/video/cache";
-import { TaskMachine } from "@/modules/video/task-management";
 
 function createMockTask(overrides: Record<string, unknown> = {}) {
   return {
@@ -84,22 +89,22 @@ function createMockTask(overrides: Record<string, unknown> = {}) {
 describe("video-recovery-service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (TaskMachine.canTransition as ReturnType<typeof vi.fn>).mockReturnValue(true);
-    (TaskMachine.transition as ReturnType<typeof vi.fn>).mockImplementation(
-      (task: any, targetStatus: string, context?: any) => ({
+    mockTaskMachine.canTransition.mockReturnValue(true);
+    mockTaskMachine.transition.mockImplementation(
+      (task: Record<string, unknown>, targetStatus: string, context?: Record<string, unknown>) => ({
         ok: true,
         value: { ...task, status: targetStatus, updatedAt: new Date().toISOString(), videoUrl: context?.videoUrl, progress: targetStatus === "completed" ? 100 : task.progress, message: "" },
       })
     );
-    registerCacheVideoBlobFn(cacheVideoBlob as any);
+    registerCacheVideoBlobFn(mockCacheVideoBlob as unknown as (taskId: string, videoUrl: string) => Promise<Result<boolean>>);
   });
 
   describe("saveVideoTask", () => {
     it("should save task with default expiresAt and pollCount", async () => {
       const task = createMockTask();
-      await saveVideoTask(task as any);
+      await saveVideoTask(task as unknown as VideoTask);
       expect(container.videoTaskStorage.createVideoTask).toHaveBeenCalled();
-      const savedRecord = (container.videoTaskStorage.createVideoTask as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0][0] as Record<string, unknown>;
       expect(savedRecord.pollCount).toBe(0);
       expect(savedRecord.recoveryAttempts).toBe(0);
       expect(savedRecord.expiresAt).toBeDefined();
@@ -109,15 +114,15 @@ describe("video-recovery-service", () => {
     it("should use provided expiresAt", async () => {
       const customExpiry = new Date(Date.now() + 86400000).toISOString();
       const task = createMockTask({ expiresAt: customExpiry });
-      await saveVideoTask(task as any);
-      const savedRecord = (container.videoTaskStorage.createVideoTask as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      await saveVideoTask(task as unknown as VideoTask);
+      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0][0] as Record<string, unknown>;
       expect(savedRecord.expiresAt).toBe(customExpiry);
     });
 
     it("should preserve existing pollCount and recoveryAttempts", async () => {
       const task = createMockTask({ pollCount: 5, recoveryAttempts: 3 });
-      await saveVideoTask(task as any);
-      const savedRecord = (container.videoTaskStorage.createVideoTask as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      await saveVideoTask(task as unknown as VideoTask);
+      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0][0] as Record<string, unknown>;
       expect(savedRecord.pollCount).toBe(5);
       expect(savedRecord.recoveryAttempts).toBe(3);
     });
@@ -126,7 +131,7 @@ describe("video-recovery-service", () => {
   describe("getFailedTasks", () => {
     it("should return non-expired failed tasks", async () => {
       const futureExpiry = new Date(Date.now() + 86400000).toISOString();
-      (container.videoTaskStorage.getVideoTasksByStatus as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([
         createMockTask({ taskId: "task-1", expiresAt: futureExpiry }),
         createMockTask({ taskId: "task-2", expiresAt: futureExpiry }),
       ]);
@@ -141,7 +146,7 @@ describe("video-recovery-service", () => {
     it("should filter out expired tasks", async () => {
       const pastExpiry = new Date(Date.now() - 86400000).toISOString();
       const futureExpiry = new Date(Date.now() + 86400000).toISOString();
-      (container.videoTaskStorage.getVideoTasksByStatus as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([
         createMockTask({ taskId: "task-1", expiresAt: pastExpiry }),
         createMockTask({ taskId: "task-2", expiresAt: futureExpiry }),
       ]);
@@ -155,7 +160,7 @@ describe("video-recovery-service", () => {
     });
 
     it("should include tasks without expiresAt", async () => {
-      (container.videoTaskStorage.getVideoTasksByStatus as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([
         createMockTask({ taskId: "task-1", expiresAt: undefined }),
       ]);
 
@@ -170,7 +175,7 @@ describe("video-recovery-service", () => {
   describe("getTaskById", () => {
     it("should return task when found", async () => {
       const task = createMockTask();
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(task);
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(task);
 
       const result = await getTaskById("task-1");
       expect(result.ok).toBe(true);
@@ -181,7 +186,7 @@ describe("video-recovery-service", () => {
     });
 
     it("should return undefined when not found", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(null);
 
       const result = await getTaskById("nonexistent");
       expect(result.ok).toBe(true);
@@ -193,7 +198,7 @@ describe("video-recovery-service", () => {
 
   describe("recoverVideoByTaskId", () => {
     it("should return failure when task not found", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(null);
 
       const result = await recoverVideoByTaskId("nonexistent");
       expect(result.ok).toBe(false);
@@ -203,7 +208,7 @@ describe("video-recovery-service", () => {
     });
 
     it("should return existing video when task is completed", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "completed", videoUrl: "https://example.com/video.mp4" })
       );
 
@@ -216,15 +221,15 @@ describe("video-recovery-service", () => {
     });
 
     it("should recover video when status is done", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "done", videoUrl: "https://example.com/recovered.mp4" },
       });
-      (TaskMachine.canTransition as ReturnType<typeof vi.fn>).mockReturnValue(true);
-      (cacheVideoBlob as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, value: true });
+      mockTaskMachine.canTransition.mockReturnValue(true);
+      mockCacheVideoBlob.mockResolvedValue({ ok: true, value: true });
 
       const result = await recoverVideoByTaskId("task-1");
       expect(result.ok).toBe(true);
@@ -234,40 +239,40 @@ describe("video-recovery-service", () => {
     });
 
     it("should recover video when status is completed", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "completed", videoUrl: "https://example.com/recovered2.mp4" },
       });
-      (TaskMachine.canTransition as ReturnType<typeof vi.fn>).mockReturnValue(true);
-      (cacheVideoBlob as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, value: true });
+      mockTaskMachine.canTransition.mockReturnValue(true);
+      mockCacheVideoBlob.mockResolvedValue({ ok: true, value: true });
 
       const result = await recoverVideoByTaskId("task-1");
       expect(result.ok).toBe(true);
     });
 
     it("should recover video when status is succeeded", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "succeeded", videoUrl: "https://example.com/recovered3.mp4" },
       });
-      (TaskMachine.canTransition as ReturnType<typeof vi.fn>).mockReturnValue(true);
-      (cacheVideoBlob as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, value: true });
+      mockTaskMachine.canTransition.mockReturnValue(true);
+      mockCacheVideoBlob.mockResolvedValue({ ok: true, value: true });
 
       const result = await recoverVideoByTaskId("task-1");
       expect(result.ok).toBe(true);
     });
 
     it("should return failure when status is failed", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "failed" },
       });
@@ -280,10 +285,10 @@ describe("video-recovery-service", () => {
     });
 
     it("should return pending message when status is generating", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "generating" },
       });
@@ -296,10 +301,10 @@ describe("video-recovery-service", () => {
     });
 
     it("should return unknown status message for unrecognized status", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "weird_status" },
       });
@@ -312,10 +317,10 @@ describe("video-recovery-service", () => {
     });
 
     it("should return failure when query fails", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: false,
       });
 
@@ -327,15 +332,15 @@ describe("video-recovery-service", () => {
     });
 
     it("should return failure when transition is invalid", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "completed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "done", videoUrl: "https://example.com/video.mp4" },
       });
-      (TaskMachine.canTransition as ReturnType<typeof vi.fn>).mockReturnValue(false);
-      (TaskMachine.transition as ReturnType<typeof vi.fn>).mockReturnValue({
+      mockTaskMachine.canTransition.mockReturnValue(false);
+      mockTaskMachine.transition.mockReturnValue({
         ok: false,
         error: { message: "不允许从 completed 转换到 completed", code: "INVALID_TRANSITION" },
       });
@@ -348,10 +353,10 @@ describe("video-recovery-service", () => {
     });
 
     it("should handle exceptions gracefully", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockRejectedValue(
+      mockVideoProvider.queryVideoStatus.mockRejectedValue(
         new Error("Network failure")
       );
 
@@ -363,17 +368,17 @@ describe("video-recovery-service", () => {
     });
 
     it("should cache video blob after successful recovery", async () => {
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(
         createMockTask({ status: "failed" })
       );
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "done", videoUrl: "https://example.com/recovered.mp4" },
       });
-      (TaskMachine.canTransition as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      mockTaskMachine.canTransition.mockReturnValue(true);
 
       await recoverVideoByTaskId("task-1");
-      expect(cacheVideoBlob).toHaveBeenCalledWith("task-1", "https://example.com/recovered.mp4");
+      expect(mockCacheVideoBlob).toHaveBeenCalledWith("task-1", "https://example.com/recovered.mp4");
     });
   });
 
@@ -385,15 +390,15 @@ describe("video-recovery-service", () => {
         lastPolledAt: new Date(Date.now() - 120000).toISOString(),
         recoveryAttempts: 0,
       });
-      (container.videoTaskStorage.getVideoTasksByStatus as ReturnType<typeof vi.fn>).mockResolvedValue([recentTask]);
-      (container.videoTaskStorage.getVideoTaskById as ReturnType<typeof vi.fn>).mockResolvedValue(recentTask);
-      (container.videoProvider.queryVideoStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([recentTask]);
+      mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(recentTask);
+      mockVideoProvider.queryVideoStatus.mockResolvedValue({
         success: true,
         data: { status: "generating" },
       });
 
       await startBackgroundRecovery();
-      expect(container.videoTaskStorage.getVideoTasksByStatus).toHaveBeenCalledWith("failed");
+      expect(mockVideoTaskStorage.getVideoTasksByStatus).toHaveBeenCalledWith("failed");
     });
 
     it("should skip tasks that exceeded max poll duration", async () => {
@@ -401,10 +406,10 @@ describe("video-recovery-service", () => {
         taskId: "old-task",
         createdAt: new Date(Date.now() - 200 * 60 * 1000).toISOString(),
       });
-      (container.videoTaskStorage.getVideoTasksByStatus as ReturnType<typeof vi.fn>).mockResolvedValue([oldTask]);
+      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([oldTask]);
 
       await startBackgroundRecovery();
-      expect(container.videoProvider.queryVideoStatus).not.toHaveBeenCalled();
+      expect(mockVideoProvider.queryVideoStatus).not.toHaveBeenCalled();
     });
 
     it("should skip tasks that exceeded max recovery attempts", async () => {
@@ -413,10 +418,10 @@ describe("video-recovery-service", () => {
         createdAt: new Date().toISOString(),
         recoveryAttempts: 60,
       });
-      (container.videoTaskStorage.getVideoTasksByStatus as ReturnType<typeof vi.fn>).mockResolvedValue([maxAttemptTask]);
+      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([maxAttemptTask]);
 
       await startBackgroundRecovery();
-      expect(container.videoProvider.queryVideoStatus).not.toHaveBeenCalled();
+      expect(mockVideoProvider.queryVideoStatus).not.toHaveBeenCalled();
     });
 
     it("should skip tasks polled too recently", async () => {
@@ -425,14 +430,14 @@ describe("video-recovery-service", () => {
         createdAt: new Date().toISOString(),
         lastPolledAt: new Date().toISOString(),
       });
-      (container.videoTaskStorage.getVideoTasksByStatus as ReturnType<typeof vi.fn>).mockResolvedValue([recentPollTask]);
+      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([recentPollTask]);
 
       await startBackgroundRecovery();
-      expect(container.videoProvider.queryVideoStatus).not.toHaveBeenCalled();
+      expect(mockVideoProvider.queryVideoStatus).not.toHaveBeenCalled();
     });
 
     it("should not run concurrently", async () => {
-      (container.videoTaskStorage.getVideoTasksByStatus as ReturnType<typeof vi.fn>).mockImplementation(
+      mockVideoTaskStorage.getVideoTasksByStatus.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve([]), 100))
       );
 
@@ -440,27 +445,27 @@ describe("video-recovery-service", () => {
       const p2 = startBackgroundRecovery();
       await Promise.all([p1, p2]);
 
-      expect(container.videoTaskStorage.getVideoTasksByStatus).toHaveBeenCalledTimes(1);
+      expect(mockVideoTaskStorage.getVideoTasksByStatus).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("cleanExpiredTasks", () => {
     it("should delegate to storage", async () => {
-      (container.videoTaskStorage.deleteExpiredVideoTasks as ReturnType<typeof vi.fn>).mockResolvedValue(5);
+      mockVideoTaskStorage.deleteExpiredVideoTasks.mockResolvedValue(5);
 
       const result = await cleanExpiredTasks();
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value).toBe(5);
       }
-      expect(container.videoTaskStorage.deleteExpiredVideoTasks).toHaveBeenCalled();
+      expect(mockVideoTaskStorage.deleteExpiredVideoTasks).toHaveBeenCalled();
     });
   });
 
   describe("getAllTaskHistory", () => {
     it("should return all tasks from storage", async () => {
       const tasks = [createMockTask({ taskId: "t1" }), createMockTask({ taskId: "t2" })];
-      (container.videoTaskStorage.getVideoTasks as ReturnType<typeof vi.fn>).mockResolvedValue(tasks);
+      mockVideoTaskStorage.getVideoTasks.mockResolvedValue(tasks);
 
       const result = await getAllTaskHistory();
       expect(result.ok).toBe(true);

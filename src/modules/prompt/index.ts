@@ -40,6 +40,7 @@ export {
 export {
   generateFirstFramePrompt,
   generateLastFramePrompt,
+  generateKeyframePrompt,
   generateCharacterAnalysisPrompt,
   generateSceneAnalysisPrompt,
 } from "./server-prompts";

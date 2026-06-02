@@ -1,5 +1,3 @@
-"use client";
-
 import { Film, Download, Layers, Trash2, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import {
@@ -12,6 +10,7 @@ import { Progress } from "@/shared/ui/progress";
 import { type VideoTask } from "@/modules/video";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants/messages";
 
 interface TaskResultPanelProps {
   currentTask: VideoTask | null;
@@ -45,17 +44,17 @@ export function TaskResultPanel({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Film className="w-5 h-5 text-purple-400" />
-              当前任务
+              {t("quickGenerate.currentTask")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">
-                  {currentTask.status === "pending" && "排队中..."}
-                  {currentTask.status === "generating" && "生成中..."}
-                  {currentTask.status === "completed" && "已完成!"}
-                  {currentTask.status === "failed" && "生成失败"}
+                  {currentTask.status === "pending" && t("quickGenerate.queuing")}
+                  {currentTask.status === "generating" && t("quickGenerate.generating")}
+                  {currentTask.status === "completed" && t("quickGenerate.completed")}
+                  {currentTask.status === "failed" && t("quickGenerate.generateFailed")}
                 </span>
                 <span className="text-slate-500">
                   {currentTask.progress}%
@@ -71,7 +70,7 @@ export function TaskResultPanel({
               <div className="flex items-start gap-2 p-3 bg-red-900/30 rounded-lg border border-red-800/50">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-300">
-                  {currentTask.message || "生成失败，请重试"}
+                  {currentTask.message || t("quickGenerate.generateFailedRetry")}
                 </p>
               </div>
             )}
@@ -100,14 +99,14 @@ export function TaskResultPanel({
                       }
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      下载视频
+                      {t("quickGenerate.downloadVideo")}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => onSaveToAssets(currentTask)}
                     >
                       <Layers className="w-4 h-4 mr-2" />
-                      保存
+                      {t("common.save")}
                     </Button>
                   </div>
                 </div>
@@ -120,20 +119,20 @@ export function TaskResultPanel({
         <Card className="border border-slate-800 bg-slate-900/60">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">历史生成</CardTitle>
+              <CardTitle className="text-lg">{t("quickGenerate.history")}</CardTitle>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={async () => {
                   if (
-                    await confirm("确定要清空所有已完成的任务记录吗？", "清空任务记录")
+                    await confirm(t("confirm.clearCompletedTasks"), t("confirm.clearCompletedTasksTitle"))
                   ) {
                     onClearCompleted();
                   }
                 }}
               >
                 <Trash2 className="w-4 h-4 mr-1" />
-                清空
+                {t("quickGenerate.clear")}
               </Button>
             </div>
           </CardHeader>
@@ -160,10 +159,10 @@ export function TaskResultPanel({
                         }
                       `}
                     >
-                      {task.status === "completed" && "已完成"}
-                      {task.status === "failed" && "失败"}
+                      {task.status === "completed" && t("quickGenerate.statusCompleted")}
+                      {task.status === "failed" && t("quickGenerate.statusFailed")}
                       {["pending", "generating"].includes(task.status) &&
-                        "处理中"}
+                        t("quickGenerate.statusProcessing")}
                     </span>
                     <span className="text-xs text-slate-500">
                       {new Date(task.createdAt).toLocaleTimeString()}
@@ -183,7 +182,7 @@ export function TaskResultPanel({
                         }
                       >
                         <Download className="w-4 h-4 mr-1" />
-                        下载
+                        {t("beat.download")}
                       </Button>
                     </div>
                   )}
@@ -200,7 +199,7 @@ export function TaskResultPanel({
                         }}
                       >
                         <RefreshCw className="w-4 h-4 mr-1" />
-                        重试
+                        {t("common.retry")}
                       </Button>
                     </div>
                   )}
@@ -212,13 +211,13 @@ export function TaskResultPanel({
 
       <Card className="border border-slate-800 bg-gradient-to-br from-purple-900/20 to-slate-900/60">
         <CardHeader>
-          <CardTitle className="text-lg">温馨提示</CardTitle>
+          <CardTitle className="text-lg">{t("quickGenerate.tips")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-slate-400">
-          <p>💡 详细的描述会获得更好的效果</p>
-          <p>🎭 创建并锁定角色，可以确保视频中角色形象一致</p>
-          <p>🏠 锁定场景，可以保持画面环境的连贯性</p>
-          <p>⚙️ 需要更精细的控制？可以进入专业模式进行编辑</p>
+          <p>💡 {t("quickGenerate.tipDetailedDesc")}</p>
+          <p>🎭 {t("quickGenerate.tipLockCharacter")}</p>
+          <p>🏠 {t("quickGenerate.tipLockScene")}</p>
+          <p>⚙️ {t("quickGenerate.tipProMode")}</p>
         </CardContent>
       </Card>
     </div>

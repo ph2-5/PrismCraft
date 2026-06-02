@@ -193,7 +193,7 @@ export function onRequestEvent(
     }
     listeners.add(callback);
     return () => {
-      listeners!.delete(callback);
+      listeners.delete(callback);
     };
   }
 

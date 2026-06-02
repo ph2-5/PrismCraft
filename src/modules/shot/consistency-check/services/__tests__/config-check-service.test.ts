@@ -4,7 +4,7 @@ import {
   performConsistencyCheck,
   validateFeatureAnchoringConfig,
   validateNoFrameBinding,
-} from "@/modules/shot/consistency-check/services/config-check-service";
+} from "@/modules/shot";
 import type { FeatureAnchoringConfig, StoryElement } from "@/domain/schemas";
 
 function makeElement(overrides: Record<string, unknown> = {}): StoryElement {

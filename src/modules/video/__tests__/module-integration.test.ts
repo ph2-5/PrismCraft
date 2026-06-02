@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type { VideoTask } from "@/domain/schemas";
 
 vi.mock("@/infrastructure/di", () => ({
   container: {
@@ -151,13 +152,13 @@ describe("Video Module Internal Integration", () => {
       const existingTasks = [
         {
           taskId: "t-1",
-          status: "completed",
+          status: "completed" as const,
           videoUrl: "https://example.com/v1.mp4",
           prompt: "一个角色在森林中行走",
           providerId: "provider-a",
           providerModelId: "model-a",
         },
-      ];
+      ] as unknown as VideoTask[];
 
       const result = await checkForDuplicateVideos(
         { prompt: "一个角色在森林中行走", providerId: "provider-a", providerModelId: "model-a" },

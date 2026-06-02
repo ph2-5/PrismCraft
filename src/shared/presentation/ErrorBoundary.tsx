@@ -1,5 +1,3 @@
-"use client";
-
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/shared/ui/button";
 import {

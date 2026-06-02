@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 import { Layers, Zap } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";

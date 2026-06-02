@@ -5,6 +5,7 @@ import { cacheVideoBlob } from "@/modules/video/cache";
 import { saveVideoTask } from "@/modules/video/recovery";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
+import { t } from "@/shared/constants/messages";
 import { withTransitionGuard } from "./transition-guard";
 
 const MAX_POLL_COUNT = 1000;
@@ -141,7 +142,7 @@ async function handleTimedOutTasks(
   );
   if (timedOutTasks.length === 0) return;
 
-  emitToast("warning", "视频生成超时", `${timedOutTasks.length} 个任务超时，可在任务管理器中手动恢复`);
+  emitToast("warning", t("error.videoGenerateTimeout"), `${timedOutTasks.length} 个任务超时，可在任务管理器中手动恢复`);
   const timedOutIds = new Set(timedOutTasks.map((t) => t.taskId));
   const state = getStore().getState();
   state.setAllTasks((prev) =>
@@ -200,7 +201,7 @@ async function handlePollException(
       pollFailureCount: 0,
     }));
     const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
-    emitToast("error", "视频生成失败", `「${taskLabel}」查询异常`);
+    emitToast("error", t("error.videoGenerateFailed"), `「${taskLabel}」查询异常`);
   } else {
     result.taskUpdates.set(task.taskId, {
       pollFailureCount: failCount,
@@ -298,7 +299,7 @@ async function pollSingleTask(
             pollFailureCount: 0,
           }));
           const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
-          emitToast("error", "视频生成失败", `「${taskLabel}」连续查询失败`);
+          emitToast("error", t("error.videoGenerateFailed"), `「${taskLabel}」连续查询失败`);
         }
       }
     }

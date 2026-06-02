@@ -1,8 +1,6 @@
-"use client";
-
-import { useState } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import {
   Card,
@@ -27,36 +25,26 @@ import { ProjectExportImport } from "@/modules/asset";
 import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
 import { ErrorLogViewer } from "@/shared/presentation/ErrorBoundary";
 import { container } from "@/infrastructure/di";
-import { preferencesStorage } from "@/shared/utils/preferences";
+import { usePreference } from "@/shared/utils/preferences";
 import { ApiConfigPanel } from "./ApiConfigPanel";
 
 const AUTOSAVE_STORAGE_KEY = "ai-animation-autosave-settings";
 
+interface AutoSaveSettingsData {
+  enabled?: boolean;
+  interval?: number;
+}
+
 function AutoSaveSettings() {
   const { success } = useToastHelpers();
-  const [enabled, setEnabled] = useState(() => {
-    try {
-      const parsed = preferencesStorage.get<{ enabled?: boolean }>(AUTOSAVE_STORAGE_KEY, {});
-      return typeof parsed.enabled === "boolean" ? parsed.enabled : true;
-    } catch (e) {
-      errorLogger.warn("[AutoSaveSettings] Failed to load auto-save settings", e);
-      return true;
-    }
-  });
-  const [intervalMinutes, setIntervalMinutes] = useState(() => {
-    try {
-      const parsed = preferencesStorage.get<{ interval?: number }>(AUTOSAVE_STORAGE_KEY, {});
-      return typeof parsed.interval === "number" && parsed.interval > 0 ? parsed.interval : 5;
-    } catch (e) {
-      errorLogger.warn("[AutoSaveSettings] Failed to load auto-save settings", e);
-      return 5;
-    }
-  });
+  const [settings, setSettings] = usePreference<AutoSaveSettingsData>(AUTOSAVE_STORAGE_KEY, {});
+  const enabled = typeof settings.enabled === "boolean" ? settings.enabled : true;
+  const intervalMinutes = typeof settings.interval === "number" && settings.interval > 0 ? settings.interval : 5;
 
   const persistSettings = (nextEnabled: boolean, nextInterval: number) => {
     try {
-      preferencesStorage.set(AUTOSAVE_STORAGE_KEY, { enabled: nextEnabled, interval: nextInterval });
-      success("已保存", "自动保存设置已更新");
+      setSettings({ enabled: nextEnabled, interval: nextInterval });
+      success(t("success.saved"), t("success.settingsSaved"));
     } catch (e) {
       errorLogger.warn("[AutoSaveSettings] Failed to persist auto-save settings", e);
     }
@@ -68,24 +56,23 @@ function AutoSaveSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Save className="w-5 h-5" />
-            自动保存
+            {t("settings.autoSave")}
           </CardTitle>
           <CardDescription>
-            配置故事编辑器的自动保存行为
+            {t("settings.autoSaveDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-0.5">
-              <Label>启用自动保存</Label>
+              <Label>{t("settings.enableAutoSave")}</Label>
               <p className="text-sm text-muted-foreground">
-                定期自动保存编辑中的故事，防止数据丢失
+                {t("settings.autoSaveHint")}
               </p>
             </div>
             <Switch
               checked={enabled}
               onCheckedChange={(val) => {
-                setEnabled(val);
                 persistSettings(val, intervalMinutes);
               }}
             />
@@ -93,16 +80,15 @@ function AutoSaveSettings() {
 
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-0.5">
-              <Label>保存间隔</Label>
+              <Label>{t("settings.saveInterval")}</Label>
               <p className="text-sm text-muted-foreground">
-                每隔多少分钟自动保存一次
+                {t("settings.saveIntervalHint")}
               </p>
             </div>
             <Select
               value={String(intervalMinutes)}
               onValueChange={(val) => {
                 const num = Number(val);
-                setIntervalMinutes(num);
                 persistSettings(enabled, num);
               }}
             >
@@ -122,7 +108,7 @@ function AutoSaveSettings() {
 
           <Alert>
             <AlertDescription className="text-sm">
-              自动保存仅在故事编辑页面生效，且仅在有未保存更改时触发。
+              {t("settings.autoSaveNote")}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -133,12 +119,12 @@ function AutoSaveSettings() {
 
 export default function SettingsPage() {
   return (
-    <PageErrorBoundary pageName="设置">
+    <PageErrorBoundary pageName={t("page.settings")}>
       <div className="h-full max-w-4xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-xl font-bold">设置</h2>
+          <h2 className="text-xl font-bold">{t("page.settings")}</h2>
           <p className="text-sm text-muted-foreground">
-            管理 API 配置、自动保存、工程打包和系统状态
+            {t("page.settingsDesc")}
           </p>
         </div>
 
@@ -146,19 +132,19 @@ export default function SettingsPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="api">
               <Key className="w-4 h-4 mr-1.5" />
-              API 配置
+              {t("settings.apiConfig")}
             </TabsTrigger>
             <TabsTrigger value="autosave">
               <Save className="w-4 h-4 mr-1.5" />
-              自动保存
+              {t("settings.autoSave")}
             </TabsTrigger>
             <TabsTrigger value="project">
               <Package className="w-4 h-4 mr-1.5" />
-              工程打包
+              {t("settings.projectPack")}
             </TabsTrigger>
             <TabsTrigger value="system">
               <Activity className="w-4 h-4 mr-1.5" />
-              系统状态
+              {t("settings.systemStatus")}
             </TabsTrigger>
           </TabsList>
 

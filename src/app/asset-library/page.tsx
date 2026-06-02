@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Result } from "@/domain/types";
@@ -24,22 +22,14 @@ import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
 import { Badge } from "@/shared/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import {
-  Search,
-  Trash2,
-  Download,
-  Upload,
   Users,
   Image as ImageIcon,
   Film,
   FolderOpen,
-  Package,
-  Loader2,
 } from "lucide-react";
 import type {
   StoryboardAsset,
@@ -49,11 +39,14 @@ import type {
   ImportMode,
 } from "@/domain/schemas";
 import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants/messages";
 import { container } from "@/infrastructure/di";
 import { AssetCardGrid, fetchSecondaryData } from "./AssetCardGrid";
 import type { AssetTab, EditingItem } from "./AssetCardGrid";
 import { AssetEditDialog } from "./AssetEditDialog";
 import { AssetCollectionDialogs } from "./AssetCollectionDialogs";
+import { AssetUploadSection } from "./AssetUploadSection";
+import { AssetToolbar } from "./AssetToolbar";
 
 export default function AssetLibraryPage() {
   const { success, error: showError } = useToastHelpers();
@@ -141,7 +134,7 @@ export default function AssetLibraryPage() {
   const handleBatchDelete = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    if (!(await confirm(`确定要删除选中的 ${ids.length} 个素材吗？`, "批量删除素材"))) return;
+    if (!(await confirm(t("confirm.deleteSelectedAssets", { count: ids.length }), t("confirm.batchDeleteAssets")))) return;
     setIsBatchDeleting(true);
     try {
       const deletedIds: string[] = [];
@@ -186,12 +179,12 @@ export default function AssetLibraryPage() {
         loadSecondaryData();
       }
       if (failedLabels.length > 0) {
-        showError("部分删除失败", `以下素材删除失败: ${failedLabels.join("、")}`);
+        showError(t("asset.partialDeleteFailed"), t("asset.partialDeleteFailedDesc", { items: failedLabels.join("、") }));
       } else {
-        success("删除成功", `已删除 ${deletedIds.length} 个素材`);
+        success(t("success.deleted"), t("success.deletedCount", { count: deletedIds.length }));
       }
     } catch (e) {
-      showError("删除失败", mapUserFacingError(e));
+      showError(t("error.deleteFailed"), mapUserFacingError(e));
     } finally {
       setIsBatchDeleting(false);
     }
@@ -210,7 +203,7 @@ export default function AssetLibraryPage() {
         encodedResult = await assetExportService.exportStoryboards(ids);
       else return;
       if (!encodedResult.ok) {
-        showError("导出失败", mapUserFacingError(encodedResult.error));
+        showError(t("error.exportFailed"), mapUserFacingError(encodedResult.error));
         return;
       }
       const blob = new Blob([new Uint8Array(encodedResult.value)], {
@@ -223,9 +216,9 @@ export default function AssetLibraryPage() {
       a.click();
       URL.revokeObjectURL(url);
       clearSelection();
-      success("导出成功", `已导出 ${ids.length} 个素材为.asa文件`);
+      success(t("success.exported"), t("asset.exportedCount", { count: ids.length }));
     } catch (e) {
-      showError("导出失败", mapUserFacingError(e));
+      showError(t("error.exportFailed"), mapUserFacingError(e));
     }
   };
 
@@ -244,9 +237,9 @@ export default function AssetLibraryPage() {
       }
       setIsCollectionDialogOpen(false);
       clearSelection();
-      success("添加成功", `已将 ${selectedIds.size} 个素材添加到合集`);
+      success(t("success.added"), t("asset.addedToCollection", { count: selectedIds.size }));
     } catch (e) {
-      showError("添加失败", mapUserFacingError(e));
+      showError(t("error.uploadFailed"), mapUserFacingError(e));
     } finally {
       setIsAddingToCollection(false);
     }
@@ -258,25 +251,25 @@ export default function AssetLibraryPage() {
     try {
       const result = await assetExportService.importFromFile(file, importMode);
       if (!result.ok) {
-        showError("导入失败", mapUserFacingError(result.error));
+        showError(t("error.importFailed"), mapUserFacingError(result.error));
       } else {
         if (result.value.errors.length > 0) {
-          showError("部分导入失败", result.value.errors.join("; "));
+          showError(t("asset.partialImportFailed"), result.value.errors.join("; "));
         }
         if (result.value.imported > 0) {
-          success("导入成功", `成功导入 ${result.value.imported} 个素材`);
+          success(t("success.imported"), t("asset.importedCount", { count: result.value.imported }));
         }
       }
       setIsImportDialogOpen(false);
     } catch (e) {
-      showError("导入失败", mapUserFacingError(e));
+      showError(t("error.importFailed"), mapUserFacingError(e));
     }
     e.target.value = "";
   };
 
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim()) {
-      showError("输入错误", "请输入合集名称");
+      showError(t("asset.inputError"), t("asset.enterCollectionName"));
       return;
     }
     setIsCreatingCollection(true);
@@ -284,22 +277,22 @@ export default function AssetLibraryPage() {
       await collectionService.create(newCollectionName.trim());
       setNewCollectionName("");
       setIsNewCollectionDialogOpen(false);
-      success("创建成功", "新合集已创建");
+      success(t("success.created"), t("success.collectionCreated"));
     } catch (e) {
-      showError("创建失败", mapUserFacingError(e));
+      showError(t("asset.createFailed"), mapUserFacingError(e));
     } finally {
       setIsCreatingCollection(false);
     }
   };
 
   const handleDeleteCollection = async (id: string) => {
-    if (!(await confirm("确定要删除此合集吗？合集中的素材不会被删除。", "删除合集"))) return;
+    if (!(await confirm(t("confirm.deleteCollection"), t("confirm.deleteCollectionTitle")))) return;
     try {
       await collectionService.remove(id);
       loadSecondaryData();
-      success("删除成功", "合集已删除");
+      success(t("success.deleted"), t("success.collectionDeleted"));
     } catch (e) {
-      showError("删除失败", mapUserFacingError(e));
+      showError(t("error.deleteFailed"), mapUserFacingError(e));
     }
   };
 
@@ -307,7 +300,7 @@ export default function AssetLibraryPage() {
     try {
       const encodedResult = await assetExportService.exportCollections([id]);
       if (!encodedResult.ok) {
-        showError("导出失败", mapUserFacingError(encodedResult.error));
+        showError(t("error.exportFailed"), mapUserFacingError(encodedResult.error));
         return;
       }
       const col = collections.find((c) => c.id === id);
@@ -320,39 +313,39 @@ export default function AssetLibraryPage() {
       a.download = `${col?.name || "collection"}.asa`;
       a.click();
       URL.revokeObjectURL(url);
-      success("导出成功", "合集已导出为.asa文件");
+      success(t("success.exported"), t("asset.collectionExported"));
     } catch (e) {
-      showError("导出失败", mapUserFacingError(e));
+      showError(t("error.exportFailed"), mapUserFacingError(e));
     }
   };
 
   const handleDeleteCharacter = async (id: string) => {
-    if (!(await confirm("确定要删除此角色吗？", "删除角色"))) return;
+    if (!(await confirm(t("confirm.deleteCharacter"), t("confirm.deleteCharacterTitle")))) return;
     characterService
       .delete(id)
       .then(() => queryClient.invalidateQueries({ queryKey: ["characters"] }))
       .catch((e: unknown) =>
-        showError("删除失败", mapUserFacingError(e)),
+        showError(t("error.deleteFailed"), mapUserFacingError(e)),
       );
   };
 
   const handleDeleteScene = async (id: string) => {
-    if (!(await confirm("确定要删除此场景吗？", "删除场景"))) return;
+    if (!(await confirm(t("confirm.deleteScene"), t("confirm.deleteSceneTitle")))) return;
     sceneService
       .delete(id)
       .then(() => queryClient.invalidateQueries({ queryKey: ["scenes"] }))
       .catch((e: unknown) =>
-        showError("删除失败", mapUserFacingError(e)),
+        showError(t("error.deleteFailed"), mapUserFacingError(e)),
       );
   };
 
   const handleDeleteStoryboard = async (id: string) => {
-    if (!(await confirm("确定要删除此分镜吗？", "删除分镜"))) return;
+    if (!(await confirm(t("confirm.deleteBeat"), t("confirm.deleteBeatTitle")))) return;
     storyboardAssetService
       .remove(id)
       .then(() => loadSecondaryData())
       .catch((e: unknown) =>
-        showError("删除失败", mapUserFacingError(e)),
+        showError(t("error.deleteFailed"), mapUserFacingError(e)),
       );
   };
 
@@ -394,9 +387,9 @@ export default function AssetLibraryPage() {
       queryClient.invalidateQueries({ queryKey: ["characters"] });
       queryClient.invalidateQueries({ queryKey: ["scenes"] });
       loadSecondaryData();
-      success("保存成功", "素材已更新");
+      success(t("success.saved"), t("success.assetUpdated"));
     } catch (e) {
-      showError("保存失败", mapUserFacingError(e));
+      showError(t("error.saveFailed"), mapUserFacingError(e));
     } finally {
       setIsSavingEdit(false);
     }
@@ -452,33 +445,11 @@ export default function AssetLibraryPage() {
   return (
     <PageErrorBoundary>
       <div className="h-full space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              素材库
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              管理角色、场景、分镜素材及自定义合集
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsImportDialogOpen(true)}
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              导入 .asa
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".asa"
-              className="hidden"
-              onChange={handleImport}
-            />
-          </div>
-        </div>
+        <AssetUploadSection
+          onOpenImportDialog={() => setIsImportDialogOpen(true)}
+          fileInputRef={fileInputRef}
+          onImport={handleImport}
+        />
 
         <Tabs
           value={activeTab}
@@ -527,67 +498,21 @@ export default function AssetLibraryPage() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="mt-4 flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={
-                    activeTab === "storyboards"
-                      ? "搜索分镜文案..."
-                      : activeTab === "collections"
-                        ? "搜索合集..."
-                        : "搜索名称、描述或标签..."
-                  }
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            {selectedIds.size > 0 && activeTab !== "collections" && (
-              <div className="flex gap-2 items-center">
-                <span className="text-sm text-muted-foreground">
-                  已选 {selectedIds.size} 项
-                </span>
-                <Button variant="outline" size="sm" onClick={handleBatchExport}>
-                  <Download className="w-4 h-4 mr-1" />
-                  导出
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCollectionDialogOpen(true)}
-                >
-                  <FolderOpen className="w-4 h-4 mr-1" />
-                  加入合集
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={isBatchDeleting}
-                  onClick={handleBatchDelete}
-                >
-                  {isBatchDeleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-                  {isBatchDeleting ? "删除中..." : "删除"}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={clearSelection}>
-                  取消选择
-                </Button>
-              </div>
-            )}
-            {activeTab !== "collections" && currentItems.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  selectAll(currentItems.map((i: { id: string }) => i.id))
-                }
-              >
-                全选
-              </Button>
-            )}
-          </div>
+          <AssetToolbar
+            activeTab={activeTab}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedIdsSize={selectedIds.size}
+            isBatchDeleting={isBatchDeleting}
+            onBatchDelete={handleBatchDelete}
+            onBatchExport={handleBatchExport}
+            onOpenCollectionDialog={() => setIsCollectionDialogOpen(true)}
+            onClearSelection={clearSelection}
+            onSelectAll={() =>
+              selectAll(currentItems.map((i: { id: string }) => i.id))
+            }
+            showSelectAll={currentItems.length > 0}
+          />
 
           <AssetCardGrid
             activeTab={activeTab}

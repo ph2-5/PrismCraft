@@ -1,5 +1,3 @@
-"use client";
-
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
 import { KeyframePanel } from "@/modules/story/generation";
 import type { PromptEditorContext } from "@/modules/story/prompt-editor";

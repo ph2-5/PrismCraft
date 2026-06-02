@@ -1,7 +1,6 @@
-"use client";
-
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Check, Loader2, AlertCircle } from "lucide-react";
+import { t } from "@/shared/constants/messages";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "unsaved";
 
@@ -26,22 +25,22 @@ const statusConfig: Record<
   },
   saving: {
     icon: Loader2,
-    label: "保存中...",
+    label: t("saveStatus.saving"),
     className: "text-primary",
   },
   saved: {
     icon: Check,
-    label: "已保存",
+    label: t("saveStatus.saved"),
     className: "text-green-500",
   },
   error: {
     icon: AlertCircle,
-    label: "保存失败",
+    label: t("saveStatus.saveFailed"),
     className: "text-destructive",
   },
   unsaved: {
     icon: AlertCircle,
-    label: "未保存",
+    label: t("saveStatus.unsaved"),
     className: "text-amber-500",
   },
 };

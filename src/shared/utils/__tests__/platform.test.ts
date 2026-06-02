@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 describe("platform", () => {
   beforeEach(() => {
     vi.resetModules();
-    delete (window as Record<string, unknown>).electronAPI;
+    delete (window as unknown as Record<string, unknown>).electronAPI;
   });
 
   it("should return true when window.electronAPI exists", async () => {
-    (window as Record<string, unknown>).electronAPI = { send: vi.fn() };
+    (window as unknown as Record<string, unknown>).electronAPI = { send: vi.fn() };
     const { isElectron } = await import("../platform");
     expect(isElectron()).toBe(true);
   });
@@ -34,10 +34,10 @@ describe("platform", () => {
   });
 
   it("should cache the result after first call", async () => {
-    (window as Record<string, unknown>).electronAPI = { send: vi.fn() };
+    (window as unknown as Record<string, unknown>).electronAPI = { send: vi.fn() };
     const { isElectron } = await import("../platform");
     expect(isElectron()).toBe(true);
-    delete (window as Record<string, unknown>).electronAPI;
+    delete (window as unknown as Record<string, unknown>).electronAPI;
     expect(isElectron()).toBe(true);
   });
 
@@ -55,7 +55,7 @@ describe("platform", () => {
   });
 
   it("should detect electronAPI over electron: protocol", async () => {
-    (window as Record<string, unknown>).electronAPI = { send: vi.fn() };
+    (window as unknown as Record<string, unknown>).electronAPI = { send: vi.fn() };
     const originalLocation = window.location;
     Object.defineProperty(window, "location", {
       value: { protocol: "http:" },

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import type { ApiCapability } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
@@ -13,9 +11,10 @@ import {
 } from "@/shared/ui/select";
 import { Badge } from "@/shared/ui/badge";
 import { Bot, Image as ImageIcon, Video, Eye, Settings2 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { errorLogger } from "@/shared/error-logger";
 import { preferencesStorage } from "@/shared/utils/preferences";
+import { t } from "@/shared/constants";
 
 export type { ModelSelection };
 
@@ -34,10 +33,10 @@ const capabilityIcons: Record<ApiCapability, React.ReactNode> = {
 };
 
 const capabilityLabels: Record<ApiCapability, string> = {
-  text: "文本",
-  image: "图片",
-  vision: "视觉",
-  video: "视频",
+  text: t("model.text"),
+  image: t("model.image"),
+  vision: t("model.vision"),
+  video: t("model.video"),
 };
 
 export function ModelSelector({
@@ -125,11 +124,11 @@ export function ModelSelector({
   if (loadError || availableModels.length === 0) {
     return (
       <Link
-        href="/settings"
+        to="/settings"
         className={`flex items-center gap-1.5 ${compact ? "text-xs" : "text-sm"} text-amber-400 hover:text-amber-300 transition-colors`}
       >
         <Settings2 className="w-3 h-3" />
-        请先配置{capabilityLabels[capability]}模型
+        {t("model.pleaseConfigure", { capability: capabilityLabels[capability] })}
       </Link>
     );
   }
@@ -139,23 +138,23 @@ export function ModelSelector({
       {!compact && (
         <span className="text-sm text-slate-400 flex items-center gap-1">
           <Settings2 className="w-3 h-3" />
-          {capabilityLabels[capability]}模型:
+          {t("model.modelLabel", { capability: capabilityLabels[capability] })}
         </span>
       )}
       <Select value={currentValue} onValueChange={handleValueChange}>
         <SelectTrigger className={`${compact ? "w-[180px] h-8 text-xs" : "w-[240px]"} border-slate-700 bg-slate-800/50`}>
-          <SelectValue placeholder={`选择${capabilityLabels[capability]}模型`}>
+          <SelectValue placeholder={t("model.selectModel", { capability: capabilityLabels[capability] })}>
             {value ? (
               <span className="truncate">
                 {value.providerName} / {value.modelName}
               </span>
             ) : (
-              <span className="text-slate-400">默认模型</span>
+              <span className="text-slate-400">{t("model.defaultModel")}</span>
             )}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">默认（使用设置中的配置）</SelectItem>
+          <SelectItem value="">{t("model.defaultOption")}</SelectItem>
           {availableModels.map((m) => (
             <SelectItem key={m.value} value={m.value}>
               <div className="flex items-center gap-2">

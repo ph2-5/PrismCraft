@@ -1,8 +1,7 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { usePerformanceMonitor } from "@/shared/utils/performance";
 import { BarChart3, Clock, Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { t } from "@/shared/constants/messages";
 
 declare global {
   interface Performance {
@@ -46,44 +45,40 @@ export function PerformanceMonitorPanel() {
   const getPerformanceMetrics = (): PerformanceMetric[] => {
     const metricsList: PerformanceMetric[] = [];
 
-    // 页面加载时间
     if (metrics.pageLoadTime !== undefined) {
       const loadTime = metrics.pageLoadTime;
       metricsList.push({
-        label: "页面加载时间",
+        label: t("perf.pageLoadTime"),
         value: `${loadTime.toFixed(0)}ms`,
         status: loadTime < 2000 ? "good" : loadTime < 4000 ? "warning" : "error",
         icon: <Clock className="w-4 h-4" />
       });
     }
 
-    // 首次内容绘制
     if (metrics.fcp !== undefined) {
       const fcp = metrics.fcp;
       metricsList.push({
-        label: "首次内容绘制",
+        label: t("perf.fcp"),
         value: `${fcp.toFixed(0)}ms`,
         status: fcp < 1000 ? "good" : fcp < 2000 ? "warning" : "error",
         icon: <CheckCircle2 className="w-4 h-4" />
       });
     }
 
-    // 最大内容绘制
     if (metrics.lcp !== undefined) {
       const lcp = metrics.lcp;
       metricsList.push({
-        label: "最大内容绘制",
+        label: t("perf.lcp"),
         value: `${lcp.toFixed(0)}ms`,
         status: lcp < 2500 ? "good" : lcp < 4000 ? "warning" : "error",
         icon: <Zap className="w-4 h-4" />
       });
     }
 
-    // 累积布局偏移
     if (metrics.cls !== undefined) {
       const cls = metrics.cls;
       metricsList.push({
-        label: "累积布局偏移",
+        label: t("perf.cls"),
         value: cls.toFixed(2),
         status: cls < 0.1 ? "good" : cls < 0.25 ? "warning" : "error",
         icon: <AlertTriangle className="w-4 h-4" />
@@ -95,24 +90,21 @@ export function PerformanceMonitorPanel() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      {/* 切换按钮 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors"
       >
         <BarChart3 className="w-4 h-4" />
-        <span className="text-sm font-medium">性能</span>
+        <span className="text-sm font-medium">{t("perf.toggle")}</span>
       </button>
 
-      {/* 性能监控面板 */}
       {isOpen && (
         <div className="mt-2 p-4 bg-background border rounded-lg shadow-xl max-w-md">
           <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
-            性能监控
+            {t("perf.title")}
           </h3>
 
-          {/* 性能指标 */}
           <div className="space-y-2">
             {getPerformanceMetrics().map((metric, index) => (
               <div key={metric.label || index} className="flex items-center justify-between">
@@ -136,12 +128,11 @@ export function PerformanceMonitorPanel() {
               </div>
             ))}
 
-            {/* 内存使用 */}
             {memoryUsage !== null && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-blue-500" />
-                  <span className="text-xs text-muted-foreground">内存使用</span>
+                  <span className="text-xs text-muted-foreground">{t("perf.memoryUsage")}</span>
                 </div>
                 <span className="text-sm font-medium text-blue-500">
                   {memoryUsage}MB
@@ -150,12 +141,11 @@ export function PerformanceMonitorPanel() {
             )}
           </div>
 
-          {/* 关闭按钮 */}
           <button
             onClick={() => setIsOpen(false)}
             className="mt-4 w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            关闭
+            {t("ui.close")}
           </button>
         </div>
       )}

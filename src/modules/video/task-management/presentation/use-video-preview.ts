@@ -11,7 +11,7 @@ export function useVideoPreview() {
   const [videoLoading, setVideoLoading] = useState(false);
 
   const cachedVideoUrlRef = useRef<string | null>(null);
-  // eslint-disable-next-line react-hooks/refs
+   
   cachedVideoUrlRef.current = cachedVideoUrl;
 
   const openPreview = useCallback(async (task: VideoTask) => {

@@ -3,6 +3,7 @@ import { checkCachedVideo, removeCachedVideo, getCacheStats } from "@/modules/vi
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import type { VideoTask } from "@/domain/schemas";
+import { t } from "@/shared/constants/messages";
 
 interface UseCacheOperationsParams {
   completedTaskIds: string[];
@@ -74,9 +75,9 @@ export function useCacheOperations({ completedTaskIds }: UseCacheOperationsParam
         return newStates;
       });
       await refreshCacheStats();
-      success("删除成功", "本地缓存已删除");
+      success(t("success.deleted"), t("success.cacheDeleted"));
     } catch (err) {
-      error("删除失败", err instanceof Error ? err.message : "未知错误");
+      error(t("error.deleteFailed"), err instanceof Error ? err.message : t("error.unknown"));
     } finally {
       setIsDeleting(false);
       setDeleteConfirmOpen(false);

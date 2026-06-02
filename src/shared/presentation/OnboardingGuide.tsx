@@ -1,8 +1,8 @@
-"use client";
-
-import { useState, useSyncExternalStore, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/shared/ui/button";
 import { X, ChevronRight, Lightbulb } from "lucide-react";
+import { usePreference, preferencesStorage } from "@/shared/utils/preferences";
+import { t } from "@/shared/constants";
 
 interface GuideStep {
   id: string;
@@ -15,51 +15,35 @@ interface GuideStep {
 const ONBOARDING_STEPS: GuideStep[] = [
   {
     id: "welcome",
-    title: "欢迎使用 AI 动画工作室",
-    description: "这是一个强大的动画生成工具，让我们快速了解一下主要功能。",
+    title: t("onboarding.welcomeTitle"),
+    description: t("onboarding.welcomeDesc"),
   },
   {
     id: "create-story",
-    title: "创建你的第一个故事",
-    description: "点击顶部的新建按钮开始创建你的动画项目。",
+    title: t("onboarding.createStoryTitle"),
+    description: t("onboarding.createStoryDesc"),
   },
   {
     id: "add-beats",
-    title: "添加分镜",
-    description: "为每个场景添加关键分镜，这是动画的基础。",
+    title: t("onboarding.addBeatsTitle"),
+    description: t("onboarding.addBeatsDesc"),
   },
   {
     id: "generate-video",
-    title: "生成视频",
-    description: "选择视频模型并一键生成精彩的动画视频。",
+    title: t("onboarding.generateVideoTitle"),
+    description: t("onboarding.generateVideoDesc"),
   },
 ];
 
 const GUIDE_KEY = "ai-animation-studio-onboarding-complete";
 
-const guideListeners = new Set<() => void>();
-
-function subscribeGuide(callback: () => void): () => void {
-  guideListeners.add(callback);
-  return () => { guideListeners.delete(callback); };
-}
-
-function getGuideVisibleSnapshot(): boolean {
-  return !localStorage.getItem(GUIDE_KEY);
-}
-
-function getGuideVisibleServerSnapshot(): boolean {
-  return false;
-}
-
 export function OnboardingGuide() {
-  const showGuide = useSyncExternalStore(subscribeGuide, getGuideVisibleSnapshot, getGuideVisibleServerSnapshot);
+  const [completed, setCompleted] = usePreference<boolean>(GUIDE_KEY, false);
   const [currentStep, setCurrentStep] = useState(0);
 
   const completeGuide = useCallback(() => {
-    localStorage.setItem(GUIDE_KEY, "true");
-    guideListeners.forEach(l => l());
-  }, []);
+    setCompleted(true);
+  }, [setCompleted]);
 
   const nextStep = () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
@@ -75,7 +59,7 @@ export function OnboardingGuide() {
     }
   };
 
-  if (!showGuide) return null;
+  if (completed) return null;
 
   const step = ONBOARDING_STEPS[currentStep];
 
@@ -103,9 +87,9 @@ export function OnboardingGuide() {
         </div>
 
         <div className="flex items-center gap-2 mb-6">
-          {ONBOARDING_STEPS.map((_, index) => (
+          {ONBOARDING_STEPS.map((step, index) => (
             <div
-              key={index}
+              key={step.id}
               className={`flex-1 h-1 rounded-full transition-colors ${
                 index <= currentStep ? "bg-blue-500" : "bg-gray-600"
               }`}
@@ -116,7 +100,7 @@ export function OnboardingGuide() {
         <div className="flex justify-between gap-3">
           {currentStep > 0 && (
             <Button variant="outline" onClick={prevStep} className="flex-1">
-              上一步
+              {t("onboarding.prevStep")}
             </Button>
           )}
           <Button
@@ -124,8 +108,8 @@ export function OnboardingGuide() {
             className="flex-1"
           >
             {currentStep === ONBOARDING_STEPS.length - 1
-              ? "开始使用"
-              : "下一步"}
+              ? t("onboarding.startUsing")
+              : t("onboarding.nextStep")}
             <ChevronRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
@@ -135,6 +119,5 @@ export function OnboardingGuide() {
 }
 
 export function resetOnboarding() {
-  localStorage.removeItem(GUIDE_KEY);
-  guideListeners.forEach(l => l());
+  preferencesStorage.remove(GUIDE_KEY);
 }

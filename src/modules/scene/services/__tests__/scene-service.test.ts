@@ -74,7 +74,7 @@ describe("sceneService", () => {
 
   describe("create 非法输入", () => {
     it("缺少 name 字段时返回 err(ValidationError)", async () => {
-      const result = await sceneService.create({} as any);
+      const result = await sceneService.create({} as unknown as Parameters<typeof sceneService.create>[0]);
 
       expectErr(result);
       expect(result.error).toBeInstanceOf(ValidationError);

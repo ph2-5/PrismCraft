@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useCallback, useState, useRef, useMemo } from "react";
 
 interface PerformanceMetrics {

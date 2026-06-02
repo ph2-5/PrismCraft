@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   challengingPrompts,
   storyBeatTestData,
@@ -104,7 +104,7 @@ describe("Challenging Prompts Test Suite", () => {
         prompt: "",
         useCount: 0,
         tags: [] as string[],
-      })) as any as Character[] || [];
+      })) as unknown as Character[] || [];
 
       const scenes: Scene[] = beatData.scenes?.map((s) => ({
         id: s.id,
@@ -121,7 +121,7 @@ describe("Challenging Prompts Test Suite", () => {
         prompt: "",
         useCount: 0,
         tags: [] as string[],
-      })) as any as Scene[] || [];
+      })) as unknown as Scene[] || [];
 
       const prompt = generateBeatImagePrompt({
         beat,
@@ -163,7 +163,7 @@ describe("Challenging Prompts Test Suite", () => {
         prompt: "",
         useCount: 0,
         tags: [] as string[],
-      })) as any as Character[] || [];
+      })) as unknown as Character[] || [];
 
       const scenes: Scene[] = beatData.scenes?.map((s) => ({
         id: s.id,
@@ -180,7 +180,7 @@ describe("Challenging Prompts Test Suite", () => {
         prompt: "",
         useCount: 0,
         tags: [] as string[],
-      })) as any as Scene[] || [];
+      })) as unknown as Scene[] || [];
 
       const prompt = generateSimpleBeatImagePrompt(beat, characters, scenes, "首帧");
 
@@ -279,7 +279,7 @@ describe("Challenging Prompts Test Suite", () => {
         prompt: "",
         useCount: 0,
         tags: [] as string[],
-      })) as any as Character[] || [];
+      })) as unknown as Character[] || [];
 
       const scenes: Scene[] = multiCharData.scenes?.map((s) => ({
         id: s.id,
@@ -295,7 +295,7 @@ describe("Challenging Prompts Test Suite", () => {
         prompt: "",
         useCount: 0,
         tags: [] as string[],
-      })) as any as Scene[] || [];
+      })) as unknown as Scene[] || [];
 
       const prompt = generateBeatImagePrompt({
         beat,

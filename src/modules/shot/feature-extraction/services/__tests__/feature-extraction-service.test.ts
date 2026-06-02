@@ -5,7 +5,7 @@ import {
   buildFeatureAnchor,
   buildFeatureAnchoringConfig,
   validateReferenceImageQuality,
-} from "@/modules/shot/feature-extraction/services/feature-extraction-service";
+} from "@/modules/shot";
 import type { Character, StoryBeat, StoryElement } from "@/domain/schemas";
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
@@ -403,7 +403,14 @@ describe("validateReferenceImageQuality", () => {
     const originalWindow = globalThis.window;
     const originalImage = globalThis.Image;
 
-    const mockImageConstructor = vi.fn().mockImplementation(function(this: any) {
+    const mockImageConstructor = vi.fn().mockImplementation(function(this: {
+      _listeners: Record<string, (() => void)[]>;
+      _src: string;
+      _crossOrigin: string;
+      width: number;
+      height: number;
+      addEventListener: (event: string, fn: () => void) => void;
+    }) {
       this._listeners = {} as Record<string, (() => void)[]>;
       this._src = "";
       this._crossOrigin = "";
@@ -454,7 +461,14 @@ describe("validateReferenceImageQuality", () => {
     const originalWindow = globalThis.window;
     const originalImage = globalThis.Image;
 
-    const mockImageConstructor = vi.fn().mockImplementation(function(this: any) {
+    const mockImageConstructor = vi.fn().mockImplementation(function(this: {
+      _listeners: Record<string, (() => void)[]>;
+      _src: string;
+      _crossOrigin: string;
+      width: number;
+      height: number;
+      addEventListener: (event: string, fn: () => void) => void;
+    }) {
       this._listeners = {} as Record<string, (() => void)[]>;
       this._src = "";
       this._crossOrigin = "";
@@ -504,7 +518,14 @@ describe("validateReferenceImageQuality", () => {
     const originalWindow = globalThis.window;
     const originalImage = globalThis.Image;
 
-    const mockImageConstructor = vi.fn().mockImplementation(function(this: any) {
+    const mockImageConstructor = vi.fn().mockImplementation(function(this: {
+      _listeners: Record<string, (() => void)[]>;
+      _src: string;
+      _crossOrigin: string;
+      width: number;
+      height: number;
+      addEventListener: (event: string, fn: () => void) => void;
+    }) {
       this._listeners = {} as Record<string, (() => void)[]>;
       this._src = "";
       this._crossOrigin = "";

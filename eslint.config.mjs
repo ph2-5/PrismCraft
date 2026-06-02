@@ -1,5 +1,6 @@
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import tseslint from "typescript-eslint";
+import reactPlugin from "eslint-plugin-react";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
 
 const deprecatedImportPatterns = [
   {
@@ -82,10 +83,10 @@ const infraSubdomainsExceptDi = [
   "@/infrastructure/api-config-facade",
 ];
 
-const eslintConfig = [
+const eslintConfig = tseslint.config(
+  tseslint.configs.base,
   {
     ignores: [
-      ".next/**",
       "out/**",
       "build/**",
       "dist/**",
@@ -93,7 +94,6 @@ const eslintConfig = [
       "release2/**",
       "coverage/**",
       "electron/dist/**",
-      "next-env.d.ts",
       "scripts/**",
       "*.cjs",
       "analyze-coverage.js",
@@ -102,11 +102,9 @@ const eslintConfig = [
       "test-pragma.js",
     ],
   },
-  ...nextVitals,
-  ...nextTs,
   {
+    plugins: { "react-hooks": reactHooksPlugin },
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
@@ -116,10 +114,40 @@ const eslintConfig = [
         "error",
         { patterns: deprecatedImportPatterns },
       ],
+      "react-hooks/rules-of-hooks": "error",
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}", "electron/src/**/*.{ts,tsx}"],
+    ignores: ["**/__tests__/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "CallExpression[callee.name='success'] > Literal:first-child",
+          message: "🚏 R56: 请使用 t() 消息常量替代硬编码字符串，如 success(t('success.saved'), ...)",
+        },
+        {
+          selector: "CallExpression[callee.name='error'] > Literal:first-child",
+          message: "🚏 R56: 请使用 t() 消息常量替代硬编码字符串，如 error(t('error.saveFailed'), ...)",
+        },
+        {
+          selector: "CallExpression[callee.name='showError'] > Literal:first-child",
+          message: "🚏 R56: 请使用 t() 消息常量替代硬编码字符串，如 showError(t('error.saveFailed'), ...)",
+        },
+      ],
+    },
+  },
+  {
+    files: ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
     },
   },
   {
     files: ["src/**/*.{ts,tsx}"],
+    plugins: { react: reactPlugin },
     rules: {
       "react/no-unescaped-entities": "warn",
     },
@@ -272,6 +300,6 @@ const eslintConfig = [
       "@typescript-eslint/no-require-imports": "off",
     },
   },
-];
+);
 
 export default eslintConfig;

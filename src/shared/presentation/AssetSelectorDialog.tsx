@@ -1,5 +1,3 @@
-"use client";
-
 import { ImageIcon } from "lucide-react";
 import {
   Dialog,
@@ -8,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { t } from "@/shared/constants";
 
 interface Asset {
   id: string;
@@ -38,7 +37,7 @@ export function AssetSelectorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>从素材库选择</DialogTitle>
+          <DialogTitle>{t("dialog.selectAsset")}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
@@ -61,7 +60,7 @@ export function AssetSelectorDialog({
                     </p>
                     {asset.boundTo && (
                       <p className="text-xs text-amber-300 truncate">
-                        绑定: {asset.boundTo.name}
+                        {t("dialog.boundTo", { name: asset.boundTo.name })}
                       </p>
                     )}
                   </div>
@@ -72,7 +71,7 @@ export function AssetSelectorDialog({
           {imageAssets.length === 0 && (
             <div className="text-center py-12 text-slate-400">
               <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>素材库中暂无图片</p>
+              <p>{t("dialog.noImagesInLibrary")}</p>
             </div>
           )}
         </div>

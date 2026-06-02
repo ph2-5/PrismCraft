@@ -1,7 +1,6 @@
-"use client";
-
 import { useEffect, useRef } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { t } from "@/shared/constants/messages";
 
 export function useGlobalKeyboardActions(options?: {
   onSave?: () => void;
@@ -23,7 +22,7 @@ export function useGlobalKeyboardActions(options?: {
       if (optionsRef.current?.onUndo) {
         optionsRef.current.onUndo();
       } else {
-        info("当前页面不支持撤销操作");
+        info(t("keyboard.undoNotSupported"));
       }
     };
 
@@ -31,7 +30,7 @@ export function useGlobalKeyboardActions(options?: {
       if (optionsRef.current?.onRedo) {
         optionsRef.current.onRedo();
       } else {
-        info("当前页面不支持重做操作");
+        info(t("keyboard.redoNotSupported"));
       }
     };
 

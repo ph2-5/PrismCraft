@@ -4,7 +4,7 @@
  */
 
 import { ApiConfig, ProviderConfig } from "./types";
-import { getDefaultConfig } from "./storage";
+import { getDefaultConfig, saveConfig } from "./storage";
 import { PROVIDER_TEMPLATES } from "./templates";
 import { detectProvider } from "./detect";
 import { errorLogger } from "@/shared/error-logger";
@@ -229,7 +229,6 @@ export async function runMigration(): Promise<ApiConfig | null> {
     const migrated = migrateFromOldConfig(parsed);
 
     if (migrated) {
-      const { saveConfig } = await import("./storage");
       await saveConfig(migrated);
       localStorage.removeItem("ai-animation-config");
     }

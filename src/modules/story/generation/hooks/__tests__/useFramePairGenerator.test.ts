@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { StoryBeat, Character, Scene, ModelSelection, StoryStyleGuide } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 const {
   mockFindBeat,
@@ -218,7 +219,7 @@ describe("useFramePairGenerator", () => {
       expect(returned!).toBeDefined();
       expect(returned!.framePair).toEqual(mockFramePairResult);
       expect(mockUpdateBeat).toHaveBeenCalledWith("beat-1", expect.objectContaining({ framePair: mockFramePairResult }));
-      expect(props.success).toHaveBeenCalledWith("首尾帧生成成功", "分镜首尾帧已生成");
+      expect(props.success).toHaveBeenCalledWith(t("success.generated"), t("success.framePairGeneratedDesc"));
     });
 
     it("应将正确的参数传递给 generateBeatFramePair", async () => {
@@ -552,7 +553,7 @@ describe("useFramePairGenerator", () => {
       expect(returned).toBeDefined();
       expect(returned!.framePair).toEqual(mockFramePairResult);
       expect(mockUpdateBeat).toHaveBeenCalled();
-      expect(props.success).toHaveBeenCalledWith("首尾帧生成成功", "分镜首尾帧已生成");
+      expect(props.success).toHaveBeenCalledWith(t("success.generated"), t("success.framePairGeneratedDesc"));
     });
 
     it("一致性检查时应使用 framePair.firstFrameUrl 作为 generatedImageUrl", async () => {

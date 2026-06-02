@@ -54,11 +54,13 @@ function buildProps(overrides = {}) {
   const story: Story = {
     id: "story-1",
     title: "测试故事",
+    description: "",
     genre: "drama",
     tone: "neutral",
     beats: [],
     characters: [],
     scenes: [],
+    elementIds: [],
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
   };

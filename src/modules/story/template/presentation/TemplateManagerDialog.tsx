@@ -1,16 +1,10 @@
-"use client";
-
 import { useState, useRef } from "react";
 import {
   X,
-  Download,
   Upload,
   Plus,
-  Trash2,
   FileText,
   Film,
-  Clock,
-  Tag,
 } from "lucide-react";
 import type { StoryBeat } from "@/domain/schemas";
 import {
@@ -20,7 +14,9 @@ import {
   exportTemplateToFile,
   importTemplateFromFile,
 } from "@/modules/story";
+import { t } from "@/shared/constants";
 import { exportMultipleTemplates } from "../services/storyboard-template";
+import { TemplateCard } from "./TemplateCard";
 
 interface TemplateManagerDialogProps {
   isOpen: boolean;
@@ -33,13 +29,13 @@ interface TemplateManagerDialogProps {
 }
 
 const TEMPLATE_CATEGORIES = [
-  { value: "custom", label: "自定义" },
-  { value: "film", label: "电影" },
-  { value: "animation", label: "动画" },
-  { value: "commercial", label: "广告" },
-  { value: "documentary", label: "纪录片" },
-  { value: "music-video", label: "MV" },
-  { value: "other", label: "其他" },
+  { value: "custom", label: () => t("template.categoryCustom") },
+  { value: "film", label: () => t("template.categoryFilm") },
+  { value: "animation", label: () => t("template.categoryAnimation") },
+  { value: "commercial", label: () => t("template.categoryCommercial") },
+  { value: "documentary", label: () => t("template.categoryDocumentary") },
+  { value: "music-video", label: () => t("template.categoryMusicVideo") },
+  { value: "other", label: () => t("template.categoryOther") },
 ];
 
 export default function TemplateManagerDialog({
@@ -59,7 +55,6 @@ export default function TemplateManagerDialog({
   const [templateTone, setTemplateTone] = useState("");
   const [templateTags, setTemplateTags] = useState("");
   const [importError, setImportError] = useState("");
-  const [previewTemplate, setPreviewTemplate] = useState<StoryboardTemplate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -119,7 +114,7 @@ export default function TemplateManagerDialog({
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[680px] max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            分镜模板管理
+            {t("template.managerTitle")}
           </h2>
           <button
             onClick={onClose}
@@ -131,9 +126,9 @@ export default function TemplateManagerDialog({
 
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           {[
-            { key: "load", label: "我的模板", icon: FileText },
-            { key: "save", label: "保存模板", icon: Plus },
-            { key: "import", label: "导入导出", icon: Upload },
+            { key: "load", label: t("template.myTemplates"), icon: FileText },
+            { key: "save", label: t("template.saveTemplate"), icon: Plus },
+            { key: "import", label: t("template.importExport"), icon: Upload },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -156,103 +151,20 @@ export default function TemplateManagerDialog({
               {savedTemplates.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <Film size={48} className="mx-auto mb-3 opacity-50" />
-                  <p>暂无自定义模板</p>
+                  <p>{t("template.noCustomTemplates")}</p>
                   <p className="text-sm mt-1">
-                    保存当前分镜为模板，或从文件导入
+                    {t("template.saveCurrentOrImport")}
                   </p>
                 </div>
               ) : (
                 savedTemplates.map((template) => (
-                  <div
+                  <TemplateCard
                     key={template.id}
-                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                          {template.name}
-                        </h3>
-                        {template.description && (
-                          <p className="text-sm text-gray-500 mt-1">
-                            {template.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Film size={12} />
-                            {template.beats.length} 个分镜
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} />
-                            {template.totalDuration}秒
-                          </span>
-                          {template.category && (
-                            <span className="flex items-center gap-1">
-                              <Tag size={12} />
-                              {TEMPLATE_CATEGORIES.find(
-                                (c) => c.value === template.category,
-                              )?.label || template.category}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setPreviewTemplate(template)}
-                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
-                          title="预览"
-                        >
-                          <FileText size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleApply(template)}
-                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600"
-                        >
-                          应用
-                        </button>
-                        <button
-                          onClick={() => handleExport(template)}
-                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600"
-                          title="导出"
-                        >
-                          <Download size={16} />
-                        </button>
-                        <button
-                          onClick={() => onDeleteTemplate(template.id)}
-                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-red-600"
-                          title="删除"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {previewTemplate?.id === template.id && (
-                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                        <div className="space-y-2">
-                          {template.beats.map((beat, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
-                            >
-                              <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-medium">
-                                {i + 1}
-                              </span>
-                              <span className="font-medium">{beat.title || "未命名"}</span>
-                              <span className="text-xs text-gray-400">
-                                {beat.duration}秒
-                              </span>
-                              {beat.shotType && (
-                                <span className="text-xs px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                                  {beat.shotType}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    template={template}
+                    onApply={handleApply}
+                    onExport={handleExport}
+                    onDelete={onDeleteTemplate}
+                  />
                 ))
               )}
             </div>
@@ -261,28 +173,28 @@ export default function TemplateManagerDialog({
           {activeTab === "save" && (
             <div className="space-y-4">
               <p className="text-sm text-gray-500">
-                将当前 {currentBeats.length} 个分镜保存为可复用的模板
+                {t("template.saveCurrentAsTemplate", { count: currentBeats.length })}
               </p>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  模板名称 *
+                  {t("template.templateName")}
                 </label>
                 <input
                   type="text"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
-                  placeholder="例如：产品展示5镜头"
+                  placeholder={t("template.templateNamePlaceholder")}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  描述
+                  {t("template.description")}
                 </label>
                 <textarea
                   value={templateDesc}
                   onChange={(e) => setTemplateDesc(e.target.value)}
-                  placeholder="模板用途说明..."
+                  placeholder={t("template.descriptionPlaceholder")}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
@@ -290,7 +202,7 @@ export default function TemplateManagerDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    分类
+                    {t("template.category")}
                   </label>
                   <select
                     value={templateCategory}
@@ -299,20 +211,20 @@ export default function TemplateManagerDialog({
                   >
                     {TEMPLATE_CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
-                        {c.label}
+                        {c.label()}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    类型
+                    {t("template.genre")}
                   </label>
                   <input
                     type="text"
                     value={templateGenre}
                     onChange={(e) => setTemplateGenre(e.target.value)}
-                    placeholder="例如：科幻、爱情"
+                    placeholder={t("template.genrePlaceholder")}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
@@ -320,25 +232,25 @@ export default function TemplateManagerDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    基调
+                    {t("template.tone")}
                   </label>
                   <input
                     type="text"
                     value={templateTone}
                     onChange={(e) => setTemplateTone(e.target.value)}
-                    placeholder="例如：紧张、温馨"
+                    placeholder={t("template.tonePlaceholder")}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    标签（逗号分隔）
+                    {t("template.tagsComma")}
                   </label>
                   <input
                     type="text"
                     value={templateTags}
                     onChange={(e) => setTemplateTags(e.target.value)}
-                    placeholder="例如：产品,展示,5镜头"
+                    placeholder={t("template.tagsPlaceholder")}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
@@ -348,7 +260,7 @@ export default function TemplateManagerDialog({
                 disabled={!templateName.trim() || currentBeats.length === 0}
                 className="w-full py-2.5 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                保存为模板（{currentBeats.length} 个分镜）
+                {t("template.saveTemplateButton", { count: currentBeats.length })}
               </button>
             </div>
           )}
@@ -357,7 +269,7 @@ export default function TemplateManagerDialog({
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  导入模板
+                  {t("template.importTemplate")}
                 </h3>
                 <div
                   onClick={() => fileInputRef.current?.click()}
@@ -365,7 +277,7 @@ export default function TemplateManagerDialog({
                 >
                   <Upload size={32} className="mx-auto mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">
-                    点击选择 .astpl 模板文件
+                    {t("template.clickToSelectFile")}
                   </p>
                 </div>
                 <input
@@ -382,10 +294,10 @@ export default function TemplateManagerDialog({
 
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  批量导出
+                  {t("template.batchExport")}
                 </h3>
                 {savedTemplates.length === 0 ? (
-                  <p className="text-sm text-gray-400">暂无模板可导出</p>
+                  <p className="text-sm text-gray-400">{t("template.noTemplatesToExport")}</p>
                 ) : (
                   <button
                     onClick={() => {
@@ -393,7 +305,7 @@ export default function TemplateManagerDialog({
                     }}
                     className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600"
                   >
-                    导出全部模板（{savedTemplates.length} 个）
+                    {t("template.exportAllTemplates", { count: savedTemplates.length })}
                   </button>
                 )}
               </div>

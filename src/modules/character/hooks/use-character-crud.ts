@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback } from "react";
 import type { Character, Story } from "@/domain/schemas";
 import { characterService } from "../services";

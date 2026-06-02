@@ -1,9 +1,8 @@
-"use client";
-
 import React, { useState } from "react";
 import { Palette, Check } from "lucide-react";
 import { useTheme, THEMES, type ThemeId } from "./ThemeProvider";
 import { cn } from "@/shared/utils/utils";
+import { t } from "@/shared/constants/messages";
 
 interface ThemeSwitcherProps {
   collapsed?: boolean;
@@ -21,12 +20,12 @@ export function ThemeSwitcher({ collapsed }: ThemeSwitcherProps) {
           "flex items-center rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-full",
           collapsed ? "justify-center h-10 w-10 mx-auto" : "gap-3 px-3 h-9",
         )}
-        title="切换主题"
+        title={t("theme.switchTheme")}
       >
         <Palette className={cn("shrink-0", collapsed ? "w-5 h-5" : "w-4 h-4")} />
         {!collapsed && (
           <>
-            <span>主题</span>
+            <span>{t("theme.label")}</span>
             <div
               className="ml-auto w-3 h-3 rounded-full border border-border shrink-0"
               style={{
@@ -48,7 +47,7 @@ export function ThemeSwitcher({ collapsed }: ThemeSwitcherProps) {
             collapsed ? "bottom-full left-full ml-2 mb-0 w-64" : "bottom-full left-0 mb-2 w-64",
           )}>
             <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground mb-1">
-              选择主题风格
+              {t("theme.selectStyle")}
             </div>
             {THEMES.map((t) => (
               <button

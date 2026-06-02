@@ -10,6 +10,7 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Loader2 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
+import { t } from "@/shared/constants";
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -32,23 +33,23 @@ export function DeleteConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>确认删除本地缓存</DialogTitle>
+          <DialogTitle>{t("task.confirmDeleteCache")}</DialogTitle>
           <DialogDescription>
-            确定要删除这个视频的本地缓存吗？删除后您仍然可以从云端重新下载。
+            {t("task.confirmDeleteCacheDesc")}
           </DialogDescription>
         </DialogHeader>
 
         {task && (
           <div className="space-y-2 py-4">
             <div className="text-sm">
-              <span className="text-gray-500">任务:</span>{" "}
+              <span className="text-gray-500">{t("task.taskLabel")}:</span>{" "}
               <span className="font-medium">
-                {task.beatTitle || `任务 ${(task.taskId || "unknown").substring(0, 8)}...`}
+                {task.beatTitle || `${t("task.taskLabel")} ${(task.taskId || "unknown").substring(0, 8)}...`}
               </span>
             </div>
             {cacheFileSizeMB !== undefined && (
               <div className="text-sm">
-                <span className="text-gray-500">大小:</span>{" "}
+                <span className="text-gray-500">{t("task.sizeLabel")}:</span>{" "}
                 <span className="font-medium">{cacheFileSizeMB.toFixed(2)} MB</span>
               </div>
             )}
@@ -61,7 +62,7 @@ export function DeleteConfirmDialog({
             onClick={() => onOpenChange(false)}
             disabled={isDeleting}
           >
-            取消
+            {t("common.cancel")}
           </Button>
           <Button
             variant="destructive"
@@ -81,7 +82,7 @@ export function DeleteConfirmDialog({
                 />
               </svg>
             )}
-            {isDeleting ? "删除中..." : "确认删除"}
+            {isDeleting ? t("common.deleting") : t("common.confirmDelete")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -19,21 +19,23 @@ vi.mock("@/shared/error-logger", () => ({
   ),
 }));
 
+const mockElectronAPI = {
+  dbQuery: vi.fn(),
+  dbRun: vi.fn(),
+  dbTransaction: vi.fn(),
+};
+
 describe("storage/sqlite-core enhanced", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(isElectron).mockReturnValue(true);
-    (window as any).electronAPI = {
-      dbQuery: vi.fn(),
-      dbRun: vi.fn(),
-      dbTransaction: vi.fn(),
-    };
+    (window as unknown as Record<string, unknown>).electronAPI = mockElectronAPI;
   });
 
   describe("safeQuery", () => {
     it("非 Electron 环境下应抛出守卫错误", async () => {
       vi.mocked(isElectron).mockReturnValue(false);
-      delete (window as any).electronAPI;
+      delete (window as unknown as Record<string, unknown>).electronAPI;
 
       await expect(safeQuery("SELECT 1")).rejects.toThrow(
         "electronAPI not available",
@@ -41,7 +43,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("成功时应返回 data 数组", async () => {
-      (window as any).electronAPI.dbQuery.mockResolvedValue({
+      mockElectronAPI.dbQuery.mockResolvedValue({
         success: true,
         data: [{ id: 1 }],
       });
@@ -52,7 +54,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("失败且 response.error 非空时应抛出包含 error 消息的错误", async () => {
-      (window as any).electronAPI.dbQuery.mockResolvedValue({
+      mockElectronAPI.dbQuery.mockResolvedValue({
         success: false,
         error: "table not found",
       });
@@ -63,7 +65,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("失败且 response.error 为空时应抛出包含 fallback 消息的错误", async () => {
-      (window as any).electronAPI.dbQuery.mockResolvedValue({
+      mockElectronAPI.dbQuery.mockResolvedValue({
         success: false,
         error: "",
       });
@@ -74,7 +76,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("失败且 response.error 为 undefined 时应抛出包含 fallback 消息的错误", async () => {
-      (window as any).electronAPI.dbQuery.mockResolvedValue({
+      mockElectronAPI.dbQuery.mockResolvedValue({
         success: false,
       });
 
@@ -84,7 +86,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("成功但 data 为 undefined 时应返回空数组", async () => {
-      (window as any).electronAPI.dbQuery.mockResolvedValue({
+      mockElectronAPI.dbQuery.mockResolvedValue({
         success: true,
       });
 
@@ -97,7 +99,7 @@ describe("storage/sqlite-core enhanced", () => {
   describe("safeRun", () => {
     it("非 Electron 环境下应抛出守卫错误", async () => {
       vi.mocked(isElectron).mockReturnValue(false);
-      delete (window as any).electronAPI;
+      delete (window as unknown as Record<string, unknown>).electronAPI;
 
       await expect(safeRun("INSERT INTO t VALUES (1)")).rejects.toThrow(
         "electronAPI not available",
@@ -105,7 +107,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("成功时应正常返回 DbRunResult", async () => {
-      (window as any).electronAPI.dbRun.mockResolvedValue({
+      mockElectronAPI.dbRun.mockResolvedValue({
         success: true,
         data: { changes: 1, lastInsertRowid: 0 },
       });
@@ -116,7 +118,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("失败且 response.error 非空时应抛出包含 error 消息的错误", async () => {
-      (window as any).electronAPI.dbRun.mockResolvedValue({
+      mockElectronAPI.dbRun.mockResolvedValue({
         success: false,
         error: "column not found",
       });
@@ -127,7 +129,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("失败且 response.error 为空时应抛出包含 fallback 消息的错误", async () => {
-      (window as any).electronAPI.dbRun.mockResolvedValue({
+      mockElectronAPI.dbRun.mockResolvedValue({
         success: false,
         error: "",
       });
@@ -141,7 +143,7 @@ describe("storage/sqlite-core enhanced", () => {
   describe("safeTransaction", () => {
     it("非 Electron 环境下应抛出守卫错误", async () => {
       vi.mocked(isElectron).mockReturnValue(false);
-      delete (window as any).electronAPI;
+      delete (window as unknown as Record<string, unknown>).electronAPI;
 
       await expect(
         safeTransaction([{ sql: "INSERT INTO t VALUES (1)", params: [] }]),
@@ -149,7 +151,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("成功时应返回 data 数组", async () => {
-      (window as any).electronAPI.dbTransaction.mockResolvedValue({
+      mockElectronAPI.dbTransaction.mockResolvedValue({
         success: true,
         data: [{ changes: 1 }],
       });
@@ -162,7 +164,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("失败且 response.error 非空时应抛出包含 error 消息的错误", async () => {
-      (window as any).electronAPI.dbTransaction.mockResolvedValue({
+      mockElectronAPI.dbTransaction.mockResolvedValue({
         success: false,
         error: "constraint violation",
       });
@@ -173,7 +175,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("失败且 response.error 为空时 fallback 消息应包含 SQL 预览", async () => {
-      (window as any).electronAPI.dbTransaction.mockResolvedValue({
+      mockElectronAPI.dbTransaction.mockResolvedValue({
         success: false,
         error: "",
       });
@@ -189,7 +191,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("成功但 data 为 undefined 时应返回空数组", async () => {
-      (window as any).electronAPI.dbTransaction.mockResolvedValue({
+      mockElectronAPI.dbTransaction.mockResolvedValue({
         success: true,
       });
 
@@ -203,7 +205,7 @@ describe("storage/sqlite-core enhanced", () => {
 
   describe("extractDbErrorMessage (间接测试)", () => {
     it("response.error 为纯空白时应使用 fallback", async () => {
-      (window as any).electronAPI.dbQuery.mockResolvedValue({
+      mockElectronAPI.dbQuery.mockResolvedValue({
         success: false,
         error: "   ",
       });
@@ -214,7 +216,7 @@ describe("storage/sqlite-core enhanced", () => {
     });
 
     it("response.error 有前后空格时应 trim 后使用", async () => {
-      (window as any).electronAPI.dbQuery.mockResolvedValue({
+      mockElectronAPI.dbQuery.mockResolvedValue({
         success: false,
         error: "  disk I/O error  ",
       });

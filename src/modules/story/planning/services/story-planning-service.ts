@@ -4,6 +4,7 @@ import type { Story, StoryBeat, Character, Scene } from "@/domain/schemas";
 import { container } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
 import { errorLogger } from "@/shared/error-logger";
+import { generateStoryPlanWithValidation } from "@/modules/shot";
 
 export interface StoryPlanningOptions {
   maxRetries?: number;
@@ -37,9 +38,6 @@ export async function planStory(
       enhancedGeneration = false,
     } = options;
 
-    const { generateStoryPlanWithValidation } = await import(
-      "@/modules/shot/shot-generation"
-    );
     const elements = await container.elementStorage.getAllElements();
 
     const result = await generateStoryPlanWithValidation(

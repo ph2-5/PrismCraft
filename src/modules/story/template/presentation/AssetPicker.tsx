@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import {
   Image as ImageIcon,
@@ -13,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
+import { t } from "@/shared/constants";
 
 interface AssetItem {
   id: string;
@@ -125,8 +124,8 @@ export default function AssetPicker({
             )}
             <h3 className="font-medium text-gray-900 dark:text-gray-100">
               {previewAsset
-                ? "确认选择"
-                : title || (accept === "video" ? "选择视频" : accept === "image" ? "选择图片" : "选择素材")}
+                ? t("assetPicker.confirmSelection")
+                : title || (accept === "video" ? t("assetPicker.selectVideo") : accept === "image" ? t("assetPicker.selectImage") : t("assetPicker.selectAsset"))}
             </h3>
           </div>
           <button
@@ -160,7 +159,7 @@ export default function AssetPicker({
                 {previewAsset.name}
               </p>
               <div className="flex gap-3 text-xs text-gray-500">
-                <span>{previewAsset.type === "video" ? "视频" : "图片"}</span>
+                <span>{previewAsset.type === "video" ? t("assetPicker.video") : t("assetPicker.image")}</span>
                 {previewAsset.width && previewAsset.height && (
                   <span>{previewAsset.width}x{previewAsset.height}</span>
                 )}
@@ -175,14 +174,14 @@ export default function AssetPicker({
                 className="flex-1"
                 onClick={() => setPreviewAsset(null)}
               >
-                返回选择
+                {t("assetPicker.backToSelect")}
               </Button>
               <Button
                 className="flex-1"
                 onClick={handleConfirmSelection}
               >
                 <Check className="w-4 h-4 mr-1" />
-                确认选择
+                {t("assetPicker.confirmSelection")}
               </Button>
             </div>
           </div>
@@ -198,7 +197,7 @@ export default function AssetPicker({
                 }`}
               >
                 <FolderOpen size={16} />
-                素材库
+                {t("assetPicker.libraryTab")}
               </button>
               <button
                 onClick={() => setActiveTab("local")}
@@ -209,7 +208,7 @@ export default function AssetPicker({
                 }`}
               >
                 <Upload size={16} />
-                本地文件
+                {t("assetPicker.localFileTab")}
               </button>
             </div>
 
@@ -225,7 +224,7 @@ export default function AssetPicker({
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="搜索素材..."
+                      placeholder={t("assetPicker.searchPlaceholder")}
                       className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100"
                     />
                   </div>
@@ -236,8 +235,8 @@ export default function AssetPicker({
                       ) : (
                         <Video size={40} className="mx-auto mb-2 opacity-50" />
                       )}
-                      <p className="text-sm">素材库中暂无{accept === "video" ? "视频" : "图片"}素材</p>
-                      <p className="text-xs mt-1">切换到"本地文件"标签上传</p>
+                      <p className="text-sm">{t("assetPicker.noAssetsInLibrary", { type: accept === "video" ? t("assetPicker.video") : t("assetPicker.image") })}</p>
+                      <p className="text-xs mt-1">{t("assetPicker.switchToLocalTab")}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2">
@@ -282,10 +281,10 @@ export default function AssetPicker({
                     <ImageIcon size={40} className="mx-auto mb-3 text-gray-400" />
                   )}
                   <p className="text-sm text-gray-500">
-                    点击选择{accept === "video" ? "视频" : accept === "image" ? "图片" : "图片或视频"}文件
+                    {t("assetPicker.clickToSelectFile", { type: accept === "video" ? t("assetPicker.video") : accept === "image" ? t("assetPicker.image") : t("assetPicker.selectAsset") })}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    或直接拖拽文件到此处
+                    {t("assetPicker.orDragHere")}
                   </p>
                 </div>
               )}

@@ -6,6 +6,7 @@ import {
   cleanExpiredTasks,
   startBackgroundRecovery,
 } from "@/modules/video/recovery";
+import { isElectron } from "@/shared/utils/platform";
 
 const VIDEO_TASKS_KEY = ["video-tasks"] as const;
 
@@ -17,6 +18,7 @@ export function useVideoTasks() {
       if (!result.ok) throw result.error;
       return result.value;
     },
+    enabled: isElectron(),
   });
 }
 
@@ -28,6 +30,7 @@ export function useFailedVideoTasks() {
       if (!result.ok) throw result.error;
       return result.value;
     },
+    enabled: isElectron(),
   });
 }
 

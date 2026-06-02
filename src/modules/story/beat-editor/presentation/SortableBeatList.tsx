@@ -1,5 +1,3 @@
-"use client";
-
 import {
   DndContext,
   closestCenter,
@@ -19,6 +17,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Film, Clock, Image, Video } from "lucide-react";
 import type { StoryBeat } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 interface SortableBeatListProps {
   beats: StoryBeat[];
@@ -82,7 +81,7 @@ function SortableBeatItem({
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-          {beat.title || `镜头 ${index + 1}`}
+          {beat.title || t("beat.shotNumber", { number: index + 1 })}
         </p>
         {beat.description && (
           <p className="text-xs text-gray-500 truncate mt-0.5">
@@ -151,8 +150,8 @@ export default function SortableBeatList({
     return (
       <div className="text-center py-12 text-gray-400">
         <Film size={40} className="mx-auto mb-2 opacity-50" />
-        <p className="text-sm">暂无分镜</p>
-        <p className="text-xs mt-1">添加分镜开始创作</p>
+        <p className="text-sm">{t("beat.noBeatsYet")}</p>
+        <p className="text-xs mt-1">{t("beat.addBeatsToStart")}</p>
       </div>
     );
   }

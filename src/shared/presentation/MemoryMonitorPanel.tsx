@@ -1,11 +1,10 @@
-"use client";
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Progress } from "@/shared/ui/progress";
 import { Badge } from "@/shared/ui/badge";
 import { useMemoryMonitor } from "@/shared/hooks/use-memory-monitor";
 import { Trash2, AlertCircle, CheckCircle, AlertTriangle } from "lucide-react";
+import { t } from "@/shared/constants/messages";
 
 interface MemoryMonitorPanelProps {
   clearErrorLogs?: () => Promise<void>;
@@ -18,8 +17,8 @@ export function MemoryMonitorPanel({ clearErrorLogs }: MemoryMonitorPanelProps) 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>内存监控</CardTitle>
-          <CardDescription>当前浏览器不支持内存监控 API</CardDescription>
+          <CardTitle>{t("memory.title")}</CardTitle>
+          <CardDescription>{t("memory.notSupported")}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -33,28 +32,28 @@ export function MemoryMonitorPanel({ clearErrorLogs }: MemoryMonitorPanelProps) 
         return (
           <Badge variant="destructive" className="gap-1">
             <AlertCircle className="w-3 h-3" />
-            过高
+            {t("memory.statusHigh")}
           </Badge>
         );
       case "medium":
         return (
           <Badge variant="default" className="bg-yellow-500 gap-1">
             <AlertTriangle className="w-3 h-3" />
-            偏高
+            {t("memory.statusMedium")}
           </Badge>
         );
       case "low":
         return (
           <Badge variant="outline" className="text-yellow-600 border-yellow-500 gap-1">
             <AlertTriangle className="w-3 h-3" />
-            注意
+            {t("memory.statusLow")}
           </Badge>
         );
       default:
         return (
           <Badge variant="default" className="bg-green-500 gap-1">
             <CheckCircle className="w-3 h-3" />
-            正常
+            {t("memory.statusNormal")}
           </Badge>
         );
     }
@@ -79,18 +78,17 @@ export function MemoryMonitorPanel({ clearErrorLogs }: MemoryMonitorPanelProps) 
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              内存监控
+              {t("memory.title")}
             </CardTitle>
-            <CardDescription>监控应用内存使用情况</CardDescription>
+            <CardDescription>{t("memory.monitorDesc")}</CardDescription>
           </div>
           {getStatusBadge()}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* 内存使用进度条 */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">已使用</span>
+            <span className="text-muted-foreground">{t("memory.used")}</span>
             <span className="font-medium">{usagePercent}%</span>
           </div>
           <Progress 
@@ -99,26 +97,24 @@ export function MemoryMonitorPanel({ clearErrorLogs }: MemoryMonitorPanelProps) 
           />
         </div>
 
-        {/* 内存详情 */}
         <div className="grid grid-cols-3 gap-4 text-center">
           <div className="p-3 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground">已使用</p>
+            <p className="text-xs text-muted-foreground">{t("memory.used")}</p>
             <p className="text-lg font-semibold">{memory.usedJSHeapSize}</p>
             <p className="text-xs text-muted-foreground">MB</p>
           </div>
           <div className="p-3 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground">总分配</p>
+            <p className="text-xs text-muted-foreground">{t("memory.totalAllocated")}</p>
             <p className="text-lg font-semibold">{memory.totalJSHeapSize}</p>
             <p className="text-xs text-muted-foreground">MB</p>
           </div>
           <div className="p-3 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground">上限</p>
+            <p className="text-xs text-muted-foreground">{t("memory.limit")}</p>
             <p className="text-lg font-semibold">{memory.jsHeapSizeLimit}</p>
             <p className="text-xs text-muted-foreground">MB</p>
           </div>
         </div>
 
-        {/* 警告提示 */}
         {warningLevel !== "none" && (
           <div className={`p-3 rounded-lg text-sm ${
             warningLevel === "high" 
@@ -130,31 +126,30 @@ export function MemoryMonitorPanel({ clearErrorLogs }: MemoryMonitorPanelProps) 
               <div>
                 <p className="font-medium">
                   {warningLevel === "high" 
-                    ? "内存使用过高" 
-                    : "内存使用偏高"}
+                    ? t("memory.usageHigh") 
+                    : t("memory.usageMedium")}
                 </p>
                 <p className="text-xs mt-1">
                   {warningLevel === "high"
-                    ? "建议立即清理内存，避免应用崩溃"
-                    : "建议适当清理内存，保持流畅运行"}
+                    ? t("memory.usageHighHint")
+                    : t("memory.usageMediumHint")}
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* 清理按钮 */}
         <Button 
           variant="outline" 
           onClick={manualCleanup}
           className="w-full"
         >
           <Trash2 className="w-4 h-4 mr-2" />
-          清理内存
+          {t("memory.cleanup")}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center">
-          内存过高时会自动清理未使用的资源
+          {t("memory.autoCleanupHint")}
         </p>
       </CardContent>
     </Card>

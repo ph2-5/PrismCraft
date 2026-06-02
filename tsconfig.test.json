@@ -1,23 +1,35 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "noEmit": true,
-    "types": ["vitest/globals"]
+    "types": ["node", "vitest/globals"]
   },
   "include": [
-    "src/__tests__/**/*.ts",
-    "src/__tests__/**/*.tsx",
-    "src/**/__tests__/**/*.ts",
-    "src/**/__tests__/**/*.tsx",
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "electron/src/**/__tests__/**/*.ts",
-    "electron/src/**/*.test.ts",
-    "vitest.config.ts",
-    "vitest.config.test-shot.ts",
-    "vitest.coverage.config.ts"
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts",
+    "dist/types/**/*.ts",
+    "dist/dev/types/**/*.ts",
+    "out/types/**/*.ts",
+    "out/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "_backup-v2",
+    "release",
+    "electron",
+    "tests",
+    "playwright-report",
+    "test-results",
+    "test-reports",
+    "scripts/test-config",
+    "scripts/video-test-tool",
+    "vitest.config.ts",
+    "vitest.config.test-shot.ts",
+    "vitest.coverage.config.ts",
+    "playwright.config.ts",
+    "playwright.electron.config.ts"
   ]
 }

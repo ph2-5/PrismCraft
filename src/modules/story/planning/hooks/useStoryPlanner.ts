@@ -1,10 +1,8 @@
-"use client";
-
 import { useState, useCallback } from "react";
 import type { Story, StoryBeat, Character, Scene } from "@/domain/schemas";
 import { container } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
-import { generateStoryPlanWithValidation, formatValidationResult } from "@/modules/shot/shot-generation";
+import { generateStoryPlanWithValidation, formatValidationResult } from "@/modules/shot";
 import { getErrorMessage } from "@/shared/error-handler";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
@@ -111,7 +109,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
             : "";
 
         success(
-          "AI规划成功",
+          t("success.aiPlanning"),
           `已为您规划了 ${result.beats.length} 个镜头${fixMsg}${retryMsg}${detailMsg}`,
         );
 
@@ -128,7 +126,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
         showError(t("error.generateFailed"));
       }
     } catch (err) {
-      showError("AI规划失败", getErrorMessage(err));
+      showError(t("error.aiPlanningFailed"), getErrorMessage(err));
     } finally {
       setIsPlanningStory(false);
     }

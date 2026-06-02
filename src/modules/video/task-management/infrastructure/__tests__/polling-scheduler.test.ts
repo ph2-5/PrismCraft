@@ -8,7 +8,7 @@ describe("PollingScheduler", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     onPoll = vi.fn().mockResolvedValue(undefined);
-    scheduler = new PollingScheduler(onPoll as any);
+    scheduler = new PollingScheduler(onPoll as unknown as () => Promise<void>);
   });
 
   afterEach(() => {
@@ -118,6 +118,35 @@ describe("PollingScheduler", () => {
       vi.advanceTimersByTime(5000);
       expect(onPoll).toHaveBeenCalled();
     });
+
+    it("should do nothing for non-existent task", () => {
+      expect(() => scheduler.reportSuccess("non-existent")).not.toThrow();
+    });
+
+    it("should reset currentInterval to BASE_INTERVAL_MS", () => {
+      scheduler.start("task-1");
+      scheduler.reportFailure("task-1");
+      scheduler.reportFailure("task-1");
+
+      const beforeEntry = (scheduler as unknown as { entries: Map<string, { currentInterval: number }> }).entries.get("task-1");
+      expect(beforeEntry!.currentInterval).toBeGreaterThan(5000);
+
+      scheduler.reportSuccess("task-1");
+
+      const afterEntry = (scheduler as unknown as { entries: Map<string, { currentInterval: number }> }).entries.get("task-1");
+      expect(afterEntry!.currentInterval).toBe(5000);
+    });
+
+    it("should reset failCount to 0", () => {
+      scheduler.start("task-1");
+      scheduler.reportFailure("task-1");
+      scheduler.reportFailure("task-1");
+
+      scheduler.reportSuccess("task-1");
+
+      const entry = (scheduler as unknown as { entries: Map<string, { failCount: number }> }).entries.get("task-1");
+      expect(entry!.failCount).toBe(0);
+    });
   });
 
   describe("reportFailure", () => {
@@ -153,6 +182,10 @@ describe("PollingScheduler", () => {
 
       const entry = (scheduler as unknown as { entries: Map<string, { currentInterval: number }> }).entries.get("task-1");
       expect(entry!.currentInterval).toBeLessThanOrEqual(60000);
+    });
+
+    it("should do nothing for non-existent task", () => {
+      expect(() => scheduler.reportFailure("non-existent")).not.toThrow();
     });
   });
 

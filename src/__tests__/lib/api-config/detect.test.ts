@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { detectProvider, validateApiKey, getKeyStrength, getKeyStrengthInfo } from "@/infrastructure/ai-providers/api-config/detect";
 
 describe("api-config/detect", () => {

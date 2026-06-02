@@ -9,6 +9,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
+import { t } from "@/shared/constants";
 
 interface VideoPreviewProps {
   task: VideoTask;
@@ -34,7 +35,7 @@ export function VideoPreview({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm">
           <Video className="w-4 h-4 text-green-600" />
-          <span className="text-green-600 font-medium">视频已生成</span>
+          <span className="text-green-600 font-medium">{t("task.videoGenerated")}</span>
         </div>
         {cacheState?.exists && (
           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 flex items-center gap-1">
@@ -51,7 +52,7 @@ export function VideoPreview({
                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
               />
             </svg>
-            本地缓存
+            {t("task.localCache")}
             {cacheState.fileSizeMB !== undefined && (
               <span className="text-xs opacity-80">
                 ({cacheState.fileSizeMB.toFixed(2)}MB)
@@ -109,7 +110,7 @@ export function VideoPreview({
           onClick={() => onOpenPreview(task)}
         >
           <Play className="w-3 h-3" />
-          预览
+          {t("task.previewButton")}
         </Button>
         <Button
           variant="outline"
@@ -118,7 +119,7 @@ export function VideoPreview({
           onClick={() => onOpenDetail(task)}
         >
           <ChevronRight className="w-3 h-3" />
-          详情
+          {t("shot.detail")}
         </Button>
         <Button
           variant="outline"
@@ -127,7 +128,7 @@ export function VideoPreview({
           onClick={() => onDownloadVideo(task)}
         >
           <Download className="w-3 h-3" />
-          下载
+          {t("task.downloadButton")}
         </Button>
         {cacheState?.exists && (
           <Button
@@ -137,7 +138,7 @@ export function VideoPreview({
             onClick={() => onDeleteCache(task)}
           >
             <Trash2 className="w-3 h-3" />
-            删除
+            {t("common.delete")}
           </Button>
         )}
       </div>

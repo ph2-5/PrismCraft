@@ -1,5 +1,6 @@
 import type { VideoTask } from "@/domain/schemas";
 import { parseConfig, parseProvider, parseMediaRefs, parseTracking } from "./json-schemas";
+import { errorLogger } from "@/shared/error-logger";
 
 const TIMESTAMP_THRESHOLD = 1e12;
 
@@ -73,7 +74,7 @@ export function parseVideoTask(record: Record<string, unknown>): VideoTask {
     prompt: config.prompt ? String(config.prompt) : undefined,
     parameters: config.parameters
       ? (typeof config.parameters === "string"
-        ? (() => { try { return JSON.parse(config.parameters as string) as Record<string, unknown>; } catch (e) { console.warn("[VideoTaskParser] parameters JSON 解析失败", e); return undefined; } })()
+        ? (() => { try { return JSON.parse(config.parameters as string) as Record<string, unknown>; } catch (e) { errorLogger.warn("[VideoTaskParser] parameters JSON parse failed", e); return undefined; } })()
         : config.parameters as Record<string, unknown>)
       : undefined,
     fixedImageUrl: mediaRefs.fixed_image_url

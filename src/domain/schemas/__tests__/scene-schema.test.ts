@@ -33,7 +33,7 @@ describe("sceneSchema", () => {
   });
 
   it("应拒绝非法 videoGenerationStatus 枚举值", () => {
-    const data = factories.scene({ videoGenerationStatus: "invalid" as any });
+    const data = factories.scene({ videoGenerationStatus: "invalid" as unknown as "pending" });
     const result = sceneSchema.safeParse(data);
     expect(result.success).toBe(false);
   });

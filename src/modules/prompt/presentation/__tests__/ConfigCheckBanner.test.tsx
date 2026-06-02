@@ -24,16 +24,48 @@ vi.stubGlobal("localStorage", {
   key: vi.fn(),
 });
 
-vi.mock("next/link", () => ({
-  default: ({
-    href,
+const mockSetDismissState = vi.fn();
+vi.mock("@/shared/utils/preferences", () => ({
+  usePreference: () => {
+    const prefixedKey = "ai_anim_studio_config-banner-dismissed";
+    let parsed: Record<string, unknown> = {};
+    try {
+      const raw = localStorageStore[prefixedKey];
+      if (raw !== undefined && raw !== null) {
+        parsed = JSON.parse(raw);
+      }
+    } catch { /* return empty */ }
+    return [parsed, mockSetDismissState];
+  },
+  preferencesStorage: {
+    get: (key: string, defaultValue: unknown) => {
+      try {
+        const raw = localStorageStore[`ai_anim_studio_${key}`];
+        if (raw === undefined || raw === null) return defaultValue;
+        return JSON.parse(raw);
+      } catch {
+        return defaultValue;
+      }
+    },
+    set: (key: string, value: unknown) => {
+      localStorageStore[`ai_anim_studio_${key}`] = JSON.stringify(value);
+    },
+    remove: (key: string) => {
+      delete localStorageStore[`ai_anim_studio_${key}`];
+    },
+  },
+}));
+
+vi.mock("react-router-dom", () => ({
+  Link: ({
+    to,
     children,
     ...props
   }: {
-    href: string;
+    to: string;
     children: React.ReactNode;
   }) => (
-    <a href={href} {...props}>
+    <a href={to} {...props}>
       {children}
     </a>
   ),
@@ -77,6 +109,7 @@ describe("ConfigCheckBanner", () => {
   beforeEach(() => {
     mockInitConfig.mockReset();
     mockCheckConfigStatus.mockReset();
+    mockSetDismissState.mockReset();
     for (const key of Object.keys(localStorageStore)) {
       delete localStorageStore[key];
     }
@@ -127,7 +160,7 @@ describe("ConfigCheckBanner", () => {
     expect(mockCheckConfigStatus).toHaveBeenCalledTimes(1);
   });
 
-  it("dismisses banner when 忽略 button is clicked", async () => {
+  it("calls setDismissState when 忽略 button is clicked", async () => {
     const user = userEvent.setup();
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
@@ -135,10 +168,12 @@ describe("ConfigCheckBanner", () => {
     const dismissBtn = screen.getByText("忽略");
     expect(dismissBtn).toBeInTheDocument();
     await user.click(dismissBtn);
-    expect(screen.queryByText("API 配置不完整")).not.toBeInTheDocument();
+    expect(mockSetDismissState).toHaveBeenCalledTimes(1);
+    expect(mockSetDismissState.mock.calls[0][0]).toHaveProperty("dismissed", true);
+    expect(mockSetDismissState.mock.calls[0][0]).toHaveProperty("expiresAt");
   });
 
-  it("saves dismiss state to localStorage with 24h expiry", async () => {
+  it("saves dismiss state with 24h expiry", async () => {
     const user = userEvent.setup();
     const now = Date.now();
     vi.spyOn(Date, "now").mockReturnValue(now);
@@ -146,19 +181,16 @@ describe("ConfigCheckBanner", () => {
     render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());
     await user.click(screen.getByText("忽略"));
-    expect(mockLocalStorageSetItem).toHaveBeenCalledWith(
-      "config-banner-dismissed",
-      JSON.stringify({
-        dismissed: true,
-        expiresAt: now + 24 * 60 * 60 * 1000,
-      }),
-    );
+    expect(mockSetDismissState).toHaveBeenCalledWith({
+      dismissed: true,
+      expiresAt: now + 24 * 60 * 60 * 1000,
+    });
     vi.spyOn(Date, "now").mockRestore();
   });
 
   it("does not show banner if previously dismissed and not expired", async () => {
     const futureExpiry = Date.now() + 12 * 60 * 60 * 1000;
-    localStorageStore["config-banner-dismissed"] = JSON.stringify({ dismissed: true, expiresAt: futureExpiry });
+    localStorageStore["ai_anim_studio_config-banner-dismissed"] = JSON.stringify({ dismissed: true, expiresAt: futureExpiry });
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     const { container } = render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());
@@ -167,29 +199,27 @@ describe("ConfigCheckBanner", () => {
 
   it("shows banner again if previously dismissed but expired", async () => {
     const pastExpiry = Date.now() - 12 * 60 * 60 * 1000;
-    localStorageStore["config-banner-dismissed"] = JSON.stringify({ dismissed: true, expiresAt: pastExpiry });
+    localStorageStore["ai_anim_studio_config-banner-dismissed"] = JSON.stringify({ dismissed: true, expiresAt: pastExpiry });
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());
     expect(screen.getByText("API 配置不完整")).toBeInTheDocument();
   });
 
-  it("cleans up localStorage entry if dismissed but no expiresAt", async () => {
-    localStorageStore["config-banner-dismissed"] = JSON.stringify({ dismissed: true });
+  it("cleans up dismiss state if dismissed but no expiresAt", async () => {
+    localStorageStore["ai_anim_studio_config-banner-dismissed"] = JSON.stringify({ dismissed: true });
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());
-    expect(mockLocalStorageRemoveItem).toHaveBeenCalledWith("config-banner-dismissed");
-    expect(screen.getByText("API 配置不完整")).toBeInTheDocument();
+    expect(mockSetDismissState).toHaveBeenCalledWith({});
   });
 
-  it("cleans up localStorage entry on parse error", async () => {
-    localStorageStore["config-banner-dismissed"] = "not-valid-json{{{";
+  it("handles corrupt localStorage gracefully via usePreference", async () => {
+    localStorageStore["ai_anim_studio_config-banner-dismissed"] = "not-valid-json{{{";
     mockCheckConfigStatus.mockResolvedValue(makeConfigStatus());
     render(<ConfigCheckBanner />);
     await act(() => Promise.resolve());
-    expect(mockLocalStorageRemoveItem).toHaveBeenCalledWith("config-banner-dismissed");
-    expect(screen.getByText("API 配置不完整")).toBeInTheDocument();
+    expect(mockSetDismissState).not.toHaveBeenCalled();
   });
 
   it("cancels status load if component unmounts early", async () => {

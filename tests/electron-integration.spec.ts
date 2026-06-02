@@ -42,8 +42,8 @@ test.describe("Electron Integration Tests", () => {
     const testId = "test-" + Date.now();
     const insertResult = await page.evaluate(async (id) => {
       return await (window as any).electronAPI.dbRun(
-        "INSERT INTO stories (id, owner_id, title, config, is_deleted, version, sync_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [id, "test-owner", "Test Story", "{}", 0, 1, "sync-1"]
+        "INSERT INTO stories (id, title) VALUES (?, ?)",
+        [id, "Test Story"]
       );
     }, testId);
     expect(insertResult.success).toBe(true);

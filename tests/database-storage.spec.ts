@@ -22,7 +22,7 @@ test.describe("Database Storage", () => {
         const api = (window as any).electronAPI;
         if (!api?.dbQuery) return { success: false, error: "No dbQuery API" };
         const data = await api.dbQuery("SELECT count(*) as cnt FROM stories", []);
-        return { success: true, data };
+        return { success: true, data: data?.data };
       } catch (error: any) {
         return { success: false, error: error.message };
       }
@@ -46,8 +46,8 @@ test.describe("Database Storage", () => {
           [testId, "E2E Test Story"],
         );
 
-        const query = await api.dbQuery("SELECT title FROM stories WHERE id = ?", [testId]);
-        const insertedTitle = query?.[0]?.title;
+        const queryResult = await api.dbQuery("SELECT title FROM stories WHERE id = ?", [testId]);
+        const insertedTitle = queryResult?.data?.[0]?.title;
 
         await api.dbRun("DELETE FROM stories WHERE id = ?", [testId]);
 
@@ -83,7 +83,7 @@ test.describe("Database Storage", () => {
           },
         ]);
 
-        const query = await api.dbQuery(
+        const queryResult = await api.dbQuery(
           "SELECT title FROM stories WHERE id IN (?, ?) ORDER BY id",
           [testId1, testId2],
         );
@@ -92,8 +92,8 @@ test.describe("Database Storage", () => {
 
         return {
           success: true,
-          count: query?.length,
-          titles: query?.map((r: any) => r.title),
+          count: queryResult?.data?.length,
+          titles: queryResult?.data?.map((r: any) => r.title),
         };
       } catch (error: any) {
         return { success: false, error: error.message };
@@ -129,11 +129,11 @@ test.describe("Database Storage", () => {
           ]);
         } catch {}
 
-        const query = await api.dbQuery(
+        const queryResult = await api.dbQuery(
           "SELECT count(*) as cnt FROM stories WHERE id = ?",
           [testId],
         );
-        const count = query?.[0]?.cnt || 0;
+        const count = queryResult?.data?.[0]?.cnt || 0;
 
         return { success: true, remainingCount: count };
       } catch (error: any) {

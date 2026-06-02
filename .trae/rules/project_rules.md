@@ -2,11 +2,11 @@
 
 ## Architecture Overview
 
-This is an **Electron + Next.js** desktop application for AI-powered animation production.
+This is an **Electron + Vite** desktop application for AI-powered animation production.
 Architecture: **DDD (Domain-Driven Design) with sub-domain modules**, optimized for AI-driven development.
 
 - **Build Target**: Electron desktop app (local-first, offline-capable)
-- **Frontend**: Next.js 16 (output: "export") + React 19 + Zustand 5 + Tailwind CSS 4
+- **Frontend**: Vite 8 + React 19 + React Router 7 + Zustand 5 + Tailwind CSS 4
 - **Backend**: Electron main process + better-sqlite3 (WAL mode) + HTTP API server
 - **Language**: TypeScript (strict mode)
 
@@ -18,7 +18,7 @@ src/
   modules/         → Business logic sub-domains (each has hooks/, services/, presentation/)
   infrastructure/  → DI container, storage, network, API client, AI providers
   shared/          → Cross-cutting UI (Toast, Sidebar, ErrorBoundary), utils, error-logger
-  app/             → Next.js pages and layouts (consumes modules via Context)
+  app/             → Page components and layouts (consumes modules via Context)
   config/          → Constants, ports, shared config
 
 electron/src/
@@ -162,34 +162,70 @@ logger.error(message: string, error?: Error, context?: LogContext)  // 3 params
 
 ## Build Rules
 
-- Build script: `build-electron.ps1` (PowerShell) — temporarily removes `src/app/api/` during build for `output: "export"` compatibility, restores after
-- Next.js uses `output: "export"` for Electron — NO server-side features
+- Build script: `build-electron.ps1` (PowerShell) — runs `vite build` with `BUILD_TARGET=electron` for relative base path
+- Vite produces static SPA bundle — NO server-side features
 - Electron TypeScript compiles separately with `electron/tsconfig.json`
 - Plugin docs are copied to `out/docs/` during build
 - electron-builder requires `C:\Windows\System32` in PATH (for `cmd.exe` used by `npm ls`)
 - Electron mirror config in `.npmrc`: `electron_mirror`, `electron_builder_binaries_mirror`
 - `.npmrc` MUST NOT contain non-standard keys (causes "Unknown project config" warnings in npm 10+)
 - `out/` is packaged into asar via `files` config; `better-sqlite3` native module is unpacked via `asarUnpack`
-- Build-time dependencies (next, @next/swc*, sharp, shadcn) are excluded from electron-builder `files` to reduce package size
+- Build-time dependencies (vite, @vitejs/plugin-react, sharp, shadcn) are excluded from electron-builder `files` to reduce package size
+
+### Code Splitting Strategy
+
+Vite 8 uses rolldown's `codeSplitting` API in `vite.config.ts` (`build.rolldownOptions.output.codeSplitting.groups`) to split the bundle into logical chunks with priority-based matching:
+
+| Chunk | Contents | Approx Size |
+|-------|----------|-------------|
+| `vendor-react` | react, react-dom, react-router-dom, scheduler | ~284 KB |
+| `vendor-state` | zustand, @tanstack/react-query | ~36 KB |
+| `vendor-ui` | lucide-react, clsx, tailwind-merge, class-variance-authority | ~48 KB |
+| `vendor-misc` | Other node_modules | varies |
+| `app-story` | src/modules/story/ | ~351 KB |
+| `app-shot` | src/modules/shot/ | ~145 KB |
+| `app-video` | src/modules/video/ | ~88 KB |
+| `app-infra` | asset, sync, persistence modules | ~47 KB |
+| `app-infra-core` | src/infrastructure/ | ~241 KB |
+| `app-shared` | src/shared/ | ~260 KB |
+| `app-domain` | src/domain/ | ~14 KB |
+| `app-character` | src/modules/character/ | ~20 KB |
+| `app-scene` | src/modules/scene/ | ~12 KB |
+| `app-prompt` | src/modules/prompt/ | varies |
+| `page-*` | Lazy-loaded page components (React.lazy) | varies |
+
+All page routes use `React.lazy()` for code splitting — pages are only loaded when navigated to.
+
+When adding a new module under `src/modules/`, add a corresponding `codeSplitting.groups` entry in `vite.config.ts` with appropriate `test` regex and `priority` (15 for app modules, 10 for vendor, 30 for core vendor).
+
+### ESLint Configuration
+
+ESLint 9 flat config with the following plugins:
+- `typescript-eslint` — TypeScript-specific rules (`@typescript-eslint/no-unused-vars`, `@typescript-eslint/no-explicit-any`)
+- `eslint-plugin-react` — React rules (`react/no-unescaped-entities`)
+- `eslint-plugin-react-hooks` — Hooks rules (`react-hooks/rules-of-hooks`)
+
+Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: **warn**.
 
 ### NPM Scripts Index
 
 | Script | Purpose |
 |--------|---------|
-| `npm run dev` | Next.js dev server (renderer only, no Electron) |
-| `npm run build` | Next.js production build (web mode) |
-| `npm run build:electron` | Full Electron build (Next.js static export + Electron TS compile + file copy) |
+| `npm run dev` | Vite dev server (renderer only, no Electron) |
+| `npm run build` | Vite production build (web mode) |
+| `npm run build:electron` | Full Electron build (Vite build + Electron TS compile + file copy) |
 | `npm run build:win` | Build + rebuild native + package Windows NSIS installer |
 | `npm run build:mac` | Build + rebuild native + package macOS DMG |
 | `npm run rebuild` | Rebuild better-sqlite3 for Electron |
 | `npm run typecheck` | TypeScript check (root) |
 | `npm run typecheck:electron` | TypeScript check (electron/) |
+| `npm run typecheck:test` | TypeScript check (including test files via tsconfig.test.json) |
 | `npm run lint` | ESLint (src/) |
 | `npm run lint:electron` | ESLint (electron/src/) |
 | `npm run lint:arch` | Architecture violation scan |
 | `npm run test` | Vitest unit tests |
 | `npm run test:coverage` | Vitest with coverage report |
-| `npm run validate` | typecheck + typecheck:electron + lint + lint:arch + module API consistency + contract validation + test |
+| `npm run validate` | typecheck + typecheck:electron + typecheck:test + lint + lint:arch + module API consistency + contract validation + test |
 | `npm run validate:full` | validate + coverage report with threshold enforcement |
 
 ### CI/CD Pipeline
@@ -209,6 +245,7 @@ logger.error(message: string, error?: Error, context?: LogContext)  // 3 params
 - `withTransitionGuard`: dev mode throws `TransitionError` on invalid state transitions, production mode strips status field silently
 - ErrorBoundary wraps all page-level components
 - `unknown` over `any` for caught errors; use `instanceof Error` for safe property access
+- Production code MUST use `errorLogger` instead of `console.warn`/`console.error` for logging
 
 ## Key Patterns
 
@@ -260,6 +297,55 @@ function safeJsonParse<T>(raw: unknown, field: string, id: string): T | undefine
 - Infrastructure provides implementations registered in DI container
 - Modules access via `container.xxx` — never direct infrastructure imports
 
+### React Router Navigation (Vite SPA)
+```typescript
+import { Link, useNavigate, useLocation, useSearchParams, useParams } from "react-router-dom";
+
+const navigate = useNavigate();
+const pathname = useLocation().pathname;
+const [searchParams] = useSearchParams();
+const { beatId } = useParams();
+
+navigate("/story");
+<Link to="/settings">Settings</Link>
+```
+
+### Preference Storage (Hydration-Safe)
+```typescript
+import { usePreference, preferencesStorage } from "@/shared/utils/preferences";
+
+const [value, setValue] = usePreference<SettingsType>("storage-key", defaultValue);
+setValue({ ...value, field: newValue });
+
+preferencesStorage.get("key", defaultValue);
+preferencesStorage.set("key", value);
+preferencesStorage.remove("key");
+```
+
+`usePreference` uses `useSyncExternalStore` internally with snapshot caching for object reference stability. Supports cross-tab sync via `storage` event listener.
+
+### Vite Build Configuration
+```typescript
+const isElectron = process.env.BUILD_TARGET === "electron";
+export default defineConfig({
+  base: isElectron ? "./" : "/",
+  build: {
+    outDir: "out",
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: "vendor-react", test: /node_modules[\\/]react/, priority: 30 },
+            { name: "app-story", test: /src[\\/]modules[\\/]story/, priority: 15 },
+            // ... other groups
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
 ## Testing
 
 - Framework: Vitest
@@ -279,9 +365,18 @@ function safeJsonParse<T>(raw: unknown, field: string, id: string): T | undefine
 
 ## Known Architecture Debt
 
-- Extraneous WASM packages (`@emnapi/core`, `@emnapi/runtime`, etc.) in node_modules from better-sqlite3 optional deps — cannot be pruned, harmless
-- `tsconfig.json` excludes all test files from type checking — Vitest handles test types independently, acceptable for MVP but consider `tsconfig.test.json` for stricter CI
-- Hardcoded Chinese strings (~19000+ occurrences across 100 files) — Chinese-only desktop app, full i18n low ROI; extract shared message constants if multi-language support needed in future
+| 债务项 | 严重度 | 说明 |
+|--------|--------|------|
+| ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，48+文件~560处中文→t()调用，messages.ts含840+键，覆盖app/pages+modules/presentation+shared/presentation+Sidebar/SyncSettings/SceneEditor；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
+| ~~大文件~~ | ~~中~~ | 已修复：18个>400行文件全部拆分，拆分出35+子组件/hooks |
+| ~~非空断言~~ | ~~中~~ | 已修复：生产代码全部`!.`和`as unknown as`清零 |
+| ~~性能基础设施~~ | ~~低~~ | 已铺设：React.memo 5个高频组件、@tanstack/react-virtual虚拟列表hook、useReducer状态管理重构 |
+| WASM 依赖膨胀 | 低 | better-sqlite3 可选依赖，无法裁剪，无害 |
+| ~~tsconfig 排除测试~~ | ~~中~~ | 已修复：新增 tsconfig.test.json，测试文件参与类型检查（R55） |
+| ~~Next.js output:"export"~~ | ~~高~~ | 已修复：迁移到 Vite + React Router（R57/R58），功能利用率从15%提升到100% |
+| Electron 镜像依赖 | 低 | .npmrc 配置国内镜像，构建环境受限 |
+| 版本锁定策略 | 低 | better-sqlite3 精确锁定，其他依赖用 ^ |
+| ~~app-character chunk 过大~~ | ~~低~~ | 已修复：rolldown codeSplitting API替代manualChunks，character chunk从784KB降至20KB |
 
 ## AI Maintenance Workflow (CRITICAL)
 
@@ -342,6 +437,7 @@ This is equivalent to:
 ```bash
 npx tsc --noEmit                                     # Type safety
 npx tsc -p electron/tsconfig.json --noEmit           # Electron type safety
+npx tsc -p tsconfig.test.json --noEmit               # Test type safety
 npx eslint src/                                      # Import restrictions + code style
 node scripts/check-architecture.mjs                  # DDD violations + contract.json consistency
 node scripts/check-module-api-consistency.mjs         # MODULE.md ↔ index.ts sync
@@ -387,26 +483,31 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 52 guards:**
+**Quick reference — all 60 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
 | Data Consistency | R1, R2, R8, R9, R13, R14, R30, R42, R45 | Persist before state, cascade delete, rollback on failure, atomic cascade deletes, auto-save optimistic locking, entity update must not delete unrelated data |
 | Async Safety | R4, R10, R11, R12, R29, R31, R32, R48 | Dedup, concurrency guard, ownership verify, in-flight warning, entity ID consistency, save context verify, batch cancellation, useEffect unmount protection |
-| Error Handling | R5, R6, R15, R17, R18, R47, R50 | No silent failure, identifiable labels, partial failure resilience, catch blocks must not silently swallow errors, floating promises must have .catch() |
+| Error Handling | R5, R6, R15, R17, R18, R47, R50, R53 | No silent failure, identifiable labels, partial failure resilience, catch blocks must not silently swallow errors, floating promises must have .catch(), Result error paths must use err() not ok() |
 | UI Robustness | R7, R16, R19, R20, R49 | Video onError guard, ErrorBoundary retry limit, use e.currentTarget over e.target |
 | Electron Compatibility | R21, R51 | No fetch("/api/..."), isElectron() guard for electronAPI-dependent operations |
 | UX Completeness | R22, R23, R24, R25, R43 | Loading states, action feedback, data loading indicators, destructive operation confirmation |
-| Code Quality | R3, R26, R27, R28, R33 | Cross-context verify, static imports, DDD layer compliance, batch over N+1 queries, eliminate existence-check before writes |
+| Code Quality | R3, R26, R27, R28, R33, R54 | Cross-context verify, static imports, DDD layer compliance, batch over N+1 queries, eliminate existence-check before writes, no `any` in production code |
 | Async Safety | R34 | Zustand functional updates over get()+set() |
 | Resource Safety | R35 | Blob URL revoke on unmount |
 | Data Integrity | R36 | AI analysis selective merge over spread override |
 | SQL Safety | R37 | Dynamic table names must be validated against identifier pattern |
 | Race Condition | R38 | Video URL persistence must complete before story switch |
 | IPC Efficiency | R39, R40, R41 | Batch DB operations over per-item IPC, deferred metadata updates, parallel trackChange |
-| Error Messaging | R44 | User-facing errors must use mapUserFacingError, not raw technical messages |
+| Error Messaging | R44, R56 | User-facing errors must use mapUserFacingError, not raw technical messages; user-facing strings must use t() from shared message constants |
 | Polling Safety | R46 | Polling engine state flags must reset in correct order with top-level catch |
 | Hydration Safety | R52 | localStorage-dependent initial state must use useSyncExternalStore |
+| Test Type Safety | R55 | Test files must pass TypeScript type checking, vi.fn() must have generic params |
+| Migration Safety | R57, R58 | No next/* imports after Vite migration; React Router useSearchParams() returns tuple |
+| Build Safety | R59 | No ineffective dynamic imports — module must not be both static and dynamic imported |
+| Build Safety | R60 | New modules >50KB must register codeSplitting group in vite.config.ts |
+| Test Safety | R61 | Test mock IPC return format must match production contract (dbQuery/dbRun/dbTransaction) |
 
 ## Documentation Index
 
@@ -592,7 +693,7 @@ useEffect(() => {
 ```
 
 #### 8. localStorage in useState Initializer (Hydration Mismatch)
-When a component needs to read `localStorage` for its initial state, NEVER use `useState(() => localStorage.getItem(...))` with a `typeof window` guard. This causes hydration mismatches because the server renders with the default value while the client renders with the stored value. Use `useSyncExternalStore` with a module-level listeners Set pattern instead.
+When a component needs to read `localStorage` for its initial state, NEVER use `useState(() => localStorage.getItem(...))` with a `typeof window` guard. This causes hydration mismatches because the server renders with the default value while the client renders with the stored value. Use the `usePreference` hook from `@/shared/utils/preferences` instead.
 
 **BAD**:
 ```typescript
@@ -606,13 +707,12 @@ const [theme, setTheme] = useState(() => {
 
 **GOOD**:
 ```typescript
-const listeners = new Set<() => void>();
-function subscribe(cb: () => void) { listeners.add(cb); return () => listeners.delete(cb); }
-function getSnapshot() { return localStorage.getItem("theme") || "dark"; }
-function getServerSnapshot() { return "dark"; }
+import { usePreference } from "@/shared/utils/preferences";
 
-const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+const [theme, setTheme] = usePreference<string>("theme", "dark");
 ```
+
+For complex scenarios (theme provider with custom subscribe logic), use `useSyncExternalStore` directly with a module-level listeners Set pattern.
 
 ### Modification Checklist
 
@@ -633,7 +733,10 @@ Before submitting any code change, verify:
 13. **Action feedback**: Explicit user actions provide success toast feedback (R24)
 14. **Data loading indicator**: Data-dependent UI shows spinner during fetch (R25)
 15. **Electron environment guard**: useEffect with electronAPI operations checks `isElectron()` (R51)
-16. **No localStorage in useState**: Use `useSyncExternalStore` for localStorage-dependent initial state (R52)
+16. **No localStorage in useState**: Use `usePreference` hook for localStorage-dependent state (R52)
+17. **No next/* imports**: All Next.js imports replaced with react-router-dom or native alternatives (R57)
+18. **useSearchParams destructuring**: React Router's `useSearchParams()` returns tuple, always destructure `[searchParams]` (R58)
+19. **User-facing strings use t()**: All toast/confirm/showError/dialog title/placeholder/label text MUST use `t()` from `@/shared/constants` (R56)
 
 ### Testing Conventions
 
@@ -647,7 +750,7 @@ Before submitting any code change, verify:
 - Use `vi.mock()` for module-level mocking (DI container, external packages, UI components)
 - Use `overrideToken()` from DI to replace specific container tokens in tests
 - Mock UI components (`@/shared/ui/*`) as simple HTML elements in component tests
-- Mock `next/link` as `<a>` tag in component tests
+- Mock `react-router-dom` Link as `<a>` tag in component tests
 
 #### Test Structure
 ```typescript

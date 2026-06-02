@@ -1,7 +1,6 @@
-"use client";
-
 import React from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
+import { t } from "@/shared/constants";
 
 interface CharacterListItemProps {
   character: {
@@ -49,10 +48,10 @@ export const CharacterListItem = React.memo(function CharacterListItem({
         )}
         <div className="min-w-0">
           <p className="font-medium truncate">
-            {character.name || "未命名角色"}
+            {character.name || t("character.unnamed")}
           </p>
           <p className="text-xs text-muted-foreground truncate">
-            {character.style || "无风格"}
+            {character.style || t("character.noStyle")}
           </p>
         </div>
       </div>
@@ -62,7 +61,7 @@ export const CharacterListItem = React.memo(function CharacterListItem({
           e.stopPropagation();
           onDelete(e);
         }}
-        aria-label="删除角色"
+        aria-label={t("character.deleteLabel")}
       >
         <svg
           className="w-4 h-4 text-destructive"

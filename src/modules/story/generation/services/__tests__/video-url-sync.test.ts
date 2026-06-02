@@ -69,7 +69,7 @@ describe("applyVideoUrlUpdates", () => {
     const result = applyVideoUrlUpdates(beats, updates);
     expect(result[0].videoGen?.videoUrl).toBe("new-url");
     expect(result[0].videoGen?.status).toBe("completed");
-    expect(result[0].videoGen?.completedAt).toBeDefined();
+    expect(result[0].videoGen).toHaveProperty("completedAt");
   });
 
   it("should preserve existing videoGen fields", () => {

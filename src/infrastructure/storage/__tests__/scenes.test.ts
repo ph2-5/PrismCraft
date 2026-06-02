@@ -32,7 +32,7 @@ let sceneStorage: typeof import("../scenes").sceneStorage;
 beforeEach(async () => {
   vi.clearAllMocks();
   mockSafeQuery.mockResolvedValue([]);
-  mockSafeRun.mockResolvedValue(undefined as any);
+  mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
   mockSafeTransaction.mockResolvedValue([]);
   const mod = await import("../scenes");
   sceneStorage = mod.sceneStorage;
@@ -118,7 +118,7 @@ describe("storage/scenes", () => {
 
       await sceneStorage.updateScene("scene-1", {
         name: "test",
-      } as any);
+      });
 
       expect(mockSafeRun).toHaveBeenCalled();
       const [sql] = mockSafeRun.mock.calls[0] as [string, unknown[]];
@@ -128,7 +128,7 @@ describe("storage/scenes", () => {
 
   describe("updateScene not found", () => {
     it("更新不存在的场景应抛错", async () => {
-      mockSafeRun.mockResolvedValue(undefined as any);
+      mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
       mockSafeQuery.mockResolvedValue([]);
       await expect(
         sceneStorage.updateScene("nonexistent-id", { name: "test" }),
@@ -254,6 +254,190 @@ describe("storage/scenes", () => {
 
       const scene = await sceneStorage.getSceneById("nonexistent");
       expect(scene).toBeNull();
+    });
+  });
+
+  describe("parseScene edge cases", () => {
+    it("handles invalid created_at/updated_at type by using current time", async () => {
+      mockSafeQuery.mockResolvedValue([makeSceneRow({
+        created_at: true,
+        updated_at: false,
+      })]);
+
+      const scenes = await sceneStorage.getScenes();
+      expect(scenes[0].createdAt).toBeDefined();
+      expect(scenes[0].updatedAt).toBeDefined();
+    });
+
+    it("handles last_used_at as string type by returning undefined", async () => {
+      mockSafeQuery.mockResolvedValue([makeSceneRow({
+        last_used_at: "1700000000",
+      })]);
+
+      const scenes = await sceneStorage.getScenes();
+      expect(scenes[0].lastUsedAt).toBeUndefined();
+    });
+
+    it("handles null appearance container", async () => {
+      mockSafeQuery.mockResolvedValue([makeSceneRow({
+        appearance: null,
+      })]);
+
+      const scenes = await sceneStorage.getScenes();
+      expect(scenes[0].thumbnailPath).toBeUndefined();
+      expect(scenes[0].generatedImage).toBeUndefined();
+    });
+
+    it("handles null atmosphere container", async () => {
+      mockSafeQuery.mockResolvedValue([makeSceneRow({
+        atmosphere: null,
+      })]);
+
+      const scenes = await sceneStorage.getScenes();
+      expect(scenes[0].mood).toBe("");
+      expect(scenes[0].lighting).toBe("");
+      expect(scenes[0].elements).toEqual([]);
+      expect(scenes[0].colors).toEqual([]);
+    });
+
+    it("handles null generation container", async () => {
+      mockSafeQuery.mockResolvedValue([makeSceneRow({
+        generation: null,
+      })]);
+
+      const scenes = await sceneStorage.getScenes();
+      expect(scenes[0].prompt).toBe("");
+      expect(scenes[0].generationPrompt).toBeUndefined();
+    });
+
+    it("handles invalid JSON in container gracefully", async () => {
+      mockSafeQuery.mockResolvedValue([makeSceneRow({
+        appearance: "not-valid-json",
+        atmosphere: "not-valid-json",
+        generation: "not-valid-json",
+        config: "not-valid-json",
+      })]);
+
+      const scenes = await sceneStorage.getScenes();
+      expect(scenes[0].thumbnailPath).toBeUndefined();
+      expect(scenes[0].mood).toBe("");
+      expect(scenes[0].prompt).toBe("");
+      expect(scenes[0].camera).toBeUndefined();
+    });
+
+    it("handles scenePath and imageUrl from appearance", async () => {
+      mockSafeQuery.mockResolvedValue([makeSceneRow({
+        appearance: JSON.stringify({
+          scenePath: "/scene/path",
+          imageUrl: "https://example.com/img.png",
+        }),
+      })]);
+
+      const scenes = await sceneStorage.getScenes();
+      expect(scenes[0].scenePath).toBe("/scene/path");
+      expect(scenes[0].imageUrl).toBe("https://example.com/img.png");
+    });
+
+    it("handles tags and relatedCharacters from config container", async () => {
+      mockSafeQuery.mockResolvedValue([makeSceneRow({
+        config: JSON.stringify({
+          tags: ["nature", "sunset"],
+          relatedCharacters: ["CHAR_001"],
+        }),
+      })]);
+
+      const scenes = await sceneStorage.getScenes();
+      expect(scenes[0].tags).toEqual(["nature", "sunset"]);
+    });
+  });
+
+  describe("createScene with createdAt", () => {
+    it("handles createdAt as number", async () => {
+      await sceneStorage.createScene({
+        name: "test",
+        createdAt: 1700000000000,
+      });
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+    });
+
+    it("handles createdAt as string", async () => {
+      await sceneStorage.createScene({
+        name: "test",
+        createdAt: "2024-01-01T00:00:00.000Z",
+      });
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+    });
+
+    it("handles trackChange failure gracefully", async () => {
+      const { trackChange } = await import("@/infrastructure/storage/core");
+      vi.mocked(trackChange).mockRejectedValue(new Error("sync error"));
+
+      await sceneStorage.createScene({ name: "test" });
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+    });
+  });
+
+  describe("updateScene with empty updates", () => {
+    it("only updates updated_at when no field targets match", async () => {
+      mockSafeRun.mockResolvedValue({ changes: 1 } as never);
+      mockSafeQuery.mockResolvedValue([{ id: "scene-1" }]);
+
+      await sceneStorage.updateScene("scene-1", {});
+
+      expect(mockSafeRun).toHaveBeenCalledWith(
+        "UPDATE scenes SET updated_at = ? WHERE id = ?",
+        expect.any(Array),
+      );
+    });
+  });
+
+  describe("updateScene trackChange", () => {
+    it("handles trackChange failure gracefully on update", async () => {
+      const { trackChange } = await import("@/infrastructure/storage/core");
+      vi.mocked(trackChange).mockRejectedValue(new Error("sync error"));
+      mockSafeRun.mockResolvedValue({ changes: 1 } as never);
+      mockSafeQuery.mockResolvedValue([{ id: "scene-1" }]);
+
+      await sceneStorage.updateScene("scene-1", { name: "test" });
+
+      expect(mockSafeRun).toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteScene trackChange", () => {
+    it("handles trackChange failure gracefully", async () => {
+      const { trackChange } = await import("@/infrastructure/storage/core");
+      vi.mocked(trackChange).mockRejectedValue(new Error("sync error"));
+
+      await sceneStorage.deleteScene("scene-1");
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+    });
+  });
+
+  describe("incrementSceneUseCount", () => {
+    it("increments use count and updates last_used_at", async () => {
+      mockSafeRun.mockResolvedValue({ changes: 1 } as never);
+
+      await sceneStorage.incrementSceneUseCount("scene-1");
+
+      expect(mockSafeRun).toHaveBeenCalledWith(
+        expect.stringContaining("use_count = use_count + 1"),
+        expect.any(Array),
+      );
+    });
+
+    it("handles trackChange failure gracefully", async () => {
+      const { trackChange } = await import("@/infrastructure/storage/core");
+      vi.mocked(trackChange).mockRejectedValue(new Error("sync error"));
+      mockSafeRun.mockResolvedValue({ changes: 1 } as never);
+
+      await sceneStorage.incrementSceneUseCount("scene-1");
+
+      expect(mockSafeRun).toHaveBeenCalled();
     });
   });
 });

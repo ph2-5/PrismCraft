@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useEffect } from "react";
 import { Save, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -15,6 +13,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
+import { t } from "@/shared/constants";
 import type { Story, StoryBeat } from "@/domain/schemas";
 import {
   saveVersion,
@@ -79,12 +78,12 @@ export function VersionDialog({
         beats,
         updatedAt: Math.floor(Date.now() / 1000),
       };
-      const saveResult = await saveVersion(storyToSave, beats, versionName ? `自定义: ${versionName}` : "");
+      const saveResult = await saveVersion(storyToSave, beats, versionName ? t("version.customPrefix", { name: versionName }) : "");
       if (!saveResult.ok) {
         errorLogger.warn("[VersionDialog] 保存版本失败", saveResult.error);
-        emitToast("error", "保存版本失败");
+        emitToast("error", t("error.versionSaveFailed"));
       } else {
-        emitToast("success", "版本已保存");
+        emitToast("success", t("success.versionSaved"));
       }
       setVersionName("");
       loadVersions();
@@ -122,9 +121,9 @@ export function VersionDialog({
       const deleteResult = await deleteVersion(storyId, confirmVersionId);
       if (!deleteResult.ok) {
         errorLogger.warn("[VersionDialog] 删除版本失败", deleteResult.error);
-        emitToast("error", "删除版本失败");
+        emitToast("error", t("error.versionDeleteFailed"));
       } else {
-        emitToast("success", "版本已删除");
+        emitToast("success", t("success.versionDeleted"));
       }
       loadVersions();
     }
@@ -142,16 +141,16 @@ export function VersionDialog({
       <Dialog open={open && !confirmAction} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>版本控制</DialogTitle>
-            <DialogDescription>保存和恢复故事的不同版本</DialogDescription>
+            <DialogTitle>{t("version.controlTitle")}</DialogTitle>
+            <DialogDescription>{t("version.controlDesc")}</DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-3">
             <div className="flex gap-2">
               <div className="flex-1">
-                <Label htmlFor="version-name" className="sr-only">版本名称</Label>
+                <Label htmlFor="version-name" className="sr-only">{t("version.nameLabel")}</Label>
                 <Input
                   id="version-name"
-                  placeholder="输入版本名称（可选）"
+                  placeholder={t("version.namePlaceholder")}
                   value={versionName}
                   onChange={(e) => setVersionName(e.target.value)}
                 />
@@ -161,14 +160,14 @@ export function VersionDialog({
                 disabled={beats.length === 0 || isSaving}
               >
                 <Save className="w-4 h-4 mr-2" />
-                保存
+                {t("common.save")}
               </Button>
             </div>
           </div>
           <div className="mt-4 max-h-[400px] py-4 overflow-y-auto">
             {versions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                暂无保存的版本
+                {t("version.noSavedVersions")}
               </div>
             ) : (
               <div className="space-y-3">
@@ -187,7 +186,7 @@ export function VersionDialog({
                         {version.changeSummary || version.title || `版本 ${formatVersionTime(version.timestamp)}`}
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        保存于 {formatVersionTime(version.timestamp)}
+                        {t("version.savedAt", { time: formatVersionTime(version.timestamp) })}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -224,23 +223,23 @@ export function VersionDialog({
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {confirmAction === "restore" ? "确认恢复版本" : "确认删除版本"}
+              {confirmAction === "restore" ? t("version.confirmRestore") : t("version.confirmDelete")}
             </DialogTitle>
             <DialogDescription>
               {confirmAction === "restore"
-                ? "恢复版本将覆盖当前所有修改，此操作无法撤销。确定要继续吗？"
-                : "删除版本后无法恢复，确定要继续吗？"}
+                ? t("version.restoreWarning")
+                : t("version.deleteWarning")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={handleCancelConfirm}>
-              取消
+              {t("common.cancel")}
             </Button>
             <Button
               variant={confirmAction === "delete" ? "destructive" : "default"}
               onClick={handleConfirmAction}
             >
-              确认
+              {t("common.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

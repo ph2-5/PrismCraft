@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import {
@@ -22,6 +20,7 @@ import {
 import type { Character, Scene } from "@/domain/schemas";
 import { downloadJSONFile } from "@/shared/utils/file-download";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 interface MediaExporterProps {
   type: "character" | "scene";
@@ -51,7 +50,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
 
   const hasImage = "generatedImage" in item && item.generatedImage;
   const hasVideo = "generatedVideo" in item && item.generatedVideo;
-  const itemName = "name" in item ? item.name : "未命名";
+  const itemName = "name" in item ? item.name : t("asset.unnamed");
 
   // 导出项目JSON
   const handleExportProject = async () => {
@@ -218,10 +217,10 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
               ) : (
                 <Settings className="w-5 h-5" />
               )}
-              {type === "character" ? "角色导出" : "场景导出"}
+              {type === "character" ? t("asset.characterExportTitle") : t("asset.sceneExportTitle")}
             </CardTitle>
             <CardDescription className={themeClasses.desc}>
-              导出{type === "character" ? "角色" : "场景"}数据、图片和视频
+              {t("asset.exportTypeData", { type: type === "character" ? t("sidebar.characters") : t("sidebar.scenes") })}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -229,14 +228,14 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
               <Badge
                 className={themeClasses.imageBadge}
               >
-                有图片
+                {t("asset.hasImage")}
               </Badge>
             )}
             {hasVideo && (
               <Badge
                 className={themeClasses.videoBadge}
               >
-                有视频
+                {t("asset.hasVideo")}
               </Badge>
             )}
           </div>
@@ -250,14 +249,14 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
             className={`flex items-center gap-2 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700/50`}
           >
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span className="text-emerald-200">导出成功！</span>
+            <span className="text-emerald-200">{t("asset.exportSuccess")}</span>
             <Button
               variant="ghost"
               size="sm"
               className={`ml-auto h-8 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/30`}
               onClick={resetStatus}
             >
-              继续
+              {t("asset.continueButton")}
             </Button>
           </div>
         )}
@@ -265,14 +264,14 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         {exportStatus === "error" && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-900/30 border border-rose-700/50">
             <AlertCircle className="w-5 h-5 text-rose-400" />
-            <span className="text-rose-200">导出失败，请重试</span>
+            <span className="text-rose-200">{t("asset.exportFailedRetry")}</span>
             <Button
               variant="ghost"
               size="sm"
               className="ml-auto h-8 text-rose-300 hover:text-rose-100 hover:bg-rose-900/30"
               onClick={resetStatus}
             >
-              重试
+              {t("common.retry")}
             </Button>
           </div>
         )}
@@ -289,7 +288,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
             ) : (
               <FileText className="w-4 h-4" />
             )}
-            导出项目文件
+            {t("asset.exportProjectFile")}
           </Button>
 
           {hasImage && (
@@ -300,7 +299,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
               disabled={isExporting}
             >
               <ImageIcon className="w-4 h-4" />
-              下载图片
+              {t("asset.downloadImage")}
             </Button>
           )}
 
@@ -312,7 +311,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
               disabled={isExporting}
             >
               <Video className="w-4 h-4" />
-              下载视频
+              {t("asset.downloadVideo")}
             </Button>
           )}
         </div>
@@ -322,15 +321,14 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           className={`p-4 rounded-lg bg-slate-900/30 border ${themeClasses.infoBorder} text-sm text-slate-400`}
         >
           <p className={`font-medium ${themeClasses.infoTitle} mb-2`}>
-            💡 使用说明：
+            {t("asset.usageGuide")}
           </p>
           <ul className="space-y-1 list-disc list-inside">
             <li>
-              <strong>项目文件</strong>：包含完整{type === "character" ? "角色" : "场景"}
-              信息，便于存档和分享
+              {t("asset.projectFileDesc", { type: type === "character" ? t("sidebar.characters") : t("sidebar.scenes") })}
             </li>
             <li>
-              <strong>图片/视频</strong>：直接下载生成的媒体资源
+              {t("asset.mediaFileDesc")}
             </li>
           </ul>
         </div>

@@ -10,6 +10,7 @@ import {
   Ban,
 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
+import { t } from "@/shared/constants";
 
 interface TaskActionsProps {
   task: VideoTask;
@@ -44,7 +45,7 @@ export function TaskActions({
     <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
       <div className="flex items-center justify-between">
         <span className="text-xs text-gray-500 dark:text-gray-400">
-          任务ID:{" "}
+          {t("task.taskIdPrefix")}
           <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
             {task.taskId}
           </code>
@@ -55,7 +56,7 @@ export function TaskActions({
           className="h-6 px-2 text-xs"
           onClick={() => onCopyTaskId(task.taskId)}
         >
-          复制
+          {t("task.copyButton")}
         </Button>
       </div>
       <div className="flex gap-2">
@@ -73,7 +74,7 @@ export function TaskActions({
               ) : (
                 <RefreshCw className="w-3 h-3" />
               )}
-              手动查询
+              {t("task.manualQuery")}
             </Button>
           )}
         {task.status === "failed" && task.beatId && (
@@ -89,7 +90,7 @@ export function TaskActions({
             ) : (
               <RotateCcw className="w-3 h-3" />
             )}
-            重新生成
+            {t("task.regenerateButton")}
           </Button>
         )}
         {(task.status === "pending" || task.status === "generating" || task.status === "retrying") && (
@@ -105,7 +106,7 @@ export function TaskActions({
             ) : (
               <Ban className="w-3 h-3" />
             )}
-            取消
+            {t("task.cancelButton")}
           </Button>
         )}
         <Button
@@ -115,7 +116,7 @@ export function TaskActions({
           onClick={() => onOpenTracking(task)}
         >
           <Search className="w-3 h-3" />
-          追踪
+          {t("task.trackingButton")}
         </Button>
         <Button
           variant="ghost"
@@ -124,7 +125,7 @@ export function TaskActions({
           onClick={() => onCopyTracking(task)}
         >
           <Copy className="w-3 h-3" />
-          复制
+          {t("task.copyButton")}
         </Button>
         <Button
           variant="ghost"
@@ -133,7 +134,7 @@ export function TaskActions({
           onClick={() => onOpenCloudLink(task)}
         >
           <ExternalLink className="w-3 h-3" />
-          控制台
+          {t("task.consoleButton")}
         </Button>
       </div>
     </div>

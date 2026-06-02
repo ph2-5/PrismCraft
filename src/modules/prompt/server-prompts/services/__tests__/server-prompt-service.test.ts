@@ -5,7 +5,7 @@ import {
   generateKeyframePrompt,
   generateCharacterAnalysisPrompt,
   generateSceneAnalysisPrompt,
-} from "@/modules/prompt/server-prompts/services/server-prompt-service";
+} from "@/modules/prompt";
 
 describe("server-prompt-service", () => {
   describe("generateFirstFramePrompt", () => {

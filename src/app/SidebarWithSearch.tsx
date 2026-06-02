@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback } from "react";
 import { Sidebar } from "@/shared/presentation/Sidebar";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";

@@ -1,5 +1,3 @@
-"use client";
-
 import { X } from "lucide-react";
 import type { CharacterOutfit } from "@/domain/schemas";
 import {
@@ -15,6 +13,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
 import { Badge } from "@/shared/ui/badge";
+import { t } from "@/shared/constants";
 
 interface OutfitDialogProps {
   open: boolean;
@@ -45,15 +44,15 @@ export function OutfitDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editingOutfit ? "编辑服装" : "添加服装"}</DialogTitle>
-          <DialogDescription>为角色创建不同的服装变体</DialogDescription>
+          <DialogTitle>{editingOutfit ? t("outfit.editTitle") : t("outfit.addTitle")}</DialogTitle>
+          <DialogDescription>{t("outfit.createVariant")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="outfit-name">服装名称</Label>
+            <Label htmlFor="outfit-name">{t("outfit.nameLabel")}</Label>
             <Input
               id="outfit-name"
-              placeholder="例如：战斗服、日常装、礼服..."
+              placeholder={t("outfit.namePlaceholder")}
               value={outfitForm.name || ""}
               onChange={(e) =>
                 setOutfitForm({ ...outfitForm, name: e.target.value })
@@ -61,10 +60,10 @@ export function OutfitDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="outfit-description">服装描述</Label>
+            <Label htmlFor="outfit-description">{t("outfit.descriptionLabel")}</Label>
             <Textarea
               id="outfit-description"
-              placeholder="描述这套服装的特点、用途..."
+              placeholder={t("outfit.descriptionPlaceholder")}
               rows={2}
               value={outfitForm.description || ""}
               onChange={(e) =>
@@ -76,10 +75,10 @@ export function OutfitDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="outfit-clothing">服装详细描述</Label>
+            <Label htmlFor="outfit-clothing">{t("outfit.clothingDetail")}</Label>
             <Textarea
               id="outfit-clothing"
-              placeholder="详细描述穿着：风格、颜色、材质、配饰..."
+              placeholder={t("outfit.clothingPlaceholder")}
               rows={3}
               value={outfitForm.clothing || ""}
               onChange={(e) =>
@@ -91,10 +90,10 @@ export function OutfitDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label>配饰</Label>
+            <Label>{t("outfit.accessories")}</Label>
             <div className="flex gap-2">
               <Input
-                placeholder="输入配饰，按回车添加..."
+                placeholder={t("outfit.accessoryPlaceholder")}
                 value={customAccessory}
                 onChange={(e) => setCustomAccessory(e.target.value)}
                 onKeyDown={(e) => {
@@ -105,7 +104,7 @@ export function OutfitDialog({
                 }}
                 className="flex-1"
               />
-              <Button onClick={onAddAccessory}>添加</Button>
+              <Button onClick={onAddAccessory}>{t("common.add")}</Button>
             </div>
             {outfitForm.accessories && outfitForm.accessories.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
@@ -128,10 +127,10 @@ export function OutfitDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            取消
+            {t("common.cancel")}
           </Button>
           <Button onClick={onAddOutfit}>
-            {editingOutfit ? "保存修改" : "添加服装"}
+            {editingOutfit ? t("outfit.saveChanges") : t("outfit.addOutfitButton")}
           </Button>
         </DialogFooter>
       </DialogContent>

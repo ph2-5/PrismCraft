@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SceneListItem } from "@/modules/scene/presentation/SceneListItem";
+import { SceneListItem } from "@/modules/scene";
 
 vi.mock("@/shared/utils/image-url", () => ({
   resolveImageUrl: vi.fn(),

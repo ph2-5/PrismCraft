@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "./helpers/page-helpers";
+import { installElectronMock } from "./helpers/electron-mock";
 
 async function switchTab(page: Page, tabName: string) {
   const tab = page.locator('[role="tab"]', { hasText: tabName }).first();
@@ -10,6 +11,7 @@ async function switchTab(page: Page, tabName: string) {
 
 test.describe("Character Page", () => {
   test.beforeEach(async ({ page }) => {
+    await installElectronMock(page);
     await navigateTo(page, "/characters");
   });
 
@@ -95,6 +97,7 @@ test.describe("Character Page", () => {
 
 test.describe("Character Outfit Branches", () => {
   test.beforeEach(async ({ page }) => {
+    await installElectronMock(page);
     await navigateTo(page, "/characters");
     await dismissOverlays(page);
     await switchTab(page, "服装分支");
@@ -142,6 +145,7 @@ test.describe("Character Outfit Branches", () => {
 
 test.describe("Scene Page", () => {
   test.beforeEach(async ({ page }) => {
+    await installElectronMock(page);
     await navigateTo(page, "/scenes");
   });
 

@@ -84,7 +84,7 @@ describe("StoryProvider regression tests", () => {
   describe("deleteBeatWithCleanup pattern (regression: Bug #4)", () => {
     function useDeleteBeatWithCleanup(
       deleteBeat: (beatId: string) => void,
-      beatsRef: { current: Array<{ id: string }> },
+      _beatsRef: { current: Array<{ id: string }> },
     ) {
       return useCallback(async (beatId: string) => {
         try {

@@ -49,7 +49,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
     mockResolve.mockResolvedValue({
       provider: { id: "default-provider" },
       model: { id: "default-model" },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof resolveCapability>>);
   });
 
   describe("generateImage - providerId/modelId 配置", () => {
@@ -60,7 +60,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
       });
 
       const callBody = JSON.parse(
-        (mockApiCallWithRetry.mock.calls[0][1] as any).body,
+        (mockApiCallWithRetry.mock.calls[0][1] as Record<string, unknown>).body as string,
       );
 
       expect(callBody.providerId).toBe("provider-123");
@@ -73,7 +73,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
       expect(mockResolve).toHaveBeenCalledWith("image");
 
       const callBody = JSON.parse(
-        (mockApiCallWithRetry.mock.calls[0][1] as any).body,
+        (mockApiCallWithRetry.mock.calls[0][1] as Record<string, unknown>).body as string,
       );
 
       expect(callBody.providerId).toBe("default-provider");
@@ -115,7 +115,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
       });
 
       const callBody = JSON.parse(
-        (mockApiCallWithRetry.mock.calls[0][1] as any).body,
+        (mockApiCallWithRetry.mock.calls[0][1] as Record<string, unknown>).body as string,
       );
 
       expect(callBody.providerId).toBe("openai");
@@ -126,7 +126,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
       await analyzeImage("https://example.com/image.png", "character", "describe");
 
       const callBody = JSON.parse(
-        (mockApiCallWithRetry.mock.calls[0][1] as any).body,
+        (mockApiCallWithRetry.mock.calls[0][1] as Record<string, unknown>).body as string,
       );
 
       expect(callBody.providerId).toBeUndefined();
@@ -139,7 +139,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
         error: "Invalid image",
       });
 
-      const result = await analyzeImage("https://example.com/image.png", "describe" as any);
+      const result = await analyzeImage("https://example.com/image.png", "character", "describe");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Invalid image");

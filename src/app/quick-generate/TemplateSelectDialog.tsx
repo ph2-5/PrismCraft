@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { LayoutTemplate, Grid3x3 } from "lucide-react";
 import { Button } from "@/shared/ui/button";

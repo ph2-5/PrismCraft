@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sceneService } from "../services";
 import type { CreateSceneInput, UpdateSceneInput } from "@/domain/schemas";
 import { deleteSceneWithRefs } from "@/modules/persistence";
+import { isElectron } from "@/shared/utils/platform";
 
 const SCENES_KEY = ["scenes"] as const;
 const SCENE_KEY = (id: string) => ["scenes", id] as const;
@@ -14,6 +15,7 @@ export function useScenes() {
       if (!result.ok) throw result.error;
       return result.value;
     },
+    enabled: isElectron(),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -26,7 +28,7 @@ export function useScene(id: string) {
       if (!result.ok) throw result.error;
       return result.value;
     },
-    enabled: !!id,
+    enabled: isElectron() && !!id,
   });
 }
 
@@ -38,6 +40,7 @@ export function useSceneCount() {
       if (!result.ok) throw result.error;
       return result.value;
     },
+    enabled: isElectron(),
   });
 }
 

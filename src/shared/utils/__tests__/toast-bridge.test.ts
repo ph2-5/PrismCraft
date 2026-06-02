@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { emitToast, TOAST_EVENT } from "../toast-bridge";
-import type { ToastEventType } from "../toast-bridge";
 
 describe("toast-bridge", () => {
   it("should dispatch CustomEvent with correct detail", () => {

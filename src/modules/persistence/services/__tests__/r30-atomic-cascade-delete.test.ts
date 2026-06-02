@@ -7,22 +7,22 @@ const {
   mockSanitizeIdentifier,
   mockSanitizeTable,
 } = vi.hoisted(() => ({
-  mockSafeQuery: vi.fn(),
-  mockSafeRun: vi.fn(),
-  mockSafeTransaction: vi.fn(),
-  mockSanitizeIdentifier: vi.fn((name: string) => `"${name}"`),
-  mockSanitizeTable: vi.fn((table: string) => `"${table}"`),
+  mockSafeQuery: vi.fn<(sql: string, params?: unknown[]) => Promise<unknown[]>>(),
+  mockSafeRun: vi.fn<(sql: string, params?: unknown[]) => Promise<unknown>>(),
+  mockSafeTransaction: vi.fn<(statements: { sql: string; params: unknown[] }[]) => Promise<unknown[]>>(),
+  mockSanitizeIdentifier: vi.fn<(name: string) => string>((name) => `"${name}"`),
+  mockSanitizeTable: vi.fn<(table: string) => string>((table) => `"${table}"`),
 }));
 
 vi.mock("@/shared/db-core", () => ({
-  safeQuery: (...args: any[]) => mockSafeQuery(...(args as [any])),
-  safeRun: (...args: any[]) => mockSafeRun(...(args as [any])),
-  safeTransaction: (...args: any[]) => mockSafeTransaction(...(args as [any])),
+  safeQuery: mockSafeQuery,
+  safeRun: mockSafeRun,
+  safeTransaction: mockSafeTransaction,
 }));
 
 vi.mock("@/shared/sql-safety", () => ({
-  sanitizeIdentifier: (...args: any[]) => mockSanitizeIdentifier(...(args as [any])),
-  sanitizeTable: (...args: any[]) => mockSanitizeTable(...(args as [any])),
+  sanitizeIdentifier: mockSanitizeIdentifier,
+  sanitizeTable: mockSanitizeTable,
 }));
 
 vi.mock("@/shared/error-logger", () => ({

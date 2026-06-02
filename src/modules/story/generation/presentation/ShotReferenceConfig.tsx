@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";

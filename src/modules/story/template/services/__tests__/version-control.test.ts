@@ -174,7 +174,7 @@ describe("saveVersion", () => {
     versionStorage.createStoryVersion.mockResolvedValue(undefined);
     versionStorage.deleteOldStoryVersions.mockResolvedValue(undefined);
 
-    const minimalStory = { ...mockStory, genre: undefined, tone: undefined, targetDuration: undefined, characters: undefined, scenes: undefined } as any;
+    const minimalStory = { ...mockStory, genre: undefined, tone: undefined, targetDuration: undefined, characters: undefined, scenes: undefined } as unknown as Story;
     const result = await saveVersion(minimalStory, mockBeats);
 
     expect(result.ok).toBe(true);

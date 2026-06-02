@@ -1,9 +1,8 @@
-"use client";
-
 import { useMemo } from "react";
 import { Link, Image, CheckCircle } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import type { StoryBeat } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 interface KeyframeChainVisualizerProps {
   beats: StoryBeat[];
@@ -49,14 +48,14 @@ export function KeyframeChainVisualizer({
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-semibold text-purple-100 flex items-center gap-2">
           <Link className="w-4 h-4 text-purple-400" />
-          预览图链式传承
+          {t("keyframe.chainInheritance")}
         </h4>
         <Badge
           className={
             chainStatus.validChain ? "bg-green-600/50" : "bg-amber-600/50"
           }
         >
-          {chainStatus.validChain ? "链式完整" : "链式中断"}
+          {chainStatus.validChain ? t("keyframe.chainComplete") : t("keyframe.chainBroken")}
         </Badge>
       </div>
 
@@ -85,22 +84,22 @@ export function KeyframeChainVisualizer({
                     : "border-purple-500 bg-purple-500/20"
                   : "border-slate-600 bg-slate-700/50"
               }`}
-              title={`分镜 ${index + 1}${
-                item.hasKeyframe
+              title={t("beat.shotNumber", { number: index + 1 }) +
+                (item.hasKeyframe
                   ? item.isLinked
-                    ? " (已链接)"
+                    ? t("keyframe.beatLinked")
                     : item.isFirst
-                      ? " (首分镜)"
-                      : " (未链接)"
-                  : " (无预览图)"
-              }`}
+                      ? t("keyframe.beatFirst")
+                      : t("keyframe.beatUnlinked")
+                  : t("keyframe.beatNoPreview")
+                )}
             >
               {item.hasKeyframe ? (
                 <>
                   {item.beat.keyframe?.imageUrl ? (
                     <img
                       src={item.beat.keyframe.imageUrl}
-                      alt={`分镜 ${index + 1}`}
+                      alt={t("beat.shotNumber", { number: index + 1 })}
                       className="w-full h-full object-cover rounded-md"
                     />
                   ) : (
@@ -129,19 +128,19 @@ export function KeyframeChainVisualizer({
       <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-purple-400">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-blue-500 border border-slate-900" />
-          <span>已链接</span>
+          <span>{t("keyframe.linked")}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-amber-500 border border-slate-900" />
-          <span>仅预览图</span>
+          <span>{t("keyframe.previewOnly")}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-green-500 border border-slate-900" />
-          <span>已完成视频</span>
+          <span>{t("keyframe.videoCompleted")}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-4 h-0.5 bg-blue-500" />
-          <span>链式参考</span>
+          <span>{t("keyframe.chainRef")}</span>
         </div>
       </div>
     </div>

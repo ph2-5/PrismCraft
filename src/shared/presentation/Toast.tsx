@@ -1,5 +1,3 @@
-"use client";
-
 import React, {
   createContext,
   useContext,
@@ -11,6 +9,7 @@ import React, {
 } from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { t } from "@/shared/constants/messages";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -259,7 +258,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
         <p className="font-medium text-sm text-foreground">
           {toast.title}
           {toast.count && toast.count > 1 ? (
-            <span className="ml-1.5 text-xs text-muted-foreground">({toast.count}次)</span>
+            <span className="ml-1.5 text-xs text-muted-foreground">({t("toast.times", { count: toast.count })})</span>
           ) : null}
         </p>
         {toast.message && (

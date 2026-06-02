@@ -5,9 +5,12 @@ import {
   validateStoryPlanOutput,
   generateFallbackParams,
   formatValidationResult,
-} from "@/modules/shot/shot-generation/shot-validator";
-import type { ValidationResult } from "@/modules/shot/shot-generation/shot-validator";
-import type { ShotParamsType } from "@/modules/shot/shot-generation/shot-params";
+} from "@/modules/shot";
+import type { ValidationResult } from "@/modules/shot";
+import type { ShotParamsType } from "@/modules/shot";
+
+type BeatOutput = Record<string, unknown>;
+type BeatOutputList = BeatOutput[];
 
 describe("shot-validator", () => {
   describe("validateShotParams", () => {
@@ -99,7 +102,7 @@ describe("shot-validator", () => {
       const result = validateStoryBeatOutput({
         content: "一段足够长的分镜内容描述",
         duration: 5,
-      });
+      }) as unknown as ValidationResult<BeatOutput>;
       expect(result.data.title).toBeTruthy();
       expect(result.autoFixed.some(f => f.includes("title"))).toBe(true);
     });
@@ -109,7 +112,7 @@ describe("shot-validator", () => {
         title: "测试",
         description: "从描述复制的内容",
         duration: 5,
-      });
+      }) as unknown as ValidationResult<BeatOutput>;
       expect(result.data.content).toBe("从描述复制的内容");
     });
 
@@ -117,7 +120,7 @@ describe("shot-validator", () => {
       const result = validateStoryBeatOutput({
         content: "全景展示城市的壮丽景色",
         duration: 5,
-      });
+      }) as unknown as ValidationResult<BeatOutput>;
       expect(result.data.shotType).toBe("wide");
     });
 
@@ -125,7 +128,7 @@ describe("shot-validator", () => {
       const result = validateStoryBeatOutput({
         content: `角色说：\u201C你好\u201D`,
         duration: 5,
-      });
+      }) as unknown as ValidationResult<BeatOutput>;
       expect(result.data.type).toBe("dialogue");
     });
   });
@@ -136,7 +139,7 @@ describe("shot-validator", () => {
         { content: "第一个分镜内容描述", duration: 5 },
         { content: "第二个分镜内容描述", duration: 4 },
       ];
-      const result = validateStoryPlanOutput(plan);
+      const result = validateStoryPlanOutput(plan) as unknown as ValidationResult<BeatOutputList>;
       expect(result.data.length).toBe(2);
     });
   });

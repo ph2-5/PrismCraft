@@ -1,5 +1,3 @@
-"use client";
-
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -11,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import type { EditingItem } from "./AssetCardGrid";
+import type { EditingItem } from "./asset-library-shared";
 
 interface AssetEditDialogProps {
   open: boolean;

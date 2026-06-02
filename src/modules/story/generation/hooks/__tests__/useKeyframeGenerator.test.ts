@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { StoryBeat, Character, Scene, StoryStyleGuide, ModelSelection, StoryBeatKeyframe } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 vi.mock("@/modules/story", () => ({
   generateBeatKeyframe: vi.fn(),
@@ -617,7 +618,7 @@ describe("useKeyframeGenerator", () => {
         ...mockBeat1,
         keyframe: mockKeyframe,
       });
-      expect(props.success).toHaveBeenCalledWith("预览图生成成功", "分镜预览图已生成");
+      expect(props.success).toHaveBeenCalledWith(t("success.generated"), t("success.keyframeGeneratedDesc"));
       expect(ret).toEqual({
         ...mockBeat1,
         keyframe: mockKeyframe,
@@ -774,7 +775,7 @@ describe("useKeyframeGenerator", () => {
         expect.any(Object),
       );
       expect(mockUpdateBeat).toHaveBeenCalled();
-      expect(props.success).toHaveBeenCalledWith("预览图生成成功", "分镜预览图已生成");
+      expect(props.success).toHaveBeenCalledWith(t("success.generated"), t("success.keyframeGeneratedDesc"));
     });
   });
 

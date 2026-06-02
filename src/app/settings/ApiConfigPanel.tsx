@@ -1,8 +1,7 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import {
   Card,
   CardContent,
@@ -11,23 +10,9 @@ import {
   CardTitle,
 } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { Badge } from "@/shared/ui/badge";
 import { Alert, AlertDescription } from "@/shared/ui/alert";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import { Checkbox } from "@/shared/ui/checkbox";
-import { Separator } from "@/shared/ui/separator";
-import {
   Plus,
-  Trash2,
-  TestTube,
   CheckCircle,
   XCircle,
   Loader2,
@@ -36,9 +21,6 @@ import {
   Image as ImageIcon,
   Video,
   Eye,
-  AlertCircle,
-  ChevronDown,
-  Sparkles,
 } from "lucide-react";
 import PluginManager from "./plugin-manager";
 import { confirm } from "@/shared/utils/confirm";
@@ -55,30 +37,26 @@ import {
   type ModelConfig,
   PROVIDER_TEMPLATES,
   createProviderFromTemplate,
-  getTemplateList,
   detectProvider,
   validateApiKey,
   checkConfigStatus,
   ConfigStatus,
 } from "@/infrastructure/api-config-facade";
 import { testConnection } from "@/infrastructure/ai-providers";
+import { ProviderCard } from "./ProviderCard";
+import { ProviderForm } from "./ProviderForm";
+import { ModelMappingSection } from "./ModelMappingSection";
 
 const capabilities: {
   id: ApiCapability;
   name: string;
   icon: React.ReactNode;
 }[] = [
-  { id: "text", name: "文本生成", icon: <Bot className="w-4 h-4" /> },
-  { id: "image", name: "图片生成", icon: <ImageIcon className="w-4 h-4" /> },
-  { id: "vision", name: "图片分析", icon: <Eye className="w-4 h-4" /> },
-  { id: "video", name: "视频生成", icon: <Video className="w-4 h-4" /> },
+  { id: "text", name: t("capability.text"), icon: <Bot className="w-4 h-4" /> },
+  { id: "image", name: t("capability.image"), icon: <ImageIcon className="w-4 h-4" /> },
+  { id: "vision", name: t("capability.vision"), icon: <Eye className="w-4 h-4" /> },
+  { id: "video", name: t("capability.video"), icon: <Video className="w-4 h-4" /> },
 ];
-
-function getCapabilityBadges(provider: ApiConfig["providers"][0]) {
-  const caps = new Set<ApiCapability>();
-  provider.models.forEach((m) => m.capabilities.forEach((c) => caps.add(c)));
-  return Array.from(caps);
-}
 
 export function ApiConfigPanel() {
   const { error: showError, success: showSuccess } = useToastHelpers();
@@ -159,7 +137,7 @@ export function ApiConfigPanel() {
       );
 
       if (!newProvider) {
-        showError("创建失败", "创建提供商失败");
+        showError(t("error.createFailed"), t("provider.createFailed"));
         return;
       }
 
@@ -174,9 +152,9 @@ export function ApiConfigPanel() {
       setNewProviderName("");
       setSelectedTemplate("");
       setShowAddForm(false);
-      showSuccess("添加成功", `提供商「${providerName}」已添加`);
+      showSuccess(t("success.added"), t("provider.addedWithName", { name: providerName }));
     } catch (e) {
-      showError("添加失败", (e as Error).message || "添加提供商时出错");
+      showError(t("provider.addFailed"), (e as Error).message || t("provider.addError"));
     } finally {
       setIsAdding(false);
     }
@@ -189,12 +167,12 @@ export function ApiConfigPanel() {
       m.capabilities?.includes("video"),
     );
     const warningSuffix = hasActiveTasks
-      ? "\n\n⚠️ 该提供商包含视频模型，删除后正在进行的视频任务可能无法完成。"
+      ? t("provider.videoModelWarning")
       : "";
     if (
       !(await confirm(
-        `确定要删除提供商「${provider.name}」吗？此操作不可撤销。${warningSuffix}`,
-        "删除提供商",
+        t("provider.deleteConfirm", { name: provider.name, suffix: warningSuffix }),
+        t("provider.deleteConfirmTitle"),
       ))
     )
       return;
@@ -202,7 +180,7 @@ export function ApiConfigPanel() {
     setConfig(updatedConfig);
     saveConfig(updatedConfig);
     setStatus(await checkConfigStatus());
-    showSuccess("已删除", `提供商「${provider.name}」已删除`);
+    showSuccess(t("success.deleted"), t("provider.deletedWithName", { name: provider.name }));
     if (expandedProvider === providerId) {
       setExpandedProvider(null);
     }
@@ -234,8 +212,8 @@ export function ApiConfigPanel() {
     if (!provider) return;
 
     const newModel = {
-      id: "custom-model-" + Date.now(),
-      name: "自定义模型",
+      id: "user-model-" + Date.now(),
+      name: t("provider.userModel"),
       capabilities: ["text"] as ApiCapability[],
       defaultParams: { maxTokens: 4096, temperature: 0.7 },
     };
@@ -294,7 +272,7 @@ export function ApiConfigPanel() {
     saveConfig(updatedConfig);
     setStatus(await checkConfigStatus());
     const capName = capabilities.find((c) => c.id === capability)?.name || capability;
-    showSuccess("已保存", `「${capName}」功能映射已更新`);
+    showSuccess(t("success.saved"), t("provider.capabilityMappingUpdated", { name: capName }));
   };
 
   const handleTestCapability = async (capability: ApiCapability) => {
@@ -318,7 +296,7 @@ export function ApiConfigPanel() {
         ...prev,
         [capability]: {
           success: result.success,
-          message: result.success ? "连接成功！" : result.message,
+          message: result.success ? t("connection.success") : result.message,
         },
       }));
     } catch (error) {
@@ -326,7 +304,7 @@ export function ApiConfigPanel() {
         ...prev,
         [capability]: {
           success: false,
-          message: "测试失败: " + (error as Error).message,
+          message: t("connection.testFailed", { message: (error as Error).message }),
         },
       }));
     } finally {
@@ -334,67 +312,14 @@ export function ApiConfigPanel() {
     }
   };
 
-  const getAvailableModels = (capability: ApiCapability) => {
-    const models: {
-      providerId: string;
-      providerName: string;
-      modelId: string;
-      modelName: string;
-      value: string;
-    }[] = [];
-
-    for (const provider of config.providers) {
-      for (const model of provider.models) {
-        if (model.capabilities.includes(capability)) {
-          models.push({
-            providerId: provider.id,
-            providerName: provider.name,
-            modelId: model.id,
-            modelName: model.name,
-            value: `${provider.id}/${model.id}`,
-          });
-        }
-      }
-    }
-
-    return models;
-  };
-
-  const getSelectedModelLabel = (capability: ApiCapability) => {
-    const mappingValue = config.mapping[capability];
-    if (!mappingValue) return null;
-
-    const firstSlashIndex = mappingValue.indexOf("/");
-    if (firstSlashIndex === -1) return null;
-    const providerId = mappingValue.substring(0, firstSlashIndex);
-    const modelId = mappingValue.substring(firstSlashIndex + 1);
-    const provider = config.providers.find((p) => p.id === providerId);
-    const model = provider?.models.find((m) => m.id === modelId);
-
-    if (provider && model) {
-      return { provider: provider.name, model: model.name };
-    }
-    return null;
-  };
-
-  const textModelHasVision = () => {
-    const textMapping = config.mapping.text;
-    if (!textMapping) return { hasVision: false, modelName: null };
-
-    const firstSlashIndex = textMapping.indexOf("/");
-    if (firstSlashIndex === -1) return { hasVision: false, modelName: null };
-    const providerId = textMapping.substring(0, firstSlashIndex);
-    const modelId = textMapping.substring(firstSlashIndex + 1);
-    const provider = config.providers.find((p) => p.id === providerId);
-    const model = provider?.models.find((m) => m.id === modelId);
-
-    if (provider && model) {
-      return {
-        hasVision: model.capabilities.includes("vision"),
-        modelName: `${provider.name} / ${model.name}`,
-      };
-    }
-    return { hasVision: false, modelName: null };
+  const handleSetFreeImageBackup = (val: boolean) => {
+    setUseFreeImageBackup(val);
+    const updatedConfig = {
+      ...config,
+      freeImageBackup: val,
+    };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
   };
 
   if (isLoading) {
@@ -409,279 +334,34 @@ export function ApiConfigPanel() {
     <div className="space-y-6">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">已配置的提供商</CardTitle>
+          <CardTitle className="text-lg">{t("provider.configuredProviders")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {config.providers.length === 0 ? (
             <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
               <Key className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>暂无配置，请添加提供商</p>
+              <p>{t("provider.noConfig")}</p>
             </div>
           ) : (
-            config.providers.map((provider) => {
-              const caps = getCapabilityBadges(provider);
-              const isConfigured = !!provider.apiKey;
-              const isExpanded = expandedProvider === provider.id;
-
-              return (
-                <div
-                  key={provider.id}
-                  className="border rounded-lg overflow-hidden"
-                >
-                  <div
-                    className={`flex items-center justify-between p-3 cursor-pointer ${
-                      isConfigured ? "bg-green-900/20" : "bg-yellow-900/20"
-                    }`}
-                    onClick={() =>
-                      setExpandedProvider(isExpanded ? null : provider.id)
-                    }
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-2 h-2 rounded-full ${isConfigured ? "bg-green-500" : "bg-yellow-500"}`}
-                      />
-                      <div>
-                        <div className="font-medium">{provider.name}</div>
-                        <div className="text-xs text-gray-500 font-mono">
-                          {provider.apiKey
-                            ? `${provider.apiKey.slice(0, 4)}****${provider.apiKey.slice(-2)}`
-                            : "未配置 Key"}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1">
-                        {caps.map((cap) => {
-                          const capConfig = capabilities.find(
-                            (c) => c.id === cap,
-                          );
-                          return (
-                            <Badge
-                              key={cap}
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {capConfig?.icon}
-                              <span className="ml-1">{capConfig?.name}</span>
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpdateProviderModels(provider.id);
-                        }}
-                      >
-                        <Sparkles className="h-4 w-4 text-blue-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveProvider(provider.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                      />
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="p-4 border-t bg-slate-800/50 space-y-4">
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-sm">提供商配置</h4>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label
-                              htmlFor={`name-${provider.id}`}
-                              className="text-xs"
-                            >
-                              显示名称
-                            </Label>
-                            <Input
-                              id={`name-${provider.id}`}
-                              value={provider.name}
-                              onChange={(e) =>
-                                handleUpdateProvider(provider.id, {
-                                  name: e.target.value,
-                                })
-                              }
-                              className="text-sm"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label
-                              htmlFor={`baseUrl-${provider.id}`}
-                              className="text-xs"
-                            >
-                              Base URL
-                            </Label>
-                            <Input
-                              id={`baseUrl-${provider.id}`}
-                              value={provider.baseUrl}
-                              onChange={(e) =>
-                                handleUpdateProvider(provider.id, {
-                                  baseUrl: e.target.value,
-                                })
-                              }
-                              className="text-sm"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor={`apiKey-${provider.id}`}
-                            className="text-xs"
-                          >
-                            API Key
-                          </Label>
-                          <Input
-                            id={`apiKey-${provider.id}`}
-                            type="password"
-                            value={provider.apiKey}
-                            onChange={(e) =>
-                              handleUpdateProvider(provider.id, {
-                                apiKey: e.target.value,
-                              })
-                            }
-                            className="text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-sm">模型列表</h4>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAddCustomModel(provider.id)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            添加自定义模型
-                          </Button>
-                        </div>
-
-                        <div className="space-y-2">
-                          {provider.models.map((model, index) => (
-                            <div
-                              key={model.id || index}
-                              className="p-3 border rounded-lg bg-slate-800/50 space-y-2"
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">模型 ID</Label>
-                                    <Input
-                                      value={model.id}
-                                      onChange={(e) =>
-                                        handleUpdateModel(
-                                          provider.id,
-                                          index,
-                                          {
-                                            id: e.target.value,
-                                          },
-                                        )
-                                      }
-                                      className="text-xs"
-                                      placeholder="例如: doubao-seed-1-8-251228"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">
-                                      显示名称
-                                    </Label>
-                                    <Input
-                                      value={model.name}
-                                      onChange={(e) =>
-                                        handleUpdateModel(
-                                          provider.id,
-                                          index,
-                                          {
-                                            name: e.target.value,
-                                          },
-                                        )
-                                      }
-                                      className="text-xs"
-                                    />
-                                  </div>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleRemoveModel(provider.id, index)
-                                  }
-                                >
-                                  <Trash2 className="h-3 w-3 text-red-500" />
-                                </Button>
-                              </div>
-
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs text-gray-500">
-                                  支持功能:
-                                </span>
-                                {["text", "image", "vision", "video"].map(
-                                  (cap) => {
-                                    const capConfig = capabilities.find(
-                                      (c) => c.id === (cap as ApiCapability),
-                                    );
-                                    const isEnabled =
-                                      model.capabilities.includes(
-                                        cap as ApiCapability,
-                                      );
-                                    return (
-                                      <div
-                                        key={cap}
-                                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors ${
-                                          isEnabled
-                                            ? "bg-blue-900/30 text-blue-300"
-                                            : "bg-slate-700/50 text-slate-400 hover:bg-slate-700"
-                                        }`}
-                                        onClick={() => {
-                                          const newCaps = isEnabled
-                                            ? model.capabilities.filter(
-                                                (c) => c !== cap,
-                                              )
-                                            : [
-                                                ...model.capabilities,
-                                                cap as ApiCapability,
-                                              ];
-                                          handleUpdateModel(
-                                            provider.id,
-                                            index,
-                                            { capabilities: newCaps },
-                                          );
-                                        }}
-                                      >
-                                        {capConfig?.icon}
-                                        {capConfig?.name}
-                                      </div>
-                                    );
-                                  },
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
+            config.providers.map((provider) => (
+              <ProviderCard
+                key={provider.id}
+                provider={provider}
+                isExpanded={expandedProvider === provider.id}
+                onToggleExpand={() =>
+                  setExpandedProvider(
+                    expandedProvider === provider.id ? null : provider.id,
+                  )
+                }
+                onUpdateProvider={handleUpdateProvider}
+                onRemoveProvider={handleRemoveProvider}
+                onAddCustomModel={handleAddCustomModel}
+                onUpdateModel={handleUpdateModel}
+                onRemoveModel={handleRemoveModel}
+                onUpdateProviderModels={handleUpdateProviderModels}
+                capabilities={capabilities}
+              />
+            ))
           )}
 
           {!showAddForm ? (
@@ -691,294 +371,43 @@ export function ApiConfigPanel() {
               onClick={() => setShowAddForm(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
-              添加提供商
+              {t("provider.addProvider")}
             </Button>
           ) : (
-            <div className="p-4 border rounded-lg bg-slate-800/50 space-y-4">
-              <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-800">
-                <h4 className="font-medium text-blue-300 mb-2">
-                  添加提供商步骤
-                </h4>
-                <ol className="list-decimal list-inside text-sm text-blue-300 space-y-1">
-                  <li>输入 API Key（例如：sk-开头的密钥）</li>
-                  <li>系统会自动检测提供商类型</li>
-                  <li>如需手动选择，请从下拉菜单中选择提供商</li>
-                  <li>输入显示名称（可选）</li>
-                  <li>点击&quot;添加&quot;按钮完成配置</li>
-                </ol>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="apiKey">
-                  API Key <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="sk-... (例如: sk-your-key-here)"
-                  value={newProviderKey}
-                  onChange={(e) => setNewProviderKey(e.target.value)}
-                />
-                {newProviderKey && (
-                  <div className="flex items-center gap-2 text-sm">
-                    {keyValidation.valid ? (
-                      <>
-                        {detectedInfo ? (
-                          <>
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span>检测到: {detectedInfo.suggestedName}</span>
-                            <Badge
-                              variant={
-                                detectedInfo.confidence === "high"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {detectedInfo.confidence === "high"
-                                ? "高置信度"
-                                : "中置信度"}
-                            </Badge>
-                          </>
-                        ) : (
-                          <>
-                            <AlertCircle className="h-4 w-4 text-yellow-500" />
-                            <span className="text-yellow-600">
-                              无法自动识别，请手动选择提供商
-                            </span>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-4 w-4 text-red-500" />
-                        <span className="text-red-500">
-                          {keyValidation.error}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {newProviderKey && !detectedInfo && (
-                <div className="space-y-2">
-                  <Label>
-                    选择提供商 <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={selectedTemplate}
-                    onValueChange={(val) => setSelectedTemplate(val || "")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="请选择提供商" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getTemplateList().map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="providerName">显示名称（可选）</Label>
-                <Input
-                  id="providerName"
-                  placeholder={detectedInfo?.suggestedName || "我的 API"}
-                  value={newProviderName}
-                  onChange={(e) => setNewProviderName(e.target.value)}
-                />
-                <p className="text-xs text-gray-500">
-                  用于在列表中标识该提供商，建议使用易于识别的名称
-                </p>
-              </div>
-
-              <div className="bg-slate-700/50 p-3 rounded-lg">
-                <h4 className="font-medium text-slate-300 mb-2">
-                  支持的功能
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {capabilities.map((cap) => (
-                    <Badge
-                      key={cap.id}
-                      variant="secondary"
-                      className="text-xs"
-                    >
-                      {cap.icon}
-                      <span className="ml-1">{cap.name}</span>
-                    </Badge>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  添加提供商后，您可以为每个功能选择对应的模型
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleAddProvider}
-                  disabled={!keyValidation.valid || isAdding}
-                  className="flex-1"
-                >
-                  {isAdding ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Plus className="h-4 w-4 mr-2" />
-                  )}
-                  添加提供商
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAddForm(false)}
-                >
-                  取消
-                </Button>
-              </div>
-            </div>
+            <ProviderForm
+              newProviderKey={newProviderKey}
+              onKeyChange={setNewProviderKey}
+              newProviderName={newProviderName}
+              onNameChange={setNewProviderName}
+              selectedTemplate={selectedTemplate}
+              onTemplateChange={setSelectedTemplate}
+              isAdding={isAdding}
+              keyValidation={keyValidation}
+              detectedInfo={detectedInfo}
+              onAdd={handleAddProvider}
+              onCancel={() => setShowAddForm(false)}
+              capabilities={capabilities}
+            />
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">功能映射</CardTitle>
-          <CardDescription>为每个功能选择使用的模型</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {capabilities.map((cap) => {
-            const models = getAvailableModels(cap.id);
-            const currentValue = config.mapping[cap.id];
-            const selected = getSelectedModelLabel(cap.id);
-            const visionInfo = textModelHasVision();
-
-            return (
-              <div key={cap.id} className="space-y-3">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 w-24 shrink-0">
-                    {cap.icon}
-                    <span className="font-medium">{cap.name}</span>
-                  </div>
-
-                  <Select
-                    value={currentValue || "_none"}
-                    onValueChange={(value) => handleSetMapping(cap.id, value)}
-                    disabled={
-                      cap.id === "vision" &&
-                      !useCustomVision &&
-                      visionInfo.hasVision
-                    }
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder={`选择${cap.name}模型`}>
-                        {selected ? (
-                          <span>
-                            {selected.provider} / {selected.model}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">未配置</span>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_none">未配置</SelectItem>
-                      {models.length === 0 ? (
-                        <SelectItem value="_empty" disabled>
-                          没有可用的模型，请先添加提供商
-                        </SelectItem>
-                      ) : (
-                        models.map((m) => (
-                          <SelectItem key={m.value} value={m.value}>
-                            {m.providerName} / {m.modelName}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-
-                  {cap.id === "image" && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Checkbox
-                        id="useFreeBackup"
-                        checked={useFreeImageBackup}
-                        onCheckedChange={(checked) => {
-                          const val = checked as boolean;
-                          setUseFreeImageBackup(val);
-                          const updatedConfig = {
-                            ...config,
-                            freeImageBackup: val,
-                          };
-                          setConfig(updatedConfig);
-                          saveConfig(updatedConfig);
-                        }}
-                      />
-                      <Label
-                        htmlFor="useFreeBackup"
-                        className="text-sm cursor-pointer flex items-center gap-1"
-                      >
-                        <Sparkles className="w-3 h-3 text-purple-500" />
-                        使用免费备用
-                      </Label>
-                    </div>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleTestCapability(cap.id)}
-                    disabled={
-                      !currentValue ||
-                      testingCapability === cap.id ||
-                      (cap.id === "vision" &&
-                        !useCustomVision &&
-                        visionInfo.hasVision)
-                    }
-                  >
-                    {testingCapability === cap.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <TestTube className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-
-                {cap.id === "vision" && visionInfo.hasVision && (
-                  <div className="pl-28 space-y-2">
-                    <Alert className="bg-blue-900/20 border-blue-800">
-                      <AlertDescription className="text-blue-300 text-sm">
-                        💡 当前文本模型「{visionInfo.modelName}
-                        」已支持图片识别功能，可直接使用无需额外配置。
-                      </AlertDescription>
-                    </Alert>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="useCustomVision"
-                        checked={useCustomVision}
-                        onCheckedChange={(checked) =>
-                          setUseCustomVision(checked as boolean)
-                        }
-                      />
-                      <Label
-                        htmlFor="useCustomVision"
-                        className="text-sm cursor-pointer"
-                      >
-                        使用自配置的图片分析功能
-                      </Label>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+      <ModelMappingSection
+        config={config}
+        useFreeImageBackup={useFreeImageBackup}
+        useCustomVision={useCustomVision}
+        testingCapability={testingCapability}
+        onSetMapping={handleSetMapping}
+        onTestCapability={handleTestCapability}
+        onSetFreeImageBackup={handleSetFreeImageBackup}
+        onSetCustomVision={setUseCustomVision}
+        capabilities={capabilities}
+      />
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">测试连接</CardTitle>
-          <CardDescription>验证各功能的 API 连接是否正常</CardDescription>
+          <CardTitle className="text-lg">{t("connection.title")}</CardTitle>
+          <CardDescription>{t("connection.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
@@ -1004,7 +433,7 @@ export function ApiConfigPanel() {
                   ) : (
                     cap.icon
                   )}
-                  测试{cap.name}
+                  {t("connection.testName", { name: cap.name })}
                   {result && !result.success && (
                     <XCircle className="h-4 w-4 ml-2 text-red-500" />
                   )}

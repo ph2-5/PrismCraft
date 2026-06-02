@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Mock } from "vitest";
 
 describe("R47: Catch blocks must not silently swallow errors", () => {
-  let warnSpy: ReturnType<typeof vi.fn>;
+  let warnSpy: Mock<(message: string, error: unknown) => void>;
 
   beforeEach(() => {
-    warnSpy = vi.fn();
+    warnSpy = vi.fn<(message: string, error: unknown) => void>();
   });
 
   it("should log error when JSON parse fails instead of silently returning default", () => {

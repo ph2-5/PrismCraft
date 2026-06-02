@@ -1,5 +1,3 @@
-"use client";
-
 import { Settings, ChevronDown, ChevronUp, X, Film, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";

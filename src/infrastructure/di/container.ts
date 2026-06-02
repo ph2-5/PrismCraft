@@ -130,11 +130,11 @@ const tokens = {
 
   // ── E. 懒加载模块（避免循环依赖，动态 import） ──────────────────────────────────
   elementManager: createToken("elementManager", async () => {
-    const { elementManager } = await import("@/modules/shot/element-binding");
+    const { elementManager } = await import("@/modules/shot");
     return elementManager;
   }),
   referenceEngine: createToken("referenceEngine", async () => {
-    const { referenceEngine } = await import("@/modules/shot/shot-reference");
+    const { referenceEngine } = await import("@/modules/shot");
     return referenceEngine;
   }),
 };

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   isCodecSupportedByProvider,
-  type VideoCodecInfo,
 } from "@/shared/video-utils/codec-check";
+import type { VideoCodecInfo } from "@/shared/video-utils/video-codec";
 import { getVideoCodecLabel, getContainerLabel } from "@/shared/video-utils/video-codec";
 
 vi.mock("@/shared/video-utils/provider-codecs", () => ({

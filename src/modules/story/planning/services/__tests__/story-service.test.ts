@@ -2,9 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { expectOk, expectErr } from "@/__tests__/utils/result-helpers";
 import { AppError, NotFoundError, ValidationError } from "@/domain/types";
 import { DomainEvents } from "@/shared/event-types";
-import type { Story } from "@/domain/schemas";
+import type { Story, StoryBeat } from "@/domain/schemas";
 
-const mockSafeTransaction = vi.fn().mockResolvedValue(undefined);
+const { mockSafeTransaction, mockErrorLoggerWarn } = vi.hoisted(() => ({
+  mockSafeTransaction: vi.fn().mockResolvedValue(undefined),
+  mockErrorLoggerWarn: vi.fn(),
+}));
 
 vi.mock("@/infrastructure/di", () => ({
   container: {
@@ -21,7 +24,7 @@ vi.mock("@/infrastructure/di", () => ({
 }));
 
 vi.mock("@/shared/db-core", () => ({
-  safeTransaction: (...args: any[]) => mockSafeTransaction(...(args as [any])),
+  safeTransaction: (...args: [{ sql: string; params: unknown[] }[]]) => mockSafeTransaction(...args),
 }));
 
 vi.mock("@/modules/story/template", () => ({
@@ -29,7 +32,7 @@ vi.mock("@/modules/story/template", () => ({
 }));
 
 vi.mock("@/shared/error-logger", () => ({
-  errorLogger: { warn: vi.fn(), error: vi.fn() },
+  errorLogger: { warn: mockErrorLoggerWarn, error: vi.fn() },
 }));
 
 import { storyService } from "../story-service";
@@ -66,14 +69,14 @@ const validCreateInput = {
   description: "新故事描述",
   characters: [] as string[],
   scenes: [] as string[],
-  beats: [] as any[],
+  beats: [] as StoryBeat[],
   elementIds: [] as string[],
 };
 
 describe("storyService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (crypto as any).randomUUID = (crypto as any).randomUUID || (() => "mock-uuid-12345678");
+    (crypto as unknown as { randomUUID: () => string }).randomUUID = (crypto as unknown as { randomUUID: () => string }).randomUUID || (() => "mock-uuid-12345678");
   });
 
   describe("getAll", () => {
@@ -207,6 +210,26 @@ describe("storyService", () => {
       expectErr(result);
       expect(result.error).toBeInstanceOf(AppError);
     });
+
+    it("无效输入时应返回 ValidationError", async () => {
+      const result = await storyService.update("story-1", { id: "story-1", title: "" });
+
+      expectErr(result);
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(storage.updateStory).not.toHaveBeenCalled();
+    });
+
+    it("更新无 title 时事件 storyTitle 应使用 id", async () => {
+      storage.updateStory.mockResolvedValue(undefined);
+
+      const result = await storyService.update("story-1", { id: "story-1", description: "新描述" });
+
+      expectOk(result);
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        DomainEvents.STORY_UPDATED,
+        expect.objectContaining({ id: "story-1", storyTitle: "story-1" }),
+      );
+    });
   });
 
   describe("delete", () => {
@@ -256,6 +279,32 @@ describe("storyService", () => {
 
       expectErr(result);
       expect(result.error).toBeInstanceOf(AppError);
+    });
+
+    it("saveVersion 失败时仍应继续删除", async () => {
+      storage.getStoryById.mockResolvedValue(mockStory);
+      storage.deleteStory.mockResolvedValue(undefined);
+      (saveVersion as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("版本保存失败"));
+
+      const result = await storyService.delete("story-1");
+
+      expectOk(result);
+      expect(storage.deleteStory).toHaveBeenCalledWith("story-1");
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        DomainEvents.STORY_DELETED,
+        expect.objectContaining({ id: "story-1" }),
+      );
+    });
+
+    it("saveVersion 抛出非 Error 类型时仍应继续删除", async () => {
+      storage.getStoryById.mockResolvedValue(mockStory);
+      storage.deleteStory.mockResolvedValue(undefined);
+      (saveVersion as ReturnType<typeof vi.fn>).mockRejectedValue("string error");
+
+      const result = await storyService.delete("story-1");
+
+      expectOk(result);
+      expect(storage.deleteStory).toHaveBeenCalledWith("story-1");
     });
   });
 
@@ -377,6 +426,96 @@ describe("storyService", () => {
           { id: "beat-1", keyframeImageUrl: "new.jpg" },
         ]),
       ).resolves.toBeUndefined();
+    });
+
+    it("应更新 localKeyframePath", async () => {
+      await storyService.updateBeatMediaUrls([
+        { id: "beat-1", localKeyframePath: "/local/keyframe.jpg" },
+      ]);
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
+      expect(statements[0].sql).toContain("local_keyframe_path");
+      expect(statements[0].params).toContain("/local/keyframe.jpg");
+    });
+
+    it("应更新 localFirstFramePath", async () => {
+      await storyService.updateBeatMediaUrls([
+        { id: "beat-1", localFirstFramePath: "/local/first.jpg" },
+      ]);
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
+      expect(statements[0].sql).toContain("local_first_frame_path");
+      expect(statements[0].params).toContain("/local/first.jpg");
+    });
+
+    it("应更新 localLastFramePath", async () => {
+      await storyService.updateBeatMediaUrls([
+        { id: "beat-1", localLastFramePath: "/local/last.jpg" },
+      ]);
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
+      expect(statements[0].sql).toContain("local_last_frame_path");
+      expect(statements[0].params).toContain("/local/last.jpg");
+    });
+
+    it("应更新 localVideoPath", async () => {
+      await storyService.updateBeatMediaUrls([
+        { id: "beat-1", localVideoPath: "/local/video.mp4" },
+      ]);
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
+      expect(statements[0].sql).toContain("local_video_path");
+      expect(statements[0].params).toContain("/local/video.mp4");
+    });
+
+    it("所有字段为空时不应调用 safeTransaction", async () => {
+      await storyService.updateBeatMediaUrls([
+        { id: "beat-1" },
+      ]);
+
+      expect(mockSafeTransaction).not.toHaveBeenCalled();
+    });
+
+    it("空数组时不应调用 safeTransaction", async () => {
+      await storyService.updateBeatMediaUrls([]);
+
+      expect(mockSafeTransaction).not.toHaveBeenCalled();
+    });
+
+    it("safeTransaction 失败时应调用 errorLogger.warn", async () => {
+      mockSafeTransaction.mockRejectedValue(new Error("Transaction failed"));
+
+      await storyService.updateBeatMediaUrls([
+        { id: "beat-1", keyframeImageUrl: "new.jpg" },
+      ]);
+
+      expect(mockErrorLoggerWarn).toHaveBeenCalled();
+    });
+
+    it("应同时更新多个 beat", async () => {
+      await storyService.updateBeatMediaUrls([
+        { id: "beat-1", keyframeImageUrl: "kf1.jpg" },
+        { id: "beat-2", videoUrl: "v2.mp4" },
+      ]);
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
+      expect(statements).toHaveLength(2);
+    });
+
+    it("应同时更新 imageUrl 和 localPath", async () => {
+      await storyService.updateBeatMediaUrls([
+        { id: "beat-1", keyframeImageUrl: "kf.jpg", localKeyframePath: "/local/kf.jpg" },
+      ]);
+
+      expect(mockSafeTransaction).toHaveBeenCalled();
+      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
+      expect(statements[0].sql).toContain("keyframeImageUrl");
+      expect(statements[0].sql).toContain("local_keyframe_path");
     });
   });
 });

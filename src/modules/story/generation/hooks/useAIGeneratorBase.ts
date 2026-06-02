@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef } from "react";
 import { resolveCharacterRef, resolveSceneRef } from "@/modules/story";
 import { getErrorMessage } from "@/shared/error-handler";

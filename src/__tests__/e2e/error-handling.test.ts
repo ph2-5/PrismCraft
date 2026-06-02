@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { extractErrorMessage } from "@/shared/error-logger";
-import { ok, err, fromAsyncThrowable } from "@/domain/types";
+import { ok, err, fromAsyncThrowable, AppError } from "@/domain/types";
 
 describe("E2E 错误处理测试", () => {
   describe("extractErrorMessage 完整性", () => {
@@ -79,7 +79,7 @@ describe("E2E 错误处理测试", () => {
     });
 
     it("err() 应返回 Result.ok=false 并携带错误", () => {
-      const result = err("DATABASE_ERROR", "database is locked");
+      const result = err(new AppError("DATABASE_ERROR", "database is locked"));
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error).toBeDefined();
@@ -120,7 +120,7 @@ describe("E2E 错误处理测试", () => {
 
     it("Result 类型应正确区分 ok 和 err 分支", () => {
       const successResult = ok("success");
-      const failureResult = err("CODE", "failure");
+      const failureResult = err(new AppError("CODE", "failure"));
 
       if (successResult.ok) {
         expect(successResult.value).toBe("success");

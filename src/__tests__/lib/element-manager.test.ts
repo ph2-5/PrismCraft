@@ -24,7 +24,7 @@ describe("ElementStorage 通知职责", () => {
 });
 
 describe("ElementManager 通知机制", () => {
-  let elementManager: any;
+  let elementManager: IElementManager;
 
   beforeEach(async () => {
     vi.resetModules();

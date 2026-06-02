@@ -7,10 +7,10 @@ const {
   mockTrackChange,
   mockBuildUpdateSets,
 } = vi.hoisted(() => ({
-  mockSafeQuery: vi.fn(() => Promise.resolve([])),
-  mockSafeRun: vi.fn(() => Promise.resolve({ changes: 1 })),
-  mockSafeTransaction: vi.fn(() => Promise.resolve([])),
-  mockTrackChange: vi.fn(() => Promise.resolve()),
+  mockSafeQuery: vi.fn<() => Promise<{ id: string }[]>>(() => Promise.resolve([])),
+  mockSafeRun: vi.fn<() => Promise<{ changes: number }>>(() => Promise.resolve({ changes: 1 })),
+  mockSafeTransaction: vi.fn<() => Promise<unknown[]>>(() => Promise.resolve([])),
+  mockTrackChange: vi.fn<(entity: string, id: string, operation: string) => Promise<void>>(() => Promise.resolve()),
   mockBuildUpdateSets: vi.fn(() => ({ sql: "status = ?", params: ["failed"] })),
 }));
 
@@ -77,7 +77,7 @@ describe("R41: trackChange 循环必须并行执行，禁止串行等待", () =>
       { taskId: "task-2", updates: { status: "failed" } },
     ];
 
-    await videoTaskStorage.batchUpdateVideoTasks(updates as any);
+    await videoTaskStorage.batchUpdateVideoTasks(updates as unknown as Array<{ taskId: string; updates: Partial<import("@/domain/schemas").VideoTask> }>);
 
     expect(mockTrackChange).toHaveBeenCalledTimes(2);
   });

@@ -10,6 +10,7 @@
  */
 
 import { errorLogger } from "@/shared/error-logger";
+import { apiClient } from "@/infrastructure/api";
 
 export interface ImageSizeOption {
   width: number;
@@ -529,7 +530,6 @@ export async function loadModelProfilesFromServer(): Promise<void> {
     const isElectronEnv = typeof window !== "undefined" && (window as unknown as Record<string, unknown>).electronAPI;
     if (!isElectronEnv) return;
 
-    const { apiClient } = await import("@/infrastructure/api");
     const response = await apiClient.get<{ modelProfiles?: Record<string, ModelParameterProfile> }>("/plugins/list");
     if (response.ok && response.value?.modelProfiles) {
       setModelProfiles(response.value.modelProfiles);

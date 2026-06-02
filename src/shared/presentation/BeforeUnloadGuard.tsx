@@ -1,9 +1,8 @@
-"use client";
-
 import { useEffect, useRef, useCallback } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
 import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants/messages";
 
 export function BeforeUnloadGuard() {
   const dirtyCount = useDirtyState((s) => s.dirtyKeys.size);
@@ -14,7 +13,7 @@ export function BeforeUnloadGuard() {
     dirtyRef.current = dirtyCount > 0;
   }, [dirtyCount]);
 
-  const pathname = usePathname();
+  const pathname = useLocation().pathname;
   const prevPathnameRef = useRef(pathname);
 
   useEffect(() => {
@@ -39,7 +38,7 @@ export function BeforeUnloadGuard() {
 }
 
 export function useNavigationGuard() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const dirtyCount = useDirtyState((s) => s.dirtyKeys.size);
   const markAllClean = useDirtyState((s) => s.markAllClean);
   const dirtyRef = useRef(dirtyCount > 0);
@@ -52,15 +51,15 @@ export function useNavigationGuard() {
     async (href: string) => {
       if (dirtyRef.current) {
         const confirmed = await confirm(
-          "当前页面有未保存的修改，离开将丢失这些修改。确定要继续吗？",
-          "未保存的修改",
+          t("nav.unsavedChangesConfirm"),
+          t("nav.unsavedChanges"),
         );
         if (!confirmed) return;
         markAllClean();
       }
-      router.push(href);
+      navigate(href);
     },
-    [router, markAllClean],
+    [navigate, markAllClean],
   );
 
   return { guardedPush };

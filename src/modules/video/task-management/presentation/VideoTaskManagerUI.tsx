@@ -1,6 +1,6 @@
-"use client";
-
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
+import { useVirtualList } from "@/shared/hooks/use-virtual-list";
+import { t } from "@/shared/constants/messages";
 import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import {
   Dialog,
@@ -56,24 +56,24 @@ function getTaskDisplayStatus(task: VideoTask): TaskDisplayStatus {
 }
 
 function formatTime(timestamp: string | undefined): string {
-  if (!timestamp) return "未知";
+  if (!timestamp) return t("common.unknown");
   const date = new Date(timestamp);
   return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) return "刚刚";
-  if (ms < 60000) return `${Math.floor(ms / 1000)}秒前`;
-  if (ms < 3600000) return `${Math.floor(ms / 60000)}分钟前`;
-  return `${Math.floor(ms / 3600000)}小时前`;
+  if (ms < 1000) return t("task.justNow");
+  if (ms < 60000) return t("task.secondsAgo", { count: Math.floor(ms / 1000) });
+  if (ms < 3600000) return t("task.minutesAgo", { count: Math.floor(ms / 60000) });
+  return t("task.hoursAgo", { count: Math.floor(ms / 3600000) });
 }
 
 function StatusBadge({ status }: { status: TaskDisplayStatus }) {
   const config = {
-    pending: { color: "bg-yellow-900/50 text-yellow-300 border-yellow-700", icon: Clock, label: "等待中" },
-    generating: { color: "bg-blue-900/50 text-blue-300 border-blue-700", icon: Loader2, label: "生成中", animate: true },
-    completed: { color: "bg-green-900/50 text-green-300 border-green-700", icon: CheckCircle2, label: "已完成" },
-    failed: { color: "bg-red-900/50 text-red-300 border-red-700", icon: AlertCircle, label: "失败" },
+    pending: { color: "bg-yellow-900/50 text-yellow-300 border-yellow-700", icon: Clock, label: t("common.pending") },
+    generating: { color: "bg-blue-900/50 text-blue-300 border-blue-700", icon: Loader2, label: t("common.generatingShort"), animate: true },
+    completed: { color: "bg-green-900/50 text-green-300 border-green-700", icon: CheckCircle2, label: t("common.completed") },
+    failed: { color: "bg-red-900/50 text-red-300 border-red-700", icon: AlertCircle, label: t("common.failed") },
   }[status];
 
   const Icon = config.icon;
@@ -111,43 +111,43 @@ function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }: TaskDe
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Info className="w-5 h-5" />
-            任务详情
+            {t("task.detailTitle")}
           </DialogTitle>
           <DialogDescription>
-            任务ID: {task.taskId}
+            {t("task.taskIdLabel", { id: task.taskId })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">当前状态</p>
+              <p className="text-sm text-muted-foreground">{t("task.currentStatus")}</p>
               <StatusBadge status={getTaskDisplayStatus(task)} />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">创建时间</p>
+              <p className="text-sm text-muted-foreground">{t("beat.createdAt")}</p>
               <p className="text-sm font-medium">{formatTime(task.createdAt)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">重试次数</p>
+              <p className="text-sm text-muted-foreground">{t("task.retryCount")}</p>
               <p className="text-sm font-medium">{task.recoveryAttempts || 0} / 60</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">提供者</p>
-              <p className="text-sm font-medium">{task.providerId || "未知"}</p>
+              <p className="text-sm text-muted-foreground">{t("task.provider")}</p>
+              <p className="text-sm font-medium">{task.providerId || t("common.unknown")}</p>
             </div>
           </div>
 
           {task.message && (
             <div>
-              <p className="text-sm text-muted-foreground">状态消息</p>
+              <p className="text-sm text-muted-foreground">{t("task.statusMessage")}</p>
               <p className="text-sm font-medium text-yellow-400">{task.message}</p>
             </div>
           )}
 
           {task.videoUrl && (
             <div>
-              <p className="text-sm text-muted-foreground mb-2">视频预览</p>
+              <p className="text-sm text-muted-foreground mb-2">{t("task.videoPreview")}</p>
               <video
                 src={resolveImageUrl(task.videoUrl)}
                 controls
@@ -161,7 +161,7 @@ function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }: TaskDe
         <DialogFooter className="flex gap-2">
           <Button variant="destructive" onClick={onRemove} disabled={isRecovering}>
             <Trash2 className="w-4 h-4 mr-2" />
-            删除
+            {t("common.delete")}
           </Button>
           <Button
             variant="default"
@@ -173,13 +173,153 @@ function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }: TaskDe
             ) : (
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
-            重试
+            {t("common.retry")}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+interface TaskCardProps {
+  task: VideoTask;
+  isSelected: boolean;
+  isExpanded: boolean;
+  now: number;
+  onToggleSelection: (taskId: string) => void;
+  onToggleExpanded: (taskId: string) => void;
+  onRetry: (taskId: string) => void;
+  onViewDetail: (task: VideoTask) => void;
+}
+
+const TaskCard = memo(function TaskCard({
+  task,
+  isSelected,
+  isExpanded,
+  now,
+  onToggleSelection,
+  onToggleExpanded,
+  onRetry,
+  onViewDetail,
+}: TaskCardProps) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader
+        className="pb-3 cursor-pointer"
+        onClick={() => onToggleExpanded(task.taskId)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelection(task.taskId);
+              }}
+              className="h-4 w-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+            />
+            <StatusBadge status={getTaskDisplayStatus(task)} />
+            <div>
+              <CardTitle className="text-sm">
+                {task.prompt?.slice(0, 50) || t("task.noPrompt")}
+                {(task.prompt?.length || 0) > 50 ? "..." : ""}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {formatDuration(now - new Date(task.createdAt).getTime())} · {task.providerId || t("common.unknown")}
+                {task.storyId ? ` · ${t("task.beatLabel")}: ${task.storyTitle || task.beatTitle || t("task.relatedStory")}` : ` · ${t("sidebar.quickGenerate")}`}
+              </CardDescription>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {getTaskDisplayStatus(task) === "failed" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRetry(task.taskId);
+                }}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                {t("common.retry")}
+              </Button>
+            )}
+            {task.videoUrl && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetail(task);
+                }}
+              >
+                <Eye className="w-3 h-3 mr-1" />
+                {t("task.view")}
+              </Button>
+            )}
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            )}
+          </div>
+        </div>
+      </CardHeader>
+
+      {isExpanded && (
+        <CardContent className="pt-0 space-y-4">
+          {task.prompt && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">{t("beat.prompt")}</p>
+              <p className="text-sm bg-black/20 p-3 rounded">{task.prompt}</p>
+            </div>
+          )}
+
+          {task.videoUrl && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">{t("task.videoLabel")}</p>
+              <video
+                src={resolveImageUrl(task.videoUrl)}
+                controls
+                className="w-full max-h-48 rounded-lg border border-border"
+                onError={createVideoErrorHandler()}
+              />
+              <div className="mt-2 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onViewDetail(task)}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  {t("task.viewDetail")}
+                </Button>
+                <a
+                  href={resolveImageUrl(task.videoUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                >
+                  <Button size="sm" variant="outline">
+                    <Download className="w-4 h-4 mr-2" />
+                    {t("beat.download")}
+                  </Button>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {task.message && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">{t("task.messageLabel")}</p>
+              <p className="text-sm text-yellow-400">{task.message}</p>
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  );
+});
 
 export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }: VideoTaskManagerProps) {
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -222,10 +362,10 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
   const handleRemoveTask = useCallback(async () => {
     if (!detailTask) return;
     const confirmed = await confirm({
-      title: "确认删除",
-      description: `确定删除该视频任务？此操作不可撤销。`,
-      confirmText: "删除",
-      cancelText: "取消",
+      title: t("confirm.deleteTitle"),
+      description: t("task.confirmDeleteDesc"),
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
       variant: "danger",
     });
     if (!confirmed) return;
@@ -236,10 +376,10 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
   const handleRemoveSelected = useCallback(async () => {
     if (selectedTaskIds.size === 0) return;
     const confirmed = await confirm({
-      title: "确认批量删除",
-      description: `确定删除选中的 ${selectedTaskIds.size} 个视频任务？此操作不可撤销。`,
-      confirmText: "删除",
-      cancelText: "取消",
+      title: t("task.confirmBatchDeleteTitle"),
+      description: t("task.confirmBatchDeleteDesc", { count: selectedTaskIds.size }),
+      confirmText: t("common.delete"),
+      cancelText: t("common.cancel"),
       variant: "danger",
     });
     if (!confirmed) return;
@@ -251,6 +391,15 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
     () => [...tasks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [tasks],
   );
+
+  const shouldVirtualize = sortedTasks.length > 20;
+
+  const { parentRef, virtualItems, totalSize } = useVirtualList({
+    items: sortedTasks,
+    estimateSize: 80,
+    overscan: 5,
+  });
+
   const visibleTasks = useMemo(() => sortedTasks.slice(0, visibleCount), [sortedTasks, visibleCount]);
   const hasMore = sortedTasks.length > visibleCount;
 
@@ -259,153 +408,73 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
       {selectedTaskIds.size > 0 && (
         <div className="flex items-center justify-between p-4 bg-red-900/20 border border-red-700 rounded-lg">
           <p className="text-sm text-red-300">
-            已选择 {selectedTaskIds.size} 个任务
+            {t("task.selectedCount", { count: selectedTaskIds.size })}
           </p>
           <Button variant="destructive" size="sm" onClick={handleRemoveSelected}>
             <Trash2 className="w-4 h-4 mr-2" />
-            删除选中
+            {t("task.deleteSelected")}
           </Button>
         </div>
       )}
 
-      <div className="space-y-3">
-        {visibleTasks.map((task) => (
-          <Card key={task.taskId} className="overflow-hidden">
-            <CardHeader
-              className="pb-3 cursor-pointer"
-              onClick={() => toggleExpanded(task.taskId)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedTaskIds.has(task.taskId)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      toggleTaskSelection(task.taskId);
-                    }}
-                    className="h-4 w-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+      {shouldVirtualize ? (
+        <div ref={parentRef} style={{ maxHeight: "60vh", overflow: "auto" }} className="space-y-3">
+          <div style={{ height: totalSize, position: "relative" }}>
+            {virtualItems.map((virtualItem) => {
+              const task = sortedTasks[virtualItem.index];
+              return (
+                <div key={task.taskId} style={{ position: "absolute", top: virtualItem.start, left: 0, width: "100%", height: virtualItem.size }}>
+                  <TaskCard
+                    task={task}
+                    isSelected={selectedTaskIds.has(task.taskId)}
+                    isExpanded={expandedTaskId === task.taskId}
+                    now={now}
+                    onToggleSelection={toggleTaskSelection}
+                    onToggleExpanded={toggleExpanded}
+                    onRetry={pollTask}
+                    onViewDetail={openTaskDetail}
                   />
-                  <StatusBadge status={getTaskDisplayStatus(task)} />
-                  <div>
-                    <CardTitle className="text-sm">
-                      {task.prompt?.slice(0, 50) || "无提示词"}
-                      {(task.prompt?.length || 0) > 50 ? "..." : ""}
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      {formatDuration(now - new Date(task.createdAt).getTime())} · {task.providerId || "未知"}
-                      {task.storyId ? ` · 分镜: ${task.storyTitle || task.beatTitle || "关联故事"}` : " · 快速生成"}
-                    </CardDescription>
-                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {getTaskDisplayStatus(task) === "failed" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        pollTask(task.taskId);
-                      }}
-                    >
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      重试
-                    </Button>
-                  )}
-                  {task.videoUrl && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openTaskDetail(task);
-                      }}
-                    >
-                      <Eye className="w-3 h-3 mr-1" />
-                      查看
-                    </Button>
-                  )}
-                  {expandedTaskId === task.taskId ? (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-
-            {expandedTaskId === task.taskId && (
-              <CardContent className="pt-0 space-y-4">
-                {task.prompt && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">提示词</p>
-                    <p className="text-sm bg-black/20 p-3 rounded">{task.prompt}</p>
-                  </div>
-                )}
-
-                {task.videoUrl && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">视频</p>
-                    <video
-                      src={resolveImageUrl(task.videoUrl)}
-                      controls
-                      className="w-full max-h-48 rounded-lg border border-border"
-                      onError={createVideoErrorHandler()}
-                    />
-                    <div className="mt-2 flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openTaskDetail(task)}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        查看详情
-                      </Button>
-                      <a
-                        href={resolveImageUrl(task.videoUrl)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                      >
-                        <Button size="sm" variant="outline">
-                          <Download className="w-4 h-4 mr-2" />
-                          下载
-                        </Button>
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {task.message && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">消息</p>
-                    <p className="text-sm text-yellow-400">{task.message}</p>
-                  </div>
-                )}
-              </CardContent>
-            )}
-          </Card>
-        ))}
-
-        {hasMore && (
-          <div className="flex justify-center py-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setVisibleCount((c) => c + 20)}
-            >
-              加载更多（剩余 {sortedTasks.length - visibleCount} 个）
-            </Button>
+              );
+            })}
           </div>
-        )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {visibleTasks.map((task) => (
+            <TaskCard
+              key={task.taskId}
+              task={task}
+              isSelected={selectedTaskIds.has(task.taskId)}
+              isExpanded={expandedTaskId === task.taskId}
+              now={now}
+              onToggleSelection={toggleTaskSelection}
+              onToggleExpanded={toggleExpanded}
+              onRetry={pollTask}
+              onViewDetail={openTaskDetail}
+            />
+          ))}
 
-        {sortedTasks.length === 0 && (
-          <EmptyState
-            icon={Clock}
-            title="暂无视频任务"
-          />
-        )}
-      </div>
+          {hasMore && (
+            <div className="flex justify-center py-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount((c) => c + 20)}
+              >
+                {t("task.loadMore", { count: sortedTasks.length - visibleCount })}
+              </Button>
+            </div>
+          )}
+
+          {sortedTasks.length === 0 && (
+            <EmptyState
+              icon={Clock}
+              title={t("task.noTasks")}
+            />
+          )}
+        </div>
+      )}
 
       {detailTask && (
         <TaskDetailDialog

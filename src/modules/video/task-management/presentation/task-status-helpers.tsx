@@ -8,6 +8,7 @@ import {
   Ban,
 } from "lucide-react";
 import type { VideoTaskStatus } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 export function getStatusIcon(status: VideoTaskStatus) {
   switch (status) {
@@ -50,17 +51,17 @@ export function getStatusColor(status: VideoTaskStatus) {
 export function getStatusLabel(status: VideoTaskStatus) {
   switch (status) {
     case "pending":
-      return "等待中";
+      return t("task.pendingLabel");
     case "generating":
-      return "处理中";
+      return t("task.generatingLabel");
     case "completed":
-      return "已完成";
+      return t("task.completedLabel");
     case "failed":
-      return "失败";
+      return t("task.failedLabel");
     case "cancelled":
-      return "已取消";
+      return t("task.cancelledLabel");
     case "retrying":
-      return "重试中";
+      return t("task.retryingLabel");
     default:
       return status;
   }

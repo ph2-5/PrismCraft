@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Story, StoryBeat } from "@/domain/schemas";
+
+type SqlStatement = { sql: string; params: unknown[] };
 
 vi.mock("@/infrastructure/storage/sqlite-core", () => ({
   safeQuery: vi.fn(),
@@ -29,11 +32,11 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
     mockSafeQuery.mockResolvedValueOnce([{ id: "b1" }, { id: "b2" }]);
 
     await storyStorage.updateStory("s1", {
-      beats: [{ id: "b1" }, { id: "b2" }] as any,
-    } as any);
+      beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
+    } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0];
-    const sqls = statements.map((s: any) => s.sql);
+    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const sqls = statements.map((s) => s.sql);
 
     expect(
       sqls.some((s: string) => s.includes("DELETE FROM video_tasks")),
@@ -44,11 +47,11 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
     mockSafeQuery.mockResolvedValueOnce([{ id: "b1" }, { id: "b2" }]);
 
     await storyStorage.updateStory("s1", {
-      beats: [{ id: "b1" }, { id: "b2" }] as any,
-    } as any);
+      beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
+    } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0];
-    const sqls = statements.map((s: any) => s.sql);
+    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const sqls = statements.map((s) => s.sql);
 
     expect(
       sqls.some((s: string) => s.includes("DELETE FROM generation_tasks")),
@@ -59,11 +62,11 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
     mockSafeQuery.mockResolvedValueOnce([{ id: "b1" }, { id: "b2" }]);
 
     await storyStorage.updateStory("s1", {
-      beats: [{ id: "b1" }, { id: "b2" }] as any,
-    } as any);
+      beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
+    } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0];
-    const sqls = statements.map((s: any) => s.sql);
+    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const sqls = statements.map((s) => s.sql);
 
     expect(
       sqls.some((s: string) => s.includes("DELETE FROM media_assets")),
@@ -74,11 +77,11 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
     mockSafeQuery.mockResolvedValueOnce([{ id: "b1" }, { id: "b2" }]);
 
     await storyStorage.updateStory("s1", {
-      beats: [{ id: "b1" }, { id: "b2" }] as any,
-    } as any);
+      beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
+    } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0];
-    const sqls = statements.map((s: any) => s.sql);
+    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const sqls = statements.map((s) => s.sql);
 
     expect(
       sqls.some((s: string) => s.includes("DELETE FROM story_beats")),
@@ -89,37 +92,37 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
     mockSafeQuery.mockResolvedValueOnce([{ id: "b1" }, { id: "b2" }, { id: "b3" }]);
 
     await storyStorage.updateStory("s1", {
-      beats: [{ id: "b1" }] as any,
-    } as any);
+      beats: [{ id: "b1" }] as unknown as StoryBeat[],
+    } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0];
+    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
     const deleteVideoTasks = statements.filter(
-      (s: any) => s.sql === "DELETE FROM video_tasks WHERE beat_id = ?",
+      (s) => s.sql === "DELETE FROM video_tasks WHERE beat_id = ?",
     );
     const deleteGenTasks = statements.filter(
-      (s: any) => s.sql === "DELETE FROM generation_tasks WHERE beat_id = ?",
+      (s) => s.sql === "DELETE FROM generation_tasks WHERE beat_id = ?",
     );
     const deleteMediaAssets = statements.filter(
-      (s: any) => s.sql === "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?",
+      (s) => s.sql === "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?",
     );
     const deleteBeats = statements.filter(
-      (s: any) => s.sql === "DELETE FROM story_beats WHERE id = ?",
+      (s) => s.sql === "DELETE FROM story_beats WHERE id = ?",
     );
 
     const removedIds = ["b2", "b3"];
     for (const removedId of removedIds) {
-      expect(deleteVideoTasks.some((s: any) => s.params[0] === removedId)).toBe(true);
-      expect(deleteGenTasks.some((s: any) => s.params[0] === removedId)).toBe(true);
-      expect(deleteMediaAssets.some((s: any) => s.params[0] === removedId)).toBe(true);
-      expect(deleteBeats.some((s: any) => s.params[0] === removedId)).toBe(true);
+      expect(deleteVideoTasks.some((s) => s.params[0] === removedId)).toBe(true);
+      expect(deleteGenTasks.some((s) => s.params[0] === removedId)).toBe(true);
+      expect(deleteMediaAssets.some((s) => s.params[0] === removedId)).toBe(true);
+      expect(deleteBeats.some((s) => s.params[0] === removedId)).toBe(true);
     }
 
     const retainedIds = ["b1"];
     for (const retainedId of retainedIds) {
-      expect(deleteVideoTasks.some((s: any) => s.params[0] === retainedId)).toBe(false);
-      expect(deleteGenTasks.some((s: any) => s.params[0] === retainedId)).toBe(false);
-      expect(deleteMediaAssets.some((s: any) => s.params[0] === retainedId)).toBe(false);
-      expect(deleteBeats.some((s: any) => s.params[0] === retainedId)).toBe(false);
+      expect(deleteVideoTasks.some((s) => s.params[0] === retainedId)).toBe(false);
+      expect(deleteGenTasks.some((s) => s.params[0] === retainedId)).toBe(false);
+      expect(deleteMediaAssets.some((s) => s.params[0] === retainedId)).toBe(false);
+      expect(deleteBeats.some((s) => s.params[0] === retainedId)).toBe(false);
     }
   });
 
@@ -127,11 +130,11 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
     mockSafeQuery.mockResolvedValueOnce([{ id: "b1" }]);
 
     await storyStorage.updateStory("s1", {
-      beats: [{ id: "b1" }] as any,
-    } as any);
+      beats: [{ id: "b1" }] as unknown as StoryBeat[],
+    } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0];
-    const sqls = statements.map((s: any) => s.sql);
+    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const sqls = statements.map((s) => s.sql);
 
     expect(
       sqls.some(

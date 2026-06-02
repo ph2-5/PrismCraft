@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Scene } from "@/domain/schemas";
@@ -53,11 +51,12 @@ export function useSceneImage({
     try {
       const prompt = generateScenePromptOptimization(userDescription);
       const result = await container.textProvider.generateText(prompt, { maxTokens: 300, temperature: 0.8 });
-      if (result.success && result.data?.text) {
-        setCurrentScene((prev) => ({ ...prev, imageGenerationPrompt: result.data!.text.trim() }), true);
-        success("提示词优化成功", "提示词已优化完成");
-      } else { showError("提示词优化失败", result.error || "请检查 API 配置后重试"); }
-    } catch (err) { errorLogger.error("提示词优化失败:", err); showError("提示词优化失败", getErrorMessage(err)); }
+      const optimizedText = result.data?.text?.trim();
+      if (result.success && optimizedText) {
+        setCurrentScene((prev) => ({ ...prev, imageGenerationPrompt: optimizedText }), true);
+        success(t("success.promptOptimized"), t("success.promptOptimizedDesc"));
+      } else { showError(t("image.optimizeFailed"), result.error || t("image.checkApiConfig")); }
+    } catch (err) { errorLogger.error(t("error.promptOptimizeFailed"), err); showError(t("image.optimizeFailed"), getErrorMessage(err)); }
     finally { setIsOptimizingPrompt(false); }
   };
 
@@ -69,9 +68,9 @@ export function useSceneImage({
       const imageOptions: CustomApiConfig & { size?: string } = { size: imageSize };
       if (selectedImageModel) { imageOptions.providerId = selectedImageModel.providerId; imageOptions.modelId = selectedImageModel.modelId; }
       const result = await container.imageProvider.generateImage(basicPrompt, "scene", imageOptions);
-      if (result.success && result.data?.imageUrl) { setGeneratedImage(result.data.imageUrl); success("图像生成成功", "场景图像已生成，记得保存到场景哦"); }
-      else { showError("图像生成失败", result.error || "请检查 API 配置后重试"); }
-    } catch (err) { errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: "生成图像失败", cause: err }); showError("图像生成失败", getErrorMessage(err)); }
+      if (result.success && result.data?.imageUrl) { setGeneratedImage(result.data.imageUrl); success(t("success.imageGenerated"), t("success.sceneImageGeneratedDesc")); }
+      else { showError(t("image.generateFailed"), result.error || t("image.checkApiConfig")); }
+    } catch (err) { errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: t("error.imageGenerateFailed"), cause: err }); showError(t("image.generateFailed"), getErrorMessage(err)); }
     finally { setIsGenerating(false); }
   };
 
@@ -82,8 +81,8 @@ export function useSceneImage({
         if (!result.ok) throw result.error;
         queryClient.invalidateQueries({ queryKey: ["scenes"] });
         addAssetToLibrary(generatedImage, "image", currentScene.name || "场景图片", { type: "scene", id: currentScene.id, name: currentScene.name || "未命名场景" });
-        success("保存成功", "图像已保存到场景并加入素材库");
-      } catch (err) { errorLogger.error("[SceneImage] 保存图像到场景失败", err instanceof Error ? err : undefined); showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
+        success(t("success.saved"), t("success.imageSavedToLibrary"));
+      } catch (err) { errorLogger.error("[SceneImage] 保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown")); }
     }
   };
 
@@ -102,11 +101,11 @@ export function useSceneImage({
             if (!updateResult.ok) throw updateResult.error;
             queryClient.invalidateQueries({ queryKey: ["scenes"] });
             addAssetToLibrary(imageUrl, "image", currentScene.name || "场景图片", { type: "scene", id: currentScene.id, name: currentScene.name || "未命名场景" });
-          } catch (err) { errorLogger.error("[SceneImage] 上传后保存图像到场景失败", err instanceof Error ? err : undefined); showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
+          } catch (err) { errorLogger.error("[SceneImage] 上传后保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown")); }
         } else { addAssetToLibrary(imageUrl, "image", "上传的图片"); }
-        success("上传成功", "图片已上传并保存到素材库");
-      } else { showError("上传失败", result.error || "请重试"); }
-    } catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError("上传失败", getErrorMessage(err)); }
+        success(t("success.uploaded"), t("success.imageSavedToLibrary"));
+      } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); }
+    } catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError(t("error.uploadFailed"), getErrorMessage(err)); }
     finally { setIsUploading(false); }
   };
 
@@ -130,7 +129,7 @@ export function useSceneImage({
     try {
       const { width, height } = await validateImageSize(imageUrl);
       const MIN_SIZE = 14;
-      if (width < MIN_SIZE || height < MIN_SIZE) { showError("图片尺寸过小", `最小允许尺寸: ${MIN_SIZE}像素。当前尺寸: 宽度 = ${width}, 高度 = ${height}。`); return; }
+      if (width < MIN_SIZE || height < MIN_SIZE) { showError(t("error.imageTooSmall"), t("error.imageSizeMin", { size: `${MIN_SIZE}像素。当前尺寸: 宽度 = ${width}, 高度 = ${height}。` })); return; }
       const analyzeOptions: { providerId?: string; modelId?: string } = {};
       if (selectedImageModel?.providerId && selectedImageModel?.modelId) { analyzeOptions.providerId = selectedImageModel.providerId; analyzeOptions.modelId = selectedImageModel.modelId; }
       const result = await container.imageProvider.analyzeImage(imageUrl, "scene", undefined, { providerId: analyzeOptions.providerId, modelId: analyzeOptions.modelId });
@@ -156,12 +155,12 @@ export function useSceneImage({
               scenePath: imageUrl,
               generatedImage: imageUrl,
             }); if (!updateResult.ok) throw updateResult.error; queryClient.invalidateQueries({ queryKey: ["scenes"] }); }
-          catch (err) { errorLogger.error("[SceneImage] 分析后保存图像到场景失败", err instanceof Error ? err : undefined); showError("保存失败", err instanceof Error ? err.message : "未知错误"); }
+          catch (err) { errorLogger.error("[SceneImage] 分析后保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown")); }
         }
         addAssetToLibrary(imageUrl, "image", analyzed.name || currentSceneRef.current.name || "场景图片", { type: "scene", id: currentSceneRef.current.id, name: analyzed.name || currentSceneRef.current.name || "未命名场景" });
-        success("分析完成", `已自动填充场景信息：${analyzed.name || "未命名场景"}，并保存到素材库`);
-      } else { showError("分析失败", result.error || result.message || "请重试"); }
-    } catch (err) { errorLogger.error("分析失败:", err); showError("分析失败", getErrorMessage(err)); }
+        success(t("success.analysisComplete"), t("success.sceneAnalysisResult", { name: analyzed.name || "未命名场景" }));
+      } else { showError(t("image.analyzeFailed"), result.error || result.message || t("common.retry")); }
+    } catch (err) { errorLogger.error("分析失败:", err); showError(t("image.analyzeFailed"), getErrorMessage(err)); }
     finally { if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null; } isAnalyzingRef.current = false; setIsAnalyzing(false); }
   };
 
@@ -169,8 +168,8 @@ export function useSceneImage({
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
-    try { const result = await container.fileUploader.uploadFile(file); if (result.success && result.data?.url) { await analyzeImage(result.data.url); } else { showError("上传失败", result.error || "请重试"); } }
-    catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError("上传失败", getErrorMessage(err)); }
+    try { const result = await container.fileUploader.uploadFile(file); if (result.success && result.data?.url) { await analyzeImage(result.data.url); } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); } }
+    catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError(t("error.uploadFailed"), getErrorMessage(err)); }
     finally { setIsUploading(false); }
   };
 

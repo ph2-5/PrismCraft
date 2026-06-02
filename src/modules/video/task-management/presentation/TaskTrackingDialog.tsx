@@ -12,6 +12,7 @@ import { Label } from "@/shared/ui/label";
 import { Search, Copy, ExternalLink, BookOpen } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } from "../services/video-tracker";
+import { t } from "@/shared/constants";
 
 interface TaskTrackingDialogProps {
   open: boolean;
@@ -34,9 +35,9 @@ export function TaskTrackingDialog({
     const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
     const result = await copyTrackingInfoToClipboard(trackingInfo);
     if (result.ok) {
-      onToastSuccess("复制成功", "任务追踪信息已复制到剪贴板");
+      onToastSuccess(t("success.copied"), t("task.copyAllInfo"));
     } else {
-      onToastError("复制失败", "无法复制信息到剪贴板");
+      onToastError(t("error.copyFailed"), t("task.copyAllInfo"));
     }
   };
 
@@ -44,7 +45,7 @@ export function TaskTrackingDialog({
     const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
     const opened = openTaskQueryLink(trackingInfo);
     if (!opened) {
-      onToastError("无法打开链接", "请手动打开云服务商控制台查询");
+      onToastError(t("error.openLinkFailed"), t("task.manualQuery"));
     }
   };
 
@@ -56,37 +57,37 @@ export function TaskTrackingDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="w-5 h-5" />
-            视频任务追踪信息
+            {t("task.trackingTitle")}
           </DialogTitle>
           <DialogDescription>
-            查看视频生成任务的详细信息，或直接前往云服务商控制台查询
+            {t("task.trackingDesc")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">云服务商</Label>
+              <Label className="text-xs text-gray-500">{t("task.cloudProvider")}</Label>
               <div className="text-sm font-medium">{trackingInfo.providerName}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">任务ID</Label>
+              <Label className="text-xs text-gray-500">{t("task.taskIdLabel")}</Label>
               <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
                 {task.taskId}
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">模型</Label>
-              <div className="text-sm">{trackingInfo.model || "未记录"}</div>
+              <Label className="text-xs text-gray-500">{t("task.modelLabel", { model: "" }).replace(": ", "")}</Label>
+              <div className="text-sm">{trackingInfo.model || t("task.modelNotRecorded")}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">创建时间</Label>
+              <Label className="text-xs text-gray-500">{t("task.createdAtLabel")}</Label>
               <div className="text-sm">{new Date(task.createdAt).toLocaleString()}</div>
             </div>
           </div>
 
           {trackingInfo.apiUrl && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">API地址</Label>
+              <Label className="text-xs text-gray-500">{t("task.apiUrlLabel")}</Label>
               <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded break-all">
                 {trackingInfo.apiUrl}
               </div>
@@ -95,7 +96,7 @@ export function TaskTrackingDialog({
 
           {trackingInfo.queryEndpoint && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">查询端点</Label>
+              <Label className="text-xs text-gray-500">{t("task.queryEndpoint")}</Label>
               <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded break-all">
                 {trackingInfo.queryEndpoint}
               </div>
@@ -103,7 +104,7 @@ export function TaskTrackingDialog({
           )}
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
-            <Label className="text-sm font-medium">查询说明</Label>
+            <Label className="text-sm font-medium">{t("task.queryInstructions")}</Label>
             <div className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg whitespace-pre-line">
               {trackingInfo.howToCheck}
             </div>
@@ -118,7 +119,7 @@ export function TaskTrackingDialog({
                 rel="noopener noreferrer"
                 className="hover:underline"
               >
-                查看API文档
+                {t("task.viewApiDoc")}
               </a>
             </div>
           )}
@@ -126,14 +127,14 @@ export function TaskTrackingDialog({
         <DialogFooter className="flex items-center justify-between sm:justify-end gap-2">
           <Button variant="ghost" onClick={handleCopyTracking}>
             <Copy className="w-4 h-4 mr-2" />
-            复制所有信息
+            {t("task.copyAllInfo")}
           </Button>
           <Button variant="default" onClick={handleOpenCloudLink}>
             <ExternalLink className="w-4 h-4 mr-2" />
-            打开云控制台
+            {t("task.openCloudConsole")}
           </Button>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            关闭
+            {t("common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

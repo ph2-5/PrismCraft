@@ -1,8 +1,7 @@
-"use client";
-
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { t } from "@/shared/constants";
 
 interface BeatFooterProps {
   onDeleteBeat: () => void;
@@ -20,21 +19,21 @@ export function BeatFooter({ onDeleteBeat, onClose }: BeatFooterProps) {
           size="sm"
           onClick={() => {
             confirmDialog({
-              title: "删除分镜",
-              description: "确定要删除此分镜吗？此操作无法撤销。",
-              confirmText: "删除",
+              title: t("beat.deleteBeatTitle"),
+              description: t("beat.deleteBeatDesc"),
+              confirmText: t("common.delete"),
               variant: "danger",
             }).then((confirmed) => {
               if (confirmed) onDeleteBeat();
             }).catch((err) => {
-              errorLogger.warn("[BeatDetailEditor] 确认对话框异常", err);
+              errorLogger.warn("[BeatDetailEditor] confirm dialog error", err);
             });
           }}
         >
-          删除分镜
+          {t("beat.deleteBeatButton")}
         </Button>
         <Button variant="outline" size="sm" onClick={onClose}>
-          关闭
+          {t("common.close")}
         </Button>
       </div>
       {ConfirmDialogComponent}

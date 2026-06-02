@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   checkForDuplicateVideos,
   findSimilarTasks,
-} from "@/modules/video/recovery/services/duplicate-detection-service";
+} from "@/modules/video";
 import type { VideoTask } from "@/domain/schemas";
 
 function createMockTask(overrides: Partial<VideoTask> = {}): VideoTask {

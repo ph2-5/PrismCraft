@@ -1,4 +1,4 @@
-import { useParams } from "next/navigation";
+import { useParams } from "react-router-dom";
 import { errorLogger } from "@/shared/error-logger";
 import { useState, useEffect } from "react";
 import type { StoryBeat, Story } from "@/domain/schemas";

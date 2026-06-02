@@ -4,6 +4,7 @@ declare global {
       onMenuNewCharacter: (callback: () => void) => void;
       onMenuNewScene: (callback: () => void) => void;
       onMenuExport: (callback: () => void) => void;
+      onNavigate: (callback: (targetPath: string) => void) => void;
       removeMenuListeners: () => void;
       apiCall: (endpoint: string, options?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<unknown>;
       apiPort: number;

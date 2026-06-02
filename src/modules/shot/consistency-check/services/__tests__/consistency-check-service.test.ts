@@ -7,8 +7,8 @@ vi.mock("@/infrastructure/di", () => {
   return { container: { imageApi } };
 });
 
-import { checkVisualConsistency } from "@/modules/shot/consistency-check/services/consistency-check-service";
-import type { ConsistencyCheckInput } from "@/modules/shot/consistency-check/services/consistency-check-service";
+import { checkVisualConsistency } from "@/modules/shot";
+import type { ConsistencyCheckInput } from "@/modules/shot";
 import { container } from "@/infrastructure/di";
 
 const mockAnalyze = container.imageApi.analyze as ReturnType<typeof vi.fn>;
@@ -112,7 +112,7 @@ describe("checkVisualConsistency", () => {
     );
   });
 
-  it("绑定元素且图片分析失败时应返回未通过", async () => {
+  it("绑定元素且图片分析失败时应返回错误", async () => {
     const beat = makeBeat({ elementIds: ["elem-1"] });
     const elements = [makeElement({ id: "elem-1", name: "角色A" })];
 
@@ -127,15 +127,12 @@ describe("checkVisualConsistency", () => {
       generatedImageUrl: "https://example.com/image.png",
     });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw result.error;
-    expect(result.value.passed).toBe(false);
-    expect(result.value.overallScore).toBe(0.5);
-    expect(result.value.recommendation).toBe("adjust");
-    expect(result.value.characterScores[0].issues).toContain("无法执行一致性检查");
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected error result");
+    expect(result.error.code).toBe("CONSISTENCY_CHECK_FAILED");
   });
 
-  it("绑定元素且抛出异常时应返回未通过", async () => {
+  it("绑定元素且抛出异常时应返回错误", async () => {
     const beat = makeBeat({ elementIds: ["elem-1"] });
     const elements = [makeElement({ id: "elem-1", name: "角色A" })];
 
@@ -147,12 +144,9 @@ describe("checkVisualConsistency", () => {
       generatedImageUrl: "https://example.com/image.png",
     });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw result.error;
-    expect(result.value.passed).toBe(false);
-    expect(result.value.overallScore).toBe(0.5);
-    expect(result.value.recommendation).toBe("adjust");
-    expect(result.value.characterScores[0].issues).toContain("检查过程出错");
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("Expected error result");
+    expect(result.error.code).toBe("CONSISTENCY_CHECK_ERROR");
   });
 
   it("应通过 elementBindings 匹配绑定元素", async () => {

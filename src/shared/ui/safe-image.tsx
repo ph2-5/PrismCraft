@@ -1,5 +1,3 @@
-import NextImage from "next/image";
-
 interface SafeImageProps {
   src?: string | null;
   alt?: string;
@@ -17,34 +15,29 @@ export function SafeImage({
   width,
   height,
   fill,
-  priority,
 }: SafeImageProps) {
   if (!src) return null;
 
-  const validSrc = src.startsWith("data:") ? src : src;
-
   if (fill) {
     return (
-      <NextImage
-        src={validSrc}
+      <img
+        src={src}
         alt={alt}
-        fill
         className={className}
-        priority={priority}
-        unoptimized
+        loading="lazy"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
       />
     );
   }
 
   return (
-    <NextImage
-      src={validSrc}
+    <img
+      src={src}
       alt={alt}
       width={width || 100}
       height={height || 100}
       className={className}
-      priority={priority}
-      unoptimized
+      loading="lazy"
     />
   );
 }

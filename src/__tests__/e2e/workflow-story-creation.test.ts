@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { getTestDatabase, closeTestDatabase } from "../mocks/in-memory-db";
-import { setupElectronApiMock, getElectronApiMock } from "../mocks/electron-api";
+import { setupElectronApiMock } from "../mocks/electron-api";
 import { setupApiCallMock, clearMockAIResponses } from "../mocks/ai-call-mock";
 
 const mockApiCall = setupApiCallMock();

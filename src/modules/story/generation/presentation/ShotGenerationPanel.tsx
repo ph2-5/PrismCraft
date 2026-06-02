@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Play,
   Loader2,
@@ -9,13 +7,15 @@ import {
   RefreshCw,
   ExternalLink,
 } from "lucide-react";
+import { memo } from "react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { Badge } from "@/shared/ui/badge";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import type { StoryBeat, ShotGenerationStatus } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 interface ShotGenerationPanelProps {
   beat: StoryBeat;
@@ -26,33 +26,33 @@ interface ShotGenerationPanelProps {
 
 const statusConfig: Record<ShotGenerationStatus, { label: string; color: string; icon: typeof Play | null }> = {
   idle: {
-    label: "未生成",
+    label: t("shot.notGenerated"),
     color: "bg-gray-500",
     icon: null,
   },
   pending: {
-    label: "等待中",
+    label: t("shot.waiting"),
     color: "bg-yellow-500",
     icon: null,
   },
   generating: {
-    label: "生成中",
+    label: t("shot.generating"),
     color: "bg-blue-500",
     icon: Loader2,
   },
   completed: {
-    label: "已完成",
+    label: t("shot.completed"),
     color: "bg-green-500",
     icon: CheckCircle,
   },
   failed: {
-    label: "失败",
+    label: t("shot.failedStatus"),
     color: "bg-red-500",
     icon: AlertCircle,
   },
 };
 
-export function ShotGenerationPanel({
+export const ShotGenerationPanel = memo(function ShotGenerationPanel({
   beat,
   isGenerating,
   onGenerate,
@@ -66,36 +66,32 @@ export function ShotGenerationPanel({
   const localVideoPath = beat.localVideoPath;
   const error = beat.generationResult?.error;
   const isFeatureAnchored = beat.featureAnchoring?.enabled;
+  const anchoring = isFeatureAnchored ? beat.featureAnchoring : undefined;
   const consistencyCheck = beat.consistencyCheck;
 
   return (
     <div className="space-y-4">
-      {isFeatureAnchored && (
+      {isFeatureAnchored && anchoring && (
         <div className="bg-purple-900/20 border border-purple-700/30 rounded-lg p-3 text-xs text-purple-300">
           <div className="flex items-center gap-2 mb-1">
             <Shield className="w-4 h-4" />
-            <span className="font-medium">特征锚定模式已启用</span>
+            <span className="font-medium">{t("shot.featureAnchoringEnabled")}</span>
           </div>
           <p>
-            本分镜将独立生成，通过角色参考图做特征约束，预览图作为构图参考传入但不绑定首尾帧。支持乱序生成和单独修改重生成。
+            {t("shot.featureAnchoringDesc")}
           </p>
           <div className="mt-2 flex gap-2">
             <Badge className="bg-blue-600/50 text-[10px]">
-              角色: {beat.featureAnchoring!.characterAnchors.length}
+              {t("shot.characterCount", { count: anchoring.characterAnchors.length })}
             </Badge>
-            {beat.featureAnchoring!.previewImageUrl && (
-              <Badge className="bg-cyan-600/50 text-[10px]">预览图参考</Badge>
+            {anchoring.previewImageUrl && (
+              <Badge className="bg-cyan-600/50 text-[10px]">{t("shot.previewRef")}</Badge>
             )}
             <Badge className="bg-amber-600/50 text-[10px]">
-              帧绑定: 已禁用
+              {t("shot.frameBindingDisabled")}
             </Badge>
             <Badge className="bg-purple-600/50 text-[10px]">
-              一致性:{" "}
-              {Math.round(
-                (beat.featureAnchoring!.featureConsistencyStrength || 0.8) *
-                  100,
-              )}
-              %
+              {t("shot.consistency", { percent: Math.round((anchoring.featureConsistencyStrength || 0.8) * 100) })}
             </Badge>
           </div>
         </div>
@@ -113,14 +109,14 @@ export function ShotGenerationPanel({
               )}
             </div>
             <div className="flex gap-2">
-              <Link href={`/story/beat/${beat.id}`}>
+              <Link to={`/story/beat/${beat.id}`}>
                 <Button
                   variant="outline"
                   size="sm"
                   className="gap-1.5 border-purple-600/50 text-purple-100 hover:bg-purple-900/30"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  详情
+                  {t("shot.detail")}
                 </Button>
               </Link>
               {status === "completed" && onRegenerate && (
@@ -132,7 +128,7 @@ export function ShotGenerationPanel({
                   className="gap-1.5 border-purple-600/50 text-purple-100 hover:bg-purple-900/30"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  重新生成
+                  {t("shot.regenerate")}
                 </Button>
               )}
               <Button
@@ -149,8 +145,8 @@ export function ShotGenerationPanel({
                   <>
                     <Play className="w-4 h-4" />
                     {status === "completed"
-                      ? "重新生成"
-                      : "独立生成分镜"}
+                      ? t("shot.regenerate")
+                      : t("shot.independentGenerate")}
                   </>
                 )}
               </Button>
@@ -176,7 +172,7 @@ export function ShotGenerationPanel({
                 <span
                   className={`text-sm font-medium ${consistencyCheck.passed ? "text-green-400" : "text-amber-400"}`}
                 >
-                  视觉一致性：{consistencyCheck.passed ? "通过" : "需关注"}
+                  {t("shot.visualConsistency", { status: consistencyCheck.passed ? t("shot.consistencyPassed") : t("shot.consistencyAttention") })}
                 </span>
                 <Badge
                   className={
@@ -192,7 +188,7 @@ export function ShotGenerationPanel({
               </div>
               {consistencyCheck.characterScores.map((cs) => (
                 <div key={cs.elementId} className="text-xs text-slate-400 ml-6">
-                  角色&ldquo;{cs.elementName}&rdquo;：
+                  {t("shot.characterQuote", { name: cs.elementName })}
                   {Math.round(cs.score * 100)}%
                   {cs.issues.length > 0 && ` - ${cs.issues.join("；")}`}
                 </div>
@@ -207,7 +203,7 @@ export function ShotGenerationPanel({
                       onClick={onRegenerate}
                     >
                       <RefreshCw className="w-3 h-3 mr-1" />
-                      建议重新生成
+                      {t("shot.suggestRegenerate")}
                     </Button>
                   </div>
                 )}
@@ -226,25 +222,25 @@ export function ShotGenerationPanel({
       </Card>
 
       <div className="text-sm text-muted-foreground">
-        <p>提示：</p>
+        <p>{t("shot.tips")}</p>
         <ul className="list-disc list-inside space-y-1 mt-2">
           {isFeatureAnchored ? (
             <>
-              <li>特征锚定模式下，本分镜独立生成，不影响其他分镜</li>
-              <li>角色参考图约束外观一致性，不绑定首帧/尾帧</li>
-              <li>预览图作为构图参考传入视频生成，但不作为首尾帧</li>
-              <li>支持乱序生成、单独修改重生成</li>
-              <li>同一角色在所有分镜中调用同一张原始绑定图</li>
+              <li>{t("shot.tipFeatureAnchored1")}</li>
+              <li>{t("shot.tipFeatureAnchored2")}</li>
+              <li>{t("shot.tipFeatureAnchored3")}</li>
+              <li>{t("shot.tipFeatureAnchored4")}</li>
+              <li>{t("shot.tipFeatureAnchored5")}</li>
             </>
           ) : (
             <>
-              <li>单独生成不会影响其他分镜</li>
-              <li>生成前请确认元素绑定和引用配置已设置</li>
-              <li>被引用的分镜必须已完成生成</li>
+              <li>{t("shot.tipIndependent1")}</li>
+              <li>{t("shot.tipIndependent2")}</li>
+              <li>{t("shot.tipIndependent3")}</li>
             </>
           )}
         </ul>
       </div>
     </div>
   );
-}
+});

@@ -1,11 +1,11 @@
-"use client";
-
-import { useState, useEffect, useRef, useSyncExternalStore, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, Sparkles, Settings, Image as ImageIcon, Video, FileText } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { useNavigationGuard } from "./BeforeUnloadGuard";
 import { checkConfigStatus } from "@/shared/api-config";
+import { usePreference } from "@/shared/utils/preferences";
+import { t } from "@/shared/constants";
 
 interface OnboardingStep {
   title: string;
@@ -19,45 +19,43 @@ interface OnboardingStep {
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
-    title: "欢迎使用 AI Animation Studio",
-    description:
-      "这是一个 AI 驱动的动画创作工具，帮助你快速创建角色、场景和动画视频。",
+    title: t("onboarding.welcomeStudioTitle"),
+    description: t("onboarding.welcomeStudioDesc"),
     icon: <Sparkles className="h-8 w-8 text-yellow-500" />,
   },
   {
-    title: "配置 API Key",
-    description:
-      "首先需要配置 AI 服务的 API Key。支持火山引擎、OpenAI、Kimi 等多个提供商。",
+    title: t("onboarding.configApiKeyTitle"),
+    description: t("onboarding.configApiKeyDesc"),
     icon: <Settings className="h-8 w-8 text-blue-500" />,
     action: {
-      label: "去设置",
+      label: t("onboarding.goToSettings"),
       href: "/settings",
     },
   },
   {
-    title: "创建角色",
-    description: "在角色页面，你可以创建动画角色，使用 AI 生成角色形象。",
+    title: t("onboarding.createCharTitle"),
+    description: t("onboarding.createCharDesc"),
     icon: <FileText className="h-8 w-8 text-green-500" />,
     action: {
-      label: "创建角色",
+      label: t("onboarding.createCharTitle"),
       href: "/characters",
     },
   },
   {
-    title: "设计场景",
-    description: "在场景页面设计动画场景，设置氛围、光照等参数。",
+    title: t("onboarding.designSceneTitle"),
+    description: t("onboarding.designSceneDesc"),
     icon: <ImageIcon className="h-8 w-8 text-purple-500" />,
     action: {
-      label: "设计场景",
+      label: t("onboarding.designScene"),
       href: "/scenes",
     },
   },
   {
-    title: "生成视频",
-    description: "在故事页面编排镜头，一键生成 AI 动画视频。",
+    title: t("onboarding.genVideoTitle"),
+    description: t("onboarding.genVideoDesc"),
     icon: <Video className="h-8 w-8 text-red-500" />,
     action: {
-      label: "开始创作",
+      label: t("onboarding.startCreate"),
       href: "/story",
     },
   },
@@ -65,23 +63,8 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 
 const ONBOARDING_KEY = "onboarding-completed";
 
-const onboardingListeners = new Set<() => void>();
-
-function subscribeOnboarding(callback: () => void): () => void {
-  onboardingListeners.add(callback);
-  return () => { onboardingListeners.delete(callback); };
-}
-
-function getOnboardingVisibleSnapshot(): boolean {
-  return !localStorage.getItem(ONBOARDING_KEY);
-}
-
-function getOnboardingVisibleServerSnapshot(): boolean {
-  return false;
-}
-
 export function OnboardingGuide() {
-  const isVisible = useSyncExternalStore(subscribeOnboarding, getOnboardingVisibleSnapshot, getOnboardingVisibleServerSnapshot);
+  const [completed, setCompleted] = usePreference<boolean>(ONBOARDING_KEY, false);
   const [currentStep, setCurrentStep] = useState(0);
   const { guardedPush } = useNavigationGuard();
   const navTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -95,9 +78,8 @@ export function OnboardingGuide() {
   }, []);
 
   const handleClose = useCallback(() => {
-    localStorage.setItem(ONBOARDING_KEY, "true");
-    onboardingListeners.forEach(l => l());
-  }, []);
+    setCompleted(true);
+  }, [setCompleted]);
 
   const handlePrev = () => {
     if (currentStep > 0) {
@@ -124,7 +106,7 @@ export function OnboardingGuide() {
     handleClose();
   };
 
-  if (!isVisible) return null;
+  if (completed) return null;
 
   const step = ONBOARDING_STEPS[currentStep];
   const isLastStep = currentStep === ONBOARDING_STEPS.length - 1;
@@ -147,9 +129,9 @@ export function OnboardingGuide() {
           <p className="text-gray-600 mb-6">{step.description}</p>
 
           <div className="flex gap-2 mb-6">
-            {ONBOARDING_STEPS.map((_, index) => (
+            {ONBOARDING_STEPS.map((step, index) => (
               <button
-                key={index}
+                key={step.title}
                 onClick={() => setCurrentStep(index)}
                 className={`h-3 w-3 rounded-full transition-colors cursor-pointer ${
                   index === currentStep
@@ -165,24 +147,24 @@ export function OnboardingGuide() {
           <div className="flex gap-3 w-full">
             {currentStep > 0 && (
               <Button variant="outline" onClick={handlePrev}>
-                上一步
+                {t("onboarding.prevStep")}
               </Button>
             )}
             {step.action ? (
               <Button
                 className="flex-1"
-                onClick={() => handleActionClick(step.action!.href)}
+                onClick={() => step.action && handleActionClick(step.action.href)}
               >
                 {step.action.label}
               </Button>
             ) : (
               <Button onClick={handleNext} className="flex-1">
-                {isLastStep ? "完成" : "下一步"}
+                {isLastStep ? t("onboarding.finish") : t("onboarding.nextStep")}
               </Button>
             )}
             {!isLastStep && (
               <Button variant="outline" onClick={handleSkip}>
-                跳过
+                {t("onboarding.skip")}
               </Button>
             )}
           </div>
@@ -222,15 +204,15 @@ export function ApiKeyAlert() {
       <div className="flex items-start gap-3">
         <Sparkles className="h-5 w-5 text-yellow-400 mt-0.5" />
         <div className="flex-1">
-          <h4 className="font-medium text-yellow-300">API Key 未配置</h4>
+          <h4 className="font-medium text-yellow-300">{t("onboarding.apiKeyNotConfigured")}</h4>
           <p className="text-sm text-yellow-400 mt-1">
-            你还没有配置 AI 服务的 API Key。部分功能可能无法正常使用。
+            {t("onboarding.apiKeyNotConfiguredDesc")}
           </p>
           <button
             onClick={() => guardedPush("/settings")}
             className="inline-flex items-center gap-1 text-sm font-medium text-yellow-300 hover:text-yellow-200 mt-2 underline"
           >
-            去设置 <Settings className="h-3 w-3" />
+            {t("onboarding.goToSettingsLink")} <Settings className="h-3 w-3" />
           </button>
         </div>
         <button

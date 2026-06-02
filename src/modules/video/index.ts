@@ -10,9 +10,17 @@ export {
 export { useVideoCacheStats } from "./cache";
 export {
   cacheVideoBlob,
+  getCachedVideoUrl,
   getVideoUrlWithCache,
+  removeCachedVideo,
+  cleanExpiredVideoCache,
   getCacheStats,
   revokeObjectURL,
+  touchMemoryCache,
+  clearMemoryCache,
+  checkCachedVideo,
+  getVideoFileStream,
+  getCachedVideo,
 } from "./cache";
 export {
   cacheImageBlob,
@@ -62,6 +70,7 @@ export {
 
 export {
   smartRetryEngine,
+  SmartRetryEngine,
   createRetryEngine,
 } from "./recovery";
 
@@ -69,4 +78,13 @@ export {
   getTaskRecoveryInfo,
   performIntelligentRecovery,
   checkForTokenWaste,
+} from "./recovery";
+
+export {
+  registerCacheVideoBlobFn,
+  getFailedTasks,
+  getTaskById,
+  startBackgroundRecovery,
+  cleanExpiredTasks,
+  getAllTaskHistory,
 } from "./recovery";

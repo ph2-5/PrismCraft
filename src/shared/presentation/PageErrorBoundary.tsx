@@ -1,9 +1,8 @@
-"use client";
-
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/shared/ui/button";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants/messages";
 
 interface Props {
   children: ReactNode;
@@ -46,26 +45,26 @@ export class PageErrorBoundary extends Component<Props, State> {
           <AlertCircle className="w-12 h-12 text-destructive" />
           <h2 className="text-xl font-semibold">
             {this.props.pageName
-              ? `${this.props.pageName}页面遇到了问题`
-              : "页面遇到了问题"}
+              ? t("error.pageProblemWith", { pageName: this.props.pageName })
+              : t("error.pageProblem")}
           </h2>
           <p className="text-muted-foreground text-center max-w-md">
-            {this.state.error?.message || "发生了意外错误"}
+            {this.state.error?.message || t("error.unexpectedError")}
           </p>
           {canRetry ? (
             <div className="flex gap-3">
               <Button variant="outline" onClick={this.handleRetry}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                重试
+                {t("common.retry")}
               </Button>
-              <Button onClick={() => window.location.reload()}>刷新页面</Button>
+              <Button onClick={() => window.location.reload()}>{t("error.refreshPage")}</Button>
             </div>
           ) : (
             <div className="space-y-2 text-center">
               <p className="text-sm text-muted-foreground">
-                错误多次重复出现，请尝试刷新页面或重置
+                {t("error.retryRepeatedShort")}
               </p>
-              <Button onClick={() => window.location.reload()}>刷新页面</Button>
+              <Button onClick={() => window.location.reload()}>{t("error.refreshPage")}</Button>
             </div>
           )}
         </div>

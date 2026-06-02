@@ -1,5 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+interface SyncServerInfo {
+  url: string;
+  connected: boolean;
+  lastConnectedAt: number | null;
+  serverVersion: string | null;
+  username?: string;
+  token?: string;
+}
+
+interface SyncConfigResult {
+  success: boolean;
+  error?: string;
+  config?: {
+    enabled: boolean;
+    autoSync: boolean;
+    syncInterval: number;
+    conflictStrategy: string;
+    endpoint: string;
+    deviceId: string;
+    server: SyncServerInfo | null;
+  };
+}
+
 const {
   mockLoadConfigAsync,
   mockSaveConfigAsync,
@@ -9,13 +32,13 @@ const {
   mockSsrfGuardAddWhitelist,
   mockSsrfGuardRemoveWhitelist,
 } = vi.hoisted(() => ({
-  mockLoadConfigAsync: vi.fn(),
-  mockSaveConfigAsync: vi.fn(),
-  mockKeyStorageSave: vi.fn(),
-  mockKeyStorageLoad: vi.fn(),
-  mockKeyStorageDelete: vi.fn(),
-  mockSsrfGuardAddWhitelist: vi.fn(),
-  mockSsrfGuardRemoveWhitelist: vi.fn(),
+  mockLoadConfigAsync: vi.fn<() => Promise<unknown>>(),
+  mockSaveConfigAsync: vi.fn<(config: unknown) => Promise<boolean>>(),
+  mockKeyStorageSave: vi.fn<(key: string, value: string) => Promise<unknown>>(),
+  mockKeyStorageLoad: vi.fn<(key: string) => Promise<unknown>>(),
+  mockKeyStorageDelete: vi.fn<(key: string) => Promise<unknown>>(),
+  mockSsrfGuardAddWhitelist: vi.fn<(url: string) => void>(),
+  mockSsrfGuardRemoveWhitelist: vi.fn<(url: string) => void>(),
 }));
 
 vi.mock("../../../../electron/src/handlers/config", () => ({
@@ -84,11 +107,11 @@ describe("sync-config-migration", () => {
         },
       });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.server).not.toBeNull();
-      expect(result.config.server).toBeDefined();
+      expect(result.config!.server).not.toBeNull();
+      expect(result.config!.server).toBeDefined();
     });
 
     it("迁移应将 endpoint 值保留为 server.url", async () => {
@@ -105,10 +128,10 @@ describe("sync-config-migration", () => {
         },
       });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.server.url).toBe("https://old-sync.example.com");
+      expect(result.config!.server!.url).toBe("https://old-sync.example.com");
     });
 
     it("迁移应设置 connected=false, lastConnectedAt=null, serverVersion=null", async () => {
@@ -125,12 +148,12 @@ describe("sync-config-migration", () => {
         },
       });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.server.connected).toBe(false);
-      expect(result.config.server.lastConnectedAt).toBeNull();
-      expect(result.config.server.serverVersion).toBeNull();
+      expect(result.config!.server!.connected).toBe(false);
+      expect(result.config!.server!.lastConnectedAt).toBeNull();
+      expect(result.config!.server!.serverVersion).toBeNull();
     });
 
     it("迁移后保存配置应持久化 server 对象（而非仅 endpoint）", async () => {
@@ -147,7 +170,7 @@ describe("sync-config-migration", () => {
         },
       });
 
-      const getResult = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const getResult = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       mockLoadConfigAsync.mockResolvedValue({
         ...DEFAULT_APP_CONFIG,
@@ -162,10 +185,10 @@ describe("sync-config-migration", () => {
         },
       });
 
-      const migratedServer = getResult.config.server;
+      const migratedServer = getResult.config!.server!;
       await handleSyncConfig("POST", {
         config: {
-          ...getResult.config,
+          ...getResult.config!,
           server: {
             ...migratedServer,
             username: "admin",
@@ -175,7 +198,7 @@ describe("sync-config-migration", () => {
       });
 
       expect(mockSaveConfigAsync).toHaveBeenCalled();
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0];
+      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, { server: { url: string } }>;
       expect(savedConfig.sync.server).toBeDefined();
       expect(savedConfig.sync.server).not.toBeNull();
       expect(savedConfig.sync.server.url).toBe("https://old-sync.example.com");
@@ -195,10 +218,10 @@ describe("sync-config-migration", () => {
         },
       });
 
-      const result = await handleSyncConfig("GET", {}) as Record<string, any>;
+      const result = await handleSyncConfig("GET", {}) as unknown as SyncConfigResult;
 
       expect(result.success).toBe(true);
-      expect(result.config.endpoint).toBe("https://old-sync.example.com");
+      expect(result.config!.endpoint).toBe("https://old-sync.example.com");
     });
   });
 });

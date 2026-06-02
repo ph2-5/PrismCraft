@@ -27,7 +27,6 @@ vi.mock("@/shared/utils/toast-bridge", () => ({
 import {
   pollingState,
   schedulePolling,
-  stopPolling,
   cleanupAllPollingResources,
 } from "../internals/polling-engine";
 

@@ -13,6 +13,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Video, Play, Download, Film, RotateCcw } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { getStatusColor, getStatusLabel } from "./task-status-helpers";
+import { t } from "@/shared/constants";
 
 interface TaskDetailDialogProps {
   open: boolean;
@@ -41,55 +42,55 @@ export function TaskDetailDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Video className="w-5 h-5" />
-            任务详情
+            {t("task.taskLabel") + t("common.detail")}
           </DialogTitle>
           <DialogDescription>
-            {task.beatTitle || `任务 ${task.taskId?.substring(0, 8)}`}
+            {task.beatTitle || `${t("task.taskLabel")} ${task.taskId?.substring(0, 8)}`}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">任务ID</Label>
+              <Label className="text-xs text-gray-500">{t("task.taskIdLabel")}</Label>
               <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded break-all">
                 {task.taskId}
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">状态</Label>
+              <Label className="text-xs text-gray-500">{t("task.statusLabel")}</Label>
               <Badge className={getStatusColor(task.status)}>
                 {getStatusLabel(task.status)}
               </Badge>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">进度</Label>
+              <Label className="text-xs text-gray-500">{t("task.progressLabel")}</Label>
               <div className="text-sm">{task.progress || 0}%</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">模型</Label>
-              <div className="text-sm">{task.model || "未记录"}</div>
+              <Label className="text-xs text-gray-500">{t("task.modelLabel", { model: "" }).replace(": ", "")}</Label>
+              <div className="text-sm">{task.model || t("task.modelNotRecorded")}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">故事</Label>
+              <Label className="text-xs text-gray-500">{t("task.storyLabel")}</Label>
               <div className="text-sm">{task.storyTitle || "-"}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">分镜</Label>
+              <Label className="text-xs text-gray-500">{t("task.beatLabel")}</Label>
               <div className="text-sm">{task.beatTitle || "-"}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">创建时间</Label>
+              <Label className="text-xs text-gray-500">{t("task.createdAtLabel")}</Label>
               <div className="text-sm">{new Date(task.createdAt).toLocaleString()}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">API地址</Label>
+              <Label className="text-xs text-gray-500">{t("task.apiUrlLabel")}</Label>
               <div className="text-sm break-all">{task.apiUrl || "-"}</div>
             </div>
           </div>
 
           {(task.providerId || task.providerModelId || task.providerFormat) && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">服务商信息</Label>
+              <Label className="text-xs text-gray-500">{t("task.providerInfo")}</Label>
               <div className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded space-y-1">
                 {task.providerId && (
                   <div>
@@ -112,11 +113,11 @@ export function TaskDetailDialog({
 
           {task.fixedImageUrl && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">参考图</Label>
+              <Label className="text-xs text-gray-500">{t("task.refImageLabel")}</Label>
               <div className="mt-1">
                 <img
                   src={task.fixedImageUrl}
-                  alt="参考图"
+                  alt={t("task.refImageLabel")}
                   className="max-h-32 rounded border border-gray-200 dark:border-gray-700"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
@@ -129,7 +130,7 @@ export function TaskDetailDialog({
 
           {task.prompt && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">提示词</Label>
+              <Label className="text-xs text-gray-500">{t("task.promptLabel")}</Label>
               <div className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded max-h-32 overflow-y-auto">
                 {task.prompt}
               </div>
@@ -138,7 +139,7 @@ export function TaskDetailDialog({
 
           {task.videoUrl && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">视频URL</Label>
+              <Label className="text-xs text-gray-500">{t("task.videoUrlLabel")}</Label>
               <div className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded break-all">
                 {task.videoUrl}
               </div>
@@ -147,7 +148,7 @@ export function TaskDetailDialog({
 
           {task.message && task.status === "failed" && (
             <div className="space-y-1">
-              <Label className="text-xs text-red-500">错误信息</Label>
+              <Label className="text-xs text-red-500">{t("task.errorMessage")}</Label>
               <div className="text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 px-2 py-1 rounded">
                 {task.message}
               </div>
@@ -162,7 +163,7 @@ export function TaskDetailDialog({
                 onClick={() => onOpenPreview(task)}
               >
                 <Play className="w-4 h-4" />
-                预览
+                {t("task.previewButton")}
               </Button>
             )}
             {task.videoUrl && (
@@ -172,7 +173,7 @@ export function TaskDetailDialog({
                 onClick={() => onDownloadVideo(task)}
               >
                 <Download className="w-4 h-4" />
-                下载
+                {t("task.downloadButton")}
               </Button>
             )}
             {task.beatId && (
@@ -182,7 +183,7 @@ export function TaskDetailDialog({
                 onClick={() => onJumpToBeat(task)}
               >
                 <Film className="w-4 h-4" />
-                分镜
+                {t("task.beatButton")}
               </Button>
             )}
             {task.status === "failed" && task.beatId && (
@@ -192,14 +193,14 @@ export function TaskDetailDialog({
                 onClick={() => onRetryTask(task)}
               >
                 <RotateCcw className="w-4 h-4" />
-                重试
+                {t("task.retryButton")}
               </Button>
             )}
           </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            关闭
+            {t("common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

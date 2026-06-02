@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
-import { ok, err } from "@/domain/types/result";
 
 const {
   mockVideoTaskStorage,

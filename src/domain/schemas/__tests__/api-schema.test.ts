@@ -24,7 +24,7 @@ describe("videoTaskSchema", () => {
   });
 
   it("应拒绝非法 status 枚举值", () => {
-    const data = factories.videoTask({ status: "invalid" as any });
+    const data = factories.videoTask({ status: "invalid" as unknown as "pending" });
     const result = videoTaskSchema.safeParse(data);
     expect(result.success).toBe(false);
   });

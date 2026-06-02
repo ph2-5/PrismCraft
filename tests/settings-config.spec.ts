@@ -33,19 +33,19 @@ test.describe("Add Provider Form", () => {
     await dismissOverlays(page);
     const addButton = page.locator("button", { hasText: "添加提供商" });
     await addButton.click({ force: true });
-    await page.locator('input#apiKey, input[placeholder*="sk-"]').first().waitFor({ state: "visible", timeout: 10000 });
+    await page.locator('input#apiKey').waitFor({ state: "visible", timeout: 10000 });
   });
 
   test("should display API Key input", async ({ page }) => {
-    const apiKeyInput = page.locator('input[type="password"], input[placeholder*="sk-"], input#apiKey').first();
+    const apiKeyInput = page.locator('input#apiKey');
     await expect(apiKeyInput).toBeVisible({ timeout: 10000 });
   });
 
   test("should display provider selector after entering unrecognized key", async ({ page }) => {
-    const apiKeyInput = page.locator('input#apiKey, input[type="password"]').first();
+    const apiKeyInput = page.locator('input#apiKey');
     await apiKeyInput.fill("test-unrecognized-key-12345");
     await page.waitForTimeout(500);
-    const providerSelect = page.locator('button[role="combobox"], select, [data-testid="provider-select"]').first();
+    const providerSelect = page.locator('button[role="combobox"], select').first();
     const providerSelectVisible = await providerSelect.isVisible({ timeout: 5000 }).catch(() => false);
     expect(providerSelectVisible).toBe(true);
   });
@@ -76,14 +76,6 @@ test.describe("Settings Sections", () => {
   test("should display test connection section", async ({ page }) => {
     const testSection = page.locator("text=测试连接");
     await expect(testSection.first()).toBeVisible();
-  });
-});
-
-test.describe("Personal Settings Page", () => {
-  test("should load personal settings page", async ({ page }) => {
-    await navigateTo(page, "/settings/personal");
-    const main = page.locator("main").first();
-    await expect(main).toBeVisible();
   });
 });
 

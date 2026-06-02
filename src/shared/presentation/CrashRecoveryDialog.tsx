@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -12,6 +10,7 @@ import {
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
+import { t } from "@/shared/constants/messages";
 
 interface AutoSaveRecord {
   id: string;
@@ -65,16 +64,15 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
   const latestSave = autoSaves[0];
   const saveTime = latestSave.timestamp
     ? new Date(latestSave.timestamp).toLocaleString("zh-CN")
-    : "未知时间";
+    : t("crash.unknownTime");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>检测到未保存的数据</DialogTitle>
+          <DialogTitle>{t("crash.unsavedData")}</DialogTitle>
           <DialogDescription>
-            应用上次可能未正常关闭，检测到 {autoSaves.length} 条自动保存记录。
-            最近保存时间：{saveTime}
+            {t("crash.unsavedDataDesc", { count: autoSaves.length, time: saveTime })}
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-40 overflow-y-auto space-y-1">
@@ -83,7 +81,7 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
               key={save.id}
               className="text-sm text-muted-foreground flex justify-between"
             >
-              <span>{save.type || "未知类型"}</span>
+              <span>{save.type || t("crash.unknownType")}</span>
               <span>
                 {save.timestamp
                   ? new Date(save.timestamp).toLocaleTimeString("zh-CN")
@@ -93,15 +91,15 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
           ))}
           {autoSaves.length > 5 && (
             <div className="text-xs text-muted-foreground">
-              ...还有 {autoSaves.length - 5} 条记录
+              {t("crash.moreRecords", { count: autoSaves.length - 5 })}
             </div>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleDismiss}>
-            忽略并清除
+            {t("crash.dismissAndClear")}
           </Button>
-          <Button onClick={() => setOpen(false)}>知道了</Button>
+          <Button onClick={() => setOpen(false)}>{t("crash.acknowledged")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

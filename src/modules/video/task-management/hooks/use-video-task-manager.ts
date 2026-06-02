@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { create } from "zustand";
 import { container } from "@/infrastructure/di";

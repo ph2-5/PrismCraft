@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { storyService } from "../services/story-service";
 import type { CreateStoryInput, UpdateStoryInput } from "@/domain/schemas";
+import { isElectron } from "@/shared/utils/platform";
 
 const STORIES_KEY = ["stories"] as const;
 const STORY_KEY = (id: string) => ["stories", id] as const;
@@ -13,6 +14,7 @@ export function useStories() {
       if (!result.ok) throw result.error;
       return result.value;
     },
+    enabled: isElectron(),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -25,7 +27,7 @@ export function useStory(id: string) {
       if (!result.ok) throw result.error;
       return result.value;
     },
-    enabled: !!id,
+    enabled: isElectron() && !!id,
   });
 }
 
@@ -37,6 +39,7 @@ export function useStoryCount() {
       if (!result.ok) throw result.error;
       return result.value;
     },
+    enabled: isElectron(),
   });
 }
 

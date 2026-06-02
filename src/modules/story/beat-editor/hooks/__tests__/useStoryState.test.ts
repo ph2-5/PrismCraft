@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import type { StoryBeat, Story } from "@/domain/schemas";
 import { useStoryState } from "../useStoryState";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
 
@@ -27,7 +28,7 @@ describe("useStoryState", () => {
   beforeEach(() => {
     useDirtyState.setState({ dirtyKeys: new Set() });
     uuidCounter = 0;
-    vi.spyOn(crypto, "randomUUID").mockImplementation(() => `uuid-${++uuidCounter}`);
+    vi.spyOn(crypto, "randomUUID").mockImplementation(() => `uuid-${++uuidCounter}` as `${string}-${string}-${string}-${string}-${string}`);
   });
 
   describe("initialization", () => {
@@ -310,7 +311,7 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      const beatsBefore = [...result.current.beats];
+      const _beatsBefore = [...result.current.beats];
 
       act(() => {
         result.current.updateBeat("non-existent-id", { title: "Nope" });
@@ -662,7 +663,7 @@ describe("useStoryState", () => {
       const { result } = renderHook(() => useStoryState());
 
       act(() => {
-        result.current.setBeats([{ id: "b1", sequence: 1, order: 1, type: "scene", title: "", content: "", description: "", duration: 5, characters: [], elementIds: [], characterIds: [], enhancedGeneration: true }] as any);
+        result.current.setBeats([{ id: "b1", sequence: 1, order: 1, type: "scene", title: "", content: "", description: "", duration: 5, characters: [], elementIds: [], characterIds: [], enhancedGeneration: true }] as unknown as StoryBeat[]);
       });
 
       expect(result.current.hasUnsavedChanges).toBe(true);
@@ -672,7 +673,7 @@ describe("useStoryState", () => {
       const { result } = renderHook(() => useStoryState());
 
       act(() => {
-        result.current.setBeats([{ id: "b1", sequence: 1, order: 1, type: "scene", title: "", content: "", description: "", duration: 5, characters: [], elementIds: [], characterIds: [], enhancedGeneration: true }] as any, true);
+        result.current.setBeats([{ id: "b1", sequence: 1, order: 1, type: "scene", title: "", content: "", description: "", duration: 5, characters: [], elementIds: [], characterIds: [], enhancedGeneration: true }] as unknown as StoryBeat[], true);
       });
 
       expect(result.current.hasUnsavedChanges).toBe(false);
@@ -731,7 +732,7 @@ describe("useStoryState", () => {
       ];
 
       act(() => {
-        result.current.setStories(mockStories as any);
+        result.current.setStories(mockStories as unknown as Story[]);
       });
 
       expect(result.current.stories).toHaveLength(2);

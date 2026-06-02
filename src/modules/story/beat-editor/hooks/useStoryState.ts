@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
 import { useModelSelection } from "@/modules/prompt";

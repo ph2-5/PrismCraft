@@ -204,7 +204,7 @@ describe("prompt-vocabulary", () => {
 
     it("should handle character with no appearance fields", () => {
       const char = createMockCharacter({
-        appearance: {} as any,
+        appearance: {} as Character["appearance"],
       });
       const result = buildCharacterAppearanceDesc(char);
       expect(result).toContain("面部特征清晰");
@@ -237,7 +237,7 @@ describe("prompt-vocabulary", () => {
 
     it("should handle partial appearance fields", () => {
       const char = createMockCharacter({
-        appearance: { hairColor: "red" } as any,
+        appearance: { hairColor: "red" } as Character["appearance"],
       });
       const result = buildCharacterAppearanceDesc(char);
       expect(result).toContain("red发色");

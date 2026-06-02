@@ -1,5 +1,3 @@
-"use client";
-
 import { type ReactNode } from "react";
 import { ErrorBoundary } from "@/shared/presentation/ErrorBoundary";
 import { CrashRecoveryDialog } from "@/shared/presentation/CrashRecoveryDialog";

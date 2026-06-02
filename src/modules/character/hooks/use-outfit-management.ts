@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import type { Character, CharacterOutfit } from "@/domain/schemas";
 import { synthesizeOutfit, batchSynthesizeOutfits } from "@/shared/outfit";
@@ -39,7 +37,7 @@ export function useOutfitManagement({
 
   const handleAddOutfit = () => {
     if (!outfitForm.name || !outfitForm.clothing) {
-      showError("请填写完整信息", "服装名称和描述不能为空");
+      showError(t("outfit.fillInfo"), t("outfit.nameAndDescRequired"));
       return;
     }
     const newOutfit: CharacterOutfit = {
@@ -62,7 +60,7 @@ export function useOutfitManagement({
     setEditingOutfit(null);
     setOutfitForm({ name: "", description: "", clothing: "", accessories: [] });
     setCustomAccessory("");
-    success("保存成功", editingOutfit ? "服装已更新" : "新服装已添加");
+    success(t("success.saved"), editingOutfit ? t("success.outfitUpdated") : "新服装已添加");
   };
 
   const handleDeleteOutfit = (outfitId: string) => {
@@ -70,7 +68,7 @@ export function useOutfitManagement({
       ...prev,
       outfits: (prev.outfits || []).filter((o) => o.id !== outfitId),
     }));
-    success("删除成功", "服装已删除");
+    success(t("success.deleted"), t("success.outfitDeleted"));
   };
 
   const handleSetDefaultOutfit = (outfitId: string) => {
@@ -82,7 +80,7 @@ export function useOutfitManagement({
         clothing: prev.outfits?.find((o) => o.id === outfitId)?.clothing || prev.appearance.clothing,
       },
     }));
-    success("设置成功", "默认服装已更新");
+    success(t("success.applied"), t("outfit.defaultUpdated"));
   };
 
   const handleEditOutfit = (outfit: CharacterOutfit) => {
@@ -96,7 +94,7 @@ export function useOutfitManagement({
     setIsGenerating(true);
     try {
       const characterImage = currentCharacter.generatedImage || currentCharacter.refImagePath;
-      if (!characterImage) { showError("缺少角色图像", "请先生成或上传角色图像"); return; }
+      if (!characterImage) { showError(t("outfit.missingCharacterImage"), t("outfit.generateOrUploadFirst")); return; }
       const result = await synthesizeOutfit({
         characterImageUrl: characterImage,
         outfitDescription: outfit.clothing,
@@ -109,31 +107,32 @@ export function useOutfitManagement({
         ].filter(Boolean),
       });
       if (result.success && result.data) {
+        const uploadedImageUrl = result.data.imageUrl;
         setCurrentCharacter((prev) => ({
           ...prev,
-          outfits: (prev.outfits || []).map((o) => (o.id === outfit.id ? { ...o, imageUrl: result.data!.imageUrl } : o)),
+          outfits: (prev.outfits || []).map((o) => (o.id === outfit.id ? { ...o, imageUrl: uploadedImageUrl } : o)),
         }));
-        addAssetToLibrary(result.data.imageUrl, "image", `${currentCharacter.name || "角色"}-${outfit.name}`, {
+        addAssetToLibrary(uploadedImageUrl, "image", `${currentCharacter.name || "角色"}-${outfit.name}`, {
           type: "character", id: currentCharacter.id, name: currentCharacter.name || "未命名角色",
         });
-        success("AI换装成功", `${outfit.name}的服装图像已合成`);
+        success(t("outfit.aiDressSuccess"), t("outfit.outfitSynthesized", { name: outfit.name }));
       } else {
-        showError("合成失败", result.error || "请检查 API 配置后重试");
+        showError(t("outfit.synthesizeFailed"), result.error || t("image.checkApiConfig"));
       }
     } catch (err) {
       errorLogger.error("AI换装失败", err);
-      showError("合成失败", getErrorMessage(err));
+      showError(t("outfit.synthesizeFailed"), getErrorMessage(err));
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleBatchSynthesizeOutfits = async () => {
-    if (!currentCharacter.id) { showError("请先保存角色", "保存角色后才能批量合成"); return; }
+    if (!currentCharacter.id) { showError(t("outfit.saveCharacterFirst"), t("outfit.saveBeforeBatch")); return; }
     const characterImage = currentCharacter.generatedImage || currentCharacter.refImagePath;
-    if (!characterImage) { showError("缺少角色图像", "请先生成或上传角色图像"); return; }
+    if (!characterImage) { showError(t("outfit.missingCharacterImage"), t("outfit.generateOrUploadFirst")); return; }
     const outfitsToSynthesize = currentCharacter.outfits?.filter((o) => !o.imageUrl);
-    if (!outfitsToSynthesize || outfitsToSynthesize.length === 0) { showError("没有需要合成的服装", "所有服装已有图像"); return; }
+    if (!outfitsToSynthesize || outfitsToSynthesize.length === 0) { showError(t("outfit.noOutfitToSynthesize"), t("outfit.allOutfitsHaveImage")); return; }
 
     setIsGenerating(true);
     try {
@@ -160,11 +159,11 @@ export function useOutfitManagement({
       });
       const successCount = results.filter((rr) => rr.success).length;
       const failCount = results.length - successCount;
-      if (successCount > 0) { success("批量合成完成", `成功: ${successCount}个, 失败: ${failCount}个`); }
-      else { showError("批量合成失败", "所有服装合成都失败了，请检查API配置"); }
+      if (successCount > 0) { success(t("outfit.batchComplete"), t("outfit.batchResult", { success: successCount, fail: failCount })); }
+      else { showError(t("outfit.batchFailed"), t("outfit.allSynthesizeFailed")); }
     } catch (err) {
       errorLogger.error("批量合成失败", err);
-      showError("批量合成失败", getErrorMessage(err));
+      showError(t("outfit.batchFailed"), getErrorMessage(err));
     } finally {
       setIsGenerating(false);
     }

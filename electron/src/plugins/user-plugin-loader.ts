@@ -108,7 +108,7 @@ class UserPluginAdapter extends BaseAIProviderPlugin {
     const urlMatch = this.config.match.apiUrlPatterns.some((p) => {
       switch (mode) {
         case "prefix": return apiUrl.startsWith(p);
-        case "regex": try { return new RegExp(p).test(apiUrl); } catch { return false; }
+        case "regex": try { return new RegExp(p).test(apiUrl); } catch { logger.warn(`Invalid regex pattern: ${p}`); return false; }
         case "contains":
         default: return apiUrl.includes(p);
       }
@@ -119,7 +119,7 @@ class UserPluginAdapter extends BaseAIProviderPlugin {
       return this.config.match.modelPatterns.some((p) => {
         switch (mode) {
           case "prefix": return model.toLowerCase().startsWith(p.toLowerCase());
-          case "regex": try { return new RegExp(p, "i").test(model); } catch { return false; }
+          case "regex": try { return new RegExp(p, "i").test(model); } catch { logger.warn(`Invalid regex pattern: ${p}`); return false; }
           case "contains":
           default: return model.toLowerCase().includes(p.toLowerCase());
         }

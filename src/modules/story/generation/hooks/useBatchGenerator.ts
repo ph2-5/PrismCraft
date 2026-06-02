@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useRef, useEffect } from "react";
 import type { StoryBeat, ChainMode } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";

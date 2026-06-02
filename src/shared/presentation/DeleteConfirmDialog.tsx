@@ -1,5 +1,3 @@
-"use client";
-
 import { AlertTriangle } from "lucide-react";
 import {
   Dialog,
@@ -10,6 +8,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
+import { t } from "@/shared/constants";
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -40,13 +39,13 @@ export function DeleteConfirmDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-destructive" />
-            确认删除{entityLabel}
+            {t("confirm.deleteTitle")}{entityLabel}
           </DialogTitle>
           <DialogDescription>
             {referenceCheck && referenceCheck.references.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-destructive font-medium">
-                  该{entityLabel}正在被 {referenceCheck.references.length} 个引用关联
+                  {t("delete.entityReferencedBy", { entityLabel, count: referenceCheck.references.length })}
                 </p>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {referenceCheck.references.map((ref) => (
@@ -58,18 +57,18 @@ export function DeleteConfirmDialog({
                       {ref.usedInBeats.length > 0 && (
                         <span className="text-muted-foreground">
                           {" "}
-                          ({ref.usedInBeats.length} 个镜头)
+                          {t("delete.shotCount", { count: ref.usedInBeats.length })}
                         </span>
                       )}
                     </div>
                   ))}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  删除后，相关故事中的{entityLabel}引用将失效。建议先修改故事内容。
+                  {t("delete.refWillInvalidate", { entityLabel })}
                 </p>
               </div>
             ) : (
-              `确定要删除这个${entityLabel}吗？此操作不可撤销。`
+              t("delete.confirmDeleteEntity", { entityLabel })
             )}
           </DialogDescription>
         </DialogHeader>
@@ -79,14 +78,14 @@ export function DeleteConfirmDialog({
             onClick={() => onOpenChange(false)}
             disabled={isDeleting}
           >
-            取消
+            {t("common.cancel")}
           </Button>
           <Button
             variant="destructive"
             disabled={isDeleting}
             onClick={onConfirm}
           >
-            {isDeleting ? "删除中..." : "确认删除"}
+            {isDeleting ? t("common.deleting") : t("confirm.deleteTitle")}
           </Button>
         </DialogFooter>
       </DialogContent>

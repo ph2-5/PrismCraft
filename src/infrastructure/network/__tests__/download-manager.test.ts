@@ -93,7 +93,7 @@ describe("download-manager", () => {
       });
 
       const onProgress = vi.fn();
-      const id = dm.enqueueDownload("https://example.com/file.zip", { onProgress });
+      const _id = dm.enqueueDownload("https://example.com/file.zip", { onProgress });
       await flushAsync(50);
 
       expect(onProgress).toHaveBeenCalledWith(

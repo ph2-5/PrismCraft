@@ -11,6 +11,7 @@ vi.mock("@/infrastructure/di", () => ({
 import {
   generatePromptWithAI,
   buildDefaultPrompt,
+  type PromptEditorContext,
 } from "../prompt-editor-service";
 import { container } from "@/infrastructure/di";
 
@@ -321,7 +322,7 @@ describe("buildDefaultPrompt", () => {
 
   it("未知上下文应返回 beat 内容", () => {
     const result = buildDefaultPrompt({
-      context: "unknown" as any,
+      context: "unknown" as unknown as PromptEditorContext,
       beat: mockBeat,
     });
 

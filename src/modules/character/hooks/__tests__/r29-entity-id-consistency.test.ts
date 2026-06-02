@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 describe("R29: Async callbacks must verify entity ID consistency", () => {
   it("should discard analysis result when entity ID changed during async operation", async () => {

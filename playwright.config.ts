@@ -32,9 +32,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: process.env.CI
-      ? 'npx next start -p 3001'
-      : 'npx next dev -p 3001',
+    command: 'npx vite --port 3001',
     url: 'http://localhost:3001',
     reuseExistingServer: true,
     timeout: 120000,

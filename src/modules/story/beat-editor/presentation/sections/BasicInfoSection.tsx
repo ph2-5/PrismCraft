@@ -1,5 +1,3 @@
-"use client";
-
 import { Settings, Film } from "lucide-react";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -12,6 +10,7 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import type { StoryBeat, Scene } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 interface BasicInfoSectionProps {
   beat: StoryBeat;
@@ -35,26 +34,26 @@ export function BasicInfoSection({
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <Settings className="w-5 h-5 text-primary" />
-            基础信息
+            {t("beat.basicInfo")}
           </h3>
         </div>
         <div className="space-y-4">
           <div>
             <Label className="text-foreground mb-2 block">
-              分镜标题
+              {t("beat.beatTitle")}
             </Label>
             <Input
               value={beat.title || ""}
               onChange={(e) =>
                 onUpdateField("title", e.target.value)
               }
-              placeholder="输入分镜标题..."
+              placeholder={t("beat.beatTitlePlaceholder")}
               className="bg-muted/50 border-border"
             />
           </div>
           <div>
             <Label className="text-foreground mb-2 block">
-              场景选择
+              {t("beat.sceneSelect")}
             </Label>
             <Select
               value={beat.scene || ""}
@@ -63,7 +62,7 @@ export function BasicInfoSection({
               }
             >
               <SelectTrigger className="bg-muted/50 border-border">
-                <SelectValue placeholder="选择或创建场景..." />
+                <SelectValue placeholder={t("beat.sceneSelectPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {scenes.map((scene) => (
@@ -86,7 +85,7 @@ export function BasicInfoSection({
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <Label className="text-foreground mb-2 block">
-                时长
+                {t("beat.duration")}
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -102,7 +101,7 @@ export function BasicInfoSection({
                   className="bg-muted/50 border-border"
                 />
                 <span className="text-sm text-muted-foreground">
-                  秒
+                  {t("beat.durationSeconds")}
                 </span>
               </div>
             </div>
@@ -113,7 +112,7 @@ export function BasicInfoSection({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <Film className="w-5 h-5 text-primary" />
-          分镜内容
+          {t("beat.beatContent")}
         </h3>
         <Textarea
           value={beat.content || beat.description || ""}
@@ -125,7 +124,7 @@ export function BasicInfoSection({
               description: value,
             });
           }}
-          placeholder="输入分镜内容描述，详细描述场景、人物动作、表情等..."
+          placeholder={t("beat.beatContentPlaceholder")}
           rows={9}
           className="bg-muted/50 border-border resize-none"
         />

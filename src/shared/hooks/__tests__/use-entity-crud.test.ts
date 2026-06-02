@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
+import type { SetStateAction } from "react";
+import type { Story } from "@/domain/schemas";
+import type { DeleteCheckResult } from "@/domain/services";
+import type { Result } from "@/domain/types";
+import { AppError, ok, err } from "@/domain/types";
+import type { EntityCRUDConfig } from "../use-entity-crud";
 
 const mockInvalidateQueries = vi.fn();
 
@@ -17,7 +23,6 @@ vi.mock("@/shared/utils/confirm", () => ({
 }));
 
 import { useEntityCRUD } from "../use-entity-crud";
-import { ok, err } from "@/domain/types";
 
 interface TestEntity {
   id: string;
@@ -28,37 +33,41 @@ interface TestEntity {
 function buildConfig(overrides: Record<string, unknown> = {}) {
   const entity: TestEntity = { id: "", name: "测试角色", prompt: "test prompt" };
   const defaultEntity: TestEntity = { id: "", name: "", prompt: "" };
-  const mockCreate = vi.fn(() => Promise.resolve(ok({ ...entity, id: "new-id" })));
-  const mockUpdate = vi.fn(() => Promise.resolve(ok(undefined)));
-  const mockDelete = vi.fn(() => Promise.resolve(ok(undefined)));
+  const mockCreate = vi.fn<(entity: TestEntity) => Promise<Result<TestEntity>>>(() => Promise.resolve(ok({ ...entity, id: "new-id" })));
+  const mockUpdate = vi.fn<(id: string, entity: TestEntity) => Promise<Result<void>>>(() => Promise.resolve(ok(undefined)));
+  const mockDelete = vi.fn<(id: string) => Promise<Result<void>>>(() => Promise.resolve(ok(undefined)));
 
   return {
     entity,
-    setEntity: vi.fn(),
+    setEntity: vi.fn<(update: TestEntity | ((prev: TestEntity) => TestEntity), shouldMarkDirty?: boolean) => void>(),
     generatedImage: null as string | null,
-    setGeneratedImage: vi.fn(),
-    resetCustomFields: vi.fn(),
-    applyImageToEntity: vi.fn((e: TestEntity, url: string) => ({ ...e, imageUrl: url })),
-    prepareEntityForSave: vi.fn((e: TestEntity) => e),
+    setGeneratedImage: vi.fn<(value: SetStateAction<string | null>) => void>(),
+    resetCustomFields: vi.fn<() => void>(),
+    applyImageToEntity: vi.fn<(entity: TestEntity, imageUrl: string) => TestEntity>((e, url) => ({ ...e, imageUrl: url } as TestEntity)),
+    prepareEntityForSave: vi.fn<(entity: TestEntity, prompt: string) => TestEntity>((e) => e),
     service: { create: mockCreate, update: mockUpdate, delete: mockDelete },
     queryKey: ["characters"],
     entityLabel: "角色",
     entityIdPrefix: "char",
     nameValidationMessage: "名称不能为空",
     assetLabel: "角色图片",
-    checkReferences: vi.fn(() => ({ references: [] })),
+    checkReferences: vi.fn<(id: string, name: string, stories: Story[]) => DeleteCheckResult>(() => ({ canDelete: true, references: [] })),
     defaultEntity,
-    generatePrompt: vi.fn(() => "generated prompt"),
-    addAssetToLibrary: vi.fn(),
+    generatePrompt: vi.fn<(entity: TestEntity) => string>(() => "generated prompt"),
+    addAssetToLibrary: vi.fn<(url: string, type: "image" | "video", name: string, boundTo?: { type: "character" | "scene"; id: string; name: string }) => void>(),
     assetBindType: "character" as const,
-    success: vi.fn(),
-    showError: vi.fn(),
-    stories: [],
-    markDirty: vi.fn(),
-    markClean: vi.fn(),
-    onUpdateStoriesAfterDelete: vi.fn(),
+    success: vi.fn<(title: string, description?: string) => void>(),
+    showError: vi.fn<(title: string, description?: string) => void>(),
+    stories: [] as Story[],
+    markDirty: vi.fn<(key: string) => void>(),
+    markClean: vi.fn<(key: string) => void>(),
+    onUpdateStoriesAfterDelete: vi.fn<(entityId: string, stories: Story[]) => Promise<void>>(),
     ...overrides,
   };
+}
+
+function renderCRUDHook(c: ReturnType<typeof buildConfig>) {
+  return renderHook(() => useEntityCRUD(c as unknown as EntityCRUDConfig<TestEntity>));
 }
 
 describe("useEntityCRUD", () => {
@@ -70,7 +79,7 @@ describe("useEntityCRUD", () => {
   describe("初始状态", () => {
     it("应返回正确的初始状态", () => {
       const config = buildConfig();
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       expect(result.current.deleteDialogOpen).toBe(false);
       expect(result.current.entityToDelete).toBe(null);
@@ -84,7 +93,7 @@ describe("useEntityCRUD", () => {
   describe("handleSave", () => {
     it("名称为空时应显示验证错误", async () => {
       const config = buildConfig({ entity: { id: "", name: "", prompt: "" } });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleSave();
@@ -96,7 +105,7 @@ describe("useEntityCRUD", () => {
 
     it("名称为纯空格时应显示验证错误", async () => {
       const config = buildConfig({ entity: { id: "", name: "   ", prompt: "" } });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleSave();
@@ -107,7 +116,7 @@ describe("useEntityCRUD", () => {
 
     it("新建实体时应调用 service.create", async () => {
       const config = buildConfig();
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleSave();
@@ -123,7 +132,7 @@ describe("useEntityCRUD", () => {
 
     it("新建实体有图片时应添加到资产库", async () => {
       const config = buildConfig({ generatedImage: "https://example.com/img.png" });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleSave();
@@ -139,7 +148,7 @@ describe("useEntityCRUD", () => {
 
     it("已有ID的实体应调用 service.update", async () => {
       const config = buildConfig({ entity: { id: "existing-id", name: "已有角色", prompt: "prompt" } });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleSave();
@@ -152,9 +161,11 @@ describe("useEntityCRUD", () => {
 
     it("保存失败时应显示错误并标记脏状态", async () => {
       const config = buildConfig();
-      config.service.create = vi.fn(() => Promise.resolve(err(new Error("数据库错误"))));
+      config.service.create = vi.fn<(entity: TestEntity) => Promise<Result<TestEntity>>>(() =>
+        Promise.resolve(err(new AppError("DATABASE_ERROR", "数据库错误"))),
+      );
 
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleSave();
@@ -169,11 +180,13 @@ describe("useEntityCRUD", () => {
     it("保存中重复调用应被忽略（防抖）", async () => {
       let resolveCreate: () => void = () => {};
       const config = buildConfig();
-      config.service.create = vi.fn(() => new Promise<{ ok: boolean; value: TestEntity }>((resolve) => {
-        resolveCreate = () => resolve({ ok: true, value: { id: "new-id", name: "测试角色", prompt: "test" } });
-      }));
+      config.service.create = vi.fn<(entity: TestEntity) => Promise<Result<TestEntity>>>(() =>
+        new Promise<Result<TestEntity>>((resolve) => {
+          resolveCreate = () => resolve(ok({ id: "new-id", name: "测试角色", prompt: "test" }));
+        }),
+      );
 
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       act(() => { result.current.handleSave(); });
       act(() => { result.current.handleSave(); });
@@ -185,13 +198,13 @@ describe("useEntityCRUD", () => {
 
     it("应自动生成ID（新建时无ID）", async () => {
       const config = buildConfig({ entity: { id: "", name: "新角色", prompt: "" } });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleSave();
       });
 
-      const createdEntity = config.service.create.mock.calls[0][0] as TestEntity;
+      const createdEntity = config.service.create.mock.calls[0]![0] as TestEntity;
       expect(createdEntity.id).toMatch(/^char_/);
     });
   });
@@ -201,10 +214,11 @@ describe("useEntityCRUD", () => {
       const config = buildConfig({
         entity: { id: "char-1", name: "角色A", prompt: "prompt" },
         checkReferences: vi.fn(() => ({
+          canDelete: false,
           references: [{ storyId: "s1", storyName: "故事1" }],
         })),
       });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleDelete("char-1");
@@ -213,6 +227,7 @@ describe("useEntityCRUD", () => {
       expect(result.current.deleteDialogOpen).toBe(true);
       expect(result.current.entityToDelete).toBe("char-1");
       expect(result.current.referenceCheck).toEqual({
+        canDelete: false,
         references: [{ storyId: "s1", storyName: "故事1" }],
       });
     });
@@ -222,7 +237,7 @@ describe("useEntityCRUD", () => {
       const config = buildConfig({
         entity: { id: "char-1", name: "角色A", prompt: "prompt" },
       });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleDelete("char-1");
@@ -236,7 +251,7 @@ describe("useEntityCRUD", () => {
       const config = buildConfig({
         entity: { id: "char-1", name: "角色A", prompt: "prompt" },
       });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleDelete("char-1");
@@ -251,7 +266,7 @@ describe("useEntityCRUD", () => {
       const config = buildConfig({
         entity: { id: "char-1", name: "角色A", prompt: "prompt" },
       });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.performDelete("char-1");
@@ -269,7 +284,7 @@ describe("useEntityCRUD", () => {
       const config = buildConfig({
         entity: { id: "char-1", name: "角色A", prompt: "prompt" },
       });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.performDelete("char-1");
@@ -282,7 +297,7 @@ describe("useEntityCRUD", () => {
       const config = buildConfig({
         entity: { id: "char-2", name: "角色B", prompt: "prompt" },
       });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.performDelete("char-1");
@@ -295,9 +310,11 @@ describe("useEntityCRUD", () => {
       const config = buildConfig({
         entity: { id: "char-1", name: "角色A", prompt: "prompt" },
       });
-      config.service.delete = vi.fn(() => Promise.resolve(err(new Error("删除失败"))));
+      config.service.delete = vi.fn<(id: string) => Promise<Result<void>>>(() =>
+        Promise.resolve(err(new AppError("DATABASE_ERROR", "删除失败"))),
+      );
 
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.performDelete("char-1");
@@ -313,10 +330,11 @@ describe("useEntityCRUD", () => {
       const config = buildConfig({
         entity: { id: "char-1", name: "角色A", prompt: "prompt" },
         checkReferences: vi.fn(() => ({
+          canDelete: false,
           references: [{ storyId: "s1", storyName: "故事1" }],
         })),
       });
-      const { result } = renderHook(() => useEntityCRUD(config));
+      const { result } = renderCRUDHook(config);
 
       await act(async () => {
         await result.current.handleDelete("char-1");

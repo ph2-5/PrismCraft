@@ -12,7 +12,7 @@ import {
   checkCachedVideo,
   getVideoFileStream,
   getCachedVideo,
-} from "@/modules/video/cache/services/video-cache";
+} from "@/modules/video";
 
 vi.mock("@/infrastructure/di", () => {
   const mockVideoCacheStorage = {
@@ -60,12 +60,12 @@ vi.mock("@/modules/video/recovery", () => ({
 }));
 
 import { container } from "@/infrastructure/di";
-import { registerObjectUrl, revokeObjectUrl, resilientFetch } from "@/shared/video-cache";
+import { resilientFetch } from "@/shared/video-cache";
 import { isElectron } from "@/shared/utils/platform";
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
 
 function setupElectronAPIMock(overrides?: Record<string, unknown>) {
-  (window as any).electronAPI = {
+  (window as unknown as { electronAPI: Record<string, unknown> }).electronAPI = {
     getCacheDirectory: vi.fn().mockResolvedValue({ success: true, path: "/cache" }),
     getDiskSpace: vi.fn().mockResolvedValue({ success: true, availableBytes: 1024 * 1024 * 1024, totalBytes: 1024 * 1024 * 1024 * 10 }),
     getFileInfo: vi.fn().mockResolvedValue({ success: true, size: 1024 }),
@@ -83,10 +83,10 @@ describe("video-cache-service", () => {
     (isElectron as ReturnType<typeof vi.fn>).mockReturnValue(false);
     clearMemoryCache();
     if (!URL.createObjectURL) {
-      (globalThis as any).URL.createObjectURL = vi.fn(() => "blob:https://example.com/mock");
+      (globalThis.URL as unknown as Record<string, unknown>).createObjectURL = vi.fn(() => "blob:https://example.com/mock");
     }
     if (!URL.revokeObjectURL) {
-      (globalThis as any).URL.revokeObjectURL = vi.fn();
+      (globalThis.URL as unknown as Record<string, unknown>).revokeObjectURL = vi.fn();
     }
     (resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Download failed"));
     (recoverVideoByTaskId as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, error: new Error("Recovery failed") });
@@ -440,7 +440,7 @@ describe("video-cache-service", () => {
         cachedAt: Date.now(),
         fileSize: 1024,
       });
-      (window as any).electronAPI = {
+      (window as unknown as { electronAPI: Record<string, unknown> }).electronAPI = {
         readFile: vi.fn().mockResolvedValue({
           success: true,
           data: new ArrayBuffer(1024),

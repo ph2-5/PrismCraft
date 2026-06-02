@@ -45,7 +45,7 @@ describe("characterSchema", () => {
   });
 
   it("应拒绝非法 videoGenerationStatus 枚举值", () => {
-    const data = factories.character({ videoGenerationStatus: "invalid" as any });
+    const data = factories.character({ videoGenerationStatus: "invalid" as unknown as "pending" });
     const result = characterSchema.safeParse(data);
     expect(result.success).toBe(false);
   });

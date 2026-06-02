@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Copy, Check, Shield } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -7,6 +5,7 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { promptBuilder } from "@/modules/prompt";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import type { StoryBeat, StoryElement } from "@/domain/schemas";
 
 interface PromptPreviewProps {
@@ -91,7 +90,7 @@ export function PromptPreview({
         if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
         copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
       } catch {
-        errorLogger.error("复制失败");
+        errorLogger.error(t("error.copyFailed"));
       }
       document.body.removeChild(textArea);
     }
@@ -102,11 +101,11 @@ export function PromptPreview({
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h4 className="font-medium">生成的提示词</h4>
+            <h4 className="font-medium">{t("prompt.generatedPrompt")}</h4>
             {isFeatureAnchored && (
               <Badge className="bg-purple-600 text-[10px]">
                 <Shield className="w-3 h-3 mr-1" />
-                特征锚定
+                {t("prompt.featureAnchoring")}
               </Badge>
             )}
           </div>
@@ -116,7 +115,7 @@ export function PromptPreview({
             ) : (
               <Copy className="w-4 h-4 mr-1" />
             )}
-            {copied ? "已复制" : "复制"}
+            {copied ? t("common.copied") : t("common.copy")}
           </Button>
         </div>
         <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg font-mono">

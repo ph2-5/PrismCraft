@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SmartRetryEngine, createRetryEngine } from "@/modules/video/recovery/services/smart-retry-engine";
+import { SmartRetryEngine, createRetryEngine } from "@/modules/video";
 import type { VideoTask } from "@/domain/schemas";
 
 function createMockTask(overrides: Partial<VideoTask> = {}): VideoTask {
@@ -92,7 +92,7 @@ describe("SmartRetryEngine", () => {
       reason: "content validation failed",
       confidence: "medium",
       details: { apiStatus: "ok", urlAccessible: true, contentValid: false },
-    } as any);
+    } as unknown as Parameters<typeof engine.makeRetryDecision>[1]);
     expect(decision.shouldRetry).toBe(true);
     expect(decision.reason).toContain("验证失败");
   });

@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Story, StoryBeat } from "@/domain/schemas";
+
+type SqlStatement = { sql: string; params: unknown[] };
 
 const { mockSafeQuery, mockSafeRun, mockSafeTransaction } = vi.hoisted(() => ({
   mockSafeQuery: vi.fn(),
@@ -73,7 +76,7 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      const beat = (result as any).beats[0];
+      const beat = (result as Story).beats[0];
       expect(beat.camera).toEqual({
         angle: "low",
         movement: "pan",
@@ -100,10 +103,10 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      const beat = (result as any).beats[0];
+      const beat = (result as Story).beats[0];
       expect(beat.keyframe).toBeDefined();
-      expect(beat.keyframe.imageUrl).toBe("http://img.png");
-      expect(beat.keyframe.prompt).toBe("a beautiful scene");
+      expect(beat.keyframe!.imageUrl).toBe("http://img.png");
+      expect(beat.keyframe!.prompt).toBe("a beautiful scene");
     });
   });
 
@@ -124,11 +127,11 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      const beat = (result as any).beats[0];
+      const beat = (result as Story).beats[0];
       expect(beat.videoGen).toBeDefined();
-      expect(beat.videoGen.videoUrl).toBe("http://video.mp4");
-      expect(beat.videoGen.taskId).toBe("task-123");
-      expect(beat.videoGen.status).toBe("completed");
+      expect(beat.videoGen!.videoUrl).toBe("http://video.mp4");
+      expect(beat.videoGen!.taskId).toBe("task-123");
+      expect(beat.videoGen!.status).toBe("completed");
     });
   });
 
@@ -149,10 +152,11 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      const beat = (result as any).beats[0];
-      expect(beat.camera).toBeDefined();
-      expect(beat.camera.lens).toBe("50mm");
-      expect(beat.camera.filter).toBe("warm");
+      const beat = (result as Story).beats[0];
+      const camera = beat.camera as Record<string, unknown>;
+      expect(camera).toBeDefined();
+      expect(camera.lens).toBe("50mm");
+      expect(camera.filter).toBe("warm");
     });
   });
 
@@ -167,7 +171,7 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      expect((result as any).elementBindings).toEqual({
+      expect((result as Story).elementBindings).toEqual({
         e1: { type: "character" },
       });
     });
@@ -180,14 +184,14 @@ describe("storage/stories", () => {
         title: "测试故事",
         characters: ["c1"],
         scenes: ["sc1"],
-        beats: [{ id: "b1", description: "beat1", duration: 5, sequence: 0 }] as any,
+        beats: [{ id: "b1", description: "beat1", duration: 5, sequence: 0 }] as unknown as StoryBeat[],
         elementIds: ["e1"],
         elementBindings: { e1: { type: "character" } },
-      } as any);
+      } as unknown as Partial<Story>);
 
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-      const statements = mockSafeTransaction.mock.calls[0][0];
-      const sqls = statements.map((s: any) => s.sql);
+      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const sqls = statements.map((s) => s.sql);
       expect(sqls[0]).toContain("INSERT OR IGNORE INTO stories");
       expect(sqls.some((s: string) => s.includes("story_characters"))).toBe(true);
       expect(sqls.some((s: string) => s.includes("story_scenes"))).toBe(true);
@@ -202,11 +206,11 @@ describe("storage/stories", () => {
       mockSafeTransaction.mockResolvedValueOnce([{ changes: 1 }]);
 
       await storyStorage.updateStory("s1", {
-        beats: [{ id: "b1" }] as any,
-      } as any);
+        beats: [{ id: "b1" }] as unknown as StoryBeat[],
+      } as unknown as Partial<Story>);
 
-      const statements = mockSafeTransaction.mock.calls[0][0];
-      const sqls = statements.map((s: any) => s.sql);
+      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const sqls = statements.map((s) => s.sql);
 
       expect(
         sqls.some(
@@ -234,7 +238,7 @@ describe("storage/stories", () => {
       ).toBe(true);
 
       const deleteStmts = statements.filter(
-        (s: any) => s.sql.startsWith("DELETE FROM story_beats"),
+        (s) => s.sql.startsWith("DELETE FROM story_beats"),
       );
       expect(deleteStmts.length).toBe(1);
       expect(deleteStmts[0].params).toEqual(["b2"]);
@@ -245,11 +249,11 @@ describe("storage/stories", () => {
       mockSafeTransaction.mockResolvedValueOnce([{ changes: 1 }]);
 
       await storyStorage.updateStory("s1", {
-        beats: [{ id: "b1" }, { id: "b2" }] as any,
-      } as any);
+        beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
+      } as unknown as Partial<Story>);
 
-      const statements = mockSafeTransaction.mock.calls[0][0];
-      const sqls = statements.map((s: any) => s.sql);
+      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const sqls = statements.map((s) => s.sql);
 
       expect(
         sqls.some((s: string) => s.includes("DELETE FROM video_tasks")),
@@ -270,8 +274,8 @@ describe("storage/stories", () => {
     it("应真删除 stories 记录而非软删除", async () => {
       await storyStorage.deleteStory("s1");
 
-      const statements = mockSafeTransaction.mock.calls[0][0];
-      const sqls = statements.map((s: any) => s.sql);
+      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const sqls = statements.map((s) => s.sql);
 
       expect(
         sqls.some((s: string) => s.includes("DELETE FROM stories")),
@@ -289,8 +293,8 @@ describe("storage/stories", () => {
     it("删除前应清理所有关联表", async () => {
       await storyStorage.deleteStory("s1");
 
-      const statements = mockSafeTransaction.mock.calls[0][0];
-      const sqls = statements.map((s: any) => s.sql);
+      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const sqls = statements.map((s) => s.sql);
 
       expect(sqls.some((s: string) => s.includes("story_characters"))).toBe(true);
       expect(sqls.some((s: string) => s.includes("story_scenes"))).toBe(true);
@@ -323,7 +327,7 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryByBeatId("b1");
       expect(result).not.toBeNull();
-      expect((result as any).id).toBe("s1");
+      expect((result as Story).id).toBe("s1");
     });
   });
 
@@ -333,7 +337,7 @@ describe("storage/stories", () => {
       mockSafeQuery.mockResolvedValueOnce([]);
 
       await expect(
-        storyStorage.updateStory("nonexistent", { title: "test" } as any),
+        storyStorage.updateStory("nonexistent", { title: "test" }),
       ).rejects.toThrow(/not found/i);
     });
   });

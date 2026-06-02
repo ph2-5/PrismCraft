@@ -1,7 +1,6 @@
-"use client";
-
 import { useRef } from "react";
 import { useVirtualList } from "@/shared/utils/performance";
+import { t } from "@/shared/constants";
 
 interface VirtualListProps<T> {
   items: T[];
@@ -19,7 +18,7 @@ export function VirtualList<T>({
   renderItem,
   className = "",
   overscan = 5,
-  emptyMessage = "暂无数据",
+  emptyMessage = t("common.noData"),
   maxHeight = "60vh",
 }: VirtualListProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);

@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { expectOk, expectErr } from "@/__tests__/utils/result-helpers";
 import type { StoryBeat, StoryBeatKeyframe, StoryBeatFramePair } from "@/domain/schemas";
 import type { IVideoProvider, IImageProvider, ITextProvider } from "@/domain/ports";
 

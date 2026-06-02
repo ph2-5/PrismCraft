@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
@@ -18,6 +16,7 @@ import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { fromAsyncThrowable } from "@/domain/types/result";
 import { container } from "@/infrastructure/di";
+import { t } from "@/shared/constants/messages";
 
 interface UseStorySaverProps {
   stories: Story[];
@@ -74,13 +73,13 @@ export function useStorySaver(props: UseStorySaverProps) {
         setBeats(restoredBeats);
         setVersionDialogOpen(false);
         success(
-          "版本已恢复",
+          t("success.versionRestored"),
           `已恢复到 ${formatVersionTime(version.timestamp)} 的版本，当前状态已备份`,
         );
       } else {
         showError(
-          "恢复失败",
-          result.error instanceof Error ? result.error.message : "未知错误",
+          t("error.restoreFailed"),
+          result.error instanceof Error ? result.error.message : t("error.unknown"),
         );
       }
     },
@@ -108,13 +107,13 @@ export function useStorySaver(props: UseStorySaverProps) {
         errorLogger.warn("Failed to delete story from SQLite", deleteResult.error);
         setDeleteDialogOpen(false);
         setStoryToDelete(null);
-        showError("删除失败", "故事数据库持久化删除失败，请重试");
+        showError(t("error.deleteFailed"), t("story.dbDeleteFailed"));
         return;
       }
       setStories((prev) => prev.filter((s) => s.id !== storyToDelete));
       setDeleteDialogOpen(false);
       setStoryToDelete(null);
-      success("删除成功", "分镜项目已删除");
+      success(t("success.deleted"), t("success.beatDeleted"));
     }
   }, [storyToDelete, setStories, success, showError, onBeforeDeleteStory]);
 
@@ -124,7 +123,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       setBeats(newBeats);
       setTemplateDialogOpen(false);
       success(
-        "模板已应用",
+        t("success.templateApplied"),
         `已应用"${template.name}"模板，共${newBeats.length}个镜头`,
       );
     },
@@ -163,7 +162,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       setBeats(newBeats);
       setTemplateDialogOpen(false);
       success(
-        "模板已应用",
+        t("success.templateApplied"),
         `已应用自定义模板，共${newBeats.length}个镜头`,
       );
     },
@@ -181,7 +180,7 @@ export function useStorySaver(props: UseStorySaverProps) {
         }
         return [...prev, template];
       });
-      success("模板已保存", `模板"${template.name}"已保存`);
+      success(t("success.templateSaved"), t("success.templateSavedDesc", { name: template.name }));
     },
     [success],
   );
@@ -189,7 +188,7 @@ export function useStorySaver(props: UseStorySaverProps) {
   const handleDeleteTemplate = useCallback(
     (id: string) => {
       setSavedTemplates((prev) => prev.filter((t) => t.id !== id));
-      success("模板已删除", "自定义模板已移除");
+      success(t("success.templateDeleted"), t("success.templateDeletedDesc"));
     },
     [success],
   );
@@ -202,7 +201,7 @@ export function useStorySaver(props: UseStorySaverProps) {
   const handleSave = useCallback(async () => {
     if (savingRef.current) return;
     if (beats.length === 0) {
-      showError("无法保存", "请至少添加一个镜头");
+      showError(t("error.cannotSave"), t("error.addBeatFirst"));
       return;
     }
     const storyTitle = currentStory.title?.trim() || "未命名分镜";
@@ -237,7 +236,7 @@ export function useStorySaver(props: UseStorySaverProps) {
         setSaveStatus("error");
         setSaveError(detail);
         showError(
-          "保存失败",
+          t("error.saveFailed"),
           mapUserFacingError(err),
         );
         return;
@@ -252,7 +251,7 @@ export function useStorySaver(props: UseStorySaverProps) {
         setSaveStatus("error");
         setSaveError(detail);
         showError(
-          "保存失败",
+          t("error.saveFailed"),
           mapUserFacingError(err),
         );
         return;
@@ -272,7 +271,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       markClean("story");
       setSaveStatus("saved");
       success(
-        storyIdAtSaveStart ? "保存成功" : "创建成功",
+        storyIdAtSaveStart ? t("success.saved") : t("success.created"),
         storyIdAtSaveStart ? "分镜项目已更新" : "新分镜项目已添加",
       );
     } finally {

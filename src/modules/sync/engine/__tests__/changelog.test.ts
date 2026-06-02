@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 const { mockSafeQuery } = vi.hoisted(() => ({
-  mockSafeQuery: vi.fn<() => Promise<any[]>>().mockResolvedValue([]),
+  mockSafeQuery: vi.fn<() => Promise<Record<string, unknown>[]>>().mockResolvedValue([]),
 }));
 
 vi.mock("@/infrastructure/di", () => ({

@@ -160,7 +160,8 @@ export function generateEnhancedVideoPrompt(
         beat.sceneElements.forEach((el) => {
           const group = el.timelineGroup ?? 0;
           if (!groups.has(group)) groups.set(group, []);
-          groups.get(group)!.push(el);
+          const groupList = groups.get(group);
+          if (groupList) groupList.push(el);
         });
 
         const sortedGroups = Array.from(groups.entries()).sort(

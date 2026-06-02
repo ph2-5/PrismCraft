@@ -3,7 +3,7 @@ import type { VideoTask } from "@/domain/schemas";
 
 const {
   mockVideoTaskStorage,
-  mockVideoProvider,
+  _mockVideoProvider,
   mockContainer,
   mockPollingState,
   mockSaveVideoTask,

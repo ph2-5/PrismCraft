@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
@@ -10,6 +8,7 @@ import { Label } from "@/shared/ui/label";
 import { useProjectExport, type ProjectData } from "@/modules/asset";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { Download, Upload, Package, FileArchive, AlertCircle, CheckCircle } from "lucide-react";
+import { t } from "@/shared/constants";
 
 interface ProjectExportImportProps {
   onImport?: (data: ProjectData) => void;
@@ -37,9 +36,9 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
   const handleExport = async () => {
     const result = await exportProject({ includeAssets });
     if (result.success) {
-      success("导出成功", `工程已导出为 ${result.filename}`);
+      success(t("success.exported"), t("asset.projectExportedAs", { filename: result.filename ?? "" }));
     } else {
-      showError("导出失败", result.error || "未知错误");
+      showError(t("error.exportFailed"), result.error || t("error.unknown"));
     }
   };
 
@@ -49,7 +48,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
     if (!file) return;
 
     if (!file.name.endsWith('.zip')) {
-      showError("文件格式错误", "请选择 ZIP 格式的工程文件");
+      showError(t("error.invalidFileFormat"), t("error.selectZipFile"));
       return;
     }
 
@@ -70,10 +69,10 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
             URL.revokeObjectURL(url);
           }
         }
-        showError("导入失败", result.error || "无法解析工程文件");
+        showError(t("error.importFailed"), result.error || t("asset.cannotParseProject"));
       }
     } catch (err) {
-      showError("导入失败", err instanceof Error ? err.message : "无法解析工程文件");
+      showError(t("error.importFailed"), err instanceof Error ? err.message : t("asset.cannotParseProject"));
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) {
@@ -88,7 +87,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
       onImport(importPreview);
       setImportDialogOpen(false);
       setImportPreview(null);
-      success("导入成功", "工程数据已导入");
+      success(t("success.imported"), t("asset.projectImported"));
     }
   };
 
@@ -98,19 +97,19 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
-            工程打包
+            {t("asset.projectPackTitle")}
           </CardTitle>
           <CardDescription>
-            导出或导入完整工程，包含所有角色、场景、故事和素材
+            {t("asset.projectPackDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 导出选项 */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-0.5">
-              <Label>包含素材文件</Label>
+              <Label>{t("asset.includeAssets")}</Label>
               <p className="text-sm text-muted-foreground">
-                导出时包含所有图片素材，文件会更大
+                {t("asset.includeAssetsDesc")}
               </p>
             </div>
             <Switch
@@ -123,7 +122,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
           {isExporting && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>正在导出...</span>
+                <span>{t("asset.exportingProgress")}</span>
                 <span>{progress}%</span>
               </div>
               <Progress value={progress} />
@@ -138,7 +137,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
               className="flex-1"
             >
               <Download className="w-4 h-4 mr-2" />
-              {isExporting ? "导出中..." : "导出工程"}
+              {isExporting ? t("common.exporting") : t("asset.exportProject")}
             </Button>
             <Button
               variant="outline"
@@ -147,7 +146,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
               className="flex-1"
             >
               <Upload className="w-4 h-4 mr-2" />
-              {isImporting ? "读取中..." : "导入工程"}
+              {isImporting ? t("asset.readingFile") : t("asset.importProject")}
             </Button>
           </div>
 
@@ -167,10 +166,10 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileArchive className="w-5 h-5" />
-              确认导入工程
+              {t("asset.confirmImportProject")}
             </DialogTitle>
             <DialogDescription>
-              请确认要导入的工程内容
+              {t("asset.confirmImportDesc")}
             </DialogDescription>
           </DialogHeader>
 
@@ -179,19 +178,19 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
               <div className="p-4 bg-muted rounded-lg space-y-2">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">角色: {importPreview.characters.length} 个</span>
+                  <span className="font-medium">{t("asset.characterCount", { count: importPreview.characters.length })}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">场景: {importPreview.scenes.length} 个</span>
+                  <span className="font-medium">{t("asset.sceneCount", { count: importPreview.scenes.length })}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">故事: {importPreview.stories.length} 个</span>
+                  <span className="font-medium">{t("asset.storyCount", { count: importPreview.stories.length })}</span>
                 </div>
                 {importPreview.exportedAt && (
                   <div className="text-xs text-muted-foreground pt-2">
-                    导出时间: {new Date(importPreview.exportedAt).toLocaleString()}
+                    {t("asset.exportTime", { time: new Date(importPreview.exportedAt).toLocaleString() })}
                   </div>
                 )}
               </div>
@@ -199,8 +198,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
               <div className="flex items-start gap-2 text-sm text-yellow-600">
                 <AlertCircle className="w-4 h-4 mt-0.5" />
                 <p>
-                  导入将合并到现有数据中，相同 ID 的项目会被覆盖。
-                  建议在导入前备份当前工程。
+                  {t("asset.importMergeWarning")}
                 </p>
               </div>
             </div>
@@ -208,10 +206,10 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
-              取消
+              {t("common.cancel")}
             </Button>
             <Button onClick={handleConfirmImport}>
-              确认导入
+              {t("asset.confirmImport")}
             </Button>
           </DialogFooter>
         </DialogContent>

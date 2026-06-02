@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPromptLayers } from "@/modules/shot/shot-instruction/services/shot-instruction-service";
+import { buildPromptLayers } from "@/modules/shot";
 
 describe("buildPromptLayers", () => {
   it("只有 characterAnchors 时应只生成 coreElements", () => {

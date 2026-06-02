@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Character } from "@/domain/schemas";
@@ -90,13 +88,13 @@ export function useCharacterImage({
 
       if (result.success && result.data?.imageUrl) {
         setGeneratedImage(result.data.imageUrl);
-        success("图像生成成功", "角色图像已生成，记得保存到角色哦");
+        success(t("success.imageGenerated"), t("success.characterImageGeneratedDesc"));
       } else {
-        showError("图像生成失败", result.error || "请检查 API 配置后重试");
+        showError(t("image.generateFailed"), result.error || t("image.checkApiConfig"));
       }
     } catch (err) {
       errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: "生成图像失败", cause: err });
-      showError("图像生成失败", getErrorMessage(err));
+      showError(t("image.generateFailed"), getErrorMessage(err));
     } finally {
       setIsGenerating(false);
     }
@@ -117,10 +115,10 @@ export function useCharacterImage({
           id: currentCharacter.id,
           name: currentCharacter.name || "未命名角色",
         });
-        success("保存成功", "图像已保存到角色并加入素材库");
+        success(t("success.saved"), t("success.imageSavedToCharacter"));
       } catch (err) {
         errorLogger.error("[CharacterImage] 保存图像到角色失败", err instanceof Error ? err : undefined);
-        showError("保存失败", err instanceof Error ? err.message : "未知错误");
+        showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown"));
       }
     }
   };
@@ -150,18 +148,18 @@ export function useCharacterImage({
             });
           } catch (err) {
             errorLogger.error("[CharacterImage] 上传后保存图像到角色失败", err instanceof Error ? err : undefined);
-            showError("保存失败", err instanceof Error ? err.message : "未知错误");
+            showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown"));
           }
         } else {
           addAssetToLibrary(imageUrl, "image", "上传的图片");
         }
-        success("上传成功", "图片已上传并保存到素材库");
+        success(t("success.uploaded"), t("success.imageSavedToLibrary"));
       } else {
-        showError("上传失败", result.error || "请重试");
+        showError(t("error.uploadFailed"), result.error || t("common.retry"));
       }
     } catch (err) {
       errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err });
-      showError("上传失败", getErrorMessage(err));
+      showError(t("error.uploadFailed"), getErrorMessage(err));
     } finally {
       setIsUploading(false);
     }
@@ -193,7 +191,7 @@ export function useCharacterImage({
       const { width, height } = await validateImageSize(imageUrl);
       const MIN_SIZE = 14;
       if (width < MIN_SIZE || height < MIN_SIZE) {
-        showError("图片尺寸过小", `最小允许尺寸: ${MIN_SIZE}像素。当前尺寸: 宽度 = ${width}, 高度 = ${height}。`);
+        showError(t("error.imageTooSmall"), t("error.imageSizeMin", { size: `${MIN_SIZE}像素。当前尺寸: 宽度 = ${width}, 高度 = ${height}。` }));
         return;
       }
 
@@ -235,7 +233,7 @@ export function useCharacterImage({
             queryClient.invalidateQueries({ queryKey: ["characters"] });
           } catch (err) {
             errorLogger.error("[CharacterImage] 分析后保存图像到角色失败", err instanceof Error ? err : undefined);
-            showError("保存失败", err instanceof Error ? err.message : "未知错误");
+            showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown"));
           }
         }
 
@@ -244,13 +242,13 @@ export function useCharacterImage({
           id: currentCharacterRef.current.id,
           name: analyzed.name || currentCharacterRef.current.name || "未命名角色",
         });
-        success("分析完成", `已自动填充角色信息：${analyzed.name || "未命名角色"}，并保存到素材库`);
+        success(t("success.analysisComplete"), t("success.characterAnalysisResult", { name: analyzed.name || "未命名角色" }));
       } else {
-        showError("分析失败", result.error || result.message || "请重试");
+        showError(t("image.analyzeFailed"), result.error || result.message || t("common.retry"));
       }
     } catch (err) {
       errorLogger.error({ code: "ANALYZE_ERROR", message: "分析失败", cause: err });
-      showError("分析失败", getErrorMessage(err));
+      showError(t("image.analyzeFailed"), getErrorMessage(err));
     } finally {
       if (analyzeTimeoutRef.current) {
         clearTimeout(analyzeTimeoutRef.current);
@@ -270,11 +268,11 @@ export function useCharacterImage({
       if (result.success && result.data?.url) {
         await analyzeImage(result.data.url);
       } else {
-        showError("上传失败", result.error || "请重试");
+        showError(t("error.uploadFailed"), result.error || t("common.retry"));
       }
     } catch (err) {
       errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err });
-      showError("上传失败", getErrorMessage(err));
+      showError(t("error.uploadFailed"), getErrorMessage(err));
     } finally {
       setIsUploading(false);
     }

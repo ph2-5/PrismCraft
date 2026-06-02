@@ -497,8 +497,8 @@ describe("useAIGeneratorBase", () => {
 
         firstResolve!("first result");
 
-        firstResult = await p1;
-        secondResult = await p2;
+        firstResult = (await p1) as string | void | undefined;
+        secondResult = (await p2) as string | void | undefined;
       });
 
       expect(firstResult).toBe("first result");
@@ -545,7 +545,7 @@ describe("useAIGeneratorBase", () => {
       });
 
       await act(async () => {
-        const res = await result.current.withGenerationState("beat-1", fn, "Error");
+        await result.current.withGenerationState("beat-1", fn, "Error");
       });
 
       expect(fn).toHaveBeenCalled();
@@ -556,7 +556,7 @@ describe("useAIGeneratorBase", () => {
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
       let rejectFn: ((err: Error) => void) | null = null;
-      const fn = vi.fn().mockImplementation((signal: AbortSignal) => {
+      const fn = vi.fn().mockImplementation((_signal: AbortSignal) => {
         return new Promise((_resolve, reject) => {
           rejectFn = reject;
         });
@@ -572,13 +572,13 @@ describe("useAIGeneratorBase", () => {
 
       if (rejectFn) {
         await act(async () => {
-          (rejectFn as any)(new Error("aborted"));
+          (rejectFn as (err: Error) => void)(new Error("aborted"));
         });
       }
 
       await promise;
 
-      const generatingCalls = (props.setGenerating as any).mock.calls.filter(
+      const generatingCalls = (props.setGenerating as unknown as ReturnType<typeof vi.fn>).mock.calls.filter(
         (call: unknown[]) => call[0] === null,
       );
       expect(generatingCalls.length).toBe(0);
@@ -589,7 +589,7 @@ describe("useAIGeneratorBase", () => {
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
       let resolveFn: ((value: string) => void) | null = null;
-      const fn = vi.fn().mockImplementation((signal: AbortSignal) => {
+      const fn = vi.fn().mockImplementation((_signal: AbortSignal) => {
         return new Promise<string>((resolve) => {
           resolveFn = resolve;
         });
@@ -687,7 +687,7 @@ describe("useAIGeneratorBase", () => {
       });
 
       expect(props.setBeats).toHaveBeenCalled();
-      const updater = (props.setBeats as any).mock.calls[0][0] as (prev: StoryBeat[]) => StoryBeat[];
+      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as (prev: StoryBeat[]) => StoryBeat[];
       const updated = updater([mockBeat1, mockBeat2]);
       expect(updated[0].description).toBe("updated desc");
       expect(updated[1].description).toBe("beat 2 desc");
@@ -711,7 +711,7 @@ describe("useAIGeneratorBase", () => {
         result.current.updateBeat("beat-1", { description: "new desc" });
       });
 
-      const updater = (props.setBeats as any).mock.calls[0][0] as (prev: StoryBeat[]) => StoryBeat[];
+      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as (prev: StoryBeat[]) => StoryBeat[];
       const updated = updater([mockBeat1, mockBeat2]);
       expect(updated[0].id).toBe("beat-1");
       expect(updated[0].sequence).toBe(0);

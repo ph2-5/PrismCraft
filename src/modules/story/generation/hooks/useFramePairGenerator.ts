@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback } from "react";
 import { generateBeatFramePair } from "@/modules/story";
 import { checkVisualConsistency } from "@/modules/shot/consistency-check";
@@ -124,7 +122,7 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
         if (signal.aborted) return;
 
         updateBeat(beatId, updatedBeat);
-        success("首尾帧生成成功", "分镜首尾帧已生成");
+        success(t("success.generated"), t("success.framePairGeneratedDesc"));
         return updatedBeat;
       }, "首尾帧生成失败");
     },

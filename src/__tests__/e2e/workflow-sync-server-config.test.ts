@@ -55,7 +55,7 @@ vi.mock("../../../electron/src/sync-http-client", () => ({
   makeSyncRequest: mockMakeSyncRequest,
 }));
 
-import { handleSyncConfig, handleSyncTest, handleSyncProxy } from "../../../electron/src/handlers/sync";
+import { handleSyncConfig, handleSyncTest } from "../../../electron/src/handlers/sync";
 
 type SyncServerInfo = { url: string; connected: boolean; lastConnectedAt: number; serverVersion: string; username?: string; token?: string };
 type SyncConfig = { enabled: boolean; autoSync: boolean; syncInterval: number; conflictStrategy: string; endpoint: string; deviceId: string; server: SyncServerInfo | null };

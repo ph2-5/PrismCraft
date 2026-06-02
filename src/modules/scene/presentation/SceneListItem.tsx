@@ -1,7 +1,6 @@
-"use client";
-
 import React from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
+import { t } from "@/shared/constants";
 
 interface SceneListItemProps {
   scene: {
@@ -45,9 +44,9 @@ export const SceneListItem = React.memo(function SceneListItem({
           </div>
         )}
         <div className="min-w-0">
-          <p className="font-medium truncate">{scene.name || "未命名场景"}</p>
+          <p className="font-medium truncate">{scene.name || t("scene.unnamed")}</p>
           <p className="text-xs text-muted-foreground truncate">
-            {scene.type || "无类型"}
+            {scene.type || t("scene.noType")}
           </p>
         </div>
       </div>
@@ -57,7 +56,7 @@ export const SceneListItem = React.memo(function SceneListItem({
           e.stopPropagation();
           onDelete(e);
         }}
-        aria-label="删除场景"
+        aria-label={t("scene.deleteLabel")}
       >
         <svg
           className="w-4 h-4 text-destructive"

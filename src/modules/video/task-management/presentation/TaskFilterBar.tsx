@@ -10,6 +10,7 @@ import {
 } from "@/shared/ui/select";
 import { Search, Calendar, Layers } from "lucide-react";
 import type { FilterStatus, SortField, GroupBy, TimeRange } from "./use-task-filter";
+import { t } from "@/shared/constants";
 
 interface TaskFilterBarProps {
   searchQuery: string;
@@ -45,7 +46,7 @@ export function TaskFilterBar({
       <div className="relative flex-1 min-w-[200px]">
         <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <Input
-          placeholder="搜索任务ID、故事、分镜或模型..."
+          placeholder={t("task.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-8 h-8 text-sm"
@@ -56,14 +57,14 @@ export function TaskFilterBar({
         onValueChange={(v) => onStatusFilterChange(v as FilterStatus)}
       >
         <SelectTrigger className="w-28 h-8 text-xs">
-          <SelectValue placeholder="状态" />
+          <SelectValue placeholder={t("task.statusLabel")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">全部状态</SelectItem>
-          <SelectItem value="pending">等待中</SelectItem>
-          <SelectItem value="generating">处理中</SelectItem>
-          <SelectItem value="completed">已完成</SelectItem>
-          <SelectItem value="failed">失败</SelectItem>
+          <SelectItem value="all">{t("task.allStatus")}</SelectItem>
+          <SelectItem value="pending">{t("task.pendingStatus")}</SelectItem>
+          <SelectItem value="generating">{t("task.processingStatus")}</SelectItem>
+          <SelectItem value="completed">{t("task.completedStatus")}</SelectItem>
+          <SelectItem value="failed">{t("task.failedStatus")}</SelectItem>
         </SelectContent>
       </Select>
       <Select
@@ -72,13 +73,13 @@ export function TaskFilterBar({
       >
         <SelectTrigger className="w-28 h-8 text-xs">
           <Calendar className="w-3 h-3 mr-1" />
-          <SelectValue placeholder="时间" />
+          <SelectValue placeholder={t("task.allTime")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">全部时间</SelectItem>
-          <SelectItem value="today">今天</SelectItem>
-          <SelectItem value="week">本周</SelectItem>
-          <SelectItem value="month">本月</SelectItem>
+          <SelectItem value="all">{t("task.allTime")}</SelectItem>
+          <SelectItem value="today">{t("task.today")}</SelectItem>
+          <SelectItem value="week">{t("task.thisWeek")}</SelectItem>
+          <SelectItem value="month">{t("task.thisMonth")}</SelectItem>
         </SelectContent>
       </Select>
       <Select
@@ -87,13 +88,13 @@ export function TaskFilterBar({
       >
         <SelectTrigger className="w-28 h-8 text-xs">
           <Layers className="w-3 h-3 mr-1" />
-          <SelectValue placeholder="分组" />
+          <SelectValue placeholder={t("task.noGroup")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="story">按故事</SelectItem>
-          <SelectItem value="model">按模型</SelectItem>
-          <SelectItem value="date">按日期</SelectItem>
-          <SelectItem value="none">不分组</SelectItem>
+          <SelectItem value="story">{t("task.groupByStory")}</SelectItem>
+          <SelectItem value="model">{t("task.groupByModel")}</SelectItem>
+          <SelectItem value="date">{t("task.groupByDate")}</SelectItem>
+          <SelectItem value="none">{t("task.noGroup")}</SelectItem>
         </SelectContent>
       </Select>
       <Select
@@ -101,12 +102,12 @@ export function TaskFilterBar({
         onValueChange={(v) => onSortFieldChange(v as SortField)}
       >
         <SelectTrigger className="w-28 h-8 text-xs">
-          <SelectValue placeholder="排序" />
+          <SelectValue placeholder={t("task.sortByCreated")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="createdAt">创建时间</SelectItem>
-          <SelectItem value="progress">进度</SelectItem>
-          <SelectItem value="status">状态</SelectItem>
+          <SelectItem value="createdAt">{t("task.sortByCreated")}</SelectItem>
+          <SelectItem value="progress">{t("task.sortByProgress")}</SelectItem>
+          <SelectItem value="status">{t("task.sortByStatus")}</SelectItem>
         </SelectContent>
       </Select>
       <Button
@@ -115,7 +116,7 @@ export function TaskFilterBar({
         className="h-8 px-2"
         onClick={() => onSortDescChange(!sortDesc)}
       >
-        {sortDesc ? "降序" : "升序"}
+        {sortDesc ? t("task.descending") : t("task.ascending")}
       </Button>
     </div>
   );

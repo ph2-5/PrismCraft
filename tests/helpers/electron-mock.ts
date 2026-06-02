@@ -227,23 +227,23 @@ export async function installElectronMock(page: Page) {
     window.electronAPI = {
       dbQuery: async (sql, params) => {
         const result = parseSelect(sql, params ?? []);
-        return result.data;
+        return { success: true, data: result.data ?? [] };
       },
 
       dbRun: async (sql, params) => {
         const upper = sql.trim().toUpperCase();
         if (upper.startsWith("INSERT")) {
           parseInsert(sql, params ?? []);
-          return { success: true };
+          return { success: true, data: { changes: 1, lastInsertRowid: Date.now() } };
         }
         if (upper.startsWith("DELETE")) {
           parseDelete(sql, params ?? []);
-          return { success: true };
+          return { success: true, data: { changes: 1, lastInsertRowid: 0 } };
         }
         if (upper.startsWith("UPDATE")) {
-          return { success: true };
+          return { success: true, data: { changes: 1, lastInsertRowid: 0 } };
         }
-        return { success: true };
+        return { success: true, data: { changes: 0, lastInsertRowid: 0 } };
       },
 
       dbTransaction: async (statements) => {
@@ -267,7 +267,7 @@ export async function installElectronMock(page: Page) {
               throw new Error(`Unsupported transaction SQL: ${stmt.sql}`);
             }
           }
-          return { success: true };
+          return { success: true, data: [] };
         } catch (err) {
           db.clear();
           for (const [tName, tData] of snapshot.entries()) {

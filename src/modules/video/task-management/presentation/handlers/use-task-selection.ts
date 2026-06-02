@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import type { VideoTask } from "@/domain/schemas";
+import { t } from "@/shared/constants/messages";
 
 interface UseTaskSelectionParams {
   filteredTasks: VideoTask[];
@@ -44,9 +45,9 @@ export function useTaskSelection({ filteredTasks, removeTasks, onAfterDelete }: 
       await removeTasks(taskIdsArray);
       setSelectedTaskIds(new Set());
       if (onAfterDelete) await onAfterDelete();
-      success("删除成功", `已删除 ${taskIdsArray.length} 个任务`);
+      success(t("success.deleted"), t("success.deletedCount", { count: taskIdsArray.length }));
     } catch (err) {
-      error("删除失败", err instanceof Error ? err.message : "未知错误");
+      error(t("error.deleteFailed"), err instanceof Error ? err.message : t("error.unknown"));
     } finally {
       setIsDeleting(false);
       setBulkDeleteConfirmOpen(false);

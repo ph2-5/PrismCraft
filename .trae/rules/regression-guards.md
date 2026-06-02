@@ -1087,13 +1087,21 @@ const pollTasks = async () => {
 ## Phase 8: Code Quality Audit (R47-R49)
 
 ### R47: Catch Blocks MUST NOT Silently Swallow Errors
-When a `catch` block catches an error, it MUST either (1) log the error via `errorLogger.warn`/`errorLogger.error`, (2) propagate the error to the caller, or (3) show user feedback via `emitToast`. Empty `catch {}` blocks with no logging or notification are "安慰剂" error handling — they make failures invisible to both developers and users, making debugging impossible. The only exception is cleanup operations (e.g., `URL.revokeObjectURL`) where failure is inconsequential.
+When a `catch` block catches an error, it MUST either (1) log the error via `errorLogger.warn`/`errorLogger.error`, (2) propagate the error to the caller, or (3) show user feedback via `emitToast`. Empty `catch {}` blocks with no logging or notification are "安慰剂" error handling — they make failures invisible to both developers and users, making debugging impossible. The only exception is cleanup operations (e.g., `URL.revokeObjectURL`) where failure is inconsequential. Additionally, production code MUST use `errorLogger` instead of `console.warn`/`console.error` — console methods bypass the structured logging system and cannot be filtered or persisted in production.
 
 **BAD**:
 ```typescript
 try {
   const config = JSON.parse(rawConfig);
 } catch {
+  return defaultConfig;
+}
+```
+
+**BAD** — console.warn bypasses structured logging:
+```typescript
+catch (e) {
+  console.warn("[Module] 配置 JSON 解析失败", e);
   return defaultConfig;
 }
 ```
@@ -1185,20 +1193,11 @@ container.referenceEngine.then((engine) => {
 ## Phase 9: Console Error & Hydration Audit (R51-R52)
 
 ### R51: Electron-Dependent Operations MUST Guard Against Non-Electron Environment
-When a component or hook performs operations that require `electronAPI` (database queries, IPC calls, API server requests), it MUST check `isElectron()` before attempting the operation. In browser dev mode (Next.js dev server without Electron), these operations will always fail with "electronAPI not available" errors, producing console noise and potentially triggering error toasts that mislead developers. The guard MUST be inside an async callback (not synchronous in the effect body) to avoid ESLint `react-hooks/set-state-in-effect` violations.
+When a component or hook performs operations that require `electronAPI` (database queries, IPC calls, API server requests), it MUST check `isElectron()` before attempting the operation. In browser dev mode (Vite dev server without Electron), these operations will always fail with "electronAPI not available" errors, producing console noise and potentially triggering error toasts that mislead developers.
 
-**BAD**:
-```typescript
-useEffect(() => {
-  let cancelled = false;
-  fetchPlugins()
-    .then((data) => { if (!cancelled) setPlugins(data); })
-    .catch((err) => { errorLogger.error("Failed to load plugins", err); });
-  return () => { cancelled = true; };
-}, []);
-```
+**Guard patterns by context**:
 
-**GOOD**:
+1. **useEffect** — guard inside async callback:
 ```typescript
 useEffect(() => {
   let cancelled = false;
@@ -1220,6 +1219,28 @@ useEffect(() => {
 }, []);
 ```
 
+2. **useQuery (react-query)** — use `enabled` option:
+```typescript
+export function useStories() {
+  return useQuery({
+    queryKey: ["stories"],
+    queryFn: async () => { /* ... */ },
+    enabled: isElectron(),  // Skip query in browser mode
+  });
+}
+```
+
+**BAD** — useQuery without enabled guard, fires in browser mode and fails:
+```typescript
+export function useStories() {
+  return useQuery({
+    queryKey: ["stories"],
+    queryFn: async () => { /* ... */ },
+    // Missing: enabled: isElectron()
+  });
+}
+```
+
 **Affected patterns** (discovered in console error audit):
 - `useAssetLoader` → `services.getAllCharacters()` / `services.getAllScenes()`
 - `PluginManager` → `fetchPlugins()` (API server)
@@ -1228,50 +1249,289 @@ useEffect(() => {
 - `CrashRecoveryDialog` → `electronAPI.onNavigate`
 - `ProfessionalModeEditor` → element loading
 - `ensureSyncSchema()` → `electronAPI.dbRun`
+- `useStories`, `useCharacters`, `useScenes`, `useVideoTasks`, `useVideoCacheStats`, `useMediaAssets` → react-query useQuery hooks
 
-### R52: localStorage-Dependent Initial State MUST Use useSyncExternalStore
-When a component reads `localStorage` in its initial state (e.g., theme preference, sidebar collapse state, onboarding dismissed state), it MUST use `useSyncExternalStore` with a module-level listeners Set pattern instead of `useState(() => localStorage.getItem(...))`. The `useState` initializer runs during both server-side rendering and client-side hydration, but `localStorage` is only available on the client. This causes hydration mismatches: the server renders with the default value while the client renders with the stored value, producing React hydration warnings and potential UI flicker.
+### R52: localStorage-Dependent Initial State MUST Use usePreference Hook
+When a component reads `localStorage` for its initial state (e.g., theme preference, sidebar collapse state, onboarding dismissed state, auto-save settings), it MUST use the `usePreference` hook from `@/shared/utils/preferences` instead of `useState(() => localStorage.getItem(...))` or manual `useSyncExternalStore`. The `usePreference` hook wraps `useSyncExternalStore` with snapshot caching (for object reference stability) and cross-tab sync (via `storage` event listener). Direct `localStorage` access in `useState` causes hydration mismatches; manual `useSyncExternalStore` with per-component listeners creates boilerplate and risks infinite re-renders from unstable object references.
 
 **BAD**:
 ```typescript
-const [theme, setTheme] = useState(() => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("theme") || "dark";
-  }
-  return "dark";
+const [enabled, setEnabled] = useState(() => {
+  try {
+    const parsed = preferencesStorage.get("autosave-settings", {});
+    return typeof parsed.enabled === "boolean" ? parsed.enabled : true;
+  } catch { return true; }
 });
 ```
 
 **GOOD**:
 ```typescript
-const themeListeners = new Set<() => void>();
+import { usePreference } from "@/shared/utils/preferences";
 
-function subscribeTheme(callback: () => void) {
-  themeListeners.add(callback);
-  return () => themeListeners.delete(callback);
-}
-
-function getThemeSnapshot() {
-  return localStorage.getItem("theme") || "dark";
-}
-
-function getThemeServerSnapshot() {
-  return "dark";
-}
-
-function setThemeValue(theme: string) {
-  localStorage.setItem("theme", theme);
-  themeListeners.forEach((cb) => cb());
-}
-
-function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const theme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getThemeServerSnapshot);
-  // ...
-}
+const [settings, setSettings] = usePreference<AutoSaveSettings>("autosave-settings", {});
+const enabled = typeof settings.enabled === "boolean" ? settings.enabled : true;
 ```
 
-**Affected components** (discovered in hydration audit):
-- `ThemeProvider` → theme preference
+**Affected components** (migrated in hydration audit):
+- `ThemeProvider` → theme preference (uses custom useSyncExternalStore for subscribe logic)
 - `Sidebar` → collapsed state, modKey
 - `OnboardingGuide` / `onboarding` → visibility state
 - `ConfigCheckBanner` → dismissed state
+- `story/page.tsx` → auto-save settings
+- `settings/page.tsx` → auto-save settings
+
+### R53: Result Type Error Paths MUST Use err() Not ok()
+When a function returns `Result<T>`, failure paths MUST return `err(...)` rather than `ok({ passed: false, ... })`. Wrapping a failure in `ok()` is a "安慰剂" (placebo) error pattern — callers checking `result.ok` will believe the operation succeeded, and downstream code will try to access `result.value` on a failure-shaped object.
+
+**BAD**:
+```typescript
+catch (_e) {
+  return ok({
+    passed: false,
+    characterScores: elements.map((el) => ({
+      elementId: el.id,
+      elementName: el.name,
+      score: 0.5,
+      issues: ["检查过程出错"],
+    })),
+    overallScore: 0.5,
+    recommendation: "adjust",
+  });
+}
+```
+
+**GOOD**:
+```typescript
+catch (e) {
+  return err(new AppError("CONSISTENCY_CHECK_ERROR", "检查过程出错", e));
+}
+```
+
+**Discovered in**: `consistency-check-service.ts` — catch block and analysis failure both returned `ok()` with `passed: false`, hiding real errors from callers.
+
+### R54: Production Code MUST NOT Use `any` Type
+Production code (non-test files) MUST NOT use `any` type. Use specific interfaces, `unknown`, or generic type parameters instead. `any` disables TypeScript's type checking and can hide bugs that would otherwise be caught at compile time.
+
+**BAD**:
+```typescript
+let sharpModule: any = null;
+const parsed = safeJsonParse(jsonMatch[0], {}) as Record<string, any>;
+function fixShotParams(data: Record<string, any>): { fixed: Record<string, any>; autoFixed: string[] }
+```
+
+**GOOD**:
+```typescript
+let sharpModule: typeof import("sharp") | null = null;
+interface ConsistencyAnalysisResult { scores: ConsistencyAnalysisScore[]; overallScore: number; recommendation: string; }
+const parsed = safeJsonParse<ConsistencyAnalysisResult>(jsonMatch[0], defaultValue);
+interface ShotParamsData { shotType?: string; cameraMovement?: string; [key: string]: unknown; }
+function fixShotParams(data: ShotParamsData): { fixed: ShotParamsData; autoFixed: string[] }
+```
+
+**Discovered in**: `consistency-check-service.ts`, `story-service.ts`, `assets.ts`, `registry.ts` — all used `any` or `Record<string, any>` where specific types were appropriate.
+
+### R55: Test Files MUST Pass TypeScript Type Checking
+Test files MUST be included in TypeScript type checking (via `tsconfig.test.json`) and MUST NOT have type errors. Common patterns that cause test type errors:
+
+1. **`vi.fn()` without generic params** — TypeScript infers `never[]` return type for empty arrays, causing `mockResolvedValueOnce` to reject non-never values. Fix: `vi.fn<(arg: Type) => Promise<ResultType>>()`
+2. **`as any` type assertions** — Use `as unknown as TargetType` instead
+3. **Missing non-null assertions** — After `expect()` assertions that verify a value exists, use `!` operator: `calls[0]![0]`
+4. **`Error` vs `AppError`** — Functions returning `Result<T, AppError>` must receive `AppError` instances, not plain `Error`
+
+**BAD**:
+```typescript
+const mockCreate = vi.fn(() => Promise.resolve({ ok: true, value: entity }));
+mockCreate.mockResolvedValueOnce({ ok: true, value: { id: "1", name: "test" } });
+```
+
+**GOOD**:
+```typescript
+const mockCreate = vi.fn<(entity: TestEntity) => Promise<Result<TestEntity, AppError>>>(() =>
+  Promise.resolve(ok(entity))
+);
+```
+
+**Discovered in**: 13 test files had 80 type errors total, all caused by missing generic params on `vi.fn()` and `as any` assertions.
+
+### R56: User-Facing Messages MUST Use Shared Message Constants
+User-facing strings (toast messages, dialog titles, error descriptions, button labels, placeholders, section headings) MUST use the `t()` function from `@/shared/constants/messages` instead of hardcoded Chinese strings. This ensures consistency across the UI and makes future internationalization feasible.
+
+**BAD**:
+```typescript
+success("保存成功", "分镜项目已更新");
+error("删除失败", err instanceof Error ? err.message : "未知错误");
+const confirmed = await confirm({ title: "确认删除", confirmText: "删除" });
+<DialogTitle>同步设置</DialogTitle>
+<Label>启用同步</Label>
+<Button>保存设置</Button>
+```
+
+**GOOD**:
+```typescript
+success(t("success.saved"), t("success.beatDeleted"));
+showError(t("error.deleteFailed"), mapUserFacingError(err));
+const confirmed = await confirm(t("confirm.deleteTitle"), t("confirm.delete"));
+<DialogTitle>{t("sync.settingsTitle")}</DialogTitle>
+<Label>{t("sync.enableSync")}</Label>
+<Button>{t("sync.saveSettings")}</Button>
+```
+
+**Message key categories** (in `src/shared/constants/messages.ts`, 840+ keys):
+- `common.*` — Save, delete, cancel, retry, loading, upload, regenerate, generate, etc.
+- `error.*` — All error messages (save, delete, upload, generate, network, copy, openLink, etc.)
+- `success.*` — All success messages (saved, deleted, generated, copied, etc.)
+- `confirm.*` — Confirmation dialog titles and content
+- `warning.*` — Warning messages
+- `video.*` — Video task lifecycle messages
+- `image.*` — Image generation messages
+- `story.*` — Story editing messages
+- `batch.*` — Batch operation messages
+- `plugin.*` — Plugin management and creator messages
+- `asset.*` — Asset library, export/import, batch operations messages
+- `provider.*` — Provider management, API config, connection test messages
+- `capability.*` — Capability type names (text/image/analysis/video)
+- `mapping.*` — Function mapping configuration messages
+- `connection.*` — Connection test messages
+- `sidebar.*` — Sidebar navigation labels
+- `onboarding.*` — Onboarding step labels and descriptions
+- `errorBoundary.*` — Error boundary messages
+- `config.*` — Config check banner messages
+- `sync.*` — Sync settings, conflict resolution, status indicator messages
+- `search.*` — Search dialog messages
+- `quickGenerate.*` — Quick generate panel messages
+- `page.*` — Page titles and descriptions
+- `settings.*` — Settings page labels
+- `home.*` — Home page content
+- `beat.*` — Beat detail/editor/overview card messages
+- `element.*` — Element binding panel messages
+- `shot.*` — Shot generation panel messages
+- `keyframe.*` — Keyframe panel messages
+- `refVideo.*` — Reference video uploader messages
+- `prompt.*` — Prompt editor/floating ball messages
+- `template.*` — Template manager dialog messages
+- `assetPicker.*` — Asset picker dialog messages
+- `version.*` — Version dialog messages
+- `task.*` — Video task detail/tracking/filter/card messages
+- `model.*` — Model selector messages
+- `outfit.*` — Outfit dialog messages
+- `scene.*` / `character.*` — List item fallback text and editor messages
+- `dialog.*` — Shared dialog labels
+
+**Discovered in**: ~19000+ hardcoded Chinese strings across 100+ files. Full migration completed: core toast/confirm/showError → presentation components (buttons, labels, titles, placeholders) → page components → module presentation components → shared components. ESLint R56 rule enforces t() usage in success/error/showError calls. Only AI prompt templates, error-codes business data, and log messages remain in Chinese (by design).
+
+### R57: No Next.js Imports After Vite Migration
+After migrating from Next.js to Vite + React Router, all `next/*` imports are forbidden. Use the corresponding React Router or native alternatives.
+
+| Next.js API | React Router / Native Alternative |
+|-------------|-----------------------------------|
+| `next/link` → `<Link>` with `href` | `react-router-dom` → `<Link>` with `to` |
+| `next/navigation` → `useRouter()` | `react-router-dom` → `useNavigate()` |
+| `next/navigation` → `usePathname()` | `react-router-dom` → `useLocation().pathname` |
+| `next/navigation` → `useSearchParams()` | `react-router-dom` → `useSearchParams()` returns `[params, setParams]` tuple |
+| `next/image` → `<Image>` | Native `<img>` or `SafeImage` component |
+| `"use client"` directive | Not needed (Vite SPA, all components are client) |
+| `generateStaticParams` export | Not applicable (SPA, no SSG) |
+| `metadata` / `generateMetadata` export | Not applicable (SPA, no SSR metadata) |
+
+**BAD**:
+```typescript
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+```
+
+**GOOD**:
+```typescript
+import { Link, useNavigate, useLocation } from "react-router-dom";
+```
+
+**Discovered in**: Next.js → Vite migration. Next.js had ~15% feature utilization in Electron desktop app (only file routing + Link + Navigation hooks used).
+
+### R58: React Router useSearchParams Returns Tuple
+React Router's `useSearchParams()` returns `[URLSearchParams, SetURLSearchParams]` tuple, unlike Next.js which returns `URLSearchParams` directly. Always destructure the first element.
+
+**BAD**:
+```typescript
+const searchParams = useSearchParams();
+searchParams.get("tab");
+```
+
+**GOOD**:
+```typescript
+const [searchParams] = useSearchParams();
+searchParams.get("tab");
+```
+
+**Discovered in**: Next.js → Vite migration. Next.js `useSearchParams()` returns `URLSearchParams` directly; React Router returns a tuple.
+
+### R59: No Ineffective Dynamic Imports
+When a module is both statically and dynamically imported within the same bundle, the dynamic import is ineffective — it will not produce code splitting. Either use static import only, or ensure the dynamic import is the sole reference for code splitting purposes.
+
+**BAD** — module statically imported elsewhere, dynamic import is wasted:
+```typescript
+import { saveConfig } from "./storage";
+const { saveConfig } = await import("./storage");
+```
+
+**GOOD** — choose one strategy:
+```typescript
+import { saveConfig } from "./storage";
+await saveConfig(migrated);
+```
+
+**Discovered in**: Vite build produced INEFFECTIVE_DYNAMIC_IMPORT warnings for 4 modules that were both statically and dynamically imported.
+
+### R60: New Modules Must Register codeSplitting Group
+When adding a new module under `src/modules/` that is expected to be >50KB, add a corresponding `codeSplitting.groups` entry in `vite.config.ts` (`build.rolldownOptions.output.codeSplitting.groups`). This ensures the bundle stays properly split and no single chunk grows too large. Use rolldown's `codeSplitting` API (not `manualChunks` which is ignored by rolldown's chunk merging).
+
+**BAD** — new module not in codeSplitting groups, gets merged into another chunk:
+```typescript
+codeSplitting: {
+  groups: [
+    { name: "app-story", test: /src[\\/]modules[\\/]story/, priority: 15 },
+    { name: "app-video", test: /src[\\/]modules[\\/]video/, priority: 15 },
+  ],
+}
+```
+
+**GOOD** — new module gets its own chunk group:
+```typescript
+codeSplitting: {
+  groups: [
+    { name: "app-story", test: /src[\\/]modules[\\/]story/, priority: 15 },
+    { name: "app-video", test: /src[\\/]modules[\\/]video/, priority: 15 },
+    { name: "app-newmodule", test: /src[\\/]modules[\\/]newmodule/, priority: 15 },
+  ],
+}
+```
+
+**Priority guide**: 30 for core vendor (react), 25 for secondary vendor, 20 for infrastructure, 18 for shared/domain, 15 for app modules, 10 for generic vendor, 5 for common.
+
+**Discovered in**: Vite migration — initial build produced a single 1.6MB chunk; `manualChunks` was ineffective (rolldown merged vendor-react into app-character creating 784KB chunk); `codeSplitting` API with priority-based groups resolved the issue.
+
+### R61: Test Mock IPC Return Format MUST Match Production Contract
+When `tests/helpers/electron-mock.ts` provides mock implementations for `electronAPI` methods (dbQuery, dbRun, dbTransaction, secureConfigSave, etc.), the return format MUST exactly match what the production `preload.ts` IPC handlers return. A format mismatch causes `safeQuery`/`safeRun`/`safeTransaction` to misinterpret the response, leading to silent failures or spurious error toasts in e2e tests.
+
+**Contract** (defined in `src/infrastructure/storage/sqlite-core.ts`):
+- `dbQuery` → `{ success: boolean, data: T[] }` (safeQuery extracts `response.data` as `T[]`)
+- `dbRun` → `{ success: boolean, data: { changes: number, lastInsertRowid: number } }` (safeRun extracts `response.data` as `DbRunResult`)
+- `dbTransaction` → `{ success: boolean, data: unknown[] }` (safeTransaction extracts `response.data` as `unknown[]`)
+
+**BAD** — mock returns raw array instead of wrapped format:
+```typescript
+dbQuery: async (sql, params) => {
+  const result = parseSelect(sql, params ?? []);
+  return result.data;  // Returns T[], but safeQuery expects { success, data }
+},
+```
+
+**GOOD** — mock returns wrapped format matching production:
+```typescript
+dbQuery: async (sql, params) => {
+  const result = parseSelect(sql, params ?? []);
+  return { success: true, data: result.data ?? [] };
+},
+```
+
+**Verification**: When modifying `sqlite-core.ts` return types or `preload.ts` IPC handlers, run `npx playwright test tests/database-storage.spec.ts` to verify mock contract alignment.
+
+**Discovered in**: e2e test audit — `dbQuery` mock returned raw array, `safeQuery` checked `response.success` (undefined on array), threw error, `useVideoTaskManager` showed error toast.

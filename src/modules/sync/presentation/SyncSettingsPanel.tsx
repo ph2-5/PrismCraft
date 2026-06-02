@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
@@ -16,25 +14,11 @@ import { Label } from "@/shared/ui/label";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import {
   Settings,
   RefreshCw,
-  Cloud,
-  CloudOff,
-  CheckCircle2,
-  AlertTriangle,
-  Loader2,
-  Server,
-  Unplug,
   AlertCircle,
 } from "lucide-react";
-import type { SyncConfig, SyncStatusInfo, ConflictStrategy } from "@/modules/sync";
+import type { SyncConfig, SyncStatusInfo } from "@/modules/sync";
 import type { SyncServerConfig, SyncTestResult } from "@/domain/types/sync";
 import {
   initSyncEngine,
@@ -47,13 +31,16 @@ import { SyncConflictPanel } from "./SyncConflictPanel";
 import type { SyncConflict } from "@/modules/sync";
 import { container } from "@/infrastructure/di";
 import { safeRun } from "@/shared/db-core";
+import { t } from "@/shared/constants";
+import { ServerConfigSection } from "./ServerConfigSection";
+import type { ConnectionStatus } from "./ServerConfigSection";
+import { SyncStatusSection } from "./SyncStatusSection";
+import { ConflictResolutionSection } from "./ConflictResolutionSection";
 
 interface SyncSettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-type ConnectionStatus = "disconnected" | "testing" | "connected" | "error";
 
 export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
   const [config, setConfig] = useState<SyncConfig & { server: SyncServerConfig | null }>({
@@ -94,7 +81,7 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
         setConfig(loaded);
         if (loaded.server) {
           setServerUrl(loaded.server.url || "");
-          setUsername((loaded.server as unknown as Record<string, unknown>).username as string || "");
+          setUsername(loaded.server.username ?? "");
           setConnectionStatus(loaded.server.connected ? "connected" : "disconnected");
           setServerVersion(loaded.server.serverVersion || null);
         } else if (loaded.endpoint) {
@@ -135,7 +122,7 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
   const handleTestConnection = async () => {
     if (!serverUrl || !username || !password) {
       setConnectionStatus("error");
-      setConnectionMessage("请填写服务器地址、用户名和密码");
+      setConnectionMessage(t("sync.fillServerInfo"));
       return;
     }
 
@@ -151,15 +138,15 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
 
       if (result.ok && result.value.success) {
         setConnectionStatus("connected");
-        setConnectionMessage(`连接成功${result.value.latency ? ` (${result.value.latency}ms)` : ""}`);
+        setConnectionMessage(`${t("sync.connectionSuccess")}${result.value.latency ? ` (${result.value.latency}ms)` : ""}`);
         setServerVersion(result.value.serverVersion || null);
       } else {
         setConnectionStatus("error");
-        setConnectionMessage(result.ok ? (result.value as unknown as Record<string, unknown>).error as string || "连接失败" : "请求失败");
+        setConnectionMessage(result.ok ? result.value.message || t("sync.connectionFailed") : t("error.requestFailed"));
       }
     } catch (e) {
       setConnectionStatus("error");
-      setConnectionMessage(`连接失败: ${(e as Error).message}`);
+      setConnectionMessage(`${t("sync.connectionFailed")}: ${(e as Error).message}`);
     }
   };
 
@@ -200,15 +187,15 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
         if (config.enabled) {
           await initSyncEngine(newConfig);
         }
-        emitToast("success", "同步设置已保存");
+        emitToast("success", t("success.syncConfigSaved"));
         onClose();
       } else {
         errorLogger.warn("保存同步配置失败", result.ok ? result.value.error : "请求失败");
-        emitToast("error", "保存同步配置失败");
+        emitToast("error", t("error.syncConfigSaveFailed"));
       }
     } catch (e) {
       errorLogger.warn("保存同步配置失败", e);
-      emitToast("error", "保存同步配置失败");
+      emitToast("error", t("error.syncConfigSaveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -223,7 +210,7 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
       await refreshStatus();
     } catch (error) {
       errorLogger.warn("手动同步失败", error);
-      emitToast("error", "同步失败");
+      emitToast("error", t("error.syncFailed"));
     } finally {
       setIsSyncing(false);
     }
@@ -293,6 +280,24 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
 
   const hasServerConfig = serverUrl && username;
 
+  const handleServerUrlChange = (url: string) => {
+    setServerUrl(url);
+    setConnectionStatus("disconnected");
+    setConnectionMessage("");
+  };
+
+  const handleUsernameChange = (name: string) => {
+    setUsername(name);
+    setConnectionStatus("disconnected");
+    setConnectionMessage("");
+  };
+
+  const handlePasswordChange = (pass: string) => {
+    setPassword(pass);
+    setConnectionStatus("disconnected");
+    setConnectionMessage("");
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -300,10 +305,10 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              同步设置
+              {t("sync.settingsTitle")}
             </DialogTitle>
             <DialogDescription>
-              配置同步服务器和冲突解决策略
+              {t("sync.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -311,16 +316,16 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
               <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <p className="text-xs text-amber-200">
-                同步功能正在开发中，当前配置可能无法正常工作
+                {t("sync.devWarning")}
               </p>
             </div>
 
             {/* 同步开关 */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>启用同步</Label>
+                <Label>{t("sync.enableSync")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  开启后将自动同步数据到服务器
+                  {t("sync.enableSyncHint")}
                 </p>
               </div>
               <Switch
@@ -332,111 +337,26 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
             </div>
 
             {/* 服务器配置 */}
-            <div className="space-y-3 rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Server className="h-4 w-4" />
-                服务器配置
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs">服务器地址</Label>
-                <Input
-                  placeholder="https://sync.example.com"
-                  value={serverUrl}
-                  onChange={(e) => {
-                    setServerUrl(e.target.value);
-                    setConnectionStatus("disconnected");
-                    setConnectionMessage("");
-                  }}
-                  disabled={!config.enabled}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-xs">用户名</Label>
-                  <Input
-                    placeholder="admin"
-                    value={username}
-                    onChange={(e) => {
-                      setUsername(e.target.value);
-                      setConnectionStatus("disconnected");
-                      setConnectionMessage("");
-                    }}
-                    disabled={!config.enabled}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">密码</Label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setConnectionStatus("disconnected");
-                      setConnectionMessage("");
-                    }}
-                    disabled={!config.enabled}
-                  />
-                </div>
-              </div>
-
-              {/* 连接状态 */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs">
-                  {connectionStatus === "connected" && (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                      <span className="text-green-600">{connectionMessage}</span>
-                      {serverVersion && (
-                        <span className="text-muted-foreground">({serverVersion})</span>
-                      )}
-                    </>
-                  )}
-                  {connectionStatus === "testing" && (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
-                      <span className="text-blue-500">正在测试连接...</span>
-                    </>
-                  )}
-                  {connectionStatus === "error" && (
-                    <>
-                      <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
-                      <span className="text-red-500">{connectionMessage}</span>
-                    </>
-                  )}
-                  {connectionStatus === "disconnected" && (
-                    <>
-                      <Unplug className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-muted-foreground">未连接</span>
-                    </>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestConnection}
-                  disabled={
-                    !config.enabled ||
-                    !serverUrl ||
-                    !username ||
-                    !password ||
-                    connectionStatus === "testing"
-                  }
-                  className="h-7 text-xs"
-                >
-                  {connectionStatus === "testing" ? "测试中..." : "测试连接"}
-                </Button>
-              </div>
-            </div>
+            <ServerConfigSection
+              serverUrl={serverUrl}
+              onServerUrlChange={handleServerUrlChange}
+              username={username}
+              onUsernameChange={handleUsernameChange}
+              password={password}
+              onPasswordChange={handlePasswordChange}
+              connectionStatus={connectionStatus}
+              connectionMessage={connectionMessage}
+              serverVersion={serverVersion}
+              onTestConnection={handleTestConnection}
+              enabled={config.enabled}
+            />
 
             {/* 自动同步 */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>自动同步</Label>
+                <Label>{t("sync.autoSync")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  定时自动执行同步
+                  {t("sync.autoSyncHint")}
                 </p>
               </div>
               <Switch
@@ -450,7 +370,7 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
 
             {/* 同步间隔 */}
             <div className="space-y-2">
-              <Label>同步间隔（秒）</Label>
+              <Label>{t("sync.syncIntervalSeconds")}</Label>
               <Input
                 type="number"
                 min={10}
@@ -466,74 +386,13 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
               />
             </div>
 
-            {/* 冲突策略 */}
-            <div className="space-y-2">
-              <Label>冲突解决策略</Label>
-              <Select
-                value={config.conflictStrategy}
-                onValueChange={(value) =>
-                  setConfig((prev) => ({ ...prev, conflictStrategy: value as ConflictStrategy }))
-                }
-                disabled={!config.enabled}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="last-write-wins">最后写入优先</SelectItem>
-                  <SelectItem value="local-wins">本地优先</SelectItem>
-                  <SelectItem value="remote-wins">远程优先</SelectItem>
-                  <SelectItem value="manual">手动解决</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {config.conflictStrategy === "last-write-wins" &&
-                  "根据时间戳自动选择最新版本"}
-                {config.conflictStrategy === "local-wins" &&
-                  "发生冲突时始终保留本地版本"}
-                {config.conflictStrategy === "remote-wins" &&
-                  "发生冲突时始终使用远程版本"}
-                {config.conflictStrategy === "manual" &&
-                  "发生冲突时弹出面板供手动选择"}
-              </p>
-            </div>
+            <ConflictResolutionSection
+              conflictStrategy={config.conflictStrategy}
+              onConflictStrategyChange={(strategy) => setConfig((prev) => ({ ...prev, conflictStrategy: strategy }))}
+              enabled={config.enabled}
+            />
 
-            {/* 同步状态 */}
-            {status && (
-              <div className="rounded-lg border p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  {status.conflicts > 0 ? (
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                  ) : status.pendingChanges > 0 ? (
-                    <Cloud className="h-4 w-4 text-blue-500" />
-                  ) : status.lastSyncAt ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <CloudOff className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span>同步状态</span>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>
-                    上次同步:{" "}
-                    {status.lastSyncAt
-                      ? new Date(status.lastSyncAt).toLocaleString("zh-CN")
-                      : "尚未同步"}
-                  </p>
-                  <p>待同步: {status.pendingChanges} 项</p>
-                  <p>冲突: {status.conflicts} 项</p>
-                </div>
-              </div>
-            )}
-
-            {/* 同步结果 */}
-            {syncResult && (
-              <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
-                <p>推送: {syncResult.pushed} 项</p>
-                <p>拉取: {syncResult.pulled} 项</p>
-                <p>冲突: {syncResult.conflicts} 项</p>
-              </div>
-            )}
+            <SyncStatusSection status={status} syncResult={syncResult} />
           </div>
 
           <DialogFooter className="gap-2">
@@ -546,10 +405,10 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
               <RefreshCw
                 className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
               />
-              {isSyncing ? "同步中..." : "立即同步"}
+              {isSyncing ? t("sync.syncing") : t("sync.syncNow")}
             </Button>
             <Button variant="default" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? "保存中..." : "保存设置"}
+              {isSaving ? t("common.saving") : t("sync.saveSettings")}
             </Button>
           </DialogFooter>
         </DialogContent>

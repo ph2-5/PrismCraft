@@ -12,6 +12,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Loader2, Trash2 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { getStatusColor, getStatusLabel } from "./task-status-helpers";
+import { t } from "@/shared/constants";
 
 interface BulkDeleteDialogProps {
   open: boolean;
@@ -34,16 +35,14 @@ export function BulkDeleteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>确认批量删除</DialogTitle>
+          <DialogTitle>{t("task.confirmBatchDelete")}</DialogTitle>
           <DialogDescription>
-            确定要删除选中的 {selectedTaskIds.size} 个任务吗？
-            <br />
-            这将同时删除任务记录和本地缓存（如果有）。
+            {t("task.confirmBatchDeleteDesc", { count: selectedTaskIds.size })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4 space-y-2">
-          <div className="text-sm text-gray-600 dark:text-gray-300">将要删除的任务：</div>
+          <div className="text-sm text-gray-600 dark:text-gray-300">{t("task.tasksToDelete")}</div>
           <div className="max-h-48 overflow-y-auto space-y-1">
             {Array.from(selectedTaskIds)
               .map((taskId) => filteredTasks.find((t) => t.taskId === taskId))
@@ -55,7 +54,7 @@ export function BulkDeleteDialog({
                   className="text-sm bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded flex items-center justify-between"
                 >
                   <span className="truncate flex-1">
-                    {task?.beatTitle || `任务 ${(task?.taskId || "unknown").substring(0, 8)}...`}
+                    {task?.beatTitle || `${t("task.taskLabel")} ${(task?.taskId || "unknown").substring(0, 8)}...`}
                   </span>
                   <Badge className={`ml-2 ${task ? getStatusColor(task.status) : ""}`}>
                     {task ? getStatusLabel(task.status) : ""}
@@ -64,7 +63,7 @@ export function BulkDeleteDialog({
               ))}
             {selectedTaskIds.size > 10 && (
               <div className="text-xs text-gray-500 text-center py-1">
-                ...还有 {selectedTaskIds.size - 10} 个任务
+                {t("task.moreTasks", { count: selectedTaskIds.size - 10 })}
               </div>
             )}
           </div>
@@ -76,7 +75,7 @@ export function BulkDeleteDialog({
             onClick={() => onOpenChange(false)}
             disabled={isDeleting}
           >
-            取消
+            {t("common.cancel")}
           </Button>
           <Button
             variant="destructive"
@@ -89,7 +88,7 @@ export function BulkDeleteDialog({
             ) : (
               <Trash2 className="w-4 h-4" />
             )}
-            {isDeleting ? "删除中..." : `删除 ${selectedTaskIds.size} 个任务`}
+            {isDeleting ? t("common.deleting") : t("task.deleteCountTasks", { count: selectedTaskIds.size })}
           </Button>
         </DialogFooter>
       </DialogContent>

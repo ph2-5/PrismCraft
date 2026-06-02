@@ -3,17 +3,17 @@ $projectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $env:BUILD_TARGET = "electron"
 
-$nextCacheDir = Join-Path $projectDir ".next"
-if (Test-Path $nextCacheDir) {
-    Remove-Item -Path $nextCacheDir -Recurse -Force
-    Write-Host "Cleared .next cache for clean build"
+$outDir = Join-Path $projectDir "out"
+if (Test-Path $outDir) {
+    Remove-Item -Path $outDir -Recurse -Force
+    Write-Host "Cleared out/ directory for clean build"
 }
 
 try {
     $buildResult = 0
     try {
         $ErrorActionPreference = "Continue"
-        npx next build 2>&1 | ForEach-Object { Write-Host $_ }
+        npx vite build 2>&1 | ForEach-Object { Write-Host $_ }
         $buildResult = $LASTEXITCODE
         $ErrorActionPreference = "Stop"
     } catch {
@@ -21,7 +21,7 @@ try {
     }
 
     if ($buildResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "out\index.html"))) {
-        Write-Error "Next.js build failed with exit code $buildResult"
+        Write-Error "Vite build failed with exit code $buildResult"
         exit $buildResult
     }
 
@@ -32,10 +32,6 @@ try {
     if ($tscResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "electron\dist\main.js"))) {
         Write-Error "Electron TypeScript compilation failed"
         exit $tscResult
-    }
-
-    if (-not (Test-Path "out")) {
-        New-Item -ItemType Directory -Path "out" -Force | Out-Null
     }
 
     Copy-Item -Path "electron\dist\*" -Destination "out\" -Recurse -Force

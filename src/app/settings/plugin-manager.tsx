@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
@@ -13,11 +11,9 @@ import {
 } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
-import { Badge } from "@/shared/ui/badge";
 import { Alert, AlertDescription } from "@/shared/ui/alert";
 import { Label } from "@/shared/ui/label";
 import {
-  Trash2,
   Loader2,
   Puzzle,
   Upload,
@@ -25,7 +21,6 @@ import {
   CheckCircle,
   XCircle,
   FileJson,
-  ChevronDown,
   BookOpen,
   FileText,
 } from "lucide-react";
@@ -33,6 +28,7 @@ import { confirm } from "@/shared/utils/confirm";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import { isElectron } from "@/shared/utils/platform";
 import PluginCreator from "./plugin-creator";
+import { PluginList } from "./PluginList";
 
 interface PluginInfo {
   id: string;
@@ -316,7 +312,7 @@ export default function PluginManager() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Puzzle className="w-5 h-5" />
-            插件管理
+            {t("plugin.management")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-8">
@@ -334,144 +330,54 @@ export default function PluginManager() {
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Puzzle className="w-5 h-5" />
-                插件管理
+                {t("plugin.management")}
               </CardTitle>
-              <CardDescription>管理 AI 提供商插件，添加自定义 API 插件</CardDescription>
+              <CardDescription>{t("plugin.managementDesc")}</CardDescription>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleShowSchema}>
                 <BookOpen className="h-4 w-4 mr-1" />
-                {showSchema ? "隐藏规范" : "插件规范"}
+                {showSchema ? t("plugin.hideSpec") : t("plugin.showSpec")}
               </Button>
               <Button variant="outline" size="sm" onClick={handleShowSpec}>
                 <FileText className="h-4 w-4 mr-1" />
-                {showSpec ? "隐藏文档" : "规范文档"}
+                {showSpec ? t("plugin.hideDoc") : t("plugin.showDoc")}
               </Button>
               <Button variant="outline" size="sm" onClick={handleReload} disabled={isReloading}>
                 {isReloading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                重载
+                {t("plugin.reload")}
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {builtInPlugins.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">内置插件 ({builtInPlugins.length})</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {builtInPlugins.map((plugin) => (
-                  <div key={plugin.id} className="flex items-center justify-between p-2.5 border rounded-lg bg-slate-800/30">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                      <span className="text-sm font-medium truncate">{plugin.displayName}</span>
-                      <Badge variant="secondary" className="text-xs shrink-0">内置</Badge>
-                    </div>
-                    <div className="flex gap-1 shrink-0 ml-2">
-                      {plugin.videoCapabilities.defaultModel && (
-                        <Badge variant="outline" className="text-xs">{plugin.videoCapabilities.defaultModel}</Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {userPlugins.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">用户插件 ({userPlugins.length})</h4>
-              <div className="space-y-2">
-                {userPlugins.map((plugin) => {
-                  const isExpanded = expandedPlugin === plugin.id;
-                  const fileInfo = userPluginFiles.find((f) => f.id === plugin.id);
-                  return (
-                    <div key={plugin.id} className="border rounded-lg overflow-hidden">
-                      <div
-                        className="flex items-center justify-between p-3 cursor-pointer bg-green-900/20"
-                        onClick={() => setExpandedPlugin(isExpanded ? null : plugin.id)}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                          <span className="font-medium truncate">{plugin.displayName}</span>
-                          <Badge className="text-xs bg-green-700 shrink-0">自定义</Badge>
-                          {fileInfo && (
-                            <span className="text-xs text-muted-foreground shrink-0">v{fileInfo.version}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(plugin.id, plugin.displayName);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                          <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                        </div>
-                      </div>
-                      {isExpanded && (
-                        <div className="p-3 border-t bg-slate-800/50 space-y-2 text-sm">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <span className="text-muted-foreground">ID: </span>
-                              <span className="font-mono">{plugin.id}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">视频模型: </span>
-                              <span>{plugin.videoCapabilities.defaultModel}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">图片模型: </span>
-                              <span>{plugin.imageCapabilities.defaultModel}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">最大时长: </span>
-                              <span>{plugin.videoCapabilities.maxDuration}s</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-1 flex-wrap">
-                            {plugin.videoCapabilities.supportsLastFrame && <Badge variant="outline" className="text-xs">尾帧</Badge>}
-                            {plugin.videoCapabilities.supportsReferenceVideo && <Badge variant="outline" className="text-xs">参考视频</Badge>}
-                            {plugin.videoCapabilities.supportsMimicryLevel && <Badge variant="outline" className="text-xs">模仿度</Badge>}
-                            {plugin.imageCapabilities.supportsReferenceImage && <Badge variant="outline" className="text-xs">参考图</Badge>}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {plugins.length === 0 && (
-            <div className="text-center py-6 text-gray-500 border-2 border-dashed rounded-lg">
-              <Puzzle className="w-10 h-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">暂无插件</p>
-            </div>
-          )}
+          <PluginList
+            builtInPlugins={builtInPlugins}
+            userPlugins={userPlugins}
+            userPluginFiles={userPluginFiles}
+            expandedPlugin={expandedPlugin}
+            onToggleExpand={(id) => setExpandedPlugin(id)}
+            onDelete={handleDelete}
+          />
 
           <div className="flex gap-2">
             {!showAddForm && !showCreator ? (
               <>
                 <Button variant="outline" className="flex-1" onClick={() => setShowCreator(true)}>
-                  <Puzzle className="w-4 h-4 mr-2" />
-                  创建插件
+                  <Puzzle className="w-4 w-4 mr-2" />
+                  {t("plugin.createPlugin")}
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowAddForm(true)}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  导入 JSON
+                  <Upload className="w-4 w-4 mr-2" />
+                  {t("plugin.importJson")}
                 </Button>
               </>
             ) : showAddForm ? (
               <div className="w-full p-4 border rounded-lg bg-slate-800/50 space-y-4">
                 <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-800">
-                  <h4 className="font-medium text-blue-300 mb-2">添加自定义插件</h4>
+                  <h4 className="font-medium text-blue-300 mb-2">{t("plugin.addCustomPlugin")}</h4>
                   <p className="text-sm text-blue-300/80">
-                    粘贴或上传符合插件规范的 JSON 配置文件。插件将根据 API URL 和模型名称自动匹配请求。
+                    {t("plugin.addCustomPluginDesc")}
                   </p>
                 </div>
 
@@ -485,20 +391,20 @@ export default function PluginManager() {
                   />
                   <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                     <FileJson className="h-4 w-4 mr-1" />
-                    上传 JSON 文件
+                    {t("plugin.uploadJsonFile")}
                   </Button>
-                  <span className="text-xs text-muted-foreground self-center">或直接粘贴 JSON 配置</span>
+                  <span className="text-xs text-muted-foreground self-center">{t("plugin.orPasteJson")}</span>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>插件配置 JSON</Label>
+                  <Label>{t("plugin.pluginConfigJson")}</Label>
                   <Textarea
                     value={jsonInput}
                     onChange={(e) => {
                       setJsonInput(e.target.value);
                       setValidationResult(null);
                     }}
-                    placeholder='{"id": "my-provider", "version": "1.0.0", "displayName": "我的提供商", ...}'
+                    placeholder='{"id": "my-provider", "version": "1.0.0", "displayName": "My Provider", ...}'
                     className="font-mono text-xs min-h-[200px]"
                   />
                 </div>
@@ -507,7 +413,7 @@ export default function PluginManager() {
                   <Alert variant={validationResult.valid ? "default" : "destructive"} className={validationResult.valid ? "bg-green-900/20 border-green-800" : ""}>
                     <AlertDescription className={validationResult.valid ? "text-green-700" : ""}>
                       {validationResult.valid ? (
-                        <span className="flex items-center gap-1"><CheckCircle className="h-4 w-4" /> 配置验证通过</span>
+                        <span className="flex items-center gap-1"><CheckCircle className="h-4 w-4" /> {t("plugin.configValidationPassed")}</span>
                       ) : (
                         <span className="flex items-start gap-1"><XCircle className="h-4 w-4 mt-0.5 shrink-0" /> {validationResult.errors.join("; ")}</span>
                       )}
@@ -518,14 +424,14 @@ export default function PluginManager() {
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={handleValidate} disabled={!jsonInput.trim() || isValidating}>
                     {isValidating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-                    验证配置
+                    {t("plugin.validateConfig")}
                   </Button>
                   <Button onClick={handleAdd} disabled={!jsonInput.trim() || isAdding}>
                     {isAdding ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-                    添加插件
+                    {t("plugin.addPluginBtn")}
                   </Button>
                   <Button variant="outline" onClick={() => { setShowAddForm(false); setJsonInput(""); setValidationResult(null); }}>
-                    取消
+                    {t("common.cancel")}
                   </Button>
                 </div>
               </div>
@@ -535,9 +441,9 @@ export default function PluginManager() {
           {userPluginFiles.some((f) => !f.valid) && (
             <Alert variant="destructive">
               <AlertDescription>
-                <span className="font-medium">存在无效插件：</span>
+                <span className="font-medium">{t("plugin.invalidPluginsExist")}</span>
                 {userPluginFiles.filter((f) => !f.valid).map((f) => f.fileName).join(", ")}
-                <span className="text-xs ml-2">请检查配置格式或删除无效插件</span>
+                <span className="text-xs ml-2">{t("plugin.checkConfigOrDelete")}</span>
               </AlertDescription>
             </Alert>
           )}
@@ -549,9 +455,9 @@ export default function PluginManager() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <BookOpen className="w-5 h-5" />
-              API 插件规范
+              {t("plugin.apiPluginSpec")}
             </CardTitle>
-            <CardDescription>自定义插件配置的 JSON Schema 说明</CardDescription>
+            <CardDescription>{t("plugin.pluginSchemaDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <pre className="text-xs bg-slate-900 p-4 rounded-lg overflow-auto max-h-[600px] font-mono text-slate-300 whitespace-pre-wrap">
@@ -566,9 +472,9 @@ export default function PluginManager() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <BookOpen className="w-5 h-5" />
-              插件规范文档
+              {t("plugin.pluginSpecDoc")}
             </CardTitle>
-            <CardDescription>自定义插件配置的完整参考文档</CardDescription>
+            <CardDescription>{t("plugin.pluginSpecDocDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <pre className="text-xs bg-slate-900 p-4 rounded-lg overflow-auto max-h-[600px] font-mono text-slate-300 whitespace-pre-wrap">

@@ -3,6 +3,7 @@ import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Search, Loader2 } from "lucide-react";
+import { t } from "@/shared/constants";
 
 interface RecoverySectionProps {
   recoveryTaskId: string;
@@ -19,10 +20,10 @@ export function RecoverySection({
 }: RecoverySectionProps) {
   return (
     <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
-      <Label className="text-sm font-medium">找回失败视频</Label>
+      <Label className="text-sm font-medium">{t("task.recoverFailedVideo")}</Label>
       <div className="flex gap-2">
         <Input
-          placeholder="输入任务ID"
+          placeholder={t("task.enterTaskId")}
           value={recoveryTaskId}
           onChange={(e) => onRecoveryTaskIdChange(e.target.value)}
           className="flex-1"
@@ -37,11 +38,11 @@ export function RecoverySection({
           ) : (
             <Search className="w-4 h-4" />
           )}
-          找回
+          {t("task.recoverButton")}
         </Button>
       </div>
       <p className="text-xs text-gray-500">
-        输入任务ID后，系统将查询云端真实状态并尝试找回视频
+        {t("task.recoverHint")}
       </p>
     </div>
   );

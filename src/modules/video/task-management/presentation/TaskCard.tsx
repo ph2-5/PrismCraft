@@ -8,6 +8,7 @@ import {
 } from "@/shared/ui/card";
 import { Progress } from "@/shared/ui/progress";
 import { Button } from "@/shared/ui/button";
+import { t } from "@/shared/constants";
 import { Badge } from "@/shared/ui/badge";
 import {
   Square,
@@ -95,8 +96,7 @@ export const TaskCard = React.memo(function TaskCard({
               )}
             </button>
             <CardTitle className="text-sm font-medium">
-              {task.beatTitle ||
-                `任务 ${(task.taskId || "unknown").substring(0, 8)}...`}
+              {task.beatTitle || `${t("task.taskLabel")} ${(task.taskId || "unknown").substring(0, 8)}...`}
             </CardTitle>
           </div>
           <div className="flex items-center gap-2">
@@ -111,14 +111,14 @@ export const TaskCard = React.memo(function TaskCard({
                 onClick={() => onJumpToBeat(task)}
               >
                 <Film className="w-3 h-3" />
-                分镜
+                {t("task.beatButton")}
               </Button>
             )}
           </div>
         </div>
         <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
-          创建于 {new Date(task.createdAt).toLocaleString()}
-          {task.model && ` · 模型: ${task.model}`}
+          {t("task.createdAtAgo", { time: new Date(task.createdAt).toLocaleString() })}
+          {task.model && ` · ${t("task.modelLabel", { model: task.model })}`}
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { InMemoryDatabase, getTestDatabase, closeTestDatabase } from "../mocks/in-memory-db";
-import { setupElectronApiMock, getElectronApiMock } from "../mocks/electron-api";
+import { setupElectronApiMock } from "../mocks/electron-api";
 
 let db: InMemoryDatabase;
 
@@ -300,7 +300,7 @@ describe("E2E 数据库完整性", () => {
     it("parseVideoTask 应正确映射所有字段", async () => {
       const { videoTaskStorage } = await import("@/infrastructure/storage/video-tasks");
 
-      const now = new Date().toISOString();
+      const _now = new Date().toISOString();
       await videoTaskStorage.createVideoTask({
         taskId: "parse-test-1",
         status: "generating",

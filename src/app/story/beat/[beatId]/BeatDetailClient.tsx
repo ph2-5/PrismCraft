@@ -1,5 +1,3 @@
-"use client";
-
 import { errorLogger } from "@/shared/error-logger";
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/shared/ui/button";
@@ -21,6 +19,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import type { StoryBeat, Story } from "@/domain/schemas";
@@ -65,44 +64,44 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
   const handleCopyPrompt = useCallback(() => {
     const prompt = beat.videoGen?.prompt || beat.generationPrompt || "";
     navigator.clipboard.writeText(prompt).then(() => {
-      success("已复制", "提示词已复制到剪贴板");
+      success(t("success.copied"), t("success.promptCopied"));
     }).catch((err) => {
       errorLogger.warn("[BeatDetailClient] 复制提示词失败:", err);
-      showError("复制失败", "无法复制到剪贴板");
+      showError(t("error.copyFailed"), t("error.clipboardUnavailable"));
     });
   }, [beat, success, showError]);
 
   const handleDownloadVideo = useCallback(() => {
     const url = videoUrl || beat.videoGen?.videoUrl || task?.videoUrl;
     if (!url) {
-      showError("无法下载", "视频尚未生成完成");
+      showError(t("error.cannotDownload"), t("error.videoNotReady"));
       return;
     }
     const a = document.createElement("a");
     a.href = url;
     a.download = `${beat.title || "分镜"}_${beat.sequence}.mp4`;
     a.click();
-    success("开始下载", "视频下载已启动");
+    success(t("success.downloadStarted"), t("success.videoDownloadStarted"));
   }, [videoUrl, beat, task, success, showError]);
 
   const handleCopyVideoUrl = useCallback(() => {
     const url = videoUrl || beat.videoGen?.videoUrl || task?.videoUrl;
     if (!url) {
-      showError("无法复制", "视频URL不存在");
+      showError(t("error.cannotCopy"), t("error.videoUrlNotFound"));
       return;
     }
     navigator.clipboard.writeText(url).then(() => {
-      success("已复制", "视频URL已复制到剪贴板");
+      success(t("success.copied"), t("success.videoUrlCopied"));
     }).catch((err) => {
       errorLogger.warn("[BeatDetailClient] 复制视频URL失败", err);
-      showError("复制失败", "无法复制到剪贴板");
+      showError(t("error.copyFailed"), t("error.clipboardUnavailable"));
     });
   }, [videoUrl, beat, task, success, showError]);
 
   const handleRefreshVideoUrl = useCallback(async () => {
     const taskId = beat.videoGen?.taskId || task?.taskId;
     if (!taskId) {
-      showError("无法刷新", "任务ID不存在，无法获取视频URL");
+      showError(t("error.cannotRefresh"), t("error.taskIdNotFound"));
       return;
     }
     setIsRefreshingUrl(true);
@@ -117,14 +116,14 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
       );
       if (response.data?.videoUrl) {
         setVideoUrl(response.data.videoUrl);
-        success("获取成功", "视频URL已更新");
+        success(t("success.urlRefreshed"), t("success.videoUrlUpdated"));
       } else if (response.data?.status === "completed") {
-        showError("获取失败", "任务已完成但未返回视频URL");
+        showError(t("error.fetchFailed"), t("error.videoUrlMissing"));
       } else {
-        showError("获取失败", `任务状态: ${response.data?.status || "未知"}`);
+        showError(t("error.fetchFailed"), t("error.taskStatus", { status: response.data?.status || "未知" }));
       }
     } catch (err) {
-      showError("获取失败", err instanceof Error ? err.message : "未知错误");
+      showError(t("error.fetchFailed"), err instanceof Error ? err.message : t("error.unknown"));
     } finally {
       setIsRefreshingUrl(false);
     }
@@ -148,15 +147,15 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
   const getStatusLabel = (status?: string) => {
     switch (status) {
       case "completed":
-        return "已完成";
+        return t("beat.statusCompleted");
       case "failed":
-        return "失败";
+        return t("beat.statusFailed");
       case "generating":
-        return "处理中";
+        return t("beat.statusProcessing");
       case "pending":
-        return "等待中";
+        return t("beat.statusWaiting");
       default:
-        return "未开始";
+        return t("beat.statusNotStarted");
     }
   };
 
@@ -201,7 +200,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     onClick={handleDownloadVideo}
                   >
                     <Download className="w-4 h-4" />
-                    下载
+                    {t("beat.download")}
                   </Button>
                   <Button
                     variant="outline"
@@ -210,7 +209,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     onClick={handleCopyVideoUrl}
                   >
                     <Link2 className="w-4 h-4" />
-                    复制URL
+                    {t("beat.copyUrl")}
                   </Button>
                 </>
               )}
@@ -251,8 +250,8 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                       <div className="text-center text-white">
                         <Film className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p className="text-lg font-medium">视频尚未生成</p>
-                        <p className="text-sm opacity-70">首尾帧已准备就绪</p>
+                        <p className="text-lg font-medium">{t("beat.videoNotGenerated")}</p>
+                        <p className="text-sm opacity-70">{t("beat.framesReady")}</p>
                       </div>
                     </div>
                   </div>
@@ -266,8 +265,8 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                       <div className="text-center text-white">
                         <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p className="text-lg font-medium">预览图已生成</p>
-                        <p className="text-sm opacity-70">请先生成首尾帧</p>
+                        <p className="text-lg font-medium">{t("beat.keyframeGenerated")}</p>
+                        <p className="text-sm opacity-70">{t("beat.generateFramesFirst")}</p>
                       </div>
                     </div>
                   </div>
@@ -275,8 +274,8 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   <div className="aspect-video bg-slate-900 flex items-center justify-center">
                     <div className="text-center text-slate-400">
                       <Video className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-lg font-medium">尚未开始生成</p>
-                      <p className="text-sm opacity-70">请先生成预览图</p>
+                      <p className="text-lg font-medium">{t("beat.notStarted")}</p>
+                      <p className="text-sm opacity-70">{t("beat.generateKeyframeFirst")}</p>
                     </div>
                   </div>
                 )}
@@ -291,7 +290,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   onClick={() => guardedPush("/story")}
                 >
                   <RotateCcw className="w-4 h-4" />
-                  返回故事页重试
+                  {t("beat.backToStory")}
                 </Button>
               )}
               {beat.framePair?.firstFrame?.imageUrl &&
@@ -302,7 +301,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     onClick={() => guardedPush("/story")}
                   >
                     <Wand2 className="w-4 h-4" />
-                    生成视频
+                    {t("beat.generateVideo")}
                   </Button>
                 )}
               {beat.keyframe?.imageUrl &&
@@ -312,7 +311,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     onClick={() => guardedPush("/story")}
                   >
                     <Image className="w-4 h-4" />
-                    生成首尾帧
+                    {t("beat.generateFramePair")}
                   </Button>
                 )}
               {!beat.keyframe?.imageUrl && (
@@ -321,7 +320,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   onClick={() => guardedPush("/story")}
                 >
                   <Wand2 className="w-4 h-4" />
-                  生成预览图
+                  {t("beat.generateKeyframe")}
                 </Button>
               )}
             </div>
@@ -330,21 +329,21 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
           <div className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
-                <TabsTrigger value="video">视频</TabsTrigger>
-                <TabsTrigger value="edit">编辑</TabsTrigger>
-                <TabsTrigger value="tech">技术</TabsTrigger>
+                <TabsTrigger value="video">{t("beat.tabVideo")}</TabsTrigger>
+                <TabsTrigger value="edit">{t("beat.tabEdit")}</TabsTrigger>
+                <TabsTrigger value="tech">{t("beat.tabTech")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="video" className="space-y-4">
                 <Card className="bg-slate-800/50 border-purple-800/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm text-purple-100">
-                      生成状态
+                      {t("beat.genStatus")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">状态</span>
+                      <span className="text-sm text-slate-400">{t("beat.status")}</span>
                       <Badge
                         className={getStatusColor(
                           beat.videoGen?.status || task?.status,
@@ -365,7 +364,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                       <div className="p-3 rounded-lg bg-red-900/20 border border-red-800/50">
                         <div className="flex items-center gap-2 text-red-400">
                           <AlertTriangle className="w-4 h-4" />
-                          <span className="text-sm font-medium">生成失败</span>
+                          <span className="text-sm font-medium">{t("beat.statusFailed")}</span>
                         </div>
                         <p className="text-xs text-red-300 mt-1">
                           {beat.videoGen.error}
@@ -384,10 +383,11 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                             size="icon"
                             className="h-6 w-6"
                             onClick={() => {
-                              navigator.clipboard.writeText(
-                                beat.videoGen!.taskId!,
-                              );
-                              success("已复制", "任务ID已复制");
+                              const taskId = beat.videoGen?.taskId;
+                              if (taskId) {
+                                navigator.clipboard.writeText(taskId);
+                                success(t("success.copied"), t("success.taskIdCopied"));
+                              }
                             }}
                           >
                             <Copy className="w-3 h-3" />
@@ -401,7 +401,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 <Card className="bg-slate-800/50 border-purple-800/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm text-purple-100">
-                      视频地址
+                      {t("beat.videoUrl")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -410,7 +410,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                         {videoUrl ||
                           beat.videoGen?.videoUrl ||
                           task?.videoUrl ||
-                          "暂无视频URL"}
+                          t("beat.noVideoUrl")}
                       </code>
                     </div>
                     <div className="flex gap-2">
@@ -424,7 +424,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                           onClick={handleCopyVideoUrl}
                         >
                           <Copy className="w-3.5 h-3.5" />
-                          复制URL
+                          {t("beat.copyUrl")}
                         </Button>
                       )}
                       <Button
@@ -437,11 +437,11 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                         <RefreshCw
                           className={`w-3.5 h-3.5 ${isRefreshingUrl ? "animate-spin" : ""}`}
                         />
-                        {isRefreshingUrl ? "获取中..." : "手动获取URL"}
+                        {isRefreshingUrl ? t("beat.fetching") : t("beat.manualFetchUrl")}
                       </Button>
                     </div>
                     <p className="text-xs text-slate-500">
-                      如果视频已生成但URL未显示，点击"手动获取URL"按钮从服务器拉取最新状态。
+                      {t("beat.manualFetchHint")}
                     </p>
                   </CardContent>
                 </Card>
@@ -450,12 +450,12 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   <Card className="bg-slate-800/50 border-purple-800/50">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm text-purple-100">
-                        一致性检查
+                        {t("beat.consistencyCheck")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-400">总体评分</span>
+                        <span className="text-sm text-slate-400">{t("beat.overallScore")}</span>
                         <div className="flex items-center gap-2">
                           <Progress
                             value={
@@ -499,11 +499,11 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                           }
                         >
                           {beat.consistencyCheck.recommendation === "accept" &&
-                            "通过"}
+                            t("beat.passed")}
                           {beat.consistencyCheck.recommendation === "adjust" &&
-                            "需调整"}
+                            t("beat.needsAdjust")}
                           {beat.consistencyCheck.recommendation ===
-                            "regenerate" && "建议重生成"}
+                            "regenerate" && t("beat.suggestRegenerate")}
                         </Badge>
                       )}
                     </CardContent>
@@ -515,31 +515,31 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 <Card className="bg-slate-800/50 border-purple-800/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm text-purple-100">
-                      分镜内容
+                      {t("beat.content")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <Label className="text-xs text-slate-400">标题</Label>
+                      <Label className="text-xs text-slate-400">{t("beat.titleLabel")}</Label>
                       <p className="text-sm text-slate-200">
                         {beat.title || "未命名"}
                       </p>
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-400">内容描述</Label>
+                      <Label className="text-xs text-slate-400">{t("beat.contentDesc")}</Label>
                       <p className="text-sm text-slate-200 whitespace-pre-wrap">
                         {beat.content || beat.description || "无描述"}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label className="text-xs text-slate-400">时长</Label>
+                        <Label className="text-xs text-slate-400">{t("beat.duration")}</Label>
                         <p className="text-sm text-slate-200">
                           {beat.duration} 秒
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs text-slate-400">类型</Label>
+                        <Label className="text-xs text-slate-400">{t("beat.type")}</Label>
                         <p className="text-sm text-slate-200">
                           {beat.type || "未设置"}
                         </p>
@@ -552,13 +552,13 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   <Card className="bg-slate-800/50 border-purple-800/50">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm text-purple-100">
-                        镜头参数
+                        {t("beat.cameraParams")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {beat.camera.angle && (
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">角度</span>
+                          <span className="text-xs text-slate-400">{t("beat.angle")}</span>
                           <span className="text-sm text-slate-200">
                             {beat.camera.angle}
                           </span>
@@ -566,7 +566,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                       )}
                       {beat.camera.movement && (
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">运动</span>
+                          <span className="text-xs text-slate-400">{t("beat.movement")}</span>
                           <span className="text-sm text-slate-200">
                             {beat.camera.movement}
                           </span>
@@ -574,7 +574,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                       )}
                       {beat.shotType && (
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">景别</span>
+                          <span className="text-xs text-slate-400">{t("beat.shotSize")}</span>
                           <span className="text-sm text-slate-200">
                             {beat.shotType}
                           </span>
@@ -588,7 +588,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   <Card className="bg-slate-800/50 border-purple-800/50">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm text-purple-100">
-                        元素绑定
+                        {t("beat.elementBinding")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
@@ -631,13 +631,13 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 <Card className="bg-slate-800/50 border-purple-800/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm text-purple-100">
-                      生成参数
+                      {t("beat.genParams")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <Label className="text-xs text-slate-400">提示词</Label>
+                        <Label className="text-xs text-slate-400">{t("beat.prompt")}</Label>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -660,7 +660,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     {beat.imageGenerationPrompt && (
                       <div>
                         <Label className="text-xs text-slate-400">
-                          预览图提示词
+                          {t("beat.keyframePrompt")}
                         </Label>
                         <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30 max-h-32 overflow-y-auto">
                           <code className="text-xs text-slate-300 whitespace-pre-wrap">
@@ -673,7 +673,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     {beat.firstFramePrompt && (
                       <div>
                         <Label className="text-xs text-slate-400">
-                          首帧提示词
+                          {t("beat.firstFramePrompt")}
                         </Label>
                         <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30 max-h-32 overflow-y-auto">
                           <code className="text-xs text-slate-300 whitespace-pre-wrap">
@@ -686,7 +686,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     {beat.lastFramePrompt && (
                       <div>
                         <Label className="text-xs text-slate-400">
-                          尾帧提示词
+                          {t("beat.lastFramePrompt")}
                         </Label>
                         <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30 max-h-32 overflow-y-auto">
                           <code className="text-xs text-slate-300 whitespace-pre-wrap">
@@ -701,12 +701,12 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 <Card className="bg-slate-800/50 border-purple-800/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm text-purple-100">
-                      生成历史
+                      {t("beat.genHistory")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-xs text-slate-400">创建时间</span>
+                      <span className="text-xs text-slate-400">{t("beat.createdAt")}</span>
                       <span className="text-sm text-slate-200">
                         {beat.videoGen?.createdAt
                           ? new Date(beat.videoGen.createdAt).toLocaleString()
@@ -783,7 +783,7 @@ export default function BeatDetailClient() {
   }
 
   return (
-    <PageErrorBoundary pageName="分镜详情">
+    <PageErrorBoundary pageName={t("beat.detail")}>
       <BeatDetailContent story={story} beat={beat} task={task} />
     </PageErrorBoundary>
   );

@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useEffect } from "react";
 import { Sparkles, RotateCcw, AlertCircle, Check, X, Zap } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -7,6 +5,7 @@ import { Textarea } from "@/shared/ui/textarea";
 import { usePromptEditor } from "../hooks";
 import type { PromptEditorContext } from "../services";
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 interface PromptEditorProps {
   beat: StoryBeat;
@@ -22,9 +21,15 @@ interface PromptEditorProps {
 }
 
 const CONTEXT_LABELS: Record<PromptEditorContext, string> = {
-  keyframe: "预览图提示词",
-  firstFrame: "首帧提示词",
-  lastFrame: "尾帧提示词",
+  keyframe: t("prompt.keyframePrompt"),
+  firstFrame: t("prompt.firstFramePrompt"),
+  lastFrame: t("prompt.lastFramePrompt"),
+};
+
+const CONTEXT_SHORT: Record<PromptEditorContext, string> = {
+  keyframe: t("prompt.keyframeShort"),
+  firstFrame: t("prompt.firstFrameShort"),
+  lastFrame: t("prompt.lastFrameShort"),
 };
 
 export function PromptEditor({
@@ -87,7 +92,7 @@ export function PromptEditor({
             className="h-6 px-2 text-[10px]"
           >
             <RotateCcw className="w-3 h-3 mr-1" />
-            重置
+            {t("prompt.reset")}
           </Button>
           <Button
             variant="ghost"
@@ -101,7 +106,7 @@ export function PromptEditor({
             ) : (
               <Sparkles className="w-3 h-3 mr-1" />
             )}
-            AI 生成
+            {t("prompt.aiGenerate")}
           </Button>
         </div>
       </div>
@@ -110,7 +115,7 @@ export function PromptEditor({
         ref={textareaRef}
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder={`输入${CONTEXT_LABELS[context]}，或点击 AI 生成...`}
+        placeholder={t("prompt.enterPromptOrAI", { context: CONTEXT_SHORT[context] })}
         className={`resize-none text-xs font-mono min-h-[60px] ${
           compact ? "min-h-[40px]" : ""
         } ${hasAIPreview ? "border-primary/50 bg-primary/5" : ""}`}
@@ -120,7 +125,7 @@ export function PromptEditor({
       {hasAIPreview && (
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-primary flex-1">
-            AI 已生成提示词，可编辑后确认应用
+            {t("prompt.aiGeneratedHint")}
           </span>
           <Button
             variant="ghost"
@@ -129,7 +134,7 @@ export function PromptEditor({
             className="h-6 px-2 text-[10px] text-muted-foreground hover:text-destructive"
           >
             <X className="w-3 h-3 mr-1" />
-            丢弃
+            {t("prompt.discard")}
           </Button>
           {onConfirmGenerate ? (
             <Button
@@ -140,7 +145,7 @@ export function PromptEditor({
               className="h-6 px-2 text-[10px]"
             >
               <Zap className="w-3 h-3 mr-1" />
-              确认生成
+              {t("prompt.confirmGenerate")}
             </Button>
           ) : (
             <Button
@@ -150,7 +155,7 @@ export function PromptEditor({
               className="h-6 px-2 text-[10px] text-primary hover:text-primary"
             >
               <Check className="w-3 h-3 mr-1" />
-              确认应用
+              {t("prompt.confirmApply")}
             </Button>
           )}
         </div>
@@ -159,7 +164,7 @@ export function PromptEditor({
       {onConfirmGenerate && !hasAIPreview && (
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground flex-1">
-            编辑提示词后点击确认生成
+            {t("prompt.editThenGenerate")}
           </span>
           <Button
             variant="default"
@@ -169,7 +174,7 @@ export function PromptEditor({
             className="h-6 px-2 text-[10px]"
           >
             <Zap className="w-3 h-3 mr-1" />
-            确认生成
+            {t("prompt.confirmGenerate")}
           </Button>
         </div>
       )}

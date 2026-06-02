@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { VideoTask } from "@/domain/schemas";
 
 const {
   mockSafeQuery,
@@ -8,11 +9,11 @@ const {
   mockBuildInsert,
   mockBuildUpdateSets,
 } = vi.hoisted(() => ({
-  mockSafeQuery: vi.fn(() => Promise.resolve([])),
-  mockSafeRun: vi.fn(() => Promise.resolve({ changes: 1 })),
-  mockSafeTransaction: vi.fn(() => Promise.resolve([])),
+  mockSafeQuery: vi.fn<(sql: string, params?: unknown[]) => Promise<Record<string, unknown>[]>>(() => Promise.resolve([])),
+  mockSafeRun: vi.fn<(sql: string, params?: unknown[]) => Promise<{ changes: number }>>(() => Promise.resolve({ changes: 1 })),
+  mockSafeTransaction: vi.fn<(statements: { sql: string; params: unknown[] }[]) => Promise<unknown[]>>(() => Promise.resolve([])),
   mockTrackChange: vi.fn(() => Promise.resolve()),
-  mockBuildInsert: vi.fn((table: string, _columns: string[], values: unknown[], conflict?: string) => ({
+  mockBuildInsert: vi.fn((table: string, _columns: string[], values: unknown[], _conflict?: string) => ({
     sql: `INSERT OR REPLACE INTO ${table}`,
     params: values,
   })),
@@ -61,13 +62,13 @@ describe("R39: 批量 DB 操作禁止退化为逐条 IPC", () => {
         { taskId: "task-3", updates: { status: "failed" } },
       ];
 
-      await videoTaskStorage.batchUpdateVideoTasks(updates as any);
+      await videoTaskStorage.batchUpdateVideoTasks(updates as Array<{ taskId: string; updates: Partial<VideoTask> }>);
 
       const updateTransactionCalls = mockSafeTransaction.mock.calls.filter(
-        (c: any[]) => c[0]?.some?.((s: any) => s.sql?.includes("UPDATE video_tasks SET")),
+        (c) => c[0]?.some?.((s) => s.sql?.includes("UPDATE video_tasks SET")),
       );
       expect(updateTransactionCalls.length).toBe(1);
-      expect(updateTransactionCalls[0][0].length).toBe(3);
+      expect(updateTransactionCalls[0]![0].length).toBe(3);
     });
 
     it("空数组不应触发任何 IPC 调用", async () => {
@@ -86,7 +87,7 @@ describe("R39: 批量 DB 操作禁止退化为逐条 IPC", () => {
       await videoTaskStorage.batchDeleteVideoTasks(ids);
 
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-      const callArgs = mockSafeTransaction.mock.calls[0][0];
+      const callArgs = mockSafeTransaction.mock.calls[0]![0];
       expect(callArgs.length).toBe(2);
       expect(callArgs[0].sql).toContain("IN (?,?,?)");
       expect(callArgs[1].sql).toContain("IN (?,?,?)");
@@ -110,13 +111,13 @@ describe("R39: 批量 DB 操作禁止退化为逐条 IPC", () => {
       ];
 
       const { bulkPutVideoTasks } = await import("@/infrastructure/storage/video-tasks/bulk-operations");
-      await bulkPutVideoTasks(tasks as any);
+      await bulkPutVideoTasks(tasks as Partial<VideoTask>[]);
 
       const queryCalls = mockSafeQuery.mock.calls.filter(
-        (c: any[]) => c[0]?.includes("SELECT id FROM video_tasks WHERE id IN"),
+        (c) => c[0]?.includes("SELECT id FROM video_tasks WHERE id IN"),
       );
       expect(queryCalls.length).toBe(1);
-      expect(queryCalls[0][0]).toContain("IN (?,?)");
+      expect(queryCalls[0]![0]).toContain("IN (?,?)");
     });
   });
 
@@ -131,11 +132,11 @@ describe("R39: 批量 DB 操作禁止退化为逐条 IPC", () => {
       await videoTaskStorage.deleteVideoTasksByBeatId("beat-1");
 
       const transactionCalls = mockSafeTransaction.mock.calls.filter(
-        (c: any[]) => !c[0]?.some?.((s: any) => s.sql?.includes("sync_changelog")),
+        (c) => !c[0]?.some?.((s) => s.sql?.includes("sync_changelog")),
       );
       expect(transactionCalls.length).toBe(1);
-      const stmts = transactionCalls[0][0];
-      expect(stmts.some((s: any) => s.sql.includes("IN (?,?,?)"))).toBe(true);
+      const stmts = transactionCalls[0]![0];
+      expect(stmts.some((s) => s.sql.includes("IN (?,?,?)"))).toBe(true);
     });
   });
 
@@ -149,7 +150,7 @@ describe("R39: 批量 DB 操作禁止退化为逐条 IPC", () => {
       await videoTaskStorage.deleteVideoTasksByStatus(["completed", "failed"]);
 
       const transactionCalls = mockSafeTransaction.mock.calls.filter(
-        (c: any[]) => !c[0]?.some?.((s: any) => s.sql?.includes("sync_changelog")),
+        (c) => !c[0]?.some?.((s) => s.sql?.includes("sync_changelog")),
       );
       expect(transactionCalls.length).toBe(1);
     });

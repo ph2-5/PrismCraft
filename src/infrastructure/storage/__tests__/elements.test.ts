@@ -30,7 +30,7 @@ let elementStorage: import("../elements").ElementStorage;
 beforeEach(async () => {
   vi.clearAllMocks();
   mockSafeQuery.mockResolvedValue([]);
-  mockSafeRun.mockResolvedValue(undefined as any);
+  mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
   mockSafeTransaction.mockResolvedValue([]);
   const mod = await import("../elements");
   ElementStorage = mod.ElementStorage;

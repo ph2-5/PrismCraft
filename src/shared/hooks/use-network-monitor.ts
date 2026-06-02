@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { logger } from "@/config/constants";
 import { checkConfigStatus } from "@/shared/api-config";

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ICharacterStorage } from "@/domain/ports/storage-port";
 import { factories } from "@/__tests__/mocks/factories";
-import { expectOk, expectErr, expectErrContains } from "@/__tests__/utils/result-helpers";
+import { expectOk, expectErr } from "@/__tests__/utils/result-helpers";
 
 vi.mock("@/infrastructure/di", () => {
   const storage: ICharacterStorage = {

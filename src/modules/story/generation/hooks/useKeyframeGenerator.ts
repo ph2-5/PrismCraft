@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback } from "react";
 import { generateBeatKeyframe } from "@/modules/story";
 import type { StoryBeat, Character, Scene, StoryStyleGuide, ModelSelection } from "@/domain/schemas";
@@ -7,6 +5,7 @@ import { StoryGenerationService } from "@/domain/services";
 import { container } from "@/infrastructure/di";
 import { useAIGeneratorBase } from "./useAIGeneratorBase";
 import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants";
 
 interface UseKeyframeGeneratorProps {
   beatsRef: React.MutableRefObject<StoryBeat[]>;
@@ -101,7 +100,7 @@ export function useKeyframeGenerator(props: UseKeyframeGeneratorProps) {
 
         const updatedBeat = { ...beat, keyframe: keyframeResult.value } as StoryBeat;
         updateBeat(beatId, updatedBeat);
-        success("预览图生成成功", "分镜预览图已生成");
+        success(t("success.generated"), t("success.keyframeGeneratedDesc"));
         return updatedBeat;
       }, "预览图生成失败");
     },

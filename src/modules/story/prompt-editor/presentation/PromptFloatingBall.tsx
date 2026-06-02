@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Send, Loader2, Sparkles, Check, RotateCcw } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -7,6 +5,7 @@ import { Textarea } from "@/shared/ui/textarea";
 import { generatePromptWithAI } from "../services";
 import type { PromptEditorContext } from "../services";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 interface PromptFloatingBallProps {
   beat: StoryBeat;
@@ -19,13 +18,14 @@ interface PromptFloatingBallProps {
   scenes?: Scene[];
 }
 
-const CONTEXT_LABELS: Record<PromptEditorContext, string> = {
-  keyframe: "预览图",
-  firstFrame: "首帧",
-  lastFrame: "尾帧",
+const CONTEXT_SHORT: Record<PromptEditorContext, string> = {
+  keyframe: t("prompt.keyframeShort"),
+  firstFrame: t("prompt.firstFrameShort"),
+  lastFrame: t("prompt.lastFrameShort"),
 };
 
 interface ChatMessage {
+  id: string;
   role: "user" | "assistant";
   content: string;
   previewPrompt?: string;
@@ -79,8 +79,9 @@ export function PromptFloatingBall({
       const contextHint = getContextHint(context, beat, keyframeImageUrl);
       setMessages([
         {
+          id: crypto.randomUUID(),
           role: "assistant",
-          content: `你好！我是提示词助手，正在为「${CONTEXT_LABELS[context]}」生成提示词。\n\n${contextHint}\n\n请告诉我你想要什么样的画面效果，我来帮你生成专业的提示词。`,
+          content: t("prompt.assistantGreeting", { context: CONTEXT_SHORT[context], hint: contextHint }),
         },
       ]);
     }
@@ -113,7 +114,7 @@ export function PromptFloatingBall({
 
     const userMessage = input.trim();
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", content: userMessage }]);
     setIsGenerating(true);
 
     const result = await generatePromptWithAI(
@@ -137,8 +138,9 @@ export function PromptFloatingBall({
       setMessages((prev) => [
         ...prev,
         {
+          id: crypto.randomUUID(),
           role: "assistant",
-          content: "已生成提示词，请查看并编辑后确认应用：",
+          content: t("prompt.generatedPreview"),
           previewPrompt: generatedPrompt,
         },
       ]);
@@ -146,8 +148,9 @@ export function PromptFloatingBall({
       setMessages((prev) => [
         ...prev,
         {
+          id: crypto.randomUUID(),
           role: "assistant",
-          content: `生成失败：${result.error?.message || "未知错误"}。请重试或修改你的要求。`,
+          content: t("prompt.generateFailedRetry", { error: result.error?.message || t("common.unknown") }),
         },
       ]);
     }
@@ -160,7 +163,7 @@ export function PromptFloatingBall({
       setEditingPrompt("");
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "提示词已应用！如需修改，请继续对话。" },
+        { id: crypto.randomUUID(), role: "assistant", content: t("prompt.promptApplied") },
       ]);
     }
   }, [editingPrompt, context, onPromptGenerated]);
@@ -169,9 +172,9 @@ export function PromptFloatingBall({
     setPendingPrompt(null);
     setEditingPrompt("");
     setMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: "已丢弃提示词。请继续对话或提出新要求。" },
-    ]);
+        ...prev,
+        { id: crypto.randomUUID(), role: "assistant", content: t("prompt.promptDiscarded") },
+      ]);
   }, []);
 
   const handleKeyDown = useCallback(
@@ -196,7 +199,7 @@ export function PromptFloatingBall({
         onClick={handleOpen}
         className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors flex items-center justify-center z-50 cursor-pointer"
         style={ballStyle}
-        title={`AI 提示词助手 - ${CONTEXT_LABELS[context]}`}
+        title={`AI ${t("prompt.assistantTitle", { context: CONTEXT_SHORT[context] })}`}
       >
         <Sparkles className="w-5 h-5" />
       </button>
@@ -210,7 +213,7 @@ export function PromptFloatingBall({
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">
-                {CONTEXT_LABELS[context]}提示词助手
+                {t("prompt.assistantTitle", { context: CONTEXT_SHORT[context] })}
               </span>
             </div>
             <button
@@ -222,9 +225,9 @@ export function PromptFloatingBall({
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[200px]">
-            {messages.map((msg, i) => (
+            {messages.map((msg) => (
               <div
-                key={i}
+                key={msg.id}
                 className={`text-xs whitespace-pre-wrap ${
                   msg.role === "user"
                     ? "bg-primary/10 text-foreground rounded-lg px-3 py-2 ml-6"
@@ -237,7 +240,7 @@ export function PromptFloatingBall({
             {isGenerating && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground px-3">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                正在生成...
+                {t("prompt.generatingShort")}
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -247,7 +250,7 @@ export function PromptFloatingBall({
             <div className="border-t border-border p-3 space-y-2 bg-primary/5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-primary font-medium">
-                  预编辑提示词
+                  {t("prompt.preEditPrompt")}
                 </span>
                 <div className="flex items-center gap-1">
                   <Button
@@ -257,7 +260,7 @@ export function PromptFloatingBall({
                     className="h-6 px-2 text-[10px] text-muted-foreground hover:text-destructive"
                   >
                     <RotateCcw className="w-3 h-3 mr-1" />
-                    丢弃
+                    {t("prompt.discard")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -266,7 +269,7 @@ export function PromptFloatingBall({
                     className="h-6 px-2 text-[10px] text-primary"
                   >
                     <Check className="w-3 h-3 mr-1" />
-                    确认应用
+                    {t("prompt.confirmApply")}
                   </Button>
                 </div>
               </div>
@@ -285,7 +288,7 @@ export function PromptFloatingBall({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="描述你想要的画面效果..."
+                placeholder={t("prompt.describeEffect")}
                 className="resize-none text-xs min-h-[36px] flex-1"
                 rows={1}
                 disabled={isGenerating}
@@ -316,22 +319,22 @@ function getContextHint(
   keyframeImageUrl?: string,
 ): string {
   const parts: string[] = [];
-  parts.push(`当前分镜：「${beat.title || "未命名"}」`);
+  parts.push(t("prompt.currentBeat", { title: beat.title || t("template.unnamed") }));
   if (beat.content || beat.description) {
-    parts.push(`内容：${beat.content || beat.description}`);
+    parts.push(t("prompt.beatContent", { content: beat.content || beat.description }));
   }
 
   if (context === "firstFrame" || context === "lastFrame") {
     parts.push(
       context === "firstFrame"
-        ? "需要生成视频起始画面的提示词（动作开始前）"
-        : "需要生成视频结束画面的提示词（动作完成后）",
+        ? t("prompt.firstFrameHint")
+        : t("prompt.lastFrameHint"),
     );
     if (keyframeImageUrl) {
-      parts.push("已有预览图作为参考，首尾帧应与预览图风格一致");
+      parts.push(t("prompt.hasPreviewRef"));
     }
   } else {
-    parts.push("需要生成分镜预览图的提示词");
+    parts.push(t("prompt.keyframeHint"));
   }
 
   return parts.join("\n");

@@ -1,5 +1,3 @@
-"use client";
-
 import React, {
   createContext,
   useContext,
@@ -10,6 +8,7 @@ import React, {
 } from "react";
 import { preferencesStorage } from "@/shared/utils/preferences";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants/messages";
 
 export type ThemeId =
   | "default"
@@ -29,38 +28,38 @@ export interface ThemeInfo {
 export const THEMES: ThemeInfo[] = [
   {
     id: "default",
-    name: "暗夜靛蓝",
-    description: "专业沉稳，靛蓝品牌色",
+    name: t("theme.name.default"),
+    description: t("theme.desc.default"),
     preview: { bg: "#0f172a", primary: "#6366f1", accent: "#4f46e5" },
   },
   {
     id: "cyber",
-    name: "赛博霓虹",
-    description: "科技未来感，青色霓虹",
+    name: t("theme.name.cyber"),
+    description: t("theme.desc.cyber"),
     preview: { bg: "#0a0f1a", primary: "#00e5ff", accent: "#00bcd4" },
   },
   {
     id: "amber",
-    name: "暖光琥珀",
-    description: "温暖舒适，琥珀橙光",
+    name: t("theme.name.amber"),
+    description: t("theme.desc.amber"),
     preview: { bg: "#1a1410", primary: "#f59e0b", accent: "#d97706" },
   },
   {
     id: "minimal",
-    name: "极简灰",
-    description: "克制专注，中性灰色",
+    name: t("theme.name.minimal"),
+    description: t("theme.desc.minimal"),
     preview: { bg: "#09090b", primary: "#a1a1aa", accent: "#3f3f46" },
   },
   {
     id: "lavender",
-    name: "薰衣紫",
-    description: "梦幻优雅，紫色薰衣",
+    name: t("theme.name.lavender"),
+    description: t("theme.desc.lavender"),
     preview: { bg: "#0f0a1a", primary: "#a855f7", accent: "#9333ea" },
   },
   {
     id: "emerald",
-    name: "翡翠绿",
-    description: "自然清新，翡翠绿意",
+    name: t("theme.name.emerald"),
+    description: t("theme.desc.emerald"),
     preview: { bg: "#0a1a14", primary: "#10b981", accent: "#059669" },
   },
 ];

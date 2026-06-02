@@ -110,7 +110,13 @@ class PluginRegistry {
       imageCapabilities: AIProviderPlugin["imageCapabilities"];
     }
   > {
-    const result: Record<string, any> = {};
+    const result: Record<string, {
+      id: string;
+      displayName: string;
+      isUserPlugin: boolean;
+      videoCapabilities: AIProviderPlugin["videoCapabilities"];
+      imageCapabilities: AIProviderPlugin["imageCapabilities"];
+    }> = {};
     for (const plugin of this.plugins) {
       result[plugin.id] = {
         id: plugin.id,

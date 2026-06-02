@@ -11,7 +11,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
+    "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-query": "^5.100.9",
+    "@tanstack/react-virtual": "^3.14.0",
     "ajv": "^8.20.0",
     "better-sqlite3": "12.10.0",
     "class-variance-authority": "^0.7.1",
@@ -24,10 +26,10 @@
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "lucide-react": "^1.7.0",
-    "next": "^16.2.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.75.0",
+    "react-router-dom": "^7.16.0",
     "react-window": "^2.2.7",
     "shadcn": "^4.1.2",
     "tailwind-merge": "^3.5.0",
@@ -38,14 +40,15 @@
   "scripts": {
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "vite",
+    "build": "vite build",
     "build:electron": "powershell -ExecutionPolicy Bypass -File build-electron.ps1",
     "build:win": "npm run build:electron && npm run rebuild && set ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true&& electron-builder --win --x64 --publish=never",
     "build:mac": "npm run build:electron && npm run rebuild && ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true electron-builder --mac --publish=never",
     "build:linux": "npm run build:electron && npm run rebuild && ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true electron-builder --linux --publish=never",
     "typecheck": "tsc --noEmit",
     "typecheck:electron": "tsc -p electron/tsconfig.json --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "lint": "eslint src/",
     "lint:electron": "eslint electron/src/",
     "lint:arch": "node scripts/check-architecture.mjs",
@@ -55,7 +58,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:electron": "playwright test --config playwright.electron.config.ts",
-    "validate": "npm run typecheck && npm run typecheck:electron && npm run lint && npm run lint:arch && node scripts/check-module-api-consistency.mjs && node scripts/validate-contracts.mjs && npm run test",
+    "validate": "npm run typecheck && npm run typecheck:electron && npm run typecheck:test && npm run lint && npm run lint:arch && node scripts/check-module-api-consistency.mjs && node scripts/validate-contracts.mjs && npm run test",
     "validate:full": "npm run validate && npm run test:coverage",
     "graph": "npx tsx scripts/build-module-graph.ts",
     "di-docs": "npx tsx scripts/generate-di-docs.ts",
@@ -90,14 +93,11 @@
       "!node_modules/**/LICENSE*",
       "!node_modules/@types/**",
       "!node_modules/{typescript,eslint,prettier,webpack,rollup,vite}/**",
-      "!node_modules/next/**",
-      "!node_modules/@next/swc*/**",
       "!node_modules/@img/sharp-*/**",
       "!node_modules/sharp/**",
       "!node_modules/shadcn/**",
       "!node_modules/better-sqlite3/build/Release/test_extension.node",
       "!src/**",
-      "!.next/**",
       "!release/**",
       "!tests/**",
       "!build-electron.ps1"
@@ -121,11 +121,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "public/icon.icns",
@@ -133,12 +139,24 @@
     },
     "dmg": {
       "contents": [
-        { "x": 130, "y": 220 },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "linux": {
-      "target": ["AppImage", "deb", "tar.gz"],
+      "target": [
+        "AppImage",
+        "deb",
+        "tar.gz"
+      ],
       "icon": "public",
       "category": "Graphics"
     }
@@ -156,16 +174,20 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.7",
-    "electron": "^41.5.1",
+    "electron": "^41.7.1",
     "electron-builder": "^26.8.1",
     "electron-rebuild": "^3.2.9",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.6",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "happy-dom": "^20.9.0",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.0.5",
+    "playwright": "^1.60.0",
+    "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.0",
     "vitest": "^4.1.7"
   }
 }

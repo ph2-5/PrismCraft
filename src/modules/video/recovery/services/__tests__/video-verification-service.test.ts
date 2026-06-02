@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   verifyVideoUrl,
   verifyMultipleVideos,
-} from "@/modules/video/recovery/services/video-verification-service";
+} from "@/modules/video";
 
 vi.mock("@/shared/error-logger", () => ({
   extractErrorMessage: vi.fn((e: unknown) =>

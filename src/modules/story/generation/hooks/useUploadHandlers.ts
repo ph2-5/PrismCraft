@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback } from "react";
 import type { StoryBeat } from "@/domain/schemas";
 import type { VideoModelFormat } from "@/domain/types";
@@ -7,6 +5,7 @@ import { container } from "@/infrastructure/di";
 import { detectVideoCodec, extractVideoFrames } from "@/shared/video-utils";
 import { isCodecSupportedByProvider } from "@/shared/video-utils/codec-check";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 function revokeBlobUrl(url: string | undefined) {
   if (url && url.startsWith("blob:")) {
@@ -77,7 +76,7 @@ export function useUploadHandlers(
               return b;
             }),
           );
-          success("上传成功", "预览图已更新");
+          success(t("success.uploaded"), t("success.keyframeUpdated"));
         } else {
           setBeats((prev) =>
             prev.map((b) => {
@@ -93,7 +92,7 @@ export function useUploadHandlers(
               return b;
             }),
           );
-          showError?.("上传失败", "预览图上传到服务器失败，请重试");
+          showError?.(t("error.uploadFailed"), t("error.keyframeUploadServerFailed"));
         }
       } finally {
         if (!tempUrlRevoked) revokeBlobUrl(tempUrl);
@@ -152,7 +151,7 @@ export function useUploadHandlers(
               return b;
             }),
           );
-          success("上传成功", "首帧已更新");
+          success(t("success.uploaded"), t("success.firstFrameUpdated"));
         } else {
           setBeats((prev) =>
             prev.map((b) => {
@@ -174,7 +173,7 @@ export function useUploadHandlers(
               return b;
             }),
           );
-          showError?.("上传失败", "首帧上传到服务器失败，请重试");
+          showError?.(t("error.uploadFailed"), t("error.firstFrameUploadServerFailed"));
         }
       } finally {
         if (!tempUrlRevoked) revokeBlobUrl(tempUrl);
@@ -237,7 +236,7 @@ export function useUploadHandlers(
               return b;
             }),
           );
-          success("上传成功", "尾帧已更新");
+          success(t("success.uploaded"), t("success.lastFrameUpdated"));
         } else {
           setBeats((prev) =>
             prev.map((b) => {
@@ -259,7 +258,7 @@ export function useUploadHandlers(
               return b;
             }),
           );
-          showError?.("上传失败", "尾帧上传到服务器失败，请重试");
+          showError?.(t("error.uploadFailed"), t("error.lastFrameUploadServerFailed"));
         }
       } finally {
         if (!tempUrlRevoked) revokeBlobUrl(tempUrl);
@@ -348,7 +347,7 @@ export function useUploadHandlers(
         );
 
         if (codecWarning && warn) {
-          warn("编码兼容性警告", codecWarning);
+          warn(t("warning.codecCompatibility"), codecWarning);
         }
 
         const persistentUrl = await uploadAndGetPersistentUrl(file);
@@ -370,9 +369,9 @@ export function useUploadHandlers(
             }),
           );
           if (firstFrameUrl && lastFrameUrl) {
-            success("上传成功", "视频已更新，已自动提取首尾帧");
+            success(t("success.uploaded"), t("success.videoUpdatedWithFrames"));
           } else {
-            success("上传成功", "视频已更新");
+            success(t("success.uploaded"), t("success.videoUpdated"));
           }
         } else {
           setBeats((prev) =>
@@ -406,7 +405,7 @@ export function useUploadHandlers(
               return b;
             }),
           );
-          showError?.("上传失败", "视频上传到服务器失败，请重试");
+          showError?.(t("error.uploadFailed"), t("error.videoUploadServerFailed"));
         }
       } finally {
         if (!tempUrlRevoked) revokeBlobUrl(tempUrl);

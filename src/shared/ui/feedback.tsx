@@ -1,7 +1,6 @@
-"use client";
-
 import { AlertCircle, CheckCircle, Info, LucideIcon } from "lucide-react";
 import type { ApiErrorCode } from "@/domain/schemas";
+import { t } from "@/shared/constants/messages";
 
 interface ErrorDisplayProps {
   error?: string;
@@ -140,7 +139,7 @@ export function ErrorDisplay({
               onClick={onRetry}
               className={`mt-3 text-sm font-medium underline hover:opacity-80 ${colors.text}`}
             >
-              重试
+              {t("common.retry")}
             </button>
           )}
         </div>
@@ -156,7 +155,7 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({
-  message = "处理中...",
+  message = t("feedback.processing"),
   subMessage,
   className = "",
 }: LoadingStateProps) {

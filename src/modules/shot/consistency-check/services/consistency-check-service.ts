@@ -1,8 +1,10 @@
 import type { Result } from "@/domain/types";
-import { ok } from "@/domain/types";
+import { ok, err, AppError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import type { ConsistencyCheckResult, ElementBinding, StoryBeat, StoryElement } from "@/domain/schemas";
 import { safeJsonParse } from "@/shared/utils/safe-json";
+import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants/messages";
 
 export interface ConsistencyCheckInput {
   beat: StoryBeat;
@@ -42,35 +44,15 @@ export async function checkVisualConsistency(
     const analysisResult = await container.imageApi.analyze(generatedImageUrl, "scene", prompt);
 
     if (!analysisResult.ok) {
-      return ok({
-        passed: false,
-        characterScores: boundElements.map((el) => ({
-          elementId: el.id,
-          elementName: el.name,
-          score: 0.5,
-          issues: ["无法执行一致性检查"],
-        })),
-        overallScore: 0.5,
-        recommendation: "adjust",
-      });
+      return err(new AppError("CONSISTENCY_CHECK_FAILED", "无法执行一致性检查", analysisResult.error));
     }
 
     const analysis = analysisResult.value.analysis;
     const parsed = parseConsistencyAnalysis(analysis, boundElements);
 
     return ok(parsed);
-  } catch (_e) {
-    return ok({
-      passed: false,
-      characterScores: boundElements.map((el) => ({
-        elementId: el.id,
-        elementName: el.name,
-        score: 0.5,
-        issues: ["检查过程出错"],
-      })),
-      overallScore: 0.5,
-      recommendation: "adjust",
-    });
+  } catch (e) {
+    return err(new AppError("CONSISTENCY_CHECK_ERROR", "检查过程出错", e));
   }
 }
 
@@ -98,6 +80,18 @@ ${elementDescriptions}
 }`;
 }
 
+interface ConsistencyAnalysisScore {
+  name: string;
+  score: number;
+  issues: string[];
+}
+
+interface ConsistencyAnalysisResult {
+  scores: ConsistencyAnalysisScore[];
+  overallScore: number;
+  recommendation: "accept" | "regenerate" | "adjust";
+}
+
 function parseConsistencyAnalysis(
   analysis: string,
   elements: StoryElement[],
@@ -118,12 +112,16 @@ function parseConsistencyAnalysis(
       };
     }
 
-    const parsed = safeJsonParse(jsonMatch[0], {}) as Record<string, any>;
+    const parsed = safeJsonParse<ConsistencyAnalysisResult>(jsonMatch[0], {
+      scores: [],
+      overallScore: 0.5,
+      recommendation: "adjust",
+    });
     const scores = parsed.scores || [];
 
     const characterScores = elements.map((el) => {
       const matched = scores.find(
-        (s: { name: string }) => s.name === el.name || s.name.includes(el.name),
+        (s) => s.name === el.name || s.name.includes(el.name),
       );
       return {
         elementId: el.id,
@@ -141,14 +139,15 @@ function parseConsistencyAnalysis(
       overallScore,
       recommendation: parsed.recommendation || (overallScore >= 0.8 ? "accept" : overallScore >= 0.6 ? "adjust" : "regenerate"),
     };
-  } catch (_e) {
+  } catch (e) {
+    errorLogger.error(t("error.consistencyParseFailed"), e instanceof Error ? e : undefined);
     return {
       passed: false,
       characterScores: elements.map((el) => ({
         elementId: el.id,
         elementName: el.name,
         score: 0.5,
-        issues: ["一致性分析结果解析失败"],
+        issues: [t("error.consistencyParseFailed")],
       })),
       overallScore: 0.5,
       recommendation: "adjust",

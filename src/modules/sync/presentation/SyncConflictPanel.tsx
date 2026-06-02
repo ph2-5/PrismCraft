@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback } from "react";
 import {
   Dialog,
@@ -21,6 +19,7 @@ import {
   GitMerge,
 } from "lucide-react";
 import type { SyncConflict, SyncEntityType } from "@/modules/sync";
+import { t } from "@/shared/constants";
 
 interface SyncConflictPanelProps {
   conflicts: SyncConflict[];
@@ -35,17 +34,17 @@ interface SyncConflictPanelProps {
 }
 
 const ENTITY_LABELS: Record<SyncEntityType, string> = {
-  character: "角色",
-  scene: "场景",
-  story: "故事",
-  media_asset: "媒体资源",
-  storyboard_asset: "分镜资源",
-  video_task: "视频任务",
-  story_version: "故事版本",
-  collection: "收藏集",
-  element: "元素",
-  video_template: "视频模板",
-  ast_template: "AST模板",
+  character: t("sync.entityCharacter"),
+  scene: t("sync.entityScene"),
+  story: t("sync.entityStory"),
+  media_asset: t("sync.entityMediaAsset"),
+  storyboard_asset: t("sync.entityStoryboardAsset"),
+  video_task: t("sync.entityVideoTask"),
+  story_version: t("sync.entityStoryVersion"),
+  collection: t("sync.entityCollection"),
+  element: t("sync.entityElement"),
+  video_template: t("sync.entityVideoTemplate"),
+  ast_template: t("sync.entityAstTemplate"),
 };
 
 function ConflictCard({
@@ -98,7 +97,7 @@ function ConflictCard({
             <div className="space-y-2">
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Monitor className="h-3 w-3" />
-                <span>本地版本</span>
+                <span>{t("sync.localVersion")}</span>
               </div>
               <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
                 {JSON.stringify(conflict.localData, null, 2)}
@@ -107,7 +106,7 @@ function ConflictCard({
             <div className="space-y-2">
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Cloud className="h-3 w-3" />
-                <span>远程版本</span>
+                <span>{t("sync.remoteVersion")}</span>
               </div>
               <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
                 {JSON.stringify(conflict.remoteData, null, 2)}
@@ -118,7 +117,7 @@ function ConflictCard({
           <div className="space-y-2">
             <div className="flex items-center gap-1 text-muted-foreground">
               <GitMerge className="h-3 w-3" />
-              <span>合并预览（可编辑）</span>
+              <span>{t("sync.mergePreview")}</span>
             </div>
             <textarea
               className="w-full bg-muted p-2 rounded text-xs font-mono min-h-[100px]"
@@ -127,6 +126,7 @@ function ConflictCard({
                 try {
                   setMergeData(JSON.parse(e.target.value));
                 } catch {
+                  // incomplete JSON during typing is expected
                 }
               }}
             />
@@ -142,7 +142,7 @@ function ConflictCard({
           className="gap-1"
         >
           <Monitor className="h-3 w-3" />
-          保留本地
+          {t("sync.keepLocal")}
         </Button>
         <Button
           variant="outline"
@@ -151,7 +151,7 @@ function ConflictCard({
           className="gap-1"
         >
           <Cloud className="h-3 w-3" />
-          保留远程
+          {t("sync.keepRemote")}
         </Button>
         <Button
           variant="default"
@@ -160,7 +160,7 @@ function ConflictCard({
           className="gap-1"
         >
           <GitMerge className="h-3 w-3" />
-          合并
+          {t("sync.merge")}
         </Button>
       </div>
     </div>
@@ -199,11 +199,10 @@ export function SyncConflictPanel({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-500" />
-            同步冲突解决
+            {t("sync.conflictTitle")}
           </DialogTitle>
           <DialogDescription>
-            检测到 {unresolvedConflicts.length}{" "}
-            个数据冲突，请选择保留本地版本、远程版本或手动合并。
+            {t("sync.conflictDesc", { count: unresolvedConflicts.length })}
           </DialogDescription>
         </DialogHeader>
 
@@ -211,7 +210,7 @@ export function SyncConflictPanel({
           {unresolvedConflicts.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
               <Check className="h-8 w-8 text-green-500" />
-              <p>所有冲突已解决</p>
+              <p>{t("sync.allResolved")}</p>
             </div>
           ) : (
             unresolvedConflicts.map((conflict) => (
@@ -234,19 +233,19 @@ export function SyncConflictPanel({
                 size="sm"
                 onClick={() => onResolveAll("local")}
               >
-                全部保留本地
+                {t("sync.keepAllLocal")}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onResolveAll("remote")}
               >
-                全部保留远程
+                {t("sync.keepAllRemote")}
               </Button>
             </>
           )}
           <Button variant="default" onClick={onClose}>
-            {unresolvedConflicts.length === 0 ? "完成" : "稍后处理"}
+            {unresolvedConflicts.length === 0 ? t("sync.done") : t("sync.later")}
           </Button>
         </DialogFooter>
       </DialogContent>

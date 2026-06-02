@@ -20,12 +20,15 @@ class EventBus {
     if (!this.handlers.has(event)) {
       this.handlers.set(event, new Set());
     }
-    this.handlers.get(event)!.add(handler as EventHandler);
-    const listenerCount = this.handlers.get(event)!.size;
-    if (listenerCount > this.maxListeners) {
-      errorLogger.warn(
-        `[EventBus] MaxListenersExceededWarning: Event "${event}" has ${listenerCount} listeners (max: ${this.maxListeners}). Possible memory leak detected.`
-      );
+    const handlers = this.handlers.get(event);
+    if (handlers) {
+      handlers.add(handler as EventHandler);
+      const listenerCount = handlers.size;
+      if (listenerCount > this.maxListeners) {
+        errorLogger.warn(
+          `[EventBus] MaxListenersExceededWarning: Event "${event}" has ${listenerCount} listeners (max: ${this.maxListeners}). Possible memory leak detected.`
+        );
+      }
     }
     return {
       unsubscribe: () => {

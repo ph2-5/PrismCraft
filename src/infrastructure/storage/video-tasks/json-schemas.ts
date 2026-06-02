@@ -1,3 +1,5 @@
+import { errorLogger } from "@/shared/error-logger";
+
 export interface VideoTaskConfig {
   model?: string;
   prompt?: string;
@@ -35,20 +37,20 @@ export interface VideoTaskTracking {
 
 export function parseConfig(raw: string | null | undefined): VideoTaskConfig {
   if (!raw) return {};
-  try { return JSON.parse(raw); } catch { return {}; }
+  try { return JSON.parse(raw); } catch { errorLogger.warn("[json-schemas] Failed to parse config JSON"); return {}; }
 }
 
 export function parseProvider(raw: string | null | undefined): VideoTaskProvider {
   if (!raw) return {};
-  try { return JSON.parse(raw); } catch { return {}; }
+  try { return JSON.parse(raw); } catch { errorLogger.warn("[json-schemas] Failed to parse provider JSON"); return {}; }
 }
 
 export function parseMediaRefs(raw: string | null | undefined): VideoTaskMediaRefs {
   if (!raw) return {};
-  try { return JSON.parse(raw); } catch { return {}; }
+  try { return JSON.parse(raw); } catch { errorLogger.warn("[json-schemas] Failed to parse mediaRefs JSON"); return {}; }
 }
 
 export function parseTracking(raw: string | null | undefined): VideoTaskTracking {
   if (!raw) return {};
-  try { return JSON.parse(raw); } catch { return {}; }
+  try { return JSON.parse(raw); } catch { errorLogger.warn("[json-schemas] Failed to parse tracking JSON"); return {}; }
 }

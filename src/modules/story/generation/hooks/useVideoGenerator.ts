@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback } from "react";
 import { generateSingleBeatPrompt } from "@/modules/prompt";
 import type { Story, StoryBeat, Character, Scene, StoryStyleGuide, VideoTask, ModelSelection } from "@/domain/schemas";
@@ -136,7 +134,7 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
           showWarning("提示词过长", "提示词已被自动截断，可能影响生成效果");
         }
 
-        success("视频生成任务已提交", "正在处理中...");
+        success(t("video.taskSubmitted"), t("success.videoTaskProcessing"));
       }, "视频生成失败");
     },
     [

@@ -6,9 +6,12 @@
  */
 
 // === 1. 一致性检查（API 路由 /api/validate 使用）===
-export { performConsistencyCheck } from "./consistency-check";
+export { performConsistencyCheck, performConfigCheck, checkVisualConsistency } from "./consistency-check";
+export type { ConsistencyCheckInput } from "./consistency-check";
 export {
+  validateFeatureAnchoringConfig,
   validateFeatureAnchoringConfig as validateFeatureAnchoringConfigFull,
+  validateNoFrameBinding,
   validateNoFrameBinding as validateNoFrameBindingParams,
 } from "./consistency-check";
 
@@ -25,6 +28,7 @@ export {
   SHOT_SIZE_OPTIONS,
   CAMERA_MOVEMENT_OPTIONS,
   CAMERA_ANGLE_OPTIONS,
+  buildPromptLayers,
 } from "./shot-instruction";
 
 // === 4. 元素管理（story 模块使用）===
@@ -34,7 +38,21 @@ export { elementManager } from "./element-binding";
 export {
   validateReferenceImageQuality,
   buildFeatureAnchoringConfig,
+  extractCharacterFeatures,
+  buildFeatureTags,
+  buildFeatureAnchor,
 } from "./feature-extraction";
 
 // === 6. 引用引擎（story 模块使用）===
 export { referenceEngine } from "./shot-reference";
+
+// === 7. 分镜生成与校验 ===
+export {
+  validateShotParams,
+  validateStoryBeatOutput,
+  validateStoryPlanOutput,
+  generateFallbackParams,
+  formatValidationResult,
+} from "./shot-generation";
+export type { ValidationResult, ShotParamsType } from "./shot-generation";
+export { generateStoryPlanWithValidation } from "./shot-generation";

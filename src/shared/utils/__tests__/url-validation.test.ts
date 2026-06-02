@@ -4,7 +4,6 @@ import {
   isAllowedImageUrl,
   isAllowedVideoUrl,
 } from "../url-validation";
-import type { UrlValidationResult } from "../url-validation";
 
 describe("url-validation", () => {
   describe("validateExternalUrl", () => {

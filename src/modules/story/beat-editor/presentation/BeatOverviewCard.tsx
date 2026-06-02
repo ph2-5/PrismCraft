@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import {
   Clock,
@@ -26,6 +24,7 @@ import { beatTypes } from "@/modules/story";
 import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { SafeImage } from "@/shared/ui/safe-image";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 interface BeatOverviewCardProps {
   beat: StoryBeat;
@@ -70,27 +69,27 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
     if (hasVideo) {
       return {
         icon: <Play className="w-3 h-3" />,
-        text: "视频完成",
+        text: t("beat.videoComplete"),
         color: "bg-green-500/20 text-green-400 border-green-500/30",
       };
     }
     if (hasFramePair) {
       return {
         icon: <LucideImage className="w-3 h-3" />,
-        text: "首尾帧完成",
+        text: t("beat.framePairComplete"),
         color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
       };
     }
     if (hasKeyframe) {
       return {
         icon: <Sparkles className="w-3 h-3" />,
-        text: "预览图完成",
+        text: t("beat.keyframeComplete"),
         color: "bg-purple-500/20 text-purple-400 border-purple-500/30",
       };
     }
     return {
       icon: <Zap className="w-3 h-3" />,
-      text: "待生成",
+      text: t("beat.pendingGenerate"),
       color: "bg-slate-500/20 text-slate-400 border-slate-500/30",
     };
   };
@@ -131,7 +130,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                 <div className="w-full h-full bg-gradient-to-br from-purple-900/40 to-slate-900 flex items-center justify-center">
                   <div className="text-center">
                     <Film className="w-10 h-10 mx-auto mb-2 text-purple-500/60" />
-                    <p className="text-xs text-purple-400/70">等待生成</p>
+                    <p className="text-xs text-purple-400/70">{t("beat.waitingGenerate")}</p>
                   </div>
                 </div>
               )}
@@ -143,7 +142,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                 <Badge
                   className={`${typeInfo?.color || "bg-purple-600/70"} shadow-md border border-purple-400/30`}
                 >
-                  {typeInfo?.label || "类型"}
+                  {typeInfo?.label || t("beat.typeLabel")}
                 </Badge>
               </div>
 
@@ -167,10 +166,10 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
             <div className="p-4 space-y-3">
               <div>
                 <h3 className="text-base font-semibold text-purple-100 group-hover:text-purple-400 transition-colors line-clamp-1">
-                  {beat.title || `分镜 ${index + 1}`}
+                  {beat.title || t("beat.shotNumber", { number: index + 1 })}
                 </h3>
                 <p className="text-xs text-purple-300/80 mt-1 line-clamp-2">
-                  {beat.content || beat.description || "点击编辑分镜内容..."}
+                  {beat.content || beat.description || t("beat.clickToEdit")}
                 </p>
               </div>
 
@@ -246,7 +245,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                     }}
                   >
                     <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-                    编辑
+                    {t("beat.editLabel")}
                   </Button>
                   {onDeleteBeat && (
                     <Button
@@ -256,9 +255,9 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                       onClick={(e) => {
                         e.stopPropagation();
                         confirmDialog({
-                          title: "删除分镜",
-                          description: "确定要删除这个分镜吗？",
-                          confirmText: "删除",
+                          title: t("beat.deleteBeatTitle"),
+                          description: t("beat.deleteBeatConfirm"),
+                          confirmText: t("common.delete"),
                           variant: "danger",
                     }).then((confirmed) => {
                       if (confirmed) onDeleteBeat(beat.id);
@@ -266,7 +265,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                       }}
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                      删除
+                      {t("common.delete")}
                     </Button>
                   )}
                 </div>

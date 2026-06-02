@@ -12,7 +12,7 @@ const {
 }));
 
 vi.mock("@/shared/db-core", () => ({
-  safeTransaction: (...args: any[]) => mockSafeTransaction(...(args as [any])),
+  safeTransaction: (...args: [{ sql: string; params: unknown[] }[]]) => mockSafeTransaction(...args),
   safeQuery: vi.fn().mockResolvedValue([]),
   safeRun: vi.fn().mockResolvedValue(undefined),
 }));

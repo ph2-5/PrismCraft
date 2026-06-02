@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import type { Character, Scene } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";

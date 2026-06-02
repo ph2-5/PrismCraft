@@ -1,9 +1,8 @@
-"use client";
-
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import type { Scene } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 interface BeatHeaderProps {
   beatTitle: string;
@@ -40,7 +39,7 @@ export function BeatHeader({
         </div>
         <div>
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            {beatTitle || `分镜 ${index + 1}`}
+            {beatTitle || t("beat.shotNumber", { number: index + 1 })}
           </h3>
           <div className="flex items-center gap-2 mt-0.5">
             {selectedScene && (

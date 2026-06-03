@@ -65,7 +65,7 @@ export default function Home() {
   };
 
   return (
-    <PageErrorBoundary pageName="首页">
+    <PageErrorBoundary pageName={t("page.home")}>
     <div className="flex flex-col">
       <QuickActions
         characters={characters}

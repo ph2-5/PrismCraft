@@ -33,7 +33,7 @@ export function SwitchConfirmDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Save className="w-5 h-5" />
-            切换项目
+            {t("story.switchProject")}
           </DialogTitle>
           <DialogDescription>
             {t("beat.unsavedSwitchMessage")}
@@ -59,7 +59,7 @@ export function SwitchConfirmDialog({
             className="w-full justify-start text-left text-muted-foreground"
             onClick={() => onOpenChange(false)}
           >
-            取消
+            {t("common.cancel")}
           </Button>
         </div>
       </DialogContent>

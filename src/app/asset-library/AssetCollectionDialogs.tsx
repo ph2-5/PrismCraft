@@ -18,6 +18,7 @@ import {
 } from "@/shared/ui/select";
 import { ArrowRight, Loader2, Upload } from "lucide-react";
 import type { Collection, ImportMode } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 interface AssetCollectionDialogsProps {
   isCollectionDialogOpen: boolean;
@@ -70,9 +71,9 @@ export function AssetCollectionDialogs({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>加入合集</DialogTitle>
+            <DialogTitle>{t("asset.addToCollectionTitle")}</DialogTitle>
             <DialogDescription>
-              选择一个合集，将选中的 {selectedIdsCount} 个素材添加进去
+              {t("asset.addToCollectionDesc", { count: selectedIdsCount })}
             </DialogDescription>
           </DialogHeader>
           <Select
@@ -82,7 +83,7 @@ export function AssetCollectionDialogs({
             }}
           >
             <SelectTrigger>
-              <SelectValue placeholder="选择合集" />
+              <SelectValue placeholder={t("asset.selectCollection")} />
             </SelectTrigger>
             <SelectContent>
               {collections.map((col) => (
@@ -94,7 +95,7 @@ export function AssetCollectionDialogs({
           </Select>
           {collections.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              暂无合集，请先创建合集
+              {t("asset.noCollectionCreate")}
             </p>
           )}
           <DialogFooter>
@@ -102,14 +103,14 @@ export function AssetCollectionDialogs({
               variant="ghost"
               onClick={() => setIsCollectionDialogOpen(false)}
             >
-              取消
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={onAddToCollection}
               disabled={!addToCollectionId || isAddingToCollection}
             >
               {isAddingToCollection ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ArrowRight className="w-4 h-4 mr-1" />}
-              {isAddingToCollection ? "添加中..." : "加入"}
+              {isAddingToCollection ? t("asset.adding") : t("common.add")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -121,13 +122,13 @@ export function AssetCollectionDialogs({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新建合集</DialogTitle>
-            <DialogDescription>创建一个合集来组织你的素材</DialogDescription>
+            <DialogTitle>{t("asset.newCollection")}</DialogTitle>
+            <DialogDescription>{t("asset.newCollectionDesc")}</DialogDescription>
           </DialogHeader>
           <Input
             value={newCollectionName}
             onChange={(e) => setNewCollectionName(e.target.value)}
-            placeholder="输入合集名称"
+            placeholder={t("asset.collectionNamePlaceholder")}
             onKeyDown={(e) => {
               if (e.key === "Enter") onCreateCollection();
             }}
@@ -137,11 +138,11 @@ export function AssetCollectionDialogs({
               variant="ghost"
               onClick={() => setIsNewCollectionDialogOpen(false)}
             >
-              取消
+              {t("common.cancel")}
             </Button>
             <Button disabled={isCreatingCollection} onClick={onCreateCollection}>
               {isCreatingCollection ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
-              {isCreatingCollection ? "创建中..." : "创建"}
+              {isCreatingCollection ? t("asset.creating") : t("asset.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -150,14 +151,14 @@ export function AssetCollectionDialogs({
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>导入 .asa 素材包</DialogTitle>
+            <DialogTitle>{t("asset.importAsaPackage")}</DialogTitle>
             <DialogDescription>
-              从.asa文件导入角色、场景、分镜素材
+              {t("asset.importAsaDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">导入模式</label>
+              <label className="text-sm font-medium">{t("asset.importMode")}</label>
               <Select
                 value={importMode}
                 onValueChange={(v) => {
@@ -168,9 +169,9 @@ export function AssetCollectionDialogs({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="skip">跳过重复素材</SelectItem>
-                  <SelectItem value="replace">覆盖相同ID素材</SelectItem>
-                  <SelectItem value="merge">合并至现有合集</SelectItem>
+                  <SelectItem value="skip">{t("asset.skipDuplicate")}</SelectItem>
+                  <SelectItem value="replace">{t("asset.overwriteSameId")}</SelectItem>
+                  <SelectItem value="merge">{t("asset.mergeToCollection")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -179,7 +180,7 @@ export function AssetCollectionDialogs({
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-2" />
-              选择 .asa 文件
+              {t("asset.selectAsaFile")}
             </Button>
           </div>
           <DialogFooter>
@@ -187,7 +188,7 @@ export function AssetCollectionDialogs({
               variant="ghost"
               onClick={() => setIsImportDialogOpen(false)}
             >
-              取消
+              {t("common.cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -192,8 +192,8 @@ function ScenesPageContent() {
       if (currentScene.id && currentScene.id !== scene.id && isDirty("scenes")) {
         if (
           !(await confirm(
-            "当前场景有未保存的修改，切换将丢失这些修改。确定要继续吗？",
-            "未保存的修改",
+            t("scene.unsavedChangesDesc"),
+            t("scene.unsavedChanges"),
           ))
         )
           return;
@@ -208,8 +208,8 @@ function ScenesPageContent() {
     if (currentScene.id && isDirty("scenes")) {
       if (
         !(await confirm(
-          "当前场景有未保存的修改，切换将丢失这些修改。确定要继续吗？",
-          "未保存的修改",
+          t("scene.unsavedChangesDesc"),
+          t("scene.unsavedChanges"),
         ))
       )
         return;
@@ -233,7 +233,7 @@ function ScenesPageContent() {
   }, [highlightId, scenes, setGeneratedImage]);
 
   return (
-    <PageErrorBoundary pageName="场景">
+    <PageErrorBoundary pageName={t("scene.pageName")}>
       <div className="h-full flex gap-3">
         <SceneList
           scenes={scenes}
@@ -249,10 +249,10 @@ function ScenesPageContent() {
           <div className="h-full overflow-y-auto">
             <div className="px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold">
-                {currentScene.id ? "编辑场景" : "创建新场景"}
+                {currentScene.id ? t("scene.editScene") : t("scene.createNewScene")}
               </h3>
               <p className="text-xs text-muted-foreground">
-                自由填写，所有字段都是可选的
+                {t("scene.allFieldsOptional")}
               </p>
             </div>
             <div className="p-4">
@@ -270,7 +270,7 @@ function ScenesPageContent() {
               <div className="mt-6 p-4 rounded-lg bg-slate-900/50 border border-blue-800/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium text-blue-200">
-                    图片生成提示词
+                    {t("scene.imageGenerationPrompt")}
                   </Label>
                   <Button
                     variant="outline"
@@ -284,7 +284,7 @@ function ScenesPageContent() {
                     ) : (
                       <Sparkles className="w-4 h-4" />
                     )}
-                    {isOptimizingPrompt ? "优化中..." : "AI优化"}
+                    {isOptimizingPrompt ? t("scene.optimizing") : t("scene.aiOptimize")}
                   </Button>
                 </div>
                 <Textarea
@@ -298,14 +298,13 @@ function ScenesPageContent() {
                       imageGenerationPrompt: e.target.value,
                     }), true)
                   }
-                  placeholder="输入图片生成提示词，或点击 'AI优化' 按钮自动优化..."
+                  placeholder={t("scene.promptPlaceholder")}
                   rows={6}
                   className="bg-slate-800/50 border-blue-700/50 text-blue-100 placeholder:text-blue-400/60 focus-visible:ring-blue-500 resize-none"
                 />
                 {!currentScene.imageGenerationPrompt && (
                   <p className="text-xs text-blue-400/60">
-                    提示：首次使用时会自动填充提示词，你可以直接编辑或点击
-                    AI优化 来优化它
+                    {t("scene.promptAutoFillHint")}
                   </p>
                 )}
               </div>
@@ -315,7 +314,7 @@ function ScenesPageContent() {
                 currentScene.generatedImage) && (
                 <div className="mt-6 p-4 rounded-lg bg-slate-900/50 border border-cyan-800/30 space-y-3">
                   <Label className="text-sm font-medium text-cyan-200">
-                    场景图像
+                    {t("scene.sceneImage")}
                   </Label>
                   <div className="relative aspect-video max-w-lg mx-auto rounded-lg overflow-hidden border border-cyan-700/50 shadow-lg shadow-cyan-500/20">
                     <img
@@ -337,7 +336,7 @@ function ScenesPageContent() {
                       disabled={!currentScene.id}
                     >
                       <Save className="w-4 h-4" />
-                      保存到场景
+                      {t("scene.saveToScene")}
                     </Button>
                     <Button
                       variant="outline"
@@ -346,7 +345,7 @@ function ScenesPageContent() {
                       onClick={clearImage}
                     >
                       <X className="w-4 h-4" />
-                      清除
+                      {t("scene.clear")}
                     </Button>
                   </div>
                 </div>
@@ -382,7 +381,7 @@ function ScenesPageContent() {
       <DeleteConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        entityLabel="场景"
+        entityLabel={t("scene.label")}
         isDeleting={isDeleting}
         onConfirm={() => sceneToDelete && performDelete(sceneToDelete)}
         referenceCheck={referenceCheck}
@@ -392,7 +391,7 @@ function ScenesPageContent() {
         open={showAssetSelector}
         onOpenChange={setShowAssetSelector}
         assets={assets}
-        description="选择一张图片作为场景图像"
+        description={t("scene.selectImage")}
         onSelect={async (asset) => {
           setGeneratedImage(asset.url);
           if (currentScene.id) {

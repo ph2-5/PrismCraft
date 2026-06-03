@@ -460,7 +460,7 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
       .catch((err) => {
         if (!cancelled) {
           errorLogger.warn("Failed to load stories from storyService", err);
-          showErrorRef2.current(t("error.loadFailed"), "故事列表加载失败，请刷新页面重试");
+          showErrorRef2.current(t("error.loadFailed"), t("story.loadFailed"));
         }
       });
     return () => {

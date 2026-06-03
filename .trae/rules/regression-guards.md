@@ -2,8 +2,21 @@
 
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
+>
+> **Total: 67 rules | 6 categories**
 
-## Phase 1: Core Bug Audit (R1-R18)
+## 目录
+
+- [一、数据一致性（14 条）](#一数据一致性14-条) — 数据不丢、不脏、不冲突
+- [二、异步安全（13 条）](#二异步安全13-条) — 并发、竞态、轮询、生命周期
+- [三、错误处理（11 条）](#三错误处理11-条) — 错误不吞、不假成功、用户可理解
+- [四、UI 健壮性（9 条）](#四ui-健壮性9-条) — 界面不崩、有反馈、无泄漏
+- [五、工程质量（14 条）](#五工程质量14-条) — 依赖合规、构建安全、测试可靠
+- [六、平台兼容（6 条）](#六平台兼容6-条) — IPC、Electron 环境、进程模型
+
+## 一、数据一致性（14 条）
+
+> 核心关注：数据不丢、不脏、不冲突
 
 ### R1: Persist Before State Update
 When an async operation modifies both React state and persistent storage, the storage write MUST complete before the state update. Reversing the order risks state-persistence inconsistency if the async operation fails.
@@ -37,99 +50,6 @@ async function deleteBeat(beatId: string) {
   await cacheService.invalidateByBeatId(beatId);
   setBeats(beats.filter(b => b.id !== beatId));
 }
-```
-
-### R3: Cross-Context State Updates Must Verify Ownership
-When a useEffect or callback updates state for an entity that may not be the currently active one (e.g., video completion callback updating beats for a different story), the update MUST verify the entity ID matches the current context before applying changes.
-
-**BAD**:
-```typescript
-useEffect(() => {
-  const updates = buildVideoUrlUpdates(beatsRef.current, completedUrls);
-  setBeatsRef.current(updates);
-}, [completedUrls]);
-```
-
-**GOOD**:
-```typescript
-useEffect(() => {
-  const currentStoryId = storyState.currentStoryId;
-  const updates = buildVideoUrlUpdates(beatsRef.current, completedUrls)
-    .filter(u => u.storyId === currentStoryId);
-  setBeatsRef.current(updates);
-}, [completedUrls]);
-```
-
-### R4: Deduplication Over Abort for In-Flight Requests
-When a user triggers the same async operation while a previous one is in-flight, prefer returning the existing Promise (deduplication) over aborting the previous request. AbortController.abort() cannot cancel an already-sent HTTP request — it only prevents reading the response, wasting API quota.
-
-**BAD**:
-```typescript
-if (controller) controller.abort();
-controller = new AbortController();
-await fetch(url, { signal: controller.signal });
-```
-
-**GOOD**:
-```typescript
-if (pendingPromise) return pendingPromise;
-pendingPromise = fetch(url);
-const result = await pendingPromise;
-pendingPromise = null;
-return result;
-```
-
-### R5: Silent Failure in Background Operations Must Notify User
-When a background operation (auto-save, polling, sync) fails after exhausting retries, the user MUST be notified. Silent failure causes users to believe data is persisted when it is not.
-
-**BAD**:
-```typescript
-if (retryCount >= MAX_RETRY) {
-  retryCount = 0;
-  return;
-}
-```
-
-**GOOD**:
-```typescript
-if (retryCount >= MAX_RETRY) {
-  emitToast("error", "自动保存失败", "多次重试后仍无法保存，请手动保存您的更改");
-  retryCount = 0;
-  return;
-}
-```
-
-### R6: User-Facing Error Messages Must Use Identifiable Labels
-When notifying users about task failures, use human-readable labels (beat title, story title, character name) instead of internal IDs. Truncated UUIDs are meaningless to users.
-
-**BAD**:
-```typescript
-emitToast("error", "视频生成失败", `任务 ${taskId.slice(0, 8)} 失败`);
-```
-
-**GOOD**:
-```typescript
-const taskLabel = task.beatTitle || task.storyTitle || taskId.slice(0, 8);
-emitToast("error", "视频生成失败", `「${taskLabel}」失败`);
-```
-
-### R7: Video onError Must Guard Against Infinite Retry Loops
-When a `<video>` element fails to load and the onError handler sets a fallback `src`, the handler MUST prevent re-triggering if the fallback also fails. Without a guard, an infinite onError loop will occur.
-
-**BAD**:
-```tsx
-<video onError={(e) => { (e.target as HTMLVideoElement).src = fallbackUrl; }} />
-```
-
-**GOOD**:
-```tsx
-<video onError={(e) => {
-  const target = e.target as HTMLVideoElement;
-  if (!target.dataset.retried) {
-    target.dataset.retried = "1";
-    target.src = fallbackUrl;
-  }
-}} />
 ```
 
 ### R8: Auto-Save Must Cover New Entities Without IDs
@@ -167,6 +87,295 @@ if (persistentUrl) {
   setBeats(prev => prev.map(b => b.id === id ? { ...b, imageUrl: previousUrl } : b));
   showError("上传失败");
 }
+```
+
+### R13: Destructive Import/Export Must Use Write-Then-Clean Pattern
+When importing data with a "replace" strategy, NEVER delete existing data before writing new data. If the write process fails partway through, the old data is permanently lost. Instead, write all new data first, then clean up only the records not in the new set.
+
+**BAD**:
+```typescript
+if (mergeStrategy === "replace") {
+  await db.run("DELETE FROM table");
+}
+for (const item of items) {
+  await db.insert(item); // If this fails, data is lost
+}
+```
+
+**GOOD**:
+```typescript
+const importedIds: string[] = [];
+for (const item of items) {
+  try {
+    await db.insert(item);
+    importedIds.push(item.id);
+  } catch (e) { /* skip */ }
+}
+if (mergeStrategy === "replace" && importedIds.length > 0) {
+  await db.run("DELETE FROM table WHERE id NOT IN (?)", [importedIds]);
+}
+```
+
+### R14: Async AI Analysis Must Merge Results, Not Replace
+When an async AI analysis operation completes and updates an entity (e.g., character image analysis, scene analysis), it MUST merge its results into the current state rather than replacing the entire entity. The user may have edited fields during the async operation.
+
+**BAD**:
+```typescript
+const snapshot = ref.current;
+const updated = { ...snapshot, ...analysisResult };
+setState(updated); // Overwrites user edits made during analysis
+```
+
+**GOOD**:
+```typescript
+setState((prev) => ({
+  ...prev,
+  name: analyzed.name || prev.name,
+  description: analyzed.description || prev.description,
+  // Only overwrite fields that AI actually produced
+}));
+```
+
+### R30: Cascade Delete Operations Must Be Atomic
+When deleting an entity and cleaning up its references across multiple tables, all DELETE/UPDATE statements MUST be executed within a single `safeTransaction`. Splitting cascade deletes into multiple transactions risks partial completion: if the second transaction fails, references are cleaned but the entity still exists (or vice versa), leaving the database in an inconsistent state.
+
+**BAD**:
+```typescript
+await safeTransaction([
+  { sql: "DELETE FROM story_characters WHERE character_id = ?", params: [id] },
+  { sql: "UPDATE story_beats SET character = NULL WHERE character = ?", params: [id] },
+]);
+await safeTransaction([
+  { sql: "DELETE FROM character_outfits WHERE character_id = ?", params: [id] },
+  { sql: "DELETE FROM characters WHERE id = ?", params: [id] },
+]);
+```
+
+**GOOD**:
+```typescript
+await safeTransaction([
+  { sql: "DELETE FROM story_characters WHERE character_id = ?", params: [id] },
+  { sql: "UPDATE story_beats SET character = NULL WHERE character = ?", params: [id] },
+  { sql: "DELETE FROM character_outfits WHERE character_id = ?", params: [id] },
+  { sql: "DELETE FROM characters WHERE id = ?", params: [id] },
+]);
+```
+
+### R36: Async AI Analysis Results MUST Use Selective Merge, Not Spread Override
+When an async AI analysis operation (image analysis, scene analysis, character analysis) completes and updates entity state, it MUST merge only the fields that AI actually produced (e.g., appearance, style, elements, colors) using `??` (nullish coalescing), NOT spread-override the entire entity with `{ ...prev, ...analysisResult }`. Spread override will overwrite user edits made during the async operation on fields like `name`, `description`, `gender`.
+
+**BAD**:
+```typescript
+setCurrentCharacter((prev) => ({ ...prev, ...analysisResult }), true);
+```
+
+**GOOD**:
+```typescript
+setCurrentCharacter((prev) => ({
+  ...prev,
+  appearance: analysisResult.appearance ?? prev.appearance,
+  style: analysisResult.style ?? prev.style,
+  personality: analysisResult.personality ?? prev.personality,
+}), true);
+```
+
+### R37: Dynamic SQL Table Names MUST Be Validated Against Identifier Pattern
+When constructing SQL queries with dynamic table names (e.g., iterating over table names in a cleanup loop, building queries from variables), the table name MUST be validated against a strict identifier pattern (`/^[a-zA-Z_][a-zA-Z0-9_]*$/`) and quoted with double quotes before interpolation. String interpolation of unvalidated table names into SQL is a SQL injection vector, even in Electron desktop apps where the attack surface is limited — malformed table names from bugs or corrupted config can still break queries silently.
+
+**BAD**:
+```typescript
+const tables = ["characters", "scenes"];
+for (const table of tables) {
+  db.prepare(`DELETE FROM ${table} WHERE is_deleted = 1`).run();
+}
+```
+
+**GOOD**:
+```typescript
+const VALID_TABLE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+const tables = ["characters", "scenes"];
+for (const table of tables) {
+  if (!VALID_TABLE_IDENTIFIER.test(table)) {
+    logger.warn(`Invalid table name: ${table}`);
+    continue;
+  }
+  db.prepare(`DELETE FROM "${table}" WHERE is_deleted = 1`).run();
+}
+```
+
+### R42: Auto-Save Must Use Optimistic Locking, Not INSERT OR REPLACE
+When auto-saving data that may be concurrently modified by the user, the SQL statement MUST use optimistic locking (`ON CONFLICT(id) DO UPDATE SET ... WHERE timestamp < excluded.timestamp`) instead of `INSERT OR REPLACE`. `INSERT OR REPLACE` unconditionally overwrites the existing row, destroying any newer changes the user made between the auto-save snapshot and the actual write. The optimistic lock ensures that only older data is overwritten by newer data. If the write reports `changes === 0`, a secondary query MUST check whether the existing row's timestamp is newer, and silently skip the write if so.
+
+**BAD**:
+```typescript
+await safeRun(
+  "INSERT OR REPLACE INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?)",
+  [autoSave.id, autoSave.type, JSON.stringify(autoSave.data), ts],
+);
+```
+
+**GOOD**:
+```typescript
+const result = await safeRun(
+  "INSERT INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET data_json = excluded.data_json, timestamp = excluded.timestamp WHERE timestamp < excluded.timestamp",
+  [autoSave.id, autoSave.type, JSON.stringify(autoSave.data), ts],
+);
+if (!result || result.changes === 0) {
+  const existing = await safeQuery<{ timestamp: number }>(
+    "SELECT timestamp FROM auto_saves WHERE id = ?",
+    [autoSave.id],
+  );
+  if (existing.length > 0 && existing[0].timestamp > ts) {
+    return;
+  }
+}
+```
+
+### R45: Entity Update Must Not Delete Unrelated Associated Data
+When updating an entity's child collection (e.g., story beats), the update MUST NOT issue blanket DELETE statements on associated tables (video_tasks, generation_tasks, media_assets) for ALL existing children. Instead, it MUST compute the diff (children removed vs. children retained), and only delete associated data for children that are actually being removed. A blanket delete-then-reinsert pattern destroys data that should be preserved (e.g., video tasks for beats that still exist), causing data loss on every save.
+
+**BAD**:
+```typescript
+if (story.beats !== undefined) {
+  statements.push(
+    { sql: "DELETE FROM video_tasks WHERE beat_id IN (SELECT id FROM story_beats WHERE story_id = ?)", params: [id] },
+    { sql: "DELETE FROM story_beats WHERE story_id = ?", params: [id] },
+  );
+  for (const beat of story.beats) {
+    statements.push(buildBeatInsert(beat.id, id, beat));
+  }
+}
+```
+
+**GOOD**:
+```typescript
+if (story.beats !== undefined) {
+  const newBeatIds = new Set(story.beats.map(b => b.id).filter(Boolean));
+  const existingBeats = await safeQuery("SELECT id FROM story_beats WHERE story_id = ?", [id]);
+  const removedBeatIds = existingBeats.map(r => r.id).filter(bid => !newBeatIds.has(bid));
+
+  for (const removedId of removedBeatIds) {
+    statements.push(
+      { sql: "DELETE FROM video_tasks WHERE beat_id = ?", params: [removedId] },
+      { sql: "DELETE FROM generation_tasks WHERE beat_id = ?", params: [removedId] },
+      { sql: "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?", params: [removedId] },
+      { sql: "DELETE FROM story_beats WHERE id = ?", params: [removedId] },
+    );
+  }
+  for (const beat of story.beats) {
+    statements.push(buildBeatInsert(beat.id, id, beat));
+  }
+}
+```
+
+### R64: Route Navigation MUST NOT Clear Dirty State
+
+When a user navigates between pages via route changes (React Router navigation), the application MUST NOT automatically clear dirty state (`markAllClean()`). Route navigation is a user-controlled action — clearing dirty state silently discards the reminder that there are unsaved changes. Only explicit user actions (successful save, user confirmation dialog) should clear dirty state. The `beforeunload` event (browser/tab close) is the only automatic guard, and it only prevents the close — it doesn't clear state.
+
+**BAD** — Clears dirty state on route change:
+```typescript
+useEffect(() => {
+  if (prevPathnameRef.current !== pathname) {
+    markAllClean(); // Silently discards unsaved changes reminder
+    prevPathnameRef.current = pathname;
+  }
+}, [pathname]);
+```
+
+**GOOD** — Only guard browser close, let explicit actions clear state:
+```typescript
+useEffect(() => {
+  if (prevPathnameRef.current !== pathname) {
+    prevPathnameRef.current = pathname;
+    // Don't clear dirty state — let user save or confirm navigation
+  }
+}, [pathname]);
+```
+
+**Verification**: Search for `markAllClean()` or `markClean()` calls inside `useEffect` dependencies that include `pathname` or `location`. Any such call is a violation.
+
+**Discovered in**: `BeforeUnloadGuard` called `markAllClean()` on every route change. Users editing a story, then clicking to another page and back, found their unsaved changes indicator gone — even though the changes were never saved.
+
+### R65: Auto-Save MUST Check isDirty Before Saving
+
+When an auto-save hook runs on a timer, it MUST check whether there are actual unsaved changes before executing the save operation. Without this check, the timer fires regardless of whether anything changed, causing unnecessary database writes, optimistic lock conflicts, and wasted I/O — especially when the user is viewing but not editing data.
+
+**BAD** — Saves on every timer tick:
+```typescript
+useEffect(() => {
+  const id = setInterval(() => {
+    onSave(); // Fires even when nothing changed
+  }, interval);
+  return () => clearInterval(id);
+}, [interval]);
+```
+
+**GOOD** — Checks dirty state before saving:
+```typescript
+useEffect(() => {
+  const id = setInterval(() => {
+    if (isDirty && !isDirty()) return; // Skip if no changes
+    onSave();
+  }, interval);
+  return () => clearInterval(id);
+}, [interval]);
+```
+
+**Verification**: Any auto-save implementation must accept an `isDirty` callback and check it before each save attempt.
+
+**Discovered in**: Auto-save fired every 30 seconds even when the user was just viewing a story without making changes. This caused unnecessary database writes and occasional optimistic lock conflicts with manual saves.
+
+### R66: Persistence Failure MUST Re-mark Dirty State
+
+When a persistence operation (save, update, URL persistence) fails, the application MUST re-mark the corresponding entity's dirty state (`markDirty`). If dirty state is not re-marked, the auto-save system will skip the entity on the next cycle (because it appears clean), and the user will not be warned about unsaved changes when leaving — resulting in silent data loss.
+
+**BAD** — Failure doesn't re-mark dirty:
+```typescript
+try {
+  await storyService.update(id, data);
+  markClean("story");
+} catch (error) {
+  showError("Save failed");
+  // Dirty state was cleared before the save attempt → data loss
+}
+```
+
+**GOOD** — Failure re-marks dirty:
+```typescript
+try {
+  await storyService.update(id, data);
+  markClean("story");
+} catch (error) {
+  markDirty("story"); // Ensure next auto-save cycle retries
+  showError("Save failed");
+}
+```
+
+**Verification**: Every `catch` block in a save/persistence operation must call `markDirty()` for the affected entity, unless the error is a validation error (no data to persist).
+
+**Discovered in**: `useStoryPersistence` caught video URL save failures but didn't re-mark "story" as dirty. After a failed save, the auto-save system saw the story as clean and never retried. Users lost video URL associations when switching stories.
+
+## 二、异步安全（13 条）
+
+> 核心关注：并发、竞态、轮询、生命周期
+
+### R4: Deduplication Over Abort for In-Flight Requests
+When a user triggers the same async operation while a previous one is in-flight, prefer returning the existing Promise (deduplication) over aborting the previous request. AbortController.abort() cannot cancel an already-sent HTTP request — it only prevents reading the response, wasting API quota.
+
+**BAD**:
+```typescript
+if (controller) controller.abort();
+controller = new AbortController();
+await fetch(url, { signal: controller.signal });
+```
+
+**GOOD**:
+```typescript
+if (pendingPromise) return pendingPromise;
+pendingPromise = fetch(url);
+const result = await pendingPromise;
+pendingPromise = null;
+return result;
 ```
 
 ### R10: Async Save Operations Must Guard Against Concurrent Invocations
@@ -238,51 +447,300 @@ if (beats.length > 0) {
 }
 ```
 
-### R13: Destructive Import/Export Must Use Write-Then-Clean Pattern
-When importing data with a "replace" strategy, NEVER delete existing data before writing new data. If the write process fails partway through, the old data is permanently lost. Instead, write all new data first, then clean up only the records not in the new set.
+### R29: Async Callbacks Must Verify Entity ID Consistency
+When an async operation (AI analysis, image generation, video completion) completes and updates entity state, it MUST verify that the entity ID at the start of the operation still matches the current entity ID. If the user switched to a different entity during the async operation, the result MUST be discarded to prevent updating the wrong entity.
 
 **BAD**:
 ```typescript
-if (mergeStrategy === "replace") {
-  await db.run("DELETE FROM table");
-}
-for (const item of items) {
-  await db.insert(item); // If this fails, data is lost
-}
+const analyzeImage = async (imageUrl: string) => {
+  const result = await container.imageProvider.analyzeImage(imageUrl);
+  // User may have switched characters during analysis
+  setCurrentCharacter((prev) => ({ ...prev, ...result.data.analyzed }));
+};
 ```
 
 **GOOD**:
 ```typescript
-const importedIds: string[] = [];
-for (const item of items) {
+const analyzeImage = async (imageUrl: string) => {
+  const entityIdAtStart = currentEntityRef.current.id;
+  const result = await container.imageProvider.analyzeImage(imageUrl);
+  if (currentEntityRef.current.id !== entityIdAtStart) return;
+  setCurrentEntity((prev) => ({ ...prev, ...result.data.analyzed }));
+};
+```
+
+### R31: User-Initiated Async Save Must Verify Entity Context After Completion
+When a user explicitly triggers a save operation (Ctrl+S, save button) for an entity, the save handler MUST snapshot the entity ID at the start and verify it still matches the current entity ID after the async operation completes. If the user switched to a different entity during the save, the state update MUST be discarded to prevent overwriting the new entity's state with the old entity's saved data.
+
+**BAD**:
+```typescript
+const handleSave = useCallback(async () => {
+  if (savingRef.current) return;
+  savingRef.current = true;
   try {
-    await db.insert(item);
-    importedIds.push(item.id);
-  } catch (e) { /* skip */ }
-}
-if (mergeStrategy === "replace" && importedIds.length > 0) {
-  await db.run("DELETE FROM table WHERE id NOT IN (?)", [importedIds]);
-}
-```
-
-### R14: Async AI Analysis Must Merge Results, Not Replace
-When an async AI analysis operation completes and updates an entity (e.g., character image analysis, scene analysis), it MUST merge its results into the current state rather than replacing the entire entity. The user may have edited fields during the async operation.
-
-**BAD**:
-```typescript
-const snapshot = ref.current;
-const updated = { ...snapshot, ...analysisResult };
-setState(updated); // Overwrites user edits made during analysis
+    await storyService.update(currentStory.id, currentStory);
+    setCurrentStory(savedStory, true);
+  } finally {
+    savingRef.current = false;
+  }
+}, [currentStory]);
 ```
 
 **GOOD**:
 ```typescript
-setState((prev) => ({
-  ...prev,
-  name: analyzed.name || prev.name,
-  description: analyzed.description || prev.description,
-  // Only overwrite fields that AI actually produced
-}));
+const currentStoryIdRef = useRef(currentStory.id);
+useEffect(() => { currentStoryIdRef.current = currentStory.id; }, [currentStory.id]);
+
+const handleSave = useCallback(async () => {
+  if (savingRef.current) return;
+  const storyIdAtSaveStart = currentStory.id;
+  savingRef.current = true;
+  try {
+    await storyService.update(storyIdAtSaveStart, currentStory);
+    if (currentStoryIdRef.current !== storyIdAtSaveStart) return;
+    setCurrentStory(savedStory, true);
+  } finally {
+    savingRef.current = false;
+  }
+}, [currentStory]);
+```
+
+### R32: Batch Generation Loops Must Check Cancellation on Component Unmount
+When a batch generation loop (keyframes, frame pairs, videos) processes multiple items sequentially, it MUST check a cancellation flag before each iteration and after each async operation. When the component unmounts, the flag MUST be set to true via a useEffect cleanup. Without this, in-flight batch operations continue running after navigation, causing state updates on unmounted components and wasting API quota.
+
+**BAD**:
+```typescript
+for (let i = 0; i < beats.length; i++) {
+  const result = await generateKeyframe(beats[i].id);
+  setBeats(prev => prev.map(b => b.id === result.id ? result : b));
+}
+```
+
+**GOOD**:
+```typescript
+const cancelledRef = useRef(false);
+useEffect(() => { return () => { cancelledRef.current = true; }; }, []);
+
+for (let i = 0; i < beats.length; i++) {
+  if (cancelledRef.current) break;
+  const result = await generateKeyframe(beats[i].id);
+  if (cancelledRef.current) break;
+  setBeats(prev => prev.map(b => b.id === result.id ? result : b));
+}
+```
+
+### R34: Zustand Store Updates MUST Use Functional Form When Deriving From Current State
+When a Zustand store update derives new state from the current state (e.g., filtering a list, incrementing a counter, merging into an existing object), it MUST use the functional form `set((state) => ({ ... }))` instead of `get()` + `set({ ... })`. The `get()` + `set()` pattern reads a snapshot that may be stale by the time `set()` is called, causing concurrent updates to overwrite each other.
+
+**BAD**:
+```typescript
+const current = get().allTasks;
+set({ allTasks: current.filter(t => t.id !== id) });
+```
+
+**GOOD**:
+```typescript
+set((state) => ({ allTasks: state.allTasks.filter(t => t.id !== id) }));
+```
+
+### R38: Video URL Persistence MUST Complete Before Story Switch
+When video URLs are updated in memory (from completed generation tasks), they MUST be persisted to the database via `await` before the user can switch to a different story. Fire-and-forget persistence (`.catch()` without `await`) creates a race condition: if the user switches stories before persistence completes, the URL is lost because the new story's state overwrites the in-memory beats. The `isVideoUrlPersisting` flag MUST be exposed to the UI layer, and story switching MUST be blocked while persistence is in flight.
+
+**BAD**:
+```typescript
+storyService.updateBeatMediaUrls(allPersistData).catch((e) => {
+  errorLogger.warn("自动保存视频URL失败", e);
+});
+```
+
+**GOOD**:
+```typescript
+setIsVideoUrlPersisting(true);
+try {
+  await storyService.updateBeatMediaUrls(allPersistData);
+} catch (e) {
+  errorLogger.warn("自动保存视频URL失败", e);
+  showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
+} finally {
+  setIsVideoUrlPersisting(false);
+}
+
+// In switchStory:
+if (story.isVideoUrlPersisting) {
+  showWarning("请稍候", "视频URL正在保存中，请等待保存完成后再切换故事");
+  return;
+}
+```
+
+### R46: Polling Engine State Flags Must Reset in Correct Order with Top-Level Catch
+When a polling engine uses `isPollingScheduled` and `pollingInProgress` flags to prevent concurrent scheduling, the `finally` block MUST reset `pollingInProgress` BEFORE `isPollingScheduled`. If `isPollingScheduled` is reset first, a concurrent call to `schedulePolling()` can pass the guard check (`isPollingScheduled === false`) while `pollingInProgress` is still true, leading to duplicate scheduling. Additionally, the polling function MUST have a top-level `catch` block to prevent unhandled exceptions from bypassing the `finally` block, which would leave both flags stuck at `true` and permanently stop polling.
+
+**BAD**:
+```typescript
+const pollTasks = async () => {
+  pollingState.pollingInProgress = true;
+  try {
+    // ... polling logic (may throw unexpectedly)
+  } finally {
+    pollingState.isPollingScheduled = false;  // Reset scheduled first
+    pollingState.pollingInProgress = false;    // Reset in-progress second — RACE CONDITION
+  }
+  if (shouldReschedule) schedulePolling();     // Can enter while pollingInProgress is still true
+};
+```
+
+**GOOD**:
+```typescript
+const pollTasks = async () => {
+  pollingState.pollingInProgress = true;
+  let shouldReschedule = false;
+  try {
+    // ... polling logic
+    shouldReschedule = true;
+  } catch (e) {
+    errorLogger.warn("[PollingEngine] Unexpected error in poll cycle", e);  // Prevent unhandled exception
+  } finally {
+    pollingState.pollingInProgress = false;    // Reset in-progress FIRST
+    pollingState.isPollingScheduled = false;    // Reset scheduled SECOND
+  }
+  if (shouldReschedule && !abortSignal.aborted) schedulePolling();
+};
+```
+
+### R48: useEffect Async Operations MUST Have Unmount Protection
+When a `useEffect` contains an async operation (fetch, API call, database query) that updates React state, the effect MUST use a `cancelled` flag or `AbortController` to prevent state updates after component unmount. Without this protection, async callbacks can call `setState` on unmounted components, causing React warnings and potential memory leaks. The cleanup function MUST set the cancellation flag or abort the controller.
+
+**BAD**:
+```typescript
+useEffect(() => {
+  loadConfig().then((config) => {
+    setAvailableModels(config.models);
+    setIsLoading(false);
+  });
+}, [capability]);
+```
+
+**GOOD**:
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  loadConfig().then((config) => {
+    if (cancelled) return;
+    setAvailableModels(config.models);
+    setIsLoading(false);
+  }).catch((error) => {
+    if (cancelled) return;
+    setIsLoading(false);
+    setLoadError(true);
+  });
+  return () => { cancelled = true; };
+}, [capability]);
+```
+
+### R62: Page-Level Components MUST NOT Call Global Store cleanup()
+
+When a Zustand store is shared across multiple pages (e.g., `useVideoTaskStore` used by both quick-generate and story pages), page-level components MUST NOT call `store.cleanup()` in their `useEffect` cleanup. The `cleanup()` function stops all polling engines and resets `isInitialized: false`, which breaks task tracking for ALL pages — not just the one being unmounted.
+
+The lifecycle of global shared stores MUST be managed by app-level components (e.g., `VideoTaskManagerInitializer` in the root layout) that only unmount when the entire app closes.
+
+**BAD** — Page component calls cleanup on unmount:
+```typescript
+useEffect(() => {
+  initialize();
+  return () => {
+    useVideoTaskStore.getState().cleanup(); // Stops ALL polling, resets isInitialized
+  };
+}, [initialize]);
+```
+
+**GOOD** — Only initialize, let app-level component handle cleanup:
+```typescript
+useEffect(() => {
+  initialize();
+}, [initialize]);
+```
+
+**Verification**: Search for `\.cleanup\(\)` calls outside of `VideoTaskManagerInitializer` and test files. Any call in page-level components is a violation.
+
+**Discovered in**: Quick-generate page called `useVideoTaskStore.cleanup()` on unmount, which stopped the polling engine. After navigating away from quick-generate, all video tasks (including story mode tasks) stopped receiving status updates.
+
+### R67: Concurrency Guard Ref MUST Be Set After Validation
+
+When using a `savingRef` (or similar boolean ref) to prevent concurrent save operations, the ref MUST be set to `true` AFTER input validation passes, not before. If set before validation, an invalid input (e.g., empty name) causes an early return while `savingRef` remains `true` — permanently blocking all future save attempts until the component remounts.
+
+**BAD** — Sets ref before validation:
+```typescript
+const handleSave = async () => {
+  if (savingRef.current) return;
+  savingRef.current = true; // Set before validation
+  const trimmedName = (entity.name || "").trim();
+  if (!trimmedName) {
+    showError("Name required");
+    return; // savingRef stays true → save permanently blocked
+  }
+  // ... actual save
+  savingRef.current = false;
+};
+```
+
+**GOOD** — Sets ref after validation:
+```typescript
+const handleSave = async () => {
+  if (savingRef.current) return;
+  const trimmedName = (entity.name || "").trim();
+  if (!trimmedName) {
+    showError("Name required");
+    return; // savingRef still false → can retry
+  }
+  savingRef.current = true; // Set after validation passes
+  try {
+    // ... actual save
+  } finally {
+    savingRef.current = false;
+  }
+};
+```
+
+**Verification**: In any function using a concurrency guard ref, the `ref.current = true` assignment must appear AFTER all early-return validation checks. The `ref.current = false` must be in a `finally` block.
+
+**Discovered in**: `useEntityCRUD` set `savingRef.current = true` before checking if the entity name was empty. When the name was empty, the function returned early without resetting the ref. The save button became permanently disabled — the only recovery was to reload the page.
+
+## 三、错误处理（11 条）
+
+> 核心关注：错误不吞、不假成功、用户可理解
+
+### R5: Silent Failure in Background Operations Must Notify User
+When a background operation (auto-save, polling, sync) fails after exhausting retries, the user MUST be notified. Silent failure causes users to believe data is persisted when it is not.
+
+**BAD**:
+```typescript
+if (retryCount >= MAX_RETRY) {
+  retryCount = 0;
+  return;
+}
+```
+
+**GOOD**:
+```typescript
+if (retryCount >= MAX_RETRY) {
+  emitToast("error", "自动保存失败", "多次重试后仍无法保存，请手动保存您的更改");
+  retryCount = 0;
+  return;
+}
+```
+
+### R6: User-Facing Error Messages Must Use Identifiable Labels
+When notifying users about task failures, use human-readable labels (beat title, story title, character name) instead of internal IDs. Truncated UUIDs are meaningless to users.
+
+**BAD**:
+```typescript
+emitToast("error", "视频生成失败", `任务 ${taskId.slice(0, 8)} 失败`);
+```
+
+**GOOD**:
+```typescript
+const taskLabel = task.beatTitle || task.storyTitle || taskId.slice(0, 8);
+emitToast("error", "视频生成失败", `「${taskLabel}」失败`);
 ```
 
 ### R15: Batch Delete Operations Must Be Resilient to Partial Failure
@@ -314,24 +772,6 @@ for (const id of ids) {
 if (deletedIds.length > 0) {
   setAllTasks(prev => prev.filter(t => !deletedIds.includes(t.id)));
 }
-```
-
-### R16: ErrorBoundary Must Limit Retry Attempts
-When an ErrorBoundary catches a rendering error, the retry button MUST be disabled after a configurable number of consecutive failures (default: 3). Repeatedly retrying a deterministic error creates an infinite crash-retry loop that degrades the user experience. After the limit, guide the user to refresh or reset instead.
-
-**BAD**:
-```tsx
-<Button onClick={() => setState({ hasError: false })}>重试</Button>
-// User can click this infinitely, each time the component crashes again
-```
-
-**GOOD**:
-```tsx
-{errorCount < 3 ? (
-  <Button onClick={() => setState({ hasError: false })}>重试</Button>
-) : (
-  <p>错误多次重复出现，请尝试刷新页面或重置</p>
-)}
 ```
 
 ### R17: Cascade Updates Must Be Resilient to Partial Failure
@@ -383,7 +823,237 @@ catch (error) {
 }
 ```
 
-## Phase 2: MVP Polish Audit (R19-R27)
+### R47: Catch Blocks MUST NOT Silently Swallow Errors
+When a `catch` block catches an error, it MUST either (1) log the error via `errorLogger.warn`/`errorLogger.error`, (2) propagate the error to the caller, or (3) show user feedback via `emitToast`. Empty `catch {}` blocks with no logging or notification are "安慰剂" error handling — they make failures invisible to both developers and users, making debugging impossible. The only exception is cleanup operations (e.g., `URL.revokeObjectURL`) where failure is inconsequential. Additionally, production code MUST use `errorLogger` instead of `console.warn`/`console.error` — console methods bypass the structured logging system and cannot be filtered or persisted in production.
+
+**BAD**:
+```typescript
+try {
+  const config = JSON.parse(rawConfig);
+} catch {
+  return defaultConfig;
+}
+```
+
+**BAD** — console.warn bypasses structured logging:
+```typescript
+catch (e) {
+  console.warn("[Module] 配置 JSON 解析失败", e);
+  return defaultConfig;
+}
+```
+
+**GOOD**:
+```typescript
+try {
+  const config = JSON.parse(rawConfig);
+} catch (e) {
+  errorLogger.warn("[Module] 配置 JSON 解析失败，使用默认配置", e);
+  return defaultConfig;
+}
+```
+
+### R50: Floating Promises MUST Have .catch() Handlers
+When a Promise chain uses `.then()` without a corresponding `.catch()`, any rejection becomes an unhandled promise rejection. This is especially dangerous in React components where the rejection may occur after unmount, causing both silent failures and potential memory leaks. Every `.then()` chain MUST end with `.catch()` that either logs the error or provides user feedback.
+
+**BAD**:
+```typescript
+container.referenceEngine.then((engine) => {
+  const result = engine.validateReference(beat, allShots, reference);
+  setValidation(result);
+});
+```
+
+**GOOD**:
+```typescript
+container.referenceEngine.then((engine) => {
+  if (cancelled) return;
+  const result = engine.validateReference(beat, allShots, reference);
+  setValidation(result);
+}).catch((err: unknown) => {
+  if (!cancelled) {
+    errorLogger.warn("[Component] 参考验证失败", err);
+  }
+});
+```
+
+### R53: Result Type Error Paths MUST Use err() Not ok()
+When a function returns `Result<T>`, failure paths MUST return `err(...)` rather than `ok({ passed: false, ... })`. Wrapping a failure in `ok()` is a "安慰剂" (placebo) error pattern — callers checking `result.ok` will believe the operation succeeded, and downstream code will try to access `result.value` on a failure-shaped object.
+
+**BAD**:
+```typescript
+catch (_e) {
+  return ok({
+    passed: false,
+    characterScores: elements.map((el) => ({
+      elementId: el.id,
+      elementName: el.name,
+      score: 0.5,
+      issues: ["检查过程出错"],
+    })),
+    overallScore: 0.5,
+    recommendation: "adjust",
+  });
+}
+```
+
+**GOOD**:
+```typescript
+catch (e) {
+  return err(new AppError("CONSISTENCY_CHECK_ERROR", "检查过程出错", e));
+}
+```
+
+**Discovered in**: `consistency-check-service.ts` — catch block and analysis failure both returned `ok()` with `passed: false`, hiding real errors from callers.
+
+### R44: User-Facing Error Messages Must Use mapUserFacingError
+When displaying error messages to users via toast, dialog, or inline text, the code MUST use `mapUserFacingError(error)` from `@/shared/utils/user-facing-error` instead of raw `extractErrorMessage(error)` or `e instanceof Error ? e.message : "未知错误"`. Raw error messages expose technical details (IPC channel names, error codes, English text) that are meaningless or alarming to users. `mapUserFacingError` translates error categories (rate_limit, timeout, network, auth, database_busy, etc.) and IPC rate limit patterns into concise, actionable Chinese messages.
+
+**BAD**:
+```typescript
+showError("保存失败", `数据库持久化失败: ${extractErrorMessage(err)}，请重试`);
+showError("删除失败", e instanceof Error ? e.message : "未知错误");
+```
+
+**GOOD**:
+```typescript
+showError("保存失败", mapUserFacingError(err));
+showError("删除失败", mapUserFacingError(e));
+```
+
+### R56: User-Facing Messages MUST Use Shared Message Constants
+User-facing strings (toast messages, dialog titles, error descriptions, button labels, placeholders, section headings) MUST use the `t()` function from `@/shared/constants/messages` instead of hardcoded Chinese strings. This ensures consistency across the UI and makes future internationalization feasible.
+
+**BAD**:
+```typescript
+success("保存成功", "分镜项目已更新");
+error("删除失败", err instanceof Error ? err.message : "未知错误");
+const confirmed = await confirm({ title: "确认删除", confirmText: "删除" });
+<DialogTitle>同步设置</DialogTitle>
+<Label>启用同步</Label>
+<Button>保存设置</Button>
+```
+
+**GOOD**:
+```typescript
+success(t("success.saved"), t("success.beatDeleted"));
+showError(t("error.deleteFailed"), mapUserFacingError(err));
+const confirmed = await confirm(t("confirm.deleteTitle"), t("confirm.delete"));
+<DialogTitle>{t("sync.settingsTitle")}</DialogTitle>
+<Label>{t("sync.enableSync")}</Label>
+<Button>{t("sync.saveSettings")}</Button>
+```
+
+**Message key categories** (in `src/shared/constants/messages.ts`, 840+ keys):
+- `common.*` — Save, delete, cancel, retry, loading, upload, regenerate, generate, etc.
+- `error.*` — All error messages (save, delete, upload, generate, network, copy, openLink, etc.)
+- `success.*` — All success messages (saved, deleted, generated, copied, etc.)
+- `confirm.*` — Confirmation dialog titles and content
+- `warning.*` — Warning messages
+- `video.*` — Video task lifecycle messages
+- `image.*` — Image generation messages
+- `story.*` — Story editing messages
+- `batch.*` — Batch operation messages
+- `plugin.*` — Plugin management and creator messages
+- `asset.*` — Asset library, export/import, batch operations messages
+- `provider.*` — Provider management, API config, connection test messages
+- `capability.*` — Capability type names (text/image/analysis/video)
+- `mapping.*` — Function mapping configuration messages
+- `connection.*` — Connection test messages
+- `sidebar.*` — Sidebar navigation labels
+- `onboarding.*` — Onboarding step labels and descriptions
+- `errorBoundary.*` — Error boundary messages
+- `config.*` — Config check banner messages
+- `sync.*` — Sync settings, conflict resolution, status indicator messages
+- `search.*` — Search dialog messages
+- `quickGenerate.*` — Quick generate panel messages
+- `page.*` — Page titles and descriptions
+- `settings.*` — Settings page labels
+- `home.*` — Home page content
+- `beat.*` — Beat detail/editor/overview card messages
+- `element.*` — Element binding panel messages
+- `shot.*` — Shot generation panel messages
+- `keyframe.*` — Keyframe panel messages
+- `refVideo.*` — Reference video uploader messages
+- `prompt.*` — Prompt editor/floating ball messages
+- `template.*` — Template manager dialog messages
+- `assetPicker.*` — Asset picker dialog messages
+- `version.*` — Version dialog messages
+- `task.*` — Video task detail/tracking/filter/card messages
+- `model.*` — Model selector messages
+- `outfit.*` — Outfit dialog messages
+- `scene.*` / `character.*` — List item fallback text and editor messages
+- `dialog.*` — Shared dialog labels
+
+**Discovered in**: ~19000+ hardcoded Chinese strings across 100+ files. Full migration completed: core toast/confirm/showError → presentation components (buttons, labels, titles, placeholders) → page components → module presentation components → shared components. ESLint R56 rule enforces t() usage in success/error/showError calls. Only AI prompt templates, error-codes business data, and log messages remain in Chinese (by design).
+
+### R63: API Status Must Be Validated Against Actual Resource Existence
+
+When mapping an external API status to an internal task status, the mapping function MUST check whether the actual resource (e.g., videoUrl) already exists. If the resource exists, the task MUST be considered completed regardless of the API-reported status. Relying solely on the API status field can cause "false failures" — the API returns a non-terminal status but the video has already been generated.
+
+**BAD** — Only checks API status:
+```typescript
+function mapApiStatus(apiStatus: string): VideoTaskStatus {
+  if (apiStatus === "success") return "completed";
+  if (apiStatus === "failed") return "failed";
+  return "generating"; // Video exists but API says "processing" → false failure
+}
+```
+
+**GOOD** — Checks resource existence first:
+```typescript
+function mapApiStatus(apiStatus: string, videoUrl?: string): VideoTaskStatus {
+  if (videoUrl) return "completed"; // Resource exists → definitely completed
+  if (apiStatus === "success") return "completed";
+  if (apiStatus === "failed") return "failed";
+  return "generating";
+}
+```
+
+**Verification**: Any `mapApiStatus` or similar status mapping function must accept and check the resource URL/existence parameter. Callers must pass the resource URL when available.
+
+**Discovered in**: Video tasks showed as "failed" in task manager even though the video URL was already available. The API returned a non-terminal status, but the video had been successfully generated. Users saw error toasts and couldn't access completed videos.
+
+## 四、UI 健壮性（9 条）
+
+> 核心关注：界面不崩、有反馈、无泄漏
+
+### R7: Video onError Must Guard Against Infinite Retry Loops
+When a `<video>` element fails to load and the onError handler sets a fallback `src`, the handler MUST prevent re-triggering if the fallback also fails. Without a guard, an infinite onError loop will occur.
+
+**BAD**:
+```tsx
+<video onError={(e) => { (e.target as HTMLVideoElement).src = fallbackUrl; }} />
+```
+
+**GOOD**:
+```tsx
+<video onError={(e) => {
+  const target = e.target as HTMLVideoElement;
+  if (!target.dataset.retried) {
+    target.dataset.retried = "1";
+    target.src = fallbackUrl;
+  }
+}} />
+```
+
+### R16: ErrorBoundary Must Limit Retry Attempts
+When an ErrorBoundary catches a rendering error, the retry button MUST be disabled after a configurable number of consecutive failures (default: 3). Repeatedly retrying a deterministic error creates an infinite crash-retry loop that degrades the user experience. After the limit, guide the user to refresh or reset instead.
+
+**BAD**:
+```tsx
+<Button onClick={() => setState({ hasError: false })}>重试</Button>
+// User can click this infinitely, each time the component crashes again
+```
+
+**GOOD**:
+```tsx
+{errorCount < 3 ? (
+  <Button onClick={() => setState({ hasError: false })}>重试</Button>
+) : (
+  <p>错误多次重复出现，请尝试刷新页面或重置</p>
+)}
+```
 
 ### R19: Video onError Must Use data-retried Guard (Extended R7)
 When a `<video>` element's onError handler sets a fallback or retry `src`, the handler MUST use a `dataset.retried` guard to prevent infinite onError loops. This applies to ALL video elements across the app, not just specific pages. Without this guard, a fallback URL that also fails will trigger onError again, creating an infinite loop.
@@ -427,21 +1097,6 @@ When an ErrorBoundary catches a rendering error, the retry mechanism MUST limit 
 ) : (
   <p>错误多次重复出现，请尝试刷新页面或重置</p>
 )}
-```
-
-### R21: Electron App Must NOT Use fetch("/api/...") for Internal Communication
-In an Electron + Next.js (output: "export") app, there is no server-side API route handler. All `fetch("/api/...")` calls will fail at runtime. Internal data access MUST go through the DI container, IPC bridge, or shared proxy exports (e.g., `checkConfigStatus()`, `testConnection()`). This applies to config checks, connection tests, and any other renderer↔main communication.
-
-**BAD**:
-```typescript
-const res = await fetch("/api/config");
-const data = await res.json();
-```
-
-**GOOD**:
-```typescript
-import { checkConfigStatus } from "@/shared/api-config";
-const data = await checkConfigStatus();
 ```
 
 ### R22: Async Delete Operations Must Have Loading State
@@ -518,212 +1173,6 @@ When a page or component renders data fetched asynchronously (characters list, s
 )}
 ```
 
-### R26: Unnecessary Dynamic Imports Must Be Replaced with Static Imports
-When a module is always needed and has no circular dependency risk, it MUST use a top-level static import. Dynamic `await import()` adds unnecessary overhead (code splitting, async boundary) and makes the code harder to follow. Dynamic imports are acceptable ONLY for code splitting large optional features or avoiding proven circular dependencies.
-
-**BAD**:
-```typescript
-const { storyService } = await import("@/modules/story");
-```
-
-**GOOD**:
-```typescript
-import { storyService } from "@/modules/story";
-```
-
-### R27: DDD Layer Violations in App Layer Must Use DI Container
-When app-layer code (`src/app/`) needs to access infrastructure storage or services, it MUST use the DI container (`container.xxx`) instead of directly importing from `@/infrastructure/*`. Direct infrastructure imports from the app layer violate the DDD dependency direction rule.
-
-**BAD**:
-```typescript
-const { container } = await import("@/infrastructure/di");
-// or
-import { storyboardStorage } from "@/infrastructure/storage";
-```
-
-**GOOD**:
-```typescript
-import { container } from "@/infrastructure/di";
-// Then use: container.storyboardStorage
-```
-
-## Phase 3: Comprehensive Bug Audit (R28-R29)
-
-### R28: Batch Queries Over N+1 Loop Queries in Storage Layer
-When a storage layer's `getAll`-style method needs to fetch related data (relations, outfits, children), it MUST use batch queries (query all related data at once, group by parent ID in memory) instead of querying related data per entity in a loop. N+1 queries cause excessive IPC calls in Electron, leading to rate limit exhaustion and database timeouts.
-
-**BAD**:
-```typescript
-async getCharacters() {
-  const rows = await safeQuery("SELECT * FROM characters");
-  const characters = [];
-  for (const row of rows) {
-    const outfits = await getOutfitsForCharacter(row.id); // N+1 IPC calls
-    characters.push({ ...parseCharacter(row), outfits });
-  }
-  return characters;
-}
-```
-
-**GOOD**:
-```typescript
-async getCharacters() {
-  const rows = await safeQuery("SELECT * FROM characters");
-  const outfitsMap = await getAllOutfits(); // 1 IPC call, group by character_id
-  return rows.map((row) => {
-    const char = parseCharacter(row);
-    char.outfits = outfitsMap.get(char.id) || [];
-    return char;
-  });
-}
-```
-
-### R29: Async Callbacks Must Verify Entity ID Consistency
-When an async operation (AI analysis, image generation, video completion) completes and updates entity state, it MUST verify that the entity ID at the start of the operation still matches the current entity ID. If the user switched to a different entity during the async operation, the result MUST be discarded to prevent updating the wrong entity.
-
-**BAD**:
-```typescript
-const analyzeImage = async (imageUrl: string) => {
-  const result = await container.imageProvider.analyzeImage(imageUrl);
-  // User may have switched characters during analysis
-  setCurrentCharacter((prev) => ({ ...prev, ...result.data.analyzed }));
-};
-```
-
-**GOOD**:
-```typescript
-const analyzeImage = async (imageUrl: string) => {
-  const entityIdAtStart = currentEntityRef.current.id;
-  const result = await container.imageProvider.analyzeImage(imageUrl);
-  if (currentEntityRef.current.id !== entityIdAtStart) return;
-  setCurrentEntity((prev) => ({ ...prev, ...result.data.analyzed }));
-};
-```
-
-## Phase 4: Comprehensive Bug Audit Round 2 (R30-R33)
-
-### R30: Cascade Delete Operations Must Be Atomic
-When deleting an entity and cleaning up its references across multiple tables, all DELETE/UPDATE statements MUST be executed within a single `safeTransaction`. Splitting cascade deletes into multiple transactions risks partial completion: if the second transaction fails, references are cleaned but the entity still exists (or vice versa), leaving the database in an inconsistent state.
-
-**BAD**:
-```typescript
-await safeTransaction([
-  { sql: "DELETE FROM story_characters WHERE character_id = ?", params: [id] },
-  { sql: "UPDATE story_beats SET character = NULL WHERE character = ?", params: [id] },
-]);
-await safeTransaction([
-  { sql: "DELETE FROM character_outfits WHERE character_id = ?", params: [id] },
-  { sql: "DELETE FROM characters WHERE id = ?", params: [id] },
-]);
-```
-
-**GOOD**:
-```typescript
-await safeTransaction([
-  { sql: "DELETE FROM story_characters WHERE character_id = ?", params: [id] },
-  { sql: "UPDATE story_beats SET character = NULL WHERE character = ?", params: [id] },
-  { sql: "DELETE FROM character_outfits WHERE character_id = ?", params: [id] },
-  { sql: "DELETE FROM characters WHERE id = ?", params: [id] },
-]);
-```
-
-### R31: User-Initiated Async Save Must Verify Entity Context After Completion
-When a user explicitly triggers a save operation (Ctrl+S, save button) for an entity, the save handler MUST snapshot the entity ID at the start and verify it still matches the current entity ID after the async operation completes. If the user switched to a different entity during the save, the state update MUST be discarded to prevent overwriting the new entity's state with the old entity's saved data.
-
-**BAD**:
-```typescript
-const handleSave = useCallback(async () => {
-  if (savingRef.current) return;
-  savingRef.current = true;
-  try {
-    await storyService.update(currentStory.id, currentStory);
-    setCurrentStory(savedStory, true);
-  } finally {
-    savingRef.current = false;
-  }
-}, [currentStory]);
-```
-
-**GOOD**:
-```typescript
-const currentStoryIdRef = useRef(currentStory.id);
-useEffect(() => { currentStoryIdRef.current = currentStory.id; }, [currentStory.id]);
-
-const handleSave = useCallback(async () => {
-  if (savingRef.current) return;
-  const storyIdAtSaveStart = currentStory.id;
-  savingRef.current = true;
-  try {
-    await storyService.update(storyIdAtSaveStart, currentStory);
-    if (currentStoryIdRef.current !== storyIdAtSaveStart) return;
-    setCurrentStory(savedStory, true);
-  } finally {
-    savingRef.current = false;
-  }
-}, [currentStory]);
-```
-
-### R32: Batch Generation Loops Must Check Cancellation on Component Unmount
-When a batch generation loop (keyframes, frame pairs, videos) processes multiple items sequentially, it MUST check a cancellation flag before each iteration and after each async operation. When the component unmounts, the flag MUST be set to true via a useEffect cleanup. Without this, in-flight batch operations continue running after navigation, causing state updates on unmounted components and wasting API quota.
-
-**BAD**:
-```typescript
-for (let i = 0; i < beats.length; i++) {
-  const result = await generateKeyframe(beats[i].id);
-  setBeats(prev => prev.map(b => b.id === result.id ? result : b));
-}
-```
-
-**GOOD**:
-```typescript
-const cancelledRef = useRef(false);
-useEffect(() => { return () => { cancelledRef.current = true; }; }, []);
-
-for (let i = 0; i < beats.length; i++) {
-  if (cancelledRef.current) break;
-  const result = await generateKeyframe(beats[i].id);
-  if (cancelledRef.current) break;
-  setBeats(prev => prev.map(b => b.id === result.id ? result : b));
-}
-```
-
-### R33: Existence-Check Queries Before Write Operations Must Be Eliminated When Possible
-When performing a write operation (UPDATE, DELETE) that naturally handles non-existent records (UPDATE affects 0 rows, DELETE affects 0 rows), the code MUST NOT issue a separate existence-check query (SELECT/getById) before the write. The pre-check query adds unnecessary IPC calls that contribute to rate limit exhaustion. Instead, rely on the write operation's natural behavior or its return value (rows affected) to determine if the record existed.
-
-**BAD**:
-```typescript
-for (const beat of beats) {
-  const existing = await storage.getStoryByBeatId(beat.id);
-  if (!existing) continue;
-  await safeTransaction([{ sql: "UPDATE story_beats SET ... WHERE id = ?", params: [beat.id] }]);
-}
-```
-
-**GOOD**:
-```typescript
-const statements = beats.map(beat => ({
-  sql: "UPDATE story_beats SET ... WHERE id = ?",
-  params: [beat.id],
-}));
-await safeTransaction(statements);
-```
-
-## Phase 5: Vibe Coding Audit (R34-R36)
-
-### R34: Zustand Store Updates MUST Use Functional Form When Deriving From Current State
-When a Zustand store update derives new state from the current state (e.g., filtering a list, incrementing a counter, merging into an existing object), it MUST use the functional form `set((state) => ({ ... }))` instead of `get()` + `set({ ... })`. The `get()` + `set()` pattern reads a snapshot that may be stale by the time `set()` is called, causing concurrent updates to overwrite each other.
-
-**BAD**:
-```typescript
-const current = get().allTasks;
-set({ allTasks: current.filter(t => t.id !== id) });
-```
-
-**GOOD**:
-```typescript
-set((state) => ({ allTasks: state.allTasks.filter(t => t.id !== id) }));
-```
-
 ### R35: Blob URLs Created for Preview MUST Be Revoked on Component Unmount
 When a component creates a Blob URL via `URL.createObjectURL()` for temporary preview (e.g., uploaded image/video preview, reference video), the Blob URL MUST be revoked when the component unmounts. Use a `useRef` to track the current Blob URL and a `useEffect` with empty dependency array to revoke on cleanup. Failing to revoke causes memory leaks proportional to the file size.
 
@@ -754,75 +1203,108 @@ useEffect(() => {
 }, []);
 ```
 
-### R36: Async AI Analysis Results MUST Use Selective Merge, Not Spread Override
-When an async AI analysis operation (image analysis, scene analysis, character analysis) completes and updates entity state, it MUST merge only the fields that AI actually produced (e.g., appearance, style, elements, colors) using `??` (nullish coalescing), NOT spread-override the entire entity with `{ ...prev, ...analysisResult }`. Spread override will overwrite user edits made during the async operation on fields like `name`, `description`, `gender`.
+## 五、工程质量（14 条）
+
+> 核心关注：依赖合规、构建安全、测试可靠
+
+### R3: Cross-Context State Updates Must Verify Ownership
+When a useEffect or callback updates state for an entity that may not be the currently active one (e.g., video completion callback updating beats for a different story), the update MUST verify the entity ID matches the current context before applying changes.
 
 **BAD**:
 ```typescript
-setCurrentCharacter((prev) => ({ ...prev, ...analysisResult }), true);
+useEffect(() => {
+  const updates = buildVideoUrlUpdates(beatsRef.current, completedUrls);
+  setBeatsRef.current(updates);
+}, [completedUrls]);
 ```
 
 **GOOD**:
 ```typescript
-setCurrentCharacter((prev) => ({
-  ...prev,
-  appearance: analysisResult.appearance ?? prev.appearance,
-  style: analysisResult.style ?? prev.style,
-  personality: analysisResult.personality ?? prev.personality,
-}), true);
+useEffect(() => {
+  const currentStoryId = storyState.currentStoryId;
+  const updates = buildVideoUrlUpdates(beatsRef.current, completedUrls)
+    .filter(u => u.storyId === currentStoryId);
+  setBeatsRef.current(updates);
+}, [completedUrls]);
 ```
 
-### R37: Dynamic SQL Table Names MUST Be Validated Against Identifier Pattern
-When constructing SQL queries with dynamic table names (e.g., iterating over table names in a cleanup loop, building queries from variables), the table name MUST be validated against a strict identifier pattern (`/^[a-zA-Z_][a-zA-Z0-9_]*$/`) and quoted with double quotes before interpolation. String interpolation of unvalidated table names into SQL is a SQL injection vector, even in Electron desktop apps where the attack surface is limited — malformed table names from bugs or corrupted config can still break queries silently.
+### R26: Unnecessary Dynamic Imports Must Be Replaced with Static Imports
+When a module is always needed and has no circular dependency risk, it MUST use a top-level static import. Dynamic `await import()` adds unnecessary overhead (code splitting, async boundary) and makes the code harder to follow. Dynamic imports are acceptable ONLY for code splitting large optional features or avoiding proven circular dependencies.
 
 **BAD**:
 ```typescript
-const tables = ["characters", "scenes"];
-for (const table of tables) {
-  db.prepare(`DELETE FROM ${table} WHERE is_deleted = 1`).run();
-}
+const { storyService } = await import("@/modules/story");
 ```
 
 **GOOD**:
 ```typescript
-const VALID_TABLE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-const tables = ["characters", "scenes"];
-for (const table of tables) {
-  if (!VALID_TABLE_IDENTIFIER.test(table)) {
-    logger.warn(`Invalid table name: ${table}`);
-    continue;
+import { storyService } from "@/modules/story";
+```
+
+### R27: DDD Layer Violations in App Layer Must Use DI Container
+When app-layer code (`src/app/`) needs to access infrastructure storage or services, it MUST use the DI container (`container.xxx`) instead of directly importing from `@/infrastructure/*`. Direct infrastructure imports from the app layer violate the DDD dependency direction rule.
+
+**BAD**:
+```typescript
+const { container } = await import("@/infrastructure/di");
+// or
+import { storyboardStorage } from "@/infrastructure/storage";
+```
+
+**GOOD**:
+```typescript
+import { container } from "@/infrastructure/di";
+// Then use: container.storyboardStorage
+```
+
+### R28: Batch Queries Over N+1 Loop Queries in Storage Layer
+When a storage layer's `getAll`-style method needs to fetch related data (relations, outfits, children), it MUST use batch queries (query all related data at once, group by parent ID in memory) instead of querying related data per entity in a loop. N+1 queries cause excessive IPC calls in Electron, leading to rate limit exhaustion and database timeouts.
+
+**BAD**:
+```typescript
+async getCharacters() {
+  const rows = await safeQuery("SELECT * FROM characters");
+  const characters = [];
+  for (const row of rows) {
+    const outfits = await getOutfitsForCharacter(row.id); // N+1 IPC calls
+    characters.push({ ...parseCharacter(row), outfits });
   }
-  db.prepare(`DELETE FROM "${table}" WHERE is_deleted = 1`).run();
+  return characters;
 }
-```
-
-### R38: Video URL Persistence MUST Complete Before Story Switch
-When video URLs are updated in memory (from completed generation tasks), they MUST be persisted to the database via `await` before the user can switch to a different story. Fire-and-forget persistence (`.catch()` without `await`) creates a race condition: if the user switches stories before persistence completes, the URL is lost because the new story's state overwrites the in-memory beats. The `isVideoUrlPersisting` flag MUST be exposed to the UI layer, and story switching MUST be blocked while persistence is in flight.
-
-**BAD**:
-```typescript
-storyService.updateBeatMediaUrls(allPersistData).catch((e) => {
-  errorLogger.warn("自动保存视频URL失败", e);
-});
 ```
 
 **GOOD**:
 ```typescript
-setIsVideoUrlPersisting(true);
-try {
-  await storyService.updateBeatMediaUrls(allPersistData);
-} catch (e) {
-  errorLogger.warn("自动保存视频URL失败", e);
-  showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
-} finally {
-  setIsVideoUrlPersisting(false);
+async getCharacters() {
+  const rows = await safeQuery("SELECT * FROM characters");
+  const outfitsMap = await getAllOutfits(); // 1 IPC call, group by character_id
+  return rows.map((row) => {
+    const char = parseCharacter(row);
+    char.outfits = outfitsMap.get(char.id) || [];
+    return char;
+  });
 }
+```
 
-// In switchStory:
-if (story.isVideoUrlPersisting) {
-  showWarning("请稍候", "视频URL正在保存中，请等待保存完成后再切换故事");
-  return;
+### R33: Existence-Check Queries Before Write Operations Must Be Eliminated When Possible
+When performing a write operation (UPDATE, DELETE) that naturally handles non-existent records (UPDATE affects 0 rows, DELETE affects 0 rows), the code MUST NOT issue a separate existence-check query (SELECT/getById) before the write. The pre-check query adds unnecessary IPC calls that contribute to rate limit exhaustion. Instead, rely on the write operation's natural behavior or its return value (rows affected) to determine if the record existed.
+
+**BAD**:
+```typescript
+for (const beat of beats) {
+  const existing = await storage.getStoryByBeatId(beat.id);
+  if (!existing) continue;
+  await safeTransaction([{ sql: "UPDATE story_beats SET ... WHERE id = ?", params: [beat.id] }]);
 }
+```
+
+**GOOD**:
+```typescript
+const statements = beats.map(beat => ({
+  sql: "UPDATE story_beats SET ... WHERE id = ?",
+  params: [beat.id],
+}));
+await safeTransaction(statements);
 ```
 
 ### R39: 批量 DB 写入/删除/更新操作必须使用 safeTransaction 或批量方法，禁止逐条 IPC
@@ -918,397 +1400,6 @@ await Promise.allSettled(
 );
 ```
 
-## Phase 6: Comprehensive Bug Audit Round 3 (R42-R44)
-
-### R42: Auto-Save Must Use Optimistic Locking, Not INSERT OR REPLACE
-When auto-saving data that may be concurrently modified by the user, the SQL statement MUST use optimistic locking (`ON CONFLICT(id) DO UPDATE SET ... WHERE timestamp < excluded.timestamp`) instead of `INSERT OR REPLACE`. `INSERT OR REPLACE` unconditionally overwrites the existing row, destroying any newer changes the user made between the auto-save snapshot and the actual write. The optimistic lock ensures that only older data is overwritten by newer data. If the write reports `changes === 0`, a secondary query MUST check whether the existing row's timestamp is newer, and silently skip the write if so.
-
-**BAD**:
-```typescript
-await safeRun(
-  "INSERT OR REPLACE INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?)",
-  [autoSave.id, autoSave.type, JSON.stringify(autoSave.data), ts],
-);
-```
-
-**GOOD**:
-```typescript
-const result = await safeRun(
-  "INSERT INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET data_json = excluded.data_json, timestamp = excluded.timestamp WHERE timestamp < excluded.timestamp",
-  [autoSave.id, autoSave.type, JSON.stringify(autoSave.data), ts],
-);
-if (!result || result.changes === 0) {
-  const existing = await safeQuery<{ timestamp: number }>(
-    "SELECT timestamp FROM auto_saves WHERE id = ?",
-    [autoSave.id],
-  );
-  if (existing.length > 0 && existing[0].timestamp > ts) {
-    return;
-  }
-}
-```
-
-### R43: Destructive UI Operations Must Require User Confirmation
-When a UI action will permanently delete data (single item delete, batch delete, clear all), the handler MUST call `confirm()` with `variant: "danger"` before executing the destructive operation. The handler MUST await the confirmation result and abort if the user cancels (`if (!confirmed) return`). This applies to video task deletion, batch deletion, and any other irreversible operations. Without confirmation, accidental clicks cause permanent data loss.
-
-**BAD**:
-```typescript
-const handleRemoveTask = () => {
-  removeTask(detailTask.taskId);
-  setIsDetailOpen(false);
-};
-
-const handleRemoveSelected = () => {
-  removeTasks(Array.from(selectedTaskIds));
-  setSelectedTaskIds(new Set());
-};
-```
-
-**GOOD**:
-```typescript
-const handleRemoveTask = async () => {
-  if (!detailTask) return;
-  const confirmed = await confirm({
-    title: "确认删除",
-    description: "确定删除该视频任务？此操作不可撤销。",
-    confirmText: "删除",
-    cancelText: "取消",
-    variant: "danger",
-  });
-  if (!confirmed) return;
-  removeTask(detailTask.taskId);
-  setIsDetailOpen(false);
-};
-
-const handleRemoveSelected = async () => {
-  if (selectedTaskIds.size === 0) return;
-  const confirmed = await confirm({
-    title: "确认批量删除",
-    description: `确定删除选中的 ${selectedTaskIds.size} 个视频任务？此操作不可撤销。`,
-    confirmText: "删除",
-    cancelText: "取消",
-    variant: "danger",
-  });
-  if (!confirmed) return;
-  removeTasks(Array.from(selectedTaskIds));
-  setSelectedTaskIds(new Set());
-};
-```
-
-### R44: User-Facing Error Messages Must Use mapUserFacingError
-When displaying error messages to users via toast, dialog, or inline text, the code MUST use `mapUserFacingError(error)` from `@/shared/utils/user-facing-error` instead of raw `extractErrorMessage(error)` or `e instanceof Error ? e.message : "未知错误"`. Raw error messages expose technical details (IPC channel names, error codes, English text) that are meaningless or alarming to users. `mapUserFacingError` translates error categories (rate_limit, timeout, network, auth, database_busy, etc.) and IPC rate limit patterns into concise, actionable Chinese messages.
-
-**BAD**:
-```typescript
-showError("保存失败", `数据库持久化失败: ${extractErrorMessage(err)}，请重试`);
-showError("删除失败", e instanceof Error ? e.message : "未知错误");
-```
-
-**GOOD**:
-```typescript
-showError("保存失败", mapUserFacingError(err));
-showError("删除失败", mapUserFacingError(e));
-```
-
-## Phase 7: Stability Polish Audit (R45-R46)
-
-### R45: Entity Update Must Not Delete Unrelated Associated Data
-When updating an entity's child collection (e.g., story beats), the update MUST NOT issue blanket DELETE statements on associated tables (video_tasks, generation_tasks, media_assets) for ALL existing children. Instead, it MUST compute the diff (children removed vs. children retained), and only delete associated data for children that are actually being removed. A blanket delete-then-reinsert pattern destroys data that should be preserved (e.g., video tasks for beats that still exist), causing data loss on every save.
-
-**BAD**:
-```typescript
-if (story.beats !== undefined) {
-  statements.push(
-    { sql: "DELETE FROM video_tasks WHERE beat_id IN (SELECT id FROM story_beats WHERE story_id = ?)", params: [id] },
-    { sql: "DELETE FROM story_beats WHERE story_id = ?", params: [id] },
-  );
-  for (const beat of story.beats) {
-    statements.push(buildBeatInsert(beat.id, id, beat));
-  }
-}
-```
-
-**GOOD**:
-```typescript
-if (story.beats !== undefined) {
-  const newBeatIds = new Set(story.beats.map(b => b.id).filter(Boolean));
-  const existingBeats = await safeQuery("SELECT id FROM story_beats WHERE story_id = ?", [id]);
-  const removedBeatIds = existingBeats.map(r => r.id).filter(bid => !newBeatIds.has(bid));
-
-  for (const removedId of removedBeatIds) {
-    statements.push(
-      { sql: "DELETE FROM video_tasks WHERE beat_id = ?", params: [removedId] },
-      { sql: "DELETE FROM generation_tasks WHERE beat_id = ?", params: [removedId] },
-      { sql: "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?", params: [removedId] },
-      { sql: "DELETE FROM story_beats WHERE id = ?", params: [removedId] },
-    );
-  }
-  for (const beat of story.beats) {
-    statements.push(buildBeatInsert(beat.id, id, beat));
-  }
-}
-```
-
-### R46: Polling Engine State Flags Must Reset in Correct Order with Top-Level Catch
-When a polling engine uses `isPollingScheduled` and `pollingInProgress` flags to prevent concurrent scheduling, the `finally` block MUST reset `pollingInProgress` BEFORE `isPollingScheduled`. If `isPollingScheduled` is reset first, a concurrent call to `schedulePolling()` can pass the guard check (`isPollingScheduled === false`) while `pollingInProgress` is still true, leading to duplicate scheduling. Additionally, the polling function MUST have a top-level `catch` block to prevent unhandled exceptions from bypassing the `finally` block, which would leave both flags stuck at `true` and permanently stop polling.
-
-**BAD**:
-```typescript
-const pollTasks = async () => {
-  pollingState.pollingInProgress = true;
-  try {
-    // ... polling logic (may throw unexpectedly)
-  } finally {
-    pollingState.isPollingScheduled = false;  // Reset scheduled first
-    pollingState.pollingInProgress = false;    // Reset in-progress second — RACE CONDITION
-  }
-  if (shouldReschedule) schedulePolling();     // Can enter while pollingInProgress is still true
-};
-```
-
-**GOOD**:
-```typescript
-const pollTasks = async () => {
-  pollingState.pollingInProgress = true;
-  let shouldReschedule = false;
-  try {
-    // ... polling logic
-    shouldReschedule = true;
-  } catch (e) {
-    errorLogger.warn("[PollingEngine] Unexpected error in poll cycle", e);  // Prevent unhandled exception
-  } finally {
-    pollingState.pollingInProgress = false;    // Reset in-progress FIRST
-    pollingState.isPollingScheduled = false;    // Reset scheduled SECOND
-  }
-  if (shouldReschedule && !abortSignal.aborted) schedulePolling();
-};
-```
-
-## Phase 8: Code Quality Audit (R47-R49)
-
-### R47: Catch Blocks MUST NOT Silently Swallow Errors
-When a `catch` block catches an error, it MUST either (1) log the error via `errorLogger.warn`/`errorLogger.error`, (2) propagate the error to the caller, or (3) show user feedback via `emitToast`. Empty `catch {}` blocks with no logging or notification are "安慰剂" error handling — they make failures invisible to both developers and users, making debugging impossible. The only exception is cleanup operations (e.g., `URL.revokeObjectURL`) where failure is inconsequential. Additionally, production code MUST use `errorLogger` instead of `console.warn`/`console.error` — console methods bypass the structured logging system and cannot be filtered or persisted in production.
-
-**BAD**:
-```typescript
-try {
-  const config = JSON.parse(rawConfig);
-} catch {
-  return defaultConfig;
-}
-```
-
-**BAD** — console.warn bypasses structured logging:
-```typescript
-catch (e) {
-  console.warn("[Module] 配置 JSON 解析失败", e);
-  return defaultConfig;
-}
-```
-
-**GOOD**:
-```typescript
-try {
-  const config = JSON.parse(rawConfig);
-} catch (e) {
-  errorLogger.warn("[Module] 配置 JSON 解析失败，使用默认配置", e);
-  return defaultConfig;
-}
-```
-
-### R48: useEffect Async Operations MUST Have Unmount Protection
-When a `useEffect` contains an async operation (fetch, API call, database query) that updates React state, the effect MUST use a `cancelled` flag or `AbortController` to prevent state updates after component unmount. Without this protection, async callbacks can call `setState` on unmounted components, causing React warnings and potential memory leaks. The cleanup function MUST set the cancellation flag or abort the controller.
-
-**BAD**:
-```typescript
-useEffect(() => {
-  loadConfig().then((config) => {
-    setAvailableModels(config.models);
-    setIsLoading(false);
-  });
-}, [capability]);
-```
-
-**GOOD**:
-```typescript
-useEffect(() => {
-  let cancelled = false;
-  loadConfig().then((config) => {
-    if (cancelled) return;
-    setAvailableModels(config.models);
-    setIsLoading(false);
-  }).catch((error) => {
-    if (cancelled) return;
-    setIsLoading(false);
-    setLoadError(true);
-  });
-  return () => { cancelled = true; };
-}, [capability]);
-```
-
-### R49: React Event Handlers MUST Use e.currentTarget Over e.target
-When a React event handler needs to access the DOM element that the handler is attached to, it MUST use `e.currentTarget` instead of `e.target`. The `e.target` refers to the innermost element that triggered the event (which may be a child element due to event bubbling), while `e.currentTarget` always refers to the element the handler is bound to. Using `e.target` with a type assertion like `e.target as HTMLVideoElement` is unsafe when the element has children, as `e.target` may point to a child node.
-
-**BAD**:
-```tsx
-<video onError={(e) => {
-  const target = e.target as HTMLVideoElement;
-  target.dataset.retried = "1";
-}} />
-```
-
-**GOOD**:
-```tsx
-<video onError={(e) => {
-  const target = e.currentTarget;
-  if (target.dataset.retried) return;
-  target.dataset.retried = "1";
-}} />
-```
-
-### R50: Floating Promises MUST Have .catch() Handlers
-When a Promise chain uses `.then()` without a corresponding `.catch()`, any rejection becomes an unhandled promise rejection. This is especially dangerous in React components where the rejection may occur after unmount, causing both silent failures and potential memory leaks. Every `.then()` chain MUST end with `.catch()` that either logs the error or provides user feedback.
-
-**BAD**:
-```typescript
-container.referenceEngine.then((engine) => {
-  const result = engine.validateReference(beat, allShots, reference);
-  setValidation(result);
-});
-```
-
-**GOOD**:
-```typescript
-container.referenceEngine.then((engine) => {
-  if (cancelled) return;
-  const result = engine.validateReference(beat, allShots, reference);
-  setValidation(result);
-}).catch((err: unknown) => {
-  if (!cancelled) {
-    errorLogger.warn("[Component] 参考验证失败", err);
-  }
-});
-```
-
-## Phase 9: Console Error & Hydration Audit (R51-R52)
-
-### R51: Electron-Dependent Operations MUST Guard Against Non-Electron Environment
-When a component or hook performs operations that require `electronAPI` (database queries, IPC calls, API server requests), it MUST check `isElectron()` before attempting the operation. In browser dev mode (Vite dev server without Electron), these operations will always fail with "electronAPI not available" errors, producing console noise and potentially triggering error toasts that mislead developers.
-
-**Guard patterns by context**:
-
-1. **useEffect** — guard inside async callback:
-```typescript
-useEffect(() => {
-  let cancelled = false;
-  (async () => {
-    if (!isElectron()) {
-      if (!cancelled) setIsLoading(false);
-      return;
-    }
-    try {
-      const data = await fetchPlugins();
-      if (!cancelled) setPlugins(data);
-    } catch (err) {
-      if (!cancelled) errorLogger.error("Failed to load plugins", err);
-    } finally {
-      if (!cancelled) setIsLoading(false);
-    }
-  })();
-  return () => { cancelled = true; };
-}, []);
-```
-
-2. **useQuery (react-query)** — use `enabled` option:
-```typescript
-export function useStories() {
-  return useQuery({
-    queryKey: ["stories"],
-    queryFn: async () => { /* ... */ },
-    enabled: isElectron(),  // Skip query in browser mode
-  });
-}
-```
-
-**BAD** — useQuery without enabled guard, fires in browser mode and fails:
-```typescript
-export function useStories() {
-  return useQuery({
-    queryKey: ["stories"],
-    queryFn: async () => { /* ... */ },
-    // Missing: enabled: isElectron()
-  });
-}
-```
-
-**Affected patterns** (discovered in console error audit):
-- `useAssetLoader` → `services.getAllCharacters()` / `services.getAllScenes()`
-- `PluginManager` → `fetchPlugins()` (API server)
-- `AssetLibraryPage` → `fetchSecondaryData()` (storage via DI)
-- `useVideoTaskManager` → `container.videoTaskStorage.getAllVideoTasks()`
-- `CrashRecoveryDialog` → `electronAPI.onNavigate`
-- `ProfessionalModeEditor` → element loading
-- `ensureSyncSchema()` → `electronAPI.dbRun`
-- `useStories`, `useCharacters`, `useScenes`, `useVideoTasks`, `useVideoCacheStats`, `useMediaAssets` → react-query useQuery hooks
-
-### R52: localStorage-Dependent Initial State MUST Use usePreference Hook
-When a component reads `localStorage` for its initial state (e.g., theme preference, sidebar collapse state, onboarding dismissed state, auto-save settings), it MUST use the `usePreference` hook from `@/shared/utils/preferences` instead of `useState(() => localStorage.getItem(...))` or manual `useSyncExternalStore`. The `usePreference` hook wraps `useSyncExternalStore` with snapshot caching (for object reference stability) and cross-tab sync (via `storage` event listener). Direct `localStorage` access in `useState` causes hydration mismatches; manual `useSyncExternalStore` with per-component listeners creates boilerplate and risks infinite re-renders from unstable object references.
-
-**BAD**:
-```typescript
-const [enabled, setEnabled] = useState(() => {
-  try {
-    const parsed = preferencesStorage.get("autosave-settings", {});
-    return typeof parsed.enabled === "boolean" ? parsed.enabled : true;
-  } catch { return true; }
-});
-```
-
-**GOOD**:
-```typescript
-import { usePreference } from "@/shared/utils/preferences";
-
-const [settings, setSettings] = usePreference<AutoSaveSettings>("autosave-settings", {});
-const enabled = typeof settings.enabled === "boolean" ? settings.enabled : true;
-```
-
-**Affected components** (migrated in hydration audit):
-- `ThemeProvider` → theme preference (uses custom useSyncExternalStore for subscribe logic)
-- `Sidebar` → collapsed state, modKey
-- `OnboardingGuide` / `onboarding` → visibility state
-- `ConfigCheckBanner` → dismissed state
-- `story/page.tsx` → auto-save settings
-- `settings/page.tsx` → auto-save settings
-
-### R53: Result Type Error Paths MUST Use err() Not ok()
-When a function returns `Result<T>`, failure paths MUST return `err(...)` rather than `ok({ passed: false, ... })`. Wrapping a failure in `ok()` is a "安慰剂" (placebo) error pattern — callers checking `result.ok` will believe the operation succeeded, and downstream code will try to access `result.value` on a failure-shaped object.
-
-**BAD**:
-```typescript
-catch (_e) {
-  return ok({
-    passed: false,
-    characterScores: elements.map((el) => ({
-      elementId: el.id,
-      elementName: el.name,
-      score: 0.5,
-      issues: ["检查过程出错"],
-    })),
-    overallScore: 0.5,
-    recommendation: "adjust",
-  });
-}
-```
-
-**GOOD**:
-```typescript
-catch (e) {
-  return err(new AppError("CONSISTENCY_CHECK_ERROR", "检查过程出错", e));
-}
-```
-
-**Discovered in**: `consistency-check-service.ts` — catch block and analysis failure both returned `ok()` with `passed: false`, hiding real errors from callers.
-
 ### R54: Production Code MUST NOT Use `any` Type
 Production code (non-test files) MUST NOT use `any` type. Use specific interfaces, `unknown`, or generic type parameters instead. `any` disables TypeScript's type checking and can hide bugs that would otherwise be caught at compile time.
 
@@ -1352,72 +1443,6 @@ const mockCreate = vi.fn<(entity: TestEntity) => Promise<Result<TestEntity, AppE
 ```
 
 **Discovered in**: 13 test files had 80 type errors total, all caused by missing generic params on `vi.fn()` and `as any` assertions.
-
-### R56: User-Facing Messages MUST Use Shared Message Constants
-User-facing strings (toast messages, dialog titles, error descriptions, button labels, placeholders, section headings) MUST use the `t()` function from `@/shared/constants/messages` instead of hardcoded Chinese strings. This ensures consistency across the UI and makes future internationalization feasible.
-
-**BAD**:
-```typescript
-success("保存成功", "分镜项目已更新");
-error("删除失败", err instanceof Error ? err.message : "未知错误");
-const confirmed = await confirm({ title: "确认删除", confirmText: "删除" });
-<DialogTitle>同步设置</DialogTitle>
-<Label>启用同步</Label>
-<Button>保存设置</Button>
-```
-
-**GOOD**:
-```typescript
-success(t("success.saved"), t("success.beatDeleted"));
-showError(t("error.deleteFailed"), mapUserFacingError(err));
-const confirmed = await confirm(t("confirm.deleteTitle"), t("confirm.delete"));
-<DialogTitle>{t("sync.settingsTitle")}</DialogTitle>
-<Label>{t("sync.enableSync")}</Label>
-<Button>{t("sync.saveSettings")}</Button>
-```
-
-**Message key categories** (in `src/shared/constants/messages.ts`, 840+ keys):
-- `common.*` — Save, delete, cancel, retry, loading, upload, regenerate, generate, etc.
-- `error.*` — All error messages (save, delete, upload, generate, network, copy, openLink, etc.)
-- `success.*` — All success messages (saved, deleted, generated, copied, etc.)
-- `confirm.*` — Confirmation dialog titles and content
-- `warning.*` — Warning messages
-- `video.*` — Video task lifecycle messages
-- `image.*` — Image generation messages
-- `story.*` — Story editing messages
-- `batch.*` — Batch operation messages
-- `plugin.*` — Plugin management and creator messages
-- `asset.*` — Asset library, export/import, batch operations messages
-- `provider.*` — Provider management, API config, connection test messages
-- `capability.*` — Capability type names (text/image/analysis/video)
-- `mapping.*` — Function mapping configuration messages
-- `connection.*` — Connection test messages
-- `sidebar.*` — Sidebar navigation labels
-- `onboarding.*` — Onboarding step labels and descriptions
-- `errorBoundary.*` — Error boundary messages
-- `config.*` — Config check banner messages
-- `sync.*` — Sync settings, conflict resolution, status indicator messages
-- `search.*` — Search dialog messages
-- `quickGenerate.*` — Quick generate panel messages
-- `page.*` — Page titles and descriptions
-- `settings.*` — Settings page labels
-- `home.*` — Home page content
-- `beat.*` — Beat detail/editor/overview card messages
-- `element.*` — Element binding panel messages
-- `shot.*` — Shot generation panel messages
-- `keyframe.*` — Keyframe panel messages
-- `refVideo.*` — Reference video uploader messages
-- `prompt.*` — Prompt editor/floating ball messages
-- `template.*` — Template manager dialog messages
-- `assetPicker.*` — Asset picker dialog messages
-- `version.*` — Version dialog messages
-- `task.*` — Video task detail/tracking/filter/card messages
-- `model.*` — Model selector messages
-- `outfit.*` — Outfit dialog messages
-- `scene.*` / `character.*` — List item fallback text and editor messages
-- `dialog.*` — Shared dialog labels
-
-**Discovered in**: ~19000+ hardcoded Chinese strings across 100+ files. Full migration completed: core toast/confirm/showError → presentation components (buttons, labels, titles, placeholders) → page components → module presentation components → shared components. ESLint R56 rule enforces t() usage in success/error/showError calls. Only AI prompt templates, error-codes business data, and log messages remain in Chinese (by design).
 
 ### R57: No Next.js Imports After Vite Migration
 After migrating from Next.js to Vite + React Router, all `next/*` imports are forbidden. Use the corresponding React Router or native alternatives.
@@ -1507,6 +1532,180 @@ codeSplitting: {
 **Priority guide**: 30 for core vendor (react), 25 for secondary vendor, 20 for infrastructure, 18 for shared/domain, 15 for app modules, 10 for generic vendor, 5 for common.
 
 **Discovered in**: Vite migration — initial build produced a single 1.6MB chunk; `manualChunks` was ineffective (rolldown merged vendor-react into app-character creating 784KB chunk); `codeSplitting` API with priority-based groups resolved the issue.
+
+## 六、平台兼容（6 条）
+
+> 核心关注：IPC、Electron 环境、进程模型
+
+### R21: Electron App Must NOT Use fetch("/api/...") for Internal Communication
+In an Electron + Next.js (output: "export") app, there is no server-side API route handler. All `fetch("/api/...")` calls will fail at runtime. Internal data access MUST go through the DI container, IPC bridge, or shared proxy exports (e.g., `checkConfigStatus()`, `testConnection()`). This applies to config checks, connection tests, and any other renderer↔main communication.
+
+**BAD**:
+```typescript
+const res = await fetch("/api/config");
+const data = await res.json();
+```
+
+**GOOD**:
+```typescript
+import { checkConfigStatus } from "@/shared/api-config";
+const data = await checkConfigStatus();
+```
+
+### R43: Destructive UI Operations Must Require User Confirmation
+When a UI action will permanently delete data (single item delete, batch delete, clear all), the handler MUST call `confirm()` with `variant: "danger"` before executing the destructive operation. The handler MUST await the confirmation result and abort if the user cancels (`if (!confirmed) return`). This applies to video task deletion, batch deletion, and any other irreversible operations. Without confirmation, accidental clicks cause permanent data loss.
+
+**BAD**:
+```typescript
+const handleRemoveTask = () => {
+  removeTask(detailTask.taskId);
+  setIsDetailOpen(false);
+};
+
+const handleRemoveSelected = () => {
+  removeTasks(Array.from(selectedTaskIds));
+  setSelectedTaskIds(new Set());
+};
+```
+
+**GOOD**:
+```typescript
+const handleRemoveTask = async () => {
+  if (!detailTask) return;
+  const confirmed = await confirm({
+    title: "确认删除",
+    description: "确定删除该视频任务？此操作不可撤销。",
+    confirmText: "删除",
+    cancelText: "取消",
+    variant: "danger",
+  });
+  if (!confirmed) return;
+  removeTask(detailTask.taskId);
+  setIsDetailOpen(false);
+};
+
+const handleRemoveSelected = async () => {
+  if (selectedTaskIds.size === 0) return;
+  const confirmed = await confirm({
+    title: "确认批量删除",
+    description: `确定删除选中的 ${selectedTaskIds.size} 个视频任务？此操作不可撤销。`,
+    confirmText: "删除",
+    cancelText: "取消",
+    variant: "danger",
+  });
+  if (!confirmed) return;
+  removeTasks(Array.from(selectedTaskIds));
+  setSelectedTaskIds(new Set());
+};
+```
+
+### R49: React Event Handlers MUST Use e.currentTarget Over e.target
+When a React event handler needs to access the DOM element that the handler is attached to, it MUST use `e.currentTarget` instead of `e.target`. The `e.target` refers to the innermost element that triggered the event (which may be a child element due to event bubbling), while `e.currentTarget` always refers to the element the handler is bound to. Using `e.target` with a type assertion like `e.target as HTMLVideoElement` is unsafe when the element has children, as `e.target` may point to a child node.
+
+**BAD**:
+```tsx
+<video onError={(e) => {
+  const target = e.target as HTMLVideoElement;
+  target.dataset.retried = "1";
+}} />
+```
+
+**GOOD**:
+```tsx
+<video onError={(e) => {
+  const target = e.currentTarget;
+  if (target.dataset.retried) return;
+  target.dataset.retried = "1";
+}} />
+```
+
+### R51: Electron-Dependent Operations MUST Guard Against Non-Electron Environment
+When a component or hook performs operations that require `electronAPI` (database queries, IPC calls, API server requests), it MUST check `isElectron()` before attempting the operation. In browser dev mode (Vite dev server without Electron), these operations will always fail with "electronAPI not available" errors, producing console noise and potentially triggering error toasts that mislead developers.
+
+**Guard patterns by context**:
+
+1. **useEffect** — guard inside async callback:
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    if (!isElectron()) {
+      if (!cancelled) setIsLoading(false);
+      return;
+    }
+    try {
+      const data = await fetchPlugins();
+      if (!cancelled) setPlugins(data);
+    } catch (err) {
+      if (!cancelled) errorLogger.error("Failed to load plugins", err);
+    } finally {
+      if (!cancelled) setIsLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, []);
+```
+
+2. **useQuery (react-query)** — use `enabled` option:
+```typescript
+export function useStories() {
+  return useQuery({
+    queryKey: ["stories"],
+    queryFn: async () => { /* ... */ },
+    enabled: isElectron(),  // Skip query in browser mode
+  });
+}
+```
+
+**BAD** — useQuery without enabled guard, fires in browser mode and fails:
+```typescript
+export function useStories() {
+  return useQuery({
+    queryKey: ["stories"],
+    queryFn: async () => { /* ... */ },
+    // Missing: enabled: isElectron()
+  });
+}
+```
+
+**Affected patterns** (discovered in console error audit):
+- `useAssetLoader` → `services.getAllCharacters()` / `services.getAllScenes()`
+- `PluginManager` → `fetchPlugins()` (API server)
+- `AssetLibraryPage` → `fetchSecondaryData()` (storage via DI)
+- `useVideoTaskManager` → `container.videoTaskStorage.getAllVideoTasks()`
+- `CrashRecoveryDialog` → `electronAPI.onNavigate`
+- `ProfessionalModeEditor` → element loading
+- `ensureSyncSchema()` → `electronAPI.dbRun`
+- `useStories`, `useCharacters`, `useScenes`, `useVideoTasks`, `useVideoCacheStats`, `useMediaAssets` → react-query useQuery hooks
+
+### R52: localStorage-Dependent Initial State MUST Use usePreference Hook
+When a component reads `localStorage` for its initial state (e.g., theme preference, sidebar collapse state, onboarding dismissed state, auto-save settings), it MUST use the `usePreference` hook from `@/shared/utils/preferences` instead of `useState(() => localStorage.getItem(...))` or manual `useSyncExternalStore`. The `usePreference` hook wraps `useSyncExternalStore` with snapshot caching (for object reference stability) and cross-tab sync (via `storage` event listener). Direct `localStorage` access in `useState` causes hydration mismatches; manual `useSyncExternalStore` with per-component listeners creates boilerplate and risks infinite re-renders from unstable object references.
+
+**BAD**:
+```typescript
+const [enabled, setEnabled] = useState(() => {
+  try {
+    const parsed = preferencesStorage.get("autosave-settings", {});
+    return typeof parsed.enabled === "boolean" ? parsed.enabled : true;
+  } catch { return true; }
+});
+```
+
+**GOOD**:
+```typescript
+import { usePreference } from "@/shared/utils/preferences";
+
+const [settings, setSettings] = usePreference<AutoSaveSettings>("autosave-settings", {});
+const enabled = typeof settings.enabled === "boolean" ? settings.enabled : true;
+```
+
+**Affected components** (migrated in hydration audit):
+- `ThemeProvider` → theme preference (uses custom useSyncExternalStore for subscribe logic)
+- `Sidebar` → collapsed state, modKey
+- `OnboardingGuide` / `onboarding` → visibility state
+- `ConfigCheckBanner` → dismissed state
+- `story/page.tsx` → auto-save settings
+- `settings/page.tsx` → auto-save settings
 
 ### R61: Test Mock IPC Return Format MUST Match Production Contract
 When `tests/helpers/electron-mock.ts` provides mock implementations for `electronAPI` methods (dbQuery, dbRun, dbTransaction, secureConfigSave, etc.), the return format MUST exactly match what the production `preload.ts` IPC handlers return. A format mismatch causes `safeQuery`/`safeRun`/`safeTransaction` to misinterpret the response, leading to silent failures or spurious error toasts in e2e tests.

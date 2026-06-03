@@ -22,6 +22,7 @@ import {
 import { useState } from "react";
 import { confirm } from "@/shared/utils/confirm";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { t } from "@/shared/constants";
 
 export default function VideoTasksPage() {
   const { guardedPush } = useNavigationGuard();
@@ -51,13 +52,13 @@ export default function VideoTasksPage() {
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
-    <PageErrorBoundary pageName="视频任务">
+    <PageErrorBoundary pageName={t("page.videoTasks")}>
       <div className="h-full space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold">视频任务管理</h2>
+            <h2 className="text-xl font-bold">{t("task.videoTaskManagement")}</h2>
             <p className="text-sm text-muted-foreground">
-              管理所有视频生成任务
+              {t("task.pageTitle")}
             </p>
           </div>
           <div className="flex gap-2">
@@ -70,14 +71,14 @@ export default function VideoTasksPage() {
                 onClick={async () => {
                   if (
                     await confirm(
-                      `确定要清除 ${completedTasks} 个已完成的任务吗？`,
-                      "清除已完成任务",
+                      t("task.confirmClearCompleted", { count: completedTasks }),
+                      t("task.clearCompleted"),
                     )
                   ) {
                     setIsClearingCompleted(true);
                     try {
                       await clearCompletedTasks();
-                      showSuccess("清除成功", "已完成的任务已清除");
+                      showSuccess(t("task.clearCompletedSuccess"), t("task.clearCompletedSuccessDesc"));
                     } finally {
                       setIsClearingCompleted(false);
                     }
@@ -85,7 +86,7 @@ export default function VideoTasksPage() {
                 }}
               >
                 {isClearingCompleted ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                {isClearingCompleted ? "清除中..." : "清除已完成"}
+                {isClearingCompleted ? t("common.clearing") : t("task.clearCompleted")}
               </Button>
             )}
             {failedTasks > 0 && (
@@ -96,12 +97,12 @@ export default function VideoTasksPage() {
                 disabled={isClearingFailed}
                 onClick={async () => {
                   if (
-                    await confirm(`确定要清除 ${failedTasks} 个失败的任务吗？`, "清除失败任务")
+                    await confirm(t("task.confirmClearFailed", { count: failedTasks }), t("task.clearFailedTasks"))
                   ) {
                     setIsClearingFailed(true);
                     try {
                       await clearFailedTasks();
-                      showSuccess("清除成功", "失败的任务已清除");
+                      showSuccess(t("task.clearCompletedSuccess"), t("task.clearFailedSuccessDesc"));
                     } finally {
                       setIsClearingFailed(false);
                     }
@@ -109,7 +110,7 @@ export default function VideoTasksPage() {
                 }}
               >
                 {isClearingFailed ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                {isClearingFailed ? "清除中..." : "清除失败"}
+                {isClearingFailed ? t("common.clearing") : t("task.clearFailed")}
               </Button>
             )}
           </div>
@@ -120,7 +121,7 @@ export default function VideoTasksPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
                 <List className="w-4 h-4" />
-                总任务
+                {t("task.totalTasks")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -131,7 +132,7 @@ export default function VideoTasksPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2 text-green-400">
                 <CheckCircle2 className="w-4 h-4" />
-                已完成
+                {t("task.completedCount")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -144,7 +145,7 @@ export default function VideoTasksPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2 text-yellow-400">
                 <Clock className="w-4 h-4" />
-                等待中
+                {t("task.pendingCount")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -157,7 +158,7 @@ export default function VideoTasksPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2 text-blue-400">
                 <Clock className="w-4 h-4" />
-                生成中
+                {t("task.generatingCount")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -170,7 +171,7 @@ export default function VideoTasksPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2 text-red-400">
                 <XCircle className="w-4 h-4" />
-                失败
+                {t("task.failedCount")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -183,7 +184,7 @@ export default function VideoTasksPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2 text-purple-400">
                 <CheckCircle2 className="w-4 h-4" />
-                完成率
+                {t("task.completionRate")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -203,9 +204,9 @@ export default function VideoTasksPage() {
         <Card>
           <CardHeader>
             <div>
-              <CardTitle>任务列表</CardTitle>
+              <CardTitle>{t("task.taskList")}</CardTitle>
               <CardDescription>
-                管理所有视频生成任务，支持手动找回失败任务
+                {t("task.taskListDesc")}
               </CardDescription>
             </div>
           </CardHeader>
@@ -213,16 +214,16 @@ export default function VideoTasksPage() {
             {totalTasks === 0 ? (
               <div className="text-center py-16">
                 <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-20" />
-                <h2 className="text-lg font-semibold mb-2">暂无视频任务</h2>
+                <h2 className="text-lg font-semibold mb-2">{t("task.noTasks")}</h2>
                 <p className="text-muted-foreground mb-6">
-                  在故事页面编排分镜后生成视频，或使用快速生成模式
+                  {t("task.noTasksHint")}
                 </p>
                 <div className="flex items-center justify-center gap-3">
                   <Button onClick={() => guardedPush("/story")}>
-                    查看分镜
+                    {t("task.viewStoryboard")}
                   </Button>
                   <Button variant="outline" onClick={() => guardedPush("/quick-generate")}>
-                    快速生成
+                    {t("task.quickGenerate")}
                   </Button>
                 </div>
               </div>

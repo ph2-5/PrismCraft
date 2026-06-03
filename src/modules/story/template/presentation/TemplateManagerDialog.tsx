@@ -94,7 +94,7 @@ export default function TemplateManagerDialog({
       onSaveTemplate(result.value);
       setActiveTab("load");
     } else {
-      setImportError(result.error instanceof Error ? result.error.message : "导入失败");
+      setImportError(result.error instanceof Error ? result.error.message : t("template.importFailed"));
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };

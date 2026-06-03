@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LayoutTemplate, Grid3x3 } from "lucide-react";
+import { t } from "@/shared/constants";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -34,10 +35,10 @@ export function TemplateSelectDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-purple-100">
             <LayoutTemplate className="w-5 h-5" />
-            选择视频模板
+            {t("quickGenerate.selectVideoTemplate")}
           </DialogTitle>
           <DialogDescription className="text-purple-300">
-            选择一个预设模板，快速开始你的视频创作
+            {t("quickGenerate.selectTemplateDesc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -80,7 +81,7 @@ export function TemplateSelectDialog({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
-                    {template.duration}秒
+                    {t("quickGenerate.seconds", { count: template.duration })}
                   </span>
                   <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
                     {template.style}
@@ -97,7 +98,7 @@ export function TemplateSelectDialog({
             onClick={() => onOpenChange(false)}
             className="border-purple-700 text-purple-200"
           >
-            取消
+            {t("common.cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>

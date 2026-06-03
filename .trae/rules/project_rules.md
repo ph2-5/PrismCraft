@@ -367,7 +367,7 @@ export default defineConfig({
 
 | 债务项 | 严重度 | 说明 |
 |--------|--------|------|
-| ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，48+文件~560处中文→t()调用，messages.ts含840+键，覆盖app/pages+modules/presentation+shared/presentation+Sidebar/SyncSettings/SceneEditor；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
+| ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，messages.ts含1634键，覆盖app/pages+modules/presentation+shared/presentation+modules/hooks；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
 | ~~大文件~~ | ~~中~~ | 已修复：18个>400行文件全部拆分，拆分出35+子组件/hooks |
 | ~~非空断言~~ | ~~中~~ | 已修复：生产代码全部`!.`和`as unknown as`清零 |
 | ~~性能基础设施~~ | ~~低~~ | 已铺设：React.memo 5个高频组件、@tanstack/react-virtual虚拟列表hook、useReducer状态管理重构 |
@@ -483,31 +483,16 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 60 guards:**
+**Quick reference — all 67 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
-| Data Consistency | R1, R2, R8, R9, R13, R14, R30, R42, R45 | Persist before state, cascade delete, rollback on failure, atomic cascade deletes, auto-save optimistic locking, entity update must not delete unrelated data |
-| Async Safety | R4, R10, R11, R12, R29, R31, R32, R48 | Dedup, concurrency guard, ownership verify, in-flight warning, entity ID consistency, save context verify, batch cancellation, useEffect unmount protection |
-| Error Handling | R5, R6, R15, R17, R18, R47, R50, R53 | No silent failure, identifiable labels, partial failure resilience, catch blocks must not silently swallow errors, floating promises must have .catch(), Result error paths must use err() not ok() |
-| UI Robustness | R7, R16, R19, R20, R49 | Video onError guard, ErrorBoundary retry limit, use e.currentTarget over e.target |
-| Electron Compatibility | R21, R51 | No fetch("/api/..."), isElectron() guard for electronAPI-dependent operations |
-| UX Completeness | R22, R23, R24, R25, R43 | Loading states, action feedback, data loading indicators, destructive operation confirmation |
-| Code Quality | R3, R26, R27, R28, R33, R54 | Cross-context verify, static imports, DDD layer compliance, batch over N+1 queries, eliminate existence-check before writes, no `any` in production code |
-| Async Safety | R34 | Zustand functional updates over get()+set() |
-| Resource Safety | R35 | Blob URL revoke on unmount |
-| Data Integrity | R36 | AI analysis selective merge over spread override |
-| SQL Safety | R37 | Dynamic table names must be validated against identifier pattern |
-| Race Condition | R38 | Video URL persistence must complete before story switch |
-| IPC Efficiency | R39, R40, R41 | Batch DB operations over per-item IPC, deferred metadata updates, parallel trackChange |
-| Error Messaging | R44, R56 | User-facing errors must use mapUserFacingError, not raw technical messages; user-facing strings must use t() from shared message constants |
-| Polling Safety | R46 | Polling engine state flags must reset in correct order with top-level catch |
-| Hydration Safety | R52 | localStorage-dependent initial state must use useSyncExternalStore |
-| Test Type Safety | R55 | Test files must pass TypeScript type checking, vi.fn() must have generic params |
-| Migration Safety | R57, R58 | No next/* imports after Vite migration; React Router useSearchParams() returns tuple |
-| Build Safety | R59 | No ineffective dynamic imports — module must not be both static and dynamic imported |
-| Build Safety | R60 | New modules >50KB must register codeSplitting group in vite.config.ts |
-| Test Safety | R61 | Test mock IPC return format must match production contract (dbQuery/dbRun/dbTransaction) |
+| 数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66 | 数据不丢、不脏、不冲突：持久化先于状态、级联删除、乐观锁、脏状态守卫、SQL安全 |
+| 异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67 | 并发、竞态、轮询、生命周期：去重、所有权验证、Zustand函数式更新、轮询标志重置、卸载保护 |
+| 错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63 | 错误不吞、不假成功、用户可理解：通知用户、可识别标签、mapUserFacingError、t()国际化 |
+| UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35 | 界面不崩、有反馈、无泄漏：video onError守卫、ErrorBoundary重试限制、加载状态、Blob URL回收 |
+| 工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60 | 依赖合规、构建安全、测试可靠：DDD层合规、批量查询、IPC效率、无any、Vite迁移 |
+| 平台兼容 | R21, R43, R49, R51, R52, R61 | IPC、Electron环境、进程模型：无fetch("/api/")、isElectron()守卫、usePreference、e.currentTarget |
 
 ## Documentation Index
 

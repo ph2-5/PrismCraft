@@ -21,7 +21,7 @@
 
 | API | 签名 | 说明 |
 |-----|------|------|
-| `useAutoSave` | `(options: UseAutoSaveOptions) → { triggerSave }` | 自动保存 hook，带重试限制（MAX_RETRY=3）和最小间隔（MIN_INTERVAL=0.5min） |
+| `useAutoSave` | `(options: UseAutoSaveOptions & { isDirty?: () => boolean }) → { triggerSave }` | 自动保存 hook，带重试限制（MAX_RETRY=3）和最小间隔（MIN_INTERVAL=0.5min），支持 isDirty 检查跳过无变更保存 |
 | `usePersistenceGuard` | `() → { guardedSave }` | 持久化守护，防止数据丢失，带重试限制（MAX_RETRY=3） |
 
 ### services 子域
@@ -80,6 +80,9 @@ hooks ← @/domain/types/result, @/shared/utils/toast-bridge
 - **INV-8**：`deleteCharacterWithRefs` 清理顺序：先收集文件路径 → 执行事务删除 → 清理 JSON 数组引用 → 清理本地文件
 - **INV-9**：`deleteSceneWithRefs` 清理顺序：先收集文件路径 → 执行事务删除 → 清理本地文件
 - **INV-10**：本地文件清理失败仅记录 warn 日志，不中断删除流程
+- **INV-11**：`useAutoSave` 支持 `isDirty()` 回调，定时保存前检查是否有未保存修改，无修改时跳过保存
+- **INV-12**：持久化操作失败时必须重新标记对应实体的脏状态（`markDirty`），确保下次保存时重试
+- **INV-13**：`BeforeUnloadGuard` 仅在浏览器关闭时守卫，路由切换不清除脏状态
 
 ---
 

@@ -139,7 +139,7 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    生成中...
+                    {t("common.generating")}
                   </>
                 ) : (
                   <>

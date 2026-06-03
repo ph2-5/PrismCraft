@@ -30,6 +30,7 @@ import type {
 } from "@/domain/schemas";
 import { toDateFromTimestamp } from "./asset-library-shared";
 import type { EditingItem } from "./asset-library-shared";
+import { t } from "@/shared/constants";
 
 interface CharacterCardProps {
   char: Character;
@@ -92,7 +93,7 @@ export const CharacterCard = memo(function CharacterCard({
       </div>
       <CardContent className="p-3">
         <h4 className="font-medium truncate text-sm">
-          {char.name || "未命名角色"}
+          {char.name || t("asset.unnamedCharacter")}
         </h4>
         <div className="flex flex-wrap gap-1 mt-1">
           {(char.tags || []).slice(0, 2).map((tag) => (
@@ -178,7 +179,7 @@ export const SceneCard = memo(function SceneCard({
       </div>
       <CardContent className="p-3">
         <h4 className="font-medium truncate text-sm">
-          {scene.name || "未命名场景"}
+          {scene.name || t("asset.unnamedScene")}
         </h4>
         <div className="flex flex-wrap gap-1 mt-1">
           {(scene.tags || []).slice(0, 2).map((tag) => (
@@ -221,7 +222,7 @@ export const StoryboardCard = memo(function StoryboardCard({
         {sb.previewPath ? (
           <img
             src={resolveImageUrl(sb.previewPath)}
-            alt="分镜预览"
+            alt={t("asset.storyboardPreview")}
             className="w-full h-full object-cover"
           />
         ) : (
@@ -275,7 +276,7 @@ export const StoryboardCard = memo(function StoryboardCard({
         {sb.characterIds?.length > 0 && (
           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
             <Link className="w-3 h-3" />
-            {sb.characterIds.length} 个角色
+            {t("asset.characterCountShort", { count: sb.characterIds.length })}
           </p>
         )}
       </CardContent>
@@ -320,7 +321,7 @@ export const CollectionCard = memo(function CollectionCard({
               size="icon"
               className="w-7 h-7"
               onClick={() => onExportCollection(col.id)}
-              title="导出合集"
+              title={t("asset.exportCollection")}
             >
               <Download className="w-3.5 h-3.5" />
             </Button>
@@ -329,7 +330,7 @@ export const CollectionCard = memo(function CollectionCard({
               size="icon"
               className="w-7 h-7 hover:text-destructive"
               onClick={() => onDeleteCollection(col.id)}
-              title="删除合集"
+              title={t("asset.deleteCollection")}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
@@ -337,7 +338,7 @@ export const CollectionCard = memo(function CollectionCard({
         </div>
         <CardDescription className="flex items-center gap-2">
           <Package className="w-3 h-3" />
-          {assetCount} 个素材
+          {t("asset.assetCount", { count: assetCount })}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">

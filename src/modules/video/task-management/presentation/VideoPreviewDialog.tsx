@@ -10,6 +10,7 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Video, Download, AlertTriangle } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
+import { t } from "@/shared/constants";
 
 interface VideoPreviewDialogProps {
   open: boolean;
@@ -43,19 +44,19 @@ export function VideoPreviewDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Video className="w-5 h-5" />
-            视频预览
+            {t("task.videoPreview")}
           </DialogTitle>
           <DialogDescription>
             {task
-              ? task.beatTitle || `任务 ${(task.taskId || "unknown").substring(0, 8)}`
-              : "查看生成的视频"}
+              ? task.beatTitle || `${t("task.taskLabel")} ${(task.taskId || "unknown").substring(0, 8)}`
+              : t("task.viewGeneratedVideo")}
           </DialogDescription>
         </DialogHeader>
 
         {task && videoLoading && (
           <div className="p-12 text-center space-y-4">
             <div className="animate-spin w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
-            <p className="text-gray-400">正在加载视频...</p>
+            <p className="text-gray-400">{t("task.videoLoading")}</p>
           </div>
         )}
 
@@ -77,14 +78,14 @@ export function VideoPreviewDialog({
             </div>
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                任务ID:{" "}
+                {t("task.taskIdPrefix")}
                 <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
                   {task.taskId}
                 </code>
               </div>
               <Button onClick={() => onDownloadVideo(task)} className="gap-2">
                 <Download className="w-4 h-4" />
-                下载视频
+                {t("task.downloadVideo")}
               </Button>
             </div>
           </div>
@@ -93,18 +94,18 @@ export function VideoPreviewDialog({
         {task && videoLoadError && (
           <div className="p-8 text-center space-y-4">
             <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto" />
-            <p className="text-gray-400">视频加载失败，远程链接可能已过期</p>
-            <p className="text-sm text-gray-500">任务ID: {task.taskId}</p>
+            <p className="text-gray-400">{t("task.videoLoadFailed")}</p>
+            <p className="text-sm text-gray-500">{t("task.taskIdPrefix")}{task.taskId}</p>
             <Button onClick={() => onDownloadVideo(task)} className="gap-2">
               <Download className="w-4 h-4" />
-              尝试下载视频
+              {t("task.tryDownloadVideo")}
             </Button>
           </div>
         )}
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            关闭
+            {t("common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

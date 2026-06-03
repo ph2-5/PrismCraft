@@ -18,6 +18,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { VideoTask } from "@/modules/video/task-management";
+import { t } from "@/shared/constants";
 
 import { useTaskFilter } from "./use-task-filter";
 import { useVideoPreview } from "./use-video-preview";
@@ -151,17 +152,17 @@ export function VideoTaskManager({
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="text-lg font-medium">视频任务管理</CardTitle>
+              <CardTitle className="text-lg font-medium">{t("task.videoTaskManagement")}</CardTitle>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
-                <CardDescription>管理视频生成任务和找回失败视频</CardDescription>
+                <CardDescription>{t("task.videoTaskManagementDesc")}</CardDescription>
                 {cacheStats && cacheStats.count > 0 && (
                   <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                    本地缓存: {cacheStats.count} 个视频, {cacheStats.totalSizeMB.toFixed(2)}MB
+                    {t("task.localCacheInfo", { count: cacheStats.count, size: cacheStats.totalSizeMB.toFixed(2) })}
                   </Badge>
                 )}
                 {selectedTaskIds.size > 0 && (
                   <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
-                    已选择: {selectedTaskIds.size} 个任务
+                    {t("task.selectedCount", { count: selectedTaskIds.size })}
                   </Badge>
                 )}
               </div>
@@ -172,12 +173,12 @@ export function VideoTaskManager({
                   {selectedTaskIds.size < filteredTasks.length ? (
                     <Button variant="outline" size="sm" onClick={selectAllFilteredTasks} className="gap-1">
                       <Square className="w-4 h-4" />
-                      全选
+                      {t("task.selectAll")}
                     </Button>
                   ) : (
                     <Button variant="outline" size="sm" onClick={deselectAllTasks} className="gap-1">
                       <CheckSquare className="w-4 h-4" />
-                      取消全选
+                      {t("task.deselectAll")}
                     </Button>
                   )}
                 </>
@@ -186,17 +187,17 @@ export function VideoTaskManager({
                 <>
                   <Button variant="outline" size="sm" onClick={handleBatchDownload} className="gap-1">
                     <Download className="w-4 h-4" />
-                    批量下载
+                    {t("video.batchDownload")}
                   </Button>
                   <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-1">
                     <Trash2 className="w-4 h-4" />
-                    批量删除
+                    {t("task.batchDelete")}
                   </Button>
                 </>
               )}
               <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-1">
                 <FileDown className="w-4 h-4" />
-                导出CSV
+                {t("task.exportCSV")}
               </Button>
             </div>
           </div>
@@ -219,9 +220,9 @@ export function VideoTaskManager({
         <CardContent className="space-y-6">
           {filteredTasks.length > 0 && (
             <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
-              <span>共 {filteredTasks.length} 个任务</span>
+              <span>{t("task.totalTaskCount", { count: filteredTasks.length })}</span>
               {filteredTasks.length > 50 && (
-                <span>已启用分组折叠以优化性能</span>
+                <span>{t("task.groupCollapseEnabled")}</span>
               )}
             </div>
           )}
@@ -237,7 +238,7 @@ export function VideoTaskManager({
                     ? groupId
                     : groupBy === "date"
                       ? groupId
-                      : "未分组";
+                    : t("task.noGroup");
                 const isCollapsed = collapsedGroups.has(groupId);
 
                 return (
@@ -250,10 +251,10 @@ export function VideoTaskManager({
                         <FolderOpen className="w-4 h-4" />
                         <span className="font-medium">{storyTitle}</span>
                         <Badge variant="outline" className="ml-2">
-                          {groupTasks.length}个镜头
+                          {t("task.shotCount", { count: groupTasks.length })}
                         </Badge>
                         <span className="ml-auto text-xs">
-                          {isCollapsed ? "展开" : "折叠"}
+                          {isCollapsed ? t("common.expand") : t("common.collapse")}
                         </span>
                       </button>
                     ) : null}
@@ -295,7 +296,7 @@ export function VideoTaskManager({
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">暂无视频任务</div>
+            <div className="text-center py-8 text-gray-500">{t("task.noTasks")}</div>
           )}
 
           <RecoverySection
@@ -308,7 +309,7 @@ export function VideoTaskManager({
           {hasActiveTasks && onBackgroundProcess && (
             <Button variant="default" onClick={onBackgroundProcess} className="w-full">
               <PlayCircle className="w-4 h-4 mr-2" />
-              后台继续处理
+              {t("task.backgroundProcessing")}
             </Button>
           )}
         </CardContent>

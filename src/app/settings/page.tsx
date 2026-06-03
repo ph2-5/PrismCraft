@@ -96,12 +96,12 @@ function AutoSaveSettings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 分钟</SelectItem>
-                <SelectItem value="3">3 分钟</SelectItem>
-                <SelectItem value="5">5 分钟</SelectItem>
-                <SelectItem value="10">10 分钟</SelectItem>
-                <SelectItem value="15">15 分钟</SelectItem>
-                <SelectItem value="30">30 分钟</SelectItem>
+                <SelectItem value="1">{t("settings.minutes", { count: 1 })}</SelectItem>
+                <SelectItem value="3">{t("settings.minutes", { count: 3 })}</SelectItem>
+                <SelectItem value="5">{t("settings.minutes", { count: 5 })}</SelectItem>
+                <SelectItem value="10">{t("settings.minutes", { count: 10 })}</SelectItem>
+                <SelectItem value="15">{t("settings.minutes", { count: 15 })}</SelectItem>
+                <SelectItem value="30">{t("settings.minutes", { count: 30 })}</SelectItem>
               </SelectContent>
             </Select>
           </div>

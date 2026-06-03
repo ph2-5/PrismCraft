@@ -16,31 +16,32 @@ import {
   ScanLine,
   Folder,
 } from "lucide-react";
+import { t } from "@/shared/constants/messages";
 
 type EntityType = "character" | "scene";
 
 const ENTITY_CONFIG: Record<EntityType, {
-  saveLabel: string;
+  saveLabelKey: string;
   saveBtnClass: string;
   sizeSelectClass: string;
   generateBtnClass: string;
-  analyzeLabel: string;
+  analyzeLabelKey: string;
   analyzeBtnClass: string;
 }> = {
   character: {
-    saveLabel: "保存角色",
+    saveLabelKey: "scene.saveCharacter",
     saveBtnClass: "flex-1 gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20",
     sizeSelectClass: "w-[140px] border-purple-700 bg-purple-900/30 text-purple-100",
     generateBtnClass: "gap-2 border-purple-700 bg-purple-900/20 hover:bg-purple-900/40 text-purple-200",
-    analyzeLabel: "图片识别人物",
+    analyzeLabelKey: "scene.analyzeCharacter",
     analyzeBtnClass: "gap-2 bg-cyan-900/30 hover:bg-cyan-900/50 text-cyan-200 border-cyan-700 border",
   },
   scene: {
-    saveLabel: "保存场景",
+    saveLabelKey: "scene.saveScene",
     saveBtnClass: "flex-1 gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/20",
     sizeSelectClass: "w-36 border-blue-700 bg-blue-900/30 text-blue-100",
     generateBtnClass: "gap-2 border-blue-700 bg-blue-900/20 hover:bg-blue-900/40 text-blue-200",
-    analyzeLabel: "图片识别场景",
+    analyzeLabelKey: "scene.analyzeScene",
     analyzeBtnClass: "gap-2 bg-teal-900/30 hover:bg-teal-900/50 text-teal-200 border-teal-700 border",
   },
 };
@@ -100,7 +101,7 @@ export function ImageActionToolbar({
         disabled={saveStatus === "saving"}
       >
         {saveStatus === "saving" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-        {saveStatus === "saving" ? "保存中..." : config.saveLabel}
+        {saveStatus === "saving" ? t("scene.saving") : t(config.saveLabelKey)}
       </Button>
       <div className="flex gap-2">
         <Select
@@ -128,7 +129,7 @@ export function ImageActionToolbar({
           ) : (
             <Wand2 className="w-4 h-4" />
           )}
-          {isGenerating ? "生成中..." : "生成图像"}
+          {isGenerating ? t("scene.generating") : t("scene.generateImage")}
         </Button>
       </div>
       <ModelSelector
@@ -147,7 +148,7 @@ export function ImageActionToolbar({
         ) : (
           <Upload className="w-4 h-4" />
         )}
-        {isUploading ? "上传中..." : "上传图片"}
+        {isUploading ? t("scene.uploading") : t("scene.uploadImage")}
       </Button>
       <Button
         variant="outline"
@@ -155,7 +156,7 @@ export function ImageActionToolbar({
         onClick={onShowAssetSelector}
       >
         <Folder className="w-4 h-4" />
-        从素材库选择
+        {t("scene.selectFromLibrary")}
       </Button>
       <Button
         variant="secondary"
@@ -168,7 +169,7 @@ export function ImageActionToolbar({
         ) : (
           <ScanLine className="w-4 h-4" />
         )}
-        {isAnalyzing ? "识别中..." : config.analyzeLabel}
+        {isAnalyzing ? t("scene.analyzing") : t(config.analyzeLabelKey)}
       </Button>
       <input
         ref={fileInputRef}

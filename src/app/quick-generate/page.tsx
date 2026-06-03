@@ -1,4 +1,5 @@
 import { Wand2 } from "lucide-react";
+import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { TemplateSelectDialog } from "./TemplateSelectDialog";
 import { useQuickGenerateState } from "./QuickGenerateState";
@@ -9,20 +10,20 @@ export default function QuickGeneratePage() {
   const state = useQuickGenerateState();
 
   return (
-    <PageErrorBoundary pageName="快速生成">
+    <PageErrorBoundary pageName={t("quickGenerate.pageName")}>
       <div className="h-full max-w-5xl mx-auto">
         <header className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-900/40 border border-purple-700/50 mb-4">
             <Wand2 className="w-4 h-4 text-purple-400" />
             <span className="text-purple-300 font-medium text-sm">
-              快速视频生成
+              {t("quickGenerate.quickVideoGeneration")}
             </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            一句话，生成你的动画视频
+            {t("quickGenerate.heroTitle")}
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            不需要学习复杂的分镜，输入你的想法，一键生成专业级动画视频
+            {t("quickGenerate.heroDesc")}
           </p>
         </header>
 

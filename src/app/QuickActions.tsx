@@ -214,7 +214,7 @@ export function QuickActions({
 
             <div className="space-y-3">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
-                <span className="block text-slate-100">用AI</span>
+                <span className="block text-slate-100">{t("home.useAI")}</span>
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400">
                   {t("home.createWorld")}
                 </span>

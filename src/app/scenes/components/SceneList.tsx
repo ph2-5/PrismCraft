@@ -7,6 +7,7 @@ import { SceneListItem } from "@/modules/scene";
 import { BatchOperations } from "@/modules/asset";
 import { Plus, ImageIcon } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants/messages";
 import { sceneService } from "@/modules/scene";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -43,7 +44,7 @@ export const SceneList = memo(function SceneList({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-semibold">场景</span>
+            <span className="text-sm font-semibold">{t("scene.title")}</span>
             <span className="text-xs text-muted-foreground">
               {scenes.length}
             </span>
@@ -85,17 +86,17 @@ export const SceneList = memo(function SceneList({
           onClick={onNewScene}
         >
           <Plus className="w-3 h-3" />
-          创建新场景
+          {t("scene.createNewScene")}
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {scenesLoading ? (
-          <LoadingState message="加载场景列表..." />
+          <LoadingState message={t("scene.loadingScenes")} />
         ) : scenes.length === 0 ? (
           <EmptyState
             icon={ImageIcon}
-            title="暂无场景"
-            description="点击「创建新场景」开始构建你的动画世界"
+            title={t("scene.noScenes")}
+            description={t("scene.noScenesDesc")}
           />
         ) : (
           scenes.map((scene) => (

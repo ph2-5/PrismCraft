@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import {
   Select,
   SelectContent,
@@ -22,17 +23,17 @@ interface ShotReferenceConfigProps {
 }
 
 const directionOptions = [
-  { value: "none", label: "不引用" },
-  { value: "previous", label: "引用上一分镜" },
-  { value: "next", label: "引用下一分镜" },
-  { value: "custom", label: "引用指定分镜" },
+  { value: "none", label: () => t("shot.noReference") },
+  { value: "previous", label: () => t("shot.refPrevious") },
+  { value: "next", label: () => t("shot.refNext") },
+  { value: "custom", label: () => t("shot.refCustom") },
 ];
 
 const contentTypeOptions = [
-  { value: "full_video", label: "完整视频" },
-  { value: "last_frame", label: "最后一帧" },
-  { value: "first_frame", label: "第一帧" },
-  { value: "video_segment", label: "视频片段" },
+  { value: "full_video", label: () => t("shot.fullVideo") },
+  { value: "last_frame", label: () => t("shot.lastFrame") },
+  { value: "first_frame", label: () => t("shot.firstFrame") },
+  { value: "video_segment", label: () => t("shot.videoSegment") },
 ];
 
 export function ShotReferenceConfig({
@@ -124,14 +125,14 @@ export function ShotReferenceConfig({
           <AlertCircle className="w-4 h-4 text-yellow-500" />
           <span className="text-sm text-yellow-500">
             {isFirstShot && reference.direction === "previous"
-              ? "暂无上一分镜"
-              : "暂无下一分镜"}
+              ? t("shot.noPreviousBeat")
+              : t("shot.noNextBeat")}
           </span>
         </div>
       ) : null}
 
       <div>
-        <Label>引用方向</Label>
+        <Label>{t("shot.refDirection")}</Label>
         <Select
           value={reference.direction}
           onValueChange={(value) =>
@@ -151,7 +152,7 @@ export function ShotReferenceConfig({
                   (opt.value === "next" && isLastShot)
                 }
               >
-                {opt.label}
+                {opt.label()}
               </SelectItem>
             ))}
           </SelectContent>
@@ -160,7 +161,7 @@ export function ShotReferenceConfig({
 
       {reference.direction === "custom" && (
         <div>
-          <Label>选择分镜</Label>
+          <Label>{t("shot.selectBeat")}</Label>
           <Select
             value={reference.targetShotId || ""}
             onValueChange={(value) =>
@@ -168,14 +169,14 @@ export function ShotReferenceConfig({
             }
           >
             <SelectTrigger>
-              <SelectValue placeholder="选择要引用的分镜" />
+              <SelectValue placeholder={t("shot.selectBeatPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
               {allShots
                 .filter((s) => s.id !== beat.id)
                 .map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    分镜 {s.sequence}
+                    {t("shot.beatN", { n: s.sequence })}
                   </SelectItem>
                 ))}
             </SelectContent>
@@ -186,7 +187,7 @@ export function ShotReferenceConfig({
       {reference.direction !== "none" && (
         <>
           <div>
-            <Label>引用内容</Label>
+            <Label>{t("shot.refContent")}</Label>
             <Select
               value={reference.contentType}
               onValueChange={(value) =>
@@ -199,7 +200,7 @@ export function ShotReferenceConfig({
               <SelectContent>
                 {contentTypeOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {opt.label()}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -209,7 +210,7 @@ export function ShotReferenceConfig({
           {reference.contentType === "video_segment" && (
             <div className="space-y-3">
               <div>
-                <Label>片段时长（秒）</Label>
+                <Label>{t("shot.segmentDuration")}</Label>
                 <Input
                   type="number"
                   min={0.5}
@@ -224,7 +225,7 @@ export function ShotReferenceConfig({
                 />
               </div>
               <div>
-                <Label>片段位置</Label>
+                <Label>{t("shot.segmentPosition")}</Label>
                 <Select
                   value={reference.segmentPosition || "end"}
                   onValueChange={(value) =>
@@ -235,8 +236,8 @@ export function ShotReferenceConfig({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="start">开头</SelectItem>
-                    <SelectItem value="end">结尾</SelectItem>
+                    <SelectItem value="start">{t("common.start")}</SelectItem>
+                    <SelectItem value="end">{t("common.end")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -252,20 +253,20 @@ export function ShotReferenceConfig({
                   ) : (
                     <AlertCircle className="w-4 h-4 text-red-500" />
                   )}
-                  <span className="font-medium">引用信息</span>
+                  <span className="font-medium">{t("shot.refInfo")}</span>
                 </div>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>目标分镜：分镜 {targetShot.sequence}</p>
+                  <p>{t("shot.targetBeatN", { n: targetShot.sequence })}</p>
                   <p>
-                    生成状态：
+                    {t("shot.genStatus")}
                     {targetShot.videoGen?.videoUrl ||
                     targetShot.generationResult?.videoUrl ? (
                       <Badge variant="default" className="ml-1">
-                        已生成
+                        {t("shot.generated")}
                       </Badge>
                     ) : (
                       <Badge variant="destructive" className="ml-1">
-                        未生成
+                        {t("shot.notGenerated")}
                       </Badge>
                     )}
                   </p>

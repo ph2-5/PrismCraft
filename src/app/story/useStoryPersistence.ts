@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import { storyService } from "@/modules/story";
 import { getImageUrlWithCache } from "@/modules/video";
 import {
@@ -88,7 +89,7 @@ export function useStoryPersistence({
               if (!cancelled) {
                 errorLogger.warn("自动保存视频URL失败", e);
                 markDirty("story");
-                showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
+                showErrorRef.current(t("story.autoSaveVideoUrlFailed"), t("story.autoSaveVideoUrlFailedDesc"));
               }
             } finally {
               isPersistingRef.current = false;
@@ -133,7 +134,7 @@ export function useStoryPersistence({
           }
         } catch (e) {
           errorLogger.warn("自动保存视频URL失败", e);
-          showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
+          showErrorRef.current(t("story.autoSaveVideoUrlFailed"), t("story.autoSaveVideoUrlFailedDesc"));
         }
       }
     };

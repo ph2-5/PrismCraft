@@ -10,7 +10,7 @@ import {
 import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
-import { t } from "@/shared/constants/messages";
+import { t } from "@/shared/constants";
 
 interface AutoSaveRecord {
   id: string;

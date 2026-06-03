@@ -5,7 +5,7 @@ import { cacheVideoBlob } from "@/modules/video/cache";
 import { saveVideoTask } from "@/modules/video/recovery";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
-import { t } from "@/shared/constants/messages";
+import { t } from "@/shared/constants";
 import { withTransitionGuard } from "./transition-guard";
 
 const MAX_POLL_COUNT = 1000;
@@ -136,27 +136,27 @@ async function handleTimedOutTasks(
   signal: AbortSignal,
 ): Promise<void> {
   const timedOutTasks = tasks.filter(
-    (t) =>
-      (t.status === "pending" || t.status === "generating") &&
-      Date.now() - new Date(t.createdAt).getTime() > MAX_POLL_DURATION,
+    (task) =>
+      (task.status === "pending" || task.status === "generating") &&
+      Date.now() - new Date(task.createdAt).getTime() > MAX_POLL_DURATION,
   );
   if (timedOutTasks.length === 0) return;
 
-  emitToast("warning", t("error.videoGenerateTimeout"), `${timedOutTasks.length} 个任务超时，可在任务管理器中手动恢复`);
-  const timedOutIds = new Set(timedOutTasks.map((t) => t.taskId));
+  emitToast("warning", t("error.videoGenerateTimeout"), t("task.timeoutRecoverHint", { count: timedOutTasks.length }));
+  const timedOutIds = new Set(timedOutTasks.map((task) => task.taskId));
   const state = getStore().getState();
   state.setAllTasks((prev) =>
-    prev.map((t) => {
-      if (timedOutIds.has(t.taskId)) {
+    prev.map((task) => {
+      if (timedOutIds.has(task.taskId)) {
         return {
-          ...t,
-          ...withTransitionGuard(t, "failed", {
-            message: "视频生成超时，请在视频任务管理器中点击「手动恢复」重试",
+          ...task,
+          ...withTransitionGuard(task, "failed", {
+            message: t("task.timeoutManualRecover"),
             pollFailureCount: 0,
           }),
         };
       }
-      return t;
+      return task;
     }),
   );
 
@@ -174,7 +174,7 @@ async function handleTimedOutTasks(
       taskId: task.taskId,
       updates: {
         status: "failed",
-        message: "视频生成超时，请在视频任务管理器中点击「手动恢复」重试",
+        message: t("task.timeoutManualRecover"),
         pollFailureCount: 0,
       },
     });
@@ -197,15 +197,15 @@ async function handlePollException(
   if (failCount >= MAX_POLL_FAILURES) {
     result.hasError = true;
     result.taskUpdates.set(task.taskId, withTransitionGuard(task, "failed", {
-      message: `连续${MAX_POLL_FAILURES}次查询失败，请点击「手动恢复」重试`,
+      message: t("task.consecutiveFailRecover", { count: MAX_POLL_FAILURES }),
       pollFailureCount: 0,
     }));
     const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
-    emitToast("error", t("error.videoGenerateFailed"), `「${taskLabel}」查询异常`);
+    emitToast("error", t("error.videoGenerateFailed"), t("task.queryException", { label: taskLabel }));
   } else {
     result.taskUpdates.set(task.taskId, {
       pollFailureCount: failCount,
-      message: `查询异常(${failCount}/${MAX_POLL_FAILURES})，视频可能仍在处理中`,
+      message: t("task.queryExceptionProgress", { current: failCount, max: MAX_POLL_FAILURES }),
     });
   }
   try {
@@ -215,7 +215,7 @@ async function handlePollException(
       progress: task.progress,
       videoUrl: task.videoUrl,
       message: failCount >= MAX_POLL_FAILURES
-        ? `连续${MAX_POLL_FAILURES}次查询失败，请点击「手动恢复」重试`
+        ? t("task.consecutiveFailRecover", { count: MAX_POLL_FAILURES })
         : task.message,
       createdAt: task.createdAt,
       model: task.model,
@@ -278,7 +278,7 @@ async function pollSingleTask(
         pollFailureCount: 0,
       }));
     } else {
-      const apiErrorMsg = pollResp.error || "API返回失败";
+      const apiErrorMsg = pollResp.error || t("task.apiReturnFailed");
       const isRetryable =
         (pollResp as { retryable?: boolean }).retryable === true ||
         (pollResp as { data?: { retryable?: boolean } }).data?.retryable === true;

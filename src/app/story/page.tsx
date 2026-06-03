@@ -97,8 +97,8 @@ function StoryPageContent() {
     try {
       const prompt = generateProfessionalVideoPrompt({
         story: {
-          title: story.currentStory.title || "未命名",
-          description: story.currentStory.description || "无",
+          title: story.currentStory.title || t("story.unnamed"),
+          description: story.currentStory.description || t("story.noDescription"),
           genre: story.currentStory.genre || "drama",
           tone: story.currentStory.tone || "neutral",
           targetDuration: story.currentStory.targetDuration || 60,
@@ -125,7 +125,7 @@ function StoryPageContent() {
         story.addTask({
           taskId: result.data.taskId,
           status: "pending",
-          message: "视频生成任务已提交",
+          message: t("story.videoTaskSubmitted"),
           providerId: result.data.providerId,
           providerModelId: result.data.providerModelId,
           providerFormat: result.data.providerFormat,
@@ -135,7 +135,7 @@ function StoryPageContent() {
         setGeneratedVideo(result.data.videoUrl);
         success(t("video.videoGenerated"), t("success.generated"));
       } else {
-        throw new Error(result.error || "生成失败");
+        throw new Error(result.error || t("story.videoGenerationFailed"));
       }
     } catch (err) {
       errorLogger.error("[Story] 视频生成失败", err instanceof Error ? err : undefined);
@@ -147,7 +147,7 @@ function StoryPageContent() {
 
   const switchStory = (s: (typeof story.stories)[number]) => {
     if (story.isVideoUrlPersisting) {
-      showWarning("请稍候", "视频URL正在保存中，请等待保存完成后再切换故事");
+      showWarning(t("story.pleaseWait"), t("story.videoUrlSaving"));
       return;
     }
     if (story.hasUnsavedChanges && story.beats.length > 0) {
@@ -186,7 +186,7 @@ function StoryPageContent() {
   );
 
   return (
-    <PageErrorBoundary pageName="分镜">
+    <PageErrorBoundary pageName={t("page.storyboard")}>
       <div className="h-full flex flex-col">
         <div className="shrink-0 border-b border-border bg-card px-4 py-3">
           <div className="flex items-center gap-3">
@@ -217,8 +217,8 @@ function StoryPageContent() {
               story.setGenerationEnhanced(enabled);
               if (story.beats.length > 0) {
                 const confirmed = await confirm(
-                  `是否将此全局设置应用到所有 ${story.beats.length} 个现有分镜？\n\n是：所有分镜的局部开关都将同步更新\n否：仅影响新添加的分镜`,
-                  "应用到所有分镜",
+                  t("story.applyToAllConfirmMsg", { count: story.beats.length }),
+                  t("story.applyToAllBeats"),
                 );
                 if (confirmed) {
                   story.setBeats((prev) =>
@@ -277,10 +277,10 @@ function StoryPageContent() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-destructive">
                 <Trash2 className="w-5 h-5" />
-                确认删除项目
+                {t("story.confirmDeleteProject")}
               </DialogTitle>
               <DialogDescription>
-                确定要删除这个分镜项目吗？系统会自动创建备份版本，方便您后续恢复。
+                {t("story.confirmDeleteProjectDesc")}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -288,10 +288,10 @@ function StoryPageContent() {
                 variant="outline"
                 onClick={() => story.setDeleteDialogOpen(false)}
               >
-                取消
+                {t("common.cancel")}
               </Button>
               <Button variant="destructive" onClick={story.performDeleteStory}>
-                确认删除
+                {t("story.confirmDeleteButton")}
               </Button>
             </DialogFooter>
           </DialogContent>

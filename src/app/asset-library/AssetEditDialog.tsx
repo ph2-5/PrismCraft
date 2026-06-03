@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { t } from "@/shared/constants";
 import type { EditingItem } from "./asset-library-shared";
 
 interface AssetEditDialogProps {
@@ -34,10 +35,10 @@ export function AssetEditDialog({
         <DialogHeader>
           <DialogTitle>
             {editingItem?._type === "character"
-              ? "编辑角色"
+              ? t("asset.editCharacter")
               : editingItem?._type === "scene"
-                ? "编辑场景"
-                : "编辑分镜"}
+                ? t("asset.editScene")
+                : t("asset.editStoryboard")}
           </DialogTitle>
         </DialogHeader>
         {editingItem && (
@@ -52,14 +53,14 @@ export function AssetEditDialog({
                 <div className="aspect-video bg-slate-800 rounded-lg overflow-hidden">
                   <img
                     src={resolveImageUrl(imageUrl)}
-                    alt="预览"
+                    alt={t("asset.preview")}
                     className="w-full h-full object-cover"
                   />
                 </div>
               ) : null;
             })()}
             <div>
-              <label className="text-sm font-medium">名称</label>
+              <label className="text-sm font-medium">{t("asset.name")}</label>
               <Input
                 value={editingItem._type === "storyboard" ? "" : (editingItem.name || "")}
                 onChange={(e) =>
@@ -68,7 +69,7 @@ export function AssetEditDialog({
               />
             </div>
             <div>
-              <label className="text-sm font-medium">描述</label>
+              <label className="text-sm font-medium">{t("asset.description")}</label>
               <Textarea
                 value={editingItem._type === "storyboard" ? (editingItem.script || "") : (editingItem.description || "")}
                 onChange={(e) => {
@@ -89,7 +90,7 @@ export function AssetEditDialog({
             </div>
             <div>
               <label className="text-sm font-medium">
-                标签（逗号分隔）
+                {t("asset.tagsCommaSeparated")}
               </label>
               <Input
                 value={editingItem._type === "storyboard" ? "" : (editingItem.tags || []).join(", ")}
@@ -102,7 +103,7 @@ export function AssetEditDialog({
                       .filter(Boolean),
                   } as EditingItem)
                 }
-                placeholder="标签1, 标签2, 标签3"
+                placeholder={t("asset.tagsPlaceholder")}
               />
             </div>
           </div>
@@ -112,13 +113,13 @@ export function AssetEditDialog({
             variant="ghost"
             onClick={() => onOpenChange(false)}
           >
-            取消
+            {t("common.cancel")}
           </Button>
           <Button
             disabled={isSavingEdit}
             onClick={onSave}
           >
-            {isSavingEdit ? "保存中..." : "保存"}
+            {isSavingEdit ? t("common.saving") : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

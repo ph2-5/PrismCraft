@@ -1,4 +1,5 @@
 import { Settings, ChevronDown, ChevronUp, X, Film, Trash2 } from "lucide-react";
+import { t } from "@/shared/constants";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
 import {
@@ -49,7 +50,7 @@ export function AdvancedSettingsCard({
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Settings className="w-5 h-5 text-slate-400" />
-            高级设置
+            {t("quickGenerate.advancedSettings")}
           </CardTitle>
           {showAdvanced ? (
             <ChevronUp className="w-5 h-5 text-slate-500" />
@@ -62,9 +63,9 @@ export function AdvancedSettingsCard({
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-slate-300">智能优化</Label>
+              <Label className="text-slate-300">{t("quickGenerate.smartOptimization")}</Label>
               <p className="text-sm text-slate-500">
-                自动优化提示词、画面构图和节奏控制
+                {t("quickGenerate.smartOptimizationDesc")}
               </p>
             </div>
             <Switch
@@ -74,22 +75,22 @@ export function AdvancedSettingsCard({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300">负面提示词</Label>
+            <Label className="text-slate-300">{t("quickGenerate.negativePrompt")}</Label>
             <Textarea
               value={negativePrompt}
               onChange={(e) => onNegativePromptChange(e.target.value)}
-              placeholder="输入不希望出现的内容，例如：恐怖画面、血腥场景..."
+              placeholder={t("quickGenerate.negativePromptPlaceholder")}
               className="bg-slate-800 border-slate-700 text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300">参考图片</Label>
+            <Label className="text-slate-300">{t("quickGenerate.referenceImage")}</Label>
             {referenceImage ? (
               <div className="relative inline-block">
                 <img
                   src={referenceImage}
-                  alt="参考"
+                  alt={t("quickGenerate.reference")}
                   className="w-32 h-32 rounded-lg object-cover border border-slate-700"
                 />
                 <Button
@@ -104,7 +105,7 @@ export function AdvancedSettingsCard({
             ) : (
               <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center">
                 <p className="text-slate-500 text-sm mb-2">
-                  点击上传参考图片
+                  {t("quickGenerate.clickUploadRefImage")}
                 </p>
                 <input
                   type="file"
@@ -130,7 +131,7 @@ export function AdvancedSettingsCard({
                     document.getElementById("ref-image-upload")?.click()
                   }
                 >
-                  选择图片
+                  {t("quickGenerate.selectImage")}
                 </Button>
               </div>
             )}
@@ -139,7 +140,7 @@ export function AdvancedSettingsCard({
           <div className="space-y-2">
             <Label className="text-slate-300 flex items-center gap-2">
               <Film className="w-4 h-4" />
-              参考视频（可选）
+              {t("quickGenerate.referenceVideoOptional")}
             </Label>
             {referenceVideo ? (
               <div className="relative">
@@ -159,14 +160,14 @@ export function AdvancedSettingsCard({
                     onClick={onRemoveReferenceVideo}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
-                    移除
+                    {t("quickGenerate.remove")}
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center">
                 <p className="text-slate-500 text-sm mb-2">
-                  上传参考视频，让AI学习动作和风格
+                  {t("quickGenerate.uploadRefVideoDesc")}
                 </p>
                 <input
                   type="file"
@@ -187,7 +188,7 @@ export function AdvancedSettingsCard({
                   }
                 >
                   <Film className="w-4 h-4 mr-2" />
-                  选择视频
+                  {t("quickGenerate.selectVideo")}
                 </Button>
               </div>
             )}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { errorLogger } from "@/shared/error-logger";
-import { t } from "@/shared/constants/messages";
+import { t } from "@/shared/constants";
 
 export function DebugOverlay() {
   const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);

@@ -169,6 +169,12 @@ domain → NOTHING（纯类型）
 
 2. **智能重试引擎**：recovery 子域的 `smartRetryEngine` 不是简单的固定间隔重试，而是基于 AI 提供商错误类型做出差异化决策——超时重试（指数退避）、限流重试（延迟 >= 60s）、余额不足不重试、参数错误不重试、网络错误重试（低 tokenWasteRisk）、验证失败重试（可能是假成功）。这种设计避免了无意义的重试浪费 API 配额。
 
+**关键设计决策（续）**：
+
+3. **快速模式与 Story 模式共享任务管理器**：快速生成页面创建的视频任务与 Story 模式共享同一个 `useVideoTaskStore`，任务生命周期由 app 根布局的 `VideoTaskManagerInitializer` 统一管理。页面级组件不得在卸载时调用 `cleanup()`——这会停止所有轮询并重置初始化状态，导致其他页面的任务无法被追踪。快速模式创建的任务（无 storyId/beatId）在任务管理页面（`/video-tasks`）的 "others" 分组中显示。
+
+4. **mapApiStatus videoUrl 优先判断**：`mapApiStatus(apiStatus, videoUrl?)` 在 videoUrl 存在时直接返回 "completed"，避免 API 返回非终态 status 但视频已生成完成时的假失败。
+
 **边界约束**：`cache` 和 `utils` 子域是最底层，不依赖其他子域。所有跨子域引用必须通过 `../subdomain` 导入。
 
 #### shot 模块
@@ -313,11 +319,15 @@ domain → NOTHING（纯类型）
 
 1. **自动保存的双重限制**：`useAutoSave` 有 MAX_RETRY（3 次）和 MIN_INTERVAL（1 秒）两个限制。重试限制防止网络故障时无限重试消耗资源，最小间隔防止快速连续修改触发过于频繁的保存。超过重试限制后停止重试并通过 toast 通知用户（回归防护 R5）。
 
-2. **自动保存乐观锁**：`createAutoSave` 使用 `ON CONFLICT(id) DO UPDATE SET ... WHERE timestamp < excluded.timestamp` 而非 `INSERT OR REPLACE`。当用户在自动保存快照与实际写入之间进行了新修改，乐观锁确保新修改不被覆盖。写入影响 0 行时，二次查询确认现有记录是否更新，若是则静默跳过。这是回归防护 R42 的来源。
+2. **自动保存脏状态检查**：`useAutoSave` 支持 `isDirty()` 回调参数，在每次定时保存前检查是否有未保存的修改。无修改时跳过保存，避免不必要的数据库写入和乐观锁冲突。
 
-3. **事务性删除同步清理本地文件**：`deleteCharacterWithRefs` 和 `deleteSceneWithRefs` 不仅删除数据库记录，还同步清理本地图片文件。如果只删除数据库记录而保留文件，磁盘空间会逐渐被孤立文件占满。这个设计是回归防护 R2（删除必须级联）的实现。
+3. **自动保存乐观锁**：`createAutoSave` 使用 `ON CONFLICT(id) DO UPDATE SET ... WHERE timestamp < excluded.timestamp` 而非 `INSERT OR REPLACE`。当用户在自动保存快照与实际写入之间进行了新修改，乐观锁确保新修改不被覆盖。写入影响 0 行时，二次查询确认现有记录是否更新，若是则静默跳过。这是回归防护 R42 的来源。
 
-**边界约束**：自动保存有 MAX_RETRY（3 次）和 MIN_INTERVAL（1 秒）限制。`usePersistenceGuard` 的 `cancelledRef` 防止组件卸载后继续保存。
+4. **持久化失败重新标记脏状态**：当持久化操作（如视频 URL 保存）失败时，必须重新标记对应实体的脏状态（`markDirty`），确保下次自动保存或用户离开时再次尝试保存，防止数据丢失。
+
+5. **事务性删除同步清理本地文件**：`deleteCharacterWithRefs` 和 `deleteSceneWithRefs` 不仅删除数据库记录，还同步清理本地图片文件。如果只删除数据库记录而保留文件，磁盘空间会逐渐被孤立文件占满。这个设计是回归防护 R2（删除必须级联）的实现。
+
+**边界约束**：自动保存有 MAX_RETRY（3 次）和 MIN_INTERVAL（1 秒）限制。`usePersistenceGuard` 的 `cancelledRef` 防止组件卸载后继续保存。`BeforeUnloadGuard` 仅在浏览器关闭时守卫，路由切换不清除脏状态——路由切换是用户可控的操作，不应隐式丢弃未保存修改的提醒。
 
 ## 五、依赖注入体系
 
@@ -1084,5 +1094,5 @@ describe("ComponentName", () => {
 ### 10.9 未来发展规划
 
 - **网络层已激活**：AI Provider 的 `apiCall` 已集成 `executeThroughCircuit`（断路器）和 `executeWithRetry`（重试器）。断路器按 endpoint 粒度保护（如 generate-image、generate-video 独立断路），重试器使用指数退避+抖动策略处理 429/500/超时/网络错误。断路器开启时自动降级到离线队列。网络层从"预埋基础设施"升级为"必要基础设施"
-- **UI 层国际化完成**：840+ 键的 messages.ts 已覆盖核心 UI 文本，但 shared/presentation、app/、modules/*/presentation 中仍有约 1500+ 处中文硬编码需迁移。AI 提示词模板和日志文本按规则不迁移
+- **UI 层国际化完成**：1634 键的 messages.ts 已覆盖核心 UI 文本，app/pages、modules/presentation、shared/presentation、modules/hooks 中用户可见文本已全部迁移为 t() 调用。AI 提示词模板和日志文本按规则不迁移
 - **测试覆盖均衡化**：storage 层测试密集（16个文件），但 character/scene/asset 的 hook 层测试薄弱。规划：优先补充 CRUD hook 和 presentation 组件的行为测试

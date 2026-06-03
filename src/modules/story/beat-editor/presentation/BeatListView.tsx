@@ -242,7 +242,7 @@ export function BeatListView({
               variant="ghost"
               size="sm"
               onClick={async () => {
-                if (await confirm(t("confirm.batchGenerateAll", { count: beats.length, action: "批量生成预览图" }), "批量生成预览图")) {
+                if (await confirm(t("confirm.batchGenerateAll", { count: beats.length, action: t("beat.batchGeneratePreview") }), t("beat.batchGeneratePreview"))) {
                   onBatchGenerateKeyframes?.();
                 }
               }}

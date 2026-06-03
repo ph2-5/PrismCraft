@@ -79,7 +79,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
     }
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${beat.title || "分镜"}_${beat.sequence}.mp4`;
+    a.download = `${beat.title || t("beat.downloadVideo")}_${beat.sequence}.mp4`;
     a.click();
     success(t("success.downloadStarted"), t("success.videoDownloadStarted"));
   }, [videoUrl, beat, task, success, showError]);
@@ -120,7 +120,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
       } else if (response.data?.status === "completed") {
         showError(t("error.fetchFailed"), t("error.videoUrlMissing"));
       } else {
-        showError(t("error.fetchFailed"), t("error.taskStatus", { status: response.data?.status || "未知" }));
+        showError(t("error.fetchFailed"), t("error.taskStatus", { status: response.data?.status || t("common.unknown") }));
       }
     } catch (err) {
       showError(t("error.fetchFailed"), err instanceof Error ? err.message : t("error.unknown"));
@@ -175,11 +175,10 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
               </Button>
               <div>
                 <h1 className="text-xl font-bold text-purple-100">
-                  {beat.title || `分镜 ${beat.sequence}`}
+                  {beat.title || t("beat.beatIndex", { index: beat.sequence })}
                 </h1>
                 <p className="text-sm text-purple-300">
-                  {story.title} · 镜头 {beat.sequence}/
-                  {story.beats?.length || 0}
+                  {t("beat.shotSequence", { title: story.title, index: beat.sequence, total: story.beats?.length || 0 })}
                 </p>
               </div>
             </div>
@@ -244,7 +243,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   <div className="relative aspect-video bg-slate-900 flex items-center justify-center">
                     <img
                       src={beat.framePair.firstFrame.imageUrl}
-                      alt="首帧预览"
+                      alt={t("beat.firstFramePreview")}
                       className="max-w-full max-h-full object-contain"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50">
@@ -259,7 +258,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   <div className="relative aspect-video bg-slate-900 flex items-center justify-center">
                     <img
                       src={beat.keyframe.imageUrl}
-                      alt="预览图"
+                      alt={t("beat.previewImage")}
                       className="max-w-full max-h-full object-contain"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50">
@@ -372,10 +371,10 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">任务ID</span>
+                      <span className="text-sm text-slate-400">{t("beat.taskId")}</span>
                       <div className="flex items-center gap-1">
                         <code className="text-xs bg-slate-900 px-2 py-1 rounded">
-                          {beat.videoGen?.taskId || task?.taskId || "未创建"}
+                          {beat.videoGen?.taskId || task?.taskId || t("story.notCreated")}
                         </code>
                         {beat.videoGen?.taskId && (
                           <Button
@@ -522,26 +521,26 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     <div>
                       <Label className="text-xs text-slate-400">{t("beat.titleLabel")}</Label>
                       <p className="text-sm text-slate-200">
-                        {beat.title || "未命名"}
+                        {beat.title || t("story.untitled")}
                       </p>
                     </div>
                     <div>
                       <Label className="text-xs text-slate-400">{t("beat.contentDesc")}</Label>
                       <p className="text-sm text-slate-200 whitespace-pre-wrap">
-                        {beat.content || beat.description || "无描述"}
+                        {beat.content || beat.description || t("story.noDesc")}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <Label className="text-xs text-slate-400">{t("beat.duration")}</Label>
                         <p className="text-sm text-slate-200">
-                          {beat.duration} 秒
+                          {t("beat.durationSeconds", { count: beat.duration ?? 0 })}
                         </p>
                       </div>
                       <div>
                         <Label className="text-xs text-slate-400">{t("beat.type")}</Label>
                         <p className="text-sm text-slate-200">
-                          {beat.type || "未设置"}
+                          {beat.type || t("story.notSet")}
                         </p>
                       </div>
                     </div>
@@ -611,12 +610,12 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                             </div>
                             {binding?.action && (
                               <p className="text-xs text-slate-400 mt-1">
-                                动作: {binding.action}
+                                {t("beat.action", { action: binding.action })}
                               </p>
                             )}
                             {binding?.emotion && (
                               <p className="text-xs text-slate-400">
-                                情绪: {binding.emotion}
+                                {t("beat.emotion", { emotion: binding.emotion })}
                               </p>
                             )}
                           </div>
@@ -645,14 +644,14 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                           onClick={handleCopyPrompt}
                         >
                           <Copy className="w-3 h-3 mr-1" />
-                          复制
+                          {t("story.copyButton")}
                         </Button>
                       </div>
                       <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30 max-h-40 overflow-y-auto">
                         <code className="text-xs text-slate-300 whitespace-pre-wrap">
                           {beat.videoGen?.prompt ||
                             beat.generationPrompt ||
-                            "未生成"}
+                            t("story.notGenerated")}
                         </code>
                       </div>
                     </div>
@@ -710,12 +709,12 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                       <span className="text-sm text-slate-200">
                         {beat.videoGen?.createdAt
                           ? new Date(beat.videoGen.createdAt).toLocaleString()
-                          : "未创建"}
+                          : t("beat.notCreated")}
                       </span>
                     </div>
                     {task?.createdAt && (
                       <div className="flex justify-between">
-                        <span className="text-xs text-slate-400">任务提交</span>
+                        <span className="text-xs text-slate-400">{t("beat.taskSubmit")}</span>
                         <span className="text-sm text-slate-200">
                           {new Date(task.createdAt).toLocaleString()}
                         </span>
@@ -724,7 +723,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     {beat.keyframe?.generatedAt && (
                       <div className="flex justify-between">
                         <span className="text-xs text-slate-400">
-                          预览图生成
+                          {t("beat.previewGeneration")}
                         </span>
                         <span className="text-sm text-slate-200">
                           {new Date(beat.keyframe.generatedAt).toLocaleString()}
@@ -734,7 +733,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     {beat.framePair?.generatedAt && (
                       <div className="flex justify-between">
                         <span className="text-xs text-slate-400">
-                          首尾帧生成
+                          {t("beat.frameGeneration")}
                         </span>
                         <span className="text-sm text-slate-200">
                           {new Date(
@@ -762,7 +761,7 @@ export default function BeatDetailClient() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">加载中...</p>
+          <p className="text-slate-400">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -773,10 +772,10 @@ export default function BeatDetailClient() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-          <p className="text-slate-200 text-lg">分镜未找到</p>
+          <p className="text-slate-200 text-lg">{t("beat.notFound")}</p>
           <p className="text-slate-400 text-sm mt-2">
-            该分镜可能已被删除或ID错误
-          </p>
+              {t("beat.notFoundDesc")}
+            </p>
         </div>
       </div>
     );

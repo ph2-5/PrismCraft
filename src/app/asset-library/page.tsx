@@ -462,7 +462,7 @@ export default function AssetLibraryPage() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="characters" className="gap-1">
               <Users className="w-4 h-4" />
-              角色库
+              {t("asset.characterLibrary")}
               {characters.length > 0 && (
                 <Badge variant="secondary" className="ml-1 text-xs">
                   {characters.length}
@@ -471,7 +471,7 @@ export default function AssetLibraryPage() {
             </TabsTrigger>
             <TabsTrigger value="scenes" className="gap-1">
               <ImageIcon className="w-4 h-4" />
-              场景库
+              {t("asset.sceneLibrary")}
               {scenes.length > 0 && (
                 <Badge variant="secondary" className="ml-1 text-xs">
                   {scenes.length}
@@ -480,7 +480,7 @@ export default function AssetLibraryPage() {
             </TabsTrigger>
             <TabsTrigger value="storyboards" className="gap-1">
               <Film className="w-4 h-4" />
-              分镜库
+              {t("asset.storyboardLibrary")}
               {storyboards.length > 0 && (
                 <Badge variant="secondary" className="ml-1 text-xs">
                   {storyboards.length}
@@ -489,7 +489,7 @@ export default function AssetLibraryPage() {
             </TabsTrigger>
             <TabsTrigger value="collections" className="gap-1">
               <FolderOpen className="w-4 h-4" />
-              我的合集
+              {t("asset.myCollections")}
               {collections.length > 0 && (
                 <Badge variant="secondary" className="ml-1 text-xs">
                   {collections.length}

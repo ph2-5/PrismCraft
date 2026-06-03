@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { t } from "@/shared/constants/messages";
+import { t } from "@/shared/constants";
 import {
   Dialog,
   DialogContent,

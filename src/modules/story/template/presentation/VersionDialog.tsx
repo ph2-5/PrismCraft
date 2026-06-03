@@ -183,7 +183,7 @@ export function VersionDialog({
                   >
                     <div>
                       <h4 className="font-medium">
-                        {version.changeSummary || version.title || `版本 ${formatVersionTime(version.timestamp)}`}
+                        {version.changeSummary || version.title || t("template.versionTime", { time: formatVersionTime(version.timestamp) })}
                       </h4>
                       <p className="text-sm text-muted-foreground">
                         {t("version.savedAt", { time: formatVersionTime(version.timestamp) })}

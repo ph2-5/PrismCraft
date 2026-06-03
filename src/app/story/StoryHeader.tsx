@@ -97,7 +97,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
                     {s.title || t("beat.unnamedProject")}
                   </span>
                   <span className="text-xs text-muted-foreground shrink-0">
-                    {(s.beats || []).length}镜
+                    {t("story.beatCount", { count: (s.beats || []).length })}
                   </span>
                 </div>
                 <Trash2
@@ -114,7 +114,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
       </div>
 
       <Input
-        placeholder="分镜项目标题..."
+        placeholder={t("story.titlePlaceholder")}
         value={story.currentStory.title ?? ""}
         onChange={(e) =>
           story.setCurrentStory((prev) => ({
@@ -126,7 +126,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
       />
 
       <Input
-        placeholder="简介..."
+        placeholder={t("story.descPlaceholder")}
         value={story.currentStory.description ?? ""}
         onChange={(e) =>
           story.setCurrentStory((prev) => ({

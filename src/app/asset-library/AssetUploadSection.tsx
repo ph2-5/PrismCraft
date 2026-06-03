@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/shared/ui/button";
 import { Upload, Package } from "lucide-react";
+import { t } from "@/shared/constants";
 
 interface AssetUploadSectionProps {
   onOpenImportDialog: () => void;
@@ -18,10 +19,10 @@ export function AssetUploadSection({
       <div>
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Package className="w-5 h-5" />
-          素材库
+          {t("asset.libraryTitle")}
         </h2>
         <p className="text-sm text-muted-foreground">
-          管理角色、场景、分镜素材及自定义合集
+          {t("asset.libraryDesc")}
         </p>
       </div>
       <div className="flex gap-2">
@@ -30,7 +31,7 @@ export function AssetUploadSection({
           onClick={onOpenImportDialog}
         >
           <Upload className="w-4 h-4 mr-2" />
-          导入 .asa
+          {t("asset.importAsa")}
         </Button>
         <input
           ref={fileInputRef}

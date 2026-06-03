@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Layers, Zap } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { t } from "@/shared/constants";
 import type {
   StoryBeat,
   Character,
@@ -111,7 +112,7 @@ export function BeatDetailEditor({
     <div
       className="h-full flex flex-col"
       role="region"
-      aria-label={`编辑分镜 ${index + 1}`}
+      aria-label={t("beat.editBeatN", { n: index + 1 })}
     >
       <BeatHeader
         beatTitle={beat.title || ""}
@@ -151,14 +152,14 @@ export function BeatDetailEditor({
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <Layers className="w-4 h-4 mr-2" />
-                  设置
+                  {t("common.settings")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="generate"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  生成
+                  {t("common.generate")}
                 </TabsTrigger>
               </TabsList>
 

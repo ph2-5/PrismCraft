@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { container } from "@/infrastructure/di";
+import { t } from "@/shared/constants";
 import type { Character, Scene, StoryBeat, StoryElement } from "@/domain/schemas";
 import type { BatchOptions, BatchResult } from "@/modules/story/generation";
 import type { PromptEditorContext } from "@/modules/story/prompt-editor";
@@ -117,7 +118,7 @@ export function ProfessionalModeEditor({
       .catch((err: unknown) => {
         if (!isElectron()) return;
         errorLogger.warn(
-          { code: "ElementLoadFailed", message: "元素加载失败", cause: err },
+          { code: "ElementLoadFailed", message: t("error.elementLoadFailed"), cause: err },
           { component: "ProfessionalModeEditor", source: "getAllElements" },
         );
       });
@@ -138,7 +139,7 @@ export function ProfessionalModeEditor({
           })
           .catch((err: unknown) => {
             errorLogger.warn(
-              { code: "ElementSubscribeFailed", message: "订阅更新元素失败", cause: err },
+              { code: "ElementSubscribeFailed", message: t("error.elementSubscribeFailed"), cause: err },
               { component: "ProfessionalModeEditor", source: "subscribe" },
             );
           });

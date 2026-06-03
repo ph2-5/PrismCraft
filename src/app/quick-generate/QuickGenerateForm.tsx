@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Label } from "@/shared/ui/label";
+import { t } from "@/shared/constants";
 import {
   getDurationOptionsForModel,
   getResolutionOptionsForModel,
@@ -119,10 +120,10 @@ export function QuickGenerateForm({
             <div>
               <CardTitle className="text-xl flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-purple-400" />
-                描述你的视频
+                {t("quickGenerate.describeVideo")}
               </CardTitle>
               <CardDescription>
-                输入视频的核心内容，越详细效果越好
+                {t("quickGenerate.describeVideoDesc")}
               </CardDescription>
             </div>
             <Button
@@ -131,7 +132,7 @@ export function QuickGenerateForm({
               className="gap-2 border-purple-700 hover:bg-purple-900/20 text-purple-200"
             >
               <LayoutTemplate className="w-4 h-4" />
-              选择模板
+              {t("quickGenerate.selectTemplate")}
             </Button>
           </div>
         </CardHeader>
@@ -139,16 +140,16 @@ export function QuickGenerateForm({
           <Textarea
             value={promptText}
             onChange={(e) => onPromptTextChange(e.target.value)}
-            placeholder="例如：一只白色猫咪在海边沙滩上奔跑，日落暖光，治愈电影感..."
+            placeholder={t("story.quickPromptPlaceholder")}
             className="min-h-32 text-base resize-y bg-slate-800 border-slate-700 focus:border-purple-500"
           />
           <p className="text-sm text-slate-500">
-            提示：可以包含剧情、角色动作、画面风格、氛围描述
+            {t("quickGenerate.promptHint")}
           </p>
 
           <div className="pt-4">
             <Label className="text-sm text-slate-400 mb-2 block">
-              快速尝试：
+              {t("quickGenerate.quickTry")}
             </Label>
             <div className="flex flex-wrap gap-2">
               {quickExamples.map((example) => (
@@ -169,11 +170,11 @@ export function QuickGenerateForm({
 
       <Card className="border border-slate-800 bg-slate-900/60">
         <CardHeader>
-          <CardTitle className="text-lg">配置视频参数</CardTitle>
+          <CardTitle className="text-lg">{t("quickGenerate.configVideoParams")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label className="text-slate-300">视频模型</Label>
+            <Label className="text-slate-300">{t("quickGenerate.videoModel")}</Label>
             <ModelSelector
               capability="video"
               value={selectedVideoModel}
@@ -181,7 +182,7 @@ export function QuickGenerateForm({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-300">视频时长</Label>
+            <Label className="text-slate-300">{t("quickGenerate.videoDuration")}</Label>
             <div className="flex flex-wrap gap-2">
               {getDurationOptionsForModel(selectedVideoModel?.modelId).map((opt) => (
                 <Button
@@ -204,7 +205,7 @@ export function QuickGenerateForm({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300">画面风格</Label>
+            <Label className="text-slate-300">{t("quickGenerate.visualStyle")}</Label>
             <div className="flex flex-wrap gap-2">
               {getStyleOptionsForModel(selectedVideoModel?.modelId).map((style) => (
                 <Button
@@ -229,7 +230,7 @@ export function QuickGenerateForm({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300">分辨率</Label>
+            <Label className="text-slate-300">{t("quickGenerate.resolution")}</Label>
             <Select
               value={selectedResolution}
               onValueChange={(v) => {
@@ -253,12 +254,12 @@ export function QuickGenerateForm({
           <div className="space-y-2">
             <Label className="text-slate-300 flex items-center gap-2">
               <User className="w-4 h-4" />
-              锁定主角（可选）
+              {t("quickGenerate.lockMainCharacter")}
             </Label>
             {charactersLoading ? (
               <div className="flex items-center gap-2 p-3">
                 <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">加载角色中...</span>
+                <span className="text-sm text-muted-foreground">{t("scene.loadingCharacters")}</span>
               </div>
             ) : characters.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -297,7 +298,7 @@ export function QuickGenerateForm({
                   onClick={() => guardedPush("/characters")}
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  新建角色
+                  {t("quickGenerate.newCharacter")}
                 </Button>
               </div>
             ) : (
@@ -308,7 +309,7 @@ export function QuickGenerateForm({
                 onClick={() => guardedPush("/characters")}
               >
                 <Plus className="w-4 h-4 mr-1" />
-                创建角色以锁定主角形象
+                {t("scene.createCharacterHint")}
               </Button>
             )}
           </div>
@@ -316,12 +317,12 @@ export function QuickGenerateForm({
           <div className="space-y-2">
             <Label className="text-slate-300 flex items-center gap-2">
               <Image className="w-4 h-4" />
-              锁定场景（可选）
+              {t("quickGenerate.lockScene")}
             </Label>
             {scenesLoading ? (
               <div className="flex items-center gap-2 p-3">
                 <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">加载场景中...</span>
+                <span className="text-sm text-muted-foreground">{t("scene.loadingScenes")}</span>
               </div>
             ) : scenes.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -360,7 +361,7 @@ export function QuickGenerateForm({
                   onClick={() => guardedPush("/scenes")}
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  新建场景
+                  {t("scene.createNewScene")}
                 </Button>
               </div>
             ) : (
@@ -371,7 +372,7 @@ export function QuickGenerateForm({
                 onClick={() => guardedPush("/scenes")}
               >
                 <Plus className="w-4 h-4 mr-1" />
-                创建场景以锁定背景环境
+                {t("scene.createSceneHint")}
               </Button>
             )}
           </div>
@@ -402,12 +403,12 @@ export function QuickGenerateForm({
         {isGenerating ? (
           <>
             <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-            正在生成视频...
+            {t("task.generatingVideo")}
           </>
         ) : (
           <>
             <Wand2 className="w-5 h-5 mr-2" />
-            立即生成视频
+            {t("task.generateVideoNow")}
           </>
         )}
       </Button>
@@ -416,7 +417,7 @@ export function QuickGenerateForm({
         <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
-              实际发送的提示词
+              {t("task.actualPromptSent")}
             </CardTitle>
           </CardHeader>
           <CardContent>

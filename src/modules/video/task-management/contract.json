@@ -4,7 +4,7 @@
   "dependencies": ["video-cache", "video-recovery", "domain", "infrastructure/di", "shared-ui", "shared-utils", "shared-presentation"],
   "publicAPI": {
     "hooks": ["useVideoTaskManager", "useVideoTaskStore", "useVideoTasks", "useFailedVideoTasks", "useRecoverVideo", "useCleanExpiredTasks", "useStartBackgroundRecovery"],
-    "services": ["TaskMachine", "buildTrackingInfo", "copyTrackingInfoToClipboard", "openTaskQueryLink"],
+    "services": ["TaskMachine", "mapApiStatus", "buildTrackingInfo", "copyTrackingInfoToClipboard", "openTaskQueryLink"],
     "components": ["VideoTaskManager", "VideoTaskManagerInitializer", "VideoTaskManagerUI"]
   },
   "invariants": [
@@ -15,6 +15,8 @@
     "completed 只能回到 pending（重置），不能直接 retrying 或 generating",
     "cancelled 是终态，不允许任何转换",
     "withTransitionGuard 在非法转换时：开发模式抛 TransitionError，生产模式剥离 status 字段仅保留安全更新",
-    "轮询失败达 MAX_POLL_FAILURES(30) 次自动标记为 failed 并通知用户"
+    "轮询失败达 MAX_POLL_FAILURES(30) 次自动标记为 failed 并通知用户",
+    "useVideoTaskStore.cleanup() 只能由 app 级生命周期组件（VideoTaskManagerInitializer）调用，页面级组件不得在卸载时调用",
+    "mapApiStatus(apiStatus, videoUrl?) 在 videoUrl 存在时直接返回 completed，不依赖 API status 字段"
   ]
 }

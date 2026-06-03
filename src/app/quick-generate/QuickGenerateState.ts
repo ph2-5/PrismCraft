@@ -16,7 +16,7 @@ import {
   useCreateMediaAsset,
 } from "@/modules/asset";
 import { useToastHelpers } from "@/shared/presentation/Toast";
-import { useVideoTaskManager, useVideoTaskStore, type VideoTask } from "@/modules/video";
+import { useVideoTaskManager, type VideoTask } from "@/modules/video";
 import { getVideoUrlWithCache } from "@/modules/video";
 import { useModelSelection } from "@/modules/prompt";
 import { errorLogger } from "@/shared/error-logger";
@@ -67,7 +67,7 @@ export type QuickGenerateAction =
 const initialState: QuickGenerateState = {
   promptText: "",
   duration: 5,
-  selectedStyle: "电影感",
+  selectedStyle: t("quickGenerate.defaultStyle"),
   selectedResolution: "1920x1080",
   selectedCharacters: [],
   selectedScene: null,
@@ -198,9 +198,6 @@ export function useQuickGenerateState() {
 
   useEffect(() => {
     initialize();
-    return () => {
-      useVideoTaskStore.getState().cleanup();
-    };
   }, [initialize]);
 
   const currentTask = activeTaskId
@@ -314,10 +311,10 @@ export function useQuickGenerateState() {
       });
 
       if (task?.promptWasTruncated) {
-        showWarning("提示词过长", "提示词已被自动截断，可能影响生成效果");
+        showWarning(t("task.promptTooLong"), t("task.promptTruncated"));
       }
 
-      showSuccess("开始生成视频");
+      showSuccess(t("video.startGeneration"));
     } catch (error) {
       errorLogger.error("生成失败:", error);
       showError(t("video.generateFailed"), mapUserFacingError(error));
@@ -331,7 +328,7 @@ export function useQuickGenerateState() {
     if (!videoUrl) return;
     try {
       const response = await fetch(videoUrl);
-      if (!response.ok) throw new Error(`下载失败: ${response.status}`);
+      if (!response.ok) throw new Error(t("error.downloadFailedStatus", { status: response.status }));
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -359,14 +356,14 @@ export function useQuickGenerateState() {
     dispatch({ type: "SET_IS_SAVING_TO_ASSETS", value: true });
     try {
       await createMediaAssetMutation.mutateAsync({
-        name: `快速生成 - ${state.promptText.slice(0, 20)}...`,
+        name: t("quickGenerate.assetName", { prompt: state.promptText.slice(0, 20) }),
         description: state.promptText,
         type: "video",
         url: task.videoUrl,
-        tags: [state.selectedStyle, `${state.duration}秒`],
+        tags: [state.selectedStyle, t("quickGenerate.secondsTag", { count: state.duration })],
         duration: state.duration,
       });
-      showSuccess("已保存到素材库");
+      showSuccess(t("video.savedToLibrary"));
     } catch (_error) {
       showError(t("error.saveFailed"), mapUserFacingError(_error));
     } finally {
@@ -382,7 +379,7 @@ export function useQuickGenerateState() {
         style,
       } = applyVideoTemplate(template);
       dispatch({ type: "APPLY_TEMPLATE", prompt, duration: templateDuration, style });
-      showSuccess("模板已应用", `已应用"${template.name}"模板`);
+      showSuccess(t("quickGenerate.templateApplied"), t("quickGenerate.templateAppliedDesc", { name: template.name }));
     },
     [showSuccess],
   );
@@ -395,7 +392,7 @@ export function useQuickGenerateState() {
       const blobUrl = URL.createObjectURL(file);
       referenceVideoBlobRef.current = blobUrl;
       dispatch({ type: "UPLOAD_REFERENCE_VIDEO", blobUrl, file, name: file.name });
-      showSuccess("参考视频已上传");
+      showSuccess(t("video.refVideoUploaded"));
     },
     [showSuccess, state.referenceVideo],
   );

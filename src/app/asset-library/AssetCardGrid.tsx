@@ -19,6 +19,7 @@ import {
   CardContent,
 } from "@/shared/ui/card";
 import { TabsContent } from "@/shared/ui/tabs";
+import { t } from "@/shared/constants";
 import { CharacterCard, SceneCard, StoryboardCard, CollectionCard } from "./AssetCards";
 export type { AssetTab, EditingItem } from "./asset-library-shared";
 export { fetchSecondaryData } from "./asset-library-shared";
@@ -83,9 +84,9 @@ export function AssetCardGrid({
           <Card>
             <CardContent className="pt-12 pb-12 text-center">
               <Users className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-              <h3 className="text-xl font-bold mb-2">角色库为空</h3>
+              <h3 className="text-xl font-bold mb-2">{t("asset.characterLibraryEmpty")}</h3>
               <p className="text-muted-foreground">
-                前往角色页面创建角色，素材会自动入库
+                {t("asset.characterLibraryEmptyDesc")}
               </p>
             </CardContent>
           </Card>
@@ -114,9 +115,9 @@ export function AssetCardGrid({
           <Card>
             <CardContent className="pt-12 pb-12 text-center">
               <ImageIcon className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-              <h3 className="text-xl font-bold mb-2">场景库为空</h3>
+              <h3 className="text-xl font-bold mb-2">{t("asset.sceneLibraryEmpty")}</h3>
               <p className="text-muted-foreground">
-                前往场景页面创建场景，素材会自动入库
+                {t("asset.sceneLibraryEmptyDesc")}
               </p>
             </CardContent>
           </Card>
@@ -145,9 +146,9 @@ export function AssetCardGrid({
           <Card>
             <CardContent className="pt-12 pb-12 text-center">
               <Film className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-              <h3 className="text-xl font-bold mb-2">分镜库为空</h3>
+              <h3 className="text-xl font-bold mb-2">{t("asset.storyboardLibraryEmpty")}</h3>
               <p className="text-muted-foreground">
-                在分镜编辑器中保存分镜，素材会自动入库
+                {t("asset.storyboardLibraryEmptyDesc")}
               </p>
             </CardContent>
           </Card>
@@ -171,7 +172,7 @@ export function AssetCardGrid({
         <div className="mb-4">
           <Button onClick={onNewCollection}>
             <Plus className="w-4 h-4 mr-2" />
-            新建合集
+            {t("asset.newCollection")}
           </Button>
         </div>
         {secondaryDataLoading ? (
@@ -182,9 +183,9 @@ export function AssetCardGrid({
           <Card>
             <CardContent className="pt-12 pb-12 text-center">
               <FolderOpen className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-              <h3 className="text-xl font-bold mb-2">暂无合集</h3>
+              <h3 className="text-xl font-bold mb-2">{t("asset.noCollections")}</h3>
               <p className="text-muted-foreground">
-                创建合集来组织你的角色、场景和分镜素材
+                {t("asset.noCollectionsDesc")}
               </p>
             </CardContent>
           </Card>

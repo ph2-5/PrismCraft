@@ -6,7 +6,6 @@ import { t } from "@/shared/constants/messages";
 
 export function BeforeUnloadGuard() {
   const dirtyCount = useDirtyState((s) => s.dirtyKeys.size);
-  const markAllClean = useDirtyState((s) => s.markAllClean);
   const dirtyRef = useRef(dirtyCount > 0);
 
   useEffect(() => {
@@ -19,9 +18,8 @@ export function BeforeUnloadGuard() {
   useEffect(() => {
     if (prevPathnameRef.current !== pathname) {
       prevPathnameRef.current = pathname;
-      markAllClean();
     }
-  }, [pathname, markAllClean]);
+  }, [pathname]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {

@@ -79,7 +79,6 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
 
   const handleSave = async () => {
     if (savingRef.current) return;
-    savingRef.current = true;
 
     const trimmedName = (entity.name || "").trim();
     if (!trimmedName) {
@@ -87,6 +86,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       return;
     }
 
+    savingRef.current = true;
     setSaveStatus("saving");
     setSaveError("");
     try {

@@ -10,6 +10,7 @@ import {
   syncStoriesWithVideoUrls,
 } from "@/modules/story/generation";
 import type { Story, StoryBeat } from "@/domain/schemas";
+import { useDirtyState } from "@/shared/hooks/use-dirty-state";
 
 interface UseStoryPersistenceParams {
   beatsRef: React.MutableRefObject<StoryBeat[]>;
@@ -38,6 +39,7 @@ export function useStoryPersistence({
   useEffect(() => { setStoriesRef.current = setStories; }, [setStories]);
   const currentStoryRef = useRef(currentStory);
   useEffect(() => { currentStoryRef.current = currentStory; }, [currentStory]);
+  const markDirty = useDirtyState((s) => s.markDirty);
 
   const [isVideoUrlPersisting, setIsVideoUrlPersisting] = useState(false);
   const isPersistingRef = useRef(false);
@@ -85,6 +87,7 @@ export function useStoryPersistence({
             } catch (e) {
               if (!cancelled) {
                 errorLogger.warn("自动保存视频URL失败", e);
+                markDirty("story");
                 showErrorRef.current("自动保存失败", "视频URL自动保存到数据库失败，请手动保存");
               }
             } finally {

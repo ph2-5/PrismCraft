@@ -10,9 +10,10 @@ interface UseAutoSaveOptions {
   enabled: boolean;
   intervalMinutes: number;
   onSave: () => Promise<void>;
+  isDirty?: () => boolean;
 }
 
-export function useAutoSave({ enabled, intervalMinutes, onSave }: UseAutoSaveOptions) {
+export function useAutoSave({ enabled, intervalMinutes, onSave, isDirty }: UseAutoSaveOptions) {
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
   const retryCountRef = useRef(0);
@@ -63,6 +64,7 @@ export function useAutoSave({ enabled, intervalMinutes, onSave }: UseAutoSaveOpt
     cancelledRef.current = false;
 
     const timer = setInterval(() => {
+      if (isDirty && !isDirty()) return;
       guardedSave();
     }, intervalMs);
 

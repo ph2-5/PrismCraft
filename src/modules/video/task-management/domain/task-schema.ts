@@ -23,7 +23,8 @@ const API_STATUS_MAP: Record<string, string | null> = {
   cancelled: "failed",
 };
 
-export function mapApiStatus(apiStatus: string): "pending" | "generating" | "completed" | "failed" {
+export function mapApiStatus(apiStatus: string, videoUrl?: string): "pending" | "generating" | "completed" | "failed" {
+  if (videoUrl) return "completed";
   const mapped = API_STATUS_MAP[apiStatus.toLowerCase()];
   if (mapped === "pending" || mapped === "generating" || mapped === "completed" || mapped === "failed") {
     return mapped;

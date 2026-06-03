@@ -583,7 +583,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             ),
           );
         }
-        const mappedStatus = mapApiStatus(result.data.status || "failed");
+        const mappedStatus = mapApiStatus(result.data.status || "failed", result.data.videoUrl);
         const guardUpdates = withTransitionGuard(task, mappedStatus, {
           progress: result.data.progress || task.progress,
           videoUrl: result.data.videoUrl,
@@ -691,7 +691,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     const task = get().allTasks.find((t) => t.taskId === taskId);
     if (!task) return;
 
-    const mappedStatus = mapApiStatus(status);
+    const mappedStatus = mapApiStatus(status, videoUrl);
     const result = TaskMachine.transition(task, mappedStatus, { videoUrl });
     if (!result.ok) {
       errorLogger.warn(

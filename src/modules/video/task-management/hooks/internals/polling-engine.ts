@@ -270,7 +270,7 @@ async function pollSingleTask(
       if (justCompleted && pollResp.data.videoUrl) {
         result.cacheTasks.push({ taskId: task.taskId, videoUrl: pollResp.data.videoUrl });
       }
-      const mappedStatus = mapApiStatus(pollResp.data.status || "failed");
+      const mappedStatus = mapApiStatus(pollResp.data.status || "failed", pollResp.data.videoUrl);
       result.taskUpdates.set(task.taskId, withTransitionGuard(task, mappedStatus, {
         progress: pollResp.data.progress || task.progress,
         videoUrl: pollResp.data.videoUrl,

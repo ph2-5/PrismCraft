@@ -86,5 +86,28 @@ describe("task-schema", () => {
       expect(mapApiStatus("QUEUED")).toBe("pending");
       expect(mapApiStatus("Succeeded")).toBe("completed");
     });
+
+    it("should return completed when videoUrl is present regardless of apiStatus", () => {
+      expect(mapApiStatus("failed", "https://example.com/video.mp4")).toBe("completed");
+      expect(mapApiStatus("unknown", "https://example.com/video.mp4")).toBe("completed");
+      expect(mapApiStatus("error", "https://example.com/video.mp4")).toBe("completed");
+      expect(mapApiStatus("cancelled", "https://example.com/video.mp4")).toBe("completed");
+    });
+
+    it("should return completed when videoUrl is present even for non-terminal statuses", () => {
+      expect(mapApiStatus("pending", "https://example.com/video.mp4")).toBe("completed");
+      expect(mapApiStatus("processing", "https://example.com/video.mp4")).toBe("completed");
+    });
+
+    it("should not treat empty string videoUrl as present", () => {
+      expect(mapApiStatus("failed", "")).toBe("failed");
+      expect(mapApiStatus("unknown", "")).toBe("failed");
+    });
+
+    it("should fall back to status mapping when videoUrl is absent", () => {
+      expect(mapApiStatus("completed")).toBe("completed");
+      expect(mapApiStatus("failed")).toBe("failed");
+      expect(mapApiStatus("unknown")).toBe("failed");
+    });
   });
 });

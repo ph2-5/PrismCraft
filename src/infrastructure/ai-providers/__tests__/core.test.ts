@@ -7,7 +7,6 @@ const {
   mockIsElectron,
   mockExtractErrorMessage,
   mockExecuteThroughCircuit,
-  mockExecuteWithRetry,
 } = vi.hoisted(() => ({
   mockApiCache: {
     get: vi.fn(),
@@ -24,7 +23,6 @@ const {
     return "Unknown error";
   }),
   mockExecuteThroughCircuit: vi.fn((_providerId: string, fn: () => Promise<Response>) => fn()),
-  mockExecuteWithRetry: vi.fn(<T>(fn: () => Promise<T>) => fn()),
 }));
 
 vi.mock("@/infrastructure/ai-providers/api-cache", () => ({
@@ -57,10 +55,6 @@ vi.mock("@/infrastructure/network/circuit-breaker", () => ({
   executeThroughCircuit: mockExecuteThroughCircuit,
 }));
 
-vi.mock("@/infrastructure/network/retry-executor", () => ({
-  executeWithRetry: mockExecuteWithRetry,
-}));
-
 import { apiCall, apiCallWithRetry, apiCallWithFallback, getErrorMessage, checkApiHealth, isQueuedResponse, ApiClientError } from "../core";
 
 describe("ai-providers/core", () => {
@@ -68,7 +62,6 @@ describe("ai-providers/core", () => {
     vi.clearAllMocks();
     mockApiCache.get.mockReturnValue(null);
     mockExecuteThroughCircuit.mockImplementation((_providerId: string, fn: () => Promise<Response>) => fn());
-    mockExecuteWithRetry.mockImplementation(<T>(fn: () => Promise<T>) => fn());
     globalThis.fetch = vi.fn();
   });
 
@@ -438,36 +431,47 @@ describe("ai-providers/core", () => {
 
       const result = await apiCallWithRetry("test");
       expect(result).toEqual({ value: 1 });
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     });
 
-    it("delegates to executeWithRetry with correct policy", async () => {
-      vi.mocked(globalThis.fetch).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ value: 1 }),
-        status: 200,
-      } as Response);
+    it("retries on 429 and succeeds on second attempt", async () => {
+      vi.mocked(globalThis.fetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          json: () => Promise.resolve({ error: "Rate limited" }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ value: 2 }),
+          status: 200,
+        } as Response);
 
-      await apiCallWithRetry("test", {}, 5);
-
-      expect(mockExecuteWithRetry).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.objectContaining({ maxRetries: 5 }),
-      );
+      const result = await apiCallWithRetry("test");
+      expect(result).toEqual({ value: 2 });
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
     });
 
-    it("uses default retries of 3", async () => {
+    it("does not retry on 400 client error", async () => {
       vi.mocked(globalThis.fetch).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ value: 1 }),
-        status: 200,
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ error: "Bad request" }),
       } as Response);
 
-      await apiCallWithRetry("test");
+      await expect(apiCallWithRetry("test")).rejects.toThrow(ApiClientError);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    });
 
-      expect(mockExecuteWithRetry).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.objectContaining({ maxRetries: 3 }),
-      );
+    it("throws last error after max retries", async () => {
+      vi.mocked(globalThis.fetch).mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: () => Promise.resolve({ error: "Unavailable" }),
+      } as Response);
+
+      await expect(apiCallWithRetry("test", {}, 2)).rejects.toThrow("Unavailable");
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
     });
   });
 

@@ -7,8 +7,6 @@ import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import { isNetworkError as isNetworkErrorClassified } from "@/shared/utils/error-classifier";
 import { executeThroughCircuit } from "@/infrastructure/network/circuit-breaker";
-import { executeWithRetry } from "@/infrastructure/network/retry-executor";
-import type { RetryPolicy } from "@/infrastructure/network/types";
 
 export interface QueuedResponse {
   success: false;
@@ -40,24 +38,6 @@ const QUEUEABLE_ENDPOINTS = [
   "generate-frame-pair",
   "upload",
 ];
-
-const API_RETRY_POLICY: RetryPolicy = {
-  maxRetries: 3,
-  baseDelay: 1000,
-  maxDelay: 10000,
-  backoff: "exponential",
-  jitter: true,
-  retryableErrors: [
-    "NETWORK_ERROR",
-    "TIMEOUT",
-    "RATE_LIMITED",
-    "API_SERVER_ERROR",
-    "ECONNREFUSED",
-    "ETIMEDOUT",
-    "CIRCUIT_OPEN",
-    "CIRCUIT_HALF_OPEN_LIMIT",
-  ],
-};
 
 function statusCodeToErrorCode(status: number): string | undefined {
   switch (status) {
@@ -206,15 +186,41 @@ export async function apiCallWithRetry<T>(
   options: ApiRequestOptions = {},
   retries = 3,
 ): Promise<T> {
-  const policy: RetryPolicy = {
-    ...API_RETRY_POLICY,
-    maxRetries: retries,
-  };
+  let lastError: Error = new Error("请求失败");
 
-  return executeWithRetry(
-    () => apiCall<T>(endpoint, options),
-    policy,
-  );
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await apiCall<T>(endpoint, options);
+    } catch (error) {
+      lastError = error as Error;
+
+      const isClientError =
+        error instanceof ApiClientError &&
+        error.statusCode !== undefined &&
+        error.statusCode >= 400 &&
+        error.statusCode < 500;
+
+      const shouldRetry =
+        !isClientError ||
+        (error instanceof ApiClientError &&
+          (error.statusCode === 429 || error.statusCode === 408));
+
+      if (!shouldRetry) {
+        throw error;
+      }
+
+      if (i < retries - 1) {
+        let delay = Math.pow(2, i) * 1000;
+        if (error instanceof ApiClientError && error.statusCode === 429) {
+          delay = Math.max(delay, 5000);
+        }
+        delay = delay * (0.5 + Math.random() * 0.5);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError!;
 }
 
 export async function apiCallWithFallback<T>(

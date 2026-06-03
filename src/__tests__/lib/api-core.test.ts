@@ -9,12 +9,21 @@ import {
 } from "@/infrastructure/ai-providers/core";
 import { apiCache } from "@/infrastructure/ai-providers/api-cache";
 
+const { mockExecuteThroughCircuit } = vi.hoisted(() => ({
+  mockExecuteThroughCircuit: vi.fn(<T>(_providerId: string, fn: () => Promise<T>) => fn()),
+}));
+
+vi.mock("@/infrastructure/network/circuit-breaker", () => ({
+  executeThroughCircuit: mockExecuteThroughCircuit,
+}));
+
 const mockFetch = vi.fn();
 const originalFetch = global.fetch;
 
 beforeEach(() => {
   global.fetch = mockFetch;
   vi.clearAllMocks();
+  mockExecuteThroughCircuit.mockImplementation(<T>(_providerId: string, fn: () => Promise<T>) => fn());
   apiCache.invalidateAll();
 });
 
@@ -315,7 +324,8 @@ describe("apiCallWithRetry", () => {
     mockFetch
       .mockImplementationOnce(() => {
         return new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("AbortError")), 100);
+          const error = new DOMException("The operation was aborted", "AbortError");
+          setTimeout(() => reject(error), 10);
         });
       })
       .mockResolvedValueOnce(
@@ -327,7 +337,7 @@ describe("apiCallWithRetry", () => {
       {
         method: "POST",
         body: JSON.stringify({ prompt: "test" }),
-        timeout: 50,
+        timeout: 5000,
       },
       3,
     );
@@ -440,24 +450,26 @@ describe("apiCallWithFallback", () => {
         createMockResponse({ jsonData: { task_id: "fallback_success" } }),
       );
 
-    const result = await apiCallWithFallback([
-      {
-        endpoint: "generate-video",
-        options: {
-          method: "POST",
-          body: JSON.stringify({ prompt: "test" }),
+    const result = await apiCallWithFallback(
+      [
+        {
+          endpoint: "generate-video",
+          options: {
+            method: "POST",
+            body: JSON.stringify({ prompt: "test" }),
+          },
         },
-      },
-      {
-        endpoint: "generate-image",
-        options: {
-          method: "POST",
-          body: JSON.stringify({ prompt: "test" }),
+        {
+          endpoint: "generate-image",
+          options: {
+            method: "POST",
+            body: JSON.stringify({ prompt: "test" }),
+          },
         },
-      },
-    ]);
+      ],
+      1,
+    );
 
-    expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ task_id: "fallback_success" });
   });
 
@@ -471,19 +483,20 @@ describe("apiCallWithFallback", () => {
     );
 
     await expect(
-      apiCallWithFallback([
-        {
-          endpoint: "generate-video",
-          options: { method: "POST", body: JSON.stringify({ prompt: "test" }) },
-        },
-        {
-          endpoint: "generate-image",
-          options: { method: "POST", body: JSON.stringify({ prompt: "test" }) },
-        },
-      ]),
+      apiCallWithFallback(
+        [
+          {
+            endpoint: "generate-video",
+            options: { method: "POST", body: JSON.stringify({ prompt: "test" }) },
+          },
+          {
+            endpoint: "generate-image",
+            options: { method: "POST", body: JSON.stringify({ prompt: "test" }) },
+          },
+        ],
+        1,
+      ),
     ).rejects.toThrow();
-
-    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -70,6 +70,7 @@ export async function ensureSyncSchema(): Promise<void> {
       const columns = await safeQuery<{ name: string }>(
         `PRAGMA table_info(${table})`
       );
+      if (columns.length === 0) continue;
       const columnNames = new Set(columns.map((c) => c.name));
       const syncColumns = tablesWithIsDeleted.has(table)
         ? syncColumnsWithIsDeleted

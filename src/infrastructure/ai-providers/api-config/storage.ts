@@ -62,7 +62,11 @@ export async function loadConfig(): Promise<ApiConfig> {
         try {
           const electronResult = await window.electronAPI.getConfig(CONFIG_KEY);
           if (electronResult !== null && electronResult !== undefined) {
-            stored = electronResult as string | null;
+            if (typeof electronResult === "object" && "data" in electronResult) {
+              stored = (electronResult as { data: unknown }).data as string | null;
+            } else {
+              stored = electronResult as string | null;
+            }
           }
         } catch (e) {
           errorLogger.warn(

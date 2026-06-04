@@ -22,8 +22,7 @@
 stderr.log
 stdout.log
 
-# next.js
-/.next/
+# vite
 /out/
 
 # production
@@ -52,12 +51,11 @@ yarn-error.log*
 .env*
 !.env.example
 
-# vercel
+# vercel (legacy)
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # tsc output logs
 tsc-output*.txt

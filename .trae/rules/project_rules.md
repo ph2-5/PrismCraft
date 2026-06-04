@@ -516,12 +516,32 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 ### Active Documents (must update when code changes)
 
+**CRITICAL**: Documentation MUST be updated in the same commit as the code change, not deferred. Stale documentation is worse than no documentation — it misleads future developers and AI agents into making incorrect assumptions.
+
 | Document | Location | When to Update |
 |----------|----------|----------------|
 | Regression Guards | `.trae/rules/regression-guards.md` | When a new bug pattern is discovered and fixed |
-| Module Contracts | `src/modules/{module}/MODULE.md` | When module public API changes (Step 4 of AI Maintenance Workflow) |
+| Module Contracts | `src/modules/{module}/MODULE.md` | When module public API, behavior, or invariants change |
 | Sub-domain Contracts | `src/modules/{module}/{subdomain}/contract.json` | When sub-domain publicAPI or invariants change |
 | DI Container Tokens | `src/infrastructure/di/container.ts` | When adding/removing DI tokens (update Category A-E comment) |
+| Project Rules | `.trae/rules/project_rules.md` | When adding npm scripts, test infrastructure, architecture patterns, or regression guard counts change |
+| Storage README | `src/infrastructure/storage/README.md` | When adding storage modules, roundtrip tests, or changing JSON container patterns |
+| Quick Start | `.trae/rules/quick-start.md` | When key file paths, commands, or common scenarios change |
+
+#### Documentation Update Triggers
+
+Code changes that REQUIRE documentation updates (non-exhaustive):
+
+| Code Change Type | Documents to Update |
+|------------------|---------------------|
+| New bug fix with reusable pattern | `regression-guards.md` + `project_rules.md` (guard count) |
+| New npm script added | `project_rules.md` (NPM Scripts) + `quick-start.md` (commands) |
+| New test infrastructure (e2e, fixtures) | `project_rules.md` (Testing section) |
+| Module behavior change (even without API change) | `MODULE.md` (boundary constraints, invariants) |
+| New storage module or JSON container | `storage/README.md` + `MODULE.md` |
+| New DI token | `container.ts` (category comment) + `docs/di-tokens.md` |
+| New Port interface | `docs/ports.md` + `domain/ports/index.ts` |
+| Architecture pattern change | `project_rules.md` + `docs/ARCHITECTURE.md` |
 
 ### Module Contract Files
 
@@ -740,6 +760,7 @@ Before submitting any code change, verify:
 17. **No next/* imports**: All Next.js imports replaced with react-router-dom or native alternatives (R57)
 18. **useSearchParams destructuring**: React Router's `useSearchParams()` returns tuple, always destructure `[searchParams]` (R58)
 19. **User-facing strings use t()**: All toast/confirm/showError/dialog title/placeholder/label text MUST use `t()` from `@/shared/constants` (R56)
+20. **Documentation sync**: All affected documents updated in the same commit (see Documentation Update Triggers table)
 
 ### Testing Conventions
 

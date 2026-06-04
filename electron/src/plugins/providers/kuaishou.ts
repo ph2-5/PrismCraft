@@ -19,6 +19,9 @@ import {
   resolveLocalUrlToBase64,
   stripDataUriPrefix,
 } from "../utils";
+import { getLogger } from "../../logging/logger";
+
+const logger = getLogger("kuaishou");
 
 export class KuaishouPlugin extends BaseAIProviderPlugin implements AIProviderPlugin {
   readonly id = "kuaishou";
@@ -252,6 +255,7 @@ export class KuaishouPlugin extends BaseAIProviderPlugin implements AIProviderPl
         return uploadedUrl;
       }
     } catch {
+      logger.warn("Failed to upload image via Kuaishou API");
       // fall through
     }
 

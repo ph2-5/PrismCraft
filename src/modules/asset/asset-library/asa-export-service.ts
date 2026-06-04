@@ -1,6 +1,7 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable, err, ValidationError } from "@/domain/types";
 import { safeQuery, safeTransaction } from "@/shared/db-core";
+import { errorLogger } from "@/shared/error-logger";
 import { z } from "zod";
 
 export interface AssetExportService {
@@ -239,7 +240,8 @@ export async function importFromFile(
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[AsaExport] Failed to parse import file as JSON", e as Error);
     return err(new ValidationError("文件不是有效的 JSON 格式"));
   }
 

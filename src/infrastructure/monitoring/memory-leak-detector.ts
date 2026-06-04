@@ -81,7 +81,8 @@ class MemoryLeakDetector {
         if (el._reactEvents) count += Object.keys(el._reactEvents).length;
       }
       return count;
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[MemoryLeakDetector] Failed to estimate event listener count", e as Error);
       return 0;
     }
   }

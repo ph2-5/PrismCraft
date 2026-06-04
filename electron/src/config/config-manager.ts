@@ -106,7 +106,7 @@ class ConfigManager {
           return this.cache;
         }
       } catch {
-        // Not plain JSON, try base64
+        logger.warn("Config is not plain JSON, trying base64 decode");
       }
 
       // 尝试 base64 解码
@@ -119,7 +119,7 @@ class ConfigManager {
           return this.cache;
         }
       } catch {
-        // Not base64 JSON
+        logger.warn("Config is not base64 JSON either, using defaults");
       }
 
       logger.warn("Could not parse config file, using defaults");
@@ -141,7 +141,7 @@ class ConfigManager {
         try {
           fs.copyFileSync(this.configPath, this.backupPath);
         } catch {
-          // ignore backup failure
+          logger.warn("Failed to create config backup before save");
         }
       }
 

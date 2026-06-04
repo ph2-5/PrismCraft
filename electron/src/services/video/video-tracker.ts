@@ -3,6 +3,10 @@
  * 对应的 src/ 实现: src/modules/video/video-tracker.ts
  * 参见: src/infrastructure/server/ 用于服务端共享逻辑
  */
+import { getLogger } from "../../logging/logger";
+
+const logger = getLogger("video-tracker");
+
 interface ProviderInfo {
   name: string;
   websiteUrl?: string;
@@ -100,6 +104,7 @@ export function getProviderInfo(apiUrl?: string): ProviderInfo {
   try {
     hostname = new URL(apiUrl).hostname;
   } catch {
+    logger.warn("Failed to parse API URL for provider info lookup", { apiUrl });
     const domains = Object.keys(PROVIDERS);
     for (const domain of domains) {
       if (apiUrl.includes(domain)) {

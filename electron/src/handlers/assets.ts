@@ -28,6 +28,7 @@ function isPathAllowed(filePath: string): boolean {
     const normalizedAllowed = ALLOWED_ASSET_DIR.toLowerCase();
     return normalizedResolved.startsWith(normalizedAllowed);
   } catch {
+    logger.warn("Failed to resolve asset path, falling back to path.resolve");
     const resolved = path.resolve(filePath);
     const normalizedResolved = resolved.toLowerCase();
     const normalizedAllowed = ALLOWED_ASSET_DIR.toLowerCase();
@@ -236,6 +237,7 @@ export function setupAssetHandlers(): void {
         }
         return { success: true, exists: fs.existsSync(filePath) };
       } catch {
+        logger.warn("Failed to check asset file existence", { filePath });
         return { success: false, exists: false };
       }
     },
@@ -346,6 +348,7 @@ export function setupAssetHandlers(): void {
         try {
           buffer = Buffer.from(data as ArrayBufferLike);
         } catch {
+          logger.warn("Failed to convert data to Buffer", { resolvedPath });
           return { success: false, error: "Invalid data format" };
         }
         if (buffer.length > maxFileSize) {

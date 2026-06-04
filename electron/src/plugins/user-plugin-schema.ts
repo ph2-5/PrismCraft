@@ -1,6 +1,9 @@
 import Ajv from "ajv";
 import fs from "fs";
 import path from "path";
+import { getLogger } from "../logging/logger";
+
+const logger = getLogger("plugin-schema");
 
 export interface UserPluginConfig {
   id: string;
@@ -246,6 +249,7 @@ function getSchemaValidator() {
     cachedValidate = ajv.compile(schema);
     return cachedValidate;
   } catch {
+    logger.warn("Failed to load or compile plugin schema");
     return null;
   }
 }

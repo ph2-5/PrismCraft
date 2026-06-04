@@ -349,7 +349,8 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
     try {
       await navigator.clipboard.writeText(generatedJson);
       showSuccess(t("success.copied"), t("plugin.configJsonCopied"));
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[PluginCreator] Failed to copy plugin JSON to clipboard", e as Error);
       showError(t("error.copyFailed"), t("error.clipboardUnavailable"));
     }
   };
@@ -366,7 +367,8 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       showSuccess(t("success.downloaded"), t("plugin.configSavedAs", { filename: `${state.id || "plugin"}.json` }));
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[PluginCreator] Failed to download plugin config file", e as Error);
       showError(t("error.exportFailed"), t("error.cannotGenerateDownload"));
     }
   };

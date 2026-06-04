@@ -41,7 +41,8 @@ function decryptField(encrypted: string): string | null {
     let decrypted = decipher.update(parts[2], "hex", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[ApiConfig] Failed to decrypt API key", e as Error);
     return null;
   }
 }

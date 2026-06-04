@@ -1,3 +1,5 @@
+import { errorLogger } from "@/shared/error-logger";
+
 export class ApiError extends Error {
   status: number;
 
@@ -63,7 +65,8 @@ export function isUrlAllowed(url: string): boolean {
     if (parsed.hostname === "169.254.169.254") return false;
     if (parsed.hostname === "metadata.google.internal") return false;
     return true;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[ApiUtils] Failed to validate URL", e as Error);
     return false;
   }
 }

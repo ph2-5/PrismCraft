@@ -5,6 +5,9 @@
  */
 import { generateStoryPlanPrompt } from "../prompt/prompt-service";
 import type { RawStoryBeat, StoryBeat, StoryPlanValidationResult } from "../../types/story";
+import { getLogger } from "../../logging/logger";
+
+const logger = getLogger("story-service");
 
 interface FewShotInput {
   genre: string;
@@ -359,13 +362,14 @@ export function parseStoryPlanJSON(text: string): RawStoryBeat[] | null {
     const parsed = JSON.parse(jsonStr);
     if (Array.isArray(parsed)) return parsed as RawStoryBeat[];
   } catch {
+    logger.warn("[story-service] Failed to parse JSON array from story response");
     const start = jsonStr.indexOf("[");
     const end = jsonStr.lastIndexOf("]");
     if (start !== -1 && end > start) {
       try {
         const parsed = JSON.parse(jsonStr.slice(start, end + 1));
         if (Array.isArray(parsed)) return parsed as RawStoryBeat[];
-      } catch { console.warn("[story-service] Failed to parse extracted JSON array"); }
+      } catch { logger.warn("[story-service] Failed to parse extracted JSON array"); }
     }
   }
   return null;

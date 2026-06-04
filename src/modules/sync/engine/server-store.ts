@@ -45,14 +45,16 @@ function acquireLock(): boolean {
         } else {
           return false;
         }
-      } catch {
+      } catch (e) {
+        errorLogger.warn("[SyncStore] Failed to read or parse lock file, removing stale lock", e as Error);
         fs.unlinkSync(LOCK_FILE);
       }
     }
     const lockData = JSON.stringify({ pid: process.pid, timestamp: Date.now() });
     fs.writeFileSync(LOCK_FILE, lockData, { flag: "wx" });
     return true;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[SyncStore] Failed to acquire file lock", e as Error);
     return false;
   }
 }
@@ -92,7 +94,8 @@ function readJsonFile<T>(filePath: string, defaultValue: T): T {
     if (!fs.existsSync(filePath)) return defaultValue;
     const content = fs.readFileSync(filePath, "utf-8");
     return JSON.parse(content) as T;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[SyncStore] Failed to read sync data file", e as Error);
     return defaultValue;
   }
 }

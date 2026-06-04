@@ -278,7 +278,8 @@ export default function PluginManager() {
       try {
         const data = await fetchPluginSchema();
         setSchemaData(data);
-      } catch {
+      } catch (e) {
+        errorLogger.warn("[PluginManager] Failed to fetch plugin schema", e as Error);
         showError(t("error.loadFailed"), t("plugin.loadSpecFailed"));
         return;
       }
@@ -295,7 +296,8 @@ export default function PluginManager() {
       try {
         const content = await fetchPluginSpecification();
         setSpecContent(content);
-      } catch {
+      } catch (e) {
+        errorLogger.warn("[PluginManager] Failed to fetch plugin specification", e as Error);
         showError(t("error.loadFailed"), t("plugin.loadSpecDocFailed"));
         return;
       }

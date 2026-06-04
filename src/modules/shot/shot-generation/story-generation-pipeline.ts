@@ -462,14 +462,16 @@ function parseStoryPlanJSON(text: string): unknown[] | null {
   try {
     const parsed = JSON.parse(jsonStr);
     if (Array.isArray(parsed)) return parsed;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[StoryPipeline] Failed to parse generated JSON array", e as Error);
     const bracketStart = jsonStr.indexOf("[");
     const bracketEnd = jsonStr.lastIndexOf("]");
     if (bracketStart !== -1 && bracketEnd > bracketStart) {
       try {
         const parsed = JSON.parse(jsonStr.slice(bracketStart, bracketEnd + 1));
         if (Array.isArray(parsed)) return parsed;
-      } catch {
+      } catch (e) {
+        errorLogger.warn("[StoryPipeline] Failed to parse JSON with bracket extraction", e as Error);
         return null;
       }
     }

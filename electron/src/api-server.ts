@@ -876,7 +876,7 @@ const routes: Record<string, Route> = {
               }
               saved++;
             } catch {
-              // skip individual failures
+              logger.warn("[API] Failed to save individual video task in bulk-save");
             }
           }
         });
@@ -942,6 +942,7 @@ function startApiServer(): Promise<void> {
           dbStatus = "connected";
           schemaVersion = CURRENT_SCHEMA_VERSION;
         } catch {
+          logger.warn("[API] Failed to check database connection in health endpoint");
           dbStatus = "error";
         }
         res.writeHead(200);
@@ -990,6 +991,7 @@ function startApiServer(): Promise<void> {
               try {
                 queryParams[key] = decodeURIComponent(value || "");
               } catch {
+                logger.warn("[API] Failed to decode URI component in query params", { key });
                 queryParams[key] = value || "";
               }
             }

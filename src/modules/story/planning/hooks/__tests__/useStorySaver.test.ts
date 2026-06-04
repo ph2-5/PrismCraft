@@ -80,7 +80,7 @@ vi.mock("@/domain/types/result", () => ({
   },
 }));
 
-import { useStorySaver } from "@/modules/story/planning/hooks/useStorySaver";
+import { useStorySaver } from "@/modules/story/planning";
 
 function createDefaultProps() {
   const story: Story = {

@@ -271,7 +271,8 @@ export async function importFromFile(file: File): Promise<Result<ImportResult>> 
     let data: unknown;
     try {
       data = JSON.parse(content);
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[ImportExport] Failed to parse import file as JSON", e as Error);
       return err(new ValidationError("文件内容不是有效的 JSON 格式"));
     }
     const result = await importData(data);

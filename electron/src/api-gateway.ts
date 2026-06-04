@@ -156,7 +156,7 @@ function registerUserEndpoint(urlStr: string): void {
       ssrfGuard.addWhitelist(`${parsed.hostname}:${parsed.port}`);
     }
   } catch {
-    /* ignore invalid URL */
+    logger.warn("Failed to add user-configured host to SSRF whitelist", { urlStr });
   }
 }
 
@@ -181,6 +181,7 @@ async function isPrivateUrl(urlStr: string): Promise<boolean> {
 
     return PRIVATE_IP_REGEX.test(parsed.hostname);
   } catch {
+    logger.warn("Failed to parse URL for private IP check", { urlStr });
     return false;
   }
 }
@@ -220,6 +221,7 @@ async function makeRequest(
         try {
           parsed = JSON.parse(data);
         } catch {
+          logger.warn("Failed to parse API response as JSON", { statusCode });
           if (statusCode >= 200 && statusCode < 300) {
             resolve(data);
           } else {

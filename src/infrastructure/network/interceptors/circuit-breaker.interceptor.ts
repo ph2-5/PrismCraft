@@ -1,6 +1,7 @@
 import type { Interceptor } from "../types";
 import { executeThroughCircuit, getCircuitState } from "../circuit-breaker";
 import { NETWORK_CONFIG } from "../network.config";
+import { errorLogger } from "@/shared/error-logger";
 
 export const circuitBreakerInterceptor: Interceptor = async (request, next) => {
   const config = NETWORK_CONFIG.circuitBreaker;
@@ -40,7 +41,8 @@ function extractProviderId(url: string): string | null {
     }
 
     return null;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[CircuitBreaker] Failed to extract provider from URL", e as Error);
     return null;
   }
 }

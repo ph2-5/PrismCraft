@@ -59,6 +59,7 @@ async function getSyncConfig(): Promise<Record<string, unknown>> {
         const parsed = JSON.parse(credResult.value);
         credentials = { username: parsed.username || "", token: parsed.token || "" };
       } catch {
+        logger.warn("Failed to parse sync credentials, using empty defaults");
         credentials = { username: "", token: "" };
       }
     }
@@ -223,6 +224,7 @@ async function handleSyncProxy(
   try {
     credentials = JSON.parse(credResult.value);
   } catch {
+    logger.warn("Failed to parse sync credentials for proxy");
     return { success: false, error: "Invalid sync credentials" };
   }
 

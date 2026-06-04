@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import type { SyncConflict, SyncEntityType } from "@/modules/sync";
 import { t } from "@/shared/constants";
+import { errorLogger } from "@/shared/error-logger";
 
 interface SyncConflictPanelProps {
   conflicts: SyncConflict[];
@@ -125,8 +126,8 @@ function ConflictCard({
               onChange={(e) => {
                 try {
                   setMergeData(JSON.parse(e.target.value));
-                } catch {
-                  // incomplete JSON during typing is expected
+                } catch (e) {
+                  errorLogger.warn("[SyncConflict] Failed to parse merge JSON during typing", e as Error);
                 }
               }}
             />

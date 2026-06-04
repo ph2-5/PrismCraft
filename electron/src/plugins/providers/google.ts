@@ -19,6 +19,9 @@ import {
   resolveLocalUrlToBase64,
   stripDataUriPrefix,
 } from "../utils";
+import { getLogger } from "../../logging/logger";
+
+const logger = getLogger("google");
 
 const DEFAULT_MODEL_CAPS: ModelCapabilities = {
   maxReferences: 2,
@@ -161,6 +164,7 @@ export class GooglePlugin
       }
       return urlToPureBase64(url);
     } catch {
+      logger.warn("Failed to resolve image URL to base64 for Google API");
       return undefined;
     }
   }

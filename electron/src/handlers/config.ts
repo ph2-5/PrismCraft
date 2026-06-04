@@ -84,7 +84,7 @@ async function loadConfigAsync(): Promise<AppConfig> {
     try {
       config = JSON.parse(data);
     } catch {
-      // 尝试 base64 解码
+      logger.warn("Failed to parse config as JSON, trying base64 decode");
       try {
         const decoded = Buffer.from(data, "base64").toString("utf-8");
         config = JSON.parse(decoded);
@@ -135,6 +135,7 @@ function loadConfig(): AppConfig {
     const parsed = JSON.parse(data);
     return parsed.providers || parsed.mapping ? parsed : { ...DEFAULT_CONFIG };
   } catch {
+    logger.warn("Failed to load config file, using defaults");
     return { ...DEFAULT_CONFIG };
   }
 }
@@ -179,7 +180,7 @@ async function saveConfigAsync(config: AppConfig): Promise<boolean> {
       try {
         fs.copyFileSync(configFile, configBackupFile);
       } catch {
-        // ignore backup failure
+        logger.warn("Failed to create config backup before save");
       }
     }
 
@@ -221,7 +222,7 @@ function saveConfig(config: AppConfig): boolean {
       try {
         fs.copyFileSync(configFile, configBackupFile);
       } catch {
-        // ignore
+        logger.warn("Failed to create config backup before atomic write");
       }
     }
     const data = JSON.stringify(config, null, 2);

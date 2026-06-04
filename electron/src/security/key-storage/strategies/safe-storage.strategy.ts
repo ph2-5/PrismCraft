@@ -36,6 +36,7 @@ export class SafeStorageStrategy implements KeyStorageStrategy {
     try {
       return safeStorage.isEncryptionAvailable();
     } catch {
+      logger.warn("Failed to check safeStorage encryption availability");
       return false;
     }
   }
@@ -190,7 +191,7 @@ export class SafeStorageStrategy implements KeyStorageStrategy {
       try {
         decrypted = safeStorage.decryptString(Buffer.from(raw, "base64"));
       } catch {
-        // 可能是旧版 JSON 格式（明文），直接解析
+        logger.warn("Failed to decrypt with safeStorage, treating as plaintext");
         decrypted = raw;
       }
 

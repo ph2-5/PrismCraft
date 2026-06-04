@@ -13,6 +13,7 @@ import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants/messages";
+import { errorLogger } from "@/shared/error-logger";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
 import { OutfitDialog } from "@/modules/character";
 import { MediaExporter } from "@/modules/asset";
@@ -175,7 +176,8 @@ function CharactersPageContent() {
             if (!result.ok) {
               failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
             }
-          } catch {
+          } catch (e) {
+            errorLogger.warn("[Characters] Failed to update story after character deletion", e as Error);
             failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
           }
         }

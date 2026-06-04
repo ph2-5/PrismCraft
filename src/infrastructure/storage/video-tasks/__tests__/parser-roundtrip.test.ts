@@ -6,9 +6,7 @@ import {
   buildMediaRefsJson,
   buildTrackingJson,
   buildUpdateSets,
-  normalizeTimestamp,
   toStorageTimestamp,
-  fieldTargets,
 } from "../parser";
 import { parseConfig, parseProvider, parseMediaRefs, parseTracking } from "../json-schemas";
 import type { VideoTask } from "@/domain/schemas";

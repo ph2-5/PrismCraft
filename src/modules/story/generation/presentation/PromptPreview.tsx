@@ -76,7 +76,8 @@ export function PromptPreview({
       setCopied(true);
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
       copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[PromptPreview] Clipboard write failed, falling back to execCommand", e as Error);
       const textArea = document.createElement("textarea");
       textArea.value = prompt;
       textArea.style.position = "fixed";

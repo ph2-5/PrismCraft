@@ -2,6 +2,8 @@ export type VideoCodec = "h264" | "h265" | "vp8" | "vp9" | "av1" | "unknown";
 export type AudioCodec = "aac" | "mp3" | "opus" | "vorbis" | "unknown";
 export type ContainerFormat = "mp4" | "webm" | "mov" | "avi" | "mkv" | "unknown";
 
+import { errorLogger } from "@/shared/error-logger";
+
 export interface VideoCodecInfo {
   container: ContainerFormat;
   videoCodec: VideoCodec;
@@ -124,7 +126,8 @@ export async function detectVideoCodec(
         const headerSize = Math.min(file.size, 64 * 1024);
         const header = await file.slice(0, headerSize).arrayBuffer();
         return await probeVideoCodecFromBuffer(header);
-      } catch {
+      } catch (e) {
+        errorLogger.warn("[VideoCodec] Failed to probe video codec from buffer", e as Error);
         return "unknown" as VideoCodec;
       }
     })(),

@@ -162,7 +162,8 @@ export default function AssetLibraryPage() {
             await storyboardAssetService.remove(id);
           }
           deletedIds.push(id);
-        } catch {
+        } catch (e) {
+          errorLogger.warn("[AssetLibrary] Failed to delete asset", e as Error);
           const label = activeTab === "characters"
             ? characters.find((ch) => ch.id === id)?.name
             : activeTab === "scenes"

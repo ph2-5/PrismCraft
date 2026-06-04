@@ -333,6 +333,7 @@ export function setupDatabaseHandlers(): void {
             }
           }
         } catch {
+          logger.warn("Failed to validate column names", { table });
           return { success: false, error: "Failed to validate column names" };
         }
 

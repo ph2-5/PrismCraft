@@ -115,7 +115,8 @@ export function ReferenceVideoUploader({
         videoUrl: uploadedUrl,
         name: file.name,
       });
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[ReferenceVideo] Failed to upload reference video", e as Error);
       onError?.(t("refVideo.uploadFailedRetry"));
     } finally {
       setIsUploading(false);

@@ -38,6 +38,7 @@ export async function makeSyncRequest(
         try {
           resolve({ statusCode: res.statusCode || 0, data: JSON.parse(data) });
         } catch {
+          logger.warn("Failed to parse sync response as JSON, returning raw data");
           resolve({ statusCode: res.statusCode || 0, data });
         }
       });

@@ -109,6 +109,7 @@ export class PlaintextFallbackStrategy implements KeyStorageStrategy {
       fs.writeFileSync(idFile, newId, { mode: 0o600 });
       return newId;
     } catch {
+      logger.warn("Failed to read/write machine ID file, using derived fallback");
       const userDataPath = getUserDataPath();
       return crypto.createHash("sha256").update(userDataPath).digest("hex");
     }

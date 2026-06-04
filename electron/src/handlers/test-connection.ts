@@ -3,6 +3,9 @@ import http from "http";
 import { loadConfig } from "./config";
 import { pluginRegistry } from "../plugins";
 import type { AIProviderPlugin } from "../plugins";
+import { getLogger } from "../logging/logger";
+
+const logger = getLogger("test-connection");
 
 function isPrivateUrl(urlStr: string): boolean {
   try {
@@ -11,6 +14,7 @@ function isPrivateUrl(urlStr: string): boolean {
     if (parsed.hostname === "metadata.google.internal") return true;
     return false;
   } catch {
+    logger.warn("Failed to parse URL in private URL check", { urlStr });
     return false;
   }
 }
@@ -83,6 +87,7 @@ function makeRequest(
           const parsed = JSON.parse(data);
           resolve({ statusCode: res.statusCode, data: parsed });
         } catch {
+          logger.warn("Failed to parse test connection response as JSON");
           resolve({ statusCode: res.statusCode, data });
         }
       });

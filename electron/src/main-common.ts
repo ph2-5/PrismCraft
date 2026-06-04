@@ -59,6 +59,7 @@ function validateConfigValue(value: unknown): boolean {
     const serialized = JSON.stringify(value);
     if (serialized.length > MAX_CONFIG_VALUE_SIZE) return false;
   } catch {
+    logger.warn("[Main] Failed to serialize config value for validation");
     return false;
   }
   if (type === "string") {
@@ -274,6 +275,7 @@ function startStaticServer(appPort: number, apiPort: number): http.Server | null
             res.end(data);
             return;
           } catch {
+            logger.warn("[Main] Failed to serve static file", { url: req.url });
             res.writeHead(404);
             res.end("Not Found");
             return;
@@ -397,7 +399,7 @@ async function waitForServer(urlStr: string, maxRetries = 30, interval = 500): P
         return true;
       }
     } catch {
-      // not ready
+      logger.warn("[Main] API server not ready, retrying...");
     }
     await new Promise((resolve) => setTimeout(resolve, interval));
   }
@@ -482,7 +484,7 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
         }
       }
     } catch {
-      // ignore
+      logger.warn("[Main] Failed to validate navigation URL");
     }
     event.preventDefault();
     logger.warn("[Main] Blocked navigation", { url: navigationUrl });
@@ -497,7 +499,7 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
         }
       }
     } catch {
-      // ignore
+      logger.warn("[Main] Failed to validate window open URL");
     }
     return { action: "deny" };
   });

@@ -13,6 +13,9 @@
 import dns from "dns";
 import { URL } from "url";
 import net from "net";
+import { getLogger } from "../../logging/logger";
+
+const logger = getLogger("ssrf-guard");
 
 /** 验证结果 */
 export interface SsrfValidationResult {
@@ -91,6 +94,7 @@ class SsrfGuard {
     try {
       parsed = new URL(urlStr);
     } catch {
+      logger.warn("Failed to parse URL in SSRF validate", { urlStr });
       return { safe: false, reason: "Invalid URL format" };
     }
 
@@ -146,6 +150,7 @@ class SsrfGuard {
     try {
       parsed = new URL(urlStr);
     } catch {
+      logger.warn("Failed to parse URL in SSRF validateSync", { urlStr });
       return { safe: false, reason: "Invalid URL format" };
     }
 

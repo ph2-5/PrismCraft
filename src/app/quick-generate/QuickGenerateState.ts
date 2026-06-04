@@ -339,7 +339,8 @@ export function useQuickGenerateState() {
       link.click();
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
+    } catch (e) {
+      errorLogger.warn("[QuickGenerate] Failed to download video via fetch, falling back to direct link", e as Error);
       const link = document.createElement("a");
       link.href = videoUrl;
       link.download = filename;

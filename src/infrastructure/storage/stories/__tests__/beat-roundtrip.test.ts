@@ -576,7 +576,7 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
 
     expect(flat.generationContainer.characterOutfits).toEqual(outfits);
 
-    const result = roundtrip(beat);
+    roundtrip(beat);
     const genContainer = safeParseJson(
       buildMockDbRow(beat, "b1", "s1", 0).generation,
     );

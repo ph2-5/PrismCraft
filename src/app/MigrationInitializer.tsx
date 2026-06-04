@@ -3,11 +3,13 @@ import { initSyncEngine, performSync } from "@/modules/sync";
 import { processPendingQueue, cleanCompletedRequests } from "@/infrastructure/ai-providers/offline-queue";
 import { apiCall } from "@/infrastructure/ai-providers/core";
 import { errorLogger } from "@/shared/error-logger";
+import { isElectron } from "@/shared/utils/platform";
 
 export function MigrationInitializer() {
   const initialized = useRef(false);
 
   useEffect(() => {
+    if (!isElectron()) return;
     if (initialized.current) return;
     initialized.current = true;
 

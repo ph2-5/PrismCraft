@@ -109,6 +109,44 @@ export const mediaAssetRepository = {
     });
   },
 
+  async update(
+    input: Partial<MediaAsset> & { id: string },
+  ): Promise<Result<MediaAsset>> {
+    return fromAsyncThrowable(async () => {
+      const now = Math.floor(Date.now() / 1000);
+      await safeRun(
+        `UPDATE media_assets SET name = ?, description = ?, type = ?, url = ?, thumbnail_url = ?, tags = ?, file_size = ?, mime_type = ?, width = ?, height = ?, duration = ?, bound_to_type = ?, bound_to_id = ?, bound_to_name = ?, updated_at = ? WHERE id = ?`,
+        [
+          input.name || "",
+          input.description || null,
+          input.type || "image",
+          input.url || null,
+          input.thumbnailUrl || null,
+          toSqlValue(input.tags),
+          input.fileSize || null,
+          input.mimeType || null,
+          input.width || null,
+          input.height || null,
+          input.duration || null,
+          input.boundTo?.type || null,
+          input.boundTo?.id || null,
+          input.boundTo?.name || null,
+          now,
+          input.id,
+        ],
+      );
+
+      try {
+        await trackChange("media_asset", input.id, "update");
+      } catch (e) { errorLogger.warn("[Storage] trackChange failed for media_asset:update", e); }
+
+      const result = await this.findById(input.id);
+      if (!result.ok) throw result.error;
+      if (!result.value) throw new DatabaseError("Failed to update media asset");
+      return result.value;
+    });
+  },
+
   async delete(id: string): Promise<Result<void>> {
     return fromAsyncThrowable(async () => {
       await safeTransaction([

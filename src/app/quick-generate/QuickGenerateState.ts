@@ -251,8 +251,9 @@ export function useQuickGenerateState() {
     return scenes.find((s) => s.id === state.selectedScene) || null;
   }, [scenes, state.selectedScene]);
 
-  const handleGenerate = async () => {
-    if (!state.promptText.trim()) {
+  const handleGenerate = async (promptOverride?: string) => {
+    const effectivePrompt = promptOverride ?? state.promptText;
+    if (!effectivePrompt.trim()) {
       showError(t("video.enterDescription"));
       return;
     }
@@ -266,7 +267,7 @@ export function useQuickGenerateState() {
       const selectedSceneObj = getSelectedSceneObject();
 
       const prompt = generateQuickModeVideoPrompt({
-        prompt: state.promptText,
+        prompt: effectivePrompt,
         duration: state.duration,
         resolution: state.selectedResolution,
         style: state.selectedStyle,
@@ -410,7 +411,7 @@ export function useQuickGenerateState() {
       if (task.prompt) {
         dispatch({ type: "SET_PROMPT_TEXT", value: task.prompt });
       }
-      handleGenerate();
+      handleGenerate(task.prompt);
     },
     [handleGenerate],
   );

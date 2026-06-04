@@ -173,7 +173,7 @@ domain → NOTHING（纯类型）
 
 3. **快速模式与 Story 模式共享任务管理器**：快速生成页面创建的视频任务与 Story 模式共享同一个 `useVideoTaskStore`，任务生命周期由 app 根布局的 `VideoTaskManagerInitializer` 统一管理。页面级组件不得在卸载时调用 `cleanup()`——这会停止所有轮询并重置初始化状态，导致其他页面的任务无法被追踪。快速模式创建的任务（无 storyId/beatId）在任务管理页面（`/video-tasks`）的 "others" 分组中显示。
 
-4. **mapApiStatus videoUrl 优先判断**：`mapApiStatus(apiStatus, videoUrl?)` 在 videoUrl 存在时直接返回 "completed"，避免 API 返回非终态 status 但视频已生成完成时的假失败。
+4. **mapApiStatus videoUrl 确认信号**：`mapApiStatus(apiStatus, videoUrl?)` 中 videoUrl 仅在 API status 映射为 completed 时作为确认信号。当 API 返回 completed 但无 videoUrl 时，状态降级为 generating，避免标记为完成但无实际视频资源。
 
 **边界约束**：`cache` 和 `utils` 子域是最底层，不依赖其他子域。所有跨子域引用必须通过 `../subdomain` 导入。
 

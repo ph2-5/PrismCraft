@@ -1,0 +1,79 @@
+stateDiagram-v2
+    [*] --> pending : 任务创建
+
+    pending --> generating : 开始生成 (AI 提供商接受任务)
+    pending --> failed : 创建失败 (参数错误/配额不足)
+    pending --> cancelled : 用户取消
+
+    generating --> completed : 生成成功 (视频 URL 可用)
+    generating --> failed : 生成失败 (AI 提供商报错)
+    generating --> cancelled : 用户取消
+
+    completed --> pending : 重新生成 (重置进度/视频URL)
+
+    failed --> retrying : 用户重试
+    failed --> cancelled : 用户取消
+
+    cancelled --> [*] : 终态
+
+    retrying --> generating : 重新提交生成
+    retrying --> completed : 轮询发现已完成
+    retrying --> failed : 重试失败
+    retrying --> cancelled : 用户取消
+
+    note left of pending
+        可轮询状态: pending, generating, retrying
+        TaskMachine.isPollable() = true
+    end note
+
+    note right of completed
+        终态: completed, cancelled
+        TaskMachine.isTerminal() = true
+        completed 进入时:
+          progress = 100
+          videoUrl = context.videoUrl
+    end note
+
+    note right of failed
+        非终态 (可重试)
+        failed 进入时:
+          message = context.error || "任务失败"
+    end note
+
+    note left of generating
+        generating 进入时:
+          lastPolledAt = now
+          pollFailureCount = 0
+    end note
+
+    note left of retrying
+        retrying 进入时:
+          recoveryAttempts += 1
+          pollFailureCount = 0
+    end note
+
+    note right of pending
+        pending 重新进入时 (从 completed):
+          progress = 0
+          videoUrl = undefined
+          pollFailureCount = 0
+    end note
+
+    %% ── API 状态映射 (mapApiStatus) ──────────────────────
+    %% 外部 AI 提供商返回的状态通过 mapApiStatus() 映射到内部状态:
+    %%
+    %%   API 状态          → 内部状态
+    %%   ─────────────────────────────
+    %%   pending           → pending
+    %%   queued            → pending
+    %%   generating        → generating
+    %%   processing        → generating
+    %%   running           → generating
+    %%   completed         → completed (有 videoUrl) / generating (无 videoUrl)
+    %%   succeeded/success → completed (有 videoUrl) / generating (无 videoUrl)
+    %%   failed/error      → failed
+    %%   cancelled (API)   → failed
+    %%   其他未知状态       → failed
+    %%
+    %% 注意: API 的 "cancelled" 映射为内部 "failed"，
+    %%       内部 "cancelled" 仅由用户主动触发

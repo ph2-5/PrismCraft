@@ -25,6 +25,9 @@ stdout.log
 # vite
 /out/
 
+# Next.js (legacy, migrated to Vite)
+.next/
+
 # production
 /build
 
@@ -84,8 +87,8 @@ ai-animation-studio-*.zip
 # Large binary documents
 *.docx
 
-# AI context files
-.ai/
+# AI context files (maintenance guides for AI-driven development)
+# .ai/
 
 # Obsolete docs
 docs/废弃/
@@ -93,5 +96,5 @@ docs/废弃/
 # Historical doc snapshots (keep only latest)
 docs/project-docs-2025*/
 
-# Trae IDE
-.trae/
+# Trae IDE (project rules are version-controlled for AI maintenance)
+# .trae/

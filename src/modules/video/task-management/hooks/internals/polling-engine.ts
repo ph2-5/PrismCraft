@@ -133,7 +133,7 @@ interface PollResult {
 
 async function handleTimedOutTasks(
   tasks: VideoTask[],
-  signal: AbortSignal,
+  _signal: AbortSignal,
 ): Promise<void> {
   const timedOutTasks = tasks.filter(
     (task) =>
@@ -143,26 +143,10 @@ async function handleTimedOutTasks(
   if (timedOutTasks.length === 0) return;
 
   emitToast("warning", t("error.videoGenerateTimeout"), t("task.timeoutRecoverHint", { count: timedOutTasks.length }));
-  const timedOutIds = new Set(timedOutTasks.map((task) => task.taskId));
-  const state = getStore().getState();
-  state.setAllTasks((prev) =>
-    prev.map((task) => {
-      if (timedOutIds.has(task.taskId)) {
-        return {
-          ...task,
-          ...withTransitionGuard(task, "failed", {
-            message: t("task.timeoutManualRecover"),
-            pollFailureCount: 0,
-          }),
-        };
-      }
-      return task;
-    }),
-  );
 
+  const validTimeoutIds = new Set<string>();
   const batchUpdates: Array<{ taskId: string; updates: Partial<VideoTask> }> = [];
   for (const task of timedOutTasks) {
-    if (signal.aborted) return;
     if (!TaskMachine.canTransition(task.status, "failed")) {
       errorLogger.warn(
         { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=failed` },
@@ -170,6 +154,7 @@ async function handleTimedOutTasks(
       );
       continue;
     }
+    validTimeoutIds.add(task.taskId);
     batchUpdates.push({
       taskId: task.taskId,
       updates: {
@@ -179,6 +164,25 @@ async function handleTimedOutTasks(
       },
     });
   }
+
+  if (validTimeoutIds.size > 0) {
+    const state = getStore().getState();
+    state.setAllTasks((prev) =>
+      prev.map((task) => {
+        if (validTimeoutIds.has(task.taskId)) {
+          return {
+            ...task,
+            ...withTransitionGuard(task, "failed", {
+              message: t("task.timeoutManualRecover"),
+              pollFailureCount: 0,
+            }),
+          };
+        }
+        return task;
+      }),
+    );
+  }
+
   if (batchUpdates.length > 0) {
     try {
       await container.videoTaskStorage.batchUpdateVideoTasks(batchUpdates);
@@ -300,6 +304,38 @@ async function pollSingleTask(
           }));
           const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
           emitToast("error", t("error.videoGenerateFailed"), `「${taskLabel}」连续查询失败`);
+        }
+        try {
+          const pollSaveResult = await saveVideoTask({
+            taskId: task.taskId,
+            status: failCount >= MAX_POLL_FAILURES ? "failed" : task.status,
+            progress: task.progress,
+            videoUrl: task.videoUrl,
+            message: failCount >= MAX_POLL_FAILURES
+              ? `连续${MAX_POLL_FAILURES}次查询失败，请点击「手动恢复」重试`
+              : task.message,
+            createdAt: task.createdAt,
+            model: task.model,
+            prompt: task.prompt,
+            parameters: task.parameters,
+            apiUrl: task.apiUrl,
+            apiEndpoint: task.apiEndpoint,
+            providerId: task.providerId,
+            providerModelId: task.providerModelId,
+            providerFormat: task.providerFormat,
+            fixedImageUrl: task.fixedImageUrl,
+            fixedImageLockType: task.fixedImageLockType,
+            storyId: task.storyId,
+            storyTitle: task.storyTitle,
+            beatId: task.beatId,
+            beatTitle: task.beatTitle,
+            pollFailureCount: failCount >= MAX_POLL_FAILURES ? 0 : failCount,
+          });
+          if (!pollSaveResult.ok) {
+            errorLogger.error("[VideoTaskManager] Failed to save non-retryable poll failure", pollSaveResult.error);
+          }
+        } catch (saveError) {
+          errorLogger.error("[VideoTaskManager] Failed to save non-retryable poll failure", saveError);
         }
       }
     }

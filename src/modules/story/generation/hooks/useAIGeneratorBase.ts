@@ -52,13 +52,16 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
         controller.abort();
         activeControllersRef.current.delete(beatId);
       }
+      pendingPromisesRef.current.delete(beatId);
     } else {
       activeControllersRef.current.forEach((controller) => {
         controller.abort();
       });
       activeControllersRef.current.clear();
+      pendingPromisesRef.current.clear();
     }
-  }, []);
+    setGenerating(null);
+  }, [setGenerating]);
 
   const findBeat = useCallback(
     (beatId: string): StoryBeat | null => {
@@ -144,9 +147,7 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
             activeControllersRef.current.delete(beatId);
           }
           pendingPromisesRef.current.delete(beatId);
-          if (!controller.signal.aborted) {
-            setGenerating(null);
-          }
+          setGenerating(null);
         }
       })();
 

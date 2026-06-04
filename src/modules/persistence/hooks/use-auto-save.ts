@@ -44,6 +44,8 @@ export function useAutoSave({ enabled, intervalMinutes, onSave, isDirty }: UseAu
           savingRef.current = false;
           return;
         }
+        await new Promise(r => setTimeout(r, 200 * Math.pow(2, retryCountRef.current - 1)));
+        continue;
       }
       savingRef.current = false;
       if (pendingRef.current && !cancelledRef.current) {

@@ -763,7 +763,7 @@ describe("ComponentName", () => {
 ```
 
 #### Coverage Thresholds
-- Branches: 70%, Functions: 70%, Lines: 70%, Statements: 70%
+- Branches: 80%, Functions: 80%, Lines: 80%, Statements: 80%
 - Per-file enforcement (`perFile: true` in vitest.config.ts)
 - Coverage includes: domain schemas, services, infrastructure core, shared utils
 

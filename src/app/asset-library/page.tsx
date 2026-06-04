@@ -18,6 +18,8 @@ import {
   collectionService,
   assetExportService,
 } from "@/modules/asset";
+import { useStories, storyService } from "@/modules/story";
+import { checkCharacterReferences, checkSceneReferences } from "@/domain/services";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
@@ -53,6 +55,7 @@ export default function AssetLibraryPage() {
   const queryClient = useQueryClient();
   const { data: characters = [], isLoading: charactersLoading } = useCharacters();
   const { data: scenes = [], isLoading: scenesLoading } = useScenes();
+  const { data: stories = [] } = useStories();
   const [activeTab, setActiveTab] = useState<AssetTab>("characters");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -320,23 +323,51 @@ export default function AssetLibraryPage() {
   };
 
   const handleDeleteCharacter = async (id: string) => {
-    if (!(await confirm(t("confirm.deleteCharacter"), t("confirm.deleteCharacterTitle")))) return;
-    characterService
-      .delete(id)
-      .then(() => queryClient.invalidateQueries({ queryKey: ["characters"] }))
-      .catch((e: unknown) =>
-        showError(t("error.deleteFailed"), mapUserFacingError(e)),
-      );
+    const character = characters.find((c) => c.id === id);
+    const checkResult = checkCharacterReferences(id, character?.name || id, stories);
+    if (checkResult.references.length > 0) {
+      const storyNames = [...new Set(checkResult.references.flatMap((r) => r.usedInStories))];
+      if (!(await confirm(
+        t("confirm.deleteCharacter"),
+        t("asset.referencedByStories", { name: character?.name || id, stories: storyNames.join("、") }),
+      ))) return;
+    } else {
+      if (!(await confirm(t("confirm.deleteCharacter"), t("confirm.deleteCharacterTitle")))) return;
+    }
+    try {
+      const result = await characterService.delete(id);
+      if (!result.ok) throw result.error;
+      queryClient.invalidateQueries({ queryKey: ["characters"] });
+      await updateStoriesAfterCharacterDelete(id);
+      queryClient.invalidateQueries({ queryKey: ["stories"] });
+      success(t("success.deleted"), t("success.assetDeleted"));
+    } catch (e) {
+      showError(t("error.deleteFailed"), mapUserFacingError(e));
+    }
   };
 
   const handleDeleteScene = async (id: string) => {
-    if (!(await confirm(t("confirm.deleteScene"), t("confirm.deleteSceneTitle")))) return;
-    sceneService
-      .delete(id)
-      .then(() => queryClient.invalidateQueries({ queryKey: ["scenes"] }))
-      .catch((e: unknown) =>
-        showError(t("error.deleteFailed"), mapUserFacingError(e)),
-      );
+    const scene = scenes.find((s) => s.id === id);
+    const checkResult = checkSceneReferences(id, scene?.name || id, stories);
+    if (checkResult.references.length > 0) {
+      const storyNames = [...new Set(checkResult.references.flatMap((r) => r.usedInStories))];
+      if (!(await confirm(
+        t("confirm.deleteScene"),
+        t("asset.referencedByStories", { name: scene?.name || id, stories: storyNames.join("、") }),
+      ))) return;
+    } else {
+      if (!(await confirm(t("confirm.deleteScene"), t("confirm.deleteSceneTitle")))) return;
+    }
+    try {
+      const result = await sceneService.delete(id);
+      if (!result.ok) throw result.error;
+      queryClient.invalidateQueries({ queryKey: ["scenes"] });
+      await updateStoriesAfterSceneDelete(id);
+      queryClient.invalidateQueries({ queryKey: ["stories"] });
+      success(t("success.deleted"), t("success.assetDeleted"));
+    } catch (e) {
+      showError(t("error.deleteFailed"), mapUserFacingError(e));
+    }
   };
 
   const handleDeleteStoryboard = async (id: string) => {
@@ -347,6 +378,59 @@ export default function AssetLibraryPage() {
       .catch((e: unknown) =>
         showError(t("error.deleteFailed"), mapUserFacingError(e)),
       );
+  };
+
+  const updateStoriesAfterCharacterDelete = async (characterId: string) => {
+    const updatedStories = stories.map((story) => {
+      const updatedBeats = (story.beats || []).map((beat) => {
+        const updated = { ...beat };
+        if (updated.characterIds?.includes(characterId)) {
+          updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
+        }
+        if (updated.characters?.includes(characterId)) {
+          updated.characters = updated.characters.filter((cid) => cid !== characterId);
+        }
+        if (updated.character === characterId) {
+          delete updated.character;
+        }
+        return updated;
+      });
+      const updatedCharacters = (story.characters || []).filter((cid) => cid !== characterId);
+      return { ...story, characters: updatedCharacters, beats: updatedBeats };
+    });
+    for (const updatedStory of updatedStories) {
+      const original = stories.find((s) => s.id === updatedStory.id);
+      const wasAffected = original?.beats?.some((b) => b.characterIds?.includes(characterId) || b.characters?.includes(characterId) || b.character === characterId) || original?.characters?.includes(characterId);
+      if (wasAffected) {
+        const result = await storyService.update(updatedStory.id, updatedStory);
+        if (!result.ok) {
+          errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
+        }
+      }
+    }
+  };
+
+  const updateStoriesAfterSceneDelete = async (sceneId: string) => {
+    const updatedStories = stories.map((story) => {
+      const updatedBeats = (story.beats || []).map((beat) => {
+        const updated = { ...beat };
+        if (updated.scene === sceneId) delete updated.scene;
+        if (updated.sceneId === sceneId) delete updated.sceneId;
+        return updated;
+      });
+      const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
+      return { ...story, scenes: updatedScenes, beats: updatedBeats };
+    });
+    for (const updatedStory of updatedStories) {
+      const original = stories.find((s) => s.id === updatedStory.id);
+      const wasAffected = original?.beats?.some((b) => b.scene === sceneId || b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
+      if (wasAffected) {
+        const result = await storyService.update(updatedStory.id, updatedStory);
+        if (!result.ok) {
+          errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
+        }
+      }
+    }
   };
 
   const handleEditItem = (item: EditingItem) => {

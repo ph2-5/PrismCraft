@@ -1,6 +1,6 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
-import { safeQuery, safeRun, safeTransaction } from "@/shared/db-core";
+import { safeQuery, safeTransaction } from "@/shared/db-core";
 import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParseArray } from "@/shared/utils/safe-json";
@@ -23,17 +23,17 @@ async function cleanupLocalFiles(paths: (string | null | undefined)[]): Promise<
   }
 }
 
-async function removeIdFromJsonArray(
+async function buildRemoveIdFromJsonArrayStatements(
   table: string,
-  _idColumn: string,
   idValue: string,
   arrayColumn: string,
-): Promise<void> {
+): Promise<Array<{ sql: string; params: unknown[] }>> {
   const safeTable = sanitizeTable(table);
   const safeArrayCol = sanitizeIdentifier(arrayColumn);
+  const statements: Array<{ sql: string; params: unknown[] }> = [];
   const rows = await safeQuery<Record<string, unknown>>(
-    `SELECT id, ${safeArrayCol} FROM ${safeTable} WHERE ${safeArrayCol} LIKE ?`,
-    [`%${idValue}%`],
+    `SELECT id, ${safeArrayCol} FROM ${safeTable} WHERE EXISTS (SELECT 1 FROM json_each(${safeArrayCol}) WHERE json_each.value = ?)`,
+    [idValue],
   );
   for (const row of rows) {
     try {
@@ -41,15 +41,16 @@ async function removeIdFromJsonArray(
       const arr = safeJsonParseArray(raw);
       const filtered = arr.filter((item) => item !== idValue);
       if (filtered.length !== arr.length) {
-        await safeRun(
-          `UPDATE ${safeTable} SET ${safeArrayCol} = ? WHERE id = ?`,
-          [JSON.stringify(filtered), row.id],
-        );
+        statements.push({
+          sql: `UPDATE ${safeTable} SET ${safeArrayCol} = ? WHERE id = ?`,
+          params: [JSON.stringify(filtered), row.id],
+        });
       }
     } catch (e) {
-      errorLogger.warn("[TransactionalDelete] removeIdFromJsonArray failed", e);
+      errorLogger.warn("[TransactionalDelete] buildRemoveIdFromJsonArrayStatements failed", e);
     }
   }
+  return statements;
 }
 
 export async function deleteCharacterWithRefs(characterId: string): Promise<Result<void>> {
@@ -104,10 +105,13 @@ export async function deleteCharacterWithRefs(characterId: string): Promise<Resu
       params: [characterId],
     });
 
-    await safeTransaction(allStatements);
+    const jsonArrayStatements = [
+      ...await buildRemoveIdFromJsonArrayStatements("story_beats", characterId, "character_ids_json"),
+      ...await buildRemoveIdFromJsonArrayStatements("storyboard_assets", characterId, "character_ids"),
+    ];
+    allStatements.push(...jsonArrayStatements);
 
-    await removeIdFromJsonArray("story_beats", "character", characterId, "character_ids_json");
-    await removeIdFromJsonArray("storyboard_assets", "character", characterId, "character_ids");
+    await safeTransaction(allStatements);
 
     await cleanupLocalFiles([...characterPaths, ...outfitPaths]);
   });

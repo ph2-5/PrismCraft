@@ -30,7 +30,12 @@ export const autoSaveStorage = {
         "SELECT timestamp FROM auto_saves WHERE id = ?",
         [autoSave.id],
       );
-      if (existing.length > 0 && existing[0].timestamp > ts) {
+      if (existing.length === 0) {
+        await safeRun(
+          "INSERT INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?)",
+          [autoSave.id, autoSave.type, JSON.stringify(autoSave.data), ts],
+        );
+      } else if (existing[0].timestamp > ts) {
         return;
       }
     }

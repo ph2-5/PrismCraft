@@ -225,7 +225,7 @@ describe("TaskMachine", () => {
       ["cancelled", true],
       ["pending", false],
       ["generating", false],
-      ["failed", true],
+      ["failed", false],
       ["retrying", false],
     ] as [VideoTaskStatus, boolean][])(
       "isTerminal(%s) => %s",

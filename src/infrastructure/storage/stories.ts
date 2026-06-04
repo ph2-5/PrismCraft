@@ -285,37 +285,30 @@ export const storyStorage = {
   },
 
   async deleteStory(id: string): Promise<void> {
-    await safeTransaction([
-      {
-        sql: "DELETE FROM story_characters WHERE story_id = ?",
-        params: [id],
-      },
-      {
-        sql: "DELETE FROM story_scenes WHERE story_id = ?",
-        params: [id],
-      },
-      {
-        sql: "DELETE FROM story_beats WHERE story_id = ?",
-        params: [id],
-      },
-      {
-        sql: "DELETE FROM story_elements WHERE story_id = ?",
-        params: [id],
-      },
-      {
-        sql: "DELETE FROM story_versions WHERE story_id = ?",
-        params: [id],
-      },
-      {
-        sql: "DELETE FROM video_tasks WHERE story_id = ?",
-        params: [id],
-      },
-      {
-        sql: "DELETE FROM collection_assets WHERE asset_id = ? AND asset_type = 'story'",
-        params: [id],
-      },
+    const beatRows = await safeQuery<{ id: string }>(
+      "SELECT id FROM story_beats WHERE story_id = ?",
+      [id],
+    );
+    const statements: { sql: string; params: unknown[] }[] = [
+      { sql: "DELETE FROM story_characters WHERE story_id = ?", params: [id] },
+      { sql: "DELETE FROM story_scenes WHERE story_id = ?", params: [id] },
+      { sql: "DELETE FROM story_elements WHERE story_id = ?", params: [id] },
+      { sql: "DELETE FROM story_versions WHERE story_id = ?", params: [id] },
+      { sql: "DELETE FROM video_tasks WHERE story_id = ?", params: [id] },
+      { sql: "DELETE FROM generation_tasks WHERE story_id = ?", params: [id] },
+      { sql: "DELETE FROM collection_assets WHERE asset_id = ? AND asset_type = 'story'", params: [id] },
+    ];
+    for (const beat of beatRows) {
+      statements.push({
+        sql: "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?",
+        params: [beat.id],
+      });
+    }
+    statements.push(
+      { sql: "DELETE FROM story_beats WHERE story_id = ?", params: [id] },
       { sql: "DELETE FROM stories WHERE id = ?", params: [id] },
-    ]);
+    );
+    await safeTransaction(statements);
     try {
       await trackChange("story", id, "delete");
     } catch (e) { errorLogger.warn("[Storage] trackChange failed for story:delete", e); }

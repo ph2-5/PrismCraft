@@ -35,6 +35,19 @@ vi.mock("@/modules/story", () => ({
   formatVersionTime: vi.fn(),
   getRecommendedTemplates: vi.fn().mockReturnValue([]),
   applyTemplate: vi.fn(),
+  DEFAULT_STORY: {
+    id: "",
+    title: "",
+    description: "",
+    genre: "drama",
+    tone: "neutral",
+    beats: [],
+    characters: [],
+    scenes: [],
+    elementIds: [],
+    createdAt: expect.any(Number),
+    updatedAt: expect.any(Number),
+  },
 }));
 
 vi.mock("@/shared/error-logger", () => ({

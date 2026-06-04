@@ -59,15 +59,15 @@ describe("task-schema", () => {
     it("should map standard statuses directly", () => {
       expect(mapApiStatus("pending")).toBe("pending");
       expect(mapApiStatus("processing")).toBe("generating");
-      expect(mapApiStatus("completed")).toBe("completed");
+      expect(mapApiStatus("completed")).toBe("generating");
       expect(mapApiStatus("failed")).toBe("failed");
     });
 
     it("should map provider-specific statuses", () => {
       expect(mapApiStatus("running")).toBe("generating");
       expect(mapApiStatus("queued")).toBe("pending");
-      expect(mapApiStatus("succeeded")).toBe("completed");
-      expect(mapApiStatus("success")).toBe("completed");
+      expect(mapApiStatus("succeeded")).toBe("generating");
+      expect(mapApiStatus("success")).toBe("generating");
       expect(mapApiStatus("error")).toBe("failed");
     });
 
@@ -84,19 +84,28 @@ describe("task-schema", () => {
     it("should be case-insensitive", () => {
       expect(mapApiStatus("Running")).toBe("generating");
       expect(mapApiStatus("QUEUED")).toBe("pending");
-      expect(mapApiStatus("Succeeded")).toBe("completed");
+      expect(mapApiStatus("Succeeded")).toBe("generating");
     });
 
-    it("should return completed when videoUrl is present regardless of apiStatus", () => {
-      expect(mapApiStatus("failed", "https://example.com/video.mp4")).toBe("completed");
-      expect(mapApiStatus("unknown", "https://example.com/video.mp4")).toBe("completed");
-      expect(mapApiStatus("error", "https://example.com/video.mp4")).toBe("completed");
-      expect(mapApiStatus("cancelled", "https://example.com/video.mp4")).toBe("completed");
+    it("should not override non-completed statuses with videoUrl", () => {
+      expect(mapApiStatus("failed", "https://example.com/video.mp4")).toBe("failed");
+      expect(mapApiStatus("unknown", "https://example.com/video.mp4")).toBe("failed");
+      expect(mapApiStatus("error", "https://example.com/video.mp4")).toBe("failed");
+      expect(mapApiStatus("cancelled", "https://example.com/video.mp4")).toBe("failed");
+      expect(mapApiStatus("pending", "https://example.com/video.mp4")).toBe("pending");
+      expect(mapApiStatus("processing", "https://example.com/video.mp4")).toBe("generating");
     });
 
-    it("should return completed when videoUrl is present even for non-terminal statuses", () => {
-      expect(mapApiStatus("pending", "https://example.com/video.mp4")).toBe("completed");
-      expect(mapApiStatus("processing", "https://example.com/video.mp4")).toBe("completed");
+    it("should confirm completed when videoUrl is present and apiStatus is completed-like", () => {
+      expect(mapApiStatus("completed", "https://example.com/video.mp4")).toBe("completed");
+      expect(mapApiStatus("succeeded", "https://example.com/video.mp4")).toBe("completed");
+      expect(mapApiStatus("success", "https://example.com/video.mp4")).toBe("completed");
+    });
+
+    it("should return generating when apiStatus is completed-like but no videoUrl", () => {
+      expect(mapApiStatus("completed")).toBe("generating");
+      expect(mapApiStatus("succeeded")).toBe("generating");
+      expect(mapApiStatus("success")).toBe("generating");
     });
 
     it("should not treat empty string videoUrl as present", () => {
@@ -105,7 +114,7 @@ describe("task-schema", () => {
     });
 
     it("should fall back to status mapping when videoUrl is absent", () => {
-      expect(mapApiStatus("completed")).toBe("completed");
+      expect(mapApiStatus("completed")).toBe("generating");
       expect(mapApiStatus("failed")).toBe("failed");
       expect(mapApiStatus("unknown")).toBe("failed");
     });

@@ -10,6 +10,7 @@ import {
   type StoryTemplate,
   type StoryboardTemplate,
   storyService,
+  DEFAULT_STORY,
 } from "@/modules/story";
 import type { Story, StoryBeat } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
@@ -111,11 +112,15 @@ export function useStorySaver(props: UseStorySaverProps) {
         return;
       }
       setStories((prev) => prev.filter((s) => s.id !== storyToDelete));
+      if (currentStory.id === storyToDelete) {
+        setCurrentStory(DEFAULT_STORY, true);
+        setBeats([]);
+      }
       setDeleteDialogOpen(false);
       setStoryToDelete(null);
-      success(t("success.deleted"), t("success.beatDeleted"));
+      success(t("success.deleted"), t("success.storyDeleted"));
     }
-  }, [storyToDelete, setStories, success, showError, onBeforeDeleteStory]);
+  }, [storyToDelete, setStories, currentStory, setCurrentStory, setBeats, success, showError, onBeforeDeleteStory]);
 
   const applyStoryTemplate = useCallback(
     (template: StoryTemplate) => {
@@ -257,6 +262,10 @@ export function useStorySaver(props: UseStorySaverProps) {
         return;
       }
 
+      const savedStory = !storyIdAtSaveStart && serviceResult.value
+        ? { ...newStory, id: serviceResult.value.id }
+        : newStory;
+
       if (currentStoryIdRef.current !== storyIdAtSaveStart) {
         setSaveStatus("idle");
         return;
@@ -264,10 +273,10 @@ export function useStorySaver(props: UseStorySaverProps) {
 
       setStories((prev) =>
         storyIdAtSaveStart
-          ? prev.map((s) => (s.id === newStory.id ? newStory : s))
-          : [...prev, newStory],
+          ? prev.map((s) => (s.id === savedStory.id ? savedStory : s))
+          : [...prev, savedStory],
       );
-      setCurrentStory(newStory, true);
+      setCurrentStory(savedStory, true);
       markClean("story");
       setSaveStatus("saved");
       success(

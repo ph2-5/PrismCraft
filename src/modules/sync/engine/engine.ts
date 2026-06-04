@@ -33,6 +33,7 @@ let syncConfig: SyncConfig = { ...DEFAULT_SYNC_CONFIG };
 let syncTimer: ReturnType<typeof setInterval> | null = null;
 let isSyncing = false;
 let syncPromise: Promise<void> | null = null;
+let needsResync = false;
 let conflictCallback: ((conflicts: SyncConflict[]) => void) | null = null;
 let changeTrackerRegistered = false;
 
@@ -127,7 +128,12 @@ export async function performSync(): Promise<{
   conflicts: number;
 }> {
   if (syncPromise) {
+    needsResync = true;
     await syncPromise;
+    if (needsResync) {
+      needsResync = false;
+      return performSync();
+    }
     return { ...lastSyncResult };
   }
   if (!syncConfig.enabled || !syncConfig.endpoint) {
@@ -437,7 +443,7 @@ async function applyRemoteChanges(changes: RemoteChange[]): Promise<void> {
         if (!localRow) {
           if (change.data) {
             const columns = Object.keys(change.data).filter((k) =>
-              /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k),
+              /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k) && k !== pk,
             );
             const values = columns.map((k) => change.data![k]);
             const placeholders = columns.map(() => "?").join(",");
@@ -450,12 +456,25 @@ async function applyRemoteChanges(changes: RemoteChange[]): Promise<void> {
             const isDeletedInsClause = hasIsDeleted ? ", is_deleted" : "";
             const isDeletedInsValue = hasIsDeleted ? ", 0" : "";
             allStatements.push({
-              sql: `INSERT OR REPLACE INTO ${tableName} (${pk}, ${columns.join(",")}, vector_clock, sync_status${isDeletedInsClause}${updatedAtInsClause})
+              sql: `INSERT OR IGNORE INTO ${tableName} (${pk}, ${columns.join(",")}, vector_clock, sync_status${isDeletedInsClause}${updatedAtInsClause})
                VALUES (?, ${placeholders}, ?, 'synced'${isDeletedInsValue}${updatedAtInsValue})`,
               params: [
                 change.entityId,
                 ...values,
                 JSON.stringify(change.vectorClock),
+              ],
+            });
+            const updSetClauses = columns.map((k) => `${k} = ?`).join(", ");
+            const updatedAtUpdClause = TABLES_WITHOUT_UPDATED_AT.has(tableName)
+              ? ""
+              : ", updated_at = strftime('%s', 'now')";
+            const isDeletedUpdClause = hasIsDeleted ? ", is_deleted = 0" : "";
+            allStatements.push({
+              sql: `UPDATE ${tableName} SET ${updSetClauses}, vector_clock = ?, sync_status = 'synced'${isDeletedUpdClause}${updatedAtUpdClause} WHERE ${pk} = ?`,
+              params: [
+                ...values,
+                JSON.stringify(change.vectorClock),
+                change.entityId,
               ],
             });
           }
@@ -472,6 +491,30 @@ async function applyRemoteChanges(changes: RemoteChange[]): Promise<void> {
             const values = safeColumns.map((k) => change.data![k]);
             allStatements.push({
               sql: `UPDATE ${tableName} SET ${setClauses}, vector_clock = ?, sync_status = 'synced'${isDeletedUpdClause}${updatedAtUpdClause} WHERE ${pk} = ?`,
+              params: [
+                ...values,
+                JSON.stringify(change.vectorClock),
+                change.entityId,
+              ],
+            });
+          }
+        } else if (compareResult === 0 && hasIsDeleted && localRow.is_deleted === 1) {
+          if (isVectorClockConflict(localClock, change.vectorClock)) {
+            allStatements.push({
+              sql: `UPDATE ${tableName} SET sync_status = 'conflict' WHERE ${pk} = ?`,
+              params: [change.entityId],
+            });
+          } else if (change.data) {
+            const safeColumns = Object.keys(change.data).filter((k) =>
+              /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k),
+            );
+            const updatedAtUpdClause = TABLES_WITHOUT_UPDATED_AT.has(tableName)
+              ? ""
+              : ", updated_at = strftime('%s', 'now')";
+            const setClauses = safeColumns.map((k) => `${k} = ?`).join(", ");
+            const values = safeColumns.map((k) => change.data![k]);
+            allStatements.push({
+              sql: `UPDATE ${tableName} SET ${setClauses}, is_deleted = 0, vector_clock = ?, sync_status = 'synced'${updatedAtUpdClause} WHERE ${pk} = ?`,
               params: [
                 ...values,
                 JSON.stringify(change.vectorClock),
@@ -577,7 +620,7 @@ async function resolveConflict(conflict: SyncConflict): Promise<void> {
 
       if (remoteTime >= localTime && remoteData) {
         const backupResult = await fromAsyncThrowable(async () => {
-          const localBackup = await safeRun(
+          const localBackup = await safeQuery(
             `SELECT * FROM ${tableName} WHERE ${pk} = ?`,
             [conflict.entityId],
           );
@@ -658,6 +701,9 @@ const TABLE_PK_MAP: Record<string, string> = {
   video_tasks: "task_id",
   collections: "id",
   story_versions: "id",
+  elements: "id",
+  video_templates: "id",
+  ast_templates: "id",
 };
 
 function getPkColumn(tableName: string): string {

@@ -413,8 +413,19 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 
   clearAllTasks: async () => {
+    const taskIds = get().allTasks.map((t) => t.taskId);
     try {
       await container.videoTaskStorage.clearVideoTasks();
+      for (const id of taskIds) {
+        try {
+          await removeCachedVideo(id);
+        } catch (e) {
+          errorLogger.warn(
+            new AppError("CACHE_CLEANUP_ERROR", "清除视频缓存失败", e),
+            "VideoTaskManager",
+          );
+        }
+      }
       get().setAllTasks([]);
     } catch (error) {
       errorLogger.error("Failed to clear all video tasks", error);

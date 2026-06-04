@@ -989,30 +989,30 @@ const confirmed = await confirm(t("confirm.deleteTitle"), t("confirm.delete"));
 
 ### R63: API Status Must Be Validated Against Actual Resource Existence
 
-When mapping an external API status to an internal task status, the mapping function MUST check whether the actual resource (e.g., videoUrl) already exists. If the resource exists, the task MUST be considered completed regardless of the API-reported status. Relying solely on the API status field can cause "false failures" — the API returns a non-terminal status but the video has already been generated.
+When mapping an external API status to an internal task status, the mapping function MUST check whether the actual resource (e.g., videoUrl) exists **as a confirming signal only when the API status maps to completed**. When the API returns completed but no videoUrl is available, the status MUST be downgraded to generating — marking a task as completed without the actual resource is a "false completion". Conversely, videoUrl alone MUST NOT override a non-completed API status.
 
-**BAD** — Only checks API status:
-```typescript
-function mapApiStatus(apiStatus: string): VideoTaskStatus {
-  if (apiStatus === "success") return "completed";
-  if (apiStatus === "failed") return "failed";
-  return "generating"; // Video exists but API says "processing" → false failure
-}
-```
-
-**GOOD** — Checks resource existence first:
+**BAD** — videoUrl overrides API status unconditionally:
 ```typescript
 function mapApiStatus(apiStatus: string, videoUrl?: string): VideoTaskStatus {
-  if (videoUrl) return "completed"; // Resource exists → definitely completed
+  if (videoUrl) return "completed"; // Overrides API status blindly
   if (apiStatus === "success") return "completed";
   if (apiStatus === "failed") return "failed";
   return "generating";
 }
 ```
 
-**Verification**: Any `mapApiStatus` or similar status mapping function must accept and check the resource URL/existence parameter. Callers must pass the resource URL when available.
+**GOOD** — videoUrl confirms completed, missing videoUrl downgrades:
+```typescript
+function mapApiStatus(apiStatus: string, videoUrl?: string): VideoTaskStatus {
+  if (apiStatus === "success") return videoUrl ? "completed" : "generating";
+  if (apiStatus === "failed") return "failed";
+  return "generating";
+}
+```
 
-**Discovered in**: Video tasks showed as "failed" in task manager even though the video URL was already available. The API returned a non-terminal status, but the video had been successfully generated. Users saw error toasts and couldn't access completed videos.
+**Verification**: Any `mapApiStatus` or similar status mapping function must accept and check the resource URL parameter as a confirming signal for completed status only. When API says completed but resource is missing, status must be downgraded. Callers must pass the resource URL when available.
+
+**Discovered in**: Video tasks showed as "completed" in task manager even though the video URL was not available. The API returned a completed status, but the video had not actually been generated. Users saw completed tasks with no playable video.
 
 ## 四、UI 健壮性（9 条）
 

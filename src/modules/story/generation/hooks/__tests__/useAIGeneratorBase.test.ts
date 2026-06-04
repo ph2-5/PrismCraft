@@ -551,7 +551,7 @@ describe("useAIGeneratorBase", () => {
       expect(fn).toHaveBeenCalled();
     });
 
-    it("abort 后不应调用 setGenerating(null)", async () => {
+    it("abort 后应调用 setGenerating(null) 清理状态", async () => {
       const props = createDefaultProps();
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
@@ -581,7 +581,7 @@ describe("useAIGeneratorBase", () => {
       const generatingCalls = (props.setGenerating as unknown as ReturnType<typeof vi.fn>).mock.calls.filter(
         (call: unknown[]) => call[0] === null,
       );
-      expect(generatingCalls.length).toBe(0);
+      expect(generatingCalls.length).toBeGreaterThanOrEqual(1);
     });
 
     it("回调成功但 signal 已 abort 时不应返回结果", async () => {

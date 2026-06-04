@@ -148,6 +148,7 @@ export const storyService = {
           { code: "StoryServiceUpdateFailed", message: "批量更新分镜数据库记录失败", cause: e },
           "StoryService",
         );
+        throw e;
       }
     }
   },

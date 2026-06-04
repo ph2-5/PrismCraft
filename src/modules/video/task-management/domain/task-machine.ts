@@ -32,7 +32,7 @@ export const TaskMachine = {
   },
 
   isTerminal(status: VideoTaskStatus): boolean {
-    return status === "completed" || status === "cancelled" || status === "failed";
+    return status === "completed" || status === "cancelled";
   },
 
   transition(

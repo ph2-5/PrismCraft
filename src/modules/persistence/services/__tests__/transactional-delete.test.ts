@@ -73,7 +73,6 @@ describe("transactional-delete", () => {
         { image_url: "https://img.com/2.png", local_image_path: "/local/2.png" },
       ]);
       mockSafeQuery.mockResolvedValue([]);
-      mockSafeRun.mockResolvedValue(undefined);
 
       const result = await deleteCharacterWithRefs("char-1");
 
@@ -81,12 +80,10 @@ describe("transactional-delete", () => {
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
 
       const txStatements = mockSafeTransaction.mock.calls[0][0];
-      expect(txStatements).toEqual([
-        { sql: "DELETE FROM story_characters WHERE character_id = ?", params: ["char-1"] },
-        { sql: "UPDATE story_beats SET character = NULL WHERE character = ?", params: ["char-1"] },
-        { sql: "DELETE FROM character_outfits WHERE character_id = ?", params: ["char-1"] },
-        { sql: "DELETE FROM characters WHERE id = ?", params: ["char-1"] },
-      ]);
+      expect(txStatements[0]).toEqual({ sql: "DELETE FROM story_characters WHERE character_id = ?", params: ["char-1"] });
+      expect(txStatements[1]).toEqual({ sql: "UPDATE story_beats SET character = NULL WHERE character = ?", params: ["char-1"] });
+      expect(txStatements[2]).toEqual({ sql: "DELETE FROM character_outfits WHERE character_id = ?", params: ["char-1"] });
+      expect(txStatements[3]).toEqual({ sql: "DELETE FROM characters WHERE id = ?", params: ["char-1"] });
     });
 
     it("should return error result when transaction fails", async () => {
@@ -125,7 +122,7 @@ describe("transactional-delete", () => {
       expect(result.ok).toBe(true);
     });
 
-    it("should call removeIdFromJsonArray for story_beats and storyboard_assets", async () => {
+    it("should call buildRemoveIdFromJsonArrayStatements for story_beats and storyboard_assets", async () => {
       mockSafeQuery.mockResolvedValueOnce([]);
       mockSafeQuery.mockResolvedValueOnce([]);
       mockSafeQuery.mockResolvedValue([]);
@@ -134,28 +131,27 @@ describe("transactional-delete", () => {
 
       const queryCalls = mockSafeQuery.mock.calls;
       const jsonQueries = queryCalls.filter(
-        (call: unknown[]) => typeof call[0] === "string" && call[0].includes("LIKE"),
+        (call: unknown[]) => typeof call[0] === "string" && call[0].includes("json_each"),
       );
       expect(jsonQueries.length).toBeGreaterThanOrEqual(2);
     });
 
-    it("should handle removeIdFromJsonArray updating rows", async () => {
+    it("should handle buildRemoveIdFromJsonArrayStatements updating rows within transaction", async () => {
       mockSafeQuery.mockResolvedValueOnce([]);
       mockSafeQuery.mockResolvedValueOnce([]);
       mockSafeQuery.mockResolvedValueOnce([
         { id: "beat-1", character_ids_json: JSON.stringify(["char-1", "char-2"]) },
       ]);
       mockSafeQuery.mockResolvedValueOnce([]);
-      mockSafeRun.mockResolvedValue(undefined);
 
       await deleteCharacterWithRefs("char-1");
 
-      const runCalls = mockSafeRun.mock.calls.filter(
-        (call: unknown[]) => typeof call[0] === "string" && call[0].includes("UPDATE"),
+      const txStatements = mockSafeTransaction.mock.calls[0][0];
+      const updateStatements = txStatements.filter(
+        (s: { sql: string }) => s.sql.includes("character_ids_json") && s.sql.includes("UPDATE"),
       );
-      expect(runCalls.length).toBeGreaterThanOrEqual(1);
-      const updateCall = runCalls[0]!;
-      expect(updateCall[1]![0]).toBe(JSON.stringify(["char-2"]));
+      expect(updateStatements.length).toBeGreaterThanOrEqual(1);
+      expect(updateStatements[0]!.params[0]).toBe(JSON.stringify(["char-2"]));
     });
   });
 

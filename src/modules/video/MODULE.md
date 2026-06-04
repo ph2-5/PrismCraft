@@ -573,8 +573,8 @@ function applyVideoTemplate(template: VideoTemplate): { prompt: string; duration
 ### INV-17: 全局 store 生命周期
 `useVideoTaskStore` 的 `cleanup()` 只能由 app 级生命周期组件（`VideoTaskManagerInitializer`）调用。页面级组件不得在卸载时调用 `cleanup()`——这会停止所有轮询引擎并重置 `isInitialized`，导致其他页面的任务无法被追踪。快速模式创建的任务（无 storyId/beatId）与 Story 模式任务共享同一个 store，在任务管理页面（`/video-tasks`）的 "others" 分组中显示。
 
-### INV-18: mapApiStatus videoUrl 优先判断
-`mapApiStatus(apiStatus, videoUrl?)` 在 videoUrl 存在时直接返回 "completed"，不依赖 API 返回的 status 字段。这避免了 API 返回非终态 status 但视频已生成完成时的假失败。
+### INV-18: mapApiStatus videoUrl 确认信号
+`mapApiStatus(apiStatus, videoUrl?)` 中 videoUrl 仅在 API status 映射为 completed 时作为确认信号。当 API 返回 completed 但无 videoUrl 时，状态降级为 generating，避免标记为完成但无实际视频资源。
 
 ---
 

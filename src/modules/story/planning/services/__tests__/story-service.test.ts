@@ -418,14 +418,14 @@ describe("storyService", () => {
       expect(mockSafeTransaction).toHaveBeenCalled();
     });
 
-    it("safeTransaction 失败时不应抛出错误", async () => {
+    it("safeTransaction 失败时应抛出错误", async () => {
       mockSafeTransaction.mockRejectedValue(new Error("Transaction failed"));
 
       await expect(
         storyService.updateBeatMediaUrls([
           { id: "beat-1", keyframeImageUrl: "new.jpg" },
         ]),
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow("Transaction failed");
     });
 
     it("应更新 localKeyframePath", async () => {
@@ -486,12 +486,14 @@ describe("storyService", () => {
       expect(mockSafeTransaction).not.toHaveBeenCalled();
     });
 
-    it("safeTransaction 失败时应调用 errorLogger.warn", async () => {
+    it("safeTransaction 失败时应调用 errorLogger.warn 并抛出错误", async () => {
       mockSafeTransaction.mockRejectedValue(new Error("Transaction failed"));
 
-      await storyService.updateBeatMediaUrls([
-        { id: "beat-1", keyframeImageUrl: "new.jpg" },
-      ]);
+      await expect(
+        storyService.updateBeatMediaUrls([
+          { id: "beat-1", keyframeImageUrl: "new.jpg" },
+        ]),
+      ).rejects.toThrow("Transaction failed");
 
       expect(mockErrorLoggerWarn).toHaveBeenCalled();
     });

@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    exclude: ['tests/**', 'node_modules/**', 'dist/**', '.next/**', 'electron/dist/**'],
+    exclude: ['tests/**', 'node_modules/**', 'out/**', 'electron/dist/**'],
     setupFiles: [],
   },
   resolve: {

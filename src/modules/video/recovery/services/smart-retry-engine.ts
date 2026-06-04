@@ -48,38 +48,37 @@ export class SmartRetryEngine {
       };
     }
 
+    let decision: RetryDecision;
+
     if (task.status === "completed" && task.videoUrl) {
       if (verification && !verification.isValid) {
-        return {
+        decision = {
           shouldRetry: true,
           reason: "视频标记为完成但验证失败，可能是假成功",
           errorCategory: "unknown",
           confidence: verification.confidence,
           tokenWasteRisk: "low",
         };
+      } else {
+        decision = {
+          shouldRetry: false,
+          reason: "视频已成功生成，无需重试",
+          errorCategory: "unknown",
+          confidence: "high",
+          tokenWasteRisk: "low",
+        };
       }
-      return {
-        shouldRetry: false,
-        reason: "视频已成功生成，无需重试",
-        errorCategory: "unknown",
-        confidence: "high",
-        tokenWasteRisk: "low",
-      };
-    }
-
-    if (task.status === "failed") {
+    } else if (task.status === "failed") {
       if (verification && !verification.isValid) {
-        return this.analyzeFailedVerification(task, verification, previousAttempts);
+        decision = this.analyzeFailedVerification(task, verification, previousAttempts);
+      } else {
+        decision = this.analyzeFailedTask(task, previousAttempts);
       }
-
-      return this.analyzeFailedTask(task, previousAttempts);
-    }
-
-    if (task.status === "generating" || task.status === "pending") {
+    } else if (task.status === "generating" || task.status === "pending") {
       const timeSinceCreation = Date.now() - new Date(task.createdAt).getTime();
 
       if (timeSinceCreation < 30000) {
-        return {
+        decision = {
           shouldRetry: false,
           reason: "任务刚开始处理，建议等待",
           errorCategory: "unknown",
@@ -87,10 +86,8 @@ export class SmartRetryEngine {
           retryAfterMs: 30000,
           tokenWasteRisk: "low",
         };
-      }
-
-      if (task.pollCount && task.pollCount > 5) {
-        return {
+      } else if (task.pollCount && task.pollCount > 5) {
+        decision = {
           shouldRetry: false,
           reason: "任务已在处理中，已轮询多次但未完成",
           errorCategory: "unknown",
@@ -98,25 +95,40 @@ export class SmartRetryEngine {
           retryAfterMs: this.calculateNextRetryDelay(previousAttempts),
           tokenWasteRisk: "medium",
         };
+      } else {
+        decision = {
+          shouldRetry: false,
+          reason: "任务仍在生成中",
+          errorCategory: "unknown",
+          confidence: "high",
+          retryAfterMs: Math.min(30000 + previousAttempts * 10000, 120000),
+          tokenWasteRisk: "low",
+        };
       }
-
-      return {
+    } else {
+      decision = {
         shouldRetry: false,
-        reason: "任务仍在生成中",
+        reason: "任务状态不明确，建议手动检查",
         errorCategory: "unknown",
-        confidence: "high",
-        retryAfterMs: Math.min(30000 + previousAttempts * 10000, 120000),
-        tokenWasteRisk: "low",
+        confidence: "low",
+        tokenWasteRisk: "medium",
       };
     }
 
-    return {
-      shouldRetry: false,
-      reason: "任务状态不明确，建议手动检查",
-      errorCategory: "unknown",
-      confidence: "low",
-      tokenWasteRisk: "medium",
-    };
+    if (decision.shouldRetry) {
+      const retryAfterMs = decision.retryAfterMs ?? this.calculateNextRetryDelay(previousAttempts);
+      if (taskAge + retryAfterMs > maxTaskAge) {
+        return {
+          shouldRetry: false,
+          reason: "重试延迟将超出任务最大存活时间，不再重试",
+          errorCategory: "timeout",
+          confidence: "high",
+          tokenWasteRisk: "low",
+        };
+      }
+    }
+
+    return decision;
   }
 
   private analyzeFailedVerification(

@@ -15,12 +15,12 @@ export const mediaAssetService = {
 
   async create(asset: Omit<MediaAsset, "id" | "createdAt" | "updatedAt">): Promise<MediaAsset> {
     const id = `media_${crypto.randomUUID()}`;
-    const now = new Date().toISOString();
+    const now = Math.floor(Date.now() / 1000);
     const newAsset: MediaAsset = {
       ...asset,
       id,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: String(now),
+      updatedAt: String(now),
     };
     const result = await container.mediaAssetRepository.create(newAsset);
     if (!result.ok) throw result.error;
@@ -30,8 +30,8 @@ export const mediaAssetService = {
   async update(id: string, updates: Partial<MediaAsset>): Promise<void> {
     const existing = await this.getById(id);
     if (!existing) throw new Error(`Media asset ${id} not found`);
-    const updated = { ...existing, ...updates, updatedAt: new Date().toISOString() };
-    const result = await container.mediaAssetRepository.create(updated);
+    const updated = { ...existing, ...updates, updatedAt: String(Math.floor(Date.now() / 1000)) };
+    const result = await container.mediaAssetRepository.update(updated);
     if (!result.ok) throw result.error;
   },
 
@@ -42,7 +42,8 @@ export const mediaAssetService = {
 
   async batchRemove(ids: string[]): Promise<void> {
     for (const id of ids) {
-      await this.remove(id);
+      const result = await container.mediaAssetRepository.delete(id);
+      if (!result.ok) throw result.error;
     }
   },
 };

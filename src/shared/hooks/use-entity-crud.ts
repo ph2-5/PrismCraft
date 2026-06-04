@@ -102,6 +102,8 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
         newEntity = applyImageToEntity(newEntity, generatedImage);
       }
 
+      let savedEntity: T = newEntity;
+
       if (entity.id) {
         const result = await service.update(newEntity.id, newEntity);
         if (!result.ok) throw result.error;
@@ -109,6 +111,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       } else {
         const result = await service.create(newEntity);
         if (!result.ok) throw result.error;
+        savedEntity = result.value ?? newEntity;
         if (generatedImage) {
           addAssetToLibrary(generatedImage, "image", newEntity.name || assetLabel, {
             type: assetBindType,
@@ -120,7 +123,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       }
 
       queryClient.invalidateQueries({ queryKey });
-      setEntity(newEntity);
+      setEntity(savedEntity);
       resetCustomFields();
       markClean(queryKey[0]);
       setGeneratedImage(null);
@@ -137,8 +140,9 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const checkResult = checkReferences(id, entity.name, stories);
+  const handleDelete = async (id: string, entityName?: string) => {
+    const deleteName = entityName || entity.name;
+    const checkResult = checkReferences(id, deleteName, stories);
     if (checkResult.references.length > 0) {
       setEntityToDelete(id);
       setReferenceCheck(checkResult);
@@ -146,7 +150,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
     } else {
       const confirmed = await confirm({
         title: t("confirm.deleteTitle"),
-        description: t("crud.confirmDelete", { label: entityLabel, name: entity.name }),
+        description: t("crud.confirmDelete", { label: entityLabel, name: deleteName }),
         confirmText: t("common.delete"),
         cancelText: t("common.cancel"),
         variant: "danger",

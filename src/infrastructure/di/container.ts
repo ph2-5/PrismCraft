@@ -8,6 +8,10 @@ import type {
   ITextProvider,
   IFileUploader,
   ISyncStorage,
+  IVersionStorage,
+  IElementStorage,
+  ITemplateStorage,
+  IMediaAssetRepository,
 } from "@/domain/ports";
 
 /*
@@ -113,20 +117,20 @@ const tokens = {
   preferencesStorage: createToken("preferencesStorage", () => preferencesStorage),
 
   // ── C. Storage 实例（有状态，模块无法直接导入 infrastructure/storage） ──
-  versionStorage: createToken("versionStorage", () => versionStorage),
-  elementStorage: createToken("elementStorage", () => elementStorage),
+  versionStorage: createToken<IVersionStorage>("versionStorage", () => versionStorage as IVersionStorage),
+  elementStorage: createToken<IElementStorage>("elementStorage", () => elementStorage as IElementStorage),
   videoCacheStorage: createToken("videoCacheStorage", () => videoCacheStorage),
   imageCacheStorage: createToken("imageCacheStorage", () => imageCacheStorage),
   collectionStorage: createToken("collectionStorage", () => collectionStorage),
   storyboardStorage: createToken("storyboardStorage", () => storyboardStorage),
   importExportStorage: createToken("importExportStorage", () => importExportStorage),
-  templateStorage: createToken("templateStorage", () => templateStorage),
+  templateStorage: createToken<ITemplateStorage>("templateStorage", () => templateStorage as ITemplateStorage),
   autoSaveStorage: createToken("autoSaveStorage", () => autoSaveStorage),
   errorLogStorage: createToken("errorLogStorage", () => errorLogStorage),
   sessionStorage: createToken("sessionStorage", () => sessionStorage),
 
   // ── D. Repository 实例（Drizzle ORM，模块无法直接导入 infrastructure/database） ──
-  mediaAssetRepository: createToken("mediaAssetRepository", () => mediaAssetRepository),
+  mediaAssetRepository: createToken<IMediaAssetRepository>("mediaAssetRepository", () => mediaAssetRepository as IMediaAssetRepository),
 
   // ── E. 懒加载模块（避免循环依赖，动态 import） ──────────────────────────────────
   elementManager: createToken("elementManager", async () => {

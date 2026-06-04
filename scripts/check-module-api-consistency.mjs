@@ -44,17 +44,74 @@ function extractExportsFromIndexTs(content) {
 }
 
 function extractApiNamesFromModuleMd(content) {
-  const names = new Set();
+  const result = { documented: new Set(), declared: new Set() };
   const apiSectionMatch = content.match(/##\s+公共\s*API[\s\S]*?(?=\n##\s|$)/i)
     || content.match(/##\s+Public\s*API[\s\S]*?(?=\n##\s|$)/i);
-  if (!apiSectionMatch) return names;
+  if (!apiSectionMatch) return result;
   const apiSection = apiSectionMatch[0];
+
+  const skipWords = new Set([
+    "API", "签名", "说明", "类型", "描述", "用途", "路径", "职责", "子域", "Signature", "Description",
+    "type", "const", "interface", "class", "function", "export", "import", "return", "void",
+    "string", "number", "boolean", "undefined", "null", "true", "false",
+    "Promise", "Array", "Map", "Set", "Partial", "Record", "Omit", "Pick",
+    "React", "UseQueryResult", "UseMutationResult", "Result", "from", "string", "index",
+  ]);
+
+  // 1. Explicit documentation: list format `- `apiName`` and table format | `apiName` |
+  // These are "documented" — used for both missing and stale checks
   const linePattern = /^-\s+`([a-zA-Z][a-zA-Z0-9_]+)`/gm;
   let match;
   while ((match = linePattern.exec(apiSection)) !== null) {
-    names.add(match[1]);
+    if (!skipWords.has(match[1])) result.documented.add(match[1]);
   }
-  return names;
+
+  const tablePattern = /\|\s*`?([a-zA-Z][a-zA-Z0-9_]+)`?\s*\|/g;
+  while ((match = tablePattern.exec(apiSection)) !== null) {
+    if (!skipWords.has(match[1])) result.documented.add(match[1]);
+  }
+
+  // 2. Inline code outside code blocks: `apiName`
+  const textOutsideCodeBlocks = apiSection.replace(/```[\s\S]*?```/g, "");
+  const inlineCodePattern = /`([a-zA-Z][a-zA-Z0-9_]+)`/g;
+  while ((match = inlineCodePattern.exec(textOutsideCodeBlocks)) !== null) {
+    if (!skipWords.has(match[1])) result.documented.add(match[1]);
+  }
+
+  // 3. Code block declarations: only top-level names
+  // These are "declared" — used only for missing documentation check, NOT for stale check
+  // (because code blocks contain internal details like property names, parameter names, etc.)
+  const codeBlocks = apiSection.match(/```[\s\S]*?```/g) || [];
+  for (const block of codeBlocks) {
+    const lines = block.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("```") || trimmed.startsWith("*")) continue;
+
+      // Match: `apiName(` — function call or declaration
+      const funcMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9_]+)\s*\(/);
+      if (funcMatch && !skipWords.has(funcMatch[1])) {
+        result.declared.add(funcMatch[1]);
+        continue;
+      }
+
+      // Match: `apiName.something(` — service method call (extract service name)
+      const serviceMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9_]+)\.[a-zA-Z]/);
+      if (serviceMatch && !skipWords.has(serviceMatch[1])) {
+        result.declared.add(serviceMatch[1]);
+        continue;
+      }
+
+      // Match: `apiName:` or `apiName =` — constant/type declaration
+      const constMatch = trimmed.match(/^(?:export\s+)?(?:type\s+|const\s+|interface\s+|class\s+)?([a-zA-Z][a-zA-Z0-9_]+)\s*[:=]/);
+      if (constMatch && !skipWords.has(constMatch[1])) {
+        result.declared.add(constMatch[1]);
+        continue;
+      }
+    }
+  }
+
+  return result;
 }
 
 async function checkModuleApiConsistency() {
@@ -81,13 +138,17 @@ async function checkModuleApiConsistency() {
       continue;
     }
 
-    const documentedApis = extractApiNamesFromModuleMd(mdContent);
+    const { documented, declared } = extractApiNamesFromModuleMd(mdContent);
 
+    // Missing documentation: exported API not in documented (explicit) or declared (code block) names
+    const allDocumented = new Set([...documented, ...declared]);
     const undocumented = [...actualExports].filter(
-      (e) => !documentedApis.has(e) && !e.endsWith("Props") && !e.endsWith("Ref") && e !== "default"
+      (e) => !allDocumented.has(e) && !e.endsWith("Props") && !e.endsWith("Ref") && e !== "default"
     );
 
-    const stale = [...documentedApis].filter((e) => !actualExports.has(e));
+    // Stale documentation: documented (explicit list/table) API not in actual exports
+    // Only check "documented" set (not "declared" from code blocks, which may contain internal details)
+    const stale = [...documented].filter((e) => !actualExports.has(e));
 
     if (undocumented.length > 0) {
       warnings.push(

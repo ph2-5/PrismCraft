@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "./helpers/page-helpers";
 
+const M = { withElectronMock: true };
+
 const MAIN_PAGES = [
   { path: "/story", name: "Story" },
   { path: "/characters", name: "Characters" },
@@ -13,56 +15,56 @@ const MAIN_PAGES = [
 
 test.describe("Homepage Loading and Content Verification", () => {
   test("should launch and display homepage with correct title", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await expect(page).toHaveTitle(/AI Animation Studio/);
   });
 
   test("should display main heading on homepage", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     const heading = page.locator("h1").first();
     await expect(heading).toBeVisible();
     await expect(heading).toContainText("用AI");
   });
 
   test("should display quick generate button", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     const link = page.locator("a[href='/quick-generate']").first();
     await expect(link).toBeVisible();
   });
 
   test("should display professional create button", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     const link = page.locator("a[href='/story']").first();
     await expect(link).toBeVisible();
   });
 
   test("should display export data button", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     const button = page.locator("button", { hasText: "导出数据" });
     await expect(button).toBeVisible();
   });
 
   test("should display three core feature cards", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     const cards = page.locator("a[href='/characters'], a[href='/scenes'], a[href='/story']");
     const count = await cards.count();
     expect(count).toBeGreaterThanOrEqual(3);
   });
 
   test("should display four-step workflow", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     for (const step of ["创建角色", "搭建场景", "编排故事", "生成动画"]) {
       await expect(page.locator(`text=${step}`).first()).toBeVisible();
     }
   });
 
   test("should display CTA section", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await expect(page.locator("text=准备好开始你的动画创作之旅了吗？").first()).toBeVisible();
   });
 
   test("should display navigation bar", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await dismissOverlays(page);
     const nav = page.locator("aside nav, [role='navigation']").first();
     await expect(nav).toBeVisible({ timeout: 10000 });
@@ -72,20 +74,20 @@ test.describe("Homepage Loading and Content Verification", () => {
 test.describe("Page Navigation via Direct URL", () => {
   for (const { path, name } of MAIN_PAGES) {
     test(`should load ${name} page via direct URL`, async ({ page }) => {
-      await navigateTo(page, path);
+      await navigateTo(page, path, M);
       expect(page.url()).toContain(path);
       await expect(page.locator("main").first()).toBeVisible();
     });
   }
 
   test("should load /story page correctly", async ({ page }) => {
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/story", M);
     expect(page.url()).toContain("/story");
     await expect(page.locator("main").first()).toBeVisible();
   });
 
   test("should navigate from homepage to characters via link click", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await dismissOverlays(page);
     const link = page.locator("a[href='/characters']").first();
     await expect(link).toBeVisible();
@@ -95,7 +97,7 @@ test.describe("Page Navigation via Direct URL", () => {
   });
 
   test("should navigate from homepage to scenes via link click", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await dismissOverlays(page);
     const link = page.locator("a[href='/scenes']").first();
     await expect(link).toBeVisible();
@@ -105,7 +107,7 @@ test.describe("Page Navigation via Direct URL", () => {
   });
 
   test("should navigate from homepage to story via link click", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await dismissOverlays(page);
     const link = page.locator("a[href='/story']").first();
     await expect(link).toBeVisible();
@@ -115,7 +117,7 @@ test.describe("Page Navigation via Direct URL", () => {
   });
 
   test("should navigate from homepage to quick generate via link click", async ({ page }) => {
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await dismissOverlays(page);
     const link = page.locator("a[href='/quick-generate']").first();
     await expect(link).toBeVisible();
@@ -125,7 +127,7 @@ test.describe("Page Navigation via Direct URL", () => {
   });
 
   test("should navigate from characters page to scenes page via sidebar", async ({ page }) => {
-    await navigateTo(page, "/characters");
+    await navigateTo(page, "/characters", M);
     await dismissOverlays(page);
     const sidebarBtn = page.locator("aside button").filter({ hasText: "场景" }).first();
     const link = page.locator("a[href='/scenes']").first();
@@ -140,8 +142,8 @@ test.describe("Page Navigation via Direct URL", () => {
 
 test.describe("Browser Back and Forward", () => {
   test("should navigate back correctly", async ({ page }) => {
-    await navigateTo(page, "/");
-    await navigateTo(page, "/characters");
+    await navigateTo(page, "/", M);
+    await navigateTo(page, "/characters", M);
     expect(page.url()).toContain("/characters");
 
     await page.goBack();
@@ -150,8 +152,8 @@ test.describe("Browser Back and Forward", () => {
   });
 
   test("should navigate forward correctly", async ({ page }) => {
-    await navigateTo(page, "/");
-    await navigateTo(page, "/characters");
+    await navigateTo(page, "/", M);
+    await navigateTo(page, "/characters", M);
     await page.goBack();
     await page.waitForLoadState("domcontentloaded");
 
@@ -161,13 +163,13 @@ test.describe("Browser Back and Forward", () => {
   });
 
   test("should maintain consistent content on repeated visits", async ({ page }) => {
-    await navigateTo(page, "/characters");
+    await navigateTo(page, "/characters", M);
     const firstMain = page.locator("main").first();
     await expect(firstMain).toBeVisible();
     const firstHasHeading = await firstMain.locator("h1, h2, h3").first().isVisible().catch(() => false);
 
-    await navigateTo(page, "/");
-    await navigateTo(page, "/characters");
+    await navigateTo(page, "/", M);
+    await navigateTo(page, "/characters", M);
     const secondMain = page.locator("main").first();
     await expect(secondMain).toBeVisible();
     const secondHasHeading = await secondMain.locator("h1, h2, h3").first().isVisible().catch(() => false);
@@ -201,7 +203,7 @@ test.describe("JavaScript Error Detection", () => {
     });
 
     for (const path of ALL_PAGES) {
-      await navigateTo(page, path);
+      await navigateTo(page, path, M);
     }
 
     const criticalErrors = jsErrors.filter(
@@ -230,7 +232,7 @@ test.describe("JavaScript Error Detection", () => {
     });
 
     for (const { path } of MAIN_PAGES) {
-      await navigateTo(page, path);
+      await navigateTo(page, path, M);
     }
 
     const criticalErrors = consoleErrors.filter(
@@ -262,21 +264,21 @@ test.describe("JavaScript Error Detection", () => {
 test.describe("Responsive Layout", () => {
   test("should render correctly on mobile viewport", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await expect(page.locator("body")).toBeVisible();
     await expect(page.locator("main").first()).toBeVisible();
   });
 
   test("should render correctly on tablet viewport", async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await expect(page.locator("body")).toBeVisible();
     await expect(page.locator("main").first()).toBeVisible();
   });
 
   test("should render correctly on desktop viewport", async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     await expect(page.locator("body")).toBeVisible();
     await expect(page.locator("main").first()).toBeVisible();
   });
@@ -285,7 +287,7 @@ test.describe("Responsive Layout", () => {
 test.describe("Page Load Performance", () => {
   test("should load homepage within reasonable time", async ({ page }) => {
     const startTime = Date.now();
-    await navigateTo(page, "/");
+    await navigateTo(page, "/", M);
     const loadTime = Date.now() - startTime;
     expect(loadTime).toBeLessThan(15000);
   });

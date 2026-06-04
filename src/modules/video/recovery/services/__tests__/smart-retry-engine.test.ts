@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SmartRetryEngine, createRetryEngine } from "@/modules/video";
 import type { VideoTask } from "@/domain/schemas";
+import type { RetryDecision } from "../types/video-recovery-types";
 
 function createMockTask(overrides: Partial<VideoTask> = {}): VideoTask {
   return {
@@ -111,5 +112,140 @@ describe("SmartRetryEngine", () => {
     const engine1 = createRetryEngine({ maxRetries: 5 });
     const engine2 = createRetryEngine({ maxRetries: 10 });
     expect(engine1).not.toBe(engine2);
+  });
+});
+
+describe("SmartRetryEngine 错误分类组合", () => {
+  it("errorCode 和 errorMessage 同时存在时 errorCode 应优先", () => {
+    const engine = new SmartRetryEngine();
+    const task = createMockTask({
+      status: "failed",
+      message: "rate limit exceeded",
+    });
+    const verification = {
+      isValid: false,
+      reason: "verification failed",
+      confidence: "medium" as const,
+      details: {
+        apiStatus: "TIMEOUT_ERROR",
+        errorMessage: "rate limit exceeded",
+      },
+    } as unknown as Parameters<typeof engine.makeRetryDecision>[1];
+
+    const decision = engine.makeRetryDecision(task, verification, 0);
+
+    expect(decision.errorCategory).toBe("timeout");
+  });
+
+  it("errorCode 为空但 errorMessage 包含 timeout 关键词时应正确分类", () => {
+    const engine = new SmartRetryEngine();
+    const task = createMockTask({
+      status: "failed",
+      message: "Request timeout after 30s",
+    });
+    const decision = engine.makeRetryDecision(task);
+
+    expect(decision.errorCategory).toBe("timeout");
+  });
+
+  it("多个 pattern 同时匹配时应使用第一个匹配", () => {
+    const engine = new SmartRetryEngine();
+    const task = createMockTask({
+      status: "failed",
+      message: "timeout and rate limit both occurred",
+    });
+    const decision = engine.makeRetryDecision(task);
+
+    expect(decision.errorCategory).toBe("timeout");
+  });
+
+  it("未知 errorCode 和无匹配 errorMessage 应分类为 unknown", () => {
+    const engine = new SmartRetryEngine();
+    const task = createMockTask({
+      status: "failed",
+      message: "Something went wrong",
+    });
+    const verification = {
+      isValid: false,
+      reason: "verification failed",
+      confidence: "medium" as const,
+      details: {
+        apiStatus: "SOME_NEW_ERROR",
+        errorMessage: "Something went wrong",
+      },
+    } as unknown as Parameters<typeof engine.makeRetryDecision>[1];
+
+    const decision = engine.makeRetryDecision(task, verification, 0);
+
+    expect(decision.errorCategory).toBe("unknown");
+  });
+
+  it("errorCode 为 null 时应回退到 errorMessage 匹配", () => {
+    const engine = new SmartRetryEngine();
+    const task = createMockTask({
+      status: "failed",
+      message: "Connection timeout",
+    });
+    const decision = engine.makeRetryDecision(task);
+
+    expect(decision.errorCategory).toBe("timeout");
+  });
+
+  it("errorMessage 为 null 且 errorCode 为 null 时应分类为 unknown", () => {
+    const engine = new SmartRetryEngine();
+    const task = createMockTask({
+      status: "failed",
+      message: "",
+    });
+    const decision = engine.makeRetryDecision(task);
+
+    expect(decision.errorCategory).toBe("unknown");
+  });
+
+  it("getRecommendedRetryDelay 对不同错误类型应返回不同延迟", () => {
+    const engine = new SmartRetryEngine({ baseDelayMs: 1000, maxDelayMs: 300000, jitter: false });
+
+    const timeoutDecision: RetryDecision = {
+      shouldRetry: true,
+      reason: "timeout",
+      errorCategory: "timeout",
+      confidence: "medium",
+      retryAfterMs: 1000,
+      tokenWasteRisk: "low",
+    };
+    const rateLimitDecision: RetryDecision = {
+      shouldRetry: true,
+      reason: "rate limit",
+      errorCategory: "rate_limit",
+      confidence: "high",
+      retryAfterMs: 60000,
+      tokenWasteRisk: "low",
+    };
+
+    const timeoutDelay = engine.getRecommendedRetryDelay(timeoutDecision, 0);
+    const rateLimitDelay = engine.getRecommendedRetryDelay(rateLimitDecision, 0);
+
+    expect(timeoutDelay).toBe(1000);
+    expect(rateLimitDelay).toBe(60000);
+    expect(rateLimitDelay).toBeGreaterThan(timeoutDelay);
+  });
+
+  it("连续重试后延迟应指数增长", () => {
+    const engine = new SmartRetryEngine({ baseDelayMs: 1000, maxDelayMs: 300000, jitter: false });
+
+    const delays = [0, 1, 2, 3, 4].map((attempt) =>
+      engine.getRecommendedRetryDelay(
+        { shouldRetry: true, reason: "", errorCategory: "unknown", confidence: "low", tokenWasteRisk: "low" },
+        attempt,
+      ),
+    );
+
+    for (let i = 1; i < delays.length; i++) {
+      expect(delays[i]).toBeGreaterThan(delays[i - 1]);
+    }
+
+    expect(delays[0]).toBe(1000);
+    expect(delays[1]).toBe(2000);
+    expect(delays[2]).toBe(4000);
   });
 });

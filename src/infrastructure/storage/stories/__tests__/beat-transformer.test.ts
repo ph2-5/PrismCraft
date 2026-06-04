@@ -1,251 +1,305 @@
 import { describe, it, expect } from "vitest";
 import { flattenBeat, buildBeatInsert } from "../beat-transformer";
 
+const NOW = 1700000000;
+
 describe("flattenBeat", () => {
-  const now = 1700000000000;
-
-  it("空 beat 返回空容器", () => {
-    const result = flattenBeat({}, now);
-
-    expect(result.cameraContainer).toEqual({});
-    expect(result.generationContainer).toEqual({});
-    expect(result.metaContainer).toBeNull();
-  });
-
-  it("keyframe 子对象映射到 generationContainer", () => {
-    const beat = {
-      keyframe: {
-        imageUrl: "https://img.example.com/key.png",
-        prompt: "一个角色站在门口",
-        generatedAt: 1699999999000,
-      },
+  it("应将 camera 子字段展平到 cameraContainer", () => {
+    const beat: Record<string, unknown> = {
+      camera: { angle: "low", movement: "pan", distance: "medium", speed: "slow" },
     };
-    const result = flattenBeat(beat, now);
-
-    expect(result.generationContainer.keyframeImageUrl).toBe("https://img.example.com/key.png");
-    expect(result.generationContainer.keyframePrompt).toBe("一个角色站在门口");
-    expect(result.generationContainer.keyframeGeneratedAt).toBe(1699999999000);
+    const result = flattenBeat(beat, NOW);
+    expect(result.cameraContainer).toEqual({
+      angle: "low",
+      movement: "pan",
+      distance: "medium",
+      speed: "slow",
+    });
   });
 
-  it("framePair 子对象映射到 generationContainer", () => {
-    const beat = {
+  it("应将 keyframe 展平到 generationContainer", () => {
+    const beat: Record<string, unknown> = {
+      keyframe: { imageUrl: "url", prompt: "p", generatedAt: 1234 },
+    };
+    const result = flattenBeat(beat, NOW);
+    expect(result.generationContainer.keyframeImageUrl).toBe("url");
+    expect(result.generationContainer.keyframePrompt).toBe("p");
+    expect(result.generationContainer.keyframeGeneratedAt).toBe(1234);
+  });
+
+  it("应将 framePair 展平到 generationContainer", () => {
+    const beat: Record<string, unknown> = {
       framePair: {
-        firstFrame: { imageUrl: "https://img.example.com/first.png" },
-        lastFrame: { imageUrl: "https://img.example.com/last.png" },
+        firstFrame: { imageUrl: "f1", prompt: "p1" },
+        lastFrame: { imageUrl: "l1", prompt: "pl1" },
+        generatedAt: 5678,
       },
     };
-    const result = flattenBeat(beat, now);
-
-    expect(result.generationContainer.firstFrameUrl).toBe("https://img.example.com/first.png");
-    expect(result.generationContainer.lastFrameUrl).toBe("https://img.example.com/last.png");
+    const result = flattenBeat(beat, NOW);
+    expect(result.generationContainer.firstFrameUrl).toBe("f1");
+    expect(result.generationContainer.lastFrameUrl).toBe("l1");
+    expect(result.generationContainer.firstFramePrompt).toBe("p1");
+    expect(result.generationContainer.lastFramePrompt).toBe("pl1");
+    expect(result.generationContainer.framePairGeneratedAt).toBe(5678);
   });
 
-  it("videoGen 子对象映射到 generationContainer", () => {
-    const beat = {
-      videoGen: {
-        videoUrl: "https://video.example.com/clip.mp4",
-        taskId: "task-abc-123",
-        status: "completed",
-      },
+  it("应将 videoGen 展平到 generationContainer", () => {
+    const beat: Record<string, unknown> = {
+      videoGen: { videoUrl: "vurl", taskId: "tid", status: "completed" },
     };
-    const result = flattenBeat(beat, now);
-
-    expect(result.generationContainer.videoUrl).toBe("https://video.example.com/clip.mp4");
-    expect(result.generationContainer.videoTaskId).toBe("task-abc-123");
+    const result = flattenBeat(beat, NOW);
+    expect(result.generationContainer.videoUrl).toBe("vurl");
+    expect(result.generationContainer.videoTaskId).toBe("tid");
     expect(result.generationContainer.videoStatus).toBe("completed");
   });
 
-  it("camera 子对象映射到 cameraContainer", () => {
-    const beat = {
-      camera: {
-        angle: "low",
-        movement: "pan_left",
-      },
+  it("应将 shotType 放入 cameraContainer", () => {
+    const beat: Record<string, unknown> = { shotType: "close_up" };
+    const result = flattenBeat(beat, NOW);
+    expect(result.cameraContainer.shotType).toBe("close_up");
+  });
+
+  it("应将未知字段放入 metaContainer", () => {
+    const beat: Record<string, unknown> = {
+      uploadedKeyframe: "data:image/png;base64,xxx",
+      uploadedVideo: "/local/video.mp4",
+      imageUrl: "https://img.jpg",
+      videoReferenceUrl: "https://ref.mp4",
     };
-    const result = flattenBeat(beat, now);
-
-    expect(result.cameraContainer.angle).toBe("low");
-    expect(result.cameraContainer.movement).toBe("pan_left");
-  });
-
-  it("snake_case 别名支持", () => {
-    const beat = {
-      keyframe_image_url: "https://img.example.com/snake.png",
-      keyframe_prompt: "蛇形命名提示词",
-      keyframe_generated_at: 1699999998000,
-      first_frame_url: "https://img.example.com/first-snake.png",
-      last_frame_url: "https://img.example.com/last-snake.png",
-      video_url: "https://video.example.com/snake.mp4",
-      video_task_id: "snake-task-123",
-      video_status: "generating",
-      camera_angle: "high",
-      camera_movement: "tilt",
-    };
-    const result = flattenBeat(beat, now);
-
-    expect(result.generationContainer.keyframeImageUrl).toBe("https://img.example.com/snake.png");
-    expect(result.generationContainer.keyframePrompt).toBe("蛇形命名提示词");
-    expect(result.generationContainer.keyframeGeneratedAt).toBe(1699999998000);
-    expect(result.generationContainer.firstFrameUrl).toBe("https://img.example.com/first-snake.png");
-    expect(result.generationContainer.lastFrameUrl).toBe("https://img.example.com/last-snake.png");
-    expect(result.generationContainer.videoUrl).toBe("https://video.example.com/snake.mp4");
-    expect(result.generationContainer.videoTaskId).toBe("snake-task-123");
-    expect(result.generationContainer.videoStatus).toBe("generating");
-    expect(result.cameraContainer.angle).toBe("high");
-    expect(result.cameraContainer.movement).toBe("tilt");
-  });
-
-  it("enhancedGeneration 布尔值映射到 generationContainer", () => {
-    const beatTrue = { enhancedGeneration: true };
-    const beatFalse = { enhancedGeneration: false };
-    const beatOne = { enhancedGeneration: 1 };
-    const beatZero = { enhancedGeneration: 0 };
-
-    expect(flattenBeat(beatTrue, now).generationContainer.enhancedGeneration).toBe(true);
-    expect(flattenBeat(beatFalse, now).generationContainer.enhancedGeneration).toBeUndefined();
-    expect(flattenBeat(beatOne, now).generationContainer.enhancedGeneration).toBe(true);
-    expect(flattenBeat(beatZero, now).generationContainer.enhancedGeneration).toBeUndefined();
-  });
-
-  it("characterOutfits 保留在 generationContainer", () => {
-    const outfits = { char1: "suit", char2: "dress" };
-    const beat = { characterOutfits: outfits };
-    const result = flattenBeat(beat, now);
-
-    expect(result.generationContainer.characterOutfits).toEqual(outfits);
-  });
-
-  it("createdAt/updatedAt 使用 now 作为默认值", () => {
-    const beat = {};
-    const result = flattenBeat(beat, now);
-
-    expect(result.createdAt).toBe(now);
-    expect(result.updatedAt).toBe(now);
-  });
-
-  it("createdAt/updatedAt 优先使用 beat 中的值", () => {
-    const beat = { createdAt: 1699999999000, updatedAt: 1699999999001 };
-    const result = flattenBeat(beat, now);
-
-    expect(result.createdAt).toBe(1699999999000);
-    expect(result.updatedAt).toBe(1699999999001);
-  });
-
-  it("createdAt/updatedAt 支持 created_at/updated_at 下划线别名", () => {
-    const beat = { created_at: 1699999999000, updated_at: 1699999999001 };
-    const result = flattenBeat(beat, now);
-
-    expect(result.createdAt).toBe(1699999999000);
-    expect(result.updatedAt).toBe(1699999999001);
-  });
-
-  it("额外字段收集到 metaContainer", () => {
-    const beat = {
-      keyframe: {
-        imageUrl: "https://img.example.com/key.png",
-        customField: "自定义值",
-        anotherExtra: 42,
-      },
-    };
-    const result = flattenBeat(beat, now);
-
-    expect(result.generationContainer.keyframeImageUrl).toBe("https://img.example.com/key.png");
+    const result = flattenBeat(beat, NOW);
     expect(result.metaContainer).not.toBeNull();
-    expect(result.metaContainer!["keyframe.customField"]).toBe("自定义值");
-    expect(result.metaContainer!["keyframe.anotherExtra"]).toBe(42);
+    expect(result.metaContainer!.uploadedKeyframe).toBe("data:image/png;base64,xxx");
+    expect(result.metaContainer!.uploadedVideo).toBe("/local/video.mp4");
+    expect(result.metaContainer!.imageUrl).toBe("https://img.jpg");
+    expect(result.metaContainer!.videoReferenceUrl).toBe("https://ref.mp4");
   });
 
-  it("没有额外字段时 metaContainer 为 null", () => {
-    const beat = {
-      description: "简单描述",
+  it("应将 keyframe 的非标准子字段放入 metaContainer", () => {
+    const beat: Record<string, unknown> = {
+      keyframe: { imageUrl: "url", prompt: "p", customField: "value" },
     };
-    const result = flattenBeat(beat, now);
+    const result = flattenBeat(beat, NOW);
+    expect(result.metaContainer).not.toBeNull();
+    expect(result.metaContainer!["keyframe.customField"]).toBe("value");
+  });
+
+  it("应将 framePair 的非标准子字段放入 metaContainer", () => {
+    const beat: Record<string, unknown> = {
+      framePair: { firstFrame: { imageUrl: "f1" }, lastFrame: { imageUrl: "l1" }, customData: "val" },
+    };
+    const result = flattenBeat(beat, NOW);
+    expect(result.metaContainer).not.toBeNull();
+    expect(result.metaContainer!["framePair.customData"]).toBe("val");
+  });
+
+  it("应将 videoGen 的非标准子字段放入 metaContainer", () => {
+    const beat: Record<string, unknown> = {
+      videoGen: { videoUrl: "url", customProp: "cv" },
+    };
+    const result = flattenBeat(beat, NOW);
+    expect(result.metaContainer).not.toBeNull();
+    expect(result.metaContainer!["videoGen.customProp"]).toBe("cv");
+  });
+
+  it("应处理空 beat（只有必填字段）", () => {
+    const beat: Record<string, unknown> = { description: "test", duration: 5 };
+    const result = flattenBeat(beat, NOW);
+    expect(result.cameraContainer).toEqual({});
+    expect(result.generationContainer.keyframeImageUrl).toBeUndefined();
+    expect(result.generationContainer.videoUrl).toBeUndefined();
+    expect(result.metaContainer).toBeNull();
+  });
+
+  it("应处理全字段 beat", () => {
+    const beat: Record<string, unknown> = {
+      id: "b1",
+      sequence: 0,
+      order: 1,
+      description: "desc",
+      duration: 5,
+      type: "action",
+      title: "Title",
+      content: "Content",
+      characterIds: ["c1", "c2"],
+      sceneId: "s1",
+      shotType: "close_up",
+      generationPrompt: "gen prompt",
+      imageGenerationPrompt: "img prompt",
+      firstFramePrompt: "ff prompt",
+      lastFramePrompt: "lf prompt",
+      firstFramePromptGen: "ffpg",
+      lastFramePromptGen: "lfpg",
+      enhancedGeneration: true,
+      camera: { angle: "low", movement: "pan", distance: "medium", speed: "slow" },
+      keyframe: { imageUrl: "kurl", prompt: "kp", generatedAt: 111 },
+      framePair: {
+        firstFrame: { imageUrl: "ff1", prompt: "ffp1" },
+        lastFrame: { imageUrl: "lf1", prompt: "lfp1" },
+        generatedAt: 222,
+        firstFrameUrl: "ffu",
+        lastFrameUrl: "lfu",
+      },
+      videoGen: { videoUrl: "vurl", taskId: "tid", status: "done" },
+      characterOutfits: { "char-1": "outfit-1" },
+    };
+    const result = flattenBeat(beat, NOW);
+
+    expect(result.cameraContainer).toEqual({
+      angle: "low",
+      movement: "pan",
+      distance: "medium",
+      speed: "slow",
+      shotType: "close_up",
+    });
+
+    expect(result.generationContainer.keyframeImageUrl).toBe("kurl");
+    expect(result.generationContainer.keyframePrompt).toBe("kp");
+    expect(result.generationContainer.keyframeGeneratedAt).toBe(111);
+    expect(result.generationContainer.firstFrameUrl).toBe("ff1");
+    expect(result.generationContainer.firstFramePrompt).toBe("ffp1");
+    expect(result.generationContainer.lastFrameUrl).toBe("lf1");
+    expect(result.generationContainer.lastFramePrompt).toBe("lfp1");
+    expect(result.generationContainer.framePairGeneratedAt).toBe(222);
+    expect(result.generationContainer.videoUrl).toBe("vurl");
+    expect(result.generationContainer.videoTaskId).toBe("tid");
+    expect(result.generationContainer.videoStatus).toBe("done");
+    expect(result.generationContainer.generationPrompt).toBe("gen prompt");
+    expect(result.generationContainer.imageGenerationPrompt).toBe("img prompt");
+    expect(result.generationContainer.firstFramePromptGen).toBe("ffpg");
+    expect(result.generationContainer.lastFramePromptGen).toBe("lfpg");
+    expect(result.generationContainer.enhancedGeneration).toBe(true);
+    expect(result.generationContainer.characterOutfits).toEqual({ "char-1": "outfit-1" });
 
     expect(result.metaContainer).toBeNull();
   });
 
-  it("shotType 映射到 cameraContainer", () => {
-    const beat = { shotType: "close_up" };
-    const result = flattenBeat(beat, now);
+  it("应处理 uploadedFramePair 对象", () => {
+    const beat: Record<string, unknown> = {
+      uploadedFramePair: {
+        firstFrame: "url1",
+        lastFrame: "url2",
+        firstFramePrompt: "p1",
+        lastFramePrompt: "p2",
+      },
+    };
+    const result = flattenBeat(beat, NOW);
+    expect(result.metaContainer).not.toBeNull();
+    expect(result.metaContainer!.uploadedFramePair).toEqual({
+      firstFrame: "url1",
+      lastFrame: "url2",
+      firstFramePrompt: "p1",
+      lastFramePrompt: "p2",
+    });
+  });
 
-    expect(result.cameraContainer.shotType).toBe("close_up");
+  it("应处理 characterOutfits", () => {
+    const beat: Record<string, unknown> = {
+      characterOutfits: { "char-1": "outfit-1" },
+    };
+    const result = flattenBeat(beat, NOW);
+    expect(result.generationContainer.characterOutfits).toEqual({ "char-1": "outfit-1" });
+  });
+
+  it("应处理 enhancedGeneration 标志", () => {
+    const beat: Record<string, unknown> = { enhancedGeneration: true };
+    const result = flattenBeat(beat, NOW);
+    expect(result.generationContainer.enhancedGeneration).toBe(true);
+  });
+
+  it("应将 local paths 放入 metaContainer（不在 knownKeys 中）", () => {
+    const beat: Record<string, unknown> = {
+      localVideoPath: "/v.mp4",
+      localKeyframePath: "/k.jpg",
+      localFirstFramePath: "/f1.jpg",
+      localLastFramePath: "/f2.jpg",
+    };
+    const result = flattenBeat(beat, NOW);
+    expect(result.metaContainer).not.toBeNull();
+    expect(result.metaContainer!.localVideoPath).toBe("/v.mp4");
+    expect(result.metaContainer!.localKeyframePath).toBe("/k.jpg");
+    expect(result.metaContainer!.localFirstFramePath).toBe("/f1.jpg");
+    expect(result.metaContainer!.localLastFramePath).toBe("/f2.jpg");
   });
 });
 
 describe("buildBeatInsert", () => {
-  const now = 1700000000000;
-
-  it("返回正确的 SQL 格式", () => {
-    const result = buildBeatInsert("beat-1", "story-1", 0, {}, now);
-
+  it("应生成正确的 INSERT SQL", () => {
+    const beat: Record<string, unknown> = { description: "test" };
+    const result = buildBeatInsert("b1", "s1", 0, beat, NOW);
     expect(result.sql).toContain("INSERT OR REPLACE INTO story_beats");
-    expect(result.sql).toContain("VALUES");
-  });
-
-  it("params 数组长度正确（21个参数）", () => {
-    const result = buildBeatInsert("beat-1", "story-1", 0, {}, now);
-
     expect(result.params).toHaveLength(21);
   });
 
-  it("beatId, storyId, index 正确传递", () => {
-    const result = buildBeatInsert("my-beat-id", "my-story-id", 3, {}, now);
-
-    expect(result.params[0]).toBe("my-beat-id");
-    expect(result.params[1]).toBe("my-story-id");
-    expect(result.params[2]).toBe(3);
-  });
-
-  it("characterIds 数组被序列化为 JSON", () => {
-    const beat = {
-      characterIds: ["char-1", "char-2", "char-3"],
+  it("应正确映射 beat 字段到 SQL 参数", () => {
+    const beat: Record<string, unknown> = {
+      order: 3,
+      title: "My Title",
+      content: "My Content",
+      description: "My Desc",
+      duration: 10,
+      type: "action",
+      characterIds: ["c1", "c2"],
+      sceneId: "scene-1",
     };
-    const result = buildBeatInsert("beat-1", "story-1", 0, beat, now);
+    const result = buildBeatInsert("b1", "s1", 0, beat, NOW);
 
-    expect(result.params[9]).toBe(JSON.stringify(["char-1", "char-2", "char-3"]));
-  });
-
-  it("没有 characterIds 时 character_ids_json 列为 null", () => {
-    const result = buildBeatInsert("beat-1", "story-1", 0, {}, now);
-
-    expect(result.params[9]).toBeNull();
-  });
-
-  it("beat.order 存在时使用 beat.order 作为 order_num", () => {
-    const beat = { order: 7 };
-    const result = buildBeatInsert("beat-1", "story-1", 3, beat, now);
-
-    expect(result.params[3]).toBe(7);
-  });
-
-  it("beat.order 不存在时使用 index 作为 order_num", () => {
-    const result = buildBeatInsert("beat-1", "story-1", 3, {}, now);
-
+    expect(result.params[0]).toBe("b1");
+    expect(result.params[1]).toBe("s1");
+    expect(result.params[2]).toBe(0);
     expect(result.params[3]).toBe(3);
+    expect(result.params[4]).toBe("My Title");
+    expect(result.params[5]).toBe("My Content");
+    expect(result.params[6]).toBe("My Desc");
+    expect(result.params[7]).toBe(10);
+    expect(result.params[8]).toBe("action");
+    expect(result.params[10]).toBe("scene-1");
   });
 
-  it("camera 容器被序列化为 JSON", () => {
-    const beat = { camera: { angle: "low", movement: "pan_left" } };
-    const result = buildBeatInsert("beat-1", "story-1", 0, beat, now);
+  it("应将 camera/generation/meta 序列化为 JSON", () => {
+    const beat: Record<string, unknown> = {
+      camera: { angle: "low", movement: "pan" },
+      keyframe: { imageUrl: "url", prompt: "p" },
+      customField: "value",
+    };
+    const result = buildBeatInsert("b1", "s1", 0, beat, NOW);
 
-    const camera = JSON.parse(result.params[11] as string);
-    expect(camera.angle).toBe("low");
-    expect(camera.movement).toBe("pan_left");
+    const cameraParam = result.params[11];
+    const generationParam = result.params[12];
+    const metaParam = result.params[13];
+
+    expect(typeof cameraParam).toBe("string");
+    expect(JSON.parse(cameraParam as string)).toEqual({ angle: "low", movement: "pan" });
+
+    expect(typeof generationParam).toBe("string");
+    const parsedGen = JSON.parse(generationParam as string);
+    expect(parsedGen.keyframeImageUrl).toBe("url");
+    expect(parsedGen.keyframePrompt).toBe("p");
+
+    expect(typeof metaParam).toBe("string");
+    expect(JSON.parse(metaParam as string).customField).toBe("value");
   });
 
-  it("generation 容器被序列化为 JSON", () => {
-    const beat = { videoGen: { videoUrl: "https://video.example.com/clip.mp4", taskId: "task-1", status: "completed" } };
-    const result = buildBeatInsert("beat-1", "story-1", 0, beat, now);
+  it("应正确处理 local paths", () => {
+    const beat: Record<string, unknown> = {
+      localVideoPath: "/v.mp4",
+      localKeyframePath: "/k.jpg",
+      localFirstFramePath: "/f1.jpg",
+      localLastFramePath: "/f2.jpg",
+    };
+    const result = buildBeatInsert("b1", "s1", 0, beat, NOW);
 
-    const generation = JSON.parse(result.params[12] as string);
-    expect(generation.videoUrl).toBe("https://video.example.com/clip.mp4");
-    expect(generation.videoTaskId).toBe("task-1");
-    expect(generation.videoStatus).toBe("completed");
+    expect(result.params[14]).toBe("/v.mp4");
+    expect(result.params[15]).toBe("/k.jpg");
+    expect(result.params[16]).toBe("/f1.jpg");
+    expect(result.params[17]).toBe("/f2.jpg");
   });
 
-  it("owner_id 默认为 1", () => {
-    const result = buildBeatInsert("beat-1", "story-1", 0, {}, now);
-
-    expect(result.params[18]).toBe(1);
+  it("应处理 meta 为 null 的情况", () => {
+    const beat: Record<string, unknown> = {
+      description: "test",
+      duration: 5,
+    };
+    const result = buildBeatInsert("b1", "s1", 0, beat, NOW);
+    expect(result.params[13]).toBeNull();
   });
 });

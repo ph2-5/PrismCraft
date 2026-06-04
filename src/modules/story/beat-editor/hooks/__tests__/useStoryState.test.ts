@@ -904,4 +904,301 @@ describe("useStoryState", () => {
       expect(result.current.beatsRef.current[0].id).toBe("uuid-2");
     });
   });
+
+  describe("moveBeat 边界条件", () => {
+    it("向上移动第一个 beat 应不变化", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      const beforeIds = result.current.beats.map((b) => b.id);
+
+      act(() => {
+        result.current.moveBeat("uuid-1", "up");
+      });
+
+      expect(result.current.beats.map((b) => b.id)).toEqual(beforeIds);
+    });
+
+    it("向下移动最后一个 beat 应不变化", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      const beforeIds = result.current.beats.map((b) => b.id);
+
+      act(() => {
+        result.current.moveBeat("uuid-3", "down");
+      });
+
+      expect(result.current.beats.map((b) => b.id)).toEqual(beforeIds);
+    });
+
+    it("只有一个 beat 时向上移动应不变化", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+      });
+
+      act(() => {
+        result.current.moveBeat("uuid-1", "up");
+      });
+
+      expect(result.current.beats).toHaveLength(1);
+      expect(result.current.beats[0].id).toBe("uuid-1");
+    });
+
+    it("只有一个 beat 时向下移动应不变化", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+      });
+
+      act(() => {
+        result.current.moveBeat("uuid-1", "down");
+      });
+
+      expect(result.current.beats).toHaveLength(1);
+      expect(result.current.beats[0].id).toBe("uuid-1");
+    });
+
+    it("向上移动中间 beat 应与上一个交换", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      act(() => {
+        result.current.moveBeat("uuid-2", "up");
+      });
+
+      expect(result.current.beats[0].id).toBe("uuid-2");
+      expect(result.current.beats[1].id).toBe("uuid-1");
+      expect(result.current.beats[2].id).toBe("uuid-3");
+    });
+
+    it("向下移动中间 beat 应与下一个交换", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      act(() => {
+        result.current.moveBeat("uuid-2", "down");
+      });
+
+      expect(result.current.beats[0].id).toBe("uuid-1");
+      expect(result.current.beats[1].id).toBe("uuid-3");
+      expect(result.current.beats[2].id).toBe("uuid-2");
+    });
+
+    it("移动后 sequence 和 order 应正确重排", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      act(() => {
+        result.current.moveBeat("uuid-1", "down");
+      });
+
+      result.current.beats.forEach((b, i) => {
+        expect(b.sequence).toBe(i + 1);
+        expect(b.order).toBe(i + 1);
+      });
+    });
+
+    it("不存在的 beatId 应不变化", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      const beforeIds = result.current.beats.map((b) => b.id);
+
+      act(() => {
+        result.current.moveBeat("non-existent-id", "up");
+      });
+
+      expect(result.current.beats.map((b) => b.id)).toEqual(beforeIds);
+    });
+  });
+
+  describe("skipDirty 路径", () => {
+    it("setCurrentStory 默认应调用 markDirty", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.setCurrentStory({ ...result.current.currentStory, title: "New" });
+      });
+
+      expect(result.current.hasUnsavedChanges).toBe(true);
+    });
+
+    it("setCurrentStory skipDirty=true 时不应调用 markDirty", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.setCurrentStory(
+          { ...result.current.currentStory, title: "New" },
+          true,
+        );
+      });
+
+      expect(result.current.hasUnsavedChanges).toBe(false);
+    });
+
+    it("setBeats 默认应调用 markDirty", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.setBeats([]);
+      });
+
+      expect(result.current.hasUnsavedChanges).toBe(true);
+    });
+
+    it("setBeats skipDirty=true 时不应调用 markDirty", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.setBeats([], true);
+      });
+
+      expect(result.current.hasUnsavedChanges).toBe(false);
+    });
+  });
+
+  describe("addBeat 位置", () => {
+    it("不指定参数应添加到末尾", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      expect(result.current.beats).toHaveLength(2);
+      expect(result.current.beats[1].id).toBe("uuid-2");
+    });
+
+    it("指定 type 参数应添加到末尾并设置类型", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat("scene");
+        result.current.addBeat("dialogue");
+      });
+
+      expect(result.current.beats).toHaveLength(2);
+      expect(result.current.beats[0].type).toBe("scene");
+      expect(result.current.beats[1].type).toBe("dialogue");
+      expect(result.current.beats[1].id).toBe("uuid-2");
+    });
+
+    it("空数组添加应成为唯一 beat", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+      });
+
+      expect(result.current.beats).toHaveLength(1);
+      expect(result.current.beats[0].sequence).toBe(1);
+      expect(result.current.beats[0].order).toBe(1);
+    });
+
+    it("多次添加应依次追加到末尾", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      expect(result.current.beats.map((b) => b.id)).toEqual(["uuid-1", "uuid-2", "uuid-3"]);
+    });
+  });
+
+  describe("deleteBeat 重排", () => {
+    it("删除中间 beat 后 sequence 应连续", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      act(() => {
+        result.current.deleteBeat("uuid-2");
+      });
+
+      expect(result.current.beats).toHaveLength(3);
+      expect(result.current.beats.map((b) => b.sequence)).toEqual([1, 2, 3]);
+      expect(result.current.beats.map((b) => b.order)).toEqual([1, 2, 3]);
+    });
+
+    it("删除第一个 beat 后 sequence 应从 1 开始", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      act(() => {
+        result.current.deleteBeat("uuid-1");
+      });
+
+      expect(result.current.beats).toHaveLength(2);
+      expect(result.current.beats[0].sequence).toBe(1);
+      expect(result.current.beats[0].order).toBe(1);
+      expect(result.current.beats[1].sequence).toBe(2);
+      expect(result.current.beats[1].order).toBe(2);
+    });
+
+    it("删除不存在的 beatId 应不变化", () => {
+      const { result } = renderHook(() => useStoryState());
+
+      act(() => {
+        result.current.addBeat();
+        result.current.addBeat();
+      });
+
+      const beforeIds = result.current.beats.map((b) => b.id);
+
+      act(() => {
+        result.current.deleteBeat("non-existent-id");
+      });
+
+      expect(result.current.beats.map((b) => b.id)).toEqual(beforeIds);
+      expect(result.current.beats).toHaveLength(2);
+    });
+  });
 });

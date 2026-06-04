@@ -552,3 +552,213 @@ describe("generateKeyframeChain", () => {
     expect(result.value.size).toBe(0);
   });
 });
+
+describe("generateBeatKeyframe 引用组合", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("有 characterRef 无 sceneRef 时应传递 characterRef", async () => {
+    (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { imageUrl: "generated.jpg", prompt: "prompt" },
+    });
+
+    await generateBeatKeyframe(mockBeat, null, { characterRef: "char-ref-1" }, providers);
+
+    expect(videoProvider.generateKeyframe).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: "char-ref-1", sceneRef: undefined }),
+    );
+  });
+
+  it("有 sceneRef 无 characterRef 时应传递 sceneRef", async () => {
+    (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { imageUrl: "generated.jpg", prompt: "prompt" },
+    });
+
+    await generateBeatKeyframe(mockBeat, null, { sceneRef: "scene-ref-1" }, providers);
+
+    expect(videoProvider.generateKeyframe).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: undefined, sceneRef: "scene-ref-1" }),
+    );
+  });
+
+  it("两者都有时应同时传递", async () => {
+    (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { imageUrl: "generated.jpg", prompt: "prompt" },
+    });
+
+    await generateBeatKeyframe(mockBeat, null, { characterRef: "char-ref-1", sceneRef: "scene-ref-1" }, providers);
+
+    expect(videoProvider.generateKeyframe).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: "char-ref-1", sceneRef: "scene-ref-1" }),
+    );
+  });
+
+  it("两者都无时都不应传递引用", async () => {
+    (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { imageUrl: "generated.jpg", prompt: "prompt" },
+    });
+
+    await generateBeatKeyframe(mockBeat, null, {}, providers);
+
+    expect(videoProvider.generateKeyframe).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: undefined, sceneRef: undefined }),
+    );
+  });
+});
+
+describe("generateBeatFramePair 引用组合", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("有 characterRef 无 sceneRef 时应传递 characterRef", async () => {
+    const beat = { ...mockBeat, keyframe: mockKeyframe };
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
+
+    await generateBeatFramePair(beat, { characterRef: "char-ref-1", prevLastFrameUrl: "prev-last.jpg" }, providers);
+
+    expect(videoProvider.generateFramePair).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: "char-ref-1", sceneRef: undefined }),
+    );
+  });
+
+  it("有 sceneRef 无 characterRef 时应传递 sceneRef", async () => {
+    const beat = { ...mockBeat, keyframe: mockKeyframe };
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
+
+    await generateBeatFramePair(beat, { sceneRef: "scene-ref-1", prevLastFrameUrl: "prev-last.jpg" }, providers);
+
+    expect(videoProvider.generateFramePair).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: undefined, sceneRef: "scene-ref-1" }),
+    );
+  });
+
+  it("两者都有时应同时传递", async () => {
+    const beat = { ...mockBeat, keyframe: mockKeyframe };
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
+
+    await generateBeatFramePair(beat, { characterRef: "char-ref-1", sceneRef: "scene-ref-1", prevLastFrameUrl: "prev-last.jpg" }, providers);
+
+    expect(videoProvider.generateFramePair).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: "char-ref-1", sceneRef: "scene-ref-1" }),
+    );
+  });
+
+  it("两者都无时都不应传递引用", async () => {
+    const beat = { ...mockBeat, keyframe: mockKeyframe };
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
+
+    await generateBeatFramePair(beat, { prevLastFrameUrl: "prev-last.jpg" }, providers);
+
+    expect(videoProvider.generateFramePair).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: undefined, sceneRef: undefined }),
+    );
+  });
+});
+
+describe("generateBeatVideo 引用组合", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("有 characterRef 无 sceneRef 时应传递 characterRef", async () => {
+    const beat = {
+      ...mockBeat,
+      framePair: { ...mockFramePair, firstFrameUrl: "http://example.com/first.jpg" },
+    };
+    (videoProvider.generateVideoWithFrames as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { taskId: "task-1", status: "pending" },
+    });
+
+    await generateBeatVideo(beat, { characterRef: "char-ref-1" }, providers);
+
+    expect(videoProvider.generateVideoWithFrames).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: "char-ref-1", sceneRef: undefined }),
+    );
+  });
+
+  it("有 sceneRef 无 characterRef 时应传递 sceneRef", async () => {
+    const beat = {
+      ...mockBeat,
+      framePair: { ...mockFramePair, firstFrameUrl: "http://example.com/first.jpg" },
+    };
+    (videoProvider.generateVideoWithFrames as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { taskId: "task-1", status: "pending" },
+    });
+
+    await generateBeatVideo(beat, { sceneRef: "scene-ref-1" }, providers);
+
+    expect(videoProvider.generateVideoWithFrames).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: undefined, sceneRef: "scene-ref-1" }),
+    );
+  });
+
+  it("两者都有时应同时传递", async () => {
+    const beat = {
+      ...mockBeat,
+      framePair: { ...mockFramePair, firstFrameUrl: "http://example.com/first.jpg" },
+    };
+    (videoProvider.generateVideoWithFrames as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { taskId: "task-1", status: "pending" },
+    });
+
+    await generateBeatVideo(beat, { characterRef: "char-ref-1", sceneRef: "scene-ref-1" }, providers);
+
+    expect(videoProvider.generateVideoWithFrames).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: "char-ref-1", sceneRef: "scene-ref-1" }),
+    );
+  });
+
+  it("两者都无时都不应传递引用", async () => {
+    const beat = {
+      ...mockBeat,
+      framePair: { ...mockFramePair, firstFrameUrl: "http://example.com/first.jpg" },
+    };
+    (videoProvider.generateVideoWithFrames as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { taskId: "task-1", status: "pending" },
+    });
+
+    await generateBeatVideo(beat, {}, providers);
+
+    expect(videoProvider.generateVideoWithFrames).toHaveBeenCalledWith(
+      expect.objectContaining({ characterRef: undefined, sceneRef: undefined }),
+    );
+  });
+});

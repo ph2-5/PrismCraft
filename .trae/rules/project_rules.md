@@ -225,6 +225,9 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 | `npm run lint:arch` | Architecture violation scan |
 | `npm run test` | Vitest unit tests |
 | `npm run test:coverage` | Vitest with coverage report |
+| `npm run test:e2e` | Playwright e2e tests (browser mode with electron-mock) |
+| `npm run test:e2e:electron` | Playwright e2e tests (Electron mode, requires `npm run build:electron` first) |
+| `npm run test:e2e:pages` | Playwright page load tests (Electron mode) |
 | `npm run validate` | typecheck + typecheck:electron + typecheck:test + lint + lint:arch + module API consistency + contract validation + test |
 | `npm run validate:full` | validate + coverage report with threshold enforcement |
 
@@ -348,12 +351,27 @@ export default defineConfig({
 
 ## Testing
 
-- Framework: Vitest
-- Run: `npx vitest run`
+- Framework: Vitest (unit) + Playwright (e2e)
+- Unit tests: `npx vitest run`
 - Module integration tests in `__tests__/` directories
 - Test files follow `*.test.ts` or `*.test.tsx` naming
 - better-sqlite3 must be rebuilt for Node.js before testing (`npm rebuild better-sqlite3`)
 - Before Electron packaging, better-sqlite3 is auto-rebuilt by `@electron/rebuild`
+
+### E2E Testing
+
+Two modes available:
+
+1. **Browser mode** (`npx playwright test`) — Uses `electron-mock.ts` to simulate Electron APIs in Chromium. No Electron build required. Good for UI workflow tests.
+
+2. **Electron mode** (`npx playwright test --config=playwright.electron-all.config.ts`) — Launches real Electron app via custom `_electron` fixture. Requires `npm run build:electron` first, then `npm run rebuild` to match Electron's Node.js version. Tests in `tests/electron/`.
+
+3. **Page load tests** (`npx playwright test --config=playwright.electron-pages.config.ts`) — Checks each page loads without critical console errors in Electron. Tests in `tests/electron-pages.spec.ts`.
+
+Electron e2e test infrastructure:
+- `tests/helpers/electron-fixture.ts` — Custom Playwright fixture that launches Electron app
+- `tests/helpers/electron-page-helpers.ts` — Navigation helpers for Electron (uses `http://localhost:3000` base URL)
+- `tests/electron/` — 6 test files adapted for Electron environment
 
 ## Lint & Type Check
 
@@ -483,11 +501,11 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 67 guards:**
+**Quick reference — all 68 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
-| 数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66 | 数据不丢、不脏、不冲突：持久化先于状态、级联删除、乐观锁、脏状态守卫、SQL安全 |
+| 数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68 | 数据不丢、不脏、不冲突：持久化先于状态、级联删除、乐观锁、脏状态守卫、SQL安全、reload恢复UI状态 |
 | 异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67 | 并发、竞态、轮询、生命周期：去重、所有权验证、Zustand函数式更新、轮询标志重置、卸载保护 |
 | 错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63 | 错误不吞、不假成功、用户可理解：通知用户、可识别标签、mapUserFacingError、t()国际化 |
 | UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35 | 界面不崩、有反馈、无泄漏：video onError守卫、ErrorBoundary重试限制、加载状态、Blob URL回收 |

@@ -3,18 +3,18 @@
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >
-> **Total: 67 rules | 6 categories**
+> **Total: 68 rules | 6 categories**
 
 ## 目录
 
-- [一、数据一致性（14 条）](#一数据一致性14-条) — 数据不丢、不脏、不冲突
+- [一、数据一致性（15 条）](#一数据一致性15-条) — 数据不丢、不脏、不冲突
 - [二、异步安全（13 条）](#二异步安全13-条) — 并发、竞态、轮询、生命周期
 - [三、错误处理（11 条）](#三错误处理11-条) — 错误不吞、不假成功、用户可理解
 - [四、UI 健壮性（9 条）](#四ui-健壮性9-条) — 界面不崩、有反馈、无泄漏
 - [五、工程质量（14 条）](#五工程质量14-条) — 依赖合规、构建安全、测试可靠
 - [六、平台兼容（6 条）](#六平台兼容6-条) — IPC、Electron 环境、进程模型
 
-## 一、数据一致性（14 条）
+## 一、数据一致性（15 条）
 
 > 核心关注：数据不丢、不脏、不冲突
 
@@ -354,6 +354,50 @@ try {
 **Verification**: Every `catch` block in a save/persistence operation must call `markDirty()` for the affected entity, unless the error is a validation error (no data to persist).
 
 **Discovered in**: `useStoryPersistence` caught video URL save failures but didn't re-mark "story" as dirty. After a failed save, the auto-save system saw the story as clean and never retried. Users lost video URL associations when switching stories.
+
+### R68: Page Reload MUST Restore UI State from Persistent Storage
+
+When a Provider component loads data from persistent storage on mount (e.g., `storyService.getAll()`), it MUST restore the full UI state — not just the list but also the currently selected entity and its children. Loading only the list without restoring the selected entity leaves the UI in an inconsistent state: the list shows data but the detail panel is empty or shows stale data.
+
+**BAD** — Loads list but doesn't restore selected entity:
+```typescript
+useEffect(() => {
+  storyService.getAll().then((result) => {
+    if (result.ok) {
+      setStories(result.value);
+      // currentStory, beats still at default → UI shows empty detail
+    }
+  });
+}, []);
+```
+
+**GOOD** — Restores selected entity and children:
+```typescript
+const setCurrentStoryRef = useRef(setCurrentStory);
+useEffect(() => { setCurrentStoryRef.current = setCurrentStory; }, [setCurrentStory]);
+const setBeatsRef = useRef(setBeats);
+useEffect(() => { setBeatsRef.current = setBeats; }, [setBeats]);
+const markCleanRef = useRef(markClean);
+useEffect(() => { markCleanRef.current = markClean; }, [markClean]);
+
+useEffect(() => {
+  let cancelled = false;
+  storyService.getAll().then((result) => {
+    if (!cancelled && result.ok && result.value.length > 0) {
+      setStoriesRef.current(result.value);
+      const firstStory = result.value[0];
+      setCurrentStoryRef.current(firstStory, true);
+      setBeatsRef.current(firstStory.beats || [], true);
+      markCleanRef.current("story");
+    }
+  });
+  return () => { cancelled = true; };
+}, []);
+```
+
+**Verification**: For any Provider that loads a list from storage, check that the selected entity and its children are also restored. Search for `getAll()` or similar list-loading calls in Provider components and verify they also call `setCurrent*` and `markClean`.
+
+**Discovered in**: `StoryProvider` loaded stories list on mount but didn't restore `currentStory` or `beats`. After page reload (Ctrl+R), the story list appeared in the sidebar but the detail panel was empty — no beats, no selected story. Users had to manually click a story to see its content.
 
 ## 二、异步安全（13 条）
 

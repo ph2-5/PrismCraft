@@ -445,6 +445,12 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
 
   const setStoriesRef = useRef(value.setStories);
   useEffect(() => { setStoriesRef.current = value.setStories; }, [value.setStories]);
+  const setCurrentStoryRef = useRef(value.setCurrentStory);
+  useEffect(() => { setCurrentStoryRef.current = value.setCurrentStory; }, [value.setCurrentStory]);
+  const setBeatsRef = useRef(value.setBeats);
+  useEffect(() => { setBeatsRef.current = value.setBeats; }, [value.setBeats]);
+  const markCleanRef = useRef(value.markClean);
+  useEffect(() => { markCleanRef.current = value.markClean; }, [value.markClean]);
   const showErrorRef2 = useRef(value.showError);
   useEffect(() => { showErrorRef2.current = value.showError; }, [value.showError]);
 
@@ -455,6 +461,10 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
       .then((result) => {
         if (!cancelled && result.ok && result.value.length > 0) {
           setStoriesRef.current(result.value);
+          const firstStory = result.value[0];
+          setCurrentStoryRef.current(firstStory, true);
+          setBeatsRef.current(firstStory.beats || [], true);
+          markCleanRef.current("story");
         }
       })
       .catch((err) => {

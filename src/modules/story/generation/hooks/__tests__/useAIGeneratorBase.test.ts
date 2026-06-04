@@ -744,4 +744,272 @@ describe("useAIGeneratorBase", () => {
       expect(signals.every((s) => s.aborted)).toBe(true);
     });
   });
+
+  describe("withGenerationState 中断与清理", () => {
+    it("withGenerationState 成功完成后应清除控制器和 Promise 引用", async () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const firstFn = vi.fn().mockResolvedValue("first result");
+      await act(async () => {
+        await result.current.withGenerationState("beat-1", firstFn, "Error");
+      });
+
+      const secondFn = vi.fn().mockResolvedValue("second result");
+      await act(async () => {
+        const res = await result.current.withGenerationState("beat-1", secondFn, "Error");
+        expect(res).toBe("second result");
+      });
+
+      expect(firstFn).toHaveBeenCalledTimes(1);
+      expect(secondFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("withGenerationState 中途 abort 时 catch 块应正确处理", async () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      let rejectFn: ((err: Error) => void) | null = null;
+      const fn = vi.fn().mockImplementation((_signal: AbortSignal) => {
+        return new Promise((_resolve, reject) => {
+          rejectFn = reject;
+        });
+      });
+
+      let hookResult: string | void | undefined;
+      const promise = act(async () => {
+        hookResult = await result.current.withGenerationState("beat-1", fn, "Error");
+      });
+
+      act(() => {
+        result.current.abortGeneration("beat-1");
+      });
+
+      if (rejectFn) {
+        await act(async () => {
+          (rejectFn as (err: Error) => void)(new DOMException("The operation was aborted", "AbortError"));
+        });
+      }
+
+      await promise;
+
+      expect(props.showError).not.toHaveBeenCalled();
+      expect(hookResult).toBeUndefined();
+    });
+
+    it("withGenerationState finally 块应始终清除状态", async () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const fn = vi.fn().mockRejectedValue(new Error("operation failed"));
+      await act(async () => {
+        await result.current.withGenerationState("beat-1", fn, "Error");
+      });
+
+      const nullCalls = (props.setGenerating as unknown as ReturnType<typeof vi.fn>).mock.calls.filter(
+        (call: unknown[]) => call[0] === null,
+      );
+      expect(nullCalls.length).toBeGreaterThanOrEqual(1);
+
+      const secondFn = vi.fn().mockResolvedValue("recovery result");
+      await act(async () => {
+        const res = await result.current.withGenerationState("beat-1", secondFn, "Error");
+        expect(res).toBe("recovery result");
+      });
+      expect(secondFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("快速连续调用 withGenerationState 应只执行最后一次", async () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      let firstResolve: ((value: string) => void) | null = null;
+      const firstFn = vi.fn().mockImplementation((_signal: AbortSignal) => {
+        return new Promise<string>((resolve) => {
+          firstResolve = resolve;
+        });
+      });
+
+      act(() => {
+        result.current.withGenerationState("beat-1", firstFn, "Error");
+      });
+
+      act(() => {
+        result.current.abortGeneration("beat-1");
+      });
+
+      if (firstResolve) {
+        await act(async () => {
+          firstResolve!("first result");
+        });
+      }
+
+      const secondFn = vi.fn().mockResolvedValue("second result");
+      await act(async () => {
+        const res = await result.current.withGenerationState("beat-1", secondFn, "Error");
+        expect(res).toBe("second result");
+      });
+
+      expect(firstFn).toHaveBeenCalledTimes(1);
+      expect(secondFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("withGenerationState 异步操作失败时应正确报告错误", async () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const error = new Error("generation failed");
+      const fn = vi.fn().mockRejectedValue(error);
+
+      let hookResult: string | void | undefined;
+      await act(async () => {
+        hookResult = await result.current.withGenerationState("beat-1", fn, "生成失败");
+      });
+
+      expect(getErrorMessage).toHaveBeenCalledWith(error);
+      expect(props.showError).toHaveBeenCalledWith("生成失败", "mocked error message");
+      expect(hookResult).toBeUndefined();
+      expect(props.setGenerating).toHaveBeenCalledWith("beat-1");
+      expect(props.setGenerating).toHaveBeenCalledWith(null);
+    });
+  });
+
+  describe("abortGeneration 清理", () => {
+    it("abortGeneration 应中止当前控制器", async () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      let capturedSignal: AbortSignal | null = null;
+      const fn = vi.fn().mockImplementation((signal: AbortSignal) => {
+        capturedSignal = signal;
+        return new Promise(() => {});
+      });
+
+      act(() => {
+        result.current.withGenerationState("beat-1", fn, "Error");
+      });
+
+      expect(capturedSignal).not.toBeNull();
+      expect(capturedSignal!.aborted).toBe(false);
+
+      act(() => {
+        result.current.abortGeneration("beat-1");
+      });
+
+      expect(capturedSignal!.aborted).toBe(true);
+      expect(props.setGenerating).toHaveBeenCalledWith(null);
+    });
+
+    it("abortGeneration 应清除 Promise 引用", async () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const firstFn = vi.fn().mockImplementation(() => new Promise(() => {}));
+
+      act(() => {
+        result.current.withGenerationState("beat-1", firstFn, "Error");
+      });
+
+      act(() => {
+        result.current.abortGeneration("beat-1");
+      });
+
+      const secondFn = vi.fn().mockResolvedValue("new result");
+      await act(async () => {
+        const res = await result.current.withGenerationState("beat-1", secondFn, "Error");
+        expect(res).toBe("new result");
+      });
+
+      expect(secondFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("没有正在进行的操作时 abortGeneration 应安全退出", () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      expect(() => {
+        result.current.abortGeneration();
+      }).not.toThrow();
+
+      expect(() => {
+        result.current.abortGeneration("nonexistent");
+      }).not.toThrow();
+
+      expect(props.setGenerating).toHaveBeenCalledWith(null);
+    });
+  });
+
+  describe("resolveRefs 边界条件", () => {
+    it("resolveRefs 空 beats 数组应返回空引用", () => {
+      const props = createDefaultProps();
+      props.beatsRef.current = [];
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const beat: StoryBeat = {
+        id: "beat-x",
+        sequence: 0,
+        description: "test",
+        type: "scene",
+        characterIds: [],
+        sceneId: undefined,
+        characters: [],
+        elementIds: [],
+        enhancedGeneration: false,
+      };
+
+      const refs = result.current.resolveRefs(beat);
+      expect(refs.characterRef).toBeUndefined();
+      expect(refs.sceneRef).toBeUndefined();
+      expect(refs.prevBeat).toBeNull();
+    });
+
+    it("resolveRefs 不存在的 characterId/sceneId 应跳过", () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const beatWithBadRefs: StoryBeat = {
+        ...mockBeat1,
+        characterIds: ["nonexistent-char"],
+        sceneId: "nonexistent-scene",
+      };
+
+      const refs = result.current.resolveRefs(beatWithBadRefs);
+      expect(refs.characterRef).toBeUndefined();
+      expect(refs.sceneRef).toBeUndefined();
+    });
+  });
+
+  describe("checkModelConfig 边界条件", () => {
+    it("checkModelConfig 无效模型配置应返回错误", () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const model = {
+        providerId: "",
+        modelId: "",
+        providerName: "",
+        modelName: "",
+      } as ModelSelection;
+
+      const valid = result.current.checkModelConfig(model, "配置错误", "请选择有效模型");
+      expect(valid).toBe(false);
+      expect(props.showError).toHaveBeenCalledWith("配置错误", "请选择有效模型");
+    });
+
+    it("checkModelConfig 无 API 配置应返回错误", () => {
+      const props = createDefaultProps();
+      const { result } = renderHook(() => useAIGeneratorBase(props));
+
+      const model = {
+        providerId: "provider-1",
+        modelId: "",
+        providerName: "Test Provider",
+        modelName: "",
+      } as ModelSelection;
+
+      const valid = result.current.checkModelConfig(model, "配置错误", "请配置API密钥");
+      expect(valid).toBe(false);
+      expect(props.showError).toHaveBeenCalledWith("配置错误", "请配置API密钥");
+    });
+  });
 });

@@ -498,6 +498,7 @@ interface PromptEditorState { prompt: string; isGenerating: boolean; error: stri
 3. **类型来源**：所有类型必须从 `@/domain/types` 或 `@/domain/schemas` 导入
 4. **基础设施访问**：通过 DI 容器（`container.xxx`）或 `@/shared/` 代理导出访问，禁止直接导入 `@/infrastructure/*`（除 `@/infrastructure/di`）
 5. **Dirty 状态抑制**：`useStoryState` 使用 `suppressDirtyCountRef`（计数器）而非布尔值，确保保存后多次 beats 变更都能被正确抑制，避免 dirty 状态残留导致页面无法跳转
+6. **StoryProvider 初始化恢复**：`StoryProvider` 挂载时从 `storyService.getAll()` 加载故事列表后，必须同时恢复 `currentStory`（第一个故事）和 `beats`（该故事的分镜），并调用 `markClean("story")`。仅加载列表而不恢复选中实体会导致 UI 不一致（侧边栏有数据但详情面板为空）。使用 ref 避免闭包陷阱（R68）
 
 ---
 

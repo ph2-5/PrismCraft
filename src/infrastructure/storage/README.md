@@ -44,3 +44,18 @@ Storage modules provide persistent data access via SQLite (better-sqlite3, WAL m
 - `trackChange()` called after mutations for sync engine awareness
 - `buildUpdateSets()` + `FieldTarget` maps handle fixed columns and JSON containers uniformly
 - Tables use 7-field base columns: `owner_id`, `created_at`, `updated_at`, `is_deleted`, `deleted_at`, `version`, `sync_id`
+
+## Roundtrip Tests
+
+Storage modules with JSON containers have roundtrip (serialization → deserialization) tests to ensure data integrity:
+
+| Module | Test File | Coverage |
+|--------|-----------|----------|
+| characters | `characters/__tests__/parser-roundtrip.test.ts` | 4 JSON containers + 25+ fields roundtrip |
+| characters | `characters/__tests__/video-gen-status-roundtrip.test.ts` | videoGenerationStatus bidirectional mapping |
+| video-tasks | `video-tasks/__tests__/parser-roundtrip.test.ts` | 4 JSON containers + 30+ fields + `buildUpdateSets` partial updates |
+| video-tasks | `video-tasks/__tests__/timestamp-roundtrip.test.ts` | ISO/ms/s timestamp conversion + edge cases |
+| stories | `stories/__tests__/beat-transformer.test.ts` | `flattenBeat` + `buildBeatInsert` serialization |
+| stories | `stories/__tests__/beat-roundtrip.test.ts` | StoryBeat full roundtrip |
+
+These tests verify that: (1) `parseXxx()` correctly reconstructs domain objects from DB records, (2) `buildInsert`/`buildUpdateSets` correctly serializes domain objects to SQL parameters, (3) JSON container fields survive the roundtrip without loss or corruption.

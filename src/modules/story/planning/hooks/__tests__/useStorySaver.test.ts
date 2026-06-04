@@ -63,6 +63,14 @@ vi.mock("@/shared/presentation/Toast", () => ({
   })),
 }));
 
+vi.mock("@/shared/utils/user-facing-error", () => ({
+  mapUserFacingError: vi.fn((e: unknown) => e instanceof Error ? e.message : String(e)),
+}));
+
+vi.mock("@/shared/constants", () => ({
+  t: vi.fn((key: string) => key),
+}));
+
 vi.mock("@/domain/types/result", () => ({
   fromAsyncThrowable: (fn: () => Promise<unknown>) => {
     return fn().then(
@@ -171,6 +179,341 @@ describe("useStorySaver regression tests", () => {
       });
 
       expect(mockSetStories).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handleSave", () => {
+    function createBeat(overrides: Partial<StoryBeat> = {}): StoryBeat {
+      return {
+        id: "beat-1",
+        sequence: 0,
+        description: "A test beat",
+        duration: 5,
+        characters: [],
+        elementIds: [],
+        characterIds: [],
+        ...overrides,
+      };
+    }
+
+    function createPropsWithBeats(overrides: { storyId?: string; beats?: StoryBeat[] } = {}) {
+      const props = createDefaultProps();
+      const story: Story = {
+        ...props.currentStory,
+        id: overrides.storyId ?? "story-1",
+      };
+      props.currentStory = story;
+      props.stories = [story];
+      props.beats = overrides.beats ?? [createBeat()];
+      return props;
+    }
+
+    describe("基本保存流程", () => {
+      it("handleSave 更新已有故事时应调用 storyService.update 并更新状态", async () => {
+        const props = createPropsWithBeats({ storyId: "story-1" });
+        const mockSetStories = vi.fn();
+        props.setStories = mockSetStories;
+        const mockSetCurrentStory = vi.fn();
+        props.setCurrentStory = mockSetCurrentStory;
+        const mockMarkClean = vi.fn();
+        props.markClean = mockMarkClean;
+
+        mockStoryService.update.mockResolvedValue({ ok: true, value: undefined });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockStoryService.update).toHaveBeenCalled();
+        expect(mockSetStories).toHaveBeenCalled();
+        expect(mockMarkClean).toHaveBeenCalledWith("story");
+        expect(result.current.saveStatus).toBe("saved");
+      });
+
+      it("handleSave 创建新故事时应调用 storyService.create 并用返回的 ID 更新状态", async () => {
+        const props = createPropsWithBeats({ storyId: "" });
+        const mockSetCurrentStory = vi.fn();
+        props.setCurrentStory = mockSetCurrentStory;
+
+        mockStoryService.create.mockResolvedValue({ ok: true, value: { id: "new-story-id", title: "未命名分镜" } });
+        mockStoryService.getAll.mockResolvedValue({ ok: true, value: [] });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockStoryService.create).toHaveBeenCalled();
+        expect(mockSetCurrentStory).toHaveBeenCalledWith(
+          expect.objectContaining({ id: "new-story-id" }),
+          true,
+        );
+      });
+
+      it("handleSave beats 为空时应显示错误不调用 service", async () => {
+        const props = createPropsWithBeats({ beats: [] });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockStoryService.update).not.toHaveBeenCalled();
+        expect(mockStoryService.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("字段组合保存测试", () => {
+      it("handleSave 应正确传递包含所有文本字段的 beat", async () => {
+        const beat = createBeat({
+          title: "标题",
+          content: "内容",
+          description: "描述",
+          character: "角色A",
+          scene: "场景B",
+          generationPrompt: "生成提示词",
+          imageGenerationPrompt: "图片生成提示词",
+          firstFramePrompt: "首帧提示词",
+          lastFramePrompt: "尾帧提示词",
+          transition: "转场效果",
+        });
+        const props = createPropsWithBeats({ beats: [beat] });
+
+        mockStoryService.update.mockResolvedValue({ ok: true, value: undefined });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        const updateCall = mockStoryService.update.mock.calls[0];
+        const savedBeats = updateCall[1].beats;
+        expect(savedBeats[0]).toMatchObject({
+          title: "标题",
+          content: "内容",
+          description: "描述",
+          character: "角色A",
+          scene: "场景B",
+          generationPrompt: "生成提示词",
+          imageGenerationPrompt: "图片生成提示词",
+          firstFramePrompt: "首帧提示词",
+          lastFramePrompt: "尾帧提示词",
+          transition: "转场效果",
+        });
+      });
+
+      it("handleSave 应正确传递只有必填字段的 beat", async () => {
+        const beat = createBeat({
+          id: "beat-min",
+          sequence: 1,
+          description: "最小beat",
+          duration: 3,
+        });
+        const props = createPropsWithBeats({ beats: [beat] });
+
+        mockStoryService.update.mockResolvedValue({ ok: true, value: undefined });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockStoryService.update).toHaveBeenCalled();
+        expect(result.current.saveStatus).toBe("saved");
+      });
+
+      it("handleSave 应正确传递部分字段为空的 beat", async () => {
+        const beat = createBeat({
+          title: "有标题",
+          content: "有内容",
+          generationPrompt: undefined,
+          imageUrl: undefined,
+        });
+        const props = createPropsWithBeats({ beats: [beat] });
+
+        mockStoryService.update.mockResolvedValue({ ok: true, value: undefined });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockStoryService.update).toHaveBeenCalled();
+        expect(result.current.saveStatus).toBe("saved");
+      });
+    });
+
+    describe("图片/视频字段保存测试", () => {
+      it("handleSave 应正确传递包含图片上传字段的 beat", async () => {
+        const beat = createBeat({
+          uploadedKeyframe: "data:image/png;base64,xxx",
+          uploadedFramePair: { firstFrame: "url1", lastFrame: "url2" },
+          imageUrl: "https://example.com/img.jpg",
+        });
+        const props = createPropsWithBeats({ beats: [beat] });
+
+        mockStoryService.update.mockResolvedValue({ ok: true, value: undefined });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        const updateCall = mockStoryService.update.mock.calls[0];
+        const savedBeats = updateCall[1].beats;
+        expect(savedBeats[0]).toMatchObject({
+          uploadedKeyframe: "data:image/png;base64,xxx",
+          uploadedFramePair: { firstFrame: "url1", lastFrame: "url2" },
+          imageUrl: "https://example.com/img.jpg",
+        });
+      });
+
+      it("handleSave 应正确传递包含视频字段的 beat", async () => {
+        const beat = createBeat({
+          videoGen: {
+            videoUrl: "https://example.com/video.mp4",
+            taskId: "task-1",
+            status: "completed",
+          },
+          uploadedVideo: "local-path",
+          videoReferenceUrl: "https://example.com/ref.mp4",
+        });
+        const props = createPropsWithBeats({ beats: [beat] });
+
+        mockStoryService.update.mockResolvedValue({ ok: true, value: undefined });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        const updateCall = mockStoryService.update.mock.calls[0];
+        const savedBeats = updateCall[1].beats;
+        expect(savedBeats[0]).toMatchObject({
+          videoGen: {
+            videoUrl: "https://example.com/video.mp4",
+            taskId: "task-1",
+            status: "completed",
+          },
+          uploadedVideo: "local-path",
+          videoReferenceUrl: "https://example.com/ref.mp4",
+        });
+      });
+
+      it("handleSave 应正确传递包含 keyframe/framePair 生成结果的 beat", async () => {
+        const beat = createBeat({
+          keyframe: {
+            imageUrl: "url",
+            prompt: "prompt",
+            generatedAt: "1234",
+          },
+          framePair: {
+            firstFrame: { imageUrl: "url1", prompt: "p1", derivedFrom: "beat-0" },
+            lastFrame: { imageUrl: "url2", prompt: "p2", derivedFrom: "beat-0" },
+            generatedAt: "1234",
+          },
+        });
+        const props = createPropsWithBeats({ beats: [beat] });
+
+        mockStoryService.update.mockResolvedValue({ ok: true, value: undefined });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockStoryService.update).toHaveBeenCalled();
+        expect(result.current.saveStatus).toBe("saved");
+      });
+
+      it("handleSave 应正确传递混合图片和视频状态的 beat", async () => {
+        const beat = createBeat({
+          keyframe: { imageUrl: "url", prompt: "prompt" },
+          uploadedKeyframe: "data:image/png;base64,mixed",
+        });
+        const props = createPropsWithBeats({ beats: [beat] });
+
+        mockStoryService.update.mockResolvedValue({ ok: true, value: undefined });
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockStoryService.update).toHaveBeenCalled();
+        expect(result.current.saveStatus).toBe("saved");
+      });
+    });
+
+    describe("保存失败场景", () => {
+      it("handleSave 保存失败时应标记脏状态并显示错误", async () => {
+        const props = createPropsWithBeats();
+        const mockMarkDirty = vi.fn();
+        props.markDirty = mockMarkDirty;
+
+        mockStoryService.update.mockRejectedValue(new Error("DB error"));
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockMarkDirty).toHaveBeenCalledWith("story");
+        expect(result.current.saveStatus).toBe("error");
+      });
+
+      it("handleSave 保存失败时不应更新 stories 状态", async () => {
+        const props = createPropsWithBeats();
+        const mockSetStories = vi.fn();
+        props.setStories = mockSetStories;
+
+        mockStoryService.update.mockRejectedValue(new Error("DB error"));
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        await act(async () => {
+          await result.current.handleSave();
+        });
+
+        expect(mockSetStories).not.toHaveBeenCalled();
+      });
+
+      it("handleSave 并发保存时应跳过第二次", async () => {
+        const props = createPropsWithBeats();
+
+        let resolveFirst!: (value: unknown) => void;
+        mockStoryService.update.mockImplementation(
+          () => new Promise((resolve) => { resolveFirst = resolve; }),
+        );
+
+        const { result } = renderHook(() => useStorySaver(props));
+
+        act(() => {
+          result.current.handleSave();
+        });
+
+        await act(async () => {
+          result.current.handleSave();
+        });
+
+        expect(mockStoryService.update).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+          resolveFirst({ ok: true, value: undefined });
+        });
+      });
     });
   });
 });

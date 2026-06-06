@@ -1,6 +1,6 @@
 # AI Animation Studio 部署与运维指南
 
-> 版本：0.9.0 | 更新日期：2026-06-03
+> 版本：0.9.1 | 更新日期：2026-06-06
 
 ## 1. 环境要求
 
@@ -186,7 +186,7 @@ npm run rebuild    # 等价于 npx electron-rebuild
 npm run build:win
 ```
 
-产物：NSIS 安装程序（`release/AI Animation Studio Setup 0.9.0.exe`）
+产物：NSIS 安装程序（`release/AI Animation Studio Setup 0.9.1.exe`）
 
 NSIS 配置：
 - 非一键安装，允许用户选择安装目录
@@ -285,8 +285,8 @@ npm run validate:full
 3. **创建版本标签：**
 
 ```powershell
-git tag v0.9.0
-git push origin v0.9.0
+git tag v0.9.1
+git push origin v0.9.1
 ```
 
 4. **自动触发 Release 流水线**（`.github/workflows/release.yml`）

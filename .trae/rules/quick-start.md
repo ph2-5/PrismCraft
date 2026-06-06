@@ -19,6 +19,11 @@
 | Storage layer | `src/infrastructure/storage/` |
 | Electron main | `electron/src/main.ts` |
 | Vite config | `vite.config.ts` |
+| Plugin system | `electron/src/plugins/` |
+| API config facade | `src/infrastructure/api-config-facade.ts` |
+| Model capabilities | `src/infrastructure/ai-providers/model-capabilities.ts` |
+| Optimistic lock error | `src/shared/errors/version-conflict.ts` |
+| SQL sanitizer | `src/shared/sql-safety/sql-sanitizer.ts` |
 
 ## Modification Workflow
 1. Read `MODULE.md` → `contract.json` → `.ai/modules/{module}.md` → `index.ts`
@@ -31,6 +36,9 @@
 - **Add new module**: Create under `src/modules/` → Add codeSplitting group in `vite.config.ts` → Add `MODULE.md` + `contract.json`
 - **Add storage module**: Create in `src/infrastructure/storage/` → Register columns in `core.ts` → Register DI token in `container.ts`
 - **Add shared util**: Create in `src/shared/` → If from infrastructure, use proxy export pattern
+- **Add plugin provider**: Create in `electron/src/plugins/providers/` → Extend `BaseAIProviderPlugin` → Register in `registry.ts`
+- **Add user plugin**: Create `.plugin.json` in `~/AI Animation Studio/UserPlugins/` or `.plugin.js` in `~/AI Animation Studio/CodePlugins/`
+- **Use optimistic locking**: Pass `version` param to storage update methods → Handle `VersionConflictError` in UI
 
 ## Critical Rules
 - `domain/` imports NOTHING from other layers
@@ -40,3 +48,6 @@
 - Use `usePreference` instead of `localStorage` in `useState`
 - All `<video>` tags need `onError` guard with `data-retried`
 - User-facing strings MUST use `t()` from `@/shared/constants`
+- Critical updates MUST use optimistic locking (pass `version` to storage methods)
+- Code plugin sandbox blocks prototype chain escape (`__proto__`, `Reflect`, `Proxy`)
+- Plugin hot-reload MUST invalidate frontend caches (detection-rules, templates, model-profiles)

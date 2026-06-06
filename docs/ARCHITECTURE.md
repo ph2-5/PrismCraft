@@ -687,9 +687,19 @@ before-quit → gracefulShutdown()
 
 **代码式插件**：`code-plugin-loader.ts` 从 `%APPDATA%/ai-animation-studio/CodePlugins/` 目录加载 `.plugin.js` 文件。使用 Node.js `vm` 模块在沙箱中执行插件代码，提供安全的 API 上下文（JSON、Math、Date、RegExp、受限 console），阻止危险对象（require、process、Buffer、setTimeout、fetch）。执行超时 5 秒。参考模板：`docs/examples/reference-code-plugin.plugin.js`。
 
+**代码插件沙箱安全**：沙箱采用多层防护防止原型链逃逸：
+
+1. **IIFE 包裹**：插件代码被 `SANITIZED_CODE_PREFIX/SUFFIX` 包裹为 `(function() { 'use strict'; ... })()`，阻止全局变量泄漏
+2. **逃逸模式预扫描**：加载前检测 `__proto__`、`getPrototypeOf`、`Reflect` 等逃逸关键词，发现即拒绝加载
+3. **原型链冻结**：沙箱上下文中 Object/Array/Function/Error 的原型被 `Object.freeze()` 冻结，阻止通过原型链修改逃逸
+4. **危险对象禁用**：Function、eval、Proxy、Reflect、Promise、Symbol、Map、Set、WeakMap、WeakSet 均不可用
+5. **类型安全**：原型冻结使用 `(ctor as unknown as Record<string, unknown>).prototype` 避免 TypeScript 类型断言错误
+
 **API Key 自动识别**：插件通过 `getApiKeyDetection()` 方法声明 API Key 格式识别规则。前端 `detect.ts` 优先使用插件规则，兜底使用内置规则。识别结果包含 `pluginId`、`suggestedName`、`baseUrl`、`confidence`。
 
 **模型参数驱动**：插件通过 `getModelParameterProfile(modelId)` 声明模型特有参数（时长、分辨率、风格、cfgScale 等）。前端 `ModelParameterPanel` 组件根据参数配置动态渲染参数选择 UI。`model-capabilities.ts` 优先使用插件提供的 profile，兜底使用 `BUILTIN_MODEL_CAPABILITIES`。
+
+**插件热加载与缓存失效**：代码插件支持热加载（`/api/plugins/reload-code`），加载后自动触发前端缓存失效。`pluginCacheInvalidationToken` 机制确保 detection-rules、provider templates、model profiles 三个缓存同步刷新，避免用户看到过时的插件数据。
 
 **为什么用插件而非硬编码**：AI 提供商的 API 格式、参数、认证方式各不相同且频繁变更。插件模式将每个 Provider 的适配逻辑隔离在独立文件中，修改一个 Provider 不影响其他。新增 Provider 只需创建一个继承 `BaseAIProviderPlugin` 的类并注册，无需修改核心代码。
 
@@ -702,6 +712,10 @@ before-quit → gracefulShutdown()
 **X-Electron-App 头**：所有 API 请求必须携带 `X-Electron-App` 头，服务端验证此头以确认请求来自合法的 Electron 应用。这防止了浏览器或脚本直接调用 API。
 
 **错误日志脱敏**：`error-logger.ts` 中的 `API_KEY_PATTERNS` 匹配 API Key 模式（如 `sk-xxx`、`key-xxx`、`api_key=xxx`），在日志写入前自动编辑。这防止了 API Key 通过日志文件泄露。
+
+**乐观锁**：关键更新操作支持基于 `version` 字段的乐观锁，防止并发修改导致的数据丢失。`buildSafeUpdate()` 接受可选的 `options.version` 参数，生成 `WHERE version = ?` 条件和 `SET version = version + 1` 自增。当 `changes === 0` 时抛出 `VersionConflictError`，由 `mapUserFacingError()` 映射为用户友好消息。支持乐观锁的存储模块：stories、characters、elements、video-tasks。
+
+**IPC 频率限制**：敏感 IPC 通道（如 `secure-config:resolve`）实施 per-key 速率限制（10 次/分钟），防止 API Key 被高频解析。超限返回错误并记录来源窗口信息，便于追踪异常调用来源。
 
 ### 7.6 日志系统
 
@@ -824,7 +838,7 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 
 **ESLint 架构守卫规则**：在编辑器实时执行，禁止 shared→modules 导入、domain→infrastructure 导入、modules 深层路径导入。生产代码中违反为 error，测试代码中为 warn。
 
-### 9.3 76 条回归防护
+### 9.3 80 条回归防护
 
 回归防护规则来自四次 Bug 审计，每条规则对应一个已发生的真实 Bug：
 
@@ -908,9 +922,16 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 
 - R44：用户可见错误消息必须使用 `mapUserFacingError`——禁止 `e.message`、`extractErrorMessage()` 或技术术语直接展示给用户，必须通过 `mapUserFacingError()` 映射为用户友好中文消息
 
+**系统安全（R77-R80）**：
+
+- R77：关键更新操作必须使用乐观锁——`updateStory`/`updateCharacter`/`updateElement`/`updateVideoTask` 支持 `version` 参数，`changes === 0` 时抛出 `VersionConflictError`
+- R78：代码插件沙箱必须阻止原型链逃逸——IIFE 包裹 + 逃逸模式预扫描 + 原型链冻结 + 危险对象禁用
+- R79：敏感 IPC 通道必须实施频率限制——`secure-config:resolve` per-key 10次/分钟，超限返回错误
+- R80：插件热加载必须刷新前端缓存——reload 后自动刷新 detection-rules/templates/model-profiles
+
 ### 9.4 Bug 审计方法论
 
-76 条回归防护来自四次定向 Bug 审计，审计遵循"使用驱动发现 + 结构化验证固化"方法论。完整操作手册见 `docs/bug-audit-methodology.md`，此处记录核心框架。
+80 条回归防护来自四次定向 Bug 审计，审计遵循"使用驱动发现 + 结构化验证固化"方法论。完整操作手册见 `docs/bug-audit-methodology.md`，此处记录核心框架。
 
 **三阶段工作流**：
 

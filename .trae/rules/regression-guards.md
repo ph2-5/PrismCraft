@@ -3,19 +3,20 @@
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >
-> **Total: 76 rules | 7 categories**
+> **Total: 80 rules | 8 categories**
 
 ## 目录
 
-- [一、数据一致性（17 条）](#一数据一致性17-条) — 数据不丢、不脏、不冲突
+- [一、数据一致性（18 条）](#一数据一致性18-条) — 数据不丢、不脏、不冲突
 - [二、异步安全（13 条）](#二异步安全13-条) — 并发、竞态、轮询、生命周期
 - [三、错误处理（11 条）](#三错误处理11-条) — 错误不吞、不假成功、用户可理解
 - [四、UI 健壮性（9 条）](#四ui-健壮性9-条) — 界面不崩、有反馈、无泄漏
 - [五、工程质量（14 条）](#五工程质量14-条) — 依赖合规、构建安全、测试可靠
 - [六、平台兼容（6 条）](#六平台兼容6-条) — IPC、Electron 环境、进程模型
 - [七、用户安全防护（6 条）](#七用户安全防护6-条) — 破坏性操作需确认、数据清除需保护
+- [八、系统安全（4 条）](#八系统安全4-条) — 沙箱隔离、并发保护、频率限制、缓存一致性
 
-## 一、数据一致性（17 条）
+## 一、数据一致性（18 条）
 
 > 核心关注：数据不丢、不脏、不冲突
 
@@ -1998,3 +1999,106 @@ const dedupKey = `${toast.type}-${toast.title}-${toast.message || ""}`;
 **Verification**: Search for toast dedup logic and verify the dedup key includes the message field. Test by triggering multiple errors with the same title but different messages — each should appear as a separate toast.
 
 **Discovered in**: Toast deduplication merged all "生成失败" toasts into one, showing "(3次)" without indicating which 3 beats failed. Users couldn't identify which specific operations failed.
+
+### R77: Critical Updates MUST Use Optimistic Locking
+
+When updating records that may be concurrently modified (e.g., from multiple tabs or windows), the update operation MUST use the `version` column for optimistic locking. Without this, last-write-wins silently overwrites earlier changes, causing data loss.
+
+**BAD** — Blind update, no version check:
+```typescript
+db.run("UPDATE story_beats SET title = ? WHERE id = ?", [title, id]);
+```
+
+**GOOD** — Version-protected update:
+```typescript
+const result = db.run("UPDATE story_beats SET title = ?, version = version + 1 WHERE id = ? AND version = ?", [title, id, version]);
+if (result.changes === 0) throw new VersionConflictError("story_beats", id, version);
+```
+
+**Verification**: Search for `updateStory`, `updateCharacter`, `updateElement`, `updateVideoTask` calls and verify they pass `version` when available. Check that `VersionConflictError` is caught and surfaced to the user via `mapUserFacingError`.
+
+**Discovered in**: Concurrent tab edits silently overwrote each other's changes. The `version` column existed in schema but was never used in production code.
+
+## 八、系统安全（4 条）
+
+> 核心关注：沙箱隔离、并发保护、频率限制、缓存一致性
+
+### R78: Code Plugin Sandbox MUST Prevent Prototype Chain Escape
+
+When executing user-provided JavaScript code in a VM sandbox, the sandbox MUST prevent prototype chain escape attacks. Without protection, plugins can access `process`, `require`, and other dangerous globals through `this.constructor.constructor('return process')()` or similar chains.
+
+**BAD** — Naive sandbox without escape prevention:
+```typescript
+const sandbox = { console, module, exports };
+vm.runInContext(code, vm.createContext(sandbox));
+// Plugin can escape: this.constructor.constructor('return process')()
+```
+
+**GOOD** — Multi-layer sandbox hardening:
+```typescript
+// 1. Wrap in IIFE with 'use strict'
+const code = `(function() { 'use strict'; ${rawCode} })();`;
+// 2. Pre-scan for escape patterns
+if (/__proto__|getPrototypeOf|Reflect/.test(rawCode)) reject();
+// 3. Freeze prototypes
+Object.freeze(Object.prototype);
+// 4. Disable Function constructor
+sandbox.Function = undefined;
+// 5. Disable Proxy, Reflect, Promise, Symbol
+sandbox.Proxy = undefined; sandbox.Reflect = undefined;
+```
+
+**Verification**: Attempt to load a plugin containing `this.constructor.constructor('return process')()` — it must be rejected or fail at runtime.
+
+**Discovered in**: Code plugin sandbox allowed prototype chain escape, giving plugins access to Node.js `process` and `require`.
+
+### R79: Sensitive IPC Channels MUST Enforce Rate Limiting
+
+IPC channels that return sensitive data (API keys, tokens, credentials) MUST enforce per-key rate limiting. Without rate limiting, a compromised renderer process can repeatedly resolve keys, increasing the attack surface for key extraction.
+
+**BAD** — Unlimited key resolution:
+```typescript
+ipcMain.handle("secure-config:resolve", (_, providerId) => {
+  return keyStorage.get(providerId); // No rate limit
+});
+```
+
+**GOOD** — Per-key rate limiting:
+```typescript
+const resolveTimestamps = new Map<string, number[]>();
+ipcMain.handle("secure-config:resolve", (_, providerId) => {
+  const now = Date.now();
+  const timestamps = resolveTimestamps.get(providerId) || [];
+  const recent = timestamps.filter(t => now - t < 60_000);
+  if (recent.length >= 10) return { success: false, error: "Rate limit exceeded" };
+  resolveTimestamps.set(providerId, [...recent, now]);
+  return keyStorage.get(providerId);
+});
+```
+
+**Verification**: Call `secure-config:resolve` for the same providerId more than 10 times in 1 minute — the 11th call must return a rate limit error.
+
+**Discovered in**: `secure-config:resolve` channel had no rate limiting, allowing unlimited API key resolution from any renderer process.
+
+### R80: Plugin Hot-Reload MUST Invalidate Frontend Caches
+
+When plugins are added, removed, or reloaded at runtime, all frontend caches derived from plugin data (detection rules, provider templates, model profiles) MUST be invalidated and reloaded. Stale caches cause new plugins to be invisible until the user manually refreshes the page.
+
+**BAD** — Cache loaded once, never refreshed:
+```typescript
+useEffect(() => { loadPluginDetectionRules(); }, []); // Only on mount
+```
+
+**GOOD** — Cache refreshed after plugin changes:
+```typescript
+const handleReload = async () => {
+  await fetch("/api/plugins/reload-code");
+  await loadPluginDetectionRules();  // Refresh detection rules
+  await loadPluginTemplates();       // Refresh provider templates
+  await loadModelProfilesFromServer(); // Refresh model profiles
+};
+```
+
+**Verification**: Add a new plugin via the plugin manager, then check if the API config panel shows the new provider template without requiring a page refresh.
+
+**Discovered in**: After adding a new plugin through the plugin manager, the API config panel didn't show the new provider until the user closed and reopened the settings page.

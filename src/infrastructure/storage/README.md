@@ -45,6 +45,49 @@ Storage modules provide persistent data access via SQLite (better-sqlite3, WAL m
 - `buildUpdateSets()` + `FieldTarget` maps handle fixed columns and JSON containers uniformly
 - Tables use 7-field base columns: `owner_id`, `created_at`, `updated_at`, `is_deleted`, `deleted_at`, `version`, `sync_id`
 
+## Optimistic Locking
+
+Critical update operations support optimistic locking via the `version` base column to prevent lost updates from concurrent modifications.
+
+### How It Works
+
+1. Client reads a record, obtaining its current `version` (e.g., `version = 3`)
+2. Client sends an update with the expected version: `updateStory(id, data, 3)`
+3. SQL: `UPDATE stories SET ... , version = version + 1 WHERE id = ? AND version = ?`
+4. If `changes === 0`, the record was modified by another operation → throw `VersionConflictError`
+5. If `changes === 1`, the update succeeded and `version` is now 4
+
+### Supported Storage Modules
+
+| Module | Method | Version Parameter |
+|--------|--------|-------------------|
+| stories | `updateStory(id, story, version?)` | Optional |
+| characters | `updateCharacter(id, character, version?)` | Optional |
+| elements | `updateElement(elementId, updates, version?)` | Optional |
+| video-tasks | `updateVideoTask(taskId, updates, version?)` | Optional |
+| video-tasks | `batchUpdateVideoTasks(updates)` | Each item can include `version` |
+
+### Implementation
+
+`buildSafeUpdate()` in `sql-sanitizer.ts` accepts an optional `options.version` parameter:
+
+```typescript
+import { buildSafeUpdate } from "@/shared/sql-safety";
+
+const { sql, params } = buildSafeUpdate("stories", updates, {
+  version: expectedVersion,
+});
+// SQL: UPDATE stories SET field1 = ?, version = version + 1 WHERE id = ? AND version = ?
+```
+
+`VersionConflictError` is defined in `@/shared/errors/version-conflict.ts` and handled by `mapUserFacingError()` for user-friendly messaging.
+
+### When to Use
+
+- **Auto-save**: Always use optimistic locking to prevent overwriting user edits (R42, R77)
+- **Manual save**: Use when concurrent edits are possible (e.g., story editing)
+- **Batch updates**: Each item in the batch can independently include a version
+
 ## Roundtrip Tests
 
 Storage modules with JSON containers have roundtrip (serialization → deserialization) tests to ensure data integrity:

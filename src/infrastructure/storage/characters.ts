@@ -10,6 +10,7 @@ import {
 } from "./characters/outfit-manager";
 import { parseCharacterWithOutfits, parseCharactersWithOutfits } from "./characters/parser";
 import { errorLogger } from "@/shared/error-logger";
+import { VersionConflictError } from "@/shared/errors/version-conflict";
 
 const CHARACTER_FIELD_TARGETS: Record<string, FieldTarget> = {
   name: { type: "fixed", column: "name" },
@@ -95,15 +96,19 @@ export const characterStorage = {
   async updateCharacter(
     id: string,
     character: Partial<Character>,
+    version?: number,
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
 
-    const existing = await safeQuery<{ id: string }>(
-      "SELECT id FROM characters WHERE id = ?",
+    const existing = await safeQuery<{ id: string; version: number }>(
+      "SELECT id, version FROM characters WHERE id = ?",
       [id],
     );
     if (existing.length === 0) {
       throw new Error(`Character not found for update: id="${id}"`);
+    }
+    if (version !== undefined && existing[0].version !== version) {
+      throw new VersionConflictError("characters", id, version);
     }
 
     const { sql: setSql, params: setParams } = buildUpdateSets(
@@ -114,12 +119,14 @@ export const characterStorage = {
     const allStatements: { sql: string; params: unknown[] }[] = [];
 
     if (setParams.length === 0) {
+      const versionSet = version !== undefined ? ", version = version + 1" : "";
       allStatements.push({
-        sql: "UPDATE characters SET updated_at = ? WHERE id = ?",
+        sql: `UPDATE characters SET updated_at = ?${versionSet} WHERE id = ?`,
         params: [now, id],
       });
     } else {
-      const fullSql = `UPDATE characters SET ${setSql}, updated_at = ? WHERE id = ?`;
+      const versionSet = version !== undefined ? ", version = version + 1" : "";
+      const fullSql = `UPDATE characters SET ${setSql}, updated_at = ?${versionSet} WHERE id = ?`;
       const allParams = [...setParams, now, id];
       const placeholderCount = (fullSql.match(/\?/g) || []).length;
       if (placeholderCount !== allParams.length) {

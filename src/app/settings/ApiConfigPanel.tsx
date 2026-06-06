@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
@@ -45,6 +45,7 @@ import {
   ConfigStatus,
 } from "@/infrastructure/api-config-facade";
 import { testConnection } from "@/infrastructure/ai-providers";
+import { loadModelProfilesFromServer } from "@/shared/model-capabilities";
 import { ProviderCard } from "./ProviderCard";
 import { ProviderForm } from "./ProviderForm";
 import { ModelMappingSection } from "./ModelMappingSection";
@@ -88,6 +89,14 @@ export function ApiConfigPanel() {
   const keyValidation = newProviderKey
     ? validateApiKey(newProviderKey)
     : { valid: false };
+
+  const refreshPluginCaches = useCallback(async () => {
+    await Promise.allSettled([
+      loadPluginDetectionRules(),
+      loadPluginTemplates(),
+      loadModelProfilesFromServer(),
+    ]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,6 +166,7 @@ export function ApiConfigPanel() {
       setSelectedTemplate("");
       setShowAddForm(false);
       showSuccess(t("success.added"), t("provider.addedWithName", { name: providerName }));
+      refreshPluginCaches();
     } catch (e) {
       showError(t("provider.addFailed"), (e as Error).message || t("provider.addError"));
     } finally {
@@ -185,6 +195,7 @@ export function ApiConfigPanel() {
     saveConfig(updatedConfig);
     setStatus(await checkConfigStatus());
     showSuccess(t("success.deleted"), t("provider.deletedWithName", { name: provider.name }));
+    refreshPluginCaches();
     if (expandedProvider === providerId) {
       setExpandedProvider(null);
     }

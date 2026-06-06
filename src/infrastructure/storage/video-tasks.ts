@@ -2,6 +2,7 @@ import { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
 import { trackChange, buildInsert } from "./core";
 import type { VideoTask } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
+import { VersionConflictError } from "@/shared/errors/version-conflict";
 import {
   toStorageTimestamp,
   parseVideoTask,
@@ -107,24 +108,35 @@ export const videoTaskStorage = {
   async updateVideoTask(
     taskId: string,
     updates: Partial<VideoTask>,
+    version?: number,
   ): Promise<void> {
     if (updates.videoUrl !== undefined && updates.urlObtainedAt === undefined) {
       updates = { ...updates, urlObtainedAt: Math.floor(Date.now() / 1000) };
     }
     const { sql: setSql, params: setParams } = buildUpdateSets(updates);
     if (setParams.length === 0) return;
-    const allParams = [...setParams, Math.floor(Date.now() / 1000), taskId];
+    const versionSet = version !== undefined ? ", version = version + 1" : "";
+    const allParams = [...setParams, Math.floor(Date.now() / 1000)];
+    const whereParts: string[] = ["id = ?"];
+    allParams.push(taskId);
+    if (version !== undefined) {
+      whereParts.push("version = ?");
+      allParams.push(version);
+    }
     const result = await safeRun(
-      `UPDATE video_tasks SET ${setSql}, updated_at = ? WHERE id = ?`,
+      `UPDATE video_tasks SET ${setSql}, updated_at = ?${versionSet} WHERE ${whereParts.join(" AND ")}`,
       allParams,
     );
     if (!result || result.changes === 0) {
-      const existing = await safeQuery<{ id: string }>(
-        "SELECT id FROM video_tasks WHERE id = ?",
+      const existing = await safeQuery<{ id: string; version: number }>(
+        "SELECT id, version FROM video_tasks WHERE id = ?",
         [taskId],
       );
       if (existing.length === 0) {
         throw new Error(`VideoTask not found for update: taskId="${taskId}"`);
+      }
+      if (version !== undefined && existing[0].version !== version) {
+        throw new VersionConflictError("video_tasks", taskId, version);
       }
     }
     try {
@@ -297,19 +309,26 @@ export const videoTaskStorage = {
   },
 
   async batchUpdateVideoTasks(
-    updates: Array<{ taskId: string; updates: Partial<VideoTask> }>,
+    updates: Array<{ taskId: string; updates: Partial<VideoTask>; version?: number }>,
   ): Promise<void> {
     if (updates.length === 0) return;
     const statements: { sql: string; params: unknown[] }[] = [];
-    for (const { taskId, updates: taskUpdates } of updates) {
+    for (const { taskId, updates: taskUpdates, version } of updates) {
       if (taskUpdates.videoUrl !== undefined && taskUpdates.urlObtainedAt === undefined) {
         taskUpdates.urlObtainedAt = Math.floor(Date.now() / 1000);
       }
       const { sql: setSql, params: setParams } = buildUpdateSets(taskUpdates);
       if (setParams.length === 0) continue;
-      const allParams = [...setParams, Math.floor(Date.now() / 1000), taskId];
+      const versionSet = version !== undefined ? ", version = version + 1" : "";
+      const allParams = [...setParams, Math.floor(Date.now() / 1000)];
+      const whereParts: string[] = ["id = ?"];
+      allParams.push(taskId);
+      if (version !== undefined) {
+        whereParts.push("version = ?");
+        allParams.push(version);
+      }
       statements.push({
-        sql: `UPDATE video_tasks SET ${setSql}, updated_at = ? WHERE id = ?`,
+        sql: `UPDATE video_tasks SET ${setSql}, updated_at = ?${versionSet} WHERE ${whereParts.join(" AND ")}`,
         params: allParams,
       });
     }

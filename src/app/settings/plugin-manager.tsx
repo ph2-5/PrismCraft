@@ -30,6 +30,11 @@ import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import { isElectron } from "@/shared/utils/platform";
 import PluginCreator from "./plugin-creator";
 import { PluginList } from "./PluginList";
+import {
+  loadPluginDetectionRules,
+  loadPluginTemplates,
+} from "@/infrastructure/api-config-facade";
+import { loadModelProfilesFromServer } from "@/shared/model-capabilities";
 
 interface PluginInfo {
   id: string;
@@ -262,6 +267,11 @@ export default function PluginManager() {
     try {
       const result = await reloadPlugins();
       showSuccess(t("success.reloaded"), t("plugin.loaded", { count: result.loaded }));
+      await Promise.allSettled([
+        loadPluginDetectionRules(),
+        loadPluginTemplates(),
+        loadModelProfilesFromServer(),
+      ]);
       await loadPlugins();
     } catch (e) {
       showError(t("plugin.reloadFailed"), e instanceof Error ? e.message : t("plugin.reloadError"));
@@ -275,6 +285,11 @@ export default function PluginManager() {
     try {
       const result = await reloadCodePlugins();
       showSuccess(t("success.reloaded"), t("plugin.codePluginReloaded", { count: result.loaded }));
+      await Promise.allSettled([
+        loadPluginDetectionRules(),
+        loadPluginTemplates(),
+        loadModelProfilesFromServer(),
+      ]);
       await loadPlugins();
     } catch (e) {
       showError(t("plugin.codePluginReloadFailed"), e instanceof Error ? e.message : String(e));

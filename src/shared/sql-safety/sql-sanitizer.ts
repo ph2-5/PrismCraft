@@ -30,28 +30,49 @@ export function buildSafeInsert(
   };
 }
 
+export interface BuildSafeUpdateOptions {
+  version?: number;
+}
+
+export interface BuildSafeUpdateResult {
+  sql: string;
+  params: unknown[];
+  versionMismatch: boolean;
+}
+
 export function buildSafeUpdate(
   table: string,
   columns: string[],
   values: unknown[],
   whereColumns: string[],
   whereParams: unknown[] = [],
-) {
+  options?: BuildSafeUpdateOptions,
+): BuildSafeUpdateResult {
   if (columns.length !== values.length) {
     throw new Error(
       `Column count (${columns.length}) does not match value count (${values.length}) for table "${table}"`,
     );
   }
   const safeTable = sanitizeTable(table);
-  const setClause = columns
-    .map((col) => `${sanitizeIdentifier(col)} = ?`)
-    .join(", ");
-  const whereClause = whereColumns
-    .map((col) => `${sanitizeIdentifier(col)} = ?`)
-    .join(" AND ");
+  const setParts = columns.map((col) => `${sanitizeIdentifier(col)} = ?`);
+  if (options?.version !== undefined) {
+    setParts.push("version = version + 1");
+  }
+  const setClause = setParts.join(", ");
+  const whereParts = whereColumns.map((col) => `${sanitizeIdentifier(col)} = ?`);
+  if (options?.version !== undefined) {
+    whereParts.push("version = ?");
+  }
+  const whereClause = whereParts.join(" AND ");
+  const allParams = [
+    ...values,
+    ...whereParams,
+    ...(options?.version !== undefined ? [options.version] : []),
+  ];
   return {
     sql: `UPDATE ${safeTable} SET ${setClause} WHERE ${whereClause}`,
-    params: [...values, ...whereParams],
+    params: allParams,
+    versionMismatch: false,
   };
 }
 

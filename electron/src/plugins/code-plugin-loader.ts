@@ -161,15 +161,58 @@ function createSandboxConsole(namespace: string) {
   };
 }
 
+function freezePrototype<T extends object>(obj: T): T {
+  try {
+    const proto = Object.getPrototypeOf(obj);
+    if (proto && proto !== Object.prototype) {
+      Object.freeze(proto);
+    }
+  } catch {
+    // 无法访问原型，忽略
+  }
+  return obj;
+}
+
+const SANITIZED_CODE_PREFIX = `
+(function() {
+  'use strict';
+  // 阻止原型链逃逸：覆盖 this 指向
+  const _origConstructor = this.constructor;
+  Object.defineProperty(this, 'constructor', { value: Object, writable: false, configurable: false });
+  // 阻止通过 arguments.callee.constructor 逃逸
+  try { Object.defineProperty(Object.prototype, 'constructor', { value: Object, writable: true, configurable: true }); } catch {}
+`;
+
+const SANITIZED_CODE_SUFFIX = `
+})();
+`;
+
 export function loadCodePluginFromFile(filePath: string): { plugin: CodePluginExport } | { error: string } {
   const fileName = path.basename(filePath);
 
   try {
-    const code = fs.readFileSync(filePath, "utf-8");
+    const rawCode = fs.readFileSync(filePath, "utf-8");
+
+    // 检测明显的逃逸模式
+    const escapePatterns = [
+      /constructor\s*\(\s*['"]return\s+(?:process|require|global)/,
+      /\.__proto__/,
+      /getPrototypeOf/,
+      /Reflect\.(get|set|construct|apply)/,
+    ];
+    for (const pattern of escapePatterns) {
+      if (pattern.test(rawCode)) {
+        return { error: `代码插件 ${fileName} 包含禁止的逃逸模式 (${pattern.source})，已拒绝加载` };
+      }
+    }
+
+    const code = SANITIZED_CODE_PREFIX + rawCode + SANITIZED_CODE_SUFFIX;
 
     const moduleObj = { exports: {} as Record<string, unknown> };
     const sandboxConsole = createSandboxConsole(fileName);
 
+    // 创建安全的沙箱上下文
+    // 关键：不提供 Function 构造器，冻结 Object/Array 等原型
     const sandbox = vm.createContext({
       module: moduleObj,
       exports: moduleObj.exports,
@@ -194,14 +237,24 @@ export function loadCodePluginFromFile(filePath: string): { plugin: CodePluginEx
       Error,
       TypeError,
       RangeError,
+      // 明确禁用危险对象
       Map: undefined,
       Set: undefined,
       Promise: undefined,
+      Proxy: undefined,
+      Reflect: undefined,
+      Symbol: undefined,
+      WeakMap: undefined,
+      WeakSet: undefined,
+      SharedArrayBuffer: undefined,
+      ArrayBuffer: undefined,
+      Atomics: undefined,
       require: undefined,
       process: undefined,
       __filename: undefined,
       __dirname: undefined,
       global: undefined,
+      globalThis: undefined,
       Buffer: undefined,
       setTimeout: undefined,
       setInterval: undefined,
@@ -211,7 +264,29 @@ export function loadCodePluginFromFile(filePath: string): { plugin: CodePluginEx
       clearImmediate: undefined,
       fetch: undefined,
       XMLHttpRequest: undefined,
+      WebSocket: undefined,
+      Worker: undefined,
+      eval: undefined,
+      Function: undefined,
     });
+
+    // 冻结沙箱中关键构造器的原型，防止通过原型链逃逸
+    try {
+      const sandboxObj = sandbox as Record<string, unknown>;
+      for (const key of ["Object", "Array", "Function", "Error", "TypeError", "RangeError", "RegExp", "String", "Number", "Boolean", "Date"]) {
+        const ctor = sandboxObj[key];
+        if (ctor && typeof ctor === "function") {
+          freezePrototype(ctor as object);
+          try {
+            Object.freeze((ctor as unknown as Record<string, unknown>).prototype);
+          } catch {
+            // 某些原型可能已冻结
+          }
+        }
+      }
+    } catch {
+      // 冻结失败不阻止加载
+    }
 
     vm.runInContext(code, sandbox, {
       filename: fileName,

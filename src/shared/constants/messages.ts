@@ -34,6 +34,7 @@ const messages: Record<MessageKey, string> = {
   "error.authFailed": "认证失败，请检查 API 密钥设置",
   "error.serverError": "服务器暂时不可用，请稍后重试",
   "error.databaseBusy": "数据库繁忙，请稍后重试",
+  "error.versionConflict": "数据已被其他操作修改，请刷新后重试",
   "error.diskError": "磁盘读写错误，请检查磁盘空间",
   "error.diskFull": "磁盘空间不足，请清理后重试",
   "error.permissionDenied": "权限不足，请检查文件访问权限",

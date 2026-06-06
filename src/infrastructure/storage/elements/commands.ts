@@ -3,6 +3,7 @@ import { toSqlValue, trackChange } from "../core";
 import type { StoryElement, ElementType } from "@/domain/schemas";
 import { getElement } from "./queries";
 import { errorLogger } from "@/shared/error-logger";
+import { VersionConflictError } from "@/shared/errors/version-conflict";
 
 export async function createElement(
   type: ElementType,
@@ -43,9 +44,20 @@ export async function createElement(
 export async function updateElement(
   elementId: string,
   updates: Partial<StoryElement>,
+  version?: number,
 ): Promise<StoryElement> {
   const element = await getElement(elementId);
   if (!element) throw new Error(`Element ${elementId} not found`);
+
+  if (version !== undefined) {
+    const existing = await safeQuery<{ id: string; version: number }>(
+      "SELECT id, version FROM elements WHERE id = ?",
+      [elementId],
+    );
+    if (existing.length > 0 && existing[0].version !== version) {
+      throw new VersionConflictError("elements", elementId, version);
+    }
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const merged = {
@@ -54,6 +66,7 @@ export async function updateElement(
     updatedAt: new Date().toISOString(),
   };
 
+  const versionSet = version !== undefined ? ", version = version + 1" : "";
   const result = await safeRun(
     `UPDATE elements SET
       name = ?,
@@ -63,7 +76,7 @@ export async function updateElement(
       feature_anchor_json = ?,
       reference_image_quality_json = ?,
       bindings_json = ?,
-      updated_at = ?
+      updated_at = ?${versionSet}
     WHERE id = ?`,
     [
       merged.name,
@@ -79,12 +92,15 @@ export async function updateElement(
   );
   const updateResult = result;
   if (!updateResult || updateResult.changes === 0) {
-    const existing = await safeQuery<{ id: string }>(
-      "SELECT id FROM elements WHERE id = ?",
+    const existing = await safeQuery<{ id: string; version: number }>(
+      "SELECT id, version FROM elements WHERE id = ?",
       [elementId],
     );
     if (existing.length === 0) {
       throw new Error(`Element not found for update: id="${elementId}"`);
+    }
+    if (version !== undefined && existing[0].version !== version) {
+      throw new VersionConflictError("elements", elementId, version);
     }
   }
 

@@ -4,6 +4,41 @@ import { getLogger } from "../logging/logger";
 
 const logger = getLogger("secure-config");
 
+const RESOLVE_RATE_LIMIT_MAX = 10;
+const RESOLVE_RATE_LIMIT_WINDOW_MS = 60_000;
+
+const resolveCallTimestamps = new Map<string, number[]>();
+
+function checkResolveRateLimit(providerId: string): boolean {
+  const now = Date.now();
+  const windowStart = now - RESOLVE_RATE_LIMIT_WINDOW_MS;
+  const timestamps = resolveCallTimestamps.get(providerId) || [];
+  const validTimestamps = timestamps.filter((t) => t > windowStart);
+  if (validTimestamps.length >= RESOLVE_RATE_LIMIT_MAX) {
+    resolveCallTimestamps.set(providerId, validTimestamps);
+    return false;
+  }
+  validTimestamps.push(now);
+  resolveCallTimestamps.set(providerId, validTimestamps);
+  return true;
+}
+
+const cleanupTimer = setInterval(() => {
+  const now = Date.now();
+  const windowStart = now - RESOLVE_RATE_LIMIT_WINDOW_MS;
+  for (const [key, timestamps] of resolveCallTimestamps.entries()) {
+    const valid = timestamps.filter((t) => t > windowStart);
+    if (valid.length === 0) {
+      resolveCallTimestamps.delete(key);
+    } else {
+      resolveCallTimestamps.set(key, valid);
+    }
+  }
+}, 60_000);
+if (cleanupTimer.unref) {
+  cleanupTimer.unref();
+}
+
 export function registerSecureConfigHandlers(): void {
   ipcMain.handle(
     "secure-config:save",
@@ -41,8 +76,15 @@ export function registerSecureConfigHandlers(): void {
 
   ipcMain.handle(
     "secure-config:resolve",
-    async (_event, providerId: string) => {
+    async (event, providerId: string) => {
       try {
+        if (!checkResolveRateLimit(providerId)) {
+          const senderTitle = event.sender.getTitle?.() || "unknown";
+          logger.warn(`secure-config:resolve rate limit exceeded for provider: ${providerId}, source: ${senderTitle}`);
+          return { success: false, apiKey: null, error: "Rate limit exceeded" };
+        }
+        const senderTitle = event.sender.getTitle?.() || "unknown";
+        logger.info(`secure-config:resolve called for provider: ${providerId}, source: ${senderTitle}`);
         const result = await keyStorage.load(`api-key:${providerId}`);
         if (result.ok && result.value) {
           return { success: true, apiKey: result.value };

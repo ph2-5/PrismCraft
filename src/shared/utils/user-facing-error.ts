@@ -1,6 +1,7 @@
 import { classifyError } from "@/domain/types";
 import { extractErrorMessage } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { VersionConflictError } from "@/shared/errors/version-conflict";
 
 const IPC_RATE_LIMIT_PATTERN = /Rate limit exceeded for channel: (db:\w+)/;
 const IPC_CHANNEL_MESSAGE_KEYS: Record<string, string> = {
@@ -18,6 +19,7 @@ const CATEGORY_MESSAGE_KEYS: Record<string, string> = {
   server_error: "error.serverError",
   database_busy: "error.databaseBusy",
   auth: "error.authFailed",
+  version_conflict: "error.versionConflict",
   unknown: "error.operationFailed",
 };
 
@@ -27,9 +29,14 @@ const EXTRA_PATTERNS: Array<{ pattern: RegExp; messageKey: string }> = [
   { pattern: /malformed|corrupt/i, messageKey: "error.diskError" },
   { pattern: /ENOSPC|no space left/i, messageKey: "error.diskFull" },
   { pattern: /PERMISSION|EACCES/i, messageKey: "error.permissionDenied" },
+  { pattern: /并发冲突|版本不匹配|VersionConflict/i, messageKey: "error.versionConflict" },
 ];
 
 export function mapUserFacingError(error: unknown): string {
+  if (error instanceof VersionConflictError) {
+    return t("error.versionConflict");
+  }
+
   const raw = extractErrorMessage(error);
 
   const ipcMatch = raw.match(IPC_RATE_LIMIT_PATTERN);

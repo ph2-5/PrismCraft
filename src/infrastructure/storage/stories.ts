@@ -1,6 +1,7 @@
 import { safeQuery, safeTransaction } from "./sqlite-core";
 import { parseRecordWithTable, toSqlValue, trackChange } from "./core";
 import { errorLogger } from "@/shared/error-logger";
+import { VersionConflictError } from "@/shared/errors/version-conflict";
 import type { Story } from "@/domain/schemas";
 import { buildBeatInsert } from "./stories/beat-transformer";
 import { fetchStoryRelations, fetchAllStoryRelations } from "./stories/relations";
@@ -161,7 +162,7 @@ export const storyStorage = {
     } catch (e) { errorLogger.warn("[Storage] trackChange failed for story:insert", e); }
   },
 
-  async updateStory(id: string, story: Partial<Story>): Promise<void> {
+  async updateStory(id: string, story: Partial<Story>, version?: number): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     const sets: string[] = [];
     const values: unknown[] = [];
@@ -185,10 +186,18 @@ export const storyStorage = {
     }
     sets.push("updated_at = ?");
     values.push(now);
+    if (version !== undefined) {
+      sets.push("version = version + 1");
+    }
+    const whereParts: string[] = ["id = ?"];
     values.push(id);
+    if (version !== undefined) {
+      whereParts.push("version = ?");
+      values.push(version);
+    }
     const allStatements: { sql: string; params: unknown[] }[] = [
       {
-        sql: `UPDATE stories SET ${sets.join(", ")} WHERE id = ?`,
+        sql: `UPDATE stories SET ${sets.join(", ")} WHERE ${whereParts.join(" AND ")}`,
         params: values,
       },
     ];
@@ -270,12 +279,15 @@ export const storyStorage = {
 
     const updateResult = results[0] as { changes?: number } | undefined;
     if (!updateResult || updateResult.changes === 0) {
-      const existing = await safeQuery<{ id: string }>(
-        "SELECT id FROM stories WHERE id = ?",
+      const existing = await safeQuery<{ id: string; version: number }>(
+        "SELECT id, version FROM stories WHERE id = ?",
         [id],
       );
       if (existing.length === 0) {
         throw new Error(`Story not found for update: id="${id}"`);
+      }
+      if (version !== undefined && existing[0].version !== version) {
+        throw new VersionConflictError("stories", id, version);
       }
     }
 

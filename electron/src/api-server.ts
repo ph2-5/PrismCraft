@@ -25,6 +25,7 @@ import { getDb, getDbPath, CURRENT_SCHEMA_VERSION } from "./database";
 
 const logger = getLogger("api-server");
 const serverStartTime = Date.now();
+let pluginCacheInvalidationToken = 0;
 
 let apiServer: http.Server | null = null;
 const apiConnections: Set<net.Socket> = new Set();
@@ -461,12 +462,14 @@ const routes: Record<string, Route> = {
         return { success: false, error: result.error };
       }
       const reloadResult = pluginRegistry.reloadUserPlugins();
+      pluginCacheInvalidationToken++;
       return {
         success: true,
         data: {
           filePath: result.filePath,
           loadedCount: reloadResult.loaded,
           reloadErrors: reloadResult.errors,
+          cacheInvalidationToken: pluginCacheInvalidationToken,
         },
       };
     },
@@ -486,21 +489,24 @@ const routes: Record<string, Route> = {
         return { success: false, error: result.error };
       }
       pluginRegistry.unregister(pluginId);
-      return { success: true };
+      pluginCacheInvalidationToken++;
+      return { success: true, data: { cacheInvalidationToken: pluginCacheInvalidationToken } };
     },
     methods: ["POST"],
   },
   "plugins/reload": {
     handler: async () => {
       const result = pluginRegistry.reloadUserPlugins();
-      return { success: true, data: { loaded: result.loaded, errors: result.errors } };
+      pluginCacheInvalidationToken++;
+      return { success: true, data: { loaded: result.loaded, errors: result.errors, cacheInvalidationToken: pluginCacheInvalidationToken } };
     },
     methods: ["POST"],
   },
   "plugins/reload-code": {
     handler: async () => {
       const result = pluginRegistry.reloadCodePlugins();
-      return { success: true, data: { loaded: result.loaded, errors: result.errors } };
+      pluginCacheInvalidationToken++;
+      return { success: true, data: { loaded: result.loaded, errors: result.errors, cacheInvalidationToken: pluginCacheInvalidationToken } };
     },
     methods: ["POST"],
   },

@@ -167,6 +167,7 @@ export default function SortableBeatList({
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground mb-1">{t("beat.dragToReorder")}</p>
           {beats.map((beat, index) => (
             <SortableBeatItem
               key={beat.id}

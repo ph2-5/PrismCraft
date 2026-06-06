@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
 import { Trash2 } from "lucide-react";
 import { container } from "@/infrastructure/di";
 import { t } from "@/shared/constants";
@@ -22,7 +23,7 @@ import { VersionDialog } from "@/modules/story";
 import { TemplateManagerDialog } from "@/modules/story";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { useAutoSave } from "@/modules/persistence";
-import { preferencesStorage } from "@/shared/utils/preferences";
+import { usePreference } from "@/shared/utils/preferences";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { confirm } from "@/shared/utils/confirm";
@@ -31,26 +32,15 @@ import { StoryHeader } from "./StoryHeader";
 import { VideoGeneratorToolbar, VideoGeneratorPanel } from "./VideoGeneratorSection";
 import { SwitchConfirmDialog } from "./SwitchConfirmDialog";
 
-function useAutoSaveSettings() {
-  const [enabled, _setEnabled] = useState(() => {
-    try {
-      const parsed = preferencesStorage.get<{ enabled?: boolean }>("ai-animation-autosave-settings", {});
-      return typeof parsed.enabled === "boolean" ? parsed.enabled : true;
-    } catch (err) {
-      errorLogger.error("[Story] 读取自动保存设置失败", err instanceof Error ? err : undefined);
-      return true;
-    }
-  });
-  const [intervalMinutes, _setIntervalMinutes] = useState(() => {
-    try {
-      const parsed = preferencesStorage.get<{ interval?: number }>("ai-animation-autosave-settings", {});
-      return typeof parsed.interval === "number" && parsed.interval > 0 ? parsed.interval : 5;
-    } catch (err) {
-      errorLogger.error("[Story] 读取自动保存间隔设置失败", err instanceof Error ? err : undefined);
-      return 5;
-    }
-  });
+interface AutoSaveSettingsData {
+  enabled?: boolean;
+  interval?: number;
+}
 
+function useAutoSaveSettings() {
+  const [settings] = usePreference<AutoSaveSettingsData>("ai-animation-autosave-settings", {});
+  const enabled = typeof settings.enabled === "boolean" ? settings.enabled : true;
+  const intervalMinutes = typeof settings.interval === "number" && settings.interval > 0 ? settings.interval : 5;
   return { enabled, intervalMinutes };
 }
 
@@ -75,7 +65,7 @@ function StoryPageContent() {
   });
 
   useAutoSave({
-    enabled: autoSaveSettings.enabled && story.hasUnsavedChanges && story.beats.length > 0,
+    enabled: autoSaveSettings.enabled && story.hasUnsavedChanges,
     intervalMinutes: autoSaveSettings.intervalMinutes,
     onSave: () => story.handleSave(),
   });
@@ -84,6 +74,7 @@ function StoryPageContent() {
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [showSwitchConfirmDialog, setShowSwitchConfirmDialog] = useState(false);
   const [pendingSwitchStory, setPendingSwitchStory] = useState<(typeof story.stories)[number] | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
 
   const generateVideo = useCallback(async () => {
     if (
@@ -271,7 +262,10 @@ function StoryPageContent() {
 
         <Dialog
           open={story.deleteDialogOpen}
-          onOpenChange={story.setDeleteDialogOpen}
+          onOpenChange={(open) => {
+            story.setDeleteDialogOpen(open);
+            if (!open) setDeleteConfirmInput("");
+          }}
         >
           <DialogContent>
             <DialogHeader>
@@ -283,14 +277,31 @@ function StoryPageContent() {
                 {t("story.confirmDeleteProjectDesc")}
               </DialogDescription>
             </DialogHeader>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {t("story.deleteConfirmInputHint", { name: story.currentStory.title || t("story.unnamed") })}
+              </p>
+              <Input
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                placeholder={t("story.deleteConfirmInputPlaceholder")}
+              />
+            </div>
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => story.setDeleteDialogOpen(false)}
+                onClick={() => {
+                  story.setDeleteDialogOpen(false);
+                  setDeleteConfirmInput("");
+                }}
               >
                 {t("common.cancel")}
               </Button>
-              <Button variant="destructive" onClick={story.performDeleteStory}>
+              <Button
+                variant="destructive"
+                disabled={deleteConfirmInput !== (story.currentStory.title || t("story.unnamed"))}
+                onClick={story.performDeleteStory}
+              >
                 {t("story.confirmDeleteButton")}
               </Button>
             </DialogFooter>

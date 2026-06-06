@@ -501,16 +501,17 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 68 guards:**
+**Quick reference — all 76 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
-| 数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68 | 数据不丢、不脏、不冲突：持久化先于状态、级联删除、乐观锁、脏状态守卫、SQL安全、reload恢复UI状态 |
+| 数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68, R69, R72 | 数据不丢、不脏、不冲突：持久化先于状态、级联删除、乐观锁、脏状态守卫、SQL安全、reload恢复UI状态、删除输入确认、自动保存不限业务数据 |
 | 异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67 | 并发、竞态、轮询、生命周期：去重、所有权验证、Zustand函数式更新、轮询标志重置、卸载保护 |
 | 错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63 | 错误不吞、不假成功、用户可理解：通知用户、可识别标签、mapUserFacingError、t()国际化 |
 | UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35 | 界面不崩、有反馈、无泄漏：video onError守卫、ErrorBoundary重试限制、加载状态、Blob URL回收 |
 | 工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60 | 依赖合规、构建安全、测试可靠：DDD层合规、批量查询、IPC效率、无any、Vite迁移 |
 | 平台兼容 | R21, R43, R49, R51, R52, R61 | IPC、Electron环境、进程模型：无fetch("/api/")、isElectron()守卫、usePreference、e.currentTarget |
+| 用户安全防护 | R70, R71, R73, R74, R75, R76 | 破坏性操作需确认、数据清除需保护：不可逆操作二次确认、导航守卫拦截后退、跨域下载fetch+blob、重试不因次数移除、会话清除限范围、Toast去重含消息 |
 
 ## Documentation Index
 

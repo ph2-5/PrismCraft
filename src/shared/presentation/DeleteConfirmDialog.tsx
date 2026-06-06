@@ -66,6 +66,9 @@ export function DeleteConfirmDialog({
                 <p className="text-sm text-muted-foreground">
                   {t("delete.refWillInvalidate", { entityLabel })}
                 </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("delete.viewRefsInStoryboard")}
+                </p>
               </div>
             ) : (
               t("delete.confirmDeleteEntity", { entityLabel })

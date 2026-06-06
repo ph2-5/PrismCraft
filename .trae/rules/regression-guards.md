@@ -3,18 +3,19 @@
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >
-> **Total: 68 rules | 6 categories**
+> **Total: 76 rules | 7 categories**
 
 ## 目录
 
-- [一、数据一致性（15 条）](#一数据一致性15-条) — 数据不丢、不脏、不冲突
+- [一、数据一致性（17 条）](#一数据一致性17-条) — 数据不丢、不脏、不冲突
 - [二、异步安全（13 条）](#二异步安全13-条) — 并发、竞态、轮询、生命周期
 - [三、错误处理（11 条）](#三错误处理11-条) — 错误不吞、不假成功、用户可理解
 - [四、UI 健壮性（9 条）](#四ui-健壮性9-条) — 界面不崩、有反馈、无泄漏
 - [五、工程质量（14 条）](#五工程质量14-条) — 依赖合规、构建安全、测试可靠
 - [六、平台兼容（6 条）](#六平台兼容6-条) — IPC、Electron 环境、进程模型
+- [七、用户安全防护（6 条）](#七用户安全防护6-条) — 破坏性操作需确认、数据清除需保护
 
-## 一、数据一致性（15 条）
+## 一、数据一致性（17 条）
 
 > 核心关注：数据不丢、不脏、不冲突
 
@@ -398,6 +399,57 @@ useEffect(() => {
 **Verification**: For any Provider that loads a list from storage, check that the selected entity and its children are also restored. Search for `getAll()` or similar list-loading calls in Provider components and verify they also call `setCurrent*` and `markClean`.
 
 **Discovered in**: `StoryProvider` loaded stories list on mount but didn't restore `currentStory` or `beats`. After page reload (Ctrl+R), the story list appeared in the sidebar but the detail panel was empty — no beats, no selected story. Users had to manually click a story to see its content.
+
+### R69: Destructive Entity Deletion MUST Require Input Confirmation
+
+When deleting an entity that causes irreversible cascade deletion (e.g., a story with all its beats, video tasks, and cached media), the confirmation dialog MUST require the user to type the entity name (or similar unique identifier) before the delete button becomes enabled. A simple "Are you sure?" dialog is insufficient for operations that permanently destroy multiple related records.
+
+**BAD** — Simple confirm dialog for cascade delete:
+```typescript
+<Button variant="destructive" onClick={performDeleteStory}>
+  确认删除
+</Button>
+```
+
+**GOOD** — Input confirmation required:
+```typescript
+<Input
+  value={deleteConfirmInput}
+  onChange={(e) => setDeleteConfirmInput(e.target.value)}
+  placeholder="请输入故事名称以确认删除"
+/>
+<Button variant="destructive" disabled={deleteConfirmInput !== story.title} onClick={performDeleteStory}>
+  确认删除
+</Button>
+```
+
+**Verification**: Search for `variant="destructive"` buttons in delete dialogs. For cascade-delete operations (story, project), verify an input confirmation step exists. For single-entity deletes (beat, character), a simple confirm dialog is acceptable.
+
+**Discovered in**: Story delete dialog only had a simple "确认删除" button. Accidental clicks or keyboard shortcuts could permanently delete an entire project with all beats and video tasks.
+
+### R72: Auto-Save MUST NOT Be Disabled by Business Data Absence
+
+Auto-save conditions MUST NOT include checks for the existence of specific business data (e.g., `beats.length > 0`). If a user has unsaved changes to any field (title, description, settings), auto-save must be active regardless of whether child entities exist. Disabling auto-save based on child entity presence means changes to parent entity metadata are never persisted until a child is created.
+
+**BAD** — Auto-save disabled when no beats exist:
+```typescript
+useAutoSave({
+  enabled: autoSaveSettings.enabled && story.hasUnsavedChanges && story.beats.length > 0,
+  ...
+});
+```
+
+**GOOD** — Auto-save based only on dirty state:
+```typescript
+useAutoSave({
+  enabled: autoSaveSettings.enabled && story.hasUnsavedChanges,
+  ...
+});
+```
+
+**Verification**: Search for `useAutoSave` calls and verify the `enabled` condition does not reference business data existence checks (`.length > 0`, `!!entity.id`, etc.). The only valid conditions are feature flags (`autoSaveSettings.enabled`) and dirty state (`hasUnsavedChanges`).
+
+**Discovered in**: Story page auto-save was disabled when `story.beats.length === 0`. Users who edited story title/description without adding beats would lose their changes on crash — auto-save never triggered.
 
 ## 二、异步安全（13 条）
 
@@ -1778,3 +1830,171 @@ dbQuery: async (sql, params) => {
 **Verification**: When modifying `sqlite-core.ts` return types or `preload.ts` IPC handlers, run `npx playwright test tests/database-storage.spec.ts` to verify mock contract alignment.
 
 **Discovered in**: e2e test audit — `dbQuery` mock returned raw array, `safeQuery` checked `response.success` (undefined on array), threw error, `useVideoTaskManager` showed error toast.
+
+## 七、用户安全防护（6 条）
+
+> 核心关注：破坏性操作需确认、数据清除需保护、不可逆操作需二次验证
+
+### R70: Irreversible Data Clearing MUST Require Confirmation
+
+When a UI action permanently deletes user data (e.g., auto-save recovery records, cached data, session state), the action MUST require a second confirmation. A single button click must never trigger irreversible data destruction. The confirmation dialog MUST clearly state the operation is permanent and cannot be undone.
+
+**BAD** — Single click deletes recovery data:
+```typescript
+const handleDismiss = async () => {
+  for (const save of autoSaves) {
+    await deleteAutoSave(save.id);
+  }
+  setOpen(false);
+};
+```
+
+**GOOD** — Confirmation before clearing:
+```typescript
+const handleDismiss = async () => {
+  const confirmed = await confirm(
+    t("crash.dismissConfirmMsg"),
+    t("crash.dismissConfirmTitle")
+  );
+  if (!confirmed) return;
+  for (const save of autoSaves) {
+    await deleteAutoSave(save.id);
+  }
+  setOpen(false);
+};
+```
+
+**Verification**: Search for functions that call `deleteAutoSave`, `clearAutoSaves`, or similar bulk-delete operations. Verify each is guarded by a `confirm()` call or equivalent user confirmation step.
+
+**Discovered in**: CrashRecoveryDialog's "忽略" button directly deleted all auto-save records without confirmation. Users clicking "忽略" to temporarily dismiss the dialog permanently lost their recovery data.
+
+### R71: Route Navigation MUST Intercept When Dirty State Exists
+
+When a user has unsaved changes (dirty state), the application MUST intercept all navigation events — including browser back/forward buttons, not just programmatic navigation via `guardedPush`. Using `useBlocker` from react-router-dom ensures that browser-initiated navigation is also caught and confirmed.
+
+**BAD** — Only programmatic navigation is guarded:
+```typescript
+const guardedPush = (href: string) => {
+  if (dirtyCount > 0) { confirm(...); }
+  navigate(href);
+};
+// Browser back button bypasses this guard entirely
+```
+
+**GOOD** — Browser navigation also intercepted:
+```typescript
+const blocker = useBlocker(dirtyCount > 0);
+useEffect(() => {
+  if (blocker.state === "blocked") {
+    confirm(t("nav.unsavedChangesConfirm"), t("nav.unsavedChanges")).then((ok) => {
+      if (ok) { markAllClean(); blocker.proceed?.(); }
+      else { blocker.reset?.(); }
+    });
+  }
+}, [blocker]);
+```
+
+**Verification**: In any page that uses `useNavigationGuard`, verify that `useBlocker` is also active. Test by making changes, then pressing the browser back button — a confirmation dialog should appear.
+
+**Discovered in**: `useNavigationGuard` only provided `guardedPush` for programmatic navigation. Pressing the browser back button with unsaved changes silently navigated away, potentially losing data.
+
+### R73: Cross-Origin Resource Download MUST Use fetch+blob
+
+When downloading resources from cross-origin URLs (e.g., AI provider video URLs), the `<a download="filename">` approach does NOT work — browsers ignore the `download` attribute for cross-origin links and instead open the resource in a new tab. Always use `fetch()` + `Blob` + `URL.createObjectURL()` for cross-origin downloads.
+
+**BAD** — Cross-origin download fails silently:
+```typescript
+const a = document.createElement("a");
+a.href = crossOriginUrl;
+a.download = "video.mp4";
+a.click();
+// Browser opens video in new tab instead of downloading
+```
+
+**GOOD** — fetch + blob approach:
+```typescript
+const response = await fetch(crossOriginUrl);
+const blob = await response.blob();
+const blobUrl = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = blobUrl;
+a.download = "video.mp4";
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(blobUrl);
+```
+
+**Verification**: Search for `a.download` or `createElement("a")` patterns in download handlers. If the URL is potentially cross-origin, verify it uses fetch+blob. Add a fallback error message for fetch failures.
+
+**Discovered in**: Beat detail page video download used `<a download>` for AI provider URLs. Clicking "下载" opened the video in a new browser tab instead of downloading it.
+
+### R74: Error Recovery MUST NOT Remove Retry Option Based on Count
+
+Error boundary or error recovery UI MUST NOT remove the retry button based on error count. Even after multiple failures, the user should always have the option to retry. Removing the retry button forces the user to reload the page (losing current state) or reset (losing all session data). Instead, show a warning hint after multiple failures but keep the retry button available.
+
+**BAD** — Retry button removed after 3 failures:
+```typescript
+{errorCount < 3 ? (
+  <Button onClick={handleRetry}>重试</Button>
+) : (
+  <p>多次重试失败</p>
+)}
+```
+
+**GOOD** — Retry always available with contextual hint:
+```typescript
+<Button onClick={handleRetry}>
+  {errorCount < 3 ? "重试" : "再试一次"}
+</Button>
+{errorCount >= 3 && (
+  <p className="text-sm text-muted-foreground">多次检测到错误，如果问题持续存在，请尝试刷新页面</p>
+)}
+```
+
+**Verification**: Search for `errorCount` or retry-count-based conditional rendering in error boundary components. Verify the retry action is always available regardless of error count.
+
+**Discovered in**: ErrorBoundary removed the retry button after 3 failures, showing only a text message. Users had no way to retry without reloading or resetting.
+
+### R75: Session Clearing MUST Only Delete Application-Prefixed Keys
+
+When a "reset" or "recover" operation clears session/local storage, it MUST only delete keys with the application prefix (e.g., `ai-animation-`). Using `sessionStorage.clear()` or `localStorage.clear()` destroys ALL stored data including data from other applications sharing the same origin, which is destructive and unexpected.
+
+**BAD** — Clears all session data:
+```typescript
+sessionStorage.clear();
+```
+
+**GOOD** — Only clears application-prefixed keys:
+```typescript
+const keysToRemove: string[] = [];
+for (let i = 0; i < sessionStorage.length; i++) {
+  const key = sessionStorage.key(i);
+  if (key?.startsWith("ai-animation-")) {
+    keysToRemove.push(key);
+  }
+}
+keysToRemove.forEach((key) => sessionStorage.removeItem(key));
+```
+
+**Verification**: Search for `sessionStorage.clear()` and `localStorage.clear()` calls. Replace with prefix-scoped removal. The only acceptable use of `.clear()` is in test teardown.
+
+**Discovered in**: ErrorBoundary's "重置并恢复" called `sessionStorage.clear()`, destroying all session data including non-application data.
+
+### R76: Toast Deduplication MUST Include Message Content
+
+When deduplicating toast notifications, the dedup key MUST include the message content, not just the type and title. Deduplicating by type+title alone means multiple different errors with the same title (e.g., "生成失败" for different beats) are merged into a single "(3次)" notification, hiding which specific items failed.
+
+**BAD** — Dedup by type+title only:
+```typescript
+const dedupKey = `${toast.type}-${toast.title}`;
+```
+
+**GOOD** — Dedup includes message:
+```typescript
+const dedupKey = `${toast.type}-${toast.title}-${toast.message || ""}`;
+```
+
+**Verification**: Search for toast dedup logic and verify the dedup key includes the message field. Test by triggering multiple errors with the same title but different messages — each should appear as a separate toast.
+
+**Discovered in**: Toast deduplication merged all "生成失败" toasts into one, showing "(3次)" without indicating which 3 beats failed. Users couldn't identify which specific operations failed.

@@ -11,6 +11,7 @@ import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { t } from "@/shared/constants";
+import { confirm } from "@/shared/utils/confirm";
 
 interface AutoSaveRecord {
   id: string;
@@ -49,6 +50,11 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
   }, [loadAutoSaves]);
 
   const handleDismiss = async () => {
+    const confirmed = await confirm(
+      t("crash.dismissConfirmMsg"),
+      t("crash.dismissConfirmTitle"),
+    );
+    if (!confirmed) return;
     try {
       for (const save of autoSaves) {
         await deleteAutoSave(save.id);
@@ -97,7 +103,7 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleDismiss}>
-            {t("crash.dismissAndClear")}
+            {t("crash.dismissAndClearConfirm")}
           </Button>
           <Button onClick={() => setOpen(false)}>{t("crash.acknowledged")}</Button>
         </DialogFooter>

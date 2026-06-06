@@ -1,5 +1,5 @@
 import { errorLogger } from "@/shared/error-logger";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
@@ -54,12 +54,34 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
   );
   const [isRefreshingUrl, setIsRefreshingUrl] = useState(false);
   const prevPropsVideoUrlRef = useRef(beat.videoGen?.videoUrl || task?.videoUrl);
+  const [elementNames, setElementNames] = useState<Record<string, string>>({});
 
   const propsVideoUrl = beat.videoGen?.videoUrl || task?.videoUrl;
   if (prevPropsVideoUrlRef.current !== propsVideoUrl) {
     prevPropsVideoUrlRef.current = propsVideoUrl;
     setVideoUrl(propsVideoUrl);
   }
+
+  useEffect(() => {
+    if (!beat.elementIds || beat.elementIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const mgr = await container.elementManager;
+        const names: Record<string, string> = {};
+        await Promise.all(
+          beat.elementIds.map(async (id) => {
+            const el = await mgr.getElement(id);
+            if (el) names[id] = el.name;
+          }),
+        );
+        if (!cancelled) setElementNames(names);
+      } catch (err) {
+        errorLogger.warn("[BeatDetailClient] 加载元素名称失败", err instanceof Error ? err : undefined);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [beat.elementIds]);
 
   const handleCopyPrompt = useCallback(() => {
     const prompt = beat.videoGen?.prompt || beat.generationPrompt || "";
@@ -71,17 +93,28 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
     });
   }, [beat, success, showError]);
 
-  const handleDownloadVideo = useCallback(() => {
+  const handleDownloadVideo = useCallback(async () => {
     const url = videoUrl || beat.videoGen?.videoUrl || task?.videoUrl;
     if (!url) {
       showError(t("error.cannotDownload"), t("error.videoNotReady"));
       return;
     }
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${beat.title || t("beat.downloadVideo")}_${beat.sequence}.mp4`;
-    a.click();
-    success(t("success.downloadStarted"), t("success.videoDownloadStarted"));
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${beat.title || t("beat.downloadVideo")}_${beat.sequence}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      success(t("success.downloadStarted"), t("success.videoDownloadStarted"));
+    } catch (err) {
+      errorLogger.warn("[BeatDetailClient] 视频下载失败:", err instanceof Error ? err : undefined);
+      showError(t("error.downloadFailed"), t("error.videoDownloadFallback"));
+    }
   }, [videoUrl, beat, task, success, showError]);
 
   const handleCopyVideoUrl = useCallback(() => {
@@ -160,8 +193,8 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <header className="bg-slate-900/80 backdrop-blur-sm border-b border-purple-800 sticky top-0 z-10">
+    <div className="min-h-screen bg-background">
+      <header className="bg-background/80 backdrop-blur-sm border-b border-border sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -169,15 +202,14 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => guardedPush("/story")}
-                className="text-purple-200 hover:text-purple-100 hover:bg-purple-800/50"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-purple-100">
+                <h1 className="text-xl font-bold text-foreground">
                   {beat.title || t("beat.beatIndex", { index: beat.sequence })}
                 </h1>
-                <p className="text-sm text-purple-300">
+                <p className="text-sm text-muted-foreground">
                   {t("beat.shotSequence", { title: story.title, index: beat.sequence, total: story.beats?.length || 0 })}
                 </p>
               </div>
@@ -220,7 +252,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
       <main className="container mx-auto px-4 py-6">
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
-            <Card className="bg-slate-800/50 border-purple-800/50 overflow-hidden">
+            <Card className="bg-card border-border overflow-hidden">
               <CardContent className="p-0">
                 {videoUrl || beat.videoGen?.videoUrl || task?.videoUrl ? (
                   <div className="relative aspect-video bg-black">
@@ -240,7 +272,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     />
                   </div>
                 ) : beat.framePair?.firstFrame?.imageUrl ? (
-                  <div className="relative aspect-video bg-slate-900 flex items-center justify-center">
+                  <div className="relative aspect-video bg-muted flex items-center justify-center">
                     <img
                       src={beat.framePair.firstFrame.imageUrl}
                       alt={t("beat.firstFramePreview")}
@@ -255,7 +287,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     </div>
                   </div>
                 ) : beat.keyframe?.imageUrl ? (
-                  <div className="relative aspect-video bg-slate-900 flex items-center justify-center">
+                  <div className="relative aspect-video bg-muted flex items-center justify-center">
                     <img
                       src={beat.keyframe.imageUrl}
                       alt={t("beat.previewImage")}
@@ -270,8 +302,8 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="aspect-video bg-slate-900 flex items-center justify-center">
-                    <div className="text-center text-slate-400">
+                  <div className="aspect-video bg-muted flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
                       <Video className="w-12 h-12 mx-auto mb-2 opacity-50" />
                       <p className="text-lg font-medium">{t("beat.notStarted")}</p>
                       <p className="text-sm opacity-70">{t("beat.generateKeyframeFirst")}</p>
@@ -281,7 +313,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
               </CardContent>
             </Card>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               {beat.videoGen?.status === "failed" && (
                 <Button
                   variant="outline"
@@ -296,53 +328,56 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 !videoUrl &&
                 !beat.videoGen?.videoUrl && (
                   <Button
-                    className="gap-2 flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+                    className="gap-2 flex-1"
                     onClick={() => guardedPush("/story")}
                   >
                     <Wand2 className="w-4 h-4" />
-                    {t("beat.generateVideo")}
+                    {t("beat.goToStoryboardGenerateVideo")}
                   </Button>
                 )}
               {beat.keyframe?.imageUrl &&
                 !beat.framePair?.firstFrame?.imageUrl && (
                   <Button
-                    className="gap-2 flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+                    className="gap-2 flex-1"
                     onClick={() => guardedPush("/story")}
                   >
                     <Image className="w-4 h-4" />
-                    {t("beat.generateFramePair")}
+                    {t("beat.goToStoryboardGenerateFramePair")}
                   </Button>
                 )}
               {!beat.keyframe?.imageUrl && (
                 <Button
-                  className="gap-2 flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+                  className="gap-2 flex-1"
                   onClick={() => guardedPush("/story")}
                 >
                   <Wand2 className="w-4 h-4" />
-                  {t("beat.generateKeyframe")}
+                  {t("beat.goToStoryboardGenerateKeyframe")}
                 </Button>
               )}
+              <p className="text-xs text-muted-foreground text-center">
+                {t("beat.generateFromStoryboardHint")}
+              </p>
             </div>
           </div>
 
           <div className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="video">{t("beat.tabVideo")}</TabsTrigger>
-                <TabsTrigger value="edit">{t("beat.tabEdit")}</TabsTrigger>
+                <TabsTrigger value="details">{t("beat.tabDetails")}</TabsTrigger>
                 <TabsTrigger value="tech">{t("beat.tabTech")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="video" className="space-y-4">
-                <Card className="bg-slate-800/50 border-purple-800/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-purple-100">
+                    <CardTitle className="text-sm text-foreground">
                       {t("beat.genStatus")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">{t("beat.status")}</span>
+                      <span className="text-sm text-muted-foreground">{t("beat.status")}</span>
                       <Badge
                         className={getStatusColor(
                           beat.videoGen?.status || task?.status,
@@ -354,26 +389,26 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     {beat.videoGen?.status === "generating" && (
                       <>
                         <Progress value={task?.progress || 0} className="h-2" />
-                        <div className="text-xs text-right text-slate-400">
+                        <div className="text-xs text-right text-muted-foreground">
                           {task?.progress || 0}%
                         </div>
                       </>
                     )}
                     {beat.videoGen?.error && (
-                      <div className="p-3 rounded-lg bg-red-900/20 border border-red-800/50">
-                        <div className="flex items-center gap-2 text-red-400">
+                      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                        <div className="flex items-center gap-2 text-destructive">
                           <AlertTriangle className="w-4 h-4" />
                           <span className="text-sm font-medium">{t("beat.statusFailed")}</span>
                         </div>
-                        <p className="text-xs text-red-300 mt-1">
+                        <p className="text-xs text-destructive/80 mt-1">
                           {beat.videoGen.error}
                         </p>
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">{t("beat.taskId")}</span>
+                      <span className="text-sm text-muted-foreground">{t("beat.taskId")}</span>
                       <div className="flex items-center gap-1">
-                        <code className="text-xs bg-slate-900 px-2 py-1 rounded">
+                        <code className="text-xs bg-muted px-2 py-1 rounded">
                           {beat.videoGen?.taskId || task?.taskId || t("story.notCreated")}
                         </code>
                         {beat.videoGen?.taskId && (
@@ -397,15 +432,15 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-purple-800/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-purple-100">
+                    <CardTitle className="text-sm text-foreground">
                       {t("beat.videoUrl")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30">
-                      <code className="text-xs text-slate-300 break-all">
+                    <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                      <code className="text-xs text-muted-foreground break-all">
                         {videoUrl ||
                           beat.videoGen?.videoUrl ||
                           task?.videoUrl ||
@@ -439,22 +474,22 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                         {isRefreshingUrl ? t("beat.fetching") : t("beat.manualFetchUrl")}
                       </Button>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       {t("beat.manualFetchHint")}
                     </p>
                   </CardContent>
                 </Card>
 
                 {beat.consistencyCheck && (
-                  <Card className="bg-slate-800/50 border-purple-800/50">
+                  <Card className="bg-card border-border">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm text-purple-100">
+                      <CardTitle className="text-sm text-foreground">
                         {t("beat.consistencyCheck")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-400">{t("beat.overallScore")}</span>
+                        <span className="text-sm text-muted-foreground">{t("beat.overallScore")}</span>
                         <div className="flex items-center gap-2">
                           <Progress
                             value={
@@ -473,7 +508,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                       {beat.consistencyCheck.characterScores?.map((score) => (
                         <div key={score.elementId} className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-400">
+                            <span className="text-xs text-muted-foreground">
                               {score.elementName}
                             </span>
                             <span className="text-xs">
@@ -490,11 +525,11 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                         <Badge
                           className={
                             beat.consistencyCheck.recommendation === "accept"
-                              ? "bg-green-900/50 text-green-200"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200"
                               : beat.consistencyCheck.recommendation ===
                                   "adjust"
-                                ? "bg-yellow-900/50 text-yellow-200"
-                                : "bg-red-900/50 text-red-200"
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200"
+                                : "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200"
                           }
                         >
                           {beat.consistencyCheck.recommendation === "accept" &&
@@ -510,36 +545,36 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 )}
               </TabsContent>
 
-              <TabsContent value="edit" className="space-y-4">
-                <Card className="bg-slate-800/50 border-purple-800/50">
+              <TabsContent value="details" className="space-y-4">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-purple-100">
+                    <CardTitle className="text-sm text-foreground">
                       {t("beat.content")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <Label className="text-xs text-slate-400">{t("beat.titleLabel")}</Label>
-                      <p className="text-sm text-slate-200">
+                      <Label className="text-xs text-muted-foreground">{t("beat.titleLabel")}</Label>
+                      <p className="text-sm text-foreground">
                         {beat.title || t("story.untitled")}
                       </p>
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-400">{t("beat.contentDesc")}</Label>
-                      <p className="text-sm text-slate-200 whitespace-pre-wrap">
+                      <Label className="text-xs text-muted-foreground">{t("beat.contentDesc")}</Label>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
                         {beat.content || beat.description || t("story.noDesc")}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label className="text-xs text-slate-400">{t("beat.duration")}</Label>
-                        <p className="text-sm text-slate-200">
+                        <Label className="text-xs text-muted-foreground">{t("beat.duration")}</Label>
+                        <p className="text-sm text-foreground">
                           {t("beat.durationSeconds", { count: beat.duration ?? 0 })}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs text-slate-400">{t("beat.type")}</Label>
-                        <p className="text-sm text-slate-200">
+                        <Label className="text-xs text-muted-foreground">{t("beat.type")}</Label>
+                        <p className="text-sm text-foreground">
                           {beat.type || t("story.notSet")}
                         </p>
                       </div>
@@ -548,33 +583,33 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 </Card>
 
                 {beat.camera && (
-                  <Card className="bg-slate-800/50 border-purple-800/50">
+                  <Card className="bg-card border-border">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm text-purple-100">
+                      <CardTitle className="text-sm text-foreground">
                         {t("beat.cameraParams")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {beat.camera.angle && (
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">{t("beat.angle")}</span>
-                          <span className="text-sm text-slate-200">
+                          <span className="text-xs text-muted-foreground">{t("beat.angle")}</span>
+                          <span className="text-sm text-foreground">
                             {beat.camera.angle}
                           </span>
                         </div>
                       )}
                       {beat.camera.movement && (
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">{t("beat.movement")}</span>
-                          <span className="text-sm text-slate-200">
+                          <span className="text-xs text-muted-foreground">{t("beat.movement")}</span>
+                          <span className="text-sm text-foreground">
                             {beat.camera.movement}
                           </span>
                         </div>
                       )}
                       {beat.shotType && (
                         <div className="flex justify-between">
-                          <span className="text-xs text-slate-400">{t("beat.shotSize")}</span>
-                          <span className="text-sm text-slate-200">
+                          <span className="text-xs text-muted-foreground">{t("beat.shotSize")}</span>
+                          <span className="text-sm text-foreground">
                             {beat.shotType}
                           </span>
                         </div>
@@ -584,23 +619,24 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 )}
 
                 {beat.elementIds && beat.elementIds.length > 0 && (
-                  <Card className="bg-slate-800/50 border-purple-800/50">
+                  <Card className="bg-card border-border">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm text-purple-100">
+                      <CardTitle className="text-sm text-foreground">
                         {t("beat.elementBinding")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {beat.elementIds.map((elementId) => {
                         const binding = beat.elementBindings?.[elementId];
+                        const name = elementNames[elementId];
                         return (
                           <div
                             key={elementId}
-                            className="p-2 rounded-lg bg-slate-900/50 border border-purple-800/30"
+                            className="p-2 rounded-lg bg-muted/50 border border-border"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-purple-200">
-                                {elementId}
+                              <span className="text-sm font-medium text-foreground">
+                                {name || elementId}
                               </span>
                               {binding?.role && (
                                 <Badge variant="outline" className="text-xs">
@@ -608,13 +644,18 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                                 </Badge>
                               )}
                             </div>
+                            {name && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {elementId}
+                              </p>
+                            )}
                             {binding?.action && (
-                              <p className="text-xs text-slate-400 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {t("beat.action", { action: binding.action })}
                               </p>
                             )}
                             {binding?.emotion && (
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-muted-foreground">
                                 {t("beat.emotion", { emotion: binding.emotion })}
                               </p>
                             )}
@@ -627,16 +668,16 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
               </TabsContent>
 
               <TabsContent value="tech" className="space-y-4">
-                <Card className="bg-slate-800/50 border-purple-800/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-purple-100">
+                    <CardTitle className="text-sm text-foreground">
                       {t("beat.genParams")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <Label className="text-xs text-slate-400">{t("beat.prompt")}</Label>
+                        <Label className="text-xs text-muted-foreground">{t("beat.prompt")}</Label>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -647,8 +688,8 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                           {t("story.copyButton")}
                         </Button>
                       </div>
-                      <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30 max-h-40 overflow-y-auto">
-                        <code className="text-xs text-slate-300 whitespace-pre-wrap">
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border max-h-40 overflow-y-auto">
+                        <code className="text-xs text-muted-foreground whitespace-pre-wrap">
                           {beat.videoGen?.prompt ||
                             beat.generationPrompt ||
                             t("story.notGenerated")}
@@ -658,11 +699,11 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
 
                     {beat.imageGenerationPrompt && (
                       <div>
-                        <Label className="text-xs text-slate-400">
+                        <Label className="text-xs text-muted-foreground">
                           {t("beat.keyframePrompt")}
                         </Label>
-                        <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30 max-h-32 overflow-y-auto">
-                          <code className="text-xs text-slate-300 whitespace-pre-wrap">
+                        <div className="p-3 rounded-lg bg-muted/50 border border-border max-h-32 overflow-y-auto">
+                          <code className="text-xs text-muted-foreground whitespace-pre-wrap">
                             {beat.imageGenerationPrompt}
                           </code>
                         </div>
@@ -671,11 +712,11 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
 
                     {beat.firstFramePrompt && (
                       <div>
-                        <Label className="text-xs text-slate-400">
+                        <Label className="text-xs text-muted-foreground">
                           {t("beat.firstFramePrompt")}
                         </Label>
-                        <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30 max-h-32 overflow-y-auto">
-                          <code className="text-xs text-slate-300 whitespace-pre-wrap">
+                        <div className="p-3 rounded-lg bg-muted/50 border border-border max-h-32 overflow-y-auto">
+                          <code className="text-xs text-muted-foreground whitespace-pre-wrap">
                             {beat.firstFramePrompt}
                           </code>
                         </div>
@@ -684,11 +725,11 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
 
                     {beat.lastFramePrompt && (
                       <div>
-                        <Label className="text-xs text-slate-400">
+                        <Label className="text-xs text-muted-foreground">
                           {t("beat.lastFramePrompt")}
                         </Label>
-                        <div className="p-3 rounded-lg bg-slate-900/50 border border-purple-800/30 max-h-32 overflow-y-auto">
-                          <code className="text-xs text-slate-300 whitespace-pre-wrap">
+                        <div className="p-3 rounded-lg bg-muted/50 border border-border max-h-32 overflow-y-auto">
+                          <code className="text-xs text-muted-foreground whitespace-pre-wrap">
                             {beat.lastFramePrompt}
                           </code>
                         </div>
@@ -697,16 +738,16 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-purple-800/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-purple-100">
+                    <CardTitle className="text-sm text-foreground">
                       {t("beat.genHistory")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-xs text-slate-400">{t("beat.createdAt")}</span>
-                      <span className="text-sm text-slate-200">
+                      <span className="text-xs text-muted-foreground">{t("beat.createdAt")}</span>
+                      <span className="text-sm text-foreground">
                         {beat.videoGen?.createdAt
                           ? new Date(beat.videoGen.createdAt).toLocaleString()
                           : t("beat.notCreated")}
@@ -714,28 +755,28 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                     </div>
                     {task?.createdAt && (
                       <div className="flex justify-between">
-                        <span className="text-xs text-slate-400">{t("beat.taskSubmit")}</span>
-                        <span className="text-sm text-slate-200">
+                        <span className="text-xs text-muted-foreground">{t("beat.taskSubmit")}</span>
+                        <span className="text-sm text-foreground">
                           {new Date(task.createdAt).toLocaleString()}
                         </span>
                       </div>
                     )}
                     {beat.keyframe?.generatedAt && (
                       <div className="flex justify-between">
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {t("beat.previewGeneration")}
                         </span>
-                        <span className="text-sm text-slate-200">
+                        <span className="text-sm text-foreground">
                           {new Date(beat.keyframe.generatedAt).toLocaleString()}
                         </span>
                       </div>
                     )}
                     {beat.framePair?.generatedAt && (
                       <div className="flex justify-between">
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {t("beat.frameGeneration")}
                         </span>
-                        <span className="text-sm text-slate-200">
+                        <span className="text-sm text-foreground">
                           {new Date(
                             beat.framePair.generatedAt,
                           ).toLocaleString()}
@@ -758,10 +799,10 @@ export default function BeatDetailClient() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">{t("common.loading")}</p>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -769,11 +810,11 @@ export default function BeatDetailClient() {
 
   if (!story || !beat) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-          <p className="text-slate-200 text-lg">{t("beat.notFound")}</p>
-          <p className="text-slate-400 text-sm mt-2">
+          <p className="text-foreground text-lg">{t("beat.notFound")}</p>
+          <p className="text-muted-foreground text-sm mt-2">
               {t("beat.notFoundDesc")}
             </p>
         </div>

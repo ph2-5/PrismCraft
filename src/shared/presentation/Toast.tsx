@@ -70,11 +70,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       const id = `toast-${crypto.randomUUID()}`;
       const newToast = { ...toast, id, createdAt: Date.now() };
       setToasts((prev) => {
-        const dedupKey = `${toast.type}-${toast.title}`;
+        const dedupKey = `${toast.type}-${toast.title}-${toast.message || ""}`;
         const existing = prev.find(
           (t) =>
             !t.exiting &&
-            `${t.type}-${t.title}` === dedupKey &&
+            `${t.type}-${t.title}-${t.message || ""}` === dedupKey &&
             t.createdAt &&
             Date.now() - t.createdAt < DEDUP_WINDOW_MS,
         );
@@ -187,7 +187,7 @@ function ToastContainer({
   onClose: (id: string) => void;
 }) {
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none" role="status" aria-live="polite">
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <ToastItem

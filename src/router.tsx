@@ -11,6 +11,7 @@ const AssetLibraryPage = lazy(() => import("./app/asset-library/page"));
 const QuickGeneratePage = lazy(() => import("./app/quick-generate/page"));
 const SettingsPage = lazy(() => import("./app/settings/page"));
 const VideoTasksPage = lazy(() => import("./app/video-tasks/page"));
+const NotFound = lazy(() => import("./app/not-found"));
 
 function PageLoader() {
   return (
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
       { path: "quick-generate", element: withSuspense(QuickGeneratePage) },
       { path: "settings", element: withSuspense(SettingsPage) },
       { path: "video-tasks", element: withSuspense(VideoTasksPage) },
+      { path: "*", element: withSuspense(NotFound) },
     ],
   },
 ]);

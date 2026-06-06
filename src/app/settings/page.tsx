@@ -149,6 +149,11 @@ export default function SettingsPage() {
           </TabsList>
 
           <TabsContent value="api">
+            <Alert className="mb-4">
+              <AlertDescription className="text-sm">
+                {t("settings.apiConfigTip")}
+              </AlertDescription>
+            </Alert>
             <ApiConfigPanel />
           </TabsContent>
 

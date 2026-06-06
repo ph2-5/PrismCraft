@@ -128,72 +128,72 @@ export default function VideoTasksPage() {
               <div className="text-2xl font-bold">{totalTasks}</div>
             </CardContent>
           </Card>
-          <Card className="bg-green-900/20 border-green-800">
+          <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-green-400">
+              <CardTitle className="text-sm flex items-center gap-2 text-green-600 dark:text-green-400">
                 <CheckCircle2 className="w-4 h-4" />
                 {t("task.completedCount")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-300">
+              <div className="text-2xl font-bold text-green-700 dark:text-green-300">
                 {completedTasks}
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-yellow-900/20 border-yellow-800">
+          <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-yellow-400">
+              <CardTitle className="text-sm flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
                 <Clock className="w-4 h-4" />
                 {t("task.pendingCount")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-300">
+              <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">
                 {pendingTasks}
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-blue-900/20 border-blue-800">
+          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-blue-400">
+              <CardTitle className="text-sm flex items-center gap-2 text-blue-600 dark:text-blue-400">
                 <Clock className="w-4 h-4" />
                 {t("task.generatingCount")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-300">
+              <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                 {processingTasks}
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-red-900/20 border-red-800">
+          <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-red-400">
+              <CardTitle className="text-sm flex items-center gap-2 text-red-600 dark:text-red-400">
                 <XCircle className="w-4 h-4" />
                 {t("task.failedCount")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-300">
+              <div className="text-2xl font-bold text-red-700 dark:text-red-300">
                 {failedTasks}
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-purple-900/20 border-purple-800">
+          <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-purple-400">
+              <CardTitle className="text-sm flex items-center gap-2 text-purple-600 dark:text-purple-400">
                 <CheckCircle2 className="w-4 h-4" />
                 {t("task.completionRate")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-300">
+              <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
                 {completionRate}%
               </div>
-              <div className="w-full bg-purple-950 rounded-full h-1.5 mt-2">
+              <div className="w-full bg-purple-100 dark:bg-purple-950 rounded-full h-1.5 mt-2">
                 <div
-                  className="bg-purple-400 h-1.5 rounded-full transition-all"
+                  className="bg-purple-500 dark:bg-purple-400 h-1.5 rounded-full transition-all"
                   style={{ width: `${completionRate}%` }}
                 />
               </div>

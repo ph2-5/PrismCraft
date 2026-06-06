@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useBlocker } from "react-router-dom";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
 import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants/messages";
@@ -44,6 +44,21 @@ export function useNavigationGuard() {
   useEffect(() => {
     dirtyRef.current = dirtyCount > 0;
   }, [dirtyCount]);
+
+  const blocker = useBlocker(dirtyCount > 0);
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      confirm(t("nav.unsavedChangesConfirm"), t("nav.unsavedChanges")).then((confirmed) => {
+        if (confirmed) {
+          markAllClean();
+          blocker.proceed?.();
+        } else {
+          blocker.reset?.();
+        }
+      });
+    }
+  }, [blocker, markAllClean]);
 
   const guardedPush = useCallback(
     async (href: string) => {

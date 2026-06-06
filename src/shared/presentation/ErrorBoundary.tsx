@@ -110,7 +110,12 @@ export class ErrorBoundary extends Component<Props, State> {
     }
     try {
       localStorage.removeItem("ai-animation-last-session");
-      sessionStorage.clear();
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const key = sessionStorage.key(i);
+        if (key?.startsWith("ai-animation-")) {
+          sessionStorage.removeItem(key);
+        }
+      }
     } catch (e) {
       errorLogger.warn("[ErrorBoundary] 清除会话数据失败", e instanceof Error ? e.message : e);
     }
@@ -247,18 +252,17 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
 
               <div className="space-y-2">
-                {this.state.errorCount < 3 ? (
-                  <Button
-                    onClick={this.handleRetry}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    {t("common.retry")}
-                  </Button>
-                ) : (
+                <Button
+                  onClick={this.handleRetry}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {this.state.errorCount < 3 ? t("common.retry") : t("errorBoundary.tryAgain")}
+                </Button>
+                {this.state.errorCount >= 3 && (
                   <p className="text-sm text-muted-foreground text-center">
-                    {t("errorBoundary.retryRepeated")}
+                    {t("errorBoundary.multipleErrorsHint")}
                   </p>
                 )}
 
@@ -311,6 +315,7 @@ export function ErrorLogViewer({ loadLogs, clearLogs }: ErrorLogViewerProps) {
       component?: string;
     }>
   >([]);
+  const [refreshing, setRefreshing] = React.useState(false);
 
   React.useEffect(() => {
     loadLogs().then((allLogs) => {
@@ -319,6 +324,18 @@ export function ErrorLogViewer({ loadLogs, clearLogs }: ErrorLogViewerProps) {
       errorLogger.warn("[ErrorBoundary] 加载错误日志失败", e);
     });
   }, [loadLogs]);
+
+  const handleRefreshLogs = async () => {
+    setRefreshing(true);
+    try {
+      const allLogs = await loadLogs();
+      setLogs(allLogs);
+    } catch (e) {
+      errorLogger.warn("[ErrorBoundary] 刷新错误日志失败", e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleClearLogs = async () => {
     setLogs([]);
@@ -351,9 +368,15 @@ export function ErrorLogViewer({ loadLogs, clearLogs }: ErrorLogViewerProps) {
             </CardTitle>
             <CardDescription>{t("errorBoundary.recentErrorCount", { count: logs.length })}</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={handleClearLogs}>
-            {t("errorBoundary.clearLogs")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleRefreshLogs} disabled={refreshing}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />
+              {t("errorBoundary.refreshLogs")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleClearLogs}>
+              {t("errorBoundary.clearLogs")}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

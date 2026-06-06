@@ -103,6 +103,7 @@ export function NetworkStatusAlert() {
           <AlertTitle className="text-green-300">{t("network.recovered")}</AlertTitle>
           <AlertDescription className="text-green-400">
             {t("network.recoveredDesc")}
+            <span className="block text-xs mt-1">{t("network.retrySuggestion")}</span>
           </AlertDescription>
         </Alert>
       </div>

@@ -350,6 +350,12 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
               </>
             )}
           </button>
+
+          {!collapsed && (
+            <div className="pt-2 pb-1 px-3 text-xs text-muted-foreground text-center select-none">
+              {modKey}K {t("sidebar.search")} · {modKey}/ {t("sidebar.shortcuts")}
+            </div>
+          )}
         </div>
       </aside>
 

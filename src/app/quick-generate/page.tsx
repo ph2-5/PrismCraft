@@ -25,6 +25,9 @@ export default function QuickGeneratePage() {
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
             {t("quickGenerate.heroDesc")}
           </p>
+          <p className="text-slate-500 text-sm mt-2">
+            {t("quickGenerate.beginnerTip")}
+          </p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

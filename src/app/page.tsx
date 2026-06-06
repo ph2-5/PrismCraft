@@ -25,6 +25,20 @@ interface ApiStatus {
   video?: { provider: string; configured: boolean };
 }
 
+function HomeSkeleton() {
+  return (
+    <div className="flex flex-col space-y-6 animate-pulse">
+      <div className="h-24 bg-muted rounded-lg" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-48 bg-muted rounded-lg" />
+        ))}
+      </div>
+      <div className="h-64 bg-muted rounded-lg" />
+    </div>
+  );
+}
+
 export default function Home() {
   const { data: characters = [], isLoading: charactersLoading } = useCharacters();
   const { data: scenes = [], isLoading: scenesLoading } = useScenes();
@@ -66,6 +80,9 @@ export default function Home() {
 
   return (
     <PageErrorBoundary pageName={t("page.home")}>
+    {dataLoading ? (
+      <HomeSkeleton />
+    ) : (
     <div className="flex flex-col">
       <QuickActions
         characters={characters}
@@ -78,6 +95,7 @@ export default function Home() {
       />
       <ProjectList />
     </div>
+    )}
     </PageErrorBoundary>
   );
 }

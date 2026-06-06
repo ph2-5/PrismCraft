@@ -102,10 +102,6 @@ const TEMPLATE_NAMES: Record<string, string> = {
 
 let pluginDetectionRules: PluginDetectionConfig[] = [];
 
-export function setPluginDetectionRules(rules: PluginDetectionConfig[]): void {
-  pluginDetectionRules = rules;
-}
-
 export async function loadPluginDetectionRules(): Promise<void> {
   if (!isElectron()) {
     return;
@@ -216,53 +212,4 @@ export function validateApiKey(apiKey: string): {
   }
 
   return { valid: true };
-}
-
-/**
- * 获取 API Key 强度
- */
-export function getKeyStrength(
-  apiKey: string,
-): "invalid" | "weak" | "medium" | "strong" {
-  const validation = validateApiKey(apiKey);
-  if (!validation.valid) return "invalid";
-
-  if (apiKey.length < 30) return "weak";
-  if (apiKey.length < 50) return "medium";
-  return "strong";
-}
-
-/**
- * 获取强度显示信息
- */
-export function getKeyStrengthInfo(
-  strength: ReturnType<typeof getKeyStrength>,
-): {
-  label: string;
-  color: string;
-  icon: string;
-} {
-  switch (strength) {
-    case "invalid":
-      return { label: "无效", color: "text-red-500", icon: "❌" };
-    case "weak":
-      return { label: "弱", color: "text-orange-500", icon: "⚠️" };
-    case "medium":
-      return { label: "中等", color: "text-yellow-500", icon: "🔶" };
-    case "strong":
-      return { label: "强", color: "text-green-500", icon: "✅" };
-  }
-}
-
-/**
- * 获取所有模板名称映射（内置 + 插件）
- */
-export function getTemplateNames(): Record<string, string> {
-  const names: Record<string, string> = { ...TEMPLATE_NAMES };
-  for (const config of pluginDetectionRules) {
-    if (!names[config.pluginId]) {
-      names[config.pluginId] = config.suggestedName;
-    }
-  }
-  return names;
 }

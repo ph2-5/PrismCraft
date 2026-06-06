@@ -823,20 +823,6 @@ export const PROVIDER_TEMPLATES: Record<string, ProviderTemplate> = {
   },
 };
 
-// 获取模板列表（用于 UI 下拉选择）
-export function getTemplateList(): { id: string; name: string }[] {
-  const all = getAllTemplates();
-  return Object.entries(all).map(([id, template]) => ({
-    id,
-    name: template.name,
-  }));
-}
-
-// 根据 ID 获取模板
-export function getTemplate(id: string): ProviderTemplate | undefined {
-  return PROVIDER_TEMPLATES[id];
-}
-
 // 创建提供商配置（从模板）
 export function createProviderFromTemplate(
   templateId: string,

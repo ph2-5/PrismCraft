@@ -54,7 +54,7 @@ export {
 } from "./user-plugin-loader";
 
 export type { CodePluginExport } from "./code-plugin-loader";
-export { loadCodePlugins, loadCodePluginFromFile, CODE_PLUGINS_DIR as CODE_PLUGINS_DIR_LOADER } from "./code-plugin-loader";
+export { loadCodePlugins } from "./code-plugin-loader";
 export { CodePluginAdapter } from "./code-plugin-adapter";
 
 import { pluginRegistry } from "./registry";

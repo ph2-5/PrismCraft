@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectProvider, validateApiKey, getKeyStrength, getKeyStrengthInfo } from "@/infrastructure/ai-providers/api-config/detect";
+import { detectProvider, validateApiKey } from "@/infrastructure/ai-providers/api-config/detect";
 
 describe("api-config/detect", () => {
   describe("detectProvider", () => {
@@ -29,6 +29,30 @@ describe("api-config/detect", () => {
       const result = detectProvider(key);
       expect(result).not.toBeNull();
       expect(result!.templateId).toBe("openai");
+      expect(result!.confidence).toBe("high");
+    });
+
+    it("should detect Anthropic key", () => {
+      const key = "sk-ant-api03-abc123def456ghi789";
+      const result = detectProvider(key);
+      expect(result).not.toBeNull();
+      expect(result!.templateId).toBe("anthropic");
+      expect(result!.confidence).toBe("high");
+    });
+
+    it("should detect Google Gemini key", () => {
+      const key = "AIza" + "a".repeat(32);
+      const result = detectProvider(key);
+      expect(result).not.toBeNull();
+      expect(result!.templateId).toBe("google");
+      expect(result!.confidence).toBe("high");
+    });
+
+    it("should detect DeepSeek key (32 chars)", () => {
+      const key = "sk-" + "a".repeat(32);
+      const result = detectProvider(key);
+      expect(result).not.toBeNull();
+      expect(result!.templateId).toBe("deepseek");
       expect(result!.confidence).toBe("high");
     });
 
@@ -116,47 +140,6 @@ describe("api-config/detect", () => {
       const result = validateApiKey("sk-1234567890abcdef1234567890abcdef");
       expect(result.valid).toBe(true);
       expect(result.error).toBeUndefined();
-    });
-  });
-
-  describe("getKeyStrength", () => {
-    it("should return invalid for invalid key", () => {
-      expect(getKeyStrength("")).toBe("invalid");
-    });
-
-    it("should return weak for short valid key", () => {
-      expect(getKeyStrength("sk-1234567890abcdef")).toBe("weak");
-    });
-
-    it("should return medium for medium length key", () => {
-      expect(getKeyStrength("sk-" + "a".repeat(28))).toBe("medium");
-    });
-
-    it("should return strong for long key", () => {
-      expect(getKeyStrength("sk-" + "a".repeat(50))).toBe("strong");
-    });
-  });
-
-  describe("getKeyStrengthInfo", () => {
-    it("should return correct info for invalid", () => {
-      const info = getKeyStrengthInfo("invalid");
-      expect(info.label).toBe("无效");
-      expect(info.color).toContain("red");
-    });
-
-    it("should return correct info for weak", () => {
-      const info = getKeyStrengthInfo("weak");
-      expect(info.label).toBe("弱");
-    });
-
-    it("should return correct info for medium", () => {
-      const info = getKeyStrengthInfo("medium");
-      expect(info.label).toBe("中等");
-    });
-
-    it("should return correct info for strong", () => {
-      const info = getKeyStrengthInfo("strong");
-      expect(info.label).toBe("强");
     });
   });
 });

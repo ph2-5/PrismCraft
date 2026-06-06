@@ -360,6 +360,7 @@ const routes: Record<string, Route> = {
             id: p.id,
             displayName: p.displayName,
             isUserPlugin: pluginRegistry.isUserPlugin(p.id),
+            isCodePlugin: pluginRegistry.isCodePlugin(p.id),
             videoCapabilities: p.videoCapabilities,
             imageCapabilities: p.imageCapabilities,
           })),
@@ -401,6 +402,43 @@ const routes: Record<string, Route> = {
         };
       }
       return { success: true, data: providerCapabilities };
+    },
+    methods: ["GET"],
+  },
+  "plugins/detection-rules": {
+    handler: async () => {
+      const allPlugins = pluginRegistry.getAll();
+      const rules: Array<{
+        pluginId: string;
+        rules: Array<{ pattern: string; confidence: "high" | "medium" | "low" }>;
+        suggestedName: string;
+        baseUrl?: string;
+        isUserPlugin: boolean;
+        isCodePlugin: boolean;
+      }> = [];
+      for (const plugin of allPlugins) {
+        const detection = plugin.getApiKeyDetection?.();
+        if (detection && detection.rules.length > 0) {
+          rules.push({
+            pluginId: plugin.id,
+            rules: detection.rules.map((r) => ({
+              pattern: r.pattern,
+              confidence: r.confidence,
+            })),
+            suggestedName: detection.suggestedName,
+            baseUrl: detection.baseUrl,
+            isUserPlugin: pluginRegistry.isUserPlugin(plugin.id),
+            isCodePlugin: pluginRegistry.isCodePlugin?.(plugin.id) ?? false,
+          });
+        }
+      }
+      rules.sort((a, b) => {
+        const confidenceOrder = { high: 0, medium: 1, low: 2 };
+        const aMin = Math.min(...a.rules.map((r) => confidenceOrder[r.confidence]));
+        const bMin = Math.min(...b.rules.map((r) => confidenceOrder[r.confidence]));
+        return aMin - bMin;
+      });
+      return { success: true, data: rules };
     },
     methods: ["GET"],
   },
@@ -455,6 +493,13 @@ const routes: Record<string, Route> = {
   "plugins/reload": {
     handler: async () => {
       const result = pluginRegistry.reloadUserPlugins();
+      return { success: true, data: { loaded: result.loaded, errors: result.errors } };
+    },
+    methods: ["POST"],
+  },
+  "plugins/reload-code": {
+    handler: async () => {
+      const result = pluginRegistry.reloadCodePlugins();
       return { success: true, data: { loaded: result.loaded, errors: result.errors } };
     },
     methods: ["POST"],

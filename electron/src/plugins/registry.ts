@@ -1,6 +1,8 @@
 import type { AIProviderPlugin, ModelParameterProfile } from "./types";
 import { getLogger } from "../logging/logger";
 import { loadUserPlugins, USER_PLUGINS_DIR } from "./user-plugin-loader";
+import { loadCodePlugins, CODE_PLUGINS_DIR } from "./code-plugin-loader";
+import { CodePluginAdapter } from "./code-plugin-adapter";
 
 const logger = getLogger("plugin-registry");
 
@@ -8,6 +10,7 @@ class PluginRegistry {
   private plugins: AIProviderPlugin[] = [];
   private fallbackPlugin: AIProviderPlugin | null = null;
   private userPluginIds: Set<string> = new Set();
+  private codePluginIds: Set<string> = new Set();
 
   register(plugin: AIProviderPlugin, isUserPlugin = false): void {
     this.plugins.push(plugin);
@@ -25,6 +28,7 @@ class PluginRegistry {
     if (index === -1) return false;
     this.plugins.splice(index, 1);
     this.userPluginIds.delete(pluginId);
+    this.codePluginIds.delete(pluginId);
     logger.info(`Unregistered provider plugin: ${pluginId}`);
     return true;
   }
@@ -61,7 +65,9 @@ class PluginRegistry {
   }
 
   getBuiltInPlugins(): AIProviderPlugin[] {
-    return this.plugins.filter((p) => !this.userPluginIds.has(p.id));
+    return this.plugins.filter(
+      (p) => !this.userPluginIds.has(p.id) && !this.codePluginIds.has(p.id),
+    );
   }
 
   getUserPlugins(): AIProviderPlugin[] {
@@ -70,6 +76,10 @@ class PluginRegistry {
 
   isUserPlugin(pluginId: string): boolean {
     return this.userPluginIds.has(pluginId);
+  }
+
+  isCodePlugin(pluginId: string): boolean {
+    return this.codePluginIds.has(pluginId);
   }
 
   reloadUserPlugins(): { loaded: number; errors: string[] } {
@@ -100,12 +110,57 @@ class PluginRegistry {
     return { loaded, errors };
   }
 
+  loadCodePlugins(): { loaded: number; errors: string[] } {
+    const errors: string[] = [];
+    let loaded = 0;
+
+    try {
+      const codePluginExports = loadCodePlugins();
+      for (const pluginExport of codePluginExports) {
+        try {
+          const adapter = new CodePluginAdapter(pluginExport);
+          this.plugins.push(adapter);
+          this.codePluginIds.add(adapter.id);
+          loaded++;
+        } catch (e) {
+          errors.push(
+            `适配代码插件 ${pluginExport.id} 失败: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+      }
+    } catch (e) {
+      errors.push(
+        `加载代码插件失败: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+
+    return { loaded, errors };
+  }
+
+  reloadCodePlugins(): { loaded: number; errors: string[] } {
+    const oldCodePlugins = this.plugins.filter((p) =>
+      this.codePluginIds.has(p.id),
+    );
+    for (const p of oldCodePlugins) {
+      const index = this.plugins.indexOf(p);
+      if (index !== -1) this.plugins.splice(index, 1);
+    }
+    this.codePluginIds.clear();
+
+    return this.loadCodePlugins();
+  }
+
+  getCodePlugins(): AIProviderPlugin[] {
+    return this.plugins.filter((p) => this.codePluginIds.has(p.id));
+  }
+
   getAllCapabilities(): Record<
     string,
     {
       id: string;
       displayName: string;
       isUserPlugin: boolean;
+      isCodePlugin: boolean;
       videoCapabilities: AIProviderPlugin["videoCapabilities"];
       imageCapabilities: AIProviderPlugin["imageCapabilities"];
     }
@@ -114,6 +169,7 @@ class PluginRegistry {
       id: string;
       displayName: string;
       isUserPlugin: boolean;
+      isCodePlugin: boolean;
       videoCapabilities: AIProviderPlugin["videoCapabilities"];
       imageCapabilities: AIProviderPlugin["imageCapabilities"];
     }> = {};
@@ -122,6 +178,7 @@ class PluginRegistry {
         id: plugin.id,
         displayName: plugin.displayName,
         isUserPlugin: this.userPluginIds.has(plugin.id),
+        isCodePlugin: this.codePluginIds.has(plugin.id),
         videoCapabilities: plugin.videoCapabilities,
         imageCapabilities: plugin.imageCapabilities,
       };
@@ -129,8 +186,8 @@ class PluginRegistry {
     return result;
   }
 
-  getAllModelProfiles(): Record<string, ModelParameterProfile & { providerId: string; isUserPlugin: boolean }> {
-    const result: Record<string, ModelParameterProfile & { providerId: string; isUserPlugin: boolean }> = {};
+  getAllModelProfiles(): Record<string, ModelParameterProfile & { providerId: string; isUserPlugin: boolean; isCodePlugin: boolean }> {
+    const result: Record<string, ModelParameterProfile & { providerId: string; isUserPlugin: boolean; isCodePlugin: boolean }> = {};
     for (const plugin of this.plugins) {
       const models = plugin.getAvailableModels?.() || [];
       for (const modelId of models) {
@@ -139,6 +196,7 @@ class PluginRegistry {
           ...profile,
           providerId: plugin.id,
           isUserPlugin: this.userPluginIds.has(plugin.id),
+          isCodePlugin: this.codePluginIds.has(plugin.id),
         };
       }
     }
@@ -147,4 +205,4 @@ class PluginRegistry {
 }
 
 export const pluginRegistry = new PluginRegistry();
-export { USER_PLUGINS_DIR };
+export { USER_PLUGINS_DIR, CODE_PLUGINS_DIR };

@@ -29,7 +29,7 @@ electron/src/
   preload.ts       → IPC bridge with permission system and rate limiting
   database/        → SQLite connection, schema builder, schema, migrations
   handlers/        → IPC handlers (database, config, sync, secure-config)
-  plugins/         → Plugin registry, user plugin loader, providers
+  plugins/         → Plugin registry, user plugin loader, code plugin loader, providers
   security/        → SSRF guard, key storage
   logging/         → Logger with ConsoleTransport + FileTransport
 ```
@@ -469,6 +469,42 @@ npx vitest run                                       # Unit tests
 - Use `overrideToken()` from DI to mock dependencies
 - Test files can use `@/infrastructure/*` imports (warn level, not error)
 - Run: `npx vitest run src/modules/{module-name}`
+
+### Plugin System Architecture
+
+The plugin system supports two forms of user plugins, managed separately:
+
+| Plugin Type | Format | Location | Loader |
+|-------------|--------|----------|--------|
+| Built-in | TypeScript class | `electron/src/plugins/providers/` | Direct import |
+| Declarative | `.plugin.json` | `~/AI Animation Studio/UserPlugins/` | `UserPluginAdapter` |
+| Code | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter` (vm sandbox) |
+
+**Key interfaces**:
+- `AIProviderPlugin` — Base interface, all plugins implement this
+- `getApiKeyDetection()` — Optional method, returns API Key auto-detection rules
+- `getModelParameterProfile(modelId)` — Returns model-specific parameters (durations, resolutions, styles, etc.)
+
+**API Key detection flow**:
+1. Frontend calls `loadPluginDetectionRules()` → fetches `/api/plugins/detection-rules`
+2. `detectProvider(apiKey)` tries plugin rules first, then falls back to `BUILTIN_RULES`
+3. Plugin rules include `pluginId`, `suggestedName`, `baseUrl`, `confidence`
+
+**Provider template flow**:
+1. Frontend calls `loadPluginTemplates()` → fetches `/api/plugins/list`
+2. `getAllTemplates()` merges `PROVIDER_TEMPLATES` (built-in) + `pluginTemplates` (from plugins)
+3. `createProviderFromTemplate()` uses `getTemplateWithPlugins()` to find templates
+
+**Model capabilities flow**:
+1. `loadModelProfilesFromServer()` fetches model profiles from `/api/plugins/list`
+2. `getModelCapabilities()` checks `modelProfilesCache` first, then `BUILTIN_MODEL_CAPABILITIES`
+3. `ModelParameterPanel` component renders model-specific parameter UI (durations, resolutions, styles, cfgScale, etc.)
+
+**Code plugin sandbox** (`code-plugin-loader.ts`):
+- Uses `vm.createContext()` + `vm.runInContext()` with 5s timeout
+- Provides safe globals (JSON, Math, Date, RegExp, console)
+- Blocks dangerous objects (require, process, __filename, __dirname, Buffer, setTimeout, fetch)
+- Reference template: `docs/examples/reference-code-plugin.plugin.js`
 
 ### DI Container Token Categories
 

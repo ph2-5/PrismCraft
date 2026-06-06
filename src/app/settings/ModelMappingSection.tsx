@@ -75,10 +75,10 @@ function getSelectedModelLabel(config: ApiConfig, capability: ApiCapability) {
   const mappingValue = config.mapping[capability];
   if (!mappingValue) return null;
 
-  const firstSlashIndex = mappingValue.indexOf("/");
-  if (firstSlashIndex === -1) return null;
-  const providerId = mappingValue.substring(0, firstSlashIndex);
-  const modelId = mappingValue.substring(firstSlashIndex + 1);
+  const lastSlashIndex = mappingValue.lastIndexOf("/");
+  if (lastSlashIndex === -1) return null;
+  const providerId = mappingValue.substring(0, lastSlashIndex);
+  const modelId = mappingValue.substring(lastSlashIndex + 1);
   const provider = config.providers.find((p) => p.id === providerId);
   const model = provider?.models.find((m) => m.id === modelId);
 
@@ -92,10 +92,10 @@ function textModelHasVision(config: ApiConfig) {
   const textMapping = config.mapping.text;
   if (!textMapping) return { hasVision: false, modelName: null };
 
-  const firstSlashIndex = textMapping.indexOf("/");
-  if (firstSlashIndex === -1) return { hasVision: false, modelName: null };
-  const providerId = textMapping.substring(0, firstSlashIndex);
-  const modelId = textMapping.substring(firstSlashIndex + 1);
+  const lastSlashIndex = textMapping.lastIndexOf("/");
+  if (lastSlashIndex === -1) return { hasVision: false, modelName: null };
+  const providerId = textMapping.substring(0, lastSlashIndex);
+  const modelId = textMapping.substring(lastSlashIndex + 1);
   const provider = config.providers.find((p) => p.id === providerId);
   const model = provider?.models.find((m) => m.id === modelId);
 

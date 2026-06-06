@@ -17,23 +17,15 @@ import {
   CardTitle,
   CardDescription,
 } from "@/shared/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import { Label } from "@/shared/ui/label";
 import { t } from "@/shared/constants";
-import {
-  getDurationOptionsForModel,
-  getResolutionOptionsForModel,
-  getStyleOptionsForModel,
-} from "@/modules/prompt";
 import { ModelSelector } from "@/modules/prompt";
 import type { Character, Scene, ModelSelection } from "@/domain/schemas";
 import { AdvancedSettingsCard } from "./AdvancedSettingsCard";
+import {
+  ModelParameterPanel,
+  type ModelParameterValues,
+} from "@/shared/presentation/ModelParameterPanel";
 
 interface QuickGenerateFormProps {
   promptText: string;
@@ -56,6 +48,10 @@ interface QuickGenerateFormProps {
   onSmartOptimizationChange: (val: boolean) => void;
   negativePrompt: string;
   onNegativePromptChange: (val: string) => void;
+  seed: string;
+  onSeedChange: (val: string) => void;
+  cfgScale: number;
+  onCfgScaleChange: (val: number) => void;
   referenceImage: string | null;
   onReferenceImageChange: (val: string | null) => void;
   referenceVideo: string | null;
@@ -95,6 +91,10 @@ export function QuickGenerateForm({
   onSmartOptimizationChange,
   negativePrompt,
   onNegativePromptChange,
+  seed,
+  onSeedChange,
+  cfgScale,
+  onCfgScaleChange,
   referenceImage,
   onReferenceImageChange,
   referenceVideo,
@@ -112,6 +112,15 @@ export function QuickGenerateForm({
   guardedPush,
   quickExamples,
 }: QuickGenerateFormProps) {
+  const handleModelParamsChange = (partial: Partial<ModelParameterValues>) => {
+    if (partial.duration !== undefined) onDurationChange(partial.duration);
+    if (partial.resolution !== undefined) onSelectedResolutionChange(partial.resolution);
+    if (partial.style !== undefined) onSelectedStyleChange(partial.style);
+    if (partial.negativePrompt !== undefined) onNegativePromptChange(partial.negativePrompt);
+    if (partial.seed !== undefined) onSeedChange(partial.seed);
+    if (partial.cfgScale !== undefined) onCfgScaleChange(partial.cfgScale);
+  };
+
   return (
     <div className="lg:col-span-2 space-y-6">
       <Card className="border-2 border-purple-800/30 bg-slate-900/80 backdrop-blur">
@@ -181,75 +190,20 @@ export function QuickGenerateForm({
               onChange={onSelectedVideoModelChange}
             />
           </div>
-          <div className="space-y-2">
-            <Label className="text-slate-300">{t("quickGenerate.videoDuration")}</Label>
-            <div className="flex flex-wrap gap-2">
-              {getDurationOptionsForModel(selectedVideoModel?.modelId).map((opt) => (
-                <Button
-                  key={opt.value}
-                  variant={duration === opt.value ? "default" : "outline"}
-                  size="sm"
-                  className={`
-                    ${
-                      duration === opt.value
-                        ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-                        : "border-slate-700 hover:border-purple-500 text-slate-300"
-                    }
-                  `}
-                  onClick={() => onDurationChange(opt.value)}
-                >
-                  {opt.label}
-                </Button>
-              ))}
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label className="text-slate-300">{t("quickGenerate.visualStyle")}</Label>
-            <div className="flex flex-wrap gap-2">
-              {getStyleOptionsForModel(selectedVideoModel?.modelId).map((style) => (
-                <Button
-                  key={style.value}
-                  variant={
-                    selectedStyle === style.value ? "default" : "outline"
-                  }
-                  size="sm"
-                  className={`
-                    ${
-                      selectedStyle === style.value
-                        ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                        : "border-slate-700 hover:border-purple-500 text-slate-300"
-                    }
-                  `}
-                  onClick={() => onSelectedStyleChange(style.value)}
-                >
-                  {style.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-slate-300">{t("quickGenerate.resolution")}</Label>
-            <Select
-              value={selectedResolution}
-              onValueChange={(v) => {
-                if (v)
-                  onSelectedResolutionChange(v);
-              }}
-            >
-              <SelectTrigger className="bg-slate-800 border-slate-700">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                {getResolutionOptionsForModel(selectedVideoModel?.modelId).map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ModelParameterPanel
+            modelId={selectedVideoModel?.modelId}
+            values={{
+              duration,
+              resolution: selectedResolution,
+              style: selectedStyle,
+              negativePrompt,
+              seed,
+              cfgScale,
+            }}
+            onValuesChange={handleModelParamsChange}
+            variant="dark"
+          />
 
           <div className="space-y-2">
             <Label className="text-slate-300 flex items-center gap-2">

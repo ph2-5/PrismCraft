@@ -1,11 +1,152 @@
 /**
  * 预定义提供商模板
  * 包含所有支持的 AI 服务提供商配置
+ * 支持插件驱动的 Provider Template（P7）
  */
 
-import { ProviderConfig, ApiFormat } from "./types";
+import { ProviderConfig, ApiFormat, ModelConfig } from "./types";
+import { isElectron } from "@/shared/utils/platform";
+import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
+import { errorLogger } from "@/shared/error-logger";
 
 export type ProviderTemplate = Omit<ProviderConfig, "id" | "apiKey">;
+
+export interface PluginProviderTemplate extends ProviderTemplate {
+  pluginId: string;
+  isUserPlugin: boolean;
+  isCodePlugin: boolean;
+}
+
+const FORMAT_MAP: Record<string, ApiFormat> = {
+  volcengine: "openai",
+  zhipu: "zhipu",
+  seedance: "seedance",
+  kuaishou: "kuaishou",
+  pixverse: "pixverse",
+  anthropic: "anthropic",
+  google: "google",
+};
+
+function resolveFormat(pluginId: string): ApiFormat {
+  return FORMAT_MAP[pluginId] ?? "openai";
+}
+
+interface PluginListItem {
+  id: string;
+  displayName: string;
+  isUserPlugin: boolean;
+  videoCapabilities?: { defaultModel?: string; maxDuration?: number; supportsLastFrame?: boolean };
+  imageCapabilities?: { defaultModel?: string };
+  modelProfiles?: Array<{
+    modelId: string;
+    displayName?: string;
+    capabilities?: Record<string, unknown>;
+    parameters?: Record<string, unknown>;
+  }>;
+  apiKeyDetection?: { baseUrl?: string };
+}
+
+interface PluginsListResponse {
+  success: boolean;
+  data?: {
+    plugins: PluginListItem[];
+    modelProfiles?: Record<string, { modelId: string; displayName?: string; capabilities?: Record<string, unknown>; parameters?: Record<string, unknown>; providerId?: string }>;
+  };
+}
+
+let pluginTemplates: Record<string, PluginProviderTemplate> = {};
+
+export function getPluginTemplates(): Record<string, PluginProviderTemplate> {
+  return pluginTemplates;
+}
+
+export async function loadPluginTemplates(): Promise<void> {
+  if (!isElectron()) return;
+
+  try {
+    const baseUrl = `http://localhost:${API_SERVER_PORT}`;
+    const response = await fetch(`${baseUrl}/api/plugins/list`, {
+      headers: { ...ELECTRON_APP_HEADERS, "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) return;
+
+    const result: PluginsListResponse = await response.json();
+    if (!result.success || !result.data?.plugins) return;
+
+    const newTemplates: Record<string, PluginProviderTemplate> = {};
+
+    for (const plugin of result.data.plugins) {
+      const templateId = plugin.id;
+      const baseUrlFromDetection = plugin.apiKeyDetection?.baseUrl ?? "";
+      const format = resolveFormat(plugin.id);
+
+      const models: ModelConfig[] = [];
+
+      if (plugin.videoCapabilities?.defaultModel) {
+        models.push({
+          id: plugin.videoCapabilities.defaultModel,
+          name: plugin.videoCapabilities.defaultModel,
+          capabilities: ["video"],
+          defaultParams: { duration: plugin.videoCapabilities.maxDuration ?? 5 },
+        });
+      }
+
+      if (plugin.imageCapabilities?.defaultModel) {
+        models.push({
+          id: plugin.imageCapabilities.defaultModel,
+          name: plugin.imageCapabilities.defaultModel,
+          capabilities: ["image"],
+          defaultParams: {},
+        });
+      }
+
+      if (result.data.modelProfiles) {
+        const pluginProfiles = Object.values(result.data.modelProfiles).filter(
+          (p) => p.providerId === plugin.id,
+        );
+        for (const profile of pluginProfiles) {
+          if (models.some((m) => m.id === profile.modelId)) continue;
+          const caps: string[] = [];
+          if (profile.parameters) {
+            if ("durations" in profile.parameters) caps.push("video");
+            if ("resolutions" in profile.parameters && !caps.includes("video")) caps.push("image");
+          }
+          if (caps.length === 0) caps.push("video");
+          models.push({
+            id: profile.modelId,
+            name: profile.displayName ?? profile.modelId,
+            capabilities: caps as ModelConfig["capabilities"],
+            defaultParams: {},
+          });
+        }
+      }
+
+      newTemplates[templateId] = {
+        name: plugin.displayName,
+        format,
+        baseUrl: baseUrlFromDetection,
+        models,
+        pluginId: plugin.id,
+        isUserPlugin: plugin.isUserPlugin,
+        isCodePlugin: false,
+      };
+    }
+
+    pluginTemplates = newTemplates;
+  } catch (e) {
+    errorLogger.warn("[Templates] 加载插件模板失败", e);
+  }
+}
+
+export function getAllTemplates(): Record<string, ProviderTemplate> {
+  return { ...PROVIDER_TEMPLATES, ...pluginTemplates };
+}
+
+export function getTemplateWithPlugins(id: string): ProviderTemplate | PluginProviderTemplate | undefined {
+  if (pluginTemplates[id]) return pluginTemplates[id];
+  return PROVIDER_TEMPLATES[id];
+}
 
 export const PROVIDER_TEMPLATES: Record<string, ProviderTemplate> = {
   // OpenAI 官方
@@ -684,7 +825,8 @@ export const PROVIDER_TEMPLATES: Record<string, ProviderTemplate> = {
 
 // 获取模板列表（用于 UI 下拉选择）
 export function getTemplateList(): { id: string; name: string }[] {
-  return Object.entries(PROVIDER_TEMPLATES).map(([id, template]) => ({
+  const all = getAllTemplates();
+  return Object.entries(all).map(([id, template]) => ({
     id,
     name: template.name,
   }));
@@ -701,7 +843,7 @@ export function createProviderFromTemplate(
   apiKey: string,
   customId?: string,
 ): ProviderConfig | null {
-  const template = PROVIDER_TEMPLATES[templateId];
+  const template = getTemplateWithPlugins(templateId);
   if (!template) return null;
 
   return {

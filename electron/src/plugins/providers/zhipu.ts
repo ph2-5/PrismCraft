@@ -10,6 +10,7 @@ import type {
   ImageTransportMode,
   ImagePurpose,
   CloudProviderInfo,
+  ApiKeyDetection,
 } from "../types";
 
 export class ZhipuPlugin extends BaseAIProviderPlugin {
@@ -140,6 +141,23 @@ export class ZhipuPlugin extends BaseAIProviderPlugin {
       apiDocUrl: "https://open.bigmodel.cn/dev/api/video-generation",
       howToCheck:
         "登录智谱AI开放平台 (open.bigmodel.cn)，在「视频生成」页面查看任务状态和结果",
+    };
+  }
+
+  getApiKeyDetection(): ApiKeyDetection {
+    return {
+      rules: [
+        {
+          pattern: "^00[0-9a-fA-F]{32}\\.[A-Za-z0-9]{16}$",
+          confidence: "high",
+        },
+        {
+          pattern: "^[0-9a-fA-F]{32}\\.[A-Za-z0-9]{20}$",
+          confidence: "high",
+        },
+      ],
+      suggestedName: "智谱AI",
+      baseUrl: "https://open.bigmodel.cn/api/paas/v4",
     };
   }
 }

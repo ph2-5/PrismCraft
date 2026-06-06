@@ -12,6 +12,7 @@ import type {
   ImageTransportMode,
   ImagePurpose,
   CloudProviderInfo,
+  ApiKeyDetection,
 } from "../types";
 import { BaseAIProviderPlugin } from "../base-provider";
 
@@ -231,6 +232,19 @@ export class VolcenginePlugin extends BaseAIProviderPlugin implements AIProvider
       apiDocUrl: "https://www.volcengine.com/docs/82379/1115452",
       howToCheck:
         "1. 登录火山引擎控制台 2. 进入「方舟」平台 3. 在「任务中心」查看视频生成任务",
+    };
+  }
+
+  getApiKeyDetection(): ApiKeyDetection {
+    return {
+      rules: [
+        {
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+          confidence: "high",
+        },
+      ],
+      suggestedName: "火山引擎",
+      baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     };
   }
 }

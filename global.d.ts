@@ -27,6 +27,7 @@ declare global {
       saveFileDialog: (options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => Promise<{ success: boolean; filePath?: string; error?: string }>;
       writeFile: (filePath: string, data: ArrayBuffer | number[]) => Promise<{ success: boolean; error?: string }>;
       openExternal: (url: string) => void;
+      openPath: (filePath: string) => Promise<{ success: boolean; error?: string }>;
       readFile: (filePath: string) => Promise<{ success: boolean; data?: ArrayBuffer; error?: string }>;
       dbQuery: (sql: string, params?: unknown[]) => Promise<{ success: boolean; data?: Record<string, unknown>[]; error?: string }>;
       dbRun: (sql: string, params?: unknown[]) => Promise<{ success: boolean; data?: { changes?: number; lastInsertRowid?: number }; error?: string }>;

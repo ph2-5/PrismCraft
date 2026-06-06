@@ -23,6 +23,7 @@ import {
   FileJson,
   BookOpen,
   FileText,
+  FolderOpen,
 } from "lucide-react";
 import { confirm } from "@/shared/utils/confirm";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
@@ -34,6 +35,7 @@ interface PluginInfo {
   id: string;
   displayName: string;
   isUserPlugin: boolean;
+  isCodePlugin: boolean;
   videoCapabilities: {
     supportsLastFrame: boolean;
     supportsReferenceVideo: boolean;
@@ -106,6 +108,16 @@ async function reloadPlugins(): Promise<{ loaded: number; errors: string[] }> {
   return data.data;
 }
 
+async function reloadCodePlugins(): Promise<{ loaded: number; errors: string[] }> {
+  const res = await fetch(`${getApiBase()}/plugins/reload-code`, {
+    method: "POST",
+    headers: { ...ELECTRON_APP_HEADERS, "Content-Type": "application/json" },
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error || t("plugin.codePluginReloadFailed"));
+  return data.data;
+}
+
 async function validatePluginConfig(config: Record<string, unknown>): Promise<{ valid: boolean; errors: string[] }> {
   const res = await fetch(`${getApiBase()}/plugins/validate`, {
     method: "POST",
@@ -148,6 +160,7 @@ export default function PluginManager() {
   const [isValidating, setIsValidating] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
+  const [isReloadingCode, setIsReloadingCode] = useState(false);
   const [expandedPlugin, setExpandedPlugin] = useState<string | null>(null);
   const [showSchema, setShowSchema] = useState(false);
   const [schemaData, setSchemaData] = useState<Record<string, unknown> | null>(null);
@@ -257,6 +270,32 @@ export default function PluginManager() {
     }
   };
 
+  const handleReloadCodePlugins = async () => {
+    setIsReloadingCode(true);
+    try {
+      const result = await reloadCodePlugins();
+      showSuccess(t("success.reloaded"), t("plugin.codePluginReloaded", { count: result.loaded }));
+      await loadPlugins();
+    } catch (e) {
+      showError(t("plugin.codePluginReloadFailed"), e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsReloadingCode(false);
+    }
+  };
+
+  const handleOpenCodePluginDir = async () => {
+    if (!isElectron()) return;
+    try {
+      const codePluginsDir = `${process.env.USERPROFILE || process.env.HOME}/AI Animation Studio/CodePlugins`;
+      const result = await window.electronAPI?.openPath(codePluginsDir);
+      if (result && !result.success) {
+        showError(t("error.loadFailed"), result.error || t("plugin.codePluginReloadFailed"));
+      }
+    } catch (e) {
+      errorLogger.error("[PluginManager] 打开代码插件目录失败:", e);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -305,8 +344,9 @@ export default function PluginManager() {
     setShowSpec(true);
   };
 
-  const builtInPlugins = plugins.filter((p) => !p.isUserPlugin);
-  const userPlugins = plugins.filter((p) => p.isUserPlugin);
+  const builtInPlugins = plugins.filter((p) => !p.isUserPlugin && !p.isCodePlugin);
+  const declarativePlugins = plugins.filter((p) => p.isUserPlugin && !p.isCodePlugin);
+  const codePlugins = plugins.filter((p) => p.isCodePlugin);
 
   if (isLoading) {
     return (
@@ -355,12 +395,39 @@ export default function PluginManager() {
         <CardContent className="space-y-4">
           <PluginList
             builtInPlugins={builtInPlugins}
-            userPlugins={userPlugins}
+            declarativePlugins={declarativePlugins}
+            codePlugins={codePlugins}
             userPluginFiles={userPluginFiles}
             expandedPlugin={expandedPlugin}
             onToggleExpand={(id) => setExpandedPlugin(id)}
             onDelete={handleDelete}
           />
+
+          {codePlugins.length > 0 && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReloadCodePlugins}
+                disabled={isReloadingCode}
+              >
+                {isReloadingCode ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                )}
+                {t("plugin.reloadCodePlugins")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenCodePluginDir}
+              >
+                <FolderOpen className="h-4 w-4 mr-1" />
+                {t("plugin.openCodePluginDir")}
+              </Button>
+            </div>
+          )}
 
           <div className="flex gap-2">
             {!showAddForm && !showCreator ? (

@@ -378,12 +378,12 @@ export async function getCapabilityConfigForServer(
     return { provider: null, modelId: null };
   }
 
-  const firstSlashIndex = mappingValue.indexOf("/");
-  if (firstSlashIndex === -1) {
+  const lastSlashIndex = mappingValue.lastIndexOf("/");
+  if (lastSlashIndex === -1) {
     return { provider: null, modelId: null };
   }
-  const providerId = mappingValue.substring(0, firstSlashIndex);
-  const modelId = mappingValue.substring(firstSlashIndex + 1);
+  const providerId = mappingValue.substring(0, lastSlashIndex);
+  const modelId = mappingValue.substring(lastSlashIndex + 1);
   const provider = config.providers.find((p) => p.id === providerId);
 
   return { provider: provider || null, modelId: modelId || null };

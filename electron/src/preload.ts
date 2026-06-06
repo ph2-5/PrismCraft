@@ -40,7 +40,7 @@ const IPC_PERMISSIONS: Record<string, string[]> = {
     "db:analyze", "db:checkpoint", "assets:delete-file",
   ],
   SYSTEM: [
-    "shell:open-external", "dialog:open-file", "dialog:save-file", "db:close",
+    "shell:open-external", "shell:open-path", "dialog:open-file", "dialog:save-file", "db:close",
   ],
   SECURE: [
     "secure-config:resolve",
@@ -162,6 +162,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     onMenuEvent("menu-export", callback);
   },
   openExternal: createSecureIpcInvoker("shell:open-external"),
+  openPath: createSecureIpcInvoker("shell:open-path"),
   removeMenuListeners,
   platform: process.platform,
   versions: {

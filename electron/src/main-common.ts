@@ -148,6 +148,18 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
     }
   });
 
+  ipcMain.handle("shell:open-path", async (_event, filePath: string) => {
+    if (!filePath || typeof filePath !== "string") {
+      return { success: false, error: "Invalid path" };
+    }
+    try {
+      await shell.openPath(filePath);
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
+  });
+
   ipcMain.handle("config:get", async (_event, key: string) => {
     if (key && !validateConfigKey(key)) return null;
     const config = loadConfig();

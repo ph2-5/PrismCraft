@@ -675,7 +675,21 @@ before-quit → gracefulShutdown()
 
 **插件架构**：每个 Provider 继承 `BaseAIProviderPlugin`，实现 `match(apiUrl, model)` 方法用于自动识别，以及 `buildVideoRequest`、`buildImageRequest`、`buildTextRequest`、`buildVisionRequest` 方法用于构建 API 请求。`OpenAICompatiblePlugin` 作为回退（fallback），匹配所有未被其他 Provider 识别的 API URL。
 
-**用户自定义插件**：`user-plugin-loader.ts` 从 `%APPDATA%/ai-animation-studio/Plugins/` 目录加载 `.plugin.json` 文件。插件配置使用 `user-plugin-schema.ts` 定义的 JSON Schema 验证，支持自定义 API 端点映射、请求/响应格式和认证方式。用户无需编写代码即可接入任意兼容 OpenAI API 格式的 AI 服务。
+**三种插件形式**：
+
+| 类型 | 格式 | 位置 | 加载器 |
+|------|------|------|--------|
+| 内置插件 | TypeScript 类 | `electron/src/plugins/providers/` | 直接导入 |
+| 声明式插件 | `.plugin.json` | `~/AI Animation Studio/UserPlugins/` | `UserPluginAdapter` |
+| 代码式插件 | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter`（vm 沙箱） |
+
+**声明式插件**：`user-plugin-loader.ts` 从 `%APPDATA%/ai-animation-studio/Plugins/` 目录加载 `.plugin.json` 文件。插件配置使用 `user-plugin-schema.ts` 定义的 JSON Schema 验证，支持自定义 API 端点映射、请求/响应格式和认证方式。用户无需编写代码即可接入任意兼容 OpenAI API 格式的 AI 服务。声明式插件支持 `apiKeyDetection` 字段声明 API Key 自动识别规则。
+
+**代码式插件**：`code-plugin-loader.ts` 从 `%APPDATA%/ai-animation-studio/CodePlugins/` 目录加载 `.plugin.js` 文件。使用 Node.js `vm` 模块在沙箱中执行插件代码，提供安全的 API 上下文（JSON、Math、Date、RegExp、受限 console），阻止危险对象（require、process、Buffer、setTimeout、fetch）。执行超时 5 秒。参考模板：`docs/examples/reference-code-plugin.plugin.js`。
+
+**API Key 自动识别**：插件通过 `getApiKeyDetection()` 方法声明 API Key 格式识别规则。前端 `detect.ts` 优先使用插件规则，兜底使用内置规则。识别结果包含 `pluginId`、`suggestedName`、`baseUrl`、`confidence`。
+
+**模型参数驱动**：插件通过 `getModelParameterProfile(modelId)` 声明模型特有参数（时长、分辨率、风格、cfgScale 等）。前端 `ModelParameterPanel` 组件根据参数配置动态渲染参数选择 UI。`model-capabilities.ts` 优先使用插件提供的 profile，兜底使用 `BUILTIN_MODEL_CAPABILITIES`。
 
 **为什么用插件而非硬编码**：AI 提供商的 API 格式、参数、认证方式各不相同且频繁变更。插件模式将每个 Provider 的适配逻辑隔离在独立文件中，修改一个 Provider 不影响其他。新增 Provider 只需创建一个继承 `BaseAIProviderPlugin` 的类并注册，无需修改核心代码。
 

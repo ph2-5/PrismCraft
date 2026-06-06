@@ -5,6 +5,17 @@ import { getLogger } from "../logging/logger";
 
 const logger = getLogger("plugin-schema");
 
+export interface ApiKeyDetectionRuleConfig {
+  pattern: string;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface ApiKeyDetectionConfig {
+  rules: ApiKeyDetectionRuleConfig[];
+  suggestedName: string;
+  baseUrl?: string;
+}
+
 export interface UserPluginConfig {
   id: string;
   version: string;
@@ -12,6 +23,8 @@ export interface UserPluginConfig {
   description?: string;
   author?: string;
   homepage?: string;
+
+  apiKeyDetection?: ApiKeyDetectionConfig;
 
   match: {
     mode?: "contains" | "prefix" | "regex";

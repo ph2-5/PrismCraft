@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { t } from "@/shared/constants";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -16,10 +17,13 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
+  Puzzle,
+  Code,
 } from "lucide-react";
 import {
   type ApiCapability,
-  getTemplateList,
+  getAllTemplates,
+  type PluginProviderTemplate,
 } from "@/infrastructure/api-config-facade";
 
 interface CapabilityItem {
@@ -42,10 +46,16 @@ interface ProviderFormProps {
     confidence: "high" | "medium" | "low";
     suggestedName: string;
     baseUrl?: string;
+    isPlugin?: boolean;
+    pluginId?: string;
   } | null;
   onAdd: () => void;
   onCancel: () => void;
   capabilities: CapabilityItem[];
+}
+
+function isPluginTemplate(template: unknown): template is PluginProviderTemplate {
+  return typeof template === "object" && template !== null && "pluginId" in template;
 }
 
 export function ProviderForm({
@@ -62,6 +72,27 @@ export function ProviderForm({
   onCancel,
   capabilities,
 }: ProviderFormProps) {
+  const templateGroups = useMemo(() => {
+    const all = getAllTemplates();
+    const builtin: { id: string; name: string }[] = [];
+    const pluginDeclarative: { id: string; name: string }[] = [];
+    const pluginCode: { id: string; name: string }[] = [];
+
+    for (const [id, template] of Object.entries(all)) {
+      if (isPluginTemplate(template)) {
+        if (template.isCodePlugin) {
+          pluginCode.push({ id, name: template.name });
+        } else {
+          pluginDeclarative.push({ id, name: template.name });
+        }
+      } else {
+        builtin.push({ id, name: template.name });
+      }
+    }
+
+    return { builtin, pluginDeclarative, pluginCode };
+  }, []);
+
   return (
     <div className="p-4 border rounded-lg bg-slate-800/50 space-y-4">
       <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-800">
@@ -89,7 +120,7 @@ export function ProviderForm({
           onChange={(e) => onKeyChange(e.target.value)}
         />
         {newProviderKey && (
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm flex-wrap">
             {keyValidation.valid ? (
               <>
                 {detectedInfo ? (
@@ -107,6 +138,12 @@ export function ProviderForm({
                         ? t("provider.highConfidence")
                         : t("provider.mediumConfidence")}
                     </Badge>
+                    {detectedInfo.isPlugin && (
+                      <Badge variant="outline" className="text-xs border-purple-500 text-purple-400">
+                        <Puzzle className="h-3 w-3 mr-1" />
+                        {t("plugin.detectedAsPlugin", { name: detectedInfo.suggestedName })}
+                      </Badge>
+                    )}
                   </>
                 ) : (
                   <>
@@ -142,11 +179,50 @@ export function ProviderForm({
               <SelectValue placeholder={t("provider.selectProviderPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              {getTemplateList().map((tpl) => (
-                <SelectItem key={tpl.id} value={tpl.id}>
-                  {tpl.name}
-                </SelectItem>
-              ))}
+              {templateGroups.builtin.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    {t("plugin.builtin")}
+                  </div>
+                  {templateGroups.builtin.map((tpl) => (
+                    <SelectItem key={tpl.id} value={tpl.id}>
+                      {tpl.name}
+                    </SelectItem>
+                  ))}
+                </>
+              )}
+              {templateGroups.pluginDeclarative.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-purple-400 flex items-center gap-1 mt-1">
+                    <Puzzle className="h-3 w-3" />
+                    {t("plugin.declarative")}
+                  </div>
+                  {templateGroups.pluginDeclarative.map((tpl) => (
+                    <SelectItem key={tpl.id} value={tpl.id}>
+                      {tpl.name}
+                      <Badge variant="outline" className="ml-2 text-xs border-purple-500 text-purple-400">
+                        {t("plugin.pluginTag")}
+                      </Badge>
+                    </SelectItem>
+                  ))}
+                </>
+              )}
+              {templateGroups.pluginCode.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-orange-400 flex items-center gap-1 mt-1">
+                    <Code className="h-3 w-3" />
+                    {t("plugin.codePlugin")}
+                  </div>
+                  {templateGroups.pluginCode.map((tpl) => (
+                    <SelectItem key={tpl.id} value={tpl.id}>
+                      {tpl.name}
+                      <Badge variant="outline" className="ml-2 text-xs border-orange-500 text-orange-400">
+                        {t("plugin.codePluginTag")}
+                      </Badge>
+                    </SelectItem>
+                  ))}
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>

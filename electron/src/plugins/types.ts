@@ -126,6 +126,18 @@ export interface StyleOption {
   description?: string;
 }
 
+export interface ApiKeyDetectionRule {
+  pattern: string;
+  confidence: "high" | "medium" | "low";
+  check?: (key: string) => boolean;
+}
+
+export interface ApiKeyDetection {
+  rules: ApiKeyDetectionRule[];
+  suggestedName: string;
+  baseUrl?: string;
+}
+
 export interface ModelParameterOptions {
   durations?: DurationOption[];
   resolutions?: ResolutionOption[];
@@ -201,4 +213,6 @@ export interface AIProviderPlugin {
 
   getModelParameterProfile(modelId: string): ModelParameterProfile;
   getAvailableModels?(): string[];
+
+  getApiKeyDetection?(): ApiKeyDetection | undefined;
 }

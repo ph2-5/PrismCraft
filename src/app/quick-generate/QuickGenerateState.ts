@@ -34,6 +34,8 @@ export interface QuickGenerateState {
   showAdvanced: boolean;
   enableSmartOptimization: boolean;
   negativePrompt: string;
+  seed: string;
+  cfgScale: number;
   referenceImage: string | null;
   referenceVideo: string | null;
   referenceVideoFile: File | null;
@@ -55,6 +57,8 @@ export type QuickGenerateAction =
   | { type: "SET_SHOW_ADVANCED"; value: boolean }
   | { type: "SET_ENABLE_SMART_OPTIMIZATION"; value: boolean }
   | { type: "SET_NEGATIVE_PROMPT"; value: string }
+  | { type: "SET_SEED"; value: string }
+  | { type: "SET_CFG_SCALE"; value: number }
   | { type: "SET_REFERENCE_IMAGE"; value: string | null }
   | { type: "UPLOAD_REFERENCE_VIDEO"; blobUrl: string; file: File; name: string }
   | { type: "REMOVE_REFERENCE_VIDEO" }
@@ -74,6 +78,8 @@ const initialState: QuickGenerateState = {
   showAdvanced: false,
   enableSmartOptimization: true,
   negativePrompt: "",
+  seed: "",
+  cfgScale: 7,
   referenceImage: null,
   referenceVideo: null,
   referenceVideoFile: null,
@@ -113,6 +119,10 @@ export function quickGenerateReducer(state: QuickGenerateState, action: QuickGen
       return { ...state, enableSmartOptimization: action.value };
     case "SET_NEGATIVE_PROMPT":
       return { ...state, negativePrompt: action.value };
+    case "SET_SEED":
+      return { ...state, seed: action.value };
+    case "SET_CFG_SCALE":
+      return { ...state, cfgScale: action.value };
     case "SET_REFERENCE_IMAGE":
       return { ...state, referenceImage: action.value };
     case "UPLOAD_REFERENCE_VIDEO":
@@ -442,6 +452,10 @@ export function useQuickGenerateState() {
     setEnableSmartOptimization: (value: boolean) => dispatch({ type: "SET_ENABLE_SMART_OPTIMIZATION", value }),
     negativePrompt: state.negativePrompt,
     setNegativePrompt: (value: string) => dispatch({ type: "SET_NEGATIVE_PROMPT", value }),
+    seed: state.seed,
+    setSeed: (value: string) => dispatch({ type: "SET_SEED", value }),
+    cfgScale: state.cfgScale,
+    setCfgScale: (value: number) => dispatch({ type: "SET_CFG_SCALE", value }),
     referenceImage: state.referenceImage,
     setReferenceImage: (value: string | null) => dispatch({ type: "SET_REFERENCE_IMAGE", value }),
     referenceVideo: state.referenceVideo,

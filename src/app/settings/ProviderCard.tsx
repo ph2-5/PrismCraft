@@ -9,6 +9,7 @@ import {
   Trash2,
   ChevronDown,
   Sparkles,
+  Settings2,
 } from "lucide-react";
 import {
   type ApiCapability,
@@ -16,6 +17,7 @@ import {
   type ProviderConfig,
   type ModelConfig,
 } from "@/infrastructure/api-config-facade";
+import { getModelParameterProfile } from "@/shared/model-capabilities";
 
 interface CapabilityItem {
   id: ApiCapability;
@@ -302,6 +304,60 @@ export function ProviderCard({
                       },
                     )}
                   </div>
+
+                  {getModelParameterProfile(model.id) && (
+                    <div className="mt-2 p-2 border rounded bg-slate-900/50">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1.5">
+                        <Settings2 className="h-3 w-3" />
+                        {t("plugin.modelParams")}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(() => {
+                          const profile = getModelParameterProfile(model.id);
+                          if (!profile) return null;
+                          const tags: React.ReactNode[] = [];
+                          if (profile.parameters.durations?.length) {
+                            tags.push(
+                              <Badge key="dur" variant="outline" className="text-xs">
+                                {t("plugin.durationOptions")}: {profile.parameters.durations.map((d) => d.label).join(", ")}
+                              </Badge>,
+                            );
+                          }
+                          if (profile.parameters.resolutions?.length) {
+                            tags.push(
+                              <Badge key="res" variant="outline" className="text-xs">
+                                {t("plugin.resolutionOptions")}: {profile.parameters.resolutions.map((r) => r.label).join(", ")}
+                              </Badge>,
+                            );
+                          }
+                          if (profile.parameters.styles?.length) {
+                            tags.push(
+                              <Badge key="style" variant="outline" className="text-xs">
+                                {t("plugin.styleOptions")}: {profile.parameters.styles.map((s) => s.label).join(", ")}
+                              </Badge>,
+                            );
+                          }
+                          if (profile.parameters.negativePrompt) {
+                            tags.push(<Badge key="neg" variant="outline" className="text-xs">{t("plugin.negativePrompt")}</Badge>);
+                          }
+                          if (profile.parameters.seed) {
+                            tags.push(<Badge key="seed" variant="outline" className="text-xs">{t("plugin.seedSupport")}</Badge>);
+                          }
+                          if (profile.parameters.cfgScale) {
+                            tags.push(
+                              <Badge key="cfg" variant="outline" className="text-xs">
+                                {t("plugin.cfgScale")}: {profile.parameters.cfgScale.min}-{profile.parameters.cfgScale.max}
+                              </Badge>,
+                            );
+                          }
+                          if (profile.parameters.lora) {
+                            tags.push(<Badge key="lora" variant="outline" className="text-xs">{t("plugin.loraSupport")}</Badge>);
+                          }
+                          return tags;
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -13,6 +13,7 @@ import type {
   ImageTransportMode,
   ImagePurpose,
   CloudProviderInfo,
+  ApiKeyDetection,
 } from "../types";
 import {
   urlToPureBase64,
@@ -200,6 +201,19 @@ export class GooglePlugin
       apiDocUrl: "https://ai.google.dev/gemini-api/docs/video-generation",
       howToCheck:
         "Visit Google AI Studio (ai.google.dev) to check operation status and results",
+    };
+  }
+
+  getApiKeyDetection(): ApiKeyDetection {
+    return {
+      rules: [
+        {
+          pattern: "^AIza[A-Za-z0-9_-]{26,}$",
+          confidence: "high",
+        },
+      ],
+      suggestedName: "Google AI",
+      baseUrl: "https://generativeai.googleapis.com/v1",
     };
   }
 }

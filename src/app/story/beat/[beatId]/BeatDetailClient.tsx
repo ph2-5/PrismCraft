@@ -22,9 +22,14 @@ import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
+import {
+  ModelParameterPanel,
+  type ModelParameterValues,
+} from "@/shared/presentation/ModelParameterPanel";
 import type { StoryBeat, Story } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
 import { container } from "@/infrastructure/di";
+import { useModelSelection, ModelSelector } from "@/modules/prompt";
 import { useBeatDetail } from "./use-beat-detail";
 
 interface BeatDetailPageProps {
@@ -55,6 +60,20 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
   const [isRefreshingUrl, setIsRefreshingUrl] = useState(false);
   const prevPropsVideoUrlRef = useRef(beat.videoGen?.videoUrl || task?.videoUrl);
   const [elementNames, setElementNames] = useState<Record<string, string>>({});
+
+  const [selectedVideoModel, setSelectedVideoModel] = useModelSelection("video");
+  const [modelParams, setModelParams] = useState<ModelParameterValues>({
+    duration: 5,
+    resolution: "1920x1080",
+    style: t("quickGenerate.defaultStyle"),
+    negativePrompt: "",
+    seed: "",
+    cfgScale: 7,
+  });
+
+  const handleModelParamsChange = useCallback((partial: Partial<ModelParameterValues>) => {
+    setModelParams((prev) => ({ ...prev, ...partial }));
+  }, []);
 
   const propsVideoUrl = beat.videoGen?.videoUrl || task?.videoUrl;
   if (prevPropsVideoUrlRef.current !== propsVideoUrl) {
@@ -735,6 +754,29 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                         </div>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-foreground">
+                      {t("modelParam.modelParams")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">{t("quickGenerate.videoModel")}</Label>
+                      <ModelSelector
+                        capability="video"
+                        value={selectedVideoModel}
+                        onChange={setSelectedVideoModel}
+                      />
+                    </div>
+                    <ModelParameterPanel
+                      modelId={selectedVideoModel?.modelId}
+                      values={modelParams}
+                      onValuesChange={handleModelParamsChange}
+                    />
                   </CardContent>
                 </Card>
 

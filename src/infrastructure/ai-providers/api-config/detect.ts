@@ -1,122 +1,162 @@
 /**
  * API Key 自动检测
- * 
- * 根据 API Key 格式自动识别提供商类型。
- * 目前仍在设置页面中使用（添加提供商时的自动检测功能）。
- * 
- * 后端也提供了 `/api/validate` (type: "detect-provider") 接口，
- * 但前端仍需此模块进行即时检测以提供更好的用户体验。
+ *
+ * 优先使用插件系统提供的检测规则，fallback 到内置规则。
+ * 插件通过 apiKeyDetection 字段声明自己的 API Key 格式。
+ * 前端通过 API 从后端获取插件规则缓存到本地。
  */
+
+import { errorLogger } from "@/shared/error-logger";
+import { isElectron } from "@/shared/utils/platform";
+import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 
 interface DetectResult {
   templateId: string;
   confidence: "high" | "medium" | "low";
   suggestedName: string;
   baseUrl?: string;
+  isPlugin?: boolean;
+  pluginId?: string;
 }
 
-// API Key 检测规则
-const DETECTION_RULES: {
+interface PluginDetectionRule {
+  pattern: string;
+  confidence: "high" | "medium" | "low";
+}
+
+interface PluginDetectionConfig {
+  pluginId: string;
+  rules: PluginDetectionRule[];
+  suggestedName: string;
+  baseUrl?: string;
+  isUserPlugin?: boolean;
+  isCodePlugin?: boolean;
+}
+
+// ── 内置规则（兜底，当插件系统不可用时使用） ──
+
+const BUILTIN_RULES: {
   pattern: RegExp;
   templateId: string;
   confidence: "high" | "medium" | "low";
   check?: (key: string) => boolean;
 }[] = [
-  // OpenAI: sk- 开头，48 位字符
+  { pattern: /^sk-ant-api03-[a-zA-Z0-9_-]+$/, templateId: "anthropic", confidence: "high" },
+  { pattern: /^sk-proj-[a-zA-Z0-9_-]+$/, templateId: "openai", confidence: "high" },
+  { pattern: /^sk-or-[a-zA-Z0-9_-]+$/, templateId: "openrouter", confidence: "high" },
+  { pattern: /^AIza[a-zA-Z0-9_-]{30,}$/, templateId: "google", confidence: "high" },
+  { pattern: /^00[a-f0-9]{32}\.[a-z0-9]{16}$/i, templateId: "zhipu", confidence: "high" },
+  { pattern: /^[a-f0-9]{32}\.[a-zA-Z0-9]{20}$/, templateId: "zhipu", confidence: "high" },
+  { pattern: /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i, templateId: "volcengine", confidence: "high" },
+  { pattern: /seedance|atlas/i, templateId: "seedance", confidence: "high" },
+  { pattern: /moonshot/i, templateId: "moonshot", confidence: "high" },
   {
     pattern: /^sk-[a-zA-Z0-9]{48}$/,
     templateId: "openai",
     confidence: "high",
+    check: (key) => !key.startsWith("sk-or-") && !key.startsWith("sk-proj-") && !key.startsWith("sk-ant-"),
   },
-  // OpenAI 项目 Key: sk-proj- 开头
-  {
-    pattern: /^sk-proj-[a-zA-Z0-9_-]+$/,
-    templateId: "openai",
-    confidence: "high",
-  },
-  // Moonshot: 包含 moonshot 字样
-  {
-    pattern: /moonshot/i,
-    templateId: "moonshot",
-    confidence: "high",
-  },
-  // Moonshot: sk- 开头，10 位字符（旧版）
-  {
-    pattern: /^sk-[a-zA-Z0-9]{10}$/,
-    templateId: "moonshot",
-    confidence: "medium",
-  },
-  // 火山引擎: UUID 格式
-  {
-    pattern: /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,
-    templateId: "volcengine",
-    confidence: "high",
-  },
-  // 智谱: 旧版格式 00 + 32位十六进制 + . + 16位
-  {
-    pattern: /^00[a-f0-9]{32}\.[a-z0-9]{16}$/i,
-    templateId: "zhipu",
-    confidence: "high",
-  },
-  // 智谱: 新版格式 32位十六进制 + . + 20位
-  {
-    pattern: /^[a-f0-9]{32}\.[a-zA-Z0-9]{20}$/,
-    templateId: "zhipu",
-    confidence: "high",
-  },
-  // OpenRouter: sk-or- 开头
-  {
-    pattern: /^sk-or-/,
-    templateId: "openrouter",
-    confidence: "high",
-  },
-  // Seedance: 包含 seedance 或 atlas 字样
-  {
-    pattern: /seedance|atlas/i,
-    templateId: "seedance",
-    confidence: "high",
-  },
-  // 通义千问: sk- 开头，非 OpenAI/OpenRouter/Moonshot 格式，且不在其他规则中
   {
     pattern: /^sk-[a-zA-Z0-9]{32}$/,
+    templateId: "deepseek",
+    confidence: "high",
+    check: (key) => !key.startsWith("sk-or-") && !key.startsWith("sk-proj-") && !key.startsWith("sk-ant-"),
+  },
+  {
+    pattern: /^sk-[a-zA-Z0-9]{24,}$/,
     templateId: "qwen",
     confidence: "medium",
     check: (key) =>
-      !key.startsWith("sk-or-") && !/^sk-[a-zA-Z0-9]{48}$/.test(key),
+      !key.startsWith("sk-or-") &&
+      !key.startsWith("sk-proj-") &&
+      !key.startsWith("sk-ant-") &&
+      !/^sk-[a-zA-Z0-9]{48}$/.test(key) &&
+      !/^sk-[a-zA-Z0-9]{32}$/.test(key),
   },
+  { pattern: /^sk-[a-zA-Z0-9]{10}$/, templateId: "moonshot", confidence: "low" },
 ];
 
-// 模板名称映射
 const TEMPLATE_NAMES: Record<string, string> = {
   openai: "OpenAI",
+  anthropic: "Anthropic Claude",
+  google: "Google Gemini",
+  deepseek: "DeepSeek",
   moonshot: "Moonshot (Kimi)",
   volcengine: "火山引擎",
+  byteplus: "BytePlus",
   zhipu: "智谱 AI",
   openrouter: "OpenRouter",
   seedance: "Seedance (Atlas)",
   pollinations: "Pollinations (免费)",
   ollama: "Ollama (本地)",
   qwen: "通义千问",
+  kuaishou: "快手可灵 Kling",
+  pixverse: "PixVerse",
+  sora: "OpenAI Sora",
+  bedrock: "Amazon Bedrock",
+  fireworks: "Fireworks AI",
+  custom: "自定义 API",
 };
 
-/**
- * 检测 API Key 对应的提供商
- */
-export function detectProvider(apiKey: string): DetectResult | null {
-  if (!apiKey || apiKey.length < 10) return null;
+// ── 插件规则缓存 ──
 
-  // 检查占位符
-  if (apiKey.includes("your_") || apiKey.includes("placeholder")) {
-    return null;
+let pluginDetectionRules: PluginDetectionConfig[] = [];
+
+export function setPluginDetectionRules(rules: PluginDetectionConfig[]): void {
+  pluginDetectionRules = rules;
+}
+
+export async function loadPluginDetectionRules(): Promise<void> {
+  if (!isElectron()) {
+    return;
   }
 
-  for (const rule of DETECTION_RULES) {
+  try {
+    const baseUrl = `http://localhost:${API_SERVER_PORT}`;
+    const res = await fetch(`${baseUrl}/api/plugins/detection-rules`, {
+      headers: { ...ELECTRON_APP_HEADERS },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      pluginDetectionRules = data.data;
+    }
+  } catch (e) {
+    errorLogger.warn("[detect] 加载插件检测规则失败，使用内置规则", e);
+  }
+}
+
+// ── 检测逻辑 ──
+
+function matchPluginRules(apiKey: string): DetectResult | null {
+  for (const config of pluginDetectionRules) {
+    for (const rule of config.rules) {
+      try {
+        const regex = new RegExp(rule.pattern);
+        if (regex.test(apiKey)) {
+          return {
+            templateId: config.pluginId,
+            confidence: rule.confidence,
+            suggestedName: config.suggestedName,
+            baseUrl: config.baseUrl,
+            isPlugin: true,
+            pluginId: config.pluginId,
+          };
+        }
+      } catch {
+        // 无效正则，跳过
+      }
+    }
+  }
+  return null;
+}
+
+function matchBuiltinRules(apiKey: string): DetectResult | null {
+  for (const rule of BUILTIN_RULES) {
     if (rule.pattern.test(apiKey)) {
-      // 如果有额外检查，执行检查
       if (rule.check && !rule.check(apiKey)) {
         continue;
       }
-
       return {
         templateId: rule.templateId,
         confidence: rule.confidence,
@@ -124,8 +164,28 @@ export function detectProvider(apiKey: string): DetectResult | null {
       };
     }
   }
-
   return null;
+}
+
+/**
+ * 检测 API Key 对应的提供商
+ * 优先匹配插件规则，再匹配内置规则
+ */
+export function detectProvider(apiKey: string): DetectResult | null {
+  if (!apiKey || apiKey.length < 10) return null;
+
+  if (apiKey.includes("your_") || apiKey.includes("placeholder")) {
+    return null;
+  }
+
+  // 优先使用插件规则
+  if (pluginDetectionRules.length > 0) {
+    const pluginResult = matchPluginRules(apiKey);
+    if (pluginResult) return pluginResult;
+  }
+
+  // 兜底使用内置规则
+  return matchBuiltinRules(apiKey);
 }
 
 /**
@@ -151,7 +211,6 @@ export function validateApiKey(apiKey: string): {
     return { valid: false, error: "请替换为真实的 API Key" };
   }
 
-  // 检查控制字符
   if (/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(apiKey)) {
     return { valid: false, error: "API Key 包含非法字符" };
   }
@@ -193,4 +252,17 @@ export function getKeyStrengthInfo(
     case "strong":
       return { label: "强", color: "text-green-500", icon: "✅" };
   }
+}
+
+/**
+ * 获取所有模板名称映射（内置 + 插件）
+ */
+export function getTemplateNames(): Record<string, string> {
+  const names: Record<string, string> = { ...TEMPLATE_NAMES };
+  for (const config of pluginDetectionRules) {
+    if (!names[config.pluginId]) {
+      names[config.pluginId] = config.suggestedName;
+    }
+  }
+  return names;
 }

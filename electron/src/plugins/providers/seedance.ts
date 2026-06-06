@@ -12,6 +12,7 @@ import type {
   ImageTransportMode,
   ImagePurpose,
   CloudProviderInfo,
+  ApiKeyDetection,
 } from "../types";
 import { BaseAIProviderPlugin } from "../base-provider";
 
@@ -181,6 +182,19 @@ export class SeedancePlugin extends BaseAIProviderPlugin implements AIProviderPl
       apiDocUrl: "https://atlascloud.ai/docs",
       howToCheck:
         "1. 登录 Atlas Cloud 控制台 2. 在「Dashboard」中查看视频生成任务状态和结果",
+    };
+  }
+
+  getApiKeyDetection(): ApiKeyDetection {
+    return {
+      rules: [
+        {
+          pattern: "(?:seedance|atlas)",
+          confidence: "high",
+        },
+      ],
+      suggestedName: "Seedance",
+      baseUrl: "https://api.atlascloud.ai/v1",
     };
   }
 }

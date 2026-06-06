@@ -13,6 +13,7 @@ import type {
   VisionRequestResult,
   ImageTransportMode,
   ImagePurpose,
+  ApiKeyDetection,
 } from "../types";
 import { BaseAIProviderPlugin } from "../base-provider";
 import { getLogger } from "../../logging/logger";
@@ -110,5 +111,18 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
       return (content[0].text as string) || "";
     }
     return "";
+  }
+
+  getApiKeyDetection(): ApiKeyDetection {
+    return {
+      rules: [
+        {
+          pattern: "^sk-ant-api03-",
+          confidence: "high",
+        },
+      ],
+      suggestedName: "Anthropic",
+      baseUrl: "https://api.anthropic.com/v1",
+    };
   }
 }

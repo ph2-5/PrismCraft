@@ -39,6 +39,9 @@
       "format": "uri",
       "description": "URL to the plugin's homepage or repository"
     },
+    "apiKeyDetection": {
+      "$ref": "#/$defs/apiKeyDetection"
+    },
     "match": {
       "$ref": "#/$defs/match"
     },
@@ -91,6 +94,44 @@
     }
   },
   "$defs": {
+    "apiKeyDetection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rules"],
+      "description": "API Key auto-detection rules for this provider. When a user pastes an API Key, the system will try to match it against these rules to automatically identify the provider.",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["pattern", "confidence"],
+            "additionalProperties": false,
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regular expression pattern to match against the API Key",
+                "examples": ["^sk-ant-api03-[a-zA-Z0-9_-]+$", "^AIza[a-zA-Z0-9_-]{30,}$"]
+              },
+              "confidence": {
+                "type": "string",
+                "enum": ["high", "medium", "low"],
+                "description": "Detection confidence level. Rules are evaluated in order; higher confidence rules should be listed first"
+              }
+            }
+          },
+          "description": "Ordered list of detection rules. Higher confidence and more specific rules should be listed first"
+        },
+        "suggestedName": {
+          "type": "string",
+          "description": "Suggested provider name when API Key is detected. Defaults to displayName if not specified"
+        },
+        "baseUrl": {
+          "type": "string",
+          "description": "Suggested base URL for this provider's API. Used as a hint when auto-configuring the provider"
+        }
+      }
+    },
     "match": {
       "type": "object",
       "additionalProperties": false,

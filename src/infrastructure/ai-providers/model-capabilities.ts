@@ -11,6 +11,7 @@
 
 import { errorLogger } from "@/shared/error-logger";
 import { apiClient } from "@/infrastructure/api";
+import { isElectron } from "@/shared/utils/platform";
 
 export interface ImageSizeOption {
   width: number;
@@ -499,6 +500,7 @@ export interface ModelParameterProfile {
   displayName?: string;
   providerId?: string;
   isUserPlugin?: boolean;
+  isCodePlugin?: boolean;
   capabilities: ModelCapabilities;
   parameters: {
     durations?: Array<{ value: number; label: string }>;
@@ -525,14 +527,41 @@ export function getAllModelProfiles(): Record<string, ModelParameterProfile> {
   return modelProfilesCache;
 }
 
-export async function loadModelProfilesFromServer(): Promise<void> {
-  try {
-    const isElectronEnv = typeof window !== "undefined" && (window as unknown as Record<string, unknown>).electronAPI;
-    if (!isElectronEnv) return;
+interface ServerModelProfile {
+  modelId: string;
+  displayName?: string;
+  providerId?: string;
+  isUserPlugin?: boolean;
+  isCodePlugin?: boolean;
+  capabilities: ModelCapabilities;
+  parameters: ModelParameterProfile["parameters"];
+}
 
-    const response = await apiClient.get<{ modelProfiles?: Record<string, ModelParameterProfile> }>("/plugins/list");
-    if (response.ok && response.value?.modelProfiles) {
-      setModelProfiles(response.value.modelProfiles);
+interface PluginsListData {
+  modelProfiles?: Record<string, ServerModelProfile>;
+  plugins?: Array<unknown>;
+}
+
+export async function loadModelProfilesFromServer(): Promise<void> {
+  if (!isElectron()) return;
+
+  try {
+    const response = await apiClient.get<{ success?: boolean; data?: PluginsListData }>("/plugins/list");
+    if (response.ok && response.value?.data?.modelProfiles) {
+      const profiles = response.value.data.modelProfiles;
+      const merged: Record<string, ModelParameterProfile> = { ...modelProfilesCache };
+      for (const [modelId, profile] of Object.entries(profiles)) {
+        merged[modelId] = {
+          modelId: profile.modelId,
+          displayName: profile.displayName,
+          providerId: profile.providerId,
+          isUserPlugin: profile.isUserPlugin,
+          isCodePlugin: profile.isCodePlugin,
+          capabilities: profile.capabilities,
+          parameters: profile.parameters,
+        };
+      }
+      setModelProfiles(merged);
     }
   } catch (e) {
     errorLogger.warn("[ModelCapabilities] 获取远程模型配置失败，使用内置配置", e);

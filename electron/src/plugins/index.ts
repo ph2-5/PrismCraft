@@ -18,7 +18,7 @@ export type {
 } from "./types";
 
 export { BaseAIProviderPlugin } from "./base-provider";
-export { pluginRegistry, USER_PLUGINS_DIR } from "./registry";
+export { pluginRegistry, USER_PLUGINS_DIR, CODE_PLUGINS_DIR } from "./registry";
 
 export {
   VolcenginePlugin,
@@ -53,6 +53,10 @@ export {
   listUserPluginFiles,
 } from "./user-plugin-loader";
 
+export type { CodePluginExport } from "./code-plugin-loader";
+export { loadCodePlugins, loadCodePluginFromFile, CODE_PLUGINS_DIR as CODE_PLUGINS_DIR_LOADER } from "./code-plugin-loader";
+export { CodePluginAdapter } from "./code-plugin-adapter";
+
 import { pluginRegistry } from "./registry";
 import { VolcenginePlugin } from "./providers/volcengine";
 import { KuaishouPlugin } from "./providers/kuaishou";
@@ -78,6 +82,7 @@ function registerAllPlugins(): void {
   pluginRegistry.setFallback(new OpenAICompatiblePlugin());
 
   pluginRegistry.reloadUserPlugins();
+  pluginRegistry.loadCodePlugins();
 }
 
 registerAllPlugins();

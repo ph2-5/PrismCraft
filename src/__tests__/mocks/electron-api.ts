@@ -7,6 +7,7 @@ function createElectronApiMock() {
     onMenuNewScene: vi.fn(),
     onMenuExport: vi.fn(),
     openExternal: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    openPath: vi.fn<() => Promise<{ success: boolean; error?: string }>>().mockResolvedValue({ success: true }),
     removeMenuListeners: vi.fn(),
     platform: "win32",
     versions: { node: "20.0.0", electron: "28.0.0", chrome: "120.0.0" },

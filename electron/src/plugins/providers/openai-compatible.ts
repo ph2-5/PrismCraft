@@ -5,6 +5,7 @@ import type {
   ImageBuildContext,
   VideoRequestResult,
   ImageRequestResult,
+  ApiKeyDetection,
 } from "../types";
 import { getLogger } from "../../logging/logger";
 
@@ -143,5 +144,46 @@ export class OpenAICompatiblePlugin extends BaseAIProviderPlugin {
     _model?: string,
   ): string {
     return `${baseUrl}/videos/${taskId}`;
+  }
+
+  getApiKeyDetection(): ApiKeyDetection {
+    return {
+      rules: [
+        {
+          pattern: "^sk-proj-",
+          confidence: "high",
+        },
+        {
+          pattern: "^sk-or-",
+          confidence: "high",
+        },
+        {
+          pattern: "^sk-[A-Za-z0-9]{48}$",
+          confidence: "high",
+        },
+        {
+          pattern: "^sk-[A-Za-z0-9]{32}$",
+          confidence: "high",
+        },
+        {
+          pattern: "moonshot",
+          confidence: "high",
+        },
+        {
+          pattern: "^sk-[A-Za-z0-9]{10}$",
+          confidence: "low",
+        },
+        {
+          pattern: "^sk-[A-Za-z0-9]{24,}$",
+          confidence: "medium",
+          check: (key: string) => {
+            const suffix = key.slice(3);
+            return suffix.length >= 24 && suffix.length !== 48 && suffix.length !== 32;
+          },
+        },
+      ],
+      suggestedName: "OpenAI",
+      baseUrl: "https://api.openai.com/v1",
+    };
   }
 }

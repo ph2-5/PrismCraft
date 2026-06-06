@@ -726,6 +726,19 @@ class UserPluginAdapter extends BaseAIProviderPlugin {
   getAvailableModels(): string[] {
     return this.config.availableModels?.map((m) => m.id) || [];
   }
+
+  getApiKeyDetection(): import("./types").ApiKeyDetection | undefined {
+    const detection = this.config.apiKeyDetection;
+    if (!detection || !detection.rules?.length) return undefined;
+    return {
+      rules: detection.rules.map((r) => ({
+        pattern: r.pattern,
+        confidence: r.confidence,
+      })),
+      suggestedName: detection.suggestedName || this.config.displayName,
+      baseUrl: detection.baseUrl,
+    };
+  }
 }
 
 export function loadUserPlugins(): AIProviderPlugin[] {

@@ -35,10 +35,12 @@ import {
   setCapabilityMapping,
   type ProviderConfig,
   type ModelConfig,
-  PROVIDER_TEMPLATES,
   createProviderFromTemplate,
   detectProvider,
   validateApiKey,
+  loadPluginDetectionRules,
+  loadPluginTemplates,
+  getTemplateWithPlugins,
   checkConfigStatus,
   ConfigStatus,
 } from "@/infrastructure/api-config-facade";
@@ -91,6 +93,8 @@ export function ApiConfigPanel() {
     let cancelled = false;
     const init = async () => {
       try {
+        await loadPluginDetectionRules();
+        await loadPluginTemplates();
         const loaded = await loadConfig();
         if (!cancelled) {
           setConfig(loaded);
@@ -251,9 +255,9 @@ export function ApiConfigPanel() {
     const provider = config.providers.find((p) => p.id === providerId);
     if (!provider) return;
 
-    const templateId = provider.templateId || provider.id.split("-")[0];
-    const template =
-      PROVIDER_TEMPLATES[templateId as keyof typeof PROVIDER_TEMPLATES];
+    const templateId = provider.templateId;
+    if (!templateId) return;
+    const template = getTemplateWithPlugins(templateId);
     if (!template) return;
 
     handleUpdateProvider(providerId, { models: template.models });
@@ -284,10 +288,10 @@ export function ApiConfigPanel() {
       let modelId: string | undefined;
 
       if (mappingValue) {
-        const firstSlashIndex = mappingValue.indexOf("/");
-        if (firstSlashIndex !== -1) {
-          providerId = mappingValue.substring(0, firstSlashIndex);
-          modelId = mappingValue.substring(firstSlashIndex + 1);
+        const lastSlashIndex = mappingValue.lastIndexOf("/");
+        if (lastSlashIndex !== -1) {
+          providerId = mappingValue.substring(0, lastSlashIndex);
+          modelId = mappingValue.substring(lastSlashIndex + 1);
         }
       }
 

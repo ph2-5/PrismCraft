@@ -52,6 +52,10 @@ export default function QuickGeneratePage() {
             onSmartOptimizationChange={state.setEnableSmartOptimization}
             negativePrompt={state.negativePrompt}
             onNegativePromptChange={state.setNegativePrompt}
+            seed={state.seed}
+            onSeedChange={state.setSeed}
+            cfgScale={state.cfgScale}
+            onCfgScaleChange={state.setCfgScale}
             referenceImage={state.referenceImage}
             onReferenceImageChange={state.setReferenceImage}
             referenceVideo={state.referenceVideo}

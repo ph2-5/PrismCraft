@@ -1,6 +1,6 @@
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { Trash2, ChevronDown, Puzzle } from "lucide-react";
+import { Trash2, ChevronDown, Puzzle, Code } from "lucide-react";
 import { t } from "@/shared/constants";
 import { PluginDetail } from "./PluginDetail";
 
@@ -8,6 +8,7 @@ interface PluginInfo {
   id: string;
   displayName: string;
   isUserPlugin: boolean;
+  isCodePlugin: boolean;
   videoCapabilities: {
     supportsLastFrame: boolean;
     supportsReferenceVideo: boolean;
@@ -33,7 +34,8 @@ interface UserPluginFile {
 
 interface PluginListProps {
   builtInPlugins: PluginInfo[];
-  userPlugins: PluginInfo[];
+  declarativePlugins: PluginInfo[];
+  codePlugins: PluginInfo[];
   userPluginFiles: UserPluginFile[];
   expandedPlugin: string | null;
   onToggleExpand: (pluginId: string | null) => void;
@@ -42,12 +44,15 @@ interface PluginListProps {
 
 export function PluginList({
   builtInPlugins,
-  userPlugins,
+  declarativePlugins,
+  codePlugins,
   userPluginFiles,
   expandedPlugin,
   onToggleExpand,
   onDelete,
 }: PluginListProps) {
+  const hasAnyPlugin = builtInPlugins.length > 0 || declarativePlugins.length > 0 || codePlugins.length > 0;
+
   return (
     <>
       {builtInPlugins.length > 0 && (
@@ -72,23 +77,26 @@ export function PluginList({
         </div>
       )}
 
-      {userPlugins.length > 0 && (
+      {declarativePlugins.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">{t("plugin.userPlugins", { count: userPlugins.length })}</h4>
+          <h4 className="text-sm font-medium text-purple-400 flex items-center gap-1">
+            <Puzzle className="h-3.5 w-3.5" />
+            {t("plugin.declarativePlugins", { count: declarativePlugins.length })}
+          </h4>
           <div className="space-y-2">
-            {userPlugins.map((plugin) => {
+            {declarativePlugins.map((plugin) => {
               const isExpanded = expandedPlugin === plugin.id;
               const fileInfo = userPluginFiles.find((f) => f.id === plugin.id);
               return (
                 <div key={plugin.id} className="border rounded-lg overflow-hidden">
                   <div
-                    className="flex items-center justify-between p-3 cursor-pointer bg-green-900/20"
+                    className="flex items-center justify-between p-3 cursor-pointer bg-purple-900/20"
                     onClick={() => onToggleExpand(isExpanded ? null : plugin.id)}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
                       <span className="font-medium truncate">{plugin.displayName}</span>
-                      <Badge className="text-xs bg-green-700 shrink-0">{t("plugin.custom")}</Badge>
+                      <Badge className="text-xs bg-purple-700 shrink-0">{t("plugin.declarative")}</Badge>
                       {fileInfo && (
                         <span className="text-xs text-muted-foreground shrink-0">v{fileInfo.version}</span>
                       )}
@@ -115,7 +123,49 @@ export function PluginList({
         </div>
       )}
 
-      {builtInPlugins.length === 0 && userPlugins.length === 0 && (
+      {codePlugins.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-orange-400 flex items-center gap-1">
+            <Code className="h-3.5 w-3.5" />
+            {t("plugin.codePlugins", { count: codePlugins.length })}
+          </h4>
+          <div className="space-y-2">
+            {codePlugins.map((plugin) => {
+              const isExpanded = expandedPlugin === plugin.id;
+              return (
+                <div key={plugin.id} className="border rounded-lg overflow-hidden">
+                  <div
+                    className="flex items-center justify-between p-3 cursor-pointer bg-orange-900/20"
+                    onClick={() => onToggleExpand(isExpanded ? null : plugin.id)}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                      <span className="font-medium truncate">{plugin.displayName}</span>
+                      <Badge className="text-xs bg-orange-700 shrink-0">{t("plugin.codePlugin")}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(plugin.id, plugin.displayName);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    </div>
+                  </div>
+                  {isExpanded && <PluginDetail plugin={plugin} />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!hasAnyPlugin && (
         <div className="text-center py-6 text-gray-500 border-2 border-dashed rounded-lg">
           <Puzzle className="w-10 h-10 mx-auto mb-3 opacity-50" />
           <p className="text-sm">{t("plugin.noPlugins")}</p>

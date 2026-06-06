@@ -77,9 +77,6 @@ rescan-tsc.txt
 .dynamic-routes-backup
 app_asar_del_*
 
-# Buyer/commercial docs
-README_FOR_BUYER.md
-
 # Backup archives
 *.zip
 ai-animation-studio-*.zip

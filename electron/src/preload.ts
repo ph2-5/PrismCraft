@@ -57,82 +57,12 @@ function checkPermission(channel: string): { allowed: boolean; level: string } {
   return { allowed: false, level: "UNKNOWN" };
 }
 
-const SQL_CHANNELS_REQUIRING_DDL_BLOCK = new Set([
-  "db:run",
-  "db:transaction",
-]);
-
-const DDL_PATTERN = /^\s*(DROP|ALTER|CREATE|TRUNCATE|ATTACH|DETACH)\s/i;
-const COMMENT_PATTERN = /\/\*[\s\S]*?\*\//g;
-const LINE_COMMENT_PATTERN = /--[^\n]*/g;
-
-function stripSqlComments(sql: string): string {
-  return sql.replace(COMMENT_PATTERN, " ").replace(LINE_COMMENT_PATTERN, " ");
-}
-
-function validateSqlSafety(channel: string, args: IpcArgs): boolean {
-  if (!SQL_CHANNELS_REQUIRING_DDL_BLOCK.has(channel)) return true;
-  const sqlsToCheck: string[] = [];
-  if (channel === "db:transaction" && Array.isArray(args[0])) {
-    for (const stmt of args[0]) {
-      if (stmt && typeof stmt === "object" && "sql" in stmt && typeof (stmt as Record<string, unknown>).sql === "string") {
-        sqlsToCheck.push((stmt as Record<string, unknown>).sql as string);
-      }
-    }
-  } else {
-    if (typeof args[0] === "string") {
-      sqlsToCheck.push(args[0]);
-    }
-  }
-  for (const sql of sqlsToCheck) {
-    const stripped = stripSqlComments(sql);
-    if (DDL_PATTERN.test(stripped)) {
-      ipcRenderer.send("log:security", { level: "error", message: `Blocked DDL statement on channel ${channel}: ${sql.substring(0, 50)}` });
-      return false;
-    }
-  }
-  return true;
-}
-
-const GLOBAL_RATE_LIMIT = { maxCalls: 100000, windowMs: 60000 };
-const globalCallTimestamps: number[] = [];
-
-const cleanupCallHistory = setInterval(() => {
-  const now = Date.now();
-  const trimmedGlobal = globalCallTimestamps.filter((t) => now - t < GLOBAL_RATE_LIMIT.windowMs);
-  globalCallTimestamps.length = 0;
-  globalCallTimestamps.push(...trimmedGlobal);
-}, 60000);
-if (cleanupCallHistory.unref) {
-  cleanupCallHistory.unref();
-}
-
 function createSecureIpcInvoker(channel: string): (...args: IpcArgs) => Promise<IpcResult> {
   return async (...args: IpcArgs) => {
     const permission = checkPermission(channel);
     if (!permission.allowed) {
       throw new Error(`IPC channel "${channel}" is not allowed`);
     }
-
-    const now = Date.now();
-
-    const recentGlobal = globalCallTimestamps.filter((t) => now - t < GLOBAL_RATE_LIMIT.windowMs);
-    if (recentGlobal.length >= GLOBAL_RATE_LIMIT.maxCalls) {
-      throw new Error(`Global rate limit exceeded (${recentGlobal.length}/${GLOBAL_RATE_LIMIT.maxCalls} in ${GLOBAL_RATE_LIMIT.windowMs / 1000}s)`);
-    }
-
-    globalCallTimestamps.push(now);
-
-    if (globalCallTimestamps.length > GLOBAL_RATE_LIMIT.maxCalls * 2) {
-      const trimmedGlobal = globalCallTimestamps.filter((t) => now - t < GLOBAL_RATE_LIMIT.windowMs);
-      globalCallTimestamps.length = 0;
-      globalCallTimestamps.push(...trimmedGlobal);
-    }
-
-    if (!validateSqlSafety(channel, args)) {
-      throw new Error(`DDL statements are not allowed from renderer process`);
-    }
-
     return ipcRenderer.invoke(channel, ...args);
   };
 }

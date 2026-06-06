@@ -78,16 +78,15 @@ module-name/
 
 - All IPC channels MUST be registered in `preload.ts` `IPC_PERMISSIONS`
 - Permission levels: READONLY → READWRITE → DANGEROUS → SYSTEM → SECURE
-- Rate limiting is enforced per channel
-- DDL statements (DROP, ALTER, CREATE, TRUNCATE, ATTACH, DETACH) are blocked from renderer
-- SQL comments are stripped before DDL detection to prevent bypass
+- DDL statements (DROP, ALTER, CREATE, TRUNCATE, ATTACH, DETACH) are blocked in main process handler
 - `log:security` IPC channel forwards preload security events to main process logger
 
 ## Security Rules
 
 - API keys are stored via `electron-store` encryption through IPC (`secure-config:*` channels)
 - NEVER store API keys in localStorage or use XOR obfuscation
-- All HTTP requests from main process go through SSRF guard
+- User-configured API URLs (providers, sync servers) are trusted and allowed including private/internal addresses
+- SSRF guard module is available but not enforced — local-first app trusts user-configured endpoints
 - `X-Electron-App` header required on all API requests (validated server-side)
 - Error logs are sanitized to redact API key patterns
 - IPv6 link-local detection uses first hextet parsing (`(value & 0xffc0) === 0xfe80`)
@@ -521,11 +520,12 @@ All business tables have a `version` column (7-field base columns). Critical upd
 
 ### Security Hardening
 
-**API Key rate limiting** (`secure-config:resolve`):
-- Per-key rate limit: 10 resolves per minute per providerId
-- Source window logged on each resolve call
-- Returns error instead of key when rate exceeded
-- 60s cleanup timer for expired timestamps
+**Local-first security model**:
+- IPC channel registration check prevents typos and unregistered access
+- DDL blocking in main process handler (defense-in-depth, not in preload)
+- User-configured API URLs are trusted (including private/internal addresses for self-hosted AI services)
+- SSRF guard module available but not enforced — local-first app trusts user-configured endpoints
+- API Key encrypted storage via electron-store
 
 **Plugin cache invalidation**:
 - `plugin-manager` calls `loadPluginDetectionRules()` + `loadPluginTemplates()` + `loadModelProfilesFromServer()` after reload
@@ -574,7 +574,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 | 工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60 | 依赖合规、构建安全、测试可靠：DDD层合规、批量查询、IPC效率、无any、Vite迁移 |
 | 平台兼容 | R21, R43, R49, R51, R52, R61 | IPC、Electron环境、进程模型：无fetch("/api/")、isElectron()守卫、usePreference、e.currentTarget |
 | 用户安全防护 | R70, R71, R73, R74, R75, R76 | 破坏性操作需确认、数据清除需保护：不可逆操作二次确认、导航守卫拦截后退、跨域下载fetch+blob、重试不因次数移除、会话清除限范围、Toast去重含消息 |
-| 系统安全 | R78, R79, R80 | 沙箱隔离防逃逸、敏感IPC频率限制、插件热加载缓存刷新 |
+| 系统安全 | R78, R79, R80 | 沙箱隔离防逃逸、IPC通道注册检查、插件热加载缓存刷新 |
 
 ## Documentation Index
 

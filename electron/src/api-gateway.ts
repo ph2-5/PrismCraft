@@ -4,7 +4,6 @@ import os from "os";
 import https from "https";
 import http from "http";
 import { loadConfig } from "./handlers/config";
-import { ssrfGuard } from "./security/ssrf-guard/ssrf-guard";
 import { getLogger } from "./logging/logger";
 import { pluginRegistry } from "./plugins";
 import type { AIProviderPlugin } from "./plugins";
@@ -150,13 +149,8 @@ function registerUserEndpoint(urlStr: string): void {
       ? `${parsed.hostname}:${parsed.port}`
       : parsed.hostname;
     USER_CONFIGURED_HOSTS.add(hostKey);
-
-    ssrfGuard.addWhitelist(parsed.hostname);
-    if (parsed.port) {
-      ssrfGuard.addWhitelist(`${parsed.hostname}:${parsed.port}`);
-    }
   } catch {
-    logger.warn("Failed to add user-configured host to SSRF whitelist", { urlStr });
+    logger.warn("Failed to add user-configured host to whitelist", { urlStr });
   }
 }
 
@@ -166,11 +160,6 @@ async function isPrivateUrl(urlStr: string): Promise<boolean> {
     const hostKey = parsed.port
       ? `${parsed.hostname}:${parsed.port}`
       : parsed.hostname;
-
-    const result = await ssrfGuard.validate(urlStr);
-    if (!result.safe) {
-      return true;
-    }
 
     if (
       USER_CONFIGURED_HOSTS.has(hostKey) ||

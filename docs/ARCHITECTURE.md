@@ -709,7 +709,7 @@ before-quit → gracefulShutdown()
 
 **API Key 存储**：通过 `electron-store` 加密存储，访问路径为 IPC 的 `secure-config:*` 通道（save、load、resolve、delete、has）。渲染进程永远无法直接读取加密存储——`secure-config:resolve` 是唯一能获取解密后 API Key 的通道，属于 SECURE 权限级别。
 
-**SSRF 防护**：所有主进程发出的 HTTP 请求经过 `ssrf-guard.ts` 检查，阻止对内网地址（127.0.0.1、10.0.0.0/8、172.16.0.0/12、192.168.0.0/16）和 IPv6 链路本地地址的请求。IPv6 链路本地检测使用首段解析：`(value & 0xffc0) === 0xfe80`，而非字符串匹配，避免 `fe80::1` 的各种缩写形式绕过检测。
+**SSRF 防护**：`ssrf-guard.ts` 模块可用但默认不强制执行。本地优先应用信任用户配置的端点地址（包括内网自部署 AI 服务如 Ollama、vLLM）。用户配置的 API URL 和同步服务器 URL 自动加入白名单，直接放行。云元数据端点（169.254.169.254）仍然被阻止。
 
 **X-Electron-App 头**：所有 API 请求必须携带 `X-Electron-App` 头，服务端验证此头以确认请求来自合法的 Electron 应用。这防止了浏览器或脚本直接调用 API。
 
@@ -717,7 +717,7 @@ before-quit → gracefulShutdown()
 
 **乐观锁**：关键更新操作支持基于 `version` 字段的乐观锁，防止并发修改导致的数据丢失。`buildSafeUpdate()` 接受可选的 `options.version` 参数，生成 `WHERE version = ?` 条件和 `SET version = version + 1` 自增。当 `changes === 0` 时抛出 `VersionConflictError`，由 `mapUserFacingError()` 映射为用户友好消息。支持乐观锁的存储模块：stories、characters、elements、video-tasks。
 
-**IPC 频率限制**：敏感 IPC 通道（如 `secure-config:resolve`）实施 per-key 速率限制（10 次/分钟），防止 API Key 被高频解析。超限返回错误并记录来源窗口信息，便于追踪异常调用来源。
+**本地优先安全模型**：渲染进程加载本地构建的 SPA，不存在恶意调用者。IPC 安全基于通道注册检查（防止拼写错误和未注册访问），而非速率限制。DDL 语句在主进程 handler 层拦截（防御纵深），不在 Preload 层拦截。
 
 ### 7.6 日志系统
 
@@ -928,7 +928,7 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 
 - R77：关键更新操作必须使用乐观锁——`updateStory`/`updateCharacter`/`updateElement`/`updateVideoTask` 支持 `version` 参数，`changes === 0` 时抛出 `VersionConflictError`
 - R78：代码插件沙箱必须阻止原型链逃逸——IIFE 包裹 + 逃逸模式预扫描 + 原型链冻结 + 危险对象禁用
-- R79：敏感 IPC 通道必须实施频率限制——`secure-config:resolve` per-key 10次/分钟，超限返回错误
+- R79：IPC 通道必须注册后才能使用——`IPC_PERMISSIONS` 注册 + `checkPermission` 检查，未注册通道阻止并记录
 - R80：插件热加载必须刷新前端缓存——reload 后自动刷新 detection-rules/templates/model-profiles
 
 ### 9.4 Bug 审计方法论

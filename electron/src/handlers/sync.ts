@@ -1,6 +1,5 @@
 import { loadConfigAsync, saveConfigAsync } from "./config";
 import { keyStorage } from "../security/key-storage/key-storage";
-import { ssrfGuard } from "../security/ssrf-guard/ssrf-guard";
 import { makeSyncRequest } from "../sync-http-client";
 import { getLogger } from "../logging/logger";
 
@@ -86,9 +85,6 @@ async function saveSyncConfig(
   }
 
   const currentConfig = await loadConfigAsync();
-  const currentSync = (currentConfig.sync as Record<string, unknown>) || {};
-  const oldServer = currentSync.server as Record<string, unknown> | null;
-  const oldServerUrl = oldServer?.url as string | undefined;
 
   const server = newConfig.server as Record<string, unknown> | null;
   let plainServer: Record<string, unknown> | null = null;
@@ -103,15 +99,6 @@ async function saveSyncConfig(
     );
   } else {
     await keyStorage.delete(SYNC_CREDENTIALS_KEY);
-  }
-
-  const newServerUrl = plainServer?.url as string | undefined;
-
-  if (oldServerUrl && oldServerUrl !== newServerUrl) {
-    ssrfGuard.removeWhitelist(oldServerUrl);
-  }
-  if (newServerUrl && newServerUrl !== oldServerUrl) {
-    ssrfGuard.addWhitelist(newServerUrl);
   }
 
   const configToSave = {
@@ -143,11 +130,6 @@ async function handleSyncTest(
   }
   if (!username || !password) {
     return { success: false, error: "Missing username or password" };
-  }
-
-  const validation = await ssrfGuard.validate(url);
-  if (!validation.safe) {
-    return { success: false, error: validation.reason || "URL blocked by SSRF protection" };
   }
 
   try {
@@ -209,11 +191,6 @@ async function handleSyncProxy(
   }
 
   const serverUrl = server.url as string;
-
-  const validation = await ssrfGuard.validate(serverUrl);
-  if (!validation.safe) {
-    return { success: false, error: validation.reason || "Server URL blocked by SSRF protection" };
-  }
 
   const credResult = await keyStorage.load(SYNC_CREDENTIALS_KEY);
   if (!credResult.ok || !credResult.value) {

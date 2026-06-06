@@ -2052,33 +2052,32 @@ sandbox.Proxy = undefined; sandbox.Reflect = undefined;
 
 **Discovered in**: Code plugin sandbox allowed prototype chain escape, giving plugins access to Node.js `process` and `require`.
 
-### R79: Sensitive IPC Channels MUST Enforce Rate Limiting
+### R79: IPC Channels MUST Be Registered Before Use
 
-IPC channels that return sensitive data (API keys, tokens, credentials) MUST enforce per-key rate limiting. Without rate limiting, a compromised renderer process can repeatedly resolve keys, increasing the attack surface for key extraction.
+All IPC channels MUST be registered in `preload.ts` `IPC_PERMISSIONS` before use. Unregistered channels MUST be blocked and logged. This prevents typos in channel names and ensures all IPC communication is auditable. In a local-first app, the renderer loads trusted local code, so rate limiting is unnecessary — channel registration is sufficient.
 
-**BAD** — Unlimited key resolution:
+**BAD** — Unregistered channel allowed:
 ```typescript
-ipcMain.handle("secure-config:resolve", (_, providerId) => {
-  return keyStorage.get(providerId); // No rate limit
-});
+return ipcRenderer.invoke("secure-config:resovle", providerId); // Typo, silently fails
 ```
 
-**GOOD** — Per-key rate limiting:
+**GOOD** — Registered channel with permission check:
 ```typescript
-const resolveTimestamps = new Map<string, number[]>();
-ipcMain.handle("secure-config:resolve", (_, providerId) => {
-  const now = Date.now();
-  const timestamps = resolveTimestamps.get(providerId) || [];
-  const recent = timestamps.filter(t => now - t < 60_000);
-  if (recent.length >= 10) return { success: false, error: "Rate limit exceeded" };
-  resolveTimestamps.set(providerId, [...recent, now]);
-  return keyStorage.get(providerId);
-});
+const IPC_PERMISSIONS: Record<string, string[]> = {
+  SECURE: ["secure-config:resolve"],
+  // ...
+};
+function checkPermission(channel: string): { allowed: boolean; level: string } {
+  for (const [level, channels] of Object.entries(IPC_PERMISSIONS)) {
+    if (channels.includes(channel)) return { allowed: true, level };
+  }
+  return { allowed: false, level: "UNKNOWN" };
+}
 ```
 
-**Verification**: Call `secure-config:resolve` for the same providerId more than 10 times in 1 minute — the 11th call must return a rate limit error.
+**Verification**: Call an unregistered IPC channel — it must be blocked and a `log:security` event must be sent.
 
-**Discovered in**: `secure-config:resolve` channel had no rate limiting, allowing unlimited API key resolution from any renderer process.
+**Discovered in**: Unregistered IPC channels could be called without any audit trail or permission check.
 
 ### R80: Plugin Hot-Reload MUST Invalidate Frontend Caches
 

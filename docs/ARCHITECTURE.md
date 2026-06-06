@@ -695,6 +695,8 @@ before-quit → gracefulShutdown()
 4. **危险对象禁用**：Function、eval、Proxy、Reflect、Promise、Symbol、Map、Set、WeakMap、WeakSet 均不可用
 5. **类型安全**：原型冻结使用 `(ctor as unknown as Record<string, unknown>).prototype` 避免 TypeScript 类型断言错误
 
+> **安全边界说明**：Node.js `vm` 模块官方文档声明"The vm module is not a security mechanism"。上述 5 层防护是当前 `vm.createContext` 模式下的最佳实践，能有效阻止常规原型链逃逸和代码注入，但无法防御 V8 引擎级漏洞。代码插件运行在主进程中，如果 V8 存在未修补的逃逸漏洞，插件理论上可以访问主进程的完整 Node.js 运行时。对于需要更强隔离的场景，未来可考虑子进程方案（将插件运行在独立 Node.js 进程中，通过 IPC 通信）。
+
 **API Key 自动识别**：插件通过 `getApiKeyDetection()` 方法声明 API Key 格式识别规则。前端 `detect.ts` 优先使用插件规则，兜底使用内置规则。识别结果包含 `pluginId`、`suggestedName`、`baseUrl`、`confidence`。
 
 **模型参数驱动**：插件通过 `getModelParameterProfile(modelId)` 声明模型特有参数（时长、分辨率、风格、cfgScale 等）。前端 `ModelParameterPanel` 组件根据参数配置动态渲染参数选择 UI。`model-capabilities.ts` 优先使用插件提供的 profile，兜底使用 `BUILTIN_MODEL_CAPABILITIES`。

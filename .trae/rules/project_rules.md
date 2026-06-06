@@ -508,6 +508,7 @@ The plugin system supports two forms of user plugins, managed separately:
 - Disables `Function`, `eval`, `Proxy`, `Reflect`, `Promise`, `Symbol`, `Map`, `Set`, `WeakMap`, `WeakSet`
 - Blocks dangerous objects (require, process, __filename, __dirname, Buffer, setTimeout, fetch)
 - Reference template: `docs/examples/reference-code-plugin.plugin.js`
+- **Security boundary**: `vm` module is NOT a security mechanism (per Node.js docs). The 5-layer defense prevents common prototype chain escapes but cannot defend against V8 engine-level exploits. Code plugins run in the main process — a V8 escape would expose the full Node.js runtime. For stronger isolation, consider a subprocess architecture in the future.
 
 ### Optimistic Locking
 

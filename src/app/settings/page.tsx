@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
@@ -20,13 +21,15 @@ import {
 } from "@/shared/ui/select";
 import { Switch } from "@/shared/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs";
-import { Key, Save, Package, Activity } from "lucide-react";
+import { Key, Save, Package, Activity, RefreshCw } from "lucide-react";
 import { ProjectExportImport } from "@/modules/asset";
 import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
 import { ErrorLogViewer } from "@/shared/presentation/ErrorBoundary";
 import { container } from "@/infrastructure/di";
 import { usePreference } from "@/shared/utils/preferences";
+import { Button } from "@/shared/ui/button";
 import { ApiConfigPanel } from "./ApiConfigPanel";
+import { SyncSettingsPanel } from "@/modules/sync";
 
 const AUTOSAVE_STORAGE_KEY = "ai-animation-autosave-settings";
 
@@ -118,6 +121,8 @@ function AutoSaveSettings() {
 }
 
 export default function SettingsPage() {
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+
   return (
     <PageErrorBoundary pageName={t("page.settings")}>
       <div className="h-full max-w-4xl mx-auto">
@@ -137,6 +142,10 @@ export default function SettingsPage() {
             <TabsTrigger value="autosave">
               <Save className="w-4 h-4 mr-1.5" />
               {t("settings.autoSave")}
+            </TabsTrigger>
+            <TabsTrigger value="sync">
+              <RefreshCw className="w-4 h-4 mr-1.5" />
+              {t("sync.settingsTitle")}
             </TabsTrigger>
             <TabsTrigger value="project">
               <Package className="w-4 h-4 mr-1.5" />
@@ -161,6 +170,25 @@ export default function SettingsPage() {
             <AutoSaveSettings />
           </TabsContent>
 
+          <TabsContent value="sync">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  {t("sync.settingsTitle")}
+                </CardTitle>
+                <CardDescription>
+                  {t("sync.description")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => setSyncDialogOpen(true)}>
+                  {t("sync.settingsTitle")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="project">
             <ProjectExportImport />
           </TabsContent>
@@ -183,6 +211,8 @@ export default function SettingsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <SyncSettingsPanel isOpen={syncDialogOpen} onClose={() => setSyncDialogOpen(false)} />
     </PageErrorBoundary>
   );
 }

@@ -1,8 +1,9 @@
-import type { AIProviderPlugin, ModelParameterProfile } from "./types";
+import type { AIProviderPlugin, ModelParameterProfile, VideoCapabilities, ImageCapabilities, ApiKeyDetection } from "./types";
 import { getLogger } from "../logging/logger";
 import { loadUserPlugins, USER_PLUGINS_DIR } from "./user-plugin-loader";
-import { loadCodePlugins, CODE_PLUGINS_DIR } from "./code-plugin-loader";
+import { loadCodePlugins, CODE_PLUGINS_DIR, listCodePluginFiles } from "./code-plugin-loader";
 import { CodePluginAdapter } from "./code-plugin-adapter";
+import { PluginProcessManager, registerProcessManager } from "./plugin-process-manager";
 
 const logger = getLogger("plugin-registry");
 
@@ -148,6 +149,77 @@ class PluginRegistry {
     this.codePluginIds.clear();
 
     return this.loadCodePlugins();
+  }
+
+  async loadCodePluginsInProcess(): Promise<{ loaded: number; errors: string[] }> {
+    const errors: string[] = [];
+    let loaded = 0;
+
+    const oldCodePlugins = this.plugins.filter((p) =>
+      this.codePluginIds.has(p.id),
+    );
+    for (const p of oldCodePlugins) {
+      const index = this.plugins.indexOf(p);
+      if (index !== -1) this.plugins.splice(index, 1);
+    }
+    this.codePluginIds.clear();
+
+    const files = listCodePluginFiles();
+    for (const filePath of files) {
+      const fileName = filePath.split(/[/\\]/).pop() || "";
+      const manager = new PluginProcessManager();
+
+      try {
+        const { pluginId, pluginDisplayName, metadata } = await manager.load(filePath);
+
+        const dummyExport: Record<string, unknown> = {
+          id: pluginId,
+          displayName: pluginDisplayName,
+          match: () => false,
+          videoCapabilities: metadata.videoCapabilities || {},
+          imageCapabilities: metadata.imageCapabilities || {},
+          getAuthHeaders: (apiKey: string) => ({ Authorization: `Bearer ${apiKey}` }),
+          extractTaskId: () => undefined,
+          extractVideoUrl: () => undefined,
+          extractImageUrl: () => undefined,
+          buildVideoRequest: () => ({ body: {}, endpoint: "" }),
+          buildImageRequest: () => ({ body: {}, endpoint: "" }),
+          getModelCapabilities: () => ({
+            maxReferences: 4,
+            maxResolution: 2048,
+            maxSizeMB: 10,
+            supportsLastFrame: false,
+            referenceMode: "separate" as const,
+          }),
+          getModelParameterProfile: () => ({
+            modelId: "",
+            capabilities: { maxReferences: 4, maxResolution: 2048, maxSizeMB: 10, supportsLastFrame: false, referenceMode: "separate" as const },
+            parameters: {},
+          }),
+          apiKeyDetection: metadata.apiKeyDetection,
+          preferLocalData: metadata.preferLocalData as boolean | undefined,
+        };
+
+        const adapter = new CodePluginAdapter(dummyExport as unknown as import("./code-plugin-loader").CodePluginExport, manager, {
+          videoCapabilities: (metadata.videoCapabilities || {}) as VideoCapabilities,
+          imageCapabilities: (metadata.imageCapabilities || {}) as ImageCapabilities,
+          availableModels: (metadata.availableModels || []) as string[],
+          apiKeyDetection: (metadata.apiKeyDetection || undefined) as ApiKeyDetection | undefined,
+          preferLocalData: metadata.preferLocalData as boolean | undefined,
+        });
+
+        this.plugins.push(adapter);
+        this.codePluginIds.add(pluginId);
+        registerProcessManager(pluginId, manager);
+        loaded++;
+        logger.info(`Code plugin ${pluginId} loaded in process isolation mode`);
+      } catch (e) {
+        errors.push(`子进程加载 ${fileName} 失败: ${e instanceof Error ? e.message : String(e)}`);
+        try { await manager.shutdown(); } catch { /* ignore */ }
+      }
+    }
+
+    return { loaded, errors };
   }
 
   getCodePlugins(): AIProviderPlugin[] {

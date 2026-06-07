@@ -18,6 +18,9 @@ const IDLE_POLL_INTERVAL = 5000;
 const MAX_POLL_INTERVAL_MS = 60000;
 const POLL_BACKOFF_ERROR_FACTOR = 1.5;
 const POLL_BACKOFF_MIXED_FACTOR = 1.2;
+const YOUNG_TASK_THRESHOLD_MS = 30_000;
+const YOUNG_TASK_INTERVAL = 5000;
+const MATURE_TASK_INTERVAL = 15000;
 
 export { MAX_POLL_COUNT, MAX_POLL_DURATION, MAX_POLL_FAILURES };
 
@@ -288,22 +291,22 @@ async function pollSingleTask(
         (pollResp as { data?: { retryable?: boolean } }).data?.retryable === true;
       if (isRetryable) {
         result.taskUpdates.set(task.taskId, {
-          message: `查询暂时失败(可重试): ${apiErrorMsg}`,
+          message: t("task.retryableQueryFail", { error: apiErrorMsg }),
         });
       } else {
         result.hasError = true;
         const failCount = (task.pollFailureCount || 0) + 1;
         result.taskUpdates.set(task.taskId, {
-          message: `查询失败: ${apiErrorMsg}`,
+          message: t("task.queryFail", { error: apiErrorMsg }),
           pollFailureCount: failCount,
         });
         if (failCount >= MAX_POLL_FAILURES) {
           result.taskUpdates.set(task.taskId, withTransitionGuard(task, "failed", {
-            message: `连续${MAX_POLL_FAILURES}次查询失败，请点击「手动恢复」重试`,
+            message: t("task.consecutiveQueryFail", { count: MAX_POLL_FAILURES }),
             pollFailureCount: 0,
           }));
           const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
-          emitToast("error", t("error.videoGenerateFailed"), `「${taskLabel}」连续查询失败`);
+          emitToast("error", t("error.videoGenerateFailed"), t("task.consecutiveQueryFailLabel", { label: taskLabel }));
         }
         try {
           const pollSaveResult = await saveVideoTask({
@@ -312,7 +315,7 @@ async function pollSingleTask(
             progress: task.progress,
             videoUrl: task.videoUrl,
             message: failCount >= MAX_POLL_FAILURES
-              ? `连续${MAX_POLL_FAILURES}次查询失败，请点击「手动恢复」重试`
+              ? t("task.consecutiveQueryFail", { count: MAX_POLL_FAILURES })
               : task.message,
             createdAt: task.createdAt,
             model: task.model,
@@ -421,7 +424,7 @@ async function cacheCompletedVideos(
       const state = getStore().getState();
       const task = state.allTasks.find((t) => t.taskId === taskId);
       const taskLabel = task?.beatTitle || task?.storyTitle || taskId.slice(0, 8);
-      emitToast("warning", "视频缓存失败", `「${taskLabel}」本地缓存失败，仍可通过远程URL播放`);
+      emitToast("warning", t("task.cacheFailed"), t("task.cacheFailedHint", { label: taskLabel }));
     }
   }
   if (batchUpdates.size > 0) {
@@ -437,8 +440,28 @@ async function cacheCompletedVideos(
 }
 
 function adjustPollInterval(hasSuccess: boolean, hasError: boolean): void {
+  const state = getStore().getState();
+  const activeTasks = state.allTasks.filter(
+    (t) => t.status === "pending" || t.status === "generating",
+  );
+
+  if (activeTasks.length === 0) {
+    pollingState.pollInterval = IDLE_POLL_INTERVAL;
+    return;
+  }
+
+  const now = Date.now();
+  const hasYoungTask = activeTasks.some(
+    (t) => now - new Date(t.createdAt).getTime() < YOUNG_TASK_THRESHOLD_MS,
+  );
+
+  if (hasYoungTask) {
+    pollingState.pollInterval = YOUNG_TASK_INTERVAL;
+    return;
+  }
+
   if (hasSuccess && !hasError) {
-    pollingState.pollInterval = DEFAULT_POLL_INTERVAL;
+    pollingState.pollInterval = MATURE_TASK_INTERVAL;
   } else if (hasError && !hasSuccess) {
     pollingState.pollInterval = Math.min(pollingState.pollInterval * POLL_BACKOFF_ERROR_FACTOR, MAX_POLL_INTERVAL_MS);
   } else if (hasError && hasSuccess) {

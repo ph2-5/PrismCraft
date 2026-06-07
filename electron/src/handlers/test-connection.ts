@@ -2,10 +2,30 @@ import https from "https";
 import http from "http";
 import { loadConfig } from "./config";
 import { pluginRegistry } from "../plugins";
-import type { AIProviderPlugin } from "../plugins";
+import type { AIProviderPlugin, AsyncAIProviderPlugin } from "../plugins";
 import { getLogger } from "../logging/logger";
 
 const logger = getLogger("test-connection");
+
+function isAsyncPlugin(plugin: AIProviderPlugin): plugin is AIProviderPlugin & AsyncAIProviderPlugin {
+  return "getAuthHeadersAsync" in plugin && typeof (plugin as AsyncAIProviderPlugin).getAuthHeadersAsync === "function";
+}
+
+async function getAuthHeaders(plugin: AIProviderPlugin | undefined, apiKey: string): Promise<Record<string, string>> {
+  if (!plugin) {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    };
+  }
+  if (isAsyncPlugin(plugin) && plugin.getAuthHeadersAsync) {
+    return plugin.getAuthHeadersAsync(apiKey);
+  }
+  return {
+    "Content-Type": "application/json",
+    ...plugin.getAuthHeaders(apiKey),
+  };
+}
 
 function isPrivateUrl(urlStr: string): boolean {
   try {
@@ -17,22 +37,6 @@ function isPrivateUrl(urlStr: string): boolean {
     logger.warn("Failed to parse URL in private URL check", { urlStr });
     return false;
   }
-}
-
-function buildAuthHeaders(
-  plugin: AIProviderPlugin | undefined,
-  apiKey: string,
-): Record<string, string> {
-  if (!plugin) {
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    };
-  }
-  return {
-    "Content-Type": "application/json",
-    ...plugin.getAuthHeaders(apiKey),
-  };
 }
 
 function buildAuthUrl(
@@ -195,10 +199,10 @@ export async function handleTestConnection(
           effectivePlugin,
           effectiveApiKey!,
         );
-        testHeaders = buildAuthHeaders(effectivePlugin, effectiveApiKey!);
+        testHeaders = await getAuthHeaders(effectivePlugin, effectiveApiKey!);
       } else {
         testUrl = `${effectiveApiUrl}/models`;
-        testHeaders = buildAuthHeaders(effectivePlugin, effectiveApiKey!);
+        testHeaders = await getAuthHeaders(effectivePlugin, effectiveApiKey!);
       }
 
       const response = await makeRequest(testUrl, {
@@ -246,14 +250,14 @@ export async function handleTestConnection(
             effectivePlugin,
             effectiveApiKey!,
           );
-          textHeaders = buildAuthHeaders(effectivePlugin, effectiveApiKey!);
+          textHeaders = await getAuthHeaders(effectivePlugin, effectiveApiKey!);
           textBody = JSON.stringify({
             contents: [{ parts: [{ text: "Hi" }] }],
             generationConfig: { maxOutputTokens: 5 },
           });
         } else {
           textUrl = `${effectiveApiUrl}/chat/completions`;
-          textHeaders = buildAuthHeaders(effectivePlugin, effectiveApiKey!);
+          textHeaders = await getAuthHeaders(effectivePlugin, effectiveApiKey!);
           textBody = JSON.stringify({
             model: effectiveModel || "gpt-4o",
             messages: [{ role: "user", content: "Hi" }],
@@ -294,7 +298,7 @@ export async function handleTestConnection(
             : `${effectiveApiUrl}/models`;
         const response = await makeRequest(testUrl, {
           method: "GET",
-          headers: buildAuthHeaders(effectivePlugin, effectiveApiKey!),
+          headers: await getAuthHeaders(effectivePlugin, effectiveApiKey!),
           timeout: 15000,
         });
 

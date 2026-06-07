@@ -6,7 +6,60 @@ import http from "http";
 import { loadConfig } from "./handlers/config";
 import { getLogger } from "./logging/logger";
 import { pluginRegistry } from "./plugins";
-import type { AIProviderPlugin } from "./plugins";
+import type { AIProviderPlugin, AsyncAIProviderPlugin } from "./plugins";
+
+function isAsyncPlugin(plugin: AIProviderPlugin): plugin is AIProviderPlugin & AsyncAIProviderPlugin {
+  return "buildVideoRequestAsync" in plugin && typeof (plugin as AsyncAIProviderPlugin).buildVideoRequestAsync === "function";
+}
+
+async function buildVideoRequest(plugin: AIProviderPlugin, ctx: Parameters<AIProviderPlugin["buildVideoRequest"]>[0]) {
+  if (isAsyncPlugin(plugin) && plugin.buildVideoRequestAsync) {
+    return plugin.buildVideoRequestAsync(ctx);
+  }
+  return plugin.buildVideoRequest(ctx);
+}
+
+async function buildImageRequest(plugin: AIProviderPlugin, ctx: Parameters<AIProviderPlugin["buildImageRequest"]>[0]) {
+  if (isAsyncPlugin(plugin) && plugin.buildImageRequestAsync) {
+    return plugin.buildImageRequestAsync(ctx);
+  }
+  return plugin.buildImageRequest(ctx);
+}
+
+async function getAuthHeaders(plugin: AIProviderPlugin, apiKey: string, endpoint?: string) {
+  if (isAsyncPlugin(plugin) && plugin.getAuthHeadersAsync) {
+    return plugin.getAuthHeadersAsync(apiKey, endpoint);
+  }
+  return plugin.getAuthHeaders(apiKey, endpoint);
+}
+
+async function extractTaskId(plugin: AIProviderPlugin, response: Record<string, unknown>) {
+  if (isAsyncPlugin(plugin) && plugin.extractTaskIdAsync) {
+    return plugin.extractTaskIdAsync(response);
+  }
+  return plugin.extractTaskId(response);
+}
+
+async function extractVideoUrl(plugin: AIProviderPlugin, response: Record<string, unknown>) {
+  if (isAsyncPlugin(plugin) && plugin.extractVideoUrlAsync) {
+    return plugin.extractVideoUrlAsync(response);
+  }
+  return plugin.extractVideoUrl(response);
+}
+
+async function extractStatus(plugin: AIProviderPlugin, response: Record<string, unknown>) {
+  if (isAsyncPlugin(plugin) && plugin.extractStatusAsync) {
+    return plugin.extractStatusAsync(response);
+  }
+  return plugin.extractStatus?.(response);
+}
+
+async function extractImageUrl(plugin: AIProviderPlugin, response: Record<string, unknown>) {
+  if (isAsyncPlugin(plugin) && plugin.extractImageUrlAsync) {
+    return plugin.extractImageUrlAsync(response);
+  }
+  return plugin.extractImageUrl(response);
+}
 
 const logger = getLogger("api-gateway");
 
@@ -290,7 +343,7 @@ async function generateText(body: Record<string, unknown>): Promise<ApiResult> {
       : `${effectiveApiUrl}${endpoint}`;
     const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",
-      ...plugin.getAuthHeaders(effectiveApiKey, endpoint),
+      ...await getAuthHeaders(plugin, effectiveApiKey, endpoint),
     };
 
     const response = (await makeRequest(requestUrl, {
@@ -445,7 +498,7 @@ async function analyzeImage(body: Record<string, unknown>): Promise<ApiResult> {
       : `${effectiveApiUrl}${endpoint}`;
     const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",
-      ...plugin.getAuthHeaders(effectiveApiKey, endpoint),
+      ...await getAuthHeaders(plugin, effectiveApiKey, endpoint),
     };
 
     const response = (await makeRequest(requestUrl, {
@@ -536,7 +589,7 @@ async function generateImage(body: Record<string, unknown>): Promise<ApiResult> 
   )).filter((url): url is string => url !== undefined);
 
   try {
-    const { body: reqBody, endpoint } = plugin.buildImageRequest({
+    const { body: reqBody, endpoint } = await buildImageRequest(plugin, {
       prompt: prompt as string,
       model: effectiveModel,
       size: size as string,
@@ -548,7 +601,7 @@ async function generateImage(body: Record<string, unknown>): Promise<ApiResult> 
       : `${effectiveApiUrl}${endpoint}`;
     const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",
-      ...plugin.getAuthHeaders(effectiveApiKey, endpoint),
+      ...await getAuthHeaders(plugin, effectiveApiKey, endpoint),
     };
 
     const response = (await makeRequest(requestUrl, {
@@ -557,7 +610,7 @@ async function generateImage(body: Record<string, unknown>): Promise<ApiResult> 
       body: JSON.stringify(reqBody),
     })) as Record<string, unknown>;
 
-    const imageUrl = plugin.extractImageUrl(response);
+    const imageUrl = await extractImageUrl(plugin, response);
     if (imageUrl) {
       return { success: true, data: { imageUrl } };
     } else {
@@ -805,7 +858,7 @@ async function generateVideo(body: Record<string, unknown>): Promise<ApiResult> 
   let extraHeaders: Record<string, string> | undefined;
 
   try {
-    ({ body: reqBody, endpoint, extraHeaders } = plugin.buildVideoRequest({
+    ({ body: reqBody, endpoint, extraHeaders } = await buildVideoRequest(plugin, {
       prompt: prompt as string,
       model: effectiveModel,
       firstFrameUrl: effectiveFirstFrame,
@@ -832,7 +885,7 @@ async function generateVideo(body: Record<string, unknown>): Promise<ApiResult> 
       : `${effectiveApiUrl}${endpoint}`;
     const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",
-      ...plugin.getAuthHeaders(effectiveApiKey, endpoint),
+      ...await getAuthHeaders(plugin, effectiveApiKey, endpoint),
       ...(extraHeaders || {}),
     };
 
@@ -843,8 +896,8 @@ async function generateVideo(body: Record<string, unknown>): Promise<ApiResult> 
       timeout: 300000,
     })) as Record<string, unknown>;
 
-    const taskId = plugin.extractTaskId(response);
-    const videoUrl = plugin.extractVideoUrl(response);
+    const taskId = await extractTaskId(plugin, response);
+    const videoUrl = await extractVideoUrl(plugin, response);
 
     return {
       success: true,
@@ -910,7 +963,7 @@ async function videoStatus(body: Record<string, unknown>): Promise<ApiResult> {
       ? plugin.appendAuthToUrl(`${effectiveApiUrl}${endpoint}`, effectiveApiKey)
       : `${effectiveApiUrl}${endpoint}`;
     const statusHeaders: Record<string, string> = {
-      ...plugin.getAuthHeaders(effectiveApiKey, endpoint),
+      ...await getAuthHeaders(plugin, effectiveApiKey, endpoint),
     };
 
     const statusMethod = plugin.getStatusMethod ? plugin.getStatusMethod() : "GET";
@@ -920,19 +973,17 @@ async function videoStatus(body: Record<string, unknown>): Promise<ApiResult> {
       timeout: 30000,
     })) as Record<string, unknown>;
 
-    const statusInfo = plugin.extractStatus
-      ? plugin.extractStatus(response)
-      : { status: (response as Record<string, unknown>).status as string || "generating", progress: undefined, message: undefined };
+    const statusInfo = await extractStatus(plugin, response);
 
-    const videoUrl: string | undefined = plugin.extractVideoUrl(response);
+    const videoUrl: string | undefined = await extractVideoUrl(plugin, response);
 
     return {
       success: true,
       data: {
-        status: statusInfo.status,
+        status: statusInfo?.status ?? String((response as Record<string, unknown>).status || "generating"),
         videoUrl,
-        progress: statusInfo.progress,
-        message: statusInfo.message,
+        progress: statusInfo?.progress,
+        message: statusInfo?.message,
       },
     };
   } catch (error) {

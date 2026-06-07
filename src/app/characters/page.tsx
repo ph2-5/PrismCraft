@@ -13,7 +13,6 @@ import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants/messages";
-import { errorLogger } from "@/shared/error-logger";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
 import { OutfitDialog } from "@/modules/character";
 import { MediaExporter } from "@/modules/asset";
@@ -160,28 +159,28 @@ function CharactersPageContent() {
         return { ...story, characters: updatedCharacters, beats: updatedBeats };
       });
       const failedStories: string[] = [];
-      for (const updatedStory of updatedStories) {
+      const affectedStories = updatedStories.filter((updatedStory) => {
         const original = storiesList.find((s) => s.id === updatedStory.id);
-        const wasAffected =
+        return (
           original?.characters?.includes(characterId) ||
           original?.beats?.some(
             (b) =>
               b.characterIds?.includes(characterId) ||
               b.characters?.includes(characterId) ||
               b.character === characterId,
-          );
-        if (wasAffected) {
-          try {
-            const result = await storyService.update(updatedStory.id, updatedStory);
-            if (!result.ok) {
-              failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
-            }
-          } catch (e) {
-            errorLogger.warn("[Characters] Failed to update story after character deletion", e as Error);
-            failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
-          }
+          )
+        );
+      });
+      const results = await Promise.allSettled(
+        affectedStories.map((updatedStory) =>
+          storyService.update(updatedStory.id, updatedStory),
+        ),
+      );
+      results.forEach((result, i) => {
+        if (result.status === "rejected" || (result.status === "fulfilled" && !result.value.ok)) {
+          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
         }
-      }
+      });
       if (failedStories.length > 0) {
         showError(t("story.partialRefFailed"), t("story.partialRefFailedDetail", { items: failedStories.join("、") }));
       }

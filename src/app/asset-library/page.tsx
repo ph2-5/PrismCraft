@@ -136,34 +136,34 @@ export default function AssetLibraryPage() {
 
   const handleBatchDelete = async () => {
     const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    if (ids.length === 0 || isBatchDeleting) return;
     if (!(await confirm(t("confirm.deleteSelectedAssets", { count: ids.length }), t("confirm.batchDeleteAssets")))) return;
     setIsBatchDeleting(true);
     try {
       const deletedIds: string[] = [];
       const failedLabels: string[] = [];
-      for (const id of ids) {
-        try {
+
+      const deleteResults = await Promise.allSettled(
+        ids.map(async (id) => {
           if (activeTab === "characters") {
             const result = await characterService.delete(id);
-            if (!result.ok) {
-              const c = characters.find((ch) => ch.id === id);
-              failedLabels.push(c?.name || id.slice(0, 8));
-              continue;
-            }
+            if (!result.ok) throw new Error("delete_failed");
           } else if (activeTab === "scenes") {
             const result = await sceneService.delete(id);
-            if (!result.ok) {
-              const s = scenes.find((sc) => sc.id === id);
-              failedLabels.push(s?.name || id.slice(0, 8));
-              continue;
-            }
+            if (!result.ok) throw new Error("delete_failed");
           } else if (activeTab === "storyboards") {
             await storyboardAssetService.remove(id);
           }
-          deletedIds.push(id);
-        } catch (e) {
-          errorLogger.warn("[AssetLibrary] Failed to delete asset", e as Error);
+          return id;
+        }),
+      );
+
+      deleteResults.forEach((result, i) => {
+        const id = ids[i]!;
+        if (result.status === "fulfilled") {
+          deletedIds.push(result.value);
+        } else {
+          errorLogger.warn("[AssetLibrary] Failed to delete asset", result.reason instanceof Error ? result.reason : undefined);
           const label = activeTab === "characters"
             ? characters.find((ch) => ch.id === id)?.name
             : activeTab === "scenes"
@@ -171,7 +171,7 @@ export default function AssetLibraryPage() {
               : id.slice(0, 8);
           failedLabels.push(label || id.slice(0, 8));
         }
-      }
+      });
       if (deletedIds.length > 0) {
         setSelectedIds((prev) => {
           const next = new Set(prev);
@@ -218,7 +218,7 @@ export default function AssetLibraryPage() {
       a.href = url;
       a.download = `export-${activeTab}-${Date.now()}.asa`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
       clearSelection();
       success(t("success.exported"), t("asset.exportedCount", { count: ids.length }));
     } catch (e) {
@@ -316,7 +316,7 @@ export default function AssetLibraryPage() {
       a.href = url;
       a.download = `${col?.name || "collection"}.asa`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
       success(t("success.exported"), t("asset.collectionExported"));
     } catch (e) {
       showError(t("error.exportFailed"), mapUserFacingError(e));

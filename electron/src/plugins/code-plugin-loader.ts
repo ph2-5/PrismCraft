@@ -348,3 +348,16 @@ export function loadCodePlugins(): CodePluginExport[] {
 
   return plugins;
 }
+
+export function listCodePluginFiles(): string[] {
+  if (!fs.existsSync(CODE_PLUGINS_DIR)) return [];
+
+  try {
+    const entries = fs.readdirSync(CODE_PLUGINS_DIR);
+    return entries
+      .filter((entry) => entry.endsWith(".plugin.js"))
+      .map((entry) => path.join(CODE_PLUGINS_DIR, entry));
+  } catch {
+    return [];
+  }
+}

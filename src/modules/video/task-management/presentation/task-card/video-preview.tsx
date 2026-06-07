@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import {
@@ -6,6 +7,7 @@ import {
   Trash2,
   Play,
   ChevronRight,
+  VideoOff,
 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { t } from "@/shared/constants";
@@ -27,6 +29,12 @@ export function VideoPreview({
   onDeleteCache,
   cacheState,
 }: VideoPreviewProps) {
+  const [videoError, setVideoError] = useState(false);
+
+  useEffect(() => {
+    setVideoError(false);
+  }, [task.videoUrl]);
+
   if (!task.videoUrl) return null;
 
   return (
@@ -65,37 +73,19 @@ export function VideoPreview({
           className="aspect-video bg-slate-900 rounded-lg overflow-hidden cursor-pointer"
           onClick={() => onOpenPreview(task)}
         >
-          <video
-            src={task.videoUrl}
-            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-            preload="metadata"
-            muted
-            onError={(e) => {
-              const target = e.currentTarget;
-              if (target.dataset.retried) return;
-              target.dataset.retried = "1";
-              target.style.display = "none";
-              const parent = target.parentElement;
-              if (parent && !parent.querySelector(".video-fallback")) {
-                const fallback = document.createElement("div");
-                fallback.className =
-                  "video-fallback w-full h-full flex items-center justify-center";
-                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                svg.setAttribute("class", "w-8 h-8 text-gray-500");
-                svg.setAttribute("fill", "none");
-                svg.setAttribute("stroke", "currentColor");
-                svg.setAttribute("viewBox", "0 0 24 24");
-                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                path.setAttribute("stroke-linecap", "round");
-                path.setAttribute("stroke-linejoin", "round");
-                path.setAttribute("stroke-width", "2");
-                path.setAttribute("d", "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z");
-                svg.appendChild(path);
-                fallback.appendChild(svg);
-                parent.appendChild(fallback);
-              }
-            }}
-          />
+          {videoError ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <VideoOff className="w-8 h-8 text-gray-500" />
+            </div>
+          ) : (
+            <video
+              src={task.videoUrl}
+              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+              preload="metadata"
+              muted
+              onError={() => setVideoError(true)}
+            />
+          )}
           <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
             <Play className="w-8 h-8 text-white opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all" />
           </div>

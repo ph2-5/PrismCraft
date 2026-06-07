@@ -225,6 +225,7 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 | `npm run test` | Vitest unit tests |
 | `npm run test:coverage` | Vitest with coverage report |
 | `npm run test:e2e` | Playwright e2e tests (browser mode with electron-mock) |
+| `npm run test:e2e:ui` | Playwright e2e tests with UI mode |
 | `npm run test:e2e:electron` | Playwright e2e tests (Electron mode, requires `npm run build:electron` first) |
 | `npm run test:e2e:pages` | Playwright page load tests (Electron mode) |
 | `npm run validate` | typecheck + typecheck:electron + typecheck:test + lint + lint:arch + module API consistency + contract validation + test |
@@ -507,7 +508,19 @@ The plugin system supports two forms of user plugins, managed separately:
 - Disables `Function`, `eval`, `Proxy`, `Reflect`, `Promise`, `Symbol`, `Map`, `Set`, `WeakMap`, `WeakSet`
 - Blocks dangerous objects (require, process, __filename, __dirname, Buffer, setTimeout, fetch)
 - Reference template: `docs/examples/reference-code-plugin.plugin.js`
-- **Security boundary**: `vm` module is NOT a security mechanism (per Node.js docs). The 5-layer defense prevents common prototype chain escapes but cannot defend against V8 engine-level exploits. Code plugins run in the main process — a V8 escape would expose the full Node.js runtime. For stronger isolation, consider a subprocess architecture in the future.
+
+**Code plugin process isolation** (`plugin-process-manager.ts` + `plugin-worker.ts`):
+- Each code plugin runs in a dedicated child process via `child_process.fork()`
+- `PluginProcessManager` manages lifecycle: fork, load, call, shutdown, crash recovery
+- `plugin-worker.ts` is the child process entry: loads plugin in vm sandbox, handles IPC calls
+- IPC protocol: `{ type: "load"|"call"|"shutdown", id, method?, args? }` → `{ type: "loaded"|"result"|"error"|"log", id, value?, message? }`
+- Resource limits: `--max-old-space-size=64`, `--max-semi-space-size=16` per process
+- Crash protection: max 3 crashes in 60s window, then auto-disable; 10s call timeout, 15s spawn timeout
+- Graceful shutdown: sends `shutdown` message, waits 3s, then `SIGKILL`
+- `CodePluginAdapter` supports dual mode: `sandbox` (vm in-process) and `process` (child process IPC)
+- `pluginRegistry.loadCodePluginsInProcess()` upgrades sandbox plugins to process-isolated mode
+- `shutdownAllProcessManagers()` called during app cleanup in `lifecycle/cleanup.ts`
+- **Security boundary**: Process isolation provides OS-level separation. Even if a V8 escape occurs in the child process, the main process (API keys, database, filesystem) remains protected. The vm sandbox inside the worker provides defense-in-depth.
 
 ### Optimistic Locking
 
@@ -563,7 +576,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 80 guards:**
+**Quick reference — all 84 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|

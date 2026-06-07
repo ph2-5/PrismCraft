@@ -9,7 +9,7 @@ import * as apiGateway from "./api-gateway";
 import * as storyService from "./services/story/story-service";
 import * as videoTaskService from "./services/video/video-task-service";
 import * as promptService from "./services/prompt/prompt-service";
-import { pluginRegistry, saveUserPlugin, deleteUserPlugin, listUserPluginFiles, validatePluginConfig } from "./plugins";
+import { pluginRegistry, saveUserPlugin, deleteUserPlugin, listUserPluginFiles, validatePluginConfig, getAllProcessMetrics } from "./plugins";
 import type { UserPluginConfig } from "./plugins";
 import * as referenceEngine from "./services/shot/reference-engine";
 import * as consistencyCheck from "./services/shot/consistency-check";
@@ -509,6 +509,21 @@ const routes: Record<string, Route> = {
       return { success: true, data: { loaded: result.loaded, errors: result.errors, cacheInvalidationToken: pluginCacheInvalidationToken } };
     },
     methods: ["POST"],
+  },
+  "plugins/reload-code-process": {
+    handler: async () => {
+      const result = await pluginRegistry.loadCodePluginsInProcess();
+      pluginCacheInvalidationToken++;
+      return { success: true, data: { loaded: result.loaded, errors: result.errors, cacheInvalidationToken: pluginCacheInvalidationToken } };
+    },
+    methods: ["POST"],
+  },
+  "plugins/process-metrics": {
+    handler: async () => {
+      const metrics = getAllProcessMetrics();
+      return { success: true, data: metrics };
+    },
+    methods: ["GET"],
   },
   "plugins/validate": {
     handler: async (_m, b) => {

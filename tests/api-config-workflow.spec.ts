@@ -16,8 +16,8 @@ test.describe("API Config Page Load", () => {
   });
 
   test("should display API configuration tab as default", async ({ page }) => {
-    const apiTab = page.locator('[role="tab"][data-state="active"]', { hasText: "API 配置" }).first();
-    await expect(apiTab).toBeVisible({ timeout: 10000 });
+    const apiTab = page.locator('[role="tab"][aria-selected="true"]').first();
+    await expect(apiTab).toContainText("API", { timeout: 10000 });
   });
 
   test("should display API configuration card", async ({ page }) => {
@@ -212,11 +212,11 @@ test.describe("Settings Tab Navigation", () => {
   });
 
   test("should switch to project tab", async ({ page }) => {
-    const projectTab = page.locator('[role="tab"]', { hasText: "项目打包" }).first();
+    const projectTab = page.locator('[role="tab"]', { hasText: "工程打包" }).first();
     await projectTab.click({ force: true });
     await page.waitForTimeout(300);
 
-    const projectContent = page.locator("text=导出").or(page.locator("text=导入")).first();
+    const projectContent = page.locator("text=导出工程").or(page.locator("text=导入工程")).first();
     await expect(projectContent).toBeVisible({ timeout: 5000 });
   });
 

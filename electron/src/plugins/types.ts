@@ -216,3 +216,22 @@ export interface AIProviderPlugin {
 
   getApiKeyDetection?(): ApiKeyDetection | undefined;
 }
+
+export interface AsyncAIProviderPlugin extends AIProviderPlugin {
+  buildVideoRequestAsync?(ctx: VideoBuildContext): Promise<VideoRequestResult>;
+  buildImageRequestAsync?(ctx: ImageBuildContext): Promise<ImageRequestResult>;
+  buildTextRequestAsync?(ctx: TextBuildContext): Promise<TextRequestResult>;
+  buildVisionRequestAsync?(ctx: VisionBuildContext): Promise<VisionRequestResult>;
+  getAuthHeadersAsync?(apiKey: string, endpoint?: string): Promise<Record<string, string>>;
+  extractTaskIdAsync?(response: Record<string, unknown>): Promise<string | undefined>;
+  extractVideoUrlAsync?(response: Record<string, unknown>): Promise<string | undefined>;
+  extractImageUrlAsync?(response: Record<string, unknown>): Promise<string | undefined>;
+  extractStatusAsync?(response: Record<string, unknown>): Promise<{ status: string; progress?: number; message?: string }>;
+  extractTextContentAsync?(response: Record<string, unknown>): Promise<string>;
+  getVideoStatusEndpointAsync?(baseUrl: string, taskId: string, model?: string): Promise<string>;
+  getModelCapabilitiesAsync?(modelId: string): Promise<ModelCapabilities>;
+  getModelParameterProfileAsync?(modelId: string): Promise<ModelParameterProfile>;
+  getAvailableModelsAsync?(): Promise<string[]>;
+  getApiKeyDetectionAsync?(): Promise<ApiKeyDetection | undefined>;
+  getCloudInfoAsync?(baseUrl: string): Promise<CloudProviderInfo | undefined>;
+}

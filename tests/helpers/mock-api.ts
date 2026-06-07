@@ -83,4 +83,21 @@ export async function mockApiRoutes(page: Page) {
       body: JSON.stringify({ success: true, message: "Connection successful" }),
     }),
   );
+
+  await page.route("**/api/sync/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: true,
+        config: {
+          enabled: false,
+          autoSync: false,
+          syncInterval: 30000,
+          conflictStrategy: "lastWriteWins",
+          server: null,
+        },
+      }),
+    }),
+  );
 }

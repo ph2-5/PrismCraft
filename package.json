@@ -163,6 +163,8 @@
   "devDependencies": {
     "@eslint/config-array": "^0.23.5",
     "@playwright/test": "^1.60.0",
+    "@stryker-mutator/core": "^8.7.1",
+    "@stryker-mutator/vitest-runner": "^8.7.1",
     "@tailwindcss/postcss": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

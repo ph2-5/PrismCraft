@@ -2,9 +2,11 @@
 
 ## Development Commands
 - Dev server: `npm run dev`
-- Type check: `npm run typecheck && npm run typecheck:electron`
+- Type check: `npm run typecheck && npm run typecheck:electron && npm run typecheck:test`
 - Lint: `npm run lint`
 - Test: `npm run test`
+- E2E test: `npm run test:e2e`
+- E2E test (Electron): `npm run test:e2e:electron`
 - Full validate: `npm run validate:full`
 - Build: `npm run build:electron`
 
@@ -28,7 +30,7 @@
 ## Modification Workflow
 1. Read `MODULE.md` → `contract.json` → `.ai/modules/{module}.md` → `index.ts`
 2. Make changes (respect dependency direction: app → modules → domain)
-3. Run: `typecheck` → `lint` → `test` → `validate`
+3. Run: `typecheck` → `typecheck:electron` → `typecheck:test` → `lint` → `test` → `validate`
 
 ## Common Scenarios
 - **Add new API**: Define port in `domain/ports` → Implement in `infrastructure/` → Register in DI → Use in module via `container.xxx`

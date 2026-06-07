@@ -162,22 +162,24 @@ function ScenesPageContent() {
         return { ...story, scenes: updatedScenes, beats: updatedBeats };
       });
       const failedStories: string[] = [];
-      for (const updatedStory of updatedStories) {
+      const affectedStories = updatedStories.filter((updatedStory) => {
         const original = storiesList.find((s) => s.id === updatedStory.id);
-        const wasAffected = original?.beats?.some((b) => b.scene === sceneId || b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
-        if (wasAffected) {
-          try {
-            const result = await storyService.update(updatedStory.id, updatedStory);
-            if (!result.ok) {
-              errorLogger.warn("[Scenes] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
-              failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
-            }
-          } catch (e) {
-            errorLogger.warn("[Scenes] 更新关联故事异常", e);
-            failedStories.push(updatedStory.title || updatedStory.id.slice(0, 8));
-          }
+        return original?.beats?.some((b) => b.scene === sceneId || b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
+      });
+      const results = await Promise.allSettled(
+        affectedStories.map((updatedStory) =>
+          storyService.update(updatedStory.id, updatedStory),
+        ),
+      );
+      results.forEach((result, i) => {
+        if (result.status === "rejected") {
+          errorLogger.warn("[Scenes] 更新关联故事异常", result.reason);
+          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
+        } else if (!result.value.ok) {
+          errorLogger.warn("[Scenes] 更新关联故事失败", { storyId: affectedStories[i]!.id, error: result.value.error });
+          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
         }
-      }
+      });
       if (failedStories.length > 0) {
         showError(t("story.partialUpdateFailed"), t("story.partialUpdateFailedDetail", { items: failedStories.join("、") }));
       }

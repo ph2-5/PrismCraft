@@ -178,14 +178,16 @@ export function useQuickGenerateState() {
 
   const [state, dispatch] = useReducer(quickGenerateReducer, initialState);
   const referenceVideoBlobRef = useRef<string | null>(null);
+  const blobUrlsToRevokeRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     return () => {
-      if (state.cachedVideoUrl && state.cachedVideoUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(state.cachedVideoUrl);
+      for (const url of blobUrlsToRevokeRef.current) {
+        URL.revokeObjectURL(url);
       }
+      blobUrlsToRevokeRef.current.clear();
     };
-  }, [state.cachedVideoUrl]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -225,7 +227,11 @@ export function useQuickGenerateState() {
       getVideoUrlWithCache(currentTask.taskId, currentTask.videoUrl).then(
         (result) => {
           if (!cancelled && result.ok && result.value.url) {
-            dispatch({ type: "SET_CACHED_VIDEO_URL", url: result.value.url, taskId });
+            const url = result.value.url;
+            if (url.startsWith("blob:")) {
+              blobUrlsToRevokeRef.current.add(url);
+            }
+            dispatch({ type: "SET_CACHED_VIDEO_URL", url, taskId });
           }
         },
       ).catch((e) => {
@@ -261,7 +267,7 @@ export function useQuickGenerateState() {
     return scenes.find((s) => s.id === state.selectedScene) || null;
   }, [scenes, state.selectedScene]);
 
-  const handleGenerate = async (promptOverride?: string) => {
+  const handleGenerate = useCallback(async (promptOverride?: string) => {
     const effectivePrompt = promptOverride ?? state.promptText;
     if (!effectivePrompt.trim()) {
       showError(t("video.enterDescription"));
@@ -330,7 +336,7 @@ export function useQuickGenerateState() {
       errorLogger.error("生成失败:", error);
       showError(t("video.generateFailed"), mapUserFacingError(error));
     }
-  };
+  }, [state.promptText, state.duration, state.selectedResolution, state.selectedStyle, state.selectedCharacters, state.referenceImage, state.enableSmartOptimization, state.negativePrompt, state.referenceVideoFile, selectedVideoModel, getSelectedCharacterObjects, getSelectedSceneObject, createTask, showError, showWarning, showSuccess]);
 
   const handleDownload = async (
     videoUrl: string | undefined,
@@ -348,7 +354,7 @@ export function useQuickGenerateState() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (e) {
       errorLogger.warn("[QuickGenerate] Failed to download video via fetch, falling back to direct link", e as Error);
       const link = document.createElement("a");
@@ -427,11 +433,11 @@ export function useQuickGenerateState() {
     [handleGenerate],
   );
 
-  const quickExamples = [
-    "一只白色猫咪在海边沙滩上奔跑，日落暖光，治愈电影感",
-    "一个古风美女在樱花树下弹古筝，花瓣飘落，唯美浪漫",
-    "赛博朋克城市夜景，霓虹灯闪烁，未来科技感",
-  ];
+  const quickExamples = useMemo(() => [
+    t("quickGenerate.example1"),
+    t("quickGenerate.example2"),
+    t("quickGenerate.example3"),
+  ], []);
 
   return {
     promptText: state.promptText,

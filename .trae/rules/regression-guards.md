@@ -3,20 +3,20 @@
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >
-> **Total: 80 rules | 8 categories**
+> **Total: 84 rules | 8 categories**
 
 ## 目录
 
-- [一、数据一致性（18 条）](#一数据一致性18-条) — 数据不丢、不脏、不冲突
+- [一、数据一致性（17 条）](#一数据一致性17-条) — 数据不丢、不脏、不冲突
 - [二、异步安全（13 条）](#二异步安全13-条) — 并发、竞态、轮询、生命周期
 - [三、错误处理（11 条）](#三错误处理11-条) — 错误不吞、不假成功、用户可理解
 - [四、UI 健壮性（9 条）](#四ui-健壮性9-条) — 界面不崩、有反馈、无泄漏
 - [五、工程质量（14 条）](#五工程质量14-条) — 依赖合规、构建安全、测试可靠
 - [六、平台兼容（6 条）](#六平台兼容6-条) — IPC、Electron 环境、进程模型
-- [七、用户安全防护（6 条）](#七用户安全防护6-条) — 破坏性操作需确认、数据清除需保护
-- [八、系统安全（4 条）](#八系统安全4-条) — 沙箱隔离、并发保护、频率限制、缓存一致性
+- [七、用户安全防护（7 条）](#七用户安全防护7-条) — 破坏性操作需确认、数据清除需保护
+- [八、系统安全（7 条）](#八系统安全7-条) — 沙箱隔离、并发保护、资源生命周期、DOM 安全
 
-## 一、数据一致性（18 条）
+## 一、数据一致性（17 条）
 
 > 核心关注：数据不丢、不脏、不冲突
 
@@ -1832,7 +1832,7 @@ dbQuery: async (sql, params) => {
 
 **Discovered in**: e2e test audit — `dbQuery` mock returned raw array, `safeQuery` checked `response.success` (undefined on array), threw error, `useVideoTaskManager` showed error toast.
 
-## 七、用户安全防护（6 条）
+## 七、用户安全防护（7 条）
 
 > 核心关注：破坏性操作需确认、数据清除需保护、不可逆操作需二次验证
 
@@ -2019,9 +2019,9 @@ if (result.changes === 0) throw new VersionConflictError("story_beats", id, vers
 
 **Discovered in**: Concurrent tab edits silently overwrote each other's changes. The `version` column existed in schema but was never used in production code.
 
-## 八、系统安全（4 条）
+## 八、系统安全（7 条）
 
-> 核心关注：沙箱隔离、并发保护、频率限制、缓存一致性
+> 核心关注：沙箱隔离防逃逸、IPC 通道注册检查、插件热加载缓存刷新、Blob URL 安全生命周期、异步重入守卫、批量并行执行、声明式 onError
 
 ### R78: Code Plugin Sandbox MUST Prevent Prototype Chain Escape
 
@@ -2097,6 +2097,146 @@ const handleReload = async () => {
   await loadModelProfilesFromServer(); // Refresh model profiles
 };
 ```
+
+### R81: Blob URL Lifecycle MUST Be Managed Safely
+
+When creating `URL.createObjectURL(blob)`, the URL MUST be revoked to prevent memory leaks, but the revoke timing MUST NOT break active references. Two common patterns cause bugs:
+
+1. **Revoke in useEffect cleanup with dependency** — revokes the URL on every change, but the old URL may still be referenced by `<video>` or `<img>` in the same render cycle, causing playback interruption.
+2. **Immediate revoke after `a.click()`** — `a.click()` is asynchronous, immediate `URL.revokeObjectURL()` may cancel the download before it starts.
+
+**BAD** — Revoke on every URL change (breaks active video):
+```typescript
+useEffect(() => {
+  return () => {
+    if (videoUrl?.startsWith("blob:")) URL.revokeObjectURL(videoUrl);
+  };
+}, [videoUrl]);
+```
+
+**BAD** — Immediate revoke after click (breaks download):
+```typescript
+const url = URL.createObjectURL(blob);
+a.href = url;
+a.click();
+URL.revokeObjectURL(url);
+```
+
+**GOOD** — Collect blob URLs in ref, revoke on unmount only:
+```typescript
+const blobUrlsRef = useRef<Set<string>>(new Set());
+useEffect(() => {
+  return () => {
+    for (const url of blobUrlsRef.current) URL.revokeObjectURL(url);
+    blobUrlsRef.current.clear();
+  };
+}, []);
+// Register each new blob URL
+if (url.startsWith("blob:")) blobUrlsRef.current.add(url);
+```
+
+**GOOD** — Delayed revoke for downloads:
+```typescript
+const url = URL.createObjectURL(blob);
+a.href = url;
+a.click();
+setTimeout(() => URL.revokeObjectURL(url), 5000);
+```
+
+**Verification**: Search for `URL.createObjectURL` calls. Verify: (1) every created URL is eventually revoked, (2) URLs used for display are NOT revoked on every change, (3) URLs used for download are revoked with a delay.
+
+**Discovered in**: QuickGenerateState revoked cachedVideoUrl on every change, interrupting video playback. Asset-library export revoked blob URL immediately after `a.click()`, causing download failures.
+
+### R82: Async Operations With Loading State MUST Guard Against Re-entry
+
+When an async operation has a loading state (e.g., `isDeleting`, `isExporting`, `isSaving`), the handler MUST check the loading flag at the top and return early if already in progress. Without this guard, rapid double-clicks or repeated triggers can execute the operation multiple times concurrently, causing duplicate deletions, duplicate exports, or data corruption.
+
+**BAD** — No re-entry guard:
+```typescript
+const handleBatchDelete = async () => {
+  const ids = Array.from(selectedIds);
+  if (ids.length === 0) return;
+  setIsBatchDeleting(true);
+  // User double-clicks → two concurrent batch deletes
+```
+
+**GOOD** — Guard with loading flag:
+```typescript
+const handleBatchDelete = async () => {
+  const ids = Array.from(selectedIds);
+  if (ids.length === 0 || isBatchDeleting) return;
+  setIsBatchDeleting(true);
+```
+
+**Verification**: Search for async handlers that set a loading state (`setIs*ing(true)`). Verify each handler checks the loading flag at the top before proceeding.
+
+**Discovered in**: Asset-library batch delete had no re-entry guard. Double-clicking "批量删除" could trigger two concurrent batch delete operations.
+
+### R83: Batch Related-Entity Updates MUST Use Parallel Execution
+
+When deleting an entity requires updating related entities (e.g., deleting a character requires updating all stories that reference it), the updates MUST use `Promise.allSettled` for parallel execution rather than `for...of await` serial execution. Serial updates are O(n) in latency — with 10 related stories, the user waits 10x longer than necessary. Parallel execution with `allSettled` also provides better error isolation: one failure doesn't prevent the rest from completing.
+
+**BAD** — Serial updates, O(n) latency:
+```typescript
+for (const story of affectedStories) {
+  try {
+    const result = await storyService.update(story.id, story);
+    if (!result.ok) failedStories.push(story.title);
+  } catch (e) {
+    failedStories.push(story.title);
+  }
+}
+```
+
+**GOOD** — Parallel updates with error isolation:
+```typescript
+const results = await Promise.allSettled(
+  affectedStories.map((story) => storyService.update(story.id, story))
+);
+results.forEach((result, i) => {
+  if (result.status === "rejected" || (result.status === "fulfilled" && !result.value.ok)) {
+    failedStories.push(affectedStories[i]!.title);
+  }
+});
+```
+
+**Verification**: Search for `for.*of.*await` patterns in delete handlers that update related entities. Replace with `Promise.allSettled`. Verify error handling still collects failures correctly.
+
+**Discovered in**: Characters, scenes, and asset-library pages all used serial `for...of await` for related-story updates after entity deletion. With 5+ affected stories, the operation took 5x longer than necessary.
+
+### R84: Video/Image onError MUST Use React State, Not DOM Manipulation
+
+When a `<video>` or `<img>` element fails to load, the error handler MUST use React state to render a fallback UI, not direct DOM manipulation (`document.createElement`, `appendChild`, `style.display`). DOM manipulation in React event handlers violates the declarative paradigm, causes issues in React 18+ concurrent mode, and makes the fallback UI untestable. Additionally, the error state MUST be reset when the `src` changes (e.g., video regenerated), otherwise the fallback persists even after the source is fixed.
+
+**BAD** — DOM manipulation in onError:
+```typescript
+<video
+  onError={(e) => {
+    const target = e.currentTarget;
+    target.style.display = "none";
+    const fallback = document.createElement("div");
+    fallback.className = "video-fallback";
+    fallback.innerHTML = "<svg>...</svg>";
+    target.parentElement!.appendChild(fallback);
+  }}
+/>
+```
+
+**GOOD** — React state with src-change reset:
+```typescript
+const [videoError, setVideoError] = useState(false);
+useEffect(() => { setVideoError(false); }, [task.videoUrl]);
+
+return videoError ? (
+  <div className="video-fallback"><VideoOff /></div>
+) : (
+  <video src={task.videoUrl} onError={() => setVideoError(true)} />
+);
+```
+
+**Verification**: Search for `onError` handlers on `<video>` and `<img>` elements. Verify they use `useState` + `e.currentTarget` (not `e.target`), and that the error state resets when `src` changes. No `document.createElement` or `appendChild` should appear in onError handlers.
+
+**Discovered in**: VideoPreview component used 25 lines of DOM manipulation in `onError` to create a fallback SVG. The fallback was not reset when `videoUrl` changed, and the DOM manipulation was incompatible with React concurrent mode.
 
 **Verification**: Add a new plugin via the plugin manager, then check if the API config panel shows the new provider template without requiring a page refresh.
 

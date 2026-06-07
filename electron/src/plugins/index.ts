@@ -1,5 +1,6 @@
 export type {
   AIProviderPlugin,
+  AsyncAIProviderPlugin,
   ImageSizeOption,
   ModelCapabilities,
   VideoCapabilities,
@@ -54,8 +55,10 @@ export {
 } from "./user-plugin-loader";
 
 export type { CodePluginExport } from "./code-plugin-loader";
-export { loadCodePlugins } from "./code-plugin-loader";
+export { loadCodePlugins, listCodePluginFiles } from "./code-plugin-loader";
 export { CodePluginAdapter } from "./code-plugin-adapter";
+export { PluginProcessManager, shutdownAllProcessManagers, getAllProcessMetrics } from "./plugin-process-manager";
+export type { PluginLoadResult, ProcessMetrics } from "./plugin-process-manager";
 
 import { pluginRegistry } from "./registry";
 import { VolcenginePlugin } from "./providers/volcengine";

@@ -4,16 +4,21 @@ import { installElectronMock } from "./helpers/electron-mock";
 import { mockApiRoutes } from "./helpers/mock-api";
 
 async function openSyncDialog(page: import("@playwright/test").Page) {
-  const syncButton = page.locator("button", { hasText: /同步设置|同步配置|Sync/i }).or(
-    page.locator("button").filter({ has: page.locator("svg.lucide-cloud") })
-  ).or(
-    page.locator("button").filter({ has: page.locator("svg.lucide-settings") }).filter({ hasText: /同步/i })
-  ).first();
+  const syncTab = page.locator('[role="tab"]', { hasText: /同步/i }).first();
+  if (await syncTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await syncTab.click({ force: true });
+    await page.waitForTimeout(500);
+  }
+
+  const syncButton = page.locator("button", { hasText: /同步设置|同步配置/i }).first();
 
   if (await syncButton.isVisible({ timeout: 5000 }).catch(() => false)) {
     await syncButton.click({ force: true });
-    await page.waitForTimeout(500);
-    return true;
+    await page.waitForTimeout(1000);
+    const dialog = page.locator('[role="dialog"]').first();
+    if (await dialog.isVisible({ timeout: 5000 }).catch(() => false)) {
+      return true;
+    }
   }
   return false;
 }
@@ -35,10 +40,12 @@ test.describe("Sync Configuration Access", () => {
     const syncBtn = page.locator("button", { hasText: /同步/i }).first();
     const syncBadge = page.locator("[class*='badge']").filter({ hasText: /同步/i }).first();
     const syncLink = page.locator("a", { hasText: /同步/i }).first();
+    const syncTab = page.locator('[role="tab"]', { hasText: /同步/i }).first();
     const hasSyncBtn = await syncBtn.isVisible({ timeout: 5000 }).catch(() => false);
     const hasSyncBadge = await syncBadge.isVisible({ timeout: 5000 }).catch(() => false);
     const hasSyncLink = await syncLink.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasSyncBtn || hasSyncBadge || hasSyncLink).toBe(true);
+    const hasSyncTab = await syncTab.isVisible({ timeout: 5000 }).catch(() => false);
+    expect(hasSyncBtn || hasSyncBadge || hasSyncLink || hasSyncTab).toBe(true);
   });
 });
 

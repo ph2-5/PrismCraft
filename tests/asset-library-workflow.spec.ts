@@ -33,7 +33,7 @@ test.describe("Asset Library Page Load", () => {
   });
 
   test("should default to characters tab", async ({ page }) => {
-    const charactersTab = page.locator('[role="tab"][data-state="active"]', { hasText: "角色库" }).first();
+    const charactersTab = page.locator('[role="tab"][aria-selected="true"]', { hasText: "角色库" }).first();
     await expect(charactersTab).toBeVisible({ timeout: 10000 });
   });
 });
@@ -67,7 +67,7 @@ test.describe("Asset Library Category Tabs", () => {
   test("should switch back to characters tab from another tab", async ({ page }) => {
     await switchAssetTab(page, "场景库");
     await switchAssetTab(page, "角色库");
-    const charactersTab = page.locator('[role="tab"][data-state="active"]', { hasText: "角色库" }).first();
+    const charactersTab = page.locator('[role="tab"][aria-selected="true"]', { hasText: "角色库" }).first();
     await expect(charactersTab).toBeVisible({ timeout: 5000 });
   });
 });

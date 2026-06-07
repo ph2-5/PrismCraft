@@ -144,8 +144,8 @@ test.describe("Delete Plugin", () => {
   });
 
   test("should display delete button on user plugin items", async ({ page }) => {
-    const customBadge = page.locator("text=自定义").first();
-    if (!(await customBadge.isVisible({ timeout: 5000 }).catch(() => false))) return;
+    const userPluginBadge = page.locator("text=声明式").or(page.locator("text=代码插件")).first();
+    if (!(await userPluginBadge.isVisible({ timeout: 5000 }).catch(() => false))) return;
 
     const deleteBtn = page.locator("button[aria-label*='删除']").or(
       page.locator("button").filter({ has: page.locator("svg.lucide-trash-2") })
@@ -155,8 +155,8 @@ test.describe("Delete Plugin", () => {
   });
 
   test("should show confirmation dialog when deleting a plugin", async ({ page }) => {
-    const customBadge = page.locator("text=自定义").first();
-    if (!(await customBadge.isVisible({ timeout: 5000 }).catch(() => false))) return;
+    const userPluginBadge = page.locator("text=声明式").or(page.locator("text=代码插件")).first();
+    if (!(await userPluginBadge.isVisible({ timeout: 5000 }).catch(() => false))) return;
 
     const deleteBtn = page.locator("button").filter({ has: page.locator("svg.lucide-trash-2") }).first();
     if (!(await deleteBtn.isVisible({ timeout: 3000 }).catch(() => false))) return;
@@ -170,6 +170,20 @@ test.describe("Delete Plugin", () => {
 test.describe("Plugin Spec and Schema", () => {
   test.beforeEach(async ({ page }) => {
     await installElectronMock(page);
+    await page.route("**/plugins/schema", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true, data: { type: "object", properties: {} } }),
+      }),
+    );
+    await page.route("**/plugins/specification", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true, data: { content: "# Plugin Specification\n\nMock spec content." } }),
+      }),
+    );
     await navigateTo(page, "/settings");
     await dismissOverlays(page);
   });
@@ -177,7 +191,7 @@ test.describe("Plugin Spec and Schema", () => {
   test("should toggle plugin spec view", async ({ page }) => {
     const specBtn = page.locator("button", { hasText: "插件规范" }).first();
     await specBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     const specContent = page.locator("pre").first();
     const specVisible = await specContent.isVisible({ timeout: 5000 }).catch(() => false);
@@ -190,7 +204,7 @@ test.describe("Plugin Spec and Schema", () => {
   test("should toggle specification document view", async ({ page }) => {
     const docBtn = page.locator("button", { hasText: "规范文档" }).first();
     await docBtn.click({ force: true });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     const docContent = page.locator("pre").first();
     const docVisible = await docContent.isVisible({ timeout: 5000 }).catch(() => false);

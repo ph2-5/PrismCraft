@@ -18,11 +18,11 @@ import {
 } from "@/shared/model-capabilities";
 
 const FALLBACK_DURATIONS = [
-  { value: 2, label: "2秒" },
-  { value: 5, label: "5秒" },
-  { value: 10, label: "10秒" },
-  { value: 15, label: "15秒" },
-  { value: 30, label: "30秒" },
+  { value: 2, label: "2s" },
+  { value: 5, label: "5s" },
+  { value: 10, label: "10s" },
+  { value: 15, label: "15s" },
+  { value: 30, label: "30s" },
 ];
 
 const FALLBACK_RESOLUTIONS = [
@@ -32,16 +32,16 @@ const FALLBACK_RESOLUTIONS = [
 ];
 
 const FALLBACK_STYLES = [
-  "写实",
-  "动漫",
-  "二次元",
-  "电影感",
-  "国潮",
-  "赛博朋克",
-  "古风",
-  "3D卡通",
-  "像素风",
-  "水彩",
+  "realistic",
+  "anime",
+  "2d-illustration",
+  "cinematic",
+  "chinese-chic",
+  "cyberpunk",
+  "chinese-classical",
+  "3d-cartoon",
+  "pixel-art",
+  "watercolor",
 ];
 
 export interface ModelParameterValues {
@@ -75,9 +75,9 @@ function resolveProfile(modelId: string | undefined): ResolvedProfile {
   if (!modelId) {
     return {
       profile: undefined,
-      durations: FALLBACK_DURATIONS,
+      durations: FALLBACK_DURATIONS.map((d) => ({ value: d.value, label: t("modelParam.seconds", { count: d.value }) })),
       resolutions: FALLBACK_RESOLUTIONS,
-      styles: FALLBACK_STYLES.map((s) => ({ value: s, label: s })),
+      styles: FALLBACK_STYLES.map((s) => ({ value: s, label: t(`modelParam.style.${s}`) })),
       showNegativePrompt: false,
       showSeed: false,
       cfgScaleConfig: undefined,
@@ -90,9 +90,13 @@ function resolveProfile(modelId: string | undefined): ResolvedProfile {
 
   return {
     profile,
-    durations: params?.durations?.length ? params.durations : FALLBACK_DURATIONS,
+    durations: params?.durations?.length
+      ? params.durations.map((d) => ({ ...d, label: t("modelParam.seconds", { count: d.value }) }))
+      : FALLBACK_DURATIONS.map((d) => ({ value: d.value, label: t("modelParam.seconds", { count: d.value }) })),
     resolutions: params?.resolutions?.length ? params.resolutions : FALLBACK_RESOLUTIONS,
-    styles: params?.styles?.length ? params.styles : FALLBACK_STYLES.map((s) => ({ value: s, label: s })),
+    styles: params?.styles?.length
+      ? params.styles.map((s) => ({ ...s, label: s.label || t(`modelParam.style.${s.value}`) }))
+      : FALLBACK_STYLES.map((s) => ({ value: s, label: t(`modelParam.style.${s}`) })),
     showNegativePrompt: params?.negativePrompt === true,
     showSeed: params?.seed === true,
     cfgScaleConfig: params?.cfgScale,

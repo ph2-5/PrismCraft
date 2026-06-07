@@ -114,7 +114,7 @@ function parseBeatRow(b: Record<string, unknown>) {
       const parts = k.split(".");
       let target: Record<string, unknown> = beat;
       for (let i = 0; i < parts.length - 1; i++) {
-        const part = parts[i];
+        const part = parts[i]!;
         if (
           target[part] === undefined ||
           target[part] === null ||
@@ -124,7 +124,7 @@ function parseBeatRow(b: Record<string, unknown>) {
         }
         target = target[part] as Record<string, unknown>;
       }
-      target[parts[parts.length - 1]] = v;
+      target[parts[parts.length - 1]!] = v;
     }
   }
 

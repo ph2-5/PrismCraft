@@ -67,7 +67,7 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
 
   if (autoSaves.length === 0) return null;
 
-  const latestSave = autoSaves[0];
+  const latestSave = autoSaves[0]!;
   const saveTime = latestSave.timestamp
     ? new Date(latestSave.timestamp).toLocaleString("zh-CN")
     : t("crash.unknownTime");

@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import BetterSqlite3 from "better-sqlite3";
 import { getLogger } from "../logging/logger";
-import { createOptimalDatabase, BetterSqlite3Database, DatabaseInterface } from "../db-interface";
+import { createOptimalDatabase, type DatabaseInterface } from "../db-interface";
 import {
   getDbPaths,
   ensureDbDir,
@@ -22,7 +22,6 @@ let dbInstance: DatabaseInterface | null = null;
 let dbPath = "";
 let initDbPromise: Promise<DatabaseInterface> | null = null;
 let initRetryCount = 0;
-let isMigrating = false;
 let operationQueue: Promise<void> = Promise.resolve();
 let isPersistenceAvailable = true;
 let lastSaveTime = Date.now();
@@ -220,7 +219,6 @@ export async function initDatabase(): Promise<DatabaseInterface> {
     try {
       dbInstance = createOptimalDatabase();
       dbInstance.init({ filePath: DB_PATH });
-      dbType = "better-sqlite3";
 
       executeSchemaSafely(dbInstance);
       migrateSchema(dbInstance);
@@ -266,7 +264,6 @@ export async function initDatabase(): Promise<DatabaseInterface> {
         const restored = tryRestoreFromBackup(DB_PATH);
         dbInstance = createOptimalDatabase();
         dbInstance.init({ filePath: DB_PATH });
-        dbType = "better-sqlite3";
 
         executeSchemaSafely(dbInstance);
         migrateSchema(dbInstance);
@@ -377,7 +374,6 @@ export function closeDatabase(): void {
     dbInstance = null;
     dbPath = "";
     initDbPromise = null;
-    isMigrating = false;
     isPersistenceAvailable = true;
     consecutiveSaveFailures = 0;
     logger.info("Database connection closed");
@@ -407,7 +403,7 @@ export async function exec(sql: string): Promise<void> {
   });
 }
 
-function cleanupOldBackups(): void {
+export function cleanupOldBackups(): void {
   try {
     const { DB_PATH } = getDbPaths();
     const dir = path.dirname(DB_PATH);
@@ -632,7 +628,7 @@ function performSoftDeleteCleanup(): void {
   }
 }
 
-function registerBackupIpcHandlers(): void {
+export function registerBackupIpcHandlers(): void {
   ipcMain.handle("db:backup-status", async () => {
     try {
       await ensureDb();
@@ -672,4 +668,3 @@ async function ensureDb(): Promise<void> {
   }
 }
 
-let dbType = "better-sqlite3";

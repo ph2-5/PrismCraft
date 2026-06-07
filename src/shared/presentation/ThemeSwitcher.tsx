@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Palette, Check } from "lucide-react";
-import { useTheme, THEMES, type ThemeId } from "./ThemeProvider";
+import { useTheme, THEMES, type ThemeId } from "@/shared/presentation/ThemeProvider";
 import { cn } from "@/shared/utils/utils";
 import { t } from "@/shared/constants/messages";
 

@@ -32,7 +32,6 @@ export class FileTransport implements LogTransport {
 
   private logDir: string;
   private filename: string;
-  private maxFileSize: number;
   private maxFiles: number;
   private writeQueue: string[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
@@ -43,7 +42,6 @@ export class FileTransport implements LogTransport {
     this.filename = options.filename ?? "app";
     this.minLevel = options.minLevel ?? "info";
     this.enabled = options.enabled ?? true;
-    this.maxFileSize = (options.maxFileSizeMB ?? 10) * 1024 * 1024;
     this.maxFiles = options.maxFiles ?? 5;
 
     this.beforeExitHandler = () => { void this.flush(); };
@@ -123,7 +121,7 @@ export class FileTransport implements LogTransport {
         .sort((a, b) => b.time - a.time);
 
       for (let i = this.maxFiles; i < files.length; i++) {
-        fs.unlinkSync(files[i].path);
+        fs.unlinkSync(files[i]!.path);
       }
     } catch (error) {
       console.error("[FileTransport] Failed to cleanup old logs:", error);

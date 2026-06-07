@@ -13,7 +13,7 @@ import { DEFAULT_STORY, genres, tones } from "@/modules/story";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { SaveStatusIndicator } from "@/shared/presentation/SaveStatusIndicator";
-import { useStory } from "./StoryProvider";
+import { type useStory } from "./StoryProvider";
 
 type StoryValue = ReturnType<typeof useStory>;
 
@@ -100,13 +100,17 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
                     {t("story.beatCount", { count: (s.beats || []).length })}
                   </span>
                 </div>
-                <Trash2
-                  className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive shrink-0"
+                <button
+                  type="button"
+                  className="p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     story.handleDeleteStory(s.id);
                   }}
-                />
+                  aria-label={t("aria.deleteStory")}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             ))}
           </div>
@@ -123,6 +127,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
           }))
         }
         className="max-w-[200px] h-8 text-sm"
+        aria-label={t("story.titlePlaceholder")}
       />
 
       <Input
@@ -135,6 +140,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
           }))
         }
         className="max-w-[240px] h-8 text-sm flex-1"
+        aria-label={t("story.descPlaceholder")}
       />
 
       <Select

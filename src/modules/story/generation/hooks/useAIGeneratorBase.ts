@@ -75,7 +75,7 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
       if (prevBeatOverride !== undefined) return prevBeatOverride;
       const currentBeats = beatsRef.current;
       const idx = currentBeats.findIndex((b) => b.id === beatId);
-      return idx > 0 ? currentBeats[idx - 1] : null;
+      return idx > 0 ? currentBeats[idx - 1]! : null;
     },
     [beatsRef],
   );

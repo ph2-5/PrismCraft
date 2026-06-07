@@ -1,3 +1,5 @@
+const DEFAULT_IMAGE_SIZE = 100;
+
 interface SafeImageProps {
   src?: string | null;
   alt?: string;
@@ -34,8 +36,8 @@ export function SafeImage({
     <img
       src={src}
       alt={alt}
-      width={width || 100}
-      height={height || 100}
+      width={width ?? DEFAULT_IMAGE_SIZE}
+      height={height ?? DEFAULT_IMAGE_SIZE}
       className={className}
       loading="lazy"
     />

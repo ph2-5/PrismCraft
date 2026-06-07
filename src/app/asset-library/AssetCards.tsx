@@ -86,6 +86,7 @@ export const CharacterCard = memo(function CharacterCard({
               e.stopPropagation();
               onDeleteCharacter(char.id);
             }}
+            aria-label={t("aria.deleteCharacter")}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
@@ -172,6 +173,7 @@ export const SceneCard = memo(function SceneCard({
               e.stopPropagation();
               onDeleteScene(scene.id);
             }}
+            aria-label={t("aria.deleteScene")}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
@@ -254,6 +256,7 @@ export const StoryboardCard = memo(function StoryboardCard({
               e.stopPropagation();
               onDeleteStoryboard(sb.id);
             }}
+            aria-label={t("aria.deleteStoryboard")}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
@@ -322,6 +325,7 @@ export const CollectionCard = memo(function CollectionCard({
               className="w-7 h-7"
               onClick={() => onExportCollection(col.id)}
               title={t("asset.exportCollection")}
+              aria-label={t("aria.exportCollection")}
             >
               <Download className="w-3.5 h-3.5" />
             </Button>
@@ -331,6 +335,7 @@ export const CollectionCard = memo(function CollectionCard({
               className="w-7 h-7 hover:text-destructive"
               onClick={() => onDeleteCollection(col.id)}
               title={t("asset.deleteCollection")}
+              aria-label={t("aria.deleteCollection")}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </Button>

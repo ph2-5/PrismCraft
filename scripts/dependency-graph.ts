@@ -29,7 +29,7 @@ function scanImports(dir: string): Map<string, Set<string>> {
         let match: RegExpExecArray | null;
         IMPORT_PATTERN.lastIndex = 0;
         while ((match = IMPORT_PATTERN.exec(content)) !== null) {
-          const importPath = match[1];
+          const importPath = match[1]!;
           const targetModule = getModuleName(importPath);
           if (!deps.has(moduleKey)) {
             deps.set(moduleKey, new Set());

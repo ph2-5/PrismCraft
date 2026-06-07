@@ -30,10 +30,10 @@ class ApiCache {
   private getConfig(endpoint: string): CacheConfig {
     for (const key of Object.keys(this.configs)) {
       if (key !== "default" && endpoint.startsWith(key)) {
-        return this.configs[key];
+        return this.configs[key]!;
       }
     }
-    return this.configs["default"];
+    return this.configs["default"]!;
   }
 
   private getCacheKey(endpoint: string, options?: Record<string, unknown>): string {

@@ -384,7 +384,7 @@ Electron e2e test infrastructure:
 
 | 债务项 | 严重度 | 说明 |
 |--------|--------|------|
-| ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，messages.ts含1634键，覆盖app/pages+modules/presentation+shared/presentation+modules/hooks；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
+| ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，messages.ts含1806键，覆盖app/pages+modules/presentation+shared/presentation+modules/hooks；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
 | ~~大文件~~ | ~~中~~ | 已修复：18个>400行文件全部拆分，拆分出35+子组件/hooks |
 | ~~非空断言~~ | ~~中~~ | 已修复：生产代码全部`!.`和`as unknown as`清零 |
 | ~~性能基础设施~~ | ~~低~~ | 已铺设：React.memo 5个高频组件、@tanstack/react-virtual虚拟列表hook、useReducer状态管理重构 |

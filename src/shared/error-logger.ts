@@ -86,7 +86,7 @@ function toContext(context: unknown): string | undefined {
     if (context.message) parts.push(context.message);
     if (context.name && context.name !== "Error") parts.push(`(${context.name})`);
     if (context.stack && parts.length === 0) {
-      const firstLine = context.stack.split("\n")[0];
+      const firstLine = context.stack.split("\n")[0]!;
       parts.push(firstLine);
     }
     return parts.length > 0 ? parts.join(" ") : String(context);

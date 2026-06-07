@@ -38,7 +38,7 @@ function findContracts(): Array<{ path: string; module: string; subdomain: strin
         scan(path.join(dir, entry.name), path.join(modulePath, entry.name));
       } else if (entry.name === "contract.json") {
         const parts = modulePath.split(path.sep);
-        const module = parts[0];
+        const module = parts[0]!;
         const subdomain = parts.slice(1).join("/") || "core";
         results.push({ path: path.join(dir, entry.name), module, subdomain });
       }

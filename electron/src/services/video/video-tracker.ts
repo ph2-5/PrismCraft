@@ -108,7 +108,7 @@ export function getProviderInfo(apiUrl?: string): ProviderInfo {
     const domains = Object.keys(PROVIDERS);
     for (const domain of domains) {
       if (apiUrl.includes(domain)) {
-        return PROVIDERS[domain];
+        return PROVIDERS[domain] ?? DEFAULT_PROVIDER;
       }
     }
     return DEFAULT_PROVIDER;
@@ -117,7 +117,7 @@ export function getProviderInfo(apiUrl?: string): ProviderInfo {
   const domains = Object.keys(PROVIDERS);
   for (const domain of domains) {
     if (hostname === domain || hostname.endsWith(`.${domain}`)) {
-      return PROVIDERS[domain];
+      return PROVIDERS[domain] ?? DEFAULT_PROVIDER;
     }
   }
 

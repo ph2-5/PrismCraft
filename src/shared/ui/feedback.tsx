@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle, Info, LucideIcon } from "lucide-react";
+import { AlertCircle, CheckCircle, Info, type LucideIcon } from "lucide-react";
 import type { ApiErrorCode } from "@/domain/schemas";
 import { t } from "@/shared/constants/messages";
 

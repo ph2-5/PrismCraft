@@ -188,13 +188,13 @@ export function applyTemplate(
     order: index + 1,
     description: beat.content || "",
     characters: beat.type === "dialogue" && characters.length > 0 
-      ? [characters[0]] 
+      ? [characters[0]!] 
       : [],
     elementIds: [],
     characterIds: [],
     enhancedGeneration: false,
     scene: beat.type === "scene" && scenes.length > 0 
-      ? scenes[0] 
+      ? scenes[0]! 
       : undefined,
     character: undefined,
     sceneId: undefined,

@@ -1,5 +1,4 @@
 import type {
-  AIProviderPlugin,
   ModelCapabilities,
   ModelParameterProfile,
   VideoCapabilities,

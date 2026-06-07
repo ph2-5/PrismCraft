@@ -125,13 +125,13 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       queryClient.invalidateQueries({ queryKey });
       setEntity(savedEntity);
       resetCustomFields();
-      markClean(queryKey[0]);
+      markClean(queryKey[0]!);
       setGeneratedImage(null);
       setSaveStatus("saved");
     } catch (err) {
       errorLogger.error(`[${entityLabel}] Save failed`, err);
       const message = err instanceof Error ? err.message : t("error.unknown");
-      markDirty(queryKey[0]);
+      markDirty(queryKey[0]!);
       setSaveStatus("error");
       setSaveError(message);
       showError(t("error.saveFailed"), message);

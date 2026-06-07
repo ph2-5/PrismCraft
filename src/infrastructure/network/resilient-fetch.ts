@@ -168,7 +168,7 @@ async function downloadWithRange(
       if (signal?.aborted) return;
 
       const currentIndex = nextChunkIndex++;
-      const { start, end } = chunkRanges[currentIndex];
+      const { start, end } = chunkRanges[currentIndex]!;
 
       try {
         const chunk = await executeWithRetry(

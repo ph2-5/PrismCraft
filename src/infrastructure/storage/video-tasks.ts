@@ -40,7 +40,7 @@ export const videoTaskStorage = {
       "SELECT * FROM video_tasks WHERE id = ?",
       [taskId],
     );
-    return result.length > 0 ? (parseVideoTask(result[0]) as T) : null;
+    return result.length > 0 ? (parseVideoTask(result[0]!) as T) : null;
   },
 
   async getVideoTasksByStory<T = VideoTask>(
@@ -135,7 +135,7 @@ export const videoTaskStorage = {
       if (existing.length === 0) {
         throw new Error(`VideoTask not found for update: taskId="${taskId}"`);
       }
-      if (version !== undefined && existing[0].version !== version) {
+      if (version !== undefined && existing[0]!.version !== version) {
         throw new VersionConflictError("video_tasks", taskId, version);
       }
     }

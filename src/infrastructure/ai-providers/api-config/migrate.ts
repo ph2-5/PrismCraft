@@ -3,7 +3,7 @@
  * 支持从旧版配置迁移到新版
  */
 
-import { ApiConfig, ProviderConfig } from "./types";
+import { type ApiConfig, type ProviderConfig } from "./types";
 import { getDefaultConfig, saveConfig } from "./storage";
 import { PROVIDER_TEMPLATES } from "./templates";
 import { detectProvider } from "./detect";
@@ -71,7 +71,7 @@ export function migrateFromOldConfig(
     };
 
     config.providers.push(provider);
-    config.mapping.text = `${provider.id}/${provider.models[0].id}`;
+    config.mapping.text = `${provider.id}/${provider.models[0]!.id}`;
   }
 
   // 迁移图像生成配置
@@ -114,7 +114,7 @@ export function migrateFromOldConfig(
       };
 
       config.providers.push(provider);
-      config.mapping.image = `${provider.id}/${provider.models[0].id}`;
+      config.mapping.image = `${provider.id}/${provider.models[0]!.id}`;
     }
   }
 
@@ -143,7 +143,7 @@ export function migrateFromOldConfig(
     };
 
     config.providers.push(provider);
-    config.mapping.video = `${provider.id}/${provider.models[0].id}`;
+    config.mapping.video = `${provider.id}/${provider.models[0]!.id}`;
   }
 
   // 迁移视觉配置
@@ -195,7 +195,7 @@ export function migrateFromOldConfig(
       };
 
       config.providers.push(provider);
-      config.mapping.vision = `${provider.id}/${provider.models[0].id}`;
+      config.mapping.vision = `${provider.id}/${provider.models[0]!.id}`;
     }
   }
 

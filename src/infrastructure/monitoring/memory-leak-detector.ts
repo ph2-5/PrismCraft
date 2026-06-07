@@ -39,7 +39,7 @@ class MemoryLeakDetector {
   start(): void {
     if (this.intervalId) return;
     this.takeSnapshot();
-    this.baselineSnapshot = this.snapshots[0];
+    this.baselineSnapshot = this.snapshots[0] ?? null;
     this.intervalId = setInterval(() => this.takeSnapshot(), this.SNAPSHOT_INTERVAL_MS);
   }
 

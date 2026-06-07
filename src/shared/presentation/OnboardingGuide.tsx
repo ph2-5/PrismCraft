@@ -61,7 +61,7 @@ export function OnboardingGuide() {
 
   if (completed) return null;
 
-  const step = ONBOARDING_STEPS[currentStep];
+  const step = ONBOARDING_STEPS[currentStep]!;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -81,6 +81,7 @@ export function OnboardingGuide() {
           <button
             onClick={completeGuide}
             className="text-gray-400 hover:text-white transition-colors"
+            aria-label={t("aria.close")}
           >
             <X className="w-5 h-5" />
           </button>

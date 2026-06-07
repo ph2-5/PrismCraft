@@ -125,7 +125,7 @@ export async function batchSynthesizeOutfits(
   }> = [];
 
   for (let i = 0; i < outfits.length; i++) {
-    const outfit = outfits[i];
+    const outfit = outfits[i]!;
     try {
       const result = await synthesizeOutfit({
         characterImageUrl,

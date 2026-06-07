@@ -86,7 +86,7 @@ export async function bulkPutVideoTasks(
     await safeTransaction(updateStatements);
   }
   try {
-    await trackChange("video_task", taskIds[0], "insert");
+    await trackChange("video_task", taskIds[0]!, "insert");
   } catch (e) {
     errorLogger.warn("[Storage] trackChange failed for video_task:bulkInsert", e);
   }

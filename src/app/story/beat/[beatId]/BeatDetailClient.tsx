@@ -221,6 +221,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => guardedPush("/story")}
+                aria-label={t("aria.goBack")}
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -442,6 +443,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                                 success(t("success.copied"), t("success.taskIdCopied"));
                               }
                             }}
+                            aria-label={t("aria.copyTaskId")}
                           >
                             <Copy className="w-3 h-3" />
                           </Button>

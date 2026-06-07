@@ -119,7 +119,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const themeInfo = useMemo(
-    () => THEMES.find((t) => t.id === theme) || THEMES[0],
+    () => THEMES.find((t) => t.id === theme) || THEMES[0]!,
     [theme],
   );
 

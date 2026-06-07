@@ -29,16 +29,12 @@ const {
   mockKeyStorageSave,
   mockKeyStorageLoad,
   mockKeyStorageDelete,
-  mockSsrfGuardAddWhitelist,
-  mockSsrfGuardRemoveWhitelist,
 } = vi.hoisted(() => ({
   mockLoadConfigAsync: vi.fn<() => Promise<unknown>>(),
   mockSaveConfigAsync: vi.fn<(config: unknown) => Promise<boolean>>(),
   mockKeyStorageSave: vi.fn<(key: string, value: string) => Promise<unknown>>(),
   mockKeyStorageLoad: vi.fn<(key: string) => Promise<unknown>>(),
   mockKeyStorageDelete: vi.fn<(key: string) => Promise<unknown>>(),
-  mockSsrfGuardAddWhitelist: vi.fn<(url: string) => void>(),
-  mockSsrfGuardRemoveWhitelist: vi.fn<(url: string) => void>(),
 }));
 
 vi.mock("../../../../electron/src/handlers/config", () => ({
@@ -51,13 +47,6 @@ vi.mock("../../../../electron/src/security/key-storage/key-storage", () => ({
     save: mockKeyStorageSave,
     load: mockKeyStorageLoad,
     delete: mockKeyStorageDelete,
-  },
-}));
-
-vi.mock("../../../../electron/src/security/ssrf-guard/ssrf-guard", () => ({
-  ssrfGuard: {
-    addWhitelist: mockSsrfGuardAddWhitelist,
-    removeWhitelist: mockSsrfGuardRemoveWhitelist,
   },
 }));
 
@@ -342,7 +331,7 @@ describe("sync-config-storage", () => {
       expect((savedConfig.sync.server as Record<string, unknown>).token).toBeUndefined();
     });
 
-    it("服务器 URL 变更时应更新 SSRF 白名单（移除旧 URL，添加新 URL）", async () => {
+    it("服务器 URL 变更时应正确保存新配置（本地优先应用信任用户配置，无需 SSRF 白名单管理）", async () => {
       mockLoadConfigAsync.mockResolvedValue({
         ...DEFAULT_APP_CONFIG,
         sync: {
@@ -361,7 +350,7 @@ describe("sync-config-storage", () => {
         },
       });
 
-      await handleSyncConfig("POST", {
+      const result = await handleSyncConfig("POST", {
         config: {
           enabled: true,
           autoSync: true,
@@ -380,11 +369,12 @@ describe("sync-config-storage", () => {
         },
       });
 
-      expect(mockSsrfGuardRemoveWhitelist).toHaveBeenCalledWith("https://old-sync.example.com");
-      expect(mockSsrfGuardAddWhitelist).toHaveBeenCalledWith("https://new-sync.example.com");
+      expect(result.success).toBe(true);
+      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, Record<string, unknown>>;
+      expect((savedConfig.sync.server as Record<string, unknown>).url).toBe("https://new-sync.example.com");
     });
 
-    it("首次配置服务器时应只添加 SSRF 白名单（无旧 URL 需移除）", async () => {
+    it("首次配置服务器时应正确保存（无需 SSRF 白名单管理）", async () => {
       mockLoadConfigAsync.mockResolvedValue({
         ...DEFAULT_APP_CONFIG,
         sync: {
@@ -398,7 +388,7 @@ describe("sync-config-storage", () => {
         },
       });
 
-      await handleSyncConfig("POST", {
+      const result = await handleSyncConfig("POST", {
         config: {
           enabled: true,
           autoSync: true,
@@ -417,8 +407,11 @@ describe("sync-config-storage", () => {
         },
       });
 
-      expect(mockSsrfGuardRemoveWhitelist).not.toHaveBeenCalled();
-      expect(mockSsrfGuardAddWhitelist).toHaveBeenCalledWith("https://sync.example.com");
+      expect(result.success).toBe(true);
+      expect(mockKeyStorageSave).toHaveBeenCalledWith(
+        "sync_credentials",
+        JSON.stringify({ username: "admin", token: "sk-secret" }),
+      );
     });
 
     it("server 为 null 时应删除加密凭证", async () => {
@@ -455,7 +448,7 @@ describe("sync-config-storage", () => {
       expect(mockKeyStorageDelete).toHaveBeenCalledWith("sync_credentials");
     });
 
-    it("server 为 null 时应从 SSRF 白名单移除旧 URL", async () => {
+    it("server 为 null 时应正确清除服务器配置（无需 SSRF 白名单管理）", async () => {
       mockLoadConfigAsync.mockResolvedValue({
         ...DEFAULT_APP_CONFIG,
         sync: {
@@ -474,7 +467,7 @@ describe("sync-config-storage", () => {
         },
       });
 
-      await handleSyncConfig("POST", {
+      const result = await handleSyncConfig("POST", {
         config: {
           enabled: false,
           autoSync: true,
@@ -486,50 +479,9 @@ describe("sync-config-storage", () => {
         },
       });
 
-      expect(mockSsrfGuardRemoveWhitelist).toHaveBeenCalledWith("https://sync.example.com");
-      expect(mockSsrfGuardAddWhitelist).not.toHaveBeenCalled();
-    });
-
-    it("URL 未变更时不应重复操作 SSRF 白名单", async () => {
-      mockLoadConfigAsync.mockResolvedValue({
-        ...DEFAULT_APP_CONFIG,
-        sync: {
-          enabled: true,
-          autoSync: true,
-          syncInterval: 30000,
-          conflictStrategy: "last-write-wins",
-          endpoint: "",
-          deviceId: "device-1",
-          server: {
-            url: "https://sync.example.com",
-            connected: true,
-            lastConnectedAt: 1716193800,
-            serverVersion: "v1.0.0",
-          },
-        },
-      });
-
-      await handleSyncConfig("POST", {
-        config: {
-          enabled: true,
-          autoSync: true,
-          syncInterval: 60000,
-          conflictStrategy: "last-write-wins",
-          endpoint: "",
-          deviceId: "device-1",
-          server: {
-            url: "https://sync.example.com",
-            connected: true,
-            lastConnectedAt: 1716193800,
-            serverVersion: "v1.0.0",
-            username: "admin",
-            token: "sk-secret",
-          },
-        },
-      });
-
-      expect(mockSsrfGuardRemoveWhitelist).not.toHaveBeenCalled();
-      expect(mockSsrfGuardAddWhitelist).not.toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, Record<string, unknown>>;
+      expect(savedConfig.sync.server).toBeNull();
     });
 
     it("保存失败时应返回错误信息", async () => {

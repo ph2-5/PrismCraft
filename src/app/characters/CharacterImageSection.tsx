@@ -114,7 +114,7 @@ export function CharacterImageSection({
                   currentCharacter.generatedImage ||
                   currentCharacter.refImagePath,
               )}
-              alt="Generated character"
+              alt={t("character.characterImage")}
               className="w-full h-full object-cover"
             />
           </div>

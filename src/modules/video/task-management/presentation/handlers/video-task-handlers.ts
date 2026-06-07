@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { VideoTask, useVideoTaskStore } from "@/modules/video/task-management";
+import { type VideoTask, useVideoTaskStore } from "@/modules/video/task-management";
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { getVideoUrlWithCache } from "@/modules/video/cache";
 import { useToastHelpers } from "@/shared/presentation/Toast";

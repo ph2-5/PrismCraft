@@ -64,7 +64,7 @@ export const storyStorage = {
       [id],
     );
     if (result.length === 0) return null;
-    const parsed = parseStory(result[0]);
+    const parsed = parseStory(result[0]!);
     const relations = await fetchStoryRelations(id);
     return { ...parsed, ...relations } as T;
   },
@@ -75,7 +75,7 @@ export const storyStorage = {
       [beatId],
     );
     if (beatRows.length === 0) return null;
-    const storyId = beatRows[0].story_id;
+    const storyId = beatRows[0]!.story_id;
     return storyStorage.getStoryById(storyId);
   },
 
@@ -286,7 +286,7 @@ export const storyStorage = {
       if (existing.length === 0) {
         throw new Error(`Story not found for update: id="${id}"`);
       }
-      if (version !== undefined && existing[0].version !== version) {
+      if (version !== undefined && existing[0]!.version !== version) {
         throw new VersionConflictError("stories", id, version);
       }
     }

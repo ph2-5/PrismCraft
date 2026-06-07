@@ -127,11 +127,11 @@ export const videoCacheStorage = {
     );
     return result.length > 0
       ? {
-          filePath: result[0].file_path,
-          mimeType: result[0].mime_type,
-          originalUrl: result[0].original_url,
-          cachedAt: result[0].cached_at,
-          fileSize: result[0].file_size,
+          filePath: result[0]!.file_path,
+          mimeType: result[0]!.mime_type,
+          originalUrl: result[0]!.original_url,
+          cachedAt: result[0]!.cached_at,
+          fileSize: result[0]!.file_size,
         }
       : null;
   },

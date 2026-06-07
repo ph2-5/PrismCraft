@@ -110,7 +110,7 @@ export function ProviderForm({
 
       <div className="space-y-2">
         <Label htmlFor="apiKey">
-          API Key <span className="text-red-500">*</span>
+          {t("provider.apiKey")} <span className="text-red-500">*</span>
         </Label>
         <Input
           id="apiKey"

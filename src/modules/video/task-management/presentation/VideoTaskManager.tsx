@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from "react";
+import { useRef, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -17,7 +17,7 @@ import {
   FileDown,
   FolderOpen,
 } from "lucide-react";
-import { VideoTask } from "@/modules/video/task-management";
+import { type VideoTask } from "@/modules/video/task-management";
 import { t } from "@/shared/constants";
 
 import { useTaskFilter } from "./use-task-filter";
@@ -231,7 +231,7 @@ export function VideoTaskManager({
               {Object.entries(groupedTasks).map(([groupId, groupTasks]) => {
                 if (groupTasks.length === 0) return null;
                 const isStoryGroup = groupId !== "others";
-                const firstTask = groupTasks[0];
+                const firstTask = groupTasks[0]!;
                 const storyTitle = isStoryGroup
                   ? firstTask.storyTitle
                   : groupBy === "model"

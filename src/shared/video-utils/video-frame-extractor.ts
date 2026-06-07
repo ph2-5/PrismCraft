@@ -1,3 +1,5 @@
+const DEFAULT_FRAME_SIZE = 512;
+
 export interface ExtractedFrames {
   firstFrame: string;
   lastFrame: string;
@@ -61,8 +63,8 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
         return;
       }
 
-      canvas.width = video.videoWidth || 512;
-      canvas.height = video.videoHeight || 512;
+      canvas.width = video.videoWidth || DEFAULT_FRAME_SIZE;
+      canvas.height = video.videoHeight || DEFAULT_FRAME_SIZE;
 
       const frames: ExtractedFrames = {
         firstFrame: "",
@@ -104,8 +106,8 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
 
 export function dataUrlToFile(dataUrl: string, filename: string): File {
   const arr = dataUrl.split(",");
-  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
-  const bstr = atob(arr[1]);
+  const mime = arr[0]!.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+  const bstr = atob(arr[1]!);
   let n = bstr.length;
   const u8arr = new Uint8Array(n);
   while (n--) {

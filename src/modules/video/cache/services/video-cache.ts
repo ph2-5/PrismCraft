@@ -20,6 +20,7 @@ function getRecoveryFn(): RecoveryFn | null {
 const MAX_CACHE_SIZE = 500;
 const MAX_TOTAL_BLOB_SIZE_MB = 10240;
 const CACHE_RETRY_COUNT = 3;
+const DEFAULT_URL_TTL = 3600;
 
 const memoryCache = new Map<string, { blob: Blob; mimeType: string; cachedAt: number }>();
 
@@ -76,7 +77,7 @@ export async function cacheVideoBlob(
 
     const task = await container.videoTaskStorage.getVideoTaskById(taskId);
     if (task?.urlObtainedAt && task?.videoUrl) {
-      const urlTtl = task.urlTtl || 3600;
+      const urlTtl = task.urlTtl ?? DEFAULT_URL_TTL;
       const elapsed = Math.floor(Date.now() / 1000) - task.urlObtainedAt;
       if (elapsed > urlTtl * 0.8) {
         const freshUrl = await refreshVideoUrl(taskId);

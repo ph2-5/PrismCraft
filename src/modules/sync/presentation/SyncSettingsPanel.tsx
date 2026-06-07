@@ -232,7 +232,7 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
       story_version: "story_versions",
       collection: "collections",
     };
-    const tableName = tableMap[entityType];
+    const tableName = tableMap[entityType as keyof typeof tableMap];
     if (!tableName) return;
 
     const pk = tableName === "video_tasks" ? "task_id" : "id";

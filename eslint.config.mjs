@@ -115,6 +115,9 @@ const eslintConfig = tseslint.config(
         { patterns: deprecatedImportPatterns },
       ],
       "react-hooks/rules-of-hooks": "error",
+      "eqeqeq": ["error", "always", { null: "ignore" }],
+      "prefer-const": ["warn", { destructuring: "all" }],
+      "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports", fixStyle: "inline-type-imports", disallowTypeAnnotations: false }],
     },
   },
   {

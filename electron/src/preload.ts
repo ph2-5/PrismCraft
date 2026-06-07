@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import type { IpcArgs, IpcResult, MenuEventCallback } from "./types/ipc";
 
 type MenuListener = (event: IpcRendererEvent, ...args: IpcArgs) => void;

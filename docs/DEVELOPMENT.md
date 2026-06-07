@@ -118,7 +118,7 @@ electron/src/
 ├── database/         → SQLite 连接、Schema 构建器、迁移
 ├── handlers/         → IPC 处理器（数据库、配置、同步、安全配置）
 ├── plugins/          → 插件注册、用户插件加载、10 个 AI 提供商
-├── security/         → SSRF 防护、密钥存储
+├── security/         → SSRF 防护（仅云元数据拦截）、密钥存储
 └── logging/          → 日志系统（ConsoleTransport + FileTransport）
 ```
 

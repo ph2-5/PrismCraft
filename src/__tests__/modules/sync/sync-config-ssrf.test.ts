@@ -6,9 +6,6 @@ const {
   mockKeyStorageSave,
   mockKeyStorageLoad,
   mockKeyStorageDelete,
-  mockSsrfGuardValidate,
-  mockSsrfGuardAddWhitelist,
-  mockSsrfGuardRemoveWhitelist,
   mockMakeSyncRequest,
 } = vi.hoisted(() => ({
   mockLoadConfigAsync: vi.fn(),
@@ -16,9 +13,6 @@ const {
   mockKeyStorageSave: vi.fn(),
   mockKeyStorageLoad: vi.fn(),
   mockKeyStorageDelete: vi.fn(),
-  mockSsrfGuardValidate: vi.fn(),
-  mockSsrfGuardAddWhitelist: vi.fn(),
-  mockSsrfGuardRemoveWhitelist: vi.fn(),
   mockMakeSyncRequest: vi.fn(),
 }));
 
@@ -32,14 +26,6 @@ vi.mock("../../../../electron/src/security/key-storage/key-storage", () => ({
     save: mockKeyStorageSave,
     load: mockKeyStorageLoad,
     delete: mockKeyStorageDelete,
-  },
-}));
-
-vi.mock("../../../../electron/src/security/ssrf-guard/ssrf-guard", () => ({
-  ssrfGuard: {
-    validate: mockSsrfGuardValidate,
-    addWhitelist: mockSsrfGuardAddWhitelist,
-    removeWhitelist: mockSsrfGuardRemoveWhitelist,
   },
 }));
 
@@ -75,93 +61,45 @@ describe("sync-config-ssrf", () => {
       value: JSON.stringify({ username: "admin", token: "sk-sync-token" }),
     });
     mockKeyStorageDelete.mockResolvedValue({ ok: true });
-    mockSsrfGuardValidate.mockResolvedValue({ safe: true });
     mockMakeSyncRequest.mockResolvedValue({
       statusCode: 200,
       data: { version: "v1.0.0", token: "auth-token-123" },
     });
   });
 
-  describe("handleSyncTest - SSRF 防护", () => {
-    it("应通过 ssrfGuard 验证目标 URL", async () => {
-      mockSsrfGuardValidate.mockResolvedValue({ safe: true });
-
-      await handleSyncTest("POST", {
+  describe("handleSyncTest - 用户配置的 URL 直接信任", () => {
+    it("应直接信任用户配置的外部 URL", async () => {
+      const result = await handleSyncTest("POST", {
         url: "https://sync.example.com",
         username: "admin",
         password: "pass123",
       });
 
-      expect(mockSsrfGuardValidate).toHaveBeenCalledWith("https://sync.example.com");
+      expect(result.success).toBe(true);
     });
 
-    it("应拒绝指向私有 IP 的测试连接请求", async () => {
-      mockSsrfGuardValidate.mockResolvedValue({
-        safe: false,
-        reason: "Private hostname detected",
-      });
-
+    it("应直接信任用户配置的内网 URL（本地优先应用信任用户配置）", async () => {
       const result = await handleSyncTest("POST", {
         url: "http://192.168.1.1:3000",
         username: "admin",
         password: "pass123",
       });
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Private");
-      expect(result.error).toBeDefined();
+      expect(result.success).toBe(true);
     });
 
-    it("应拒绝指向云元数据端点的测试连接请求", async () => {
-      mockSsrfGuardValidate.mockResolvedValue({
-        safe: false,
-        reason: "Cloud metadata endpoint blocked",
-      });
-
+    it("应直接信任用户配置的 localhost URL", async () => {
       const result = await handleSyncTest("POST", {
-        url: "http://169.254.169.254/latest/meta-data/",
+        url: "http://localhost:8080",
         username: "admin",
         password: "pass123",
       });
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("metadata");
+      expect(result.success).toBe(true);
     });
 
-    it("应拒绝无效 URL 格式", async () => {
-      mockSsrfGuardValidate.mockResolvedValue({
-        safe: false,
-        reason: "Invalid URL format",
-      });
-
-      const result = await handleSyncTest("POST", {
-        url: "not-a-valid-url",
-        username: "admin",
-        password: "pass123",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-    });
-
-    it("应拒绝非 http/https 协议", async () => {
-      mockSsrfGuardValidate.mockResolvedValue({
-        safe: false,
-        reason: "Unsupported protocol: file:",
-      });
-
-      const result = await handleSyncTest("POST", {
-        url: "file:///etc/passwd",
-        username: "admin",
-        password: "pass123",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("protocol");
-    });
-
-    it("白名单内的 URL 应允许测试连接", async () => {
-      mockSsrfGuardValidate.mockResolvedValue({ safe: true });
+    it("连接失败时应返回错误", async () => {
+      mockMakeSyncRequest.mockRejectedValue(new Error("ECONNREFUSED"));
 
       const result = await handleSyncTest("POST", {
         url: "https://sync.example.com",
@@ -169,8 +107,21 @@ describe("sync-config-ssrf", () => {
         password: "pass123",
       });
 
-      expect(mockSsrfGuardValidate).toHaveBeenCalledWith("https://sync.example.com");
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("连接失败");
+    });
+
+    it("认证失败时应返回错误", async () => {
+      mockMakeSyncRequest.mockResolvedValue({ statusCode: 401, data: {} });
+
+      const result = await handleSyncTest("POST", {
+        url: "https://sync.example.com",
+        username: "admin",
+        password: "wrong",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("认证失败");
     });
 
     it("缺少 url 参数时应返回错误", async () => {
@@ -184,8 +135,6 @@ describe("sync-config-ssrf", () => {
     });
 
     it("缺少 username 或 password 时应返回错误", async () => {
-      mockSsrfGuardValidate.mockResolvedValue({ safe: true });
-
       const result = await handleSyncTest("POST", {
         url: "https://sync.example.com",
       });
@@ -193,10 +142,22 @@ describe("sync-config-ssrf", () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
+
+    it("成功时应返回服务器版本和延迟", async () => {
+      const result = await handleSyncTest("POST", {
+        url: "https://sync.example.com",
+        username: "admin",
+        password: "pass123",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.serverVersion).toBe("v1.0.0");
+      expect(result.latency).toBeDefined();
+    });
   });
 
-  describe("handleSyncProxy - SSRF 防护", () => {
-    it("应从配置中读取服务器 URL 并通过 ssrfGuard 验证", async () => {
+  describe("handleSyncProxy - 用户配置的 URL 直接信任", () => {
+    it("应直接信任配置的服务器 URL 并发送代理请求", async () => {
       mockLoadConfigAsync.mockResolvedValue({
         ...DEFAULT_APP_CONFIG,
         sync: {
@@ -214,18 +175,17 @@ describe("sync-config-ssrf", () => {
           },
         },
       });
-      mockSsrfGuardValidate.mockResolvedValue({ safe: true });
 
-      await handleSyncProxy("POST", {
+      const result = await handleSyncProxy("POST", {
         action: "push",
         changes: [],
         deviceId: "device-1",
       });
 
-      expect(mockSsrfGuardValidate).toHaveBeenCalledWith("https://sync.example.com");
+      expect(result.success).toBe(true);
     });
 
-    it("应拒绝向私有 IP 代理请求", async () => {
+    it("应直接信任内网服务器 URL（本地优先应用信任用户配置）", async () => {
       mockLoadConfigAsync.mockResolvedValue({
         ...DEFAULT_APP_CONFIG,
         sync: {
@@ -243,10 +203,6 @@ describe("sync-config-ssrf", () => {
           },
         },
       });
-      mockSsrfGuardValidate.mockResolvedValue({
-        safe: false,
-        reason: "DNS resolved to private IP: 10.0.0.1",
-      });
 
       const result = await handleSyncProxy("POST", {
         action: "push",
@@ -254,8 +210,7 @@ describe("sync-config-ssrf", () => {
         deviceId: "device-1",
       });
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("private");
+      expect(result.success).toBe(true);
     });
 
     it("未配置服务器时应返回错误", async () => {
@@ -300,7 +255,6 @@ describe("sync-config-ssrf", () => {
           },
         },
       });
-      mockSsrfGuardValidate.mockResolvedValue({ safe: true });
       mockKeyStorageLoad.mockResolvedValue({
         ok: true,
         value: JSON.stringify({ username: "admin", token: "sk-sync-token" }),
@@ -334,7 +288,6 @@ describe("sync-config-ssrf", () => {
           },
         },
       });
-      mockSsrfGuardValidate.mockResolvedValue({ safe: true });
       mockKeyStorageLoad.mockResolvedValue({ ok: false, error: "Not found" });
 
       const result = await handleSyncProxy("POST", {
@@ -390,7 +343,6 @@ describe("sync-config-ssrf", () => {
           },
         },
       });
-      mockSsrfGuardValidate.mockResolvedValue({ safe: true });
 
       const result = await handleSyncProxy("POST", {
         action: "invalid",

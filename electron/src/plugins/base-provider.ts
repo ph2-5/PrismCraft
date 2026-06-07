@@ -159,7 +159,7 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
   extractTextContent(response: Record<string, unknown>): string {
     const choices = response.choices as Record<string, unknown>[] | undefined;
     if (choices && Array.isArray(choices) && choices.length > 0) {
-      const message = choices[0].message as Record<string, unknown> | undefined;
+      const message = choices[0]!.message as Record<string, unknown> | undefined;
       if (message?.content) return message.content as string;
     }
     return "";

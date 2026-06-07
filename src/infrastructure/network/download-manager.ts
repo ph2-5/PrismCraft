@@ -53,7 +53,7 @@ function selectSource(sources: DownloadSource[]): DownloadSource | null {
     if (random <= 0) return source;
   }
 
-  return sources[0];
+  return sources[0]!;
 }
 
 async function processTask(taskId: string): Promise<void> {

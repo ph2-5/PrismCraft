@@ -85,7 +85,7 @@ export const storyboardStorage = {
       "SELECT * FROM storyboard_assets WHERE id = ?",
       [id],
     );
-    return result.length > 0 ? parseStoryboardAsset(result[0]) : null;
+    return result.length > 0 ? parseStoryboardAsset(result[0]!) : null;
   },
 
   async createStoryboardAsset(

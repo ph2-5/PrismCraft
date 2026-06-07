@@ -13,6 +13,7 @@ import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
+import { API_SERVER_PORT } from "@/config/ports";
 import { AppError } from "@/domain/types/result";
 import { isElectron } from "@/shared/utils/platform";
 
@@ -206,7 +207,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
                 createdAt: task.createdAt,
               }));
               const xhr = new XMLHttpRequest();
-              xhr.open("POST", `http://localhost:30100/video-tasks/bulk-save`, false);
+              xhr.open("POST", `http://localhost:${API_SERVER_PORT}/video-tasks/bulk-save`, false);
               xhr.setRequestHeader("Content-Type", "application/json");
               xhr.setRequestHeader("X-Electron-App", "true");
               xhr.send(JSON.stringify({ tasks: bulkData }));
@@ -763,7 +764,7 @@ export function useVideoTaskManager() {
     isGenerating: hasActiveTasks,
     activeTaskId:
       activeTasks.length > 0
-        ? activeTasks[activeTasks.length - 1].taskId
+        ? activeTasks[activeTasks.length - 1]!.taskId
         : null,
     activeTasks,
     hasActiveTasks,

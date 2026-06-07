@@ -61,7 +61,7 @@ function sanitizeStack(stack: string | undefined): string | undefined {
     .replace(/\(?.:\\[^)]+\\node_modules\\/g, "(node_modules://")
     .replace(/at .+ \(.:\\.+\\/g, (match) => {
       const parts = match.split("(");
-      return parts.length > 1 ? `at <fn> (${parts[1].substring(0, 30)}...` : match;
+      return parts.length > 1 ? `at <fn> (${parts[1]!.substring(0, 30)}...` : match;
     });
 }
 

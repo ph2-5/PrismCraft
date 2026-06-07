@@ -89,6 +89,7 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label={t("aria.closeSearch")}
           >
             <X className="w-5 h-5 text-gray-400" />
           </button>

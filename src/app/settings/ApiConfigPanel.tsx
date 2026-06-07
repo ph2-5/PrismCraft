@@ -25,8 +25,8 @@ import {
 import PluginManager from "./plugin-manager";
 import { confirm } from "@/shared/utils/confirm";
 import {
-  ApiConfig,
-  ApiCapability,
+  type ApiConfig,
+  type ApiCapability,
   loadConfig,
   saveConfig,
   getDefaultConfig,
@@ -42,7 +42,7 @@ import {
   loadPluginTemplates,
   getTemplateWithPlugins,
   checkConfigStatus,
-  ConfigStatus,
+  type ConfigStatus,
 } from "@/infrastructure/api-config-facade";
 import { testConnection } from "@/infrastructure/ai-providers";
 import { loadModelProfilesFromServer } from "@/shared/model-capabilities";
@@ -247,7 +247,7 @@ export function ApiConfigPanel() {
     if (!provider) return;
 
     const updatedModels = [...provider.models];
-    updatedModels[modelIndex] = { ...updatedModels[modelIndex], ...updates };
+    updatedModels[modelIndex] = { ...updatedModels[modelIndex]!, ...updates };
 
     handleUpdateProvider(providerId, { models: updatedModels });
   };

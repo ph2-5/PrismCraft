@@ -5,7 +5,6 @@ import { app } from "electron";
 import { getLogger } from "../logging/logger";
 import { generateTableSQL, generateJunctionTableSQL, SCHEMA_FEATURES } from "./schema-builder";
 import type { TableDef, ColumnDef } from "./schema-builder";
-import { CURRENT_SCHEMA_VERSION, MIGRATIONS, runMigrations } from "./migrations";
 export { CURRENT_SCHEMA_VERSION, MIGRATIONS, runMigrations } from "./migrations";
 
 const logger = getLogger("db-schema");

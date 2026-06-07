@@ -135,7 +135,6 @@ export async function handleTestConnection(
     apiKey: altApiKey,
     modelId,
     providerId,
-    format,
     mode = "lightweight",
   } = body;
 

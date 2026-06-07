@@ -170,7 +170,7 @@ export function KeyframePanel({
                 prevBeat.keyframe?.imageUrl,
               ) || ""
             }
-            alt=""
+            alt={t("keyframe.prevBeatKeyframe")}
             className="w-8 h-8 rounded object-cover border border-slate-600"
           />
         </div>

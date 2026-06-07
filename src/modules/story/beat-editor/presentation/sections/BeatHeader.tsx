@@ -31,6 +31,7 @@ export function BeatHeader({
           size="icon"
           onClick={onClose}
           className="hover:bg-muted text-muted-foreground hover:text-foreground h-8 w-8"
+          aria-label={t("aria.close")}
         >
           <X className="w-4 h-4" />
         </Button>
@@ -60,6 +61,7 @@ export function BeatHeader({
           onClick={onPrevBeat}
           disabled={index === 0}
           className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8"
+          aria-label={t("aria.prevBeat")}
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
@@ -69,6 +71,7 @@ export function BeatHeader({
           onClick={onNextBeat}
           disabled={index === totalBeats - 1}
           className="text-muted-foreground hover:text-foreground hover:bg-muted"
+          aria-label={t("aria.nextBeat")}
         >
           <ChevronRight className="w-4 h-4" />
         </Button>

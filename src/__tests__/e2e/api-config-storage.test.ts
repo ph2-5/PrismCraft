@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { setupElectronApiMock, getElectronApiMock, resetElectronApiMock } from "../mocks/electron-api";
+import { setupElectronApiMock, type getElectronApiMock, resetElectronApiMock } from "../mocks/electron-api";
 import { saveConfig, loadConfig, invalidateConfigCache } from "@/infrastructure/ai-providers/api-config/storage";
 import type { ApiConfig } from "@/infrastructure/ai-providers/api-config/types";
 

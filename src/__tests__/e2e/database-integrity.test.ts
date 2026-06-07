@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { InMemoryDatabase, getTestDatabase, closeTestDatabase } from "../mocks/in-memory-db";
+import { type InMemoryDatabase, getTestDatabase, closeTestDatabase } from "../mocks/in-memory-db";
 import { setupElectronApiMock } from "../mocks/electron-api";
 
 let db: InMemoryDatabase;

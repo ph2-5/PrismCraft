@@ -104,7 +104,7 @@ export function ProfessionalModeEditor({
   useEffect(() => {
     if (pendingNewBeatRef.current && beats.length > 0) {
       pendingNewBeatRef.current = false;
-      setEditingBeatId(beats[beats.length - 1].id);
+      setEditingBeatId(beats[beats.length - 1]!.id);
     }
   }, [beats]);
 
@@ -171,13 +171,13 @@ export function ProfessionalModeEditor({
 
   const handlePrevBeat = useCallback(() => {
     if (editingBeatIndex > 0) {
-      setEditingBeatId(beats[editingBeatIndex - 1].id);
+      setEditingBeatId(beats[editingBeatIndex - 1]!.id);
     }
   }, [editingBeatIndex, beats]);
 
   const handleNextBeat = useCallback(() => {
     if (editingBeatIndex < beats.length - 1) {
-      setEditingBeatId(beats[editingBeatIndex + 1].id);
+      setEditingBeatId(beats[editingBeatIndex + 1]!.id);
     }
   }, [editingBeatIndex, beats]);
 

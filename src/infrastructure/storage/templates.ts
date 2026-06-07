@@ -91,7 +91,7 @@ export const templateStorage = {
       "SELECT * FROM ast_templates WHERE id = ?",
       [id],
     );
-    return result.length > 0 ? parseRecordWithTable(result[0], "ast_templates") : null;
+    return result.length > 0 ? parseRecordWithTable(result[0]!, "ast_templates") : null;
   },
 
   async getASTTemplates(filters?: {

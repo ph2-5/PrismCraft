@@ -107,9 +107,9 @@ export function useStoryState() {
       }
       const newBeats = [...prev];
       const swapIndex = direction === "up" ? index - 1 : index + 1;
-      [newBeats[index], newBeats[swapIndex]] = [
-        newBeats[swapIndex],
-        newBeats[index],
+      [newBeats[index]!, newBeats[swapIndex]!] = [
+        newBeats[swapIndex]!,
+        newBeats[index]!,
       ];
       return newBeats.map((b, i) => ({ ...b, order: i + 1, sequence: i + 1 }));
     });

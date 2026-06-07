@@ -25,7 +25,7 @@ function findSubdomain(filePath: string): { module: string; subdomain: string | 
   const normalized = filePath.replace(/\\/g, "/");
   const match = normalized.match(/src\/modules\/([^/]+)(?:\/([^/]+))?/);
   if (!match) return null;
-  return { module: match[1], subdomain: match[2] || null };
+  return { module: match[1]!, subdomain: match[2] ?? null };
 }
 
 function loadContract(moduleDir: string, subdomain: string): Record<string, unknown> | null {
@@ -69,7 +69,6 @@ function resolveContextBoundary(filePath: string): ContextBoundary {
   }
 
   const contract = loadContract(moduleDir, subdomain);
-  const subdomainDir = path.join(moduleDir, subdomain);
   const shouldLoad: string[] = [];
   const shouldNotLoad: string[] = [];
 

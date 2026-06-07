@@ -116,7 +116,7 @@ export function parseConsistencyAnalysis(
 
   const totalMatch = analysis.match(/总分[:：]\s*(\d+)/i);
   if (totalMatch) {
-    totalScore = Math.min(100, Math.max(0, parseInt(totalMatch[1], 10))) / 100;
+    totalScore = Math.min(100, Math.max(0, parseInt(totalMatch[1]!, 10))) / 100;
   }
 
   const appearanceMatch = analysis.match(/外观一致性[:：]\s*(\d+)/i);
@@ -125,7 +125,7 @@ export function parseConsistencyAnalysis(
 
   const issueSection = analysis.match(/问题列表[:：]([\s\S]*?)(?=\n\n|$)/i);
   if (issueSection) {
-    const issueLines = issueSection[1]
+    const issueLines = issueSection[1]!
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.startsWith("-") || line.startsWith("•"));
@@ -138,9 +138,9 @@ export function parseConsistencyAnalysis(
   }
 
   if (issues.length === 0) {
-    const appearanceScore = appearanceMatch ? parseInt(appearanceMatch[1], 10) : 50;
-    const colorScore = colorMatch ? parseInt(colorMatch[1], 10) : 50;
-    const styleScore = styleMatch ? parseInt(styleMatch[1], 10) : 50;
+    const appearanceScore = appearanceMatch ? parseInt(appearanceMatch[1]!, 10) : 50;
+    const colorScore = colorMatch ? parseInt(colorMatch[1]!, 10) : 50;
+    const styleScore = styleMatch ? parseInt(styleMatch[1]!, 10) : 50;
 
     if (appearanceScore < 60) {
       issues.push("外观特征与参考图差异较大");

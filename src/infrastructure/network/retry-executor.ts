@@ -107,7 +107,7 @@ export async function executeWithRetry<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const resolvedPolicy: RetryPolicy =
-    typeof policy === "string" ? RETRY_POLICIES[policy] : policy;
+    typeof policy === "string" ? RETRY_POLICIES[policy]! : policy;
 
   let lastError: Error = new Error("All retries exhausted");
 

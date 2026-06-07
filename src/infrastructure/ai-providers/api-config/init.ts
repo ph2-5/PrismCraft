@@ -2,7 +2,7 @@
  * API 配置初始化与状态检查
  */
 
-import { ApiConfig, ApiCapability } from "./types";
+import { type ApiConfig, type ApiCapability } from "./types";
 import { loadConfig, getCapabilityConfig } from "./storage";
 
 export interface ConfigStatusItem {
@@ -48,7 +48,7 @@ export async function checkConfigStatus(): Promise<ConfigStatus> {
   const missing: string[] = [];
 
   (["text", "image", "vision", "video"] as ApiCapability[]).forEach((cap) => {
-    if (!items[["text", "image", "vision", "video"].indexOf(cap)].configured) {
+    if (!items[["text", "image", "vision", "video"].indexOf(cap)]!.configured) {
       missing.push(capabilityNames[cap]);
     }
   });

@@ -94,7 +94,7 @@ function validateSql(sql: string): boolean {
   }
 
   const trimmed = sql.trim();
-  const firstWord = trimmed.split(/\s+/)[0].toUpperCase();
+  const firstWord = trimmed.split(/\s+/)[0]!.toUpperCase();
 
   if (firstWord === "PRAGMA") {
     const isAllowed = ALLOWED_PRAGMA_STATEMENTS.some((pattern) =>
@@ -134,7 +134,7 @@ function validateSql(sql: string): boolean {
   ];
 
   for (const match of tableMatches) {
-    const tableName = match[1].toLowerCase();
+    const tableName = match[1]!.toLowerCase();
     if (!ALLOWED_TABLES.has(tableName)) {
       throw new Error(`Table "${tableName}" is not in the allowed list`);
     }
@@ -185,7 +185,7 @@ function redactResult(sql: string, data: unknown): unknown {
     ...sql.matchAll(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi),
   ];
   for (const match of tableMatches) {
-    if (SENSITIVE_TABLES.has(match[1].toLowerCase())) {
+    if (SENSITIVE_TABLES.has(match[1]!.toLowerCase())) {
       return [];
     }
   }

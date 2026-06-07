@@ -58,7 +58,7 @@ export const characterStorage = {
       [id],
     );
     return result.length > 0
-      ? ((await parseCharacterWithOutfits(result[0])) as T)
+      ? ((await parseCharacterWithOutfits(result[0]!)) as T)
       : null;
   },
 
@@ -107,7 +107,7 @@ export const characterStorage = {
     if (existing.length === 0) {
       throw new Error(`Character not found for update: id="${id}"`);
     }
-    if (version !== undefined && existing[0].version !== version) {
+    if (version !== undefined && existing[0]!.version !== version) {
       throw new VersionConflictError("characters", id, version);
     }
 

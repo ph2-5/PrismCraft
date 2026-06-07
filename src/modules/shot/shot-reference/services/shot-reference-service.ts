@@ -57,7 +57,7 @@ export function validateReference(
   if (reference.direction === "previous") {
     const currentIndex = beats.findIndex((b) => b.id === currentBeatId);
     if (currentIndex > 0) {
-      const prevBeat = beats[currentIndex - 1];
+      const prevBeat = beats[currentIndex - 1]!;
       if (
         reference.contentType === "last_frame" &&
         !prevBeat.framePair?.lastFrameUrl &&
@@ -92,11 +92,11 @@ export function getTargetShot(
 
   switch (reference.direction) {
     case "previous":
-      if (currentIndex > 0) return beats[currentIndex - 1];
+      if (currentIndex > 0) return beats[currentIndex - 1]!;
       return null;
 
     case "next":
-      if (currentIndex >= 0 && currentIndex < beats.length - 1) return beats[currentIndex + 1];
+      if (currentIndex >= 0 && currentIndex < beats.length - 1) return beats[currentIndex + 1]!;
       return null;
 
     case "custom":

@@ -204,7 +204,7 @@ export function buildTemplateDesc(config: TemplateConfig): string {
 }
 
 export function getStyleKeywords(style: string): string[] {
-  return STYLE_KEYWORDS[style] || STYLE_KEYWORDS.realistic;
+  return STYLE_KEYWORDS[style] ?? STYLE_KEYWORDS.realistic!;
 }
 
 export function getSceneTypeKeywords(type: string): string[] {

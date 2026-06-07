@@ -102,7 +102,7 @@ export async function getLibrary(): Promise<ElementLibrary> {
   for (const element of elements) {
     const match = element.id.match(/_(\d+)$/);
     if (match) {
-      const num = parseInt(match[1], 10);
+      const num = parseInt(match[1]!, 10);
       const type = element.type;
       if (num >= nextCode[type]) {
         nextCode[type] = num + 1;
@@ -123,7 +123,7 @@ export async function getElement(
 
   if (rows.length === 0) return undefined;
 
-  return parseElementRow(rows[0]);
+  return parseElementRow(rows[0]!);
 }
 
 export async function getAllElements(): Promise<StoryElement[]> {

@@ -35,7 +35,7 @@ export const autoSaveStorage = {
           "INSERT INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?)",
           [autoSave.id, autoSave.type, JSON.stringify(autoSave.data), ts],
         );
-      } else if (existing[0].timestamp > ts) {
+      } else if (existing[0]!.timestamp > ts) {
         return;
       }
     }
@@ -73,6 +73,6 @@ export const autoSaveStorage = {
       [id],
     );
     if (result.length === 0) return undefined;
-    return parseRecordWithTable(result[0], "auto_saves") as T;
+    return parseRecordWithTable(result[0]!, "auto_saves") as T;
   },
 };

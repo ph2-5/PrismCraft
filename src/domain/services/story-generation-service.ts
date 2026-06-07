@@ -96,7 +96,7 @@ function buildChainReference(
 ): { prevBeat: StoryBeat | null } {
   const idx = beats.findIndex((b) => b.id === beatId);
   if (idx <= 0) return { prevBeat: null };
-  return { prevBeat: beats[idx - 1] };
+  return { prevBeat: beats[idx - 1]! };
 }
 
 export const StoryGenerationService = {

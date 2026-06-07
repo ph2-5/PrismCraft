@@ -238,7 +238,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
   const updateModel = useCallback((index: number, updates: Partial<ModelDefinition>) => {
     setState((prev) => {
       const models = [...prev.models];
-      models[index] = { ...models[index], ...updates };
+      models[index] = { ...models[index]!, ...updates };
       return { ...prev, models };
     });
     setValidationResult(null);

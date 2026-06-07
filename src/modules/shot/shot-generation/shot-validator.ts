@@ -89,8 +89,8 @@ function normalizeEnumValue(
   if (!value) return undefined;
   const lower = value.toLowerCase().replace(/[\s-]/g, "_");
   if (validValues.includes(lower)) return lower;
-  if (aliases[value]) return aliases[value];
-  if (aliases[lower]) return aliases[lower];
+  if (aliases[value]) return aliases[value]!;
+  if (aliases[lower]) return aliases[lower]!;
   for (const [alias, target] of Object.entries(aliases)) {
     const aliasLower = alias.toLowerCase();
     if (
@@ -292,7 +292,7 @@ export function generateFallbackParams(
     },
   };
 
-  const defaults = genreDefaults[genre] || genreDefaults.drama;
+  const defaults = genreDefaults[genre] ?? genreDefaults.drama!;
 
   return {
     prompt:

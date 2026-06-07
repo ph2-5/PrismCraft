@@ -41,7 +41,7 @@ export function mapUserFacingError(error: unknown): string {
 
   const ipcMatch = raw.match(IPC_RATE_LIMIT_PATTERN);
   if (ipcMatch) {
-    const key = IPC_CHANNEL_MESSAGE_KEYS[ipcMatch[1]] ?? "error.rateLimit";
+    const key = IPC_CHANNEL_MESSAGE_KEYS[ipcMatch[1]!] ?? "error.rateLimit";
     return t(key);
   }
 

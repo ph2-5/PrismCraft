@@ -5,7 +5,7 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { ModelSelector } from "@/modules/prompt";
 import { VideoTaskManager } from "@/modules/video";
-import { useStory } from "./StoryProvider";
+import { type useStory } from "./StoryProvider";
 
 type StoryValue = ReturnType<typeof useStory>;
 

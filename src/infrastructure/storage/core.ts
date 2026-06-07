@@ -246,7 +246,7 @@ export function buildUpdateSets(
       if (!containerUpdates[target.container]) {
         containerUpdates[target.container] = [];
       }
-      containerUpdates[target.container].push({ key: target.key, value: processedValue });
+      containerUpdates[target.container]!.push({ key: target.key, value: processedValue });
     }
   }
 
@@ -292,7 +292,7 @@ export function buildInsertFromTargets(
       if (!containers[target.container]) {
         containers[target.container] = {};
       }
-      containers[target.container][target.key] = processedValue;
+      containers[target.container]![target.key] = processedValue;
     }
   }
 
@@ -312,8 +312,8 @@ export function buildJsonSet(
   const params: unknown[] = [];
 
   if (fields.length === 1) {
-    params.push(fields[0].value === null || fields[0].value === undefined ? null : fields[0].value);
-    const sql = `${safeContainer} = json_set(COALESCE(${safeContainer}, '{}'), '$.${fields[0].key}', ?)`;
+    params.push(fields[0]!.value === null || fields[0]!.value === undefined ? null : fields[0]!.value);
+    const sql = `${safeContainer} = json_set(COALESCE(${safeContainer}, '{}'), '$.${fields[0]!.key}', ?)`;
     return { sql, params };
   }
 

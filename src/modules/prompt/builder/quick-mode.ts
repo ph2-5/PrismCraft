@@ -98,7 +98,7 @@ export function generateQuickModeVideoPrompt(params: QuickModeParams): string {
   promptParts.push(`【视频内容】\n${prompt}`);
 
   const styleDesc = STYLE_PRESETS[style] || style;
-  const resConfig = RESOLUTION_CONFIG[resolution] || RESOLUTION_CONFIG["1080p"];
+  const resConfig = RESOLUTION_CONFIG[resolution] ?? RESOLUTION_CONFIG["1080p"]!;
   promptParts.push(`【画面风格】${styleDesc}`);
   promptParts.push(
     `【技术参数】${resConfig.desc}，视频时长${duration}秒，画面流畅清晰，稳定无抖动`,

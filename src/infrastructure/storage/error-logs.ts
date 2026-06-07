@@ -48,7 +48,7 @@ export const errorLogStorage = {
       [keepCount],
     );
     if (result.length >= keepCount) {
-      const minId = result[result.length - 1].id;
+      const minId = result[result.length - 1]!.id;
       await safeRun("DELETE FROM error_logs WHERE id < ?", [minId]);
     }
   },

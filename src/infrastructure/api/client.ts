@@ -44,7 +44,7 @@ function composeInterceptors(
   let handler = finalHandler;
 
   for (let i = interceptorList.length - 1; i >= 0; i--) {
-    const current = interceptorList[i];
+    const current = interceptorList[i]!;
     const next = handler;
     handler = (req) => current(req, next);
   }

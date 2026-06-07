@@ -34,14 +34,14 @@ function parseContainer(): TokenEntry[] {
   for (const line of lines) {
     const categoryMatch = line.match(/\/\/\s*──\s*([A-F])\.\s*(.+?)\s*──/);
     if (categoryMatch) {
-      currentCategory = categoryMatch[1];
-      currentCategoryLabel = CATEGORY_LABELS[currentCategory] || categoryMatch[2].trim();
+      currentCategory = categoryMatch[1]!;
+      currentCategoryLabel = CATEGORY_LABELS[currentCategory] || categoryMatch[2]!.trim();
       continue;
     }
 
     const tokenMatch = line.match(/^\s*(\w+):\s*createToken(?:<([^>]+)>)?\(\s*["'](\w+)["']/);
     if (tokenMatch) {
-      const name = tokenMatch[1];
+      const name = tokenMatch[1]!;
       const typeHint = tokenMatch[2] || "";
       const isLazy = line.includes("async ()");
 
@@ -50,7 +50,7 @@ function parseContainer(): TokenEntry[] {
       for (const importLine of lines) {
         const m = importLine.match(importRegex);
         if (m) {
-          sourceModule = m[1];
+          sourceModule = m[1]!;
           break;
         }
       }
@@ -59,7 +59,7 @@ function parseContainer(): TokenEntry[] {
         for (const importLine of lines) {
           const anyImport = importLine.match(new RegExp(`\\b${name}\\b.*from\\s+['"]([^'"]+)['"]`));
           if (anyImport) {
-            sourceModule = anyImport[1];
+            sourceModule = anyImport[1]!;
             break;
           }
         }
@@ -69,7 +69,7 @@ function parseContainer(): TokenEntry[] {
         for (const importLine of lines) {
           const destructuredMatch = importLine.match(new RegExp(`\\{[^}]*\\b${name}\\b[^}]*\\}.*from\\s+['"]([^'"]+)['"]`));
           if (destructuredMatch) {
-            sourceModule = destructuredMatch[1];
+            sourceModule = destructuredMatch[1]!;
             break;
           }
         }
@@ -110,7 +110,7 @@ function generateMarkdown(tokens: TokenEntry[]): string {
   }
 
   for (const [cat, entries] of categoryGroups) {
-    lines.push(`| ${cat}. ${CATEGORY_LABELS[cat]} | ${entries[0].categoryLabel} | ${entries.length} |`);
+    lines.push(`| ${cat}. ${CATEGORY_LABELS[cat]} | ${entries[0]!.categoryLabel} | ${entries.length} |`);
   }
 
   lines.push("");

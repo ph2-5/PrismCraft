@@ -45,9 +45,9 @@ export function PluginApiConfig({ state, updateField }: PluginApiConfigProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="bearer">Bearer Token</SelectItem>
-              <SelectItem value="api-key-header">API Key (Header)</SelectItem>
-              <SelectItem value="api-key-query">API Key (Query)</SelectItem>
+              <SelectItem value="bearer">{t("plugin.authBearer")}</SelectItem>
+              <SelectItem value="api-key-header">{t("plugin.authApiKeyHeader")}</SelectItem>
+              <SelectItem value="api-key-query">{t("plugin.authApiKeyQuery")}</SelectItem>
               <SelectItem value="custom">{t("plugin.authCustom")}</SelectItem>
             </SelectContent>
           </Select>
@@ -150,8 +150,8 @@ export function PluginApiConfig({ state, updateField }: PluginApiConfigProps) {
               <Select value={state.imageMode} onValueChange={(v) => updateField("imageMode", v as WizardState["imageMode"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="base64">Base64</SelectItem>
-                  <SelectItem value="url">URL</SelectItem>
+                  <SelectItem value="base64">{t("plugin.transportBase64")}</SelectItem>
+                  <SelectItem value="url">{t("plugin.transportUrl")}</SelectItem>
                   <SelectItem value="upload">{t("plugin.uploadMode")}</SelectItem>
                 </SelectContent>
               </Select>
@@ -161,8 +161,8 @@ export function PluginApiConfig({ state, updateField }: PluginApiConfigProps) {
               <Select value={state.videoMode} onValueChange={(v) => updateField("videoMode", v as WizardState["videoMode"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="base64">Base64</SelectItem>
-                  <SelectItem value="url">URL</SelectItem>
+                  <SelectItem value="base64">{t("plugin.transportBase64")}</SelectItem>
+                  <SelectItem value="url">{t("plugin.transportUrl")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

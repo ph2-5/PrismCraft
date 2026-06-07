@@ -8,6 +8,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { memo } from "react";
+
+const DEFAULT_CONSISTENCY_STRENGTH = 0.8;
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
@@ -91,7 +93,7 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
               {t("shot.frameBindingDisabled")}
             </Badge>
             <Badge className="bg-purple-600/50 text-[10px]">
-              {t("shot.consistency", { percent: Math.round((anchoring.featureConsistencyStrength || 0.8) * 100) })}
+              {t("shot.consistency", { percent: Math.round((anchoring.featureConsistencyStrength ?? DEFAULT_CONSISTENCY_STRENGTH) * 100) })}
             </Badge>
           </div>
         </div>

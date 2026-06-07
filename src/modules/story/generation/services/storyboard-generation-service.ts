@@ -495,7 +495,7 @@ export async function generateKeyframeChain(
     let prevBeat: StoryBeat | null = null;
 
     for (let i = 0; i < beats.length; i++) {
-      const beat = beats[i];
+      const beat = beats[i]!;
       onProgress?.(i, beats.length, beat.id);
 
       try {
@@ -552,7 +552,7 @@ export async function generateFramePairChain(
     }
 
     for (let i = 0; i < beats.length; i++) {
-      const beat = beats[i];
+      const beat = beats[i]!;
       onProgress?.(i, beats.length, beat.id);
 
       if (!beat.keyframe?.imageUrl && !beat.uploadedKeyframe) {
@@ -560,8 +560,8 @@ export async function generateFramePairChain(
       }
 
       try {
-        const prevBeatDescription = i > 0 ? beats[i - 1].content || beats[i - 1].description : undefined;
-        const nextBeatDescription = i < beats.length - 1 ? beats[i + 1].content || beats[i + 1].description : undefined;
+        const prevBeatDescription = i > 0 ? beats[i - 1]!.content || beats[i - 1]!.description : undefined;
+        const nextBeatDescription = i < beats.length - 1 ? beats[i + 1]!.content || beats[i + 1]!.description : undefined;
 
         const framePairResult = await generateBeatFramePair(beat, {
           characters: options.characters,

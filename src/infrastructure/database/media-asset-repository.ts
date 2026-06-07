@@ -64,7 +64,7 @@ export const mediaAssetRepository = {
         [id],
       );
       if (rows.length === 0) return null;
-      return rowToMediaAsset(rows[0]);
+      return rowToMediaAsset(rows[0]!);
     });
   },
 

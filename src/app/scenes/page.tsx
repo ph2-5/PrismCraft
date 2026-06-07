@@ -323,7 +323,7 @@ function ScenesPageContent() {
                           currentScene.scenePath ||
                           currentScene.generatedImage,
                       )}
-                      alt="Generated scene"
+                      alt={t("scene.sceneImage")}
                       className="w-full h-full object-cover"
                     />
                   </div>

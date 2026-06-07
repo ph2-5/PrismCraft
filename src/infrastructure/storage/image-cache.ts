@@ -130,12 +130,12 @@ export const imageCacheStorage = {
     scheduleAccessUpdate(sourceUrl);
 
     return {
-      filePath: result[0].file_path,
-      mimeType: result[0].mime_type,
-      fileSize: result[0].file_size,
-      width: result[0].width ?? undefined,
-      height: result[0].height ?? undefined,
-      cachedAt: result[0].cached_at,
+      filePath: result[0]!.file_path,
+      mimeType: result[0]!.mime_type,
+      fileSize: result[0]!.file_size,
+      width: result[0]!.width ?? undefined,
+      height: result[0]!.height ?? undefined,
+      cachedAt: result[0]!.cached_at,
     };
   },
 

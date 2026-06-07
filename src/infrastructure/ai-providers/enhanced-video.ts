@@ -5,6 +5,8 @@ import type { ApiResponse, EnhancedVideoGenerationParams, VideoGenerationResult 
 import { generateVideo } from "./video-service";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 
+const DEFAULT_CONSISTENCY_STRENGTH = 0.8;
+
 export async function generateEnhancedVideo(
   params: EnhancedVideoGenerationParams,
 ): Promise<ApiResponse<VideoGenerationResult>> {
@@ -72,7 +74,7 @@ export async function generateEnhancedVideo(
       enabled: true,
       disableFrameBinding: true,
       featureConsistencyStrength:
-        params.featureAnchoring?.featureConsistencyStrength || 0.8,
+        params.featureAnchoring?.featureConsistencyStrength ?? DEFAULT_CONSISTENCY_STRENGTH,
       characterAnchors: params.featureAnchoring?.characterAnchors.map((a) => ({
         elementId: a.elementId,
         featureTags: a.featureTags,

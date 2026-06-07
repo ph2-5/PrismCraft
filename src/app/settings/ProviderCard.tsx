@@ -154,7 +154,7 @@ export function ProviderCard({
                   htmlFor={`baseUrl-${provider.id}`}
                   className="text-xs"
                 >
-                  Base URL
+                  {t("provider.baseUrl")}
                 </Label>
                 <Input
                   id={`baseUrl-${provider.id}`}
@@ -174,7 +174,7 @@ export function ProviderCard({
                 htmlFor={`apiKey-${provider.id}`}
                 className="text-xs"
               >
-                API Key
+                {t("provider.apiKey")}
               </Label>
               <Input
                 id={`apiKey-${provider.id}`}

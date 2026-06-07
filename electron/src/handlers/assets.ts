@@ -86,7 +86,7 @@ function saveBase64Image(
   let ext = "png";
   let pureBase64 = base64Data;
   if (matches) {
-    ext = matches[1] === "jpeg" ? "jpg" : matches[1];
+    ext = matches[1] === "jpeg" ? "jpg" : matches[1]!;
     pureBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
   }
   const finalFilename = filename.endsWith(`.${ext}`)

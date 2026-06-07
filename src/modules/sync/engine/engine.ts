@@ -380,7 +380,7 @@ async function applyRemoteChanges(changes: RemoteChange[]): Promise<void> {
   const allStatements: { sql: string; params: unknown[] }[] = [];
 
   for (const [, entityChanges] of changesByEntity) {
-    const change = entityChanges[entityChanges.length - 1];
+    const change = entityChanges[entityChanges.length - 1]!;
 
     const tableName = getTableName(change.entityType);
     if (!tableName) continue;

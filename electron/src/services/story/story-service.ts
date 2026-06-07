@@ -311,7 +311,7 @@ export function validateStoryPlan(plan: RawStoryBeat[]): StoryPlanValidationResu
   const allAutoFixed: string[] = [];
 
   for (let i = 0; i < plan.length; i++) {
-    const { fixed, autoFixed } = fixStoryBeat(plan[i]);
+    const { fixed, autoFixed } = fixStoryBeat(plan[i]!);
     fixedPlan.push(fixed as StoryBeat);
     allAutoFixed.push(...autoFixed.map((f: string) => `[分镜${i + 1}] ${f}`));
     if (!fixed.title) allErrors.push(`[分镜${i + 1}] 缺少标题`);
@@ -355,7 +355,7 @@ function buildFewShotPrompt(examples: FewShotExample[]): string {
 export function parseStoryPlanJSON(text: string): RawStoryBeat[] | null {
   let jsonStr = text.trim();
   const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) jsonStr = codeBlockMatch[1].trim();
+  if (codeBlockMatch) jsonStr = codeBlockMatch[1]!.trim();
   const jsonMatch = jsonStr.match(/\[[\s\S]*?\]/);
   if (jsonMatch) jsonStr = jsonMatch[0];
   try {

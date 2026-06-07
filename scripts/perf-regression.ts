@@ -2,7 +2,6 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const BENCH_DIR = path.resolve(process.cwd(), "src/__tests__/bench");
 const BASELINE_PATH = path.resolve(process.cwd(), ".perf-baseline.json");
 const THRESHOLD_PERCENT = 10;
 
@@ -62,10 +61,10 @@ function runBenchmark(name: string, fn: () => void, iterations: number): Benchma
   times.sort((a, b) => a - b);
   const mean = times.reduce((a, b) => a + b, 0) / times.length;
   const median = times.length % 2 === 0
-    ? (times[times.length / 2 - 1] + times[times.length / 2]) / 2
-    : times[Math.floor(times.length / 2)];
-  const min = times[0];
-  const max = times[times.length - 1];
+    ? (times[times.length / 2 - 1]! + times[times.length / 2]!) / 2
+    : times[Math.floor(times.length / 2)]!;
+  const min = times[0]!;
+  const max = times[times.length - 1]!;
   const opsPerSec = 1000 / mean;
 
   return { name, mean, median, min, max, opsPerSec };

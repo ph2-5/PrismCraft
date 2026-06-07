@@ -463,7 +463,7 @@ export function resolveImageSize(
     const targetRatio = PURPOSE_ASPECT_RATIO[purpose];
     const match = capabilities.supportedImageSizes.find((s) => s.aspectRatio === targetRatio);
     if (match) return `${match.width}x${match.height}`;
-    return `${capabilities.supportedImageSizes[0].width}x${capabilities.supportedImageSizes[0].height}`;
+    return `${capabilities.supportedImageSizes[0]!.width}x${capabilities.supportedImageSizes[0]!.height}`;
   }
 
   return `${capabilities.maxResolution}x${capabilities.maxResolution}`;

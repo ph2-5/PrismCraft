@@ -86,7 +86,7 @@ export function BeatDetailEditor({
   };
 
   const selectedScene = scenes.find((scene) => scene.id === beat.scene);
-  const prevBeat = index > 0 ? allShots[index - 1] : null;
+  const prevBeat = index > 0 ? allShots[index - 1]! : null;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

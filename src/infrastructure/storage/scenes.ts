@@ -112,7 +112,7 @@ export const sceneStorage = {
       "SELECT * FROM scenes WHERE id = ?",
       [id],
     );
-    return result.length > 0 ? (parseScene(result[0]) as T) : null;
+    return result.length > 0 ? (parseScene(result[0]!) as T) : null;
   },
 
   async createScene(scene: Partial<Scene>): Promise<void> {

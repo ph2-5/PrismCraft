@@ -89,6 +89,7 @@ function ModelParams({
                   onClick={() => {
                     updateModel(index, { durations: model.durations.filter((item) => item._uid !== d._uid) });
                   }}
+                  aria-label={t("aria.removeDuration")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -164,6 +165,7 @@ function ModelParams({
                   onClick={() => {
                     updateModel(index, { resolutions: model.resolutions.filter((item) => item._uid !== r._uid) });
                   }}
+                  aria-label={t("aria.removeResolution")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -215,6 +217,7 @@ function ModelParams({
                   onClick={() => {
                     updateModel(index, { styles: model.styles.filter((item) => item._uid !== s._uid) });
                   }}
+                  aria-label={t("aria.removeStyle")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -260,7 +263,7 @@ function ModelParams({
                   });
                 }}
               />
-              <Label className="text-xs">CFG Scale</Label>
+              <Label className="text-xs">{t("plugin.cfgScale")}</Label>
             </div>
             {model.cfgScale && (
               <div className="flex items-center gap-2 pl-6">
@@ -306,7 +309,7 @@ function ModelParams({
                     type="number"
                     value={model.cfgScale.step}
                     onChange={(e) => {
-                      const cfgScale = { ...model.cfgScale!, step: Number(e.target.value) || 0.1 };
+                      const cfgScale = { ...model.cfgScale!, step: Number(e.target.value) || 0 };
                       updateModel(index, { cfgScale });
                     }}
                     className="font-mono h-8 text-xs w-20"
@@ -364,6 +367,7 @@ export function PluginModelDefs({
                   size="icon"
                   className="h-8 w-8 text-red-500"
                   onClick={() => removeModel(index)}
+                  aria-label={t("aria.removeModel")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

@@ -99,14 +99,14 @@ class PerformanceMonitor {
     const filtered = type ? this.metrics.filter((m) => m.type === type) : this.metrics;
     if (filtered.length === 0) return { count: 0, avgMs: 0, p50Ms: 0, p95Ms: 0, p99Ms: 0, maxMs: 0 };
     const durations = filtered.map((m) => m.durationMs).sort((a, b) => a - b);
-    const percentile = (p: number) => durations[Math.floor(durations.length * p)];
+    const percentile = (p: number) => durations[Math.floor(durations.length * p)]!;
     return {
       count: filtered.length,
       avgMs: durations.reduce((a, b) => a + b, 0) / durations.length,
       p50Ms: percentile(0.5),
       p95Ms: percentile(0.95),
       p99Ms: percentile(0.99),
-      maxMs: durations[durations.length - 1],
+      maxMs: durations[durations.length - 1]!,
     };
   }
 

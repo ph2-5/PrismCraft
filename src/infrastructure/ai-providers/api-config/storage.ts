@@ -1,4 +1,4 @@
-import { ApiConfig, ProviderConfig } from "./types";
+import { type ApiConfig, type ProviderConfig } from "./types";
 import { errorLogger } from "@/shared/error-logger";
 
 const CONFIG_KEY = "ai_animation_studio_api_config";

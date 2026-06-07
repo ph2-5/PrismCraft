@@ -17,6 +17,8 @@ export default defineConfig({
     outDir: "out",
     emptyOutDir: true,
     chunkSizeWarningLimit: 800,
+    reportCompressedSize: false,
+    sourcemap: !isElectron,
     rolldownOptions: {
       output: {
         codeSplitting: {

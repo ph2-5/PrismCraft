@@ -1,5 +1,5 @@
 import http from "http";
-import net from "net";
+import type net from "net";
 import fs from "fs";
 import path from "path";
 import { handleConfig, handleSecureConfig } from "./handlers/config";
@@ -19,9 +19,9 @@ import * as storyboardGeneration from "./services/story/storyboard-generation";
 import * as videoTracker from "./services/video/video-tracker";
 import * as videoRecovery from "./services/video/video-recovery";
 import { getLogger } from "./logging";
-import type { ApiRequest, ApiResponse, RouteHandler } from "./types/api";
+import type { RouteHandler } from "./types/api";
 import { API_SERVER_PORT, APP_SERVER_PORT, DEV_SERVER_PORT } from "./config/ports";
-import { getDb, getDbPath, CURRENT_SCHEMA_VERSION } from "./database";
+import { getDb, CURRENT_SCHEMA_VERSION } from "./database";
 
 const logger = getLogger("api-server");
 const serverStartTime = Date.now();
@@ -111,7 +111,7 @@ function resolveDocsPath(fileName: string): string {
       if (fs.existsSync(candidate)) return candidate;
     } catch (e) { logger.warn("API请求处理失败", { error: e instanceof Error ? e.message : String(e) }); }
   }
-  return candidates[0];
+  return candidates[0]!;
 }
 
 const routes: Record<string, Route> = {
@@ -982,7 +982,7 @@ function startApiServer(): Promise<void> {
       }
 
       const urlParts = (req.url || "").split("?");
-      const pathname = urlParts[0].replace(/^\//, "").replace(/^api\//, "");
+      const pathname = urlParts[0]!.replace(/^\//, "").replace(/^api\//, "");
 
       if (pathname === "health") {
         let dbStatus = "uninitialized";

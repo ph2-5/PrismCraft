@@ -108,7 +108,7 @@ export function OnboardingGuide() {
 
   if (completed) return null;
 
-  const step = ONBOARDING_STEPS[currentStep];
+  const step = ONBOARDING_STEPS[currentStep]!;
   const isLastStep = currentStep === ONBOARDING_STEPS.length - 1;
 
   return (
@@ -117,6 +117,7 @@ export function OnboardingGuide() {
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label={t("aria.close")}
         >
           <X className="h-5 w-5" />
         </button>
@@ -218,6 +219,7 @@ export function ApiKeyAlert() {
         <button
           onClick={() => setIsVisible(false)}
           className="text-yellow-400 hover:text-yellow-300"
+          aria-label={t("aria.close")}
         >
           <X className="h-4 w-4" />
         </button>

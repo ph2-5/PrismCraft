@@ -231,7 +231,7 @@ export function buildUpdateSets(updates: Partial<VideoTask>): { sql: string; par
       if (target.key === "parameters" && typeof value === "object" && value !== null) {
         processedValue = JSON.stringify(value);
       }
-      containerUpdates[target.container].push({ key: target.key, value: processedValue });
+      containerUpdates[target.container]!.push({ key: target.key, value: processedValue });
     }
   }
 

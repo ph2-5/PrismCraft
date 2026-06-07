@@ -4,7 +4,7 @@
  * 支持插件驱动的 Provider Template（P7）
  */
 
-import { ProviderConfig, ApiFormat, ModelConfig } from "./types";
+import { type ProviderConfig, type ApiFormat, type ModelConfig } from "./types";
 import { isElectron } from "@/shared/utils/platform";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import { errorLogger } from "@/shared/error-logger";

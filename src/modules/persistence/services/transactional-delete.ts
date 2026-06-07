@@ -61,7 +61,7 @@ export async function deleteCharacterWithRefs(characterId: string): Promise<Resu
     );
     const characterPaths: (string | null | undefined)[] = [];
     if (characterRows.length > 0) {
-      const row = characterRows[0];
+      const row = characterRows[0]!;
       characterPaths.push(
         row.ref_image_path as string | undefined,
         row.avatar_path as string | undefined,
@@ -125,7 +125,7 @@ export async function deleteSceneWithRefs(sceneId: string): Promise<Result<void>
     );
     const scenePaths: (string | null | undefined)[] = [];
     if (sceneRows.length > 0) {
-      const row = sceneRows[0];
+      const row = sceneRows[0]!;
       scenePaths.push(
         row.ref_image_path as string | undefined,
         row.generated_image as string | undefined,

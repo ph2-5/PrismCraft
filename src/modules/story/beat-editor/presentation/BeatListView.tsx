@@ -319,7 +319,7 @@ export function BeatListView({
         ) : shouldVirtualize ? (
           <div style={{ height: totalSize, position: "relative" }}>
             {virtualItems.map((virtualItem) => {
-              const beat = beats[virtualItem.index];
+              const beat = beats[virtualItem.index]!;
               return (
                 <div key={beat.id} style={{ position: "absolute", top: virtualItem.start, left: 0, width: "100%", height: virtualItem.size }}>
                   <BeatOverviewCard

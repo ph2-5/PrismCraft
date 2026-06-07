@@ -278,6 +278,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
         size="icon"
         className="h-6 w-6 -mr-2 -mt-2 shrink-0 hover:bg-muted/50"
         onClick={onClose}
+        aria-label={t("aria.dismissNotification")}
       >
         <X className="w-3.5 h-3.5" />
       </Button>

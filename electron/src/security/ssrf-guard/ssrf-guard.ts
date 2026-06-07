@@ -210,11 +210,11 @@ class SsrfGuard {
       }
       const v4MappedMatch = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
       if (v4MappedMatch) {
-        return this.isPrivateIp(v4MappedMatch[1]);
+        return this.isPrivateIp(v4MappedMatch[1]!);
       }
       const v4MappedShort = lower.match(/^0{0,4}:0{0,4}:0{0,4}:0{0,4}:0{0,4}:ffff:(\d+\.\d+\.\d+\.\d+)$/i);
       if (v4MappedShort) {
-        return this.isPrivateIp(v4MappedShort[1]);
+        return this.isPrivateIp(v4MappedShort[1]!);
       }
       return false;
     }
@@ -236,13 +236,13 @@ class SsrfGuard {
   // --- 内部方法 ---
 
   private isIpv6LinkLocal(ip: string): boolean {
-    const firstHextet = ip.split(":")[0].toLowerCase();
+    const firstHextet = ip.split(":")[0]!.toLowerCase();
     const value = parseInt(firstHextet, 16);
     return (value & 0xffc0) === 0xfe80;
   }
 
   private isIpv6Ula(ip: string): boolean {
-    const firstHextet = ip.split(":")[0].toLowerCase();
+    const firstHextet = ip.split(":")[0]!.toLowerCase();
     const value = parseInt(firstHextet, 16);
     return (value & 0xfe00) === 0xfc00;
   }
@@ -312,8 +312,8 @@ class SsrfGuard {
               }
             }
 
-            resolve({ safe: true, resolvedIp: addresses6[0] });
-            this.resolvedIpCache.set(hostname.toLowerCase(), { ip: addresses6[0], timestamp: Date.now() });
+            resolve({ safe: true, resolvedIp: addresses6[0]! });
+            this.resolvedIpCache.set(hostname.toLowerCase(), { ip: addresses6[0]!, timestamp: Date.now() });
           });
           return;
         }
@@ -329,8 +329,8 @@ class SsrfGuard {
           }
         }
 
-        resolve({ safe: true, resolvedIp: addresses4[0] });
-        this.resolvedIpCache.set(hostname.toLowerCase(), { ip: addresses4[0], timestamp: Date.now() });
+        resolve({ safe: true, resolvedIp: addresses4[0]! });
+        this.resolvedIpCache.set(hostname.toLowerCase(), { ip: addresses4[0]!, timestamp: Date.now() });
       });
     });
   }

@@ -3,7 +3,7 @@
  * 用于 API 路由中读取配置
  */
 
-import { ApiConfig, ApiCapability, ProviderConfig } from "./types";
+import { type ApiConfig, type ApiCapability, type ProviderConfig } from "./types";
 import fs from "fs";
 import path from "path";
 import { homedir } from "os";
@@ -32,13 +32,13 @@ function decryptField(encrypted: string): string | null {
   try {
     const parts = encrypted.split(":");
     if (parts.length !== 3) return null;
-    const iv = Buffer.from(parts[1], "hex");
+    const iv = Buffer.from(parts[1]!, "hex");
     const decipher = crypto.createDecipheriv(
       "aes-256-cbc",
       getServerEncryptionKey(),
       iv,
     );
-    let decrypted = decipher.update(parts[2], "hex", "utf8");
+    let decrypted = decipher.update(parts[2]!, "hex", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch (e) {

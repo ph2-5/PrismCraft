@@ -50,7 +50,7 @@ export function KeyboardShortcutsDialog({
     else if (shortcut.description.toLowerCase().includes("version")) category = "Version History";
 
     if (!acc[category]) acc[category] = [];
-    acc[category].push(shortcut);
+    acc[category]!.push(shortcut);
     return acc;
   }, {} as Record<string, Shortcut[]>);
 

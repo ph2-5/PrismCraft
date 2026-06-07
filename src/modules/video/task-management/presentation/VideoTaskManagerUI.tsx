@@ -421,7 +421,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
         <div ref={parentRef} style={{ maxHeight: "60vh", overflow: "auto" }} className="space-y-3">
           <div style={{ height: totalSize, position: "relative" }}>
             {virtualItems.map((virtualItem) => {
-              const task = sortedTasks[virtualItem.index];
+              const task = sortedTasks[virtualItem.index]!;
               return (
                 <div key={task.taskId} style={{ position: "absolute", top: virtualItem.start, left: 0, width: "100%", height: virtualItem.size }}>
                   <TaskCard

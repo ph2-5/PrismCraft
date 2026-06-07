@@ -1,5 +1,4 @@
 import type {
-  AIProviderPlugin,
   ModelCapabilities,
   VideoCapabilities,
   ImageCapabilities,
@@ -16,9 +15,6 @@ import type {
   ApiKeyDetection,
 } from "../types";
 import { BaseAIProviderPlugin } from "../base-provider";
-import { getLogger } from "../../logging/logger";
-
-const logger = getLogger("anthropic");
 
 const VIDEO_CAPABILITIES: VideoCapabilities = {
   supportsLastFrame: false,
@@ -38,14 +34,14 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
   readonly id = "anthropic";
   readonly displayName = "Anthropic (Claude)";
 
-  match(apiUrl: string, model?: string): boolean {
+  match(apiUrl: string, _model?: string): boolean {
     return apiUrl.includes("anthropic.com") || apiUrl.includes("bedrock-runtime");
   }
 
   readonly videoCapabilities = VIDEO_CAPABILITIES;
   readonly imageCapabilities = IMAGE_CAPABILITIES;
 
-  getModelCapabilities(modelId: string): ModelCapabilities {
+  getModelCapabilities(_modelId: string): ModelCapabilities {
     return {
       maxReferences: 0,
       maxResolution: 0,
@@ -108,7 +104,7 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
   extractTextContent(response: Record<string, unknown>): string {
     const content = response.content as Record<string, unknown>[] | undefined;
     if (content && Array.isArray(content) && content.length > 0) {
-      return (content[0].text as string) || "";
+      return (content[0]!.text as string) || "";
     }
     return "";
   }

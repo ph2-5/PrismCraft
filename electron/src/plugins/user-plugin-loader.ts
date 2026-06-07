@@ -8,10 +8,7 @@ import { validatePluginConfig } from "./user-plugin-schema";
 import { BaseAIProviderPlugin } from "./base-provider";
 import {
   ensureAccessibleUrl,
-  resolveLocalUrlToBase64,
   downloadAsBase64,
-  stripDataUriPrefix,
-  urlToPureBase64,
 } from "./utils";
 
 const logger = getLogger("user-plugin-loader");
@@ -55,7 +52,7 @@ function resolveTemplateValue(
 
     const match = result.match(/^\{\{(\w+)\}\}$/);
     if (match) {
-      const val = vars[match[1]];
+      const val = vars[match[1]!];
       if (val !== undefined) {
         return typeof val === "string" ? escapeTemplateChars(val) : val;
       }

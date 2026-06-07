@@ -709,7 +709,7 @@ before-quit → gracefulShutdown()
 
 **API Key 存储**：通过 `electron-store` 加密存储，访问路径为 IPC 的 `secure-config:*` 通道（save、load、resolve、delete、has）。渲染进程永远无法直接读取加密存储——`secure-config:resolve` 是唯一能获取解密后 API Key 的通道，属于 SECURE 权限级别。
 
-**SSRF 防护**：`ssrf-guard.ts` 模块可用但默认不强制执行。本地优先应用信任用户配置的端点地址（包括内网自部署 AI 服务如 Ollama、vLLM）。用户配置的 API URL 和同步服务器 URL 自动加入白名单，直接放行。云元数据端点（169.254.169.254）仍然被阻止。
+**SSRF 防护**：`ssrf-guard.ts` 模块保留用于云元数据端点（169.254.169.254）拦截。本地优先应用信任用户配置的所有端点地址（包括内网自部署 AI 服务如 Ollama、vLLM），不再维护白名单机制——用户配置的 URL 直接放行，无需注册到白名单。
 
 **X-Electron-App 头**：所有 API 请求必须携带 `X-Electron-App` 头，服务端验证此头以确认请求来自合法的 Electron 应用。这防止了浏览器或脚本直接调用 API。
 
@@ -1131,5 +1131,5 @@ describe("ComponentName", () => {
 ### 10.9 未来发展规划
 
 - **网络层已激活**：AI Provider 的 `apiCall` 已集成 `executeThroughCircuit`（断路器）和 `executeWithRetry`（重试器）。断路器按 endpoint 粒度保护（如 generate-image、generate-video 独立断路），重试器使用指数退避+抖动策略处理 429/500/超时/网络错误。断路器开启时自动降级到离线队列。网络层从"预埋基础设施"升级为"必要基础设施"
-- **UI 层国际化完成**：1634 键的 messages.ts 已覆盖核心 UI 文本，app/pages、modules/presentation、shared/presentation、modules/hooks 中用户可见文本已全部迁移为 t() 调用。AI 提示词模板和日志文本按规则不迁移
+- **UI 层国际化完成**：1806 键的 messages.ts 已覆盖核心 UI 文本，app/pages、modules/presentation、shared/presentation、modules/hooks 中用户可见文本已全部迁移为 t() 调用。AI 提示词模板和日志文本按规则不迁移
 - **测试覆盖均衡化**：storage 层测试密集（16个文件），但 character/scene/asset 的 hook 层测试薄弱。规划：优先补充 CRUD hook 和 presentation 组件的行为测试

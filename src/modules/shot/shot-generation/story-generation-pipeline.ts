@@ -451,7 +451,7 @@ function parseStoryPlanJSON(text: string): unknown[] | null {
 
   const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
-    jsonStr = codeBlockMatch[1].trim();
+    jsonStr = codeBlockMatch[1]!.trim();
   }
 
   const jsonMatch = jsonStr.match(/\[[\s\S]*?\]/);

@@ -228,7 +228,7 @@ export function downloadAsBase64(url: string): Promise<string> {
 
 export function stripDataUriPrefix(dataUri: string): string {
   const match = dataUri.match(/^data:[\w/+\-.]+;base64,(.+)$/);
-  return match ? match[1] : dataUri;
+  return match ? match[1]! : dataUri;
 }
 
 export async function urlToPureBase64(url: string): Promise<string> {

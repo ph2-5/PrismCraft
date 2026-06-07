@@ -169,9 +169,9 @@ export async function batchGenerateFramePrompts(
     const results = new Map<string, FramePromptOutput>();
 
     for (let i = 0; i < beats.length; i++) {
-      const beat = beats[i];
-      const prevBeatDescription = i > 0 ? beats[i - 1].content || beats[i - 1].description : undefined;
-      const nextBeatDescription = i < beats.length - 1 ? beats[i + 1].content || beats[i + 1].description : undefined;
+      const beat = beats[i]!;
+      const prevBeatDescription = i > 0 ? beats[i - 1]!.content || beats[i - 1]!.description : undefined;
+      const nextBeatDescription = i < beats.length - 1 ? beats[i + 1]!.content || beats[i + 1]!.description : undefined;
 
       try {
         const result = await generateFramePrompts({

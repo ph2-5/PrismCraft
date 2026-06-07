@@ -78,7 +78,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
     level: GenerationLevel,
   ): StoryBeat | null => {
     for (let i = index - 1; i >= 0; i--) {
-      const prevBeat = targetBeats[i];
+      const prevBeat = targetBeats[i]!;
       switch (level) {
         case "keyframe":
           if (prevBeat.keyframe?.imageUrl || prevBeat.uploadedKeyframe) return prevBeat;
@@ -125,7 +125,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
 
       for (let i = 0; i < targetBeats.length; i++) {
         if (cancelledRef.current) break;
-        const beat = targetBeats[i];
+        const beat = targetBeats[i]!;
 
         if (beat.uploadedKeyframe) {
           skippedCount++;
@@ -209,7 +209,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
 
       for (let i = 0; i < targetBeats.length; i++) {
         if (cancelledRef.current) break;
-        const beat = targetBeats[i];
+        const beat = targetBeats[i]!;
 
         if (beat.uploadedFramePair?.lastFrame) {
           skippedCount++;
@@ -293,7 +293,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
 
       for (let i = 0; i < targetBeats.length; i++) {
         if (cancelledRef.current) break;
-        const beat = targetBeats[i];
+        const beat = targetBeats[i]!;
         
         if (beat.uploadedVideo) {
           skippedCount++;

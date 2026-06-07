@@ -89,13 +89,13 @@ function findSubdomainForPath(filePath: string): { module: string; subdomain: st
   const normalized = filePath.replace(/\\/g, "/");
   const match = normalized.match(/src\/modules\/([^/]+)\/([^/]+)/);
   if (!match) return null;
-  return { module: match[1], subdomain: match[2] };
+  return { module: match[1]!, subdomain: match[2]! };
 }
 
 function detectImportTarget(moduleSpecifier: string): { module: string; subdomain: string } | null {
   const match = moduleSpecifier.match(/@\/modules\/([^/]+)(?:\/([^/]+))?/);
   if (!match) return null;
-  return { module: match[1], subdomain: match[2] || "__root__" };
+  return { module: match[1]!, subdomain: match[2] || "__root__" };
 }
 
 function extractImports(filePath: string): Array<{ target: { module: string; subdomain: string }; symbols: string[] }> {
@@ -107,13 +107,13 @@ function extractImports(filePath: string): Array<{ target: { module: string; sub
   let m: RegExpExecArray | null;
 
   while ((m = namedImportRegex.exec(content)) !== null) {
-    const symbols = m[1]
+    const symbols = m[1]!
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s.length > 0 && !s.startsWith("//"))
       .map((s) => s.replace(/^type\s+/, "").trim());
 
-    const target = detectImportTarget(m[2]);
+    const target = detectImportTarget(m[2]!);
     if (target) {
       results.push({ target, symbols });
     }
@@ -122,18 +122,18 @@ function extractImports(filePath: string): Array<{ target: { module: string; sub
   // 匹配 import X from "..."
   const defaultImportRegex = /import\s+(\w+)\s+from\s+['"]([^'"]+)['"];?/g;
   while ((m = defaultImportRegex.exec(content)) !== null) {
-    const target = detectImportTarget(m[2]);
+    const target = detectImportTarget(m[2]!);
     if (target) {
-      results.push({ target, symbols: [m[1]] });
+      results.push({ target, symbols: [m[1]!] });
     }
   }
 
   // 匹配 import * as X from "..."
   const namespaceImportRegex = /import\s+\*\s+as\s+(\w+)\s+from\s+['"]([^'"]+)['"];?/g;
   while ((m = namespaceImportRegex.exec(content)) !== null) {
-    const target = detectImportTarget(m[2]);
+    const target = detectImportTarget(m[2]!);
     if (target) {
-      results.push({ target, symbols: [`* as ${m[1]}`] });
+      results.push({ target, symbols: [`* as ${m[1]!}`] });
     }
   }
 
@@ -171,7 +171,7 @@ function detectDddViolations(): DddViolation[] {
         violations.push({
           file: relativePath,
           from: rule.dir.split("/").pop() || rule.dir,
-          to: fullMatch ? fullMatch[1] : m[0],
+          to: fullMatch ? fullMatch[1]! : m[0],
           rule: rule.rule,
         });
       }
@@ -199,7 +199,6 @@ function generateMermaid(graph: ModuleGraph): string {
   };
 
   for (const node of graph.nodes) {
-    const color = moduleColors[node.module] || "#888";
     lines.push(`  ${node.id}["${node.module}/${node.subdomain}<br/>${node.lines}L ${node.files}F"]:::mod`);
   }
 

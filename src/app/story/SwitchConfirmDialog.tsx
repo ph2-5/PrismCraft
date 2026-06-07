@@ -8,7 +8,7 @@ import {
 } from "@/shared/ui/dialog";
 import { Save } from "lucide-react";
 import { t } from "@/shared/constants";
-import { useStory } from "./StoryProvider";
+import { type useStory } from "./StoryProvider";
 
 type StoryValue = ReturnType<typeof useStory>;
 

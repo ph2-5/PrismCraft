@@ -96,9 +96,9 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="openai-content">OpenAI Content</SelectItem>
-              <SelectItem value="flat">Flat</SelectItem>
-              <SelectItem value="dashscope">DashScope</SelectItem>
+              <SelectItem value="openai-content">{t("plugin.bodyFormatOpenai")}</SelectItem>
+              <SelectItem value="flat">{t("plugin.bodyFormatFlat")}</SelectItem>
+              <SelectItem value="dashscope">{t("plugin.bodyFormatDashscope")}</SelectItem>
               <SelectItem value="custom">{t("plugin.authCustom")}</SelectItem>
             </SelectContent>
           </Select>
@@ -174,6 +174,7 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
                 onClick={() => {
                   updateField("extraFields", state.extraFields.filter((f) => f._uid !== field._uid));
                 }}
+                aria-label={t("aria.removeField")}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

@@ -498,7 +498,7 @@ before-quit → gracefulShutdown()
 ### 8.4 安全运维
 
 - API Key 通过 `electron-store` 加密存储，通过 `secure-config:*` IPC 通道访问
-- 所有主进程 HTTP 请求经过 SSRF 防护
+- 主进程 HTTP 请求信任用户配置的 URL，SSRF 防护仅拦截云元数据端点（169.254.169.254）
 - 请求头必须包含 `X-Electron-App`（服务端验证）
 - IPv6 链路本地地址检测：首段解析 `(value & 0xffc0) === 0xfe80`
 - 渲染进程禁止执行 DDL 语句（DROP、ALTER、CREATE、TRUNCATE、ATTACH、DETACH）

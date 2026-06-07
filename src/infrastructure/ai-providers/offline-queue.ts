@@ -329,7 +329,7 @@ export async function processPendingQueue(
 
   async function processNext(): Promise<void> {
     while (index < pending.length) {
-      const request = pending[index++];
+      const request = pending[index++]!;
       if (request.nextRetryAt && Date.now() < request.nextRetryAt * 1000) continue;
 
       await markRequestProcessing(request.id);

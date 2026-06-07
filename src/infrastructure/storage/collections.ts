@@ -38,7 +38,7 @@ export const collectionStorage = {
       "SELECT * FROM collections WHERE id = ?",
       [id],
     );
-    return result.length > 0 ? parseCollection(result[0]) : null;
+    return result.length > 0 ? parseCollection(result[0]!) : null;
   },
 
   async createCollection(name: string, id?: string): Promise<Collection> {

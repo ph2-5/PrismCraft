@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import http from "http";
-import net from "net";
+import type net from "net";
 import path from "path";
 import fs from "fs";
 import url from "url";
@@ -38,7 +38,7 @@ function validateConfigKey(key: string): boolean {
   if (!key || typeof key !== "string") return false;
   if (key.length > 256) return false;
   const keys = key.split(".");
-  const topLevelKey = keys[0];
+  const topLevelKey = keys[0]!;
   if (!ALLOWED_CONFIG_KEYS.has(topLevelKey)) return false;
   for (const k of keys) {
     if (k === "__proto__" || k === "constructor" || k === "prototype") {
@@ -84,16 +84,17 @@ function applyConfigValue(config: Record<string, unknown>, key: string, value: u
     const keys = key.split(".");
     let current: Record<string, unknown> = config;
     for (let i = 0; i < keys.length - 1; i++) {
+      const k = keys[i]!;
       if (
-        !(keys[i] in current) ||
-        typeof current[keys[i]] !== "object" ||
-        current[keys[i]] === null
+        !(k in current) ||
+        typeof current[k] !== "object" ||
+        current[k] === null
       ) {
-        current[keys[i]] = {};
+        current[k] = {};
       }
-      current = current[keys[i]] as Record<string, unknown>;
+      current = current[k] as Record<string, unknown>;
     }
-    current[keys[keys.length - 1]] = value;
+    current[keys[keys.length - 1]!] = value;
   } else {
     config[key] = value;
   }
@@ -263,7 +264,7 @@ function startStaticServer(appPort: number, apiPort: number): http.Server | null
       const getUploadedFile: (name: string) => string | null = apiGateway.getUploadedFile;
       const uploadMatch = pathname.match(/^\/api\/upload\/([a-zA-Z0-9_.\-]+)$/);
       if (uploadMatch && req.method === "GET") {
-        const filePath = getUploadedFile(uploadMatch[1]);
+        const filePath = getUploadedFile(uploadMatch[1]!);
         if (filePath) {
           const ext = path.extname(filePath).toLowerCase();
           const mimeTypes: Record<string, string> = {
@@ -468,6 +469,8 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
       preload: path.join(__dirname, "preload.js"),
     },
     show: false,

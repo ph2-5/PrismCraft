@@ -138,8 +138,8 @@ export async function getVersionStats(storyId: string): Promise<Result<{
       autoSaved: versions.filter((v) => v.autoSaved).length,
       manualSaved: versions.filter((v) => !v.autoSaved).length,
       oldestVersion:
-        versions.length > 0 ? versions[versions.length - 1].timestamp : null,
-      newestVersion: versions.length > 0 ? versions[0].timestamp : null,
+        versions.length > 0 ? versions[versions.length - 1]!.timestamp : null,
+      newestVersion: versions.length > 0 ? versions[0]!.timestamp : null,
     };
   });
 }
@@ -160,8 +160,8 @@ export function compareVersions(
   const minLength = Math.min(v1.beats.length, v2.beats.length);
   for (let i = 0; i < minLength; i++) {
     if (
-      v1.beats[i].title !== v2.beats[i].title ||
-      v1.beats[i].content !== v2.beats[i].content
+      v1.beats[i]!.title !== v2.beats[i]!.title ||
+      v1.beats[i]!.content !== v2.beats[i]!.content
     ) {
       beatsModified++;
     }

@@ -323,7 +323,7 @@ export async function generateKeyframeChain(
   let prevBeat: Beat | undefined;
 
   for (let i = 0; i < beats.length; i++) {
-    const beat = beats[i];
+    const beat = beats[i]!;
     onProgress?.(i, beats.length, beat.id);
 
     try {

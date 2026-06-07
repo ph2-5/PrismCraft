@@ -294,7 +294,7 @@ export function useQuickGenerateState() {
         state.referenceImage ||
         selectedSceneObj?.generatedImage ||
         (selectedCharObjs.length > 0
-          ? selectedCharObjs[0].generatedImage
+          ? selectedCharObjs[0]!.generatedImage
           : undefined);
 
       let referenceVideoBase64: string | null = null;

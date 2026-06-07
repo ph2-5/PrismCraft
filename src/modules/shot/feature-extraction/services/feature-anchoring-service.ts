@@ -1,5 +1,8 @@
 import type { FeatureAnchoringConfig } from "@/domain/schemas";
 
+const DEFAULT_CONSISTENCY_STRENGTH = 0.8;
+const DEFAULT_CHAIN_WEIGHT = 0.5;
+
 export type BlendMode = "anchor_only" | "chain_only" | "blend";
 
 export interface BlendConfig {
@@ -71,7 +74,7 @@ export function validateFeatureAnchoring(
   }
 
   const effectiveStrength = config.enabled
-    ? config.featureConsistencyStrength || 0.8
+    ? config.featureConsistencyStrength ?? DEFAULT_CONSISTENCY_STRENGTH
     : 0;
 
   if (effectiveStrength > 0.9) {
@@ -141,7 +144,7 @@ export function shouldUseChainReference(config: FeatureAnchoringConfig, hasPrevF
   if (mode === "anchor_only") return false;
   
   if (mode === "blend") {
-    const chainWeight = config.blend?.chainWeight || 0.5;
+    const chainWeight = config.blend?.chainWeight ?? DEFAULT_CHAIN_WEIGHT;
     return hasPrevFrame && chainWeight > 0;
   }
   

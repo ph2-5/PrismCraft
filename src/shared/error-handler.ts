@@ -1,4 +1,4 @@
-import { AppError, GenerationError, RateLimitError, ApiError, GenerationType } from "@/domain/types/result";
+import { AppError, GenerationError, RateLimitError, ApiError, type GenerationType } from "@/domain/types/result";
 import { classifyNetworkError } from "@/shared/utils/error-classifier";
 
 export type ErrorCode =

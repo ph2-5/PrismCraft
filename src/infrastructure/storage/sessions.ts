@@ -9,10 +9,10 @@ export const sessionStorage = {
     );
     if (result.length > 0) {
       try {
-        return JSON.parse(result[0].value);
+        return JSON.parse(result[0]!.value);
       } catch (e) {
         errorLogger.debug(`[Storage] Failed to parse session value for key ${key}: ${e instanceof Error ? e.message : String(e)}`);
-        return result[0].value;
+        return result[0]!.value;
       }
     }
     return null;

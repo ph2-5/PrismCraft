@@ -3,7 +3,7 @@ import path from "path";
 import BetterSqlite3 from "better-sqlite3";
 import { app } from "electron";
 import { getLogger } from "./logging/logger";
-import type { DatabaseResult, QueryParams, RunResult, Statement, DatabaseAdapter } from "./types/database";
+import type { DatabaseResult, QueryParams, RunResult, Statement } from "./types/database";
 
 const logger = getLogger("db-interface");
 

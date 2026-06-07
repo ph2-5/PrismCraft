@@ -54,7 +54,7 @@ export async function updateElement(
       "SELECT id, version FROM elements WHERE id = ?",
       [elementId],
     );
-    if (existing.length > 0 && existing[0].version !== version) {
+    if (existing.length > 0 && existing[0]!.version !== version) {
       throw new VersionConflictError("elements", elementId, version);
     }
   }
@@ -99,7 +99,7 @@ export async function updateElement(
     if (existing.length === 0) {
       throw new Error(`Element not found for update: id="${elementId}"`);
     }
-    if (version !== undefined && existing[0].version !== version) {
+    if (version !== undefined && existing[0]!.version !== version) {
       throw new VersionConflictError("elements", elementId, version);
     }
   }

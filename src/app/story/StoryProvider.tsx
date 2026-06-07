@@ -461,7 +461,7 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
       .then((result) => {
         if (!cancelled && result.ok && result.value.length > 0) {
           setStoriesRef.current(result.value);
-          const firstStory = result.value[0];
+          const firstStory = result.value[0]!;
           setCurrentStoryRef.current(firstStory, true);
           setBeatsRef.current(firstStory.beats || [], true);
           markCleanRef.current("story");

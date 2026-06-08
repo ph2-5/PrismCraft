@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { Button } from "@/shared/ui/button";
 import {
@@ -47,17 +47,20 @@ export const CharacterCard = memo(function CharacterCard({
   onEditItem,
   onDeleteCharacter,
 }: CharacterCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const hasImage = (char.generatedImage || char.avatarPath) && !imageError;
   return (
     <Card
       className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-purple-500" : "hover:shadow-lg"}`}
       onClick={() => onEditItem({ ...char, _type: "character" })}
     >
       <div className="aspect-square bg-slate-800 relative overflow-hidden">
-        {char.generatedImage || char.avatarPath ? (
+        {hasImage ? (
           <img
             src={resolveImageUrl(char.generatedImage || char.avatarPath)}
             alt={char.name}
             className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -134,17 +137,20 @@ export const SceneCard = memo(function SceneCard({
   onEditItem,
   onDeleteScene,
 }: SceneCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const hasImage = (scene.generatedImage || scene.scenePath) && !imageError;
   return (
     <Card
       className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-blue-500" : "hover:shadow-lg"}`}
       onClick={() => onEditItem({ ...scene, _type: "scene" })}
     >
       <div className="aspect-video bg-slate-800 relative overflow-hidden">
-        {scene.generatedImage || scene.scenePath ? (
+        {hasImage ? (
           <img
             src={resolveImageUrl(scene.generatedImage || scene.scenePath)}
             alt={scene.name}
             className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -215,17 +221,20 @@ export const StoryboardCard = memo(function StoryboardCard({
   onEditItem,
   onDeleteStoryboard,
 }: StoryboardCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const hasImage = sb.previewPath && !imageError;
   return (
     <Card
       className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-amber-500" : "hover:shadow-lg"}`}
       onClick={() => onEditItem({ ...sb, _type: "storyboard" })}
     >
       <div className="aspect-video bg-slate-800 relative overflow-hidden">
-        {sb.previewPath ? (
+        {hasImage ? (
           <img
             src={resolveImageUrl(sb.previewPath)}
             alt={t("asset.storyboardPreview")}
             className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center p-4">

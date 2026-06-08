@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants";
 
@@ -20,6 +20,7 @@ export const CharacterListItem = React.memo(function CharacterListItem({
   onClick,
   onDelete,
 }: CharacterListItemProps) {
+  const [imageError, setImageError] = useState(false);
   const getCharacterImage = (
     char: CharacterListItemProps["character"],
   ): string | undefined => {
@@ -28,6 +29,7 @@ export const CharacterListItem = React.memo(function CharacterListItem({
     );
   };
   const characterImage = getCharacterImage(character);
+  const showImage = characterImage && !imageError;
 
   return (
     <div
@@ -35,11 +37,12 @@ export const CharacterListItem = React.memo(function CharacterListItem({
       onClick={onClick}
     >
       <div className="flex items-center gap-3">
-        {characterImage ? (
+        {showImage ? (
           <img
             src={characterImage}
             alt={character.name}
             className="w-10 h-10 rounded-full object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">

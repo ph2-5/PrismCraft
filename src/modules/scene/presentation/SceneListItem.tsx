@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants";
 
@@ -19,12 +19,14 @@ export const SceneListItem = React.memo(function SceneListItem({
   onClick,
   onDelete,
 }: SceneListItemProps) {
+  const [imageError, setImageError] = useState(false);
   const getSceneImage = (
     sc: SceneListItemProps["scene"],
   ): string | undefined => {
     return resolveImageUrl(sc.scenePath || sc.generatedImage);
   };
   const sceneImage = getSceneImage(scene);
+  const showImage = sceneImage && !imageError;
 
   return (
     <div
@@ -32,11 +34,12 @@ export const SceneListItem = React.memo(function SceneListItem({
       onClick={onClick}
     >
       <div className="flex items-center gap-3">
-        {sceneImage ? (
+        {showImage ? (
           <img
             src={sceneImage}
             alt={scene.name}
             className="w-10 h-10 rounded-lg object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">

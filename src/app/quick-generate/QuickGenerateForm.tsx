@@ -169,7 +169,7 @@ export function QuickGenerateForm({
                   className="text-xs border-slate-700 hover:border-purple-600 hover:bg-purple-900/20 text-slate-300"
                   onClick={() => onPromptTextChange(example)}
                 >
-                  {example.slice(0, 20)}...
+                  {example.length > 20 ? `${example.slice(0, 20)}...` : example}
                 </Button>
               ))}
             </div>

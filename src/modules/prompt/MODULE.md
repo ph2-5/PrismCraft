@@ -77,6 +77,7 @@
 |-----|------|------|
 | `generateFirstFramePrompt` | `(beat: StoryBeat, ...) → string` | 首帧提示词（API 用） |
 | `generateLastFramePrompt` | `(beat: StoryBeat, ...) → string` | 尾帧提示词（API 用） |
+| `generateKeyframePrompt` | `(beat: StoryBeat, ...) → string` | 关键帧提示词（API 用） |
 | `generateCharacterAnalysisPrompt` | `(imageUrl: string) → string` | 角色分析提示词（API 用） |
 | `generateSceneAnalysisPrompt` | `(imageUrl: string) → string` | 场景分析提示词（API 用） |
 
@@ -84,7 +85,7 @@
 
 | API | 签名 | 说明 |
 |-----|------|------|
-| `promptBuilder` | `PromptBuilder` | 提示词构建器单例 |
+| `promptBuilder` | PromptBuilder 实例 | 提示词构建器单例 |
 | `generateStoryPlanPrompt` | `(story: Story) → string` | 故事计划提示词 |
 | `generateQuickModeVideoPrompt` | `(beat: StoryBeat, ...) → string` | 快速模式视频提示词 |
 | `AVAILABLE_STYLES` | `readonly string[]` | 可用风格列表 |

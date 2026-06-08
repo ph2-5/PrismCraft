@@ -24,30 +24,38 @@
 
 ### 一致性检查子域
 - `performConsistencyCheck` — 执行视觉一致性检查（含配置校验 + 一致性评分）
-- `validateFeatureAnchoringConfigFull` — 特征锚定配置完整验证（别名导出）
-- `validateNoFrameBindingParams` — 无帧绑定参数验证（别名导出）
-- `checkVisualConsistency(input: ConsistencyCheckInput)` — 评估分镜生成结果的视觉一致性评分
+- `checkVisualConsistency` — 评估分镜生成结果的视觉一致性评分
 - `performConfigCheck` — 执行生成配置检查
 - `validateFeatureAnchoringConfig` — 验证特征锚定配置有效性
+- `validateFeatureAnchoringConfigFull` — 特征锚定配置完整验证（别名导出）
 - `validateNoFrameBinding` — 验证无帧绑定参数
+- `validateNoFrameBindingParams` — 无帧绑定参数验证（别名导出）
+- Type: `ConsistencyCheckInput`
+
+### 元素引用检查子域
+- `checkCharacterReferences` — 检查角色是否被故事/分镜引用
+- `checkSceneReferences` — 检查场景是否被故事/分镜引用
+- `checkElementReferences` — 检查元素是否被故事/分镜引用
+- Types: `ReferenceInfo`, `DeleteCheckResult`
+
+### 镜头指令子域
+- `SHOT_SIZE_OPTIONS` — 镜头尺寸选项常量
+- `CAMERA_MOVEMENT_OPTIONS` — 镜头运动选项常量
+- `CAMERA_ANGLE_OPTIONS` — 镜头角度选项常量
+- `buildPromptLayers` — 构建分层提示词
 
 ### 元素绑定子域
-- `elementManager` — 元素管理器实例（管理分镜与 StoryElement 的绑定关系）
-- `useElementBinding` — 元素绑定 Hook（提供元素库访问和绑定状态管理）
+- `elementManager` — 元素管理器实例
 
 ### 特征提取子域
 - `validateReferenceImageQuality` — 引用图片质量验证
+- `buildFeatureAnchoringConfig` — 构建特征锚定配置
 - `extractCharacterFeatures` — 从角色提取特征标签
 - `buildFeatureTags` — 构建特征标签
 - `buildFeatureAnchor` — 构建特征锚点
-- `buildFeatureAnchoringConfig` — 构建特征锚定配置
-- `validateFeatureAnchoring` — 验证特征锚定有效性
-- `validateBlendConfig` — 验证混合配置
-- `getBlendMode` — 获取混合模式
-- `shouldUseChainReference` — 判断是否应使用链式引用
-- `buildBlendPrompt` — 构建混合提示词
-- `performAutoFallback` — 执行自动降级
-- 类型：`BlendMode`, `BlendConfig`, `AnchoringValidationResult`, `BlendPromptResult`
+
+### 引用引擎子域
+- `referenceEngine` — 引用引擎实例
 
 ### 分镜生成子域
 - `validateShotParams` — 校验分镜生成参数
@@ -56,33 +64,7 @@
 - `generateFallbackParams` — 生成降级参数
 - `formatValidationResult` — 格式化校验结果
 - `generateStoryPlanWithValidation` — 带校验的故事计划生成管道
-- `selectFewShotExamples` — 选择 Few-Shot 示例
-- `buildFewShotPrompt` — 构建 Few-Shot 提示
-- `enrichPromptWithFewShot` — 用 Few-Shot 丰富提示词
-- Schema：`ShotParamsSchema`, `StoryBeatOutputSchema`, `StoryPlanOutputSchema`
-- 类型：`ShotParamsType`, `ValidationError`, `ValidationResult`, `PipelineProgress`, `PipelineOptions`, `FewShotExample`
-- 常量：`DEFAULT_OPTIONS`, `STRICT_OPTIONS`
-
-### 镜头指令子域
-- `shotInstructionToPrompt` — 将结构化分镜指令转换为提示词文本
-- `buildPromptLayers` — 构建分层提示词
-- `SHOT_SIZE_OPTIONS` — 镜头尺寸选项常量
-- `CAMERA_MOVEMENT_OPTIONS` — 镜头运动选项常量
-- `CAMERA_ANGLE_OPTIONS` — 镜头角度选项常量
-
-### 引用引擎子域
-- `referenceEngine` — 引用引擎实例（管理链式引用和自定义引用关系）
-- `validateReference` — 验证引用有效性
-- `getTargetShot` — 获取引用目标分镜
-- `getReferenceVideoUrl` — 获取引用视频 URL
-- `buildReferenceDescription` — 构建引用描述
-- 类型：`ReferenceValidationResult`
-
-### 引用检查子域
-- `checkCharacterReferences` — 检查角色是否被故事/分镜引用
-- `checkSceneReferences` — 检查场景是否被故事/分镜引用
-- `checkElementReferences` — 检查元素是否被故事/分镜引用
-- 类型：`ReferenceInfo`, `DeleteCheckResult`
+- Types: `ValidationResult`, `ShotParamsType`
 
 ---
 

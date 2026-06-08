@@ -27,14 +27,14 @@
 | `characterService` | `AssetService<Character>` | 角色资产服务（getAll, getById, create, update, delete） |
 | `sceneService` | `AssetService<Scene>` | 场景资产服务（getAll, getById, create, update, delete） |
 | `storyboardAssetService` | `AssetService<StoryboardAsset>` | 分镜资源服务（getAll, getById, create, update, delete） |
-| `collectionService` | `CollectionService` | 收藏集服务（CRUD + 资产关联管理） |
-| `assetExportService` | `AsaExportService` | ASA 格式导出服务 |
+| `collectionService` | CollectionService | 收藏集服务（CRUD + 资产关联管理） |
+| `assetExportService` | AsaExportService | ASA 格式导出服务 |
 
 ### media-assets 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
-| `mediaAssetService` | `MediaAssetService` | 媒体资产服务（create, update, delete, batchDelete） |
+| `mediaAssetService` | MediaAssetService | 媒体资产服务（create, update, delete, batchDelete） |
 
 ### import-export 子域
 

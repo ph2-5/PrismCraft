@@ -19,6 +19,20 @@
 
 ## 公共 API（index.ts）
 
+### 导出清单
+
+> 以下为 `index.ts` 的完整导出列表，详细签名见各子域章节。
+
+**task-management**: `VideoTask`、`useVideoTaskManager`、`useVideoTaskStore`、`useVideoTasks`、`useFailedVideoTasks`、`useRecoverVideo`、`useCleanExpiredTasks`、`useStartBackgroundRecovery`、`buildTrackingInfo`、`VideoTaskManager`、`VideoTaskManagerInitializer`、`VideoTaskManagerUI`
+
+**cache**: `useVideoCacheStats`、`cacheVideoBlob`、`getCachedVideoUrl`、`getVideoUrlWithCache`、`removeCachedVideo`、`cleanExpiredVideoCache`、`getCacheStats`、`revokeObjectURL`、`touchMemoryCache`、`clearMemoryCache`、`checkCachedVideo`、`getVideoFileStream`、`getCachedVideo`、`cacheImageBlob`、`getCachedImagePath`、`getImageUrlWithCache`、`removeCachedImage`、`cleanExpiredImageCache`、`getImageCacheStats`、`recoverUncachedImages`
+
+**recovery**: `VideoVerificationResult`、`VideoVerificationDetails`、`RetryDecision`、`VideoRecoveryLog`、`VideoTaskRecoveryInfo`、`DuplicateCheckResult`、`RetryConfig`、`recoverVideoByTaskId`、`saveVideoTask`、`verifyVideoUrl`、`verifyMultipleVideos`、`checkForDuplicateVideos`、`findSimilarTasks`、`smartRetryEngine`、`SmartRetryEngine`、`createRetryEngine`、`getTaskRecoveryInfo`、`performIntelligentRecovery`、`checkForTokenWaste`、`registerCacheVideoBlobFn`、`getFailedTasks`、`getTaskById`、`startBackgroundRecovery`、`cleanExpiredTasks`、`getAllTaskHistory`
+
+**utils**: `detectVideoCodec`、`isCodecSupportedByProvider`、`extractVideoFrames`、`downloadJSONFile`、`videoTemplates`、`templateCategories`、`getTemplatesByCategory`、`applyVideoTemplate`、`VideoTemplate`
+
+---
+
 ### 任务管理子域 (`task-management`)
 
 #### 类型
@@ -49,7 +63,7 @@ const TaskMachine: {
 
 **合法状态转换表**：
 
-| from → to | pending | generating | completed | failed | cancelled | retrying |
+| from → to | **pending** | **generating** | **completed** | **failed** | **cancelled** | **retrying** |
 |-----------|---------|------------|-----------|--------|-----------|----------|
 | **pending** | - | ✓ | - | ✓ | ✓ | - |
 | **generating** | - | - | ✓ | ✓ | ✓ | - |
@@ -58,8 +72,8 @@ const TaskMachine: {
 | **cancelled** | - | - | - | - | - | - |
 | **retrying** | - | ✓ | ✓ | ✓ | ✓ | - |
 
-**可轮询状态**：`pending`、`generating`、`retrying`
-**终态**：`completed`、`cancelled`、`failed`
+**可轮询状态**：pending、generating、retrying
+**终态**：completed、cancelled、failed
 
 #### 状态映射
 
@@ -176,7 +190,7 @@ function useVideoTaskManager(): {
 
 #### React Query Hooks
 
-> **IPC 效率说明**：`batchUpdateVideoTasks` 和 `batchDeleteVideoTasks` 使用 `safeTransaction` 将多条 SQL 包在单个事务内执行，避免逐条 `safeRun` 的 IPC 开销（R39）；`trackChange` 使用 `Promise.allSettled` 并行触发变更通知，不阻塞主流程（R40）。
+> **IPC 效率说明**：batchUpdateVideoTasks 和 batchDeleteVideoTasks 使用 safeTransaction 将多条 SQL 包在单个事务内执行，避免逐条 safeRun 的 IPC 开销（R39）；trackChange 使用 Promise.allSettled 并行触发变更通知，不阻塞主流程（R40）。
 
 ```typescript
 function useVideoTasks(): UseQueryResult<VideoTask[]>
@@ -213,7 +227,7 @@ const VideoTaskManagerUI: ComponentType        // 管理 UI 面板
 
 ---
 
-### 缓存子域 (`cache`)
+### 缓存子域
 
 #### 视频缓存
 
@@ -265,7 +279,7 @@ function useVideoCacheStats(): UseQueryResult<{ count: number; totalSizeMB: numb
 
 ---
 
-### 恢复子域 (`recovery`)
+### 恢复子域
 
 #### 类型
 
@@ -427,7 +441,7 @@ function getAllTaskHistory(): Promise<Result<VideoTask[]>>
 - 轮询间隔：60 秒
 - 最大恢复尝试次数：60
 - 后台恢复并发数：3
-- 后台恢复防重入：`isRecoveryRunning` 标志
+- 后台恢复防重入：isRecoveryRunning 标志
 
 #### 错误分类（re-export）
 
@@ -438,7 +452,7 @@ type ErrorCategory = ...
 
 ---
 
-### 工具子域 (`utils`)
+### 工具子域
 
 #### 编解码检测
 

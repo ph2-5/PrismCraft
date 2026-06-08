@@ -21,13 +21,13 @@
 
 | API | 签名 | 说明 |
 |-----|------|------|
-| `sceneService` | `SceneService` | 场景服务（getAll, getById, create, update, delete, count） |
+| `sceneService` | SceneService | 场景服务（getAll, getById, create, update, delete, count） |
 
 ### constants 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
-| `defaultScene` | `Scene` | 默认场景值 |
+| `defaultScene` | Scene（from @/domain/schemas） | 默认场景值 |
 | `typeSuggestions` | `string[]` | 类型建议列表 |
 | `timeSuggestions` | `string[]` | 时间建议列表 |
 | `weatherSuggestions` | `string[]` | 天气建议列表 |

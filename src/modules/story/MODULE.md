@@ -120,6 +120,8 @@ interface StoryPlanningOptions { maxRetries?: number; autoFix?: boolean; fewShot
 interface StoryPlanningResult { beats: StoryBeat[]; autoFixedCount: number; retryCount: number; fixDetails: string[] }
 ```
 
+Exported types: `PlaceholderBinding`, `QuickStoryData`
+
 ### 引用解析
 
 ```typescript
@@ -313,6 +315,8 @@ interface BeatPersistData { id: string; keyframeImageUrl?: string; firstFrameIma
 interface CacheRequest { beatId: string; field: "localKeyframePath" | "localFirstFramePath" | "localLastFramePath"; url: string }
 ```
 
+Exported types: `ResolvedRefs`, `BatchOptions`, `BatchResult`
+
 ### 分镜编辑子域 (beat-editor)
 
 #### Hooks
@@ -421,6 +425,8 @@ type StoryVersion (from @/domain/schemas)
 interface StoryTemplate { id: string; name: string; description: string; genre: string[]; tone: string[]; beats: TemplateBeat[] }
 ```
 
+Exported types: `StoryboardTemplate`, `StoryboardTemplateBeat`, `StoryVersion`, `StoryTemplate`
+
 ### 提示词编辑子域 (prompt-editor)
 
 #### Services
@@ -461,6 +467,8 @@ interface PromptEditorResult { prompt: string; context: PromptEditorContext }
 interface UsePromptEditorOptions { beat: StoryBeat; context: PromptEditorContext; keyframeImageUrl?: string; onPromptChange?: (context: PromptEditorContext, prompt: string) => void; onConfirmGenerate?: (context: PromptEditorContext, prompt: string) => void; providerId?: string; modelId?: string; characters?: Character[]; scenes?: Scene[] }
 interface PromptEditorState { prompt: string; isGenerating: boolean; error: string | null; lastAIResult: PromptEditorResult | null; hasAIPreview: boolean }
 ```
+
+Exported types: `PromptEditorRequest`, `PromptEditorResult`
 
 ---
 

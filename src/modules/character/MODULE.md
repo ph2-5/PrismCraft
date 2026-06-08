@@ -21,13 +21,13 @@
 
 | API | 签名 | 说明 |
 |-----|------|------|
-| `characterService` | `CharacterService` | 角色服务（getAll, getById, create, update, delete, count） |
+| `characterService` | CharacterService | 角色服务（getAll, getById, create, update, delete, count） |
 
 ### constants 子域
 
 | API | 签名 | 说明 |
 |-----|------|------|
-| `defaultCharacter` | `Character` | 默认角色值 |
+| `defaultCharacter` | Character | 默认角色值 |
 | `personalitySuggestions` | `string[]` | 性格建议列表 |
 | `styleSuggestions` | `string[]` | 风格建议列表 |
 | `genderSuggestions` | `string[]` | 性别建议列表 |

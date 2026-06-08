@@ -45,13 +45,11 @@ vi.mock("@/shared/ui/select", () => ({
     </select>
   ),
   SelectContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  SelectItem: ({ value, children }: { value: string; children: React.ReactNode }) => (
-    <option value={value}>{children}</option>
+  SelectItem: ({ value }: { value: string; children?: React.ReactNode }) => (
+    <option value={value} data-testid={`option-${value}`} />
   ),
-  SelectTrigger: ({ children }: { children: React.ReactNode; className?: string }) => (
-    <>{children}</>
-  ),
-  SelectValue: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  SelectTrigger: () => null,
+  SelectValue: () => null,
 }));
 
 vi.mock("@/shared/ui/badge", () => ({
@@ -128,9 +126,9 @@ describe("ModelSelector - API Key 边界状态", () => {
     });
 
     const select = screen.getByTestId("select");
-    const optionTexts = Array.from(select.querySelectorAll("option")).map((o) => o.textContent);
-    expect(optionTexts.some((t) => t?.includes("默认"))).toBe(true);
-    expect(optionTexts.some((t) => t?.includes("Seedance V1"))).toBe(true);
+    const optionValues = Array.from(select.querySelectorAll("option")).map((o) => o.value);
+    expect(optionValues).toContain("");
+    expect(optionValues).toContain("seedance/seedance-v1");
   });
 
   it("加载配置失败时应显示错误引导", async () => {

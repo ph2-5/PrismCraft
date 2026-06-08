@@ -9,6 +9,12 @@ interface PluginInfo {
   displayName: string;
   isUserPlugin: boolean;
   isCodePlugin: boolean;
+  capabilities: {
+    video: boolean;
+    image: boolean;
+    text: boolean;
+    vision: boolean;
+  };
   videoCapabilities: {
     supportsLastFrame: boolean;
     supportsReferenceVideo: boolean;

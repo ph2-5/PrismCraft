@@ -59,7 +59,7 @@ describe("checkCharacterReferences", () => {
     const result = checkCharacterReferences("char-1", "角色A", stories);
     expect(result.canDelete).toBe(false);
     expect(result.references).toHaveLength(1);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects reference via beat.characters", () => {
@@ -70,7 +70,7 @@ describe("checkCharacterReferences", () => {
     ];
     const result = checkCharacterReferences("char-1", "角色A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects reference via beat.character", () => {
@@ -81,7 +81,7 @@ describe("checkCharacterReferences", () => {
     ];
     const result = checkCharacterReferences("char-1", "角色A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects reference via beat.elementIds", () => {
@@ -92,7 +92,7 @@ describe("checkCharacterReferences", () => {
     ];
     const result = checkCharacterReferences("char-1", "角色A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects reference via beat.elementBindings", () => {
@@ -105,7 +105,7 @@ describe("checkCharacterReferences", () => {
     ];
     const result = checkCharacterReferences("char-1", "角色A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects direct reference via story.characters", () => {
@@ -117,8 +117,8 @@ describe("checkCharacterReferences", () => {
     const result = checkCharacterReferences("char-1", "角色A", stories);
     expect(result.canDelete).toBe(false);
     expect(result.references).toHaveLength(1);
-    expect(result.references[0].usedInBeats).toHaveLength(0);
-    expect(result.references[0].usedInStories).toContain("测试故事");
+    expect(result.references[0]!.usedInBeats).toHaveLength(0);
+    expect(result.references[0]!.usedInStories).toContain("测试故事");
   });
 
   it("does not match different character id", () => {
@@ -156,7 +156,7 @@ describe("checkCharacterReferences", () => {
       }),
     ];
     const result = checkCharacterReferences("char-1", "角色A", stories);
-    expect(result.references[0].usedInBeats).toContain("开场");
+    expect(result.references[0]!.usedInBeats).toContain("开场");
   });
 
   it("falls back to description slice when no title", () => {
@@ -172,7 +172,7 @@ describe("checkCharacterReferences", () => {
       }),
     ];
     const result = checkCharacterReferences("char-1", "角色A", stories);
-    expect(result.references[0].usedInBeats[0]).toBe("这是一段很长的描述文字用于测试回退逻辑".slice(0, 30));
+    expect(result.references[0]!.usedInBeats[0]).toBe("这是一段很长的描述文字用于测试回退逻辑".slice(0, 30));
   });
 
   it("falls back to beat id when no title and no description", () => {
@@ -189,7 +189,7 @@ describe("checkCharacterReferences", () => {
       }),
     ];
     const result = checkCharacterReferences("char-1", "角色A", stories);
-    expect(result.references[0].usedInBeats).toContain("beat-xyz");
+    expect(result.references[0]!.usedInBeats).toContain("beat-xyz");
   });
 
   it("generates warningMessage with character name", () => {
@@ -217,7 +217,7 @@ describe("checkCharacterReferences", () => {
     ];
     const result = checkCharacterReferences("char-1", "李明", stories);
     expect(result.references).toHaveLength(1);
-    expect(result.references[0].usedInBeats).toHaveLength(2);
+    expect(result.references[0]!.usedInBeats).toHaveLength(2);
   });
 
   it("skips stories with null beats", () => {
@@ -246,7 +246,7 @@ describe("checkSceneReferences", () => {
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects reference via beat.scene", () => {
@@ -257,7 +257,7 @@ describe("checkSceneReferences", () => {
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects reference via beat.elementIds", () => {
@@ -268,7 +268,7 @@ describe("checkSceneReferences", () => {
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects reference via beat.elementBindings", () => {
@@ -281,7 +281,7 @@ describe("checkSceneReferences", () => {
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects direct reference via story.scenes", () => {
@@ -293,8 +293,8 @@ describe("checkSceneReferences", () => {
     const result = checkSceneReferences("scene-1", "场景A", stories);
     expect(result.canDelete).toBe(false);
     expect(result.references).toHaveLength(1);
-    expect(result.references[0].usedInBeats).toHaveLength(0);
-    expect(result.references[0].usedInStories).toContain("测试故事");
+    expect(result.references[0]!.usedInBeats).toHaveLength(0);
+    expect(result.references[0]!.usedInStories).toContain("测试故事");
   });
 
   it("does not match different scene id", () => {
@@ -332,7 +332,7 @@ describe("checkSceneReferences", () => {
       }),
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);
-    expect(result.references[0].usedInBeats).toContain("森林场景");
+    expect(result.references[0]!.usedInBeats).toContain("森林场景");
   });
 
   it("falls back to description slice when no title", () => {
@@ -348,7 +348,7 @@ describe("checkSceneReferences", () => {
       }),
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);
-    expect(result.references[0].usedInBeats[0]).toBe("幽暗的森林中传来阵阵低语".slice(0, 30));
+    expect(result.references[0]!.usedInBeats[0]).toBe("幽暗的森林中传来阵阵低语".slice(0, 30));
   });
 
   it("falls back to beat id when no title and no description", () => {
@@ -365,7 +365,7 @@ describe("checkSceneReferences", () => {
       }),
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);
-    expect(result.references[0].usedInBeats).toContain("beat-abc");
+    expect(result.references[0]!.usedInBeats).toContain("beat-abc");
   });
 
   it("generates warningMessage with scene name", () => {
@@ -387,7 +387,7 @@ describe("checkSceneReferences", () => {
       }),
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);
-    expect(result.references[0].elementType).toBe("scene");
+    expect(result.references[0]!.elementType).toBe("scene");
   });
 });
 
@@ -408,7 +408,7 @@ describe("checkElementReferences", () => {
     ];
     const result = checkElementReferences("elem-1", "元素A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("detects reference via beat.elementBindings", () => {
@@ -421,7 +421,7 @@ describe("checkElementReferences", () => {
     ];
     const result = checkElementReferences("elem-1", "元素A", stories);
     expect(result.canDelete).toBe(false);
-    expect(result.references[0].usedInBeats).toHaveLength(1);
+    expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
   it("does not match different element id", () => {
@@ -441,7 +441,7 @@ describe("checkElementReferences", () => {
       }),
     ];
     const result = checkElementReferences("elem-1", "元素A", stories);
-    expect(result.references[0].elementType).toBe("character");
+    expect(result.references[0]!.elementType).toBe("character");
   });
 
   it("accepts custom elementType", () => {
@@ -451,7 +451,7 @@ describe("checkElementReferences", () => {
       }),
     ];
     const result = checkElementReferences("elem-1", "元素A", stories, "scene");
-    expect(result.references[0].elementType).toBe("scene");
+    expect(result.references[0]!.elementType).toBe("scene");
   });
 
   it("does not detect story-level references (unlike character/scene checks)", () => {
@@ -490,7 +490,7 @@ describe("checkElementReferences", () => {
       }),
     ];
     const result = checkElementReferences("elem-1", "元素A", stories);
-    expect(result.references[0].usedInBeats).toContain("关键转折");
+    expect(result.references[0]!.usedInBeats).toContain("关键转折");
   });
 
   it("falls back to description slice when no title", () => {
@@ -507,7 +507,7 @@ describe("checkElementReferences", () => {
       }),
     ];
     const result = checkElementReferences("elem-1", "元素A", stories);
-    expect(result.references[0].usedInBeats[0]).toBe(longDesc.slice(0, 30));
+    expect(result.references[0]!.usedInBeats[0]).toBe(longDesc.slice(0, 30));
   });
 
   it("falls back to beat id when no title and no description", () => {
@@ -524,7 +524,7 @@ describe("checkElementReferences", () => {
       }),
     ];
     const result = checkElementReferences("elem-1", "元素A", stories);
-    expect(result.references[0].usedInBeats).toContain("beat-def");
+    expect(result.references[0]!.usedInBeats).toContain("beat-def");
   });
 
   it("generates warningMessage with element name", () => {

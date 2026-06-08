@@ -39,8 +39,8 @@ describe("collectionStorage", () => {
       ]);
       const result = await collectionStorage.getCollections();
       expect(result.length).toBe(2);
-      expect(result[0].id).toBe("col-1");
-      expect(result[0].name).toBe("集合1");
+      expect(result[0]!.id).toBe("col-1");
+      expect(result[0]!.name).toBe("集合1");
     });
 
     it("空数据库应返回空数组", async () => {
@@ -111,8 +111,8 @@ describe("collectionStorage", () => {
       ]);
       const result = await collectionStorage.getAssetsInCollection("col-1");
       expect(result.length).toBe(1);
-      expect(result[0].collectionId).toBe("col-1");
-      expect(result[0].assetType).toBe("character");
+      expect(result[0]!.collectionId).toBe("col-1");
+      expect(result[0]!.assetType).toBe("character");
     });
   });
 });

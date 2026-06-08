@@ -145,8 +145,7 @@ describe("validateReference", () => {
 
   it("引用前一镜头末帧且前一镜头有末帧时不应警告", () => {
     const beats = createBeats();
-    beats[0] = {
-      ...beats[0],
+    beats[0] = { ...beats[0]!,
       framePair: {
         lastFrameUrl: "last.jpg",
         firstFrameUrl: "first.jpg",
@@ -172,8 +171,7 @@ describe("validateReference", () => {
 
   it("引用前一镜头视频且前一镜头有视频时不应警告", () => {
     const beats = createBeats();
-    beats[0] = {
-      ...beats[0],
+    beats[0] = { ...beats[0]!,
       videoGen: {
         videoUrl: "video.mp4",
         status: "completed",
@@ -277,8 +275,7 @@ describe("getReferenceVideoUrl", () => {
 
   it("contentType 为 full_video 且有 videoUrl 时应返回 videoUrl", () => {
     const beats = createBeats();
-    beats[0] = {
-      ...beats[0],
+    beats[0] = { ...beats[0]!,
       videoGen: { videoUrl: "video.mp4", status: "completed", generatedAt: new Date().toISOString() },
     };
     const ref: ShotReference = { direction: "previous", contentType: "full_video" };
@@ -293,8 +290,7 @@ describe("getReferenceVideoUrl", () => {
 
   it("contentType 为 last_frame 且有 framePair.lastFrameUrl 时应返回", () => {
     const beats = createBeats();
-    beats[0] = {
-      ...beats[0],
+    beats[0] = { ...beats[0]!,
       framePair: {
         lastFrameUrl: "last.jpg",
         firstFrameUrl: "first.jpg",
@@ -310,8 +306,7 @@ describe("getReferenceVideoUrl", () => {
 
   it("contentType 为 last_frame 无 framePair 但有 keyframe 时应回退", () => {
     const beats = createBeats();
-    beats[0] = {
-      ...beats[0],
+    beats[0] = { ...beats[0]!,
       keyframe: { imageUrl: "keyframe.jpg", prompt: "prompt", generatedAt: new Date().toISOString() },
     };
     const ref: ShotReference = { direction: "previous", contentType: "last_frame" };
@@ -321,8 +316,7 @@ describe("getReferenceVideoUrl", () => {
 
   it("contentType 为 first_frame 且有 framePair.firstFrameUrl 时应返回", () => {
     const beats = createBeats();
-    beats[0] = {
-      ...beats[0],
+    beats[0] = { ...beats[0]!,
       framePair: {
         firstFrameUrl: "first.jpg",
         lastFrameUrl: "last.jpg",
@@ -338,8 +332,7 @@ describe("getReferenceVideoUrl", () => {
 
   it("contentType 为 first_frame 无 framePair 但有 keyframe 时应回退", () => {
     const beats = createBeats();
-    beats[0] = {
-      ...beats[0],
+    beats[0] = { ...beats[0]!,
       keyframe: { imageUrl: "keyframe.jpg", prompt: "prompt", generatedAt: new Date().toISOString() },
     };
     const ref: ShotReference = { direction: "previous", contentType: "first_frame" };
@@ -349,8 +342,7 @@ describe("getReferenceVideoUrl", () => {
 
   it("contentType 为 video_segment 时应返回 videoUrl", () => {
     const beats = createBeats();
-    beats[0] = {
-      ...beats[0],
+    beats[0] = { ...beats[0]!,
       videoGen: { videoUrl: "video.mp4", status: "completed", generatedAt: new Date().toISOString() },
     };
     const ref: ShotReference = { direction: "previous", contentType: "video_segment" };
@@ -431,7 +423,7 @@ describe("buildReferenceDescription", () => {
 
   it("目标 beat 无标题但有 description 时应截取前 20 字符", () => {
     const beatsNoTitle = createBeats();
-    beatsNoTitle[0] = { ...beatsNoTitle[0], title: undefined, description: "这是一段很长的描述内容用来测试截断" };
+    beatsNoTitle[0] = { ...beatsNoTitle[0]!, title: undefined as string | undefined, description: "这是一段很长的描述内容用来测试截断" };
     const ref: ShotReference = { direction: "previous", contentType: "full_video" };
     const desc = buildReferenceDescription(ref, beatsNoTitle, "beat-2");
     expect(desc).toContain("这是一段很长的描述内容用来测试截断".slice(0, 20));
@@ -439,7 +431,7 @@ describe("buildReferenceDescription", () => {
 
   it("目标 beat 无标题且无 description 时应显示 '未命名'", () => {
     const beatsNoInfo = createBeats();
-    beatsNoInfo[0] = { ...beatsNoInfo[0], title: undefined, description: "" };
+    beatsNoInfo[0] = { ...beatsNoInfo[0]!, title: undefined as string | undefined, description: "" };
     const ref: ShotReference = { direction: "previous", contentType: "full_video" };
     const desc = buildReferenceDescription(ref, beatsNoInfo, "beat-2");
     expect(desc).toContain("未命名");

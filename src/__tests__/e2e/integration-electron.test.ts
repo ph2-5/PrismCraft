@@ -157,7 +157,7 @@ describe("E2E Electron 集成测试", () => {
       expect(content).toContain("max:");
       const maxMatch = content.match(/max:\s*(\d+)/);
       expect(maxMatch).not.toBeNull();
-      const maxVal = parseInt(maxMatch![1]);
+      const maxVal = parseInt(maxMatch![1]!);
       expect(maxVal).toBeGreaterThan(0);
       expect(maxVal).toBeLessThanOrEqual(1000);
     });

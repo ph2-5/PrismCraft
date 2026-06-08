@@ -18,6 +18,7 @@ vi.mock("@/infrastructure/di", () => ({
       createStory: vi.fn(),
       updateStory: vi.fn(),
       deleteStory: vi.fn(),
+      getStoryVersion: vi.fn().mockResolvedValue(1),
     },
     eventBus: { emit: vi.fn() },
   },
@@ -46,6 +47,7 @@ const storage = container.storyStorage as unknown as {
   createStory: ReturnType<typeof vi.fn>;
   updateStory: ReturnType<typeof vi.fn>;
   deleteStory: ReturnType<typeof vi.fn>;
+  getStoryVersion: ReturnType<typeof vi.fn>;
 };
 
 const eventBus = container.eventBus as unknown as {
@@ -178,6 +180,7 @@ describe("storyService", () => {
 
   describe("update", () => {
     it("应成功更新故事并触发 STORY_UPDATED 事件", async () => {
+      storage.getStoryById.mockResolvedValue(mockStory);
       storage.updateStory.mockResolvedValue(undefined);
 
       const result = await storyService.update("story-1", { id: "story-1", title: "更新标题" });
@@ -186,6 +189,7 @@ describe("storyService", () => {
       expect(storage.updateStory).toHaveBeenCalledWith(
         "story-1",
         expect.objectContaining({ title: "更新标题" }),
+        1,
       );
       expect(eventBus.emit).toHaveBeenCalledWith(
         DomainEvents.STORY_UPDATED,
@@ -194,15 +198,16 @@ describe("storyService", () => {
     });
 
     it("故事不存在时 updateStory 应抛出错误", async () => {
-      storage.updateStory.mockRejectedValue(new Error("Story not found for update: id=\"nonexistent\""));
+      storage.getStoryById.mockResolvedValue(null);
 
       const result = await storyService.update("nonexistent", { id: "nonexistent", title: "更新标题" });
 
       expectErr(result);
-      expect(result.error).toBeInstanceOf(AppError);
+      expect(result.error).toBeInstanceOf(NotFoundError);
     });
 
     it("存储失败时应返回 AppError", async () => {
+      storage.getStoryById.mockResolvedValue(mockStory);
       storage.updateStory.mockRejectedValue(new Error("更新失败"));
 
       const result = await storyService.update("story-1", { id: "story-1", title: "更新标题" });
@@ -220,6 +225,7 @@ describe("storyService", () => {
     });
 
     it("更新无 title 时事件 storyTitle 应使用 id", async () => {
+      storage.getStoryById.mockResolvedValue(mockStory);
       storage.updateStory.mockResolvedValue(undefined);
 
       const result = await storyService.update("story-1", { id: "story-1", description: "新描述" });
@@ -377,9 +383,9 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-      expect(statements[0].sql).toContain("keyframeImageUrl");
-      expect(statements[0].params).toContain("new-keyframe.jpg");
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
+      expect(statements[0]!.sql).toContain("keyframeImageUrl");
+      expect(statements[0]!.params).toContain("new-keyframe.jpg");
     });
 
     it("应更新 firstFrame 和 lastFrame imageUrl", async () => {
@@ -392,11 +398,11 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-      expect(statements[0].sql).toContain("firstFrameUrl");
-      expect(statements[0].sql).toContain("lastFrameUrl");
-      expect(statements[0].params).toContain("new-first.jpg");
-      expect(statements[0].params).toContain("new-last.jpg");
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
+      expect(statements[0]!.sql).toContain("firstFrameUrl");
+      expect(statements[0]!.sql).toContain("lastFrameUrl");
+      expect(statements[0]!.params).toContain("new-first.jpg");
+      expect(statements[0]!.params).toContain("new-last.jpg");
     });
 
     it("应更新 videoUrl", async () => {
@@ -405,9 +411,9 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-      expect(statements[0].sql).toContain("videoUrl");
-      expect(statements[0].params).toContain("new-video.mp4");
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
+      expect(statements[0]!.sql).toContain("videoUrl");
+      expect(statements[0]!.params).toContain("new-video.mp4");
     });
 
     it("beat 不存在时 UPDATE 影响 0 行，不报错", async () => {
@@ -434,9 +440,9 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-      expect(statements[0].sql).toContain("local_keyframe_path");
-      expect(statements[0].params).toContain("/local/keyframe.jpg");
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
+      expect(statements[0]!.sql).toContain("local_keyframe_path");
+      expect(statements[0]!.params).toContain("/local/keyframe.jpg");
     });
 
     it("应更新 localFirstFramePath", async () => {
@@ -445,9 +451,9 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-      expect(statements[0].sql).toContain("local_first_frame_path");
-      expect(statements[0].params).toContain("/local/first.jpg");
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
+      expect(statements[0]!.sql).toContain("local_first_frame_path");
+      expect(statements[0]!.params).toContain("/local/first.jpg");
     });
 
     it("应更新 localLastFramePath", async () => {
@@ -456,9 +462,9 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-      expect(statements[0].sql).toContain("local_last_frame_path");
-      expect(statements[0].params).toContain("/local/last.jpg");
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
+      expect(statements[0]!.sql).toContain("local_last_frame_path");
+      expect(statements[0]!.params).toContain("/local/last.jpg");
     });
 
     it("应更新 localVideoPath", async () => {
@@ -467,9 +473,9 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-      expect(statements[0].sql).toContain("local_video_path");
-      expect(statements[0].params).toContain("/local/video.mp4");
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
+      expect(statements[0]!.sql).toContain("local_video_path");
+      expect(statements[0]!.params).toContain("/local/video.mp4");
     });
 
     it("所有字段为空时不应调用 safeTransaction", async () => {
@@ -505,7 +511,7 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
       expect(statements).toHaveLength(2);
     });
 
@@ -515,9 +521,9 @@ describe("storyService", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as { sql: string; params: unknown[] }[];
-      expect(statements[0].sql).toContain("keyframeImageUrl");
-      expect(statements[0].sql).toContain("local_keyframe_path");
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as { sql: string; params: unknown[] }[];
+      expect(statements[0]!.sql).toContain("keyframeImageUrl");
+      expect(statements[0]!.sql).toContain("local_keyframe_path");
     });
   });
 });

@@ -32,7 +32,7 @@ let sceneStorage: typeof import("../scenes").sceneStorage;
 beforeEach(async () => {
   vi.clearAllMocks();
   mockSafeQuery.mockResolvedValue([]);
-  mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
+  mockSafeRun.mockResolvedValue(undefined as unknown as import("@/domain/ports/sync-port").DbRunResult);
   mockSafeTransaction.mockResolvedValue([]);
   const mod = await import("../scenes");
   sceneStorage = mod.sceneStorage;
@@ -66,23 +66,23 @@ describe("storage/scenes", () => {
       });
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as {
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
-      expect(statements[0].sql).toContain("ref_image_path");
-      expect(statements[0].params).toContain("/path/to/ref.png");
+      expect(statements[0]!.sql).toContain("ref_image_path");
+      expect(statements[0]!.params).toContain("/path/to/ref.png");
     });
 
     it("未提供 id 时应自动生成", async () => {
       await sceneStorage.createScene({ name: "auto-id" });
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as {
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
-      const id = statements[0].params[0] as string;
+      const id = statements[0]!.params[0] as string;
       expect(id).toMatch(/^scene_[0-9a-f]{8}-/);
     });
 
@@ -90,11 +90,11 @@ describe("storage/scenes", () => {
       await sceneStorage.createScene({ name: "default-source" });
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as {
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
-      expect(statements[0].sql).not.toContain("source");
+      expect(statements[0]!.sql).not.toContain("source");
     });
   });
 
@@ -128,7 +128,7 @@ describe("storage/scenes", () => {
 
   describe("updateScene not found", () => {
     it("更新不存在的场景应抛错", async () => {
-      mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
+      mockSafeRun.mockResolvedValue(undefined as unknown as import("@/domain/ports/sync-port").DbRunResult);
       mockSafeQuery.mockResolvedValue([]);
       await expect(
         sceneStorage.updateScene("nonexistent-id", { name: "test" }),
@@ -141,15 +141,15 @@ describe("storage/scenes", () => {
       await sceneStorage.deleteScene("scene-1");
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as {
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
       expect(statements.length).toBe(4);
-      expect(statements[0].sql).toContain("collection_assets");
-      expect(statements[1].sql).toContain("asset_tags");
-      expect(statements[2].sql).toContain("media_assets");
-      expect(statements[3].sql).toContain("DELETE FROM scenes");
+      expect(statements[0]!.sql).toContain("collection_assets");
+      expect(statements[1]!.sql).toContain("asset_tags");
+      expect(statements[2]!.sql).toContain("media_assets");
+      expect(statements[3]!.sql).toContain("DELETE FROM scenes");
     });
   });
 
@@ -158,7 +158,7 @@ describe("storage/scenes", () => {
       mockSafeQuery.mockResolvedValue([makeSceneRow()]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].camera).toBeUndefined();
+      expect(scenes[0]!.camera).toBeUndefined();
     });
 
     it("config 容器中包含 camera 时应保留该对象", async () => {
@@ -167,7 +167,7 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].camera).toEqual({ movement: "pan" });
+      expect(scenes[0]!.camera).toEqual({ movement: "pan" });
     });
   });
 
@@ -215,7 +215,7 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      const scene = scenes[0];
+      const scene = scenes[0]!;
       expect(scene.id).toBe("s1");
       expect(scene.name).toBe("Sunset");
       expect(scene.refImagePath).toBe("/img/sunset.png");
@@ -265,8 +265,8 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].createdAt).toBeDefined();
-      expect(scenes[0].updatedAt).toBeDefined();
+      expect(scenes[0]!.createdAt).toBeDefined();
+      expect(scenes[0]!.updatedAt).toBeDefined();
     });
 
     it("handles last_used_at as string type by returning undefined", async () => {
@@ -275,7 +275,7 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].lastUsedAt).toBeUndefined();
+      expect(scenes[0]!.lastUsedAt).toBeUndefined();
     });
 
     it("handles null appearance container", async () => {
@@ -284,8 +284,8 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].thumbnailPath).toBeUndefined();
-      expect(scenes[0].generatedImage).toBeUndefined();
+      expect(scenes[0]!.thumbnailPath).toBeUndefined();
+      expect(scenes[0]!.generatedImage).toBeUndefined();
     });
 
     it("handles null atmosphere container", async () => {
@@ -294,10 +294,10 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].mood).toBe("");
-      expect(scenes[0].lighting).toBe("");
-      expect(scenes[0].elements).toEqual([]);
-      expect(scenes[0].colors).toEqual([]);
+      expect(scenes[0]!.mood).toBe("");
+      expect(scenes[0]!.lighting).toBe("");
+      expect(scenes[0]!.elements).toEqual([]);
+      expect(scenes[0]!.colors).toEqual([]);
     });
 
     it("handles null generation container", async () => {
@@ -306,8 +306,8 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].prompt).toBe("");
-      expect(scenes[0].generationPrompt).toBeUndefined();
+      expect(scenes[0]!.prompt).toBe("");
+      expect(scenes[0]!.generationPrompt).toBeUndefined();
     });
 
     it("handles invalid JSON in container gracefully", async () => {
@@ -319,10 +319,10 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].thumbnailPath).toBeUndefined();
-      expect(scenes[0].mood).toBe("");
-      expect(scenes[0].prompt).toBe("");
-      expect(scenes[0].camera).toBeUndefined();
+      expect(scenes[0]!.thumbnailPath).toBeUndefined();
+      expect(scenes[0]!.mood).toBe("");
+      expect(scenes[0]!.prompt).toBe("");
+      expect(scenes[0]!.camera).toBeUndefined();
     });
 
     it("handles scenePath and imageUrl from appearance", async () => {
@@ -334,8 +334,8 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].scenePath).toBe("/scene/path");
-      expect(scenes[0].imageUrl).toBe("https://example.com/img.png");
+      expect(scenes[0]!.scenePath).toBe("/scene/path");
+      expect(scenes[0]!.imageUrl).toBe("https://example.com/img.png");
     });
 
     it("handles tags and relatedCharacters from config container", async () => {
@@ -347,7 +347,7 @@ describe("storage/scenes", () => {
       })]);
 
       const scenes = await sceneStorage.getScenes();
-      expect(scenes[0].tags).toEqual(["nature", "sunset"]);
+      expect(scenes[0]!.tags).toEqual(["nature", "sunset"]);
     });
   });
 
@@ -355,7 +355,7 @@ describe("storage/scenes", () => {
     it("handles createdAt as number", async () => {
       await sceneStorage.createScene({
         name: "test",
-        createdAt: 1700000000000,
+        createdAt: "1700000000000",
       });
 
       expect(mockSafeTransaction).toHaveBeenCalled();

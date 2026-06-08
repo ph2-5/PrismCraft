@@ -3,6 +3,7 @@ export type {
   AsyncAIProviderPlugin,
   ImageSizeOption,
   ModelCapabilities,
+  ProviderCapabilities,
   VideoCapabilities,
   ImageCapabilities,
   ImageTransportMode,
@@ -16,6 +17,7 @@ export type {
   TextRequestResult,
   VisionRequestResult,
   CloudProviderInfo,
+  MatchPattern,
 } from "./types";
 
 export { BaseAIProviderPlugin } from "./base-provider";
@@ -55,7 +57,7 @@ export {
 } from "./user-plugin-loader";
 
 export type { CodePluginExport } from "./code-plugin-loader";
-export { loadCodePlugins, listCodePluginFiles } from "./code-plugin-loader";
+export { scanCodePluginFile, listCodePluginFiles } from "./code-plugin-loader";
 export { CodePluginAdapter } from "./code-plugin-adapter";
 export { PluginProcessManager, shutdownAllProcessManagers, getAllProcessMetrics } from "./plugin-process-manager";
 export type { PluginLoadResult, ProcessMetrics } from "./plugin-process-manager";
@@ -72,7 +74,7 @@ import { OpenAICompatiblePlugin } from "./providers/openai-compatible";
 import { MiniMaxPlugin } from "./providers/minimax";
 import { AnthropicPlugin } from "./providers/anthropic";
 
-function registerAllPlugins(): void {
+async function registerAllPlugins(): Promise<void> {
   pluginRegistry.register(new VolcenginePlugin());
   pluginRegistry.register(new KuaishouPlugin());
   pluginRegistry.register(new ZhipuPlugin());
@@ -85,7 +87,7 @@ function registerAllPlugins(): void {
   pluginRegistry.setFallback(new OpenAICompatiblePlugin());
 
   pluginRegistry.reloadUserPlugins();
-  pluginRegistry.loadCodePlugins();
+  await pluginRegistry.loadCodePlugins();
 }
 
 registerAllPlugins();

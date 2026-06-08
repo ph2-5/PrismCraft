@@ -9,12 +9,17 @@ export type {
   ValidationResult,
 } from "./shot-validator";
 export {
-  generateFallbackParams,
   validateShotParams,
   validateStoryBeatOutput,
   validateStoryPlanOutput,
   formatValidationResult,
 } from "./shot-validator";
+export {
+  generateFallbackParams,
+  fixShotParams,
+  fixStoryBeat,
+  normalizeEnumValue,
+} from "./shot-params-fixer";
 export type {
   PipelineProgress,
   PipelineOptions,

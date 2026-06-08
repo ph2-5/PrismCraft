@@ -25,8 +25,9 @@ export interface IVideoTaskStorage {
 export interface ICharacterStorage {
   getCharacters(): Promise<Character[]>;
   getCharacterById(id: string): Promise<Character | null>;
+  getCharacterVersion(id: string): Promise<number | null>;
   createCharacter(character: Partial<Character>): Promise<void>;
-  updateCharacter(id: string, updates: Partial<Character>): Promise<void>;
+  updateCharacter(id: string, updates: Partial<Character>, version?: number): Promise<void>;
   deleteCharacter(id: string): Promise<void>;
   incrementCharacterUseCount(id: string): Promise<void>;
   getOutfitsForCharacter(characterId: string): Promise<CharacterOutfit[]>;
@@ -37,8 +38,9 @@ export interface ICharacterStorage {
 export interface ISceneStorage {
   getScenes(): Promise<Scene[]>;
   getSceneById(id: string): Promise<Scene | null>;
+  getSceneVersion(id: string): Promise<number | null>;
   createScene(scene: Partial<Scene>): Promise<void>;
-  updateScene(id: string, updates: Partial<Scene>): Promise<void>;
+  updateScene(id: string, updates: Partial<Scene>, version?: number): Promise<void>;
   deleteScene(id: string): Promise<void>;
 }
 
@@ -46,7 +48,8 @@ export interface IStoryStorage {
   getStories(): Promise<Story[]>;
   getStoryById(id: string): Promise<Story | null>;
   getStoryByBeatId(beatId: string): Promise<Story | null>;
+  getStoryVersion(id: string): Promise<number | null>;
   createStory(story: Partial<Story>): Promise<void>;
-  updateStory(id: string, updates: Partial<Story>): Promise<void>;
+  updateStory(id: string, updates: Partial<Story>, version?: number): Promise<void>;
   deleteStory(id: string): Promise<void>;
 }

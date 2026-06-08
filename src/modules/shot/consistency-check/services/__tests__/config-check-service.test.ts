@@ -50,7 +50,7 @@ describe("performConfigCheck", () => {
     expect(result.overallScore).toBe(0.8);
     expect(result.recommendation).toBe("accept");
     expect(result.characterScores).toHaveLength(1);
-    expect(result.characterScores[0].issues).toHaveLength(0);
+    expect(result.characterScores[0]!.issues).toHaveLength(0);
   });
 
   it("缺少参考图应添加问题", () => {
@@ -68,8 +68,8 @@ describe("performConfigCheck", () => {
 
     const result = performConfigCheck({ featureAnchoring: config, elements });
 
-    expect(result.characterScores[0].issues).toContain("缺少角色参考图");
-    expect(result.characterScores[0].score).toBeLessThan(0.8);
+    expect(result.characterScores[0]!.issues).toContain("缺少角色参考图");
+    expect(result.characterScores[0]!.score).toBeLessThan(0.8);
   });
 
   it("缺少特征标签应添加问题", () => {
@@ -87,7 +87,7 @@ describe("performConfigCheck", () => {
 
     const result = performConfigCheck({ featureAnchoring: config, elements });
 
-    expect(result.characterScores[0].issues).toContain(
+    expect(result.characterScores[0]!.issues).toContain(
       "缺少角色特征标签，一致性约束可能不足",
     );
   });
@@ -107,8 +107,8 @@ describe("performConfigCheck", () => {
 
     const result = performConfigCheck({ featureAnchoring: config, elements });
 
-    expect(result.characterScores[0].issues).toHaveLength(2);
-    expect(result.characterScores[0].score).toBeCloseTo(0.2);
+    expect(result.characterScores[0]!.issues).toHaveLength(2);
+    expect(result.characterScores[0]!.score).toBeCloseTo(0.2);
     expect(result.passed).toBe(false);
   });
 
@@ -127,7 +127,7 @@ describe("performConfigCheck", () => {
 
     const result = performConfigCheck({ featureAnchoring: config, elements });
 
-    expect(result.characterScores[0].elementName).toBe("未知角色");
+    expect(result.characterScores[0]!.elementName).toBe("未知角色");
   });
 
   it("无锚点时 overallScore 应为 0", () => {

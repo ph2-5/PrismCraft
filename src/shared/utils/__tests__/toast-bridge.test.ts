@@ -7,7 +7,7 @@ describe("toast-bridge", () => {
     window.addEventListener(TOAST_EVENT, listener);
     emitToast("success", "操作成功", "数据已保存");
     expect(listener).toHaveBeenCalledTimes(1);
-    const event = listener.mock.calls[0][0] as CustomEvent;
+    const event = listener.mock.calls[0]![0] as CustomEvent;
     expect(event.detail).toEqual({
       type: "success",
       title: "操作成功",
@@ -20,7 +20,7 @@ describe("toast-bridge", () => {
     const listener = vi.fn();
     window.addEventListener(TOAST_EVENT, listener);
     emitToast("success", "成功");
-    const event = listener.mock.calls[0][0] as CustomEvent;
+    const event = listener.mock.calls[0]![0] as CustomEvent;
     expect(event.detail.type).toBe("success");
     window.removeEventListener(TOAST_EVENT, listener);
   });
@@ -29,7 +29,7 @@ describe("toast-bridge", () => {
     const listener = vi.fn();
     window.addEventListener(TOAST_EVENT, listener);
     emitToast("error", "失败");
-    const event = listener.mock.calls[0][0] as CustomEvent;
+    const event = listener.mock.calls[0]![0] as CustomEvent;
     expect(event.detail.type).toBe("error");
     window.removeEventListener(TOAST_EVENT, listener);
   });
@@ -38,7 +38,7 @@ describe("toast-bridge", () => {
     const listener = vi.fn();
     window.addEventListener(TOAST_EVENT, listener);
     emitToast("warning", "警告");
-    const event = listener.mock.calls[0][0] as CustomEvent;
+    const event = listener.mock.calls[0]![0] as CustomEvent;
     expect(event.detail.type).toBe("warning");
     window.removeEventListener(TOAST_EVENT, listener);
   });
@@ -47,7 +47,7 @@ describe("toast-bridge", () => {
     const listener = vi.fn();
     window.addEventListener(TOAST_EVENT, listener);
     emitToast("info", "提示");
-    const event = listener.mock.calls[0][0] as CustomEvent;
+    const event = listener.mock.calls[0]![0] as CustomEvent;
     expect(event.detail.type).toBe("info");
     window.removeEventListener(TOAST_EVENT, listener);
   });
@@ -56,7 +56,7 @@ describe("toast-bridge", () => {
     const listener = vi.fn();
     window.addEventListener(TOAST_EVENT, listener);
     emitToast("info", "仅标题");
-    const event = listener.mock.calls[0][0] as CustomEvent;
+    const event = listener.mock.calls[0]![0] as CustomEvent;
     expect(event.detail.message).toBeUndefined();
     window.removeEventListener(TOAST_EVENT, listener);
   });

@@ -2,6 +2,7 @@ import { BaseAIProviderPlugin } from "../base-provider";
 import type {
   AIProviderPlugin,
   ModelCapabilities,
+  ProviderCapabilities,
   VideoBuildContext,
   ImageBuildContext,
   VisionBuildContext,
@@ -19,6 +20,15 @@ export class MiniMaxPlugin extends BaseAIProviderPlugin implements AIProviderPlu
 
   match(apiUrl: string, model?: string): boolean {
     return apiUrl.includes("minimaxi.com") || (model?.includes("hailuo") ?? false);
+  }
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: false,
+      vision: false,
+    };
   }
 
   readonly videoCapabilities = {

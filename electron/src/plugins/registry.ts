@@ -1,13 +1,13 @@
-import type { AIProviderPlugin, ModelParameterProfile, VideoCapabilities, ImageCapabilities, ApiKeyDetection } from "./types";
+import type { AIProviderPlugin, ModelParameterProfile, ProviderCapabilities, VideoCapabilities, ImageCapabilities, ApiKeyDetection, MatchPattern } from "./types";
 import { getLogger } from "../logging/logger";
 import { loadUserPlugins, USER_PLUGINS_DIR } from "./user-plugin-loader";
-import { loadCodePlugins, CODE_PLUGINS_DIR, listCodePluginFiles } from "./code-plugin-loader";
+import { CODE_PLUGINS_DIR, listCodePluginFiles, scanCodePluginFile } from "./code-plugin-loader";
 import { CodePluginAdapter } from "./code-plugin-adapter";
-import { PluginProcessManager, registerProcessManager } from "./plugin-process-manager";
+import { PluginProcessManager, registerProcessManager, unregisterProcessManager } from "./plugin-process-manager";
 
 const logger = getLogger("plugin-registry");
 
-class PluginRegistry {
+export class PluginRegistry {
   private plugins: AIProviderPlugin[] = [];
   private fallbackPlugin: AIProviderPlugin | null = null;
   private userPluginIds: Set<string> = new Set();
@@ -111,101 +111,48 @@ class PluginRegistry {
     return { loaded, errors };
   }
 
-  loadCodePlugins(): { loaded: number; errors: string[] } {
+  async loadCodePlugins(): Promise<{ loaded: number; errors: string[] }> {
     const errors: string[] = [];
     let loaded = 0;
 
-    try {
-      const codePluginExports = loadCodePlugins();
-      for (const pluginExport of codePluginExports) {
-        try {
-          const adapter = new CodePluginAdapter(pluginExport);
-          this.plugins.push(adapter);
-          this.codePluginIds.add(adapter.id);
-          loaded++;
-        } catch (e) {
-          errors.push(
-            `适配代码插件 ${pluginExport.id} 失败: ${e instanceof Error ? e.message : String(e)}`,
-          );
-        }
+    const oldCodePlugins = this.plugins.filter((p) =>
+      this.codePluginIds.has(p.id),
+    );
+    for (const p of oldCodePlugins) {
+      const index = this.plugins.indexOf(p);
+      if (index !== -1) this.plugins.splice(index, 1);
+
+      if (this.isCodePlugin(p.id)) {
+        unregisterProcessManager(p.id);
       }
-    } catch (e) {
-      errors.push(
-        `加载代码插件失败: ${e instanceof Error ? e.message : String(e)}`,
-      );
-    }
-
-    return { loaded, errors };
-  }
-
-  reloadCodePlugins(): { loaded: number; errors: string[] } {
-    const oldCodePlugins = this.plugins.filter((p) =>
-      this.codePluginIds.has(p.id),
-    );
-    for (const p of oldCodePlugins) {
-      const index = this.plugins.indexOf(p);
-      if (index !== -1) this.plugins.splice(index, 1);
-    }
-    this.codePluginIds.clear();
-
-    return this.loadCodePlugins();
-  }
-
-  async loadCodePluginsInProcess(): Promise<{ loaded: number; errors: string[] }> {
-    const errors: string[] = [];
-    let loaded = 0;
-
-    const oldCodePlugins = this.plugins.filter((p) =>
-      this.codePluginIds.has(p.id),
-    );
-    for (const p of oldCodePlugins) {
-      const index = this.plugins.indexOf(p);
-      if (index !== -1) this.plugins.splice(index, 1);
     }
     this.codePluginIds.clear();
 
     const files = listCodePluginFiles();
     for (const filePath of files) {
       const fileName = filePath.split(/[/\\]/).pop() || "";
+
+      const scanResult = scanCodePluginFile(filePath);
+      if (!scanResult.valid) {
+        errors.push(...scanResult.errors);
+        continue;
+      }
+
       const manager = new PluginProcessManager();
 
       try {
-        const { pluginId, pluginDisplayName, metadata } = await manager.load(filePath);
+        const { pluginId, metadata } = await manager.load(filePath);
 
-        const dummyExport: Record<string, unknown> = {
-          id: pluginId,
-          displayName: pluginDisplayName,
-          match: () => false,
-          videoCapabilities: metadata.videoCapabilities || {},
-          imageCapabilities: metadata.imageCapabilities || {},
-          getAuthHeaders: (apiKey: string) => ({ Authorization: `Bearer ${apiKey}` }),
-          extractTaskId: () => undefined,
-          extractVideoUrl: () => undefined,
-          extractImageUrl: () => undefined,
-          buildVideoRequest: () => ({ body: {}, endpoint: "" }),
-          buildImageRequest: () => ({ body: {}, endpoint: "" }),
-          getModelCapabilities: () => ({
-            maxReferences: 4,
-            maxResolution: 2048,
-            maxSizeMB: 10,
-            supportsLastFrame: false,
-            referenceMode: "separate" as const,
-          }),
-          getModelParameterProfile: () => ({
-            modelId: "",
-            capabilities: { maxReferences: 4, maxResolution: 2048, maxSizeMB: 10, supportsLastFrame: false, referenceMode: "separate" as const },
-            parameters: {},
-          }),
-          apiKeyDetection: metadata.apiKeyDetection,
-          preferLocalData: metadata.preferLocalData as boolean | undefined,
-        };
+        const matchPatterns = (metadata.matchPatterns || scanResult.matchPatterns) as MatchPattern[] | undefined;
 
-        const adapter = new CodePluginAdapter(dummyExport as unknown as import("./code-plugin-loader").CodePluginExport, manager, {
+        const adapter = new CodePluginAdapter(manager, {
+          capabilities: (metadata.capabilities || { video: true, image: true, text: true, vision: true }) as ProviderCapabilities,
           videoCapabilities: (metadata.videoCapabilities || {}) as VideoCapabilities,
           imageCapabilities: (metadata.imageCapabilities || {}) as ImageCapabilities,
           availableModels: (metadata.availableModels || []) as string[],
           apiKeyDetection: (metadata.apiKeyDetection || undefined) as ApiKeyDetection | undefined,
           preferLocalData: metadata.preferLocalData as boolean | undefined,
+          matchPatterns,
         });
 
         this.plugins.push(adapter);
@@ -233,6 +180,7 @@ class PluginRegistry {
       displayName: string;
       isUserPlugin: boolean;
       isCodePlugin: boolean;
+      capabilities: ProviderCapabilities;
       videoCapabilities: AIProviderPlugin["videoCapabilities"];
       imageCapabilities: AIProviderPlugin["imageCapabilities"];
     }
@@ -242,6 +190,7 @@ class PluginRegistry {
       displayName: string;
       isUserPlugin: boolean;
       isCodePlugin: boolean;
+      capabilities: ProviderCapabilities;
       videoCapabilities: AIProviderPlugin["videoCapabilities"];
       imageCapabilities: AIProviderPlugin["imageCapabilities"];
     }> = {};
@@ -251,6 +200,7 @@ class PluginRegistry {
         displayName: plugin.displayName,
         isUserPlugin: this.userPluginIds.has(plugin.id),
         isCodePlugin: this.codePluginIds.has(plugin.id),
+        capabilities: plugin.capabilities,
         videoCapabilities: plugin.videoCapabilities,
         imageCapabilities: plugin.imageCapabilities,
       };

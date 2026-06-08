@@ -54,7 +54,7 @@ describe("video-verification-service", () => {
 
     it("should return invalid when content type is not video", async () => {
       vi.spyOn(globalThis, "fetch").mockImplementation(
-        (url: string | URL | Request, init?: RequestInit) => {
+        (_url: string | URL | Request, init?: RequestInit) => {
           if (init?.method === "HEAD") {
             return Promise.resolve(
               createMockResponse({

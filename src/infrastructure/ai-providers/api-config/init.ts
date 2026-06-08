@@ -4,6 +4,7 @@
 
 import { type ApiConfig, type ApiCapability } from "./types";
 import { loadConfig, getCapabilityConfig } from "./storage";
+import { t } from "@/shared/constants";
 
 export interface ConfigStatusItem {
   configured: boolean;
@@ -36,10 +37,10 @@ export async function checkConfigStatus(): Promise<ConfigStatus> {
   const video = checkCapabilityStatus(config, "video");
 
   const capabilityNames: Record<ApiCapability, string> = {
-    text: "文本生成",
-    image: "图片生成",
-    vision: "图片分析",
-    video: "视频生成",
+    text: t("api.textGeneration"),
+    image: t("api.imageGeneration"),
+    vision: t("api.visionAnalysis"),
+    video: t("api.videoGeneration"),
   };
 
   const items = [text, image, vision, video];
@@ -77,7 +78,7 @@ function checkCapabilityStatus(
   if (!provider || !modelId) {
     return {
       configured: false,
-      provider: "未配置",
+      provider: t("api.notConfigured"),
       available: false,
     };
   }
@@ -98,10 +99,10 @@ export async function getMissingCapabilities(): Promise<string[]> {
   const missing: string[] = [];
 
   const capabilityNames: Record<ApiCapability, string> = {
-    text: "文本生成",
-    image: "图片生成",
-    vision: "图片分析",
-    video: "视频生成",
+    text: t("api.textGeneration"),
+    image: t("api.imageGeneration"),
+    vision: t("api.visionAnalysis"),
+    video: t("api.videoGeneration"),
   };
 
   (["text", "image", "vision", "video"] as ApiCapability[]).forEach((cap) => {

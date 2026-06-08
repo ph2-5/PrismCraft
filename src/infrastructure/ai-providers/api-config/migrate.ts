@@ -8,6 +8,7 @@ import { getDefaultConfig, saveConfig } from "./storage";
 import { PROVIDER_TEMPLATES } from "./templates";
 import { detectProvider } from "./detect";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 // 旧版配置类型
 interface OldApiConfig {
@@ -54,7 +55,7 @@ export function migrateFromOldConfig(
 
     const provider: ProviderConfig = {
       id: `migrated-text-${crypto.randomUUID()}`,
-      name: `${template?.name || "文本"} API`,
+      name: `${template?.name || t("api.textApi")}`,
       format: template?.format || "openai",
       baseUrl:
         parsedConfig.textApiUrl ||
@@ -71,7 +72,10 @@ export function migrateFromOldConfig(
     };
 
     config.providers.push(provider);
-    config.mapping.text = `${provider.id}/${provider.models[0]!.id}`;
+    const firstModel = provider.models[0];
+    if (firstModel) {
+      config.mapping.text = `${provider.id}/${firstModel.id}`;
+    }
   }
 
   // 迁移图像生成配置
@@ -97,7 +101,7 @@ export function migrateFromOldConfig(
     } else {
       const provider: ProviderConfig = {
         id: `migrated-image-${crypto.randomUUID()}`,
-        name: `${template?.name || "图像"} API`,
+        name: `${template?.name || t("api.imageApi")}`,
         format: template?.format || "openai",
         baseUrl:
           parsedConfig.imageApiUrl ||
@@ -114,7 +118,10 @@ export function migrateFromOldConfig(
       };
 
       config.providers.push(provider);
-      config.mapping.image = `${provider.id}/${provider.models[0]!.id}`;
+      const firstModel = provider.models[0];
+      if (firstModel) {
+        config.mapping.image = `${provider.id}/${firstModel.id}`;
+      }
     }
   }
 
@@ -126,7 +133,7 @@ export function migrateFromOldConfig(
 
     const provider: ProviderConfig = {
       id: `migrated-video-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      name: `${template?.name || "视频"} API`,
+      name: `${template?.name || t("api.videoApi")}`,
       format: template?.format || "zhipu",
       baseUrl:
         parsedConfig.videoApiUrl ||
@@ -143,7 +150,10 @@ export function migrateFromOldConfig(
     };
 
     config.providers.push(provider);
-    config.mapping.video = `${provider.id}/${provider.models[0]!.id}`;
+    const firstModel = provider.models[0];
+    if (firstModel) {
+      config.mapping.video = `${provider.id}/${firstModel.id}`;
+    }
   }
 
   // 迁移视觉配置
@@ -178,7 +188,7 @@ export function migrateFromOldConfig(
     } else {
       const provider: ProviderConfig = {
         id: `migrated-vision-${crypto.randomUUID()}`,
-        name: `${template?.name || "视觉"} API`,
+        name: `${template?.name || t("api.visionApi")}`,
         format: template?.format || "openai",
         baseUrl:
           parsedConfig.visionApiUrl ||
@@ -195,7 +205,10 @@ export function migrateFromOldConfig(
       };
 
       config.providers.push(provider);
-      config.mapping.vision = `${provider.id}/${provider.models[0]!.id}`;
+      const firstModel = provider.models[0];
+      if (firstModel) {
+        config.mapping.vision = `${provider.id}/${firstModel.id}`;
+      }
     }
   }
 

@@ -138,7 +138,7 @@ describe("generateImage", () => {
       modelId: "m1",
     });
 
-    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0][1].body);
+    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body);
     expect(body.promptWasTruncated).toBe(true);
     expect(body.prompt).toBe("truncated prompt");
   });
@@ -288,7 +288,7 @@ describe("analyzeImage", () => {
 
     await analyzeImage("https://example.com/img.png", "character");
 
-    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0][1].body);
+    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body);
     expect(body.prompt).toContain("角色");
   });
 
@@ -297,7 +297,7 @@ describe("analyzeImage", () => {
 
     await analyzeImage("https://example.com/img.png", "scene");
 
-    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0][1].body);
+    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body);
     expect(body.prompt).toContain("场景");
   });
 
@@ -306,7 +306,7 @@ describe("analyzeImage", () => {
 
     await analyzeImage("https://example.com/img.png", "character", "自定义分析指令");
 
-    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0][1].body);
+    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body);
     expect(body.prompt).toBe("自定义分析指令");
   });
 
@@ -318,7 +318,7 @@ describe("analyzeImage", () => {
       modelId: "test-model",
     });
 
-    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0][1].body);
+    const body = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body);
     expect(body.providerId).toBe("test-provider");
     expect(body.modelId).toBe("test-model");
   });

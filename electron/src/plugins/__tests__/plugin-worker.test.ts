@@ -12,6 +12,7 @@ describe("plugin-worker", () => {
         baseUrl?: string;
       } | null;
       preferLocalData: boolean | undefined;
+      matchPatterns: Array<{ urlPattern: string; modelPattern?: string }> | undefined;
     } {
       const vc = exported.videoCapabilities;
       const ic = exported.imageCapabilities;
@@ -33,6 +34,14 @@ describe("plugin-worker", () => {
         };
       }
 
+      let matchPatterns: Array<{ urlPattern: string; modelPattern?: string }> | undefined = undefined;
+      const rawMatchPatterns = exported.matchPatterns;
+      if (Array.isArray(rawMatchPatterns)) {
+        matchPatterns = rawMatchPatterns.filter(
+          (p: unknown) => p && typeof p === "object" && typeof (p as Record<string, unknown>).urlPattern === "string",
+        ) as Array<{ urlPattern: string; modelPattern?: string }>;
+      }
+
       function safeGet<T>(obj: Record<string, unknown>, key: string, fallback: T): T {
         const val = obj[key];
         if (val === undefined) return fallback;
@@ -48,6 +57,7 @@ describe("plugin-worker", () => {
         availableModels: safeGet<string[]>(exported, "getAvailableModels", []),
         apiKeyDetection,
         preferLocalData: exported.preferLocalData as boolean | undefined,
+        matchPatterns,
       };
     }
 
@@ -76,6 +86,57 @@ describe("plugin-worker", () => {
         baseUrl: "https://test.com",
       });
       expect(meta.preferLocalData).toBe(true);
+    });
+
+    it("should extract matchPatterns from plugin export", () => {
+      const exported = {
+        id: "test",
+        displayName: "Test Plugin",
+        videoCapabilities: {},
+        imageCapabilities: {},
+        matchPatterns: [
+          { urlPattern: "api.test.com", modelPattern: "v1" },
+          { urlPattern: "api.other.com" },
+        ],
+      };
+
+      const meta = extractMetadata(exported);
+      expect(meta.matchPatterns).toEqual([
+        { urlPattern: "api.test.com", modelPattern: "v1" },
+        { urlPattern: "api.other.com" },
+      ]);
+    });
+
+    it("should filter out invalid matchPatterns entries", () => {
+      const exported = {
+        id: "test",
+        displayName: "Test Plugin",
+        videoCapabilities: {},
+        imageCapabilities: {},
+        matchPatterns: [
+          { urlPattern: "api.test.com" },
+          { modelPattern: "v1" },
+          "invalid",
+          null,
+        ],
+      };
+
+      const meta = extractMetadata(exported);
+      expect(meta.matchPatterns).toEqual([
+        { urlPattern: "api.test.com" },
+      ]);
+    });
+
+    it("should return undefined matchPatterns when not provided", () => {
+      const exported = {
+        id: "test",
+        displayName: "Test Plugin",
+        videoCapabilities: {},
+        imageCapabilities: {},
+      };
+
+      const meta = extractMetadata(exported);
+      expect(meta.matchPatterns).toBeUndefined();
     });
 
     it("should handle missing apiKeyDetection", () => {

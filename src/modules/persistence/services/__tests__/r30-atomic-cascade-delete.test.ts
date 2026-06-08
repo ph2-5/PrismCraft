@@ -65,7 +65,7 @@ describe("R30: Cascade delete operations must be atomic", () => {
     expect(result.ok).toBe(true);
     expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
 
-    const statements = mockSafeTransaction.mock.calls[0][0];
+    const statements = mockSafeTransaction.mock.calls[0]![0]!;
     const sqls = statements.map((s: { sql: string }) => s.sql);
 
     expect(sqls).toContain("DELETE FROM story_characters WHERE character_id = ?");

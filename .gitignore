@@ -17,6 +17,7 @@
 /playwright-report/
 /test-reports/
 /.playwright-browsers/
+/.stryker-tmp/
 
 # runtime logs
 stderr.log

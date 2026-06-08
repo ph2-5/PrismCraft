@@ -153,13 +153,13 @@ describe("elements/commands", () => {
       await deleteElement("CHAR_001");
 
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-      const statements = mockSafeTransaction.mock.calls[0][0] as Array<{
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as Array<{
         sql: string;
         params: unknown[];
       }>;
       expect(statements).toHaveLength(2);
-      expect(statements[0].sql).toContain("story_elements");
-      expect(statements[1].sql).toContain("elements");
+      expect(statements[0]!.sql).toContain("story_elements");
+      expect(statements[1]!.sql).toContain("elements");
     });
 
     it("handles trackChange failure gracefully", async () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SmartRetryEngine, createRetryEngine } from "@/modules/video";
 import type { VideoTask } from "@/domain/schemas";
-import type { RetryDecision } from "../types/video-recovery-types";
+import type { RetryDecision } from "../../types/video-recovery-types";
 
 function createMockTask(overrides: Partial<VideoTask> = {}): VideoTask {
   return {
@@ -102,10 +102,10 @@ describe("SmartRetryEngine", () => {
     const engine = new SmartRetryEngine({ baseDelayMs: 1000, maxDelayMs: 60000, jitter: false });
     const delays = [0, 1, 2].map(attempt => engine.getRecommendedRetryDelay(
       { shouldRetry: true, reason: "", confidence: "low", tokenWasteRisk: "low" },
-      attempt,
+      attempt!,
     ));
-    expect(delays[1]).toBeGreaterThan(delays[0]);
-    expect(delays[2]).toBeGreaterThan(delays[1]);
+    expect(delays[1]!).toBeGreaterThan(delays[0]!);
+    expect(delays[2]!).toBeGreaterThan(delays[1]!);
   });
 
   it("createRetryEngine 应创建独立实例", () => {
@@ -241,7 +241,7 @@ describe("SmartRetryEngine 错误分类组合", () => {
     );
 
     for (let i = 1; i < delays.length; i++) {
-      expect(delays[i]).toBeGreaterThan(delays[i - 1]);
+      expect(delays[i]!).toBeGreaterThan(delays[i - 1]!);
     }
 
     expect(delays[0]).toBe(1000);

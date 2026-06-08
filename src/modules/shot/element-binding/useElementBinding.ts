@@ -10,25 +10,39 @@ export function useElementBinding() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     elementManager.getAllElements().then((els) => {
-      setElements(els);
-      setIsLoading(false);
-      setLoadError(null);
+      if (!cancelled) {
+        setElements(els);
+        setIsLoading(false);
+        setLoadError(null);
+      }
     }).catch((e) => {
-      errorLogger.error(handleError(e), "ElementBinding");
-      setLoadError(e instanceof Error ? e.message : "元素加载失败");
-      setIsLoading(false);
+      if (!cancelled) {
+        errorLogger.error(handleError(e), "ElementBinding");
+        setLoadError(e instanceof Error ? e.message : "元素加载失败");
+        setIsLoading(false);
+      }
     });
 
     const unsubscribe = elementManager.subscribe(() => {
-      elementManager.getAllElements().then((els) => {
-        setElements(els);
-      }).catch((e) => {
-        errorLogger.warn(handleError(e), "ElementBinding");
-      });
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (!cancelled) {
+          elementManager.getAllElements().then((els) => {
+            if (!cancelled) setElements(els);
+          }).catch(() => {});
+        }
+      }, 50);
     });
 
-    return unsubscribe;
+    return () => {
+      cancelled = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      unsubscribe();
+    };
   }, []);
 
   const createElement = useCallback(

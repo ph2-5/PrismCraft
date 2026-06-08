@@ -1,6 +1,7 @@
 import { BaseAIProviderPlugin } from "../base-provider";
 import type {
   ModelCapabilities,
+  ProviderCapabilities,
   VideoBuildContext,
   ImageBuildContext,
   VideoRequestResult,
@@ -14,6 +15,15 @@ export class OpenAISoraPlugin extends BaseAIProviderPlugin {
 
   match(apiUrl: string, model?: string): boolean {
     return apiUrl.includes("api.openai.com") && !!model && model.includes("sora");
+  }
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: false,
+      vision: false,
+    };
   }
 
   readonly videoCapabilities = {

@@ -391,8 +391,8 @@ describe("getVersionStats", () => {
 
 describe("compareVersions", () => {
   it("应检测新增的 beats", () => {
-    const v1 = makeVersion({ beats: [mockBeats[0]] });
-    const v2 = makeVersion({ beats: [mockBeats[0], { ...mockBeats[0], id: "beat-2" }] });
+    const v1 = makeVersion({ beats: [mockBeats[0]!] });
+    const v2 = makeVersion({ beats: [mockBeats[0]!, { ...mockBeats[0]!, id: "beat-2" } as StoryBeat] });
 
     const diff = compareVersions(v1, v2);
 
@@ -401,8 +401,8 @@ describe("compareVersions", () => {
   });
 
   it("应检测删除的 beats", () => {
-    const v1 = makeVersion({ beats: [mockBeats[0], { ...mockBeats[0], id: "beat-2" }] });
-    const v2 = makeVersion({ beats: [mockBeats[0]] });
+    const v1 = makeVersion({ beats: [mockBeats[0]!, { ...mockBeats[0]!, id: "beat-2" } as StoryBeat] });
+    const v2 = makeVersion({ beats: [mockBeats[0]!] });
 
     const diff = compareVersions(v1, v2);
 
@@ -412,10 +412,10 @@ describe("compareVersions", () => {
 
   it("应检测修改的 beats", () => {
     const v1 = makeVersion({
-      beats: [{ ...mockBeats[0], title: "旧标题", content: "旧内容" }],
+      beats: [{ ...mockBeats[0]!, title: "旧标题", content: "旧内容" } as StoryBeat],
     });
     const v2 = makeVersion({
-      beats: [{ ...mockBeats[0], title: "新标题", content: "旧内容" }],
+      beats: [{ ...mockBeats[0]!, title: "新标题", content: "旧内容" } as StoryBeat],
     });
 
     const diff = compareVersions(v1, v2);
@@ -424,9 +424,9 @@ describe("compareVersions", () => {
   });
 
   it("beats 数量相同时 beatsAdded 和 beatsRemoved 应为 0", () => {
-    const v1 = makeVersion({ beats: [mockBeats[0]] });
+    const v1 = makeVersion({ beats: [mockBeats[0]!] });
     const v2 = makeVersion({
-      beats: [{ ...mockBeats[0], title: "新标题" }],
+      beats: [{ ...mockBeats[0]!, title: "新标题" } as StoryBeat],
     });
 
     const diff = compareVersions(v1, v2);
@@ -438,10 +438,10 @@ describe("compareVersions", () => {
 
   it("应检测时长变化", () => {
     const v1 = makeVersion({
-      beats: [{ ...mockBeats[0], duration: 5 }],
+      beats: [{ ...mockBeats[0]!, duration: 5 } as StoryBeat],
     });
     const v2 = makeVersion({
-      beats: [{ ...mockBeats[0], duration: 10 }],
+      beats: [{ ...mockBeats[0]!, duration: 10 } as StoryBeat],
     });
 
     const diff = compareVersions(v1, v2);

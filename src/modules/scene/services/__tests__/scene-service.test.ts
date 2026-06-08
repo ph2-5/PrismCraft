@@ -12,6 +12,7 @@ vi.mock("@/infrastructure/di", () => ({
       createScene: vi.fn(),
       updateScene: vi.fn(),
       deleteScene: vi.fn(),
+      getSceneVersion: vi.fn().mockResolvedValue(1),
     },
     eventBus: { emit: vi.fn() },
   },

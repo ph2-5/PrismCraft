@@ -687,10 +687,10 @@ describe("useAIGeneratorBase", () => {
       });
 
       expect(props.setBeats).toHaveBeenCalled();
-      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as (prev: StoryBeat[]) => StoryBeat[];
+      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0]! as (prev: StoryBeat[]) => StoryBeat[];
       const updated = updater([mockBeat1, mockBeat2]);
-      expect(updated[0].description).toBe("updated desc");
-      expect(updated[1].description).toBe("beat 2 desc");
+      expect(updated[0]!.description).toBe("updated desc");
+      expect(updated[1]!.description).toBe("beat 2 desc");
     });
 
     it("setBeats 未提供时不应执行任何操作", () => {
@@ -711,11 +711,11 @@ describe("useAIGeneratorBase", () => {
         result.current.updateBeat("beat-1", { description: "new desc" });
       });
 
-      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as (prev: StoryBeat[]) => StoryBeat[];
+      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0]! as (prev: StoryBeat[]) => StoryBeat[];
       const updated = updater([mockBeat1, mockBeat2]);
-      expect(updated[0].id).toBe("beat-1");
-      expect(updated[0].sequence).toBe(0);
-      expect(updated[0].description).toBe("new desc");
+      expect(updated[0]!.id).toBe("beat-1");
+      expect(updated[0]!.sequence).toBe(0);
+      expect(updated[0]!.description).toBe("new desc");
     });
   });
 

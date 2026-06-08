@@ -1,6 +1,7 @@
 import type {
   AIProviderPlugin,
   ModelCapabilities,
+  ProviderCapabilities,
   VideoCapabilities,
   ImageCapabilities,
   VideoBuildContext,
@@ -75,6 +76,14 @@ const DEFAULT_MODEL_CAPS: ModelCapabilities = {
 export class SeedancePlugin extends BaseAIProviderPlugin implements AIProviderPlugin {
   readonly id = "seedance";
   readonly displayName = "Seedance (Atlas Cloud)";
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: false,
+      vision: false,
+    };
+  }
   readonly videoCapabilities = VIDEO_CAPABILITIES;
   readonly imageCapabilities = IMAGE_CAPABILITIES;
 

@@ -64,7 +64,7 @@ describe("Video Module Internal Integration", () => {
 
     it("applyVideoTemplate 应返回 prompt/duration/style", async () => {
       const { applyVideoTemplate, videoTemplates } = await import("../utils");
-      const result = applyVideoTemplate(videoTemplates[0]);
+      const result = applyVideoTemplate(videoTemplates[0]!);
       expect(result).toHaveProperty("prompt");
       expect(result).toHaveProperty("duration");
       expect(result).toHaveProperty("style");

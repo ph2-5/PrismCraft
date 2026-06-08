@@ -89,8 +89,8 @@ describe("R39: 批量 DB 操作禁止退化为逐条 IPC", () => {
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
       const callArgs = mockSafeTransaction.mock.calls[0]![0];
       expect(callArgs.length).toBe(2);
-      expect(callArgs[0].sql).toContain("IN (?,?,?)");
-      expect(callArgs[1].sql).toContain("IN (?,?,?)");
+      expect(callArgs[0]!.sql).toContain("IN (?,?,?)");
+      expect(callArgs[1]!.sql).toContain("IN (?,?,?)");
     });
 
     it("空数组不应触发任何 IPC 调用", async () => {

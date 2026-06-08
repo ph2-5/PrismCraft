@@ -272,7 +272,7 @@ describe("duplicate-detection-service", () => {
       const results = findSimilarTasks(task, allTasks);
       expect(results.length).toBeGreaterThan(0);
       if (results.length >= 2) {
-        expect(results[0].similarity).toBeGreaterThanOrEqual(results[1].similarity);
+        expect(results[0]!.similarity).toBeGreaterThanOrEqual(results[1]!.similarity);
       }
     });
 

@@ -35,6 +35,7 @@ interface PluginListItem {
   id: string;
   displayName: string;
   isUserPlugin: boolean;
+  capabilities?: { video: boolean; image: boolean; text: boolean; vision: boolean };
   videoCapabilities?: { defaultModel?: string; maxDuration?: number; supportsLastFrame?: boolean };
   imageCapabilities?: { defaultModel?: string };
   modelProfiles?: Array<{

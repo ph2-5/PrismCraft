@@ -78,7 +78,7 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
       });
 
       expect(mockSafeRun).toHaveBeenCalledTimes(1);
-      const callSql = mockSafeRun.mock.calls[0][0] as string;
+      const callSql = mockSafeRun.mock.calls[0]![0]! as string;
       expect(callSql).toContain("IGNORE");
     });
 
@@ -99,7 +99,7 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
         expiresAt: 1700000000000 as unknown as string,
       });
 
-      const params = mockSafeRun.mock.calls[0][1] as unknown[];
+      const params = mockSafeRun.mock.calls[0]![1]! as unknown[];
       expect(params[0]).toBe(Math.floor(1700000000000 / 1000));
     });
 
@@ -110,7 +110,7 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
         expiresAt: 1700000000 as unknown as string,
       });
 
-      const params = mockSafeRun.mock.calls[0][1] as unknown[];
+      const params = mockSafeRun.mock.calls[0]![1]! as unknown[];
       expect(params[0]).toBe(1700000000);
     });
 
@@ -146,7 +146,7 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
       ]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const callArgs = mockSafeTransaction.mock.calls[0][0] as {
+      const callArgs = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
@@ -164,13 +164,13 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
       await videoTaskStorage.deleteVideoTasksByStatus(["completed"]);
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as {
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
       expect(statements.length).toBe(2);
-      expect(statements[0].sql).toContain("DELETE FROM video_cache");
-      expect(statements[1].sql).toContain("DELETE FROM video_tasks");
+      expect(statements[0]!.sql).toContain("DELETE FROM video_cache");
+      expect(statements[1]!.sql).toContain("DELETE FROM video_tasks");
     });
 
     it("无匹配时直接返回", async () => {
@@ -202,13 +202,13 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
       await videoTaskStorage.deleteVideoTask("task1");
 
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as {
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
       expect(statements.length).toBe(2);
-      expect(statements[0].sql).toContain("DELETE FROM video_tasks");
-      expect(statements[1].sql).toContain("DELETE FROM video_cache");
+      expect(statements[0]!.sql).toContain("DELETE FROM video_tasks");
+      expect(statements[1]!.sql).toContain("DELETE FROM video_cache");
     });
   });
 
@@ -223,13 +223,13 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
         ["beat-1"],
       );
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as {
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
-      expect(statements[0].sql).toContain("DELETE FROM video_cache");
-      expect(statements[1].sql).toContain("DELETE FROM video_tasks");
-      expect(statements[1].sql).toContain("beat_id");
+      expect(statements[0]!.sql).toContain("DELETE FROM video_cache");
+      expect(statements[1]!.sql).toContain("DELETE FROM video_tasks");
+      expect(statements[1]!.sql).toContain("beat_id");
     });
 
     it("无匹配时直接返回", async () => {
@@ -252,13 +252,13 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
         ["story-1"],
       );
       expect(mockSafeTransaction).toHaveBeenCalled();
-      const statements = mockSafeTransaction.mock.calls[0][0] as {
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as {
         sql: string;
         params: unknown[];
       }[];
-      expect(statements[0].sql).toContain("DELETE FROM video_cache");
-      expect(statements[1].sql).toContain("DELETE FROM video_tasks");
-      expect(statements[1].sql).toContain("story_id");
+      expect(statements[0]!.sql).toContain("DELETE FROM video_cache");
+      expect(statements[1]!.sql).toContain("DELETE FROM video_tasks");
+      expect(statements[1]!.sql).toContain("story_id");
     });
 
     it("无匹配时直接返回", async () => {

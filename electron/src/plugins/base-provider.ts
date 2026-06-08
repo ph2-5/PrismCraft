@@ -2,6 +2,7 @@ import type {
   AIProviderPlugin,
   ModelCapabilities,
   ModelParameterProfile,
+  ProviderCapabilities,
   VideoCapabilities,
   ImageCapabilities,
   VideoBuildContext,
@@ -28,6 +29,15 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
   abstract readonly id: string;
   abstract readonly displayName: string;
   abstract match(apiUrl: string, model?: string): boolean;
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: true,
+      vision: true,
+    };
+  }
 
   abstract readonly videoCapabilities: VideoCapabilities;
   abstract readonly imageCapabilities: ImageCapabilities;

@@ -129,7 +129,7 @@ describe("sync-proxy", () => {
       }),
     );
 
-    const calledUrl = mockMakeSyncRequest.mock.calls[0][0] as string;
+    const calledUrl = mockMakeSyncRequest.mock.calls[0]![0]! as string;
     expect(calledUrl).toContain("deviceId=device-1");
     expect(calledUrl).toContain("since=1716193800");
   });

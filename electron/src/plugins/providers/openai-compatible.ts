@@ -1,6 +1,7 @@
 import { BaseAIProviderPlugin } from "../base-provider";
 import type {
   ModelCapabilities,
+  ProviderCapabilities,
   VideoBuildContext,
   ImageBuildContext,
   VideoRequestResult,
@@ -69,6 +70,15 @@ export class OpenAICompatiblePlugin extends BaseAIProviderPlugin {
 
   match(_apiUrl: string, _model?: string): boolean {
     return true;
+  }
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: true,
+      vision: true,
+    };
   }
 
   readonly videoCapabilities = {

@@ -170,8 +170,8 @@ describe("useOutfitManagement", () => {
       const updater = props.setCurrentCharacter.mock.calls[0]![0] as (prev: Character) => Character;
       const updated = updater(buildCharacter({ outfits: [] }));
       expect(updated.outfits).toHaveLength(1);
-      expect(updated.outfits[0].name).toBe("正装");
-      expect(updated.outfits[0].clothing).toBe("西装");
+      expect(updated.outfits![0]!.name).toBe("正装");
+      expect(updated.outfits![0]!.clothing).toBe("西装");
       expect(result.current.showOutfitDialog).toBe(false);
       expect(result.current.editingOutfit).toBe(null);
       expect(props.success).toHaveBeenCalled();
@@ -200,7 +200,7 @@ describe("useOutfitManagement", () => {
       const updater = props.setCurrentCharacter.mock.calls[0]![0] as (prev: Character) => Character;
       const updated = updater(buildCharacter({ outfits: [existingOutfit] }));
       expect(updated.outfits).toHaveLength(1);
-      expect(updated.outfits[0].name).toBe("新服装");
+      expect(updated.outfits![0]!.name).toBe("新服装");
     });
   });
 
@@ -219,7 +219,7 @@ describe("useOutfitManagement", () => {
       const updater = props.setCurrentCharacter.mock.calls[0]![0] as (prev: Character) => Character;
       const updated = updater(buildCharacter({ outfits: [outfit1, outfit2] }));
       expect(updated.outfits).toHaveLength(1);
-      expect(updated.outfits[0].id).toBe("outfit_2");
+      expect(updated.outfits![0]!.id).toBe("outfit_2");
       expect(props.success).toHaveBeenCalled();
     });
   });
@@ -238,8 +238,8 @@ describe("useOutfitManagement", () => {
       expect(props.setCurrentCharacter).toHaveBeenCalledWith(expect.any(Function));
       const updater = props.setCurrentCharacter.mock.calls[0]![0] as (prev: Character) => Character;
       const updated = updater(buildCharacter({ outfits: [outfit1, outfit2] }));
-      expect(updated.outfits.find((o) => o.id === "outfit_1")?.isDefault).toBe(true);
-      expect(updated.outfits.find((o) => o.id === "outfit_2")?.isDefault).toBe(false);
+      expect(updated.outfits!.find((o) => o.id === "outfit_1")?.isDefault).toBe(true);
+      expect(updated.outfits!.find((o) => o.id === "outfit_2")?.isDefault).toBe(false);
       expect(updated.appearance.clothing).toBe("T恤");
       expect(props.success).toHaveBeenCalled();
     });

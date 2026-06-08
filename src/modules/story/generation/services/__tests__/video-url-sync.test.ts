@@ -67,25 +67,25 @@ describe("applyVideoUrlUpdates", () => {
     const beats = [makeBeat({ id: "beat-1" } as Partial<StoryBeat>)];
     const updates = [{ beatId: "beat-1", videoUrl: "new-url" }];
     const result = applyVideoUrlUpdates(beats, updates);
-    expect(result[0].videoGen?.videoUrl).toBe("new-url");
-    expect(result[0].videoGen?.status).toBe("completed");
-    expect(result[0].videoGen).toHaveProperty("completedAt");
+    expect(result[0]!.videoGen?.videoUrl).toBe("new-url");
+    expect(result[0]!.videoGen?.status).toBe("completed");
+    expect(result[0]!.videoGen).toHaveProperty("completedAt");
   });
 
   it("should preserve existing videoGen fields", () => {
     const beats = [makeBeat({ id: "beat-1", videoGen: { prompt: "my prompt", videoUrl: "old", status: "generating", taskId: "t-1" } } as Partial<StoryBeat>)];
     const updates = [{ beatId: "beat-1", videoUrl: "new-url" }];
     const result = applyVideoUrlUpdates(beats, updates);
-    expect(result[0].videoGen?.prompt).toBe("my prompt");
-    expect(result[0].videoGen?.taskId).toBe("t-1");
-    expect(result[0].videoGen?.videoUrl).toBe("new-url");
+    expect(result[0]!.videoGen?.prompt).toBe("my prompt");
+    expect(result[0]!.videoGen?.taskId).toBe("t-1");
+    expect(result[0]!.videoGen?.videoUrl).toBe("new-url");
   });
 
   it("should not modify unmatched beats", () => {
     const beats = [makeBeat({ id: "beat-1" } as Partial<StoryBeat>), makeBeat({ id: "beat-2" } as Partial<StoryBeat>)];
     const updates = [{ beatId: "beat-1", videoUrl: "new-url" }];
     const result = applyVideoUrlUpdates(beats, updates);
-    expect(result[1].videoGen).toBeUndefined();
+    expect(result[1]!.videoGen).toBeUndefined();
   });
 });
 
@@ -107,13 +107,13 @@ describe("buildBeatsPersistData", () => {
 
     const data = buildBeatsPersistData(beats, urls);
     expect(data).toHaveLength(1);
-    expect(data[0].id).toBe("beat-1");
-    expect(data[0].keyframeImageUrl).toBe("kf.jpg");
-    expect(data[0].firstFrameImageUrl).toBe("ff.jpg");
-    expect(data[0].lastFrameImageUrl).toBe("lf.jpg");
-    expect(data[0].videoUrl).toBe("video.mp4");
-    expect(data[0].localKeyframePath).toBe("/local/kf.jpg");
-    expect(data[0].localVideoPath).toBe("/local/video.mp4");
+    expect(data[0]!.id).toBe("beat-1");
+    expect(data[0]!.keyframeImageUrl).toBe("kf.jpg");
+    expect(data[0]!.firstFrameImageUrl).toBe("ff.jpg");
+    expect(data[0]!.lastFrameImageUrl).toBe("lf.jpg");
+    expect(data[0]!.videoUrl).toBe("video.mp4");
+    expect(data[0]!.localKeyframePath).toBe("/local/kf.jpg");
+    expect(data[0]!.localVideoPath).toBe("/local/video.mp4");
   });
 
   it("should prefer completedTaskUrls over beat videoGen URL", () => {
@@ -124,7 +124,7 @@ describe("buildBeatsPersistData", () => {
     const urls = new Map([["beat-1", "new.mp4"]]);
 
     const data = buildBeatsPersistData(beats, urls);
-    expect(data[0].videoUrl).toBe("new.mp4");
+    expect(data[0]!.videoUrl).toBe("new.mp4");
   });
 
   it("should handle beat with no media fields", () => {
@@ -132,8 +132,8 @@ describe("buildBeatsPersistData", () => {
     const urls = new Map<string, string>();
 
     const data = buildBeatsPersistData(beats, urls);
-    expect(data[0].keyframeImageUrl).toBeUndefined();
-    expect(data[0].videoUrl).toBeUndefined();
+    expect(data[0]!.keyframeImageUrl).toBeUndefined();
+    expect(data[0]!.videoUrl).toBeUndefined();
   });
 });
 
@@ -172,8 +172,8 @@ describe("buildCacheRequests", () => {
     } as Partial<StoryBeat>)];
     const requests = buildCacheRequests(beats);
     expect(requests).toHaveLength(2);
-    expect(requests[0].field).toBe("localFirstFramePath");
-    expect(requests[1].field).toBe("localLastFramePath");
+    expect(requests[0]!.field).toBe("localFirstFramePath");
+    expect(requests[1]!.field).toBe("localLastFramePath");
   });
 
   it("should handle multiple beats", () => {
@@ -183,8 +183,8 @@ describe("buildCacheRequests", () => {
     ];
     const requests = buildCacheRequests(beats);
     expect(requests).toHaveLength(2);
-    expect(requests[0].beatId).toBe("beat-1");
-    expect(requests[1].beatId).toBe("beat-2");
+    expect(requests[0]!.beatId).toBe("beat-1");
+    expect(requests[1]!.beatId).toBe("beat-2");
   });
 });
 
@@ -205,7 +205,7 @@ describe("filterRemoteCacheRequests", () => {
       { beatId: "b4", field: "localKeyframePath" as const, url: "data:image/png;base64,abc" },
     ];
     expect(filterRemoteCacheRequests(requests)).toHaveLength(1);
-    expect(filterRemoteCacheRequests(requests)[0].beatId).toBe("b1");
+    expect(filterRemoteCacheRequests(requests)[0]!.beatId).toBe("b1");
   });
 
   it("should return empty for empty input", () => {
@@ -256,7 +256,7 @@ describe("syncStoriesWithVideoUrls", () => {
     ] as Story[];
     const urls = new Map([["beat-1", "new-url"]]);
     const result = syncStoriesWithVideoUrls(stories, urls);
-    expect(result[0].beats?.[0].videoGen?.videoUrl).toBe("new-url");
+    expect(result[0]!.beats?.[0]!.videoGen?.videoUrl).toBe("new-url");
     expect(result[1]).toBe(stories[1]);
   });
 

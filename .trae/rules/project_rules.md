@@ -224,6 +224,7 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 | `npm run lint:arch` | Architecture violation scan |
 | `npm run test` | Vitest unit tests |
 | `npm run test:coverage` | Vitest with coverage report |
+| `npm run test:electron` | Vitest with Electron-specific config (vitest.config.electron.ts) |
 | `npm run test:e2e` | Playwright e2e tests (browser mode with electron-mock) |
 | `npm run test:e2e:ui` | Playwright e2e tests with UI mode |
 | `npm run test:e2e:electron` | Playwright e2e tests (Electron mode, requires `npm run build:electron` first) |
@@ -478,10 +479,12 @@ The plugin system supports two forms of user plugins, managed separately:
 |-------------|--------|----------|--------|
 | Built-in | TypeScript class | `electron/src/plugins/providers/` | Direct import |
 | Declarative | `.plugin.json` | `~/AI Animation Studio/UserPlugins/` | `UserPluginAdapter` |
-| Code | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter` (vm sandbox) |
+| Code | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter` (process isolation) |
 
 **Key interfaces**:
 - `AIProviderPlugin` — Base interface, all plugins implement this
+- `ProviderCapabilities` — Capability flags `{ video, image, text, vision }`, callers check before calling build methods instead of try/catch
+- `MatchPattern` — Match rule interface, plugins declare URL/model matching rules via `matchPatterns`, `match()` uses these for sync matching without executing plugin code
 - `getApiKeyDetection()` — Optional method, returns API Key auto-detection rules
 - `getModelParameterProfile(modelId)` — Returns model-specific parameters (durations, resolutions, styles, etc.)
 
@@ -500,8 +503,8 @@ The plugin system supports two forms of user plugins, managed separately:
 2. `getModelCapabilities()` checks `modelProfilesCache` first, then `BUILTIN_MODEL_CAPABILITIES`
 3. `ModelParameterPanel` component renders model-specific parameter UI (durations, resolutions, styles, cfgScale, etc.)
 
-**Code plugin sandbox** (`code-plugin-loader.ts`):
-- Uses `vm.createContext()` + `vm.runInContext()` with 5s timeout
+**Code plugin sandbox** (vm sandbox runs inside worker process as defense-in-depth):
+- Uses `vm.createContext()` + `vm.runInContext()` with 5s timeout inside worker process
 - Plugin code wrapped in IIFE with `'use strict'` to prevent `this.constructor` escape
 - Pre-scans for escape patterns (`__proto__`, `getPrototypeOf`, `Reflect`) — rejects loading if detected
 - Freezes `Object/Array/Function/Error` prototypes in sandbox context
@@ -517,8 +520,8 @@ The plugin system supports two forms of user plugins, managed separately:
 - Resource limits: `--max-old-space-size=64`, `--max-semi-space-size=16` per process
 - Crash protection: max 3 crashes in 60s window, then auto-disable; 10s call timeout, 15s spawn timeout
 - Graceful shutdown: sends `shutdown` message, waits 3s, then `SIGKILL`
-- `CodePluginAdapter` supports dual mode: `sandbox` (vm in-process) and `process` (child process IPC)
-- `pluginRegistry.loadCodePluginsInProcess()` upgrades sandbox plugins to process-isolated mode
+- `CodePluginAdapter` uses process isolation only; vm sandbox runs inside worker process as defense-in-depth
+- `pluginRegistry.loadCodePlugins()` loads all code plugins in process-isolated mode
 - `shutdownAllProcessManagers()` called during app cleanup in `lifecycle/cleanup.ts`
 - **Security boundary**: Process isolation provides OS-level separation. Even if a V8 escape occurs in the child process, the main process (API keys, database, filesystem) remains protected. The vm sandbox inside the worker provides defense-in-depth.
 

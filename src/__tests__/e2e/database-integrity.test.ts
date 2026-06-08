@@ -300,7 +300,7 @@ describe("E2E 数据库完整性", () => {
     it("parseVideoTask 应正确映射所有字段", async () => {
       const { videoTaskStorage } = await import("@/infrastructure/storage/video-tasks");
 
-      const _now = new Date().toISOString();
+      new Date().toISOString();
       await videoTaskStorage.createVideoTask({
         taskId: "parse-test-1",
         status: "generating",

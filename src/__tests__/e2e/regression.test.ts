@@ -100,7 +100,7 @@ describe("E2E 回归测试", () => {
         expect(result.data.providerModelId).toBe("seedance-1.5");
       }
 
-      const callArgs = mocked.mock.calls[0];
+      const callArgs = mocked.mock.calls[0]!;
       expect(callArgs[0]).toBe("回归测试");
       expect(callArgs[1]).toMatchObject({
         providerId: "volcengine",
@@ -172,7 +172,7 @@ describe("E2E 回归测试", () => {
         providerModelId: "seedance-1.5",
       });
 
-      const callArgs = storage.createVideoTask.mock.calls[0][0];
+      const callArgs = storage.createVideoTask.mock.calls[0]![0]!;
       expect("customConfig" in callArgs).toBe(false);
       expect(callArgs.providerId).toBe("volcengine");
     });
@@ -187,7 +187,7 @@ describe("E2E 回归测试", () => {
         providerId: "volcengine",
       });
 
-      const callArgs = storage.updateVideoTask.mock.calls[0][1];
+      const callArgs = storage.updateVideoTask.mock.calls[0]![1]!;
       expect("customConfig" in callArgs).toBe(false);
     });
   });

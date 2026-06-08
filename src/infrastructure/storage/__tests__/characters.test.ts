@@ -78,34 +78,34 @@ describe("storage/characters", () => {
       ];
       await characterStorage.createCharacter(makeCharacterInput({ outfits } as unknown as Partial<Character>));
 
-      const statements = mockSafeTransaction.mock.calls[0][0];
+      const statements = mockSafeTransaction.mock.calls[0]![0]!;
       expect(statements.length).toBe(4);
-      expect(statements[0].sql).toContain("INSERT");
-      expect(statements[0].sql).toContain("characters");
-      expect(statements[1].sql).toContain("DELETE FROM character_outfits");
-      expect(statements[2].sql).toContain(
+      expect(statements[0]!.sql).toContain("INSERT");
+      expect(statements[0]!.sql).toContain("characters");
+      expect(statements[1]!.sql).toContain("DELETE FROM character_outfits");
+      expect(statements[2]!.sql).toContain(
         "INSERT OR REPLACE INTO character_outfits",
       );
-      expect(statements[3].sql).toContain(
+      expect(statements[3]!.sql).toContain(
         "INSERT OR REPLACE INTO character_outfits",
       );
     });
 
     it("should only include character INSERT when outfits are empty or undefined", async () => {
       await characterStorage.createCharacter(makeCharacterInput({ outfits: [] }));
-      let statements = mockSafeTransaction.mock.calls[0][0];
+      let statements = mockSafeTransaction.mock.calls[0]![0]!;
       expect(statements.length).toBe(1);
-      expect(statements[0].sql).toContain("INSERT");
-      expect(statements[0].sql).toContain("characters");
+      expect(statements[0]!.sql).toContain("INSERT");
+      expect(statements[0]!.sql).toContain("characters");
 
       vi.clearAllMocks();
       mockSafeTransaction.mockResolvedValue([]);
 
       await characterStorage.createCharacter(makeCharacterInput());
-      statements = mockSafeTransaction.mock.calls[0][0];
+      statements = mockSafeTransaction.mock.calls[0]![0]!;
       expect(statements.length).toBe(1);
-      expect(statements[0].sql).toContain("INSERT");
-      expect(statements[0].sql).toContain("characters");
+      expect(statements[0]!.sql).toContain("INSERT");
+      expect(statements[0]!.sql).toContain("characters");
     });
   });
 
@@ -124,14 +124,14 @@ describe("storage/characters", () => {
     it("should include 6 cascade statements in transaction", async () => {
       await characterStorage.deleteCharacter("char-1");
 
-      const statements = mockSafeTransaction.mock.calls[0][0];
+      const statements = mockSafeTransaction.mock.calls[0]![0]!;
       expect(statements.length).toBe(6);
-      expect(statements[0].sql).toContain("collection_assets");
-      expect(statements[1].sql).toContain("story_characters");
-      expect(statements[2].sql).toContain("asset_tags");
-      expect(statements[3].sql).toContain("character_outfits");
-      expect(statements[4].sql).toContain("media_assets");
-      expect(statements[5].sql).toContain("DELETE FROM characters");
+      expect(statements[0]!.sql).toContain("collection_assets");
+      expect(statements[1]!.sql).toContain("story_characters");
+      expect(statements[2]!.sql).toContain("asset_tags");
+      expect(statements[3]!.sql).toContain("character_outfits");
+      expect(statements[4]!.sql).toContain("media_assets");
+      expect(statements[5]!.sql).toContain("DELETE FROM characters");
     });
   });
 
@@ -159,7 +159,7 @@ describe("storage/characters", () => {
       await updateOutfitImage("outfit-1", "http://img.png", "/local/path.png");
 
       expect(mockSafeRun).toHaveBeenCalledTimes(1);
-      const [sql] = mockSafeRun.mock.calls[0];
+      const [sql] = mockSafeRun.mock.calls[0]!;
       expect(sql).toContain("local_image_path");
     });
 
@@ -167,7 +167,7 @@ describe("storage/characters", () => {
       await updateOutfitImage("outfit-1", "http://img.png");
 
       expect(mockSafeRun).toHaveBeenCalledTimes(1);
-      const [sql] = mockSafeRun.mock.calls[0];
+      const [sql] = mockSafeRun.mock.calls[0]!;
       expect(sql).not.toContain("local_image_path");
     });
   });

@@ -5,6 +5,7 @@
 - Type check: `npm run typecheck && npm run typecheck:electron && npm run typecheck:test`
 - Lint: `npm run lint`
 - Test: `npm run test`
+- Test (Electron): `npm run test:electron`
 - E2E test: `npm run test:e2e`
 - E2E test (Electron): `npm run test:e2e:electron`
 - Full validate: `npm run validate:full`

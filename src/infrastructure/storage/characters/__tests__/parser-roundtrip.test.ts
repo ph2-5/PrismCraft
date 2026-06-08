@@ -53,9 +53,9 @@ function serializeToDbRow(character: Partial<Character>): Record<string, unknown
   const columnMatch = sql.match(/\(([^)]+)\)\s*VALUES/);
   if (!columnMatch) return row;
 
-  const columns = columnMatch[1].split(", ").map((c) => c.replace(/"/g, ""));
+  const columns = columnMatch[1]!.split(", ").map((c) => c.replace(/"/g, ""));
   for (let i = 0; i < columns.length; i++) {
-    row[columns[i]] = params[i];
+    row[columns[i]!] = params[i];
   }
 
   return row;

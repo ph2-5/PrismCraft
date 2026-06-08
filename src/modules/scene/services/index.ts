@@ -42,7 +42,8 @@ export const sceneService = {
     return fromAsyncThrowable(async () => {
       const existing = await container.sceneStorage.getSceneById(id);
       if (!existing) throw new NotFoundError("Scene", id);
-      await container.sceneStorage.updateScene(id, parsed.data);
+      const version = await container.sceneStorage.getSceneVersion(id);
+      await container.sceneStorage.updateScene(id, parsed.data, version ?? undefined);
       container.eventBus.emit(DomainEvents.SCENE_UPDATED, { id, sceneName: existing.name });
     });
   },

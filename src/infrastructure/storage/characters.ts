@@ -62,6 +62,14 @@ export const characterStorage = {
       : null;
   },
 
+  async getCharacterVersion(id: string): Promise<number | null> {
+    const result = await safeQuery<{ version: number }>(
+      "SELECT version FROM characters WHERE id = ?",
+      [id],
+    );
+    return result.length > 0 ? result[0]!.version : null;
+  },
+
   async createCharacter(character: Partial<Character>): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     const id = character.id || `char_${crypto.randomUUID()}`;

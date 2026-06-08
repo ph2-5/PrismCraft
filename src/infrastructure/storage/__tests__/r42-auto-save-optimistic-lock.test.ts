@@ -27,7 +27,7 @@ describe("R42: Auto-Save Optimistic Locking", () => {
       timestamp: 1000,
     });
 
-    const sql = mockSafeRun.mock.calls[0][0] as string;
+    const sql = mockSafeRun.mock.calls[0]![0]! as string;
     expect(sql).toContain("ON CONFLICT(id) DO UPDATE");
     expect(sql).toContain("WHERE timestamp < excluded.timestamp");
     expect(sql).not.toContain("INSERT OR REPLACE");
@@ -61,7 +61,7 @@ describe("R42: Auto-Save Optimistic Locking", () => {
     });
 
     expect(mockSafeRun).toHaveBeenCalled();
-    const sql = mockSafeRun.mock.calls[0][0] as string;
+    const sql = mockSafeRun.mock.calls[0]![0]! as string;
     expect(sql).toContain("ON CONFLICT(id) DO UPDATE");
     expect(sql).toContain("WHERE timestamp < excluded.timestamp");
   });

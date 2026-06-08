@@ -213,7 +213,7 @@ describe("useImportData", () => {
     });
 
     expect(result.current.data!.ok).toBe(true);
-    expect(result.current.data!.value.success).toBe(false);
+    expect((result.current.data! as { ok: true; value: { success: boolean; imported: Record<string, number>; errors: string[] } }).value.success).toBe(false);
   });
 
   it("导入抛出异常时应返回错误状态", async () => {

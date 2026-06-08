@@ -14,6 +14,7 @@ vi.mock("@/infrastructure/di", () => {
     getOutfitsForCharacter: vi.fn(),
     saveOutfitsForCharacter: vi.fn(),
     updateOutfitImage: vi.fn(),
+    getCharacterVersion: vi.fn().mockResolvedValue(1),
   };
   const eventBus = { emit: vi.fn(), on: vi.fn(), off: vi.fn() };
   return {
@@ -143,7 +144,7 @@ describe("characterService", () => {
       const result = await characterService.update("char_1", { id: "char_1", name: "新名称" });
 
       expectOk(result);
-      expect(storage.updateCharacter).toHaveBeenCalledWith("char_1", expect.objectContaining({ name: "新名称" }));
+      expect(storage.updateCharacter).toHaveBeenCalledWith("char_1", expect.objectContaining({ name: "新名称" }), 1);
     });
 
     it("角色不存在时应返回 NotFound 错误", async () => {

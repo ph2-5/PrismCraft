@@ -23,6 +23,12 @@ interface WorkerResponse {
 }
 
 interface PluginMetadata {
+  capabilities: {
+    video: boolean;
+    image: boolean;
+    text: boolean;
+    vision: boolean;
+  };
   videoCapabilities: Record<string, unknown>;
   imageCapabilities: Record<string, unknown>;
   availableModels: string[];
@@ -32,6 +38,7 @@ interface PluginMetadata {
     baseUrl?: string;
   } | null;
   preferLocalData: boolean | undefined;
+  matchPatterns: Array<{ urlPattern: string; modelPattern?: string }> | undefined;
 }
 
 let loadedPlugin: Record<string, unknown> | null = null;
@@ -78,6 +85,14 @@ function extractMetadata(exported: Record<string, unknown>): PluginMetadata {
   const ic = exported.imageCapabilities;
   const detection = exported.apiKeyDetection as Record<string, unknown> | undefined;
 
+  const rawCapabilities = exported.capabilities as Record<string, unknown> | undefined;
+  const capabilities: PluginMetadata["capabilities"] = {
+    video: rawCapabilities?.video !== undefined ? Boolean(rawCapabilities.video) : true,
+    image: rawCapabilities?.image !== undefined ? Boolean(rawCapabilities.image) : true,
+    text: rawCapabilities?.text !== undefined ? Boolean(rawCapabilities.text) : true,
+    vision: rawCapabilities?.vision !== undefined ? Boolean(rawCapabilities.vision) : true,
+  };
+
   let apiKeyDetection: PluginMetadata["apiKeyDetection"] = null;
   if (detection && Array.isArray(detection.rules) && detection.rules.length > 0) {
     apiKeyDetection = {
@@ -90,12 +105,22 @@ function extractMetadata(exported: Record<string, unknown>): PluginMetadata {
     };
   }
 
+  let matchPatterns: PluginMetadata["matchPatterns"] = undefined;
+  const rawMatchPatterns = exported.matchPatterns;
+  if (Array.isArray(rawMatchPatterns)) {
+    matchPatterns = rawMatchPatterns.filter(
+      (p: unknown) => p && typeof p === "object" && typeof (p as Record<string, unknown>).urlPattern === "string",
+    ) as Array<{ urlPattern: string; modelPattern?: string }>;
+  }
+
   return {
+    capabilities,
     videoCapabilities: (vc && typeof vc === "object" ? vc : {}) as Record<string, unknown>,
     imageCapabilities: (ic && typeof ic === "object" ? ic : {}) as Record<string, unknown>,
     availableModels: safeGet<string[]>(exported, "getAvailableModels", []),
     apiKeyDetection,
     preferLocalData: exported.preferLocalData as boolean | undefined,
+    matchPatterns,
   };
 }
 

@@ -60,7 +60,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
       });
 
       const callBody = JSON.parse(
-        (mockApiCallWithRetry.mock.calls[0][1] as Record<string, unknown>).body as string,
+        (mockApiCallWithRetry.mock.calls[0]![1]! as Record<string, unknown>).body as string,
       );
 
       expect(callBody.providerId).toBe("provider-123");
@@ -73,7 +73,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
       expect(mockResolve).toHaveBeenCalledWith("image");
 
       const callBody = JSON.parse(
-        (mockApiCallWithRetry.mock.calls[0][1] as Record<string, unknown>).body as string,
+        (mockApiCallWithRetry.mock.calls[0]![1]! as Record<string, unknown>).body as string,
       );
 
       expect(callBody.providerId).toBe("default-provider");
@@ -115,7 +115,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
       });
 
       const callBody = JSON.parse(
-        (mockApiCallWithRetry.mock.calls[0][1] as Record<string, unknown>).body as string,
+        (mockApiCallWithRetry.mock.calls[0]![1]! as Record<string, unknown>).body as string,
       );
 
       expect(callBody.providerId).toBe("openai");
@@ -126,7 +126,7 @@ describe("api-client/image - providerId/modelId 配置逻辑", () => {
       await analyzeImage("https://example.com/image.png", "character", "describe");
 
       const callBody = JSON.parse(
-        (mockApiCallWithRetry.mock.calls[0][1] as Record<string, unknown>).body as string,
+        (mockApiCallWithRetry.mock.calls[0]![1]! as Record<string, unknown>).body as string,
       );
 
       expect(callBody.providerId).toBeUndefined();

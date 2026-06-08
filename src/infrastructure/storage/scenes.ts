@@ -3,6 +3,7 @@ import { trackChange, buildInsertFromTargets, buildUpdateSets } from "./core";
 import type { Scene } from "@/domain/schemas";
 import type { FieldTarget } from "./core";
 import { errorLogger } from "@/shared/error-logger";
+import { VersionConflictError } from "@/shared/errors/version-conflict";
 
 const SCENE_FIELD_TARGETS: Record<string, FieldTarget> = {
   name: { type: "fixed", column: "name" },
@@ -115,6 +116,14 @@ export const sceneStorage = {
     return result.length > 0 ? (parseScene(result[0]!) as T) : null;
   },
 
+  async getSceneVersion(id: string): Promise<number | null> {
+    const result = await safeQuery<{ version: number }>(
+      "SELECT version FROM scenes WHERE id = ?",
+      [id],
+    );
+    return result.length > 0 ? result[0]!.version : null;
+  },
+
   async createScene(scene: Partial<Scene>): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     const id = scene.id || `scene_${crypto.randomUUID()}`;
@@ -142,8 +151,19 @@ export const sceneStorage = {
     } catch (e) { errorLogger.warn("[Storage] trackChange failed for scene:insert", e); }
   },
 
-  async updateScene(id: string, scene: Partial<Scene>): Promise<void> {
+  async updateScene(id: string, scene: Partial<Scene>, version?: number): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
+
+    const existing = await safeQuery<{ id: string; version: number }>(
+      "SELECT id, version FROM scenes WHERE id = ?",
+      [id],
+    );
+    if (existing.length === 0) {
+      throw new Error(`Scene not found for update: id="${id}"`);
+    }
+    if (version !== undefined && existing[0]!.version !== version) {
+      throw new VersionConflictError("scenes", id, version);
+    }
 
     const { sql: setSql, params: setParams } = buildUpdateSets(
       scene as Record<string, unknown>,
@@ -151,12 +171,14 @@ export const sceneStorage = {
     );
 
     if (setParams.length === 0) {
+      const versionSet = version !== undefined ? ", version = version + 1" : "";
       await safeRun(
-        "UPDATE scenes SET updated_at = ? WHERE id = ?",
+        `UPDATE scenes SET updated_at = ?${versionSet} WHERE id = ?`,
         [now, id],
       );
     } else {
-      const fullSql = `UPDATE scenes SET ${setSql}, updated_at = ? WHERE id = ?`;
+      const versionSet = version !== undefined ? ", version = version + 1" : "";
+      const fullSql = `UPDATE scenes SET ${setSql}, updated_at = ?${versionSet} WHERE id = ?`;
       const allParams = [...setParams, now, id];
       const placeholderCount = (fullSql.match(/\?/g) || []).length;
       if (placeholderCount !== allParams.length) {
@@ -165,14 +187,6 @@ export const sceneStorage = {
         );
       }
       await safeRun(fullSql, allParams);
-    }
-
-    const existing = await safeQuery<{ id: string }>(
-      "SELECT id FROM scenes WHERE id = ?",
-      [id],
-    );
-    if (existing.length === 0) {
-      throw new Error(`Scene not found for update: id="${id}"`);
     }
 
     try {

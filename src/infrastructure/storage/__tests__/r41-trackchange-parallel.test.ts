@@ -50,7 +50,7 @@ describe("R41: trackChange 循环必须并行执行，禁止串行等待", () =>
 
   it("batchDeleteVideoTasks 的 trackChange 必须并行（Promise.allSettled），而非串行 for 循环", async () => {
     const callOrder: string[] = [];
-    mockTrackChange.mockImplementation(async (entity: string, id: string) => {
+    mockTrackChange.mockImplementation(async (_entity: string, id: string) => {
       callOrder.push(`start:${id}`);
       await new Promise((r) => setTimeout(r, 10));
       callOrder.push(`end:${id}`);

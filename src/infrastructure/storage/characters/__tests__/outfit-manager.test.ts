@@ -71,8 +71,8 @@ describe("outfit-manager", () => {
         ["char-1"],
       );
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("outfit-1");
-      expect(result[0].name).toBe("休闲装");
+      expect(result[0]!.id).toBe("outfit-1");
+      expect(result[0]!.name).toBe("休闲装");
     });
 
     it("accessories_json 字符串被正确解析为数组", async () => {
@@ -94,7 +94,7 @@ describe("outfit-manager", () => {
 
       const result = await getOutfitsForCharacter("char-1");
 
-      expect(result[0].accessories).toEqual(["领带", "手表"]);
+      expect(result[0]!.accessories).toEqual(["领带", "手表"]);
     });
 
     it("accessories_json 解析失败时回退为空数组", async () => {
@@ -116,7 +116,7 @@ describe("outfit-manager", () => {
 
       const result = await getOutfitsForCharacter("char-1");
 
-      expect(result[0].accessories).toEqual([]);
+      expect(result[0]!.accessories).toEqual([]);
     });
 
     it("accessories_json 已解析的 JSON 字符串直接使用", async () => {
@@ -138,7 +138,7 @@ describe("outfit-manager", () => {
 
       const result = await getOutfitsForCharacter("char-1");
 
-      expect(result[0].accessories).toEqual(["项链", "耳环"]);
+      expect(result[0]!.accessories).toEqual(["项链", "耳环"]);
     });
 
     it("image_url, local_image_path, thumbnail_path 正确映射", async () => {
@@ -160,9 +160,9 @@ describe("outfit-manager", () => {
 
       const result = await getOutfitsForCharacter("char-1");
 
-      expect(result[0].imageUrl).toBe("https://example.com/img.png");
-      expect(result[0].localImagePath).toBe("/local/img.png");
-      expect(result[0].thumbnailPath).toBe("/local/thumb.png");
+      expect(result[0]!.imageUrl).toBe("https://example.com/img.png");
+      expect(result[0]!.localImagePath).toBe("/local/img.png");
+      expect(result[0]!.thumbnailPath).toBe("/local/thumb.png");
     });
 
     it("is_default 布尔值转换", async () => {
@@ -196,8 +196,8 @@ describe("outfit-manager", () => {
 
       const result = await getOutfitsForCharacter("char-1");
 
-      expect(result[0].isDefault).toBe(true);
-      expect(result[1].isDefault).toBe(false);
+      expect(result[0]!.isDefault).toBe(true);
+      expect(result[1]!.isDefault).toBe(false);
     });
 
     it("created_at 数字类型转 ISO 字符串", async () => {
@@ -220,7 +220,7 @@ describe("outfit-manager", () => {
 
       const result = await getOutfitsForCharacter("char-1");
 
-      expect(result[0].createdAt).toBe(
+      expect(result[0]!.createdAt).toBe(
         new Date(timestamp * 1000).toISOString(),
       );
     });
@@ -252,17 +252,17 @@ describe("outfit-manager", () => {
     it("第一条语句是 DELETE FROM character_outfits", () => {
       const statements = buildOutfitStatements("char-1", outfits);
 
-      expect(statements[0].sql).toBe(
+      expect(statements[0]!.sql).toBe(
         "DELETE FROM character_outfits WHERE character_id = ?",
       );
-      expect(statements[0].params).toEqual(["char-1"]);
+      expect(statements[0]!.params).toEqual(["char-1"]);
     });
 
     it("后续语句是 INSERT OR REPLACE INTO character_outfits", () => {
       const statements = buildOutfitStatements("char-1", outfits);
 
       for (let i = 1; i < statements.length; i++) {
-        expect(statements[i].sql).toContain(
+        expect(statements[i]!.sql).toContain(
           "INSERT OR REPLACE INTO character_outfits",
         );
       }
@@ -278,7 +278,7 @@ describe("outfit-manager", () => {
       const statements = buildOutfitStatements("char-1", []);
 
       expect(statements).toHaveLength(1);
-      expect(statements[0].sql).toBe(
+      expect(statements[0]!.sql).toBe(
         "DELETE FROM character_outfits WHERE character_id = ?",
       );
     });
@@ -296,7 +296,7 @@ describe("outfit-manager", () => {
 
       const statements = buildOutfitStatements("char-1", [outfitWithoutId]);
 
-      const insertParams = statements[1].params;
+      const insertParams = statements[1]!.params;
       const generatedId = insertParams[0] as string;
       expect(generatedId).toMatch(/^outfit_/);
     });
@@ -304,8 +304,8 @@ describe("outfit-manager", () => {
     it("isDefault 转为 1/0", () => {
       const statements = buildOutfitStatements("char-1", outfits);
 
-      const firstInsertParams = statements[1].params;
-      const secondInsertParams = statements[2].params;
+      const firstInsertParams = statements[1]!.params;
+      const secondInsertParams = statements[2]!.params;
 
       expect(firstInsertParams[9]).toBe(1);
       expect(secondInsertParams[9]).toBe(0);
@@ -314,8 +314,8 @@ describe("outfit-manager", () => {
     it("accessories 被序列化为 JSON", () => {
       const statements = buildOutfitStatements("char-1", outfits);
 
-      const firstInsertParams = statements[1].params;
-      const secondInsertParams = statements[2].params;
+      const firstInsertParams = statements[1]!.params;
+      const secondInsertParams = statements[2]!.params;
 
       expect(firstInsertParams[5]).toBe(JSON.stringify(["帽子"]));
       expect(secondInsertParams[5]).toBe(
@@ -342,14 +342,14 @@ describe("outfit-manager", () => {
       await saveOutfitsForCharacter("char-1", outfits);
 
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-      const passedStatements = mockSafeTransaction.mock.calls[0][0];
+      const passedStatements = mockSafeTransaction.mock.calls[0]![0]!;
       expect(passedStatements.length).toBe(2);
-      expect(passedStatements[0].sql).toBe("DELETE FROM character_outfits WHERE character_id = ?");
-      expect(passedStatements[0].params).toEqual(["char-1"]);
-      expect(passedStatements[1].sql).toContain("INSERT OR REPLACE INTO character_outfits");
-      expect(passedStatements[1].params[0]).toBe("outfit-1");
-      expect(passedStatements[1].params[1]).toBe("char-1");
-      expect(passedStatements[1].params[2]).toBe("休闲装");
+      expect(passedStatements[0]!.sql).toBe("DELETE FROM character_outfits WHERE character_id = ?");
+      expect(passedStatements[0]!.params).toEqual(["char-1"]);
+      expect(passedStatements[1]!.sql).toContain("INSERT OR REPLACE INTO character_outfits");
+      expect(passedStatements[1]!.params[0]).toBe("outfit-1");
+      expect(passedStatements[1]!.params[1]).toBe("char-1");
+      expect(passedStatements[1]!.params[2]).toBe("休闲装");
     });
   });
 
@@ -360,7 +360,7 @@ describe("outfit-manager", () => {
       await updateOutfitImage("outfit-1", "https://example.com/new-img.png");
 
       expect(mockSafeRun).toHaveBeenCalledTimes(1);
-      const [sql, params] = mockSafeRun.mock.calls[0];
+      const [sql, params] = mockSafeRun.mock.calls[0]!;
       expect(sql).not.toContain("local_image_path");
       expect(params).not.toContain("/local/new-img.png");
     });

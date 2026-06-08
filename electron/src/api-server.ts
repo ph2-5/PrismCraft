@@ -362,6 +362,7 @@ const routes: Record<string, Route> = {
             displayName: p.displayName,
             isUserPlugin: pluginRegistry.isUserPlugin(p.id),
             isCodePlugin: pluginRegistry.isCodePlugin(p.id),
+            capabilities: p.capabilities,
             videoCapabilities: p.videoCapabilities,
             imageCapabilities: p.imageCapabilities,
           })),
@@ -379,6 +380,7 @@ const routes: Record<string, Route> = {
       const providerCapabilities: Record<string, {
         id: string;
         displayName: string;
+        capabilities: { video: boolean; image: boolean; text: boolean; vision: boolean };
         supportsLastFrame: boolean;
         supportsReferenceVideo: boolean;
         supportsMimicryLevel: boolean;
@@ -392,6 +394,7 @@ const routes: Record<string, Route> = {
         providerCapabilities[plugin.id] = {
           id: plugin.id,
           displayName: plugin.displayName,
+          capabilities: plugin.capabilities,
           supportsLastFrame: plugin.videoCapabilities.supportsLastFrame,
           supportsReferenceVideo: plugin.videoCapabilities.supportsReferenceVideo,
           supportsMimicryLevel: plugin.videoCapabilities.supportsMimicryLevel,
@@ -504,15 +507,7 @@ const routes: Record<string, Route> = {
   },
   "plugins/reload-code": {
     handler: async () => {
-      const result = pluginRegistry.reloadCodePlugins();
-      pluginCacheInvalidationToken++;
-      return { success: true, data: { loaded: result.loaded, errors: result.errors, cacheInvalidationToken: pluginCacheInvalidationToken } };
-    },
-    methods: ["POST"],
-  },
-  "plugins/reload-code-process": {
-    handler: async () => {
-      const result = await pluginRegistry.loadCodePluginsInProcess();
+      const result = await pluginRegistry.loadCodePlugins();
       pluginCacheInvalidationToken++;
       return { success: true, data: { loaded: result.loaded, errors: result.errors, cacheInvalidationToken: pluginCacheInvalidationToken } };
     },

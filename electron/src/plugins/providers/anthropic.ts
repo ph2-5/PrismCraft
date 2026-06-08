@@ -1,5 +1,6 @@
 import type {
   ModelCapabilities,
+  ProviderCapabilities,
   VideoCapabilities,
   ImageCapabilities,
   VideoBuildContext,
@@ -36,6 +37,15 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
 
   match(apiUrl: string, _model?: string): boolean {
     return apiUrl.includes("anthropic.com") || apiUrl.includes("bedrock-runtime");
+  }
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: false,
+      image: false,
+      text: true,
+      vision: true,
+    };
   }
 
   readonly videoCapabilities = VIDEO_CAPABILITIES;

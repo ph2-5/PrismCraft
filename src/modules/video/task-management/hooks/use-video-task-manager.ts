@@ -3,19 +3,15 @@ import { create } from "zustand";
 import { container } from "@/infrastructure/di";
 import {
   saveVideoTask,
-  startBackgroundRecovery,
-  cleanExpiredTasks,
   recoverVideoByTaskId,
   registerCacheVideoBlobFn,
 } from "@/modules/video/recovery";
-import { cleanExpiredVideoCache, registerRecoveryFn, removeCachedVideo, cacheVideoBlob } from "@/modules/video/cache";
-import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { cacheVideoBlob, registerRecoveryFn, removeCachedVideo } from "@/modules/video/cache";
+import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
-import { API_SERVER_PORT } from "@/config/ports";
 import { AppError } from "@/domain/types/result";
-import { isElectron } from "@/shared/utils/platform";
 
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
 import { TaskMachine, mapApiStatus } from "../domain";
@@ -32,6 +28,21 @@ import {
   scheduleSync,
   registerSyncStore,
 } from "./internals";
+import {
+  loadTasksFromStorage,
+  setupRecoveredEventListener,
+  setupBackgroundRecoveryInterval,
+  setupCacheCleanupInterval,
+  setupBeforeUnloadHandler,
+} from "./internals/task-initializer";
+import {
+  removeTaskFromStorageAndCache,
+  removeTasksFromStorageAndCache,
+  clearCacheForTasks,
+  filterTasksByStatus,
+  excludeTasksByStatus,
+  excludeTasksByIds,
+} from "./internals/task-removal";
 
 export type { VideoTask, VideoTaskStatus };
 
@@ -100,140 +111,17 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     ensureRecoveryRegistered();
     cleanupAllPollingResources();
 
-    const loadTasks = async () => {
-      try {
-        const tasks = await container.videoTaskStorage.getVideoTasks();
-        set((state) => {
-          const loadedIds = new Set(tasks.map((t) => t.taskId));
-          const concurrentAdditions = state.allTasks.filter((t) => !loadedIds.has(t.taskId));
-          return { allTasks: [...tasks, ...concurrentAdditions], isInitialized: true, initError: null };
-        });
+    const store = { getState: get, set };
 
-        try {
-          const cleanedCountResult = await cleanExpiredVideoCache();
-          if (cleanedCountResult.ok && cleanedCountResult.value > 0) {
-            errorLogger.info(
-              `[VideoTaskManager] 已清理 ${cleanedCountResult.value} 个过期视频缓存`,
-            );
-          }
-        } catch (cleanError) {
-          errorLogger.warn("[VideoTaskManager] 清理过期缓存失败", cleanError);
-        }
-
-        try {
-          const expiredTaskCountResult = await cleanExpiredTasks();
-          if (expiredTaskCountResult.ok && expiredTaskCountResult.value > 0) {
-            errorLogger.info(
-              `[VideoTaskManager] 已清理 ${expiredTaskCountResult.value} 个过期任务记录`,
-            );
-          }
-        } catch (cleanError) {
-          errorLogger.warn(
-            new AppError("CLEANUP_ERROR", "清理过期任务失败", cleanError),
-            "VideoTaskManager",
-          );
-        }
-
-        checkAndStartOrStopPolling();
-      } catch (error) {
-        if (!isElectron()) {
-          errorLogger.debug("Failed to load video tasks (browser mode)", error);
-          set({ isInitialized: true, initError: null });
-        } else {
-          errorLogger.error("Failed to load video tasks", error);
-          const msg = extractErrorMessage(error);
-          set({ isInitialized: true, initError: msg });
-          emitToast("error", t("video.taskLoadFailed"), msg);
-        }
-      } finally {
-        pollingState.isInitializing = false;
-      }
-    };
-
-    if (typeof window !== "undefined") {
-      const handleRecovered = (e: Event) => {
-        const detail = (e as CustomEvent).detail;
-        if (detail?.taskId) {
-          get().recoverTask(detail.taskId, detail.status, detail.videoUrl);
-        }
-      };
-      pollingState.recoveredEventHandler = handleRecovered;
-      window.addEventListener("video-task-recovered", handleRecovered);
-    }
-
+    const loadTasks = loadTasksFromStorage(store);
     loadTasks().catch((err) => {
       errorLogger.warn("[VideoTaskManager] 任务加载失败", err);
     });
 
-    if (typeof window !== "undefined") {
-      pollingState.recoveryIntervalId = setInterval(() => {
-        startBackgroundRecovery().catch((err) => {
-          errorLogger.warn("[VideoTaskManager] 后台恢复失败", err);
-        });
-      }, 60000);
-
-      pollingState.cacheCleanupIntervalId = setInterval(async () => {
-        try {
-          const cleanedCache = await cleanExpiredVideoCache();
-          if (cleanedCache.ok && cleanedCache.value > 0) {
-            errorLogger.info(`[VideoTaskManager] 定期清理: ${cleanedCache.value} 个过期视频缓存`);
-          }
-          const cleanedTasksResult = await cleanExpiredTasks();
-          if (cleanedTasksResult.ok && cleanedTasksResult.value > 0) {
-            errorLogger.info(`[VideoTaskManager] 定期清理: ${cleanedTasksResult.value} 个过期任务记录`);
-          }
-        } catch (err) {
-          errorLogger.warn("[VideoTaskManager] 定期清理失败", err);
-        }
-      }, 30 * 60 * 1000);
-
-      pollingState.beforeUnloadHandler = (e: BeforeUnloadEvent) => {
-        const allTasks = get().allTasks;
-        const hasActive = allTasks.some(
-          (t) => t.status === "pending" || t.status === "generating",
-        );
-
-        if (typeof window !== "undefined" && !!window.electronAPI) {
-          if (allTasks.length > 0) {
-            try {
-              const bulkData = allTasks.map((task) => ({
-                taskId: task.taskId,
-                status: task.status,
-                progress: task.progress,
-                videoUrl: task.videoUrl,
-                message: task.message,
-                storyId: task.storyId,
-                beatId: task.beatId,
-                createdAt: task.createdAt,
-              }));
-              const xhr = new XMLHttpRequest();
-              xhr.open("POST", `http://localhost:${API_SERVER_PORT}/video-tasks/bulk-save`, false);
-              xhr.setRequestHeader("Content-Type", "application/json");
-              xhr.setRequestHeader("X-Electron-App", "true");
-              xhr.send(JSON.stringify({ tasks: bulkData }));
-            } catch (err) {
-              errorLogger.error("[VideoTaskManager] beforeunload同步保存失败", err instanceof Error ? err : undefined);
-            }
-          }
-          if (pollingState.syncTimeoutId) {
-            clearTimeout(pollingState.syncTimeoutId);
-            pollingState.syncTimeoutId = null;
-          }
-          return;
-        }
-
-        if (hasActive) {
-          e.preventDefault();
-          e.returnValue = "";
-          return "";
-        }
-        if (pollingState.syncTimeoutId) {
-          clearTimeout(pollingState.syncTimeoutId);
-          pollingState.syncTimeoutId = null;
-        }
-      };
-      window.addEventListener("beforeunload", pollingState.beforeUnloadHandler);
-    }
+    setupRecoveredEventListener(store);
+    setupBackgroundRecoveryInterval();
+    setupCacheCleanupInterval();
+    setupBeforeUnloadHandler(store);
   },
 
   setAllTasks: (updater) => {
@@ -287,16 +175,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
 
   removeTask: async (taskId) => {
     try {
-      await container.videoTaskStorage.deleteVideoTask(taskId);
+      await removeTaskFromStorageAndCache(taskId);
       get().setAllTasks((prev) => prev.filter((task) => task.taskId !== taskId));
-      try {
-        await removeCachedVideo(taskId);
-      } catch (e) {
-        errorLogger.warn(
-          "[VideoTaskManager] 清除视频缓存失败",
-          e instanceof Error ? e.message : e,
-        );
-      }
     } catch (error) {
       errorLogger.error("Failed to remove video task", error);
       emitToast("error", t("video.taskDeleteTitle"), t("video.taskDeleteFailed"));
@@ -305,20 +185,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
 
   removeTasks: async (taskIds) => {
     try {
-      await container.videoTaskStorage.batchDeleteVideoTasks(taskIds);
-      for (const id of taskIds) {
-        try {
-          await removeCachedVideo(id);
-        } catch (e) {
-          errorLogger.warn(
-            new AppError("CACHE_CLEANUP_ERROR", "清除视频缓存失败", e),
-            "VideoTaskManager",
-          );
-        }
-      }
-      get().setAllTasks((prev) =>
-        prev.filter((task) => !taskIds.includes(task.taskId)),
-      );
+      await removeTasksFromStorageAndCache(taskIds);
+      get().setAllTasks((prev) => excludeTasksByIds(prev, taskIds));
     } catch (error) {
       errorLogger.error("Failed to remove video tasks", error);
     }
@@ -341,16 +209,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       errorLogger.error("Failed to remove video tasks by beatId", error);
       throw error;
     }
-    for (const task of tasks) {
-      try {
-        await removeCachedVideo(task.taskId);
-      } catch (e) {
-        errorLogger.warn(
-          new AppError("CACHE_CLEANUP_ERROR", "清除视频缓存失败", e),
-          "VideoTaskManager",
-        );
-      }
-    }
+    await clearCacheForTasks(tasks.map((t) => t.taskId));
     get().setAllTasks((prev) => prev.filter((t) => t.beatId !== beatId));
     checkAndStartOrStopPolling();
   },
@@ -372,42 +231,18 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       errorLogger.error("Failed to remove video tasks by storyId", error);
       throw error;
     }
-    for (const task of tasks) {
-      try {
-        await removeCachedVideo(task.taskId);
-      } catch (e) {
-        errorLogger.warn(
-          new AppError("CACHE_CLEANUP_ERROR", "清除视频缓存失败", e),
-          "VideoTaskManager",
-        );
-      }
-    }
+    await clearCacheForTasks(tasks.map((t) => t.taskId));
     get().setAllTasks((prev) => prev.filter((t) => t.storyId !== storyId));
     checkAndStartOrStopPolling();
   },
 
   clearActiveTasks: async () => {
-    const activeIds = get()
-      .allTasks.filter(
-        (t) => t.status === "pending" || t.status === "generating",
-      )
-      .map((t) => t.taskId);
+    const activeIds = filterTasksByStatus(get().allTasks, ["pending", "generating"]).map((t) => t.taskId);
     if (activeIds.length === 0) return;
     try {
       await container.videoTaskStorage.batchDeleteVideoTasks(activeIds);
-      for (const id of activeIds) {
-        try {
-          await removeCachedVideo(id);
-        } catch (e) {
-          errorLogger.warn(
-            new AppError("CACHE_CLEANUP_ERROR", "清除视频缓存失败", e),
-            "VideoTaskManager",
-          );
-        }
-      }
-      get().setAllTasks((prev) =>
-        prev.filter((t) => !activeIds.includes(t.taskId)),
-      );
+      await clearCacheForTasks(activeIds);
+      get().setAllTasks((prev) => excludeTasksByIds(prev, activeIds));
     } catch (error) {
       errorLogger.error("Failed to clear active tasks", error);
     }
@@ -417,16 +252,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     const taskIds = get().allTasks.map((t) => t.taskId);
     try {
       await container.videoTaskStorage.clearVideoTasks();
-      for (const id of taskIds) {
-        try {
-          await removeCachedVideo(id);
-        } catch (e) {
-          errorLogger.warn(
-            new AppError("CACHE_CLEANUP_ERROR", "清除视频缓存失败", e),
-            "VideoTaskManager",
-          );
-        }
-      }
+      await clearCacheForTasks(taskIds);
       get().setAllTasks([]);
     } catch (error) {
       errorLogger.error("Failed to clear all video tasks", error);
@@ -436,7 +262,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   clearCompletedTasks: async () => {
     try {
       await container.videoTaskStorage.deleteVideoTasksByStatus(["completed"]);
-      get().setAllTasks((prev) => prev.filter((t) => t.status !== "completed"));
+      get().setAllTasks((prev) => excludeTasksByStatus(prev, ["completed"]));
     } catch (error) {
       errorLogger.error("Failed to clear completed tasks", error);
     }
@@ -445,7 +271,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   clearFailedTasks: async () => {
     try {
       await container.videoTaskStorage.deleteVideoTasksByStatus(["failed"]);
-      get().setAllTasks((prev) => prev.filter((t) => t.status !== "failed"));
+      get().setAllTasks((prev) => excludeTasksByStatus(prev, ["failed"]));
     } catch (error) {
       errorLogger.error("Failed to clear failed tasks", error);
     }
@@ -497,8 +323,12 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         });
       }
       if (result.success && result.data) {
+        const taskId = result.data.taskId;
+        if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
+          throw new Error("Invalid task ID from provider");
+        }
         const newTask: VideoTask = {
-          taskId: result.data.taskId as string,
+          taskId,
           status: "pending",
           progress: 0,
           message: extraOptions?.beatTitle

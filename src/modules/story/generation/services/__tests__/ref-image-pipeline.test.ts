@@ -245,7 +245,7 @@ describe("characterRef/sceneRef 传递链路", () => {
         scenes: [],
       }, providers);
 
-      const callArgs = (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const callArgs = (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
       expect(callArgs.characterRef).toBe("https://img.example.com/char.png");
       expect(callArgs.sceneRef).toBe("https://img.example.com/scene.png");
     });
@@ -300,7 +300,7 @@ describe("characterRef/sceneRef 传递链路", () => {
         sceneRef: "https://img.example.com/scene.png",
       }, providers);
 
-      const callArgs = (videoProvider.generateVideoWithFrames as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const callArgs = (videoProvider.generateVideoWithFrames as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
       expect(callArgs.characterRef).toBe("https://img.example.com/char.png");
       expect(callArgs.sceneRef).toBe("https://img.example.com/scene.png");
     });

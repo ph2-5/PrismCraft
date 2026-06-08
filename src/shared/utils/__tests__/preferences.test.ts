@@ -330,7 +330,6 @@ describe("preferences", () => {
     });
 
     it("should trigger listeners when set is called", () => {
-      const _listener = vi.fn();
       const { result } = renderHook(() => usePreference("emit-set", "initial"));
       const prevValue = result.current[0];
       act(() => {
@@ -351,8 +350,6 @@ describe("preferences", () => {
     });
 
     it("should support multiple listeners on the same key simultaneously", () => {
-      const _listener1 = vi.fn();
-      const _listener2 = vi.fn();
       const { result: r1 } = renderHook(() => usePreference("emit-multi", "a"));
       const { result: r2 } = renderHook(() => usePreference("emit-multi", "a"));
       act(() => {

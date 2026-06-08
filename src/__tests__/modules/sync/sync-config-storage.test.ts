@@ -267,12 +267,12 @@ describe("sync-config-storage", () => {
       expect(result.success).toBe(true);
       expect(mockSaveConfigAsync).toHaveBeenCalled();
 
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, Record<string, unknown>>;
-      expect(savedConfig.sync.enabled).toBe(true);
-      expect(savedConfig.sync.autoSync).toBe(true);
-      expect(savedConfig.sync.syncInterval).toBe(60000);
-      expect(savedConfig.sync.conflictStrategy).toBe("local-wins");
-      expect((savedConfig.sync.server as Record<string, unknown>).url).toBe("https://sync.example.com");
+      const savedConfig = mockSaveConfigAsync.mock.calls[0]![0]! as Record<string, Record<string, unknown>>;
+      expect(savedConfig.sync!.enabled).toBe(true);
+      expect(savedConfig.sync!.autoSync).toBe(true);
+      expect(savedConfig.sync!.syncInterval).toBe(60000);
+      expect(savedConfig.sync!.conflictStrategy).toBe("local-wins");
+      expect((savedConfig.sync!.server as Record<string, unknown>).url).toBe("https://sync.example.com");
     });
 
     it("应将敏感字段（username/token）保存到 keyStorage", async () => {
@@ -326,9 +326,9 @@ describe("sync-config-storage", () => {
       });
 
       expect(mockSaveConfigAsync).toHaveBeenCalled();
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, Record<string, unknown>>;
-      expect((savedConfig.sync.server as Record<string, unknown>).username).toBeUndefined();
-      expect((savedConfig.sync.server as Record<string, unknown>).token).toBeUndefined();
+      const savedConfig = mockSaveConfigAsync.mock.calls[0]![0]! as Record<string, Record<string, unknown>>;
+      expect((savedConfig.sync!.server as Record<string, unknown>).username).toBeUndefined();
+      expect((savedConfig.sync!.server as Record<string, unknown>).token).toBeUndefined();
     });
 
     it("服务器 URL 变更时应正确保存新配置（本地优先应用信任用户配置，无需 SSRF 白名单管理）", async () => {
@@ -370,8 +370,8 @@ describe("sync-config-storage", () => {
       });
 
       expect(result.success).toBe(true);
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, Record<string, unknown>>;
-      expect((savedConfig.sync.server as Record<string, unknown>).url).toBe("https://new-sync.example.com");
+      const savedConfig = mockSaveConfigAsync.mock.calls[0]![0]! as Record<string, Record<string, unknown>>;
+      expect((savedConfig.sync!.server as Record<string, unknown>).url).toBe("https://new-sync.example.com");
     });
 
     it("首次配置服务器时应正确保存（无需 SSRF 白名单管理）", async () => {
@@ -480,8 +480,8 @@ describe("sync-config-storage", () => {
       });
 
       expect(result.success).toBe(true);
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, Record<string, unknown>>;
-      expect(savedConfig.sync.server).toBeNull();
+      const savedConfig = mockSaveConfigAsync.mock.calls[0]![0]! as Record<string, Record<string, unknown>>;
+      expect(savedConfig.sync!.server).toBeNull();
     });
 
     it("保存失败时应返回错误信息", async () => {

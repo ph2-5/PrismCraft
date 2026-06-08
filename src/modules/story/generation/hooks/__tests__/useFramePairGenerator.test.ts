@@ -297,7 +297,7 @@ describe("useFramePairGenerator", () => {
         await result.current.generateFramePair("beat-1");
       });
 
-      const callArgs = mockGenerateBeatFramePair.mock.calls[0][1];
+      const callArgs = mockGenerateBeatFramePair.mock.calls[0]![1]!;
       expect(callArgs.beatIndex).toBe(0);
       expect(callArgs.prevBeatDescription).toBeUndefined();
       expect(callArgs.nextBeatDescription).toBe("beat 2 content");
@@ -312,7 +312,7 @@ describe("useFramePairGenerator", () => {
         await result.current.generateFramePair("beat-2");
       });
 
-      const callArgs = mockGenerateBeatFramePair.mock.calls[0][1];
+      const callArgs = mockGenerateBeatFramePair.mock.calls[0]![1]!;
       expect(callArgs.nextBeatDescription).toBeUndefined();
     });
   });
@@ -706,7 +706,7 @@ describe("useFramePairGenerator", () => {
         await result.current.generateFramePair("beat-1");
       });
 
-      const callArgs = mockGenerateBeatFramePair.mock.calls[0][1];
+      const callArgs = mockGenerateBeatFramePair.mock.calls[0]![1]!;
       expect(callArgs.prevBeatDescription).toBe("prev content");
     });
 
@@ -726,7 +726,7 @@ describe("useFramePairGenerator", () => {
         await result.current.generateFramePair("beat-1");
       });
 
-      const callArgs = mockGenerateBeatFramePair.mock.calls[0][1];
+      const callArgs = mockGenerateBeatFramePair.mock.calls[0]![1]!;
       expect(callArgs.prevBeatDescription).toBe("prev desc");
     });
 
@@ -745,7 +745,7 @@ describe("useFramePairGenerator", () => {
         await result.current.generateFramePair("beat-1");
       });
 
-      const callArgs = mockGenerateBeatFramePair.mock.calls[0][1];
+      const callArgs = mockGenerateBeatFramePair.mock.calls[0]![1]!;
       expect(callArgs.prevBeatDescription).toBeUndefined();
     });
   });
@@ -759,7 +759,7 @@ describe("useFramePairGenerator", () => {
         await result.current.generateFramePair("beat-1");
       });
 
-      const callArgs = mockGenerateBeatFramePair.mock.calls[0][1];
+      const callArgs = mockGenerateBeatFramePair.mock.calls[0]![1]!;
       expect(callArgs.nextBeatDescription).toBe("beat 2 content");
     });
 
@@ -773,7 +773,7 @@ describe("useFramePairGenerator", () => {
         await result.current.generateFramePair("beat-1");
       });
 
-      const callArgs = mockGenerateBeatFramePair.mock.calls[0][1];
+      const callArgs = mockGenerateBeatFramePair.mock.calls[0]![1]!;
       expect(callArgs.nextBeatDescription).toBe("next desc");
     });
 
@@ -786,7 +786,7 @@ describe("useFramePairGenerator", () => {
         await result.current.generateFramePair("beat-2");
       });
 
-      const callArgs = mockGenerateBeatFramePair.mock.calls[0][1];
+      const callArgs = mockGenerateBeatFramePair.mock.calls[0]![1]!;
       expect(callArgs.nextBeatDescription).toBeUndefined();
     });
   });

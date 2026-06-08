@@ -155,11 +155,27 @@ export interface ModelParameterProfile {
   parameters: ModelParameterOptions;
 }
 
+export interface MatchPattern {
+  urlPattern: string;
+  modelPattern?: string;
+}
+
+export interface ProviderCapabilities {
+  video: boolean;
+  image: boolean;
+  text: boolean;
+  vision: boolean;
+}
+
 export interface AIProviderPlugin {
   readonly id: string;
   readonly displayName: string;
 
   match(apiUrl: string, model?: string): boolean;
+
+  readonly matchPatterns?: MatchPattern[];
+
+  readonly capabilities: ProviderCapabilities;
 
   readonly videoCapabilities: VideoCapabilities;
   readonly imageCapabilities: ImageCapabilities;

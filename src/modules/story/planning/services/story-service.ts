@@ -46,7 +46,10 @@ export const storyService = {
       return err(new ValidationError(parsed.error.message));
     }
     return fromAsyncThrowable(async () => {
-      await container.storyStorage.updateStory(id, parsed.data);
+      const existing = await container.storyStorage.getStoryById(id);
+      if (!existing) throw new NotFoundError("Story", id);
+      const version = await container.storyStorage.getStoryVersion(id);
+      await container.storyStorage.updateStory(id, parsed.data, version ?? undefined);
       const storyTitle = (parsed.data as Partial<Story>).title;
       container.eventBus.emit(DomainEvents.STORY_UPDATED, { id, storyTitle: storyTitle || id });
     });

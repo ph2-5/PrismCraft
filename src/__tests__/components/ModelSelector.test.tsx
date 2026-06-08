@@ -48,7 +48,7 @@ vi.mock("@/shared/ui/select", () => ({
   SelectItem: ({ value, children }: { value: string; children: React.ReactNode }) => (
     <option value={value}>{children}</option>
   ),
-  SelectTrigger: ({ children, _className }: { children: React.ReactNode; className?: string }) => (
+  SelectTrigger: ({ children }: { children: React.ReactNode; className?: string }) => (
     <>{children}</>
   ),
   SelectValue: ({ children }: { children?: React.ReactNode }) => <>{children}</>,

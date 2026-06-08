@@ -104,7 +104,7 @@ describe("video-tracker", () => {
       expect(result.ok).toBe(true);
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledOnce();
-      const text = vi.mocked(navigator.clipboard.writeText).mock.calls[0][0];
+      const text = vi.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
       expect(text).toContain("可灵 (Kling)");
       expect(text).toContain("v1");
       expect(text).toContain("https://api.example.com");
@@ -121,7 +121,7 @@ describe("video-tracker", () => {
       const result = await copyTrackingInfoToClipboard(info);
       expect(result.ok).toBe(true);
 
-      const text = vi.mocked(navigator.clipboard.writeText).mock.calls[0][0];
+      const text = vi.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
       expect(text).toContain("服务商: 未知");
       expect(text).toContain("模型: 未知");
       expect(text).toContain("API地址: 未记录");

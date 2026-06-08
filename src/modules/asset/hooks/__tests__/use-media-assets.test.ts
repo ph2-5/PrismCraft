@@ -104,8 +104,8 @@ describe("useMediaAssets", () => {
     });
 
     expect(result.current.data).toHaveLength(2);
-    expect(result.current.data![0].id).toBe("asset-1");
-    expect(result.current.data![1].id).toBe("asset-2");
+    expect(result.current.data![0]!.id).toBe("asset-1");
+    expect(result.current.data![1]!.id).toBe("asset-2");
   });
 
   it("查询失败时应返回错误状态", async () => {

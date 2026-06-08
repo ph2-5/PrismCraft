@@ -76,7 +76,7 @@ describe("featureAnchoringSchema", () => {
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.characterAnchors[0].weight).toBe(0.8);
+      expect(result.data.characterAnchors[0]!.weight).toBe(0.8);
       expect(result.data.featureConsistencyStrength).toBe(0.8);
       expect(result.data.disableFrameBinding).toBe(true);
     }

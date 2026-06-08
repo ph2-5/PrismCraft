@@ -676,7 +676,14 @@ before-quit → gracefulShutdown()
 | Anthropic (Claude) | anthropic | — | — | 是 | 是 |
 | OpenAI Compatible | openai-compatible | 是 | 是 | 是 | 是 |
 
-**插件架构**：每个 Provider 继承 `BaseAIProviderPlugin`，实现 `match(apiUrl, model)` 方法用于自动识别，以及 `buildVideoRequest`、`buildImageRequest`、`buildTextRequest`、`buildVisionRequest` 方法用于构建 API 请求。`OpenAICompatiblePlugin` 作为回退（fallback），匹配所有未被其他 Provider 识别的 API URL。
+**插件架构**：每个 Provider 继承 `BaseAIProviderPlugin`，通过 `matchPatterns` 属性声明 URL/模型匹配规则用于自动识别，通过 `capabilities: ProviderCapabilities`（`{ video, image, text, vision }`）声明支持的能力，以及 `buildVideoRequest`、`buildImageRequest`、`buildTextRequest`、`buildVisionRequest` 方法用于构建 API 请求。调用方可在调用 build 方法前检查 `capabilities` 确认支持，无需依赖 try/catch。`OpenAICompatiblePlugin` 作为回退（fallback），匹配所有未被其他 Provider 识别的 API URL。
+
+**关键接口**：
+- `AIProviderPlugin` — 基础接口，所有插件实现此接口
+- `ProviderCapabilities` — 能力声明接口 `{ video: boolean, image: boolean, text: boolean, vision: boolean }`，调用方检查此字段而非 try/catch build 方法
+- `MatchPattern` — 匹配规则接口，插件通过 `matchPatterns` 声明式声明 URL/模型匹配规则，`match()` 方法使用这些规则进行同步匹配，无需执行插件代码
+- `getApiKeyDetection()` — 可选方法，返回 API Key 自动识别规则
+- `getModelParameterProfile(modelId)` — 返回模型特有参数（时长、分辨率、风格等）
 
 **三种插件形式**：
 
@@ -684,13 +691,24 @@ before-quit → gracefulShutdown()
 |------|------|------|--------|
 | 内置插件 | TypeScript 类 | `electron/src/plugins/providers/` | 直接导入 |
 | 声明式插件 | `.plugin.json` | `~/AI Animation Studio/UserPlugins/` | `UserPluginAdapter` |
-| 代码式插件 | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter`（vm 沙箱） |
+| 代码式插件 | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter`（进程隔离） |
 
 **声明式插件**：`user-plugin-loader.ts` 从 `%APPDATA%/ai-animation-studio/Plugins/` 目录加载 `.plugin.json` 文件。插件配置使用 `user-plugin-schema.ts` 定义的 JSON Schema 验证，支持自定义 API 端点映射、请求/响应格式和认证方式。用户无需编写代码即可接入任意兼容 OpenAI API 格式的 AI 服务。声明式插件支持 `apiKeyDetection` 字段声明 API Key 自动识别规则。
 
-**代码式插件**：`code-plugin-loader.ts` 从 `%APPDATA%/ai-animation-studio/CodePlugins/` 目录加载 `.plugin.js` 文件。使用 Node.js `vm` 模块在沙箱中执行插件代码，提供安全的 API 上下文（JSON、Math、Date、RegExp、受限 console），阻止危险对象（require、process、Buffer、setTimeout、fetch）。执行超时 5 秒。参考模板：`docs/examples/reference-code-plugin.plugin.js`。
+**代码式插件**：`code-plugin-loader.ts` 从 `%APPDATA%/ai-animation-studio/CodePlugins/` 目录加载 `.plugin.js` 文件。所有代码插件统一在子进程隔离中运行，通过 `child_process.fork()` 启动独立 Node.js 进程，经由 IPC 协议通信。`CodePluginAdapter` 仅使用进程隔离模式，不再支持 vm 沙箱直连模式。`match()` 方法使用插件声明的 `matchPatterns` 进行同步匹配，无需执行插件代码。参考模板：`docs/examples/reference-code-plugin.plugin.js`。
 
-**代码插件沙箱安全**：沙箱采用多层防护防止原型链逃逸：
+**代码插件进程隔离**（`plugin-process-manager.ts` + `plugin-worker.ts`）：
+- 每个代码插件运行在独立子进程中，通过 `child_process.fork()` 启动
+- `PluginProcessManager` 管理生命周期：fork、load、call、shutdown、崩溃恢复
+- `plugin-worker.ts` 是子进程入口：在 vm 沙箱中加载插件代码，处理 IPC 调用
+- IPC 协议：`{ type: "load"|"call"|"shutdown", id, method?, args? }` → `{ type: "loaded"|"result"|"error"|"log", id, value?, message? }`
+- 资源限制：每个进程 `--max-old-space-size=64`、`--max-semi-space-size=16`
+- 崩溃保护：60 秒窗口内最多 3 次崩溃，超过自动禁用；调用超时 10 秒，启动超时 15 秒
+- 优雅关闭：发送 `shutdown` 消息，等待 3 秒后 `SIGKILL`
+- `pluginRegistry.loadCodePlugins()` 加载所有代码插件至进程隔离模式
+- `shutdownAllProcessManagers()` 在应用清理时调用（`lifecycle/cleanup.ts`）
+
+**代码插件沙箱安全**（vm 沙箱运行在 worker 进程内，作为纵深防御）：
 
 1. **IIFE 包裹**：插件代码被 `SANITIZED_CODE_PREFIX/SUFFIX` 包裹为 `(function() { 'use strict'; ... })()`，阻止全局变量泄漏
 2. **逃逸模式预扫描**：加载前检测 `__proto__`、`getPrototypeOf`、`Reflect` 等逃逸关键词，发现即拒绝加载
@@ -698,7 +716,7 @@ before-quit → gracefulShutdown()
 4. **危险对象禁用**：Function、eval、Proxy、Reflect、Promise、Symbol、Map、Set、WeakMap、WeakSet 均不可用
 5. **类型安全**：原型冻结使用 `(ctor as unknown as Record<string, unknown>).prototype` 避免 TypeScript 类型断言错误
 
-> **安全边界说明**：Node.js `vm` 模块官方文档声明"The vm module is not a security mechanism"。上述 5 层防护是当前 `vm.createContext` 模式下的最佳实践，能有效阻止常规原型链逃逸和代码注入，但无法防御 V8 引擎级漏洞。代码插件运行在主进程中，如果 V8 存在未修补的逃逸漏洞，插件理论上可以访问主进程的完整 Node.js 运行时。对于需要更强隔离的场景，未来可考虑子进程方案（将插件运行在独立 Node.js 进程中，通过 IPC 通信）。
+> **安全边界说明**：进程隔离提供操作系统级别的安全边界。即使子进程中发生 V8 引擎级逃逸，主进程（API Key、数据库、文件系统）仍然受到保护。vm 沙箱在 worker 进程内运行，提供纵深防御——两层隔离确保代码插件无法访问主进程资源。
 
 **API Key 自动识别**：插件通过 `getApiKeyDetection()` 方法声明 API Key 格式识别规则。前端 `detect.ts` 优先使用插件规则，兜底使用内置规则。识别结果包含 `pluginId`、`suggestedName`、`baseUrl`、`confidence`。
 

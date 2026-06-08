@@ -139,7 +139,7 @@ describe("reference-check-service", () => {
               characters: [],
               sceneId: undefined,
               elementIds: [],
-              elementBindings: { "char-1": { elementId: "char-1", role: "character" } },
+              elementBindings: { "char-1": { role: "character" } },
               shotType: "medium",
             },
           ],
@@ -175,9 +175,9 @@ describe("reference-check-service", () => {
     it("引用信息应包含正确的类型", () => {
       const stories = [buildStory({ characters: ["char-1"] })];
       const result = checkCharacterReferences("char-1", "角色A", stories);
-      expect(result.references[0].elementType).toBe("character");
-      expect(result.references[0].elementId).toBe("char-1");
-      expect(result.references[0].elementName).toBe("角色A");
+      expect(result.references[0]!.elementType).toBe("character");
+      expect(result.references[0]!.elementId).toBe("char-1");
+      expect(result.references[0]!.elementName).toBe("角色A");
     });
   });
 
@@ -271,7 +271,7 @@ describe("reference-check-service", () => {
     it("引用信息应包含正确的类型", () => {
       const stories = [buildStory({ scenes: ["scene-1"] })];
       const result = checkSceneReferences("scene-1", "场景A", stories);
-      expect(result.references[0].elementType).toBe("scene");
+      expect(result.references[0]!.elementType).toBe("scene");
     });
 
     it("空故事列表应可删除", () => {
@@ -322,7 +322,7 @@ describe("reference-check-service", () => {
               characters: [],
               sceneId: undefined,
               elementIds: [],
-              elementBindings: { "elem-1": { elementId: "elem-1", role: "prop" } },
+              elementBindings: { "elem-1": { role: "prop" } },
               shotType: "medium",
             },
           ],
@@ -351,7 +351,7 @@ describe("reference-check-service", () => {
         }),
       ];
       const result = checkElementReferences("elem-1", "元素A", stories);
-      expect(result.references[0].elementType).toBe("character");
+      expect(result.references[0]!.elementType).toBe("character");
     });
 
     it("指定 elementType 为 scene 时应正确记录", () => {
@@ -373,7 +373,7 @@ describe("reference-check-service", () => {
         }),
       ];
       const result = checkElementReferences("elem-1", "元素A", stories, "scene");
-      expect(result.references[0].elementType).toBe("scene");
+      expect(result.references[0]!.elementType).toBe("scene");
     });
 
     it("应生成正确的警告消息", () => {

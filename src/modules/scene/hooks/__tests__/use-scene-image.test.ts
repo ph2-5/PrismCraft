@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import type { Scene } from "@/domain/schemas";
 import type { Result } from "@/domain/types";
 import { ok, err, AppError } from "@/domain/types";
@@ -547,7 +547,7 @@ describe("useSceneImage", () => {
   describe("cleanup", () => {
     it("卸载时应清除 analyzeTimeout", () => {
       const props = buildProps();
-      const { result, unmount } = renderHook(() => useSceneImage(props as UseSceneImageProps));
+      const { unmount } = renderHook(() => useSceneImage(props as UseSceneImageProps));
 
       unmount();
 

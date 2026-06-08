@@ -186,9 +186,9 @@ describe("E2E 故事创作工作流", () => {
 
       const beats = db.query("SELECT * FROM story_beats WHERE story_id = ? ORDER BY sequence", ["wf-story-003"]);
       expect(beats.length).toBe(3);
-      expect(beats[0].title).toBe("开场");
-      expect(beats[1].title).toBe("发现");
-      expect(beats[2].title).toBe("高潮");
+      expect(beats[0]!.title).toBe("开场");
+      expect(beats[1]!.title).toBe("发现");
+      expect(beats[2]!.title).toBe("高潮");
     });
   });
 

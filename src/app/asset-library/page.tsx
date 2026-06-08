@@ -1,29 +1,8 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import type { Result } from "@/domain/types";
-import {
-  useCharacters,
-} from "@/modules/character";
-import {
-  useScenes,
-} from "@/modules/scene";
-import {
-  characterService,
-} from "@/modules/character";
-import {
-  sceneService,
-} from "@/modules/scene";
-import {
-  storyboardAssetService,
-  collectionService,
-  assetExportService,
-} from "@/modules/asset";
-import { useStories, storyService } from "@/modules/story";
-import { checkCharacterReferences, checkSceneReferences } from "@/domain/services";
-import { useToastHelpers } from "@/shared/presentation/Toast";
+import { useCharacters } from "@/modules/character";
+import { useScenes } from "@/modules/scene";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
-import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { Badge } from "@/shared/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
@@ -37,25 +16,20 @@ import type {
   StoryboardAsset,
   Collection,
   CollectionAsset,
-  AssetLibraryType,
   ImportMode,
 } from "@/domain/schemas";
-import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants/messages";
-import { container } from "@/infrastructure/di";
 import { AssetCardGrid, fetchSecondaryData } from "./AssetCardGrid";
 import type { AssetTab, EditingItem } from "./AssetCardGrid";
 import { AssetEditDialog } from "./AssetEditDialog";
 import { AssetCollectionDialogs } from "./AssetCollectionDialogs";
 import { AssetUploadSection } from "./AssetUploadSection";
 import { AssetToolbar } from "./AssetToolbar";
+import { useAssetLibraryActions } from "./useAssetLibraryActions";
 
 export default function AssetLibraryPage() {
-  const { success, error: showError } = useToastHelpers();
-  const queryClient = useQueryClient();
   const { data: characters = [], isLoading: charactersLoading } = useCharacters();
   const { data: scenes = [], isLoading: scenesLoading } = useScenes();
-  const { data: stories = [] } = useStories();
   const [activeTab, setActiveTab] = useState<AssetTab>("characters");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -66,15 +40,10 @@ export default function AssetLibraryPage() {
   const [collectionAssets, setCollectionAssets] = useState<CollectionAsset[]>([]);
   const [secondaryDataLoading, setSecondaryDataLoading] = useState(true);
 
-  const loadSecondaryData = useCallback(async () => {
-    try {
-      const data = await fetchSecondaryData();
-      setStoryboards(data.storyboards);
-      setCollections(data.collections);
-      setCollectionAssets(data.collectionAssets);
-    } catch (err) {
-      errorLogger.warn("Failed to load secondary data", err);
-    }
+  const setSecondaryData = useCallback((data: { storyboards: StoryboardAsset[]; collections: Collection[]; collectionAssets: CollectionAsset[] }) => {
+    setStoryboards(data.storyboards);
+    setCollections(data.collections);
+    setCollectionAssets(data.collectionAssets);
   }, []);
 
   useEffect(() => {
@@ -87,9 +56,7 @@ export default function AssetLibraryPage() {
       try {
         const data = await fetchSecondaryData();
         if (!cancelled) {
-          setStoryboards(data.storyboards);
-          setCollections(data.collections);
-          setCollectionAssets(data.collectionAssets);
+          setSecondaryData(data);
           setSecondaryDataLoading(false);
         }
       } catch (err) {
@@ -102,13 +69,12 @@ export default function AssetLibraryPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [setSecondaryData]);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] =
-    useState(false);
+  const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] = useState(false);
 
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -116,7 +82,7 @@ export default function AssetLibraryPage() {
   const [addToCollectionId, setAddToCollectionId] = useState("");
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
   const [isAddingToCollection, setIsAddingToCollection] = useState(false);
-  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  const [isCreatingCollection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSelect = (id: string) => {
@@ -134,351 +100,27 @@ export default function AssetLibraryPage() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const handleBatchDelete = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0 || isBatchDeleting) return;
-    if (!(await confirm(t("confirm.deleteSelectedAssets", { count: ids.length }), t("confirm.batchDeleteAssets")))) return;
-    setIsBatchDeleting(true);
-    try {
-      const deletedIds: string[] = [];
-      const failedLabels: string[] = [];
-
-      const deleteResults = await Promise.allSettled(
-        ids.map(async (id) => {
-          if (activeTab === "characters") {
-            const result = await characterService.delete(id);
-            if (!result.ok) throw new Error("delete_failed");
-          } else if (activeTab === "scenes") {
-            const result = await sceneService.delete(id);
-            if (!result.ok) throw new Error("delete_failed");
-          } else if (activeTab === "storyboards") {
-            await storyboardAssetService.remove(id);
-          }
-          return id;
-        }),
-      );
-
-      deleteResults.forEach((result, i) => {
-        const id = ids[i]!;
-        if (result.status === "fulfilled") {
-          deletedIds.push(result.value);
-        } else {
-          errorLogger.warn("[AssetLibrary] Failed to delete asset", result.reason instanceof Error ? result.reason : undefined);
-          const label = activeTab === "characters"
-            ? characters.find((ch) => ch.id === id)?.name
-            : activeTab === "scenes"
-              ? scenes.find((sc) => sc.id === id)?.name
-              : id.slice(0, 8);
-          failedLabels.push(label || id.slice(0, 8));
-        }
-      });
-      if (deletedIds.length > 0) {
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          deletedIds.forEach((id) => next.delete(id));
-          return next;
-        });
-        queryClient.invalidateQueries({ queryKey: ["characters"] });
-        queryClient.invalidateQueries({ queryKey: ["scenes"] });
-        loadSecondaryData();
-      }
-      if (failedLabels.length > 0) {
-        showError(t("asset.partialDeleteFailed"), t("asset.partialDeleteFailedDesc", { items: failedLabels.join("、") }));
-      } else {
-        success(t("success.deleted"), t("success.deletedCount", { count: deletedIds.length }));
-      }
-    } catch (e) {
-      showError(t("error.deleteFailed"), mapUserFacingError(e));
-    } finally {
-      setIsBatchDeleting(false);
-    }
-  };
-
-  const handleBatchExport = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    try {
-      let encodedResult: Result<Uint8Array>;
-      if (activeTab === "characters")
-        encodedResult = await assetExportService.exportCharacters(ids);
-      else if (activeTab === "scenes")
-        encodedResult = await assetExportService.exportScenes(ids);
-      else if (activeTab === "storyboards")
-        encodedResult = await assetExportService.exportStoryboards(ids);
-      else return;
-      if (!encodedResult.ok) {
-        showError(t("error.exportFailed"), mapUserFacingError(encodedResult.error));
-        return;
-      }
-      const blob = new Blob([new Uint8Array(encodedResult.value)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `export-${activeTab}-${Date.now()}.asa`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      clearSelection();
-      success(t("success.exported"), t("asset.exportedCount", { count: ids.length }));
-    } catch (e) {
-      showError(t("error.exportFailed"), mapUserFacingError(e));
-    }
-  };
-
-  const handleAddToCollection = async () => {
-    if (!addToCollectionId || selectedIds.size === 0) return;
-    setIsAddingToCollection(true);
-    try {
-      const assetType: AssetLibraryType =
-        activeTab === "characters"
-          ? "character"
-          : activeTab === "scenes"
-            ? "scene"
-            : "storyboard";
-      for (const id of selectedIds) {
-        await collectionService.addAsset(addToCollectionId, assetType, id);
-      }
-      setIsCollectionDialogOpen(false);
-      clearSelection();
-      success(t("success.added"), t("asset.addedToCollection", { count: selectedIds.size }));
-    } catch (e) {
-      showError(t("error.uploadFailed"), mapUserFacingError(e));
-    } finally {
-      setIsAddingToCollection(false);
-    }
-  };
-
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const result = await assetExportService.importFromFile(file, importMode);
-      if (!result.ok) {
-        showError(t("error.importFailed"), mapUserFacingError(result.error));
-      } else {
-        if (result.value.errors.length > 0) {
-          showError(t("asset.partialImportFailed"), result.value.errors.join("; "));
-        }
-        if (result.value.imported > 0) {
-          success(t("success.imported"), t("asset.importedCount", { count: result.value.imported }));
-        }
-      }
-      setIsImportDialogOpen(false);
-    } catch (e) {
-      showError(t("error.importFailed"), mapUserFacingError(e));
-    }
-    e.target.value = "";
-  };
-
-  const handleCreateCollection = async () => {
-    if (!newCollectionName.trim()) {
-      showError(t("asset.inputError"), t("asset.enterCollectionName"));
-      return;
-    }
-    setIsCreatingCollection(true);
-    try {
-      await collectionService.create(newCollectionName.trim());
-      setNewCollectionName("");
-      setIsNewCollectionDialogOpen(false);
-      success(t("success.created"), t("success.collectionCreated"));
-    } catch (e) {
-      showError(t("asset.createFailed"), mapUserFacingError(e));
-    } finally {
-      setIsCreatingCollection(false);
-    }
-  };
-
-  const handleDeleteCollection = async (id: string) => {
-    if (!(await confirm(t("confirm.deleteCollection"), t("confirm.deleteCollectionTitle")))) return;
-    try {
-      await collectionService.remove(id);
-      loadSecondaryData();
-      success(t("success.deleted"), t("success.collectionDeleted"));
-    } catch (e) {
-      showError(t("error.deleteFailed"), mapUserFacingError(e));
-    }
-  };
-
-  const handleExportCollection = async (id: string) => {
-    try {
-      const encodedResult = await assetExportService.exportCollections([id]);
-      if (!encodedResult.ok) {
-        showError(t("error.exportFailed"), mapUserFacingError(encodedResult.error));
-        return;
-      }
-      const col = collections.find((c) => c.id === id);
-      const blob = new Blob([new Uint8Array(encodedResult.value)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${col?.name || "collection"}.asa`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      success(t("success.exported"), t("asset.collectionExported"));
-    } catch (e) {
-      showError(t("error.exportFailed"), mapUserFacingError(e));
-    }
-  };
-
-  const handleDeleteCharacter = async (id: string) => {
-    const character = characters.find((c) => c.id === id);
-    const checkResult = checkCharacterReferences(id, character?.name || id, stories);
-    if (checkResult.references.length > 0) {
-      const storyNames = [...new Set(checkResult.references.flatMap((r) => r.usedInStories))];
-      if (!(await confirm(
-        t("confirm.deleteCharacter"),
-        t("asset.referencedByStories", { name: character?.name || id, stories: storyNames.join("、") }),
-      ))) return;
-    } else {
-      if (!(await confirm(t("confirm.deleteCharacter"), t("confirm.deleteCharacterTitle")))) return;
-    }
-    try {
-      const result = await characterService.delete(id);
-      if (!result.ok) throw result.error;
-      queryClient.invalidateQueries({ queryKey: ["characters"] });
-      await updateStoriesAfterCharacterDelete(id);
-      queryClient.invalidateQueries({ queryKey: ["stories"] });
-      success(t("success.deleted"), t("success.assetDeleted"));
-    } catch (e) {
-      showError(t("error.deleteFailed"), mapUserFacingError(e));
-    }
-  };
-
-  const handleDeleteScene = async (id: string) => {
-    const scene = scenes.find((s) => s.id === id);
-    const checkResult = checkSceneReferences(id, scene?.name || id, stories);
-    if (checkResult.references.length > 0) {
-      const storyNames = [...new Set(checkResult.references.flatMap((r) => r.usedInStories))];
-      if (!(await confirm(
-        t("confirm.deleteScene"),
-        t("asset.referencedByStories", { name: scene?.name || id, stories: storyNames.join("、") }),
-      ))) return;
-    } else {
-      if (!(await confirm(t("confirm.deleteScene"), t("confirm.deleteSceneTitle")))) return;
-    }
-    try {
-      const result = await sceneService.delete(id);
-      if (!result.ok) throw result.error;
-      queryClient.invalidateQueries({ queryKey: ["scenes"] });
-      await updateStoriesAfterSceneDelete(id);
-      queryClient.invalidateQueries({ queryKey: ["stories"] });
-      success(t("success.deleted"), t("success.assetDeleted"));
-    } catch (e) {
-      showError(t("error.deleteFailed"), mapUserFacingError(e));
-    }
-  };
-
-  const handleDeleteStoryboard = async (id: string) => {
-    if (!(await confirm(t("confirm.deleteBeat"), t("confirm.deleteBeatTitle")))) return;
-    storyboardAssetService
-      .remove(id)
-      .then(() => loadSecondaryData())
-      .catch((e: unknown) =>
-        showError(t("error.deleteFailed"), mapUserFacingError(e)),
-      );
-  };
-
-  const updateStoriesAfterCharacterDelete = async (characterId: string) => {
-    const updatedStories = stories.map((story) => {
-      const updatedBeats = (story.beats || []).map((beat) => {
-        const updated = { ...beat };
-        if (updated.characterIds?.includes(characterId)) {
-          updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
-        }
-        if (updated.characters?.includes(characterId)) {
-          updated.characters = updated.characters.filter((cid) => cid !== characterId);
-        }
-        if (updated.character === characterId) {
-          delete updated.character;
-        }
-        return updated;
-      });
-      const updatedCharacters = (story.characters || []).filter((cid) => cid !== characterId);
-      return { ...story, characters: updatedCharacters, beats: updatedBeats };
-    });
-    for (const updatedStory of updatedStories) {
-      const original = stories.find((s) => s.id === updatedStory.id);
-      const wasAffected = original?.beats?.some((b) => b.characterIds?.includes(characterId) || b.characters?.includes(characterId) || b.character === characterId) || original?.characters?.includes(characterId);
-      if (wasAffected) {
-        const result = await storyService.update(updatedStory.id, updatedStory);
-        if (!result.ok) {
-          errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
-        }
-      }
-    }
-  };
-
-  const updateStoriesAfterSceneDelete = async (sceneId: string) => {
-    const updatedStories = stories.map((story) => {
-      const updatedBeats = (story.beats || []).map((beat) => {
-        const updated = { ...beat };
-        if (updated.scene === sceneId) delete updated.scene;
-        if (updated.sceneId === sceneId) delete updated.sceneId;
-        return updated;
-      });
-      const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
-      return { ...story, scenes: updatedScenes, beats: updatedBeats };
-    });
-    for (const updatedStory of updatedStories) {
-      const original = stories.find((s) => s.id === updatedStory.id);
-      const wasAffected = original?.beats?.some((b) => b.scene === sceneId || b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
-      if (wasAffected) {
-        const result = await storyService.update(updatedStory.id, updatedStory);
-        if (!result.ok) {
-          errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
-        }
-      }
-    }
-  };
-
-  const handleEditItem = (item: EditingItem) => {
-    setEditingItem(item);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingItem) return;
-    setIsSavingEdit(true);
-    try {
-      if (editingItem._type === "character") {
-        const result = await characterService.update(editingItem.id, {
-          id: editingItem.id,
-          name: editingItem.name,
-          description: editingItem.description,
-          tags: editingItem.tags,
-        });
-        if (!result.ok) throw result.error;
-      } else if (editingItem._type === "scene") {
-        const result = await sceneService.update(editingItem.id, {
-          id: editingItem.id,
-          name: editingItem.name,
-          description: editingItem.description,
-          tags: editingItem.tags,
-          atmosphere: editingItem.atmosphere,
-        });
-        if (!result.ok) throw result.error;
-      } else if (editingItem._type === "storyboard") {
-        await container.storyboardStorage.createStoryboardAsset({
-          id: editingItem.id,
-          script: editingItem.script,
-          duration: editingItem.duration,
-          shotType: editingItem.shotType,
-        });
-      }
-      setIsEditDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["characters"] });
-      queryClient.invalidateQueries({ queryKey: ["scenes"] });
-      loadSecondaryData();
-      success(t("success.saved"), t("success.assetUpdated"));
-    } catch (e) {
-      showError(t("error.saveFailed"), mapUserFacingError(e));
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
+  const actions = useAssetLibraryActions({
+    activeTab,
+    selectedIds,
+    clearSelection,
+    setSelectedIds,
+    setSecondaryData,
+    setIsBatchDeleting,
+    setIsAddingToCollection,
+    setIsCollectionDialogOpen,
+    setIsImportDialogOpen,
+    setIsNewCollectionDialogOpen,
+    setIsEditDialogOpen,
+    setEditingItem,
+    setIsSavingEdit,
+    setNewCollectionName,
+    setAddToCollectionId,
+    addToCollectionId,
+    newCollectionName,
+    editingItem,
+    isBatchDeleting,
+  });
 
   const filteredCharacters = useMemo(
     () =>
@@ -533,7 +175,7 @@ export default function AssetLibraryPage() {
         <AssetUploadSection
           onOpenImportDialog={() => setIsImportDialogOpen(true)}
           fileInputRef={fileInputRef}
-          onImport={handleImport}
+          onImport={actions.handleImport}
         />
 
         <Tabs
@@ -589,8 +231,8 @@ export default function AssetLibraryPage() {
             onSearchChange={setSearchQuery}
             selectedIdsSize={selectedIds.size}
             isBatchDeleting={isBatchDeleting}
-            onBatchDelete={handleBatchDelete}
-            onBatchExport={handleBatchExport}
+            onBatchDelete={actions.handleBatchDelete}
+            onBatchExport={actions.handleBatchExport}
             onOpenCollectionDialog={() => setIsCollectionDialogOpen(true)}
             onClearSelection={clearSelection}
             onSelectAll={() =>
@@ -613,12 +255,12 @@ export default function AssetLibraryPage() {
             secondaryDataLoading={secondaryDataLoading}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
-            onEditItem={handleEditItem}
-            onDeleteCharacter={handleDeleteCharacter}
-            onDeleteScene={handleDeleteScene}
-            onDeleteStoryboard={handleDeleteStoryboard}
-            onDeleteCollection={handleDeleteCollection}
-            onExportCollection={handleExportCollection}
+            onEditItem={actions.handleEditItem}
+            onDeleteCharacter={actions.handleDeleteCharacter}
+            onDeleteScene={actions.handleDeleteScene}
+            onDeleteStoryboard={actions.handleDeleteStoryboard}
+            onDeleteCollection={actions.handleDeleteCollection}
+            onExportCollection={actions.handleExportCollection}
             onNewCollection={() => setIsNewCollectionDialogOpen(true)}
           />
         </Tabs>
@@ -628,7 +270,7 @@ export default function AssetLibraryPage() {
           onOpenChange={setIsEditDialogOpen}
           editingItem={editingItem}
           isSavingEdit={isSavingEdit}
-          onSave={handleSaveEdit}
+          onSave={actions.handleSaveEdit}
           onEditingItemChange={(item) => setEditingItem(item)}
         />
 
@@ -644,11 +286,11 @@ export default function AssetLibraryPage() {
           addToCollectionId={addToCollectionId}
           setAddToCollectionId={setAddToCollectionId}
           isAddingToCollection={isAddingToCollection}
-          onAddToCollection={handleAddToCollection}
+          onAddToCollection={actions.handleAddToCollection}
           newCollectionName={newCollectionName}
           setNewCollectionName={setNewCollectionName}
           isCreatingCollection={isCreatingCollection}
-          onCreateCollection={handleCreateCollection}
+          onCreateCollection={actions.handleCreateCollection}
           importMode={importMode}
           setImportMode={setImportMode}
           fileInputRef={fileInputRef}

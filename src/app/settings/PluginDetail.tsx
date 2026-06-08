@@ -4,6 +4,12 @@ import { t } from "@/shared/constants";
 interface PluginDetailProps {
   plugin: {
     id: string;
+    capabilities: {
+      video: boolean;
+      image: boolean;
+      text: boolean;
+      vision: boolean;
+    };
     videoCapabilities: {
       supportsLastFrame: boolean;
       supportsReferenceVideo: boolean;
@@ -40,6 +46,10 @@ export function PluginDetail({ plugin }: PluginDetailProps) {
         </div>
       </div>
       <div className="flex gap-1 flex-wrap">
+        {plugin.capabilities.video && <Badge variant="outline" className="text-xs">{t("plugin.capVideo")}</Badge>}
+        {plugin.capabilities.image && <Badge variant="outline" className="text-xs">{t("plugin.capImage")}</Badge>}
+        {plugin.capabilities.text && <Badge variant="outline" className="text-xs">{t("plugin.capText")}</Badge>}
+        {plugin.capabilities.vision && <Badge variant="outline" className="text-xs">{t("plugin.capVision")}</Badge>}
         {plugin.videoCapabilities.supportsLastFrame && <Badge variant="outline" className="text-xs">{t("plugin.lastFrame")}</Badge>}
         {plugin.videoCapabilities.supportsReferenceVideo && <Badge variant="outline" className="text-xs">{t("plugin.referenceVideo")}</Badge>}
         {plugin.videoCapabilities.supportsMimicryLevel && <Badge variant="outline" className="text-xs">{t("plugin.mimicryLevel")}</Badge>}

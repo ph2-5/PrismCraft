@@ -35,7 +35,7 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
       beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
     } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
     const sqls = statements.map((s) => s.sql);
 
     expect(
@@ -50,7 +50,7 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
       beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
     } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
     const sqls = statements.map((s) => s.sql);
 
     expect(
@@ -65,7 +65,7 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
       beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
     } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
     const sqls = statements.map((s) => s.sql);
 
     expect(
@@ -80,7 +80,7 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
       beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
     } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
     const sqls = statements.map((s) => s.sql);
 
     expect(
@@ -95,7 +95,7 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
       beats: [{ id: "b1" }] as unknown as StoryBeat[],
     } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
     const deleteVideoTasks = statements.filter(
       (s) => s.sql === "DELETE FROM video_tasks WHERE beat_id = ?",
     );
@@ -133,7 +133,7 @@ describe("R45: Entity Update Must Not Delete Unrelated Associated Data", () => {
       beats: [{ id: "b1" }] as unknown as StoryBeat[],
     } as unknown as Partial<Story>);
 
-    const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+    const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
     const sqls = statements.map((s) => s.sql);
 
     expect(

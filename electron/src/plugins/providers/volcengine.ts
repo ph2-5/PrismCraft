@@ -1,6 +1,7 @@
 import type {
   AIProviderPlugin,
   ModelCapabilities,
+  ProviderCapabilities,
   VideoCapabilities,
   ImageCapabilities,
   VideoBuildContext,
@@ -104,6 +105,14 @@ const DEFAULT_MODEL_CAPS: ModelCapabilities = {
 export class VolcenginePlugin extends BaseAIProviderPlugin implements AIProviderPlugin {
   readonly id = "volcengine";
   readonly displayName = "火山引擎 (Doubao)";
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: false,
+      vision: false,
+    };
+  }
   readonly videoCapabilities = VIDEO_CAPABILITIES;
   readonly imageCapabilities = IMAGE_CAPABILITIES;
 

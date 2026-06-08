@@ -205,7 +205,7 @@ describe("circuit-breaker", () => {
       }
 
       const states = getAllCircuitStates();
-      expect(states["provider-a"].state).toBe("closed");
+      expect(states["provider-a"]!.state).toBe("closed");
       const breakerB = getCircuitBreaker("provider-b");
       expect(breakerB.state).toBe("open");
     });

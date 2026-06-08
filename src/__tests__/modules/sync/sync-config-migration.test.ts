@@ -198,10 +198,10 @@ describe("sync-config-migration", () => {
       });
 
       expect(mockSaveConfigAsync).toHaveBeenCalled();
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0] as Record<string, { server: { url: string } }>;
-      expect(savedConfig.sync.server).toBeDefined();
-      expect(savedConfig.sync.server).not.toBeNull();
-      expect(savedConfig.sync.server.url).toBe("https://old-sync.example.com");
+      const savedConfig = mockSaveConfigAsync.mock.calls[0]![0]! as Record<string, { server: { url: string } }>;
+      expect(savedConfig.sync!.server).toBeDefined();
+      expect(savedConfig.sync!.server).not.toBeNull();
+      expect(savedConfig.sync!.server.url).toBe("https://old-sync.example.com");
     });
 
     it("endpoint 字段应在迁移后保留以保持向后兼容", async () => {

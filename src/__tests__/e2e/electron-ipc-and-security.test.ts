@@ -91,7 +91,7 @@ describe("E2E Electron IPC 集成", () => {
 
       const results = await safeQuery<Record<string, unknown>>("SELECT * FROM stories WHERE id = ?", ["ipc-s1"]);
       expect(results.length).toBe(1);
-      expect(results[0].title).toBe("IPC测试故事");
+      expect(results[0]!.title).toBe("IPC测试故事");
     });
 
     it("dbRun 应通过 IPC 正确执行写入", async () => {

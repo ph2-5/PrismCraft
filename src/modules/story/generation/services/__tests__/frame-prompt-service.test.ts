@@ -105,9 +105,9 @@ describe("generateFramePrompts", () => {
     });
 
     expect(mockTextProvider.generateText).toHaveBeenCalledTimes(1);
-    const callArgs = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(callArgs[1]).toEqual({ maxTokens: 600, temperature: 0.7 });
-    expect(callArgs[0]).toContain("第3镜头");
+    const callArgs = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(callArgs[1]!).toEqual({ maxTokens: 600, temperature: 0.7 });
+    expect(callArgs[0]!).toContain("第3镜头");
   });
 
   it("beat 无内容、无角色、无场景时应返回空提示词", async () => {
@@ -236,7 +236,7 @@ describe("generateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
     expect(prompt).toContain("水彩风");
     expect(prompt).toContain("梦幻");
     expect(prompt).toContain("蓝、粉");
@@ -258,7 +258,7 @@ describe("generateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
     expect(prompt).toContain("上一镜头内容");
     expect(prompt).toContain("下一镜头内容");
   });
@@ -282,7 +282,7 @@ describe("generateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
     expect(prompt).toContain("小明");
     expect(prompt).toContain("黑发");
     expect(prompt).toContain("穿着蓝色外套");
@@ -307,7 +307,7 @@ describe("generateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
     expect(prompt).toContain("客厅");
     expect(prompt).toContain("温暖");
   });
@@ -331,7 +331,7 @@ describe("generateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
     expect(prompt).toContain("特写");
   });
 
@@ -357,7 +357,7 @@ describe("generateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
     expect(prompt).toContain("低角度");
     expect(prompt).toContain("推进");
   });
@@ -382,7 +382,7 @@ describe("generateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
     expect(prompt).toContain("小明");
   });
 
@@ -516,7 +516,7 @@ describe("batchGenerateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const secondCallPrompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[1][0];
+    const secondCallPrompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[1]![0]!;
     expect(secondCallPrompt).toContain("第一幕");
     expect(secondCallPrompt).toContain("第三幕");
   });
@@ -537,7 +537,7 @@ describe("batchGenerateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
     expect(prompt).not.toContain("上一镜头内容");
   });
 });

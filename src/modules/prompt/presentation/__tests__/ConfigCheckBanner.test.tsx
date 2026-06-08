@@ -169,8 +169,8 @@ describe("ConfigCheckBanner", () => {
     expect(dismissBtn).toBeInTheDocument();
     await user.click(dismissBtn);
     expect(mockSetDismissState).toHaveBeenCalledTimes(1);
-    expect(mockSetDismissState.mock.calls[0][0]).toHaveProperty("dismissed", true);
-    expect(mockSetDismissState.mock.calls[0][0]).toHaveProperty("expiresAt");
+    expect(mockSetDismissState.mock.calls[0]![0]!).toHaveProperty("dismissed", true);
+    expect(mockSetDismissState.mock.calls[0]![0]!).toHaveProperty("expiresAt");
   });
 
   it("saves dismiss state with 24h expiry", async () => {

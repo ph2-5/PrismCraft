@@ -2,6 +2,7 @@ import { BaseAIProviderPlugin } from "../base-provider";
 import type {
   AIProviderPlugin,
   ModelCapabilities,
+  ProviderCapabilities,
   VideoBuildContext,
   ImageBuildContext,
   VisionBuildContext,
@@ -22,6 +23,15 @@ export class PixversePlugin
 
   match(apiUrl: string, _model?: string): boolean {
     return apiUrl.includes("dashscope.aliyuncs.com");
+  }
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: false,
+      vision: false,
+    };
   }
 
   readonly videoCapabilities = {

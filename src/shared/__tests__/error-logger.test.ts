@@ -202,7 +202,7 @@ describe("error-logger", () => {
       errorLogger.error("test event");
 
       expect(handler).toHaveBeenCalled();
-      const entry = handler.mock.calls[0][0] as ErrorLogEntry;
+      const entry = handler.mock.calls[0]![0] as ErrorLogEntry;
       expect(entry.level).toBe("error");
       expect(entry.error.message).toBe("test event");
 

@@ -2,6 +2,15 @@ import { getLogger } from "../logging/logger";
 
 const logger = getLogger("migrations");
 
+const VALID_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+function sanitizeIdentifier(name: string): string {
+  if (!VALID_IDENTIFIER.test(name)) {
+    throw new Error(`Invalid SQL identifier in migration: ${name}`);
+  }
+  return `"${name}"`;
+}
+
 export const CURRENT_SCHEMA_VERSION = 4;
 
 export interface MigrationDb {
@@ -21,7 +30,7 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     ];
     for (const { table, column, type } of columns) {
       try {
-        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
+        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${type};`);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         if (!msg.includes("duplicate column")) {
@@ -37,7 +46,7 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     ];
     for (const { table, column, type } of columns) {
       try {
-        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
+        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${type};`);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         if (!msg.includes("duplicate column")) {

@@ -299,8 +299,8 @@ describe("buildFeatureAnchoringConfig", () => {
 
     expect(config.enabled).toBe(true);
     expect(config.characterAnchors).toHaveLength(1);
-    expect(config.characterAnchors[0].elementId).toBe("elem-1");
-    expect(config.characterAnchors[0].referenceImageUrl).toBe("https://example.com/ref.png");
+    expect(config.characterAnchors[0]!.elementId).toBe("elem-1");
+    expect(config.characterAnchors[0]!.referenceImageUrl).toBe("https://example.com/ref.png");
     expect(config.disableFrameBinding).toBe(true);
     expect(config.featureConsistencyStrength).toBe(0.8);
   });
@@ -433,7 +433,7 @@ describe("validateReferenceImageQuality", () => {
       });
       this.addEventListener = function(event: string, fn: () => void) {
         if (!this._listeners[event]) this._listeners[event] = [];
-        this._listeners[event].push(fn);
+        this._listeners[event]!.push(fn);
       };
       Object.defineProperty(this, "onload", {
         set(fn: () => void) { this.addEventListener("load", fn); },
@@ -491,7 +491,7 @@ describe("validateReferenceImageQuality", () => {
       });
       this.addEventListener = function(event: string, fn: () => void) {
         if (!this._listeners[event]) this._listeners[event] = [];
-        this._listeners[event].push(fn);
+        this._listeners[event]!.push(fn);
       };
       Object.defineProperty(this, "onload", {
         set(fn: () => void) { this.addEventListener("load", fn); },
@@ -546,7 +546,7 @@ describe("validateReferenceImageQuality", () => {
       });
       this.addEventListener = function(event: string, fn: () => void) {
         if (!this._listeners[event]) this._listeners[event] = [];
-        this._listeners[event].push(fn);
+        this._listeners[event]!.push(fn);
       };
       Object.defineProperty(this, "onload", {
         set(fn: () => void) { this.addEventListener("load", fn); },

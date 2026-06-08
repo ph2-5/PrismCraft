@@ -104,7 +104,7 @@ describe("video-recovery-service", () => {
       const task = createMockTask();
       await saveVideoTask(task as unknown as VideoTask);
       expect(container.videoTaskStorage.createVideoTask).toHaveBeenCalled();
-      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0][0] as Record<string, unknown>;
+      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0]![0] as Record<string, unknown>;
       expect(savedRecord.pollCount).toBe(0);
       expect(savedRecord.recoveryAttempts).toBe(0);
       expect(savedRecord.expiresAt).toBeDefined();
@@ -115,14 +115,14 @@ describe("video-recovery-service", () => {
       const customExpiry = new Date(Date.now() + 86400000).toISOString();
       const task = createMockTask({ expiresAt: customExpiry });
       await saveVideoTask(task as unknown as VideoTask);
-      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0][0] as Record<string, unknown>;
+      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0]![0] as Record<string, unknown>;
       expect(savedRecord.expiresAt).toBe(customExpiry);
     });
 
     it("should preserve existing pollCount and recoveryAttempts", async () => {
       const task = createMockTask({ pollCount: 5, recoveryAttempts: 3 });
       await saveVideoTask(task as unknown as VideoTask);
-      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0][0] as Record<string, unknown>;
+      const savedRecord = mockVideoTaskStorage.createVideoTask.mock.calls[0]![0] as Record<string, unknown>;
       expect(savedRecord.pollCount).toBe(5);
       expect(savedRecord.recoveryAttempts).toBe(3);
     });
@@ -155,7 +155,7 @@ describe("video-recovery-service", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value).toHaveLength(1);
-        expect(result.value[0].taskId).toBe("task-2");
+        expect(result.value[0]!.taskId).toBe("task-2");
       }
     });
 

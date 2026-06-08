@@ -49,6 +49,8 @@ export interface UserPluginConfig {
       supportsSceneRef?: boolean;
       defaultModel: string;
     };
+    text?: boolean;
+    vision?: boolean;
   };
 
   models?: Record<

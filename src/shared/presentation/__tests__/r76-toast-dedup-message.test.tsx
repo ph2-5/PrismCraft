@@ -73,7 +73,7 @@ describe("R76: Toast deduplication must include message content", () => {
 
     act(() => { vi.advanceTimersByTime(0); });
 
-    const toastItems = screen.getAllByRole("status")[0].children;
+    const toastItems = screen.getAllByRole("status")[0]!.children;
     expect(toastItems.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -91,7 +91,7 @@ describe("R76: Toast deduplication must include message content", () => {
 
     act(() => { vi.advanceTimersByTime(0); });
 
-    const statusContainer = screen.getAllByRole("status")[0];
+    const statusContainer = screen.getAllByRole("status")[0]!;
     const toastItems = statusContainer.children;
     expect(toastItems.length).toBe(1);
 
@@ -111,7 +111,7 @@ describe("R76: Toast deduplication must include message content", () => {
 
     act(() => { vi.advanceTimersByTime(0); });
 
-    const statusContainer = screen.getAllByRole("status")[0];
+    const statusContainer = screen.getAllByRole("status")[0]!;
     expect(statusContainer.children.length).toBe(1);
 
     act(() => { vi.advanceTimersByTime(1000); });
@@ -128,7 +128,7 @@ describe("R76: Toast deduplication must include message content", () => {
 
     act(() => { vi.advanceTimersByTime(0); });
 
-    const updatedContainer = screen.getAllByRole("status")[0];
+    const updatedContainer = screen.getAllByRole("status")[0]!;
     const allToasts = updatedContainer.querySelectorAll("[class*='rounded-xl']");
     expect(allToasts.length).toBe(1);
     expect(updatedContainer.textContent).toContain("2");

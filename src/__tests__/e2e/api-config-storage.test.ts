@@ -108,7 +108,7 @@ describe("E2E API 配置存储与迁移测试", () => {
 
       expect(result.version).toBe(1);
       expect(result.providers).toHaveLength(1);
-      expect(result.providers[0].name).toBe("old");
+      expect(result.providers[0]!.name).toBe("old");
     });
   });
 

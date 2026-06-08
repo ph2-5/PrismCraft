@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { IElementManager } from "@/domain/ports/element-manager-port";
 
 describe("ElementStorage 通知职责", () => {
   it("ElementStorage 的 notify 方法应为 public", async () => {
@@ -73,7 +74,7 @@ describe("ElementManager 通知机制", () => {
     const listener = vi.fn();
     elementManager.subscribe(listener);
 
-    elementManager["notify"]();
+    (elementManager as any)["notify"]();
 
     expect(listener).toHaveBeenCalled();
   });
@@ -83,7 +84,7 @@ describe("ElementManager 通知机制", () => {
     const unsubscribe = elementManager.subscribe(listener);
 
     unsubscribe();
-    elementManager["notify"]();
+    (elementManager as any)["notify"]();
 
     expect(listener).not.toHaveBeenCalled();
   });

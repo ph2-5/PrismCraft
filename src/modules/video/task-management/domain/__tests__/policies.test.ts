@@ -174,7 +174,7 @@ describe("policy-engine", () => {
     const actions = evaluatePolicies(task);
 
     expect(actions.length).toBe(1);
-    expect(actions[0].type).toBe("TRANSITION");
+    expect(actions[0]!.type).toBe("TRANSITION");
   });
 
   it("should return expiration action for an old completed task without expiresAt", () => {
@@ -183,7 +183,7 @@ describe("policy-engine", () => {
     const actions = evaluatePolicies(task);
 
     expect(actions.length).toBe(1);
-    expect(actions[0].type).toBe("DELETE");
+    expect(actions[0]!.type).toBe("DELETE");
   });
 
   it("should return both timeout and expiration for a timed-out completed task with expired expiresAt", () => {

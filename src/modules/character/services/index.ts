@@ -47,11 +47,12 @@ export const characterService = {
     return fromAsyncThrowable(async () => {
       const existing = await container.characterStorage.getCharacterById(id);
       if (!existing) throw new NotFoundError("Character", id);
+      const version = await container.characterStorage.getCharacterVersion(id);
       const dataWithNormalizedGender = {
         ...parsed.data,
         ...(parsed.data.gender !== undefined && { gender: normalizeGender(parsed.data.gender) }),
       };
-      await container.characterStorage.updateCharacter(id, dataWithNormalizedGender);
+      await container.characterStorage.updateCharacter(id, dataWithNormalizedGender, version ?? undefined);
       container.eventBus.emit(DomainEvents.CHARACTER_UPDATED, { id, characterName: existing.name });
     });
   },

@@ -76,7 +76,7 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      const beat = (result as Story).beats[0];
+      const beat = (result as Story).beats[0]!;
       expect(beat.camera).toEqual({
         angle: "low",
         movement: "pan",
@@ -103,7 +103,7 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      const beat = (result as Story).beats[0];
+      const beat = (result as Story).beats[0]!;
       expect(beat.keyframe).toBeDefined();
       expect(beat.keyframe!.imageUrl).toBe("http://img.png");
       expect(beat.keyframe!.prompt).toBe("a beautiful scene");
@@ -127,7 +127,7 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      const beat = (result as Story).beats[0];
+      const beat = (result as Story).beats[0]!;
       expect(beat.videoGen).toBeDefined();
       expect(beat.videoGen!.videoUrl).toBe("http://video.mp4");
       expect(beat.videoGen!.taskId).toBe("task-123");
@@ -152,7 +152,7 @@ describe("storage/stories", () => {
 
       const result = await storyStorage.getStoryById("s1");
       expect(result).not.toBeNull();
-      const beat = (result as Story).beats[0];
+      const beat = (result as Story).beats[0]!;
       const camera = beat.camera as Record<string, unknown>;
       expect(camera).toBeDefined();
       expect(camera.lens).toBe("50mm");
@@ -190,7 +190,7 @@ describe("storage/stories", () => {
       } as unknown as Partial<Story>);
 
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
       const sqls = statements.map((s) => s.sql);
       expect(sqls[0]).toContain("INSERT OR IGNORE INTO stories");
       expect(sqls.some((s: string) => s.includes("story_characters"))).toBe(true);
@@ -209,7 +209,7 @@ describe("storage/stories", () => {
         beats: [{ id: "b1" }] as unknown as StoryBeat[],
       } as unknown as Partial<Story>);
 
-      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
       const sqls = statements.map((s) => s.sql);
 
       expect(
@@ -241,7 +241,7 @@ describe("storage/stories", () => {
         (s) => s.sql.startsWith("DELETE FROM story_beats"),
       );
       expect(deleteStmts.length).toBe(1);
-      expect(deleteStmts[0].params).toEqual(["b2"]);
+      expect(deleteStmts[0]!.params).toEqual(["b2"]);
     });
 
     it("保留的 beat 不应删除其关联数据", async () => {
@@ -252,7 +252,7 @@ describe("storage/stories", () => {
         beats: [{ id: "b1" }, { id: "b2" }] as unknown as StoryBeat[],
       } as unknown as Partial<Story>);
 
-      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
       const sqls = statements.map((s) => s.sql);
 
       expect(
@@ -274,7 +274,7 @@ describe("storage/stories", () => {
     it("应真删除 stories 记录而非软删除", async () => {
       await storyStorage.deleteStory("s1");
 
-      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
       const sqls = statements.map((s) => s.sql);
 
       expect(
@@ -293,7 +293,7 @@ describe("storage/stories", () => {
     it("删除前应清理所有关联表", async () => {
       await storyStorage.deleteStory("s1");
 
-      const statements = mockSafeTransaction.mock.calls[0][0] as SqlStatement[];
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as SqlStatement[];
       const sqls = statements.map((s) => s.sql);
 
       expect(sqls.some((s: string) => s.includes("story_characters"))).toBe(true);

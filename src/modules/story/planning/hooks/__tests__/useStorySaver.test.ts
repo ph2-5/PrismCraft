@@ -291,8 +291,8 @@ describe("useStorySaver regression tests", () => {
           await result.current.handleSave();
         });
 
-        const updateCall = mockStoryService.update.mock.calls[0];
-        const savedBeats = updateCall[1].beats;
+        const updateCall = mockStoryService.update.mock.calls[0]!;
+        const savedBeats = updateCall[1]!.beats;
         expect(savedBeats[0]).toMatchObject({
           title: "标题",
           content: "内容",
@@ -367,8 +367,8 @@ describe("useStorySaver regression tests", () => {
           await result.current.handleSave();
         });
 
-        const updateCall = mockStoryService.update.mock.calls[0];
-        const savedBeats = updateCall[1].beats;
+        const updateCall = mockStoryService.update.mock.calls[0]!;
+        const savedBeats = updateCall[1]!.beats;
         expect(savedBeats[0]).toMatchObject({
           uploadedKeyframe: "data:image/png;base64,xxx",
           uploadedFramePair: { firstFrame: "url1", lastFrame: "url2" },
@@ -396,8 +396,8 @@ describe("useStorySaver regression tests", () => {
           await result.current.handleSave();
         });
 
-        const updateCall = mockStoryService.update.mock.calls[0];
-        const savedBeats = updateCall[1].beats;
+        const updateCall = mockStoryService.update.mock.calls[0]!;
+        const savedBeats = updateCall[1]!.beats;
         expect(savedBeats[0]).toMatchObject({
           videoGen: {
             videoUrl: "https://example.com/video.mp4",

@@ -1,6 +1,7 @@
 import { BaseAIProviderPlugin } from "../base-provider";
 import type {
   ModelCapabilities,
+  ProviderCapabilities,
   VideoBuildContext,
   ImageBuildContext,
   VisionBuildContext,
@@ -19,6 +20,15 @@ export class ZhipuPlugin extends BaseAIProviderPlugin {
 
   match(apiUrl: string, _model?: string): boolean {
     return apiUrl.includes("bigmodel.cn");
+  }
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: false,
+      vision: true,
+    };
   }
 
   readonly videoCapabilities = {

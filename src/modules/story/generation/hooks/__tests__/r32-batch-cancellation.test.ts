@@ -20,7 +20,7 @@ describe("R32: Batch generation loops must check cancellation on component unmou
 
     for (let i = 0; i < beats.length; i++) {
       if (cancelledRef.current) break;
-      await generateKeyframe(beats[i].id);
+      await generateKeyframe(beats[i]!.id);
       if (cancelledRef.current) break;
     }
 
@@ -44,7 +44,7 @@ describe("R32: Batch generation loops must check cancellation on component unmou
 
     for (let i = 0; i < beats.length; i++) {
       if (cancelledRef.current) break;
-      await generateKeyframe(beats[i].id);
+      await generateKeyframe(beats[i]!.id);
       if (cancelledRef.current) break;
     }
 
@@ -62,7 +62,7 @@ describe("R32: Batch generation loops must check cancellation on component unmou
 
     for (let i = 0; i < beats.length; i++) {
       if (cancelledRef.current) break;
-      await generateKeyframe(beats[i].id);
+      await generateKeyframe(beats[i]!.id);
       if (cancelledRef.current) break;
     }
 

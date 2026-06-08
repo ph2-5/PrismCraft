@@ -194,9 +194,9 @@ describe("model-capabilities", () => {
         { url: "http://scene.jpg", priority: ReferencePriority.SCENE_REF, type: "scene" },
       ];
       const result = adjustReferenceImages(unsorted, "seedance-2.0", "video");
-      expect(result[0].type).toBe("character");
-      expect(result[1].type).toBe("scene");
-      expect(result[2].type).toBe("lastFrame");
+      expect(result[0]!.type).toBe("character");
+      expect(result[1]!.type).toBe("scene");
+      expect(result[2]!.type).toBe("lastFrame");
     });
 
     it("should filter out lastFrame for models that do not support it in video mode", () => {
@@ -231,7 +231,7 @@ describe("model-capabilities", () => {
       ];
       const result = adjustReferenceImages(manyRefs, "dall-e-3", "video");
       expect(result.length).toBeLessThanOrEqual(1);
-      expect(result[0].type).toBe("character");
+      expect(result[0]!.type).toBe("character");
       expect(mockWarn).toHaveBeenCalled();
     });
 

@@ -72,7 +72,7 @@ vi.mock("lucide-react", () => ({
   Trash2: () => <span data-testid="icon-trash" />,
 }));
 
-function DeleteDialogTestWrapper({ storyTitle, deleteDialogOpen }: { storyTitle: string; deleteDialogOpen: boolean }) {
+function DeleteDialogTestWrapper({ storyTitle, deleteDialogOpen: _deleteDialogOpen }: { storyTitle: string; deleteDialogOpen: boolean }) {
   const React = require("react");
   const [deleteConfirmInput, setDeleteConfirmInput] = React.useState("");
 

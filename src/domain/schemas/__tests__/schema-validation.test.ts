@@ -182,7 +182,7 @@ describe("media schemas", () => {
           { ...validTemplate.shots[0], transition: "fade" },
         ],
       });
-      expect(result.shots[0].transition).toBe("fade");
+      expect(result.shots[0]!.transition).toBe("fade");
     });
   });
 

@@ -81,11 +81,18 @@ function markSchemaVersion(db: DatabaseInterface): void {
   }
 }
 
+function validateSqlIdentifier(name: string, kind: "table" | "column"): void {
+  if (name.includes('"') || name.includes('\0')) {
+    throw new Error(`Invalid ${kind} name: ${name}`);
+  }
+}
+
 function migrateSchema(db: DatabaseInterface): void {
   const allDefs = getAllTableDefs();
 
   for (const tableDef of allDefs) {
     if (tableDef.baseColumns === false) continue;
+    validateSqlIdentifier(tableDef.name, "table");
 
     let existingCols: Set<string>;
     try {
@@ -107,6 +114,7 @@ function migrateSchema(db: DatabaseInterface): void {
     };
 
     for (const [colName, colDef] of Object.entries(BASE_COL_DEFS)) {
+      validateSqlIdentifier(colName, "column");
       if (!existingCols.has(colName)) {
         try {
           const sql = `ALTER TABLE "${tableDef.name}" ADD COLUMN "${colName}" ${colDef.type} DEFAULT ${colDef.default}`;
@@ -121,6 +129,7 @@ function migrateSchema(db: DatabaseInterface): void {
     }
 
     for (const [colName, colDef] of Object.entries(tableDef.columns)) {
+      validateSqlIdentifier(colName, "column");
       if (!existingCols.has(colName)) {
         try {
           let sql = `ALTER TABLE "${tableDef.name}" ADD COLUMN "${colName}" ${colDef.type}`;

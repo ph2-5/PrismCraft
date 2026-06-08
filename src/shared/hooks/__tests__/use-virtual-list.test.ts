@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 
 const { mockUseVirtualizer } = vi.hoisted(() => ({
-  mockUseVirtualizer: vi.fn(() => ({
+  mockUseVirtualizer: vi.fn<(opts: Record<string, unknown>) => Record<string, unknown>>(() => ({
     getTotalSize: vi.fn(() => 5000),
     getVirtualItems: vi.fn(() => [
       { index: 0, start: 0, size: 50, key: "0" },
@@ -54,8 +54,8 @@ describe("useVirtualList", () => {
   it("passes estimateSize callback to useVirtualizer", () => {
     renderHook(() => useVirtualList({ items: [1, 2], estimateSize: 80 }));
 
-    const config = mockUseVirtualizer.mock.calls[0][0];
-    expect(config.estimateSize()).toBe(80);
+    const config = mockUseVirtualizer.mock.calls[0]![0]! as Record<string, unknown>;
+    expect((config.estimateSize as () => number)()).toBe(80);
   });
 
   it("uses default overscan of 5", () => {
@@ -79,8 +79,8 @@ describe("useVirtualList", () => {
   it("provides getScrollElement that returns parentRef", () => {
     renderHook(() => useVirtualList({ items: [1], estimateSize: 50 }));
 
-    const config = mockUseVirtualizer.mock.calls[0][0];
-    expect(config.getScrollElement()).toBeNull();
+    const config = mockUseVirtualizer.mock.calls[0]![0]! as Record<string, unknown>;
+    expect((config.getScrollElement as () => null)()).toBeNull();
   });
 
   it("handles empty items array", () => {

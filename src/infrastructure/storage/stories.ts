@@ -79,6 +79,14 @@ export const storyStorage = {
     return storyStorage.getStoryById(storyId);
   },
 
+  async getStoryVersion(id: string): Promise<number | null> {
+    const result = await safeQuery<{ version: number }>(
+      "SELECT version FROM stories WHERE id = ?",
+      [id],
+    );
+    return result.length > 0 ? result[0]!.version : null;
+  },
+
   async createStory(story: Partial<Story>): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     const id =
@@ -306,9 +314,11 @@ export const storyStorage = {
       { sql: "DELETE FROM story_scenes WHERE story_id = ?", params: [id] },
       { sql: "DELETE FROM story_elements WHERE story_id = ?", params: [id] },
       { sql: "DELETE FROM story_versions WHERE story_id = ?", params: [id] },
+      { sql: "DELETE FROM video_cache WHERE task_id IN (SELECT id FROM video_tasks WHERE story_id = ?)", params: [id] },
       { sql: "DELETE FROM video_tasks WHERE story_id = ?", params: [id] },
       { sql: "DELETE FROM generation_tasks WHERE story_id = ?", params: [id] },
       { sql: "DELETE FROM collection_assets WHERE asset_id = ? AND asset_type = 'story'", params: [id] },
+      { sql: "DELETE FROM asset_tags WHERE asset_id = ? AND asset_type = 'story'", params: [id] },
     ];
     for (const beat of beatRows) {
       statements.push({

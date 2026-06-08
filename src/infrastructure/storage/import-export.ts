@@ -1,4 +1,3 @@
-import { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
 import { parseRecordWithTable, toSqlValue } from "./core";
 import type { DbRunResult } from "./core";
 import type { StoryVersion } from "@/domain/schemas";
@@ -13,16 +12,17 @@ import { collectionStorage } from "./collections";
 import { versionStorage } from "./versions";
 import { errorLogger } from "@/shared/error-logger";
 import { sanitizeIdentifier, sanitizeTable } from "./sql-sanitizer";
+import { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
 
-function camelToSnakeCase(str: string): string {
+export function camelToSnakeCase(str: string): string {
   return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 }
 
-function snakeToCamel(str: string): string {
+export function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 }
 
-function convertRecordToCamel(record: Record<string, unknown>): Record<string, unknown> {
+export function convertRecordToCamel(record: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record)) {
     result[snakeToCamel(key)] = value;
@@ -30,7 +30,7 @@ function convertRecordToCamel(record: Record<string, unknown>): Record<string, u
   return result;
 }
 
-const TABLE_PRIMARY_KEYS: Record<string, string> = {
+export const TABLE_PRIMARY_KEYS: Record<string, string> = {
   characters: "id",
   scenes: "id",
   stories: "id",
@@ -357,7 +357,6 @@ export const importExportStorage = {
                 }
                 updated++;
               } else {
-                // Fallback: generic UPDATE for tables without specific update function
                 const columns = Object.keys(record).filter(
                   (k) =>
                     k !== pk &&

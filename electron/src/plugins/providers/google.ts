@@ -2,6 +2,7 @@ import { BaseAIProviderPlugin } from "../base-provider";
 import type {
   AIProviderPlugin,
   ModelCapabilities,
+  ProviderCapabilities,
   VideoBuildContext,
   ImageBuildContext,
   TextBuildContext,
@@ -49,6 +50,15 @@ export class GooglePlugin
       apiUrl.includes("aiplatform.googleapis.com") ||
       (model?.includes("veo") ?? false)
     );
+  }
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: true,
+      image: true,
+      text: true,
+      vision: true,
+    };
   }
 
   readonly videoCapabilities = {

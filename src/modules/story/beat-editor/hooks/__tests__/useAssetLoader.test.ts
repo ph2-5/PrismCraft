@@ -127,9 +127,9 @@ describe("useAssetLoader", () => {
 
       const charAssets = result.current.assets.filter((a) => a.id.startsWith("char-"));
       expect(charAssets).toHaveLength(1);
-      expect(charAssets[0].id).toBe("char-char-1");
-      expect(charAssets[0].type).toBe("image");
-      expect(charAssets[0].url).toBe("https://example.com/char-image.png");
+      expect(charAssets[0]!.id).toBe("char-char-1");
+      expect(charAssets[0]!.type).toBe("image");
+      expect(charAssets[0]!.url).toBe("https://example.com/char-image.png");
     });
 
     it("应过滤有 generatedImage 的场景到 assets", async () => {
@@ -140,9 +140,9 @@ describe("useAssetLoader", () => {
 
       const sceneAssets = result.current.assets.filter((a) => a.id.startsWith("scene-"));
       expect(sceneAssets).toHaveLength(1);
-      expect(sceneAssets[0].id).toBe("scene-scene-1");
-      expect(sceneAssets[0].type).toBe("image");
-      expect(sceneAssets[0].url).toBe("https://example.com/scene-image.png");
+      expect(sceneAssets[0]!.id).toBe("scene-scene-1");
+      expect(sceneAssets[0]!.type).toBe("image");
+      expect(sceneAssets[0]!.url).toBe("https://example.com/scene-image.png");
     });
 
     it("应加载 storyboard assets 并判断类型", async () => {

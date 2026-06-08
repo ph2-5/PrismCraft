@@ -52,25 +52,25 @@ describe("CLOUD_PROVIDERS", () => {
     const baseUrl = "https://api.example.com";
     const taskId = "task-123";
 
-    expect(CLOUD_PROVIDERS["volces.com"].queryEndpoint!(baseUrl, taskId)).toBe(
+    expect(CLOUD_PROVIDERS["volces.com"]!.queryEndpoint!(baseUrl, taskId)).toBe(
       "https://api.example.com/contents/generations/tasks/task-123"
     );
-    expect(CLOUD_PROVIDERS["bytepluses.com"].queryEndpoint!(baseUrl, taskId)).toBe(
+    expect(CLOUD_PROVIDERS["bytepluses.com"]!.queryEndpoint!(baseUrl, taskId)).toBe(
       "https://api.example.com/contents/generations/tasks/task-123"
     );
-    expect(CLOUD_PROVIDERS["dashscope.aliyuncs.com"].queryEndpoint!(baseUrl, taskId)).toBe(
+    expect(CLOUD_PROVIDERS["dashscope.aliyuncs.com"]!.queryEndpoint!(baseUrl, taskId)).toBe(
       "https://api.example.com/services/aigc/video-generation/video-synthesis/task-123"
     );
-    expect(CLOUD_PROVIDERS["klingai.com"].queryEndpoint!(baseUrl, taskId)).toBe(
+    expect(CLOUD_PROVIDERS["klingai.com"]!.queryEndpoint!(baseUrl, taskId)).toBe(
       "https://api.example.com/api/v1/video/task/task-123"
     );
-    expect(CLOUD_PROVIDERS["bigmodel.cn"].queryEndpoint!(baseUrl, taskId)).toBe(
+    expect(CLOUD_PROVIDERS["bigmodel.cn"]!.queryEndpoint!(baseUrl, taskId)).toBe(
       "https://api.example.com/videos/generations/task-123"
     );
-    expect(CLOUD_PROVIDERS["openai.com"].queryEndpoint!(baseUrl, taskId)).toBe(
+    expect(CLOUD_PROVIDERS["openai.com"]!.queryEndpoint!(baseUrl, taskId)).toBe(
       "https://api.example.com/video/generations/task-123"
     );
-    expect(CLOUD_PROVIDERS["atlascloud.ai"].queryEndpoint!(baseUrl, taskId)).toBe(
+    expect(CLOUD_PROVIDERS["atlascloud.ai"]!.queryEndpoint!(baseUrl, taskId)).toBe(
       "https://api.example.com/seedance/video/task-123"
     );
   });

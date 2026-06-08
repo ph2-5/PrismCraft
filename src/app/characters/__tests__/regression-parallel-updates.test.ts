@@ -4,7 +4,7 @@ describe("R83: Parallel Related-Entity Updates Regression Tests", () => {
   it("should update all related stories in parallel, not serial", async () => {
     const callTimes: number[] = [];
     const storyService = {
-      update: vi.fn(async (id: string) => {
+      update: vi.fn(async (id: string, _story?: object) => {
         callTimes.push(Date.now());
         await new Promise((resolve) => setTimeout(resolve, 50));
         return { ok: true, value: { id } };
@@ -36,7 +36,7 @@ describe("R83: Parallel Related-Entity Updates Regression Tests", () => {
 
   it("should collect failures from Promise.allSettled without short-circuiting", async () => {
     const storyService = {
-      update: vi.fn(async (id: string) => {
+      update: vi.fn(async (id: string, _story?: object) => {
         if (id === "s2") throw new Error("DB error");
         if (id === "s3") return { ok: false, error: "Conflict" };
         return { ok: true, value: { id } };
@@ -66,7 +66,7 @@ describe("R83: Parallel Related-Entity Updates Regression Tests", () => {
 
   it("should be faster than serial for 10 stories", async () => {
     const storyService = {
-      update: vi.fn(async (id: string) => {
+      update: vi.fn(async (id: string, _story?: object) => {
         await new Promise((resolve) => setTimeout(resolve, 20));
         return { ok: true, value: { id } };
       }),

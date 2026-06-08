@@ -107,12 +107,12 @@ describe("prompt-vocabulary", () => {
   describe("STYLE_KEYWORDS", () => {
     it("should have keywords for anime style", () => {
       expect(STYLE_KEYWORDS.anime).toBeDefined();
-      expect(STYLE_KEYWORDS.anime.length).toBeGreaterThan(0);
+      expect(STYLE_KEYWORDS.anime!.length).toBeGreaterThan(0);
     });
 
     it("should have keywords for realistic style", () => {
       expect(STYLE_KEYWORDS.realistic).toBeDefined();
-      expect(STYLE_KEYWORDS.realistic.length).toBeGreaterThan(0);
+      expect(STYLE_KEYWORDS.realistic!.length).toBeGreaterThan(0);
     });
 
     it("should have keywords for 3d style", () => {

@@ -485,7 +485,7 @@ describe("useBatchGenerator", () => {
       });
 
       expect(props.setBeats).toHaveBeenCalled();
-      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as (prev: StoryBeat[]) => StoryBeat[];
+      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0]! as (prev: StoryBeat[]) => StoryBeat[];
       const updated = updater([beat1, beat2, beat3]);
       expect(updated[0]).toEqual(updatedBeat);
     });

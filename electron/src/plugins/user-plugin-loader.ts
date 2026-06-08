@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { getLogger } from "../logging/logger";
-import type { AIProviderPlugin, VideoBuildContext, ImageBuildContext, TextBuildContext, VisionBuildContext, ImagePurpose, CloudProviderInfo, ModelParameterProfile } from "./types";
+import type { AIProviderPlugin, ProviderCapabilities, VideoBuildContext, ImageBuildContext, TextBuildContext, VisionBuildContext, ImagePurpose, CloudProviderInfo, ModelParameterProfile } from "./types";
 import type { UserPluginConfig } from "./user-plugin-schema";
 import { validatePluginConfig } from "./user-plugin-schema";
 import { BaseAIProviderPlugin } from "./base-provider";
@@ -83,7 +83,7 @@ function resolveTemplateValue(
   return template;
 }
 
-class UserPluginAdapter extends BaseAIProviderPlugin {
+export class UserPluginAdapter extends BaseAIProviderPlugin {
   readonly config: UserPluginConfig;
 
   constructor(config: UserPluginConfig) {
@@ -140,6 +140,15 @@ class UserPluginAdapter extends BaseAIProviderPlugin {
     return this.config.capabilities.image ?? {
       supportsReferenceImage: false,
       defaultModel: "",
+    };
+  }
+
+  get capabilities(): ProviderCapabilities {
+    return {
+      video: !!this.config.capabilities.video,
+      image: !!this.config.capabilities.image,
+      text: this.config.capabilities.text ?? false,
+      vision: this.config.capabilities.vision ?? false,
     };
   }
 

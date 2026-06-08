@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    exclude: ['tests/**', 'node_modules/**', 'out/**', 'electron/dist/**', 'electron/src/**', 'src/__tests__/e2e/**'],
+    exclude: ['tests/**', 'node_modules/**', 'out/**', 'electron/dist/**', 'electron/src/**', 'src/__tests__/e2e/**', '.stryker-tmp/**'],
     setupFiles: ['./src/__tests__/setup.ts'],
     pool: "forks",
     maxWorkers: 2,

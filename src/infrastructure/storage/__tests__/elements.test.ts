@@ -30,7 +30,7 @@ let elementStorage: import("../elements").ElementStorage;
 beforeEach(async () => {
   vi.clearAllMocks();
   mockSafeQuery.mockResolvedValue([]);
-  mockSafeRun.mockResolvedValue(undefined as unknown as DbRunResult);
+  mockSafeRun.mockResolvedValue(undefined as unknown as import("@/domain/ports/sync-port").DbRunResult);
   mockSafeTransaction.mockResolvedValue([]);
   const mod = await import("../elements");
   ElementStorage = mod.ElementStorage;
@@ -175,15 +175,15 @@ describe("ElementStorage", () => {
       await elementStorage.deleteElement("CHAR_001");
 
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-      const statements = mockSafeTransaction.mock.calls[0][0] as Array<{
+      const statements = mockSafeTransaction.mock.calls[0]![0]! as Array<{
         sql: string;
         params: unknown[];
       }>;
       expect(statements).toHaveLength(2);
-      expect(statements[0].sql).toContain("story_elements");
-      expect(statements[1].sql).toContain("elements");
-      expect(statements[0].params).toEqual(["CHAR_001"]);
-      expect(statements[1].params).toEqual(["CHAR_001"]);
+      expect(statements[0]!.sql).toContain("story_elements");
+      expect(statements[1]!.sql).toContain("elements");
+      expect(statements[0]!.params).toEqual(["CHAR_001"]);
+      expect(statements[1]!.params).toEqual(["CHAR_001"]);
     });
   });
 

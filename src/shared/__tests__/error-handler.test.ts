@@ -269,7 +269,7 @@ describe("error-handler", () => {
       mockClassifyNetworkError.mockReturnValue("timeout");
       const error = new Error("failed");
       (error as unknown as { code: string }).code = "ETIMEDOUT";
-      const _result = handleError(error);
+      handleError(error);
       expect(mockClassifyNetworkError).toHaveBeenCalledWith("ETIMEDOUT", "failed");
     });
   });

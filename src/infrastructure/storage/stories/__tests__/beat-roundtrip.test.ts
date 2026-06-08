@@ -142,15 +142,15 @@ function parseBeatRow(b: Record<string, unknown>) {
       for (let i = 0; i < parts.length - 1; i++) {
         const part = parts[i];
         if (
-          target[part] === undefined ||
-          target[part] === null ||
-          typeof target[part] !== "object"
+          target[part!] === undefined ||
+          target[part!] === null ||
+          typeof target[part!] !== "object"
         ) {
-          target[part] = {};
+          target[part!] = {};
         }
-        target = target[part] as Record<string, unknown>;
+        target = target[part!] as Record<string, unknown>;
       }
-      target[parts[parts.length - 1]] = v;
+      target[parts[parts.length - 1]!] = v;
     }
   }
 

@@ -84,9 +84,9 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(1);
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[0].sequence).toBe(1);
-      expect(result.current.beats[0].order).toBe(1);
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[0]!.sequence).toBe(1);
+      expect(result.current.beats[0]!.order).toBe(1);
     });
 
     it("defaults type to 'scene' when no type provided", () => {
@@ -96,7 +96,7 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      expect(result.current.beats[0].type).toBe("scene");
+      expect(result.current.beats[0]!.type).toBe("scene");
     });
 
     it("uses provided type when specified", () => {
@@ -106,7 +106,7 @@ describe("useStoryState", () => {
         result.current.addBeat("dialogue");
       });
 
-      expect(result.current.beats[0].type).toBe("dialogue");
+      expect(result.current.beats[0]!.type).toBe("dialogue");
     });
 
     it("supports all beat types", () => {
@@ -126,11 +126,11 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(5);
-      expect(result.current.beats[0].type).toBe("action");
-      expect(result.current.beats[1].type).toBe("dialogue");
-      expect(result.current.beats[2].type).toBe("scene");
-      expect(result.current.beats[3].type).toBe("transition");
-      expect(result.current.beats[4].type).toBe("effect");
+      expect(result.current.beats[0]!.type).toBe("action");
+      expect(result.current.beats[1]!.type).toBe("dialogue");
+      expect(result.current.beats[2]!.type).toBe("scene");
+      expect(result.current.beats[3]!.type).toBe("transition");
+      expect(result.current.beats[4]!.type).toBe("effect");
     });
 
     it("increments sequence and order for each added beat", () => {
@@ -147,12 +147,12 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(3);
-      expect(result.current.beats[0].sequence).toBe(1);
-      expect(result.current.beats[0].order).toBe(1);
-      expect(result.current.beats[1].sequence).toBe(2);
-      expect(result.current.beats[1].order).toBe(2);
-      expect(result.current.beats[2].sequence).toBe(3);
-      expect(result.current.beats[2].order).toBe(3);
+      expect(result.current.beats[0]!.sequence).toBe(1);
+      expect(result.current.beats[0]!.order).toBe(1);
+      expect(result.current.beats[1]!.sequence).toBe(2);
+      expect(result.current.beats[1]!.order).toBe(2);
+      expect(result.current.beats[2]!.sequence).toBe(3);
+      expect(result.current.beats[2]!.order).toBe(3);
     });
 
     it("assigns unique id via crypto.randomUUID", () => {
@@ -165,8 +165,8 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[1].id).toBe("uuid-2");
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[1]!.id).toBe("uuid-2");
     });
 
     it("initializes new beat with default values", () => {
@@ -176,7 +176,7 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      const beat = result.current.beats[0];
+      const beat = result.current.beats[0]!;
       expect(beat.description).toBe("");
       expect(beat.title).toBe("");
       expect(beat.content).toBe("");
@@ -203,7 +203,7 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      expect(result.current.beats[0].enhancedGeneration).toBe(false);
+      expect(result.current.beats[0]!.enhancedGeneration).toBe(false);
     });
 
     it("updates beatsRef after adding", () => {
@@ -214,7 +214,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beatsRef.current).toHaveLength(1);
-      expect(result.current.beatsRef.current[0].id).toBe("uuid-1");
+      expect(result.current.beatsRef.current[0]!.id).toBe("uuid-1");
     });
 
     it("updates currentStory.beats after adding", () => {
@@ -236,13 +236,13 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      const beatId = result.current.beats[0].id;
+      const beatId = result.current.beats[0]!.id;
 
       act(() => {
         result.current.updateBeat(beatId, { title: "Updated Title" });
       });
 
-      expect(result.current.beats[0].title).toBe("Updated Title");
+      expect(result.current.beats[0]!.title).toBe("Updated Title");
     });
 
     it("preserves non-updated fields", () => {
@@ -252,13 +252,13 @@ describe("useStoryState", () => {
         result.current.addBeat("dialogue");
       });
 
-      const beatId = result.current.beats[0].id;
+      const beatId = result.current.beats[0]!.id;
 
       act(() => {
         result.current.updateBeat(beatId, { title: "New Title" });
       });
 
-      const beat = result.current.beats[0];
+      const beat = result.current.beats[0]!;
       expect(beat.title).toBe("New Title");
       expect(beat.type).toBe("dialogue");
       expect(beat.sequence).toBe(1);
@@ -272,7 +272,7 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      const beatId = result.current.beats[0].id;
+      const beatId = result.current.beats[0]!.id;
 
       act(() => {
         result.current.updateBeat(beatId, {
@@ -282,7 +282,7 @@ describe("useStoryState", () => {
         });
       });
 
-      const beat = result.current.beats[0];
+      const beat = result.current.beats[0]!;
       expect(beat.title).toBe("Title");
       expect(beat.content).toBe("Content");
       expect(beat.duration).toBe(10);
@@ -300,8 +300,8 @@ describe("useStoryState", () => {
         result.current.updateBeat("uuid-1", { title: "Only First" });
       });
 
-      expect(result.current.beats[0].title).toBe("Only First");
-      expect(result.current.beats[1].title).toBe("");
+      expect(result.current.beats[0]!.title).toBe("Only First");
+      expect(result.current.beats[1]!.title).toBe("");
     });
 
     it("is no-op for non-existent beat id", () => {
@@ -311,14 +311,14 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      const _beatsBefore = [...result.current.beats];
+      [...result.current.beats];
 
       act(() => {
         result.current.updateBeat("non-existent-id", { title: "Nope" });
       });
 
       expect(result.current.beats).toHaveLength(1);
-      expect(result.current.beats[0].title).toBe("");
+      expect(result.current.beats[0]!.title).toBe("");
     });
   });
 
@@ -353,12 +353,12 @@ describe("useStoryState", () => {
         result.current.deleteBeat("uuid-2");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[0].sequence).toBe(1);
-      expect(result.current.beats[0].order).toBe(1);
-      expect(result.current.beats[1].id).toBe("uuid-3");
-      expect(result.current.beats[1].sequence).toBe(2);
-      expect(result.current.beats[1].order).toBe(2);
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[0]!.sequence).toBe(1);
+      expect(result.current.beats[0]!.order).toBe(1);
+      expect(result.current.beats[1]!.id).toBe("uuid-3");
+      expect(result.current.beats[1]!.sequence).toBe(2);
+      expect(result.current.beats[1]!.order).toBe(2);
     });
 
     it("deleting first beat re-sequences correctly", () => {
@@ -374,9 +374,9 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(1);
-      expect(result.current.beats[0].id).toBe("uuid-2");
-      expect(result.current.beats[0].sequence).toBe(1);
-      expect(result.current.beats[0].order).toBe(1);
+      expect(result.current.beats[0]!.id).toBe("uuid-2");
+      expect(result.current.beats[0]!.sequence).toBe(1);
+      expect(result.current.beats[0]!.order).toBe(1);
     });
 
     it("deleting last beat leaves others unchanged", () => {
@@ -392,9 +392,9 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(1);
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[0].sequence).toBe(1);
-      expect(result.current.beats[0].order).toBe(1);
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[0]!.sequence).toBe(1);
+      expect(result.current.beats[0]!.order).toBe(1);
     });
 
     it("deleting only beat results in empty array", () => {
@@ -440,9 +440,9 @@ describe("useStoryState", () => {
         result.current.moveBeat("uuid-2", "up");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-2");
-      expect(result.current.beats[1].id).toBe("uuid-1");
-      expect(result.current.beats[2].id).toBe("uuid-3");
+      expect(result.current.beats[0]!.id).toBe("uuid-2");
+      expect(result.current.beats[1]!.id).toBe("uuid-1");
+      expect(result.current.beats[2]!.id).toBe("uuid-3");
     });
 
     it("moves a beat down by swapping with next", () => {
@@ -458,9 +458,9 @@ describe("useStoryState", () => {
         result.current.moveBeat("uuid-2", "down");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[1].id).toBe("uuid-3");
-      expect(result.current.beats[2].id).toBe("uuid-2");
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[1]!.id).toBe("uuid-3");
+      expect(result.current.beats[2]!.id).toBe("uuid-2");
     });
 
     it("re-sequences order and sequence after move", () => {
@@ -476,12 +476,12 @@ describe("useStoryState", () => {
         result.current.moveBeat("uuid-1", "down");
       });
 
-      expect(result.current.beats[0].sequence).toBe(1);
-      expect(result.current.beats[0].order).toBe(1);
-      expect(result.current.beats[1].sequence).toBe(2);
-      expect(result.current.beats[1].order).toBe(2);
-      expect(result.current.beats[2].sequence).toBe(3);
-      expect(result.current.beats[2].order).toBe(3);
+      expect(result.current.beats[0]!.sequence).toBe(1);
+      expect(result.current.beats[0]!.order).toBe(1);
+      expect(result.current.beats[1]!.sequence).toBe(2);
+      expect(result.current.beats[1]!.order).toBe(2);
+      expect(result.current.beats[2]!.sequence).toBe(3);
+      expect(result.current.beats[2]!.order).toBe(3);
     });
 
     it("moving first beat up is no-op", () => {
@@ -496,8 +496,8 @@ describe("useStoryState", () => {
         result.current.moveBeat("uuid-1", "up");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[1].id).toBe("uuid-2");
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[1]!.id).toBe("uuid-2");
     });
 
     it("moving last beat down is no-op", () => {
@@ -512,8 +512,8 @@ describe("useStoryState", () => {
         result.current.moveBeat("uuid-2", "down");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[1].id).toBe("uuid-2");
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[1]!.id).toBe("uuid-2");
     });
 
     it("moving non-existent beat is no-op", () => {
@@ -528,8 +528,8 @@ describe("useStoryState", () => {
         result.current.moveBeat("non-existent", "up");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[1].id).toBe("uuid-2");
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[1]!.id).toBe("uuid-2");
     });
 
     it("can move beat multiple times", () => {
@@ -548,9 +548,9 @@ describe("useStoryState", () => {
         result.current.moveBeat("uuid-1", "down");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-2");
-      expect(result.current.beats[1].id).toBe("uuid-3");
-      expect(result.current.beats[2].id).toBe("uuid-1");
+      expect(result.current.beats[0]!.id).toBe("uuid-2");
+      expect(result.current.beats[1]!.id).toBe("uuid-3");
+      expect(result.current.beats[2]!.id).toBe("uuid-1");
     });
   });
 
@@ -736,7 +736,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.stories).toHaveLength(2);
-      expect(result.current.stories[0].id).toBe("s1");
+      expect(result.current.stories[0]!.id).toBe("s1");
     });
   });
 
@@ -766,7 +766,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(1);
-      expect(result.current.beats[0].id).toBe("b1");
+      expect(result.current.beats[0]!.id).toBe("b1");
     });
 
     it("setBeats marks dirty by default", () => {
@@ -820,7 +820,7 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      expect(result.current.beats[0].enhancedGeneration).toBe(false);
+      expect(result.current.beats[0]!.enhancedGeneration).toBe(false);
 
       act(() => {
         result.current.setGenerationEnhanced(true);
@@ -829,7 +829,7 @@ describe("useStoryState", () => {
         result.current.addBeat();
       });
 
-      expect(result.current.beats[1].enhancedGeneration).toBe(true);
+      expect(result.current.beats[1]!.enhancedGeneration).toBe(true);
     });
   });
 
@@ -842,7 +842,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.currentStory.beats).toHaveLength(1);
-      expect(result.current.currentStory.beats[0].id).toBe("uuid-1");
+      expect(result.current.currentStory.beats[0]!.id).toBe("uuid-1");
     });
 
     it("currentStory.beats reflects deletions", () => {
@@ -858,7 +858,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.currentStory.beats).toHaveLength(1);
-      expect(result.current.currentStory.beats[0].id).toBe("uuid-2");
+      expect(result.current.currentStory.beats[0]!.id).toBe("uuid-2");
     });
 
     it("currentStory.beats reflects updates", () => {
@@ -872,7 +872,7 @@ describe("useStoryState", () => {
         result.current.updateBeat("uuid-1", { title: "Synced" });
       });
 
-      expect(result.current.currentStory.beats[0].title).toBe("Synced");
+      expect(result.current.currentStory.beats[0]!.title).toBe("Synced");
     });
   });
 
@@ -901,7 +901,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beatsRef.current).toHaveLength(1);
-      expect(result.current.beatsRef.current[0].id).toBe("uuid-2");
+      expect(result.current.beatsRef.current[0]!.id).toBe("uuid-2");
     });
   });
 
@@ -954,7 +954,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(1);
-      expect(result.current.beats[0].id).toBe("uuid-1");
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
     });
 
     it("只有一个 beat 时向下移动应不变化", () => {
@@ -969,7 +969,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(1);
-      expect(result.current.beats[0].id).toBe("uuid-1");
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
     });
 
     it("向上移动中间 beat 应与上一个交换", () => {
@@ -985,9 +985,9 @@ describe("useStoryState", () => {
         result.current.moveBeat("uuid-2", "up");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-2");
-      expect(result.current.beats[1].id).toBe("uuid-1");
-      expect(result.current.beats[2].id).toBe("uuid-3");
+      expect(result.current.beats[0]!.id).toBe("uuid-2");
+      expect(result.current.beats[1]!.id).toBe("uuid-1");
+      expect(result.current.beats[2]!.id).toBe("uuid-3");
     });
 
     it("向下移动中间 beat 应与下一个交换", () => {
@@ -1003,9 +1003,9 @@ describe("useStoryState", () => {
         result.current.moveBeat("uuid-2", "down");
       });
 
-      expect(result.current.beats[0].id).toBe("uuid-1");
-      expect(result.current.beats[1].id).toBe("uuid-3");
-      expect(result.current.beats[2].id).toBe("uuid-2");
+      expect(result.current.beats[0]!.id).toBe("uuid-1");
+      expect(result.current.beats[1]!.id).toBe("uuid-3");
+      expect(result.current.beats[2]!.id).toBe("uuid-2");
     });
 
     it("移动后 sequence 和 order 应正确重排", () => {
@@ -1101,7 +1101,7 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(2);
-      expect(result.current.beats[1].id).toBe("uuid-2");
+      expect(result.current.beats[1]!.id).toBe("uuid-2");
     });
 
     it("指定 type 参数应添加到末尾并设置类型", () => {
@@ -1113,9 +1113,9 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(2);
-      expect(result.current.beats[0].type).toBe("scene");
-      expect(result.current.beats[1].type).toBe("dialogue");
-      expect(result.current.beats[1].id).toBe("uuid-2");
+      expect(result.current.beats[0]!.type).toBe("scene");
+      expect(result.current.beats[1]!.type).toBe("dialogue");
+      expect(result.current.beats[1]!.id).toBe("uuid-2");
     });
 
     it("空数组添加应成为唯一 beat", () => {
@@ -1126,8 +1126,8 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(1);
-      expect(result.current.beats[0].sequence).toBe(1);
-      expect(result.current.beats[0].order).toBe(1);
+      expect(result.current.beats[0]!.sequence).toBe(1);
+      expect(result.current.beats[0]!.order).toBe(1);
     });
 
     it("多次添加应依次追加到末尾", () => {
@@ -1177,10 +1177,10 @@ describe("useStoryState", () => {
       });
 
       expect(result.current.beats).toHaveLength(2);
-      expect(result.current.beats[0].sequence).toBe(1);
-      expect(result.current.beats[0].order).toBe(1);
-      expect(result.current.beats[1].sequence).toBe(2);
-      expect(result.current.beats[1].order).toBe(2);
+      expect(result.current.beats[0]!.sequence).toBe(1);
+      expect(result.current.beats[0]!.order).toBe(1);
+      expect(result.current.beats[1]!.sequence).toBe(2);
+      expect(result.current.beats[1]!.order).toBe(2);
     });
 
     it("删除不存在的 beatId 应不变化", () => {

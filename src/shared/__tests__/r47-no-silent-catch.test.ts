@@ -76,7 +76,7 @@ describe("R47: Catch blocks must not silently swallow errors", () => {
     loggingCatch("broken{{{");
 
     expect(errorLog).toHaveLength(1);
-    expect(errorLog[0].error).toBeInstanceOf(SyntaxError);
+    expect(errorLog[0]!.error).toBeInstanceOf(SyntaxError);
   });
 
   it("cleanup operations (revokeObjectURL) are acceptable without logging", () => {

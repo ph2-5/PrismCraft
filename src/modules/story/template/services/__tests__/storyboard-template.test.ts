@@ -58,7 +58,7 @@ describe("createTemplateFromBeats", () => {
 
   it("应正确映射 beat 字段到模板 beat", () => {
     const template = createTemplateFromBeats("模板", "描述", [mockBeat]);
-    const tplBeat = template.beats[0];
+    const tplBeat = template.beats[0]!;
 
     expect(tplBeat.type).toBe("scene");
     expect(tplBeat.title).toBe("分镜标题");
@@ -100,7 +100,7 @@ describe("createTemplateFromBeats", () => {
     };
 
     const template = createTemplateFromBeats("模板", "描述", [minimalBeat]);
-    const tplBeat = template.beats[0];
+    const tplBeat = template.beats[0]!;
 
     expect(tplBeat.type).toBe("scene");
     expect(tplBeat.title).toBe("");
@@ -162,19 +162,19 @@ describe("applyTemplateToBeats", () => {
     const beats = applyTemplateToBeats(mockTemplate);
 
     expect(beats).toHaveLength(2);
-    expect(beats[0].type).toBe("scene");
-    expect(beats[0].title).toBe("开场");
-    expect(beats[0].content).toBe("开场内容");
-    expect(beats[0].description).toBe("开场内容");
-    expect(beats[0].duration).toBe(5);
-    expect(beats[0].order).toBe(0);
-    expect(beats[1].order).toBe(1);
+    expect(beats[0]!.type).toBe("scene");
+    expect(beats[0]!.title).toBe("开场");
+    expect(beats[0]!.content).toBe("开场内容");
+    expect(beats[0]!.description).toBe("开场内容");
+    expect(beats[0]!.duration).toBe(5);
+    expect(beats[0]!.order).toBe(0);
+    expect(beats[1]!.order).toBe(1);
   });
 
   it("应正确映射 camera 字段", () => {
     const beats = applyTemplateToBeats(mockTemplate);
 
-    expect(beats[0].camera).toEqual({
+    expect(beats[0]!.camera).toEqual({
       angle: "low",
       movement: "pan",
       distance: "medium",
@@ -185,16 +185,16 @@ describe("applyTemplateToBeats", () => {
   it("应映射提示词字段", () => {
     const beats = applyTemplateToBeats(mockTemplate);
 
-    expect(beats[0].generationPrompt).toBe("生成提示词");
-    expect(beats[0].imageGenerationPrompt).toBe("图像提示词");
-    expect(beats[0].firstFramePrompt).toBe("首帧提示词");
-    expect(beats[0].lastFramePrompt).toBe("尾帧提示词");
+    expect(beats[0]!.generationPrompt).toBe("生成提示词");
+    expect(beats[0]!.imageGenerationPrompt).toBe("图像提示词");
+    expect(beats[0]!.firstFramePrompt).toBe("首帧提示词");
+    expect(beats[0]!.lastFramePrompt).toBe("尾帧提示词");
   });
 
   it("缺少可选 camera 字段时应正确处理", () => {
     const beats = applyTemplateToBeats(mockTemplate);
 
-    expect(beats[1].camera).toEqual({
+    expect(beats[1]!.camera).toEqual({
       angle: undefined,
       movement: undefined,
       distance: undefined,

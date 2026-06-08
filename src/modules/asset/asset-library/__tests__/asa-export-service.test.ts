@@ -97,7 +97,7 @@ describe("exportCharacters", () => {
       expect(data.format).toBe("asa-characters");
       expect(data.version).toBe(1);
       expect(data.characters).toHaveLength(1);
-      expect(data.characters[0].name).toBe("小明");
+      expect(data.characters[0]!.name).toBe("小明");
       expect(data.outfits).toHaveLength(1);
     }
   });
@@ -157,7 +157,7 @@ describe("exportScenes", () => {
       expect(data.format).toBe("asa-scenes");
       expect(data.version).toBe(1);
       expect(data.scenes).toHaveLength(1);
-      expect(data.scenes[0].name).toBe("客厅");
+      expect(data.scenes[0]!.name).toBe("客厅");
     }
   });
 
@@ -195,7 +195,7 @@ describe("exportStoryboards", () => {
       expect(data.version).toBe(1);
       expect(data.storyboards).toHaveLength(1);
       expect(data.beats).toHaveLength(1);
-      expect(data.storyboards[0].title).toBe("我的故事");
+      expect(data.storyboards[0]!.title).toBe("我的故事");
     }
   });
 
@@ -233,7 +233,7 @@ describe("exportCollections", () => {
       expect(data.format).toBe("asa-collections");
       expect(data.version).toBe(1);
       expect(data.collections).toHaveLength(1);
-      expect(data.collections[0].name).toBe("收藏集1");
+      expect(data.collections[0]!.name).toBe("收藏集1");
     }
   });
 

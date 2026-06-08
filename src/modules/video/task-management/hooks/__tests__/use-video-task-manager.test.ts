@@ -185,6 +185,18 @@ vi.mock("../internals", () => ({
   registerSyncStore: mockRegisterSyncStore,
 }));
 
+vi.mock("../internals/polling-engine", () => ({
+  pollingState: mockPollingState,
+  registerStore: mockRegisterPollingStore,
+  stopPolling: mockStopPolling,
+  cleanupAllPollingResources: mockCleanupAllPollingResources,
+  schedulePolling: mockSchedulePolling,
+  checkAndStartOrStopPolling: mockCheckAndStartOrStopPolling,
+  MAX_POLL_COUNT: 100,
+  MAX_POLL_DURATION: 300000,
+  MAX_POLL_FAILURES: 30,
+}));
+
 import { useVideoTaskStore } from "../use-video-task-manager";
 
 function makeTask(overrides: Partial<VideoTask> = {}): VideoTask {
@@ -304,7 +316,7 @@ describe("useVideoTaskStore", () => {
       expect(result.createdAt).toBeDefined();
       expect(result.status).toBe("pending");
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(1);
-      expect(useVideoTaskStore.getState().allTasks[0].taskId).toBe("task-add-1");
+      expect(useVideoTaskStore.getState().allTasks[0]!.taskId).toBe("task-add-1");
     });
 
     it("should persist task via saveVideoTask", async () => {
@@ -354,8 +366,8 @@ describe("useVideoTaskStore", () => {
       await useVideoTaskStore.getState().addTask(taskInput);
 
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(2);
-      expect(useVideoTaskStore.getState().allTasks[0].taskId).toBe("task-add-4");
-      expect(useVideoTaskStore.getState().allTasks[1].taskId).toBe("existing-1");
+      expect(useVideoTaskStore.getState().allTasks[0]!.taskId).toBe("task-add-4");
+      expect(useVideoTaskStore.getState().allTasks[1]!.taskId).toBe("existing-1");
     });
 
     it("should trigger scheduleSync and checkAndStartOrStopPolling via setAllTasks", async () => {
@@ -430,7 +442,7 @@ describe("useVideoTaskStore", () => {
       await useVideoTaskStore.getState().removeTask("task-remove-6");
 
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(1);
-      expect(useVideoTaskStore.getState().allTasks[0].taskId).toBe("task-keep");
+      expect(useVideoTaskStore.getState().allTasks[0]!.taskId).toBe("task-keep");
     });
   });
 
@@ -444,7 +456,7 @@ describe("useVideoTaskStore", () => {
       await useVideoTaskStore.getState().removeTasks(["task-batch-1", "task-batch-3"]);
 
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(1);
-      expect(useVideoTaskStore.getState().allTasks[0].taskId).toBe("task-batch-2");
+      expect(useVideoTaskStore.getState().allTasks[0]!.taskId).toBe("task-batch-2");
     });
 
     it("should remove cached video for each task", async () => {
@@ -499,7 +511,7 @@ describe("useVideoTaskStore", () => {
       await useVideoTaskStore.getState().clearActiveTasks();
 
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(1);
-      expect(useVideoTaskStore.getState().allTasks[0].taskId).toBe("t-completed");
+      expect(useVideoTaskStore.getState().allTasks[0]!.taskId).toBe("t-completed");
     });
 
     it("should remove cached video for each active task", async () => {
@@ -579,7 +591,7 @@ describe("useVideoTaskStore", () => {
       await useVideoTaskStore.getState().clearCompletedTasks();
 
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(1);
-      expect(useVideoTaskStore.getState().allTasks[0].taskId).toBe("t-pend-1");
+      expect(useVideoTaskStore.getState().allTasks[0]!.taskId).toBe("t-pend-1");
     });
 
     it("should call deleteVideoTasksByStatus with completed", async () => {
@@ -640,7 +652,7 @@ describe("useVideoTaskStore", () => {
       await useVideoTaskStore.getState().clearFailedTasks();
 
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(1);
-      expect(useVideoTaskStore.getState().allTasks[0].taskId).toBe("t-pend-2");
+      expect(useVideoTaskStore.getState().allTasks[0]!.taskId).toBe("t-pend-2");
     });
 
     it("should call deleteVideoTasksByStatus with failed", async () => {
@@ -665,7 +677,7 @@ describe("useVideoTaskStore", () => {
 
       await useVideoTaskStore.getState().cancelTask("t-cancel-1");
 
-      expect(useVideoTaskStore.getState().allTasks[0].status).toBe("cancelled");
+      expect(useVideoTaskStore.getState().allTasks[0]!.status).toBe("cancelled");
     });
 
     it("should transition generating task to cancelled", async () => {
@@ -674,7 +686,7 @@ describe("useVideoTaskStore", () => {
 
       await useVideoTaskStore.getState().cancelTask("t-cancel-2");
 
-      expect(useVideoTaskStore.getState().allTasks[0].status).toBe("cancelled");
+      expect(useVideoTaskStore.getState().allTasks[0]!.status).toBe("cancelled");
     });
 
     it("should transition failed task to cancelled", async () => {
@@ -683,7 +695,7 @@ describe("useVideoTaskStore", () => {
 
       await useVideoTaskStore.getState().cancelTask("t-cancel-3");
 
-      expect(useVideoTaskStore.getState().allTasks[0].status).toBe("cancelled");
+      expect(useVideoTaskStore.getState().allTasks[0]!.status).toBe("cancelled");
     });
 
     it("should not cancel a completed task and emit warning toast", async () => {
@@ -692,7 +704,7 @@ describe("useVideoTaskStore", () => {
 
       await useVideoTaskStore.getState().cancelTask("t-cancel-4");
 
-      expect(useVideoTaskStore.getState().allTasks[0].status).toBe("completed");
+      expect(useVideoTaskStore.getState().allTasks[0]!.status).toBe("completed");
       expect(mockEmitToast).toHaveBeenCalledWith(
         "warning",
         "无法取消任务",
@@ -793,7 +805,7 @@ describe("useVideoTaskStore", () => {
 
       useVideoTaskStore.getState().recoverTask("t-recover-1", "generating");
 
-      expect(useVideoTaskStore.getState().allTasks[0].status).toBe("generating");
+      expect(useVideoTaskStore.getState().allTasks[0]!.status).toBe("generating");
     });
 
     it("should recover a generating task to completed status with videoUrl", () => {
@@ -802,7 +814,7 @@ describe("useVideoTaskStore", () => {
 
       useVideoTaskStore.getState().recoverTask("t-recover-2", "completed", "https://example.com/recovered.mp4");
 
-      const updated = useVideoTaskStore.getState().allTasks[0];
+      const updated = useVideoTaskStore.getState().allTasks[0]!;
       expect(updated.status).toBe("completed");
       expect(updated.videoUrl).toBe("https://example.com/recovered.mp4");
     });
@@ -828,7 +840,7 @@ describe("useVideoTaskStore", () => {
 
       useVideoTaskStore.getState().recoverTask("t-recover-4", "processing");
 
-      expect(useVideoTaskStore.getState().allTasks[0].status).toBe("generating");
+      expect(useVideoTaskStore.getState().allTasks[0]!.status).toBe("generating");
     });
   });
 
@@ -909,7 +921,7 @@ describe("useVideoTaskStore", () => {
       await useVideoTaskStore.getState().createTask("a fish swimming");
 
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(1);
-      expect(useVideoTaskStore.getState().allTasks[0].prompt).toBe("a fish swimming");
+      expect(useVideoTaskStore.getState().allTasks[0]!.prompt).toBe("a fish swimming");
     });
 
     it("should persist the new task via saveVideoTask", async () => {
@@ -1069,7 +1081,7 @@ describe("useVideoTaskStore", () => {
         "t-poll-1",
         expect.any(Object),
       );
-      expect(useVideoTaskStore.getState().allTasks[0].progress).toBe(50);
+      expect(useVideoTaskStore.getState().allTasks[0]!.progress).toBe(50);
     });
 
     it("should cache video blob when task completes with videoUrl", async () => {
@@ -1120,7 +1132,7 @@ describe("useVideoTaskStore", () => {
 
       await useVideoTaskStore.getState().pollTask("t-poll-4");
 
-      expect(useVideoTaskStore.getState().allTasks[0].message).toBe("查询无响应，请稍后重试");
+      expect(useVideoTaskStore.getState().allTasks[0]!.message).toBe("查询无响应，请稍后重试");
     });
 
     it("should increment pollFailureCount on poll error", async () => {
@@ -1131,7 +1143,7 @@ describe("useVideoTaskStore", () => {
 
       await useVideoTaskStore.getState().pollTask("t-poll-5");
 
-      expect(useVideoTaskStore.getState().allTasks[0].pollFailureCount).toBe(1);
+      expect(useVideoTaskStore.getState().allTasks[0]!.pollFailureCount).toBe(1);
     });
 
     it("should mark task as failed when pollFailureCount reaches MAX_POLL_FAILURES", async () => {
@@ -1220,7 +1232,7 @@ describe("useVideoTaskStore", () => {
 
       await useVideoTaskStore.getState().pollTask("t-poll-10");
 
-      expect(useVideoTaskStore.getState().allTasks[0].message).toContain("操作超时");
+      expect(useVideoTaskStore.getState().allTasks[0]!.message).toContain("操作超时");
     });
 
     it("should merge poll result into current task state, not replace (regression: R14)", async () => {
@@ -1245,7 +1257,7 @@ describe("useVideoTaskStore", () => {
 
       await useVideoTaskStore.getState().pollTask("t-poll-r14");
 
-      const updated = useVideoTaskStore.getState().allTasks[0];
+      const updated = useVideoTaskStore.getState().allTasks[0]!;
       expect(updated.progress).toBe(60);
       expect(updated.message).toBe("正在渲染");
       expect(updated.storyId).toBe("story-1");
@@ -1273,7 +1285,7 @@ describe("useVideoTaskStore", () => {
 
       useVideoTaskStore.setState({
         allTasks: [{
-          ...useVideoTaskStore.getState().allTasks[0],
+          ...useVideoTaskStore.getState().allTasks[0]!,
           storyTitle: "用户修改的标题",
         }],
       });
@@ -1285,7 +1297,7 @@ describe("useVideoTaskStore", () => {
 
       await pollTaskPromise;
 
-      const updated = useVideoTaskStore.getState().allTasks[0];
+      const updated = useVideoTaskStore.getState().allTasks[0]!;
       expect(updated.progress).toBe(80);
       expect(updated.message).toBe("即将完成");
       expect(updated.storyTitle).toBe("用户修改的标题");

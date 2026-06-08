@@ -69,7 +69,7 @@ describe("Challenging Prompts Test Suite", () => {
   });
 
   describe("Beat Prompt Generation with Test Data", () => {
-    const beatData = storyBeatTestData[0];
+    const beatData = storyBeatTestData[0]!;
 
     it("should generate beat image prompt correctly", () => {
       const beat: StoryBeat = {

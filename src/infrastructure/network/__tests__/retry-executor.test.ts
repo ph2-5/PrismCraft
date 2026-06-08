@@ -10,24 +10,24 @@ import type { RetryPolicy } from "../types";
 describe("retry-executor", () => {
   describe("RETRY_POLICIES", () => {
     it("should define api policy with correct defaults", () => {
-      expect(RETRY_POLICIES.api.maxRetries).toBe(3);
-      expect(RETRY_POLICIES.api.backoff).toBe("exponential");
-      expect(RETRY_POLICIES.api.retryableErrors).toContain("NETWORK_ERROR");
-      expect(RETRY_POLICIES.api.retryableErrors).toContain("RATE_LIMITED");
+      expect(RETRY_POLICIES.api!.maxRetries).toBe(3);
+      expect(RETRY_POLICIES.api!.backoff).toBe("exponential");
+      expect(RETRY_POLICIES.api!.retryableErrors).toContain("NETWORK_ERROR");
+      expect(RETRY_POLICIES.api!.retryableErrors).toContain("RATE_LIMITED");
     });
 
     it("should define video policy with higher retries", () => {
-      expect(RETRY_POLICIES.video.maxRetries).toBe(5);
-      expect(RETRY_POLICIES.video.baseDelay).toBe(2000);
+      expect(RETRY_POLICIES.video!.maxRetries).toBe(5);
+      expect(RETRY_POLICIES.video!.baseDelay).toBe(2000);
     });
 
     it("should define download policy with linear backoff", () => {
-      expect(RETRY_POLICIES.download.backoff).toBe("linear");
+      expect(RETRY_POLICIES.download!.backoff).toBe("linear");
     });
 
     it("should define status policy", () => {
-      expect(RETRY_POLICIES.status.maxRetries).toBe(5);
-      expect(RETRY_POLICIES.status.backoff).toBe("exponential");
+      expect(RETRY_POLICIES.status!.maxRetries).toBe(5);
+      expect(RETRY_POLICIES.status!.backoff).toBe("exponential");
     });
   });
 

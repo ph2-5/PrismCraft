@@ -79,7 +79,7 @@ describe("transactional-delete", () => {
       expect(result.ok).toBe(true);
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
 
-      const txStatements = mockSafeTransaction.mock.calls[0][0];
+      const txStatements = mockSafeTransaction.mock.calls[0]![0]!;
       expect(txStatements[0]).toEqual({ sql: "DELETE FROM story_characters WHERE character_id = ?", params: ["char-1"] });
       expect(txStatements[1]).toEqual({ sql: "UPDATE story_beats SET character = NULL WHERE character = ?", params: ["char-1"] });
       expect(txStatements[2]).toEqual({ sql: "DELETE FROM character_outfits WHERE character_id = ?", params: ["char-1"] });
@@ -131,7 +131,7 @@ describe("transactional-delete", () => {
 
       const queryCalls = mockSafeQuery.mock.calls;
       const jsonQueries = queryCalls.filter(
-        (call: unknown[]) => typeof call[0] === "string" && call[0].includes("json_each"),
+        (call: unknown[]) => typeof call[0] === "string" && call[0]!.includes("json_each"),
       );
       expect(jsonQueries.length).toBeGreaterThanOrEqual(2);
     });
@@ -146,7 +146,7 @@ describe("transactional-delete", () => {
 
       await deleteCharacterWithRefs("char-1");
 
-      const txStatements = mockSafeTransaction.mock.calls[0][0];
+      const txStatements = mockSafeTransaction.mock.calls[0]![0]!;
       const updateStatements = txStatements.filter(
         (s: { sql: string }) => s.sql.includes("character_ids_json") && s.sql.includes("UPDATE"),
       );
@@ -169,7 +169,7 @@ describe("transactional-delete", () => {
       expect(result.ok).toBe(true);
       expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
 
-      const statements = mockSafeTransaction.mock.calls[0][0];
+      const statements = mockSafeTransaction.mock.calls[0]![0]!;
       expect(statements).toEqual([
         { sql: "DELETE FROM story_scenes WHERE scene_id = ?", params: ["scene-1"] },
         { sql: "UPDATE story_beats SET scene = NULL WHERE scene = ?", params: ["scene-1"] },
@@ -215,7 +215,7 @@ describe("transactional-delete", () => {
 
       await deleteSceneWithRefs("scene-1");
 
-      const statements = mockSafeTransaction.mock.calls[0][0];
+      const statements = mockSafeTransaction.mock.calls[0]![0]!;
       const deleteSceneIndex = statements.findIndex(
         (s: { sql: string }) => s.sql === "DELETE FROM scenes WHERE id = ?",
       );

@@ -91,8 +91,8 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     const result = cleanCharacterFromStories(stories, "c1");
 
-    expect(result[0].beats[0].characterIds).toEqual(["c2"]);
-    expect(result[0].beats[1].characterIds).toEqual(["c2"]);
+    expect(result[0]!.beats[0]!.characterIds).toEqual(["c2"]);
+    expect(result[0]!.beats[1]!.characterIds).toEqual(["c2"]);
   });
 
   it("应从 characters 数组中移除已删除角色ID", () => {
@@ -108,7 +108,7 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     const result = cleanCharacterFromStories(stories, "c1");
 
-    expect(result[0].beats[0].characters).toEqual(["c3"]);
+    expect(result[0]!.beats[0]!.characters).toEqual(["c3"]);
   });
 
   it("应从 character 单值字段中删除已删除角色ID", () => {
@@ -124,7 +124,7 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     const result = cleanCharacterFromStories(stories, "c1");
 
-    expect(result[0].beats[0].character).toBeUndefined();
+    expect(result[0]!.beats[0]!.character).toBeUndefined();
   });
 
   it("应从 story.characters 数组中移除已删除角色ID", () => {
@@ -138,7 +138,7 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     const result = cleanCharacterFromStories(stories, "c2");
 
-    expect(result[0].characters).toEqual(["c1", "c3"]);
+    expect(result[0]!.characters).toEqual(["c1", "c3"]);
   });
 
   it("不应影响不包含已删除角色的故事", () => {
@@ -152,8 +152,8 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     const result = cleanCharacterFromStories(stories, "c1");
 
-    expect(result[0].characters).toEqual(["c2"]);
-    expect(result[0].beats[0].characterIds).toEqual(["c2"]);
+    expect(result[0]!.characters).toEqual(["c2"]);
+    expect(result[0]!.beats[0]!.characterIds).toEqual(["c2"]);
   });
 
   it("应同时清理多个故事中的引用", () => {
@@ -172,10 +172,10 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     const result = cleanCharacterFromStories(stories, "c1");
 
-    expect(result[0].characters).toEqual([]);
-    expect(result[0].beats[0].characterIds).toEqual([]);
-    expect(result[1].characters).toEqual(["c2"]);
-    expect(result[1].beats[0].characterIds).toEqual(["c2"]);
+    expect(result[0]!.characters).toEqual([]);
+    expect(result[0]!.beats[0]!.characterIds).toEqual([]);
+    expect(result[1]!.characters).toEqual(["c2"]);
+    expect(result[1]!.beats[0]!.characterIds).toEqual(["c2"]);
   });
 
   it("应同时清理三种角色引用字段", () => {
@@ -196,10 +196,10 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     const result = cleanCharacterFromStories(stories, "c1");
 
-    expect(result[0].characters).toEqual([]);
-    expect(result[0].beats[0].characterIds).toEqual([]);
-    expect(result[0].beats[0].characters).toEqual([]);
-    expect(result[0].beats[0].character).toBeUndefined();
+    expect(result[0]!.characters).toEqual([]);
+    expect(result[0]!.beats[0]!.characterIds).toEqual([]);
+    expect(result[0]!.beats[0]!.characters).toEqual([]);
+    expect(result[0]!.beats[0]!.character).toBeUndefined();
   });
 
   it("空 beats 数组不应报错", () => {
@@ -209,7 +209,7 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     const result = cleanCharacterFromStories(stories, "c1");
 
-    expect(result[0].characters).toEqual([]);
+    expect(result[0]!.characters).toEqual([]);
   });
 });
 
@@ -227,8 +227,8 @@ describe("级联清理 - 删除场景时清理 story beats 引用", () => {
 
     const result = cleanSceneFromStories(stories, "sc1");
 
-    expect(result[0].beats[0].scene).toBeUndefined();
-    expect(result[0].beats[1].scene).toBe("sc2");
+    expect(result[0]!.beats[0]!.scene).toBeUndefined();
+    expect(result[0]!.beats[1]!.scene).toBe("sc2");
   });
 
   it("应从 beat.sceneId 中移除已删除场景ID", () => {
@@ -244,8 +244,8 @@ describe("级联清理 - 删除场景时清理 story beats 引用", () => {
 
     const result = cleanSceneFromStories(stories, "sc1");
 
-    expect(result[0].beats[0].sceneId).toBeUndefined();
-    expect(result[0].beats[1].sceneId).toBe("sc2");
+    expect(result[0]!.beats[0]!.sceneId).toBeUndefined();
+    expect(result[0]!.beats[1]!.sceneId).toBe("sc2");
   });
 
   it("应同时清理 scene 和 sceneId 两个字段", () => {
@@ -260,8 +260,8 @@ describe("级联清理 - 删除场景时清理 story beats 引用", () => {
 
     const result = cleanSceneFromStories(stories, "sc1");
 
-    expect(result[0].beats[0].scene).toBeUndefined();
-    expect(result[0].beats[0].sceneId).toBeUndefined();
+    expect(result[0]!.beats[0]!.scene).toBeUndefined();
+    expect(result[0]!.beats[0]!.sceneId).toBeUndefined();
   });
 
   it("不应影响不包含已删除场景的故事", () => {
@@ -276,8 +276,8 @@ describe("级联清理 - 删除场景时清理 story beats 引用", () => {
 
     const result = cleanSceneFromStories(stories, "sc1");
 
-    expect(result[0].beats[0].scene).toBe("sc2");
-    expect(result[0].beats[0].sceneId).toBe("sc2");
+    expect(result[0]!.beats[0]!.scene).toBe("sc2");
+    expect(result[0]!.beats[0]!.sceneId).toBe("sc2");
   });
 
   it("空 beats 数组不应报错", () => {
@@ -287,7 +287,7 @@ describe("级联清理 - 删除场景时清理 story beats 引用", () => {
 
     const result = cleanSceneFromStories(stories, "sc1");
 
-    expect(result[0].beats).toEqual([]);
+    expect(result[0]!.beats).toEqual([]);
   });
 
   it("应从 story.scenes 数组中移除已删除场景ID", () => {
@@ -301,7 +301,7 @@ describe("级联清理 - 删除场景时清理 story beats 引用", () => {
 
     const result = cleanSceneFromStories(stories, "sc2");
 
-    expect(result[0].scenes).toEqual(["sc1", "sc3"]);
+    expect(result[0]!.scenes).toEqual(["sc1", "sc3"]);
   });
 
   it("应同时清理 story.scenes 和 beats 中的场景引用", () => {
@@ -318,10 +318,10 @@ describe("级联清理 - 删除场景时清理 story beats 引用", () => {
 
     const result = cleanSceneFromStories(stories, "sc1");
 
-    expect(result[0].scenes).toEqual(["sc2"]);
-    expect(result[0].beats[0].scene).toBeUndefined();
-    expect(result[0].beats[0].sceneId).toBeUndefined();
-    expect(result[0].beats[1].scene).toBe("sc2");
+    expect(result[0]!.scenes).toEqual(["sc2"]);
+    expect(result[0]!.beats[0]!.scene).toBeUndefined();
+    expect(result[0]!.beats[0]!.sceneId).toBeUndefined();
+    expect(result[0]!.beats[1]!.scene).toBe("sc2");
   });
 
   it("story.scenes 为 undefined 时不应报错", () => {
@@ -331,6 +331,6 @@ describe("级联清理 - 删除场景时清理 story beats 引用", () => {
 
     const result = cleanSceneFromStories(stories, "sc1");
 
-    expect(result[0].scenes).toEqual([]);
+    expect(result[0]!.scenes).toEqual([]);
   });
 });

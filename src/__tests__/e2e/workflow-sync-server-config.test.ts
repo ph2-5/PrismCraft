@@ -152,7 +152,7 @@ describe("E2E 工作流 - 同步服务器配置", () => {
       );
       expect(mockSsrfGuardAddWhitelist).toHaveBeenCalledWith("https://sync.example.com");
 
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0];
+      const savedConfig = mockSaveConfigAsync.mock.calls[0]![0]!;
       expect(savedConfig.sync.server.url).toBe("https://sync.example.com");
       expect(savedConfig.sync.server.username).toBeUndefined();
       expect(savedConfig.sync.server.token).toBeUndefined();
@@ -234,7 +234,7 @@ describe("E2E 工作流 - 同步服务器配置", () => {
       expect(mockKeyStorageDelete).toHaveBeenCalledWith("sync_credentials");
       expect(mockSsrfGuardRemoveWhitelist).toHaveBeenCalledWith("https://sync.example.com");
 
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0];
+      const savedConfig = mockSaveConfigAsync.mock.calls[0]![0]!;
       expect(savedConfig.sync.server).toBeNull();
 
       mockLoadConfigAsync.mockResolvedValue(savedConfig);
@@ -323,7 +323,7 @@ describe("E2E 工作流 - 同步服务器配置", () => {
       expect(mockSsrfGuardRemoveWhitelist).toHaveBeenCalledWith("https://old-sync.example.com");
       expect(mockSsrfGuardAddWhitelist).toHaveBeenCalledWith("https://new-sync.example.com");
 
-      const savedConfig = mockSaveConfigAsync.mock.calls[0][0];
+      const savedConfig = mockSaveConfigAsync.mock.calls[0]![0]!;
       expect(savedConfig.sync.server.url).toBe("https://new-sync.example.com");
 
       mockLoadConfigAsync.mockResolvedValue(savedConfig);

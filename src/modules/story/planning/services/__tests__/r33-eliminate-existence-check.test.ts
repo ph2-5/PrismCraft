@@ -51,7 +51,7 @@ describe("R33: Existence-check queries before write operations must be eliminate
     expect(mockStoryStorage.getStoryByBeatId).not.toHaveBeenCalled();
     expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
 
-    const txStatements = mockSafeTransaction.mock.calls[0][0];
+    const txStatements = mockSafeTransaction.mock.calls[0]![0]!;
     expect(txStatements).toHaveLength(3);
   });
 
@@ -71,7 +71,7 @@ describe("R33: Existence-check queries before write operations must be eliminate
     await mockSafeTransaction(statements);
 
     expect(mockSafeTransaction).toHaveBeenCalledTimes(1);
-    const txStatements = mockSafeTransaction.mock.calls[0][0];
+    const txStatements = mockSafeTransaction.mock.calls[0]![0]!;
     expect(txStatements).toHaveLength(50);
   });
 });

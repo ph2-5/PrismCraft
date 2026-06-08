@@ -103,8 +103,8 @@ describe("checkVisualConsistency", () => {
     expect(result.value.passed).toBe(true);
     expect(result.value.overallScore).toBe(0.9);
     expect(result.value.characterScores).toHaveLength(1);
-    expect(result.value.characterScores[0].elementId).toBe("elem-1");
-    expect(result.value.characterScores[0].score).toBe(0.9);
+    expect(result.value.characterScores[0]!.elementId).toBe("elem-1");
+    expect(result.value.characterScores[0]!.score).toBe(0.9);
     expect(mockAnalyze).toHaveBeenCalledWith(
       "https://example.com/image.png",
       "scene",
@@ -175,7 +175,7 @@ describe("checkVisualConsistency", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw result.error;
     expect(result.value.characterScores).toHaveLength(1);
-    expect(result.value.characterScores[0].score).toBe(0.85);
+    expect(result.value.characterScores[0]!.score).toBe(0.85);
   });
 
   it("buildConsistencyPrompt 应包含元素描述", async () => {
@@ -202,7 +202,7 @@ describe("checkVisualConsistency", () => {
       generatedImageUrl: "https://example.com/image.png",
     });
 
-    const prompt = mockAnalyze.mock.calls[0][2] as string;
+    const prompt = mockAnalyze.mock.calls[0]![2]! as string;
     expect(prompt).toContain("角色A");
     expect(prompt).toContain("character");
     expect(prompt).toContain("主角");
@@ -240,7 +240,7 @@ describe("parseConsistencyAnalysis (via checkVisualConsistency)", () => {
     expect(result.value.overallScore).toBe(0.75);
     expect(result.value.passed).toBe(true);
     expect(result.value.recommendation).toBe("adjust");
-    expect(result.value.characterScores[0].issues).toContain("服装不一致");
+    expect(result.value.characterScores[0]!.issues).toContain("服装不一致");
   });
 
   it("无效 JSON 应返回未通过", async () => {
@@ -288,7 +288,7 @@ describe("parseConsistencyAnalysis (via checkVisualConsistency)", () => {
     if (!result.ok) throw result.error;
     expect(result.value.passed).toBe(false);
     expect(result.value.overallScore).toBe(0.5);
-    expect(result.value.characterScores[0].score).toBe(0.5);
+    expect(result.value.characterScores[0]!.score).toBe(0.5);
   });
 
   it("低分时应返回 passed:false 和 regenerate 建议", async () => {
@@ -341,7 +341,7 @@ describe("parseConsistencyAnalysis (via checkVisualConsistency)", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw result.error;
-    expect(result.value.characterScores[0].score).toBe(0.7);
+    expect(result.value.characterScores[0]!.score).toBe(0.7);
   });
 
   it("缺少 overallScore 时应从 characterScores 计算", async () => {

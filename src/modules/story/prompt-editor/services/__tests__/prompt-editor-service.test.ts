@@ -134,7 +134,7 @@ describe("generatePromptWithAI", () => {
       userMessage: "请增加光照效果",
     });
 
-    const callArg = textProvider.generateText.mock.calls[0][0];
+    const callArg = textProvider.generateText.mock.calls[0]![0]!;
     expect(callArg).toContain("请增加光照效果");
   });
 
@@ -199,7 +199,7 @@ describe("generatePromptWithAI", () => {
       scenes: mockScenes,
     });
 
-    const callArg = textProvider.generateText.mock.calls[0][0];
+    const callArg = textProvider.generateText.mock.calls[0]![0]!;
     expect(callArg).toContain("角色A");
     expect(callArg).toContain("场景A");
   });

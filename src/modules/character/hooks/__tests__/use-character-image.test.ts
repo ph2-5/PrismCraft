@@ -40,6 +40,7 @@ vi.mock("@/infrastructure/di", () => ({
 
 vi.mock("@/shared/error-logger", () => ({
   errorLogger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+  extractErrorMessage: vi.fn((err: unknown) => (err instanceof Error ? err.message : String(err))),
 }));
 
 vi.mock("@/shared/constants/messages", () => ({
@@ -48,6 +49,10 @@ vi.mock("@/shared/constants/messages", () => ({
 
 vi.mock("@/shared/error-handler", () => ({
   getErrorMessage: vi.fn((err: unknown) => (err instanceof Error ? err.message : String(err))),
+}));
+
+vi.mock("@/shared/utils/user-facing-error", () => ({
+  mapUserFacingError: vi.fn((err: unknown) => (err instanceof Error ? err.message : String(err))),
 }));
 
 vi.mock("@/modules/prompt", () => ({

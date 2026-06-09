@@ -1,11 +1,16 @@
 import { safeQuery } from "../sqlite-core";
-import { errorLogger } from "@/shared/error-logger";
 import type {
   StoryElement,
   ElementLibrary,
   ElementType,
-  AssetBinding,
 } from "@/domain/schemas";
+import {
+  parseCharacterConfig,
+  parseSceneConfig,
+  parseFeatureAnchor,
+  parseReferenceImageQuality,
+  parseBindings,
+} from "./json-schemas";
 
 type ElementRow = {
   id: string;
@@ -22,60 +27,12 @@ type ElementRow = {
 };
 
 function parseElementRow(row: ElementRow): StoryElement {
-  let characterConfig: StoryElement["characterConfig"] | undefined;
-  let sceneConfig: StoryElement["sceneConfig"] | undefined;
-  let featureAnchor: StoryElement["featureAnchor"] | undefined;
-  let referenceImageQuality:
-    | StoryElement["referenceImageQuality"]
-    | undefined;
-  let bindings: AssetBinding[] = [];
-  try {
-    if (row.character_config_json) {
-      characterConfig = JSON.parse(row.character_config_json);
-    }
-  } catch {
-    errorLogger.warn(
-      "[Elements] Failed to parse character_config_json for",
-      row.id,
-    );
-  }
-  try {
-    if (row.scene_config_json) {
-      sceneConfig = JSON.parse(row.scene_config_json);
-    }
-  } catch {
-    errorLogger.warn(
-      "[Elements] Failed to parse scene_config_json for",
-      row.id,
-    );
-  }
-  try {
-    if (row.feature_anchor_json) {
-      featureAnchor = JSON.parse(row.feature_anchor_json);
-    }
-  } catch {
-    errorLogger.warn(
-      "[Elements] Failed to parse feature_anchor_json for",
-      row.id,
-    );
-  }
-  try {
-    if (row.reference_image_quality_json) {
-      referenceImageQuality = JSON.parse(row.reference_image_quality_json);
-    }
-  } catch {
-    errorLogger.warn(
-      "[Elements] Failed to parse reference_image_quality_json for",
-      row.id,
-    );
-  }
-  try {
-    if (row.bindings_json) {
-      bindings = JSON.parse(row.bindings_json);
-    }
-  } catch (e) {
-    errorLogger.warn(`[Elements] Failed to parse bindings_json for ${row.id}: ${e instanceof Error ? e.message : String(e)}`);
-  }
+  const characterConfig = parseCharacterConfig(row.character_config_json);
+  const sceneConfig = parseSceneConfig(row.scene_config_json);
+  const featureAnchor = parseFeatureAnchor(row.feature_anchor_json);
+  const referenceImageQuality = parseReferenceImageQuality(row.reference_image_quality_json);
+  const bindings = parseBindings(row.bindings_json);
+
   return {
     id: row.id,
     type: row.type as ElementType,

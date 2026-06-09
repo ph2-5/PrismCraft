@@ -15,6 +15,9 @@ export class LifecycleManager {
   private mainWindow: BrowserWindow | null = null;
   private cleanupInProgress = false;
   private crashRecovery: CrashRecovery;
+  private gpuCrashCount = 0;
+  private gpuCrashResetTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly MAX_GPU_CRASH_RETRIES = 3;
 
   constructor(private options: LifecycleManagerOptions) {
     this.crashRecovery = new CrashRecovery({
@@ -170,8 +173,15 @@ export class LifecycleManager {
           reason: details.reason,
           exitCode: details.exitCode,
         });
-        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-          this.mainWindow.webContents.reload();
+        this.gpuCrashCount++;
+        if (this.gpuCrashResetTimer) clearTimeout(this.gpuCrashResetTimer);
+        this.gpuCrashResetTimer = setTimeout(() => { this.gpuCrashCount = 0; }, 60_000);
+        if (this.gpuCrashCount <= LifecycleManager.MAX_GPU_CRASH_RETRIES) {
+          if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.reload();
+          }
+        } else {
+          logger.error("[Lifecycle] GPU process crashed too many times, stopping reload");
         }
       } else {
         logger.warn("[Lifecycle] Child process gone:", { type: details.type, reason: details.reason, exitCode: details.exitCode });

@@ -46,6 +46,7 @@ export async function removeTasksWithErrorHandling(taskIds: string[]): Promise<v
     await removeTasksFromStorageAndCache(taskIds);
   } catch (error) {
     errorLogger.error("Failed to remove video tasks", error);
+    emitToast("error", t("video.taskDeleteTitle"), t("video.batchDeleteFailed"));
   }
 }
 

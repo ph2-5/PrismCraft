@@ -139,6 +139,10 @@ export function setupBeforeUnloadHandler(store: StoreAccessor): void {
             storyId: task.storyId,
             beatId: task.beatId,
             createdAt: task.createdAt,
+            config: task.parameters ? { model: task.model, prompt: task.prompt, parameters: task.parameters, apiUrl: task.apiUrl, apiEndpoint: task.apiEndpoint } : undefined,
+            provider: task.providerId ? { providerId: task.providerId, providerModelId: task.providerModelId, providerFormat: task.providerFormat } : undefined,
+            mediaRefs: task.fixedImageUrl ? { fixedImageUrl: task.fixedImageUrl, fixedImageLockType: task.fixedImageLockType } : undefined,
+            tracking: undefined,
           }));
           const xhr = new XMLHttpRequest();
           xhr.open("POST", `http://localhost:${API_SERVER_PORT}/video-tasks/bulk-save`, false);

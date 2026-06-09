@@ -4,6 +4,12 @@ import type { Scene } from "@/domain/schemas";
 import type { FieldTarget } from "./core";
 import { errorLogger } from "@/shared/error-logger";
 import { VersionConflictError } from "@/shared/errors/version-conflict";
+import {
+  parseAppearanceContainer as parseAppearance,
+  parseAtmosphereContainer as parseAtmosphere,
+  parseGenerationContainer as parseGeneration,
+  parseConfigContainer as parseConfig,
+} from "./scenes/json-schemas";
 
 const SCENE_FIELD_TARGETS: Record<string, FieldTarget> = {
   name: { type: "fixed", column: "name" },
@@ -49,16 +55,11 @@ const SCENE_FIELD_TARGETS: Record<string, FieldTarget> = {
 
 function parseScene(record: Record<string, unknown>): Scene {
   const now = Date.now();
-  const safeJsonParse = <T>(raw: unknown): T | undefined => {
-    if (!raw) return undefined;
-    try { return JSON.parse(raw as string) as T; }
-    catch (e) { errorLogger.warn("[SceneStorage] JSON 解析失败", e); return undefined; }
-  };
 
-  const appearanceContainer = safeJsonParse<Record<string, unknown>>(record.appearance);
-  const atmosphereContainer = safeJsonParse<Record<string, unknown>>(record.atmosphere);
-  const generationContainer = safeJsonParse<Record<string, unknown>>(record.generation);
-  const configContainer = safeJsonParse<Record<string, unknown>>(record.config);
+  const appearanceContainer = parseAppearance(record.appearance);
+  const atmosphereContainer = parseAtmosphere(record.atmosphere);
+  const generationContainer = parseGeneration(record.generation);
+  const configContainer = parseConfig(record.config);
 
   const createdAtRaw = record.created_at;
   const updatedAtRaw = record.updated_at;

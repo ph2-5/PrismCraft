@@ -4,6 +4,7 @@ import type { Character } from "@/domain/schemas";
 import { useModelSelection } from "@/modules/prompt";
 import { container } from "@/infrastructure/di";
 import { getErrorMessage } from "@/shared/error-handler";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import type { CustomApiConfig } from "@/domain/types";
 import { generateCharacterImagePrompt, generateCharacterDetailedPromptInstruction } from "@/modules/prompt";
 import { characterService } from "../services";
@@ -118,7 +119,7 @@ export function useCharacterImage({
         success(t("success.saved"), t("success.imageSavedToCharacter"));
       } catch (err) {
         errorLogger.error("[CharacterImage] 保存图像到角色失败", err instanceof Error ? err : undefined);
-        showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown"));
+        showError(t("error.saveFailed"), mapUserFacingError(err));
       }
     }
   };
@@ -148,7 +149,7 @@ export function useCharacterImage({
             });
           } catch (err) {
             errorLogger.error("[CharacterImage] 上传后保存图像到角色失败", err instanceof Error ? err : undefined);
-            showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown"));
+            showError(t("error.saveFailed"), mapUserFacingError(err));
           }
         } else {
           addAssetToLibrary(imageUrl, "image", "上传的图片");
@@ -233,7 +234,7 @@ export function useCharacterImage({
             queryClient.invalidateQueries({ queryKey: ["characters"] });
           } catch (err) {
             errorLogger.error("[CharacterImage] 分析后保存图像到角色失败", err instanceof Error ? err : undefined);
-            showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown"));
+            showError(t("error.saveFailed"), mapUserFacingError(err));
           }
         }
 

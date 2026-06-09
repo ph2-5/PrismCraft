@@ -2,6 +2,12 @@ import { parseRecordWithTable } from "../core";
 import { errorLogger } from "@/shared/error-logger";
 import type { Character, CharacterOutfit } from "@/domain/schemas";
 import { getOutfitsForCharacter, getAllOutfits } from "./outfit-manager";
+import {
+  parseAppearanceContainer as parseAppearance,
+  parseGenerationContainer as parseGeneration,
+  parseConfigContainer as parseConfig,
+  parseMetaContainer as parseMeta,
+} from "./json-schemas";
 
 const VALID_VIDEO_GEN_STATUS = new Set(["pending", "generating", "completed", "failed"]);
 
@@ -13,26 +19,12 @@ function normalizeVideoGenStatus(raw: unknown): Character["videoGenerationStatus
   return undefined;
 }
 
-function safeParseContainer(raw: unknown): Record<string, unknown> {
-  if (!raw) return {};
-  try {
-    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-    return {};
-  } catch (e) {
-    errorLogger.warn("[CharacterParser] JSON 容器解析失败", e);
-    return {};
-  }
-}
-
 export function parseCharacter(record: Record<string, unknown>): Character {
   const parsed = parseRecordWithTable(record, "characters");
-  const appearanceContainer = safeParseContainer(parsed.appearance);
-  const generationContainer = safeParseContainer(parsed.generation);
-  const configContainer = safeParseContainer(parsed.config);
-  const metaContainer = safeParseContainer(parsed.meta);
+  const appearanceContainer = parseAppearance(parsed.appearance);
+  const generationContainer = parseGeneration(parsed.generation);
+  const configContainer = parseConfig(parsed.config);
+  const metaContainer = parseMeta(parsed.meta);
 
   return {
     id: String(parsed.id || ""),
@@ -117,7 +109,7 @@ export async function parseCharacterWithOutfits(
     char.outfits = await getOutfitsForCharacter(char.id);
   } catch (e) {
     errorLogger.warn(`[CharacterStorage] Failed to get outfits for character ${char.id}: ${e instanceof Error ? e.message : String(e)}`);
-    const metaContainer = safeParseContainer(record.meta);
+    const metaContainer = parseMeta(record.meta);
     if (metaContainer.outfits) {
       try {
         char.outfits = Array.isArray(metaContainer.outfits)
@@ -152,7 +144,7 @@ export async function parseCharactersWithOutfits(
     if (outfits) {
       char.outfits = outfits;
     } else {
-      const metaContainer = safeParseContainer(record.meta);
+      const metaContainer = parseMeta(record.meta);
       if (metaContainer.outfits) {
         try {
           char.outfits = Array.isArray(metaContainer.outfits)

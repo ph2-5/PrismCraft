@@ -135,6 +135,8 @@ function loadPlugin(filePath: string, callId: string): void {
       /\.__proto__/,
       /getPrototypeOf/,
       /Reflect\.(get|set|construct|apply)/,
+      /arguments\.callee/,
+      /import\s*\(/,
     ];
     for (const pattern of escapePatterns) {
       if (pattern.test(rawCode)) {
@@ -210,7 +212,7 @@ function loadPlugin(filePath: string, callId: string): void {
 
     try {
       const sandboxObj = sandbox as Record<string, unknown>;
-      for (const key of ["Object", "Array", "Function", "Error", "TypeError", "RangeError", "RegExp", "String", "Number", "Boolean", "Date"]) {
+      for (const key of ["Object", "Array", "Function", "Error", "TypeError", "RangeError", "RegExp", "String", "Number", "Boolean", "Date", "Promise"]) {
         const ctor = sandboxObj[key];
         if (ctor && typeof ctor === "function") {
           freezePrototype(ctor as object);

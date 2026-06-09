@@ -38,6 +38,7 @@ const IPC_PERMISSIONS: Record<string, string[]> = {
   DANGEROUS: [
     "db:transaction", "db:migrate", "db:vacuum",
     "db:analyze", "db:checkpoint", "assets:delete-file",
+    "db:backup-status", "db:create-backup",
   ],
   SYSTEM: [
     "shell:open-external", "shell:open-path", "dialog:open-file", "dialog:save-file", "db:close",

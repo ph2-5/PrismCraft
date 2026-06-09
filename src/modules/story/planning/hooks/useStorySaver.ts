@@ -75,7 +75,7 @@ export function useStorySaver(props: UseStorySaverProps) {
         setVersionDialogOpen(false);
         success(
           t("success.versionRestored"),
-          `已恢复到 ${formatVersionTime(version.timestamp)} 的版本，当前状态已备份`,
+          t("success.versionRestoredDetail", { time: formatVersionTime(version.timestamp) }),
         );
       } else {
         showError(
@@ -129,7 +129,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       setTemplateDialogOpen(false);
       success(
         t("success.templateApplied"),
-        `已应用"${template.name}"模板，共${newBeats.length}个镜头`,
+        t("success.templateAppliedDetail", { name: template.name, count: newBeats.length }),
       );
     },
     [setBeats, success],
@@ -168,7 +168,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       setTemplateDialogOpen(false);
       success(
         t("success.templateApplied"),
-        `已应用自定义模板，共${newBeats.length}个镜头`,
+        t("success.customTemplateAppliedDetail", { count: newBeats.length }),
       );
     },
     [setBeats, success],
@@ -209,7 +209,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       showError(t("error.cannotSave"), t("error.addBeatFirst"));
       return;
     }
-    const storyTitle = currentStory.title?.trim() || "未命名分镜";
+    const storyTitle = currentStory.title?.trim() || t("story.untitled");
     const storyIdAtSaveStart = currentStory.id;
     const newStory: Story = {
       ...currentStory,
@@ -281,7 +281,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       setSaveStatus("saved");
       success(
         storyIdAtSaveStart ? t("success.saved") : t("success.created"),
-        storyIdAtSaveStart ? "分镜项目已更新" : "新分镜项目已添加",
+        storyIdAtSaveStart ? t("success.storyUpdated") : t("success.storyCreated"),
       );
     } finally {
       savingRef.current = false;

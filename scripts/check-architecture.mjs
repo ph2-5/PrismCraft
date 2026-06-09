@@ -271,6 +271,38 @@ async function checkDeleteWithoutCascade() {
   }
 }
 
+async function checkRegressionGuardCount() {
+  const guardsPath = join(ROOT, ".trae", "rules", "regression-guards.md");
+  const rulesPath = join(ROOT, ".trae", "rules", "project_rules.md");
+
+  let guardsContent;
+  try {
+    guardsContent = await readFile(guardsPath, "utf-8");
+  } catch {
+    return;
+  }
+
+  const guardMatches = guardsContent.match(/R\d+:/g);
+  const actualCount = guardMatches ? guardMatches.length : 0;
+
+  let rulesContent;
+  try {
+    rulesContent = await readFile(rulesPath, "utf-8");
+  } catch {
+    return;
+  }
+
+  const declaredMatch = rulesContent.match(/all (\d+) guards/i);
+  if (!declaredMatch) return;
+
+  const declaredCount = parseInt(declaredMatch[1], 10);
+  if (actualCount !== declaredCount) {
+    warnings.push(
+      `⚠️ Regression guard count mismatch: project_rules.md declares ${declaredCount}, regression-guards.md has ${actualCount}`
+    );
+  }
+}
+
 async function main() {
   console.log("🔍 Scanning architecture violations...\n");
 
@@ -283,6 +315,7 @@ async function main() {
   await checkContractJsonConsistency();
   await checkMemoryBeforePersistence();
   await checkDeleteWithoutCascade();
+  await checkRegressionGuardCount();
 
   if (violations.length > 0) {
     for (const v of violations) {

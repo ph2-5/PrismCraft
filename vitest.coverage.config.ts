@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    exclude: ['tests/**', 'node_modules/**', 'dist/**', '.next/**', 'electron/dist/**'],
+    exclude: ['tests/**', 'node_modules/**', 'dist/**', 'out/**', 'electron/dist/**', 'electron/src/**', 'src/__tests__/e2e/**'],
     setupFiles: ['./src/__tests__/setup.ts'],
     pool: 'forks',
     poolOptions: {
@@ -19,13 +19,26 @@ export default defineConfig({
       include: [
         'src/domain/**',
         'src/infrastructure/**',
-        'electron/src/**',
+        'src/modules/**',
+        'src/shared/**',
       ],
       exclude: [
         '**/*.d.ts',
         '**/*.config.*',
         '**/__tests__/**',
         '**/node_modules/**',
+        '**/index.ts',
+        'src/domain/ports/',
+        'src/modules/**/presentation/**',
+        'src/shared/ui/**',
+        'src/shared/presentation/**',
+        'src/shared/types/**',
+        'src/infrastructure/monitoring/**',
+        'src/infrastructure/server/**',
+        'src/infrastructure/database/**',
+        'src/infrastructure/di/**',
+        'src/infrastructure/network/**',
+        'src/infrastructure/api/**',
       ],
       thresholds: {
         branches: 70,

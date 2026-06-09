@@ -15,46 +15,46 @@ export type ErrorDomain =
 export interface ErrorCodeEntry {
   code: string;
   domain: ErrorDomain;
-  description: string;
+  i18nKey: string;
   retryable: boolean;
 }
 
 const ERROR_CODES: ErrorCodeEntry[] = [
-  { code: "DATABASE_ERROR", domain: "database", description: "数据库操作失败", retryable: true },
-  { code: "VALIDATION_ERROR", domain: "validation", description: "输入验证失败", retryable: false },
-  { code: "API_ERROR", domain: "api", description: "API 请求失败", retryable: true },
-  { code: "NOT_FOUND", domain: "database", description: "实体未找到", retryable: false },
-  { code: "NETWORK_ERROR", domain: "network", description: "网络请求失败", retryable: true },
-  { code: "STORAGE_ERROR", domain: "storage", description: "存储操作失败", retryable: true },
-  { code: "CONFIGURATION_ERROR", domain: "config", description: "配置错误", retryable: false },
-  { code: "GENERATION_ERROR", domain: "generation", description: "AI 生成失败", retryable: true },
-  { code: "TIMEOUT_ERROR", domain: "network", description: "请求超时", retryable: true },
-  { code: "RATE_LIMIT_ERROR", domain: "api", description: "API 速率限制", retryable: true },
-  { code: "AUTHENTICATION_ERROR", domain: "auth", description: "认证失败", retryable: false },
-  { code: "UNKNOWN_ERROR", domain: "system", description: "未知错误", retryable: false },
+  { code: "DATABASE_ERROR", domain: "database", i18nKey: "errorCode.databaseError", retryable: true },
+  { code: "VALIDATION_ERROR", domain: "validation", i18nKey: "errorCode.validationError", retryable: false },
+  { code: "API_ERROR", domain: "api", i18nKey: "errorCode.apiError", retryable: true },
+  { code: "NOT_FOUND", domain: "database", i18nKey: "errorCode.notFound", retryable: false },
+  { code: "NETWORK_ERROR", domain: "network", i18nKey: "errorCode.networkError", retryable: true },
+  { code: "STORAGE_ERROR", domain: "storage", i18nKey: "errorCode.storageError", retryable: true },
+  { code: "CONFIGURATION_ERROR", domain: "config", i18nKey: "errorCode.configurationError", retryable: false },
+  { code: "GENERATION_ERROR", domain: "generation", i18nKey: "errorCode.generationError", retryable: true },
+  { code: "TIMEOUT_ERROR", domain: "network", i18nKey: "errorCode.timeoutError", retryable: true },
+  { code: "RATE_LIMIT_ERROR", domain: "api", i18nKey: "errorCode.rateLimitError", retryable: true },
+  { code: "AUTHENTICATION_ERROR", domain: "auth", i18nKey: "errorCode.authenticationError", retryable: false },
+  { code: "UNKNOWN_ERROR", domain: "system", i18nKey: "errorCode.unknownError", retryable: false },
 
-  { code: "CLEANUP_ERROR", domain: "system", description: "清理过期任务失败", retryable: true },
-  { code: "CACHE_CLEANUP_ERROR", domain: "cache", description: "缓存清理失败", retryable: true },
-  { code: "CACHE_VIDEO_ERROR", domain: "cache", description: "视频缓存失败", retryable: true },
-  { code: "CACHE_DB_ERROR", domain: "cache", description: "缓存数据库记录失败", retryable: true },
-  { code: "REMOVE_TASK_ERROR", domain: "system", description: "移除任务失败", retryable: false },
-  { code: "CLEAR_ACTIVE_TASKS_ERROR", domain: "system", description: "清除活跃任务失败", retryable: false },
+  { code: "CLEANUP_ERROR", domain: "system", i18nKey: "errorCode.cleanupError", retryable: true },
+  { code: "CACHE_CLEANUP_ERROR", domain: "cache", i18nKey: "errorCode.cacheCleanupError", retryable: true },
+  { code: "CACHE_VIDEO_ERROR", domain: "cache", i18nKey: "errorCode.cacheVideoError", retryable: true },
+  { code: "CACHE_DB_ERROR", domain: "cache", i18nKey: "errorCode.cacheDbError", retryable: true },
+  { code: "REMOVE_TASK_ERROR", domain: "system", i18nKey: "errorCode.removeTaskError", retryable: false },
+  { code: "CLEAR_ACTIVE_TASKS_ERROR", domain: "system", i18nKey: "errorCode.clearActiveTasksError", retryable: false },
 
-  { code: "RETRY_NOT_RECOMMENDED", domain: "recovery", description: "智能重试不建议重试", retryable: false },
-  { code: "DUPLICATE_DETECTED", domain: "recovery", description: "检测到重复任务", retryable: false },
-  { code: "HIGH_RISK_RETRY", domain: "recovery", description: "重试风险较高", retryable: false },
-  { code: "INVALID_TRANSITION", domain: "state", description: "状态转换不合法", retryable: false },
-  { code: "VERIFICATION_FAILED", domain: "recovery", description: "视频验证失败", retryable: true },
-  { code: "RECOVERY_INCOMPLETE", domain: "recovery", description: "恢复未完成", retryable: true },
-  { code: "RECOVERY_FAILED", domain: "recovery", description: "云端任务已确认失败", retryable: false },
-  { code: "RECOVERY_PENDING", domain: "recovery", description: "视频仍在生成中", retryable: true },
-  { code: "UNKNOWN_STATUS", domain: "recovery", description: "未知任务状态", retryable: true },
-  { code: "QUERY_FAILED", domain: "recovery", description: "查询任务状态失败", retryable: true },
-  { code: "BACKGROUND_RECOVERY_ERROR", domain: "recovery", description: "后台恢复失败", retryable: true },
+  { code: "RETRY_NOT_RECOMMENDED", domain: "recovery", i18nKey: "errorCode.retryNotRecommended", retryable: false },
+  { code: "DUPLICATE_DETECTED", domain: "recovery", i18nKey: "errorCode.duplicateDetected", retryable: false },
+  { code: "HIGH_RISK_RETRY", domain: "recovery", i18nKey: "errorCode.highRiskRetry", retryable: false },
+  { code: "INVALID_TRANSITION", domain: "state", i18nKey: "errorCode.invalidTransition", retryable: false },
+  { code: "VERIFICATION_FAILED", domain: "recovery", i18nKey: "errorCode.verificationFailed", retryable: true },
+  { code: "RECOVERY_INCOMPLETE", domain: "recovery", i18nKey: "errorCode.recoveryIncomplete", retryable: true },
+  { code: "RECOVERY_FAILED", domain: "recovery", i18nKey: "errorCode.recoveryFailed", retryable: false },
+  { code: "RECOVERY_PENDING", domain: "recovery", i18nKey: "errorCode.recoveryPending", retryable: true },
+  { code: "UNKNOWN_STATUS", domain: "recovery", i18nKey: "errorCode.unknownStatus", retryable: true },
+  { code: "QUERY_FAILED", domain: "recovery", i18nKey: "errorCode.queryFailed", retryable: true },
+  { code: "BACKGROUND_RECOVERY_ERROR", domain: "recovery", i18nKey: "errorCode.backgroundRecoveryError", retryable: true },
 
-  { code: "SYNTHESIZE_PROGRESS", domain: "generation", description: "合成进度", retryable: false },
-  { code: "UNHANDLED_REJECTION", domain: "system", description: "未处理的 Promise 拒绝", retryable: false },
-  { code: "LOG", domain: "system", description: "日志记录", retryable: false },
+  { code: "SYNTHESIZE_PROGRESS", domain: "generation", i18nKey: "errorCode.synthesizeProgress", retryable: false },
+  { code: "UNHANDLED_REJECTION", domain: "system", i18nKey: "errorCode.unhandledRejection", retryable: false },
+  { code: "LOG", domain: "system", i18nKey: "errorCode.log", retryable: false },
 ];
 
 const codeMap = new Map<string, ErrorCodeEntry>();
@@ -64,6 +64,10 @@ for (const entry of ERROR_CODES) {
 
 export function isRetryable(code: string): boolean {
   return codeMap.get(code)?.retryable ?? false;
+}
+
+export function getErrorCodeEntry(code: string): ErrorCodeEntry | undefined {
+  return codeMap.get(code);
 }
 
 export type ErrorCategory =
@@ -95,12 +99,12 @@ const CATEGORY_PATTERNS: Array<{
   category: ErrorCategory;
   patterns: RegExp[];
 }> = [
-  { category: "timeout", patterns: [/timeout/i, /timed?\s*out/i, /超时/, /ETIMEDOUT/, /ECONNABORTED/] },
-  { category: "rate_limit", patterns: [/rate[\s_-]?limit/i, /限流/, /请求过于频繁/, /429/] },
-  { category: "quota", patterns: [/quota/i, /余额/, /额度/, /配额/, /insufficient/i, /402/] },
-  { category: "invalid_params", patterns: [/invalid/i, /参数错误/, /bad.?request/i, /400/] },
-  { category: "network", patterns: [/ECONNREFUSED|ECONNRESET|ENOTFOUND/i, /network/i, /Failed to fetch/i, /NetworkError/i, /网络/, /连接/] },
-  { category: "server_error", patterns: [/internal[\s_-]?error/i, /服务器错误/, /service[\s_-]?unavailable/i, /50[234]/] },
+  { category: "timeout", patterns: [/timeout/i, /timed?\s*out/i, /ETIMEDOUT/, /ECONNABORTED/, /超时/] },
+  { category: "rate_limit", patterns: [/rate[\s_-]?limit/i, /429/, /限流|过于频繁/] },
+  { category: "quota", patterns: [/quota/i, /insufficient/i, /402/, /余额不足|额度|配额/] },
+  { category: "invalid_params", patterns: [/invalid/i, /bad.?request/i, /400/, /参数错误/] },
+  { category: "network", patterns: [/ECONNREFUSED|ECONNRESET|ENOTFOUND/i, /network/i, /Failed to fetch/i, /NetworkError/i, /网络错误|连接失败/] },
+  { category: "server_error", patterns: [/internal[\s_-]?error/i, /service[\s_-]?unavailable/i, /50[234]/, /服务器错误/] },
   { category: "database_busy", patterns: [/busy|locked/i] },
   { category: "auth", patterns: [/unauthorized/i, /forbidden/i, /401/, /403/] },
 ];

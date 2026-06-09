@@ -1,8 +1,8 @@
-refactor: split BeatDetailClient.tsx (842 lines → 6 files)
+chore: clean up outdated information
 
-- Extract useBeatDetailActions hook (state + handlers)
-- Extract BeatVideoPreview component (video preview area)
-- Extract BeatVideoTab component (video tab panel)
-- Extract BeatDetailsTab component (details tab panel)
-- Extract BeatTechTab component (tech tab panel)
-- BeatDetailClient.tsx reduced from 842 to ~200 lines
+- Remove @deprecated MODEL_CAPABILITIES alias (zero usages)
+- Update project_rules.md: non-null assertions debt marked as fixed
+  (production code has 0 `!.`, `as unknown as` only in test files)
+- Delete .ai/modules/feedback.md and security.md (modules removed)
+- Console usage in production code is only in error-logger and
+  logging transports (appropriate, no changes needed)

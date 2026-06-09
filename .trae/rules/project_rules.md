@@ -393,7 +393,7 @@ Electron e2e test infrastructure:
 |--------|--------|------|
 | ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，messages.ts含1850+键，覆盖app/pages+modules/presentation+shared/presentation+modules/hooks；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
 | ~~大文件~~ | ~~中~~ | 已修复：18个>400行文件全部拆分，拆分出35+子组件/hooks |
-| 非空断言 | 中 | 生产代码仍有61处`!.`和9处`as unknown as`，主要分布在 infrastructure/storage 和 app 层 |
+| ~~非空断言~~ | ~~中~~ | 已修复：生产代码0处`!.`，`as unknown as`仅存在于测试文件（测试中合理使用） |
 | ~~性能基础设施~~ | ~~低~~ | 已铺设：React.memo 5个高频组件、@tanstack/react-virtual虚拟列表hook、useReducer状态管理重构 |
 | WASM 依赖膨胀 | 低 | better-sqlite3 可选依赖，无法裁剪，无害 |
 | ~~tsconfig 排除测试~~ | ~~中~~ | 已修复：新增 tsconfig.test.json，测试文件参与类型检查（R55） |

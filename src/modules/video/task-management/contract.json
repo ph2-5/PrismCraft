@@ -4,7 +4,7 @@
   "dependencies": ["video-cache", "video-recovery", "domain", "infrastructure/di", "shared-ui", "shared-utils", "shared-presentation"],
   "publicAPI": {
     "hooks": ["useVideoTaskManager", "useVideoTaskStore", "useVideoTasks", "useFailedVideoTasks", "useRecoverVideo", "useCleanExpiredTasks", "useStartBackgroundRecovery"],
-    "services": ["TaskMachine", "mapApiStatus", "buildTrackingInfo", "copyTrackingInfoToClipboard", "openTaskQueryLink", "batchDeleteVideoTasks", "batchUpdateVideoTasks", "removeTask", "removeTasks"],
+    "services": ["TaskMachine", "mapApiStatus", "buildTrackingInfo", "copyTrackingInfoToClipboard", "openTaskQueryLink"],
     "components": ["VideoTaskManager", "VideoTaskManagerInitializer", "VideoTaskManagerUI"]
   },
   "invariants": [

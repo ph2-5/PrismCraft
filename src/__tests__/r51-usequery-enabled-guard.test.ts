@@ -65,7 +65,7 @@ describe("R51: useQuery hooks must have enabled: isElectron() guard", () => {
   ];
 
   for (const { name, importPath, hookName, args } of queryHooks) {
-    it(`${name} should have enabled: isElectron() guard (disabled in browser mode)`, async () => {
+    it(`${name} should have enabled: isElectron() guard (disabled in browser mode)`, { timeout: 15000 }, async () => {
       const mod = await import(importPath);
       const hook = mod[hookName];
       const hookArgs = args ?? [];

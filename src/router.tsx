@@ -4,7 +4,7 @@ import { RootLayout } from "./app/layout";
 
 const Home = lazy(() => import("./app/page"));
 const StoryPage = lazy(() => import("./app/story/page"));
-const BeatDetailPage = lazy(() => import("./app/story/beat/[beatId]/page"));
+const BeatDetailPage = lazy(() => import("./app/story/beat/$beatId/page"));
 const CharactersPage = lazy(() => import("./app/characters/page"));
 const ScenesPage = lazy(() => import("./app/scenes/page"));
 const AssetLibraryPage = lazy(() => import("./app/asset-library/page"));

@@ -10,6 +10,7 @@ import { incrementVectorClock } from "./types";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParse } from "@/shared/utils/safe-json";
 import { isElectron } from "@/shared/utils/platform";
+import { sanitizeIdentifier } from "@/shared/sql-safety";
 
 const DEVICE_ID_STORAGE_KEY = "sync_device_id";
 
@@ -68,7 +69,7 @@ export async function ensureSyncSchema(): Promise<void> {
   for (const table of coreTables) {
     try {
       const columns = await safeQuery<{ name: string }>(
-        `PRAGMA table_info(${table})`
+        `PRAGMA table_info(${sanitizeIdentifier(table)})`
       );
       if (columns.length === 0) continue;
       const columnNames = new Set(columns.map((c) => c.name));
@@ -152,7 +153,7 @@ export async function recordChange(
     const statements: { sql: string; params: unknown[] }[] = [];
 
     statements.push({
-      sql: `SELECT vector_clock FROM ${tableName} WHERE ${pkColumn} = ?`,
+      sql: `SELECT vector_clock FROM ${sanitizeIdentifier(tableName)} WHERE ${sanitizeIdentifier(pkColumn)} = ?`,
       params: [entityId],
     });
 
@@ -205,7 +206,7 @@ export async function recordChange(
         ? ""
         : ", updated_at = strftime('%s', 'now')";
       statements.push({
-        sql: `UPDATE ${tableName} SET vector_clock = ?, sync_status = 'pending'${updatedAtClause} WHERE ${pkColumn} = ?`,
+        sql: `UPDATE ${sanitizeIdentifier(tableName)} SET vector_clock = ?, sync_status = 'pending'${updatedAtClause} WHERE ${sanitizeIdentifier(pkColumn)} = ?`,
         params: [JSON.stringify(newClock), entityId],
       });
     }
@@ -278,7 +279,7 @@ export async function markChangesSynced(ids: string[]): Promise<void> {
       const tableName = getTableName(change.entity_type as string);
       const pkColumn = TABLE_PK_MAP[tableName] || "id";
       statements.push({
-        sql: `UPDATE ${tableName} SET sync_status = 'synced', last_synced_at = strftime('%s', 'now') WHERE ${pkColumn} = ?`,
+        sql: `UPDATE ${sanitizeIdentifier(tableName)} SET sync_status = 'synced', last_synced_at = strftime('%s', 'now') WHERE ${sanitizeIdentifier(pkColumn)} = ?`,
         params: [change.entity_id as string],
       });
     }
@@ -303,12 +304,12 @@ export async function softDelete(
       : ", updated_at = strftime('%s', 'now')";
 
     await safeRun(
-      `UPDATE ${tableName} SET is_deleted = 1, sync_status = 'pending'${updatedAtClause} WHERE ${pkColumn} = ?`,
+      `UPDATE ${sanitizeIdentifier(tableName)} SET is_deleted = 1, sync_status = 'pending'${updatedAtClause} WHERE ${sanitizeIdentifier(pkColumn)} = ?`,
       [entityId],
     );
   } else {
     await safeRun(
-      `DELETE FROM ${tableName} WHERE ${pkColumn} = ?`,
+      `DELETE FROM ${sanitizeIdentifier(tableName)} WHERE ${sanitizeIdentifier(pkColumn)} = ?`,
       [entityId],
     );
   }
@@ -339,7 +340,7 @@ export async function getSyncStatus(): Promise<SyncStatusInfo> {
     for (const table of conflictTables) {
       try {
         const result = await safeQuery(
-          `SELECT COUNT(*) as count FROM ${table} WHERE sync_status = 'conflict'`,
+          `SELECT COUNT(*) as count FROM ${sanitizeIdentifier(table)} WHERE sync_status = 'conflict'`,
         );
         totalConflicts +=
           ((result[0] as Record<string, unknown>)?.count as number) || 0;

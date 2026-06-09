@@ -43,16 +43,27 @@ function rel(filePath) {
 }
 
 async function checkBareSqlInModules() {
-  const files = await glob(join(SRC, "modules"), /\.(ts|tsx)$/);
+  const dirs = [
+    join(SRC, "modules"),
+    join(SRC, "shared"),
+  ];
   const sqlCallPattern = /db\.(prepare|run|query|exec|all|get)\s*\(/;
   const sqlKeywordPattern = /\b(SELECT|INSERT|UPDATE|DELETE|FROM|INTO)\b/i;
+  const safeSqlCallPattern = /\b(safeRun|safeQuery|safeTransaction)\s*\(/;
+  const unsanitizedTablePattern = /\$\{tableName\}|\$\{pk\}|\$\{pkColumn\}/;
 
-  for (const file of files) {
-    await scanFile(file, (fp, lineNum, line) => {
-      if (sqlCallPattern.test(line) && sqlKeywordPattern.test(line)) {
-        violations.push(`❌ ${rel(fp)}:${lineNum} - Bare SQL in module: ${line.trim()}`);
-      }
-    });
+  for (const dir of dirs) {
+    const files = await glob(dir, /\.(ts|tsx)$/);
+    for (const file of files) {
+      await scanFile(file, (fp, lineNum, line) => {
+        if (sqlCallPattern.test(line) && sqlKeywordPattern.test(line)) {
+          violations.push(`❌ ${rel(fp)}:${lineNum} - Bare SQL in module: ${line.trim()}`);
+        }
+        if (safeSqlCallPattern.test(line) && unsanitizedTablePattern.test(line)) {
+          warnings.push(`⚠️ ${rel(fp)}:${lineNum} - SQL with unsanitized table/column name (use sanitizeIdentifier): ${line.trim()}`);
+        }
+      });
+    }
   }
 }
 

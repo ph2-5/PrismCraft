@@ -3,6 +3,7 @@ import { safeQuery, safeRun } from "@/shared/db-core";
 import { errorLogger } from "@/shared/error-logger";
 import { fromAsyncThrowable } from "@/domain/types/result";
 import { getTableName, getPkColumn } from "./entity-mapping";
+import { sanitizeIdentifier } from "@/shared/sql-safety";
 
 export async function resolveConflict(conflict: SyncConflict, conflictStrategy: string): Promise<void> {
   switch (conflictStrategy) {
@@ -11,7 +12,7 @@ export async function resolveConflict(conflict: SyncConflict, conflictStrategy: 
       if (tableName) {
         const pk = getPkColumn(tableName);
         await safeRun(
-          `UPDATE ${tableName} SET sync_status = 'pending' WHERE ${pk} = ?`,
+          `UPDATE ${sanitizeIdentifier(tableName)} SET sync_status = 'pending' WHERE ${sanitizeIdentifier(pk)} = ?`,
           [conflict.entityId],
         );
       }
@@ -24,14 +25,14 @@ export async function resolveConflict(conflict: SyncConflict, conflictStrategy: 
         const columns = Object.keys(conflict.remoteData).filter((k) =>
           /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k),
         );
-        const setClauses = columns.map((k) => `${k} = ?`).join(", ");
+        const setClauses = columns.map((k) => `${sanitizeIdentifier(k)} = ?`).join(", ");
         const values = columns.map(
           (k) => (conflict.remoteData as Record<string, unknown>)[k],
         );
 
         const backupResult = await fromAsyncThrowable(async () => {
           const localBackup = await safeQuery(
-            `SELECT * FROM ${tableName} WHERE ${pk} = ?`,
+            `SELECT * FROM ${sanitizeIdentifier(tableName)} WHERE ${sanitizeIdentifier(pk)} = ?`,
             [conflict.entityId],
           );
           if (localBackup && localBackup.length > 0) {
@@ -49,7 +50,7 @@ export async function resolveConflict(conflict: SyncConflict, conflictStrategy: 
         }
 
         await safeRun(
-          `UPDATE ${tableName} SET ${setClauses}, vector_clock = ?, sync_status = 'synced' WHERE ${pk} = ?`,
+          `UPDATE ${sanitizeIdentifier(tableName)} SET ${setClauses}, vector_clock = ?, sync_status = 'synced' WHERE ${sanitizeIdentifier(pk)} = ?`,
           [
             ...values,
             JSON.stringify(conflict.remoteVectorClock),
@@ -71,7 +72,7 @@ export async function resolveConflict(conflict: SyncConflict, conflictStrategy: 
       if (remoteTime >= localTime && remoteData) {
         const backupResult = await fromAsyncThrowable(async () => {
           const localBackup = await safeQuery(
-            `SELECT * FROM ${tableName} WHERE ${pk} = ?`,
+            `SELECT * FROM ${sanitizeIdentifier(tableName)} WHERE ${sanitizeIdentifier(pk)} = ?`,
             [conflict.entityId],
           );
           const backupArray = localBackup as Array<Record<string, unknown>> | undefined;
@@ -92,10 +93,10 @@ export async function resolveConflict(conflict: SyncConflict, conflictStrategy: 
         const columns = Object.keys(remoteData).filter((k) =>
           /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k),
         );
-        const setClauses = columns.map((k) => `${k} = ?`).join(", ");
+        const setClauses = columns.map((k) => `${sanitizeIdentifier(k)} = ?`).join(", ");
         const values = columns.map((k) => remoteData[k]);
         await safeRun(
-          `UPDATE ${tableName} SET ${setClauses}, vector_clock = ?, sync_status = 'synced' WHERE ${pk} = ?`,
+          `UPDATE ${sanitizeIdentifier(tableName)} SET ${setClauses}, vector_clock = ?, sync_status = 'synced' WHERE ${sanitizeIdentifier(pk)} = ?`,
           [
             ...values,
             JSON.stringify(conflict.remoteVectorClock),
@@ -120,7 +121,7 @@ export async function markConflict(
 
   const pk = getPkColumn(tableName);
   await safeRun(
-    `UPDATE ${tableName} SET sync_status = 'conflict' WHERE ${pk} = ?`,
+    `UPDATE ${sanitizeIdentifier(tableName)} SET sync_status = 'conflict' WHERE ${sanitizeIdentifier(pk)} = ?`,
     [entityId],
   );
 }

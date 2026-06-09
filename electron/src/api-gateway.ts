@@ -170,9 +170,15 @@ function resolveApiConfig(
     }
   }
 
-  const resolvedPlugin = effectiveApiUrl
-    ? pluginRegistry.select(effectiveApiUrl, effectiveModel)
-    : undefined;
+  let resolvedPlugin: AIProviderPlugin | undefined;
+
+  if (resolvedProviderId) {
+    resolvedPlugin = pluginRegistry.selectById(resolvedProviderId);
+  }
+
+  if (!resolvedPlugin && effectiveApiUrl) {
+    resolvedPlugin = pluginRegistry.select(effectiveApiUrl, effectiveModel);
+  }
 
   const resolvedProviderFormat = resolvedPlugin?.id || "openai";
 

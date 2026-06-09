@@ -9,7 +9,7 @@ const DYNAMIC_ROUTES_DIR = path.join(
   "app",
   "story",
   "beat",
-  "[beatId]",
+  "$beatId",
 );
 const NEXT_DIR = path.join(__dirname, "..", ".next");
 

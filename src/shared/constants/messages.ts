@@ -318,6 +318,7 @@ const messages: Record<MessageKey, string> = {
   "task.consecutiveQueryFailLabel": "「{label}」连续查询失败",
   "task.cacheFailed": "视频缓存失败",
   "task.cacheFailedHint": "「{label}」本地缓存失败，仍可通过远程URL播放",
+  "task.videoSavingLocal": "「{label}」正在保存到本地缓存...",
   "task.queryException": "「{label}」查询异常",
   "task.queryExceptionProgress": "查询异常({current}/{max})，视频可能仍在处理中",
   "task.apiReturnFailed": "API返回失败",

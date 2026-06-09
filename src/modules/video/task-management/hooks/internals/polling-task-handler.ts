@@ -159,6 +159,8 @@ async function pollSingleTask(
       const justCompleted = pollResp.data.status === "completed" && !!pollResp.data.videoUrl;
       if (justCompleted && pollResp.data.videoUrl) {
         result.cacheTasks.push({ taskId: task.taskId, videoUrl: pollResp.data.videoUrl });
+        const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
+        emitToast("success", t("task.videoGenerated"), t("task.videoSavingLocal", { label: taskLabel }));
       }
       const mappedStatus = mapApiStatus(pollResp.data.status || "failed", pollResp.data.videoUrl);
       result.taskUpdates.set(task.taskId, withTransitionGuard(task, mappedStatus, {

@@ -8,7 +8,7 @@
     "components": []
   },
   "invariants": [
-    "媒体资产 ID 使用时间戳+随机数生成",
+    "媒体资产 ID 使用 crypto.randomUUID() 生成",
     "批量删除遍历执行而非批量 SQL",
     "media-assets 子域不依赖其他子域"
   ]

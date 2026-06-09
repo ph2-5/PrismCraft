@@ -8,9 +8,9 @@ Storage modules provide persistent data access via SQLite (better-sqlite3, WAL m
 |--------|------|-------------|----------|-------------|
 | video-tasks | `video-tasks.ts` + `video-tasks/` | `IVideoTaskStorage` | `container.videoTaskStorage` | Video task CRUD + bulk ops + JSON parsing |
 | characters | `characters.ts` + `characters/` | `ICharacterStorage` | `container.characterStorage` | Character CRUD + outfit management |
-| scenes | `scenes.ts` | `ISceneStorage` | `container.sceneStorage` | Scene CRUD |
+| scenes | `scenes.ts` + `scenes/` | `ISceneStorage` | `container.sceneStorage` | Scene CRUD |
 | stories | `stories.ts` + `stories/` | `IStoryStorage` | `container.storyStorage` | Story + beat CRUD + beat transformer |
-| elements | `elements.ts` + `elements/` | `IElementStorage` | `container.elementStorage` | Element CRUD + commands/queries |
+| elements | `elements.ts` + `elements/` | `IElementStorage` | `container.elementStorage` | Element CRUD + commands/queries + JSON parsing |
 | versions | `versions.ts` | `IVersionStorage` | `container.versionStorage` | Story version snapshots |
 | templates | `templates.ts` | `ITemplateStorage` | `container.templateStorage` | Video template CRUD |
 | collections | `collections.ts` | — | `container.collectionStorage` | Asset collection management |
@@ -28,14 +28,24 @@ Storage modules provide persistent data access via SQLite (better-sqlite3, WAL m
 | `db.ts` | Type definitions (`AutoSaveRecord`, `ErrorLog`, `SessionData`) |
 | `sqlite-core.ts` | `safeQuery`, `safeRun`, `safeTransaction` — safe DB primitives |
 | `core.ts` | `parseRecord`, `trackChange`, `buildUpdateSets`, `buildJsonSet`, `buildInsert` — column registry + JSON container ops |
-| `sql-sanitizer.ts` | `sanitizeTable`, `sanitizeIdentifier` — SQL injection prevention |
+| `sql-sanitizer.ts` | Proxy re-export from `@/shared/sql-safety/sql-sanitizer.ts`: `sanitizeTable`, `sanitizeIdentifier`, `buildSafeInsert`, `buildSafeUpdate`, `buildSafeDelete` |
 | `schema-registry.ts` | `registerColumns`, `getColumnKind` — per-table column type metadata |
 
 ## JSON Container Pattern
 - Volatile fields stored in JSON columns (config, provider, media_refs, tracking, appearance, generation, etc.)
 - Column types registered via `registerColumns()` in `core.ts` (json / boolean)
 - Partial updates: `json_set(COALESCE(container, '{}'), '$.key', ?)` for single field, `json_patch()` for multi-field
-- Safe parsing: `parseXxx()` functions from `json-schemas.ts` (e.g., `parseConfig`, `parseProvider` in `video-tasks/`)
+- Safe parsing: `parseXxx()` functions from `json-schemas.ts` (see table below)
+
+### parseXxx() Functions
+
+| Module | File | Functions |
+|--------|------|-----------|
+| video-tasks | `video-tasks/json-schemas.ts` | `parseConfig`, `parseProvider`, `parseMediaRefs`, `parseTracking` |
+| characters | `characters/json-schemas.ts` | `parseAppearanceContainer`, `parseGenerationContainer`, `parseConfigContainer`, `parseMetaContainer` |
+| scenes | `scenes/json-schemas.ts` | `parseAppearanceContainer`, `parseAtmosphereContainer`, `parseGenerationContainer`, `parseConfigContainer` |
+| elements | `elements/json-schemas.ts` | `parseCharacterConfig`, `parseSceneConfig`, `parseFeatureAnchor`, `parseReferenceImageQuality`, `parseBindings` |
+
 - Record parsing: `parseRecord(record, table)` auto-parses JSON columns and boolean flags based on schema registry
 
 ## Key Conventions
@@ -97,6 +107,7 @@ Storage modules with JSON containers have roundtrip (serialization → deseriali
 | characters | `characters/__tests__/parser-roundtrip.test.ts` | 4 JSON containers + 25+ fields roundtrip |
 | characters | `characters/__tests__/video-gen-status-roundtrip.test.ts` | videoGenerationStatus bidirectional mapping |
 | video-tasks | `video-tasks/__tests__/parser-roundtrip.test.ts` | 4 JSON containers + 30+ fields + `buildUpdateSets` partial updates |
+| video-tasks | `video-tasks/__tests__/json-schemas.test.ts` | `parseXxx()` functions validation |
 | video-tasks | `video-tasks/__tests__/timestamp-roundtrip.test.ts` | ISO/ms/s timestamp conversion + edge cases |
 | stories | `stories/__tests__/beat-transformer.test.ts` | `flattenBeat` + `buildBeatInsert` serialization |
 | stories | `stories/__tests__/beat-roundtrip.test.ts` | StoryBeat full roundtrip |

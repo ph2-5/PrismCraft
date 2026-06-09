@@ -191,11 +191,12 @@ Vite 8 uses rolldown's `codeSplitting` API in `vite.config.ts` (`build.rolldownO
 | `app-character` | src/modules/character/ | ~20 KB |
 | `app-scene` | src/modules/scene/ | ~12 KB |
 | `app-prompt` | src/modules/prompt/ | varies |
+| `common` | Shared dependencies (minShareCount: 2) | varies |
 | `page-*` | Lazy-loaded page components (React.lazy) | varies |
 
 All page routes use `React.lazy()` for code splitting — pages are only loaded when navigated to.
 
-When adding a new module under `src/modules/`, add a corresponding `codeSplitting.groups` entry in `vite.config.ts` with appropriate `test` regex and `priority` (15 for app modules, 10 for vendor, 30 for core vendor).
+When adding a new module under `src/modules/`, add a corresponding `codeSplitting.groups` entry in `vite.config.ts` with appropriate `test` regex and `priority` (30 for core react vendor, 25 for secondary vendor, 20 for infrastructure, 18 for shared/domain, 15 for app modules, 10 for generic vendor, 5 for common).
 
 ### ESLint Configuration
 
@@ -215,6 +216,7 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 | `npm run build:electron` | Full Electron build (Vite build + Electron TS compile + file copy) |
 | `npm run build:win` | Build + rebuild native + package Windows NSIS installer |
 | `npm run build:mac` | Build + rebuild native + package macOS DMG |
+| `npm run build:linux` | Build + rebuild native + package Linux AppImage |
 | `npm run rebuild` | Rebuild better-sqlite3 for Electron |
 | `npm run typecheck` | TypeScript check (root) |
 | `npm run typecheck:electron` | TypeScript check (electron/) |
@@ -223,6 +225,7 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 | `npm run lint:electron` | ESLint (electron/src/) |
 | `npm run lint:arch` | Architecture violation scan |
 | `npm run test` | Vitest unit tests |
+| `npm run test:watch` | Vitest watch mode |
 | `npm run test:coverage` | Vitest with coverage report |
 | `npm run test:electron` | Vitest with Electron-specific config (vitest.config.electron.ts) |
 | `npm run test:e2e` | Playwright e2e tests (browser mode with electron-mock) |
@@ -231,6 +234,8 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 | `npm run test:e2e:pages` | Playwright page load tests (Electron mode) |
 | `npm run validate` | typecheck + typecheck:electron + typecheck:test + lint + lint:arch + module API consistency + contract validation + test |
 | `npm run validate:full` | validate + coverage report with threshold enforcement |
+| `npm run graph` | Module dependency graph |
+| `npm run di-docs` | DI token docs generation |
 
 ### CI/CD Pipeline
 
@@ -365,7 +370,7 @@ Two modes available:
 
 1. **Browser mode** (`npx playwright test`) — Uses `electron-mock.ts` to simulate Electron APIs in Chromium. No Electron build required. Good for UI workflow tests.
 
-2. **Electron mode** (`npx playwright test --config=playwright.electron-all.config.ts`) — Launches real Electron app via custom `_electron` fixture. Requires `npm run build:electron` first, then `npm run rebuild` to match Electron's Node.js version. Tests in `tests/electron/`.
+2. **Electron mode** (`npx playwright test --config=playwright.electron.config.ts`) — Launches real Electron app via custom `_electron` fixture. Requires `npm run build:electron` first, then `npm run rebuild` to match Electron's Node.js version. Tests in `tests/electron/`.
 
 3. **Page load tests** (`npx playwright test --config=playwright.electron-pages.config.ts`) — Checks each page loads without critical console errors in Electron. Tests in `tests/electron-pages.spec.ts`.
 
@@ -386,9 +391,9 @@ Electron e2e test infrastructure:
 
 | 债务项 | 严重度 | 说明 |
 |--------|--------|------|
-| ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，messages.ts含1806键，覆盖app/pages+modules/presentation+shared/presentation+modules/hooks；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
+| ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，messages.ts含1850+键，覆盖app/pages+modules/presentation+shared/presentation+modules/hooks；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
 | ~~大文件~~ | ~~中~~ | 已修复：18个>400行文件全部拆分，拆分出35+子组件/hooks |
-| ~~非空断言~~ | ~~中~~ | 已修复：生产代码全部`!.`和`as unknown as`清零 |
+| 非空断言 | 中 | 生产代码仍有61处`!.`和9处`as unknown as`，主要分布在 infrastructure/storage 和 app 层 |
 | ~~性能基础设施~~ | ~~低~~ | 已铺设：React.memo 5个高频组件、@tanstack/react-virtual虚拟列表hook、useReducer状态管理重构 |
 | WASM 依赖膨胀 | 低 | better-sqlite3 可选依赖，无法裁剪，无害 |
 | ~~tsconfig 排除测试~~ | ~~中~~ | 已修复：新增 tsconfig.test.json，测试文件参与类型检查（R55） |
@@ -589,8 +594,8 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 | UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35 | 界面不崩、有反馈、无泄漏：video onError守卫、ErrorBoundary重试限制、加载状态、Blob URL回收 |
 | 工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60 | 依赖合规、构建安全、测试可靠：DDD层合规、批量查询、IPC效率、无any、Vite迁移 |
 | 平台兼容 | R21, R43, R49, R51, R52, R61 | IPC、Electron环境、进程模型：无fetch("/api/")、isElectron()守卫、usePreference、e.currentTarget |
-| 用户安全防护 | R70, R71, R73, R74, R75, R76 | 破坏性操作需确认、数据清除需保护：不可逆操作二次确认、导航守卫拦截后退、跨域下载fetch+blob、重试不因次数移除、会话清除限范围、Toast去重含消息 |
-| 系统安全 | R78, R79, R80 | 沙箱隔离防逃逸、IPC通道注册检查、插件热加载缓存刷新 |
+| 用户安全防护 | R70, R71, R73, R74, R75, R76, R77 | 破坏性操作需确认、数据清除需保护：不可逆操作二次确认、导航守卫拦截后退、跨域下载fetch+blob、重试不因次数移除、会话清除限范围、Toast去重含消息、乐观锁防覆盖 |
+| 系统安全 | R78, R79, R80, R81, R82, R83, R84 | 沙箱隔离防逃逸、IPC通道注册检查、插件热加载缓存刷新、Blob URL安全生命周期、异步重入守卫、批量并行执行、声明式onError |
 
 ## Documentation Index
 
@@ -641,7 +646,7 @@ Each module has a `MODULE.md` (module overview + public API list) and sub-domain
 | scene | `src/modules/scene/MODULE.md` | hooks, services |
 | shot | `src/modules/shot/MODULE.md` | shot-instruction, shot-generation, shot-reference, feature-extraction, consistency-check, element-binding, reference-check |
 | asset | `src/modules/asset/MODULE.md` | asset-library, import-export, hooks, media-assets, presentation |
-| prompt | — | base, builder, beat-image, video, scene, character, server-prompts |
+| prompt | `src/modules/prompt/MODULE.md` | base, builder, beat-image, video, scene, character, server-prompts |
 | sync | `src/modules/sync/MODULE.md` | engine, presentation |
 | persistence | `src/modules/persistence/MODULE.md` | (single contract) |
 

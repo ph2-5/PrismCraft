@@ -245,7 +245,6 @@ function clearMemoryCache(): void
 function checkCachedVideo(taskId: string): Promise<{ exists: boolean; fileSizeMB?: number }>
 function getVideoFileStream(taskId: string): Promise<string | null>
 function getCachedVideo(taskId: string): Promise<Blob | null>
-function recoverUncachedVideos(): Promise<Result<number>>
 ```
 
 **缓存限制**：
@@ -346,19 +345,12 @@ interface RetryConfig {
   exponentialBackoff: boolean
   jitter: boolean
 }
-
-interface VideoRecoverySuccessResult {
-  videoUrl?: string
-  message: string
-  status?: string
-}
 ```
 
 #### 视频验证
 
 ```typescript
 function verifyVideoUrl(videoUrl: string): Promise<Result<VideoVerificationResult>>
-function verifyVideoFile(filePath: string): Promise<Result<boolean>>
 function verifyMultipleVideos(videoUrls: string[]): Promise<Result<Map<string, VideoVerificationResult>>>
 ```
 
@@ -408,6 +400,7 @@ function checkForTokenWaste(taskId: string): Promise<Result<TokenWasteCheckResul
 ```
 
 ```typescript
+// 内部类型（未导出）
 interface IntelligentRecoveryResult {
   videoUrl?: string
   message: string
@@ -443,7 +436,7 @@ function getAllTaskHistory(): Promise<Result<VideoTask[]>>
 - 后台恢复并发数：3
 - 后台恢复防重入：isRecoveryRunning 标志
 
-#### 错误分类（re-export）
+#### 错误分类（内部使用，未导出）
 
 ```typescript
 function classifyError(errorCode?: string, errorMessage?: string): ErrorCategory
@@ -480,7 +473,6 @@ function extractVideoFrames(videoUrl: string, options?: { count?: number; startT
 
 ```typescript
 function downloadJSONFile(data: unknown, filename: string): void
-function dataUrlToFile(dataUrl: string, filename: string): File
 ```
 
 #### 视频模板

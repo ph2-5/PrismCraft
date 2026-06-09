@@ -4,7 +4,7 @@
   "dependencies": ["domain/Result", "domain/fromAsyncThrowable", "infrastructure/di"],
   "publicAPI": {
     "hooks": ["useVideoCacheStats"],
-    "services": ["registerRecoveryFn", "cacheVideoBlob", "getCachedVideoUrl", "getVideoUrlWithCache", "removeCachedVideo", "cleanExpiredVideoCache", "getCacheStats", "revokeObjectURL", "touchMemoryCache", "clearMemoryCache", "checkCachedVideo", "getVideoFileStream", "getCachedVideo", "recoverUncachedVideos"],
+    "services": ["registerRecoveryFn", "cacheVideoBlob", "getCachedVideoUrl", "getVideoUrlWithCache", "removeCachedVideo", "cleanExpiredVideoCache", "getCacheStats", "revokeObjectURL", "touchMemoryCache", "clearMemoryCache", "checkCachedVideo", "getVideoFileStream", "getCachedVideo", "recoverUncachedVideos", "cacheImageBlob", "getCachedImagePath", "getImageUrlWithCache", "removeCachedImage", "cleanExpiredImageCache", "getImageCacheStats", "recoverUncachedImages"],
     "components": []
   },
   "invariants": [

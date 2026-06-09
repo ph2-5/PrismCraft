@@ -1041,7 +1041,7 @@ const confirmed = await confirm(t("confirm.deleteTitle"), t("confirm.delete"));
 <Button>{t("sync.saveSettings")}</Button>
 ```
 
-**Message key categories** (in `src/shared/constants/messages.ts`, 840+ keys):
+**Message key categories** (in `src/shared/constants/messages.ts`, 1850+键):
 - `common.*` — Save, delete, cancel, retry, loading, upload, regenerate, generate, etc.
 - `error.*` — All error messages (save, delete, upload, generate, network, copy, openLink, etc.)
 - `success.*` — All success messages (saved, deleted, generated, copied, etc.)

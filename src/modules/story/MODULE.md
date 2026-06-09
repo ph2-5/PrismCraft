@@ -200,7 +200,7 @@ generateStylePromptOnly(input: {
 }): Promise<Result<string>>
 ```
 
-#### Video URL Sync
+#### Video URL Sync（内部使用，未导出）
 
 ```typescript
 buildVideoUrlUpdates(beats: StoryBeat[], completedTaskUrls: Map<string, string>): VideoUrlUpdate[]

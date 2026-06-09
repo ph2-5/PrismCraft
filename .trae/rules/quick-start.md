@@ -4,12 +4,19 @@
 - Dev server: `npm run dev`
 - Type check: `npm run typecheck && npm run typecheck:electron && npm run typecheck:test`
 - Lint: `npm run lint`
+- Lint (Electron): `npm run lint:electron`
+- Lint (architecture): `npm run lint:arch`
 - Test: `npm run test`
+- Test (coverage): `npm run test:coverage`
+- Test (watch): `npm run test:watch`
 - Test (Electron): `npm run test:electron`
 - E2E test: `npm run test:e2e`
 - E2E test (Electron): `npm run test:e2e:electron`
 - Full validate: `npm run validate:full`
 - Build: `npm run build:electron`
+- Build (Windows): `npm run build:win`
+- Build (macOS): `npm run build:mac`
+- Build (Linux): `npm run build:linux`
 
 ## Key File Paths
 | Purpose | Path |
@@ -37,7 +44,7 @@
 - **Add new API**: Define port in `domain/ports` → Implement in `infrastructure/` → Register in DI → Use in module via `container.xxx`
 - **Add new i18n key**: Add to `messages.ts` → Use `t()` in code
 - **Add new module**: Create under `src/modules/` → Add codeSplitting group in `vite.config.ts` → Add `MODULE.md` + `contract.json`
-- **Add storage module**: Create in `src/infrastructure/storage/` → Register columns in `core.ts` → Register DI token in `container.ts`
+- **Add storage module**: Create in `src/infrastructure/storage/` → Register columns in `core.ts` → Register DI token in `container.ts` → Create `json-schemas.ts` with `parseXxx()` functions → Add roundtrip test
 - **Add shared util**: Create in `src/shared/` → If from infrastructure, use proxy export pattern
 - **Add plugin provider**: Create in `electron/src/plugins/providers/` → Extend `BaseAIProviderPlugin` → Register in `registry.ts`
 - **Add user plugin**: Create `.plugin.json` in `~/AI Animation Studio/UserPlugins/` or `.plugin.js` in `~/AI Animation Studio/CodePlugins/`

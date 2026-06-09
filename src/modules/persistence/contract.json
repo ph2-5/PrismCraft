@@ -9,7 +9,7 @@
   },
   "invariants": [
     "自动保存有 MAX_RETRY 限制（3 次），超过后停止重试",
-    "自动保存有 MIN_INTERVAL 限制（1 秒），防止过于频繁",
+    "自动保存有 MIN_INTERVAL 限制（0.5 分钟），防止过于频繁",
     "usePersistenceGuard 的 cancelledRef 防止组件卸载后继续保存",
     "deleteCharacterWithRefs/deleteSceneWithRefs 在删除时同步清理本地图片文件",
     "事务性删除使用 safeTransaction 保证原子性",

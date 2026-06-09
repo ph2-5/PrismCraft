@@ -1,5 +1,5 @@
 export { shotInstructionToPrompt, SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS, CAMERA_ANGLE_OPTIONS } from "./shot-prompt";
-export { generateBeatImagePrompt, generateSimpleBeatImagePrompt } from "./beat-prompt-builder";
+export { generateBeatImagePrompt, generateSimpleBeatImagePrompt, getBeatCharacterIds } from "./beat-prompt-builder";
 export type { BeatImagePromptParams } from "./beat-prompt-builder";
 export {
   QUALITY_TAGS_IMAGE,

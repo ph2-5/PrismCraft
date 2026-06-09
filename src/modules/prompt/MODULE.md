@@ -89,8 +89,8 @@
 | `generateStoryPlanPrompt` | `(story: Story) → string` | 故事计划提示词 |
 | `generateQuickModeVideoPrompt` | `(beat: StoryBeat, ...) → string` | 快速模式视频提示词 |
 | `AVAILABLE_STYLES` | `readonly string[]` | 可用风格列表 |
-| `DURATION_OPTIONS` | `readonly DurationOption[]` | 时长选项 |
-| `RESOLUTION_OPTIONS` | `readonly ResolutionOption[]` | 分辨率选项 |
+| `getDurationOptions` | `() → DurationOption[]` | 时长选项 |
+| `getResolutionOptions` | `() → ResolutionOption[]` | 分辨率选项 |
 | `getDurationOptionsForModel` | `(model: string) → DurationOption[]` | 按模型获取时长选项 |
 | `getResolutionOptionsForModel` | `(model: string) → ResolutionOption[]` | 按模型获取分辨率选项 |
 | `getStyleOptionsForModel` | `(model: string) → string[]` | 按模型获取风格选项 |

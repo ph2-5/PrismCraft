@@ -4,6 +4,7 @@ import { container } from "@/infrastructure/di";
 import {
   generateBeatImagePrompt,
   generateSimpleBeatImagePrompt,
+  getBeatCharacterIds,
 } from "@/domain/utils";
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
 
@@ -60,7 +61,7 @@ function buildContextSection(request: PromptEditorRequest): string {
   if (beat.type) parts.push(`镜头类型：${beat.type}`);
 
   if (characters && characters.length > 0) {
-    const charIds = beat.characters || (beat.character ? [beat.character] : []);
+    const charIds = getBeatCharacterIds(beat);
     const boundChars = charIds
       .map((id) => characters.find((c) => c.id === id))
       .filter((c): c is Character => c !== undefined);

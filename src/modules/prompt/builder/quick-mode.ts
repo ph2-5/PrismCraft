@@ -5,6 +5,7 @@ import {
   QUALITY_TAGS_VIDEO,
 } from "../base";
 import { getModelParameterProfile } from "@/shared/model-capabilities";
+import { t } from "@/shared/constants/messages";
 
 interface QuickModeParams {
   prompt: string;
@@ -32,16 +33,16 @@ const BASE_NEGATIVE = [
 ].join(", ");
 
 const STYLE_PRESETS: Record<string, string> = {
-  写实: "真实摄影风格，自然光线，细腻纹理",
-  动漫: "日本动漫风格，明亮色彩，流畅线条",
-  二次元: "二次元插画风格，鲜艳色彩，萌系风格",
-  电影感: "电影大片风格，电影级构图，戏剧性光线",
-  国潮: "中国风，传统元素，东方美学",
-  赛博朋克: "赛博朋克风格，霓虹灯光，未来都市",
-  古风: "中国古典风格，水墨元素，古代场景",
-  "3D卡通": "3D卡通渲染风格，圆润造型，明亮色彩",
-  像素风: "像素艺术风格，复古游戏感",
-  水彩: "水彩画风格，柔和过渡，艺术感",
+  realistic: "真实摄影风格，自然光线，细腻纹理",
+  anime: "日本动漫风格，明亮色彩，流畅线条",
+  "2d-illustration": "二次元插画风格，鲜艳色彩，萌系风格",
+  cinematic: "电影大片风格，电影级构图，戏剧性光线",
+  "chinese-chic": "中国风，传统元素，东方美学",
+  cyberpunk: "赛博朋克风格，霓虹灯光，未来都市",
+  "chinese-classical": "中国古典风格，水墨元素，古代场景",
+  "3d-cartoon": "3D卡通渲染风格，圆润造型，明亮色彩",
+  "pixel-art": "像素艺术风格，复古游戏感",
+  watercolor: "水彩画风格，柔和过渡，艺术感",
 };
 
 const RESOLUTION_CONFIG: Record<string, { desc: string; aspect?: string }> = {
@@ -126,37 +127,41 @@ export function generateQuickModeVideoPrompt(params: QuickModeParams): string {
 
 export const AVAILABLE_STYLES = Object.keys(STYLE_PRESETS);
 
-export const DURATION_OPTIONS = [
-  { value: 2, label: "2秒" },
-  { value: 5, label: "5秒" },
-  { value: 10, label: "10秒" },
-  { value: 15, label: "15秒" },
-  { value: 30, label: "30秒" },
-];
+export function getDurationOptions() {
+  return [
+    { value: 2, label: t("duration.2s") },
+    { value: 5, label: t("duration.5s") },
+    { value: 10, label: t("duration.10s") },
+    { value: 15, label: t("duration.15s") },
+    { value: 30, label: t("duration.30s") },
+  ];
+}
 
-export const RESOLUTION_OPTIONS = [
-  { value: "1280x720", label: "720p HD", width: 1280, height: 720 },
-  { value: "1920x1080", label: "1080p Full HD", width: 1920, height: 1080 },
-  { value: "3840x2160", label: "4K Ultra HD", width: 3840, height: 2160 },
-];
+export function getResolutionOptions() {
+  return [
+    { value: "1280x720", label: t("resolution.720p"), width: 1280, height: 720 },
+    { value: "1920x1080", label: t("resolution.1080p"), width: 1920, height: 1080 },
+    { value: "3840x2160", label: t("resolution.4k"), width: 3840, height: 2160 },
+  ];
+}
 
 export function getDurationOptionsForModel(modelId: string | undefined): Array<{ value: number; label: string }> {
-  if (!modelId) return DURATION_OPTIONS;
+  if (!modelId) return getDurationOptions();
   const profile = getModelParameterProfile(modelId);
   if (profile?.parameters?.durations?.length) return profile.parameters.durations;
-  return DURATION_OPTIONS;
+  return getDurationOptions();
 }
 
 export function getResolutionOptionsForModel(modelId: string | undefined): Array<{ value: string; label: string; width: number; height: number }> {
-  if (!modelId) return RESOLUTION_OPTIONS;
+  if (!modelId) return getResolutionOptions();
   const profile = getModelParameterProfile(modelId);
   if (profile?.parameters?.resolutions?.length) return profile.parameters.resolutions;
-  return RESOLUTION_OPTIONS;
+  return getResolutionOptions();
 }
 
 export function getStyleOptionsForModel(modelId: string | undefined): Array<{ value: string; label: string; description?: string }> {
-  if (!modelId) return AVAILABLE_STYLES.map(s => ({ value: s, label: s }));
+  if (!modelId) return AVAILABLE_STYLES.map(s => ({ value: s, label: t(`style.${s}`) }));
   const profile = getModelParameterProfile(modelId);
   if (profile?.parameters?.styles?.length) return profile.parameters.styles;
-  return AVAILABLE_STYLES.map(s => ({ value: s, label: s }));
+  return AVAILABLE_STYLES.map(s => ({ value: s, label: t(`style.${s}`) }));
 }

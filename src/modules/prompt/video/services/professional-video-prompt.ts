@@ -6,6 +6,7 @@ import {
   buildTemplateDesc,
 } from "../../base";
 import type { Character, FixedImageConfig, ReferenceVideoConfig, Scene, TemplateConfig, StoryBeat } from "@/domain/schemas";
+import { getBeatCharacterIds } from "@/domain/utils";
 
 interface ProfessionalVideoPromptParams {
   story: {
@@ -44,8 +45,7 @@ export function generateProfessionalVideoPrompt(
       const parts: string[] = [];
       parts.push(`【镜头${index + 1}】${beat.title || "未命名"}`);
 
-      const charIds =
-        beat.characters || (beat.character ? [beat.character] : []);
+      const charIds = getBeatCharacterIds(beat);
       const charDescs = charIds
         .map((id) => {
           const char = characters.find((c) => c.id === id);

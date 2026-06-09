@@ -2,6 +2,7 @@ import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
 import type { StoryBeat, Character, Scene, StoryStyleGuide, StoryElement } from "@/domain/schemas";
 import type { ITextProvider } from "@/domain/ports";
+import { getBeatCharacterIds } from "@/domain/utils";
 import { errorLogger } from "@/shared/error-logger";
 
 interface FramePromptInput {
@@ -56,7 +57,7 @@ export async function generateFramePrompts(
   return fromAsyncThrowable(async () => {
     const { beat, index, characters, scenes, styleGuide, prevBeatDescription, nextBeatDescription, textProvider } = input;
 
-    const charIds = beat.characters?.length > 0 ? beat.characters : (beat.character ? [beat.character] : []);
+    const charIds = getBeatCharacterIds(beat);
     const charDesc = buildCharacterVisualDesc(characters, charIds);
     const sceneDesc = buildSceneVisualDesc(scenes, beat.sceneId || beat.scene);
 

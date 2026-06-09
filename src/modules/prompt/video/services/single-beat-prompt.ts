@@ -8,7 +8,7 @@ import {
   buildTemplateDesc,
   CAMERA_MOVEMENT_KEYWORDS,
 } from "../../base";
-import { shotInstructionToPrompt } from "@/domain/utils";
+import { shotInstructionToPrompt, getBeatCharacterIds } from "@/domain/utils";
 import { promptBuilder } from "../../builder";
 import type { Character, FeatureAnchoringConfig, FixedImageConfig, ReferenceVideoConfig, Scene, ShotInstructionTemplate, StoryBeat, StoryElement, TemplateConfig } from "@/domain/schemas";
 
@@ -152,7 +152,7 @@ export function generateSingleBeatPrompt(
     }
   }
 
-  const charIds = beat.characters || (beat.character ? [beat.character] : []);
+  const charIds = getBeatCharacterIds(beat);
   if (charIds.length > 0) {
     const charDescs = charIds
       .map((id) => {

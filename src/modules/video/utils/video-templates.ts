@@ -20,7 +20,7 @@ export const videoTemplates: VideoTemplate[] = [
     description: "美丽的自然风景动画，如日出、海浪、森林等",
     category: "风景",
     prompt: "美丽的自然风景，宁静祥和，画面唯美流畅，高质量4K动画",
-    style: "电影感",
+    style: "cinematic",
     duration: 8,
     imageDescription: "日出时的海边风景，金色阳光洒在海面上，远处有山脉"
   },
@@ -30,7 +30,7 @@ export const videoTemplates: VideoTemplate[] = [
     description: "繁华都市夜景，霓虹闪烁的都市风光",
     category: "风景",
     prompt: "现代都市夜景，霓虹灯闪烁，车水马龙，繁华热闹，赛博朋克风格，高质量4K动画",
-    style: "赛博朋克",
+    style: "cyberpunk",
     duration: 8,
     imageDescription: "赛博朋克风格的都市夜景，高楼大厦上有霓虹广告"
   },

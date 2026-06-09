@@ -45,6 +45,12 @@ vi.mock("../../../base", () => ({
 
 vi.mock("@/domain/utils", () => ({
   shotInstructionToPrompt: vi.fn(() => "镜头指令文本"),
+  getBeatCharacterIds: vi.fn((beat: { characterIds?: string[]; characters?: string[]; character?: string }) => {
+    if (beat.characterIds?.length) return beat.characterIds;
+    if (beat.characters?.length) return beat.characters;
+    if (beat.character) return [beat.character];
+    return [];
+  }),
 }));
 
 vi.mock("../../../builder", () => ({

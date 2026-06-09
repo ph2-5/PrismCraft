@@ -1,25 +1,10 @@
-fix: path compat, SQL sanitization, providerId priority, scan coverage
+refactor: optimize StoryBeat schema and eliminate legacy debt
 
-1. Rename [beatId] directory to $beatId for Windows PowerShell compatibility
-   - Square brackets are wildcard characters in PowerShell, causing path
-     resolution failures with Get-Content/Get-ChildItem -Include
-   - $beatId is equally supported by React Router v7
-   - Update router.tsx import path and api-routes-manager.js reference
-
-2. Sanitize all dynamic SQL table/column names in sync engine
-   - conflict-resolution.ts: wrap tableName/pk with sanitizeIdentifier()
-   - remote-changes.ts: wrap all dynamic identifiers in SQL statements
-   - changelog.ts: wrap tableName/pkColumn in SELECT/UPDATE/DELETE/PRAGMA
-   - Also validate column names from remote data with regex before use
-
-3. Add providerId priority matching in api-gateway.ts
-   - When providerId is known, use pluginRegistry.selectById() first
-   - Fall back to URL/model matching via pluginRegistry.select()
-   - Prevents wrong provider selection when multiple providers share URLs
-
-4. Extend check-architecture.mjs SQL scan coverage
-   - Scan src/shared/ in addition to src/modules/
-   - Add check for unsanitized table/column names in safeRun/safeQuery
-   - Pattern: ${tableName} or ${pk} without sanitizeIdentifier wrapper
-
-5. Fix r51 test timeout for useStories dynamic import (15s limit)
+1. Remove 4 dead fields: _blobUrls, proElementInstances, proActions, promptLab
+2. Add field grouping comments to StoryBeat schema (6 categories)
+3. Migrate character → characterIds: add getBeatCharacterIds() utility,
+   unify 7 read sites, mark character/characters as @deprecated
+4. quick-mode.ts: STYLE_PRESETS keys from Chinese to English identifiers,
+   DURATION_OPTIONS/RESOLUTION_OPTIONS changed to functions with t() labels
+5. Add 18 i18n keys for style/duration/resolution labels
+6. Update video-templates style values to English keys

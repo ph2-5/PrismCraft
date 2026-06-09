@@ -3,8 +3,8 @@ export { generateStoryPlanPrompt } from "./story-plan";
 export {
   generateQuickModeVideoPrompt,
   AVAILABLE_STYLES,
-  DURATION_OPTIONS,
-  RESOLUTION_OPTIONS,
+  getDurationOptions,
+  getResolutionOptions,
   getDurationOptionsForModel,
   getResolutionOptionsForModel,
   getStyleOptionsForModel,

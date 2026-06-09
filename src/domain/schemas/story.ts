@@ -134,6 +134,7 @@ const shotTypeSchema = z.preprocess(
 );
 
 export const storyBeatSchema = z.object({
+  // ── Core identity ──
   id: z.string(),
   sequence: z.number(),
   order: z.number().optional(),
@@ -144,28 +145,36 @@ export const storyBeatSchema = z.object({
     .optional(),
   title: nullToUndef(z.string()),
   content: nullToUndef(z.string()),
+  transition: nullToUndef(z.string()),
+
+  // ── Character & scene bindings ──
+  /** @deprecated Use characterIds instead. Kept for backward compatibility with v1.0 data. */
   character: nullToUndef(z.string()),
+  /** @deprecated Use characterIds instead. Kept for backward compatibility with v1.5 data. */
   characters: z.array(z.string()),
+  characterIds: z.array(z.string()),
+  characterOutfits: z.record(z.string(), z.string()).optional(),
   scene: nullToUndef(z.string()),
+  sceneId: nullToUndef(z.string()),
+  sceneElements: z.array(z.custom<SceneElement>()).optional(),
+  elementIds: z.array(z.string()),
+  elementBindings: z.record(z.string(), elementBindingSchema).optional(),
+
+  // ── Shot system ──
+  shotType: shotTypeSchema,
+  camera: beatCameraSchema.optional(),
+  shotInstruction: shotInstructionSchema.optional(),
+  reference: shotReferenceSchema.optional(),
+  featureAnchoring: featureAnchoringSchema.optional(),
+  consistencyCheck: consistencyCheckResultSchema.optional(),
+
+  // ── Generation config ──
   fixedImage: fixedImageSchema.optional(),
   referenceVideo: referenceVideoSchema.optional(),
   template: templateConfigSchema.optional(),
-  shotType: shotTypeSchema,
-  elementIds: z.array(z.string()),
-  elementBindings: z.record(z.string(), elementBindingSchema).optional(),
-  reference: shotReferenceSchema.optional(),
   generationStatus: shotGenerationStatusSchema.optional(),
   generationResult: shotGenerationResultSchema.optional(),
   generationPrompt: nullToUndef(z.string()),
-  camera: beatCameraSchema.optional(),
-  shotInstruction: shotInstructionSchema.optional(),
-  featureAnchoring: featureAnchoringSchema.optional(),
-  consistencyCheck: consistencyCheckResultSchema.optional(),
-  keyframe: storyBeatKeyframeSchema.optional(),
-  framePair: storyBeatFramePairSchema.optional(),
-  videoGen: storyBeatVideoSchema.optional(),
-  characterIds: z.array(z.string()),
-  sceneId: nullToUndef(z.string()),
   enhancedGeneration: z.preprocess(
     (v) => (v == null ? undefined : Boolean(v)),
     z.boolean().optional(),
@@ -173,24 +182,23 @@ export const storyBeatSchema = z.object({
   imageGenerationPrompt: nullToUndef(z.string()),
   firstFramePrompt: nullToUndef(z.string()),
   lastFramePrompt: nullToUndef(z.string()),
-  _blobUrls: z.array(z.string()).optional(),
-  characterOutfits: z.record(z.string(), z.string()).optional(),
-  transition: nullToUndef(z.string()),
-  imageUrl: nullToUndef(z.string()),
-  videoReferenceUrl: nullToUndef(z.string()),
   promptLayers: z.object({
     coreElements: z.string(),
     cameraAction: z.string(),
     styleAtmosphere: z.string().optional(),
   }).optional(),
-  sceneElements: z.array(z.custom<SceneElement>()).optional(),
-  proElementInstances: z.array(z.unknown()).optional(),
-  proActions: z.array(z.unknown()).optional(),
 
+  // ── Keyframe / FramePair / Video generation ──
+  keyframe: storyBeatKeyframeSchema.optional(),
+  framePair: storyBeatFramePairSchema.optional(),
+  videoGen: storyBeatVideoSchema.optional(),
+  imageUrl: nullToUndef(z.string()),
+  videoReferenceUrl: nullToUndef(z.string()),
+
+  // ── Input mode & chain ──
   keyframeInput: beatInputSchema.optional(),
   framePairInput: frameInputSchema.optional(),
   videoInput: videoInputSchema.optional(),
-
   uploadedKeyframe: nullToUndef(z.string()),
   uploadedFramePair: z.object({
     firstFrame: z.string(),
@@ -199,16 +207,14 @@ export const storyBeatSchema = z.object({
     lastFramePrompt: z.string().optional(),
   }).optional(),
   uploadedVideo: nullToUndef(z.string()),
-
   chainMode: chainModeSchema.optional(),
   customChainTarget: nullToUndef(z.string()),
 
+  // ── Local cache paths ──
   localVideoPath: nullToUndef(z.string()),
   localKeyframePath: nullToUndef(z.string()),
   localFirstFramePath: nullToUndef(z.string()),
   localLastFramePath: nullToUndef(z.string()),
-
-  promptLab: promptLabSchema.optional(),
 });
 
 export const storyVersionSchema = z.object({

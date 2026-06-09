@@ -4,7 +4,7 @@
   "dependencies": ["prompt-base", "domain/StoryBeat", "domain/StoryElement", "domain/FeatureAnchoringConfig", "domain/ShotReference", "domain/ShotInstructionTemplate"],
   "publicAPI": {
     "hooks": [],
-    "services": ["PromptBuilder", "promptBuilder", "generateStoryPlanPrompt", "generateQuickModeVideoPrompt", "AVAILABLE_STYLES", "DURATION_OPTIONS", "RESOLUTION_OPTIONS"],
+    "services": ["PromptBuilder", "promptBuilder", "generateStoryPlanPrompt", "generateQuickModeVideoPrompt", "AVAILABLE_STYLES", "getDurationOptions", "getResolutionOptions"],
     "components": []
   },
   "invariants": [

@@ -12,6 +12,13 @@ import {
 import { shotInstructionToPrompt } from "./shot-prompt";
 import type { Character, FeatureAnchoringConfig, FixedImageConfig, Scene, ShotInstructionTemplate, StoryBeat, StoryElement } from "@/domain/schemas";
 
+export function getBeatCharacterIds(beat: { characterIds?: string[]; characters?: string[]; character?: string }): string[] {
+  if (beat.characterIds?.length) return beat.characterIds;
+  if (beat.characters?.length) return beat.characters;
+  if (beat.character) return [beat.character];
+  return [];
+}
+
 export interface BeatImagePromptParams {
   beat: StoryBeat;
   characters: Character[];
@@ -112,7 +119,7 @@ export function generateBeatImagePrompt(params: BeatImagePromptParams): string {
       });
     parts.push(`画面内容：${elementDescs.join("；")}`);
   } else {
-    const charIds = beat.characters || (beat.character ? [beat.character] : []);
+    const charIds = getBeatCharacterIds(beat);
     const charDescs = charIds
       .map((id) => {
         const char = characters.find((c) => c.id === id);
@@ -135,7 +142,7 @@ export function generateBeatImagePrompt(params: BeatImagePromptParams): string {
   const contentPart = beat.content || beat.description || "";
   if (contentPart) parts.push(contentPart);
 
-  const charIds = beat.characters || (beat.character ? [beat.character] : []);
+  const charIds = getBeatCharacterIds(beat);
   const referencedChar = charIds
     .map((id) => characters.find((c) => c.id === id))
     .find((c) => c?.style);
@@ -173,7 +180,7 @@ export function generateSimpleBeatImagePrompt(
     }
   }
 
-  const charIds = beat.characters || (beat.character ? [beat.character] : []);
+  const charIds = getBeatCharacterIds(beat);
   const charDescs = charIds
     .map((id) => {
       const char = characters.find((c) => c.id === id);
@@ -187,8 +194,7 @@ export function generateSimpleBeatImagePrompt(
   const contentPart = beat.content || beat.description || "";
   if (contentPart) parts.push(contentPart);
 
-  const charIdsForStyle =
-    beat.characters || (beat.character ? [beat.character] : []);
+  const charIdsForStyle = getBeatCharacterIds(beat);
   const referencedChar = charIdsForStyle
     .map((id) => characters.find((c) => c.id === id))
     .find((c) => c?.style);

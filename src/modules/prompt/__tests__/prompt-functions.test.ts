@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   joinParts,
   buildCharacterAppearanceDesc,
@@ -37,8 +37,8 @@ import {
 import {
   generateQuickModeVideoPrompt,
   AVAILABLE_STYLES,
-  DURATION_OPTIONS,
-  RESOLUTION_OPTIONS,
+  getDurationOptions,
+  getResolutionOptions,
 } from "@/modules/prompt/builder";
 import { generateStoryPlanPrompt } from "@/modules/prompt/builder";
 import type {
@@ -885,7 +885,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "角色在森林中奔跑",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
         characters: [makeCharacter()],
         scene: makeScene(),
       });
@@ -902,7 +902,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "日落场景",
         duration: 10,
         resolution: "720p",
-        style: "写实",
+        style: "realistic",
       });
       expect(result).toContain("日落场景");
       expect(result).not.toContain("【核心角色】");
@@ -913,7 +913,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "角色特写",
         duration: 5,
         resolution: "4K",
-        style: "电影感",
+        style: "cinematic",
       });
       expect(result).not.toContain("【固定场景】");
     });
@@ -923,7 +923,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
         characters: [makeCharacter()],
       });
       expect(result).toContain("角色要求");
@@ -935,7 +935,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
         scene: makeScene(),
       });
       expect(result).toContain("场景要求");
@@ -947,7 +947,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
         referenceImage: "http://ref.png",
       });
       expect(result).toContain("参考素材");
@@ -958,7 +958,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
       });
       expect(result).not.toContain("参考素材");
     });
@@ -968,7 +968,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
       });
       expect(result).toContain("智能优化");
     });
@@ -978,7 +978,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
         enableSmartOptimization: false,
       });
       expect(result).not.toContain("智能优化");
@@ -989,7 +989,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
         negativePrompt: "no cats",
       });
       expect(result).toContain("no cats");
@@ -1000,7 +1000,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
       });
       expect(result).toContain("high quality");
       expect(result).toContain("cinematic");
@@ -1011,7 +1011,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
       });
       expect(result).toContain("禁止内容");
       expect(result).toContain("no clipping");
@@ -1023,7 +1023,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
         characters: [char],
       });
       expect(result).toContain("保持角色形象与参考图片完全一致");
@@ -1035,7 +1035,7 @@ describe("prompt/builder/quick-mode", () => {
         prompt: "测试",
         duration: 5,
         resolution: "1080p",
-        style: "动漫",
+        style: "anime",
         scene,
       });
       expect(result).toContain("保持场景与参考图片完全一致");
@@ -1059,16 +1059,17 @@ describe("prompt/builder/quick-mode", () => {
     });
 
     it("should contain expected styles", () => {
-      expect(AVAILABLE_STYLES).toContain("写实");
-      expect(AVAILABLE_STYLES).toContain("动漫");
-      expect(AVAILABLE_STYLES).toContain("电影感");
-      expect(AVAILABLE_STYLES).toContain("赛博朋克");
+      expect(AVAILABLE_STYLES).toContain("realistic");
+      expect(AVAILABLE_STYLES).toContain("anime");
+      expect(AVAILABLE_STYLES).toContain("cinematic");
+      expect(AVAILABLE_STYLES).toContain("cyberpunk");
     });
   });
 
-  describe("DURATION_OPTIONS", () => {
+  describe("getDurationOptions", () => {
     it("should have expected values", () => {
-      expect(DURATION_OPTIONS).toEqual([
+      const options = getDurationOptions();
+      expect(options).toEqual([
         { value: 2, label: "2秒" },
         { value: 5, label: "5秒" },
         { value: 10, label: "10秒" },
@@ -1078,9 +1079,10 @@ describe("prompt/builder/quick-mode", () => {
     });
   });
 
-  describe("RESOLUTION_OPTIONS", () => {
+  describe("getResolutionOptions", () => {
     it("should have expected values", () => {
-      expect(RESOLUTION_OPTIONS).toEqual([
+      const options = getResolutionOptions();
+      expect(options).toEqual([
         { value: "1280x720", label: "720p HD", width: 1280, height: 720 },
         { value: "1920x1080", label: "1080p Full HD", width: 1920, height: 1080 },
         { value: "3840x2160", label: "4K Ultra HD", width: 3840, height: 2160 },

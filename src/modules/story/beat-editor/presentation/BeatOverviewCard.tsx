@@ -17,6 +17,7 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/utils/utils";
+import { getBeatCharacterIds } from "@/domain/utils";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
@@ -51,7 +52,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
 }: BeatOverviewCardProps) {
   const { confirm: confirmDialog, ConfirmDialogComponent } = useConfirmDialog();
   const typeInfo = beatTypes.find((t) => t.value === beat.type);
-  const charIds = beat.characters || (beat.character ? [beat.character] : []);
+  const charIds = getBeatCharacterIds(beat);
   const charNames = charIds
     .map((id: string) => characters.find((c) => c.id === id)?.name)
     .filter((n): n is string => Boolean(n));

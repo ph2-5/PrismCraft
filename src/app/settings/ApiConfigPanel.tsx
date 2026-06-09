@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
 import {
   Card,
@@ -168,7 +169,7 @@ export function ApiConfigPanel() {
       showSuccess(t("success.added"), t("provider.addedWithName", { name: providerName }));
       refreshPluginCaches();
     } catch (e) {
-      showError(t("provider.addFailed"), (e as Error).message || t("provider.addError"));
+      showError(t("provider.addFailed"), mapUserFacingError(e));
     } finally {
       setIsAdding(false);
     }

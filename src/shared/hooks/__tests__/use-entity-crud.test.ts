@@ -22,6 +22,10 @@ vi.mock("@/shared/utils/confirm", () => ({
   confirm: vi.fn(() => Promise.resolve(confirmResult)),
 }));
 
+vi.mock("@/shared/utils/user-facing-error", () => ({
+  mapUserFacingError: vi.fn((err: unknown) => err instanceof Error ? err.message : String(err)),
+}));
+
 import { useEntityCRUD } from "../use-entity-crud";
 
 interface TestEntity {

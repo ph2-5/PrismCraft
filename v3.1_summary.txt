@@ -1,3 +1,10 @@
+⚠️ DEPRECATED — 本文档描述的是 v3.1 阶段的设计方案，部分内容已过时。
+当前架构已迁移至 Vite + React Router（R57/R58），StoryBeat schema 已清理死字段（R59），
+character/characterIds 双字段已统一读取（getBeatCharacterIds），quick-mode 已国际化。
+请以 docs/ARCHITECTURE.md 和 .trae/rules/project_rules.md 为准。
+此文件仅作历史参考保留。
+================================================================================
+
 分镜系统融合方案 v3.1
 v3.0 架构 + v1.0 工程完备性 + 新增容错机制
 

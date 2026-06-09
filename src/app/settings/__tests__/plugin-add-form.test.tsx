@@ -25,6 +25,10 @@ vi.mock("@/shared/constants", () => ({
   },
 }));
 
+vi.mock("@/shared/utils/user-facing-error", () => ({
+  mapUserFacingError: vi.fn((err: unknown) => err instanceof Error ? err.message : String(err)),
+}));
+
 vi.mock("@/shared/ui/button", () => ({
   Button: ({ children, onClick, disabled }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean }) => (
     <button onClick={onClick} disabled={disabled}>{children}</button>

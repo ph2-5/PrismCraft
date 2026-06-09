@@ -7,6 +7,7 @@ import { Switch } from "@/shared/ui/switch";
 import { Label } from "@/shared/ui/label";
 import { useProjectExport, type ProjectData } from "@/modules/asset";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { Download, Upload, Package, FileArchive, AlertCircle, CheckCircle } from "lucide-react";
 import { t } from "@/shared/constants";
 
@@ -72,7 +73,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
         showError(t("error.importFailed"), result.error || t("asset.cannotParseProject"));
       }
     } catch (err) {
-      showError(t("error.importFailed"), err instanceof Error ? err.message : t("asset.cannotParseProject"));
+      showError(t("error.importFailed"), mapUserFacingError(err));
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) {

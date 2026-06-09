@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
 import {
   Card,
@@ -100,7 +101,7 @@ export default function PluginManager() {
       showSuccess(t("success.deleted"), t("plugin.deletedWithName", { name: displayName }));
       await loadPlugins();
     } catch (e) {
-      showError(t("plugin.deleteFailed"), e instanceof Error ? e.message : t("plugin.deleteError"));
+      showError(t("plugin.deleteFailed"), mapUserFacingError(e));
     }
   };
 
@@ -116,7 +117,7 @@ export default function PluginManager() {
       ]);
       await loadPlugins();
     } catch (e) {
-      showError(t("plugin.reloadFailed"), e instanceof Error ? e.message : t("plugin.reloadError"));
+      showError(t("plugin.reloadFailed"), mapUserFacingError(e));
     } finally {
       setIsReloading(false);
     }
@@ -134,7 +135,7 @@ export default function PluginManager() {
       ]);
       await loadPlugins();
     } catch (e) {
-      showError(t("plugin.codePluginReloadFailed"), e instanceof Error ? e.message : String(e));
+      showError(t("plugin.codePluginReloadFailed"), mapUserFacingError(e));
     } finally {
       setIsReloadingCode(false);
     }

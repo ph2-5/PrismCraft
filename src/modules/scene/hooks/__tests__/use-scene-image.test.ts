@@ -74,6 +74,10 @@ vi.mock("@/shared/error-handler", () => ({
   getErrorMessage: mockGetErrorMessage,
 }));
 
+vi.mock("@/shared/utils/user-facing-error", () => ({
+  mapUserFacingError: vi.fn((err: unknown) => err instanceof Error ? err.message : String(err)),
+}));
+
 vi.mock("@/shared/constants", () => ({
   t: vi.fn((key: string) => key),
 }));

@@ -1,10 +1,10 @@
-refactor: optimize StoryBeat schema and eliminate legacy debt
+fix: replace e.message with mapUserFacingError and add missing tests
 
-1. Remove 4 dead fields: _blobUrls, proElementInstances, proActions, promptLab
-2. Add field grouping comments to StoryBeat schema (6 categories)
-3. Migrate character → characterIds: add getBeatCharacterIds() utility,
-   unify 7 read sites, mark character/characters as @deprecated
-4. quick-mode.ts: STYLE_PRESETS keys from Chinese to English identifiers,
-   DURATION_OPTIONS/RESOLUTION_OPTIONS changed to functions with t() labels
-5. Add 18 i18n keys for style/duration/resolution labels
-6. Update video-templates style values to English keys
+- Replace 17 instances of direct e.message/error.message in user-facing
+  contexts (toast, showError) with mapUserFacingError() across 10 files
+- Add VersionConflictError unit tests (6 cases)
+- Add sync conflict-resolution tests (16 cases covering all strategies)
+- Update ARCHITECTURE.md module line counts (9 modules)
+- Add deprecation notice to v3.1_summary.txt
+- Delete empty feedback/ and security/ module directories
+- Fix 6 test files that needed mapUserFacingError mock

@@ -49,6 +49,10 @@ vi.mock("@/shared/utils/platform", () => ({
   isElectron: mockIsElectron,
 }));
 
+vi.mock("@/shared/utils/user-facing-error", () => ({
+  mapUserFacingError: vi.fn((err: unknown) => err instanceof Error ? err.message : String(err)),
+}));
+
 vi.mock("@/shared/error-logger", () => ({
   errorLogger: mockErrorLogger,
 }));

@@ -1,4 +1,5 @@
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -175,7 +176,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
         showError(t("error.fetchFailed"), t("error.taskStatus", { status: response.data?.status || t("common.unknown") }));
       }
     } catch (err) {
-      showError(t("error.fetchFailed"), err instanceof Error ? err.message : t("error.unknown"));
+      showError(t("error.fetchFailed"), mapUserFacingError(err));
     } finally {
       setIsRefreshingUrl(false);
     }

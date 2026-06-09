@@ -4,6 +4,7 @@ import type { Story } from "@/domain/schemas";
 import type { Result } from "@/domain/types";
 import type { DeleteCheckResult } from "@/domain/services";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants/messages";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
@@ -180,7 +181,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       setReferenceCheck(null);
       success(t("success.deleted"), t("crud.deleted", { label: entityLabel }));
     } catch (err) {
-      showError(t("error.deleteFailed"), err instanceof Error ? err.message : t("error.unknown"));
+      showError(t("error.deleteFailed"), mapUserFacingError(err));
     } finally {
       setIsDeleting(false);
     }

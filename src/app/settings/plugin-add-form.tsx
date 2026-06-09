@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
@@ -59,7 +60,7 @@ export function PluginAddForm({ onAdded, onCancel }: PluginAddFormProps) {
       showSuccess(t("success.added"), t("plugin.addedWithName", { name: parsed.displayName || parsed.id }));
       onAdded();
     } catch (e) {
-      showError(t("plugin.addFailed"), e instanceof Error ? e.message : t("plugin.addError"));
+      showError(t("plugin.addFailed"), mapUserFacingError(e));
     } finally {
       setIsAdding(false);
     }

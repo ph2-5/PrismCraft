@@ -5,6 +5,7 @@ import { useModelSelection } from "@/modules/prompt";
 import { generateSceneImagePrompt, generateSimpleSceneImagePrompt, generateScenePromptOptimization } from "@/modules/prompt";
 import { container } from "@/infrastructure/di";
 import { getErrorMessage } from "@/shared/error-handler";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import type { CustomApiConfig } from "@/domain/types";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
@@ -82,7 +83,7 @@ export function useSceneImage({
         queryClient.invalidateQueries({ queryKey: ["scenes"] });
         addAssetToLibrary(generatedImage, "image", currentScene.name || "场景图片", { type: "scene", id: currentScene.id, name: currentScene.name || "未命名场景" });
         success(t("success.saved"), t("success.imageSavedToLibrary"));
-      } catch (err) { errorLogger.error("[SceneImage] 保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown")); }
+      } catch (err) { errorLogger.error("[SceneImage] 保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), mapUserFacingError(err)); }
     }
   };
 
@@ -101,7 +102,7 @@ export function useSceneImage({
             if (!updateResult.ok) throw updateResult.error;
             queryClient.invalidateQueries({ queryKey: ["scenes"] });
             addAssetToLibrary(imageUrl, "image", currentScene.name || "场景图片", { type: "scene", id: currentScene.id, name: currentScene.name || "未命名场景" });
-          } catch (err) { errorLogger.error("[SceneImage] 上传后保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown")); }
+          } catch (err) { errorLogger.error("[SceneImage] 上传后保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), mapUserFacingError(err)); }
         } else { addAssetToLibrary(imageUrl, "image", "上传的图片"); }
         success(t("success.uploaded"), t("success.imageSavedToLibrary"));
       } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); }
@@ -155,7 +156,7 @@ export function useSceneImage({
               scenePath: imageUrl,
               generatedImage: imageUrl,
             }); if (!updateResult.ok) throw updateResult.error; queryClient.invalidateQueries({ queryKey: ["scenes"] }); }
-          catch (err) { errorLogger.error("[SceneImage] 分析后保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), err instanceof Error ? err.message : t("error.unknown")); }
+          catch (err) { errorLogger.error("[SceneImage] 分析后保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), mapUserFacingError(err)); }
         }
         addAssetToLibrary(imageUrl, "image", analyzed.name || currentSceneRef.current.name || "场景图片", { type: "scene", id: currentSceneRef.current.id, name: analyzed.name || currentSceneRef.current.name || "未命名场景" });
         success(t("success.analysisComplete"), t("success.sceneAnalysisResult", { name: analyzed.name || "未命名场景" }));

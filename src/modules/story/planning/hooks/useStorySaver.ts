@@ -80,7 +80,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       } else {
         showError(
           t("error.restoreFailed"),
-          result.error instanceof Error ? result.error.message : t("error.unknown"),
+          mapUserFacingError(result.error),
         );
       }
     },

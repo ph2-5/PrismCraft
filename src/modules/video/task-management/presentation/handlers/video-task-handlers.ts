@@ -6,6 +6,7 @@ import { useToastHelpers } from "@/shared/presentation/Toast";
 import { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } from "@/modules/video/task-management";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { isAllowedVideoUrl } from "@/shared/utils/url-validation";
 import { t } from "@/shared/constants/messages";
 import { useCacheOperations } from "./use-cache-operations";
@@ -62,10 +63,9 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
         setRecoveryTaskId("");
         if (onTaskRecovered && result.value.status) onTaskRecovered(recoveryTaskId.trim(), result.value.status, result.value.videoUrl);
       } else {
-        const errMsg = result.error instanceof Error ? result.error.message : t("error.unknown");
-        error(t("error.operationFailed"), errMsg);
+        error(t("error.operationFailed"), mapUserFacingError(result.error));
       }
-    } catch (err) { error(t("error.operationFailed"), err instanceof Error ? err.message : t("error.unknown")); }
+    } catch (err) { error(t("error.operationFailed"), mapUserFacingError(err)); }
     finally { setIsRecovering(false); }
   };
 
@@ -96,14 +96,14 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     if (!task.beatId) { error(t("error.cannotRetry"), t("video.noBeatId")); return; }
     setRetryingTaskId(task.taskId);
     try { guardedPush(`/story/beat/${task.beatId}`); success(t("video.jumpSuccess"), t("video.jumpToBeatDesc")); }
-    catch (err) { error(t("error.operationFailed"), err instanceof Error ? err.message : t("error.unknown")); }
+    catch (err) { error(t("error.operationFailed"), mapUserFacingError(err)); }
     finally { setRetryingTaskId(null); }
   };
 
   const handleCancelTask = async (task: VideoTask) => {
     setCancellingTaskId(task.taskId);
     try { await useVideoTaskStore.getState().cancelTask(task.taskId); success(t("video.cancelled"), t("video.taskCancelled")); }
-    catch (err) { error(t("error.operationFailed"), err instanceof Error ? err.message : t("error.unknown")); }
+    catch (err) { error(t("error.operationFailed"), mapUserFacingError(err)); }
     finally { setCancellingTaskId(null); }
   };
 

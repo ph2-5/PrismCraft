@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { Button } from "@/shared/ui/button";
 import {
   Loader2,
@@ -196,7 +197,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
       showSuccess(t("success.installed"), t("plugin.installedWithName", { name: state.displayName }));
       onComplete();
     } catch (e) {
-      showError(t("plugin.addFailed"), e instanceof Error ? e.message : t("plugin.installFailed"));
+      showError(t("plugin.addFailed"), mapUserFacingError(e));
     } finally {
       setIsInstalling(false);
     }

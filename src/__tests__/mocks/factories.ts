@@ -73,7 +73,6 @@ export const factories = {
     sequence: 0,
     description: "测试节拍描述",
     duration: 5,
-    characters: [],
     characterIds: [],
     elementIds: [],
     enhancedGeneration: false,

@@ -342,12 +342,6 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
         if (updated.characterIds?.includes(characterId)) {
           updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
         }
-        if (updated.characters?.includes(characterId)) {
-          updated.characters = updated.characters.filter((cid) => cid !== characterId);
-        }
-        if (updated.character === characterId) {
-          delete updated.character;
-        }
         return updated;
       });
       const updatedCharacters = (story.characters || []).filter((cid) => cid !== characterId);
@@ -355,7 +349,7 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
     });
     for (const updatedStory of updatedStories) {
       const original = stories.find((s) => s.id === updatedStory.id);
-      const wasAffected = original?.beats?.some((b) => b.characterIds?.includes(characterId) || b.characters?.includes(characterId) || b.character === characterId) || original?.characters?.includes(characterId);
+      const wasAffected = original?.beats?.some((b) => b.characterIds?.includes(characterId)) || original?.characters?.includes(characterId);
       if (wasAffected) {
         const result = await storyService.update(updatedStory.id, updatedStory);
         if (!result.ok) {

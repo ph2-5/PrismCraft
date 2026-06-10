@@ -50,7 +50,6 @@ const mockBeat1: StoryBeat = {
   type: "scene",
   characterIds: ["char-1"],
   sceneId: "scene-1",
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
 };
@@ -62,7 +61,6 @@ const mockBeat2: StoryBeat = {
   type: "dialogue",
   characterIds: ["char-2"],
   sceneId: "scene-2",
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
 };
@@ -75,7 +73,6 @@ const mockBeatNoBinding: StoryBeat = {
   characterIds: [],
   sceneId: undefined,
   scene: undefined,
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
 };

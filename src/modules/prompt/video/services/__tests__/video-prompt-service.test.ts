@@ -45,11 +45,8 @@ vi.mock("../../../base", () => ({
 
 vi.mock("@/domain/utils", () => ({
   shotInstructionToPrompt: vi.fn(() => "镜头指令文本"),
-  getBeatCharacterIds: vi.fn((beat: { characterIds?: string[]; characters?: string[]; character?: string }) => {
-    if (beat.characterIds?.length) return beat.characterIds;
-    if (beat.characters?.length) return beat.characters;
-    if (beat.character) return [beat.character];
-    return [];
+  getBeatCharacterIds: vi.fn((beat: { characterIds?: string[] }) => {
+    return beat.characterIds ?? [];
   }),
 }));
 
@@ -109,7 +106,6 @@ function makeBeat(overrides: Record<string, unknown> = {}): StoryBeat {
     sequence: 1,
     description: "测试镜头",
     duration: 5,
-    characters: [],
     elementIds: [],
     characterIds: [],
     enhancedGeneration: false,
@@ -138,7 +134,7 @@ describe("generateProfessionalVideoPrompt", () => {
   it("角色描述：beat 中的角色应被解析并包含在输出中", () => {
     const result = generateProfessionalVideoPrompt({
       story: makeStory(),
-      beats: [makeBeat({ characters: ["c1"], title: "镜头1", content: "内容" })],
+      beats: [makeBeat({ characterIds: ["c1"], title: "镜头1", content: "内容" })],
       characters: [makeCharacter({ id: "c1", name: "小明" })],
       scenes: [],
     });
@@ -304,7 +300,7 @@ describe("generateSingleBeatPrompt", () => {
     ];
 
     const result = generateSingleBeatPrompt({
-      beat: makeBeat({ characters: ["c1"], title: "镜头1", content: "内容" }),
+      beat: makeBeat({ characterIds: ["c1"], title: "镜头1", content: "内容" }),
       index: 0,
       characters,
       scenes: [],

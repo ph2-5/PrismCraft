@@ -28,8 +28,6 @@ export function checkCharacterReferences(
       for (const beat of story.beats) {
         const isReferenced =
           beat.characterIds?.includes(characterId) ||
-          beat.characters?.includes(characterId) ||
-          beat.character === characterId ||
           beat.elementIds?.includes(characterId) ||
           (beat.elementBindings && characterId in beat.elementBindings);
 

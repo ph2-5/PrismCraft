@@ -56,7 +56,6 @@ const mockBeats: StoryBeat[] = [
     sequence: 0,
     description: "分镜描述",
     duration: 5,
-    characters: [],
     characterIds: [],
     enhancedGeneration: false,
     elementIds: [],

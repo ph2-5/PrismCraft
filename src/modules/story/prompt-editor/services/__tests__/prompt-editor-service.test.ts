@@ -29,7 +29,6 @@ const mockBeat: StoryBeat = {
   type: "scene",
   shotType: "wide",
   camera: { angle: "low", movement: "pan" },
-  characters: [],
   characterIds: [],
   enhancedGeneration: false,
   elementIds: [],
@@ -194,7 +193,7 @@ describe("generatePromptWithAI", () => {
 
     await generatePromptWithAI({
       context: "keyframe",
-      beat: { ...mockBeat, characters: ["char-1"], scene: "scene-1" },
+      beat: { ...mockBeat, characterIds: ["char-1"], scene: "scene-1" },
       characters: mockCharacters,
       scenes: mockScenes,
     });

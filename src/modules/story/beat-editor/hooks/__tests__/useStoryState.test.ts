@@ -181,11 +181,9 @@ describe("useStoryState", () => {
       expect(beat.title).toBe("");
       expect(beat.content).toBe("");
       expect(beat.duration).toBe(5);
-      expect(beat.characters).toEqual([]);
       expect(beat.elementIds).toEqual([]);
       expect(beat.characterIds).toEqual([]);
       expect(beat.enhancedGeneration).toBe(true);
-      expect(beat.character).toBeUndefined();
       expect(beat.scene).toBeUndefined();
       expect(beat.sceneId).toBeUndefined();
       expect(beat.generationPrompt).toBeUndefined();
@@ -663,7 +661,7 @@ describe("useStoryState", () => {
       const { result } = renderHook(() => useStoryState());
 
       act(() => {
-        result.current.setBeats([{ id: "b1", sequence: 1, order: 1, type: "scene", title: "", content: "", description: "", duration: 5, characters: [], elementIds: [], characterIds: [], enhancedGeneration: true }] as unknown as StoryBeat[]);
+        result.current.setBeats([{ id: "b1", sequence: 1, order: 1, type: "scene", title: "", content: "", description: "", duration: 5, elementIds: [], characterIds: [], enhancedGeneration: true }] as unknown as StoryBeat[]);
       });
 
       expect(result.current.hasUnsavedChanges).toBe(true);
@@ -754,7 +752,6 @@ describe("useStoryState", () => {
           type: "scene" as const,
           title: "Beat 1",
           content: "",
-          characters: [],
           elementIds: [],
           characterIds: [],
           enhancedGeneration: true,

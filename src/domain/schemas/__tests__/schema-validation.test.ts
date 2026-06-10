@@ -1320,7 +1320,6 @@ describe("story schemas", () => {
       sequence: 1,
       description: "Opening scene",
       duration: 5,
-      characters: ["char-1"],
       elementIds: ["elem-1"],
       characterIds: ["char-1"],
       enhancedGeneration: false,
@@ -1349,7 +1348,6 @@ describe("story schemas", () => {
         type: "action",
         title: "Opening",
         content: "The hero arrives",
-        character: "Hero",
         scene: "Forest",
         shotType: "wide",
         elementBindings: {
@@ -1460,7 +1458,6 @@ describe("story schemas", () => {
             sequence: 1,
             description: "Opening",
             duration: 5,
-            characters: ["char-1"],
             elementIds: [],
             characterIds: ["char-1"],
             enhancedGeneration: false,

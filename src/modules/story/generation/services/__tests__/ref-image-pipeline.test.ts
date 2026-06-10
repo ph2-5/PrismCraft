@@ -51,7 +51,6 @@ const mockBeat: StoryBeat = {
   content: "分镜内容",
   duration: 5,
   type: "scene",
-  characters: [],
   characterIds: [],
   enhancedGeneration: false,
   elementIds: [],

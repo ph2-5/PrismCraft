@@ -22,7 +22,6 @@ const mockBeat1: StoryBeat = {
   type: "scene",
   characterIds: ["char-1"],
   sceneId: "scene-1",
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
 };
@@ -34,7 +33,6 @@ const mockBeat2: StoryBeat = {
   type: "dialogue",
   characterIds: ["char-2"],
   sceneId: "scene-2",
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
 };
@@ -154,7 +152,6 @@ describe("useAIGeneratorBase", () => {
         description: "new beat",
         type: "action",
         characterIds: [],
-        characters: [],
         elementIds: [],
         enhancedGeneration: false,
       };
@@ -200,7 +197,6 @@ describe("useAIGeneratorBase", () => {
         description: "override",
         type: "transition",
         characterIds: [],
-        characters: [],
         elementIds: [],
         enhancedGeneration: false,
       };
@@ -952,7 +948,6 @@ describe("useAIGeneratorBase", () => {
         type: "scene",
         characterIds: [],
         sceneId: undefined,
-        characters: [],
         elementIds: [],
         enhancedGeneration: false,
       };

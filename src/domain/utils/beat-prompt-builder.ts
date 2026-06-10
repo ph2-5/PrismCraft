@@ -12,11 +12,8 @@ import {
 import { shotInstructionToPrompt } from "./shot-prompt";
 import type { Character, FeatureAnchoringConfig, FixedImageConfig, Scene, ShotInstructionTemplate, StoryBeat, StoryElement } from "@/domain/schemas";
 
-export function getBeatCharacterIds(beat: { characterIds?: string[]; characters?: string[]; character?: string }): string[] {
-  if (beat.characterIds?.length) return beat.characterIds;
-  if (beat.characters?.length) return beat.characters;
-  if (beat.character) return [beat.character];
-  return [];
+export function getBeatCharacterIds(beat: { characterIds?: string[] }): string[] {
+  return beat.characterIds ?? [];
 }
 
 export interface BeatImagePromptParams {

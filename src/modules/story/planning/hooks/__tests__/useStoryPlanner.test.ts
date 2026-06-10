@@ -64,7 +64,6 @@ const mockBeat: StoryBeat = {
   description: "测试镜头",
   type: "scene",
   characterIds: [],
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
 };

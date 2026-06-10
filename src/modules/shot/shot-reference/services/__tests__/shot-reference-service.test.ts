@@ -15,7 +15,6 @@ const createBeat = (overrides: Partial<StoryBeat> = {}): StoryBeat => ({
   content: "内容1",
   duration: 5,
   type: "scene",
-  characters: [],
   characterIds: [],
   elementIds: [],
   enhancedGeneration: false,

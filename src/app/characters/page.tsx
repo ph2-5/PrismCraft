@@ -143,14 +143,6 @@ function CharactersPageContent() {
               (cid) => cid !== characterId,
             );
           }
-          if (updated.characters?.includes(characterId)) {
-            updated.characters = updated.characters.filter(
-              (cid) => cid !== characterId,
-            );
-          }
-          if (updated.character === characterId) {
-            delete updated.character;
-          }
           return updated;
         });
         const updatedCharacters = (story.characters || []).filter(
@@ -165,9 +157,7 @@ function CharactersPageContent() {
           original?.characters?.includes(characterId) ||
           original?.beats?.some(
             (b) =>
-              b.characterIds?.includes(characterId) ||
-              b.characters?.includes(characterId) ||
-              b.character === characterId,
+              b.characterIds?.includes(characterId),
           )
         );
       });

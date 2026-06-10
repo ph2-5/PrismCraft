@@ -69,7 +69,6 @@ const mockBeat: StoryBeat = {
   type: "scene",
   characterIds: ["char-1"],
   sceneId: "scene-1",
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
   framePair: {

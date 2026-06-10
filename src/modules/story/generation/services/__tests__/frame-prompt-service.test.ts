@@ -20,7 +20,6 @@ const mockBeat: StoryBeat = {
   content: "主角走进房间",
   duration: 5,
   type: "scene",
-  characters: [],
   characterIds: [],
   elementIds: [],
   enhancedGeneration: false,
@@ -115,7 +114,6 @@ describe("generateFramePrompts", () => {
       ...mockBeat,
       content: "",
       description: "",
-      characters: [],
       characterIds: [],
       sceneId: undefined,
       scene: undefined,
@@ -266,7 +264,7 @@ describe("generateFramePrompts", () => {
   it("应正确处理角色描述", async () => {
     const beatWithChar: StoryBeat = {
       ...mockBeat,
-      characters: ["char-1"],
+      characterIds: ["char-1"],
     };
 
     (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -362,11 +360,10 @@ describe("generateFramePrompts", () => {
     expect(prompt).toContain("推进");
   });
 
-  it("beat 使用 character 字段（非数组）时应正确处理", async () => {
+  it("beat 使用 characterIds 字段时应正确处理", async () => {
     const beatWithSingleChar: StoryBeat = {
       ...mockBeat,
-      characters: [],
-      character: "char-1",
+      characterIds: ["char-1"],
     };
 
     (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mockResolvedValue({

@@ -89,7 +89,6 @@ const mockBeat1: StoryBeat = {
   type: "scene",
   characterIds: ["char-1"],
   sceneId: "scene-1",
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
   keyframe: { imageUrl: "https://img.example.com/keyframe1.png" },
@@ -103,7 +102,6 @@ const mockBeat2: StoryBeat = {
   type: "dialogue",
   characterIds: ["char-2"],
   sceneId: "scene-2",
-  characters: [],
   elementIds: [],
   enhancedGeneration: false,
   keyframe: { imageUrl: "https://img.example.com/keyframe2.png" },
@@ -419,7 +417,6 @@ describe("useFramePairGenerator", () => {
         description: "override",
         type: "transition",
         characterIds: [],
-        characters: [],
         elementIds: [],
         enhancedGeneration: false,
       };

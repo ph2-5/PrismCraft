@@ -50,7 +50,6 @@ function makeBeat(overrides: Partial<StoryBeat> = {}): StoryBeat {
     sequence: 0,
     description: "",
     duration: 5,
-    characters: [],
     characterIds: [],
     elementIds: [],
     ...overrides,
@@ -215,7 +214,6 @@ describe("generateBeatImagePrompt - 描述完整性", () => {
     it("角色外观描述应包含 description 字段内容", () => {
       const char = makeCharacter({ description: "左眼有伤疤，佩戴银色耳环" });
       const beat = makeBeat({
-        characters: ["char-1"],
         characterIds: ["char-1"],
       });
 
@@ -232,7 +230,6 @@ describe("generateBeatImagePrompt - 描述完整性", () => {
     it("角色无 description 时应添加默认面部和配饰描述", () => {
       const char = makeCharacter({ description: "" });
       const beat = makeBeat({
-        characters: ["char-1"],
         characterIds: ["char-1"],
       });
 
@@ -249,7 +246,6 @@ describe("generateBeatImagePrompt - 描述完整性", () => {
     it("角色 description 包含面部关键词时不应重复添加", () => {
       const char = makeCharacter({ description: "圆脸的少女" });
       const beat = makeBeat({
-        characters: ["char-1"],
         characterIds: ["char-1"],
       });
 
@@ -279,7 +275,7 @@ describe("generateSimpleBeatImagePrompt - 描述完整性", () => {
 
   it("应包含角色外观描述", () => {
     const char = makeCharacter();
-    const beat = makeBeat({ characters: ["char-1"], character: "char-1" });
+    const beat = makeBeat({ characterIds: ["char-1"] });
 
     const prompt = generateSimpleBeatImagePrompt(beat, [char], []);
 
@@ -291,7 +287,7 @@ describe("generateSimpleBeatImagePrompt - 描述完整性", () => {
   it("多角色应用分号分隔", () => {
     const char1 = makeCharacter({ id: "char-1", name: "角色A" });
     const char2 = makeCharacter({ id: "char-2", name: "角色B", appearance: { hairColor: "黑色", hairStyle: "短发", eyeColor: "", height: "", build: "", clothing: "长袍" } });
-    const beat = makeBeat({ characters: ["char-1", "char-2"] });
+    const beat = makeBeat({ characterIds: ["char-1", "char-2"] });
 
     const prompt = generateSimpleBeatImagePrompt(beat, [char1, char2], []);
 
@@ -305,7 +301,7 @@ describe("generateSimpleBeatImagePrompt - 描述完整性", () => {
       appearance: { hairColor: "", hairStyle: "", eyeColor: "", height: "", build: "", clothing: "" },
       description: "",
     });
-    const beat = makeBeat({ characters: ["char-1"], character: "char-1" });
+    const beat = makeBeat({ characterIds: ["char-1"] });
 
     const prompt = generateSimpleBeatImagePrompt(beat, [char], []);
 

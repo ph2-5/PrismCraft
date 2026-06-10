@@ -148,10 +148,6 @@ export const storyBeatSchema = z.object({
   transition: nullToUndef(z.string()),
 
   // ── Character & scene bindings ──
-  /** @deprecated Use characterIds instead. Kept for backward compatibility with v1.0 data. */
-  character: nullToUndef(z.string()),
-  /** @deprecated Use characterIds instead. Kept for backward compatibility with v1.5 data. */
-  characters: z.array(z.string()),
   characterIds: z.array(z.string()),
   characterOutfits: z.record(z.string(), z.string()).optional(),
   scene: nullToUndef(z.string()),

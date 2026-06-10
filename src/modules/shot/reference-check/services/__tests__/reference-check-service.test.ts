@@ -47,7 +47,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: ["char-1"],
-              characters: [],
               sceneId: undefined,
               elementIds: [],
               shotType: "medium",
@@ -59,7 +58,7 @@ describe("reference-check-service", () => {
       expect(result.canDelete).toBe(false);
     });
 
-    it("被 beat.characters 引用时应不可删除", () => {
+    it("被 beat.characterIds (旧格式 characters) 引用时应不可删除", () => {
       const stories = [
         buildStory({
           beats: [
@@ -68,31 +67,7 @@ describe("reference-check-service", () => {
               sequence: 1,
               description: "测试分镜",
               type: "action",
-              characterIds: [],
-              characters: ["char-1"],
-              sceneId: undefined,
-              elementIds: [],
-              shotType: "medium",
-            },
-          ],
-        }),
-      ];
-      const result = checkCharacterReferences("char-1", "角色A", stories);
-      expect(result.canDelete).toBe(false);
-    });
-
-    it("被 beat.character 引用时应不可删除", () => {
-      const stories = [
-        buildStory({
-          beats: [
-            {
-              id: "beat-1",
-              sequence: 1,
-              description: "测试分镜",
-              type: "action",
-              character: "char-1",
-              characterIds: [],
-              characters: [],
+              characterIds: ["char-1"],
               sceneId: undefined,
               elementIds: [],
               shotType: "medium",
@@ -114,7 +89,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: undefined,
               elementIds: ["char-1"],
               shotType: "medium",
@@ -136,7 +110,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: undefined,
               elementIds: [],
               elementBindings: { "char-1": { role: "character" } },
@@ -204,7 +177,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: "scene-1",
               elementIds: [],
               shotType: "medium",
@@ -226,7 +198,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               scene: "scene-1",
               sceneId: undefined,
               elementIds: [],
@@ -249,7 +220,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: undefined,
               elementIds: ["scene-1"],
               shotType: "medium",
@@ -297,7 +267,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: undefined,
               elementIds: ["elem-1"],
               shotType: "medium",
@@ -319,7 +288,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: undefined,
               elementIds: [],
               elementBindings: { "elem-1": { role: "prop" } },
@@ -342,7 +310,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: undefined,
               elementIds: ["elem-1"],
               shotType: "medium",
@@ -364,7 +331,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: undefined,
               elementIds: ["elem-1"],
               shotType: "medium",
@@ -387,7 +353,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              characters: [],
               sceneId: undefined,
               elementIds: ["elem-1"],
               shotType: "medium",

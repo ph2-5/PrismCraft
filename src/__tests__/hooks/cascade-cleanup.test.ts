@@ -3,8 +3,6 @@ import { describe, it, expect } from "vitest";
 interface TestBeat {
   id?: string;
   characterIds?: string[];
-  characters?: string[];
-  character?: string;
   scene?: string;
   sceneId?: string;
   [key: string]: unknown;
@@ -35,14 +33,6 @@ function cleanCharacterFromStories(
         updated.characterIds = updated.characterIds.filter(
           (cid: string) => cid !== characterId,
         );
-      }
-      if (updated.characters?.includes(characterId)) {
-        updated.characters = updated.characters.filter(
-          (cid: string) => cid !== characterId,
-        );
-      }
-      if (updated.character === characterId) {
-        delete updated.character;
       }
       return updated;
     });
@@ -83,8 +73,8 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
         id: "s1",
         characters: ["c1", "c2"],
         beats: [
-          { id: "b1", characterIds: ["c1", "c2"], characters: [], character: undefined },
-          { id: "b2", characterIds: ["c2"], characters: [], character: undefined },
+          { id: "b1", characterIds: ["c1", "c2"] },
+          { id: "b2", characterIds: ["c2"] },
         ],
       },
     ];
@@ -95,36 +85,20 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
     expect(result[0]!.beats[1]!.characterIds).toEqual(["c2"]);
   });
 
-  it("应从 characters 数组中移除已删除角色ID", () => {
+  it("应从 characterIds 数组中移除旧格式引用", () => {
     const stories = [
       {
         id: "s1",
         characters: ["c1", "c3"],
         beats: [
-          { id: "b1", characterIds: [], characters: ["c1", "c3"], character: undefined },
+          { id: "b1", characterIds: ["c1", "c3"] },
         ],
       },
     ];
 
     const result = cleanCharacterFromStories(stories, "c1");
 
-    expect(result[0]!.beats[0]!.characters).toEqual(["c3"]);
-  });
-
-  it("应从 character 单值字段中删除已删除角色ID", () => {
-    const stories = [
-      {
-        id: "s1",
-        characters: ["c1"],
-        beats: [
-          { id: "b1", characterIds: [], characters: [], character: "c1" },
-        ],
-      },
-    ];
-
-    const result = cleanCharacterFromStories(stories, "c1");
-
-    expect(result[0]!.beats[0]!.character).toBeUndefined();
+    expect(result[0]!.beats[0]!.characterIds).toEqual(["c3"]);
   });
 
   it("应从 story.characters 数组中移除已删除角色ID", () => {
@@ -146,7 +120,7 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
       {
         id: "s1",
         characters: ["c2"],
-        beats: [{ id: "b1", characterIds: ["c2"], characters: [], character: undefined }],
+        beats: [{ id: "b1", characterIds: ["c2"] }],
       },
     ];
 
@@ -161,12 +135,12 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
       {
         id: "s1",
         characters: ["c1"],
-        beats: [{ id: "b1", characterIds: ["c1"], characters: [], character: undefined }],
+        beats: [{ id: "b1", characterIds: ["c1"] }],
       },
       {
         id: "s2",
         characters: ["c1", "c2"],
-        beats: [{ id: "b2", characterIds: ["c1", "c2"], characters: [], character: undefined }],
+        beats: [{ id: "b2", characterIds: ["c1", "c2"] }],
       },
     ];
 
@@ -178,7 +152,7 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
     expect(result[1]!.beats[0]!.characterIds).toEqual(["c2"]);
   });
 
-  it("应同时清理三种角色引用字段", () => {
+  it("应清理 characterIds 中的角色引用", () => {
     const stories = [
       {
         id: "s1",
@@ -187,8 +161,6 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
           {
             id: "b1",
             characterIds: ["c1"],
-            characters: ["c1"],
-            character: "c1",
           },
         ],
       },
@@ -198,8 +170,6 @@ describe("级联清理 - 删除角色时清理 story beats 引用", () => {
 
     expect(result[0]!.characters).toEqual([]);
     expect(result[0]!.beats[0]!.characterIds).toEqual([]);
-    expect(result[0]!.beats[0]!.characters).toEqual([]);
-    expect(result[0]!.beats[0]!.character).toBeUndefined();
   });
 
   it("空 beats 数组不应报错", () => {

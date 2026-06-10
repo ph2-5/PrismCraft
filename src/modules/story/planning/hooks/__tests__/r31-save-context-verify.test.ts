@@ -69,7 +69,7 @@ function buildProps(overrides = {}) {
     setStories: vi.fn(),
     currentStory: story,
     setCurrentStory: vi.fn(),
-    beats: [{ id: "beat-1", type: "scene", title: "镜头1", content: "", description: "", duration: 5, order: 0, sequence: 0, characters: [], elementIds: [], characterIds: [] }] as StoryBeat[],
+    beats: [{ id: "beat-1", type: "scene", title: "镜头1", content: "", description: "", duration: 5, order: 0, sequence: 0, elementIds: [], characterIds: [] }] as StoryBeat[],
     setBeats: vi.fn(),
     markClean: vi.fn(),
     markDirty: vi.fn(),

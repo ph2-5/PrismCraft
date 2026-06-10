@@ -12,7 +12,6 @@ function makeBeat(overrides: Partial<StoryBeat> = {}): StoryBeat {
     sequence: 1,
     description: "test beat",
     duration: 5,
-    characters: [],
     elementIds: [],
     characterIds: [],
     enhancedGeneration: false,
@@ -62,21 +61,10 @@ describe("checkCharacterReferences", () => {
     expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
-  it("detects reference via beat.characters", () => {
+  it("detects reference via beat.characterIds (single)", () => {
     const stories = [
       makeStory({
-        beats: [makeBeat({ characters: ["char-1"] })],
-      }),
-    ];
-    const result = checkCharacterReferences("char-1", "角色A", stories);
-    expect(result.canDelete).toBe(false);
-    expect(result.references[0]!.usedInBeats).toHaveLength(1);
-  });
-
-  it("detects reference via beat.character", () => {
-    const stories = [
-      makeStory({
-        beats: [makeBeat({ character: "char-1" })],
+        beats: [makeBeat({ characterIds: ["char-1"] })],
       }),
     ];
     const result = checkCharacterReferences("char-1", "角色A", stories);

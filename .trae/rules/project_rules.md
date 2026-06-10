@@ -209,6 +209,25 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 
 ### NPM Scripts Index
 
+### Native Module Rules (CRITICAL for AI)
+
+**原生模块必须精确锁定版本**，禁止使用 `^` 或 `~`。原因：原生模块的小版本升级可能引入 C++ API 变更，导致 `electron-rebuild` 编译失败。
+
+当前原生模块清单：
+| 模块 | 锁定版本 | 原因 |
+|------|---------|------|
+| better-sqlite3 | 12.10.0 | SQLite3 绑定，C++ 原生编译 |
+
+**AI 修改 package.json 时必须遵守**：
+1. 不要将原生模块版本从精确锁定改为 `^` 或 `~`
+2. 新增原生模块依赖时，必须精确锁定版本
+3. 新增原生模块后，必须在 `electron-builder` 的 `asarUnpack` 中添加对应的 `.node` 文件路径
+4. 新增原生模块后，必须在 `postinstall` 和 `rebuild` 脚本中添加 rebuild 命令
+
+**验证脚本**：`node scripts/check-native-modules.mjs` — 检查原生模块版本是否精确锁定
+
+### NPM Scripts Index
+
 | Script | Purpose |
 |--------|---------|
 | `npm run dev` | Vite dev server (renderer only, no Electron) |
@@ -395,11 +414,11 @@ Electron e2e test infrastructure:
 | ~~大文件~~ | ~~中~~ | 已修复：18个>400行文件全部拆分，拆分出35+子组件/hooks |
 | ~~非空断言~~ | ~~中~~ | 已修复：生产代码0处`!.`，`as unknown as`仅存在于测试文件（测试中合理使用） |
 | ~~性能基础设施~~ | ~~低~~ | 已铺设：React.memo 5个高频组件、@tanstack/react-virtual虚拟列表hook、useReducer状态管理重构 |
-| WASM 依赖膨胀 | 低 | better-sqlite3 可选依赖，无法裁剪，无害 |
+| WASM 依赖膨胀 | 低 | better-sqlite3 原生模块，打包时 asarUnpack 解压 .node 文件，无害 |
 | ~~tsconfig 排除测试~~ | ~~中~~ | 已修复：新增 tsconfig.test.json，测试文件参与类型检查（R55） |
 | ~~Next.js output:"export"~~ | ~~高~~ | 已修复：迁移到 Vite + React Router（R57/R58），功能利用率从15%提升到100% |
-| Electron 镜像依赖 | 低 | .npmrc 配置国内镜像，构建环境受限 |
-| 版本锁定策略 | 低 | better-sqlite3 精确锁定，其他依赖用 ^ |
+| Electron 镜像依赖 | 低 | .npmrc 配置国内镜像（有注释说明），海外构建可用环境变量覆盖 |
+| 版本锁定策略 | 低 | better-sqlite3 精确锁定 12.10.0（原生模块必须精确锁定，见下方规则） |
 | ~~app-character chunk 过大~~ | ~~低~~ | 已修复：rolldown codeSplitting API替代manualChunks，character chunk从784KB降至20KB |
 
 ## AI Maintenance Workflow (CRITICAL)

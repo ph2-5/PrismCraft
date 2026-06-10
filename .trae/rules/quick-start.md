@@ -61,3 +61,10 @@
 - Critical updates MUST use optimistic locking (pass `version` to storage methods)
 - Code plugin sandbox blocks prototype chain escape (`__proto__`, `Reflect`, `Proxy`)
 - Plugin hot-reload MUST invalidate frontend caches (detection-rules, templates, model-profiles)
+- Native modules (better-sqlite3) MUST use exact version pins — never `^` or `~`
+
+## Build Troubleshooting
+- **`electron-rebuild` fails**: Run `npm run rebuild` manually. Ensure Visual Studio Build Tools (Windows) or Xcode CLI tools (macOS) are installed.
+- **Electron download timeout**: Check `.npmrc` mirror config. For overseas builds, override with `ELECTRON_MIRROR=https://github.com/electron/electron/releases/download/`
+- **`app.asar` locked during packaging**: Close all app instances and Electron processes, then retry `npm run build:win`
+- **Native module version mismatch**: Run `node scripts/check-native-modules.mjs` to verify exact version pins

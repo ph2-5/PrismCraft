@@ -655,10 +655,10 @@ describe("useVideoTaskStore", () => {
       expect(useVideoTaskStore.getState().allTasks[0]!.taskId).toBe("t-pend-2");
     });
 
-    it("should call deleteVideoTasksByStatus with failed", async () => {
+    it("should call deleteVideoTasksByStatus with failed and timeout", async () => {
       await useVideoTaskStore.getState().clearFailedTasks();
 
-      expect(mockVideoTaskStorage.deleteVideoTasksByStatus).toHaveBeenCalledWith(["failed"]);
+      expect(mockVideoTaskStorage.deleteVideoTasksByStatus).toHaveBeenCalledWith(["failed", "timeout"]);
     });
 
     it("should log error when storage delete fails", async () => {

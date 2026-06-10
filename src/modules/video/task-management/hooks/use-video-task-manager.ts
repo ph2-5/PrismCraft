@@ -270,8 +270,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
 
   clearFailedTasks: async () => {
     try {
-      await container.videoTaskStorage.deleteVideoTasksByStatus(["failed"]);
-      get().setAllTasks((prev) => excludeTasksByStatus(prev, ["failed"]));
+      await container.videoTaskStorage.deleteVideoTasksByStatus(["failed", "timeout"]);
+      get().setAllTasks((prev) => excludeTasksByStatus(prev, ["failed", "timeout"]));
     } catch (error) {
       errorLogger.error("Failed to clear failed tasks", error);
     }
@@ -477,7 +477,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         updatedTask = { ...updatedTask, ...guarded };
         const taskLabel = task.beatTitle || task.storyTitle || taskId.slice(0, 8);
         emitToast("error", t("video.generateFailed"), t("video.pollingFailedDetail", { taskLabel }));
-        removeCachedVideo(taskId).catch(() => {});
+        removeCachedVideo(taskId).catch((e) => { errorLogger.warn("[VideoTaskManager] removeCachedVideo failed", e); });
       }
       try {
         const failSaveResult = await saveVideoTask(updatedTask);

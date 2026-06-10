@@ -37,9 +37,12 @@ export async function saveVideoTask(task: VideoTask): Promise<Result<void>> {
 export async function getFailedTasks(): Promise<Result<VideoTask[]>> {
   return fromAsyncThrowable(async () => {
     const now = Date.now();
-    const tasks = await container.videoTaskStorage.getVideoTasksByStatus("failed");
+    const [failedTasks, timeoutTasks] = await Promise.all([
+      container.videoTaskStorage.getVideoTasksByStatus("failed"),
+      container.videoTaskStorage.getVideoTasksByStatus("timeout"),
+    ]);
 
-    return tasks.filter((t) => !t.expiresAt || new Date(t.expiresAt).getTime() > now);
+    return [...failedTasks, ...timeoutTasks].filter((t) => !t.expiresAt || new Date(t.expiresAt).getTime() > now);
   });
 }
 

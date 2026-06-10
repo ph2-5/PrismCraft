@@ -64,6 +64,7 @@ export function TaskFilterBar({
           <SelectItem value="generating">{t("task.processingStatus")}</SelectItem>
           <SelectItem value="completed">{t("task.completedStatus")}</SelectItem>
           <SelectItem value="failed">{t("task.failedStatus")}</SelectItem>
+          <SelectItem value="timeout">{t("task.timeoutStatus")}</SelectItem>
         </SelectContent>
       </Select>
       <Select

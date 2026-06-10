@@ -12,12 +12,13 @@ export class TransitionError extends AppError {
 }
 
 const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
-  pending: ["generating", "failed", "cancelled"],
-  generating: ["completed", "failed", "cancelled"],
+  pending: ["generating", "failed", "cancelled", "timeout"],
+  generating: ["completed", "failed", "cancelled", "timeout"],
   completed: ["pending"],
   failed: ["retrying", "cancelled"],
   cancelled: [],
-  retrying: ["generating", "completed", "failed", "cancelled"],
+  retrying: ["generating", "completed", "failed", "cancelled", "timeout"],
+  timeout: ["retrying", "failed", "cancelled"],
 };
 
 const POLLABLE_STATUSES: VideoTaskStatus[] = ["pending", "generating", "retrying"];
@@ -33,6 +34,10 @@ export const TaskMachine = {
 
   isTerminal(status: VideoTaskStatus): boolean {
     return status === "completed" || status === "cancelled";
+  },
+
+  isRecoverable(status: VideoTaskStatus): boolean {
+    return status === "failed" || status === "timeout";
   },
 
   transition(
@@ -84,6 +89,11 @@ export const TaskMachine = {
         return {
           recoveryAttempts: (recoveryAttemptsCount(task)) + 1,
           pollFailureCount: 0,
+        };
+      case "timeout":
+        return {
+          pollFailureCount: 0,
+          message: context?.error || "任务超时",
         };
       default:
         return {};

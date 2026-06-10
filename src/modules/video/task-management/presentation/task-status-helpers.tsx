@@ -5,6 +5,7 @@ import {
   PlayCircle,
   RotateCcw,
   Ban,
+  Timer,
 } from "lucide-react";
 import type { VideoTaskStatus } from "@/domain/schemas";
 import { t } from "@/shared/constants";
@@ -23,6 +24,8 @@ export function getStatusIcon(status: VideoTaskStatus) {
       return <RotateCcw className="w-4 h-4 text-orange-500" />;
     case "cancelled":
       return <Ban className="w-4 h-4 text-gray-500" />;
+    case "timeout":
+      return <Timer className="w-4 h-4 text-orange-500" />;
     default:
       return <Clock className="w-4 h-4 text-gray-500" />;
   }
@@ -42,6 +45,8 @@ export function getStatusColor(status: VideoTaskStatus) {
       return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
     case "cancelled":
       return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+    case "timeout":
+      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
     default:
       return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
   }
@@ -61,6 +66,8 @@ export function getStatusLabel(status: VideoTaskStatus) {
       return t("task.cancelledLabel");
     case "retrying":
       return t("task.retryingLabel");
+    case "timeout":
+      return t("task.timeoutLabel");
     default:
       return status;
   }

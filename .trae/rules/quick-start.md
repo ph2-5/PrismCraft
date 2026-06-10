@@ -28,6 +28,7 @@
 | Module contracts | `src/modules/{module}/MODULE.md` |
 | Storage layer | `src/infrastructure/storage/` |
 | Electron main | `electron/src/main.ts` |
+| API server | `electron/src/api/` (types, middleware, schemas, routes, server) |
 | Vite config | `vite.config.ts` |
 | Plugin system | `electron/src/plugins/` |
 | API config facade | `src/infrastructure/api-config-facade.ts` |

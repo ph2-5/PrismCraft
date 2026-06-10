@@ -4,7 +4,7 @@ const MAX_DURATION_MS = 2 * 60 * 60 * 1000;
 
 export interface PolicyAction {
   type: "TRANSITION" | "DELETE" | "NONE";
-  targetStatus?: "failed";
+  targetStatus?: "failed" | "timeout";
   reason?: string;
 }
 
@@ -16,7 +16,7 @@ export function checkTimeout(task: VideoTask): PolicyAction {
   if (age > MAX_DURATION_MS) {
     return {
       type: "TRANSITION",
-      targetStatus: "failed",
+      targetStatus: "timeout",
       reason: `任务超时 (${Math.round(age / 60000)}分钟)`,
     };
   }

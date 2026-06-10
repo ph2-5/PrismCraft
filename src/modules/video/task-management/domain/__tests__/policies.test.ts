@@ -37,26 +37,26 @@ describe("timeout-policy", () => {
     expect(checkTimeout(task)).toEqual({ type: "NONE" });
   });
 
-  it("should return TRANSITION to failed for a pending task older than 2 hours", () => {
+  it("should return TRANSITION to timeout for a pending task older than 2 hours", () => {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000 - 1).toISOString();
     const task = makeTask({ status: "pending", createdAt: twoHoursAgo });
     const action = checkTimeout(task);
 
     expect(action.type).toBe("TRANSITION");
     if (action.type === "TRANSITION") {
-      expect(action.targetStatus).toBe("failed");
+      expect(action.targetStatus).toBe("timeout");
       expect(action.reason).toContain("超时");
     }
   });
 
-  it("should return TRANSITION to failed for a generating task older than 2 hours", () => {
+  it("should return TRANSITION to timeout for a generating task older than 2 hours", () => {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000 - 1).toISOString();
     const task = makeTask({ status: "generating", createdAt: twoHoursAgo });
     const action = checkTimeout(task);
 
     expect(action.type).toBe("TRANSITION");
     if (action.type === "TRANSITION") {
-      expect(action.targetStatus).toBe("failed");
+      expect(action.targetStatus).toBe("timeout");
     }
   });
 

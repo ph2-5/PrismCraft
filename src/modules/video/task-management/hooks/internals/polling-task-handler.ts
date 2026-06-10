@@ -33,9 +33,9 @@ export async function handleTimedOutTasks(
   const validTimeoutIds = new Set<string>();
   const batchUpdates: Array<{ taskId: string; updates: Partial<VideoTask> }> = [];
   for (const task of timedOutTasks) {
-    if (!TaskMachine.canTransition(task.status, "failed")) {
+    if (!TaskMachine.canTransition(task.status, "timeout")) {
       errorLogger.warn(
-        { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=failed` },
+        { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=timeout` },
         "VideoTaskManager",
       );
       continue;
@@ -44,7 +44,7 @@ export async function handleTimedOutTasks(
     batchUpdates.push({
       taskId: task.taskId,
       updates: {
-        status: "failed",
+        status: "timeout",
         message: t("task.timeoutMayStillGenerating"),
         pollFailureCount: 0,
       },
@@ -58,7 +58,7 @@ export async function handleTimedOutTasks(
         if (validTimeoutIds.has(task.taskId)) {
           return {
             ...task,
-            ...withTransitionGuard(task, "failed", {
+            ...withTransitionGuard(task, "timeout", {
               message: t("task.timeoutMayStillGenerating"),
               pollFailureCount: 0,
             }),

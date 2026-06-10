@@ -129,27 +129,33 @@ describe("video-recovery-service", () => {
   });
 
   describe("getFailedTasks", () => {
-    it("should return non-expired failed tasks", async () => {
+    it("should return non-expired failed and timeout tasks", async () => {
       const futureExpiry = new Date(Date.now() + 86400000).toISOString();
-      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([
-        createMockTask({ taskId: "task-1", expiresAt: futureExpiry }),
-        createMockTask({ taskId: "task-2", expiresAt: futureExpiry }),
-      ]);
+      mockVideoTaskStorage.getVideoTasksByStatus
+        .mockResolvedValueOnce([
+          createMockTask({ taskId: "task-1", expiresAt: futureExpiry }),
+          createMockTask({ taskId: "task-2", expiresAt: futureExpiry }),
+        ])
+        .mockResolvedValueOnce([
+          createMockTask({ taskId: "task-3", expiresAt: futureExpiry }),
+        ]);
 
       const result = await getFailedTasks();
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value).toHaveLength(2);
+        expect(result.value).toHaveLength(3);
       }
     });
 
     it("should filter out expired tasks", async () => {
       const pastExpiry = new Date(Date.now() - 86400000).toISOString();
       const futureExpiry = new Date(Date.now() + 86400000).toISOString();
-      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([
-        createMockTask({ taskId: "task-1", expiresAt: pastExpiry }),
-        createMockTask({ taskId: "task-2", expiresAt: futureExpiry }),
-      ]);
+      mockVideoTaskStorage.getVideoTasksByStatus
+        .mockResolvedValueOnce([
+          createMockTask({ taskId: "task-1", expiresAt: pastExpiry }),
+          createMockTask({ taskId: "task-2", expiresAt: futureExpiry }),
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await getFailedTasks();
       expect(result.ok).toBe(true);
@@ -160,9 +166,11 @@ describe("video-recovery-service", () => {
     });
 
     it("should include tasks without expiresAt", async () => {
-      mockVideoTaskStorage.getVideoTasksByStatus.mockResolvedValue([
-        createMockTask({ taskId: "task-1", expiresAt: undefined }),
-      ]);
+      mockVideoTaskStorage.getVideoTasksByStatus
+        .mockResolvedValueOnce([
+          createMockTask({ taskId: "task-1", expiresAt: undefined }),
+        ])
+        .mockResolvedValueOnce([]);
 
       const result = await getFailedTasks();
       expect(result.ok).toBe(true);
@@ -445,7 +453,7 @@ describe("video-recovery-service", () => {
       const p2 = startBackgroundRecovery();
       await Promise.all([p1, p2]);
 
-      expect(mockVideoTaskStorage.getVideoTasksByStatus).toHaveBeenCalledTimes(1);
+      expect(mockVideoTaskStorage.getVideoTasksByStatus).toHaveBeenCalledTimes(2);
     });
   });
 

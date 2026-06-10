@@ -55,6 +55,7 @@ export function TaskResultPanel({
                   {currentTask.status === "generating" && t("quickGenerate.generating")}
                   {currentTask.status === "completed" && t("quickGenerate.completed")}
                   {currentTask.status === "failed" && t("quickGenerate.generateFailed")}
+                  {currentTask.status === "timeout" && t("quickGenerate.generateTimeout")}
                 </span>
                 <span className="text-slate-500">
                   {currentTask.progress}%
@@ -66,7 +67,7 @@ export function TaskResultPanel({
               />
             </div>
 
-            {currentTask.status === "failed" && (
+            {(currentTask.status === "failed" || currentTask.status === "timeout") && (
               <div className="flex items-start gap-2 p-3 bg-red-900/30 rounded-lg border border-red-800/50">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-300">
@@ -155,12 +156,15 @@ export function TaskResultPanel({
                             ? "bg-green-900/50 text-green-400"
                             : task.status === "failed"
                               ? "bg-red-900/50 text-red-400"
-                              : "bg-yellow-900/50 text-yellow-400"
+                              : task.status === "timeout"
+                                ? "bg-orange-900/50 text-orange-400"
+                                : "bg-yellow-900/50 text-yellow-400"
                         }
                       `}
                     >
                       {task.status === "completed" && t("quickGenerate.statusCompleted")}
                       {task.status === "failed" && t("quickGenerate.statusFailed")}
+                      {task.status === "timeout" && t("quickGenerate.statusTimeout")}
                       {["pending", "generating"].includes(task.status) &&
                         t("quickGenerate.statusProcessing")}
                     </span>
@@ -186,7 +190,7 @@ export function TaskResultPanel({
                       </Button>
                     </div>
                   )}
-                  {task.status === "failed" && (
+                  {(task.status === "failed" || task.status === "timeout") && (
                     <div className="flex gap-2 mt-2">
                       <Button
                         variant="outline"

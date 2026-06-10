@@ -68,7 +68,7 @@ export class SmartRetryEngine {
           tokenWasteRisk: "low",
         };
       }
-    } else if (task.status === "failed") {
+    } else if (task.status === "failed" || task.status === "timeout") {
       if (verification && !verification.isValid) {
         decision = this.analyzeFailedVerification(task, verification, previousAttempts);
       } else {

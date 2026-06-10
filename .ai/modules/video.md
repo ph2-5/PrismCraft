@@ -28,12 +28,12 @@ recovery ← task-management (通过 registerCacheVideoBlobFn/registerRecoveryFn
 
 ### 1. 新增视频任务状态或修改状态转换
 - 修改文件：`task-management/domain/task-machine.ts`、`task-management/domain/task-schema.ts`
-- 检查不变量：INV-1（状态转换必须经过 TaskMachine）、INV-15（终态不可轮询）、INV-18（mapApiStatus 降级）
+- 检查不变量：INV-1（状态转换必须经过 TaskMachine）、INV-15（终态不可轮询，failed/timeout 可恢复）、INV-18（mapApiStatus 降级）
 - 测试：`npx vitest run src/modules/video/task-management/domain`
 
 ### 2. 修改轮询逻辑或策略引擎
 - 修改文件：`task-management/infrastructure/polling-scheduler.ts`、`task-management/domain/policies.ts`
-- 检查不变量：INV-7（轮询失败上限）、INV-14（策略评估顺序）
+- 检查不变量：INV-7（轮询失败上限，超时标记为 timeout，网络错误不累计 pollFailureCount）、INV-14（策略评估顺序）
 - 测试：`npx vitest run src/modules/video/task-management/infrastructure`
 
 ### 3. 修改缓存策略或容量限制

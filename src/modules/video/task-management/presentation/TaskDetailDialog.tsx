@@ -145,7 +145,7 @@ export function TaskDetailDialog({
             </div>
           )}
 
-          {task.message && task.status === "failed" && (
+          {task.message && (task.status === "failed" || task.status === "timeout") && (
             <div className="space-y-1">
               <Label className="text-xs text-red-500">{t("task.errorMessage")}</Label>
               <div className="text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 px-2 py-1 rounded">
@@ -185,7 +185,7 @@ export function TaskDetailDialog({
                 {t("task.beatButton")}
               </Button>
             )}
-            {task.status === "failed" && task.beatId && (
+            {(task.status === "failed" || task.status === "timeout") && task.beatId && (
               <Button
                 variant="outline"
                 className="flex-1 gap-1 text-orange-600"

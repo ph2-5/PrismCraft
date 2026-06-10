@@ -25,7 +25,13 @@ electron/src/
   main.ts          → App lifecycle, window management, crash recovery
   main-dev.ts      → Dev mode entry (same crash recovery, debug logging, DevTools)
   main-common.ts   → Shared: createWindow, static server, gracefulShutdown, config IPC
-  api-server.ts    → HTTP API server for renderer↔main communication
+  api-server.ts    → Re-export from api/server.ts (backward-compatible entry point)
+  api/             → HTTP API server (modular structure)
+    types.ts       → Route, RouteHandler, ApiResponse type definitions (with Zod schema support)
+    middleware.ts   → Rate limiting, CORS, X-Electron-App auth, connection tracking
+    schemas.ts     → Zod schemas for all route request bodies (40+ schemas)
+    routes.ts      → Route registry (path → handler + schema + methods)
+    server.ts      → HTTP server start/stop, request dispatch, schema validation
   preload.ts       → IPC bridge with permission system and rate limiting
   database/        → SQLite connection, schema builder, schema, migrations
   handlers/        → IPC handlers (database, config, sync, secure-config)
@@ -603,13 +609,13 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 84 guards:**
+**Quick reference — all 86 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|
 | 数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68, R69, R72, R77 | 数据不丢、不脏、不冲突：持久化先于状态、级联删除、乐观锁、脏状态守卫、SQL安全、reload恢复UI状态、删除输入确认、自动保存不限业务数据 |
-| 异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67 | 并发、竞态、轮询、生命周期：去重、所有权验证、Zustand函数式更新、轮询标志重置、卸载保护 |
-| 错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63 | 错误不吞、不假成功、用户可理解：通知用户、可识别标签、mapUserFacingError、t()国际化 |
+| 异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67, R85 | 并发、竞态、轮询、生命周期：去重、所有权验证、Zustand函数式更新、轮询标志重置、卸载保护、网络错误不累计失败计数 |
+| 错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63, R86 | 错误不吞、不假成功、用户可理解：通知用户、可识别标签、mapUserFacingError、t()国际化、超时与失败状态区分 |
 | UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35 | 界面不崩、有反馈、无泄漏：video onError守卫、ErrorBoundary重试限制、加载状态、Blob URL回收 |
 | 工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60 | 依赖合规、构建安全、测试可靠：DDD层合规、批量查询、IPC效率、无any、Vite迁移 |
 | 平台兼容 | R21, R43, R49, R51, R52, R61 | IPC、Electron环境、进程模型：无fetch("/api/")、isElectron()守卫、usePreference、e.currentTarget |

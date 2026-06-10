@@ -11,11 +11,12 @@
     "任务状态变更必须通过 useVideoTaskStore 统一管理",
     "任务追踪信息 buildTrackingInfo 不暴露完整API密钥",
     "视频预览必须通过 cache 子域获取 URL",
-    "状态转换必须通过 TaskMachine.transition 校验，合法路径：pending→generating→completed|failed|cancelled, failed→retrying→generating, completed→pending(重置)",
+    "状态转换必须通过 TaskMachine.transition 校验，合法路径：pending→generating→completed|failed|cancelled|timeout, failed|timeout→retrying→generating, completed→pending(重置)",
     "completed 只能回到 pending（重置），不能直接 retrying 或 generating",
     "cancelled 是终态，不允许任何转换",
+    "failed 和 timeout 是可恢复状态（isRecoverable()返回true），可通过重试回到轮询队列",
     "withTransitionGuard 在非法转换时：开发模式抛 TransitionError，生产模式剥离 status 字段仅保留安全更新",
-    "轮询失败达 MAX_POLL_FAILURES(30) 次自动标记为 failed 并通知用户",
+    "轮询失败达 MAX_POLL_FAILURES(30) 次自动标记为 timeout（非 failed），网络错误不累计 pollFailureCount",
     "useVideoTaskStore.cleanup() 只能由 app 级生命周期组件（VideoTaskManagerInitializer）调用，页面级组件不得在卸载时调用",
     "mapApiStatus(apiStatus, videoUrl?) 在 videoUrl 存在时直接返回 completed，不依赖 API status 字段"
   ]

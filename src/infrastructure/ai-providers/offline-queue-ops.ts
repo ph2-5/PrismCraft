@@ -369,28 +369,29 @@ export async function cleanCompletedRequests(
   }
 }
 
-export async function getQueueStats(): Promise<{ pending: number; generating: number; failed: number; total: number }> {
+export async function getQueueStats(): Promise<{ pending: number; generating: number; failed: number; timeout: number; total: number }> {
   try {
     const result = await safeQuery<{ status: string; count: number }>("SELECT status, COUNT(*) as count FROM generation_tasks GROUP BY status");
-    const stats = { pending: 0, generating: 0, failed: 0, total: 0 };
+    const stats = { pending: 0, generating: 0, failed: 0, timeout: 0, total: 0 };
     for (const row of result) {
       const count = Number(row.count);
       stats.total += count;
       if (row.status === "pending") stats.pending = count;
       else if (row.status === "generating") stats.generating = count;
       else if (row.status === "failed") stats.failed = count;
+      else if (row.status === "timeout") stats.timeout = count;
     }
     return stats;
   } catch (e) {
     errorLogger.warn("[OfflineQueue] 获取队列统计失败", e);
-    return { pending: 0, generating: 0, failed: 0, total: 0 };
+    return { pending: 0, generating: 0, failed: 0, timeout: 0, total: 0 };
   }
 }
 
 export async function retryFailedTasks(): Promise<number> {
   try {
     const failed = await safeQuery<{ id: string; error_message: string | null }>(
-      "SELECT id, error_message FROM generation_tasks WHERE status = 'failed'",
+      "SELECT id, error_message FROM generation_tasks WHERE status IN ('failed', 'timeout')",
       [],
     );
     let retried = 0;

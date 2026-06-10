@@ -47,7 +47,7 @@ export default function VideoTasksPage() {
     (task) => task.status === "generating",
   ).length;
   const pendingTasks = tasks.filter((task) => task.status === "pending").length;
-  const failedTasks = tasks.filter((task) => task.status === "failed").length;
+  const failedTasks = tasks.filter((task) => task.status === "failed" || task.status === "timeout").length;
   const completionRate =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 

@@ -53,6 +53,7 @@ const TaskMachine: {
   canTransition(from: VideoTaskStatus, to: VideoTaskStatus): boolean
   isPollable(status: VideoTaskStatus): boolean
   isTerminal(status: VideoTaskStatus): boolean
+  isRecoverable(status: VideoTaskStatus): boolean
   transition(
     task: VideoTask,
     targetStatus: VideoTaskStatus,
@@ -63,22 +64,24 @@ const TaskMachine: {
 
 **合法状态转换表**：
 
-| from → to | **pending** | **generating** | **completed** | **failed** | **cancelled** | **retrying** |
-|-----------|---------|------------|-----------|--------|-----------|----------|
-| **pending** | - | ✓ | - | ✓ | ✓ | - |
-| **generating** | - | - | ✓ | ✓ | ✓ | - |
-| **completed** | ✓ | - | - | - | - | - |
-| **failed** | - | - | - | - | ✓ | ✓ |
-| **cancelled** | - | - | - | - | - | - |
-| **retrying** | - | ✓ | ✓ | ✓ | ✓ | - |
+| from → to | **pending** | **generating** | **completed** | **failed** | **cancelled** | **retrying** | **timeout** |
+|-----------|---------|------------|-----------|--------|-----------|----------|---------|
+| **pending** | - | ✓ | - | ✓ | ✓ | - | ✓ |
+| **generating** | - | - | ✓ | ✓ | ✓ | - | ✓ |
+| **completed** | ✓ | - | - | - | - | - | - |
+| **failed** | - | - | - | - | ✓ | ✓ | - |
+| **cancelled** | - | - | - | - | - | - | - |
+| **retrying** | - | ✓ | ✓ | ✓ | ✓ | - | ✓ |
+| **timeout** | - | - | - | ✓ | ✓ | ✓ | - |
 
 **可轮询状态**：pending、generating、retrying
-**终态**：completed、cancelled、failed
+**终态**：completed、cancelled
+**可恢复状态**：failed、timeout（可通过 `isRecoverable()` 查询）
 
 #### 状态映射
 
 ```typescript
-function mapApiStatus(apiStatus: string, videoUrl?: string): "pending" | "generating" | "completed" | "failed"
+function mapApiStatus(apiStatus: string, videoUrl?: string): "pending" | "generating" | "completed" | "failed" | "timeout"
 ```
 
 #### 策略引擎
@@ -86,7 +89,7 @@ function mapApiStatus(apiStatus: string, videoUrl?: string): "pending" | "genera
 ```typescript
 interface PolicyAction {
   type: "TRANSITION" | "DELETE" | "NONE"
-  targetStatus?: "failed"
+  targetStatus?: "failed" | "timeout"
   reason?: string
 }
 
@@ -131,7 +134,7 @@ interface VideoTaskManagerState {
   clearActiveTasks(): Promise<void>
   clearAllTasks(): Promise<void>
   clearCompletedTasks(): Promise<void>
-  clearFailedTasks(): Promise<void>
+  clearFailedTasks(): Promise<void>  // 清除 failed + timeout 状态的任务
   createTask(
     prompt: string,
     _deprecated?: undefined,
@@ -420,7 +423,7 @@ interface TokenWasteCheckResult {
 ```typescript
 function registerCacheVideoBlobFn(fn: (taskId: string, videoUrl: string) => Promise<Result<boolean>>): void
 function saveVideoTask(task: VideoTask): Promise<Result<void>>
-function getFailedTasks(): Promise<Result<VideoTask[]>>
+function getFailedTasks(): Promise<Result<VideoTask[]>>  // 返回 failed + timeout 状态的任务
 function getTaskById(taskId: string): Promise<Result<VideoTask | undefined>>
 function recoverVideoByTaskId(taskId: string): Promise<Result<VideoRecoverySuccessResult>>
 function startBackgroundRecovery(): Promise<Result<void>>
@@ -547,7 +550,7 @@ function applyVideoTemplate(template: VideoTemplate): { prompt: string; duration
 `startBackgroundRecovery` 使用 `isRecoveryRunning` 标志防止并发执行，重复调用直接返回成功。
 
 ### INV-7: 轮询失败上限
-连续轮询失败次数达到 `MAX_POLL_FAILURES` 时，任务自动标记为 `failed`，并通知用户（使用可读标签而非 ID）。
+连续轮询失败次数达到 `MAX_POLL_FAILURES` 时，任务自动标记为 `timeout`，并通知用户（使用可读标签而非 ID）。网络错误（ECONNREFUSED、ETIMEDOUT 等）不累计 `pollFailureCount`，仅等待下次轮询重试。
 
 ### INV-8: 缓存容量限制
 视频缓存最大 500 条 / 10240 MB，图片缓存最大 500 条 / 512 MB。写入前检查容量，超限时自动清理至 70% 阈值。
@@ -571,7 +574,7 @@ function applyVideoTemplate(template: VideoTemplate): { prompt: string; duration
 `evaluatePolicies` 按固定顺序评估策略（先 timeout 后 expiration），所有非 NONE 的动作必须返回，由调用方决定执行顺序。
 
 ### INV-15: 终态任务不可轮询
-`TaskMachine.isPollable()` 定义的可轮询状态为 `pending`、`generating`、`retrying`。终态（`completed`、`cancelled`、`failed`）任务不得进入轮询队列。
+`TaskMachine.isPollable()` 定义的可轮询状态为 `pending`、`generating`、`retrying`。终态（`completed`、`cancelled`）任务不得进入轮询队列。`failed` 和 `timeout` 是可恢复状态（`isRecoverable()` 返回 true），可通过重试回到轮询队列。
 
 ### INV-16: beforeunload 同步保证
 页面关闭时，通过同步 XHR 将所有任务状态批量保存到主进程（`/video-tasks/bulk-save`），确保不丢失进行中任务的状态。

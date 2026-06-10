@@ -467,22 +467,26 @@ PRAGMA mmap_size = 268435456;    -- 256MB 内存映射
           │         └────┬─────┘           │
           │              │                 │
      cancelled    generating,failed   cancelled
-          │              │                 │
+     timeout            │             timeout
           │         ┌────┴─────┐           │
           │         │generating│           │
           │         └────┬─────┘           │
           │              │                 │
           │   completed,failed,cancelled   │
+          │         timeout                │
           │         ┌────┴─────┐           │
           │         │completed │           │
           │         └──────────┘           │
           │                                │
-          │         ┌──────┐    ┌────────┐ │
-          └─────────│failed│←──│retrying│←┘
-                    └──┬───┘    └───┬────┘
-                       │            │
-                  retrying    generating,
-                  cancelled   completed,failed,cancelled
+          │  ┌──────┐  ┌────────┐  ┌─────┐│
+          └──│failed│←─│retrying│←─│timeout│
+             └──┬───┘  └───┬────┘  └──┬──┘
+                │          │           │
+           retrying   generating   retrying
+           cancelled  completed    failed
+                      failed       cancelled
+                      cancelled
+                      timeout
 ```
 
 **合法转换表**：
@@ -492,9 +496,11 @@ PRAGMA mmap_size = 268435456;    -- 256MB 内存映射
 | pending | generating | API 接受任务 |
 | pending | failed | API 拒绝任务 |
 | pending | cancelled | 用户取消 |
+| pending | timeout | 轮询超时 |
 | generating | completed | API 返回视频 URL |
-| generating | failed | API 返回错误 / 超时 |
+| generating | failed | API 返回错误 |
 | generating | cancelled | 用户取消 |
+| generating | timeout | 轮询超时 |
 | completed | pending | 重新生成 |
 | failed | retrying | 智能重试触发 |
 | failed | cancelled | 用户取消 |
@@ -502,13 +508,21 @@ PRAGMA mmap_size = 268435456;    -- 256MB 内存映射
 | retrying | completed | 重试成功 |
 | retrying | failed | 重试失败 |
 | retrying | cancelled | 用户取消 |
+| retrying | timeout | 轮询超时 |
+| timeout | retrying | 用户/智能重试触发 |
+| timeout | failed | 重试失败 |
+| timeout | cancelled | 用户取消 |
 | cancelled | （终态） | — |
 
 **可轮询状态**：pending、generating、retrying。只有这些状态的任务需要定时轮询 API 查询进度。
 
-**终态**：completed、failed、cancelled。终态任务不参与轮询。
+**终态**：completed、cancelled。终态任务不参与轮询。
 
-**副作用**：每次转换自动设置副作用字段——generating 时重置 `pollFailureCount`；completed 时设置 `progress: 100` 和 `videoUrl`；failed 时设置 `message`；pending 时清空 `videoUrl` 和 `progress`。
+**可恢复状态**：failed、timeout。`isRecoverable()` 返回 true，可通过重试回到轮询队列。
+
+**副作用**：每次转换自动设置副作用字段——generating 时重置 `pollFailureCount`；completed 时设置 `progress: 100` 和 `videoUrl`；failed 时设置 `message`；timeout 时重置 `pollFailureCount` 并设置 `message`；pending 时清空 `videoUrl` 和 `progress`。
+
+**网络错误处理**：轮询过程中遇到网络错误（ECONNREFUSED、ETIMEDOUT、ENOTFOUND 等 14 种模式）不累计 `pollFailureCount`，仅等待下次轮询重试。只有非网络错误（API 错误、业务错误）才累计失败次数。
 
 ### 6.5 断路器状态机
 
@@ -570,6 +584,8 @@ polling-engine (5-15s interval)
     → if failed: smartRetryEngine.evaluate(task)
       → if retryable: TaskMachine.transition(task, "retrying")
       → else: emitToast("error", taskLabel)
+    → if timeout: emitToast("warning", taskLabel, "任务超时，可能仍在生成中")
+      → user can manually retry from timeout state
 ```
 
 **角色删除的完整数据流**：
@@ -620,7 +636,38 @@ Preload (preload.ts)
 
 **为什么渲染进程不直接访问数据库**：Electron 的安全模型要求渲染进程（加载远程/本地 HTML）不应有完整的 Node.js 访问权限。通过 Preload 脚本暴露受控的 IPC 接口，渲染进程只能执行预定义的操作，且每个操作都经过权限检查和速率限制。
 
-### 7.2 IPC 安全体系
+### 7.2 HTTP API Server 架构
+
+API Server 是渲染进程与主进程的 HTTP 通信层，运行在 `127.0.0.1:API_SERVER_PORT`，采用模块化结构：
+
+```
+electron/src/api/
+  types.ts       → Route/RouteHandler/ApiResponse 类型定义（含 Zod schema 支持）
+  middleware.ts  → 限流（180次/分钟）、CORS、X-Electron-App 鉴权、连接追踪
+  schemas.ts     → 40+ Zod schema，定义每个路由的请求体验证规则
+  routes.ts      → 路由注册表（path → handler + schema + methods）
+  server.ts      → HTTP 服务器启停、请求分发、schema 验证
+```
+
+**请求处理流程**：
+
+```
+HTTP 请求 → CORS 校验 → X-Electron-App 鉴权 → 限流检查 → 路由匹配
+  → schema.safeParse(body) 验证请求体
+    → 验证失败: 返回 400 + 字段级错误详情
+    → 验证成功: handler 接收类型安全的 body
+  → handler 执行业务逻辑 → 返回 JSON 响应
+```
+
+**Zod schema 验证**：每个路由可定义可选的 `schema` 字段。有 schema 的路由在分发前自动验证请求体，验证失败返回 `400 { success: false, error: "Validation error", details: [{path, message}] }`。无 schema 的路由（如 GET 端点）直接透传原始 body。
+
+**安全机制**：
+- `X-Electron-App` 头校验：所有非 health 端点必须携带此头，防止外部请求
+- CORS 白名单：仅允许 `localhost` 和 `127.0.0.1` 的特定端口
+- 限流：每 IP 每分钟 180 次请求，超限返回 429
+- 请求体大小限制：50MB
+
+### 7.3 IPC 安全体系
 
 5 级权限从低到高：
 
@@ -861,7 +908,7 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 
 **ESLint 架构守卫规则**：在编辑器实时执行，禁止 shared→modules 导入、domain→infrastructure 导入、modules 深层路径导入。生产代码中违反为 error，测试代码中为 warn。
 
-### 9.3 84 条回归防护
+### 9.3 86 条回归防护
 
 回归防护规则来自四次 Bug 审计，每条规则对应一个已发生的真实 Bug：
 

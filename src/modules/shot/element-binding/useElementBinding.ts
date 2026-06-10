@@ -33,7 +33,7 @@ export function useElementBinding() {
         if (!cancelled) {
           elementManager.getAllElements().then((els) => {
             if (!cancelled) setElements(els);
-          }).catch(() => {});
+          }).catch((e) => { errorLogger.warn("[useElementBinding] getAllElements failed", e); });
         }
       }, 50);
     });

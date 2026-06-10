@@ -3,13 +3,13 @@
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >
-> **Total: 84 rules | 8 categories**
+> **Total: 86 rules | 8 categories**
 
 ## 目录
 
 - [一、数据一致性（17 条）](#一数据一致性17-条) — 数据不丢、不脏、不冲突
-- [二、异步安全（13 条）](#二异步安全13-条) — 并发、竞态、轮询、生命周期
-- [三、错误处理（11 条）](#三错误处理11-条) — 错误不吞、不假成功、用户可理解
+- [二、异步安全（14 条）](#二异步安全14-条) — 并发、竞态、轮询、生命周期
+- [三、错误处理（12 条）](#三错误处理12-条) — 错误不吞、不假成功、用户可理解
 - [四、UI 健壮性（9 条）](#四ui-健壮性9-条) — 界面不崩、有反馈、无泄漏
 - [五、工程质量（14 条）](#五工程质量14-条) — 依赖合规、构建安全、测试可靠
 - [六、平台兼容（6 条）](#六平台兼容6-条) — IPC、Electron 环境、进程模型
@@ -452,7 +452,7 @@ useAutoSave({
 
 **Discovered in**: Story page auto-save was disabled when `story.beats.length === 0`. Users who edited story title/description without adding beats would lose their changes on crash — auto-save never triggered.
 
-## 二、异步安全（13 条）
+## 二、异步安全（14 条）
 
 > 核心关注：并发、竞态、轮询、生命周期
 
@@ -802,7 +802,54 @@ const handleSave = async () => {
 
 **Discovered in**: `useEntityCRUD` set `savingRef.current = true` before checking if the entity name was empty. When the name was empty, the function returned early without resetting the ref. The save button became permanently disabled — the only recovery was to reload the page.
 
-## 三、错误处理（11 条）
+### R85: Network Errors MUST NOT Increment Poll Failure Count
+
+When a polling engine tracks consecutive failures to determine task timeout, network errors (ECONNREFUSED, ETIMEDOUT, ENOTFOUND, EPIPE, EAI_AGAIN, fetch failures, ERR_NETWORK, ERR_CONNECTION, socket hang up, etc.) MUST NOT increment the failure counter. Network errors are transient infrastructure issues unrelated to the task itself — the task may still be generating successfully on the provider side. Only API-level errors (provider rejected, invalid parameters, business logic errors) should increment the failure count. Incrementing on network errors causes false "timeout" markings that mislead users into thinking their task failed when it's still processing.
+
+**BAD** — All errors increment failure count:
+```typescript
+const handlePollException = (task: VideoTask, error: unknown) => {
+  const failCount = task.pollFailureCount + 1;
+  if (failCount >= MAX_POLL_FAILURES) {
+    transitionToTimeout(task);
+  }
+};
+```
+
+**GOOD** — Network errors skip, only API errors increment:
+```typescript
+const NETWORK_ERROR_PATTERNS = [
+  /ECONNREFUSED/i, /ECONNRESET/i, /ETIMEDOUT/i, /ENOTFOUND/i,
+  /EPIPE/i, /EAI_AGAIN/i, /Failed to fetch/i, /NetworkError/i,
+  /Network request failed/i, /fetch.*failed/i, /abort/i,
+  /ERR_NETWORK/i, /ERR_CONNECTION/i, /socket hang up/i, /connect ETIMEDOUT/i,
+];
+
+function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError && error.message.includes("fetch")) return true;
+  if (error instanceof Error) {
+    return NETWORK_ERROR_PATTERNS.some((p) => p.test(error.message));
+  }
+  return false;
+}
+
+const handlePollException = (task: VideoTask, error: unknown) => {
+  if (isNetworkError(error)) {
+    errorLogger.warn("[Polling] Network error, will retry next cycle", error);
+    return; // Don't increment pollFailureCount
+  }
+  const failCount = task.pollFailureCount + 1;
+  if (failCount >= MAX_POLL_FAILURES) {
+    transitionToTimeout(task);
+  }
+};
+```
+
+**Verification**: Search for `pollFailureCount` increment locations. Verify each increment is guarded by a network error check that skips the increment. Search for `isNetworkError` or equivalent pattern-matching function.
+
+**Discovered in**: Video task polling incremented `pollFailureCount` on every error including network timeouts. Users on unstable connections saw tasks marked as "failed" even though the video was still generating on the provider side.
+
+## 三、错误处理（12 条）
 
 > 核心关注：错误不吞、不假成功、用户可理解
 
@@ -1110,6 +1157,42 @@ function mapApiStatus(apiStatus: string, videoUrl?: string): VideoTaskStatus {
 **Verification**: Any `mapApiStatus` or similar status mapping function must accept and check the resource URL parameter as a confirming signal for completed status only. When API says completed but resource is missing, status must be downgraded. Callers must pass the resource URL when available.
 
 **Discovered in**: Video tasks showed as "completed" in task manager even though the video URL was not available. The API returned a completed status, but the video had not actually been generated. Users saw completed tasks with no playable video.
+
+### R86: Timeout and Failed States MUST Be Distinguished in Task Status Machine
+
+When a long-running task (e.g., video generation) exceeds a polling timeout threshold, the task MUST be transitioned to a dedicated `timeout` status rather than `failed`. Timeout indicates "we stopped checking, but the task may still be processing on the provider side", while `failed` indicates "the provider confirmed the task failed". These are fundamentally different user situations:
+
+- **timeout**: The user should be advised that the video may still be generating, and offered a "manual recovery" option to check again later.
+- **failed**: The user should be advised that the generation definitively failed, and offered a "retry" option.
+
+Both `timeout` and `failed` are recoverable states (`isRecoverable()` returns true), but the user-facing messaging and recovery guidance must differ. All code that queries failed tasks (recovery, cleanup, statistics) MUST include both `failed` and `timeout` statuses.
+
+**BAD** — Timeout marks task as failed:
+```typescript
+if (isTimedOut(task)) {
+  TaskMachine.transition(task, "failed", { error: "任务超时" });
+  emitToast("error", "视频生成失败", "任务超时");
+}
+```
+
+**GOOD** — Timeout uses dedicated status with appropriate messaging:
+```typescript
+if (isTimedOut(task)) {
+  TaskMachine.transition(task, "timeout", { error: "任务超时" });
+  emitToast("warning", t("video.timeoutTitle"), t("task.timeoutMayStillGenerating"));
+}
+
+// Recovery queries include both states:
+const [failedTasks, timeoutTasks] = await Promise.all([
+  container.videoTaskStorage.getVideoTasksByStatus("failed"),
+  container.videoTaskStorage.getVideoTasksByStatus("timeout"),
+]);
+return [...failedTasks, ...timeoutTasks];
+```
+
+**Verification**: Search for `status === "failed"` in task-related code. Verify each location also handles `timeout` where appropriate (recovery, cleanup, statistics, UI display). Search for `getFailedTasks` and verify it includes timeout tasks. Search for `clearFailedTasks` and verify it clears both states.
+
+**Discovered in**: Video task timeout directly marked tasks as `failed`, making it impossible to distinguish between "provider confirmed failure" and "we stopped polling". Users couldn't tell whether their video might still be generating, and recovery guidance was misleading.
 
 ## 四、UI 健壮性（9 条）
 

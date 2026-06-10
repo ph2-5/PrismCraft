@@ -78,7 +78,7 @@ export const TaskCard = memo(function TaskCard({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {getTaskDisplayStatus(task.status) === "failed" && (
+            {(getTaskDisplayStatus(task.status) === "failed" || getTaskDisplayStatus(task.status) === "timeout") && (
               <Button
                 size="sm"
                 variant="outline"

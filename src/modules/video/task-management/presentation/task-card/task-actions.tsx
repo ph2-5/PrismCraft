@@ -76,7 +76,7 @@ export function TaskActions({
               {t("task.manualQuery")}
             </Button>
           )}
-        {task.status === "failed" && task.beatId && (
+        {(task.status === "failed" || task.status === "timeout") && task.beatId && (
           <Button
             variant="ghost"
             size="sm"
@@ -92,7 +92,7 @@ export function TaskActions({
             {t("task.regenerateButton")}
           </Button>
         )}
-        {(task.status === "pending" || task.status === "generating" || task.status === "retrying") && (
+        {(task.status === "pending" || task.status === "generating" || task.status === "retrying" || task.status === "timeout") && (
           <Button
             variant="ghost"
             size="sm"

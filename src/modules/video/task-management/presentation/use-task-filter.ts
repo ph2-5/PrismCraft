@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { useCurrentTime } from "@/shared/hooks/use-current-time";
 
-export type FilterStatus = "all" | "pending" | "generating" | "completed" | "failed";
+export type FilterStatus = "all" | "pending" | "generating" | "completed" | "failed" | "timeout";
 export type SortField = "createdAt" | "updatedAt" | "status" | "progress";
 export type GroupBy = "none" | "status" | "date" | "story" | "model";
 export type TimeRange = "all" | "today" | "week" | "month";

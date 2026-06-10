@@ -45,7 +45,7 @@ export async function handleTimedOutTasks(
       taskId: task.taskId,
       updates: {
         status: "failed",
-        message: t("task.timeoutManualRecover"),
+        message: t("task.timeoutMayStillGenerating"),
         pollFailureCount: 0,
       },
     });
@@ -59,7 +59,7 @@ export async function handleTimedOutTasks(
           return {
             ...task,
             ...withTransitionGuard(task, "failed", {
-              message: t("task.timeoutManualRecover"),
+              message: t("task.timeoutMayStillGenerating"),
               pollFailureCount: 0,
             }),
           };
@@ -78,11 +78,39 @@ export async function handleTimedOutTasks(
   }
 }
 
+const NETWORK_ERROR_PATTERNS = [
+  /ECONNREFUSED/i, /ECONNRESET/i, /ETIMEDOUT/i, /ENOTFOUND/i,
+  /EPIPE/i, /EAI_AGAIN/i,
+  /Failed to fetch/i, /NetworkError/i, /Network request failed/i,
+  /fetch.*failed/i, /abort/i, /ERR_NETWORK/i, /ERR_CONNECTION/i,
+  /socket hang up/i, /connect ETIMEDOUT/i,
+];
+
+function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError && error.message.includes("fetch")) return true;
+  if (error instanceof Error) {
+    return NETWORK_ERROR_PATTERNS.some((p) => p.test(error.message));
+  }
+  return false;
+}
+
 async function handlePollException(
   task: VideoTask,
   error: unknown,
   result: PollResult,
 ): Promise<void> {
+  const networkError = isNetworkError(error);
+  if (networkError) {
+    result.taskUpdates.set(task.taskId, {
+      message: t("task.networkErrorRetry"),
+    });
+    errorLogger.warn(
+      `[VideoTaskManager] Network error polling ${task.taskId} (not counting as poll failure)`,
+      error,
+    );
+    return;
+  }
+
   const failCount = (task.pollFailureCount || 0) + 1;
   if (failCount >= MAX_POLL_FAILURES) {
     result.hasError = true;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,10 +8,11 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
-import { Info, Trash2, RefreshCw, Loader2 } from "lucide-react";
+import { Info, Trash2, RefreshCw, Loader2, Copy, Check } from "lucide-react";
 import type { VideoTask } from "@/domain/schemas";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
+import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants/messages";
 import { StatusBadge, getTaskDisplayStatus } from "./status-badge";
 
@@ -31,6 +32,29 @@ interface TaskDetailDialogProps {
 
 export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }: TaskDetailDialogProps) {
   const [isRecovering, setIsRecovering] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+
+  const handleCopyUrl = useCallback(async () => {
+    if (!task.videoUrl) return;
+    try {
+      await navigator.clipboard.writeText(task.videoUrl);
+      setUrlCopied(true);
+      emitToast("success", t("video.copySuccess"));
+      setTimeout(() => setUrlCopied(false), 2000);
+    } catch {
+      const textArea = document.createElement("textarea");
+      textArea.value = task.videoUrl;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setUrlCopied(true);
+      emitToast("success", t("video.copySuccess"));
+      setTimeout(() => setUrlCopied(false), 2000);
+    }
+  }, [task.videoUrl]);
 
   const handleRecover = async () => {
     setIsRecovering(true);
@@ -90,6 +114,28 @@ export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }:
                 className="w-full max-h-48 rounded-lg border border-border"
                 onError={createVideoErrorHandler()}
               />
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={task.videoUrl}
+                  className="flex-1 text-xs bg-muted/50 border border-border rounded px-2 py-1.5 text-muted-foreground truncate cursor-text select-all"
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyUrl}
+                  className="shrink-0"
+                >
+                  {urlCopied ? (
+                    <Check className="w-3.5 h-3.5 mr-1" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 mr-1" />
+                  )}
+                  {urlCopied ? t("common.copied") : t("common.copy")}
+                </Button>
+              </div>
             </div>
           )}
         </div>

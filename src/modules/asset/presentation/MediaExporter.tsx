@@ -95,7 +95,6 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
 
     try {
       setIsExporting(true);
-      setExportStatus("exporting");
 
       const imageUrl = item.generatedImage;
       if (imageUrl.startsWith("data:")) {
@@ -105,6 +104,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        setExportStatus("success");
       } else {
         const response = await fetch(imageUrl, { mode: "cors" }).catch(() => null);
         if (response && response.ok) {
@@ -117,12 +117,12 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
+          setExportStatus("success");
         } else {
           window.open(imageUrl, "_blank");
+          setExportStatus("success");
         }
       }
-
-      setExportStatus("success");
     } catch (error) {
       errorLogger.error("下载图片失败:", error);
       setExportStatus("error");
@@ -137,7 +137,6 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
 
     try {
       setIsExporting(true);
-      setExportStatus("exporting");
 
       const videoUrl = item.generatedVideo;
       if (videoUrl.startsWith("data:") || videoUrl.startsWith("blob:")) {
@@ -147,6 +146,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        setExportStatus("success");
       } else {
         const response = await fetch(videoUrl, { mode: "cors" }).catch(() => null);
         if (response && response.ok) {
@@ -159,12 +159,12 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
+          setExportStatus("success");
         } else {
           window.open(videoUrl, "_blank");
+          setExportStatus("success");
         }
       }
-
-      setExportStatus("success");
     } catch (error) {
       errorLogger.error("下载视频失败:", error);
       setExportStatus("error");

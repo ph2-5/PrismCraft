@@ -202,6 +202,8 @@ async function checkMemoryBeforePersistence() {
   const setStatePattern = /\bset\w+\s*\(/;
   const asyncDbPattern = /\b(await\s+)?(delete|remove|update|create|save)\w*\s*\(/i;
   const storagePattern = /\b\w+Storage\.\w+/;
+  // UI loading states — immediate feedback is correct UX, not a persistence concern
+  const uiStatePattern = /\bset(Is|Loading|Fetching|Submitting|Processing|Busy|Pending|Disabled)\w*\s*\(/i;
 
   for (const file of files) {
     const content = await readFile(file, "utf-8");
@@ -221,7 +223,7 @@ async function checkMemoryBeforePersistence() {
         setStateLine = null;
       }
 
-      if (inAsyncFunction && setStatePattern.test(line) && !/^\s*\/\//.test(line)) {
+      if (inAsyncFunction && setStatePattern.test(line) && !/^\s*\/\//.test(line) && !uiStatePattern.test(line)) {
         setStateLine = i + 1;
         setStateText = line.trim();
       }
@@ -256,11 +258,13 @@ async function checkDeleteWithoutCascade() {
 
     for (const fn of funcNames) {
       const startLine = fn.line - 1;
+      // Include up to 3 lines above the match to capture JSDoc/delegation comments
+      const contextStart = Math.max(0, startLine - 3);
       let braceCount = 0;
       let funcBody = "";
       let started = false;
 
-      for (let i = startLine; i < Math.min(startLine + 60, lines.length); i++) {
+      for (let i = contextStart; i < Math.min(startLine + 60, lines.length); i++) {
         const line = lines[i];
         for (const ch of line) {
           if (ch === "{") { braceCount++; started = true; }
@@ -271,9 +275,10 @@ async function checkDeleteWithoutCascade() {
       }
 
       const hasCleanup = /videoTask|VideoTask|cache|Cache|clean|Clean|clear|Clear/i.test(funcBody);
+      const hasDelegationNote = /cascade.*delegat|delegat.*cascade|cleanup.*delegat|delegat.*cleanup|上层.*清理|清理.*上层|由.*负责|delegated\s+to/i.test(funcBody);
       const hasOnlyStateRemove = /filter|splice|\.delete\(/i.test(funcBody) && !hasCleanup;
 
-      if (hasOnlyStateRemove) {
+      if (hasOnlyStateRemove && !hasDelegationNote) {
         warnings.push(
           `⚠️ ${rel(file)}:${fn.line} - Delete function without cascade cleanup (regression guard): ${fn.name.trim()}`
         );

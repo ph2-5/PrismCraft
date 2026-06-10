@@ -379,6 +379,9 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
 
         schedulePolling();
 
+        const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
+        emitToast("success", t("video.taskSubmittedTitle"), t("video.taskSubmittedProcessing", { label: taskLabel }));
+
         if (result.data?.promptWasTruncated) {
           errorLogger.warn(
             `[VideoTaskManager] 提示词已被截断，原始长度: ${result.data.originalPromptLength} 字符`,

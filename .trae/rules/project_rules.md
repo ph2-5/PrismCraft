@@ -670,7 +670,7 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 97 guards:**
+**Quick reference — all 104 guards:**
 
 | Category | Rules | Key Concern |
 |----------|-------|-------------|

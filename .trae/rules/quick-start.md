@@ -35,6 +35,9 @@
 | Model capabilities | `src/infrastructure/ai-providers/model-capabilities.ts` |
 | Optimistic lock error | `src/shared/errors/version-conflict.ts` |
 | SQL sanitizer | `src/shared/sql-safety/sql-sanitizer.ts` |
+| API route groups | `electron/src/api/route-groups/` |
+| Provider templates data | `src/infrastructure/ai-providers/api-config/provider-templates-data.ts` |
+| Video generation strategy | `src/shared/model-capabilities.ts` (re-export from infrastructure) |
 
 ## Modification Workflow
 1. Read `MODULE.md` → `contract.json` → `.ai/modules/{module}.md` → `index.ts`
@@ -50,6 +53,7 @@
 - **Add plugin provider**: Create in `electron/src/plugins/providers/` → Extend `BaseAIProviderPlugin` → Register in `registry.ts`
 - **Add user plugin**: Create `.plugin.json` in `~/AI Animation Studio/UserPlugins/` or `.plugin.js` in `~/AI Animation Studio/CodePlugins/`
 - **Use optimistic locking**: Pass `version` param to storage update methods → Handle `VersionConflictError` in UI
+- **Check reference image strategy**: Use `getVideoGenerationStrategy(modelId)` from `@/shared/model-capabilities` → Check `strategy.useCharacterRef`/`strategy.useSceneRef` → Filter characterRefs/sceneRef before passing to video generation
 
 ## Critical Rules
 - `domain/` imports NOTHING from other layers
@@ -63,6 +67,7 @@
 - Code plugin sandbox blocks prototype chain escape (`__proto__`, `Reflect`, `Proxy`)
 - Plugin hot-reload MUST invalidate frontend caches (detection-rules, templates, model-profiles)
 - Native modules (better-sqlite3) MUST use exact version pins — never `^` or `~`
+- Reference image parameters must be filtered by `getVideoGenerationStrategy()` before passing to video generation — models that don't support native reference images should receive `undefined` for characterRefs/sceneRef
 
 ## Build Troubleshooting
 - **`electron-rebuild` fails**: Run `npm run rebuild` manually. Ensure Visual Studio Build Tools (Windows) or Xcode CLI tools (macOS) are installed.

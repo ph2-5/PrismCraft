@@ -24,6 +24,7 @@ export function flattenBeat(beat: Record<string, unknown>, now: number) {
     "character_ids_json",
     "sceneId",
     "scene_id",
+    "scene",
     "shotType",
     "shot_type",
     "generationPrompt",
@@ -244,7 +245,7 @@ export function buildBeatInsert(
       Array.isArray(beat.characterIds)
         ? toSqlValue(beat.characterIds)
         : beat.character_ids || beat.character_ids_json || null,
-      beat.sceneId || beat.scene_id || null,
+      beat.sceneId || beat.scene_id || beat.scene || null,
       toSqlValue(flat.cameraContainer),
       toSqlValue(flat.generationContainer),
       flat.metaContainer ? toSqlValue(flat.metaContainer) : null,

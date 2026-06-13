@@ -85,7 +85,7 @@ export function BeatDetailEditor({
     onUpdateBeat({ ...beat, [field]: value } as StoryBeat);
   };
 
-  const selectedScene = scenes.find((scene) => scene.id === beat.scene);
+  const selectedScene = scenes.find((scene) => scene.id === (beat.sceneId || beat.scene));
   const prevBeat = index > 0 ? allShots[index - 1]! : null;
 
   useEffect(() => {

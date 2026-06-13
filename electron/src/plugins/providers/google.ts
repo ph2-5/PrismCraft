@@ -8,6 +8,7 @@ import type {
   TextBuildContext,
   VisionBuildContext,
   VideoRequestResult,
+  ImageRefMode,
   ImageRequestResult,
   TextRequestResult,
   VisionRequestResult,
@@ -62,10 +63,16 @@ export class GooglePlugin
   }
 
   readonly videoCapabilities = {
-    supportsLastFrame: true,
-    supportsReferenceVideo: true,
+    supportsLastFrame: false,
+    supportsReferenceVideo: false,
     supportsMimicryLevel: false,
-    defaultModel: "veo-3",
+    supportsCharacterRef: true,
+    supportsSceneRef: true,
+    characterRefMode: "bake_into_first" as ImageRefMode,
+    sceneRefMode: "bake_into_first" as ImageRefMode,
+    imageUploadMode: "base64" as const,
+    maxCharacterRefs: 2,
+    defaultModel: "veo-3.1",
     maxDuration: 8,
     supportedCodecs: ["h264", "h265", "vp9"],
     urlTtl: 86400,
@@ -73,35 +80,52 @@ export class GooglePlugin
 
   readonly imageCapabilities = {
     supportsReferenceImage: false,
-    defaultModel: "veo-3",
+    defaultModel: "veo-3.1",
   };
 
-  getModelCapabilities(_modelId: string): ModelCapabilities {
+  getModelCapabilities(modelId: string): ModelCapabilities {
+    if (modelId.includes("veo-3.1-fast")) {
+      return {
+        maxReferences: 2,
+        maxResolution: 1024,
+        maxSizeMB: 5,
+        supportsLastFrame: false,
+        supportsCharacterRef: false,
+        supportsSceneRef: false,
+        referenceMode: "merged",
+        defaultImageSize: "1024x1024",
+        supportedImageSizes: [
+          { width: 1024, height: 1024, label: "1024×1024", aspectRatio: "1:1" },
+        ],
+      };
+    }
+    if (modelId.includes("veo-3") || modelId.includes("veo-2")) {
+      return {
+        maxReferences: 2,
+        maxResolution: 2048,
+        maxSizeMB: 10,
+        supportsLastFrame: false,
+        supportsCharacterRef: false,
+        supportsSceneRef: false,
+        referenceMode: "merged",
+        defaultImageSize: "1920x1080",
+        supportedImageSizes: [
+          { width: 1920, height: 1080, label: "1920×1080", aspectRatio: "16:9" },
+          { width: 1080, height: 1920, label: "1080×1920", aspectRatio: "9:16" },
+        ],
+      };
+    }
     return DEFAULT_MODEL_CAPS;
   }
 
   buildVideoRequest(ctx: VideoBuildContext): VideoRequestResult {
-    let prompt = ctx.prompt;
-    if (ctx.characterRef) {
-      prompt += `[参考角色图: ${ctx.characterRef}]`;
-    }
-    if (ctx.sceneRef) {
-      prompt += `[参考场景图: ${ctx.sceneRef}]`;
-    }
-
     const body: Record<string, unknown> = {
       model: ctx.model || "veo-3",
-      prompt,
+      prompt: ctx.prompt,
     };
 
     if (ctx.firstFrameUrl) {
-      body.image = { imageBytes: ctx.firstFrameUrl };
-    }
-    if (ctx.lastFrameUrl) {
-      body.lastFrame = { imageBytes: ctx.lastFrameUrl };
-    }
-    if (ctx.referenceVideoUrl) {
-      body.referenceVideo = { videoBytes: ctx.referenceVideoUrl };
+      body.image = { gcsUri: ctx.firstFrameUrl, mimeType: "image/png" };
     }
 
     return {

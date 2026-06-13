@@ -1,0 +1,31 @@
+{
+  "id": "bedrock",
+  "name": "Amazon Bedrock",
+  "format": "anthropic",
+  "baseUrl": "https://bedrock-runtime.us-east-1.amazonaws.com",
+  "detection": {
+    "rules": [],
+    "suggestedName": "Amazon Bedrock",
+    "baseUrl": "https://bedrock-runtime.us-east-1.amazonaws.com"
+  },
+  "models": [
+    {
+      "id": "anthropic.claude-3-opus-20240229-v1:0",
+      "name": "Claude 3 Opus (Bedrock)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 200000, "temperature": 0.7 }
+    },
+    {
+      "id": "anthropic.claude-3-sonnet-20240229-v1:0",
+      "name": "Claude 3 Sonnet (Bedrock)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 200000, "temperature": 0.7 }
+    },
+    {
+      "id": "google.gemini-1.5-pro-20240613-v1:0",
+      "name": "Gemini 1.5 Pro (Bedrock)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    }
+  ]
+}

@@ -7,7 +7,7 @@ vi.mock("@/infrastructure/di", () => {
   return { container: { imageApi } };
 });
 
-import { checkVisualConsistency } from "@/modules/shot";
+import { checkVisualConsistency, parseConsistencyAnalysisFromStructured } from "@/modules/shot";
 import type { ConsistencyCheckInput } from "@/modules/shot";
 import { container } from "@/infrastructure/di";
 
@@ -45,7 +45,7 @@ describe("checkVisualConsistency", () => {
     vi.clearAllMocks();
   });
 
-  it("没有 generatedImageUrl 时应返回 passed:true", async () => {
+  it("没有 generatedImageUrl 时应返回 passed:false", async () => {
     const input: ConsistencyCheckInput = {
       beat: makeBeat(),
       elements: [makeElement()],
@@ -55,9 +55,9 @@ describe("checkVisualConsistency", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw result.error;
-    expect(result.value.passed).toBe(true);
-    expect(result.value.overallScore).toBe(1.0);
-    expect(result.value.recommendation).toBe("accept");
+    expect(result.value.passed).toBe(false);
+    expect(result.value.overallScore).toBe(0);
+    expect(result.value.recommendation).toBe("adjust");
     expect(result.value.characterScores).toHaveLength(0);
   });
 
@@ -366,5 +366,194 @@ describe("parseConsistencyAnalysis (via checkVisualConsistency)", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw result.error;
     expect(result.value.overallScore).toBe(0.6);
+  });
+
+  it("markdown 代码块中的 JSON 应正确解析", async () => {
+    const beat = makeBeat({ elementIds: ["elem-1"] });
+    const elements = [makeElement({ id: "elem-1", name: "角色A" })];
+
+    mockAnalyze.mockResolvedValue({
+      ok: true,
+      value: {
+        analysis: "分析结果如下：\n```json\n{\"scores\":[{\"name\":\"角色A\",\"score\":0.8,\"issues\":[]}],\"overallScore\":0.8,\"recommendation\":\"accept\"}\n```\n以上是分析。",
+      },
+    });
+
+    const result = await checkVisualConsistency({
+      beat,
+      elements,
+      generatedImageUrl: "https://example.com/image.png",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw result.error;
+    expect(result.value.overallScore).toBe(0.8);
+    expect(result.value.passed).toBe(true);
+  });
+
+  it("纯 JSON 文本（无代码块）应直接解析", async () => {
+    const beat = makeBeat({ elementIds: ["elem-1"] });
+    const elements = [makeElement({ id: "elem-1", name: "角色A" })];
+
+    mockAnalyze.mockResolvedValue({
+      ok: true,
+      value: {
+        analysis: JSON.stringify({
+          scores: [{ name: "角色A", score: 0.85, issues: [] }],
+          overallScore: 0.85,
+          recommendation: "accept",
+        }),
+      },
+    });
+
+    const result = await checkVisualConsistency({
+      beat,
+      elements,
+      generatedImageUrl: "https://example.com/image.png",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw result.error;
+    expect(result.value.overallScore).toBe(0.85);
+    expect(result.value.passed).toBe(true);
+  });
+
+  it("JSON 嵌入在文本中（无代码块）应通过正则回退解析", async () => {
+    const beat = makeBeat({ elementIds: ["elem-1"] });
+    const elements = [makeElement({ id: "elem-1", name: "角色A" })];
+
+    mockAnalyze.mockResolvedValue({
+      ok: true,
+      value: {
+        analysis: "根据分析，结果为 {\"scores\":[{\"name\":\"角色A\",\"score\":0.7,\"issues\":[\"轻微偏差\"]}],\"overallScore\":0.7,\"recommendation\":\"adjust\"} 请参考。",
+      },
+    });
+
+    const result = await checkVisualConsistency({
+      beat,
+      elements,
+      generatedImageUrl: "https://example.com/image.png",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw result.error;
+    expect(result.value.overallScore).toBe(0.7);
+    expect(result.value.recommendation).toBe("adjust");
+  });
+});
+
+describe("checkVisualConsistency with structuredOutput", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("structuredOutput 提供时应跳过 AI 分析", async () => {
+    const beat = makeBeat({ elementIds: ["elem-1"] });
+    const elements = [makeElement({ id: "elem-1", name: "角色A" })];
+
+    const result = await checkVisualConsistency({
+      beat,
+      elements,
+      structuredOutput: {
+        scores: [{ name: "角色A", score: 0.95, issues: [] }],
+        overallScore: 0.95,
+        recommendation: "accept",
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw result.error;
+    expect(result.value.overallScore).toBe(0.95);
+    expect(result.value.passed).toBe(true);
+    expect(result.value.characterScores[0]!.score).toBe(0.95);
+    expect(mockAnalyze).not.toHaveBeenCalled();
+  });
+
+  it("structuredOutput 和 generatedImageUrl 同时提供时应优先使用 structuredOutput", async () => {
+    const beat = makeBeat({ elementIds: ["elem-1"] });
+    const elements = [makeElement({ id: "elem-1", name: "角色A" })];
+
+    const result = await checkVisualConsistency({
+      beat,
+      elements,
+      generatedImageUrl: "https://example.com/image.png",
+      structuredOutput: {
+        scores: [{ name: "角色A", score: 0.88, issues: ["轻微色差"] }],
+        overallScore: 0.88,
+        recommendation: "adjust",
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw result.error;
+    expect(result.value.overallScore).toBe(0.88);
+    expect(mockAnalyze).not.toHaveBeenCalled();
+  });
+
+  it("structuredOutput 和 generatedImageUrl 都未提供时应返回 passed:false", async () => {
+    const beat = makeBeat({ elementIds: ["elem-1"] });
+    const elements = [makeElement({ id: "elem-1", name: "角色A" })];
+
+    const result = await checkVisualConsistency({
+      beat,
+      elements,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw result.error;
+    expect(result.value.passed).toBe(false);
+    expect(result.value.overallScore).toBe(0);
+  });
+});
+
+describe("parseConsistencyAnalysisFromStructured", () => {
+  it("应将结构化数据映射为 ConsistencyCheckResult", () => {
+    const elements = [makeElement({ id: "elem-1", name: "角色A" })];
+
+    const result = parseConsistencyAnalysisFromStructured(
+      {
+        scores: [{ name: "角色A", score: 0.9, issues: [] }],
+        overallScore: 0.9,
+        recommendation: "accept",
+      },
+      elements as ConsistencyCheckInput["elements"],
+    );
+
+    expect(result.passed).toBe(true);
+    expect(result.overallScore).toBe(0.9);
+    expect(result.recommendation).toBe("accept");
+    expect(result.characterScores).toHaveLength(1);
+    expect(result.characterScores[0]!.elementId).toBe("elem-1");
+    expect(result.characterScores[0]!.score).toBe(0.9);
+  });
+
+  it("未匹配的元素应使用默认分数", () => {
+    const elements = [makeElement({ id: "elem-1", name: "角色B" })];
+
+    const result = parseConsistencyAnalysisFromStructured(
+      {
+        scores: [{ name: "角色C", score: 0.9, issues: [] }],
+        overallScore: 0.9,
+        recommendation: "accept",
+      },
+      elements as ConsistencyCheckInput["elements"],
+    );
+
+    expect(result.characterScores[0]!.score).toBe(0.7);
+  });
+
+  it("缺少 overallScore 时应从 characterScores 计算", () => {
+    const elements = [makeElement({ id: "elem-1", name: "角色A" })];
+
+    const result = parseConsistencyAnalysisFromStructured(
+      {
+        scores: [{ name: "角色A", score: 0.6, issues: ["轻微偏差"] }],
+        overallScore: undefined as unknown as number,
+        recommendation: "adjust",
+      },
+      elements as ConsistencyCheckInput["elements"],
+    );
+
+    expect(result.overallScore).toBe(0.6);
   });
 });

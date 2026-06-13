@@ -12,7 +12,7 @@ function isLocalFilePath(p: string): boolean {
 async function cleanupLocalFiles(paths: (string | null | undefined)[]): Promise<void> {
   const validPaths = paths.filter((p): p is string => typeof p === "string" && p.length > 0 && isLocalFilePath(p));
   if (validPaths.length === 0) return;
-  const api = (window as unknown as { electronAPI?: { deleteFile?: (p: string) => Promise<unknown> } }).electronAPI;
+  const api = window.electronAPI;
   if (!api?.deleteFile) return;
   for (const filePath of validPaths) {
     try {

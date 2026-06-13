@@ -37,7 +37,7 @@ import {
   type ProviderConfig,
   type ModelConfig,
   createProviderFromTemplate,
-  detectProvider,
+  detectAllProviders,
   validateApiKey,
   loadPluginDetectionRules,
   loadPluginTemplates,
@@ -47,6 +47,8 @@ import {
 } from "@/infrastructure/api-config-facade";
 import { testConnection } from "@/infrastructure/ai-providers";
 import { loadModelProfilesFromServer } from "@/shared/model-capabilities";
+import { useInvalidateModelCapabilities } from "@/shared/hooks/use-model-capabilities";
+import { useInvalidateProviderTemplates } from "@/shared/hooks/use-provider-templates";
 import { ProviderCard } from "./ProviderCard";
 import { ProviderForm } from "./ProviderForm";
 import { ModelMappingSection } from "./ModelMappingSection";
@@ -64,6 +66,8 @@ const capabilities: {
 
 export function ApiConfigPanel() {
   const { error: showError, success: showSuccess } = useToastHelpers();
+  const invalidateModelCapabilities = useInvalidateModelCapabilities();
+  const invalidateProviderTemplates = useInvalidateProviderTemplates();
   const [config, setConfig] = useState<ApiConfig>(getDefaultConfig());
   const [_status, setStatus] = useState<ConfigStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,7 +90,9 @@ export function ApiConfigPanel() {
   const [testingCapability, setTestingCapability] =
     useState<ApiCapability | null>(null);
 
-  const detectedInfo = newProviderKey ? detectProvider(newProviderKey) : null;
+  const detectedAll = newProviderKey ? detectAllProviders(newProviderKey) : null;
+  const detectedInfo = detectedAll?.recommended ?? null;
+  const hasMultipleSources = (detectedAll?.builtinMatches.length ?? 0) > 0 && (detectedAll?.pluginMatches.length ?? 0) > 0;
   const keyValidation = newProviderKey
     ? validateApiKey(newProviderKey)
     : { valid: false };
@@ -97,7 +103,11 @@ export function ApiConfigPanel() {
       loadPluginTemplates(),
       loadModelProfilesFromServer(),
     ]);
-  }, []);
+    await Promise.allSettled([
+      invalidateModelCapabilities(),
+      invalidateProviderTemplates(),
+    ]);
+  }, [invalidateModelCapabilities, invalidateProviderTemplates]);
 
   useEffect(() => {
     let cancelled = false;
@@ -400,6 +410,8 @@ export function ApiConfigPanel() {
               isAdding={isAdding}
               keyValidation={keyValidation}
               detectedInfo={detectedInfo}
+              detectedAll={detectedAll}
+              hasMultipleSources={hasMultipleSources}
               onAdd={handleAddProvider}
               onCancel={() => setShowAddForm(false)}
               capabilities={capabilities}

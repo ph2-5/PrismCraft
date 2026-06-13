@@ -5,7 +5,8 @@ import {
   buildReferenceVideoDesc,
   buildTemplateDesc,
 } from "../../base";
-import type { Character, FixedImageConfig, ReferenceVideoConfig, Scene, TemplateConfig } from "@/domain/schemas";
+import { shotInstructionToPrompt } from "@/domain/utils";
+import type { Character, FixedImageConfig, ReferenceVideoConfig, Scene, ShotInstructionTemplate, TemplateConfig } from "@/domain/schemas";
 
 interface QuickVideoPromptParams {
   story: {
@@ -18,6 +19,8 @@ interface QuickVideoPromptParams {
   content: string;
   characters: Character[];
   scenes: Scene[];
+  shotInstruction?: ShotInstructionTemplate;
+  promptLayers?: { coreElements: string; cameraAction: string; styleAtmosphere?: string };
   fixedImage?: FixedImageConfig;
   referenceVideo?: ReferenceVideoConfig;
   template?: TemplateConfig;
@@ -31,6 +34,8 @@ export function generateQuickVideoPrompt(
     content,
     characters,
     scenes,
+    shotInstruction,
+    promptLayers,
     fixedImage,
     referenceVideo,
     template,
@@ -50,6 +55,16 @@ export function generateQuickVideoPrompt(
       `涉及场景：${scenes.map((s) => `${s.name}（${buildSceneAtmosphereDesc(s)}）`).join("；")}`,
     );
   }
+
+  if (shotInstruction) {
+    const shotPrompt = shotInstructionToPrompt(shotInstruction);
+    if (shotPrompt) contextParts.push(`镜头指令：${shotPrompt}`);
+  }
+
+  if (promptLayers?.styleAtmosphere) {
+    contextParts.push(`风格氛围：${promptLayers.styleAtmosphere}`);
+  }
+
   const contextSection =
     contextParts.length > 0 ? `\n\n${contextParts.join("\n")}` : "";
 

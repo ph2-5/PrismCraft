@@ -15,7 +15,7 @@ export {
 } from "./planning";
 export type { CreationMode, QuickInputMode, PlaceholderBinding, QuickStoryData } from "./planning";
 
-export { resolveCharacterRef, resolveSceneRef } from "@/domain/services/reference-resolver";
+export { resolveCharacterRef, resolveCharacterRefs, resolveSceneRef } from "@/domain/services/reference-resolver";
 
 export {
   useAIGeneratorBase,

@@ -34,6 +34,9 @@ export {
   OpenAICompatiblePlugin,
   MiniMaxPlugin,
   AnthropicPlugin,
+  PikaPlugin,
+  LumaPlugin,
+  RunwayPlugin,
 } from "./providers";
 
 export {
@@ -73,6 +76,9 @@ import { OpenAISoraPlugin } from "./providers/openai-sora";
 import { OpenAICompatiblePlugin } from "./providers/openai-compatible";
 import { MiniMaxPlugin } from "./providers/minimax";
 import { AnthropicPlugin } from "./providers/anthropic";
+import { PikaPlugin } from "./providers/pika";
+import { LumaPlugin } from "./providers/luma";
+import { RunwayPlugin } from "./providers/runway";
 
 async function registerAllPlugins(): Promise<void> {
   pluginRegistry.register(new VolcenginePlugin());
@@ -84,6 +90,9 @@ async function registerAllPlugins(): Promise<void> {
   pluginRegistry.register(new OpenAISoraPlugin());
   pluginRegistry.register(new MiniMaxPlugin());
   pluginRegistry.register(new AnthropicPlugin());
+  pluginRegistry.register(new PikaPlugin());
+  pluginRegistry.register(new LumaPlugin());
+  pluginRegistry.register(new RunwayPlugin());
   pluginRegistry.setFallback(new OpenAICompatiblePlugin());
 
   pluginRegistry.reloadUserPlugins();

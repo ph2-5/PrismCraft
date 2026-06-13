@@ -4,7 +4,7 @@
   "dependencies": ["infrastructure/di", "domain/SyncConfig", "domain/SyncEntityType", "domain/ChangeOperation", "domain/VectorClock", "domain/RemoteChange"],
   "publicAPI": {
     "hooks": [],
-    "services": ["ensureSyncSchema", "recordChange", "getPendingChanges", "markChangesSynced", "softDelete", "getSyncStatus", "updateLastSyncTime", "cleanupSyncedChanges", "getDeviceId", "initSyncEngine", "updateSyncConfig", "startAutoSync", "stopAutoSync", "performSync", "getSyncConfig", "getServerChangeLog", "appendServerChanges", "getServerVectorClock", "saveServerVectorClock", "clearServerSyncData", "SYNC_TABLES", "SYNCABLE_TABLE_MAP", "DEFAULT_SYNC_CONFIG"],
+    "services": ["ensureSyncSchema", "recordChange", "getPendingChanges", "markChangesSynced", "softDelete", "getSyncStatus", "updateLastSyncTime", "cleanupSyncedChanges", "getDeviceId", "initSyncEngine", "updateSyncConfig", "startAutoSync", "stopAutoSync", "performSync", "getSyncConfig", "getServerChangeLog", "appendServerChanges", "getServerVectorClock", "saveServerVectorClock", "clearServerSyncData", "compareVectorClocks", "mergeVectorClocks", "createVectorClock", "incrementVectorClock", "isVectorClockConflict", "SYNC_TABLES", "SYNCABLE_TABLE_MAP", "DEFAULT_SYNC_CONFIG"],
     "components": []
   },
   "invariants": [

@@ -57,7 +57,7 @@ function extractHandlers(): Map<string, (...args: unknown[]) => Promise<IpcHandl
   const handlers = new Map<string, (...args: unknown[]) => Promise<IpcHandlerResult>>();
   mockIpcMainHandle.mockImplementation(((channel: string, handler: (...args: unknown[]) => Promise<IpcHandlerResult>) => {
     handlers.set(channel, handler);
-  }) as any);
+  }) as unknown as typeof electron.ipcMain.handle);
   setupDatabaseHandlers();
   return handlers;
 }
@@ -164,7 +164,7 @@ describe("database IPC handler - validateSql", () => {
       const result = await handler({}, "UPDATE characters SET name = ? WHERE id = ?", ["新名称", 1]);
 
       expect(result.success).toBe(true);
-      expect((result.data as any).changes).toBe(1);
+      expect((result.data as Record<string, unknown>).changes).toBe(1);
     });
 
     it("应拦截不在白名单中的表名", async () => {
@@ -294,7 +294,7 @@ describe("database IPC handler - validateSql", () => {
       const result = await handler({});
 
       expect(result.success).toBe(true);
-      expect((result.data as any).type).toBe("better-sqlite3");
+      expect((result.data as Record<string, unknown>).type).toBe("better-sqlite3");
     });
   });
 });

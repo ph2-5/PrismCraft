@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { mockSafeRun, mockSafeQuery } = vi.hoisted(() => ({
-  mockSafeRun: vi.fn(async () => {}),
-  mockSafeQuery: vi.fn(async () => []),
+  mockSafeRun: vi.fn<() => Promise<void>>(async () => {}),
+  mockSafeQuery: vi.fn<() => Promise<Record<string, unknown>[]>>(async () => []),
 }));
 
 const { mockGetTableName, mockGetPkColumn } = vi.hoisted(() => ({
@@ -94,10 +94,10 @@ describe("resolveConflict 冲突解决", () => {
       // 备份插入
       expect(mockSafeRun).toHaveBeenCalledTimes(2);
       // 更新操作
-      const updateCall = mockSafeRun.mock.calls[1];
-      expect(updateCall[0]).toContain("UPDATE characters SET");
-      expect(updateCall[0]).toContain("sync_status = 'synced'");
-      expect(updateCall[0]).toContain("vector_clock = ?");
+      const updateCall = mockSafeRun.mock.calls[1] as string[];
+      expect(updateCall?.[0]).toContain("UPDATE characters SET");
+      expect(updateCall?.[0]).toContain("sync_status = 'synced'");
+      expect(updateCall?.[0]).toContain("vector_clock = ?");
     });
 
     it("远程数据为空时不应执行更新", async () => {
@@ -122,7 +122,7 @@ describe("resolveConflict 冲突解决", () => {
       expect(errorLogger.warn).toHaveBeenCalled();
       // 更新仍应执行
       const updateCall = mockSafeRun.mock.calls.find(
-        (call: string[]) => call[0].includes("UPDATE characters SET"),
+        (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).includes("UPDATE characters SET"),
       );
       expect(updateCall).toBeDefined();
     });
@@ -153,9 +153,9 @@ describe("resolveConflict 冲突解决", () => {
       await resolveConflict(conflict, "last-write-wins");
 
       expect(mockSafeRun).toHaveBeenCalledTimes(2);
-      const updateCall = mockSafeRun.mock.calls[1];
-      expect(updateCall[0]).toContain("UPDATE characters SET");
-      expect(updateCall[0]).toContain("sync_status = 'synced'");
+      const updateCall = mockSafeRun.mock.calls[1] as string[];
+      expect(updateCall?.[0]).toContain("UPDATE characters SET");
+      expect(updateCall?.[0]).toContain("sync_status = 'synced'");
     });
 
     it("本地更新时间较新时不应更新", async () => {

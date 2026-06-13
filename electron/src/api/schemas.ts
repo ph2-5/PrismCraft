@@ -30,6 +30,14 @@ export const generateKeyframeSchema = z.object({
 export const generateFramePairSchema = z.object({
   firstFrame: z.unknown().optional(),
   lastFrame: z.unknown().optional(),
+  keyframeUrl: z.string().optional(),
+  keyframePrompt: z.string().optional(),
+  characterRef: z.string().optional(),
+  characterRefs: z.array(z.string()).optional(),
+  sceneRef: z.string().optional(),
+  prevLastFrameUrl: z.string().optional(),
+  actionDescription: z.string().optional(),
+  duration: z.number().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
 });

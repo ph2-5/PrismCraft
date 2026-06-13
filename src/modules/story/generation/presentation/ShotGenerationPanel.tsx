@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { memo } from "react";
 
-const DEFAULT_CONSISTENCY_STRENGTH = 0.8;
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
@@ -18,6 +17,8 @@ import { Badge } from "@/shared/ui/badge";
 import { Link } from "react-router-dom";
 import type { StoryBeat, ShotGenerationStatus } from "@/domain/schemas";
 import { t } from "@/shared/constants";
+
+const DEFAULT_CONSISTENCY_STRENGTH = 0.8;
 
 interface ShotGenerationPanelProps {
   beat: StoryBeat;

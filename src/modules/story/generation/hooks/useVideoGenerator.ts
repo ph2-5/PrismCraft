@@ -1,10 +1,12 @@
 import { useState, useCallback } from "react";
 import { generateSingleBeatPrompt } from "@/modules/prompt";
 import type { Story, StoryBeat, Character, Scene, StoryStyleGuide, VideoTask, ModelSelection } from "@/domain/schemas";
+import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { container } from "@/infrastructure/di";
 import { StoryGenerationService } from "@/domain/services";
 import { useAIGeneratorBase } from "./useAIGeneratorBase";
 import { determineVideoGenerationMode, type VideoGenerationMode } from "../services/storyboard-generation-service";
+import { getVideoGenerationStrategy } from "@/shared/model-capabilities";
 import { t } from "@/shared/constants";
 
 interface UseVideoGeneratorProps {
@@ -31,6 +33,7 @@ interface UseVideoGeneratorProps {
       modelId?: string;
       format?: string;
       characterRef?: string;
+      characterRefs?: string[];
       sceneRef?: string;
       referenceVideo?: string | null;
     },
@@ -65,17 +68,18 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
   const generateVideoNew = useCallback(
     async (beatId: string, prevBeatOverride?: StoryBeat | null) => {
       const beat = findBeat(beatId);
-      if (!beat?.framePair?.firstFrame?.imageUrl) {
+      const generatedFirstFrameUrl = getFirstFrameUrl(beat?.framePair);
+      const uploadedFirstFrameUrl = beat?.uploadedFramePair?.firstFrame;
+      const firstFrameUrl = generatedFirstFrameUrl || uploadedFirstFrameUrl;
+      if (!beat || !firstFrameUrl) {
         showError(t("story.cannotGenerateVideo"));
         return;
       }
-      const framePair = beat.framePair!;
-      const firstFrame = framePair.firstFrame!;
       if (
         !checkModelConfig(
           selectedVideoModel,
-          "无法生成视频",
-          "请先在顶部工具栏选择视频生成模型",
+          t("story.videoGenFailed"),
+          t("story.selectVideoModel"),
         )
       ) {
         return;
@@ -83,7 +87,7 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
       return withGenerationState(beatId, async (signal) => {
         const prevBeat = resolvePrevBeat(beatId, prevBeatOverride);
         const elements = await container.elementStorage.getAllElements();
-        const { characterRef, sceneRef, prevVideoUrl } = StoryGenerationService.resolveGenerationContext({
+        const { characterRefs, sceneRef, prevVideoUrl } = StoryGenerationService.resolveGenerationContext({
           beat,
           prevBeat,
           characters: charactersRef.current,
@@ -92,11 +96,16 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
         });
 
         const videoMode = determineVideoGenerationMode(beat, prevBeat);
+        const strategy = selectedVideoModel?.modelId
+          ? getVideoGenerationStrategy(selectedVideoModel.modelId)
+          : null;
         const effectiveVideoMode: VideoGenerationMode =
           videoMode === "reference_video_continuation" && !prevVideoUrl
             ? "first_frame_anchor"
             : videoMode;
-        const referenceVideo = effectiveVideoMode === "reference_video_continuation" ? prevVideoUrl : null;
+        const referenceVideo = effectiveVideoMode === "reference_video_continuation" && prevVideoUrl && (strategy?.supportsReferenceVideo !== false)
+          ? prevVideoUrl
+          : null;
 
         const basePrompt = generateSingleBeatPrompt({
           beat,
@@ -108,34 +117,53 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
           characterOutfits: beat.characterOutfits,
         });
 
-        const enhancedPrompt = StoryGenerationService.buildVideoPrompt(beat, basePrompt);
+        const promptLanguage = strategy?.promptLanguage || "auto";
+        const enhancedPrompt = StoryGenerationService.buildVideoPrompt(
+          beat,
+          basePrompt,
+          promptLanguage,
+          props.styleGuideRef?.current,
+          beat.shotInstruction,
+        );
+
+        const effectiveCharacterRefs = strategy && !strategy.useCharacterRef
+          ? undefined
+          : (characterRefs.length > 0 ? characterRefs : undefined);
+        const effectiveSceneRef = strategy && !strategy.useSceneRef
+          ? undefined
+          : sceneRef;
 
         const result = await createTask(enhancedPrompt, undefined, {
           duration: beat.duration,
           beatId,
           storyId: currentStory.id,
-          storyTitle: currentStory.title || "未命名分镜",
-          beatTitle: beat.title || `镜头 ${beat.sequence}`,
-          firstFrameUrl: firstFrame.imageUrl,
-          fixedImageUrl: firstFrame.imageUrl,
-          fixedImageLockType: "scene",
-          lastFrameUrl: framePair.lastFrame?.imageUrl,
+          storyTitle: currentStory.title || t("story.untitledStory"),
+          beatTitle: beat.title || `${t("story.shotLabel")} ${beat.sequence}`,
+          firstFrameUrl,
+          fixedImageUrl: firstFrameUrl,
+          fixedImageLockType: effectiveCharacterRefs ? "character" : "scene",
+          lastFrameUrl: getLastFrameUrl(beat.framePair) || beat.uploadedFramePair?.lastFrame,
           providerId: selectedVideoModel?.providerId,
           modelId: selectedVideoModel?.modelId,
           format: selectedVideoModel?.format,
-          characterRef,
-          sceneRef,
+          characterRefs: effectiveCharacterRefs,
+          sceneRef: effectiveSceneRef,
           referenceVideo,
         });
 
         if (signal.aborted) return;
 
-        if (result?.promptWasTruncated && showWarning) {
-          showWarning("提示词过长", "提示词已被自动截断，可能影响生成效果");
+        if (!result) {
+          showError(t("story.videoGenFailed"));
+          return;
+        }
+
+        if (result.promptWasTruncated && showWarning) {
+          showWarning(t("story.promptTruncatedTitle"), t("story.promptTruncatedDesc"));
         }
 
         success(t("video.taskSubmitted"), t("success.videoTaskProcessing"));
-      }, "视频生成失败");
+      }, t("story.videoGenFailed"));
     },
     [
       beatsRef,
@@ -151,6 +179,7 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
       resolvePrevBeat,
       checkModelConfig,
       withGenerationState,
+      props.styleGuideRef,
     ],
   );
 

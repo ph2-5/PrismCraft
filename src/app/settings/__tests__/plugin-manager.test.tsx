@@ -53,6 +53,14 @@ vi.mock("@/shared/utils/user-facing-error", () => ({
   mapUserFacingError: vi.fn((err: unknown) => err instanceof Error ? err.message : String(err)),
 }));
 
+vi.mock("@/shared/hooks/use-model-capabilities", () => ({
+  useInvalidateModelCapabilities: () => vi.fn(),
+}));
+
+vi.mock("@/shared/hooks/use-provider-templates", () => ({
+  useInvalidateProviderTemplates: () => vi.fn(),
+}));
+
 vi.mock("@/shared/error-logger", () => ({
   errorLogger: mockErrorLogger,
 }));

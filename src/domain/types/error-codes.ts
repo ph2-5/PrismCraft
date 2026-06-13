@@ -93,6 +93,15 @@ const ERROR_CATEGORY_MAP: Record<string, ErrorCategory> = {
   STORAGE_ERROR: "database_busy",
   CONFIGURATION_ERROR: "invalid_params",
   NOT_FOUND: "invalid_params",
+  api_not_configured: "invalid_params",
+  empty_prompt: "invalid_params",
+  unknown_provider: "invalid_params",
+  missing_task_id: "invalid_params",
+  invalid_task_id: "invalid_params",
+  network_error: "network",
+  provider_error: "server_error",
+  timeout_error: "timeout",
+  plugin_error: "server_error",
 };
 
 const CATEGORY_PATTERNS: Array<{

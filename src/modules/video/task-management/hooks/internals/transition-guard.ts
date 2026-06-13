@@ -1,5 +1,5 @@
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
-import { TaskMachine, TransitionError } from "../../domain";
+import { TransitionError, isValidTransition } from "../../domain";
 import { errorLogger } from "@/shared/error-logger";
 
 export function withTransitionGuard(
@@ -7,7 +7,7 @@ export function withTransitionGuard(
   targetStatus: VideoTaskStatus,
   updates: Partial<VideoTask>,
 ): Partial<VideoTask> {
-  if (TaskMachine.canTransition(task.status, targetStatus)) {
+  if (isValidTransition(task.status, targetStatus)) {
     return { ...updates, status: targetStatus };
   }
   const detail = `taskId=${task.taskId}, from=${task.status}, to=${targetStatus}`;

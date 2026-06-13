@@ -10,19 +10,20 @@ export interface ConsistencyCheckInput {
   beat: StoryBeat;
   elements: StoryElement[];
   generatedImageUrl?: string;
+  structuredOutput?: ConsistencyAnalysisResult;
 }
 
 export async function checkVisualConsistency(
   input: ConsistencyCheckInput,
 ): Promise<Result<ConsistencyCheckResult>> {
-  const { beat, elements, generatedImageUrl } = input;
+  const { beat, elements, generatedImageUrl, structuredOutput } = input;
 
-  if (!generatedImageUrl) {
+  if (!generatedImageUrl && !structuredOutput) {
     return ok({
-      passed: true,
+      passed: false,
       characterScores: [],
-      overallScore: 1.0,
-      recommendation: "accept",
+      overallScore: 0,
+      recommendation: "adjust",
     });
   }
 
@@ -39,12 +40,16 @@ export async function checkVisualConsistency(
     });
   }
 
+  if (structuredOutput) {
+    return ok(parseConsistencyAnalysisFromStructured(structuredOutput, boundElements));
+  }
+
   try {
     const prompt = buildConsistencyPrompt(boundElements, beat);
-    const analysisResult = await container.imageApi.analyze(generatedImageUrl, "scene", prompt);
+    const analysisResult = await container.imageApi.analyze(generatedImageUrl!, "scene", prompt);
 
     if (!analysisResult.ok) {
-      return err(new AppError("CONSISTENCY_CHECK_FAILED", "无法执行一致性检查", analysisResult.error));
+      return err(new AppError("CONSISTENCY_CHECK_FAILED", t("error.consistencyCheckFailed"), analysisResult.error));
     }
 
     const analysis = analysisResult.value.analysis;
@@ -52,7 +57,7 @@ export async function checkVisualConsistency(
 
     return ok(parsed);
   } catch (e) {
-    return err(new AppError("CONSISTENCY_CHECK_ERROR", "检查过程出错", e));
+    return err(new AppError("CONSISTENCY_CHECK_ERROR", t("error.consistencyCheckError"), e));
   }
 }
 
@@ -65,10 +70,12 @@ function buildConsistencyPrompt(elements: StoryElement[], beat: StoryBeat): stri
     })
     .join("\n");
 
+  const featureAnchoringSection = buildFeatureAnchoringSection(beat);
+
   return `请分析这张图片中以下元素的一致性：
 
 ${elementDescriptions}
-
+${featureAnchoringSection}
 请评估每个元素的外观一致性，给出0-1的分数，并指出不一致的地方。
 请用以下JSON格式回复：
 {
@@ -78,6 +85,25 @@ ${elementDescriptions}
   "overallScore": 0.8,
   "recommendation": "accept" | "regenerate" | "adjust"
 }`;
+}
+
+function buildFeatureAnchoringSection(beat: StoryBeat): string {
+  if (!beat.featureAnchoring?.enabled) return "";
+
+  const anchors = beat.featureAnchoring.characterAnchors || [];
+  if (anchors.length === 0) return "";
+
+  const anchorDescriptions = anchors
+    .filter((anchor) => anchor.featureTags?.length)
+    .map((anchor) => {
+      const tags = anchor.featureTags.join(", ");
+      return `- Key features to verify: ${tags} (weight: ${anchor.weight})`;
+    })
+    .join("\n");
+
+  if (!anchorDescriptions) return "";
+
+  return `\nFeature Anchoring Requirements:\n${anchorDescriptions}\n`;
 }
 
 interface ConsistencyAnalysisScore {
@@ -97,48 +123,13 @@ function parseConsistencyAnalysis(
   elements: StoryElement[],
 ): ConsistencyCheckResult {
   try {
-    const jsonMatch = analysis.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return {
-        passed: false,
-        characterScores: elements.map((el) => ({
-          elementId: el.id,
-          elementName: el.name,
-          score: 0.5,
-          issues: ["AI返回格式无法解析"],
-        })),
-        overallScore: 0.5,
-        recommendation: "adjust",
-      };
+    const parsed = tryParseAnalysisJson(analysis);
+
+    if (!parsed) {
+      return buildUnparseableResult(elements);
     }
 
-    const parsed = safeJsonParse<ConsistencyAnalysisResult>(jsonMatch[0], {
-      scores: [],
-      overallScore: 0.5,
-      recommendation: "adjust",
-    });
-    const scores = parsed.scores || [];
-
-    const characterScores = elements.map((el) => {
-      const matched = scores.find(
-        (s) => s.name === el.name || s.name.includes(el.name),
-      );
-      return {
-        elementId: el.id,
-        elementName: el.name,
-        score: matched?.score ?? 0.7,
-        issues: matched?.issues || [],
-      };
-    });
-
-    const overallScore = parsed.overallScore ?? characterScores.reduce((s, c) => s + c.score, 0) / characterScores.length;
-
-    return {
-      passed: overallScore >= 0.6,
-      characterScores,
-      overallScore,
-      recommendation: parsed.recommendation || (overallScore >= 0.8 ? "accept" : overallScore >= 0.6 ? "adjust" : "regenerate"),
-    };
+    return mapAnalysisToResult(parsed, elements);
   } catch (e) {
     errorLogger.error(t("error.consistencyParseFailed"), e instanceof Error ? e : undefined);
     return {
@@ -153,4 +144,78 @@ function parseConsistencyAnalysis(
       recommendation: "adjust",
     };
   }
+}
+
+function tryParseAnalysisJson(analysis: string): ConsistencyAnalysisResult | null {
+  const directParsed = safeJsonParse<ConsistencyAnalysisResult | null>(analysis, null);
+  if (directParsed && typeof directParsed === "object" && "scores" in directParsed) {
+    return directParsed;
+  }
+
+  const codeBlockMatch = analysis.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (codeBlockMatch) {
+    const blockParsed = safeJsonParse<ConsistencyAnalysisResult | null>(codeBlockMatch[1], null);
+    if (blockParsed && typeof blockParsed === "object" && "scores" in blockParsed) {
+      return blockParsed;
+    }
+  }
+
+  const jsonMatch = analysis.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    const regexParsed = safeJsonParse<ConsistencyAnalysisResult | null>(jsonMatch[0], null);
+    if (regexParsed && typeof regexParsed === "object" && "scores" in regexParsed) {
+      return regexParsed;
+    }
+  }
+
+  return null;
+}
+
+function buildUnparseableResult(elements: StoryElement[]): ConsistencyCheckResult {
+  return {
+    passed: false,
+    characterScores: elements.map((el) => ({
+      elementId: el.id,
+      elementName: el.name,
+      score: 0.5,
+      issues: [t("error.consistencyParseFailed")],
+    })),
+    overallScore: 0.5,
+    recommendation: "adjust",
+  };
+}
+
+function mapAnalysisToResult(parsed: ConsistencyAnalysisResult, elements: StoryElement[]): ConsistencyCheckResult {
+  const scores = parsed.scores || [];
+
+  const characterScores = elements.map((el) => {
+    const matched = scores.find(
+      (s) => s.name === el.name || s.name.includes(el.name),
+    );
+    return {
+      elementId: el.id,
+      elementName: el.name,
+      score: matched?.score ?? 0.7,
+      issues: matched?.issues || [],
+    };
+  });
+
+  const overallScore = parsed.overallScore ?? characterScores.reduce((s, c) => s + c.score, 0) / characterScores.length;
+
+  return {
+    passed: overallScore >= 0.6,
+    characterScores,
+    overallScore,
+    recommendation: parsed.recommendation || (overallScore >= 0.8 ? "accept" : overallScore >= 0.6 ? "adjust" : "regenerate"),
+  };
+}
+
+export function parseConsistencyAnalysisFromStructured(
+  data: ConsistencyAnalysisResult,
+  elements: StoryElement[],
+): ConsistencyCheckResult {
+  if (!data || !Array.isArray(data.scores)) {
+    return buildUnparseableResult(elements);
+  }
+  return mapAnalysisToResult(data, elements);
 }

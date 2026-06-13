@@ -5,6 +5,10 @@ import {
   generateBeatImagePrompt,
   generateSimpleBeatImagePrompt,
   getBeatCharacterIds,
+  resolveShotInstruction,
+  SHOT_SIZE_OPTIONS,
+  CAMERA_MOVEMENT_OPTIONS,
+  CAMERA_ANGLE_OPTIONS,
 } from "@/domain/utils";
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
 
@@ -55,9 +59,19 @@ function buildContextSection(request: PromptEditorRequest): string {
   parts.push(`内容：${beat.content || beat.description || "无描述"}`);
   parts.push(`时长：${beat.duration}秒`);
 
-  if (beat.shotType) parts.push(`景别：${beat.shotType}`);
-  if (beat.camera?.angle) parts.push(`镜头角度：${beat.camera.angle}`);
-  if (beat.camera?.movement) parts.push(`运镜：${beat.camera.movement}`);
+  const resolvedShot = resolveShotInstruction(beat);
+  if (resolvedShot?.shotSize) {
+    const label = SHOT_SIZE_OPTIONS.find(o => o.value === resolvedShot.shotSize)?.label || resolvedShot.shotSize;
+    parts.push(`景别：${label}`);
+  }
+  if (resolvedShot?.cameraAngle) {
+    const label = CAMERA_ANGLE_OPTIONS.find(o => o.value === resolvedShot.cameraAngle)?.label || resolvedShot.cameraAngle;
+    parts.push(`镜头角度：${label}`);
+  }
+  if (resolvedShot?.cameraMovement) {
+    const label = CAMERA_MOVEMENT_OPTIONS.find(o => o.value === resolvedShot.cameraMovement)?.label || resolvedShot.cameraMovement;
+    parts.push(`运镜：${label}`);
+  }
   if (beat.type) parts.push(`镜头类型：${beat.type}`);
 
   if (characters && characters.length > 0) {
@@ -77,8 +91,8 @@ function buildContextSection(request: PromptEditorRequest): string {
     }
   }
 
-  if (scenes && scenes.length > 0 && beat.scene) {
-    const boundScene = scenes.find((s) => s.id === beat.scene);
+  if (scenes && scenes.length > 0 && (beat.sceneId || beat.scene)) {
+    const boundScene = scenes.find((s) => s.id === (beat.sceneId || beat.scene));
     if (boundScene) {
       parts.push("");
       parts.push("【绑定场景】");
@@ -188,8 +202,9 @@ export function buildDefaultPrompt(request: PromptEditorRequest): string {
     }
     const parts: string[] = [];
     parts.push(beat.content || beat.description || "");
-    if (beat.shotType) parts.push(`${beat.shotType} shot`);
-    if (beat.camera?.angle) parts.push(`${beat.camera.angle} angle`);
+    const resolvedShot = resolveShotInstruction(beat);
+    if (resolvedShot?.shotSize) parts.push(`${resolvedShot.shotSize} shot`);
+    if (resolvedShot?.cameraAngle) parts.push(`${resolvedShot.cameraAngle} angle`);
     parts.push("animation still", "key visual", "high quality", "detailed");
     return parts.filter(Boolean).join(", ");
   }

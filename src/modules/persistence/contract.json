@@ -14,7 +14,7 @@
     "deleteCharacterWithRefs/deleteSceneWithRefs 在删除时同步清理本地图片文件",
     "事务性删除使用 safeTransaction 保证原子性",
     "useAutoSave 支持 isDirty() 回调，定时保存前检查是否有未保存修改，无修改时跳过保存",
-    "持久化操作失败时必须重新标记对应实体的脏状态（markDirty），确保下次保存时重试",
+    "持久化操作失败时通过重试机制（最多3次）恢复，超过重试限制后通过 toast 通知用户",
     "BeforeUnloadGuard 仅在浏览器关闭时守卫，路由切换不清除脏状态"
   ]
 }

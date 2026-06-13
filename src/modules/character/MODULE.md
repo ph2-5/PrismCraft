@@ -12,6 +12,8 @@
 |------|------|------|
 | `services` | [services/](./services/) | 角色 CRUD 服务，使用 Result 模式处理错误，触发领域事件 |
 | `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：CRUD、图片生成、服装管理 |
+| `constants` | [constants.ts](./constants.ts) | 默认角色、性格建议等常量 |
+| `presentation` | [presentation/](./presentation/) | 角色列表项、服装对话框 |
 
 ---
 

@@ -109,7 +109,7 @@ describe("generateFramePrompts", () => {
     expect(callArgs[0]!).toContain("第3镜头");
   });
 
-  it("beat 无内容、无角色、无场景时应返回空提示词", async () => {
+  it("beat 无内容、无角色、无场景时应返回错误", async () => {
     const emptyBeat: StoryBeat = {
       ...mockBeat,
       content: "",
@@ -127,10 +127,9 @@ describe("generateFramePrompts", () => {
       textProvider: mockTextProvider,
     });
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.value.firstFramePrompt).toBe("");
-      expect(result.value.lastFramePrompt).toBe("");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBeDefined();
     }
   });
 
@@ -330,7 +329,7 @@ describe("generateFramePrompts", () => {
     });
 
     const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
-    expect(prompt).toContain("特写");
+    expect(prompt).toContain("近景");
   });
 
   it("应正确处理 camera 信息", async () => {

@@ -1,0 +1,19 @@
+{
+  "id": "custom",
+  "name": "自定义 API",
+  "format": "openai",
+  "baseUrl": "http://localhost:8000/v1",
+  "detection": {
+    "rules": [],
+    "suggestedName": "自定义 API",
+    "baseUrl": "http://localhost:8000/v1"
+  },
+  "models": [
+    {
+      "id": "custom-model",
+      "name": "自定义模型",
+      "capabilities": ["text"],
+      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    }
+  ]
+}

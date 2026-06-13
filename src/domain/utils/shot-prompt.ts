@@ -1,4 +1,4 @@
-import type { ShotInstructionTemplate } from "@/domain/schemas";
+import type { ShotInstructionTemplate, BeatCamera } from "@/domain/schemas";
 
 export const SHOT_SIZE_OPTIONS: Array<{
   value: ShotInstructionTemplate["shotSize"];
@@ -43,7 +43,7 @@ export const CAMERA_ANGLE_OPTIONS: Array<{
   { value: "dutch", label: "倾斜", description: "镜头倾斜，制造不安感", keyword: "dutch angle, tilted frame, canted angle" },
 ];
 
-export function shotInstructionToPrompt(instruction: ShotInstructionTemplate): string {
+export function shotInstructionToPrompt(instruction: ResolvedShotInstruction): string {
   const parts: string[] = [];
   const shotSize = SHOT_SIZE_OPTIONS.find((o) => o.value === instruction.shotSize);
   if (shotSize) parts.push(shotSize.keyword);
@@ -52,4 +52,77 @@ export function shotInstructionToPrompt(instruction: ShotInstructionTemplate): s
   const cameraAngle = CAMERA_ANGLE_OPTIONS.find((o) => o.value === instruction.cameraAngle);
   if (cameraAngle) parts.push(cameraAngle.keyword);
   return parts.join(", ");
+}
+
+const SHOT_SIZE_ALIASES: Record<string, string> = {
+  "close-up": "close",
+  "medium-shot": "medium",
+  "wide-shot": "wide",
+  "extreme-close": "extreme_close",
+  "extreme-close-up": "extreme_close",
+  "medium-close": "medium",
+  "medium-close-up": "medium",
+  "full-shot": "wide",
+  full: "wide",
+  "over-shoulder": "medium",
+  ots: "medium",
+  "point-of-view": "medium",
+  pov: "medium",
+  "two-shot": "medium",
+  establishing: "extreme_wide",
+};
+
+function normalizeCameraValue(
+  value: string | undefined,
+  options: Array<{ value: string; label: string }>,
+): string | undefined {
+  if (!value) return undefined;
+  const match = options.find((o) => o.value === value);
+  if (match) return match.value;
+  const labelMatch = options.find((o) => o.label === value);
+  if (labelMatch) return labelMatch.value;
+  const alias = SHOT_SIZE_ALIASES[value];
+  if (alias) return alias;
+  return value;
+}
+
+export interface ResolvedShotInstruction {
+  shotSize?: string;
+  cameraMovement?: string;
+  cameraAngle?: string;
+}
+
+/**
+ * Resolves the effective shot instruction from the three overlapping fields.
+ * Priority: shotInstruction > camera > shotType
+ * Normalizes Chinese labels to English enum values for shotInstructionToPrompt compatibility.
+ */
+export function resolveShotInstruction(beat: {
+  shotInstruction?: ShotInstructionTemplate;
+  camera?: BeatCamera | string | null;
+  shotType?: string | null;
+}): ResolvedShotInstruction | null {
+  if (beat.shotInstruction) {
+    return {
+      shotSize: beat.shotInstruction.shotSize,
+      cameraMovement: beat.shotInstruction.cameraMovement,
+      cameraAngle: beat.shotInstruction.cameraAngle,
+    };
+  }
+
+  if (beat.camera && typeof beat.camera === "object") {
+    return {
+      shotSize: normalizeCameraValue(beat.shotType || undefined, SHOT_SIZE_OPTIONS),
+      cameraMovement: normalizeCameraValue(beat.camera.movement, CAMERA_MOVEMENT_OPTIONS),
+      cameraAngle: normalizeCameraValue(beat.camera.angle, CAMERA_ANGLE_OPTIONS),
+    };
+  }
+
+  if (beat.shotType) {
+    return {
+      shotSize: normalizeCameraValue(beat.shotType, SHOT_SIZE_OPTIONS),
+    };
+  }
+
+  return null;
 }

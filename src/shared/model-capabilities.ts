@@ -1,6 +1,7 @@
 export {
   resolveImageSize,
   getModelParameterProfile,
+  getAllModelProfiles,
   getModelCapabilities,
   getSupportedImageSizes,
   supportsLastFrame,
@@ -14,6 +15,9 @@ export {
   type ModelParameterProfile,
   type ImageSizeOption,
   type ReferenceImageItem,
+  type VideoGenerationStrategy,
+  type ReferenceStrategy,
+  type ReferenceDeliveryMode,
   ReferencePriority,
   BUILTIN_MODEL_CAPABILITIES,
 } from "@/infrastructure/ai-providers/model-capabilities";

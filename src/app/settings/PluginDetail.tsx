@@ -16,6 +16,14 @@ interface PluginDetailProps {
       supportsMimicryLevel: boolean;
       defaultModel: string;
       maxDuration: number;
+      supportsCharacterRef?: boolean;
+      supportsSceneRef?: boolean;
+      characterRefMode?: string;
+      sceneRefMode?: string;
+      characterRefField?: string;
+      sceneRefField?: string;
+      imageUploadMode?: string;
+      maxCharacterRefs?: number;
     };
     imageCapabilities: {
       supportsReferenceImage: boolean;
@@ -53,6 +61,22 @@ export function PluginDetail({ plugin }: PluginDetailProps) {
         {plugin.videoCapabilities.supportsLastFrame && <Badge variant="outline" className="text-xs">{t("plugin.lastFrame")}</Badge>}
         {plugin.videoCapabilities.supportsReferenceVideo && <Badge variant="outline" className="text-xs">{t("plugin.referenceVideo")}</Badge>}
         {plugin.videoCapabilities.supportsMimicryLevel && <Badge variant="outline" className="text-xs">{t("plugin.mimicryLevel")}</Badge>}
+        {plugin.videoCapabilities.supportsCharacterRef && (
+          <Badge variant="outline" className="text-xs">
+            {t("plugin.characterRef")}
+            {plugin.videoCapabilities.characterRefMode && plugin.videoCapabilities.characterRefMode !== "text_append" 
+              ? ` (${plugin.videoCapabilities.characterRefMode})` 
+              : ""}
+          </Badge>
+        )}
+        {plugin.videoCapabilities.supportsSceneRef && (
+          <Badge variant="outline" className="text-xs">
+            {t("plugin.sceneRef")}
+            {plugin.videoCapabilities.sceneRefMode && plugin.videoCapabilities.sceneRefMode !== "text_append" 
+              ? ` (${plugin.videoCapabilities.sceneRefMode})` 
+              : ""}
+          </Badge>
+        )}
         {plugin.imageCapabilities.supportsReferenceImage && <Badge variant="outline" className="text-xs">{t("plugin.referenceImage")}</Badge>}
       </div>
     </div>

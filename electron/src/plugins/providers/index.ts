@@ -8,3 +8,6 @@ export { OpenAISoraPlugin } from "./openai-sora";
 export { OpenAICompatiblePlugin } from "./openai-compatible";
 export { MiniMaxPlugin } from "./minimax";
 export { AnthropicPlugin } from "./anthropic";
+export { PikaPlugin } from "./pika";
+export { LumaPlugin } from "./luma";
+export { RunwayPlugin } from "./runway";

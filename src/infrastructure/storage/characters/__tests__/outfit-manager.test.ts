@@ -375,7 +375,8 @@ describe("outfit-manager", () => {
       );
 
       expect(mockSafeRun).toHaveBeenCalledTimes(1);
-      const [sql, params] = mockSafeRun.mock.calls[0];
+      const callArgs = mockSafeRun.mock.calls[0] as [string, unknown[]] | undefined;
+      const [sql, params] = callArgs ?? ["", []];
       expect(sql).toContain("local_image_path");
       expect(params).toContain("/local/new-img.png");
     });

@@ -147,6 +147,82 @@ describe("extractCharacterFeatures", () => {
 
     expect(features).toBeUndefined();
   });
+
+  it("language=en 时应提取英文颜色关键词", () => {
+    const character = makeCharacter({
+      description: "A warrior wearing a red cape and black armor",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "en");
+
+    expect(features).toBeDefined();
+    expect(features!.colorPalette).toContain("red");
+    expect(features!.colorPalette).toContain("black");
+  });
+
+  it("language=zh 时应提取中文颜色关键词", () => {
+    const character = makeCharacter({
+      description: "穿着红色披风和黑色铠甲的战士",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "zh");
+
+    expect(features).toBeDefined();
+    expect(features!.colorPalette).toContain("红色");
+    expect(features!.colorPalette).toContain("黑色");
+  });
+
+  it("language=en 时英文颜色不应匹配中文关键词", () => {
+    const character = makeCharacter({
+      description: "穿着红色披风和黑色铠甲的战士",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "en");
+
+    expect(features?.colorPalette).toBeUndefined();
+  });
+
+  it("language=zh 时中文颜色不应匹配英文关键词", () => {
+    const character = makeCharacter({
+      description: "A warrior wearing a red cape and black armor",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "zh");
+
+    expect(features?.colorPalette).toBeUndefined();
+  });
 });
 
 describe("buildFeatureTags", () => {
@@ -211,6 +287,80 @@ describe("buildFeatureTags", () => {
 
     const descTag = tags.find((t) => t.startsWith("描述:"));
     expect(descTag!.length).toBeLessThanOrEqual(53);
+  });
+
+  it("language=en 时应使用英文前缀", () => {
+    const element = makeElement({ type: "character", name: "Hero" });
+    const character = makeCharacter({
+      name: "Hero",
+      appearance: {
+        hairColor: "black",
+        hairStyle: "long",
+        eyeColor: "blue",
+        height: "",
+        build: "",
+        clothing: "armor",
+      },
+      style: "realistic",
+    });
+
+    const tags = buildFeatureTags(element, character, "en");
+
+    expect(tags).toContain("Character:Hero");
+    expect(tags).toContain("Hair:black");
+    expect(tags).toContain("Hairstyle:long");
+    expect(tags).toContain("Eyes:blue");
+    expect(tags).toContain("Clothing:armor");
+    expect(tags).toContain("Style:realistic");
+  });
+
+  it("language=zh 时应使用中文前缀", () => {
+    const element = makeElement({ type: "character", name: "角色A" });
+    const character = makeCharacter({
+      name: "角色A",
+      appearance: {
+        hairColor: "黑色",
+        hairStyle: "长发",
+        eyeColor: "蓝色",
+        height: "",
+        build: "",
+        clothing: "铠甲",
+      },
+    });
+
+    const tags = buildFeatureTags(element, character, "zh");
+
+    expect(tags).toContain("角色:角色A");
+    expect(tags).toContain("发色:黑色");
+    expect(tags).toContain("发型:长发");
+    expect(tags).toContain("眼色:蓝色");
+    expect(tags).toContain("服装:铠甲");
+  });
+
+  it("language=en 时道具类型应使用英文前缀", () => {
+    const element = makeElement({
+      type: "prop",
+      name: "Sword",
+      description: "A shining sword",
+    });
+
+    const tags = buildFeatureTags(element, undefined, "en");
+
+    expect(tags).toContain("Prop:Sword");
+    expect(tags).toContain("Description:A shining sword");
+  });
+
+  it("language=en 时其他类型应使用英文前缀", () => {
+    const element = makeElement({
+      type: "effect",
+      name: "Fire",
+      description: "Burning fire effect",
+    });
+
+    const tags = buildFeatureTags(element, undefined, "en");
+
+    expect(tags).toContain("Name:Fire");
+    expect(tags).toContain("Description:Burning fire effect");
   });
 });
 

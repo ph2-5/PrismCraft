@@ -78,7 +78,6 @@ export function checkSceneReferences(
       for (const beat of story.beats) {
         const isReferenced =
           beat.sceneId === sceneId ||
-          beat.scene === sceneId ||
           beat.elementIds?.includes(sceneId) ||
           (beat.elementBindings && sceneId in beat.elementBindings);
 

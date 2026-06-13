@@ -1,7 +1,9 @@
 /**
  * API Key 自动检测
  *
- * 优先使用插件系统提供的检测规则，fallback 到内置规则。
+ * 检测优先级：插件 > 内置 > 默认值
+ *
+ * 当多个来源匹配同一 API Key 时，返回所有匹配结果供用户选择。
  * 插件通过 apiKeyDetection 字段声明自己的 API Key 格式。
  * 前端通过 API 从后端获取插件规则缓存到本地。
  */
@@ -9,14 +11,23 @@
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
+import { BUILTIN_DETECTION_RULES, TEMPLATE_NAMES } from "../model-registry";
 
-interface DetectResult {
+export interface DetectResult {
   templateId: string;
   confidence: "high" | "medium" | "low";
   suggestedName: string;
   baseUrl?: string;
-  isPlugin?: boolean;
+  source: "builtin" | "plugin";
   pluginId?: string;
+  isUserPlugin?: boolean;
+  isCodePlugin?: boolean;
+}
+
+export interface DetectAllResult {
+  builtinMatches: DetectResult[];
+  pluginMatches: DetectResult[];
+  recommended: DetectResult | null;
 }
 
 interface PluginDetectionRule {
@@ -33,70 +44,7 @@ interface PluginDetectionConfig {
   isCodePlugin?: boolean;
 }
 
-// ── 内置规则（兜底，当插件系统不可用时使用） ──
-
-const BUILTIN_RULES: {
-  pattern: RegExp;
-  templateId: string;
-  confidence: "high" | "medium" | "low";
-  check?: (key: string) => boolean;
-}[] = [
-  { pattern: /^sk-ant-api03-[a-zA-Z0-9_-]+$/, templateId: "anthropic", confidence: "high" },
-  { pattern: /^sk-proj-[a-zA-Z0-9_-]+$/, templateId: "openai", confidence: "high" },
-  { pattern: /^sk-or-[a-zA-Z0-9_-]+$/, templateId: "openrouter", confidence: "high" },
-  { pattern: /^AIza[a-zA-Z0-9_-]{30,}$/, templateId: "google", confidence: "high" },
-  { pattern: /^00[a-f0-9]{32}\.[a-z0-9]{16}$/i, templateId: "zhipu", confidence: "high" },
-  { pattern: /^[a-f0-9]{32}\.[a-zA-Z0-9]{20}$/, templateId: "zhipu", confidence: "high" },
-  { pattern: /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i, templateId: "volcengine", confidence: "high" },
-  { pattern: /seedance|atlas/i, templateId: "seedance", confidence: "high" },
-  { pattern: /moonshot/i, templateId: "moonshot", confidence: "high" },
-  {
-    pattern: /^sk-[a-zA-Z0-9]{48}$/,
-    templateId: "openai",
-    confidence: "high",
-    check: (key) => !key.startsWith("sk-or-") && !key.startsWith("sk-proj-") && !key.startsWith("sk-ant-"),
-  },
-  {
-    pattern: /^sk-[a-zA-Z0-9]{32}$/,
-    templateId: "deepseek",
-    confidence: "high",
-    check: (key) => !key.startsWith("sk-or-") && !key.startsWith("sk-proj-") && !key.startsWith("sk-ant-"),
-  },
-  {
-    pattern: /^sk-[a-zA-Z0-9]{24,}$/,
-    templateId: "qwen",
-    confidence: "medium",
-    check: (key) =>
-      !key.startsWith("sk-or-") &&
-      !key.startsWith("sk-proj-") &&
-      !key.startsWith("sk-ant-") &&
-      !/^sk-[a-zA-Z0-9]{48}$/.test(key) &&
-      !/^sk-[a-zA-Z0-9]{32}$/.test(key),
-  },
-  { pattern: /^sk-[a-zA-Z0-9]{10}$/, templateId: "moonshot", confidence: "low" },
-];
-
-const TEMPLATE_NAMES: Record<string, string> = {
-  openai: "OpenAI",
-  anthropic: "Anthropic Claude",
-  google: "Google Gemini",
-  deepseek: "DeepSeek",
-  moonshot: "Moonshot (Kimi)",
-  volcengine: "火山引擎",
-  byteplus: "BytePlus",
-  zhipu: "智谱 AI",
-  openrouter: "OpenRouter",
-  seedance: "Seedance (Atlas)",
-  pollinations: "Pollinations (免费)",
-  ollama: "Ollama (本地)",
-  qwen: "通义千问",
-  kuaishou: "快手可灵 Kling",
-  pixverse: "PixVerse",
-  sora: "OpenAI Sora",
-  bedrock: "Amazon Bedrock",
-  fireworks: "Fireworks AI",
-  custom: "自定义 API",
-};
+const BUILTIN_RULES = BUILTIN_DETECTION_RULES;
 
 // ── 插件规则缓存 ──
 
@@ -124,64 +72,88 @@ export async function loadPluginDetectionRules(): Promise<void> {
 
 // ── 检测逻辑 ──
 
-function matchPluginRules(apiKey: string): DetectResult | null {
+const CONFIDENCE_ORDER: Record<string, number> = { high: 3, medium: 2, low: 1 };
+
+function matchPluginRulesAll(apiKey: string): DetectResult[] {
+  const matches: DetectResult[] = [];
   for (const config of pluginDetectionRules) {
     for (const rule of config.rules) {
       try {
         const regex = new RegExp(rule.pattern);
         if (regex.test(apiKey)) {
-          return {
+          matches.push({
             templateId: config.pluginId,
             confidence: rule.confidence,
             suggestedName: config.suggestedName,
             baseUrl: config.baseUrl,
-            isPlugin: true,
+            source: "plugin",
             pluginId: config.pluginId,
-          };
+            isUserPlugin: config.isUserPlugin,
+            isCodePlugin: config.isCodePlugin,
+          });
         }
       } catch {
         // 无效正则，跳过
       }
     }
   }
-  return null;
+  matches.sort((a, b) => (CONFIDENCE_ORDER[b.confidence] || 0) - (CONFIDENCE_ORDER[a.confidence] || 0));
+  return matches;
 }
 
-function matchBuiltinRules(apiKey: string): DetectResult | null {
+function matchBuiltinRulesAll(apiKey: string): DetectResult[] {
+  const matches: DetectResult[] = [];
   for (const rule of BUILTIN_RULES) {
     if (rule.pattern.test(apiKey)) {
       if (rule.check && !rule.check(apiKey)) {
         continue;
       }
-      return {
+      matches.push({
         templateId: rule.templateId,
         confidence: rule.confidence,
         suggestedName: TEMPLATE_NAMES[rule.templateId] || rule.templateId,
-      };
+        source: "builtin",
+      });
     }
   }
-  return null;
+  matches.sort((a, b) => (CONFIDENCE_ORDER[b.confidence] || 0) - (CONFIDENCE_ORDER[a.confidence] || 0));
+  return matches;
 }
 
 /**
- * 检测 API Key 对应的提供商
- * 优先匹配插件规则，再匹配内置规则
+ * 检测 API Key 对应的提供商，返回所有匹配结果
+ *
+ * 返回结构：
+ * - builtinMatches: 内置提供商匹配结果（按置信度降序）
+ * - pluginMatches: 插件匹配结果（按置信度降序）
+ * - recommended: 推荐结果（插件优先 > 内置 > null）
+ */
+export function detectAllProviders(apiKey: string): DetectAllResult | null {
+  if (!apiKey || apiKey.length < 10) return null;
+  if (apiKey.includes("your_") || apiKey.includes("placeholder")) return null;
+
+  const pluginMatches = matchPluginRulesAll(apiKey);
+  const builtinMatches = matchBuiltinRulesAll(apiKey);
+
+  let recommended: DetectResult | null = null;
+  if (pluginMatches.length > 0) {
+    recommended = pluginMatches[0]!;
+  } else if (builtinMatches.length > 0) {
+    recommended = builtinMatches[0]!;
+  }
+
+  return { builtinMatches, pluginMatches, recommended };
+}
+
+/**
+ * 检测 API Key 对应的提供商（兼容旧接口）
+ *
+ * 优先级：插件 > 内置
+ * 返回置信度最高的匹配结果
  */
 export function detectProvider(apiKey: string): DetectResult | null {
-  if (!apiKey || apiKey.length < 10) return null;
-
-  if (apiKey.includes("your_") || apiKey.includes("placeholder")) {
-    return null;
-  }
-
-  // 优先使用插件规则
-  if (pluginDetectionRules.length > 0) {
-    const pluginResult = matchPluginRules(apiKey);
-    if (pluginResult) return pluginResult;
-  }
-
-  // 兜底使用内置规则
-  return matchBuiltinRules(apiKey);
+  const all = detectAllProviders(apiKey);
+  return all?.recommended ?? null;
 }
 
 /**

@@ -1,7 +1,7 @@
 {
   "name": "prompt-server",
   "description": "服务器端提示词：首帧/尾帧提示词、特征分析提示词",
-  "dependencies": [],
+  "dependencies": ["prompt-base"],
   "publicAPI": {
     "hooks": [],
     "services": ["generateFirstFramePrompt", "generateLastFramePrompt", "generateKeyframePrompt", "generateCharacterAnalysisPrompt", "generateSceneAnalysisPrompt"],
@@ -9,6 +9,6 @@
   },
   "invariants": [
     "服务器端提示词用于 API 调用",
-    "prompt-server 子域不依赖其他子域"
+    "prompt-server 子域依赖 prompt-base 子域"
   ]
 }

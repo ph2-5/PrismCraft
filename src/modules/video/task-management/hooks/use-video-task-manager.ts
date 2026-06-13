@@ -86,6 +86,7 @@ interface VideoTaskManagerState {
       modelId?: string;
       format?: string;
       characterRef?: string;
+      characterRefs?: string[];
       sceneRef?: string;
     },
   ) => Promise<(VideoTask & { promptWasTruncated?: boolean }) | null>;
@@ -297,6 +298,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         modelId?: string;
         format?: string;
         characterRef?: string;
+        characterRefs?: string[];
         sceneRef?: string;
       } = {
         duration: extraOptions?.duration,
@@ -305,6 +307,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         modelId: extraOptions?.modelId,
         format: extraOptions?.format,
         characterRef: extraOptions?.characterRef,
+        characterRefs: extraOptions?.characterRefs,
         sceneRef: extraOptions?.sceneRef,
       };
 
@@ -590,15 +593,13 @@ export function useVideoTaskManager() {
     [allTasks],
   );
   const hasActiveTasks = activeTasks.length > 0;
+  const activeTaskId = activeTasks.length > 0 ? activeTasks[activeTasks.length - 1]!.taskId : null;
 
-  return {
+  return useMemo(() => ({
     tasks: allTasks,
     allTasks,
     isGenerating: hasActiveTasks,
-    activeTaskId:
-      activeTasks.length > 0
-        ? activeTasks[activeTasks.length - 1]!.taskId
-        : null,
+    activeTaskId,
     activeTasks,
     hasActiveTasks,
     addTask: store.getState().addTask,
@@ -617,5 +618,5 @@ export function useVideoTaskManager() {
     startBackgroundProcessing: store.getState().startBackgroundProcessing,
     initialize: store.getState().initialize,
     isBackgroundProcessing,
-  };
+  }), [allTasks, activeTasks, hasActiveTasks, activeTaskId, isBackgroundProcessing, store]);
 }

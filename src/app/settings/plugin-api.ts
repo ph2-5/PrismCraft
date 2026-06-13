@@ -18,6 +18,14 @@ export interface PluginInfo {
     supportsMimicryLevel: boolean;
     defaultModel: string;
     maxDuration: number;
+    supportsCharacterRef?: boolean;
+    supportsSceneRef?: boolean;
+    characterRefMode?: string;
+    sceneRefMode?: string;
+    characterRefField?: string;
+    sceneRefField?: string;
+    imageUploadMode?: string;
+    maxCharacterRefs?: number;
   };
   imageCapabilities: {
     supportsReferenceImage: boolean;

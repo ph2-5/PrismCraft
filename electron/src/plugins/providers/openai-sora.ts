@@ -7,6 +7,7 @@ import type {
   VideoRequestResult,
   ImageRequestResult,
   CloudProviderInfo,
+  ImageRefMode,
 } from "../types";
 
 export class OpenAISoraPlugin extends BaseAIProviderPlugin {
@@ -30,6 +31,12 @@ export class OpenAISoraPlugin extends BaseAIProviderPlugin {
     supportsLastFrame: true,
     supportsReferenceVideo: false,
     supportsMimicryLevel: false,
+    supportsCharacterRef: true,
+    supportsSceneRef: true,
+    characterRefMode: "multimodal" as ImageRefMode,
+    sceneRefMode: "multimodal" as ImageRefMode,
+    imageUploadMode: "base64" as const,
+    maxCharacterRefs: 1,
     defaultModel: "sora-2",
     maxDuration: 20,
     supportedCodecs: ["h264", "h265"],
@@ -58,17 +65,23 @@ export class OpenAISoraPlugin extends BaseAIProviderPlugin {
   }
 
   buildVideoRequest(ctx: VideoBuildContext): VideoRequestResult {
-    let prompt = ctx.prompt;
-    if (ctx.characterRef) {
-      prompt += `[参考角色图: ${ctx.characterRef}]`;
+    const content: Record<string, unknown>[] = [
+      { type: "text", text: ctx.prompt },
+    ];
+
+    const charRefs = ctx.characterRefs?.length ? ctx.characterRefs : (ctx.characterRef ? [ctx.characterRef] : []);
+    for (const ref of charRefs) {
+      if (!ref) continue;
+      content.push({ type: "image_url", image_url: { url: ref } });
     }
+
     if (ctx.sceneRef) {
-      prompt += `[参考场景图: ${ctx.sceneRef}]`;
+      content.push({ type: "image_url", image_url: { url: ctx.sceneRef } });
     }
 
     const body: Record<string, unknown> = {
       model: ctx.model || "sora-2",
-      prompt,
+      prompt: ctx.prompt,
       duration: ctx.duration,
     };
 

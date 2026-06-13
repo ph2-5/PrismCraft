@@ -8,6 +8,7 @@ import type {
   VideoRequestResult,
   ImageRequestResult,
   VisionRequestResult,
+  ImageRefMode,
   ImageTransportMode,
   ImagePurpose,
   CloudProviderInfo,
@@ -35,7 +36,12 @@ export class ZhipuPlugin extends BaseAIProviderPlugin {
     supportsLastFrame: false,
     supportsReferenceVideo: true,
     supportsMimicryLevel: false,
-    defaultModel: "cogvideox-3",
+    supportsCharacterRef: false,
+    supportsSceneRef: false,
+    characterRefMode: "none" as ImageRefMode,
+    sceneRefMode: "none" as ImageRefMode,
+    imageUploadMode: "base64" as const,
+    defaultModel: "cogvideox-4",
     maxDuration: 10,
     supportedCodecs: ["h264"],
     urlTtl: 86400,
@@ -71,17 +77,9 @@ export class ZhipuPlugin extends BaseAIProviderPlugin {
   }
 
   buildVideoRequest(ctx: VideoBuildContext): VideoRequestResult {
-    let prompt = ctx.prompt;
-    if (ctx.characterRef) {
-      prompt += `[参考角色图: ${ctx.characterRef}]`;
-    }
-    if (ctx.sceneRef) {
-      prompt += `[参考场景图: ${ctx.sceneRef}]`;
-    }
-
     const body: Record<string, unknown> = {
       model: ctx.model || this.videoCapabilities.defaultModel,
-      prompt,
+      prompt: ctx.prompt,
       duration: ctx.duration,
     };
 

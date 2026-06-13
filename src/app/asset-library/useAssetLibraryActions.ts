@@ -363,7 +363,6 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
     const updatedStories = stories.map((story) => {
       const updatedBeats = (story.beats || []).map((beat) => {
         const updated = { ...beat };
-        if (updated.scene === sceneId) delete updated.scene;
         if (updated.sceneId === sceneId) delete updated.sceneId;
         return updated;
       });
@@ -372,7 +371,7 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
     });
     for (const updatedStory of updatedStories) {
       const original = stories.find((s) => s.id === updatedStory.id);
-      const wasAffected = original?.beats?.some((b) => b.scene === sceneId || b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
+      const wasAffected = original?.beats?.some((b) => b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
       if (wasAffected) {
         const result = await storyService.update(updatedStory.id, updatedStory);
         if (!result.ok) {

@@ -1,0 +1,67 @@
+{
+  "id": "luma",
+  "name": "Luma Dream Machine",
+  "format": "openai",
+  "baseUrl": "https://api.lumalabs.ai/v1",
+  "detection": {
+    "rules": [],
+    "suggestedName": "Luma Dream Machine",
+    "baseUrl": "https://api.lumalabs.ai/v1"
+  },
+  "models": [
+    {
+      "id": "dream-machine-1.0",
+      "name": "Dream Machine 1.0",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 5 },
+      "modelCapabilities": {
+        "maxReferences": 2,
+        "maxResolution": 2048,
+        "maxSizeMB": 10,
+        "supportsLastFrame": true,
+        "referenceMode": "separate",
+        "providerId": "luma",
+        "urlTtl": 86400,
+        "defaultImageSize": "1920x1080",
+        "supportedImageSizes": [
+          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
+          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" },
+          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+        ],
+        "supportsCharacterRef": false,
+        "supportsSceneRef": false,
+        "characterRefMode": "none",
+        "sceneRefMode": "none",
+        "imageUploadMode": "url",
+        "maxCharacterRefs": 0
+      }
+    },
+    {
+      "id": "dream-machine-1.5",
+      "name": "Dream Machine 1.5",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 5 },
+      "modelCapabilities": {
+        "maxReferences": 2,
+        "maxResolution": 2048,
+        "maxSizeMB": 10,
+        "supportsLastFrame": true,
+        "referenceMode": "separate",
+        "providerId": "luma",
+        "urlTtl": 86400,
+        "defaultImageSize": "1920x1080",
+        "supportedImageSizes": [
+          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
+          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" },
+          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+        ],
+        "supportsCharacterRef": false,
+        "supportsSceneRef": false,
+        "characterRefMode": "none",
+        "sceneRefMode": "none",
+        "imageUploadMode": "url",
+        "maxCharacterRefs": 0
+      }
+    }
+  ]
+}

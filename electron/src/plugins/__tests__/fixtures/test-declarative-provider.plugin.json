@@ -1,0 +1,142 @@
+{
+  "id": "test-declarative-provider",
+  "version": "1.0.0",
+  "displayName": "Test Declarative Provider",
+  "description": "A test declarative plugin for integration testing",
+  "author": "Test Suite",
+  "match": {
+    "mode": "contains",
+    "apiUrlPatterns": ["test-declarative.example.com"],
+    "modelPatterns": ["test-video-model", "test-image-model"]
+  },
+  "capabilities": {
+    "video": {
+      "supportsLastFrame": true,
+      "supportsReferenceVideo": false,
+      "supportsMimicryLevel": false,
+      "defaultModel": "test-video-model",
+      "maxDuration": 10
+    },
+    "image": {
+      "supportsReferenceImage": true,
+      "defaultModel": "test-image-model"
+    },
+    "text": true,
+    "vision": true
+  },
+  "models": {
+    "test-video-model": {
+      "displayName": "Test Video Model",
+      "parameters": {
+        "durations": [
+          { "value": 5, "label": "5s" },
+          { "value": 10, "label": "10s" }
+        ],
+        "resolutions": [
+          { "value": "1920x1080", "label": "16:9", "width": 1920, "height": 1080 }
+        ],
+        "negativePrompt": true,
+        "seed": false
+      }
+    },
+    "test-image-model": {
+      "displayName": "Test Image Model",
+      "parameters": {
+        "negativePrompt": false,
+        "seed": true
+      }
+    }
+  },
+  "transport": {
+    "imageMode": "base64",
+    "videoMode": "url",
+    "preferLocalData": true
+  },
+  "auth": {
+    "type": "bearer"
+  },
+  "apiKeyDetection": {
+    "rules": [
+      { "pattern": "^tdk-[a-zA-Z0-9]{20,}$", "confidence": "high" }
+    ],
+    "suggestedName": "Test Declarative Provider",
+    "baseUrl": "https://test-declarative.example.com/v1"
+  },
+  "endpoints": {
+    "video": {
+      "generate": "/v1/videos/generations",
+      "status": "/v1/videos/{taskId}"
+    },
+    "image": {
+      "generate": "/v1/images/generations"
+    },
+    "text": {
+      "generate": "/v1/chat/completions"
+    },
+    "vision": {
+      "generate": "/v1/chat/completions"
+    }
+  },
+  "request": {
+    "video": {
+      "bodyFormat": "flat",
+      "promptField": "prompt",
+      "modelField": "model",
+      "durationField": "duration",
+      "extraFields": { "watermark": false }
+    },
+    "image": {
+      "bodyFormat": "openai",
+      "promptField": "prompt",
+      "modelField": "model",
+      "sizeField": "size"
+    },
+    "text": {
+      "bodyFormat": "openai",
+      "promptField": "prompt",
+      "modelField": "model"
+    },
+    "vision": {
+      "bodyFormat": "openai",
+      "promptField": "prompt",
+      "modelField": "model",
+      "imageUrlField": "imageUrl"
+    }
+  },
+  "response": {
+    "video": {
+      "taskIdPath": "id",
+      "videoUrlPath": "data.video_url",
+      "statusPath": "status",
+      "statusMapping": {
+        "processing": "generating",
+        "success": "completed",
+        "failed": "failed"
+      },
+      "errorPath": "error.message",
+      "errorCodePath": "error.code"
+    },
+    "image": {
+      "imageUrlPath": "data.0.url"
+    },
+    "text": {
+      "contentPath": "choices.0.message.content"
+    }
+  },
+  "polling": {
+    "intervalSeconds": 3,
+    "maxAttempts": 60,
+    "backoffMultiplier": 1.2
+  },
+  "cloudInfo": {
+    "name": "Test Declarative Cloud",
+    "websiteUrl": "https://test-declarative.example.com",
+    "taskUrlPattern": "https://test-declarative.example.com/tasks/{taskId}",
+    "apiDocUrl": "https://docs.test-declarative.example.com",
+    "howToCheck": "Visit the test dashboard"
+  },
+  "availableModels": [
+    { "id": "test-video-model", "displayName": "Test Video Model", "type": "video" },
+    { "id": "test-image-model", "displayName": "Test Image Model", "type": "image" }
+  ]
+}

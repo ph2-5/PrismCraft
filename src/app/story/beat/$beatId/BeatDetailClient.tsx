@@ -25,7 +25,7 @@ interface BeatDetailPageProps {
   task?: VideoTask;
 }
 
-function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
+function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps & { setBeat: (beat: StoryBeat | null) => void }) {
   const [activeTab, setActiveTab] = useState("video");
 
   const {
@@ -44,7 +44,9 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
     handleRefreshVideoUrl,
     getStatusColor,
     getStatusLabel,
-  } = useBeatDetailActions({ beat, task });
+    handleRegenerate,
+    isRegenerating,
+  } = useBeatDetailActions({ story, beat, task, setBeat });
 
   return (
     <div className="min-h-screen bg-background">
@@ -134,6 +136,8 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
                   success={success}
                   getStatusColor={getStatusColor}
                   getStatusLabel={getStatusLabel}
+                  onRegenerate={handleRegenerate}
+                  isRegenerating={isRegenerating}
                 />
               </TabsContent>
 
@@ -164,7 +168,7 @@ function BeatDetailContent({ story, beat, task }: BeatDetailPageProps) {
 }
 
 export default function BeatDetailClient() {
-  const { story, beat, task, loading } = useBeatDetail();
+  const { story, beat, setBeat, task, loading } = useBeatDetail();
 
   if (loading) {
     return (
@@ -193,7 +197,7 @@ export default function BeatDetailClient() {
 
   return (
     <PageErrorBoundary pageName={t("beat.detail")}>
-      <BeatDetailContent story={story} beat={beat} task={task} />
+      <BeatDetailContent story={story} beat={beat} task={task} setBeat={setBeat} />
     </PageErrorBoundary>
   );
 }

@@ -10,6 +10,8 @@ import type { ApiResponse, Character, Scene, Story, StoryBeat, StoryElement } fr
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { buildStoryPlanPrompt, buildRetryPrompt } from "./story-plan-prompt";
 import { parseStoryPlanJSON, convertToStoryBeats } from "./story-plan-parser";
+import { t } from "@/shared/constants";
+import { getVideoGenerationStrategy, supportsLastFrame } from "@/shared/model-capabilities";
 
 export interface PipelineProgress {
   stage:
@@ -33,6 +35,8 @@ export interface PipelineOptions {
   strictMode: boolean;
   showFixDetails: boolean;
   enhancedGeneration: boolean;
+  videoModelId?: string;
+  promptLanguage?: "en" | "zh" | "auto";
   onProgress?: (progress: PipelineProgress) => void;
 }
 
@@ -61,6 +65,19 @@ function notifyProgress(
   onProgress?.(progress);
 }
 
+interface RetryParams {
+  temperature: number;
+  maxTokens: number;
+}
+
+function getRetryParams(attempt: number, maxAttempts: number): RetryParams {
+  const safeMaxAttempts = Math.max(maxAttempts, 1);
+  const progress = attempt / safeMaxAttempts;
+  const temperature = Math.max(0.3, 0.7 - progress * 0.4);
+  const maxTokens = Math.max(2000, 4000 - Math.floor(progress * 2000));
+  return { temperature, maxTokens };
+}
+
 export async function generateStoryPlanWithValidation(
   story: Partial<Story>,
   characters: Character[],
@@ -81,13 +98,25 @@ export async function generateStoryPlanWithValidation(
   let retryCount = 0;
   const fixDetails: string[] = [];
 
+  let resolvedLanguage: "en" | "zh" = "zh";
+  if (opts.promptLanguage === "en") {
+    resolvedLanguage = "en";
+  } else if (opts.promptLanguage === "auto" && opts.videoModelId) {
+    const strategy = getVideoGenerationStrategy(opts.videoModelId);
+    resolvedLanguage = strategy.promptLanguage === "en" ? "en" : "zh";
+  }
+
+  const modelSupportsLastFrame = opts.videoModelId
+    ? supportsLastFrame(opts.videoModelId)
+    : true;
+
   notifyProgress(opts.onProgress, {
     stage: "generating",
     message: "正在生成故事规划...",
     progress: 0.1,
   });
 
-  const basePrompt = buildStoryPlanPrompt(story, characters, scenes, elements);
+  const basePrompt = buildStoryPlanPrompt(story, characters, scenes, elements, resolvedLanguage);
   const enrichedPrompt = opts.enhancedGeneration
     ? enrichPromptWithFewShot(basePrompt, {
         genre: story.genre || "drama",
@@ -97,7 +126,7 @@ export async function generateStoryPlanWithValidation(
         characters,
         scenes,
         elements,
-      })
+      }, resolvedLanguage)
     : basePrompt;
 
   let rawBeats: unknown[] | null = null;
@@ -110,14 +139,22 @@ export async function generateStoryPlanWithValidation(
     try {
       const promptToSend =
         opts.enhancedGeneration && lastValidationErrors
-          ? buildRetryPrompt(enrichedPrompt, lastValidationErrors)
+          ? buildRetryPrompt(enrichedPrompt, lastValidationErrors, resolvedLanguage)
           : enrichedPrompt;
+
+      const retryParams = getRetryParams(attempt, maxAttempts);
+
+      if (attempt > 0) {
+        errorLogger.debug(
+          `[Pipeline] Retry attempt ${attempt}/${maxAttempts}, adjusted params: temperature=${retryParams.temperature.toFixed(2)}, maxTokens=${retryParams.maxTokens}`,
+        );
+      }
 
       const result: ApiResponse<{ text: string }> = await container.textProvider.generateText(
         promptToSend,
         {
-          maxTokens: 4000,
-          temperature: 0.7,
+          maxTokens: retryParams.maxTokens,
+          temperature: retryParams.temperature,
         },
       );
 
@@ -127,7 +164,7 @@ export async function generateStoryPlanWithValidation(
 
       rawBeats = parseStoryPlanJSON(result.data.text);
       if (!rawBeats || rawBeats.length === 0) {
-        throw new Error("无法解析故事规划 JSON");
+        throw new Error(t("error.storyPlanParseFailed"));
       }
 
       planValidation = validateStoryPlanOutput(rawBeats);
@@ -142,7 +179,7 @@ export async function generateStoryPlanWithValidation(
 
       notifyProgress(opts.onProgress, {
         stage: "generating",
-        message: `参数校验未通过，第${attempt + 1}次修正...`,
+        message: t("pipeline.validatingRetry", { attempt: attempt + 1 }),
         progress: 0.1 + (attempt / maxAttempts) * 0.3,
         retryCount,
       });
@@ -151,7 +188,7 @@ export async function generateStoryPlanWithValidation(
       if (attempt >= maxAttempts) {
         notifyProgress(opts.onProgress, {
           stage: "failed",
-          message: `故事规划生成失败: ${extractErrorMessage(error)}`,
+          message: t("error.storyPlanGenFailed") + ": " + extractErrorMessage(error),
           progress: 0,
           retryCount,
         });
@@ -160,7 +197,7 @@ export async function generateStoryPlanWithValidation(
 
       notifyProgress(opts.onProgress, {
         stage: "generating",
-        message: `生成失败，第${attempt + 1}次重试...`,
+        message: t("pipeline.genFailedRetry", { attempt: attempt + 1 }),
         progress: 0.1 + (attempt / maxAttempts) * 0.2,
         retryCount,
       });
@@ -168,12 +205,12 @@ export async function generateStoryPlanWithValidation(
   }
 
   if (!rawBeats || !planValidation) {
-    throw new Error("故事规划生成失败");
+    throw new Error(t("error.storyPlanGenFailed"));
   }
 
   notifyProgress(opts.onProgress, {
     stage: "post_validating",
-    message: "正在校验和修复分镜数据...",
+    message: t("pipeline.postValidating"),
     progress: 0.6,
   });
 
@@ -189,23 +226,23 @@ export async function generateStoryPlanWithValidation(
     if (opts.strictMode) {
       notifyProgress(opts.onProgress, {
         stage: "failed",
-        message: `校验失败: ${errorMsgs.join("; ")}`,
+        message: t("pipeline.validationFailed") + ": " + errorMsgs.join("; "),
         progress: 0,
         validationResults,
         fixDetails,
       });
-      throw new Error(`故事规划校验失败: ${errorMsgs.join("; ")}`);
+      throw new Error(t("error.storyPlanValidationFailed") + ": " + errorMsgs.join("; "));
     }
 
     if (!opts.autoFix) {
       notifyProgress(opts.onProgress, {
         stage: "failed",
-        message: `校验失败且未启用自动修复: ${errorMsgs.join("; ")}`,
+        message: t("pipeline.validationFailedNoAutoFix") + ": " + errorMsgs.join("; "),
         progress: 0,
         validationResults,
         fixDetails,
       });
-      throw new Error("故事规划校验失败，请检查输入");
+      throw new Error(t("error.storyPlanValidationFailed"));
     }
 
     errorLogger.warn(
@@ -219,6 +256,17 @@ export async function generateStoryPlanWithValidation(
     story,
     globalEnhancedGeneration,
   );
+
+  if (!modelSupportsLastFrame) {
+    for (const beat of beats) {
+      if (beat.lastFramePrompt) {
+        errorLogger.info(
+          `[Pipeline] Video model does not support last frame, removing lastFramePrompt from beat "${beat.title || beat.id}"`,
+        );
+        beat.lastFramePrompt = undefined;
+      }
+    }
+  }
 
   for (const beat of beats) {
     if (beat.shotType || beat.camera) {
@@ -264,7 +312,7 @@ export async function generateStoryPlanWithValidation(
 
   notifyProgress(opts.onProgress, {
     stage: "completed",
-    message: `故事规划生成完成，${beats.length}个分镜，自动修复${autoFixedCount}处`,
+    message: t("pipeline.completed", { count: beats.length, fixed: autoFixedCount }),
     progress: 1,
     validationResults,
     autoFixedCount,

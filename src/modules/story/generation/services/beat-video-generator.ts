@@ -1,11 +1,15 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable, ValidationError } from "@/domain/types";
 import type { StoryBeat } from "@/domain/schemas";
+import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { type ProviderDeps, type VideoGenerationMode, determineVideoGenerationMode } from "./video-generation-mode";
+import { getVideoGenerationStrategy } from "@/shared/model-capabilities";
+import { t } from "@/shared/constants";
 
 export async function generateBeatVideo(
   beat: StoryBeat,
   options: {
+    characterRefs?: string[];
     characterRef?: string;
     sceneRef?: string;
     prompt?: string;
@@ -18,12 +22,19 @@ export async function generateBeatVideo(
   providers: ProviderDeps,
 ): Promise<Result<{ taskId: string; videoUrl?: string; status: string; videoMode: VideoGenerationMode }>> {
   return fromAsyncThrowable(async () => {
-    if (!beat.framePair?.firstFrameUrl) {
-      throw new ValidationError("生成视频前必须先生成首尾帧");
+    const generatedFirstFrameUrl = getFirstFrameUrl(beat.framePair);
+    const uploadedFirstFrameUrl = beat.uploadedFramePair?.firstFrame;
+    const firstFrameUrl = generatedFirstFrameUrl || uploadedFirstFrameUrl;
+    const generatedLastFrameUrl = getLastFrameUrl(beat.framePair);
+    const uploadedLastFrameUrl = beat.uploadedFramePair?.lastFrame;
+    const lastFrameUrl = generatedLastFrameUrl || uploadedLastFrameUrl;
+
+    if (!firstFrameUrl) {
+      throw new ValidationError(t("error.videoRequiresFramePair"));
     }
 
-    if (!/^https?:\/\//.test(beat.framePair.firstFrameUrl) && !/^vcache:\/\//.test(beat.framePair.firstFrameUrl) && !/^\//.test(beat.framePair.firstFrameUrl)) {
-      throw new ValidationError("首帧图片 URL 无效，请重新生成首尾帧");
+    if (!/^https?:\/\//.test(firstFrameUrl) && !/^vcache:\/\//.test(firstFrameUrl) && !/^\//.test(firstFrameUrl)) {
+      throw new ValidationError(t("error.videoInvalidFirstFrame"));
     }
 
     const resolvedVideoMode: VideoGenerationMode =
@@ -33,20 +44,36 @@ export async function generateBeatVideo(
 
     let referenceVideo: string | null = null;
     if (resolvedVideoMode === "reference_video_continuation" && options.prevVideoUrl) {
-      referenceVideo = options.prevVideoUrl;
+      const refVideoStrategy = options.modelId ? getVideoGenerationStrategy(options.modelId) : null;
+      if (refVideoStrategy?.supportsReferenceVideo !== false) {
+        referenceVideo = options.prevVideoUrl;
+      }
     }
 
     const promptText = options.prompt || beat.content || beat.description || "";
     if (!promptText.trim()) {
-      throw new ValidationError("无法生成视频：提示词为空，请填写分镜内容");
+      throw new ValidationError(t("error.videoEmptyPrompt"));
     }
+
+    const strategy = options.modelId ? getVideoGenerationStrategy(options.modelId) : null;
+
+    const effectiveCharacterRefs = strategy && !strategy.useCharacterRef
+      ? undefined
+      : (options.characterRefs?.length ? options.characterRefs : undefined);
+    const effectiveCharacterRef = strategy && !strategy.useCharacterRef
+      ? undefined
+      : options.characterRef;
+    const effectiveSceneRef = strategy && !strategy.useSceneRef
+      ? undefined
+      : options.sceneRef;
 
     const result = await providers.videoProvider.generateVideoWithFrames({
       prompt: promptText,
-      firstFrameUrl: beat.framePair.firstFrameUrl,
-      lastFrameUrl: beat.framePair.lastFrameUrl,
-      characterRef: options.characterRef,
-      sceneRef: options.sceneRef,
+      firstFrameUrl,
+      lastFrameUrl,
+      characterRefs: effectiveCharacterRefs,
+      characterRef: effectiveCharacterRef,
+      sceneRef: effectiveSceneRef,
       duration: beat.duration,
       providerId: options.providerId,
       modelId: options.modelId,
@@ -54,7 +81,7 @@ export async function generateBeatVideo(
     });
 
     if (!result.success || !result.data) {
-      throw new Error(result.error || "视频生成失败");
+      throw new Error(result.error || t("error.videoGenFailed"));
     }
 
     return {

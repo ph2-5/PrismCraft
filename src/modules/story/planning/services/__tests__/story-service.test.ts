@@ -40,19 +40,9 @@ import { storyService } from "../story-service";
 import { container } from "@/infrastructure/di";
 import { saveVersion } from "@/modules/story/template";
 
-const storage = container.storyStorage as unknown as {
-  getStories: ReturnType<typeof vi.fn>;
-  getStoryById: ReturnType<typeof vi.fn>;
-  getStoryByBeatId: ReturnType<typeof vi.fn>;
-  createStory: ReturnType<typeof vi.fn>;
-  updateStory: ReturnType<typeof vi.fn>;
-  deleteStory: ReturnType<typeof vi.fn>;
-  getStoryVersion: ReturnType<typeof vi.fn>;
-};
+const storage = vi.mocked(container.storyStorage);
 
-const eventBus = container.eventBus as unknown as {
-  emit: ReturnType<typeof vi.fn>;
-};
+const eventBus = vi.mocked(container.eventBus);
 
 const mockStory: Story = {
   id: "story-1",
@@ -78,7 +68,7 @@ const validCreateInput = {
 describe("storyService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (crypto as unknown as { randomUUID: () => string }).randomUUID = (crypto as unknown as { randomUUID: () => string }).randomUUID || (() => "mock-uuid-12345678");
+    vi.spyOn(crypto, "randomUUID").mockReturnValue("mock-uuid-1234-5678-9012-123456789012");
   });
 
   describe("getAll", () => {

@@ -16,6 +16,16 @@ export interface ModelCapabilities {
   defaultImageSize?: string;
   providerId?: string;
   urlTtl?: number;
+  supportsCharacterRef?: boolean;
+  supportsSceneRef?: boolean;
+  nativeCharacterRef?: boolean;
+  nativeSceneRef?: boolean;
+  characterRefMode?: "native_field" | "multimodal" | "ref_field" | "text_append" | "bake_into_first" | "none";
+  sceneRefMode?: "native_field" | "multimodal" | "ref_field" | "text_append" | "bake_into_first" | "none";
+  imageUploadMode?: "base64" | "url" | "upload";
+  maxCharacterRefs?: number;
+  promptLanguage?: "en" | "zh" | "auto";
+  supportsReferenceVideo?: boolean;
 }
 
 export interface ModelParameterProfile {
@@ -53,3 +63,27 @@ export interface ReferenceImageItem {
 }
 
 export type ImageSizePurpose = "style_guide" | "keyframe" | "frame" | "character" | "scene";
+
+export type ReferenceDeliveryMode =
+  | "native_field"
+  | "bake_into_first"
+  | "both";
+
+export interface ReferenceStrategy {
+  characterRef: ReferenceDeliveryMode;
+  sceneRef: ReferenceDeliveryMode;
+}
+
+export interface VideoGenerationStrategy {
+  useFirstFrame: boolean;
+  useLastFrame: boolean;
+  useCharacterRef: boolean;
+  useSceneRef: boolean;
+  characterRefMode: string;
+  sceneRefMode: string;
+  imageUploadMode: string;
+  maxCharacterRefs: number;
+  referenceStrategy: ReferenceStrategy;
+  promptLanguage: "en" | "zh" | "auto";
+  supportsReferenceVideo: boolean;
+}

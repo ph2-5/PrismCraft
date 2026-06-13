@@ -43,8 +43,8 @@ export function useKeyframeGenerator(props: UseKeyframeGeneratorProps) {
       if (
         !checkModelConfig(
           selectedImageModel,
-          "无法生成预览图",
-          "请先在顶部工具栏选择图像生成模型",
+          t("story.cannotGenerateKeyframe"),
+          t("story.selectImageModel"),
         )
       ) {
         return;
@@ -56,18 +56,18 @@ export function useKeyframeGenerator(props: UseKeyframeGeneratorProps) {
       if (!hasCharacterBinding && !hasSceneBinding) {
         const confirmed = showConfirm
           ? await showConfirm(
-              "未绑定角色或场景",
-              '当前分镜未绑定角色或场景，生成的预览图可能缺少关键视觉元素。建议先在"元素绑定"面板中绑定角色和场景。\n\n是否仍要继续生成？',
+              t("story.noBindingTitle"),
+              t("story.noBindingDesc"),
             )
           : await confirm(
-              '当前分镜未绑定角色或场景，生成的预览图可能缺少关键视觉元素。建议先在"元素绑定"面板中绑定角色和场景。\n\n是否仍要继续生成？',
-              "未绑定角色或场景",
+              t("story.noBindingDesc"),
+              t("story.noBindingTitle"),
             );
         if (!confirmed) return;
       }
       return withGenerationState(beatId, async (signal) => {
         const prevBeat = resolvePrevBeat(beatId, prevBeatOverride);
-        const { characterRef, sceneRef } = StoryGenerationService.resolveGenerationContext({
+        const { characterRefs, sceneRef } = StoryGenerationService.resolveGenerationContext({
           beat,
           prevBeat,
           characters: charactersRef.current,
@@ -76,7 +76,7 @@ export function useKeyframeGenerator(props: UseKeyframeGeneratorProps) {
         });
 
         const keyframeResult = await generateBeatKeyframe(beat, prevBeat, {
-          characterRef,
+          characterRefs,
           sceneRef,
           providerId: selectedImageModel?.providerId,
           modelId: selectedImageModel?.modelId,
@@ -102,7 +102,7 @@ export function useKeyframeGenerator(props: UseKeyframeGeneratorProps) {
         updateBeat(beatId, updatedBeat);
         success(t("success.generated"), t("success.keyframeGeneratedDesc"));
         return updatedBeat;
-      }, "预览图生成失败");
+      }, t("story.keyframeGenFailed"));
     },
     [
       selectedImageModel,

@@ -1,4 +1,4 @@
-import { Camera, Upload, Loader2 } from "lucide-react";
+import { Camera, Upload, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { AppCard } from "@/shared/ui/app-card";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
@@ -21,6 +21,7 @@ interface FramePairStepContentProps {
     customFirstFramePrompt?: string,
     customLastFramePrompt?: string,
   ) => Promise<StoryBeat | void>;
+  onRegenerateFramePair?: () => Promise<void>;
   onPreEditGenerate: (context: PromptEditorContext) => void;
   onFileSelect: (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -49,6 +50,7 @@ export function FramePairStepContent({
   onUploadFirstFrame,
   onUploadLastFrame,
   onGenerateFramePair: _onGenerateFramePair,
+  onRegenerateFramePair,
   onPreEditGenerate,
   onFileSelect,
   expandedPrompt,
@@ -152,7 +154,7 @@ export function FramePairStepContent({
               <Upload className="w-4 h-4 mr-1" />
               {t("keyframe.uploadLastFrame")}
             </Button>
-            {!hasFramePair && (
+            {!hasFramePair ? (
               <Button
                 size="sm"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
@@ -166,7 +168,18 @@ export function FramePairStepContent({
                 )}
                 {t("keyframe.generateFramePair")}
               </Button>
-            )}
+            ) : onRegenerateFramePair ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-slate-700 hover:bg-slate-600"
+                onClick={onRegenerateFramePair}
+                disabled={isGenerating}
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                {t("common.regenerate")}
+              </Button>
+            ) : null}
           </div>
         </div>
 

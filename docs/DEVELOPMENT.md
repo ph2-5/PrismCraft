@@ -233,6 +233,8 @@ import { resolveImageUrl } from "@/shared/api-config";
 | `@/shared/video-cache` | infrastructure/cache | 视频缓存 |
 | `@/shared/sql-safety` | infrastructure/storage | SQL 安全工具 |
 | `@/shared/model-capabilities` | infrastructure/ai | AI 模型能力查询 |
+| `@/shared/outfit` | infrastructure/ai | 角色服装工具 |
+| `@/shared/video-utils` | infrastructure/ai | 视频工具函数 |
 
 ### 4.4 Result 类型
 
@@ -242,7 +244,7 @@ import { resolveImageUrl } from "@/shared/api-config";
 import { ok, err } from "@/domain/result";
 
 function doSomething(): Result<Data> {
-  if (failed) return err("OPERATION_FAILED", "操作失败描述");
+  if (failed) return err(new AppError("OPERATION_FAILED", "操作失败描述"));
   return ok(data);
 }
 
@@ -367,7 +369,7 @@ npx vitest run
 # 运行指定模块测试
 npx vitest run src/modules/video
 
-# 带覆盖率报告（70% 阈值，按文件强制）
+# 带覆盖率报告（80% 阈值，按文件强制）
 npx vitest run --coverage
 ```
 
@@ -417,10 +419,10 @@ describe("ComponentName", () => {
 
 ### 6.5 覆盖率要求
 
-- 分支覆盖率：70%
-- 函数覆盖率：70%
-- 行覆盖率：70%
-- 语句覆盖率：70%
+- 分支覆盖率：80%
+- 函数覆盖率：80%
+- 行覆盖率：80%
+- 语句覆盖率：80%
 - 按**单文件**强制（`perFile: true`）
 
 ---

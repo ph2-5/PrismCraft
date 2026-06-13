@@ -4,6 +4,7 @@ import { Input } from "@/shared/ui/input";
 import { Textarea } from "@/shared/ui/textarea";
 import { Slider } from "@/shared/ui/slider";
 import { Label } from "@/shared/ui/label";
+import { Badge } from "@/shared/ui/badge";
 import {
   Select,
   SelectContent,
@@ -14,6 +15,7 @@ import {
 import { t } from "@/shared/constants";
 import {
   getModelParameterProfile,
+  getVideoGenerationStrategy,
   type ModelParameterProfile,
 } from "@/shared/model-capabilities";
 
@@ -111,6 +113,7 @@ export function ModelParameterPanel({
   variant = "default",
 }: ModelParameterPanelProps) {
   const resolved = useMemo(() => resolveProfile(modelId), [modelId]);
+  const strategy = useMemo(() => modelId ? getVideoGenerationStrategy(modelId) : null, [modelId]);
 
   const isDark = variant === "dark";
   const labelClass = isDark ? "text-slate-300" : "";
@@ -266,6 +269,45 @@ export function ModelParameterPanel({
             value={[values.cfgScale]}
             onValueChange={handleCfgScaleChange}
           />
+        </div>
+      )}
+
+      {strategy && (
+        <div className="space-y-2">
+          <Label className={labelClass}>{t("modelParam.refStrategy")}</Label>
+          <p className="text-xs text-muted-foreground">{t("modelParam.refStrategyDesc")}</p>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className={
+              strategy.useCharacterRef
+                ? "border-green-600/50 text-green-400"
+                : "border-slate-600/50 text-slate-500"
+            }>
+              {t("modelParam.charRefSupported")}: {
+                strategy.referenceStrategy.characterRef === "native_field"
+                  ? t("modelParam.refModeNative")
+                  : strategy.referenceStrategy.characterRef === "both"
+                    ? t("modelParam.refModeBoth")
+                    : strategy.referenceStrategy.characterRef === "bake_into_first"
+                      ? t("modelParam.refModeBake")
+                      : t("modelParam.refModeNone")
+              }
+            </Badge>
+            <Badge variant="outline" className={
+              strategy.useSceneRef
+                ? "border-green-600/50 text-green-400"
+                : "border-slate-600/50 text-slate-500"
+            }>
+              {t("modelParam.sceneRefSupported")}: {
+                strategy.referenceStrategy.sceneRef === "native_field"
+                  ? t("modelParam.refModeNative")
+                  : strategy.referenceStrategy.sceneRef === "both"
+                    ? t("modelParam.refModeBoth")
+                    : strategy.referenceStrategy.sceneRef === "bake_into_first"
+                      ? t("modelParam.refModeBake")
+                      : t("modelParam.refModeNone")
+              }
+            </Badge>
+          </div>
         </div>
       )}
     </div>

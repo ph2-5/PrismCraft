@@ -1,10 +1,29 @@
+/**
+ * 模型能力查询工具
+ *
+ * 能力查询优先级（从高到低）：
+ * 1. 插件模型配置（modelProfilesCache）- 运行时从插件加载
+ * 2. 内置模型能力（BUILTIN_MODEL_CAPABILITIES）- 精确匹配
+ * 3. 内置模型能力 - 前缀匹配（如 "seedance-pro-2-custom" 匹配 "seedance-pro-2"）
+ * 4. 保守默认值 - 确保未知模型也能安全运行
+ */
+
 import { errorLogger } from "@/shared/error-logger";
-import type { ModelCapabilities, ImageSizeOption, ImageSizePurpose, ReferenceImageItem } from "./model-capabilities-types";
+import type { ModelCapabilities, ImageSizeOption, ImageSizePurpose, ReferenceImageItem, VideoGenerationStrategy, ReferenceDeliveryMode } from "./model-capabilities-types";
 import { BUILTIN_MODEL_CAPABILITIES } from "./builtin-model-capabilities";
 import { modelProfilesCache } from "./model-parameter-profile";
 
 export { ReferencePriority } from "./model-capabilities-types";
 
+/**
+ * 获取模型能力配置
+ *
+ * 查询优先级：
+ * 1. 插件缓存（modelProfilesCache）
+ * 2. 内置精确匹配（BUILTIN_MODEL_CAPABILITIES[modelId]）
+ * 3. 内置前缀匹配（如 "seedance-pro-2-custom" → "seedance-pro-2"）
+ * 4. 保守默认值
+ */
 export function getModelCapabilities(modelId: string): ModelCapabilities {
   if (modelProfilesCache[modelId]) {
     return modelProfilesCache[modelId].capabilities;
@@ -14,16 +33,16 @@ export function getModelCapabilities(modelId: string): ModelCapabilities {
     return BUILTIN_MODEL_CAPABILITIES[modelId];
   }
 
-  for (const [key, capabilities] of Object.entries(BUILTIN_MODEL_CAPABILITIES)) {
-    const keyParts = key.split("-");
-    if (keyParts.length >= 2) {
-      const hasPrefix = modelId.startsWith(key.split("-")[0] + "-") && modelId.includes(keyParts.slice(1).join("-"));
-      const isSubstring = modelId.includes(key) && key.length >= 4;
-      if (hasPrefix || isSubstring) {
-        return capabilities;
-      }
-    }
+  // 按 key 长度降序排序，确保更具体的 key 优先匹配
+  // 例如 "seedance-pro-2" 优先于 "seedance-pro"
+  const sortedEntries = Object.entries(BUILTIN_MODEL_CAPABILITIES).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+  for (const [key, capabilities] of sortedEntries) {
     if (modelId === key) {
+      return capabilities;
+    }
+    if (modelId.startsWith(key + "-") || modelId.startsWith(key.replace(/-\d+$/, "") + "-")) {
       return capabilities;
     }
   }
@@ -39,6 +58,14 @@ export function getModelCapabilities(modelId: string): ModelCapabilities {
     supportedImageSizes: [
       { width: 1920, height: 1920, label: "1:1", aspectRatio: "1:1" },
     ],
+    supportsCharacterRef: true,
+    supportsSceneRef: true,
+    nativeCharacterRef: false,
+    nativeSceneRef: false,
+    characterRefMode: "text_append",
+    sceneRefMode: "text_append",
+    imageUploadMode: "base64",
+    supportsReferenceVideo: false,
   };
 }
 
@@ -78,19 +105,39 @@ export function adjustReferenceImages(
   return filtered;
 }
 
-export function getVideoGenerationStrategy(modelId: string): {
-  useFirstFrame: boolean;
-  useLastFrame: boolean;
-  useCharacterRef: boolean;
-  useSceneRef: boolean;
-} {
+function resolveDeliveryMode(refMode: string, nativeRef: boolean | undefined): ReferenceDeliveryMode {
+  if (refMode === "native_field" || refMode === "multimodal" || refMode === "ref_field") {
+    return nativeRef ? "both" : "native_field";
+  }
+  return "bake_into_first";
+}
+
+export function getVideoGenerationStrategy(modelId: string): VideoGenerationStrategy {
   const capabilities = getModelCapabilities(modelId);
+  const charMode = capabilities.characterRefMode ?? (capabilities.supportsCharacterRef ? "text_append" : "none");
+  const sceneMode = capabilities.sceneRefMode ?? (capabilities.supportsSceneRef ? "text_append" : "none");
+
+  const charDelivery = charMode === "none" ? "bake_into_first" : resolveDeliveryMode(charMode, capabilities.nativeCharacterRef);
+  const sceneDelivery = sceneMode === "none" ? "bake_into_first" : resolveDeliveryMode(sceneMode, capabilities.nativeSceneRef);
+
+  const useCharRef = charMode !== "none" && charMode !== "bake_into_first";
+  const useSceneRef = sceneMode !== "none" && sceneMode !== "bake_into_first";
 
   return {
     useFirstFrame: true,
     useLastFrame: capabilities.supportsLastFrame,
-    useCharacterRef: true,
-    useSceneRef: true,
+    useCharacterRef: useCharRef,
+    useSceneRef: useSceneRef,
+    characterRefMode: charMode,
+    sceneRefMode: sceneMode,
+    imageUploadMode: capabilities.imageUploadMode ?? "base64",
+    maxCharacterRefs: capabilities.maxCharacterRefs ?? capabilities.maxReferences,
+    referenceStrategy: {
+      characterRef: charDelivery,
+      sceneRef: sceneDelivery,
+    },
+    promptLanguage: capabilities.promptLanguage ?? "auto",
+    supportsReferenceVideo: capabilities.supportsReferenceVideo ?? false,
   };
 }
 

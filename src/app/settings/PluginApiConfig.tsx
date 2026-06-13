@@ -114,9 +114,77 @@ export function PluginApiConfig({ state, updateField }: PluginApiConfigProps) {
               <Checkbox checked={state.supportsCharacterRef} onCheckedChange={(v) => updateField("supportsCharacterRef", v === true)} />
               <Label className="text-xs">{t("plugin.supportsCharacterRef")}</Label>
             </div>
+            {state.supportsCharacterRef && (
+              <div className="space-y-2 pl-4">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs">{t("plugin.characterRefMode")}</Label>
+                  <select
+                    value={state.characterRefMode}
+                    onChange={(e) => updateField("characterRefMode", e.target.value as "native_field" | "multimodal" | "ref_field" | "text_append" | "none")}
+                    className="text-xs border rounded px-2 py-1"
+                  >
+                    <option value="native_field">native_field</option>
+                    <option value="multimodal">multimodal</option>
+                    <option value="ref_field">ref_field</option>
+                    <option value="text_append">text_append</option>
+                  </select>
+                </div>
+                {state.characterRefMode === "native_field" && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">{t("plugin.characterRefField")}</Label>
+                    <Input
+                      value={state.characterRefField}
+                      onChange={(e) => updateField("characterRefField", e.target.value)}
+                      placeholder="subject_reference"
+                      className="font-mono text-xs w-48"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <Checkbox checked={state.supportsSceneRef} onCheckedChange={(v) => updateField("supportsSceneRef", v === true)} />
               <Label className="text-xs">{t("plugin.supportsSceneRef")}</Label>
+            </div>
+            {state.supportsSceneRef && (
+              <div className="space-y-2 pl-4">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs">{t("plugin.sceneRefMode")}</Label>
+                  <select
+                    value={state.sceneRefMode}
+                    onChange={(e) => updateField("sceneRefMode", e.target.value as "native_field" | "multimodal" | "ref_field" | "text_append" | "none")}
+                    className="text-xs border rounded px-2 py-1"
+                  >
+                    <option value="native_field">native_field</option>
+                    <option value="multimodal">multimodal</option>
+                    <option value="ref_field">ref_field</option>
+                    <option value="text_append">text_append</option>
+                  </select>
+                </div>
+                {state.sceneRefMode === "native_field" && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">{t("plugin.sceneRefField")}</Label>
+                    <Input
+                      value={state.sceneRefField}
+                      onChange={(e) => updateField("sceneRefField", e.target.value)}
+                      placeholder="scene_reference"
+                      className="font-mono text-xs w-48"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">{t("plugin.imageUploadMode")}</Label>
+              <select
+                value={state.imageUploadMode}
+                onChange={(e) => updateField("imageUploadMode", e.target.value as "base64" | "url" | "upload")}
+                className="text-xs border rounded px-2 py-1"
+              >
+                <option value="base64">base64</option>
+                <option value="url">url</option>
+                <option value="upload">upload</option>
+              </select>
             </div>
           </div>
         </div>

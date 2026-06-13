@@ -11,7 +11,7 @@ function createMockDb(): MigrationDb {
           }
           return undefined;
         },
-        run(...params: unknown[]) {
+        run(..._params: unknown[]) {
           return undefined;
         },
       };

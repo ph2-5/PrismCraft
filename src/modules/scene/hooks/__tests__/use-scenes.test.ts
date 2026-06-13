@@ -202,7 +202,7 @@ describe("useCreateScene", () => {
     await act(async () => {
       try {
         await result.current.mutateAsync(createInput);
-      } catch (_e) {
+      } catch {
         // expected
       }
     });
@@ -237,7 +237,7 @@ describe("useUpdateScene", () => {
     await act(async () => {
       try {
         await result.current.mutateAsync(updateInput);
-      } catch (_e) {
+      } catch {
         // expected
       }
     });
@@ -270,7 +270,7 @@ describe("useDeleteScene", () => {
     await act(async () => {
       try {
         await result.current.mutateAsync("scene-1");
-      } catch (_e) {
+      } catch {
         // expected
       }
     });

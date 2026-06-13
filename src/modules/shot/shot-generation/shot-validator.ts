@@ -6,6 +6,7 @@ import {
   type ShotParamsType,
 } from "./shot-params";
 import { fixShotParams, fixStoryBeat } from "./shot-params-fixer";
+import { errorLogger } from "@/shared/error-logger";
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true });
 ajv.addFormat("uri", /^https?:\/\/.+/);
@@ -13,6 +14,64 @@ ajv.addFormat("uri", /^https?:\/\/.+/);
 const validateShotParamsFn = ajv.compile(ShotParamsSchema);
 const validateStoryBeatFn = ajv.compile(StoryBeatOutputSchema);
 const validateStoryPlanFn = ajv.compile(StoryPlanOutputSchema);
+
+class ValidationCache<T> {
+  private readonly cache = new Map<string, { result: T; timestamp: number }>();
+  private readonly maxSize: number;
+  private order: string[] = [];
+
+  constructor(maxSize: number = 50) {
+    this.maxSize = maxSize;
+  }
+
+  get(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (entry) {
+      const idx = this.order.indexOf(key);
+      if (idx !== -1) {
+        this.order.splice(idx, 1);
+        this.order.push(key);
+      }
+      return entry.result;
+    }
+    return undefined;
+  }
+
+  set(key: string, result: T): void {
+    if (this.cache.has(key)) {
+      const idx = this.order.indexOf(key);
+      if (idx !== -1) {
+        this.order.splice(idx, 1);
+        this.order.push(key);
+      }
+      this.cache.set(key, { result, timestamp: Date.now() });
+      return;
+    }
+
+    if (this.cache.size >= this.maxSize) {
+      const oldest = this.order.shift();
+      if (oldest) {
+        this.cache.delete(oldest);
+      }
+    }
+
+    this.cache.set(key, { result, timestamp: Date.now() });
+    this.order.push(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+    this.order = [];
+  }
+}
+
+const shotParamsCache = new ValidationCache<ValidationResult<ShotParamsType>>();
+const storyPlanCache = new ValidationCache<ValidationResult>();
+
+export function clearValidationCache(): void {
+  shotParamsCache.clear();
+  storyPlanCache.clear();
+}
 
 export interface ValidationError {
   field: string;
@@ -72,9 +131,26 @@ export function extractAjvErrors(
   return errors;
 }
 
+export interface ValidateShotParamsOptions {
+  useCache?: boolean;
+}
+
 export function validateShotParams(
   params: Record<string, unknown>,
+  options?: ValidateShotParamsOptions,
 ): ValidationResult<ShotParamsType> {
+  const useCache = options?.useCache !== false;
+
+  if (useCache) {
+    try {
+      const cacheKey = JSON.stringify(params);
+      const cached = shotParamsCache.get(cacheKey);
+      if (cached) return cached;
+    } catch (err) {
+      errorLogger.warn("Validation cache key generation failed", err);
+    }
+  }
+
   const { fixed, autoFixed } = fixShotParams(params);
 
   const valid = validateShotParamsFn(fixed);
@@ -106,13 +182,24 @@ export function validateShotParams(
     });
   }
 
-  return {
+  const result: ValidationResult<ShotParamsType> = {
     valid: errors.length === 0,
     data: fixed as ShotParamsType,
     errors,
     warnings,
     autoFixed,
   };
+
+  if (useCache) {
+    try {
+      const cacheKey = JSON.stringify(params);
+      shotParamsCache.set(cacheKey, result);
+    } catch (err) {
+      errorLogger.warn("Validation cache store failed", err);
+    }
+  }
+
+  return result;
 }
 
 export function validateStoryBeatOutput(
@@ -141,7 +228,26 @@ export function validateStoryBeatOutput(
   };
 }
 
-export function validateStoryPlanOutput(plan: unknown[]): ValidationResult {
+export interface ValidateStoryPlanOptions {
+  useCache?: boolean;
+}
+
+export function validateStoryPlanOutput(
+  plan: unknown[],
+  options?: ValidateStoryPlanOptions,
+): ValidationResult {
+  const useCache = options?.useCache !== false;
+
+  if (useCache) {
+    try {
+      const cacheKey = JSON.stringify(plan);
+      const cached = storyPlanCache.get(cacheKey);
+      if (cached) return cached;
+    } catch (err) {
+      errorLogger.warn("Validation cache key generation failed", err);
+    }
+  }
+
   const fixedPlan: Record<string, unknown>[] = [];
   const allErrors: ValidationError[] = [];
   const allWarnings: ValidationError[] = [];
@@ -165,13 +271,24 @@ export function validateStoryPlanOutput(plan: unknown[]): ValidationResult {
     allErrors.push(...ajvErrors);
   }
 
-  return {
+  const result: ValidationResult = {
     valid: allErrors.length === 0,
     data: fixedPlan,
     errors: allErrors,
     warnings: allWarnings,
     autoFixed: allAutoFixed,
   };
+
+  if (useCache) {
+    try {
+      const cacheKey = JSON.stringify(plan);
+      storyPlanCache.set(cacheKey, result);
+    } catch (err) {
+      errorLogger.warn("Validation cache store failed", err);
+    }
+  }
+
+  return result;
 }
 
 export function formatValidationResult(result: ValidationResult): string {

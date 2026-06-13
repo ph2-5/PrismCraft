@@ -4,12 +4,32 @@ const MOCK_SCRIPT = `
 localStorage.setItem("ai_anim_studio_onboarding-completed", "true");
 localStorage.setItem("ai_anim_studio_ai-animation-studio-onboarding-complete", "true");
 
+var _dbJson = sessionStorage.getItem("__electron_mock_db__");
 var db = new Map();
+if (_dbJson) {
+  try {
+    var parsed = JSON.parse(_dbJson);
+    for (var i = 0; i < parsed.length; i++) {
+      db.set(parsed[i][0], new Map(parsed[i][1]));
+    }
+  } catch(e) {}
+}
+
+function _saveDb() {
+  try {
+    var entries = [];
+    db.forEach(function(v, k) { entries.push([k, Array.from(v.entries())]); });
+    sessionStorage.setItem("__electron_mock_db__", JSON.stringify(entries));
+  } catch(e) {}
+}
+
+window.addEventListener("beforeunload", _saveDb);
 
 var knownTables = new Set([
   "stories", "characters", "scenes", "storyboard", "video_tasks",
   "media_assets", "storyboard_assets", "collections", "story_versions",
   "video_cache", "auto_saves", "error_logs", "templates", "sync_log",
+  "story_beats", "story_characters", "story_scenes", "story_elements",
 ]);
 
 function getTable(name) {
@@ -35,20 +55,20 @@ function parseSelect(sql, params) {
   var template = rp.template;
   var paramValues = rp.paramValues;
   var tableName = "";
-  var tableMatch = template.match(/FROM\\s+(\\w+)/i);
+  var tableMatch = template.match(/FROM\\s+"?(\\w+)"?/i);
   if (tableMatch) tableName = tableMatch[1];
   var table = db.get(tableName);
   if (!table) return { success: true, data: [] };
 
   var rows = Array.from(table.values());
-  var whereEqMatch = template.match(/WHERE\\s+(\\w+)\\s*=\\s*__PARAM_(\\d+)__/i);
+  var whereEqMatch = template.match(/WHERE\\s+"?(\\w+)"?\\s*=\\s*__PARAM_(\\d+)__/i);
   if (whereEqMatch) {
     var wCol = whereEqMatch[1];
     var pIdx = parseInt(whereEqMatch[2]);
     var wVal = paramValues[pIdx - 1];
     rows = rows.filter(function(r) { return r[wCol] === wVal; });
   }
-  var whereInMatch = template.match(/WHERE\\s+(\\w+)\\s+IN\\s*\\(([^)]+)\\)/i);
+  var whereInMatch = template.match(/WHERE\\s+"?(\\w+)"?\\s+IN\\s*\\(([^)]+)\\)/i);
   if (whereInMatch && !whereEqMatch) {
     var inCol = whereInMatch[1];
     var inParams = whereInMatch[2].match(/__PARAM_(\\d+)__/g);
@@ -86,11 +106,11 @@ function parseInsert(sql, params) {
     var rp = replaceParams(sql, params);
     var template = rp.template;
     var paramValues = rp.paramValues;
-    var tableMatch = template.match(/^INSERT\\s+INTO\\s+(\\w+)\\s*\\((.+?)\\)\\s*VALUES\\s*\\(/i);
+    var tableMatch = template.match(/^INSERT\\s+(?:OR\\s+\\w+\\s+)?INTO\\s+"?(\\w+)"?\\s*\\((.+?)\\)\\s*VALUES\\s*\\(/i);
     if (!tableMatch) return { success: false, error: "Unsupported INSERT format" };
     var tableName = tableMatch[1];
     if (!knownTables.has(tableName.toLowerCase())) return { success: false, error: "Table not found: " + tableName };
-    var columns = tableMatch[2].split(",").map(function(c) { return c.trim(); });
+    var columns = tableMatch[2].split(",").map(function(c) { return c.trim().replace(/^"|"$/g, ""); });
     var valuesStart = template.indexOf("VALUES");
     var parenStart = template.indexOf("(", valuesStart);
     var depth = 0;
@@ -115,6 +135,7 @@ function parseInsert(sql, params) {
     var pk = row.id || row[columns[0]];
     if (pk !== undefined) table.set(String(pk), row);
     else table.set("__row_" + Date.now() + "_" + Math.random() + "__", row);
+    _saveDb();
     return { success: true };
   } catch (e) {
     return { success: false, error: "parseInsert error: " + e.message };
@@ -143,7 +164,7 @@ function parseDelete(sql, params) {
   var rp = replaceParams(sql, params);
   var template = rp.template;
   var paramValues = rp.paramValues;
-  var match = template.match(/^DELETE\\s+FROM\\s+(\\w+)(?:\\s+WHERE\\s+(\\w+)\\s+IN\\s*\\((.+?)\\))?$/i);
+  var match = template.match(/^DELETE\\s+FROM\\s+"?(\\w+)"?(?:\\s+WHERE\\s+"?(\\w+)"?\\s+IN\\s*\\((.+?)\\))?$/i);
   if (!match) return { success: true };
   var tableName = match[1];
   var whereCol = match[2];
@@ -159,6 +180,7 @@ function parseDelete(sql, params) {
         if (inVals.indexOf(row[whereCol]) !== -1) keysToDelete.push(key);
       });
       keysToDelete.forEach(function(key) { table.delete(key); });
+      _saveDb();
     }
   }
   return { success: true };
@@ -236,7 +258,7 @@ window.electronAPI = {
   fileExists: async function() { return { success: true, data: false }; },
   copyFile: async function() { return { success: true }; },
   openFileDialog: async function() { return { success: true, data: null }; },
-  saveFileDialog: async function() { return { success: true, data: null }; },
+  saveFileDialog: async function() { return { success: true, filePath: "/tmp/test-export.json" }; },
   writeFile: async function() { return { success: true }; },
   readFile: async function() { return { success: true, data: "" }; },
   getCacheDirectory: async function() { return { success: true, data: "" }; },

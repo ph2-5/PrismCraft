@@ -165,7 +165,7 @@ export const importExportStorage = {
         key: "storyVersions",
         tableName: "story_versions",
         createFn: (item) => {
-          return versionStorage.createStoryVersion(item as unknown as StoryVersion);
+          return versionStorage.createStoryVersion(item as Partial<StoryVersion> & { storyId: string; beats: StoryVersion["beats"] });
         },
       },
       {

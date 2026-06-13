@@ -77,7 +77,7 @@ export function ReferenceVideoUploader({
       const result = await container.fileUploader.uploadFile(file);
 
       if (!result.success || !result.data?.url) {
-        throw new Error(result.error || "上传响应无效");
+        throw new Error(result.error || t("error.uploadResponseInvalid"));
       }
 
       return result.data.url;

@@ -17,6 +17,7 @@
 | `video` | [video/](./video/) | 专业/增强/快速/单分镜视频提示词生成 |
 | `server-prompts` | [server-prompts/](./server-prompts/) | 首帧/尾帧提示词、角色/场景分析提示词（服务端 API 用） |
 | `builder` | [builder/](./builder/) | PromptBuilder 类、故事计划提示词、快速模式提示词、模型选项配置 |
+| `presentation` | [presentation/](./presentation/) | 模型选择器、配置检查横幅 |
 
 ---
 
@@ -85,6 +86,7 @@
 
 | API | 签名 | 说明 |
 |-----|------|------|
+| `PromptBuilder` | `class` | 提示词构建器类（链式调用） |
 | `promptBuilder` | PromptBuilder 实例 | 提示词构建器单例 |
 | `generateStoryPlanPrompt` | `(story: Story) → string` | 故事计划提示词 |
 | `generateQuickModeVideoPrompt` | `(beat: StoryBeat, ...) → string` | 快速模式视频提示词 |

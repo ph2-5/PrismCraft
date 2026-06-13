@@ -1,0 +1,52 @@
+{
+  "id": "moonshot",
+  "name": "Moonshot (Kimi)",
+  "format": "openai",
+  "baseUrl": "https://api.moonshot.cn/v1",
+  "detection": {
+    "rules": [
+      { "pattern": "^sk-[a-zA-Z0-9]{10}$", "confidence": "low" },
+      { "pattern": "moonshot", "confidence": "high" }
+    ],
+    "suggestedName": "Moonshot (Kimi)",
+    "baseUrl": "https://api.moonshot.cn/v1"
+  },
+  "models": [
+    {
+      "id": "moonshot-v1-8k",
+      "name": "Kimi K2.5 (8K)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 8192, "temperature": 0.7 }
+    },
+    {
+      "id": "moonshot-v1-32k",
+      "name": "Kimi K2.5 (32K)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 32768, "temperature": 0.7 }
+    },
+    {
+      "id": "moonshot-v1-128k",
+      "name": "Kimi K2.5 (128K)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 128000, "temperature": 0.7 }
+    },
+    {
+      "id": "moonshot-v1-256k",
+      "name": "Kimi K2.5 (256K)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 262144, "temperature": 0.7 }
+    },
+    {
+      "id": "moonshot-v1-8k-vision-preview",
+      "name": "Kimi Vision (8K)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 8192, "temperature": 0.7 }
+    },
+    {
+      "id": "moonshot-v1-32k-vision-preview",
+      "name": "Kimi Vision (32K)",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 32768, "temperature": 0.7 }
+    }
+  ]
+}

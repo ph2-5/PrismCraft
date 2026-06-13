@@ -77,6 +77,12 @@ export interface WizardState {
   supportsMimicryLevel: boolean;
   supportsCharacterRef: boolean;
   supportsSceneRef: boolean;
+  characterRefMode: "native_field" | "multimodal" | "ref_field" | "text_append" | "none";
+  sceneRefMode: "native_field" | "multimodal" | "ref_field" | "text_append" | "none";
+  characterRefField: string;
+  sceneRefField: string;
+  imageUploadMode: "base64" | "url" | "upload";
+  maxCharacterRefs: number;
   supportsReferenceImage: boolean;
   defaultVideoModel: string;
   defaultImageModel: string;

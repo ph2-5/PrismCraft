@@ -4,6 +4,8 @@ import type { IVideoProvider, IImageProvider, ITextProvider } from "@/domain/por
 
 vi.mock("@/domain/utils", () => ({
   generateBeatImagePrompt: vi.fn().mockReturnValue("generated prompt"),
+  getFirstFrameUrl: vi.fn((fp: any) => fp?.firstFrameUrl || fp?.firstFrame?.imageUrl),
+  getLastFrameUrl: vi.fn((fp: any) => fp?.lastFrameUrl || fp?.lastFrame?.imageUrl),
 }));
 
 vi.mock("@/shared/error-logger", () => ({
@@ -30,16 +32,16 @@ const videoProvider = {
   generateVideoWithFrames: vi.fn(),
   generateVideo: vi.fn(),
   queryVideoStatus: vi.fn(),
-} as unknown as IVideoProvider;
+} as IVideoProvider;
 
 const imageProvider = {
   generateImage: vi.fn(),
   analyzeImage: vi.fn(),
-} as unknown as IImageProvider;
+} as IImageProvider;
 
 const textProvider = {
   generateText: vi.fn(),
-} as unknown as ITextProvider;
+} as ITextProvider;
 
 const providers = { videoProvider, imageProvider, textProvider };
 

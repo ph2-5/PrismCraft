@@ -2,6 +2,12 @@ import { classifyError } from "@/domain/types";
 
 export type NetworkErrorCategory = "network" | "timeout" | "offline" | "unknown";
 
+type ErrorWithCode = { code?: string };
+
+function getErrorCode(error: Error): string | undefined {
+  return (error as ErrorWithCode).code;
+}
+
 export function classifyNetworkError(errorCode?: string, errorMessage?: string): NetworkErrorCategory {
   const category = classifyError(errorCode, errorMessage);
   if (category === "timeout") return "timeout";
@@ -16,7 +22,7 @@ export function isNetworkError(error: unknown): boolean {
     return result === "network" || result === "timeout";
   }
   if (error instanceof Error) {
-    const code = (error as unknown as { code?: string }).code;
+    const code = getErrorCode(error);
     const result = classifyNetworkError(code, error.message);
     return result === "network" || result === "timeout";
   }

@@ -125,6 +125,10 @@ export class CodePluginAdapter extends BaseAIProviderPlugin implements AsyncAIPr
       maxSizeMB: 10,
       supportsLastFrame: false,
       referenceMode: "separate",
+      supportsCharacterRef: false,
+      supportsSceneRef: false,
+      nativeCharacterRef: false,
+      nativeSceneRef: false,
     };
     return fallback;
   }

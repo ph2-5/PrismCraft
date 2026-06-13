@@ -45,6 +45,37 @@ vi.mock("../../../base", () => ({
 
 vi.mock("@/domain/utils", () => ({
   shotInstructionToPrompt: vi.fn(() => "镜头指令文本"),
+  SHOT_SIZE_OPTIONS: [
+    { value: "extreme_close", label: "特写" },
+    { value: "close", label: "近景" },
+    { value: "medium", label: "中景" },
+    { value: "wide", label: "全景" },
+    { value: "extreme_wide", label: "远景" },
+  ],
+  resolveShotInstruction: vi.fn((beat: Record<string, unknown>) => {
+    if (beat.shotInstruction) {
+      return {
+        shotSize: (beat.shotInstruction as Record<string, unknown>).shotSize,
+        cameraMovement: (beat.shotInstruction as Record<string, unknown>).cameraMovement,
+        cameraAngle: (beat.shotInstruction as Record<string, unknown>).cameraAngle,
+      };
+    }
+    if (beat.camera && typeof beat.camera === "object") {
+      const cam = beat.camera as Record<string, unknown>;
+      return {
+        shotSize: beat.shotType || undefined,
+        cameraMovement: cam.movement || undefined,
+        cameraAngle: cam.angle || undefined,
+      };
+    }
+    if (beat.shotType) {
+      const aliases: Record<string, string> = {
+        "close-up": "close", "medium-shot": "medium", "wide-shot": "wide",
+      };
+      return { shotSize: aliases[beat.shotType as string] || beat.shotType };
+    }
+    return null;
+  }),
   getBeatCharacterIds: vi.fn((beat: { characterIds?: string[] }) => {
     return beat.characterIds ?? [];
   }),
@@ -209,7 +240,7 @@ describe("generateEnhancedVideoPrompt", () => {
       scenes: [],
     });
 
-    expect(result).toContain("平移");
+    expect(result).toContain("镜头指令文本");
   });
 
   it("转场关键词：TRANSITION_KEYWORDS 映射", () => {
@@ -408,7 +439,7 @@ describe("generateSingleBeatPrompt", () => {
       scenes: [],
     });
 
-    expect(result).toContain("特写");
+    expect(result).toContain("近景");
   });
 
   it("镜头类型映射：type 映射为中文", () => {

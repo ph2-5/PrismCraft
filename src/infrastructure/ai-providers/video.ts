@@ -11,7 +11,7 @@ export async function generateVideo(
   options?: {
     firstFrameUrl?: string;
     lastFrameUrl?: string;
-    characterRef?: string;
+    characterRefs?: string[];
     sceneRef?: string;
     duration?: number;
     referenceVideo?: string | null;
@@ -23,7 +23,7 @@ export async function generateVideo(
   return generateVideoInternal(prompt, {
     firstFrameUrl: options?.firstFrameUrl,
     lastFrameUrl: options?.lastFrameUrl,
-    characterRef: options?.characterRef,
+    characterRefs: options?.characterRefs,
     sceneRef: options?.sceneRef,
     duration: options?.duration,
     referenceVideo: options?.referenceVideo
@@ -39,7 +39,7 @@ export async function generateVideoWithFrames(params: {
   prompt: string;
   firstFrameUrl?: string;
   lastFrameUrl?: string;
-  characterRef?: string;
+  characterRefs?: string[];
   sceneRef?: string;
   duration?: number;
   providerId?: string;
@@ -50,7 +50,7 @@ export async function generateVideoWithFrames(params: {
   return generateVideoInternal(params.prompt, {
     firstFrameUrl: params.firstFrameUrl,
     lastFrameUrl: params.lastFrameUrl,
-    characterRef: params.characterRef,
+    characterRefs: params.characterRefs,
     sceneRef: params.sceneRef,
     duration: params.duration,
     referenceVideo: params.referenceVideo

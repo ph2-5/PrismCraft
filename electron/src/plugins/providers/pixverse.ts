@@ -8,6 +8,7 @@ import type {
   VisionBuildContext,
   VideoRequestResult,
   ImageRequestResult,
+  ImageRefMode,
   VisionRequestResult,
   ImageTransportMode,
   ImagePurpose,
@@ -38,6 +39,11 @@ export class PixversePlugin
     supportsLastFrame: false,
     supportsReferenceVideo: true,
     supportsMimicryLevel: false,
+    supportsCharacterRef: false,
+    supportsSceneRef: false,
+    characterRefMode: "none" as ImageRefMode,
+    sceneRefMode: "none" as ImageRefMode,
+    imageUploadMode: "base64" as const,
     defaultModel: "pixverse/pixverse-v6-t2v",
     maxDuration: 10,
     supportedCodecs: ["h264", "h265"],
@@ -121,7 +127,7 @@ export class PixversePlugin
       }
     }
 
-    const refImg = ctx.characterRef || ctx.sceneRef;
+    const refImg = ctx.characterRefs?.[0] || ctx.characterRef || ctx.sceneRef;
     if (refImg) {
       input.ref_img = refImg;
     }

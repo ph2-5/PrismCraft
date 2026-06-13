@@ -4,6 +4,7 @@ import { loadConfig } from "./config";
 import { pluginRegistry } from "../plugins";
 import type { AIProviderPlugin, AsyncAIProviderPlugin } from "../plugins";
 import { getLogger } from "../logging/logger";
+import { API_ERROR_CODES } from "../api-gateway-error-codes";
 
 const logger = getLogger("test-connection");
 
@@ -113,6 +114,7 @@ interface TestConnectionResult {
   success: boolean;
   message?: string;
   error?: string;
+  code?: string;
   httpStatus?: number;
 }
 
@@ -176,7 +178,8 @@ export async function handleTestConnection(
   if (!effectiveApiKey) {
     return {
       success: false,
-      error: `未配置${capability === "text" ? "文本" : capability === "image" ? "图片" : capability === "vision" ? "视觉" : "视频"} API`,
+      error: "api_not_configured",
+      code: API_ERROR_CODES.API_NOT_CONFIGURED,
       httpStatus: 400,
     };
   }

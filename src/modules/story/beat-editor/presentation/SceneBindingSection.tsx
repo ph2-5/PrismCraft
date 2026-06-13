@@ -33,7 +33,7 @@ export function SceneBindingSection({
         onValueChange={(value) => {
           const val = typeof value === "string" ? value : String(value ?? "");
           if (!val) return;
-          onUpdateBeat({ ...beat, sceneId: val, scene: val } as StoryBeat);
+          onUpdateBeat({ ...beat, sceneId: val } as StoryBeat);
         }}
         disabled={availableScenes.length === 0}
       >
@@ -104,7 +104,6 @@ export function SceneBindingSection({
               onUpdateBeat({
                 ...beat,
                 sceneId: undefined,
-                scene: undefined,
               } as StoryBeat)
             }
             className="text-slate-400 hover:text-red-400 transition-colors"

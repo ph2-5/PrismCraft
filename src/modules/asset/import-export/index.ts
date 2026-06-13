@@ -4,6 +4,7 @@ import { ok, err, AppError, ValidationError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { safeRun, safeQuery } from "@/shared/db-core";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 export const importDataSchema = z.object({
   characters: z.array(z.record(z.string(), z.unknown())).optional(),
@@ -56,7 +57,7 @@ function validateImportData(data: unknown): Result<ImportData> {
   );
 
   if (!hasAnyData) {
-    return err(new ValidationError("没有找到可导入的数据"));
+    return err(new ValidationError(t("error.noImportData")));
   }
 
   return ok(validData);
@@ -273,7 +274,7 @@ export async function importFromFile(file: File): Promise<Result<ImportResult>> 
       data = JSON.parse(content);
     } catch (e) {
       errorLogger.warn("[ImportExport] Failed to parse import file as JSON", e as Error);
-      return err(new ValidationError("文件内容不是有效的 JSON 格式"));
+      return err(new ValidationError(t("error.invalidJsonFormat")));
     }
     const result = await importData(data);
     if (!result.ok) return result;

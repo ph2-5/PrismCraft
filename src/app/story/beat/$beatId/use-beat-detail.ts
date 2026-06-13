@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { errorLogger } from "@/shared/error-logger";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
 import type { StoryBeat, Story } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
 import { useVideoTaskStore } from "@/modules/video";
@@ -9,6 +9,7 @@ import { storyService } from "@/modules/story";
 interface UseBeatDetailResult {
   story: Story | null;
   beat: StoryBeat | null;
+  setBeat: Dispatch<SetStateAction<StoryBeat | null>>;
   task: VideoTask | undefined;
   loading: boolean;
 }
@@ -79,5 +80,5 @@ export function useBeatDetail(): UseBeatDetailResult {
     };
   }, [beatId]);
 
-  return { story, beat, task, loading };
+  return { story, beat, setBeat, task, loading };
 }

@@ -7,15 +7,12 @@
 ```
 .ai/
 ├── README.md              ← 本文件（入口）
-├── modules/               ← 11 个模块的详细维护指南
+├── modules/               ← 9 个模块的详细维护指南
 │   ├── asset.md
 │   ├── character.md
-│   ├── dependency-graph.md   模块间依赖关系图
-│   ├── feedback.md
 │   ├── persistence.md
 │   ├── prompt.md
 │   ├── scene.md
-│   ├── security.md
 │   ├── shot.md
 │   ├── story.md
 │   ├── sync.md
@@ -44,10 +41,6 @@ npx tsc -p electron/tsconfig.json --noEmit        # Electron 类型安全
 ```
 docs/
 ├── README.md                    文档索引
-├── PROJECT_DOCUMENTATION.md     项目总文档（人读）
-├── CHANGELOG.md                 修改记录
-├── FIX_RECORDS.md               修复记录
-├── TESTING.md                   测试指南
 ├── plugin-specification.md      插件规范
 ├── task-management-v2-design.md 设计文档
 ├── architecture/                架构详细文档 + 图表

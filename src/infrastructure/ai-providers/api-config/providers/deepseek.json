@@ -1,0 +1,27 @@
+{
+  "id": "deepseek",
+  "name": "DeepSeek",
+  "format": "openai",
+  "baseUrl": "https://api.deepseek.com/v1",
+  "detection": {
+    "rules": [
+      { "pattern": "^sk-[a-zA-Z0-9]{32}$", "confidence": "high", "checkId": "deepseek_exclude_or_proj_ant" }
+    ],
+    "suggestedName": "DeepSeek",
+    "baseUrl": "https://api.deepseek.com/v1"
+  },
+  "models": [
+    {
+      "id": "deepseek-chat",
+      "name": "DeepSeek Chat",
+      "capabilities": ["text"],
+      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    },
+    {
+      "id": "deepseek-llm-7b-chat",
+      "name": "DeepSeek 7B Chat",
+      "capabilities": ["text"],
+      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    }
+  ]
+}

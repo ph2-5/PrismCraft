@@ -3,6 +3,7 @@ import { generateBeatFramePair } from "@/modules/story";
 import { checkVisualConsistency } from "@/modules/shot/consistency-check";
 import type { StoryBeat, Character, Scene, StoryStyleGuide, ModelSelection } from "@/domain/schemas";
 import { StoryGenerationService } from "@/domain/services";
+import { getFirstFrameUrl } from "@/domain/utils";
 import { container } from "@/infrastructure/di";
 import { handleError } from "@/shared/error-handler";
 import { errorLogger } from "@/shared/error-logger";
@@ -44,7 +45,7 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
         !checkModelConfig(
           selectedImageModel,
           t("story.cannotGenerateVideo"),
-          "请先在顶部工具栏选择图像生成模型",
+          t("story.selectImageModel"),
         )
       ) {
         return;
@@ -56,22 +57,24 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
       }
       return withGenerationState(beatId, async (signal) => {
         const prevBeat = resolvePrevBeat(beatId, prevBeatOverride);
-        const { characterRef, sceneRef, prevLastFrameUrl } = StoryGenerationService.resolveGenerationContext({
+        const elements = await container.elementStorage.getAllElements();
+        const { characterRefs, sceneRef, prevLastFrameUrl } = StoryGenerationService.resolveGenerationContext({
           beat,
           prevBeat,
           characters: props.charactersRef.current,
           scenes: props.scenesRef.current,
-          elements: [],
+          elements,
         });
 
         const framePair = await generateBeatFramePair(beat, {
-          characterRef,
+          characterRefs,
           sceneRef,
           prevLastFrameUrl,
           providerId: selectedImageModel?.providerId,
           modelId: selectedImageModel?.modelId,
           characters: props.charactersRef.current,
           scenes: props.scenesRef.current,
+          elements,
           customFirstFramePrompt,
           customLastFramePrompt,
           styleGuide: styleGuideRef?.current,
@@ -101,8 +104,7 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
           const consistencyResult = await checkVisualConsistency({
             beat: updatedBeat,
             elements,
-            generatedImageUrl:
-              updatedBeat.framePair?.firstFrameUrl || undefined,
+            generatedImageUrl: getFirstFrameUrl(updatedBeat.framePair),
           });
 
           if (consistencyResult.ok) {
@@ -110,10 +112,63 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
           }
 
           if (consistencyResult.ok && !consistencyResult.value.passed) {
-            errorLogger.warn(
-              handleError(new Error(`分镜 ${beatId} 一致性检查未通过`)),
-              "Consistency",
-            );
+            if (consistencyResult.value.recommendation === "regenerate" && !customFirstFramePrompt) {
+              errorLogger.warn(
+                handleError(new Error(t("error.consistencyCheckNotPassed", { beatId }))),
+                "Consistency",
+              );
+
+              const retryResult = await generateBeatFramePair(beat, {
+                characterRefs,
+                sceneRef,
+                prevLastFrameUrl,
+                providerId: selectedImageModel?.providerId,
+                modelId: selectedImageModel?.modelId,
+                characters: props.charactersRef.current,
+                scenes: props.scenesRef.current,
+                elements,
+                styleGuide: styleGuideRef?.current,
+                autoGeneratePrompts: true,
+                beatIndex: props.beatsRef.current.findIndex((b) => b.id === beatId),
+                prevBeatDescription: prevBeat?.content || prevBeat?.description,
+                nextBeatDescription: (() => {
+                  const beatIdx = props.beatsRef.current.findIndex((b) => b.id === beatId);
+                  const nextBeat = beatIdx >= 0 && beatIdx < props.beatsRef.current.length - 1
+                    ? props.beatsRef.current[beatIdx + 1]
+                    : null;
+                  return nextBeat?.content || nextBeat?.description;
+                })(),
+                consistencyHint: `Previous attempt scored ${consistencyResult.value.overallScore.toFixed(2)}. Focus on improving character/element visual consistency.`,
+              }, {
+                videoProvider: container.videoProvider,
+                imageProvider: container.imageProvider,
+                textProvider: container.textProvider,
+              });
+
+              if (!signal.aborted && retryResult.ok) {
+                const retryFramePair = retryResult.value;
+                Object.assign(updatedBeat, { framePair: retryFramePair });
+
+                try {
+                  const retryElements = await container.elementStorage.getAllElements();
+                  const retryCheck = await checkVisualConsistency({
+                    beat: updatedBeat,
+                    elements: retryElements,
+                    generatedImageUrl: getFirstFrameUrl(retryFramePair),
+                  });
+                  if (retryCheck.ok) {
+                    updatedBeat.consistencyCheck = retryCheck.value;
+                  }
+                } catch {
+                  // retry check failed, keep original check result
+                }
+              }
+            } else {
+              errorLogger.warn(
+                handleError(new Error(t("error.consistencyCheckNotPassed", { beatId }))),
+                "Consistency",
+              );
+            }
           }
         } catch (checkErr) {
           errorLogger.warn(handleError(checkErr), "Consistency");
@@ -124,7 +179,7 @@ export function useFramePairGenerator(props: UseFramePairGeneratorProps) {
         updateBeat(beatId, updatedBeat);
         success(t("success.generated"), t("success.framePairGeneratedDesc"));
         return updatedBeat;
-      }, "首尾帧生成失败");
+      }, t("story.framePairGenFailed"));
     },
     [
       selectedImageModel,

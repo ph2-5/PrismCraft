@@ -1,5 +1,5 @@
 import type { VideoTask } from "@/domain/schemas";
-import { TaskMachine, mapApiStatus } from "../../domain";
+import { TaskMachine, mapApiStatus, isValidTransition } from "../../domain";
 import { container } from "@/infrastructure/di";
 import { cacheVideoBlob } from "@/modules/video/cache";
 import { saveVideoTask } from "@/modules/video/recovery";
@@ -191,6 +191,16 @@ async function pollSingleTask(
         emitToast("success", t("task.videoGenerated"), t("task.videoSavingLocal", { label: taskLabel }));
       }
       const mappedStatus = mapApiStatus(pollResp.data.status || "failed", pollResp.data.videoUrl);
+      if (!isValidTransition(task.status, mappedStatus)) {
+        errorLogger.warn(
+          { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=${mappedStatus}` },
+          "VideoTaskManager",
+        );
+        result.taskUpdates.set(task.taskId, {
+          pollFailureCount: 0,
+        });
+        return;
+      }
       result.taskUpdates.set(task.taskId, withTransitionGuard(task, mappedStatus, {
         progress: pollResp.data.progress || task.progress,
         videoUrl: pollResp.data.videoUrl,

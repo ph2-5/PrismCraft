@@ -4,7 +4,7 @@ import { container } from "@/infrastructure/di";
 import type { VideoTask } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { AppError } from "@/domain/types/result";
-import { TaskMachine } from "@/modules/video/task-management";
+import { TaskMachine, isValidTransition, isStuck, STUCK_TASK_THRESHOLD_MS } from "@/modules/video/task-management";
 
 type CacheVideoBlobFn = (taskId: string, videoUrl: string) => Promise<Result<boolean>>;
 
@@ -79,6 +79,14 @@ export async function recoverVideoByTaskId(taskId: string): Promise<Result<Video
 
   if (task.status === "completed" && task.videoUrl) {
     return { ok: true, value: { videoUrl: task.videoUrl, message: "视频已存在" } };
+  }
+
+  if (TaskMachine.isTerminal(task.status)) {
+    errorLogger.warn(
+      { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=recovery` },
+      "VideoRecovery",
+    );
+    return err(new AppError("INVALID_TRANSITION", `任务处于终态 ${task.status}，无法恢复`));
   }
 
   return fromAsyncThrowable(async () => {
@@ -196,6 +204,33 @@ export async function startBackgroundRecovery(): Promise<Result<void>> {
       throw failedTasksResult.error;
     }
     const failedTasks = failedTasksResult.value;
+
+    const allTasksResult = await fromAsyncThrowable(() => container.videoTaskStorage.getVideoTasks());
+    const allTasks = allTasksResult.ok ? allTasksResult.value : [];
+
+    const stuckTasks = allTasks.filter((task) => isStuck(task));
+
+    if (stuckTasks.length > 0) {
+      errorLogger.info(
+        `[VideoRecovery] 发现 ${stuckTasks.length} 个卡住的任务 (超过 ${STUCK_TASK_THRESHOLD_MS / 60000} 分钟无活动)`,
+      );
+      for (const stuckTask of stuckTasks) {
+        if (isValidTransition(stuckTask.status, "timeout")) {
+          try {
+            await container.videoTaskStorage.updateVideoTask(stuckTask.taskId, {
+              status: "timeout",
+              message: `任务卡住超过 ${STUCK_TASK_THRESHOLD_MS / 60000} 分钟`,
+              pollFailureCount: 0,
+            });
+          } catch (e) {
+            errorLogger.warn(
+              `[VideoRecovery] 标记卡住任务失败: ${stuckTask.taskId}`,
+              e,
+            );
+          }
+        }
+      }
+    }
 
     const eligibleTasks = failedTasks.filter((task) => {
       const timeSinceCreation = Date.now() - new Date(task.createdAt).getTime();

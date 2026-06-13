@@ -1,4 +1,5 @@
 import type { StoryBeat } from "@/domain/schemas";
+import { getFirstFrameUrl } from "@/domain/utils/frame-pair-accessors";
 
 type GenerationStep = "keyframe" | "framePair" | "video";
 
@@ -11,7 +12,7 @@ interface BeatWorkflowResult {
 
 function getNextStep(beat: StoryBeat): GenerationStep | null {
   if (!beat.keyframe?.imageUrl) return "keyframe";
-  if (!beat.framePair?.firstFrame?.imageUrl) return "framePair";
+  if (!getFirstFrameUrl(beat.framePair)) return "framePair";
   if (!beat.videoGen?.videoUrl) return "video";
   return null;
 }
@@ -19,17 +20,17 @@ function getNextStep(beat: StoryBeat): GenerationStep | null {
 function getStepPrereqs(step: GenerationStep): string {
   switch (step) {
     case "keyframe":
-      return "分镜需存在且已绑定角色或场景";
+      return "BEAT_REQUIRES_CHARACTER_OR_SCENE";
     case "framePair":
-      return "需已生成预览图（keyframe）";
+      return "KEYFRAME_REQUIRED";
     case "video":
-      return "需已生成首尾帧（framePair）";
+      return "FRAME_PAIR_REQUIRED";
   }
 }
 
 function shouldAutoAdvance(beat: StoryBeat): boolean {
   if (!beat.keyframe?.imageUrl) return false;
-  if (!beat.framePair?.firstFrame?.imageUrl) return false;
+  if (!getFirstFrameUrl(beat.framePair)) return false;
   return true;
 }
 

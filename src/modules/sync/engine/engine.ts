@@ -30,13 +30,11 @@ let conflictCallback: ((conflicts: SyncConflict[]) => void) | null = null;
 let changeTrackerRegistered = false;
 
 if (typeof window !== "undefined") {
-  const win = window as unknown as Record<string, unknown>;
-  const prev = win.__SYNC_ENGINE_STATE__;
+  const prev = window.__SYNC_ENGINE_STATE__;
   if (prev && typeof prev === "object") {
-    const prevState = prev as { syncTimer: ReturnType<typeof setInterval> | null };
-    if (prevState.syncTimer) clearInterval(prevState.syncTimer);
+    if (prev.syncTimer) clearInterval(prev.syncTimer);
   }
-  win.__SYNC_ENGINE_STATE__ = {
+  window.__SYNC_ENGINE_STATE__ = {
     get syncTimer() { return syncTimer; },
   };
 }

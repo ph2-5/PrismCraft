@@ -6,6 +6,8 @@ export {
   buildFeatureAnchoringConfig,
 } from "./services/feature-extraction-service";
 
+export type { FeatureLanguage } from "./services/feature-extraction-service";
+
 export type {
   BlendMode,
   BlendConfig,

@@ -193,21 +193,26 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
 
   getModelParameterProfile(modelId: string): ModelParameterProfile {
     const capabilities = this.getModelCapabilities(modelId);
+    const mergedCapabilities: ModelCapabilities = {
+      ...capabilities,
+      supportsCharacterRef: capabilities.supportsCharacterRef ?? this.videoCapabilities.supportsCharacterRef,
+      supportsSceneRef: capabilities.supportsSceneRef ?? this.videoCapabilities.supportsSceneRef,
+    };
     return {
       modelId,
-      capabilities,
+      capabilities: mergedCapabilities,
       parameters: {
         durations: [
           { value: 2, label: "2秒" },
           { value: 5, label: "5秒" },
           { value: 10, label: "10秒" },
         ],
-        resolutions: capabilities.supportedImageSizes?.map((s) => ({
+        resolutions: mergedCapabilities.supportedImageSizes?.map((s) => ({
           value: `${s.width}x${s.height}`,
           label: s.label,
           width: s.width,
           height: s.height,
-        })) || [{ value: `${capabilities.maxResolution}x${capabilities.maxResolution}`, label: "1:1", width: capabilities.maxResolution, height: capabilities.maxResolution }],
+        })) || [{ value: `${mergedCapabilities.maxResolution}x${mergedCapabilities.maxResolution}`, label: "1:1", width: mergedCapabilities.maxResolution, height: mergedCapabilities.maxResolution }],
         styles: [],
         negativePrompt: false,
         seed: false,

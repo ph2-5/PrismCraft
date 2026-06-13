@@ -3,7 +3,9 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/shared/utils/utils"
 import { ChevronDownIcon, CheckIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+function Select(props: SelectPrimitive.Root.Props<string>) {
+  return <SelectPrimitive.Root modal={false} {...props} />;
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (

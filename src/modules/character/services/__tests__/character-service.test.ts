@@ -26,17 +26,9 @@ import { characterService } from "@/modules/character/services";
 import { normalizeGender } from "@/shared/utils/utils";
 import { container } from "@/infrastructure/di";
 
-const storage = container.characterStorage as unknown as {
-  getCharacters: ReturnType<typeof vi.fn>;
-  getCharacterById: ReturnType<typeof vi.fn>;
-  createCharacter: ReturnType<typeof vi.fn>;
-  updateCharacter: ReturnType<typeof vi.fn>;
-  deleteCharacter: ReturnType<typeof vi.fn>;
-};
+const storage = vi.mocked(container.characterStorage);
 
-const eventBus = container.eventBus as unknown as {
-  emit: ReturnType<typeof vi.fn>;
-};
+const eventBus = vi.mocked(container.eventBus);
 
 describe("characterService", () => {
   beforeEach(() => {

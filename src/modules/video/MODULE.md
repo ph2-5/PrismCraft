@@ -511,6 +511,7 @@ function applyVideoTemplate(template: VideoTemplate): { prompt: string; duration
 | `@/shared/utils/toast-bridge` | `emitToast` 非 React 环境通知 |
 | `@/shared/video-cache` | `resilientFetch`、`registerObjectUrl`、`revokeObjectUrl` |
 | `@/shared/video-utils` | `detectVideoCodec`、`extractVideoFrames` 等工具函数代理导出 |
+| `@/shared/model-capabilities` | `getVideoGenerationStrategy`（参考图策略过滤，story 模块调用） |
 | `@/shared/utils/file-download` | `downloadJSONFile` 文件下载代理导出 |
 | `@tanstack/react-query` | `useQuery`、`useMutation`、`useQueryClient` |
 | `zustand` | `create` Store |

@@ -16,7 +16,7 @@ function createMockResponse(options: {
   contentType?: string;
   contentLength?: number | null;
   body?: ArrayBuffer;
-}) {
+}): Response {
   const headers = new Map<string, string>();
   if (options.contentType) headers.set("content-type", options.contentType);
   if (options.contentLength != null) headers.set("content-length", String(options.contentLength));
@@ -28,7 +28,7 @@ function createMockResponse(options: {
       get: (name: string) => headers.get(name) ?? null,
     },
     arrayBuffer: vi.fn().mockResolvedValue(options.body ?? new ArrayBuffer(0)),
-  };
+  } as unknown as Response;
 }
 
 describe("video-verification-service", () => {
@@ -40,7 +40,7 @@ describe("video-verification-service", () => {
   describe("verifyVideoUrl", () => {
     it("should return invalid when HEAD request fails", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        createMockResponse({ ok: false, status: 404 }) as unknown as Response
+        createMockResponse({ ok: false, status: 404 })
       );
 
       const result = await verifyVideoUrl("https://example.com/notfound.mp4");
@@ -61,11 +61,11 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "text/html",
                 contentLength: 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
-            createMockResponse({ ok: true }) as unknown as Response
+            createMockResponse({ ok: true })
           );
         }
       );
@@ -87,11 +87,11 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/mp4",
                 contentLength: 512,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
-            createMockResponse({ ok: true }) as unknown as Response
+            createMockResponse({ ok: true })
           );
         }
       );
@@ -113,11 +113,11 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/mp4",
                 contentLength: 600 * 1024 * 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
-            createMockResponse({ ok: true }) as unknown as Response
+            createMockResponse({ ok: true })
           );
         }
       );
@@ -139,11 +139,11 @@ describe("video-verification-service", () => {
               createMockResponse({
                 ok: true,
                 contentType: "video/mp4",
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
-            createMockResponse({ ok: false, status: 403 }) as unknown as Response
+            createMockResponse({ ok: false, status: 403 })
           );
         }
       );
@@ -165,7 +165,7 @@ describe("video-verification-service", () => {
               createMockResponse({
                 ok: true,
                 contentType: "video/mp4",
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -173,7 +173,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: invalidBuffer,
-            }) as unknown as Response
+            })
           );
         }
       );
@@ -205,7 +205,7 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/mp4",
                 contentLength: 1024 * 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -213,7 +213,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: mp4Buffer.buffer,
-            }) as unknown as Response
+            })
           );
         }
       );
@@ -241,7 +241,7 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/webm",
                 contentLength: 1024 * 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -249,7 +249,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: webmBuffer.buffer,
-            }) as unknown as Response
+            })
           );
         }
       );
@@ -276,7 +276,7 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/mp4",
                 contentLength: 1024 * 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -284,7 +284,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: moovBuffer.buffer,
-            }) as unknown as Response
+            })
           );
         }
       );
@@ -311,7 +311,7 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/mp4",
                 contentLength: 1024 * 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -319,7 +319,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: mdatBuffer.buffer,
-            }) as unknown as Response
+            })
           );
         }
       );
@@ -346,7 +346,7 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/mp4",
                 contentLength: 1024 * 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -354,7 +354,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: wideBuffer.buffer,
-            }) as unknown as Response
+            })
           );
         }
       );
@@ -380,7 +380,7 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/mp4",
                 contentLength: 1024 * 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -388,7 +388,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: nullBuffer.buffer,
-            }) as unknown as Response
+            })
           );
         }
       );
@@ -439,7 +439,7 @@ describe("video-verification-service", () => {
               createMockResponse({
                 ok: true,
                 contentType: "video/mp4",
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -447,7 +447,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: mp4Buffer.buffer,
-            }) as unknown as Response
+            })
           );
         }
       );
@@ -476,7 +476,7 @@ describe("video-verification-service", () => {
                 ok: true,
                 contentType: "video/mp4",
                 contentLength: 1024 * 1024,
-              }) as unknown as Response
+              })
             );
           }
           return Promise.resolve(
@@ -484,7 +484,7 @@ describe("video-verification-service", () => {
               ok: true,
               status: 206,
               body: mp4Buffer.buffer,
-            }) as unknown as Response
+            })
           );
         }
       );

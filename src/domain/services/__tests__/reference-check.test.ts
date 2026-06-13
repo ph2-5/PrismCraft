@@ -237,10 +237,10 @@ describe("checkSceneReferences", () => {
     expect(result.references[0]!.usedInBeats).toHaveLength(1);
   });
 
-  it("detects reference via beat.scene", () => {
+  it("detects reference via beat.sceneId", () => {
     const stories = [
       makeStory({
-        beats: [makeBeat({ scene: "scene-1" })],
+        beats: [makeBeat({ sceneId: "scene-1" })],
       }),
     ];
     const result = checkSceneReferences("scene-1", "场景A", stories);

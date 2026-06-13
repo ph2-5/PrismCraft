@@ -16,7 +16,7 @@ vi.mock("@/shared/constants", () => ({
   t: mockT,
 }));
 
-import { useAutoSave } from "@/modules/persistence/hooks/use-auto-save";
+import { useAutoSave } from "@/modules/persistence";
 
 function buildProps(overrides: Partial<Parameters<typeof useAutoSave>[0]> = {}) {
   return {

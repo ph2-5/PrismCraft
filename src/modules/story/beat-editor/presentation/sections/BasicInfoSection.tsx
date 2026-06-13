@@ -56,7 +56,7 @@ export function BasicInfoSection({
               {t("beat.sceneSelect")}
             </Label>
             <Select
-              value={beat.scene || ""}
+              value={(beat.sceneId || beat.scene) || ""}
               onValueChange={(value) =>
                 onUpdateField("scene", value ?? undefined)
               }

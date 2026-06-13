@@ -1,6 +1,12 @@
 import { AppError, GenerationError, RateLimitError, ApiError, type GenerationType } from "@/domain/types/result";
 import { classifyNetworkError } from "@/shared/utils/error-classifier";
 
+type ErrorWithCode = { code?: string };
+
+function getErrorCode(error: Error): string | undefined {
+  return (error as ErrorWithCode).code;
+}
+
 export type ErrorCode =
   | "DATABASE_ERROR"
   | "VALIDATION_ERROR"
@@ -47,7 +53,7 @@ export function handleError(error: unknown): AppError {
   }
 
   if (error instanceof Error) {
-    const code = (error as unknown as { code?: string }).code;
+    const code = getErrorCode(error);
     const category = classifyNetworkError(code, error.message);
     if (category === "timeout") return createAppError("TIMEOUT_ERROR", error.message, error);
     if (category === "network") return createAppError("NETWORK_ERROR", error.message, error);

@@ -68,7 +68,7 @@ describe("StoryGenerationService", () => {
         scenes: [],
         elements: [],
       });
-      expect(result.characterRef).toBe("http://example.com/hero-avatar.png");
+      expect(result.characterRefs).toEqual(["http://example.com/hero-avatar.png"]);
     });
 
     it("应解析场景引用", () => {
@@ -120,7 +120,7 @@ describe("StoryGenerationService", () => {
       expect(result.prevVideoUrl).toBeUndefined();
     });
 
-    it("角色ID不匹配时 characterRef 应为 undefined", () => {
+    it("角色ID不匹配时 characterRefs 应为空数组", () => {
       const beat = createMockBeat({ characterIds: ["non-existent"] });
       const characters = [createMockCharacter({ id: "char-1" })];
       const result = StoryGenerationService.resolveGenerationContext({
@@ -130,10 +130,10 @@ describe("StoryGenerationService", () => {
         scenes: [],
         elements: [],
       });
-      expect(result.characterRef).toBeUndefined();
+      expect(result.characterRefs).toEqual([]);
     });
 
-    it("角色无可用图片时 characterRef 应为 undefined", () => {
+    it("角色无可用图片时 characterRefs 应为空数组", () => {
       const beat = createMockBeat({ characterIds: ["char-1"] });
       const characters = [
         createMockCharacter({ id: "char-1", avatarPath: undefined, generatedImage: undefined, refImagePath: undefined }),
@@ -145,7 +145,7 @@ describe("StoryGenerationService", () => {
         scenes: [],
         elements: [],
       });
-      expect(result.characterRef).toBeUndefined();
+      expect(result.characterRefs).toEqual([]);
     });
 
     it("场景ID不匹配时 sceneRef 应为 undefined", () => {
@@ -195,7 +195,7 @@ describe("StoryGenerationService", () => {
       expect(result.sceneRef).toBe("http://example.com/forest.png");
     });
 
-    it("多个角色时优先使用第一个有图片的角色", () => {
+    it("多个角色时 characterRefs 应包含所有有图片的角色", () => {
       const beat = createMockBeat({ characterIds: ["char-1", "char-2"] });
       const characters = [
         createMockCharacter({ id: "char-1", avatarPath: "http://example.com/avatar-1.png" }),
@@ -208,7 +208,7 @@ describe("StoryGenerationService", () => {
         scenes: [],
         elements: [],
       });
-      expect(result.characterRef).toBe("http://example.com/avatar-1.png");
+      expect(result.characterRefs).toEqual(["http://example.com/avatar-1.png", "http://example.com/avatar-2.png"]);
     });
   });
 
@@ -227,7 +227,7 @@ describe("StoryGenerationService", () => {
         },
       } as Partial<StoryBeat>);
       const result = StoryGenerationService.buildVideoPrompt(beat, "基础提示词");
-      expect(result).toContain("首帧画面：首帧描述");
+      expect(result).toContain("首帧画面（视频开始时的画面）：首帧描述");
       expect(result).toContain("视觉连贯性");
     });
 
@@ -239,8 +239,8 @@ describe("StoryGenerationService", () => {
         },
       } as Partial<StoryBeat>);
       const result = StoryGenerationService.buildVideoPrompt(beat, "基础提示词");
-      expect(result).toContain("首帧画面：首帧描述");
-      expect(result).toContain("尾帧画面：尾帧描述");
+      expect(result).toContain("首帧画面（视频开始时的画面）：首帧描述");
+      expect(result).toContain("尾帧画面（视频结束时的画面）：尾帧描述");
     });
 
     it("仅有尾帧提示时应包含尾帧约束", () => {
@@ -251,8 +251,8 @@ describe("StoryGenerationService", () => {
         },
       } as Partial<StoryBeat>);
       const result = StoryGenerationService.buildVideoPrompt(beat, "基础提示词");
-      expect(result).toContain("尾帧画面：尾帧描述");
-      expect(result).not.toContain("首帧画面");
+      expect(result).toContain("尾帧画面（视频结束时的画面）：尾帧描述");
+      expect(result).not.toContain("首帧画面（视频开始时的画面）");
     });
 
     it("首帧有 imageUrl 但无 prompt 时不添加帧约束", () => {
@@ -279,7 +279,7 @@ describe("StoryGenerationService", () => {
       const result = StoryGenerationService.validateGenerationPrereqs(beat, "keyframe");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toBe("分镜不存在");
+        expect(result.error.message).toBe("BEAT_NOT_FOUND");
       }
     });
 
@@ -294,7 +294,7 @@ describe("StoryGenerationService", () => {
       const result = StoryGenerationService.validateGenerationPrereqs(beat, "framePair");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toBe("生成首尾帧前必须先生成预览图");
+        expect(result.error.message).toBe("KEYFRAME_REQUIRED_FOR_FRAME_PAIR");
       }
     });
 
@@ -314,7 +314,7 @@ describe("StoryGenerationService", () => {
       const result = StoryGenerationService.validateGenerationPrereqs(beat, "video");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toBe("生成视频前必须先生成首尾帧");
+        expect(result.error.message).toBe("FRAME_PAIR_REQUIRED_FOR_VIDEO");
       }
     });
 

@@ -30,6 +30,8 @@ import {
   loadPluginTemplates,
 } from "@/infrastructure/api-config-facade";
 import { loadModelProfilesFromServer } from "@/shared/model-capabilities";
+import { useInvalidateModelCapabilities } from "@/shared/hooks/use-model-capabilities";
+import { useInvalidateProviderTemplates } from "@/shared/hooks/use-provider-templates";
 import {
   fetchPlugins,
   deletePlugin,
@@ -45,6 +47,8 @@ import { PluginSpecViewer } from "./plugin-spec-viewer";
 
 export default function PluginManager() {
   const { error: showError, success: showSuccess } = useToastHelpers();
+  const invalidateModelCapabilities = useInvalidateModelCapabilities();
+  const invalidateProviderTemplates = useInvalidateProviderTemplates();
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
   const [userPluginFiles, setUserPluginFiles] = useState<UserPluginFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,6 +119,10 @@ export default function PluginManager() {
         loadPluginTemplates(),
         loadModelProfilesFromServer(),
       ]);
+      await Promise.allSettled([
+        invalidateModelCapabilities(),
+        invalidateProviderTemplates(),
+      ]);
       await loadPlugins();
     } catch (e) {
       showError(t("plugin.reloadFailed"), mapUserFacingError(e));
@@ -132,6 +140,10 @@ export default function PluginManager() {
         loadPluginDetectionRules(),
         loadPluginTemplates(),
         loadModelProfilesFromServer(),
+      ]);
+      await Promise.allSettled([
+        invalidateModelCapabilities(),
+        invalidateProviderTemplates(),
       ]);
       await loadPlugins();
     } catch (e) {

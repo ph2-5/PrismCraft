@@ -106,7 +106,7 @@ function createDefaultProps(overrides: Record<string, unknown> = {}) {
     beatsRef: { current: [] } as React.MutableRefObject<StoryBeat[]>,
     charactersRef: { current: [mockCharacter] } as React.MutableRefObject<Character[]>,
     scenesRef: { current: [mockScene] } as React.MutableRefObject<Scene[]>,
-    setBeats: mockSetBeats as unknown as React.Dispatch<React.SetStateAction<StoryBeat[]>>,
+    setBeats: mockSetBeats,
     generationEnhanced: false,
     success: mockSuccess,
     showError: mockShowError,

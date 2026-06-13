@@ -253,7 +253,7 @@ describe("E2E 视频生成工作流", () => {
       const { generateKeyframe } = await import("@/infrastructure/ai-providers/video");
 
       const result = await generateKeyframe({
-        characterRef: "https://img.example.com/char.png",
+        characterRefs: ["https://img.example.com/char.png"],
         sceneRef: "https://img.example.com/scene.png",
         providerId: "volcengine",
         modelId: "seedream-3",

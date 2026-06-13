@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect } from "react";
 import type { StoryBeat, ChainMode } from "@/domain/schemas";
+import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants";
@@ -83,9 +84,13 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         case "keyframe":
           if (prevBeat.keyframe?.imageUrl || prevBeat.uploadedKeyframe) return prevBeat;
           break;
-        case "framepair":
-          if (prevBeat.framePair?.lastFrame?.imageUrl || prevBeat.uploadedFramePair?.lastFrame) return prevBeat;
+        case "framepair": {
+          const hasFramePair = getLastFrameUrl(prevBeat.framePair) || prevBeat.uploadedFramePair?.lastFrame;
+          const consistencyFailed = prevBeat.consistencyCheck && !prevBeat.consistencyCheck.passed;
+          if (hasFramePair && !consistencyFailed) return prevBeat;
+          if (hasFramePair && consistencyFailed) return null;
           break;
+        }
         case "video":
           if (prevBeat.videoGen?.videoUrl || prevBeat.uploadedVideo) return prevBeat;
           break;
@@ -148,7 +153,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
           }
         } catch (err) {
           failCount++;
-          errorLogger.warn(`批量生成预览图失败 (beat ${beat.id}):`, err);
+          errorLogger.warn(`${t("batch.keyframeFailedLog")} (beat ${beat.id}):`, err);
           if (skipOnError && continueOnFallback) continue;
         }
 
@@ -187,7 +192,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         : beatsRef.current.filter((b) => b.keyframe?.imageUrl || b.uploadedKeyframe);
 
       if (strategy === "skip_completed") {
-        targetBeats = targetBeats.filter((b) => !b.framePair?.lastFrame?.imageUrl && !b.uploadedFramePair?.lastFrame);
+        targetBeats = targetBeats.filter((b) => !getLastFrameUrl(b.framePair) && !b.uploadedFramePair?.lastFrame);
       }
 
       if (targetBeats.length === 0) {
@@ -232,7 +237,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
           }
         } catch (err) {
           failCount++;
-          errorLogger.warn(`批量生成首尾帧失败 (beat ${beat.id}):`, err);
+          errorLogger.warn(`${t("batch.framePairFailedLog")} (beat ${beat.id}):`, err);
           if (skipOnError && continueOnFallback) continue;
         }
 
@@ -266,9 +271,9 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       
       let targetBeats = beatIds
         ? beatsRef.current.filter(
-            (b) => beatIds.includes(b.id) && (b.framePair?.firstFrame?.imageUrl || b.uploadedFramePair?.firstFrame),
+            (b) => beatIds.includes(b.id) && (getFirstFrameUrl(b.framePair) || b.uploadedFramePair?.firstFrame),
           )
-        : beatsRef.current.filter((b) => b.framePair?.firstFrame?.imageUrl || b.uploadedFramePair?.firstFrame);
+        : beatsRef.current.filter((b) => getFirstFrameUrl(b.framePair) || b.uploadedFramePair?.firstFrame);
 
       if (strategy === "skip_completed") {
         targetBeats = targetBeats.filter((b) => !b.videoGen?.videoUrl && !b.uploadedVideo);
@@ -309,12 +314,12 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
           successCount++;
         } catch (err) {
           failCount++;
-          errorLogger.warn(`批量生成视频失败 (beat ${beat.id}):`, err);
+          errorLogger.warn(`${t("batch.videoFailedLog")} (beat ${beat.id}):`, err);
           if (!skipOnError || !continueOnFallback) break;
         }
         
         if (i < targetBeats.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
 

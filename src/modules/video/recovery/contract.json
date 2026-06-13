@@ -4,7 +4,7 @@
   "dependencies": ["video-cache", "domain/VideoTaskRecord", "domain/Result", "domain/fromAsyncThrowable", "infrastructure/di"],
   "publicAPI": {
     "hooks": [],
-    "services": ["verifyVideoUrl", "verifyVideoFile", "verifyMultipleVideos", "checkForDuplicateVideos", "findSimilarTasks", "SmartRetryEngine", "smartRetryEngine", "createRetryEngine", "getTaskRecoveryInfo", "performIntelligentRecovery", "checkForTokenWaste", "registerCacheVideoBlobFn", "saveVideoTask", "getFailedTasks", "getTaskById", "recoverVideoByTaskId", "startBackgroundRecovery", "cleanExpiredTasks", "getAllTaskHistory"],
+    "services": ["verifyVideoUrl", "verifyVideoFile", "verifyMultipleVideos", "checkForDuplicateVideos", "findSimilarTasks", "SmartRetryEngine", "smartRetryEngine", "createRetryEngine", "classifyError", "ErrorCategory", "getTaskRecoveryInfo", "performIntelligentRecovery", "checkForTokenWaste", "registerCacheVideoBlobFn", "saveVideoTask", "getFailedTasks", "getTaskById", "recoverVideoByTaskId", "startBackgroundRecovery", "cleanExpiredTasks", "getAllTaskHistory", "VideoRecoverySuccessResult"],
     "components": []
   },
   "invariants": [

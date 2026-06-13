@@ -5,6 +5,7 @@ import { generateImage, analyzeImage } from "./image";
 import { generateVideo } from "./video";
 import type { ApiResponse, VideoGenerationResult } from "@/domain/schemas";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 export async function generateVideoWithMultiAPI(
   prompt: string,
@@ -51,7 +52,7 @@ export async function generateVideoWithMultiAPI(
     );
 
     if (!imageResponse.data?.imageUrl) {
-      throw new Error("生成视频素材图片失败");
+      throw new Error(t("error.videoImageGenFailed"));
     }
 
     const imageUrl = imageResponse.data.imageUrl;
@@ -122,7 +123,7 @@ export async function testConnection(
 
     return {
       success: response.success,
-      message: response.success ? "连接成功" : response.error || "未知错误",
+      message: response.success ? t("test.connectionSuccess") : response.error || t("test.unknownError"),
     };
   } catch (error) {
     return {

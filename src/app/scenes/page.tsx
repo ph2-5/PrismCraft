@@ -154,7 +154,6 @@ function ScenesPageContent() {
       const updatedStories = storiesList.map((story) => {
         const updatedBeats = (story.beats || []).map((beat) => {
           const updated = { ...beat };
-          if (updated.scene === sceneId) delete updated.scene;
           if (updated.sceneId === sceneId) delete updated.sceneId;
           return updated;
         });
@@ -164,7 +163,7 @@ function ScenesPageContent() {
       const failedStories: string[] = [];
       const affectedStories = updatedStories.filter((updatedStory) => {
         const original = storiesList.find((s) => s.id === updatedStory.id);
-        return original?.beats?.some((b) => b.scene === sceneId || b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
+        return original?.beats?.some((b) => b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
       });
       const results = await Promise.allSettled(
         affectedStories.map((updatedStory) =>

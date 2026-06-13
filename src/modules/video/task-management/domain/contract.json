@@ -9,8 +9,8 @@
   },
   "invariants": [
     "状态转换必须通过 TaskMachine，禁止直接修改 task.status",
-    "completed 是终态，不可回退",
-    "pending 不能直接跳到 completed（必须经过 processing）",
+    "completed 只能回到 pending（重置），不能直接 retrying 或 generating",
+    "pending 不能直接跳到 completed（必须经过 generating）",
     "API 返回值必须经过 pollResultSchema 校验后才能映射为本地状态",
     "mapApiStatus(apiStatus, videoUrl?) 中 videoUrl 仅在 API status 映射为 completed 时作为确认信号；API 返回 completed 但无 videoUrl 时降级为 generating"
   ]

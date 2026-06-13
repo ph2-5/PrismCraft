@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "./helpers/page-helpers";
+import { navigateTo, waitForAppReady, dismissOverlays, fillInput, clickButtonByText } from "./helpers/page-helpers";
 import { installElectronMock } from "./helpers/electron-mock";
 
 test.beforeEach(async ({ page }) => {
@@ -147,68 +147,67 @@ test.describe("Database Storage", () => {
 });
 
 test.describe("Data Persistence", () => {
-  test.skip(({ browserName }) => true, "Requires real Electron app - run with test:e2e:electron");
-
   test("should persist character data across navigation", async ({ page }) => {
     await navigateTo(page, "/characters");
     await dismissOverlays(page);
 
-    const createButton = page.locator("button", { hasText: "创建新角色" });
-    await createButton.click();
-    await page.waitForTimeout(500);
-
     await page.locator('input[placeholder="输入角色名称..."]').fill("Persistent Character");
-    await page.locator("button", { hasText: "保存角色" }).click();
-    await waitForAppReady(page);
+    await page.locator("button", { hasText: "保存角色" }).click({ force: true });
+    await page.waitForTimeout(1000);
 
     await navigateTo(page, "/");
+    await page.waitForTimeout(500);
     await navigateTo(page, "/characters");
     await dismissOverlays(page);
+    await page.waitForTimeout(1000);
 
     const persistedItem = page.locator("text=Persistent Character");
-    expect(await persistedItem.count()).toBeGreaterThan(0);
+    const charVisible = await persistedItem.isVisible({ timeout: 5000 }).catch(() => false);
+    expect(charVisible).toBe(true);
   });
 
   test("should persist scene data across navigation", async ({ page }) => {
     await navigateTo(page, "/scenes");
     await dismissOverlays(page);
 
-    const createButton = page.locator("button", { hasText: "创建新场景" });
-    await createButton.click();
-    await page.waitForTimeout(500);
-
     await page.locator('input[placeholder="输入场景名称..."]').fill("Persistent Scene");
-    await page.locator("button", { hasText: "保存场景" }).click();
-    await waitForAppReady(page);
+    await page.locator("button", { hasText: "保存场景" }).click({ force: true });
+    await page.waitForTimeout(1000);
 
     await navigateTo(page, "/");
+    await page.waitForTimeout(500);
     await navigateTo(page, "/scenes");
     await dismissOverlays(page);
+    await page.waitForTimeout(1000);
 
     const persistedItem = page.locator("text=Persistent Scene");
-    expect(await persistedItem.count()).toBeGreaterThan(0);
+    const sceneVisible = await persistedItem.isVisible({ timeout: 5000 }).catch(() => false);
+    expect(sceneVisible).toBe(true);
   });
 
   test("should persist story data across reload", async ({ page }) => {
     await navigateTo(page, "/story");
     await dismissOverlays(page);
+    await page.waitForTimeout(1000);
 
-    const titleInput = page.locator('input[placeholder="分镜项目标题..."]');
-    await titleInput.fill("Persistent Story");
+    await fillInput(page, 'input[placeholder="分镜项目标题..."]', "Persistent Story");
+    await page.waitForTimeout(300);
 
-    const addButton = page.locator("button", { hasText: "添加" }).first();
-    await addButton.click();
-    await page.waitForTimeout(500);
+    await clickButtonByText(page, "添加");
+    await page.waitForTimeout(800);
 
-    const saveButton = page.locator("button", { hasText: "保存" }).first();
-    await saveButton.click();
-    await waitForAppReady(page);
+    await clickButtonByText(page, "保存");
+    await page.waitForTimeout(1000);
 
     await page.reload();
     await waitForAppReady(page);
+    await page.waitForTimeout(1000);
 
-    const titleInputAfter = page.locator('input[placeholder="分镜项目标题..."]');
-    await expect(titleInputAfter).toHaveValue("Persistent Story");
+    const titleValue = await page.evaluate(() => {
+      const input = document.querySelector('input[placeholder="分镜项目标题..."]') as HTMLInputElement;
+      return input?.value ?? "";
+    });
+    expect(titleValue).toBe("Persistent Story");
   });
 });
 
@@ -222,18 +221,21 @@ test.describe("Data Export", () => {
   });
 
   test("should trigger download on export data click", async ({ page }) => {
-    test.skip(true, "Requires real Electron app - run with test:e2e:electron");
     await navigateTo(page, "/");
     await dismissOverlays(page);
 
-    const downloadPromise = page.waitForEvent("download", { timeout: 5000 }).catch(() => null);
-
     const exportButton = page.locator("button", { hasText: "导出数据" });
-    await exportButton.click();
+    await expect(exportButton).toBeVisible();
 
-    const download = await downloadPromise;
-    if (download) {
-      expect(download.suggestedFilename()).toBeTruthy();
-    }
+    // Click export and verify the flow completes without error
+    // In browser mock mode, saveFileDialog returns a filePath and writeFile succeeds,
+    // so the Electron file-save path is exercised (not the Blob URL fallback).
+    await exportButton.click({ force: true });
+    await page.waitForTimeout(2000);
+
+    // Verify no error toast appeared
+    const errorToast = page.locator("[data-sonner-toast][data-type='error'], .toast-error");
+    const hasError = await errorToast.isVisible({ timeout: 3000 }).catch(() => false);
+    expect(hasError).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { StoryBeat } from "@/domain/schemas";
+import { getFirstFrameUrl } from "@/domain/utils";
 import type { VideoTask } from "@/modules/video";
 
 interface BeatVideoPreviewProps {
@@ -40,10 +41,10 @@ export function BeatVideoPreview({ beat, task, videoUrl, guardedPush }: BeatVide
                 }}
               />
             </div>
-          ) : beat.framePair?.firstFrame?.imageUrl ? (
+          ) : getFirstFrameUrl(beat.framePair) ? (
             <div className="relative aspect-video bg-muted flex items-center justify-center">
               <img
-                src={beat.framePair.firstFrame.imageUrl}
+                src={getFirstFrameUrl(beat.framePair)}
                 alt={t("beat.firstFramePreview")}
                 className="max-w-full max-h-full object-contain"
               />
@@ -93,7 +94,7 @@ export function BeatVideoPreview({ beat, task, videoUrl, guardedPush }: BeatVide
             {t("beat.backToStory")}
           </Button>
         )}
-        {beat.framePair?.firstFrame?.imageUrl &&
+        {getFirstFrameUrl(beat.framePair) &&
           !videoUrl &&
           !beat.videoGen?.videoUrl && (
             <Button
@@ -105,7 +106,7 @@ export function BeatVideoPreview({ beat, task, videoUrl, guardedPush }: BeatVide
             </Button>
           )}
         {beat.keyframe?.imageUrl &&
-          !beat.framePair?.firstFrame?.imageUrl && (
+          !getFirstFrameUrl(beat.framePair) && (
             <Button
               className="gap-2 flex-1"
               onClick={() => guardedPush("/story")}

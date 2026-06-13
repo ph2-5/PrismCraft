@@ -6,6 +6,7 @@ export {
   cleanupAllPollingResources,
   schedulePolling,
   checkAndStartOrStopPolling,
+  getPollingStats,
   MAX_POLL_COUNT,
   MAX_POLL_DURATION,
   MAX_POLL_FAILURES,

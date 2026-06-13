@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "./helpers/page-helpers";
+import { navigateTo, waitForAppReady, dismissOverlays } from "./helpers/page-helpers";
 import { installElectronMock } from "./helpers/electron-mock";
 
 async function switchTab(page: Page, tabName: string) {
@@ -66,16 +66,12 @@ test.describe("Character Page", () => {
   });
 
   test("should save character", async ({ page }) => {
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
-
     await page.locator('input[placeholder="输入角色名称..."]').fill("可保存角色");
     await page.locator("button", { hasText: "保存角色" }).click();
     await page.waitForTimeout(500);
   });
 
   test("should delete character", async ({ page }) => {
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
-
     await page.locator('input[placeholder="输入角色名称..."]').fill("待删除角色");
     await page.locator("button", { hasText: "保存角色" }).click();
     await page.waitForTimeout(500);
@@ -180,16 +176,12 @@ test.describe("Scene Page", () => {
   });
 
   test("should save scene", async ({ page }) => {
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
-
     await page.locator('input[placeholder="输入场景名称..."]').fill("可保存场景");
     await page.locator("button", { hasText: "保存场景" }).click();
     await page.waitForTimeout(500);
   });
 
   test("should delete scene", async ({ page }) => {
-    test.skip(!(await hasElectronAPI(page)), "Requires Electron API");
-
     await page.locator('input[placeholder="输入场景名称..."]').fill("待删除场景");
     await page.locator("button", { hasText: "保存场景" }).click();
     await page.waitForTimeout(500);

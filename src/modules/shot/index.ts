@@ -6,7 +6,7 @@
  */
 
 // === 1. 一致性检查（API 路由 /api/validate 使用）===
-export { performConsistencyCheck, performConfigCheck, checkVisualConsistency } from "./consistency-check";
+export { performConsistencyCheck, performConfigCheck, checkVisualConsistency, parseConsistencyAnalysisFromStructured } from "./consistency-check";
 export type { ConsistencyCheckInput } from "./consistency-check";
 export {
   validateFeatureAnchoringConfig,
@@ -42,6 +42,8 @@ export {
   buildFeatureTags,
   buildFeatureAnchor,
 } from "./feature-extraction";
+
+export type { FeatureLanguage } from "./feature-extraction";
 
 // === 6. 引用引擎（story 模块使用）===
 export { referenceEngine } from "./shot-reference";

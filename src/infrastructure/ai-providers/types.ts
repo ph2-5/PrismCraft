@@ -45,7 +45,7 @@ export interface VideoGenerationRequestBody {
   prompt: string;
   firstFrameUrl?: string;
   lastFrameUrl?: string;
-  characterRef?: string;
+  characterRefs?: string[];
   sceneRef?: string;
   duration?: number;
   promptWasTruncated?: boolean;
@@ -70,6 +70,7 @@ export interface TextGenerationRequestBody {
 
 export interface KeyframeGenerationRequestBody {
   characterRef?: string;
+  characterRefs?: string[];
   sceneRef?: string;
   prevKeyframe?: string;
   shotRequirement?: {
@@ -88,6 +89,7 @@ export interface FramePairGenerationRequestBody {
   keyframeUrl: string;
   keyframePrompt?: string;
   characterRef?: string;
+  characterRefs?: string[];
   sceneRef?: string;
   prevLastFrameUrl?: string;
   actionDescription?: string;
@@ -114,7 +116,7 @@ export interface VideoGenerationParams {
   prompt: string;
   firstFrameUrl?: string;
   lastFrameUrl?: string;
-  characterRef?: string;
+  characterRefs?: string[];
   sceneRef?: string;
   duration?: number;
   model?: string;

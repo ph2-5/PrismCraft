@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   validateShotParams,
   validateStoryBeatOutput,
@@ -8,11 +8,16 @@ import {
 } from "@/modules/shot";
 import type { ValidationResult } from "@/modules/shot";
 import type { ShotParamsType } from "@/modules/shot";
+import { clearValidationCache } from "../../shot-generation/shot-validator";
 
 type BeatOutput = Record<string, unknown>;
 type BeatOutputList = BeatOutput[];
 
 describe("shot-validator", () => {
+  beforeEach(() => {
+    clearValidationCache();
+  });
+
   describe("validateShotParams", () => {
     it("应接受有效的镜头参数", () => {
       const result = validateShotParams({
@@ -166,6 +171,98 @@ describe("shot-validator", () => {
       });
       expect(result).toContain("自动修复");
       expect(result).toContain("shotType");
+    });
+  });
+
+  describe("validation cache", () => {
+    it("cache hit 应返回相同结果而不重新验证", () => {
+      const params = {
+        prompt: "缓存测试：一个英雄站在山顶俯瞰城市",
+        shotType: "wide",
+        cameraAngle: "eye_level",
+        cameraMovement: "push",
+        duration: 5,
+      };
+
+      const result1 = validateShotParams(params);
+      const result2 = validateShotParams(params);
+
+      expect(result1).toBe(result2);
+    });
+
+    it("cache miss 应触发验证", () => {
+      const params1 = {
+        prompt: "缓存测试1：一个英雄站在山顶俯瞰城市",
+        shotType: "wide",
+        duration: 5,
+      };
+      const params2 = {
+        prompt: "缓存测试2：一个英雄站在山顶俯瞰城市",
+        shotType: "close",
+        duration: 3,
+      };
+
+      const result1 = validateShotParams(params1);
+      const result2 = validateShotParams(params2);
+
+      expect(result1).not.toBe(result2);
+      expect(result1.data.shotType).toBe("wide");
+      expect(result2.data.shotType).toBe("close");
+    });
+
+    it("useCache: false 应绕过缓存", () => {
+      const params = {
+        prompt: "绕过缓存测试：一个英雄站在山顶俯瞰城市",
+        shotType: "wide",
+        cameraAngle: "eye_level",
+        cameraMovement: "push",
+        duration: 5,
+      };
+
+      const result1 = validateShotParams(params, { useCache: false });
+      const result2 = validateShotParams(params, { useCache: false });
+
+      expect(result1).not.toBe(result2);
+      expect(result1.data).toEqual(result2.data);
+    });
+
+    it("clearValidationCache 应清除所有缓存结果", () => {
+      const params = {
+        prompt: "清除缓存测试：一个英雄站在山顶俯瞰城市",
+        shotType: "wide",
+        cameraAngle: "eye_level",
+        cameraMovement: "push",
+        duration: 5,
+      };
+
+      const result1 = validateShotParams(params);
+      clearValidationCache();
+      const result2 = validateShotParams(params);
+
+      expect(result1).not.toBe(result2);
+      expect(result1.data).toEqual(result2.data);
+    });
+
+    it("cache 满时应淘汰最旧条目 (50 entries)", () => {
+      const firstParams = {
+        prompt: "第一个缓存条目：一个英雄站在山顶俯瞰城市",
+        shotType: "wide",
+        duration: 5,
+      };
+
+      validateShotParams(firstParams);
+
+      for (let i = 0; i < 50; i++) {
+        validateShotParams({
+          prompt: `填充缓存条目${i}：一个英雄站在山顶俯瞰城市`,
+          shotType: "medium",
+          duration: 5,
+        });
+      }
+
+      const resultAfterEviction = validateShotParams(firstParams);
+      expect(resultAfterEviction).toBeDefined();
+      expect(resultAfterEviction.data.shotType).toBe("wide");
     });
   });
 });

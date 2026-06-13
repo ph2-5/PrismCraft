@@ -175,7 +175,7 @@ export const container: AppContainer = new Proxy(tokens, {
     }
     return undefined;
   },
-}) as unknown as AppContainer;
+}) as unknown as AppContainer; // Proxy get trap 无法推断具体属性类型，必须断言为 AppContainer
 
 export function overrideToken<T>(token: Token<T>, factory: (c: import("./types").ModuleContainer) => T): void {
   registry.override(token, factory as import("./types").ModuleFactory<T>);

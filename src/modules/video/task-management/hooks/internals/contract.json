@@ -4,7 +4,7 @@
   "dependencies": ["video-task-management", "domain/VideoTask", "domain/VideoTaskStatus", "domain/VideoTaskRecord", "infrastructure/di", "video-cache", "video-recovery"],
   "publicAPI": {
     "hooks": [],
-    "services": ["withTransitionGuard", "pollingState", "registerPollingStore", "stopPolling", "cleanupAllPollingResources", "schedulePolling", "checkAndStartOrStopPolling", "MAX_POLL_COUNT", "MAX_POLL_DURATION", "MAX_POLL_FAILURES", "scheduleSync", "registerSyncStore"],
+    "services": ["withTransitionGuard", "pollingState", "registerPollingStore", "stopPolling", "cleanupAllPollingResources", "schedulePolling", "checkAndStartOrStopPolling", "getPollingStats", "MAX_POLL_COUNT", "MAX_POLL_DURATION", "MAX_POLL_FAILURES", "scheduleSync", "registerSyncStore"],
     "components": []
   },
   "invariants": [

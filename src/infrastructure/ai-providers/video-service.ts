@@ -36,7 +36,7 @@ export async function generateVideo(
   options?: {
     firstFrameUrl?: string;
     lastFrameUrl?: string;
-    characterRef?: string;
+    characterRefs?: string[];
     sceneRef?: string;
     duration?: number;
     referenceVideo?: { enabled: boolean; videoUrl: string; mimicryLevel?: string };
@@ -54,7 +54,7 @@ export async function generateVideo(
     prompt: safePrompt,
     firstFrameUrl: finalFirstFrameUrl,
     lastFrameUrl: finalLastFrameUrl,
-    characterRef: options?.characterRef,
+    characterRefs: options?.characterRefs,
     sceneRef: options?.sceneRef,
     duration: options?.duration ?? 5,
     promptWasTruncated: wasTruncated,
@@ -107,7 +107,7 @@ export async function generateVideo(
 }
 
 export async function generateKeyframe(params: {
-  characterRef?: string;
+  characterRefs?: string[];
   sceneRef?: string;
   prevKeyframe?: string;
   shotRequirement?: {
@@ -130,7 +130,8 @@ export async function generateKeyframe(params: {
   }>
 > {
   const requestBody: KeyframeGenerationRequestBody = {
-    characterRef: params.characterRef,
+    characterRef: params.characterRefs?.[0],
+    characterRefs: params.characterRefs,
     sceneRef: params.sceneRef,
     prevKeyframe: params.prevKeyframe,
     shotRequirement: params.shotRequirement,
@@ -165,7 +166,7 @@ export async function generateKeyframe(params: {
 export async function generateFramePair(params: {
   keyframeUrl: string;
   keyframePrompt?: string;
-  characterRef?: string;
+  characterRefs?: string[];
   sceneRef?: string;
   prevLastFrameUrl?: string;
   actionDescription?: string;
@@ -191,7 +192,8 @@ export async function generateFramePair(params: {
   const requestBody: FramePairGenerationRequestBody = {
     keyframeUrl: params.keyframeUrl,
     keyframePrompt: params.keyframePrompt,
-    characterRef: params.characterRef,
+    characterRef: params.characterRefs?.[0],
+    characterRefs: params.characterRefs,
     sceneRef: params.sceneRef,
     prevLastFrameUrl: params.prevLastFrameUrl,
     actionDescription: params.actionDescription,

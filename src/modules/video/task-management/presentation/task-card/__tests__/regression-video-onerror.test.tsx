@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import React from "react";
+import type { VideoTask } from "@/domain/schemas";
 
 vi.mock("@/shared/ui/button", () => ({
   Button: ({ children, onClick, ...props }: { children: React.ReactNode; onClick?: () => void; [key: string]: unknown }) => (
@@ -36,7 +37,7 @@ function createTask(overrides = {}) {
     status: "completed",
     prompt: "test",
     ...overrides,
-  } as any;
+  } as VideoTask;
 }
 
 describe("R84: React Declarative onError Regression Tests", () => {

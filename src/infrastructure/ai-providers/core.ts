@@ -7,6 +7,7 @@ import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import { isNetworkError as isNetworkErrorClassified } from "@/shared/utils/error-classifier";
 import { executeThroughCircuit } from "@/infrastructure/network/circuit-breaker";
+import { t } from "@/shared/constants";
 
 export interface QueuedResponse {
   success: false;
@@ -99,7 +100,7 @@ export async function apiCall<T>(
     );
 
     if (!response.ok) {
-      let errorData: { error?: string; code?: string } = {};
+      let errorData: { error?: string | { code?: string; message?: string }; code?: string } = {};
       try {
         errorData = await response.json();
       } catch (e) {
@@ -107,10 +108,17 @@ export async function apiCall<T>(
         const text = await response.text().catch(() => "");
         errorData = { error: text || `HTTP ${response.status}` };
       }
+      const errorValue = errorData.error;
+      const errorMessage = typeof errorValue === "object" && errorValue !== null
+        ? (errorValue.message || errorValue.code || `HTTP ${response.status}`)
+        : (errorValue || `HTTP ${response.status}`);
+      const errorCode = typeof errorValue === "object" && errorValue !== null && errorValue.code
+        ? errorValue.code
+        : (errorData.code || statusCodeToErrorCode(response.status));
       throw new ApiClientError(
-        errorData.error || `HTTP ${response.status}`,
+        errorMessage,
         response.status,
-        errorData.code || statusCodeToErrorCode(response.status),
+        errorCode,
       );
     }
 
@@ -227,7 +235,7 @@ export async function apiCallWithFallback<T>(
   endpoints: Array<{ endpoint: string; options?: ApiRequestOptions }>,
   retries = 1,
 ): Promise<T> {
-  let lastError: Error = new Error("所有提供商均失败");
+  let lastError: Error = new Error(t("error.allProvidersFailed"));
 
   for (const { endpoint, options } of endpoints) {
     try {

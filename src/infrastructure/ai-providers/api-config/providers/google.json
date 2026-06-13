@@ -1,0 +1,96 @@
+{
+  "id": "google",
+  "name": "Google Gemini",
+  "format": "google",
+  "baseUrl": "https://generativeai.googleapis.com/v1",
+  "detection": {
+    "rules": [
+      { "pattern": "^AIza[a-zA-Z0-9_-]{30,}$", "confidence": "high" }
+    ],
+    "suggestedName": "Google Gemini",
+    "baseUrl": "https://generativeai.googleapis.com/v1"
+  },
+  "models": [
+    {
+      "id": "veo-2",
+      "name": "Veo 2",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 8 },
+      "modelCapabilitiesPreset": "google_video",
+      "modelCapabilitiesOverrides": {
+        "supportsLastFrame": false,
+        "maxResolution": 2048,
+        "defaultImageSize": "1920x1080",
+        "supportedImageSizes": [
+          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
+          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+        ]
+      }
+    },
+    {
+      "id": "veo-3",
+      "name": "Veo 3",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 8 },
+      "modelCapabilitiesPreset": "google_video",
+      "modelCapabilitiesOverrides": {
+        "supportsLastFrame": false,
+        "maxResolution": 2048,
+        "defaultImageSize": "1920x1080",
+        "supportedImageSizes": [
+          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
+          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+        ]
+      }
+    },
+    {
+      "id": "veo-3.1",
+      "name": "Veo 3.1",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 8 },
+      "modelCapabilitiesPreset": "google_video",
+      "modelCapabilitiesOverrides": {
+        "supportsLastFrame": false,
+        "maxResolution": 2048,
+        "defaultImageSize": "1920x1080",
+        "supportedImageSizes": [
+          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
+          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+        ]
+      }
+    },
+    {
+      "id": "veo-3.1-fast",
+      "name": "Veo 3.1 Fast",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 8 },
+      "modelCapabilitiesPreset": "google_video",
+      "modelCapabilitiesOverrides": {
+        "supportsLastFrame": false,
+        "maxResolution": 1024,
+        "defaultImageSize": "1024x1024",
+        "supportedImageSizes": [
+          { "width": 1024, "height": 1024, "label": "1:1", "aspectRatio": "1:1" }
+        ]
+      }
+    },
+    {
+      "id": "gemini-3.1-pro",
+      "name": "Gemini 3.1 Pro",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    },
+    {
+      "id": "gemini-3.1-pro-vision",
+      "name": "Gemini 3.1 Pro Vision",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    },
+    {
+      "id": "gemini-3.1-ultra",
+      "name": "Gemini 3.1 Ultra",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 8192, "temperature": 0.7 }
+    }
+  ]
+}

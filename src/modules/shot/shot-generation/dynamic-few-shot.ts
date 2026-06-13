@@ -168,6 +168,105 @@ const FEW_SHOT_EXAMPLES: FewShotExample[] = [
   },
 ];
 
+const EN_FEW_SHOT_EXAMPLES: FewShotExample[] = [
+  {
+    input: { genre: "action", tone: "epic", beatIndex: 0, totalBeats: 8, hasAction: true },
+    output: {
+      title: "Breaking Dawn",
+      content: "A vast wasteland stretches to the horizon as the morning sun rises, golden light piercing through thin mist. The silhouette of a lone town emerges in the distance, wind sweeping dust across the frame.",
+      shotType: "wide",
+      cameraAngle: "eye_level",
+      cameraMovement: "crane_up",
+      duration: 5,
+      type: "scene",
+    },
+  },
+  {
+    input: { genre: "action", tone: "epic", beatIndex: 3, totalBeats: 8, hasAction: true },
+    output: {
+      title: "The Standoff",
+      content: "The protagonist and antagonist face each other, eyes locked with fierce intensity. Wind tugs at their clothing, tension crackling in the air. The protagonist slowly draws their weapon, cold light glinting off the blade.",
+      shotType: "medium",
+      cameraAngle: "low",
+      cameraMovement: "push",
+      duration: 4,
+      type: "action",
+    },
+  },
+  {
+    input: { genre: "romance", tone: "intimate", beatIndex: 1, totalBeats: 6, hasDialogue: true },
+    output: {
+      title: "First Encounter",
+      content: "An afternoon café bathed in dappled sunlight through floor-to-ceiling windows. She reads quietly; he pushes the door open, the chime ringing softly. Their eyes meet by chance, and time seems to stand still.",
+      shotType: "medium",
+      cameraAngle: "eye_level",
+      cameraMovement: "push",
+      duration: 6,
+      type: "scene",
+    },
+  },
+  {
+    input: { genre: "mystery", tone: "dark", beatIndex: 0, totalBeats: 7 },
+    output: {
+      title: "The Late-Night Call",
+      content: "At 3 AM, a phone screen illuminates the darkness. The protagonist answers, but only heavy breathing comes through. Neon lights flicker outside the window, casting uneasy shadows across their tense face.",
+      shotType: "close",
+      cameraAngle: "high",
+      cameraMovement: "static",
+      duration: 4,
+      type: "scene",
+    },
+  },
+  {
+    input: { genre: "comedy", tone: "light", beatIndex: 2, totalBeats: 5, hasDialogue: true },
+    output: {
+      title: "Mistaken Identity",
+      content: "The protagonist approaches eagerly with a bouquet, only to hand it to the wrong person. A complete stranger accepts the flowers in bewilderment. The protagonist stands frozen in embarrassment as onlookers stifle their laughter.",
+      shotType: "medium",
+      cameraAngle: "eye_level",
+      cameraMovement: "static",
+      duration: 4,
+      type: "dialogue",
+    },
+  },
+  {
+    input: { genre: "scifi", tone: "epic", beatIndex: 0, totalBeats: 8 },
+    output: {
+      title: "Stellar Departure",
+      content: "A colossal space station hovers in orbit above a blue planet, ships departing from the docking ports one by one. Engines blaze with blue-white flames as the camera pulls from the station panorama to the protagonist's resolute gaze inside the cockpit.",
+      shotType: "wide",
+      cameraAngle: "birds_eye",
+      cameraMovement: "pull",
+      duration: 6,
+      type: "scene",
+    },
+  },
+  {
+    input: { genre: "drama", tone: "dark", beatIndex: 4, totalBeats: 6, hasDialogue: true },
+    output: {
+      title: "Breaking Point",
+      content: "The protagonist sits alone in a dimly lit room, a letter trembling in their hands. Tears fall silently, blurring the ink on the page. The camera slowly pushes in on their face, capturing every subtle shift of emotion.",
+      shotType: "close",
+      cameraAngle: "eye_level",
+      cameraMovement: "push",
+      duration: 5,
+      type: "dialogue",
+    },
+  },
+  {
+    input: { genre: "drama", tone: "neutral", beatIndex: 0, totalBeats: 6 },
+    output: {
+      title: "Ordinary Morning",
+      content: "A bustling city street in the early morning light. The protagonist steps out of their apartment building, taking a deep breath of fresh air. The camera follows their footsteps, revealing the unremarkable yet authentic rhythm of urban life.",
+      shotType: "medium",
+      cameraAngle: "eye_level",
+      cameraMovement: "tracking",
+      duration: 5,
+      type: "scene",
+    },
+  },
+];
+
 function calculateRelevance(example: FewShotExample, context: {
   genre: string;
   tone: string;
@@ -203,8 +302,9 @@ export function selectFewShotExamples(context: {
   shotType?: string;
   hasDialogue?: boolean;
   hasAction?: boolean;
-}, count: number = 3): FewShotExample[] {
-  const scored = FEW_SHOT_EXAMPLES.map(example => ({
+}, count: number = 3, language: "en" | "zh" | "auto" = "zh"): FewShotExample[] {
+  const pool = language === "en" ? EN_FEW_SHOT_EXAMPLES : FEW_SHOT_EXAMPLES;
+  const scored = pool.map(example => ({
     example,
     score: calculateRelevance(example, context),
   }));
@@ -214,27 +314,44 @@ export function selectFewShotExamples(context: {
   return scored.slice(0, count).map(s => s.example);
 }
 
-export function buildFewShotPrompt(examples: FewShotExample[]): string {
+export function buildFewShotPrompt(examples: FewShotExample[], language: "en" | "zh" | "auto" = "zh"): string {
   if (examples.length === 0) return "";
 
-  const parts: string[] = [
-    "以下是几个高质量的分镜示例，请参考其结构和详细程度：\n",
-  ];
+  const isEn = language === "en";
+  const parts: string[] = isEn
+    ? ["Here are some high-quality storyboard examples for reference. Follow their structure and level of detail:\n"]
+    : ["以下是几个高质量的分镜示例，请参考其结构和详细程度：\n"];
 
   examples.forEach((example, i) => {
-    parts.push(`示例${i + 1}（${example.input.genre}/${example.input.tone}，第${example.input.beatIndex + 1}镜/共${example.input.totalBeats}镜）：`);
-    parts.push(`  标题：${example.output.title}`);
-    parts.push(`  内容：${example.output.content}`);
-    parts.push(`  景别：${example.output.shotType} | 角度：${example.output.cameraAngle} | 运镜：${example.output.cameraMovement}`);
-    parts.push(`  时长：${example.output.duration}秒 | 类型：${example.output.type}`);
+    if (isEn) {
+      parts.push(`Example ${i + 1} (${example.input.genre}/${example.input.tone}, Shot ${example.input.beatIndex + 1} of ${example.input.totalBeats}):`);
+      parts.push(`  Title: ${example.output.title}`);
+      parts.push(`  Content: ${example.output.content}`);
+      parts.push(`  Shot Size: ${example.output.shotType} | Angle: ${example.output.cameraAngle} | Movement: ${example.output.cameraMovement}`);
+      parts.push(`  Duration: ${example.output.duration}s | Type: ${example.output.type}`);
+    } else {
+      parts.push(`示例${i + 1}（${example.input.genre}/${example.input.tone}，第${example.input.beatIndex + 1}镜/共${example.input.totalBeats}镜）：`);
+      parts.push(`  标题：${example.output.title}`);
+      parts.push(`  内容：${example.output.content}`);
+      parts.push(`  景别：${example.output.shotType} | 角度：${example.output.cameraAngle} | 运镜：${example.output.cameraMovement}`);
+      parts.push(`  时长：${example.output.duration}秒 | 类型：${example.output.type}`);
+    }
     parts.push("");
   });
 
-  parts.push("请按照以上示例的结构和详细程度生成分镜，确保：");
-  parts.push("1. 每个分镜的内容描述具体、有画面感，包含视觉细节");
-  parts.push("2. 镜头参数（景别、角度、运镜）与内容匹配");
-  parts.push("3. 时长合理，动作镜头2-4秒，对话镜头4-6秒，场景镜头5-8秒");
-  parts.push("4. 类型标注准确（action/dialogue/scene/transition/effect）");
+  if (isEn) {
+    parts.push("Generate storyboard shots following the structure and detail level of the examples above, ensuring:");
+    parts.push("1. Each shot's content description is specific and visual, including visual details");
+    parts.push("2. Camera parameters (shot size, angle, movement) match the content");
+    parts.push("3. Reasonable duration: action shots 2-4s, dialogue shots 4-6s, scene shots 5-8s");
+    parts.push("4. Accurate type labels (action/dialogue/scene/transition/effect)");
+  } else {
+    parts.push("请按照以上示例的结构和详细程度生成分镜，确保：");
+    parts.push("1. 每个分镜的内容描述具体、有画面感，包含视觉细节");
+    parts.push("2. 镜头参数（景别、角度、运镜）与内容匹配");
+    parts.push("3. 时长合理，动作镜头2-4秒，对话镜头4-6秒，场景镜头5-8秒");
+    parts.push("4. 类型标注准确（action/dialogue/scene/transition/effect）");
+  }
 
   return parts.join("\n");
 }
@@ -253,20 +370,29 @@ export function enrichPromptWithFewShot(
     scenes?: Scene[];
     elements?: StoryElement[];
   },
+  language: "en" | "zh" | "auto" = "zh",
 ): string {
-  const examples = selectFewShotExamples(context, 3);
-  const fewShotSection = buildFewShotPrompt(examples);
+  const resolvedLang = language === "auto" ? "zh" : language;
+  const examples = selectFewShotExamples(context, 3, resolvedLang);
+  const fewShotSection = buildFewShotPrompt(examples, resolvedLang);
 
+  const isEn = resolvedLang === "en";
   const characterSection = context.characters && context.characters.length > 0
-    ? `\n已有角色：${context.characters.map(c => `${c.name}(${c.description?.slice(0, 50) || "无描述"})`).join("、")}`
+    ? isEn
+      ? `\nExisting Characters: ${context.characters.map(c => `${c.name}(${c.description?.slice(0, 50) || "No description"})`).join(", ")}`
+      : `\n已有角色：${context.characters.map(c => `${c.name}(${c.description?.slice(0, 50) || "无描述"})`).join("、")}`
     : "";
 
   const sceneSection = context.scenes && context.scenes.length > 0
-    ? `\n已有场景：${context.scenes.map(s => `${s.name}(${s.description?.slice(0, 50) || "无描述"})`).join("、")}`
+    ? isEn
+      ? `\nExisting Scenes: ${context.scenes.map(s => `${s.name}(${s.description?.slice(0, 50) || "No description"})`).join(", ")}`
+      : `\n已有场景：${context.scenes.map(s => `${s.name}(${s.description?.slice(0, 50) || "无描述"})`).join("、")}`
     : "";
 
   const elementSection = context.elements && context.elements.length > 0
-    ? `\n已绑定元素：${context.elements.map(e => `${e.id}(${e.name})`).join("、")}`
+    ? isEn
+      ? `\nBound Elements: ${context.elements.map(e => `${e.id}(${e.name})`).join(", ")}`
+      : `\n已绑定元素：${context.elements.map(e => `${e.id}(${e.name})`).join("、")}`
     : "";
 
   return `${basePrompt}\n\n${fewShotSection}${characterSection}${sceneSection}${elementSection}`;

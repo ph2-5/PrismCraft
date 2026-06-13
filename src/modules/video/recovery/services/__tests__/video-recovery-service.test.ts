@@ -17,6 +17,8 @@ const {
   mockVideoProvider,
   mockTaskMachine,
   mockCacheVideoBlob,
+  mockIsValidTransition,
+  mockIsStuck,
 } = vi.hoisted(() => ({
   mockVideoTaskStorage: {
     createVideoTask: vi.fn<(task: Record<string, unknown>) => Promise<void>>(),
@@ -32,8 +34,11 @@ const {
   mockTaskMachine: {
     canTransition: vi.fn<() => boolean>(),
     transition: vi.fn<(task: Record<string, unknown>, targetStatus: string, context?: Record<string, unknown>) => unknown>(),
+    isTerminal: vi.fn<() => boolean>(),
   },
   mockCacheVideoBlob: vi.fn<(taskId: string, videoUrl: string) => Promise<unknown>>().mockResolvedValue({ ok: true, value: true }),
+  mockIsValidTransition: vi.fn<() => boolean>(),
+  mockIsStuck: vi.fn<() => boolean>(),
 }));
 
 vi.mock("@/infrastructure/storage/video-tasks", () => ({}));
@@ -61,6 +66,9 @@ vi.mock("@/shared/error-logger", () => ({
 
 vi.mock("@/modules/video/task-management", () => ({
   TaskMachine: mockTaskMachine,
+  isValidTransition: mockIsValidTransition,
+  isStuck: mockIsStuck,
+  STUCK_TASK_THRESHOLD_MS: 30 * 60 * 1000,
 }));
 
 vi.mock("@/shared/utils/platform", () => ({
@@ -90,12 +98,15 @@ describe("video-recovery-service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockTaskMachine.canTransition.mockReturnValue(true);
+    mockTaskMachine.isTerminal.mockReturnValue(false);
     mockTaskMachine.transition.mockImplementation(
       (task: Record<string, unknown>, targetStatus: string, context?: Record<string, unknown>) => ({
         ok: true,
         value: { ...task, status: targetStatus, updatedAt: new Date().toISOString(), videoUrl: context?.videoUrl, progress: targetStatus === "completed" ? 100 : task.progress, message: "" },
       })
     );
+    mockIsValidTransition.mockReturnValue(true);
+    mockIsStuck.mockReturnValue(false);
     registerCacheVideoBlobFn(mockCacheVideoBlob as unknown as (taskId: string, videoUrl: string) => Promise<Result<boolean>>);
   });
 
@@ -347,6 +358,7 @@ describe("video-recovery-service", () => {
         success: true,
         data: { status: "done", videoUrl: "https://example.com/video.mp4" },
       });
+      mockTaskMachine.isTerminal.mockReturnValue(true);
       mockTaskMachine.canTransition.mockReturnValue(false);
       mockTaskMachine.transition.mockReturnValue({
         ok: false,
@@ -356,7 +368,7 @@ describe("video-recovery-service", () => {
       const result = await recoverVideoByTaskId("task-1");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("状态转换不合法");
+        expect(result.error.message).toContain("终态");
       }
     });
 

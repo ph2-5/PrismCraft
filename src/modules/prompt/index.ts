@@ -46,6 +46,7 @@ export {
 } from "./server-prompts";
 
 export {
+  PromptBuilder,
   promptBuilder,
   generateStoryPlanPrompt,
   generateQuickModeVideoPrompt,

@@ -1,4 +1,5 @@
 import type { ShotReference, StoryBeat } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 export class ReferenceEngine {
   validateReference(
@@ -12,27 +13,27 @@ export class ReferenceEngine {
     ) {
       const targetShot = allShots.find((s) => s.id === reference.targetShotId);
       if (!targetShot) {
-        return { valid: false, error: "引用的分镜不存在" };
+        return { valid: false, error: t("shot.refTargetNotFound") };
       }
     }
 
     const targetShot = this.getTargetShot(shot, allShots, reference);
     if (!targetShot) {
-      return { valid: false, error: "无法找到引用的分镜" };
+      return { valid: false, error: t("shot.refNotFound") };
     }
     if (
       !targetShot.videoGen?.videoUrl &&
       !targetShot.generationResult?.videoUrl
     ) {
-      return { valid: false, error: "被引用的分镜尚未生成视频" };
+      return { valid: false, error: t("shot.refVideoNotGenerated") };
     }
 
     if (reference.contentType === "video_segment") {
       if (!reference.segmentDuration || reference.segmentDuration <= 0) {
-        return { valid: false, error: "请设置引用片段时长" };
+        return { valid: false, error: t("shot.refSegmentDurationRequired") };
       }
       if (reference.segmentDuration > (targetShot.duration ?? 0)) {
-        return { valid: false, error: "引用片段时长不能超过分镜时长" };
+        return { valid: false, error: t("shot.refSegmentDurationExceeds") };
       }
     }
 

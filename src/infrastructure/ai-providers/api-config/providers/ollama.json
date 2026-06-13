@@ -1,0 +1,25 @@
+{
+  "id": "ollama",
+  "name": "Ollama (本地)",
+  "format": "openai",
+  "baseUrl": "http://localhost:11434/v1",
+  "detection": {
+    "rules": [],
+    "suggestedName": "Ollama (本地)",
+    "baseUrl": "http://localhost:11434/v1"
+  },
+  "models": [
+    {
+      "id": "qwen2.5:7b",
+      "name": "Qwen 2.5 7B",
+      "capabilities": ["text"],
+      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    },
+    {
+      "id": "llava:7b",
+      "name": "LLaVA 7B",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    }
+  ]
+}

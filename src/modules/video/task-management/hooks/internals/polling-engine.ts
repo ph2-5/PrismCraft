@@ -1,5 +1,7 @@
 import type { VideoTask } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
+import { emitToast } from "@/shared/utils/toast-bridge";
+import { t } from "@/shared/constants";
 import {
   handleTimedOutTasks,
   pollActiveTasks,
@@ -14,13 +16,17 @@ import {
 export { MAX_POLL_COUNT, MAX_POLL_DURATION, MAX_POLL_FAILURES };
 
 const DEFAULT_POLL_INTERVAL = 15000;
-const IDLE_POLL_INTERVAL = 5000;
 const MAX_POLL_INTERVAL_MS = 60000;
 const POLL_BACKOFF_ERROR_FACTOR = 1.5;
 const POLL_BACKOFF_MIXED_FACTOR = 1.2;
 const YOUNG_TASK_THRESHOLD_MS = 30_000;
 const YOUNG_TASK_INTERVAL = 5000;
 const MATURE_TASK_INTERVAL = 15000;
+const MAX_CONSECUTIVE_ERRORS = 5;
+
+function applyJitter(interval: number): number {
+  return interval * (0.8 + Math.random() * 0.4);
+}
 
 interface StoreAccessor {
   getState: () => { allTasks: VideoTask[]; setAllTasks: (updater: VideoTask[] | ((prev: VideoTask[]) => VideoTask[])) => void };
@@ -44,6 +50,7 @@ export interface PollingState {
   cacheCleanupIntervalId: ReturnType<typeof setInterval> | null;
   beforeUnloadHandler: ((e: BeforeUnloadEvent) => void) | null;
   recoveredEventHandler: ((e: Event) => void) | null;
+  visibilityHandler: ((e: Event) => void) | null;
   pollCount: number;
   pollInterval: number;
   isSyncing: boolean;
@@ -51,6 +58,7 @@ export interface PollingState {
   isInitializing: boolean;
   pollingInProgress: boolean;
   abortController: AbortController | null;
+  consecutiveErrors: number;
 }
 
 export const pollingState: PollingState = {
@@ -60,6 +68,7 @@ export const pollingState: PollingState = {
   cacheCleanupIntervalId: null,
   beforeUnloadHandler: null,
   recoveredEventHandler: null,
+  visibilityHandler: null,
   pollCount: 0,
   pollInterval: DEFAULT_POLL_INTERVAL,
   isSyncing: false,
@@ -67,6 +76,7 @@ export const pollingState: PollingState = {
   isInitializing: false,
   pollingInProgress: false,
   abortController: null,
+  consecutiveErrors: 0,
 };
 
 if (typeof window !== "undefined") {
@@ -79,6 +89,7 @@ if (typeof window !== "undefined") {
     if (prev.abortController) prev.abortController.abort();
     if (prev.beforeUnloadHandler) window.removeEventListener("beforeunload", prev.beforeUnloadHandler);
     if (prev.recoveredEventHandler) window.removeEventListener("video-task-recovered", prev.recoveredEventHandler);
+    if (prev.visibilityHandler) document.removeEventListener("visibilitychange", prev.visibilityHandler);
   }
   window.__VIDEO_TASK_POLLING_STATE__ = pollingState;
 }
@@ -93,6 +104,7 @@ export function stopPolling() {
     pollingState.abortController = null;
   }
   pollingState.isPollingScheduled = false;
+  pollingState.consecutiveErrors = 0;
 }
 
 export function cleanupAllPollingResources() {
@@ -117,12 +129,17 @@ export function cleanupAllPollingResources() {
     window.removeEventListener("video-task-recovered", pollingState.recoveredEventHandler);
     pollingState.recoveredEventHandler = null;
   }
+  if (pollingState.visibilityHandler) {
+    document.removeEventListener("visibilitychange", pollingState.visibilityHandler);
+    pollingState.visibilityHandler = null;
+  }
   pollingState.pollCount = 0;
   pollingState.pollInterval = DEFAULT_POLL_INTERVAL;
   pollingState.isSyncing = false;
   pollingState.isInitializing = false;
   pollingState.pollingInProgress = false;
   pollingState.abortController = null;
+  pollingState.consecutiveErrors = 0;
 }
 
 function applyTaskUpdates(updates: Map<string, Partial<VideoTask>>): void {
@@ -143,7 +160,7 @@ function adjustPollInterval(hasSuccess: boolean, hasError: boolean): void {
   );
 
   if (activeTasks.length === 0) {
-    pollingState.pollInterval = IDLE_POLL_INTERVAL;
+    pollingState.pollInterval = DEFAULT_POLL_INTERVAL;
     return;
   }
 
@@ -153,21 +170,65 @@ function adjustPollInterval(hasSuccess: boolean, hasError: boolean): void {
   );
 
   if (hasYoungTask) {
-    pollingState.pollInterval = YOUNG_TASK_INTERVAL;
+    pollingState.pollInterval = applyJitter(YOUNG_TASK_INTERVAL);
     return;
   }
 
   if (hasSuccess && !hasError) {
-    pollingState.pollInterval = MATURE_TASK_INTERVAL;
+    pollingState.pollInterval = applyJitter(MATURE_TASK_INTERVAL);
   } else if (hasError && !hasSuccess) {
-    pollingState.pollInterval = Math.min(pollingState.pollInterval * POLL_BACKOFF_ERROR_FACTOR, MAX_POLL_INTERVAL_MS);
+    pollingState.pollInterval = applyJitter(
+      Math.min(pollingState.pollInterval * POLL_BACKOFF_ERROR_FACTOR, MAX_POLL_INTERVAL_MS),
+    );
   } else if (hasError && hasSuccess) {
-    pollingState.pollInterval = Math.min(pollingState.pollInterval * POLL_BACKOFF_MIXED_FACTOR, MAX_POLL_INTERVAL_MS);
+    pollingState.pollInterval = applyJitter(
+      Math.min(pollingState.pollInterval * POLL_BACKOFF_MIXED_FACTOR, MAX_POLL_INTERVAL_MS),
+    );
   }
+}
+
+function setupVisibilityHandler() {
+  if (pollingState.visibilityHandler) return;
+
+  const handler = () => {
+    if (document.visibilityState === "hidden") {
+      if (pollingState.pollingTimeoutId) {
+        clearTimeout(pollingState.pollingTimeoutId);
+        pollingState.pollingTimeoutId = null;
+      }
+      pollingState.isPollingScheduled = false;
+      if (pollingState.abortController) {
+        pollingState.abortController.abort();
+        pollingState.abortController = null;
+      }
+    } else {
+      const state = getStore().getState();
+      const hasActiveTasks = state.allTasks.some(
+        (t) => t.status === "pending" || t.status === "generating",
+      );
+      if (hasActiveTasks) {
+        schedulePolling();
+      }
+    }
+  };
+
+  pollingState.visibilityHandler = handler;
+  document.addEventListener("visibilitychange", handler);
 }
 
 export function schedulePolling() {
   if (pollingState.isPollingScheduled || pollingState.pollingInProgress) return;
+
+  const state = getStore().getState();
+  const hasActiveTasks = state.allTasks.some(
+    (t) => t.status === "pending" || t.status === "generating",
+  );
+  if (!hasActiveTasks) return;
+
+  if (pollingState.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return;
+
+  setupVisibilityHandler();
+
   pollingState.isPollingScheduled = true;
 
   if (pollingState.abortController) {
@@ -182,8 +243,8 @@ export function schedulePolling() {
     try {
       if (abortSignal.aborted) return;
 
-      const state = getStore().getState();
-      const currentTasks = state.allTasks;
+      const currentState = getStore().getState();
+      const currentTasks = currentState.allTasks;
 
       if (currentTasks.length === 0) return;
 
@@ -191,7 +252,6 @@ export function schedulePolling() {
         (t) => t.status === "pending" || t.status === "generating",
       );
       if (!hasActivePolling) {
-        pollingState.pollInterval = IDLE_POLL_INTERVAL;
         pollingState.pollCount = 0;
         return;
       }
@@ -212,8 +272,23 @@ export function schedulePolling() {
       await cacheCompletedVideos(pollResult.cacheTasks, abortSignal, getStore());
       adjustPollInterval(pollResult.hasSuccess, pollResult.hasError);
 
+      if (pollResult.hasError && !pollResult.hasSuccess) {
+        pollingState.consecutiveErrors += 1;
+        if (pollingState.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          emitToast("warning", t("task.pollingPausedDueToErrors"), t("task.pollingPausedDueToErrorsDetail", { count: MAX_CONSECUTIVE_ERRORS }));
+          return;
+        }
+      } else {
+        pollingState.consecutiveErrors = 0;
+      }
+
       shouldReschedule = true;
     } catch (e) {
+      pollingState.consecutiveErrors += 1;
+      if (pollingState.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        emitToast("warning", t("task.pollingPausedDueToErrors"), t("task.pollingPausedDueToErrorsDetail", { count: MAX_CONSECUTIVE_ERRORS }));
+        return;
+      }
       errorLogger.warn("[PollingEngine] Unexpected error in poll cycle", e);
     } finally {
       pollingState.pollingInProgress = false;
@@ -234,8 +309,21 @@ export function checkAndStartOrStopPolling() {
     (t) => t.status === "pending" || t.status === "generating",
   );
   if (activeTasks.length > 0) {
+    if (pollingState.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+      pollingState.consecutiveErrors = 0;
+    }
     schedulePolling();
   } else {
     stopPolling();
   }
+}
+
+export function getPollingStats() {
+  return {
+    pollCount: pollingState.pollCount,
+    pollInterval: pollingState.pollInterval,
+    isPollingScheduled: pollingState.isPollingScheduled,
+    pollingInProgress: pollingState.pollingInProgress,
+    consecutiveErrors: pollingState.consecutiveErrors,
+  };
 }

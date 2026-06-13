@@ -1,4 +1,5 @@
 import { errorLogger } from "@/shared/error-logger";
+import { handleError } from "@/shared/error-handler";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { t } from "@/shared/constants";
@@ -6,18 +7,26 @@ import { useToastHelpers } from "@/shared/presentation/Toast";
 import {
   type ModelParameterValues,
 } from "@/shared/presentation/ModelParameterPanel";
-import type { StoryBeat } from "@/domain/schemas";
+import type { StoryBeat, Story } from "@/domain/schemas";
+import { getFirstFrameUrl } from "@/domain/utils";
 import type { VideoTask } from "@/modules/video";
 import { container } from "@/infrastructure/di";
 import { useModelSelection } from "@/modules/prompt";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
+import { generateBeatFramePair } from "@/modules/story";
+import { checkVisualConsistency } from "@/modules/shot/consistency-check";
+import { StoryGenerationService } from "@/domain/services";
+import { characterService } from "@/modules/character";
+import { sceneService } from "@/modules/scene";
 
 interface UseBeatDetailActionsParams {
+  story: Story;
   beat: StoryBeat;
   task?: VideoTask;
+  setBeat: (beat: StoryBeat | null) => void;
 }
 
-export function useBeatDetailActions({ beat, task }: UseBeatDetailActionsParams) {
+export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDetailActionsParams) {
   const { guardedPush } = useNavigationGuard();
   const { success, error: showError } = useToastHelpers();
 
@@ -178,6 +187,82 @@ export function useBeatDetailActions({ beat, task }: UseBeatDetailActionsParams)
     }
   };
 
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const handleRegenerate = useCallback(async () => {
+    if (!beat.keyframe?.imageUrl) {
+      showError(t("story.cannotGenerateVideo"));
+      return;
+    }
+    setIsRegenerating(true);
+    try {
+      const [charactersResult, scenesResult] = await Promise.all([
+        characterService.getAll(),
+        sceneService.getAll(),
+      ]);
+      const characters = charactersResult.ok ? charactersResult.value : [];
+      const scenes = scenesResult.ok ? scenesResult.value : [];
+
+      const beats = story.beats || [];
+      const beatIndex = beats.findIndex((b) => b.id === beat.id);
+      const prevBeat = beatIndex > 0 ? beats[beatIndex - 1]! : null;
+
+      const { characterRefs, sceneRef, prevLastFrameUrl } = StoryGenerationService.resolveGenerationContext({
+        beat,
+        prevBeat,
+        characters,
+        scenes,
+        elements: [],
+      });
+
+      const framePair = await generateBeatFramePair(beat, {
+        characterRefs,
+        sceneRef,
+        prevLastFrameUrl,
+        providerId: undefined,
+        modelId: undefined,
+        characters,
+        scenes,
+        autoGeneratePrompts: true,
+        beatIndex,
+        prevBeatDescription: prevBeat?.content || prevBeat?.description,
+        nextBeatDescription: (() => {
+          const nextBeat = beatIndex >= 0 && beatIndex < beats.length - 1
+            ? beats[beatIndex + 1]
+            : null;
+          return nextBeat?.content || nextBeat?.description;
+        })(),
+      }, {
+        videoProvider: container.videoProvider,
+        imageProvider: container.imageProvider,
+        textProvider: container.textProvider,
+      });
+
+      const updatedBeat = { ...beat, framePair } as StoryBeat;
+
+      try {
+        const elements = await container.elementStorage.getAllElements();
+        const consistencyResult = await checkVisualConsistency({
+          beat: updatedBeat,
+          elements,
+          generatedImageUrl: getFirstFrameUrl(updatedBeat.framePair),
+        });
+        if (consistencyResult.ok) {
+          updatedBeat.consistencyCheck = consistencyResult.value;
+        }
+      } catch (checkErr) {
+        errorLogger.warn(handleError(checkErr), "Consistency");
+      }
+
+      setBeat(updatedBeat);
+      success(t("success.generated"), t("success.framePairGeneratedDesc"));
+    } catch (err) {
+      showError(t("story.cannotGenerateVideo"), mapUserFacingError(err));
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [beat, story, setBeat, success, showError]);
+
   return {
     guardedPush,
     success,
@@ -196,5 +281,7 @@ export function useBeatDetailActions({ beat, task }: UseBeatDetailActionsParams)
     handleRefreshVideoUrl,
     getStatusColor,
     getStatusLabel,
+    handleRegenerate,
+    isRegenerating,
   };
 }

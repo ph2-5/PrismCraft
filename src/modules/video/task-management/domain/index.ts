@@ -1,4 +1,4 @@
-export { TaskMachine, TransitionError } from "./task-machine";
+export { TaskMachine, TransitionError, VALID_TRANSITIONS, TERMINAL_STATUSES, STUCK_TASK_THRESHOLD_MS, isValidTransition, isStuck } from "./task-machine";
 export type { TransitionError as TransitionErrorType } from "./task-machine";
 export type { TaskEvent, TaskEventHandler } from "./task-events";
 export { pollResultSchema, mapApiStatus } from "./task-schema";

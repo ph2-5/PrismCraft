@@ -13,6 +13,7 @@ export {
   validateStoryBeatOutput,
   validateStoryPlanOutput,
   formatValidationResult,
+  clearValidationCache,
 } from "./shot-validator";
 export {
   generateFallbackParams,

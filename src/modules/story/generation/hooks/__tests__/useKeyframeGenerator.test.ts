@@ -487,7 +487,7 @@ describe("useKeyframeGenerator", () => {
       });
 
       (StoryGenerationService.resolveGenerationContext as ReturnType<typeof vi.fn>).mockReturnValue({
-        characterRef: "https://img.example.com/alice.png",
+        characterRefs: ["https://img.example.com/alice.png"],
         sceneRef: "https://img.example.com/forest.png",
       });
 
@@ -506,7 +506,7 @@ describe("useKeyframeGenerator", () => {
         mockBeat1,
         null,
         expect.objectContaining({
-          characterRef: "https://img.example.com/alice.png",
+          characterRefs: ["https://img.example.com/alice.png"],
           sceneRef: "https://img.example.com/forest.png",
           providerId: "provider-1",
           modelId: "model-1",

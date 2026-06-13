@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { BeatWorkflowService } from "@/domain/services/beat-workflow-service";
 import { resolveCharacterRef, resolveSceneRef } from "@/domain/services/reference-resolver";
-import type { StoryBeat, Character } from "@/domain/schemas";
+import type { StoryBeat, Character, StoryElement } from "@/domain/schemas";
 
 function makeBeat(overrides: Partial<StoryBeat> = {}): StoryBeat {
   return {
@@ -53,19 +53,19 @@ describe("domain-services", () => {
     describe("getStepPrereqs", () => {
       it('should return correct description for "keyframe" step', () => {
         expect(BeatWorkflowService.getStepPrereqs("keyframe")).toBe(
-          "分镜需存在且已绑定角色或场景",
+          "BEAT_REQUIRES_CHARACTER_OR_SCENE",
         );
       });
 
       it('should return correct description for "framePair" step', () => {
         expect(BeatWorkflowService.getStepPrereqs("framePair")).toBe(
-          "需已生成预览图（keyframe）",
+          "KEYFRAME_REQUIRED",
         );
       });
 
       it('should return correct description for "video" step', () => {
         expect(BeatWorkflowService.getStepPrereqs("video")).toBe(
-          "需已生成首尾帧（framePair）",
+          "FRAME_PAIR_REQUIRED",
         );
       });
     });
@@ -127,6 +127,100 @@ describe("domain-services", () => {
       it("with no images should return undefined", () => {
         const character = { id: "char-1" } as Character;
         expect(resolveCharacterRef(character)).toBeUndefined();
+      });
+
+      it("with element binding image should return element binding image", () => {
+        const character = { id: "char-1" } as Character;
+        const elements = [
+          {
+            id: "char-1",
+            type: "character",
+            name: "角色1",
+            description: "测试角色",
+            bindings: [{ type: "image", url: "http://example.com/element-ref.png", isPrimary: true, name: "ref", uploadedAt: "2024-01-01" }],
+            createdAt: "2024-01-01",
+            updatedAt: "2024-01-01",
+          },
+        ] as StoryElement[];
+        expect(resolveCharacterRef(character, null, elements)).toBe("http://example.com/element-ref.png");
+      });
+
+      it("element binding image takes priority over avatarPath", () => {
+        const character = {
+          id: "char-1",
+          avatarPath: "http://example.com/avatar.png",
+        } as Character;
+        const elements = [
+          {
+            id: "char-1",
+            type: "character",
+            name: "角色1",
+            description: "测试角色",
+            bindings: [{ type: "image", url: "http://example.com/element-ref.png", isPrimary: true, name: "ref", uploadedAt: "2024-01-01" }],
+            createdAt: "2024-01-01",
+            updatedAt: "2024-01-01",
+          },
+        ] as StoryElement[];
+        expect(resolveCharacterRef(character, null, elements)).toBe("http://example.com/element-ref.png");
+      });
+
+      it("outfit takes priority over element binding image", () => {
+        const character = {
+          id: "char-1",
+          outfits: [{ id: "outfit-1", imageUrl: "http://example.com/outfit.png" }],
+        } as Character;
+        const beat = makeBeat({ characterOutfits: { "char-1": "outfit-1" } });
+        const elements = [
+          {
+            id: "char-1",
+            type: "character",
+            name: "角色1",
+            description: "测试角色",
+            bindings: [{ type: "image", url: "http://example.com/element-ref.png", isPrimary: true, name: "ref", uploadedAt: "2024-01-01" }],
+            createdAt: "2024-01-01",
+            updatedAt: "2024-01-01",
+          },
+        ] as StoryElement[];
+        expect(resolveCharacterRef(character, beat, elements)).toBe("http://example.com/outfit.png");
+      });
+
+      it("featureAnchor referenceImageUrl as fallback", () => {
+        const character = { id: "char-1" } as Character;
+        const elements = [
+          {
+            id: "char-1",
+            type: "character",
+            name: "角色1",
+            description: "测试角色",
+            bindings: [],
+            featureAnchor: {
+              elementId: "char-1",
+              elementType: "character",
+              referenceImageUrl: "http://example.com/anchor-ref.png",
+              featureTags: ["银色长发"],
+              confidence: 0.9,
+              extractedAt: "2024-01-01",
+            },
+            createdAt: "2024-01-01",
+            updatedAt: "2024-01-01",
+          },
+        ] as StoryElement[];
+        expect(resolveCharacterRef(character, null, elements)).toBe("http://example.com/anchor-ref.png");
+      });
+
+      it("non-matching element should not affect result", () => {
+        const character = {
+          id: "char-1",
+          avatarPath: "http://example.com/avatar.png",
+        } as Character;
+        const elements = [
+          {
+            id: "char-2",
+            type: "character",
+            bindings: [{ type: "image", url: "http://example.com/other.png", isPrimary: true }],
+          },
+        ] as StoryElement[];
+        expect(resolveCharacterRef(character, null, elements)).toBe("http://example.com/avatar.png");
       });
     });
 

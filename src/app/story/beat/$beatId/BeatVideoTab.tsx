@@ -21,6 +21,8 @@ interface BeatVideoTabProps {
   success: (title: string, description?: string) => void;
   getStatusColor: (status?: string) => string;
   getStatusLabel: (status?: string) => string;
+  onRegenerate?: () => Promise<void>;
+  isRegenerating?: boolean;
 }
 
 export function BeatVideoTab({
@@ -33,6 +35,8 @@ export function BeatVideoTab({
   success,
   getStatusColor,
   getStatusLabel,
+  onRegenerate,
+  isRegenerating,
 }: BeatVideoTabProps) {
   return (
     <>
@@ -190,23 +194,37 @@ export function BeatVideoTab({
               </div>
             ))}
             {beat.consistencyCheck.recommendation && (
-              <Badge
-                className={
-                  beat.consistencyCheck.recommendation === "accept"
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200"
-                    : beat.consistencyCheck.recommendation ===
-                        "adjust"
-                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200"
-                      : "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200"
-                }
-              >
-                {beat.consistencyCheck.recommendation === "accept" &&
-                  t("beat.passed")}
-                {beat.consistencyCheck.recommendation === "adjust" &&
-                  t("beat.needsAdjust")}
-                {beat.consistencyCheck.recommendation ===
-                  "regenerate" && t("beat.suggestRegenerate")}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge
+                  className={
+                    beat.consistencyCheck.recommendation === "accept"
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200"
+                      : beat.consistencyCheck.recommendation ===
+                          "adjust"
+                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200"
+                        : "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200"
+                  }
+                >
+                  {beat.consistencyCheck.recommendation === "accept" &&
+                    t("beat.passed")}
+                  {beat.consistencyCheck.recommendation === "adjust" &&
+                    t("beat.needsAdjust")}
+                  {beat.consistencyCheck.recommendation ===
+                    "regenerate" && t("beat.suggestRegenerate")}
+                </Badge>
+                {(beat.consistencyCheck.recommendation === "adjust" ||
+                  beat.consistencyCheck.recommendation === "regenerate") &&
+                  onRegenerate && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onRegenerate}
+                      disabled={isRegenerating}
+                    >
+                      {isRegenerating ? t("beat.regenerating") : t("beat.regenerate")}
+                    </Button>
+                  )}
+              </div>
             )}
           </CardContent>
         </Card>

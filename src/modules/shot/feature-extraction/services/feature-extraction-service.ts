@@ -1,6 +1,74 @@
 import type { Character, FeatureAnchoringConfig, StoryBeat, StoryElement, ElementFeatureAnchor, ReferenceImageQuality, ElementType } from "@/domain/schemas";
+import { t } from "@/shared/constants";
 
 const MIN_CHARACTER_IMAGE_RESOLUTION = 256;
+
+const COLOR_KEYWORDS: Record<string, { zh: string; en: string }[]> = {
+  red: [{ zh: "红", en: "red" }],
+  blue: [{ zh: "蓝", en: "blue" }],
+  green: [{ zh: "绿", en: "green" }],
+  yellow: [{ zh: "黄", en: "yellow" }],
+  purple: [{ zh: "紫", en: "purple" }],
+  white: [{ zh: "白", en: "white" }],
+  black: [{ zh: "黑", en: "black" }],
+  gold: [{ zh: "金", en: "gold" }],
+  silver: [{ zh: "银", en: "silver" }],
+  pink: [{ zh: "粉", en: "pink" }],
+  orange: [{ zh: "橙", en: "orange" }],
+  gray: [{ zh: "灰", en: "gray" }],
+  brown: [{ zh: "棕", en: "brown" }],
+};
+
+const TAG_PREFIXES = {
+  zh: {
+    character: "角色",
+    hairColor: "发色",
+    hairStyle: "发型",
+    eyeColor: "眼色",
+    clothing: "服装",
+    style: "风格",
+    prop: "道具",
+    name: "名称",
+    description: "描述",
+  },
+  en: {
+    character: "Character",
+    hairColor: "Hair",
+    hairStyle: "Hairstyle",
+    eyeColor: "Eyes",
+    clothing: "Clothing",
+    style: "Style",
+    prop: "Prop",
+    name: "Name",
+    description: "Description",
+  },
+} as const;
+
+export type FeatureLanguage = "en" | "zh";
+
+function extractColorPalette(
+  description: string,
+  language?: FeatureLanguage,
+): string[] {
+  const lang = language ?? "zh";
+  const seen = new Set<string>();
+  const palette: string[] = [];
+
+  for (const entry of Object.values(COLOR_KEYWORDS)) {
+    for (const variant of entry) {
+      if (description.toLowerCase().includes(variant[lang])) {
+        const colorLabel = lang === "en" ? variant.en : variant.zh + "色";
+        if (!seen.has(colorLabel)) {
+          seen.add(colorLabel);
+          palette.push(colorLabel);
+        }
+        break;
+      }
+    }
+  }
+
+  return palette;
+}
 
 export function validateReferenceImageQuality(
   imageUrl: string,
@@ -30,16 +98,16 @@ export function validateReferenceImageQuality(
       const issues: string[] = [];
       if (width < minRequired || height < minRequired) {
         issues.push(
-          `分辨率不足：当前${width}x${height}，建议至少${minRequired}x${minRequired}`,
+          t("feature.resolutionLow", { current: `${width}x${height}`, min: `${minRequired}x${minRequired}` }),
         );
       }
 
       if (width < 100 || height < 100) {
-        issues.push("图片尺寸过小，可能影响特征提取质量");
+        issues.push(t("feature.imageTooSmall"));
       }
 
       if (imageUrl.startsWith("data:") && imageUrl.length < 5000) {
-        issues.push("图片文件过小，可能模糊或损坏");
+        issues.push(t("feature.imageFileTooSmall"));
       }
 
       const clarityScore = Math.min(
@@ -62,7 +130,7 @@ export function validateReferenceImageQuality(
         resolution: { width: 0, height: 0 },
         minResolution: MIN_CHARACTER_IMAGE_RESOLUTION,
         clarityScore: 0,
-        issues: ["图片加载失败，请检查图片URL是否有效"],
+        issues: [t("feature.imageLoadFailed")],
       });
     };
 
@@ -72,6 +140,7 @@ export function validateReferenceImageQuality(
 
 export function extractCharacterFeatures(
   character: Character,
+  language?: FeatureLanguage,
 ): ElementFeatureAnchor["characterFeatures"] {
   const features: ElementFeatureAnchor["characterFeatures"] = {};
 
@@ -88,26 +157,7 @@ export function extractCharacterFeatures(
   }
 
   if (character.description) {
-    const desc = character.description;
-    const colorKeywords = [
-      "红",
-      "蓝",
-      "绿",
-      "黄",
-      "紫",
-      "白",
-      "黑",
-      "金",
-      "银",
-      "粉",
-      "橙",
-      "灰",
-      "棕",
-    ];
-    const palette: string[] = [];
-    for (const color of colorKeywords) {
-      if (desc.includes(color)) palette.push(color + "色");
-    }
+    const palette = extractColorPalette(character.description, language);
     if (palette.length > 0) features.colorPalette = palette;
   }
 
@@ -117,28 +167,31 @@ export function extractCharacterFeatures(
 export function buildFeatureTags(
   element: StoryElement,
   character?: Character,
+  language?: FeatureLanguage,
 ): string[] {
+  const lang = language ?? "zh";
+  const prefixes = TAG_PREFIXES[lang];
   const tags: string[] = [];
 
   if (element.type === "character" && character) {
-    if (character.name) tags.push(`角色:${character.name}`);
+    if (character.name) tags.push(`${prefixes.character}:${character.name}`);
     if (character.appearance?.hairColor)
-      tags.push(`发色:${character.appearance.hairColor}`);
+      tags.push(`${prefixes.hairColor}:${character.appearance.hairColor}`);
     if (character.appearance?.hairStyle)
-      tags.push(`发型:${character.appearance.hairStyle}`);
+      tags.push(`${prefixes.hairStyle}:${character.appearance.hairStyle}`);
     if (character.appearance?.eyeColor)
-      tags.push(`眼色:${character.appearance.eyeColor}`);
+      tags.push(`${prefixes.eyeColor}:${character.appearance.eyeColor}`);
     if (character.appearance?.clothing)
-      tags.push(`服装:${character.appearance.clothing}`);
-    if (character.style) tags.push(`风格:${character.style}`);
+      tags.push(`${prefixes.clothing}:${character.appearance.clothing}`);
+    if (character.style) tags.push(`${prefixes.style}:${character.style}`);
   } else if (element.type === "prop") {
-    if (element.name) tags.push(`道具:${element.name}`);
+    if (element.name) tags.push(`${prefixes.prop}:${element.name}`);
     if (element.description)
-      tags.push(`描述:${element.description.slice(0, 50)}`);
+      tags.push(`${prefixes.description}:${element.description.slice(0, 50)}`);
   } else {
-    if (element.name) tags.push(`名称:${element.name}`);
+    if (element.name) tags.push(`${prefixes.name}:${element.name}`);
     if (element.description)
-      tags.push(`描述:${element.description.slice(0, 50)}`);
+      tags.push(`${prefixes.description}:${element.description.slice(0, 50)}`);
   }
 
   return tags;
@@ -147,6 +200,7 @@ export function buildFeatureTags(
 export function buildFeatureAnchor(
   element: StoryElement,
   character?: Character,
+  language?: FeatureLanguage,
 ): ElementFeatureAnchor {
   const primaryBinding =
     element.bindings.find((b) => b.isPrimary) || element.bindings[0];
@@ -155,10 +209,10 @@ export function buildFeatureAnchor(
     elementId: element.id,
     elementType: element.type,
     referenceImageUrl: primaryBinding?.url || "",
-    featureTags: buildFeatureTags(element, character),
+    featureTags: buildFeatureTags(element, character, language),
     characterFeatures:
       element.type === "character" && character
-        ? extractCharacterFeatures(character)
+        ? extractCharacterFeatures(character, language)
         : undefined,
     extractedAt: new Date().toISOString(),
     confidence: primaryBinding ? 0.8 : 0.3,
@@ -169,6 +223,7 @@ export function buildFeatureAnchoringConfig(
   beat: StoryBeat,
   elements: StoryElement[],
   characters: Character[],
+  language?: FeatureLanguage,
 ): FeatureAnchoringConfig {
   const boundElementIds = beat.elementIds || [];
   const characterAnchors: FeatureAnchoringConfig["characterAnchors"] = [];
@@ -188,6 +243,7 @@ export function buildFeatureAnchoringConfig(
       featureTags: buildFeatureTags(
         element,
         characters.find((c) => c.name === element.name),
+        language,
       ),
       weight: 0.8,
     };

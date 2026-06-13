@@ -1,0 +1,67 @@
+{
+  "id": "runway",
+  "name": "Runway",
+  "format": "openai",
+  "baseUrl": "https://api.runwayml.com/v1",
+  "detection": {
+    "rules": [],
+    "suggestedName": "Runway",
+    "baseUrl": "https://api.runwayml.com/v1"
+  },
+  "models": [
+    {
+      "id": "gen3a",
+      "name": "Gen-3 Alpha",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 10 },
+      "modelCapabilities": {
+        "maxReferences": 2,
+        "maxResolution": 1024,
+        "maxSizeMB": 5,
+        "supportsLastFrame": false,
+        "referenceMode": "merged",
+        "providerId": "runway",
+        "urlTtl": 86400,
+        "defaultImageSize": "1024x1024",
+        "supportedImageSizes": [
+          { "width": 1024, "height": 1024, "label": "1:1", "aspectRatio": "1:1" },
+          { "width": 1280, "height": 768, "label": "5:3", "aspectRatio": "5:3" },
+          { "width": 768, "height": 1280, "label": "3:5", "aspectRatio": "3:5" }
+        ],
+        "supportsCharacterRef": false,
+        "supportsSceneRef": false,
+        "characterRefMode": "none",
+        "sceneRefMode": "none",
+        "imageUploadMode": "url",
+        "maxCharacterRefs": 0
+      }
+    },
+    {
+      "id": "gen3a_turbo",
+      "name": "Gen-3 Alpha Turbo",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 10 },
+      "modelCapabilities": {
+        "maxReferences": 2,
+        "maxResolution": 1024,
+        "maxSizeMB": 5,
+        "supportsLastFrame": false,
+        "referenceMode": "merged",
+        "providerId": "runway",
+        "urlTtl": 86400,
+        "defaultImageSize": "1024x1024",
+        "supportedImageSizes": [
+          { "width": 1024, "height": 1024, "label": "1:1", "aspectRatio": "1:1" },
+          { "width": 1280, "height": 768, "label": "5:3", "aspectRatio": "5:3" },
+          { "width": 768, "height": 1280, "label": "3:5", "aspectRatio": "3:5" }
+        ],
+        "supportsCharacterRef": false,
+        "supportsSceneRef": false,
+        "characterRefMode": "none",
+        "sceneRefMode": "none",
+        "imageUploadMode": "url",
+        "maxCharacterRefs": 0
+      }
+    }
+  ]
+}

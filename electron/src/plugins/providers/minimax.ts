@@ -8,6 +8,8 @@ import type {
   VisionBuildContext,
   VideoRequestResult,
   ImageRequestResult,
+  ImageRefMode,
+  ImageUploadMode,
   VisionRequestResult,
   ImageTransportMode,
   ImagePurpose,
@@ -35,7 +37,14 @@ export class MiniMaxPlugin extends BaseAIProviderPlugin implements AIProviderPlu
     supportsLastFrame: false,
     supportsReferenceVideo: false,
     supportsMimicryLevel: false,
-    defaultModel: "hailuo-2.3",
+    supportsCharacterRef: true,
+    supportsSceneRef: true,
+    characterRefMode: "native_field" as ImageRefMode,
+    sceneRefMode: "text_append" as ImageRefMode,
+    characterRefField: "subject_image_url",
+    imageUploadMode: "base64" as ImageUploadMode,
+    maxCharacterRefs: 1,
+    defaultModel: "MiniMax-Hailuo-02",
     maxDuration: 10,
     supportedCodecs: ["h264", "h265"],
     urlTtl: 86400,
@@ -43,15 +52,19 @@ export class MiniMaxPlugin extends BaseAIProviderPlugin implements AIProviderPlu
 
   readonly imageCapabilities = {
     supportsReferenceImage: false,
-    defaultModel: "hailuo-2.3",
+    defaultModel: "MiniMax-Hailuo-02",
   };
 
-  getModelCapabilities(_modelId: string): ModelCapabilities {
+  getModelCapabilities(modelId: string): ModelCapabilities {
+    const isS2V = modelId.includes("S2V-") || modelId.includes("s2v-");
+    const isI2V = modelId.startsWith("I2V-") || modelId.startsWith("i2v-");
+    const supportsLastFrame = isS2V || isI2V;
+
     return {
       maxReferences: 4,
       maxResolution: 2048,
       maxSizeMB: 10,
-      supportsLastFrame: false,
+      supportsLastFrame,
       referenceMode: "separate",
       defaultImageSize: "1920x1920",
       supportedImageSizes: [
@@ -62,20 +75,26 @@ export class MiniMaxPlugin extends BaseAIProviderPlugin implements AIProviderPlu
 
   buildVideoRequest(ctx: VideoBuildContext): VideoRequestResult {
     let prompt = ctx.prompt;
-    if (ctx.characterRef) {
-      prompt += `[参考角色图: ${ctx.characterRef}]`;
-    }
+    const charRefs = ctx.characterRefs?.length ? ctx.characterRefs : (ctx.characterRef ? [ctx.characterRef] : []);
+    const model = ctx.model || this.videoCapabilities.defaultModel;
+
+    const isS2V = model.includes("S2V-01") || model.includes("s2v-01");
+
     if (ctx.sceneRef) {
-      prompt += `[参考场景图: ${ctx.sceneRef}]`;
+      prompt += `\n[场景参考] 请严格按照参考图中的场景环境、光照、色调等特征生成场景。`;
     }
 
     const body: Record<string, unknown> = {
-      model: ctx.model || this.videoCapabilities.defaultModel,
+      model,
       prompt,
     };
 
     if (ctx.firstFrameUrl) {
       body.image_url = ctx.firstFrameUrl;
+    }
+
+    if (isS2V && charRefs.length > 0 && charRefs[0]) {
+      body.subject_image_url = charRefs[0];
     }
 
     return {

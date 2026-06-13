@@ -3,7 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import type { StoryBeat, Character, Scene, ModelSelection } from "@/domain/schemas";
 
 vi.mock("@/modules/story", () => ({
-  resolveCharacterRef: vi.fn(),
+  resolveCharacterRefs: vi.fn(),
   resolveSceneRef: vi.fn(),
 }));
 
@@ -11,7 +11,7 @@ vi.mock("@/shared/error-handler", () => ({
   getErrorMessage: vi.fn().mockReturnValue("mocked error message"),
 }));
 
-import { resolveCharacterRef, resolveSceneRef } from "@/modules/story";
+import { resolveCharacterRefs, resolveSceneRef } from "@/modules/story";
 import { getErrorMessage } from "@/shared/error-handler";
 import { useAIGeneratorBase } from "../useAIGeneratorBase";
 
@@ -110,8 +110,8 @@ function createDefaultProps() {
     beatsRef: { current: [mockBeat1, mockBeat2] } as React.MutableRefObject<StoryBeat[]>,
     charactersRef: { current: [mockCharacter1, mockCharacter2] } as React.MutableRefObject<Character[]>,
     scenesRef: { current: [mockScene1, mockScene2] } as React.MutableRefObject<Scene[]>,
-    setBeats: vi.fn() as unknown as React.Dispatch<React.SetStateAction<StoryBeat[]>>,
-    setGenerating: vi.fn() as unknown as React.Dispatch<React.SetStateAction<string | null>>,
+    setBeats: vi.fn<React.Dispatch<React.SetStateAction<StoryBeat[]>>>(),
+    setGenerating: vi.fn<React.Dispatch<React.SetStateAction<string | null>>>(),
     success: vi.fn(),
     showError: vi.fn(),
     showConfirm: vi.fn().mockResolvedValue(true),
@@ -121,7 +121,7 @@ function createDefaultProps() {
 describe("useAIGeneratorBase", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (resolveCharacterRef as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+    (resolveCharacterRefs as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (resolveSceneRef as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
   });
 
@@ -222,21 +222,21 @@ describe("useAIGeneratorBase", () => {
   });
 
   describe("resolveRefs", () => {
-    it("应解析 characterRef 和 sceneRef", () => {
-      (resolveCharacterRef as ReturnType<typeof vi.fn>).mockReturnValue("https://img.example.com/alice.png");
+    it("应解析 characterRefs 和 sceneRef", () => {
+      (resolveCharacterRefs as ReturnType<typeof vi.fn>).mockReturnValue(["https://img.example.com/alice.png"]);
       (resolveSceneRef as ReturnType<typeof vi.fn>).mockReturnValue("https://img.example.com/forest.png");
 
       const props = createDefaultProps();
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
       const refs = result.current.resolveRefs(mockBeat1);
-      expect(refs.characterRef).toBe("https://img.example.com/alice.png");
+      expect(refs.characterRefs).toEqual(["https://img.example.com/alice.png"]);
       expect(refs.sceneRef).toBe("https://img.example.com/forest.png");
       expect(refs.prevBeat).toBeNull();
     });
 
     it("应将 prevBeat 传递到结果中", () => {
-      (resolveCharacterRef as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+      (resolveCharacterRefs as ReturnType<typeof vi.fn>).mockReturnValue([]);
       (resolveSceneRef as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
 
       const props = createDefaultProps();
@@ -247,7 +247,7 @@ describe("useAIGeneratorBase", () => {
     });
 
     it("prevBeat 为 undefined 时应返回 null", () => {
-      (resolveCharacterRef as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+      (resolveCharacterRefs as ReturnType<typeof vi.fn>).mockReturnValue([]);
       (resolveSceneRef as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
 
       const props = createDefaultProps();
@@ -257,7 +257,8 @@ describe("useAIGeneratorBase", () => {
       expect(refs.prevBeat).toBeNull();
     });
 
-    it("beat.characterIds 为空时应返回 undefined characterRef", () => {
+    it("beat.characterIds 为空时应返回空 characterRefs", () => {
+      (resolveCharacterRefs as ReturnType<typeof vi.fn>).mockReturnValue([]);
       (resolveSceneRef as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
 
       const props = createDefaultProps();
@@ -268,11 +269,10 @@ describe("useAIGeneratorBase", () => {
         characterIds: [],
       };
       const refs = result.current.resolveRefs(beatNoChars);
-      expect(refs.characterRef).toBeUndefined();
-      expect(resolveCharacterRef).not.toHaveBeenCalled();
+      expect(refs.characterRefs).toEqual([]);
     });
 
-    it("characterIds 对应的角色不存在时应返回 undefined characterRef", () => {
+    it("characterIds 对应的角色不存在时应返回空 characterRefs", () => {
       const props = createDefaultProps();
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
@@ -281,23 +281,22 @@ describe("useAIGeneratorBase", () => {
         characterIds: ["nonexistent-char"],
       };
       const refs = result.current.resolveRefs(beatMissingChar);
-      expect(refs.characterRef).toBeUndefined();
+      expect(refs.characterRefs).toEqual([]);
     });
 
-    it("resolveCharacterRef 返回 undefined 时 characterRef 应为 undefined", () => {
-      (resolveCharacterRef as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+    it("resolveCharacterRefs 返回空数组时 characterRefs 应为空数组", () => {
+      (resolveCharacterRefs as ReturnType<typeof vi.fn>).mockReturnValue([]);
 
       const props = createDefaultProps();
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
       const refs = result.current.resolveRefs(mockBeat1);
-      expect(refs.characterRef).toBeUndefined();
+      expect(refs.characterRefs).toEqual([]);
     });
 
-    it("多个 characterIds 时应取第一个有效 characterRef", () => {
-      (resolveCharacterRef as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(undefined)
-        .mockReturnValueOnce("https://img.example.com/bob.png");
+    it("多个 characterIds 时 characterRefs 应包含所有有效引用", () => {
+      (resolveCharacterRefs as ReturnType<typeof vi.fn>)
+        .mockReturnValue(["https://img.example.com/alice.png", "https://img.example.com/bob.png"]);
 
       const props = createDefaultProps();
       const { result } = renderHook(() => useAIGeneratorBase(props));
@@ -307,7 +306,7 @@ describe("useAIGeneratorBase", () => {
         characterIds: ["char-1", "char-2"],
       };
       const refs = result.current.resolveRefs(beatMultiChar);
-      expect(refs.characterRef).toBe("https://img.example.com/bob.png");
+      expect(refs.characterRefs).toEqual(["https://img.example.com/alice.png", "https://img.example.com/bob.png"]);
     });
 
     it("beat 无 sceneId 和 scene 时应返回 undefined sceneRef", () => {
@@ -574,7 +573,7 @@ describe("useAIGeneratorBase", () => {
 
       await promise;
 
-      const generatingCalls = (props.setGenerating as unknown as ReturnType<typeof vi.fn>).mock.calls.filter(
+      const generatingCalls = vi.mocked(props.setGenerating).mock.calls.filter(
         (call: unknown[]) => call[0] === null,
       );
       expect(generatingCalls.length).toBeGreaterThanOrEqual(1);
@@ -683,7 +682,7 @@ describe("useAIGeneratorBase", () => {
       });
 
       expect(props.setBeats).toHaveBeenCalled();
-      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0]! as (prev: StoryBeat[]) => StoryBeat[];
+      const updater = vi.mocked(props.setBeats).mock.calls[0]![0]! as (prev: StoryBeat[]) => StoryBeat[];
       const updated = updater([mockBeat1, mockBeat2]);
       expect(updated[0]!.description).toBe("updated desc");
       expect(updated[1]!.description).toBe("beat 2 desc");
@@ -707,7 +706,7 @@ describe("useAIGeneratorBase", () => {
         result.current.updateBeat("beat-1", { description: "new desc" });
       });
 
-      const updater = (props.setBeats as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0]! as (prev: StoryBeat[]) => StoryBeat[];
+      const updater = vi.mocked(props.setBeats).mock.calls[0]![0]! as (prev: StoryBeat[]) => StoryBeat[];
       const updated = updater([mockBeat1, mockBeat2]);
       expect(updated[0]!.id).toBe("beat-1");
       expect(updated[0]!.sequence).toBe(0);
@@ -802,7 +801,7 @@ describe("useAIGeneratorBase", () => {
         await result.current.withGenerationState("beat-1", fn, "Error");
       });
 
-      const nullCalls = (props.setGenerating as unknown as ReturnType<typeof vi.fn>).mock.calls.filter(
+      const nullCalls = vi.mocked(props.setGenerating).mock.calls.filter(
         (call: unknown[]) => call[0] === null,
       );
       expect(nullCalls.length).toBeGreaterThanOrEqual(1);
@@ -953,7 +952,7 @@ describe("useAIGeneratorBase", () => {
       };
 
       const refs = result.current.resolveRefs(beat);
-      expect(refs.characterRef).toBeUndefined();
+      expect(refs.characterRefs).toEqual([]);
       expect(refs.sceneRef).toBeUndefined();
       expect(refs.prevBeat).toBeNull();
     });
@@ -969,7 +968,7 @@ describe("useAIGeneratorBase", () => {
       };
 
       const refs = result.current.resolveRefs(beatWithBadRefs);
-      expect(refs.characterRef).toBeUndefined();
+      expect(refs.characterRefs).toEqual([]);
       expect(refs.sceneRef).toBeUndefined();
     });
   });

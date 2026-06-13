@@ -14,7 +14,7 @@ export const versionStorage = {
     return result.map((r) => parseRecordWithTable(r, "story_versions")) as T[];
   },
 
-  async createStoryVersion(version: StoryVersion): Promise<void> {
+  async createStoryVersion(version: Partial<StoryVersion> & { storyId: string; beats: StoryVersion["beats"] }): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     const id =
       version.id ||

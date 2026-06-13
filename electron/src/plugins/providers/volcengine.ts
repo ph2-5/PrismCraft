@@ -21,6 +21,12 @@ const VIDEO_CAPABILITIES: VideoCapabilities = {
   supportsLastFrame: true,
   supportsReferenceVideo: true,
   supportsMimicryLevel: true,
+  supportsCharacterRef: true,
+  supportsSceneRef: true,
+  characterRefMode: "bake_into_first",
+  sceneRefMode: "bake_into_first",
+  imageUploadMode: "base64",
+  maxCharacterRefs: 4,
   defaultModel: "doubao-seedance-1-0-pro-250528",
   maxDuration: 12,
   supportedCodecs: ["h264", "h265"],
@@ -46,7 +52,7 @@ const MODEL_CAPS_MAP: Record<string, ModelCapabilities> = {
       { width: 1280, height: 1920, label: "1280×1920", aspectRatio: "2:3" },
     ],
   },
-  "seedance-2.0": {
+  "doubao-seedance-1-0-pro-fast": {
     maxReferences: 4,
     maxResolution: 2048,
     maxSizeMB: 10,
@@ -59,7 +65,44 @@ const MODEL_CAPS_MAP: Record<string, ModelCapabilities> = {
       { width: 1280, height: 1920, label: "1280×1920", aspectRatio: "2:3" },
     ],
   },
-  "seedance-1.5": {
+  "doubao-seedance-1-0-lite": {
+    maxReferences: 4,
+    maxResolution: 1280,
+    maxSizeMB: 10,
+    supportsLastFrame: false,
+    referenceMode: "separate",
+    defaultImageSize: "1280x720",
+    supportedImageSizes: [
+      { width: 1280, height: 720, label: "1280×720", aspectRatio: "16:9" },
+    ],
+  },
+  "doubao-seedance-1-5-pro": {
+    maxReferences: 4,
+    maxResolution: 2048,
+    maxSizeMB: 10,
+    supportsLastFrame: true,
+    referenceMode: "separate",
+    defaultImageSize: "1920x1920",
+    supportedImageSizes: [
+      { width: 1920, height: 1920, label: "1920×1920", aspectRatio: "1:1" },
+      { width: 1920, height: 1280, label: "1920×1280", aspectRatio: "3:2" },
+      { width: 1280, height: 1920, label: "1280×1920", aspectRatio: "2:3" },
+    ],
+  },
+  "doubao-seedance-2-0": {
+    maxReferences: 4,
+    maxResolution: 2048,
+    maxSizeMB: 10,
+    supportsLastFrame: true,
+    referenceMode: "separate",
+    defaultImageSize: "1920x1920",
+    supportedImageSizes: [
+      { width: 1920, height: 1920, label: "1920×1920", aspectRatio: "1:1" },
+      { width: 1920, height: 1280, label: "1920×1280", aspectRatio: "3:2" },
+      { width: 1280, height: 1920, label: "1280×1920", aspectRatio: "2:3" },
+    ],
+  },
+  "doubao-seedance-2-0-fast": {
     maxReferences: 4,
     maxResolution: 2048,
     maxSizeMB: 10,
@@ -80,7 +123,15 @@ const MODEL_CAPS_MAP: Record<string, ModelCapabilities> = {
       { width: 1280, height: 1920, label: "1280×1920", aspectRatio: "2:3" },
     ],
   } as ModelCapabilities,
-  "seedream-3.0": {
+  "doubao-seedream-4-5": {
+    supportsLastFrame: false,
+    supportedImageSizes: [
+      { width: 1920, height: 1920, label: "1920×1920", aspectRatio: "1:1" },
+      { width: 1920, height: 1280, label: "1920×1280", aspectRatio: "3:2" },
+      { width: 1280, height: 1920, label: "1280×1920", aspectRatio: "2:3" },
+    ],
+  } as ModelCapabilities,
+  "doubao-seedream-5-0": {
     supportsLastFrame: false,
     supportedImageSizes: [
       { width: 1920, height: 1920, label: "1920×1920", aspectRatio: "1:1" },
@@ -121,10 +172,26 @@ export class VolcenginePlugin extends BaseAIProviderPlugin implements AIProvider
   }
 
   getModelCapabilities(modelId: string): ModelCapabilities {
+    const isLiteI2V = modelId.includes("lite-i2v");
+    const isLiteT2V = modelId.includes("lite-t2v");
+
     for (const [key, caps] of Object.entries(MODEL_CAPS_MAP)) {
       if (modelId.includes(key) || key.includes(modelId)) {
+        if (isLiteI2V) {
+          return { ...caps, characterRefMode: "ref_field", sceneRefMode: "ref_field", nativeCharacterRef: true, nativeSceneRef: true };
+        }
+        if (isLiteT2V) {
+          return { ...caps, characterRefMode: "none", sceneRefMode: "none", supportsCharacterRef: false, supportsSceneRef: false };
+        }
         return caps;
       }
+    }
+
+    if (isLiteI2V) {
+      return { ...DEFAULT_MODEL_CAPS, characterRefMode: "ref_field", sceneRefMode: "ref_field", nativeCharacterRef: true, nativeSceneRef: true };
+    }
+    if (isLiteT2V) {
+      return { ...DEFAULT_MODEL_CAPS, characterRefMode: "none", sceneRefMode: "none", supportsCharacterRef: false, supportsSceneRef: false };
     }
     return DEFAULT_MODEL_CAPS;
   }
@@ -134,20 +201,24 @@ export class VolcenginePlugin extends BaseAIProviderPlugin implements AIProvider
       { type: "text", text: ctx.prompt },
     ];
 
+    const isLiteI2V = ctx.model?.includes("lite-i2v");
+
     if (ctx.firstFrameUrl) {
-      content.push({ type: "image_url", image_url: { url: ctx.firstFrameUrl } });
+      content.push({ type: "image_url", image_url: { url: ctx.firstFrameUrl }, role: "first_frame" });
     }
 
     if (ctx.lastFrameUrl) {
-      content.push({ type: "image_url", image_url: { url: ctx.lastFrameUrl } });
+      content.push({ type: "image_url", image_url: { url: ctx.lastFrameUrl }, role: "last_frame" });
     }
 
-    if (ctx.characterRef) {
-      content.push({ type: "image_url", image_url: { url: ctx.characterRef } });
-    }
+    if (isLiteI2V) {
+      const charRefs = ctx.characterRefs?.length ? ctx.characterRefs : (ctx.characterRef ? [ctx.characterRef] : []);
+      const allRefImages = [...charRefs];
+      if (ctx.sceneRef) allRefImages.push(ctx.sceneRef);
 
-    if (ctx.sceneRef) {
-      content.push({ type: "image_url", image_url: { url: ctx.sceneRef } });
+      for (const ref of allRefImages.slice(0, 4)) {
+        if (ref) content.push({ type: "image_url", image_url: { url: ref }, role: "reference_image" });
+      }
     }
 
     const body: Record<string, unknown> = {
@@ -176,13 +247,24 @@ export class VolcenginePlugin extends BaseAIProviderPlugin implements AIProvider
   }
 
   buildImageRequest(ctx: ImageBuildContext): ImageRequestResult {
+    const body: Record<string, unknown> = {
+      model: ctx.model || "doubao-seedream-4-0-250828",
+      prompt: ctx.prompt,
+      n: 1,
+      size: "1920x1920",
+    };
+
+    if (ctx.characterRef && ctx.sceneRef) {
+      body.ref_image = ctx.characterRef;
+      body.prompt = `[场景参考] 请严格按照参考图中的场景环境、光照、色调等特征生成场景。\n\n${ctx.prompt}`;
+    } else if (ctx.characterRef) {
+      body.ref_image = ctx.characterRef;
+    } else if (ctx.sceneRef) {
+      body.ref_image = ctx.sceneRef;
+    }
+
     return {
-      body: {
-        model: ctx.model || "doubao-seedream-4-0-250828",
-        prompt: ctx.prompt,
-        n: 1,
-        size: "1920x1920",
-      },
+      body,
       endpoint: "/images/generations",
     };
   }

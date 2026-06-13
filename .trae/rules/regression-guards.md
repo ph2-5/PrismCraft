@@ -3,20 +3,20 @@
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >
-> **Total: 86 rules | 8 categories**
+> **Total: 97 rules | 8 categories**
 
 ## 目录
 
-- [一、数据一致性（17 条）](#一数据一致性17-条) — 数据不丢、不脏、不冲突
+- [一、数据一致性（25 条）](#一数据一致性25-条) — 数据不丢、不脏、不冲突
 - [二、异步安全（14 条）](#二异步安全14-条) — 并发、竞态、轮询、生命周期
 - [三、错误处理（12 条）](#三错误处理12-条) — 错误不吞、不假成功、用户可理解
 - [四、UI 健壮性（9 条）](#四ui-健壮性9-条) — 界面不崩、有反馈、无泄漏
-- [五、工程质量（14 条）](#五工程质量14-条) — 依赖合规、构建安全、测试可靠
+- [五、工程质量（17 条）](#五工程质量17-条) — 依赖合规、构建安全、测试可靠
 - [六、平台兼容（6 条）](#六平台兼容6-条) — IPC、Electron 环境、进程模型
 - [七、用户安全防护（7 条）](#七用户安全防护7-条) — 破坏性操作需确认、数据清除需保护
 - [八、系统安全（7 条）](#八系统安全7-条) — 沙箱隔离、并发保护、资源生命周期、DOM 安全
 
-## 一、数据一致性（17 条）
+## 一、数据一致性（25 条）
 
 > 核心关注：数据不丢、不脏、不冲突
 
@@ -1383,7 +1383,7 @@ useEffect(() => {
 }, []);
 ```
 
-## 五、工程质量（14 条）
+## 五、工程质量（17 条）
 
 > 核心关注：依赖合规、构建安全、测试可靠
 
@@ -1712,6 +1712,82 @@ codeSplitting: {
 **Priority guide**: 30 for core vendor (react), 25 for secondary vendor, 20 for infrastructure, 18 for shared/domain, 15 for app modules, 10 for generic vendor, 5 for common.
 
 **Discovered in**: Vite migration — initial build produced a single 1.6MB chunk; `manualChunks` was ineffective (rolldown merged vendor-react into app-character creating 784KB chunk); `codeSplitting` API with priority-based groups resolved the issue.
+
+### R87: Model IDs MUST Match Official API Documentation
+
+Model IDs in `BUILTIN_MODEL_CAPABILITIES` and `PROVIDER_TEMPLATES` MUST exactly match the provider's official API documentation. Date suffixes (e.g., `-250528`) are version identifiers from the provider, not arbitrary values. Guessing or copying date suffixes from other models causes API calls to fail with "model not found" errors.
+
+**BAD** — Guessed date suffix:
+```typescript
+"doubao-seedance-1-0-pro-fast-250528"  // Copied from pro model's date suffix
+```
+
+**GOOD** — Verified from official docs:
+```typescript
+"doubao-seedance-1-0-pro-fast-251015"  // From Volcengine API documentation
+```
+
+**Verification**: For each model ID with a date suffix, cross-reference with the provider's official API documentation. Date suffixes must not be copied between models without verification.
+
+**Discovered in**: `doubao-seedance-1-0-pro-fast` had date suffix `250528` (copied from `doubao-seedance-1-0-pro-250528`), but the official API documentation specifies `251015` as the correct version.
+
+### R88: New ModelCapabilities Fields MUST Have Conservative Defaults in getDefaultCapabilities
+
+When the `ModelCapabilities` interface adds new optional fields, `getDefaultCapabilities()` MUST provide a reasonable default value for each new field. Default values MUST be conservative (false/0/empty), never permissive (true/unlimited). Unknown models should degrade safely — assuming they DON'T support a feature is always safer than assuming they DO.
+
+**BAD** — New field without default, unknown model implicitly supports feature:
+```typescript
+interface ModelCapabilities {
+  supportsCharacterRef?: boolean;  // undefined → truthy checks pass
+  supportsSceneRef?: boolean;      // undefined → truthy checks pass
+}
+
+function getDefaultCapabilities(): ModelCapabilities {
+  return { maxReferences: 4, ... };  // Missing supportsCharacterRef/supportsSceneRef
+}
+```
+
+**GOOD** — Conservative defaults:
+```typescript
+function getDefaultCapabilities(): ModelCapabilities {
+  return {
+    maxReferences: 4,
+    supportsCharacterRef: false,  // Unknown models don't support reference images
+    supportsSceneRef: false,
+  };
+}
+```
+
+**Verification**: When adding a new optional field to `ModelCapabilities`, verify `getDefaultCapabilities()` includes it with a conservative default value. The default should be the safest assumption for unknown models.
+
+**Discovered in**: `supportsCharacterRef`/`supportsSceneRef` were added to `ModelCapabilities` but `getDefaultCapabilities()` didn't include them. Unknown models had `undefined` for these fields, and `getVideoGenerationStrategy` treated `undefined` as `true`, sending reference images to models that don't support them.
+
+### R92: Deprecated Provider Templates MUST Be Filtered from User-Visible Lists
+
+When a provider template is marked as `deprecated` (e.g., API not publicly available, service discontinued), `getAllTemplates()` MUST filter it out so users cannot select it. Deprecated templates should use the `deprecated` + `deprecatedReason` fields rather than being deleted, preserving configuration for potential future re-enablement.
+
+**BAD** — Unavailable provider still shown to users:
+```typescript
+const PROVIDER_TEMPLATES = [
+  { id: "sora", name: "Sora", ... },  // API not available, but users can select it
+];
+```
+
+**GOOD** — Deprecated and filtered:
+```typescript
+const PROVIDER_TEMPLATES = [
+  { id: "sora", name: "Sora", deprecated: true, deprecatedReason: "API not publicly available", ... },
+];
+
+function getAllTemplates(pluginTemplates?: PluginProviderTemplate[]) {
+  const all = [...PROVIDER_TEMPLATES, ...(pluginTemplates ?? [])];
+  return all.filter(t => !t.deprecated);
+}
+```
+
+**Verification**: Search for provider templates that reference unavailable APIs. Verify they have `deprecated: true` and that `getAllTemplates()` filters them. Users should never see a template they can't actually use.
+
+**Discovered in**: Sora was listed in provider templates but its API is not publicly available. Users could select it, configure it, but all API calls would fail.
 
 ## 六、平台兼容（6 条）
 
@@ -2102,6 +2178,251 @@ if (result.changes === 0) throw new VersionConflictError("story_beats", id, vers
 
 **Discovered in**: Concurrent tab edits silently overwrote each other's changes. The `version` column existed in schema but was never used in production code.
 
+### R89: Non-null Assertion MUST NOT Be Used on Possibly-Undefined Nested Properties
+
+When accessing nested properties from async operations or external data sources (e.g., `beat.framePair.firstFrame`), non-null assertion (`!`) MUST NOT be used. Use optional chaining (`?.`) with explicit null checks instead. Non-null assertions on properties whose parent may be `undefined` cause runtime crashes when the data is missing.
+
+**BAD** — Non-null assertion on possibly-undefined chain:
+```typescript
+const framePair = beat.framePair!;
+const firstFrame = framePair.firstFrame!;
+const imageUrl = firstFrame.imageUrl;
+```
+
+**GOOD** — Optional chaining with explicit check:
+```typescript
+const framePair = beat?.framePair;
+const firstFrame = framePair?.firstFrame;
+if (!beat || !firstFrame?.imageUrl) {
+  showError(t("story.cannotGenerateVideo"));
+  return;
+}
+const imageUrl = firstFrame.imageUrl;
+```
+
+**Verification**: Search for patterns like `obj.prop!.subProp` or `obj.prop!.method()` where `prop` type includes `undefined`. All such patterns must use `?.` + explicit check instead.
+
+**Discovered in**: `useVideoGenerator` used `beat.framePair!` and `framePair.firstFrame!`, causing runtime crash when framePair or firstFrame was missing.
+
+### R90: Providers That Don't Support Reference Images MUST Convert Image URLs to Text Prompts
+
+When a generation pipeline needs to pass a reference image (e.g., keyframe URL) but the target provider/model doesn't support reference image input, the image URL MUST be included as text in the prompt (e.g., `[参考预览图 URL]`), NOT silently discarded. Silently discarding the reference image means the AI has zero awareness of the visual content it should reference.
+
+**注意**：对于 `bake_into_first` 模式的视频模型（如 Seedance pro），参考图信息应通过首帧融入架构传递（首帧生成时传 `ref_image` 给图片模型），而非通过视频 API 传递。`buildReferenceEnhancedPrompt` 在首帧 prompt 中注入参考图指令是辅助手段。
+
+**BAD** — Reference image silently discarded:
+```typescript
+const effectiveRefUrl = supportsRef ? keyframeUrl : undefined;
+// keyframeUrl is completely lost for non-supporting providers
+```
+
+**GOOD** — Fallback to text prompt:
+```typescript
+const effectiveRefUrl = supportsRef ? keyframeUrl : undefined;
+if (!supportsRef && keyframeUrl) {
+  promptParts.push(`[参考预览图 ${keyframeUrl}]`);
+}
+```
+
+**Verification**: In `generateFramePair` and similar functions, when `referenceImageUrl` is set to `undefined` due to model limitations, verify there is a corresponding text prompt fallback that includes the URL. For bake_into_first models, also verify the reference image URL is passed to image generation via `ref_image`.
+
+**Discovered in**: `api-gateway.ts` `generateFramePair` silently discarded `keyframeUrl` for providers that don't support reference images. The AI had no way to know what the preview image looked like.
+
+### R91: Generation Pipeline Parameters MUST Be Fully Passed, No Hardcoded Empty Arrays
+
+In generation pipeline call chains, context parameters like `elements`/`characters`/`scenes` MUST be fetched from actual data sources and passed through, NOT hardcoded as empty arrays `[]` or omitted. Hardcoded empty arrays cause reference resolution to silently fail, resulting in generation without character/scene references.
+
+**BAD** — Hardcoded empty array:
+```typescript
+const result = await generateBeatFramePair(beat, {
+  elements: [],  // Always empty, references never resolved
+  ...
+});
+```
+
+**GOOD** — Fetch from data source:
+```typescript
+const elements = await container.elementStorage.getAllElements();
+const result = await generateBeatFramePair(beat, {
+  elements,
+  ...
+});
+```
+
+**Verification**: Search for `elements: []`, `characters: []`, `scenes: []` in generation function calls. All such hardcoded empty arrays must be replaced with actual data fetching logic.
+
+**Discovered in**: `useFramePairGenerator` passed `elements: []` to `generateBeatFramePair`, so character/scene references were never resolved. `beat-chain-generator` didn't call `resolveCharacterRefs`/`resolveSceneRef` at all.
+
+### R93: Seedance Video API Three Modes Are Mutually Exclusive
+
+Seedance pro 系列模型的视频 API 有三种互斥模式：首帧、首尾帧、参考图（仅 lite-i2v）。pro 模型的 `buildVideoRequest` 不得在 content 数组中同时传递首帧/尾帧和参考图（`role: "reference_image"`）。pro 模型只有首帧和首尾帧两种合法模式，参考图信息必须通过 `bake_into_first` 融入首帧，而非通过 API 原生传递。
+
+**BAD** — pro 模型在首尾帧模式中追加参考图：
+```typescript
+content.push({ type: "image_url", image_url: { url: firstFrameUrl } });
+content.push({ type: "image_url", image_url: { url: lastFrameUrl } });
+content.push({ type: "image_url", image_url: { url: characterRef } }); // 违反互斥约束
+```
+
+**GOOD** — pro 模型只传首帧/尾帧，参考图融入首帧：
+```typescript
+content.push({ type: "image_url", image_url: { url: firstFrameUrl }, role: "first_frame" });
+content.push({ type: "image_url", image_url: { url: lastFrameUrl }, role: "last_frame" });
+// characterRef/sceneRef 通过 bake_into_first 融入首帧，不传给视频 API
+```
+
+**GOOD** — lite-i2v 模型使用参考图模式：
+```typescript
+content.push({ type: "image_url", image_url: { url: ref }, role: "reference_image" });
+```
+
+**Verification**: 检查 Volcengine provider 的 `buildVideoRequest`，确认 pro 模型（非 lite-i2v）不追加 `role: "reference_image"` 条目。
+
+**Discovered in**: Volcengine provider 在 pro 模型的 content 数组中无条件追加 characterRef/sceneRef，违反了 Seedance API 三模式互斥约束。
+
+### R94: Seedance API Role Field Is Required for First/Last Frame
+
+Seedance API 的 content 数组中，`image_url` 对象必须包含 `role` 字段：首帧 `role: "first_frame"`，尾帧 `role: "last_frame"`，参考图 `role: "reference_image"`。缺少 role 字段会导致 API 无法区分首帧和尾帧，或请求失败。
+
+**BAD** — 缺少 role 字段：
+```typescript
+content.push({ type: "image_url", image_url: { url: firstFrameUrl } });
+content.push({ type: "image_url", image_url: { url: lastFrameUrl } });
+```
+
+**GOOD** — 带 role 字段：
+```typescript
+content.push({ type: "image_url", image_url: { url: firstFrameUrl }, role: "first_frame" });
+content.push({ type: "image_url", image_url: { url: lastFrameUrl }, role: "last_frame" });
+```
+
+**Verification**: 检查 Volcengine provider 的 `buildVideoRequest`，确认所有 `image_url` 条目都包含 `role` 字段。
+
+**Discovered in**: Volcengine provider 的首帧和尾帧 image_url 缺少 role 字段，导致首尾帧模式下 API 无法区分首帧和尾帧。
+
+### R95: bake_into_first Mode MUST NOT Pass Reference Images to Video API
+
+当 `characterRefMode` 或 `sceneRefMode` 为 `"bake_into_first"` 时，`getVideoGenerationStrategy` 返回 `useCharacterRef: false` / `useSceneRef: false`。视频生成时 characterRefs/sceneRef 必须设为 undefined，参考图信息通过"融入首帧"架构传递——首帧生成时将参考图 URL 传给图片生成模型（如 Seedream 的 `ref_image` 参数），让首帧图片本身就包含角色/场景特征。
+
+**BAD** — bake_into_first 模式下仍传参考图给视频 API：
+```typescript
+const strategy = getVideoGenerationStrategy(modelId);
+// strategy.useCharacterRef === false, 但仍传了 characterRefs
+body.subject_reference = characterRefs[0];
+```
+
+**GOOD** — 根据策略过滤：
+```typescript
+const strategy = getVideoGenerationStrategy(modelId);
+const effectiveCharacterRefs = strategy && !strategy.useCharacterRef
+  ? undefined : characterRefs;
+```
+
+**Verification**: 检查 `beat-video-generator.ts` 和 `useVideoGenerator.ts`，确认 bake_into_first 模式下 characterRefs/sceneRef 被过滤为 undefined。
+
+**Discovered in**: Seedance pro 模型的 characterRefMode 之前被错误声明为 "multimodal"（useCharacterRef=true），导致参考图被传给视频 API，违反了互斥约束。
+
+### R96: Model Capability Declarations MUST Match Actual API Documentation
+
+`supportsLastFrame`、`supportsCharacterRef`、`supportsSceneRef`、`nativeCharacterRef`、`nativeSceneRef` 必须反映 API 的实际支持情况。声明不支持的功能为 true 会导致系统传错误参数给 API；声明支持的功能为 false 会导致功能被意外过滤。
+
+已知约束：
+- Kling V1/V1.5/V1.6 不支持 `subject_reference`（仅 V2+ 支持），characterRefMode 应为 `"bake_into_first"`
+- Google Veo 不支持尾帧和参考图，supportsLastFrame 应为 false，characterRefMode 应为 `"bake_into_first"`
+- CogVideoX 不支持尾帧，supportsLastFrame 应为 false
+- MiniMax 仅 S2V-01 模型支持 `subject_image_url`，其他模型不应传此字段
+- Seedance pro 不支持参考图模式（仅 lite-i2v 支持），pro 的 characterRefMode 应为 `"bake_into_first"`
+
+**BAD** — 声明与实际不符：
+```typescript
+"veo-3": { supportsLastFrame: true, supportsCharacterRef: true, nativeCharacterRef: true }
+// Google Veo 实际不支持尾帧和参考图
+```
+
+**GOOD** — 声明与实际一致：
+```typescript
+"veo-3": { supportsLastFrame: false, supportsCharacterRef: true, nativeCharacterRef: false, characterRefMode: "bake_into_first" }
+```
+
+**Verification**: 对比 `BUILTIN_MODEL_CAPABILITIES` 中每个模型的能力声明与对应 API 的官方文档。
+
+**Discovered in**: 多个模型的能力声明与 API 实际不符，导致系统传错误参数。
+
+### R97: Provider buildVideoRequest MUST NOT Pass Fields the Model Doesn't Recognize
+
+每个 provider 的 `buildVideoRequest` 只能传目标 API 文档中定义的字段。传模型不认识的字段可能导致 API 报错或字段被静默忽略。
+
+已知约束：
+- Kling V1 不传 `subject_reference` 和 `tail_image`（仅 V2+ 支持）
+- Google Veo 不传 `lastFrame`、`referenceVideo`、`characterRef`、`sceneRef`（Veo 只支持首帧图生视频）
+- MiniMax 非 S2V-01 模型不传 `subject_image_url`
+- Seedance (Atlas) pro 模型不传 `ref_image`（参考图融入首帧）
+- OpenAI 兼容 provider 不传 `ref_image`（通用格式无此字段）
+
+**BAD** — 传模型不认识的字段：
+```typescript
+// Google Veo 不支持参考图，但传了
+contents.push({ type: "image_url", image_url: { url: characterRef } });
+```
+
+**GOOD** — 根据模型能力过滤：
+```typescript
+const isS2V = model.includes("S2V-01");
+if (isS2V && charRefs[0]) {
+  body.subject_image_url = charRefs[0];
+}
+```
+
+**Verification**: 检查每个 provider 的 `buildVideoRequest`，确认每个字段都有 API 文档依据。
+
+**Discovered in**: Google Veo provider 传了 `lastFrame`/`referenceVideo`/`characterRef`/`sceneRef`，但 Veo API 不支持这些字段。MiniMax 所有模型都传 `subject_image_url`，但仅 S2V-01 支持。
+
+### R98: Unknown Model Default Strategy MUST Be Conservative
+
+`getModelCapabilities` 对未知模型（不在 `BUILTIN_MODEL_CAPABILITIES` 中的 modelId）返回默认能力时，必须保守地启用参考图支持（`supportsCharacterRef: true`、`characterRefMode: "text_append"`），而非禁用（`characterRefMode: "none"`）。未知模型可能是支持参考图的新模型，禁用会导致参考图被意外过滤。保守策略让 API 决定是否忽略不认识的字段。
+
+**BAD** — 未知模型默认禁用参考图：
+```typescript
+return { supportsCharacterRef: false, characterRefMode: "none", ... };
+// 新模型可能支持参考图，但被默认禁用了
+```
+
+**GOOD** — 未知模型默认启用参考图（保守策略）：
+```typescript
+return { supportsCharacterRef: true, characterRefMode: "text_append", ... };
+// 让 API 决定是否忽略，而非前端主动过滤
+```
+
+**Verification**: 检查 `getDefaultCapabilities()` 返回值，确认 `supportsCharacterRef: true` 和 `characterRefMode: "text_append"`。
+
+**Discovered in**: 未知模型默认 `characterRefMode: "none"` 导致 `getVideoGenerationStrategy` 返回 `useCharacterRef: false`，参考图被意外过滤。
+
+### R99: bake_into_first Mode MUST Pass Reference Images to Image Generation
+
+当视频模型使用 `bake_into_first` 模式时，首帧图片生成必须通过 `ref_image` 参数将参考图 URL 传给图片生成模型（如 Seedream），让首帧本身就包含角色/场景特征。如果首帧生成时不传参考图，"融入首帧"架构名存实亡——首帧图片不包含参考图信息，视频生成时也无法通过 API 传递参考图。
+
+**BAD** — 首帧生成时不传参考图：
+```typescript
+buildImageRequest(ctx: ImageBuildContext) {
+  return { body: { model, prompt, n: 1, size }, endpoint };
+  // characterRef/sceneRef URL 被丢弃，首帧不包含参考图信息
+}
+```
+
+**GOOD** — 首帧生成时传参考图：
+```typescript
+buildImageRequest(ctx: ImageBuildContext) {
+  const body = { model, prompt, n: 1, size };
+  const refImage = ctx.characterRef || ctx.sceneRef;
+  if (refImage) body.ref_image = refImage;
+  return { body, endpoint };
+}
+```
+
+**Verification**: 检查 Volcengine/Seedance provider 的 `buildImageRequest`，确认支持 `ref_image` 参数。
+
+**Discovered in**: Volcengine 和 Seedance provider 的 `buildImageRequest` 不支持 `ref_image` 参数，导致 bake_into_first 模式下首帧生成时参考图 URL 被丢弃。
+
 ## 八、系统安全（7 条）
 
 > 核心关注：沙箱隔离防逃逸、IPC 通道注册检查、插件热加载缓存刷新、Blob URL 安全生命周期、异步重入守卫、批量并行执行、声明式 onError
@@ -2324,3 +2645,108 @@ return videoError ? (
 **Verification**: Add a new plugin via the plugin manager, then check if the API config panel shows the new provider template without requiring a page refresh.
 
 **Discovered in**: After adding a new plugin through the plugin manager, the API config panel didn't show the new provider until the user closed and reopened the settings page.
+
+### R100: FramePair URL Access MUST Use getFirstFrameUrl/getLastFrameUrl Utility Functions
+
+When accessing `firstFrameUrl` or `lastFrameUrl` from a `StoryBeatFramePair` object, code MUST use the `getFirstFrameUrl()` and `getLastFrameUrl()` utility functions from `@/domain/utils` instead of directly accessing `framePair.firstFrameUrl || framePair.firstFrame?.imageUrl`. Direct access risks: (1) missing the fallback to `firstFrame.imageUrl`/`lastFrame.imageUrl`, (2) incorrect priority order (`imageUrl || firstFrameUrl` instead of `firstFrameUrl || imageUrl`).
+
+**BAD** — Direct access with fallback inconsistency risk:
+```typescript
+const url = beat.framePair?.firstFrameUrl || beat.framePair?.firstFrame?.imageUrl;
+// New code might forget the fallback, or reverse the priority
+```
+
+**GOOD** — Use utility function:
+```typescript
+import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
+const url = getFirstFrameUrl(beat.framePair);
+```
+
+**Verification**: Search for `firstFrameUrl || firstFrame?.imageUrl` or `lastFrameUrl || lastFrame?.imageUrl` patterns in production code. All such patterns must be replaced with `getFirstFrameUrl()`/`getLastFrameUrl()` calls.
+
+**Discovered in**: 10+ locations had inconsistent `firstFrameUrl || firstFrame?.imageUrl` patterns. `beat-chain-generator.ts` had reversed priority (`lastFrame?.imageUrl || lastFrameUrl`), causing data loss when `lastFrameUrl` was set but `lastFrame.imageUrl` was not.
+
+### R101: lastFrameUrl Priority MUST Match firstFrameUrl (Top-Level Field First)
+
+When accessing `lastFrameUrl` from `StoryBeatFramePair`, the priority MUST be `lastFrameUrl || lastFrame?.imageUrl` (top-level field first, nested field as fallback). This matches the `firstFrameUrl` priority pattern. Reversing the priority (`lastFrame?.imageUrl || lastFrameUrl`) causes data loss when the top-level field is set but the nested field is not.
+
+**BAD** — Reversed priority:
+```typescript
+const lastUrl = framePair.lastFrame?.imageUrl || framePair.lastFrameUrl;
+// If lastFrameUrl is set but lastFrame.imageUrl is not, returns undefined
+```
+
+**GOOD** — Correct priority (use utility function):
+```typescript
+import { getLastFrameUrl } from "@/domain/utils";
+const lastUrl = getLastFrameUrl(framePair); // lastFrameUrl || lastFrame?.imageUrl
+```
+
+**Verification**: Any direct `lastFrameUrl` access must follow `lastFrameUrl || lastFrame?.imageUrl` order. Prefer using `getLastFrameUrl()`.
+
+**Discovered in**: `beat-chain-generator.ts` used `framePairResult.value.lastFrame?.imageUrl || framePairResult.value.lastFrameUrl`, causing chain breaks when only `lastFrameUrl` was populated.
+
+### R102: Batch Generation skip_completed Filters MUST Use Utility Functions
+
+When batch generation hooks (`useBatchGenerator`) filter beats by completion status (skip_completed strategy), the filter condition MUST use `getFirstFrameUrl()`/`getLastFrameUrl()` utility functions. Direct field access (e.g., `b.framePair?.lastFrame?.imageUrl`) misses the top-level `lastFrameUrl`/`firstFrameUrl` fields, causing: (1) completed beats to be incorrectly included for regeneration, or (2) completed beats to be incorrectly skipped.
+
+**BAD** — Direct field access in skip_completed filter:
+```typescript
+targetBeats = targetBeats.filter((b) => !b.framePair?.lastFrame?.imageUrl && !b.uploadedFramePair?.lastFrame);
+// Misses beats that have lastFrameUrl but not lastFrame.imageUrl
+```
+
+**GOOD** — Use utility function:
+```typescript
+import { getLastFrameUrl } from "@/domain/utils";
+targetBeats = targetBeats.filter((b) => !getLastFrameUrl(b.framePair) && !b.uploadedFramePair?.lastFrame);
+```
+
+**Verification**: Search for `skip_completed` logic in batch generation hooks. Verify all filter conditions use `getFirstFrameUrl()`/`getLastFrameUrl()`.
+
+**Discovered in**: `useBatchGenerator.ts` framepair skip_completed filter only checked `lastFrame?.imageUrl`, missing `lastFrameUrl`. Beats with only `lastFrameUrl` set were incorrectly regenerated.
+
+### R103: getPrevBeatForChain MUST Use getLastFrameUrl for Chain Reference
+
+When `getPrevBeatForChain` determines whether a previous beat can serve as a chain reference for framepair generation, it MUST use `getLastFrameUrl()` to check if the previous beat has a valid last frame. Direct field access (`prevBeat.framePair?.lastFrame?.imageUrl`) misses the top-level `lastFrameUrl` field, causing chain breaks.
+
+**BAD** — Direct field access:
+```typescript
+case "framepair":
+  if (prevBeat.framePair?.lastFrame?.imageUrl || prevBeat.uploadedFramePair?.lastFrame) return prevBeat;
+  break;
+```
+
+**GOOD** — Use utility function:
+```typescript
+import { getLastFrameUrl } from "@/domain/utils";
+case "framepair":
+  if (getLastFrameUrl(prevBeat.framePair) || prevBeat.uploadedFramePair?.lastFrame) return prevBeat;
+  break;
+```
+
+**Verification**: Search for `getPrevBeatForChain` in batch generation hooks. Verify framepair-level chain reference check uses `getLastFrameUrl()`.
+
+**Discovered in**: `useBatchGenerator.ts` `getPrevBeatForChain` framepair case only checked `lastFrame?.imageUrl`, missing `lastFrameUrl`. Chain reference was not found when only `lastFrameUrl` was set, causing chain breaks in batch generation.
+
+### R104: Domain Layer Error Messages MUST Use English Error Codes, Not Chinese
+
+When domain layer services (`src/domain/services/`) throw `ValidationError` or `GenerationError`, the error message MUST be an English error code (e.g., `"BEAT_NOT_FOUND"`, `"KEYFRAME_REQUIRED_FOR_FRAME_PAIR"`) rather than a Chinese string. The domain layer cannot import `t()` from `@/shared/constants` (violates dependency direction: `domain/ → NOTHING`). Error codes are mapped to i18n keys via `mapUserFacingError` in `@/shared/utils/user-facing-error`.
+
+**BAD** — Chinese error message in domain layer:
+```typescript
+return err(new ValidationError("分镜不存在"));
+```
+
+**GOOD** — English error code mapped to i18n:
+```typescript
+// domain/services/story-generation-service.ts
+return err(new ValidationError("BEAT_NOT_FOUND"));
+
+// shared/utils/user-facing-error.ts
+{ pattern: /BEAT_NOT_FOUND/, messageKey: "error.beatNotFound" },
+```
+
+**Verification**: Search for `ValidationError` and `GenerationError` in `src/domain/`. All error messages must be English error codes, not Chinese strings. Each error code must have a corresponding pattern in `mapUserFacingError`'s `EXTRA_PATTERNS`.
+
+**Discovered in**: `story-generation-service.ts` had 3 Chinese `ValidationError` messages ("分镜不存在", "预览图不存在，无法生成首尾帧", "首尾帧不存在，无法生成视频"). These were invisible to `mapUserFacingError`, so users saw raw Chinese error codes instead of properly formatted messages.

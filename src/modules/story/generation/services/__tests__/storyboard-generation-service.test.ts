@@ -6,6 +6,8 @@ import type { IVideoProvider, IImageProvider, ITextProvider } from "@/domain/por
 
 vi.mock("@/domain/utils", () => ({
   generateBeatImagePrompt: vi.fn().mockReturnValue("generated prompt"),
+  getFirstFrameUrl: vi.fn((fp: any) => fp?.firstFrameUrl || fp?.firstFrame?.imageUrl),
+  getLastFrameUrl: vi.fn((fp: any) => fp?.lastFrameUrl || fp?.lastFrame?.imageUrl),
 }));
 
 vi.mock("@/shared/error-logger", () => ({
@@ -35,16 +37,16 @@ const videoProvider = {
   generateVideoWithFrames: vi.fn(),
   generateVideo: vi.fn(),
   queryVideoStatus: vi.fn(),
-} as unknown as IVideoProvider;
+} as IVideoProvider;
 
 const imageProvider = {
   generateImage: vi.fn(),
   analyzeImage: vi.fn(),
-} as unknown as IImageProvider;
+} as IImageProvider;
 
 const textProvider = {
   generateText: vi.fn(),
-} as unknown as ITextProvider;
+} as ITextProvider;
 
 const providers = { videoProvider, imageProvider, textProvider };
 
@@ -262,51 +264,64 @@ describe("generateBeatFramePair", () => {
     );
   });
 
-  it("有首尾帧提示词且无 prevLastFrameUrl 时应使用 imageProvider", async () => {
+  it("有首尾帧提示词且无 prevLastFrameUrl 时应使用 videoProvider.generateFramePair", async () => {
     const beat = {
       ...mockBeat,
       keyframe: mockKeyframe,
       firstFramePrompt: "首帧提示",
       lastFramePrompt: "尾帧提示",
     };
-    (imageProvider.generateImage as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ success: true, data: { imageUrl: "first.jpg" } })
-      .mockResolvedValueOnce({ success: true, data: { imageUrl: "last.jpg" } });
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
 
     const result = await generateBeatFramePair(beat, {}, providers);
 
     expectOk(result);
     expect(result.value.firstFrameUrl).toBe("first.jpg");
     expect(result.value.lastFrameUrl).toBe("last.jpg");
-    expect(imageProvider.generateImage).toHaveBeenCalledTimes(2);
+    expect(videoProvider.generateFramePair).toHaveBeenCalledWith(
+      expect.objectContaining({ keyframeUrl: mockKeyframe.imageUrl }),
+    );
   });
 
-  it("imageProvider 部分失败时应返回错误", async () => {
+  it("videoProvider.generateFramePair 部分失败时应返回错误", async () => {
     const beat = {
       ...mockBeat,
       keyframe: mockKeyframe,
       firstFramePrompt: "首帧提示",
       lastFramePrompt: "尾帧提示",
     };
-    (imageProvider.generateImage as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ success: true, data: { imageUrl: "first.jpg" } })
-      .mockResolvedValueOnce({ success: false, error: "尾帧生成失败" });
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: false,
+      error: "首尾帧生成失败",
+    });
 
     const result = await generateBeatFramePair(beat, {}, providers);
 
     expectErr(result);
   });
 
-  it("没有首尾帧提示词且没有 prevLastFrameUrl 时应使用 imageProvider 回退", async () => {
+  it("没有首尾帧提示词且没有 prevLastFrameUrl 时应使用 videoProvider.generateFramePair 回退", async () => {
     const beat = { ...mockBeat, keyframe: mockKeyframe };
-    (imageProvider.generateImage as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ success: true, data: { imageUrl: "first.jpg" } })
-      .mockResolvedValueOnce({ success: true, data: { imageUrl: "last.jpg" } });
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
 
     const result = await generateBeatFramePair(beat, {}, providers);
 
     expectOk(result);
-    expect(imageProvider.generateImage).toHaveBeenCalledTimes(2);
+    expect(videoProvider.generateFramePair).toHaveBeenCalled();
   });
 
   it("videoProvider 生成失败时应返回错误", async () => {
@@ -438,9 +453,14 @@ describe("generateBeatFullWorkflow", () => {
       success: true,
       data: { imageUrl: "http://example.com/keyframe.jpg", prompt: "keyframe prompt" },
     });
-    (imageProvider.generateImage as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ success: true, data: { imageUrl: "http://example.com/first.jpg" } })
-      .mockResolvedValueOnce({ success: true, data: { imageUrl: "http://example.com/last.jpg" } });
+    (videoProvider.generateFramePair as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: {
+        firstFrame: { imageUrl: "http://example.com/first.jpg", prompt: "first prompt" },
+        lastFrame: { imageUrl: "http://example.com/last.jpg", prompt: "last prompt" },
+        generatedAt: new Date().toISOString(),
+      },
+    });
     (videoProvider.generateVideoWithFrames as ReturnType<typeof vi.fn>).mockResolvedValue({
       success: true,
       data: { taskId: "task-1", status: "pending" },

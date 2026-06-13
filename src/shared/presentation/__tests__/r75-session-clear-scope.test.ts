@@ -86,9 +86,9 @@ describe("R75: Session clearing must only delete application-prefixed keys", () 
     };
 
     const mockStore = store;
-    (sessionStorageMock as unknown as { getItem: ReturnType<typeof vi.fn> }).getItem = vi.fn((key: string) => mockStore[key] ?? null);
-    (sessionStorageMock as unknown as { removeItem: ReturnType<typeof vi.fn> }).removeItem = vi.fn((key: string) => { delete mockStore[key]; });
-    (sessionStorageMock as unknown as { key: ReturnType<typeof vi.fn> }).key = vi.fn((index: number) => Object.keys(mockStore)[index] ?? null);
+    vi.mocked(sessionStorageMock).getItem = vi.fn((key: string) => mockStore[key] ?? null);
+    vi.mocked(sessionStorageMock).removeItem = vi.fn((key: string) => { delete mockStore[key]; });
+    vi.mocked(sessionStorageMock).key = vi.fn((index: number) => Object.keys(mockStore)[index] ?? null);
     Object.defineProperty(sessionStorageMock, "length", { get: () => Object.keys(mockStore).length, configurable: true });
 
     const handleReset = createHandleReset(sessionStorageMock, localStorageMock);
@@ -114,9 +114,9 @@ describe("R75: Session clearing must only delete application-prefixed keys", () 
       "ai-animation-temp": "temp-data",
     };
 
-    (sessionStorageMock as unknown as { getItem: ReturnType<typeof vi.fn> }).getItem = vi.fn((key: string) => store[key] ?? null);
-    (sessionStorageMock as unknown as { removeItem: ReturnType<typeof vi.fn> }).removeItem = vi.fn((key: string) => { delete store[key]; });
-    (sessionStorageMock as unknown as { key: ReturnType<typeof vi.fn> }).key = vi.fn((index: number) => Object.keys(store)[index] ?? null);
+    vi.mocked(sessionStorageMock).getItem = vi.fn((key: string) => store[key] ?? null);
+    vi.mocked(sessionStorageMock).removeItem = vi.fn((key: string) => { delete store[key]; });
+    vi.mocked(sessionStorageMock).key = vi.fn((index: number) => Object.keys(store)[index] ?? null);
     Object.defineProperty(sessionStorageMock, "length", { get: () => Object.keys(store).length, configurable: true });
 
     const handleReset = createHandleReset(sessionStorageMock, localStorageMock);

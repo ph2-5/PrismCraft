@@ -3,6 +3,7 @@ import { fromAsyncThrowable, err, ValidationError } from "@/domain/types";
 import { safeQuery, safeTransaction } from "@/shared/db-core";
 import { errorLogger } from "@/shared/error-logger";
 import { z } from "zod";
+import { t } from "@/shared/constants";
 
 export interface AssetExportService {
   exportCharacters: (characterIds: string[]) => Promise<Result<Uint8Array>>;
@@ -242,7 +243,7 @@ export async function importFromFile(
     parsed = JSON.parse(text);
   } catch (e) {
     errorLogger.warn("[AsaExport] Failed to parse import file as JSON", e as Error);
-    return err(new ValidationError("文件不是有效的 JSON 格式"));
+    return err(new ValidationError(t("error.invalidJsonFile")));
   }
 
   const validated = asaFileSchema.safeParse(parsed);
@@ -250,7 +251,7 @@ export async function importFromFile(
     const messages = validated.error.issues.map(
       (i) => `${i.path.join(".")}: ${i.message}`,
     );
-    return err(new ValidationError(`数据校验失败: ${messages.slice(0, 5).join("; ")}`));
+    return err(new ValidationError(t("error.dataValidationFailed") + ": " + messages.slice(0, 5).join("; ")));
   }
 
   const data = validated.data;

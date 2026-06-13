@@ -1,4 +1,5 @@
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 /**
  * 图片标准化处理模块（客户端安全）
@@ -48,14 +49,14 @@ export async function imageToBase64(imageUrl: string): Promise<string> {
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          reject(new Error("无法获取 canvas 上下文"));
+          reject(new Error(t("error.canvasContextFailed")));
           return;
         }
         ctx.drawImage(img, 0, 0);
         const isPng = imageUrl.toLowerCase().endsWith(".png");
         resolve(canvas.toDataURL(isPng ? "image/png" : "image/jpeg", 0.9));
       };
-      img.onerror = () => reject(new Error("图片加载失败"));
+      img.onerror = () => reject(new Error(t("error.imageLoadFailed")));
       img.src = imageUrl;
     });
   }
@@ -84,7 +85,7 @@ export function getImageDimensions(
     img.onload = () => {
       resolve({ width: img.width, height: img.height });
     };
-    img.onerror = () => reject(new Error("无法获取图片尺寸"));
+    img.onerror = () => reject(new Error(t("error.imageDimensionsFailed")));
     img.src = imageUrl;
   });
 }
@@ -123,7 +124,7 @@ export async function normalizeImage(
       let { width, height } = img;
 
       if (width <= 0 || height <= 0) {
-        reject(new Error("图片尺寸无效: 宽度或高度为零"));
+        reject(new Error(t("error.imageSizeInvalid")));
         return;
       }
 
@@ -144,7 +145,7 @@ export async function normalizeImage(
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
-        reject(new Error("无法获取 canvas 上下文"));
+        reject(new Error(t("error.canvasContextFailed")));
         return;
       }
 
@@ -184,7 +185,7 @@ export async function normalizeImage(
       });
     };
 
-    img.onerror = () => reject(new Error("图片加载失败"));
+    img.onerror = () => reject(new Error(t("error.imageLoadFailed")));
     img.src = base64Url;
   });
 }

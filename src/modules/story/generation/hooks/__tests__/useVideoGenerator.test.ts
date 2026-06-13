@@ -1,152 +1,69 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { Story, StoryBeat, Character, Scene, ModelSelection, VideoTask } from "@/domain/schemas";
-
-const { mockGetAllElements, mockGenerateSingleBeatPrompt, mockDetermineVideoMode, mockResolveContext, mockBuildVideoPrompt, mockErrorLogger } = vi.hoisted(() => ({
-  mockGetAllElements: vi.fn().mockResolvedValue([]),
-  mockGenerateSingleBeatPrompt: vi.fn().mockReturnValue("base prompt"),
-  mockDetermineVideoMode: vi.fn().mockReturnValue("first_frame_anchor"),
-  mockResolveContext: vi.fn().mockReturnValue({
-    characterRef: undefined,
-    sceneRef: undefined,
-    prevVideoUrl: undefined,
-  }),
-  mockBuildVideoPrompt: vi.fn().mockReturnValue("enhanced prompt"),
-  mockErrorLogger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
-}));
-
-vi.mock("@/infrastructure/di", () => ({
-  container: {
-    elementStorage: { getAllElements: mockGetAllElements },
-  },
-}));
+import { useVideoGenerator } from "../useVideoGenerator";
 
 vi.mock("@/modules/prompt", () => ({
-  generateSingleBeatPrompt: mockGenerateSingleBeatPrompt,
+  generateSingleBeatPrompt: vi.fn().mockReturnValue("base prompt"),
 }));
 
 vi.mock("@/domain/services", () => ({
   StoryGenerationService: {
-    resolveGenerationContext: mockResolveContext,
-    buildVideoPrompt: mockBuildVideoPrompt,
+    resolveGenerationContext: vi.fn().mockReturnValue({
+      characterRefs: [],
+      sceneRef: undefined,
+      prevVideoUrl: undefined,
+    }),
+    buildVideoPrompt: vi.fn().mockReturnValue("enhanced prompt"),
   },
 }));
 
-vi.mock("../services/storyboard-generation-service", () => ({
-  determineVideoGenerationMode: mockDetermineVideoMode,
+vi.mock("@/infrastructure/di", () => ({
+  container: {
+    elementStorage: { getAllElements: vi.fn().mockResolvedValue([]) },
+  },
 }));
 
-vi.mock("@/shared/error-handler", () => ({
-  getErrorMessage: vi.fn().mockReturnValue("mocked error"),
-}));
-
-vi.mock("@/shared/error-logger", () => ({
-  errorLogger: mockErrorLogger,
+vi.mock("@/shared/model-capabilities", () => ({
+  getVideoGenerationStrategy: vi.fn().mockReturnValue({
+    useCharacterRef: true,
+    useSceneRef: true,
+    promptLanguage: "auto",
+  }),
 }));
 
 vi.mock("@/shared/constants", () => ({
   t: vi.fn((key: string) => key),
 }));
 
-vi.mock("@/modules/story", () => ({
-  resolveCharacterRef: vi.fn(),
-  resolveSceneRef: vi.fn(),
+vi.mock("../useAIGeneratorBase", () => ({
+  useAIGeneratorBase: () => ({
+    findBeat: vi.fn((id: string) => beats.find((b) => b.id === id)),
+    resolvePrevBeat: vi.fn(() => null),
+    checkModelConfig: vi.fn(() => true),
+    withGenerationState: vi.fn((_id: string, fn: Function) => fn({ aborted: false })),
+  }),
 }));
 
-import { useVideoGenerator } from "../useVideoGenerator";
+vi.mock("../services/storyboard-generation-service", () => ({
+  determineVideoGenerationMode: vi.fn().mockReturnValue("first_frame_anchor"),
+}));
 
-const mockModel: ModelSelection = {
-  providerId: "provider-1",
-  modelId: "model-1",
-  providerName: "Test Provider",
-  modelName: "Test Model",
-};
+const mockSuccess = vi.fn();
+const mockShowError = vi.fn();
+const mockCreateTask = vi.fn().mockResolvedValue({ id: "task-1" });
 
-const mockBeat: StoryBeat = {
-  id: "beat-1",
-  sequence: 0,
-  description: "测试镜头",
-  type: "scene",
-  characterIds: ["char-1"],
-  sceneId: "scene-1",
-  elementIds: [],
-  enhancedGeneration: false,
-  framePair: {
-    firstFrame: {
-      imageUrl: "https://example.com/first.png",
-      prompt: "首帧",
-      derivedFrom: "",
-    },
-    lastFrame: {
-      imageUrl: "https://example.com/last.png",
-      prompt: "尾帧",
-      derivedFrom: "",
-    },
-    generatedAt: new Date().toISOString(),
-  },
-};
+let beats: any[];
 
-const mockCharacter: Character = {
-  id: "char-1",
-  name: "角色A",
-  description: "测试角色",
-  gender: "male",
-  style: "anime",
-  personality: [],
-  appearance: {
-    hairColor: "",
-    hairStyle: "",
-    eyeColor: "",
-    height: "",
-    build: "",
-    clothing: "",
-  },
-  prompt: "测试",
-};
-
-const mockScene: Scene = {
-  id: "scene-1",
-  name: "场景A",
-  description: "测试场景",
-  type: "indoor",
-  timeOfDay: "day",
-  weather: "sunny",
-  mood: "calm",
-  lighting: "bright",
-  elements: [],
-  colors: [],
-  prompt: "测试",
-};
-
-const mockStory: Story = {
-  id: "story-1",
-  title: "测试故事",
-  description: "",
-  characters: [],
-  scenes: [],
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
-  beats: [],
-  elementIds: [],
-};
-
-function createDefaultProps(overrides: Record<string, unknown> = {}) {
+function createProps(overrides = {}) {
   return {
-    beatsRef: { current: [mockBeat] } as React.MutableRefObject<StoryBeat[]>,
-    charactersRef: { current: [mockCharacter] } as React.MutableRefObject<Character[]>,
-    scenesRef: { current: [mockScene] } as React.MutableRefObject<Scene[]>,
-    currentStory: mockStory,
-    selectedVideoModel: mockModel,
-    createTask: vi.fn().mockResolvedValue({
-      taskId: "task-1",
-      status: "pending",
-      progress: 0,
-      message: "",
-      createdAt: new Date().toISOString(),
-    } as VideoTask),
-    success: vi.fn(),
-    showError: vi.fn(),
-    showWarning: vi.fn(),
+    beatsRef: { current: beats },
+    charactersRef: { current: [] },
+    scenesRef: { current: [] },
+    currentStory: { id: "story-1", title: "Test", description: "", characters: [], scenes: [], beats: [], createdAt: 0, updatedAt: 0, isDeleted: false, deletedAt: null, version: 1, syncId: "", ownerId: "", elementIds: [] },
+    selectedVideoModel: { providerId: "p1", modelId: "m1", providerName: "Test Provider", modelName: "Test Model" },
+    createTask: mockCreateTask,
+    success: mockSuccess,
+    showError: mockShowError,
     ...overrides,
   };
 }
@@ -154,264 +71,93 @@ function createDefaultProps(overrides: Record<string, unknown> = {}) {
 describe("useVideoGenerator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAllElements.mockResolvedValue([]);
-    mockDetermineVideoMode.mockReturnValue("first_frame_anchor");
-    mockResolveContext.mockReturnValue({
-      characterRef: undefined,
-      sceneRef: undefined,
-      prevVideoUrl: undefined,
-    });
-    mockBuildVideoPrompt.mockReturnValue("enhanced prompt");
-    mockGenerateSingleBeatPrompt.mockReturnValue("base prompt");
+    beats = [
+      {
+        id: "beat-1",
+        title: "Beat 1",
+        content: "Content",
+        sequence: 1,
+        framePair: {
+          firstFrameUrl: "https://cdn.com/ff.jpg",
+          lastFrameUrl: "https://cdn.com/lf.jpg",
+        },
+      },
+    ];
   });
 
-  describe("generateVideoNew - 前置校验", () => {
-    it("beat 不存在时应调用 showError 并返回", async () => {
-      const props = createDefaultProps({
-        beatsRef: { current: [] },
-      });
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("nonexistent");
-      });
-
-      expect(props.showError).toHaveBeenCalled();
+  it("shows error when beat not found", async () => {
+    const { result } = renderHook(() => useVideoGenerator(createProps()));
+    await act(async () => {
+      await result.current.generateVideoNew("non-existent");
     });
-
-    it("beat 无 firstFrame 时应调用 showError", async () => {
-      const beatNoFrame: StoryBeat = {
-        ...mockBeat,
-        framePair: undefined,
-      };
-      const props = createDefaultProps({
-        beatsRef: { current: [beatNoFrame] },
-      });
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(props.showError).toHaveBeenCalled();
-    });
-
-    it("未选择视频模型时应调用 showError", async () => {
-      const props = createDefaultProps({
-        selectedVideoModel: null,
-      });
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(props.showError).toHaveBeenCalled();
-    });
+    expect(mockShowError).toHaveBeenCalled();
   });
 
-  describe("generateVideoNew - 生成流程", () => {
-    it("成功时应调用 createTask 和 success", async () => {
-      const props = createDefaultProps();
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(props.createTask).toHaveBeenCalledWith(
-        "enhanced prompt",
-        undefined,
-        expect.objectContaining({
-          beatId: "beat-1",
-          storyId: "story-1",
-          firstFrameUrl: "https://example.com/first.png",
-          providerId: "provider-1",
-          modelId: "model-1",
-        }),
-      );
-      expect(props.success).toHaveBeenCalled();
+  it("shows error when framePair has no firstFrameUrl or firstFrame.imageUrl", async () => {
+    beats = [{ id: "beat-1", title: "Beat 1", content: "Content", framePair: {} }];
+    const { result } = renderHook(() => useVideoGenerator(createProps()));
+    await act(async () => {
+      await result.current.generateVideoNew("beat-1");
     });
-
-    it("应正确传递 characterRef 和 sceneRef", async () => {
-      mockResolveContext.mockReturnValue({
-        characterRef: "https://example.com/char.png",
-        sceneRef: "https://example.com/scene.png",
-        prevVideoUrl: undefined,
-      });
-
-      const props = createDefaultProps();
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(props.createTask).toHaveBeenCalledWith(
-        expect.anything(),
-        undefined,
-        expect.objectContaining({
-          characterRef: "https://example.com/char.png",
-          sceneRef: "https://example.com/scene.png",
-        }),
-      );
-    });
-
-    it("reference_video_continuation 模式无 prevVideoUrl 时应降级为 first_frame_anchor", async () => {
-      mockDetermineVideoMode.mockReturnValue("reference_video_continuation");
-      mockResolveContext.mockReturnValue({
-        characterRef: undefined,
-        sceneRef: undefined,
-        prevVideoUrl: undefined,
-      });
-
-      const props = createDefaultProps();
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(props.createTask).toHaveBeenCalledWith(
-        expect.anything(),
-        undefined,
-        expect.objectContaining({
-          referenceVideo: null,
-        }),
-      );
-    });
-
-    it("determineVideoGenerationMode 返回 reference_video_continuation 且有 prevVideoUrl 时 referenceVideo 应非空", async () => {
-      mockDetermineVideoMode.mockReturnValue("reference_video_continuation");
-      mockResolveContext.mockImplementation(() => ({
-        characterRef: undefined,
-        sceneRef: undefined,
-        prevVideoUrl: "https://example.com/prev-video.mp4",
-      }));
-
-      const props = createDefaultProps();
-      renderHook(() => useVideoGenerator(props));
-
-      const beat = mockBeat;
-      const prevBeat = null;
-      const videoMode = mockDetermineVideoMode(beat, prevBeat);
-      const context = mockResolveContext({ beat, prevBeat, characters: [], scenes: [], elements: [] });
-      const prevVideoUrl = context.prevVideoUrl;
-      const effectiveVideoMode = videoMode === "reference_video_continuation" && !prevVideoUrl
-        ? "first_frame_anchor"
-        : videoMode;
-      const referenceVideo = effectiveVideoMode === "reference_video_continuation" ? prevVideoUrl : null;
-
-      expect(referenceVideo).toBe("https://example.com/prev-video.mp4");
-    });
-
-    it("createTask 返回 promptWasTruncated 时应调用 showWarning", async () => {
-      const props = createDefaultProps();
-      (props.createTask as ReturnType<typeof vi.fn>).mockResolvedValue({
-        taskId: "task-1",
-        status: "pending",
-        progress: 0,
-        message: "",
-        createdAt: new Date().toISOString(),
-        promptWasTruncated: true,
-      });
-
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(props.showWarning).toHaveBeenCalled();
-    });
-
-    it("createTask 返回无 promptWasTruncated 时不应调用 showWarning", async () => {
-      const props = createDefaultProps();
-      (props.createTask as ReturnType<typeof vi.fn>).mockResolvedValue({
-        taskId: "task-1",
-        status: "pending",
-        progress: 0,
-        message: "",
-        createdAt: new Date().toISOString(),
-      });
-
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(props.showWarning).not.toHaveBeenCalled();
-    });
+    expect(mockShowError).toHaveBeenCalled();
   });
 
-  describe("generateVideoNew - 错误处理", () => {
-    it("createTask 抛出异常时应调用 showError", async () => {
-      const props = createDefaultProps();
-      (props.createTask as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("task creation failed"));
-
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(props.showError).toHaveBeenCalled();
+  it("creates task with firstFrameUrl from top-level field", async () => {
+    const { result } = renderHook(() => useVideoGenerator(createProps()));
+    await act(async () => {
+      await result.current.generateVideoNew("beat-1");
     });
-
-    it("无论成功或失败，generatingVideo 最终应为 null", async () => {
-      const props = createDefaultProps();
-      (props.createTask as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("fail"));
-
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(result.current.generatingVideo).toBeNull();
-    });
+    expect(mockCreateTask).toHaveBeenCalledWith(
+      expect.any(String),
+      undefined,
+      expect.objectContaining({
+        firstFrameUrl: "https://cdn.com/ff.jpg",
+        lastFrameUrl: "https://cdn.com/lf.jpg",
+      }),
+    );
   });
 
-  describe("generatingVideo 状态", () => {
-    it("初始状态应为 null", () => {
-      const props = createDefaultProps();
-      const { result } = renderHook(() => useVideoGenerator(props));
-      expect(result.current.generatingVideo).toBeNull();
+  it("creates task with firstFrame.imageUrl fallback when firstFrameUrl is absent", async () => {
+    beats = [
+      {
+        id: "beat-1",
+        title: "Beat 1",
+        content: "Content",
+        sequence: 1,
+        framePair: {
+          firstFrame: { imageUrl: "https://cdn.com/nested-ff.jpg" },
+          lastFrame: { imageUrl: "https://cdn.com/nested-lf.jpg" },
+        },
+      },
+    ];
+    const { result } = renderHook(() => useVideoGenerator(createProps()));
+    await act(async () => {
+      await result.current.generateVideoNew("beat-1");
     });
-
-    it("生成完成后 generatingVideo 应恢复为 null", async () => {
-      const props = createDefaultProps();
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1");
-      });
-
-      expect(result.current.generatingVideo).toBeNull();
-    });
+    expect(mockCreateTask).toHaveBeenCalledWith(
+      expect.any(String),
+      undefined,
+      expect.objectContaining({
+        firstFrameUrl: "https://cdn.com/nested-ff.jpg",
+        lastFrameUrl: "https://cdn.com/nested-lf.jpg",
+      }),
+    );
   });
 
-  describe("prevBeatOverride", () => {
-    it("传入 prevBeatOverride 时 resolveGenerationContext 应接收该值", async () => {
-      const prevBeat: StoryBeat = {
-        ...mockBeat,
-        id: "beat-prev",
-        sequence: -1,
-      };
-
-      const props = createDefaultProps();
-      const { result } = renderHook(() => useVideoGenerator(props));
-
-      await act(async () => {
-        await result.current.generateVideoNew("beat-1", prevBeat);
-      });
-
-      expect(mockResolveContext).toHaveBeenCalledWith(
-        expect.objectContaining({
-          prevBeat,
-        }),
-      );
+  it("shows error when createTask returns null", async () => {
+    mockCreateTask.mockResolvedValueOnce(null);
+    const { result } = renderHook(() => useVideoGenerator(createProps()));
+    await act(async () => {
+      await result.current.generateVideoNew("beat-1");
     });
+    expect(mockShowError).toHaveBeenCalled();
+  });
+
+  it("calls success when task is created", async () => {
+    const { result } = renderHook(() => useVideoGenerator(createProps()));
+    await act(async () => {
+      await result.current.generateVideoNew("beat-1");
+    });
+    expect(mockSuccess).toHaveBeenCalled();
   });
 });

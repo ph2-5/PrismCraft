@@ -24,6 +24,7 @@ import {
   type ApiCapability,
   getAllTemplates,
   type PluginProviderTemplate,
+  type DetectResult,
 } from "@/infrastructure/api-config-facade";
 
 interface CapabilityItem {
@@ -41,14 +42,12 @@ interface ProviderFormProps {
   onTemplateChange: (value: string) => void;
   isAdding: boolean;
   keyValidation: { valid: boolean; error?: string };
-  detectedInfo: {
-    templateId: string;
-    confidence: "high" | "medium" | "low";
-    suggestedName: string;
-    baseUrl?: string;
-    isPlugin?: boolean;
-    pluginId?: string;
+  detectedInfo: DetectResult | null;
+  detectedAll?: {
+    builtinMatches: DetectResult[];
+    pluginMatches: DetectResult[];
   } | null;
+  hasMultipleSources?: boolean;
   onAdd: () => void;
   onCancel: () => void;
   capabilities: CapabilityItem[];
@@ -68,6 +67,8 @@ export function ProviderForm({
   isAdding,
   keyValidation,
   detectedInfo,
+  detectedAll,
+  hasMultipleSources,
   onAdd,
   onCancel,
   capabilities,
@@ -138,10 +139,28 @@ export function ProviderForm({
                         ? t("provider.highConfidence")
                         : t("provider.mediumConfidence")}
                     </Badge>
-                    {detectedInfo.isPlugin && (
-                      <Badge variant="outline" className="text-xs border-purple-500 text-purple-400">
+                    <Badge
+                      variant="outline"
+                      className={
+                        detectedInfo.source === "plugin"
+                          ? "text-xs border-purple-500 text-purple-400"
+                          : "text-xs border-blue-500 text-blue-400"
+                      }
+                    >
+                      {detectedInfo.source === "plugin" ? (
                         <Puzzle className="h-3 w-3 mr-1" />
-                        {t("plugin.detectedAsPlugin", { name: detectedInfo.suggestedName })}
+                      ) : null}
+                      {detectedInfo.source === "plugin"
+                        ? t("plugin.detectedAsPlugin", { name: detectedInfo.suggestedName })
+                        : t("provider.sourceBuiltin")}
+                    </Badge>
+                    {hasMultipleSources && detectedAll && (
+                      <Badge variant="outline" className="text-xs border-amber-500 text-amber-400">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        {t("provider.multipleSources", {
+                          builtin: detectedAll.builtinMatches.length,
+                          plugin: detectedAll.pluginMatches.length,
+                        })}
                       </Badge>
                     )}
                   </>

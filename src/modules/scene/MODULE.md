@@ -12,6 +12,8 @@
 |------|------|------|
 | `services` | [services/](./services/) | 场景 CRUD 服务，使用 Result 模式处理错误，触发领域事件 |
 | `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：CRUD、图片生成 |
+| `constants` | [constants.ts](./constants.ts) | 默认场景、类型建议等常量 |
+| `presentation` | [presentation/](./presentation/) | 场景列表项 |
 
 ---
 

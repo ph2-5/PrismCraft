@@ -6,9 +6,8 @@ import {
   buildFixedImageDesc,
   buildReferenceVideoDesc,
   buildTemplateDesc,
-  CAMERA_MOVEMENT_KEYWORDS,
 } from "../../base";
-import { shotInstructionToPrompt, getBeatCharacterIds } from "@/domain/utils";
+import { shotInstructionToPrompt, resolveShotInstruction, SHOT_SIZE_OPTIONS, getBeatCharacterIds } from "@/domain/utils";
 import { promptBuilder } from "../../builder";
 import type { Character, FeatureAnchoringConfig, FixedImageConfig, ReferenceVideoConfig, Scene, ShotInstructionTemplate, StoryBeat, StoryElement, TemplateConfig } from "@/domain/schemas";
 
@@ -40,7 +39,6 @@ export function generateSingleBeatPrompt(
     referenceVideoConfig,
     templateConfig,
     featureAnchoring,
-    shotInstruction,
     previousLastFrameUrl,
     elements,
   } = params;
@@ -56,22 +54,6 @@ export function generateSingleBeatPrompt(
   }
 
   parts.push("【镜头 " + (index + 1) + "】" + (beat.title || "未命名镜头"));
-
-  if (beat.shotType) {
-    const shotTypeMap: Record<string, string> = {
-      wide: "远景", "wide-shot": "远景",
-      medium: "中景", "medium-shot": "中景",
-      close: "特写", "close-up": "特写",
-      "extreme-close": "大特写", "extreme-close-up": "大特写",
-      "medium-close": "中近景", "medium-close-up": "中近景",
-      "full-shot": "全景", full: "全景",
-      "over-shoulder": "过肩镜头", ots: "过肩镜头",
-      "point-of-view": "主观视角", pov: "主观视角",
-      "two-shot": "双人镜头", "establishing": "建立镜头",
-    };
-    const shotLabel = shotTypeMap[beat.shotType] || beat.shotType;
-    parts.push("景别：" + shotLabel);
-  }
 
   if (beat.type) {
     const typeMap: Record<string, string> = {
@@ -133,10 +115,26 @@ export function generateSingleBeatPrompt(
     }
   }
 
-  if (shotInstruction) {
-    parts.push("");
-    parts.push("【镜头指令】");
-    parts.push(shotInstructionToPrompt(shotInstruction));
+  const resolvedShot = params.shotInstruction
+    ? {
+        shotSize: params.shotInstruction.shotSize,
+        cameraMovement: params.shotInstruction.cameraMovement,
+        cameraAngle: params.shotInstruction.cameraAngle,
+      }
+    : resolveShotInstruction(beat);
+  if (resolvedShot) {
+    const shotLabel = SHOT_SIZE_OPTIONS.find(o => o.value === resolvedShot.shotSize)?.label;
+    const shotPrompt = shotInstructionToPrompt({
+      shotSize: resolvedShot.shotSize,
+      cameraMovement: resolvedShot.cameraMovement,
+      cameraAngle: resolvedShot.cameraAngle,
+    });
+    if (shotPrompt) {
+      parts.push("");
+      parts.push("【镜头指令】");
+      if (shotLabel) parts.push("景别：" + shotLabel);
+      parts.push(shotPrompt);
+    }
   }
 
   const sceneId = beat.sceneId || beat.scene;
@@ -194,7 +192,11 @@ export function generateSingleBeatPrompt(
         const elParts: string[] = [];
         if (el.type === "existing_character" && el.characterId) {
           const char = characters.find((c) => c.id === el.characterId);
-          if (char) elParts.push(char.name);
+          if (char) {
+            elParts.push(char.name);
+          } else {
+            if (el.name) elParts.push(el.name);
+          }
         } else {
           elParts.push(el.name);
         }
@@ -239,14 +241,6 @@ export function generateSingleBeatPrompt(
     parts.push(
       "【上一分镜尾帧参考】本分镜的首帧画面应与上一分镜的尾帧画面保持视觉连贯，确保角色位置、姿态和场景布局的平滑过渡。",
     );
-  }
-
-  if (beat.camera && !shotInstruction) {
-    const cameraObj =
-      typeof beat.camera === "string" ? { movement: beat.camera } : beat.camera;
-    const movement = cameraObj?.movement || "";
-    const cameraKeyword = CAMERA_MOVEMENT_KEYWORDS[movement] || movement;
-    if (cameraKeyword) parts.push("运镜：" + cameraKeyword);
   }
 
   if (beat.promptLayers) {

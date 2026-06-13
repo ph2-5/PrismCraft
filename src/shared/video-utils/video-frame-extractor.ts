@@ -1,3 +1,5 @@
+import { t } from "@/shared/constants";
+
 const DEFAULT_FRAME_SIZE = 512;
 
 export interface ExtractedFrames {
@@ -36,30 +38,30 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
       reject(reason);
     };
 
-    let timeoutId = setTimeout(() => {
-      safeReject(new Error("视频帧提取超时"));
+    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      safeReject(new Error(t("error.videoFrameTimeout")));
     }, 30000);
 
     const handleError = () => {
-      clearTimeout(timeoutId);
-      timeoutId = null as unknown as ReturnType<typeof setTimeout>;
-      safeReject(new Error("视频加载失败"));
+      clearTimeout(timeoutId!);
+      timeoutId = null;
+      safeReject(new Error(t("error.videoLoadFailed")));
     };
 
     const handleLoadedMetadata = () => {
-      clearTimeout(timeoutId);
-      timeoutId = null as unknown as ReturnType<typeof setTimeout>;
+      clearTimeout(timeoutId!);
+      timeoutId = null;
       const duration = video.duration;
 
       if (!duration || isNaN(duration) || duration <= 0) {
-        safeReject(new Error("无法获取视频时长"));
+        safeReject(new Error(t("error.videoDurationInvalid")));
         return;
       }
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) {
-        safeReject(new Error("无法创建 canvas 上下文"));
+        safeReject(new Error(t("error.canvasContextFailed")));
         return;
       }
 

@@ -27,6 +27,8 @@ export interface CodePluginExport {
     image: boolean;
     text: boolean;
     vision: boolean;
+    nativeCharacterRef?: boolean;
+    nativeSceneRef?: boolean;
   };
 
   videoCapabilities: {
@@ -35,6 +37,12 @@ export interface CodePluginExport {
     supportsMimicryLevel: boolean;
     defaultModel: string;
     maxDuration: number;
+    characterRefMode?: "native_field" | "multimodal" | "ref_field" | "text_append" | "none";
+    sceneRefMode?: "native_field" | "multimodal" | "ref_field" | "text_append" | "none";
+    characterRefField?: string;
+    sceneRefField?: string;
+    imageUploadMode?: "base64" | "url" | "upload";
+    maxCharacterRefs?: number;
   };
   imageCapabilities: {
     supportsReferenceImage: boolean;

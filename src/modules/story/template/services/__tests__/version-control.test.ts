@@ -28,12 +28,7 @@ import {
 } from "../version-control";
 import { container } from "@/infrastructure/di";
 
-const versionStorage = container.versionStorage as unknown as {
-  getStoryVersions: ReturnType<typeof vi.fn>;
-  createStoryVersion: ReturnType<typeof vi.fn>;
-  deleteStoryVersion: ReturnType<typeof vi.fn>;
-  deleteOldStoryVersions: ReturnType<typeof vi.fn>;
-};
+const versionStorage = vi.mocked(container.versionStorage);
 
 const mockStory: Story = {
   id: "story-1",

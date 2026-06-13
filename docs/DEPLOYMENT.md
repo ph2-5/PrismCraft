@@ -1,6 +1,6 @@
 # AI Animation Studio 部署与运维指南
 
-> 版本：0.9.1 | 更新日期：2026-06-06
+> 版本：0.9.4 | 更新日期：2026-06-06
 
 ## 1. 环境要求
 
@@ -186,7 +186,7 @@ npm run rebuild    # 等价于 npx electron-rebuild
 npm run build:win
 ```
 
-产物：NSIS 安装程序（`release/AI Animation Studio Setup 0.9.1.exe`）
+产物：NSIS 安装程序（`release/AI Animation Studio Setup 0.9.4.exe`）
 
 NSIS 配置：
 - 非一键安装，允许用户选择安装目录
@@ -285,8 +285,8 @@ npm run validate:full
 3. **创建版本标签：**
 
 ```powershell
-git tag v0.9.1
-git push origin v0.9.1
+git tag v0.9.4
+git push origin v0.9.4
 ```
 
 4. **自动触发 Release 流水线**（`.github/workflows/release.yml`）
@@ -490,7 +490,7 @@ before-quit → gracefulShutdown()
 
 - SQLite 运行在 WAL 模式，支持并发读写
 - 所有查询使用参数化语句，防止 SQL 注入
-- Schema 版本：当前为 3，通过 `runMigrations(db, currentVersion)` 管理
+- Schema 版本：当前为 4，通过 `runMigrations(db, currentVersion)` 管理
 - 迁移在 `db.transaction()` 内执行，失败自动回滚
 - JSON 容器模式：易变字段存储在 JSON 列中，避免 ALTER TABLE
 - 部分更新使用 `json_set(COALESCE(container, '{}'), '$.key', ?)` 模式

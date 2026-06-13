@@ -1,4 +1,4 @@
-import { Play, Upload, Loader2 } from "lucide-react";
+import { Play, Upload, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { AppCard } from "@/shared/ui/app-card";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
@@ -15,6 +15,7 @@ interface VideoStepContentProps {
   videoInputRef: React.RefObject<HTMLInputElement | null>;
   onUploadVideo?: (file: File) => void;
   onGenerateVideo: () => Promise<StoryBeat | void>;
+  onRegenerateVideo?: () => Promise<void>;
   onFileSelect: (
     e: React.ChangeEvent<HTMLInputElement>,
     handler?: (file: File) => void,
@@ -30,6 +31,7 @@ export function VideoStepContent({
   videoInputRef,
   onUploadVideo,
   onGenerateVideo,
+  onRegenerateVideo,
   onFileSelect,
 }: VideoStepContentProps) {
   const status = hasVideo
@@ -109,7 +111,7 @@ export function VideoStepContent({
               <Upload className="w-4 h-4 mr-1" />
               {t("common.upload")}
             </Button>
-            {!hasVideo && (
+            {!hasVideo ? (
               <Button
                 size="sm"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
@@ -123,7 +125,18 @@ export function VideoStepContent({
                 )}
                 {t("beat.generateVideo")}
               </Button>
-            )}
+            ) : onRegenerateVideo ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-slate-700 hover:bg-slate-600"
+                onClick={onRegenerateVideo}
+                disabled={isGenerating}
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                {t("common.regenerate")}
+              </Button>
+            ) : null}
           </div>
         </div>
 

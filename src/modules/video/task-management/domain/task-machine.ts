@@ -11,7 +11,7 @@ export class TransitionError extends AppError {
   }
 }
 
-const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
+export const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
   pending: ["generating", "failed", "cancelled", "timeout"],
   generating: ["completed", "failed", "cancelled", "timeout"],
   completed: ["pending"],
@@ -21,11 +21,28 @@ const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
   timeout: ["retrying", "failed", "cancelled"],
 };
 
+export const TERMINAL_STATUSES: VideoTaskStatus[] = ["completed", "cancelled"];
+
 const POLLABLE_STATUSES: VideoTaskStatus[] = ["pending", "generating", "retrying"];
+
+export const STUCK_TASK_THRESHOLD_MS = 30 * 60 * 1000;
+
+export function isValidTransition(from: VideoTaskStatus, to: VideoTaskStatus): boolean {
+  return VALID_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+export function isStuck(task: VideoTask, nowMs: number = Date.now()): boolean {
+  if (task.status !== "generating" && task.status !== "pending" && task.status !== "retrying") {
+    return false;
+  }
+  const lastActivity = task.updatedAt || task.lastPolledAt || task.createdAt;
+  if (!lastActivity) return false;
+  return nowMs - new Date(lastActivity).getTime() > STUCK_TASK_THRESHOLD_MS;
+}
 
 export const TaskMachine = {
   canTransition(from: VideoTaskStatus, to: VideoTaskStatus): boolean {
-    return VALID_TRANSITIONS[from]?.includes(to) ?? false;
+    return isValidTransition(from, to);
   },
 
   isPollable(status: VideoTaskStatus): boolean {
@@ -33,7 +50,7 @@ export const TaskMachine = {
   },
 
   isTerminal(status: VideoTaskStatus): boolean {
-    return status === "completed" || status === "cancelled";
+    return TERMINAL_STATUSES.includes(status);
   },
 
   isRecoverable(status: VideoTaskStatus): boolean {
@@ -45,7 +62,11 @@ export const TaskMachine = {
     targetStatus: VideoTaskStatus,
     context?: { videoUrl?: string; error?: string; progress?: number },
   ): Result<VideoTask, TransitionError> {
-    if (!TaskMachine.canTransition(task.status, targetStatus)) {
+    if (!isValidTransition(task.status, targetStatus)) {
+      return err(new TransitionError(task.status, targetStatus));
+    }
+
+    if (targetStatus === "completed" && task.status === "completed") {
       return err(new TransitionError(task.status, targetStatus));
     }
 

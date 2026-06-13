@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TaskMachine } from "../task-machine";
+import { TaskMachine, isValidTransition, isStuck, STUCK_TASK_THRESHOLD_MS, VALID_TRANSITIONS, TERMINAL_STATUSES } from "../task-machine";
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
 
 function makeTask(overrides: Partial<VideoTask> = {}): VideoTask {
@@ -201,6 +201,16 @@ describe("TaskMachine", () => {
         expect(new Date(result.value.updatedAt!).getTime()).toBeGreaterThanOrEqual(before);
       }
     });
+
+    it("should reject double-completion (completed → completed)", () => {
+      const task = makeTask({ status: "completed" });
+      const result = TaskMachine.transition(task, "completed");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.message).toContain("不允许从");
+      }
+    });
   });
 
   describe("isPollable", () => {
@@ -233,5 +243,109 @@ describe("TaskMachine", () => {
         expect(TaskMachine.isTerminal(status)).toBe(expected);
       },
     );
+  });
+});
+
+describe("isValidTransition", () => {
+  it("should match TaskMachine.canTransition results", () => {
+    const statuses: VideoTaskStatus[] = ["pending", "generating", "completed", "failed", "cancelled", "retrying", "timeout"];
+    for (const from of statuses) {
+      for (const to of statuses) {
+        expect(isValidTransition(from, to)).toBe(TaskMachine.canTransition(from, to));
+      }
+    }
+  });
+
+  it("should return false for unknown status", () => {
+    expect(isValidTransition("unknown" as VideoTaskStatus, "pending")).toBe(false);
+  });
+});
+
+describe("isStuck", () => {
+  it("should return false for completed task", () => {
+    const task = makeTask({ status: "completed", updatedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() });
+    expect(isStuck(task)).toBe(false);
+  });
+
+  it("should return false for failed task", () => {
+    const task = makeTask({ status: "failed", updatedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() });
+    expect(isStuck(task)).toBe(false);
+  });
+
+  it("should return false for recently active generating task", () => {
+    const task = makeTask({ status: "generating", updatedAt: new Date().toISOString() });
+    expect(isStuck(task)).toBe(false);
+  });
+
+  it("should return true for generating task with no activity beyond threshold", () => {
+    const now = Date.now();
+    const task = makeTask({
+      status: "generating",
+      updatedAt: new Date(now - STUCK_TASK_THRESHOLD_MS - 1).toISOString(),
+    });
+    expect(isStuck(task, now)).toBe(true);
+  });
+
+  it("should return true for pending task with no activity beyond threshold", () => {
+    const now = Date.now();
+    const task = makeTask({
+      status: "pending",
+      updatedAt: new Date(now - STUCK_TASK_THRESHOLD_MS - 1).toISOString(),
+    });
+    expect(isStuck(task, now)).toBe(true);
+  });
+
+  it("should return true for retrying task with no activity beyond threshold", () => {
+    const now = Date.now();
+    const task = makeTask({
+      status: "retrying",
+      updatedAt: new Date(now - STUCK_TASK_THRESHOLD_MS - 1).toISOString(),
+    });
+    expect(isStuck(task, now)).toBe(true);
+  });
+
+  it("should use lastPolledAt when updatedAt is missing", () => {
+    const now = Date.now();
+    const task = makeTask({
+      status: "generating",
+      lastPolledAt: new Date(now - STUCK_TASK_THRESHOLD_MS - 1).toISOString(),
+    });
+    expect(isStuck(task, now)).toBe(true);
+  });
+
+  it("should use createdAt when updatedAt and lastPolledAt are missing", () => {
+    const now = Date.now();
+    const task = makeTask({
+      status: "generating",
+      createdAt: new Date(now - STUCK_TASK_THRESHOLD_MS - 1).toISOString(),
+    });
+    expect(isStuck(task, now)).toBe(true);
+  });
+
+  it("should return false when no timestamp is available", () => {
+    const task = makeTask({ status: "generating" });
+    delete (task as Record<string, unknown>).updatedAt;
+    delete (task as Record<string, unknown>).lastPolledAt;
+    delete (task as Record<string, unknown>).createdAt;
+    expect(isStuck(task)).toBe(false);
+  });
+});
+
+describe("VALID_TRANSITIONS", () => {
+  it("should have no self-transitions for terminal states", () => {
+    expect(VALID_TRANSITIONS.completed).not.toContain("completed");
+    expect(VALID_TRANSITIONS.cancelled).not.toContain("cancelled");
+  });
+
+  it("should have empty array for cancelled", () => {
+    expect(VALID_TRANSITIONS.cancelled).toEqual([]);
+  });
+});
+
+describe("TERMINAL_STATUSES", () => {
+  it("should contain completed and cancelled", () => {
+    expect(TERMINAL_STATUSES).toContain("completed");
+    expect(TERMINAL_STATUSES).toContain("cancelled");
+    expect(TERMINAL_STATUSES.length).toBe(2);
   });
 });

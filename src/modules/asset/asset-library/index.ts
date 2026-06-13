@@ -3,6 +3,7 @@ import type { Character, Collection, Scene, StoryboardAsset } from "@/domain/sch
 import { updateOutfitImage } from "@/shared/outfit";
 import { errorLogger } from "@/shared/error-logger";
 import { normalizeGender } from "@/shared/utils/utils";
+import { t } from "@/shared/constants";
 
 async function saveImageToLocal(
   imageData: string,
@@ -99,7 +100,7 @@ export const characterService = {
 
   async update(id: string, updates: Partial<Character>): Promise<void> {
     const existing = await container.characterStorage.getCharacterById(id);
-    if (!existing) throw new Error("角色不存在");
+    if (!existing) throw new Error(t("error.characterNotFound"));
     const updated = {
       ...existing,
       ...updates,
@@ -193,7 +194,7 @@ export const sceneService = {
 
   async update(id: string, updates: Partial<Scene>): Promise<void> {
     const existing = await container.sceneStorage.getSceneById(id);
-    if (!existing) throw new Error("场景不存在");
+    if (!existing) throw new Error(t("error.sceneNotFound"));
     const updated = {
       ...existing,
       ...updates,

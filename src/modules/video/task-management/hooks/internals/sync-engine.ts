@@ -4,6 +4,7 @@ import { cleanExpiredTasks } from "@/modules/video/recovery";
 import { cleanExpiredVideoCache } from "@/modules/video/cache";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
+import { t } from "@/shared/constants";
 import { pollingState } from "./polling-engine";
 
 const SYNC_DEBOUNCE_MS = 2000;
@@ -67,7 +68,7 @@ export function scheduleSync() {
           } catch (cleanError) {
             errorLogger.error("[VideoTaskManager] 清理过期数据失败，数据库空间不足", cleanError);
           }
-          emitToast("error", "存储空间不足", "视频任务数据同步失败，请清理部分任务记录后重试");
+          emitToast("error", t("error.storageFull"), t("error.storageFullDesc"));
         }
       }
     } finally {

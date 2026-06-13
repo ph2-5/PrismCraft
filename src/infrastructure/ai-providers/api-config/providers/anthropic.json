@@ -1,0 +1,33 @@
+{
+  "id": "anthropic",
+  "name": "Anthropic Claude",
+  "format": "anthropic",
+  "baseUrl": "https://api.anthropic.com/v1",
+  "detection": {
+    "rules": [
+      { "pattern": "^sk-ant-api03-[a-zA-Z0-9_-]+$", "confidence": "high" }
+    ],
+    "suggestedName": "Anthropic Claude",
+    "baseUrl": "https://api.anthropic.com/v1"
+  },
+  "models": [
+    {
+      "id": "claude-3-opus-20240229",
+      "name": "Claude 3 Opus",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 200000, "temperature": 0.7 }
+    },
+    {
+      "id": "claude-3-sonnet-20240229",
+      "name": "Claude 3 Sonnet",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 200000, "temperature": 0.7 }
+    },
+    {
+      "id": "claude-3-haiku-20240307",
+      "name": "Claude 3 Haiku",
+      "capabilities": ["text", "vision"],
+      "defaultParams": { "maxTokens": 200000, "temperature": 0.7 }
+    }
+  ]
+}

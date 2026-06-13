@@ -56,8 +56,8 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
   const charNames = charIds
     .map((id: string) => characters.find((c) => c.id === id)?.name)
     .filter((n): n is string => Boolean(n));
-  const sceneName = beat.scene
-    ? scenes.find((s) => s.id === beat.scene)?.name
+  const sceneName = (beat.sceneId || beat.scene)
+    ? scenes.find((s) => s.id === (beat.sceneId || beat.scene))?.name
     : null;
   const keyframeImage = resolveMediaUrl(beat.localKeyframePath, beat.keyframe?.imageUrl);
   const videoGen = resolveMediaUrl(beat.localVideoPath, beat.videoGen?.videoUrl);

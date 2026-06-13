@@ -28,6 +28,8 @@ interface PluginMetadata {
     image: boolean;
     text: boolean;
     vision: boolean;
+    nativeCharacterRef?: boolean;
+    nativeSceneRef?: boolean;
   };
   videoCapabilities: Record<string, unknown>;
   imageCapabilities: Record<string, unknown>;
@@ -91,6 +93,8 @@ function extractMetadata(exported: Record<string, unknown>): PluginMetadata {
     image: rawCapabilities?.image !== undefined ? Boolean(rawCapabilities.image) : true,
     text: rawCapabilities?.text !== undefined ? Boolean(rawCapabilities.text) : true,
     vision: rawCapabilities?.vision !== undefined ? Boolean(rawCapabilities.vision) : true,
+    nativeCharacterRef: rawCapabilities?.nativeCharacterRef !== undefined ? Boolean(rawCapabilities.nativeCharacterRef) : undefined,
+    nativeSceneRef: rawCapabilities?.nativeSceneRef !== undefined ? Boolean(rawCapabilities.nativeSceneRef) : undefined,
   };
 
   let apiKeyDetection: PluginMetadata["apiKeyDetection"] = null;

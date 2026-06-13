@@ -11,17 +11,25 @@ export function buildPromptLayers(params: {
   shotInstruction?: ShotInstructionTemplate;
   customDescription?: string;
   styleAtmosphere?: string;
+  language?: "en" | "zh" | "auto";
 }): {
   coreElements: string;
   cameraAction: string;
   styleAtmosphere: string;
 } {
+  const isEn = params.language === "en";
   const coreParts: string[] = [];
 
   for (const char of params.characterAnchors) {
-    coreParts.push(
-      `角色"${char.elementName}"：严格保持${char.featureTags.join("、")}等核心特征不变`,
-    );
+    if (isEn) {
+      coreParts.push(
+        `Character "${char.elementName}": strictly maintain ${char.featureTags.join(", ")} and other core features unchanged`,
+      );
+    } else {
+      coreParts.push(
+        `角色"${char.elementName}"：严格保持${char.featureTags.join("、")}等核心特征不变`,
+      );
+    }
   }
 
   const cameraParts: string[] = [];
@@ -38,8 +46,8 @@ export function buildPromptLayers(params: {
   }
 
   return {
-    coreElements: coreParts.join("；"),
-    cameraAction: cameraParts.join("，"),
-    styleAtmosphere: styleParts.join("，"),
+    coreElements: coreParts.join(isEn ? "; " : "；"),
+    cameraAction: cameraParts.join(isEn ? ", " : "，"),
+    styleAtmosphere: styleParts.join(isEn ? ", " : "，"),
   };
 }

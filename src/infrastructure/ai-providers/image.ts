@@ -6,6 +6,7 @@ import { imageToBase64 as normalizeImageToBase64 } from "@/infrastructure/ai-pro
 import type { ImageGenerationRequestBody } from "./types";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { resolveImageSize, type ImageSizePurpose } from "./model-capabilities";
+import { t } from "@/shared/constants";
 
 async function validateImageSize(
   imageUrl: string,
@@ -23,7 +24,7 @@ async function validateImageSize(
         cleanup();
       };
       img.onerror = () => {
-        reject(new Error("图片加载失败，无法验证尺寸"));
+        reject(new Error(t("error.imageLoadValidationFailed")));
         cleanup();
       };
       img.src = imageUrl;

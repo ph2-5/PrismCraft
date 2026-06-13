@@ -4,11 +4,42 @@ import type { StoryBeat, StoryBeatKeyframe, Character, Scene, StoryElement, Stor
 import { generateBeatImagePrompt } from "@/domain/utils";
 import { generateFramePrompts } from "./frame-prompt-service";
 import { type ProviderDeps, buildStyleEnhancedPrompt } from "./video-generation-mode";
+import { getVideoGenerationStrategy } from "@/shared/model-capabilities";
+import { t } from "@/shared/constants";
+
+function buildReferenceEnhancedPrompt(
+  basePrompt: string,
+  hasCharacterRef: boolean,
+  hasSceneRef: boolean,
+  useEnglish: boolean = false,
+): string {
+  const instructions: string[] = [];
+
+  if (hasCharacterRef) {
+    instructions.push(
+      useEnglish
+        ? "CRITICAL: The character in this image MUST strictly match the appearance (face, hair, clothing, body type) shown in the provided character reference image. This is the highest priority requirement."
+        : "关键要求：本图中的角色必须严格匹配提供的角色参考图中的外观（面部、发型、服装、体型），这是最高优先级要求。",
+    );
+  }
+
+  if (hasSceneRef) {
+    instructions.push(
+      useEnglish
+        ? "The scene environment, lighting, and color tone MUST match the provided scene reference image."
+        : "场景环境、光照和色调必须匹配提供的场景参考图。",
+    );
+  }
+
+  if (instructions.length === 0) return basePrompt;
+  return `${instructions.join("\n")}\n\n${basePrompt}`;
+}
 
 export async function generateBeatKeyframe(
   beat: StoryBeat,
   prevBeat: StoryBeat | null,
   options: {
+    characterRefs?: string[];
     characterRef?: string;
     sceneRef?: string;
     providerId?: string;
@@ -43,13 +74,22 @@ export async function generateBeatKeyframe(
     }
 
     if (!content.trim()) {
-      throw new ValidationError("无法生成预览图：分镜内容描述为空，请填写分镜内容或自定义提示词");
+      throw new ValidationError(t("error.keyframeEmptyContent"));
     }
 
     content = buildStyleEnhancedPrompt(content, options.styleGuide);
+    const keyframeUseEnglish = options.modelId
+      ? getVideoGenerationStrategy(options.modelId).promptLanguage === "en"
+      : false;
+    content = buildReferenceEnhancedPrompt(
+      content,
+      !!(options.characterRefs?.length || options.characterRef),
+      !!options.sceneRef,
+      keyframeUseEnglish,
+    );
 
     const result = await providers.videoProvider.generateKeyframe({
-      characterRef: options.characterRef,
+      characterRef: options.characterRefs?.[0] || options.characterRef,
       sceneRef: options.sceneRef,
       prevKeyframe,
       shotRequirement: {
@@ -64,7 +104,7 @@ export async function generateBeatKeyframe(
     });
 
     if (!result.success || !result.data) {
-      throw new Error(result.error || "预览图生成失败");
+      throw new Error(result.error || t("error.keyframeGenFailed"));
     }
 
     return {
@@ -79,6 +119,7 @@ export async function generateBeatKeyframe(
 export async function generateBeatFramePair(
   beat: StoryBeat,
   options: {
+    characterRefs?: string[];
     characterRef?: string;
     sceneRef?: string;
     prevLastFrameUrl?: string;
@@ -94,12 +135,13 @@ export async function generateBeatFramePair(
     beatIndex?: number;
     prevBeatDescription?: string;
     nextBeatDescription?: string;
+    consistencyHint?: string;
   },
   providers: ProviderDeps,
 ): Promise<Result<import("@/domain/schemas").StoryBeatFramePair>> {
   return fromAsyncThrowable(async () => {
     if (!beat.keyframe?.imageUrl) {
-      throw new ValidationError("生成首尾帧前必须先生成预览图");
+      throw new ValidationError(t("error.framePairRequiresKeyframe"));
     }
 
     let firstFramePrompt = options.customFirstFramePrompt || beat.firstFramePrompt;
@@ -135,7 +177,7 @@ export async function generateBeatFramePair(
     if (!firstFramePrompt?.trim() && !lastFramePrompt?.trim() && !options.prevLastFrameUrl) {
       const fallbackPrompt = beat.content || beat.description || beat.keyframe?.prompt;
       if (!fallbackPrompt?.trim()) {
-        throw new ValidationError("无法生成首尾帧：分镜内容和提示词均为空");
+        throw new ValidationError(t("error.framePairEmptyContent"));
       }
       firstFramePrompt = firstFramePrompt || fallbackPrompt;
       lastFramePrompt = lastFramePrompt || fallbackPrompt;
@@ -151,6 +193,26 @@ export async function generateBeatFramePair(
       lastFramePrompt = buildStyleEnhancedPrompt(lastFramePrompt, options.styleGuide);
     }
 
+    if (options.consistencyHint && firstFramePrompt) {
+      firstFramePrompt = `${firstFramePrompt}\n[Consistency feedback: ${options.consistencyHint}]`;
+    }
+    if (options.consistencyHint && lastFramePrompt) {
+      lastFramePrompt = `${lastFramePrompt}\n[Consistency feedback: ${options.consistencyHint}]`;
+    }
+
+    const hasCharRef = !!(options.characterRefs?.length || options.characterRef);
+    const hasSceneRef = !!options.sceneRef;
+    const frameUseEnglish = options.modelId
+      ? getVideoGenerationStrategy(options.modelId).promptLanguage === "en"
+      : false;
+
+    if (firstFramePrompt) {
+      firstFramePrompt = buildReferenceEnhancedPrompt(firstFramePrompt, hasCharRef, hasSceneRef, frameUseEnglish);
+    }
+    if (lastFramePrompt) {
+      lastFramePrompt = buildReferenceEnhancedPrompt(lastFramePrompt, hasCharRef, hasSceneRef, frameUseEnglish);
+    }
+
     let fullKeyframePrompt = beat.keyframe.prompt || "";
     if (!fullKeyframePrompt && options.characters && options.scenes) {
       fullKeyframePrompt = generateBeatImagePrompt({
@@ -162,16 +224,21 @@ export async function generateBeatFramePair(
         shotInstruction: beat.shotInstruction,
       });
     }
+    fullKeyframePrompt = buildReferenceEnhancedPrompt(fullKeyframePrompt, hasCharRef, hasSceneRef, frameUseEnglish);
+
+    const frameLabel = frameUseEnglish
+      ? { first: "First frame prompt: ", last: "Last frame prompt: " }
+      : { first: "首帧提示：", last: "尾帧提示：" };
 
     if (options.prevLastFrameUrl || (!firstFramePrompt && !lastFramePrompt)) {
       const llmHint = firstFramePrompt && lastFramePrompt
-        ? `首帧提示：${firstFramePrompt}\n尾帧提示：${lastFramePrompt}\n`
+        ? `${frameLabel.first}${firstFramePrompt}\n${frameLabel.last}${lastFramePrompt}\n`
         : "";
 
       const result = await providers.videoProvider.generateFramePair({
         keyframeUrl: beat.keyframe.imageUrl,
         keyframePrompt: llmHint + fullKeyframePrompt,
-        characterRef: options.characterRef,
+        characterRef: options.characterRefs?.[0] || options.characterRef,
         sceneRef: options.sceneRef,
         prevLastFrameUrl: options.prevLastFrameUrl,
         actionDescription: beat.content || beat.description,
@@ -181,7 +248,7 @@ export async function generateBeatFramePair(
       });
 
       if (!result.success || !result.data) {
-        throw new Error(result.error || "首尾帧生成失败");
+        throw new Error(result.error || t("error.framePairGenFailed"));
       }
 
       return {
@@ -205,45 +272,39 @@ export async function generateBeatFramePair(
     }
 
     if (firstFramePrompt && lastFramePrompt) {
-      const imageConfig: Record<string, unknown> = {};
-      if (options.providerId) (imageConfig as Record<string, unknown>).providerId = options.providerId;
-      if (options.modelId) (imageConfig as Record<string, unknown>).modelId = options.modelId;
+      const combinedKeyframePrompt = `${frameLabel.first}${firstFramePrompt}\n${frameLabel.last}${lastFramePrompt}\n${fullKeyframePrompt}`;
 
-      const results = await Promise.allSettled([
-        providers.imageProvider.generateImage(firstFramePrompt, "scene", imageConfig),
-        providers.imageProvider.generateImage(lastFramePrompt, "scene", imageConfig),
-      ]);
+      const result = await providers.videoProvider.generateFramePair({
+        keyframeUrl: beat.keyframe.imageUrl,
+        keyframePrompt: combinedKeyframePrompt,
+        characterRef: options.characterRefs?.[0] || options.characterRef,
+        sceneRef: options.sceneRef,
+        actionDescription: beat.content || beat.description,
+        duration: beat.duration,
+        providerId: options.providerId,
+        modelId: options.modelId,
+      });
 
-      const firstResult = results[0].status === "fulfilled" ? results[0].value : null;
-      const lastResult = results[1].status === "fulfilled" ? results[1].value : null;
-
-      const errors: string[] = [];
-      if (!firstResult?.success || !firstResult.data?.imageUrl) {
-        errors.push(firstResult?.error || "首帧生成失败");
-      }
-      if (!lastResult?.success || !lastResult.data?.imageUrl) {
-        errors.push(lastResult?.error || "尾帧生成失败");
-      }
-      if (errors.length > 0) {
-        throw new Error(errors.join("; "));
+      if (!result.success || !result.data) {
+        throw new Error(result.error || t("error.framePairGenFailed"));
       }
 
       return {
         firstFrame: {
-          imageUrl: firstResult?.data?.imageUrl || "",
+          imageUrl: result.data.firstFrame.imageUrl,
           prompt: firstFramePrompt,
           derivedFrom: beat.keyframe?.imageUrl || "",
         },
         lastFrame: {
-          imageUrl: lastResult?.data?.imageUrl || "",
+          imageUrl: result.data.lastFrame.imageUrl,
           prompt: lastFramePrompt,
-          derivedFrom: firstResult?.data?.imageUrl || "",
+          derivedFrom: result.data.firstFrame.imageUrl,
         },
-        firstFrameUrl: firstResult?.data?.imageUrl || "",
-        lastFrameUrl: lastResult?.data?.imageUrl || "",
+        firstFrameUrl: result.data.firstFrame.imageUrl,
+        lastFrameUrl: result.data.lastFrame.imageUrl,
         firstFramePrompt,
         lastFramePrompt,
-        generatedAt: new Date().toISOString(),
+        generatedAt: new Date(result.data.generatedAt).toISOString(),
         source: "ai",
       };
     }
@@ -251,7 +312,7 @@ export async function generateBeatFramePair(
     const result = await providers.videoProvider.generateFramePair({
       keyframeUrl: beat.keyframe.imageUrl,
       keyframePrompt: fullKeyframePrompt,
-      characterRef: options.characterRef,
+      characterRef: options.characterRefs?.[0] || options.characterRef,
       sceneRef: options.sceneRef,
       actionDescription: beat.content || beat.description,
       duration: beat.duration,
@@ -260,7 +321,7 @@ export async function generateBeatFramePair(
     });
 
     if (!result.success || !result.data) {
-      throw new Error(result.error || "首尾帧生成失败");
+      throw new Error(result.error || t("error.framePairGenFailed"));
     }
 
     return {

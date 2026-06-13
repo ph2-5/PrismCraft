@@ -2,6 +2,7 @@ import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
 import type { StoryBeat } from "@/domain/schemas";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 export interface StoryboardTemplate {
   id: string;
@@ -125,7 +126,7 @@ export function importTemplateFromFile(
       try {
         const data = JSON.parse(e.target?.result as string);
         if (!data.name || !Array.isArray(data.beats)) {
-          throw new Error("无效的模板文件格式");
+          throw new Error(t("error.invalidTemplateFormat"));
         }
         const template: StoryboardTemplate = {
           id: data.id || `tpl_${Date.now()}_imported`,
@@ -144,10 +145,10 @@ export function importTemplateFromFile(
         };
         resolve(template);
       } catch (error) {
-        reject(new Error("模板文件解析失败: " + extractErrorMessage(error)));
+        reject(new Error(t("error.templateParseFailed") + ": " + extractErrorMessage(error)));
       }
     };
-    reader.onerror = () => reject(new Error("文件读取失败"));
+    reader.onerror = () => reject(new Error(t("error.fileReadFailed")));
     reader.readAsText(file);
   }));
 }
@@ -184,13 +185,13 @@ export async function importTemplatesFromFile(
         } else if (data.name && Array.isArray(data.beats)) {
           resolve([data as StoryboardTemplate]);
         } else {
-          throw new Error("无效的模板文件格式");
+          throw new Error(t("error.invalidTemplateFormat"));
         }
       } catch (error) {
-        reject(new Error("模板文件解析失败: " + (error as Error).message));
+        reject(new Error(t("error.templateParseFailed") + ": " + (error as Error).message));
       }
     };
-    reader.onerror = () => reject(new Error("文件读取失败"));
+    reader.onerror = () => reject(new Error(t("error.fileReadFailed")));
     reader.readAsText(file);
   }));
 }

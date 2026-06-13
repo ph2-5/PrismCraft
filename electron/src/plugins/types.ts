@@ -14,7 +14,17 @@ export interface ModelCapabilities {
   supportedImageSizes?: ImageSizeOption[];
   defaultImageSize?: string;
   urlTtl?: number;
+  supportsCharacterRef?: boolean;
+  supportsSceneRef?: boolean;
+  nativeCharacterRef?: boolean;
+  nativeSceneRef?: boolean;
+  characterRefMode?: ImageRefMode;
+  sceneRefMode?: ImageRefMode;
 }
+
+export type ImageRefMode = "native_field" | "multimodal" | "ref_field" | "text_append" | "bake_into_first" | "none";
+
+export type ImageUploadMode = "base64" | "url" | "upload";
 
 export interface VideoCapabilities {
   supportsLastFrame: boolean;
@@ -24,6 +34,14 @@ export interface VideoCapabilities {
   maxDuration: number;
   supportedCodecs?: string[];
   urlTtl?: number;
+  supportsCharacterRef?: boolean;
+  supportsSceneRef?: boolean;
+  characterRefMode?: ImageRefMode;
+  sceneRefMode?: ImageRefMode;
+  characterRefField?: string;
+  sceneRefField?: string;
+  imageUploadMode?: ImageUploadMode;
+  maxCharacterRefs?: number;
 }
 
 export interface ImageCapabilities {
@@ -50,6 +68,7 @@ export interface VideoBuildContext {
   referenceVideoUrl?: string;
   referenceVideoMimicryLevel?: string;
   duration: number;
+  characterRefs?: string[];
   characterRef?: string;
   sceneRef?: string;
 }
@@ -165,6 +184,8 @@ export interface ProviderCapabilities {
   image: boolean;
   text: boolean;
   vision: boolean;
+  nativeCharacterRef?: boolean;
+  nativeSceneRef?: boolean;
 }
 
 export interface AIProviderPlugin {

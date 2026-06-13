@@ -1,5 +1,6 @@
 import { type ApiConfig, type ProviderConfig } from "./types";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 const CONFIG_KEY = "ai_animation_studio_api_config";
 const CONFIG_VERSION = 1;
@@ -153,7 +154,7 @@ export async function saveConfig(config: ApiConfig): Promise<void> {
     }
   } catch (error) {
     errorLogger.error("[API Config] 保存配置失败:", error);
-    throw new Error("保存配置失败");
+    throw new Error(t("error.saveConfigFailed"));
   }
 }
 

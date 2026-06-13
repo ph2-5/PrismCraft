@@ -74,7 +74,7 @@ describe("ElementManager 通知机制", () => {
     const listener = vi.fn();
     elementManager.subscribe(listener);
 
-    (elementManager as any)["notify"]();
+    (elementManager as unknown as { notify: () => void })["notify"]();
 
     expect(listener).toHaveBeenCalled();
   });
@@ -84,7 +84,7 @@ describe("ElementManager 通知机制", () => {
     const unsubscribe = elementManager.subscribe(listener);
 
     unsubscribe();
-    (elementManager as any)["notify"]();
+    (elementManager as unknown as { notify: () => void })["notify"]();
 
     expect(listener).not.toHaveBeenCalled();
   });

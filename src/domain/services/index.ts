@@ -4,7 +4,7 @@ export type { BeatGenerationContext, ResolvedGenerationParams } from "./story-ge
 export { BeatWorkflowService } from "./beat-workflow-service";
 export type { GenerationStep, BeatWorkflowResult } from "./beat-workflow-service";
 
-export { resolveCharacterRef, resolveSceneRef } from "./reference-resolver";
+export { resolveCharacterRef, resolveCharacterRefs, resolveSceneRef } from "./reference-resolver";
 
 export {
   checkCharacterReferences,

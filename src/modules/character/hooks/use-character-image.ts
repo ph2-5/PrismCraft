@@ -170,7 +170,7 @@ export function useCharacterImage({
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve({ width: img.width, height: img.height });
-      img.onerror = () => reject(new Error("图片加载失败，无法验证尺寸"));
+      img.onerror = () => reject(new Error(t("error.imageLoadValidationFailed")));
       img.src = imageUrl;
     });
   };

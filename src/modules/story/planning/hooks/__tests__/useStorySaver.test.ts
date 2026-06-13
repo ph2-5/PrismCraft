@@ -99,11 +99,11 @@ function createDefaultProps() {
 
   return {
     stories: [story],
-    setStories: vi.fn() as unknown as React.Dispatch<React.SetStateAction<Story[]>>,
+    setStories: vi.fn<React.Dispatch<React.SetStateAction<Story[]>>>(),
     currentStory: story,
     setCurrentStory: vi.fn(),
     beats: [] as StoryBeat[],
-    setBeats: vi.fn() as unknown as React.Dispatch<React.SetStateAction<StoryBeat[]>>,
+    setBeats: vi.fn<React.Dispatch<React.SetStateAction<StoryBeat[]>>>(),
     markClean: vi.fn(),
     markDirty: vi.fn(),
   };

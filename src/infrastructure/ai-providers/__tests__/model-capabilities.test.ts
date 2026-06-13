@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockWarn } = vi.hoisted(() => ({ mockWarn: vi.fn() }));
+const { mockWarn, mockError } = vi.hoisted(() => ({ mockWarn: vi.fn(), mockError: vi.fn() }));
 
 vi.mock("@/shared/error-logger", () => ({
-  errorLogger: { warn: mockWarn },
+  errorLogger: { warn: mockWarn, error: mockError },
 }));
 
 import {
@@ -54,7 +54,7 @@ describe("model-capabilities", () => {
 
   describe("getModelCapabilities", () => {
     it("should return exact match from BUILTIN_MODEL_CAPABILITIES", () => {
-      const caps = getModelCapabilities("seedance-2.0");
+      const caps = getModelCapabilities("doubao-seedance-2-0-260128");
       expect(caps.maxReferences).toBe(4);
       expect(caps.supportsLastFrame).toBe(true);
       expect(caps.referenceMode).toBe("separate");
@@ -91,18 +91,18 @@ describe("model-capabilities", () => {
         referenceMode: "separate" as const,
       };
       setModelProfiles({
-        "seedance-2.0": {
-          modelId: "seedance-2.0",
+        "doubao-seedance-2-0-260128": {
+          modelId: "doubao-seedance-2-0-260128",
           capabilities: cachedCaps,
           parameters: {},
         },
       });
-      const caps = getModelCapabilities("seedance-2.0");
+      const caps = getModelCapabilities("doubao-seedance-2-0-260128");
       expect(caps.maxReferences).toBe(99);
     });
 
     it("should fuzzy match by prefix and substring inclusion", () => {
-      const caps = getModelCapabilities("seedance-2.0-pro");
+      const caps = getModelCapabilities("doubao-seedance-2-0-260128-pro");
       expect(caps.maxReferences).toBe(4);
       expect(caps.supportsLastFrame).toBe(true);
     });
@@ -145,9 +145,9 @@ describe("model-capabilities", () => {
 
   describe("supportsLastFrame", () => {
     it("should return true for models that support last frame", () => {
-      expect(supportsLastFrame("seedance-2.0")).toBe(true);
-      expect(supportsLastFrame("cogvideox-3")).toBe(true);
-      expect(supportsLastFrame("veo-3")).toBe(true);
+      expect(supportsLastFrame("doubao-seedance-2-0-260128")).toBe(true);
+      expect(supportsLastFrame("cogvideox-3")).toBe(false);
+      expect(supportsLastFrame("veo-3")).toBe(false);
     });
 
     it("should return false for models that do not support last frame", () => {
@@ -164,7 +164,7 @@ describe("model-capabilities", () => {
 
   describe("getMaxReferences", () => {
     it("should return correct max references for known models", () => {
-      expect(getMaxReferences("seedance-2.0")).toBe(4);
+      expect(getMaxReferences("doubao-seedance-2-0-260128")).toBe(4);
       expect(getMaxReferences("runway-gen3")).toBe(2);
       expect(getMaxReferences("dall-e-3")).toBe(1);
     });
@@ -183,7 +183,7 @@ describe("model-capabilities", () => {
     ];
 
     it("should return all references when within limit", () => {
-      const result = adjustReferenceImages(baseReferences, "seedance-2.0", "video");
+      const result = adjustReferenceImages(baseReferences, "doubao-seedance-2-0-260128", "video");
       expect(result.length).toBe(4);
     });
 
@@ -193,7 +193,7 @@ describe("model-capabilities", () => {
         { url: "http://char.jpg", priority: ReferencePriority.CHARACTER_REF, type: "character" },
         { url: "http://scene.jpg", priority: ReferencePriority.SCENE_REF, type: "scene" },
       ];
-      const result = adjustReferenceImages(unsorted, "seedance-2.0", "video");
+      const result = adjustReferenceImages(unsorted, "doubao-seedance-2-0-260128", "video");
       expect(result[0]!.type).toBe("character");
       expect(result[1]!.type).toBe("scene");
       expect(result[2]!.type).toBe("lastFrame");
@@ -236,13 +236,13 @@ describe("model-capabilities", () => {
     });
 
     it("should handle empty references array", () => {
-      const result = adjustReferenceImages([], "seedance-2.0", "video");
+      const result = adjustReferenceImages([], "doubao-seedance-2-0-260128", "video");
       expect(result).toEqual([]);
     });
 
     it("should not mutate original array", () => {
       const original = [...baseReferences];
-      adjustReferenceImages(baseReferences, "seedance-2.0", "video");
+      adjustReferenceImages(baseReferences, "doubao-seedance-2-0-260128", "video");
       expect(baseReferences).toEqual(original);
     });
 
@@ -260,11 +260,13 @@ describe("model-capabilities", () => {
 
   describe("getVideoGenerationStrategy", () => {
     it("should return strategy with lastFrame support for capable models", () => {
-      const strategy = getVideoGenerationStrategy("seedance-2.0");
+      const strategy = getVideoGenerationStrategy("doubao-seedance-2-0-260128");
       expect(strategy.useFirstFrame).toBe(true);
       expect(strategy.useLastFrame).toBe(true);
-      expect(strategy.useCharacterRef).toBe(true);
-      expect(strategy.useSceneRef).toBe(true);
+      expect(strategy.useCharacterRef).toBe(false);
+      expect(strategy.useSceneRef).toBe(false);
+      expect(strategy.characterRefMode).toBe("bake_into_first");
+      expect(strategy.sceneRefMode).toBe("bake_into_first");
     });
 
     it("should return strategy without lastFrame for incapable models", () => {
@@ -272,27 +274,64 @@ describe("model-capabilities", () => {
       expect(strategy.useLastFrame).toBe(false);
     });
 
-    it("should always enable firstFrame, characterRef and sceneRef", () => {
+    it("should use text_append for unknown models (conservative default)", () => {
       const strategy = getVideoGenerationStrategy("unknown-model");
       expect(strategy.useFirstFrame).toBe(true);
       expect(strategy.useCharacterRef).toBe(true);
       expect(strategy.useSceneRef).toBe(true);
+      expect(strategy.characterRefMode).toBe("text_append");
+      expect(strategy.sceneRefMode).toBe("text_append");
+    });
+
+    it("should disable characterRef/sceneRef for bake_into_first models", () => {
+      const strategy = getVideoGenerationStrategy("doubao-seedance-2-0-260128");
+      expect(strategy.useCharacterRef).toBe(false);
+      expect(strategy.useSceneRef).toBe(false);
+      expect(strategy.characterRefMode).toBe("bake_into_first");
+      expect(strategy.sceneRefMode).toBe("bake_into_first");
+    });
+
+    it("should enable characterRef for ref_field models (lite-i2v)", () => {
+      const strategy = getVideoGenerationStrategy("doubao-seedance-1-0-lite-i2v-250428");
+      expect(strategy.useCharacterRef).toBe(true);
+      expect(strategy.useSceneRef).toBe(true);
+      expect(strategy.characterRefMode).toBe("ref_field");
+      expect(strategy.sceneRefMode).toBe("ref_field");
+    });
+
+    it("should enable characterRef for native_field models (Kling V2+)", () => {
+      const strategy = getVideoGenerationStrategy("kling-v2-master");
+      expect(strategy.useCharacterRef).toBe(true);
+      expect(strategy.characterRefMode).toBe("native_field");
+    });
+
+    it("should disable characterRef for Kling V1 (bake_into_first)", () => {
+      const strategy = getVideoGenerationStrategy("kling-v1-master");
+      expect(strategy.useCharacterRef).toBe(false);
+      expect(strategy.characterRefMode).toBe("bake_into_first");
+    });
+
+    it("should disable characterRef/sceneRef for Google Veo (bake_into_first)", () => {
+      const strategy = getVideoGenerationStrategy("veo-3");
+      expect(strategy.useCharacterRef).toBe(false);
+      expect(strategy.useSceneRef).toBe(false);
+      expect(strategy.characterRefMode).toBe("bake_into_first");
     });
   });
 
   describe("resolveImageSize", () => {
     it("should return preferred size when supported (WxH format)", () => {
-      const result = resolveImageSize("seedance-2.0", "keyframe", "1920x1280");
+      const result = resolveImageSize("doubao-seedance-2-0-260128", "keyframe", "1920x1280");
       expect(result).toBe("1920x1280");
     });
 
     it("should return preferred size when supported (W*H format)", () => {
-      const result = resolveImageSize("seedance-2.0", "keyframe", "1920*1280");
+      const result = resolveImageSize("doubao-seedance-2-0-260128", "keyframe", "1920*1280");
       expect(result).toBe("1920*1280");
     });
 
     it("should find closest size when preferred size is not directly supported", () => {
-      const result = resolveImageSize("seedance-2.0", "keyframe", "1920x1080");
+      const result = resolveImageSize("doubao-seedance-2-0-260128", "keyframe", "1920x1080");
       expect(result).toMatch(/^\d+x\d+$/);
     });
 
@@ -315,7 +354,7 @@ describe("model-capabilities", () => {
     });
 
     it("should return defaultImageSize when no preferred size", () => {
-      const result = resolveImageSize("seedance-2.0", "keyframe");
+      const result = resolveImageSize("doubao-seedance-2-0-260128", "keyframe");
       expect(result).toBe("1920x1920");
     });
 
@@ -428,7 +467,7 @@ describe("model-capabilities", () => {
 
   describe("getSupportedImageSizes", () => {
     it("should return supportedImageSizes for known model", () => {
-      const sizes = getSupportedImageSizes("seedance-2.0");
+      const sizes = getSupportedImageSizes("doubao-seedance-2-0-260128");
       expect(sizes.length).toBeGreaterThan(0);
       expect(sizes[0]).toHaveProperty("width");
       expect(sizes[0]).toHaveProperty("height");

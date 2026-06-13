@@ -21,19 +21,13 @@ let boundHandleOnline: (() => void) | null = null;
 let boundHandleOffline: (() => void) | null = null;
 
 if (typeof window !== "undefined") {
-  const win = window as unknown as Record<string, unknown>;
-  const prev = win.__NETWORK_MONITOR_STATE__;
+  const prev = window.__NETWORK_MONITOR_STATE__;
   if (prev && typeof prev === "object") {
-    const prevState = prev as {
-      checkIntervalId: ReturnType<typeof setInterval> | null;
-      boundHandleOnline: (() => void) | null;
-      boundHandleOffline: (() => void) | null;
-    };
-    if (prevState.checkIntervalId) clearInterval(prevState.checkIntervalId);
-    if (prevState.boundHandleOnline) window.removeEventListener("online", prevState.boundHandleOnline);
-    if (prevState.boundHandleOffline) window.removeEventListener("offline", prevState.boundHandleOffline);
+    if (prev.checkIntervalId) clearInterval(prev.checkIntervalId);
+    if (prev.boundHandleOnline) window.removeEventListener("online", prev.boundHandleOnline);
+    if (prev.boundHandleOffline) window.removeEventListener("offline", prev.boundHandleOffline);
   }
-  win.__NETWORK_MONITOR_STATE__ = {
+  window.__NETWORK_MONITOR_STATE__ = {
     get checkIntervalId() { return checkIntervalId; },
     get boundHandleOnline() { return boundHandleOnline; },
     get boundHandleOffline() { return boundHandleOffline; },

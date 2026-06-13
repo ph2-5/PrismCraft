@@ -5,11 +5,10 @@ import {
   buildSceneVisualDesc,
   buildElementEffectDesc,
   buildFixedImageDesc,
-  CAMERA_ANGLE_KEYWORDS,
   getStyleKeywords,
   QUALITY_TAGS_IMAGE,
 } from "./prompt-vocabulary";
-import { shotInstructionToPrompt } from "./shot-prompt";
+import { shotInstructionToPrompt, resolveShotInstruction } from "./shot-prompt";
 import type { Character, FeatureAnchoringConfig, FixedImageConfig, Scene, ShotInstructionTemplate, StoryBeat, StoryElement } from "@/domain/schemas";
 
 export function getBeatCharacterIds(beat: { characterIds?: string[] }): string[] {
@@ -75,15 +74,9 @@ export function generateBeatImagePrompt(params: BeatImagePromptParams): string {
     parts.push(`镜头构图：${shotInstructionToPrompt(shotInstruction)}`);
   }
 
-  if (isEnhanced && beat.sceneId) {
-    const sceneObj = scenes.find((s) => s.id === beat.sceneId);
-    if (sceneObj) {
-      parts.push(`场景：${sceneObj.name}，${sceneObj.description || ""}`);
-      parts.push(buildSceneAtmosphereDesc(sceneObj));
-      parts.push(buildSceneVisualDesc(sceneObj));
-    }
-  } else if (beat.scene) {
-    const sceneObj = scenes.find((s) => s.id === beat.scene);
+  const sceneId = beat.sceneId || beat.scene;
+  if (sceneId) {
+    const sceneObj = scenes.find((s) => s.id === sceneId);
     if (sceneObj) {
       parts.push(`场景：${sceneObj.name}，${sceneObj.description || ""}`);
       parts.push(buildSceneAtmosphereDesc(sceneObj));
@@ -128,12 +121,16 @@ export function generateBeatImagePrompt(params: BeatImagePromptParams): string {
     if (charDescs.length > 0) parts.push(`角色：${charDescs.join("；")}`);
   }
 
-  if (isEnhanced && beat.camera) {
-    const cameraObj =
-      typeof beat.camera === "string" ? { movement: beat.camera } : beat.camera;
-    const angle = cameraObj?.angle || "";
-    const angleKeyword = CAMERA_ANGLE_KEYWORDS[angle] || angle;
-    if (angleKeyword) parts.push(angleKeyword);
+  if (isEnhanced) {
+    const resolvedShot = resolveShotInstruction(beat);
+    if (resolvedShot) {
+      const shotPrompt = shotInstructionToPrompt({
+        shotSize: resolvedShot.shotSize,
+        cameraMovement: resolvedShot.cameraMovement,
+        cameraAngle: resolvedShot.cameraAngle,
+      });
+      if (shotPrompt) parts.push(shotPrompt);
+    }
   }
 
   const contentPart = beat.content || beat.description || "";
@@ -169,8 +166,9 @@ export function generateSimpleBeatImagePrompt(
     );
   }
 
-  if (beat.scene) {
-    const sceneObj = scenes.find((s) => s.id === beat.scene);
+  const simpleSceneId = beat.sceneId || beat.scene;
+  if (simpleSceneId) {
+    const sceneObj = scenes.find((s) => s.id === simpleSceneId);
     if (sceneObj) {
       parts.push(`场景：${sceneObj.name}，${sceneObj.description || ""}`);
       parts.push(buildSceneAtmosphereDesc(sceneObj));

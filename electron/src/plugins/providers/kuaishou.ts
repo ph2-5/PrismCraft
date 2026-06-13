@@ -8,6 +8,7 @@ import type {
   VideoBuildContext,
   ImageBuildContext,
   VisionBuildContext,
+  ImageRefMode,
   VideoRequestResult,
   ImageRequestResult,
   VisionRequestResult,
@@ -45,7 +46,14 @@ export class KuaishouPlugin extends BaseAIProviderPlugin implements AIProviderPl
     supportsLastFrame: true,
     supportsReferenceVideo: true,
     supportsMimicryLevel: false,
-    defaultModel: "kling-v2-master",
+    supportsCharacterRef: true,
+    supportsSceneRef: true,
+    characterRefMode: "native_field" as ImageRefMode,
+    sceneRefMode: "text_append" as ImageRefMode,
+    characterRefField: "subject_reference",
+    imageUploadMode: "upload" as const,
+    maxCharacterRefs: 1,
+    defaultModel: "kling-v3-pro",
     maxDuration: 10,
     supportedCodecs: ["h264", "h265"],
     urlTtl: 86400,
@@ -53,7 +61,7 @@ export class KuaishouPlugin extends BaseAIProviderPlugin implements AIProviderPl
 
   readonly imageCapabilities = {
     supportsReferenceImage: false,
-    defaultModel: "kling-v2-master",
+    defaultModel: "kling-v3-pro",
   };
 
   getModelCapabilities(modelId: string): ModelCapabilities {
@@ -66,7 +74,18 @@ export class KuaishouPlugin extends BaseAIProviderPlugin implements AIProviderPl
       defaultImageSize: "1920x1920",
     };
 
-    if (modelId.includes("v2-master") || modelId.includes("v2-pro")) {
+    if (modelId.includes("v3-pro") || modelId.includes("v3-master")) {
+      return {
+        ...base,
+        supportedImageSizes: [
+          { width: 1920, height: 1920, label: "1920x1920", aspectRatio: "1:1" },
+          { width: 1920, height: 1080, label: "1920x1080", aspectRatio: "16:9" },
+          { width: 1080, height: 1920, label: "1080x1920", aspectRatio: "9:16" },
+        ],
+      };
+    }
+
+    if (modelId.includes("v2-master") || modelId.includes("v2-pro") || modelId.includes("v2-1") || modelId.includes("v2-5")) {
       return {
         ...base,
         supportedImageSizes: [
@@ -87,14 +106,15 @@ export class KuaishouPlugin extends BaseAIProviderPlugin implements AIProviderPl
 
   buildVideoRequest(ctx: VideoBuildContext): VideoRequestResult {
     let prompt = ctx.prompt;
-    if (ctx.characterRef) {
-      prompt += `[参考角色图: ${ctx.characterRef}]`;
-    }
+    const charRefs = ctx.characterRefs?.length ? ctx.characterRefs : (ctx.characterRef ? [ctx.characterRef] : []);
+    const model = ctx.model || this.videoCapabilities.defaultModel;
+
+    const isV2OrLater = model.startsWith("kling-v2") || model.startsWith("kling-v3") || model.startsWith("kling-native") || model.startsWith("kling-video");
+
     if (ctx.sceneRef) {
-      prompt += `[参考场景图: ${ctx.sceneRef}]`;
+      prompt += `\n[场景参考] 请严格按照参考图中的场景环境、光照、色调等特征生成场景。`;
     }
 
-    const model = ctx.model || this.videoCapabilities.defaultModel;
     const body: Record<string, unknown> = {
       model,
       prompt,
@@ -106,13 +126,17 @@ export class KuaishouPlugin extends BaseAIProviderPlugin implements AIProviderPl
       body.image = ctx.firstFrameUrl;
     }
 
-    if (ctx.lastFrameUrl) {
+    if (ctx.lastFrameUrl && isV2OrLater) {
       body.tail_image = ctx.lastFrameUrl;
     }
 
     if (ctx.referenceVideoUrl) {
       body.reference_video = ctx.referenceVideoUrl;
       body.ref_mode = ctx.referenceVideoMimicryLevel === "deep" ? 1 : 0;
+    }
+
+    if (isV2OrLater && charRefs.length > 0 && charRefs[0]) {
+      body.subject_reference = charRefs[0];
     }
 
     const endpoint = ctx.firstFrameUrl

@@ -1,5 +1,5 @@
 export type { VideoTask, VideoTaskStatus } from "./hooks/use-video-task-manager";
-export { TaskMachine, mapApiStatus } from "./domain";
+export { TaskMachine, mapApiStatus, isValidTransition, isStuck, STUCK_TASK_THRESHOLD_MS, VALID_TRANSITIONS, TERMINAL_STATUSES } from "./domain";
 export type { TransitionError } from "./domain";
 export { useVideoTaskManager, useVideoTaskStore } from "./hooks/use-video-task-manager";
 export {

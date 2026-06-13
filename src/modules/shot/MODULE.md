@@ -30,6 +30,7 @@
 - `validateFeatureAnchoringConfigFull` — 特征锚定配置完整验证（别名导出）
 - `validateNoFrameBinding` — 验证无帧绑定参数
 - `validateNoFrameBindingParams` — 无帧绑定参数验证（别名导出）
+- `parseConsistencyAnalysisFromStructured` — 从结构化输出解析一致性分析结果
 - Type: `ConsistencyCheckInput`
 
 ### 元素引用检查子域
@@ -42,17 +43,18 @@
 - `SHOT_SIZE_OPTIONS` — 镜头尺寸选项常量
 - `CAMERA_MOVEMENT_OPTIONS` — 镜头运动选项常量
 - `CAMERA_ANGLE_OPTIONS` — 镜头角度选项常量
-- `buildPromptLayers` — 构建分层提示词
+- `buildPromptLayers` — 构建分层提示词（params 含 `language?: "en" | "zh" | "auto"`）
 
 ### 元素绑定子域
 - `elementManager` — 元素管理器实例
 
 ### 特征提取子域
 - `validateReferenceImageQuality` — 引用图片质量验证
-- `buildFeatureAnchoringConfig` — 构建特征锚定配置
-- `extractCharacterFeatures` — 从角色提取特征标签
-- `buildFeatureTags` — 构建特征标签
-- `buildFeatureAnchor` — 构建特征锚点
+- `buildFeatureAnchoringConfig` — 构建特征锚定配置（含 `language?: FeatureLanguage` 参数）
+- `extractCharacterFeatures` — 从角色提取特征标签（含 `language?: FeatureLanguage` 参数）
+- `buildFeatureTags` — 构建特征标签（含 `language?: FeatureLanguage` 参数）
+- `buildFeatureAnchor` — 构建特征锚点（含 `language?: FeatureLanguage` 参数）
+- Type: `FeatureLanguage` — `"en" | "zh"`，特征提取输出语言
 
 ### 引用引擎子域
 - `referenceEngine` — 引用引擎实例
@@ -88,6 +90,7 @@
 3. **所有跨子域引用必须通过 `../subdomain` 导入**
 4. **禁止导入路径**：`@/types/*`、`@/lib/*`、`@/modules/*/*/*`
 5. **类型必须从 `@/domain/schemas` 导入**
+6. **国际化模型支持**：`promptLanguage` 参数贯穿生成管道（`buildStoryPlanPrompt` → `enrichPromptWithFewShot` → `buildPromptLayers`），`FeatureLanguage` 贯穿特征提取链（`extractCharacterFeatures` → `buildFeatureTags` → `buildFeatureAnchor` → `buildFeatureAnchoringConfig`）。当 `promptLanguage` 为 `"auto"` 时，由 `generateStoryPlanWithValidation` 根据 `videoModelId` 通过 `getVideoGenerationStrategy` 解析为 `"en"` 或 `"zh"`
 
 ---
 
@@ -116,6 +119,9 @@
 
 ### INV-8: 禁止跨模块依赖
 所有子域禁止直接导入 story 和 video 模块
+
+### INV-9: 语言参数一致性
+生成管道中的 `language`/`promptLanguage` 参数必须在调用链中一致传递：`generateStoryPlanWithValidation` 解析 `promptLanguage` 后，将解析结果传递给 `buildStoryPlanPrompt`、`enrichPromptWithFewShot`、`buildPromptLayers`；特征提取链中的 `language` 参数必须从调用方一致传递到 `extractCharacterFeatures`、`buildFeatureTags`、`buildFeatureAnchor`、`buildFeatureAnchoringConfig`
 
 ---
 

@@ -1,9 +1,10 @@
 import type { Result } from "@/domain/types";
-import { fromAsyncThrowable } from "@/domain/types";
+import { fromAsyncThrowable, ValidationError } from "@/domain/types";
 import type { StoryBeat, Character, Scene, StoryStyleGuide, StoryElement } from "@/domain/schemas";
 import type { ITextProvider } from "@/domain/ports";
-import { getBeatCharacterIds } from "@/domain/utils";
+import { getBeatCharacterIds, resolveShotInstruction, SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS, CAMERA_ANGLE_OPTIONS } from "@/domain/utils";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 interface FramePromptInput {
   beat: StoryBeat;
@@ -63,25 +64,26 @@ export async function generateFramePrompts(
 
     const beatContent = beat.content || beat.description || "";
     if (!beatContent.trim() && !charDesc && !sceneDesc) {
-      return {
-        firstFramePrompt: "",
-        lastFramePrompt: "",
-      };
+      throw new ValidationError(t("error.framePromptEmpty"));
     }
 
     const styleSection = styleGuide
       ? `整体风格：${styleGuide.artStyle || "未指定"}；氛围：${styleGuide.moodAtmosphere || "未指定"}${styleGuide.colorPalette?.length ? `；配色：${styleGuide.colorPalette.join("、")}` : ""}`
       : "";
 
-    const shotTypeMap: Record<string, string> = {
-      wide: "远景", medium: "中景", close: "特写",
-      extreme_close: "大特写", low: "低角度", high: "高角度",
-      birdseye: "鸟瞰", wormseye: "仰视",
-    };
-    const shotLabel = beat.shotType ? shotTypeMap[beat.shotType] || beat.shotType : "中景";
+    const resolvedShot = resolveShotInstruction(beat);
+    const shotLabel = resolvedShot?.shotSize
+      ? SHOT_SIZE_OPTIONS.find(o => o.value === resolvedShot.shotSize)?.label || resolvedShot.shotSize
+      : "中景";
+    const cameraMovementLabel = resolvedShot?.cameraMovement
+      ? CAMERA_MOVEMENT_OPTIONS.find(o => o.value === resolvedShot.cameraMovement)?.label || resolvedShot.cameraMovement
+      : "静止";
+    const cameraAngleLabel = resolvedShot?.cameraAngle
+      ? CAMERA_ANGLE_OPTIONS.find(o => o.value === resolvedShot.cameraAngle)?.label || resolvedShot.cameraAngle
+      : "平视";
 
-    const cameraInfo = beat.camera
-      ? `角度：${beat.camera.angle || "平视"}，运动：${beat.camera.movement || "静止"}，景别：${shotLabel}`
+    const cameraInfo = resolvedShot
+      ? `角度：${cameraAngleLabel}，运动：${cameraMovementLabel}，景别：${shotLabel}`
       : `景别：${shotLabel}`;
 
     const contextParts: string[] = [];
@@ -121,7 +123,7 @@ ${contextSection}
     });
 
     if (!result.success || !result.data?.text) {
-      throw new Error(result.error || "LLM 帧提示词生成失败");
+      throw new Error(result.error || t("error.framePromptGenFailed"));
     }
 
     const text = result.data.text.trim();

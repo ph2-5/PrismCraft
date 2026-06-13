@@ -413,7 +413,7 @@ describe("useSceneImage", () => {
       const file = new File(["content"], filename, { type: "image/png" });
       return {
         target: { files: [file] } as unknown as HTMLInputElement,
-      } as React.ChangeEvent<HTMLInputElement>;
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
     }
 
     it("成功上传文件并保存到场景", async () => {

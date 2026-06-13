@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { StoryBeat } from "@/domain/schemas";
 import type { VideoModelFormat } from "@/domain/types";
+import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { detectVideoCodec, extractVideoFrames } from "@/shared/video-utils";
 import { isCodecSupportedByProvider } from "@/shared/video-utils/codec-check";
 import { errorLogger } from "@/shared/error-logger";
@@ -306,14 +307,14 @@ export function useUploadHandlers(
                 firstFrame: {
                   ...(b.framePair?.firstFrame || {}),
                   imageUrl:
-                    firstFrameUrl || b.framePair?.firstFrame?.imageUrl || "",
+                    firstFrameUrl || getFirstFrameUrl(b.framePair) || "",
                   prompt: b.framePair?.firstFrame?.prompt || "",
                   derivedFrom: b.framePair?.firstFrame?.derivedFrom || "",
                 },
                 lastFrame: {
                   ...(b.framePair?.lastFrame || {}),
                   imageUrl:
-                    lastFrameUrl || b.framePair?.lastFrame?.imageUrl || "",
+                    lastFrameUrl || getLastFrameUrl(b.framePair) || "",
                   prompt: b.framePair?.lastFrame?.prompt || "",
                   derivedFrom: b.framePair?.lastFrame?.derivedFrom || "",
                 },

@@ -193,11 +193,11 @@ export function applyTemplate(
     elementIds: [],
     characterIds: [],
     enhancedGeneration: false,
-    scene: beat.type === "scene" && scenes.length > 0 
-      ? scenes[0]! 
-      : undefined,
+    scene: undefined,
     character: undefined,
-    sceneId: undefined,
+    sceneId: beat.type === "scene" && scenes.length > 0
+      ? scenes[0]!
+      : undefined,
     generationPrompt: undefined,
     imageGenerationPrompt: undefined,
     firstFramePrompt: undefined,

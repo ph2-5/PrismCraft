@@ -125,8 +125,9 @@ Exported types: `PlaceholderBinding`, `QuickStoryData`
 ### 引用解析
 
 ```typescript
-resolveCharacterRef(character: Character, beat: StoryBeat): string | undefined
-resolveSceneRef(scene: Scene): string | undefined
+resolveCharacterRef(character: Character, beat?: StoryBeat | null, elements?: StoryElement[]): string | undefined
+resolveCharacterRefs(characterIds: string[], characters: Character[], beat?: StoryBeat | null, elements?: StoryElement[]): string[]
+resolveSceneRef(scene: { refImagePath?: string; scenePath?: string; generatedImage?: string; imageUrl?: string }): string | undefined
 ```
 
 ### 生成子域 (generation)
@@ -141,7 +142,9 @@ generateBeatKeyframe(beat: StoryBeat, prevBeat: StoryBeat | null, options: {
 }, providers: ProviderDeps): Promise<Result<StoryBeatKeyframe>>
 
 generateBeatFramePair(beat: StoryBeat, options: {
-  characterRef?: string; sceneRef?: string; prevLastFrameUrl?: string;
+  keyframeUrl?: string; keyframePrompt?: string;
+  characterRef?: string; characterRefs?: string[]; sceneRef?: string;
+  prevLastFrameUrl?: string; actionDescription?: string; duration?: number;
   providerId?: string; modelId?: string; characters?: Character[]; scenes?: Scene[];
   elements?: StoryElement[]; customFirstFramePrompt?: string; customLastFramePrompt?: string;
   styleGuide?: StoryStyleGuide; autoGeneratePrompts?: boolean; beatIndex?: number;
@@ -149,7 +152,8 @@ generateBeatFramePair(beat: StoryBeat, options: {
 }, providers: ProviderDeps): Promise<Result<StoryBeatFramePair>>
 
 generateBeatVideo(beat: StoryBeat, options: {
-  characterRef?: string; sceneRef?: string; prompt?: string; prevVideoUrl?: string;
+  characterRef?: string; characterRefs?: string[]; sceneRef?: string;
+  prompt?: string; prevVideoUrl?: string;
   providerId?: string; modelId?: string; videoMode?: VideoGenerationMode; prevBeat?: StoryBeat | null;
 }, providers: ProviderDeps): Promise<Result<{ taskId: string; videoUrl?: string; status: string; videoMode: VideoGenerationMode }>>
 
@@ -181,6 +185,7 @@ generateFramePrompts(input: {
   elements?: StoryElement[]; styleGuide?: StoryStyleGuide;
   prevBeatDescription?: string; nextBeatDescription?: string; textProvider: ITextProvider;
 }): Promise<Result<{ firstFramePrompt: string; lastFramePrompt: string }>>
+// Note: Returns err(ValidationError) when beat content, character descriptions, and scene descriptions are all empty
 
 batchGenerateFramePrompts(beats: StoryBeat[], options: {
   characters: Character[]; scenes: Scene[]; elements?: StoryElement[];
@@ -491,7 +496,7 @@ Exported types: `PromptEditorRequest`, `PromptEditorResult`
 | `@/shared/utils/confirm` | confirm 对话框 |
 | `@/shared/video-utils` | detectVideoCodec、extractVideoFrames |
 | `@/shared/video-utils/codec-check` | isCodecSupportedByProvider |
-| `@/shared/model-capabilities` | resolveImageSize |
+| `@/shared/model-capabilities` | resolveImageSize、getVideoGenerationStrategy（参考图策略过滤） |
 | `@/shared/presentation/Toast` | useToastHelpers |
 | `@/modules/prompt` | generateSingleBeatPrompt、useModelSelection |
 | `@/modules/shot/shot-generation` | generateStoryPlanWithValidation、formatValidationResult |
@@ -544,6 +549,13 @@ Exported types: `PromptEditorRequest`, `PromptEditorResult`
 
 ### INV-11: 视频生成模式降级
 当 `determineVideoGenerationMode` 返回 `reference_video_continuation` 但 `prevVideoUrl` 不存在时，必须降级为 `first_frame_anchor` 模式，避免引用空 URL 导致生成失败。
+
+### INV-12: 参考图策略过滤
+视频生成时必须根据 `getVideoGenerationStrategy(modelId)` 的返回值过滤参考图参数。策略分为两种模式：
+- **native_field/ref_field/multimodal 模式**：`useCharacterRef`/`useSceneRef` 为 true，参考图 URL 通过 API 原生字段传递
+- **bake_into_first 模式**：`useCharacterRef`/`useSceneRef` 为 false，视频 API 不传参考图参数。参考图信息通过"融入首帧"架构传递：首帧生成时将参考图 URL 传给图片生成模型（如 Seedream 的 `ref_image` 参数），让首帧图片本身就包含角色/场景特征
+
+Seedance pro 系列模型（包括 2.0）使用 `bake_into_first` 模式，因为其视频 API 的三种模式（首帧/首尾帧/参考图）互斥，pro 模型不支持在首尾帧模式中同时传递参考图。lite-i2v 模型使用 `ref_field` 模式，通过 `role: "reference_image"` 传递参考图。
 
 ---
 

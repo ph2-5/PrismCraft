@@ -150,6 +150,7 @@ export const storyBeatSchema = z.object({
   // ── Character & scene bindings ──
   characterIds: z.array(z.string()),
   characterOutfits: z.record(z.string(), z.string()).optional(),
+  /** @deprecated Use sceneId instead. Kept for backward compatibility during migration. */
   scene: nullToUndef(z.string()),
   sceneId: nullToUndef(z.string()),
   sceneElements: z.array(z.custom<SceneElement>()).optional(),
@@ -157,7 +158,9 @@ export const storyBeatSchema = z.object({
   elementBindings: z.record(z.string(), elementBindingSchema).optional(),
 
   // ── Shot system ──
+  /** @deprecated Use shotInstruction.shotSize or camera.shotType instead. Kept for backward compatibility. */
   shotType: shotTypeSchema,
+  /** @deprecated Use shotInstruction instead. Kept for backward compatibility. camera fields overlap with shotInstruction. */
   camera: beatCameraSchema.optional(),
   shotInstruction: shotInstructionSchema.optional(),
   reference: shotReferenceSchema.optional(),
@@ -170,11 +173,13 @@ export const storyBeatSchema = z.object({
   template: templateConfigSchema.optional(),
   generationStatus: shotGenerationStatusSchema.optional(),
   generationResult: shotGenerationResultSchema.optional(),
+  /** @deprecated No longer used in prompt generation pipeline. Kept for data compatibility. */
   generationPrompt: nullToUndef(z.string()),
   enhancedGeneration: z.preprocess(
     (v) => (v == null ? undefined : Boolean(v)),
     z.boolean().optional(),
   ),
+  /** @deprecated No longer used in prompt generation pipeline. Kept for data compatibility. */
   imageGenerationPrompt: nullToUndef(z.string()),
   firstFramePrompt: nullToUndef(z.string()),
   lastFramePrompt: nullToUndef(z.string()),

@@ -252,7 +252,7 @@ describe("db-connection 业务规则", () => {
     it("初始化后 query 应调用 db.prepare().all()", async () => {
       const mockStmt = { all: vi.fn<() => { id: number }[]>(() => [{ id: 1 }]), run: vi.fn() };
       const mockDb = createMockDb();
-      mockDb.prepare.mockReturnValue(mockStmt as any);
+      mockDb.prepare.mockReturnValue(mockStmt as unknown as Database.Statement);
       mockCreateOptimalDatabase.mockReturnValue(mockDb);
       mockExistsSync.mockReturnValue(false);
 
@@ -272,7 +272,7 @@ describe("db-connection 业务规则", () => {
       mockExistsSync.mockReturnValue(false);
 
       await dbConnection.initDatabase();
-      const result = await dbConnection.run("UPDATE t SET x = ? WHERE id = ?", ["val", 1]);
+      await dbConnection.run("UPDATE t SET x = ? WHERE id = ?", ["val", 1]);
 
       expect(mockDb.prepare).toHaveBeenCalledWith("UPDATE t SET x = ? WHERE id = ?");
       expect(mockStmt.run).toHaveBeenCalledWith("val", 1);

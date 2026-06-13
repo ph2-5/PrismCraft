@@ -1,7 +1,8 @@
-import type { StoryBeat, Character, Scene, StoryElement } from "@/domain/schemas";
+import type { StoryBeat, Character, Scene, StoryElement, StoryStyleGuide, ShotInstruction } from "@/domain/schemas";
 import type { Result } from "@/domain/types";
 import { ok, err, ValidationError } from "@/domain/types";
-import { resolveCharacterRef, resolveSceneRef } from "./reference-resolver";
+import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils/frame-pair-accessors";
+import { resolveCharacterRefs, resolveSceneRef } from "./reference-resolver";
 
 interface BeatGenerationContext {
   beat: StoryBeat;
@@ -12,7 +13,7 @@ interface BeatGenerationContext {
 }
 
 interface ResolvedGenerationParams {
-  characterRef: string | undefined;
+  characterRefs: string[];
   sceneRef: string | undefined;
   prevKeyframeUrl: string | undefined;
   prevLastFrameUrl: string | undefined;
@@ -20,14 +21,10 @@ interface ResolvedGenerationParams {
 }
 
 function resolveGenerationContext(ctx: BeatGenerationContext): ResolvedGenerationParams {
-  const { beat, prevBeat, characters, scenes } = ctx;
+  const { beat, prevBeat, characters, scenes, elements } = ctx;
 
   const characterIds = beat.characterIds || [];
-  const characterRef = characterIds
-    .map((cid: string) => characters.find((c) => c.id === cid))
-    .filter(Boolean)
-    .map((c) => resolveCharacterRef(c!, beat))
-    .find(Boolean);
+  const characterRefs = resolveCharacterRefs(characterIds, characters, beat, elements);
 
   const sceneId = beat.sceneId || beat.scene;
   const sceneObj = sceneId
@@ -36,32 +33,70 @@ function resolveGenerationContext(ctx: BeatGenerationContext): ResolvedGeneratio
   const sceneRef = sceneObj ? resolveSceneRef(sceneObj) : undefined;
 
   return {
-    characterRef,
+    characterRefs,
     sceneRef,
     prevKeyframeUrl: prevBeat?.keyframe?.imageUrl || undefined,
-    prevLastFrameUrl: prevBeat?.framePair?.lastFrame?.imageUrl || undefined,
+    prevLastFrameUrl: getLastFrameUrl(prevBeat?.framePair) || undefined,
     prevVideoUrl: prevBeat?.videoGen?.videoUrl || undefined,
   };
 }
 
-function buildVideoPrompt(beat: StoryBeat, basePrompt: string): string {
+function buildVideoPrompt(
+  beat: StoryBeat,
+  basePrompt: string,
+  promptLanguage: "en" | "zh" | "auto" = "auto",
+  styleGuide?: StoryStyleGuide,
+  shotInstruction?: ShotInstruction,
+): string {
   const framePair = beat.framePair;
   const firstFrame = framePair?.firstFrame;
   const lastFrame = framePair?.lastFrame;
 
+  const useEnglish = promptLanguage === "en" || (promptLanguage === "auto" && /^[a-zA-Z]/.test(basePrompt));
+
   const framePrompts: string[] = [];
   if (firstFrame?.prompt) {
-    framePrompts.push(`首帧画面：${firstFrame.prompt}`);
+    framePrompts.push(useEnglish
+      ? `First frame (video start): ${firstFrame.prompt}`
+      : `首帧画面（视频开始时的画面）：${firstFrame.prompt}`);
   }
   if (lastFrame?.prompt) {
-    framePrompts.push(`尾帧画面：${lastFrame.prompt}`);
+    framePrompts.push(useEnglish
+      ? `Last frame (video end): ${lastFrame.prompt}`
+      : `尾帧画面（视频结束时的画面）：${lastFrame.prompt}`);
   }
+
+  let prompt = basePrompt;
 
   if (framePrompts.length > 0) {
-    return `${basePrompt}\n\n【首尾帧画面约束】\n${framePrompts.join("\n")}\n\n视频生成要求：严格保持首帧到尾帧的视觉连贯性，角色外观、场景氛围、光影效果必须一致，运动过渡自然流畅。`;
+    const constraint = useEnglish
+      ? `Frame Constraints:\n${framePrompts.join("\n")}\n\nVideo generation requirements: The video must start from the first frame and transition to the last frame. Maintain strict visual consistency between frames—character appearance, scene atmosphere, and lighting must be consistent, with smooth and natural motion transitions.`
+      : `【首尾帧画面约束】\n${framePrompts.join("\n")}\n\n视频生成要求：视频必须从首帧画面开始，运动过渡到尾帧画面结束。严格保持首帧到尾帧的视觉连贯性，角色外观、场景氛围、光影效果必须一致，运动过渡自然流畅。`;
+    prompt = `${prompt}\n\n${constraint}`;
   }
 
-  return basePrompt;
+  if (styleGuide) {
+    const styleParts: string[] = [];
+    if (styleGuide.artStyle) styleParts.push(useEnglish ? `Art style: ${styleGuide.artStyle}` : `艺术风格：${styleGuide.artStyle}`);
+    if (styleGuide.moodAtmosphere) styleParts.push(useEnglish ? `Mood/atmosphere: ${styleGuide.moodAtmosphere}` : `氛围：${styleGuide.moodAtmosphere}`);
+    if (styleGuide.colorPalette?.length) styleParts.push(useEnglish ? `Color palette: ${styleGuide.colorPalette.join(", ")}` : `色彩方案：${styleGuide.colorPalette.join("、")}`);
+    if (styleGuide.stylePrompt) styleParts.push(useEnglish ? `Style reference: ${styleGuide.stylePrompt}` : `风格参考：${styleGuide.stylePrompt}`);
+    if (styleParts.length > 0) {
+      prompt = `${prompt}\n\n${useEnglish ? "Visual Style Guide:" : "视觉风格指南："}\n${styleParts.join("\n")}`;
+    }
+  }
+
+  if (shotInstruction) {
+    const shotParts: string[] = [];
+    if (shotInstruction.shotSize) shotParts.push(useEnglish ? `Shot size: ${shotInstruction.shotSize}` : `景别：${shotInstruction.shotSize}`);
+    if (shotInstruction.cameraMovement) shotParts.push(useEnglish ? `Camera movement: ${shotInstruction.cameraMovement}` : `镜头运动：${shotInstruction.cameraMovement}`);
+    if (shotInstruction.cameraAngle) shotParts.push(useEnglish ? `Camera angle: ${shotInstruction.cameraAngle}` : `镜头角度：${shotInstruction.cameraAngle}`);
+    if (shotParts.length > 0) {
+      prompt = `${prompt}\n\n${useEnglish ? "Camera Direction:" : "镜头指令："}\n${shotParts.join("\n")}`;
+    }
+  }
+
+  return prompt;
 }
 
 function validateGenerationPrereqs(
@@ -71,19 +106,19 @@ function validateGenerationPrereqs(
   switch (type) {
     case "keyframe": {
       if (!beat.id) {
-        return err(new ValidationError("分镜不存在"));
+        return err(new ValidationError("BEAT_NOT_FOUND"));
       }
       return ok(undefined);
     }
     case "framePair": {
       if (!beat.keyframe?.imageUrl) {
-        return err(new ValidationError("生成首尾帧前必须先生成预览图"));
+        return err(new ValidationError("KEYFRAME_REQUIRED_FOR_FRAME_PAIR"));
       }
       return ok(undefined);
     }
     case "video": {
-      if (!beat.framePair?.firstFrame?.imageUrl) {
-        return err(new ValidationError("生成视频前必须先生成首尾帧"));
+      if (!getFirstFrameUrl(beat.framePair)) {
+        return err(new ValidationError("FRAME_PAIR_REQUIRED_FOR_VIDEO"));
       }
       return ok(undefined);
     }

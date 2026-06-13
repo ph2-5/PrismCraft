@@ -10,6 +10,7 @@ export interface IVideoProvider {
     options?: {
       firstFrameUrl?: string;
       lastFrameUrl?: string;
+      characterRefs?: string[];
       characterRef?: string;
       sceneRef?: string;
       duration?: number;
@@ -37,6 +38,7 @@ export interface IVideoProvider {
   >;
 
   generateKeyframe(params: {
+    characterRefs?: string[];
     characterRef?: string;
     sceneRef?: string;
     prevKeyframe?: string;
@@ -61,6 +63,7 @@ export interface IVideoProvider {
   generateFramePair(params: {
     keyframeUrl: string;
     keyframePrompt?: string;
+    characterRefs?: string[];
     characterRef?: string;
     sceneRef?: string;
     prevLastFrameUrl?: string;
@@ -89,6 +92,7 @@ export interface IVideoProvider {
     prompt: string;
     firstFrameUrl?: string;
     lastFrameUrl?: string;
+    characterRefs?: string[];
     characterRef?: string;
     sceneRef?: string;
     duration?: number;

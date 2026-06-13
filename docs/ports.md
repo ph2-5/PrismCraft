@@ -21,7 +21,7 @@ modules/ ──imports──→ domain/ports/ ←──implements── infrastr
 
 | 分类 | 数量 | 说明 |
 |------|------|------|
-| Storage Port | 5 | 业务数据持久化（视频任务、角色、场景、故事、版本） |
+| Storage Port | 7 | 业务数据持久化（视频任务、角色、场景、故事、版本、元素、模板） |
 | AI Provider Port | 4 | AI 能力抽象（视频、图像、文本生成，文件上传） |
 | Sync Port | 1 | 同步引擎底层 SQL 访问 |
 | Repository Port | 1 | Drizzle ORM 风格的媒体资产仓库 |

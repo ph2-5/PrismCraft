@@ -21,6 +21,10 @@ const VIDEO_CAPABILITIES: VideoCapabilities = {
   supportsLastFrame: true,
   supportsReferenceVideo: true,
   supportsMimicryLevel: true,
+  supportsCharacterRef: true,
+  supportsSceneRef: true,
+  characterRefMode: "bake_into_first",
+  sceneRefMode: "bake_into_first",
   defaultModel: "seedance-1.5-pro",
   maxDuration: 12,
   supportedCodecs: ["h264", "h265"],
@@ -95,10 +99,19 @@ export class SeedancePlugin extends BaseAIProviderPlugin implements AIProviderPl
   }
 
   getModelCapabilities(modelId: string): ModelCapabilities {
+    const isLiteI2V = modelId.includes("lite-i2v");
+
     for (const [key, caps] of Object.entries(MODEL_CAPS_MAP)) {
       if (modelId.includes(key) || key.includes(modelId)) {
+        if (isLiteI2V) {
+          return { ...caps, characterRefMode: "ref_field", sceneRefMode: "ref_field", nativeCharacterRef: true, nativeSceneRef: true, supportsLastFrame: false };
+        }
         return caps;
       }
+    }
+
+    if (isLiteI2V) {
+      return { ...DEFAULT_MODEL_CAPS, characterRefMode: "ref_field", sceneRefMode: "ref_field", nativeCharacterRef: true, nativeSceneRef: true, supportsLastFrame: false };
     }
     return DEFAULT_MODEL_CAPS;
   }
@@ -111,13 +124,29 @@ export class SeedancePlugin extends BaseAIProviderPlugin implements AIProviderPl
 
     const isSeedance15 =
       ctx.model?.includes("seedance-1-5") || ctx.model?.includes("seedance-1.5");
+    const isLiteI2V = ctx.model?.includes("lite-i2v");
 
     if (!isSeedance15) {
       body.duration = ctx.duration;
     }
 
-    if (ctx.firstFrameUrl) {
-      body.image_url = ctx.firstFrameUrl;
+    if (isLiteI2V) {
+      if (ctx.firstFrameUrl) {
+        body.first_frame_image = ctx.firstFrameUrl;
+      }
+      const charRefs = ctx.characterRefs?.length ? ctx.characterRefs : (ctx.characterRef ? [ctx.characterRef] : []);
+      const allRefImages = [...charRefs];
+      if (ctx.sceneRef) allRefImages.push(ctx.sceneRef);
+      if (allRefImages.length > 0) {
+        body.reference_images = allRefImages.slice(0, 4);
+      }
+    } else {
+      if (ctx.firstFrameUrl) {
+        body.first_frame_image = ctx.firstFrameUrl;
+      }
+      if (ctx.lastFrameUrl) {
+        body.last_frame_image = ctx.lastFrameUrl;
+      }
     }
 
     if (ctx.referenceVideoUrl) {
@@ -127,11 +156,6 @@ export class SeedancePlugin extends BaseAIProviderPlugin implements AIProviderPl
       }
     }
 
-    const refImage = ctx.characterRef || ctx.sceneRef;
-    if (refImage) {
-      body.ref_image = refImage;
-    }
-
     return {
       body,
       endpoint: "/seedance/video",
@@ -139,13 +163,24 @@ export class SeedancePlugin extends BaseAIProviderPlugin implements AIProviderPl
   }
 
   buildImageRequest(ctx: ImageBuildContext): ImageRequestResult {
+    const body: Record<string, unknown> = {
+      model: ctx.model || "seedance-1.5-pro",
+      prompt: ctx.prompt,
+      n: 1,
+      size: ctx.size,
+    };
+
+    if (ctx.characterRef && ctx.sceneRef) {
+      body.ref_image = ctx.characterRef;
+      body.prompt = `[场景参考] 请严格按照参考图中的场景环境、光照、色调等特征生成场景。\n\n${ctx.prompt}`;
+    } else if (ctx.characterRef) {
+      body.ref_image = ctx.characterRef;
+    } else if (ctx.sceneRef) {
+      body.ref_image = ctx.sceneRef;
+    }
+
     return {
-      body: {
-        model: ctx.model || "seedance-1.5-pro",
-        prompt: ctx.prompt,
-        n: 1,
-        size: ctx.size,
-      },
+      body,
       endpoint: "/images/generations",
     };
   }

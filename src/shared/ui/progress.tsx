@@ -1,31 +1,33 @@
-import { Progress as ProgressPrimitive } from "@base-ui/react/progress"
-
 import { cn } from "@/shared/utils/utils"
 
-function Progress({
-  className,
-  children,
-  value,
-  ...props
-}: ProgressPrimitive.Root.Props) {
+interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
+  value?: number
+}
+
+function Progress({ className, children, value, ...props }: ProgressProps) {
   return (
-    <ProgressPrimitive.Root
-      value={value}
+    <div
       data-slot="progress"
+      role="progressbar"
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={100}
       className={cn("flex flex-wrap gap-3", className)}
       {...props}
     >
       {children}
       <ProgressTrack>
-        <ProgressIndicator />
+        <ProgressIndicator value={value} />
       </ProgressTrack>
-    </ProgressPrimitive.Root>
+    </div>
   )
 }
 
-function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
+interface ProgressTrackProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+function ProgressTrack({ className, ...props }: ProgressTrackProps) {
   return (
-    <ProgressPrimitive.Track
+    <div
       className={cn(
         "relative flex h-1 w-full items-center overflow-x-hidden rounded-full bg-muted",
         className
@@ -36,22 +38,26 @@ function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
   )
 }
 
-function ProgressIndicator({
-  className,
-  ...props
-}: ProgressPrimitive.Indicator.Props) {
+interface ProgressIndicatorProps extends React.HTMLAttributes<HTMLDivElement> {
+  value?: number
+}
+
+function ProgressIndicator({ className, value, ...props }: ProgressIndicatorProps) {
   return (
-    <ProgressPrimitive.Indicator
+    <div
       data-slot="progress-indicator"
       className={cn("h-full bg-primary transition-all", className)}
+      style={{ width: `${Math.min(100, Math.max(0, value ?? 0))}%` }}
       {...props}
     />
   )
 }
 
-function ProgressLabel({ className, ...props }: ProgressPrimitive.Label.Props) {
+interface ProgressLabelProps extends React.HTMLAttributes<HTMLSpanElement> {}
+
+function ProgressLabel({ className, ...props }: ProgressLabelProps) {
   return (
-    <ProgressPrimitive.Label
+    <span
       className={cn("text-sm font-medium", className)}
       data-slot="progress-label"
       {...props}
@@ -59,9 +65,11 @@ function ProgressLabel({ className, ...props }: ProgressPrimitive.Label.Props) {
   )
 }
 
-function ProgressValue({ className, ...props }: ProgressPrimitive.Value.Props) {
+interface ProgressValueProps extends React.HTMLAttributes<HTMLSpanElement> {}
+
+function ProgressValue({ className, ...props }: ProgressValueProps) {
   return (
-    <ProgressPrimitive.Value
+    <span
       className={cn(
         "ml-auto text-sm text-muted-foreground tabular-nums",
         className

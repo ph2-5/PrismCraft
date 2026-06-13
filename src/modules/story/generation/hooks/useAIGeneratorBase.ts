@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef } from "react";
-import { resolveCharacterRef, resolveSceneRef } from "@/modules/story";
+import { resolveCharacterRefs, resolveSceneRef } from "@/modules/story";
 import { getErrorMessage } from "@/shared/error-handler";
-import type { StoryBeat, Character, Scene, ModelSelection } from "@/domain/schemas";
+import type { StoryBeat, Character, Scene, ModelSelection, StoryElement } from "@/domain/schemas";
 
 interface AIGeneratorBaseProps {
   beatsRef: React.MutableRefObject<StoryBeat[]>;
   charactersRef: React.MutableRefObject<Character[]>;
   scenesRef: React.MutableRefObject<Scene[]>;
+  elementsRef?: React.MutableRefObject<StoryElement[]>;
   setBeats?: React.Dispatch<React.SetStateAction<StoryBeat[]>>;
   setGenerating: React.Dispatch<React.SetStateAction<string | null>>;
   success: (title: string, description?: string) => void;
@@ -15,7 +16,7 @@ interface AIGeneratorBaseProps {
 }
 
 interface ResolvedRefs {
-  characterRef: string | undefined;
+  characterRefs: string[];
   sceneRef: string | undefined;
   prevBeat: StoryBeat | null;
 }
@@ -25,6 +26,7 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
     beatsRef,
     charactersRef,
     scenesRef,
+    elementsRef,
     setBeats,
     setGenerating,
     showError,
@@ -83,11 +85,8 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
   const resolveRefs = useCallback(
     (beat: StoryBeat, prevBeat?: StoryBeat | null): ResolvedRefs => {
       const characterIds = beat.characterIds || [];
-      const characterRef = characterIds
-        .map((cid: string) => charactersRef.current.find((c) => c.id === cid))
-        .filter(Boolean)
-        .map((c) => resolveCharacterRef(c!, beat))
-        .find(Boolean);
+      const elements = elementsRef?.current;
+      const characterRefs = resolveCharacterRefs(characterIds, charactersRef.current, beat, elements);
 
       const sceneId = beat.sceneId || beat.scene;
       const sceneObj = sceneId
@@ -96,12 +95,12 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
       const sceneRef = sceneObj ? resolveSceneRef(sceneObj) : undefined;
 
       return {
-        characterRef,
+        characterRefs,
         sceneRef,
         prevBeat: prevBeat ?? null,
       };
     },
-    [charactersRef, scenesRef],
+    [charactersRef, scenesRef, elementsRef],
   );
 
   const checkModelConfig = useCallback(
@@ -134,7 +133,7 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
       activeControllersRef.current.set(beatId, controller);
       setGenerating(beatId);
 
-      const promise = (async (): Promise<T | void> => {
+      const promise: Promise<T | void> = (async (): Promise<T | void> => {
         try {
           const result = await fn(controller.signal);
           if (controller.signal.aborted) return;

@@ -27,13 +27,17 @@ vi.mock("@/infrastructure/api/client", () => ({
   },
 }));
 
-vi.mock("@/modules/sync", () => ({
-  initSyncEngine: mockInitSyncEngine,
-  updateSyncConfig: mockUpdateSyncConfig,
-  performSync: mockPerformSync,
-  getSyncStatus: mockGetSyncStatus,
-  setConflictCallback: mockSetConflictCallback,
-}));
+vi.mock("@/modules/sync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/sync")>();
+  return {
+    ...actual,
+    initSyncEngine: mockInitSyncEngine,
+    updateSyncConfig: mockUpdateSyncConfig,
+    performSync: mockPerformSync,
+    getSyncStatus: mockGetSyncStatus,
+    setConflictCallback: mockSetConflictCallback,
+  };
+});
 
 vi.mock("@/infrastructure/di", () => ({
   container: {
@@ -132,7 +136,7 @@ vi.mock("./SyncConflictPanel", () => ({
   SyncConflictPanel: () => <div data-testid="conflict-panel" />,
 }));
 
-import { SyncSettingsPanel } from "@/modules/sync/presentation/SyncSettingsPanel";
+import { SyncSettingsPanel } from "@/modules/sync";
 
 describe("SyncSettingsPanel", () => {
   const defaultProps = {

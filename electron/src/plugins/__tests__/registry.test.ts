@@ -90,7 +90,7 @@ vi.mock("../logging/logger", () => ({
 
 import { PluginRegistry } from "../registry";
 import { PluginProcessManager } from "../plugin-process-manager";
-import type { AIProviderPlugin, ProviderCapabilities, VideoCapabilities, ImageCapabilities, ModelCapabilities, ModelParameterProfile } from "../types";
+import type { AIProviderPlugin } from "../types";
 
 function createMockPlugin(overrides: Partial<AIProviderPlugin> = {}): AIProviderPlugin {
   const id = overrides.id ?? `plugin-${Math.random().toString(36).slice(2, 8)}`;

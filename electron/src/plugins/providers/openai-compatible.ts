@@ -7,6 +7,7 @@ import type {
   VideoRequestResult,
   ImageRequestResult,
   ApiKeyDetection,
+  ImageRefMode,
 } from "../types";
 import { getLogger } from "../../logging/logger";
 
@@ -85,6 +86,10 @@ export class OpenAICompatiblePlugin extends BaseAIProviderPlugin {
     supportsLastFrame: true,
     supportsReferenceVideo: true,
     supportsMimicryLevel: false,
+    supportsCharacterRef: true,
+    supportsSceneRef: true,
+    characterRefMode: "ref_field" as ImageRefMode,
+    sceneRefMode: "ref_field" as ImageRefMode,
     defaultModel: "video-01",
     maxDuration: 12,
     supportedCodecs: ["h264", "h265"],
@@ -117,11 +122,6 @@ export class OpenAICompatiblePlugin extends BaseAIProviderPlugin {
 
     if (ctx.referenceVideoUrl) {
       body.reference_video_url = ctx.referenceVideoUrl;
-    }
-
-    const refImage = ctx.characterRef || ctx.sceneRef;
-    if (refImage) {
-      body.ref_image = refImage;
     }
 
     return {

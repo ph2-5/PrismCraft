@@ -36,6 +36,13 @@ try {
 
     Copy-Item -Path "electron\dist\*" -Destination "out\" -Recurse -Force
 
+    $sharedLogicOutDir = Join-Path $projectDir "out\shared-logic"
+    if (-not (Test-Path -LiteralPath $sharedLogicOutDir)) {
+        New-Item -ItemType Directory -Path $sharedLogicOutDir -Force | Out-Null
+    }
+    Copy-Item -Path (Join-Path $projectDir "src\shared-logic\*") -Destination $sharedLogicOutDir -Recurse -Force
+    Write-Host "Copied shared-logic to out/shared-logic"
+
     $docsOutDir = Join-Path $projectDir "out\docs"
     if (-not (Test-Path -LiteralPath $docsOutDir)) {
         New-Item -ItemType Directory -Path $docsOutDir -Force | Out-Null

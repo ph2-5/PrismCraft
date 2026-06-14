@@ -1,8 +1,14 @@
-chore: add AI guardrails for native modules and build config
+fix: resolve multiple code quality and correctness issues
 
-- Add comments to .npmrc explaining mirror config and override method
-- Add "Native Module Rules (CRITICAL for AI)" section to project_rules.md
-  with explicit version pinning rules and native module checklist
-- Create scripts/check-native-modules.mjs validation script
-- Add "Build Troubleshooting" section to quick-start.md
-- Update architecture debt table descriptions for clarity
+- Fix off-by-one retry loop in story-generation-pipeline
+- Add extreme_wide to shotType enum for consistency with shotInstruction.shotSize
+- Populate shotInstruction in story-plan-parser from shotType+camera fields
+- Fix fixedImageLockType default when no character/scene refs
+- Filter duplicate validation errors in shot-validator array-level check
+- Fix Electron single-instance lock blocking E2E tests
+- Eliminate all any types in test files (39 occurrences across 6 files)
+- Replace getErrorMessage with mapUserFacingError in catch blocks
+- Add typecheck:test to CI workflow
+- Remove unused react-window dependency, move shadcn to devDependencies
+- Fix MODULE.md consistency warnings (story, video modules)
+- Update documentation for CQRS, stableActions, mapUserFacingError usage

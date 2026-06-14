@@ -141,7 +141,7 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
           beatTitle: beat.title || `${t("story.shotLabel")} ${beat.sequence}`,
           firstFrameUrl,
           fixedImageUrl: firstFrameUrl,
-          fixedImageLockType: effectiveCharacterRefs ? "character" : "scene",
+          fixedImageLockType: effectiveCharacterRefs ? "character" : effectiveSceneRef ? "scene" : undefined,
           lastFrameUrl: getLastFrameUrl(beat.framePair) || beat.uploadedFramePair?.lastFrame,
           providerId: selectedVideoModel?.providerId,
           modelId: selectedVideoModel?.modelId,

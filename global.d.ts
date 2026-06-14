@@ -43,9 +43,6 @@ declare global {
     };
     __VIDEO_TASK_POLLING_STATE__?: unknown;
     __VIDEO_TASK_STORE__?: { getState: () => { recoverTask?: (taskId: string, status: string, videoUrl: string) => void } };
-    __SYNC_ENGINE_STATE__?: {
-      syncTimer?: ReturnType<typeof setInterval> | null;
-    };
     __NETWORK_MONITOR_STATE__?: {
       checkIntervalId?: ReturnType<typeof setInterval> | null;
       boundHandleOnline?: (() => void) | null;

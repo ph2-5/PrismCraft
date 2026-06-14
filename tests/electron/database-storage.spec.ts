@@ -150,7 +150,7 @@ test.describe("Data Persistence", () => {
     await createButton.click();
     await page.waitForTimeout(500);
 
-    await page.locator('input[placeholder="输入角色名称..."]').fill("Persistent Character");
+    await page.locator('[data-testid="character-name-input"]').fill("Persistent Character");
     await page.locator("button", { hasText: "保存角色" }).click();
     await waitForAppReady(page);
 
@@ -170,7 +170,7 @@ test.describe("Data Persistence", () => {
     await createButton.click();
     await page.waitForTimeout(500);
 
-    await page.locator('input[placeholder="输入场景名称..."]').fill("Persistent Scene");
+    await page.locator('[data-testid="scene-name-input"]').fill("Persistent Scene");
     await page.locator("button", { hasText: "保存场景" }).click();
     await waitForAppReady(page);
 
@@ -186,7 +186,7 @@ test.describe("Data Persistence", () => {
     await navigateTo(page, "/story");
     await dismissOverlays(page);
 
-    const titleInput = page.locator('input[placeholder="分镜项目标题..."]');
+    const titleInput = page.locator('[data-testid="story-title-input"]');
     await titleInput.fill("Persistent Story");
 
     const addButton = page.locator("button", { hasText: "添加" }).first();
@@ -200,7 +200,7 @@ test.describe("Data Persistence", () => {
     await page.reload();
     await waitForAppReady(page);
 
-    const titleInputAfter = page.locator('input[placeholder="分镜项目标题..."]');
+    const titleInputAfter = page.locator('[data-testid="story-title-input"]');
     await expect(titleInputAfter).toHaveValue("Persistent Story");
   });
 });

@@ -272,6 +272,12 @@ export function schedulePolling() {
       await cacheCompletedVideos(pollResult.cacheTasks, abortSignal, getStore());
       adjustPollInterval(pollResult.hasSuccess, pollResult.hasError);
 
+      // Trigger sync and polling check once after all batch updates
+      // Use dynamic import to avoid circular dependency with sync-engine
+      const { scheduleSync } = await import("./sync-engine");
+      scheduleSync();
+      checkAndStartOrStopPolling();
+
       if (pollResult.hasError && !pollResult.hasSuccess) {
         pollingState.consecutiveErrors += 1;
         if (pollingState.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {

@@ -83,6 +83,67 @@ const infraSubdomainsExceptDi = [
   "@/infrastructure/api-config-facade",
 ];
 
+const noDirectDbIpcPlugin = {
+  meta: { name: "eslint-plugin-no-direct-db-ipc" },
+  rules: {
+    "no-direct-db-ipc": {
+      meta: {
+        type: "suggestion",
+        messages: {
+          noDirectDbIpc:
+            "\uD83D\uDEAB modules \u5C42\u7981\u6B62\u76F4\u63A5\u4F7F\u7528 IPC \u6570\u636E\u5E93\u64CD\u4F5C (electronAPI.{{method}})\uFF0C\u4E1A\u52A1\u903B\u8F91\u5E94\u901A\u8FC7 HTTP API \u6216 DI \u5BB9\u5668\u8BBF\u95EE",
+        },
+        schema: [],
+      },
+      create(context) {
+        const filename = context.filename.replace(/\\/g, "/");
+        if (!filename.includes("src/modules/")) return {};
+
+        const FORBIDDEN_METHODS = new Set([
+          "dbQuery",
+          "dbRun",
+          "dbBatchInsert",
+          "dbGet",
+          "dbTransaction",
+        ]);
+
+        function isElectronApiObject(obj) {
+          return (
+            (obj.type === "Identifier" && obj.name === "electronAPI") ||
+            (obj.type === "MemberExpression" &&
+              !obj.computed &&
+              obj.object.type === "Identifier" &&
+              obj.object.name === "window" &&
+              obj.property.type === "Identifier" &&
+              obj.property.name === "electronAPI")
+          );
+        }
+
+        function checkCall(node) {
+          const callee = node.callee;
+          if (
+            callee.type === "MemberExpression" &&
+            !callee.computed &&
+            isElectronApiObject(callee.object) &&
+            callee.property.type === "Identifier" &&
+            FORBIDDEN_METHODS.has(callee.property.name)
+          ) {
+            context.report({
+              node,
+              messageId: "noDirectDbIpc",
+              data: { method: callee.property.name },
+            });
+          }
+        }
+
+        return {
+          CallExpression: checkCall,
+        };
+      },
+    },
+  },
+};
+
 const eslintConfig = tseslint.config(
   tseslint.configs.base,
   {
@@ -268,6 +329,13 @@ const eslintConfig = tseslint.config(
           ],
         },
       ],
+    },
+  },
+  {
+    files: ["src/modules/**/*.{ts,tsx}", "!src/modules/**/__tests__/**"],
+    plugins: { "no-direct-db-ipc": noDirectDbIpcPlugin },
+    rules: {
+      "no-direct-db-ipc/no-direct-db-ipc": "warn",
     },
   },
   {

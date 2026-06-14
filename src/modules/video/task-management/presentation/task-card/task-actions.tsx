@@ -76,7 +76,7 @@ export function TaskActions({
               {t("task.manualQuery")}
             </Button>
           )}
-        {(task.status === "failed" || task.status === "timeout") && task.beatId && (
+        {(task.status === "failed" || task.status === "timeout") && (
           <Button
             variant="ghost"
             size="sm"

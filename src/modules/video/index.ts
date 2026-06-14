@@ -1,5 +1,9 @@
 export type { VideoTask } from "./task-management";
 export { useVideoTaskManager, useVideoTaskStore } from "./task-management";
+export { useVideoTaskState } from "./task-management";
+export { useVideoTaskQueries } from "./task-management";
+export { useVideoTaskCommands } from "./task-management";
+export { useVideoTaskPolling } from "./task-management";
 export {
   useVideoTasks,
   useFailedVideoTasks,

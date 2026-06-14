@@ -15,6 +15,7 @@ Architecture: **DDD (Domain-Driven Design) with sub-domain modules**, optimized 
 ```
 src/
   domain/          → Pure types, schemas, result types. NO imports from modules/ or infrastructure/
+  shared-logic/    → Pure business logic shared by both renderer and main process. NO external dependencies
   modules/         → Business logic sub-domains (each has hooks/, services/, presentation/)
   infrastructure/  → DI container, storage, network, API client, AI providers
   shared/          → Cross-cutting UI (Toast, Sidebar, ErrorBoundary), utils, error-logger
@@ -27,11 +28,11 @@ electron/src/
   main-common.ts   → Shared: createWindow, static server, gracefulShutdown, config IPC
   api-server.ts    → Re-export from api/server.ts (backward-compatible entry point)
   api/             → HTTP API server (modular structure)
-    types.ts       → Route, RouteHandler, ApiResponse type definitions (with Zod schema support)
+    types.ts       → Route<T>, RouteHandler<T>, ApiResponse<T>, defineRoute<T> (generic, Zod-inferred)
     middleware.ts   → Rate limiting, CORS, X-Electron-App auth, connection tracking
-    schemas.ts     → Zod schemas for all route request bodies (40+ schemas)
+    schemas.ts     → Zod schemas for all route request bodies (40+ schemas with z.infer type exports)
     routes.ts      → Route registry (merges all route groups)
-    route-groups/  → Route handler groups
+    route-groups/  → Route handler groups (all use defineRoute for type-safe body)
       core-routes.ts       → Config, upload, export, test-connection, sync routes
       generation-routes.ts → Image/video/text generation, story generation routes
       plugin-routes.ts     → Plugin management routes (list, add, delete, reload, etc.)
@@ -52,21 +53,26 @@ Dependencies must flow **inward only**:
 
 ```
 app → modules → domain
+              → shared-logic
               → shared
               → infrastructure/di (via container only)
 infrastructure → domain, shared
+shared-logic → NOTHING (pure logic, zero external dependencies)
 shared → domain, infrastructure (proxy exports only)
 domain → NOTHING (pure types)
 ```
 
 ### Violations to avoid:
+- `shared-logic/` MUST NOT import from any other layer (zero external dependencies, self-contained types only)
 - `shared/` MUST NOT import from `@/modules/*`
 - `shared/` MAY re-export from `@/infrastructure/*` via proxy exports (e.g., `@/shared/db-core`, `@/shared/api-config`)
 - `domain/` MUST NOT import from `@/modules/*` or `@/infrastructure/*`
 - `modules/` MUST NOT directly import from `@/infrastructure/*` except `@/infrastructure/di` (use DI container or `@/shared/` proxy exports)
+- `modules/` MAY import from `@/shared-logic/*` for pure business logic (prompt building, consistency check, reference engine, etc.)
 - Cross-module imports: use barrel `@/modules/xxx` or `@/modules/xxx/subdomain` not deep paths `@/modules/xxx/hooks/yyy`
 - Cross-module deep-path imports (`@/modules/xxx/yyy/zzz`) are blocked by ESLint (error in production code, warn in tests)
 - Type re-exports from infrastructure are allowed via `export type` (compile-time only, no runtime dependency)
+- Main process route handlers import from `@shared-logic/*` (configured in electron/tsconfig.json)
 
 ## Module Conventions
 
@@ -107,48 +113,21 @@ module-name/
 
 ### Error Handling Policy (CRITICAL)
 - `uncaughtException` and `unhandledRejection` MUST NOT call `app.exit()` — log only, keep running
-- Desktop apps must survive transient errors (network timeout, DB busy, IPC glitch)
 - Only `SIGINT`, `SIGTERM`, and explicit user quit trigger `app.quit()`
 
-### Renderer Crash Recovery
-- `render-process-gone` event sets `isRendererCrashed` flag, destroys window
-- `window-all-closed` checks `isRendererCrashed`: if true, auto-recreates window after 1s delay
-- Only genuine user-initiated window close triggers `app.quit()`
-
-### GPU Process Crash
-- `child-process-gone` with `details.type === "GPU"` triggers `webContents.reload()`
-- Other child process exits are logged at warn level
-
-### Graceful Shutdown Sequence
-1. `before-quit` → `gracefulShutdown()` (destroy window, close static server)
-2. `stopApiServer()` (destroy tracked connections, close HTTP server)
-3. `closeDatabase()` (close SQLite connection)
-4. `app.quit()`
-
-### Static Server Connection Tracking
-- `activeConnections: Set<net.Socket>` tracks all HTTP connections
-- On shutdown, all tracked connections are `destroy()` before `server.close()`
-- Prevents keep-alive connections from blocking process exit
+### Recovery Behaviors
+- Renderer crash: `render-process-gone` → set flag → destroy window → `window-all-closed` auto-recreates after 1s
+- GPU crash: `child-process-gone` with `GPU` type → `webContents.reload()`
+- Graceful shutdown: `before-quit` → destroy window + close static server → stop API server → close database → `app.quit()`
+- Static server: `activeConnections: Set<net.Socket>` tracked, all `destroy()` on shutdown
 
 ## Logging System
 
-### Transport Initialization
-- `main.ts` initializes `ConsoleTransport` + `FileTransport` at startup via `loggerRegistry.setDefaultTransports()`
-- `main-dev.ts` uses `minLevel: "debug"` and `filename: "dev"`
-- `main.ts` (production) uses `minLevel: "info"` and `filename: "app"`
-
-### Log File Location
-- Production: `%APPDATA%/ai-animation-studio/logs/app-YYYY-MM-DD.log`
-- Development: `%APPDATA%/ai-animation-studio/logs/dev-YYYY-MM-DD.log`
-- Log rotation: 10MB per file triggers rename to `.1` backup; max 5 log files retained (oldest deleted)
-- Flush interval: 5 seconds (immediate flush when queue > 100 entries)
-
-### Logger Method Signatures
-```typescript
-logger.info(message: string, context?: LogContext)   // 2 params
-logger.warn(message: string, context?: LogContext)   // 2 params
-logger.error(message: string, error?: Error, context?: LogContext)  // 3 params
-```
+- `main.ts` initializes `ConsoleTransport` + `FileTransport` via `loggerRegistry.setDefaultTransports()`
+- Production: `minLevel: "info"`, filename: `"app"`. Development: `minLevel: "debug"`, filename: `"dev"`
+- Log location: `%APPDATA%/ai-animation-studio/logs/{app|dev}-YYYY-MM-DD.log`
+- Rotation: 10MB per file, max 5 files retained. Flush interval: 5s (immediate when queue > 100)
+- Method signatures: `logger.info(message, context?)`, `logger.warn(message, context?)`, `logger.error(message, error?, context?)`
 
 ## Database Rules
 
@@ -185,30 +164,9 @@ logger.error(message: string, error?: Error, context?: LogContext)  // 3 params
 
 ### Code Splitting Strategy
 
-Vite 8 uses rolldown's `codeSplitting` API in `vite.config.ts` (`build.rolldownOptions.output.codeSplitting.groups`) to split the bundle into logical chunks with priority-based matching:
-
-| Chunk | Contents | Approx Size |
-|-------|----------|-------------|
-| `vendor-react` | react, react-dom, react-router-dom, scheduler | ~284 KB |
-| `vendor-state` | zustand, @tanstack/react-query | ~36 KB |
-| `vendor-ui` | lucide-react, clsx, tailwind-merge, class-variance-authority | ~48 KB |
-| `vendor-misc` | Other node_modules | varies |
-| `app-story` | src/modules/story/ | ~351 KB |
-| `app-shot` | src/modules/shot/ | ~145 KB |
-| `app-video` | src/modules/video/ | ~88 KB |
-| `app-infra` | asset, sync, persistence modules | ~47 KB |
-| `app-infra-core` | src/infrastructure/ | ~241 KB |
-| `app-shared` | src/shared/ | ~260 KB |
-| `app-domain` | src/domain/ | ~14 KB |
-| `app-character` | src/modules/character/ | ~20 KB |
-| `app-scene` | src/modules/scene/ | ~12 KB |
-| `app-prompt` | src/modules/prompt/ | varies |
-| `common` | Shared dependencies (minShareCount: 2) | varies |
-| `page-*` | Lazy-loaded page components (React.lazy) | varies |
+Vite 8 uses rolldown's `codeSplitting` API in `vite.config.ts` with priority-based matching. When adding a new module under `src/modules/`, add a corresponding `codeSplitting.groups` entry with appropriate `test` regex and `priority` (30 for core react vendor, 25 for secondary vendor, 20 for infrastructure, 18 for shared/domain, 15 for app modules, 10 for generic vendor, 5 for common).
 
 All page routes use `React.lazy()` for code splitting — pages are only loaded when navigated to.
-
-When adding a new module under `src/modules/`, add a corresponding `codeSplitting.groups` entry in `vite.config.ts` with appropriate `test` regex and `priority` (30 for core react vendor, 25 for secondary vendor, 20 for infrastructure, 18 for shared/domain, 15 for app modules, 10 for generic vendor, 5 for common).
 
 ### ESLint Configuration
 
@@ -218,8 +176,6 @@ ESLint 9 flat config with the following plugins:
 - `eslint-plugin-react-hooks` — Hooks rules (`react-hooks/rules-of-hooks`)
 
 Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: **warn**.
-
-### NPM Scripts Index
 
 ### Native Module Rules (CRITICAL for AI)
 
@@ -238,35 +194,9 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 
 **验证脚本**：`node scripts/check-native-modules.mjs` — 检查原生模块版本是否精确锁定
 
-### NPM Scripts Index
+### NPM Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `npm run dev` | Vite dev server (renderer only, no Electron) |
-| `npm run build` | Vite production build (web mode) |
-| `npm run build:electron` | Full Electron build (Vite build + Electron TS compile + file copy) |
-| `npm run build:win` | Build + rebuild native + package Windows NSIS installer |
-| `npm run build:mac` | Build + rebuild native + package macOS DMG |
-| `npm run build:linux` | Build + rebuild native + package Linux AppImage |
-| `npm run rebuild` | Rebuild better-sqlite3 for Electron |
-| `npm run typecheck` | TypeScript check (root) |
-| `npm run typecheck:electron` | TypeScript check (electron/) |
-| `npm run typecheck:test` | TypeScript check (including test files via tsconfig.test.json) |
-| `npm run lint` | ESLint (src/) |
-| `npm run lint:electron` | ESLint (electron/src/) |
-| `npm run lint:arch` | Architecture violation scan |
-| `npm run test` | Vitest unit tests |
-| `npm run test:watch` | Vitest watch mode |
-| `npm run test:coverage` | Vitest with coverage report |
-| `npm run test:electron` | Vitest with Electron-specific config (vitest.config.electron.ts) |
-| `npm run test:e2e` | Playwright e2e tests (browser mode with electron-mock) |
-| `npm run test:e2e:ui` | Playwright e2e tests with UI mode |
-| `npm run test:e2e:electron` | Playwright e2e tests (Electron mode, requires `npm run build:electron` first) |
-| `npm run test:e2e:pages` | Playwright page load tests (Electron mode) |
-| `npm run validate` | typecheck + typecheck:electron + typecheck:test + lint + lint:arch + module API consistency + contract validation + test |
-| `npm run validate:full` | validate + coverage report with threshold enforcement |
-| `npm run graph` | Module dependency graph |
-| `npm run di-docs` | DI token docs generation |
+> See `quick-start.md` for the full NPM scripts table.
 
 ### CI/CD Pipeline
 
@@ -289,157 +219,218 @@ Production code: `@typescript-eslint/no-explicit-any` is **error**. Test code: *
 
 ## Key Patterns
 
+### Shared-Logic Layer (CRITICAL for AI)
+
+`src/shared-logic/` contains pure business logic shared by both renderer and main process. This eliminates the previous duplication between `electron/src/services/` and `src/modules/`.
+
+**Structure**:
+```
+src/shared-logic/
+  shot/       → reference-engine, consistency-check, reference-check, visual-consistency-check
+  prompt/     → prompt-engine, prompt-service
+  video/      → video-task-params, video-tracker, video-recovery
+  story/      → story-service, storyboard-generation
+  index.ts    → Top-level barrel
+```
+
+**Rules**:
+- ZERO external dependencies — no imports from `@/`, `@shared/`, `@domain/`, or any project layer
+- Only relative imports within `shared-logic/` directory
+- All types must be self-contained (inline definitions, not imported from other layers)
+- No logger dependencies — callers handle logging
+- No I/O — pure functions only, accept data and return data
+
+**Usage**:
+```typescript
+// Renderer (src/modules/)
+import { validateReference } from "@/shared-logic/shot/reference-engine";
+
+// Main process (electron/src/api/route-groups/)
+import { validateReference } from "@shared-logic/shot/reference-engine";
+```
+
+**Path aliases**: `@/shared-logic/*` (renderer, configured in tsconfig.json + vite.config.ts), `@shared-logic/*` (main process, configured in electron/tsconfig.json)
+
+### defineRoute (Type-Safe API Routes)
+
+All API routes use `defineRoute()` for automatic type inference from Zod schemas:
+
+```typescript
+import { defineRoute } from "../types";
+import { generateVideoSchema, type GenerateVideoRequest } from "../schemas";
+
+"generate-video": defineRoute({
+  schema: generateVideoSchema,
+  handler: async (_method, body, req) => {
+    // body is typed as GenerateVideoRequest (inferred from schema)
+    const { prompt, firstFrameUrl, characterRefs } = body;
+  },
+  methods: ["POST"],
+})
+```
+
+**Rules**:
+- Every route with a schema MUST use `defineRoute()`
+- Routes without a schema use `defineRoute({ handler, methods })` (no schema parameter)
+- Zod schemas in `schemas.ts` MUST export both the schema and the inferred type: `export type XxxRequest = z.infer<typeof xxxSchema>`
+- Handler body parameter is automatically typed — no `as` assertions needed for schema-typed fields
+
+### Video Task CQRS Pattern
+
+Video task management follows CQRS (Command Query Responsibility Segregation):
+
+```typescript
+// State — pure Zustand store, no side effects
+import { useVideoTaskState } from "@/modules/video/task-management";
+
+// Queries — read-only derived data
+import { useVideoTaskQueries } from "@/modules/video/task-management";
+
+// Commands — write operations (API calls + state updates)
+import { useVideoTaskCommands } from "@/modules/video/task-management";
+
+// Polling — periodic status checks
+import { useVideoTaskPolling } from "@/modules/video/task-management";
+
+// Composition — backward-compatible unified interface
+import { useVideoTaskManager } from "@/modules/video/task-management";
+```
+
+**Rules**:
+- `useVideoTaskState` — NO API calls, NO side effects, only state mutations
+- `useVideoTaskQueries` — read-only, uses useMemo for derived data
+- `useVideoTaskCommands` — handles API calls then updates state
+- `useVideoTaskPolling` — handles periodic status checks
+- `useVideoTaskManager` — combines all above, existing consumers don't need to change
+
+**Performance patterns**:
+- **stableActions**: `useVideoTaskManager` caches all action methods via `useMemo([store])` — their references never change since they come from `store.getState()`. This prevents action references from changing when `allTasks` updates, avoiding unnecessary re-renders in consumers like `StoryProvider`.
+- **setAllTasks no auto-trigger**: `setAllTasks` only updates Zustand state. Write operations explicitly call `scheduleSync()` + `checkAndStartOrStopPolling()` after state updates. Polling engine triggers sync/polling once after batch updates via dynamic `import("./sync-engine")`.
+- **useStableCompletedUrls**: In `useStoryVideo`, the `completedTaskUrls` Map uses shallow comparison — only creates a new reference when content actually changes, preventing polling updates from triggering downstream useEffects.
+
+### SyncEngine Class
+
+Sync engine is encapsulated as a class (`src/modules/sync/engine/sync-engine-class.ts`), accessed via DI or function-based API:
+
+```typescript
+// Via DI container (recommended for new code)
+const engine = container.syncEngine;
+
+// Via function API (backward compatible)
+import { initSyncEngine, performSync, startAutoSync } from "@/modules/sync/engine/engine";
+```
+
+**Rules**:
+- No module-level `let` variables — all state encapsulated in class
+- No `window.__SYNC_ENGINE_STATE__` HMR hack
+- Function-based API delegates to singleton instance for backward compatibility
+
+### DI Container Introspection
+
+```typescript
+import { TOKEN_IDS, getTokenRegistry } from "@/infrastructure/di";
+
+// Get all token IDs (compile-time constant)
+const tokenIds = TOKEN_IDS; // Record<string, string>
+
+// Get token metadata with categories
+const registry = getTokenRegistry(); // Array<{ key, id, category }>
+```
+
+### IPC Channel Separation (CRITICAL)
+
+Business logic MUST go through HTTP API, not direct IPC database operations:
+
+- **Allowed IPC in modules**: `saveImage`, `deleteFile`, `readFileBase64`, `getConfig`, `setConfig`, `saveFileDialog`, `openFileDialog`, `secureConfigResolve`
+- **Forbidden IPC in modules**: `dbQuery`, `dbRun`, `dbBatchInsert`, `dbGet`, `dbTransaction` (enforced by ESLint `no-direct-db-ipc` rule)
+
 ### DI Container Usage
 ```typescript
 import { container } from "@/infrastructure/di";
 const storage = container.videoTaskStorage;
 ```
 
-**DI Token 准则**：仅注册 Port 接口实现、有状态服务、需测试替换的依赖。`@/shared/*` 的纯函数（如 `resolveImageUrl`、`getErrorMessage`）直接导入，不走 DI。来自 `@/infrastructure/*` 的纯函数通过 `@/shared/` 代理导出（如 `@/shared/db-core`、`@/shared/api-config`、`@/shared/video-cache`、`@/shared/outfit`），不走 DI。
+**DI Token 准则**：仅注册 Port 接口实现、有状态服务、需测试替换的依赖。`@/shared/*` 的纯函数（如 `resolveImageUrl`、`mapUserFacingError`）直接导入，不走 DI。来自 `@/infrastructure/*` 的纯函数通过 `@/shared/` 代理导出（如 `@/shared/db-core`、`@/shared/api-config`、`@/shared/video-cache`、`@/shared/outfit`），不走 DI。
 
-### Electron App Headers
+### Key Code Patterns
+
 ```typescript
+// Electron App Headers
 import { ELECTRON_APP_HEADERS } from "@/config/constants";
 fetch(url, { headers: { ...ELECTRON_APP_HEADERS, "Content-Type": "application/json" } });
-```
 
-### Safe Storage Operations
-```typescript
+// Safe Storage Operations
 import { withRetry, safeQuery, safeRun, safeTransaction } from "@/shared/db-core";
 await withRetry(() => storage.run(sql, params));
-```
 
-### JSON Container Pattern
-```typescript
-import { parseConfig, parseProvider, parseMediaRefs, parseTracking } from "@/infrastructure/storage/video-tasks/json-schemas";
-
+// JSON Container Pattern
+import { parseConfig, parseProvider } from "@/infrastructure/storage/video-tasks/json-schemas";
 const config = parseConfig(record.config);
-const provider = parseProvider(record.provider);
-```
 
-### Schema Builder
-```typescript
+// Schema Builder
 import { generateTableSQL, BASE_COLUMNS } from "../../../electron/src/database/schema-builder";
 const sql = generateTableSQL(tableDef);
-```
 
-### Safe JSON Parse (Element Repository)
-```typescript
-function safeJsonParse<T>(raw: unknown, field: string, id: string): T | undefined {
-  if (!raw) return undefined;
-  try { return JSON.parse(raw as string) as T; }
-  catch { return undefined; }
-}
-```
+// Domain Port + DI Decoupling
+// Modules define Port interfaces in domain/ (e.g., VideoGeneratorPort)
+// Infrastructure provides implementations registered in DI container
+// Modules access via container.xxx — never direct infrastructure imports
 
-### Domain Port + DI Decoupling
-- Modules define Port interfaces in `domain/` (e.g., `VideoGeneratorPort`)
-- Infrastructure provides implementations registered in DI container
-- Modules access via `container.xxx` — never direct infrastructure imports
-
-### React Router Navigation (Vite SPA)
-```typescript
+// React Router Navigation (Vite SPA)
 import { Link, useNavigate, useLocation, useSearchParams, useParams } from "react-router-dom";
-
-const navigate = useNavigate();
-const pathname = useLocation().pathname;
-const [searchParams] = useSearchParams();
-const { beatId } = useParams();
-
-navigate("/story");
-<Link to="/settings">Settings</Link>
 ```
 
 ### Preference Storage (Hydration-Safe)
+
 ```typescript
 import { usePreference, preferencesStorage } from "@/shared/utils/preferences";
-
 const [value, setValue] = usePreference<SettingsType>("storage-key", defaultValue);
-setValue({ ...value, field: newValue });
-
-preferencesStorage.get("key", defaultValue);
-preferencesStorage.set("key", value);
-preferencesStorage.remove("key");
 ```
 
-`usePreference` uses `useSyncExternalStore` internally with snapshot caching for object reference stability. Supports cross-tab sync via `storage` event listener.
+Uses `useSyncExternalStore` internally with snapshot caching. Supports cross-tab sync via `storage` event listener.
 
 ### Frame Pair Generation Pipeline
-首尾帧生成管线：预览图(keyframe) → 首尾帧(framePair) → 视频(video)
-- 预览图作为 `keyframeUrl` + `keyframePrompt` 传给首尾帧生成
-- 首尾帧 URL + 帧说明传给视频生成
-- 统一使用 `videoProvider.generateFramePair` 单路径（不再使用 `imageProvider.generateImage` 双路径）
-- 不支持参考图的提供商必须将 `keyframeUrl` 转为文本提示 `[参考预览图 URL]`
 
-### Model Capabilities
+首尾帧生成管线：预览图(keyframe) → 首尾帧(framePair) → 视频(video). Uses `videoProvider.generateFramePair` single path. Providers without reference image support must convert `keyframeUrl` to text prompt `[参考预览图 URL]`.
+
+### Model Capabilities & Reference Strategy
+
 ```typescript
-import { getModelCapabilities, getVideoGenerationStrategy } from "@/infrastructure/ai-providers/model-capabilities-utils";
+import { getModelCapabilities, getVideoGenerationStrategy } from "@/shared/model-capabilities";
 
 const caps = getModelCapabilities(modelId);
-// caps.supportsCharacterRef — 是否支持角色参考图
-// caps.supportsSceneRef — 是否支持场景参考图
+// caps.supportsCharacterRef, caps.supportsSceneRef
 
 const strategy = getVideoGenerationStrategy(modelId);
-// strategy.useCharacterRef / strategy.useSceneRef — 从 caps 读取，非硬编码
-```
-
-- `BUILTIN_MODEL_CAPABILITIES` 中的模型ID必须与提供商官方API文档完全一致
-- `getDefaultCapabilities()` 对新字段使用保守默认值（`false`/`0`/空）
-- 插件 `getModelCapabilities(modelId)` 必须根据 modelId 区分不同模型能力
-
-### Reference Strategy
-```typescript
-import { getVideoGenerationStrategy } from "@/shared/model-capabilities";
-
-const strategy = getVideoGenerationStrategy(modelId);
-// strategy.useCharacterRef — 是否通过视频 API 原生传递角色参考图
-// strategy.useSceneRef — 是否通过视频 API 原生传递场景参考图
+// strategy.useCharacterRef, strategy.useSceneRef — from caps, not hardcoded
 // strategy.characterRefMode — "native_field" | "bake_into_first" | "ref_field" | "both" | "none"
-// strategy.sceneRefMode — "native_field" | "bake_into_first" | "ref_field" | "both" | "none"
+// strategy.sceneRefMode — same options
 // strategy.promptLanguage — "en" | "zh" | "auto"
 ```
 
-- `bake_into_first` 模式：视频 API 不传参考图，参考图信息融入首帧（Seedance pro 系列）
-  - 首帧生成时通过 Seedream `ref_image` 参数传递参考图 URL
-  - 视频生成时只传首帧/尾帧，不传 characterRefs/sceneRef
-- `ref_field` 模式：通过 `role: "reference_image"` 传递参考图（Seedance lite-i2v）
-- `native_field` 模式：通过 API 原生字段传递（Kling V2+ `subject_reference`、MiniMax S2V-01 `subject_image_url`）
-- `buildReferenceEnhancedPrompt(prompt, hasCharRef, hasSceneRef)` — 在首帧 prompt 中注入英文参考图指令（辅助 bake_into_first）
+- `bake_into_first`: Video API doesn't receive reference images; they're baked into first frame via `ref_image` param (Seedance pro)
+- `ref_field`: Via `role: "reference_image"` (Seedance lite-i2v)
+- `native_field`: Via API native fields (Kling V2+ `subject_reference`, MiniMax `subject_image_url`)
+- `BUILTIN_MODEL_CAPABILITIES` model IDs must match provider official API docs exactly
+- `getDefaultCapabilities()` uses conservative defaults (`false`/`0`/empty) for new fields
 
-### Deprecated Provider Templates
-```typescript
-const template: PluginProviderTemplate = {
-  id: "sora",
-  name: "Sora",
-  deprecated: true,
-  deprecatedReason: "OpenAI Sora API 尚未公开可用",
-  // ...
-};
-```
-- `getAllTemplates()` 自动过滤 `deprecated: true` 的模板
-- 新增不可用提供商时，设置 `deprecated` 而非删除（保留配置供未来启用）
+### API Connection Test Error Suggestions
+
+When `testConnection()` fails, the UI shows specific error reasons and actionable suggestions based on HTTP status code:
+
+| Status Code | Suggestion i18n Key | Meaning |
+|-------------|---------------------|---------|
+| 401 / 403 | `test.suggestion.checkApiKey` | API Key 无效或权限不足 |
+| 404 | `test.suggestion.checkBaseUrl` | Base URL 不正确 |
+| 0 / 5xx | `test.suggestion.checkNetwork` | 网络问题或服务器故障 |
+
+Implementation in `multi-api.ts`: checks `error.statusCode` from `ApiClientError`, falls back to generic error message for unknown status codes.
+
+`getAllTemplates()` auto-filters `deprecated: true` templates. Set `deprecated` (not delete) for unavailable providers to preserve config for future use.
 
 ### Vite Build Configuration
-```typescript
-const isElectron = process.env.BUILD_TARGET === "electron";
-export default defineConfig({
-  base: isElectron ? "./" : "/",
-  build: {
-    outDir: "out",
-    rolldownOptions: {
-      output: {
-        codeSplitting: {
-          groups: [
-            { name: "vendor-react", test: /node_modules[\\/]react/, priority: 30 },
-            { name: "app-story", test: /src[\\/]modules[\\/]story/, priority: 15 },
-            // ... other groups
-          ],
-        },
-      },
-    },
-  },
-});
-```
+
+`vite.config.ts` uses `BUILD_TARGET=electron` for relative base path. See `vite.config.ts` for the full code splitting groups configuration.
 
 ## Testing
 
@@ -452,18 +443,7 @@ export default defineConfig({
 
 ### E2E Testing
 
-Two modes available:
-
-1. **Browser mode** (`npx playwright test`) — Uses `electron-mock.ts` to simulate Electron APIs in Chromium. No Electron build required. Good for UI workflow tests.
-
-2. **Electron mode** (`npx playwright test --config=playwright.electron.config.ts`) — Launches real Electron app via custom `_electron` fixture. Requires `npm run build:electron` first, then `npm run rebuild` to match Electron's Node.js version. Tests in `tests/electron/`.
-
-3. **Page load tests** (`npx playwright test --config=playwright.electron-pages.config.ts`) — Checks each page loads without critical console errors in Electron. Tests in `tests/electron-pages.spec.ts`.
-
-Electron e2e test infrastructure:
-- `tests/helpers/electron-fixture.ts` — Custom Playwright fixture that launches Electron app
-- `tests/helpers/electron-page-helpers.ts` — Navigation helpers for Electron (uses `http://localhost:3000` base URL)
-- `tests/electron/` — 6 test files adapted for Electron environment
+Three modes: **Browser mode** (`npx playwright test`, uses electron-mock, no Electron build required), **Electron mode** (`--config=playwright.electron.config.ts`, requires `npm run build:electron` first), **Page load tests** (`--config=playwright.electron-pages.config.ts`). Test infrastructure: `tests/helpers/electron-fixture.ts`, `tests/helpers/electron-page-helpers.ts`, `tests/electron/`.
 
 ## Lint & Type Check
 
@@ -477,16 +457,9 @@ Electron e2e test infrastructure:
 
 | 债务项 | 严重度 | 说明 |
 |--------|--------|------|
-| ~~硬编码中文~~ | ~~中~~ | 已修复：R56全量迁移完成，messages.ts含1850+键，覆盖app/pages+modules/presentation+shared/presentation+modules/hooks；仅剩AI提示词模板、error-codes业务数据、日志文本（按规则不迁移） |
-| ~~大文件~~ | ~~中~~ | 已修复：18个>400行文件全部拆分，拆分出35+子组件/hooks；后续追加拆分：api-gateway(991→360+utils+image)、user-plugin-loader(972→286+adapter)、templates(996→191+data)、routes(921→15+5 groups) |
-| ~~非空断言~~ | ~~中~~ | 已修复：生产代码0处`!.`，`as unknown as`仅存在于测试文件（测试中合理使用） |
-| ~~性能基础设施~~ | ~~低~~ | 已铺设：React.memo 5个高频组件、@tanstack/react-virtual虚拟列表hook、useReducer状态管理重构 |
 | WASM 依赖膨胀 | 低 | better-sqlite3 原生模块，打包时 asarUnpack 解压 .node 文件，无害 |
-| ~~tsconfig 排除测试~~ | ~~中~~ | 已修复：新增 tsconfig.test.json，测试文件参与类型检查（R55） |
-| ~~Next.js output:"export"~~ | ~~高~~ | 已修复：迁移到 Vite + React Router（R57/R58），功能利用率从15%提升到100% |
 | Electron 镜像依赖 | 低 | .npmrc 配置国内镜像（有注释说明），海外构建可用环境变量覆盖 |
 | 版本锁定策略 | 低 | better-sqlite3 精确锁定 12.10.0（原生模块必须精确锁定，见下方规则） |
-| ~~app-character chunk 过大~~ | ~~低~~ | 已修复：rolldown codeSplitting API替代manualChunks，character chunk从784KB降至20KB |
 
 ## AI Maintenance Workflow (CRITICAL)
 
@@ -517,11 +490,13 @@ If your change violates an invariant, either:
 
 | Layer | Allowed Imports | Forbidden Imports |
 |-------|----------------|-------------------|
-| `domain/` | Nothing external | `@/modules/*`, `@/infrastructure/*` |
-| `shared/` | `@/domain/*`, `@/infrastructure/*` (proxy exports only) | `@/modules/*` |
-| `modules/` | `@/domain/*`, `@/shared/*`, `@/infrastructure/di` | `@/infrastructure/*` (except DI), `@/modules/*/*/*` |
-| `infrastructure/` | `@/domain/*`, `@/shared/*` | `@/modules/*` |
+| `domain/` | Nothing external | `@/modules/*`, `@/infrastructure/*`, `@/shared-logic/*` |
+| `shared-logic/` | Relative imports within shared-logic only | ALL external imports (`@/`, `@shared/`, any project layer) |
+| `shared/` | `@/domain/*`, `@/infrastructure/*` (proxy exports only) | `@/modules/*`, `@/shared-logic/*` |
+| `modules/` | `@/domain/*`, `@/shared/*`, `@/shared-logic/*`, `@/infrastructure/di` | `@/infrastructure/*` (except DI), `@/modules/*/*/*` |
+| `infrastructure/` | `@/domain/*`, `@/shared/*` | `@/modules/*`, `@/shared-logic/*` |
 | `app/` | All layers | Deep module paths `@/modules/*/*/*` |
+| `electron/src/api/` | `@shared-logic/*`, `@shared/*`, `@domain/*` | `@/modules/*` |
 
 When a module needs an infrastructure function, create a proxy export in `@/shared/` (e.g., `@/shared/db-core`, `@/shared/api-config`). Only register in DI container if the dependency is stateful or needs test replacement via `overrideToken()`.
 
@@ -538,22 +513,7 @@ If your change only modifies internal implementation (no API change), no contrac
 
 ### Step 5: Validate After Changes
 
-Run this validation sequence after every code change:
-```bash
-npm run validate:full
-```
-
-This is equivalent to:
-```bash
-npx tsc --noEmit                                     # Type safety
-npx tsc -p electron/tsconfig.json --noEmit           # Electron type safety
-npx tsc -p tsconfig.test.json --noEmit               # Test type safety
-npx eslint src/                                      # Import restrictions + code style
-node scripts/check-architecture.mjs                  # DDD violations + contract.json consistency
-node scripts/check-module-api-consistency.mjs         # MODULE.md ↔ index.ts sync
-node scripts/validate-contracts.mjs                  # Contract structure + invariants + size checks
-npx vitest run                                       # Unit tests
-```
+Run `npm run validate:full` after every code change. This runs: typecheck (root + electron + test), eslint, architecture check, module API consistency, contract validation, and unit tests.
 
 ### Step 6: Write Tests
 
@@ -564,7 +524,7 @@ npx vitest run                                       # Unit tests
 
 ### Plugin System Architecture
 
-The plugin system supports two forms of user plugins, managed separately:
+The plugin system supports two forms of user plugins:
 
 | Plugin Type | Format | Location | Loader |
 |-------------|--------|----------|--------|
@@ -572,49 +532,11 @@ The plugin system supports two forms of user plugins, managed separately:
 | Declarative | `.plugin.json` | `~/AI Animation Studio/UserPlugins/` | `UserPluginAdapter` |
 | Code | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter` (process isolation) |
 
-**Key interfaces**:
-- `AIProviderPlugin` — Base interface, all plugins implement this
-- `ProviderCapabilities` — Capability flags `{ video, image, text, vision }`, callers check before calling build methods instead of try/catch
-- `MatchPattern` — Match rule interface, plugins declare URL/model matching rules via `matchPatterns`, `match()` uses these for sync matching without executing plugin code
-- `getApiKeyDetection()` — Optional method, returns API Key auto-detection rules
-- `getModelParameterProfile(modelId)` — Returns model-specific parameters (durations, resolutions, styles, etc.)
+**Key interfaces**: `AIProviderPlugin` (base), `ProviderCapabilities` (`{ video, image, text, vision }`), `MatchPattern` (URL/model matching), `getApiKeyDetection()`, `getModelParameterProfile(modelId)`
 
-**API Key detection flow**:
-1. Frontend calls `loadPluginDetectionRules()` → fetches `/api/plugins/detection-rules`
-2. `detectProvider(apiKey)` tries plugin rules first, then falls back to `BUILTIN_RULES`
-3. Plugin rules include `pluginId`, `suggestedName`, `baseUrl`, `confidence`
+**Code plugin sandbox**: `vm.createContext()` + `vm.runInContext()` with 5s timeout inside worker process. Pre-scans for escape patterns, freezes prototypes, disables dangerous objects. Reference template: `docs/examples/reference-code-plugin.plugin.js`
 
-**Provider template flow**:
-1. Frontend calls `loadPluginTemplates()` → fetches `/api/plugins/list`
-2. `getAllTemplates()` merges `PROVIDER_TEMPLATES` (built-in) + `pluginTemplates` (from plugins)
-3. `createProviderFromTemplate()` uses `getTemplateWithPlugins()` to find templates
-
-**Model capabilities flow**:
-1. `loadModelProfilesFromServer()` fetches model profiles from `/api/plugins/list`
-2. `getModelCapabilities()` checks `modelProfilesCache` first, then `BUILTIN_MODEL_CAPABILITIES`
-3. `ModelParameterPanel` component renders model-specific parameter UI (durations, resolutions, styles, cfgScale, etc.)
-
-**Code plugin sandbox** (vm sandbox runs inside worker process as defense-in-depth):
-- Uses `vm.createContext()` + `vm.runInContext()` with 5s timeout inside worker process
-- Plugin code wrapped in IIFE with `'use strict'` to prevent `this.constructor` escape
-- Pre-scans for escape patterns (`__proto__`, `getPrototypeOf`, `Reflect`) — rejects loading if detected
-- Freezes `Object/Array/Function/Error` prototypes in sandbox context
-- Disables `Function`, `eval`, `Proxy`, `Reflect`, `Promise`, `Symbol`, `Map`, `Set`, `WeakMap`, `WeakSet`
-- Blocks dangerous objects (require, process, __filename, __dirname, Buffer, setTimeout, fetch)
-- Reference template: `docs/examples/reference-code-plugin.plugin.js`
-
-**Code plugin process isolation** (`plugin-process-manager.ts` + `plugin-worker.ts`):
-- Each code plugin runs in a dedicated child process via `child_process.fork()`
-- `PluginProcessManager` manages lifecycle: fork, load, call, shutdown, crash recovery
-- `plugin-worker.ts` is the child process entry: loads plugin in vm sandbox, handles IPC calls
-- IPC protocol: `{ type: "load"|"call"|"shutdown", id, method?, args? }` → `{ type: "loaded"|"result"|"error"|"log", id, value?, message? }`
-- Resource limits: `--max-old-space-size=64`, `--max-semi-space-size=16` per process
-- Crash protection: max 3 crashes in 60s window, then auto-disable; 10s call timeout, 15s spawn timeout
-- Graceful shutdown: sends `shutdown` message, waits 3s, then `SIGKILL`
-- `CodePluginAdapter` uses process isolation only; vm sandbox runs inside worker process as defense-in-depth
-- `pluginRegistry.loadCodePlugins()` loads all code plugins in process-isolated mode
-- `shutdownAllProcessManagers()` called during app cleanup in `lifecycle/cleanup.ts`
-- **Security boundary**: Process isolation provides OS-level separation. Even if a V8 escape occurs in the child process, the main process (API keys, database, filesystem) remains protected. The vm sandbox inside the worker provides defense-in-depth.
+**Code plugin process isolation**: Each code plugin runs in a dedicated child process via `child_process.fork()`. `PluginProcessManager` manages lifecycle with crash protection (max 3 crashes in 60s → auto-disable), 10s call timeout, 15s spawn timeout. Security boundary: OS-level separation protects main process even if V8 escape occurs.
 
 ### Optimistic Locking
 
@@ -624,41 +546,33 @@ All business tables have a `version` column (7-field base columns). Critical upd
 - `updateStory(id, data, version?)`, `updateCharacter(id, data, version?)`, `updateElement(id, data, version?)`, `updateVideoTask(id, data, version?)` all support version parameter
 - When `version` is provided and `changes === 0`, throws `VersionConflictError` (from `@/shared/errors/version-conflict`)
 - `mapUserFacingError` handles `VersionConflictError` → returns `t("error.versionConflict")`
+- **mapUserFacingError 使用边界**：`catch(err)` 中的原始异常必须用 `mapUserFacingError(err)` 映射（过滤技术细节），但 `result.error`（Result 类型的已处理字符串消息）应直接展示 `result.error || t("...")`，不应再包装 `mapUserFacingError`（否则会丢失具体信息变成通用"操作失败"）
 
 ### Security Hardening
 
-**Local-first security model**:
-- IPC channel registration check prevents typos and unregistered access
-- DDL blocking in main process handler (defense-in-depth, not in preload)
-- User-configured API URLs are trusted (including private/internal addresses for self-hosted AI services)
-- SSRF guard module available but not enforced — local-first app trusts user-configured endpoints
-- API Key encrypted storage via electron-store
+**Local-first security model**: IPC channel registration check, DDL blocking in main process handler, user-configured API URLs trusted, SSRF guard available but not enforced, API Key encrypted storage via electron-store.
 
-**Plugin cache invalidation**:
-- `plugin-manager` calls `loadPluginDetectionRules()` + `loadPluginTemplates()` + `loadModelProfilesFromServer()` after reload
-- `ApiConfigPanel` refreshes plugin caches on provider add/remove
-- API Server returns `cacheInvalidationToken` on reload endpoints
+**Plugin cache invalidation**: `plugin-manager` calls `loadPluginDetectionRules()` + `loadPluginTemplates()` + `loadModelProfilesFromServer()` after reload. `ApiConfigPanel` refreshes plugin caches on provider add/remove.
 
 ### DI Container Token Categories
-
-When reading or modifying `src/infrastructure/di/container.ts`, understand the 5 categories:
 
 | Category | Description | Examples |
 |----------|-------------|---------|
 | A. Domain Port 实现 | Port interface implementations | videoProvider, characterStorage |
 | B. 有状态服务 | Singletons needing test replacement | eventBus, apiClient |
-| C. Storage 实例 | Stateful storage modules cannot import directly | versionStorage, templateStorage |
+| C. Storage 实例 | Stateful storage modules | versionStorage, templateStorage |
 | D. Repository 实例 | Drizzle ORM repositories | mediaAssetRepository |
-| E. 懒加载模块 | Lazy-loaded to avoid circular deps | elementManager, referenceEngine |
+| E. 懒加载模块 | Lazy-loaded to avoid circular deps | elementManager, referenceEngine, syncEngine |
 
 Full token reference: `docs/di-tokens.md` (auto-generated by `npm run di-docs`).
 
-Note: Pure functions from `@/infrastructure/*` that modules need are exported via `@/shared/` proxy modules (e.g., `@/shared/db-core`, `@/shared/api-config`, `@/shared/video-cache`, `@/shared/outfit`, `@/shared/sql-safety`, `@/shared/model-capabilities` — exports `getModelCapabilities`, `getVideoGenerationStrategy`, `ImageSizePurpose` from `infrastructure/ai-providers/model-capabilities`, for AI 模型能力查询、视频生成策略（参考图传递方式、prompt语言）).
+Note: Pure functions from `@/infrastructure/*` that modules need are exported via `@/shared/` proxy modules (e.g., `@/shared/db-core`, `@/shared/api-config`, `@/shared/video-cache`, `@/shared/outfit`, `@/shared/sql-safety`, `@/shared/model-capabilities`).
 
 ## Regression Guards (from Bug Audit)
 
-> Full regression guard rules (R1-R46) are in [regression-guards.md](./regression-guards.md).
-> These rules prevent known bug patterns from reappearing. They are NOT discovery tools for future audits.
+> Full regression guard rules (R1-R104) are split by category in `.trae/rules/regression/`.
+> Start with `index.md` for the category overview, then load only the relevant category file.
+> The original unified file is at [regression-guards.md](./regression-guards.md) (122KB, not recommended for AI context loading).
 
 ### Bug Audit Methodology
 
@@ -670,84 +584,63 @@ When conducting a bug audit, follow the 3-phase workflow from `docs/bug-audit-me
 
 **CRITICAL Isolation Principle**: Phase 3 rules are **regression guards**, NOT discovery tools. The next audit's Phase 1 MUST start from scratch — never reference Phase 3 rules as a checklist.
 
-**Quick reference — all 104 guards:**
+### Regression Guard Automation (CRITICAL)
 
-| Category | Rules | Key Concern |
+When AI discovers a bug (during audit, code review, or development), it MUST follow the automated protocol in `.trae/rules/regression-guard-automation.md`:
+
+1. **Fix the bug** — Record what was changed and why
+2. **Decision evaluation** — Answer 5 questions (Q1-Q5) to determine if regression guard is needed:
+   - Q1: Reproducible? (No → add monitoring, stop)
+   - Q2: Regression risk? (No → stop)
+   - Q3: Auto-detectable? (No → add CR rule, skip automation)
+   - Q4: Severity ≥ P2? (No → record only, stop)
+   - Q5: General pattern? (Yes → general rule; No → targeted test only)
+3. **Write regression test** — `regression-r{n}.test.ts` with positive + negative + boundary tests
+4. **Write regression guard rule** — Add to `regression-guards.md` with R{N} number, BAD/GOOD examples, detection method
+5. **Implement automated detection** — ESLint rule, architecture scan script, or CR rule
+6. **Update project docs** — Update rule count in `project_rules.md`, update MODULE.md if invariants changed
+
+**Quick reference — all 104 guards by category:**
+
+| Category | Count | Key Concern |
 |----------|-------|-------------|
-| 数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68, R69, R72, R77, R89, R90, R91, R93, R94, R95, R97, R99, R100, R101, R102, R103, R104 | 数据不丢、不脏、不冲突：持久化先于状态、级联删除、乐观锁、脏状态守卫、SQL安全、reload恢复UI状态、删除输入确认、自动保存不限业务数据、非空断言禁用、参考图URL文本fallback、管线参数完整传递、API互斥约束、role字段必填、bake_into_first不传参考图给视频API、不传模型不认识的字段、bake_into_first首帧必须传参考图、FramePair URL访问必须用工具函数、lastFrameUrl优先级与firstFrameUrl一致、skip_completed过滤必须用工具函数、getPrevBeatForChain必须用getLastFrameUrl、domain层错误码必须英文 |
-| 异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67, R85 | 并发、竞态、轮询、生命周期：去重、所有权验证、Zustand函数式更新、轮询标志重置、卸载保护、网络错误不累计失败计数 |
-| 错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63, R86 | 错误不吞、不假成功、用户可理解：通知用户、可识别标签、mapUserFacingError、t()国际化、超时与失败状态区分 |
-| UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35 | 界面不崩、有反馈、无泄漏：video onError守卫、ErrorBoundary重试限制、加载状态、Blob URL回收 |
-| 工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60, R87, R88, R92, R96, R98 | 依赖合规、构建安全、测试可靠：DDD层合规、批量查询、IPC效率、无any、Vite迁移、模型ID与官方一致、新字段同步默认值、废弃模板过滤、能力声明与API文档一致、未知模型保守默认 |
-| 平台兼容 | R21, R43, R49, R51, R52, R61 | IPC、Electron环境、进程模型：无fetch("/api/")、isElectron()守卫、usePreference、e.currentTarget |
-| 用户安全防护 | R70, R71, R73, R74, R75, R76, R77 | 破坏性操作需确认、数据清除需保护：不可逆操作二次确认、导航守卫拦截后退、跨域下载fetch+blob、重试不因次数移除、会话清除限范围、Toast去重含消息、乐观锁防覆盖 |
-| 系统安全 | R78, R79, R80, R81, R82, R83, R84 | 沙箱隔离防逃逸、IPC通道注册检查、插件热加载缓存刷新、Blob URL安全生命周期、异步重入守卫、批量并行执行、声明式onError |
+| 数据一致性 | 31 | 数据不丢、不脏、不冲突 |
+| 异步安全 | 15 | 并发、竞态、轮询、生命周期 |
+| 错误处理 | 12 | 错误不吞、不假成功、用户可理解 |
+| UI 健壮性 | 9 | 界面不崩、有反馈、无泄漏 |
+| 工程质量 | 18 | 依赖合规、构建安全、测试可靠 |
+| 平台兼容 | 6 | IPC、Electron环境、进程模型 |
+| 用户安全防护 | 8 | 破坏性操作需确认、数据清除需保护 |
+| 系统安全 | 7 | 沙箱隔离防逃逸、IPC通道注册检查 |
+
+> For individual rule details, see `.trae/rules/regression/{category}.md`.
 
 ## Documentation Index
 
-### Active Documents (must update when code changes)
+**CRITICAL**: Documentation MUST be updated in the same commit as the code change, not deferred.
 
-**CRITICAL**: Documentation MUST be updated in the same commit as the code change, not deferred. Stale documentation is worse than no documentation — it misleads future developers and AI agents into making incorrect assumptions.
+### Active Documents (must update when code changes)
 
 | Document | Location | When to Update |
 |----------|----------|----------------|
-| Regression Guards | `.trae/rules/regression-guards.md` | When a new bug pattern is discovered and fixed |
-| Module Contracts | `src/modules/{module}/MODULE.md` | When module public API, behavior, or invariants change |
-| Sub-domain Contracts | `src/modules/{module}/{subdomain}/contract.json` | When sub-domain publicAPI or invariants change |
-| DI Container Tokens | `src/infrastructure/di/container.ts` | When adding/removing DI tokens (update Category A-E comment) |
-| Project Rules | `.trae/rules/project_rules.md` | When adding npm scripts, test infrastructure, architecture patterns, or regression guard counts change |
-| Storage README | `src/infrastructure/storage/README.md` | When adding storage modules, roundtrip tests, or changing JSON container patterns |
-| Quick Start | `.trae/rules/quick-start.md` | When key file paths, commands, or common scenarios change |
+| Regression Guards | `.trae/rules/regression/index.md` + per-category files | New bug pattern discovered and fixed |
+| Regression Guard Automation | `.trae/rules/regression-guard-automation.md` | AI discovers a bug and needs to decide whether to add guard |
+| AI Tool Integration | `.trae/rules/ai-tool-integration.md` | Optimizing project for AI coding tool workflows |
+| Session Notes | `.ai/session-notes.md` | End of each AI session |
+| Module Contracts | `src/modules/{module}/MODULE.md` | Module public API, behavior, or invariants change |
+| Sub-domain Contracts | `src/modules/{module}/{subdomain}/contract.json` | Sub-domain publicAPI or invariants change |
+| DI Container Tokens | `src/infrastructure/di/container.ts` | Adding/removing DI tokens |
+| Project Rules | `.trae/rules/project_rules.md` | npm scripts, test infrastructure, architecture patterns, guard counts |
+| Quick Start | `.trae/rules/quick-start.md` | Key file paths, commands, or common scenarios change |
 
-#### Documentation Update Triggers
-
-Code changes that REQUIRE documentation updates (non-exhaustive):
-
-| Code Change Type | Documents to Update |
-|------------------|---------------------|
-| New bug fix with reusable pattern | `regression-guards.md` + `project_rules.md` (guard count) |
-| New npm script added | `project_rules.md` (NPM Scripts) + `quick-start.md` (commands) |
-| New test infrastructure (e2e, fixtures) | `project_rules.md` (Testing section) |
-| Module behavior change (even without API change) | `MODULE.md` (boundary constraints, invariants) |
-| New storage module or JSON container | `storage/README.md` + `MODULE.md` |
-| New DI token | `container.ts` (category comment) + `docs/di-tokens.md` |
-| New Port interface | `docs/ports.md` + `domain/ports/index.ts` |
-| Architecture pattern change | `project_rules.md` + `docs/ARCHITECTURE.md` |
-
-### Module Contract Files
-
-Each module has a `MODULE.md` (module overview + public API list) and sub-domain `contract.json` files (invariants, dependencies, publicAPI). When modifying a module, read contracts in this order:
-
-1. `MODULE.md` — Module overview, sub-domain table, public API list, boundary constraints
-2. `contract.json` (per sub-domain) — Sub-domain name, description, dependencies, publicAPI, **invariants**
-3. `index.ts` — Actual barrel exports
-
-**Module contract locations:**
-
-| Module | MODULE.md | Sub-domains with contract.json |
-|--------|-----------|-------------------------------|
-| story | `src/modules/story/MODULE.md` | beat-editor, generation, planning, template, prompt-editor |
-| video | `src/modules/video/MODULE.md` | task-management (5 sub-contracts), utils, recovery, cache |
-| character | `src/modules/character/MODULE.md` | hooks, services |
-| scene | `src/modules/scene/MODULE.md` | hooks, services |
-| shot | `src/modules/shot/MODULE.md` | shot-instruction, shot-generation, shot-reference, feature-extraction, consistency-check, element-binding, reference-check |
-| asset | `src/modules/asset/MODULE.md` | asset-library, import-export, hooks, media-assets, presentation |
-| prompt | `src/modules/prompt/MODULE.md` | base, builder, beat-image, video, scene, character, server-prompts |
-| sync | `src/modules/sync/MODULE.md` | engine, presentation |
-| persistence | `src/modules/persistence/MODULE.md` | (single contract) |
-
-### Reference Documents (read-only, historical context)
+### Reference Documents (read-only)
 
 | Document | Location | Purpose |
 |----------|----------|---------|
-| Architecture & Design | `docs/ARCHITECTURE.md` | Single authoritative doc: architecture, design decisions, modules, storage, security |
-| DI Token Reference | `docs/di-tokens.md` | Auto-generated DI token docs (run `npm run di-docs`) |
+| Architecture & Design | `docs/ARCHITECTURE.md` | Single authoritative doc for architecture decisions |
+| DI Token Reference | `docs/di-tokens.md` | Auto-generated DI token docs (`npm run di-docs`) |
 | Plugin Specification | `docs/plugin-specification.md` | Plugin system specification |
 | Bug Audit Report | `docs/bug-audit-report.md` | Original audit findings (R1-R18 source) |
-| Bug Audit Methodology | `docs/bug-audit-methodology.md` | How the audit was conducted |
-| Architecture Diagrams | `docs/architecture/diagrams/` | PNG + Mermaid source files |
-
-> **Note**: `docs/ARCHITECTURE.md` is the single source of truth for project architecture. If you find a discrepancy between it and the code, update the document.
 
 ## AI Modification Guidelines (CRITICAL)
 
@@ -756,31 +649,18 @@ Each module has a `MODULE.md` (module overview + public API list) and sub-domain
 #### 1. "安慰剂"错误处理
 NEVER silently swallow errors and return a success-like result. If an operation fails, the result MUST reflect the failure.
 
-**BAD** — AI analysis failure returns `passed: true`:
 ```typescript
-catch {
-  return { passed: true, recommendation: "accept" };
-}
-```
-
-**GOOD** — Failure is honestly reported:
-```typescript
+// GOOD — Failure is honestly reported:
 catch {
   return { passed: false, recommendation: "adjust" };
 }
 ```
 
 #### 2. Fragile String Matching for Error Classification
-NEVER rely on `message.includes("timeout")` or similar substring matching for error classification. Use structured error codes with regex fallback.
+NEVER rely on `message.includes("timeout")` for error classification. Use structured error codes with regex fallback.
 
-**BAD**:
 ```typescript
-if (error.message.includes("timeout")) return "timeout";
-if (error.message.includes("rate")) return "rate_limit";
-```
-
-**GOOD**:
-```typescript
+// GOOD — Structured error classification:
 const ERROR_CODE_PATTERNS = [
   { category: "timeout", codes: ["TIMEOUT", "ETIMEDOUT"], patterns: [/timeout/i] },
   { category: "rate_limit", codes: ["RATE_LIMITED", "429"], patterns: [/rate[\s_-]?limit/i] },
@@ -789,63 +669,40 @@ export function classifyError(errorCode?: string, errorMessage?: string): ErrorC
 ```
 
 #### 3. DI Container Abuse for Pure Functions
-NEVER register pure functions (no side effects, no state) in the DI container. Move them to `@/shared/` so modules can import directly.
+NEVER register pure functions in the DI container. Move them to `@/shared/` so modules can import directly.
 
-**BAD** — Pure function in DI:
 ```typescript
-container.sanitizeIdentifier  // Pure function, no state
-container.sanitizeTable       // Pure function, no state
-```
-
-**GOOD** — Direct import from shared:
-```typescript
+// GOOD — Direct import from shared:
 import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 ```
 
-DI is for: Port implementations, stateful services, test-replaceable dependencies. Infrastructure pure functions should use `@/shared/` proxy exports instead of DI registration.
+DI is for: Port implementations, stateful services, test-replaceable dependencies.
 
 #### 4. Unnecessary Dynamic Imports
-NEVER use `await import()` or `import().then()` for modules that are always needed and have no circular dependency risk. Use top-level static imports.
+NEVER use `await import()` for modules that are always needed and have no circular dependency risk. Use top-level static imports.
 
-**BAD**:
 ```typescript
-const { saveVideoTask } = await import("@/modules/video/recovery");
-```
-
-**GOOD**:
-```typescript
+// GOOD — Static import:
 import { saveVideoTask } from "@/modules/video/recovery";
 ```
 
 Dynamic imports are acceptable ONLY for: code splitting large optional features, avoiding proven circular dependencies, or lazy-loading heavy modules.
 
 #### 5. Event Propagation in Nested Click Handlers
-When a clickable container has a nested action button (e.g., delete inside a list item), ALWAYS call `e.stopPropagation()` on the nested button to prevent the container's onClick from firing.
+When a clickable container has a nested action button, ALWAYS call `e.stopPropagation()` on the nested button.
 
-**BAD**:
 ```tsx
-<div onClick={onClick}>
-  <button onClick={onDelete}>Delete</button>
-</div>
-```
-
-**GOOD**:
-```tsx
+// GOOD:
 <div onClick={onClick}>
   <button onClick={(e) => { e.stopPropagation(); onDelete(e); }}>Delete</button>
 </div>
 ```
 
 #### 6. Result Type Unwrapping
-When a function returns `Result<T>`, ALWAYS unwrap before using the value. Never assign `Result<T>` directly where `T` is expected.
+When a function returns `Result<T>`, ALWAYS unwrap before using the value.
 
-**BAD**:
 ```typescript
-beat.keyframe = generateBeatKeyframe(...);  // Returns Result<StoryBeatKeyframe>
-```
-
-**GOOD**:
-```typescript
+// GOOD:
 const result = generateBeatKeyframe(...);
 if (result.ok) {
   beat.keyframe = result.value;
@@ -853,19 +710,10 @@ if (result.ok) {
 ```
 
 #### 7. Unguarded Electron-Dependent Operations in useEffect
-When a `useEffect` performs operations that require `electronAPI` (database queries, IPC calls, API server requests), it MUST check `isElectron()` inside the async callback. Without this guard, browser dev mode produces "electronAPI not available" console errors on every page load, creating noise that hides real issues. The check MUST be inside the async callback (not synchronous in the effect body) to avoid ESLint `react-hooks/set-state-in-effect` violations.
+When a `useEffect` performs operations that require `electronAPI`, it MUST check `isElectron()` inside the async callback.
 
-**BAD**:
 ```typescript
-useEffect(() => {
-  fetchPlugins()
-    .then(setPlugins)
-    .catch((err) => { errorLogger.error("Failed", err); });
-}, []);
-```
-
-**GOOD**:
-```typescript
+// GOOD:
 useEffect(() => {
   let cancelled = false;
   (async () => {
@@ -887,26 +735,13 @@ useEffect(() => {
 ```
 
 #### 8. localStorage in useState Initializer (Hydration Mismatch)
-When a component needs to read `localStorage` for its initial state, NEVER use `useState(() => localStorage.getItem(...))` with a `typeof window` guard. This causes hydration mismatches because the server renders with the default value while the client renders with the stored value. Use the `usePreference` hook from `@/shared/utils/preferences` instead.
+NEVER use `useState(() => localStorage.getItem(...))`. Use the `usePreference` hook instead.
 
-**BAD**:
 ```typescript
-const [theme, setTheme] = useState(() => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("theme") || "dark";
-  }
-  return "dark";
-});
-```
-
-**GOOD**:
-```typescript
+// GOOD:
 import { usePreference } from "@/shared/utils/preferences";
-
 const [theme, setTheme] = usePreference<string>("theme", "dark");
 ```
-
-For complex scenarios (theme provider with custom subscribe logic), use `useSyncExternalStore` directly with a module-level listeners Set pattern.
 
 ### Modification Checklist
 
@@ -932,49 +767,13 @@ Before submitting any code change, verify:
 18. **useSearchParams destructuring**: React Router's `useSearchParams()` returns tuple, always destructure `[searchParams]` (R58)
 19. **User-facing strings use t()**: All toast/confirm/showError/dialog title/placeholder/label text MUST use `t()` from `@/shared/constants` (R56)
 20. **Documentation sync**: All affected documents updated in the same commit (see Documentation Update Triggers table)
+21. **Regression guard evaluation**: If this change fixes a bug, evaluate Q1-Q5 from `regression-guard-automation.md` and add guard if applicable
 
 ### Testing Conventions
 
-#### Test File Location
-- Services: `src/modules/{module}/{subdomain}/services/__tests__/{service}.test.ts`
-- Hooks: `src/modules/{module}/{subdomain}/hooks/__tests__/{hook}.test.ts`
-- Components: `src/modules/{module}/presentation/__tests__/{Component}.test.tsx`
-
-#### Mock Strategy
-- Use `vi.hoisted()` for mock functions that must exist before module import
-- Use `vi.mock()` for module-level mocking (DI container, external packages, UI components)
-- Use `overrideToken()` from DI to replace specific container tokens in tests
-- Mock UI components (`@/shared/ui/*`) as simple HTML elements in component tests
-- Mock `react-router-dom` Link as `<a>` tag in component tests
-
-#### Test Structure
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-
-// 1. Hoisted mocks (before any imports that use them)
-const { mockFn } = vi.hoisted(() => ({ mockFn: vi.fn() }));
-
-// 2. Module mocks
-vi.mock("@/infrastructure/di", () => ({ container: { ...mockFn } }));
-
-// 3. Import SUT (system under test)
-import { ComponentName } from "../ComponentName";
-
-// 4. Factory functions
-function buildProps(overrides = {}) { return { ...defaults, ...overrides }; }
-
-// 5. Test suite
-describe("ComponentName", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
-  it("does something", () => { ... });
-});
-```
-
-#### Coverage Thresholds
-- Branches: 80%, Functions: 80%, Lines: 80%, Statements: 80%
-- Per-file enforcement (`perFile: true` in vitest.config.ts)
-- Coverage includes: domain schemas, services, infrastructure core, shared utils
+- Test files: `src/modules/{module}/{subdomain}/{services|hooks}/__tests__/{name}.test.ts`
+- Mock strategy: `vi.hoisted()` for pre-import mocks, `vi.mock()` for module-level, `overrideToken()` for DI
+- Coverage thresholds: 80% branches/functions/lines/statements, per-file enforcement
+- See `testing-rules.md` for detailed test structure template and mock patterns
 
 **Adding a new token**: Determine which category it belongs to. If category E, add a comment explaining why the module cannot import directly.

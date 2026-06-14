@@ -126,9 +126,23 @@ export async function testConnection(
       message: response.success ? t("test.connectionSuccess") : response.error || t("test.unknownError"),
     };
   } catch (error) {
+    const baseMessage = getErrorMessage(error);
+    let suggestion = "";
+    if (error instanceof ApiClientError) {
+      const status = error.statusCode;
+      if (status === 401 || status === 403) {
+        suggestion = t("test.suggestion.checkApiKey");
+      } else if (status === 404) {
+        suggestion = t("test.suggestion.checkBaseUrl");
+      } else if (status === 0 || (status !== undefined && status >= 500)) {
+        suggestion = t("test.suggestion.checkNetwork");
+      }
+    } else if (error instanceof TypeError && String(error).includes("fetch")) {
+      suggestion = t("test.suggestion.checkNetwork");
+    }
     return {
       success: false,
-      message: getErrorMessage(error),
+      message: suggestion ? `${baseMessage}\n${suggestion}` : baseMessage,
     };
   }
 }

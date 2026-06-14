@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import type { StoryBeat } from "@/domain/schemas";
 import { useFramePairGenerator } from "../useFramePairGenerator";
 
 vi.mock("@/modules/story", () => ({
@@ -58,7 +59,7 @@ const mockSuccess = vi.fn();
 const mockShowError = vi.fn();
 const mockSetBeats = vi.fn();
 
-let beats: any[];
+let beats: StoryBeat[];
 
 function createProps(overrides = {}) {
   return {
@@ -81,13 +82,17 @@ describe("useFramePairGenerator", () => {
         id: "beat-1",
         title: "Beat 1",
         content: "Content",
-        keyframe: { imageUrl: "https://cdn.com/kf.jpg", prompt: "", derivedFrom: "" },
+        sequence: 0,
+        description: "",
+        characterIds: [],
+        elementIds: [],
+        keyframe: { imageUrl: "https://cdn.com/kf.jpg", prompt: "" },
       },
     ];
   });
 
   it("shows error when beat has no keyframe", async () => {
-    beats = [{ id: "beat-1", title: "Beat 1", content: "Content" }];
+    beats = [{ id: "beat-1", sequence: 0, description: "", characterIds: [], elementIds: [], title: "Beat 1", content: "Content" }];
     const { result } = renderHook(() => useFramePairGenerator(createProps()));
     await act(async () => {
       await result.current.generateFramePair("beat-1");
@@ -109,7 +114,11 @@ describe("useFramePairGenerator", () => {
         id: "beat-1",
         title: "Beat 1",
         content: "Content",
-        keyframe: { imageUrl: "https://cdn.com/kf.jpg", prompt: "", derivedFrom: "" },
+        sequence: 0,
+        description: "",
+        characterIds: [],
+        elementIds: [],
+        keyframe: { imageUrl: "https://cdn.com/kf.jpg", prompt: "" },
       },
     ];
     const { result } = renderHook(() => useFramePairGenerator(createProps()));
@@ -118,15 +127,15 @@ describe("useFramePairGenerator", () => {
     });
 
     const { checkVisualConsistency } = await import("@/modules/shot/consistency-check");
-    const callArgs = (checkVisualConsistency as any).mock.calls[0]?.[0];
+    const callArgs = vi.mocked(checkVisualConsistency).mock.calls[0]?.[0];
     expect(callArgs?.generatedImageUrl).toBe("https://cdn.com/ff.jpg");
   });
 
   it("logs warning when consistency check fails", async () => {
     const { checkVisualConsistency } = await import("@/modules/shot/consistency-check");
-    (checkVisualConsistency as any).mockResolvedValueOnce({
+    vi.mocked(checkVisualConsistency).mockResolvedValueOnce({
       ok: true,
-      value: { passed: false, overallScore: 0.3, characterScores: [] },
+      value: { passed: false, overallScore: 0.3, characterScores: [], recommendation: "adjust" as const },
     });
 
     const { result } = renderHook(() => useFramePairGenerator(createProps()));
@@ -140,7 +149,7 @@ describe("useFramePairGenerator", () => {
 
   it("catches consistency check errors gracefully", async () => {
     const { checkVisualConsistency } = await import("@/modules/shot/consistency-check");
-    (checkVisualConsistency as any).mockRejectedValueOnce(new Error("vision API failed"));
+    vi.mocked(checkVisualConsistency).mockRejectedValueOnce(new Error("vision API failed"));
 
     const { result } = renderHook(() => useFramePairGenerator(createProps()));
     await act(async () => {

@@ -1,3 +1,4 @@
+<!-- AI: Before modifying this module, read contract.json for invariants -->
 # Prompt Module
 
 ## 模块概述

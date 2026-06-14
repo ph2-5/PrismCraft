@@ -181,7 +181,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
         showError(t("plugin.validateFailed"), result.errors.join("; "));
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : t("plugin.validateRequestFailed");
+      const msg = mapUserFacingError(e) || t("plugin.validateRequestFailed");
       setValidationResult({ valid: false, errors: [msg] });
       showError(t("plugin.validateFailed"), msg);
     } finally {

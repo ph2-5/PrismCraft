@@ -252,6 +252,7 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
         }
       } catch (checkErr) {
         errorLogger.warn(handleError(checkErr), "Consistency");
+        showError(t("error.consistencyCheckError"), mapUserFacingError(checkErr));
       }
 
       setBeat(updatedBeat);

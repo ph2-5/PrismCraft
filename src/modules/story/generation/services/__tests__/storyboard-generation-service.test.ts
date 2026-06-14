@@ -6,8 +6,8 @@ import type { IVideoProvider, IImageProvider, ITextProvider } from "@/domain/por
 
 vi.mock("@/domain/utils", () => ({
   generateBeatImagePrompt: vi.fn().mockReturnValue("generated prompt"),
-  getFirstFrameUrl: vi.fn((fp: any) => fp?.firstFrameUrl || fp?.firstFrame?.imageUrl),
-  getLastFrameUrl: vi.fn((fp: any) => fp?.lastFrameUrl || fp?.lastFrame?.imageUrl),
+  getFirstFrameUrl: vi.fn((fp: StoryBeatFramePair | undefined) => fp?.firstFrameUrl || fp?.firstFrame?.imageUrl),
+  getLastFrameUrl: vi.fn((fp: StoryBeatFramePair | undefined) => fp?.lastFrameUrl || fp?.lastFrame?.imageUrl),
 }));
 
 vi.mock("@/shared/error-logger", () => ({

@@ -243,10 +243,11 @@ export function buildUpdateSets(
       fixedSets.push(`${sanitizeIdentifier(target.column)} = ?`);
       fixedValues.push(processedValue === null || processedValue === undefined ? null : processedValue);
     } else {
-      if (!containerUpdates[target.container]) {
-        containerUpdates[target.container] = [];
+      const containerKey = target.container;
+      if (!containerUpdates[containerKey]) {
+        containerUpdates[containerKey] = [];
       }
-      containerUpdates[target.container]!.push({ key: target.key, value: processedValue });
+      containerUpdates[containerKey].push({ key: target.key, value: processedValue });
     }
   }
 
@@ -289,10 +290,11 @@ export function buildInsertFromTargets(
       columns.push(target.column);
       values.push(processedValue === null || processedValue === undefined ? null : processedValue);
     } else {
-      if (!containers[target.container]) {
-        containers[target.container] = {};
+      const containerKey = target.container;
+      if (!containers[containerKey]) {
+        containers[containerKey] = {};
       }
-      containers[target.container]![target.key] = processedValue;
+      containers[containerKey][target.key] = processedValue;
     }
   }
 
@@ -312,8 +314,10 @@ export function buildJsonSet(
   const params: unknown[] = [];
 
   if (fields.length === 1) {
-    params.push(fields[0]!.value === null || fields[0]!.value === undefined ? null : fields[0]!.value);
-    const sql = `${safeContainer} = json_set(COALESCE(${safeContainer}, '{}'), '$.${fields[0]!.key}', ?)`;
+    const field = fields[0];
+    const fieldValue = field?.value === null || field?.value === undefined ? null : field.value;
+    params.push(fieldValue);
+    const sql = `${safeContainer} = json_set(COALESCE(${safeContainer}, '{}'), '$.${field?.key ?? ""}', ?)`;
     return { sql, params };
   }
 

@@ -119,6 +119,7 @@ export const VALID_SHOT_TYPES = new Set([
   "medium",
   "close",
   "extreme_close",
+  "extreme_wide",
   "low",
   "high",
   "birdseye",

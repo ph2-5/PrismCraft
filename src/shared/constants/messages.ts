@@ -2106,6 +2106,9 @@ const messages: Record<MessageKey, string> = {
   "pipeline.completed": "故事规划生成完成，{count}个分镜，自动修复{fixed}处",
   "test.connectionSuccess": "连接成功",
   "test.unknownError": "未知错误",
+  "test.suggestion.checkApiKey": "建议：请检查 API Key 是否正确，或重新生成密钥",
+  "test.suggestion.checkBaseUrl": "建议：请检查 API 地址是否正确，确认服务端点路径",
+  "test.suggestion.checkNetwork": "建议：请检查网络连接，确认 API 服务是否可访问",
 };
 
 export type Messages = typeof messages;

@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Character } from "@/domain/schemas";
 import { useModelSelection } from "@/modules/prompt";
 import { container } from "@/infrastructure/di";
-import { getErrorMessage } from "@/shared/error-handler";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import type { CustomApiConfig } from "@/domain/types";
 import { generateCharacterImagePrompt, generateCharacterDetailedPromptInstruction } from "@/modules/prompt";
@@ -95,7 +94,7 @@ export function useCharacterImage({
       }
     } catch (err) {
       errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: "生成图像失败", cause: err });
-      showError(t("image.generateFailed"), getErrorMessage(err));
+      showError(t("image.generateFailed"), mapUserFacingError(err));
     } finally {
       setIsGenerating(false);
     }
@@ -160,7 +159,7 @@ export function useCharacterImage({
       }
     } catch (err) {
       errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err });
-      showError(t("error.uploadFailed"), getErrorMessage(err));
+      showError(t("error.uploadFailed"), mapUserFacingError(err));
     } finally {
       setIsUploading(false);
     }
@@ -249,7 +248,7 @@ export function useCharacterImage({
       }
     } catch (err) {
       errorLogger.error({ code: "ANALYZE_ERROR", message: "分析失败", cause: err });
-      showError(t("image.analyzeFailed"), getErrorMessage(err));
+      showError(t("image.analyzeFailed"), mapUserFacingError(err));
     } finally {
       if (analyzeTimeoutRef.current) {
         clearTimeout(analyzeTimeoutRef.current);
@@ -273,7 +272,7 @@ export function useCharacterImage({
       }
     } catch (err) {
       errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err });
-      showError(t("error.uploadFailed"), getErrorMessage(err));
+      showError(t("error.uploadFailed"), mapUserFacingError(err));
     } finally {
       setIsUploading(false);
     }

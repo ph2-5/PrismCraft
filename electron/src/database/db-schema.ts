@@ -1,3 +1,5 @@
+// AI: All database table/column definitions are here. Check before adding new tables or columns.
+// AI: Use generateTableSQL/generateJunctionTableSQL for new tables, and add migrations in migrations.ts.
 import fs from "fs";
 import path from "path";
 import os from "os";

@@ -22,17 +22,17 @@ test.describe("Character Page", () => {
   });
 
   test("should display character form with basic fields", async ({ page }) => {
-    await expect(page.locator('input[placeholder="输入角色名称..."]')).toBeVisible();
+    await expect(page.locator('[data-testid="character-name-input"]')).toBeVisible();
     await expect(page.locator('input[placeholder="输入年龄..."]')).toBeVisible();
     await expect(page.locator('input[placeholder*="赛博朋克"]')).toBeVisible();
   });
 
   test("should fill in basic character info", async ({ page }) => {
-    await page.locator('input[placeholder="输入角色名称..."]').fill("测试角色");
+    await page.locator('[data-testid="character-name-input"]').fill("测试角色");
     await page.locator('input[placeholder="输入年龄..."]').fill("25");
     await page.locator('input[placeholder*="赛博朋克"]').fill("赛博朋克");
 
-    await expect(page.locator('input[placeholder="输入角色名称..."]')).toHaveValue("测试角色");
+    await expect(page.locator('[data-testid="character-name-input"]')).toHaveValue("测试角色");
   });
 
   test("should switch between tabs", async ({ page }) => {
@@ -53,7 +53,7 @@ test.describe("Character Page", () => {
     await switchTab(page, "性格特征");
 
     await switchTab(page, "基础信息");
-    await expect(page.locator('input[placeholder="输入角色名称..."]')).toBeVisible();
+    await expect(page.locator('[data-testid="character-name-input"]')).toBeVisible();
   });
 
   test("should fill in appearance info", async ({ page }) => {
@@ -64,13 +64,13 @@ test.describe("Character Page", () => {
   });
 
   test("should save character", async ({ page }) => {
-    await page.locator('input[placeholder="输入角色名称..."]').fill("可保存角色");
+    await page.locator('[data-testid="character-name-input"]').fill("可保存角色");
     await page.locator("button", { hasText: "保存角色" }).click();
     await page.waitForTimeout(500);
   });
 
   test("should delete character", async ({ page }) => {
-    await page.locator('input[placeholder="输入角色名称..."]').fill("待删除角色");
+    await page.locator('[data-testid="character-name-input"]').fill("待删除角色");
     await page.locator("button", { hasText: "保存角色" }).click();
     await page.waitForTimeout(500);
 
@@ -146,14 +146,14 @@ test.describe("Scene Page", () => {
   });
 
   test("should display scene form with basic fields", async ({ page }) => {
-    await expect(page.locator('input[placeholder="输入场景名称..."]')).toBeVisible();
+    await expect(page.locator('[data-testid="scene-name-input"]')).toBeVisible();
     await expect(page.locator('input[placeholder*="赛博朋克街区"]')).toBeVisible();
   });
 
   test("should fill in basic scene info", async ({ page }) => {
-    await page.locator('input[placeholder="输入场景名称..."]').fill("测试场景");
+    await page.locator('[data-testid="scene-name-input"]').fill("测试场景");
     await page.locator('input[placeholder*="赛博朋克街区"]').fill("魔法森林");
-    await expect(page.locator('input[placeholder="输入场景名称..."]')).toHaveValue("测试场景");
+    await expect(page.locator('[data-testid="scene-name-input"]')).toHaveValue("测试场景");
   });
 
   test("should switch between tabs", async ({ page }) => {
@@ -168,17 +168,17 @@ test.describe("Scene Page", () => {
     await expect(page.locator('input[placeholder*="鸟瞰"]')).toBeVisible({ timeout: 5000 });
 
     await switchTab(page, "基础设定");
-    await expect(page.locator('input[placeholder="输入场景名称..."]')).toBeVisible();
+    await expect(page.locator('[data-testid="scene-name-input"]')).toBeVisible();
   });
 
   test("should save scene", async ({ page }) => {
-    await page.locator('input[placeholder="输入场景名称..."]').fill("可保存场景");
+    await page.locator('[data-testid="scene-name-input"]').fill("可保存场景");
     await page.locator("button", { hasText: "保存场景" }).click();
     await page.waitForTimeout(500);
   });
 
   test("should delete scene", async ({ page }) => {
-    await page.locator('input[placeholder="输入场景名称..."]').fill("待删除场景");
+    await page.locator('[data-testid="scene-name-input"]').fill("待删除场景");
     await page.locator("button", { hasText: "保存场景" }).click();
     await page.waitForTimeout(500);
 

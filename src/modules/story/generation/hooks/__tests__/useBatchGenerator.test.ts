@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import type { StoryBeat, StoryBeatFramePair } from "@/domain/schemas";
 import { useBatchGenerator } from "../useBatchGenerator";
 
 vi.mock("@/shared/error-logger", () => ({
@@ -15,8 +16,8 @@ vi.mock("@/shared/constants", () => ({
 }));
 
 vi.mock("@/domain/utils", () => ({
-  getFirstFrameUrl: vi.fn((fp: any) => fp?.firstFrameUrl || fp?.firstFrame?.imageUrl),
-  getLastFrameUrl: vi.fn((fp: any) => fp?.lastFrameUrl || fp?.lastFrame?.imageUrl),
+  getFirstFrameUrl: vi.fn((fp: StoryBeatFramePair | undefined) => fp?.firstFrameUrl || fp?.firstFrame?.imageUrl),
+  getLastFrameUrl: vi.fn((fp: StoryBeatFramePair | undefined) => fp?.lastFrameUrl || fp?.lastFrame?.imageUrl),
 }));
 
 const mockGenerateKeyframe = vi.fn();
@@ -26,7 +27,7 @@ const mockSuccess = vi.fn();
 const mockShowError = vi.fn();
 const mockSetBeats = vi.fn();
 
-function createProps(beats: any[]) {
+function createProps(beats: StoryBeat[]) {
   return {
     beatsRef: { current: beats },
     setBeats: mockSetBeats,
@@ -46,8 +47,8 @@ describe("useBatchGenerator", () => {
   describe("batchGenerateKeyframes", () => {
     it("filters by skip_completed: only generates for beats without keyframes", async () => {
       const beats = [
-        { id: "b1", keyframe: { imageUrl: "https://cdn.com/kf1.jpg" } },
-        { id: "b2" },
+        { id: "b1", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "https://cdn.com/kf1.jpg" } },
+        { id: "b2", sequence: 0, description: "", characterIds: [], elementIds: [] },
       ];
       mockGenerateKeyframe.mockResolvedValue({ id: "b2", keyframe: { imageUrl: "new.jpg" } });
       const { result } = renderHook(() => useBatchGenerator(createProps(beats)));
@@ -62,9 +63,9 @@ describe("useBatchGenerator", () => {
   describe("batchGenerateFramePairs", () => {
     it("filters by skip_completed: excludes beats with lastFrameUrl or lastFrame.imageUrl", async () => {
       const beats = [
-        { id: "b1", keyframe: { imageUrl: "kf.jpg" }, framePair: { lastFrameUrl: "lf.jpg" } },
-        { id: "b2", keyframe: { imageUrl: "kf2.jpg" }, framePair: { lastFrame: { imageUrl: "lf2.jpg" } } },
-        { id: "b3", keyframe: { imageUrl: "kf3.jpg" } },
+        { id: "b1", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf.jpg" }, framePair: { lastFrameUrl: "lf.jpg" } },
+        { id: "b2", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf2.jpg" }, framePair: { lastFrame: { imageUrl: "lf2.jpg", prompt: "", derivedFrom: "" } } },
+        { id: "b3", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf3.jpg" } },
       ];
       mockGenerateFramePair.mockResolvedValue({ id: "b3", framePair: { firstFrameUrl: "ff.jpg" } });
       const { result } = renderHook(() => useBatchGenerator(createProps(beats)));
@@ -79,8 +80,8 @@ describe("useBatchGenerator", () => {
   describe("batchGenerateVideos", () => {
     it("filters by skip_completed: excludes beats with videoUrl", async () => {
       const beats = [
-        { id: "b1", framePair: { firstFrameUrl: "ff.jpg" }, videoGen: { videoUrl: "v.mp4" } },
-        { id: "b2", framePair: { firstFrameUrl: "ff2.jpg" } },
+        { id: "b1", sequence: 0, description: "", characterIds: [], elementIds: [], framePair: { firstFrameUrl: "ff.jpg" }, videoGen: { videoUrl: "v.mp4" } },
+        { id: "b2", sequence: 0, description: "", characterIds: [], elementIds: [], framePair: { firstFrameUrl: "ff2.jpg" } },
       ];
       mockGenerateVideoNew.mockResolvedValue(undefined);
       const { result } = renderHook(() => useBatchGenerator(createProps(beats)));
@@ -90,7 +91,7 @@ describe("useBatchGenerator", () => {
 
     it("includes beats with firstFrame.imageUrl fallback", async () => {
       const beats = [
-        { id: "b1", framePair: { firstFrame: { imageUrl: "ff.jpg" } } },
+        { id: "b1", sequence: 0, description: "", characterIds: [], elementIds: [], framePair: { firstFrame: { imageUrl: "ff.jpg", prompt: "", derivedFrom: "" } } },
       ];
       mockGenerateVideoNew.mockResolvedValue(undefined);
       const { result } = renderHook(() => useBatchGenerator(createProps(beats)));
@@ -102,9 +103,9 @@ describe("useBatchGenerator", () => {
   describe("getPrevBeatForChain", () => {
     it("finds previous beat with lastFrameUrl for framepair level", async () => {
       const beats = [
-        { id: "b1", keyframe: { imageUrl: "kf1.jpg" }, framePair: { lastFrameUrl: "lf1.jpg" } },
-        { id: "b2", keyframe: { imageUrl: "kf2.jpg" } },
-      ] as any[];
+        { id: "b1", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf1.jpg" }, framePair: { lastFrameUrl: "lf1.jpg" } },
+        { id: "b2", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf2.jpg" } },
+      ] as StoryBeat[];
       const { result } = renderHook(() => useBatchGenerator(createProps(beats)));
       const prev = result.current.getPrevBeatForChain(1, beats, "framepair");
       expect(prev).not.toBeNull();
@@ -113,9 +114,9 @@ describe("useBatchGenerator", () => {
 
     it("finds previous beat with lastFrame.imageUrl fallback for framepair level", async () => {
       const beats = [
-        { id: "b1", keyframe: { imageUrl: "kf1.jpg" }, framePair: { lastFrame: { imageUrl: "lf1.jpg" } } },
-        { id: "b2", keyframe: { imageUrl: "kf2.jpg" } },
-      ] as any[];
+        { id: "b1", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf1.jpg" }, framePair: { lastFrame: { imageUrl: "lf1.jpg" } } },
+        { id: "b2", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf2.jpg" } },
+      ] as StoryBeat[];
       const { result } = renderHook(() => useBatchGenerator(createProps(beats)));
       const prev = result.current.getPrevBeatForChain(1, beats, "framepair");
       expect(prev).not.toBeNull();
@@ -124,9 +125,9 @@ describe("useBatchGenerator", () => {
 
     it("returns null when no previous beat has framePair", async () => {
       const beats = [
-        { id: "b1", keyframe: { imageUrl: "kf1.jpg" } },
-        { id: "b2", keyframe: { imageUrl: "kf2.jpg" } },
-      ] as any[];
+        { id: "b1", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf1.jpg" } },
+        { id: "b2", sequence: 0, description: "", characterIds: [], elementIds: [], keyframe: { imageUrl: "kf2.jpg" } },
+      ] as StoryBeat[];
       const { result } = renderHook(() => useBatchGenerator(createProps(beats)));
       const prev = result.current.getPrevBeatForChain(1, beats, "framepair");
       expect(prev).toBeNull();

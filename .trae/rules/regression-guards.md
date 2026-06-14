@@ -1,5 +1,21 @@
 # Regression Guards (from Bug Audit)
 
+> **📋 本文件已拆分为按分类独立文件，便于 AI 按需加载上下文：**
+>
+> | 分类 | 文件 |
+> |------|------|
+> | 索引（~500 tokens） | [regression/index.md](regression/index.md) |
+> | 数据一致性 | [regression/data-consistency.md](regression/data-consistency.md) |
+> | 异步安全 | [regression/async-safety.md](regression/async-safety.md) |
+> | 错误处理 | [regression/error-handling.md](regression/error-handling.md) |
+> | UI 健壮性 | [regression/ui-robustness.md](regression/ui-robustness.md) |
+> | 工程质量 | [regression/engineering.md](regression/engineering.md) |
+> | 平台兼容 | [regression/platform.md](regression/platform.md) |
+> | 用户安全防护 | [regression/user-safety.md](regression/user-safety.md) |
+> | 系统安全 | [regression/system-security.md](regression/system-security.md) |
+>
+> 本文件保留作为完整参考，AI 工具应优先加载分类文件以节省上下文。
+
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >

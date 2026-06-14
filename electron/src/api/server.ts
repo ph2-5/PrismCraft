@@ -30,7 +30,7 @@ function startApiServer(): Promise<void> {
       if (!handleCors(req, res)) return;
 
       const urlParts = (req.url || "").split("?");
-      const pathname = urlParts[0]!.replace(/^\//, "").replace(/^api\//, "");
+      const pathname = (urlParts[0] ?? "").replace(/^\//, "").replace(/^api\//, "");
 
       if (pathname === "health") {
         let dbStatus = "uninitialized";
@@ -143,7 +143,7 @@ function startApiServer(): Promise<void> {
                 }));
                 return;
               }
-              const result = await route.handler(req.method || "GET", parseResult.data as ApiRequest, req);
+              const result = await route.handler(req.method || "GET", parseResult.data, req);
 
               const resultObj = result as Record<string, unknown>;
               const httpStatus: number =

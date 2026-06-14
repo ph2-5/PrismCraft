@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import type { StoryBeat } from "@/domain/schemas";
 import { useVideoGenerator } from "../useVideoGenerator";
 
 vi.mock("@/modules/prompt", () => ({
@@ -52,7 +53,7 @@ const mockSuccess = vi.fn();
 const mockShowError = vi.fn();
 const mockCreateTask = vi.fn().mockResolvedValue({ id: "task-1" });
 
-let beats: any[];
+let beats: StoryBeat[];
 
 function createProps(overrides = {}) {
   return {
@@ -77,6 +78,9 @@ describe("useVideoGenerator", () => {
         title: "Beat 1",
         content: "Content",
         sequence: 1,
+        description: "",
+        characterIds: [],
+        elementIds: [],
         framePair: {
           firstFrameUrl: "https://cdn.com/ff.jpg",
           lastFrameUrl: "https://cdn.com/lf.jpg",
@@ -94,7 +98,7 @@ describe("useVideoGenerator", () => {
   });
 
   it("shows error when framePair has no firstFrameUrl or firstFrame.imageUrl", async () => {
-    beats = [{ id: "beat-1", title: "Beat 1", content: "Content", framePair: {} }];
+    beats = [{ id: "beat-1", title: "Beat 1", content: "Content", sequence: 0, description: "", characterIds: [], elementIds: [], framePair: {} }];
     const { result } = renderHook(() => useVideoGenerator(createProps()));
     await act(async () => {
       await result.current.generateVideoNew("beat-1");
@@ -124,9 +128,12 @@ describe("useVideoGenerator", () => {
         title: "Beat 1",
         content: "Content",
         sequence: 1,
+        description: "",
+        characterIds: [],
+        elementIds: [],
         framePair: {
-          firstFrame: { imageUrl: "https://cdn.com/nested-ff.jpg" },
-          lastFrame: { imageUrl: "https://cdn.com/nested-lf.jpg" },
+          firstFrame: { imageUrl: "https://cdn.com/nested-ff.jpg", prompt: "", derivedFrom: "" },
+          lastFrame: { imageUrl: "https://cdn.com/nested-lf.jpg", prompt: "", derivedFrom: "" },
         },
       },
     ];

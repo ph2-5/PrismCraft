@@ -26,7 +26,7 @@ test.describe("Navigation guard basic functionality", () => {
     await mockApiRoutes(page);
     await navigateTo(page, "/story", M);
 
-    const titleInput = page.locator('input[placeholder="分镜项目标题..."]');
+    const titleInput = page.locator('[data-testid="story-title-input"]');
     const visible = await titleInput.isVisible({ timeout: 5000 }).catch(() => false);
     expect(visible).toBe(true);
   });
@@ -37,7 +37,7 @@ test.describe("Navigation guard basic functionality", () => {
     await navigateTo(page, "/story", M);
 
     const saveStatus = page.locator("[data-save-status], [aria-label*='保存']").first();
-    const titleInput = page.locator('input[placeholder="分镜项目标题..."]');
+    const titleInput = page.locator('[data-testid="story-title-input"]');
     const anyVisible = (await saveStatus.isVisible({ timeout: 3000 }).catch(() => false)) ||
       (await titleInput.isVisible({ timeout: 3000 }).catch(() => false));
     expect(anyVisible).toBe(true);

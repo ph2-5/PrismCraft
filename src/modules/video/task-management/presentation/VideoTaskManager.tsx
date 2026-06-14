@@ -296,7 +296,11 @@ export function VideoTaskManager({
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">{t("task.noTasks")}</div>
+            <div className="text-center py-12 text-gray-500">
+              <PlayCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">{t("task.noTasks")}</p>
+              <p className="text-xs mt-1 text-gray-400">{t("task.noTasksHint")}</p>
+            </div>
           )}
 
           <RecoverySection

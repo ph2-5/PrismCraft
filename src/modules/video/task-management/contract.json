@@ -18,6 +18,9 @@
     "withTransitionGuard 在非法转换时：开发模式抛 TransitionError，生产模式剥离 status 字段仅保留安全更新",
     "轮询失败达 MAX_POLL_FAILURES(30) 次自动标记为 timeout（非 failed），网络错误不累计 pollFailureCount",
     "useVideoTaskStore.cleanup() 只能由 app 级生命周期组件（VideoTaskManagerInitializer）调用，页面级组件不得在卸载时调用",
-    "mapApiStatus(apiStatus, videoUrl?) 在 videoUrl 存在时直接返回 completed，不依赖 API status 字段"
+    "mapApiStatus(apiStatus, videoUrl?) 在 videoUrl 存在时直接返回 completed，不依赖 API status 字段",
+    "setAllTasks 仅更新 Zustand 状态，不自动触发 scheduleSync() 或 checkAndStartOrStopPolling()，调用方必须显式触发",
+    "useVideoTaskManager 的 stableActions 通过 useMemo([store]) 缓存所有 action 方法为稳定引用，避免 allTasks 变化时触发消费方不必要重渲染",
+    "轮询引擎批量更新后统一触发一次 scheduleSync() + checkAndStartOrStopPolling()，使用动态 import('./sync-engine') 避免循环依赖"
   ]
 }

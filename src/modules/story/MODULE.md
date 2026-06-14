@@ -1,3 +1,4 @@
+<!-- AI: Before modifying this module, read contract.json for invariants -->
 # Story Module
 
 ## 职责
@@ -214,6 +215,8 @@ buildBeatsPersistData(beats: StoryBeat[], completedTaskUrls: Map<string, string>
 buildCacheRequests(beats: StoryBeat[]): CacheRequest[]
 filterRemoteCacheRequests(requests: CacheRequest[]): CacheRequest[]
 ```
+
+> **app 层联动**：app/story/useStoryVideo.ts 中的 useStoryVideo hook 和 useStableCompletedUrls 工具函数负责将视频任务状态与故事分镜关联。useStableCompletedUrls 通过 shallow 比较确保只有 Map 内容真正变化时才创建新引用，避免轮询更新触发下游 useStoryPersistence 等 useEffect。这些属于 app 层，不在 story 模块导出中。
 
 #### Hooks
 
@@ -511,7 +514,7 @@ Exported types: `PromptEditorRequest`, `PromptEditorResult`
 3. **类型来源**：所有类型必须从 `@/domain/types` 或 `@/domain/schemas` 导入
 4. **基础设施访问**：通过 DI 容器（`container.xxx`）或 `@/shared/` 代理导出访问，禁止直接导入 `@/infrastructure/*`（除 `@/infrastructure/di`）
 5. **Dirty 状态抑制**：`useStoryState` 使用 `suppressDirtyCountRef`（计数器）而非布尔值，确保保存后多次 beats 变更都能被正确抑制，避免 dirty 状态残留导致页面无法跳转
-6. **StoryProvider 初始化恢复**：`StoryProvider` 挂载时从 `storyService.getAll()` 加载故事列表后，必须同时恢复 `currentStory`（第一个故事）和 `beats`（该故事的分镜），并调用 `markClean("story")`。仅加载列表而不恢复选中实体会导致 UI 不一致（侧边栏有数据但详情面板为空）。使用 ref 避免闭包陷阱（R68）
+6. **StoryProvider useMemo 依赖拆分**：`StoryProvider` 中的 `useMemo` 依赖从 `videoTaskManager` 整体对象拆分为具体属性（`videoTaskManager.tasks`、`videoTaskManager.addTask`、`videoTaskManager.createTask` 等），配合 `useVideoTaskManager` 的 stableActions 模式，避免 `allTasks` 变化时触发不必要的级联重渲染。
 
 ---
 

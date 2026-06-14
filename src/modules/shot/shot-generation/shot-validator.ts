@@ -265,10 +265,16 @@ export function validateStoryPlanOutput(
     allAutoFixed.push(...result.autoFixed.map((f) => `[分镜${i + 1}] ${f}`));
   }
 
+  // Only validate array-level constraints (minItems, maxItems), not per-item fields
+  // which were already validated individually above
   const planValid = validateStoryPlanFn(fixedPlan);
   if (!planValid) {
     const ajvErrors = extractAjvErrors(validateStoryPlanFn);
-    allErrors.push(...ajvErrors);
+    // Filter out per-item errors that were already reported by validateStoryBeatOutput
+    const arrayOnlyErrors = ajvErrors.filter(
+      (e) => !e.field.includes(".") && !e.field.includes("["),
+    );
+    allErrors.push(...arrayOnlyErrors);
   }
 
   const result: ValidationResult = {

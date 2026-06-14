@@ -62,7 +62,7 @@ export const pluginRoutes: Record<string, Route> = {
     },
     methods: ["POST"],
   }),
-  "plugins/list": {
+  "plugins/list": defineRoute({
     handler: async () => {
       const allPlugins = pluginRegistry.getAll();
       const capabilities = pluginRegistry.getAllCapabilities();
@@ -87,8 +87,8 @@ export const pluginRoutes: Record<string, Route> = {
       };
     },
     methods: ["GET"],
-  },
-  "plugins/capabilities": {
+  }),
+  "plugins/capabilities": defineRoute({
     handler: async () => {
       const allPlugins = pluginRegistry.getAll();
       const providerCapabilities: Record<string, {
@@ -122,8 +122,8 @@ export const pluginRoutes: Record<string, Route> = {
       return { success: true, data: providerCapabilities };
     },
     methods: ["GET"],
-  },
-  "plugins/detection-rules": {
+  }),
+  "plugins/detection-rules": defineRoute({
     handler: async () => {
       const allPlugins = pluginRegistry.getAll();
       const rules: Array<{
@@ -159,11 +159,11 @@ export const pluginRoutes: Record<string, Route> = {
       return { success: true, data: rules };
     },
     methods: ["GET"],
-  },
-  "plugins/add": {
+  }),
+  "plugins/add": defineRoute({
     schema: pluginAddSchema,
     handler: async (_m, b) => {
-      const config = b.config as UserPluginConfig;
+      const config = b.config as unknown as UserPluginConfig;
       if (!config) {
         return { success: false, error: "缺少插件配置" };
       }
@@ -191,7 +191,7 @@ export const pluginRoutes: Record<string, Route> = {
       };
     },
     methods: ["POST"],
-  },
+  }),
   "plugins/delete": defineRoute({
     schema: pluginDeleteSchema,
     handler: async (_m, b) => {
@@ -210,31 +210,31 @@ export const pluginRoutes: Record<string, Route> = {
     },
     methods: ["POST"],
   }),
-  "plugins/reload": {
+  "plugins/reload": defineRoute({
     handler: async () => {
       const result = pluginRegistry.reloadUserPlugins();
       return { success: true, data: { loaded: result.loaded, errors: result.errors, cacheInvalidationToken: ++pluginCacheInvalidationToken } };
     },
     methods: ["POST"],
-  },
-  "plugins/reload-code": {
+  }),
+  "plugins/reload-code": defineRoute({
     handler: async () => {
       const result = await pluginRegistry.loadCodePlugins();
       return { success: true, data: { loaded: result.loaded, errors: result.errors, cacheInvalidationToken: ++pluginCacheInvalidationToken } };
     },
     methods: ["POST"],
-  },
-  "plugins/process-metrics": {
+  }),
+  "plugins/process-metrics": defineRoute({
     handler: async () => {
       const metrics = getAllProcessMetrics();
       return { success: true, data: metrics };
     },
     methods: ["GET"],
-  },
-  "plugins/validate": {
+  }),
+  "plugins/validate": defineRoute({
     schema: pluginValidateSchema,
     handler: async (_m, b) => {
-      const config = b.config as UserPluginConfig;
+      const config = b.config as unknown as UserPluginConfig;
       if (!config) {
         return { success: false, error: "缺少插件配置" };
       }
@@ -242,8 +242,8 @@ export const pluginRoutes: Record<string, Route> = {
       return { success: true, data: { valid: validation.valid, errors: validation.errors } };
     },
     methods: ["POST"],
-  },
-  "plugins/schema": {
+  }),
+  "plugins/schema": defineRoute({
     handler: async () => {
       try {
         const schemaPath = resolveDocsPath("plugin-spec.schema.json");
@@ -261,8 +261,8 @@ export const pluginRoutes: Record<string, Route> = {
       }
     },
     methods: ["GET"],
-  },
-  "plugins/specification": {
+  }),
+  "plugins/specification": defineRoute({
     handler: async () => {
       try {
         const specPath = resolveDocsPath("plugin-specification.md");
@@ -279,8 +279,8 @@ export const pluginRoutes: Record<string, Route> = {
       }
     },
     methods: ["GET"],
-  },
-  "plugins/templates": {
+  }),
+  "plugins/templates": defineRoute({
     handler: async () => {
       return {
         success: true,
@@ -373,5 +373,5 @@ export const pluginRoutes: Record<string, Route> = {
       };
     },
     methods: ["GET"],
-  },
+  }),
 };

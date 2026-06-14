@@ -1,4 +1,5 @@
 import type { Route } from "../types";
+import { defineRoute } from "../types";
 import { handleConfig, handleSecureConfig } from "../../handlers/config";
 import { handleTestConnection } from "../../handlers/test-connection";
 import { handleSyncConfig, handleSyncTest, handleSyncProxy } from "../../handlers/sync";
@@ -9,21 +10,21 @@ import {
 } from "../schemas";
 
 export const coreRoutes: Record<string, Route> = {
-  config: { handler: handleConfig, methods: ["GET", "POST", "HEAD"] },
-  "secure-config": { handler: handleSecureConfig, methods: ["POST"] },
-  upload: {
+  config: defineRoute({ handler: handleConfig, methods: ["GET", "POST", "HEAD"] }),
+  "secure-config": defineRoute({ handler: handleSecureConfig, methods: ["POST"] }),
+  upload: defineRoute({
     handler: (_m, b) => apiGateway.handleUpload(b),
     methods: ["POST"],
-  },
-  "test-connection": {
+  }),
+  "test-connection": defineRoute({
     schema: testConnectionSchema,
     handler: handleTestConnection,
     methods: ["POST"],
-  },
-  "sync/config": { handler: handleSyncConfig, methods: ["GET", "POST"] },
-  "sync/test": { handler: handleSyncTest, methods: ["POST"] },
-  "sync/proxy": { handler: handleSyncProxy, methods: ["POST"] },
-  export: {
+  }),
+  "sync/config": defineRoute({ handler: handleSyncConfig, methods: ["GET", "POST"] }),
+  "sync/test": defineRoute({ handler: handleSyncTest, methods: ["POST"] }),
+  "sync/proxy": defineRoute({ handler: handleSyncProxy, methods: ["POST"] }),
+  export: defineRoute({
     schema: exportSchema,
     handler: async (_m, b) => {
       const { data, format } = b;
@@ -36,5 +37,5 @@ export const coreRoutes: Record<string, Route> = {
       return { success: true, data: { content, filename } };
     },
     methods: ["POST"],
-  },
+  }),
 };

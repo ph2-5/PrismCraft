@@ -1,4 +1,4 @@
-import type { Story, StoryBeat } from "@/domain/schemas";
+import type { Story, StoryBeat, ShotInstruction } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 
 export function parseStoryPlanJSON(text: string): unknown[] | null {
@@ -29,6 +29,55 @@ export function parseStoryPlanJSON(text: string): unknown[] | null {
   }
 
   return null;
+}
+
+/** Map legacy shotType + camera fields to structured shotInstruction */
+function buildShotInstruction(
+  shotType: string,
+  cameraAngle: string | undefined,
+  cameraMovement: string | undefined,
+): ShotInstruction | undefined {
+  const SHOT_SIZE_MAP: Record<string, ShotInstruction["shotSize"]> = {
+    extreme_close: "extreme_close",
+    close: "close",
+    medium: "medium",
+    wide: "wide",
+    extreme_wide: "extreme_wide",
+  };
+
+  const ANGLE_MAP: Record<string, ShotInstruction["cameraAngle"]> = {
+    eye_level: "eye_level",
+    low: "low",
+    high: "high",
+    birds_eye: "birds_eye",
+    worms_eye: "worms_eye",
+    dutch: "dutch",
+    birdseye: "birds_eye",
+    wormseye: "worms_eye",
+  };
+
+  const MOVEMENT_MAP: Record<string, ShotInstruction["cameraMovement"]> = {
+    static: "static",
+    push: "push",
+    pull: "pull",
+    pan: "pan",
+    orbit: "orbit",
+    crane_up: "crane_up",
+    crane_down: "crane_down",
+    tracking: "tracking",
+  };
+
+  const shotSize = SHOT_SIZE_MAP[shotType];
+  const mappedAngle = cameraAngle ? ANGLE_MAP[cameraAngle] : undefined;
+  const mappedMovement = cameraMovement ? MOVEMENT_MAP[cameraMovement] : undefined;
+
+  if (!shotSize && !mappedAngle && !mappedMovement) return undefined;
+
+  return {
+    shotSize: shotSize || "medium",
+    cameraAngle: mappedAngle || "eye_level",
+    cameraMovement: mappedMovement || "static",
+  };
 }
 
 export function convertToStoryBeats(
@@ -145,6 +194,13 @@ export function convertToStoryBeats(
       uploadedVideo: undefined,
       customChainTarget: undefined,
     };
+
+    // Build shotInstruction from parsed shotType + camera fields
+    const resolvedShotType = shotType || "medium";
+    const instruction = buildShotInstruction(resolvedShotType, cameraAngle || undefined, cameraMovement || undefined);
+    if (instruction) {
+      beat.shotInstruction = instruction;
+    }
 
     if (raw.dialogue) {
       beat.content = `${beat.content}\n对话：${raw.dialogue}`;

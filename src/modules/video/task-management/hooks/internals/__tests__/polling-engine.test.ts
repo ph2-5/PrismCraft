@@ -45,6 +45,11 @@ vi.mock("../polling-task-handler", () => ({
   cacheCompletedVideos: mockCacheCompletedVideos,
 }));
 
+vi.mock("../sync-engine", () => ({
+  scheduleSync: vi.fn(),
+  registerSyncStore: vi.fn(),
+}));
+
 import {
   pollingState,
   registerStore,

@@ -37,6 +37,7 @@ export function CharacterBasicInfo({
           <Label htmlFor="name">{t("character.name")}</Label>
           <Input
             id="name"
+            data-testid="character-name-input"
             placeholder={t("character.namePlaceholder")}
             value={currentCharacter.name}
             onChange={(e) =>

@@ -23,6 +23,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@shared-logic/*": [
+        "./src/shared-logic/*"
       ]
     }
   },
@@ -41,6 +44,7 @@
     "release",
     "next.config.ts",
     "next.config.mjs",
+    "electron",
     "src/__tests__",
     "**/__tests__",
     "**/*.test.ts",

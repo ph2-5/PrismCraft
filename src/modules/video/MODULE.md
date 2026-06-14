@@ -1,3 +1,4 @@
+<!-- AI: Before modifying this module, read contract.json for invariants -->
 # Video Module
 
 ## 职责
@@ -23,7 +24,7 @@
 
 > 以下为 `index.ts` 的完整导出列表，详细签名见各子域章节。
 
-**task-management**: `VideoTask`、`useVideoTaskManager`、`useVideoTaskStore`、`useVideoTasks`、`useFailedVideoTasks`、`useRecoverVideo`、`useCleanExpiredTasks`、`useStartBackgroundRecovery`、`buildTrackingInfo`、`VideoTaskManager`、`VideoTaskManagerInitializer`、`VideoTaskManagerUI`
+**task-management**: `VideoTask`、`useVideoTaskManager`、`useVideoTaskStore`、`useVideoTaskState`、`useVideoTaskQueries`、`useVideoTaskCommands`、`useVideoTaskPolling`、`useVideoTasks`、`useFailedVideoTasks`、`useRecoverVideo`、`useCleanExpiredTasks`、`useStartBackgroundRecovery`、`buildTrackingInfo`、`VideoTaskManager`、`VideoTaskManagerInitializer`、`VideoTaskManagerUI`
 
 **cache**: `useVideoCacheStats`、`cacheVideoBlob`、`getCachedVideoUrl`、`getVideoUrlWithCache`、`removeCachedVideo`、`cleanExpiredVideoCache`、`getCacheStats`、`revokeObjectURL`、`touchMemoryCache`、`clearMemoryCache`、`checkCachedVideo`、`getVideoFileStream`、`getCachedVideo`、`cacheImageBlob`、`getCachedImagePath`、`getImageUrlWithCache`、`removeCachedImage`、`cleanExpiredImageCache`、`getImageCacheStats`、`recoverUncachedImages`
 
@@ -125,7 +126,7 @@ interface VideoTaskManagerState {
   initError: string | null
 
   initialize(): void
-  setAllTasks(tasks: VideoTask[] | ((prev: VideoTask[]) => VideoTask[])): void
+  setAllTasks(tasks: VideoTask[] | ((prev: VideoTask[]) => VideoTask[])): void  // 仅更新状态，不自动触发 sync/polling
   addTask(task: Omit<VideoTask, "progress" | "createdAt">): Promise<VideoTask>
   removeTask(taskId: string): Promise<void>
   removeTasks(taskIds: string[]): Promise<void>
@@ -188,6 +189,57 @@ function useVideoTaskManager(): {
   startBackgroundProcessing: VideoTaskManagerState["startBackgroundProcessing"]
   initialize: VideoTaskManagerState["initialize"]
   isBackgroundProcessing: boolean
+}
+```
+
+**stableActions 模式**：useVideoTaskManager 内部通过 useMemo 将所有 action 方法（addTask、createTask、pollTask 等）缓存为稳定引用。这些方法来自 store.getState()，其引用永不变化，因此 stableActions 对象的 useMemo 依赖为常量 [store]。这避免了 allTasks 变化时 action 方法引用也变化，导致消费方（如 StoryProvider）的 useMemo 被不必要地触发。
+
+**setAllTasks 不自动触发 sync/polling**：setAllTasks 仅更新 Zustand 状态，不再自动调用 scheduleSync() 和 checkAndStartOrStopPolling()。所有写操作（addTask、removeTask、cancelTask、recoverTask、clearActiveTasks 等）在调用 setAllTasks 后显式调用 scheduleSync() + checkAndStartOrStopPolling()。轮询引擎（polling-engine.ts）在批量更新后统一触发一次 sync/polling 检查，使用动态 import("./sync-engine") 避免循环依赖。
+
+#### CQRS Hooks（细粒度拆分）
+
+> 以下 hooks 将 useVideoTaskManager 的职责按 CQRS 模式拆分，供需要更精细控制的消费方使用。useVideoTaskManager 仍作为向后兼容的统一接口。
+
+```typescript
+function useVideoTaskState(): {
+  allTasks: VideoTask[]
+  isBackgroundProcessing: boolean
+  isInitialized: boolean
+  isCreating: boolean
+  initError: string | null
+}
+
+function useVideoTaskQueries(): {
+  tasks: VideoTask[]
+  activeTasks: VideoTask[]
+  hasActiveTasks: boolean
+  isGenerating: boolean
+  activeTaskId: string | null
+}
+
+function useVideoTaskCommands(): {
+  addTask: VideoTaskManagerState["addTask"]
+  createTask: VideoTaskManagerState["createTask"]
+  pollTask: VideoTaskManagerState["pollTask"]
+  cancelTask: VideoTaskManagerState["cancelTask"]
+  recoverTask: VideoTaskManagerState["recoverTask"]
+  removeTask: VideoTaskManagerState["removeTask"]
+  removeTasks: VideoTaskManagerState["removeTasks"]
+  batchUpdateVideoTasks: VideoTaskManagerState["batchUpdateVideoTasks"]
+  batchDeleteVideoTasks: VideoTaskManagerState["batchDeleteVideoTasks"]
+  clearTasks: VideoTaskManagerState["clearActiveTasks"]
+  clearAllTasks: VideoTaskManagerState["clearAllTasks"]
+  clearCompletedTasks: VideoTaskManagerState["clearCompletedTasks"]
+  clearFailedTasks: VideoTaskManagerState["clearFailedTasks"]
+  setAllTasks: VideoTaskManagerState["setAllTasks"]
+  initialize: VideoTaskManagerState["initialize"]
+  startBackgroundProcessing: VideoTaskManagerState["startBackgroundProcessing"]
+}
+
+function useVideoTaskPolling(): {
+  startPolling: (taskIds?: string[]) => void
+  stopPolling: () => void
+  isPolling: boolean
 }
 ```
 

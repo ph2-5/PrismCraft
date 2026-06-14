@@ -133,9 +133,9 @@ export async function generateStoryPlanWithValidation(
   let lastValidationErrors: string[] | undefined;
   let planValidation: ValidationResult | null = null;
 
-  const maxAttempts = opts.enhancedGeneration ? opts.maxRetries : 1;
+  const maxAttempts = opts.enhancedGeneration ? opts.maxRetries + 1 : 1;
 
-  for (let attempt = 0; attempt <= maxAttempts; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       const promptToSend =
         opts.enhancedGeneration && lastValidationErrors
@@ -185,7 +185,7 @@ export async function generateStoryPlanWithValidation(
       });
     } catch (error) {
       retryCount++;
-      if (attempt >= maxAttempts) {
+      if (attempt >= maxAttempts - 1) {
         notifyProgress(opts.onProgress, {
           stage: "failed",
           message: t("error.storyPlanGenFailed") + ": " + extractErrorMessage(error),

@@ -127,11 +127,12 @@ export async function loadPluginTemplates(): Promise<void> {
         }
 
         if (plugin.videoCapabilities?.defaultModel) {
-          if (!models.some((m) => m.id === plugin.videoCapabilities!.defaultModel)) {
-            const defaultProfile = result.data.modelProfiles?.[plugin.videoCapabilities.defaultModel];
+          const defaultModel = plugin.videoCapabilities.defaultModel;
+          if (!models.some((m) => m.id === defaultModel)) {
+            const defaultProfile = result.data.modelProfiles?.[defaultModel];
             models.push({
-              id: plugin.videoCapabilities.defaultModel,
-              name: defaultProfile?.displayName ?? plugin.videoCapabilities.defaultModel,
+              id: defaultModel,
+              name: defaultProfile?.displayName ?? defaultModel,
               capabilities: ["video"],
               defaultParams: { duration: plugin.videoCapabilities.maxDuration ?? 5 },
             });
@@ -139,11 +140,12 @@ export async function loadPluginTemplates(): Promise<void> {
         }
 
         if (plugin.imageCapabilities?.defaultModel) {
-          if (!models.some((m) => m.id === plugin.imageCapabilities!.defaultModel)) {
-            const defaultProfile = result.data.modelProfiles?.[plugin.imageCapabilities.defaultModel];
+          const defaultModel = plugin.imageCapabilities.defaultModel;
+          if (!models.some((m) => m.id === defaultModel)) {
+            const defaultProfile = result.data.modelProfiles?.[defaultModel];
             models.push({
-              id: plugin.imageCapabilities.defaultModel,
-              name: defaultProfile?.displayName ?? plugin.imageCapabilities.defaultModel,
+              id: defaultModel,
+              name: defaultProfile?.displayName ?? defaultModel,
               capabilities: ["image"],
               defaultParams: {},
             });

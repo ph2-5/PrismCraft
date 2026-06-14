@@ -33,7 +33,8 @@ if (userDataPath.toLowerCase().endsWith("electron")) {
   logger.info("[Main] Override userData path:", { path: correctPath });
 }
 
-const gotTheLock = app.requestSingleInstanceLock();
+const isTest = process.env.NODE_ENV === "test";
+const gotTheLock = isTest || app.requestSingleInstanceLock();
 if (!gotTheLock) {
   logger.error("[Main] Another instance is already running. Quitting.");
   app.quit();

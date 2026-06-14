@@ -12,10 +12,8 @@ import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
 import { AppError } from "@/domain/types/result";
-
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
 import { TaskMachine, mapApiStatus } from "../domain";
-
 import {
   withTransitionGuard,
   pollingState,
@@ -130,8 +128,6 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       allTasks:
         typeof updater === "function" ? updater(state.allTasks) : updater,
     }));
-    scheduleSync();
-    checkAndStartOrStopPolling();
   },
 
   addTask: async (task) => {
@@ -171,6 +167,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     }
 
     get().setAllTasks((prev) => [newTask, ...prev]);
+    scheduleSync();
+    checkAndStartOrStopPolling();
     return newTask;
   },
 
@@ -178,6 +176,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     try {
       await removeTaskFromStorageAndCache(taskId);
       get().setAllTasks((prev) => prev.filter((task) => task.taskId !== taskId));
+      scheduleSync();
+      checkAndStartOrStopPolling();
     } catch (error) {
       errorLogger.error("Failed to remove video task", error);
       emitToast("error", t("video.taskDeleteTitle"), t("video.taskDeleteFailed"));
@@ -188,6 +188,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     try {
       await removeTasksFromStorageAndCache(taskIds);
       get().setAllTasks((prev) => excludeTasksByIds(prev, taskIds));
+      scheduleSync();
+      checkAndStartOrStopPolling();
     } catch (error) {
       errorLogger.error("Failed to remove video tasks", error);
     }
@@ -212,6 +214,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     }
     await clearCacheForTasks(tasks.map((t) => t.taskId));
     get().setAllTasks((prev) => prev.filter((t) => t.beatId !== beatId));
+    scheduleSync();
     checkAndStartOrStopPolling();
   },
 
@@ -234,6 +237,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     }
     await clearCacheForTasks(tasks.map((t) => t.taskId));
     get().setAllTasks((prev) => prev.filter((t) => t.storyId !== storyId));
+    scheduleSync();
     checkAndStartOrStopPolling();
   },
 
@@ -244,6 +248,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       await container.videoTaskStorage.batchDeleteVideoTasks(activeIds);
       await clearCacheForTasks(activeIds);
       get().setAllTasks((prev) => excludeTasksByIds(prev, activeIds));
+      scheduleSync();
+      checkAndStartOrStopPolling();
     } catch (error) {
       errorLogger.error("Failed to clear active tasks", error);
     }
@@ -255,6 +261,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       await container.videoTaskStorage.clearVideoTasks();
       await clearCacheForTasks(taskIds);
       get().setAllTasks([]);
+      scheduleSync();
+      checkAndStartOrStopPolling();
     } catch (error) {
       errorLogger.error("Failed to clear all video tasks", error);
     }
@@ -264,6 +272,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     try {
       await container.videoTaskStorage.deleteVideoTasksByStatus(["completed"]);
       get().setAllTasks((prev) => excludeTasksByStatus(prev, ["completed"]));
+      scheduleSync();
     } catch (error) {
       errorLogger.error("Failed to clear completed tasks", error);
     }
@@ -273,6 +282,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     try {
       await container.videoTaskStorage.deleteVideoTasksByStatus(["failed", "timeout"]);
       get().setAllTasks((prev) => excludeTasksByStatus(prev, ["failed", "timeout"]));
+      scheduleSync();
     } catch (error) {
       errorLogger.error("Failed to clear failed tasks", error);
     }
@@ -291,16 +301,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         extraOptions?.firstFrameUrl ||
         extraOptions?.fixedImageUrl;
 
-      const apiOptions: {
-        duration?: number;
-        referenceVideo?: string | null;
-        providerId?: string;
-        modelId?: string;
-        format?: string;
-        characterRef?: string;
-        characterRefs?: string[];
-        sceneRef?: string;
-      } = {
+      const commonApiOptions = {
         duration: extraOptions?.duration,
         referenceVideo: extraOptions?.referenceVideo,
         providerId: extraOptions?.providerId,
@@ -317,11 +318,11 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
           firstFrameUrl:
             extraOptions?.firstFrameUrl || extraOptions?.fixedImageUrl,
           lastFrameUrl: extraOptions?.lastFrameUrl,
-          ...apiOptions,
+          ...commonApiOptions,
         });
       } else {
         result = await container.videoProvider.generateVideo(prompt, {
-          ...apiOptions,
+          ...commonApiOptions,
           firstFrameUrl: extraOptions?.fixedImageUrl,
         });
       }
@@ -455,6 +456,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
             t.taskId === taskId ? { ...t, ...guardUpdates } : t,
           ),
         );
+        scheduleSync();
+        checkAndStartOrStopPolling();
       } else {
         get().setAllTasks((prev) =>
           prev.map((task) =>
@@ -463,6 +466,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
               : task,
           ),
         );
+        scheduleSync();
       }
     } catch (error) {
       errorLogger.error("Error polling task", error);
@@ -499,6 +503,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       get().setAllTasks((prev) =>
         prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
       );
+      scheduleSync();
+      checkAndStartOrStopPolling();
     }
   },
 
@@ -531,7 +537,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     get().setAllTasks((prev) =>
       prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
     );
-
+    scheduleSync();
     checkAndStartOrStopPolling();
   },
 
@@ -555,6 +561,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         t.taskId === taskId ? updatedTask : t,
       ),
     );
+    scheduleSync();
+    checkAndStartOrStopPolling();
   },
 
   startBackgroundProcessing: () => {
@@ -593,15 +601,10 @@ export function useVideoTaskManager() {
     [allTasks],
   );
   const hasActiveTasks = activeTasks.length > 0;
-  const activeTaskId = activeTasks.length > 0 ? activeTasks[activeTasks.length - 1]!.taskId : null;
+  const activeTaskId = activeTasks.length > 0 ? activeTasks[activeTasks.length - 1]?.taskId ?? null : null;
 
-  return useMemo(() => ({
-    tasks: allTasks,
-    allTasks,
-    isGenerating: hasActiveTasks,
-    activeTaskId,
-    activeTasks,
-    hasActiveTasks,
+  // Stable references — these never change because they come from zustand store.getState()
+  const stableActions = useMemo(() => ({
     addTask: store.getState().addTask,
     createTask: store.getState().createTask,
     pollTask: store.getState().pollTask,
@@ -617,6 +620,16 @@ export function useVideoTaskManager() {
     clearFailedTasks: store.getState().clearFailedTasks,
     startBackgroundProcessing: store.getState().startBackgroundProcessing,
     initialize: store.getState().initialize,
+  }), [store]);
+
+  return useMemo(() => ({
+    tasks: allTasks,
+    allTasks,
+    isGenerating: hasActiveTasks,
+    activeTaskId,
+    activeTasks,
+    hasActiveTasks,
+    ...stableActions,
     isBackgroundProcessing,
-  }), [allTasks, activeTasks, hasActiveTasks, activeTaskId, isBackgroundProcessing, store]);
+  }), [allTasks, activeTasks, hasActiveTasks, activeTaskId, stableActions, isBackgroundProcessing]);
 }

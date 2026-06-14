@@ -18,6 +18,7 @@ export function BasicTab({ currentScene, setCurrentScene }: BasicTabProps) {
         <Label htmlFor="name">{t("scene.name")}</Label>
         <Input
           id="name"
+          data-testid="scene-name-input"
           placeholder={t("scene.namePlaceholder")}
           value={currentScene.name}
           onChange={(e) =>

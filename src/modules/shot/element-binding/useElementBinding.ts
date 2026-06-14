@@ -3,6 +3,7 @@ import { elementManager } from "./element-manager";
 import type { StoryElement, ElementType, AssetBinding } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { handleError } from "@/shared/error-handler";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 
 export function useElementBinding() {
   const [elements, setElements] = useState<StoryElement[]>([]);
@@ -22,7 +23,7 @@ export function useElementBinding() {
     }).catch((e) => {
       if (!cancelled) {
         errorLogger.error(handleError(e), "ElementBinding");
-        setLoadError(e instanceof Error ? e.message : "元素加载失败");
+        setLoadError(mapUserFacingError(e));
         setIsLoading(false);
       }
     });

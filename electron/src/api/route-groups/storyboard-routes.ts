@@ -1,10 +1,10 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
 import * as apiGateway from "../../api-gateway";
-import * as promptService from "../../services/prompt/prompt-service";
-import * as storyboardGeneration from "../../services/story/storyboard-generation";
-import * as videoRecovery from "../../services/video/video-recovery";
-import * as videoTracker from "../../services/video/video-tracker";
+import * as promptService from "@shared-logic/prompt/prompt-service";
+import * as storyboardGeneration from "@shared-logic/story/storyboard-generation";
+import * as videoRecovery from "@shared-logic/video/video-recovery";
+import * as videoTracker from "@shared-logic/video/video-tracker";
 import { getDb } from "../../database";
 import { getLogger } from "../../logging";
 import {
@@ -47,10 +47,10 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateKeyframeSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatKeyframe(
-        apiGateway as unknown as import("../../services/story/storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
         promptService,
-        b.beat as import("../../services/story/storyboard-generation").Beat,
-        b.prevBeat as import("../../services/story/storyboard-generation").Beat | undefined,
+        b.beat as import("@shared-logic/story/storyboard-generation").Beat,
+        b.prevBeat as import("@shared-logic/story/storyboard-generation").Beat | undefined,
         b.options,
       );
       return { success: true, data: result };
@@ -61,9 +61,9 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateFramePairSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatFramePair(
-        apiGateway as unknown as import("../../services/story/storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
         promptService,
-        b.beat as import("../../services/story/storyboard-generation").Beat,
+        b.beat as import("@shared-logic/story/storyboard-generation").Beat,
         b.options,
       );
       return { success: true, data: result };
@@ -74,8 +74,8 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateVideoSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatVideo(
-        apiGateway as unknown as import("../../services/story/storyboard-generation").ApiGateway,
-        b.beat as import("../../services/story/storyboard-generation").Beat,
+        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
+        b.beat as import("@shared-logic/story/storyboard-generation").Beat,
         b.options,
       );
       return { success: true, data: result };
@@ -86,10 +86,10 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateFullWorkflowSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatFullWorkflow(
-        apiGateway as unknown as import("../../services/story/storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
         promptService,
-        b.beat as import("../../services/story/storyboard-generation").Beat,
-        b.prevBeat as import("../../services/story/storyboard-generation").Beat | undefined,
+        b.beat as import("@shared-logic/story/storyboard-generation").Beat,
+        b.prevBeat as import("@shared-logic/story/storyboard-generation").Beat | undefined,
         b.options,
       );
       return { success: true, data: result };
@@ -100,9 +100,9 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateKeyframeChainSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateKeyframeChain(
-        apiGateway as unknown as import("../../services/story/storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
         promptService,
-        b.beats as import("../../services/story/storyboard-generation").Beat[],
+        b.beats as import("@shared-logic/story/storyboard-generation").Beat[],
         b.options as Parameters<typeof storyboardGeneration.generateKeyframeChain>[3],
       );
       return { success: true, data: result };
@@ -113,7 +113,7 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: videoRecoverSchema,
     handler: async (_m, b) => {
       const result = await videoRecovery.recoverVideoByTaskId(
-        apiGateway as unknown as import("../../services/story/storyboard-generation").ApiGateway,
+        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
         b.taskId,
         b.taskRecord,
       );
@@ -121,7 +121,7 @@ export const storyboardRoutes: Record<string, Route> = {
     },
     methods: ["POST"],
   }),
-  "video-tasks/bulk-save": {
+  "video-tasks/bulk-save": defineRoute({
     schema: videoTasksBulkSaveSchema,
     handler: async (_m, b) => {
       const tasks = b.tasks;
@@ -178,5 +178,5 @@ export const storyboardRoutes: Record<string, Route> = {
       }
     },
     methods: ["POST"],
-  },
+  }),
 };

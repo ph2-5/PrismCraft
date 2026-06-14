@@ -1,3 +1,5 @@
+// AI: This file defines the renderer-to-main IPC bridge.
+// AI: Do NOT add new IPC channels without also updating the corresponding API route.
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import type { IpcArgs, IpcResult, MenuEventCallback } from "./types/ipc";
 

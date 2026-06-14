@@ -370,7 +370,7 @@ describe("useVideoTaskStore", () => {
       expect(useVideoTaskStore.getState().allTasks[1]!.taskId).toBe("existing-1");
     });
 
-    it("should trigger scheduleSync and checkAndStartOrStopPolling via setAllTasks", async () => {
+    it("should trigger scheduleSync and checkAndStartOrStopPolling explicitly after addTask", async () => {
       const taskInput = {
         taskId: "task-add-5",
         status: "pending" as VideoTaskStatus,
@@ -1326,16 +1326,14 @@ describe("useVideoTaskStore", () => {
       expect(useVideoTaskStore.getState().allTasks).toHaveLength(2);
     });
 
-    it("should call scheduleSync", () => {
+    it("should NOT auto-trigger scheduleSync or checkAndStartOrStopPolling", () => {
+      mockScheduleSync.mockClear();
+      mockCheckAndStartOrStopPolling.mockClear();
+
       useVideoTaskStore.getState().setAllTasks([]);
 
-      expect(mockScheduleSync).toHaveBeenCalled();
-    });
-
-    it("should call checkAndStartOrStopPolling", () => {
-      useVideoTaskStore.getState().setAllTasks([]);
-
-      expect(mockCheckAndStartOrStopPolling).toHaveBeenCalled();
+      expect(mockScheduleSync).not.toHaveBeenCalled();
+      expect(mockCheckAndStartOrStopPolling).not.toHaveBeenCalled();
     });
   });
 

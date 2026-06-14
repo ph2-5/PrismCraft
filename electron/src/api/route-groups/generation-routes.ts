@@ -1,9 +1,9 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
 import * as apiGateway from "../../api-gateway";
-import * as storyService from "../../services/story/story-service";
-import * as videoTaskService from "../../services/video/video-task-service";
-import * as promptService from "../../services/prompt/prompt-service";
+import * as storyService from "@shared-logic/story/story-service";
+import * as videoTaskService from "@shared-logic/video/video-task-params";
+import * as promptService from "@shared-logic/prompt/prompt-service";
 import {
   analyzeImageSchema,
   generateImageSchema,
@@ -24,41 +24,41 @@ import {
 } from "../schemas";
 
 export const generationRoutes: Record<string, Route> = {
-  "analyze-image": {
+  "analyze-image": defineRoute({
     schema: analyzeImageSchema,
     handler: (_m, b) => apiGateway.analyzeImage(b),
     methods: ["POST"],
-  },
-  "generate-image": {
+  }),
+  "generate-image": defineRoute({
     schema: generateImageSchema,
     handler: (_m, b) => apiGateway.generateImage(b),
     methods: ["POST"],
-  },
-  "generate-keyframe": {
+  }),
+  "generate-keyframe": defineRoute({
     schema: generateKeyframeSchema,
     handler: (_m, b) => apiGateway.generateKeyframe(b),
     methods: ["POST"],
-  },
-  "generate-frame-pair": {
+  }),
+  "generate-frame-pair": defineRoute({
     schema: generateFramePairSchema,
     handler: (_m, b) => apiGateway.generateFramePair(b),
     methods: ["POST"],
-  },
-  "generate-video": {
+  }),
+  "generate-video": defineRoute({
     schema: generateVideoSchema,
     handler: (_m, b) => apiGateway.generateVideo(b),
     methods: ["POST"],
-  },
-  "video-status": {
+  }),
+  "video-status": defineRoute({
     schema: videoStatusSchema,
     handler: (_m, b) => apiGateway.videoStatus(b),
     methods: ["GET", "POST"],
-  },
-  "generate-text": {
+  }),
+  "generate-text": defineRoute({
     schema: generateTextSchema,
     handler: (_m, b) => apiGateway.generateText(b),
     methods: ["POST"],
-  },
+  }),
   "story/plan": defineRoute({
     schema: storyPlanSchema,
     handler: async (_m, b) => {
@@ -73,23 +73,23 @@ export const generationRoutes: Record<string, Route> = {
     },
     methods: ["POST"],
   }),
-  "story/generate-video": {
+  "story/generate-video": defineRoute({
     schema: storyGenerateVideoSchema,
     handler: async (_m, b) => {
       const params = videoTaskService.buildVideoGenerationParams(b);
       return apiGateway.generateVideo(params as unknown as Record<string, unknown>);
     },
     methods: ["POST"],
-  },
-  "story/generate-keyframe": {
+  }),
+  "story/generate-keyframe": defineRoute({
     schema: storyGenerateKeyframeSchema,
     handler: async (_m, b) => {
       const params = videoTaskService.buildKeyframeGenerationParams(b as unknown as Parameters<typeof videoTaskService.buildKeyframeGenerationParams>[0]);
       return apiGateway.generateKeyframe(params);
     },
     methods: ["POST"],
-  },
-  "story/generate-frame-pair": {
+  }),
+  "story/generate-frame-pair": defineRoute({
     schema: storyGenerateFramePairSchema,
     handler: async (_m, b) => {
       const params = videoTaskService.buildFramePairGenerationParams(b as unknown as Parameters<typeof videoTaskService.buildFramePairGenerationParams>[0]);
@@ -123,15 +123,15 @@ export const generationRoutes: Record<string, Route> = {
       };
     },
     methods: ["POST"],
-  },
-  "quick-generate/video": {
+  }),
+  "quick-generate/video": defineRoute({
     schema: quickGenerateVideoSchema,
     handler: async (_m, b) => {
       const params = videoTaskService.buildQuickVideoParams(b);
       return apiGateway.generateVideo(params);
     },
     methods: ["POST"],
-  },
+  }),
   "character/generate-image": defineRoute({
     schema: characterGenerateImageSchema,
     handler: async (_m, b) => {
@@ -143,11 +143,11 @@ export const generationRoutes: Record<string, Route> = {
       const imagePrompt = b.imagePrompt;
       const detailedPromptInstruction = b.detailedPromptInstruction;
       let finalPrompt: string =
-        imagePrompt || promptService.generateCharacterImagePrompt(character as import("../../services/prompt/prompt-service").CharacterInput);
+        imagePrompt || promptService.generateCharacterImagePrompt(character as import("@shared-logic/prompt/prompt-service").CharacterInput);
       if (useDetailedPrompt && !imagePrompt) {
         const instruction: string =
           detailedPromptInstruction ||
-          promptService.generateCharacterDetailedPromptInstruction(character as import("../../services/prompt/prompt-service").CharacterInput);
+          promptService.generateCharacterDetailedPromptInstruction(character as import("@shared-logic/prompt/prompt-service").CharacterInput);
         const detailedResult = await apiGateway.generateText({
           prompt: instruction,
           maxTokens: 300,
@@ -180,7 +180,7 @@ export const generationRoutes: Record<string, Route> = {
       let finalPrompt: string =
         imagePrompt ||
         (scene.imageGenerationPrompt as string | undefined) ||
-        promptService.generateSceneImagePrompt(scene as import("../../services/prompt/prompt-service").SceneInput);
+        promptService.generateSceneImagePrompt(scene as import("@shared-logic/prompt/prompt-service").SceneInput);
       if (useDetailedPrompt && !imagePrompt) {
         const instruction: string =
           detailedPromptInstruction ||

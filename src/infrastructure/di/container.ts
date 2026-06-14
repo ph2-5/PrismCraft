@@ -1,3 +1,5 @@
+// AI: Use TOKEN_IDS or getTokenRegistry() to discover available tokens.
+// AI: Do NOT guess token names — always verify before using.
 import type {
   IVideoTaskStorage,
   ICharacterStorage,
@@ -141,6 +143,10 @@ const tokens = {
     const { referenceEngine } = await import("@/modules/shot");
     return referenceEngine;
   }),
+  syncEngine: createToken("syncEngine", async () => {
+    const { syncEngine } = await import("@/modules/sync/engine/engine");
+    return syncEngine;
+  }),
 };
 
 const registry = new ModuleRegistry();
@@ -188,5 +194,55 @@ export function resetContainer(): void {
 type ContainerShape = {
   [K in keyof typeof tokens]: ReturnType<typeof tokens[K]["factory"]>;
 };
+
+export const TOKEN_IDS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(tokens).map(([key, token]) => [key, token.id])
+  )
+) as Record<string, string>;
+
+export function getTokenRegistry(): Array<{
+  key: string;
+  id: string;
+  category: string;
+}> {
+  const categories: Record<string, string> = {
+    videoTaskStorage: "A",
+    characterStorage: "A",
+    sceneStorage: "A",
+    storyStorage: "A",
+    videoProvider: "A",
+    imageProvider: "A",
+    textProvider: "A",
+    fileUploader: "A",
+    syncStorage: "A",
+    eventBus: "B",
+    apiClient: "B",
+    imageApi: "B",
+    videoApi: "B",
+    textApi: "B",
+    preferencesStorage: "B",
+    versionStorage: "C",
+    elementStorage: "C",
+    videoCacheStorage: "C",
+    imageCacheStorage: "C",
+    collectionStorage: "C",
+    storyboardStorage: "C",
+    importExportStorage: "C",
+    templateStorage: "C",
+    autoSaveStorage: "C",
+    errorLogStorage: "C",
+    sessionStorage: "C",
+    mediaAssetRepository: "D",
+    elementManager: "E",
+    referenceEngine: "E",
+    syncEngine: "E",
+  };
+  return Object.entries(tokens).map(([key, token]) => ({
+    key,
+    id: token.id,
+    category: categories[key] || "unknown",
+  }));
+}
 
 export type AppContainer = ContainerShape;

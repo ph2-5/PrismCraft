@@ -8,6 +8,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { t } from "@/shared/constants";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import type { StoryBeat } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
 
@@ -72,7 +73,7 @@ export function BeatVideoTab({
                 <span className="text-sm font-medium">{t("beat.statusFailed")}</span>
               </div>
               <p className="text-xs text-destructive/80 mt-1">
-                {beat.videoGen.error}
+                {mapUserFacingError(beat.videoGen.error)}
               </p>
             </div>
           )}

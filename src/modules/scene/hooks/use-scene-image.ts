@@ -4,7 +4,6 @@ import type { Scene } from "@/domain/schemas";
 import { useModelSelection } from "@/modules/prompt";
 import { generateSceneImagePrompt, generateSimpleSceneImagePrompt, generateScenePromptOptimization } from "@/modules/prompt";
 import { container } from "@/infrastructure/di";
-import { getErrorMessage } from "@/shared/error-handler";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import type { CustomApiConfig } from "@/domain/types";
 import { errorLogger } from "@/shared/error-logger";
@@ -57,7 +56,7 @@ export function useSceneImage({
         setCurrentScene((prev) => ({ ...prev, imageGenerationPrompt: optimizedText }), true);
         success(t("success.promptOptimized"), t("success.promptOptimizedDesc"));
       } else { showError(t("image.optimizeFailed"), result.error || t("image.checkApiConfig")); }
-    } catch (err) { errorLogger.error(t("error.promptOptimizeFailed"), err); showError(t("image.optimizeFailed"), getErrorMessage(err)); }
+    } catch (err) { errorLogger.error(t("error.promptOptimizeFailed"), err); showError(t("image.optimizeFailed"), mapUserFacingError(err)); }
     finally { setIsOptimizingPrompt(false); }
   };
 
@@ -71,7 +70,7 @@ export function useSceneImage({
       const result = await container.imageProvider.generateImage(basicPrompt, "scene", imageOptions);
       if (result.success && result.data?.imageUrl) { setGeneratedImage(result.data.imageUrl); success(t("success.imageGenerated"), t("success.sceneImageGeneratedDesc")); }
       else { showError(t("image.generateFailed"), result.error || t("image.checkApiConfig")); }
-    } catch (err) { errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: t("error.imageGenerateFailed"), cause: err }); showError(t("image.generateFailed"), getErrorMessage(err)); }
+    } catch (err) { errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: t("error.imageGenerateFailed"), cause: err }); showError(t("image.generateFailed"), mapUserFacingError(err)); }
     finally { setIsGenerating(false); }
   };
 
@@ -106,7 +105,7 @@ export function useSceneImage({
         } else { addAssetToLibrary(imageUrl, "image", "上传的图片"); }
         success(t("success.uploaded"), t("success.imageSavedToLibrary"));
       } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); }
-    } catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError(t("error.uploadFailed"), getErrorMessage(err)); }
+    } catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError(t("error.uploadFailed"), mapUserFacingError(err)); }
     finally { setIsUploading(false); }
   };
 
@@ -161,7 +160,7 @@ export function useSceneImage({
         addAssetToLibrary(imageUrl, "image", analyzed.name || currentSceneRef.current.name || "场景图片", { type: "scene", id: currentSceneRef.current.id, name: analyzed.name || currentSceneRef.current.name || "未命名场景" });
         success(t("success.analysisComplete"), t("success.sceneAnalysisResult", { name: analyzed.name || "未命名场景" }));
       } else { showError(t("image.analyzeFailed"), result.error || result.message || t("common.retry")); }
-    } catch (err) { errorLogger.error("分析失败:", err); showError(t("image.analyzeFailed"), getErrorMessage(err)); }
+    } catch (err) { errorLogger.error("分析失败:", err); showError(t("image.analyzeFailed"), mapUserFacingError(err)); }
     finally { if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null; } isAnalyzingRef.current = false; setIsAnalyzing(false); }
   };
 
@@ -170,7 +169,7 @@ export function useSceneImage({
     if (!file) return;
     setIsUploading(true);
     try { const result = await container.fileUploader.uploadFile(file); if (result.success && result.data?.url) { await analyzeImage(result.data.url); } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); } }
-    catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError(t("error.uploadFailed"), getErrorMessage(err)); }
+    catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError(t("error.uploadFailed"), mapUserFacingError(err)); }
     finally { setIsUploading(false); }
   };
 

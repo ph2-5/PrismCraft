@@ -9,6 +9,7 @@ import {
 import { Progress } from "@/shared/ui/progress";
 import { type VideoTask } from "@/modules/video";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants/messages";
 
@@ -71,7 +72,7 @@ export function TaskResultPanel({
               <div className="flex items-start gap-2 p-3 bg-red-900/30 rounded-lg border border-red-800/50">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-300">
-                  {currentTask.message || t("quickGenerate.generateFailedRetry")}
+                  {mapUserFacingError(currentTask.message) || t("quickGenerate.generateFailedRetry")}
                 </p>
               </div>
             )}

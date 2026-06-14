@@ -53,6 +53,9 @@ jobs:
       - name: TypeScript type check (electron)
         run: npx tsc -p electron/tsconfig.json --noEmit
 
+      - name: TypeScript type check (tests)
+        run: npm run typecheck:test
+
       - name: Architecture check
         run: node scripts/check-architecture.mjs
 

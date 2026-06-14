@@ -219,8 +219,8 @@ export class KuaishouPlugin extends BaseAIProviderPlugin implements AIProviderPl
             const dataField = parsed.data as Record<string, unknown> | undefined;
             if (dataField) {
               const images = dataField.images as Record<string, unknown>[] | undefined;
-              if (images && images.length > 0 && images[0]!.url) {
-                resolve(images[0]!.url as string);
+              if (images && images.length > 0 && images[0]?.url) {
+                resolve(images[0].url as string);
                 return;
               }
               if (dataField.image_url) {

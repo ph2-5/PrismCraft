@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { integrationFactories } from "../factories";
-import { isValidTransition, isStuck, VALID_TRANSITIONS, STUCK_TASK_THRESHOLD_MS } from "@/modules/video/task-management/domain/task-machine";
+import { isValidTransition, isStuck, VALID_TRANSITIONS, STUCK_TASK_THRESHOLD_MS } from "@/modules/video/task-management";
 import { getModelCapabilities, getVideoGenerationStrategy } from "@/shared/model-capabilities";
 import type { Character, Scene, Story } from "@/domain/schemas";
 

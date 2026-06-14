@@ -20,7 +20,7 @@ test.describe("Story page load and empty state", () => {
   });
 
   test("should display project title input", async ({ page }) => {
-    await expect(page.locator('input[placeholder="分镜项目标题..."]')).toBeVisible();
+    await expect(page.locator('[data-testid="story-title-input"]')).toBeVisible();
   });
 
   test("should display save button", async ({ page }) => {
@@ -119,7 +119,7 @@ test.describe("Save story project", () => {
   });
 
   test("should save story project", async ({ page }) => {
-    const titleInput = page.locator('input[placeholder="分镜项目标题..."]');
+    const titleInput = page.locator('[data-testid="story-title-input"]');
     await titleInput.fill("测试分镜项目");
     await addBeat(page);
     const saveButton = page.locator("button", { hasText: "保存" }).first();

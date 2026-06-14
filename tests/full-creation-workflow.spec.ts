@@ -21,13 +21,13 @@ test.describe("Full Creation Workflow", () => {
     await setupPage(page, "/characters");
 
     await expect(page.locator("main").first()).toBeVisible();
-    await expect(page.locator('input[placeholder="输入角色名称..."]')).toBeVisible();
+    await expect(page.locator('[data-testid="character-name-input"]')).toBeVisible();
 
-    await page.locator('input[placeholder="输入角色名称..."]').fill("主角小明");
+    await page.locator('[data-testid="character-name-input"]').fill("主角小明");
     await page.locator('input[placeholder="输入年龄..."]').fill("18");
     await page.locator('input[placeholder*="赛博朋克"]').fill("现代都市");
 
-    await expect(page.locator('input[placeholder="输入角色名称..."]')).toHaveValue("主角小明");
+    await expect(page.locator('[data-testid="character-name-input"]')).toHaveValue("主角小明");
 
     await switchTab(page, "外貌设定");
     const appearanceInput = page.locator('input[placeholder*="银白色"]').first();
@@ -36,7 +36,7 @@ test.describe("Full Creation Workflow", () => {
     }
 
     await switchTab(page, "基础信息");
-    await expect(page.locator('input[placeholder="输入角色名称..."]')).toHaveValue("主角小明");
+    await expect(page.locator('[data-testid="character-name-input"]')).toHaveValue("主角小明");
 
     const saveCharacterBtn = page.locator("button", { hasText: "保存角色" });
     await saveCharacterBtn.click({ force: true });
@@ -48,12 +48,12 @@ test.describe("Full Creation Workflow", () => {
     await navigateTo(page, "/scenes");
 
     await expect(page.locator("main").first()).toBeVisible();
-    await expect(page.locator('input[placeholder="输入场景名称..."]')).toBeVisible();
+    await expect(page.locator('[data-testid="scene-name-input"]')).toBeVisible();
 
-    await page.locator('input[placeholder="输入场景名称..."]').fill("城市街道");
+    await page.locator('[data-testid="scene-name-input"]').fill("城市街道");
     await page.locator('input[placeholder*="赛博朋克街区"]').fill("繁华的都市街道，霓虹灯闪烁");
 
-    await expect(page.locator('input[placeholder="输入场景名称..."]')).toHaveValue("城市街道");
+    await expect(page.locator('[data-testid="scene-name-input"]')).toHaveValue("城市街道");
 
     await switchTab(page, "氛围视觉");
     const atmosphereInput = page.locator('input[placeholder*="黄昏"]').first();
@@ -62,7 +62,7 @@ test.describe("Full Creation Workflow", () => {
     }
 
     await switchTab(page, "基础设定");
-    await expect(page.locator('input[placeholder="输入场景名称..."]')).toHaveValue("城市街道");
+    await expect(page.locator('[data-testid="scene-name-input"]')).toHaveValue("城市街道");
 
     const saveSceneBtn = page.locator("button", { hasText: "保存场景" });
     await saveSceneBtn.click({ force: true });
@@ -77,7 +77,7 @@ test.describe("Full Creation Workflow", () => {
     await dismissOverlays(page);
     await page.waitForTimeout(1000);
 
-    await fillInput(page, 'input[placeholder="分镜项目标题..."]', "完整创作流程测试");
+    await fillInput(page, '[data-testid="story-title-input"]', "完整创作流程测试");
     await page.waitForTimeout(300);
 
     await clickButtonByText(page, "添加");
@@ -185,13 +185,13 @@ test.describe("Full Creation Workflow", () => {
   test("should persist created character and scene across page navigation", async ({ page }) => {
     await setupPage(page, "/characters");
 
-    await page.locator('input[placeholder="输入角色名称..."]').fill("持久化角色");
+    await page.locator('[data-testid="character-name-input"]').fill("持久化角色");
     await page.locator("button", { hasText: "保存角色" }).click({ force: true });
     await page.waitForTimeout(800);
 
     await navigateTo(page, "/scenes");
 
-    await page.locator('input[placeholder="输入场景名称..."]').fill("持久化场景");
+    await page.locator('[data-testid="scene-name-input"]').fill("持久化场景");
     await page.locator("button", { hasText: "保存场景" }).click({ force: true });
     await page.waitForTimeout(800);
 
@@ -218,7 +218,7 @@ test.describe("Full Creation Workflow", () => {
     await dismissOverlays(page);
     await page.waitForTimeout(1000);
 
-    await fillInput(page, 'input[placeholder="分镜项目标题..."]', "多分镜测试项目");
+    await fillInput(page, '[data-testid="story-title-input"]', "多分镜测试项目");
     await page.waitForTimeout(300);
 
     for (let i = 0; i < 3; i++) {

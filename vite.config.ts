@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@shared-logic": path.resolve(__dirname, "./src/shared-logic"),
     },
   },
   base: isElectron ? "./" : "/",

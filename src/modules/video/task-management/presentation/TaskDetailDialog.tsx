@@ -13,6 +13,7 @@ import { Video, Play, Download, Film, RotateCcw } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { getStatusColor, getStatusLabel } from "./task-status-helpers";
 import { t } from "@/shared/constants";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 
 interface TaskDetailDialogProps {
   open: boolean;
@@ -149,7 +150,7 @@ export function TaskDetailDialog({
             <div className="space-y-1">
               <Label className="text-xs text-red-500">{t("task.errorMessage")}</Label>
               <div className="text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 px-2 py-1 rounded">
-                {task.message}
+                {mapUserFacingError(task.message)}
               </div>
             </div>
           )}
@@ -185,7 +186,7 @@ export function TaskDetailDialog({
                 {t("task.beatButton")}
               </Button>
             )}
-            {(task.status === "failed" || task.status === "timeout") && task.beatId && (
+            {(task.status === "failed" || task.status === "timeout") && (
               <Button
                 variant="outline"
                 className="flex-1 gap-1 text-orange-600"

@@ -209,7 +209,7 @@ export function scanCodePluginFile(filePath: string): { valid: boolean; errors: 
     const matchPatternsMatch = rawCode.match(/matchPatterns\s*:\s*(\[[\s\S]*?\])/);
     if (matchPatternsMatch) {
       try {
-        const parsed = JSON.parse(matchPatternsMatch[1]!.replace(/'/g, '"'));
+        const parsed = JSON.parse((matchPatternsMatch[1] ?? "").replace(/'/g, '"'));
         if (Array.isArray(parsed)) {
           matchPatterns = parsed.filter(
             (p: unknown) => p && typeof p === "object" && typeof (p as Record<string, unknown>).urlPattern === "string",

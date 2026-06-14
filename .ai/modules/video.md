@@ -51,6 +51,14 @@ recovery ← task-management (通过 registerCacheVideoBlobFn/registerRecoveryFn
 - 检查不变量：INV-2（持久化先于状态更新）、INV-3（删除级联清理）、INV-4（批量删除容忍部分失败）、INV-5（创建防重入）
 - 测试：`npx vitest run src/modules/video/task-management/hooks`
 
+### 6. 修改视频任务与故事联动
+- 修改文件：`task-management/hooks/use-video-task-manager.ts`、`app/story/useStoryVideo.ts`、`app/story/StoryProvider.tsx`
+- 关键模式：
+  - **stableActions**: `useVideoTaskManager` 通过 `useMemo([store])` 缓存所有 action 方法为稳定引用
+  - **useStableCompletedUrls**: `useStoryVideo` 中 `completedTaskUrls` Map 通过 shallow 比较确保只有内容真正变化时才创建新引用
+  - **StoryProvider useMemo 依赖拆分**: 依赖从 `videoTaskManager` 整体对象拆分为具体属性
+- 测试：`npx vitest run src/modules/video/task-management/hooks`
+
 ## 内部实现细节（非明确要求不要修改）
 
 - `task-management/domain/task-machine.ts` — withTransitionGuard 开发/生产双模式

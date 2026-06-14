@@ -118,7 +118,7 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
   extractTextContent(response: Record<string, unknown>): string {
     const content = response.content as Record<string, unknown>[] | undefined;
     if (content && Array.isArray(content) && content.length > 0) {
-      return (content[0]!.text as string) || "";
+      return (content[0]?.text as string) || "";
     }
     return "";
   }

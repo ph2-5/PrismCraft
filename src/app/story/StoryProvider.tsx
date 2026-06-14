@@ -57,6 +57,12 @@ function useStoryContext(): StoryContextValue {
 
   const videoTaskManager = useVideoTaskManager();
 
+  // Derive activeVideoTaskCount without depending on the full tasks array
+  const activeVideoTaskCount = useMemo(
+    () => videoTaskManager.activeTasks.length,
+    [videoTaskManager.activeTasks],
+  );
+
   const planner = useStoryPlanner({
     currentStory: storyState.currentStory,
     beatsRef: storyState.beatsRef,
@@ -64,9 +70,7 @@ function useStoryContext(): StoryContextValue {
     scenesRef: assetLoader.scenesRef,
     setBeats: storyState.setBeats,
     generationEnhanced: storyState.generationEnhanced,
-    activeVideoTaskCount: videoTaskManager.tasks.filter(
-      (t) => t.status === "pending" || t.status === "generating",
-    ).length,
+    activeVideoTaskCount,
     success,
     showError,
   });
@@ -245,7 +249,14 @@ function useStoryContext(): StoryContextValue {
       storyState, assetLoader, uploadHandlers, planner,
       keyframeGenerator, framePairGenerator, videoGenerator,
       batchGenerator, storySaver, deleteBeatWithCleanup, switchToStory,
-      generatingBeats, videoTaskManager, isVideoUrlPersisting, success, showError,
+      generatingBeats,
+      videoTaskManager.tasks,
+      videoTaskManager.addTask,
+      videoTaskManager.createTask,
+      videoTaskManager.pollTask,
+      videoTaskManager.removeTask,
+      videoTaskManager.removeTasks,
+      isVideoUrlPersisting, success, showError,
     ],
   );
 }

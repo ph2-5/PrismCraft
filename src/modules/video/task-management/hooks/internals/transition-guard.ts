@@ -18,6 +18,6 @@ export function withTransitionGuard(
   if (process.env.NODE_ENV === "development") {
     throw new TransitionError(task.status, targetStatus);
   }
-  const { status: _s, ...safeUpdates } = updates;
-  return safeUpdates;
+  // 生产环境：非法转换时丢弃整个更新，防止已取消/终态任务的字段被轮询结果覆盖
+  return {};
 }

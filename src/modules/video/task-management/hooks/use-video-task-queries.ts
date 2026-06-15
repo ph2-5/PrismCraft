@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useVideoTaskState } from "./use-video-task-state";
+import { useVideoTaskStore } from "./use-video-task-manager";
 import type { VideoTask } from "@/domain/schemas";
 
 export interface VideoTaskQueries {
@@ -17,11 +17,11 @@ export interface VideoTaskQueries {
 }
 
 export function useVideoTaskQueries(): VideoTaskQueries {
-  const allTasks = useVideoTaskState((s) => s.allTasks);
-  const isBackgroundProcessing = useVideoTaskState((s) => s.isBackgroundProcessing);
-  const isInitialized = useVideoTaskState((s) => s.isInitialized);
-  const isCreating = useVideoTaskState((s) => s.isCreating);
-  const initError = useVideoTaskState((s) => s.initError);
+  const allTasks = useVideoTaskStore((s) => s.allTasks);
+  const isBackgroundProcessing = useVideoTaskStore((s) => s.isBackgroundProcessing);
+  const isInitialized = useVideoTaskStore((s) => s.isInitialized);
+  const isCreating = useVideoTaskStore((s) => s.isCreating);
+  const initError = useVideoTaskStore((s) => s.initError);
 
   const activeTasks = useMemo(
     () => allTasks.filter((t) => t.status === "pending" || t.status === "generating"),

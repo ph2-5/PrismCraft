@@ -110,28 +110,24 @@ export function useStoryPersistence({
           }
 
           if (!cancelled) {
-            setBeatsRef.current((latestBeats) => {
-              const cacheRequests = filterRemoteCacheRequests(buildCacheRequests(latestBeats));
-              for (const request of cacheRequests) {
-                const { beatId, field, url } = request;
-                (async () => {
-                  try {
-                    const cacheResult = await getImageUrlWithCache(url);
-                    if (cancelled) return;
-                    if (cacheResult.ok && cacheResult.value.fromCache && cacheResult.value.url.startsWith("file://")) {
-                      const localPath = cacheResult.value.url.replace(/^file:\/\//, "");
-                      setBeatsRef.current((prev) =>
-                        prev.map((b) => b.id === beatId ? { ...b, [field]: localPath } : b),
-                      );
-                    }
-                  } catch (e) {
-                    errorLogger.debug("[StoryProvider] 图片缓存失败", e);
-                  }
-                })();
+            const latestBeats = beatsRef.current;
+            const cacheRequests = filterRemoteCacheRequests(buildCacheRequests(latestBeats));
+            // 串行处理缓存请求，避免并发 IIFE 导致状态覆盖
+            for (const { beatId, field, url } of cacheRequests) {
+              if (cancelled) break;
+              try {
+                const cacheResult = await getImageUrlWithCache(url);
+                if (cancelled) break;
+                if (cacheResult.ok && cacheResult.value.fromCache && cacheResult.value.url.startsWith("file://")) {
+                  const localPath = cacheResult.value.url.replace(/^file:\/\//, "");
+                  setBeatsRef.current((prev) =>
+                    prev.map((b) => b.id === beatId ? { ...b, [field]: localPath } : b),
+                  );
+                }
+              } catch (e) {
+                errorLogger.debug("[StoryProvider] 图片缓存失败", e);
               }
-
-              return latestBeats;
-            });
+            }
           }
         } catch (e) {
           errorLogger.warn("自动保存视频URL失败", e);

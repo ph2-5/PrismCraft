@@ -280,11 +280,13 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
     storyService
       .getAll()
       .then((result) => {
-        if (!cancelled && result.ok && result.value.length > 0) {
-          setStoriesRef.current(result.value);
-          const firstStory = result.value[0]!;
-          setCurrentStoryRef.current(firstStory, true);
-          setBeatsRef.current(firstStory.beats || [], true);
+        if (!cancelled && result.ok) {
+          if (result.value.length > 0) {
+            setStoriesRef.current(result.value);
+            const firstStory = result.value[0]!;
+            setCurrentStoryRef.current(firstStory, true);
+            setBeatsRef.current(firstStory.beats || [], true);
+          }
           markCleanRef.current("story");
         }
       })

@@ -60,6 +60,8 @@ const SPAWN_TIMEOUT_MS = 15_000;
 const MAX_OLD_GENERATION_SIZE_MB = 64;
 const MAX_YOUNG_GENERATION_SIZE_MB = 16;
 const HEALTH_CHECK_INTERVAL_MS = 30_000;
+const RESTART_BASE_DELAY_MS = 1000;
+const RESTART_MAX_DELAY_MS = 60_000;
 
 export class PluginProcessManager {
   private process: ChildProcess | null = null;
@@ -107,7 +109,18 @@ export class PluginProcessManager {
     }
     await this.shutdown();
     this.isShuttingDown = false;
-    this.crashTimestamps = [];
+
+    // 指数退避：1s → 2s → 4s → 8s → ...，最大 60s
+    const recentCrashes = this.crashTimestamps.filter((t) => Date.now() - t < CRASH_WINDOW_MS);
+    if (recentCrashes.length > 0) {
+      const delay = Math.min(
+        RESTART_BASE_DELAY_MS * Math.pow(2, recentCrashes.length - 1),
+        RESTART_MAX_DELAY_MS,
+      );
+      logger.info(`Plugin restart backoff: ${delay}ms (${recentCrashes.length} recent crashes)`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
     return this.load(this.filePath);
   }
 

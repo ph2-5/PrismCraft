@@ -162,3 +162,19 @@
 
 - **Bug #1**：切换故事时通过 `switchToStory` 从数据库重载 beats；视频 URL 持久化后调用 `syncStoriesWithVideoUrls` 同步 `stories` 内存缓存。
 - **Bug #4/#8**：新增 `removeTasksByBeatId` / `removeTasksByStoryId`，取消进行中的任务、清理 DB 与 Zustand 内存；删除 beat 时额外清理 `image_cache`。
+
+### 2026-06-16 修复摘要（v0.9.5 深度审计）
+
+本轮通过独立代码审计发现并修复以下问题：
+
+| 编号 | 严重度 | 问题 | 修复方式 |
+|------|--------|------|---------|
+| P1-1 | P1 | useStoryPersistence 异步 IIFE 竞态：多个缓存请求并发写 setBeats，后完成的覆盖先完成的 | 改为串行 for-await，逐个 await 缓存结果后用函数式更新 |
+| P1-2 | P1 | BeatVideoTab clipboard.writeText 未 await/未 catch，复制失败仍显示成功 toast | 改为 async onClick + await + try/catch |
+| P0-1 | P0 | transition-guard 生产环境非法转换时丢弃 status 但应用其余字段 | 非法转换时返回 `{}` 丢弃整个更新 |
+| P0-2 | P0 | useVideoTaskQueries 从冗余的 useVideoTaskState 读取，与主 store 不同步 | 改为从 useVideoTaskStore 读取 |
+| P2-1 | P2 | useVideoTaskState 冗余 Store 仍被导出，有误用风险 | 删除文件及导出链 |
+| P2-2 | P2 | StoryProvider 空故事时不调用 markClean，新用户看到虚假"未保存"提示 | 空故事也调用 markClean |
+| P2-3 | P2 | ProfessionalModeEditor elementManager.then() 无 .catch() | 添加 .catch() 处理加载失败 |
+| P2-4 | P2 | BeforeUnloadGuard confirm().then() 无 .catch() | 添加 .catch() 在异常关闭时重置阻塞状态 |
+| P2-7 | P2 | 插件重启无指数退避，崩溃时可能 fork bomb | 添加指数退避 1s→2s→4s...最大 60s |

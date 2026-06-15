@@ -88,11 +88,15 @@ export function BeatVideoTab({
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => {
+                  onClick={async () => {
                     const taskId = beat.videoGen?.taskId;
                     if (taskId) {
-                      navigator.clipboard.writeText(taskId);
-                      success(t("success.copied"), t("success.taskIdCopied"));
+                      try {
+                        await navigator.clipboard.writeText(taskId);
+                        success(t("success.copied"), t("success.taskIdCopied"));
+                      } catch {
+                        // 剪贴板权限被拒绝时静默失败
+                      }
                     }
                   }}
                   aria-label={t("aria.copyTaskId")}

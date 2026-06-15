@@ -56,6 +56,9 @@ export function useNavigationGuard() {
         } else {
           blocker.reset?.();
         }
+      }).catch(() => {
+        // confirm 对话框异常关闭时重置阻塞状态
+        blocker.reset?.();
       });
     }
   }, [blocker, markAllClean]);

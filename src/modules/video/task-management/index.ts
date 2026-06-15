@@ -2,7 +2,6 @@ export type { VideoTask, VideoTaskStatus } from "./hooks/use-video-task-manager"
 export { TaskMachine, mapApiStatus, isValidTransition, isStuck, STUCK_TASK_THRESHOLD_MS, VALID_TRANSITIONS, TERMINAL_STATUSES } from "./domain";
 export type { TransitionError } from "./domain";
 export { useVideoTaskManager, useVideoTaskStore } from "./hooks/use-video-task-manager";
-export { useVideoTaskState } from "./hooks/use-video-task-state";
 export { useVideoTaskQueries } from "./hooks/use-video-task-queries";
 export { useVideoTaskCommands } from "./hooks/use-video-task-commands";
 export { useVideoTaskPolling } from "./hooks/use-video-task-polling";

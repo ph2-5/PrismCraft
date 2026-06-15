@@ -144,6 +144,13 @@ export function ProfessionalModeEditor({
             );
           });
       });
+    }).catch((err: unknown) => {
+      if (!cancelled) {
+        errorLogger.warn(
+          { code: "ElementManagerLoadFailed", message: t("error.elementLoadFailed"), cause: err },
+          { component: "ProfessionalModeEditor", source: "elementManager" },
+        );
+      }
     });
     return () => {
       cancelled = true;

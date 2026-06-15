@@ -1,6 +1,6 @@
 # AI Animation Studio — 项目全方位指南
 
-> 版本：0.9.4 | 许可证：MIT | 最后更新：2026-06-14
+> 版本：0.9.5 | 许可证：MIT | 最后更新：2026-06-16
 
 ---
 
@@ -35,7 +35,7 @@ AI Animation Studio 是一款**本地优先（local-first）、离线可用（of
 
 ### 1.4 项目版本与规模
 
-- **版本**：0.9.4
+- **版本**：0.9.5
 - **许可证**：私有（未开源）
 - **业务模块**：9 个（story、video、shot、prompt、asset、sync、character、scene、persistence）
 - **子域**：44 个
@@ -2714,7 +2714,7 @@ typecheck → architecture check → lint-staged
 - **次版本号**：向后兼容的功能新增
 - **修订号**：向后兼容的问题修复
 
-当前版本：0.9.4（初始开发阶段）
+当前版本：0.9.5（初始开发阶段）
 
 ### 25.2 发布步骤
 

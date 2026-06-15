@@ -78,10 +78,7 @@ vi.mock("@/shared/error-logger", () => ({
   extractErrorMessage: vi.fn((e: unknown) => (e instanceof Error ? e.message : String(e))),
 }));
 
-import { generateStoryPlanWithValidation } from "@/modules/shot/shot-generation/story-generation-pipeline";
-import { buildPromptLayers } from "@/modules/shot/shot-instruction/services/shot-instruction-service";
-import { buildFeatureAnchoringConfig, buildFeatureTags } from "@/modules/shot/feature-extraction/services/feature-extraction-service";
-import { checkVisualConsistency, parseConsistencyAnalysisFromStructured } from "@/modules/shot/consistency-check/services/consistency-check-service";
+import { generateStoryPlanWithValidation, buildPromptLayers, buildFeatureAnchoringConfig, buildFeatureTags, checkVisualConsistency, parseConsistencyAnalysisFromStructured } from "@/modules/shot";
 
 describe("Full Pipeline Integration", () => {
   beforeEach(() => {

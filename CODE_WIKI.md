@@ -1,6 +1,6 @@
 # AI Animation Studio - Code Wiki
 
-> 版本: 0.9.4 | 架构: Electron + Vite + React | 模式: DDD (领域驱动设计)
+> 版本: 0.9.5 | 架构: Electron + Vite + React | 模式: DDD (领域驱动设计)
 
 ---
 

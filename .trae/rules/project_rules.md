@@ -34,6 +34,8 @@ electron/src/
     routes.ts      → Route registry (merges all route groups)
     route-groups/  → Route handler groups (all use defineRoute for type-safe body)
       core-routes.ts       → Config, upload, export, test-connection, sync routes
+      db-routes.ts         → Database query/run/transaction HTTP routes
+      file-routes.ts       → File operations (save/read/write/delete/exists/copy/list/info/cache-directory/disk-space) HTTP routes
       generation-routes.ts → Image/video/text generation, story generation routes
       plugin-routes.ts     → Plugin management routes (list, add, delete, reload, etc.)
       shot-routes.ts       → Shot reference, consistency check, visual consistency routes
@@ -104,7 +106,7 @@ module-name/
 - API keys are stored via `electron-store` encryption through IPC (`secure-config:*` channels)
 - NEVER store API keys in localStorage or use XOR obfuscation
 - User-configured API URLs (providers, sync servers) are trusted and allowed including private/internal addresses
-- SSRF guard module is available but not enforced — local-first app trusts user-configured endpoints
+- SSRF guard is enforced for non-loopback user-configured hosts (R105) — loopback addresses (127.0.0.1, localhost, ::1) are trusted; other hosts go through ssrfGuard.validate for DNS rebinding protection
 - `X-Electron-App` header required on all API requests (validated server-side)
 - Error logs are sanitized to redact API key patterns
 - IPv6 link-local detection uses first hextet parsing (`(value & 0xffc0) === 0xfe80`)
@@ -341,7 +343,7 @@ const registry = getTokenRegistry(); // Array<{ key, id, category }>
 
 Business logic MUST go through HTTP API, not direct IPC database operations:
 
-- **Allowed IPC in modules**: `saveImage`, `deleteFile`, `readFileBase64`, `getConfig`, `setConfig`, `saveFileDialog`, `openFileDialog`, `secureConfigResolve`
+- **Allowed direct IPC in modules**: `saveImage`, `saveFileDialog`, `openFileDialog`, `secureConfigResolve` (desktop-only). File operations (`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`) and config read/write (`getConfig`, `setConfig`) MUST go through `@/shared/file-http` unified layer (HTTP `/api/file/*` + `/api/config/*` with IPC fallback).
 - **Forbidden IPC in modules**: `dbQuery`, `dbRun`, `dbBatchInsert`, `dbGet`, `dbTransaction` (enforced by ESLint `no-direct-db-ipc` rule)
 
 ### DI Container Usage
@@ -550,7 +552,7 @@ All business tables have a `version` column (7-field base columns). Critical upd
 
 ### Security Hardening
 
-**Local-first security model**: IPC channel registration check, DDL blocking in main process handler, user-configured API URLs trusted, SSRF guard available but not enforced, API Key encrypted storage via electron-store.
+**Local-first security model**: IPC channel registration check, DDL blocking in main process handler, user-configured API URLs trusted, SSRF guard enforced for non-loopback hosts (R105), API Key encrypted storage via electron-store.
 
 **Plugin cache invalidation**: `plugin-manager` calls `loadPluginDetectionRules()` + `loadPluginTemplates()` + `loadModelProfilesFromServer()` after reload. `ApiConfigPanel` refreshes plugin caches on provider add/remove.
 
@@ -570,7 +572,7 @@ Note: Pure functions from `@/infrastructure/*` that modules need are exported vi
 
 ## Regression Guards (from Bug Audit)
 
-> Full regression guard rules (R1-R104) are split by category in `.trae/rules/regression/`.
+> Full regression guard rules (R1-R109) are split by category in `.trae/rules/regression/`.
 > Start with `index.md` for the category overview, then load only the relevant category file.
 > The original unified file is at [regression-guards.md](./regression-guards.md) (122KB, not recommended for AI context loading).
 
@@ -600,18 +602,18 @@ When AI discovers a bug (during audit, code review, or development), it MUST fol
 5. **Implement automated detection** — ESLint rule, architecture scan script, or CR rule
 6. **Update project docs** — Update rule count in `project_rules.md`, update MODULE.md if invariants changed
 
-**Quick reference — all 104 guards by category:**
+**Quick reference — all 109 guards by category:**
 
 | Category | Count | Key Concern |
 |----------|-------|-------------|
-| 数据一致性 | 31 | 数据不丢、不脏、不冲突 |
+| 数据一致性 | 32 | 数据不丢、不脏、不冲突（含 R109 transactional delete orphan tracking） |
 | 异步安全 | 15 | 并发、竞态、轮询、生命周期 |
-| 错误处理 | 12 | 错误不吞、不假成功、用户可理解 |
+| 错误处理 | 13 | 错误不吞、不假成功、用户可理解（含 R108 api client result no throw） |
 | UI 健壮性 | 9 | 界面不崩、有反馈、无泄漏 |
-| 工程质量 | 18 | 依赖合规、构建安全、测试可靠 |
+| 工程质量 | 19 | 依赖合规、构建安全、测试可靠（含 R107 upload size limit） |
 | 平台兼容 | 6 | IPC、Electron环境、进程模型 |
 | 用户安全防护 | 8 | 破坏性操作需确认、数据清除需保护 |
-| 系统安全 | 7 | 沙箱隔离防逃逸、IPC通道注册检查 |
+| 系统安全 | 8 | 沙箱隔离防逃逸、IPC通道注册检查（含 R105 SSRF 防护） |
 
 > For individual rule details, see `.trae/rules/regression/{category}.md`.
 

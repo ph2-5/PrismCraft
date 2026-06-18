@@ -306,6 +306,10 @@ export function schedulePolling() {
     }
   };
 
+  // 清理旧定时器，防止覆盖导致泄漏
+  if (pollingState.pollingTimeoutId) {
+    clearTimeout(pollingState.pollingTimeoutId);
+  }
   pollingState.pollingTimeoutId = setTimeout(pollTasks, pollingState.pollInterval);
 }
 

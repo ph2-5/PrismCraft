@@ -1,3 +1,1 @@
-npm run typecheck
-node scripts/check-architecture.mjs
-npx lint-staged
+npm run typecheck && node scripts/check-architecture.mjs && npx lint-staged

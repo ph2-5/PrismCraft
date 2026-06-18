@@ -143,6 +143,8 @@ function validateSql(sql: string): boolean {
   return true;
 }
 
+export { validateSql };
+
 async function ensureDb(): Promise<void> {
   if (dbReady) return;
   if (!initPromise) {

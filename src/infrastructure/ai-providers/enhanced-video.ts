@@ -4,6 +4,7 @@ import { imageToBase64 } from "./utils";
 import type { ApiResponse, EnhancedVideoGenerationParams, VideoGenerationResult } from "@/domain/schemas";
 import { generateVideo } from "./video-service";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 const DEFAULT_CONSISTENCY_STRENGTH = 0.8;
 
@@ -26,7 +27,7 @@ export async function generateEnhancedVideo(
       }
     } catch {
       errorLogger.warn(
-        { code: "ENHANCED_VIDEO_IMAGE_TO_BASE64_FAILED", message: "固定形象图转 base64 失败，使用原始 URL" },
+        { code: "ENHANCED_VIDEO_IMAGE_TO_BASE64_FAILED", message: t("error.fixedImageBase64Failed") },
         "EnhancedVideo",
       );
       fixedImageBase64 = params.fixedImage.imageUrl;
@@ -52,7 +53,7 @@ export async function generateEnhancedVideo(
         }
       } catch {
         errorLogger.warn(
-        { code: "ENHANCED_VIDEO_ANCHOR_IMAGE_TO_BASE64_FAILED", message: "特征锚定图转 base64 失败，使用原始 URL" },
+        { code: "ENHANCED_VIDEO_ANCHOR_IMAGE_TO_BASE64_FAILED", message: t("error.featureAnchorBase64Failed") },
         "EnhancedVideo",
       );
         featureAnchorImageBase64 = anchorImageUrl;

@@ -169,8 +169,8 @@ export async function apiCall<T>(
         if (queuedId) {
           const queuedResponse: QueuedResponse = {
             success: false,
-            error: "网络不可用，请求已加入离线队列",
-            message: "网络不可用，请求已加入离线队列",
+            error: t("error.offlineQueued"),
+            message: t("error.offlineQueued"),
             queued: true,
             queueId: queuedId,
           };

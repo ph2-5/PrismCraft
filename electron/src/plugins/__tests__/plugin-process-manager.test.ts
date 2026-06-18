@@ -257,7 +257,7 @@ describe("PluginProcessManager", () => {
     });
 
     it("should throw if never loaded", async () => {
-      await expect(manager.restart()).rejects.toThrow("插件未加载过");
+      await expect(manager.restart()).rejects.toThrow("PLUGIN_NOT_LOADED_CANNOT_RESTART");
     });
   });
 

@@ -522,6 +522,18 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       return;
     }
 
+    // 尝试通知服务端取消（best-effort，失败不影响本地取消）
+    try {
+      const provider = container.videoProvider as {
+        cancelTask?: (taskId: string) => Promise<void>;
+      };
+      if (typeof provider.cancelTask === "function") {
+        await provider.cancelTask(taskId);
+      }
+    } catch (e) {
+      errorLogger.warn("Failed to cancel task on server side", e);
+    }
+
     const updatedTask = result.value;
 
     try {

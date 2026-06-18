@@ -127,6 +127,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       let successCount = 0;
       let failCount = 0;
       let skippedCount = 0;
+      const MAX_RETRY = 1;
 
       for (let i = 0; i < targetBeats.length; i++) {
         if (cancelledRef.current) break;
@@ -140,24 +141,35 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         const useChain = chainMode === "auto" ? shouldUseChainReference(beat, "keyframe") : chainMode !== "isolated";
         const prevBeat = useChain ? getPrevBeatForChain(i, targetBeats, "keyframe") : null;
 
-        try {
-          const result = await generateKeyframe(beat.id, prevBeat);
+        let shouldSkipDelay = false;
+        for (let retry = 0; retry <= MAX_RETRY; retry++) {
           if (cancelledRef.current) break;
-          if (result) {
-            successCount++;
-            setBeats((prev) => prev.map((b) => b.id === result.id ? result : b));
-            targetBeats[i] = result;
-          } else {
+          try {
+            const result = await generateKeyframe(beat.id, prevBeat);
+            if (cancelledRef.current) break;
+            if (result) {
+              successCount++;
+              setBeats((prev) => prev.map((b) => b.id === result.id ? result : b));
+              targetBeats[i] = result;
+            } else {
+              failCount++;
+              if (skipOnError) shouldSkipDelay = true;
+            }
+            break;
+          } catch (err) {
+            if (retry < MAX_RETRY) {
+              await new Promise((r) => setTimeout(r, 500 * (retry + 1)));
+              continue;
+            }
             failCount++;
-            if (skipOnError) continue;
+            errorLogger.warn(`${t("batch.keyframeFailedLog")} (beat ${beat.id}):`, err);
+            if (skipOnError && continueOnFallback) shouldSkipDelay = true;
+            break;
           }
-        } catch (err) {
-          failCount++;
-          errorLogger.warn(`${t("batch.keyframeFailedLog")} (beat ${beat.id}):`, err);
-          if (skipOnError && continueOnFallback) continue;
         }
+        if (cancelledRef.current) break;
 
-        if (i < targetBeats.length - 1) {
+        if (!shouldSkipDelay && i < targetBeats.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
@@ -211,6 +223,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       let successCount = 0;
       let failCount = 0;
       let skippedCount = 0;
+      const MAX_RETRY = 1;
 
       for (let i = 0; i < targetBeats.length; i++) {
         if (cancelledRef.current) break;
@@ -224,24 +237,35 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         const useChain = chainMode === "auto" ? shouldUseChainReference(beat, "framepair") : chainMode !== "isolated";
         const prevBeat = useChain ? getPrevBeatForChain(i, targetBeats, "framepair") : null;
 
-        try {
-          const result = await generateFramePair(beat.id, prevBeat);
+        let shouldSkipDelay = false;
+        for (let retry = 0; retry <= MAX_RETRY; retry++) {
           if (cancelledRef.current) break;
-          if (result) {
-            successCount++;
-            setBeats((prev) => prev.map((b) => b.id === result.id ? result : b));
-            targetBeats[i] = result;
-          } else {
+          try {
+            const result = await generateFramePair(beat.id, prevBeat);
+            if (cancelledRef.current) break;
+            if (result) {
+              successCount++;
+              setBeats((prev) => prev.map((b) => b.id === result.id ? result : b));
+              targetBeats[i] = result;
+            } else {
+              failCount++;
+              if (skipOnError) shouldSkipDelay = true;
+            }
+            break;
+          } catch (err) {
+            if (retry < MAX_RETRY) {
+              await new Promise((r) => setTimeout(r, 500 * (retry + 1)));
+              continue;
+            }
             failCount++;
-            if (skipOnError) continue;
+            errorLogger.warn(`${t("batch.framePairFailedLog")} (beat ${beat.id}):`, err);
+            if (skipOnError && continueOnFallback) shouldSkipDelay = true;
+            break;
           }
-        } catch (err) {
-          failCount++;
-          errorLogger.warn(`${t("batch.framePairFailedLog")} (beat ${beat.id}):`, err);
-          if (skipOnError && continueOnFallback) continue;
         }
+        if (cancelledRef.current) break;
 
-        if (i < targetBeats.length - 1) {
+        if (!shouldSkipDelay && i < targetBeats.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
@@ -295,29 +319,42 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
       let successCount = 0;
       let failCount = 0;
       let skippedCount = 0;
+      const MAX_RETRY = 1;
 
       for (let i = 0; i < targetBeats.length; i++) {
         if (cancelledRef.current) break;
         const beat = targetBeats[i]!;
-        
+
         if (beat.uploadedVideo) {
           skippedCount++;
           continue;
         }
-        
+
         const useChain = chainMode === "auto" ? shouldUseChainReference(beat, "video") : chainMode !== "isolated";
         const prevBeat = useChain ? getPrevBeatForChain(i, targetBeats, "video") : null;
-        
-        try {
-          await generateVideoNew(beat.id, prevBeat);
+
+        let beatFailed = false;
+        for (let retry = 0; retry <= MAX_RETRY; retry++) {
           if (cancelledRef.current) break;
-          successCount++;
-        } catch (err) {
-          failCount++;
-          errorLogger.warn(`${t("batch.videoFailedLog")} (beat ${beat.id}):`, err);
-          if (!skipOnError || !continueOnFallback) break;
+          try {
+            await generateVideoNew(beat.id, prevBeat);
+            if (cancelledRef.current) break;
+            successCount++;
+            break;
+          } catch (err) {
+            if (retry < MAX_RETRY) {
+              await new Promise((r) => setTimeout(r, 500 * (retry + 1)));
+              continue;
+            }
+            failCount++;
+            errorLogger.warn(`${t("batch.videoFailedLog")} (beat ${beat.id}):`, err);
+            beatFailed = true;
+            break;
+          }
         }
-        
+        if (cancelledRef.current) break;
+        if (beatFailed && (!skipOnError || !continueOnFallback)) break;
+
         if (i < targetBeats.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 100));
         }

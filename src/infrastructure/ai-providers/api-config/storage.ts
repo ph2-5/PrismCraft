@@ -1,9 +1,78 @@
 import { type ApiConfig, type ProviderConfig } from "./types";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 
 const CONFIG_KEY = "ai_animation_studio_api_config";
 const CONFIG_VERSION = 1;
+
+// HTTP 配置存储（统一通信层），失败回退到 IPC
+let _httpAvailable: boolean | null = null;
+
+async function httpConfigGet(key: string): Promise<unknown | null> {
+  if (typeof window === "undefined" || typeof fetch !== "function") return null;
+  if (_httpAvailable === null) {
+    try {
+      const probe = await fetch(`http://localhost:${API_SERVER_PORT}/api/health`, {
+        method: "GET",
+        headers: ELECTRON_APP_HEADERS,
+        signal: AbortSignal.timeout(1000),
+      });
+      _httpAvailable = probe.ok;
+    } catch {
+      _httpAvailable = false;
+    }
+  }
+  if (!_httpAvailable) return null;
+  try {
+    const response = await fetch(`http://localhost:${API_SERVER_PORT}/api/config/get`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...ELECTRON_APP_HEADERS },
+      body: JSON.stringify({ key }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return null;
+    const result = await response.json() as { success: boolean; data?: { value: unknown } };
+    if (!result.success) return null;
+    return result.data?.value ?? null;
+  } catch (e) {
+    _httpAvailable = false;
+    errorLogger.debug("[API Config] HTTP config/get 失败，回退到 IPC", e);
+    return null;
+  }
+}
+
+async function httpConfigSet(key: string, value: unknown): Promise<boolean> {
+  if (typeof window === "undefined" || typeof fetch !== "function") return false;
+  if (_httpAvailable === null) {
+    try {
+      const probe = await fetch(`http://localhost:${API_SERVER_PORT}/api/health`, {
+        method: "GET",
+        headers: ELECTRON_APP_HEADERS,
+        signal: AbortSignal.timeout(1000),
+      });
+      _httpAvailable = probe.ok;
+    } catch {
+      _httpAvailable = false;
+    }
+  }
+  if (!_httpAvailable) return false;
+  try {
+    const response = await fetch(`http://localhost:${API_SERVER_PORT}/api/config/set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...ELECTRON_APP_HEADERS },
+      body: JSON.stringify({ key, value }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return false;
+    const result = await response.json() as { success: boolean };
+    return result.success;
+  } catch (e) {
+    _httpAvailable = false;
+    errorLogger.debug("[API Config] HTTP config/set 失败，回退到 IPC", e);
+    return false;
+  }
+}
 
 export function getDefaultConfig(): ApiConfig {
   return {
@@ -59,7 +128,19 @@ export async function loadConfig(): Promise<ApiConfig> {
     try {
       let stored: string | null = null;
 
-      if (typeof window !== "undefined" && window.electronAPI?.getConfig) {
+      // 优先尝试 HTTP API（统一通信层）
+      const httpValue = await httpConfigGet(CONFIG_KEY);
+      if (httpValue !== null) {
+        if (typeof httpValue === "string") {
+          stored = httpValue;
+        } else if (typeof httpValue === "object") {
+          // config/get 返回的是已解析的对象，直接使用
+          stored = JSON.stringify(httpValue);
+        }
+      }
+
+      // Fallback: IPC
+      if (stored === null && typeof window !== "undefined" && window.electronAPI?.getConfig) {
         try {
           const electronResult = await window.electronAPI.getConfig(CONFIG_KEY);
           if (electronResult !== null && electronResult !== undefined) {
@@ -141,16 +222,21 @@ export async function saveConfig(config: ApiConfig): Promise<void> {
   try {
     const configString = JSON.stringify(config);
 
+    // 优先尝试 HTTP API（统一通信层）
+    const httpOk = await httpConfigSet(CONFIG_KEY, configString);
+    if (httpOk) return;
+
+    // Fallback: IPC
     if (typeof window !== "undefined" && window.electronAPI?.setConfig) {
       const result = await window.electronAPI.setConfig(
         CONFIG_KEY,
         configString,
       );
       if (result === false) {
-        throw new Error("Electron IPC 保存返回 false");
+        throw new Error(t("error.electronIpcSaveFailed"));
       }
     } else {
-      throw new Error("API 配置存储需要 Electron 环境");
+      throw new Error(t("error.apiConfigStorageRequiresElectron"));
     }
   } catch (error) {
     errorLogger.error("[API Config] 保存配置失败:", error);

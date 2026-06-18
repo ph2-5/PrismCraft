@@ -46,7 +46,7 @@ export class SyncEngine {
     }
 
     if (!this.config.deviceId) {
-      this.config.deviceId = getDeviceId();
+      this.config.deviceId = await getDeviceId();
     }
 
     if (this.config.enabled) {
@@ -114,6 +114,7 @@ export class SyncEngine {
     let pushed = 0;
     let pulled = 0;
     let conflicts = 0;
+    let syncFailed = false;
 
     this.syncPromise = (async () => {
       this.syncing = true;
@@ -172,15 +173,19 @@ export class SyncEngine {
       });
 
       if (!syncResult.ok) {
+        syncFailed = true;
         errorLogger.warn("[SyncEngine] 同步失败", syncResult.error);
       }
       this.syncing = false;
-      this.lastSyncResult = { pushed, pulled, conflicts };
+      // 同步失败时返回 0 计数，避免上层误判部分成功
+      this.lastSyncResult = syncFailed
+        ? { pushed: 0, pulled: 0, conflicts: 0 }
+        : { pushed, pulled, conflicts };
     })();
 
     await this.syncPromise;
     this.syncPromise = null;
-    return { pushed, pulled, conflicts };
+    return syncFailed ? { pushed: 0, pulled: 0, conflicts: 0 } : { pushed, pulled, conflicts };
   }
 
   getConfig(): SyncConfig {
@@ -190,6 +195,13 @@ export class SyncEngine {
   destroy(): void {
     this.stopAutoSync();
     this.conflictCallback = null;
+    if (this.changeTrackerRegistered) {
+      container.syncStorage.unregisterChangeTracker();
+      this.changeTrackerRegistered = false;
+    }
+    this.syncPromise = null;
+    this.syncing = false;
+    this.needsResync = false;
   }
 
   get isSyncing(): boolean {

@@ -1,13 +1,14 @@
 import { ok, err, AppError } from "@/domain/types/result";
 import type { Result } from "@/domain/types/result";
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas/api";
+import { t } from "@/shared/constants/messages";
 
 export class TransitionError extends AppError {
   constructor(
     public readonly from: VideoTaskStatus,
     public readonly to: VideoTaskStatus,
   ) {
-    super("INVALID_TRANSITION", `不允许从 ${from} 转换到 ${to}`);
+    super("INVALID_TRANSITION", t("video.taskTransitionError", { from, to }));
   }
 }
 
@@ -96,9 +97,9 @@ export const TaskMachine = {
           message: "",
         };
       case "failed":
-        return { message: context?.error || "任务失败" };
+        return { message: context?.error || t("video.taskFailed") };
       case "cancelled":
-        return { message: context?.error || "任务已取消" };
+        return { message: context?.error || t("video.taskCancelled") };
       case "pending":
         return {
           progress: 0,
@@ -114,7 +115,7 @@ export const TaskMachine = {
       case "timeout":
         return {
           pollFailureCount: 0,
-          message: context?.error || "任务超时",
+          message: context?.error || t("video.taskTimeout"),
         };
       default:
         return {};

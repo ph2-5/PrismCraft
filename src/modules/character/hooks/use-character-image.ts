@@ -75,7 +75,7 @@ export function useCharacterImage({
         if (detailedPromptResponse.success && detailedPromptResponse.data?.text) {
           finalPrompt = detailedPromptResponse.data.text;
         } else {
-          errorLogger.warn({ code: "PROMPT_GENERATE_FAILED", message: "提示词生成失败，使用基础提示词继续生成图片" });
+          errorLogger.warn({ code: "PROMPT_GENERATE_FAILED", message: t("error.promptGenFailedUseBasic") });
         }
       }
 
@@ -93,7 +93,7 @@ export function useCharacterImage({
         showError(t("image.generateFailed"), result.error || t("image.checkApiConfig"));
       }
     } catch (err) {
-      errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: "生成图像失败", cause: err });
+      errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: t("error.imageGenerateFailed"), cause: err });
       showError(t("image.generateFailed"), mapUserFacingError(err));
     } finally {
       setIsGenerating(false);
@@ -158,7 +158,7 @@ export function useCharacterImage({
         showError(t("error.uploadFailed"), result.error || t("common.retry"));
       }
     } catch (err) {
-      errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err });
+      errorLogger.error({ code: "UPLOAD_ERROR", message: t("error.uploadFailed"), cause: err });
       showError(t("error.uploadFailed"), mapUserFacingError(err));
     } finally {
       setIsUploading(false);
@@ -247,7 +247,7 @@ export function useCharacterImage({
         showError(t("image.analyzeFailed"), result.error || result.message || t("common.retry"));
       }
     } catch (err) {
-      errorLogger.error({ code: "ANALYZE_ERROR", message: "分析失败", cause: err });
+      errorLogger.error({ code: "ANALYZE_ERROR", message: t("image.analyzeFailed"), cause: err });
       showError(t("image.analyzeFailed"), mapUserFacingError(err));
     } finally {
       if (analyzeTimeoutRef.current) {
@@ -271,7 +271,7 @@ export function useCharacterImage({
         showError(t("error.uploadFailed"), result.error || t("common.retry"));
       }
     } catch (err) {
-      errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err });
+      errorLogger.error({ code: "UPLOAD_ERROR", message: t("error.uploadFailed"), cause: err });
       showError(t("error.uploadFailed"), mapUserFacingError(err));
     } finally {
       setIsUploading(false);

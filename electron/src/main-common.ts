@@ -549,6 +549,8 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
 export {
   validateConfigKey,
   validateConfigValue,
+  getConfigValue,
+  applyConfigValue,
   setupApiHandlers,
   startStaticServer,
   waitForServer,

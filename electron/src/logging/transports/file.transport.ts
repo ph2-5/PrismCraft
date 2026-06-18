@@ -10,10 +10,18 @@ function checkLogRotation(logFilePath: string): void {
     const stats = fs.statSync(logFilePath);
     if (stats.size >= MAX_LOG_SIZE) {
       const backupPath = `${logFilePath}.1`;
-      try { fs.unlinkSync(backupPath); } catch {}
+      try {
+        fs.unlinkSync(backupPath);
+      } catch (e) {
+        // 旧 backup 文件不存在是正常情况，忽略
+        void e;
+      }
       fs.renameSync(logFilePath, backupPath);
     }
-  } catch {}
+  } catch (e) {
+    // 日志文件可能尚未创建，忽略
+    void e;
+  }
 }
 
 export interface FileTransportOptions {

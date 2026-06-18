@@ -326,3 +326,109 @@ export const videoTasksBulkSaveSchema = z.object({
   tasks: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 export type VideoTasksBulkSaveRequest = z.infer<typeof videoTasksBulkSaveSchema>;
+
+// ── DB 操作 Schema（IPC/HTTP 统一通信层） ──────────────────────────────
+export const dbQuerySchema = z.object({
+  sql: z.string().min(1),
+  params: z.array(z.unknown()).default([]),
+});
+export type DbQueryRequest = z.infer<typeof dbQuerySchema>;
+
+export const dbRunSchema = z.object({
+  sql: z.string().min(1),
+  params: z.array(z.unknown()).default([]),
+});
+export type DbRunRequest = z.infer<typeof dbRunSchema>;
+
+export const dbTransactionSchema = z.object({
+  statements: z.array(
+    z.object({
+      sql: z.string().min(1),
+      params: z.array(z.unknown()).default([]),
+    }),
+  ).min(1),
+});
+export type DbTransactionRequest = z.infer<typeof dbTransactionSchema>;
+
+// ── 文件存储 Schema（IFileStorage HTTP API） ──────────────────────────
+export const fileCategorySchema = z.enum([
+  "character",
+  "scene",
+  "storyboard",
+  "video-cache",
+  "image-cache",
+  "upload",
+  "plugin",
+]);
+
+export const fileSaveSchema = z.object({
+  category: fileCategorySchema,
+  key: z.string().min(1),
+  data: z.union([z.string(), z.instanceof(Buffer)]),
+  mimeType: z.string().optional(),
+});
+export type FileSaveRequest = z.infer<typeof fileSaveSchema>;
+
+export const fileReadSchema = z.object({
+  key: z.string().min(1),
+});
+export type FileReadRequest = z.infer<typeof fileReadSchema>;
+
+export const fileDeleteSchema = z.object({
+  key: z.string().min(1),
+});
+export type FileDeleteRequest = z.infer<typeof fileDeleteSchema>;
+
+export const fileExistsSchema = z.object({
+  key: z.string().min(1),
+});
+export type FileExistsRequest = z.infer<typeof fileExistsSchema>;
+
+export const fileCopySchema = z.object({
+  sourceKey: z.string().min(1),
+  targetCategory: fileCategorySchema,
+  targetKey: z.string().min(1),
+});
+export type FileCopyRequest = z.infer<typeof fileCopySchema>;
+
+export const fileListSchema = z.object({
+  category: fileCategorySchema,
+});
+export type FileListRequest = z.infer<typeof fileListSchema>;
+
+export const fileInfoSchema = z.object({
+  key: z.string().min(1),
+});
+export type FileInfoRequest = z.infer<typeof fileInfoSchema>;
+
+export const fileWriteAtomicSchema = z.object({
+  category: fileCategorySchema,
+  key: z.string().min(1),
+  data: z.union([z.string(), z.instanceof(Buffer)]),
+});
+export type FileWriteAtomicRequest = z.infer<typeof fileWriteAtomicSchema>;
+
+// 通用 key-value 配置存储（与 IPC config:get/config:set 对齐）
+export const configGetSchema = z.object({
+  key: z.string().min(1).max(256),
+});
+export type ConfigGetRequest = z.infer<typeof configGetSchema>;
+
+export const configSetSchema = z.object({
+  key: z.string().min(1).max(256),
+  value: z.unknown(),
+});
+export type ConfigSetRequest = z.infer<typeof configSetSchema>;
+
+// 文件写入（按绝对路径，受 ALLOWED_ROOTS 限制）
+export const fileWriteSchema = z.object({
+  filePath: z.string().min(1),
+  data: z.union([z.string(), z.instanceof(Buffer)]),
+});
+export type FileWriteRequest = z.infer<typeof fileWriteSchema>;
+
+// 磁盘空间查询
+export const fileDiskSpaceSchema = z.object({
+  dirPath: z.string().min(1),
+});
+export type FileDiskSpaceRequest = z.infer<typeof fileDiskSpaceSchema>;

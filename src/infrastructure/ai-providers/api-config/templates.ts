@@ -237,7 +237,7 @@ export function createProviderFromTemplate(
     format: template.format,
     baseUrl: template.baseUrl,
     apiKey,
-    models: template.models.map((m) => JSON.parse(JSON.stringify(m))),
+    models: template.models.map((m) => structuredClone(m)),
     isCustom: false,
   };
 }

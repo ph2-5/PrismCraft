@@ -108,7 +108,7 @@ describe("sync-config-ssrf", () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("连接失败");
+      expect(result.error).toContain("CONNECTION_FAILED");
     });
 
     it("认证失败时应返回错误", async () => {
@@ -121,7 +121,7 @@ describe("sync-config-ssrf", () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("认证失败");
+      expect(result.error).toContain("AUTH_FAILED");
     });
 
     it("缺少 url 参数时应返回错误", async () => {

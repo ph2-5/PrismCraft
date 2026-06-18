@@ -5,6 +5,7 @@ import { pluginRegistry } from "../plugins";
 import type { AIProviderPlugin, AsyncAIProviderPlugin } from "../plugins";
 import { getLogger } from "../logging/logger";
 import { API_ERROR_CODES } from "../api-gateway-error-codes";
+import { ssrfGuard } from "../security/ssrf-guard/ssrf-guard";
 
 const logger = getLogger("test-connection");
 
@@ -28,14 +29,16 @@ async function getAuthHeaders(plugin: AIProviderPlugin | undefined, apiKey: stri
   };
 }
 
-function isPrivateUrl(urlStr: string): boolean {
+async function isPrivateUrl(urlStr: string): Promise<boolean> {
   try {
-    const parsed = new URL(urlStr);
-    if (parsed.hostname === "169.254.169.254") return true;
-    if (parsed.hostname === "metadata.google.internal") return true;
+    const result = await ssrfGuard.validate(urlStr);
+    if (!result.safe) {
+      logger.warn("URL blocked by SSRF guard", { urlStr, reason: result.reason });
+      return true;
+    }
     return false;
   } catch {
-    logger.warn("Failed to parse URL in private URL check", { urlStr });
+    logger.warn("Failed to validate URL in SSRF guard", { urlStr });
     return false;
   }
 }
@@ -65,12 +68,12 @@ interface RequestResponse {
   data: unknown;
 }
 
-function makeRequest(
+async function makeRequest(
   url: string,
   options: RequestOptions,
 ): Promise<RequestResponse> {
-  if (isPrivateUrl(url)) {
-    return Promise.reject(new Error("Cannot access private/internal URLs"));
+  if (await isPrivateUrl(url)) {
+    throw new Error("Cannot access private/internal URLs");
   }
   const DEFAULT_TIMEOUT = 30000;
   return new Promise((resolve, reject) => {
@@ -215,15 +218,15 @@ export async function handleTestConnection(
       });
 
       if (response.statusCode === 200) {
-        return { success: true, message: "连接成功，API Key 有效" };
+        return { success: true, message: "CONNECTION_SUCCESS_API_KEY_VALID" };
       } else if (response.statusCode === 401) {
-        return { success: false, error: "API Key 无效或已过期" };
+        return { success: false, error: "API_KEY_INVALID_OR_EXPIRED" };
       } else if (response.statusCode === 429) {
-        return { success: true, message: "API Key 有效（额度可能不足）" };
+        return { success: true, message: "API_KEY_VALID_QUOTA_MAY_BE_INSUFFICIENT" };
       } else {
         return {
           success: false,
-          error: `连接失败: HTTP ${response.statusCode}`,
+          error: `CONNECTION_FAILED: HTTP ${response.statusCode}`,
         };
       }
     }
@@ -276,13 +279,13 @@ export async function handleTestConnection(
         });
 
         if (response.statusCode === 200) {
-          return { success: true, message: "文本生成测试成功" };
+          return { success: true, message: "TEXT_GENERATION_TEST_SUCCESS" };
         } else if (response.statusCode === 429) {
-          return { success: true, message: "API Key 有效（额度可能不足）" };
+          return { success: true, message: "API_KEY_VALID_QUOTA_MAY_BE_INSUFFICIENT" };
         } else {
           return {
             success: false,
-            error: `测试失败: HTTP ${response.statusCode}`,
+            error: `TEST_FAILED: HTTP ${response.statusCode}`,
           };
         }
       }
@@ -308,31 +311,31 @@ export async function handleTestConnection(
         if (response.statusCode === 200 || response.statusCode === 429) {
           const label =
             capability === "image"
-              ? "图片"
+              ? "IMAGE"
               : capability === "vision"
-                ? "视觉"
-                : "视频";
+                ? "VISION"
+                : "VIDEO";
           return {
             success: true,
             message:
               response.statusCode === 429
-                ? "API Key 有效（额度可能不足）"
-                : `${label} API 连接成功`,
+                ? "API_KEY_VALID_QUOTA_MAY_BE_INSUFFICIENT"
+                : `${label}_API_CONNECTION_SUCCESS`,
           };
         }
         return {
           success: false,
-          error: `连接失败: HTTP ${response.statusCode}`,
+          error: `CONNECTION_FAILED: HTTP ${response.statusCode}`,
         };
       }
 
       default:
-        return { success: false, error: `不支持的功能: ${capability}` };
+        return { success: false, error: `UNSUPPORTED_CAPABILITY: ${capability}` };
     }
   } catch (error) {
     return {
       success: false,
-      error: `连接失败: ${(error as Error).message}`,
+      error: `CONNECTION_FAILED: ${(error as Error).message}`,
       httpStatus: 500,
     };
   }

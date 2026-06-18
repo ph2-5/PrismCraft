@@ -1,6 +1,6 @@
 # AI Animation Studio - 完整代码目录
 
-> 版本: 0.9.5 | 架构: Electron + Vite + React + DDD
+> 版本: 0.10.0 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -51,7 +51,7 @@ ai-animation-studio-source-code/
 │   │   ├── story/           # 故事创作
 │   │   ├── sync/            # 数据同步
 │   │   └── video/           # 视频任务管理
-│   ├── shared/              # 共享层：跨模块通用工具与代理导出
+│   ├── shared/              # 共享层：跨模块通用工具与代理导出 (含 file-http/ 统一文件操作通信层)
 │   ├── infrastructure/      # 基础设施层：存储、AI 提供商、网络、DI 容器
 │   └── app/                 # 应用层：页面组件与路由
 ├── electron/src/            # Electron 主进程
@@ -378,7 +378,7 @@ ai-animation-studio-source-code/
 |------|------|------|
 | `engine/` | `engine.ts` | 同步引擎入口 |
 | | `sync-engine-class.ts` | 同步引擎类 |
-| | `changelog.ts` | 变更日志 |
+| | `changelog.ts` | 变更日志 (含异步 `getDeviceId()`: HTTP `/api/config/get` 优先 + IPC 回退 + 内存缓存) |
 | | `conflict-resolution.ts` | 冲突解决 |
 | | `remote-changes.ts` | 远程变更处理 |
 | | `sync-protocol.ts` | 同步协议 |
@@ -437,9 +437,9 @@ ai-animation-studio-source-code/
 | | `presentation/DeleteConfirmDialog.tsx` | 删除确认对话框 |
 | | `presentation/BulkDeleteDialog.tsx` | 批量删除对话框 |
 | | `presentation/TaskFilterBar.tsx` | 任务过滤栏 |
-| `cache/` | `services/video-cache.ts` | 视频 Blob 磁盘缓存 |
+| `cache/` | `services/video-cache.ts` | 视频 Blob 磁盘缓存 (已迁移到 `@/shared/file-http` 统一通信层) |
 | | `services/video-cache-service.ts` | 视频缓存服务 |
-| | `services/image-cache.ts` | 图片磁盘缓存 |
+| | `services/image-cache.ts` | 图片磁盘缓存 (已迁移到 `@/shared/file-http` 统一通信层) |
 | | `hooks/use-video-cache.ts` | 缓存 Hook |
 | `recovery/` | `services/video-recovery.ts` | 视频恢复 |
 | | `services/video-recovery-service.ts` | 恢复服务 |
@@ -460,7 +460,7 @@ ai-animation-studio-source-code/
 
 ## 6. 共享层
 
-> 共享层提供跨模块通用工具和基础设施代理导出。代理导出目录（db-core, api-config, video-cache, outfit, sql-safety, model-capabilities）允许从 infrastructure 重新导出。
+> 共享层提供跨模块通用工具和基础设施代理导出。代理导出目录（db-core, api-config, video-cache, outfit, sql-safety, model-capabilities, file-http）允许从 infrastructure 重新导出。
 
 ### 6.1 代理导出模块
 
@@ -472,6 +472,7 @@ ai-animation-studio-source-code/
 | `outfit/` | `index.ts` | 服装合成 | `@/infrastructure/ai-providers/outfit-synthesis` → `synthesizeOutfit`, `batchSynthesizeOutfits`; `@/infrastructure/storage/characters` → `updateOutfitImage` |
 | `sql-safety/` | `index.ts` | SQL 安全 | `sql-sanitizer.ts` → `sanitizeIdentifier`, `sanitizeTable`, `buildSafeInsert`, `buildSafeUpdate`, `buildSafeDelete`, `toSqlValue`; `schema-registry.ts` → `registerColumn`, `registerColumns`, `getColumnKind`, `getAllRegisteredColumns`, `isColumnRegistered` |
 | `model-capabilities.ts` | | 模型能力 | `@/infrastructure/ai-providers/model-capabilities` → `resolveImageSize`, `getModelParameterProfile`, `getModelCapabilities`, `getSupportedImageSizes`, `supportsLastFrame`, `getMaxReferences`, `adjustReferenceImages`, `getVideoGenerationStrategy`, `setModelProfiles`, `loadModelProfilesFromServer`, `ModelCapabilities`, `ModelParameterProfile`, `VideoGenerationStrategy`, `BUILTIN_MODEL_CAPABILITIES` |
+| `file-http/` | `index.ts` | 统一文件操作通信层 | `@/shared/file-http` → `writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile` (HTTP 优先 + IPC 回退) |
 
 ### 6.2 通用工具
 
@@ -704,8 +705,8 @@ ai-animation-studio-source-code/
 | `scenes.ts` | 场景存储 | `sceneStorage` |
 | `stories.ts` | 故事存储 | `storyStorage` |
 | `video-tasks.ts` | 视频任务存储 | `videoTaskStorage` |
-| `video-cache.ts` | 视频缓存存储 | 视频缓存管理 |
-| `image-cache.ts` | 图片缓存存储 | 图片缓存管理 |
+| `video-cache.ts` | 视频缓存存储 | 视频缓存管理 (服务层已迁移到 `@/shared/file-http`) |
+| `image-cache.ts` | 图片缓存存储 | 图片缓存管理 (服务层已迁移到 `@/shared/file-http`) |
 | `storyboard.ts` | 分镜存储 | `storyboardStorage` |
 | `collections.ts` | 收藏集存储 | `collectionStorage` |
 | `versions.ts` | 版本存储 | `versionStorage` |
@@ -980,7 +981,9 @@ ai-animation-studio-source-code/
 | `schemas.ts` | Zod Schema 定义 | 所有 API 请求 Schema 和类型（upload, analyzeImage, generateImage, generateKeyframe, generateFramePair, generateVideo, videoStatus, generateText, testConnection, export, storyPlan, plugin, shot, storyboard, videoRecover 等） |
 | `types.ts` | API 类型 | `ApiRequest`, `ApiResponse`, `Route`, `RouteHandler`, `defineRoute` |
 | `middleware.ts` | 中间件 | 请求处理中间件 |
-| `route-groups/core-routes.ts` | 核心路由 | 基础 API 路由 |
+| `route-groups/core-routes.ts` | 核心路由 | 基础 API 路由 (含 `config/get`、`config/set`) |
+| `route-groups/db-routes.ts` | 数据库路由 | 数据库查询/写入路由 |
+| `route-groups/file-routes.ts` | 文件路由 | 文件操作路由 (`file/write`、`file/cache-directory`、`file/disk-space`，`MAX_WRITE_SIZE = 100MB`) |
 | `route-groups/generation-routes.ts` | 生成路由 | AI 生成相关路由 |
 | `route-groups/plugin-routes.ts` | 插件路由 | 插件管理路由 |
 | `route-groups/shot-routes.ts` | 分镜路由 | 分镜系统路由 |

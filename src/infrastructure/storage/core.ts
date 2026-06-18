@@ -34,6 +34,10 @@ export function registerChangeTracker(tracker: ChangeTracker): void {
   changeTracker = tracker;
 }
 
+export function unregisterChangeTracker(): void {
+  changeTracker = null;
+}
+
 export async function trackChange(
   entityType: SyncEntityType,
   entityId: string,

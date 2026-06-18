@@ -3,6 +3,7 @@ import { fromAsyncThrowable, ok } from "@/domain/types";
 import type { Story, StoryBeat, StoryVersion } from "@/domain/schemas";
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 const MAX_VERSIONS_PER_STORY = 20;
 
@@ -29,7 +30,7 @@ export async function saveVersion(
     id: `${stableId}-${Date.now()}`,
     storyId: stableId,
     timestamp: Date.now(),
-    beats: JSON.parse(JSON.stringify(beats)),
+    beats: structuredClone(beats),
     title: story.title,
     description: story.description,
     genre: story.genre || "drama",
@@ -54,7 +55,7 @@ export async function saveVersion(
       );
       return version;
     } catch (error) {
-      errorLogger.error({ code: "SAVE_VERSION_ERROR", message: "保存版本失败", cause: error });
+      errorLogger.error({ code: "SAVE_VERSION_ERROR", message: t("error.versionSaveFailed"), cause: error });
       return null;
     }
   });
@@ -91,7 +92,7 @@ export async function restoreVersion(
       updatedAt: Math.floor(Date.now() / 1000),
     };
 
-    return { story, beats: JSON.parse(JSON.stringify(version.beats)) };
+    return { story, beats: structuredClone(version.beats) };
   });
 }
 
@@ -104,7 +105,7 @@ export async function deleteVersion(
     try {
       await container.versionStorage.deleteStoryVersion(versionId);
     } catch (error) {
-      errorLogger.error({ code: "DELETE_VERSION_ERROR", message: "删除版本失败", cause: error });
+      errorLogger.error({ code: "DELETE_VERSION_ERROR", message: t("error.versionDeleteFailed"), cause: error });
     }
   });
 }
@@ -118,7 +119,7 @@ export async function cleanupVersions(
     try {
       await container.versionStorage.deleteOldStoryVersions(storyId, keepCount);
     } catch (error) {
-      errorLogger.error({ code: "CLEANUP_VERSION_ERROR", message: "清理版本失败", cause: error });
+      errorLogger.error({ code: "CLEANUP_VERSION_ERROR", message: t("error.cleanupVersionFailed"), cause: error });
     }
   });
 }

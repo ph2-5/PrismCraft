@@ -277,11 +277,23 @@ class SsrfGuard {
         return;
       }
 
+      // 缓存检查：命中时直接基于缓存 IP 判定，避免重复 DNS 解析
+      const cachedIp = this.getResolvedIp(hostname);
+      if (cachedIp) {
+        if (this.isPrivateIp(cachedIp)) {
+          resolve({ safe: false, reason: "Cached DNS resolved to private IP", resolvedIp: cachedIp });
+        } else {
+          resolve({ safe: true, resolvedIp: cachedIp });
+        }
+        return;
+      }
+
       const timeout = setTimeout(() => {
         const policy = this.dnsFailurePolicy ?? "allow";
         if (policy === "deny") {
           resolve({ safe: false, reason: "DNS resolution timeout" });
         } else {
+          logger.warn("DNS resolution timed out, allowing due to policy", { hostname, timeoutMs: 3000 });
           resolve({ safe: true });
         }
       }, 3000);
@@ -296,6 +308,11 @@ class SsrfGuard {
               if (policy === "deny") {
                 resolve({ safe: false, reason: `DNS resolution failed: ${err4.message}` });
               } else {
+                logger.warn("DNS resolution failed, allowing due to policy", {
+                  hostname,
+                  error4: err4.message,
+                  error6: err6.message,
+                });
                 resolve({ safe: true });
               }
               return;

@@ -56,6 +56,22 @@ export { registerColumn, registerColumns, getColumnKind, getAllRegisteredColumns
 export type { ColumnKind } from "./schema-registry";
 ```
 
+#### file-http/ (index.ts)
+
+统一的文件操作双轨通信层（HTTP 优先 + IPC 回退）。导出 `writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`。来源：本地实现，回退至 `electronAPI`。
+
+```typescript
+// 优先 HTTP API（/api/file/*），失败回退到 electronAPI IPC（向后兼容）
+export async function writeFile(filePath: string, data: Uint8Array | ArrayBuffer | string): Promise<{ success: boolean; error?: string }>;
+export async function readFile(filePath: string): Promise<{ success: boolean; data?: ArrayBuffer; error?: string } | null>;
+export async function getFileInfo(filePath: string): Promise<{ success: boolean; size?: number; error?: string } | null>;
+export async function getCacheDirectory(): Promise<{ success: boolean; path?: string; error?: string }>;
+export async function getDiskSpace(dirPath: string): Promise<{ success: boolean; availableBytes?: number; totalBytes?: number; error?: string } | null>;
+export async function fileExists(filePath: string): Promise<boolean>;
+export async function deleteFile(filePath: string): Promise<boolean>;
+export function _resetHttpCache(): void;  // 测试用
+```
+
 ##### sql-sanitizer.ts
 
 ```typescript
@@ -830,19 +846,57 @@ export interface PaginationResponse<T> {
 ```typescript
 /** IPC 通道名称 */
 export type IpcChannel =
-  | "saveImage"
-  | "deleteFile"
-  | "readFileBase64"
-  | "getConfig"
-  | "setConfig"
-  | "saveFileDialog"
-  | "openFileDialog"
-  | "secureConfigResolve"
-  | "dbQuery"
-  | "dbRun"
-  | "dbBatchInsert"
-  | "dbGet"
-  | "dbTransaction";
+  // 文件系统
+  | "fs:write-file"
+  | "fs:read-file"
+  | "cache:get-cache-directory"
+  | "fs:get-file-info"
+  | "fs:get-disk-space"
+  // 图像处理
+  | "image:normalize"
+  | "image:to-base64"
+  // 资产操作
+  | "assets:save-image"
+  | "assets:save-buffer"
+  | "assets:copy-file"
+  | "assets:file-exists"
+  | "assets:get-dir"
+  | "assets:read-file-base64"
+  | "assets:delete-file"
+  // 配置
+  | "config:get"
+  | "config:set"
+  // 安全配置
+  | "secure-config:save"
+  | "secure-config:load"
+  | "secure-config:delete"
+  | "secure-config:has"
+  | "secure-config:resolve"
+  // 数据库
+  | "db:query"
+  | "db:run"
+  | "db:get"
+  | "db:batch-insert"
+  | "db:transaction"
+  | "db:init"
+  | "db:save"
+  | "db:stats"
+  | "db:type"
+  | "db:migrate"
+  | "db:vacuum"
+  | "db:analyze"
+  | "db:checkpoint"
+  | "db:backup-status"
+  | "db:create-backup"
+  | "db:close"
+  // Shell
+  | "shell:open-external"
+  | "shell:open-path"
+  // 对话框
+  | "dialog:open-file"
+  | "dialog:save-file"
+  // 导出
+  | "export:data";
 
 /** IPC 调用结果 */
 export interface IpcResult<T = unknown> {
@@ -853,21 +907,59 @@ export interface IpcResult<T = unknown> {
 
 /** ElectronAPI 类型声明 */
 export interface ElectronAPI {
-  dbQuery(sql: string, params?: unknown[]): Promise<IpcResult<unknown[]>>;
-  dbRun(sql: string, params?: unknown[]): Promise<IpcResult<{ changes: number; lastInsertRowid: number }>>;
-  dbTransaction(statements: Array<{ sql: string; params: unknown[] }>): Promise<IpcResult<unknown[]>>;
-  dbGet(sql: string, params?: unknown[]): Promise<IpcResult<unknown>>;
-  dbBatchInsert(table: string, columns: string[], rows: unknown[][]): Promise<IpcResult<number>>;
+  // 文件系统
+  writeFile(filePath: string, data: ArrayBuffer): Promise<IpcResult>;
+  readFile(filePath: string): Promise<IpcResult<ArrayBuffer>>;
+  getCacheDirectory(): Promise<IpcResult<string>>;
+  getFileInfo(filePath: string): Promise<IpcResult<{ size: number }>>;
+  getDiskSpace(dirPath: string): Promise<IpcResult<{ availableBytes: number; totalBytes: number }>>;
+  // 图像处理
+  normalizeImage(...args: unknown[]): Promise<IpcResult>;
+  imageToBase64IPC(...args: unknown[]): Promise<IpcResult>;
+  // 资产操作
   saveImage(data: { filePath: string; data: string }): Promise<IpcResult<string>>;
-  deleteFile(filePath: string): Promise<IpcResult<boolean>>;
+  saveBuffer(...args: unknown[]): Promise<IpcResult>;
+  copyFile(...args: unknown[]): Promise<IpcResult>;
+  fileExists(filePath: string): Promise<IpcResult<boolean>>;
+  getAssetsDir(...args: unknown[]): Promise<IpcResult<string>>;
   readFileBase64(filePath: string): Promise<IpcResult<string>>;
+  deleteFile(filePath: string): Promise<IpcResult<boolean>>;
+  // 配置
   getConfig(key: string): Promise<IpcResult<string | null>>;
   setConfig(key: string, value: string): Promise<IpcResult<boolean>>;
+  // 安全配置
+  secureConfigSave(...args: unknown[]): Promise<IpcResult>;
+  secureConfigLoad(...args: unknown[]): Promise<IpcResult>;
+  secureConfigDelete(...args: unknown[]): Promise<IpcResult>;
+  secureConfigHas(...args: unknown[]): Promise<IpcResult>;
+  secureConfigResolve(key: string): Promise<IpcResult<string | null>>;
+  // 数据库
+  dbQuery(sql: string, params?: unknown[]): Promise<IpcResult<unknown[]>>;
+  dbRun(sql: string, params?: unknown[]): Promise<IpcResult<{ changes: number; lastInsertRowid: number }>>;
+  dbGet(sql: string, params?: unknown[]): Promise<IpcResult<unknown>>;
+  dbBatchInsert(table: string, columns: string[], rows: unknown[][]): Promise<IpcResult<number>>;
+  dbTransaction(statements: Array<{ sql: string; params: unknown[] }>): Promise<IpcResult<unknown[]>>;
+  // Shell
+  openExternal(url: string): Promise<IpcResult>;
+  openPath(path: string): Promise<IpcResult>;
+  // 对话框
   saveFileDialog(options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }): Promise<IpcResult<string | null>>;
   openFileDialog(options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }>; multiSelections?: boolean }): Promise<IpcResult<string[] | null>>;
-  secureConfigResolve(key: string): Promise<IpcResult<string | null>>;
+  // 导出
+  exportData(...args: unknown[]): Promise<IpcResult>;
+  // 菜单事件
+  onNavigate(callback: () => void): void;
+  onMenuNewCharacter(callback: () => void): void;
+  onMenuNewScene(callback: () => void): void;
+  onMenuExport(callback: () => void): void;
+  removeMenuListeners(): void;
+  // 平台信息
+  platform: string;
+  versions: { node: string; electron: string; chrome: string };
 }
 ```
+
+> ⚠️ **modules/ 中禁止直接调用** `dbQuery`/`dbRun`/`dbBatchInsert`/`dbGet`/`dbTransaction`（由 ESLint `no-direct-db-ipc` 规则强制）；文件操作应通过 `shared/file-http` 双轨层。
 
 ---
 

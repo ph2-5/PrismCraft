@@ -32,8 +32,9 @@ export {
   generateKeyframeChain,
   generateFramePairChain,
   determineVideoGenerationMode,
+  buildStyleEnhancedPrompt,
 } from "./services/storyboard-generation-service";
-export type { VideoGenerationMode } from "./services/storyboard-generation-service";
+export type { VideoGenerationMode, ProviderDeps } from "./services/storyboard-generation-service";
 export { generateFramePrompts, batchGenerateFramePrompts } from "./services/frame-prompt-service";
 export { generateStyleGuide, generateStylePromptOnly } from "./services/style-guide-service";
 export {

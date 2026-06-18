@@ -104,7 +104,7 @@ function parseScene(record: Record<string, unknown>): Scene {
 export const sceneStorage = {
   async getScenes<T = Scene>(): Promise<T[]> {
     const result = await safeQuery<Record<string, unknown>>(
-      "SELECT * FROM scenes ORDER BY updated_at DESC",
+      "SELECT * FROM scenes ORDER BY updated_at DESC LIMIT 500",
     );
     return result.map((record) => parseScene(record)) as T[];
   },

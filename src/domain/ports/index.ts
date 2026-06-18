@@ -7,3 +7,4 @@ export type { IVersionStorage } from "./version-storage-port";
 export type { IElementStorage } from "./element-storage-port";
 export type { ITemplateStorage } from "./template-storage-port";
 export type { IMediaAssetRepository } from "./media-asset-repository-port";
+export type { IFileStorage, FileCategory, FileMetadata, SaveFileParams, CopyFileParams, WriteFileAtomicParams } from "./file-storage-port";

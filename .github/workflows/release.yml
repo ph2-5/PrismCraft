@@ -1,4 +1,4 @@
-name: Release macOS
+name: Release
 
 on:
   push:
@@ -61,4 +61,51 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: electron-build-mac
+          path: release/
+
+  release-win:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Override .npmrc for CI (use official sources)
+        run: echo 'registry=https://registry.npmjs.org/' > .npmrc
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          for i in 1 2 3; do
+            if npm ci --ignore-scripts; then
+              echo "Dependencies installed successfully"
+              break
+            elif [ $i -lt 3 ]; then
+              echo "Attempt $i failed, retrying in 30 seconds..."
+              sleep 30
+            else
+              echo "All 3 attempts failed"
+              exit 1
+            fi
+          done
+
+      - name: Build for Electron
+        run: npm run build:electron
+
+      - name: Rebuild native modules for Electron
+        run: npx electron-rebuild -f -w better-sqlite3
+
+      - name: Package Electron app
+        run: npx electron-builder --win --x64 --publish=never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-build-win
           path: release/

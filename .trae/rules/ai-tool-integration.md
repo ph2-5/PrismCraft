@@ -157,6 +157,7 @@ AI 在执行以下操作前，**必须先读取对应文件**：
 | 修改 Zustand Store | 现有 Store 文件 | 防止幻觉不存在的 state/method |
 | 使用 `t()` 国际化 | `messages.ts` 搜索相关键 | 防止幻觉不存在的 i18n key |
 | 修改数据库 Schema | `db-schema.ts` | 防止幻觉不存在的表/列 |
+| 文件操作或配置读写 | `src/shared/file-http/index.ts` | 防止幻觉不存在的 file-http 函数，防止直接调用 electronAPI |
 
 ### 4.2 搜索优先原则
 
@@ -342,6 +343,7 @@ AI 在执行以下操作前，**必须先读取对应文件**：
 | 修改 Zustand Store | 现有 Store 文件 | 防止幻觉不存在的 state/method |
 | 使用 `t()` 国际化 | `messages.ts` 搜索相关键 | 防止幻觉不存在的 i18n key |
 | 修改数据库 Schema | `db-schema.ts` | 防止幻觉不存在的表/列 |
+| 文件操作或配置读写 | `src/shared/file-http/index.ts` | 防止幻觉不存在的 file-http 函数，防止直接调用 electronAPI |
 
 ### 6.2 搜索优先原则
 
@@ -389,6 +391,7 @@ FORBIDDEN patterns (will cause bugs):
 - Never hardcode user-facing strings (use t() from @/shared/constants)
 - Never use localStorage in useState (use usePreference)
 - Never use any type in production code
+- Never call electronAPI.writeFile/readFile/getConfig/setConfig directly in modules/ (use @/shared/file-http unified layer)
 -->
 ```
 
@@ -407,6 +410,13 @@ FORBIDDEN patterns (will cause bugs):
 ```typescript
 // AI: Use TOKEN_IDS or getTokenRegistry() to discover available tokens.
 // AI: Do NOT guess token names — always verify before using.
+```
+
+`file-http/index.ts` 头部应添加：
+
+```typescript
+// AI: Use writeFile/readFile/getFileInfo/getCacheDirectory/getDiskSpace/fileExists/deleteFile from this module.
+// AI: Do NOT call electronAPI.writeFile/getConfig directly.
 ```
 
 ---

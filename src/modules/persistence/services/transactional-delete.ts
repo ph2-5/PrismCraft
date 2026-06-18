@@ -1,24 +1,102 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
-import { safeQuery, safeTransaction } from "@/shared/db-core";
+import { safeQuery, safeRun, safeTransaction } from "@/shared/db-core";
 import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParseArray } from "@/shared/utils/safe-json";
+import { container } from "@/infrastructure/di";
 
 function isLocalFilePath(p: string): boolean {
   return !p.startsWith("http://") && !p.startsWith("https://") && !p.startsWith("data:") && !p.startsWith("vcache://");
 }
 
+/**
+ * 清理本地文件，失败时记录到 orphan_files 表供后续清理。
+ *
+ * orphan_files 表结构（自动创建）：
+ * - id: INTEGER PRIMARY KEY AUTOINCREMENT
+ * - file_path: TEXT NOT NULL
+ * - reason: TEXT（失败原因）
+ * - created_at: INTEGER NOT NULL（Unix 时间戳）
+ */
+
+// 模块级标志位：DDL 只在首次调用时执行，避免每次 recordOrphanFile 都跑 CREATE TABLE
+let orphanTableEnsured = false;
+// 记录 orphan 的次数，用于触发周期性清理
+let orphanRecordCount = 0;
+// 每记录多少条 orphan 触发一次清理
+const ORPHAN_CLEANUP_INTERVAL = 100;
+
+async function ensureOrphanFilesTable(): Promise<void> {
+  if (orphanTableEnsured) return;
+  await safeRun(`
+    CREATE TABLE IF NOT EXISTS orphan_files (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      file_path TEXT NOT NULL,
+      reason TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `);
+  orphanTableEnsured = true;
+}
+
+/**
+ * 删除 orphan_files 表中超过 maxAgeDays 天的记录，防止表无限增长。
+ * 返回删除的行数。
+ */
+export async function cleanupOldOrphanFiles(maxAgeDays: number = 30): Promise<number> {
+  try {
+    await ensureOrphanFilesTable();
+    const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+    const result = await safeRun(
+      `DELETE FROM orphan_files WHERE created_at < ?`,
+      [cutoff],
+    );
+    // better-sqlite3 风格的 safeRun 不一定返回 changes；这里仅尽力而为
+    return result?.changes ?? 0;
+  } catch (e) {
+    errorLogger.warn("[TransactionalDelete] cleanupOldOrphanFiles failed", e);
+    return 0;
+  }
+}
+
+async function recordOrphanFile(filePath: string, reason: string): Promise<void> {
+  try {
+    await ensureOrphanFilesTable();
+    await safeRun(
+      `INSERT INTO orphan_files (file_path, reason, created_at) VALUES (?, ?, ?)`,
+      [filePath, reason, Date.now()],
+    );
+    // 偶尔触发清理，避免 orphan_files 表无限增长
+    orphanRecordCount += 1;
+    if (orphanRecordCount % ORPHAN_CLEANUP_INTERVAL === 0) {
+      // 后台清理，不阻塞主流程；失败仅记录日志
+      cleanupOldOrphanFiles().catch((e) =>
+        errorLogger.warn("[TransactionalDelete] periodic cleanupOldOrphanFiles failed", e),
+      );
+    }
+  } catch (dbError) {
+    // 记录失败也不能影响主流程，仅日志
+    errorLogger.warn("[TransactionalDelete] Failed to record orphan file", { filePath, reason, dbError });
+  }
+}
+
 async function cleanupLocalFiles(paths: (string | null | undefined)[]): Promise<void> {
   const validPaths = paths.filter((p): p is string => typeof p === "string" && p.length > 0 && isLocalFilePath(p));
   if (validPaths.length === 0) return;
-  const api = window.electronAPI;
-  if (!api?.deleteFile) return;
+  const fileStorage = await container.fileStorage;
   for (const filePath of validPaths) {
     try {
-      await api.deleteFile(filePath);
+      const deleted = await fileStorage.deleteFile(filePath);
+      if (!deleted) {
+        // 文件不存在不算失败，跳过
+        continue;
+      }
     } catch (e) {
-      errorLogger.warn("[TransactionalDelete] Failed to delete file", { filePath, error: e });
+      const reason = e instanceof Error ? e.message : String(e);
+      errorLogger.warn("[TransactionalDelete] Failed to delete file, recording as orphan", { filePath, reason });
+      // 记录到 orphan_files 表，供后续清理
+      await recordOrphanFile(filePath, reason);
     }
   }
 }

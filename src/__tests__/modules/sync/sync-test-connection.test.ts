@@ -95,7 +95,7 @@ describe("sync-test-connection", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("认证失败");
+    expect(result.error).toContain("AUTH_FAILED");
   });
 
   it("网络错误应返回连接错误", async () => {
@@ -108,7 +108,7 @@ describe("sync-test-connection", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("连接失败");
+    expect(result.error).toContain("CONNECTION_FAILED");
     expect(result.error).toContain("ECONNREFUSED");
   });
 
@@ -122,7 +122,7 @@ describe("sync-test-connection", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("连接失败");
+    expect(result.error).toContain("CONNECTION_FAILED");
     expect(result.error).toContain("timeout");
   });
 

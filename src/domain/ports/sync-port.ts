@@ -8,4 +8,5 @@ export interface ISyncStorage {
   safeRun(sql: string, params?: unknown[]): Promise<DbRunResult>;
   safeTransaction(statements: { sql: string; params: unknown[] }[]): Promise<unknown[]>;
   registerChangeTracker(tracker: (entityType: string, entityId: string, operation: string) => Promise<void>): void;
+  unregisterChangeTracker(): void;
 }

@@ -583,7 +583,7 @@ export async function generateStoryPlanWithValidation(
       }
 
       rawBeats = parseStoryPlanJSON(result.data.text);
-      if (!rawBeats || rawBeats.length === 0) throw new Error("无法解析故事规划 JSON");
+      if (!rawBeats || rawBeats.length === 0) throw new Error("STORY_PLAN_PARSE_FAILED");
 
       const validation = validateStoryPlan(rawBeats);
       validationResults.push(validation);
@@ -594,11 +594,11 @@ export async function generateStoryPlanWithValidation(
       retryCount++;
     } catch (error) {
       retryCount++;
-      if (attempt >= maxRetries) throw new Error(`故事规划生成失败: ${(error as Error).message}`);
+      if (attempt >= maxRetries) throw new Error(`STORY_PLAN_GENERATION_FAILED: ${(error as Error).message}`);
     }
   }
 
-  if (!rawBeats) throw new Error("故事规划生成失败");
+  if (!rawBeats) throw new Error("STORY_PLAN_GENERATION_FAILED");
 
   const beats = convertToStoryBeats(rawBeats, opts.enhancedGeneration);
 

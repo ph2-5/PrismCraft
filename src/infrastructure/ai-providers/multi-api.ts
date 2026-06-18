@@ -35,7 +35,7 @@ export async function generateVideoWithMultiAPI(
     );
 
     if (!descriptionResponse.data?.text) {
-      throw new Error("生成视频描述失败");
+      throw new Error(t("error.videoDescGenFailed"));
     }
 
     const detailedDescription = descriptionResponse.data.text;
@@ -70,7 +70,7 @@ export async function generateVideoWithMultiAPI(
     );
 
     if (!analysisResponse.data?.analysis) {
-      throw new Error("分析素材内容失败");
+      throw new Error(t("error.analysisFailed"));
     }
 
     const analysis = analysisResponse.data.analysis;

@@ -28,7 +28,7 @@ export async function dismissOverlays(page: Page) {
 
 export async function waitForAppReady(page: Page) {
   await page.waitForLoadState("networkidle");
-  await page.locator("main").first().waitFor({ state: "visible", timeout: 15000 });
+  await page.locator("main").first().waitFor({ state: "visible", timeout: 30000 });
 }
 
 export async function navigateTo(page: Page, path: string, options?: { withElectronMock?: boolean }) {

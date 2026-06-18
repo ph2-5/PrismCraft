@@ -96,7 +96,10 @@ async function request<T>(
     const data = await response.json();
     return ok(data as T);
   } catch (e) {
-    if (e instanceof AppApiClientError) throw e;
+    // 统一返回 Result，不再 throw，符合 Result 模式约定
+    if (e instanceof AppApiClientError) {
+      return err(new ApiError(e.message, e.statusCode ?? 500, e.code));
+    }
     if (e instanceof DOMException && e.name === "AbortError") {
       return err(new NetworkError(`Request timeout after ${timeout}ms`));
     }

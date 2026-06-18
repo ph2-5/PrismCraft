@@ -146,7 +146,7 @@ async function handleSyncTest(
       const data = response.data as Record<string, unknown>;
       return {
         success: true,
-        message: "连接成功",
+        message: "CONNECTION_SUCCESS",
         serverVersion: data.version as string | undefined,
         token: data.token as string | undefined,
         latency,
@@ -154,17 +154,17 @@ async function handleSyncTest(
     }
 
     if (response.statusCode === 401) {
-      return { success: false, error: "认证失败：用户名或密码错误" };
+      return { success: false, error: "AUTH_FAILED_INVALID_CREDENTIALS" };
     }
 
     return {
       success: false,
-      error: `连接失败: HTTP ${response.statusCode}`,
+      error: `CONNECTION_FAILED: HTTP ${response.statusCode}`,
     };
   } catch (error) {
     return {
       success: false,
-      error: `连接失败: ${(error as Error).message}`,
+      error: `CONNECTION_FAILED: ${(error as Error).message}`,
     };
   }
 }

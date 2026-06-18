@@ -105,7 +105,7 @@ export class PluginProcessManager {
 
   async restart(): Promise<PluginLoadResult> {
     if (!this.filePath) {
-      throw new Error("插件未加载过，无法重启");
+      throw new Error("PLUGIN_NOT_LOADED_CANNOT_RESTART");
     }
     await this.shutdown();
     this.isShuttingDown = false;

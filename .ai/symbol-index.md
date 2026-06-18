@@ -2059,6 +2059,9 @@ Files indexed: 542
   - [named] shared\sql-safety\index.ts
   - [function] shared\sql-safety\schema-registry.ts
 
+### _resetHttpCache
+  - [function] shared\file-http\index.ts
+
 ### _resolveImageUrl
   - [named] infrastructure\storage\core.ts
 
@@ -2718,6 +2721,9 @@ Files indexed: 542
 ### deleteCharacterWithRefs
   - [named] modules\persistence\index.ts
 
+### deleteFile
+  - [function] shared\file-http\index.ts
+
 ### deleteKeyFile
   - [function] infrastructure\ai-providers\api-config\server-key.ts
 
@@ -2893,6 +2899,12 @@ Files indexed: 542
 ### fieldTargets
   - [named] infrastructure\storage\video-tasks\index.ts
   - [const] infrastructure\storage\video-tasks\parser.ts
+
+### fileExists
+  - [function] shared\file-http\index.ts
+
+### fileStorage
+  - [const] infrastructure\di\container.ts
 
 ### filterRemoteCacheRequests
   - [named] modules\story\generation\index.ts
@@ -3199,6 +3211,9 @@ Files indexed: 542
   - [named] modules\shot\feature-extraction\index.ts
   - [function] modules\shot\feature-extraction\services\feature-anchoring-service.ts
 
+### getCacheDirectory
+  - [function] shared\file-http\index.ts
+
 ### getCacheStats
   - [named] modules\video\cache\index.ts
   - [named] modules\video\cache\services\video-cache-service.ts
@@ -3255,8 +3270,11 @@ Files indexed: 542
   - [named] infrastructure\api-config-facade.ts
 
 ### getDeviceId
-  - [named] modules\sync\engine\changelog.ts
+  - [async function] modules\sync\engine\changelog.ts
   - [named] modules\sync\engine\index.ts
+
+### getDiskSpace
+  - [function] shared\file-http\index.ts
 
 ### getDownloadProgress
   - [function] infrastructure\network\download-manager.ts
@@ -3280,6 +3298,9 @@ Files indexed: 542
 ### getFailedTasks
   - [named] modules\video\index.ts
   - [named] modules\video\recovery\index.ts
+
+### getFileInfo
+  - [function] shared\file-http\index.ts
 
 ### getImageCacheStats
   - [named] modules\video\cache\index.ts
@@ -3509,6 +3530,14 @@ Files indexed: 542
 ### heightSuggestions
   - [const] modules\character\constants.ts
   - [named] modules\character\index.ts
+
+### httpConfigGet
+  - [function] infrastructure\ai-providers\api-config\storage.ts
+  - [function] modules\sync\engine\changelog.ts
+
+### httpConfigSet
+  - [function] infrastructure\ai-providers\api-config\storage.ts
+  - [function] modules\sync\engine\changelog.ts
 
 ### imageApi
   - [const] infrastructure\api\endpoints.ts
@@ -3894,6 +3923,9 @@ Files indexed: 542
 
 ### quickGenerateReducer
   - [function] app\quick-generate\quick-generate-reducer.ts
+
+### readFile
+  - [function] shared\file-http\index.ts
 
 ### recordChange
   - [named] modules\sync\engine\index.ts
@@ -4961,6 +4993,9 @@ Files indexed: 542
 ### weatherSuggestions
   - [const] modules\scene\constants.ts
   - [named] modules\scene\index.ts
+
+### writeFile
+  - [function] shared\file-http\index.ts
 
 ### withCache
   - [function] infrastructure\ai-providers\api-cache.ts

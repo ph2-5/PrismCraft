@@ -43,7 +43,7 @@ export function useCacheOperations({ completedTaskIds }: UseCacheOperationsParam
         const stats = await getCacheStats();
         if (!cancelled && stats.ok) setCacheStats({ count: stats.value.count, totalSizeMB: stats.value.totalSizeMB });
       } catch (e) {
-        errorLogger.warn({ code: "CACHE_STATS_ERROR", message: "[VideoTaskManager] 获取缓存统计失败" }, String(e));
+        errorLogger.warn({ code: "CACHE_STATS_ERROR", message: t("error.cacheStatsFetchFailed") }, String(e));
       }
     };
     loadStats();
@@ -55,7 +55,7 @@ export function useCacheOperations({ completedTaskIds }: UseCacheOperationsParam
       const stats = await getCacheStats();
       if (stats.ok) setCacheStats({ count: stats.value.count, totalSizeMB: stats.value.totalSizeMB });
     } catch (e) {
-      errorLogger.warn({ code: "CACHE_STATS_REFRESH_ERROR", message: "[VideoTaskManager] 刷新缓存统计失败" }, String(e));
+      errorLogger.warn({ code: "CACHE_STATS_REFRESH_ERROR", message: t("error.cacheStatsRefreshFailed") }, String(e));
     }
   };
 

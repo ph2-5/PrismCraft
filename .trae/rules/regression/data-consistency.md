@@ -433,3 +433,53 @@ useAutoSave({
 **Verification**: Search for `useAutoSave` calls and verify the `enabled` condition does not reference business data existence checks (`.length > 0`, `!!entity.id`, etc.). The only valid conditions are feature flags (`autoSaveSettings.enabled`) and dirty state (`hasUnsavedChanges`).
 
 **Discovered in**: Story page auto-save was disabled when `story.beats.length === 0`. Users who edited story title/description without adding beats would lose their changes on crash — auto-save never triggered.
+
+### R109: Transactional Delete MUST Track Orphan Files on Failure
+
+When `cleanupLocalFiles` (in `src/modules/persistence/services/transactional-delete.ts`) fails to delete a local file, the file path MUST be recorded in the `orphan_files` table via `recordOrphanFile` for later cleanup. `recordOrphanFile` itself MUST NOT throw or affect the main flow — if it fails, the error is logged but the transaction continues. Non-local paths (`http://`, `https://`, `data:`) MUST be skipped (no orphan tracking). This ensures that file deletion failures are recoverable rather than silently lost.
+
+**BAD** — Silent failure, no orphan tracking:
+```typescript
+async function cleanupLocalFiles(filePaths: string[]) {
+  for (const path of filePaths) {
+    try {
+      await fileStorage.deleteFile(path);
+    } catch (e) {
+      errorLogger.warn("Failed to delete file", e);
+      // ❌ File path lost, no recovery possible
+    }
+  }
+}
+```
+
+**GOOD** — Track orphans for later cleanup:
+```typescript
+async function cleanupLocalFiles(filePaths: string[]) {
+  for (const path of filePaths) {
+    if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+      continue; // Skip non-local paths
+    }
+    try {
+      await fileStorage.deleteFile(path);
+    } catch (e) {
+      errorLogger.warn("Failed to delete file, tracking as orphan", e);
+      await recordOrphanFile(path); // MUST NOT throw
+    }
+  }
+}
+
+async function recordOrphanFile(filePath: string): Promise<void> {
+  try {
+    await safeRun(
+      `INSERT OR IGNORE INTO orphan_files (file_path, created_at) VALUES (?, ?)`,
+      [filePath, Date.now()]
+    );
+  } catch (e) {
+    errorLogger.warn("recordOrphanFile failed", e); // Swallow, don't affect main flow
+  }
+}
+```
+
+**Verification**: Mock `fileStorage.deleteFile` to reject. Verify: (1) `cleanupLocalFiles` records the path in `orphan_files` table, (2) `recordOrphanFile` failure does not throw, (3) non-local paths (`http://`, `data:`) are skipped without orphan tracking.
+
+**Discovered in**: Persistence service audit found that file deletion failures during transactional deletes were silently swallowed, leaving dangling files with no recovery path. Test: `src/modules/persistence/services/__tests__/r109-transactional-delete-orphan-tracking.test.ts`.

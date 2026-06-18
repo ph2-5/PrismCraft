@@ -24,7 +24,7 @@
 
 > 以下为 `index.ts` 的完整导出列表，详细签名见各子域章节。
 
-**task-management**: `VideoTask`、`useVideoTaskManager`、`useVideoTaskStore`、`useVideoTaskState`、`useVideoTaskQueries`、`useVideoTaskCommands`、`useVideoTaskPolling`、`useVideoTasks`、`useFailedVideoTasks`、`useRecoverVideo`、`useCleanExpiredTasks`、`useStartBackgroundRecovery`、`buildTrackingInfo`、`VideoTaskManager`、`VideoTaskManagerInitializer`、`VideoTaskManagerUI`
+**task-management**: `VideoTask`、`useVideoTaskManager`、`useVideoTaskStore`、`useVideoTaskQueries`、`useVideoTaskCommands`、`useVideoTaskPolling`、`useVideoTasks`、`useFailedVideoTasks`、`useRecoverVideo`、`useCleanExpiredTasks`、`useStartBackgroundRecovery`、`buildTrackingInfo`、`VideoTaskManager`、`VideoTaskManagerInitializer`、`VideoTaskManagerUI`
 
 **cache**: `useVideoCacheStats`、`cacheVideoBlob`、`getCachedVideoUrl`、`getVideoUrlWithCache`、`removeCachedVideo`、`cleanExpiredVideoCache`、`getCacheStats`、`revokeObjectURL`、`touchMemoryCache`、`clearMemoryCache`、`checkCachedVideo`、`getVideoFileStream`、`getCachedVideo`、`cacheImageBlob`、`getCachedImagePath`、`getImageUrlWithCache`、`removeCachedImage`、`cleanExpiredImageCache`、`getImageCacheStats`、`recoverUncachedImages`
 
@@ -283,6 +283,8 @@ const VideoTaskManagerUI: ComponentType        // 管理 UI 面板
 ---
 
 ### 缓存子域
+
+> **通信层说明**：cache 子域的磁盘文件操作已迁移至 `@/shared/file-http` 统一通信层（HTTP 优先 + IPC 回退），不再直接调用 `window.electronAPI`。`video-cache.ts` 和 `image-cache.ts` 通过别名导入（httpWriteFile、httpReadFile、httpFileExists、httpDeleteFile、httpGetCacheDirectory、httpGetDiskSpace、httpGetFileInfo）使用该层。
 
 #### 视频缓存
 
@@ -560,6 +562,7 @@ function applyVideoTemplate(template: VideoTemplate): { prompt: string; duration
 | `@/domain/types` | `Result`、`AppError`、`NotFoundError`、`fromAsyncThrowable`、`classifyError`、`ErrorCategory` |
 | `@/infrastructure/di` | `container.videoProvider`、`container.videoTaskStorage`、`container.videoCacheStorage`、`container.imageCacheStorage` |
 | `@/shared/error-logger` | `errorLogger` 错误日志 |
+| `@/shared/file-http` | `writeFile`、`readFile`、`fileExists`、`deleteFile`、`getFileInfo`、`getCacheDirectory`、`getDiskSpace`（cache 和 recovery 子域使用，HTTP 优先 + IPC 回退） |
 | `@/shared/utils/toast-bridge` | `emitToast` 非 React 环境通知 |
 | `@/shared/video-cache` | `resilientFetch`、`registerObjectUrl`、`revokeObjectUrl` |
 | `@/shared/video-utils` | `detectVideoCodec`、`extractVideoFrames` 等工具函数代理导出 |

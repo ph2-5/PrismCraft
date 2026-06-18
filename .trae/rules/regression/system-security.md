@@ -325,3 +325,43 @@ return err(new ValidationError("BEAT_NOT_FOUND"));
 **Verification**: Search for `ValidationError` and `GenerationError` in `src/domain/`. All error messages must be English error codes, not Chinese strings. Each error code must have a corresponding pattern in `mapUserFacingError`'s `EXTRA_PATTERNS`.
 
 **Discovered in**: `story-generation-service.ts` had 3 Chinese `ValidationError` messages ("分镜不存在", "预览图不存在，无法生成首尾帧", "首尾帧不存在，无法生成视频"). These were invisible to `mapUserFacingError`, so users saw raw Chinese error codes instead of properly formatted messages.
+
+### R105: SSRF Guard MUST Validate Non-Loopback User-Configured Hosts
+
+When the app makes outbound HTTP/HTTPS requests to user-configured hosts (e.g., AI provider endpoints), the SSRF guard MUST validate non-loopback hosts for DNS rebinding protection. Loopback addresses (`127.0.0.1`, `localhost`, `::1`) are trusted and bypass SSRF validation. Non-loopback user-configured hosts go through `ssrfGuard.validate`, which checks resolved IPs against `PRIVATE_IP_PATTERNS` to prevent DNS rebinding attacks. If `ssrfGuard.validate` returns `unsafe`, the request MUST be blocked.
+
+**BAD** — Bypass SSRF validation for user-configured hosts:
+```typescript
+// Directly use user-configured URL without SSRF check
+const response = await fetch(userConfiguredUrl);
+```
+
+**BAD** — Trust all user-configured endpoints without validation:
+```typescript
+// Skip SSRF check because "user configured it"
+if (isUserConfigured(url)) {
+  return makeRequest(url); // ❌ DNS rebinding vulnerability
+}
+```
+
+**GOOD** — Validate non-loopback hosts via ssrfGuard:
+```typescript
+import { ssrfGuard } from "../security/ssrf-guard/ssrf-guard";
+
+const parsed = new URL(userConfiguredUrl);
+const isLoopback = parsed.hostname === "127.0.0.1"
+  || parsed.hostname === "localhost"
+  || parsed.hostname === "::1";
+
+if (!isLoopback) {
+  const validation = await ssrfGuard.validate(parsed);
+  if (!validation.safe) {
+    return { ok: false, error: new Error(`SSRF blocked: ${validation.reason}`) };
+  }
+}
+return await makeRequest(userConfiguredUrl);
+```
+
+**Verification**: Check `electron/src/api/route-groups/core-routes.ts` `test-connection` handler and any code path that makes outbound requests to user-configured hosts. Verify: (1) loopback hosts bypass SSRF, (2) non-loopback hosts call `ssrfGuard.validate`, (3) `unsafe` result blocks the request.
+
+**Discovered in**: Security audit found that `ssrfGuard` module was available but not enforced for user-configured AI provider endpoints. DNS rebinding could allow attackers to redirect requests to internal network addresses. Test: `electron/src/__tests__/r105-ssrf-user-host-dns-rebinding.test.ts`.

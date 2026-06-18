@@ -342,3 +342,39 @@ return [...failedTasks, ...timeoutTasks];
 **Verification**: Search for `status === "failed"` in task-related code. Verify each location also handles `timeout` where appropriate (recovery, cleanup, statistics, UI display). Search for `getFailedTasks` and verify it includes timeout tasks. Search for `clearFailedTasks` and verify it clears both states.
 
 **Discovered in**: Video task timeout directly marked tasks as `failed`, making it impossible to distinguish between "provider confirmed failure" and "we stopped polling". Users couldn't tell whether their video might still be generating, and recovery guidance was misleading.
+
+### R108: API Client MUST Use Result Pattern (No Throw)
+
+The `apiClient` in `src/infrastructure/api/client.ts` MUST follow the Result pattern — its `request` function (and convenience methods `get`/`post`/`put`/`delete`) MUST return `Result<T, AppError>` and MUST NOT throw on any error condition, including network errors (`fetch` rejection), `AppApiClientError` instances, or unexpected exceptions. Callers rely on the Result pattern to handle errors safely without `try/catch`. Throwing breaks the Result contract and forces callers to add defensive `try/catch` around every call.
+
+**BAD** — Throwing on network error:
+```typescript
+async function request<T>(url: string): Promise<T> {
+  const response = await fetch(url); // throws on network failure
+  if (!response.ok) throw new AppApiClientError(...);
+  return await response.json();
+}
+```
+
+**GOOD** — Result pattern, never throws:
+```typescript
+async function request<T>(url: string): Promise<Result<T, AppError>> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return err(new ApiError(`HTTP ${response.status}`));
+    }
+    const data = await response.json();
+    return ok(data);
+  } catch (e) {
+    if (e instanceof AppApiClientError) {
+      return err(e);
+    }
+    return err(new NetworkError(e instanceof Error ? e.message : String(e)));
+  }
+}
+```
+
+**Verification**: Mock `fetch` to reject with `TypeError("Failed to fetch")` and with an `AppApiClientError`. Verify `apiClient.get(...)` returns `{ ok: false, error: ... }` in both cases rather than throwing. Verify a successful response returns `{ ok: true, value: ... }`.
+
+**Discovered in**: API client audit found that some error paths could throw, breaking the Result pattern contract and forcing callers to add defensive `try/catch`. Test: `src/infrastructure/api/__tests__/r108-api-client-result-no-throw.test.ts`.

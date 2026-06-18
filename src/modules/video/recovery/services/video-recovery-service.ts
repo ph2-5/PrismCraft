@@ -3,6 +3,7 @@ import { fromAsyncThrowable, err, NotFoundError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import type { VideoTask } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import { AppError } from "@/domain/types/result";
 import { TaskMachine, isValidTransition, isStuck, STUCK_TASK_THRESHOLD_MS } from "@/modules/video/task-management";
 
@@ -78,7 +79,7 @@ export async function recoverVideoByTaskId(taskId: string): Promise<Result<Video
   }
 
   if (task.status === "completed" && task.videoUrl) {
-    return { ok: true, value: { videoUrl: task.videoUrl, message: "视频已存在" } };
+    return { ok: true, value: { videoUrl: task.videoUrl, message: t("error.videoAlreadyExists") } };
   }
 
   if (TaskMachine.isTerminal(task.status)) {
@@ -86,7 +87,7 @@ export async function recoverVideoByTaskId(taskId: string): Promise<Result<Video
       { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=recovery` },
       "VideoRecovery",
     );
-    return err(new AppError("INVALID_TRANSITION", `任务处于终态 ${task.status}，无法恢复`));
+    return err(new AppError("INVALID_TRANSITION", t("error.taskInTerminalState", { status: task.status })));
   }
 
   return fromAsyncThrowable(async () => {
@@ -126,7 +127,7 @@ export async function recoverVideoByTaskId(taskId: string): Promise<Result<Video
             { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=completed` },
             "VideoRecovery",
           );
-          throw new AppError("INVALID_TRANSITION", `状态转换不合法: ${task.status} → completed`);
+          throw new AppError("INVALID_TRANSITION", t("error.invalidStateTransition", { from: task.status, to: "completed" }));
         }
         const updatedTask = transitionResult.value;
         await container.videoTaskStorage.updateVideoTask(taskId, {
@@ -158,37 +159,27 @@ export async function recoverVideoByTaskId(taskId: string): Promise<Result<Video
           } catch (e) {
             errorLogger.warn("[VideoRecovery] 事件派发失败", e);
           }
-          try {
-            if (window.__VIDEO_TASK_STORE__) {
-              const state = window.__VIDEO_TASK_STORE__.getState();
-              if (state && typeof state.recoverTask === "function") {
-                state.recoverTask(taskId, "completed", result.data.videoUrl);
-              }
-            }
-          } catch (e) {
-            errorLogger.warn("[VideoRecovery] 直接通知失败", e);
-          }
         }
 
         return {
           videoUrl: result.data.videoUrl,
-          message: "视频找回成功！",
+          message: t("error.videoRecoverySuccess"),
           status: "completed",
         };
       }
 
       if (isFailed) {
-        throw new AppError("RECOVERY_FAILED", "云端任务已确认失败");
+        throw new AppError("RECOVERY_FAILED", t("error.cloudTaskFailed"));
       }
 
       if (isPending) {
-        throw new AppError("RECOVERY_PENDING", "视频仍在生成中，请稍后重试");
+        throw new AppError("RECOVERY_PENDING", t("error.videoStillGenerating"));
       }
 
-      throw new AppError("UNKNOWN_STATUS", `未知状态: ${status}，请稍后重试`);
+      throw new AppError("UNKNOWN_STATUS", t("error.unknownStatusRetry", { status }));
     }
 
-    throw new AppError("QUERY_FAILED", "查询失败，请检查网络连接");
+    throw new AppError("QUERY_FAILED", t("error.queryFailedCheckNetwork"));
   });
 }
 
@@ -233,7 +224,16 @@ export async function startBackgroundRecovery(): Promise<Result<void>> {
     }
 
     const eligibleTasks = failedTasks.filter((task) => {
-      const timeSinceCreation = Date.now() - new Date(task.createdAt).getTime();
+      const createdAtMs = new Date(task.createdAt).getTime();
+      // 校验时间戳有效性，防止 NaN 导致错误判断
+      if (Number.isNaN(createdAtMs)) {
+        // 记录损坏数据，便于排查；否则损坏任务会被静默跳过无法被发现
+        errorLogger.warn(
+          `[VideoRecovery] 跳过 NaN 时间戳任务: taskId=${task.taskId}, createdAt=${task.createdAt}`,
+        );
+        return false;
+      }
+      const timeSinceCreation = Date.now() - createdAtMs;
       if (timeSinceCreation > MAX_POLL_DURATION_MS) {
         return false;
       }
@@ -245,8 +245,11 @@ export async function startBackgroundRecovery(): Promise<Result<void>> {
         return false;
       }
 
-      const timeSinceLastPoll = task.lastPolledAt
-        ? Date.now() - new Date(task.lastPolledAt).getTime()
+      const lastPolledMs = task.lastPolledAt
+        ? new Date(task.lastPolledAt).getTime()
+        : null;
+      const timeSinceLastPoll = lastPolledMs !== null && !Number.isNaN(lastPolledMs)
+        ? Date.now() - lastPolledMs
         : POLL_INTERVAL_MS;
 
       if (timeSinceLastPoll < POLL_INTERVAL_MS) {

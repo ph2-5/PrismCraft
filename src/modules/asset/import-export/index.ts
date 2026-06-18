@@ -3,6 +3,7 @@ import type { Result } from "@/domain/types";
 import { ok, err, AppError, ValidationError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { safeRun, safeQuery } from "@/shared/db-core";
+import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 
@@ -64,13 +65,15 @@ function validateImportData(data: unknown): Result<ImportData> {
 }
 
 async function deleteExcludingIds(table: string, idColumn: string, keepIds: string[]): Promise<void> {
+  const safeTable = sanitizeTable(table);
+  const safeIdCol = sanitizeIdentifier(idColumn);
   if (keepIds.length === 0) {
-    await safeRun(`DELETE FROM ${table}`);
+    await safeRun(`DELETE FROM ${safeTable}`);
     return;
   }
   const placeholders = keepIds.map(() => "?").join(",");
   await safeRun(
-    `DELETE FROM ${table} WHERE ${idColumn} NOT IN (${placeholders})`,
+    `DELETE FROM ${safeTable} WHERE ${safeIdCol} NOT IN (${placeholders})`,
     keepIds,
   );
 }
@@ -81,7 +84,7 @@ export async function importData(
 ): Promise<Result<ImportResult>> {
   const validation = validateImportData(data);
   if (!validation.ok) {
-    return ok({ success: false, imported: {}, errors: [validation.error.message] });
+    return err(validation.error);
   }
 
   const validData = validation.value;
@@ -192,7 +195,7 @@ export async function importData(
     return ok({ success: true, imported, errors });
   } catch (error) {
     const msg = extractErrorMessage(error);
-    return ok({ success: false, imported, errors: [...errors, msg] });
+    return err(new AppError("IMPORT_ERROR", msg, error));
   }
 }
 

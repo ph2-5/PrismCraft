@@ -1,9 +1,11 @@
 import { classifyError } from "@/domain/types";
 import { performanceMonitor } from "@/infrastructure/monitoring";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
+import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import type { DbRunResult } from "./core";
 
 let _electronApiWarned = false;
+let _httpAvailable: boolean | null = null;
 
 function getElectronAPI() {
   if (!window.electronAPI) {
@@ -14,6 +16,58 @@ function getElectronAPI() {
     throw new Error("electronAPI not available");
   }
   return window.electronAPI;
+}
+
+// HTTP DB 端点调用（IPC/HTTP 统一通信层）
+// 优先使用 HTTP API，fallback 到 IPC（向后兼容）
+async function httpDbCall<T>(
+  endpoint: string,
+  body: unknown,
+): Promise<{ success: boolean; data?: T; error?: string } | null> {
+  // 仅在浏览器环境且有 fetch 时尝试 HTTP
+  if (typeof window === "undefined" || typeof fetch !== "function") {
+    return null;
+  }
+
+  // 首次调用时检测 HTTP 服务器是否可用（缓存结果避免重复探测）
+  if (_httpAvailable === null) {
+    try {
+      const probe = await fetch(`http://localhost:${API_SERVER_PORT}/api/health`, {
+        method: "GET",
+        headers: ELECTRON_APP_HEADERS,
+        signal: AbortSignal.timeout(1000),
+      });
+      _httpAvailable = probe.ok;
+    } catch {
+      _httpAvailable = false;
+      errorLogger.debug("[sqlite-core] HTTP API server not available, falling back to IPC");
+    }
+  }
+
+  if (!_httpAvailable) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`http://localhost:${API_SERVER_PORT}/api/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...ELECTRON_APP_HEADERS,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok) {
+      return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+    }
+    return (await response.json()) as { success: boolean; data?: T; error?: string };
+  } catch (error) {
+    // HTTP 调用失败时标记为不可用，下次回退到 IPC
+    _httpAvailable = false;
+    errorLogger.debug(`[sqlite-core] HTTP DB call failed for ${endpoint}, falling back to IPC`, error);
+    return null;
+  }
 }
 
 export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 5): Promise<T> {
@@ -50,9 +104,19 @@ export async function safeQuery<T>(
 ): Promise<T[]> {
   return performanceMonitor.measure("db_query", sql, () =>
     withRetry(async () => {
+      // 优先尝试 HTTP API（统一通信层）
+      const httpResult = await httpDbCall<{ data?: T[] }>("db/query", { sql, params });
+      if (httpResult !== null) {
+        if (!httpResult.success) {
+          throw new Error(extractDbErrorMessage(httpResult, `SQLite query failed: ${sql.substring(0, 100)}`));
+        }
+        return (httpResult.data?.data ?? []) as T[];
+      }
+      // Fallback: IPC
       const response = await getElectronAPI().dbQuery(sql, params);
       if (!response.success) {
-        throw new Error(extractDbErrorMessage(response, `SQLite query failed: ${sql.substring(0, 100)}`));
+        errorLogger.error("SQLite query failed", { sql: sql.substring(0, 200) });
+        throw new Error(extractDbErrorMessage(response, "SQLite query failed"));
       }
       return (response.data ?? []) as T[];
     }),
@@ -65,9 +129,25 @@ export async function safeRun(
 ): Promise<DbRunResult> {
   return performanceMonitor.measure("db_query", sql, () =>
     withRetry(async () => {
+      // 优先尝试 HTTP API（统一通信层）
+      const httpResult = await httpDbCall<{ data?: { changes?: number; lastInsertRowid?: number | bigint } }>("db/run", { sql, params });
+      if (httpResult !== null) {
+        if (!httpResult.success) {
+          errorLogger.error("SQLite run failed", { sql: sql.substring(0, 200) });
+          throw new Error(extractDbErrorMessage(httpResult, "SQLite run failed"));
+        }
+        const data = httpResult.data?.data;
+        const rowid = data?.lastInsertRowid;
+        return {
+          changes: typeof data?.changes === "number" ? data.changes : undefined,
+          lastInsertRowid: typeof rowid === "bigint" ? Number(rowid) : rowid,
+        };
+      }
+      // Fallback: IPC
       const response = await getElectronAPI().dbRun(sql, params);
       if (!response.success) {
-        throw new Error(extractDbErrorMessage(response, `SQLite run failed: ${sql.substring(0, 100)}`));
+        errorLogger.error("SQLite run failed", { sql: sql.substring(0, 200) });
+        throw new Error(extractDbErrorMessage(response, "SQLite run failed"));
       }
       return { changes: response.data?.changes, lastInsertRowid: response.data?.lastInsertRowid };
     }),
@@ -79,10 +159,22 @@ export async function safeTransaction(
 ): Promise<unknown[]> {
   return performanceMonitor.measure("db_transaction", `transaction(${statements.length})`, () =>
     withRetry(async () => {
+      // 优先尝试 HTTP API（统一通信层）
+      const httpResult = await httpDbCall<{ data?: unknown[] }>("db/transaction", { statements });
+      if (httpResult !== null) {
+        if (!httpResult.success) {
+          const sqlPreview = statements.map((s) => s.sql.substring(0, 50)).join("; ");
+          errorLogger.error("SQLite transaction failed", { sql: sqlPreview });
+          throw new Error(extractDbErrorMessage(httpResult, "SQLite transaction failed"));
+        }
+        return (httpResult.data?.data ?? []) as unknown[];
+      }
+      // Fallback: IPC
       const response = await getElectronAPI().dbTransaction(statements);
       if (!response.success) {
         const sqlPreview = statements.map((s) => s.sql.substring(0, 50)).join("; ");
-        throw new Error(extractDbErrorMessage(response, `SQLite transaction failed: ${sqlPreview}`));
+        errorLogger.error("SQLite transaction failed", { sql: sqlPreview });
+        throw new Error(extractDbErrorMessage(response, "SQLite transaction failed"));
       }
       return (response.data ?? []) as unknown[];
     }),

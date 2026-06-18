@@ -142,7 +142,7 @@ export async function generateBeatFramePair(
   options?: Record<string, unknown>,
 ): Promise<FramePairResult> {
   if (!beat.keyframe?.imageUrl) {
-    throw new Error("生成首尾帧前必须先生成预览图");
+    throw new Error("PREVIEW_REQUIRED_BEFORE_KEYFRAME");
   }
 
   const enhancedEnabled = beat.enhancedGeneration === true;
@@ -228,7 +228,7 @@ export async function generateBeatVideo(
   options?: Record<string, unknown>,
 ): Promise<VideoResult> {
   if (!beat.framePair?.firstFrame?.imageUrl) {
-    throw new Error("生成视频前必须先生成首尾帧");
+    throw new Error("FRAME_PAIR_REQUIRED_BEFORE_VIDEO");
   }
 
   const result = await apiGateway.generateVideo({

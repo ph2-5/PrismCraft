@@ -1,16 +1,16 @@
 # DI Container Token Reference
 
-> Auto-generated from `src/infrastructure/di/container.ts` at 2026-05-29T15:26:17.698Z
+> Auto-generated from `src/infrastructure/di/container.ts` at 2026-06-18T05:12:29.880Z
 
 ## Token Categories
 
 | Category | Description | Count |
 |----------|-------------|-------|
-| A. Domain Port 实现 | Domain Port 实现 | 9 |
+| A. Domain Port 实现 | Domain Port 实现 | 10 |
 | B. 有状态服务 | 有状态服务 | 6 |
 | C. Storage 实例 | Storage 实例 | 11 |
 | D. Repository 实例 | Repository 实例 | 1 |
-| E. 懒加载模块 | 懒加载模块 | 2 |
+| E. 懒加载模块 | 懒加载模块 | 3 |
 
 ## Token Details
 
@@ -27,6 +27,7 @@
 | `textProvider` | ITextProvider |  | - |
 | `fileUploader` | IFileUploader |  | - |
 | `syncStorage` | ISyncStorage |  | - |
+| `fileStorage` | `unknown` | ✓ | - |
 
 ### B. 有状态服务
 
@@ -43,14 +44,14 @@
 
 | Token | Type | Lazy | Source |
 |-------|------|------|--------|
-| `versionStorage` | `unknown` |  | `@/infrastructure/storage/versions` |
-| `elementStorage` | `unknown` |  | `@/infrastructure/storage/elements` |
+| `versionStorage` | IVersionStorage |  | `@/infrastructure/storage/versions` |
+| `elementStorage` | IElementStorage |  | `@/infrastructure/storage/elements` |
 | `videoCacheStorage` | `unknown` |  | `@/infrastructure/storage/video-cache` |
 | `imageCacheStorage` | `unknown` |  | `@/infrastructure/storage/image-cache` |
 | `collectionStorage` | `unknown` |  | `@/infrastructure/storage/collections` |
 | `storyboardStorage` | `unknown` |  | `@/infrastructure/storage/storyboard` |
 | `importExportStorage` | `unknown` |  | `@/infrastructure/storage/import-export` |
-| `templateStorage` | `unknown` |  | `@/infrastructure/storage/templates` |
+| `templateStorage` | ITemplateStorage |  | `@/infrastructure/storage/templates` |
 | `autoSaveStorage` | `unknown` |  | `@/infrastructure/storage/auto-save` |
 | `errorLogStorage` | `unknown` |  | `@/infrastructure/storage/error-logs` |
 | `sessionStorage` | `unknown` |  | `@/infrastructure/storage/sessions` |
@@ -59,7 +60,7 @@
 
 | Token | Type | Lazy | Source |
 |-------|------|------|--------|
-| `mediaAssetRepository` | `unknown` |  | - |
+| `mediaAssetRepository` | IMediaAssetRepository |  | - |
 
 ### E. 懒加载模块
 
@@ -67,6 +68,7 @@
 |-------|------|------|--------|
 | `elementManager` | `unknown` | ✓ | - |
 | `referenceEngine` | `unknown` | ✓ | - |
+| `syncEngine` | `unknown` | ✓ | - |
 
 ## Usage Examples
 

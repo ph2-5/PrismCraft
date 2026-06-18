@@ -1,6 +1,6 @@
 # AI Animation Studio — 完整 API 参考手册
 
-> 版本: 0.9.5 | 架构: Electron + Vite + React + DDD
+> 版本: 0.10.0 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -31,6 +31,8 @@ shared → domain, infrastructure (proxy exports only)
 domain → NOTHING (pure types)
 ```
 
+> **注**: 文件操作应通过 `shared/file-http` 双轨层（HTTP+IPC），而非直接调用 `electronAPI`。该层自动探测 HTTP 可用性并回退到 IPC，提供 7 个公开函数：`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`。
+
 ---
 
 ## 快速查找索引
@@ -56,6 +58,7 @@ domain → NOTHING (pure types)
 | 插件系统 | 第四部分 | electron/plugins |
 | API 路由与 Schema | 第四部分 | electron/api |
 | IPC 安全桥接 | 第四部分 | electron/preload |
+| 文件操作统一层 (HTTP+IPC 双轨) | 第三部分 | shared/file-http |
 | 错误处理 | 第一部分 | domain/types/result |
 | 事件总线 | 第三部分 | shared/event-bus |
 | 国际化 | 第三部分 | shared/constants |
@@ -73,6 +76,7 @@ domain → NOTHING (pure types)
 | 纯函数 (shared-logic) | 第一部分 | shared-logic/* |
 | API 请求 Schema | 第四部分 | electron/api/schemas.ts |
 | IPC 类型 | 第四部分 | electron/preload.ts, shared/types/ipc.ts |
+| 双轨通信工具 (HTTP+IPC) | 第三部分 | shared/file-http/index.ts |
 
 ---
 

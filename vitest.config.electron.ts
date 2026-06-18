@@ -24,6 +24,7 @@ export default defineConfig({
     alias: {
       '@shared': path.resolve(__dirname, './electron/src/shared'),
       '@domain': path.resolve(__dirname, './electron/src/domain'),
+      '@shared-logic': path.resolve(__dirname, './src/shared-logic'),
     },
   },
 });

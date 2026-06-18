@@ -57,7 +57,7 @@ import { generateImage, analyzeImage } from "@/infrastructure/ai-providers/image
 import { generateText } from "@/infrastructure/ai-providers/text";
 import { uploadFile } from "@/infrastructure/ai-providers/utils";
 import { safeQuery, safeRun, safeTransaction } from "@/infrastructure/storage/sqlite-core";
-import { registerChangeTracker } from "@/infrastructure/storage/core";
+import { registerChangeTracker, unregisterChangeTracker } from "@/infrastructure/storage/core";
 import { apiClient, imageApi, videoApi, textApi } from "@/infrastructure/api";
 import { eventBus } from "@/shared/event-bus";
 import { importExportStorage } from "@/infrastructure/storage/import-export";
@@ -95,6 +95,7 @@ const syncStorage: ISyncStorage = {
   safeRun,
   safeTransaction,
   registerChangeTracker: registerChangeTracker as ISyncStorage["registerChangeTracker"],
+  unregisterChangeTracker,
 };
 
 const tokens = {
@@ -109,6 +110,10 @@ const tokens = {
   textProvider: createToken<ITextProvider>("textProvider", () => textProvider),
   fileUploader: createToken<IFileUploader>("fileUploader", () => fileUploader),
   syncStorage: createToken<ISyncStorage>("syncStorage", () => syncStorage),
+  fileStorage: createToken("fileStorage", async () => {
+    const { getFileStorage } = await import("@/infrastructure/storage/file-storage-factory");
+    return getFileStorage();
+  }),
 
   // ── B. 有状态服务（单例，需测试替换） ──────────────────────────────────
   eventBus: createToken("eventBus", () => eventBus),
@@ -216,6 +221,7 @@ export function getTokenRegistry(): Array<{
     textProvider: "A",
     fileUploader: "A",
     syncStorage: "A",
+    fileStorage: "E",
     eventBus: "B",
     apiClient: "B",
     imageApi: "B",

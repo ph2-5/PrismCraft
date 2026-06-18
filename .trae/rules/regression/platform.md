@@ -2,20 +2,35 @@
 
 > 核心关注：IPC、Electron 环境、进程模型
 
-### R21: Electron App Must NOT Use fetch("/api/...") for Internal Communication
-In an Electron + Next.js (output: "export") app, there is no server-side API route handler. All `fetch("/api/...")` calls will fail at runtime. Internal data access MUST go through the DI container, IPC bridge, or shared proxy exports (e.g., `checkConfigStatus()`, `testConnection()`). This applies to config checks, connection tests, and any other renderer↔main communication.
+### R21 (UPDATED): Internal Communication SHOULD Use HTTP API via @/shared/file-http
+The app now has an HTTP API server (`electron/src/api/server.ts`) running on `API_SERVER_PORT`. Internal communication for file operations and config read/write SHOULD use HTTP API (`/api/file/*`, `/api/config/*`) via the `@/shared/file-http` unified layer (HTTP first + IPC fallback). Direct `fetch("/api/...")` without going through `file-http` is discouraged because it bypasses the IPC fallback. Browser dev mode (no Electron) should use `isElectron()` guard for desktop-only features.
 
-**BAD**:
+**BAD** — Direct fetch without unified layer (bypasses IPC fallback):
 ```typescript
 const res = await fetch("/api/config");
 const data = await res.json();
 ```
 
-**GOOD**:
+**BAD** — Direct electronAPI call in modules (bypasses HTTP unified layer):
+```typescript
+const value = window.electronAPI.getConfig("key");
+window.electronAPI.setConfig("key", value);
+```
+
+**GOOD** — Use @/shared/file-http unified layer:
+```typescript
+import { writeFile, getCacheDirectory } from "@/shared/file-http";
+const result = await writeFile(filePath, data);
+const cacheDir = await getCacheDirectory();
+```
+
+**GOOD** — Use @/shared/api-config for config status checks:
 ```typescript
 import { checkConfigStatus } from "@/shared/api-config";
 const data = await checkConfigStatus();
 ```
+
+**Note**: Desktop-only features (saveFileDialog, openPath, openExternal) may retain direct IPC with browser fallback.
 
 ### R43: Destructive UI Operations Must Require User Confirmation
 When a UI action will permanently delete data (single item delete, batch delete, clear all), the handler MUST call `confirm()` with `variant: "danger"` before executing the destructive operation. The handler MUST await the confirmation result and abort if the user cancels (`if (!confirmed) return`). This applies to video task deletion, batch deletion, and any other irreversible operations. Without confirmation, accidental clicks cause permanent data loss.

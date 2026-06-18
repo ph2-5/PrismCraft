@@ -345,7 +345,7 @@ export function saveDatabase(): boolean {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send("db:persistence-error", {
             type: "disk-full",
-            message: "磁盘空间不足！请立即清理磁盘空间。",
+            message: "DISK_FULL_PLEASE_CLEANUP",
             timestamp: Date.now()
           });
         }

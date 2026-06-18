@@ -285,7 +285,7 @@ ai-animation-studio/
 
 如有技术问题或购买意向，请联系：
 
-- 项目版本：v0.9.5
+- 项目版本：v0.10.0
 - 技术文档：`docs/ARCHITECTURE.md`
 - 插件规范：`docs/plugin-specification.md`
 

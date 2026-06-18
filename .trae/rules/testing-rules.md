@@ -98,8 +98,10 @@ Current data-testid locations:
 
 When adding a regression test (after evaluating Q1-Q5 from `regression-guard-automation.md`):
 
+测试文件命名：`r{n}-{kebab-name}.test.ts`（推荐）或 `regression-r{n}.test.ts`
+
 ```typescript
-// regression-r{n}.test.ts
+// r{n}-{kebab-name}.test.ts  (推荐)  或  regression-r{n}.test.ts
 import { describe, it, expect } from "vitest";
 
 describe("R{n}: {bug description}", () => {
@@ -116,6 +118,15 @@ describe("R{n}: {bug description}", () => {
   });
 });
 ```
+
+## Testing file-http
+
+`@/shared/file-http` 是 HTTP+IPC 双轨统一层，测试时需注意：
+
+- 使用 `_resetHttpCache()`（从 `@/shared/file-http` 导入）在测试之间重置 HTTP 可用性缓存，避免上一个测试的探测结果污染下一个测试
+- HTTP 路径测试：mock `fetch`，验证 HTTP 请求参数与响应处理
+- IPC 回退路径测试：mock `electronAPI`（`writeFile`/`readFile`/`getConfig`/`setConfig` 等），验证 HTTP 不可用时正确回退到 IPC
+- 公开 API 共 7 个：`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`
 
 ## Running Tests
 

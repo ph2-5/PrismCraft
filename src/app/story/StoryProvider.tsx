@@ -283,9 +283,11 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled && result.ok) {
           if (result.value.length > 0) {
             setStoriesRef.current(result.value);
-            const firstStory = result.value[0]!;
-            setCurrentStoryRef.current(firstStory, true);
-            setBeatsRef.current(firstStory.beats || [], true);
+            const firstStory = result.value[0];
+            if (firstStory) {
+              setCurrentStoryRef.current(firstStory, true);
+              setBeatsRef.current(firstStory.beats || [], true);
+            }
           }
           markCleanRef.current("story");
         }

@@ -403,3 +403,34 @@ function getAllTemplates(pluginTemplates?: PluginProviderTemplate[]) {
 **Verification**: Search for provider templates that reference unavailable APIs. Verify they have `deprecated: true` and that `getAllTemplates()` filters them. Users should never see a template they can't actually use.
 
 **Discovered in**: Sora was listed in provider templates but its API is not publicly available. Users could select it, configure it, but all API calls would fail.
+
+### R107: Upload File Size MUST Be Limited to 50MB
+
+When uploading files via `uploadFile` (in `src/infrastructure/ai-providers/utils.ts`), the file size MUST be checked against `MAX_UPLOAD_FILE_BYTES` (50MB) before initiating the network upload. Files exceeding the limit MUST be rejected with an error message containing both the actual size and the limit size, and MUST NOT trigger any network upload call. This prevents memory exhaustion and network timeout issues from oversized uploads.
+
+**BAD** — No size check before upload:
+```typescript
+async function uploadFile(file: File) {
+  const base64 = await fileToBase64(file);
+  return await apiCallWithRetry(() => uploadToProvider(base64));
+}
+```
+
+**GOOD** — Size check with descriptive error:
+```typescript
+const MAX_UPLOAD_FILE_BYTES = 50 * 1024 * 1024;
+
+async function uploadFile(file: File) {
+  if (file.size > MAX_UPLOAD_FILE_BYTES) {
+    return err(new Error(
+      `文件大小 ${formatBytes(file.size)} 超过限制 ${formatBytes(MAX_UPLOAD_FILE_BYTES)}`
+    ));
+  }
+  const base64 = await fileToBase64(file);
+  return ok(await apiCallWithRetry(() => uploadToProvider(base64)));
+}
+```
+
+**Verification**: Call `uploadFile` with a File object whose `size` exceeds 50MB (use `Object.defineProperty` to override `size` without allocating real memory). Verify: (1) the function returns an error without calling `apiCallWithRetry`, (2) the error message contains both sizes.
+
+**Discovered in**: Security audit identified that file uploads had no size limit, allowing users to upload arbitrarily large files that could exhaust memory or hang the network layer. Test: `src/infrastructure/ai-providers/__tests__/r107-upload-file-size-limit.test.ts`.

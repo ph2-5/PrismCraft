@@ -3,14 +3,18 @@ import { fromAsyncThrowable } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
+import {
+  writeFile as httpWriteFile,
+  getFileInfo as httpGetFileInfo,
+  getCacheDirectory as httpGetCacheDirectory,
+  getDiskSpace as httpGetDiskSpace,
+  fileExists as httpFileExists,
+  deleteFile as httpDeleteFile,
+} from "@/shared/file-http";
 
 const CACHE_RETRY_COUNT = 2;
 const MAX_IMAGE_CACHE_SIZE = 500;
 const MAX_TOTAL_IMAGE_SIZE_MB = 512;
-
-function getElectronAPI(): NonNullable<Window["electronAPI"]> {
-  return window.electronAPI!;
-}
 
 function isHttpExpiredError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -59,7 +63,7 @@ export async function cacheImageBlob(
 
     for (let attempt = 0; attempt < CACHE_RETRY_COUNT; attempt++) {
       try {
-        const cacheDirResult = await getElectronAPI().getCacheDirectory();
+        const cacheDirResult = await httpGetCacheDirectory();
         if (!cacheDirResult?.success || !cacheDirResult.path) {
           throw new Error("Failed to get cache directory");
         }
@@ -70,7 +74,7 @@ export async function cacheImageBlob(
         const hash = cacheKey.split("").reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
         const filePath = `${imageDir}/${Math.abs(hash).toString(36)}_${Date.now()}.${ext}`;
 
-        const diskSpace = await getElectronAPI().getDiskSpace(cacheDir);
+        const diskSpace = await httpGetDiskSpace(cacheDir);
         if (diskSpace?.success && diskSpace.availableBytes !== undefined) {
           const minRequiredBytes = 1024 * 1024;
           if (diskSpace.availableBytes < minRequiredBytes) {
@@ -96,7 +100,7 @@ export async function cacheImageBlob(
 
         const downloadedData = downloadCtx.data;
 
-        const writeResult = await getElectronAPI().writeFile(
+        const writeResult = await httpWriteFile(
           filePath,
           downloadedData.buffer as ArrayBuffer,
         );
@@ -104,9 +108,9 @@ export async function cacheImageBlob(
           throw new Error("Failed to write file to disk");
         }
 
-        const fileInfo = await getElectronAPI().getFileInfo(filePath);
-        if (fileInfo && result.totalBytes > 0 && fileInfo.size !== result.totalBytes) {
-          await getElectronAPI().deleteFile(filePath);
+        const fileInfo = await httpGetFileInfo(filePath);
+        if (fileInfo && fileInfo.success && result.totalBytes > 0 && fileInfo.size !== result.totalBytes) {
+          await httpDeleteFile(filePath);
           throw new Error(`下载不完整: ${fileInfo.size}/${result.totalBytes} bytes`);
         }
 
@@ -123,9 +127,8 @@ export async function cacheImageBlob(
             dbError,
           );
           try {
-            const api = getElectronAPI();
-            const exists = await api.fileExists(filePath);
-            if (exists) await api.deleteFile(filePath);
+            const exists = await httpFileExists(filePath);
+            if (exists) await httpDeleteFile(filePath);
           } catch (cleanupError) {
             errorLogger.warn("[ImageCache] 清理失败缓存文件失败", cleanupError);
           }
@@ -160,8 +163,7 @@ export async function getCachedImagePath(sourceUrl: string): Promise<Result<stri
     const cached = await container.imageCacheStorage.getCachedImageFile(cacheKey);
     if (!cached) return null;
 
-    const api = getElectronAPI();
-    const exists = await api.fileExists(cached.filePath);
+    const exists = await httpFileExists(cached.filePath);
     if (!exists) return null;
 
     return cached.filePath;
@@ -208,11 +210,10 @@ export async function cleanExpiredImageCache(
 ): Promise<Result<number>> {
   return fromAsyncThrowable(async () => {
     const filesToDelete = await container.imageCacheStorage.cleanExpiredImageCache(maxAgeMs);
-    const api = getElectronAPI();
     for (const file of filesToDelete) {
       try {
-        const exists = await api.fileExists(file);
-        if (exists) await api.deleteFile(file);
+        const exists = await httpFileExists(file);
+        if (exists) await httpDeleteFile(file);
       } catch (e) {
         errorLogger.warn("[ImageCache] 删除过期缓存文件失败", e);
       }

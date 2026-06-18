@@ -352,11 +352,11 @@ describe("Built-in Provider Capabilities", () => {
     });
 
     it("should throw on buildVideoRequest (defense-in-depth)", () => {
-      expect(() => plugin.buildVideoRequest({ prompt: "test", duration: 5 })).toThrow("Anthropic Claude 不支持视频生成");
+      expect(() => plugin.buildVideoRequest({ prompt: "test", duration: 5 })).toThrow("ANTHROPIC_VIDEO_NOT_SUPPORTED");
     });
 
     it("should throw on buildImageRequest (defense-in-depth)", () => {
-      expect(() => plugin.buildImageRequest({ prompt: "test", size: "1024x1024", referenceImages: [] })).toThrow("Anthropic Claude 不支持图片生成");
+      expect(() => plugin.buildImageRequest({ prompt: "test", size: "1024x1024", referenceImages: [] })).toThrow("ANTHROPIC_IMAGE_NOT_SUPPORTED");
     });
 
     it("should build text request correctly", () => {

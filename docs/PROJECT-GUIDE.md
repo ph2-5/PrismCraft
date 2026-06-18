@@ -1,6 +1,6 @@
 # AI Animation Studio — 项目全方位指南
 
-> 版本：0.9.5 | 许可证：MIT | 最后更新：2026-06-16
+> 版本：0.10.0 | 许可证：MIT | 最后更新：2026-06-18
 
 ---
 
@@ -35,7 +35,7 @@ AI Animation Studio 是一款**本地优先（local-first）、离线可用（of
 
 ### 1.4 项目版本与规模
 
-- **版本**：0.9.5
+- **版本**：0.10.0
 - **许可证**：私有（未开源）
 - **业务模块**：9 个（story、video、shot、prompt、asset、sync、character、scene、persistence）
 - **子域**：44 个
@@ -352,7 +352,7 @@ shared 层是跨切面工具层，包含：
 
 - **跨切面 UI**：Toast、Sidebar、ErrorBoundary、DeleteConfirmDialog、AssetSelectorDialog
 - **工具函数**：getErrorMessage、resolveImageUrl、emitToast 等
-- **infrastructure 代理导出**：db-core、api-config、video-cache、outfit、sql-safety、model-capabilities、user-facing-error
+- **infrastructure 代理导出**：db-core、api-config、video-cache、outfit、sql-safety、model-capabilities、user-facing-error、file-http
 
 **代理导出模式**：
 
@@ -368,6 +368,29 @@ import { withRetry } from "@/infrastructure/storage/utils"; // ❌ 违反！
 ```
 
 关键约束：`shared/` 不得导入 `@/modules/*`。
+
+#### 5.5.1 统一文件操作通信层 (`@/shared/file-http`)
+
+`src/shared/file-http/index.ts` 提供统一的文件操作 API，采用 **HTTP 优先 + IPC 回退** 双轨设计：
+
+- **HTTP 优先**：通过 `http://localhost:${API_SERVER_PORT}/api/*` 调用主进程 HTTP API Server，享受流式传输、标准状态码、Zod schema 校验等优势
+- **IPC 回退**：当 HTTP API Server 不可用（启动早期、降级模式）时，自动回退到 `window.electronAPI` IPC 通道
+
+**公开函数** (7 个)：
+
+| 函数 | 说明 | HTTP 路由 |
+|------|------|----------|
+| `writeFile` | 写入文件 (受 `MAX_WRITE_SIZE = 100MB` 限制) | `POST /api/file/write` |
+| `readFile` | 读取文件内容 | IPC 回退 |
+| `getFileInfo` | 查询文件元信息 | IPC 回退 |
+| `getCacheDirectory` | 查询缓存目录路径 | `GET /api/file/cache-directory` |
+| `getDiskSpace` | 查询磁盘可用空间 | `GET /api/file/disk-space` |
+| `fileExists` | 判断文件是否存在 | IPC 回退 |
+| `deleteFile` | 删除文件 | IPC 回退 |
+
+> 测试用 `_resetHttpCache` 不属于公开 API。
+
+**已迁移的调用方**：`src/modules/video/cache/services/video-cache.ts` 与 `image-cache.ts` 已全部改用 `@/shared/file-http`，不再直接调用 `window.electronAPI` 或 fetch。
 
 ### 5.6 app 层
 
@@ -591,6 +614,8 @@ function mapApiStatus(apiStatus: string, videoUrl?: string): VideoTaskStatus {
 1. **向量时钟而非时间戳**：使用向量时钟（Vector Clock）判断数据的新旧关系，而非简单的时间戳比较。时间戳在时钟偏移或并发修改时可能产生错误判断，向量时钟能正确处理并发场景。
 
 2. **engine 和 presentation 独立**：同步引擎不依赖 UI，可以在后台独立运行。
+
+3. **`getDeviceId()` 异步化**：`src/modules/sync/engine/changelog.ts:74` 中的 `getDeviceId()` 为 `async function getDeviceId(): Promise<string>`，采用 **HTTP 优先 + IPC 回退 + 内存缓存** 策略：优先通过 HTTP `/api/config/get` 获取设备 ID，HTTP 不可用时回退到 `window.electronAPI` IPC，首次解析后缓存到内存。调用方必须 `await getDeviceId()`，不能同步使用。
 
 ### 7.7 character 模块
 
@@ -1250,6 +1275,28 @@ function createWindow(): BrowserWindow {
 
 `api-server.ts` 改为 re-export，保持向后兼容。
 
+**路由组** (`api/route-groups/`，共 7 个)：
+
+| 路由组 | 说明 |
+|--------|------|
+| `core-routes.ts` | 核心路由（含 `config/get`、`config/set`） |
+| `db-routes.ts` | 数据库路由 |
+| `file-routes.ts` | 文件路由（`file/write`、`file/cache-directory`、`file/disk-space`，`MAX_WRITE_SIZE = 100MB`） |
+| `generation-routes.ts` | AI 生成路由 |
+| `plugin-routes.ts` | 插件管理路由 |
+| `shot-routes.ts` | 分镜系统路由 |
+| `storyboard-routes.ts` | 分镜板生成路由 |
+
+**新增 HTTP 路由**（5 个）：
+
+| 路由 | 说明 | 所属路由组 |
+|------|------|-----------|
+| `POST /api/config/get` | 单键配置查询 | core-routes.ts |
+| `POST /api/config/set` | 单键配置写入 | core-routes.ts |
+| `POST /api/file/write` | 文件写入（受 `MAX_WRITE_SIZE = 100MB` 限制） | file-routes.ts |
+| `GET /api/file/cache-directory` | 缓存目录查询 | file-routes.ts |
+| `GET /api/file/disk-space` | 磁盘空间查询 | file-routes.ts |
+
 **Zod Schema 验证流程**：
 
 1. 路由注册时关联 Zod schema（`Route.schema` 字段）
@@ -1458,6 +1505,7 @@ overrideToken(container.videoTaskStorage, () => mockStorage);
 | @/shared/db-core | withRetry, safeQuery, safeRun, safeTransaction | @/infrastructure/storage/utils |
 | @/shared/api-config | API 配置相关 | @/infrastructure/api |
 | @/shared/video-cache | 视频缓存相关 | @/infrastructure/storage/video-cache |
+| @/shared/file-http | 统一文件操作通信层 (HTTP 优先 + IPC 回退) | @/shared/file-http (导出 `writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`) |
 | @/shared/outfit | 服装管理纯函数 | @/infrastructure/outfit |
 | @/shared/sql-safety | buildSafeUpdate, buildSafeDelete, sanitizeIdentifier, sanitizeTable | @/infrastructure/sql-sanitizer |
 | @/shared/model-capabilities | 模型能力查询 | @/infrastructure/ai-providers |
@@ -1571,11 +1619,12 @@ ipcMain.handle("secure-config:set", async (_event, { key, value }) => {
 
 ### 15.2 SSRF 防护
 
-主进程所有 HTTP 请求经过 SSRF guard，阻止访问内部 IP：
+主进程所有 HTTP 请求经过 SSRF guard，**对非 loopback 主机启用 SSRF 校验，loopback 主机信任**（与 ARCHITECTURE.md 一致，对应回归规则 R105）：
 
 - **IPv4**：阻止 10.0.0.0/8、172.16.0.0/12、192.168.0.0/16、127.0.0.0/8
 - **IPv6**：阻止 ::1/128、fe80::/10（链路本地）
 - **IPv6 链路本地检测**：使用第一个 hextet解析，`(value & 0xffc0) === 0xfe80`
+- **Loopback 信任**：目标主机为 loopback (127.0.0.0/8、::1) 时跳过 SSRF 校验，允许本地 HTTP API Server 通信
 
 ```typescript
 function isIPv6LinkLocal(address: string): boolean {
@@ -1778,6 +1827,7 @@ src/
 │   ├── db-core.ts          → 数据库代理导出
 │   ├── api-config.ts       → API 配置代理导出
 │   ├── video-cache.ts      → 视频缓存代理导出
+│   ├── file-http/          → 统一文件操作通信层代理导出 (HTTP 优先 + IPC 回退)
 │   ├── outfit.ts           → 服装管理代理导出
 │   ├── sql-safety.ts       → SQL 安全代理导出
 │   ├── model-capabilities.ts → 模型能力代理导出
@@ -2714,7 +2764,7 @@ typecheck → architecture check → lint-staged
 - **次版本号**：向后兼容的功能新增
 - **修订号**：向后兼容的问题修复
 
-当前版本：0.9.5（初始开发阶段）
+当前版本：0.10.0（初始开发阶段）
 
 ### 25.2 发布步骤
 
@@ -3316,8 +3366,8 @@ npm run validate
 |-------|------|------|
 | versionStorage | unknown | @/infrastructure/storage/versions |
 | elementStorage | unknown | @/infrastructure/storage/elements |
-| videoCacheStorage | unknown | @/infrastructure/storage/video-cache |
-| imageCacheStorage | unknown | @/infrastructure/storage/image-cache |
+| videoCacheStorage | unknown | @/infrastructure/storage/video-cache (服务层已迁移到 `@/shared/file-http`) |
+| imageCacheStorage | unknown | @/infrastructure/storage/image-cache (服务层已迁移到 `@/shared/file-http`) |
 | collectionStorage | unknown | @/infrastructure/storage/collections |
 | storyboardStorage | unknown | @/infrastructure/storage/storyboard |
 | importExportStorage | unknown | @/infrastructure/storage/import-export |
@@ -3348,6 +3398,7 @@ npm run validate
 | @/shared/db-core | withRetry, safeQuery, safeRun, safeTransaction | @/infrastructure/storage/utils | 数据库安全操作 |
 | @/shared/api-config | API 配置相关函数 | @/infrastructure/api | API 配置 |
 | @/shared/video-cache | 视频缓存相关函数 | @/infrastructure/storage/video-cache | 视频缓存管理 |
+| @/shared/file-http | writeFile, readFile, getFileInfo, getCacheDirectory, getDiskSpace, fileExists, deleteFile | @/shared/file-http | 统一文件操作通信层 (HTTP 优先 + IPC 回退) |
 | @/shared/outfit | 服装管理纯函数 | @/infrastructure/outfit | 角色服装管理 |
 | @/shared/sql-safety | buildSafeUpdate, buildSafeDelete, sanitizeIdentifier, sanitizeTable | @/infrastructure/sql-sanitizer | SQL 安全工具 |
 | @/shared/model-capabilities | 模型能力查询函数 | @/infrastructure/ai-providers | AI 模型能力查询 |

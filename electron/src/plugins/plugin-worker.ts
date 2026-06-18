@@ -251,7 +251,7 @@ function loadPlugin(filePath: string, callId: string): void {
 
 function callMethod(method: string, args: unknown[], callId: string): void {
   if (!loadedPlugin) {
-    send({ type: "error", id: callId, message: "插件未加载" });
+    send({ type: "error", id: callId, message: "PLUGIN_NOT_LOADED" });
     return;
   }
 
@@ -307,7 +307,7 @@ process.on("message", (msg: WorkerMessage) => {
   switch (msg.type) {
     case "load": {
       if (!msg.filePath) {
-        send({ type: "error", id: msg.id, message: "缺少 filePath" });
+        send({ type: "error", id: msg.id, message: "MISSING_FILE_PATH" });
         return;
       }
       loadPlugin(msg.filePath, msg.id);
@@ -315,7 +315,7 @@ process.on("message", (msg: WorkerMessage) => {
     }
     case "call": {
       if (!msg.method) {
-        send({ type: "error", id: msg.id, message: "缺少 method" });
+        send({ type: "error", id: msg.id, message: "MISSING_METHOD" });
         return;
       }
       callMethod(msg.method, msg.args || [], msg.id);

@@ -6,23 +6,17 @@ import { getLogger } from "../logging/logger";
 
 const logger = getLogger("export");
 
-const BLOCKED_PATHS: string[] = [
-  path.join(os.homedir(), "AppData", "Roaming", "Microsoft", "Windows"),
-  path.join(os.homedir(), "AppData", "Local", "Microsoft"),
-  "C:\\Windows",
-  "C:\\Program Files",
-  "C:\\Program Files (x86)",
-  "/usr/bin",
-  "/bin",
-  "/sbin",
-  "/etc",
-  "/System",
+const ALLOWED_EXPORT_DIRS: string[] = [
+  path.join(os.homedir(), "Documents"),
+  path.join(os.homedir(), "Desktop"),
+  path.join(os.homedir(), "Downloads"),
+  path.join(os.homedir(), "AI Animation Studio"),
 ];
 
-function isPathBlocked(filePath: string): boolean {
+function isPathAllowed(filePath: string): boolean {
   const resolved = path.resolve(filePath).toLowerCase();
-  return BLOCKED_PATHS.some((blocked) =>
-    resolved.startsWith(blocked.toLowerCase()),
+  return ALLOWED_EXPORT_DIRS.some((allowed) =>
+    resolved.startsWith(allowed.toLowerCase()),
   );
 }
 
@@ -49,7 +43,7 @@ export function registerExportHandlers(): void {
           return { success: false, error: "用户取消导出" };
         }
 
-        if (isPathBlocked(filePath)) {
+        if (!isPathAllowed(filePath)) {
           return { success: false, error: "Cannot write to system directory" };
         }
 

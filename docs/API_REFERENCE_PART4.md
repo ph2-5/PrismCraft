@@ -1954,6 +1954,8 @@ export function closeStaticServer(): void
 
 预加载脚本，通过 `contextBridge.exposeInMainWorld("electronAPI", {...})` 暴露给渲染进程。
 
+> ⚠️ 文件操作（`writeFile`/`readFile`/`getCacheDirectory`/`getFileInfo`/`getDiskSpace`/`fileExists`/`deleteFile`）应优先使用 `@/shared/file-http` 双轨层，直接 IPC 仅作回退。
+
 ```typescript
 const electronAPI = {
   // 菜单事件
@@ -1971,7 +1973,7 @@ const electronAPI = {
     chrome: string;
   },
 
-  // 配置（同步）
+  // 配置（同步，已不推荐直接使用，应通过 HTTP /api/config/get 与 /api/config/set 路由，或 shared/file-http 等价工具）
   getConfig: (key: string) => string | null,     // 返回 JSON.stringify 的配置值
   setConfig: (key: string, value: unknown) => boolean,
 
@@ -2059,6 +2061,8 @@ export { registerAllowedOrigin } from "./middleware"
 ```typescript
 export const routes: Record<string, Route> = {
   ...coreRoutes,
+  ...dbRoutes,
+  ...fileRoutes,
   ...generationRoutes,
   ...pluginRoutes,
   ...shotRoutes,
@@ -2443,6 +2447,79 @@ export const videoTasksBulkSaveSchema = z.object({
   tasks: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 export type VideoTasksBulkSaveRequest = z.infer<typeof videoTasksBulkSaveSchema>;
+
+// === 通用 key-value 配置存储（与 IPC config:get/config:set 对齐） ===
+export const configGetSchema = z.object({
+  key: z.string().min(1).max(256),
+});
+export type ConfigGetRequest = z.infer<typeof configGetSchema>;
+
+export const configSetSchema = z.object({
+  key: z.string().min(1).max(256),
+  value: z.unknown(),
+});
+export type ConfigSetRequest = z.infer<typeof configSetSchema>;
+
+// === 文件写入（按绝对路径，受 ALLOWED_ROOTS 限制） ===
+export const fileWriteSchema = z.object({
+  filePath: z.string().min(1),
+  data: z.union([z.string(), z.instanceof(Buffer)]),
+});
+export type FileWriteRequest = z.infer<typeof fileWriteSchema>;
+
+// === 磁盘空间查询 ===
+export const fileDiskSpaceSchema = z.object({
+  dirPath: z.string().min(1),
+});
+export type FileDiskSpaceRequest = z.infer<typeof fileDiskSpaceSchema>;
+
+// === 文件路由内部 Schema（file-routes.ts 内联使用） ===
+export const fileSaveSchema = z.object({
+  category: fileCategorySchema,
+  key: z.string().min(1),
+  data: z.union([z.string(), z.instanceof(Buffer)]),
+  mimeType: z.string().optional(),
+});
+export type FileSaveRequest = z.infer<typeof fileSaveSchema>;
+
+export const fileReadSchema = z.object({
+  key: z.string().min(1),
+});
+export type FileReadRequest = z.infer<typeof fileReadSchema>;
+
+export const fileDeleteSchema = z.object({
+  key: z.string().min(1),
+});
+export type FileDeleteRequest = z.infer<typeof fileDeleteSchema>;
+
+export const fileExistsSchema = z.object({
+  key: z.string().min(1),
+});
+export type FileExistsRequest = z.infer<typeof fileExistsSchema>;
+
+export const fileCopySchema = z.object({
+  sourceKey: z.string().min(1),
+  targetCategory: fileCategorySchema,
+  targetKey: z.string().min(1),
+});
+export type FileCopyRequest = z.infer<typeof fileCopySchema>;
+
+export const fileListSchema = z.object({
+  category: fileCategorySchema,
+});
+export type FileListRequest = z.infer<typeof fileListSchema>;
+
+export const fileInfoSchema = z.object({
+  key: z.string().min(1),
+});
+export type FileInfoRequest = z.infer<typeof fileInfoSchema>;
+
+export const fileWriteAtomicSchema = z.object({
+  category: fileCategorySchema,
+  key: z.string().min(1),
+  data: z.union([z.string(), z.instanceof(Buffer)]),
+});
+export type FileWriteAtomicRequest = z.infer<typeof fileWriteAtomicSchema>;
 ```
 
 ---
@@ -2525,11 +2602,40 @@ export function destroyAllConnections(): void
 
 | 路由组 | 文件 | 路由名称 |
 |--------|------|---------|
-| **core-routes** | `core-routes.ts` | `config`, `secure-config`, `upload`, `test-connection`, `sync/config`, `sync/test`, `sync/proxy`, `export` |
+| **core-routes** | `core-routes.ts` | `config`, `secure-config`, `config/get`, `config/set`, `upload`, `test-connection`, `sync/config`, `sync/test`, `sync/proxy`, `export` |
+| **db-routes** | `db-routes.ts` | `db/query`, `db/run`, `db/get`, `db/batch-insert`, `db/transaction`, `db/stats`, `db/type`, `db/init`, `db/save`, `db/migrate`, `db/vacuum`, `db/analyze`, `db/checkpoint`, `db/backup-status`, `db/create-backup`, `db/close` |
+| **file-routes** | `file-routes.ts` | `file/save`, `file/read`, `file/read-base64`, `file/delete`, `file/exists`, `file/copy`, `file/list`, `file/info`, `file/write-atomic`, `file/write`, `file/cache-directory`, `file/disk-space` |
 | **generation-routes** | `generation-routes.ts` | `analyze-image`, `generate-image`, `generate-keyframe`, `generate-frame-pair`, `generate-video`, `video-status`, `generate-text`, `story-plan`, `story-generate-video`, `story-generate-keyframe`, `story-generate-frame-pair`, `quick-generate-video`, `character-generate-image`, `scene-generate-image`, `character-analyze-image`, `scene-analyze-image` |
 | **plugin-routes** | `plugin-routes.ts` | `video/select-strategy`, `video/detect-format`, `plugins/list`, `plugins/add`, `plugins/delete`, `plugins/reload`, `plugins/reload-code`, `plugins/validate`, `plugins/schema`, `plugins/specification` |
 | **shot-routes** | `shot-routes.ts` | `shot/validate-reference`, `shot/get-reference-video-url`, `shot/build-reference-description`, `validate-consistency`, `validate-feature-anchoring`, `validate-no-frame-binding`, `reference-check/character`, `reference-check/scene`, `visual-consistency-check`, `visual-consistency-check-beat` |
 | **storyboard-routes** | `storyboard-routes.ts` | `video/tracking-info`, `video/provider-info`, `storyboard/generate-keyframe`, `storyboard/generate-frame-pair`, `storyboard/generate-video`, `storyboard/generate-full-workflow`, `storyboard/generate-keyframe-chain`, `video/recover`, `video-tasks/bulk-save` |
+
+---
+
+#### shared/file-http（双轨通信层）
+
+`src/shared/file-http/index.ts` 是渲染进程访问文件操作的统一入口，采用 **HTTP 优先 + IPC 回退** 的双轨模式：
+
+1. **HTTP 优先**：先探测 `http://localhost:{API_SERVER_PORT}/api/health`，可用时调用 `/api/file/*` 路由（`file/write`, `file/read`, `file/info`, `file/cache-directory`, `file/disk-space`, `file/exists`, `file/delete`）。
+2. **IPC 回退**：HTTP 不可用或调用失败时，回退到 `window.electronAPI` 的对应方法（向后兼容旧版本）。
+
+**导出函数（7 个公开 + 1 个测试用）**：
+
+```typescript
+export async function writeFile(filePath: string, data: Uint8Array | ArrayBuffer | string): Promise<{ success: boolean; error?: string }>;
+export async function readFile(filePath: string): Promise<{ success: boolean; data?: ArrayBuffer; error?: string } | null>;
+export async function getFileInfo(filePath: string): Promise<{ success: boolean; size?: number; error?: string } | null>;
+export async function getCacheDirectory(): Promise<{ success: boolean; path?: string; error?: string }>;
+export async function getDiskSpace(dirPath: string): Promise<{ success: boolean; availableBytes?: number; totalBytes?: number; error?: string } | null>;
+export async function fileExists(filePath: string): Promise<boolean>;
+export async function deleteFile(filePath: string): Promise<boolean>;
+export function _resetHttpCache(): void;  // 测试用
+```
+
+**关键约束**：
+- **100MB 写入上限**：`file-routes.ts` 中 `MAX_WRITE_SIZE = 100 * 1024 * 1024`，超出将拒绝写入。
+- **路径安全校验**：服务端通过 `isPathAllowed(filePath)` 校验路径必须位于 `ALLOWED_ROOTS` 之下，防止越权访问。
+- **HTTP 可用性缓存**：`_httpAvailable` 单次探测后缓存结果，失败时自动标记为不可用并回退到 IPC。
 
 ---
 

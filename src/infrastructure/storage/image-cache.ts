@@ -1,5 +1,6 @@
 import { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
 import { errorLogger } from "@/shared/error-logger";
+import { container } from "@/infrastructure/di";
 
 const MAX_IMAGE_CACHE_BYTES = 500 * 1024 * 1024;
 
@@ -49,12 +50,12 @@ async function withCacheMutex<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 async function deleteLocalFile(filePath: string): Promise<void> {
-  if (typeof window !== "undefined" && window.electronAPI?.deleteFile) {
-    try {
-      await window.electronAPI.deleteFile(filePath);
-    } catch (e) {
-      errorLogger.warn("[ImageCache] 删除本地文件失败:", { filePath, error: e });
-    }
+  try {
+    // 优先使用 IFileStorage 接口（支持本地/云端切换）
+    const fileStorage = await container.fileStorage;
+    await fileStorage.deleteFile(filePath);
+  } catch (e) {
+    errorLogger.warn("[ImageCache] 删除本地文件失败:", { filePath, error: e });
   }
 }
 

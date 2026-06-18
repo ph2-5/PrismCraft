@@ -51,14 +51,14 @@ export async function recoverVideoByTaskId(
   taskRecord?: TaskRecord,
 ): Promise<RecoveryResult> {
   if (!taskRecord) {
-    return { success: false, message: "找不到该任务ID" };
+    return { success: false, message: "TASK_NOT_FOUND" };
   }
 
   if (taskRecord.status === "completed" && taskRecord.videoUrl) {
     return {
       success: true,
       videoUrl: taskRecord.videoUrl,
-      message: "视频已存在",
+      message: "VIDEO_ALREADY_EXISTS",
     };
   }
 
@@ -77,33 +77,33 @@ export async function recoverVideoByTaskId(
         return {
           success: true,
           videoUrl: result.data.videoUrl,
-          message: "视频找回成功！",
+          message: "VIDEO_RECOVERY_SUCCESS",
           status: "completed",
         };
       }
 
       if (FAILED_STATES.includes(status)) {
-        return { success: false, message: "云端任务已确认失败" };
+        return { success: false, message: "CLOUD_TASK_FAILED" };
       }
 
       if (PENDING_STATES.includes(status)) {
         return {
           success: false,
-          message: "视频仍在生成中，请稍后重试",
+          message: "VIDEO_STILL_GENERATING",
         };
       }
 
       return {
         success: false,
-        message: `未知状态: ${status}，请稍后重试`,
+        message: `UNKNOWN_STATUS: ${status}`,
       };
     }
 
-    return { success: false, message: "查询失败，请检查网络连接" };
+    return { success: false, message: "QUERY_FAILED" };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "未知错误",
+      message: error instanceof Error ? error.message : "UNKNOWN_ERROR",
     };
   }
 }

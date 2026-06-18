@@ -37,7 +37,7 @@ recovery ← task-management (通过 registerCacheVideoBlobFn/registerRecoveryFn
 - 测试：`npx vitest run src/modules/video/task-management/infrastructure`
 
 ### 3. 修改缓存策略或容量限制
-- 修改文件：`cache/services/video-cache-service.ts`、`cache/services/image-cache-service.ts`
+- 修改文件：`cache/services/video-cache.ts`、`cache/services/image-cache.ts`
 - 检查不变量：INV-8（缓存容量限制）、INV-9（缓存写入原子性）、INV-10（URL 过期刷新）
 - 测试：`npx vitest run src/modules/video/cache`
 
@@ -59,6 +59,12 @@ recovery ← task-management (通过 registerCacheVideoBlobFn/registerRecoveryFn
   - **StoryProvider useMemo 依赖拆分**: 依赖从 `videoTaskManager` 整体对象拆分为具体属性
 - 测试：`npx vitest run src/modules/video/task-management/hooks`
 
+### 7. 修改文件操作通信层
+- 修改文件：`@/shared/file-http/index.ts`（统一通信层入口）
+- 影响范围：cache 子域通过别名导入（httpWriteFile、httpReadFile、httpFileExists、httpDeleteFile、httpGetCacheDirectory、httpGetDiskSpace、httpGetFileInfo），recovery 子域使用 httpFileExists、httpGetFileInfo
+- 通信策略：HTTP 优先 + IPC 回退（向后兼容），修改时需确保两条路径行为一致
+- 测试：`npx vitest run src/modules/video/cache src/modules/video/recovery`
+
 ## 内部实现细节（非明确要求不要修改）
 
 - `task-management/domain/task-machine.ts` — withTransitionGuard 开发/生产双模式
@@ -66,7 +72,7 @@ recovery ← task-management (通过 registerCacheVideoBlobFn/registerRecoveryFn
 - `task-management/hooks/internals/` — store 内部实现、beforeunload 同步 XHR
 - `recovery/services/duplicate-detection-service.ts` — 相似度权重分配与阈值
 - `recovery/services/video-intelligent-recovery-service.ts` — 恢复决策树
-- `cache/services/video-cache-service.ts` — 内存缓存 + 磁盘缓存双层、TTL 80% 刷新
+- `cache/services/video-cache.ts` — 内存缓存 + 磁盘缓存双层、TTL 80% 刷新（磁盘缓存部分通过 `@/shared/file-http` 实现，HTTP 优先 + IPC 回退）
 
 ## 测试验证
 

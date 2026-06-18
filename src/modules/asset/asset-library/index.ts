@@ -1,24 +1,33 @@
 import { container } from "@/infrastructure/di";
 import type { Character, Collection, Scene, StoryboardAsset } from "@/domain/schemas";
+import type { FileCategory } from "@/domain/ports/file-storage-port";
 import { updateOutfitImage } from "@/shared/outfit";
 import { errorLogger } from "@/shared/error-logger";
 import { normalizeGender } from "@/shared/utils/utils";
 import { t } from "@/shared/constants";
+
+const SUBDIR_TO_CATEGORY: Record<string, FileCategory> = {
+  characters: "character",
+  scenes: "scene",
+  storyboards: "storyboard",
+};
 
 async function saveImageToLocal(
   imageData: string,
   subDir: string,
   filename: string,
 ): Promise<string | null> {
-  if (!window.electronAPI) return null;
   try {
+    const category = SUBDIR_TO_CATEGORY[subDir] || "upload";
+    const fileStorage = await container.fileStorage;
+
     if (imageData.startsWith("data:")) {
-      const result = await window.electronAPI.saveImage(
-        imageData,
-        subDir,
-        filename,
-      );
-      return result?.filePath || null;
+      const result = await fileStorage.saveFile({
+        category,
+        key: filename,
+        data: imageData,
+      });
+      return result.key;
     }
     if (imageData.startsWith("http://") || imageData.startsWith("https://")) {
       const response = await fetch(imageData);
@@ -30,12 +39,12 @@ async function saveImageToLocal(
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-      const result = await window.electronAPI.saveImage(
-        base64,
-        subDir,
-        filename,
-      );
-      return result?.filePath || null;
+      const result = await fileStorage.saveFile({
+        category,
+        key: filename,
+        data: base64,
+      });
+      return result.key;
     }
     if (imageData.startsWith("file://") || imageData.includes(":\\")) {
       return imageData.replace(/^file:\/\/\//, "");
@@ -48,9 +57,9 @@ async function saveImageToLocal(
 }
 
 async function deleteLocalFile(filePath: string): Promise<void> {
-  if (!window.electronAPI) return;
   try {
-    await window.electronAPI.deleteFile(filePath);
+    const fileStorage = await container.fileStorage;
+    await fileStorage.deleteFile(filePath);
   } catch (e) {
     errorLogger.warn("[AssetLibrary] 删除文件失败", e);
   }

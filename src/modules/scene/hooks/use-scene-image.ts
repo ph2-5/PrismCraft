@@ -105,7 +105,7 @@ export function useSceneImage({
         } else { addAssetToLibrary(imageUrl, "image", "上传的图片"); }
         success(t("success.uploaded"), t("success.imageSavedToLibrary"));
       } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); }
-    } catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError(t("error.uploadFailed"), mapUserFacingError(err)); }
+    } catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: t("error.uploadFailed"), cause: err }); showError(t("error.uploadFailed"), mapUserFacingError(err)); }
     finally { setIsUploading(false); }
   };
 
@@ -169,7 +169,7 @@ export function useSceneImage({
     if (!file) return;
     setIsUploading(true);
     try { const result = await container.fileUploader.uploadFile(file); if (result.success && result.data?.url) { await analyzeImage(result.data.url); } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); } }
-    catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: "上传失败", cause: err }); showError(t("error.uploadFailed"), mapUserFacingError(err)); }
+    catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: t("error.uploadFailed"), cause: err }); showError(t("error.uploadFailed"), mapUserFacingError(err)); }
     finally { setIsUploading(false); }
   };
 

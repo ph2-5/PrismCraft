@@ -50,7 +50,7 @@ function parseElementRow(row: ElementRow): StoryElement {
 
 export async function getLibrary(): Promise<ElementLibrary> {
   const rows = await safeQuery<ElementRow>(
-    "SELECT * FROM elements ORDER BY created_at DESC",
+    "SELECT * FROM elements ORDER BY created_at DESC LIMIT 500",
   );
 
   const elements: StoryElement[] = rows.map(parseElementRow);

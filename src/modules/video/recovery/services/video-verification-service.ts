@@ -4,10 +4,10 @@ import type {
   VideoVerificationResult,
   VideoVerificationDetails,
 } from "../types/video-recovery-types";
-
-function getElectronAPI(): NonNullable<Window["electronAPI"]> {
-  return window.electronAPI!;
-}
+import {
+  fileExists as httpFileExists,
+  getFileInfo as httpGetFileInfo,
+} from "@/shared/file-http";
 
 const MIN_VIDEO_SIZE = 1024;
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
@@ -184,10 +184,9 @@ function checkVideoHeader(bytes: Uint8Array): boolean {
 
 export async function verifyVideoFile(filePath: string): Promise<Result<boolean>> {
   return fromAsyncThrowable(async () => {
-    const api = getElectronAPI();
-    const exists = await api.fileExists(filePath);
-    if (!exists || !exists.exists) return false;
-    const info = await api.getFileInfo(filePath);
+    const exists = await httpFileExists(filePath);
+    if (!exists) return false;
+    const info = await httpGetFileInfo(filePath);
     if (!info || !info.success || !info.size || info.size === 0) return false;
     return true;
   });

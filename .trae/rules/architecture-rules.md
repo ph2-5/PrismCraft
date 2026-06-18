@@ -81,8 +81,12 @@ module-name/
 
 ## IPC Channel Separation (CRITICAL)
 
-- **Allowed IPC in modules**: `saveImage`, `deleteFile`, `readFileBase64`, `getConfig`, `setConfig`, `saveFileDialog`, `openFileDialog`, `secureConfigResolve`
+- **Allowed direct IPC in modules**: `saveImage`, `saveFileDialog`, `openFileDialog`, `secureConfigResolve` (desktop-only). File operations (`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`) and config read/write (`getConfig`, `setConfig`) MUST go through `@/shared/file-http` unified layer (HTTP `/api/file/*` + `/api/config/*` with IPC fallback).
 - **Forbidden IPC in modules**: `dbQuery`, `dbRun`, `dbBatchInsert`, `dbGet`, `dbTransaction` (enforced by ESLint `no-direct-db-ipc` rule)
+
+### File & Config Unified HTTP Layer
+
+`src/shared/file-http/` provides 7 standard functions (`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`). HTTP API is tried first (`/api/file/*`, `/api/config/*`); on failure, falls back to IPC. Modules MUST import from `@/shared/file-http`, never call `electronAPI.writeFile/getConfig` directly.
 
 ## DI Container
 
@@ -190,4 +194,25 @@ Three mechanisms exist for cross-module communication. Each has a specific scope
 1. Define Zod schema in `electron/src/api/schemas.ts` with `export type XxxRequest = z.infer<typeof xxxSchema>`
 2. Create route handler using `defineRoute()` in appropriate route group file
 3. Add to route group exports
-4. Verify with `npm run typecheck:electron`
+4. Register in `electron/src/api/routes.ts` (import and merge into routes object) — `routes.ts` explicitly imports `coreRoutes`, `dbRoutes`, `fileRoutes`, `generationRoutes`, `pluginRoutes`, `shotRoutes`, `storyboardRoutes`
+5. Verify with `npm run typecheck:electron`
+
+## HTTP Routes Registry
+
+`electron/src/api/routes.ts` merges 7 route groups exposing the following HTTP endpoints:
+
+- **core-routes.ts**: `config/get`, `config/set` (plus upload, export, test-connection, sync)
+- **db-routes.ts**: `db/query`, `db/run`, `db/transaction`
+- **file-routes.ts**: `file/save`, `file/read`, `file/read-base64`, `file/delete`, `file/exists`, `file/copy`, `file/list`, `file/info`, `file/write-atomic`, `file/write`, `file/cache-directory`, `file/disk-space`
+- **generation-routes.ts**: image/video/text generation, story generation
+- **plugin-routes.ts**: plugin management (list, add, delete, reload, etc.)
+- **shot-routes.ts**: shot reference, consistency check, visual consistency
+- **storyboard-routes.ts**: storyboard generation, video recovery, bulk save
+
+## File Write Limit
+
+`/api/file/write` enforces 100MB max size (`MAX_WRITE_SIZE = 100 * 1024 * 1024` in `file-routes.ts`). Larger writes must be split or use a different transport.
+
+## SSRF Protection
+
+`ssrfGuard.validate` is enforced for non-loopback user-configured hosts. Loopback (`127.0.0.1`, `localhost`, `::1`) is trusted and bypasses SSRF check. See R105.

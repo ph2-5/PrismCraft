@@ -2766,3 +2766,122 @@ return err(new ValidationError("BEAT_NOT_FOUND"));
 **Verification**: Search for `ValidationError` and `GenerationError` in `src/domain/`. All error messages must be English error codes, not Chinese strings. Each error code must have a corresponding pattern in `mapUserFacingError`'s `EXTRA_PATTERNS`.
 
 **Discovered in**: `story-generation-service.ts` had 3 Chinese `ValidationError` messages ("分镜不存在", "预览图不存在，无法生成首尾帧", "首尾帧不存在，无法生成视频"). These were invisible to `mapUserFacingError`, so users saw raw Chinese error codes instead of properly formatted messages.
+
+### R105: SSRF Guard MUST Validate Non-Loopback User-Configured Hosts
+
+When the app makes outbound HTTP/HTTPS requests to user-configured hosts (e.g., AI provider endpoints), the SSRF guard MUST validate non-loopback hosts for DNS rebinding protection. Loopback addresses (`127.0.0.1`, `localhost`, `::1`) are trusted and bypass SSRF validation. Non-loopback user-configured hosts go through `ssrfGuard.validate`, which checks resolved IPs against `PRIVATE_IP_PATTERNS` to prevent DNS rebinding attacks. If `ssrfGuard.validate` returns `unsafe`, the request MUST be blocked.
+
+**BAD** — Bypass SSRF validation for user-configured hosts:
+```typescript
+const response = await fetch(userConfiguredUrl);
+```
+
+**GOOD** — Validate non-loopback hosts via ssrfGuard:
+```typescript
+const parsed = new URL(userConfiguredUrl);
+const isLoopback = parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost" || parsed.hostname === "::1";
+if (!isLoopback) {
+  const validation = await ssrfGuard.validate(parsed);
+  if (!validation.safe) {
+    return { ok: false, error: new Error(`SSRF blocked: ${validation.reason}`) };
+  }
+}
+return await makeRequest(userConfiguredUrl);
+```
+
+**Verification**: Check `test-connection` handler and any code path making outbound requests to user-configured hosts. Verify: (1) loopback hosts bypass SSRF, (2) non-loopback hosts call `ssrfGuard.validate`, (3) `unsafe` result blocks the request.
+
+**Discovered in**: Security audit found `ssrfGuard` was available but not enforced for user-configured AI provider endpoints. Test: `electron/src/__tests__/r105-ssrf-user-host-dns-rebinding.test.ts`.
+
+### R106: (Reserved — see regression/async-safety.md if applicable)
+
+### R107: Upload File Size MUST Be Limited to 50MB
+
+When uploading files via `uploadFile` (in `src/infrastructure/ai-providers/utils.ts`), the file size MUST be checked against `MAX_UPLOAD_FILE_BYTES` (50MB) before initiating the network upload. Files exceeding the limit MUST be rejected with an error message containing both the actual size and the limit size, and MUST NOT trigger any network upload call.
+
+**BAD** — No size check before upload:
+```typescript
+async function uploadFile(file: File) {
+  const base64 = await fileToBase64(file);
+  return await apiCallWithRetry(() => uploadToProvider(base64));
+}
+```
+
+**GOOD** — Size check with descriptive error:
+```typescript
+const MAX_UPLOAD_FILE_BYTES = 50 * 1024 * 1024;
+async function uploadFile(file: File) {
+  if (file.size > MAX_UPLOAD_FILE_BYTES) {
+    return err(new Error(`文件大小 ${formatBytes(file.size)} 超过限制 ${formatBytes(MAX_UPLOAD_FILE_BYTES)}`));
+  }
+  const base64 = await fileToBase64(file);
+  return ok(await apiCallWithRetry(() => uploadToProvider(base64)));
+}
+```
+
+**Verification**: Call `uploadFile` with a File object whose `size` exceeds 50MB. Verify: (1) returns an error without calling `apiCallWithRetry`, (2) error message contains both sizes.
+
+**Discovered in**: Security audit identified that file uploads had no size limit. Test: `src/infrastructure/ai-providers/__tests__/r107-upload-file-size-limit.test.ts`.
+
+### R108: API Client MUST Use Result Pattern (No Throw)
+
+The `apiClient` in `src/infrastructure/api/client.ts` MUST follow the Result pattern — its `request` function (and convenience methods `get`/`post`/`put`/`delete`) MUST return `Result<T, AppError>` and MUST NOT throw on any error condition, including network errors, `AppApiClientError` instances, or unexpected exceptions.
+
+**BAD** — Throwing on network error:
+```typescript
+async function request<T>(url: string): Promise<T> {
+  const response = await fetch(url); // throws on network failure
+  if (!response.ok) throw new AppApiClientError(...);
+  return await response.json();
+}
+```
+
+**GOOD** — Result pattern, never throws:
+```typescript
+async function request<T>(url: string): Promise<Result<T, AppError>> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return err(new ApiError(`HTTP ${response.status}`));
+    return ok(await response.json());
+  } catch (e) {
+    if (e instanceof AppApiClientError) return err(e);
+    return err(new NetworkError(e instanceof Error ? e.message : String(e)));
+  }
+}
+```
+
+**Verification**: Mock `fetch` to reject with `TypeError` and with `AppApiClientError`. Verify `apiClient.get(...)` returns `{ ok: false, error: ... }` rather than throwing.
+
+**Discovered in**: API client audit found some error paths could throw, breaking the Result pattern contract. Test: `src/infrastructure/api/__tests__/r108-api-client-result-no-throw.test.ts`.
+
+### R109: Transactional Delete MUST Track Orphan Files on Failure
+
+When `cleanupLocalFiles` (in `src/modules/persistence/services/transactional-delete.ts`) fails to delete a local file, the file path MUST be recorded in the `orphan_files` table via `recordOrphanFile` for later cleanup. `recordOrphanFile` itself MUST NOT throw or affect the main flow. Non-local paths (`http://`, `https://`, `data:`) MUST be skipped.
+
+**BAD** — Silent failure, no orphan tracking:
+```typescript
+async function cleanupLocalFiles(filePaths: string[]) {
+  for (const path of filePaths) {
+    try { await fileStorage.deleteFile(path); }
+    catch (e) { errorLogger.warn("Failed to delete file", e); }
+  }
+}
+```
+
+**GOOD** — Track orphans for later cleanup:
+```typescript
+async function cleanupLocalFiles(filePaths: string[]) {
+  for (const path of filePaths) {
+    if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) continue;
+    try { await fileStorage.deleteFile(path); }
+    catch (e) {
+      errorLogger.warn("Failed to delete file, tracking as orphan", e);
+      await recordOrphanFile(path);
+    }
+  }
+}
+```
+
+**Verification**: Mock `fileStorage.deleteFile` to reject. Verify: (1) path recorded in `orphan_files` table, (2) `recordOrphanFile` failure does not throw, (3) non-local paths skipped.
+
+**Discovered in**: Persistence service audit found file deletion failures were silently swallowed, leaving dangling files. Test: `src/modules/persistence/services/__tests__/r109-transactional-delete-orphan-tracking.test.ts`.

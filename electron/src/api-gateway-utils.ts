@@ -7,6 +7,7 @@ import { loadConfig } from "./handlers/config";
 import { getLogger } from "./logging/logger";
 import { pluginRegistry } from "./plugins";
 import type { AIProviderPlugin, AsyncAIProviderPlugin } from "./plugins";
+import { ssrfGuard } from "./security/ssrf-guard/ssrf-guard";
 
 const logger = getLogger("api-gateway-utils");
 
@@ -203,10 +204,19 @@ const IMAGE_CACHE_DIR = path.join(
   "Cache",
   "Images",
 );
-const PRIVATE_IP_REGEX =
-  /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.|localhost|::1|fe80:)/i;
 
 const USER_CONFIGURED_HOSTS = new Set<string>();
+
+/** Loopback 主机名/IP 集合（用户配置的本地服务直接放行） */
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+
+function isLoopbackHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  if (LOOPBACK_HOSTS.has(lower)) return true;
+  // 127.0.0.0/8 段全部视为 loopback
+  if (/^127\./.test(lower)) return true;
+  return false;
+}
 
 export function registerUserEndpoint(urlStr: string): void {
   try {
@@ -226,15 +236,33 @@ async function isPrivateUrl(urlStr: string): Promise<boolean> {
     const hostKey = parsed.port
       ? `${parsed.hostname}:${parsed.port}`
       : parsed.hostname;
+    const hostname = parsed.hostname.toLowerCase();
 
-    if (
+    const isUserConfigured =
       USER_CONFIGURED_HOSTS.has(hostKey) ||
-      USER_CONFIGURED_HOSTS.has(parsed.hostname)
-    ) {
+      USER_CONFIGURED_HOSTS.has(parsed.hostname);
+
+    if (isUserConfigured) {
+      // 用户配置的 loopback 地址（如 Ollama http://127.0.0.1:11434）直接放行
+      if (isLoopbackHost(hostname)) {
+        return false;
+      }
+      // 用户配置的非 loopback 主机仍做 DNS rebinding 检查（解析 IP，检查是否私有）
+      const result = await ssrfGuard.validate(urlStr);
+      if (!result.safe) {
+        logger.warn("User-configured host blocked by SSRF guard", { urlStr, reason: result.reason });
+        return true;
+      }
       return false;
     }
 
-    return PRIVATE_IP_REGEX.test(parsed.hostname);
+    // 非用户配置的 URL 强制走完整 SSRF 校验（含 DNS 解析）
+    const result = await ssrfGuard.validate(urlStr);
+    if (!result.safe) {
+      logger.warn("URL blocked by SSRF guard", { urlStr, reason: result.reason });
+      return true;
+    }
+    return false;
   } catch {
     logger.warn("Failed to parse URL for private IP check", { urlStr });
     return false;

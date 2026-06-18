@@ -18,6 +18,7 @@ FORBIDDEN patterns (will cause bugs):
 - Never guess shared-logic function signatures — read the file first
 - Never show raw `e.message` to users — use mapUserFacingError from @/shared/user-facing-error
 - Never wrap result.error with mapUserFacingError — it's already a processed string, use `result.error || t("...")` directly
+- Never call electronAPI.writeFile/readFile/getConfig/setConfig directly in modules/ (use @/shared/file-http unified layer — HTTP first, IPC fallback)
 
 REGRESSION GUARDS: Search .trae/rules/regression/{category}.md for relevant rules before modifying code.
 -->
@@ -63,6 +64,7 @@ REGRESSION GUARDS: Search .trae/rules/regression/{category}.md for relevant rule
 | SQL sanitizer | `src/shared/sql-safety/sql-sanitizer.ts` |
 | API route groups | `electron/src/api/route-groups/` |
 | Provider templates data | `src/infrastructure/ai-providers/api-config/provider-templates-data.ts` |
+| Unified file/config HTTP layer | `src/shared/file-http/` (writeFile, readFile, getFileInfo, getCacheDirectory, getDiskSpace, fileExists, deleteFile) |
 | Video generation strategy | `src/shared/model-capabilities.ts` (re-export from infrastructure) |
 | Sync engine class | `src/modules/sync/engine/sync-engine-class.ts` |
 | Video task CQRS hooks | `src/modules/video/task-management/hooks/` (state, queries, commands, polling) |
@@ -86,6 +88,7 @@ REGRESSION GUARDS: Search .trae/rules/regression/{category}.md for relevant rule
 - **Use optimistic locking**: Pass `version` param to storage update methods → Handle `VersionConflictError` in UI
 - **Check reference image strategy**: Use `getVideoGenerationStrategy(modelId)` from `@/shared/model-capabilities` → Check `strategy.useCharacterRef`/`strategy.useSceneRef` → Filter characterRefs/sceneRef before passing to video generation
 - **Find available DI tokens**: Use `TOKEN_IDS` constant or `getTokenRegistry()` from `@/infrastructure/di`
+- **Read/write files or config**: Use `@/shared/file-http` (HTTP `/api/file/*` + `/api/config/*` with IPC fallback) — never call `electronAPI.writeFile/getConfig` directly
 - **Bug discovered → regression guard**: Fix bug → Evaluate Q1-Q5 in `regression-guard-automation.md` → Write test + rule if applicable
 
 ## Critical Rules
@@ -94,6 +97,9 @@ REGRESSION GUARDS: Search .trae/rules/regression/{category}.md for relevant rule
 - `shared/` MUST NOT import from `@/modules/*`
 - `modules/` MUST NOT import from `@/infrastructure/*` except DI container
 - `modules/` MUST NOT use IPC database operations (`dbQuery`, `dbRun`, etc.) — use HTTP API instead
+- `modules/` MUST use `@/shared/file-http` for file operations and config read/write — direct `electronAPI.writeFile/readFile/getConfig/setConfig` calls are forbidden
+- File writes via HTTP `/api/file/write` are limited to 100MB
+- SSRF guard is enforced for non-loopback user-configured hosts (R105)
 - All API routes MUST use `defineRoute()` with Zod schema for type-safe body
 - All errors must be honestly reported (no "安慰剂" error handling)
 - Use `usePreference` instead of `localStorage` in `useState`

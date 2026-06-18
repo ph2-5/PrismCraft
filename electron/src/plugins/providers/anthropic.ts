@@ -66,11 +66,11 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
   }
 
   buildVideoRequest(_ctx: VideoBuildContext): VideoRequestResult {
-    throw new Error("Anthropic Claude 不支持视频生成");
+    throw new Error("ANTHROPIC_VIDEO_NOT_SUPPORTED");
   }
 
   buildImageRequest(_ctx: ImageBuildContext): ImageRequestResult {
-    throw new Error("Anthropic Claude 不支持图片生成");
+    throw new Error("ANTHROPIC_IMAGE_NOT_SUPPORTED");
   }
 
   buildTextRequest(ctx: TextBuildContext): TextRequestResult {

@@ -4,6 +4,15 @@ import { container } from "@/infrastructure/di";
 import { registerObjectUrl, revokeObjectUrl, resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
 import { AppError } from "@/domain/types/result";
+import {
+  writeFile as httpWriteFile,
+  readFile as httpReadFile,
+  getFileInfo as httpGetFileInfo,
+  getCacheDirectory as httpGetCacheDirectory,
+  getDiskSpace as httpGetDiskSpace,
+  fileExists as httpFileExists,
+  deleteFile as httpDeleteFile,
+} from "@/shared/file-http";
 
 type RecoveryFn = (taskId: string) => Promise<Result<{ videoUrl?: string; message: string; status?: string }>>;
 
@@ -23,10 +32,6 @@ const CACHE_RETRY_COUNT = 3;
 const DEFAULT_URL_TTL = 3600;
 
 const memoryCache = new Map<string, { blob: Blob; mimeType: string; cachedAt: number }>();
-
-function getElectronAPI(): NonNullable<Window["electronAPI"]> {
-  return window.electronAPI!;
-}
 
 function isHttpExpiredError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -98,11 +103,10 @@ export async function cacheVideoBlob(
           const filesToDelete = await container.videoCacheStorage.cleanVideoCacheBySizeLimit(
             MAX_TOTAL_BLOB_SIZE_MB * 0.7 * 1024 * 1024,
           );
-          const api = getElectronAPI();
           for (const file of filesToDelete) {
             try {
-              const exists = await api.fileExists(file);
-              if (exists) await api.deleteFile(file);
+              const exists = await httpFileExists(file);
+              if (exists) await httpDeleteFile(file);
             } catch (e) {
               errorLogger.warn(
                 new AppError("CACHE_CLEANUP_ERROR", "删除过期缓存文件失败", e),
@@ -112,14 +116,14 @@ export async function cacheVideoBlob(
           }
         }
 
-        const cacheDirResult = await getElectronAPI().getCacheDirectory();
+        const cacheDirResult = await httpGetCacheDirectory();
         if (!cacheDirResult?.success || !cacheDirResult.path) {
           throw new Error("Failed to get cache directory");
         }
         const cacheDir = cacheDirResult.path;
         const filePath = `${cacheDir}/${taskId}.mp4`;
 
-        const diskSpace = await getElectronAPI().getDiskSpace(cacheDir);
+        const diskSpace = await httpGetDiskSpace(cacheDir);
         if (diskSpace?.success && diskSpace.availableBytes !== undefined) {
           const minRequiredBytes = 10 * 1024 * 1024;
           if (diskSpace.availableBytes < minRequiredBytes) {
@@ -145,7 +149,7 @@ export async function cacheVideoBlob(
 
         const downloadedData = downloadCtx.data;
 
-        const writeResult = await getElectronAPI().writeFile(
+        const writeResult = await httpWriteFile(
           filePath,
           downloadedData.buffer as ArrayBuffer,
         );
@@ -153,9 +157,9 @@ export async function cacheVideoBlob(
           throw new Error("Failed to write file to disk");
         }
 
-        const fileInfo = await getElectronAPI().getFileInfo(filePath);
-        if (fileInfo && result.totalBytes > 0 && fileInfo.size !== result.totalBytes) {
-          await getElectronAPI().deleteFile(filePath);
+        const fileInfo = await httpGetFileInfo(filePath);
+        if (fileInfo && fileInfo.success && result.totalBytes > 0 && fileInfo.size !== result.totalBytes) {
+          await httpDeleteFile(filePath);
           throw new Error(`下载不完整: ${fileInfo.size}/${result.totalBytes} bytes`);
         }
 
@@ -173,9 +177,8 @@ export async function cacheVideoBlob(
             "VideoCache",
           );
           try {
-            const api = getElectronAPI();
-            const exists = await api.fileExists(filePath);
-            if (exists) await api.deleteFile(filePath);
+            const exists = await httpFileExists(filePath);
+            if (exists) await httpDeleteFile(filePath);
           } catch (cleanupError) {
             errorLogger.warn(
               new AppError("CACHE_CLEANUP_ERROR", "清理失败缓存文件失败", cleanupError),
@@ -266,8 +269,7 @@ export async function getVideoUrlWithCache(
   return fromAsyncThrowable(async () => {
     const task = await container.videoTaskStorage.getVideoTaskById(taskId);
     if (task?.localVideoPath) {
-      const api = getElectronAPI();
-      const exists = await api.fileExists(task.localVideoPath);
+      const exists = await httpFileExists(task.localVideoPath);
       if (exists) {
         return { url: `file://${task.localVideoPath}`, fromCache: true, cacheFailed: false };
       }
@@ -305,9 +307,8 @@ export async function removeCachedVideo(taskId: string): Promise<Result<void>> {
     const filePath = await container.videoCacheStorage.removeCachedVideoFile(taskId);
     if (filePath) {
       try {
-        const api = getElectronAPI();
-        const exists = await api.fileExists(filePath);
-        if (exists) await api.deleteFile(filePath);
+        const exists = await httpFileExists(filePath);
+        if (exists) await httpDeleteFile(filePath);
       } catch (e) {
         errorLogger.warn(
           new AppError("CACHE_CLEANUP_ERROR", "删除缓存文件失败", e),
@@ -324,11 +325,10 @@ export async function cleanExpiredVideoCache(
   return fromAsyncThrowable(async () => {
     const filesToDelete = await container.videoCacheStorage.cleanExpiredVideoCache(maxAgeMs);
     {
-      const api = getElectronAPI();
       for (const file of filesToDelete) {
         try {
-          const exists = await api.fileExists(file);
-          if (exists) await api.deleteFile(file);
+          const exists = await httpFileExists(file);
+          if (exists) await httpDeleteFile(file);
         } catch (e) {
           errorLogger.warn(
             new AppError("CACHE_CLEANUP_ERROR", "删除过期缓存文件失败", e),
@@ -389,8 +389,7 @@ export async function getCachedVideo(taskId: string): Promise<Blob | null> {
     const cached = await container.videoCacheStorage.getCachedVideoFile(taskId);
     if (!cached) return null;
 
-    const api = getElectronAPI();
-    const result = await api.readFile(cached.filePath);
+    const result = await httpReadFile(cached.filePath);
     if (!result?.success || !result.data) {
       return null;
     }

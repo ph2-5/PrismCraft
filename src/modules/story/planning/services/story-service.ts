@@ -7,6 +7,7 @@ import { safeTransaction } from "@/shared/db-core";
 import { DomainEvents } from "@/shared/event-types";
 import { saveVersion } from "../../template";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 function generateStoryId(): string {
   return `story_${crypto.randomUUID()}`;
@@ -148,7 +149,7 @@ export const storyService = {
         await safeTransaction(allStatements);
       } catch (e) {
         errorLogger.warn(
-          { code: "StoryServiceUpdateFailed", message: "批量更新分镜数据库记录失败", cause: e },
+          { code: "StoryServiceUpdateFailed", message: t("error.batchUpdateBeatDbFailed"), cause: e },
           "StoryService",
         );
         throw e;

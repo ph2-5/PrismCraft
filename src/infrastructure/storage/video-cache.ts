@@ -1,6 +1,8 @@
 import { safeQuery, safeRun } from "./sqlite-core";
 import { errorLogger } from "@/shared/error-logger";
+import { container } from "@/infrastructure/di";
 
+const MAX_OBJECT_URLS = 100;
 const objectUrlRegistry = new Map<string, string>();
 
 let cacheMutex: Promise<void> = Promise.resolve();
@@ -24,6 +26,17 @@ if (typeof window !== "undefined") {
 }
 
 export function registerObjectUrl(taskId: string, url: string): void {
+  // 超过上限时淘汰最旧条目（Map 保持插入顺序）
+  if (objectUrlRegistry.size >= MAX_OBJECT_URLS && !objectUrlRegistry.has(taskId)) {
+    const oldestKey = objectUrlRegistry.keys().next().value;
+    if (oldestKey) {
+      const oldUrl = objectUrlRegistry.get(oldestKey);
+      if (oldUrl && oldUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(oldUrl);
+      }
+      objectUrlRegistry.delete(oldestKey);
+    }
+  }
   objectUrlRegistry.set(taskId, url);
 }
 
@@ -49,12 +62,12 @@ export function cleanupAllObjectUrls(): void {
 }
 
 async function deleteLocalFile(filePath: string): Promise<void> {
-  if (typeof window !== "undefined" && window.electronAPI?.deleteFile) {
-    try {
-      await window.electronAPI.deleteFile(filePath);
-    } catch (e) {
-      errorLogger.warn("[VideoCache] 删除本地文件失败:", { filePath, error: e });
-    }
+  try {
+    // 优先使用 IFileStorage 接口（支持本地/云端切换）
+    const fileStorage = await container.fileStorage;
+    await fileStorage.deleteFile(filePath);
+  } catch (e) {
+    errorLogger.warn("[VideoCache] 删除本地文件失败:", { filePath, error: e });
   }
 }
 

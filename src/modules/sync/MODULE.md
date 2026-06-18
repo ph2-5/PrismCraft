@@ -24,11 +24,12 @@
 |-----|------|------|
 | `initSyncEngine` | `(config?: Partial<SyncConfig>) → void` | 初始化同步引擎 |
 | `performSync` | `() → Promise<SyncPushResult & SyncPullResult>` | 执行同步（推送+拉取） |
-| `getSyncStatus` | `() → SyncStatusInfo` | 获取当前同步状态 |
+| `getSyncStatus` | `() → Promise<SyncStatusInfo>` | 获取当前同步状态（异步，因 getDeviceId 已异步化） |
 | `updateSyncConfig` | `(config: Partial<SyncConfig>) → void` | 更新同步配置 |
 | `getSyncConfig` | `() → SyncConfig` | 获取同步配置 |
 | `setConflictCallback` | `(cb: (conflict: SyncConflict) => Promise<ConflictStrategy>) → void` | 设置冲突回调 |
-| `recordChange` | `(entityType: SyncEntityType, entityId: string, operation: ChangeOperation, data?: unknown) → void` | 记录变更 |
+| `recordChange` | `(entityType: SyncEntityType, entityId: string, operation: ChangeOperation, data?: Record<string, unknown>) → Promise<void>` | 记录变更（异步，内部需 await getDeviceId） |
+| `getDeviceId` | `() → Promise<string>` | 获取设备 ID（异步，HTTP 优先 + IPC 回退 + 内存缓存 `_cachedDeviceId`） |
 | `compareVectorClocks` | `(a: VectorClock, b: VectorClock) → -1 \| 0 \| 1` | 比较向量时钟 |
 | `mergeVectorClocks` | `(a: VectorClock, b: VectorClock) → VectorClock` | 合并向量时钟 |
 | `createVectorClock` | `(deviceId: string) → VectorClock` | 创建向量时钟 |
@@ -68,6 +69,7 @@
 | `@/shared/error-logger` | 错误日志记录 |
 | `@/shared/ui` | UI 组件基础（presentation 子域） |
 | `@tanstack/react-query` | 数据获取与缓存（presentation 子域） |
+| `@/config/constants` | API_SERVER_PORT, ELECTRON_APP_HEADERS（HTTP config 路由调用） |
 
 ### 子域内部依赖图
 
@@ -105,6 +107,7 @@ presentation ← @/domain/types/sync, @/shared/ui
 - **INV-8**：状态指示器实时反映同步状态（idle / syncing / error）
 - **INV-9**：`presentation` 子域不依赖 `engine` 子域的内部实现
 - **INV-10**：同步状态变更必须记录 `sync_id`
+- **INV-11**：`getDeviceId()` 为异步函数，使用 HTTP `/api/config/get` 优先 + IPC `electronAPI.getConfig` 回退 + 内存缓存 `_cachedDeviceId`；所有调用方必须 `await`
 
 ---
 

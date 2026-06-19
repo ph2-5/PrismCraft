@@ -277,9 +277,16 @@ export function schedulePolling() {
       if (abortSignal.aborted) return;
 
       const pollResult = await pollActiveTasks(currentTasks, abortSignal);
+      // abort 后仍需应用已获取的 videoUrl，避免 token 浪费
+      // pollResult 可能已包含从 provider 获取到的 videoUrl，丢弃会导致永久丢失
+      if (pollResult.taskUpdates.size > 0) {
+        applyTaskUpdates(pollResult.taskUpdates);
+        // 即使 abort 也触发一次同步，将已获取的 videoUrl 持久化
+        const { scheduleSync } = await import("./sync-engine");
+        scheduleSync();
+      }
       if (abortSignal.aborted) return;
 
-      applyTaskUpdates(pollResult.taskUpdates);
       await cacheCompletedVideos(pollResult.cacheTasks, abortSignal, getStore());
       adjustPollInterval(pollResult.hasSuccess, pollResult.hasError);
 

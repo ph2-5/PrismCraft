@@ -223,6 +223,41 @@ async function pollSingleTask(
         message: pollResp.data.message || task.message,
         pollFailureCount: 0,
       }));
+
+      // 立即持久化已获取的 videoUrl，不依赖 2s 去抖同步
+      // 防止应用崩溃/被杀时 videoUrl 丢失导致 token 浪费
+      if (justCompleted && pollResp.data.videoUrl) {
+        try {
+          const persistResult = await saveVideoTask({
+            taskId: task.taskId,
+            status: mappedStatus,
+            progress: pollResp.data.progress || task.progress,
+            videoUrl: pollResp.data.videoUrl,
+            message: pollResp.data.message || task.message,
+            createdAt: task.createdAt,
+            model: task.model,
+            prompt: task.prompt,
+            parameters: task.parameters,
+            apiUrl: task.apiUrl,
+            apiEndpoint: task.apiEndpoint,
+            providerId: task.providerId,
+            providerModelId: task.providerModelId,
+            providerFormat: task.providerFormat,
+            fixedImageUrl: task.fixedImageUrl,
+            fixedImageLockType: task.fixedImageLockType,
+            storyId: task.storyId,
+            storyTitle: task.storyTitle,
+            beatId: task.beatId,
+            beatTitle: task.beatTitle,
+            pollFailureCount: 0,
+          });
+          if (!persistResult.ok) {
+            errorLogger.error(`[VideoTaskManager] Failed to persist videoUrl for ${task.taskId}`, persistResult.error);
+          }
+        } catch (persistError) {
+          errorLogger.error(`[VideoTaskManager] Exception persisting videoUrl for ${task.taskId}`, persistError);
+        }
+      }
     } else {
       const apiErrorMsg = pollResp.error || t("task.apiReturnFailed");
       const isRetryable =

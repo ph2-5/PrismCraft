@@ -136,7 +136,7 @@ export const storyboardRoutes: Record<string, Route> = {
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         );
         const updateStmt = db.prepare(
-          `UPDATE video_tasks SET status = ?, progress = ?, video_url = ?, message = ?, updated_at = ? WHERE id = ?`,
+          `UPDATE video_tasks SET status = ?, progress = ?, video_url = COALESCE(?, video_url), message = ?, updated_at = ? WHERE id = ?`,
         );
         let saved = 0;
         const nowSec = Math.floor(Date.now() / 1000);

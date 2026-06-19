@@ -44,7 +44,15 @@ export async function saveVideoTask(task: VideoTask): Promise<Result<void>> {
       lastPolledAt: nowIso,
     };
 
-    await container.videoTaskStorage.createVideoTask(record);
+    // upsert：先尝试插入，若任务已存在（主键冲突）则更新
+    // createVideoTask 使用 INSERT OR IGNORE，对已存在任务是空操作，
+    // 会导致 videoUrl 等字段无法持久化，因此冲突时必须回退到 updateVideoTask
+    const existing = await container.videoTaskStorage.getVideoTaskById(record.taskId);
+    if (existing) {
+      await container.videoTaskStorage.updateVideoTask(record.taskId, record);
+    } else {
+      await container.videoTaskStorage.createVideoTask(record);
+    }
   });
 }
 

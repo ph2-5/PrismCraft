@@ -38,6 +38,7 @@ export function useCharacterImage({
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const isAnalyzingRef = useRef(false);
+  const isGeneratingRef = useRef(false);
   const [useDetailedPrompt, setUseDetailedPrompt] = useState(false);
   const analyzeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [imageSize, setImageSize] = useState("1920x1920");
@@ -57,12 +58,15 @@ export function useCharacterImage({
   };
 
   const generateImage = async () => {
+    // ref 级别防重复提交，防止快速双击导致多次生成
+    if (isGeneratingRef.current) return;
     const basicPrompt = generatePrompt(currentCharacter);
     if (!basicPrompt || basicPrompt === "请输入角色信息生成提示词...") {
       showError(t("image.fillCharacterInfo"), t("image.fillCharacterInfoHint"));
       return;
     }
 
+    isGeneratingRef.current = true;
     setIsGenerating(true);
     try {
       let finalPrompt = basicPrompt;
@@ -96,6 +100,7 @@ export function useCharacterImage({
       errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: t("error.imageGenerateFailed"), cause: err });
       showError(t("image.generateFailed"), mapUserFacingError(err));
     } finally {
+      isGeneratingRef.current = false;
       setIsGenerating(false);
     }
   };

@@ -35,6 +35,15 @@ export const CharacterListItem = React.memo(function CharacterListItem({
     <div
       className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted cursor-pointer mx-2 my-1"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      aria-label={t("character.selectLabel", { name: character.name || t("character.unnamed") })}
     >
       <div className="flex items-center gap-3">
         {showImage ? (

@@ -31,6 +31,7 @@ export function useSceneImage({
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const isAnalyzingRef = useRef(false);
+  const isGeneratingRef = useRef(false);
   const analyzeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isOptimizingPrompt, setIsOptimizingPrompt] = useState(false);
   const [imageSize, setImageSize] = useState("1920x1920");
@@ -61,8 +62,11 @@ export function useSceneImage({
   };
 
   const generateImage = async () => {
+    // ref 级别防重复提交，防止快速双击导致多次生成
+    if (isGeneratingRef.current) return;
     const basicPrompt = currentScene.imageGenerationPrompt || generateSimpleSceneImagePrompt(currentScene);
     if (!basicPrompt || basicPrompt === "请输入场景信息生成提示词...") { showError(t("image.fillInfo"), t("image.fillInfoHint")); return; }
+    isGeneratingRef.current = true;
     setIsGenerating(true);
     try {
       const imageOptions: CustomApiConfig & { size?: string } = { size: imageSize };
@@ -71,7 +75,7 @@ export function useSceneImage({
       if (result.success && result.data?.imageUrl) { setGeneratedImage(result.data.imageUrl); success(t("success.imageGenerated"), t("success.sceneImageGeneratedDesc")); }
       else { showError(t("image.generateFailed"), result.error || t("image.checkApiConfig")); }
     } catch (err) { errorLogger.error({ code: "IMAGE_GENERATE_ERROR", message: t("error.imageGenerateFailed"), cause: err }); showError(t("image.generateFailed"), mapUserFacingError(err)); }
-    finally { setIsGenerating(false); }
+    finally { isGeneratingRef.current = false; setIsGenerating(false); }
   };
 
   const saveImageToScene = async () => {

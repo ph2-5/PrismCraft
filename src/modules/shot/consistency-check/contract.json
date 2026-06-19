@@ -4,12 +4,13 @@
   "dependencies": ["@/domain/schemas", "@/domain/types", "@/infrastructure/di"],
   "publicAPI": {
     "hooks": [],
-    "services": ["checkVisualConsistency", "performConfigCheck", "performConsistencyCheck", "validateFeatureAnchoringConfig", "validateNoFrameBinding"],
+    "services": ["checkVisualConsistency", "performConfigCheck", "performConsistencyCheck", "validateFeatureAnchoringConfig", "validateNoFrameBinding", "checkCrossShotConsistency"],
     "components": []
   },
   "invariants": [
     "checkVisualConsistency 评估分镜生成结果的视觉一致性评分",
     "performConfigCheck 和 validateFeatureAnchoringConfig 确保生成配置完整且有效",
+    "checkCrossShotConsistency 检查同一角色在不同分镜间的特征漂移，featureTags 不一致视为漂移",
     "禁止直接导入 story 和 video 模块"
   ]
 }

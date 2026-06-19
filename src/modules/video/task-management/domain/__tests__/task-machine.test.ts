@@ -32,7 +32,10 @@ describe("TaskMachine", () => {
       ["failed", "retrying", true],
       ["failed", "pending", false],
       ["failed", "generating", false],
-      ["failed", "completed", false],
+      // 允许 failed → completed：防止假失败导致已生成的视频被丢弃
+      ["failed", "completed", true],
+      ["failed", "cancelled", true],
+      ["failed", "timeout", false],
       ["cancelled", "pending", false],
       ["cancelled", "generating", false],
       ["cancelled", "failed", false],
@@ -40,6 +43,13 @@ describe("TaskMachine", () => {
       ["retrying", "completed", true],
       ["retrying", "failed", true],
       ["retrying", "pending", false],
+      // timeout 状态：允许恢复到 completed，防止超时假失败丢弃已生成视频
+      ["timeout", "completed", true],
+      ["timeout", "retrying", true],
+      ["timeout", "failed", true],
+      ["timeout", "cancelled", true],
+      ["timeout", "pending", false],
+      ["timeout", "generating", false],
     ] as [VideoTaskStatus, VideoTaskStatus, boolean][])(
       "canTransition(%s, %s) => %s",
       (from, to, expected) => {

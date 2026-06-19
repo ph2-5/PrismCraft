@@ -147,7 +147,7 @@ describe('CharacterListItem', () => {
       />
     );
 
-    const deleteButton = screen.getByRole('button');
+    const deleteButton = screen.getByRole('button', { name: '删除角色' });
     fireEvent.click(deleteButton);
     expect(mockOnDelete).toHaveBeenCalled();
   });
@@ -228,7 +228,7 @@ describe('SceneListItem', () => {
       />
     );
 
-    const deleteButton = screen.getByRole('button');
+    const deleteButton = screen.getByRole('button', { name: '删除场景' });
     fireEvent.click(deleteButton);
     expect(mockOnDelete).toHaveBeenCalled();
   });

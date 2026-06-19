@@ -230,6 +230,7 @@ export function CharacterAppearanceSection({
                           onClick={() =>
                             onDeleteOutfit(outfit.id)
                           }
+                          aria-label={t("character.deleteOutfitLabel")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

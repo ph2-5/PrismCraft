@@ -12,6 +12,7 @@ import { buildStoryPlanPrompt, buildRetryPrompt } from "./story-plan-prompt";
 import { parseStoryPlanJSON, convertToStoryBeats } from "./story-plan-parser";
 import { t } from "@/shared/constants";
 import { getVideoGenerationStrategy, supportsLastFrame } from "@/shared/model-capabilities";
+import { validateReferenceImageQuality } from "../feature-extraction";
 
 export interface PipelineProgress {
   stage:
@@ -307,6 +308,28 @@ export async function generateStoryPlanWithValidation(
           }
         }
       }
+    }
+  }
+
+  // Check reference image quality for bound elements
+  for (const element of elements) {
+    const primaryBinding = element.bindings.find((b) => b.isPrimary) || element.bindings[0];
+    if (!primaryBinding?.url) continue;
+
+    try {
+      const quality = await validateReferenceImageQuality(primaryBinding.url, element.type);
+      if (!quality.isValid) {
+        const qualityWarning = `[${element.name}] 参考图质量不达标: ${quality.issues.join("; ")}`;
+        fixDetails.push(qualityWarning);
+        errorLogger.warn(`[Pipeline] ${qualityWarning}`);
+      } else if (quality.clarityScore < 0.5) {
+        const qualityWarning = `[${element.name}] 参考图清晰度较低(得分:${quality.clarityScore.toFixed(2)})，可能影响生成质量`;
+        fixDetails.push(qualityWarning);
+        errorLogger.warn(`[Pipeline] ${qualityWarning}`);
+      }
+    } catch {
+      // validateReferenceImageQuality failure should not block generation
+      errorLogger.debug(`[Pipeline] 参考图质量检查跳过: ${element.name}`);
     }
   }
 

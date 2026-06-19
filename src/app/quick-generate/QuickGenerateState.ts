@@ -190,7 +190,12 @@ export function useQuickGenerateState() {
         format: selectedVideoModel.format,
       });
 
-      if (task?.promptWasTruncated) {
+      // createTask 返回 null 表示被防重复锁拒绝，不应显示成功提示
+      if (!task) {
+        return;
+      }
+
+      if (task.promptWasTruncated) {
         showWarning(t("task.promptTooLong"), t("task.promptTruncated"));
       }
 

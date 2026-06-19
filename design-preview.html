@@ -34,6 +34,15 @@
   .nav-item.active { background: rgba(99,102,241,0.12); color: #a5b4fc; }
   .nav-item .icon { width: 18px; height: 18px; opacity: 0.7; flex-shrink: 0; }
   .nav-item.active .icon { opacity: 1; }
+
+  .mode-tabs { display: flex; margin: 8px; gap: 0; background: var(--card2); border-radius: 10px; padding: 3px; }
+  .mode-tab { flex: 1; padding: 8px 6px; border-radius: 8px; border: none; background: transparent; color: var(--muted-fg); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; font-family: inherit; }
+  .mode-tab:hover { color: var(--fg); }
+  .mode-tab.active { background: var(--bg); color: var(--fg); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .mode-tab .mode-icon { font-size: 14px; }
+
+  .nav-items-group { display: flex; flex-direction: column; }
+  .nav-items-group.hidden { display: none; }
  
   /* Main */
   .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -72,6 +81,10 @@
   .badge-info { background: rgba(99,102,241,0.12); color: #a5b4fc; }
   .badge-warning { background: rgba(245,158,11,0.12); color: #fbbf24; }
   .badge-error { background: rgba(239,68,68,0.12); color: #f87171; }
+  .badge-muted { background: var(--muted); color: var(--muted-fg); }
+
+  .step-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--card2); font-size: 12px; }
+  .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; }
  
   .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .progress-bar { height: 3px; background: var(--muted); border-radius: 2px; overflow: hidden; }
@@ -151,6 +164,22 @@
   .section-label .dot { width: 6px; height: 6px; border-radius: 50%; }
   .section-label .dot.ok { background: var(--success); }
   .section-label .dot.warn { background: var(--warning); }
+
+  /* Floating Ball */
+  .floating-ball { position: fixed; bottom: 24px; right: 24px; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; z-index: 90; box-shadow: 0 4px 20px rgba(99,102,241,0.4); transition: all 0.25s; border: none; }
+  .floating-ball:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(99,102,241,0.55); }
+  .floating-ball:active { transform: scale(0.95); }
+
+  .floating-panel { position: fixed; bottom: 88px; right: 24px; width: 420px; height: 560px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); z-index: 89; display: none; flex-direction: column; overflow: hidden; animation: fadeIn 0.2s ease; }
+  .floating-panel.open { display: flex; }
+
+  .fp-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .fp-tab { flex: 1; padding: 12px; border: none; background: transparent; color: var(--muted-fg); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .fp-tab:hover { color: var(--fg); }
+  .fp-tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -1px; }
+
+  .fp-body { flex: 1; overflow-y: auto; display: none; }
+  .fp-body.active { display: flex; flex-direction: column; }
 </style>
 </head>
 <body>
@@ -164,19 +193,36 @@
       <span class="sidebar-logo-text">AI Animation Studio</span>
     </div>
     <div style="flex:1;overflow-y:auto;">
-      <div class="nav-section">主页</div>
+
+      <!-- ═══ 自由创作 ═══ -->
+      <div style="padding:6px 14px 2px;font-size:11px;font-weight:700;color:var(--fg);display:flex;align-items:center;gap:6px;">
+        <span style="font-size:14px;">🎬</span> 自由创作
+      </div>
+      <div style="padding:2px 14px 6px;font-size:10px;color:var(--muted-fg);">手动编排 · 逐镜头精调</div>
       <button class="nav-item active" data-page="home" onclick="switchPage('home')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>主页</button>
-      <div class="nav-section" style="margin-top:4px;">创作</div>
-      <button class="nav-item" data-page="quick" onclick="switchPage('quick')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>快速生成</button>
-      <button class="nav-item" data-page="storyboard" onclick="switchPage('storyboard')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>故事板</button>
-      <button class="nav-item" data-page="composer" onclick="switchPage('composer')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>图片生成器</button>
-      <div class="nav-section" style="margin-top:8px;">资产</div>
       <button class="nav-item" data-page="characters" onclick="switchPage('characters')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>角色</button>
       <button class="nav-item" data-page="scenes" onclick="switchPage('scenes')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>场景</button>
+      <button class="nav-item" data-page="storyboard" onclick="switchPage('storyboard')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>分镜</button>
       <button class="nav-item" data-page="assets" onclick="switchPage('assets')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>素材库</button>
-      <div class="nav-section" style="margin-top:8px;">任务</div>
-      <button class="nav-item" data-page="tasks" onclick="switchPage('tasks')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>视频任务</button>
-      <div class="nav-section" style="margin-top:8px;">系统</div>
+      <button class="nav-item" data-page="tasks" onclick="switchPage('tasks')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>任务</button>
+
+      <!-- ═══ 故事创作 ═══ -->
+      <div style="padding:12px 14px 2px;font-size:11px;font-weight:700;color:var(--fg);display:flex;align-items:center;gap:6px;border-top:1px solid var(--border);margin-top:6px;">
+        <span style="font-size:14px;">📖</span> 故事创作
+      </div>
+      <div style="padding:2px 14px 6px;font-size:10px;color:var(--muted-fg);">AI 管道 · 自动拆解生成</div>
+      <button class="nav-item" data-page="story" onclick="switchPage('story')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>导入小说</button>
+      <button class="nav-item" data-page="story-chars" onclick="switchPage('story-chars')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>角色确认</button>
+      <button class="nav-item" data-page="story-scenes" onclick="switchPage('story-scenes')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>场景确认</button>
+      <button class="nav-item" data-page="story-shots" onclick="switchPage('story-shots')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>分镜预览</button>
+      <button class="nav-item" data-page="story-tasks" onclick="switchPage('story-tasks')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>批量任务</button>
+
+      <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+      <div class="nav-section">工具</div>
+      <button class="nav-item" data-page="agent" onclick="switchPage('agent')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 00-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 00-8-8z"/></svg>AI 助手</button>
+      <button class="nav-item" data-page="composer" onclick="switchPage('composer')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>编译器</button>
+      <div class="nav-section">系统</div>
+      <button class="nav-item" data-page="plugins" onclick="switchPage('plugins')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>插件市场</button>
       <button class="nav-item" data-page="settings" onclick="switchPage('settings')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>设置</button>
     </div>
     <div style="margin:8px;padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid rgba(99,102,241,0.15);">
@@ -981,12 +1027,12 @@
           <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;width:100%;" onclick="filterAssets('character',this)" data-cat="character">� 角色素材 <span style="font-size:10px;color:var(--muted-fg);margin-left:auto;">4</span></button>
           <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;width:100%;" onclick="filterAssets('scene',this)" data-cat="scene">🏙 场景素材 <span style="font-size:10px;color:var(--muted-fg);margin-left:auto;">3</span></button>
           <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;width:100%;" onclick="filterAssets('storyboard',this)" data-cat="storyboard">🎬 分镜素材 <span style="font-size:10px;color:var(--muted-fg);margin-left:auto;">5</span></button>
-          <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;width:100%;" onclick="filterAssets('prop',this)" data-cat="prop">📦 道具 <span style="font-size:10px;color:var(--muted-fg);margin-left:auto;">10</span></button>
+          <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;width:100%;" onclick="filterAssets('prop',this)" data-cat="prop">📦 道具 <span style="font-size:10px;color:var(--muted-fg);margin-left:auto;">13</span></button>
           <div style="margin-left:12px;display:flex;flex-direction:column;gap:1px;" id="prop-sub-cats">
-            <button class="btn btn-ghost btn-xs" style="justify-content:flex-start;font-size:11px;width:100%;" onclick="filterAssets('prop-outfit',this)" data-cat="prop-outfit">└ 👗 服装</button>
+            <button class="btn btn-ghost btn-xs" style="justify-content:flex-start;font-size:11px;width:100%;" onclick="filterAssets('prop-clothing',this)" data-cat="prop-clothing">└ 👗 服装</button>
             <button class="btn btn-ghost btn-xs" style="justify-content:flex-start;font-size:11px;width:100%;" onclick="filterAssets('prop-weapon',this)" data-cat="prop-weapon">└ ⚔ 武器</button>
-            <button class="btn btn-ghost btn-xs" style="justify-content:flex-start;font-size:11px;width:100%;" onclick="filterAssets('prop-item',this)" data-cat="prop-item">└ 🔧 物品</button>
-            <button class="btn btn-ghost btn-xs" style="justify-content:flex-start;font-size:11px;width:100%;" onclick="filterAssets('prop-effect',this)" data-cat="prop-effect">└ ✨ 特效</button>
+            <button class="btn btn-ghost btn-xs" style="justify-content:flex-start;font-size:11px;width:100%;" onclick="filterAssets('prop-accessory',this)" data-cat="prop-accessory">└ 💍 配饰</button>
+            <button class="btn btn-ghost btn-xs" style="justify-content:flex-start;font-size:11px;width:100%;" onclick="filterAssets('prop-prop',this)" data-cat="prop-prop">└ 🔧 道具</button>
           </div>
           <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
           <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;width:100%;" onclick="filterAssets('collection',this)" data-cat="collection">⭐ 收藏集</button>
@@ -1026,9 +1072,9 @@
             <button class="btn btn-ghost btn-xs" onclick="clearComposerCanvas()">🗑 清空</button>
             <button class="btn btn-ghost btn-xs">🔄 重置</button>
           </div>
-          <div id="composer-canvas" style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;"
+          <div id="composer-canvas" style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:20px;"
             ondragover="event.preventDefault()" ondrop="dropOnComposerCanvas(event)">
-            <div style="width:400px;height:400px;background:var(--card2);border:2px dashed var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted-fg);" id="composer-canvas-inner">
+            <div style="width:100%;height:100%;max-width:700px;max-height:700px;aspect-ratio:1;background:var(--card2);border:2px dashed var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted-fg);" id="composer-canvas-inner">
               <div style="font-size:40px;opacity:0.3;">🖼</div>
               <div style="font-size:13px;">从左侧拖拽素材到此处</div>
               <div style="font-size:11px;">或点击素材添加到画布</div>
@@ -1036,38 +1082,44 @@
           </div>
         </div>
         <!-- Right: Properties + Tools -->
-        <div style="width:260px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;">
+        <div style="width:260px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;">
           <!-- P图工具 -->
-          <div class="section-label">🛠 P图工具</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="裁剪">✂ 裁剪</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="调整大小">📐 缩放</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="旋转">🔄 旋转</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="翻转">↔ 翻转</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="滤镜">🎨 滤镜</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="调整">⚙ 调整</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="抠图">🏷 抠图</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="文字">T 文字</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="画笔">✏ 画笔</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="橡皮">🧹 橡皮</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="图层蒙版">🎭 蒙版</button>
-            <button class="btn btn-outline btn-xs" style="justify-content:center;" title="AI扩图">✨ AI扩图</button>
+          <div style="padding:12px 12px 8px;flex-shrink:0;">
+            <div class="section-label">🛠 P图工具</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="裁剪">✂ 裁剪</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="调整大小">📐 缩放</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="旋转">🔄 旋转</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="翻转">↔ 翻转</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="滤镜">🎨 滤镜</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="调整">⚙ 调整</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="抠图">🏷 抠图</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="文字">T 文字</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="画笔">✏ 画笔</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="橡皮">🧹 橡皮</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="图层蒙版">🎭 蒙版</button>
+              <button class="btn btn-outline btn-xs" style="justify-content:center;" title="AI扩图">✨ AI扩图</button>
+            </div>
           </div>
-          <div style="border-top:1px solid var(--border);"></div>
-          <!-- Layer List -->
-          <div class="section-label">📋 图层 <span style="font-weight:400;color:var(--muted-fg);" id="composer-layer-count">0</span></div>
-          <div style="display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto;" id="composer-layer-list">
-            <div style="font-size:11px;color:var(--muted-fg);text-align:center;padding:10px;">暂无图层</div>
+          <div style="border-top:1px solid var(--border);flex-shrink:0;"></div>
+          <!-- Layer List — fills available space -->
+          <div style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+            <div class="section-label" style="padding:10px 12px 6px;flex-shrink:0;">📋 图层 <span style="font-weight:400;color:var(--muted-fg);" id="composer-layer-count">0</span></div>
+            <div style="flex:1;overflow-y:auto;padding:0 12px;display:flex;flex-direction:column;gap:3px;" id="composer-layer-list">
+              <div style="font-size:11px;color:var(--muted-fg);text-align:center;padding:10px;">暂无图层</div>
+            </div>
           </div>
-          <div style="border-top:1px solid var(--border);"></div>
-          <!-- Compose Prompt -->
-          <div class="section-label">🤖 合成提示词</div>
-          <textarea class="textarea" rows="3" style="font-size:11px;" id="composer-prompt" placeholder="AI将根据画布内容自动生成提示词...">合成一张包含所有选中元素的图片，保持角色外观一致，场景风格统一</textarea>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="simulateComposerGenerate()">🤖 生成图片</button>
-            <button class="btn btn-outline btn-xs">📋</button>
+          <div style="border-top:1px solid var(--border);flex-shrink:0;"></div>
+          <!-- Compose Prompt + Generate -->
+          <div style="padding:10px 12px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+            <div class="section-label">🤖 合成提示词</div>
+            <textarea class="textarea" rows="3" style="font-size:11px;resize:none;" id="composer-prompt" placeholder="AI将根据画布内容自动生成提示词...">合成一张包含所有选中元素的图片，保持角色外观一致，场景风格统一</textarea>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="simulateComposerGenerate()">🤖 生成图片</button>
+              <button class="btn btn-outline btn-xs">📋</button>
+            </div>
+            <div class="progress-bar" style="display:none;" id="composer-progress-bar"><div class="progress-fill" style="width:0%;" id="composer-progress-fill"></div></div>
           </div>
-          <div class="progress-bar" style="display:none;" id="composer-progress-bar"><div class="progress-fill" style="width:0%;" id="composer-progress-fill"></div></div>
         </div>
       </div>
     </div>
@@ -1502,19 +1554,453 @@
       </div>
     </div>
 
+  <!-- ═══════ PAGE: agent ═══════ -->
+    <div id="page-agent" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header">
+        <h2 class="page-title">🤖 AI 助手</h2>
+        <span class="badge badge-info">系统管理员</span>
+        <button class="btn btn-outline btn-xs" style="margin-left:auto;" onclick="toggleAgentToolPanel()" id="agent-tool-toggle">🔧 展开</button>
+      </div>
+      <!-- 上半：聊天消息区 -->
+      <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;min-height:0;" id="agent-chat">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🤖</div>
+          <div class="card" style="padding:12px 16px;max-width:70%;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px;">AI 助手</div>
+            <div style="font-size:12px;color:var(--muted-fg);line-height:1.6;">
+              你好！我是你的系统管理员。我可以帮你：<br>
+              • 配置 API 供应商和密钥<br>
+              • 导入小说自动生成分镜<br>
+              • 素材搜索和图片编辑<br>
+              • 诊断任务失败原因<br>
+              <br>
+              请告诉我你需要什么帮助？
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-direction:row-reverse;">
+          <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>
+          <div class="card" style="padding:12px 16px;max-width:60%;background:var(--primary);border:none;">
+            <div style="font-size:12px;color:#fff;">帮我配置一个 Kling 的 API，key 是 kl-xxxxxxxx</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🤖</div>
+          <div class="card" style="padding:12px 16px;max-width:70%;">
+            <div style="font-size:12px;line-height:1.6;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <span style="font-size:10px;background:rgba(99,102,241,0.2);color:var(--primary);padding:2px 8px;border-radius:4px;">🔧 工具调用</span>
+                <span style="font-size:11px;color:var(--muted-fg);">configure_api</span>
+              </div>
+              <div style="font-size:12px;color:var(--muted-fg);">正在验证 Kling API 密钥...</div>
+              <div style="margin-top:6px;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--success);">✅ 配置成功！Kling 1.6 已就绪。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 下半：输入区 -->
+      <div style="border-top:2px solid var(--border);background:var(--card);padding:16px 20px;flex-shrink:0;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="btn btn-outline btn-xs" onclick="document.getElementById('agent-input').value='配置API'">⚙ 配置API</button>
+          <button class="btn btn-outline btn-xs" onclick="document.getElementById('agent-input').value='导入小说'">📖 导入小说</button>
+          <button class="btn btn-outline btn-xs" onclick="document.getElementById('agent-input').value='搜索素材'">🔍 搜索素材</button>
+          <button class="btn btn-outline btn-xs" onclick="document.getElementById('agent-input').value='诊断任务'">🩺 诊断</button>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-end;">
+          <textarea class="textarea" id="agent-input" rows="2" style="font-size:12px;resize:none;flex:1;" placeholder="输入你的需求，如：帮我配置一个 Kling 的 API..."></textarea>
+          <button class="btn btn-primary" style="height:38px;min-width:60px;" onclick="simulateAgentSend()">发送</button>
+        </div>
+      </div>
+      <!-- 工具面板 — 悬浮覆盖层 -->
+      <div style="position:fixed;right:0;top:0;bottom:0;width:240px;transform:translateX(100%);background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform 0.25s ease;box-shadow:-4px 0 20px rgba(0,0,0,0.3);" id="agent-tool-panel">
+        <div style="padding:14px 14px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <span style="font-size:12px;font-weight:600;">🔧 工具 (31)</span>
+          <button class="btn btn-ghost btn-xs" style="padding:2px 6px;" onclick="toggleAgentToolPanel()">✕</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:0 14px 14px;display:flex;flex-direction:column;gap:20px;justify-content:space-evenly;">
+          <div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-bottom:6px;">⚙ 系统管理</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <span class="badge" style="font-size:10px;">configure_api</span>
+              <span class="badge" style="font-size:10px;">list_providers</span>
+              <span class="badge" style="font-size:10px;">diagnose_task</span>
+              <span class="badge" style="font-size:10px;">system_stats</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-bottom:6px;">📖 故事创作</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <span class="badge" style="font-size:10px;">import_novel</span>
+              <span class="badge" style="font-size:10px;">analyze_text</span>
+              <span class="badge" style="font-size:10px;">extract_characters</span>
+              <span class="badge" style="font-size:10px;">plan_storyboard</span>
+              <span class="badge" style="font-size:10px;">generate_shot</span>
+              <span class="badge" style="font-size:10px;">batch_generate</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-bottom:6px;">🎨 内容创作</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <span class="badge" style="font-size:10px;">compose_image</span>
+              <span class="badge" style="font-size:10px;">edit_image</span>
+              <span class="badge" style="font-size:10px;">search_assets</span>
+              <span class="badge" style="font-size:10px;">generate_video</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted-fg);margin-bottom:6px;">🔍 查询</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <span class="badge" style="font-size:10px;">list_characters</span>
+              <span class="badge" style="font-size:10px;">list_scenes</span>
+              <span class="badge" style="font-size:10px;">list_props</span>
+              <span class="badge" style="font-size:10px;">list_shots</span>
+              <span class="badge" style="font-size:10px;">check_consistency</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: story ═══════ -->
+    <div id="page-story" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">📖 故事创作</h2><span class="badge badge-info">AI 管道</span></div>
+      <div class="content-area" style="display:flex;gap:16px;flex:1;overflow:hidden;">
+        <!-- 左侧：小说输入 -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px;min-width:0;">
+          <div class="card" style="padding:16px;flex:1;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:13px;font-weight:600;">📝 小说文本</span>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-outline btn-xs">📤 上传文件</button>
+                <button class="btn btn-outline btn-xs">📋 粘贴</button>
+              </div>
+            </div>
+            <textarea class="textarea" style="flex:1;font-size:12px;line-height:1.8;resize:none;" placeholder="在此粘贴小说文本...&#10;&#10;示例：&#10;第一章 城市黎明&#10;新东京的霓虹灯在晨雾中闪烁。零站在天台边缘，俯瞰着这座不夜城。她的白色风衣在风中猎猎作响，全息数据板上的信息让她眉头紧锁..."></textarea>
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+              <button class="btn btn-primary" onclick="simulateNovelPipeline()">🚀 开始 AI 管道</button>
+              <span style="font-size:11px;color:var(--muted-fg);">字数统计: 0</span>
+            </div>
+          </div>
+        </div>
+        <!-- 右侧：管道进度 -->
+        <div style="width:340px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex-shrink:0;">
+          <div class="card" style="padding:14px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:10px;">⚙ 管道步骤</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div class="step-row"><span class="step-num">1</span><span>文本分块</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
+              <div class="step-row"><span class="step-num">2</span><span>角色提取</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
+              <div class="step-row"><span class="step-num">3</span><span>场景提取</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
+              <div class="step-row"><span class="step-num">4</span><span>角色确认</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
+              <div class="step-row"><span class="step-num">5</span><span>分镜规划</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
+              <div class="step-row"><span class="step-num">6</span><span>分镜预览</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
+              <div class="step-row"><span class="step-num">7</span><span>批量生成</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
+            </div>
+          </div>
+          <div class="card" style="padding:14px;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:10px;">🎯 生成模式</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <label class="element-card" style="align-items:center;gap:8px;cursor:pointer;padding:10px;">
+                <input type="radio" name="story-mode" value="semi" checked> 半自动（每步确认）
+              </label>
+              <label class="element-card" style="align-items:center;gap:8px;cursor:pointer;padding:10px;">
+                <input type="radio" name="story-mode" value="full"> 全自动（AI Agent 全程托管）
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: story-chars ═══════ -->
+    <div id="page-story-chars" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">📖 角色确认</h2><span class="badge badge-info">AI 提取</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;">
+        <div class="card" style="padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">AI 从小说的 3 个章节中提取了以下角色</div>
+          <div style="font-size:11px;color:var(--muted-fg);">确认后将自动创建到角色库，并可在自由创作模式中使用</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;">
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;">👩</div>
+              <div><div style="font-size:13px;font-weight:600;">零</div><div style="font-size:10px;color:var(--muted-fg);">出现于 第1-4章</div></div>
+              <span class="badge badge-success" style="margin-left:auto;">已确认</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted-fg);">女性 · 赛博朋克黑客 · 冷静果敢 · 身高168cm</div>
+            <div style="display:flex;gap:6px;margin-top:8px;"><button class="btn btn-outline btn-xs">✏ 编辑</button><button class="btn btn-primary btn-xs">→ 创建角色</button></div>
+          </div>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:16px;">👴</div>
+              <div><div style="font-size:13px;font-weight:600;">山田</div><div style="font-size:10px;color:var(--muted-fg);">出现于 第2-3章</div></div>
+              <span class="badge badge-warning" style="margin-left:auto;">待确认</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted-fg);">男性 · 传统长者 · 神秘睿智 · 身高175cm</div>
+            <div style="display:flex;gap:6px;margin-top:8px;"><button class="btn btn-outline btn-xs">✏ 编辑</button><button class="btn btn-primary btn-xs">→ 创建角色</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: story-scenes ═══════ -->
+    <div id="page-story-scenes" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">📖 场景确认</h2><span class="badge badge-info">AI 提取</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;">
+        <div class="card" style="padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">AI 从小说中提取了以下场景</div>
+          <div style="font-size:11px;color:var(--muted-fg);">确认后将自动创建到场景库</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;">
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:16px;">🏙</div>
+              <div><div style="font-size:13px;font-weight:600;">新东京</div><div style="font-size:10px;color:var(--muted-fg);">第1,2,4章</div></div>
+              <span class="badge badge-success" style="margin-left:auto;">已确认</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted-fg);">赛博朋克城市 · 霓虹灯 · 高耸建筑 · 清晨雾霭</div>
+            <div style="display:flex;gap:6px;margin-top:8px;"><button class="btn btn-outline btn-xs">✏ 编辑</button><button class="btn btn-primary btn-xs">→ 创建场景</button></div>
+          </div>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:flex;align-items:center;justify-content:center;font-size:16px;">🚇</div>
+              <div><div style="font-size:13px;font-weight:600;">地铁站</div><div style="font-size:10px;color:var(--muted-fg);">第3章</div></div>
+              <span class="badge badge-warning" style="margin-left:auto;">待确认</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted-fg);">地下 · 荧光灯 · 空旷 · 回声</div>
+            <div style="display:flex;gap:6px;margin-top:8px;"><button class="btn btn-outline btn-xs">✏ 编辑</button><button class="btn btn-primary btn-xs">→ 创建场景</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: story-shots ═══════ -->
+    <div id="page-story-shots" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">📖 分镜预览</h2><span class="badge badge-info">AI 规划</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;">
+        <div class="card" style="padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">AI 已规划 12 个分镜</div>
+          <div style="font-size:11px;color:var(--muted-fg);">可在下方预览、调整或批量生成</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+            <div style="width:60px;height:40px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;">第1镜</div>
+            <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">城市黎明</div><div style="font-size:10px;color:var(--muted-fg);">👤 零 🏙 新东京 · 广角全景航拍</div></div>
+            <span class="badge badge-success">已生成</span>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+            <div style="width:60px;height:40px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;">第2镜</div>
+            <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">主角登场</div><div style="font-size:10px;color:var(--muted-fg);">👤 零 · 中景跟随</div></div>
+            <span class="badge badge-warning">待生成</span>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+            <div style="width:60px;height:40px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;">第3镜</div>
+            <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">街头冲突</div><div style="font-size:10px;color:var(--muted-fg);">👤 零 👤 影 🚇 地铁站 · 中景</div></div>
+            <span class="badge badge-muted">待生成</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-primary">🚀 批量生成全部</button>
+          <button class="btn btn-outline">✏ 打开分镜编辑器</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: story-tasks ═══════ -->
+    <div id="page-story-tasks" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">📖 批量任务</h2><span class="badge badge-warning">3 进行中</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:8px;flex:1;overflow-y:auto;">
+        <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--primary);animation:pulse-dot 1.5s infinite;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">第2镜 · 主角登场</div><div style="font-size:10px;color:var(--muted-fg);">Kling 1.6 · 关键帧</div></div>
+          <div style="width:80px;height:6px;background:var(--card2);border-radius:3px;overflow:hidden;"><div style="width:67%;height:100%;background:var(--primary);border-radius:3px;"></div></div>
+          <span style="font-size:11px;color:var(--muted-fg);">67%</span>
+        </div>
+        <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--primary);animation:pulse-dot 1.5s infinite;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">第3镜 · 街头冲突</div><div style="font-size:10px;color:var(--muted-fg);">Kling 1.6 · 首尾帧</div></div>
+          <div style="width:80px;height:6px;background:var(--card2);border-radius:3px;overflow:hidden;"><div style="width:42%;height:100%;background:var(--primary);border-radius:3px;"></div></div>
+          <span style="font-size:11px;color:var(--muted-fg);">42%</span>
+        </div>
+        <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">第1镜 · 城市黎明</div><div style="font-size:10px;color:var(--muted-fg);">Kling 1.6 · 视频</div></div>
+          <span class="badge badge-success">✅ 已完成</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: plugins ═══════ -->
+    <div id="page-plugins" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">🧩 插件市场</h2><span class="badge badge-info">编辑器扩展</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;">
+        <!-- 已安装插件 -->
+        <div class="card" style="padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;">✅ 已安装 (2)</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;">
+            <div class="element-card" style="align-items:center;padding:12px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🎬</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;">默认分镜编辑器</div>
+                <div style="font-size:11px;color:var(--muted-fg);">项目内置 · 三栏布局编辑器</div>
+              </div>
+              <span class="badge badge-success" style="font-size:10px;">v1.0</span>
+            </div>
+            <div class="element-card" style="align-items:center;padding:12px;">
+              <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🎨</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;">漫画分镜编辑器</div>
+                <div style="font-size:11px;color:var(--muted-fg);">示例插件 · 漫画风格编辑器</div>
+              </div>
+              <span class="badge badge-success" style="font-size:10px;">v1.0</span>
+            </div>
+          </div>
+        </div>
+        <!-- 插件市场 -->
+        <div class="card" style="padding:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:13px;font-weight:600;">🛒 插件市场</span>
+            <div style="display:flex;gap:6px;">
+              <input class="input" placeholder="搜索插件..." style="width:180px;font-size:11px;padding:4px 10px;">
+              <select class="select" style="font-size:11px;padding:4px 8px;"><option>全部类型</option><option>shot-editor</option><option>tool</option><option>theme</option></select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">
+            <div class="card" style="padding:14px;cursor:pointer;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:16px;">📽</div>
+                <div><div style="font-size:13px;font-weight:600;">电影分镜编辑器</div><div style="font-size:10px;color:var(--muted-fg);">by @CineMaster</div></div>
+              </div>
+              <div style="font-size:11px;color:var(--muted-fg);margin-bottom:10px;">电影级分镜编辑器，支持镜头语言标注、灯光方案、音频备注</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+                <span class="badge" style="font-size:9px;">shot-editor</span>
+                <span class="badge" style="font-size:9px;">v1.2</span>
+                <span class="badge" style="font-size:9px;">⭐ 4.8</span>
+              </div>
+              <button class="btn btn-primary btn-xs" style="width:100%;">安装</button>
+            </div>
+            <div class="card" style="padding:14px;cursor:pointer;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:flex;align-items:center;justify-content:center;font-size:16px;">🎭</div>
+                <div><div style="font-size:13px;font-weight:600;">动画分镜编辑器</div><div style="font-size:10px;color:var(--muted-fg);">by @AnimePro</div></div>
+              </div>
+              <div style="font-size:11px;color:var(--muted-fg);margin-bottom:10px;">专为动画设计的分镜编辑器，支持原画/动画/背景分层</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+                <span class="badge" style="font-size:9px;">shot-editor</span>
+                <span class="badge" style="font-size:9px;">v0.9</span>
+                <span class="badge" style="font-size:9px;">⭐ 4.5</span>
+              </div>
+              <button class="btn btn-outline btn-xs" style="width:100%;">安装</button>
+            </div>
+            <div class="card" style="padding:14px;cursor:pointer;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:16px;">📊</div>
+                <div><div style="font-size:13px;font-weight:600;">分镜统计面板</div><div style="font-size:10px;color:var(--muted-fg);">by @DataViz</div></div>
+              </div>
+              <div style="font-size:11px;color:var(--muted-fg);margin-bottom:10px;">分镜数据统计可视化，生成进度、资源使用、耗时分析</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+                <span class="badge" style="font-size:9px;">tool</span>
+                <span class="badge" style="font-size:9px;">v1.0</span>
+                <span class="badge" style="font-size:9px;">⭐ 4.2</span>
+              </div>
+              <button class="btn btn-outline btn-xs" style="width:100%;">安装</button>
+            </div>
+          </div>
+        </div>
+        <!-- 插件开发 -->
+        <div class="card" style="padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;">🛠 开发自己的插件</div>
+          <div style="font-size:12px;color:var(--muted-fg);line-height:1.6;">
+            分镜编辑器插件基于 <code style="background:var(--muted);padding:2px 6px;border-radius:4px;font-size:11px;">editor-plugin-schema</code> 定义，支持：
+            <br>• <b>shot:read / shot:write</b> — 读写分镜数据
+            <br>• <b>character:read / scene:read / prop:read</b> — 读取资产数据
+            <br>• <b>story:read / story:write</b> — 读写故事数据
+            <br><br>使用 Vibe Coding 工具（Træ/Cursor）即可快速开发自定义编辑器插件。
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;">
+            <button class="btn btn-outline btn-xs">📖 开发文档</button>
+            <button class="btn btn-primary btn-xs">+ 创建插件</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- END main-content -->
 </div><!-- END app-shell -->
 
 <div id="modal-container"></div>
+
+<!-- ══════════════ FLOATING BALL ══════════════ -->
+<button class="floating-ball" id="floating-ball" onclick="toggleFloatingPanel()" title="AI 助手 & 编译器">💬</button>
+<div class="floating-panel" id="floating-panel">
+  <div class="fp-tabs">
+    <button class="fp-tab active" data-fp="agent" onclick="switchFloatingTab('agent')">🤖 AI 助手</button>
+    <button class="fp-tab" data-fp="composer" onclick="switchFloatingTab('composer')">🎨 编译器</button>
+  </div>
+  <!-- AI 助手 -->
+  <div class="fp-body active" id="fp-body-agent">
+    <div style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;" id="fp-chat">
+      <div class="card" style="padding:10px 14px;">
+        <div style="font-size:12px;color:var(--muted-fg);">你好！我可以帮你配置API、诊断任务、搜索素材，或直接在当前页面调用编译器。</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding:10px 14px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <button class="btn btn-outline btn-xs" onclick="fpChatQuick('配个API')">⚙ 配API</button>
+        <button class="btn btn-outline btn-xs" onclick="fpChatQuick('诊断任务')">🩺 诊断</button>
+        <button class="btn btn-outline btn-xs" onclick="fpChatQuick('搜索素材')">🔍 搜索</button>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input class="input" id="fp-input" placeholder="输入需求..." style="flex:1;font-size:12px;" onkeydown="if(event.key==='Enter')fpChatSend()">
+        <button class="btn btn-primary btn-sm" onclick="fpChatSend()">发送</button>
+      </div>
+    </div>
+  </div>
+  <!-- 编译器 -->
+  <div class="fp-body" id="fp-body-composer">
+    <div style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div class="card" style="padding:12px;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px;">👤 选择角色</div>
+        <select class="select" style="width:100%;font-size:12px;" id="fp-comp-char">
+          <option value="">不选角色</option>
+        </select>
+      </div>
+      <div class="card" style="padding:12px;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px;">📦 选择道具</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;" id="fp-comp-props"></div>
+      </div>
+      <div class="card" style="padding:12px;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px;">🏙 选择场景</div>
+        <select class="select" style="width:100%;font-size:12px;" id="fp-comp-scene">
+          <option value="">不选场景</option>
+        </select>
+      </div>
+      <div class="card" style="padding:12px;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px;">📝 补充提示词</div>
+        <textarea class="textarea" rows="2" id="fp-comp-prompt" style="font-size:12px;" placeholder="额外的画面描述..."></textarea>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;">
+      <button class="btn btn-outline btn-sm" style="flex:1;" onclick="fpComposeQuick()">⚡ 快速生成</button>
+      <button class="btn btn-primary btn-sm" style="flex:1;" onclick="fpComposeFull()">🎨 完整生成</button>
+    </div>
+  </div>
+</div>
  
 <script>
 // ═══════════════ DATA MODEL ═══════════════
 const DATA = {
   characters: [
-    { id:'c1', name:'零', emoji:'👩', gender:'女', personality:'冷静、果敢', style:'赛博朋克黑客', height:'168cm', build:'纤瘦', outfits:[{name:'白色风衣',img:null},{name:'战术背心',img:null}], weapon:'光刃武士刀', item:'全息数据板', imageUrl:null },
-    { id:'c2', name:'山田', emoji:'👴', gender:'男', personality:'神秘、睿智', style:'传统长者', height:'175cm', build:'瘦削', outfits:[{name:'和服',img:null}], weapon:null, item:null, imageUrl:null },
-    { id:'c3', name:'影', emoji:'🦹', gender:'男', personality:'冷酷、野心勃勃', style:'企业CEO', height:'185cm', build:'魁梧', outfits:[{name:'黑色西装',img:null}], weapon:'脉冲手枪', item:null, imageUrl:null },
-    { id:'c4', name:'艾米', emoji:'👩‍💻', gender:'女', personality:'活泼、好奇', style:'科技助手', height:'160cm', build:'娇小', outfits:[], weapon:null, item:'纳米药剂', imageUrl:null },
+    { id:'c1', name:'零', emoji:'👩', gender:'女', personality:'冷静、果敢', style:'赛博朋克黑客', height:'168cm', build:'纤瘦', weapon:'光刃武士刀', item:'全息数据板', imageUrl:null, variants:[
+      { id:'v1', name:'白色风衣造型', imageUrl:null, propIds:['p1','p7'], compositorPrompt:'零穿着白色风衣手持全息数据板，站在新东京街头', isCanonical:true },
+      { id:'v2', name:'战术装备造型', imageUrl:null, propIds:['p2','p5'], compositorPrompt:'零穿着战术背心手持光刃武士刀，战斗姿态', isCanonical:false },
+    ]},
+    { id:'c2', name:'山田', emoji:'👴', gender:'男', personality:'神秘、睿智', style:'传统长者', height:'175cm', build:'瘦削', weapon:null, item:null, imageUrl:null, variants:[
+      { id:'v3', name:'和服正装', imageUrl:null, propIds:['p4'], compositorPrompt:'山田穿着传统和服，安静地坐在道场中', isCanonical:true },
+    ]},
+    { id:'c3', name:'影', emoji:'🦹', gender:'男', personality:'冷酷、野心勃勃', style:'企业CEO', height:'185cm', build:'魁梧', weapon:'脉冲手枪', item:null, imageUrl:null, variants:[
+      { id:'v4', name:'商务西装', imageUrl:null, propIds:['p3','p6'], compositorPrompt:'影穿着黑色西装手持脉冲手枪，站在霓虹灯下', isCanonical:true },
+    ]},
+    { id:'c4', name:'艾米', emoji:'👩‍💻', gender:'女', personality:'活泼、好奇', style:'科技助手', height:'160cm', build:'娇小', weapon:null, item:'纳米药剂', imageUrl:null, variants:[] },
   ],
   scenes: [
     { id:'s1', name:'新东京', emoji:'🏙', type:'赛博朋克都市', time:'夜晚', weather:'雨', mood:'冷峻', elements:'霓虹灯、玻璃幕墙、全息广告', color:'深蓝+紫色', angle:'广角', distance:'远景', movement:null, imageUrl:null },
@@ -1523,16 +2009,19 @@ const DATA = {
     { id:'s4', name:'实验室', emoji:'🔬', type:'高科技室内', time:'白天', weather:'雾', mood:'压抑', elements:'仪器、屏幕、冷光', color:'冷白+深灰', angle:'中景', distance:'中景', movement:'静态', imageUrl:null },
   ],
   props: [
-    { id:'p1', name:'白色风衣', emoji:'🧥', category:'outfit', desc:'外套 · 白色 · 简约', bindChar:'零' },
-    { id:'p2', name:'战术背心', emoji:'🦺', category:'outfit', desc:'护甲 · 黑色 · 高领', bindChar:'零' },
-    { id:'p3', name:'黑色西装', emoji:'🤵', category:'outfit', desc:'正装 · 黑色 · 修身', bindChar:'影' },
-    { id:'p4', name:'和服', emoji:'👘', category:'outfit', desc:'传统 · 藏青 · 纹样', bindChar:'山田' },
-    { id:'p5', name:'光刃武士刀', emoji:'⚔', category:'weapon', desc:'近战 · 能量武器', bindChar:'零' },
-    { id:'p6', name:'脉冲手枪', emoji:'🔫', category:'weapon', desc:'远程 · 能量武器', bindChar:'影' },
-    { id:'p7', name:'全息数据板', emoji:'📱', category:'item', desc:'手持设备', bindChar:'零' },
-    { id:'p8', name:'纳米药剂', emoji:'💊', category:'item', desc:'消耗品', bindChar:'艾米' },
-    { id:'p9', name:'霓虹光晕', emoji:'💫', category:'effect', desc:'氛围特效', bindChar:null },
-    { id:'p10', name:'雨幕', emoji:'🌧', category:'effect', desc:'天气特效', bindChar:null },
+    { id:'p1', name:'白色风衣', emoji:'🧥', type:'clothing', desc:'外套 · 白色 · 简约', bindChar:'零' },
+    { id:'p2', name:'战术背心', emoji:'🦺', type:'clothing', desc:'护甲 · 黑色 · 高领', bindChar:'零' },
+    { id:'p3', name:'黑色西装', emoji:'🤵', type:'clothing', desc:'正装 · 黑色 · 修身', bindChar:'影' },
+    { id:'p4', name:'和服', emoji:'👘', type:'clothing', desc:'传统 · 藏青 · 纹样', bindChar:'山田' },
+    { id:'p5', name:'光刃武士刀', emoji:'⚔', type:'weapon', desc:'近战 · 能量武器', bindChar:'零' },
+    { id:'p6', name:'脉冲手枪', emoji:'🔫', type:'weapon', desc:'远程 · 能量武器', bindChar:'影' },
+    { id:'p7', name:'全息数据板', emoji:'📱', type:'prop', desc:'手持设备 · 赛博朋克风', bindChar:'零' },
+    { id:'p8', name:'纳米药剂', emoji:'💊', type:'prop', desc:'消耗品 · 科技风', bindChar:'艾米' },
+    { id:'p9', name:'霓虹光晕', emoji:'💫', type:'prop', desc:'氛围特效 · 霓虹灯', bindChar:null },
+    { id:'p10', name:'雨幕', emoji:'🌧', type:'prop', desc:'天气特效 · 赛博朋克', bindChar:null },
+    { id:'p11', name:'墨镜', emoji:'🕶', type:'accessory', desc:'黑色 · 经典款', bindChar:null },
+    { id:'p12', name:'项圈', emoji:'📿', type:'accessory', desc:'金属 · 赛博朋克', bindChar:null },
+    { id:'p13', name:'战术手套', emoji:'🧤', type:'accessory', desc:'黑色 · 防滑', bindChar:'零' },
   ],
   aiTasks: [
     { id:'t1', source:'故事板', time:'14:32', status:'generating', progress:67, type:'关键帧 · 第3镜' },
@@ -1592,18 +2081,28 @@ function switchPage(page) {
   document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
   const target = document.getElementById('page-' + page);
   if (target) {
-    target.style.display = (page === 'storyboard' || page === 'home') ? 'flex' : '';
+    target.style.display = 'flex';
     target.classList.add('fade-in');
   }
   if (page === 'characters') renderCharacterList();
   if (page === 'scenes') renderSceneList();
   if (page === 'assets') renderAssetGrid();
   if (page === 'composer') renderComposerAssetPanel();
-  if (page === 'tasks') renderTasks();
+  if (page === 'tasks' || page === 'story-tasks') renderTasks();
   if (page === 'settings') { switchSettingsTab('api', document.querySelector('[data-stab="api"]')); renderProviderList(); }
   if (page === 'home') { renderRefMap(); renderOrphanResources(); }
   if (page === 'quick') renderQuickHistory();
   updateAIStatusBox();
+}
+
+function switchMode(mode) {
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.mode-tab[data-mode="${mode}"]`).classList.add('active');
+  document.querySelectorAll('.nav-items-group').forEach(g => g.classList.add('hidden'));
+  document.getElementById('nav-group-' + mode).classList.remove('hidden');
+  // Navigate to the default page for this mode
+  if (mode === 'free') switchPage('home');
+  else if (mode === 'story') switchPage('story');
 }
 
 // ═══════════════ STORYBOARD VIEWS ═══════════════
@@ -2254,7 +2753,7 @@ function renderCharacterList() {
           <div style="font-size:13px;font-weight:600;">${c.name}</div>
           <div style="font-size:11px;color:var(--muted-fg);">${c.gender} · ${c.personality}</div>
         </div>
-        ${c.outfits.length > 0 ? `<span class="badge badge-info">👗 ${c.outfits.length}</span>` : '<span class="badge badge-warning" style="border:1px dashed rgba(245,158,11,0.3);">⚠</span>'}
+        ${c.variants.length > 0 ? `<span class="badge badge-info">🔄 ${c.variants.length}变体</span>` : '<span class="badge badge-warning" style="border:1px dashed rgba(245,158,11,0.3);">无变体</span>'}
       </div>
     </div>
   `).join('');
@@ -2289,18 +2788,20 @@ function selectCharacter(charId) {
     </div>
     <div class="card" style="padding:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <span style="font-size:13px;font-weight:600;">👗 服装管理</span>
-        <button class="btn btn-outline btn-xs" onclick="showAddOutfitModal('${char.id}')">+ 添加服装</button>
+        <span style="font-size:13px;font-weight:600;">🔄 角色变体</span>
+        <button class="btn btn-outline btn-xs" onclick="showAddVariantModal('${char.id}')">+ 创建变体</button>
       </div>
-      ${char.outfits.length === 0 ? '<div style="font-size:12px;color:var(--muted-fg);text-align:center;padding:20px;">暂无服装，点击添加</div>' : char.outfits.map((o,i) => `
-        <div class="element-card" style="align-items:center;margin-bottom:6px;cursor:pointer;" onclick="showOutfitDetail('${char.id}',${i})">
-          <div class="element-avatar prop" style="background:linear-gradient(135deg,#4a1a3e,#3a1a4e);">👗</div>
-          <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${o.name}</div>${o.img ? '<div style="font-size:10px;color:var(--success);">🖼 已上传图片</div>' : '<div style="font-size:10px;color:var(--warning);">未上传图片</div>'}</div>
+      ${char.variants.length === 0 ? '<div style="font-size:12px;color:var(--muted-fg);text-align:center;padding:20px;">暂无变体。角色变体由全局编译器生成——选择角色+道具+场景组合生成合成图。</div>' : char.variants.map((v,i) => `
+        <div class="element-card" style="align-items:center;margin-bottom:6px;cursor:pointer;" onclick="showVariantDetail('${char.id}',${i})">
+          <div class="element-avatar prop" style="background:linear-gradient(135deg,#2a1a5e,#1a3a6e);">${v.imageUrl ? '🖼' : '🔄'}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;">${v.name}</div>
+            <div style="font-size:10px;color:var(--muted-fg);">道具: ${v.propIds.length > 0 ? v.propIds.map(pId => { const p = DATA.props.find(pp => pp.id === pId); return p ? p.name : pId; }).join('+') : '无'}</div>
+          </div>
           <div class="toolbar">
-            ${o.default ? '<span class="badge badge-success" style="font-size:10px;">默认</span>' : ''}
-            <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();generateOutfitImage('${char.id}',${i})">🖼</button>
-            <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();uploadOutfitImage('${char.id}',${i})">📤</button>
-            <button class="btn btn-ghost btn-xs" style="color:var(--destructive);" onclick="event.stopPropagation();deleteOutfit('${char.id}',${i})">✕</button>
+            ${v.isCanonical ? '<span class="badge badge-success" style="font-size:10px;">默认</span>' : ''}
+            <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();composeVariant('${char.id}',${i})">🎨</button>
+            <button class="btn btn-ghost btn-xs" style="color:var(--destructive);" onclick="event.stopPropagation();deleteVariant('${char.id}',${i})">✕</button>
           </div>
         </div>
       `).join('')}
@@ -2324,61 +2825,68 @@ function selectCharacter(charId) {
   `;
 }
 
-function showOutfitDetail(charId, idx) {
+function showVariantDetail(charId, idx) {
   const char = DATA.characters.find(c => c.id === charId);
   if (!char) return;
-  const o = char.outfits[idx];
-  if (!o) return;
+  const v = char.variants[idx];
+  if (!v) return;
   const container = document.getElementById('modal-container');
   container.innerHTML = `
     <div class="modal-overlay" onclick="closeModal()">
       <div class="modal" onclick="event.stopPropagation()" style="min-width:420px;">
-        <div style="font-weight:600;font-size:15px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">👗 ${o.name}</div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">🔄 ${v.name}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted-fg);">名称</label><input class="input" id="outfit-name" value="${o.name}" style="font-size:12px;"></div>
-          <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted-fg);">描述</label><textarea class="textarea" rows="2" style="font-size:11px;" id="outfit-desc">${o.desc || ''}</textarea></div>
-          <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted-fg);">配饰</label><input class="input" id="outfit-accessories" placeholder="帽子、眼镜、项链等..." value="${o.accessories || ''}" style="font-size:12px;"></div>
-          <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted-fg);">服装图片</label>
+          <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted-fg);">名称</label><input class="input" id="variant-name" value="${v.name}" style="font-size:12px;"></div>
+          <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted-fg);">合成提示词</label><textarea class="textarea" rows="2" style="font-size:11px;" id="variant-prompt">${v.compositorPrompt || ''}</textarea></div>
+          <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted-fg);">关联道具</label>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${DATA.props.map(p => `
+              <label class="element-card" style="align-items:center;gap:6px;cursor:pointer;padding:6px 10px;font-size:11px;">
+                <input type="checkbox" class="variant-prop" data-propid="${p.id}" ${v.propIds.includes(p.id) ? 'checked' : ''}> ${p.emoji} ${p.name}
+              </label>
+            `).join('')}</div>
+          </div>
+          <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted-fg);">变体图片</label>
             <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
-              <div style="width:80px;height:80px;background:linear-gradient(135deg,#4a1a3e,#3a1a4e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;">${o.img ? '🖼' : '👗'}</div>
+              <div style="width:80px;height:80px;background:linear-gradient(135deg,#2a1a5e,#1a3a6e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;">${v.imageUrl ? '🖼' : '🔄'}</div>
               <div style="flex:1;">
-                <button class="btn btn-outline btn-xs" style="margin-bottom:4px;" onclick="uploadOutfitImage('${charId}',${idx});closeModal();">📤 上传图片</button>
-                <button class="btn btn-outline btn-xs" onclick="generateOutfitImage('${charId}',${idx});closeModal();">🖼 AI 生成</button>
+                <button class="btn btn-outline btn-xs" style="margin-bottom:4px;" onclick="composeVariant('${charId}',${idx});closeModal();">🎨 编译器生成</button>
               </div>
             </div>
           </div>
           <div style="grid-column:1/-1;">
             <label class="element-card" style="align-items:center;gap:8px;cursor:pointer;padding:10px;">
-              <input type="checkbox" id="outfit-default" ${o.default ? 'checked' : ''}> 设为默认服装
+              <input type="checkbox" id="variant-canonical" ${v.isCanonical ? 'checked' : ''}> 设为默认变体
             </label>
           </div>
         </div>
         <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
           <button class="btn btn-outline btn-sm" onclick="closeModal()">取消</button>
-          <button class="btn btn-primary btn-sm" onclick="saveOutfitDetail('${charId}',${idx});closeModal();">保存</button>
+          <button class="btn btn-primary btn-sm" onclick="saveVariantDetail('${charId}',${idx});closeModal();">保存</button>
         </div>
       </div>
     </div>`;
 }
 
-function saveOutfitDetail(charId, idx) {
+function saveVariantDetail(charId, idx) {
   const char = DATA.characters.find(c => c.id === charId);
-  if (!char || !char.outfits[idx]) return;
-  char.outfits[idx].name = document.getElementById('outfit-name')?.value || char.outfits[idx].name;
-  char.outfits[idx].desc = document.getElementById('outfit-desc')?.value || '';
-  char.outfits[idx].accessories = document.getElementById('outfit-accessories')?.value || '';
-  char.outfits[idx].default = document.getElementById('outfit-default')?.checked || false;
-  if (char.outfits[idx].default) {
-    char.outfits.forEach((o, i) => { if (i !== idx) o.default = false; });
+  if (!char || !char.variants[idx]) return;
+  char.variants[idx].name = document.getElementById('variant-name')?.value || char.variants[idx].name;
+  char.variants[idx].compositorPrompt = document.getElementById('variant-prompt')?.value || '';
+  char.variants[idx].propIds = Array.from(document.querySelectorAll('.variant-prop:checked')).map(el => el.dataset.propid);
+  char.variants[idx].isCanonical = document.getElementById('variant-canonical')?.checked || false;
+  if (char.variants[idx].isCanonical) {
+    char.variants.forEach((v, i) => { if (i !== idx) v.isCanonical = false; });
   }
   selectCharacter(charId);
 }
 
-function generateOutfitImage(charId, idx) {
+function composeVariant(charId, idx) {
   const char = DATA.characters.find(c => c.id === charId);
-  if (!char || !char.outfits[idx]) return;
-  alert('正在为服装 "' + char.outfits[idx].name + '" 生成图片...');
-  char.outfits[idx].img = 'generated';
+  if (!char || !char.variants[idx]) return;
+  const v = char.variants[idx];
+  const propNames = v.propIds.map(pId => { const p = DATA.props.find(pp => pp.id === pId); return p ? p.name : pId; }).join('+');
+  alert('🎨 全局编译器正在生成变体图片...\n\n角色: ' + char.name + '\n道具: ' + (propNames || '无') + '\n提示词: ' + v.compositorPrompt + '\n\n这将在后台调用 AI 图片生成，预计 30-60 秒。');
+  v.imageUrl = 'generated';
   selectCharacter(charId);
 }
 
@@ -2475,7 +2983,7 @@ function addCharacter() {
     id:'c'+(DATA.characters.length+1), name, emoji:document.getElementById('new-char-emoji').value,
     gender:document.getElementById('new-char-gender').value, personality:document.getElementById('new-char-personality').value.trim(),
     style:document.getElementById('new-char-style').value.trim(), height:document.getElementById('new-char-height').value.trim()||'170cm',
-    build:document.getElementById('new-char-build').value, outfits:[], weapon:null, item:null, imageUrl:null
+    build:document.getElementById('new-char-build').value, variants:[], weapon:null, item:null, imageUrl:null
   });
   closeModal(); DATA.selectedCharId = null; renderCharacterList();
 }
@@ -2513,40 +3021,59 @@ function saveCharacterEdit(charId) {
   closeModal(); selectCharacter(charId); renderCharacterList();
 }
 
-function showAddOutfitModal(charId) {
+function showAddVariantModal(charId) {
   const container = document.getElementById('modal-container');
+  const char = DATA.characters.find(c => c.id === charId);
+  if (!char) return;
   container.innerHTML = `
     <div class="modal-overlay" onclick="closeModal()">
-      <div class="modal" onclick="event.stopPropagation()">
-        <div style="font-weight:600;font-size:15px;margin-bottom:14px;">+ 添加服装</div>
+      <div class="modal" onclick="event.stopPropagation()" style="min-width:420px;">
+        <div style="font-weight:600;font-size:15px;margin-bottom:14px;">🔄 创建角色变体</div>
         <div style="display:flex;flex-direction:column;gap:10px;">
-          <input class="input" placeholder="服装名称" id="new-outfit-name">
-          <div style="font-size:11px;color:var(--muted-fg);">可从道具库中选择: ${DATA.props.filter(p=>p.category==='outfit').map(p=>'<span style="cursor:pointer;color:var(--primary);" onclick="document.getElementById(\'new-outfit-name\').value=\''+p.name+'\'">'+p.name+'</span>').join(' · ')}</div>
+          <div><label style="font-size:10px;color:var(--muted-fg);">变体名称 *</label><input class="input" id="new-variant-name" placeholder="如：白色风衣造型"></div>
+          <div><label style="font-size:10px;color:var(--muted-fg);">选择道具（可多选）</label>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;max-height:120px;overflow-y:auto;">${DATA.props.map(p => `
+              <label class="element-card" style="align-items:center;gap:6px;cursor:pointer;padding:6px 10px;font-size:11px;">
+                <input type="checkbox" class="new-variant-prop" value="${p.id}"> ${p.emoji} ${p.name} <span style="font-size:9px;color:var(--muted-fg);">(${p.type})</span>
+              </label>
+            `).join('')}</div>
+          </div>
+          <div><label style="font-size:10px;color:var(--muted-fg);">选择场景</label>
+            <select class="select" style="width:100%;" id="new-variant-scene">
+              <option value="">不选场景</option>
+              ${DATA.scenes.map(s => `<option value="${s.id}">${s.emoji} ${s.name}</option>`).join('')}
+            </select>
+          </div>
+          <div><label style="font-size:10px;color:var(--muted-fg);">合成提示词</label><textarea class="textarea" rows="2" style="font-size:11px;" id="new-variant-prompt" placeholder="${char.name}穿着...，站在..."></textarea></div>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-outline btn-sm" onclick="closeModal()">取消</button><button class="btn btn-primary btn-sm" onclick="addOutfit('${charId}')">确认</button></div>
+        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-outline btn-sm" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary btn-sm" onclick="addVariant('${charId}')">创建并生成</button>
+        </div>
       </div>
     </div>`;
 }
 
-function addOutfit(charId) {
+function addVariant(charId) {
   const char = DATA.characters.find(c => c.id === charId);
-  const name = document.getElementById('new-outfit-name').value.trim();
+  const name = document.getElementById('new-variant-name').value.trim();
   if (!char || !name) return;
-  char.outfits.push({name, img:null});
+  const propIds = Array.from(document.querySelectorAll('.new-variant-prop:checked')).map(el => el.value);
+  const sceneId = document.getElementById('new-variant-scene')?.value || '';
+  const prompt = document.getElementById('new-variant-prompt')?.value.trim() || '';
+  char.variants.push({
+    id: 'v' + (Date.now() % 10000), name, imageUrl: null, propIds,
+    sceneId: sceneId || undefined, compositorPrompt: prompt,
+    isCanonical: char.variants.length === 0
+  });
   closeModal(); selectCharacter(charId);
+  alert('🎨 已创建变体 "' + name + '"，点击 🎨 按钮使用全局编译器生成图片。');
 }
 
-function uploadOutfitImage(charId, idx) {
-  const char = DATA.characters.find(c => c.id === charId);
-  if (!char || !char.outfits[idx]) return;
-  char.outfits[idx].img = 'uploaded';
-  selectCharacter(charId);
-}
-
-function deleteOutfit(charId, idx) {
+function deleteVariant(charId, idx) {
   const char = DATA.characters.find(c => c.id === charId);
   if (!char) return;
-  char.outfits.splice(idx, 1);
+  char.variants.splice(idx, 1);
   selectCharacter(charId); renderCharacterList();
 }
 
@@ -2801,10 +3328,10 @@ function renderAssetGrid() {
     );
   }
   if (assetFilter === 'all' || assetFilter.startsWith('prop')) {
-    const catMap = { 'prop-outfit':'outfit', 'prop-weapon':'weapon', 'prop-item':'item', 'prop-effect':'effect' };
+    const catMap = { 'prop-clothing':'clothing', 'prop-weapon':'weapon', 'prop-accessory':'accessory', 'prop-prop':'prop', 'prop-effect':'prop' };
     const targetCat = assetFilter.startsWith('prop') ? catMap[assetFilter] : null;
-    DATA.props.filter(p => !targetCat || p.category === targetCat).forEach(p => {
-      items.push({ type:'prop', id:p.id, name:p.name, emoji:p.emoji, desc:(p.bindChar?'👤'+p.bindChar+' · ':'')+p.desc, tags:['📦道具',p.category==='outfit'?'👗':p.category==='weapon'?'⚔':'🔧'] });
+    DATA.props.filter(p => !targetCat || p.type === targetCat).forEach(p => {
+      items.push({ type:'prop', id:p.id, name:p.name, emoji:p.emoji, desc:(p.bindChar?'👤'+p.bindChar+' · ':'')+p.desc, tags:['📦道具',p.type==='clothing'?'👗服装':p.type==='weapon'?'⚔武器':p.type==='accessory'?'💍配饰':'🔧道具'] });
     });
   }
   if (assetFilter === 'all' || assetFilter === 'collection') {
@@ -3077,6 +3604,152 @@ function renderTasks() {
 }
 
 function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
+
+// ═══════════════ AGENT TOOL PANEL ═══════════════
+function toggleAgentToolPanel() {
+  const panel = document.getElementById('agent-tool-panel');
+  const toggle = document.getElementById('agent-tool-toggle');
+  if (panel.style.transform === 'translateX(100%)' || panel.style.transform === '') {
+    panel.style.transform = 'translateX(0)';
+    toggle.textContent = '🔧 工具';
+  } else {
+    panel.style.transform = 'translateX(100%)';
+    toggle.textContent = '🔧 展开';
+  }
+}
+
+// ═══════════════ FLOATING BALL ═══════════════
+function toggleFloatingPanel() {
+  const panel = document.getElementById('floating-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) initFloatingComposer();
+}
+
+function switchFloatingTab(tab) {
+  document.querySelectorAll('.fp-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.fp-tab[data-fp="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.fp-body').forEach(b => b.classList.remove('active'));
+  document.getElementById('fp-body-' + tab).classList.add('active');
+  if (tab === 'composer') initFloatingComposer();
+}
+
+function initFloatingComposer() {
+  const charSel = document.getElementById('fp-comp-char');
+  if (charSel.children.length <= 1) {
+    DATA.characters.forEach(c => {
+      charSel.innerHTML += `<option value="${c.id}">${c.emoji} ${c.name}</option>`;
+    });
+  }
+  const sceneSel = document.getElementById('fp-comp-scene');
+  if (sceneSel.children.length <= 1) {
+    DATA.scenes.forEach(s => {
+      sceneSel.innerHTML += `<option value="${s.id}">${s.emoji} ${s.name}</option>`;
+    });
+  }
+  const propDiv = document.getElementById('fp-comp-props');
+  if (!propDiv.querySelector('label')) {
+    propDiv.innerHTML = DATA.props.map(p => `
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:4px 8px;border-radius:6px;background:var(--card2);">
+        <input type="checkbox" class="fp-comp-prop" value="${p.id}"> ${p.emoji} ${p.name}
+      </label>
+    `).join('');
+  }
+}
+
+function fpChatQuick(msg) {
+  document.getElementById('fp-input').value = msg;
+  fpChatSend();
+}
+
+function fpChatSend() {
+  const input = document.getElementById('fp-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const chat = document.getElementById('fp-chat');
+  chat.innerHTML += `
+    <div style="display:flex;flex-direction:row-reverse;gap:6px;align-items:flex-start;">
+      <div class="card" style="padding:8px 12px;background:var(--primary);border:none;max-width:80%;font-size:12px;color:#fff;">${msg}</div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:flex-start;">
+      <div class="card" style="padding:8px 12px;max-width:85%;font-size:12px;color:var(--muted-fg);">正在处理...</div>
+    </div>`;
+  input.value = '';
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function fpComposeQuick() {
+  const charId = document.getElementById('fp-comp-char').value;
+  const sceneId = document.getElementById('fp-comp-scene').value;
+  const propIds = Array.from(document.querySelectorAll('.fp-comp-prop:checked')).map(el => el.value);
+  const prompt = document.getElementById('fp-comp-prompt').value.trim();
+  if (!charId && !sceneId && propIds.length === 0) {
+    alert('请至少选择角色、场景或道具之一');
+    return;
+  }
+  const charName = DATA.characters.find(c => c.id === charId)?.name || '无';
+  const sceneName = DATA.scenes.find(s => s.id === sceneId)?.name || '无';
+  const propNames = propIds.map(pid => DATA.props.find(p => p.id === pid)?.name || pid).join('+');
+  alert(`🎨 编译器快速生成\n\n角色: ${charName}\n场景: ${sceneName}\n道具: ${propNames || '无'}\n提示词: ${prompt || '默认'}\n\n正在调用 AI 生成...`);
+}
+
+function fpComposeFull() {
+  fpComposeQuick();
+  document.getElementById('floating-panel').classList.remove('open');
+}
+
+// ═══════════════ AGENT ═══════════════
+function simulateAgentSend() {
+  const input = document.getElementById('agent-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const chat = document.getElementById('agent-chat');
+  chat.innerHTML += `
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-direction:row-reverse;margin-top:8px;">
+      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>
+      <div class="card" style="padding:12px 16px;max-width:60%;background:var(--primary);border:none;">
+        <div style="font-size:12px;color:#fff;">${msg}</div>
+      </div>
+    </div>`;
+  chat.innerHTML += `
+    <div style="display:flex;gap:10px;align-items:flex-start;margin-top:8px;">
+      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🤖</div>
+      <div class="card" style="padding:12px 16px;max-width:70%;">
+        <div style="font-size:12px;line-height:1.6;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <span style="font-size:10px;background:rgba(99,102,241,0.2);color:var(--primary);padding:2px 8px;border-radius:4px;">🤔 思考中</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted-fg);">正在分析你的需求...即将调用对应工具。</div>
+        </div>
+      </div>
+    </div>`;
+  input.value = '';
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function simulateNovelPipeline() {
+  const steps = document.querySelectorAll('#page-story .step-row .badge');
+  let i = 0;
+  const statuses = ['文本分块', '角色提取', '场景提取', '角色确认', '分镜规划', '分镜预览', '批量生成'];
+  const interval = setInterval(() => {
+    if (i < steps.length) {
+      steps[i].textContent = '执行中...';
+      steps[i].style.background = 'rgba(245,158,11,0.2)';
+      steps[i].style.color = 'var(--warning)';
+      if (i > 0) {
+        steps[i-1].textContent = '✅ 完成';
+        steps[i-1].style.background = 'rgba(16,185,129,0.2)';
+        steps[i-1].style.color = 'var(--success)';
+      }
+      i++;
+    } else {
+      steps[steps.length-1].textContent = '✅ 完成';
+      steps[steps.length-1].style.background = 'rgba(16,185,129,0.2)';
+      steps[steps.length-1].style.color = 'var(--success)';
+      clearInterval(interval);
+      alert('🎉 AI 管道执行完毕！\n\n已提取角色、场景并规划分镜，请切换到分镜页面查看结果。');
+    }
+  }, 600);
+}
 
 // ═══════════════ SETTINGS ═══════════════
 function switchSettingsTab(tab, btn) {

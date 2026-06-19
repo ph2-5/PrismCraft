@@ -3,20 +3,22 @@ import { t } from "@/shared/constants";
 
 const MIN_CHARACTER_IMAGE_RESOLUTION = 256;
 
-const COLOR_KEYWORDS: Record<string, { zh: string; en: string }[]> = {
-  red: [{ zh: "红", en: "red" }],
-  blue: [{ zh: "蓝", en: "blue" }],
-  green: [{ zh: "绿", en: "green" }],
-  yellow: [{ zh: "黄", en: "yellow" }],
-  purple: [{ zh: "紫", en: "purple" }],
-  white: [{ zh: "白", en: "white" }],
-  black: [{ zh: "黑", en: "black" }],
-  gold: [{ zh: "金", en: "gold" }],
-  silver: [{ zh: "银", en: "silver" }],
-  pink: [{ zh: "粉", en: "pink" }],
-  orange: [{ zh: "橙", en: "orange" }],
-  gray: [{ zh: "灰", en: "gray" }],
-  brown: [{ zh: "棕", en: "brown" }],
+const COLOR_KEYWORDS: Record<string, { zh: string[]; en: string[] }> = {
+  red:    { zh: ["红", "赤", "朱", "绛"], en: ["red", "crimson", "scarlet"] },
+  blue:   { zh: ["蓝", "青", "靛"], en: ["blue", "azure", "navy", "indigo", "cobalt"] },
+  green:  { zh: ["绿", "翠", "碧"], en: ["green", "emerald", "olive", "jade"] },
+  yellow: { zh: ["黄", "金"], en: ["yellow", "gold", "amber"] },
+  purple: { zh: ["紫", "紫罗兰"], en: ["purple", "violet", "lavender", "mauve"] },
+  white:  { zh: ["白", "乳白", "米白", "象牙"], en: ["white", "ivory", "cream", "pearl"] },
+  black:  { zh: ["黑", "墨", "乌"], en: ["black", "onyx", "jet", "ebony"] },
+  gold:   { zh: ["金", "金黄", "鎏金"], en: ["gold", "golden", "gilded"] },
+  silver: { zh: ["银", "银白", "银灰"], en: ["silver", "silvery", "platinum"] },
+  pink:   { zh: ["粉", "粉红", "桃红", "樱"], en: ["pink", "rose", "blush", "salmon"] },
+  orange: { zh: ["橙", "橘", "橘黄"], en: ["orange", "tangerine", "copper", "rust"] },
+  gray:   { zh: ["灰", "灰白", "银灰", "烟灰"], en: ["gray", "grey", "ash", "slate", "charcoal"] },
+  brown:  { zh: ["棕", "褐", "栗", "咖啡", "巧克力", "茶色"], en: ["brown", "chestnut", "chocolate", "mahogany", "tan", "bronze", "maroon"] },
+  cyan:   { zh: ["青", "湖蓝", "天蓝"], en: ["cyan", "teal", "turquoise", "aqua"] },
+  beige:  { zh: ["米", "米色", "驼色", "卡其"], en: ["beige", "khaki", "tan", "camel"] },
 };
 
 const TAG_PREFIXES = {
@@ -54,15 +56,16 @@ function extractColorPalette(
   const seen = new Set<string>();
   const palette: string[] = [];
 
-  for (const entry of Object.values(COLOR_KEYWORDS)) {
-    for (const variant of entry) {
-      if (description.toLowerCase().includes(variant[lang])) {
-        const colorLabel = lang === "en" ? variant.en : variant.zh + "色";
+  for (const [canonicalName, entry] of Object.entries(COLOR_KEYWORDS)) {
+    const keywords = entry[lang];
+    for (const keyword of keywords) {
+      if (description.toLowerCase().includes(keyword.toLowerCase())) {
+        const colorLabel = lang === "en" ? canonicalName : entry.zh[0] + "色";
         if (!seen.has(colorLabel)) {
           seen.add(colorLabel);
           palette.push(colorLabel);
         }
-        break;
+        break; // found match for this canonical color, move to next
       }
     }
   }

@@ -20,9 +20,11 @@ function getCacheVideoBlobFn(): CacheVideoBlobFn | null {
 }
 
 const EXPIRY_HOURS = 720;
-const MAX_POLL_DURATION_MS = 120 * 60 * 1000;
+// 恢复窗口延长至 24 小时，远大于轮询超时（2 小时），确保超时任务仍有充足的恢复时间
+const MAX_POLL_DURATION_MS = 24 * 60 * 60 * 1000;
 const POLL_INTERVAL_MS = 60 * 1000;
-const MAX_RECOVERY_ATTEMPTS = 60;
+// 恢复次数上限提升至 240 次（24 小时 / 60 秒 ≈ 1440 次，留余量）
+const MAX_RECOVERY_ATTEMPTS = 240;
 
 export interface VideoRecoverySuccessResult {
   videoUrl?: string;

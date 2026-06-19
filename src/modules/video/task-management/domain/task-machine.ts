@@ -16,10 +16,12 @@ export const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
   pending: ["generating", "failed", "cancelled", "timeout"],
   generating: ["completed", "failed", "cancelled", "timeout"],
   completed: ["pending"],
-  failed: ["retrying", "cancelled"],
+  // 允许 failed → completed：防止假失败导致已生成的视频被丢弃
+  failed: ["retrying", "cancelled", "completed"],
   cancelled: [],
   retrying: ["generating", "completed", "failed", "cancelled", "timeout"],
-  timeout: ["retrying", "failed", "cancelled"],
+  // 允许 timeout → completed：超时后云端可能仍在生成，恢复服务需要能标记完成
+  timeout: ["retrying", "failed", "cancelled", "completed"],
 };
 
 export const TERMINAL_STATUSES: VideoTaskStatus[] = ["completed", "cancelled"];

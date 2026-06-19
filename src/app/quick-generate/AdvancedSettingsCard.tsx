@@ -46,6 +46,15 @@ export function AdvancedSettingsCard({
       <CardHeader
         className="cursor-pointer"
         onClick={onToggleAdvanced}
+        role="button"
+        tabIndex={0}
+        aria-expanded={showAdvanced}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggleAdvanced();
+          }
+        }}
       >
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -98,6 +107,7 @@ export function AdvancedSettingsCard({
                   size="sm"
                   className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
                   onClick={() => onReferenceImageChange(null)}
+                  aria-label={t("quickGenerate.removeReferenceImage")}
                 >
                   <X className="w-4 h-4" />
                 </Button>

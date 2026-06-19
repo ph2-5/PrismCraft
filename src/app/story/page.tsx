@@ -71,12 +71,15 @@ function StoryPageContent() {
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const isGeneratingRef = useRef(false);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [showSwitchConfirmDialog, setShowSwitchConfirmDialog] = useState(false);
   const [pendingSwitchStory, setPendingSwitchStory] = useState<(typeof story.stories)[number] | null>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
 
   const generateVideo = useCallback(async () => {
+    // ref 级别防重复提交，防止快速双击导致多次生成
+    if (isGeneratingRef.current) return;
     if (
       !story.selectedVideoModel?.providerId ||
       !story.selectedVideoModel?.modelId
@@ -84,6 +87,7 @@ function StoryPageContent() {
       story.showError(t("story.cannotGenerateVideo"), t("story.selectVideoModel"));
       return;
     }
+    isGeneratingRef.current = true;
     setIsGenerating(true);
     try {
       const prompt = generateProfessionalVideoPrompt({
@@ -133,6 +137,7 @@ function StoryPageContent() {
       showError(t("video.generateFailed"), mapUserFacingError(err));
     } finally {
       setIsGenerating(false);
+      isGeneratingRef.current = false;
     }
   }, [story, success, showError]);
 

@@ -75,6 +75,12 @@ export async function handleTimedOutTasks(
     } catch (e) {
       errorLogger.warn("[VideoTaskManager] Failed to persist timeout tasks (batch)", e);
     }
+    // 标记超时后立即触发后台恢复，尝试查询云端真实状态
+    // 避免超时任务等待下一个恢复周期，减少已生成视频的滞留时间
+    emitToast("info", t("task.timeoutTriggerRecovery"), "");
+    import("../../../recovery/services/video-recovery-service")
+      .then(({ startBackgroundRecovery }) => startBackgroundRecovery())
+      .catch((e) => errorLogger.warn("[VideoTaskManager] 超时后触发恢复失败", e));
   }
 }
 
@@ -84,6 +90,14 @@ const NETWORK_ERROR_PATTERNS = [
   /Failed to fetch/i, /NetworkError/i, /Network request failed/i,
   /fetch.*failed/i, /abort/i, /ERR_NETWORK/i, /ERR_CONNECTION/i,
   /socket hang up/i, /connect ETIMEDOUT/i,
+  // Safari
+  /Load failed/i,
+  // Firefox
+  /NetworkError when attempting to fetch resource/i,
+  // 通用离线提示
+  /offline/i, /disconnected/i, /connection.*lost/i,
+  /ERR_INTERNET_DISCONNECTED/i, /ERR_NAME_NOT_RESOLVED/i,
+  /ERR_ADDRESS_UNREACHABLE/i, /ERR_NETWORK_CHANGED/i,
 ];
 
 function isNetworkError(error: unknown): boolean {
@@ -114,12 +128,14 @@ async function handlePollException(
   const failCount = (task.pollFailureCount || 0) + 1;
   if (failCount >= MAX_POLL_FAILURES) {
     result.hasError = true;
-    result.taskUpdates.set(task.taskId, withTransitionGuard(task, "failed", {
-      message: t("task.consecutiveFailRecover", { count: MAX_POLL_FAILURES }),
+    // 查询失败不等于生成失败：转为 timeout（可恢复）而非 failed（终态）
+    // 云端视频可能仍在生成或已生成完成，恢复服务会继续查询云端真实状态
+    result.taskUpdates.set(task.taskId, withTransitionGuard(task, "timeout", {
+      message: t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }),
       pollFailureCount: 0,
     }));
     const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
-    emitToast("error", t("error.videoGenerateFailed"), t("task.queryException", { label: taskLabel }));
+    emitToast("warning", t("task.queryFailRecoverableLabel", { label: taskLabel }), t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }));
   } else {
     result.taskUpdates.set(task.taskId, {
       pollFailureCount: failCount,
@@ -129,11 +145,11 @@ async function handlePollException(
   try {
     const pollSaveResult = await saveVideoTask({
       taskId: task.taskId,
-      status: failCount >= MAX_POLL_FAILURES ? "failed" : task.status,
+      status: failCount >= MAX_POLL_FAILURES ? "timeout" : task.status,
       progress: task.progress,
       videoUrl: task.videoUrl,
       message: failCount >= MAX_POLL_FAILURES
-        ? t("task.consecutiveFailRecover", { count: MAX_POLL_FAILURES })
+        ? t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES })
         : task.message,
       createdAt: task.createdAt,
       model: task.model,
@@ -224,21 +240,23 @@ async function pollSingleTask(
           pollFailureCount: failCount,
         });
         if (failCount >= MAX_POLL_FAILURES) {
-          result.taskUpdates.set(task.taskId, withTransitionGuard(task, "failed", {
-            message: t("task.consecutiveQueryFail", { count: MAX_POLL_FAILURES }),
+          // 查询失败不等于生成失败：转为 timeout（可恢复）而非 failed（终态）
+          // API 返回失败可能是临时性问题（限流、服务波动），云端视频可能仍在生成
+          result.taskUpdates.set(task.taskId, withTransitionGuard(task, "timeout", {
+            message: t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }),
             pollFailureCount: 0,
           }));
           const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
-          emitToast("error", t("error.videoGenerateFailed"), t("task.consecutiveQueryFailLabel", { label: taskLabel }));
+          emitToast("warning", t("task.queryFailRecoverableLabel", { label: taskLabel }), t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }));
         }
         try {
           const pollSaveResult = await saveVideoTask({
             taskId: task.taskId,
-            status: failCount >= MAX_POLL_FAILURES ? "failed" : task.status,
+            status: failCount >= MAX_POLL_FAILURES ? "timeout" : task.status,
             progress: task.progress,
             videoUrl: task.videoUrl,
             message: failCount >= MAX_POLL_FAILURES
-              ? t("task.consecutiveQueryFail", { count: MAX_POLL_FAILURES })
+              ? t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES })
               : task.message,
             createdAt: task.createdAt,
             model: task.model,

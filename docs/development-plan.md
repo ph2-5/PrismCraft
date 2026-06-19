@@ -1,25 +1,29 @@
-# AI Animation Studio — 详细开发计划 v3.0
+# AI Animation Studio — 详细开发计划 v3.1
 
 > **本文档为 AI 辅助开发设计。** 每个 Task 包含 `📋前置阅读` `📝产出文件` `🤖执行指令` `✅Done标准` 四个部分。
 > 执行顺序：从上到下。标注 ⚡并行 的 Task 可同时推进。
 >
 > **v3.0 更新**：补齐所有工具代码、补全组件契约、拆分大 Task、添加 Done 标准、添加迁移 SQL、添加依赖清单、添加架构图。
+> **v3.1 更新**：补齐悬浮球、侧栏故事创作独立路由、AI助手布局契约、编译器三栏布局契约、首页设计修正。配合 `ui-migration-plan.md` 使用。
 
 ---
 
 ## TL;DR（AI 启动摘要）
 
 ```
-总工期: 约82-124天（4个Phase）
-Phase 0 (4-6天):  首页重排版（双创作模式入口）+ CSS token统一 + 亮暗主题切换
-Phase 1 (38-48天): Agent Loop(主进程) + IPC streaming(4通道) + 8个工具 + 会话持久化 + 会话列表UI + 3个通用设计约定
-Phase 2A(14-20天): 小说导入管道（7步，AI步骤全部走Agent工具）+ 项目持久化 + 失败恢复
-Phase 2B(14-18天): 改进方案 + 任务管理重构（利用已有 video-recovery + react-virtual + 现有 IPC，与2A并行）
-Phase 3 (10-14天): Storybook + Stryker + 覆盖率（vitest/playwright/stryker 框架已配置）
-Phase 4 (18-23天): Agent完整版(31个工具) + 视频合成 + 体验精雕
+总工期: 约122-183天（UI迁移 + 5个Phase）
+UI迁移 (12-18天): 侧栏分组+路由扩展+分镜编辑器三栏+首页仪表盘+素材库分类树+设置页拆分
+                   → 详见 ui-migration-plan.md，与 Phase 0 并行
+Phase 0 (4-6天):   首页重排版（项目仪表盘：引用地图+孤立资源+统计卡片+快捷操作）+ CSS token统一 + 亮暗主题切换
+Phase 1 (42-52天):  Agent Loop(主进程) + IPC streaming(4通道) + 11个工具(含API配置向导) + 会话持久化 + 会话列表UI + 悬浮球 + 3个通用设计约定
+Phase 2A(20-30天):  小说导入管道（7步，AI步骤全部走Agent工具）+ 内容创作增强（道具库、全局编译器、角色变体、Element Binding扩展） + 项目持久化
+Phase 2B(16-22天):  改进方案 + 三栏分镜编辑器 + 任务管理重构（利用已有 video-recovery + react-virtual + 现有 IPC，与2A并行）
+Phase 3 (10-14天):  Storybook + Stryker + 覆盖率（vitest/playwright/stryker 框架已配置）
+Phase 4 (22-30天):  Agent完整版(31个工具) + 视频合成 + 图片编辑 + 素材搜索 + 分镜对比 + 配方库 + 体验精雕(含侧边栏AI状态指示器)
+Phase 5 (10-15天):  分镜编辑器扩展插件系统（基于现有插件架构，零基础可开发自定义编辑器）
 
-并行机会: Phase 0 与 Phase 1.1-1.4 并行, Phase 2A 与 Phase 2B 并行
-关键依赖: Phase 1 → Phase 2A（Novel依赖Agent工具）
+并行机会: UI迁移与 Phase 0 并行, Phase 0 与 Phase 1.1-1.4 并行, Phase 2A 与 Phase 2B 并行
+关键依赖: Phase 1 → Phase 2A（Novel依赖Agent工具）; Phase 4 → Phase 5（插件系统依赖完整Agent工具链）
 挡路风险: Task 1.0 (ITextProvider流式改造) 必须在 Agent Loop 之前完成
 依赖安装: 见附录F，在对应Phase开始前一次性装完
 ```
@@ -28,10 +32,12 @@ Phase 4 (18-23天): Agent完整版(31个工具) + 视频合成 + 体验精雕
 
 ## 目录
 
+> **配套文档**：[`ui-migration-plan.md`](./ui-migration-plan.md) — UI 迁移计划（旧布局 → 新设计），与 Phase 0 并行执行，12-18 天。
+
 - [Phase 0：UI 视觉 Token 统一](#phase-0ui-视觉-token-统一)
   - [Task 0.1：审计硬编码颜色](#task-01审计硬编码颜色)
   - [Task 0.2：Tailwind CSS 变量扩展](#task-02tailwind-css-变量扩展)
-  - [Task 0.3：首页重排版 — 双创作模式入口](#task-03首页重排版--双创作模式入口)
+  - [Task 0.3：首页重排版 — 项目仪表盘](#task-03首页重排版--项目仪表盘)
   - [Task 0.4：内页引入微渐变背景](#task-04内页引入微渐变背景)
   - [Task 0.5：亮色/暗色主题切换](#task-05亮色暗色主题切换)
 - [Phase 1：Agent 基础设施](#phase-1agent-基础设施)
@@ -49,21 +55,36 @@ Phase 4 (18-23天): Agent完整版(31个工具) + 视频合成 + 体验精雕
   - [Task 1.9：Agent 会话持久化](#task-19agent-会话持久化)
   - [Task 1.10：Token 用量追踪 + Agent 主动干预](#task-110token-用量追踪--agent-主动干预)
   - [Task 1.11：Agent 会话列表 UI](#task-111agent-会话列表-ui)
-- [Phase 2A：小说导入管道](#phase-2a小说导入管道)
+- [Phase 2A：小说导入管道 + 内容创作增强](#phase-2a小说导入管道--内容创作增强)
   - [Task 2A.0：大文本分块策略](#task-2a0大文本分块策略)
   - [Task 2A.1：Domain 类型定义](#task-2a1domain-类型定义)
-  - [Task 2A.2：Novel Agent 工具 5个](#task-2a2novel-agent-工具-5个)
+  - [Task 2A.2：Novel Agent 工具 6个](#task-2a2novel-agent-工具-6个)
   - [Task 2A.3：Pipeline 状态机](#task-2a3pipeline-状态机)
   - [Task 2A.4：UI Panel Part 1 — 路由+导入+分段](#task-2a4ui-panel-part-1--路由导入分段)
   - [Task 2A.5：UI Panel Part 2 — 提取+拆解+提示词](#task-2a5ui-panel-part-2--提取拆解提示词)
   - [Task 2A.6：故事创作模式集成进首页](#task-2a6故事创作模式集成进首页)
   - [Task 2A.7：小说项目持久化](#task-2a7小说项目持久化)
-- [Phase 2B：改进方案 + 任务管理重构](#phase-2b改进方案--任务管理重构)
+  - [Task 2A.8：道具库模块](#task-2a8道具库模块)
+  - [Task 2A.9：全局编译器](#task-2a9全局编译器)
+  - [Task 2A.10：角色变体系统](#task-2a10角色变体系统)
+  - [Task 2A.11：Element Binding 扩展（action/emotion）](#task-2a11element-binding-扩展actionemotion)
+- [Phase 2B：改进方案 + 三栏分镜编辑器 + 任务管理重构](#phase-2b改进方案--任务管理重构)
   - [Task 2B.1：角色版本控制](#task-2b1角色版本控制)
   - [Task 2B.2-2B.9：各项改进](#task-2b2-2b9各项改进)
   - [Task 2B.10：任务管理 UI 重构](#task-2b10任务管理-ui-重构)
+  - [Task 2B.11：三栏分镜编辑器布局](#task-2b11三栏分镜编辑器布局)
 - [Phase 3：架构升级](#phase-3架构升级)
 - [Phase 4：Agent 完整版 + 体验精雕](#phase-4agent-完整版--体验精雕)
+  - [Task 4.1：增强 Agent 工具 — 生成类](#task-41增强-agent-工具--生成类)
+  - [Task 4.2：增强 Agent 工具 — 素材 + 知识库](#task-42增强-agent-工具--素材--知识库)
+  - [Task 4.3：视频片段合成](#task-43视频片段合成)
+  - [Task 4.4：分镜对比视图](#task-44分镜对比视图)
+  - [Task 4.5：简单图片编辑](#task-45简单图片编辑)
+  - [Task 4.6：素材搜索](#task-46素材搜索)
+  - [Task 4.7：Prompt 配方库 + Few-Shot 动态选择](#task-47prompt-配方库--few-shot-动态选择)
+  - [Task 4.8：跨分镜一致性自动修复](#task-48跨分镜一致性自动修复)
+  - [Task 4.9：整体 UI 体验打磨](#task-49整体-ui-体验打磨)
+- [Phase 5：分镜编辑器扩展插件](#phase-5分镜编辑器扩展插件)
 - [附录 A：完整工具清单](#附录-a完整工具清单)
 - [附录 B：Agent 能力全景图](#附录-bagent-能力全景图)
 - [附录 C：验证命令速查](#附录-c验证命令速查)
@@ -159,6 +180,7 @@ gantt
     通用工具3个 :p1_6a, after p1_2, 3d
     系统诊断工具4个 :p1_6b, after p1_6a, 4d
     系统诊断工具3个 :p1_6c, after p1_6b, 3d
+    API配置工具 :p1_api, after p1_6c, 2d
     跨进程工具桥接 :p1_7, after p1_6a, 3d
     会话持久化 :p1_8, after p1_2, 3d
     Token追踪+主动干预 :p1_9, after p1_6c, 4d
@@ -166,24 +188,40 @@ gantt
     section Phase 2A
     大文本分块 :p2a0, after p1_9, 2d
     Domain类型 :p2a1, after p2a0, 2d
-    Novel工具5个 :p2a2, after p2a1, 5d
+    Novel工具6个 :p2a2, after p2a1, 5d
     Pipeline状态机 :p2a3, after p2a2, 2d
     UI Panel Part 1 :p2a4, after p2a3, 3d
     UI Panel Part 2 :p2a5, after p2a4, 3d
     首页集成 :p2a6, after p2a5, 1d
+    道具库模块 :p2a8, after p2a6, 3d
+    全局编译器 :p2a9, after p2a8, 3d
+    角色变体系统 :p2a10, after p2a9, 3d
+    Element Binding扩展 :p2a11, after p2a6, 2d
 
     section Phase 2B(并行)
     改进项1-9 :p2b_1, 2026-06-12, 22d
+    三栏分镜编辑器 :p2b11, 2026-06-12, 5d
     任务管理UI重构 :p2b10, 2026-06-12, 6d
 
     section Phase 3
-    Storybook+Stryker :p3a, after p2a6, 7d
+    Storybook+Stryker :p3a, after p2a10, 7d
     覆盖率+锁依赖+配置合并 :p3b, after p3a, 7d
 
     section Phase 4
-    剩余工具+Skill :p4a, after p3b, 8d
-    视频合成+分镜对比+配方库 :p4b, after p4a, 8d
-    体验精雕 :p4c, after p4b, 7d
+    生成类工具10个 :p4a1, after p3b, 5d
+    素材+知识库工具8个 :p4a2, after p4a1, 3d
+    视频片段合成 :p4b1, after p4a2, 3d
+    分镜对比视图 :p4b2, after p4b1, 3d
+    简单图片编辑 :p4c1, after p4b2, 2d
+    素材搜索 :p4c2, after p4c1, 2d
+    Prompt配方库+Few-Shot :p4d1, after p4c2, 3d
+    跨镜一致性自动修复 :p4d2, after p4d1, 2d
+    整体UI体验打磨 :p4d3, after p4d2, 3d
+
+    section Phase 5
+    编辑器插件系统 :p5a, after p4d3, 6d
+    插件市场页面 :p5b, after p5a, 4d
+    示例插件(漫画编辑器) :p5c, after p5b, 3d
 ```
 
 ---
@@ -192,16 +230,19 @@ gantt
 
 > **目标**：
 > 1. 消除首页硬编码颜色与内页 CSS 变量的"两张皮"问题
-> 2. 首页重新排版为**双创作模式入口**（自由创作 / 故事创作），承载现有功能和 Phase 2A 小说导入的入口
+> 2. 首页重新排版为**功能性项目仪表盘**（引用地图、孤立资源检测、统计卡片、最近动态、快捷操作），同时承载"自由创作"和"故事创作"双模式入口
 > 3. 新增亮/暗主题切换
 >
 > **并行策略**：Task 0.1-0.4 与 Phase 1 Task 1.0-1.4 可完全并行（零文件冲突：Phase 0 只改 `src/app/` 和 `src/index.css`，Task 1.0-1.4 全部在 `electron/src/` 和 `src/domain/`）。
 
-**设计意图**：用户打开软件看到的不是功能列表，而是两种创作方式的起点——"从零开始建角色写分镜"还是"从小说文本导入"。前者即现有的自由创作模式，后者是 Phase 2A 新增的故事创作模式（小说导入管道）。两种模式在一个页面内切换渲染，不需要跳到独立路由。
+**设计意图**：用户打开软件看到的不是功能列表，而是一个功能齐全的项目仪表盘——引用地图直观展示角色/场景被哪些分镜引用、孤立资源检测警告未被使用的资产、统计卡片快速跳转、最近动态追踪项目进展。仪表盘同时作为"自由创作"模式的入口（从零开始建角色写分镜），而"故事创作"模式（Phase 2A 小说导入管道）作为快捷操作入口，两种模式无需切换路由。
+
+**设计参考**：`design-preview.html` 中的主页布局——左侧引用地图+最近动态，右侧快捷操作+孤立资源检测，顶部项目信息+统计卡片。
 
 **本 Phase 完成后**：
 - 全应用颜色统一走 CSS 变量，`bg-card/80` 替代 `bg-slate-800/80`
-- 首页展示双创作模式入口，点击切换渲染对应内容区
+- 首页展示项目仪表盘：引用地图、孤立资源检测、统计卡片、最近动态、快捷操作
+- 仪表盘内提供"自由创作"（默认）和"故事创作"入口
 - 支持一键切换亮/暗主题并持久化
 
 ### Task 0.1：审计硬编码颜色
@@ -249,47 +290,71 @@ gantt
 
 **✅ Done 标准**：`npm run dev` 启动无 CSS 编译错误。
 
-### Task 0.3：首页重排版 — 双创作模式入口
+### Task 0.3：首页重排版 — 项目仪表盘
 
 **📋 前置阅读**：
 - `src/app/page.tsx` — 当前首页结构（了解现有布局和组件）
 - `src/app/QuickActions.tsx` — 了解快速操作区
 - Task 0.1 的审计结果（颜色映射表）
+- `design-preview.html` — 目标仪表盘布局参考（统计卡片、引用地图、孤立资源）
 
 **📝 产出文件**：
-- `src/app/page.tsx` — 重写（双模式入口）
-- `src/app/QuickActions.tsx` — 修改（颜色替换 + 可移到自由创作模式内）
-- `src/app/CreationModeSelector.tsx` — **新建**（模式选择组件）
+- `src/app/page.tsx` — 重写（项目仪表盘）
+- `src/app/QuickActions.tsx` — 修改（颜色替换）
+- `src/app/home/ProjectDashboard.tsx` — **新建**（仪表盘主组件）
+- `src/app/home/ReferenceMap.tsx` — **新建**（引用地图组件）
+- `src/app/home/OrphanResources.tsx` — **新建**（孤立资源检测组件）
+- `src/app/home/StatsCards.tsx` — **新建**（统计卡片）
+- `src/app/home/RecentActivity.tsx` — **新建**（最近动态）
+- `src/app/home/QuickActionsPanel.tsx` — **新建**（快捷操作面板）
 
 **设计说明**：
 
-首页重新排版为两种创作方式的起点——用户进来看到的不再是功能列表，而是两个醒目的卡片：
+首页重新排版为**功能性项目仪表盘**，参考 `design-preview.html` 的布局：
 
 ```
-┌──────────────────────────────────────────────┐
-│               AI Animation Studio            │
-│                                              │
-│  ┌─────────────────┐  ┌─────────────────┐   │
-│  │    🎬            │  │    📖            │   │
-│  │   自由创作        │  │   故事创作        │   │
-│  │                 │  │                 │   │
-│  │  从零开始         │  │  从小说导入       │   │
-│  │  建角色、写分镜   │  │  AI 管道自动拆解  │   │
-│  │  逐镜头精调       │  │  批量生成分镜     │   │
-│  │                 │  │                 │   │
-│  │     [进入]       │  │     [进入]       │   │
-│  └─────────────────┘  └─────────────────┘   │
-│                                              │
-│  最近项目 / 快捷入口 ...                      │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  🌃 都市传说              最近修改: 2026-06-18  ⚡3个API   [设置] [进入分镜] │
+├──────────────────────────────────────────────────────────────┤
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐                        │
+│  │  4   │ │  4   │ │ 12   │ │ 24   │   ← 统计卡片（可点击跳转）  │
+│  │ 角色  │ │ 场景  │ │ 分镜  │ │ 素材  │                        │
+│  └──────┘ └──────┘ └──────┘ └──────┘                        │
+│                                                              │
+│  ┌─────────────────────────────┐ ┌────────────────────┐     │
+│  │  🔗 引用地图                  │ │  快捷操作            │     │
+│  │                             │ │  ⚡ 快速生成          │     │
+│  │  👤 零 ──→ 第1,2,3,4镜     │ │  📖 故事创作          │     │
+│  │  🏙 新东京 ──→ 第1,2,4镜   │ │  🎨 图片生成器        │     │
+│  │  🚇 地铁 ──→ 第4镜         │ │  📋 视频任务          │     │
+│  │  ⚠ 博士 ──→ 未引用(孤立)    │ │                      │     │
+│  │                             │ │  ─────────────────    │     │
+│  │  [搜索角色/场景...] [展开]   │ │  孤立资源              │     │
+│  │                             │ │  ⚠ 博士 (未引用)      │     │
+│  └─────────────────────────────┘ │  ⚠ 废弃工厂 (未引用)   │     │
+│                                  └────────────────────┘     │
+│  ┌─────────────────────────────┐                            │
+│  │  📋 最近动态                  │                            │
+│  │  🖼 第5镜 视频生成完成  14:32 │                            │
+│  │  ✏ 更新角色 零 的服装  13:15 │                            │
+│  └─────────────────────────────┘                            │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-- **自由创作**：渲染现有的首页内容（`QuickActions` + 最近故事等），即当前 `page.tsx` 的内容
-- **故事创作**：渲染 `NovelImportPage`（Phase 2A 产出），用户粘贴小说文本 → 管道导入
+**仪表盘各区域说明**：
 
-两种模式通过 `useState<"free" | "story">` 切换，不打新路由。当前选中模式存储到 `usePreference("creationMode", "free")`，下次打开记住上次选择。
+| 区域 | 组件 | 功能 |
+|------|------|------|
+| 顶部项目信息 | `ProjectDashboard` | 项目名称、最近修改时间、API 配置状态、快捷按钮 |
+| 统计卡片 | `StatsCards` | 角色/场景/分镜/素材数量，点击跳转对应页面 |
+| 引用地图 | `ReferenceMap` | 展示每个角色/场景被哪些分镜引用，支持搜索、展开/折叠、孤立资源高亮 |
+| 最近动态 | `RecentActivity` | 最近 5 条操作记录（生成完成、角色更新、同步等） |
+| 快捷操作 | `QuickActionsPanel` | 快速生成、故事创作（Phase 2A 入口）、图片生成器、视频任务 |
+| 孤立资源 | `OrphanResources` | 检测未被任何分镜引用的角色/场景，提示清理 |
 
-注意：Task 0.3 只需要做**入口层**——模式切换 UI + 自由创作内容展示。故事创作的内容区在 Phase 2A 中填充（当前可放一个占位 "即将推出"）。
+**与 Phase 2A 的衔接**：快捷操作中的"故事创作"按钮跳转到侧栏「故事创作」区域的「导入小说」页面（`/story` 路由）。Phase 2A 完成前为占位页，Phase 2A 完成后填入实际功能。
+
+> **v3.1 修正**：取消 v3.0 的"双创作模式入口"设计（自由创作/故事创作卡片切换）。改为侧栏分区结构——自由创作和故事创作是侧栏两个对等区域，各自有独立导航项。首页是自由创作区域的子页面，纯项目仪表盘，不再承担模式切换职责。侧栏分组结构详见 `ui-migration-plan.md` Task A.1。
 
 **🤖 执行指令**：
 
@@ -307,109 +372,28 @@ gantt
 | `text-slate-100` | `text-foreground` |
 | `bg-slate-900` | `bg-background` |
 
-**步骤 2 — 创建 `CreationModeSelector.tsx`**：
+**步骤 2 — 创建组件**：按上表新建 6 个组件文件，逐个实现。
 
-```tsx
-import { Film, BookOpen } from "lucide-react";
-import { usePreference } from "@/shared/utils/preferences";
+**Props 契约**：
 
-export type CreationMode = "free" | "story";
+| 组件 | Props | 说明 |
+|------|-------|------|
+| `ProjectDashboard` | `{ project: ProjectInfo }` | 顶部项目信息栏 |
+| `StatsCards` | `{ stats: ProjectStats; onNavigate: (page: string) => void }` | 4 个统计卡片 |
+| `ReferenceMap` | `{ characters: CharRef[]; scenes: SceneRef[]; beats: BeatRef[] }` | 引用地图，含搜索+展开 |
+| `OrphanResources` | `{ orphans: { characters: CharRef[]; scenes: SceneRef[] } }` | 孤立资源列表 |
+| `RecentActivity` | `{ activities: ActivityItem[] }` | 最近动态列表 |
+| `QuickActionsPanel` | `{ onNavigate: (page: string) => void; storyModeAvailable: boolean }` | 快捷操作面板 |
 
-interface Props {
-  activeMode: CreationMode;
-  onSelect: (mode: CreationMode) => void;
-}
-
-export function CreationModeSelector({ activeMode, onSelect }: Props) {
-  return (
-    <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
-      <button
-        onClick={() => onSelect("free")}
-        className={`flex flex-col items-center gap-4 p-8 rounded-xl border-2 transition-all ${
-          activeMode === "free"
-            ? "border-primary bg-primary/5"
-            : "border-border/50 bg-card/50 hover:border-border hover:bg-card"
-        }`}
-      >
-        <Film className={`w-12 h-12 ${activeMode === "free" ? "text-primary" : "text-muted-foreground"}`} />
-        <div className="text-center">
-          <h2 className="text-lg font-semibold text-foreground">自由创作</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            从零开始，建角色、写分镜、逐镜头精调
-          </p>
-        </div>
-        <span className={`text-sm font-medium ${activeMode === "free" ? "text-primary" : "text-muted-foreground"}`}>
-          进入 →
-        </span>
-      </button>
-
-      <button
-        onClick={() => onSelect("story")}
-        className={`flex flex-col items-center gap-4 p-8 rounded-xl border-2 transition-all ${
-          activeMode === "story"
-            ? "border-primary bg-primary/5"
-            : "border-border/50 bg-card/50 hover:border-border hover:bg-card"
-        }`}
-      >
-        <BookOpen className={`w-12 h-12 ${activeMode === "story" ? "text-primary" : "text-muted-foreground"}`} />
-        <div className="text-center">
-          <h2 className="text-lg font-semibold text-foreground">故事创作</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            从小说导入，AI 管道自动拆解分镜
-          </p>
-        </div>
-        <span className={`text-sm font-medium ${activeMode === "story" ? "text-primary" : "text-muted-foreground"}`}>
-          进入 →
-        </span>
-      </button>
-    </div>
-  );
-}
-```
-
-**步骤 3 — 重写 `page.tsx`**：
-
-```tsx
-"use client";
-
-import { useState } from "react";
-import { CreationModeSelector, type CreationMode } from "./CreationModeSelector";
-import { usePreference } from "@/shared/utils/preferences";
-
-export default function HomePage() {
-  const [mode, setMode] = usePreference<CreationMode>("creationMode", "free");
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] gap-8">
-      <div className="text-center mb-4">
-        <h1 className="text-3xl font-bold text-foreground">AI Animation Studio</h1>
-        <p className="text-muted-foreground mt-2">选择一种创作方式开始</p>
-      </div>
-
-      <CreationModeSelector activeMode={mode} onSelect={setMode} />
-
-      <div className="w-full max-w-4xl mt-8">
-        {mode === "free" ? (
-          <>{/* 现有首页内容（QuickActions + 最近故事等）迁移到此 */}</>
-        ) : (
-          <div className="text-center text-muted-foreground py-12">
-            故事创作模式即将推出（Phase 2A），敬请期待。
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-```
-
-**注意**：现有 `page.tsx` 的原始内容（QuickActions、最近项目列表等）需要迁移到 `mode === "free"` 的分支内，但不改变其功能。Phase 2A 完成后将 `mode === "story"` 分支替换为 `<NovelImportPage />`。
+**步骤 3 — 重写 `page.tsx`**：组装所有组件为仪表盘布局。
 
 **✅ Done 标准**：
 - `npm run typecheck && npm run lint` 通过
-- `npm run dev` → 首页展示两个创作模式卡片
-- 点击"自由创作" → 显示现有首页内容（颜色已替换为 CSS 变量）
-- 点击"故事创作" → 显示"即将推出"占位
-- 刷新页面 → 记住上次选择的模式
+- `npm run dev` → 首页展示项目仪表盘（统计卡片 + 引用地图 + 最近动态 + 快捷操作）
+- 引用地图正确展示角色/场景 → 分镜的引用关系
+- 孤立资源检测正确标记未引用的角色/场景
+- 统计卡片点击跳转到对应页面
+- 刷新页面 → 仪表盘数据正常加载
 - `page.tsx` 和 `QuickActions.tsx` 中 `grep slate-` 返回空
 
 ### Task 0.4：内页引入微渐变背景
@@ -633,6 +617,7 @@ export function checkVersionConflict(
 - Agent 助手可对话，支持流式打字效果
 - 可调用 3 个通用工具（search_characters, get_story_context, generate_prompt）
 - 可调用 5 个系统诊断工具（diagnose_task, check_provider_health 等）
+- 可调用 1 个 API 配置工具（configure_api — 用户提供 key + 说是哪家供应商 → Agent 自动完成配置）
 - 对话历史持久化到 SQLite，重启不丢
 - Agent 主动轮询检测异常任务并推送建议
 
@@ -1406,12 +1391,59 @@ src/modules/agent/
     ├── AgentPanel.tsx
     ├── AgentChat.tsx
     ├── AgentMessage.tsx
-    └── ToolCallCard.tsx
+    ├── ToolCallCard.tsx
+    ├── FloatingBall.tsx          ← v3.1 新增：全局悬浮球
+    └── FloatingPanel.tsx         ← v3.1 新增：悬浮球面板（AI助手+编译器双Tab）
 ```
 
-**🤖 执行指令**：
+**v3.1 布局契约**（AI 助手页面）：
 
-**文件 1 — `domain/types.ts`**：
+参考 `design-preview.html` `page-agent`，AI 助手页面遵循以下布局规范：
+
+```
+┌──────────────────────────────────────┐
+│ 🤖 AI 助手  [系统管理员]    [🔧展开] │ ← page-header
+├──────────────────────────────────────┤
+│                                      │
+│  消息1（AI）                         │
+│  消息2（用户）                       │ ← 聊天区 flex:1，可滚动
+│  消息3（AI，含工具调用卡片）          │
+│                                      │
+├──────────────────────────────────────┤
+│ [⚙配置API] [📖导入小说] [🔍搜索]    │ ← 快捷按钮
+│ [textarea 输入框]            [发送]  │ ← 输入区 flex-shrink:0，钉底
+└──────────────────────────────────────┘
+```
+
+- 聊天区 `flex:1; overflow-y:auto`，消息从顶部开始
+- 输入区 `flex-shrink:0`，始终钉在页面最底部（类似微信/QQ）
+- 工具面板改为**悬浮覆盖层**（`position:absolute; right:0; transform:translateX(100%)`），默认隐藏，点击「🔧展开」滑入，不挤压聊天区宽度
+- 页面容器 `display:flex; flex-direction:column; height:100%`
+- `switchPage` 函数统一设置 `display:flex`（非 block），确保 flex 布局生效
+
+**v3.1 悬浮球设计**：
+
+全局悬浮球（FloatingBall）固定在右下角，任意页面可调用：
+
+```
+                                    ┌───┐
+                                    │ 🤖 │ ← 悬浮球 56×56px
+                                    └───┘
+点击后展开：
+                                    ┌───────────────┐
+                                    │ [AI助手][编译器] │ ← Tab 切换
+                                    ├───────────────┤
+                                    │               │
+                                    │  对话/画布     │ ← 420×560px 面板
+                                    │               │
+                                    │               │
+                                    └───────────────┘
+```
+
+- 悬浮球 `position:fixed; bottom:24px; right:24px; z-index:50`
+- 面板 `position:fixed; bottom:88px; right:24px; width:420px; height:560px`
+- 双 Tab：AI助手（复用 AgentChat）+ 编译器（复用 ComposerCanvas）
+- 任意页面可用，不切换页面即可调用 AI 助手和编译器
 
 ```typescript
 export interface UIAgentMessage {
@@ -3357,13 +3389,19 @@ export function searchSessions(query: string, storyId?: string): SessionSummary[
 
 ---
 
-## Phase 2A：小说导入管道（故事创作模式）
+## Phase 2A：小说导入管道 + 内容创作增强（故事创作模式）
 
 > **依赖**：Phase 1 Agent 基础设施完成 + Phase 0 Task 0.3（双创作模式入口已建好）。
 > **核心**：Novel 的 AI 步骤全部通过 Agent 工具实现。
 > **入口**：不在 Sidebar 加独立导航项，而是通过首页的"故事创作"卡片进入——Phase 0 Task 0.3 已在 `page.tsx` 的模式分支中预留了占位区域，本 Phase 将其替换为 `NovelImportPage`。
 
-**本 Phase 完成后**：用户打开软件 → 首页点"故事创作" → 粘贴小说文本 → AI 分段 → 选择段落 → 提取角色场景 → 匹配已有实体 → 拆解分镜 → 生成提示词 → 导入故事系统，全程支持全自动/半自动切换。
+**本 Phase 完成后**：
+1. 小说管道：用户打开软件 → 首页点"故事创作" → 粘贴小说文本 → AI 分段 → 选择段落 → 提取角色场景 → 匹配已有实体 → 拆解分镜 → 生成提示词 → 导入故事系统，全程支持全自动/半自动切换
+2. 道具库：素材库新增道具子集，服装归为道具的一种类型（其他类型：武器/配饰/道具等）
+3. 全局编译器：角色 + 场景 + 道具自由组合 → 调用 AI 生成合成图 → 存入角色变体
+4. 角色变体：替换现有角色页面的服装框，改为变体列表
+5. Element Binding 扩展：每个分镜绑定支持 per-shot 的角色动态属性（action/emotion）
+6. Few-Shot 动态选择：生成管道的 Few-Shot 示例根据项目类型（古装/现代/科幻）动态选择
 
 ---
 
@@ -4053,48 +4091,79 @@ src/modules/novel/presentation/
 
 ---
 
-### Task 2A.6：故事创作模式集成进首页
+### Task 2A.6：故事创作侧栏集成（v3.1 重写）
 
 **📋 前置阅读**：
-- `src/app/page.tsx` — Phase 0 Task 0.3 产出（双模式入口 + 模式分支）
-- `src/app/CreationModeSelector.tsx` — Phase 0 Task 0.3 产出（模式选择组件）
+- `src/shared/presentation/Sidebar.tsx` — UI 迁移 Phase A 产出（4 分区结构）
+- `src/router.tsx` — UI 迁移 Phase A 产出（含 5 个故事创作占位路由）
 - `src/modules/novel/presentation/NovelImportPage.tsx` — Task 2A.4/2A.5 产出
+- `design-preview.html` — 侧栏「故事创作」区域 5 个子页面布局
 
 **📝 产出文件**：
-- `src/app/page.tsx` — 修改（将故事创作的占位替换为 `<NovelImportPage />`）
+- `src/app/story-pipeline/page.tsx` — 修改（从占位页替换为 `<NovelImportPage />`）
+- `src/app/story-pipeline/characters/page.tsx` — 修改（从占位页替换为 `<EntityReviewPanel mode="character" />`）
+- `src/app/story-pipeline/scenes/page.tsx` — 修改（从占位页替换为 `<EntityReviewPanel mode="scene" />`）
+- `src/app/story-pipeline/shots/page.tsx` — 修改（从占位页替换为 `<ShotBreakdownList />`）
+- `src/app/story-pipeline/tasks/page.tsx` — 修改（从占位页替换为 `<BatchTaskPanel />`）
 - `src/modules/novel/MODULE.md` — 新建
 - `src/modules/novel/index.ts` — 新建
-- ~~`src/router.tsx`~~ — **不需要修改**（不新增独立路由）
-- ~~`src/shared/presentation/Sidebar.tsx`~~ — **不需要修改**（不新增导航项）
+- `src/shared/presentation/Sidebar.tsx` — 修改（故事创作区域 5 项激活，移除"即将推出"标记）
 
-**设计说明**：
+**v3.1 设计说明**：
 
-小说导入不作为独立路由页面，而是嵌入首页的故事创作模式中。用户流程是：
+取消 v3.0 的"首页内嵌故事创作模式"设计。改为侧栏「故事创作」独立区域，含 5 个子页面：
 
 ```
-打开软件 → 首页 → 点"故事创作"卡片 → 同页切换到 NovelImportPage → 完成导入 → 切回"自由创作"
+侧栏「故事创作」区域：
+  📖 导入小说    → /story          → NovelImportPage（文本输入+管道步骤）
+  👤 角色确认    → /story-chars    → EntityReviewPanel（角色卡片网格）
+  🏙 场景确认    → /story-scenes   → EntityReviewPanel（场景卡片网格）
+  🎬 分镜预览    → /story-shots    → ShotBreakdownList（分镜列表）
+  📋 批量任务    → /story-tasks    → BatchTaskPanel（进度面板）
 ```
 
-不需要 Sidebar 导航项、不需要独立 URL。这保持了"两种创作模式"概念的一致性——用户在同一个首页里决定创作方式。
+用户流程：
+```
+侧栏点"导入小说" → 粘贴文本 → AI提取角色 → 侧栏点"角色确认" → 确认/编辑
+→ 侧栏点"场景确认" → 确认/编辑 → 侧栏点"分镜预览" → 查看/编辑
+→ 侧栏点"批量任务" → 一键生成
+```
+
+每个子页面独立路由，可通过侧栏自由切换，不强制线性流程。
 
 **🤖 执行指令**：
 
-在 `page.tsx` 的 `mode === "story"` 分支中，将占位内容替换为：
+1. 将 5 个占位页替换为实际组件（组件在 Task 2A.4/2A.5 已产出）：
 
 ```tsx
-{mode === "free" ? (
-  <>{/* 现有首页内容 */}</>
-) : (
-  <NovelImportPage onComplete={() => setMode("free")} />
-)}
+// src/app/story-pipeline/page.tsx
+import { NovelImportPage } from "@/modules/novel";
+export default function Page() { return <NovelImportPage />; }
+
+// src/app/story-pipeline/characters/page.tsx
+import { EntityReviewPanel } from "@/modules/novel";
+export default function Page() { return <EntityReviewPanel mode="character" />; }
+
+// src/app/story-pipeline/scenes/page.tsx
+import { EntityReviewPanel } from "@/modules/novel";
+export default function Page() { return <EntityReviewPanel mode="scene" />; }
+
+// src/app/story-pipeline/shots/page.tsx
+import { ShotBreakdownList } from "@/modules/novel";
+export default function Page() { return <ShotBreakdownList />; }
+
+// src/app/story-pipeline/tasks/page.tsx
+import { BatchTaskPanel } from "@/modules/novel";
+export default function Page() { return <BatchTaskPanel />; }
 ```
 
-`NovelImportPage` 新增 `onComplete` prop——导入完成后自动切回自由创作模式，让用户看到新导入的故事出现在最近项目中。
+2. 侧栏「故事创作」区域 5 项全部激活，移除"即将推出"标记
+3. 各子页面之间通过路由跳转，状态通过 novel store 传递
 
 **✅ Done 标准**：
-- 首页点"故事创作" → 显示小说导入管道
-- 导入完成 → 自动切回自由创作模式
-- 不新增路由和 Sidebar 项
+- 侧栏「故事创作」5 个子页面可点击进入
+- 导入小说 → 角色确认 → 场景确认 → 分镜预览 → 批量任务 流程贯通
+- 各子页面独立 URL，可自由切换
 - `npm run typecheck && npm run lint` 通过
 
 ---
@@ -4159,7 +4228,226 @@ CREATE INDEX IF NOT EXISTS idx_novel_projects_updated ON novel_projects(updated_
 
 ---
 
-## Phase 2B：改进方案 + 任务管理重构
+### Task 2A.8：道具库模块
+
+**📋 前置阅读**：`src/modules/asset/` 现有素材管理结构
+
+**📝 产出文件**：
+- `src/modules/asset/props/domain/prop.schema.ts` — 新建
+- `src/modules/asset/props/services/prop-crud.ts` — 新建
+- `src/modules/asset/props/hooks/use-prop-library.ts` — 新建
+- `src/modules/asset/props/index.ts` — 新建
+- `src/infrastructure/db/prop-table.ts` — 新建
+
+**🤖 执行指令**：
+
+```typescript
+// domain/prop.schema.ts
+export const propTypeEnum = z.enum(["clothing", "weapon", "accessory", "prop", "other"]);
+export type PropType = z.infer<typeof propTypeEnum>;
+
+export const propSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  name: z.string(),
+  type: propTypeEnum,           // 服装/武器/配饰/道具/其他
+  description: z.string().optional(),
+  referenceImage: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+```
+
+**功能要求**：
+1. 道具 CRUD（创建/读取/更新/删除）
+2. 按类型筛选（服装/武器/配饰/道具/其他）
+3. 在素材库页面新增"道具"子 tab
+4. 道具可被全局编译器引用
+5. 迁移现有角色服装数据到道具库（类型标记为 clothing）
+
+**✅ Done 标准**：
+- 道具 CRUD 完整可用
+- 按类型筛选功能正常
+- 现有服装数据已迁移
+- `npm run typecheck && npm run lint` 通过
+
+---
+
+### Task 2A.9：全局编译器
+
+**📋 前置阅读**：
+- `src/modules/character/` 角色管理
+- `src/modules/scene/` 场景管理
+- Task 2A.8 道具库
+- `src/modules/shot/shot-generation/` 现有生成管道（可参考其模式）
+
+**📝 产出文件**：
+- `src/modules/compositor/domain/compositor.schema.ts` — 新建
+- `src/modules/compositor/services/compositor-engine.ts` — 新建
+- `src/modules/compositor/hooks/use-compositor.ts` — 新建
+- `src/modules/compositor/presentation/compositor-panel.tsx` — 新建
+- `src/modules/compositor/index.ts` — 新建
+
+**🤖 执行指令**：
+
+```typescript
+// domain/compositor.schema.ts
+export const compositorInputSchema = z.object({
+  characterId: z.string(),
+  propIds: z.array(z.string()).optional(),   // 可选道具组合
+  sceneId: z.string().optional(),            // 可选场景
+  extraPrompt: z.string().optional(),        // 额外提示词
+  provider: z.string().optional(),           // 指定 AI 提供商
+  resolution: z.string().optional(),
+});
+
+export const compositorResultSchema = z.object({
+  id: z.string(),
+  characterId: z.string(),
+  propIds: z.array(z.string()),
+  sceneId: z.string().optional(),
+  imageUrl: z.string(),
+  prompt: z.string(),
+  createdAt: z.string(),
+});
+```
+
+**功能要求**：
+1. 编译器面板：左侧角色列表，中间道具选择器，右侧场景选择器
+2. 拖拽或点击选择角色 + 道具 + 场景，生成组合预览
+3. 调用 AI 图像模型生成合成图
+4. 生成结果存入角色变体（见 Task 2A.10）
+5. 支持 preset 保存常用组合
+
+**v3.1 三栏布局契约**（参考 `design-preview.html` `page-composer`）：
+
+```
+┌──────────┬──────────────────────────┬──────────────┐
+│ 素材面板  │        画布              │ P图工具      │
+│ 240px    │        flex:1            │ 260px        │
+│          │                          │              │
+│[角色]    │  ┌──────────────────┐   │ 裁剪/缩放    │
+│[场景]    │  │                  │   │ 旋转/翻转    │
+│[道具]    │  │    1024×1024     │   │ 滤镜/调整    │
+│          │  │    画布预览       │   │ 抠图/文字    │
+│角色1     │  │                  │   │ 画笔/橡皮    │
+│角色2     │  │                  │   │ 蒙版/AI扩图  │
+│角色3     │  └──────────────────┘   │              │
+│...       │  [生成] [上传] [清空]   ├──────────────┤
+│          │                          │ 图层列表     │
+│          │                          │ - 角色层     │
+│          │                          │ - 道具层     │
+│          │                          │ - 场景层     │
+│          │                          ├──────────────┤
+│          │                          │ 合成提示词   │
+│          │                          │ [生成图片]   │
+└──────────┴──────────────────────────┴──────────────┘
+```
+
+- 左栏（素材面板）：`width:240px; flex-shrink:0; border-right`，Tab 切换角色/场景/道具
+- 中栏（画布）：`flex:1; min-width:0`，画布 `aspect-ratio:1; max-width:700px; max-height:700px; width:100%; height:100%`
+- 右栏（P图工具）：`width:260px; flex-shrink:0; border-left`，`display:flex; flex-direction:column`
+  - P图工具区：`flex-shrink:0`
+  - 图层列表：`flex:1; overflow-y:auto`
+  - 合成提示词 + 生成按钮：`flex-shrink:0`，钉在右栏底部
+- 整体：`display:flex; height:100%; overflow:hidden`
+
+**✅ Done 标准**：
+- 三栏布局正确，画布自适应填充中栏
+- 图层列表 `flex:1` 填充右栏剩余空间
+- 可选择角色 + 道具 + 场景 → 生成组合图
+- 生成结果正确存入角色变体
+- 组合 prompt 由系统自动拼装
+- `npm run typecheck && npm run lint` 通过
+
+---
+
+### Task 2A.10：角色变体系统
+
+**📋 前置阅读**：
+- `src/modules/character/` 现有角色管理
+- Task 2A.9 全局编译器
+- `src/domain/schemas/character.ts` 角色 schema
+
+**📝 产出文件**：
+- `src/domain/schemas/character-variant.ts` — 新建
+- `src/modules/character/variants/services/variant-crud.ts` — 新建
+- `src/modules/character/variants/hooks/use-character-variants.ts` — 新建
+- `src/modules/character/variants/presentation/variant-list.tsx` — 新建
+- `src/modules/character/variants/index.ts` — 新建
+
+**🤖 执行指令**：
+
+```typescript
+// domain/schemas/character-variant.ts
+export const characterVariantSchema = z.object({
+  id: z.string(),
+  characterId: z.string(),
+  name: z.string(),                    // 变体名称，如 "战斗服·零"
+  propIds: z.array(z.string()),        // 使用的道具组合
+  sceneId: z.string().optional(),      // 使用的场景
+  imageUrl: z.string(),                // 合成图 URL
+  compositorPrompt: z.string(),        // 编译器使用的 prompt
+  isCanonical: z.boolean().optional(), // 是否默认变体
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+```
+
+**功能要求**：
+1. 角色页面移除现有服装框，替换为"角色变体"列表
+2. 变体列表展示每个变体的合成图 + 道具组合
+3. 点击变体 → 进入全局编译器（预填角色+道具）
+4. 支持设置默认变体（isCanonical）
+5. 分镜 Element Binding 改为引用角色变体（而非角色 + 服装）
+6. 迁移现有角色服装数据到变体（每个角色至少一个默认变体）
+
+**✅ Done 标准**：
+- 角色页面展示变体列表，不再有服装框
+- 可从编译器生成新变体
+- 分镜绑定改为引用角色变体
+- 现有角色的服装数据已迁移到变体
+- `npm run typecheck && npm run lint` 通过
+
+---
+
+### Task 2A.11：Element Binding 扩展（action/emotion）
+
+**📋 前置阅读**：
+- `src/domain/schemas/shot-system.ts` 中 `elementBindingSchema`
+- `src/modules/shot/element-binding/` 现有元素绑定模块
+
+**📝 产出文件**：
+- `src/domain/schemas/shot-system.ts` — 修改 elementBindingSchema
+- `src/modules/shot/element-binding/services/binding-service.ts` — 修改
+
+**🤖 执行指令**：
+
+在 `elementBindingSchema` 的每个元素绑定中新增两个字段：
+
+```typescript
+// 新增字段（追加到现有 schema）
+action: z.string().optional(),    // 角色在此分镜的动作，如"眺望远方"
+emotion: z.string().optional(),   // 角色在此分镜的情绪，如"坚定"
+```
+
+并在生成管道的 prompt 拼装中，将 action 和 emotion 融入角色描述：
+
+```typescript
+// 拼装示例
+`${roleDesc}，${action}，表情${emotion}`
+```
+
+**✅ Done 标准**：
+- 分镜编辑 UI 支持输入 action 和 emotion
+- 生成 prompt 自动包含 action 和 emotion
+- 已有分镜的 elementBinding 向后兼容（action/emotion 为 optional）
+- `npm run typecheck && npm run lint` 通过
+
+---
+
+## Phase 2B：改进方案 + 三栏分镜编辑器 + 任务管理重构
 
 > ⚡ 与 Phase 2A 完全并行（零文件冲突：2A 全部新建文件，2B 修改已存在文件）
 > 💡 多数 Task 已有建设基础，实际工作量低于表面：
@@ -4168,12 +4456,14 @@ CREATE INDEX IF NOT EXISTS idx_novel_projects_updated ON novel_projects(updated_
 > - 2B.6 错误分类：`video-recovery.ts` 已有 `SUCCESS_STATES`/`FAILED_STATES`/`PENDING_STATES` 常量，UI 层加颜色映射
 > - 2B.8 上传限制：已有 `assets:save-image` IPC，加前端校验
 > - 2B.9 分页：`@tanstack/react-virtual` 已安装，直接复用
+> - 2B.11 三栏编辑器：基于 `design-preview.html` 的布局参考，重构现有分镜编辑器
 
 **本 Phase 完成后**：
 - 角色/场景支持版本控制和乐观锁
 - 视频生成支持暂停/优先队列/重试指数退避
 - 错误信息分类显示、国际化统一
 - 图片上传限制优化、分页加载
+- 分镜编辑器升级为三栏布局（提示词编辑 | 元素绑定 | 预览）+ 底部时间轴
 - 任务管理全新双视图（列表+诊断），Agent栏嵌入
 
 ### Task 2B.1：角色版本控制
@@ -4406,6 +4696,81 @@ export function TaskDiagnosticPanel({ filteredTasks, onDiagnose, diagnosisResult
 
 ---
 
+### Task 2B.11：三栏分镜编辑器布局
+
+> **设计参考**：`design-preview.html` 中的故事板页面——三栏编辑器（提示词编辑 | 元素绑定 | 预览）+ 底部时间轴。
+
+**📋 前置阅读**：
+- `src/modules/shot/` — 分镜模块结构
+- `src/modules/story/beat-editor/` — 当前分镜编辑器布局
+- `design-preview.html` — 目标三栏布局参考（Line 440-633）
+
+**📝 产出文件**：
+- `src/modules/shot/shot-editor/ShotEditorLayout.tsx` — **新建**（三栏布局容器）
+- `src/modules/shot/shot-editor/PromptEditorColumn.tsx` — **新建**（左栏：提示词编辑）
+- `src/modules/shot/shot-editor/ElementBindingColumn.tsx` — **新建**（中栏：元素绑定）
+- `src/modules/shot/shot-editor/PreviewColumn.tsx` — **新建**（右栏：预览+生成）
+- `src/modules/shot/shot-editor/ShotTimeline.tsx` — **新建**（底部时间轴）
+- `src/modules/story/beat-editor/` — 修改（集成新布局）
+
+**🤖 执行指令**：
+
+将现有分镜编辑器从单栏/双栏布局重构为三栏布局：
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  [分镜编排] [AI 生成] [预览导出]          🌃 都市传说  │
+├──────────────────────────────────────────────────────────┤
+│ COL 1: 提示词编辑    │ COL 2: 元素绑定   │ COL 3: 预览  │
+│                      │                   │              │
+│ [关键帧|首帧|尾帧]    │ 👤 零              │ 关键帧预览    │
+│                      │  角色: 主角        │ [生成][刷新] │
+│ 提示词文本区          │  位置: 前景        │              │
+│ (含绑定元素高亮)      │  动作: 眺望远方    │ 首尾帧        │
+│                      │  情绪: 坚定        │ [首][尾]     │
+│ [✨ AI 优化]         │  补充描述: ...     │              │
+│                      │  [✕ 移除]         │ 视频生成      │
+│ 分镜属性              │                   │ ▶️           │
+│ 镜头: [广角▼]        │ 🏙 新东京          │ [生成]       │
+│ 运动: [航拍▼]        │  场景角色: 主场景   │              │
+│ 时长: [5]s           │  时间: 清晨        │              │
+│                      │                   │              │
+│ [🤖 生成关键帧]       │ + 绑定角色或场景   │              │
+│                      │                   │              │
+│                      │ 一致性检查         │              │
+│                      │ 👤 外观一致 ✓     │              │
+│                      │ 🏙 场景一致 ✓     │              │
+├──────────────────────────────────────────────────────────┤
+│  时间轴: [1·城市黎明] [2·主角登场] [3·街头冲突] ... [+ 添加] │
+└──────────────────────────────────────────────────────────┘
+```
+
+**三栏说明**：
+
+| 栏位 | 宽度 | 内容 |
+|------|------|------|
+| 左栏（提示词编辑） | flex: 1 | 关键帧/首帧/尾帧 Tab 切换，提示词文本区（含元素绑定高亮），分镜属性设置（镜头/运动/时长），生成按钮 |
+| 中栏（元素绑定） | 300px | 当前分镜绑定的角色/场景/道具卡片，每个卡片含：角色（动作/情绪/位置/补充描述），场景（场景角色/时间/补充描述），一致性检查状态 |
+| 右栏（预览） | 220px | 关键帧预览缩略图，首尾帧占位，视频生成预览，生成/刷新/导出按钮 |
+| 底部（时间轴） | 固定高度 | 所有分镜缩略图卡片（含绑定标签），拖拽排序，选中高亮，添加按钮 |
+
+**关键交互**：
+1. 点击左侧分镜列表 → 中间三栏更新为对应分镜
+2. 元素绑定卡片实时反映在提示词中（高亮标签）
+3. 修改绑定属性（动作/情绪）→ 提示词自动更新对应标签
+4. 一致性检查实时显示当前分镜的元素匹配度
+5. 底部时间轴支持拖拽排序 + 批量选择
+
+**✅ Done 标准**：
+- `npm run typecheck && npm run lint` 通过
+- 三栏布局正常渲染，列宽比例正确
+- 点击分镜列表 → 三栏内容同步更新
+- 元素绑定修改 → 提示词中对应标签实时更新
+- 底部时间轴拖拽排序生效
+- 最小窗口 1024×768 三栏不溢出
+
+---
+
 ## Phase 3：架构升级
 
 > **依赖**：Phase 1 + Phase 2A/B 核心功能完成。
@@ -4457,9 +4822,13 @@ export function TaskDiagnosticPanel({ filteredTasks, onDiagnose, diagnosisResult
 
 **本 Phase 完成后**：
 - Agent 含 20 个额外工具（生成、素材、知识库）
-- 视频片段合成功能
-- 分镜对比视图
-- Prompt 配方库
+- AI 助手从"系统管理员"升级为"全流程创作助手"：API 配置、创作决策、故障诊断、素材搜索、图片编辑、视频剪辑全覆盖
+- 视频片段合成功能（FFmpeg 拼接 + 转场）
+- 分镜对比视图（并列对比同一分镜的多个版本）
+- 简单图片编辑（裁剪/调色/标注）
+- 素材搜索（全局搜索角色/场景/道具/素材）
+- Prompt 配方库 + Few-Shot 动态选择（根据项目类型自动匹配示例）
+- 跨分镜一致性自动修复（检测到漂移后自动同步 featureTags）
 - 整体 UI 体验打磨
 
 ### Task 4.1：增强 Agent 工具 — 生成类
@@ -4582,22 +4951,103 @@ export function TaskDiagnosticPanel({ filteredTasks, onDiagnose, diagnosisResult
 
 ---
 
-### Task 4.5：Prompt 配方库
+### Task 4.5：简单图片编辑
+
+**📋 前置阅读**：`src/modules/asset/` 素材模块
+
+**📝 产出文件**：
+- `src/modules/asset/editor/services/image-editor.ts` — 新建
+- `src/modules/asset/editor/presentation/image-editor-panel.tsx` — 新建
+- `src/modules/asset/editor/index.ts` — 新建
+
+**🤖 执行指令**：
+1. 基础编辑：裁剪（自由比例 + 预设比例）、旋转（90°/180°/自定义）、亮度/对比度/饱和度滑块
+2. 标注：在图片上添加文字、箭头、矩形框
+3. 所有编辑操作在本地 Canvas 完成，不调用外部 API
+4. 编辑结果可保存为新版本，不覆盖原图
+
+**✅ Done 标准**：
+- 裁剪/旋转/调色功能正常
+- 标注功能正常
+- 保存为新版本不覆盖原图
+
+---
+
+### Task 4.6：素材搜索
 
 **📋 前置阅读**：
+- `src/modules/character/`、`src/modules/scene/`、`src/modules/asset/` 各自的数据层
+- Task 2A.8 道具库
+
+**📝 产出文件**：
+- `src/modules/search/services/global-search.ts` — 新建
+- `src/modules/search/presentation/search-bar.tsx` — 新建
+- `src/modules/search/index.ts` — 新建
+
+**🤖 执行指令**：
+1. 全局搜索框（`Ctrl+K` 快捷键），搜索范围：角色、场景、道具、素材、分镜、项目
+2. 模糊搜索 + 标签搜索 + 类型筛选
+3. 搜索结果卡片展示：名称 + 类型 + 缩略图 + 最近更新时间
+4. 点击结果跳转到对应页面
+5. Agent 工具 `search_assets` 调用此搜索接口
+
+**✅ Done 标准**：
+- Ctrl+K 唤起全局搜索
+- 搜索所有类型内容
+- 点击结果跳转正确
+- Agent 可调用搜索工具
+
+---
+
+### Task 4.7：Prompt 配方库 + Few-Shot 动态选择
+
+**📋 前置阅读**：
+- `src/shared-logic/prompt/prompt-engine.ts` 提示词引擎
 - `src/modules/prompt/` — 现有提示词模块
+- `src/modules/shot/shot-generation/services/few-shot-builder.ts` Few-Shot 构建器
 
 **📝 产出文件**：
 - `src/modules/prompt/prompt-recipes/PromptRecipePanel.tsx` — 新建
 - `src/modules/prompt/prompt-recipes/recipes.ts` — 新建（预设配方数据）
+- `src/modules/shot/shot-generation/services/few-shot-builder.ts` — 修改
 
-**🤖 执行指令**：预设 5 个配方（赛博朋克、日系动画、写实风景、水墨风格、电影质感），一键应用到分镜提示词。支持用户自定义配方。
+**🤖 执行指令**：
+1. 配方库：预设 5 个配方（赛博朋克、日系动画、写实风景、水墨风格、电影质感），一键应用到分镜提示词。支持用户自定义配方。
+2. Few-Shot 动态选择：根据项目类型（古装/现代/科幻/奇幻）自动选择对应的 Few-Shot 示例
+3. 项目创建时允许用户选择项目类型，生成管道读取该设置
 
-**✅ Done 标准**：选择一个配方 → 点击"应用" → 分镜提示词更新
+**✅ Done 标准**：
+- 选择一个配方 → 点击"应用" → 分镜提示词更新
+- 不同项目类型使用不同的 Few-Shot 示例
+- 用户可自定义配方
 
 ---
 
-### Task 4.6：体验精雕
+### Task 4.8：跨分镜一致性自动修复
+
+**📋 前置阅读**：
+- `src/modules/shot/consistency-check/services/cross-shot-consistency-service.ts` 跨分镜一致性检查
+- `src/modules/shot/element-binding/` 元素绑定模块
+
+**📝 产出文件**：
+- `src/modules/shot/consistency-check/services/cross-shot-auto-fix.ts` — 新建
+- `src/modules/shot/consistency-check/services/__tests__/cross-shot-auto-fix.test.ts` — 新建
+
+**🤖 执行指令**：
+1. 调用 `checkCrossShotConsistency` 检测到漂移后，自动分析漂移原因
+2. 如果漂移原因一致（如所有分镜的 featureTags 都改了但 referenceImageUrl 没变），标记为"可自动修复"
+3. 自动修复：将一致的 featureTags 同步到所有分镜的 elementBinding
+4. 不可自动修复的情况（如 referenceImageUrl 不一致）提示用户手动确认
+5. 修复后自动重新运行一致性检查，确认漂移已消除
+
+**✅ Done 标准**：
+- featureTags 漂移自动修复成功
+- referenceImageUrl 漂移提示用户确认
+- 修复后一致性检查通过
+
+---
+
+### Task 4.9：整体 UI 体验打磨
 
 **📋 前置阅读**：全部页面
 
@@ -4609,11 +5059,135 @@ export function TaskDiagnosticPanel({ filteredTasks, onDiagnose, diagnosisResult
 3. 键盘快捷键统一（`Ctrl+K` 全局搜索，`Ctrl+/` Agent面板，`Ctrl+B` 侧边栏）
 4. 响应式适配（最小窗口 1024×768 不掉组件）
 5. Loading skeleton 替换所有 spinner
+6. 亮暗主题切换动画
+7. 所有交互反馈（按钮 hover/active、Toast 进出动画、焦点环）
+8. **侧边栏 AI 状态指示器**：在 Sidebar 底部添加实时 AI 生成状态面板（参考 `design-preview.html` Line 182-188），显示当前正在进行的 AI 任务（任务名 + 进度百分比），带脉冲动画。数据源：监听 `video:task-progress` 事件 + Agent 工具执行状态。
 
 **✅ Done 标准**：
 - 全部页面无 console error
 - 所有快捷键生效
 - 最小窗口 1024×768 无组件溢出
+- 亮暗主题切换流畅
+- 侧边栏 AI 状态指示器实时显示生成进度
+
+---
+
+## Phase 5：分镜编辑器扩展插件
+
+> **依赖**：Phase 4 完成（Agent 完整工具链就绪）。
+> **目标**：让开发者/高级用户用 vibe coding 工具自制分镜编辑器，直接挂载到项目中。
+> **核心**：基于现有插件系统（`electron/src/plugins/`）的注册/加载/沙箱/进程管理基础设施，新增"分镜编辑器"插件类型。
+> **设计意图**：你只做"视频分镜的数据模型 + 生成引擎"，编辑器是插件层，社区可以自己造编辑器。
+
+**本 Phase 完成后**：
+- 开发者可编写 JSON 声明式插件或 TypeScript 沙箱代码插件，自定义分镜编辑器 UI
+- 插件通过 IPC 读取/写入分镜、角色、场景、道具数据
+- 插件渲染在独立进程中，沙箱隔离，不崩主应用
+- 社区可分享插件，其他用户一键安装
+- 插件市场页面（浏览/安装/评分/卸载）
+
+### Task 5.1：插件系统扩展 — 编辑器类型
+
+**📋 前置阅读**：
+- `electron/src/plugins/registry.ts` — 插件注册表
+- `electron/src/plugins/user-plugin-loader.ts` — JSON 插件加载器
+- `electron/src/plugins/code-plugin-loader.ts` — 沙箱代码插件加载器
+- `electron/src/plugins/plugin-process-manager.ts` — 进程管理
+
+**📝 产出文件**：
+- `electron/src/plugins/editor-plugin-schema.ts` — 新建（编辑器插件 schema 定义）
+- `electron/src/plugins/editor-plugin-loader.ts` — 新建（编辑器插件加载器）
+- `electron/src/plugins/editor-plugin-ipc.ts` — 新建（编辑器插件的 IPC 通道）
+
+**🤖 执行指令**：
+
+```typescript
+// 编辑器插件 schema
+export const editorPluginSchema = z.object({
+  type: z.literal("shot-editor"),
+  name: z.string(),
+  version: z.string(),
+  description: z.string().optional(),
+  renderer: z.string(),              // 渲染进程入口文件
+  schema: z.string().optional(),     // 自定义数据 schema（可选）
+  permissions: z.array(z.enum([
+    "shot:read", "shot:write",
+    "character:read", "scene:read",
+    "prop:read", "project:read",
+    "story:read", "story:write"
+  ])),
+  icon: z.string().optional(),       // 插件图标
+  author: z.string().optional(),
+});
+```
+
+**插件加载流程**：
+1. 扫描 `plugins/editors/` 目录
+2. 注册到插件注册表
+3. 分镜编辑页面检测已安装的编辑器插件 → 显示"切换到 XXX 编辑器"按钮
+4. 用户点击切换 → 插件在独立进程（iframe）中渲染
+5. 插件通过 IPC 读取/写入数据
+
+**数据 API 层**（IPC 通道）：
+| 通道 | 权限 | 说明 |
+|------|------|------|
+| `editor:shot:getBeats` | shot:read | 获取所有分镜 |
+| `editor:shot:updateBeat` | shot:write | 更新单个分镜 |
+| `editor:character:getById` | character:read | 获取角色详情 |
+| `editor:scene:getById` | scene:read | 获取场景详情 |
+| `editor:prop:list` | prop:read | 获取道具列表 |
+| `editor:story:getContext` | story:read | 获取故事上下文 |
+| `editor:compositor:generate` | shot:write | 调用编译器生成变体 |
+
+**✅ Done 标准**：
+- 编辑器插件可注册/加载/卸载
+- 插件通过 IPC 读取分镜数据
+- 插件在独立进程中渲染，不崩主应用
+- 权限校验生效（越权请求被拒绝）
+
+### Task 5.2：插件市场页面
+
+**📋 前置阅读**：Task 5.1 编辑器插件系统
+
+**📝 产出文件**：
+- `src/modules/plugins/presentation/plugin-market.tsx` — 新建
+- `src/modules/plugins/hooks/use-plugin-market.ts` — 新建
+- `src/modules/plugins/index.ts` — 新建
+
+**🤖 执行指令**：
+1. 插件市场页面：浏览社区插件列表（名称/描述/评分/下载量/截图）
+2. 一键安装/卸载插件
+3. 插件详情页：使用说明 + 更新日志
+4. 已安装插件管理：启用/禁用/配置/更新
+5. 开发者模式：加载本地开发中的插件（从本地文件夹）
+
+**✅ Done 标准**：
+- 浏览社区插件列表
+- 一键安装/卸载正常
+- 本地开发插件可加载调试
+
+### Task 5.3：示例插件 — 漫画分镜编辑器
+
+**📋 前置阅读**：Task 5.1-5.2
+
+**📝 产出文件**：
+- `plugins/editors/comic-shot-editor/comic-editor.html` — 新建
+- `plugins/editors/comic-shot-editor/comic-editor.js` — 新建
+- `plugins/editors/comic-shot-editor/plugin.json` — 新建
+
+**🤖 执行指令**：
+制作一个示例编辑器插件，验证整个插件系统：
+
+1. 竖排分镜布局（漫画风格）
+2. 每个分镜卡片显示：角色 + 道具 + 场景 + 对话气泡
+3. 拖拽排序分镜
+4. 点击分镜 → 编辑对话框输入文本
+5. 分镜间翻页效果
+
+**✅ Done 标准**：
+- 示例插件可安装/加载/使用
+- 竖排分镜 + 对话气泡正常显示
+- 拖拽排序生效
 
 ---
 

@@ -11,11 +11,17 @@ import {
 
 const MIN_VIDEO_SIZE = 1024;
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
-const VIDEO_CONTENT_TYPES = [
-  "video/mp4",
-  "video/webm",
-  "video/quicktime",
-  "video/x-msvideo",
+// 改为黑名单模式：仅拒绝明显非视频的内容类型，允许 application/octet-stream 等常见云存储直链类型
+const NON_VIDEO_CONTENT_TYPES = [
+  "text/html",
+  "text/plain",
+  "application/json",
+  "application/xml",
+  "text/xml",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
 ];
 
 export async function verifyVideoUrl(videoUrl: string): Promise<Result<VideoVerificationResult>> {
@@ -48,7 +54,10 @@ export async function verifyVideoUrl(videoUrl: string): Promise<Result<VideoVeri
       const contentLength = response.headers.get("content-length");
       details.contentSize = contentLength ? parseInt(contentLength, 10) : undefined;
 
-      if (!VIDEO_CONTENT_TYPES.includes(details.contentType)) {
+      // 黑名单模式：仅拒绝明显非视频的内容类型
+      const contentTypeLower = details.contentType.toLowerCase();
+      const isNonVideo = NON_VIDEO_CONTENT_TYPES.some((t) => contentTypeLower.startsWith(t));
+      if (isNonVideo) {
         details.contentValid = false;
         details.errorMessage = `内容类型不符合要求: ${details.contentType}`;
         return {

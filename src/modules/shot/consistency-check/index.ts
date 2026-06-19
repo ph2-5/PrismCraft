@@ -7,3 +7,6 @@ export {
 
 export { checkVisualConsistency, parseConsistencyAnalysisFromStructured } from "./services/consistency-check-service";
 export type { ConsistencyCheckInput } from "./services/consistency-check-service";
+
+export { checkCrossShotConsistency } from "./services/cross-shot-consistency-service";
+export type { CrossShotConsistencyInput, CrossShotConsistencyResult, ElementDriftReport } from "./services/cross-shot-consistency-service";

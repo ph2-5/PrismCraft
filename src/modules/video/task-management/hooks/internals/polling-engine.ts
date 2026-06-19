@@ -258,7 +258,18 @@ export function schedulePolling() {
 
       pollingState.pollCount += 1;
       if (pollingState.pollCount > MAX_POLL_COUNT) {
+        // 不再静默停止，通知用户并触发后台恢复
+        errorLogger.warn(`[PollingEngine] 轮询次数达到上限 ${MAX_POLL_COUNT}，停止主动轮询，转由恢复服务接管`);
+        emitToast(
+          "warning",
+          t("task.pollCountExceeded"),
+          t("task.pollCountExceededHint"),
+        );
         stopPolling();
+        // 触发一次后台恢复，尝试通过恢复服务查询云端状态
+        import("../../../recovery/services/video-recovery-service")
+          .then(({ startBackgroundRecovery }) => startBackgroundRecovery())
+          .catch((e) => errorLogger.warn("[PollingEngine] 触发后台恢复失败", e));
         return;
       }
 

@@ -46,7 +46,16 @@ export function AssetSelectorDialog({
               <div
                 key={asset.id}
                 onClick={() => onSelect(asset)}
-                className="cursor-pointer group relative aspect-square rounded-lg overflow-hidden border border-slate-700 hover:border-amber-500 transition-all"
+                className="cursor-pointer group relative aspect-square rounded-lg overflow-hidden border border-slate-700 hover:border-amber-500 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(asset);
+                  }
+                }}
+                aria-label={t("dialog.selectAssetItem", { name: asset.name })}
               >
                 <img
                   src={asset.url}

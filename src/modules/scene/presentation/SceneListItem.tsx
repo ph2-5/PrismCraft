@@ -32,6 +32,15 @@ export const SceneListItem = React.memo(function SceneListItem({
     <div
       className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted cursor-pointer mx-2 my-1"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      aria-label={t("scene.selectLabel", { name: scene.name || t("scene.unnamed") })}
     >
       <div className="flex items-center gap-3">
         {showImage ? (

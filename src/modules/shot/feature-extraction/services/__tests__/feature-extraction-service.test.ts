@@ -223,6 +223,120 @@ describe("extractCharacterFeatures", () => {
 
     expect(features?.colorPalette).toBeUndefined();
   });
+
+  it("中文近义词应匹配到对应颜色", () => {
+    const character = makeCharacter({
+      description: "栗色头发，穿着巧克力色外套",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "zh");
+
+    expect(features).toBeDefined();
+    expect(features!.colorPalette).toContain("棕色");
+  });
+
+  it("英文近义词应匹配到对应颜色", () => {
+    const character = makeCharacter({
+      description: "chestnut hair with mahogany jacket",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "en");
+
+    expect(features).toBeDefined();
+    expect(features!.colorPalette).toContain("brown");
+  });
+
+  it("中文 cyan 颜色类别应匹配湖蓝、天蓝等近义词", () => {
+    const character = makeCharacter({
+      description: "湖蓝色的裙摆",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "zh");
+
+    expect(features).toBeDefined();
+    expect(features!.colorPalette).toContain("青色");
+  });
+
+  it("中文 beige 颜色类别应匹配米色、驼色等近义词", () => {
+    const character = makeCharacter({
+      description: "驼色风衣搭配卡其裤",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "zh");
+
+    expect(features).toBeDefined();
+    expect(features!.colorPalette).toContain("米色");
+  });
+
+  it("英文 cyan 颜色类别应匹配 teal、turquoise 等近义词", () => {
+    const character = makeCharacter({
+      description: "wearing a turquoise scarf",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "en");
+
+    expect(features).toBeDefined();
+    expect(features!.colorPalette).toContain("cyan");
+  });
+
+  it("英文 beige 颜色类别应匹配 khaki、camel 等近义词", () => {
+    const character = makeCharacter({
+      description: "camel coat with khaki pants",
+      appearance: {
+        hairColor: "",
+        hairStyle: "",
+        eyeColor: "",
+        height: "",
+        build: "",
+        clothing: "",
+      },
+    });
+
+    const features = extractCharacterFeatures(character, "en");
+
+    expect(features).toBeDefined();
+    expect(features!.colorPalette).toContain("beige");
+  });
 });
 
 describe("buildFeatureTags", () => {

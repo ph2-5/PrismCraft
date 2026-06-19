@@ -4,12 +4,13 @@
   "dependencies": ["@/domain/schemas", "@/domain/utils/shot-prompt"],
   "publicAPI": {
     "hooks": [],
-    "services": ["shotInstructionToPrompt", "SHOT_SIZE_OPTIONS", "CAMERA_MOVEMENT_OPTIONS", "CAMERA_ANGLE_OPTIONS", "buildPromptLayers"],
+    "services": ["shotInstructionToPrompt", "SHOT_SIZE_OPTIONS", "CAMERA_MOVEMENT_OPTIONS", "CAMERA_ANGLE_OPTIONS", "buildPromptLayers", "validateCameraConsistency"],
     "components": []
   },
   "invariants": [
     "镜头参数选项使用常量数组定义（SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS, CAMERA_ANGLE_OPTIONS）",
     "shotInstructionToPrompt 和 buildPromptLayers 负责将结构化分镜指令转换为提示词文本",
-    "禁止直接导入 story 和 video 模块"
+    "禁止直接导入 story 和 video 模块",
+    "validateCameraConsistency 校验 beatCamera 与 shotInstruction 的一致性，检测矛盾配置"
   ]
 }

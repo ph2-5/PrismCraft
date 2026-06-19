@@ -357,6 +357,11 @@ const messages: Record<MessageKey, string> = {
   "task.apiReturnFailed": "API返回失败",
   "task.pollingPausedDueToErrors": "轮询已暂停",
   "task.pollingPausedDueToErrorsDetail": "连续{count}次轮询失败，轮询已暂停，请检查网络后重试",
+  "task.pollCountExceeded": "轮询次数已达上限",
+  "task.pollCountExceededHint": "已转由恢复服务接管，视频生成完成后将自动恢复",
+  "task.queryFailRecoverable": "连续{count}次查询失败，已转为可恢复状态，视频可能仍在生成中",
+  "task.queryFailRecoverableLabel": "「{label}」查询失败已转恢复",
+  "task.timeoutTriggerRecovery": "超时任务已触发后台恢复，将在云端生成完成后自动取回",
 
   "image.generateFailed": "图像生成失败",
   "image.analyzeFailed": "分析失败",
@@ -886,6 +891,9 @@ const messages: Record<MessageKey, string> = {
   "error.consistencyCheckNotPassed": "分镜 {beatId} 一致性检查未通过",
   "error.consistencyCheckError": "一致性检查过程出错",
 
+  "crossShot.featureDrift": "角色{name}在不同分镜中特征标签不一致",
+  "crossShot.referenceDrift": "角色{name}在不同分镜中参考图不一致",
+
   "shot.refTargetNotFound": "引用的分镜不存在",
   "shot.refNotFound": "无法找到引用的分镜",
   "shot.refVideoNotGenerated": "被引用的分镜尚未生成视频",
@@ -970,6 +978,7 @@ const messages: Record<MessageKey, string> = {
   "scene.unnamed": "未命名场景",
   "scene.noType": "无类型",
   "scene.deleteLabel": "删除场景",
+  "scene.selectLabel": "选择场景「{name}」",
   "scene.tabBasic": "基础设定",
   "scene.tabAtmosphere": "氛围视觉",
   "scene.tabCamera": "镜头设置",
@@ -1033,6 +1042,7 @@ const messages: Record<MessageKey, string> = {
 
   "character.unnamed": "未命名角色",
   "character.noStyle": "无风格",
+  "character.selectLabel": "选择角色「{name}」",
   "character.unsavedChanges": "未保存的修改",
   "character.unsavedSwitchConfirm": "当前角色有未保存的修改，切换将丢失这些修改。确定要继续吗？",
   "character.createNew": "创建新角色",
@@ -1097,6 +1107,7 @@ const messages: Record<MessageKey, string> = {
   "character.selectImageAsCharacter": "选择一张图片作为角色图像",
   "character.batchSaveFailed": "批量保存失败",
   "character.deleteLabel": "删除角色",
+  "character.deleteOutfitLabel": "删除服装",
 
   "asset.projectPack": "工程打包",
   "asset.projectPackDesc": "导出或导入完整工程，包含所有角色、场景、故事和素材",
@@ -1116,6 +1127,7 @@ const messages: Record<MessageKey, string> = {
   "asset.saveSelected": "保存选中 ({count})",
 
   "dialog.selectAsset": "选择素材",
+  "dialog.selectAssetItem": "选择素材「{name}」",
   "dialog.selectCharacter": "选择角色",
   "dialog.selectScene": "选择场景",
   "dialog.search": "搜索",
@@ -1212,6 +1224,7 @@ const messages: Record<MessageKey, string> = {
   "quickGenerate.selectImage": "选择图片",
   "quickGenerate.referenceVideoOptional": "参考视频（可选）",
   "quickGenerate.remove": "移除",
+  "quickGenerate.removeReferenceImage": "移除参考图",
   "quickGenerate.uploadRefVideoDesc": "上传参考视频，让AI学习动作和风格",
   "quickGenerate.selectVideo": "选择视频",
   "quickGenerate.defaultStyle": "cinematic",

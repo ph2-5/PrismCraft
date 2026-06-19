@@ -1,6 +1,6 @@
 # 开发指南
 
-本文档是 AI Animation Studio 项目的开发者入门指南，涵盖环境搭建、项目结构、开发工作流、核心模式、测试及调试等内容。
+本文档是 PrismCraft 项目的开发者入门指南，涵盖环境搭建、项目结构、开发工作流、核心模式、测试及调试等内容。
 
 ---
 
@@ -10,7 +10,7 @@
 
 | 工具 | 最低版本 | 说明 |
 |------|---------|------|
-| Node.js | 18+ | 推荐 LTS 版本 |
+| Node.js | 20+ | 推荐 LTS 版本 |
 | npm | 10+ | 包管理器 |
 | PowerShell | 5+ | Windows 构建脚本依赖 |
 | Git | 2.x | 版本控制 |
@@ -20,16 +20,17 @@
 ```bash
 # 克隆仓库
 git clone <repo-url>
-cd ai-animation-studio-source-code
+cd prismcraft-source-code
 
-# 安装依赖（.npmrc 已配置 Electron 镜像）
+# 安装依赖（postinstall 会自动重建 better-sqlite3 + 创建 @shared-logic junction）
 npm install
 
 # 仅启动渲染进程（Vite Dev Server，无需 Electron）
 npm run dev
 
-# 启动完整 Electron 应用（开发模式）
-npm run build:electron && npx electron .
+# 启动完整 Electron 应用（先构建，再启动）
+npm run build:electron
+npx electron out/
 ```
 
 > **注意**：`npm run dev` 仅启动 Vite 开发服务器，不包含 Electron 主进程和数据库功能。需要完整功能时请使用 `build:electron` 后手动启动 Electron。
@@ -71,7 +72,7 @@ npm run build:mac
 ### 2.1 顶层目录
 
 ```
-ai-animation-studio-source-code/
+prismcraft-source-code/
 ├── src/                    # 渲染进程源码（Vite 构建）
 ├── electron/src/           # 主进程源码（独立 TS 编译）
 ├── scripts/                # 构建与验证脚本

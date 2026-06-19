@@ -2,6 +2,7 @@ import type { Route } from "../types";
 import { defineRoute } from "../types";
 import { pluginRegistry, saveUserPlugin, deleteUserPlugin, listUserPluginFiles, validatePluginConfig, getAllProcessMetrics } from "../../plugins";
 import type { UserPluginConfig } from "../../plugins";
+import { CODE_PLUGINS_DIR } from "../../plugins/code-plugin-loader";
 import fs from "fs";
 import path from "path";
 import { getLogger } from "../../logging";
@@ -371,6 +372,12 @@ export const pluginRoutes: Record<string, Route> = {
           ],
         },
       };
+    },
+    methods: ["GET"],
+  }),
+  "plugins/code-plugins-dir": defineRoute({
+    handler: async () => {
+      return { success: true, data: { dir: CODE_PLUGINS_DIR } };
     },
     methods: ["GET"],
   }),

@@ -1,4 +1,4 @@
-# UI 迁移计划 — 旧布局 → 新设计
+# UI 迁移计划 — PrismCraft
 
 > **目标**：将现有 9 个页面从旧布局迁移到 `design-preview.html` 定义的新设计，**不新增功能**，只改布局、视觉、信息架构。
 > **参考**：`design-preview.html`（17 个页面预览，261KB）

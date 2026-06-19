@@ -8,6 +8,7 @@ import { getLogger } from "./logging/logger";
 import { pluginRegistry } from "./plugins";
 import type { AIProviderPlugin, AsyncAIProviderPlugin } from "./plugins";
 import { ssrfGuard } from "./security/ssrf-guard/ssrf-guard";
+import { getUserDataRootDir } from "./app-paths";
 
 const logger = getLogger("api-gateway-utils");
 
@@ -195,15 +196,12 @@ export function resolveApiConfig(
   };
 }
 
+const USER_DATA_ROOT = getUserDataRootDir();
+
 const UPLOAD_DIR =
   process.env.AI_STUDIO_UPLOAD_DIR ||
   path.join(os.tmpdir(), "ai-animation-studio", "uploads");
-const IMAGE_CACHE_DIR = path.join(
-  os.homedir(),
-  "AI Animation Studio",
-  "Cache",
-  "Images",
-);
+const IMAGE_CACHE_DIR = path.join(USER_DATA_ROOT, "Cache", "Images");
 
 const USER_CONFIGURED_HOSTS = new Set<string>();
 

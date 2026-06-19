@@ -1,5 +1,5 @@
 /**
- * Test Code Plugin - AI Animation Studio
+ * Test Code Plugin - PrismCraft
  *
  * Integration test fixture for code plugin system.
  * Covers: match, capabilities, request building, response extraction,

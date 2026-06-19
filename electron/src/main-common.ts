@@ -176,6 +176,30 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
     return true;
   });
 
+  // 窗口控制 IPC（无框窗口需要前端触发）
+  ipcMain.handle("window:minimize", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) win.minimize();
+  });
+  ipcMain.handle("window:maximize", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) {
+      if (win.isMaximized()) {
+        win.unmaximize();
+      } else {
+        win.maximize();
+      }
+    }
+  });
+  ipcMain.handle("window:close", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) win.close();
+  });
+  ipcMain.handle("window:isMaximized", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    return win ? win.isMaximized() : false;
+  });
+
   ipcMain.on("config:get", (event: Electron.IpcMainEvent, key: string) => {
     if (key && !validateConfigKey(key)) {
       event.returnValue = null;
@@ -225,21 +249,16 @@ const MIME_TYPES: Record<string, string> = {
 
 function getStaticDir(): string {
   if (app.isPackaged) {
-    const unpackedDir = path.join(process.resourcesPath, "app.asar.unpacked");
-    if (fs.existsSync(path.join(unpackedDir, "out"))) {
-      return path.join(unpackedDir, "out");
+    // 优先使用 unpacked 目录（若存在原生模块或需子进程执行的文件），
+    // 否则回退到 asar 内的 out 目录（纯前端 JS/HTML/CSS 资源可从 asar 内读取）
+    const unpackedDir = path.join(process.resourcesPath, "app.asar.unpacked", "out");
+    if (fs.existsSync(unpackedDir)) {
+      return unpackedDir;
     }
-    const asarOutDir = path.join(process.resourcesPath, "app.asar", "out");
-    if (fs.existsSync(asarOutDir)) {
-      return asarOutDir;
-    }
+    return path.join(process.resourcesPath, "app.asar", "out");
   }
   const projectRoot = path.join(__dirname, "..", "..");
-  const devOutDir = path.join(projectRoot, "out");
-  if (fs.existsSync(devOutDir)) {
-    return devOutDir;
-  }
-  return devOutDir;
+  return path.join(projectRoot, "out");
 }
 
 function startStaticServer(appPort: number, apiPort: number): http.Server | null {
@@ -466,6 +485,7 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
+    frame: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

@@ -1,5 +1,7 @@
-import { app } from "electron";
+import "./shared-logic-resolve";
+
 import path from "path";
+import { app } from "electron";
 import { autoUpdater } from "electron-updater";
 import { getLogger, loggerRegistry } from "./logging/logger";
 import { ConsoleTransport } from "./logging/transports/console.transport";

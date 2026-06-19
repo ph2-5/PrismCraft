@@ -1,4 +1,5 @@
 import * as fsp from "fs/promises";
+import fs from "fs";
 import path from "path";
 import os from "os";
 import type {
@@ -11,10 +12,22 @@ import type {
 } from "@/domain/ports/file-storage-port";
 import { errorLogger } from "@/shared/error-logger";
 
-const ASSETS_BASE_DIR = path.join(os.homedir(), "AI Animation Studio", "Assets");
-const CACHE_BASE_DIR = path.join(os.homedir(), "AI Animation Studio", "Cache");
+function resolveUserDataRoot(): string {
+  try {
+    const legacy = path.join(os.homedir(), "AI Animation Studio");
+    const current = path.join(os.homedir(), "PrismCraft");
+    return fs.existsSync(legacy) ? legacy : current;
+  } catch {
+    return path.join(os.homedir(), "PrismCraft");
+  }
+}
+
+const USER_DATA_ROOT = resolveUserDataRoot();
+
+const ASSETS_BASE_DIR = path.join(USER_DATA_ROOT, "Assets");
+const CACHE_BASE_DIR = path.join(USER_DATA_ROOT, "Cache");
 const UPLOAD_BASE_DIR = path.join(os.tmpdir(), "ai-animation-studio", "uploads");
-const PLUGIN_BASE_DIR = path.join(os.homedir(), "AI Animation Studio", "Plugins");
+const PLUGIN_BASE_DIR = path.join(USER_DATA_ROOT, "Plugins");
 
 const CATEGORY_DIRS: Record<FileCategory, string> = {
   character: path.join(ASSETS_BASE_DIR, "Characters"),
@@ -81,6 +94,7 @@ export class LocalFileStorage implements IFileStorage {
   constructor() {
     this.allowedRoots = [
       ...Object.values(CATEGORY_DIRS),
+      path.join(os.homedir(), "PrismCraft"),
       path.join(os.homedir(), "AI Animation Studio"),
     ];
   }
@@ -104,21 +118,29 @@ export class LocalFileStorage implements IFileStorage {
     return path.join(CATEGORY_DIRS[category], key);
   }
 
+  /**
+   * 安全的路径前缀匹配：校验路径分隔符，防止兄弟目录绕过。
+   */
+  private static isUnderRoot(target: string, root: string): boolean {
+    const normalizedTarget = path.resolve(target).toLowerCase();
+    const normalizedRoot = path.resolve(root).toLowerCase();
+    if (normalizedTarget === normalizedRoot) return true;
+    return normalizedTarget.startsWith(normalizedRoot + path.sep.toLowerCase());
+  }
+
   private async isPathAllowed(filePath: string): Promise<boolean> {
     try {
       const resolved = await fsp.realpath(path.resolve(filePath));
-      const normalizedResolved = resolved.toLowerCase();
       return this.allowedRoots.some((root) =>
-        normalizedResolved.startsWith(root.toLowerCase()),
+        LocalFileStorage.isUnderRoot(resolved, root),
       );
     } catch {
       const resolved = path.resolve(filePath);
       if (filePath.includes("..") || resolved.includes("..")) {
         return false;
       }
-      const normalizedResolved = resolved.toLowerCase();
       return this.allowedRoots.some((root) =>
-        normalizedResolved.startsWith(root.toLowerCase()),
+        LocalFileStorage.isUnderRoot(resolved, root),
       );
     }
   }
@@ -295,10 +317,10 @@ export class LocalFileStorage implements IFileStorage {
       const stat = await fsp.stat(filePath);
 
       // 从路径推断 category
-      const normalizedPath = path.resolve(filePath).toLowerCase();
+      const normalizedPath = path.resolve(filePath);
       let category: FileCategory = "upload";
       for (const [cat, dir] of Object.entries(CATEGORY_DIRS)) {
-        if (normalizedPath.startsWith(dir.toLowerCase())) {
+        if (LocalFileStorage.isUnderRoot(normalizedPath, dir)) {
           category = cat as FileCategory;
           break;
         }

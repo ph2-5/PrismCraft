@@ -272,6 +272,10 @@ window.electronAPI = {
   onMenuNewScene: noop,
   onMenuExport: noop,
   removeMenuListeners: noop,
+  windowMinimize: async function() {},
+  windowMaximize: async function() {},
+  windowClose: async function() {},
+  windowIsMaximized: async function() { return false; },
   platform: "win32",
   versions: { node: "20.11.0", chrome: "120.0.0", electron: "28.0.0" },
 };

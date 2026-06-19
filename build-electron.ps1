@@ -36,12 +36,16 @@ try {
 
     Copy-Item -Path "electron\dist\*" -Destination "out\" -Recurse -Force
 
-    $sharedLogicOutDir = Join-Path $projectDir "out\shared-logic"
-    if (-not (Test-Path -LiteralPath $sharedLogicOutDir)) {
-        New-Item -ItemType Directory -Path $sharedLogicOutDir -Force | Out-Null
+    # 编译 shared-logic .ts → .js（输出到 out/shared-logic/，供主进程运行时加载）
+    $ErrorActionPreference = "Continue"
+    npx tsc -p tsconfig.shared-logic.json 2>&1 | ForEach-Object { Write-Host $_ }
+    $sharedLogicTscResult = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
+    if ($sharedLogicTscResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "out\shared-logic\index.js"))) {
+        Write-Error "shared-logic TypeScript compilation failed"
+        exit $sharedLogicTscResult
     }
-    Copy-Item -Path (Join-Path $projectDir "src\shared-logic\*") -Destination $sharedLogicOutDir -Recurse -Force
-    Write-Host "Copied shared-logic to out/shared-logic"
+    Write-Host "Compiled shared-logic to out/shared-logic"
 
     $docsOutDir = Join-Path $projectDir "out\docs"
     if (-not (Test-Path -LiteralPath $docsOutDir)) {

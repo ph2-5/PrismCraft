@@ -21,7 +21,7 @@ modules/ ──imports──→ domain/ports/ ←──implements── infrastr
 
 | 分类 | 数量 | 说明 |
 |------|------|------|
-| Storage Port | 7 | 业务数据持久化（视频任务、角色、场景、故事、版本、元素、模板） |
+| Storage Port | 8 | 业务数据持久化（视频任务、角色、场景、故事、版本、元素、模板、文件） |
 | AI Provider Port | 4 | AI 能力抽象（视频、图像、文本生成，文件上传） |
 | Sync Port | 1 | 同步引擎底层 SQL 访问 |
 | Repository Port | 1 | Drizzle ORM 风格的媒体资产仓库 |
@@ -312,6 +312,25 @@ overrideToken(tokens.mediaAssetRepository, () => mockRepo as any);
 
 ---
 
+### IFileStorage
+
+| 属性 | 值 |
+|------|-----|
+| **接口文件** | `src/domain/ports/file-storage-port.ts` |
+| **设计意图** | 文件存储抽象，支持本地文件系统和 S3 后端，提供文件读/写/删除/复制/检查等操作 |
+| **DI Token** | `container.fileStorage` |
+| **实现类** | `LocalFileStorage`（`@/infrastructure/storage/local-file-storage`）或 `S3FileStorage`（`@/infrastructure/storage/s3-file-storage`），通过 `getFileStorage()` 工厂函数按配置选择 |
+| **DI 分类** | A. Domain Port 实现 |
+
+**核心方法**：
+- `saveFile(params)` / `readFile(key)` / `readFileAsBase64(key)` / `exists(key)`
+- `deleteFile(key)` / `copyFile(params)` / `listFiles(category)` / `getFileInfo(key)`
+- `ensureDir(category)` / `writeFileAtomic(params)`
+
+**注意**：在浏览器开发模式下，`LocalFileStorage` 被 Vite 插件替换为浏览器 mock，文件操作应通过 HTTP API（`@/shared/file-http`）完成。
+
+---
+
 ## DI Token 速查表
 
 | Token 名称 | Port 接口 | DI 分类 | 实现来源 |
@@ -324,6 +343,7 @@ overrideToken(tokens.mediaAssetRepository, () => mockRepo as any);
 | `imageProvider` | `IImageProvider` | A | `@/infrastructure/ai-providers/image` |
 | `textProvider` | `ITextProvider` | A | `@/infrastructure/ai-providers/text` |
 | `fileUploader` | `IFileUploader` | A | `@/infrastructure/ai-providers/utils` |
+| `fileStorage` | `IFileStorage` | A | `@/infrastructure/storage/file-storage-factory` |
 | `syncStorage` | `ISyncStorage` | A | `@/infrastructure/storage/sqlite-core` + `core` |
 | `versionStorage` | `IVersionStorage` | C | `@/infrastructure/storage/versions` |
 | `elementStorage` | `IElementStorage` | C | `@/infrastructure/storage/elements` |

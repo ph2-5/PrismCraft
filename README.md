@@ -1,4 +1,4 @@
-# AI Animation Studio
+# PrismCraft
 
 > 本地优先的 AI 动画创作桌面应用，覆盖故事构思 → 角色设计 → 场景搭建 → 分镜编排 → AI 视频生成 → 导出成品的完整工作流。
 
@@ -26,10 +26,10 @@
 ### 安装与运行
 
 ```bash
-# 安装依赖（会自动 rebuild better-sqlite3）
+# 安装依赖（会自动 rebuild better-sqlite3 + 创建 @shared-logic junction）
 npm install
 
-# 启动开发模式（Vite + Electron）
+# 启动开发模式（Vite 开发服务器）
 npm run dev
 ```
 
@@ -59,6 +59,7 @@ domain/         → 纯类型层，零依赖（Zod schemas + Port 接口）
 shared-logic/   → 零外部依赖纯逻辑（可在主进程和渲染进程双向复用）
 shared/         → 跨模块通用层（UI 组件、工具函数、常量）
 infrastructure/ → 基础设施层（DI 容器、存储、AI 提供商）
+electron/src/   → Electron 主进程（HTTP API + 数据库 + 插件 + 安全）
 ```
 
 **关键设计**：
@@ -122,7 +123,7 @@ npm run validate:full     # validate + 覆盖率
 ## 项目结构
 
 ```
-ai-animation-studio/
+prismcraft/
 ├── src/                    # 渲染端源代码
 │   ├── domain/             # 纯类型层（Zod schemas + Port 接口）
 │   ├── shared-logic/       # 零依赖纯逻辑（shot/prompt/video/story）
@@ -146,16 +147,16 @@ ai-animation-studio/
 | 指标 | 数值 |
 |------|------|
 | 单元测试 | 2300+ |
-| E2E 测试 | 290+ |
+| E2E 测试 | 15 套（Electron 集成 + 页面加载） |
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |
 | 架构扫描 | 通过（DDD 依赖方向） |
-| 回归守卫 | 104 条规则，8 大类 |
-| i18n 键 | 1600+ |
+| 回归守卫 | 108 条规则，8 大类 |
+| i18n 键 | 2000+ |
 
 ## 安全设计
 
-- **API 密钥**：系统级加密存储（macOS Keychain / Windows Credential Manager）
+- **API 密钥**：通过 electron-store 加密存储
 - **SQL 安全**：参数化查询 + DDL 语句拦截 + 标识符白名单校验
 - **IPC 权限**：5 级权限分级，速率限制，禁止模块层直接访问数据库
 - **插件沙箱**：vm 沙箱 + 原型冻结 + 逃逸检测 + 进程隔离

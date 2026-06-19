@@ -39,6 +39,7 @@ import {
   reloadCodePlugins,
   fetchPluginSchema,
   fetchPluginSpecification,
+  fetchCodePluginsDir,
 } from "./plugin-api";
 import type { PluginInfo, UserPluginFile } from "./plugin-api";
 import { PluginAddForm } from "./plugin-add-form";
@@ -156,7 +157,7 @@ export default function PluginManager() {
   const handleOpenCodePluginDir = async () => {
     if (!isElectron()) return;
     try {
-      const codePluginsDir = `${process.env.USERPROFILE || process.env.HOME}/AI Animation Studio/CodePlugins`;
+      const codePluginsDir = await fetchCodePluginsDir();
       const result = await window.electronAPI?.openPath(codePluginsDir);
       if (result && !result.success) {
         showError(t("error.loadFailed"), result.error || t("plugin.codePluginReloadFailed"));

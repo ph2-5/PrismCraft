@@ -1,4 +1,4 @@
-# AI Animation Studio - Code Wiki
+# PrismCraft - Code Wiki
 
 > 版本: 0.10.0 | 架构: Electron + Vite + React | 模式: DDD (领域驱动设计)
 
@@ -33,7 +33,7 @@
 
 ## 1. 项目概述
 
-**AI Animation Studio** 是一款 AI 驱动的动画制作桌面工具，采用本地优先 (local-first) 设计，支持从故事创作到视频生成的完整工作流。核心功能包括：
+**PrismCraft** 是一款 AI 驱动的动画制作桌面工具，采用本地优先 (local-first) 设计，支持从故事创作到视频生成的完整工作流。核心功能包括：
 
 - **故事创作** — AI 辅助的故事规划、节拍编辑与模板管理
 - **角色与场景管理** — 角色/场景的 CRUD、参考图管理、outfit 系统
@@ -121,7 +121,7 @@ domain → NOTHING (pure types)
 ## 4. 目录结构详解
 
 ```
-ai-animation-studio/
+prismcraft/
 ├── src/                          # 前端源码 (Renderer Process)
 │   ├── main.tsx                  # React 入口，挂载 RouterProvider
 │   ├── router.tsx                # 路由定义，所有页面使用 React.lazy 懒加载
@@ -580,8 +580,8 @@ PRAGMA mmap_size = 268435456;    -- 256MB 内存映射
 | 类型 | 格式 | 位置 | 加载器 | 隔离级别 |
 |------|------|------|--------|---------|
 | 内置 | TypeScript class | `plugins/providers/` | 直接导入 | 主进程内 |
-| 声明式 | `.plugin.json` | `~/AI Animation Studio/UserPlugins/` | UserPluginAdapter | 主进程内 |
-| 代码 | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | CodePluginAdapter | 子进程 + vm 沙箱 |
+| 声明式 | `.plugin.json` | `~/PrismCraft/UserPlugins/` | UserPluginAdapter | 主进程内 |
+| 代码 | `.plugin.js` | `~/PrismCraft/CodePlugins/` | CodePluginAdapter | 子进程 + vm 沙箱 |
 
 #### PluginRegistry 类
 

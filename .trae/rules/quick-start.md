@@ -19,6 +19,8 @@ FORBIDDEN patterns (will cause bugs):
 - Never show raw `e.message` to users — use mapUserFacingError from @/shared/user-facing-error
 - Never wrap result.error with mapUserFacingError — it's already a processed string, use `result.error || t("...")` directly
 - Never call electronAPI.writeFile/readFile/getConfig/setConfig directly in modules/ (use @/shared/file-http unified layer — HTTP first, IPC fallback)
+- Never use os.homedir() or other Node.js APIs in browser-bound code — will crash as externalized empty objects in browser build
+- Never static-import Node.js-only modules in browser-reachable code — use @/shared/file-http or Vite plugin stub
 
 REGRESSION GUARDS: Search .trae/rules/regression/{category}.md for relevant rules before modifying code.
 -->
@@ -53,6 +55,7 @@ REGRESSION GUARDS: Search .trae/rules/regression/{category}.md for relevant rule
 | Module contracts | `src/modules/{module}/MODULE.md` |
 | Storage layer | `src/infrastructure/storage/` |
 | Electron main | `electron/src/main.ts` |
+| Electron shared-logic resolve | `electron/src/shared-logic-resolve.ts` (Module._resolveFilename hook for @shared-logic in main process) |
 | API server | `electron/src/api/` (types, middleware, schemas, routes, server) |
 | API route types | `electron/src/api/types.ts` (defineRoute, Route<T>, ApiResponse<T>) |
 | API schemas | `electron/src/api/schemas.ts` (Zod schemas + z.infer type exports) |

@@ -14,6 +14,12 @@ import {
 } from "../schemas";
 import { getLogger } from "../../logging";
 import { ensureVideoCacheDir } from "../../handlers/assets";
+import {
+  getUserDataRootDir,
+  getAllUserDataDirs,
+  isPathUnderAnyRoot,
+  isPathUnderRoot,
+} from "../../app-paths";
 
 const logger = getLogger("file-routes");
 
@@ -24,10 +30,13 @@ import fsp from "fs/promises";
 import path from "path";
 import os from "os";
 
-const ASSETS_BASE_DIR = path.join(os.homedir(), "AI Animation Studio", "Assets");
-const CACHE_BASE_DIR = path.join(os.homedir(), "AI Animation Studio", "Cache");
 const UPLOAD_BASE_DIR = path.join(os.tmpdir(), "ai-animation-studio", "uploads");
-const PLUGIN_BASE_DIR = path.join(os.homedir(), "AI Animation Studio", "Plugins");
+
+const USER_DATA_ROOT = getUserDataRootDir();
+
+const ASSETS_BASE_DIR = path.join(USER_DATA_ROOT, "Assets");
+const CACHE_BASE_DIR = path.join(USER_DATA_ROOT, "Cache");
+const PLUGIN_BASE_DIR = path.join(USER_DATA_ROOT, "Plugins");
 
 const CATEGORY_DIRS: Record<string, string> = {
   character: path.join(ASSETS_BASE_DIR, "Characters"),
@@ -41,7 +50,7 @@ const CATEGORY_DIRS: Record<string, string> = {
 
 const ALLOWED_ROOTS = [
   ...Object.values(CATEGORY_DIRS),
-  path.join(os.homedir(), "AI Animation Studio"),
+  ...getAllUserDataDirs(),
 ];
 
 const MIME_MAP: Record<string, string> = {
@@ -68,13 +77,11 @@ function isFilenameSafe(filename: string): boolean {
 async function isPathAllowed(filePath: string): Promise<boolean> {
   try {
     const resolved = await fsp.realpath(path.resolve(filePath));
-    const normalizedResolved = resolved.toLowerCase();
-    return ALLOWED_ROOTS.some((root) => normalizedResolved.startsWith(root.toLowerCase()));
+    return isPathUnderAnyRoot(resolved, ALLOWED_ROOTS);
   } catch {
     const resolved = path.resolve(filePath);
     if (filePath.includes("..") || resolved.includes("..")) return false;
-    const normalizedResolved = resolved.toLowerCase();
-    return ALLOWED_ROOTS.some((root) => normalizedResolved.startsWith(root.toLowerCase()));
+    return isPathUnderAnyRoot(resolved, ALLOWED_ROOTS);
   }
 }
 
@@ -354,10 +361,10 @@ export const fileRoutes: Record<string, Route> = {
         }
         const stat = await fsp.stat(filePath);
 
-        const normalizedPath = path.resolve(filePath).toLowerCase();
+        const normalizedPath = path.resolve(filePath);
         let category = "upload";
         for (const [cat, dir] of Object.entries(CATEGORY_DIRS)) {
-          if (normalizedPath.startsWith(dir.toLowerCase())) {
+          if (isPathUnderRoot(normalizedPath, dir)) {
             category = cat;
             break;
           }

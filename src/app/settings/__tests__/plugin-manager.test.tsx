@@ -2,13 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { mockFetchPlugins, mockDeletePlugin, mockReloadPlugins, mockReloadCodePlugins, mockFetchPluginSchema, mockFetchPluginSpecification, mockLoadPluginDetectionRules, mockLoadPluginTemplates, mockLoadModelProfilesFromServer, mockConfirm, mockShowError, mockShowSuccess, mockIsElectron, mockErrorLogger } = vi.hoisted(() => ({
+const { mockFetchPlugins, mockDeletePlugin, mockReloadPlugins, mockReloadCodePlugins, mockFetchPluginSchema, mockFetchPluginSpecification, mockFetchCodePluginsDir, mockLoadPluginDetectionRules, mockLoadPluginTemplates, mockLoadModelProfilesFromServer, mockConfirm, mockShowError, mockShowSuccess, mockIsElectron, mockErrorLogger } = vi.hoisted(() => ({
   mockFetchPlugins: vi.fn(),
   mockDeletePlugin: vi.fn(),
   mockReloadPlugins: vi.fn(),
   mockReloadCodePlugins: vi.fn(),
   mockFetchPluginSchema: vi.fn(),
   mockFetchPluginSpecification: vi.fn(),
+  mockFetchCodePluginsDir: vi.fn(),
   mockLoadPluginDetectionRules: vi.fn(),
   mockLoadPluginTemplates: vi.fn(),
   mockLoadModelProfilesFromServer: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("../plugin-api", () => ({
   reloadCodePlugins: mockReloadCodePlugins,
   fetchPluginSchema: mockFetchPluginSchema,
   fetchPluginSpecification: mockFetchPluginSpecification,
+  fetchCodePluginsDir: mockFetchCodePluginsDir,
 }));
 
 vi.mock("@/infrastructure/api-config-facade", () => ({

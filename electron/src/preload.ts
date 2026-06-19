@@ -44,6 +44,7 @@ const IPC_PERMISSIONS: Record<string, string[]> = {
   ],
   SYSTEM: [
     "shell:open-external", "shell:open-path", "dialog:open-file", "dialog:save-file", "db:close",
+    "window:minimize", "window:maximize", "window:close", "window:isMaximized",
   ],
   SECURE: [
     "secure-config:resolve",
@@ -151,4 +152,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   secureConfigDelete: createSecureIpcInvoker("secure-config:delete"),
   secureConfigHas: createSecureIpcInvoker("secure-config:has"),
   exportData: createSecureIpcInvoker("export:data"),
+  windowMinimize: createSecureIpcInvoker("window:minimize"),
+  windowMaximize: createSecureIpcInvoker("window:maximize"),
+  windowClose: createSecureIpcInvoker("window:close"),
+  windowIsMaximized: createSecureIpcInvoker("window:isMaximized"),
 });

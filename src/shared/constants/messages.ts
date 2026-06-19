@@ -1300,7 +1300,7 @@ const messages: Record<MessageKey, string> = {
 
   "home.aiPlatform": "AI驱动的动画创作平台",
   "home.createWorld": "创造你的动画世界",
-  "home.heroDesc": "从角色设计到场景构建，再到故事编排，AI Animation Studio 让动画创作变得简单而强大。无需专业技能，释放你的创意潜能。",
+  "home.heroDesc": "从角色设计到场景构建，再到故事编排，PrismCraft 让动画创作变得简单而强大。无需专业技能，释放你的创意潜能。",
   "home.quickGenerate": "快速生成视频",
   "home.proMode": "专业创作模式",
   "home.exportData": "导出数据",
@@ -1329,7 +1329,7 @@ const messages: Record<MessageKey, string> = {
   "home.stepGenAnimation": "生成动画",
   "home.stepGenAnimationDesc": "AI生成作品，一键导出分享",
   "home.ctaTitle": "准备好开始你的动画创作之旅了吗？",
-  "home.ctaDesc": "无论你是专业动画师还是初学者，AI Animation Studio 都能帮助你将创意变为现实",
+  "home.ctaDesc": "无论你是专业动画师还是初学者，PrismCraft 都能帮助你将创意变为现实",
   "home.startNow": "立即开始创作",
   "home.useAI": "用AI",
 
@@ -1903,7 +1903,7 @@ const messages: Record<MessageKey, string> = {
   "onboarding.prevStep": "上一步",
   "onboarding.nextStep": "下一步",
   "onboarding.startUsing": "开始使用",
-  "onboarding.welcomeStudioTitle": "欢迎使用 AI Animation Studio",
+  "onboarding.welcomeStudioTitle": "欢迎使用 PrismCraft",
   "onboarding.welcomeStudioDesc": "这是一个 AI 驱动的动画创作工具，帮助你快速创建角色、场景和动画视频。",
   "onboarding.configApiKeyTitle": "配置 API Key",
   "onboarding.configApiKeyDesc": "首先需要配置 AI 服务的 API Key。支持火山引擎、OpenAI、Kimi 等多个提供商。",
@@ -2036,6 +2036,9 @@ const messages: Record<MessageKey, string> = {
   "toast.times": "{count}次",
 
   "aria.close": "关闭",
+  "aria.minimize": "最小化",
+  "aria.maximize": "最大化",
+  "aria.restore": "还原",
   "aria.goBack": "返回",
   "aria.prevBeat": "上一条",
   "aria.nextBeat": "下一条",

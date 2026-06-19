@@ -1,8 +1,8 @@
 {
-  "name": "ai-animation-studio",
+  "name": "prismcraft",
   "version": "0.10.0",
   "description": "AI 驱动的动画制作工具 - 本地优先，支持从故事创作到视频生成的完整工作流",
-  "author": "AI Animation Studio",
+  "author": "PrismCraft",
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
@@ -30,10 +30,11 @@
   },
   "main": "electron/dist/main.js",
   "scripts": {
-    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "node scripts/setup-shared-logic-symlink.mjs && electron-rebuild -f -w better-sqlite3",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "dev": "vite",
     "build": "vite build",
+    "build:shared-logic": "tsc -p tsconfig.shared-logic.json",
     "build:electron": "powershell -ExecutionPolicy Bypass -File build-electron.ps1",
     "build:win": "npm run build:electron && npm run rebuild && set ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true&& electron-builder --win --x64 --publish=never",
     "build:mac": "npm run build:electron && npm run rebuild && ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true electron-builder --mac --publish=never",
@@ -70,8 +71,8 @@
     ]
   },
   "build": {
-    "appId": "com.ai-animation-studio.app",
-    "productName": "AI Animation Studio",
+    "appId": "com.prismcraft.app",
+    "productName": "PrismCraft",
     "npmRebuild": false,
     "directories": {
       "output": "release"

@@ -72,6 +72,9 @@ rescan-tsc.txt
 # Electron TS compiled output
 /electron/dist/
 
+# shared-logic 编译产物（由 build:shared-logic 在构建时生成，不入库）
+src/shared-logic/**/*.js
+
 # Electron build temp files
 .electron-build-disabled
 .api-routes-backup

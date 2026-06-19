@@ -5,8 +5,45 @@ import path from "path";
 
 const isElectron = process.env.BUILD_TARGET === "electron";
 
+/**
+ * Replace Node.js-only modules with browser-safe stubs.
+ * Prevents `os.homedir()` etc. from being bundled into the browser build.
+ * 仅在非 Electron（浏览器）构建时启用，避免 Electron 构建误替换为抛错的 stub。
+ */
+function nodeModuleBrowserStubs(): import("vite").Plugin {
+  const replacements: Array<{ from: string; to: string }> = [
+    { from: "local-file-storage", to: "local-file-storage.browser" },
+  ];
+  return {
+    name: "node-module-browser-stubs",
+    enforce: "pre",
+    async resolveId(source, importer) {
+      for (const { from, to } of replacements) {
+        // 精确匹配：仅匹配以 "/from" 结尾或等于 "from" 的导入路径，
+        // 避免误伤如 "./my-local-file-storage" 等同后缀路径
+        const isMatch =
+          source === from ||
+          source === `./${from}` ||
+          source === `../${from}` ||
+          source.endsWith(`/${from}`);
+        if (isMatch) {
+          const newSource = source.slice(0, -from.length) + to;
+          const resolved = await this.resolve(newSource, importer, { skipSelf: true });
+          return resolved;
+        }
+      }
+      return null;
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // 仅浏览器构建需要 stub Node.js 模块；Electron 构建保留真实实现
+    ...(!isElectron ? [nodeModuleBrowserStubs()] : []),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

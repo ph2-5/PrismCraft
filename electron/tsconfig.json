@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "..",
+    "rootDir": "./src",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -22,11 +22,10 @@
     "types": ["node"],
     "paths": {
       "@shared/*": ["./src/shared/*"],
-      "@domain/*": ["./src/domain/*"],
-      "@shared-logic/*": ["../src/shared-logic/*"]
+      "@domain/*": ["./src/domain/*"]
     }
   },
-  "include": ["src/**/*", "../src/shared-logic/**/*"],
+  "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",

@@ -11,6 +11,7 @@ import { BeforeUnloadGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { QueryProvider } from "@/presentation/providers/query-provider";
 import { ThemeProvider } from "@/shared/presentation/ThemeProvider";
 import { ClientProviders } from "./ClientProviders";
+import { TitleBar } from "@/shared/presentation/TitleBar";
 import { Outlet } from "react-router-dom";
 
 export function RootLayout() {
@@ -21,11 +22,12 @@ export function RootLayout() {
           <MigrationInitializer />
           <VideoTaskManagerInitializer />
           <BeforeUnloadGuard />
+          <TitleBar />
           <ToastProvider>
             <NetworkStatusAlert />
             <SidebarWithSearch />
             <main
-              className="flex-1 h-full overflow-y-auto transition-[margin-left] duration-200"
+              className="flex-1 h-full overflow-y-auto transition-[margin-left] duration-200 pt-9"
               style={{ marginLeft: "var(--sidebar-width, 220px)" }}
             >
               <ConfigCheckBanner />

@@ -132,3 +132,13 @@ export async function fetchPluginSpecification(): Promise<string> {
   if (!data.success) throw new Error(data.error || t("plugin.loadSpecDocFailed"));
   return data.data.content;
 }
+
+export async function fetchCodePluginsDir(): Promise<string> {
+  const res = await fetch(`${getApiBase()}/plugins/code-plugins-dir`, {
+    headers: { ...ELECTRON_APP_HEADERS },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error || t("plugin.loadListFailed"));
+  return data.data.dir as string;
+}

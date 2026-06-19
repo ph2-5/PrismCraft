@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  testIgnore: ['**/helpers/**', '**/electron-integration.spec.ts', '**/electron/**'],
+  testIgnore: ['**/helpers/**', '**/electron-integration.spec.ts', '**/electron-pages.spec.ts', '**/electron/**'],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

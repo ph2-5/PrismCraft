@@ -1,8 +1,8 @@
 /**
- * 参考代码插件 - AI Animation Studio
+ * 参考代码插件 - PrismCraft
  *
  * 这是一个完整的代码插件模板，展示了所有可用的接口方法。
- * 将此文件复制到 ~/AI Animation Studio/CodePlugins/ 目录下即可加载。
+ * 将此文件复制到 ~/PrismCraft/CodePlugins/ 目录下即可加载。
  * 文件名必须以 .plugin.js 结尾。
  *
  * 代码插件在沙箱环境中运行，无法访问 Node.js API（require、process、fs 等）。

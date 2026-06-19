@@ -1,19 +1,15 @@
 import fs from "fs";
 import path from "path";
-import os from "os";
 import { getLogger } from "../logging/logger";
 import type { AIProviderPlugin } from "./types";
 import type { UserPluginConfig } from "./user-plugin-schema";
 import { validatePluginConfig } from "./user-plugin-schema";
 import { UserPluginAdapter } from "./user-plugin-adapter";
+import { getUserDataSubDir } from "../app-paths";
 
 const logger = getLogger("user-plugin-loader");
 
-const USER_PLUGINS_DIR = path.join(
-  os.homedir(),
-  "AI Animation Studio",
-  "Plugins",
-);
+const USER_PLUGINS_DIR = getUserDataSubDir("Plugins");
 
 export function loadUserPlugins(): AIProviderPlugin[] {
   const plugins: AIProviderPlugin[] = [];

@@ -1,4 +1,4 @@
-# AI Animation Studio 部署与运维指南
+# PrismCraft 部署与运维指南
 
 > 版本：0.10.0 | 更新日期：2026-06-18
 
@@ -49,11 +49,11 @@ electron_builder_binaries_mirror=https://npmmirror.com/mirrors/electron-builder-
 
 ```powershell
 git clone <repo-url>
-cd ai-animation-studio-source-code
+cd prismcraft-source-code
 npm ci
 ```
 
-`npm ci` 会执行 `postinstall` 脚本，自动运行 `electron-rebuild` 重建 better-sqlite3 原生模块。若自动重建失败，手动执行：
+`npm ci` 会执行 `postinstall` 脚本，自动运行 `electron-rebuild` 重建 better-sqlite3 原生模块，并创建 `node_modules/@shared-logic` junction 用于 Electron 主进程的 TypeScript 编译。若自动重建失败，手动执行：
 
 ```powershell
 npm run rebuild
@@ -118,7 +118,8 @@ npm run validate:full
 3. npx vite build                 → 编译渲染进程，输出 SPA 到 out/
 4. npx tsc -p electron/tsconfig.json → 编译 Electron 主进程 TypeScript
 5. 复制 electron/dist/* → out/    → 主进程代码与渲染进程产物合并
-6. 复制插件文档 → out/docs/       → 插件系统文档
+6. 复制 src/shared-logic/* → out/shared-logic/  → 零依赖纯逻辑，供主进程运行时加载
+7. 复制插件文档 → out/docs/       → 插件系统文档
 ```
 
 **手动执行：**
@@ -140,14 +141,17 @@ Vite 8 使用 rolldown 的 `codeSplitting` API 将产物拆分为逻辑分块：
 | 分块 | 内容 | 约大小 |
 |------|------|--------|
 | vendor-react | react, react-dom, react-router-dom | ~284 KB |
-| vendor-state | zustand, @tanstack/react-query | ~36 KB |
-| vendor-ui | lucide-react, clsx, tailwind-merge | ~48 KB |
-| app-story | 故事模块 | ~351 KB |
-| app-shot | 镜头模块 | ~145 KB |
-| app-video | 视频模块 | ~88 KB |
-| app-infra-core | 基础设施层 | ~241 KB |
-| app-shared | 共享层 | ~260 KB |
-| page-* | 懒加载页面组件 | 按需 |
+| vendor-state | zustand, @tanstack/react-query | ~58 KB |
+| vendor-ui | lucide-react, clsx, tailwind-merge | ~51 KB |
+| app-story | 故事模块 | ~384 KB |
+| app-infra-core | 基础设施层 | ~390 KB |
+| app-shared | 共享层 | ~244 KB |
+| app-video | 视频模块 | ~100 KB |
+| app-infra | 基础设施工具 | ~68 KB |
+| app-scene | 场景模块 | ~13 KB |
+| app-domain | 领域层 | ~16 KB |
+| app-character | 角色模块 | ~20 KB |
+| page-* | 懒加载页面组件 | 5-84 KB |
 
 所有页面路由使用 `React.lazy()` 实现按需加载，仅在导航到对应页面时下载。
 
@@ -169,14 +173,14 @@ npm run rebuild    # 等价于 npx electron-rebuild
 
 | 配置项 | 值 |
 |--------|-----|
-| appId | com.ai-animation-studio.app |
-| productName | AI Animation Studio |
+| appId | com.prismcraft.app |
+| productName | PrismCraft |
 | npmRebuild | false（由 npm 脚本手动处理） |
 | 输出目录 | release/ |
 | asar | true |
 | asarUnpack | better-sqlite3 原生模块（必须解包，否则无法加载） |
 
-**打包文件包含**：`out/**/*`、`electron/dist/**/*`、插件文档
+**打包文件包含**：`out/**/*`、插件文档
 
 **打包文件排除**：node_modules 测试文件、`@types`、sharp、shadcn、`src/`、`release/`
 
@@ -186,7 +190,7 @@ npm run rebuild    # 等价于 npx electron-rebuild
 npm run build:win
 ```
 
-产物：NSIS 安装程序（`release/AI Animation Studio Setup 0.10.0.exe`）
+产物：NSIS 安装程序（`release/PrismCraft Setup 0.10.0.exe`）
 
 NSIS 配置：
 - 非一键安装，允许用户选择安装目录
@@ -360,11 +364,12 @@ $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 
 **原因**：原生模块不能在 asar 归档内加载
 
-**解决**：确认 `electron-builder.yml` 中 `asarUnpack` 包含 better-sqlite3：
+**解决**：确认 `package.json` 中 `asarUnpack` 包含 better-sqlite3 原生模块：
 
-```yaml
-asarUnpack:
-  - "**/node_modules/better-sqlite3/**"
+```json
+"asarUnpack": [
+  "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+]
 ```
 
 ### 7.5 Vite 构建内存溢出
@@ -396,7 +401,7 @@ powershell -ExecutionPolicy Bypass -File build-electron.ps1
 
 ### 7.7 macOS 上应用无法打开（未签名）
 
-**症状**：`"AI Animation Studio" is damaged and can't be opened`
+**症状**：`"PrismCraft" is damaged and can't be opened`
 
 **解决**：
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ai-animation-studio.local/plugin-spec.schema.json",
-  "title": "AI Animation Studio Plugin Specification",
+  "title": "PrismCraft Plugin Specification",
   "description": "Schema for user-defined AI provider plugins",
   "type": "object",
   "additionalProperties": false,

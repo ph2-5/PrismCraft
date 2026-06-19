@@ -14,7 +14,7 @@ const MAIN_PAGES = [
 test.describe("Homepage Loading and Content Verification", () => {
   test("should launch and display homepage with correct title", async ({ page }) => {
     await navigateTo(page, "/");
-    await expect(page).toHaveTitle(/AI Animation Studio/);
+    await expect(page).toHaveTitle(/PrismCraft/);
   });
 
   test("should display main heading on homepage", async ({ page }) => {

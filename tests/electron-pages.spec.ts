@@ -11,6 +11,23 @@ const MAIN_PAGES = [
   { path: "/settings", name: "Settings" },
 ];
 
+const IGNORED_ERROR_PATTERNS = [
+  /favicon/i,
+  /manifest/i,
+  /ResizeObserver/i,
+  /\[SyncSchema\]/,
+  /Schema update should be done/,
+  // 网络类错误：dev server 慢启动或 API provider 不可达时偶发，不应阻塞页面加载测试
+  /net::ERR/i,
+  /ERR_CONNECTION_REFUSED/i,
+  /Failed to fetch/i,
+  /NetworkError/i,
+];
+
+function isCriticalError(msg: string): boolean {
+  return !IGNORED_ERROR_PATTERNS.some((p) => p.test(msg));
+}
+
 test.describe("Electron Page Loading", () => {
   let app: electron.ElectronApplication;
   let page: electron.Page;
@@ -59,20 +76,7 @@ test.describe("Electron Page Loading", () => {
       await expect(main).toBeVisible({ timeout: 10000 });
 
       const newErrors = consoleErrors.slice(errorsBefore);
-      const criticalErrors = newErrors.filter(
-        (e) =>
-          !e.includes("favicon") &&
-          !e.includes("manifest") &&
-          !e.includes("ResizeObserver") &&
-          !e.includes("net::ERR") &&
-          !e.includes("404") &&
-          !e.includes("Failed to fetch") &&
-          !e.includes("NetworkError") &&
-          !e.includes("ERR_CONNECTION_REFUSED") &&
-          !e.includes("localhost") &&
-          !e.includes("[SyncSchema]") &&
-          !e.includes("Schema update should be done"),
-      );
+      const criticalErrors = newErrors.filter(isCriticalError);
 
       expect(
         criticalErrors.length,
@@ -82,20 +86,7 @@ test.describe("Electron Page Loading", () => {
   }
 
   test("should have no critical errors across all pages", async () => {
-    const criticalErrors = consoleErrors.filter(
-      (e) =>
-        !e.includes("favicon") &&
-        !e.includes("manifest") &&
-        !e.includes("ResizeObserver") &&
-        !e.includes("net::ERR") &&
-        !e.includes("404") &&
-        !e.includes("Failed to fetch") &&
-        !e.includes("NetworkError") &&
-        !e.includes("ERR_CONNECTION_REFUSED") &&
-        !e.includes("localhost") &&
-        !e.includes("[SyncSchema]") &&
-        !e.includes("Schema update should be done"),
-    );
+    const criticalErrors = consoleErrors.filter(isCriticalError);
 
     if (criticalErrors.length > 0) {
       console.log("Critical console errors found:");
@@ -104,6 +95,6 @@ test.describe("Electron Page Loading", () => {
       }
     }
 
-    expect(criticalErrors.length).toBeLessThan(10);
+    expect(criticalErrors.length, `Critical errors: ${criticalErrors.join("\n")}`).toBe(0);
   });
 });

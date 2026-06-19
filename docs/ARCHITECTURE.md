@@ -1,8 +1,8 @@
-# AI Animation Studio — 架构与设计文档
+# PrismCraft — 架构与设计文档
 
 ## 一、项目定位与设计哲学
 
-AI Animation Studio 是一款本地优先的 AI 动画制作桌面工具，覆盖从创意到成品的完整工作流：故事构思、角色设计、场景搭建、分镜编排、AI 视频生成、导出成品。项目不依赖云端服务运行，所有数据存储在本地 SQLite 数据库中，AI 生成能力通过可插拔的 Provider 插件对接外部 API。
+PrismCraft 是一款本地优先的 AI 动画制作桌面工具，覆盖从创意到成品的完整工作流：故事构思、角色设计、场景搭建、分镜编排、AI 视频生成、导出成品。项目不依赖云端服务运行，所有数据存储在本地 SQLite 数据库中，AI 生成能力通过可插拔的 Provider 插件对接外部 API。
 
 ### 设计哲学：机器可读契约驱动的 AI 维护
 
@@ -262,7 +262,7 @@ domain → NOTHING（纯类型）
 
 1. **导入导出的 Write-Then-Clean 模式**：当使用"替换"策略导入数据时，绝不在写入新数据前删除旧数据。如果写入过程中途失败，旧数据将永久丢失。正确做法是先写入所有新数据，收集成功导入的 ID，然后仅删除不在新 ID 集合中的旧记录。这是回归防护 R13 的来源——一次真实的部分导入失败导致了数据丢失事故。
 
-2. **ASA 格式导出**：`assetExportService` 使用专有的 ASA（AI Animation Studio Archive）格式进行项目导出，将角色、场景、分镜、故事等数据打包为单一文件，支持完整的项目迁移。
+2. **ASA 格式导出**：`assetExportService` 使用专有的 ASA（PrismCraft Archive）格式进行项目导出，将角色、场景、分镜、故事等数据打包为单一文件，支持完整的项目迁移。
 
 **边界约束**：hooks 子域依赖 asset-library、media-assets、import-export 子域；presentation 子域依赖 hooks 子域。依赖方向是单向的。
 
@@ -791,8 +791,8 @@ before-quit → gracefulShutdown()
 | 类型 | 格式 | 位置 | 加载器 |
 |------|------|------|--------|
 | 内置插件 | TypeScript 类 | `electron/src/plugins/providers/` | 直接导入 |
-| 声明式插件 | `.plugin.json` | `~/AI Animation Studio/UserPlugins/` | `UserPluginAdapter` |
-| 代码式插件 | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter`（进程隔离） |
+| 声明式插件 | `.plugin.json` | `~/PrismCraft/UserPlugins/` | `UserPluginAdapter` |
+| 代码式插件 | `.plugin.js` | `~/PrismCraft/CodePlugins/` | `CodePluginAdapter`（进程隔离） |
 
 **声明式插件**：`user-plugin-loader.ts`（加载/保存/删除逻辑）+ `user-plugin-adapter.ts`（`UserPluginAdapter` 类 + 辅助函数）从 `%APPDATA%/ai-animation-studio/Plugins/` 目录加载 `.plugin.json` 文件。插件配置使用 `user-plugin-schema.ts` 定义的 JSON Schema 验证，支持自定义 API 端点映射、请求/响应格式和认证方式。用户无需编写代码即可接入任意兼容 OpenAI API 格式的 AI 服务。声明式插件支持 `apiKeyDetection` 字段声明 API Key 自动识别规则。
 

@@ -1,12 +1,8 @@
 import fs from "fs";
 import path from "path";
-import os from "os";
+import { getUserDataSubDir } from "../app-paths";
 
-export const CODE_PLUGINS_DIR = path.join(
-  os.homedir(),
-  "AI Animation Studio",
-  "CodePlugins",
-);
+export const CODE_PLUGINS_DIR = getUserDataSubDir("CodePlugins");
 
 export interface CodePluginExport {
   id: string;

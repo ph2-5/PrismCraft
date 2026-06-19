@@ -1,4 +1,4 @@
-# AI Animation Studio — 完整 API 参考手册
+# PrismCraft — 完整 API 参考手册
 
 > 版本: 0.10.0 | 架构: Electron + Vite + React + DDD
 

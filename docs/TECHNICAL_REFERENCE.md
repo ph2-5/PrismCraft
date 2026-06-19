@@ -1,4 +1,4 @@
-# AI Animation Studio 技术参考文档
+# PrismCraft 技术参考文档
 
 > **版本**: 0.10.0 | **最后更新**: 2026-06-18 | **架构**: Vite 8 + React Router 7
 
@@ -34,7 +34,7 @@
 
 | 属性 | 值 |
 |------|------|
-| 项目名称 | AI Animation Studio |
+| 项目名称 | PrismCraft |
 | 版本 | 0.10.0 |
 | 描述 | AI 驱动的动画制作工具 — 本地优先，支持从故事创作到视频生成的完整工作流 |
 | 构建目标 | Electron 桌面应用 (local-first, offline-capable) |
@@ -2113,8 +2113,8 @@ const provider = parseProvider(record.provider);
 | 插件类型 | 格式 | 位置 | 加载器 |
 |----------|------|------|--------|
 | 内置 | TypeScript class | `electron/src/plugins/providers/` | 直接导入 |
-| 声明式 | `.plugin.json` | `~/AI Animation Studio/UserPlugins/` | `UserPluginAdapter` |
-| 代码 | `.plugin.js` | `~/AI Animation Studio/CodePlugins/` | `CodePluginAdapter` (进程隔离) |
+| 声明式 | `.plugin.json` | `~/PrismCraft/UserPlugins/` | `UserPluginAdapter` |
+| 代码 | `.plugin.js` | `~/PrismCraft/CodePlugins/` | `CodePluginAdapter` (进程隔离) |
 
 ### 6.7 日志系统
 
@@ -2513,16 +2513,26 @@ ESLint 9 flat config, 使用以下插件:
 
 ## 12. 已知技术债务与路线图
 
-### 12.1 国际化
+### 12.1 已清理（2026-06-20）
+
+| 问题 | 修复 |
+|------|------|
+| `asarUnpack: "out/**/*"` 解包全部前端代码 | 移除，Electron patched `fs` 可直接读取 asar 内文件 |
+| `Module._resolveFilename` monkey-patch 路径检测脆弱 | 提取到 `electron/src/shared-logic-resolve.ts`，改用 `fs.existsSync` 检测 |
+| `local-file-storage.ts` 被 Vite 打包进浏览器 bundle | 添加 `nodeModuleBrowserStubs` Vite 插件，构建时替换为 browser mock |
+| `@shared-logic` junction 无自动创建脚本 | 添加 `scripts/setup-shared-logic-symlink.mjs`，集成到 `postinstall` |
+| `electron-pages.spec.ts` 死测试（无 Playwright config 能运行） | 重写测试，修复 `playwright.electron.config.ts` 匹配规则 |
+
+### 12.2 国际化
 
 | 指标 | 值 |
 |------|------|
-| i18n 键数 | 2100+ |
+| i18n 键数 | 2000+ |
 | 迁移状态 | ✅ 完成 — R56 全量迁移完成 |
 | 覆盖范围 | app/pages + modules/presentation + shared/presentation + modules/hooks |
 | 例外 | AI 提示词模板、error-codes 业务数据、日志文本 (按规则不迁移) |
 
-### 12.2 测试覆盖率
+### 12.3 测试覆盖率
 
 | 层 | 当前状态 | 目标 |
 |----|----------|------|

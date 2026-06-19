@@ -36,6 +36,10 @@ declare global {
       getFileInfo: (filePath: string) => Promise<{ success: boolean; size?: number; error?: string }>;
       getDiskSpace: (dirPath: string) => Promise<{ success: boolean; availableBytes?: number; totalBytes?: number; error?: string }>;
       clearCache?: () => void;
+      windowMinimize: () => Promise<void>;
+      windowMaximize: () => Promise<void>;
+      windowClose: () => Promise<void>;
+      windowIsMaximized: () => Promise<boolean>;
     };
     __OFFLINE_QUEUE_STATE__?: {
       autoProcessInterval?: ReturnType<typeof setInterval> | null;

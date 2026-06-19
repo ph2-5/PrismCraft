@@ -242,7 +242,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
   return (
     <>
       <aside
-        className="fixed left-0 top-0 bottom-0 z-40 flex flex-col border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        className="fixed left-0 top-0 bottom-0 z-40 flex flex-col border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-9"
         style={{ width: sidebarWidth }}
       >
         <div
@@ -250,18 +250,20 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
             "flex items-center border-b shrink-0",
             collapsed ? "justify-center h-14" : "gap-3 px-4 h-14",
           )}
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
           <Link
             to="/"
             className="flex items-center gap-3"
-            title="AI Animation Studio"
+            title="PrismCraft"
+            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
           >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20 shrink-0">
               <Film className="w-4.5 h-4.5 text-white" />
             </div>
             {!collapsed && (
               <span className="font-bold text-sm bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400 whitespace-nowrap">
-                AI Animation Studio
+                PrismCraft
               </span>
             )}
           </Link>

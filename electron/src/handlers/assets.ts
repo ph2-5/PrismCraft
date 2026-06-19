@@ -1,41 +1,34 @@
 import fs from "fs";
 import path from "path";
-import os from "os";
 import { ipcMain, dialog } from "electron";
 import { getLogger } from "../logging/logger";
+import {
+  getUserDataRootDir,
+  getAllUserDataDirs,
+  isPathUnderAnyRoot,
+} from "../app-paths";
 
 const logger = getLogger("assets");
 
-export const ASSETS_BASE_DIR = path.join(
-  os.homedir(),
-  "AI Animation Studio",
-  "Assets",
-);
+const USER_DATA_ROOT = getUserDataRootDir();
 
-export const VIDEO_CACHE_DIR = path.join(
-  os.homedir(),
-  "AI Animation Studio",
-  "Cache",
-  "Videos",
-);
+export const ASSETS_BASE_DIR = path.join(USER_DATA_ROOT, "Assets");
 
-const ALLOWED_ASSET_DIR = path.join(os.homedir(), "AI Animation Studio");
+export const VIDEO_CACHE_DIR = path.join(USER_DATA_ROOT, "Cache", "Videos");
+
+const ALLOWED_ASSET_ROOTS = getAllUserDataDirs();
 
 function isPathAllowed(filePath: string): boolean {
   try {
     const resolved = fs.realpathSync(path.resolve(filePath));
-    const normalizedResolved = resolved.toLowerCase();
-    const normalizedAllowed = ALLOWED_ASSET_DIR.toLowerCase();
-    return normalizedResolved.startsWith(normalizedAllowed);
+    return isPathUnderAnyRoot(resolved, ALLOWED_ASSET_ROOTS);
   } catch {
     logger.warn("Failed to resolve asset path, falling back to path.resolve");
     const resolved = path.resolve(filePath);
-    const normalizedResolved = resolved.toLowerCase();
-    const normalizedAllowed = ALLOWED_ASSET_DIR.toLowerCase();
-    if (filePath.includes("..") || normalizedResolved.includes("..")) {
+    if (filePath.includes("..") || resolved.includes("..")) {
       return false;
     }
-    return normalizedResolved.startsWith(normalizedAllowed);
+    return isPathUnderAnyRoot(resolved, ALLOWED_ASSET_ROOTS);
   }
 }
 

@@ -36,7 +36,7 @@ async function showMainMenu(): Promise<void> {
   const config = loadConfig();
   const enabledKeys = getEnabledApiKeys();
 
-  console.log("\n=== AI Animation Studio 测试配置工具 ===\n");
+  console.log("\n=== PrismCraft 测试配置工具 ===\n");
   console.log(`当前配置: ${enabledKeys.length} 个可用的 API Key\n`);
   console.log("请选择操作:");
   console.log("1. 添加/管理 API Key");
@@ -432,7 +432,7 @@ function exportReports(): void {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const reportFile = path.join(reportsDir, `test-summary-${timestamp}.md`);
 
-  let reportContent = `# AI Animation Studio 测试报告\n\n`;
+  let reportContent = `# PrismCraft 测试报告\n\n`;
   reportContent += `生成时间: ${new Date().toLocaleString()}\n\n`;
 
   const config = loadConfig();
@@ -456,7 +456,7 @@ function exportReports(): void {
 
 async function main(): Promise<void> {
   console.log(
-    "欢迎使用 AI Animation Studio 测试配置工具！按 Ctrl+C 随时退出。"
+    "欢迎使用 PrismCraft 测试配置工具！按 Ctrl+C 随时退出。"
   );
   await showMainMenu();
 }

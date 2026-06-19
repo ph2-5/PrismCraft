@@ -35,7 +35,7 @@ const PROVIDERS = [
 ];
 
 async function main(): Promise<void> {
-  console.log("\n=== AI Animation Studio 视频测试工具 ===\n");
+  console.log("\n=== PrismCraft 视频测试工具 ===\n");
   console.log("本工具用于测试视频生成功能，支持随机选择测试案例并生成视频。\n");
 
   const coverage = calculateCoverage();

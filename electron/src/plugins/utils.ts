@@ -4,20 +4,14 @@ import os from "os";
 import https from "https";
 import http from "http";
 import { getLogger } from "../logging/logger";
+import { getUserDataRootDir } from "../app-paths";
 
 const logger = getLogger("plugin-utils");
 
-const VIDEO_CACHE_DIR = path.join(
-  os.homedir(),
-  "AI Animation Studio",
-  "Cache",
-  "Videos",
-);
-const ASSETS_BASE_DIR = path.join(
-  os.homedir(),
-  "AI Animation Studio",
-  "Assets",
-);
+const USER_DATA_ROOT = getUserDataRootDir();
+
+const VIDEO_CACHE_DIR = path.join(USER_DATA_ROOT, "Cache", "Videos");
+const ASSETS_BASE_DIR = path.join(USER_DATA_ROOT, "Assets");
 const UPLOAD_DIR =
   process.env.AI_STUDIO_UPLOAD_DIR ||
   path.join(os.tmpdir(), "ai-animation-studio", "uploads");

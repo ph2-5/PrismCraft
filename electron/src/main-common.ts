@@ -455,6 +455,8 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
   } = options;
 
   const serverUrl = `http://localhost:${appPort}`;
+  let loadRetryCount = 0;
+  const MAX_LOAD_RETRIES = 5;
 
   try {
     logger.info("[Main] Starting API server...");
@@ -554,7 +556,12 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
   mainWindow.webContents.on("did-fail-load", (_e, code, desc, validatedURL) => {
     logger.error("[Main] Failed to load:", undefined, { code, desc, validatedURL });
     if (code === -102 || code === -105) {
-      logger.info("[Main] Connection refused, retrying in 3s...");
+      if (loadRetryCount >= MAX_LOAD_RETRIES) {
+        logger.error(`[Main] Max load retries (${MAX_LOAD_RETRIES}) reached, giving up`);
+        return;
+      }
+      loadRetryCount++;
+      logger.info(`[Main] Connection refused, retrying in 3s (attempt ${loadRetryCount}/${MAX_LOAD_RETRIES})...`);
       setTimeout(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.loadURL(serverUrl);
@@ -590,7 +597,7 @@ export function closeStaticServer(): void {
     for (const conn of activeConnections) {
       try {
         conn.destroy();
-      } catch (e) { logger.error("窗口创建失败", e instanceof Error ? e : undefined); }
+      } catch (e) { logger.error("[Main] Failed to destroy static server connection", e instanceof Error ? e : undefined); }
     }
     activeConnections.clear();
     server.close((err) => {

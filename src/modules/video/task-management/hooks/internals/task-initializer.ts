@@ -32,6 +32,13 @@ export function loadTasksFromStorage(store: StoreAccessor): () => Promise<void> 
   return async () => {
     try {
       const tasks = await container.videoTaskStorage.getVideoTasks();
+
+      // 竞态保护：如果异步加载期间组件被卸载（cleanup 已运行），
+      // beforeUnloadHandler 会被清除，此时不应更新状态或启动轮询
+      if (pollingState.beforeUnloadHandler === null) {
+        return;
+      }
+
       store.set((state) => {
         const loadedIds = new Set(tasks.map((t) => t.taskId));
         const concurrentAdditions = state.allTasks.filter((t) => !loadedIds.has(t.taskId));

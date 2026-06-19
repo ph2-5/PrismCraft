@@ -83,6 +83,11 @@ export class LifecycleManager {
     this.cleanupInProgress = true;
     this.crashRecovery.cancelRecovery();
 
+    if (this.gpuCrashResetTimer) {
+      clearTimeout(this.gpuCrashResetTimer);
+      this.gpuCrashResetTimer = null;
+    }
+
     this.transitionTo(AppState.CLOSING, reason);
 
     try {
@@ -155,6 +160,8 @@ export class LifecycleManager {
         this.options.createWindowFn().then((window) => {
           this.mainWindow = window;
           this.setupWindowEvents();
+        }).catch((error: unknown) => {
+          logger.error("[Lifecycle] Failed to create window on activate:", error instanceof Error ? error : new Error(String(error)));
         });
       }
     });

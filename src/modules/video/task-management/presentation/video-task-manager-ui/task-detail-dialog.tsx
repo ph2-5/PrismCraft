@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -33,14 +33,26 @@ interface TaskDetailDialogProps {
 export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }: TaskDetailDialogProps) {
   const [isRecovering, setIsRecovering] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
+  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current) {
+        clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleCopyUrl = useCallback(async () => {
     if (!task.videoUrl) return;
+    const resetCopied = () => {
+      copyResetTimerRef.current = setTimeout(() => setUrlCopied(false), 2000);
+    };
     try {
       await navigator.clipboard.writeText(task.videoUrl);
       setUrlCopied(true);
       emitToast("success", t("video.copySuccess"));
-      setTimeout(() => setUrlCopied(false), 2000);
+      resetCopied();
     } catch {
       const textArea = document.createElement("textarea");
       textArea.value = task.videoUrl;
@@ -52,7 +64,7 @@ export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }:
       document.body.removeChild(textArea);
       setUrlCopied(true);
       emitToast("success", t("video.copySuccess"));
-      setTimeout(() => setUrlCopied(false), 2000);
+      resetCopied();
     }
   }, [task.videoUrl]);
 

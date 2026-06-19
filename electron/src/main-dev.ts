@@ -64,4 +64,7 @@ app.whenReady().then(async () => {
 
   lifecycle.setWindow(window);
   lifecycle.markWindowReady();
+}).catch((error: unknown) => {
+  logger.error("[MainDev] Failed to start application:", error instanceof Error ? error : new Error(String(error)));
+  void lifecycle.shutdown("startup-failed");
 });

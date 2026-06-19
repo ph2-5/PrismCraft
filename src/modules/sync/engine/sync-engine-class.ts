@@ -24,6 +24,7 @@ export type SyncResult = {
   pushed: number;
   pulled: number;
   conflicts: number;
+  failed?: boolean;
 };
 
 export class SyncEngine {
@@ -177,15 +178,17 @@ export class SyncEngine {
         errorLogger.warn("[SyncEngine] 同步失败", syncResult.error);
       }
       this.syncing = false;
-      // 同步失败时返回 0 计数，避免上层误判部分成功
+      // 同步失败时返回 0 计数和 failed 标志，避免上层误判部分成功
       this.lastSyncResult = syncFailed
-        ? { pushed: 0, pulled: 0, conflicts: 0 }
+        ? { pushed: 0, pulled: 0, conflicts: 0, failed: true }
         : { pushed, pulled, conflicts };
     })();
 
     await this.syncPromise;
     this.syncPromise = null;
-    return syncFailed ? { pushed: 0, pulled: 0, conflicts: 0 } : { pushed, pulled, conflicts };
+    return syncFailed
+      ? { pushed: 0, pulled: 0, conflicts: 0, failed: true }
+      : { pushed, pulled, conflicts };
   }
 
   getConfig(): SyncConfig {

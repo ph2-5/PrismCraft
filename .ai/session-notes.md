@@ -116,3 +116,27 @@
 - `electron/src/shared-logic-resolve.ts` — _resolveFilename 运行时检查
 
 **验证结果**：typecheck + typecheck:electron + lint + lint:arch 全部通过，222 测试文件 4201 测试通过（含新增 15 个回归测试）
+
+### [2026-06-20] E2E 测试覆盖率分析与补充优化 — 已完成
+
+**分析范围**：15 个 e2e 测试文件，识别 5 个关键覆盖缺口和 3 个质量问题
+
+**新增测试文件**：
+- `tests/not-found-page.spec.ts` — 6 个测试，覆盖 404 页面和无效 beat 路由（此前无 e2e）
+- `tests/beat-detail-page.spec.ts` — 5 个测试，覆盖 `/story/beat/:beatId` 路由（此前无 e2e）
+- `tests/video-task-workflow.spec.ts` — 9 个测试，覆盖视频任务页面内容和 mock 工作流（此前极浅）
+- `tests/network-resilience.spec.ts` — 7 个测试，覆盖 API 500 错误和慢速响应韧性（此前完全缺失）
+- `tests/helpers/console-errors.ts` — 可复用的 `captureConsoleErrors` 工具 + `IGNORED_ERROR_PATTERNS` 过滤
+
+**修改的测试文件**：
+- `tests/story-delete-confirmation.spec.ts` — 修复静默通过模式，添加控制台错误检查和导航离开测试
+- `tests/tsconfig.json` — include 添加 `./helpers/*.ts`
+
+**关键修复**：
+1. **Playwright + @base-ui/react click 挂起**：Story 页面原生 `click()` 挂起，改用 `clickButtonByText(page.evaluate)` 变通
+2. **network-resilience 超时根因**：`page.route("**/api/**")` glob 模式匹配了 Vite 模块路径 `/src/infrastructure/api/client.ts`，导致 JS 模块加载失败、React 无法挂载。改用函数匹配器仅拦截路径以 `/api/` 开头的真实 API 端点
+3. **network-resilience networkidle 超时**：`waitForAppReady` 的 `waitForLoadState("networkidle")` 在 API 全部 500 时永不完成，改用 `domcontentloaded` + `main`/`error-card` 可见
+
+**验证结果**：全部 126 个 e2e 测试通过（14.2 分钟），单元测试 4998 个通过
+
+**版本**：0.10.0 → 0.11.0

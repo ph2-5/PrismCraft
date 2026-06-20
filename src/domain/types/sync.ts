@@ -35,6 +35,8 @@ export interface SyncPushResult {
   accepted: number;
   conflicts: SyncConflict[];
   serverVectorClock: VectorClock;
+  /** 已被服务端确认接受的变更 ID 列表，调用方需在整轮同步成功后统一 markChangesSynced */
+  syncedIds: string[];
 }
 
 export interface SyncPullResult {

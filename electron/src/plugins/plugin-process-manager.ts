@@ -372,7 +372,8 @@ export class PluginProcessManager {
     if (this.process && !this.process.killed) {
       try {
         this.process.kill("SIGKILL");
-      } catch {
+      } catch (e) {
+        logger.warn(`Failed to kill plugin process (pid: ${this.process.pid}, plugin: ${this.pluginId})`, { error: e instanceof Error ? e.message : String(e) });
       }
     }
   }

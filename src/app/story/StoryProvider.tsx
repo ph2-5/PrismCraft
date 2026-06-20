@@ -9,7 +9,7 @@ import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants/messages";
 import { errorLogger } from "@/shared/error-logger";
 import { container } from "@/infrastructure/di";
-import { useVideoTaskManager, useVideoTaskStore } from "@/modules/video";
+import { useVideoTaskManager } from "@/modules/video";
 import { storyService } from "@/modules/story";
 import { characterService } from "@/modules/character";
 import { sceneService } from "@/modules/scene";
@@ -127,9 +127,6 @@ function useStoryContext(): StoryContextValue {
     setBeats: storyState.setBeats,
     markClean: storyState.markClean,
     markDirty: storyState.markDirty,
-    onBeforeDeleteStory: async (storyId) => {
-      await useVideoTaskStore.getState().removeTasksByStoryId(storyId);
-    },
   });
 
   const { deleteBeatWithCleanup, switchToStory } = useStoryActions({

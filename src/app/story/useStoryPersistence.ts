@@ -25,6 +25,9 @@ interface UseStoryPersistenceParams {
   showErrorRef: React.MutableRefObject<(title: string, description?: string) => void>;
 }
 
+// debounce 时长：合并短时间内的多次 completedTaskUrls 变更，避免并发持久化
+const PERSIST_DEBOUNCE_MS = 500;
+
 export function useStoryPersistence({
   beatsRef,
   setBeats,
@@ -44,10 +47,10 @@ export function useStoryPersistence({
   const markDirty = useDirtyState((s) => s.markDirty);
 
   const [isVideoUrlPersisting, setIsVideoUrlPersisting] = useState(false);
-  const isPersistingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const updateVideoUrls = async () => {
       const currentBeats = beatsRef.current;
@@ -77,7 +80,6 @@ export function useStoryPersistence({
           }
 
           if (allPersistData.length > 0) {
-            isPersistingRef.current = true;
             setIsVideoUrlPersisting(true);
             try {
               await storyService.updateBeatMediaUrls(allPersistData);
@@ -93,7 +95,6 @@ export function useStoryPersistence({
                 showErrorRef.current(t("story.autoSaveVideoUrlFailed"), t("story.autoSaveVideoUrlFailedDesc"));
               }
             } finally {
-              isPersistingRef.current = false;
               if (!cancelled) {
                 setIsVideoUrlPersisting(false);
               }
@@ -135,9 +136,21 @@ export function useStoryPersistence({
         }
       }
     };
-    updateVideoUrls();
+
+    // debounce：合并短时间内的多次变更，避免并发持久化竞态
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      if (!cancelled) {
+        updateVideoUrls();
+      }
+    }, PERSIST_DEBOUNCE_MS);
+
     return () => {
       cancelled = true;
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+      }
     };
   }, [completedTaskUrls, allCompletedTaskUrls, beatsRef]);
 

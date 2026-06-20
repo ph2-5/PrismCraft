@@ -407,7 +407,8 @@ describe("Full Pipeline Integration", () => {
       expect(isValidTransition("pending", "failed")).toBe(true);
       expect(isValidTransition("pending", "cancelled")).toBe(true);
       expect(isValidTransition("pending", "timeout")).toBe(true);
-      expect(isValidTransition("pending", "completed")).toBe(false);
+      // 允许 pending → completed：同步生成场景下服务端可能立即返回完成
+      expect(isValidTransition("pending", "completed")).toBe(true);
       expect(isValidTransition("pending", "retrying")).toBe(false);
 
       expect(isValidTransition("generating", "completed")).toBe(true);

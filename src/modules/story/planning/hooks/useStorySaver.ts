@@ -16,7 +16,7 @@ import type { Story, StoryBeat } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { fromAsyncThrowable } from "@/domain/types/result";
-import { container } from "@/infrastructure/di";
+import { useVideoTaskStore } from "@/modules/video/task-management";
 import { t } from "@/shared/constants/messages";
 
 interface UseStorySaverProps {
@@ -28,7 +28,6 @@ interface UseStorySaverProps {
   setBeats: React.Dispatch<React.SetStateAction<StoryBeat[]>>;
   markClean: (key: string) => void;
   markDirty: (key: string) => void;
-  onBeforeDeleteStory?: (storyId: string) => Promise<void>;
 }
 
 export function useStorySaver(props: UseStorySaverProps) {
@@ -40,7 +39,6 @@ export function useStorySaver(props: UseStorySaverProps) {
     setBeats,
     markClean,
     markDirty,
-    onBeforeDeleteStory,
   } = props;
 
   const { success, error: showError } = useToastHelpers();
@@ -95,11 +93,7 @@ export function useStorySaver(props: UseStorySaverProps) {
   const performDeleteStory = useCallback(async () => {
     if (storyToDelete) {
       try {
-        if (onBeforeDeleteStory) {
-          await onBeforeDeleteStory(storyToDelete);
-        } else {
-          await container.videoTaskStorage.deleteVideoTasksByStoryId(storyToDelete);
-        }
+        await useVideoTaskStore.getState().removeTasksByStoryId(storyToDelete);
       } catch (e) {
         errorLogger.warn("[StorySaver] 删除故事关联VideoTask失败", e);
       }
@@ -120,7 +114,7 @@ export function useStorySaver(props: UseStorySaverProps) {
       setStoryToDelete(null);
       success(t("success.deleted"), t("success.storyDeleted"));
     }
-  }, [storyToDelete, setStories, currentStory, setCurrentStory, setBeats, success, showError, onBeforeDeleteStory]);
+  }, [storyToDelete, setStories, currentStory, setCurrentStory, setBeats, success, showError]);
 
   const applyStoryTemplate = useCallback(
     (template: StoryTemplate) => {

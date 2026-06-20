@@ -47,7 +47,16 @@ const PREFIX = "@shared-logic/";
  */
 type ResolveFilename = (request: string, ...args: unknown[]) => string;
 
-const mod = Module as unknown as { _resolveFilename: ResolveFilename };
+const mod = Module as unknown as { _resolveFilename?: ResolveFilename };
+
+if (typeof mod._resolveFilename !== "function") {
+  throw new Error(
+    "[shared-logic-resolve] Module._resolveFilename is not available. " +
+      "This Node.js version may have changed the internal module API; " +
+      "shared-logic resolver cannot be installed.",
+  );
+}
+
 const originalResolveFilename: ResolveFilename = mod._resolveFilename;
 
 mod._resolveFilename = function (request: string, ...args: unknown[]): string {

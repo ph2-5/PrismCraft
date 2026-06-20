@@ -265,13 +265,31 @@ export async function processPendingQueue(
 
   async function processNext(): Promise<void> {
     while (index < pending.length) {
-      const request = pending[index++]!;
+      const request = pending[index];
+      index++;
+      if (!request) break;
       if (request.nextRetryAt && Date.now() < request.nextRetryAt * 1000) continue;
 
       await markRequestProcessing(request.id);
 
+      // payload 解析失败属于数据损坏，不应重试，直接标记为永久失败
+      let payload: Record<string, unknown>;
       try {
-        const payload = JSON.parse(request.payload);
+        payload = JSON.parse(request.payload);
+      } catch (parseError) {
+        const errorMessage = `Payload parse failed (requestId=${request.id}, type=${request.type}): ${extractErrorMessage(parseError)}`;
+        errorLogger.warn(
+          { code: "OFFLINE_QUEUE_PAYLOAD_PARSE_FAILED", message: errorMessage },
+          "OfflineQueue",
+        );
+        await safeRun(
+          "UPDATE generation_tasks SET status = 'failed', error_message = ?, retry_count = ?, updated_at = ? WHERE id = ?",
+          [errorMessage, MAX_RETRY_COUNT, Math.floor(Date.now() / 1000), request.id],
+        );
+        continue;
+      }
+
+      try {
         const success = await processor(request.type, payload);
         if (success) {
           await markRequestCompleted(request.id);
@@ -279,6 +297,10 @@ export async function processPendingQueue(
         } else {
           const retryCount = (request.retryCount || 0) + 1;
           const errorMessage = "Processor returned false";
+          errorLogger.warn(
+            { code: "OFFLINE_QUEUE_PROCESSOR_FAILED", message: `Processor returned false (requestId=${request.id}, type=${request.type}, retry=${retryCount}/${MAX_RETRY_COUNT})` },
+            "OfflineQueue",
+          );
           if (retryCount >= MAX_RETRY_COUNT) {
             await safeRun(
               "UPDATE generation_tasks SET status = 'failed', error_message = ?, updated_at = ? WHERE id = ?",
@@ -295,6 +317,10 @@ export async function processPendingQueue(
       } catch (error) {
         const retryCount = (request.retryCount || 0) + 1;
         const errorMessage = extractErrorMessage(error);
+        errorLogger.warn(
+          { code: "OFFLINE_QUEUE_PROCESSOR_THREW", message: `Processor threw (requestId=${request.id}, type=${request.type}, retry=${retryCount}/${MAX_RETRY_COUNT}): ${errorMessage}` },
+          "OfflineQueue",
+        );
         if (retryCount >= MAX_RETRY_COUNT) {
           await safeRun(
             "UPDATE generation_tasks SET status = 'failed', error_message = ?, updated_at = ? WHERE id = ?",

@@ -44,15 +44,12 @@ export async function saveVideoTask(task: VideoTask): Promise<Result<void>> {
       lastPolledAt: nowIso,
     };
 
-    // upsert：先尝试插入，若任务已存在（主键冲突）则更新
-    // createVideoTask 使用 INSERT OR IGNORE，对已存在任务是空操作，
-    // 会导致 videoUrl 等字段无法持久化，因此冲突时必须回退到 updateVideoTask
-    const existing = await container.videoTaskStorage.getVideoTaskById(record.taskId);
-    if (existing) {
-      await container.videoTaskStorage.updateVideoTask(record.taskId, record);
-    } else {
-      await container.videoTaskStorage.createVideoTask(record);
-    }
+    // 原子 upsert：先 INSERT OR IGNORE（若已存在则空操作），再 UPDATE（确保所有字段持久化）
+    // 修复 TOCTOU 竞态：消除 check-then-act 的时间窗口
+    // createVideoTask 使用 INSERT OR IGNORE，对已存在任务是空操作
+    // updateVideoTask 确保 videoUrl 等关键字段被持久化
+    await container.videoTaskStorage.createVideoTask(record);
+    await container.videoTaskStorage.updateVideoTask(record.taskId, record);
   });
 }
 

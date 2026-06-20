@@ -117,7 +117,9 @@ export async function importData(
             importedIds.push(template.id);
           }
         } catch (e) {
-          errorLogger.warn({ code: "IMPORT_VIDEO_TEMPLATE_SKIP", message: "[Import] videoTemplate skip" }, String(e));
+          const msg = `[Import] videoTemplate skip: ${e instanceof Error ? e.message : String(e)}`;
+          errorLogger.warn({ code: "IMPORT_VIDEO_TEMPLATE_SKIP", message: msg }, String(e));
+          errors.push(msg);
         }
       }
       if (mergeStrategy === "replace" && importedIds.length > 0) {
@@ -142,7 +144,9 @@ export async function importData(
             importedIds.push(save.id as string);
           }
         } catch (e) {
-          errorLogger.warn({ code: "IMPORT_AUTO_SAVE_SKIP", message: "[Import] autoSave skip" }, String(e));
+          const msg = `[Import] autoSave skip: ${e instanceof Error ? e.message : String(e)}`;
+          errorLogger.warn({ code: "IMPORT_AUTO_SAVE_SKIP", message: msg }, String(e));
+          errors.push(msg);
         }
       }
       if (mergeStrategy === "replace" && importedIds.length > 0) {
@@ -166,7 +170,9 @@ export async function importData(
           });
           count++;
         } catch (e) {
-          errorLogger.warn({ code: "IMPORT_ERROR_LOG_SKIP", message: "[Import] errorLog skip" }, String(e));
+          const msg = `[Import] errorLog skip: ${e instanceof Error ? e.message : String(e)}`;
+          errorLogger.warn({ code: "IMPORT_ERROR_LOG_SKIP", message: msg }, String(e));
+          errors.push(msg);
         }
       }
       imported.errorLogs = count;
@@ -183,7 +189,9 @@ export async function importData(
             importedKeys.push(session.key as string);
           }
         } catch (e) {
-          errorLogger.warn({ code: "IMPORT_SESSION_SKIP", message: "[Import] session skip" }, String(e));
+          const msg = `[Import] session skip: ${e instanceof Error ? e.message : String(e)}`;
+          errorLogger.warn({ code: "IMPORT_SESSION_SKIP", message: msg }, String(e));
+          errors.push(msg);
         }
       }
       if (mergeStrategy === "replace" && importedKeys.length > 0) {

@@ -89,6 +89,10 @@ export function loadTasksFromStorage(store: StoreAccessor): () => Promise<void> 
 
 export function setupRecoveredEventListener(store: StoreAccessor): void {
   if (typeof window === "undefined") return;
+  // 幂等保护：先移除旧监听器，避免重复注册
+  if (pollingState.recoveredEventHandler) {
+    window.removeEventListener("video-task-recovered", pollingState.recoveredEventHandler);
+  }
   const handleRecovered = (e: Event) => {
     const detail = (e as CustomEvent).detail;
     if (detail?.taskId) {
@@ -101,6 +105,10 @@ export function setupRecoveredEventListener(store: StoreAccessor): void {
 
 export function setupBackgroundRecoveryInterval(): void {
   if (typeof window === "undefined") return;
+  // 幂等保护：先清除旧定时器，避免重复注册导致多个定时器并行
+  if (pollingState.recoveryIntervalId) {
+    clearInterval(pollingState.recoveryIntervalId);
+  }
   pollingState.recoveryIntervalId = setInterval(() => {
     startBackgroundRecovery().catch((err) => {
       errorLogger.warn("[VideoTaskManager] 后台恢复失败", err);
@@ -110,6 +118,10 @@ export function setupBackgroundRecoveryInterval(): void {
 
 export function setupCacheCleanupInterval(): void {
   if (typeof window === "undefined") return;
+  // 幂等保护：先清除旧定时器，避免重复注册导致多个定时器并行
+  if (pollingState.cacheCleanupIntervalId) {
+    clearInterval(pollingState.cacheCleanupIntervalId);
+  }
   pollingState.cacheCleanupIntervalId = setInterval(async () => {
     try {
       const cleanedCache = await cleanExpiredVideoCache();
@@ -128,6 +140,10 @@ export function setupCacheCleanupInterval(): void {
 
 export function setupBeforeUnloadHandler(store: StoreAccessor): void {
   if (typeof window === "undefined") return;
+  // 幂等保护：先移除旧监听器，避免重复注册导致 beforeunload 触发多次
+  if (pollingState.beforeUnloadHandler) {
+    window.removeEventListener("beforeunload", pollingState.beforeUnloadHandler);
+  }
   pollingState.beforeUnloadHandler = (e: BeforeUnloadEvent) => {
     const allTasks = store.getState().allTasks;
     const hasActive = allTasks.some(

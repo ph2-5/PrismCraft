@@ -11,7 +11,7 @@ function sanitizeIdentifier(name: string): string {
   return `"${name}"`;
 }
 
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 export interface MigrationDb {
   prepare(sql: string): { get(...params: unknown[]): Record<string, unknown> | undefined; run(...params: unknown[]): unknown };
@@ -43,6 +43,23 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     const columns = [
       { table: "collection_assets", column: "created_at", type: "INTEGER DEFAULT (strftime('%s','now'))" },
       { table: "collection_assets", column: "updated_at", type: "INTEGER DEFAULT (strftime('%s','now'))" },
+    ];
+    for (const { table, column, type } of columns) {
+      try {
+        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${type};`);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes("duplicate column")) {
+          throw e;
+        }
+      }
+    }
+  },
+  5: (db) => {
+    const columns = [
+      { table: "video_cache", column: "owner_id", type: "INTEGER DEFAULT 1" },
+      { table: "video_cache", column: "version", type: "INTEGER DEFAULT 1" },
+      { table: "video_cache", column: "sync_id", type: "TEXT" },
     ];
     for (const { table, column, type } of columns) {
       try {

@@ -226,7 +226,8 @@ describe("buildBeatInsert", () => {
   it("应生成正确的 INSERT SQL", () => {
     const beat: Record<string, unknown> = { description: "test" };
     const result = buildBeatInsert("b1", "s1", 0, beat, NOW);
-    expect(result.sql).toContain("INSERT OR REPLACE INTO story_beats");
+    expect(result.sql).toContain("INSERT INTO story_beats");
+    expect(result.sql).toContain("ON CONFLICT(id) DO UPDATE SET");
     expect(result.params).toHaveLength(21);
   });
 

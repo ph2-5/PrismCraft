@@ -84,14 +84,10 @@ async function loadConfigAsync(): Promise<AppConfig> {
     try {
       config = JSON.parse(data);
     } catch {
-      logger.warn("Failed to parse config as JSON, trying base64 decode");
-      try {
-        const decoded = Buffer.from(data, "base64").toString("utf-8");
-        config = JSON.parse(decoded);
-      } catch {
-        logger.warn("Could not parse config file, using defaults");
-        return { ...DEFAULT_CONFIG };
-      }
+      // 不再尝试 base64 解码：base64 是编码而非加密，历史迁移已完成
+      // 配置文件损坏时使用默认配置，避免明文凭据通过 base64 回退进入内存
+      logger.warn("Could not parse config file as JSON, using defaults");
+      return { ...DEFAULT_CONFIG };
     }
 
     if (!config.providers && !config.mapping) {

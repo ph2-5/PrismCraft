@@ -137,12 +137,14 @@ describe("transactional-delete", () => {
     });
 
     it("should handle buildRemoveIdFromJsonArrayStatements updating rows within transaction", async () => {
-      mockSafeQuery.mockResolvedValueOnce([]);
-      mockSafeQuery.mockResolvedValueOnce([]);
+      // 调用顺序: beatRows → characterRows → outfitRows → buildRemoveId(story_beats) → buildRemoveId(storyboard_assets)
+      mockSafeQuery.mockResolvedValueOnce([]); // beatRows
+      mockSafeQuery.mockResolvedValueOnce([]); // characterRows
+      mockSafeQuery.mockResolvedValueOnce([]); // outfitRows
       mockSafeQuery.mockResolvedValueOnce([
         { id: "beat-1", character_ids_json: JSON.stringify(["char-1", "char-2"]) },
-      ]);
-      mockSafeQuery.mockResolvedValueOnce([]);
+      ]); // buildRemoveIdFromJsonArrayStatements("story_beats")
+      mockSafeQuery.mockResolvedValueOnce([]); // buildRemoveIdFromJsonArrayStatements("storyboard_assets")
 
       await deleteCharacterWithRefs("char-1");
 

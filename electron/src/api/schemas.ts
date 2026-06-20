@@ -432,3 +432,22 @@ export const fileDiskSpaceSchema = z.object({
   dirPath: z.string().min(1),
 });
 export type FileDiskSpaceRequest = z.infer<typeof fileDiskSpaceSchema>;
+
+// 同步测试连接
+export const syncTestSchema = z.object({
+  url: z.string().min(1),
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+export type SyncTestRequest = z.infer<typeof syncTestSchema>;
+
+// 同步代理（push/pull/config）
+export const syncProxySchema = z.object({
+  action: z.enum(["push", "pull", "config"]),
+  deviceId: z.string().optional(),
+  changes: z.array(z.unknown()).optional(),
+  since: z.union([z.number(), z.string()]).optional(),
+  page: z.number().optional(),
+  config: z.unknown().optional(),
+}).passthrough();
+export type SyncProxyRequest = z.infer<typeof syncProxySchema>;

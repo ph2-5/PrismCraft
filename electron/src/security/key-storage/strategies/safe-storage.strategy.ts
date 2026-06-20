@@ -191,8 +191,10 @@ export class SafeStorageStrategy implements KeyStorageStrategy {
       try {
         decrypted = safeStorage.decryptString(Buffer.from(raw, "base64"));
       } catch {
-        logger.warn("Failed to decrypt with safeStorage, treating as plaintext");
-        decrypted = raw;
+        // 解密失败不应回退到明文：可能是文件被篡改或在不同机器上运行
+        // 返回空 JSON 强制重新初始化，避免明文凭据绕过加密保护
+        logger.warn("Failed to decrypt with safeStorage, returning empty (no plaintext fallback)");
+        decrypted = "{}";
       }
 
       const parsed = JSON.parse(decrypted);

@@ -27,6 +27,7 @@ let isPersistenceAvailable = true;
 let lastSaveTime = Date.now();
 let consecutiveSaveFailures = 0;
 let backupInterval: ReturnType<typeof setInterval> | null = null;
+let backupStartupTimer: ReturnType<typeof setTimeout> | null = null;
 let lastBackupTime = 0;
 
 const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -40,6 +41,7 @@ const VALID_TABLE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const SOFT_DELETE_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const SOFT_DELETE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 let softDeleteCleanupInterval: ReturnType<typeof setInterval> | null = null;
+let softDeleteStartupTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getPersistenceStatus(): { available: boolean; lastSave: number; failures: number } {
   return {
@@ -361,6 +363,14 @@ export function saveDatabase(): boolean {
 }
 
 export function closeDatabase(): void {
+  if (backupStartupTimer) {
+    clearTimeout(backupStartupTimer);
+    backupStartupTimer = null;
+  }
+  if (softDeleteStartupTimer) {
+    clearTimeout(softDeleteStartupTimer);
+    softDeleteStartupTimer = null;
+  }
   if (backupInterval) {
     clearInterval(backupInterval);
     backupInterval = null;
@@ -600,17 +610,21 @@ function cleanupBackups(): void {
 }
 
 function startScheduledBackup(): void {
-  if (backupInterval) return;
+  if (backupInterval || backupStartupTimer) return;
 
-  setTimeout(() => {
+  logger.info(`[DB] Scheduled backup will start in ${BACKUP_STARTUP_DELAY_MS}ms and repeat every ${BACKUP_INTERVAL_MS}ms`);
+  backupStartupTimer = setTimeout(() => {
+    backupStartupTimer = null;
     createBackup();
     backupInterval = setInterval(() => createBackup(), BACKUP_INTERVAL_MS);
   }, BACKUP_STARTUP_DELAY_MS);
 }
 
 function startSoftDeleteCleanup(): void {
-  if (softDeleteCleanupInterval) return;
-  setTimeout(() => {
+  if (softDeleteCleanupInterval || softDeleteStartupTimer) return;
+  logger.info(`[DB] Soft delete cleanup will start in ${CLEANUP_STARTUP_DELAY_MS}ms and repeat every ${SOFT_DELETE_CLEANUP_INTERVAL_MS}ms`);
+  softDeleteStartupTimer = setTimeout(() => {
+    softDeleteStartupTimer = null;
     performSoftDeleteCleanup();
     softDeleteCleanupInterval = setInterval(() => performSoftDeleteCleanup(), SOFT_DELETE_CLEANUP_INTERVAL_MS);
   }, CLEANUP_STARTUP_DELAY_MS);

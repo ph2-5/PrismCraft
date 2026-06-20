@@ -58,8 +58,9 @@ export async function getLibrary(): Promise<ElementLibrary> {
   const nextCode = { character: 1, prop: 1, effect: 1 };
   for (const element of elements) {
     const match = element.id.match(/_(\d+)$/);
-    if (match) {
-      const num = parseInt(match[1]!, 10);
+    if (match && match[1]) {
+      const num = parseInt(match[1], 10);
+      if (Number.isNaN(num)) continue;
       const type = element.type;
       if (num >= nextCode[type]) {
         nextCode[type] = num + 1;

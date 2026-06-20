@@ -242,7 +242,18 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 
   clearActiveTasks: async () => {
-    const activeIds = filterTasksByStatus(get().allTasks, ["pending", "generating"]).map((t) => t.taskId);
+    const activeTasks = filterTasksByStatus(get().allTasks, ["pending", "generating"]);
+    // 先逐个通知服务端取消（best-effort），避免服务端继续生成造成 token 浪费
+    for (const task of activeTasks) {
+      if (TaskMachine.isPollable(task.status)) {
+        try {
+          await get().cancelTask(task.taskId);
+        } catch (e) {
+          errorLogger.warn("[VideoTaskManager] clearActiveTasks 取消任务失败", e);
+        }
+      }
+    }
+    const activeIds = activeTasks.map((t) => t.taskId);
     if (activeIds.length === 0) return;
     try {
       await container.videoTaskStorage.batchDeleteVideoTasks(activeIds);
@@ -256,7 +267,18 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 
   clearAllTasks: async () => {
-    const taskIds = get().allTasks.map((t) => t.taskId);
+    const allTasks = get().allTasks;
+    // 先逐个通知服务端取消活跃任务（best-effort）
+    for (const task of allTasks) {
+      if (TaskMachine.isPollable(task.status)) {
+        try {
+          await get().cancelTask(task.taskId);
+        } catch (e) {
+          errorLogger.warn("[VideoTaskManager] clearAllTasks 取消任务失败", e);
+        }
+      }
+    }
+    const taskIds = allTasks.map((t) => t.taskId);
     try {
       await container.videoTaskStorage.clearVideoTasks();
       await clearCacheForTasks(taskIds);

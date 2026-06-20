@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Animation Studio — 创意提案</title>
+<style>
+  :root{
+    --bg:#fafafa;
+    --card:#ffffff;
+    --card-2:#f3f5f9;
+    --line:#e3e7ee;
+    --line-strong:#cfd5e1;
+    --text:#1f2430;
+    --text-2:#5a6478;
+    --text-3:#8a93a6;
+    --accent:#2f6fed;
+    --accent-soft:#e8efff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:0 28px}
+
+  /* top bar */
+  .topbar{border-bottom:1px solid var(--line);padding:14px 0;background:#fff;position:sticky;top:0;z-index:100}
+  .topbar-inner{display:flex;justify-content:space-between;align-items:center}
+  .logo{font-size:13px;font-weight:600;color:var(--text)}
+  .tag{font-size:11.5px;padding:3px 10px;border:1px solid var(--line-strong);border-radius:999px;color:var(--text-2);background:#fff}
+
+  /* hero */
+  .hero{padding:50px 0 40px;border-bottom:1px solid var(--line)}
+  .hero small{display:block;font-size:12px;color:var(--accent);letter-spacing:2px;font-weight:600;margin-bottom:14px;text-transform:uppercase}
+  .hero h1{font-size:26px;line-height:1.4;font-weight:700;margin-bottom:14px;color:var(--text)}
+  .hero p{font-size:14.5px;color:var(--text-2);line-height:1.8}
+  .hero-meta{margin-top:26px;display:flex;gap:32px;flex-wrap:wrap;padding-top:20px;border-top:1px dashed var(--line)}
+  .hero-meta .m{display:flex;flex-direction:column;gap:2px}
+  .hero-meta .v{font-size:18px;font-weight:700;color:var(--text)}
+  .hero-meta .lb{font-size:11.5px;color:var(--text-3);letter-spacing:1px}
+
+  /* sections */
+  section{padding:38px 0;border-bottom:1px solid var(--line)}
+  .sec-head{margin-bottom:22px}
+  .sec-head small{font-size:11.5px;letter-spacing:2px;color:var(--accent);font-weight:600;text-transform:uppercase;display:block;margin-bottom:8px}
+  .sec-head h2{font-size:19px;font-weight:700;line-height:1.4}
+  .sec-head p{font-size:14px;color:var(--text-2);margin-top:6px}
+
+  /* content block */
+  .block{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:12px}
+  .block-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;letter-spacing:0.5px}
+  .block p{font-size:13.5px;color:var(--text-2);line-height:1.8;margin-bottom:6px}
+  .block p:last-child{margin-bottom:0}
+  .block ul{font-size:13.5px;color:var(--text-2);line-height:1.9;padding-left:18px;margin-top:4px}
+  .block li{margin-bottom:2px}
+
+  /* feature grid */
+  .feature-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px}
+  .feature{background:var(--card-2);border:1px solid var(--line);border-radius:8px;padding:14px}
+  .feature .t{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .feature .d{font-size:12px;color:var(--text-3);line-height:1.6}
+
+  /* provider row */
+  .provider-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .provider{font-size:11.5px;padding:4px 10px;border:1px solid var(--line-strong);border-radius:6px;color:var(--text-2);background:#fff}
+
+  /* tech table */
+  .tech-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 20px;margin-top:10px}
+  .tech-item{font-size:13px;color:var(--text-2);display:flex;justify-content:space-between;padding:6px 10px;background:var(--card-2);border-radius:6px}
+  .tech-item .n{color:var(--text);font-weight:500;font-size:12.5px}
+
+  /* flow */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
+  .flow-step{background:var(--card-2);border:1px solid var(--line);border-radius:8px;padding:12px 10px;text-align:center;position:relative}
+  .flow-step .num{font-size:10.5px;color:var(--accent);font-weight:700;margin-bottom:4px;letter-spacing:1.5px}
+  .flow-step .nm{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+  .flow-step .ds{font-size:11px;color:var(--text-3);line-height:1.5}
+
+  /* numbered list with titles */
+  .nl{list-style:none;counter-reset:step}
+  .nl > li{counter-increment:step;margin-bottom:10px;padding-left:28px;position:relative}
+  .nl > li::before{content:counter(step);position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .nl .li-title{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .nl .li-body{font-size:13px;color:var(--text-2);line-height:1.8}
+  .nl ul{margin-top:6px;padding-left:18px}
+  .nl ul li{font-size:12.5px;color:var(--text-2);line-height:1.7}
+
+  /* roadmap */
+  .roadmap{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px}
+  .rm{background:var(--card-2);border:1px solid var(--line);border-radius:10px;padding:14px 12px}
+  .rm.now{border-color:#b8cdfa;background:#f0f5ff}
+  .rm .ph{font-size:10.5px;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:6px;text-transform:uppercase}
+  .rm.now .ph{color:#1f54c7}
+  .rm h4{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.4}
+  .rm ul{list-style:none}
+  .rm li{font-size:11.5px;color:var(--text-2);padding:2px 0;display:flex;gap:5px;align-items:flex-start}
+  .rm li::before{content:"·";color:var(--text-3);font-weight:700}
+
+  /* footer */
+  .footer{padding:24px 0 40px;color:var(--text-3);font-size:11.5px;text-align:center}
+
+  /* responsive */
+  @media(max-width:760px){
+    .wrap{padding:0 18px}
+    .hero{padding:36px 0 30px}
+    .hero h1{font-size:20px}
+    section{padding:28px 0}
+    .flow{grid-template-columns:repeat(2,1fr)}
+    .flow-step{padding:10px 8px}
+    .feature-grid,.tech-list,.roadmap{grid-template-columns:1fr}
+    .hero-meta{gap:18px}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap topbar-inner">
+  <div class="logo">AI Animation Studio</div>
+  <div class="tag">【学习工作赛道】 v0.10.0</div>
+</div></div>
+
+<header class="hero"><div class="wrap">
+  <small>创意提案</small>
+  <h1>AI 创作工作台 —— 把角色、场景、分镜结构化管理起来的 AI 视频素材生成器。</h1>
+  <p>一个本地优先的桌面应用，帮你在本地数据库里管理角色设定、场景资料、分镜编排和元素绑定，通过统一接口调用 13 家 AI 提供商，逐镜生成视频素材，最后导出可用于剪辑软件的素材包。</p>
+  <div class="hero-meta">
+    <div class="m"><div class="lb">产品形态</div><div class="v">桌面应用</div></div>
+    <div class="m"><div class="lb">本地数据库</div><div class="v">SQLite</div></div>
+    <div class="m"><div class="lb">内置 AI 提供商</div><div class="v">13 家</div></div>
+    <div class="m"><div class="lb">业务模块</div><div class="v">9 个</div></div>
+    <div class="m"><div class="lb">单元测试</div><div class="v">2300+</div></div>
+  </div>
+</div></header>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <small>01 · 为什么做这个</small>
+    <h2>遇到三个真实的麻烦</h2>
+    <p>做系列视频内容的创作者，大概都会碰到以下这些问题。</p>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="t">提示词和参考图要反复写、反复传</div>
+      <div class="d">同一个角色、同一个场景，在每个分镜的提示词里都要重写一遍描述，还要反复上传同一张参考图。改一次角色设定，意味着回头改十几个已经做好的分镜。</div>
+    </div>
+    <div class="feature">
+      <div class="t">素材散落在各家平台，版本混乱</div>
+      <div class="d">你在 A 平台生成的视频、B 平台生成的角色图、C 平台生成的配音，文件名随意，版本无记录。重做一个镜头时，之前的参考图可能已经找不到了。</div>
+    </div>
+    <div class="feature">
+      <div class="t">模型差异让人头大</div>
+      <div class="d">有的模型支持首末帧，有的不支持；有的需要角色图，有的不需要；有的要竖版参数，有的要横版。切换模型意味着重新了解一套体系。</div>
+    </div>
+    <div class="feature">
+      <div class="t">数据在云端，控制权不在你手上</div>
+      <div class="d">你辛苦搭建的角色设定、场景资料、分镜规划，全都保存在各个平台的服务器上。账号封停、平台关闭，数据就可能一起没了。</div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <small>02 · 面向谁</small>
+    <h2>给谁做的</h2>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="t">系列内容创作者</div>
+      <div class="d">想做系列视频内容，但没有经验从零搭建自己的工作流，也没有预算在多家平台反复试错。</div>
+    </div>
+    <div class="feature">
+      <div class="t">UP 主与独立创作者</div>
+      <div class="d">有持续产出角色 / 场景的需要，希望把这些信息系统化管理，而不是散落在笔记里。</div>
+    </div>
+    <div class="feature">
+      <div class="t">重视数据所有权的人</div>
+      <div class="d">不想把作品和角色数据留在第三方平台，希望所有创作信息都在本地。</div>
+    </div>
+    <div class="feature">
+      <div class="t">想快速验证创意的团队</div>
+      <div class="d">有了故事想法，希望用最短时间把它变成可视化的素材包，用于评估和后续剪辑。</div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <small>03 · 它做什么</small>
+    <h2>核心功能与使用流程</h2>
+  </div>
+
+  <div class="block">
+    <div class="block-title">典型的 5 步使用流程</div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="num">STEP 1</div>
+        <div class="nm">创建项目</div>
+        <div class="ds">在本地数据库创建一个新项目，所有数据独立保存。</div>
+      </div>
+      <div class="flow-step">
+        <div class="num">STEP 2</div>
+        <div class="nm">录入角色与场景</div>
+        <div class="ds">角色属性、服装、参考图只需录入一次，可复用。</div>
+      </div>
+      <div class="flow-step">
+        <div class="num">STEP 3</div>
+        <div class="nm">编排分镜并绑定元素</div>
+        <div class="ds">每个分镜绑定对应的角色和场景，系统级关联。</div>
+      </div>
+      <div class="flow-step">
+        <div class="num">STEP 4</div>
+        <div class="nm">自动调用 AI 生成</div>
+        <div class="ds">系统拼装提示词，统一调用 13 家 AI 提供商，逐镜生成视频素材，版本可回退。</div>
+      </div>
+      <div class="flow-step">
+        <div class="num">STEP 5</div>
+        <div class="nm">导出素材包</div>
+        <div class="ds">把项目整体导出，包含视频、参考图、元数据，直接导入剪辑软件。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-title">5 个核心能力</div>
+    <ol class="nl">
+      <li>
+        <div class="li-title">结构化内容管理</div>
+        <div class="li-body">角色不是提示词里的文字描述，而是可复用的资料卡 — 包含基本属性、多套服装与表情、参考图管理、特征锚定信息。场景同理，不是临时输入的文字，而是可跨项目复用的场景档案。分镜不是一行一行的提示，是绑定了角色和场景的结构化节点，提示词由系统自动拼装，不需要手动复制。角色和场景在分镜间保持一致，系统能比对前后生成结果并提醒角色外观漂移。</div>
+      </li>
+      <li>
+        <div class="li-title">视频素材生产与管理</div>
+        <div class="li-body">逐镜生成视频素材，每个分镜独立调用 AI 提供商。任务状态机覆盖待提交 / 已提交 / 生成中 / 已完成 / 失败 / 已取消的完整流程。失败可自动重试、可恢复到上次失败的那一镜继续，不需要重头生成。本地文件缓存避免重复调用 AI。对同一个分镜可以保存多个生成版本，可一键切换、对比、回退。</div>
+      </li>
+      <li>
+        <div class="li-title">多模型统一接入与插件系统</div>
+        <div class="li-body">内置 13 家主流 AI 提供商（快手可灵 Kling / Runway / Pika / Luma AI / Seedance / MiniMax / 智谱 AI / OpenAI & Sora / Anthropic Claude / Google Vertex / 火山引擎 / PixVerse / OpenAI 兼容）。两种插件方式：声明式 JSON 插件不加代码只写配置就能接入新提供商；沙箱隔离的代码插件运行在 vm 沙箱中，无权访问本地文件、不能发起内网请求，有 URL 白名单和 SSRF 防护。不管哪一家 AI，用户看到的都是同一套输入方式（提示词、时长、分辨率、参考图、运动强度、种子数等），系统内部做提供商间的参数翻译。每次 AI 调用都记录请求/响应、耗时、费用、错误信息，可配置每家的调用频率和每日/每月限额，发布新版本模型时能平滑切换。</div>
+      </li>
+      <li>
+        <div class="li-title">素材与版本管理</div>
+        <div class="li-body">逐镜导出视频文件 + 参考图 + 元数据 JSON，一键打包为剪辑软件可直接打开的文件夹结构。对多个分镜的生成结果做批量重命名、批量导出、批量清理。整个项目可打包迁移到另一台机器，包括所有角色、场景、分镜、素材、设置。</div>
+      </li>
+      <li>
+        <div class="li-title">Agent 对话助手</div>
+        <div class="li-body">告诉 Agent 你想用哪家 AI，它帮你配置好接口。生成失败时，Agent 分析错误信息并给出参数调整建议。根据你写的情节结构，主动提出分镜建议。</div>
+      </li>
+    </ol>
+  </div>
+
+  <div class="block">
+    <div class="block-title">13 家内置 AI 提供商</div>
+    <div class="provider-row">
+      <div class="provider">快手可灵 Kling</div>
+      <div class="provider">Runway</div>
+      <div class="provider">Pika</div>
+      <div class="provider">Luma AI</div>
+      <div class="provider">Seedance</div>
+      <div class="provider">MiniMax</div>
+      <div class="provider">智谱 AI</div>
+      <div class="provider">OpenAI / Sora</div>
+      <div class="provider">Anthropic Claude</div>
+      <div class="provider">Google Vertex</div>
+      <div class="provider">火山引擎</div>
+      <div class="provider">PixVerse</div>
+      <div class="provider">OpenAI 兼容（插件扩展）</div>
+    </div>
+    <p style="font-size:12.5px;color:var(--text-3);margin-top:10px">通过声明式 JSON 插件和沙箱隔离的代码插件两种方式扩展新提供商；支持统一参数翻译、调用日志与审计、速率限制、模型版本管理、配置模板保存。</p>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <small>04 · 价值与意义</small>
+    <h2>它能带来什么</h2>
+  </div>
+
+  <ol class="nl">
+    <li>
+      <div class="li-title">效率提升</div>
+      <div class="li-body">把角色 / 场景 / 分镜从提示词里拎出来，变成结构化数据。提示词由系统自动拼装，单分镜的生成准备时间大幅缩短。角色修改后，所有引用该角色的分镜自动同步，不需要手动回去改。</div>
+    </li>
+    <li>
+      <div class="li-title">降低创作门槛</div>
+      <div class="li-body">不需要了解各家 AI 模型的参数体系，不需要记住每个模型的差异，也不需要写代码。统一的界面调用主流提供商，专注内容而不是工具。</div>
+    </li>
+    <li>
+      <div class="li-title">数据主权</div>
+      <div class="li-body">所有角色、场景、分镜、素材记录存在本地 SQLite 数据库；API 密钥使用系统级加密存储（Windows Credential Manager / macOS Keychain）；项目可整体导出、备份、迁移。不需要云账号，不依赖任何平台。</div>
+    </li>
+  </ol>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <small>05 · 怎么做到的</small>
+    <h2>架构与技术选择</h2>
+  </div>
+
+  <div class="block">
+    <div class="block-title">技术栈</div>
+    <div class="tech-list">
+      <div class="tech-item"><span>桌面应用框架</span><span class="n">Electron 41</span></div>
+      <div class="tech-item"><span>UI 构建</span><span class="n">React 19 + Vite</span></div>
+      <div class="tech-item"><span>开发语言</span><span class="n">TypeScript 6（strict，零 any）</span></div>
+      <div class="tech-item"><span>状态管理</span><span class="n">Zustand + React Query</span></div>
+      <div class="tech-item"><span>Schema 校验</span><span class="n">Zod 4</span></div>
+      <div class="tech-item"><span>本地数据库</span><span class="n">better-sqlite3（WAL 模式）</span></div>
+      <div class="tech-item"><span>样式</span><span class="n">Tailwind CSS 4</span></div>
+      <div class="tech-item"><span>测试</span><span class="n">Vitest + Playwright</span></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-title">架构设计（DDD 六层架构）</div>
+    <ul>
+      <li><b>app 层</b> —— 页面组件和布局，是最终用户能看到的界面。</li>
+      <li><b>modules 层</b> —— 9 个业务模块（story、video、shot、character、scene、prompt、asset、sync、persistence），每个模块有明确定义的 public API 和不变量。</li>
+      <li><b>domain 层</b> —— 纯类型层，零外部依赖。定义所有业务实体的 Zod schemas 和 Port 接口。</li>
+      <li><b>shared-logic 层</b> —— 零外部依赖的纯逻辑层（提示词构建、一致性判断、视频参数、引用匹配）。可在主进程和渲染进程双向复用。</li>
+      <li><b>shared 层</b> —— 跨模块通用的 UI 组件、工具函数、常量。</li>
+      <li><b>infrastructure 层</b> —— 基础设施（DI 容器、存储、AI 提供商适配、网络防护）。</li>
+    </ul>
+    <p style="font-size:12.5px;color:var(--text-3);margin-top:10px">依赖方向由 ESLint 规则强制约束，跨模块由契约定义。修改一个模块时，系统会验证是否违反其他模块的不变量。</p>
+  </div>
+
+  <div class="block">
+    <div class="block-title">质量与安全</div>
+    <div class="feature-grid">
+      <div class="feature"><div class="t">2300+ 单元测试</div><div class="d">覆盖各模块的服务、hook、工具函数。</div></div>
+      <div class="feature"><div class="t">290+ E2E 测试</div><div class="d">Playwright 驱动的端到端测试。</div></div>
+      <div class="feature"><div class="t">严格类型检查</div><div class="d">TypeScript strict 模式，0 error。</div></div>
+      <div class="feature"><div class="t">架构扫描</div><div class="d">DDD 依赖方向检查脚本。</div></div>
+      <div class="feature"><div class="t">回归守卫</div><div class="d">104 条规则，8 大类。</div></div>
+      <div class="feature"><div class="t">SQL 安全</div><div class="d">参数化查询 + DDL 拦截 + 标识符白名单。</div></div>
+      <div class="feature"><div class="t">插件安全</div><div class="d">vm 沙箱 + 原型冻结 + 逃逸检测 + 进程隔离。</div></div>
+      <div class="feature"><div class="t">网络防护</div><div class="d">SSRF guard 拦截云元数据端点。</div></div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <small>06 · 怎么来的</small>
+    <h2>这个项目的由来</h2>
+  </div>
+
+  <div class="block">
+    <ul>
+      <li>最开始想做 AI 视频，但市面上的工具都太难上手了 —— 提示词重复写、素材散落在各家平台、换模型要重新学一套。那时候正好在研究 OpenClaw，就用它搭了一个最初的原型版本。</li>
+      <li>做着做着发现这个方向值得做完整一点，但 OpenClaw 的成本和打包后的白屏问题一直卡着解决不了，决定换方案。</li>
+      <li>转到 Trae Solo 后，之前卡住的白屏问题直接通了；之后就是在 Trae Solo 中多轮迭代、优化和重构，逐步形成现在的版本。</li>
+      <li>项目核心代码在 Trae Solo 中完成。从数据库 Schema 到各业务模块的服务、hook、组件，再到 13 家 AI 提供商的适配 —— 大部分实现都由 Trae 生成初版后再由人来调试和完善。</li>
+    </ul>
+  </div>
+
+  <div class="block" style="background:var(--accent-soft);border-color:#c7d7fa">
+    <div class="block-title" style="color:var(--accent)">对 AI 辅助开发的一点体会</div>
+    <p>最开始让 Trae 扫 bug，每次扫出来的都是一大堆；修完后再扫，又是新的一大堆。反复几轮之后意识到，这大概不是 bug 多的问题，是代码结构本身在阻碍改动——每修一个地方，好几个地方跟着崩。</p>
+    <p>于是让 Trae 做了一次高度模块化重构。重构完之后问 AI：从 AI 开发的角度看，这个架构有没有问题？AI 分析了当前结构，提出了 DDD 分层 + 子域化模块的方案。这个方案的核心逻辑是：每一层有明确的依赖方向，每个模块有自己的 public API 和不变量——这样 AI 改代码时不容易跨层误伤，出问题也能快速定位。</p>
+    <p>后续又陆续加了 contract.json（让 AI 每次改模块前先读契约）、回归防护规则库（修过的 bug 不犯第二次）、架构校验脚本（改错时立刻报错）。这些都不是一次性设计好的，是一轮一轮迭代长出来的。</p>
+    <p>最大的感受是：当大部分代码由 AI 辅助完成时，系统的可维护性不只取决于"人能不能看懂"，也取决于<b>"AI 能不能在改动时做出正确的最小判断"</b>。这也是目前还在继续摸索的方向。</p>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <small>07 · 接下来</small>
+    <h2>后续规划</h2>
+  </div>
+
+  <div class="roadmap">
+    <div class="rm now">
+      <div class="ph">当前阶段</div>
+      <h4>基础功能验证</h4>
+      <ul>
+        <li>角色 / 场景 / 分镜</li>
+        <li>元素绑定与一致性检查</li>
+        <li>13 家 AI 提供商统一调用</li>
+        <li>本地 SQLite 存储</li>
+      </ul>
+    </div>
+    <div class="rm">
+      <div class="ph">下一步</div>
+      <h4>大项目生产体验</h4>
+      <ul>
+        <li>快速预览模式（低分辨率先行）</li>
+        <li>分镜版本对比与一键回滚</li>
+        <li>批量管理，仅生成指定段落</li>
+        <li>更友好的导出格式，让剪辑软件直接打开</li>
+      </ul>
+    </div>
+    <div class="rm">
+      <div class="ph">中期</div>
+      <h4>角色与场景深度</h4>
+      <ul>
+        <li>角色服装库、表情库、多视角参考图</li>
+        <li>场景状态库（时间 / 天气 / 光线）</li>
+        <li>Agent 按情节结构建议镜头语言</li>
+        <li>元素绑定更深：服装状态随分镜同步</li>
+      </ul>
+    </div>
+    <div class="rm">
+      <div class="ph">长期</div>
+      <h4>专业工作台</h4>
+      <ul>
+        <li>Agent 工具链完善</li>
+        <li>项目模板库</li>
+        <li>素材分类、搜索、标签、跨项目复用</li>
+        <li>团队协作与同步（仍保持本地优先）</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<div class="footer wrap">
+  AI Animation Studio · v0.10.0 · 基于 Trae Solo 开发 · 本地优先
+</div>
+
+</body>
+</html>

@@ -4,6 +4,7 @@ import type net from "net";
 import path from "path";
 import fs from "fs";
 import url from "url";
+import os from "os";
 import { getLogger } from "./logging/logger";
 import { setupAssetHandlers } from "./handlers/assets";
 import { setupDatabaseHandlers } from "./handlers/database";
@@ -12,6 +13,7 @@ import { loadConfig, saveConfig } from "./handlers/config";
 import * as apiGateway from "./api-gateway";
 import { API_SERVER_PORT, DEV_SERVER_PORT } from "./config/ports";
 import { registerAllowedOrigin } from "./api-server";
+import { getAllUserDataDirs, isPathUnderAnyRoot } from "./app-paths";
 
 const logger = getLogger("main-common");
 
@@ -152,6 +154,13 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
   ipcMain.handle("shell:open-path", async (_event, filePath: string) => {
     if (!filePath || typeof filePath !== "string") {
       return { success: false, error: "Invalid path" };
+    }
+    // 路径白名单校验：仅允许打开用户数据目录及临时目录下的文件，防止打开任意系统路径/可执行文件
+    const allowedRoots = getAllUserDataDirs();
+    allowedRoots.push(os.tmpdir());
+    const resolvedPath = path.resolve(filePath);
+    if (!isPathUnderAnyRoot(resolvedPath, allowedRoots)) {
+      return { success: false, error: "Path is outside allowed directories" };
     }
     try {
       await shell.openPath(filePath);

@@ -85,9 +85,16 @@ export async function bulkPutVideoTasks(
   if (updateStatements.length > 0) {
     await safeTransaction(updateStatements);
   }
-  try {
-    await trackChange("video_task", taskIds[0]!, "insert");
-  } catch (e) {
-    errorLogger.warn("[Storage] trackChange failed for video_task:bulkInsert", e);
+  // 为每个任务正确记录变更：新增任务记录 insert，更新任务记录 update
+  const trackChanges: Promise<void>[] = [];
+  for (const task of tasks) {
+    const taskId = task.taskId as string;
+    const operation = existingIdSet.has(taskId) ? "update" : "insert";
+    trackChanges.push(
+      trackChange("video_task", taskId, operation).catch((e) => {
+        errorLogger.warn(`[Storage] trackChange failed for video_task:${operation}`, e);
+      }),
+    );
   }
+  await Promise.allSettled(trackChanges);
 }

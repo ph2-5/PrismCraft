@@ -63,8 +63,12 @@ function parseScene(record: Record<string, unknown>): Scene {
 
   const createdAtRaw = record.created_at;
   const updatedAtRaw = record.updated_at;
-  const createdAt = typeof createdAtRaw === "number" ? createdAtRaw * 1000 : (typeof createdAtRaw === "string" ? parseInt(createdAtRaw) * 1000 : now);
-  const updatedAt = typeof updatedAtRaw === "number" ? updatedAtRaw * 1000 : (typeof updatedAtRaw === "string" ? parseInt(updatedAtRaw) * 1000 : now);
+  const createdAt = typeof createdAtRaw === "number"
+    ? createdAtRaw * 1000
+    : (typeof createdAtRaw === "string" ? ((() => { const n = parseInt(createdAtRaw, 10); return Number.isNaN(n) ? now : n * 1000; })()) : now);
+  const updatedAt = typeof updatedAtRaw === "number"
+    ? updatedAtRaw * 1000
+    : (typeof updatedAtRaw === "string" ? ((() => { const n = parseInt(updatedAtRaw, 10); return Number.isNaN(n) ? now : n * 1000; })()) : now);
 
   return {
     id: record.id as string,

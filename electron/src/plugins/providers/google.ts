@@ -205,15 +205,16 @@ export class GooglePlugin
   }
 
   getAuthHeaders(
-    _apiKey: string,
+    apiKey: string,
     _endpoint?: string,
   ): Record<string, string> {
-    return {};
+    // 使用 header 传递 apiKey，避免 apiKey 出现在 URL query 中被日志/缓存记录
+    return { "x-goog-api-key": apiKey };
   }
 
-  appendAuthToUrl(url: string, apiKey: string): string {
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}key=${apiKey}`;
+  appendAuthToUrl(url: string, _apiKey: string): string {
+    // 不再将 apiKey 附加到 URL query，认证通过 header 传递
+    return url;
   }
 
   getVideoStatusEndpoint(

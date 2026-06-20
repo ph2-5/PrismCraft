@@ -2885,3 +2885,580 @@ async function cleanupLocalFiles(filePaths: string[]) {
 **Verification**: Mock `fileStorage.deleteFile` to reject. Verify: (1) path recorded in `orphan_files` table, (2) `recordOrphanFile` failure does not throw, (3) non-local paths skipped.
 
 **Discovered in**: Persistence service audit found file deletion failures were silently swallowed, leaving dangling files. Test: `src/modules/persistence/services/__tests__/r109-transactional-delete-orphan-tracking.test.ts`.
+
+### R110: schedulePolling MUST Clear Old Timer Before Setting New One
+
+`schedulePolling` in the polling engine MUST clear the existing `pollingTimeoutId` before setting a new timer. If `pollingTimeoutId` is `null`, the function MUST NOT throw. This prevents timer leaks that cause multiple polls to run concurrently.
+
+**BAD** — Timer leak, multiple concurrent polls:
+```typescript
+function schedulePolling(delay: number) {
+  pollingTimeoutId = setTimeout(poll, delay); // ❌ Old timer not cleared
+}
+```
+
+**GOOD** — Clear old timer first:
+```typescript
+function schedulePolling(delay: number) {
+  if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
+  pollingTimeoutId = setTimeout(poll, delay);
+}
+```
+
+**Verification**: Call `schedulePolling` twice rapidly. Verify `clearTimeout` is called once before the second `setTimeout`. Verify calling with `pollingTimeoutId === null` does not throw.
+
+**Discovered in**: Polling engine audit found timer leaks causing duplicate poll cycles. Test: `src/modules/video/task-management/hooks/internals/__tests__/r110-polling-schedule-clear-old-timer.test.ts`.
+
+### R111: Video Recovery MUST Dispatch Single Notification
+
+`recoverVideoByTaskId` in `src/modules/video/recovery/services/video-recovery-service.ts` MUST dispatch exactly one `"video-task-recovered"` event on success. It MUST NOT call `recoverTask` directly (which would cause double notification). After successful recovery, storage MUST be updated via `updateVideoTask`.
+
+**BAD** — Double notification:
+```typescript
+async function recoverVideoByTaskId(taskId: string) {
+  await recoverTask(taskId, status, url); // ❌ Dispatches event internally
+  window.dispatchEvent(new CustomEvent("video-task-recovered", ...)); // ❌ Duplicate
+}
+```
+
+**GOOD** — Single notification:
+```typescript
+async function recoverVideoByTaskId(taskId: string) {
+  await updateVideoTask(taskId, { status, videoUrl: url });
+  window.dispatchEvent(new CustomEvent("video-task-recovered", ...)); // Single dispatch
+}
+```
+
+**Verification**: Mock `recoverTask` and `updateVideoTask`. Verify `recoverVideoByTaskId` calls `updateVideoTask` (not `recoverTask`) and dispatches exactly one event.
+
+**Discovered in**: Video recovery audit found double notifications causing UI inconsistency. Test: `src/modules/video/recovery/services/__tests__/r111-video-recovery-single-notification.test.ts`.
+
+### R112: objectUrlRegistry MUST Enforce LRU 100-Entry Limit
+
+`registerObjectUrl` in `src/infrastructure/storage/video-cache.ts` MUST enforce `MAX_OBJECT_URLS` (100) limit. When the limit is exceeded, the oldest entry MUST be evicted and its blob URL MUST be revoked via `URL.revokeObjectURL`. Re-registering an existing `taskId` MUST update the entry (not create a new one, no eviction).
+
+**BAD** — Unbounded registry, memory leak:
+```typescript
+function registerObjectUrl(taskId: string, url: string) {
+  registry.set(taskId, url); // ❌ No limit, no eviction
+}
+```
+
+**GOOD** — LRU with eviction:
+```typescript
+function registerObjectUrl(taskId: string, url: string) {
+  if (registry.has(taskId)) {
+    registry.delete(taskId); // Move to end (most recent)
+  } else if (registry.size >= MAX_OBJECT_URLS) {
+    const [oldestKey, oldestUrl] = registry.entries().next().value;
+    URL.revokeObjectURL(oldestUrl);
+    registry.delete(oldestKey);
+  }
+  registry.set(taskId, url);
+}
+```
+
+**Verification**: Register 101 URLs. Verify: (1) registry size is 100, (2) first URL is evicted, (3) `URL.revokeObjectURL` called on evicted URL, (4) re-registering existing taskId does not trigger eviction.
+
+**Discovered in**: Video cache audit found unbounded object URL registry causing memory leaks. Test: `src/infrastructure/storage/__tests__/r112-object-url-registry-lru.test.ts`.
+
+### R113: cancelTask MUST Notify Provider (Best-Effort)
+
+`cancelTask` in `src/modules/video/task-management/hooks/use-video-task-manager.ts` MUST best-effort notify the server via `provider.cancelTask` before updating local state. If `provider.cancelTask` is `undefined`, it MUST NOT throw. If `provider.cancelTask` throws, local cancellation MUST still proceed.
+
+**BAD** — Local-only cancel, server keeps generating (token waste):
+```typescript
+async function cancelTask(taskId: string) {
+  set({ allTasks: tasks.filter(t => t.taskId !== taskId) }); // ❌ No server notification
+}
+```
+
+**GOOD** — Best-effort server notification:
+```typescript
+async function cancelTask(taskId: string) {
+  try {
+    await container.videoProvider?.cancelTask?.(taskId);
+  } catch (e) {
+    errorLogger.warn("Failed to cancel task on server side", e);
+  }
+  set({ allTasks: tasks.filter(t => t.taskId !== taskId) });
+}
+```
+
+**Verification**: Mock `provider.cancelTask`. Verify: (1) called before state update, (2) undefined provider does not throw, (3) provider throw does not block local cancel.
+
+**Discovered in**: Video task audit found local-only cancellation causing server to continue generating, wasting tokens. Test: `src/modules/video/task-management/hooks/__tests__/r113-cancel-task-notifies-provider.test.ts`.
+
+### R114: Recovery MUST Guard Against NaN Timestamps
+
+`startBackgroundRecovery` in `src/modules/video/recovery/services/video-recovery-service.ts` MUST validate `createdAt` and `lastPolledAt` timestamps when filtering eligible tasks. Tasks with `NaN` `createdAt` MUST be excluded from the recovery list. When `lastPolledAt` is `NaN`, the default `POLL_INTERVAL_MS` MUST be used as the interval. NaN `createdAt` tasks MUST log a warning.
+
+**BAD** — NaN timestamp causes incorrect filtering:
+```typescript
+const eligible = tasks.filter(t => Date.now() - t.createdAt > RECOVERY_THRESHOLD);
+// ❌ NaN createdAt passes filter (Date.now() - NaN = NaN, NaN > x = false, excluded incorrectly OR included if logic inverted)
+```
+
+**GOOD** — Explicit NaN guard:
+```typescript
+const eligible = tasks.filter(t => {
+  const created = Number(t.createdAt);
+  if (Number.isNaN(created)) {
+    errorLogger.warn("Task has invalid createdAt, excluding from recovery", { taskId: t.taskId });
+    return false;
+  }
+  return Date.now() - created > RECOVERY_THRESHOLD;
+});
+```
+
+**Verification**: Mock tasks with `createdAt: NaN`, `createdAt: "invalid"`, valid `createdAt`. Verify NaN tasks excluded, valid tasks included, warn logged.
+
+**Discovered in**: Recovery service audit found NaN timestamps causing incorrect recovery eligibility. Test: `src/modules/video/recovery/services/__tests__/r114-recovery-timestamp-nan-guard.test.ts`.
+
+### R115: useVideoTaskCommands MUST Delegate to Store Actions
+
+`useVideoTaskCommands` in `src/modules/video/task-management/hooks/use-video-task-commands.ts` MUST delegate all write operations (addTask, removeTask, createTask, cancelTask, clearActiveTasks, recoverTask, etc.) to `store.getState().xxx()`. It MUST NOT directly call `store.setState()` or `getStore().setAllTasks()`. This ensures `scheduleSync` and `checkAndStartOrStopPolling` are correctly invoked by the store actions.
+
+**BAD** — Bypass store actions, sync/polling not triggered:
+```typescript
+export function useVideoTaskCommands() {
+  const store = useVideoTaskStore;
+  return {
+    addTask: (task) => {
+      store.setState(state => ({ allTasks: [...state.allTasks, task] })); // ❌ No scheduleSync
+    },
+  };
+}
+```
+
+**GOOD** — Delegate to store actions:
+```typescript
+export function useVideoTaskCommands() {
+  const store = useVideoTaskStore;
+  return {
+    addTask: (task) => store.getState().addTask(task), // ✅ Triggers scheduleSync + polling
+  };
+}
+```
+
+**Verification**: Mock `store.getState()`. Verify each command calls the corresponding store action method.
+
+**Discovered in**: Commands layer audit found direct state mutation bypassing store actions, causing sync and polling to not trigger. Test: `src/modules/video/task-management/hooks/__tests__/regression-r115-commands-delegate-to-store.test.ts`.
+
+### R116: Sync Push-Pull MUST Be Atomic (markChangesSynced After Full Success)
+
+`markChangesSynced` MUST be called only after `push` + `pull` + `applyRemoteChanges` all succeed. It MUST NOT be called in the push phase. If pull or apply fails, local changes MUST NOT be marked as synced (otherwise data loss on next sync). `SyncPushResult` MUST include `syncedIds: string[]` for the caller to mark after full success.
+
+**BAD** — Early markChangesSynced, data loss on pull failure:
+```typescript
+async function pushChanges(changes) {
+  await proxyPush(changes);
+  await markChangesSynced(changes.map(c => c.id)); // ❌ Too early
+  const pullResult = await pullChanges(); // If this fails, changes marked as synced but not applied
+}
+```
+
+**GOOD** — Atomic markChangesSynced:
+```typescript
+async function performSync() {
+  const pushResult = await pushChanges(localChanges); // Returns syncedIds, does NOT mark
+  const pullResult = await pullChanges();
+  await applyRemoteChanges(pullResult.changes, deviceId);
+  // Only now, all phases succeeded
+  if (pushResult.syncedIds.length > 0) {
+    await markChangesSynced(pushResult.syncedIds);
+  }
+}
+```
+
+**Verification**: Mock push success, pull failure. Verify `markChangesSynced` NOT called. Mock all success. Verify `markChangesSynced` called with `syncedIds`.
+
+**Discovered in**: Sync engine audit found early `markChangesSynced` causing data loss when pull/apply fails. Test: `src/modules/sync/engine/__tests__/regression-r116-sync-push-pull-atomicity.test.ts`.
+
+### R117: Setup Functions MUST Be Idempotent
+
+The 4 setup functions in `src/modules/video/task-management/hooks/internals/task-initializer.ts` (`setupRecoveredEventListener`, `setupBackgroundRecoveryInterval`, `setupCacheCleanupInterval`, `setupBeforeUnloadHandler`) MUST be idempotent. Repeated calls MUST first clean up old resources (removeEventListener / clearInterval) before registering new ones. This prevents duplicate listeners and interval leaks.
+
+**BAD** — Duplicate listeners on repeated setup:
+```typescript
+export function setupRecoveredEventListener(store) {
+  window.addEventListener("video-task-recovered", handler); // ❌ No cleanup, duplicates on re-call
+}
+```
+
+**GOOD** — Idempotent with cleanup:
+```typescript
+export function setupRecoveredEventListener(store) {
+  if (pollingState.recoveredEventHandler) {
+    window.removeEventListener("video-task-recovered", pollingState.recoveredEventHandler);
+  }
+  pollingState.recoveredEventHandler = handler;
+  window.addEventListener("video-task-recovered", handler);
+}
+```
+
+**Verification**: Call each setup function twice. Verify `removeEventListener`/`clearInterval` called before second registration. Verify only one listener/interval active.
+
+**Discovered in**: Task initializer audit found non-idempotent setup functions causing duplicate listeners and interval leaks on HMR or re-initialization. Test: `src/modules/video/task-management/hooks/internals/__tests__/regression-r117-setup-functions-idempotent.test.ts`.
+
+### R118: HTTP Redirect MUST Validate SSRF (Protocol + Private Address)
+
+`cacheRemoteImageLocally` in `electron/src/api-gateway-utils.ts` MUST validate redirect targets when following HTTP redirects: (1) protocol MUST be `http://` or `https://` (block `file://`, `ftp://`, etc.), (2) target URL MUST NOT be a private/internal address (call `isPrivateUrl`). This prevents SSRF attacks via malicious redirect chains.
+
+**BAD** — Blind redirect following, SSRF vulnerability:
+```typescript
+if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+  client.get(res.headers.location, handleResponse); // ❌ No protocol or SSRF check
+}
+```
+
+**GOOD** — Validate redirect target:
+```typescript
+if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+  const redirectUrl = res.headers.location;
+  if (!redirectUrl.startsWith("http://") && !redirectUrl.startsWith("https://")) {
+    reject(new Error("Redirect to non-http protocol blocked"));
+    return;
+  }
+  if (await isPrivateUrl(redirectUrl)) {
+    reject(new Error("Redirect to private/internal URL blocked by SSRF guard"));
+    return;
+  }
+  // Follow redirect
+}
+```
+
+**Verification**: Mock HTTP redirect to `file://`, `ftp://`, `http://127.0.0.1`, `http://10.0.0.1`. Verify all rejected. Mock redirect to public HTTPS. Verify followed.
+
+**Discovered in**: Security audit found redirect SSRF vulnerability in image caching. Test: `electron/src/__tests__/regression-r118-redirect-ssrf-guard.test.ts`.
+
+### R119: openPath IPC MUST Validate Path Whitelist
+
+`shell:open-path` IPC handler in `electron/src/main-common.ts` MUST validate that the path is within user data directories or the system temp directory (`os.tmpdir()`). Paths outside allowed roots MUST be rejected. Empty or non-string paths MUST be rejected.
+
+**BAD** — No path validation, arbitrary file access:
+```typescript
+ipcMain.handle("shell:open-path", async (_event, filePath: string) => {
+  await shell.openPath(filePath); // ❌ No validation
+  return { success: true };
+});
+```
+
+**GOOD** — Whitelist validation:
+```typescript
+ipcMain.handle("shell:open-path", async (_event, filePath: string) => {
+  if (!filePath || typeof filePath !== "string") return { success: false, error: "Invalid path" };
+  const allowedRoots = [...getAllUserDataDirs(), os.tmpdir()];
+  if (!isPathUnderAnyRoot(path.resolve(filePath), allowedRoots)) {
+    return { success: false, error: "Path is outside allowed directories" };
+  }
+  await shell.openPath(filePath);
+  return { success: true };
+});
+```
+
+**Verification**: Test paths inside user data dir (allowed), outside (rejected), path traversal `../../../etc/passwd` (rejected), empty string (rejected).
+
+**Discovered in**: IPC security audit found `openPath` with no path validation allowing arbitrary file access. Test: `electron/src/__tests__/regression-r119-openpath-whitelist.test.ts`.
+
+### R120: Decryption Failure MUST NOT Fallback to Plaintext
+
+`safe-storage.strategy.ts` `load` method MUST return `"{}"` (empty JSON object) when `safeStorage.decryptString` fails. It MUST NOT return the raw (potentially plaintext) data. This prevents reading unencrypted data that may have been tampered with or planted.
+
+**BAD** — Plaintext fallback, security risk:
+```typescript
+try {
+  decrypted = safeStorage.decryptString(Buffer.from(raw, "base64"));
+} catch {
+  decrypted = raw; // ❌ Returns plaintext, attacker could plant unencrypted data
+}
+```
+
+**GOOD** — No plaintext fallback:
+```typescript
+try {
+  decrypted = safeStorage.decryptString(Buffer.from(raw, "base64"));
+} catch {
+  logger.warn("Failed to decrypt with safeStorage, returning empty (no plaintext fallback)");
+  decrypted = "{}"; // ✅ Safe default
+}
+```
+
+**Verification**: Mock `safeStorage.decryptString` to throw. Verify return value is `"{}"` (not raw). Verify warn logged.
+
+**Discovered in**: Key storage audit found plaintext fallback allowing attacker-planted unencrypted data to be read. Test: `electron/src/security/key-storage/strategies/__tests__/regression-r120-no-plaintext-fallback.test.ts`.
+
+### R121: pending→completed State Transition MUST Be Allowed
+
+`VALID_TRANSITIONS` in `src/modules/video/task-management/domain/task-machine.ts` MUST include `"completed"` in the `pending` array. This allows synchronous generation scenarios where the server returns a completed result immediately.
+
+**BAD** — Missing transition, false failure:
+```typescript
+const VALID_TRANSITIONS = {
+  pending: ["generating", "failed", "cancelled", "timeout"], // ❌ No "completed"
+};
+// Synchronous generation returns completed → transition rejected → false failure
+```
+
+**GOOD** — Allow pending→completed:
+```typescript
+const VALID_TRANSITIONS = {
+  pending: ["generating", "failed", "cancelled", "timeout", "completed"], // ✅
+};
+```
+
+**Verification**: `isValidTransition("pending", "completed")` MUST return `true`.
+
+**Discovered in**: State machine audit found missing `pending→completed` transition causing false failures in synchronous generation. Tests: `src/modules/video/task-management/domain/__tests__/task-machine.test.ts`, `src/__tests__/integration/full-pipeline.test.ts`.
+
+### R122: Batch Clear Tasks MUST Notify Server (cancelTask per Active Task)
+
+`clearActiveTasks` and `clearAllTasks` in `src/modules/video/task-management/hooks/use-video-task-manager.ts` MUST call `cancelTask` for each active (pending/generating) task before deleting. This is best-effort: if `cancelTask` fails, subsequent tasks MUST still be cancelled. This prevents the server from continuing to generate, wasting tokens.
+
+**BAD** — Local-only clear, server keeps generating:
+```typescript
+clearActiveTasks: async () => {
+  set({ allTasks: [] }); // ❌ No server notification, tokens wasted
+},
+```
+
+**GOOD** — Notify server per task:
+```typescript
+clearActiveTasks: async () => {
+  const activeTasks = filterTasksByStatus(get().allTasks, ["pending", "generating"]);
+  for (const task of activeTasks) {
+    if (TaskMachine.isPollable(task.status)) {
+      try { await get().cancelTask(task.taskId); }
+      catch (e) { errorLogger.warn("clearActiveTasks cancel failed", e); }
+    }
+  }
+  // Then delete
+},
+```
+
+**Verification**: Mock tasks with mixed statuses. Verify `cancelTask` called for each pending/generating task. Verify failure does not block subsequent cancels.
+
+**Discovered in**: Video task audit found batch clear without server notification causing token waste. Test: `src/modules/video/task-management/hooks/__tests__/regression-r122-clear-tasks-notifies-server.test.ts`.
+
+### R123: VM Sandbox MUST Lock Object.prototype.constructor
+
+`plugin-worker.ts` `SANITIZED_CODE_PREFIX` MUST lock `Object.prototype.constructor` to `Object` with `writable: false, configurable: false`. This prevents plugins from escaping the sandbox via the constructor chain (`({}).constructor.constructor("return process")()`).
+
+**BAD** — Constructor chain escape:
+```typescript
+// Without locking, plugin can escape:
+const process = ({}).constructor.constructor("return process")();
+process.exit(0); // ❌ Sandbox escaped
+```
+
+**GOOD** — Lock constructor:
+```typescript
+const SANITIZED_CODE_PREFIX = `
+(function() {
+  'use strict';
+  try {
+    Object.defineProperty(Object.prototype, 'constructor', {
+      value: Object, writable: false, configurable: false
+    });
+  } catch (e) { console.warn('Failed to lock constructor:', e); }
+`;
+```
+
+**Verification**: Verify `SANITIZED_CODE_PREFIX` contains `Object.defineProperty(Object.prototype, 'constructor', ...)`. Verify `writable: false, configurable: false`. Verify sandbox execution does not allow constructor chain escape.
+
+**Discovered in**: Plugin sandbox audit found constructor chain escape vulnerability. Test: `electron/src/plugins/__tests__/regression-r123-sandbox-constructor-lock.test.ts`.
+
+### R124: API Key MUST Be Passed via Header, Not URL Query
+
+Google provider in `electron/src/plugins/providers/google.ts` MUST pass the API key via `x-goog-api-key` header (`getAuthHeaders`), NOT via URL query parameter (`appendAuthToUrl` MUST return the URL unchanged). This prevents credentials from leaking into server logs, proxy caches, and browser history.
+
+**BAD** — API key in URL, leaks everywhere:
+```typescript
+appendAuthToUrl(url, apiKey) {
+  return `${url}?key=${apiKey}`; // ❌ Leaks to logs, caches, history
+}
+```
+
+**GOOD** — API key in header:
+```typescript
+getAuthHeaders(apiKey) {
+  return { "x-goog-api-key": apiKey }; // ✅ Not in URL
+}
+appendAuthToUrl(url, _apiKey) {
+  return url; // ✅ URL unchanged
+}
+```
+
+**Verification**: Verify `getAuthHeaders` returns `{ "x-goog-api-key": apiKey }`. Verify `appendAuthToUrl` returns URL without `key=` or `api_key=`.
+
+**Discovered in**: Plugin provider audit found API key in URL query causing credential leakage. Test: `electron/src/plugins/providers/__tests__/regression-r124-apikey-header-not-url.test.ts`.
+
+### R125: Import MUST Use ON CONFLICT DO UPDATE, Not INSERT OR REPLACE
+
+ASA import functions in `src/modules/asset/asset-library/asa-export-service.ts` MUST use `INSERT ... ON CONFLICT(id) DO UPDATE SET` (updating only imported fields). They MUST NOT use `INSERT OR REPLACE` (which replaces the entire row, clearing non-imported fields like metadata, user tags, etc.).
+
+**BAD** — INSERT OR REPLACE, metadata lost:
+```sql
+INSERT OR REPLACE INTO characters (id, name, ...) VALUES (?, ?, ...)
+-- ❌ Replaces entire row, non-imported fields (metadata, tags) set to NULL
+```
+
+**GOOD** — ON CONFLICT DO UPDATE, only imported fields updated:
+```sql
+INSERT INTO characters (id, name, ...) VALUES (?, ?, ...)
+ON CONFLICT(id) DO UPDATE SET
+  name = excluded.name, ... -- ✅ Only imported fields, metadata preserved
+```
+
+**Verification**: Mock `safeTransaction`, capture SQL. Verify SQL contains `ON CONFLICT(id) DO UPDATE SET` and does NOT contain `INSERT OR REPLACE`.
+
+**Discovered in**: Asset import audit found `INSERT OR REPLACE` clearing metadata on re-import. Test: `src/modules/asset/asset-library/__tests__/regression-r125-import-on-conflict.test.ts`.
+
+### R126: IPC Handler MUST NOT Return Credentials
+
+`handleSyncTest` in `electron/src/handlers/sync.ts` MUST NOT include `token` in its return value. The token is a long-lived sync server credential that should only be stored in the main process. Even if the server response includes `token`, it MUST be stripped before returning to the renderer.
+
+**BAD** — Token leaked to renderer:
+```typescript
+return {
+  success: true,
+  token: data.token, // ❌ Credential leak
+  message: "CONNECTION_SUCCESS",
+};
+```
+
+**GOOD** — No token in return:
+```typescript
+return {
+  success: true,
+  message: "CONNECTION_SUCCESS",
+  serverVersion: data.version,
+  latency,
+  // ✅ No token
+};
+```
+
+**Verification**: Mock server response with `token`. Verify return value does NOT have `token` property. Verify `success`, `message`, `serverVersion`, `latency` present.
+
+**Discovered in**: Sync handler audit found token returned to renderer, risking credential exposure. Test: `electron/src/__tests__/regression-r126-ipc-no-credential-leak.test.ts`.
+
+### R127: Persistence Operations MUST Be Debounced
+
+`useStoryPersistence` in `src/app/story/useStoryPersistence.ts` MUST debounce `updateVideoUrls` (500ms) to merge rapid successive changes. This prevents concurrent persistence race conditions. On unmount, the debounce timer MUST be cleared.
+
+**BAD** — No debounce, concurrent persistence race:
+```typescript
+useEffect(() => {
+  updateVideoUrls(); // ❌ Called on every change, concurrent writes
+}, [completedTaskUrls]);
+```
+
+**GOOD** — Debounced:
+```typescript
+const PERSIST_DEBOUNCE_MS = 500;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+useEffect(() => {
+  let cancelled = false;
+  debounceTimer = setTimeout(() => {
+    if (!cancelled) updateVideoUrls();
+  }, PERSIST_DEBOUNCE_MS);
+  return () => {
+    cancelled = true;
+    if (debounceTimer) clearTimeout(debounceTimer);
+  };
+}, [completedTaskUrls]);
+```
+
+**Verification**: Use fake timers. Trigger multiple rapid changes. Verify `updateVideoUrls` called once after 500ms. Verify unmount clears timer.
+
+**Discovered in**: Story persistence audit found concurrent writes causing race conditions. Test: `src/app/story/__tests__/regression-r127-persistence-debounce.test.ts`.
+
+### R128: IPC Handlers MUST Validate Input
+
+IPC handlers in `electron/src/handlers/config-storage.ts` and `electron/src/handlers/secure-config.ts` MUST runtime-validate input structure:
+- `config:metadata:save`: validate `providers` is object, `updatedAt` is finite number, `version` is non-negative integer
+- `config:history:restore`: validate `version` is non-negative integer
+- `secure-config:save`: validate `apiKey` is non-empty string, length ≤ 4096
+
+**BAD** — No validation, arbitrary object stored:
+```typescript
+ipcMain.handle("config:metadata:save", (_event, metadata) => {
+  return saveConfigMetadata(metadata); // ❌ Any object accepted
+});
+```
+
+**GOOD** — Runtime validation:
+```typescript
+function isValidConfigMetadata(v: unknown): v is ConfigMetadata {
+  // Validate structure
+}
+ipcMain.handle("config:metadata:save", (_event, metadata: unknown) => {
+  if (!isValidConfigMetadata(metadata)) return false;
+  return saveConfigMetadata(metadata);
+});
+```
+
+**Verification**: Pass invalid metadata (missing providers, string updatedAt). Verify returns `false`. Pass negative version. Verify returns `false`. Pass oversized apiKey. Verify returns `{ success: false }`.
+
+**Discovered in**: IPC security audit found handlers accepting arbitrary objects without validation. Test: `electron/src/__tests__/regression-r128-ipc-input-validation.test.ts`.
+
+### R129: JSON.parse on External Data MUST Be Wrapped in try/catch
+
+`processPendingRequests` in `src/infrastructure/ai-providers/offline-queue-ops.ts` MUST wrap `JSON.parse(request.payload)` in try/catch. On parse failure, the task MUST be marked as `failed` (permanent failure, not retried). The error MUST be logged. The exception MUST NOT propagate, which would abort the entire queue processing.
+
+**BAD** — Uncaught JSON.parse, queue stalls:
+```typescript
+const payload = JSON.parse(request.payload); // ❌ Throws on corrupt data, stops queue
+const success = await processor(request.type, payload);
+```
+
+**GOOD** — try/catch, mark as failed:
+```typescript
+let payload: Record<string, unknown>;
+try {
+  payload = JSON.parse(request.payload);
+} catch (e) {
+  await safeRun("UPDATE generation_tasks SET status = 'failed' WHERE id = ?", [request.id]);
+  errorLogger.warn("Payload parse failed", e);
+  continue; // ✅ Process next task
+}
+```
+
+**Verification**: Mock `safeQuery` to return task with corrupt JSON payload. Verify task marked as `failed`. Verify no exception thrown. Verify subsequent tasks still processed.
+
+**Discovered in**: Offline queue audit found corrupt payload stalling entire queue. Test: `src/infrastructure/ai-providers/__tests__/regression-r129-json-parse-try-catch.test.ts`.
+
+### R130: Timers MUST Be Cleared on Database Close
+
+`closeDatabase` in `electron/src/database/db-connection.ts` MUST clear all 4 timers: `backupStartupTimer`, `softDeleteStartupTimer`, `backupInterval`, `softDeleteCleanupInterval`. `startScheduledBackup` and `startSoftDeleteCleanup` MUST be idempotent (not create duplicate timers on repeated calls).
+
+**BAD** — Timers not cleared, fire after close:
+```typescript
+function startScheduledBackup() {
+  setTimeout(() => { createBackup(); }, 5000); // ❌ Not saved, can't clear
+}
+export function closeDatabase() {
+  // ❌ No timer cleanup
+  db.close();
+}
+```
+
+**GOOD** — Save and clear timers:
+```typescript
+let backupStartupTimer: ReturnType<typeof setTimeout> | null = null;
+function startScheduledBackup() {
+  if (backupStartupTimer || backupInterval) return; // Idempotent
+  backupStartupTimer = setTimeout(() => { ... }, 5000);
+}
+export function closeDatabase() {
+  if (backupStartupTimer) { clearTimeout(backupStartupTimer); backupStartupTimer = null; }
+  if (softDeleteStartupTimer) { clearTimeout(softDeleteStartupTimer); softDeleteStartupTimer = null; }
+  if (backupInterval) { clearInterval(backupInterval); backupInterval = null; }
+  if (softDeleteCleanupInterval) { clearInterval(softDeleteCleanupInterval); softDeleteCleanupInterval = null; }
+  db.close();
+}
+```
+
+**Verification**: Spy on `clearTimeout`/`clearInterval`. Call `closeDatabase`. Verify all 4 timers cleared. Call `startScheduledBackup` twice. Verify only one timer created.
+
+**Discovered in**: Database lifecycle audit found startup timers not cleared on close, causing backup to fire after shutdown. Test: `electron/src/database/__tests__/regression-r130-timer-cleanup-on-close.test.ts`.

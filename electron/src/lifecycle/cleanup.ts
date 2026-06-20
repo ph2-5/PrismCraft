@@ -1,5 +1,5 @@
 import type { BrowserWindow } from "electron";
-import { getLogger } from "../logging/logger";
+import { getLogger, loggerRegistry } from "../logging/logger";
 import { closeDatabase } from "../database";
 import { stopApiServer } from "../api-server";
 import { closeStaticServer } from "../main-common";
@@ -55,4 +55,12 @@ export async function performCleanup(options: CleanupOptions): Promise<void> {
   }
 
   logger.info("[Lifecycle] Cleanup completed");
+
+  // 最后关闭日志 transport（清理 flushTimer 和 beforeExit 监听器，flush 残留日志）
+  // 必须在所有其他清理之后，因为前面的步骤需要 logger 记录日志
+  try {
+    await loggerRegistry.closeAllTransports();
+  } catch (error) {
+    console.error("[Lifecycle] Failed to close logger transports:", error);
+  }
 }

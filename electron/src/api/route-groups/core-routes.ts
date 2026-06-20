@@ -9,6 +9,9 @@ import {
   exportSchema,
   configGetSchema,
   configSetSchema,
+  uploadSchema,
+  syncTestSchema,
+  syncProxySchema,
 } from "../schemas";
 import {
   validateConfigKey,
@@ -70,6 +73,7 @@ export const coreRoutes: Record<string, Route> = {
   }),
 
   upload: defineRoute({
+    schema: uploadSchema,
     handler: (_m, b) => apiGateway.handleUpload(b),
     methods: ["POST"],
   }),
@@ -79,8 +83,16 @@ export const coreRoutes: Record<string, Route> = {
     methods: ["POST"],
   }),
   "sync/config": defineRoute({ handler: handleSyncConfig, methods: ["GET", "POST"] }),
-  "sync/test": defineRoute({ handler: handleSyncTest, methods: ["POST"] }),
-  "sync/proxy": defineRoute({ handler: handleSyncProxy, methods: ["POST"] }),
+  "sync/test": defineRoute({
+    schema: syncTestSchema,
+    handler: handleSyncTest,
+    methods: ["POST"],
+  }),
+  "sync/proxy": defineRoute({
+    schema: syncProxySchema,
+    handler: handleSyncProxy,
+    methods: ["POST"],
+  }),
   export: defineRoute({
     schema: exportSchema,
     handler: async (_m, b) => {

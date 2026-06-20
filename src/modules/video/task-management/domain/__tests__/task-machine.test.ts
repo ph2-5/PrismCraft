@@ -18,7 +18,8 @@ describe("TaskMachine", () => {
     it.each([
       ["pending", "generating", true],
       ["pending", "failed", true],
-      ["pending", "completed", false],
+      // 允许 pending → completed：同步生成场景下服务端可能立即返回完成
+      ["pending", "completed", true],
       ["pending", "cancelled", true],
       ["pending", "retrying", false],
       ["generating", "completed", true],
@@ -72,13 +73,14 @@ describe("TaskMachine", () => {
     });
 
     it("should return err for invalid transition", () => {
-      const task = makeTask({ status: "pending" });
+      // cancelled 是终态，不允许任何转换
+      const task = makeTask({ status: "cancelled" });
       const result = TaskMachine.transition(task, "completed");
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.message).toContain("不允许从");
-        expect(result.error.message).toContain("pending");
+        expect(result.error.message).toContain("cancelled");
         expect(result.error.message).toContain("completed");
       }
     });

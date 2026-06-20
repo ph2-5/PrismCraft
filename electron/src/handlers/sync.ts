@@ -144,11 +144,12 @@ async function handleSyncTest(
 
     if (response.statusCode === 200) {
       const data = response.data as Record<string, unknown>;
+      // 不返回 token 到前端：token 是同步服务器长期凭据，应由主进程保存
+      // 前端只需知道连接是否成功及服务器版本
       return {
         success: true,
         message: "CONNECTION_SUCCESS",
         serverVersion: data.version as string | undefined,
-        token: data.token as string | undefined,
         latency,
       };
     }

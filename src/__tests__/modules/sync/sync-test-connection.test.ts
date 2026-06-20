@@ -67,7 +67,7 @@ describe("sync-test-connection", () => {
     });
   });
 
-  it("成功测试连接应返回 token、serverVersion、latency", async () => {
+  it("成功测试连接应返回 serverVersion、latency（不返回 token）", async () => {
     const result = await handleSyncTest("POST", {
       url: "https://sync.example.com",
       username: "admin",
@@ -75,7 +75,7 @@ describe("sync-test-connection", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.token).toBe("auth-token-123");
+    expect(result.token).toBeUndefined();
     expect(result.serverVersion).toBe("v1.0.0");
     expect(result.latency).toBeDefined();
     expect(typeof result.latency).toBe("number");

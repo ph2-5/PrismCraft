@@ -275,8 +275,15 @@ async function importCharacters(
     const statements: Array<{ sql: string; params: unknown[] }> = [];
 
     for (const char of data.characters) {
+      // 使用 ON CONFLICT DO UPDATE 只更新导入的字段，保留已存在记录的其他列（gender/age/style 等）
       statements.push({
-        sql: "INSERT OR REPLACE INTO characters (id, name, description, ref_image_path, avatar_path, thumbnail_path, preview_path, generated_image, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        sql: `INSERT INTO characters (id, name, description, ref_image_path, avatar_path, thumbnail_path, preview_path, generated_image, created_at, updated_at)
+ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ ON CONFLICT(id) DO UPDATE SET
+   name = excluded.name, description = excluded.description,
+   ref_image_path = excluded.ref_image_path, avatar_path = excluded.avatar_path,
+   thumbnail_path = excluded.thumbnail_path, preview_path = excluded.preview_path,
+   generated_image = excluded.generated_image, updated_at = excluded.updated_at`,
         params: [
           char.id, char.name, char.description,
           char.ref_image_path ?? null, char.avatar_path ?? null,
@@ -288,7 +295,11 @@ async function importCharacters(
 
     for (const outfit of data.outfits) {
       statements.push({
-        sql: "INSERT OR REPLACE INTO character_outfits (id, character_id, name, image_url, local_image_path, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        sql: `INSERT INTO character_outfits (id, character_id, name, image_url, local_image_path, created_at)
+ VALUES (?, ?, ?, ?, ?, ?)
+ ON CONFLICT(id) DO UPDATE SET
+   character_id = excluded.character_id, name = excluded.name,
+   image_url = excluded.image_url, local_image_path = excluded.local_image_path`,
         params: [
           outfit.id, outfit.character_id, outfit.name,
           outfit.image_url ?? null, outfit.local_image_path ?? null,
@@ -309,8 +320,14 @@ async function importScenes(
     const statements: Array<{ sql: string; params: unknown[] }> = [];
 
     for (const scene of data.scenes) {
+      // 使用 ON CONFLICT DO UPDATE 只更新导入的字段，保留已存在记录的其他列（type/source/appearance 等）
       statements.push({
-        sql: "INSERT OR REPLACE INTO scenes (id, name, description, ref_image_path, generated_image, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        sql: `INSERT INTO scenes (id, name, description, ref_image_path, generated_image, created_at, updated_at)
+ VALUES (?, ?, ?, ?, ?, ?, ?)
+ ON CONFLICT(id) DO UPDATE SET
+   name = excluded.name, description = excluded.description,
+   ref_image_path = excluded.ref_image_path, generated_image = excluded.generated_image,
+   updated_at = excluded.updated_at`,
         params: [
           scene.id, scene.name, scene.description,
           scene.ref_image_path ?? null, scene.generated_image ?? null,
@@ -331,15 +348,24 @@ async function importStoryboards(
     const statements: Array<{ sql: string; params: unknown[] }> = [];
 
     for (const sb of data.storyboards) {
+      // 使用 ON CONFLICT DO UPDATE 只更新导入的字段，保留已存在记录的其他列
       statements.push({
-        sql: "INSERT OR REPLACE INTO stories (id, title, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        sql: `INSERT INTO stories (id, title, description, created_at, updated_at)
+ VALUES (?, ?, ?, ?, ?)
+ ON CONFLICT(id) DO UPDATE SET
+   title = excluded.title, description = excluded.description,
+   updated_at = excluded.updated_at`,
         params: [sb.id, sb.title, sb.description, sb.created_at, sb.updated_at],
       });
     }
 
     for (const beat of data.beats) {
       statements.push({
-        sql: 'INSERT OR REPLACE INTO story_beats (id, story_id, title, content, "order", duration, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        sql: `INSERT INTO story_beats (id, story_id, title, content, "order", duration, created_at)
+ VALUES (?, ?, ?, ?, ?, ?, ?)
+ ON CONFLICT(id) DO UPDATE SET
+   story_id = excluded.story_id, title = excluded.title, content = excluded.content,
+   "order" = excluded."order", duration = excluded.duration`,
         params: [beat.id, beat.story_id, beat.title, beat.content, beat.order, beat.duration, beat.created_at],
       });
     }
@@ -357,7 +383,11 @@ async function importCollections(
 
     for (const col of data.collections) {
       statements.push({
-        sql: "INSERT OR REPLACE INTO asset_collections (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        sql: `INSERT INTO asset_collections (id, name, description, created_at, updated_at)
+ VALUES (?, ?, ?, ?, ?)
+ ON CONFLICT(id) DO UPDATE SET
+   name = excluded.name, description = excluded.description,
+   updated_at = excluded.updated_at`,
         params: [col.id, col.name, col.description, col.created_at, col.updated_at],
       });
     }

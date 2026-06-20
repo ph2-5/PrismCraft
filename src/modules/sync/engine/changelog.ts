@@ -429,10 +429,15 @@ export async function getSyncStatus(): Promise<SyncStatusInfo> {
       }
     }
 
+    const lastSyncRaw = (meta[0] as Record<string, unknown>)?.value;
+    let lastSyncAt: number | null = null;
+    if (typeof lastSyncRaw === "string") {
+      const n = parseInt(lastSyncRaw, 10);
+      lastSyncAt = Number.isNaN(n) ? null : n;
+    }
+
     return {
-      lastSyncAt: (meta[0] as Record<string, unknown>)?.value
-        ? parseInt((meta[0] as Record<string, unknown>).value as string)
-        : null,
+      lastSyncAt,
       pendingChanges:
         ((pending[0] as Record<string, unknown>)?.count as number) || 0,
       conflicts: totalConflicts,

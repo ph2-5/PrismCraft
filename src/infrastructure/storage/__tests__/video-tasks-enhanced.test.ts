@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { DbRunResult } from "@/domain/ports/sync-port";
 
 const {
@@ -168,7 +168,8 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
         sql: string;
         params: unknown[];
       }[];
-      expect(statements.length).toBe(2);
+      // 3 个语句：video_cache 删除 + video_tasks 删除 + story_beats json_remove 更新
+      expect(statements.length).toBe(3);
       expect(statements[0]!.sql).toContain("DELETE FROM video_cache");
       expect(statements[1]!.sql).toContain("DELETE FROM video_tasks");
     });
@@ -206,7 +207,8 @@ describe("videoTaskStorage - 存储操作业务规则", () => {
         sql: string;
         params: unknown[];
       }[];
-      expect(statements.length).toBe(2);
+      // 3 个语句：video_tasks 删除 + video_cache 删除 + story_beats json_remove 更新
+      expect(statements.length).toBe(3);
       expect(statements[0]!.sql).toContain("DELETE FROM video_tasks");
       expect(statements[1]!.sql).toContain("DELETE FROM video_cache");
     });

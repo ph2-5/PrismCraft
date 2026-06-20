@@ -47,7 +47,8 @@ export async function trackChange(
     try {
       await changeTracker(entityType, entityId, operation);
     } catch (error) {
-      errorLogger.warn(
+      // 同步变更记录失败会导致多设备数据不一致，使用 error 级别确保可见
+      errorLogger.error(
         `[Storage] trackChange failed for ${entityType}:${entityId} - ${error instanceof Error ? error.message : String(error)}`,
       );
     }

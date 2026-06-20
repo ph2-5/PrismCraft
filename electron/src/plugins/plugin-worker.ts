@@ -50,8 +50,8 @@ const SANITIZED_CODE_PREFIX = `
 (function() {
   'use strict';
   const _origConstructor = this.constructor;
-  Object.defineProperty(this, 'constructor', { value: Object, writable: false, configurable: false });
-  try { Object.defineProperty(Object.prototype, 'constructor', { value: Object, writable: true, configurable: true }); } catch {}
+  // 阻止 constructor 链逃逸：将 Object.prototype.constructor 锁定为 Object，不可重写
+  try { Object.defineProperty(Object.prototype, 'constructor', { value: Object, writable: false, configurable: false }); } catch (e) { console.warn('[plugin-worker] Failed to lock Object.prototype.constructor:', e); }
 `;
 
 const SANITIZED_CODE_SUFFIX = `
@@ -64,7 +64,8 @@ function freezePrototype<T extends object>(obj: T): T {
     if (proto && proto !== Object.prototype) {
       Object.freeze(proto);
     }
-  } catch {
+  } catch (e) {
+    console.warn("[plugin-worker] freezePrototype failed:", e);
   }
   return obj;
 }
@@ -141,6 +142,17 @@ function loadPlugin(filePath: string, callId: string): void {
       /Reflect\.(get|set|construct|apply)/,
       /arguments\.callee/,
       /import\s*\(/,
+      // 字符串拼接逃逸检测：阻止通过拼接构造 require/process 等敏感词
+      /['"]\s*\+\s*['"]\s*(?:req|pro|glob|req)/i,
+      // Unicode 转义逃逸：\u0072\u0065\u0071... 拼接成 require
+      /\\u00[0-9a-f]{2}\\u00[0-9a-f]{2}\\u00[0-9a-f]{2}/i,
+      // String.fromCharCode 拼接逃逸
+      /String\.fromCharCode/,
+      // eval/Function 构造器逃逸
+      /\beval\s*\(/,
+      /\bnew\s+Function\b/,
+      // Buffer 构造逃逸
+      /Buffer\.from\s*\(\s*\[/,
     ];
     for (const pattern of escapePatterns) {
       if (pattern.test(rawCode)) {
@@ -185,7 +197,8 @@ function loadPlugin(filePath: string, callId: string): void {
       Map: undefined,
       Set: undefined,
       Proxy: undefined,
-      Promise,
+      // Promise 保留但冻结原型，防止通过 then 回调中的 this/arguments 逃逸
+      Promise: freezePrototype(Promise),
       Reflect: undefined,
       Symbol: undefined,
       WeakMap: undefined,
@@ -219,14 +232,20 @@ function loadPlugin(filePath: string, callId: string): void {
       for (const key of ["Object", "Array", "Function", "Error", "TypeError", "RangeError", "RegExp", "String", "Number", "Boolean", "Date", "Promise"]) {
         const ctor = sandboxObj[key];
         if (ctor && typeof ctor === "function") {
-          freezePrototype(ctor as object);
+          const fn = ctor as (...args: unknown[]) => unknown;
+          freezePrototype(fn as object);
           try {
-            Object.freeze((ctor as unknown as Record<string, unknown>).prototype);
-          } catch {
+            const proto = fn.prototype;
+            if (proto && typeof proto === "object") {
+              Object.freeze(proto);
+            }
+          } catch (e) {
+            console.warn(`[plugin-worker] Failed to freeze prototype for ${key}:`, e);
           }
         }
       }
-    } catch {
+    } catch (e) {
+      console.warn("[plugin-worker] Sandbox hardening failed:", e);
     }
 
     vm.runInContext(code, sandbox, {

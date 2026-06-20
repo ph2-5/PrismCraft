@@ -60,3 +60,59 @@
 新增 DI: syncEngine token (E 类懒加载)
 新增 ESLint: no-direct-db-ipc (modules 层禁止 IPC 数据库操作)
 ```
+
+### [2026-06-20] 全项目底层代码逻辑问题审计与修复 — 已完成
+
+**审计范围**：全项目底层代码逻辑问题（安全、数据完整性、状态同步、资源生命周期、IPC/API、业务逻辑、中危问题）
+
+**修复阶段**：
+1. **阶段1-3（致命问题）**：安全漏洞、数据完整性、数据持久化（前序会话已完成）
+2. **阶段4（状态同步高危）**：commands 委托 store action、sync push-pull 原子性、useStoryPersistence debounce
+3. **阶段5（资源生命周期高危）**：FileTransport flush 失败回队列、closeAllTransports、setup 函数幂等
+4. **阶段6（IPC/API 安全高危）**：重定向 SSRF、openPath 白名单、token 不返回、解密不回退明文、base64 回退移除、providerId 校验、sync Zod schema
+5. **阶段7（业务逻辑高危）**：pending→completed 转换、批量取消通知服务端、沙箱 constructor 锁定、apiKey header 传递、INSERT OR REPLACE → ON CONFLICT
+6. **阶段8（中危问题）**：输入验证（config-storage/secure-config）、边界条件 NaN 检查（scenes/changelog/queries/s3-file-storage/error-logger/database/ssrf-guard）、资源释放（db-connection 定时器）、错误处理（plugin-worker catch 日志）、并发（download-manager 重复调度）、日志可观测性、SQL 注释剥离、shared-logic-resolve 运行时检查
+
+**回归防护**：
+- 新增 R110-R130 共 21 条回归规则（R110-R114 为补全已有测试的规则文档，R115-R130 为本次新增）
+- 创建 15 个回归测试文件，全部通过验证
+- 更新 regression-guards.md（总计 130 条规则）和 regression/index.md 分类索引
+
+**修改文件清单**（阶段4-8）：
+- `src/modules/video/task-management/hooks/use-video-task-commands.ts` — 委托 store action
+- `src/domain/types/sync.ts` — SyncPushResult.syncedIds 字段
+- `src/modules/sync/engine/sync-protocol.ts` — 移除提前 markChangesSynced
+- `src/modules/sync/engine/sync-engine-class.ts` — 原子化 markChangesSynced
+- `src/app/story/useStoryPersistence.ts` — 500ms debounce
+- `electron/src/logging/transports/file.transport.ts` — flush 失败回队列
+- `electron/src/logging/logger.ts` — closeAllTransports
+- `electron/src/lifecycle/cleanup.ts` — 关闭 logger transport
+- `src/modules/video/task-management/hooks/internals/task-initializer.ts` — 4个 setup 幂等
+- `electron/src/api-gateway-utils.ts` — 重定向 SSRF 校验
+- `electron/src/main-common.ts` — openPath 路径白名单
+- `electron/src/handlers/sync.ts` — 移除 token 返回
+- `electron/src/security/key-storage/strategies/safe-storage.strategy.ts` — 不回退明文
+- `electron/src/handlers/config.ts` — 移除 base64 回退
+- `electron/src/handlers/secure-config.ts` — providerId + apiKey 校验
+- `electron/src/api/schemas.ts` — syncTestSchema/syncProxySchema
+- `electron/src/api/route-groups/core-routes.ts` — 绑定 sync schema
+- `src/modules/video/task-management/domain/task-machine.ts` — pending→completed
+- `src/modules/video/task-management/hooks/use-video-task-manager.ts` — 批量取消通知
+- `electron/src/plugins/plugin-worker.ts` — constructor 锁定 + catch 日志
+- `electron/src/plugins/providers/google.ts` — apiKey header
+- `src/modules/asset/asset-library/asa-export-service.ts` — ON CONFLICT DO UPDATE
+- `electron/src/handlers/config-storage.ts` — 输入校验 + 审计日志
+- `src/infrastructure/ai-providers/offline-queue-ops.ts` — JSON.parse try/catch + 日志
+- `src/infrastructure/storage/scenes.ts` — parseInt NaN 检查
+- `src/modules/sync/engine/changelog.ts` — lastSyncAt NaN 检查
+- `src/infrastructure/storage/elements/queries.ts` — nextCode NaN 检查
+- `src/infrastructure/storage/s3-file-storage.ts` — size/timestamp NaN 检查
+- `src/shared/error-logger.ts` — 移除非空断言
+- `electron/src/handlers/database.ts` — SQL 注释剥离 + 空检查
+- `electron/src/security/ssrf-guard/ssrf-guard.ts` — IPv6 NaN 检查
+- `electron/src/database/db-connection.ts` — 定时器清理 + 启动日志
+- `electron/src/plugins/plugin-process-manager.ts` — kill 错误日志
+- `src/infrastructure/network/download-manager.ts` — 重复调度防护
+- `electron/src/shared-logic-resolve.ts` — _resolveFilename 运行时检查
+
+**验证结果**：typecheck + typecheck:electron + lint + lint:arch 全部通过，222 测试文件 4201 测试通过（含新增 15 个回归测试）

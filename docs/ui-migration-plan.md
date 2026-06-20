@@ -1,56 +1,53 @@
-# UI 迁移计划 — PrismCraft
+# UI 重构计划 — PrismCraft
 
-> **目标**：将现有 9 个页面从旧布局迁移到 `design-preview.html` 定义的新设计，**不新增功能**，只改布局、视觉、信息架构。
-> **参考**：`design-preview.html`（17 个页面预览，261KB）
-> **工期**：约 12-18 天（4 个 Phase）
-> **原则**：先搭骨架（侧栏+路由），再逐页迁移，每 Phase 可独立验证。
+> **目标**：以 `design-preview.html` 为设计标准，对现有代码进行**重构**，使实现与设计完全对齐。不保留旧布局，不是渐进式迁移，而是以原型为唯一标准重写。
+> **参考**：`design-preview.html`（完整交互原型）
+> **工期**：约 20-30 天（4 个 Phase）
+> **原则**：原型即标准，先搭骨架（侧栏+路由），再逐页重构，每 Phase 可独立验证。
 
 ---
 
 ## TL;DR
 
 ```
-Phase A (3-4天): 侧栏分组重构 + 路由扩展 + AI状态面板
-Phase B (4-6天): 分镜编辑器三栏重构（工作量最大）
-Phase C (3-4天): 首页仪表盘 + 素材库分类树 + 设置页拆分
-Phase D (2-4天): 角色场景视觉微调 + 项目列表独立路由 + 收尾打磨
+Phase A (4-6天): 侧栏简化重构 + 路由重组 + 快捷键栏
+Phase B (6-8天): 分镜编辑器四栏重构（工作量最大，分镜列表|提示词|元素绑定|预览）
+Phase C (5-8天): 品牌首页重构 + 素材库分类树 + 设置页拆分
+Phase D (4-6天): 角色/场景详情面板 + 弹窗系统 + 拖拽排序 + 收尾
+Phase E (2-4天): 故事创作 stepper 页面 + 编译器页面 + AI助手 + 插件市场（占位）
 ```
 
 ---
 
 ## 现有 vs 目标 路由对照
 
-| 现有路由 | 目标路由 | 迁移方式 |
+| 现有路由 | 目标路由 | 重构方式 |
 |----------|----------|----------|
-| `/` (Home) | `/` (主页仪表盘) | 重写布局 |
-| — | `/projects` (项目列表) | 从首页拆分 |
-| `/characters` | `/characters` | 视觉微调 |
-| `/scenes` | `/scenes` | 视觉微调 |
-| `/story` (分镜编辑) | `/storyboard` (三栏编辑器) | **重写** |
+| `/` (Home) | `/` (品牌首页) | **重写**：Hero + 三大工作流 + 最近项目 + 快速入口 |
+| `/characters` | `/characters` | 重构：左侧列表 + 右侧详情面板 |
+| `/scenes` | `/scenes` | 重构：左侧列表 + 右侧详情面板 |
+| `/story` (storyboard) | `/storyboard` (四栏编辑器) | **重写**：分镜列表|提示词|元素绑定|预览 |
 | `/asset-library` | `/assets` (分类树+网格) | 重构布局 |
 | `/video-tasks` | `/tasks` | 保留，微调 |
-| `/quick-generate` | 合并进首页快捷操作 | 删除独立路由 |
+| `/quick-generate` | `/quick` (快速生成) | 独立保留 |
 | `/settings` | `/settings` (5 Tab) | 拆分扩展 |
 | — | `/agent` (AI助手) | **占位页**（功能在 Phase 1） |
 | — | `/composer` (编译器) | **占位页**（功能在 Phase 2A） |
 | — | `/plugins` (插件市场) | 从 settings 拆分 |
-| — | `/story` (导入小说) | **占位页**（功能在 Phase 2A） |
-| — | `/story-chars` | **占位页** |
-| — | `/story-scenes` | **占位页** |
-| — | `/story-shots` | **占位页** |
-| — | `/story-tasks` | **占位页** |
+| — | `/story` (故事创作) | **占位页**（7步stepper，单入口） |
 
-> **占位页策略**：UI 迁移阶段只搭页面骨架 + "即将推出"提示，功能在 `development-plan.md` 对应 Phase 实现。
+> **占位页策略**：重构阶段只搭页面骨架 + "即将推出"提示，功能在 `development-plan.md` 对应 Phase 实现。
+> **故事创作**：侧边栏仅保留单入口"故事创作"，5个子步骤（导入小说→角色确认→场景确认→分镜预览→批量任务）合并为页面内 stepper。
 
 ---
 
-## Phase A：侧栏分组 + 路由扩展（3-4天）
+## Phase A：侧栏简化 + 路由重组（4-6天）
 
-### Task A.1：侧栏分组重构
+### Task A.1：侧栏重构
 
 **📋 前置阅读**：
 - `src/shared/presentation/Sidebar.tsx` — 现有侧栏（扁平 navItems 数组）
-- `design-preview.html` Line 190-227 — 新侧栏（4 分区结构）
+- `design-preview.html` Line 190-227 — 新侧栏（双模式分区 + AI状态面板）
 
 **📝 产出文件**：
 - `src/shared/presentation/Sidebar.tsx` — 修改（navItems → navSections）

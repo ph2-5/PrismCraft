@@ -230,8 +230,27 @@ export function buildBeatInsert(
   const localFirstFramePath = beat.localFirstFramePath || beat.local_first_frame_path || null;
   const localLastFramePath = beat.localLastFramePath || beat.local_last_frame_path || null;
   return {
-    sql: `INSERT OR REPLACE INTO story_beats (id, story_id, sequence, order_num, title, content, description, duration, type, character_ids_json, scene_id, camera, generation, meta, local_video_path, local_keyframe_path, local_first_frame_path, local_last_frame_path, owner_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO story_beats (id, story_id, sequence, order_num, title, content, description, duration, type, character_ids_json, scene_id, camera, generation, meta, local_video_path, local_keyframe_path, local_first_frame_path, local_last_frame_path, owner_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       story_id = excluded.story_id,
+       sequence = excluded.sequence,
+       order_num = excluded.order_num,
+       title = excluded.title,
+       content = excluded.content,
+       description = excluded.description,
+       duration = excluded.duration,
+       type = excluded.type,
+       character_ids_json = excluded.character_ids_json,
+       scene_id = excluded.scene_id,
+       camera = excluded.camera,
+       generation = excluded.generation,
+       meta = excluded.meta,
+       local_video_path = excluded.local_video_path,
+       local_keyframe_path = excluded.local_keyframe_path,
+       local_first_frame_path = excluded.local_first_frame_path,
+       local_last_frame_path = excluded.local_last_frame_path,
+       updated_at = excluded.updated_at`,
     params: [
       beatId,
       storyId,

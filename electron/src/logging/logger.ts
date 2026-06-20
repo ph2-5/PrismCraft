@@ -207,6 +207,19 @@ class LoggerRegistry {
   getAllLoggers(): Logger[] {
     return Array.from(this.loggers.values());
   }
+
+  /** 关闭所有默认 transport（清理定时器、监听器、flush 残留日志） */
+  async closeAllTransports(): Promise<void> {
+    for (const transport of this.defaultTransports) {
+      try {
+        if (typeof transport.close === "function") {
+          await transport.close();
+        }
+      } catch (err) {
+        console.error(`[LoggerRegistry] Failed to close transport ${transport.name}:`, err);
+      }
+    }
+  }
 }
 
 // --- 导出 ---

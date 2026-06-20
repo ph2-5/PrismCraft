@@ -302,13 +302,24 @@ export async function cacheRemoteImageLocally(remoteUrl: string): Promise<string
       client.get(remoteUrl, { timeout: 30000 }, (res) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           const redirectUrl = res.headers.location;
-          const redirectClient = redirectUrl.startsWith("https") ? https : http;
-          redirectClient.get(redirectUrl, { timeout: 30000 }, (redirectRes) => {
-            const chunks: Buffer[] = [];
-            redirectRes.on("data", (chunk: Buffer) => chunks.push(chunk));
-            redirectRes.on("end", () => resolve(Buffer.concat(chunks)));
-            redirectRes.on("error", reject);
-          }).on("error", reject);
+          // 重定向 SSRF 防护：校验重定向目标协议和是否为私有地址
+          if (!redirectUrl.startsWith("http://") && !redirectUrl.startsWith("https://")) {
+            reject(new Error("Redirect to non-http protocol blocked"));
+            return;
+          }
+          isPrivateUrl(redirectUrl).then((isPrivate) => {
+            if (isPrivate) {
+              reject(new Error("Redirect to private/internal URL blocked by SSRF guard"));
+              return;
+            }
+            const redirectClient = redirectUrl.startsWith("https") ? https : http;
+            redirectClient.get(redirectUrl, { timeout: 30000 }, (redirectRes) => {
+              const chunks: Buffer[] = [];
+              redirectRes.on("data", (chunk: Buffer) => chunks.push(chunk));
+              redirectRes.on("end", () => resolve(Buffer.concat(chunks)));
+              redirectRes.on("error", reject);
+            }).on("error", reject);
+          }).catch(reject);
           return;
         }
         const chunks: Buffer[] = [];

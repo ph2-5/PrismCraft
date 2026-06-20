@@ -13,7 +13,8 @@ export class TransitionError extends AppError {
 }
 
 export const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
-  pending: ["generating", "failed", "cancelled", "timeout"],
+  // 允许 pending → completed：同步生成场景下服务端可能立即返回完成
+  pending: ["generating", "failed", "cancelled", "timeout", "completed"],
   generating: ["completed", "failed", "cancelled", "timeout"],
   completed: ["pending"],
   // 允许 failed → completed：防止假失败导致已生成的视频被丢弃

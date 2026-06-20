@@ -234,18 +234,20 @@ describe("Built-in Provider Capabilities", () => {
       expect(plugin.id).toBe("google");
     });
 
-    it("should return empty auth headers (uses URL-based auth)", () => {
-      expect(plugin.getAuthHeaders("test-key")).toEqual({});
+    it("should return auth headers (uses header-based auth, R124)", () => {
+      expect(plugin.getAuthHeaders("test-key")).toEqual({
+        "x-goog-api-key": "test-key",
+      });
     });
 
-    it("should append key to URL", () => {
+    it("should not append key to URL (R124: auth via header)", () => {
       const url = plugin.appendAuthToUrl!("https://api.com/v1/models", "AIzaTestKey");
-      expect(url).toBe("https://api.com/v1/models?key=AIzaTestKey");
+      expect(url).toBe("https://api.com/v1/models");
     });
 
-    it("should append key with & for URLs with existing query", () => {
+    it("should not append key to URL with existing query (R124: auth via header)", () => {
       const url = plugin.appendAuthToUrl!("https://api.com/v1?foo=bar", "AIzaTestKey");
-      expect(url).toBe("https://api.com/v1?foo=bar&key=AIzaTestKey");
+      expect(url).toBe("https://api.com/v1?foo=bar");
     });
   });
 

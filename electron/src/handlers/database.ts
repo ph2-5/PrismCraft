@@ -93,8 +93,16 @@ function validateSql(sql: string): boolean {
     throw new Error("SQL must be a non-empty string");
   }
 
-  const trimmed = sql.trim();
-  const firstWord = trimmed.split(/\s+/)[0]!.toUpperCase();
+  // 剥离 SQL 注释，避免注释内容干扰 firstWord 提取和白名单匹配
+  // 支持 -- 行注释和 /* */ 块注释
+  const withoutComments = sql
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/--[^\n]*/g, " ");
+  const trimmed = withoutComments.trim();
+  if (!trimmed) {
+    throw new Error("SQL must be a non-empty string");
+  }
+  const firstWord = trimmed.split(/\s+/)[0]?.toUpperCase() ?? "";
 
   if (firstWord === "PRAGMA") {
     const isAllowed = ALLOWED_PRAGMA_STATEMENTS.some((pattern) =>
@@ -111,7 +119,7 @@ function validateSql(sql: string): boolean {
   }
 
   for (const pattern of DANGEROUS_PATTERNS) {
-    if (pattern.test(sql)) {
+    if (pattern.test(withoutComments)) {
       throw new Error("Dangerous SQL operation not allowed");
     }
   }

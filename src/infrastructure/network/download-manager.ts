@@ -13,6 +13,7 @@ const tasks = new Map<string, DownloadTask>();
 const taskControllers = new Map<string, AbortController>();
 const taskProgress = new Map<string, DownloadProgress>();
 const taskCallbacks = new Map<string, (progress: DownloadProgress) => void>();
+const scheduledCleanups = new Set<string>();
 
 let maxConcurrency = NETWORK_CONFIG.downloadManager.maxConcurrency;
 let activeCount = 0;
@@ -134,7 +135,11 @@ async function processTask(taskId: string): Promise<void> {
 }
 
 function scheduleAutoCleanup(taskId: string): void {
+  // 防止同一 taskId 重复调度清理定时器
+  if (scheduledCleanups.has(taskId)) return;
+  scheduledCleanups.add(taskId);
   setTimeout(() => {
+    scheduledCleanups.delete(taskId);
     removeCompletedTask(taskId);
   }, AUTO_CLEANUP_DELAY);
 }

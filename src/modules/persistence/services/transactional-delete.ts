@@ -5,9 +5,26 @@ import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParseArray } from "@/shared/utils/safe-json";
 import { container } from "@/infrastructure/di";
+import { useVideoTaskStore } from "@/modules/video/task-management";
 
 function isLocalFilePath(p: string): boolean {
   return !p.startsWith("http://") && !p.startsWith("https://") && !p.startsWith("data:") && !p.startsWith("vcache://");
+}
+
+/**
+ * 取消指定 beat 关联的活跃视频任务，防止删除角色/场景后
+ * 已提交的任务结果（videoUrl）丢失或引用悬空。
+ */
+async function cancelActiveTasksForBeats(beatIds: string[]): Promise<void> {
+  if (beatIds.length === 0) return;
+  const { removeTasksByBeatId } = useVideoTaskStore.getState();
+  for (const beatId of beatIds) {
+    try {
+      await removeTasksByBeatId(beatId);
+    } catch (e) {
+      errorLogger.warn("[TransactionalDelete] 取消beat关联视频任务失败", { beatId, error: e });
+    }
+  }
 }
 
 /**
@@ -133,6 +150,13 @@ async function buildRemoveIdFromJsonArrayStatements(
 
 export async function deleteCharacterWithRefs(characterId: string): Promise<Result<void>> {
   return fromAsyncThrowable(async () => {
+    // 先查询引用该角色的 beats，取消关联的活跃视频任务
+    const beatRows = await safeQuery<{ id: string }>(
+      `SELECT id FROM story_beats WHERE character = ? OR EXISTS (SELECT 1 FROM json_each(character_ids_json) WHERE json_each.value = ?)`,
+      [characterId, characterId],
+    );
+    await cancelActiveTasksForBeats(beatRows.map((r) => r.id));
+
     const characterRows = await safeQuery<Record<string, unknown>>(
       `SELECT ref_image_path, avatar_path, thumbnail_path, preview_path, generated_image FROM characters WHERE id = ?`,
       [characterId],
@@ -197,6 +221,13 @@ export async function deleteCharacterWithRefs(characterId: string): Promise<Resu
 
 export async function deleteSceneWithRefs(sceneId: string): Promise<Result<void>> {
   return fromAsyncThrowable(async () => {
+    // 先查询引用该场景的 beats，取消关联的活跃视频任务
+    const beatRows = await safeQuery<{ id: string }>(
+      `SELECT id FROM story_beats WHERE scene = ? OR scene_id = ?`,
+      [sceneId, sceneId],
+    );
+    await cancelActiveTasksForBeats(beatRows.map((r) => r.id));
+
     const sceneRows = await safeQuery<Record<string, unknown>>(
       `SELECT ref_image_path, generated_image FROM scenes WHERE id = ?`,
       [sceneId],

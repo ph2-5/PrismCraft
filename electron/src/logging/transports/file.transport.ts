@@ -92,8 +92,9 @@ export class FileTransport implements LogTransport {
 
       this.cleanupOldFiles();
     } catch (error) {
+      // 写入失败：将日志行放回队列头部，下次 flush 重试，避免日志丢失
+      this.writeQueue.unshift(...lines);
       console.error("[FileTransport] Failed to write log:", error);
-      console.error("[FileTransport] Log content:", content);
     }
   }
 

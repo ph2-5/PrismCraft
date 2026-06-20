@@ -151,6 +151,7 @@ export const videoTaskStorage = {
     await safeTransaction([
       { sql: "DELETE FROM video_tasks WHERE id = ?", params: [taskId] },
       { sql: "DELETE FROM video_cache WHERE task_id = ?", params: [taskId] },
+      { sql: `UPDATE story_beats SET generation = json_remove(COALESCE(generation, '{}'), '$.videoTaskId', '$.videoStatus', '$.videoUrl') WHERE json_extract(generation, '$.videoTaskId') = ?`, params: [taskId] },
     ]);
     try {
       await trackChange("video_task", taskId, "delete");
@@ -163,6 +164,7 @@ export const videoTaskStorage = {
     await safeTransaction([
       { sql: `DELETE FROM video_cache WHERE task_id IN (${placeholders})`, params: taskIds },
       { sql: `DELETE FROM video_tasks WHERE id IN (${placeholders})`, params: [...taskIds] },
+      { sql: `UPDATE story_beats SET generation = json_remove(COALESCE(generation, '{}'), '$.videoTaskId', '$.videoStatus', '$.videoUrl') WHERE json_extract(generation, '$.videoTaskId') IN (${placeholders})`, params: [...taskIds] },
     ]);
     await Promise.allSettled(
       taskIds.map((id) =>
@@ -192,6 +194,10 @@ export const videoTaskStorage = {
         sql: `DELETE FROM video_tasks WHERE status IN (${placeholders})`,
         params: statuses,
       },
+      {
+        sql: `UPDATE story_beats SET generation = json_remove(COALESCE(generation, '{}'), '$.videoTaskId', '$.videoStatus', '$.videoUrl') WHERE json_extract(generation, '$.videoTaskId') IN (${idPlaceholders})`,
+        params: deletedIds,
+      },
     ]);
     await Promise.allSettled(
       deletedIds.map((id) =>
@@ -218,6 +224,10 @@ export const videoTaskStorage = {
       {
         sql: "DELETE FROM video_tasks WHERE beat_id = ?",
         params: [beatId],
+      },
+      {
+        sql: `UPDATE story_beats SET generation = json_remove(COALESCE(generation, '{}'), '$.videoTaskId', '$.videoStatus', '$.videoUrl') WHERE json_extract(generation, '$.videoTaskId') IN (${idPlaceholders})`,
+        params: deletedIds,
       },
     ]);
     await Promise.allSettled(
@@ -246,6 +256,10 @@ export const videoTaskStorage = {
         sql: "DELETE FROM video_tasks WHERE story_id = ?",
         params: [storyId],
       },
+      {
+        sql: `UPDATE story_beats SET generation = json_remove(COALESCE(generation, '{}'), '$.videoTaskId', '$.videoStatus', '$.videoUrl') WHERE json_extract(generation, '$.videoTaskId') IN (${idPlaceholders})`,
+        params: deletedIds,
+      },
     ]);
     await Promise.allSettled(
       deletedIds.map((id) =>
@@ -258,8 +272,9 @@ export const videoTaskStorage = {
 
   async deleteExpiredVideoTasks(): Promise<number> {
     const now = Math.floor(Date.now() / 1000);
+    // 只清理终态任务，避免误删正在活跃（pending/generating）的任务
     const expiredTasks = await safeQuery<{ id: string }>(
-      "SELECT id FROM video_tasks WHERE json_extract(tracking, '$.expires_at') IS NOT NULL AND json_extract(tracking, '$.expires_at') < ?",
+      `SELECT id FROM video_tasks WHERE json_extract(tracking, '$.expires_at') IS NOT NULL AND json_extract(tracking, '$.expires_at') < ? AND status IN ('completed', 'failed', 'cancelled', 'timeout')`,
       [now],
     );
     const count = expiredTasks.length;
@@ -268,11 +283,15 @@ export const videoTaskStorage = {
       const ids = expiredTasks.map((r) => r.id);
       await safeTransaction([
         {
-          sql: "DELETE FROM video_tasks WHERE json_extract(tracking, '$.expires_at') IS NOT NULL AND json_extract(tracking, '$.expires_at') < ?",
+          sql: `DELETE FROM video_tasks WHERE json_extract(tracking, '$.expires_at') IS NOT NULL AND json_extract(tracking, '$.expires_at') < ? AND status IN ('completed', 'failed', 'cancelled', 'timeout')`,
           params: [now],
         },
         {
           sql: `DELETE FROM video_cache WHERE task_id IN (${idPlaceholders})`,
+          params: ids,
+        },
+        {
+          sql: `UPDATE story_beats SET generation = json_remove(COALESCE(generation, '{}'), '$.videoTaskId', '$.videoStatus', '$.videoUrl') WHERE json_extract(generation, '$.videoTaskId') IN (${idPlaceholders})`,
           params: ids,
         },
       ]);
@@ -294,6 +313,7 @@ export const videoTaskStorage = {
     await safeTransaction([
       { sql: "DELETE FROM video_tasks", params: [] },
       { sql: "DELETE FROM video_cache", params: [] },
+      { sql: `UPDATE story_beats SET generation = json_remove(COALESCE(generation, '{}'), '$.videoTaskId', '$.videoStatus', '$.videoUrl') WHERE json_extract(generation, '$.videoTaskId') IS NOT NULL`, params: [] },
     ]);
     await Promise.allSettled(
       allTasks.map((row) =>
@@ -353,8 +373,9 @@ export const videoTaskStorage = {
   async syncBeatVideoStatus(taskId: string, status: string): Promise<void> {
     try {
       const storageStatus = toStorageStatus(status);
+      // videoStatus 存储在 generation JSON 中，不是直接列
       await safeRun(
-        `UPDATE story_beats SET video_status = ? WHERE video_task_id = ?`,
+        `UPDATE story_beats SET generation = json_set(COALESCE(generation, '{}'), '$.videoStatus', ?) WHERE json_extract(generation, '$.videoTaskId') = ?`,
         [storageStatus, taskId],
       );
     } catch (e) {

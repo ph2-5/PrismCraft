@@ -236,14 +236,18 @@ class SsrfGuard {
   // --- 内部方法 ---
 
   private isIpv6LinkLocal(ip: string): boolean {
-    const firstHextet = ip.split(":")[0]!.toLowerCase();
+    if (!ip) return false;
+    const firstHextet = ip.split(":")[0]?.toLowerCase() ?? "";
     const value = parseInt(firstHextet, 16);
+    if (Number.isNaN(value)) return false;
     return (value & 0xffc0) === 0xfe80;
   }
 
   private isIpv6Ula(ip: string): boolean {
-    const firstHextet = ip.split(":")[0]!.toLowerCase();
+    if (!ip) return false;
+    const firstHextet = ip.split(":")[0]?.toLowerCase() ?? "";
     const value = parseInt(firstHextet, 16);
+    if (Number.isNaN(value)) return false;
     return (value & 0xfe00) === 0xfc00;
   }
 

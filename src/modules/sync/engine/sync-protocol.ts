@@ -5,7 +5,7 @@ import type {
   VectorClock,
 } from "./types";
 import { mergeVectorClocks } from "./types";
-import { getPendingChanges, markChangesSynced, getSyncStatus } from "./changelog";
+import { getPendingChanges, getSyncStatus } from "./changelog";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParse } from "@/shared/utils/safe-json";
 import { fromAsyncThrowable } from "@/domain/types/result";
@@ -19,12 +19,12 @@ export async function pushChanges(
   const pendingChanges = await getPendingChanges();
 
   if (pendingChanges.length === 0) {
-    return { accepted: 0, conflicts: [], serverVectorClock: {} };
+    return { accepted: 0, conflicts: [], serverVectorClock: {}, syncedIds: [] };
   }
 
   const hasServer = serverUrl || endpoint;
   if (!hasServer) {
-    return { accepted: 0, conflicts: [], serverVectorClock: {} };
+    return { accepted: 0, conflicts: [], serverVectorClock: {}, syncedIds: [] };
   }
 
   const result = await fromAsyncThrowable(async () => {
@@ -77,12 +77,14 @@ export async function pushChanges(
       .filter((c) => !conflictIds.has(c.id) && !conflictIds.has(c.entityId))
       .map((c) => c.id);
 
-    await markChangesSynced(syncedIds);
+    // 不在此处调用 markChangesSynced：交由 performSync 在 push+pull+apply 全部成功后统一标记，
+    // 避免 push 成功但 pull/apply 失败时本地变更被提前标记为已同步导致数据丢失。
 
     return {
       accepted: (proxyData.accepted as number) || syncedIds.length,
       conflicts: (proxyData.conflicts as SyncPushResult["conflicts"]) || [],
       serverVectorClock: (proxyData.serverVectorClock as VectorClock) || {},
+      syncedIds,
     };
   });
 

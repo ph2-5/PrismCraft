@@ -399,8 +399,11 @@ export class S3FileStorage implements IFileStorage {
       if (!fullKey.startsWith(categoryPrefix)) continue;
 
       const key = fullKey.slice(categoryPrefix.length);
-      const size = parseInt(sizes[i] || "0", 10);
-      const timestamp = dates[i] ? Math.floor(new Date(dates[i]!).getTime() / 1000) : 0;
+      const parsedSize = parseInt(sizes[i] || "0", 10);
+      const size = Number.isNaN(parsedSize) ? 0 : parsedSize;
+      const dateStr = dates[i];
+      const parsedTs = dateStr ? Math.floor(new Date(dateStr).getTime() / 1000) : 0;
+      const timestamp = Number.isNaN(parsedTs) ? 0 : parsedTs;
 
       results.push({
         key,
@@ -421,9 +424,11 @@ export class S3FileStorage implements IFileStorage {
       const response = await this.makeRequest("HEAD", objectKey);
       if (response.status !== 200) return null;
 
-      const size = parseInt(response.headers.get("content-length") || "0", 10);
+      const parsedSize = parseInt(response.headers.get("content-length") || "0", 10);
+      const size = Number.isNaN(parsedSize) ? 0 : parsedSize;
       const lastModified = response.headers.get("last-modified");
-      const timestamp = lastModified ? Math.floor(new Date(lastModified).getTime() / 1000) : 0;
+      const parsedTs = lastModified ? Math.floor(new Date(lastModified).getTime() / 1000) : 0;
+      const timestamp = Number.isNaN(parsedTs) ? 0 : parsedTs;
 
       // 从 key 推断 category
       const prefix = this.config.prefix ? `${this.config.prefix}/` : "";

@@ -85,6 +85,9 @@ describe("R109: 事务删除孤儿文件追踪", () => {
   });
 
   it("文件删除成功时不应记录到 orphan_files", async () => {
+    // 第一次 safeQuery: beatRows（空数组，不触发 cancelActiveTasksForBeats）
+    mockSafeQuery.mockResolvedValueOnce([]);
+    // 第二次 safeQuery: sceneRows
     mockSafeQuery.mockResolvedValueOnce([
       {
         ref_image_path: "/local/ref.png",
@@ -104,6 +107,7 @@ describe("R109: 事务删除孤儿文件追踪", () => {
   });
 
   it("文件删除失败时应记录到 orphan_files", async () => {
+    mockSafeQuery.mockResolvedValueOnce([]);
     mockSafeQuery.mockResolvedValueOnce([
       {
         ref_image_path: "/local/ref.png",
@@ -126,6 +130,7 @@ describe("R109: 事务删除孤儿文件追踪", () => {
   });
 
   it("recordOrphanFile 自身失败不应影响主流程", async () => {
+    mockSafeQuery.mockResolvedValueOnce([]);
     mockSafeQuery.mockResolvedValueOnce([
       {
         ref_image_path: "/local/ref.png",
@@ -187,6 +192,7 @@ describe("R109: 事务删除孤儿文件追踪", () => {
   });
 
   it("部分文件删除失败时只记录失败的文件", async () => {
+    mockSafeQuery.mockResolvedValueOnce([]);
     mockSafeQuery.mockResolvedValueOnce([
       {
         ref_image_path: "/local/ref.png",

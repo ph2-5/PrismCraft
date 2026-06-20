@@ -78,6 +78,14 @@ vi.mock("@/domain/types/result", () => ({
       (error) => ({ ok: false as const, error }),
     );
   },
+  ok: <T>(value: T) => ({ ok: true as const, value }),
+  err: (error: unknown) => ({ ok: false as const, error }),
+  AppError: class AppError extends Error {
+    constructor(public readonly code: string, message: string, _cause?: unknown) {
+      super(message);
+      this.name = "AppError";
+    }
+  },
 }));
 
 import { useStorySaver } from "@/modules/story/planning";

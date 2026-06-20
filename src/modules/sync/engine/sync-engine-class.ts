@@ -10,6 +10,7 @@ import {
   updateLastSyncTime,
   ensureSyncSchema,
   cleanupSyncedChanges,
+  markChangesSynced,
   getDeviceId,
   recordChange,
 } from "./changelog";
@@ -155,6 +156,12 @@ export class SyncEngine {
         pulled = pullResult.changes.length;
 
         await applyRemoteChanges(pullResult.changes, this.config.deviceId);
+
+        // push + pull + apply 全部成功后，才统一标记本地变更为已同步。
+        // 若 pull/apply 失败会抛出异常跳过此处，下次同步会重新 push（服务端基于 vector clock 幂等去重）。
+        if (pushResult.syncedIds.length > 0) {
+          await markChangesSynced(pushResult.syncedIds);
+        }
 
         if (pushResult.serverVectorClock) {
           this.config.deviceVectorClock = mergeVectorClocks(

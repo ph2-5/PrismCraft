@@ -43,6 +43,7 @@ export function ServerConfigSection({
       <div className="space-y-2">
         <Label className="text-xs">{t("sync.serverAddress")}</Label>
         <Input
+          data-testid="sync-server-url-input"
           placeholder="https://sync.example.com"
           value={serverUrl}
           onChange={(e) => onServerUrlChange(e.target.value)}
@@ -54,6 +55,7 @@ export function ServerConfigSection({
         <div className="space-y-2">
           <Label className="text-xs">{t("sync.username")}</Label>
           <Input
+            data-testid="sync-username-input"
             placeholder="admin"
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}

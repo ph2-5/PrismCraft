@@ -14,7 +14,7 @@ const subscribeNoop = () => () => {};
 export function NetworkStatusAlert() {
   const [showReconnectSuccess, setShowReconnectSuccess] = useState(false);
   const isInitialized = useSyncExternalStore(subscribeNoop, () => true, () => false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     isOnline,

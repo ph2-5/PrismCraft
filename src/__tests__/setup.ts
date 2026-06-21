@@ -2,6 +2,12 @@ import '@testing-library/jest-dom';
 import { vi, beforeEach, afterEach } from 'vitest';
 import { factories } from "./mocks/factories";
 
+// NOTE: All cleanup functions are dynamically imported in afterEach
+// to avoid caching modules (sqlite-core, error-logger, safe-json, etc.)
+// before test files run.
+// Per Vitest 4 docs: "Vitest will not mock modules that were imported inside a setup file
+// because they are cached by the time a test file is running."
+
 type MockedFn<T extends (...args: never[]) => unknown = (...args: never[]) => unknown> = ReturnType<typeof vi.fn<T>>;
 
 interface MockedLocalStorage {
@@ -99,10 +105,27 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   console.error = originalConsoleError;
   console.warn = originalConsoleWarn;
+  // 清理模块级 beforeunload 监听器
+  try {
+    const { cleanupDownloadManagerListener } = await import("@/infrastructure/network/download-manager");
+    cleanupDownloadManagerListener();
+  } catch {}
+  try {
+    const { cleanupVideoCache } = await import("@/infrastructure/storage/video-cache");
+    cleanupVideoCache();
+  } catch {}
+  try {
+    const { cleanupImageCache } = await import("@/infrastructure/storage/image-cache");
+    cleanupImageCache();
+  } catch {}
+  // NOTE: cleanupPreferencesListener is NOT called here because it removes the
+  // storage event listener (setting storageEventHandler = null) which is never
+  // re-added. This breaks tests that rely on storage event cross-tab sync.
 });
 
 export { localStorageMock, cryptoMock };

@@ -16,7 +16,7 @@ import type { Story, StoryBeat } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { fromAsyncThrowable } from "@/domain/types/result";
-import { useVideoTaskStore } from "@/modules/video/task-management";
+import { removeTasksByStoryId } from "@/modules/video/task-management";
 import { t } from "@/shared/constants/messages";
 
 interface UseStorySaverProps {
@@ -93,7 +93,7 @@ export function useStorySaver(props: UseStorySaverProps) {
   const performDeleteStory = useCallback(async () => {
     if (storyToDelete) {
       try {
-        await useVideoTaskStore.getState().removeTasksByStoryId(storyToDelete);
+        await removeTasksByStoryId(storyToDelete);
       } catch (e) {
         errorLogger.warn("[StorySaver] 删除故事关联VideoTask失败", e);
       }

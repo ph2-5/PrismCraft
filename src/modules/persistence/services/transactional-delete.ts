@@ -5,7 +5,7 @@ import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParseArray } from "@/shared/utils/safe-json";
 import { container } from "@/infrastructure/di";
-import { useVideoTaskStore } from "@/modules/video/task-management";
+import { removeTasksByBeatId } from "@/modules/video/task-management";
 
 function isLocalFilePath(p: string): boolean {
   return !p.startsWith("http://") && !p.startsWith("https://") && !p.startsWith("data:") && !p.startsWith("vcache://");
@@ -17,7 +17,6 @@ function isLocalFilePath(p: string): boolean {
  */
 async function cancelActiveTasksForBeats(beatIds: string[]): Promise<void> {
   if (beatIds.length === 0) return;
-  const { removeTasksByBeatId } = useVideoTaskStore.getState();
   for (const beatId of beatIds) {
     try {
       await removeTasksByBeatId(beatId);

@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2022"],
     "rootDir": "src/shared-logic",
-    "outDir": "out/shared-logic",
+    "outDir": "electron/dist/shared-logic",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -16,7 +16,12 @@
     "declarationMap": false,
     "sourceMap": false,
     "removeComments": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    // shared-logic 编译为 CommonJS 供主进程 require，需 node10 解析模式。
+    // TS 6.0 弃用了 node10，但迁移到 node16 要求所有相对 import 带扩展名，
+    // 对纯内部 CommonJS 模块不合适，故用官方抑制标志。
+    "ignoreDeprecations": "6.0",
+    "types": ["node"]
   },
   "include": ["src/shared-logic/**/*.ts"],
   "exclude": [

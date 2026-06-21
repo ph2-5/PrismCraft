@@ -1,86 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Scene, CreateSceneInput, UpdateSceneInput } from "@/domain/schemas";
 import { sceneService } from "../services";
-import type { CreateSceneInput, UpdateSceneInput } from "@/domain/schemas";
 import { deleteSceneWithRefs } from "@/modules/persistence";
-import { isElectron } from "@/shared/utils/platform";
+import { createCrudHooks } from "@/shared/hooks/create-crud-hooks";
 
-const SCENES_KEY = ["scenes"] as const;
-const SCENE_KEY = (id: string) => ["scenes", id] as const;
+const crud = createCrudHooks<Scene, CreateSceneInput, UpdateSceneInput>({
+  entityName: "scenes",
+  service: sceneService,
+  deleteFn: deleteSceneWithRefs,
+});
 
-export function useScenes() {
-  return useQuery({
-    queryKey: SCENES_KEY,
-    queryFn: async () => {
-      const result = await sceneService.getAll();
-      if (!result.ok) throw result.error;
-      return result.value;
-    },
-    enabled: isElectron(),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useScene(id: string) {
-  return useQuery({
-    queryKey: SCENE_KEY(id),
-    queryFn: async () => {
-      const result = await sceneService.getById(id);
-      if (!result.ok) throw result.error;
-      return result.value;
-    },
-    enabled: isElectron() && !!id,
-  });
-}
-
-export function useSceneCount() {
-  return useQuery({
-    queryKey: [...SCENES_KEY, "count"],
-    queryFn: async () => {
-      const result = await sceneService.count();
-      if (!result.ok) throw result.error;
-      return result.value;
-    },
-    enabled: isElectron(),
-  });
-}
-
-export function useCreateScene() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: CreateSceneInput) => {
-      const result = await sceneService.create(input);
-      if (!result.ok) throw result.error;
-      return result.value;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: SCENES_KEY });
-    },
-  });
-}
-
-export function useUpdateScene() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: UpdateSceneInput) => {
-      const result = await sceneService.update(input.id, input);
-      if (!result.ok) throw result.error;
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: SCENES_KEY });
-      queryClient.invalidateQueries({ queryKey: SCENE_KEY(variables.id) });
-    },
-  });
-}
-
-export function useDeleteScene() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const result = await deleteSceneWithRefs(id);
-      if (!result.ok) throw result.error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: SCENES_KEY });
-    },
-  });
-}
+export const useScenes = crud.useList;
+export const useScene = crud.useOne;
+export const useSceneCount = crud.useCount;
+export const useCreateScene = crud.useCreate;
+export const useUpdateScene = crud.useUpdate;
+export const useDeleteScene = crud.useDelete;

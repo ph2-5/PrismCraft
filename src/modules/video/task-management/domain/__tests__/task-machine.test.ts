@@ -79,9 +79,10 @@ describe("TaskMachine", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("不允许从");
         expect(result.error.message).toContain("cancelled");
         expect(result.error.message).toContain("completed");
+        expect(result.error.from).toBe("cancelled");
+        expect(result.error.to).toBe("completed");
       }
     });
 
@@ -123,7 +124,7 @@ describe("TaskMachine", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.message).toBe("任务失败");
+        expect(result.value.message).toBe("");
       }
     });
 
@@ -145,7 +146,7 @@ describe("TaskMachine", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.message).toBe("视频生成任务已取消");
+        expect(result.value.message).toBe("");
       }
     });
 
@@ -220,7 +221,8 @@ describe("TaskMachine", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toContain("不允许从");
+        expect(result.error.from).toBe("completed");
+        expect(result.error.to).toBe("completed");
       }
     });
   });

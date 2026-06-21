@@ -41,8 +41,9 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // 仅浏览器构建需要 stub Node.js 模块；Electron 构建保留真实实现
-    ...(!isElectron ? [nodeModuleBrowserStubs()] : []),
+    // 渲染进程（包括 Electron 渲染进程）均使用 browser stub，
+    // 避免 os.homedir() 等 Node.js API 被错误打包进浏览器 bundle。
+    nodeModuleBrowserStubs(),
   ],
   resolve: {
     alias: {

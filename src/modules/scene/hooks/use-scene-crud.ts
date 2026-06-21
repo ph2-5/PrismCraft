@@ -54,7 +54,6 @@ export function useSceneCRUD({
     queryKey: ["scenes"],
     entityLabel: "场景",
     entityIdPrefix: "scene",
-    nameValidationMessage: "场景名称不能为空",
     assetLabel: "场景图片",
     checkReferences: checkSceneReferences,
     defaultEntity: defaultScene,

@@ -59,7 +59,6 @@ export function useCharacterCRUD({
     queryKey: ["characters"],
     entityLabel: "角色",
     entityIdPrefix: "char",
-    nameValidationMessage: "角色名称不能为空",
     assetLabel: "角色图片",
     checkReferences: checkCharacterReferences,
     defaultEntity: defaultCharacter,

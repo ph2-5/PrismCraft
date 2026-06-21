@@ -33,24 +33,21 @@ export function validateExternalUrl(url: string): UrlValidationResult {
   return { valid: true };
 }
 
-export function isAllowedImageUrl(url: string): boolean {
+const ALLOWED_MEDIA_PROTOCOLS = ["data:", "blob:", "file:", "http:", "https:"] as const;
+
+/**
+ * 通用媒体 URL 验证：图片和视频共享相同的协议白名单。
+ * 供 isAllowedImageUrl / isAllowedVideoUrl 复用，避免重复实现。
+ */
+export function isAllowedMediaUrl(url: string): boolean {
   if (!url) return false;
-  return (
-    url.startsWith("data:") ||
-    url.startsWith("blob:") ||
-    url.startsWith("file:") ||
-    url.startsWith("http:") ||
-    url.startsWith("https:")
-  );
+  return ALLOWED_MEDIA_PROTOCOLS.some((p) => url.startsWith(p));
+}
+
+export function isAllowedImageUrl(url: string): boolean {
+  return isAllowedMediaUrl(url);
 }
 
 export function isAllowedVideoUrl(url: string): boolean {
-  if (!url) return false;
-  return (
-    url.startsWith("data:") ||
-    url.startsWith("blob:") ||
-    url.startsWith("file:") ||
-    url.startsWith("http:") ||
-    url.startsWith("https:")
-  );
+  return isAllowedMediaUrl(url);
 }

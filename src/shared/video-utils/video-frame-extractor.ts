@@ -108,8 +108,12 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
 
 export function dataUrlToFile(dataUrl: string, filename: string): File {
   const arr = dataUrl.split(",");
-  const mime = arr[0]!.match(/:(.*?);/)?.[1] ?? "image/jpeg";
-  const bstr = atob(arr[1]!);
+  const mimeMatch = arr[0]?.match(/:(.*?);/);
+  if (!mimeMatch) throw new Error("Invalid data URL format");
+  const mime = mimeMatch[1] ?? "image/jpeg";
+  const base64Data = arr[1] ?? "";
+  if (!base64Data) throw new Error("Invalid data URL: missing base64 data");
+  const bstr = atob(base64Data);
   let n = bstr.length;
   const u8arr = new Uint8Array(n);
   while (n--) {

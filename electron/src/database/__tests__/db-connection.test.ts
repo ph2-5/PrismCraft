@@ -108,6 +108,7 @@ function createMockDb() {
     prepare: vi.fn(() => ({
       all: vi.fn(() => []),
       run: vi.fn(() => ({ changes: 0 })),
+      get: vi.fn(() => undefined),
     })),
     exec: vi.fn(),
     close: vi.fn(),
@@ -115,6 +116,9 @@ function createMockDb() {
     type: "better-sqlite3",
     init: vi.fn().mockResolvedValue(undefined),
     transaction: vi.fn((fn: () => void) => fn),
+    pragma: vi.fn(),
+    checkpoint: vi.fn(),
+    backup: vi.fn(() => ({ close: vi.fn() })),
   };
 }
 

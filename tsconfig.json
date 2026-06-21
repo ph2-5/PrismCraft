@@ -59,8 +59,7 @@
     "scripts/test-config",
     "scripts/video-test-tool",
     "vitest.config.ts",
-    "vitest.config.test-shot.ts",
-    "vitest.coverage.config.ts",
+    "vitest.config.electron.ts",
     "playwright.config.ts"
   ]
 }

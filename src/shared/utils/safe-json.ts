@@ -1,3 +1,5 @@
+// NOTE: This function does NOT validate that the parsed result matches type T.
+// Callers are responsible for runtime validation if needed.
 export function safeJsonParse<T>(raw: unknown, fallback: T): T {
   if (!raw) return fallback;
   try {

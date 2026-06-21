@@ -16,7 +16,7 @@ interface InitStateSlice {
   initError: string | null;
 }
 
-interface StoreAccessor {
+export interface StoreAccessor {
   getState: () => {
     allTasks: VideoTask[];
     recoverTask: (taskId: string, status: string, videoUrl?: string) => void;

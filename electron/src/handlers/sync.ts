@@ -236,7 +236,6 @@ async function handleSyncProxy(
       headers: {
         "Content-Type": "application/json",
         "X-Sync-Token": credentials.token,
-        ...(requestBody ? {} : {}),
       },
       body: requestBody,
       timeout: 60000,

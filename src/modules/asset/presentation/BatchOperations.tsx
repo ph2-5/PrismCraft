@@ -41,7 +41,7 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
 
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const isCancelledRef = useRef(false);
-  const activeIntervalsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  const activeIntervalsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   useEffect(() => {
     const currentIntervals = activeIntervalsRef.current;

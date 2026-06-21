@@ -22,6 +22,7 @@ let dbInstance: DatabaseInterface | null = null;
 let dbPath = "";
 let initDbPromise: Promise<DatabaseInterface> | null = null;
 let initRetryCount = 0;
+let initPermanentlyFailed = false;
 let operationQueue: Promise<void> = Promise.resolve();
 let isPersistenceAvailable = true;
 let lastSaveTime = Date.now();
@@ -84,7 +85,7 @@ function markSchemaVersion(db: DatabaseInterface): void {
 }
 
 function validateSqlIdentifier(name: string, kind: "table" | "column"): void {
-  if (name.includes('"') || name.includes('\0')) {
+  if (!name || !VALID_TABLE_IDENTIFIER.test(name)) {
     throw new Error(`Invalid ${kind} name: ${name}`);
   }
 }
@@ -207,18 +208,23 @@ function enqueueOperation<T>(fn: () => T): Promise<T> {
   operationQueue = nextQueue;
 
   return prevQueue.then(async () => {
+    let timeoutId: NodeJS.Timeout | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("Database operation timed out after 30s")), OPERATION_TIMEOUT_MS);
+      timeoutId = setTimeout(() => reject(new Error("Database operation timed out after 30s")), OPERATION_TIMEOUT_MS);
     });
     try {
       return await Promise.race([fn(), timeoutPromise]);
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       resolve!();
     }
   });
 }
 
 export async function initDatabase(): Promise<DatabaseInterface> {
+  if (initPermanentlyFailed) {
+    throw new Error("Database initialization permanently failed. Manual intervention required.");
+  }
   if (initDbPromise) return initDbPromise;
 
   initDbPromise = (async () => {
@@ -230,6 +236,7 @@ export async function initDatabase(): Promise<DatabaseInterface> {
     try {
       dbInstance = createOptimalDatabase();
       dbInstance.init({ filePath: DB_PATH });
+      dbInstance.pragma("foreign_keys = ON");
 
       executeSchemaSafely(dbInstance);
       migrateSchema(dbInstance);
@@ -262,10 +269,14 @@ export async function initDatabase(): Promise<DatabaseInterface> {
           logger.info(`Renamed corrupted database to ${corruptedPath}`);
         }
         if (fs.existsSync(`${DB_PATH}-wal`)) {
-          try { fs.unlinkSync(`${DB_PATH}-wal`); } catch { /* ignore */ }
+          try { fs.unlinkSync(`${DB_PATH}-wal`); } catch (e) {
+            logger.debug("[db-connection] Resource cleanup failed", { error: e instanceof Error ? e.message : String(e) });
+          }
         }
         if (fs.existsSync(`${DB_PATH}-shm`)) {
-          try { fs.unlinkSync(`${DB_PATH}-shm`); } catch { /* ignore */ }
+          try { fs.unlinkSync(`${DB_PATH}-shm`); } catch (e) {
+            logger.debug("[db-connection] Resource cleanup failed", { error: e instanceof Error ? e.message : String(e) });
+          }
         }
       } catch (renameError) {
         logger.error("Failed to rename corrupted database", renameError instanceof Error ? renameError : new Error(String(renameError)));
@@ -275,6 +286,7 @@ export async function initDatabase(): Promise<DatabaseInterface> {
         const restored = tryRestoreFromBackup(DB_PATH);
         dbInstance = createOptimalDatabase();
         dbInstance.init({ filePath: DB_PATH });
+        dbInstance.pragma("foreign_keys = ON");
 
         executeSchemaSafely(dbInstance);
         migrateSchema(dbInstance);
@@ -304,8 +316,8 @@ export async function initDatabase(): Promise<DatabaseInterface> {
     initDbPromise = null;
     initRetryCount++;
     if (initRetryCount > 3) {
-      initRetryCount = 0;
-      logger.error("Database initialization failed after 3 retries, giving up", error as Error);
+      initPermanentlyFailed = true;
+      logger.error("Database initialization permanently failed after max retries", error as Error);
     }
     throw error;
   });
@@ -335,7 +347,9 @@ export function saveDatabase(): boolean {
       consecutiveSaveFailures = 0;
       lastSaveTime = Date.now();
       if (Date.now() - lastBackupTime > BACKUP_CHECK_INTERVAL_MS) {
-        createBackup().catch(() => {});
+        createBackup().catch((e: unknown) => {
+          logger.warn("[DB] Background backup failed:", { error: e instanceof Error ? e.message : String(e) });
+        });
       }
       return true;
     } catch (error: unknown) {
@@ -403,7 +417,7 @@ export async function query(sql: string, params: QueryParams = []): Promise<Data
   return enqueueOperation(() => {
     const db = getDb();
     const stmt = db.prepare(sql);
-    return stmt.all(...params) as DatabaseResult[];
+    return stmt.all(...params);
   });
 }
 
@@ -411,7 +425,7 @@ export async function run(sql: string, params: QueryParams = []): Promise<RunRes
   return enqueueOperation(() => {
     const db = getDb();
     const stmt = db.prepare(sql);
-    return stmt.run(...params) as unknown as RunResult;
+    return stmt.run(...params);
   });
 }
 
@@ -463,7 +477,9 @@ export function cleanupOldBackups(): void {
         try {
           fs.unlinkSync(f.path);
           logger.info(`[DB] Cleaned up excess corrupted file: ${f.name}`);
-        } catch { /* ignore */ }
+        } catch (e) {
+          logger.debug("[db-connection] Resource cleanup failed", { error: e instanceof Error ? e.message : String(e) });
+        }
       }
     }
   } catch (e) {
@@ -553,12 +569,15 @@ async function createBackup(): Promise<string | null> {
         if (currentDbPath && fs.existsSync(currentDbPath)) {
           fs.copyFileSync(currentDbPath, backupPath);
           const verifyDb = new BetterSqlite3(backupPath, { readonly: true });
-          const tables = verifyDb.prepare("SELECT count(*) as cnt FROM sqlite_master WHERE type='table'").get() as { cnt: number };
-          verifyDb.close();
-          if (tables.cnt === 0) {
-            fs.unlinkSync(backupPath);
-            logger.error("[DB] Backup verification failed: empty database");
-            return null;
+          try {
+            const tables = verifyDb.prepare("SELECT count(*) as cnt FROM sqlite_master WHERE type='table'").get() as { cnt: number };
+            if (tables.cnt === 0) {
+              fs.unlinkSync(backupPath);
+              logger.error("[DB] Backup verification failed: empty database");
+              return null;
+            }
+          } finally {
+            verifyDb.close();
           }
           logger.info(`[DB] Backup created (file copy): ${backupPath}`);
           cleanupBackups();
@@ -633,7 +652,6 @@ function startSoftDeleteCleanup(): void {
 function performSoftDeleteCleanup(): void {
   try {
     const db = getDb();
-    if (!db) return;
     const cutoff = Math.floor((Date.now() - SOFT_DELETE_MAX_AGE_MS) / 1000);
     const tables = ["characters", "scenes"];
     for (const table of tables) {

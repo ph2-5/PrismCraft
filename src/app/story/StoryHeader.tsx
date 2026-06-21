@@ -132,6 +132,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
       />
 
       <Input
+        data-testid="story-description-input"
         placeholder={t("story.descPlaceholder")}
         value={story.currentStory.description ?? ""}
         onChange={(e) =>

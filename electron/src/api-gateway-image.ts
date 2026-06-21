@@ -15,7 +15,7 @@ const logger = getLogger("api-gateway-image");
 
 async function analyzeImage(body: Record<string, unknown>): Promise<ApiResult> {
   const { imageUrl, prompt, type } = body as Record<string, unknown>;
-  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = resolveApiConfig(
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
     "vision",
   );
@@ -137,7 +137,7 @@ async function generateImage(body: Record<string, unknown>): Promise<ApiResult> 
     previousFrameUrl,
   } = body as Record<string, unknown>;
 
-  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = resolveApiConfig(
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
     "image",
   );
@@ -236,7 +236,7 @@ async function generateKeyframe(body: Record<string, unknown>): Promise<ApiResul
   const effectiveSceneRef = sceneRef || _legacySceneImageUrl;
   const effectivePrevFrame = previousFrameUrl || prevKeyframe;
 
-  const { effectiveApiUrl, effectiveModel, resolvedPlugin } = resolveApiConfig(
+  const { effectiveApiUrl, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
     "image",
   );
@@ -296,7 +296,7 @@ async function generateFramePair(body: Record<string, unknown>): Promise<ApiResu
   const effectiveCharacterRef = characterRef || _legacyCharacterImageUrl || (Array.isArray(characterRefs) && characterRefs.length > 0 ? characterRefs[0] : undefined);
   const effectiveSceneRef = sceneRef || _legacySceneImageUrl;
 
-  const { effectiveApiUrl, effectiveModel, resolvedPlugin } = resolveApiConfig(
+  const { effectiveApiUrl, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
     "image",
   );

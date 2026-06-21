@@ -126,6 +126,7 @@ export function AssetCollectionDialogs({
             <DialogDescription>{t("asset.newCollectionDesc")}</DialogDescription>
           </DialogHeader>
           <Input
+            data-testid="asset-collection-name-input"
             value={newCollectionName}
             onChange={(e) => setNewCollectionName(e.target.value)}
             placeholder={t("asset.collectionNamePlaceholder")}

@@ -76,18 +76,12 @@ test.describe("Add Provider Form", () => {
   });
 
   test("should display API Key input field", async ({ page }) => {
-    const apiKeyInput = page.locator('input#apiKey').or(
-      page.locator('input[placeholder*="API Key"]')
-    ).or(
-      page.locator('input[placeholder*="密钥"]')
-    ).first();
+    const apiKeyInput = page.locator('[data-testid="provider-api-key-input"]').first();
     await expect(apiKeyInput).toBeVisible({ timeout: 10000 });
   });
 
   test("should display provider name input field", async ({ page }) => {
-    const nameInput = page.locator('input[placeholder*="名称"]').or(
-      page.locator('input[placeholder*="提供商"]')
-    ).first();
+    const nameInput = page.locator('[data-testid="provider-name-input"]').first();
     await expect(nameInput).toBeVisible({ timeout: 10000 });
   });
 
@@ -113,11 +107,7 @@ test.describe("Add Provider Form", () => {
   });
 
   test("should accept API key input", async ({ page }) => {
-    const apiKeyInput = page.locator('input#apiKey').or(
-      page.locator('input[placeholder*="API Key"]')
-    ).or(
-      page.locator('input[placeholder*="密钥"]')
-    ).first();
+    const apiKeyInput = page.locator('[data-testid="provider-api-key-input"]').first();
     if (!(await apiKeyInput.isVisible({ timeout: 5000 }).catch(() => false))) return;
 
     await apiKeyInput.fill("sk-test-api-key-12345");
@@ -125,11 +115,7 @@ test.describe("Add Provider Form", () => {
   });
 
   test("should show provider detection after entering key", async ({ page }) => {
-    const apiKeyInput = page.locator('input#apiKey').or(
-      page.locator('input[placeholder*="API Key"]')
-    ).or(
-      page.locator('input[placeholder*="密钥"]')
-    ).first();
+    const apiKeyInput = page.locator('[data-testid="provider-api-key-input"]').first();
     if (!(await apiKeyInput.isVisible({ timeout: 5000 }).catch(() => false))) return;
 
     await apiKeyInput.fill("sk-test-api-key-12345");

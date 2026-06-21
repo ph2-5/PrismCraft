@@ -86,6 +86,7 @@ export function CharacterBasicInfo({
             <Label htmlFor="age">{t("character.age")}</Label>
             <Input
               id="age"
+              data-testid="character-age-input"
               type="number"
               placeholder={t("character.agePlaceholder")}
               value={currentCharacter.age ?? ""}
@@ -109,6 +110,7 @@ export function CharacterBasicInfo({
           <div className="flex gap-2">
             <Input
               id="style"
+              data-testid="character-style-input"
               list="style-suggestions"
               placeholder={t("character.stylePlaceholder")}
               value={currentCharacter.style}

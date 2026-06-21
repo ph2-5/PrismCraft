@@ -21,6 +21,7 @@ export function CameraTab({ currentScene, setCurrentScene }: CameraTabProps) {
         <Label htmlFor="cameraAngle">{t("scene.cameraAngle")}</Label>
         <Input
           id="cameraAngle"
+          data-testid="scene-camera-angle-input"
           list="angle-suggestions"
           placeholder={t("scene.cameraAnglePlaceholder")}
           value={currentScene.camera?.angle || ""}

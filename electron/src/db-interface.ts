@@ -7,6 +7,30 @@ import type { DatabaseResult, QueryParams, RunResult, Statement } from "./types/
 
 const logger = getLogger("db-interface");
 
+/**
+ * Sanitize SQL params for inclusion in error messages.
+ *
+ * Prevents leaking sensitive data (API keys, passwords, long payloads) by:
+ * - Truncating long string parameters to 100 chars
+ * - Returning a placeholder if serialization fails
+ *
+ * This is a best-effort redaction; structured objects are still serialized
+ * but truncated strings limit overall exposure in logs.
+ */
+function sanitizeParams(params: unknown[]): string {
+  try {
+    const sanitized = params.map((p) => {
+      if (typeof p === "string" && p.length > 100) {
+        return p.slice(0, 100) + "...[truncated]";
+      }
+      return p;
+    });
+    return JSON.stringify(sanitized);
+  } catch {
+    return "[unserializable]";
+  }
+}
+
 interface DbOptions {
   filePath?: string;
   performance?: boolean;
@@ -207,7 +231,7 @@ export class BetterSqlite3Statement implements Statement {
       };
     } catch (error) {
       throw new Error(
-        `SQL execution failed: ${(error as Error).message}\nSQL: ${this.sql}\nParams: ${JSON.stringify(params)}`,
+        `SQL execution failed: ${(error as Error).message}\nSQL: ${this.sql}\nParams: ${sanitizeParams(params)}`,
       );
     }
   }
@@ -217,7 +241,7 @@ export class BetterSqlite3Statement implements Statement {
       return this.stmt.get(...params) as DatabaseResult | undefined;
     } catch (error) {
       throw new Error(
-        `SQL query failed: ${(error as Error).message}\nSQL: ${this.sql}\nParams: ${JSON.stringify(params)}`,
+        `SQL query failed: ${(error as Error).message}\nSQL: ${this.sql}\nParams: ${sanitizeParams(params)}`,
       );
     }
   }
@@ -227,7 +251,7 @@ export class BetterSqlite3Statement implements Statement {
       return this.stmt.all(...params) as DatabaseResult[];
     } catch (error) {
       throw new Error(
-        `SQL query failed: ${(error as Error).message}\nSQL: ${this.sql}\nParams: ${JSON.stringify(params)}`,
+        `SQL query failed: ${(error as Error).message}\nSQL: ${this.sql}\nParams: ${sanitizeParams(params)}`,
       );
     }
   }

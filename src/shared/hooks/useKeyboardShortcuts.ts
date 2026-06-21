@@ -44,12 +44,13 @@ function matchesKey(event: KeyboardEvent, shortcut: KeyboardShortcut): boolean {
 
 function isTextField(element: EventTarget | null): boolean {
   if (!element) return false;
-  const tag = (element as HTMLElement).tagName?.toLowerCase();
+  if (!(element instanceof HTMLElement)) return false;
+  const tag = element.tagName?.toLowerCase();
   return (
     tag === "input" ||
     tag === "textarea" ||
     tag === "select" ||
-    (element as HTMLElement).isContentEditable
+    element.isContentEditable
   );
 }
 

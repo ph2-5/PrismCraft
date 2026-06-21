@@ -12,7 +12,7 @@ if (_dbJson) {
     for (var i = 0; i < parsed.length; i++) {
       db.set(parsed[i][0], new Map(parsed[i][1]));
     }
-  } catch(e) {}
+  } catch(e) { console.warn("[electron-mock] Failed to parse mock DB from sessionStorage:", e); }
 }
 
 function _saveDb() {
@@ -20,7 +20,7 @@ function _saveDb() {
     var entries = [];
     db.forEach(function(v, k) { entries.push([k, Array.from(v.entries())]); });
     sessionStorage.setItem("__electron_mock_db__", JSON.stringify(entries));
-  } catch(e) {}
+  } catch(e) { console.warn("[electron-mock] Failed to persist mock DB to sessionStorage:", e); }
 }
 
 window.addEventListener("beforeunload", _saveDb);

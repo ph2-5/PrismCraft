@@ -11,6 +11,84 @@ import { safeJsonParse } from "@/shared/utils/safe-json";
 import { fromAsyncThrowable } from "@/domain/types/result";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" && data !== null;
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === "number" && !Number.isNaN(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+function isVectorClock(data: unknown): data is VectorClock {
+  if (!isRecord(data)) return false;
+  for (const value of Object.values(data)) {
+    if (!isNumber(value)) return false;
+  }
+  return true;
+}
+
+interface ConflictIdEntry {
+  changeId?: string;
+  entityId?: string;
+}
+
+function isConflictIdEntry(data: unknown): data is ConflictIdEntry {
+  if (!isRecord(data)) return false;
+  if (data.changeId !== undefined && !isString(data.changeId)) return false;
+  if (data.entityId !== undefined && !isString(data.entityId)) return false;
+  return true;
+}
+
+function asConflictIdList(data: unknown): ConflictIdEntry[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(isConflictIdEntry);
+}
+
+function asConflictArray(data: unknown): SyncPushResult["conflicts"] {
+  return Array.isArray(data) ? (data as SyncPushResult["conflicts"]) : [];
+}
+
+function asVectorClock(data: unknown): VectorClock {
+  return isVectorClock(data) ? data : {};
+}
+
+interface PushProxyData {
+  accepted?: number;
+  conflicts?: unknown;
+  serverVectorClock?: unknown;
+}
+
+function asPushProxyData(data: unknown): PushProxyData {
+  if (!isRecord(data)) return {};
+  const obj: PushProxyData = {};
+  if (isNumber(data.accepted)) obj.accepted = data.accepted;
+  if (data.conflicts !== undefined) obj.conflicts = data.conflicts;
+  if (data.serverVectorClock !== undefined) obj.serverVectorClock = data.serverVectorClock;
+  return obj;
+}
+
+interface PullProxyData {
+  changes: RemoteChange[];
+  latestVectorClock: VectorClock;
+  hasMore: boolean;
+}
+
+function asPullProxyData(data: unknown): PullProxyData {
+  if (!isRecord(data)) {
+    return { changes: [], latestVectorClock: {}, hasMore: false };
+  }
+  const changes = Array.isArray(data.changes) ? (data.changes as RemoteChange[]) : [];
+  return {
+    changes,
+    latestVectorClock: asVectorClock(data.latestVectorClock),
+    hasMore: typeof data.hasMore === "boolean" ? data.hasMore : false,
+  };
+}
+
 export async function pushChanges(
   deviceId: string,
   endpoint?: string,
@@ -66,10 +144,10 @@ export async function pushChanges(
       throw new Error(result.error || "Push proxy failed");
     }
 
-    const proxyData = (result.data as Record<string, unknown>) || {};
+    const proxyData = asPushProxyData(result.data);
 
     const conflictIds = new Set(
-      ((proxyData.conflicts || []) as { changeId?: string; entityId?: string }[]).map(
+      asConflictIdList(proxyData.conflicts).map(
         (conf) => conf.changeId || conf.entityId,
       ),
     );
@@ -81,9 +159,9 @@ export async function pushChanges(
     // 避免 push 成功但 pull/apply 失败时本地变更被提前标记为已同步导致数据丢失。
 
     return {
-      accepted: (proxyData.accepted as number) || syncedIds.length,
-      conflicts: (proxyData.conflicts as SyncPushResult["conflicts"]) || [],
-      serverVectorClock: (proxyData.serverVectorClock as VectorClock) || {},
+      accepted: proxyData.accepted ?? syncedIds.length,
+      conflicts: asConflictArray(proxyData.conflicts),
+      serverVectorClock: asVectorClock(proxyData.serverVectorClock),
       syncedIds,
     };
   });
@@ -142,16 +220,12 @@ export async function pullChanges(
         throw new Error(result.error || "Pull proxy failed");
       }
 
-      const proxyData = (result.data as SyncPullResult) || {
-        changes: [],
-        latestVectorClock: {},
-        hasMore: false,
-      };
-      allChanges.push(...(proxyData.changes || []));
+      const proxyData = asPullProxyData(result.data);
+      allChanges.push(...proxyData.changes);
       if (proxyData.latestVectorClock) {
         latestVC = mergeVectorClocks(latestVC, proxyData.latestVectorClock);
       }
-      hasMore = proxyData.hasMore || false;
+      hasMore = proxyData.hasMore;
       page++;
     }
 

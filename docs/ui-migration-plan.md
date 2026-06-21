@@ -34,10 +34,10 @@ Phase E (2-4天): 故事创作 stepper 页面 + 编译器页面 + AI助手 + 插
 | — | `/agent` (AI助手) | **占位页**（功能在 Phase 1） |
 | — | `/composer` (编译器) | **占位页**（功能在 Phase 2A） |
 | — | `/plugins` (插件市场) | 从 settings 拆分 |
-| — | `/story` (故事创作) | **占位页**（7步stepper，单入口） |
+| — | `/story` (故事创作) | **占位页**（10步stepper，单入口） |
 
 > **占位页策略**：重构阶段只搭页面骨架 + "即将推出"提示，功能在 `development-plan.md` 对应 Phase 实现。
-> **故事创作**：侧边栏仅保留单入口"故事创作"，5个子步骤（导入小说→角色确认→场景确认→分镜预览→批量任务）合并为页面内 stepper。
+> **故事创作**：侧边栏仅保留单入口"故事创作"，7 个 Phase（项目初始化→内容导入→角色管理→场景管理→检查调优→剧本化→生成）合并为页面内 stepper。详见 [`story-pipeline-design.md`](./story-pipeline-design.md)。
 
 ---
 
@@ -82,16 +82,14 @@ const navSections: NavSection[] = [
   },
   {
     title: "故事创作",
-    subtitle: "AI 管道 · 自动拆解生成",
+    subtitle: "渐进式编辑 · 10步流水线",
     icon: "📖",
     items: [
-      { label: "导入小说", path: "/story", icon: BookIcon },
-      { label: "角色确认", path: "/story-chars", icon: UserIcon },
-      { label: "场景确认", path: "/story-scenes", icon: SceneIcon },
-      { label: "分镜预览", path: "/story-shots", icon: FilmIcon },
-      { label: "批量任务", path: "/story-tasks", icon: TaskIcon },
+      { label: "故事创作", path: "/story", icon: BookIcon },
     ],
   },
+  // 注：故事创作的 7 个 Phase（项目初始化→内容导入→角色管理→场景管理→检查调优→剧本化→生成）
+  // 全部在 /story 页面内通过 stepper 完成，不再拆分为独立子路由。
   {
     title: "工具",
     items: [
@@ -130,11 +128,7 @@ const navSections: NavSection[] = [
 - `src/app/composer/page.tsx` — **新建**（占位页）
 - `src/app/plugins/page.tsx` — **新建**（从 settings 拆分）
 - `src/app/projects/page.tsx` — **新建**（从首页拆分）
-- `src/app/story-pipeline/page.tsx` — **新建**（占位页，导入小说）
-- `src/app/story-pipeline/characters/page.tsx` — **新建**（占位页）
-- `src/app/story-pipeline/scenes/page.tsx` — **新建**（占位页）
-- `src/app/story-pipeline/shots/page.tsx` — **新建**（占位页）
-- `src/app/story-pipeline/tasks/page.tsx` — **新建**（占位页）
+- `src/app/story/page.tsx` — **新建**（故事创作占位页，10步stepper骨架）
 - `src/shared/presentation/PlaceholderPage.tsx` — **新建**（通用占位组件）
 
 **🤖 执行指令**：
@@ -163,11 +157,7 @@ export function PlaceholderPage({ title, icon, description }: PlaceholderPagePro
 { path: "/composer", element: <PlaceholderPage icon="🖼" title="全局编译器" description="角色+场景+道具组合生成" /> },
 { path: "/plugins", element: <PluginsPage /> },  // 从 settings 拆分
 { path: "/projects", element: <ProjectsPage /> },  // 从首页拆分
-{ path: "/story", element: <PlaceholderPage icon="📖" title="导入小说" description="AI 管道就绪后启用" /> },
-{ path: "/story-chars", element: <PlaceholderPage icon="👤" title="角色确认" /> },
-{ path: "/story-scenes", element: <PlaceholderPage icon="🏙" title="场景确认" /> },
-{ path: "/story-shots", element: <PlaceholderPage icon="🎬" title="分镜预览" /> },
-{ path: "/story-tasks", element: <PlaceholderPage icon="📋" title="批量任务" /> },
+{ path: "/story", element: <PlaceholderPage icon="📖" title="故事创作" description="10步流水线就绪后启用" /> },
 ```
 
 3. 路由重命名：`/story`（分镜编辑）→ `/storyboard`，`/asset-library` → `/assets`，`/video-tasks` → `/tasks`

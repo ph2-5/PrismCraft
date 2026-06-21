@@ -19,10 +19,21 @@ async function withCacheMutex<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+let beforeUnloadHandler: (() => void) | null = null;
+
 if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", () => {
+  beforeUnloadHandler = () => {
     cleanupAllObjectUrls();
-  });
+  };
+  window.addEventListener("beforeunload", beforeUnloadHandler);
+}
+
+/** 清理 video-cache 的 beforeunload 监听器（测试/HMR 场景使用） */
+export function cleanupVideoCache(): void {
+  if (beforeUnloadHandler && typeof window !== "undefined") {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+    beforeUnloadHandler = null;
+  }
 }
 
 export function registerObjectUrl(taskId: string, url: string): void {

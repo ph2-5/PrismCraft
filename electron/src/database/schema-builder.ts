@@ -30,6 +30,18 @@ const BASE_COLUMNS: Record<string, ColumnDef> = {
 
 const BASE_INDEXES = ["is_deleted", "updated_at"];
 
+function quoteRef(ref: string): string {
+  const match = ref.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\(([a-zA-Z_][a-zA-Z0-9_]*)\)$/);
+  if (match) {
+    return `"${match[1]}"("${match[2]}")`;
+  }
+  const valid = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+  if (valid.test(ref)) {
+    return `"${ref}"`;
+  }
+  return ref;
+}
+
 export function generateTableSQL(def: TableDef): string {
   const useBase = def.baseColumns !== false;
   const allColumns: Record<string, ColumnDef> = useBase
@@ -41,42 +53,43 @@ export function generateTableSQL(def: TableDef): string {
   const indexes: string[] = [];
 
   if (!allColumns.id && pk === "id") {
-    lines.push("id TEXT PRIMARY KEY");
+    lines.push('"id" TEXT PRIMARY KEY');
   }
 
   for (const [name, col] of Object.entries(allColumns)) {
     if (name === "id" && pk === "id" && !allColumns.id) continue;
-    let line = `    ${name} ${col.type}`;
+    let line = `    "${name}" ${col.type}`;
     if (name === pk && pk !== "id") line += " PRIMARY KEY";
     if (name === pk && pk === "id" && allColumns.id) line += " PRIMARY KEY";
     if (col.notNull) line += " NOT NULL";
     if (col.default !== undefined) line += ` DEFAULT ${col.default}`;
-    if (col.check) line += ` CHECK(${name} ${col.check})`;
+    if (col.check) line += ` CHECK("${name}" ${col.check})`;
     if (col.unique) line += " UNIQUE";
     if (col.ref) {
       const onDelete = col.onDelete || "CASCADE";
-      line += ` REFERENCES ${col.ref} ON DELETE ${onDelete}`;
+      const refQuoted = quoteRef(col.ref);
+      line += ` REFERENCES ${refQuoted} ON DELETE ${onDelete}`;
     }
     lines.push(line);
 
     if (col.ref || col.index) {
-      indexes.push(`CREATE INDEX IF NOT EXISTS idx_${def.name}_${name} ON ${def.name}(${name});`);
+      indexes.push(`CREATE INDEX IF NOT EXISTS idx_${def.name}_${name} ON "${def.name}"("${name}");`);
     }
   }
 
   if (def.uniqueConstraints) {
     for (const uc of def.uniqueConstraints) {
-      lines.push(`    UNIQUE(${uc.join(', ')})`);
+      lines.push(`    UNIQUE(${uc.map(c => `"${c}"`).join(', ')})`);
     }
   }
 
   if (useBase) {
     for (const col of BASE_INDEXES) {
-      indexes.push(`CREATE INDEX IF NOT EXISTS idx_${def.name}_${col} ON ${def.name}(${col});`);
+      indexes.push(`CREATE INDEX IF NOT EXISTS idx_${def.name}_${col} ON "${def.name}"("${col}");`);
     }
   }
 
-  let sql = `CREATE TABLE IF NOT EXISTS ${def.name} (\n${lines.join(',\n')}\n);`;
+  let sql = `CREATE TABLE IF NOT EXISTS "${def.name}" (\n${lines.join(',\n')}\n);`;
   for (const idx of indexes) {
     sql += `\n${idx}`;
   }
@@ -91,26 +104,27 @@ export function generateJunctionTableSQL(
 ): string {
   const lines: string[] = [];
   for (const [colName, col] of Object.entries(columns)) {
-    let line = `    ${colName} ${col.type}`;
+    let line = `    "${colName}" ${col.type}`;
     if (col.notNull) line += " NOT NULL";
     if (col.default !== undefined) line += ` DEFAULT ${col.default}`;
     if (col.ref) {
       const onDelete = col.onDelete || "CASCADE";
-      line += ` REFERENCES ${col.ref} ON DELETE ${onDelete}`;
+      const refQuoted = quoteRef(col.ref);
+      line += ` REFERENCES ${refQuoted} ON DELETE ${onDelete}`;
     }
     lines.push(line);
   }
-  lines.push(`    PRIMARY KEY(${primaryKey.join(', ')})`);
+  lines.push(`    PRIMARY KEY(${primaryKey.map(c => `"${c}"`).join(', ')})`);
   if (uniqueConstraints) {
     for (const uc of uniqueConstraints) {
-      lines.push(`    UNIQUE(${uc.join(', ')})`);
+      lines.push(`    UNIQUE(${uc.map(c => `"${c}"`).join(', ')})`);
     }
   }
 
-  let sql = `CREATE TABLE IF NOT EXISTS ${name} (\n${lines.join(',\n')}\n);`;
+  let sql = `CREATE TABLE IF NOT EXISTS "${name}" (\n${lines.join(',\n')}\n);`;
   for (const [colName, col] of Object.entries(columns)) {
     if (col.ref) {
-      sql += `\nCREATE INDEX IF NOT EXISTS idx_${name}_${colName} ON ${name}(${colName});`;
+      sql += `\nCREATE INDEX IF NOT EXISTS idx_${name}_${colName} ON "${name}"("${colName}");`;
     }
   }
   return sql;

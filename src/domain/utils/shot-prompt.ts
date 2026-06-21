@@ -75,13 +75,14 @@ const SHOT_SIZE_ALIASES: Record<string, string> = {
 function normalizeCameraValue(
   value: string | undefined,
   options: Array<{ value: string; label: string }>,
+  aliases: Record<string, string> = {},
 ): string | undefined {
   if (!value) return undefined;
   const match = options.find((o) => o.value === value);
   if (match) return match.value;
   const labelMatch = options.find((o) => o.label === value);
   if (labelMatch) return labelMatch.value;
-  const alias = SHOT_SIZE_ALIASES[value];
+  const alias = aliases[value];
   if (alias) return alias;
   return value;
 }
@@ -112,7 +113,7 @@ export function resolveShotInstruction(beat: {
 
   if (beat.camera && typeof beat.camera === "object") {
     return {
-      shotSize: normalizeCameraValue(beat.shotType || undefined, SHOT_SIZE_OPTIONS),
+      shotSize: normalizeCameraValue(beat.shotType || undefined, SHOT_SIZE_OPTIONS, SHOT_SIZE_ALIASES),
       cameraMovement: normalizeCameraValue(beat.camera.movement, CAMERA_MOVEMENT_OPTIONS),
       cameraAngle: normalizeCameraValue(beat.camera.angle, CAMERA_ANGLE_OPTIONS),
     };
@@ -120,7 +121,7 @@ export function resolveShotInstruction(beat: {
 
   if (beat.shotType) {
     return {
-      shotSize: normalizeCameraValue(beat.shotType, SHOT_SIZE_OPTIONS),
+      shotSize: normalizeCameraValue(beat.shotType, SHOT_SIZE_OPTIONS, SHOT_SIZE_ALIASES),
     };
   }
 

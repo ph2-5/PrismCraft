@@ -368,6 +368,9 @@ export function validateStoryPlan(plan: RawStoryBeat[]): StoryPlanValidationResu
 
   for (let i = 0; i < plan.length; i++) {
     const { fixed, autoFixed } = fixStoryBeat(plan[i]!);
+    // Runtime validation: ensure required StoryBeat fields have values
+    if (!fixed.description) fixed.description = fixed.content || "";
+    if (!fixed.characterIds) fixed.characterIds = [];
     fixedPlan.push(fixed as StoryBeat);
     allAutoFixed.push(...autoFixed.map((f: string) => `[分镜${i + 1}] ${f}`));
     if (!fixed.title) allErrors.push(`[分镜${i + 1}] 缺少标题`);
@@ -416,21 +419,43 @@ export function parseStoryPlanJSON(text: string): RawStoryBeat[] | null {
   if (jsonMatch) jsonStr = jsonMatch[0];
   try {
     const parsed = JSON.parse(jsonStr);
-    if (Array.isArray(parsed)) return parsed as RawStoryBeat[];
+    return validateRawStoryBeats(parsed);
   } catch {
     const start = jsonStr.indexOf("[");
     const end = jsonStr.lastIndexOf("]");
     if (start !== -1 && end > start) {
       try {
         const parsed = JSON.parse(jsonStr.slice(start, end + 1));
-        if (Array.isArray(parsed)) return parsed as RawStoryBeat[];
+        return validateRawStoryBeats(parsed);
       } catch { /* no-op */ }
     }
   }
   return null;
 }
 
-export function convertToStoryBeats(rawBeats: RawStoryBeat[], enhancedGeneration = true): StoryBeat[] {
+/**
+ * Validate that a parsed JSON value is an array of RawStoryBeat-shaped objects.
+ * Replaces unsafe `as RawStoryBeat[]` assertions with runtime element checks:
+ * each element must be a non-null object. Field-level shape is left to
+ * downstream consumers (all RawStoryBeat fields are optional).
+ */
+function validateRawStoryBeats(parsed: unknown): RawStoryBeat[] {
+  if (!Array.isArray(parsed)) {
+    throw new Error("Invalid story beats: expected array");
+  }
+  for (const item of parsed) {
+    if (typeof item !== "object" || item === null) {
+      throw new Error("Invalid story beat: expected object");
+    }
+  }
+  return parsed as RawStoryBeat[];
+}
+
+export function convertToStoryBeats(
+  rawBeats: RawStoryBeat[],
+  enhancedGeneration = true,
+  idGenerator?: (index: number) => string,
+): StoryBeat[] {
   return rawBeats.map((raw, index) => {
     const title = String(raw.t || raw.title || "");
     const content = String(raw.c || raw.content || "");
@@ -483,7 +508,8 @@ export function convertToStoryBeats(rawBeats: RawStoryBeat[], enhancedGeneration
       Object.keys(fallbackElementBindings).length > 0 ? fallbackElementBindings : undefined;
 
     const beat: StoryBeat = {
-      id: `beat-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
+      // ID 生成需要唯一性；默认使用 Date.now()+Math.random()（非纯），可通过 idGenerator 注入纯函数
+      id: idGenerator ? idGenerator(index) : `beat-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
       sequence: index + 1,
       title: title || `分镜${index + 1}`,
       content: content || "",
@@ -552,7 +578,8 @@ export async function generateStoryPlanWithValidation(
   const basePrompt = opts.planPrompt || generateStoryPlanPrompt({
     title: story.title, description: story.description, genre: story.genre,
     tone: story.tone, targetDuration: story.targetDuration,
-    characters: (characters || []) as CharacterInput[], scenes: (scenes || []) as SceneInput[],
+    characters: (Array.isArray(characters) ? characters : []) as CharacterInput[],
+    scenes: (Array.isArray(scenes) ? scenes : []) as SceneInput[],
   });
 
   const fewShotContext: FewShotInput = {
@@ -594,7 +621,7 @@ export async function generateStoryPlanWithValidation(
       retryCount++;
     } catch (error) {
       retryCount++;
-      if (attempt >= maxRetries) throw new Error(`STORY_PLAN_GENERATION_FAILED: ${(error as Error).message}`);
+      if (attempt >= maxRetries) throw new Error(`STORY_PLAN_GENERATION_FAILED: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

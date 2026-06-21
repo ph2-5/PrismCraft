@@ -16,6 +16,25 @@ export interface PollResult {
   hasSuccess: boolean;
 }
 
+/**
+ * Type guard: does the poll response carry a top-level `retryable` flag?
+ * Some providers extend the base response shape with this hint; we cannot
+ * assume it exists, so we narrow at runtime instead of asserting.
+ */
+function hasRetryable(obj: unknown): obj is { retryable?: boolean } {
+  return typeof obj === "object" && obj !== null && "retryable" in obj;
+}
+
+/**
+ * Type guard: does the poll response carry `data.retryable`?
+ * Mirrors `hasRetryable` for the nested `data` shape some providers use.
+ */
+function hasDataRetryable(obj: unknown): obj is { data?: { retryable?: boolean } } {
+  if (typeof obj !== "object" || obj === null || !("data" in obj)) return false;
+  const data = (obj as { data?: unknown }).data;
+  return typeof data === "object" && data !== null && "retryable" in data;
+}
+
 export async function handleTimedOutTasks(
   tasks: VideoTask[],
   _signal: AbortSignal,
@@ -261,8 +280,8 @@ async function pollSingleTask(
     } else {
       const apiErrorMsg = pollResp.error || t("task.apiReturnFailed");
       const isRetryable =
-        (pollResp as { retryable?: boolean }).retryable === true ||
-        (pollResp as { data?: { retryable?: boolean } }).data?.retryable === true;
+        (hasRetryable(pollResp) && pollResp.retryable === true) ||
+        (hasDataRetryable(pollResp) && pollResp.data?.retryable === true);
       if (isRetryable) {
         result.taskUpdates.set(task.taskId, {
           message: t("task.retryableQueryFail", { error: apiErrorMsg }),

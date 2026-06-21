@@ -1,11 +1,11 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { loadModelProfilesFromServer, getAllModelProfiles, type ModelParameterProfile } from "@/shared/model-capabilities";
 import { isElectron } from "@/shared/utils/platform";
 import { errorLogger } from "@/shared/error-logger";
 
 const MODEL_CAPABILITIES_QUERY_KEY = ["model-capabilities"] as const;
 
-export function useModelCapabilities() {
+export function useModelCapabilities(): UseQueryResult<Record<string, ModelParameterProfile>> {
   return useQuery<Record<string, ModelParameterProfile>>({
     queryKey: MODEL_CAPABILITIES_QUERY_KEY,
     queryFn: async () => {
@@ -17,7 +17,7 @@ export function useModelCapabilities() {
   });
 }
 
-export function useInvalidateModelCapabilities() {
+export function useInvalidateModelCapabilities(): () => Promise<void> {
   const queryClient = useQueryClient();
   return () => {
     errorLogger.info("[ModelCapabilities] Invalidating model capabilities cache");

@@ -1,38 +1,21 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import { container } from "@/infrastructure/di";
-import {
-  saveVideoTask,
-  recoverVideoByTaskId,
-  registerCacheVideoBlobFn,
-} from "@/modules/video/recovery";
-import { cacheVideoBlob, registerRecoveryFn, removeCachedVideo } from "@/modules/video/cache";
+import { saveVideoTask } from "@/modules/video/recovery";
 import { errorLogger } from "@/shared/error-logger";
-import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
-import { AppError } from "@/domain/types/result";
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
 import { TaskMachine, mapApiStatus } from "../domain";
 import {
-  withTransitionGuard,
-  pollingState,
   registerPollingStore,
   stopPolling as _stopPolling,
   cleanupAllPollingResources,
   schedulePolling,
   checkAndStartOrStopPolling,
-  MAX_POLL_FAILURES,
   scheduleSync,
   registerSyncStore,
 } from "./internals";
-import {
-  loadTasksFromStorage,
-  setupRecoveredEventListener,
-  setupBackgroundRecoveryInterval,
-  setupCacheCleanupInterval,
-  setupBeforeUnloadHandler,
-} from "./internals/task-initializer";
 import {
   removeTaskFromStorageAndCache,
   removeTasksFromStorageAndCache,
@@ -41,6 +24,11 @@ import {
   excludeTasksByStatus,
   excludeTasksByIds,
 } from "./internals/task-removal";
+import {
+  initializePolling,
+  pollTaskShared,
+  type PollingStoreAccessor,
+} from "./internals/shared-polling-logic";
 
 export type { VideoTask, VideoTaskStatus };
 
@@ -103,24 +91,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   initError: null,
 
   initialize: () => {
-    const state = get();
-    if (state.isInitialized || pollingState.isInitializing) return;
-    pollingState.isInitializing = true;
-
-    ensureRecoveryRegistered();
-    cleanupAllPollingResources();
-
-    const store = { getState: get, set };
-
-    const loadTasks = loadTasksFromStorage(store);
-    loadTasks().catch((err) => {
-      errorLogger.warn("[VideoTaskManager] 任务加载失败", err);
-    });
-
-    setupRecoveredEventListener(store);
-    setupBackgroundRecoveryInterval();
-    setupCacheCleanupInterval();
-    setupBeforeUnloadHandler(store);
+    ensureStoresRegistered();
+    initializePolling({ getState: get, set } as PollingStoreAccessor);
   },
 
   setAllTasks: (updater) => {
@@ -430,111 +402,19 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 
   pollTask: async (taskId) => {
-    const task = get().allTasks.find((t) => t.taskId === taskId);
-    if (!task) return;
-
-    try {
-      const pollOptions: Parameters<typeof container.videoProvider.queryVideoStatus>[1] = {};
-      if (task.providerId && task.providerModelId) {
-        pollOptions.providerId = task.providerId;
-        pollOptions.modelId = task.providerModelId;
-        if (task.providerFormat) {
-          pollOptions.format = task.providerFormat;
-        }
-      }
-      const result = await container.videoProvider.queryVideoStatus(taskId, pollOptions);
-      if (result.success && result.data) {
-        const justCompleted =
-          result.data.status === "completed" && !!result.data.videoUrl;
-        if (justCompleted && result.data.videoUrl) {
-          cacheVideoBlob(task.taskId, result.data.videoUrl).catch((e: unknown) =>
-            errorLogger.warn(
-              new AppError("CACHE_VIDEO_ERROR", "Failed to cache video blob", e),
-              "VideoTaskManager",
-            ),
-          );
-        }
-        const mappedStatus = mapApiStatus(result.data.status || "failed", result.data.videoUrl);
-        const guardUpdates = withTransitionGuard(task, mappedStatus, {
-          progress: result.data.progress || task.progress,
-          videoUrl: result.data.videoUrl,
-          message: result.data.message || task.message,
-        });
-
-        const pollSaveResult = await saveVideoTask({
-          ...task,
-          ...guardUpdates,
-          lastPolledAt: new Date().toISOString(),
-        });
-        if (!pollSaveResult.ok) {
-          errorLogger.warn(
-            "[VideoTaskManager] 轮询结果持久化失败",
-            pollSaveResult.error instanceof Error ? pollSaveResult.error.message : pollSaveResult.error,
-          );
-        }
-
-        get().setAllTasks((prev) =>
-          prev.map((t) =>
-            t.taskId === taskId ? { ...t, ...guardUpdates } : t,
-          ),
-        );
-        scheduleSync();
-        checkAndStartOrStopPolling();
-      } else {
-        get().setAllTasks((prev) =>
-          prev.map((task) =>
-            task.taskId === taskId
-              ? { ...task, message: t("video.queryNoResponse") }
-              : task,
-          ),
-        );
-        scheduleSync();
-      }
-    } catch (error) {
-      errorLogger.error("Error polling task", error);
-      const failCount = (task.pollFailureCount || 0) + 1;
-      let updatedTask: VideoTask = {
-        ...task,
-        pollFailureCount: failCount,
-        message: t("video.queryFailedReason", { reason: mapUserFacingError(error) }),
-      };
-      if (failCount >= MAX_POLL_FAILURES) {
-        const guarded = withTransitionGuard(task, "failed", {
-          message: t("video.consecutivePollFailed", { count: MAX_POLL_FAILURES }),
-          pollFailureCount: 0,
-        });
-        updatedTask = { ...updatedTask, ...guarded };
-        const taskLabel = task.beatTitle || task.storyTitle || taskId.slice(0, 8);
-        emitToast("error", t("video.generateFailed"), t("video.pollingFailedDetail", { taskLabel }));
-        removeCachedVideo(taskId).catch((e) => { errorLogger.warn("[VideoTaskManager] removeCachedVideo failed", e); });
-      }
-      try {
-        const failSaveResult = await saveVideoTask(updatedTask);
-        if (!failSaveResult.ok) {
-          errorLogger.error(
-            "[VideoTaskManager] Failed to save poll failure",
-            failSaveResult.error,
-          );
-        }
-      } catch (saveError) {
-        errorLogger.error(
-          "[VideoTaskManager] Failed to save poll failure",
-          saveError,
-        );
-      }
-      get().setAllTasks((prev) =>
-        prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
-      );
-      scheduleSync();
-      checkAndStartOrStopPolling();
-    }
+    await pollTaskShared({ getState: get, set } as PollingStoreAccessor, taskId);
   },
 
   cancelTask: async (taskId) => {
     const task = get().allTasks.find((t) => t.taskId === taskId);
     if (!task) return;
 
-    const result = TaskMachine.transition(task, "cancelled");
+    const result = TaskMachine.transition(
+      task,
+      "cancelled",
+      { error: t("video.taskCancelled") },
+      t("video.taskTransitionError", { from: task.status, to: "cancelled" }),
+    );
     if (!result.ok) {
       errorLogger.warn(
         { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=cancelled` },
@@ -580,7 +460,12 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     if (!task) return;
 
     const mappedStatus = mapApiStatus(status, videoUrl);
-    const result = TaskMachine.transition(task, mappedStatus, { videoUrl });
+    const result = TaskMachine.transition(
+      task,
+      mappedStatus,
+      { videoUrl },
+      t("video.taskTransitionError", { from: task.status, to: mappedStatus }),
+    );
     if (!result.ok) {
       errorLogger.warn(
         { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=${mappedStatus}` },
@@ -609,22 +494,16 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 }));
 
-registerPollingStore(useVideoTaskStore);
-registerSyncStore(useVideoTaskStore);
-
-let _recoveryRegistered = false;
-function ensureRecoveryRegistered() {
-  if (_recoveryRegistered) return;
-  _recoveryRegistered = true;
-  registerRecoveryFn(async (taskId) => {
-    return recoverVideoByTaskId(taskId);
-  });
-  registerCacheVideoBlobFn(async (taskId: string, videoUrl: string) => {
-    return cacheVideoBlob(taskId, videoUrl);
-  });
+let _storesRegistered = false;
+function ensureStoresRegistered() {
+  if (_storesRegistered) return;
+  _storesRegistered = true;
+  registerPollingStore(useVideoTaskStore);
+  registerSyncStore(useVideoTaskStore);
 }
 
 export function useVideoTaskManager() {
+  ensureStoresRegistered();
   const store = useVideoTaskStore;
 
   const allTasks = store((s) => s.allTasks);

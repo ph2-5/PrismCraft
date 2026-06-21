@@ -112,18 +112,18 @@ test.describe("Asset Library Search", () => {
   });
 
   test("should display search input", async ({ page }) => {
-    const searchInput = page.locator('input[placeholder*="搜索"]').first();
+    const searchInput = page.locator('[data-testid="asset-search-input"]').first();
     await expect(searchInput).toBeVisible({ timeout: 10000 });
   });
 
   test("should accept search input text", async ({ page }) => {
-    const searchInput = page.locator('input[placeholder*="搜索"]').first();
+    const searchInput = page.locator('[data-testid="asset-search-input"]').first();
     await searchInput.fill("测试搜索");
     await expect(searchInput).toHaveValue("测试搜索");
   });
 
   test("should clear search results when input is cleared", async ({ page }) => {
-    const searchInput = page.locator('input[placeholder*="搜索"]').first();
+    const searchInput = page.locator('[data-testid="asset-search-input"]').first();
     await searchInput.fill("不存在的素材名称");
     await page.waitForTimeout(300);
     await searchInput.fill("");
@@ -172,7 +172,7 @@ test.describe("Create Collection", () => {
     await newCollectionBtn.click({ force: true });
     await page.waitForTimeout(500);
 
-    const nameInput = page.locator('input[placeholder*="合集"]').or(
+    const nameInput = page.locator('[data-testid="asset-collection-name-input"]').or(
       page.locator('[role="dialog"] input')
     ).first();
     await expect(nameInput).toBeVisible({ timeout: 5000 });

@@ -6,6 +6,7 @@ import { safeRun, safeQuery } from "@/shared/db-core";
 import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { writeFile as fileHttpWriteFile } from "@/shared/file-http";
 
 export const importDataSchema = z.object({
   characters: z.array(z.record(z.string(), z.unknown())).optional(),
@@ -248,11 +249,7 @@ export async function downloadExport(): Promise<Result<void>> {
         filters: [{ name: "ASA Export", extensions: ["json"] }],
       });
       if (result.success && result.filePath) {
-        const encoder = new TextEncoder();
-        const writeResult = await electronAPI.writeFile(
-          result.filePath,
-          Array.from(encoder.encode(jsonStr)),
-        );
+        const writeResult = await fileHttpWriteFile(result.filePath, jsonStr);
         if (!writeResult.success) {
           throw new Error(writeResult.error || "写入文件失败");
         }

@@ -49,6 +49,7 @@ export function CharacterAppearanceSection({
             <Label htmlFor="hairColor">{t("character.hairColor")}</Label>
             <Input
               id="hairColor"
+              data-testid="character-hair-color-input"
               placeholder={t("character.hairColorPlaceholder")}
               value={currentCharacter.appearance.hairColor}
               onChange={(e) =>
@@ -66,6 +67,7 @@ export function CharacterAppearanceSection({
             <Label htmlFor="hairStyle">{t("character.hairStyle")}</Label>
             <Input
               id="hairStyle"
+              data-testid="character-hair-style-input"
               placeholder={t("character.hairStylePlaceholder")}
               value={currentCharacter.appearance.hairStyle}
               onChange={(e) =>

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240">
+  <defs>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="33%" stop-color="#3b82f6"/>
+      <stop offset="66%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#2d1b4e"/>
+    </linearGradient>
+    <linearGradient id="pL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="pR" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="rb" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="20%" stop-color="#f59e0b"/>
+      <stop offset="40%" stop-color="#10b981"/>
+      <stop offset="60%" stop-color="#06b6d4"/>
+      <stop offset="80%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#d946ef"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 图标（左侧） -->
+  <g transform="translate(40, 30) scale(0.75)">
+    <rect x="16" y="16" width="480" height="480" rx="100" fill="url(#iconGrad)"/>
+    <rect x="140" y="290" width="232" height="140" fill="url(#rb)" opacity="0.55" rx="4"/>
+    <polygon points="256,110 140,320 372,320" fill="#0f172a" opacity="0.85"/>
+    <polygon points="256,110 140,320 256,320" fill="url(#pL)" opacity="0.9"/>
+    <polygon points="256,110 372,320 256,320" fill="url(#pR)" opacity="0.9"/>
+    <polygon points="256,110 140,320 372,320" fill="none" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" opacity="0.4"/>
+    <circle cx="256" cy="245" r="42" fill="#ffffff" opacity="0.95"/>
+    <polygon points="245,228 245,262 272,245" fill="#7c3aed"/>
+    <polygon points="246,30 266,30 256,108" fill="#ffffff" opacity="0.35"/>
+  </g>
+
+  <!-- 品牌名 -->
+  <text x="460" y="128" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="92" font-weight="800" fill="url(#textGrad)" letter-spacing="-2">PrismCraft</text>
+
+  <!-- 标语 -->
+  <text x="460" y="178" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="22" font-weight="500" fill="#64748b" letter-spacing="6">AI · STORY · VIDEO</text>
+
+  <!-- 分隔彩虹线 -->
+  <rect x="460" y="195" width="320" height="4" rx="2" fill="url(#rb)" opacity="0.6"/>
+</svg>

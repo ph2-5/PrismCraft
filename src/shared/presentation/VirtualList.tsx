@@ -10,6 +10,13 @@ interface VirtualListProps<T> {
   overscan?: number;
   emptyMessage?: string;
   maxHeight?: string;
+  /**
+   * Optional function to derive a stable React key for each item.
+   * When omitted, the item index is used as the key. Providing this is
+   * recommended for dynamic lists to avoid the unsafe `as { id?: string }`
+   * assertion on the generic `T`.
+   */
+  keyExtractor?: (item: T, index: number) => string;
 }
 
 export function VirtualList<T>({
@@ -20,6 +27,7 @@ export function VirtualList<T>({
   overscan = 5,
   emptyMessage = t("common.noData"),
   maxHeight = "60vh",
+  keyExtractor,
 }: VirtualListProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { visibleItems, visibleRange, totalHeight, offsetY: _offsetY } = useVirtualList(
@@ -47,7 +55,7 @@ export function VirtualList<T>({
       <div style={{ height: totalHeight, position: "relative" }}>
         {visibleItems.map((item, index) => (
           <div
-            key={(item as { id?: string }).id || index}
+            key={keyExtractor ? keyExtractor(item, visibleRange.start + index) : index}
             style={{
               position: "absolute",
               top: (visibleRange.start + index) * itemHeight,

@@ -19,7 +19,7 @@
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >
-> **Total: 104 rules | 8 categories**
+> **Total: 142 rules | 8 categories**
 
 ## 目录
 

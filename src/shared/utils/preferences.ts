@@ -25,13 +25,24 @@ function emitChange(key: string): void {
   }
 }
 
+let storageEventHandler: ((e: StorageEvent) => void) | null = null;
+
 if (typeof window !== "undefined") {
-  window.addEventListener("storage", (e) => {
+  storageEventHandler = (e: StorageEvent) => {
     if (e.key && e.key.startsWith(PREFIX)) {
       const rawKey = e.key.slice(PREFIX.length);
       emitChange(rawKey);
     }
-  });
+  };
+  window.addEventListener("storage", storageEventHandler);
+}
+
+/** 清理 preferences 的 storage 事件监听器（测试/HMR 场景使用） */
+export function cleanupPreferencesListener(): void {
+  if (storageEventHandler && typeof window !== "undefined") {
+    window.removeEventListener("storage", storageEventHandler);
+    storageEventHandler = null;
+  }
 }
 
 export const preferencesStorage = {
@@ -40,6 +51,7 @@ export const preferencesStorage = {
     try {
       const raw = localStorage.getItem(makeKey(key));
       if (raw === null) return defaultValue;
+      // Safe: T is guaranteed by defaultValue type constraint
       return safeJsonParse(raw, null) as T;
     } catch (e) {
       errorLogger.warn("[Preferences] Failed to parse stored value", e);
@@ -92,6 +104,7 @@ export function usePreference<T>(key: string, defaultValue: T): [T, (value: T | 
     const raw = typeof window !== "undefined" ? localStorage.getItem(storageKey) : null;
     const cached = snapshotCache.get(key);
     if (cached && cached.raw === raw) {
+      // Safe: T is guaranteed by defaultValue type constraint
       return cached.parsed as T;
     }
     const parsed = preferencesStorage.get(key, defaultValue);

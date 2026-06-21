@@ -239,14 +239,15 @@ export class PluginProcessManager {
     this.rejectAllPending("插件进程正在关闭");
 
     if (this.process && !this.process.killed) {
+      const proc = this.process;
       try {
-        this.process.send({ type: "shutdown", id: "0" });
+        proc.send({ type: "shutdown", id: "0" });
         await new Promise<void>((resolve) => {
           const timer = setTimeout(() => {
             this.kill();
             resolve();
           }, 3000);
-          this.process!.once("exit", () => {
+          proc.once("exit", () => {
             clearTimeout(timer);
             resolve();
           });
@@ -351,7 +352,10 @@ export class PluginProcessManager {
       this.pendingCalls.set(callId, { resolve, reject, timer, startTime, method: msg.method || msg.type });
 
       try {
-        this.process!.send(msg);
+        if (!this.process || !this.alive) {
+          throw new Error("Plugin process not alive");
+        }
+        this.process.send(msg);
       } catch (err) {
         clearTimeout(timer);
         this.pendingCalls.delete(callId);

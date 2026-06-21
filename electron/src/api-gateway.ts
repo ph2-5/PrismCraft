@@ -25,7 +25,7 @@ const logger = getLogger("api-gateway");
 
 async function generateText(body: Record<string, unknown>): Promise<ApiResult> {
   const { prompt, maxTokens, temperature } = body as Record<string, unknown>;
-  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = resolveApiConfig(
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
     "text",
   );
@@ -128,7 +128,7 @@ async function generateVideo(body: Record<string, unknown>): Promise<ApiResult> 
     resolvedProviderModelId,
     resolvedProviderFormat,
     resolvedPlugin,
-  } = resolveApiConfig(body, "video");
+  } = await resolveApiConfig(body, "video");
 
   if (!effectiveApiKey) {
     return {
@@ -314,7 +314,7 @@ async function videoStatus(body: Record<string, unknown>): Promise<ApiResult> {
     };
   }
 
-  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = resolveApiConfig(
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
     "video",
   );
@@ -386,3 +386,68 @@ export {
   generateVideo,
   videoStatus,
 };
+
+/**
+ * ApiGateway 适配器：将模块导出函数封装为符合 shared-logic ApiGateway 接口的对象。
+ * 避免 route-groups 中使用 `apiGateway as unknown as ApiGateway` 类型断言。
+ *
+ * 注意：api-gateway 函数返回 ApiResult（data: Record<string, unknown>），
+ * 而 ApiGateway 接口期望具体的 data 形状。运行时数据形状兼容，
+ * 此适配器通过类型收窄提供编译时类型安全。
+ */
+export function createApiGatewayAdapter(): import("@shared-logic/story/storyboard-generation").ApiGateway {
+  return {
+    generateKeyframe: async (params) => {
+      const result = await generateKeyframe(params);
+      return {
+        success: result.success,
+        data: result.data as { imageUrl: string; prompt?: string; generatedAt?: string } | undefined,
+        error: result.error as import("@shared-logic/story/storyboard-generation").ApiError | undefined,
+      };
+    },
+    generateImage: async (params) => {
+      const result = await generateImage(params);
+      return {
+        success: result.success,
+        data: result.data as { imageUrl: string } | undefined,
+        error: result.error as import("@shared-logic/story/storyboard-generation").ApiError | undefined,
+      };
+    },
+    generateFramePair: async (params) => {
+      const result = await generateFramePair(params);
+      return {
+        success: result.success,
+        data: result.data as {
+          firstFrame: { imageUrl: string; prompt?: string };
+          lastFrame: { imageUrl: string; prompt?: string };
+          generatedAt: number;
+        } | undefined,
+        error: result.error as import("@shared-logic/story/storyboard-generation").ApiError | undefined,
+      };
+    },
+    generateVideo: async (params) => {
+      const result = await generateVideo(params);
+      return {
+        success: result.success,
+        data: result.data as { taskId: string; videoUrl?: string; status?: string } | undefined,
+        error: result.error as import("@shared-logic/story/storyboard-generation").ApiError | undefined,
+      };
+    },
+    analyzeImage: async (params) => {
+      const result = await analyzeImage(params);
+      return {
+        success: result.success,
+        data: result.data as { analysis?: string } | undefined,
+        error: result.error as import("@shared-logic/story/storyboard-generation").ApiError | undefined,
+      };
+    },
+    videoStatus: async (params) => {
+      const result = await videoStatus(params);
+      return {
+        success: result.success,
+        data: result.data as { status?: string; videoUrl?: string } | undefined,
+        error: result.error as import("@shared-logic/story/storyboard-generation").ApiError | undefined,
+      };
+    },
+  };
+}

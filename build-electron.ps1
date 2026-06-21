@@ -25,6 +25,18 @@ try {
         exit $buildResult
     }
 
+    # 先编译 shared-logic（输出到 electron/dist/shared-logic/，跟主进程代码同目录）
+    $ErrorActionPreference = "Continue"
+    npx tsc -p tsconfig.shared-logic.json 2>&1 | ForEach-Object { Write-Host $_ }
+    $sharedLogicTscResult = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
+    if ($sharedLogicTscResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "electron\dist\shared-logic\index.js"))) {
+        Write-Error "shared-logic TypeScript compilation failed"
+        exit $sharedLogicTscResult
+    }
+    Write-Host "Compiled shared-logic to electron/dist/shared-logic"
+
+    # 再编译 electron 主进程（输出到 electron/dist/）
     $ErrorActionPreference = "Continue"
     npx tsc -p electron/tsconfig.json 2>&1 | ForEach-Object { Write-Host $_ }
     $tscResult = $LASTEXITCODE
@@ -34,18 +46,8 @@ try {
         exit $tscResult
     }
 
+    # 复制 electron/dist/*（含 shared-logic/）到 out/
     Copy-Item -Path "electron\dist\*" -Destination "out\" -Recurse -Force
-
-    # 编译 shared-logic .ts → .js（输出到 out/shared-logic/，供主进程运行时加载）
-    $ErrorActionPreference = "Continue"
-    npx tsc -p tsconfig.shared-logic.json 2>&1 | ForEach-Object { Write-Host $_ }
-    $sharedLogicTscResult = $LASTEXITCODE
-    $ErrorActionPreference = "Stop"
-    if ($sharedLogicTscResult -ne 0 -and -not (Test-Path (Join-Path $projectDir "out\shared-logic\index.js"))) {
-        Write-Error "shared-logic TypeScript compilation failed"
-        exit $sharedLogicTscResult
-    }
-    Write-Host "Compiled shared-logic to out/shared-logic"
 
     $docsOutDir = Join-Path $projectDir "out\docs"
     if (-not (Test-Path -LiteralPath $docsOutDir)) {

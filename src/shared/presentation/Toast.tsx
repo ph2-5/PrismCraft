@@ -46,7 +46,7 @@ const DEDUP_WINDOW_MS = 2000;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const timersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const hideToast = useCallback((id: string) => {
     const autoTimer = timersRef.current.get(id);

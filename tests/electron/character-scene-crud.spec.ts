@@ -23,14 +23,14 @@ test.describe("Character Page", () => {
 
   test("should display character form with basic fields", async ({ page }) => {
     await expect(page.locator('[data-testid="character-name-input"]')).toBeVisible();
-    await expect(page.locator('input[placeholder="输入年龄..."]')).toBeVisible();
-    await expect(page.locator('input[placeholder*="赛博朋克"]')).toBeVisible();
+    await expect(page.locator('[data-testid="character-age-input"]')).toBeVisible();
+    await expect(page.locator('[data-testid="character-style-input"]')).toBeVisible();
   });
 
   test("should fill in basic character info", async ({ page }) => {
     await page.locator('[data-testid="character-name-input"]').fill("测试角色");
-    await page.locator('input[placeholder="输入年龄..."]').fill("25");
-    await page.locator('input[placeholder*="赛博朋克"]').fill("赛博朋克");
+    await page.locator('[data-testid="character-age-input"]').fill("25");
+    await page.locator('[data-testid="character-style-input"]').fill("赛博朋克");
 
     await expect(page.locator('[data-testid="character-name-input"]')).toHaveValue("测试角色");
   });
@@ -42,7 +42,7 @@ test.describe("Character Page", () => {
     await expect(page.locator('[role="tab"]', { hasText: "性格特征" })).toBeVisible();
 
     await switchTab(page, "外貌设定");
-    await expect(page.locator('input[placeholder*="银白色"]')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-testid="character-hair-color-input"]')).toBeVisible({ timeout: 5000 });
 
     await switchTab(page, "服装分支");
     const outfitEmptyHint = page.locator("text=暂无服装分支");
@@ -58,9 +58,9 @@ test.describe("Character Page", () => {
 
   test("should fill in appearance info", async ({ page }) => {
     await switchTab(page, "外貌设定");
-    await page.locator('input[placeholder*="银白色"]').fill("渐变粉蓝");
-    await page.locator('input[placeholder*="及腰长发"]').fill("短发");
-    await expect(page.locator('input[placeholder*="银白色"]')).toHaveValue("渐变粉蓝");
+    await page.locator('[data-testid="character-hair-color-input"]').fill("渐变粉蓝");
+    await page.locator('[data-testid="character-hair-style-input"]').fill("短发");
+    await expect(page.locator('[data-testid="character-hair-color-input"]')).toHaveValue("渐变粉蓝");
   });
 
   test("should save character", async ({ page }) => {
@@ -112,7 +112,7 @@ test.describe("Character Outfit Branches", () => {
     const dialog = page.locator('[role="dialog"]:not([data-nextjs-dialog])').first();
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    const nameInput = page.locator("#outfit-name").or(page.locator('input[placeholder*="战斗服"]'));
+    const nameInput = page.locator('[data-testid="outfit-name-input"]');
     if (await nameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       await nameInput.fill("战斗服");
     }
@@ -147,12 +147,12 @@ test.describe("Scene Page", () => {
 
   test("should display scene form with basic fields", async ({ page }) => {
     await expect(page.locator('[data-testid="scene-name-input"]')).toBeVisible();
-    await expect(page.locator('input[placeholder*="赛博朋克街区"]')).toBeVisible();
+    await expect(page.locator('[data-testid="scene-type-input"]')).toBeVisible();
   });
 
   test("should fill in basic scene info", async ({ page }) => {
     await page.locator('[data-testid="scene-name-input"]').fill("测试场景");
-    await page.locator('input[placeholder*="赛博朋克街区"]').fill("魔法森林");
+    await page.locator('[data-testid="scene-type-input"]').fill("魔法森林");
     await expect(page.locator('[data-testid="scene-name-input"]')).toHaveValue("测试场景");
   });
 
@@ -162,10 +162,10 @@ test.describe("Scene Page", () => {
     await expect(page.locator('[role="tab"]', { hasText: "镜头设置" })).toBeVisible();
 
     await switchTab(page, "氛围视觉");
-    await expect(page.locator('input[placeholder*="黄昏"]')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-testid="scene-time-of-day-input"]')).toBeVisible({ timeout: 5000 });
 
     await switchTab(page, "镜头设置");
-    await expect(page.locator('input[placeholder*="鸟瞰"]')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-testid="scene-camera-angle-input"]')).toBeVisible({ timeout: 5000 });
 
     await switchTab(page, "基础设定");
     await expect(page.locator('[data-testid="scene-name-input"]')).toBeVisible();

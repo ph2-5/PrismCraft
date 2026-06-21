@@ -116,7 +116,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
           setExportStatus("success");
         } else {
           window.open(imageUrl, "_blank");
@@ -158,7 +158,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
           setExportStatus("success");
         } else {
           window.open(videoUrl, "_blank");

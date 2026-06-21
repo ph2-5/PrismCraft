@@ -2,10 +2,10 @@ import { classifyError } from "@/domain/types";
 
 export type NetworkErrorCategory = "network" | "timeout" | "offline" | "unknown";
 
-type ErrorWithCode = { code?: string };
-
 function getErrorCode(error: Error): string | undefined {
-  return (error as ErrorWithCode).code;
+  return "code" in error && typeof (error as { code?: unknown }).code === "string"
+    ? (error as { code: string }).code
+    : undefined;
 }
 
 export function classifyNetworkError(errorCode?: string, errorMessage?: string): NetworkErrorCategory {

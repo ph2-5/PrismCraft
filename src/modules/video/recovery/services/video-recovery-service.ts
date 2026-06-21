@@ -5,7 +5,7 @@ import type { VideoTask } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { AppError } from "@/domain/types/result";
-import { TaskMachine, isValidTransition, isStuck, STUCK_TASK_THRESHOLD_MS } from "@/modules/video/task-management";
+import { TaskMachine, isValidTransition, isStuck, STUCK_TASK_THRESHOLD_MS } from "@/domain/video/task-state";
 
 type CacheVideoBlobFn = (taskId: string, videoUrl: string) => Promise<Result<boolean>>;
 
@@ -128,6 +128,7 @@ export async function recoverVideoByTaskId(taskId: string): Promise<Result<Video
           task as VideoTask,
           "completed",
           { videoUrl: result.data.videoUrl },
+          t("video.taskTransitionError", { from: task.status, to: "completed" }),
         );
         if (!transitionResult.ok) {
           errorLogger.warn(
@@ -193,7 +194,11 @@ export async function recoverVideoByTaskId(taskId: string): Promise<Result<Video
 let isRecoveryRunning = false;
 
 export async function startBackgroundRecovery(): Promise<Result<void>> {
-  if (isRecoveryRunning) return { ok: true, value: undefined };
+  if (isRecoveryRunning) {
+    // 跳过时记录日志，便于调用方区分"跳过"与"成功完成"
+    errorLogger.info("[VideoRecovery] 恢复任务已在运行，跳过本次请求");
+    return { ok: true, value: undefined };
+  }
   isRecoveryRunning = true;
 
   const result = await fromAsyncThrowable(async () => {

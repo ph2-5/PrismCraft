@@ -1,6 +1,7 @@
 import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
 import { TransitionError, isValidTransition } from "../../domain";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 export function withTransitionGuard(
   task: VideoTask,
@@ -16,7 +17,11 @@ export function withTransitionGuard(
     "VideoTaskManager",
   );
   if (process.env.NODE_ENV === "development") {
-    throw new TransitionError(task.status, targetStatus);
+    throw new TransitionError(
+      task.status,
+      targetStatus,
+      t("video.taskTransitionError", { from: task.status, to: targetStatus }),
+    );
   }
   // 生产环境：非法转换时丢弃整个更新，防止已取消/终态任务的字段被轮询结果覆盖
   return {};

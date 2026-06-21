@@ -111,7 +111,7 @@ function getModKeyServerSnapshot(): string {
   return "Ctrl";
 }
 
-export function Sidebar({ onSearch, onSearchSelect }: SidebarProps) {
+export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.ReactElement {
   const pathname = useLocation().pathname;
   const { guardedPush } = useNavigationGuard();
   const [searchOpen, setSearchOpen] = useState(false);

@@ -56,6 +56,7 @@ vi.mock("@/modules/video/cache", () => ({
 
 vi.mock("@/shared/error-logger", () => ({
   errorLogger: {
+    info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
   },

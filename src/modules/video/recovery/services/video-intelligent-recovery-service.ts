@@ -14,7 +14,7 @@ import { smartRetryEngine } from "./smart-retry-engine";
 import { classifyError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
-import { TaskMachine } from "@/modules/video/task-management";
+import { TaskMachine } from "@/domain/video/task-state";
 
 export interface IntelligentRecoveryResult {
   videoUrl?: string;

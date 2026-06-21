@@ -115,6 +115,7 @@ export function ProviderForm({
         </Label>
         <Input
           id="apiKey"
+          data-testid="provider-api-key-input"
           type="password"
           placeholder={t("provider.apiKeyPlaceholder")}
           value={newProviderKey}
@@ -194,7 +195,7 @@ export function ProviderForm({
             value={selectedTemplate}
             onValueChange={(val) => onTemplateChange(val || "")}
           >
-            <SelectTrigger>
+            <SelectTrigger data-testid="provider-select-template">
               <SelectValue placeholder={t("provider.selectProviderPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
@@ -251,6 +252,7 @@ export function ProviderForm({
         <Label htmlFor="providerName">{t("provider.displayNameOptional")}</Label>
         <Input
           id="providerName"
+          data-testid="provider-name-input"
           placeholder={detectedInfo?.suggestedName || t("provider.displayNamePlaceholder")}
           value={newProviderName}
           onChange={(e) => onNameChange(e.target.value)}

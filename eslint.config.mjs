@@ -335,7 +335,7 @@ const eslintConfig = tseslint.config(
     files: ["src/modules/**/*.{ts,tsx}", "!src/modules/**/__tests__/**"],
     plugins: { "no-direct-db-ipc": noDirectDbIpcPlugin },
     rules: {
-      "no-direct-db-ipc/no-direct-db-ipc": "warn",
+      "no-direct-db-ipc/no-direct-db-ipc": "error",
     },
   },
   {

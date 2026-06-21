@@ -48,6 +48,8 @@ const ALLOWED_TABLES = new Set([
   "sync_conflict_backup",
   "schema_version",
   "asset_collections",
+  "users",
+  "image_cache",
 ]);
 
 const ALLOWED_STATEMENT_PREFIXES = new Set([
@@ -64,7 +66,7 @@ const ALLOWED_STATEMENT_PREFIXES = new Set([
 ]);
 
 const ALLOWED_PRAGMA_STATEMENTS = [
-  /^PRAGMA\s+table_info\s*\(\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\)$/i,
+  /^PRAGMA\s+table_info\s*\(\s*"?[a-zA-Z_][a-zA-Z0-9_]*"?\s*\)$/i,
   /^PRAGMA\s+wal_checkpoint\s*\(\s*TRUNCATE\s*\)$/i,
   /^PRAGMA\s+foreign_keys\s*$/i,
   /^PRAGMA\s+journal_mode\s*$/i,
@@ -86,6 +88,9 @@ const DANGEROUS_PATTERNS = [
   /\bCREATE\s+VIRTUAL\b/i,
   /\bATTACH\b/i,
   /\bDETACH\b/i,
+  /sqlite_master/i,
+  /sqlite_sequence/i,
+  /sqlite_schema/i,
 ];
 
 function validateSql(sql: string): boolean {
@@ -134,11 +139,11 @@ function validateSql(sql: string): boolean {
   }
 
   const tableMatches = [
-    ...sql.matchAll(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi),
-    ...sql.matchAll(/INTO\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi),
-    ...sql.matchAll(/UPDATE\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi),
-    ...sql.matchAll(/JOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi),
-    ...sql.matchAll(/DELETE\s+FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi),
+    ...sql.matchAll(/FROM\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?/gi),
+    ...sql.matchAll(/INTO\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?/gi),
+    ...sql.matchAll(/(?<!DO\s)UPDATE\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?/gi),
+    ...sql.matchAll(/JOIN\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?/gi),
+    ...sql.matchAll(/DELETE\s+FROM\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?/gi),
   ];
 
   for (const match of tableMatches) {
@@ -151,7 +156,7 @@ function validateSql(sql: string): boolean {
   return true;
 }
 
-export { validateSql };
+export { validateSql, isSensitiveQuery };
 
 async function ensureDb(): Promise<void> {
   if (dbReady) return;
@@ -170,7 +175,16 @@ async function ensureDb(): Promise<void> {
   await initPromise;
 }
 
-function scheduleSave(): void {
+/**
+ * 确保数据库已初始化（供 HTTP API routes 调用）。
+ * IPC handlers 内部已有懒加载，但 HTTP routes 直接调用 database 模块的 query/run，
+ * 需要显式调用此函数确保数据库初始化完成。
+ */
+export async function ensureDbInitialized(): Promise<void> {
+  await ensureDb();
+}
+
+export function scheduleSave(): void {
   if (pendingSaveTimeout) {
     clearTimeout(pendingSaveTimeout);
   }
@@ -186,20 +200,26 @@ function scheduleSave(): void {
 
 const SENSITIVE_TABLES = new Set(["sync_conflict_backup", "error_logs", "sessions"]);
 
+/**
+ * 检测查询是否读取敏感表。
+ * 处理 SELECT、WITH（CTE）、RETURNING 子句，以及双引号包裹的标识符。
+ */
+function isSensitiveQuery(sql: string): boolean {
+  // 检测读取类查询：SELECT、WITH（CTE）、或包含 RETURNING 子句
+  const isReading = /^\s*(SELECT|WITH)\s/i.test(sql) || /\bRETURNING\b/i.test(sql);
+  if (!isReading) return false;
+  // 检测是否访问敏感表（支持双引号包裹的标识符）
+  for (const table of SENSITIVE_TABLES) {
+    const regex = new RegExp(`\\b(FROM|JOIN|INTO|UPDATE)\\s+"?${table}"?(?:\\s|,|;|\\)|$)`, "i");
+    if (regex.test(sql)) return true;
+  }
+  return false;
+}
+
 function redactResult(sql: string, data: unknown): unknown {
   if (!data || typeof data !== "object") return data;
-  const isSelect = /^\s*SELECT\s/i.test(sql);
-  if (!isSelect) return data;
-
-  const tableMatches = [
-    ...sql.matchAll(/FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi),
-  ];
-  for (const match of tableMatches) {
-    if (SENSITIVE_TABLES.has(match[1]!.toLowerCase())) {
-      return [];
-    }
-  }
-  return data;
+  if (!isSensitiveQuery(sql)) return data;
+  return [];
 }
 
 export function setupDatabaseHandlers(): void {

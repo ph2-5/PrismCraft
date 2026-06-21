@@ -34,6 +34,8 @@ export class SyncEngine {
   private syncing = false;
   private syncPromise: Promise<void> | null = null;
   private needsResync = false;
+  private resyncCount = 0;
+  private readonly MAX_RESYNC_RETRIES = 5;
   private conflictCallback: ((conflicts: SyncConflict[]) => void) | null = null;
   private changeTrackerRegistered = false;
   private lastSyncResult: SyncResult = { pushed: 0, pulled: 0, conflicts: 0 };
@@ -105,10 +107,19 @@ export class SyncEngine {
       await this.syncPromise;
       if (this.needsResync) {
         this.needsResync = false;
+        // 限制最大重试次数，防止无限递归
+        if (this.resyncCount >= this.MAX_RESYNC_RETRIES) {
+          this.resyncCount = 0;
+          errorLogger.warn(`[SyncEngine] 达到最大重试次数 ${this.MAX_RESYNC_RETRIES}，停止重试`);
+          return { ...this.lastSyncResult };
+        }
+        this.resyncCount++;
         return this.performSync();
       }
+      this.resyncCount = 0;
       return { ...this.lastSyncResult };
     }
+    this.resyncCount = 0;
     if (!this.config.enabled || !this.config.endpoint) {
       return { pushed: 0, pulled: 0, conflicts: 0 };
     }

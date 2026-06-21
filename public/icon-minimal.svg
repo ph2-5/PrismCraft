@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#2d1b4e"/>
+    </linearGradient>
+    <linearGradient id="pLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="pRight" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="20%" stop-color="#f59e0b"/>
+      <stop offset="40%" stop-color="#10b981"/>
+      <stop offset="60%" stop-color="#06b6d4"/>
+      <stop offset="80%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#d946ef"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 圆角方形背景 -->
+  <rect x="16" y="16" width="480" height="480" rx="100" fill="url(#bg)"/>
+
+  <!-- 底部彩虹光束 -->
+  <rect x="140" y="290" width="232" height="140" fill="url(#rainbow)" opacity="0.55" rx="4"/>
+
+  <!-- 三角形棱镜（上半部透明，下半部彩色） -->
+  <polygon points="256,110 140,320 372,320" fill="#0f172a" opacity="0.85"/>
+  <!-- 左斜面 -->
+  <polygon points="256,110 140,320 256,320" fill="url(#pLeft)" opacity="0.9"/>
+  <!-- 右斜面 -->
+  <polygon points="256,110 372,320 256,320" fill="url(#pRight)" opacity="0.9"/>
+  <!-- 棱镜边框 -->
+  <polygon points="256,110 140,320 372,320" fill="none" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" opacity="0.4"/>
+
+  <!-- 中心播放按钮（代表视频/动画创作） -->
+  <circle cx="256" cy="245" r="42" fill="#ffffff" opacity="0.95"/>
+  <polygon points="245,228 245,262 272,245" fill="#7c3aed"/>
+
+  <!-- 顶部光束 -->
+  <polygon points="246,30 266,30 256,108" fill="#ffffff" opacity="0.35"/>
+</svg>

@@ -25,7 +25,6 @@ export interface EntityCRUDConfig<T extends { id: string; name: string; prompt: 
   queryKey: string[];
   entityLabel: string;
   entityIdPrefix: string;
-  nameValidationMessage: string;
   assetLabel: string;
   checkReferences: (id: string, name: string, stories: Story[]) => DeleteCheckResult;
   defaultEntity: T;
@@ -55,7 +54,6 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
   queryKey,
   entityLabel,
   entityIdPrefix,
-  nameValidationMessage,
   assetLabel,
   checkReferences,
   defaultEntity,
@@ -82,10 +80,8 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
     if (savingRef.current) return;
 
     const trimmedName = (entity.name || "").trim();
-    if (!trimmedName) {
-      showError(t("error.saveFailed"), nameValidationMessage);
-      return;
-    }
+    // name 为空时自动生成 "未命名{label}" + 时间戳后缀，避免阻断保存流程
+    const finalName = trimmedName || `${t("crud.unnamed", { label: entityLabel })}_${Date.now()}`;
 
     savingRef.current = true;
     setSaveStatus("saving");
@@ -93,7 +89,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
     try {
       let newEntity: T = {
         ...entity,
-        name: trimmedName,
+        name: finalName,
         id: entity.id || `${entityIdPrefix}_${crypto.randomUUID()}`,
         prompt: generatePrompt(entity),
       };
@@ -116,7 +112,7 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
         if (generatedImage) {
           addAssetToLibrary(generatedImage, "image", newEntity.name || assetLabel, {
             type: assetBindType,
-            id: result.value.id,
+            id: savedEntity.id,
             name: newEntity.name || t("crud.unnamed", { label: entityLabel }),
           });
         }
@@ -126,13 +122,15 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       queryClient.invalidateQueries({ queryKey });
       setEntity(savedEntity);
       resetCustomFields();
-      markClean(queryKey[0]!);
+      const cleanKey = queryKey[0];
+      if (cleanKey) markClean(cleanKey);
       setGeneratedImage(null);
       setSaveStatus("saved");
     } catch (err) {
       errorLogger.error(`[${entityLabel}] Save failed`, err);
       const message = err instanceof Error ? err.message : t("error.unknown");
-      markDirty(queryKey[0]!);
+      const dirtyKey = queryKey[0];
+      if (dirtyKey) markDirty(dirtyKey);
       setSaveStatus("error");
       setSaveError(message);
       showError(t("error.saveFailed"), message);

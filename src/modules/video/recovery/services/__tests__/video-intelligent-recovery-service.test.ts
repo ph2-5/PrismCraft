@@ -79,7 +79,7 @@ vi.mock("@/shared/error-logger", () => ({
   ),
 }));
 
-vi.mock("@/modules/video/task-management", () => ({
+vi.mock("@/domain/video/task-state", () => ({
   TaskMachine: {
     canTransition: vi.fn(() => true),
   },
@@ -87,7 +87,7 @@ vi.mock("@/modules/video/task-management", () => ({
 
 import { container } from "@/infrastructure/di";
 import { verifyVideoUrl, checkForDuplicateVideos, smartRetryEngine } from "@/modules/video";
-import { TaskMachine } from "@/modules/video/task-management";
+import { TaskMachine } from "@/domain/video/task-state";
 
 function createMockTask(overrides: Record<string, unknown> = {}) {
   return {

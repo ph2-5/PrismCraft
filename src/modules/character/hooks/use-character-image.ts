@@ -9,6 +9,7 @@ import { generateCharacterImagePrompt, generateCharacterDetailedPromptInstructio
 import { characterService } from "../services";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { validateImageSize } from "@/shared/hooks/use-entity-image";
 
 interface UseCharacterImageProps {
   currentCharacter: Character;
@@ -40,7 +41,7 @@ export function useCharacterImage({
   const isAnalyzingRef = useRef(false);
   const isGeneratingRef = useRef(false);
   const [useDetailedPrompt, setUseDetailedPrompt] = useState(false);
-  const analyzeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const analyzeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [imageSize, setImageSize] = useState("1920x1920");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analyzeFileInputRef = useRef<HTMLInputElement>(null);
@@ -168,15 +169,6 @@ export function useCharacterImage({
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const validateImageSize = async (imageUrl: string): Promise<{ width: number; height: number }> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve({ width: img.width, height: img.height });
-      img.onerror = () => reject(new Error(t("error.imageLoadValidationFailed")));
-      img.src = imageUrl;
-    });
   };
 
   const analyzeImage = async (imageUrl: string) => {

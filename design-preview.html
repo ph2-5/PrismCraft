@@ -224,6 +224,12 @@
       <div class="nav-section">系统</div>
       <button class="nav-item" data-page="plugins" onclick="switchPage('plugins')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>插件市场</button>
       <button class="nav-item" data-page="settings" onclick="switchPage('settings')"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>设置</button>
+      <div class="nav-section">未来规划预览</div>
+      <button class="nav-item" onclick="switchPage('login')"><span class="icon">🔑</span> 登录/注册</button>
+      <button class="nav-item" onclick="switchPage('template-market')"><span class="icon">🛒</span> 模板市场</button>
+      <button class="nav-item" onclick="switchPage('workflow')"><span class="icon">🔗</span> 工作流编辑器</button>
+      <button class="nav-item" onclick="switchPage('workspace')"><span class="icon">👥</span> 团队协作</button>
+      <button class="nav-item" onclick="switchPage('mobile')"><span class="icon">📱</span> 移动端预览</button>
     </div>
     <div style="margin:8px;padding:10px 12px;background:var(--card2);border-radius:10px;border:1px solid rgba(99,102,241,0.15);">
       <div style="font-size:10px;font-weight:600;color:#818cf8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">AI 生成中</div>
@@ -353,11 +359,13 @@
         </div>
         <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">
           <div style="font-size:14px;font-weight:700;margin-bottom:12px;">⚡ 快速入口</div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
             <div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="switchPage('characters')"><div style="font-size:24px;margin-bottom:4px;">👤</div><div style="font-size:12px;font-weight:600;">角色管理</div><div style="font-size:10px;color:var(--muted-fg);">4个角色</div></div>
             <div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="switchPage('scenes')"><div style="font-size:24px;margin-bottom:4px;">🏙</div><div style="font-size:12px;font-weight:600;">场景管理</div><div style="font-size:10px;color:var(--muted-fg);">4个场景</div></div>
             <div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="switchPage('assets')"><div style="font-size:24px;margin-bottom:4px;">📦</div><div style="font-size:12px;font-weight:600;">素材库</div><div style="font-size:10px;color:var(--muted-fg);">24个素材</div></div>
             <div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="switchPage('tasks')"><div style="font-size:24px;margin-bottom:4px;">📋</div><div style="font-size:12px;font-weight:600;">视频任务</div><div style="font-size:10px;color:var(--muted-fg);">3个进行中</div></div>
+            <div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="switchPage('template-market')"><div style="font-size:24px;margin-bottom:4px;">🛒</div><div style="font-size:12px;font-weight:600;">模板市场</div><div style="font-size:10px;color:var(--muted-fg);">12个模板</div></div>
+            <div class="card" style="padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="switchPage('workflow')"><div style="font-size:24px;margin-bottom:4px;">🔗</div><div style="font-size:12px;font-weight:600;">工作流编辑器</div><div style="font-size:10px;color:var(--muted-fg);">可视化编排</div></div>
           </div>
         </div>
       </div>
@@ -372,11 +380,18 @@
         <button class="top-tab active" onclick="switchView('storyboard', this)">分镜编排</button>
         <button class="top-tab" onclick="switchView('generate', this)">AI 生成</button>
         <button class="top-tab" onclick="switchView('preview', this)">预览导出</button>
+        <button class="top-tab" onclick="switchView('comments', this)">💬 评论</button>
+        <button class="top-tab" onclick="switchView('audio', this)">🎵 音效</button>
       </div>
       <div class="toolbar" style="padding-right:8px;">
         <span style="font-size:12px;color:var(--muted-fg);">🌃 都市传说 · 第一集</span>
+        <div style="display:flex;align-items:center;gap:2px;margin:0 8px;cursor:pointer;" onclick="switchPage('workspace')" title="团队成员">
+          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid var(--bg);">Y</div>
+          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid var(--bg);margin-left:-6px;">L</div>
+          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid var(--bg);margin-left:-6px;">M</div>
+        </div>
         <span style="color:var(--border);">|</span>
-        <button class="btn btn-ghost btn-xs">📜 版本</button>
+        <button class="btn btn-ghost btn-xs" onclick="toggleStoryboardPanel('snapshot')">📸 快照</button>
         <button class="btn btn-ghost btn-xs">📋 模板</button>
         <button class="btn btn-outline btn-xs">💾 保存</button>
       </div>
@@ -796,7 +811,84 @@
         </div>
       </div>
     </div>
- 
+
+    <!-- ═══════ VIEW: 评论 ═══════ -->
+    <div class="content-area" id="view-comments-content" style="display:none;padding:24px;flex-direction:column;gap:12px;overflow-y:auto;">
+      <div style="font-size:12px;color:var(--muted-fg);margin-bottom:4px;">当前分镜：第3镜 · 街头冲突</div>
+      <div class="card" style="padding:12px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:12px;">L</div>
+          <div><span style="font-size:12px;font-weight:600;">Li Wei</span><span style="font-size:10px;color:var(--muted-fg);margin-left:6px;">10分钟前</span></div>
+        </div>
+        <div style="font-size:12px;margin-bottom:6px;">这个分镜的光线需要调整，角色"零"的阴影太暗了，能不能加一点顶光？</div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-xs">👍 2</button><button class="btn btn-ghost btn-xs">回复</button></div>
+      </div>
+      <div class="card" style="padding:12px;margin-left:32px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:12px;">Y</div>
+          <div><span style="font-size:12px;font-weight:600;">你</span><span style="font-size:10px;color:var(--muted-fg);margin-left:6px;">5分钟前</span></div>
+        </div>
+        <div style="font-size:12px;margin-bottom:6px;">好的，已调整 Prompt 中的 lighting 参数。</div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-xs">👍 1</button><button class="btn btn-ghost btn-xs">回复</button></div>
+      </div>
+      <div class="card" style="padding:12px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:12px;">M</div>
+          <div><span style="font-size:12px;font-weight:600;">Mei Chen</span><span style="font-size:10px;color:var(--muted-fg);margin-left:6px;">1小时前</span></div>
+        </div>
+        <div style="font-size:12px;margin-bottom:6px;">背景的"新东京"可以加一点霓虹灯反射效果。</div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-xs">👍 3</button><button class="btn btn-ghost btn-xs">回复</button></div>
+      </div>
+      <div class="card" style="padding:12px;margin-top:auto;">
+        <div style="display:flex;gap:8px;">
+          <input class="input" placeholder="添加评论..." style="flex:1;font-size:12px;">
+          <button class="btn btn-primary btn-sm">发送</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ VIEW: 音效 ═══════ -->
+    <div class="content-area" id="view-audio-content" style="display:none;padding:24px;flex-direction:column;gap:16px;overflow-y:auto;">
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-outline btn-sm" style="background:rgba(99,102,241,0.12);color:var(--primary);">🎵 BGM 库</button>
+        <button class="btn btn-ghost btn-sm">🔊 音效库</button>
+        <button class="btn btn-ghost btn-sm">🎙 AI 配音</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;">
+        <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+          <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">都市夜行</div><div style="font-size:10px;color:var(--muted-fg);">紧张 · 2:34</div></div>
+          <button class="btn btn-ghost btn-xs">+</button>
+        </div>
+        <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+          <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">樱花飘落</div><div style="font-size:10px;color:var(--muted-fg);">温馨 · 3:12</div></div>
+          <button class="btn btn-ghost btn-xs">+</button>
+        </div>
+        <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+          <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">史诗战歌</div><div style="font-size:10px;color:var(--muted-fg);">史诗 · 4:05</div></div>
+          <button class="btn btn-ghost btn-xs">+</button>
+        </div>
+        <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+          <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">迷雾森林</div><div style="font-size:10px;color:var(--muted-fg);">悬疑 · 2:58</div></div>
+          <button class="btn btn-ghost btn-xs">+</button>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;margin-top:8px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">🎙 AI 配音</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;gap:8px;">
+            <select class="select" style="flex:1;font-size:11px;"><option>角色: 零 (女声·沉稳)</option><option>角色: 博士 (男声·低沉)</option></select>
+            <select class="select" style="width:100px;font-size:11px;"><option>语速 1.0x</option></select>
+          </div>
+          <textarea class="textarea" rows="2" style="font-size:12px;" placeholder="输入需要配音的文本...">你在看什么？这个城市从来不睡觉。</textarea>
+          <button class="btn btn-primary btn-sm" style="align-self:flex-end;">🎙 生成配音</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══════ Bottom Input Bar ═══════ -->
     <div class="card" style="margin:0;border-radius:0;border-top:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:10px;" id="bottom-bar-storyboard">
       <div style="flex:1;display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:6px 10px;">
@@ -1339,6 +1431,7 @@
           <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;background:transparent;" onclick="switchSettingsTab('sync',this)" data-stab="sync">🔄 同步</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;background:transparent;" onclick="switchSettingsTab('project',this)" data-stab="project">📦 项目包</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;background:transparent;" onclick="switchSettingsTab('system',this)" data-stab="system">📊 系统</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;background:transparent;" onclick="switchSettingsTab('user-api',this)" data-stab="user-api">🔑 用户API Key</button>
         </div>
 
         <!-- Tab: API配置 -->
@@ -1665,6 +1758,56 @@
             </div>
           </div>
         </div>
+
+        <!-- Tab: 用户API Key -->
+        <div id="stab-user-api" style="display:none;">
+          <div style="font-size:12px;color:var(--muted-fg);margin-bottom:12px;">平台不承担 GPU 成本，请自备各 AI 供应商的 API Key。所有 Key 加密存储。</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="card" style="padding:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:14px;">K</div>
+                  <div><div style="font-size:13px;font-weight:600;">Kling AI</div><div style="font-size:10px;color:var(--muted-fg);">视频生成 · 本月 1,247 次调用</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="width:8px;height:8px;border-radius:50%;background:var(--success);"></span>
+                  <span style="font-size:11px;color:var(--success);">已配置</span>
+                  <button class="btn btn-ghost btn-xs">编辑</button>
+                </div>
+              </div>
+              <input class="input" style="font-size:12px;font-family:monospace;" value="sk-••••••••••••••••••••••••••" readonly>
+            </div>
+            <div class="card" style="padding:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:14px;">R</div>
+                  <div><div style="font-size:13px;font-weight:600;">Runway Gen-4</div><div style="font-size:10px;color:var(--muted-fg);">视频生成 · 本月 438 次调用</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="width:8px;height:8px;border-radius:50%;background:var(--success);"></span>
+                  <span style="font-size:11px;color:var(--success);">已配置</span>
+                  <button class="btn btn-ghost btn-xs">编辑</button>
+                </div>
+              </div>
+              <input class="input" style="font-size:12px;font-family:monospace;" value="key-•••••••••••••••••••••••••" readonly>
+            </div>
+            <div class="card" style="padding:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:14px;">P</div>
+                  <div><div style="font-size:13px;font-weight:600;">Pika 2.0</div><div style="font-size:10px;color:var(--muted-fg);">视频生成 · 未配置</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="width:8px;height:8px;border-radius:50%;background:var(--muted-fg);"></span>
+                  <span style="font-size:11px;color:var(--muted-fg);">未配置</span>
+                  <button class="btn btn-primary btn-xs">配置</button>
+                </div>
+              </div>
+              <input class="input" style="font-size:12px;font-family:monospace;" placeholder="输入 API Key..." disabled>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--muted-fg);text-align:center;margin-top:12px;">支持 Kling · Runway · Pika · Minimax · 可灵 · Luma · Sora 等 13+ AI 视频模型</div>
+        </div>
       </div>
     </div>
 
@@ -1789,50 +1932,349 @@
       </div>
     </div>
 
-    <!-- ═══════ PAGE: story ═══════ -->
+    <!-- ═══════ PAGE: 故事创作（流水线编辑器）═══════ -->
     <div id="page-story" class="fade-in" style="display:none;flex-direction:column;height:100%;">
-      <div class="page-header"><h2 class="page-title">📖 故事创作</h2><span class="badge badge-info">AI 管道</span></div>
-      <div class="content-area" style="display:flex;gap:16px;flex:1;overflow:hidden;">
-        <!-- 左侧：小说输入 -->
-        <div style="flex:1;display:flex;flex-direction:column;gap:12px;min-width:0;">
-          <div class="card" style="padding:16px;flex:1;display:flex;flex-direction:column;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-              <span style="font-size:13px;font-weight:600;">📝 小说文本</span>
-              <div style="display:flex;gap:6px;">
-                <button class="btn btn-outline btn-xs">📤 上传文件</button>
-                <button class="btn btn-outline btn-xs">📋 粘贴</button>
-              </div>
+      <!-- 顶部工具栏 -->
+      <div class="top-tabs" style="justify-content:space-between;align-items:center;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-weight:600;font-size:14px;">📖 故事创作</span>
+          <span style="font-size:11px;color:var(--muted-fg);">🌃 都市传说</span>
+          <span class="badge" style="font-size:10px;">🤖 Kling 1.6</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:11px;color:var(--muted-fg);">进度: 3/24 片段</span>
+          <div style="width:100px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;">
+            <div style="width:12%;height:100%;background:var(--primary);border-radius:2px;"></div>
+          </div>
+          <button class="btn btn-primary btn-xs" onclick="switchPage('storyboard')">🎬 进入分镜编辑器</button>
+        </div>
+      </div>
+
+      <!-- 三栏布局 -->
+      <div style="display:flex;flex:1;min-height:0;overflow:hidden;">
+
+        <!-- 左栏：片段导航 (260px) -->
+        <div style="width:260px;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;flex-shrink:0;background:var(--bg);">
+          <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;font-weight:600;color:var(--muted-fg);">片段导航</span>
+            <span style="font-size:10px;color:var(--muted-fg);">3/24</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:4px 0;">
+            <!-- 第1章 -->
+            <div style="padding:8px 12px 4px;font-size:10px;font-weight:600;color:var(--muted-fg);display:flex;align-items:center;gap:4px;">
+              <span>📖</span> 第1章 · 城市黎明
+              <span style="margin-left:auto;font-size:9px;color:var(--success);">6片段</span>
             </div>
-            <textarea class="textarea" style="flex:1;font-size:12px;line-height:1.8;resize:none;" placeholder="在此粘贴小说文本...&#10;&#10;示例：&#10;第一章 城市黎明&#10;新东京的霓虹灯在晨雾中闪烁。零站在天台边缘，俯瞰着这座不夜城。她的白色风衣在风中猎猎作响，全息数据板上的信息让她眉头紧锁..."></textarea>
-            <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
-              <button class="btn btn-primary" onclick="simulateNovelPipeline()">🚀 开始 AI 管道</button>
-              <span style="font-size:11px;color:var(--muted-fg);">字数统计: 0</span>
+            <div class="segment-nav-item" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;border-left:2px solid transparent;" onclick="selectSegment('1.1')">
+              <span style="width:16px;height:16px;border-radius:50%;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--success);flex-shrink:0;">✓</span>
+              <span>1.1 城市黎明</span>
             </div>
+            <div class="segment-nav-item" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;border-left:2px solid transparent;" onclick="selectSegment('1.2')">
+              <span style="width:16px;height:16px;border-radius:50%;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--success);flex-shrink:0;">✓</span>
+              <span>1.2 主角登场</span>
+            </div>
+            <div class="segment-nav-item" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;border-left:2px solid transparent;" onclick="selectSegment('1.3')">
+              <span style="width:16px;height:16px;border-radius:50%;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--success);flex-shrink:0;">✓</span>
+              <span>1.3 街头冲突</span>
+            </div>
+            <div class="segment-nav-item active" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;background:rgba(99,102,241,0.08);border-left:2px solid var(--primary);" onclick="selectSegment('1.4')">
+              <span style="width:16px;height:16px;border-radius:50%;background:rgba(245,158,11,0.12);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--warning);flex-shrink:0;">⚠</span>
+              <span style="color:var(--primary);">1.4 天台对话</span>
+            </div>
+            <div class="segment-nav-item" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;border-left:2px solid transparent;" onclick="selectSegment('1.5')">
+              <span style="width:16px;height:16px;border-radius:50%;background:var(--card2);flex-shrink:0;"></span>
+              <span>1.5 追踪开始</span>
+            </div>
+            <div class="segment-nav-item" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;border-left:2px solid transparent;" onclick="selectSegment('1.6')">
+              <span style="width:16px;height:16px;border-radius:50%;background:var(--card2);flex-shrink:0;"></span>
+              <span>1.6 地下交易</span>
+            </div>
+            <!-- 第2章 -->
+            <div style="padding:8px 12px 4px;margin-top:4px;font-size:10px;font-weight:600;color:var(--muted-fg);display:flex;align-items:center;gap:4px;">
+              <span>📖</span> 第2章 · 暗流涌动
+              <span style="margin-left:auto;font-size:9px;color:var(--muted-fg);">6片段</span>
+            </div>
+            <div class="segment-nav-item" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;border-left:2px solid transparent;">
+              <span style="width:16px;height:16px;border-radius:50%;background:var(--card2);flex-shrink:0;"></span>
+              <span>2.1 地下情报</span>
+            </div>
+            <div class="segment-nav-item" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;border-left:2px solid transparent;">
+              <span style="width:16px;height:16px;border-radius:50%;background:var(--card2);flex-shrink:0;"></span>
+              <span>2.2 旧友重逢</span>
+            </div>
+            <div class="segment-nav-item" style="padding:6px 12px 6px 24px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;border-left:2px solid transparent;">
+              <span style="width:16px;height:16px;border-radius:50%;background:var(--card2);flex-shrink:0;"></span>
+              <span>2.3 实验室突袭</span>
+            </div>
+            <div style="padding:6px 12px 6px 24px;font-size:10px;color:var(--muted-fg);text-align:center;">... 还有 3 个片段</div>
+          </div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-xs" style="flex:1;justify-content:center;font-size:10px;">全部确认</button>
+            <button class="btn btn-outline btn-xs" style="flex:1;justify-content:center;font-size:10px;">仅编辑新的</button>
           </div>
         </div>
-        <!-- 右侧：管道进度 -->
-        <div style="width:340px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex-shrink:0;">
-          <div class="card" style="padding:14px;">
-            <div style="font-size:13px;font-weight:600;margin-bottom:10px;">⚙ 管道步骤</div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <div class="step-row"><span class="step-num">1</span><span>文本分块</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
-              <div class="step-row"><span class="step-num">2</span><span>角色提取</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
-              <div class="step-row"><span class="step-num">3</span><span>场景提取</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
-              <div class="step-row"><span class="step-num">4</span><span>角色确认</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
-              <div class="step-row"><span class="step-num">5</span><span>分镜规划</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
-              <div class="step-row"><span class="step-num">6</span><span>分镜预览</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
-              <div class="step-row"><span class="step-num">7</span><span>批量生成</span><span class="badge badge-muted" style="font-size:10px;">待执行</span></div>
+
+        <!-- 中栏：主工作区 (flex) -->
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
+          
+          <!-- 步骤指示器 -->
+          <div style="display:flex;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;overflow-x:auto;">
+            <div class="step-indicator done" style="flex:1;min-width:80px;text-align:center;padding:10px 6px;cursor:pointer;font-size:10px;border-bottom:2px solid var(--success);position:relative;">
+              <div style="font-size:14px;margin-bottom:2px;">1</div>
+              <div>导入</div>
+            </div>
+            <div class="step-indicator done" style="flex:1;min-width:80px;text-align:center;padding:10px 6px;cursor:pointer;font-size:10px;border-bottom:2px solid var(--success);position:relative;">
+              <div style="font-size:14px;margin-bottom:2px;">2</div>
+              <div>分割</div>
+            </div>
+            <div class="step-indicator done" style="flex:1;min-width:80px;text-align:center;padding:10px 6px;cursor:pointer;font-size:10px;border-bottom:2px solid var(--success);position:relative;">
+              <div style="font-size:14px;margin-bottom:2px;">3</div>
+              <div>角色</div>
+            </div>
+            <div class="step-indicator done" style="flex:1;min-width:80px;text-align:center;padding:10px 6px;cursor:pointer;font-size:10px;border-bottom:2px solid var(--success);position:relative;">
+              <div style="font-size:14px;margin-bottom:2px;">4</div>
+              <div>场景</div>
+            </div>
+            <div class="step-indicator active" style="flex:1;min-width:80px;text-align:center;padding:10px 6px;cursor:pointer;font-size:10px;border-bottom:2px solid var(--primary);background:rgba(99,102,241,0.06);">
+              <div style="font-size:14px;margin-bottom:2px;">5</div>
+              <div style="color:var(--primary);">编辑</div>
+            </div>
+            <div class="step-indicator" style="flex:1;min-width:80px;text-align:center;padding:10px 6px;cursor:pointer;font-size:10px;border-bottom:2px solid transparent;">
+              <div style="font-size:14px;margin-bottom:2px;">6</div>
+              <div style="color:var(--muted-fg);">Prompt</div>
+            </div>
+            <div class="step-indicator" style="flex:1;min-width:80px;text-align:center;padding:10px 6px;cursor:pointer;font-size:10px;border-bottom:2px solid transparent;">
+              <div style="font-size:14px;margin-bottom:2px;">7</div>
+              <div style="color:var(--muted-fg);">生成</div>
             </div>
           </div>
+
+          <!-- 主工作区内容 -->
+          <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;">
+
+            <!-- 当前片段编辑区 -->
+            <div class="card" style="padding:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:14px;font-weight:600;">📖 片段 1.4 · 天台对话</span>
+                  <span class="badge" style="font-size:9px;background:rgba(245,158,11,0.12);color:var(--warning);">⚠ 有新角色</span>
+                </div>
+                <span style="font-size:10px;color:var(--muted-fg);">第1章 · 第4片段</span>
+              </div>
+
+              <!-- 原始文本 -->
+              <div style="background:var(--card2);padding:12px;border-radius:8px;font-size:12px;line-height:1.8;color:var(--muted-fg);margin-bottom:14px;">
+                "你知道这一切的真相，"山田的声音在风中飘散。零靠在栏杆上，看着远处霓虹灯闪烁的天际线。影从阴影中走出，面具下的声音低沉而沙哑："她没有选择。"山田转向影，目光如刀："你也没有。"
+              </div>
+
+              <!-- 关联角色 -->
+              <div style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <span style="font-size:12px;font-weight:600;">👤 关联角色 (3)</span>
+                  <button class="btn btn-ghost btn-xs" style="font-size:10px;">+ 手动关联</button>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <!-- 已确认角色 -->
+                  <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid var(--border);">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">👩</div>
+                    <div>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:12px;font-weight:600;">零</span>
+                        <span style="font-size:9px;color:var(--muted-fg);">主角</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:var(--success);"></span>
+                        <span style="font-size:9px;color:var(--success);">已确认 · 复用</span>
+                        <span style="font-size:9px;color:var(--muted-fg);">· 21片段</span>
+                      </div>
+                    </div>
+                    <button class="btn btn-ghost btn-xs" style="font-size:10px;">查看</button>
+                  </div>
+                  <!-- 已确认角色 -->
+                  <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid var(--border);">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">👴</div>
+                    <div>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:12px;font-weight:600;">山田</span>
+                        <span style="font-size:9px;color:var(--muted-fg);">旁观者</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:var(--success);"></span>
+                        <span style="font-size:9px;color:var(--success);">已确认 · 复用</span>
+                        <span style="font-size:9px;color:var(--muted-fg);">· 18片段</span>
+                      </div>
+                    </div>
+                    <button class="btn btn-ghost btn-xs" style="font-size:10px;">查看</button>
+                  </div>
+                  <!-- 新角色（需要编辑） -->
+                  <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:10px;border:2px solid var(--warning);background:rgba(245,158,11,0.04);">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">👤</div>
+                    <div>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:12px;font-weight:600;">影</span>
+                        <span style="font-size:9px;color:var(--muted-fg);">对手</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:var(--warning);"></span>
+                        <span style="font-size:9px;color:var(--warning);">⚠ 新角色 · 首次出现</span>
+                      </div>
+                    </div>
+                    <button class="btn btn-primary btn-xs" style="font-size:10px;" onclick="openCharacterEdit('影')">编辑</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 关联场景 -->
+              <div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <span style="font-size:12px;font-weight:600;">🏙 关联场景 (1)</span>
+                  <button class="btn btn-ghost btn-xs" style="font-size:10px;">+ 手动关联</button>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid var(--border);">
+                    <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🏙</div>
+                    <div>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:12px;font-weight:600;">新东京</span>
+                        <span style="font-size:9px;color:var(--muted-fg);">· 天台</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:var(--success);"></span>
+                        <span style="font-size:9px;color:var(--success);">已确认 · 复用</span>
+                        <span style="font-size:9px;color:var(--muted-fg);">· 24片段</span>
+                      </div>
+                    </div>
+                    <button class="btn btn-ghost btn-xs" style="font-size:10px;">查看</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 场景变体选择 -->
+            <div class="card" style="padding:16px;">
+              <div style="font-size:12px;font-weight:600;margin-bottom:10px;">🎨 场景变体 · 新东京</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="card" style="padding:8px 12px;cursor:pointer;border:2px solid var(--primary);display:flex;align-items:center;gap:6px;">
+                  <span>🌅</span>
+                  <div><div style="font-size:11px;font-weight:600;">清晨雾霭</div><div style="font-size:9px;color:var(--muted-fg);">dawn·foggy·3片段</div></div>
+                </div>
+                <div class="card" style="padding:8px 12px;cursor:pointer;border:1px solid var(--border);display:flex;align-items:center;gap:6px;">
+                  <span>🌧</span>
+                  <div><div style="font-size:11px;font-weight:600;">深夜暴雨</div><div style="font-size:9px;color:var(--muted-fg);">night·rainy·5片段</div></div>
+                </div>
+                <div class="card" style="padding:8px 12px;cursor:pointer;border:1px solid var(--border);display:flex;align-items:center;gap:6px;">
+                  <span>🌇</span>
+                  <div><div style="font-size:11px;font-weight:600;">黄昏余晖</div><div style="font-size:9px;color:var(--muted-fg);">evening·clear·2片段</div></div>
+                </div>
+                <div class="card" style="padding:8px 12px;cursor:pointer;border:1px dashed var(--border);display:flex;align-items:center;gap:6px;opacity:0.6;">
+                  <span>+</span>
+                  <div><div style="font-size:11px;">新建变体</div></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 底部操作栏 -->
+          <div style="border-top:2px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:10px;background:var(--card);flex-shrink:0;">
+            <button class="btn btn-ghost btn-sm">← 上一片段</button>
+            <button class="btn btn-ghost btn-sm">跳过</button>
+            <div style="flex:1;"></div>
+            <button class="btn btn-primary btn-sm" style="background:var(--warning);border-color:var(--warning);" onclick="openCharacterEdit('影')">⚠ 编辑新角色"影"</button>
+            <button class="btn btn-primary btn-sm">🎬 生成 Prompt</button>
+            <button class="btn btn-ghost btn-sm">下一片段 →</button>
+          </div>
+        </div>
+
+        <!-- 右栏：上下文面板 (280px) -->
+        <div style="width:280px;border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:12px;flex-shrink:0;background:var(--bg);">
+          <!-- 项目设置 -->
           <div class="card" style="padding:14px;">
-            <div style="font-size:13px;font-weight:600;margin-bottom:10px;">🎯 生成模式</div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:10px;">📝 项目设置</div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;">
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted-fg);">项目名</span><span>都市传说</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted-fg);">风格</span><span>日系动漫</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted-fg);">集数</span><span>4 集</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted-fg);">画幅</span><span>16:9</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted-fg);">模型</span><span>Kling 1.6</span></div>
+            </div>
+          </div>
+
+          <!-- 模板快速开始 -->
+          <div class="card" style="padding:14px;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:10px;">🛒 从模板开始</div>
             <div style="display:flex;flex-direction:column;gap:6px;">
-              <label class="element-card" style="align-items:center;gap:8px;cursor:pointer;padding:10px;">
-                <input type="radio" name="story-mode" value="semi" checked> 半自动（每步确认）
-              </label>
-              <label class="element-card" style="align-items:center;gap:8px;cursor:pointer;padding:10px;">
-                <input type="radio" name="story-mode" value="full"> 全自动（AI Agent 全程托管）
-              </label>
+              <div class="card" style="padding:8px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;background:var(--card2);" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'">
+                <span style="font-size:16px;">🌸</span>
+                <div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;">日系动漫</div><div style="font-size:9px;color:var(--muted-fg);">⭐4.8</div></div>
+                <button class="btn btn-primary btn-xs">使用</button>
+              </div>
+              <div class="card" style="padding:8px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;background:var(--card2);" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'">
+                <span style="font-size:16px;">🌃</span>
+                <div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:600;">赛博朋克</div><div style="font-size:9px;color:var(--muted-fg);">⭐4.5</div></div>
+                <button class="btn btn-primary btn-xs">使用</button>
+              </div>
+              <div style="text-align:center;margin-top:4px;">
+                <button class="btn btn-ghost btn-xs" onclick="switchPage('template-market')">浏览更多 →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 统计 -->
+          <div class="card" style="padding:14px;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:10px;">📊 统计</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+              <div class="card" style="padding:8px;text-align:center;background:var(--card2);">
+                <div style="font-size:16px;font-weight:700;color:var(--primary);">4</div>
+                <div style="color:var(--muted-fg);">角色</div>
+              </div>
+              <div class="card" style="padding:8px;text-align:center;background:var(--card2);">
+                <div style="font-size:16px;font-weight:700;color:var(--success);">3</div>
+                <div style="color:var(--muted-fg);">场景</div>
+              </div>
+              <div class="card" style="padding:8px;text-align:center;background:var(--card2);">
+                <div style="font-size:16px;font-weight:700;color:var(--warning);">1</div>
+                <div style="color:var(--muted-fg);">新角色⚠</div>
+              </div>
+              <div class="card" style="padding:8px;text-align:center;background:var(--card2);">
+                <div style="font-size:16px;font-weight:700;">0</div>
+                <div style="color:var(--muted-fg);">新场景</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 重要性排序 -->
+          <div class="card" style="padding:14px;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:10px;">🎯 角色重要性</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:center;gap:6px;font-size:10px;">
+                <span class="badge" style="background:rgba(99,102,241,0.12);color:var(--primary);">P0</span>
+                <span>👩</span>
+                <span style="flex:1;">零</span>
+                <span style="color:var(--muted-fg);">24片段</span>
+                <div style="width:48px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;"><div style="width:100%;height:100%;background:var(--primary);"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:10px;">
+                <span class="badge" style="background:rgba(245,158,11,0.12);color:var(--warning);">P1</span>
+                <span>👴</span>
+                <span style="flex:1;">山田</span>
+                <span style="color:var(--muted-fg);">18片段</span>
+                <div style="width:48px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;"><div style="width:75%;height:100%;background:var(--warning);"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:10px;">
+                <span class="badge" style="background:rgba(245,158,11,0.12);color:var(--warning);">P1</span>
+                <span>👤</span>
+                <span style="flex:1;">影</span>
+                <span style="color:var(--muted-fg);">12片段</span>
+                <div style="width:48px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;"><div style="width:50%;height:100%;background:var(--warning);"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:10px;">
+                <span class="badge" style="background:rgba(107,114,128,0.12);color:var(--muted-fg);">P2</span>
+                <span>👨</span>
+                <span style="flex:1;">博士</span>
+                <span style="color:var(--muted-fg);">5片段</span>
+                <div style="width:48px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;"><div style="width:20%;height:100%;background:var(--muted-fg);"></div></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1959,7 +2401,7 @@
 
     <!-- ═══════ PAGE: plugins ═══════ -->
     <div id="page-plugins" class="fade-in" style="display:none;flex-direction:column;height:100%;">
-      <div class="page-header"><h2 class="page-title">🧩 插件市场</h2><span class="badge badge-info">编辑器扩展</span></div>
+      <div class="page-header"><h2 class="page-title">🧩 插件市场</h2><div style="display:flex;gap:6px;"><span class="badge badge-info">编辑器扩展</span><button class="btn btn-outline btn-xs" onclick="switchPage('plugin-market')">社区市场 →</button></div></div>
       <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;">
         <!-- 已安装插件 -->
         <div class="card" style="padding:16px;">
@@ -2047,6 +2489,542 @@
           <div style="margin-top:10px;display:flex;gap:6px;">
             <button class="btn btn-outline btn-xs">📖 开发文档</button>
             <button class="btn btn-primary btn-xs">+ 创建插件</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 登录/注册 ═══════ -->
+    <div id="page-login" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="content-area" style="display:flex;align-items:center;justify-content:center;flex:1;">
+        <div class="card" style="width:400px;padding:32px;text-align:center;">
+          <div style="font-size:36px;margin-bottom:8px;">🎬</div>
+          <div style="font-size:20px;font-weight:700;margin-bottom:4px;">PrismCraft</div>
+          <div style="font-size:12px;color:var(--muted-fg);margin-bottom:24px;">AI 动画制作工作室</div>
+          <div style="display:flex;flex-direction:column;gap:12px;text-align:left;">
+            <div><label style="font-size:10px;color:var(--muted-fg);">邮箱</label><input class="input" placeholder="your@email.com" style="font-size:13px;"></div>
+            <div><label style="font-size:10px;color:var(--muted-fg);">密码</label><input class="input" type="password" placeholder="········" style="font-size:13px;"></div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;">登录</button>
+            <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted-fg);">
+              <div style="flex:1;height:1px;background:var(--border);"></div> 或 <div style="flex:1;height:1px;background:var(--border);"></div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-outline" style="flex:1;justify-content:center;font-size:12px;padding:8px;">Google</button>
+              <button class="btn btn-outline" style="flex:1;justify-content:center;font-size:12px;padding:8px;">GitHub</button>
+            </div>
+            <div style="text-align:center;font-size:11px;color:var(--muted-fg);margin-top:4px;">
+              没有账号？<a href="#" style="color:var(--primary);">注册</a>
+              <span style="margin:0 8px;">|</span>
+              <a href="#" style="color:var(--muted-fg);">忘记密码</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 模板市场 ═══════ -->
+    <div id="page-template-market" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">🛒 模板市场</h2><span class="badge badge-info">社区模板</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;padding:24px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="input" placeholder="搜索模板..." style="flex:1;font-size:12px;">
+          <select class="select" style="font-size:11px;"><option>全部类型</option><option>风格模板</option><option>角色模板</option><option>剧本模板</option></select>
+          <select class="select" style="font-size:11px;"><option>最新</option><option>最热</option><option>评分最高</option></select>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
+          <div class="card" style="padding:14px;cursor:pointer;">
+            <div style="height:120px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:10px;">🌸</div>
+            <div style="font-size:13px;font-weight:600;">日系动漫风格</div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-bottom:8px;">清新日系动画风格，适合校园/恋爱题材</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--warning);">⭐ 4.8</div>
+              <div style="font-size:10px;color:var(--muted-fg);">1.2k 下载</div>
+              <button class="btn btn-primary btn-xs">安装</button>
+            </div>
+          </div>
+          <div class="card" style="padding:14px;cursor:pointer;">
+            <div style="height:120px;background:linear-gradient(135deg,#f59e0b,#ef4444);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:10px;">🌃</div>
+            <div style="font-size:13px;font-weight:600;">赛博朋克风格</div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-bottom:8px;">霓虹灯 + 雨夜都市，科幻题材首选</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--warning);">⭐ 4.5</div>
+              <div style="font-size:10px;color:var(--muted-fg);">890 下载</div>
+              <button class="btn btn-primary btn-xs">安装</button>
+            </div>
+          </div>
+          <div class="card" style="padding:14px;cursor:pointer;">
+            <div style="height:120px;background:linear-gradient(135deg,#10b981,#06b6d4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:10px;">🏯</div>
+            <div style="font-size:13px;font-weight:600;">水墨画风</div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-bottom:8px;">中国传统水墨风格，古风/武侠题材</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--warning);">⭐ 4.9</div>
+              <div style="font-size:10px;color:var(--muted-fg);">456 下载</div>
+              <button class="btn btn-primary btn-xs">安装</button>
+            </div>
+          </div>
+          <div class="card" style="padding:14px;cursor:pointer;">
+            <div style="height:120px;background:linear-gradient(135deg,#8b5cf6,#ec4899);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:10px;">🎭</div>
+            <div style="font-size:13px;font-weight:600;">写实电影风格</div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-bottom:8px;">电影级写实渲染，悬疑/剧情题材</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--warning);">⭐ 4.2</div>
+              <div style="font-size:10px;color:var(--muted-fg);">2.1k 下载</div>
+              <button class="btn btn-primary btn-xs">安装</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:4px;align-items:center;font-size:11px;color:var(--muted-fg);">
+          <button class="btn btn-ghost btn-xs">← 上一页</button>
+          <span style="padding:4px 10px;background:rgba(99,102,241,0.12);border-radius:6px;color:var(--primary);">1</span>
+          <span style="padding:4px 10px;cursor:pointer;">2</span>
+          <span style="padding:4px 10px;cursor:pointer;">3</span>
+          <span>...</span>
+          <span style="padding:4px 10px;cursor:pointer;">8</span>
+          <button class="btn btn-ghost btn-xs">下一页 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 创作者中心 ═══════ -->
+    <div id="page-creator" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">📊 创作者中心</h2><span class="badge badge-success">收益 ¥1,280</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;padding:24px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+          <div class="card" style="padding:16px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--primary);">3</div>
+            <div style="font-size:11px;color:var(--muted-fg);">已发布模板</div>
+          </div>
+          <div class="card" style="padding:16px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--success);">2,546</div>
+            <div style="font-size:11px;color:var(--muted-fg);">总下载量</div>
+          </div>
+          <div class="card" style="padding:16px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;color:var(--warning);">¥1,280</div>
+            <div style="font-size:11px;color:var(--muted-fg);">累计收益</div>
+          </div>
+          <div class="card" style="padding:16px;text-align:center;">
+            <div style="font-size:24px;font-weight:700;">4.6</div>
+            <div style="font-size:11px;color:var(--muted-fg);">平均评分</div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:13px;font-weight:600;">我的模板</span>
+            <button class="btn btn-primary btn-xs">发布新模板</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--card2);border-radius:8px;">
+              <div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#a855f7);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🌸</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">日系动漫风格</div><div style="font-size:10px;color:var(--muted-fg);">1.2k 下载 · ¥680 收益 · ⭐ 4.8</div></div>
+              <span class="badge badge-success" style="font-size:10px;">已上架</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--card2);border-radius:8px;">
+              <div style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🌃</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">赛博朋克风格</div><div style="font-size:10px;color:var(--muted-fg);">890 下载 · ¥400 收益 · ⭐ 4.5</div></div>
+              <span class="badge badge-success" style="font-size:10px;">已上架</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 工作流编辑器 ═══════ -->
+    <div id="page-workflow" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">🔗 工作流编辑器</h2><span class="badge badge-info">React Flow</span></div>
+      <div style="display:flex;flex:1;min-height:0;">
+        <div style="width:200px;border-right:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+          <div style="font-size:10px;font-weight:600;color:var(--muted-fg);text-transform:uppercase;">📥 输入节点</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--primary);">📄</span> 文本导入</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--primary);">📖</span> 小说导入</div>
+          <div style="font-size:10px;font-weight:600;color:var(--muted-fg);text-transform:uppercase;margin-top:8px;">⚙ 处理节点</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--warning);">👤</span> 角色提取</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--warning);">🏙</span> 场景提取</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--warning);">✂</span> 分镜拆解</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--warning);">💬</span> Prompt生成</div>
+          <div style="font-size:10px;font-weight:600;color:var(--muted-fg);text-transform:uppercase;margin-top:8px;">📤 输出节点</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--success);">🎬</span> 视频生成</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--success);">🖼</span> 图片生成</div>
+          <div class="card" style="padding:8px 10px;font-size:11px;cursor:grab;display:flex;align-items:center;gap:6px;"><span style="color:var(--success);">📦</span> 导出</div>
+        </div>
+        <div style="flex:1;background:var(--card2);position:relative;overflow:hidden;">
+          <div style="position:absolute;inset:0;background-image:radial-gradient(circle,var(--border) 1px,transparent 1px);background-size:24px 24px;opacity:0.5;"></div>
+          <div style="position:relative;padding:40px;">
+            <div style="display:flex;align-items:center;gap:40px;">
+              <div class="card" style="width:140px;padding:12px;text-align:center;border:2px solid var(--primary);">
+                <div style="font-size:20px;margin-bottom:4px;">📖</div>
+                <div style="font-size:12px;font-weight:600;">小说导入</div>
+                <div style="font-size:10px;color:var(--muted-fg);">都市传说.txt</div>
+              </div>
+              <div style="font-size:20px;color:var(--primary);">→</div>
+              <div class="card" style="width:140px;padding:12px;text-align:center;border:2px solid var(--warning);">
+                <div style="font-size:20px;margin-bottom:4px;">👤</div>
+                <div style="font-size:12px;font-weight:600;">角色提取</div>
+                <div style="font-size:10px;color:var(--muted-fg);">4 个角色</div>
+              </div>
+              <div style="font-size:20px;color:var(--warning);">→</div>
+              <div class="card" style="width:140px;padding:12px;text-align:center;border:2px solid var(--warning);">
+                <div style="font-size:20px;margin-bottom:4px;">✂</div>
+                <div style="font-size:12px;font-weight:600;">分镜拆解</div>
+                <div style="font-size:10px;color:var(--muted-fg);">12 个分镜</div>
+              </div>
+              <div style="font-size:20px;color:var(--warning);">→</div>
+              <div class="card" style="width:140px;padding:12px;text-align:center;border:2px solid var(--success);">
+                <div style="font-size:20px;margin-bottom:4px;">🎬</div>
+                <div style="font-size:12px;font-weight:600;">视频生成</div>
+                <div style="font-size:10px;color:var(--muted-fg);">Kling · 12 个视频</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding:8px 16px;display:flex;gap:8px;background:var(--bg);">
+        <button class="btn btn-ghost btn-sm">一键成片预设</button>
+        <button class="btn btn-primary btn-sm">▶ 执行工作流</button>
+        <span style="font-size:10px;color:var(--muted-fg);margin-left:auto;align-self:center;">节点: 4 · 连线: 3</span>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 团队协作 ═══════ -->
+    <div id="page-workspace" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">👥 团队协作</h2><span class="badge badge-info">3 成员</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;padding:24px;">
+        <div class="card" style="padding:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:13px;font-weight:600;">工作空间：都市传说项目</span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-outline btn-xs">邀请成员</button>
+              <button class="btn btn-primary btn-xs">创建空间</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--card2);border-radius:8px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:14px;">Y</div>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:600;">你</div><div style="font-size:10px;color:var(--muted-fg);">Owner · 在线</div></div>
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--success);"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--card2);border-radius:8px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:14px;">L</div>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:600;">Li Wei</div><div style="font-size:10px;color:var(--muted-fg);">Editor · 正在编辑第3镜</div></div>
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--success);"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--card2);border-radius:8px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:14px;">M</div>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:600;">Mei Chen</div><div style="font-size:10px;color:var(--muted-fg);">Viewer · 离线</div></div>
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--muted-fg);"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;">审批队列</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--card2);border-radius:8px;">
+              <span class="badge" style="background:rgba(245,158,11,0.12);color:var(--warning);">待审核</span>
+              <div style="flex:1;"><div style="font-size:12px;">第3镜 · 角色更新</div><div style="font-size:10px;color:var(--muted-fg);">Li Wei · 10分钟前</div></div>
+              <button class="btn btn-success btn-xs">通过</button>
+              <button class="btn btn-danger btn-xs">驳回</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--card2);border-radius:8px;">
+              <span class="badge" style="background:rgba(16,185,129,0.12);color:var(--success);">已通过</span>
+              <div style="flex:1;"><div style="font-size:12px;">第5镜 · 场景更新</div><div style="font-size:10px;color:var(--muted-fg);">你 · 30分钟前</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 版本快照 ═══════ -->
+    <div id="page-snapshot" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">📸 版本快照</h2><button class="btn btn-primary btn-sm">保存当前快照</button></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;padding:24px;">
+        <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;">📸</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:13px;font-weight:600;">v4 — 完成角色一致性检查</span>
+              <span class="badge badge-success" style="font-size:9px;">自动</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted-fg);">2026-06-20 14:32 · 12 角色 / 4 场景 / 24 分镜</div>
+          </div>
+          <button class="btn btn-ghost btn-xs">对比</button>
+          <button class="btn btn-outline btn-xs">恢复</button>
+        </div>
+        <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;">📸</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:13px;font-weight:600;">v3 — 分镜拆解完成</span>
+              <span class="badge" style="font-size:9px;">手动</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted-fg);">2026-06-20 10:15 · 12 角色 / 4 场景 / 24 分镜</div>
+          </div>
+          <button class="btn btn-ghost btn-xs">对比</button>
+          <button class="btn btn-outline btn-xs">恢复</button>
+        </div>
+        <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;">📸</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:13px;font-weight:600;">v2 — 角色提取完成</span>
+              <span class="badge" style="font-size:9px;">手动</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted-fg);">2026-06-19 16:00 · 12 角色 / 0 场景 / 0 分镜</div>
+          </div>
+          <button class="btn btn-ghost btn-xs">对比</button>
+          <button class="btn btn-outline btn-xs">恢复</button>
+        </div>
+        <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;">📸</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:13px;font-weight:600;">v1 — 小说导入</span>
+              <span class="badge" style="font-size:9px;">手动</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted-fg);">2026-06-19 09:00 · 0 角色 / 0 场景 / 0 分镜</div>
+          </div>
+          <button class="btn btn-ghost btn-xs">对比</button>
+          <button class="btn btn-outline btn-xs">恢复</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 社区插件市场 ═══════ -->
+    <div id="page-plugin-market" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">🧩 社区插件市场</h2><span class="badge badge-info">12 个插件</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;padding:24px;">
+        <div style="display:flex;gap:8px;">
+          <input class="input" placeholder="搜索插件..." style="flex:1;font-size:12px;">
+          <select class="select" style="font-size:11px;"><option>全部类型</option><option>shot-editor</option><option>tool</option><option>theme</option></select>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:16px;">📽</div>
+              <div><div style="font-size:13px;font-weight:600;">电影分镜编辑器</div><div style="font-size:10px;color:var(--muted-fg);">@CineMaster</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-bottom:10px;">电影级分镜编辑器，支持镜头语言标注、灯光方案、音频备注</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span class="badge" style="font-size:9px;">shot-editor</span>
+              <span class="badge" style="font-size:9px;">⭐ 4.8</span>
+              <span class="badge" style="font-size:9px;">1.2k 安装</span>
+            </div>
+            <button class="btn btn-primary btn-xs" style="width:100%;">安装</button>
+          </div>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:16px;">🎨</div>
+              <div><div style="font-size:13px;font-weight:600;">漫画分镜编辑器</div><div style="font-size:10px;color:var(--muted-fg);">@MangaTeam</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-bottom:10px;">竖排分镜布局 + 对话气泡 + 翻页效果，适合漫画风格创作</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span class="badge" style="font-size:9px;">shot-editor</span>
+              <span class="badge" style="font-size:9px;">⭐ 4.6</span>
+              <span class="badge" style="font-size:9px;">890 安装</span>
+            </div>
+            <button class="btn btn-primary btn-xs" style="width:100%;">安装</button>
+          </div>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:flex;align-items:center;justify-content:center;font-size:16px;">🎵</div>
+              <div><div style="font-size:13px;font-weight:600;">Lofi 背景音乐生成器</div><div style="font-size:10px;color:var(--muted-fg);">@AudioAI</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted-fg);margin-bottom:10px;">自动生成与分镜情绪匹配的 Lofi 背景音乐</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span class="badge" style="font-size:9px;">tool</span>
+              <span class="badge" style="font-size:9px;">⭐ 4.3</span>
+              <span class="badge" style="font-size:9px;">¥29</span>
+            </div>
+            <button class="btn btn-primary btn-xs" style="width:100%;">购买</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 移动端预览 ═══════ -->
+    <div id="page-mobile" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">📱 移动端预览</h2><span class="badge badge-info">PWA</span></div>
+      <div class="content-area" style="display:flex;align-items:flex-start;justify-content:center;flex:1;overflow-y:auto;padding:24px;gap:40px;">
+        <div style="width:360px;height:700px;border:2px solid var(--border);border-radius:24px;overflow:hidden;background:var(--bg);box-shadow:0 0 40px rgba(0,0,0,0.3);">
+          <div style="background:var(--card);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--muted-fg);border-bottom:1px solid var(--border);">
+            <span>9:41</span>
+            <div style="display:flex;gap:4px;"><span>📶</span><span>📶</span><span>🔋</span></div>
+          </div>
+          <div style="padding:16px;overflow-y:auto;height:calc(100% - 32px);">
+            <div style="font-size:18px;font-weight:700;margin-bottom:12px;">🎬 PrismCraft</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div class="card" style="padding:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <span style="font-size:13px;font-weight:600;">都市传说</span>
+                  <span class="badge badge-success" style="font-size:9px;">进行中</span>
+                </div>
+                <div style="font-size:10px;color:var(--muted-fg);margin-bottom:8px;">12 角色 · 4 场景 · 24 分镜</div>
+                <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+                  <div style="width:65%;height:100%;background:var(--primary);border-radius:2px;"></div>
+                </div>
+                <div style="font-size:9px;color:var(--muted-fg);margin-top:4px;">8/12 视频生成完成</div>
+              </div>
+              <div style="font-size:11px;font-weight:600;color:var(--muted-fg);">最近任务</div>
+              <div class="card" style="padding:10px;display:flex;align-items:center;gap:10px;">
+                <div style="width:56px;height:40px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;flex-shrink:0;"></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:11px;font-weight:600;">第3镜 · 角色零</div>
+                  <div style="font-size:9px;color:var(--muted-fg);">已完成 · 30秒前</div>
+                </div>
+              </div>
+              <div class="card" style="padding:10px;display:flex;align-items:center;gap:10px;">
+                <div style="width:56px;height:40px;background:linear-gradient(135deg,#f59e0b,#ef4444);border-radius:6px;flex-shrink:0;"></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:11px;font-weight:600;">第5镜 · 新东京场景</div>
+                  <div style="font-size:9px;color:var(--muted-fg);">处理中 · 45%</div>
+                </div>
+              </div>
+              <div style="font-size:11px;font-weight:600;color:var(--muted-fg);margin-top:8px;">通知</div>
+              <div class="card" style="padding:10px;font-size:11px;">
+                <span style="color:var(--primary);">Li Wei</span> 评论了第3镜
+                <div style="font-size:9px;color:var(--muted-fg);">10分钟前</div>
+              </div>
+              <div class="card" style="padding:10px;font-size:11px;">
+                <span style="color:var(--success);">第5镜</span> 视频生成完成
+                <div style="font-size:9px;color:var(--muted-fg);">30分钟前</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="width:280px;font-size:11px;color:var(--muted-fg);line-height:1.8;">
+          <div style="font-weight:600;color:var(--fg);margin-bottom:8px;">移动端功能范围</div>
+          <div>✅ 查看项目列表</div>
+          <div>✅ 预览视频</div>
+          <div>✅ 任务状态追踪</div>
+          <div>✅ 接收通知</div>
+          <div>✅ 评论查看</div>
+          <div style="margin-top:12px;color:var(--muted-fg);">❌ 不支持编辑</div>
+          <div style="margin-top:12px;color:var(--muted-fg);">通过 PWA 安装到主屏幕</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 音效/BGM ═══════ -->
+    <div id="page-audio" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">🎵 音效 & BGM</h2><span class="badge badge-info">免版权素材</span></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;padding:24px;">
+        <div style="display:flex;gap:12px;">
+          <button class="btn btn-outline btn-sm" style="background:rgba(99,102,241,0.12);color:var(--primary);">🎵 BGM 库</button>
+          <button class="btn btn-ghost btn-sm">🔊 音效库</button>
+          <button class="btn btn-ghost btn-sm">🎙 AI 配音</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;">
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;">都市夜行</div>
+              <div style="font-size:10px;color:var(--muted-fg);">紧张 · 2:34</div>
+            </div>
+            <button class="btn btn-ghost btn-xs">+</button>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;">樱花飘落</div>
+              <div style="font-size:10px;color:var(--muted-fg);">温馨 · 3:12</div>
+            </div>
+            <button class="btn btn-ghost btn-xs">+</button>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;">史诗战歌</div>
+              <div style="font-size:10px;color:var(--muted-fg);">史诗 · 4:05</div>
+            </div>
+            <button class="btn btn-ghost btn-xs">+</button>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;">迷雾森林</div>
+              <div style="font-size:10px;color:var(--muted-fg);">悬疑 · 2:58</div>
+            </div>
+            <button class="btn btn-ghost btn-xs">+</button>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;">午后咖啡</div>
+              <div style="font-size:10px;color:var(--muted-fg);">轻松 · 2:15</div>
+            </div>
+            <button class="btn btn-ghost btn-xs">+</button>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <button class="btn btn-outline btn-xs" style="width:36px;height:36px;border-radius:50%;justify-content:center;font-size:16px;flex-shrink:0;">▶</button>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;">暗夜追踪</div>
+              <div style="font-size:10px;color:var(--muted-fg);">紧张 · 3:42</div>
+            </div>
+            <button class="btn btn-ghost btn-xs">+</button>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;margin-top:8px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;">🎙 AI 配音</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:8px;">
+              <select class="select" style="flex:1;font-size:11px;">
+                <option>角色: 零 (女声·沉稳)</option>
+                <option>角色: 博士 (男声·低沉)</option>
+                <option>角色: 玲 (女声·清脆)</option>
+              </select>
+              <select class="select" style="width:100px;font-size:11px;">
+                <option>语速 1.0x</option>
+                <option>语速 0.8x</option>
+                <option>语速 1.2x</option>
+              </select>
+            </div>
+            <textarea class="textarea" rows="3" style="font-size:12px;" placeholder="输入需要配音的文本...">你在看什么？这个城市从来不睡觉。</textarea>
+            <button class="btn btn-primary btn-sm" style="align-self:flex-end;">🎙 生成配音</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ PAGE: 模板详情 ═══════ -->
+    <div id="page-template-detail" class="fade-in" style="display:none;flex-direction:column;height:100%;">
+      <div class="page-header"><h2 class="page-title">🌸 日系动漫风格</h2><button class="btn btn-primary btn-sm">安装模板</button></div>
+      <div class="content-area" style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;padding:24px;">
+        <div style="display:flex;gap:20px;">
+          <div style="width:320px;height:200px;background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px;flex-shrink:0;">🌸</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span class="badge" style="font-size:10px;">风格模板</span>
+              <span class="badge" style="font-size:10px;">⭐ 4.8</span>
+              <span class="badge" style="font-size:10px;">1.2k 下载</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted-fg);margin-bottom:12px;line-height:1.6;">
+              清新日系动画风格，适合校园/恋爱题材。使用 Kling 1.6 模型，经过 200+ 次参数调优，色彩柔和、线条流畅，角色表情丰富。
+            </div>
+            <div style="font-size:11px;color:var(--muted-fg);">作者: @SakuraStudio</div>
+            <div style="font-size:11px;color:var(--muted-fg);">更新时间: 2026-06-15</div>
+            <div style="font-size:11px;color:var(--muted-fg);">标签: 动漫 · 日系 · 校园 · 清新 · Kling</div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;">模板参数</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+            <div><span style="color:var(--muted-fg);">模型:</span> Kling 1.6</div>
+            <div><span style="color:var(--muted-fg);">分辨率:</span> 1920×1080</div>
+            <div><span style="color:var(--muted-fg);">帧率:</span> 24fps</div>
+            <div><span style="color:var(--muted-fg);">时长:</span> 5-8秒/镜</div>
+            <div><span style="color:var(--muted-fg);">CFG Scale:</span> 7.5</div>
+            <div><span style="color:var(--muted-fg);">Negative Prompt:</span> 含</div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;">评论 (3)</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:12px;padding:8px;background:var(--card2);border-radius:8px;">
+              <span style="color:var(--warning);">⭐⭐⭐⭐⭐</span> 效果非常好，角色一致性很高！
+              <div style="font-size:10px;color:var(--muted-fg);">@AnimatorX · 3天前</div>
+            </div>
+            <div style="font-size:12px;padding:8px;background:var(--card2);border-radius:8px;">
+              <span style="color:var(--warning);">⭐⭐⭐⭐</span> 希望增加更多变体参数。
+              <div style="font-size:10px;color:var(--muted-fg);">@StudioPro · 1周前</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2356,6 +3334,8 @@ function switchView(view, btn) {
   document.getElementById('view-storyboard-content').style.display = view === 'storyboard' ? 'flex' : 'none';
   document.getElementById('view-generate-content').style.display = view === 'generate' ? '' : 'none';
   document.getElementById('view-preview-content').style.display = view === 'preview' ? '' : 'none';
+  document.getElementById('view-comments-content').style.display = view === 'comments' ? '' : 'none';
+  document.getElementById('view-audio-content').style.display = view === 'audio' ? '' : 'none';
   document.getElementById('bottom-bar-storyboard').style.display = view === 'storyboard' ? '' : 'none';
 }
  

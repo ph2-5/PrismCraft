@@ -31,6 +31,10 @@ export interface ApiClientLikeError {
   message: string;
 }
 
+function isApiClientLikeError(error: unknown): error is ApiClientLikeError {
+  return typeof error === "object" && error !== null && "message" in error;
+}
+
 export function createAppError(code: ErrorCode, message: string, cause?: unknown): AppError {
   return new AppError(code, message, cause);
 }
@@ -75,7 +79,10 @@ export function handleError(error: unknown): AppError {
 }
 
 export function handleApiClientError(error: unknown): AppError {
-  const apiError = error as ApiClientLikeError;
+  if (!isApiClientLikeError(error)) {
+    return createAppError("UNKNOWN_ERROR", String(error));
+  }
+  const apiError = error;
   if (apiError?.statusCode === 401) {
     return createAppError("AUTHENTICATION_ERROR", apiError.message, error);
   }

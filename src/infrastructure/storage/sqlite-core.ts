@@ -105,12 +105,12 @@ export async function safeQuery<T>(
   return performanceMonitor.measure("db_query", sql, () =>
     withRetry(async () => {
       // 优先尝试 HTTP API（统一通信层）
-      const httpResult = await httpDbCall<{ data?: T[] }>("db/query", { sql, params });
+      const httpResult = await httpDbCall<T[]>("db/query", { sql, params });
       if (httpResult !== null) {
         if (!httpResult.success) {
           throw new Error(extractDbErrorMessage(httpResult, `SQLite query failed: ${sql.substring(0, 100)}`));
         }
-        return (httpResult.data?.data ?? []) as T[];
+        return (httpResult.data ?? []) as T[];
       }
       // Fallback: IPC
       const response = await getElectronAPI().dbQuery(sql, params);
@@ -130,13 +130,13 @@ export async function safeRun(
   return performanceMonitor.measure("db_query", sql, () =>
     withRetry(async () => {
       // 优先尝试 HTTP API（统一通信层）
-      const httpResult = await httpDbCall<{ data?: { changes?: number; lastInsertRowid?: number | bigint } }>("db/run", { sql, params });
+      const httpResult = await httpDbCall<{ changes?: number; lastInsertRowid?: number | bigint }>("db/run", { sql, params });
       if (httpResult !== null) {
         if (!httpResult.success) {
           errorLogger.error("SQLite run failed", { sql: sql.substring(0, 200) });
           throw new Error(extractDbErrorMessage(httpResult, "SQLite run failed"));
         }
-        const data = httpResult.data?.data;
+        const data = httpResult.data;
         const rowid = data?.lastInsertRowid;
         return {
           changes: typeof data?.changes === "number" ? data.changes : undefined,
@@ -160,14 +160,14 @@ export async function safeTransaction(
   return performanceMonitor.measure("db_transaction", `transaction(${statements.length})`, () =>
     withRetry(async () => {
       // 优先尝试 HTTP API（统一通信层）
-      const httpResult = await httpDbCall<{ data?: unknown[] }>("db/transaction", { statements });
+      const httpResult = await httpDbCall<unknown[]>("db/transaction", { statements });
       if (httpResult !== null) {
         if (!httpResult.success) {
           const sqlPreview = statements.map((s) => s.sql.substring(0, 50)).join("; ");
           errorLogger.error("SQLite transaction failed", { sql: sqlPreview });
           throw new Error(extractDbErrorMessage(httpResult, "SQLite transaction failed"));
         }
-        return (httpResult.data?.data ?? []) as unknown[];
+        return (httpResult.data ?? []) as unknown[];
       }
       // Fallback: IPC
       const response = await getElectronAPI().dbTransaction(statements);

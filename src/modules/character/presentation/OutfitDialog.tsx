@@ -52,6 +52,7 @@ export function OutfitDialog({
             <Label htmlFor="outfit-name">{t("outfit.nameLabel")}</Label>
             <Input
               id="outfit-name"
+              data-testid="outfit-name-input"
               placeholder={t("outfit.namePlaceholder")}
               value={outfitForm.name || ""}
               onChange={(e) =>

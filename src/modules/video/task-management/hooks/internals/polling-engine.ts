@@ -79,9 +79,50 @@ export const pollingState: PollingState = {
   consecutiveErrors: 0,
 };
 
-if (typeof window !== "undefined") {
-  if (window.__VIDEO_TASK_POLLING_STATE__) {
-    const prev = window.__VIDEO_TASK_POLLING_STATE__ as PollingState;
+let _pollingEngineInitialized = false;
+
+/**
+ * Runtime type guard for validating that an unknown value matches PollingState shape.
+ * Prevents unsafe `as PollingState` assertions when reading from window global.
+ */
+function isPollingStateLike(value: unknown): value is PollingState {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    "pollingTimeoutId" in v &&
+    "syncTimeoutId" in v &&
+    "recoveryIntervalId" in v &&
+    "cacheCleanupIntervalId" in v &&
+    "beforeUnloadHandler" in v &&
+    "recoveredEventHandler" in v &&
+    "visibilityHandler" in v &&
+    "pollCount" in v &&
+    "pollInterval" in v &&
+    "isSyncing" in v &&
+    "isPollingScheduled" in v &&
+    "isInitializing" in v &&
+    "pollingInProgress" in v &&
+    "abortController" in v &&
+    "consecutiveErrors" in v
+  );
+}
+
+/**
+ * Initialize the polling engine: clean up any previously registered global
+ * polling state (timers, listeners, abort controllers) and register the
+ * current pollingState on the window global for cross-instance coordination.
+ *
+ * This must be called explicitly (e.g. from initializePolling) instead of
+ * running at module load time, to avoid module-level side effects.
+ */
+export function initPollingEngine() {
+  if (_pollingEngineInitialized) return;
+  _pollingEngineInitialized = true;
+
+  if (typeof window === "undefined") return;
+
+  const prev = window.__VIDEO_TASK_POLLING_STATE__;
+  if (prev !== undefined && isPollingStateLike(prev)) {
     if (prev.pollingTimeoutId) clearTimeout(prev.pollingTimeoutId);
     if (prev.syncTimeoutId) clearTimeout(prev.syncTimeoutId);
     if (prev.recoveryIntervalId) clearInterval(prev.recoveryIntervalId);

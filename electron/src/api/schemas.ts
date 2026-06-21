@@ -393,6 +393,8 @@ export type FileCopyRequest = z.infer<typeof fileCopySchema>;
 
 export const fileListSchema = z.object({
   category: fileCategorySchema,
+  limit: z.number().optional(),
+  offset: z.number().optional(),
 });
 export type FileListRequest = z.infer<typeof fileListSchema>;
 
@@ -420,10 +422,37 @@ export const configSetSchema = z.object({
 });
 export type ConfigSetRequest = z.infer<typeof configSetSchema>;
 
+// 通用 config/secure-config/sync-config 路由 Schema（兼容多 action 形态）
+export const configRouteSchema = z.object({
+  key: z.string().optional(),
+  value: z.unknown().optional(),
+  action: z.enum(["get", "set", "delete", "list"]).optional(),
+}).passthrough();
+export type ConfigRouteRequest = z.infer<typeof configRouteSchema>;
+
+export const secureConfigRouteSchema = z.object({
+  operation: z.enum(["save", "load", "clear"]),
+  config: z.unknown().optional(),
+  providerId: z.string().optional(),
+  data: z.unknown().optional(),
+}).passthrough();
+export type SecureConfigRouteRequest = z.infer<typeof secureConfigRouteSchema>;
+
+export const syncConfigRouteSchema = z.object({
+  action: z.enum(["get", "set", "test"]).optional(),
+  url: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  token: z.string().optional(),
+}).passthrough();
+export type SyncConfigRouteRequest = z.infer<typeof syncConfigRouteSchema>;
+
 // 文件写入（按绝对路径，受 ALLOWED_ROOTS 限制）
 export const fileWriteSchema = z.object({
   filePath: z.string().min(1),
   data: z.union([z.string(), z.instanceof(Buffer)]),
+  // 可选编码标记：当为 "base64" 时，data 字段为 base64 编码的二进制数据
+  encoding: z.enum(["utf-8", "base64"]).optional(),
 });
 export type FileWriteRequest = z.infer<typeof fileWriteSchema>;
 
@@ -433,6 +462,10 @@ export const fileDiskSpaceSchema = z.object({
 });
 export type FileDiskSpaceRequest = z.infer<typeof fileDiskSpaceSchema>;
 
+// 缓存目录查询（无入参，schema 用于统一校验入口）
+export const fileCacheDirectorySchema = z.object({});
+export type FileCacheDirectoryRequest = z.infer<typeof fileCacheDirectorySchema>;
+
 // 同步测试连接
 export const syncTestSchema = z.object({
   url: z.string().min(1),
@@ -441,13 +474,13 @@ export const syncTestSchema = z.object({
 });
 export type SyncTestRequest = z.infer<typeof syncTestSchema>;
 
-// 同步代理（push/pull/config）
+// 同步代理（push/pull）
 export const syncProxySchema = z.object({
-  action: z.enum(["push", "pull", "config"]),
+  action: z.enum(["push", "pull"]),
   deviceId: z.string().optional(),
   changes: z.array(z.unknown()).optional(),
   since: z.union([z.number(), z.string()]).optional(),
   page: z.number().optional(),
   config: z.unknown().optional(),
-}).passthrough();
+});
 export type SyncProxyRequest = z.infer<typeof syncProxySchema>;

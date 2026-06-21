@@ -146,20 +146,26 @@ function startApiServer(): Promise<void> {
               const result = await route.handler(req.method || "GET", parseResult.data, req);
 
               const resultObj = result as Record<string, unknown>;
+              const isSuccess = resultObj && typeof resultObj === "object" && resultObj.success !== false;
               const httpStatus: number =
                 resultObj && typeof resultObj === "object" && resultObj.httpStatus
                   ? (resultObj.httpStatus as number)
-                  : 200;
+                  : isSuccess
+                    ? 200
+                    : 400;
               res.writeHead(httpStatus);
               res.end(JSON.stringify(result));
             } else {
               const result = await route.handler(req.method || "GET", fullBody, req);
 
               const resultObj = result as Record<string, unknown>;
+              const isSuccess = resultObj && typeof resultObj === "object" && resultObj.success !== false;
               const httpStatus: number =
                 resultObj && typeof resultObj === "object" && resultObj.httpStatus
                   ? (resultObj.httpStatus as number)
-                  : 200;
+                  : isSuccess
+                    ? 200
+                    : 400;
               res.writeHead(httpStatus);
               res.end(JSON.stringify(result));
             }

@@ -10,11 +10,11 @@ const CONFIG_DIR = path.join(homedir(), ".ai-animation-studio");
 const CONFIG_FILE = path.join(CONFIG_DIR, "api-config.json");
 const IV_LENGTH = 16;
 
-export function encryptField(text: string): string {
+export async function encryptField(text: string): Promise<string> {
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(
     "aes-256-cbc",
-    getServerEncryptionKey(),
+    await getServerEncryptionKey(),
     iv,
   );
   let encrypted = cipher.update(text, "utf8", "hex");
@@ -22,7 +22,7 @@ export function encryptField(text: string): string {
   return `srv:${iv.toString("hex")}:${encrypted}`;
 }
 
-export function decryptField(encrypted: string): string | null {
+export async function decryptField(encrypted: string): Promise<string | null> {
   if (!encrypted.startsWith("srv:")) return null;
   try {
     const parts = encrypted.split(":");
@@ -30,7 +30,7 @@ export function decryptField(encrypted: string): string | null {
     const iv = Buffer.from(parts[1]!, "hex");
     const decipher = crypto.createDecipheriv(
       "aes-256-cbc",
-      getServerEncryptionKey(),
+      await getServerEncryptionKey(),
       iv,
     );
     let decrypted = decipher.update(parts[2]!, "hex", "utf8");
@@ -42,26 +42,30 @@ export function decryptField(encrypted: string): string | null {
   }
 }
 
-export function encryptConfig(config: ApiConfig): ApiConfig {
+export async function encryptConfig(config: ApiConfig): Promise<ApiConfig> {
   return {
     ...config,
-    providers: config.providers.map((p) => ({
-      ...p,
-      apiKey: p.apiKey ? encryptField(p.apiKey) : "",
-    })),
+    providers: await Promise.all(
+      config.providers.map(async (p) => ({
+        ...p,
+        apiKey: p.apiKey ? await encryptField(p.apiKey) : "",
+      })),
+    ),
   };
 }
 
-export function decryptConfig(config: ApiConfig): ApiConfig {
+export async function decryptConfig(config: ApiConfig): Promise<ApiConfig> {
   return {
     ...config,
-    providers: config.providers.map((p) => {
-      if (p.apiKey && p.apiKey.startsWith("srv:")) {
-        const decrypted = decryptField(p.apiKey);
-        return { ...p, apiKey: decrypted || p.apiKey };
-      }
-      return p;
-    }),
+    providers: await Promise.all(
+      config.providers.map(async (p) => {
+        if (p.apiKey && p.apiKey.startsWith("srv:")) {
+          const decrypted = await decryptField(p.apiKey);
+          return { ...p, apiKey: decrypted || p.apiKey };
+        }
+        return p;
+      }),
+    ),
   };
 }
 
@@ -72,7 +76,7 @@ export async function loadConfigFromFile(): Promise<ApiConfig | null> {
       await fsPromises.access(CONFIG_FILE);
       const content = await fsPromises.readFile(CONFIG_FILE, "utf8");
       const config = JSON.parse(content);
-      const decrypted = decryptConfig(config);
+      const decrypted = await decryptConfig(config);
       errorLogger.info("[API Config] 从 api-config.json 加载配置成功");
       return decrypted;
     } catch (error) {

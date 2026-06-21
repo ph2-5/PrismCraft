@@ -164,6 +164,9 @@ export const pluginRoutes: Record<string, Route> = {
   "plugins/add": defineRoute({
     schema: pluginAddSchema,
     handler: async (_m, b) => {
+      // Schema uses z.record(z.string(), z.unknown()) for config because UserPluginConfig is a
+      // complex nested interface (match/capabilities/apiKeyDetection). A full Zod schema would be
+      // large and brittle. Validation is delegated to validatePluginConfig below.
       const config = b.config as unknown as UserPluginConfig;
       if (!config) {
         return { success: false, error: "缺少插件配置" };
@@ -235,6 +238,8 @@ export const pluginRoutes: Record<string, Route> = {
   "plugins/validate": defineRoute({
     schema: pluginValidateSchema,
     handler: async (_m, b) => {
+      // Schema uses z.record(z.string(), z.unknown()) for config; UserPluginConfig is a complex
+      // nested interface. Validation is performed by validatePluginConfig which checks the shape.
       const config = b.config as unknown as UserPluginConfig;
       if (!config) {
         return { success: false, error: "缺少插件配置" };

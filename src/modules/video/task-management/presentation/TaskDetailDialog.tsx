@@ -120,7 +120,7 @@ export function TaskDetailDialog({
                   alt={t("task.refImageLabel")}
                   className="max-h-32 rounded border border-gray-200 dark:border-gray-700"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
+                    e.currentTarget.style.display = "none";
                   }}
                 />
               </div>

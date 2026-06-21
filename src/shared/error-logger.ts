@@ -55,15 +55,27 @@ function createEntry(level: LogLevel, error: AppError, context?: string): ErrorL
   };
 }
 
+function hasMessage(e: unknown): e is { message: unknown } {
+  return typeof e === "object" && e !== null && "message" in e;
+}
+
+function hasName(e: unknown): e is { name: unknown } {
+  return typeof e === "object" && e !== null && "name" in e;
+}
+
 export function extractErrorMessage(error: unknown): string {
   if (error === undefined || error === null) return "Unknown error";
   if (typeof error === "string") return error || "Unknown error";
   if (error instanceof Error) return error.message || error.name || "Unknown error";
   if (typeof error === "object" && error !== null) {
-    const msg = (error as Record<string, unknown>).message;
-    if (typeof msg === "string" && msg.trim().length > 0) return msg;
-    const name = (error as Record<string, unknown>).name;
-    if (typeof name === "string" && name.trim().length > 0) return name;
+    if (hasMessage(error)) {
+      const msg = error.message;
+      if (typeof msg === "string" && msg.trim().length > 0) return msg;
+    }
+    if (hasName(error)) {
+      const name = error.name;
+      if (typeof name === "string" && name.trim().length > 0) return name;
+    }
     try {
       const json = JSON.stringify(error);
       if (json !== "{}") return json;
@@ -110,7 +122,11 @@ function outputEntry(entry: ErrorLogEntry): void {
   const sanitizedMessage = sanitizeMessage(error.message);
   const formatted = `${time} [${level.toUpperCase()}] ${prefix} [${error.code}] ${sanitizedMessage}`;
 
-  if (level === "debug" || level === "info") {
+  if (level === "debug") {
+    console.debug(formatted, error.cause ?? "");
+  } else if (level === "info") {
+    console.info(formatted, error.cause ?? "");
+  } else if (level === "warn") {
     console.warn(formatted, error.cause ?? "");
   } else {
     console.error(formatted, error.cause ?? "");

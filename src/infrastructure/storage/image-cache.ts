@@ -248,3 +248,20 @@ export const imageCacheStorage = {
     await flushAccessUpdates();
   },
 };
+
+let beforeUnloadHandler: (() => void) | null = null;
+
+if (typeof window !== "undefined") {
+  beforeUnloadHandler = () => {
+    void imageCacheStorage.flushPendingAccessUpdates();
+  };
+  window.addEventListener("beforeunload", beforeUnloadHandler);
+}
+
+/** 清理 image-cache 的 beforeunload 监听器（测试/HMR 场景使用） */
+export function cleanupImageCache(): void {
+  if (beforeUnloadHandler && typeof window !== "undefined") {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+    beforeUnloadHandler = null;
+  }
+}

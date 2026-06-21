@@ -4,6 +4,7 @@ import { closeDatabase } from "../database";
 import { stopApiServer } from "../api-server";
 import { closeStaticServer } from "../main-common";
 import { shutdownAllProcessManagers } from "../plugins/plugin-process-manager";
+import { stopRateLimitCleanup } from "../api/middleware";
 
 const logger = getLogger("lifecycle:cleanup");
 
@@ -38,6 +39,13 @@ export async function performCleanup(options: CleanupOptions): Promise<void> {
     logger.info("[Lifecycle] API server stopped");
   } catch (error) {
     logger.error("[Lifecycle] Failed to stop API server:", error instanceof Error ? error : new Error(String(error)));
+  }
+
+  try {
+    stopRateLimitCleanup();
+    logger.info("[Lifecycle] Rate limit cleanup timer stopped");
+  } catch (error) {
+    logger.error("[Lifecycle] Failed to stop rate limit cleanup:", error instanceof Error ? error : new Error(String(error)));
   }
 
   try {

@@ -24,13 +24,13 @@ test.describe("Full Creation Workflow", () => {
     await expect(page.locator('[data-testid="character-name-input"]')).toBeVisible();
 
     await page.locator('[data-testid="character-name-input"]').fill("主角小明");
-    await page.locator('input[placeholder="输入年龄..."]').fill("18");
-    await page.locator('input[placeholder*="赛博朋克"]').fill("现代都市");
+    await page.locator('[data-testid="character-age-input"]').fill("18");
+    await page.locator('[data-testid="character-style-input"]').fill("现代都市");
 
     await expect(page.locator('[data-testid="character-name-input"]')).toHaveValue("主角小明");
 
     await switchTab(page, "外貌设定");
-    const appearanceInput = page.locator('input[placeholder*="银白色"]').first();
+    const appearanceInput = page.locator('[data-testid="character-hair-color-input"]').first();
     if (await appearanceInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       await appearanceInput.fill("黑色短发");
     }
@@ -51,12 +51,12 @@ test.describe("Full Creation Workflow", () => {
     await expect(page.locator('[data-testid="scene-name-input"]')).toBeVisible();
 
     await page.locator('[data-testid="scene-name-input"]').fill("城市街道");
-    await page.locator('input[placeholder*="赛博朋克街区"]').fill("繁华的都市街道，霓虹灯闪烁");
+    await page.locator('[data-testid="scene-type-input"]').fill("繁华的都市街道，霓虹灯闪烁");
 
     await expect(page.locator('[data-testid="scene-name-input"]')).toHaveValue("城市街道");
 
     await switchTab(page, "氛围视觉");
-    const atmosphereInput = page.locator('input[placeholder*="黄昏"]').first();
+    const atmosphereInput = page.locator('[data-testid="scene-time-of-day-input"]').first();
     if (await atmosphereInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       await atmosphereInput.fill("夜晚霓虹灯");
     }

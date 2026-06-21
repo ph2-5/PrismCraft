@@ -11,6 +11,8 @@ import { Video, Download, AlertTriangle } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { t } from "@/shared/constants";
 
+const VIDEO_MAX_HEIGHT_STYLE = { maxHeight: "60vh" } as const;
+
 interface VideoPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -66,7 +68,7 @@ export function VideoPreviewDialog({
                 src={cachedVideoUrl || task.videoUrl}
                 controls
                 className="w-full"
-                style={{ maxHeight: "60vh" }}
+                style={VIDEO_MAX_HEIGHT_STYLE}
                 onError={(e) => {
                   const target = e.currentTarget;
                   if (target.dataset.retried) return;

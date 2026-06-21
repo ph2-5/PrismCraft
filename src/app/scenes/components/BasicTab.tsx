@@ -34,6 +34,7 @@ export function BasicTab({ currentScene, setCurrentScene }: BasicTabProps) {
         <Label htmlFor="type">{t("scene.typeLabel")}</Label>
         <Input
           id="type"
+          data-testid="scene-type-input"
           list="type-suggestions"
           placeholder={t("scene.typePlaceholder")}
           value={currentScene.type}

@@ -9,6 +9,7 @@ import type { CustomApiConfig } from "@/domain/types";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { sceneService } from "../services";
+import { validateImageSize } from "@/shared/hooks/use-entity-image";
 
 interface UseSceneImageProps {
   currentScene: Scene;
@@ -32,7 +33,7 @@ export function useSceneImage({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const isAnalyzingRef = useRef(false);
   const isGeneratingRef = useRef(false);
-  const analyzeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const analyzeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isOptimizingPrompt, setIsOptimizingPrompt] = useState(false);
   const [imageSize, setImageSize] = useState("1920x1920");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,15 +112,6 @@ export function useSceneImage({
       } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); }
     } catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: t("error.uploadFailed"), cause: err }); showError(t("error.uploadFailed"), mapUserFacingError(err)); }
     finally { setIsUploading(false); }
-  };
-
-  const validateImageSize = async (imageUrl: string): Promise<{ width: number; height: number }> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve({ width: img.width, height: img.height });
-      img.onerror = () => reject(new Error(t("error.imageLoadValidationFailed")));
-      img.src = imageUrl;
-    });
   };
 
   const analyzeImage = async (imageUrl: string) => {

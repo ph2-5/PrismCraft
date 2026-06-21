@@ -35,6 +35,7 @@ import { ApiError, NetworkError } from "@/domain/types";
 describe("R108: API client Result 模式不 throw", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("fetch", mockFetch);
   });
 
   it("网络错误应返回 err() 而非 throw", async () => {

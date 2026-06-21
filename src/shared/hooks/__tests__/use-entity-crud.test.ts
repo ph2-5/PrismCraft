@@ -53,7 +53,6 @@ function buildConfig(overrides: Record<string, unknown> = {}) {
     queryKey: ["characters"],
     entityLabel: "角色",
     entityIdPrefix: "char",
-    nameValidationMessage: "名称不能为空",
     assetLabel: "角色图片",
     checkReferences: vi.fn<(id: string, name: string, stories: Story[]) => DeleteCheckResult>(() => ({ canDelete: true, references: [] })),
     defaultEntity,
@@ -95,7 +94,7 @@ describe("useEntityCRUD", () => {
   });
 
   describe("handleSave", () => {
-    it("名称为空时应显示验证错误", async () => {
+    it("名称为空时应自动生成名称并保存", async () => {
       const config = buildConfig({ entity: { id: "", name: "", prompt: "" } });
       const { result } = renderCRUDHook(config);
 
@@ -103,11 +102,13 @@ describe("useEntityCRUD", () => {
         await result.current.handleSave();
       });
 
-      expect(config.showError).toHaveBeenCalledWith("保存失败", "名称不能为空");
-      expect(config.service.create).not.toHaveBeenCalled();
+      expect(config.service.create).toHaveBeenCalled();
+      const savedEntity = config.service.create.mock.calls[0]![0] as TestEntity;
+      expect(savedEntity.name).toMatch(/^未命名角色_\d+$/);
+      expect(result.current.saveStatus).toBe("saved");
     });
 
-    it("名称为纯空格时应显示验证错误", async () => {
+    it("名称为纯空格时应自动生成名称并保存", async () => {
       const config = buildConfig({ entity: { id: "", name: "   ", prompt: "" } });
       const { result } = renderCRUDHook(config);
 
@@ -115,7 +116,9 @@ describe("useEntityCRUD", () => {
         await result.current.handleSave();
       });
 
-      expect(config.showError).toHaveBeenCalledWith("保存失败", "名称不能为空");
+      expect(config.service.create).toHaveBeenCalled();
+      const savedEntity = config.service.create.mock.calls[0]![0] as TestEntity;
+      expect(savedEntity.name).toMatch(/^未命名角色_\d+$/);
     });
 
     it("新建实体时应调用 service.create", async () => {

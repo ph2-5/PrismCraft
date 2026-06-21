@@ -25,7 +25,10 @@ vi.mock("@/shared/utils/confirm", () => ({
 }));
 
 vi.mock("@/shared/constants/messages", () => ({
-  t: vi.fn((key: string) => key),
+  t: vi.fn((key: string, params?: Record<string, string>) => {
+    if (key === "crud.unnamed" && params?.label) return `未命名${params.label}`;
+    return key;
+  }),
 }));
 
 vi.mock("@/shared/utils/user-facing-error", () => ({
@@ -185,7 +188,7 @@ describe("useCharacterCRUD", () => {
   });
 
   describe("handleSave - 验证", () => {
-    it("名称为空时应显示验证错误且不调用 service", async () => {
+    it("名称为空时应自动生成名称并调用 service.create", async () => {
       const emptyChar = buildCharacter({ id: "", name: "" });
       const props = buildProps({ currentCharacter: emptyChar });
 
@@ -195,9 +198,10 @@ describe("useCharacterCRUD", () => {
         await result.current.handleSave();
       });
 
-      expect(props.showError).toHaveBeenCalled();
-      expect(mockServiceCreate).not.toHaveBeenCalled();
-      expect(mockServiceUpdate).not.toHaveBeenCalled();
+      expect(props.showError).not.toHaveBeenCalled();
+      expect(mockServiceCreate).toHaveBeenCalled();
+      const savedChar = mockServiceCreate.mock.calls[0]![0];
+      expect(savedChar.name).toMatch(/^未命名角色_\d+$/);
     });
   });
 

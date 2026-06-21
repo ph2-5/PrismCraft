@@ -256,7 +256,12 @@ export function ElementBindingPanel({
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const imageUrl = e.target?.result as string;
+      const result = e.target?.result;
+      if (typeof result !== "string") {
+        showError(t("error.fileReadFailed"));
+        return;
+      }
+      const imageUrl = result;
 
       handleUpdateBinding(elementId, "imageUrl", imageUrl);
 

@@ -1,6 +1,7 @@
 import type net from "net";
 
 interface RateLimitEntry {
+  enabled: boolean;
   windowMs: number;
   max: number;
   requests: Map<string, number[]>;
@@ -9,11 +10,14 @@ interface RateLimitEntry {
 }
 
 export const rateLimit: RateLimitEntry = {
+  // 本地优先项目：所有请求来自 localhost，禁用速率限制
+  enabled: false,
   windowMs: 60000,
-  max: 180,
+  max: 1000,
   requests: new Map(),
 
   check(ip: string): boolean {
+    if (!this.enabled) return true;
     const now = Date.now();
     const windowStart = now - this.windowMs;
 
@@ -36,6 +40,7 @@ export const rateLimit: RateLimitEntry = {
   },
 
   cleanup(): void {
+    if (!this.enabled) return;
     const now = Date.now();
     const windowStart = now - this.windowMs;
     for (const [ip, requests] of this.requests.entries()) {
@@ -61,6 +66,12 @@ export const rateLimit: RateLimitEntry = {
 const cleanupTimer = setInterval(() => rateLimit.cleanup(), 60000);
 if (cleanupTimer.unref) {
   cleanupTimer.unref();
+}
+
+export function stopRateLimitCleanup(): void {
+  if (cleanupTimer) {
+    clearInterval(cleanupTimer);
+  }
 }
 
 const allowedOrigins = new Set<string>();

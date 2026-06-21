@@ -39,26 +39,39 @@ const EXTRA_PATTERNS: Array<{ pattern: RegExp; messageKey: string }> = [
   { pattern: /FRAME_PAIR_REQUIRED/, messageKey: "error.videoRequiresFramePair" },
 ];
 
+function hasCode(e: unknown): e is { code: unknown } {
+  return typeof e === "object" && e !== null && "code" in e;
+}
+
+function hasMessage(e: unknown): e is { message: unknown } {
+  return typeof e === "object" && e !== null && "message" in e;
+}
+
 export function mapUserFacingError(error: unknown): string {
   if (error instanceof VersionConflictError) {
     return t("error.versionConflict");
   }
 
   if (typeof error === "object" && error !== null) {
-    const code = (error as Record<string, unknown>).code;
-    if (typeof code === "string") {
+    let code: string | undefined;
+    if (hasCode(error) && typeof error.code === "string") {
+      code = error.code;
+    }
+    if (code) {
       const i18nKey = getApiErrorI18nKey(code);
       if (i18nKey) {
         const params: Record<string, string | number> = {};
-        const message = (error as Record<string, unknown>).message;
-        if (typeof message === "string" && code === "api_not_configured") {
-          const typeMap: Record<string, string> = {
-            text: "文本",
-            video: "视频",
-            image: "图片",
-            vision: "视觉",
-          };
-          params.type = typeMap[message] || message;
+        if (hasMessage(error)) {
+          const message = error.message;
+          if (typeof message === "string" && code === "api_not_configured") {
+            const typeMap: Record<string, string> = {
+              text: "文本",
+              video: "视频",
+              image: "图片",
+              vision: "视觉",
+            };
+            params.type = typeMap[message] || message;
+          }
         }
         return t(i18nKey, params);
       }
@@ -69,7 +82,8 @@ export function mapUserFacingError(error: unknown): string {
 
   const ipcMatch = raw.match(IPC_RATE_LIMIT_PATTERN);
   if (ipcMatch) {
-    const key = IPC_CHANNEL_MESSAGE_KEYS[ipcMatch[1]!] ?? "error.rateLimit";
+    const channel = ipcMatch[1] ?? "";
+    const key = IPC_CHANNEL_MESSAGE_KEYS[channel] ?? "error.rateLimit";
     return t(key);
   }
 

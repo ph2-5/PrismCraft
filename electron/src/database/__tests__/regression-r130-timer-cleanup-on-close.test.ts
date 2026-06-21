@@ -124,7 +124,9 @@ function createMockDb() {
     type: "better-sqlite3",
     init: vi.fn().mockResolvedValue(undefined),
     transaction: vi.fn((fn: () => void) => fn),
+    pragma: vi.fn(),
     checkpoint: vi.fn(),
+    backup: vi.fn(() => ({ close: vi.fn() })),
   };
 }
 

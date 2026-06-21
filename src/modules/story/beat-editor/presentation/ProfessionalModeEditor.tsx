@@ -125,7 +125,7 @@ export function ProfessionalModeEditor({
     return () => {
       cancelled = true;
     };
-  }, [beats, characters, scenes]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

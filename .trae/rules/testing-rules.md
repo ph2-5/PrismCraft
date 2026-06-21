@@ -92,7 +92,7 @@ Current data-testid locations:
 ## better-sqlite3 in Tests
 
 - Must be rebuilt for Node.js before testing: `npm rebuild better-sqlite3`
-- Before Electron packaging, auto-rebuilt by `@electron/rebuild`
+- Before Electron packaging, auto-rebuilt by `electron-rebuild`
 
 ## Regression Test Template
 

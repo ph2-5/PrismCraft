@@ -41,6 +41,7 @@ export function AtmosphereTab({
           <Label htmlFor="timeOfDay">{t("scene.timeOfDay")}</Label>
           <Input
             id="timeOfDay"
+            data-testid="scene-time-of-day-input"
             list="time-suggestions"
             placeholder={t("scene.timeOfDayPlaceholder")}
             value={currentScene.timeOfDay}
@@ -61,6 +62,7 @@ export function AtmosphereTab({
           <Label htmlFor="weather">{t("scene.weather")}</Label>
           <Input
             id="weather"
+            data-testid="scene-weather-input"
             list="weather-suggestions"
             placeholder={t("scene.weatherPlaceholder")}
             value={currentScene.weather}
@@ -83,6 +85,7 @@ export function AtmosphereTab({
         <Label htmlFor="mood">{t("scene.mood")}</Label>
         <Input
           id="mood"
+          data-testid="scene-mood-input"
           list="mood-suggestions"
           placeholder={t("scene.moodPlaceholder")}
           value={currentScene.mood}

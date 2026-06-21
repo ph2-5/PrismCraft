@@ -52,10 +52,12 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
   }, []);
 
   const propsVideoUrl = beat.videoGen?.videoUrl || task?.videoUrl;
-  if (prevPropsVideoUrlRef.current !== propsVideoUrl) {
-    prevPropsVideoUrlRef.current = propsVideoUrl;
-    setVideoUrl(propsVideoUrl);
-  }
+  useEffect(() => {
+    if (prevPropsVideoUrlRef.current !== propsVideoUrl) {
+      prevPropsVideoUrlRef.current = propsVideoUrl;
+      setVideoUrl(propsVideoUrl);
+    }
+  }, [propsVideoUrl]);
 
   useEffect(() => {
     if (!beat.elementIds || beat.elementIds.length === 0) return;
@@ -104,7 +106,7 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       success(t("success.downloadStarted"), t("success.videoDownloadStarted"));
     } catch (err) {
       errorLogger.warn("[BeatDetailClient] 视频下载失败:", err instanceof Error ? err : undefined);

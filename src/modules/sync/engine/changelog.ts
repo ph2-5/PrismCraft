@@ -11,65 +11,11 @@ import { errorLogger } from "@/shared/error-logger";
 import { safeJsonParse } from "@/shared/utils/safe-json";
 import { isElectron } from "@/shared/utils/platform";
 import { sanitizeIdentifier } from "@/shared/sql-safety";
-import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
+import { getConfig as fileHttpGetConfig, setConfig as fileHttpSetConfig } from "@/shared/file-http";
 
 const DEVICE_ID_STORAGE_KEY = "sync_device_id";
 
-// HTTP 配置存储（统一通信层），失败回退到 IPC
-let _httpAvailable: boolean | null = null;
 let _cachedDeviceId: string | null = null;
-
-async function httpConfigGet(key: string): Promise<unknown | null> {
-  if (typeof window === "undefined" || typeof fetch !== "function") return null;
-  if (_httpAvailable === null) {
-    try {
-      const probe = await fetch(`http://localhost:${API_SERVER_PORT}/api/health`, {
-        method: "GET",
-        headers: ELECTRON_APP_HEADERS,
-        signal: AbortSignal.timeout(1000),
-      });
-      _httpAvailable = probe.ok;
-    } catch {
-      _httpAvailable = false;
-    }
-  }
-  if (!_httpAvailable) return null;
-  try {
-    const response = await fetch(`http://localhost:${API_SERVER_PORT}/api/config/get`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...ELECTRON_APP_HEADERS },
-      body: JSON.stringify({ key }),
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!response.ok) return null;
-    const result = await response.json() as { success: boolean; data?: { value: unknown } };
-    if (!result.success) return null;
-    return result.data?.value ?? null;
-  } catch (e) {
-    _httpAvailable = false;
-    errorLogger.debug("[SyncChangelog] HTTP config/get 失败，回退到 IPC", e);
-    return null;
-  }
-}
-
-async function httpConfigSet(key: string, value: unknown): Promise<boolean> {
-  if (!_httpAvailable) return false;
-  try {
-    const response = await fetch(`http://localhost:${API_SERVER_PORT}/api/config/set`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...ELECTRON_APP_HEADERS },
-      body: JSON.stringify({ key, value }),
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!response.ok) return false;
-    const result = await response.json() as { success: boolean };
-    return result.success;
-  } catch (e) {
-    _httpAvailable = false;
-    errorLogger.debug("[SyncChangelog] HTTP config/set 失败，回退到 IPC", e);
-    return false;
-  }
-}
 
 async function getDeviceId(): Promise<string> {
   // 内存缓存优先
@@ -81,22 +27,12 @@ async function getDeviceId(): Promise<string> {
       deviceId = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
     } catch (e) { errorLogger.warn("[SyncChangelog] localStorage.getItem failed", e); }
 
-    // 优先尝试 HTTP API（统一通信层）
+    // 通过 @/shared/file-http 统一层读取（HTTP 优先，IPC 回退）
     if (!deviceId) {
-      const httpValue = await httpConfigGet("sync_device_id");
-      if (typeof httpValue === "string" && httpValue) {
-        deviceId = httpValue;
+      const value = await fileHttpGetConfig("sync_device_id");
+      if (typeof value === "string" && value) {
+        deviceId = value;
       }
-    }
-
-    // Fallback: IPC
-    if (!deviceId && window.electronAPI?.getConfig) {
-      try {
-        const ipcValue = window.electronAPI.getConfig("sync_device_id");
-        if (typeof ipcValue === "string" && ipcValue) {
-          deviceId = ipcValue;
-        }
-      } catch (e) { errorLogger.warn("[SyncChangelog] electronAPI.getConfig failed", e); }
     }
 
     if (!deviceId) {
@@ -106,13 +42,8 @@ async function getDeviceId(): Promise<string> {
       localStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
     } catch (e) { errorLogger.warn("[SyncChangelog] localStorage.setItem failed", e); }
 
-    // 持久化到后端（HTTP 优先，IPC 回退）
-    const httpOk = await httpConfigSet("sync_device_id", deviceId);
-    if (!httpOk && window.electronAPI?.setConfig) {
-      try {
-        window.electronAPI.setConfig("sync_device_id", deviceId);
-      } catch (e) { errorLogger.warn("[SyncChangelog] electronAPI.setConfig failed", e); }
-    }
+    // 通过 @/shared/file-http 统一层持久化（HTTP 优先，IPC 回退）
+    await fileHttpSetConfig("sync_device_id", deviceId);
 
     _cachedDeviceId = deviceId;
     return deviceId;

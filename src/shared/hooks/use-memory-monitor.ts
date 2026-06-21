@@ -42,7 +42,7 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
     lastCleanup: 0
   });
 
-  const checkIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const checkIntervalRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastCleanupRef = useRef<number>(0);
   const pendingTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const optionsRef = useRef(options);
@@ -189,7 +189,9 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
       errorLogger.warn('[MemoryMonitor] blob清理异常', e);
     }
 
-    // 清理 sessionStorage 中的临时数据，保留重要数据
+    // 清理 sessionStorage 中的临时数据，保留重要数据。
+    // 注意：此操作会移除所有不在 keysToKeep 中的 sessionStorage 条目，
+    // 仅在内存紧张时触发（manualCleanup），正常流程不应依赖此行为。
     const keysToKeep = ['ai-animation-last-session'];
     Object.keys(sessionStorage).forEach(key => {
       if (!keysToKeep.includes(key)) {

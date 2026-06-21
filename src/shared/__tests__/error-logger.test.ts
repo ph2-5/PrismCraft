@@ -13,6 +13,8 @@ import { eventBus } from "@/shared/event-bus";
 describe("error-logger", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, "debug").mockImplementation(() => {});
+    vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
     setMinLogLevel("debug");
@@ -80,22 +82,22 @@ describe("error-logger", () => {
   describe("errorLogger.debug", () => {
     it("should log debug message with string", () => {
       errorLogger.debug("debug message");
-      expect(console.warn).toHaveBeenCalled();
+      expect(console.debug).toHaveBeenCalled();
     });
 
     it("should log debug message with AppError", () => {
       errorLogger.debug(new AppError("DEBUG_CODE", "debug message"));
-      expect(console.warn).toHaveBeenCalled();
+      expect(console.debug).toHaveBeenCalled();
     });
 
     it("should log debug message with code object", () => {
       errorLogger.debug({ code: "DEBUG_CODE", message: "debug message" });
-      expect(console.warn).toHaveBeenCalled();
+      expect(console.debug).toHaveBeenCalled();
     });
 
     it("should include context when provided", () => {
       errorLogger.debug("debug message", "TestContext");
-      expect(console.warn).toHaveBeenCalledWith(
+      expect(console.debug).toHaveBeenCalledWith(
         expect.stringContaining("TestContext"),
         expect.anything()
       );
@@ -104,25 +106,25 @@ describe("error-logger", () => {
     it("should not log when below min log level", () => {
       setMinLogLevel("info");
       errorLogger.debug("should not appear");
-      expect(console.warn).not.toHaveBeenCalled();
+      expect(console.debug).not.toHaveBeenCalled();
     });
   });
 
   describe("errorLogger.info", () => {
     it("should log info message", () => {
       errorLogger.info("info message");
-      expect(console.warn).toHaveBeenCalled();
+      expect(console.info).toHaveBeenCalled();
     });
 
     it("should not log when below min log level", () => {
       setMinLogLevel("warn");
       errorLogger.info("should not appear");
-      expect(console.warn).not.toHaveBeenCalled();
+      expect(console.info).not.toHaveBeenCalled();
     });
 
     it("should log with context", () => {
       errorLogger.info("info message", "InfoContext");
-      expect(console.warn).toHaveBeenCalledWith(
+      expect(console.info).toHaveBeenCalledWith(
         expect.stringContaining("InfoContext"),
         expect.anything()
       );
@@ -132,13 +134,13 @@ describe("error-logger", () => {
   describe("errorLogger.warn", () => {
     it("should log warn message", () => {
       errorLogger.warn("warn message");
-      expect(console.error).toHaveBeenCalled();
+      expect(console.warn).toHaveBeenCalled();
     });
 
     it("should not log when below min log level", () => {
       setMinLogLevel("error");
       errorLogger.warn("should not appear");
-      expect(console.error).not.toHaveBeenCalled();
+      expect(console.warn).not.toHaveBeenCalled();
     });
   });
 
@@ -225,11 +227,11 @@ describe("error-logger", () => {
     it("should change the minimum log level", () => {
       setMinLogLevel("error");
       errorLogger.warn("should not log");
-      expect(console.error).not.toHaveBeenCalled();
+      expect(console.warn).not.toHaveBeenCalled();
 
       setMinLogLevel("debug");
       errorLogger.debug("should log");
-      expect(console.warn).toHaveBeenCalled();
+      expect(console.debug).toHaveBeenCalled();
     });
 
     it("should respect all log levels", () => {

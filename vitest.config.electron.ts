@@ -8,7 +8,9 @@ export default defineConfig({
     include: ['electron/src/**/*.test.ts'],
     setupFiles: [],
     pool: 'forks',
-    maxWorkers: 2,
+    poolOptions: {
+      forks: { maxForks: 2 },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json'],

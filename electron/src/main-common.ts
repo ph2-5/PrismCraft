@@ -3,13 +3,14 @@ import http from "http";
 import type net from "net";
 import path from "path";
 import fs from "fs";
+import { promises as fsp } from "fs";
 import url from "url";
 import os from "os";
 import { getLogger } from "./logging/logger";
 import { setupAssetHandlers } from "./handlers/assets";
 import { setupDatabaseHandlers } from "./handlers/database";
 import { registerExportHandlers } from "./handlers/export";
-import { loadConfig, saveConfig } from "./handlers/config";
+import { loadConfig, loadConfigAsync, saveConfig } from "./handlers/config";
 import * as apiGateway from "./api-gateway";
 import { API_SERVER_PORT, DEV_SERVER_PORT } from "./config/ports";
 import { registerAllowedOrigin } from "./api-server";
@@ -172,14 +173,14 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
 
   ipcMain.handle("config:get", async (_event, key: string) => {
     if (key && !validateConfigKey(key)) return null;
-    const config = loadConfig();
+    const config = await loadConfigAsync();
     return getConfigValue(config, key);
   });
 
   ipcMain.handle("config:set", async (_event, key: string, value: unknown) => {
     if (!validateConfigKey(key)) return false;
     if (!validateConfigValue(value)) return false;
-    const config = loadConfig();
+    const config = await loadConfigAsync();
     applyConfigValue(config, key, value);
     saveConfig(config);
     return true;
@@ -209,6 +210,9 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
     return win ? win.isMaximized() : false;
   });
 
+  // 注意：ipcMain.on 是同步的，无法使用 loadConfigAsync()。
+  // 因此 config:get/config:set 的同步变体不解析 $secure: 引用。
+  // 需要实际 API Key 的调用方应使用异步的 ipcMain.handle 变体或 HTTP API。
   ipcMain.on("config:get", (event: Electron.IpcMainEvent, key: string) => {
     if (key && !validateConfigKey(key)) {
       event.returnValue = null;
@@ -284,7 +288,7 @@ function startStaticServer(appPort: number, apiPort: number): http.Server | null
     return null;
   }
 
-  const server = http.createServer((req, res) => {
+  const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url || "/");
     const pathname = decodeURIComponent(parsedUrl.pathname || "/");
 
@@ -308,7 +312,7 @@ function startStaticServer(appPort: number, apiPort: number): http.Server | null
           };
           const contentType = mimeTypes[ext] || "application/octet-stream";
           try {
-            const data = fs.readFileSync(filePath);
+            const data = await fsp.readFile(filePath);
             res.writeHead(200, {
               "Content-Type": contentType,
               "Cache-Control": "public, max-age=86400",
@@ -394,7 +398,7 @@ function startStaticServer(appPort: number, apiPort: number): http.Server | null
     try {
       const ext = path.extname(filePath).toLowerCase();
       const contentType = MIME_TYPES[ext] || "application/octet-stream";
-      const data = fs.readFileSync(filePath);
+      const data = await fsp.readFile(filePath);
       res.writeHead(200, {
         "Content-Type": `${contentType}; charset=utf-8`,
         "Cache-Control":
@@ -595,6 +599,7 @@ export {
   setupDatabaseHandlers,
   registerExportHandlers,
   loadConfig,
+  loadConfigAsync,
   saveConfig,
 };
 

@@ -12,6 +12,8 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { TaskCard } from "./video-task-manager-ui/task-card";
 import { TaskDetailDialog } from "./video-task-manager-ui/task-detail-dialog";
 
+const VIRTUAL_LIST_CONTAINER_STYLE = { maxHeight: "60vh", overflow: "auto" } as const;
+
 interface VideoTaskManagerProps {
   tasks: VideoTask[];
   pollTask: (taskId: string) => void;
@@ -116,7 +118,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
       )}
 
       {shouldVirtualize ? (
-        <div ref={parentRef} style={{ maxHeight: "60vh", overflow: "auto" }} className="space-y-3">
+        <div ref={parentRef} style={VIRTUAL_LIST_CONTAINER_STYLE} className="space-y-3">
           <div style={{ height: totalSize, position: "relative" }}>
             {virtualItems.map((virtualItem) => {
               const task = sortedTasks[virtualItem.index]!;

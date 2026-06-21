@@ -124,7 +124,11 @@ export function importTemplateFromFile(
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target?.result as string);
+        const result = e.target?.result;
+        if (typeof result !== "string") {
+          throw new Error(t("error.fileReadFailed"));
+        }
+        const data = JSON.parse(result);
         if (!data.name || !Array.isArray(data.beats)) {
           throw new Error(t("error.invalidTemplateFormat"));
         }
@@ -179,7 +183,11 @@ export async function importTemplatesFromFile(
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target?.result as string);
+        const result = e.target?.result;
+        if (typeof result !== "string") {
+          throw new Error(t("error.fileReadFailed"));
+        }
+        const data = JSON.parse(result);
         if (data.format === "astpl-batch" && Array.isArray(data.templates)) {
           resolve(data.templates);
         } else if (data.name && Array.isArray(data.beats)) {

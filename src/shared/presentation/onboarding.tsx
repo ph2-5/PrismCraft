@@ -67,7 +67,7 @@ export function OnboardingGuide() {
   const [completed, setCompleted] = usePreference<boolean>(ONBOARDING_KEY, false);
   const [currentStep, setCurrentStep] = useState(0);
   const { guardedPush } = useNavigationGuard();
-  const navTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {

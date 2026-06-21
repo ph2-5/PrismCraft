@@ -527,6 +527,16 @@ CREATE INDEX IF NOT EXISTS idx_asset_tags_tag ON asset_tags(tag);
 CREATE INDEX IF NOT EXISTS idx_asset_tags_lookup ON asset_tags(asset_type, tag);
 CREATE INDEX IF NOT EXISTS idx_changelog_synced ON sync_changelog(synced, timestamp);
 CREATE INDEX IF NOT EXISTS idx_changelog_entity ON sync_changelog(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_story_beats_beat_id ON story_beats(beat_id);
+CREATE INDEX IF NOT EXISTS idx_story_beats_scene ON story_beats(scene_id);
+CREATE INDEX IF NOT EXISTS idx_video_tasks_beat_id ON video_tasks(beat_id);
+CREATE INDEX IF NOT EXISTS idx_storyboard_assets_scene ON storyboard_assets(scene_id);
+CREATE INDEX IF NOT EXISTS idx_storyboard_assets_project ON storyboard_assets(project_id);
+CREATE INDEX IF NOT EXISTS idx_media_assets_bound ON media_assets(bound_to_type, bound_to_id);
+CREATE INDEX IF NOT EXISTS idx_ast_templates_parent ON ast_templates(parent_template_id);
+CREATE INDEX IF NOT EXISTS idx_sync_changelog_device ON sync_changelog(device_id);
+CREATE INDEX IF NOT EXISTS idx_sync_conflict_backup_entity ON sync_conflict_backup(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_story_versions_auto ON story_versions(story_id, auto_saved);
 `;
 
 export function getSchemaSQL(): string {
@@ -538,6 +548,7 @@ PRAGMA synchronous = NORMAL;
 PRAGMA cache_size = -64000;
 PRAGMA temp_store = memory;
 PRAGMA mmap_size = 268435456;
+PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS schema_version (
   version INTEGER PRIMARY KEY,

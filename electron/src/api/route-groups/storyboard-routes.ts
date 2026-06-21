@@ -1,6 +1,7 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
-import * as apiGateway from "../../api-gateway";
+import { createApiGatewayAdapter } from "../../api-gateway";
+import type { ApiGateway, Beat } from "@shared-logic/story/storyboard-generation";
 import * as promptService from "@shared-logic/prompt/prompt-service";
 import * as storyboardGeneration from "@shared-logic/story/storyboard-generation";
 import * as videoRecovery from "@shared-logic/video/video-recovery";
@@ -20,6 +21,9 @@ import {
 } from "../schemas";
 
 const logger = getLogger("api-routes");
+
+// 创建一次适配器实例，供所有路由复用
+const apiGatewayAdapter: ApiGateway = createApiGatewayAdapter();
 
 export const storyboardRoutes: Record<string, Route> = {
   "video/tracking-info": defineRoute({
@@ -47,10 +51,10 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateKeyframeSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatKeyframe(
-        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
+        apiGatewayAdapter,
         promptService,
-        b.beat as import("@shared-logic/story/storyboard-generation").Beat,
-        b.prevBeat as import("@shared-logic/story/storyboard-generation").Beat | undefined,
+        b.beat as Beat,
+        b.prevBeat as Beat | undefined,
         b.options,
       );
       return { success: true, data: result };
@@ -61,9 +65,9 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateFramePairSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatFramePair(
-        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
+        apiGatewayAdapter,
         promptService,
-        b.beat as import("@shared-logic/story/storyboard-generation").Beat,
+        b.beat as Beat,
         b.options,
       );
       return { success: true, data: result };
@@ -74,8 +78,8 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateVideoSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatVideo(
-        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
-        b.beat as import("@shared-logic/story/storyboard-generation").Beat,
+        apiGatewayAdapter,
+        b.beat as Beat,
         b.options,
       );
       return { success: true, data: result };
@@ -86,10 +90,10 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateFullWorkflowSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatFullWorkflow(
-        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
+        apiGatewayAdapter,
         promptService,
-        b.beat as import("@shared-logic/story/storyboard-generation").Beat,
-        b.prevBeat as import("@shared-logic/story/storyboard-generation").Beat | undefined,
+        b.beat as Beat,
+        b.prevBeat as Beat | undefined,
         b.options,
       );
       return { success: true, data: result };
@@ -100,9 +104,9 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: storyboardGenerateKeyframeChainSchema,
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateKeyframeChain(
-        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
+        apiGatewayAdapter,
         promptService,
-        b.beats as import("@shared-logic/story/storyboard-generation").Beat[],
+        b.beats as Beat[],
         b.options as Parameters<typeof storyboardGeneration.generateKeyframeChain>[3],
       );
       return { success: true, data: result };
@@ -113,7 +117,7 @@ export const storyboardRoutes: Record<string, Route> = {
     schema: videoRecoverSchema,
     handler: async (_m, b) => {
       const result = await videoRecovery.recoverVideoByTaskId(
-        apiGateway as unknown as import("@shared-logic/story/storyboard-generation").ApiGateway,
+        apiGatewayAdapter,
         b.taskId,
         b.taskRecord,
       );
@@ -126,8 +130,9 @@ export const storyboardRoutes: Record<string, Route> = {
     handler: async (_m, b) => {
       const tasks = b.tasks;
       if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
-        return { success: true, saved: 0 };
+        return { success: true, saved: 0, failures: [] };
       }
+      const failures: Array<{ taskId: string; error: string }> = [];
       try {
         const db = getDb();
         const insertStmt = db.prepare(
@@ -138,6 +143,7 @@ export const storyboardRoutes: Record<string, Route> = {
         const updateStmt = db.prepare(
           `UPDATE video_tasks SET status = ?, progress = ?, video_url = COALESCE(?, video_url), message = ?, updated_at = ? WHERE id = ?`,
         );
+        const checkStmt = db.prepare("SELECT id FROM video_tasks WHERE id = ?");
         let saved = 0;
         const nowSec = Math.floor(Date.now() / 1000);
         db.transaction(() => {
@@ -159,22 +165,24 @@ export const storyboardRoutes: Record<string, Route> = {
                 ? task.createdAt
                 : nowSec;
 
-              const existing = db.prepare("SELECT id FROM video_tasks WHERE id = ?").get(taskId) as { id: string } | undefined;
+              const existing = checkStmt.get(taskId) as { id: string } | undefined;
               if (existing) {
                 updateStmt.run(status, progress, videoUrl, message, nowSec, taskId);
               } else {
                 insertStmt.run(taskId, status, progress, videoUrl, storyId, beatId, message, config, provider, mediaRefs, tracking, createdAt, nowSec);
               }
               saved++;
-            } catch {
-              logger.warn("[API] Failed to save individual video task in bulk-save");
+            } catch (error) {
+              const taskId = (task.taskId as string) || (task.id as string) || "unknown";
+              failures.push({ taskId, error: error instanceof Error ? error.message : String(error) });
+              logger.warn("[API] Failed to save individual video task in bulk-save", { taskId });
             }
           }
         });
-        return { success: true, saved };
+        return { success: true, saved, failures };
       } catch (error) {
         logger.error("[API] video-tasks/bulk-save failed:", error instanceof Error ? error : undefined);
-        return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+        return { success: false, error: error instanceof Error ? error.message : "Unknown error", failures };
       }
     },
     methods: ["POST"],

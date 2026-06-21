@@ -29,7 +29,14 @@ export async function uploadFile(file: File): Promise<UploadFileResult> {
 
     const reader = new FileReader();
     const base64 = await new Promise<string>((resolve, reject) => {
-      reader.onloadend = () => resolve(reader.result as string);
+      reader.onloadend = () => {
+        const result = reader.result;
+        if (typeof result === "string") {
+          resolve(result);
+        } else {
+          reject(new Error("Failed to read file"));
+        }
+      };
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });

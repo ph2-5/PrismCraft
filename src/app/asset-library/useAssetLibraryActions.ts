@@ -47,6 +47,7 @@ interface UseAssetLibraryActionsParams {
   setIsEditDialogOpen: (v: boolean) => void;
   setEditingItem: (item: EditingItem | null) => void;
   setIsSavingEdit: (v: boolean) => void;
+  setIsCreatingCollection: (v: boolean) => void;
   setNewCollectionName: (v: string) => void;
   setAddToCollectionId: (v: string) => void;
   addToCollectionId: string;
@@ -70,6 +71,7 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
     setIsEditDialogOpen,
     setEditingItem,
     setIsSavingEdit,
+    setIsCreatingCollection,
     setNewCollectionName,
     addToCollectionId,
     newCollectionName,
@@ -235,14 +237,17 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
       return;
     }
     setIsNewCollectionDialogOpen(false);
+    setIsCreatingCollection(true);
     try {
       await collectionService.create(newCollectionName.trim());
       setNewCollectionName("");
       success(t("success.created"), t("success.collectionCreated"));
     } catch (e) {
       showError(t("asset.createFailed"), mapUserFacingError(e));
+    } finally {
+      setIsCreatingCollection(false);
     }
-  }, [newCollectionName, setIsNewCollectionDialogOpen, setNewCollectionName, success, showError]);
+  }, [newCollectionName, setIsNewCollectionDialogOpen, setIsCreatingCollection, setNewCollectionName, success, showError]);
 
   const handleDeleteCollection = useCallback(async (id: string) => {
     if (!(await confirm(t("confirm.deleteCollection"), t("confirm.deleteCollectionTitle")))) return;

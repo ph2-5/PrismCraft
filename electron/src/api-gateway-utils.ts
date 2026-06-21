@@ -1,9 +1,10 @@
 import fs from "fs";
+import { promises as fsp } from "fs";
 import path from "path";
 import os from "os";
 import https from "https";
 import http from "http";
-import { loadConfig } from "./handlers/config";
+import { loadConfigAsync } from "./handlers/config";
 import { getLogger } from "./logging/logger";
 import { pluginRegistry } from "./plugins";
 import type { AIProviderPlugin, AsyncAIProviderPlugin } from "./plugins";
@@ -108,10 +109,10 @@ export interface HttpRequestOptions {
   timeout?: number;
 }
 
-export function resolveApiConfig(
+export async function resolveApiConfig(
   body: ApiConfig,
   capability?: string,
-): ResolvedConfig {
+): Promise<ResolvedConfig> {
   const {
     providerId,
     modelId,
@@ -135,7 +136,7 @@ export function resolveApiConfig(
   }
 
   if (providerId && modelId) {
-    const config = loadConfig();
+    const config = await loadConfigAsync();
     const provider = config.providers.find((p) => p.id === providerId);
     if (provider) {
       if (!effectiveApiUrl) effectiveApiUrl = provider.baseUrl;
@@ -150,7 +151,7 @@ export function resolveApiConfig(
   }
 
   if (!effectiveApiKey && capability) {
-    const config = loadConfig();
+    const config = await loadConfigAsync();
     const mappingValue = config.mapping?.[capability];
     if (mappingValue) {
       const firstSlashIndex = mappingValue.indexOf("/");
@@ -262,20 +263,24 @@ async function isPrivateUrl(urlStr: string): Promise<boolean> {
     }
     return false;
   } catch {
-    logger.warn("Failed to parse URL for private IP check", { urlStr });
-    return false;
+    logger.warn("Failed to validate URL in SSRF guard, blocking by default (fail-close)", { urlStr });
+    return true;
   }
 }
 
-function ensureUploadDir(): void {
-  if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+async function ensureUploadDir(): Promise<void> {
+  try {
+    await fsp.access(UPLOAD_DIR);
+  } catch {
+    await fsp.mkdir(UPLOAD_DIR, { recursive: true });
   }
 }
 
-function ensureImageCacheDir(): void {
-  if (!fs.existsSync(IMAGE_CACHE_DIR)) {
-    fs.mkdirSync(IMAGE_CACHE_DIR, { recursive: true });
+async function ensureImageCacheDir(): Promise<void> {
+  try {
+    await fsp.access(IMAGE_CACHE_DIR);
+  } catch {
+    await fsp.mkdir(IMAGE_CACHE_DIR, { recursive: true });
   }
 }
 
@@ -285,7 +290,7 @@ export async function cacheRemoteImageLocally(remoteUrl: string): Promise<string
   }
 
   try {
-    ensureImageCacheDir();
+    await ensureImageCacheDir();
 
     const urlHash = remoteUrl.replace(/[?#].*$/, "").split("").reduce(
       (acc, ch) => ((acc << 5) - acc + ch.charCodeAt(0)) | 0,
@@ -297,39 +302,58 @@ export async function cacheRemoteImageLocally(remoteUrl: string): Promise<string
     const filename = `${Math.abs(urlHash).toString(36)}_${Date.now()}.${safeExt}`;
     const filePath = path.join(IMAGE_CACHE_DIR, filename);
 
-    const data = await new Promise<Buffer>((resolve, reject) => {
-      const client = remoteUrl.startsWith("https") ? https : http;
-      client.get(remoteUrl, { timeout: 30000 }, (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          const redirectUrl = res.headers.location;
-          // 重定向 SSRF 防护：校验重定向目标协议和是否为私有地址
-          if (!redirectUrl.startsWith("http://") && !redirectUrl.startsWith("https://")) {
-            reject(new Error("Redirect to non-http protocol blocked"));
-            return;
-          }
-          isPrivateUrl(redirectUrl).then((isPrivate) => {
-            if (isPrivate) {
-              reject(new Error("Redirect to private/internal URL blocked by SSRF guard"));
+    // 重定向循环：限制最大跳数，每跳都做 SSRF 校验和协议校验
+    const MAX_REDIRECTS = 3;
+    let redirectCount = 0;
+    let currentUrl = remoteUrl;
+    let data: Buffer | null = null;
+
+    while (redirectCount <= MAX_REDIRECTS) {
+      // SSRF 防护：校验当前 URL 不指向内网/元数据端点
+      if (await isPrivateUrl(currentUrl)) {
+        throw new Error(`URL blocked by SSRF guard: ${currentUrl}`);
+      }
+
+      const result = await new Promise<{ type: "redirect"; url: string } | { type: "data"; data: Buffer }>((resolve, reject) => {
+        const client = currentUrl.startsWith("https") ? https : http;
+        client.get(currentUrl, { timeout: 30000 }, (res) => {
+          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            const redirectUrl = res.headers.location;
+            // 校验重定向协议
+            if (!redirectUrl.startsWith("http://") && !redirectUrl.startsWith("https://")) {
+              reject(new Error("Redirect to non-http protocol blocked"));
               return;
             }
-            const redirectClient = redirectUrl.startsWith("https") ? https : http;
-            redirectClient.get(redirectUrl, { timeout: 30000 }, (redirectRes) => {
-              const chunks: Buffer[] = [];
-              redirectRes.on("data", (chunk: Buffer) => chunks.push(chunk));
-              redirectRes.on("end", () => resolve(Buffer.concat(chunks)));
-              redirectRes.on("error", reject);
-            }).on("error", reject);
-          }).catch(reject);
-          return;
-        }
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk: Buffer) => chunks.push(chunk));
-        res.on("end", () => resolve(Buffer.concat(chunks)));
-        res.on("error", reject);
-      }).on("error", reject);
-    });
+            // 消费响应体以释放 socket
+            res.resume();
+            resolve({ type: "redirect", url: redirectUrl });
+            return;
+          }
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk: Buffer) => chunks.push(chunk));
+          res.on("end", () => resolve({ type: "data", data: Buffer.concat(chunks) }));
+          res.on("error", reject);
+        }).on("error", reject);
+      });
 
-    fs.writeFileSync(filePath, data);
+      if (result.type === "redirect") {
+        redirectCount++;
+        if (redirectCount > MAX_REDIRECTS) {
+          throw new Error(`Too many redirects (max ${MAX_REDIRECTS})`);
+        }
+        currentUrl = result.url;
+        continue;
+      }
+
+      data = result.data;
+      break;
+    }
+
+    if (!data) {
+      throw new Error("Failed to fetch image data");
+    }
+
+    await fsp.writeFile(filePath, data);
     logger.info(`Cached remote image locally: ${remoteUrl.substring(0, 80)} -> ${filePath}`);
     return filePath;
   } catch (e) {
@@ -422,7 +446,7 @@ export async function handleUpload(body: Record<string, unknown>): Promise<ApiRe
   }
 
   try {
-    ensureUploadDir();
+    await ensureUploadDir();
 
     const ALLOWED_EXTENSIONS = [
       ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".mp4", ".webm", ".mov",
@@ -440,7 +464,7 @@ export async function handleUpload(body: Record<string, unknown>): Promise<ApiRe
     const filePath = path.join(UPLOAD_DIR, uniqueName);
 
     const buffer = Buffer.from(base64Data, "base64");
-    fs.writeFileSync(filePath, buffer);
+    await fsp.writeFile(filePath, buffer);
 
     return {
       success: true,

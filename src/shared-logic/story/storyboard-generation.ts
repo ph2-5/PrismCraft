@@ -40,7 +40,7 @@ interface StructuredError {
   message: string;
 }
 
-type ApiError = string | StructuredError;
+export type ApiError = string | StructuredError;
 
 function formatApiError(error: ApiError | undefined, fallback: string): string {
   if (!error) return fallback;
@@ -85,6 +85,21 @@ export interface ApiGateway {
   }>;
 }
 
+interface GenerationOptions {
+  characterRef?: string;
+  sceneRef?: string;
+  providerId?: string;
+  modelId?: string;
+  prompt?: string;
+  /**
+   * Optional clock function for generating timestamps. Injecting this keeps
+   * the function pure and testable (avoids hidden Date.now() side effect).
+   * Defaults to Date.now() when not provided.
+   */
+  now?: () => number;
+  [key: string]: unknown;
+}
+
 type ProgressCallback = (stage: string, progress: number) => void;
 type ChainProgressCallback = (
   index: number,
@@ -97,7 +112,7 @@ export async function generateBeatKeyframe(
   _promptService: unknown,
   beat: Beat,
   prevBeat?: Beat,
-  options?: Record<string, unknown>,
+  options?: GenerationOptions,
 ): Promise<KeyframeResult> {
   const prevKeyframe = prevBeat?.keyframe?.imageUrl;
 
@@ -114,13 +129,13 @@ export async function generateBeatKeyframe(
   };
 
   const result = await apiGateway.generateKeyframe({
-    characterRef: (options as Record<string, unknown>)?.characterRef,
-    sceneRef: (options as Record<string, unknown>)?.sceneRef,
+    characterRef: options?.characterRef,
+    sceneRef: options?.sceneRef,
     prevKeyframe,
     shotRequirement,
     content,
-    providerId: (options as Record<string, unknown>)?.providerId,
-    modelId: (options as Record<string, unknown>)?.modelId,
+    providerId: options?.providerId,
+    modelId: options?.modelId,
   });
 
   if (!result.success || !result.data) {
@@ -139,7 +154,7 @@ export async function generateBeatFramePair(
   apiGateway: ApiGateway,
   _promptService: unknown,
   beat: Beat,
-  options?: Record<string, unknown>,
+  options?: GenerationOptions,
 ): Promise<FramePairResult> {
   if (!beat.keyframe?.imageUrl) {
     throw new Error("PREVIEW_REQUIRED_BEFORE_KEYFRAME");
@@ -151,10 +166,8 @@ export async function generateBeatFramePair(
 
   if (firstFramePrompt && lastFramePrompt) {
     const imageOpts: Record<string, unknown> = { category: "scene" };
-    if ((options as Record<string, unknown>)?.providerId)
-      imageOpts.providerId = (options as Record<string, unknown>)?.providerId;
-    if ((options as Record<string, unknown>)?.modelId)
-      imageOpts.modelId = (options as Record<string, unknown>)?.modelId;
+    if (options?.providerId) imageOpts.providerId = options.providerId;
+    if (options?.modelId) imageOpts.modelId = options.modelId;
 
     const results = await Promise.allSettled([
       apiGateway.generateImage({ prompt: firstFramePrompt, ...imageOpts }),
@@ -188,19 +201,19 @@ export async function generateBeatFramePair(
         prompt: lastFramePrompt,
         derivedFrom: beat.keyframe.imageUrl,
       },
-      generatedAt: Date.now(),
+      generatedAt: options?.now?.() ?? Date.now(),
     };
   }
 
   const result = await apiGateway.generateFramePair({
     keyframeUrl: beat.keyframe.imageUrl,
     keyframePrompt: beat.keyframe.prompt,
-    characterRef: (options as Record<string, unknown>)?.characterRef,
-    sceneRef: (options as Record<string, unknown>)?.sceneRef,
+    characterRef: options?.characterRef,
+    sceneRef: options?.sceneRef,
     actionDescription: beat.content || beat.description,
     duration: beat.duration,
-    providerId: (options as Record<string, unknown>)?.providerId,
-    modelId: (options as Record<string, unknown>)?.modelId,
+    providerId: options?.providerId,
+    modelId: options?.modelId,
   });
 
   if (!result.success || !result.data) {
@@ -225,7 +238,7 @@ export async function generateBeatFramePair(
 export async function generateBeatVideo(
   apiGateway: ApiGateway,
   beat: Beat,
-  options?: Record<string, unknown>,
+  options?: GenerationOptions,
 ): Promise<VideoResult> {
   if (!beat.framePair?.firstFrame?.imageUrl) {
     throw new Error("FRAME_PAIR_REQUIRED_BEFORE_VIDEO");
@@ -233,17 +246,17 @@ export async function generateBeatVideo(
 
   const result = await apiGateway.generateVideo({
     prompt:
-      (options as Record<string, unknown>)?.prompt ||
+      options?.prompt ||
       beat.content ||
       beat.description ||
       "动画视频",
     firstFrameUrl: beat.framePair.firstFrame.imageUrl,
     lastFrameUrl: beat.framePair.lastFrame?.imageUrl,
-    characterRef: (options as Record<string, unknown>)?.characterRef,
-    sceneRef: (options as Record<string, unknown>)?.sceneRef,
+    characterRef: options?.characterRef,
+    sceneRef: options?.sceneRef,
     duration: beat.duration,
-    providerId: (options as Record<string, unknown>)?.providerId,
-    modelId: (options as Record<string, unknown>)?.modelId,
+    providerId: options?.providerId,
+    modelId: options?.modelId,
   });
 
   if (!result.success || !result.data) {
@@ -262,7 +275,7 @@ export async function generateBeatFullWorkflow(
   promptService: unknown,
   beat: Beat,
   prevBeat: Beat | undefined,
-  options: Record<string, unknown>,
+  options: GenerationOptions,
   onProgress?: ProgressCallback,
 ): Promise<{
   keyframe: KeyframeResult;
@@ -307,10 +320,17 @@ export async function generateKeyframeChain(
     getSceneRef?: (beat: Beat) => string | undefined;
     providerId?: string;
     modelId?: string;
+    /**
+     * Optional callback invoked when some keyframes fail in chain generation.
+     * Replaces a direct `console.warn` call so the shared-logic layer stays
+     * free of logger dependencies. Callers decide how to record failures.
+     */
+    onFailure?: (failures: Array<{ beatId: string; error: string }>) => void;
   },
   onProgress?: ChainProgressCallback,
 ): Promise<Record<string, KeyframeResult>> {
   const results: Record<string, KeyframeResult> = {};
+  const failures: Array<{ beatId: string; error: string }> = [];
   let prevBeat: Beat | undefined;
 
   for (let i = 0; i < beats.length; i++) {
@@ -332,9 +352,13 @@ export async function generateKeyframeChain(
       );
       results[beat.id] = keyframe;
       prevBeat = { ...beat, keyframe };
-    } catch {
-      /* no-op — errors are silently skipped in chain generation */
+    } catch (error) {
+      failures.push({ beatId: beat.id, error: error instanceof Error ? error.message : String(error) });
     }
+  }
+
+  if (failures.length > 0) {
+    options.onFailure?.(failures);
   }
 
   return results;

@@ -26,7 +26,7 @@ export async function dismissOverlays(page: Page) {
 }
 
 export async function waitForAppReady(page: Page) {
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("domcontentloaded");
   await page.locator("main").first().waitFor({ state: "visible", timeout: 15000 });
 }
 

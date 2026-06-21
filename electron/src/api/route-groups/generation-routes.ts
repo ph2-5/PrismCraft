@@ -77,6 +77,8 @@ export const generationRoutes: Record<string, Route> = {
     schema: storyGenerateVideoSchema,
     handler: async (_m, b) => {
       const params = videoTaskService.buildVideoGenerationParams(b);
+      // VideoGenerationParams is an interface (no implicit index signature), so it is not
+      // directly assignable to Record<string, unknown> expected by generateVideo.
       return apiGateway.generateVideo(params as unknown as Record<string, unknown>);
     },
     methods: ["POST"],
@@ -84,6 +86,8 @@ export const generationRoutes: Record<string, Route> = {
   "story/generate-keyframe": defineRoute({
     schema: storyGenerateKeyframeSchema,
     handler: async (_m, b) => {
+      // Schema uses z.unknown().optional() for beat because Beat is a complex shared-logic type;
+      // buildKeyframeGenerationParams expects { beat: Beat; ... } (beat required, typed).
       const params = videoTaskService.buildKeyframeGenerationParams(b as unknown as Parameters<typeof videoTaskService.buildKeyframeGenerationParams>[0]);
       return apiGateway.generateKeyframe(params);
     },
@@ -92,6 +96,8 @@ export const generationRoutes: Record<string, Route> = {
   "story/generate-frame-pair": defineRoute({
     schema: storyGenerateFramePairSchema,
     handler: async (_m, b) => {
+      // Schema uses z.unknown().optional() for beat because Beat is a complex shared-logic type;
+      // buildFramePairGenerationParams expects { beat: Beat; ... } (beat required, typed).
       const params = videoTaskService.buildFramePairGenerationParams(b as unknown as Parameters<typeof videoTaskService.buildFramePairGenerationParams>[0]);
       const firstFrameResult = await apiGateway.generateKeyframe({
         ...params.firstFrame,

@@ -76,28 +76,12 @@ export default function PluginManager() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!isElectron()) {
-        if (!cancelled) setIsLoading(false);
-        return;
-      }
-      try {
-        const data = await fetchPlugins();
-        if (!cancelled) {
-          setPlugins(data.plugins || []);
-          setUserPluginFiles(data.userPluginFiles || []);
-        }
-      } catch (e) {
-        if (!cancelled) errorLogger.error("[PluginManager] 加载插件列表失败:", e);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!isElectron()) {
+      setIsLoading(false);
+      return;
+    }
+    loadPlugins();
+  }, [loadPlugins]);
 
   const handleDelete = async (pluginId: string, displayName: string) => {
     if (!(await confirm(t("plugin.confirmDelete", { name: displayName }), t("plugin.confirmDeleteTitle")))) return;

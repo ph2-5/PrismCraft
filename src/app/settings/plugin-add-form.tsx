@@ -71,8 +71,12 @@ export function PluginAddForm({ onAdded, onCancel }: PluginAddFormProps) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setJsonInput(content);
+      const result = event.target?.result;
+      if (typeof result !== "string") {
+        showError(t("error.fileReadFailed"));
+        return;
+      }
+      setJsonInput(result);
       setValidationResult(null);
     };
     reader.readAsText(file);

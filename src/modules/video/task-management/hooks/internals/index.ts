@@ -1,6 +1,7 @@
 export { withTransitionGuard } from "./transition-guard";
 export {
   pollingState,
+  initPollingEngine,
   registerStore as registerPollingStore,
   stopPolling,
   cleanupAllPollingResources,

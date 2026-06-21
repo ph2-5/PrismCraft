@@ -11,6 +11,7 @@ import {
   fileWriteAtomicSchema,
   fileWriteSchema,
   fileDiskSpaceSchema,
+  fileCacheDirectorySchema,
 } from "../schemas";
 import { getLogger } from "../../logging";
 import { ensureVideoCacheDir } from "../../handlers/assets";
@@ -25,7 +26,6 @@ const logger = getLogger("file-routes");
 
 // 主进程独立的文件存储实现（不依赖渲染进程的 DI container）
 // 复用 handlers/assets.ts 的路径常量和安全校验逻辑
-import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
 import os from "os";
@@ -85,6 +85,15 @@ async function isPathAllowed(filePath: string): Promise<boolean> {
   }
 }
 
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await fsp.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function getExtFromMime(mimeType?: string): string {
   if (!mimeType) return "png";
   const map: Record<string, string> = {
@@ -127,7 +136,7 @@ async function resolvePath(key: string, category?: string): Promise<string> {
   // 纯 key 未指定 category：遍历所有 CATEGORY_DIRS 查找已存在的文件
   for (const dir of Object.values(CATEGORY_DIRS)) {
     const candidate = path.join(dir, key);
-    if (fs.existsSync(candidate)) {
+    if (await pathExists(candidate)) {
       return candidate;
     }
   }
@@ -139,7 +148,7 @@ async function ensureDir(category: string): Promise<void> {
   if (!dir) {
     throw new Error(`Invalid category: ${category}`);
   }
-  if (!fs.existsSync(dir)) {
+  if (!(await pathExists(dir))) {
     await fsp.mkdir(dir, { recursive: true });
   }
 }
@@ -199,8 +208,14 @@ export const fileRoutes: Record<string, Route> = {
         if (!(await isPathAllowed(filePath))) {
           return { success: false, error: "Path not allowed" };
         }
-        if (!fs.existsSync(filePath)) {
+        if (!(await pathExists(filePath))) {
           return { success: false, error: "File not found" };
+        }
+        // 文件大小限制，避免读取超大文件导致 OOM
+        const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
+        const stat = await fsp.stat(filePath);
+        if (stat.size > MAX_READ_SIZE) {
+          return { success: false, error: `File too large (${stat.size} bytes), max ${MAX_READ_SIZE} bytes` };
         }
         const buffer = await fsp.readFile(filePath);
         return { success: true, data: { base64: buffer.toString("base64") } };
@@ -220,8 +235,14 @@ export const fileRoutes: Record<string, Route> = {
         if (!(await isPathAllowed(filePath))) {
           return { success: false, error: "Path not allowed" };
         }
-        if (!fs.existsSync(filePath)) {
+        if (!(await pathExists(filePath))) {
           return { success: false, error: "File not found" };
+        }
+        // 文件大小限制，避免读取超大文件导致 OOM
+        const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
+        const stat = await fsp.stat(filePath);
+        if (stat.size > MAX_READ_SIZE) {
+          return { success: false, error: `File too large (${stat.size} bytes), max ${MAX_READ_SIZE} bytes` };
         }
         const buffer = await fsp.readFile(filePath);
         const mime = getMimeFromExt(filePath);
@@ -243,7 +264,7 @@ export const fileRoutes: Record<string, Route> = {
           return { success: false, error: "Path not allowed" };
         }
         let deleted = false;
-        if (fs.existsSync(filePath)) {
+        if (await pathExists(filePath)) {
           await fsp.unlink(filePath);
           deleted = true;
         }
@@ -264,7 +285,7 @@ export const fileRoutes: Record<string, Route> = {
         if (!(await isPathAllowed(filePath))) {
           return { success: true, data: { exists: false } };
         }
-        return { success: true, data: { exists: fs.existsSync(filePath) } };
+        return { success: true, data: { exists: await pathExists(filePath) } };
       } catch (error) {
         logger.error("[File HTTP] exists failed:", error instanceof Error ? error : new Error(String(error)));
         return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -284,7 +305,7 @@ export const fileRoutes: Record<string, Route> = {
         if (!(await isPathAllowed(sourcePath))) {
           return { success: false, error: "Source path not allowed" };
         }
-        if (!fs.existsSync(sourcePath)) {
+        if (!(await pathExists(sourcePath))) {
           return { success: false, error: "Source file not found" };
         }
 
@@ -308,10 +329,16 @@ export const fileRoutes: Record<string, Route> = {
       try {
         const category = toFileCategory(body.category);
         const dir = CATEGORY_DIRS[category];
-        if (!dir || !fs.existsSync(dir)) {
-          return { success: true, data: { files: [] } };
+        if (!dir || !(await pathExists(dir))) {
+          return { success: true, data: { files: [], total: 0, offset: 0, limit: 500 } };
         }
 
+        const limit = typeof body.limit === "number" ? Math.min(body.limit, 500) : 500;
+        const offset = typeof body.offset === "number" ? Math.max(body.offset, 0) : 0;
+
+        // 注意：按 createdAt 排序需要对所有文件执行 stat，无法仅 stat 分页范围。
+        // 大目录（数千文件）会有较高内存峰值。已通过 500 条上限限制返回规模，
+        // 若目录极大需考虑改用文件名排序或增量索引方案。
         const files = await fsp.readdir(dir);
         const results: Array<{
           key: string;
@@ -339,7 +366,9 @@ export const fileRoutes: Record<string, Route> = {
             // 跳过无法访问的文件
           }
         }
-        return { success: true, data: { files: results } };
+        results.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        const paginatedResults = results.slice(offset, offset + limit);
+        return { success: true, data: { files: paginatedResults, total: results.length, offset, limit } };
       } catch (error) {
         logger.error("[File HTTP] list failed:", error instanceof Error ? error : new Error(String(error)));
         return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -356,7 +385,7 @@ export const fileRoutes: Record<string, Route> = {
         if (!(await isPathAllowed(filePath))) {
           return { success: true, data: null };
         }
-        if (!fs.existsSync(filePath)) {
+        if (!(await pathExists(filePath))) {
           return { success: true, data: null };
         }
         const stat = await fsp.stat(filePath);
@@ -409,7 +438,7 @@ export const fileRoutes: Record<string, Route> = {
           await fsp.rename(tmpPath, filePath);
         } catch (e) {
           try {
-            if (fs.existsSync(tmpPath)) await fsp.unlink(tmpPath);
+            if (await pathExists(tmpPath)) await fsp.unlink(tmpPath);
           } catch {
             // 忽略清理失败
           }
@@ -435,10 +464,15 @@ export const fileRoutes: Record<string, Route> = {
         }
         // 确保父目录存在
         const parentDir = path.dirname(filePath);
-        if (!fs.existsSync(parentDir)) {
+        if (!(await pathExists(parentDir))) {
           await fsp.mkdir(parentDir, { recursive: true });
         }
-        const buffer = typeof body.data === "string" ? Buffer.from(body.data, "utf-8") : Buffer.from(body.data);
+        // 根据 encoding 字段解码数据：
+        // - "base64": data 为 base64 编码的二进制数据（避免数字数组内存膨胀）
+        // - undefined / "utf-8": data 为 UTF-8 字符串
+        const buffer = body.encoding === "base64"
+          ? Buffer.from(body.data as string, "base64")
+          : typeof body.data === "string" ? Buffer.from(body.data, "utf-8") : Buffer.from(body.data);
         // 大小限制（对齐 IPC 的 100MB）
         const MAX_WRITE_SIZE = 100 * 1024 * 1024;
         if (buffer.length > MAX_WRITE_SIZE) {
@@ -456,9 +490,10 @@ export const fileRoutes: Record<string, Route> = {
 
   // 获取视频缓存目录（对齐 IPC cache:get-cache-directory）
   "file/cache-directory": defineRoute({
+    schema: fileCacheDirectorySchema,
     handler: async () => {
       try {
-        const cacheDir = ensureVideoCacheDir();
+        const cacheDir = await ensureVideoCacheDir();
         return { success: true, data: { path: cacheDir } };
       } catch (error) {
         logger.error("[File HTTP] cache-directory failed:", error instanceof Error ? error : new Error(String(error)));
@@ -477,7 +512,7 @@ export const fileRoutes: Record<string, Route> = {
         if (!(await isPathAllowed(resolvedPath))) {
           return { success: false, error: "Path not allowed" };
         }
-        const statfs = fs.statfsSync(resolvedPath);
+        const statfs = await fsp.statfs(resolvedPath);
         return {
           success: true,
           data: {

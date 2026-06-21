@@ -43,17 +43,13 @@ export function useQuickGenerateState() {
   const referenceVideoBlobRef = useRef<string | null>(null);
   const blobUrlsToRevokeRef = useRef<Set<string>>(new Set());
 
+  // 合并 blob URL 清理逻辑：卸载时撤销所有待清理的 blob URL 和引用视频 blob
   useEffect(() => {
     return () => {
       for (const url of blobUrlsToRevokeRef.current) {
         URL.revokeObjectURL(url);
       }
       blobUrlsToRevokeRef.current.clear();
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
       if (referenceVideoBlobRef.current) {
         URL.revokeObjectURL(referenceVideoBlobRef.current);
       }
@@ -175,7 +171,14 @@ export function useQuickGenerateState() {
         }
         referenceVideoBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onload = (e) => {
+            const result = e.target?.result;
+            if (typeof result === "string") {
+              resolve(result);
+            } else {
+              reject(new Error("Failed to read file as Data URL"));
+            }
+          };
           reader.onerror = reject;
           reader.readAsDataURL(state.referenceVideoFile!);
         });
@@ -206,7 +209,7 @@ export function useQuickGenerateState() {
     }
   }, [state.promptText, state.duration, state.selectedResolution, state.selectedStyle, state.selectedCharacters, state.referenceImage, state.enableSmartOptimization, state.negativePrompt, state.referenceVideoFile, selectedVideoModel, getSelectedCharacterObjects, getSelectedSceneObject, createTask, showError, showWarning, showSuccess]);
 
-  const handleDownload = async (
+  const handleDownload = useCallback(async (
     videoUrl: string | undefined,
     filename: string,
   ) => {
@@ -222,7 +225,7 @@ export function useQuickGenerateState() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
       errorLogger.warn("[QuickGenerate] Failed to download video via fetch, falling back to direct link", e as Error);
       const link = document.createElement("a");
@@ -234,9 +237,9 @@ export function useQuickGenerateState() {
       link.click();
       document.body.removeChild(link);
     }
-  };
+  }, []);
 
-  const handleSaveToAssets = async (task: VideoTask) => {
+  const handleSaveToAssets = useCallback(async (task: VideoTask) => {
     if (!task.videoUrl || state.isSavingToAssets) return;
 
     dispatch({ type: "SET_IS_SAVING_TO_ASSETS", value: true });
@@ -255,7 +258,7 @@ export function useQuickGenerateState() {
     } finally {
       dispatch({ type: "SET_IS_SAVING_TO_ASSETS", value: false });
     }
-  };
+  }, [state.isSavingToAssets, state.promptText, state.selectedStyle, state.duration, createMediaAssetMutation, showSuccess, showError]);
 
   const handleApplyTemplate = useCallback(
     (template: VideoTemplate) => {

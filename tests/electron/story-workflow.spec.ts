@@ -70,7 +70,7 @@ test.describe("Edit beat", () => {
     const editButton = page.locator("button", { hasText: "编辑" }).first();
     if (!(await editButton.isVisible({ timeout: 5000 }).catch(() => false))) return;
     await editButton.click({ force: true });
-    const detailEditor = page.locator('input[placeholder="输入分镜标题..."]').or(page.locator('[role="dialog"]:not([data-nextjs-dialog])')).or(page.locator('[aria-label*="编辑分镜"]'));
+    const detailEditor = page.locator('[data-testid="beat-title-input"]').or(page.locator('[role="dialog"]:not([data-nextjs-dialog])')).or(page.locator('[aria-label*="编辑分镜"]'));
     await expect(detailEditor.first()).toBeVisible({ timeout: 5000 }).catch(() => {});
   });
 
@@ -78,7 +78,7 @@ test.describe("Edit beat", () => {
     const editButton = page.locator("button", { hasText: "编辑" }).first();
     if (!(await editButton.isVisible({ timeout: 5000 }).catch(() => false))) return;
     await editButton.click({ force: true });
-    const textarea = page.locator('textarea[placeholder*="输入分镜内容描述"]').or(page.locator('[role="dialog"]:not([data-nextjs-dialog]) textarea')).or(page.locator('textarea').first());
+    const textarea = page.locator('[data-testid="beat-content-textarea"]').or(page.locator('[role="dialog"]:not([data-nextjs-dialog]) textarea')).or(page.locator('textarea').first());
     await expect(textarea.first()).toBeVisible({ timeout: 5000 }).catch(() => {});
   });
 
@@ -86,7 +86,7 @@ test.describe("Edit beat", () => {
     const editButton = page.locator("button", { hasText: "编辑" }).first();
     if (!(await editButton.isVisible({ timeout: 5000 }).catch(() => false))) return;
     await editButton.click({ force: true });
-    const titleInput = page.locator('input[placeholder="输入分镜标题..."]');
+    const titleInput = page.locator('[data-testid="beat-title-input"]');
     if (await titleInput.isVisible({ timeout: 5000 }).catch(() => false)) {
       await titleInput.fill("测试分镜标题");
       await expect(titleInput).toHaveValue("测试分镜标题");

@@ -33,10 +33,13 @@ export function BeatVideoPreview({ beat, task, videoUrl, guardedPush }: BeatVide
                 className="w-full h-full"
                 controls
                 onError={(e) => {
-                  const target = e.target as HTMLVideoElement;
+                  const target = e.currentTarget;
                   if (!target.dataset.retried && beat.videoGen?.videoUrl) {
-                    target.dataset.retried = "1";
-                    target.src = beat.videoGen.videoUrl;
+                    // 仅当当前 src 与重试 URL 不同时才重试，避免无限循环
+                    if (target.src !== beat.videoGen.videoUrl) {
+                      target.dataset.retried = "1";
+                      target.src = beat.videoGen.videoUrl;
+                    }
                   }
                 }}
               />

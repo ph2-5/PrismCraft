@@ -9,27 +9,38 @@ import { t } from "@/shared/constants";
  * - 右侧窗口控制按钮（最小化/最大化/关闭）
  * - 按钮区域不可拖拽（-webkit-app-region: no-drag）
  */
-export function TitleBar() {
+export function TitleBar(): React.ReactElement | null {
   const [isMaximized, setIsMaximized] = useState(false);
   const isElectron = typeof window !== "undefined" && !!window.electronAPI;
 
   useEffect(() => {
     if (!isElectron) return;
-    window.electronAPI?.windowIsMaximized?.().then((m) => setIsMaximized(!!m)).catch(() => {});
+    window.electronAPI?.windowIsMaximized?.().then((m) => setIsMaximized(!!m)).catch((e) => {
+      console.warn("[TitleBar] windowIsMaximized failed", e);
+    });
   }, [isElectron]);
 
   const handleMinimize = useCallback(() => {
-    window.electronAPI?.windowMinimize?.().catch(() => {});
+    window.electronAPI?.windowMinimize?.().catch((e) => {
+      console.warn("[TitleBar] windowMinimize failed", e);
+    });
   }, []);
 
   const handleMaximize = useCallback(async () => {
-    await window.electronAPI?.windowMaximize?.().catch(() => {});
-    const maximized = await window.electronAPI?.windowIsMaximized?.().catch(() => false);
+    await window.electronAPI?.windowMaximize?.().catch((e) => {
+      console.warn("[TitleBar] windowMaximize failed", e);
+    });
+    const maximized = await window.electronAPI?.windowIsMaximized?.().catch((e) => {
+      console.warn("[TitleBar] windowIsMaximized failed", e);
+      return false;
+    });
     setIsMaximized(!!maximized);
   }, []);
 
   const handleClose = useCallback(() => {
-    window.electronAPI?.windowClose?.().catch(() => {});
+    window.electronAPI?.windowClose?.().catch((e) => {
+      console.warn("[TitleBar] windowClose failed", e);
+    });
   }, []);
 
   if (!isElectron) return null;

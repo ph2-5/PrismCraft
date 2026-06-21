@@ -49,9 +49,6 @@ let cachedConfig: { apiKey?: string; apiUrl?: string } = {};
 const SANITIZED_CODE_PREFIX = `
 (function() {
   'use strict';
-  const _origConstructor = this.constructor;
-  // 阻止 constructor 链逃逸：将 Object.prototype.constructor 锁定为 Object，不可重写
-  try { Object.defineProperty(Object.prototype, 'constructor', { value: Object, writable: false, configurable: false }); } catch (e) { console.warn('[plugin-worker] Failed to lock Object.prototype.constructor:', e); }
 `;
 
 const SANITIZED_CODE_SUFFIX = `
@@ -129,11 +126,11 @@ function extractMetadata(exported: Record<string, unknown>): PluginMetadata {
   };
 }
 
-function loadPlugin(filePath: string, callId: string): void {
+async function loadPlugin(filePath: string, callId: string): Promise<void> {
   const fileName = path.basename(filePath);
 
   try {
-    const rawCode = fs.readFileSync(filePath, "utf-8");
+    const rawCode = await fs.promises.readFile(filePath, "utf-8");
 
     const escapePatterns = [
       /constructor\s*\(\s*['"]return\s+(?:process|require|global)/,
@@ -381,6 +378,10 @@ const heartbeatTimer = setInterval(() => {
     process.exit(1);
   }
 }, 15_000);
+
+process.on("exit", () => {
+  clearInterval(heartbeatTimer);
+});
 
 process.on("disconnect", () => {
   clearInterval(heartbeatTimer);

@@ -32,7 +32,7 @@ export interface SsrfGuardConfig {
   customWhitelist?: string[];
   /** 是否阻止云元数据端点 */
   blockMetadataEndpoints?: boolean;
-  /** DNS 解析失败时的策略：allow（默认，高自由度）或 deny（更安全） */
+  /** DNS 解析失败时的策略：deny（默认，fail-close 更安全）或 allow（高自由度，不推荐） */
   dnsFailurePolicy?: "allow" | "deny";
 }
 
@@ -61,9 +61,15 @@ class SsrfGuard {
   private customWhitelist: Set<string> = new Set();
   private enableDnsResolution = true;
   private blockMetadataEndpoints = true;
-  private dnsFailurePolicy: "allow" | "deny" = "allow";
+  // Default to "deny" (fail-close): when DNS resolution fails or times out,
+  // treat the request as unsafe. This is the secure default — a fail-open
+  // policy ("allow") would let requests through when DNS is unavailable,
+  // defeating the purpose of SSRF protection. Callers that explicitly need
+  // the legacy permissive behavior can pass { dnsFailurePolicy: "allow" }.
+  private dnsFailurePolicy: "allow" | "deny" = "deny";
   private resolvedIpCache = new Map<string, { ip: string; timestamp: number }>();
   private readonly RESOLVED_IP_TTL = 10000;
+  private readonly MAX_CACHE_SIZE = 1000;
 
   constructor(config?: SsrfGuardConfig) {
     if (config?.customWhitelist) {
@@ -293,7 +299,7 @@ class SsrfGuard {
       }
 
       const timeout = setTimeout(() => {
-        const policy = this.dnsFailurePolicy ?? "allow";
+        const policy = this.dnsFailurePolicy ?? "deny";
         if (policy === "deny") {
           resolve({ safe: false, reason: "DNS resolution timeout" });
         } else {
@@ -302,57 +308,80 @@ class SsrfGuard {
         }
       }, 3000);
 
-      dns.resolve4(hostname, (err4, addresses4) => {
-        clearTimeout(timeout);
-
-        if (err4) {
-          dns.resolve6(hostname, (err6, addresses6) => {
-            if (err6) {
-              const policy = this.dnsFailurePolicy ?? "allow";
-              if (policy === "deny") {
-                resolve({ safe: false, reason: `DNS resolution failed: ${err4.message}` });
-              } else {
-                logger.warn("DNS resolution failed, allowing due to policy", {
-                  hostname,
-                  error4: err4.message,
-                  error6: err6.message,
-                });
-                resolve({ safe: true });
-              }
-              return;
-            }
-
-            for (const ip of addresses6) {
-              if (this.isPrivateIp(ip)) {
-                resolve({
-                  safe: false,
-                  reason: `DNS resolved to private IPv6: ${ip}`,
-                  resolvedIp: ip,
-                });
-                return;
-              }
-            }
-
-            resolve({ safe: true, resolvedIp: addresses6[0]! });
-            this.resolvedIpCache.set(hostname.toLowerCase(), { ip: addresses6[0]!, timestamp: Date.now() });
+      // 并行解析 IPv4 和 IPv6，对两个地址列表都做私有 IP 检查。
+      // 之前的实现先调用 dns.resolve4，成功后不调用 dns.resolve6，
+      // 可能遗漏私有 IPv6 地址（如 DNS rebinding 攻击者同时返回公网 IPv4 和私有 IPv6）。
+      Promise.all([
+        new Promise<string[]>((res) => {
+          dns.resolve4(hostname, (err, addresses) => {
+            res(err ? [] : addresses);
           });
-          return;
-        }
+        }),
+        new Promise<string[]>((res) => {
+          dns.resolve6(hostname, (err, addresses) => {
+            res(err ? [] : addresses);
+          });
+        }),
+      ])
+        .then(([v4Addrs, v6Addrs]) => {
+          clearTimeout(timeout);
 
-        for (const ip of addresses4) {
-          if (this.isPrivateIp(ip)) {
-            resolve({
-              safe: false,
-              reason: `DNS resolved to private IP: ${ip}`,
-              resolvedIp: ip,
-            });
+          const allAddrs = [...v4Addrs, ...v6Addrs];
+          if (allAddrs.length === 0) {
+            const policy = this.dnsFailurePolicy ?? "deny";
+            if (policy === "deny") {
+              resolve({ safe: false, reason: "DNS resolution failed: no addresses returned" });
+            } else {
+              logger.warn("DNS resolution returned no addresses, allowing due to policy", { hostname });
+              resolve({ safe: true });
+            }
             return;
           }
-        }
 
-        resolve({ safe: true, resolvedIp: addresses4[0]! });
-        this.resolvedIpCache.set(hostname.toLowerCase(), { ip: addresses4[0]!, timestamp: Date.now() });
-      });
+          // 检查所有 IPv4 地址
+          for (const ip of v4Addrs) {
+            if (this.isPrivateIp(ip)) {
+              resolve({
+                safe: false,
+                reason: `DNS resolved to private IPv4: ${ip}`,
+                resolvedIp: ip,
+              });
+              return;
+            }
+          }
+
+          // 检查所有 IPv6 地址
+          for (const ip of v6Addrs) {
+            if (this.isPrivateIp(ip)) {
+              resolve({
+                safe: false,
+                reason: `DNS resolved to private IPv6: ${ip}`,
+                resolvedIp: ip,
+              });
+              return;
+            }
+          }
+
+          // 所有地址都是公网，优先使用第一个 IPv4 地址
+          const firstSafeIp = v4Addrs[0] ?? v6Addrs[0]!;
+          resolve({ safe: true, resolvedIp: firstSafeIp });
+          // 缓存大小限制：超过上限时删除最旧条目（Map 保持插入顺序）
+          if (this.resolvedIpCache.size >= this.MAX_CACHE_SIZE) {
+            const oldestKey = this.resolvedIpCache.keys().next().value;
+            if (oldestKey) this.resolvedIpCache.delete(oldestKey);
+          }
+          this.resolvedIpCache.set(hostname.toLowerCase(), { ip: firstSafeIp, timestamp: Date.now() });
+        })
+        .catch(() => {
+          clearTimeout(timeout);
+          const policy = this.dnsFailurePolicy ?? "deny";
+          if (policy === "deny") {
+            resolve({ safe: false, reason: "DNS resolution failed" });
+          } else {
+            logger.warn("DNS resolution failed, allowing due to policy", { hostname });
+            resolve({ safe: true });
+          }
+        });
     });
   }
 }

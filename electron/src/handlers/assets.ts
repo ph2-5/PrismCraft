@@ -1,4 +1,5 @@
 import fs from "fs";
+import { promises as fsp } from "fs";
 import path from "path";
 import { ipcMain, dialog } from "electron";
 import { getLogger } from "../logging/logger";
@@ -18,9 +19,9 @@ export const VIDEO_CACHE_DIR = path.join(USER_DATA_ROOT, "Cache", "Videos");
 
 const ALLOWED_ASSET_ROOTS = getAllUserDataDirs();
 
-function isPathAllowed(filePath: string): boolean {
+async function isPathAllowed(filePath: string): Promise<boolean> {
   try {
-    const resolved = fs.realpathSync(path.resolve(filePath));
+    const resolved = await fsp.realpath(path.resolve(filePath));
     return isPathUnderAnyRoot(resolved, ALLOWED_ASSET_ROOTS);
   } catch {
     logger.warn("Failed to resolve asset path, falling back to path.resolve");
@@ -47,30 +48,30 @@ const SUB_DIRS: Record<string, string> = {
   storyboards: path.join(ASSETS_BASE_DIR, "Storyboards"),
 };
 
-export function ensureAssetsDir(): void {
+export async function ensureAssetsDir(): Promise<void> {
   if (!fs.existsSync(ASSETS_BASE_DIR)) {
-    fs.mkdirSync(ASSETS_BASE_DIR, { recursive: true });
+    await fsp.mkdir(ASSETS_BASE_DIR, { recursive: true });
   }
   for (const dir of Object.values(SUB_DIRS)) {
     if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+      await fsp.mkdir(dir, { recursive: true });
     }
   }
 }
 
-export function ensureVideoCacheDir(): string {
+export async function ensureVideoCacheDir(): Promise<string> {
   if (!fs.existsSync(VIDEO_CACHE_DIR)) {
-    fs.mkdirSync(VIDEO_CACHE_DIR, { recursive: true });
+    await fsp.mkdir(VIDEO_CACHE_DIR, { recursive: true });
   }
   return VIDEO_CACHE_DIR;
 }
 
-function saveBase64Image(
+async function saveBase64Image(
   base64Data: string,
   subDir: string,
   filename: string,
-): string {
-  ensureAssetsDir();
+): Promise<string> {
+  await ensureAssetsDir();
   if (!isFilenameSafe(filename)) {
     throw new Error("Invalid filename: " + filename);
   }
@@ -87,18 +88,18 @@ function saveBase64Image(
     : `${filename}.${ext}`;
   const filePath = path.join(targetDir, finalFilename);
   const buffer = Buffer.from(pureBase64, "base64");
-  fs.writeFileSync(filePath, buffer);
+  await fsp.writeFile(filePath, buffer);
   return filePath;
 }
 
-function deleteAssetFile(filePath: string): boolean {
-  if (!isPathAllowed(filePath)) {
+async function deleteAssetFile(filePath: string): Promise<boolean> {
+  if (!(await isPathAllowed(filePath))) {
     logger.error("[Assets] Path not allowed:", undefined, { path: filePath });
     return false;
   }
   try {
     if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+      await fsp.unlink(filePath);
       return true;
     }
   } catch (e) {
@@ -107,14 +108,14 @@ function deleteAssetFile(filePath: string): boolean {
   return false;
 }
 
-function readAssetFileAsBase64(filePath: string): string | null {
-  if (!isPathAllowed(filePath)) {
+async function readAssetFileAsBase64(filePath: string): Promise<string | null> {
+  if (!(await isPathAllowed(filePath))) {
     logger.error("[Assets] Path not allowed:", undefined, { path: filePath });
     return null;
   }
   try {
     if (!fs.existsSync(filePath)) return null;
-    const buffer = fs.readFileSync(filePath);
+    const buffer = await fsp.readFile(filePath);
     const ext = path.extname(filePath).toLowerCase().replace(".", "");
     const mimeMap: Record<string, string> = {
       jpg: "image/jpeg",
@@ -135,8 +136,8 @@ function readAssetFileAsBase64(filePath: string): string | null {
   }
 }
 
-function getAssetsDir(): string {
-  ensureAssetsDir();
+async function getAssetsDir(): Promise<string> {
+  await ensureAssetsDir();
   return ASSETS_BASE_DIR;
 }
 
@@ -152,7 +153,7 @@ export function setupAssetHandlers(): void {
       },
     ) => {
       try {
-        const filePath = saveBase64Image(base64Data, subDir, filename);
+        const filePath = await saveBase64Image(base64Data, subDir, filename);
         return { success: true, filePath };
       } catch (e) {
         return { success: false, error: (e as Error).message };
@@ -167,7 +168,7 @@ export function setupAssetHandlers(): void {
       { filePath }: { filePath: string },
     ) => {
       try {
-        const result = deleteAssetFile(filePath);
+        const result = await deleteAssetFile(filePath);
         if (result) {
           return { success: true };
         }
@@ -184,13 +185,13 @@ export function setupAssetHandlers(): void {
       _event: Electron.IpcMainInvokeEvent,
       { filePath }: { filePath: string },
     ) => {
-      const base64 = readAssetFileAsBase64(filePath);
+      const base64 = await readAssetFileAsBase64(filePath);
       return { success: !!base64, base64 };
     },
   );
 
   ipcMain.handle("assets:get-dir", async () => {
-    return { success: true, dir: getAssetsDir() };
+    return { success: true, dir: await getAssetsDir() };
   });
 
   ipcMain.handle(
@@ -207,10 +208,10 @@ export function setupAssetHandlers(): void {
         if (!isFilenameSafe(filename)) {
           return { success: false, error: "Invalid filename: " + filename };
         }
-        ensureAssetsDir();
+        await ensureAssetsDir();
         const targetDir = SUB_DIRS[subDir] || ASSETS_BASE_DIR;
         const filePath = path.join(targetDir, filename);
-        fs.writeFileSync(filePath, Buffer.from(buffer as ArrayBufferLike));
+        await fsp.writeFile(filePath, Buffer.from(buffer as ArrayBufferLike));
         return { success: true, filePath };
       } catch (e) {
         return { success: false, error: (e as Error).message };
@@ -225,7 +226,7 @@ export function setupAssetHandlers(): void {
       { filePath }: { filePath: string },
     ) => {
       try {
-        if (!isPathAllowed(filePath)) {
+        if (!(await isPathAllowed(filePath))) {
           return { success: false, exists: false, error: "Path not allowed" };
         }
         return { success: true, exists: fs.existsSync(filePath) };
@@ -247,7 +248,7 @@ export function setupAssetHandlers(): void {
       },
     ) => {
       try {
-        if (!isPathAllowed(srcPath)) {
+        if (!(await isPathAllowed(srcPath))) {
           return {
             success: false,
             error: "Source path not allowed: " + srcPath,
@@ -256,10 +257,10 @@ export function setupAssetHandlers(): void {
         if (!isFilenameSafe(filename)) {
           return { success: false, error: "Invalid filename: " + filename };
         }
-        ensureAssetsDir();
+        await ensureAssetsDir();
         const targetDir = SUB_DIRS[subDir] || ASSETS_BASE_DIR;
         const destPath = path.join(targetDir, filename);
-        fs.copyFileSync(srcPath, destPath);
+        await fsp.copyFile(srcPath, destPath);
         return { success: true, filePath: destPath };
       } catch (e) {
         return { success: false, error: (e as Error).message };
@@ -322,7 +323,7 @@ export function setupAssetHandlers(): void {
       { filePath, data }: { filePath: string; data: unknown },
     ) => {
       try {
-        if (!isPathAllowed(filePath)) {
+        if (!(await isPathAllowed(filePath))) {
           return { success: false, error: "Path not allowed" };
         }
         if (data === undefined || data === null) {
@@ -330,11 +331,11 @@ export function setupAssetHandlers(): void {
         }
         const resolvedPath = path.resolve(filePath);
         const dir = path.dirname(resolvedPath);
-        if (!isPathAllowed(dir)) {
+        if (!(await isPathAllowed(dir))) {
           return { success: false, error: "Path not allowed" };
         }
         if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
+          await fsp.mkdir(dir, { recursive: true });
         }
         const maxFileSize = 500 * 1024 * 1024;
         let buffer: Buffer;
@@ -347,7 +348,7 @@ export function setupAssetHandlers(): void {
         if (buffer.length > maxFileSize) {
           return { success: false, error: "File too large" };
         }
-        fs.writeFileSync(resolvedPath, buffer);
+        await fsp.writeFile(resolvedPath, buffer);
         return { success: true };
       } catch (e) {
         logger.error("[Assets] fs:write-file error:", e instanceof Error ? e : new Error(String(e)));
@@ -364,13 +365,13 @@ export function setupAssetHandlers(): void {
     ) => {
       try {
         const resolvedPath = path.resolve(filePath);
-        if (!isPathAllowed(resolvedPath)) {
+        if (!(await isPathAllowed(resolvedPath))) {
           return { success: false, error: "Path not allowed" };
         }
         if (!fs.existsSync(resolvedPath)) {
           return { success: false, error: "File not found" };
         }
-        const stats = fs.statSync(resolvedPath);
+        const stats = await fsp.stat(resolvedPath);
         if (!stats.isFile()) {
           return { success: false, error: "Not a file" };
         }
@@ -378,7 +379,7 @@ export function setupAssetHandlers(): void {
         if (stats.size > maxFileSize) {
           return { success: false, error: "File too large" };
         }
-        const buffer = fs.readFileSync(resolvedPath);
+        const buffer = await fsp.readFile(resolvedPath);
         return { success: true, data: buffer };
       } catch (e) {
         logger.error("[Assets] fs:read-file error:", e instanceof Error ? e : new Error(String(e)));
@@ -389,7 +390,7 @@ export function setupAssetHandlers(): void {
 
   ipcMain.handle("cache:get-cache-directory", async () => {
     try {
-      const cacheDir = ensureVideoCacheDir();
+      const cacheDir = await ensureVideoCacheDir();
       return { success: true, path: cacheDir };
     } catch (e) {
       return { success: false, error: (e as Error).message };
@@ -404,10 +405,10 @@ export function setupAssetHandlers(): void {
     ) => {
       try {
         const resolvedPath = path.resolve(filePath);
-        if (!isPathAllowed(resolvedPath)) {
+        if (!(await isPathAllowed(resolvedPath))) {
           return { success: false, error: "Path not allowed" };
         }
-        const stats = fs.statSync(resolvedPath);
+        const stats = await fsp.stat(resolvedPath);
         return {
           success: true,
           size: stats.size,
@@ -426,10 +427,10 @@ export function setupAssetHandlers(): void {
     ) => {
       try {
         const resolvedPath = path.resolve(dirPath);
-        if (!isPathAllowed(resolvedPath)) {
+        if (!(await isPathAllowed(resolvedPath))) {
           return { success: false, error: "Path not allowed" };
         }
-        const statfs = fs.statfsSync(resolvedPath);
+        const statfs = await fsp.statfs(resolvedPath);
         return {
           success: true,
           availableBytes: statfs.bavail * statfs.bsize,
@@ -465,13 +466,13 @@ export function setupAssetHandlers(): void {
         return { success: false, error: "sharp not available" };
       }
       try {
-        if (!isPathAllowed(inputPath)) {
+        if (!(await isPathAllowed(inputPath))) {
           return {
             success: false,
             error: "Input path not allowed: " + inputPath,
           };
         }
-        if (outputPath && !isPathAllowed(outputPath)) {
+        if (outputPath && !(await isPathAllowed(outputPath))) {
           return {
             success: false,
             error: "Output path not allowed: " + outputPath,
@@ -507,7 +508,7 @@ export function setupAssetHandlers(): void {
             /\.\w+$/,
             `_normalized.${format === "jpeg" ? "jpg" : format}`,
           );
-        fs.writeFileSync(finalOutputPath, outputBuffer);
+        await fsp.writeFile(finalOutputPath, outputBuffer);
 
         return {
           success: true,
@@ -534,11 +535,11 @@ export function setupAssetHandlers(): void {
       },
     ) => {
       if (!sharpModule) {
-        if (!isPathAllowed(inputPath)) {
+        if (!(await isPathAllowed(inputPath))) {
           return { success: false, error: "Path not allowed: " + inputPath };
         }
         if (fs.existsSync(inputPath)) {
-          const buffer = fs.readFileSync(inputPath);
+          const buffer = await fsp.readFile(inputPath);
           const ext = path.extname(inputPath).toLowerCase().replace(".", "");
           const mime = ext === "jpg" ? "jpeg" : ext;
           return {
@@ -552,7 +553,7 @@ export function setupAssetHandlers(): void {
         };
       }
       try {
-        if (!isPathAllowed(inputPath)) {
+        if (!(await isPathAllowed(inputPath))) {
           return { success: false, error: "Path not allowed: " + inputPath };
         }
         const fmt = format || "jpeg";

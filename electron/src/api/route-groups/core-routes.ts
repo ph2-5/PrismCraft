@@ -12,13 +12,16 @@ import {
   uploadSchema,
   syncTestSchema,
   syncProxySchema,
+  configRouteSchema,
+  secureConfigRouteSchema,
+  syncConfigRouteSchema,
 } from "../schemas";
 import {
   validateConfigKey,
   validateConfigValue,
   getConfigValue,
   applyConfigValue,
-  loadConfig,
+  loadConfigAsync,
   saveConfig,
 } from "../../main-common";
 import { getLogger } from "../../logging";
@@ -26,8 +29,8 @@ import { getLogger } from "../../logging";
 const logger = getLogger("core-routes");
 
 export const coreRoutes: Record<string, Route> = {
-  config: defineRoute({ handler: handleConfig, methods: ["GET", "POST", "HEAD"] }),
-  "secure-config": defineRoute({ handler: handleSecureConfig, methods: ["POST"] }),
+  config: defineRoute({ schema: configRouteSchema, handler: handleConfig, methods: ["GET", "POST", "HEAD"] }),
+  "secure-config": defineRoute({ schema: secureConfigRouteSchema, handler: handleSecureConfig, methods: ["POST"] }),
 
   // 通用 key-value 配置存储（对齐 IPC config:get/config:set）
   "config/get": defineRoute({
@@ -38,7 +41,7 @@ export const coreRoutes: Record<string, Route> = {
         if (!validateConfigKey(key)) {
           return { success: false, error: "Invalid config key" };
         }
-        const config = loadConfig();
+        const config = await loadConfigAsync();
         const value = getConfigValue(config, key);
         return { success: true, data: { value } };
       } catch (error) {
@@ -60,7 +63,7 @@ export const coreRoutes: Record<string, Route> = {
         if (!validateConfigValue(value)) {
           return { success: false, error: "Invalid config value" };
         }
-        const config = loadConfig();
+        const config = await loadConfigAsync();
         applyConfigValue(config, key, value);
         saveConfig(config);
         return { success: true };
@@ -82,7 +85,7 @@ export const coreRoutes: Record<string, Route> = {
     handler: handleTestConnection,
     methods: ["POST"],
   }),
-  "sync/config": defineRoute({ handler: handleSyncConfig, methods: ["GET", "POST"] }),
+  "sync/config": defineRoute({ schema: syncConfigRouteSchema, handler: handleSyncConfig, methods: ["GET", "POST"] }),
   "sync/test": defineRoute({
     schema: syncTestSchema,
     handler: handleSyncTest,

@@ -19,6 +19,9 @@ const {
   mockFsExistsSync,
   mockFsMkdirSync,
   mockFsWriteFileSync,
+  mockFspAccess,
+  mockFspMkdir,
+  mockFspWriteFile,
 } = vi.hoisted(() => ({
   mockSsrfValidate: vi.fn(),
   mockHttpGet: vi.fn(),
@@ -26,6 +29,9 @@ const {
   mockFsExistsSync: vi.fn(() => true),
   mockFsMkdirSync: vi.fn(),
   mockFsWriteFileSync: vi.fn(),
+  mockFspAccess: vi.fn(),
+  mockFspMkdir: vi.fn(),
+  mockFspWriteFile: vi.fn(),
 }));
 
 vi.mock("../security/ssrf-guard/ssrf-guard", () => ({
@@ -62,6 +68,19 @@ vi.mock("fs", () => ({
     existsSync: mockFsExistsSync,
     mkdirSync: mockFsMkdirSync,
     writeFileSync: mockFsWriteFileSync,
+    promises: {
+      access: mockFspAccess,
+      mkdir: mockFspMkdir,
+      writeFile: mockFspWriteFile,
+    },
+  },
+  existsSync: mockFsExistsSync,
+  mkdirSync: mockFsMkdirSync,
+  writeFileSync: mockFsWriteFileSync,
+  promises: {
+    access: mockFspAccess,
+    mkdir: mockFspMkdir,
+    writeFile: mockFspWriteFile,
   },
 }));
 
@@ -87,6 +106,7 @@ function setupMockGet(
           if (!listeners[event]) listeners[event] = [];
           listeners[event].push(fn);
         },
+        resume: vi.fn(),
       };
       callback(res);
       // 同步触发 data 和 end 事件（此时 listener 已注册）
@@ -133,7 +153,7 @@ describe("R118: HTTP 重定向必须校验 SSRF", () => {
 
       // 应返回本地缓存路径（而非原始 URL）
       expect(result).not.toBe("http://example.com/image.png");
-      expect(mockFsWriteFileSync).toHaveBeenCalledWith(expect.any(String), Buffer.from("png-bytes"));
+      expect(mockFspWriteFile).toHaveBeenCalledWith(expect.any(String), Buffer.from("png-bytes"));
       // 应调用 isPrivateUrl 校验重定向目标（通过 ssrfGuard.validate）
       expect(mockSsrfValidate).toHaveBeenCalledWith(redirectUrl);
       // 应跟随重定向发起第二次请求
@@ -150,7 +170,7 @@ describe("R118: HTTP 重定向必须校验 SSRF", () => {
       // 重定向到非 http 协议被拒绝，函数应回退返回原始 URL
       expect(result).toBe("http://example.com/image.png");
       // 不应写入文件
-      expect(mockFsWriteFileSync).not.toHaveBeenCalled();
+      expect(mockFspWriteFile).not.toHaveBeenCalled();
       // 不应发起第二次请求
       expect(mockHttpsGet).not.toHaveBeenCalled();
     });
@@ -161,7 +181,7 @@ describe("R118: HTTP 重定向必须校验 SSRF", () => {
       const result = await apiGatewayUtils.cacheRemoteImageLocally("http://example.com/file.png");
 
       expect(result).toBe("http://example.com/file.png");
-      expect(mockFsWriteFileSync).not.toHaveBeenCalled();
+      expect(mockFspWriteFile).not.toHaveBeenCalled();
       expect(mockHttpsGet).not.toHaveBeenCalled();
     });
   });
@@ -170,7 +190,8 @@ describe("R118: HTTP 重定向必须校验 SSRF", () => {
     it("重定向到 127.0.0.1 应被拒绝", async () => {
       const redirectUrl = "http://127.0.0.1:8080/admin";
 
-      // isPrivateUrl 返回 true（私有地址）
+      // 初始 URL 校验通过，重定向 URL 校验失败（私有地址）
+      mockSsrfValidate.mockResolvedValueOnce({ safe: true });
       mockSsrfValidate.mockResolvedValueOnce({ safe: false, reason: "Private IP" });
       setupMockGet(mockHttpGet, { statusCode: 302, location: redirectUrl });
 
@@ -178,7 +199,7 @@ describe("R118: HTTP 重定向必须校验 SSRF", () => {
 
       // 重定向到私有地址被拒绝，回退返回原始 URL
       expect(result).toBe("http://example.com/image.png");
-      expect(mockFsWriteFileSync).not.toHaveBeenCalled();
+      expect(mockFspWriteFile).not.toHaveBeenCalled();
       expect(mockHttpsGet).not.toHaveBeenCalled();
       // 应调用 isPrivateUrl 校验重定向目标
       expect(mockSsrfValidate).toHaveBeenCalledWith(redirectUrl);
@@ -187,26 +208,28 @@ describe("R118: HTTP 重定向必须校验 SSRF", () => {
     it("重定向到 10.0.0.1 应被拒绝", async () => {
       const redirectUrl = "http://10.0.0.1/internal";
 
+      mockSsrfValidate.mockResolvedValueOnce({ safe: true });
       mockSsrfValidate.mockResolvedValueOnce({ safe: false, reason: "Private IP" });
       setupMockGet(mockHttpGet, { statusCode: 302, location: redirectUrl });
 
       const result = await apiGatewayUtils.cacheRemoteImageLocally("http://example.com/image.png");
 
       expect(result).toBe("http://example.com/image.png");
-      expect(mockFsWriteFileSync).not.toHaveBeenCalled();
+      expect(mockFspWriteFile).not.toHaveBeenCalled();
       expect(mockSsrfValidate).toHaveBeenCalledWith(redirectUrl);
     });
 
     it("重定向到 192.168.1.1 应被拒绝", async () => {
       const redirectUrl = "http://192.168.1.1/router";
 
+      mockSsrfValidate.mockResolvedValueOnce({ safe: true });
       mockSsrfValidate.mockResolvedValueOnce({ safe: false, reason: "Private IP" });
       setupMockGet(mockHttpGet, { statusCode: 302, location: redirectUrl });
 
       const result = await apiGatewayUtils.cacheRemoteImageLocally("http://example.com/image.png");
 
       expect(result).toBe("http://example.com/image.png");
-      expect(mockFsWriteFileSync).not.toHaveBeenCalled();
+      expect(mockFspWriteFile).not.toHaveBeenCalled();
       expect(mockSsrfValidate).toHaveBeenCalledWith(redirectUrl);
     });
   });
@@ -222,9 +245,9 @@ describe("R118: HTTP 重定向必须校验 SSRF", () => {
 
       // 应返回本地缓存路径
       expect(result).not.toBe("http://example.com/image.png");
-      expect(mockFsWriteFileSync).toHaveBeenCalledWith(expect.any(String), Buffer.from("image-bytes"));
-      // 无重定向时不应调用 isPrivateUrl
-      expect(mockSsrfValidate).not.toHaveBeenCalled();
+      expect(mockFspWriteFile).toHaveBeenCalledWith(expect.any(String), Buffer.from("image-bytes"));
+      // SSRF 校验会检查初始 URL
+      expect(mockSsrfValidate).toHaveBeenCalledWith("http://example.com/image.png");
       // 不应发起第二次请求
       expect(mockHttpsGet).not.toHaveBeenCalled();
     });
@@ -235,7 +258,7 @@ describe("R118: HTTP 重定向必须校验 SSRF", () => {
       expect(result).toBe("data:image/png;base64,abc");
       expect(mockHttpGet).not.toHaveBeenCalled();
       expect(mockHttpsGet).not.toHaveBeenCalled();
-      expect(mockFsWriteFileSync).not.toHaveBeenCalled();
+      expect(mockFspWriteFile).not.toHaveBeenCalled();
     });
   });
 });

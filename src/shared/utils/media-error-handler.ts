@@ -1,6 +1,6 @@
 import { resolveImageUrl, resolveMediaUrl } from "./image-url";
 
-export function createVideoErrorHandler(fallbackLocalPath?: string | null, fallbackRemoteUrl?: string | null) {
+export function createVideoErrorHandler(fallbackLocalPath?: string | null, fallbackRemoteUrl?: string | null): (e: React.SyntheticEvent<HTMLVideoElement>) => void {
   return (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const target = e.currentTarget;
     if (target.dataset.retried) return;
@@ -12,7 +12,7 @@ export function createVideoErrorHandler(fallbackLocalPath?: string | null, fallb
   };
 }
 
-export function createSimpleVideoErrorHandler() {
+export function createSimpleVideoErrorHandler(): (e: React.SyntheticEvent<HTMLVideoElement>) => void {
   return (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const target = e.currentTarget;
     if (target.dataset.retried) return;
@@ -20,7 +20,7 @@ export function createSimpleVideoErrorHandler() {
   };
 }
 
-export function createImageUrlErrorHandler(fallbackUrl?: string | null) {
+export function createImageUrlErrorHandler(fallbackUrl?: string | null): (e: React.SyntheticEvent<HTMLImageElement>) => void {
   return (e: React.SyntheticEvent<HTMLImageElement>) => {
     const target = e.currentTarget;
     if (target.dataset.retried) return;

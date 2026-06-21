@@ -43,6 +43,7 @@ export function BasicInfoSection({
               {t("beat.beatTitle")}
             </Label>
             <Input
+              data-testid="beat-title-input"
               value={beat.title || ""}
               onChange={(e) =>
                 onUpdateField("title", e.target.value)
@@ -115,6 +116,7 @@ export function BasicInfoSection({
           {t("beat.beatContent")}
         </h3>
         <Textarea
+          data-testid="beat-content-textarea"
           value={beat.content || beat.description || ""}
           onChange={(e) => {
             const value = e.target.value;

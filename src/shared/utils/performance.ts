@@ -52,7 +52,8 @@ export function usePerformanceMonitor(enabled = true) {
     const measureLCP = () => {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        const lastEntry = entries[entries.length - 1]!;
+        const lastEntry = entries[entries.length - 1];
+        if (!lastEntry) return;
         setMetrics((prev) => ({
           ...prev,
           lcp: lastEntry.startTime,
@@ -67,11 +68,9 @@ export function usePerformanceMonitor(enabled = true) {
       let clsValue = 0;
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (
-            !(entry as PerformanceEntry & { hadRecentInput: boolean })
-              .hadRecentInput
-          ) {
-            clsValue += (entry as PerformanceEntry & { value: number }).value;
+          const layoutShift = entry as PerformanceEntry & { hadRecentInput?: boolean; value?: number };
+          if (!layoutShift.hadRecentInput) {
+            clsValue += layoutShift.value ?? 0;
           }
         }
         setMetrics((prev) => ({
@@ -107,7 +106,7 @@ export function useDebounce<T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay: number,
 ): (...args: Parameters<T>) => void {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fnRef = useRef(fn);
   useEffect(() => {
     fnRef.current = fn;

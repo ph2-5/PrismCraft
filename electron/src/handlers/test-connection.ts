@@ -1,6 +1,6 @@
 import https from "https";
 import http from "http";
-import { loadConfig } from "./config";
+import { loadConfigAsync } from "./config";
 import { pluginRegistry } from "../plugins";
 import type { AIProviderPlugin, AsyncAIProviderPlugin } from "../plugins";
 import { getLogger } from "../logging/logger";
@@ -38,8 +38,9 @@ async function isPrivateUrl(urlStr: string): Promise<boolean> {
     }
     return false;
   } catch {
-    logger.warn("Failed to validate URL in SSRF guard", { urlStr });
-    return false;
+    // fail-close 策略：校验失败时视为私有 URL，阻止请求以避免 SSRF 风险
+    logger.warn("Failed to validate URL in SSRF guard, blocking by default (fail-close)", { urlStr });
+    return true;
   }
 }
 
@@ -152,7 +153,7 @@ export async function handleTestConnection(
   let effectiveModel = bodyModel || modelId;
 
   if (!effectiveApiKey && providerId) {
-    const config = loadConfig();
+    const config = await loadConfigAsync();
     const provider = config.providers?.find((p) => p.id === providerId);
     if (provider) {
       effectiveApiUrl = effectiveApiUrl || provider.baseUrl;
@@ -162,7 +163,7 @@ export async function handleTestConnection(
   }
 
   if (!effectiveApiKey) {
-    const config = loadConfig();
+    const config = await loadConfigAsync();
     const mapping = config.mapping?.[capability as keyof typeof config.mapping];
     if (mapping) {
       const [mapProviderId, mapModelId] = mapping.split("/");
@@ -186,29 +187,31 @@ export async function handleTestConnection(
       httpStatus: 400,
     };
   }
+  const apiKey = effectiveApiKey;
+  const apiUrl = effectiveApiUrl;
 
   try {
     if (mode === "lightweight") {
       let testUrl: string;
       let testHeaders: Record<string, string>;
       if (isAnthropic) {
-        testUrl = `${effectiveApiUrl}/models`;
+        testUrl = `${apiUrl}/models`;
         testHeaders = {
           "Content-Type": "application/json",
-          "x-api-key": effectiveApiKey!,
+          "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
         };
       } else if (effectivePlugin?.id === "google") {
         testUrl = buildAuthUrl(
-          effectiveApiUrl!,
+          apiUrl!,
           `/models`,
           effectivePlugin,
-          effectiveApiKey!,
+          apiKey,
         );
-        testHeaders = await getAuthHeaders(effectivePlugin, effectiveApiKey!);
+        testHeaders = await getAuthHeaders(effectivePlugin, apiKey);
       } else {
-        testUrl = `${effectiveApiUrl}/models`;
-        testHeaders = await getAuthHeaders(effectivePlugin, effectiveApiKey!);
+        testUrl = `${apiUrl}/models`;
+        testHeaders = await getAuthHeaders(effectivePlugin, apiKey);
       }
 
       const response = await makeRequest(testUrl, {
@@ -238,10 +241,10 @@ export async function handleTestConnection(
         let textBody: string;
 
         if (isAnthropic) {
-          textUrl = `${effectiveApiUrl}/messages`;
+          textUrl = `${apiUrl}/messages`;
           textHeaders = {
             "Content-Type": "application/json",
-            "x-api-key": effectiveApiKey!,
+            "x-api-key": apiKey,
             "anthropic-version": "2023-06-01",
           };
           textBody = JSON.stringify({
@@ -251,19 +254,19 @@ export async function handleTestConnection(
           });
         } else if (effectivePlugin?.id === "google") {
           textUrl = buildAuthUrl(
-            effectiveApiUrl!,
+            apiUrl!,
             `/models/${effectiveModel || "gemini-3.1-pro"}:generateContent`,
             effectivePlugin,
-            effectiveApiKey!,
+            apiKey,
           );
-          textHeaders = await getAuthHeaders(effectivePlugin, effectiveApiKey!);
+          textHeaders = await getAuthHeaders(effectivePlugin, apiKey);
           textBody = JSON.stringify({
             contents: [{ parts: [{ text: "Hi" }] }],
             generationConfig: { maxOutputTokens: 5 },
           });
         } else {
-          textUrl = `${effectiveApiUrl}/chat/completions`;
-          textHeaders = await getAuthHeaders(effectivePlugin, effectiveApiKey!);
+          textUrl = `${apiUrl}/chat/completions`;
+          textHeaders = await getAuthHeaders(effectivePlugin, apiKey);
           textBody = JSON.stringify({
             model: effectiveModel || "gpt-4o",
             messages: [{ role: "user", content: "Hi" }],
@@ -296,15 +299,15 @@ export async function handleTestConnection(
         const testUrl =
           effectivePlugin?.id === "google"
             ? buildAuthUrl(
-                effectiveApiUrl!,
+                apiUrl!,
                 `/models`,
                 effectivePlugin,
-                effectiveApiKey!,
+                apiKey,
               )
-            : `${effectiveApiUrl}/models`;
+            : `${apiUrl}/models`;
         const response = await makeRequest(testUrl, {
           method: "GET",
-          headers: await getAuthHeaders(effectivePlugin, effectiveApiKey!),
+          headers: await getAuthHeaders(effectivePlugin, apiKey),
           timeout: 15000,
         });
 

@@ -82,23 +82,23 @@ export default function AssetLibraryPage() {
   const [addToCollectionId, setAddToCollectionId] = useState("");
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
   const [isAddingToCollection, setIsAddingToCollection] = useState(false);
-  const [isCreatingCollection] = useState(false);
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const selectAll = (ids: string[]) => {
+  const selectAll = useCallback((ids: string[]) => {
     setSelectedIds(new Set(ids));
-  };
+  }, []);
 
-  const clearSelection = () => setSelectedIds(new Set());
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   const actions = useAssetLibraryActions({
     activeTab,
@@ -114,6 +114,7 @@ export default function AssetLibraryPage() {
     setIsEditDialogOpen,
     setEditingItem,
     setIsSavingEdit,
+    setIsCreatingCollection,
     setNewCollectionName,
     setAddToCollectionId,
     addToCollectionId,

@@ -80,11 +80,7 @@ test.describe("Sync Settings Dialog", () => {
     const dialogOpened = await openSyncDialog(page);
     if (!dialogOpened) return;
 
-    const urlInput = page.locator('input[placeholder*="服务器"]').or(
-      page.locator('input[placeholder*="URL"]')
-    ).or(
-      page.locator('input[placeholder*="https://"]')
-    ).first();
+    const urlInput = page.locator('[data-testid="sync-server-url-input"]').first();
     await expect(urlInput).toBeVisible({ timeout: 5000 }).catch(() => {});
   });
 
@@ -92,9 +88,7 @@ test.describe("Sync Settings Dialog", () => {
     const dialogOpened = await openSyncDialog(page);
     if (!dialogOpened) return;
 
-    const usernameInput = page.locator('input[placeholder*="用户名"]').or(
-      page.locator('input[placeholder*="Username"]')
-    ).first();
+    const usernameInput = page.locator('[data-testid="sync-username-input"]').first();
     await expect(usernameInput).toBeVisible({ timeout: 5000 }).catch(() => {});
   });
 
@@ -130,11 +124,7 @@ test.describe("Sync Server Configuration", () => {
     const dialogOpened = await openSyncDialog(page);
     if (!dialogOpened) return;
 
-    const urlInput = page.locator('input[placeholder*="服务器"]').or(
-      page.locator('input[placeholder*="URL"]')
-    ).or(
-      page.locator('input[placeholder*="https://"]')
-    ).first();
+    const urlInput = page.locator('[data-testid="sync-server-url-input"]').first();
     if (!(await urlInput.isVisible({ timeout: 5000 }).catch(() => false))) return;
 
     await urlInput.fill("https://sync.example.com");
@@ -145,9 +135,7 @@ test.describe("Sync Server Configuration", () => {
     const dialogOpened = await openSyncDialog(page);
     if (!dialogOpened) return;
 
-    const usernameInput = page.locator('input[placeholder*="用户名"]').or(
-      page.locator('input[placeholder*="Username"]')
-    ).first();
+    const usernameInput = page.locator('[data-testid="sync-username-input"]').first();
     if (!(await usernameInput.isVisible({ timeout: 5000 }).catch(() => false))) return;
 
     await usernameInput.fill("testuser");

@@ -186,7 +186,13 @@ export const container: AppContainer = new Proxy(tokens, {
     }
     return undefined;
   },
-}) as unknown as AppContainer; // Proxy get trap 无法推断具体属性类型，必须断言为 AppContainer
+}) as unknown as AppContainer;
+// 必须使用 as unknown as AppContainer 断言：
+// 1. Proxy 的 get trap 只能返回单一类型（这里是 unknown），而 AppContainer 的每个属性有不同的具体类型。
+// 2. TypeScript 无法根据属性名（prop）推断 get trap 的返回类型，因此无法实现 per-property 类型安全。
+// 3. 替代方案 Record<string, Token<unknown>> 会丢失消费者侧的类型安全（container.videoProvider 不再是 IVideoProvider）。
+// 4. 运行时安全性由 registry.resolve() 保证（token 工厂返回正确类型），类型断言仅用于编译期。
+// 改进此断言需要放弃 Proxy 模式，改为生成具名 getter 的普通对象——属于较大重构，不在本次范围内。
 
 export function overrideToken<T>(token: Token<T>, factory: (c: import("./types").ModuleContainer) => T): void {
   registry.override(token, factory as import("./types").ModuleFactory<T>);

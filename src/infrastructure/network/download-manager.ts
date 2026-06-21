@@ -13,7 +13,7 @@ const tasks = new Map<string, DownloadTask>();
 const taskControllers = new Map<string, AbortController>();
 const taskProgress = new Map<string, DownloadProgress>();
 const taskCallbacks = new Map<string, (progress: DownloadProgress) => void>();
-const scheduledCleanups = new Set<string>();
+const scheduledCleanups = new Map<string, ReturnType<typeof setTimeout>>();
 
 let maxConcurrency = NETWORK_CONFIG.downloadManager.maxConcurrency;
 let activeCount = 0;
@@ -137,11 +137,11 @@ async function processTask(taskId: string): Promise<void> {
 function scheduleAutoCleanup(taskId: string): void {
   // 防止同一 taskId 重复调度清理定时器
   if (scheduledCleanups.has(taskId)) return;
-  scheduledCleanups.add(taskId);
-  setTimeout(() => {
+  const timer = setTimeout(() => {
     scheduledCleanups.delete(taskId);
     removeCompletedTask(taskId);
   }, AUTO_CLEANUP_DELAY);
+  scheduledCleanups.set(taskId, timer);
 }
 
 async function processQueue(): Promise<void> {
@@ -240,10 +240,13 @@ export function pauseDownload(taskId: string): void {
     task.state = "idle";
   }
 
-  taskProgress.set(taskId, {
-    ...taskProgress.get(taskId)!,
-    state: "paused" as DownloadState,
-  });
+  const progress = taskProgress.get(taskId);
+  if (progress) {
+    taskProgress.set(taskId, {
+      ...progress,
+      state: "paused" as DownloadState,
+    });
+  }
 }
 
 export function resumeDownload(taskId: string): void {
@@ -286,5 +289,40 @@ export function removeCompletedTask(taskId: string): void {
     tasks.delete(taskId);
     taskProgress.delete(taskId);
     taskCallbacks.delete(taskId);
+  }
+}
+
+export function shutdownDownloadManager(): void {
+  // 中止所有活跃下载
+  for (const controller of taskControllers.values()) {
+    controller.abort();
+  }
+  taskControllers.clear();
+  // 清理定时器
+  for (const timer of scheduledCleanups.values()) {
+    clearTimeout(timer);
+  }
+  scheduledCleanups.clear();
+  // 清空状态
+  tasks.clear();
+  taskProgress.clear();
+  taskCallbacks.clear();
+  queue.length = 0;
+}
+
+let beforeUnloadHandler: (() => void) | null = null;
+
+if (typeof window !== "undefined") {
+  beforeUnloadHandler = () => {
+    shutdownDownloadManager();
+  };
+  window.addEventListener("beforeunload", beforeUnloadHandler);
+}
+
+/** 清理 download-manager 的 beforeunload 监听器（测试/HMR 场景使用） */
+export function cleanupDownloadManagerListener(): void {
+  if (beforeUnloadHandler && typeof window !== "undefined") {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+    beforeUnloadHandler = null;
   }
 }

@@ -127,9 +127,10 @@ export function AdvancedSettingsCard({
                     if (file) {
                       const reader = new FileReader();
                       reader.onload = (event) => {
-                        onReferenceImageChange(
-                          event.target?.result as string,
-                        );
+                        const result = event.target?.result;
+                        if (typeof result === "string") {
+                          onReferenceImageChange(result);
+                        }
                       };
                       reader.readAsDataURL(file);
                     }

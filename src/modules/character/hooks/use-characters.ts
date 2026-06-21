@@ -1,86 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Character, CreateCharacterInput, UpdateCharacterInput } from "@/domain/schemas";
 import { characterService } from "../services";
-import type { CreateCharacterInput, UpdateCharacterInput } from "@/domain/schemas";
 import { deleteCharacterWithRefs } from "@/modules/persistence";
-import { isElectron } from "@/shared/utils/platform";
+import { createCrudHooks } from "@/shared/hooks/create-crud-hooks";
 
-const CHARACTERS_KEY = ["characters"] as const;
-const CHARACTER_KEY = (id: string) => ["characters", id] as const;
+const crud = createCrudHooks<Character, CreateCharacterInput, UpdateCharacterInput>({
+  entityName: "characters",
+  service: characterService,
+  deleteFn: deleteCharacterWithRefs,
+});
 
-export function useCharacters() {
-  return useQuery({
-    queryKey: CHARACTERS_KEY,
-    queryFn: async () => {
-      const result = await characterService.getAll();
-      if (!result.ok) throw result.error;
-      return result.value;
-    },
-    enabled: isElectron(),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useCharacter(id: string) {
-  return useQuery({
-    queryKey: CHARACTER_KEY(id),
-    queryFn: async () => {
-      const result = await characterService.getById(id);
-      if (!result.ok) throw result.error;
-      return result.value;
-    },
-    enabled: isElectron() && !!id,
-  });
-}
-
-export function useCharacterCount() {
-  return useQuery({
-    queryKey: [...CHARACTERS_KEY, "count"],
-    queryFn: async () => {
-      const result = await characterService.count();
-      if (!result.ok) throw result.error;
-      return result.value;
-    },
-    enabled: isElectron(),
-  });
-}
-
-export function useCreateCharacter() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: CreateCharacterInput) => {
-      const result = await characterService.create(input);
-      if (!result.ok) throw result.error;
-      return result.value;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CHARACTERS_KEY });
-    },
-  });
-}
-
-export function useUpdateCharacter() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: UpdateCharacterInput) => {
-      const result = await characterService.update(input.id, input);
-      if (!result.ok) throw result.error;
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: CHARACTERS_KEY });
-      queryClient.invalidateQueries({ queryKey: CHARACTER_KEY(variables.id) });
-    },
-  });
-}
-
-export function useDeleteCharacter() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const result = await deleteCharacterWithRefs(id);
-      if (!result.ok) throw result.error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CHARACTERS_KEY });
-    },
-  });
-}
+export const useCharacters = crud.useList;
+export const useCharacter = crud.useOne;
+export const useCharacterCount = crud.useCount;
+export const useCreateCharacter = crud.useCreate;
+export const useUpdateCharacter = crud.useUpdate;
+export const useDeleteCharacter = crud.useDelete;

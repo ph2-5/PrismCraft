@@ -16,23 +16,30 @@ interface UseBeatDetailResult {
 
 export function useBeatDetail(): UseBeatDetailResult {
   const params = useParams();
-  const beatId = params.beatId as string;
+  const beatId = params.beatId;
   const [story, setStory] = useState<Story | null>(null);
   const [beat, setBeat] = useState<StoryBeat | null>(null);
   const [task, setTask] = useState<VideoTask | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!beatId) {
+      errorLogger.error("[BeatDetail] beatId 参数缺失");
+      setLoading(false);
+      return;
+    }
+    // 捕获已收窄的值，供闭包使用（TypeScript 不会在闭包内自动收窄）
+    const resolvedBeatId = beatId;
     let cancelled = false;
     const loadData = async () => {
       try {
-        const foundResult = await storyService.getByBeatId(beatId);
+        const foundResult = await storyService.getByBeatId(resolvedBeatId);
         const foundStory = foundResult.ok ? foundResult.value : null;
 
         if (!cancelled && foundStory) {
           setStory(foundStory);
           const foundBeat = foundStory.beats?.find(
-            (b: StoryBeat) => b.id === beatId,
+            (b: StoryBeat) => b.id === resolvedBeatId,
           );
           if (foundBeat) {
             setBeat(foundBeat);
@@ -40,7 +47,7 @@ export function useBeatDetail(): UseBeatDetailResult {
         }
 
         const tasks = useVideoTaskStore.getState().allTasks;
-        const foundTask = tasks.find((t: VideoTask) => t.beatId === beatId);
+        const foundTask = tasks.find((t: VideoTask) => t.beatId === resolvedBeatId);
         if (!cancelled && foundTask) {
           setTask(foundTask);
         }
@@ -56,7 +63,7 @@ export function useBeatDetail(): UseBeatDetailResult {
     const intervalId = setInterval(async () => {
       try {
         const tasks = useVideoTaskStore.getState().allTasks;
-        const currentTask = tasks.find((t: VideoTask) => t.beatId === beatId);
+        const currentTask = tasks.find((t: VideoTask) => t.beatId === resolvedBeatId);
         if (currentTask) {
           setTask((prev) => {
             if (

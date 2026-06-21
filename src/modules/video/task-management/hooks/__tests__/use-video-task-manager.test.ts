@@ -175,12 +175,16 @@ vi.mock("@/shared/utils/platform", () => ({
 vi.mock("../internals", () => ({
   withTransitionGuard: mockWithTransitionGuard,
   pollingState: mockPollingState,
+  initPollingEngine: vi.fn(),
+  getPollingStats: vi.fn(() => ({ activeCount: 0, registeredCount: 0 })),
   registerPollingStore: mockRegisterPollingStore,
   stopPolling: mockStopPolling,
   cleanupAllPollingResources: mockCleanupAllPollingResources,
   schedulePolling: mockSchedulePolling,
   checkAndStartOrStopPolling: mockCheckAndStartOrStopPolling,
   MAX_POLL_FAILURES: 30,
+  MAX_POLL_COUNT: 100,
+  MAX_POLL_DURATION: 300000,
   scheduleSync: mockScheduleSync,
   registerSyncStore: mockRegisterSyncStore,
 }));

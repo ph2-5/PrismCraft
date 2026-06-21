@@ -121,7 +121,14 @@ async function loadConfigAsync(): Promise<AppConfig> {
   }
 }
 
-/** 同步加载配置（兼容旧代码） */
+/**
+ * 同步加载配置（兼容旧代码）
+ *
+ * @deprecated 此函数不解析 `$secure:` 引用，返回的 provider.apiKey 可能是
+ * `$secure:providerId` 形式的引用而非实际密钥。需要实际 API Key 的调用方
+ * 必须使用 `loadConfigAsync()`。仅保留用于不涉及 apiKey 的通用配置读写
+ * （如 config:get/config:set 的非密钥字段）和同步 IPC 处理器（ipcMain.on）。
+ */
 function loadConfig(): AppConfig {
   try {
     const configFile = getConfigFile();
@@ -221,7 +228,25 @@ function saveConfig(config: AppConfig): boolean {
         logger.warn("Failed to create config backup before atomic write");
       }
     }
-    const data = JSON.stringify(config, null, 2);
+    // 安全防护：同步保存路径无法调用异步的 keyStorage.save()，
+    // 因此在写入前将明文 apiKey 替换为 $secure: 引用，避免明文密钥落盘。
+    // 注意：这不会将 apiKey 保存到 keyStorage，调用方应使用 saveConfigAsync() 完整保存。
+    let hasPlaintextKey = false;
+    const configToSave: AppConfig = {
+      ...config,
+      providers: config.providers.map((p) => {
+        if (p.apiKey && !p.apiKey.startsWith("$secure:")) {
+          hasPlaintextKey = true;
+          return { ...p, apiKey: `$secure:${p.id}` };
+        }
+        return p;
+      }),
+      _migratedToSecureStorage: true,
+    };
+    if (hasPlaintextKey) {
+      logger.warn("saveConfig (sync) detected plaintext apiKey — stripped before write. Use saveConfigAsync() to persist apiKey to keyStorage.");
+    }
+    const data = JSON.stringify(configToSave, null, 2);
     const tempPath = `${configFile}.tmp`;
     fs.writeFileSync(tempPath, data);
     fs.renameSync(tempPath, configFile);

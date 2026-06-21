@@ -18,6 +18,10 @@ export class LifecycleManager {
   private gpuCrashCount = 0;
   private gpuCrashResetTimer: ReturnType<typeof setTimeout> | null = null;
   private static readonly MAX_GPU_CRASH_RETRIES = 3;
+  private sigintHandler?: () => void;
+  private sigtermHandler?: () => void;
+  private uncaughtExceptionHandler?: (error: Error) => void;
+  private unhandledRejectionHandler?: (reason: unknown) => void;
 
   constructor(private options: LifecycleManagerOptions) {
     this.crashRecovery = new CrashRecovery({
@@ -197,17 +201,19 @@ export class LifecycleManager {
   }
 
   private setupProcessEvents(): void {
-    process.on("SIGINT", () => {
+    this.sigintHandler = () => {
       logger.info("[Lifecycle] SIGINT received");
       this.shutdown("sigint");
-    });
+    };
+    process.on("SIGINT", this.sigintHandler);
 
-    process.on("SIGTERM", () => {
+    this.sigtermHandler = () => {
       logger.info("[Lifecycle] SIGTERM received");
       this.shutdown("sigterm");
-    });
+    };
+    process.on("SIGTERM", this.sigtermHandler);
 
-    process.on("uncaughtException", (error: Error) => {
+    this.uncaughtExceptionHandler = (error: Error) => {
       logger.error("[Lifecycle] Uncaught Exception:", error);
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
         this.mainWindow.webContents.send("fatal-error", {
@@ -215,9 +221,10 @@ export class LifecycleManager {
           stack: error.stack,
         });
       }
-    });
+    };
+    process.on("uncaughtException", this.uncaughtExceptionHandler);
 
-    process.on("unhandledRejection", (reason: unknown) => {
+    this.unhandledRejectionHandler = (reason: unknown) => {
       const message = reason instanceof Error ? reason.message : String(reason);
       const stack = reason instanceof Error ? reason.stack : undefined;
       logger.error("[Lifecycle] Unhandled Promise Rejection:", reason instanceof Error ? reason : new Error(message));
@@ -230,6 +237,26 @@ export class LifecycleManager {
           stack,
         });
       }
-    });
+    };
+    process.on("unhandledRejection", this.unhandledRejectionHandler);
+  }
+
+  cleanupProcessEvents(): void {
+    if (this.sigintHandler) {
+      process.off("SIGINT", this.sigintHandler);
+      this.sigintHandler = undefined;
+    }
+    if (this.sigtermHandler) {
+      process.off("SIGTERM", this.sigtermHandler);
+      this.sigtermHandler = undefined;
+    }
+    if (this.uncaughtExceptionHandler) {
+      process.off("uncaughtException", this.uncaughtExceptionHandler);
+      this.uncaughtExceptionHandler = undefined;
+    }
+    if (this.unhandledRejectionHandler) {
+      process.off("unhandledRejection", this.unhandledRejectionHandler);
+      this.unhandledRejectionHandler = undefined;
+    }
   }
 }

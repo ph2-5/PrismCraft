@@ -44,8 +44,8 @@ export function useNetworkMonitor(options: NetworkOptions = {}) {
   });
 
   const offlineStartTimeRef = useRef<number | null>(null);
-  const checkTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const onOfflineRef = useRef(onOffline);
   const onOnlineRef = useRef(onOnline);

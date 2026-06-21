@@ -10,7 +10,7 @@
 1. docs/ARCHITECTURE.md          → 全局架构、依赖方向、状态机、数据流
 2. src/modules/{target}/MODULE.md → 目标模块公共 API、不变量、依赖
 3. src/modules/{target}/{subdomain}/contract.json → 子域合约、invariants
-4. .trae/rules/regression-guards.md → 33 条回归守则
+4. `.trae/rules/regression-guards.md` → 142 条回归守则
 5. 本文档                         → 修改流程、验证步骤
 ```
 
@@ -115,7 +115,7 @@ npx tsc --noEmit && npx vitest run src/modules/{target}
 ### 本地开发
 
 ```bash
-npm run dev                    # Next.js 开发服务器（仅渲染进程）
+npm run dev                    # Vite 开发服务器（仅渲染进程）
 npm run build:electron         # 完整 Electron 构建
 npm run build:win              # 构建 Windows NSIS 安装包
 ```
@@ -128,8 +128,7 @@ npm run build:win              # 构建 Windows NSIS 安装包
 
 ### 关键构建注意事项
 
-- Next.js 使用 `output: "export"`，不支持服务端特性
-- `build-electron.ps1` 临时移除 `src/app/api/` 以兼容静态导出
+- Vite 构建产出为静态文件，通过 `build-electron.ps1` 整合到 Electron 应用
 - `better-sqlite3` 原生模块通过 `asarUnpack` 解包
 - CI 中 `.npmrc` 仅保留 `registry=https://registry.npmjs.org/`（不包含 electron_mirror）
 - `package-lock.json` 的 resolved URL 必须与 CI 使用的 registry 一致

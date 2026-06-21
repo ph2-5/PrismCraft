@@ -1,6 +1,6 @@
 # PrismCraft 技术参考文档
 
-> **版本**: 0.10.0 | **最后更新**: 2026-06-18 | **架构**: Vite 8 + React Router 7
+> **版本**: 0.10.0 | **最后更新**: 2026-06-21 | **架构**: Vite 8 + React Router 7
 
 ---
 
@@ -1076,6 +1076,8 @@ module-name/
 | 属性 | 值 |
 |------|------|
 | 职责 | 故事创作全生命周期管理 |
+
+> 故事创作流水线设计详见 [story-pipeline-design.md](story-pipeline-design.md) — 10 步流水线（7 Phase）、单入口 `/story` 路由、三栏布局。
 
 #### 子域
 

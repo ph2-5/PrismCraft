@@ -6,6 +6,7 @@
 [![License](https://img.shields.io/badge/license-UNLICENSED-lightgrey)](package.json)
 [![Tests](https://img.shields.io/badge/tests-2300%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
+[![Updated](https://img.shields.io/badge/updated-2026--06--21-green)]()
 
 ## 核心特性
 

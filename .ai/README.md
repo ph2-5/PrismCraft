@@ -42,7 +42,7 @@ npx tsc -p electron/tsconfig.json --noEmit        # Electron 类型安全
 docs/
 ├── README.md                    文档索引
 ├── plugin-specification.md      插件规范
-├── task-management-v2-design.md 设计文档
+├── story-pipeline-design.md    故事创作流水线设计
 ├── architecture/                架构详细文档 + 图表
-└── 废弃/                        历史文档归档
+└── archive/                     历史文档归档
 ```

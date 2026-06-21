@@ -1,6 +1,6 @@
 # PrismCraft - Code Wiki
 
-> 版本: 0.10.0 | 架构: Electron + Vite + React | 模式: DDD (领域驱动设计)
+> 版本: 0.10.0 | 更新日期: 2026-06-21 | 架构: Electron + Vite + React | 模式: DDD (领域驱动设计)
 
 ---
 

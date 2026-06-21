@@ -23,13 +23,14 @@
 | `architecture-rules.md` | 依赖方向、模块结构、DI 容器、API 路由、CQRS | 新功能/重构 |
 | `testing-rules.md` | 测试位置、模板、Mock 策略、覆盖率要求 | 编写测试时 |
 | `regression-guard-automation.md` | Q1-Q5 回归防护决策框架 | Bug 修复时 |
-| `regression/`: `async-safety.md`, `data-consistency.md`, `engineering.md`, `error-handling.md`, `platform.md`, `system-security.md`, `ui-robustness.md`, `user-safety.md` | 108 条回归守则（R1-R114），8 大类 | Bug 修复/代码审查 |
+| `regression/`: `async-safety.md`, `data-consistency.md`, `engineering.md`, `error-handling.md`, `platform.md`, `system-security.md`, `ui-robustness.md`, `user-safety.md` | 142 条回归守则（R1-R142），8 大类 | Bug 修复/代码审查 |
 | `ai-tool-integration.md` | AI 工具集成指南（防幻觉、会话管理） | 优化 AI 工作流 |
 
 ## 专项文档
 
 | 文档 | 内容 | 何时读 |
 |------|------|--------|
+| [story-pipeline-design.md](story-pipeline-design.md) | 故事创作流水线设计（10 步流程、三栏布局、竞品对比） | 故事创作功能开发 |
 | [plugin-specification.md](plugin-specification.md) | 插件系统规范 | 开发插件时 |
 | [plugin-spec.schema.json](plugin-spec.schema.json) | 插件规范 JSON Schema | 验证插件配置时 |
 | [bug-audit-methodology.md](bug-audit-methodology.md) | Bug 审计方法论（3 阶段工作流） | 执行 Bug 审计时 |

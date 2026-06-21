@@ -86,7 +86,7 @@ overrideToken(container.videoTaskStorage, () => mockStorage);
 ```
 
 ### Adding a new token
-1. Determine the category (A-F)
+1. Determine the category (A-E)
 2. Add `createToken()` in the appropriate section of `container.ts`
 3. If category E, add a comment explaining why the module cannot import directly
 4. Run `npm run di-docs` to update this document

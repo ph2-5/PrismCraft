@@ -1,6 +1,6 @@
 # PrismCraft — 项目全方位指南
 
-> 版本：0.10.0 | 许可证：UNLICENSED | 最后更新：2026-06-18
+> 版本：0.10.0 | 许可证：UNLICENSED | 最后更新：2026-06-21
 
 ---
 
@@ -176,7 +176,7 @@ strict 模式启用所有严格类型检查选项：
 
 | 模块 | 代码行 | 占比 | 子域数 |
 |------|--------|------|--------|
-| story | 16,502 | 35.5% | 5 |
+| story | 19,878 | 32.5% | 5 |
 | video | 10,725 | 23.1% | 4 |
 | shot | 4,548 | 9.8% | 7 |
 | prompt | 4,037 | 8.7% | 8 |
@@ -186,7 +186,7 @@ strict 模式启用所有严格类型检查选项：
 | scene | 886 | 1.9% | 3 |
 | persistence | 434 | 0.9% | 2 |
 
-story 模块占比 35.5%，是最大的模块，也是已知架构债务之一。shot 模块虽然代码量中等，但子域数最多（7 个），体现了细粒度子域划分的设计。
+story 模块占比 32.5%，是最大的模块，也是已知架构债务之一。shot 模块虽然代码量中等，但子域数最多（7 个），体现了细粒度子域划分的设计。
 
 ### 4.3 代码分割后 Chunk 大小
 
@@ -457,7 +457,9 @@ domain ──→ NOTHING
 
 ### 7.1 story 模块
 
-**规模**：16,502 行，5 个子域（planning、beat-editor、generation、template、prompt-editor）
+**规模**：19,878 行，5 个子域（planning、beat-editor、generation、template、prompt-editor）
+
+> 故事创作流水线设计详见 [story-pipeline-design.md](story-pipeline-design.md) — 10 步流水线（7 Phase）、单入口 `/story` 路由、三栏布局设计。
 
 **子域详解**：
 
@@ -494,7 +496,7 @@ function isDirtySuppressed() {
 
 2. **批量生成策略模式**：不同的生成场景（全部节拍、选中节拍、空白节拍）使用不同的策略，策略通过 DI 注入或函数参数传递。
 
-3. **story 模块占比 35.5%**：这是已知架构债务，未来可能需要进一步拆分。
+3. **story 模块占比 32.5%**：这是已知架构债务，未来可能需要进一步拆分。
 
 ### 7.2 video 模块
 
@@ -3459,7 +3461,7 @@ npm run validate
 | Electron 镜像依赖 | 低 | .npmrc 配置国内镜像（有注释说明），海外构建可用环境变量覆盖 | 活跃 |
 | 版本锁定策略 | 低 | better-sqlite3 精确锁定 12.10.0（原生模块必须精确锁定） | 活跃 |
 | app-character chunk 过大 | 低 | 已修复：rolldown codeSplitting API 替代 manualChunks，character chunk 从 784KB 降至 20KB | ✅ 已修复 |
-| story 模块过大 | 低 | 16,502 行，占比 35.5%，未来可能需要进一步拆分 | 活跃 |
+| story 模块过大 | 低 | 19,878 行，占比 32.5%，未来可能需要进一步拆分 | 活跃 |
 
 ---
 

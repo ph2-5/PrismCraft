@@ -6,9 +6,7 @@ import {
   CardDescription,
 } from "@/shared/ui/card";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
-import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { Button } from "@/shared/ui/button";
-import { useVideoTaskManager } from "@/modules/video";
 import { VideoTaskManager as VideoTaskManagerComponent } from "@/modules/video";
 import {
   CheckCircle2,
@@ -19,37 +17,27 @@ import {
   Video,
   Loader2,
 } from "lucide-react";
-import { useState } from "react";
-import { confirm } from "@/shared/utils/confirm";
-import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants";
+import { useVideoTasksPage } from "./hooks/useVideoTasksPage";
 
 export default function VideoTasksPage() {
-  const { guardedPush } = useNavigationGuard();
-  const { success: showSuccess } = useToastHelpers();
   const {
+    totalTasks,
+    completedTasks,
+    processingTasks,
+    pendingTasks,
+    failedTasks,
+    completionRate,
     allTasks,
     startBackgroundProcessing,
-    clearCompletedTasks,
-    clearFailedTasks,
     recoverTask,
-  } = useVideoTaskManager();
-
-  const [isClearingCompleted, setIsClearingCompleted] = useState(false);
-  const [isClearingFailed, setIsClearingFailed] = useState(false);
-
-  const tasks = allTasks ?? [];
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(
-    (task) => task.status === "completed",
-  ).length;
-  const processingTasks = tasks.filter(
-    (task) => task.status === "generating",
-  ).length;
-  const pendingTasks = tasks.filter((task) => task.status === "pending").length;
-  const failedTasks = tasks.filter((task) => task.status === "failed" || task.status === "timeout").length;
-  const completionRate =
-    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    isClearingCompleted,
+    isClearingFailed,
+    handleClearCompleted,
+    handleClearFailed,
+    navigateToStory,
+    navigateToQuickGenerate,
+  } = useVideoTasksPage();
 
   return (
     <PageErrorBoundary pageName={t("page.videoTasks")}>
@@ -68,22 +56,7 @@ export default function VideoTasksPage() {
                 size="sm"
                 className="gap-1"
                 disabled={isClearingCompleted}
-                onClick={async () => {
-                  if (
-                    await confirm(
-                      t("task.confirmClearCompleted", { count: completedTasks }),
-                      t("task.clearCompleted"),
-                    )
-                  ) {
-                    setIsClearingCompleted(true);
-                    try {
-                      await clearCompletedTasks();
-                      showSuccess(t("task.clearCompletedSuccess"), t("task.clearCompletedSuccessDesc"));
-                    } finally {
-                      setIsClearingCompleted(false);
-                    }
-                  }
-                }}
+                onClick={handleClearCompleted}
               >
                 {isClearingCompleted ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                 {isClearingCompleted ? t("common.clearing") : t("task.clearCompleted")}
@@ -95,19 +68,7 @@ export default function VideoTasksPage() {
                 size="sm"
                 className="gap-1 text-red-400 hover:text-red-300"
                 disabled={isClearingFailed}
-                onClick={async () => {
-                  if (
-                    await confirm(t("task.confirmClearFailed", { count: failedTasks }), t("task.clearFailedTasks"))
-                  ) {
-                    setIsClearingFailed(true);
-                    try {
-                      await clearFailedTasks();
-                      showSuccess(t("task.clearCompletedSuccess"), t("task.clearFailedSuccessDesc"));
-                    } finally {
-                      setIsClearingFailed(false);
-                    }
-                  }
-                }}
+                onClick={handleClearFailed}
               >
                 {isClearingFailed ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                 {isClearingFailed ? t("common.clearing") : t("task.clearFailed")}
@@ -219,10 +180,10 @@ export default function VideoTasksPage() {
                   {t("task.noTasksHint")}
                 </p>
                 <div className="flex items-center justify-center gap-3">
-                  <Button onClick={() => guardedPush("/story")}>
+                  <Button onClick={navigateToStory}>
                     {t("task.viewStoryboard")}
                   </Button>
-                  <Button variant="outline" onClick={() => guardedPush("/quick-generate")}>
+                  <Button variant="outline" onClick={navigateToQuickGenerate}>
                     {t("task.quickGenerate")}
                   </Button>
                 </div>

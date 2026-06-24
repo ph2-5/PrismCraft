@@ -1,6 +1,3 @@
-import { useState } from "react";
-import { useToastHelpers } from "@/shared/presentation/Toast";
-import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import {
@@ -25,34 +22,22 @@ import { Key, Save, Package, Activity, RefreshCw } from "lucide-react";
 import { ProjectExportImport } from "@/modules/asset";
 import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
 import { ErrorLogViewer } from "@/shared/presentation/ErrorBoundary";
-import { container } from "@/infrastructure/di";
-import { usePreference } from "@/shared/utils/preferences";
 import { Button } from "@/shared/ui/button";
 import { ApiConfigPanel } from "./ApiConfigPanel";
 import { SyncSettingsPanel } from "@/modules/sync";
+import { useSettingsPage } from "./hooks/useSettingsPage";
 
-const AUTOSAVE_STORAGE_KEY = "ai-animation-autosave-settings";
-
-interface AutoSaveSettingsData {
-  enabled?: boolean;
-  interval?: number;
-}
-
-function AutoSaveSettings() {
-  const { success } = useToastHelpers();
-  const [settings, setSettings] = usePreference<AutoSaveSettingsData>(AUTOSAVE_STORAGE_KEY, {});
-  const enabled = typeof settings.enabled === "boolean" ? settings.enabled : true;
-  const intervalMinutes = typeof settings.interval === "number" && settings.interval > 0 ? settings.interval : 5;
-
-  const persistSettings = (nextEnabled: boolean, nextInterval: number) => {
-    try {
-      setSettings({ enabled: nextEnabled, interval: nextInterval });
-      success(t("success.saved"), t("success.settingsSaved"));
-    } catch (e) {
-      errorLogger.warn("[AutoSaveSettings] Failed to persist auto-save settings", e);
-    }
-  };
-
+function AutoSaveSettings({
+  enabled,
+  intervalMinutes,
+  onEnabledChange,
+  onIntervalChange,
+}: {
+  enabled: boolean;
+  intervalMinutes: number;
+  onEnabledChange: (val: boolean) => void;
+  onIntervalChange: (val: string | null) => void;
+}) {
   return (
     <div className="space-y-6">
       <Card>
@@ -75,9 +60,7 @@ function AutoSaveSettings() {
             </div>
             <Switch
               checked={enabled}
-              onCheckedChange={(val) => {
-                persistSettings(val, intervalMinutes);
-              }}
+              onCheckedChange={onEnabledChange}
             />
           </div>
 
@@ -90,10 +73,7 @@ function AutoSaveSettings() {
             </div>
             <Select
               value={String(intervalMinutes)}
-              onValueChange={(val) => {
-                const num = Number(val);
-                persistSettings(enabled, num);
-              }}
+              onValueChange={onIntervalChange}
             >
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -121,7 +101,18 @@ function AutoSaveSettings() {
 }
 
 export default function SettingsPage() {
-  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const {
+    syncDialogOpen,
+    openSyncDialog,
+    closeSyncDialog,
+    autoSaveEnabled,
+    autoSaveIntervalMinutes,
+    onAutoSaveEnabledChange,
+    onAutoSaveIntervalChange,
+    clearErrorLogs,
+    loadErrorLogs,
+    clearErrorLogsAll,
+  } = useSettingsPage();
 
   return (
     <PageErrorBoundary pageName={t("page.settings")}>
@@ -167,7 +158,12 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="autosave">
-            <AutoSaveSettings />
+            <AutoSaveSettings
+              enabled={autoSaveEnabled}
+              intervalMinutes={autoSaveIntervalMinutes}
+              onEnabledChange={onAutoSaveEnabledChange}
+              onIntervalChange={onAutoSaveIntervalChange}
+            />
           </TabsContent>
 
           <TabsContent value="sync">
@@ -182,7 +178,7 @@ export default function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={() => setSyncDialogOpen(true)}>
+                <Button onClick={openSyncDialog}>
                   {t("sync.settingsTitle")}
                 </Button>
               </CardContent>
@@ -196,23 +192,18 @@ export default function SettingsPage() {
           <TabsContent value="system">
             <div className="space-y-6">
               <MemoryMonitorPanel
-                clearErrorLogs={async () => {
-                  const logs = await container.errorLogStorage.getErrorLogs<{ timestamp: number }>();
-                  if (logs.length > 100) {
-                    await container.errorLogStorage.deleteOldErrorLogs(50);
-                  }
-                }}
+                clearErrorLogs={clearErrorLogs}
               />
               <ErrorLogViewer
-                loadLogs={() => container.errorLogStorage.getErrorLogs<{ timestamp: number; message: string; component?: string }>()}
-                clearLogs={() => container.errorLogStorage.clearErrorLogs()}
+                loadLogs={loadErrorLogs}
+                clearLogs={clearErrorLogsAll}
               />
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      <SyncSettingsPanel isOpen={syncDialogOpen} onClose={() => setSyncDialogOpen(false)} />
+      <SyncSettingsPanel isOpen={syncDialogOpen} onClose={closeSyncDialog} />
     </PageErrorBoundary>
   );
 }

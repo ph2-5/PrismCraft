@@ -1,48 +1,23 @@
-import { useState, useRef, useCallback, useEffect, Suspense } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { useDirtyState } from "@/shared/hooks/use-dirty-state";
-import {
-  useScenes,
-} from "@/modules/scene";
-import {
-  useStories,
-  storyService,
-} from "@/modules/story";
-import {
-  useMediaAssets,
-  useCreateMediaAsset,
-} from "@/modules/asset";
-import { sceneService } from "@/modules/scene";
-import { errorLogger } from "@/shared/error-logger";
-import { mapUserFacingError } from "@/shared/utils/user-facing-error";
+import { Suspense } from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
-import type { Scene } from "@/domain/schemas";
 import {
   Save,
   X,
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants/messages";
-import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
 import { MediaExporter } from "@/modules/asset";
 import { SceneEditorTabs } from "./components/SceneEditorTabs";
 import { ImageActionToolbar } from "./components/ImageActionToolbar";
 import { SceneList } from "./components/SceneList";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
-import {
-  defaultScene,
-  useSceneImage,
-  useSceneCRUD,
-} from "@/modules/scene";
-import { confirm } from "@/shared/utils/confirm";
+import { useScenesPage } from "./hooks/useScenesPage";
 
 export default function ScenesPage() {
   return (
@@ -53,51 +28,18 @@ export default function ScenesPage() {
 }
 
 function ScenesPageContent() {
-  const { markDirty, markClean, isDirty } = useDirtyState();
-  const queryClient = useQueryClient();
-  const createMediaAssetMutation = useCreateMediaAsset();
-  const [searchParams] = useSearchParams();
-  const highlightId = searchParams.get("highlight");
-
-  const { data: scenes = [], isLoading: scenesLoading } = useScenes();
-  const { data: stories = [] } = useStories();
-  const { data: assets = [], isLoading: _assetsLoading } = useMediaAssets();
-  const [showAssetSelector, setShowAssetSelector] = useState(false);
-  const [currentScene, setCurrentSceneRaw] = useState<Scene>(defaultScene);
-  const currentSceneRef = useRef(currentScene);
-
-  useEffect(() => { currentSceneRef.current = currentScene; }, [currentScene]);
-  const setCurrentScene = useCallback(
-    (update: Scene | ((prev: Scene) => Scene), shouldMarkDirty = false) => {
-      setCurrentSceneRaw(update);
-      if (shouldMarkDirty) markDirty("scenes");
-    },
-    [markDirty],
-  );
-  const [customElement, setCustomElement] = useState("");
-  const [customColor, setCustomColor] = useState("");
-  const { success, error: showError } = useToastHelpers();
-
-  const addAssetToLibrary = async (
-    url: string,
-    type: "image" | "video",
-    name: string,
-    boundTo?: { type: "character" | "scene"; id: string; name: string },
-  ) => {
-    await createMediaAssetMutation.mutateAsync({
-      name,
-      type,
-      url,
-      description: "",
-      tags: [],
-      boundTo,
-    });
-  };
-
   const {
+    scenes,
+    scenesLoading,
+    assets,
+    currentScene,
+    setCurrentScene,
+    customElement,
+    setCustomElement,
+    customColor,
+    setCustomColor,
     isGenerating,
     generatedImage,
-    setGeneratedImage,
     isUploading,
     isAnalyzing,
     isOptimizingPrompt,
@@ -114,16 +56,6 @@ function ScenesPageContent() {
     handleFileUpload,
     handleAnalyzeFileUpload,
     clearImage,
-  } = useSceneImage({
-    currentScene,
-    currentSceneRef,
-    setCurrentScene,
-    addAssetToLibrary,
-    success,
-    showError,
-  });
-
-  const {
     deleteDialogOpen,
     setDeleteDialogOpen,
     sceneToDelete,
@@ -136,102 +68,13 @@ function ScenesPageContent() {
     isDeleting,
     addItem,
     removeItem,
-  } = useSceneCRUD({
-    currentScene,
-    setCurrentScene,
-    generatedImage,
-    setCustomElement,
-    setCustomColor,
-    setGeneratedImage,
-    addAssetToLibrary,
-    generatePrompt,
-    success,
-    showError,
-    stories,
-    markDirty,
-    markClean,
-    onUpdateStoriesAfterDelete: async (sceneId, storiesList) => {
-      const updatedStories = storiesList.map((story) => {
-        const updatedBeats = (story.beats || []).map((beat) => {
-          const updated = { ...beat };
-          if (updated.sceneId === sceneId) delete updated.sceneId;
-          return updated;
-        });
-        const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
-        return { ...story, scenes: updatedScenes, beats: updatedBeats };
-      });
-      const failedStories: string[] = [];
-      const affectedStories = updatedStories.filter((updatedStory) => {
-        const original = storiesList.find((s) => s.id === updatedStory.id);
-        return original?.beats?.some((b) => b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
-      });
-      const results = await Promise.allSettled(
-        affectedStories.map((updatedStory) =>
-          storyService.update(updatedStory.id, updatedStory),
-        ),
-      );
-      results.forEach((result, i) => {
-        if (result.status === "rejected") {
-          errorLogger.warn("[Scenes] 更新关联故事异常", result.reason);
-          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
-        } else if (!result.value.ok) {
-          errorLogger.warn("[Scenes] 更新关联故事失败", { storyId: affectedStories[i]!.id, error: result.value.error });
-          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
-        }
-      });
-      if (failedStories.length > 0) {
-        showError(t("story.partialUpdateFailed"), t("story.partialUpdateFailedDetail", { items: failedStories.join("、") }));
-      }
-    },
-  });
-
-  const handleSaveRef = useRef(handleSave);
-  useEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
-
-  const handleSelectScene = useCallback(
-    async (scene: Scene) => {
-      if (currentScene.id && currentScene.id !== scene.id && isDirty("scenes")) {
-        if (
-          !(await confirm(
-            t("scene.unsavedChangesDesc"),
-            t("scene.unsavedChanges"),
-          ))
-        )
-          return;
-      }
-      setCurrentScene(scene);
-      setGeneratedImage(resolveImageUrl(scene.scenePath || scene.generatedImage) || null);
-    },
-    [currentScene.id, isDirty, setCurrentScene, setGeneratedImage],
-  );
-
-  const handleNewScene = useCallback(async () => {
-    if (currentScene.id && isDirty("scenes")) {
-      if (
-        !(await confirm(
-          t("scene.unsavedChangesDesc"),
-          t("scene.unsavedChanges"),
-        ))
-      )
-        return;
-    }
-    setCurrentScene(defaultScene);
-    setCustomElement("");
-    setCustomColor("");
-  }, [currentScene.id, isDirty, setCurrentScene]);
-
-  useGlobalKeyboardActions({
-    onSave: () => handleSaveRef.current(),
-  });
-
-  useEffect(() => {
-    if (!highlightId || scenes.length === 0) return;
-    const found = scenes.find((s) => s.id === highlightId);
-    if (found) {
-      setCurrentSceneRaw(found);
-      setGeneratedImage(found.generatedImage || found.scenePath || null);
-    }
-  }, [highlightId, scenes, setGeneratedImage]);
+    handleSelectScene,
+    handleNewScene,
+    handleAssetSelect,
+    showAssetSelector,
+    setShowAssetSelector,
+    isDirty,
+  } = useScenesPage();
 
   return (
     <PageErrorBoundary pageName={t("scene.pageName")}>
@@ -240,7 +83,7 @@ function ScenesPageContent() {
           scenes={scenes}
           scenesLoading={scenesLoading}
           currentSceneId={currentScene.id}
-          isDirty={isDirty("scenes")}
+          isDirty={isDirty}
           onSelectScene={handleSelectScene}
           onDeleteScene={handleDelete}
           onNewScene={handleNewScene}
@@ -353,7 +196,7 @@ function ScenesPageContent() {
               )}
 
               <ImageActionToolbar
-                isDirty={isDirty("scenes")}
+                isDirty={isDirty}
                 saveStatus={saveStatus}
                 saveError={saveError}
                 handleSave={handleSave}
@@ -393,24 +236,7 @@ function ScenesPageContent() {
         onOpenChange={setShowAssetSelector}
         assets={assets}
         description={t("scene.selectImage")}
-        onSelect={async (asset) => {
-          setGeneratedImage(asset.url);
-          if (currentScene.id) {
-            try {
-              const result = await sceneService.update(currentScene.id, {
-                ...currentScene,
-                scenePath: asset.url,
-                generatedImage: asset.url,
-              });
-              if (!result.ok) throw result.error;
-              queryClient.invalidateQueries({ queryKey: ["scenes"] });
-            } catch (err) {
-              showError(t("error.saveFailed"), mapUserFacingError(err));
-            }
-          }
-          setShowAssetSelector(false);
-          success(t("success.applied"), t("success.imageSelectedFromLibrary"));
-        }}
+        onSelect={handleAssetSelect}
       />
     </PageErrorBoundary>
   );

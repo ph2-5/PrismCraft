@@ -2,12 +2,12 @@ import { Wand2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { TemplateSelectDialog } from "./TemplateSelectDialog";
-import { useQuickGenerateState } from "./QuickGenerateState";
+import { useQuickGeneratePage } from "./hooks/useQuickGeneratePage";
 import { QuickGenerateForm } from "./QuickGenerateForm";
 import { QuickGenerateHistory } from "./QuickGenerateHistory";
 
 export default function QuickGeneratePage() {
-  const state = useQuickGenerateState();
+  const vm = useQuickGeneratePage();
 
   return (
     <PageErrorBoundary pageName={t("quickGenerate.pageName")}>
@@ -32,66 +32,66 @@ export default function QuickGeneratePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <QuickGenerateForm
-            promptText={state.promptText}
-            onPromptTextChange={state.setPromptText}
-            duration={state.duration}
-            onDurationChange={state.setDuration}
-            selectedStyle={state.selectedStyle}
-            onSelectedStyleChange={state.setSelectedStyle}
-            selectedResolution={state.selectedResolution}
-            onSelectedResolutionChange={state.setSelectedResolution}
-            selectedVideoModel={state.selectedVideoModel}
-            onSelectedVideoModelChange={state.setSelectedVideoModel}
-            selectedCharacters={state.selectedCharacters}
-            onToggleCharacter={state.toggleCharacter}
-            selectedScene={state.selectedScene}
-            onToggleScene={state.toggleScene}
-            showAdvanced={state.showAdvanced}
-            onToggleAdvanced={() => state.setShowAdvanced(!state.showAdvanced)}
-            enableSmartOptimization={state.enableSmartOptimization}
-            onSmartOptimizationChange={state.setEnableSmartOptimization}
-            negativePrompt={state.negativePrompt}
-            onNegativePromptChange={state.setNegativePrompt}
-            seed={state.seed}
-            onSeedChange={state.setSeed}
-            cfgScale={state.cfgScale}
-            onCfgScaleChange={state.setCfgScale}
-            referenceImage={state.referenceImage}
-            onReferenceImageChange={state.setReferenceImage}
-            referenceVideo={state.referenceVideo}
-            referenceVideoName={state.referenceVideoName}
-            onUploadReferenceVideo={state.handleUploadReferenceVideo}
-            onRemoveReferenceVideo={state.handleRemoveReferenceVideo}
-            isGenerating={state.isGenerating}
-            onGenerate={state.handleGenerate}
-            generatedPrompt={state.generatedPrompt}
-            onOpenTemplateDialog={() => state.setTemplateDialogOpen(true)}
-            characters={state.characters}
-            charactersLoading={state.charactersLoading}
-            scenes={state.scenes}
-            scenesLoading={state.scenesLoading}
-            guardedPush={state.guardedPush}
-            quickExamples={state.quickExamples}
+            promptText={vm.promptText}
+            onPromptTextChange={vm.onPromptTextChange}
+            duration={vm.duration}
+            onDurationChange={vm.onDurationChange}
+            selectedStyle={vm.selectedStyle}
+            onSelectedStyleChange={vm.onSelectedStyleChange}
+            selectedResolution={vm.selectedResolution}
+            onSelectedResolutionChange={vm.onSelectedResolutionChange}
+            selectedVideoModel={vm.selectedVideoModel}
+            onSelectedVideoModelChange={vm.onSelectedVideoModelChange}
+            selectedCharacters={vm.selectedCharacters}
+            onToggleCharacter={vm.onToggleCharacter}
+            selectedScene={vm.selectedScene}
+            onToggleScene={vm.onToggleScene}
+            showAdvanced={vm.showAdvanced}
+            onToggleAdvanced={vm.onToggleAdvanced}
+            enableSmartOptimization={vm.enableSmartOptimization}
+            onSmartOptimizationChange={vm.onSmartOptimizationChange}
+            negativePrompt={vm.negativePrompt}
+            onNegativePromptChange={vm.onNegativePromptChange}
+            seed={vm.seed}
+            onSeedChange={vm.onSeedChange}
+            cfgScale={vm.cfgScale}
+            onCfgScaleChange={vm.onCfgScaleChange}
+            referenceImage={vm.referenceImage}
+            onReferenceImageChange={vm.onReferenceImageChange}
+            referenceVideo={vm.referenceVideo}
+            referenceVideoName={vm.referenceVideoName}
+            onUploadReferenceVideo={vm.onUploadReferenceVideo}
+            onRemoveReferenceVideo={vm.onRemoveReferenceVideo}
+            isGenerating={vm.isGenerating}
+            onGenerate={vm.onGenerate}
+            generatedPrompt={vm.generatedPrompt}
+            onOpenTemplateDialog={vm.onOpenTemplateDialog}
+            characters={vm.characters}
+            charactersLoading={vm.charactersLoading}
+            scenes={vm.scenes}
+            scenesLoading={vm.scenesLoading}
+            guardedPush={vm.guardedPush}
+            quickExamples={vm.quickExamples}
           />
 
           <QuickGenerateHistory
-            currentTask={state.currentTask ?? null}
-            effectiveVideoUrl={state.effectiveVideoUrl}
-            tasks={state.tasks}
-            activeTaskId={state.activeTaskId ?? null}
-            isGenerating={state.isGenerating}
-            onDownload={state.handleDownload}
-            onSaveToAssets={state.handleSaveToAssets}
-            onRetry={state.handleRetry}
-            onClearCompleted={state.clearCompletedTasks}
-            characterPosterImage={state.getSelectedCharacterObjects()[0]?.generatedImage}
+            currentTask={vm.currentTask}
+            effectiveVideoUrl={vm.effectiveVideoUrl}
+            tasks={vm.tasks}
+            activeTaskId={vm.activeTaskId}
+            isGenerating={vm.isGenerating}
+            onDownload={vm.onDownload}
+            onSaveToAssets={vm.onSaveToAssets}
+            onRetry={vm.onRetry}
+            onClearCompleted={vm.onClearCompleted}
+            characterPosterImage={vm.characterPosterImage}
           />
         </div>
 
         <TemplateSelectDialog
-          open={state.templateDialogOpen}
-          onOpenChange={state.setTemplateDialogOpen}
-          onApplyTemplate={state.handleApplyTemplate}
+          open={vm.templateDialogOpen}
+          onOpenChange={vm.onTemplateDialogOpenChange}
+          onApplyTemplate={vm.onApplyTemplate}
         />
       </div>
     </PageErrorBoundary>

@@ -20,11 +20,11 @@ function ImagePlaceholder({ width, height, fill, className, alt }: {
     return (
       <div
         className={className}
-        style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(100,116,139,0.1)" }}
+        style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--muted)" }}
         role="img"
         aria-label={alt}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-400">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted-fg)" strokeWidth="1.5">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
           <path d="m21 15-5-5L5 21" />
@@ -35,11 +35,11 @@ function ImagePlaceholder({ width, height, fill, className, alt }: {
   return (
     <div
       className={className}
-      style={{ width: width ?? DEFAULT_IMAGE_SIZE, height: height ?? DEFAULT_IMAGE_SIZE, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(100,116,139,0.1)", borderRadius: 4 }}
+      style={{ width: width ?? DEFAULT_IMAGE_SIZE, height: height ?? DEFAULT_IMAGE_SIZE, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--muted)", borderRadius: 4 }}
       role="img"
       aria-label={alt}
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-400">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted-fg)" strokeWidth="1.5">
         <rect x="3" y="3" width="18" height="18" rx="2" />
         <circle cx="8.5" cy="8.5" r="1.5" />
         <path d="m21 15-5-5L5 21" />

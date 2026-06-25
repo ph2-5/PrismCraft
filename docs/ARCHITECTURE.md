@@ -1220,7 +1220,7 @@ describe("ComponentName", () => {
 **electron-builder 打包**：
 - `out/` 打包为 asar（Electron 应用归档格式）
 - better-sqlite3 原生模块通过 `asarUnpack` 解包（原生 .node 文件无法在 asar 内加载）
-- 构建时依赖（vite、@vitejs/plugin-react、sharp、shadcn）排除在 electron-builder `files` 外，减小包体积
+- 构建时依赖（vite、@vitejs/plugin-react、sharp）排除在 electron-builder `files` 外，减小包体积
 
 **发布流程**：
 - 推送 `v*` tag 触发 GitHub Actions release workflow

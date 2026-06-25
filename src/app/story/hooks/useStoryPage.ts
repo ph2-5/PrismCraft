@@ -12,6 +12,13 @@ import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { confirm } from "@/shared/utils/confirm";
 import { useStory } from "../StoryProvider";
 
+export type StoryTab =
+  | "storyboard"
+  | "ai-generate"
+  | "preview-export"
+  | "comments"
+  | "audio";
+
 interface AutoSaveSettingsData {
   enabled?: boolean;
   interval?: number;
@@ -24,7 +31,7 @@ function useAutoSaveSettings() {
   return { enabled, intervalMinutes };
 }
 
-const PROMPT_FIELD_MAP: Record<PromptEditorContext, "imageGenerationPrompt" | "firstFramePrompt" | "lastFramePrompt"> = {
+const PROMPT_FIELD_MAP: Record<Exclude<PromptEditorContext, "video">, "imageGenerationPrompt" | "firstFramePrompt" | "lastFramePrompt"> = {
   keyframe: "imageGenerationPrompt",
   firstFrame: "firstFramePrompt",
   lastFrame: "lastFramePrompt",
@@ -56,6 +63,9 @@ export function useStoryPage() {
   const [showSwitchConfirmDialog, setShowSwitchConfirmDialog] = useState(false);
   const [pendingSwitchStory, setPendingSwitchStory] = useState<(typeof story.stories)[number] | null>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+
+  // ── UI 状态:当前激活的 Tab ──
+  const [activeTab, setActiveTab] = useState<StoryTab>("storyboard");
 
   const generateVideo = useCallback(async () => {
     if (isGeneratingRef.current) return;
@@ -155,9 +165,16 @@ export function useStoryPage() {
 
   const handlePromptChange = useCallback(
     (beatId: string, context: PromptEditorContext, prompt: string) => {
+      if (context === "video") {
+        const beat = story.beats.find((b) => b.id === beatId);
+        updateBeat(beatId, {
+          videoGen: { ...(beat?.videoGen ?? {}), prompt },
+        });
+        return;
+      }
       updateBeat(beatId, { [PROMPT_FIELD_MAP[context]]: prompt });
     },
-    [updateBeat],
+    [updateBeat, story.beats],
   );
 
   const handleToggleGenerationEnhanced = async (enabled: boolean) => {
@@ -224,5 +241,8 @@ export function useStoryPage() {
     handlePromptChange,
     // Generation enhanced toggle
     handleToggleGenerationEnhanced,
+    // UI 状态
+    activeTab,
+    setActiveTab,
   };
 }

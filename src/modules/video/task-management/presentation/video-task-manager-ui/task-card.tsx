@@ -63,7 +63,8 @@ export const TaskCard = memo(function TaskCard({
                 e.stopPropagation();
                 onToggleSelection(task.taskId);
               }}
-              className="h-4 w-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-gray-600 focus:ring-blue-500"
+              style={{ color: "var(--primary)" }}
             />
             <StatusBadge status={getTaskDisplayStatus(task.status)} />
             <div>
@@ -158,7 +159,7 @@ export const TaskCard = memo(function TaskCard({
           {task.message && (
             <div>
               <p className="text-sm text-muted-foreground mb-1">{t("task.messageLabel")}</p>
-              <p className="text-sm text-yellow-400">{task.message}</p>
+              <p className="text-sm" style={{ color: "var(--warning)" }}>{task.message}</p>
             </div>
           )}
         </CardContent>

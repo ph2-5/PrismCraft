@@ -91,11 +91,12 @@ export function FramePairStepContent({
               status === "completed"
                 ? "bg-emerald-500/20 text-emerald-400"
                 : status === "generating"
-                  ? "bg-blue-500/20 text-blue-400"
+                  ? "bg-blue-500/20"
                   : status === "pending"
                     ? "bg-slate-700/50 text-slate-500"
                     : "bg-slate-700/50 text-slate-400"
             }`}
+            style={status === "generating" ? { color: "var(--primary)" } : undefined}
           >
             {status === "generating" ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -112,7 +113,7 @@ export function FramePairStepContent({
                 <span className="text-xs text-emerald-400">✓</span>
               )}
               {status === "generating" && (
-                <span className="text-xs text-blue-400 animate-pulse">
+                <span className="text-xs animate-pulse" style={{ color: "var(--primary)" }}>
                   {t("keyframe.generating")}
                 </span>
               )}

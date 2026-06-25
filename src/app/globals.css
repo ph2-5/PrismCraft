@@ -69,7 +69,13 @@
   --info: #6366f1;
   --sidebar-w: 220px;
 
-  /* Tailwind shims（保持 shadcn/ui 兼容） */
+  /* RGB components for semi-transparent usage */
+  --primary-rgb: 99, 102, 241;
+  --success-rgb: 16, 185, 129;
+  --warning-rgb: 245, 158, 11;
+  --destructive-rgb: 239, 68, 68;
+
+  /* Tailwind 语义变量映射（@theme inline 引用） */
   --background: #0a0a0f;
   --foreground: #f1f5f9;
   --card: #13131a;
@@ -119,6 +125,7 @@
   --border: #1b3a4b; --muted: #1b3a4b; --muted-fg: #80cbc4;
   --primary: #00e5ff; --primary-hover: #18ffff; --accent: #00bcd4;
   --destructive: #ff1744; --success: #00e676; --warning: #ffc400; --info: #00e5ff;
+  --primary-rgb: 0, 229, 255; --success-rgb: 0, 230, 118; --warning-rgb: 255, 196, 0; --destructive-rgb: 255, 23, 68;
   --background: #0a0f1a; --foreground: #e0f7fa; --card: #0d1b2a; --card-foreground: #e0f7fa;
   --popover: #0d1b2a; --popover-foreground: #e0f7fa;
   --primary: #00e5ff; --primary-foreground: #0a0f1a;
@@ -136,6 +143,7 @@
   --border: #44362a; --muted: #44362a; --muted-fg: #d4a574;
   --primary: #f59e0b; --primary-hover: #fbbf24; --accent: #d97706;
   --destructive: #ef4444; --success: #84cc16; --warning: #f59e0b; --info: #f59e0b;
+  --primary-rgb: 245, 158, 11; --success-rgb: 132, 204, 22; --warning-rgb: 245, 158, 11; --destructive-rgb: 239, 68, 68;
   --background: #1a1410; --foreground: #fef3c7; --card: #292017; --card-foreground: #fef3c7;
   --popover: #292017; --popover-foreground: #fef3c7;
   --primary: #f59e0b; --primary-foreground: #1a1410;
@@ -153,6 +161,7 @@
   --border: #27272a; --muted: #27272a; --muted-fg: #71717a;
   --primary: #a1a1aa; --primary-hover: #d4d4d8; --accent: #3f3f46;
   --destructive: #ef4444; --success: #22c55e; --warning: #eab308; --info: #a1a1aa;
+  --primary-rgb: 161, 161, 170; --success-rgb: 34, 197, 94; --warning-rgb: 234, 179, 8; --destructive-rgb: 239, 68, 68;
   --background: #09090b; --foreground: #fafafa; --card: #18181b; --card-foreground: #fafafa;
   --popover: #18181b; --popover-foreground: #fafafa;
   --primary: #a1a1aa; --primary-foreground: #09090b;
@@ -170,6 +179,7 @@
   --border: #2d1b4e; --muted: #2d1b4e; --muted-fg: #c084fc;
   --primary: #a855f7; --primary-hover: #c084fc; --accent: #9333ea;
   --destructive: #ef4444; --success: #34d399; --warning: #fbbf24; --info: #a855f7;
+  --primary-rgb: 168, 85, 247; --success-rgb: 52, 211, 153; --warning-rgb: 251, 191, 36; --destructive-rgb: 239, 68, 68;
   --background: #0f0a1a; --foreground: #f3e8ff; --card: #1a1128; --card-foreground: #f3e8ff;
   --popover: #1a1128; --popover-foreground: #f3e8ff;
   --primary: #a855f7; --primary-foreground: #0f0a1a;
@@ -187,6 +197,7 @@
   --border: #1a3d2e; --muted: #1a3d2e; --muted-fg: #6ee7b7;
   --primary: #10b981; --primary-hover: #34d399; --accent: #059669;
   --destructive: #ef4444; --success: #10b981; --warning: #f59e0b; --info: #10b981;
+  --primary-rgb: 16, 185, 129; --success-rgb: 16, 185, 129; --warning-rgb: 245, 158, 11; --destructive-rgb: 239, 68, 68;
   --background: #0a1a14; --foreground: #d1fae5; --card: #0f2920; --card-foreground: #d1fae5;
   --popover: #0f2920; --popover-foreground: #d1fae5;
   --primary: #10b981; --primary-foreground: #0a1a14;

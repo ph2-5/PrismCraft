@@ -9,7 +9,7 @@ import type { SearchResult } from "@/domain/schemas";
 const ROUTE_MAP: Record<SearchResult["type"], string> = {
   character: "/characters",
   scene: "/scenes",
-  story: "/story",
+  story: "/storyboard",
 };
 
 export function SidebarWithSearch() {

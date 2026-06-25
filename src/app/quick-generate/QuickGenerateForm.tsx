@@ -8,16 +8,6 @@ import {
   LayoutTemplate,
   Image,
 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { Textarea } from "@/shared/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/shared/ui/card";
-import { Label } from "@/shared/ui/label";
 import { t } from "@/shared/constants";
 import { ModelSelector } from "@/modules/prompt";
 import type { Character, Scene, ModelSelection } from "@/domain/schemas";
@@ -123,67 +113,109 @@ export function QuickGenerateForm({
 
   return (
     <div className="lg:col-span-2 space-y-6">
-      <Card className="border-2 border-purple-800/30 bg-slate-900/80 backdrop-blur">
-        <CardHeader>
+      <div
+        className="card"
+        style={{
+          padding: 16,
+          border: "2px solid rgba(91, 33, 116, 0.3)",
+          background: "rgba(15, 23, 42, 0.8)",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <div style={{ padding: "12px 16px 4px" }}>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl flex items-center gap-2">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: "var(--fg)",
+                }}
+              >
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 {t("quickGenerate.describeVideo")}
-              </CardTitle>
-              <CardDescription>
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--muted-fg)",
+                  marginTop: 4,
+                }}
+              >
                 {t("quickGenerate.describeVideoDesc")}
-              </CardDescription>
+              </div>
             </div>
-            <Button
-              variant="outline"
+            <button
+              type="button"
+              className="btn btn-outline"
               onClick={onOpenTemplateDialog}
-              className="gap-2 border-purple-700 hover:bg-purple-900/20 text-purple-200"
             >
               <LayoutTemplate className="w-4 h-4" />
               {t("quickGenerate.selectTemplate")}
-            </Button>
+            </button>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
+        </div>
+        <div style={{ padding: "0 16px 16px" }} className="space-y-4">
+          <textarea
+            className="textarea"
+            style={{ fontSize: 12, minHeight: "8rem", resize: "vertical" }}
             value={promptText}
             onChange={(e) => onPromptTextChange(e.target.value)}
             placeholder={t("story.quickPromptPlaceholder")}
-            className="min-h-32 text-base resize-y bg-slate-800 border-slate-700 focus:border-purple-500"
           />
           <p className="text-sm text-slate-500">
             {t("quickGenerate.promptHint")}
           </p>
 
           <div className="pt-4">
-            <Label className="text-sm text-slate-400 mb-2 block">
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                color: "var(--muted-fg)",
+                marginBottom: 8,
+              }}
+            >
               {t("quickGenerate.quickTry")}
-            </Label>
+            </label>
             <div className="flex flex-wrap gap-2">
               {quickExamples.map((example) => (
-                <Button
+                <button
                   key={example}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs border-slate-700 hover:border-purple-600 hover:bg-purple-900/20 text-slate-300"
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  style={{ fontSize: 11 }}
                   onClick={() => onPromptTextChange(example)}
                 >
                   {example.length > 20 ? `${example.slice(0, 20)}...` : example}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border border-slate-800 bg-slate-900/60">
-        <CardHeader>
-          <CardTitle className="text-lg">{t("quickGenerate.configVideoParams")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <div
+        className="card"
+        style={{
+          padding: 16,
+          border: "1px solid var(--border)",
+          background: "rgba(15, 23, 42, 0.6)",
+        }}
+      >
+        <div style={{ padding: "12px 16px 4px" }}>
+          <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>
+            {t("quickGenerate.configVideoParams")}
+          </div>
+        </div>
+        <div style={{ padding: "0 16px 16px" }} className="space-y-6">
           <div className="space-y-2">
-            <Label className="text-slate-300">{t("quickGenerate.videoModel")}</Label>
+            <label style={{ fontSize: 13, color: "var(--fg)" }}>
+              {t("quickGenerate.videoModel")}
+            </label>
             <ModelSelector
               capability="video"
               value={selectedVideoModel}
@@ -206,10 +238,18 @@ export function QuickGenerateForm({
           />
 
           <div className="space-y-2">
-            <Label className="text-slate-300 flex items-center gap-2">
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 13,
+                color: "var(--fg)",
+              }}
+            >
               <User className="w-4 h-4" />
               {t("quickGenerate.lockMainCharacter")}
-            </Label>
+            </label>
             {charactersLoading ? (
               <div className="flex items-center gap-2 p-3">
                 <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -245,34 +285,46 @@ export function QuickGenerateForm({
                     )}
                   </button>
                 ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-dashed border-slate-600"
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  style={{ borderStyle: "dashed", borderColor: "var(--muted)" }}
                   onClick={() => guardedPush("/characters")}
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   {t("quickGenerate.newCharacter")}
-                </Button>
+                </button>
               </div>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-dashed border-slate-600 w-full"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                style={{
+                  borderStyle: "dashed",
+                  borderColor: "var(--muted)",
+                  width: "100%",
+                }}
                 onClick={() => guardedPush("/characters")}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t("scene.createCharacterHint")}
-              </Button>
+              </button>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300 flex items-center gap-2">
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 13,
+                color: "var(--fg)",
+              }}
+            >
               <Image className="w-4 h-4" />
               {t("quickGenerate.lockScene")}
-            </Label>
+            </label>
             {scenesLoading ? (
               <div className="flex items-center gap-2 p-3">
                 <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -308,30 +360,34 @@ export function QuickGenerateForm({
                     )}
                   </button>
                 ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-dashed border-slate-600"
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  style={{ borderStyle: "dashed", borderColor: "var(--muted)" }}
                   onClick={() => guardedPush("/scenes")}
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   {t("scene.createNewScene")}
-                </Button>
+                </button>
               </div>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-dashed border-slate-600 w-full"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                style={{
+                  borderStyle: "dashed",
+                  borderColor: "var(--muted)",
+                  width: "100%",
+                }}
                 onClick={() => guardedPush("/scenes")}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t("scene.createSceneHint")}
-              </Button>
+              </button>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <AdvancedSettingsCard
         showAdvanced={showAdvanced}
@@ -348,9 +404,16 @@ export function QuickGenerateForm({
         onRemoveReferenceVideo={onRemoveReferenceVideo}
       />
 
-      <Button
-        size="lg"
-        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-xl shadow-purple-900/30"
+      <button
+        type="button"
+        className="btn btn-primary"
+        style={{
+          width: "100%",
+          height: 56,
+          fontSize: 18,
+          fontWeight: 600,
+          background: "linear-gradient(to right, #9333ea, #db2777)",
+        }}
         onClick={onGenerate}
         disabled={isGenerating || !promptText.trim()}
       >
@@ -365,21 +428,37 @@ export function QuickGenerateForm({
             {t("task.generateVideoNow")}
           </>
         )}
-      </Button>
+      </button>
 
       {generatedPrompt && (
-        <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
+        <div
+          className="card"
+          style={{
+            padding: 16,
+            border: "1px solid var(--border)",
+            background: "var(--card)",
+          }}
+        >
+          <div style={{ padding: "12px 16px 4px" }}>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: "var(--fg)",
+              }}
+            >
               {t("task.actualPromptSent")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
+            </div>
+          </div>
+          <div style={{ padding: "0 16px 16px" }}>
+            <p
+              className="whitespace-pre-wrap break-all max-h-32 overflow-y-auto"
+              style={{ fontSize: 12, color: "var(--muted-fg)" }}
+            >
               {generatedPrompt}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

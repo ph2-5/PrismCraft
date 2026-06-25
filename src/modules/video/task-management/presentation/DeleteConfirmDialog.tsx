@@ -41,14 +41,14 @@ export function DeleteConfirmDialog({
         {task && (
           <div className="space-y-2 py-4">
             <div className="text-sm">
-              <span className="text-gray-500">{t("task.taskLabel")}:</span>{" "}
+              <span style={{ color: "var(--muted-fg)" }}>{t("task.taskLabel")}:</span>{" "}
               <span className="font-medium">
                 {task.beatTitle || `${t("task.taskLabel")} ${(task.taskId || "unknown").substring(0, 8)}...`}
               </span>
             </div>
             {cacheFileSizeMB !== undefined && (
               <div className="text-sm">
-                <span className="text-gray-500">{t("task.sizeLabel")}:</span>{" "}
+                <span style={{ color: "var(--muted-fg)" }}>{t("task.sizeLabel")}:</span>{" "}
                 <span className="font-medium">{cacheFileSizeMB.toFixed(2)} MB</span>
               </div>
             )}

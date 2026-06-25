@@ -105,7 +105,6 @@
 | `ModelSelector` | `React.FC<ModelSelectorProps>` | 模型选择器组件 |
 | `useModelSelection` | `() → ModelSelection` | 模型选择 Hook |
 | `ModelSelection` | `type` | 模型选择类型 |
-| `ConfigCheckBanner` | `React.FC` | 配置检查横幅组件 |
 
 ---
 

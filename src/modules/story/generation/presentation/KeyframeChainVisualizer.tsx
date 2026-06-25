@@ -108,7 +108,7 @@ export function KeyframeChainVisualizer({
                   {/* 状态指示器 */}
                   <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center">
                     {item.hasVideo ? (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-500 bg-slate-900 rounded-full" />
+                      <CheckCircle className="w-3.5 h-3.5 bg-slate-900 rounded-full" style={{ color: "var(--success)" }} />
                     ) : item.hasFramePair ? (
                       <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-slate-900" />
                     ) : (

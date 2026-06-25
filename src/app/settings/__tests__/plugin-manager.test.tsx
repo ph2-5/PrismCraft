@@ -76,27 +76,6 @@ vi.mock("@/shared/constants", () => ({
   },
 }));
 
-vi.mock("@/shared/ui/card", () => ({
-  Card: ({ children }: { children: React.ReactNode }) => <div data-testid="card">{children}</div>,
-  CardHeader: ({ children }: { children: React.ReactNode }) => <div data-testid="card-header">{children}</div>,
-  CardTitle: ({ children, className }: { children: React.ReactNode; className?: string }) => <div data-testid="card-title" className={className}>{children}</div>,
-  CardDescription: ({ children }: { children: React.ReactNode }) => <div data-testid="card-desc">{children}</div>,
-  CardContent: ({ children, className }: { children: React.ReactNode; className?: string }) => <div data-testid="card-content" className={className}>{children}</div>,
-}));
-
-vi.mock("@/shared/ui/button", () => ({
-  Button: ({ children, onClick, disabled, variant, size }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; variant?: string; size?: string }) => (
-    <button onClick={onClick} disabled={disabled} data-variant={variant} data-size={size}>
-      {children}
-    </button>
-  ),
-}));
-
-vi.mock("@/shared/ui/alert", () => ({
-  Alert: ({ children, variant }: { children: React.ReactNode; variant?: string }) => <div data-testid="alert" data-variant={variant}>{children}</div>,
-  AlertDescription: ({ children }: { children: React.ReactNode }) => <div data-testid="alert-desc">{children}</div>,
-}));
-
 vi.mock("../PluginList", () => ({
   PluginList: ({ builtInPlugins, declarativePlugins, codePlugins, onDelete, onToggleExpand: _onToggleExpand, expandedPlugin }: {
     builtInPlugins: Array<{ id: string; displayName: string }>;
@@ -432,10 +411,10 @@ describe("PluginManager", () => {
     render(<PluginManager />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("alert")).toBeInTheDocument();
+      expect(screen.getByText(/plugin.invalidPluginsExist/)).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("alert")).toHaveAttribute("data-variant", "destructive");
+    expect(screen.getByText(/bad\.plugin\.json/)).toBeInTheDocument();
   });
 
   it("shows PluginCreator when create plugin button is clicked", async () => {

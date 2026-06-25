@@ -1,4 +1,3 @@
-import { Button } from "@/shared/ui/button";
 import { Sparkles, Video } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveImageUrl } from "@/shared/utils/image-url";
@@ -33,11 +32,11 @@ export function VideoGeneratorToolbar({ story, isGenerating, onGenerateVideo }: 
         value={story.selectedImageModel}
         onChange={story.setSelectedImageModel}
       />
-      <Button
-        size="sm"
+      <button
+        type="button"
+        className="btn btn-primary btn-sm gap-1.5 h-8 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"
         onClick={onGenerateVideo}
         disabled={isGenerating}
-        className="gap-1.5 h-8 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"
       >
         {isGenerating ? (
           <Sparkles className="w-3.5 h-3.5 animate-spin" />
@@ -45,7 +44,7 @@ export function VideoGeneratorToolbar({ story, isGenerating, onGenerateVideo }: 
           <Video className="w-3.5 h-3.5" />
         )}
         {isGenerating ? t("common.generating") : t("beat.generateVideo")}
-      </Button>
+      </button>
     </>
   );
 }

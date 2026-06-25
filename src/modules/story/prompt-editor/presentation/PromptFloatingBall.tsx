@@ -22,6 +22,7 @@ const CONTEXT_SHORT: Record<PromptEditorContext, string> = {
   keyframe: t("prompt.keyframeShort"),
   firstFrame: t("prompt.firstFrameShort"),
   lastFrame: t("prompt.lastFrameShort"),
+  video: t("prompt.videoShort"),
 };
 
 interface ChatMessage {
@@ -333,6 +334,8 @@ function getContextHint(
     if (keyframeImageUrl) {
       parts.push(t("prompt.hasPreviewRef"));
     }
+  } else if (context === "video") {
+    parts.push(t("prompt.videoHint"));
   } else {
     parts.push(t("prompt.keyframeHint"));
   }

@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/shared/ui/button";
 import { Home } from "lucide-react";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
@@ -15,10 +14,14 @@ export default function NotFound() {
         <p className="text-muted-foreground text-center max-w-md">
           {t("page.notFoundDesc")}
         </p>
-        <Button onClick={() => navigate("/")}>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={() => navigate("/")}
+        >
           <Home className="w-4 h-4 mr-2" />
           {t("page.backToHome")}
-        </Button>
+        </button>
       </div>
     </PageErrorBoundary>
   );

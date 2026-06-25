@@ -7,48 +7,70 @@ import {
   Ban,
   Timer,
 } from "lucide-react";
+import type { CSSProperties } from "react";
 import type { VideoTaskStatus } from "@/domain/schemas";
 import { t } from "@/shared/constants";
 
 export function getStatusIcon(status: VideoTaskStatus) {
   switch (status) {
     case "pending":
-      return <Clock className="w-4 h-4 text-yellow-500" />;
+      return <Clock className="w-4 h-4" style={{ color: "var(--warning)" }} />;
     case "generating":
-      return <PlayCircle className="w-4 h-4 text-blue-500" />;
+      return <PlayCircle className="w-4 h-4" style={{ color: "var(--primary)" }} />;
     case "completed":
-      return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      return <CheckCircle2 className="w-4 h-4" style={{ color: "var(--success)" }} />;
     case "failed":
-      return <XCircle className="w-4 h-4 text-red-500" />;
+      return <XCircle className="w-4 h-4" style={{ color: "var(--destructive)" }} />;
     case "retrying":
       return <RotateCcw className="w-4 h-4 text-orange-500" />;
     case "cancelled":
-      return <Ban className="w-4 h-4 text-gray-500" />;
+      return <Ban className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />;
     case "timeout":
       return <Timer className="w-4 h-4 text-orange-500" />;
     default:
-      return <Clock className="w-4 h-4 text-gray-500" />;
+      return <Clock className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />;
   }
 }
 
 export function getStatusColor(status: VideoTaskStatus) {
   switch (status) {
     case "pending":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      return "";
     case "generating":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      return "";
     case "completed":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      return "";
     case "failed":
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      return "";
     case "retrying":
-      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      return "";
     case "cancelled":
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+      return "";
     case "timeout":
-      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      return "";
     default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+      return "";
+  }
+}
+
+export function getStatusStyle(status: VideoTaskStatus): CSSProperties {
+  switch (status) {
+    case "pending":
+      return { background: "rgba(var(--warning-rgb), 0.1)", color: "var(--warning)" };
+    case "generating":
+      return { background: "rgba(var(--primary-rgb), 0.1)", color: "var(--primary)" };
+    case "completed":
+      return { background: "rgba(var(--success-rgb), 0.1)", color: "var(--success)" };
+    case "failed":
+      return { background: "rgba(var(--destructive-rgb), 0.1)", color: "var(--destructive)" };
+    case "retrying":
+      return { background: "rgba(var(--warning-rgb), 0.1)", color: "var(--warning)" };
+    case "cancelled":
+      return { background: "var(--muted)", color: "var(--muted-fg)" };
+    case "timeout":
+      return { background: "rgba(var(--warning-rgb), 0.1)", color: "var(--warning)" };
+    default:
+      return { background: "var(--muted)", color: "var(--muted-fg)" };
   }
 }
 

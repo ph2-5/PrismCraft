@@ -112,19 +112,20 @@ export default function TemplateManagerDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[680px] max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
+          <h2 className="text-lg font-semibold" style={{ color: "var(--muted-fg)" }}>
             {t("template.managerTitle")}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            style={{ color: "var(--muted-fg)" }}
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
+        <div className="flex border-b" style={{ borderColor: "var(--border)" }}>
           {[
             { key: "load", label: t("template.myTemplates"), icon: FileText },
             { key: "save", label: t("template.saveTemplate"), icon: Plus },
@@ -135,9 +136,10 @@ export default function TemplateManagerDialog({
               onClick={() => setActiveTab(key as "load" | "save" | "import")}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === key
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  ? "border-blue-500"
                   : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
+              style={activeTab === key ? { color: "var(--primary)" } : undefined}
             >
               <Icon size={16} />
               {label}
@@ -149,7 +151,7 @@ export default function TemplateManagerDialog({
           {activeTab === "load" && (
             <div className="space-y-3">
               {savedTemplates.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12" style={{ color: "var(--muted-fg)" }}>
                   <Film size={48} className="mx-auto mb-3 opacity-50" />
                   <p>{t("template.noCustomTemplates")}</p>
                   <p className="text-sm mt-1">
@@ -172,11 +174,11 @@ export default function TemplateManagerDialog({
 
           {activeTab === "save" && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
                 {t("template.saveCurrentAsTemplate", { count: currentBeats.length })}
               </p>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: "var(--muted-fg)" }}>
                   {t("template.templateName")}
                 </label>
                 <input
@@ -184,11 +186,11 @@ export default function TemplateManagerDialog({
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
                   placeholder={t("template.templateNamePlaceholder")}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: "var(--muted-fg)" }}>
                   {t("template.description")}
                 </label>
                 <textarea
@@ -196,18 +198,18 @@ export default function TemplateManagerDialog({
                   onChange={(e) => setTemplateDesc(e.target.value)}
                   placeholder={t("template.descriptionPlaceholder")}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium mb-1" style={{ color: "var(--muted-fg)" }}>
                     {t("template.category")}
                   </label>
                   <select
                     value={templateCategory}
                     onChange={(e) => setTemplateCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
                   >
                     {TEMPLATE_CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
@@ -217,7 +219,7 @@ export default function TemplateManagerDialog({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium mb-1" style={{ color: "var(--muted-fg)" }}>
                     {t("template.genre")}
                   </label>
                   <input
@@ -225,13 +227,13 @@ export default function TemplateManagerDialog({
                     value={templateGenre}
                     onChange={(e) => setTemplateGenre(e.target.value)}
                     placeholder={t("template.genrePlaceholder")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium mb-1" style={{ color: "var(--muted-fg)" }}>
                     {t("template.tone")}
                   </label>
                   <input
@@ -239,11 +241,11 @@ export default function TemplateManagerDialog({
                     value={templateTone}
                     onChange={(e) => setTemplateTone(e.target.value)}
                     placeholder={t("template.tonePlaceholder")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium mb-1" style={{ color: "var(--muted-fg)" }}>
                     {t("template.tagsComma")}
                   </label>
                   <input
@@ -251,7 +253,7 @@ export default function TemplateManagerDialog({
                     value={templateTags}
                     onChange={(e) => setTemplateTags(e.target.value)}
                     placeholder={t("template.tagsPlaceholder")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
                   />
                 </div>
               </div>
@@ -268,15 +270,15 @@ export default function TemplateManagerDialog({
           {activeTab === "import" && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <h3 className="font-medium mb-2" style={{ color: "var(--muted-fg)" }}>
                   {t("template.importTemplate")}
                 </h3>
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                 >
-                  <Upload size={32} className="mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm text-gray-500">
+                  <Upload size={32} className="mx-auto mb-2" style={{ color: "var(--muted-fg)" }} />
+                  <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
                     {t("template.clickToSelectFile")}
                   </p>
                 </div>
@@ -288,16 +290,16 @@ export default function TemplateManagerDialog({
                   className="hidden"
                 />
                 {importError && (
-                  <p className="text-sm text-red-500 mt-2">{importError}</p>
+                  <p className="text-sm mt-2" style={{ color: "var(--destructive)" }}>{importError}</p>
                 )}
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <div className="border-t pt-4" style={{ borderColor: "var(--border)" }}>
+                <h3 className="font-medium mb-2" style={{ color: "var(--muted-fg)" }}>
                   {t("template.batchExport")}
                 </h3>
                 {savedTemplates.length === 0 ? (
-                  <p className="text-sm text-gray-400">{t("template.noTemplatesToExport")}</p>
+                  <p className="text-sm" style={{ color: "var(--muted-fg)" }}>{t("template.noTemplatesToExport")}</p>
                 ) : (
                   <button
                     onClick={() => {

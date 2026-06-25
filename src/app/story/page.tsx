@@ -1,24 +1,13 @@
 "use client";
 
-import { Button } from "@/shared/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Input } from "@/shared/ui/input";
 import { Trash2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { ProfessionalModeEditor } from "@/modules/story";
 import { VersionDialog } from "@/modules/story";
 import { TemplateManagerDialog } from "@/modules/story";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
+import { ComingSoon } from "@/shared/presentation/ComingSoon";
 import { StoryProvider } from "./StoryProvider";
-import { StoryHeader } from "./StoryHeader";
-import { VideoGeneratorToolbar, VideoGeneratorPanel } from "./VideoGeneratorSection";
 import { SwitchConfirmDialog } from "./SwitchConfirmDialog";
 import { useStoryPage } from "./hooks/useStoryPage";
 
@@ -26,11 +15,8 @@ function StoryPageContent() {
   const {
     story,
     isGenerating,
-    generatedVideo,
-    generateVideo,
     showSwitchConfirmDialog,
     pendingSwitchStory,
-    switchStory,
     handleSaveAndSwitch,
     handleSwitchConfirmOpenChange,
     handleSwitchWithoutSave,
@@ -40,57 +26,150 @@ function StoryPageContent() {
     handleDeleteCancel,
     handlePromptChange,
     handleToggleGenerationEnhanced,
+    activeTab,
+    setActiveTab,
   } = useStoryPage();
 
   return (
     <PageErrorBoundary pageName={t("page.storyboard")}>
-      <div className="h-full flex flex-col">
-        <div className="shrink-0 border-b border-border bg-card px-4 py-3">
-          <div className="flex items-center gap-3">
-            <StoryHeader story={story} onSwitchStory={switchStory} />
-            <VideoGeneratorToolbar story={story} isGenerating={isGenerating} onGenerateVideo={generateVideo} />
+      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <button
+              type="button"
+              className={`top-tab ${activeTab === "storyboard" ? "active" : ""}`}
+              onClick={() => setActiveTab("storyboard")}
+            >
+              {t("story.tab.storyboard")}
+            </button>
+            <button
+              type="button"
+              className={`top-tab ${activeTab === "ai-generate" ? "active" : ""}`}
+              onClick={() => setActiveTab("ai-generate")}
+            >
+              {t("story.tab.aiGenerate")}
+            </button>
+            <button
+              type="button"
+              className={`top-tab ${activeTab === "preview-export" ? "active" : ""}`}
+              onClick={() => setActiveTab("preview-export")}
+            >
+              {t("story.tab.previewExport")}
+            </button>
+            <button
+              type="button"
+              className={`top-tab ${activeTab === "comments" ? "active" : ""}`}
+              onClick={() => setActiveTab("comments")}
+            >
+              {t("story.tab.comments")}
+            </button>
+            <button
+              type="button"
+              className={`top-tab ${activeTab === "audio" ? "active" : ""}`}
+              onClick={() => setActiveTab("audio")}
+            >
+              {t("story.tab.audio")}
+            </button>
+          </div>
+          <div className="toolbar" style={{ paddingRight: 8 }}>
+            <span style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+              {story.currentStory.title || t("beat.unnamedProject")}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              onClick={() => story.setVersionDialogOpen(true)}
+            >
+              {t("story.snapshot")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              onClick={() => story.setTemplateDialogOpen(true)}
+            >
+              {t("story.templateBtn")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={story.handleSave}
+              disabled={story.saveStatus === "saving"}
+            >
+              {t("common.save")}
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0">
-          <ProfessionalModeEditor
-            currentStory={story.currentStory}
-            beats={story.beats}
-            characters={story.characters}
-            scenes={story.scenes}
-            assets={story.assets}
-            onUpdateBeat={story.updateBeat}
-            onAddBeat={story.addBeat}
-            onDeleteBeat={story.deleteBeat}
-            onMoveBeat={story.moveBeat}
-            onReorderBeats={story.setBeats}
-            onPlanStoryWithAI={story.planStoryWithAI}
-            onOpenTemplateDialog={() => story.setTemplateDialogOpen(true)}
-            onOpenVersionDialog={() => story.setVersionDialogOpen(true)}
-            isGenerating={isGenerating}
-            isPlanningStory={story.isPlanningStory}
-            generationEnhanced={story.generationEnhanced}
-            onToggleGenerationEnhanced={handleToggleGenerationEnhanced}
-            onGenerateKeyframe={story.generateKeyframe}
-            onGenerateFramePair={story.generateFramePair}
-            onGenerateVideoNew={story.generateVideoNew}
-            onRegenerateKeyframe={story.regenerateKeyframe}
-            generatingKeyframe={story.generatingBeats}
-            onUploadKeyframe={story.handleUploadKeyframe}
-            onUploadFirstFrame={story.handleUploadFirstFrame}
-            onUploadLastFrame={story.handleUploadLastFrame}
-            onUploadVideo={story.handleUploadVideo}
-            onBatchGenerateKeyframes={story.batchGenerateKeyframes}
-            onBatchGenerateFramePairs={story.batchGenerateFramePairs}
-            onBatchGenerateVideos={story.batchGenerateVideos}
-            onPromptChange={handlePromptChange}
-            imageProviderId={story.selectedImageModel?.providerId}
-            imageModelId={story.selectedImageModel?.modelId}
-            assetsLoading={story.assetsLoading}
-          />
-        </div>
-
-        <VideoGeneratorPanel story={story} generatedVideo={generatedVideo} />
+        {activeTab === "storyboard" ? (
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <ProfessionalModeEditor
+              currentStory={story.currentStory}
+              beats={story.beats}
+              characters={story.characters}
+              scenes={story.scenes}
+              assets={story.assets}
+              onUpdateBeat={story.updateBeat}
+              onAddBeat={story.addBeat}
+              onDeleteBeat={story.deleteBeat}
+              onMoveBeat={story.moveBeat}
+              onReorderBeats={story.setBeats}
+              onPlanStoryWithAI={story.planStoryWithAI}
+              onOpenTemplateDialog={() => story.setTemplateDialogOpen(true)}
+              onOpenVersionDialog={() => story.setVersionDialogOpen(true)}
+              isGenerating={isGenerating}
+              isPlanningStory={story.isPlanningStory}
+              generationEnhanced={story.generationEnhanced}
+              onToggleGenerationEnhanced={handleToggleGenerationEnhanced}
+              onGenerateKeyframe={story.generateKeyframe}
+              onGenerateFramePair={story.generateFramePair}
+              onGenerateVideoNew={story.generateVideoNew}
+              onRegenerateKeyframe={story.regenerateKeyframe}
+              generatingKeyframe={story.generatingBeats}
+              onUploadKeyframe={story.handleUploadKeyframe}
+              onUploadFirstFrame={story.handleUploadFirstFrame}
+              onUploadLastFrame={story.handleUploadLastFrame}
+              onUploadVideo={story.handleUploadVideo}
+              onBatchGenerateKeyframes={story.batchGenerateKeyframes}
+              onBatchGenerateFramePairs={story.batchGenerateFramePairs}
+              onBatchGenerateVideos={story.batchGenerateVideos}
+              onPromptChange={handlePromptChange}
+              imageProviderId={story.selectedImageModel?.providerId}
+              imageModelId={story.selectedImageModel?.modelId}
+              assetsLoading={story.assetsLoading}
+            />
+          </div>
+        ) : (
+          <div style={{ flex: 1, minHeight: 0 }}>
+            {activeTab === "ai-generate" && (
+              <ComingSoon
+                icon="🤖"
+                title={t("story.tab.aiGenerate")}
+                descriptionKey="comingSoon.agentDesc"
+              />
+            )}
+            {activeTab === "preview-export" && (
+              <ComingSoon
+                icon="🎬"
+                title={t("story.tab.previewExport")}
+                descriptionKey="comingSoon.composerDesc"
+              />
+            )}
+            {activeTab === "comments" && (
+              <ComingSoon
+                icon="💬"
+                title={t("story.tab.comments")}
+                descriptionKey="comingSoon.agentDesc"
+              />
+            )}
+            {activeTab === "audio" && (
+              <ComingSoon
+                icon="🎵"
+                title={t("story.tab.audio")}
+                descriptionKey="comingSoon.pluginsDesc"
+              />
+            )}
+          </div>
+        )}
 
         <TemplateManagerDialog
           isOpen={story.templateDialogOpen}
@@ -110,47 +189,56 @@ function StoryPageContent() {
           onRestoreVersion={story.handleRestoreVersion}
         />
 
-        <Dialog
-          open={story.deleteDialogOpen}
-          onOpenChange={handleDeleteDialogOpenChange}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-destructive">
-                <Trash2 className="w-5 h-5" />
+        {/* 删除确认弹窗 */}
+        {story.deleteDialogOpen && (
+          <div
+            className="modal-overlay"
+            onClick={() => handleDeleteDialogOpenChange(false)}
+          >
+            <div
+              className="modal"
+              onClick={(e) => e.stopPropagation()}
+              style={{ minWidth: 420 }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: "var(--destructive)", marginBottom: 8 }}>
+                <Trash2 size={18} />
                 {t("story.confirmDeleteProject")}
-              </DialogTitle>
-              <DialogDescription>
+              </div>
+              <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 12 }}>
                 {t("story.confirmDeleteProjectDesc")}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                {t("story.deleteConfirmInputHint", { name: story.currentStory.title || t("story.unnamed") })}
               </p>
-              <Input
-                value={deleteConfirmInput}
-                onChange={(e) => setDeleteConfirmInput(e.target.value)}
-                placeholder={t("story.deleteConfirmInputPlaceholder")}
-              />
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 8 }}>
+                  {t("story.deleteConfirmInputHint", { name: story.currentStory.title || t("story.unnamed") })}
+                </p>
+                <input
+                  className="input"
+                  value={deleteConfirmInput}
+                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                  placeholder={t("story.deleteConfirmInputPlaceholder")}
+                  style={{ width: "100%", fontSize: 12, padding: "6px 10px" }}
+                />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={handleDeleteCancel}
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  disabled={deleteConfirmInput !== (story.currentStory.title || t("story.unnamed"))}
+                  onClick={story.performDeleteStory}
+                >
+                  {t("story.confirmDeleteButton")}
+                </button>
+              </div>
             </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={handleDeleteCancel}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={deleteConfirmInput !== (story.currentStory.title || t("story.unnamed"))}
-                onClick={story.performDeleteStory}
-              >
-                {t("story.confirmDeleteButton")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
 
         <SwitchConfirmDialog
           open={showSwitchConfirmDialog}

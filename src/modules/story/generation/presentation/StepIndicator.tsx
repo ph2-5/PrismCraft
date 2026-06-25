@@ -33,9 +33,10 @@ export function StepIndicator({
                   isCompleted
                     ? "bg-emerald-500/20 text-emerald-400"
                     : isActive
-                      ? "bg-blue-500/20 text-blue-400"
+                      ? "bg-blue-500/20"
                       : "bg-slate-700/50 text-slate-500"
                 }`}
+                style={!isCompleted && isActive ? { color: "var(--primary)" } : undefined}
               >
                 {isGeneratingStep ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -50,11 +51,12 @@ export function StepIndicator({
                   isCompleted
                     ? "text-emerald-400"
                     : isActive
-                      ? "text-blue-400"
+                      ? ""
                       : isPending
                         ? "text-slate-500"
                         : "text-slate-300"
                 }`}
+                style={!isCompleted && isActive ? { color: "var(--primary)" } : undefined}
               >
                 {step.label}
               </span>

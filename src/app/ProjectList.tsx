@@ -1,13 +1,6 @@
 import { Link } from "react-router-dom";
 import { t } from "@/shared/constants";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import {
   Bot,
   Palette,
   Layers,
@@ -32,28 +25,28 @@ function FeatureCard({
 }) {
   return (
     <Link to={href}>
-      <Card className="h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer group border-2 border-slate-700/50 bg-slate-800/50 overflow-hidden">
+      <div className="card h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer group border-2 border-slate-700/50 bg-slate-800/50 overflow-hidden" style={{ padding: 16 }}>
         <div className={`h-1.5 bg-gradient-to-r ${color}`} />
-        <CardHeader className={`bg-gradient-to-br ${bgColor} pb-4`}>
+        <div className={`bg-gradient-to-br ${bgColor} pb-4`}>
           <div
             className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-3 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg`}
           >
             {icon}
           </div>
-          <CardTitle className="text-lg text-slate-100 group-hover:text-white transition-colors">
+          <div className="text-lg text-slate-100 group-hover:text-white transition-colors">
             {title}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <CardDescription className="text-slate-400 leading-relaxed text-sm">
+          </div>
+        </div>
+        <div className="pt-4">
+          <div className="text-slate-400 leading-relaxed text-sm">
             {description}
-          </CardDescription>
+          </div>
           <div className="mt-4 flex items-center text-sm font-semibold text-slate-400 group-hover:text-purple-400 transition-colors">
             <span>{t("home.learnMore")}</span>
             <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </Link>
   );
 }
@@ -82,7 +75,7 @@ export function ProjectList() {
       description: t("home.proStorytellingDesc"),
       color: "from-orange-500 to-red-600",
       bgColor: "from-orange-900/30 to-red-900/30",
-      href: "/story",
+      href: "/storyboard",
     },
   ];
 

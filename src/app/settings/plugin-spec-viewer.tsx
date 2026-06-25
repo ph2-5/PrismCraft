@@ -1,11 +1,4 @@
 import { t } from "@/shared/constants";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
 import { BookOpen } from "lucide-react";
 
 interface PluginSpecViewerProps {
@@ -14,19 +7,19 @@ interface PluginSpecViewerProps {
 
 export function PluginSpecViewer({ specContent }: PluginSpecViewerProps) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <BookOpen className="w-5 h-5" />
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ paddingBottom: 12 }}>
+        <div style={{ fontSize: 18, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+          <BookOpen size={20} />
           {t("plugin.pluginSpecDoc")}
-        </CardTitle>
-        <CardDescription>{t("plugin.pluginSpecDocDesc")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <pre className="text-xs bg-slate-900 p-4 rounded-lg overflow-auto max-h-[600px] font-mono text-slate-300 whitespace-pre-wrap">
+        </div>
+        <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.pluginSpecDocDesc")}</div>
+      </div>
+      <div>
+        <pre style={{ fontSize: 12, background: "#0f172a", padding: 16, borderRadius: 8, overflow: "auto", maxHeight: 600, fontFamily: "monospace", color: "var(--muted-fg)", whiteSpace: "pre-wrap" }}>
           {specContent}
         </pre>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -16,7 +16,7 @@ import {
   Film,
 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
-import { getStatusIcon, getStatusColor, getStatusLabel } from "./task-status-helpers";
+import { getStatusIcon, getStatusColor, getStatusStyle, getStatusLabel } from "./task-status-helpers";
 import { VideoPreview, TaskActions } from "./task-card";
 
 interface TaskCardProps {
@@ -76,8 +76,9 @@ export const TaskCard = React.memo(function TaskCard({
       className={`border transition-colors ${
         isSelected
           ? "border-purple-500 bg-purple-50/50 dark:bg-purple-900/20"
-          : "border-gray-200 dark:border-gray-800"
+          : ""
       }`}
+      style={isSelected ? undefined : { borderColor: "var(--border)" }}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
@@ -87,12 +88,12 @@ export const TaskCard = React.memo(function TaskCard({
                 e.stopPropagation();
                 onToggleSelection(task.taskId);
               }}
-              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-1 rounded hover:bg-muted"
             >
               {isSelected ? (
                 <CheckSquare className="w-4 h-4 text-purple-600" />
               ) : (
-                <Square className="w-4 h-4 text-gray-400" />
+                <Square className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />
               )}
             </button>
             <CardTitle className="text-sm font-medium">
@@ -100,7 +101,7 @@ export const TaskCard = React.memo(function TaskCard({
             </CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className={getStatusColor(task.status)}>
+            <Badge className={getStatusColor(task.status)} style={getStatusStyle(task.status)}>
               {getStatusLabel(task.status)}
             </Badge>
             {task.beatId && (
@@ -116,7 +117,7 @@ export const TaskCard = React.memo(function TaskCard({
             )}
           </div>
         </div>
-        <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
+        <CardDescription className="text-xs" style={{ color: "var(--muted-fg)" }}>
           {t("task.createdAtAgo", { time: new Date(task.createdAt).toLocaleString() })}
           {task.model && ` · ${t("task.modelLabel", { model: task.model })}`}
         </CardDescription>
@@ -130,7 +131,7 @@ export const TaskCard = React.memo(function TaskCard({
           {task.status === "generating" && (
             <>
               <Progress value={task.progress || 0} className="h-2" />
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-right">
+              <div className="text-xs text-right" style={{ color: "var(--muted-fg)" }}>
                 {task.progress || 0}%
               </div>
             </>

@@ -17,7 +17,7 @@ export function useAssetLibraryPage() {
   const { data: characters = [], isLoading: charactersLoading } = useCharacters();
   const { data: scenes = [], isLoading: scenesLoading } = useScenes();
 
-  const [activeTab, setActiveTab] = useState<AssetTab>("characters");
+  const [activeTab, setActiveTab] = useState<AssetTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importMode, setImportMode] = useState<ImportMode>("skip");
@@ -151,11 +151,13 @@ export function useAssetLibraryPage() {
         ? filteredScenes
         : activeTab === "storyboards"
           ? filteredStoryboards
-          : searchQuery
-            ? collections.filter((c) =>
-                c.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-              )
-            : collections;
+          : activeTab === "collections"
+            ? searchQuery
+              ? collections.filter((c) =>
+                  c.name?.toLowerCase().includes(searchQuery.toLowerCase()),
+                )
+              : collections
+            : [];
 
   const handleTabChange = useCallback((v: string) => {
     setActiveTab(v as AssetTab);

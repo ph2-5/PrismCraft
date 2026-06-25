@@ -41,11 +41,14 @@ export function VideoPreview({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm">
-          <Video className="w-4 h-4 text-green-600" />
-          <span className="text-green-600 font-medium">{t("task.videoGenerated")}</span>
+          <Video className="w-4 h-4" style={{ color: "var(--success)" }} />
+          <span className="font-medium" style={{ color: "var(--success)" }}>{t("task.videoGenerated")}</span>
         </div>
         {cacheState?.exists && (
-          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 flex items-center gap-1">
+          <Badge
+            className="flex items-center gap-1"
+            style={{ background: "rgba(var(--primary-rgb), 0.1)", color: "var(--primary)" }}
+          >
             <svg
               className="w-3 h-3"
               fill="none"
@@ -75,7 +78,7 @@ export function VideoPreview({
         >
           {videoError ? (
             <div className="w-full h-full flex items-center justify-center">
-              <VideoOff className="w-8 h-8 text-gray-500" />
+              <VideoOff className="w-8 h-8" style={{ color: "var(--muted-fg)" }} />
             </div>
           ) : (
             <video
@@ -123,7 +126,8 @@ export function VideoPreview({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 text-xs flex-1 gap-1 text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+            className="h-8 px-3 text-xs flex-1 gap-1"
+            style={{ color: "var(--destructive)", borderColor: "var(--destructive)" }}
             onClick={() => onDeleteCache(task)}
           >
             <Trash2 className="w-3 h-3" />

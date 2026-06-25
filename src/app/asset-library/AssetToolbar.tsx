@@ -1,10 +1,5 @@
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
 import {
-  Search,
   Trash2,
-  Download,
-  FolderOpen,
   Loader2,
 } from "lucide-react";
 import { t } from "@/shared/constants";
@@ -12,8 +7,6 @@ import type { AssetTab } from "./AssetCardGrid";
 
 interface AssetToolbarProps {
   activeTab: AssetTab;
-  searchQuery: string;
-  onSearchChange: (value: string) => void;
   selectedIdsSize: number;
   isBatchDeleting: boolean;
   onBatchDelete: () => void;
@@ -24,10 +17,29 @@ interface AssetToolbarProps {
   showSelectAll: boolean;
 }
 
+// 预览页面 batch toolbar 样式：
+// padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(99,102,241,0.08);
+// align-items:center;gap:10px;
+const batchToolbarStyle: React.CSSProperties = {
+  padding: "8px 16px",
+  borderBottom: "1px solid var(--border)",
+  background: "rgba(99,102,241,0.08)",
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+};
+
+const selectedCountStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "var(--muted-fg)",
+};
+
+const spacerStyle: React.CSSProperties = {
+  flex: 1,
+};
+
 export function AssetToolbar({
   activeTab,
-  searchQuery,
-  onSearchChange,
   selectedIdsSize,
   isBatchDeleting,
   onBatchDelete,
@@ -37,66 +49,48 @@ export function AssetToolbar({
   onSelectAll,
   showSelectAll,
 }: AssetToolbarProps) {
+  // 仅在选中项时显示批量工具栏（对齐预览页面行为）
+  if (selectedIdsSize === 0 || activeTab === "collections") {
+    return null;
+  }
+
   return (
-    <div className="mt-4 flex flex-col md:flex-row gap-4">
-      <div className="flex-1">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            data-testid="asset-search-input"
-            placeholder={
-              activeTab === "storyboards"
-                ? t("asset.searchStoryboard")
-                : activeTab === "collections"
-                  ? t("asset.searchCollection")
-                  : t("asset.searchNameDescTag")
-            }
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
-      {selectedIdsSize > 0 && activeTab !== "collections" && (
-        <div className="flex gap-2 items-center">
-          <span className="text-sm text-muted-foreground">
-            {t("asset.selectedCount", { count: selectedIdsSize })}
-          </span>
-          <Button variant="outline" size="sm" onClick={onBatchExport}>
-            <Download className="w-4 h-4 mr-1" />
-            {t("asset.export")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenCollectionDialog}
-          >
-            <FolderOpen className="w-4 h-4 mr-1" />
-            {t("asset.addToCollection")}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={isBatchDeleting}
-            onClick={onBatchDelete}
-          >
-            {isBatchDeleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-            {isBatchDeleting ? t("common.deleting") : t("common.delete")}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={onClearSelection}>
-            {t("asset.deselect")}
-          </Button>
-        </div>
-      )}
-      {activeTab !== "collections" && showSelectAll && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onSelectAll}
-        >
+    <div style={batchToolbarStyle} data-testid="asset-batch-toolbar">
+      <span style={selectedCountStyle}>
+        {t("asset.selectedCount", { count: selectedIdsSize })}
+      </span>
+      {showSelectAll && (
+        <button type="button" className="btn btn-ghost btn-xs" onClick={onSelectAll}>
           {t("asset.selectAll")}
-        </Button>
+        </button>
       )}
+      <button type="button" className="btn btn-ghost btn-xs" onClick={onClearSelection}>
+        {t("asset.deselect")}
+      </button>
+      <div style={spacerStyle} />
+      <button
+        type="button"
+        className="btn btn-outline btn-xs"
+        onClick={onOpenCollectionDialog}
+      >
+        📁 {t("asset.addToCollection")}
+      </button>
+      <button type="button" className="btn btn-outline btn-xs" onClick={onBatchExport}>
+        📤 {t("asset.export")}
+      </button>
+      <button
+        type="button"
+        className="btn btn-danger btn-xs"
+        disabled={isBatchDeleting}
+        onClick={onBatchDelete}
+      >
+        {isBatchDeleting ? (
+          <Loader2 size={12} className="animate-spin" style={{ marginRight: 4 }} />
+        ) : (
+          <Trash2 size={12} style={{ marginRight: 4 }} />
+        )}
+        {isBatchDeleting ? t("common.deleting") : t("common.delete")}
+      </button>
     </div>
   );
 }

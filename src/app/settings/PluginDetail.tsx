@@ -1,4 +1,3 @@
-import { Badge } from "@/shared/ui/badge";
 import { t } from "@/shared/constants";
 
 interface PluginDetailProps {
@@ -34,50 +33,50 @@ interface PluginDetailProps {
 
 export function PluginDetail({ plugin }: PluginDetailProps) {
   return (
-    <div className="p-3 border-t bg-slate-800/50 space-y-2 text-sm">
-      <div className="grid grid-cols-2 gap-2">
+    <div style={{ padding: 12, borderTop: "1px solid var(--border)", background: "var(--card2)", display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
         <div>
-          <span className="text-muted-foreground">{t("plugin.idLabel")}: </span>
-          <span className="font-mono">{plugin.id}</span>
+          <span style={{ color: "var(--muted-fg)" }}>{t("plugin.idLabel")}: </span>
+          <span style={{ fontFamily: "monospace" }}>{plugin.id}</span>
         </div>
         <div>
-          <span className="text-muted-foreground">{t("plugin.videoModelLabel")}: </span>
+          <span style={{ color: "var(--muted-fg)" }}>{t("plugin.videoModelLabel")}: </span>
           <span>{plugin.videoCapabilities.defaultModel}</span>
         </div>
         <div>
-          <span className="text-muted-foreground">{t("plugin.imageModelLabel")}: </span>
+          <span style={{ color: "var(--muted-fg)" }}>{t("plugin.imageModelLabel")}: </span>
           <span>{plugin.imageCapabilities.defaultModel}</span>
         </div>
         <div>
-          <span className="text-muted-foreground">{t("plugin.maxDurationLabel")}: </span>
+          <span style={{ color: "var(--muted-fg)" }}>{t("plugin.maxDurationLabel")}: </span>
           <span>{plugin.videoCapabilities.maxDuration}s</span>
         </div>
       </div>
-      <div className="flex gap-1 flex-wrap">
-        {plugin.capabilities.video && <Badge variant="outline" className="text-xs">{t("plugin.capVideo")}</Badge>}
-        {plugin.capabilities.image && <Badge variant="outline" className="text-xs">{t("plugin.capImage")}</Badge>}
-        {plugin.capabilities.text && <Badge variant="outline" className="text-xs">{t("plugin.capText")}</Badge>}
-        {plugin.capabilities.vision && <Badge variant="outline" className="text-xs">{t("plugin.capVision")}</Badge>}
-        {plugin.videoCapabilities.supportsLastFrame && <Badge variant="outline" className="text-xs">{t("plugin.lastFrame")}</Badge>}
-        {plugin.videoCapabilities.supportsReferenceVideo && <Badge variant="outline" className="text-xs">{t("plugin.referenceVideo")}</Badge>}
-        {plugin.videoCapabilities.supportsMimicryLevel && <Badge variant="outline" className="text-xs">{t("plugin.mimicryLevel")}</Badge>}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        {plugin.capabilities.video && <span className="badge badge-muted" style={{ fontSize: 12 }}>{t("plugin.capVideo")}</span>}
+        {plugin.capabilities.image && <span className="badge badge-muted" style={{ fontSize: 12 }}>{t("plugin.capImage")}</span>}
+        {plugin.capabilities.text && <span className="badge badge-muted" style={{ fontSize: 12 }}>{t("plugin.capText")}</span>}
+        {plugin.capabilities.vision && <span className="badge badge-muted" style={{ fontSize: 12 }}>{t("plugin.capVision")}</span>}
+        {plugin.videoCapabilities.supportsLastFrame && <span className="badge badge-muted" style={{ fontSize: 12 }}>{t("plugin.lastFrame")}</span>}
+        {plugin.videoCapabilities.supportsReferenceVideo && <span className="badge badge-muted" style={{ fontSize: 12 }}>{t("plugin.referenceVideo")}</span>}
+        {plugin.videoCapabilities.supportsMimicryLevel && <span className="badge badge-muted" style={{ fontSize: 12 }}>{t("plugin.mimicryLevel")}</span>}
         {plugin.videoCapabilities.supportsCharacterRef && (
-          <Badge variant="outline" className="text-xs">
+          <span className="badge badge-muted" style={{ fontSize: 12 }}>
             {t("plugin.characterRef")}
-            {plugin.videoCapabilities.characterRefMode && plugin.videoCapabilities.characterRefMode !== "text_append" 
-              ? ` (${plugin.videoCapabilities.characterRefMode})` 
+            {plugin.videoCapabilities.characterRefMode && plugin.videoCapabilities.characterRefMode !== "text_append"
+              ? ` (${plugin.videoCapabilities.characterRefMode})`
               : ""}
-          </Badge>
+          </span>
         )}
         {plugin.videoCapabilities.supportsSceneRef && (
-          <Badge variant="outline" className="text-xs">
+          <span className="badge badge-muted" style={{ fontSize: 12 }}>
             {t("plugin.sceneRef")}
-            {plugin.videoCapabilities.sceneRefMode && plugin.videoCapabilities.sceneRefMode !== "text_append" 
-              ? ` (${plugin.videoCapabilities.sceneRefMode})` 
+            {plugin.videoCapabilities.sceneRefMode && plugin.videoCapabilities.sceneRefMode !== "text_append"
+              ? ` (${plugin.videoCapabilities.sceneRefMode})`
               : ""}
-          </Badge>
+          </span>
         )}
-        {plugin.imageCapabilities.supportsReferenceImage && <Badge variant="outline" className="text-xs">{t("plugin.referenceImage")}</Badge>}
+        {plugin.imageCapabilities.supportsReferenceImage && <span className="badge badge-muted" style={{ fontSize: 12 }}>{t("plugin.referenceImage")}</span>}
       </div>
     </div>
   );

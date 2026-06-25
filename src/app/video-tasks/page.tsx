@@ -1,12 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/shared/ui/card";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
-import { Button } from "@/shared/ui/button";
 import { VideoTaskManager as VideoTaskManagerComponent } from "@/modules/video";
 import {
   CheckCircle2,
@@ -41,151 +33,252 @@ export default function VideoTasksPage() {
 
   return (
     <PageErrorBoundary pageName={t("page.videoTasks")}>
-      <div className="h-full space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold">{t("task.videoTaskManagement")}</h2>
-            <p className="text-sm text-muted-foreground">
-              {t("task.pageTitle")}
-            </p>
+      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        {/* top-tabs 标题栏 */}
+        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>
+            🎥 {t("page.videoTasks")}
+          </span>
+          <div className="toolbar">
+            <select
+              className="select"
+              style={{ fontSize: 12 }}
+              defaultValue="all"
+            >
+              <option value="all">{t("task.statusAll")}</option>
+              <option value="processing">{t("task.statusProcessing")}</option>
+              <option value="completed">{t("task.statusCompleted")}</option>
+              <option value="failed">{t("task.statusFailed")}</option>
+            </select>
+            <button type="button" className="btn btn-ghost btn-xs">
+              🔄 {t("task.refresh")}
+            </button>
           </div>
-          <div className="flex gap-2">
+        </div>
+
+        {/* 内容区 */}
+        <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+          {/* 统计卡片 */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(6, 1fr)",
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            {/* 总任务数 */}
+            <div className="card" style={{ padding: 14 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  color: "var(--muted-fg)",
+                  marginBottom: 8,
+                }}
+              >
+                <List size={16} />
+                {t("task.totalTasks")}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{totalTasks}</div>
+            </div>
+
+            {/* 已完成 */}
+            <div
+              className="card"
+              style={{
+                padding: 14,
+                background: "rgba(var(--success-rgb), 0.1)",
+                borderColor: "rgba(var(--success-rgb), 0.3)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  color: "var(--success)",
+                  marginBottom: 8,
+                }}
+              >
+                <CheckCircle2 size={16} />
+                {t("task.completedCount")}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--success)" }}>
+                {completedTasks}
+              </div>
+            </div>
+
+            {/* 待处理 */}
+            <div
+              className="card"
+              style={{
+                padding: 14,
+                background: "rgba(var(--warning-rgb), 0.1)",
+                borderColor: "rgba(var(--warning-rgb), 0.3)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  color: "var(--warning)",
+                  marginBottom: 8,
+                }}
+              >
+                <Clock size={16} />
+                {t("task.pendingCount")}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--warning)" }}>
+                {pendingTasks}
+              </div>
+            </div>
+
+            {/* 生成中 */}
+            <div
+              className="card"
+              style={{
+                padding: 14,
+                background: "rgba(var(--primary-rgb), 0.1)",
+                borderColor: "rgba(var(--primary-rgb), 0.3)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  color: "var(--primary)",
+                  marginBottom: 8,
+                }}
+              >
+                <Clock size={16} />
+                {t("task.generatingCount")}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>
+                {processingTasks}
+              </div>
+            </div>
+
+            {/* 失败 */}
+            <div
+              className="card"
+              style={{
+                padding: 14,
+                background: "rgba(var(--destructive-rgb), 0.1)",
+                borderColor: "rgba(var(--destructive-rgb), 0.3)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  color: "var(--destructive)",
+                  marginBottom: 8,
+                }}
+              >
+                <XCircle size={16} />
+                {t("task.failedCount")}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--destructive)" }}>
+                {failedTasks}
+              </div>
+            </div>
+
+            {/* 完成率 */}
+            <div
+              className="card"
+              style={{
+                padding: 14,
+                background: "rgba(var(--primary-rgb), 0.1)",
+                borderColor: "rgba(var(--primary-rgb), 0.3)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  color: "var(--primary)",
+                  marginBottom: 8,
+                }}
+              >
+                <CheckCircle2 size={16} />
+                {t("task.completionRate")}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>
+                {completionRate}%
+              </div>
+              <div
+                className="progress-bar"
+                style={{ marginTop: 8, background: "rgba(var(--primary-rgb), 0.2)" }}
+              >
+                <div
+                  className="progress-fill"
+                  style={{ width: `${completionRate}%`, background: "var(--primary)" }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 清除按钮 */}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
             {completedTasks > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
                 disabled={isClearingCompleted}
                 onClick={handleClearCompleted}
               >
-                {isClearingCompleted ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                {isClearingCompleted ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 {isClearingCompleted ? t("common.clearing") : t("task.clearCompleted")}
-              </Button>
+              </button>
             )}
             {failedTasks > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 text-red-400 hover:text-red-300"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                style={{ color: "var(--destructive)" }}
                 disabled={isClearingFailed}
                 onClick={handleClearFailed}
               >
-                {isClearingFailed ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                {isClearingFailed ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 {isClearingFailed ? t("common.clearing") : t("task.clearFailed")}
-              </Button>
+              </button>
             )}
           </div>
-        </div>
 
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
-                <List className="w-4 h-4" />
-                {t("task.totalTasks")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalTasks}</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-green-600 dark:text-green-400">
-                <CheckCircle2 className="w-4 h-4" />
-                {t("task.completedCount")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-                {completedTasks}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
-                <Clock className="w-4 h-4" />
-                {t("task.pendingCount")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">
-                {pendingTasks}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                <Clock className="w-4 h-4" />
-                {t("task.generatingCount")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                {processingTasks}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-red-600 dark:text-red-400">
-                <XCircle className="w-4 h-4" />
-                {t("task.failedCount")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-700 dark:text-red-300">
-                {failedTasks}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2 text-purple-600 dark:text-purple-400">
-                <CheckCircle2 className="w-4 h-4" />
-                {t("task.completionRate")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                {completionRate}%
-              </div>
-              <div className="w-full bg-purple-100 dark:bg-purple-950 rounded-full h-1.5 mt-2">
-                <div
-                  className="bg-purple-500 dark:bg-purple-400 h-1.5 rounded-full transition-all"
-                  style={{ width: `${completionRate}%` }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle>{t("task.taskList")}</CardTitle>
-              <CardDescription>
+          {/* 任务列表 */}
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{t("task.taskList")}</div>
+              <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 2 }}>
                 {t("task.taskListDesc")}
-              </CardDescription>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
             {totalTasks === 0 ? (
-              <div className="text-center py-16">
-                <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-20" />
-                <h2 className="text-lg font-semibold mb-2">{t("task.noTasks")}</h2>
-                <p className="text-muted-foreground mb-6">
+              <div style={{ textAlign: "center", padding: "64px 0" }}>
+                <Video size={64} style={{ margin: "0 auto 16px", color: "var(--muted-fg)", opacity: 0.2 }} />
+                <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("task.noTasks")}</h2>
+                <p style={{ color: "var(--muted-fg)", marginBottom: 24 }}>
                   {t("task.noTasksHint")}
                 </p>
-                <div className="flex items-center justify-center gap-3">
-                  <Button onClick={navigateToStory}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={navigateToStory}>
                     {t("task.viewStoryboard")}
-                  </Button>
-                  <Button variant="outline" onClick={navigateToQuickGenerate}>
+                  </button>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={navigateToQuickGenerate}>
                     {t("task.quickGenerate")}
-                  </Button>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -195,8 +288,8 @@ export default function VideoTasksPage() {
                 onTaskRecovered={recoverTask}
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </PageErrorBoundary>
   );

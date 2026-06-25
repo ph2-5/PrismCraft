@@ -122,8 +122,8 @@ export function ShotReferenceConfig({
       {(isFirstShot && reference.direction === "previous") ||
       (isLastShot && reference.direction === "next") ? (
         <div className="flex items-center gap-2 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-          <AlertCircle className="w-4 h-4 text-yellow-500" />
-          <span className="text-sm text-yellow-500">
+          <AlertCircle className="w-4 h-4" style={{ color: "var(--warning)" }} />
+          <span className="text-sm" style={{ color: "var(--warning)" }}>
             {isFirstShot && reference.direction === "previous"
               ? t("shot.noPreviousBeat")
               : t("shot.noNextBeat")}
@@ -249,9 +249,9 @@ export function ShotReferenceConfig({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   {effectiveValidation.valid ? (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="w-4 h-4" style={{ color: "var(--success)" }} />
                   ) : (
-                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    <AlertCircle className="w-4 h-4" style={{ color: "var(--destructive)" }} />
                   )}
                   <span className="font-medium">{t("shot.refInfo")}</span>
                 </div>
@@ -271,7 +271,7 @@ export function ShotReferenceConfig({
                     )}
                   </p>
                   {!effectiveValidation.valid && (
-                    <p className="text-red-500">{effectiveValidation.error}</p>
+                    <p style={{ color: "var(--destructive)" }}>{effectiveValidation.error}</p>
                   )}
                 </div>
               </CardContent>

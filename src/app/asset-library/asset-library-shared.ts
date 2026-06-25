@@ -4,7 +4,18 @@ import type {
   StoryboardAsset,
 } from "@/domain/schemas";
 
-export type AssetTab = "characters" | "scenes" | "storyboards" | "collections";
+export type AssetTab =
+  | "all"
+  | "characters"
+  | "scenes"
+  | "storyboards"
+  | "collections"
+  | "props"
+  | "prop-clothing"
+  | "prop-weapon"
+  | "prop-accessory"
+  | "prop-prop"
+  | "media";
 
 export type EditingItem =
   | (Character & { _type: "character" })

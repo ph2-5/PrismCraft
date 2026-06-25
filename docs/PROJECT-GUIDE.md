@@ -1,6 +1,6 @@
 # PrismCraft — 项目全方位指南
 
-> 版本：0.10.0 | 许可证：UNLICENSED | 最后更新：2026-06-21
+> 版本：0.11.0 | 许可证：UNLICENSED | 最后更新：2026-06-24
 
 ---
 
@@ -34,13 +34,13 @@ PrismCraft 是一款**本地优先（local-first）、离线可用（offline-cap
 
 ### 1.4 项目版本与规模
 
-- **版本**：0.10.0
+- **版本**：0.11.0
 - **许可证**：私有（未开源）
 - **业务模块**：9 个（story、video、shot、prompt、asset、sync、character、scene、persistence）
 - **子域**：44 个
 - **AI Provider 插件**：13 个
 - **数据库表**：29 张（14 业务表 + 5 关系表 + 6 缓存表 + 3 同步表 + 1 系统表）
-- **回归防护规则**：108 条（R1-R114，8 大类）
+- **回归防护规则**：142 条（R1-R142，8 大类）
 - **i18n 键**：2000+
 
 ---
@@ -169,7 +169,7 @@ strict 模式启用所有严格类型检查选项：
 | 子域 | 44 |
 | AI Provider 插件 | 13 |
 | 数据库表 | 29 |
-| 回归防护规则 | 108 |
+| 回归防护规则 | 142 |
 | i18n 键 | 2000+ |
 
 ### 4.2 模块规模分布
@@ -2704,7 +2704,7 @@ npm run build:mac
 
 - `out/` 目录打包到 asar
 - better-sqlite3 原生模块通过 `asarUnpack` 解包（原生模块无法在 asar 内加载）
-- 构建时依赖（vite、@vitejs/plugin-react、sharp、shadcn）排除在 electron-builder `files` 之外，减小包体积
+- 构建时依赖（vite、@vitejs/plugin-react、sharp）排除在 electron-builder `files` 之外，减小包体积
 
 ---
 
@@ -2765,7 +2765,7 @@ typecheck → architecture check → lint-staged
 - **次版本号**：向后兼容的功能新增
 - **修订号**：向后兼容的问题修复
 
-当前版本：0.10.0（初始开发阶段）
+当前版本：0.11.0（初始开发阶段）
 
 ### 25.2 发布步骤
 
@@ -2831,7 +2831,7 @@ typecheck → architecture check → lint-staged
 
 ### 27.1 概述
 
-108 条回归防护规则（R1-R114）是从历史 Bug 中抽象出的检测规则，防止已知 Bug 模式重现。这些规则是**回归防护**，不是发现工具——下一次审计必须从零开始发现新问题。
+142 条回归防护规则（R1-R142）是从历史 Bug 中抽象出的检测规则，防止已知 Bug 模式重现。这些规则是**回归防护**，不是发现工具——下一次审计必须从零开始发现新问题。
 
 规则按 8 大类组织：
 

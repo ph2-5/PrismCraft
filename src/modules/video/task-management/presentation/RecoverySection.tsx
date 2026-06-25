@@ -18,7 +18,7 @@ export function RecoverySection({
   isRecovering,
 }: RecoverySectionProps) {
   return (
-    <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
+    <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--border)" }}>
       <Label className="text-sm font-medium">{t("task.recoverFailedVideo")}</Label>
       <div className="flex gap-2">
         <Input
@@ -40,7 +40,7 @@ export function RecoverySection({
           {t("task.recoverButton")}
         </Button>
       </div>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
         {t("task.recoverHint")}
       </p>
     </div>

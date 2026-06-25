@@ -91,7 +91,6 @@
       "!node_modules/{typescript,eslint,prettier,webpack,rollup,vite}/**",
       "!node_modules/@img/sharp-*/**",
       "!node_modules/sharp/**",
-      "!node_modules/shadcn/**",
       "!node_modules/better-sqlite3/build/Release/test_extension.node",
       "!src/**",
       "!release/**",

@@ -98,10 +98,10 @@ export function NetworkStatusAlert() {
   if (showReconnectSuccess) {
     return (
       <div className="fixed top-16 left-0 right-0 z-50 px-4">
-        <Alert className="max-w-2xl mx-auto bg-green-900/20 border-green-800">
-          <Wifi className="h-4 w-4 text-green-400" />
-          <AlertTitle className="text-green-300">{t("network.recovered")}</AlertTitle>
-          <AlertDescription className="text-green-400">
+        <Alert className="max-w-2xl mx-auto bg-success/20 border-success">
+          <Wifi className="h-4 w-4" style={{ color: "var(--success)" }} />
+          <AlertTitle className="text-success">{t("network.recovered")}</AlertTitle>
+          <AlertDescription className="text-success">
             {t("network.recoveredDesc")}
             <span className="block text-xs mt-1">{t("network.retrySuggestion")}</span>
           </AlertDescription>

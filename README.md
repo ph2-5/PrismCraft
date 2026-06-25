@@ -2,11 +2,11 @@
 
 > 本地优先的 AI 动画创作桌面应用，覆盖故事构思 → 角色设计 → 场景搭建 → 分镜编排 → AI 视频生成 → 导出成品的完整工作流。
 
-[![Version](https://img.shields.io/badge/version-0.10.0-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-0.11.0-blue)](package.json)
 [![License](https://img.shields.io/badge/license-UNLICENSED-lightgrey)](package.json)
-[![Tests](https://img.shields.io/badge/tests-2300%2B-brightgreen)](docs/DEVELOPMENT.md)
+[![Tests](https://img.shields.io/badge/tests-4200%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
-[![Updated](https://img.shields.io/badge/updated-2026--06--21-green)]()
+[![Updated](https://img.shields.io/badge/updated-2026--06--24-green)]()
 
 ## 核心特性
 
@@ -147,12 +147,12 @@ prismcraft/
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 2300+ |
-| E2E 测试 | 15 套（Electron 集成 + 页面加载） |
+| 单元测试 | 4200+ |
+| E2E 测试 | 126 个（Electron 集成 + 页面加载） |
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |
 | 架构扫描 | 通过（DDD 依赖方向） |
-| 回归守卫 | 108 条规则，8 大类 |
+| 回归守卫 | 142 条规则，8 大类 |
 | i18n 键 | 2000+ |
 
 ## 安全设计

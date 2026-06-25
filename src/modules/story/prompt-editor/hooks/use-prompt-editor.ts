@@ -158,5 +158,8 @@ function getInitialPrompt(
   if (context === "lastFrame" && beat.lastFramePrompt) {
     return beat.lastFramePrompt;
   }
+  if (context === "video" && beat.videoGen?.prompt) {
+    return beat.videoGen.prompt;
+  }
   return buildDefaultPrompt({ context, beat, characters, scenes });
 }

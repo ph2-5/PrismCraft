@@ -112,17 +112,18 @@ export default function AssetPicker({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[600px] max-h-[75vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="flex items-center gap-2">
             {previewAsset && (
               <button
                 onClick={() => setPreviewAsset(null)}
-                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
+                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                style={{ color: "var(--muted-fg)" }}
               >
                 <ArrowLeft size={16} />
               </button>
             )}
-            <h3 className="font-medium text-gray-900 dark:text-gray-100">
+            <h3 className="font-medium" style={{ color: "var(--muted-fg)" }}>
               {previewAsset
                 ? t("assetPicker.confirmSelection")
                 : title || (accept === "video" ? t("assetPicker.selectVideo") : accept === "image" ? t("assetPicker.selectImage") : t("assetPicker.selectAsset"))}
@@ -130,7 +131,8 @@ export default function AssetPicker({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            style={{ color: "var(--muted-fg)" }}
           >
             <X size={18} />
           </button>
@@ -138,7 +140,7 @@ export default function AssetPicker({
 
         {previewAsset ? (
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
+            <div className="aspect-video rounded-lg overflow-hidden border dark:border-gray-600" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
               {previewAsset.type === "video" ? (
                 <video
                   src={previewAsset.url}
@@ -155,10 +157,10 @@ export default function AssetPicker({
               )}
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+              <p className="text-sm font-medium truncate" style={{ color: "var(--muted-fg)" }}>
                 {previewAsset.name}
               </p>
-              <div className="flex gap-3 text-xs text-gray-500">
+              <div className="flex gap-3 text-xs" style={{ color: "var(--muted-fg)" }}>
                 <span>{previewAsset.type === "video" ? t("assetPicker.video") : t("assetPicker.image")}</span>
                 {previewAsset.width && previewAsset.height && (
                   <span>{previewAsset.width}x{previewAsset.height}</span>
@@ -187,14 +189,15 @@ export default function AssetPicker({
           </div>
         ) : (
           <>
-            <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <div className="flex border-b" style={{ borderColor: "var(--border)" }}>
               <button
                 onClick={() => setActiveTab("library")}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "library"
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    ? "border-blue-500"
                     : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
+                style={activeTab === "library" ? { color: "var(--primary)" } : undefined}
               >
                 <FolderOpen size={16} />
                 {t("assetPicker.libraryTab")}
@@ -203,9 +206,10 @@ export default function AssetPicker({
                 onClick={() => setActiveTab("local")}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "local"
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    ? "border-blue-500"
                     : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
+                style={activeTab === "local" ? { color: "var(--primary)" } : undefined}
               >
                 <Upload size={16} />
                 {t("assetPicker.localFileTab")}
@@ -218,18 +222,20 @@ export default function AssetPicker({
                   <div className="relative mb-3">
                     <Search
                       size={16}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute left-3 top-1/2 -translate-y-1/2"
+                      style={{ color: "var(--muted-fg)" }}
                     />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={t("assetPicker.searchPlaceholder")}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100"
+                      className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white text-sm"
+                      style={{ color: "var(--muted-fg)" }}
                     />
                   </div>
                   {filteredAssets.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
+                    <div className="text-center py-12" style={{ color: "var(--muted-fg)" }}>
                       {accept === "image" ? (
                         <ImageIcon size={40} className="mx-auto mb-2 opacity-50" />
                       ) : (
@@ -247,8 +253,8 @@ export default function AssetPicker({
                           className="relative group aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                         >
                           {asset.type === "video" ? (
-                            <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                              <Video size={24} className="text-gray-400" />
+                            <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--muted)" }}>
+                              <Video size={24} style={{ color: "var(--muted-fg)" }} />
                             </div>
                           ) : (
                             <img
@@ -276,14 +282,14 @@ export default function AssetPicker({
                   className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                 >
                   {accept === "video" ? (
-                    <Video size={40} className="mx-auto mb-3 text-gray-400" />
+                    <Video size={40} className="mx-auto mb-3" style={{ color: "var(--muted-fg)" }} />
                   ) : (
-                    <ImageIcon size={40} className="mx-auto mb-3 text-gray-400" />
+                    <ImageIcon size={40} className="mx-auto mb-3" style={{ color: "var(--muted-fg)" }} />
                   )}
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
                     {t("assetPicker.clickToSelectFile", { type: accept === "video" ? t("assetPicker.video") : accept === "image" ? t("assetPicker.image") : t("assetPicker.selectAsset") })}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs mt-1" style={{ color: "var(--muted-fg)" }}>
                     {t("assetPicker.orDragHere")}
                   </p>
                 </div>

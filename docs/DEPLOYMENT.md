@@ -182,7 +182,7 @@ npm run rebuild    # 等价于 npx electron-rebuild
 
 **打包文件包含**：`out/**/*`、插件文档
 
-**打包文件排除**：node_modules 测试文件、`@types`、sharp、shadcn、`src/`、`release/`
+**打包文件排除**：node_modules 测试文件、`@types`、sharp、`src/`、`release/`
 
 ### 4.2 Windows 打包
 

@@ -21,12 +21,12 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     title: t("onboarding.welcomeStudioTitle"),
     description: t("onboarding.welcomeStudioDesc"),
-    icon: <Sparkles className="h-8 w-8 text-yellow-500" />,
+    icon: <Sparkles className="h-8 w-8" style={{ color: "var(--warning)" }} />,
   },
   {
     title: t("onboarding.configApiKeyTitle"),
     description: t("onboarding.configApiKeyDesc"),
-    icon: <Settings className="h-8 w-8 text-blue-500" />,
+    icon: <Settings className="h-8 w-8" style={{ color: "var(--primary)" }} />,
     action: {
       label: t("onboarding.goToSettings"),
       href: "/settings",
@@ -35,7 +35,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     title: t("onboarding.createCharTitle"),
     description: t("onboarding.createCharDesc"),
-    icon: <FileText className="h-8 w-8 text-green-500" />,
+    icon: <FileText className="h-8 w-8" style={{ color: "var(--success)" }} />,
     action: {
       label: t("onboarding.createCharTitle"),
       href: "/characters",
@@ -53,10 +53,10 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     title: t("onboarding.genVideoTitle"),
     description: t("onboarding.genVideoDesc"),
-    icon: <Video className="h-8 w-8 text-red-500" />,
+    icon: <Video className="h-8 w-8" style={{ color: "var(--destructive)" }} />,
     action: {
       label: t("onboarding.startCreate"),
-      href: "/story",
+      href: "/storyboard",
     },
   },
 ];
@@ -116,7 +116,8 @@ export function OnboardingGuide() {
       <div className="bg-background border rounded-xl shadow-xl max-w-md w-full p-6 relative">
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-4 right-4 hover:text-foreground transition-colors"
+          style={{ color: "var(--muted-fg)" }}
           aria-label={t("aria.close")}
         >
           <X className="h-5 w-5" />
@@ -124,10 +125,10 @@ export function OnboardingGuide() {
 
         <div className="flex flex-col items-center text-center">
           <div className="mb-4">{step.icon}</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          <h2 className="text-xl font-semibold mb-2" style={{ color: "var(--muted-fg)" }}>
             {step.title}
           </h2>
-          <p className="text-gray-600 mb-6">{step.description}</p>
+          <p className="mb-6" style={{ color: "var(--muted-fg)" }}>{step.description}</p>
 
           <div className="flex gap-2 mb-6">
             {ONBOARDING_STEPS.map((step, index) => (
@@ -136,10 +137,10 @@ export function OnboardingGuide() {
                 onClick={() => setCurrentStep(index)}
                 className={`h-3 w-3 rounded-full transition-colors cursor-pointer ${
                   index === currentStep
-                    ? "bg-blue-500"
+                    ? "bg-primary"
                     : index < currentStep
-                      ? "bg-blue-300"
-                      : "bg-gray-200"
+                      ? "bg-primary/60"
+                      : "bg-muted"
                 }`}
               />
             ))}
@@ -203,10 +204,10 @@ export function ApiKeyAlert() {
   return (
     <div className="bg-yellow-900/20 border border-yellow-800 rounded-lg p-4 mb-4">
       <div className="flex items-start gap-3">
-        <Sparkles className="h-5 w-5 text-yellow-400 mt-0.5" />
+        <Sparkles className="h-5 w-5 mt-0.5" style={{ color: "var(--warning)" }} />
         <div className="flex-1">
           <h4 className="font-medium text-yellow-300">{t("onboarding.apiKeyNotConfigured")}</h4>
-          <p className="text-sm text-yellow-400 mt-1">
+          <p className="text-sm mt-1" style={{ color: "var(--warning)" }}>
             {t("onboarding.apiKeyNotConfiguredDesc")}
           </p>
           <button
@@ -218,7 +219,8 @@ export function ApiKeyAlert() {
         </div>
         <button
           onClick={() => setIsVisible(false)}
-          className="text-yellow-400 hover:text-yellow-300"
+          className="hover:text-warning"
+          style={{ color: "var(--warning)" }}
           aria-label={t("aria.close")}
         >
           <X className="h-4 w-4" />

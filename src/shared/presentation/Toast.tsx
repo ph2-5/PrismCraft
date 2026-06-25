@@ -215,7 +215,7 @@ const TYPE_COLORS: Record<ToastType, { icon: string; border: string; progress: s
     glow: "shadow-emerald-500/10",
   },
   error: {
-    icon: "text-red-400",
+    icon: "text-destructive",
     border: "border-red-500/30",
     progress: "bg-red-400",
     glow: "shadow-red-500/10",

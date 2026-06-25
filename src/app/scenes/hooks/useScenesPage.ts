@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
@@ -59,6 +59,10 @@ export function useScenesPage() {
   const [customElement, setCustomElement] = useState("");
   const [customColor, setCustomColor] = useState("");
   const { success, error: showError } = useToastHelpers();
+
+  // ── 搜索与元素输入状态（UI 状态但由 hook 管理） ──
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showElementInput, setShowElementInput] = useState(false);
 
   // ── 素材库添加 ──
   const addAssetToLibrary = async (
@@ -209,6 +213,49 @@ export function useScenesPage() {
     [currentScene, imageHook.setGeneratedImage, queryClient, showError, success],
   );
 
+  // ── 过滤后的场景列表 ──
+  const filteredScenes = useMemo(() => {
+    if (!searchQuery.trim()) return scenes;
+    return scenes.filter((s) =>
+      s.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [scenes, searchQuery]);
+
+  // ── 引用当前场景的分镜 ──
+  const referencedBeats = useMemo(() => {
+    if (!currentScene.id) return [];
+    const result: Array<{
+      storyId: string;
+      storyTitle: string;
+      sequence: number;
+      title?: string;
+      description: string;
+      imageUrl?: string;
+      generationStatus?: string;
+    }> = [];
+    for (const story of stories) {
+      for (const beat of story.beats || []) {
+        if (beat.sceneId === currentScene.id || beat.scene === currentScene.id) {
+          result.push({
+            storyId: story.id,
+            storyTitle: story.title,
+            sequence: beat.sequence,
+            title: beat.title,
+            description: beat.description,
+            imageUrl: beat.imageUrl,
+            generationStatus: beat.generationStatus,
+          });
+        }
+      }
+    }
+    return result;
+  }, [stories, currentScene.id]);
+
+  // ── 头像图片 ──
+  const avatarImage = resolveImageUrl(
+    imageHook.generatedImage || currentScene.scenePath || currentScene.generatedImage,
+  );
+
   return {
     // 数据
     scenes,
@@ -266,5 +313,14 @@ export function useScenesPage() {
 
     // 计算
     isDirty: isDirty("scenes"),
+
+    // UI 状态与派生数据
+    searchQuery,
+    setSearchQuery,
+    showElementInput,
+    setShowElementInput,
+    filteredScenes,
+    referencedBeats,
+    avatarImage,
   };
 }

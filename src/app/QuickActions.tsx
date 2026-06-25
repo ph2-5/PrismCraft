@@ -1,10 +1,5 @@
 import { Link } from "react-router-dom";
 import { t } from "@/shared/constants";
-import { Button } from "@/shared/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/shared/ui/card";
 import {
   Sparkles,
   Users,
@@ -51,8 +46,8 @@ function StatCard({
   stories?: Story[];
 }) {
   return (
-    <Card className="border-2 border-slate-700/50 bg-slate-800/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all">
-      <CardContent className="pt-6">
+    <div className="card border-2 border-slate-700/50 bg-slate-800/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all" style={{ padding: 16 }}>
+      <div className="pt-6">
         <div
           className={`text-4xl md:text-5xl font-bold bg-gradient-to-r ${color} bg-clip-text text-transparent mb-2`}
         >
@@ -94,8 +89,8 @@ function StatCard({
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -226,29 +221,27 @@ export function QuickActions({
 
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link to="/quick-generate">
-                <Button
-                  size="lg"
-                  className="gap-2 px-8 py-6 text-base bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300 hover:scale-105 rounded-xl"
+                <button
+                  type="button"
+                  className="btn btn-primary gap-2 px-8 py-6 text-base bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300 hover:scale-105 rounded-xl"
                 >
                   <Wand2 className="w-5 h-5" />
                   {t("home.quickGenerate")}
                   <ArrowRight className="w-4 h-4" />
-                </Button>
+                </button>
               </Link>
-              <Link to="/story">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="gap-2 px-8 py-6 text-base border-2 border-slate-700 hover:border-blue-600 hover:bg-blue-900/20 rounded-xl text-slate-200"
+              <Link to="/storyboard">
+                <button
+                  type="button"
+                  className="btn btn-outline gap-2 px-8 py-6 text-base border-2 border-slate-700 hover:border-blue-600 hover:bg-blue-900/20 rounded-xl text-slate-200"
                 >
                   <Layers className="w-5 h-5" />
                   {t("home.proMode")}
-                </Button>
+                </button>
               </Link>
-              <Button
-                variant="outline"
-                size="lg"
-                className="gap-2 px-8 py-6 text-base border-2 border-slate-700 hover:border-purple-600 hover:bg-purple-900/20 rounded-xl text-slate-200"
+              <button
+                type="button"
+                className="btn btn-outline gap-2 px-8 py-6 text-base border-2 border-slate-700 hover:border-purple-600 hover:bg-purple-900/20 rounded-xl text-slate-200"
                 onClick={onExportAllData}
                 disabled={isExportPending}
               >
@@ -258,15 +251,15 @@ export function QuickActions({
                   <Download className="w-5 h-5" />
                 )}
                 {t("home.exportData")}
-              </Button>
+              </button>
             </div>
           </div>
 
           {dataLoading ? (
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto pt-4">
               {[0, 1, 2].map((i) => (
-                <Card key={i} className="border-2 border-slate-700/50 bg-slate-800/80 backdrop-blur-sm shadow-lg animate-pulse"> {/* key-stable: static skeleton */}
-                  <CardContent className="pt-6">
+                <div key={i} className="card border-2 border-slate-700/50 bg-slate-800/80 backdrop-blur-sm shadow-lg animate-pulse" style={{ padding: 16 }}> {/* key-stable: static skeleton */}
+                  <div className="pt-6">
                     <div className="h-10 w-16 bg-slate-700 rounded mb-2" />
                     <div className="h-4 w-12 bg-slate-700 rounded mb-4" />
                     <div className="flex -space-x-2">
@@ -274,8 +267,8 @@ export function QuickActions({
                       <div className="w-8 h-8 rounded-full bg-slate-700" />
                       <div className="w-8 h-8 rounded-full bg-slate-700" />
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           ) : totalItems > 0 ? (
@@ -373,15 +366,15 @@ export function QuickActions({
                 {t("home.ctaDesc")}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                <Link to="/story">
-                  <Button
-                    size="lg"
-                    className="gap-2 px-8 py-6 text-base bg-white text-purple-600 hover:bg-white/90 shadow-xl rounded-xl"
+                <Link to="/storyboard">
+                  <button
+                    type="button"
+                    className="btn btn-primary gap-2 px-8 py-6 text-base bg-white text-purple-600 hover:bg-white/90 shadow-xl rounded-xl"
                   >
                     <Wand2 className="w-5 h-5" />
                     {t("home.startNow")}
                     <ArrowRight className="w-4 h-4" />
-                  </Button>
+                  </button>
                 </Link>
               </div>
             </div>

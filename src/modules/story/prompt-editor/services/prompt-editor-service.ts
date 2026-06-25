@@ -12,7 +12,7 @@ import {
 } from "@/domain/utils";
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
 
-export type PromptEditorContext = "keyframe" | "firstFrame" | "lastFrame";
+export type PromptEditorContext = "keyframe" | "firstFrame" | "lastFrame" | "video";
 
 export interface PromptEditorRequest {
   context: PromptEditorContext;
@@ -33,6 +33,7 @@ function buildSystemPrompt(context: PromptEditorContext): string {
     keyframe: "分镜预览图",
     firstFrame: "首帧",
     lastFrame: "尾帧",
+    video: "视频",
   };
 
   return `你是一位专业的AI动画提示词工程师。你的任务是根据用户提供的分镜信息，生成高质量的图像生成提示词。
@@ -46,8 +47,9 @@ function buildSystemPrompt(context: PromptEditorContext): string {
 4. 如果是首帧提示词，描述动作开始前的初始状态
 5. 如果是尾帧提示词，描述动作完成后的最终状态
 6. 如果是预览图提示词，描述分镜的整体画面构图
-7. 只返回提示词文本，不要其他说明
-8. 使用简洁精准的视觉描述语言，适合图像生成模型理解`;
+7. 如果是视频提示词，描述视频的运动轨迹、镜头切换、角色动作等动态要素
+8. 只返回提示词文本，不要其他说明
+9. 使用简洁精准的视觉描述语言，适合图像生成模型理解`;
 }
 
 function buildContextSection(request: PromptEditorRequest): string {
@@ -248,6 +250,27 @@ export function buildDefaultPrompt(request: PromptEditorRequest): string {
       parts.push(`style reference: ${beat.keyframe.prompt}`);
     }
     parts.push("high quality", "detailed");
+    return parts.filter(Boolean).join(", ");
+  }
+
+  if (context === "video") {
+    const parts: string[] = [];
+    parts.push(beat.content || beat.description || "");
+    const resolvedShot = resolveShotInstruction(beat);
+    if (resolvedShot?.cameraMovement) {
+      const label = CAMERA_MOVEMENT_OPTIONS.find(o => o.value === resolvedShot.cameraMovement)?.label || resolvedShot.cameraMovement;
+      parts.push(`运镜：${label}`);
+    }
+    if (beat.duration) {
+      parts.push(`时长：${beat.duration}秒`);
+    }
+    if (beat.keyframe?.prompt) {
+      parts.push(`画面参考：${beat.keyframe.prompt}`);
+    }
+    if (beat.framePair?.firstFrame?.prompt) {
+      parts.push(`首帧参考：${beat.framePair.firstFrame.prompt}`);
+    }
+    parts.push("smooth motion", "cinematic", "high quality");
     return parts.filter(Boolean).join(", ");
   }
 

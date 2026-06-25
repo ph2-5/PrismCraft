@@ -1,16 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { t } from "@/shared/constants";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { Badge } from "@/shared/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import {
   Plus,
   CheckCircle,
@@ -18,7 +7,6 @@ import {
   Loader2,
   AlertCircle,
   Puzzle,
-  Code,
 } from "lucide-react";
 import {
   type ApiCapability,
@@ -51,6 +39,8 @@ interface ProviderFormProps {
   onAdd: () => void;
   onCancel: () => void;
   capabilities: CapabilityItem[];
+  onBaseUrlEnable?: (enabled: boolean) => void;
+  onBaseUrlChange?: (value: string) => void;
 }
 
 function isPluginTemplate(template: unknown): template is PluginProviderTemplate {
@@ -72,7 +62,12 @@ export function ProviderForm({
   onAdd,
   onCancel,
   capabilities,
+  onBaseUrlEnable,
+  onBaseUrlChange,
 }: ProviderFormProps) {
+  const [enableBaseUrl, setEnableBaseUrl] = useState(false);
+  const [baseUrl, setBaseUrl] = useState("");
+
   const templateGroups = useMemo(() => {
     const all = getAllTemplates();
     const builtin: { id: string; name: string }[] = [];
@@ -95,12 +90,12 @@ export function ProviderForm({
   }, []);
 
   return (
-    <div className="p-4 border rounded-lg bg-slate-800/50 space-y-4">
-      <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-800">
-        <h4 className="font-medium text-blue-300 mb-2">
+    <div style={{ padding: 16, border: "1px solid var(--border)", borderRadius: 8, background: "var(--card2)", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ padding: 12, borderRadius: 8, border: "1px solid var(--primary)", background: "rgba(var(--primary-rgb), 0.2)" }}>
+        <h4 style={{ fontWeight: 500, marginBottom: 8, color: "var(--primary)" }}>
           {t("provider.addProviderSteps")}
         </h4>
-        <ol className="list-decimal list-inside text-sm text-blue-300 space-y-1">
+        <ol style={{ listStyleType: "decimal", listStylePosition: "inside", fontSize: 12, display: "flex", flexDirection: "column", gap: 4, color: "var(--primary)" }}>
           <li>{t("provider.step1")}</li>
           <li>{t("provider.step2")}</li>
           <li>{t("provider.step3")}</li>
@@ -109,11 +104,13 @@ export function ProviderForm({
         </ol>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="apiKey">
-          {t("provider.apiKey")} <span className="text-red-500">*</span>
-        </Label>
-        <Input
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <label htmlFor="apiKey">
+          {t("provider.apiKey")} <span style={{ color: "var(--destructive)" }}>*</span>
+        </label>
+        <input
+          className="input"
+          style={{ fontSize: 12, padding: "6px 10px" }}
           id="apiKey"
           data-testid="provider-api-key-input"
           type="password"
@@ -122,53 +119,45 @@ export function ProviderForm({
           onChange={(e) => onKeyChange(e.target.value)}
         />
         {newProviderKey && (
-          <div className="flex items-center gap-2 text-sm flex-wrap">
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, flexWrap: "wrap" }}>
             {keyValidation.valid ? (
               <>
                 {detectedInfo ? (
                   <>
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle size={16} style={{ color: "var(--success)" }} />
                     <span>{t("provider.detected", { name: detectedInfo.suggestedName })}</span>
-                    <Badge
-                      variant={
-                        detectedInfo.confidence === "high"
-                          ? "default"
-                          : "secondary"
-                      }
+                    <span
+                      className={`badge ${detectedInfo.confidence === "high" ? "badge-info" : "badge-muted"}`}
                     >
                       {detectedInfo.confidence === "high"
                         ? t("provider.highConfidence")
                         : t("provider.mediumConfidence")}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={
-                        detectedInfo.source === "plugin"
-                          ? "text-xs border-purple-500 text-purple-400"
-                          : "text-xs border-blue-500 text-blue-400"
-                      }
+                    </span>
+                    <span
+                      className="badge badge-muted"
+                      style={{ fontSize: 11, borderColor: "var(--primary)", color: "var(--primary)" }}
                     >
                       {detectedInfo.source === "plugin" ? (
-                        <Puzzle className="h-3 w-3 mr-1" />
+                        <Puzzle size={12} style={{ marginRight: 4 }} />
                       ) : null}
                       {detectedInfo.source === "plugin"
                         ? t("plugin.detectedAsPlugin", { name: detectedInfo.suggestedName })
                         : t("provider.sourceBuiltin")}
-                    </Badge>
+                    </span>
                     {hasMultipleSources && detectedAll && (
-                      <Badge variant="outline" className="text-xs border-amber-500 text-amber-400">
-                        <AlertCircle className="h-3 w-3 mr-1" />
+                      <span className="badge badge-muted" style={{ fontSize: 11, borderColor: "var(--warning)", color: "var(--warning)" }}>
+                        <AlertCircle size={12} style={{ marginRight: 4 }} />
                         {t("provider.multipleSources", {
                           builtin: detectedAll.builtinMatches.length,
                           plugin: detectedAll.pluginMatches.length,
                         })}
-                      </Badge>
+                      </span>
                     )}
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="h-4 w-4 text-yellow-500" />
-                    <span className="text-yellow-600">
+                    <AlertCircle size={16} style={{ color: "var(--warning)" }} />
+                    <span style={{ color: "var(--warning)" }}>
                       {t("provider.cannotAutoDetect")}
                     </span>
                   </>
@@ -176,8 +165,8 @@ export function ProviderForm({
               </>
             ) : (
               <>
-                <XCircle className="h-4 w-4 text-red-500" />
-                <span className="text-red-500">
+                <XCircle size={16} style={{ color: "var(--destructive)" }} />
+                <span style={{ color: "var(--destructive)" }}>
                   {keyValidation.error}
                 </span>
               </>
@@ -187,121 +176,148 @@ export function ProviderForm({
       </div>
 
       {newProviderKey && !detectedInfo && (
-        <div className="space-y-2">
-          <Label>
-            {t("provider.selectProvider")} <span className="text-red-500">*</span>
-          </Label>
-          <Select
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label>
+            {t("provider.selectProvider")} <span style={{ color: "var(--destructive)" }}>*</span>
+          </label>
+          <select
+            className="select"
+            style={{ fontSize: 12, padding: "6px 10px" }}
+            data-testid="provider-select-template"
             value={selectedTemplate}
-            onValueChange={(val) => onTemplateChange(val || "")}
+            onChange={(e) => onTemplateChange(e.target.value || "")}
           >
-            <SelectTrigger data-testid="provider-select-template">
-              <SelectValue placeholder={t("provider.selectProviderPlaceholder")} />
-            </SelectTrigger>
-            <SelectContent>
-              {templateGroups.builtin.length > 0 && (
-                <>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                    {t("plugin.builtin")}
-                  </div>
-                  {templateGroups.builtin.map((tpl) => (
-                    <SelectItem key={tpl.id} value={tpl.id}>
-                      {tpl.name}
-                    </SelectItem>
-                  ))}
-                </>
-              )}
-              {templateGroups.pluginDeclarative.length > 0 && (
-                <>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-purple-400 flex items-center gap-1 mt-1">
-                    <Puzzle className="h-3 w-3" />
-                    {t("plugin.declarative")}
-                  </div>
-                  {templateGroups.pluginDeclarative.map((tpl) => (
-                    <SelectItem key={tpl.id} value={tpl.id}>
-                      {tpl.name}
-                      <Badge variant="outline" className="ml-2 text-xs border-purple-500 text-purple-400">
-                        {t("plugin.pluginTag")}
-                      </Badge>
-                    </SelectItem>
-                  ))}
-                </>
-              )}
-              {templateGroups.pluginCode.length > 0 && (
-                <>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-orange-400 flex items-center gap-1 mt-1">
-                    <Code className="h-3 w-3" />
-                    {t("plugin.codePlugin")}
-                  </div>
-                  {templateGroups.pluginCode.map((tpl) => (
-                    <SelectItem key={tpl.id} value={tpl.id}>
-                      {tpl.name}
-                      <Badge variant="outline" className="ml-2 text-xs border-orange-500 text-orange-400">
-                        {t("plugin.codePluginTag")}
-                      </Badge>
-                    </SelectItem>
-                  ))}
-                </>
-              )}
-            </SelectContent>
-          </Select>
+            <option value="">{t("provider.selectProviderPlaceholder")}</option>
+            {templateGroups.builtin.length > 0 && (
+              <optgroup label={t("plugin.builtin")}>
+                {templateGroups.builtin.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {templateGroups.pluginDeclarative.length > 0 && (
+              <optgroup label={t("plugin.declarative")}>
+                {templateGroups.pluginDeclarative.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {templateGroups.pluginCode.length > 0 && (
+              <optgroup label={t("plugin.codePlugin")}>
+                {templateGroups.pluginCode.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="providerName">{t("provider.displayNameOptional")}</Label>
-        <Input
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <label htmlFor="providerName">{t("provider.displayNameOptional")}</label>
+        <input
+          className="input"
+          style={{ fontSize: 12, padding: "6px 10px" }}
           id="providerName"
           data-testid="provider-name-input"
           placeholder={detectedInfo?.suggestedName || t("provider.displayNamePlaceholder")}
           value={newProviderName}
           onChange={(e) => onNameChange(e.target.value)}
         />
-        <p className="text-xs text-gray-500">
+        <p style={{ fontSize: 11, color: "var(--muted-fg)" }}>
           {t("provider.displayNameHint")}
         </p>
       </div>
 
-      <div className="bg-slate-700/50 p-3 rounded-lg">
-        <h4 className="font-medium text-slate-300 mb-2">
+      {/* Base URL 启用选项 — 默认关闭，对齐用户需求 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <label htmlFor="enableBaseUrl">{t("provider.customBaseUrl")}</label>
+          <button
+            type="button"
+            className={`toggle ${enableBaseUrl ? "on" : ""}`}
+            onClick={() => {
+              const next = !enableBaseUrl;
+              setEnableBaseUrl(next);
+              onBaseUrlEnable?.(next);
+              if (!next) {
+                setBaseUrl("");
+                onBaseUrlChange?.("");
+              }
+            }}
+            aria-label={t("provider.enableCustomBaseUrl")}
+          />
+        </div>
+        {enableBaseUrl && (
+          <>
+            <input
+              className="input"
+              style={{ fontSize: 12, padding: "6px 10px" }}
+              id="baseUrl"
+              data-testid="provider-base-url-input"
+              placeholder={t("provider.baseUrlPlaceholder")}
+              value={baseUrl}
+              onChange={(e) => {
+                setBaseUrl(e.target.value);
+                onBaseUrlChange?.(e.target.value);
+              }}
+            />
+            <p style={{ fontSize: 11, color: "var(--muted-fg)" }}>
+              {t("provider.baseUrlHint")}
+            </p>
+          </>
+        )}
+      </div>
+
+      <div style={{ background: "var(--card2)", padding: 12, borderRadius: 8 }}>
+        <h4 style={{ fontWeight: 500, marginBottom: 8, color: "var(--muted-fg)" }}>
           {t("provider.supportedFeatures")}
         </h4>
-        <div className="flex flex-wrap gap-2">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {capabilities.map((cap) => (
-            <Badge
+            <span
               key={cap.id}
-              variant="secondary"
-              className="text-xs"
+              className="badge badge-muted"
+              style={{ fontSize: 11 }}
             >
               {cap.icon}
-              <span className="ml-1">{cap.name}</span>
-            </Badge>
+              <span style={{ marginLeft: 4 }}>{cap.name}</span>
+            </span>
           ))}
         </div>
-        <p className="text-xs text-gray-500 mt-2">
+        <p style={{ fontSize: 11, marginTop: 8, color: "var(--muted-fg)" }}>
           {t("provider.afterAddHint")}
         </p>
       </div>
 
-      <div className="flex gap-2">
-        <Button
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          className="btn btn-primary"
           onClick={onAdd}
           disabled={!keyValidation.valid || isAdding}
-          className="flex-1"
+          style={{ flex: 1 }}
         >
           {isAdding ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} />
           ) : (
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus size={16} style={{ marginRight: 8 }} />
           )}
           {t("provider.addProvider")}
-        </Button>
-        <Button
-          variant="outline"
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline"
           onClick={onCancel}
         >
           {t("common.cancel")}
-        </Button>
+        </button>
       </div>
     </div>
   );

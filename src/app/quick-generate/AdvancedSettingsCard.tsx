@@ -1,15 +1,5 @@
 import { Settings, ChevronDown, ChevronUp, X, Film, Trash2 } from "lucide-react";
 import { t } from "@/shared/constants";
-import { Button } from "@/shared/ui/button";
-import { Textarea } from "@/shared/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Switch } from "@/shared/ui/switch";
-import { Label } from "@/shared/ui/label";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 
 interface AdvancedSettingsCardProps {
@@ -42,9 +32,9 @@ export function AdvancedSettingsCard({
   onRemoveReferenceVideo,
 }: AdvancedSettingsCardProps) {
   return (
-    <Card className="border border-slate-800 bg-slate-900/60">
-      <CardHeader
-        className="cursor-pointer"
+    <div className="card" style={{ padding: 0 }}>
+      <div
+        style={{ cursor: "pointer", padding: 16 }}
         onClick={onToggleAdvanced}
         role="button"
         tabIndex={0}
@@ -57,44 +47,46 @@ export function AdvancedSettingsCard({
         }}
       >
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
+          <div className="text-lg flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
             <Settings className="w-5 h-5 text-slate-400" />
             {t("quickGenerate.advancedSettings")}
-          </CardTitle>
+          </div>
           {showAdvanced ? (
             <ChevronUp className="w-5 h-5 text-slate-500" />
           ) : (
             <ChevronDown className="w-5 h-5 text-slate-500" />
           )}
         </div>
-      </CardHeader>
+      </div>
       {showAdvanced && (
-        <CardContent className="space-y-4">
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-slate-300">{t("quickGenerate.smartOptimization")}</Label>
+              <label className="text-slate-300">{t("quickGenerate.smartOptimization")}</label>
               <p className="text-sm text-slate-500">
                 {t("quickGenerate.smartOptimizationDesc")}
               </p>
             </div>
-            <Switch
-              checked={enableSmartOptimization}
-              onCheckedChange={onSmartOptimizationChange}
+            <button
+              type="button"
+              className={`toggle ${enableSmartOptimization ? "on" : ""}`}
+              onClick={() => onSmartOptimizationChange(!enableSmartOptimization)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300">{t("quickGenerate.negativePrompt")}</Label>
-            <Textarea
+            <label className="text-slate-300">{t("quickGenerate.negativePrompt")}</label>
+            <textarea
+              className="textarea"
+              style={{ fontSize: 12 }}
               value={negativePrompt}
               onChange={(e) => onNegativePromptChange(e.target.value)}
               placeholder={t("quickGenerate.negativePromptPlaceholder")}
-              className="bg-slate-800 border-slate-700 text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300">{t("quickGenerate.referenceImage")}</Label>
+            <label className="text-slate-300">{t("quickGenerate.referenceImage")}</label>
             {referenceImage ? (
               <div className="relative inline-block">
                 <img
@@ -102,15 +94,15 @@ export function AdvancedSettingsCard({
                   alt={t("quickGenerate.reference")}
                   className="w-32 h-32 rounded-lg object-cover border border-slate-700"
                 />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  style={{ position: "absolute", top: -8, right: -8, width: 24, height: 24, padding: 0, borderRadius: "50%" }}
                   onClick={() => onReferenceImageChange(null)}
                   aria-label={t("quickGenerate.removeReferenceImage")}
                 >
                   <X className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
             ) : (
               <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center">
@@ -136,23 +128,24 @@ export function AdvancedSettingsCard({
                     }
                   }}
                 />
-                <Button
-                  variant="outline"
+                <button
+                  type="button"
+                  className="btn btn-outline"
                   onClick={() =>
                     document.getElementById("ref-image-upload")?.click()
                   }
                 >
                   {t("quickGenerate.selectImage")}
-                </Button>
+                </button>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300 flex items-center gap-2">
+            <label className="text-slate-300 flex items-center gap-2">
               <Film className="w-4 h-4" />
               {t("quickGenerate.referenceVideoOptional")}
-            </Label>
+            </label>
             {referenceVideo ? (
               <div className="relative">
                 <video
@@ -165,14 +158,14 @@ export function AdvancedSettingsCard({
                   <span className="text-sm text-slate-400">
                     {referenceVideoName}
                   </span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
                     onClick={onRemoveReferenceVideo}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
                     {t("quickGenerate.remove")}
-                  </Button>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -192,20 +185,21 @@ export function AdvancedSettingsCard({
                     }
                   }}
                 />
-                <Button
-                  variant="outline"
+                <button
+                  type="button"
+                  className="btn btn-outline"
                   onClick={() =>
                     document.getElementById("ref-video-upload")?.click()
                   }
                 >
                   <Film className="w-4 h-4 mr-2" />
                   {t("quickGenerate.selectVideo")}
-                </Button>
+                </button>
               </div>
             )}
           </div>
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </div>
   );
 }

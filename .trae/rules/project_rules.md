@@ -162,7 +162,7 @@ module-name/
 - Electron mirror config in `.npmrc`: `electron_mirror`, `electron_builder_binaries_mirror`
 - `.npmrc` MUST NOT contain non-standard keys (causes "Unknown project config" warnings in npm 10+)
 - `out/` is packaged into asar via `files` config; `better-sqlite3` native module is unpacked via `asarUnpack`
-- Build-time dependencies (vite, @vitejs/plugin-react, sharp, shadcn) are excluded from electron-builder `files` to reduce package size
+- Build-time dependencies (vite, @vitejs/plugin-react, sharp) are excluded from electron-builder `files` to reduce package size
 
 ### Code Splitting Strategy
 

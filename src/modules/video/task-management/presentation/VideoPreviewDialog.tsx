@@ -57,7 +57,7 @@ export function VideoPreviewDialog({
         {task && videoLoading && (
           <div className="p-12 text-center space-y-4">
             <div className="animate-spin w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
-            <p className="text-gray-400">{t("task.videoLoading")}</p>
+            <p style={{ color: "var(--muted-fg)" }}>{t("task.videoLoading")}</p>
           </div>
         )}
 
@@ -78,9 +78,9 @@ export function VideoPreviewDialog({
               />
             </div>
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm" style={{ color: "var(--muted-fg)" }}>
                 {t("task.taskIdPrefix")}
-                <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
+                <code className="px-1 py-0.5 rounded" style={{ background: "var(--muted)" }}>
                   {task.taskId}
                 </code>
               </div>
@@ -94,9 +94,9 @@ export function VideoPreviewDialog({
 
         {task && videoLoadError && (
           <div className="p-8 text-center space-y-4">
-            <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto" />
-            <p className="text-gray-400">{t("task.videoLoadFailed")}</p>
-            <p className="text-sm text-gray-500">{t("task.taskIdPrefix")}{task.taskId}</p>
+            <AlertTriangle className="w-12 h-12 mx-auto" style={{ color: "var(--warning)" }} />
+            <p style={{ color: "var(--muted-fg)" }}>{t("task.videoLoadFailed")}</p>
+            <p className="text-sm" style={{ color: "var(--muted-fg)" }}>{t("task.taskIdPrefix")}{task.taskId}</p>
             <Button onClick={() => onDownloadVideo(task)} className="gap-2">
               <Download className="w-4 h-4" />
               {t("task.tryDownloadVideo")}

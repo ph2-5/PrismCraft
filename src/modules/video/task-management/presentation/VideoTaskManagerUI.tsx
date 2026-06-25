@@ -106,8 +106,11 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
   return (
     <div className="space-y-4">
       {selectedTaskIds.size > 0 && (
-        <div className="flex items-center justify-between p-4 bg-red-900/20 border border-red-700 rounded-lg">
-          <p className="text-sm text-red-300">
+        <div
+          className="flex items-center justify-between p-4 border rounded-lg"
+          style={{ background: "rgba(var(--destructive-rgb), 0.2)", borderColor: "var(--destructive)" }}
+        >
+          <p className="text-sm" style={{ color: "var(--destructive)" }}>
             {t("task.selectedCount", { count: selectedTaskIds.size })}
           </p>
           <Button variant="destructive" size="sm" onClick={handleRemoveSelected}>

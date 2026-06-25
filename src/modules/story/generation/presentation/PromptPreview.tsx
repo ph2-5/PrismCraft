@@ -112,7 +112,7 @@ export function PromptPreview({
           </div>
           <Button variant="ghost" size="sm" onClick={handleCopy}>
             {copied ? (
-              <Check className="w-4 h-4 mr-1 text-green-500" />
+              <Check className="w-4 h-4 mr-1" style={{ color: "var(--success)" }} />
             ) : (
               <Copy className="w-4 h-4 mr-1" />
             )}

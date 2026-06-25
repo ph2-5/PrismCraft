@@ -26,15 +26,15 @@ interface KeyboardShortcutsDialogProps {
 
 function ShortcutKeyBadge({ shortcut }: { shortcut: Shortcut }) {
   const keys = [];
-  if (shortcut.ctrl) keys.push(<kbd key="ctrl" className="px-2 py-1 text-xs bg-gray-700 rounded">Ctrl</kbd>);
-  if (shortcut.meta) keys.push(<kbd key="cmd" className="px-2 py-1 text-xs bg-gray-700 rounded">⌘</kbd>);
-  if (shortcut.alt) keys.push(<kbd key="alt" className="px-2 py-1 text-xs bg-gray-700 rounded">Alt</kbd>);
-  if (shortcut.shift) keys.push(<kbd key="shift" className="px-2 py-1 text-xs bg-gray-700 rounded">⇧</kbd>);
+  if (shortcut.ctrl) keys.push(<kbd key="ctrl" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>Ctrl</kbd>);
+  if (shortcut.meta) keys.push(<kbd key="cmd" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>⌘</kbd>);
+  if (shortcut.alt) keys.push(<kbd key="alt" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>Alt</kbd>);
+  if (shortcut.shift) keys.push(<kbd key="shift" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>⇧</kbd>);
   
   const key = shortcut.key.length === 1 ? shortcut.key.toUpperCase() : shortcut.key;
-  keys.push(<kbd key="key" className="px-2 py-1 text-xs bg-gray-700 rounded">{key}</kbd>);
+  keys.push(<kbd key="key" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>{key}</kbd>);
 
-  return <div className="flex gap-1">{keys.map((k, i) => [i > 0 && <span key={`sep-${i}`} className="text-gray-400">+</span>, k])}</div>;
+  return <div className="flex gap-1">{keys.map((k, i) => [i > 0 && <span key={`sep-${i}`} style={{ color: "var(--muted-fg)" }}>+</span>, k])}</div>;
 }
 
 export function KeyboardShortcutsDialog({
@@ -83,8 +83,8 @@ export function KeyboardShortcutsDialog({
           ))}
         </div>
 
-        <div className="mt-6 pt-4 border-t border-gray-700">
-          <p className="text-xs text-gray-400 text-center">
+        <div className="mt-6 pt-4 border-t" style={{ borderColor: "var(--border)" }}>
+          <p className="text-xs text-center" style={{ color: "var(--muted-fg)" }}>
             {t("ui.pressEscToClose")}
           </p>
         </div>

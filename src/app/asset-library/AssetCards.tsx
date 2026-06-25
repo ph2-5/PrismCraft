@@ -1,14 +1,5 @@
 import { memo, useState } from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
-import { Button } from "@/shared/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/shared/ui/card";
-import { Badge } from "@/shared/ui/badge";
 import {
   Users,
   Image as ImageIcon,
@@ -32,6 +23,45 @@ import { toDateFromTimestamp } from "./asset-library-shared";
 import type { EditingItem } from "./asset-library-shared";
 import { t } from "@/shared/constants";
 
+// 统一的卡片图片区样式
+const cardImageAreaStyle: React.CSSProperties = {
+  aspectRatio: "1 / 1",
+  background: "var(--card2)",
+  position: "relative",
+  overflow: "hidden",
+};
+
+// 统一的卡片内容区样式
+const cardContentStyle: React.CSSProperties = {
+  padding: 10,
+};
+
+// 统一的选中标记样式
+const selectBadgeStyle = (isSelected: boolean): React.CSSProperties => ({
+  position: "absolute",
+  top: 8,
+  left: 8,
+  cursor: "pointer",
+  color: isSelected ? "var(--primary)" : "var(--muted-fg)",
+  opacity: isSelected ? 1 : 0.5,
+});
+
+// 统一的删除按钮样式
+const deleteBtnStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 8,
+  right: 8,
+  background: "rgba(0, 0, 0, 0.5)",
+  color: "var(--destructive)",
+  border: "none",
+  borderRadius: 4,
+  padding: 4,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
 interface CharacterCardProps {
   char: Character;
   isSelected: boolean;
@@ -50,75 +80,74 @@ export const CharacterCard = memo(function CharacterCard({
   const [imageError, setImageError] = useState(false);
   const hasImage = (char.generatedImage || char.avatarPath) && !imageError;
   return (
-    <Card
-      className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-purple-500" : "hover:shadow-lg"}`}
+    <div
+      className="card"
+      style={{
+        padding: 0,
+        overflow: "hidden",
+        cursor: "pointer",
+        border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
+      }}
       onClick={() => onEditItem({ ...char, _type: "character" })}
     >
-      <div className="aspect-square bg-slate-800 relative overflow-hidden">
+      <div style={cardImageAreaStyle}>
         {hasImage ? (
           <img
             src={resolveImageUrl(char.generatedImage || char.avatarPath)}
             alt={char.name}
-            className="w-full h-full object-cover"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Users className="w-12 h-12 text-slate-600" />
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Users size={40} style={{ color: "var(--muted-fg)", opacity: 0.3 }} />
           </div>
         )}
         <div
-          className="absolute top-2 left-2 cursor-pointer"
+          style={selectBadgeStyle(isSelected)}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelect(char.id);
           }}
         >
-          {isSelected ? (
-            <CheckSquare className="w-5 h-5 text-purple-400" />
-          ) : (
-            <Square className="w-5 h-5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-          )}
+          {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
         </div>
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-7 h-7 bg-black/50 hover:bg-red-900/70 text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteCharacter(char.id);
-            }}
-            aria-label={t("aria.deleteCharacter")}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+        <button
+          type="button"
+          style={deleteBtnStyle}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteCharacter(char.id);
+          }}
+          aria-label={t("aria.deleteCharacter")}
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
-      <CardContent className="p-3">
-        <h4 className="font-medium truncate text-sm">
+      <div style={cardContentStyle}>
+        <div style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {char.name || t("asset.unnamedCharacter")}
-        </h4>
-        <div className="flex flex-wrap gap-1 mt-1">
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
           {(char.tags || []).slice(0, 2).map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
+            <span key={tag} className="badge badge-muted" style={{ fontSize: 10 }}>
               {tag}
-            </Badge>
+            </span>
           ))}
           {(char.tags || []).length > 2 && (
-            <Badge variant="secondary" className="text-xs">
+            <span className="badge badge-muted" style={{ fontSize: 10 }}>
               +{(char.tags || []).length - 2}
-            </Badge>
+            </span>
           )}
         </div>
         {char.createdAt && (
-          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+            <Clock size={11} />
             {toDateFromTimestamp(char.createdAt).toLocaleDateString()}
-          </p>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 });
 
@@ -140,69 +169,68 @@ export const SceneCard = memo(function SceneCard({
   const [imageError, setImageError] = useState(false);
   const hasImage = (scene.generatedImage || scene.scenePath) && !imageError;
   return (
-    <Card
-      className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-blue-500" : "hover:shadow-lg"}`}
+    <div
+      className="card"
+      style={{
+        padding: 0,
+        overflow: "hidden",
+        cursor: "pointer",
+        border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
+      }}
       onClick={() => onEditItem({ ...scene, _type: "scene" })}
     >
-      <div className="aspect-video bg-slate-800 relative overflow-hidden">
+      <div style={cardImageAreaStyle}>
         {hasImage ? (
           <img
             src={resolveImageUrl(scene.generatedImage || scene.scenePath)}
             alt={scene.name}
-            className="w-full h-full object-cover"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ImageIcon className="w-12 h-12 text-slate-600" />
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ImageIcon size={40} style={{ color: "var(--muted-fg)", opacity: 0.3 }} />
           </div>
         )}
         <div
-          className="absolute top-2 left-2 cursor-pointer"
+          style={selectBadgeStyle(isSelected)}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelect(scene.id);
           }}
         >
-          {isSelected ? (
-            <CheckSquare className="w-5 h-5 text-blue-400" />
-          ) : (
-            <Square className="w-5 h-5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-          )}
+          {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
         </div>
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-7 h-7 bg-black/50 hover:bg-red-900/70 text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteScene(scene.id);
-            }}
-            aria-label={t("aria.deleteScene")}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+        <button
+          type="button"
+          style={deleteBtnStyle}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteScene(scene.id);
+          }}
+          aria-label={t("aria.deleteScene")}
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
-      <CardContent className="p-3">
-        <h4 className="font-medium truncate text-sm">
+      <div style={cardContentStyle}>
+        <div style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {scene.name || t("asset.unnamedScene")}
-        </h4>
-        <div className="flex flex-wrap gap-1 mt-1">
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
           {(scene.tags || []).slice(0, 2).map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
+            <span key={tag} className="badge badge-muted" style={{ fontSize: 10 }}>
               {tag}
-            </Badge>
+            </span>
           ))}
         </div>
         {scene.atmosphere && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 4 }}>
             {scene.atmosphere}
-          </p>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 });
 
@@ -224,75 +252,76 @@ export const StoryboardCard = memo(function StoryboardCard({
   const [imageError, setImageError] = useState(false);
   const hasImage = sb.previewPath && !imageError;
   return (
-    <Card
-      className={`overflow-hidden group cursor-pointer transition-all ${isSelected ? "ring-2 ring-amber-500" : "hover:shadow-lg"}`}
+    <div
+      className="card"
+      style={{
+        padding: 0,
+        overflow: "hidden",
+        cursor: "pointer",
+        border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
+      }}
       onClick={() => onEditItem({ ...sb, _type: "storyboard" })}
     >
-      <div className="aspect-video bg-slate-800 relative overflow-hidden">
+      <div style={cardImageAreaStyle}>
         {hasImage ? (
           <img
             src={resolveImageUrl(sb.previewPath)}
             alt={t("asset.storyboardPreview")}
-            className="w-full h-full object-cover"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center p-4">
-            <p className="text-slate-400 text-sm text-center line-clamp-3">
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ color: "var(--muted-fg)", fontSize: 12, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
               {sb.script}
-            </p>
+            </div>
           </div>
         )}
         <div
-          className="absolute top-2 left-2 cursor-pointer"
+          style={selectBadgeStyle(isSelected)}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelect(sb.id);
           }}
         >
-          {isSelected ? (
-            <CheckSquare className="w-5 h-5 text-amber-400" />
-          ) : (
-            <Square className="w-5 h-5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-          )}
+          {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
         </div>
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-7 h-7 bg-black/50 hover:bg-red-900/70 text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteStoryboard(sb.id);
-            }}
-            aria-label={t("aria.deleteStoryboard")}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+        <button
+          type="button"
+          style={deleteBtnStyle}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteStoryboard(sb.id);
+          }}
+          aria-label={t("aria.deleteStoryboard")}
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
-      <CardContent className="p-3">
-        <p className="text-sm line-clamp-2">{sb.script}</p>
-        <div className="flex items-center gap-2 mt-1">
+      <div style={cardContentStyle}>
+        <div style={{ fontSize: 12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {sb.script}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
           {sb.duration && (
-            <Badge variant="outline" className="text-xs">
+            <span className="badge badge-muted" style={{ fontSize: 10 }}>
               {sb.duration}
-            </Badge>
+            </span>
           )}
           {sb.shotType && (
-            <Badge variant="outline" className="text-xs">
+            <span className="badge badge-muted" style={{ fontSize: 10 }}>
               {sb.shotType}
-            </Badge>
+            </span>
           )}
         </div>
         {sb.characterIds?.length > 0 && (
-          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-            <Link className="w-3 h-3" />
+          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+            <Link size={11} />
             {t("asset.characterCountShort", { count: sb.characterIds.length })}
-          </p>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 });
 
@@ -320,44 +349,43 @@ export const CollectionCard = memo(function CollectionCard({
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-all">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FolderOpen className="w-4 h-4" />
+    <div className="card" style={{ padding: 12 }}>
+      <div style={{ paddingBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+            <FolderOpen size={14} />
             {col.name}
-          </CardTitle>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-7 h-7"
+          </div>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
               onClick={() => onExportCollection(col.id)}
               title={t("asset.exportCollection")}
               aria-label={t("aria.exportCollection")}
             >
-              <Download className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-7 h-7 hover:text-destructive"
+              <Download size={12} />
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              style={{ color: "var(--destructive)" }}
               onClick={() => onDeleteCollection(col.id)}
               title={t("asset.deleteCollection")}
               aria-label={t("aria.deleteCollection")}
             >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+              <Trash2 size={12} />
+            </button>
           </div>
         </div>
-        <CardDescription className="flex items-center gap-2">
-          <Package className="w-3 h-3" />
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted-fg)" }}>
+          <Package size={11} />
           {t("asset.assetCount", { count: assetCount })}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
+        </div>
+      </div>
+      <div>
         {assetCount > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {getCollectionAssets(col.id)
               .slice(0, 5)
               .map((ca) => {
@@ -370,10 +398,10 @@ export const CollectionCard = memo(function CollectionCard({
                   if (s) name = String(s.name || "");
                 }
                 return (
-                  <Badge
+                  <span
                     key={String(ca.id || "")}
-                    variant="secondary"
-                    className="text-xs"
+                    className="badge badge-muted"
+                    style={{ fontSize: 10 }}
                   >
                     {ca.assetType === "character"
                       ? "👤"
@@ -381,23 +409,23 @@ export const CollectionCard = memo(function CollectionCard({
                         ? "🏞️"
                         : "🎬"}
                     {name}
-                  </Badge>
+                  </span>
                 );
               })}
             {assetCount > 5 && (
-              <Badge variant="secondary" className="text-xs">
+              <span className="badge badge-muted" style={{ fontSize: 10 }}>
                 +{assetCount - 5}
-              </Badge>
+              </span>
             )}
           </div>
         )}
         {col.createdAt && (
-          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+            <Clock size={11} />
             {toDateFromTimestamp(col.createdAt).toLocaleDateString()}
-          </p>
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 });

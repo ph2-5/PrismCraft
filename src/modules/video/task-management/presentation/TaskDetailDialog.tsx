@@ -11,7 +11,7 @@ import { Label } from "@/shared/ui/label";
 import { Badge } from "@/shared/ui/badge";
 import { Video, Play, Download, Film, RotateCcw } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
-import { getStatusColor, getStatusLabel } from "./task-status-helpers";
+import { getStatusColor, getStatusStyle, getStatusLabel } from "./task-status-helpers";
 import { t } from "@/shared/constants";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 
@@ -51,47 +51,47 @@ export function TaskDetailDialog({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.taskIdLabel")}</Label>
-              <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded break-all">
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.taskIdLabel")}</Label>
+              <div className="text-sm font-mono px-2 py-1 rounded break-all" style={{ background: "var(--muted)" }}>
                 {task.taskId}
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.statusLabel")}</Label>
-              <Badge className={getStatusColor(task.status)}>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.statusLabel")}</Label>
+              <Badge className={getStatusColor(task.status)} style={getStatusStyle(task.status)}>
                 {getStatusLabel(task.status)}
               </Badge>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.progressLabel")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.progressLabel")}</Label>
               <div className="text-sm">{task.progress || 0}%</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.modelLabel", { model: "" }).replace(": ", "")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.modelLabel", { model: "" }).replace(": ", "")}</Label>
               <div className="text-sm">{task.model || t("task.modelNotRecorded")}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.storyLabel")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.storyLabel")}</Label>
               <div className="text-sm">{task.storyTitle || "-"}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.beatLabel")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.beatLabel")}</Label>
               <div className="text-sm">{task.beatTitle || "-"}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.createdAtLabel")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.createdAtLabel")}</Label>
               <div className="text-sm">{new Date(task.createdAt).toLocaleString()}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.apiUrlLabel")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.apiUrlLabel")}</Label>
               <div className="text-sm break-all">{task.apiUrl || "-"}</div>
             </div>
           </div>
 
           {(task.providerId || task.providerModelId || task.providerFormat) && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.providerInfo")}</Label>
-              <div className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded space-y-1">
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.providerInfo")}</Label>
+              <div className="text-sm px-2 py-1 rounded space-y-1" style={{ background: "var(--muted)" }}>
                 {task.providerId && (
                   <div>
                     Provider: <span className="font-mono">{task.providerId}</span>
@@ -113,25 +113,26 @@ export function TaskDetailDialog({
 
           {task.fixedImageUrl && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.refImageLabel")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.refImageLabel")}</Label>
               <div className="mt-1">
                 <img
                   src={task.fixedImageUrl}
                   alt={t("task.refImageLabel")}
-                  className="max-h-32 rounded border border-gray-200 dark:border-gray-700"
+                  className="max-h-32 rounded border"
+                  style={{ borderColor: "var(--border)" }}
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                   }}
                 />
               </div>
-              <div className="text-xs text-gray-400 break-all mt-1">{task.fixedImageUrl}</div>
+              <div className="text-xs break-all mt-1" style={{ color: "var(--muted-fg)" }}>{task.fixedImageUrl}</div>
             </div>
           )}
 
           {task.prompt && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.promptLabel")}</Label>
-              <div className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded max-h-32 overflow-y-auto">
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.promptLabel")}</Label>
+              <div className="text-sm px-2 py-1 rounded max-h-32 overflow-y-auto" style={{ background: "var(--muted)" }}>
                 {task.prompt}
               </div>
             </div>
@@ -139,8 +140,8 @@ export function TaskDetailDialog({
 
           {task.videoUrl && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.videoUrlLabel")}</Label>
-              <div className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded break-all">
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.videoUrlLabel")}</Label>
+              <div className="text-sm px-2 py-1 rounded break-all" style={{ background: "var(--muted)" }}>
                 {task.videoUrl}
               </div>
             </div>
@@ -148,8 +149,11 @@ export function TaskDetailDialog({
 
           {task.message && (task.status === "failed" || task.status === "timeout") && (
             <div className="space-y-1">
-              <Label className="text-xs text-red-500">{t("task.errorMessage")}</Label>
-              <div className="text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 px-2 py-1 rounded">
+              <Label className="text-xs" style={{ color: "var(--destructive)" }}>{t("task.errorMessage")}</Label>
+              <div
+                className="text-sm px-2 py-1 rounded"
+                style={{ background: "rgba(var(--destructive-rgb), 0.1)", color: "var(--destructive)" }}
+              >
                 {mapUserFacingError(task.message)}
               </div>
             </div>

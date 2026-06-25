@@ -1,7 +1,3 @@
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { Checkbox } from "@/shared/ui/checkbox";
-import { Button } from "@/shared/ui/button";
 import { Plus, Trash2, ChevronRight } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { ModelDefinition } from "./plugin-creator-types";
@@ -22,22 +18,24 @@ export function ModelParams({
   toggleModelParams,
 }: ModelParamsProps) {
   return (
-    <div className="mt-3 border-t pt-3">
+    <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
       <button
         type="button"
-        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--muted-fg)" }}
         onClick={() => toggleModelParams(index)}
       >
-        <ChevronRight className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+        <ChevronRight size={14} style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(90deg)" : "none" }} />
         {t("plugin.paramConfig")}
       </button>
       {isExpanded && (
-        <div className="mt-3 space-y-4 pl-2">
-          <div className="space-y-2">
-            <Label className="text-xs">{t("plugin.durationOptions")}</Label>
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 16, paddingLeft: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label style={{ fontSize: 11 }}>{t("plugin.durationOptions")}</label>
             {model.durations.map((d) => (
-              <div key={d._uid} className="flex items-center gap-2">
-                <Input
+              <div key={d._uid} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32 }}
                   type="number"
                   value={d.value}
                   onChange={(e) => {
@@ -47,9 +45,10 @@ export function ModelParams({
                     updateModel(index, { durations });
                   }}
                   placeholder={t("plugin.durationValuePlaceholder")}
-                  className="font-mono h-8 text-xs"
                 />
-                <Input
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", height: 32 }}
                   value={d.label}
                   onChange={(e) => {
                     const durations = model.durations.map((item) =>
@@ -58,39 +57,40 @@ export function ModelParams({
                     updateModel(index, { durations });
                   }}
                   placeholder={t("plugin.durationLabelPlaceholder")}
-                  className="h-8 text-xs"
                 />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 h-8 w-8 text-red-500"
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ color: "var(--destructive)", height: 32, width: 32, padding: 0, flexShrink: 0 }}
                   onClick={() => {
                     updateModel(index, { durations: model.durations.filter((item) => item._uid !== d._uid) });
                   }}
                   aria-label={t("aria.removeDuration")}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                  <Trash2 size={14} />
+                </button>
               </div>
             ))}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ height: 28, fontSize: 12 }}
               onClick={() => {
                 updateModel(index, { durations: [...model.durations, { _uid: crypto.randomUUID(), value: 0, label: "" }] });
               }}
             >
-              <Plus className="h-3 w-3 mr-1" />
+              <Plus size={12} style={{ marginRight: 4 }} />
               {t("plugin.addDuration")}
-            </Button>
+            </button>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs">{t("plugin.resolutionOptions")}</Label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label style={{ fontSize: 11 }}>{t("plugin.resolutionOptions")}</label>
             {model.resolutions.map((r) => (
-              <div key={r._uid} className="flex items-center gap-2">
-                <Input
+              <div key={r._uid} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32, width: 80 }}
                   value={r.value}
                   onChange={(e) => {
                     const resolutions = model.resolutions.map((item) =>
@@ -99,9 +99,10 @@ export function ModelParams({
                     updateModel(index, { resolutions });
                   }}
                   placeholder={t("plugin.valuePlaceholder")}
-                  className="font-mono h-8 text-xs w-20"
                 />
-                <Input
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", height: 32, width: 96 }}
                   value={r.label}
                   onChange={(e) => {
                     const resolutions = model.resolutions.map((item) =>
@@ -110,9 +111,10 @@ export function ModelParams({
                     updateModel(index, { resolutions });
                   }}
                   placeholder={t("plugin.labelPlaceholder")}
-                  className="h-8 text-xs w-24"
                 />
-                <Input
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32, width: 64 }}
                   value={r.width ? String(r.width) : ""}
                   onChange={(e) => {
                     const resolutions = model.resolutions.map((item) =>
@@ -122,9 +124,10 @@ export function ModelParams({
                   }}
                   placeholder={t("plugin.resolutionWidthPlaceholder")}
                   type="number"
-                  className="font-mono h-8 text-xs w-16"
                 />
-                <Input
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32, width: 64 }}
                   value={r.height ? String(r.height) : ""}
                   onChange={(e) => {
                     const resolutions = model.resolutions.map((item) =>
@@ -134,39 +137,40 @@ export function ModelParams({
                   }}
                   placeholder={t("plugin.resolutionHeightPlaceholder")}
                   type="number"
-                  className="font-mono h-8 text-xs w-16"
                 />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 h-8 w-8 text-red-500"
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ color: "var(--destructive)", height: 32, width: 32, padding: 0, flexShrink: 0 }}
                   onClick={() => {
                     updateModel(index, { resolutions: model.resolutions.filter((item) => item._uid !== r._uid) });
                   }}
                   aria-label={t("aria.removeResolution")}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                  <Trash2 size={14} />
+                </button>
               </div>
             ))}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ height: 28, fontSize: 12 }}
               onClick={() => {
                 updateModel(index, { resolutions: [...model.resolutions, { _uid: crypto.randomUUID(), value: "", label: "", width: 0, height: 0 }] });
               }}
             >
-              <Plus className="h-3 w-3 mr-1" />
+              <Plus size={12} style={{ marginRight: 4 }} />
               {t("plugin.addResolution")}
-            </Button>
+            </button>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs">{t("plugin.styleOptions")}</Label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label style={{ fontSize: 11 }}>{t("plugin.styleOptions")}</label>
             {model.styles.map((s) => (
-              <div key={s._uid} className="flex items-center gap-2">
-                <Input
+              <div key={s._uid} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32 }}
                   value={s.value}
                   onChange={(e) => {
                     const styles = model.styles.map((item) =>
@@ -175,9 +179,10 @@ export function ModelParams({
                     updateModel(index, { styles });
                   }}
                   placeholder={t("plugin.valuePlaceholder")}
-                  className="font-mono h-8 text-xs"
                 />
-                <Input
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", height: 32 }}
                   value={s.label}
                   onChange={(e) => {
                     const styles = model.styles.map((item) =>
@@ -186,111 +191,117 @@ export function ModelParams({
                     updateModel(index, { styles });
                   }}
                   placeholder={t("plugin.labelPlaceholder")}
-                  className="h-8 text-xs"
                 />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 h-8 w-8 text-red-500"
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ color: "var(--destructive)", height: 32, width: 32, padding: 0, flexShrink: 0 }}
                   onClick={() => {
                     updateModel(index, { styles: model.styles.filter((item) => item._uid !== s._uid) });
                   }}
                   aria-label={t("aria.removeStyle")}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                  <Trash2 size={14} />
+                </button>
               </div>
             ))}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ height: 28, fontSize: 12 }}
               onClick={() => {
                 updateModel(index, { styles: [...model.styles, { _uid: crypto.randomUUID(), value: "", label: "" }] });
               }}
             >
-              <Plus className="h-3 w-3 mr-1" />
+              <Plus size={12} style={{ marginRight: 4 }} />
               {t("plugin.addStyle")}
-            </Button>
+            </button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
                 checked={model.negativePrompt}
-                onCheckedChange={(v) => updateModel(index, { negativePrompt: v === true })}
+                onChange={(e) => updateModel(index, { negativePrompt: e.target.checked })}
               />
-              <Label className="text-xs">{t("plugin.negativePrompt")}</Label>
+              <label style={{ fontSize: 11 }}>{t("plugin.negativePrompt")}</label>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
                 checked={model.seed}
-                onCheckedChange={(v) => updateModel(index, { seed: v === true })}
+                onChange={(e) => updateModel(index, { seed: e.target.checked })}
               />
-              <Label className="text-xs">{t("plugin.seedValue")}</Label>
+              <label style={{ fontSize: 11 }}>{t("plugin.seedValue")}</label>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
                 checked={model.cfgScale !== null}
-                onCheckedChange={(v) => {
+                onChange={(e) => {
                   updateModel(index, {
-                    cfgScale: v === true ? { min: 1, max: 30, default: 7, step: 0.5 } : null,
+                    cfgScale: e.target.checked ? { min: 1, max: 30, default: 7, step: 0.5 } : null,
                   });
                 }}
               />
-              <Label className="text-xs">{t("plugin.cfgScale")}</Label>
+              <label style={{ fontSize: 11 }}>{t("plugin.cfgScale")}</label>
             </div>
             {model.cfgScale && (
-              <div className="flex items-center gap-2 pl-6">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t("plugin.min")}</Label>
-                  <Input
+              <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 24 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("plugin.min")}</label>
+                  <input
+                    className="input"
+                    style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32, width: 80 }}
                     type="number"
                     value={model.cfgScale.min}
                     onChange={(e) => {
                       const cfgScale = { ...model.cfgScale!, min: Number(e.target.value) || 0 };
                       updateModel(index, { cfgScale });
                     }}
-                    className="font-mono h-8 text-xs w-20"
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t("plugin.max")}</Label>
-                  <Input
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("plugin.max")}</label>
+                  <input
+                    className="input"
+                    style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32, width: 80 }}
                     type="number"
                     value={model.cfgScale.max}
                     onChange={(e) => {
                       const cfgScale = { ...model.cfgScale!, max: Number(e.target.value) || 0 };
                       updateModel(index, { cfgScale });
                     }}
-                    className="font-mono h-8 text-xs w-20"
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t("plugin.defaultVal")}</Label>
-                  <Input
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("plugin.defaultVal")}</label>
+                  <input
+                    className="input"
+                    style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32, width: 80 }}
                     type="number"
                     value={model.cfgScale.default}
                     onChange={(e) => {
                       const cfgScale = { ...model.cfgScale!, default: Number(e.target.value) || 0 };
                       updateModel(index, { cfgScale });
                     }}
-                    className="font-mono h-8 text-xs w-20"
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">{t("plugin.step")}</Label>
-                  <Input
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("plugin.step")}</label>
+                  <input
+                    className="input"
+                    style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32, width: 80 }}
                     type="number"
                     value={model.cfgScale.step}
                     onChange={(e) => {
                       const cfgScale = { ...model.cfgScale!, step: Number(e.target.value) || 0 };
                       updateModel(index, { cfgScale });
                     }}
-                    className="font-mono h-8 text-xs w-20"
                   />
                 </div>
               </div>

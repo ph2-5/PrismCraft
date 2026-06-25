@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
-import { Button } from "@/shared/ui/button";
 import {
   Loader2,
   ChevronLeft,
@@ -238,7 +237,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
   };
 
   const renderStepIndicator = () => (
-    <div className="flex items-center gap-1 mb-4">
+    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 16 }}>
       {STEPS.map((step, i) => {
         const Icon = step.icon;
         const isActive = i === currentStep;
@@ -249,17 +248,24 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
             onClick={() => {
               if (i < currentStep) setCurrentStep(i);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              isActive
-                ? "bg-purple-600 text-white"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 12px",
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: 500,
+              transition: "background 0.2s, color 0.2s",
+              ...(isActive
+                ? { background: "var(--primary)", color: "#fff" }
                 : isPast
-                  ? "bg-slate-700 text-slate-300 cursor-pointer hover:bg-slate-600"
-                  : "bg-slate-800/50 text-slate-500 cursor-default"
-            }`}
+                  ? { background: "rgba(127, 127, 127, 0.3)", color: "var(--muted-fg)", cursor: "pointer" }
+                  : { background: "rgba(127, 127, 127, 0.1)", color: "var(--muted-fg)", cursor: "default" }),
+            }}
           >
-            <Icon className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">{step.label()}</span>
-            <span className="md:hidden">{i + 1}</span>
+            <Icon size={14} />
+            <span>{step.label()}</span>
           </button>
         );
       })}
@@ -267,7 +273,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
   );
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {renderStepIndicator()}
       {currentStep === 0 && <PluginBasicInfo state={state} updateField={updateField} />}
       {currentStep === 1 && <PluginApiConfig state={state} updateField={updateField} />}
@@ -296,31 +302,34 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
           onDownload={handleDownload}
         />
       )}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button
+          type="button"
+          className="btn btn-outline"
           onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
           disabled={currentStep === 0}
         >
-          <ChevronLeft className="h-4 w-4 mr-1" />
+          <ChevronLeft size={16} style={{ marginRight: 4 }} />
           {t("plugin.prevStep")}
-        </Button>
-        <span className="text-xs text-muted-foreground">
+        </button>
+        <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
           {currentStep + 1} / {STEPS.length}
         </span>
         {currentStep < STEPS.length - 1 ? (
-          <Button
+          <button
+            type="button"
+            className="btn btn-primary"
             onClick={() => setCurrentStep((s) => s + 1)}
             disabled={!canProceed}
           >
             {t("plugin.nextStep")}
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
+            <ChevronRight size={16} style={{ marginLeft: 8 }} />
+          </button>
         ) : (
-          <Button onClick={handleInstall} disabled={isInstalling || !canProceed}>
-            {isInstalling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+          <button type="button" className="btn btn-primary" onClick={handleInstall} disabled={isInstalling || !canProceed}>
+            {isInstalling ? <Loader2 size={16} className="animate-spin" style={{ marginRight: 4 }} /> : <Upload size={16} style={{ marginRight: 4 }} />}
             {t("plugin.installPlugin")}
-          </Button>
+          </button>
         )}
       </div>
     </div>

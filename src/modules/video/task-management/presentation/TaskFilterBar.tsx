@@ -43,7 +43,7 @@ export function TaskFilterBar({
   return (
     <div className="flex flex-wrap items-center gap-2 pt-2">
       <div className="relative flex-1 min-w-[200px]">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-fg)" }} />
         <Input
           placeholder={t("task.searchPlaceholder")}
           value={searchQuery}

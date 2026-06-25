@@ -15,7 +15,7 @@ interface SearchDialogProps {
 const ROUTE_MAP: Record<SearchResult["type"], string> = {
   character: "/characters",
   scene: "/scenes",
-  story: "/story",
+  story: "/storyboard",
 };
 
 export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDialogProps) {
@@ -71,33 +71,33 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <Search className="w-5 h-5 text-gray-400" />
+      <div className="w-full max-w-2xl bg-background rounded-xl shadow-2xl border border-border overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+          <Search className="w-5 h-5 text-muted-foreground" />
           <input
             type="text"
             value={searchTerm}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={t("search.searchPlaceholder")}
-            className="flex-1 bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-400"
+            className="flex-1 bg-transparent outline-none text-foreground placeholder-gray-400"
             autoFocus
           />
           {isSearching && (
-            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           )}
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-1 hover:bg-muted rounded-lg transition-colors"
             aria-label={t("aria.closeSearch")}
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto">
           {results.length === 0 && searchTerm && !isSearching && (
-            <div className="px-4 py-8 text-center text-gray-500">
+            <div className="px-4 py-8 text-center text-muted-foreground">
               {t("search.noResults")}
             </div>
           )}
@@ -106,23 +106,23 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
             <button
               key={`${result.type}-${result.id}`}
               onClick={() => handleSelect(result)}
-              className="w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+              className="w-full px-4 py-3 flex items-start gap-3 hover:bg-muted transition-colors text-left"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                     {result.type === "character"
                       ? t("search.typeCharacter")
                       : result.type === "scene"
                         ? t("search.typeScene")
                         : t("search.typeStory")}
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                  <span className="font-medium text-foreground truncate">
                     {result.title}
                   </span>
                 </div>
                 {result.subtitle && (
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">
+                  <p className="mt-1 text-sm text-muted-foreground truncate">
                     {result.subtitle}
                   </p>
                 )}

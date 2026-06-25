@@ -7,12 +7,22 @@ import { usePreference } from "@/shared/utils/preferences";
 
 const AUTOSAVE_STORAGE_KEY = "ai-animation-autosave-settings";
 
+export type SettingsTab =
+  | "api"
+  | "autosave"
+  | "sync"
+  | "project"
+  | "system";
+
 interface AutoSaveSettingsData {
   enabled?: boolean;
   interval?: number;
 }
 
 export function useSettingsPage() {
+  // ── UI 状态:当前激活的 Tab ──
+  const [activeTab, setActiveTab] = useState<SettingsTab>("api");
+
   // ── Sync dialog ──
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const openSyncDialog = () => setSyncDialogOpen(true);
@@ -57,6 +67,10 @@ export function useSettingsPage() {
   const clearErrorLogsAll = () => container.errorLogStorage.clearErrorLogs();
 
   return {
+    // UI 状态
+    activeTab,
+    setActiveTab,
+
     // Sync dialog
     syncDialogOpen,
     openSyncDialog,

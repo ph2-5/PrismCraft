@@ -164,16 +164,18 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
 
           {consistencyCheck && (
             <div
-              className={`mt-4 p-3 rounded-lg border ${consistencyCheck.passed ? "bg-green-900/10 border-green-700/30" : "bg-amber-900/10 border-amber-700/30"}`}
+              className={`mt-4 p-3 rounded-lg border ${consistencyCheck.passed ? "border-green-700/30" : "bg-amber-900/10 border-amber-700/30"}`}
+              style={consistencyCheck.passed ? { background: "rgba(var(--success-rgb), 0.1)" } : undefined}
             >
               <div className="flex items-center gap-2 mb-2">
                 {consistencyCheck.passed ? (
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4" style={{ color: "var(--success)" }} />
                 ) : (
                   <AlertCircle className="w-4 h-4 text-amber-500" />
                 )}
                 <span
-                  className={`text-sm font-medium ${consistencyCheck.passed ? "text-green-400" : "text-amber-400"}`}
+                  className={`text-sm font-medium ${consistencyCheck.passed ? "" : "text-amber-400"}`}
+                  style={consistencyCheck.passed ? { color: "var(--success)" } : undefined}
                 >
                   {t("shot.visualConsistency", { status: consistencyCheck.passed ? t("shot.consistencyPassed") : t("shot.consistencyAttention") })}
                 </span>
@@ -216,8 +218,8 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
           {error && (
             <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-sm text-red-500">{error}</span>
+                <AlertCircle className="w-4 h-4" style={{ color: "var(--destructive)" }} />
+                <span className="text-sm" style={{ color: "var(--destructive)" }}>{error}</span>
               </div>
             </div>
           )}

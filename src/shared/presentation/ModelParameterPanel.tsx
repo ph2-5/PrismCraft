@@ -279,7 +279,7 @@ export function ModelParameterPanel({
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline" className={
               strategy.useCharacterRef
-                ? "border-green-600/50 text-green-400"
+                ? "border-success/50 text-success"
                 : "border-slate-600/50 text-slate-500"
             }>
               {t("modelParam.charRefSupported")}: {
@@ -294,7 +294,7 @@ export function ModelParameterPanel({
             </Badge>
             <Badge variant="outline" className={
               strategy.useSceneRef
-                ? "border-green-600/50 text-green-400"
+                ? "border-success/50 text-success"
                 : "border-slate-600/50 text-slate-500"
             }>
               {t("modelParam.sceneRefSupported")}: {

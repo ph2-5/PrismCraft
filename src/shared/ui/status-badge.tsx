@@ -7,11 +7,11 @@ const statusBadgeVariants = cva(
     variants: {
       variant: {
         default: "bg-primary/10 text-primary",
-        success: "bg-emerald-500/10 text-emerald-400",
-        warning: "bg-amber-500/10 text-amber-400",
-        error: "bg-red-500/10 text-red-400",
-        info: "bg-blue-500/10 text-blue-400",
-        pending: "bg-yellow-500/10 text-yellow-400",
+        success: "bg-success/10 text-success",
+        warning: "bg-warning/10 text-warning",
+        error: "bg-destructive/10 text-destructive",
+        info: "bg-primary/10 text-primary",
+        pending: "bg-warning/10 text-warning",
       },
     },
     defaultVariants: {
@@ -35,11 +35,11 @@ export function StatusBadge({
       <span
         className={cn(
           "w-1.5 h-1.5 rounded-full",
-          variant === "success" && "bg-emerald-400",
-          variant === "warning" && "bg-amber-400",
-          variant === "error" && "bg-red-400",
-          variant === "info" && "bg-blue-400",
-          variant === "pending" && "bg-yellow-400 animate-pulse",
+          variant === "success" && "bg-success",
+          variant === "warning" && "bg-warning",
+          variant === "error" && "bg-destructive",
+          variant === "info" && "bg-primary",
+          variant === "pending" && "bg-warning animate-pulse",
           (!variant || variant === "default") && "bg-primary",
         )}
       />

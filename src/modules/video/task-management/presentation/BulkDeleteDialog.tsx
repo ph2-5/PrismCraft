@@ -10,7 +10,7 @@ import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { Loader2, Trash2 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
-import { getStatusColor, getStatusLabel } from "./task-status-helpers";
+import { getStatusColor, getStatusStyle, getStatusLabel } from "./task-status-helpers";
 import { t } from "@/shared/constants";
 
 interface BulkDeleteDialogProps {
@@ -41,7 +41,7 @@ export function BulkDeleteDialog({
         </DialogHeader>
 
         <div className="py-4 space-y-2">
-          <div className="text-sm text-gray-600 dark:text-gray-300">{t("task.tasksToDelete")}</div>
+          <div className="text-sm" style={{ color: "var(--muted-fg)" }}>{t("task.tasksToDelete")}</div>
           <div className="max-h-48 overflow-y-auto space-y-1">
             {Array.from(selectedTaskIds)
               .map((taskId) => filteredTasks.find((t) => t.taskId === taskId))
@@ -50,18 +50,22 @@ export function BulkDeleteDialog({
               .map((task, index) => (
                 <div
                   key={task?.taskId || `task-${index}`}
-                  className="text-sm bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded flex items-center justify-between"
+                  className="text-sm px-3 py-2 rounded flex items-center justify-between"
+                  style={{ background: "var(--muted)" }}
                 >
                   <span className="truncate flex-1">
                     {task?.beatTitle || `${t("task.taskLabel")} ${(task?.taskId || "unknown").substring(0, 8)}...`}
                   </span>
-                  <Badge className={`ml-2 ${task ? getStatusColor(task.status) : ""}`}>
+                  <Badge
+                    className={`ml-2 ${task ? getStatusColor(task.status) : ""}`}
+                    style={task ? getStatusStyle(task.status) : undefined}
+                  >
                     {task ? getStatusLabel(task.status) : ""}
                   </Badge>
                 </div>
               ))}
             {selectedTaskIds.size > 10 && (
-              <div className="text-xs text-gray-500 text-center py-1">
+              <div className="text-xs text-center py-1" style={{ color: "var(--muted-fg)" }}>
                 {t("task.moreTasks", { count: selectedTaskIds.size - 10 })}
               </div>
             )}

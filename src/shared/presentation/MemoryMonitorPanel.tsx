@@ -37,21 +37,21 @@ export function MemoryMonitorPanel({ clearErrorLogs }: MemoryMonitorPanelProps) 
         );
       case "medium":
         return (
-          <Badge variant="default" className="bg-yellow-500 gap-1">
+          <Badge variant="default" className="bg-warning gap-1">
             <AlertTriangle className="w-3 h-3" />
             {t("memory.statusMedium")}
           </Badge>
         );
       case "low":
         return (
-          <Badge variant="outline" className="text-yellow-600 border-yellow-500 gap-1">
+          <Badge variant="outline" className="text-warning border-warning gap-1">
             <AlertTriangle className="w-3 h-3" />
             {t("memory.statusLow")}
           </Badge>
         );
       default:
         return (
-          <Badge variant="default" className="bg-green-500 gap-1">
+          <Badge variant="default" className="bg-success gap-1">
             <CheckCircle className="w-3 h-3" />
             {t("memory.statusNormal")}
           </Badge>
@@ -62,13 +62,13 @@ export function MemoryMonitorPanel({ clearErrorLogs }: MemoryMonitorPanelProps) 
   const getProgressColor = () => {
     switch (warningLevel) {
       case "high":
-        return "bg-red-500";
+        return "bg-destructive";
       case "medium":
-        return "bg-yellow-500";
+        return "bg-warning";
       case "low":
-        return "bg-yellow-400";
+        return "bg-warning";
       default:
-        return "bg-green-500";
+        return "bg-success";
     }
   };
 
@@ -117,9 +117,9 @@ export function MemoryMonitorPanel({ clearErrorLogs }: MemoryMonitorPanelProps) 
 
         {warningLevel !== "none" && (
           <div className={`p-3 rounded-lg text-sm ${
-            warningLevel === "high" 
-              ? "bg-red-50 text-red-700 border border-red-200" 
-              : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+            warningLevel === "high"
+              ? "bg-destructive/10 text-destructive border border-destructive/30"
+              : "bg-warning/10 text-warning border border-warning/30"
           }`}>
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5" />

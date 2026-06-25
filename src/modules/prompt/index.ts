@@ -58,4 +58,4 @@ export {
   getStyleOptionsForModel,
 } from "./builder";
 
-export { ModelSelector, useModelSelection, type ModelSelection, ConfigCheckBanner } from "./presentation";
+export { ModelSelector, useModelSelection, type ModelSelection } from "./presentation";

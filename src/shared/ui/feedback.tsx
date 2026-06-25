@@ -101,16 +101,16 @@ function ImageOffIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 const CODE_COLORS: Record<ApiErrorCode, { bg: string; border: string; text: string }> = {
-  INVALID_API_KEY: { bg: "bg-red-50", border: "border-red-200", text: "text-red-800" },
-  RATE_LIMITED: { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-800" },
-  ENDPOINT_NOT_FOUND: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-800" },
-  API_SERVER_ERROR: { bg: "bg-red-50", border: "border-red-200", text: "text-red-800" },
-  TIMEOUT: { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-800" },
-  CONNECTION_FAILED: { bg: "bg-red-50", border: "border-red-200", text: "text-red-800" },
-  INVALID_RESPONSE: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-800" },
-  POLLINATIONS_FAILED: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-800" },
-  INTERNAL_ERROR: { bg: "bg-red-50", border: "border-red-200", text: "text-red-800" },
-  UNKNOWN_ERROR: { bg: "bg-gray-50", border: "border-gray-200", text: "text-gray-800" },
+  INVALID_API_KEY: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive" },
+  RATE_LIMITED: { bg: "bg-warning/10", border: "border-warning/30", text: "text-warning" },
+  ENDPOINT_NOT_FOUND: { bg: "bg-warning/10", border: "border-warning/30", text: "text-warning" },
+  API_SERVER_ERROR: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive" },
+  TIMEOUT: { bg: "bg-warning/10", border: "border-warning/30", text: "text-warning" },
+  CONNECTION_FAILED: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive" },
+  INVALID_RESPONSE: { bg: "bg-warning/10", border: "border-warning/30", text: "text-warning" },
+  POLLINATIONS_FAILED: { bg: "bg-primary/10", border: "border-primary/30", text: "text-primary" },
+  INTERNAL_ERROR: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive" },
+  UNKNOWN_ERROR: { bg: "bg-muted", border: "border-border", text: "text-muted-foreground" },
 };
 
 export function ErrorDisplay({
@@ -162,10 +162,10 @@ export function LoadingState({
   return (
     <div className={`flex flex-col items-center justify-center p-8 ${className}`}>
       <div className="relative">
-        <div className="h-12 w-12 rounded-full border-4 border-gray-200 border-t-blue-500 animate-spin" />
+        <div className="h-12 w-12 rounded-full border-4 border-border border-t-primary animate-spin" />
       </div>
-      <p className="mt-4 text-gray-600 font-medium">{message}</p>
-      {subMessage && <p className="mt-1 text-sm text-gray-400">{subMessage}</p>}
+      <p className="mt-4 text-muted-foreground font-medium">{message}</p>
+      {subMessage && <p className="mt-1 text-sm text-muted-foreground">{subMessage}</p>}
     </div>
   );
 }
@@ -191,12 +191,12 @@ export function EmptyState({
   return (
     <div className={`flex flex-col items-center justify-center p-8 text-center ${className}`}>
       {icon || <Info className="h-12 w-12 text-gray-300" />}
-      <h3 className="mt-4 text-lg font-medium text-gray-900">{title}</h3>
-      {description && <p className="mt-1 text-sm text-gray-500 max-w-sm">{description}</p>}
+      <h3 className="mt-4 text-lg font-medium text-foreground">{title}</h3>
+      {description && <p className="mt-1 text-sm text-muted-foreground max-w-sm">{description}</p>}
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary transition-colors"
         >
           {action.label}
         </button>
@@ -212,7 +212,7 @@ interface SuccessStateProps {
 
 export function SuccessState({ message, className = "" }: SuccessStateProps) {
   return (
-    <div className={`flex items-center gap-2 text-green-600 ${className}`}>
+    <div className={`flex items-center gap-2 text-success ${className}`}>
       <CheckCircle className="h-5 w-5" />
       <span>{message}</span>
     </div>

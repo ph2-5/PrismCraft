@@ -1,5 +1,3 @@
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
 import {
   RotateCcw,
   Film,
@@ -22,8 +20,8 @@ interface BeatVideoPreviewProps {
 export function BeatVideoPreview({ beat, task, videoUrl, guardedPush }: BeatVideoPreviewProps) {
   return (
     <>
-      <Card className="bg-card border-border overflow-hidden">
-        <CardContent className="p-0">
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <div>
           {videoUrl || beat.videoGen?.videoUrl || task?.videoUrl ? (
             <div className="relative aspect-video bg-black">
               <video
@@ -83,49 +81,52 @@ export function BeatVideoPreview({ beat, task, videoUrl, guardedPush }: BeatVide
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-2">
         {beat.videoGen?.status === "failed" && (
-          <Button
-            variant="outline"
-            className="gap-2 flex-1"
-            onClick={() => guardedPush("/story")}
+          <button
+            type="button"
+            className="btn btn-outline gap-2 flex-1"
+            onClick={() => guardedPush("/storyboard")}
           >
             <RotateCcw className="w-4 h-4" />
             {t("beat.backToStory")}
-          </Button>
+          </button>
         )}
         {getFirstFrameUrl(beat.framePair) &&
           !videoUrl &&
           !beat.videoGen?.videoUrl && (
-            <Button
-              className="gap-2 flex-1"
-              onClick={() => guardedPush("/story")}
+            <button
+              type="button"
+              className="btn btn-primary gap-2 flex-1"
+              onClick={() => guardedPush("/storyboard")}
             >
               <Wand2 className="w-4 h-4" />
               {t("beat.goToStoryboardGenerateVideo")}
-            </Button>
+            </button>
           )}
         {beat.keyframe?.imageUrl &&
           !getFirstFrameUrl(beat.framePair) && (
-            <Button
-              className="gap-2 flex-1"
-              onClick={() => guardedPush("/story")}
+            <button
+              type="button"
+              className="btn btn-primary gap-2 flex-1"
+              onClick={() => guardedPush("/storyboard")}
             >
               <Image className="w-4 h-4" />
               {t("beat.goToStoryboardGenerateFramePair")}
-            </Button>
+            </button>
           )}
         {!beat.keyframe?.imageUrl && (
-          <Button
-            className="gap-2 flex-1"
-            onClick={() => guardedPush("/story")}
+          <button
+            type="button"
+            className="btn btn-primary gap-2 flex-1"
+            onClick={() => guardedPush("/storyboard")}
           >
             <Wand2 className="w-4 h-4" />
             {t("beat.goToStoryboardGenerateKeyframe")}
-          </Button>
+          </button>
         )}
         <p className="text-xs text-muted-foreground text-center">
           {t("beat.generateFromStoryboardHint")}

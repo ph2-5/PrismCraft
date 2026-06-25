@@ -2,10 +2,6 @@ import { useState, useRef } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
-import { Button } from "@/shared/ui/button";
-import { Textarea } from "@/shared/ui/textarea";
-import { Alert, AlertDescription } from "@/shared/ui/alert";
-import { Label } from "@/shared/ui/label";
 import {
   Loader2,
   Upload,
@@ -83,66 +79,67 @@ export function PluginAddForm({ onAdded, onCancel }: PluginAddFormProps) {
   };
 
   return (
-    <div className="w-full p-4 border rounded-lg bg-slate-800/50 space-y-4">
-      <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-800">
-        <h4 className="font-medium text-blue-300 mb-2">{t("plugin.addCustomPlugin")}</h4>
-        <p className="text-sm text-blue-300/80">
+    <div style={{ width: "100%", padding: 16, border: "1px solid var(--border)", borderRadius: 8, background: "var(--card2)", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ padding: 12, borderRadius: 8, border: "1px solid var(--primary)", background: "rgba(var(--primary-rgb), 0.2)", borderColor: "var(--primary)" }}>
+        <h4 style={{ fontWeight: 500, marginBottom: 8, color: "var(--primary)" }}>{t("plugin.addCustomPlugin")}</h4>
+        <p style={{ fontSize: 14, color: "rgba(var(--primary-rgb), 0.8)" }}>
           {t("plugin.addCustomPluginDesc")}
         </p>
       </div>
 
-      <div className="flex gap-2">
+      <div style={{ display: "flex", gap: 8 }}>
         <input
           ref={fileInputRef}
           type="file"
           accept=".json"
-          className="hidden"
+          style={{ display: "none" }}
           onChange={handleFileUpload}
         />
-        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-          <FileJson className="h-4 w-4 mr-1" />
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => fileInputRef.current?.click()}>
+          <FileJson size={16} style={{ marginRight: 4 }} />
           {t("plugin.uploadJsonFile")}
-        </Button>
-        <span className="text-xs text-muted-foreground self-center">{t("plugin.orPasteJson")}</span>
+        </button>
+        <span style={{ fontSize: 12, color: "var(--muted-fg)", alignSelf: "center" }}>{t("plugin.orPasteJson")}</span>
       </div>
 
-      <div className="space-y-2">
-        <Label>{t("plugin.pluginConfigJson")}</Label>
-        <Textarea
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <label>{t("plugin.pluginConfigJson")}</label>
+        <textarea
+          className="textarea"
+          style={{ fontSize: 12, minHeight: 200, fontFamily: "monospace" }}
           value={jsonInput}
           onChange={(e) => {
             setJsonInput(e.target.value);
             setValidationResult(null);
           }}
           placeholder='{"id": "my-provider", "version": "1.0.0", "displayName": "My Provider", ...}'
-          className="font-mono text-xs min-h-[200px]"
         />
       </div>
 
       {validationResult && (
-        <Alert variant={validationResult.valid ? "default" : "destructive"} className={validationResult.valid ? "bg-green-900/20 border-green-800" : ""}>
-          <AlertDescription className={validationResult.valid ? "text-green-700" : ""}>
+        <div style={{ padding: 12, borderRadius: 8, background: validationResult.valid ? "rgba(var(--success-rgb, 16, 185, 129), 0.1)" : "rgba(var(--destructive-rgb, 239, 68, 68), 0.1)", border: `1px solid ${validationResult.valid ? "var(--success)" : "var(--destructive)"}`, fontSize: 12, color: "var(--muted-fg)" }}>
+          <div style={validationResult.valid ? { color: "var(--success)" } : undefined}>
             {validationResult.valid ? (
-              <span className="flex items-center gap-1"><CheckCircle className="h-4 w-4" /> {t("plugin.configValidationPassed")}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={16} /> {t("plugin.configValidationPassed")}</span>
             ) : (
-              <span className="flex items-start gap-1"><XCircle className="h-4 w-4 mt-0.5 shrink-0" /> {validationResult.errors.join("; ")}</span>
+              <span style={{ display: "flex", alignItems: "flex-start", gap: 4 }}><XCircle size={16} style={{ marginTop: 2, flexShrink: 0 }} /> {validationResult.errors.join("; ")}</span>
             )}
-          </AlertDescription>
-        </Alert>
+          </div>
+        </div>
       )}
 
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={handleValidate} disabled={!jsonInput.trim() || isValidating}>
-          {isValidating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="button" className="btn btn-outline btn-sm" onClick={handleValidate} disabled={!jsonInput.trim() || isValidating}>
+          {isValidating ? <Loader2 size={16} className="animate-spin" style={{ marginRight: 4 }} /> : <CheckCircle size={16} style={{ marginRight: 4 }} />}
           {t("plugin.validateConfig")}
-        </Button>
-        <Button onClick={handleAdd} disabled={!jsonInput.trim() || isAdding}>
-          {isAdding ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+        </button>
+        <button type="button" className="btn btn-primary btn-sm" onClick={handleAdd} disabled={!jsonInput.trim() || isAdding}>
+          {isAdding ? <Loader2 size={16} className="animate-spin" style={{ marginRight: 4 }} /> : <Upload size={16} style={{ marginRight: 4 }} />}
           {t("plugin.addPluginBtn")}
-        </Button>
-        <Button variant="outline" onClick={onCancel}>
+        </button>
+        <button type="button" className="btn btn-outline btn-sm" onClick={onCancel}>
           {t("common.cancel")}
-        </Button>
+        </button>
       </div>
     </div>
   );

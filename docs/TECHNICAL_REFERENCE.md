@@ -1,6 +1,6 @@
 # PrismCraft 技术参考文档
 
-> **版本**: 0.10.0 | **最后更新**: 2026-06-21 | **架构**: Vite 8 + React Router 7
+> **版本**: 0.11.0 | **最后更新**: 2026-06-24 | **架构**: Vite 8 + React Router 7
 
 ---
 
@@ -35,7 +35,7 @@
 | 属性 | 值 |
 |------|------|
 | 项目名称 | PrismCraft |
-| 版本 | 0.10.0 |
+| 版本 | 0.11.0 |
 | 描述 | AI 驱动的动画制作工具 — 本地优先，支持从故事创作到视频生成的完整工作流 |
 | 构建目标 | Electron 桌面应用 (local-first, offline-capable) |
 | 语言 | TypeScript (strict mode) |
@@ -2212,7 +2212,7 @@ Shared 层提供跨切面 UI 组件、工具函数和错误处理。**Shared 层
 
 #### ui/
 
-基础 UI 组件, 基于 **shadcn/ui + Radix** 构建。
+基础 UI 组件, 基于 **@base-ui/react** 构建。
 
 ### 7.4 Hooks
 

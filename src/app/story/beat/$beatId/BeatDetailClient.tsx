@@ -1,7 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/shared/ui/button";
-import { Badge } from "@/shared/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import {
   ArrowLeft,
   Download,
@@ -54,14 +51,14 @@ function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps &
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => guardedPush("/story")}
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => guardedPush("/storyboard")}
                 aria-label={t("aria.goBack")}
               >
                 <ArrowLeft className="w-5 h-5" />
-              </Button>
+              </button>
               <div>
                 <h1 className="text-xl font-bold text-foreground">
                   {beat.title || t("beat.beatIndex", { index: beat.sequence })}
@@ -72,33 +69,31 @@ function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps &
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge
-                className={getStatusColor(
+              <span
+                className={`badge ${getStatusColor(
                   beat.videoGen?.status || task?.status,
-                )}
+                )}`}
               >
                 {getStatusLabel(beat.videoGen?.status || task?.status)}
-              </Badge>
+              </span>
               {(videoUrl || beat.videoGen?.videoUrl || task?.videoUrl) && (
                 <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm gap-2"
                     onClick={handleDownloadVideo}
                   >
                     <Download className="w-4 h-4" />
                     {t("beat.download")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm gap-2"
                     onClick={handleCopyVideoUrl}
                   >
                     <Link2 className="w-4 h-4" />
                     {t("beat.copyUrl")}
-                  </Button>
+                  </button>
                 </>
               )}
             </div>
@@ -118,48 +113,54 @@ function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps &
           </div>
 
           <div className="space-y-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="video">{t("beat.tabVideo")}</TabsTrigger>
-                <TabsTrigger value="details">{t("beat.tabDetails")}</TabsTrigger>
-                <TabsTrigger value="tech">{t("beat.tabTech")}</TabsTrigger>
-              </TabsList>
+            <div>
+              <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)" }}>
+                <button type="button" className={`top-tab ${activeTab === "video" ? "active" : ""}`} onClick={() => setActiveTab("video")}>{t("beat.tabVideo")}</button>
+                <button type="button" className={`top-tab ${activeTab === "details" ? "active" : ""}`} onClick={() => setActiveTab("details")}>{t("beat.tabDetails")}</button>
+                <button type="button" className={`top-tab ${activeTab === "tech" ? "active" : ""}`} onClick={() => setActiveTab("tech")}>{t("beat.tabTech")}</button>
+              </div>
 
-              <TabsContent value="video" className="space-y-4">
-                <BeatVideoTab
-                  beat={beat}
-                  task={task}
-                  videoUrl={videoUrl}
-                  isRefreshingUrl={isRefreshingUrl}
-                  handleCopyVideoUrl={handleCopyVideoUrl}
-                  handleRefreshVideoUrl={handleRefreshVideoUrl}
-                  success={success}
-                  getStatusColor={getStatusColor}
-                  getStatusLabel={getStatusLabel}
-                  onRegenerate={handleRegenerate}
-                  isRegenerating={isRegenerating}
-                />
-              </TabsContent>
+              {activeTab === "video" && (
+                <div className="space-y-4">
+                  <BeatVideoTab
+                    beat={beat}
+                    task={task}
+                    videoUrl={videoUrl}
+                    isRefreshingUrl={isRefreshingUrl}
+                    handleCopyVideoUrl={handleCopyVideoUrl}
+                    handleRefreshVideoUrl={handleRefreshVideoUrl}
+                    success={success}
+                    getStatusColor={getStatusColor}
+                    getStatusLabel={getStatusLabel}
+                    onRegenerate={handleRegenerate}
+                    isRegenerating={isRegenerating}
+                  />
+                </div>
+              )}
 
-              <TabsContent value="details" className="space-y-4">
-                <BeatDetailsTab
-                  beat={beat}
-                  elementNames={elementNames}
-                />
-              </TabsContent>
+              {activeTab === "details" && (
+                <div className="space-y-4">
+                  <BeatDetailsTab
+                    beat={beat}
+                    elementNames={elementNames}
+                  />
+                </div>
+              )}
 
-              <TabsContent value="tech" className="space-y-4">
-                <BeatTechTab
-                  beat={beat}
-                  task={task}
-                  selectedVideoModel={selectedVideoModel}
-                  setSelectedVideoModel={setSelectedVideoModel}
-                  modelParams={modelParams}
-                  handleModelParamsChange={handleModelParamsChange}
-                  handleCopyPrompt={handleCopyPrompt}
-                />
-              </TabsContent>
-            </Tabs>
+              {activeTab === "tech" && (
+                <div className="space-y-4">
+                  <BeatTechTab
+                    beat={beat}
+                    task={task}
+                    selectedVideoModel={selectedVideoModel}
+                    setSelectedVideoModel={setSelectedVideoModel}
+                    modelParams={modelParams}
+                    handleModelParamsChange={handleModelParamsChange}
+                    handleCopyPrompt={handleCopyPrompt}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>

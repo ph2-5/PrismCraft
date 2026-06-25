@@ -113,7 +113,7 @@ export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }:
           {task.message && (
             <div>
               <p className="text-sm text-muted-foreground">{t("task.statusMessage")}</p>
-              <p className="text-sm font-medium text-yellow-400">{task.message}</p>
+              <p className="text-sm font-medium" style={{ color: "var(--warning)" }}>{task.message}</p>
             </div>
           )}
 

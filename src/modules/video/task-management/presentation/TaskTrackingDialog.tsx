@@ -65,29 +65,29 @@ export function TaskTrackingDialog({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.cloudProvider")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.cloudProvider")}</Label>
               <div className="text-sm font-medium">{trackingInfo.providerName}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.taskIdLabel")}</Label>
-              <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.taskIdLabel")}</Label>
+              <div className="text-sm font-mono px-2 py-1 rounded" style={{ background: "var(--muted)" }}>
                 {task.taskId}
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.modelLabel", { model: "" }).replace(": ", "")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.modelLabel", { model: "" }).replace(": ", "")}</Label>
               <div className="text-sm">{trackingInfo.model || t("task.modelNotRecorded")}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.createdAtLabel")}</Label>
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.createdAtLabel")}</Label>
               <div className="text-sm">{new Date(task.createdAt).toLocaleString()}</div>
             </div>
           </div>
 
           {trackingInfo.apiUrl && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.apiUrlLabel")}</Label>
-              <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded break-all">
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.apiUrlLabel")}</Label>
+              <div className="text-sm font-mono px-2 py-1 rounded break-all" style={{ background: "var(--muted)" }}>
                 {trackingInfo.apiUrl}
               </div>
             </div>
@@ -95,22 +95,22 @@ export function TaskTrackingDialog({
 
           {trackingInfo.queryEndpoint && (
             <div className="space-y-1">
-              <Label className="text-xs text-gray-500">{t("task.queryEndpoint")}</Label>
-              <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded break-all">
+              <Label className="text-xs" style={{ color: "var(--muted-fg)" }}>{t("task.queryEndpoint")}</Label>
+              <div className="text-sm font-mono px-2 py-1 rounded break-all" style={{ background: "var(--muted)" }}>
                 {trackingInfo.queryEndpoint}
               </div>
             </div>
           )}
 
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+          <div className="border-t pt-4 space-y-3" style={{ borderColor: "var(--border)" }}>
             <Label className="text-sm font-medium">{t("task.queryInstructions")}</Label>
-            <div className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg whitespace-pre-line">
+            <div className="text-sm p-3 rounded-lg whitespace-pre-line" style={{ color: "var(--muted-fg)", background: "var(--muted)" }}>
               {trackingInfo.howToCheck}
             </div>
           </div>
 
           {trackingInfo.apiDocUrl && (
-            <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--primary)" }}>
               <BookOpen className="w-4 h-4" />
               <a
                 href={trackingInfo.apiDocUrl}

@@ -110,18 +110,18 @@ export function PerformanceMonitorPanel() {
               <div key={metric.label || index} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className={`${
-                    metric.status === "good" ? "text-green-500" :
-                    metric.status === "warning" ? "text-yellow-500" :
-                    "text-red-500"
+                    metric.status === "good" ? "text-success" :
+                    metric.status === "warning" ? "text-warning" :
+                    "text-destructive"
                   }`}>
                     {metric.icon}
                   </span>
                   <span className="text-xs text-muted-foreground">{metric.label}</span>
                 </div>
                 <span className={`text-sm font-medium ${
-                  metric.status === "good" ? "text-green-500" :
-                  metric.status === "warning" ? "text-yellow-500" :
-                  "text-red-500"
+                  metric.status === "good" ? "text-success" :
+                  metric.status === "warning" ? "text-warning" :
+                  "text-destructive"
                 }`}>
                   {metric.value}
                 </span>
@@ -131,10 +131,10 @@ export function PerformanceMonitorPanel() {
             {memoryUsage !== null && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-blue-500" />
+                  <Zap className="w-4 h-4" style={{ color: "var(--primary)" }} />
                   <span className="text-xs text-muted-foreground">{t("perf.memoryUsage")}</span>
                 </div>
-                <span className="text-sm font-medium text-blue-500">
+                <span className="text-sm font-medium" style={{ color: "var(--primary)" }}>
                   {memoryUsage}MB
                 </span>
               </div>

@@ -148,7 +148,7 @@ export function VideoTaskManager({
 
   return (
     <div className="w-full">
-      <Card className="border border-gray-200 dark:border-gray-800">
+      <Card className="border" style={{ borderColor: "var(--border)" }}>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -156,7 +156,7 @@ export function VideoTaskManager({
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
                 <CardDescription>{t("task.videoTaskManagementDesc")}</CardDescription>
                 {cacheStats && cacheStats.count > 0 && (
-                  <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                  <Badge style={{ background: "rgba(var(--primary-rgb), 0.1)", color: "var(--primary)" }}>
                     {t("task.localCacheInfo", { count: cacheStats.count, size: cacheStats.totalSizeMB.toFixed(2) })}
                   </Badge>
                 )}
@@ -219,7 +219,7 @@ export function VideoTaskManager({
         </CardHeader>
         <CardContent className="space-y-6">
           {filteredTasks.length > 0 && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+            <div className="text-xs flex items-center justify-between" style={{ color: "var(--muted-fg)" }}>
               <span>{t("task.totalTaskCount", { count: filteredTasks.length })}</span>
               {filteredTasks.length > 50 && (
                 <span>{t("task.groupCollapseEnabled")}</span>
@@ -296,10 +296,10 @@ export function VideoTaskManager({
               })}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12" style={{ color: "var(--muted-fg)" }}>
               <PlayCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-sm">{t("task.noTasks")}</p>
-              <p className="text-xs mt-1 text-gray-400">{t("task.noTasksHint")}</p>
+              <p className="text-xs mt-1" style={{ color: "var(--muted-fg)" }}>{t("task.noTasksHint")}</p>
             </div>
           )}
 

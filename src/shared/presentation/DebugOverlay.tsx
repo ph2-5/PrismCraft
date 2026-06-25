@@ -36,7 +36,7 @@ export function DebugOverlay() {
     return (
       <button
         onClick={() => setIsDevToolsOpen(true)}
-        className="fixed bottom-4 right-4 z-[9999] bg-red-500 text-white px-3 py-1 rounded text-xs"
+        className="fixed bottom-4 right-4 z-[9999] bg-destructive text-white px-3 py-1 rounded text-xs"
       >
         {t("debug.toggle")}
       </button>
@@ -47,7 +47,7 @@ export function DebugOverlay() {
     <div className="fixed bottom-4 right-4 z-[9999] bg-gray-900 text-white p-4 rounded-lg max-w-sm text-xs">
       <div className="flex justify-between items-center mb-2">
         <span className="font-bold">{t("debug.title")}</span>
-        <button onClick={() => setIsDevToolsOpen(false)} className="text-gray-400">
+        <button onClick={() => setIsDevToolsOpen(false)} style={{ color: "var(--muted-fg)" }}>
           ×
         </button>
       </div>

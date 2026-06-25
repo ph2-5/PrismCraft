@@ -7,6 +7,7 @@ import {
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
 import { AlertTriangle, Trash2, AlertCircle } from "lucide-react";
+import { t } from "@/shared/constants";
 
 interface ConfirmOptions {
   title?: string;
@@ -17,10 +18,10 @@ interface ConfirmOptions {
 }
 
 const defaultOptions: ConfirmOptions = {
-  title: "确认操作",
-  description: "此操作不可撤销，确定要继续吗？",
-  confirmText: "确认",
-  cancelText: "取消",
+  title: undefined,
+  description: undefined,
+  confirmText: undefined,
+  cancelText: undefined,
   variant: "default",
 };
 
@@ -77,7 +78,7 @@ export function confirm(
                 </div>
               )}
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">{options.title}</h3>
+                <h3 className="text-lg font-semibold">{options.title || t("confirm.title")}</h3>
                 {options.description && (
                   <p className="mt-2 text-sm text-muted-foreground">
                     {options.description}
@@ -87,7 +88,7 @@ export function confirm(
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={handleCancel}>
-                {options.cancelText}
+                {options.cancelText || t("common.cancel")}
               </Button>
               <Button
                 variant={
@@ -95,7 +96,7 @@ export function confirm(
                 }
                 onClick={handleConfirm}
               >
-                {options.confirmText}
+                {options.confirmText || t("common.confirm")}
               </Button>
             </div>
           </DialogContent>

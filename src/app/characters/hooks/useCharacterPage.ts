@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
@@ -51,6 +51,10 @@ export function useCharacterPage() {
   const [customTrait, setCustomTrait] = useState("");
   const [, setCustomStyle] = useState("");
   const { success, error: showError } = useToastHelpers();
+
+  // ── 搜索与创建状态（UI 状态但由 hook 管理） ──
+  const [search, setSearch] = useState("");
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
   // ── 素材库添加 ──
   const addAssetToLibrary = async (
@@ -128,6 +132,7 @@ export function useCharacterPage() {
         if (!(await confirm(t("character.unsavedSwitchConfirm"), t("character.unsavedChanges")))) return;
       }
       setCurrentCharacter(char);
+      setIsCreatingNew(false);
       imageHook.setGeneratedImage(resolveImageUrl(char.avatarPath || char.generatedImage || char.refImagePath) || null);
     },
     [currentCharacter.id, isDirty, setCurrentCharacter, imageHook.setGeneratedImage],
@@ -151,6 +156,7 @@ export function useCharacterPage() {
     setCurrentCharacter(defaultCharacter);
     setCustomTrait("");
     setCustomStyle("");
+    setIsCreatingNew(true);
   }, [currentCharacter.id, isDirty, setCurrentCharacter, setCustomTrait, setCustomStyle]);
 
   // ── 添加造型 ──
@@ -190,6 +196,38 @@ export function useCharacterPage() {
     },
     [currentCharacter, imageHook.setGeneratedImage, queryClient, showError, success],
   );
+
+  // ── 引用当前角色的分镜 ──
+  const referencedBeats = useMemo(() => {
+    if (!currentCharacter.id) return [];
+    const beats: { id: string; title: string; status?: string }[] = [];
+    for (const story of stories) {
+      for (const beat of story.beats || []) {
+        if (beat.characterIds?.includes(currentCharacter.id)) {
+          beats.push({
+            id: beat.id,
+            title: `第${beat.sequence ?? beat.order ?? 0}镜 · ${beat.title || beat.description?.slice(0, 20) || "未命名"}`,
+            status: beat.generationStatus === "completed" ? "✓" : beat.generationStatus === "generating" ? "⏳" : undefined,
+          });
+        }
+      }
+    }
+    return beats;
+  }, [stories, currentCharacter.id]);
+
+  // ── 过滤后的角色列表 ──
+  const filteredCharacters = useMemo(() => {
+    if (!search.trim()) return characters;
+    const q = search.toLowerCase();
+    return characters.filter((c) =>
+      c.name.toLowerCase().includes(q) ||
+      c.description.toLowerCase().includes(q) ||
+      c.style.toLowerCase().includes(q),
+    );
+  }, [characters, search]);
+
+  // ── 是否显示编辑器 ──
+  const showEditor = Boolean(currentCharacter.id) || isCreatingNew;
 
   return {
     // 数据
@@ -256,5 +294,12 @@ export function useCharacterPage() {
 
     // 计算
     isDirty: isDirty("characters"),
+
+    // UI 状态与派生数据
+    search, setSearch,
+    isCreatingNew,
+    referencedBeats,
+    filteredCharacters,
+    showEditor,
   };
 }

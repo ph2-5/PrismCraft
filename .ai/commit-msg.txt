@@ -1,0 +1,22 @@
+refactor(arch+feat): batch 4 architecture refactors + project switching + lazy navigation
+
+Architecture refactors (4 items):
+- StoryProvider P0: delete dead code, remove 8 fields from Context
+- React.lazy: 4 first-paint components lazy-loaded
+- saveVideoTask: new persist-task.ts, 7 call sites refactored
+- useAssetLibraryActions: dead param removed, 20 params packed into 6 objects
+
+Feature A: project concept wiring (8 files):
+- Route /storyboard/:storyId for deep linking
+- StoryProvider loads by URL storyId then activeStoryId then first story
+- StoryHeader wired into page.tsx
+- Home page: card onClick passes storyId, new project button fixed
+- SidebarWithSearch: search results navigate with storyId
+
+Feature B: lazy navigation state (4 files):
+- BeforeUnloadGuard: removed useBlocker+confirm, kept beforeunload
+- useNavigationGuard: guardedPush simplified to sync navigate
+- R71 regression rule marked as superseded
+- r71 test rewritten with 5 new cases
+
+Tests: 4667 to 4668

@@ -5,6 +5,7 @@ import { storyService } from "@/modules/story";
 import { useVideoTaskStore, removeCachedImage } from "@/modules/video";
 import { collectBeatRemoteImageUrls } from "@/modules/story/generation";
 import type { useStoryState } from "@/modules/story";
+import { useAppStore } from "@/shared/app-store";
 
 interface UseStoryActionsParams {
   storyState: ReturnType<typeof useStoryState>;
@@ -41,6 +42,7 @@ export function useStoryActions({ storyState, showError }: UseStoryActionsParams
       storyState.setCurrentStory(fresh, true);
       storyState.setBeats(fresh.beats || [], true);
       storyState.markClean("story");
+      useAppStore.getState().setActiveStoryId(fresh.id);
       return;
     }
     const cached = storyState.stories.find((s) => s.id === storyId);
@@ -48,6 +50,7 @@ export function useStoryActions({ storyState, showError }: UseStoryActionsParams
       storyState.setCurrentStory(cached, true);
       storyState.setBeats(cached.beats || [], true);
       storyState.markClean("story");
+      useAppStore.getState().setActiveStoryId(cached.id);
       errorLogger.warn("[StoryProvider] 从数据库加载故事失败，使用内存缓存", result.error);
       return;
     }

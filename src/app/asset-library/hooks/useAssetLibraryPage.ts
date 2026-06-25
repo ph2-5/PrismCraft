@@ -88,26 +88,12 @@ export function useAssetLibraryPage() {
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   const actions = useAssetLibraryActions({
-    activeTab,
-    selectedIds,
-    clearSelection,
-    setSelectedIds,
+    selection: { activeTab, selectedIds, clearSelection, setSelectedIds },
     setSecondaryData,
-    setIsBatchDeleting,
-    setIsAddingToCollection,
-    setIsCollectionDialogOpen,
-    setIsImportDialogOpen,
-    setIsNewCollectionDialogOpen,
-    setIsEditDialogOpen,
-    setEditingItem,
-    setIsSavingEdit,
-    setIsCreatingCollection,
-    setNewCollectionName,
-    setAddToCollectionId,
-    addToCollectionId,
-    newCollectionName,
-    editingItem,
-    isBatchDeleting,
+    dialogControls: { setIsCollectionDialogOpen, setIsImportDialogOpen, setIsNewCollectionDialogOpen, setIsEditDialogOpen, setIsAddingToCollection },
+    loadingControls: { setIsBatchDeleting, setIsSavingEdit, setIsCreatingCollection, isBatchDeleting },
+    editDialog: { editingItem, setEditingItem },
+    collectionForm: { addToCollectionId, newCollectionName, setNewCollectionName },
   });
 
   const filteredCharacters = useMemo(

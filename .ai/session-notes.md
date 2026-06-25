@@ -305,3 +305,33 @@
 **验证结果**：typecheck + typecheck:electron + lint + lint:arch 全部通过 + 4667 测试通过（新增 108 个回归测试）
 
 **后续待办**：批次 4（P2 架构重构）— StoryProvider Context 拆分、React.lazy 路由分割、saveVideoTask 重复提取、useAssetLibraryActions 22 参数重构、route handlers as 断言消除（schema 设计债务）
+
+### [2026-06-26] 批次 4 架构重构 + 两个新功能 — 已完成
+
+**架构重构（4 项）**：
+1. **StoryProvider P0 清理**：删除死代码 VideoGeneratorSection.tsx（78 行）、从 Context 移除 8 字段（success/showError/tasks/addTask/createTask/pollTask/removeTask/removeTasks）、消费者 useStoryPage 改为直接调 useToastHelpers() 和 useVideoTaskManager()
+2. **React.lazy 首屏优化**：4 个首屏组件 lazy 化（VideoTaskManagerInitializer 深路径导入绕过 barrel、MigrationInitializer、PerformanceMonitorPanel、OnboardingGuide），全部 Suspense fallback={null}
+3. **saveVideoTask 重复提取**：新建 `internals/persist-task.ts` 统一封装 saveVideoTask 调用 + 错误日志 + 可选 toast + 可选 try/catch；改造 7 个调用点（use-video-task-manager ×2、shared-polling-logic ×2、polling-task-handler ×3），消除 ~100 行显式字段列表冗余
+4. **useAssetLibraryActions 参数重构**：删除死参数 setAddToCollectionId、20 扁平参数打包为 6 语义对象（selection/dialogControls/loadingControls/editDialog/collectionForm/setSecondaryData）
+
+**新功能 A：分镜项目概念接线（8 文件）**：
+- 路由新增 `/storyboard/:storyId` 支持深链接
+- StoryProvider 初始加载三优先级：URL storyId → activeStoryId → 第一个故事
+- page.tsx 接入 StoryHeader（完整项目切换 UI：下拉列表/新建/切换/删除）
+- useStoryActions.switchToStory 切换后持久化 activeStoryId
+- 首页修复：卡片 onClick 传 storyId、"+ 新建项目"按钮从 exportAllData 改为 navigate、stat 显示从全局改为故事内数量
+- SidebarWithSearch 搜索结果跳转传 storyId
+- 新增 i18n key：story.newProject
+- StoryHeader 修复 i18n：beat.createBeat → story.newProject
+
+**新功能 B：懒状态改造（4 文件）**：
+- BeforeUnloadGuard：移除 useBlocker + confirm 路由拦截，保留 beforeunload（程序关闭时浏览器原生提示）
+- useNavigationGuard：guardedPush 从 async+confirm 简化为同步 navigate(href)
+- 不清除 dirty state（R64 合规）
+- R71 回归规则标注为"已被产品决策覆盖"
+- r71-navigation-blocker.test.ts 重写：5 个新用例验证懒状态行为
+- 保留故事/角色/场景切换的实体级确认弹窗（非路由级）
+
+**验证结果**：typecheck + typecheck:electron + lint + lint:arch 全部通过 + 4668 测试通过（+1 新测试）
+
+**后续待办**：route handlers as 断言消除（schema 设计债务）、首页导出入口迁移（从"新建项目"按钮移到设置页）

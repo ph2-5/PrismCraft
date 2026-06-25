@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { container } from "@/infrastructure/di";
 import { t } from "@/shared/constants";
 import { generateProfessionalVideoPrompt } from "@/modules/prompt";
+import { useVideoTaskManager } from "@/modules/video";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
 import type { PromptEditorContext } from "@/modules/story";
@@ -40,6 +41,7 @@ const PROMPT_FIELD_MAP: Record<Exclude<PromptEditorContext, "video">, "imageGene
 export function useStoryPage() {
   const story = useStory();
   const { success, error: showError, warning: showWarning } = useToastHelpers();
+  const { addTask } = useVideoTaskManager();
   const autoSaveSettings = useAutoSaveSettings();
 
   const handleSaveRef = useRef(story.handleSave);
@@ -73,7 +75,7 @@ export function useStoryPage() {
       !story.selectedVideoModel?.providerId ||
       !story.selectedVideoModel?.modelId
     ) {
-      story.showError(t("story.cannotGenerateVideo"), t("story.selectVideoModel"));
+      showError(t("story.cannotGenerateVideo"), t("story.selectVideoModel"));
       return;
     }
     isGeneratingRef.current = true;
@@ -106,7 +108,7 @@ export function useStoryPage() {
       const apiGenerateVideo = container.videoProvider.generateVideo;
       const result = await apiGenerateVideo(prompt, videoOptions);
       if (result.success && result.data?.taskId) {
-        story.addTask({
+        addTask({
           taskId: result.data.taskId,
           status: "pending",
           message: t("story.videoTaskSubmitted"),
@@ -128,7 +130,7 @@ export function useStoryPage() {
       setIsGenerating(false);
       isGeneratingRef.current = false;
     }
-  }, [story, success, showError]);
+  }, [story, success, showError, addTask]);
 
   const switchStory = (s: (typeof story.stories)[number]) => {
     if (story.isVideoUrlPersisting) {

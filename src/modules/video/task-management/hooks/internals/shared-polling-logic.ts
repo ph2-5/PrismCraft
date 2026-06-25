@@ -1,9 +1,9 @@
 import { container } from "@/infrastructure/di";
 import {
-  saveVideoTask,
   recoverVideoByTaskId,
   registerCacheVideoBlobFn,
 } from "@/modules/video/recovery";
+import { persistVideoTask } from "./persist-task";
 import { cacheVideoBlob, registerRecoveryFn, removeCachedVideo } from "@/modules/video/cache";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
@@ -134,17 +134,10 @@ export async function pollTaskShared(
         message: result.data.message || task.message,
       });
 
-      const pollSaveResult = await saveVideoTask({
-        ...task,
-        ...guardUpdates,
-        lastPolledAt: new Date().toISOString(),
-      });
-      if (!pollSaveResult.ok) {
-        errorLogger.warn(
-          "[VideoTaskManager] 轮询结果持久化失败",
-          pollSaveResult.error instanceof Error ? pollSaveResult.error.message : pollSaveResult.error,
-        );
-      }
+      await persistVideoTask(
+        { ...task, ...guardUpdates, lastPolledAt: new Date().toISOString() },
+        { logLabel: "轮询结果持久化失败", catchExceptions: false },
+      );
 
       store.getState().setAllTasks((prev) =>
         prev.map((t) =>
@@ -182,13 +175,10 @@ export async function pollTaskShared(
       removeCachedVideo(taskId).catch((e) => { errorLogger.warn("[VideoTaskManager] removeCachedVideo failed", e); });
     }
     try {
-      const failSaveResult = await saveVideoTask(updatedTask);
-      if (!failSaveResult.ok) {
-        errorLogger.error(
-          "[VideoTaskManager] Failed to save poll failure",
-          failSaveResult.error,
-        );
-      }
+      await persistVideoTask(updatedTask, {
+        logLevel: "error",
+        logLabel: "Failed to save poll failure",
+      });
     } catch (saveError) {
       errorLogger.error(
         "[VideoTaskManager] Failed to save poll failure",

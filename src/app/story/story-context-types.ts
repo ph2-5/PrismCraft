@@ -10,7 +10,6 @@ import type {
   useBatchGenerator,
   useStorySaver,
 } from "@/modules/story";
-import type { useVideoTaskManager } from "@/modules/video";
 
 export interface StoryContextValue {
   stories: ReturnType<typeof useStoryState>["stories"];
@@ -81,16 +80,6 @@ export interface StoryContextValue {
   setVersionDialogOpen: ReturnType<typeof useStorySaver>["setVersionDialogOpen"];
   deleteDialogOpen: ReturnType<typeof useStorySaver>["deleteDialogOpen"];
   setDeleteDialogOpen: ReturnType<typeof useStorySaver>["setDeleteDialogOpen"];
-
-  tasks: ReturnType<typeof useVideoTaskManager>["tasks"];
-  addTask: ReturnType<typeof useVideoTaskManager>["addTask"];
-  createTask: ReturnType<typeof useVideoTaskManager>["createTask"];
-  pollTask: ReturnType<typeof useVideoTaskManager>["pollTask"];
-  removeTask: ReturnType<typeof useVideoTaskManager>["removeTask"];
-  removeTasks: ReturnType<typeof useVideoTaskManager>["removeTasks"];
-
-  success: (title: string, description?: string) => void;
-  showError: (title: string, description?: string) => void;
 
   saveStatus: SaveStatus;
   saveError: string;

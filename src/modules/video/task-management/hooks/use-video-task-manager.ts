@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import { container } from "@/infrastructure/di";
-import { saveVideoTask } from "@/modules/video/recovery";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
@@ -16,6 +15,7 @@ import {
   scheduleSync,
   registerSyncStore,
 } from "./internals";
+import { persistVideoTask } from "./internals/persist-task";
 import {
   removeTaskFromStorageAndCache,
   removeTasksFromStorageAndCache,
@@ -109,34 +109,10 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       createdAt: new Date().toISOString(),
     };
 
-    const saveResult = await saveVideoTask({
-      taskId: newTask.taskId,
-      status: newTask.status,
-      progress: 0,
-      videoUrl: newTask.videoUrl,
-      message: newTask.message,
-      createdAt: newTask.createdAt,
-      model: newTask.model,
-      prompt: newTask.prompt,
-      parameters: newTask.parameters,
-      apiUrl: newTask.apiUrl,
-      apiEndpoint: newTask.apiEndpoint,
-      providerId: newTask.providerId,
-      providerModelId: newTask.providerModelId,
-      providerFormat: newTask.providerFormat,
-      fixedImageUrl: newTask.fixedImageUrl,
-      fixedImageLockType: newTask.fixedImageLockType,
-      storyId: newTask.storyId,
-      storyTitle: newTask.storyTitle,
-      beatId: newTask.beatId,
-      beatTitle: newTask.beatTitle,
+    await persistVideoTask(newTask, {
+      logLabel: "持久化任务失败，仅保留在内存中",
+      catchExceptions: false,
     });
-    if (!saveResult.ok) {
-      errorLogger.warn(
-        "[VideoTaskManager] 持久化任务失败，仅保留在内存中",
-        saveResult.error instanceof Error ? saveResult.error.message : saveResult.error,
-      );
-    }
 
     get().setAllTasks((prev) => [newTask, ...prev]);
     scheduleSync();
@@ -345,39 +321,21 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
           beatTitle: extraOptions?.beatTitle,
         };
 
-        const createSaveResult = await saveVideoTask({
-          taskId: newTask.taskId,
-          status: newTask.status,
-          progress: 0,
-          message: newTask.message,
-          createdAt: newTask.createdAt,
-          prompt: newTask.prompt,
-          fixedImageUrl: newTask.fixedImageUrl,
-          fixedImageLockType: newTask.fixedImageLockType,
-          apiUrl: newTask.apiUrl,
-          model: newTask.model,
-          providerId: newTask.providerId,
-          providerModelId: newTask.providerModelId,
-          providerFormat: newTask.providerFormat,
-          storyId: newTask.storyId,
-          storyTitle: newTask.storyTitle,
-          beatId: newTask.beatId,
-          beatTitle: newTask.beatTitle,
+        const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
+        await persistVideoTask(newTask, {
+          logLabel: "持久化任务失败，仅保留在内存中",
+          toastOnFailure: {
+            titleKey: "warning.memoryOnly",
+            detailKey: "warning.memoryOnlyDetail",
+            detailArgs: { taskLabel },
+          },
+          catchExceptions: false,
         });
-        if (!createSaveResult.ok) {
-          errorLogger.warn(
-            "[VideoTaskManager] 持久化任务失败，仅保留在内存中",
-            createSaveResult.error instanceof Error ? createSaveResult.error.message : createSaveResult.error,
-          );
-          const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
-          emitToast("warning", t("warning.memoryOnly"), t("warning.memoryOnlyDetail", { taskLabel }));
-        }
 
         get().setAllTasks((prev) => [newTask, ...prev]);
 
         schedulePolling();
 
-        const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
         emitToast("success", t("video.taskSubmittedTitle"), t("video.taskSubmittedProcessing", { label: taskLabel }));
 
         if (result.data?.promptWasTruncated) {

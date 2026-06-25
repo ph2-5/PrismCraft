@@ -71,7 +71,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
               }}
             >
               <Plus className="w-4 h-4 text-primary" />
-              {t("beat.createBeat")}
+              {t("story.newProject")}
             </button>
             {story.stories.length > 0 && (
               <div className="border-t border-border my-1" />

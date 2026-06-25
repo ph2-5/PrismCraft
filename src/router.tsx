@@ -36,6 +36,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: withSuspense(Home) },
       { path: "storyboard", element: withSuspense(StoryboardPage) },
+      { path: "storyboard/:storyId", element: withSuspense(StoryboardPage) },
       { path: "storyboard/beat/:beatId", element: withSuspense(BeatDetailPage) },
       { path: "characters", element: withSuspense(CharactersPage) },
       { path: "scenes", element: withSuspense(ScenesPage) },

@@ -22,9 +22,7 @@ export default function Home() {
     scenes,
     stories,
     dataLoading,
-    downloadExportMutation,
     navigate,
-    exportAllData,
   } = useHomePage();
 
   if (dataLoading) {
@@ -180,16 +178,15 @@ export default function Home() {
             <div className="text-[15px] font-bold">📂 {t("home.recentProjects")}</div>
             <button
               className="btn btn-primary btn-sm"
-              onClick={exportAllData}
-              disabled={downloadExportMutation.isPending}
+              onClick={() => navigate("/storyboard")}
             >
               + {t("home.newProject")}
             </button>
           </div>
           <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
             {stories.slice(0, 6).map((story) => {
-              const charCount = characters.length;
-              const sceneCount = scenes.length;
+              const charCount = story.characters?.length ?? 0;
+              const sceneCount = story.scenes?.length ?? 0;
               const beatCount = story.beats?.length ?? 0;
               const assetCount = story.elementIds?.length ?? 0;
               return (
@@ -204,7 +201,7 @@ export default function Home() {
                     e.currentTarget.style.borderColor = "var(--border)";
                     e.currentTarget.style.boxShadow = "";
                   }}
-                  onClick={() => navigate("/storyboard")}
+                  onClick={() => navigate(`/storyboard/${story.id}`)}
                 >
                   <div className="flex items-center gap-3 mb-2.5">
                     <div

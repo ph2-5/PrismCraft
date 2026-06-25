@@ -45,6 +45,10 @@ export function SidebarWithSearch() {
   }, []);
 
   const handleSearchSelect = useCallback((result: SearchResult) => {
+    if (result.type === "story") {
+      guardedPush(`/storyboard/${result.id}`);
+      return;
+    }
     const basePath = ROUTE_MAP[result.type];
     guardedPush(`${basePath}?highlight=${encodeURIComponent(result.id)}`);
   }, [guardedPush]);

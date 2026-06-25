@@ -2046,6 +2046,9 @@ const handleDismiss = async () => {
 
 ### R71: Route Navigation MUST Intercept When Dirty State Exists
 
+> **注：自 2026-06 起产品决定路由切换不再弹窗，由 autosave + beforeunload 兜底。此规则已废弃。**
+> **`useNavigationGuard` 已移除 `useBlocker` + `confirm` 路由拦截，`guardedPush` 直接 `navigate(href)` 且不清脏状态（R64 约束）。仅保留 `BeforeUnloadGuard` 的 `beforeunload` 监听（程序关闭时浏览器原生提示）。保留以下规则文本作为历史记录。**
+
 When a user has unsaved changes (dirty state), the application MUST intercept all navigation events — including browser back/forward buttons, not just programmatic navigation via `guardedPush`. Using `useBlocker` from react-router-dom ensures that browser-initiated navigation is also caught and confirmed.
 
 **BAD** — Only programmatic navigation is guarded:

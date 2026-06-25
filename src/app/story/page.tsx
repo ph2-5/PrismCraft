@@ -10,12 +10,14 @@ import { ComingSoon } from "@/shared/presentation/ComingSoon";
 import { Modal } from "@/shared/presentation/Modal";
 import { Tabs } from "@/shared/presentation/Tabs";
 import { StoryProvider } from "./StoryProvider";
+import { StoryHeader } from "./StoryHeader";
 import { SwitchConfirmDialog } from "./SwitchConfirmDialog";
 import { useStoryPage } from "./hooks/useStoryPage";
 
 function StoryPageContent() {
   const {
     story,
+    switchStory,
     isGenerating,
     showSwitchConfirmDialog,
     pendingSwitchStory,
@@ -48,9 +50,7 @@ function StoryPageContent() {
             onChange={(id) => setActiveTab(id as typeof activeTab)}
           />
           <div className="toolbar" style={{ paddingRight: 32 }}>
-            <span style={{ fontSize: 12, color: "var(--muted-fg)" }}>
-              {story.currentStory.title || t("beat.unnamedProject")}
-            </span>
+            <StoryHeader story={story} onSwitchStory={switchStory} />
             {/* 团队成员头像组（占位，协作功能未实现） */}
             <div className="flex items-center" aria-hidden="true">
               <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)", marginRight: -6 }}>A</div>

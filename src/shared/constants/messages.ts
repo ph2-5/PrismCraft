@@ -445,6 +445,7 @@ const messages: Record<MessageKey, string> = {
   "story.deleteConfirmInputPlaceholder": "请输入故事名称以确认删除",
   "story.switchProject": "切换项目",
   "story.switchProjectDesc": "当前项目有未保存的修改，切换前是否保存？",
+  "story.newProject": "新建项目",
   "story.titlePlaceholder": "分镜项目标题...",
   "story.descPlaceholder": "简介...",
   "story.quickPromptPlaceholder": "例如：一只白色猫咪在海边沙滩上奔跑，日落暖光，治愈电影感...",

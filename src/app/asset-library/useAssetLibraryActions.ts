@@ -34,50 +34,51 @@ import type { AssetTab, EditingItem } from "./AssetCardGrid";
 import { fetchSecondaryData } from "./AssetCardGrid";
 
 interface UseAssetLibraryActionsParams {
-  activeTab: AssetTab;
-  selectedIds: Set<string>;
-  clearSelection: () => void;
-  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  // 选择上下文
+  selection: {
+    activeTab: AssetTab;
+    selectedIds: Set<string>;
+    clearSelection: () => void;
+    setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  };
+  // 数据同步
   setSecondaryData: (data: { storyboards: import("@/domain/schemas").StoryboardAsset[]; collections: import("@/domain/schemas").Collection[]; collectionAssets: import("@/domain/schemas").CollectionAsset[] }) => void;
-  setIsBatchDeleting: (v: boolean) => void;
-  setIsAddingToCollection: (v: boolean) => void;
-  setIsCollectionDialogOpen: (v: boolean) => void;
-  setIsImportDialogOpen: (v: boolean) => void;
-  setIsNewCollectionDialogOpen: (v: boolean) => void;
-  setIsEditDialogOpen: (v: boolean) => void;
-  setEditingItem: (item: EditingItem | null) => void;
-  setIsSavingEdit: (v: boolean) => void;
-  setIsCreatingCollection: (v: boolean) => void;
-  setNewCollectionName: (v: string) => void;
-  setAddToCollectionId: (v: string) => void;
-  addToCollectionId: string;
-  newCollectionName: string;
-  editingItem: EditingItem | null;
-  isBatchDeleting: boolean;
+  // 弹窗开关集合
+  dialogControls: {
+    setIsCollectionDialogOpen: (v: boolean) => void;
+    setIsImportDialogOpen: (v: boolean) => void;
+    setIsNewCollectionDialogOpen: (v: boolean) => void;
+    setIsEditDialogOpen: (v: boolean) => void;
+    setIsAddingToCollection: (v: boolean) => void;
+  };
+  // loading 开关集合
+  loadingControls: {
+    setIsBatchDeleting: (v: boolean) => void;
+    setIsSavingEdit: (v: boolean) => void;
+    setIsCreatingCollection: (v: boolean) => void;
+    isBatchDeleting: boolean;
+  };
+  // 编辑弹窗上下文
+  editDialog: {
+    editingItem: EditingItem | null;
+    setEditingItem: (item: EditingItem | null) => void;
+  };
+  // 收藏集表单上下文
+  collectionForm: {
+    addToCollectionId: string;
+    newCollectionName: string;
+    setNewCollectionName: (v: string) => void;
+  };
 }
 
-export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
-  const {
-    activeTab,
-    selectedIds,
-    clearSelection,
-    setSelectedIds,
-    setSecondaryData,
-    setIsBatchDeleting,
-    setIsAddingToCollection,
-    setIsCollectionDialogOpen,
-    setIsImportDialogOpen,
-    setIsNewCollectionDialogOpen,
-    setIsEditDialogOpen,
-    setEditingItem,
-    setIsSavingEdit,
-    setIsCreatingCollection,
-    setNewCollectionName,
-    addToCollectionId,
-    newCollectionName,
-    editingItem,
-    isBatchDeleting,
-  } = params;
+export function useAssetLibraryActions({
+  selection: { activeTab, selectedIds, clearSelection, setSelectedIds },
+  setSecondaryData,
+  dialogControls: { setIsCollectionDialogOpen, setIsImportDialogOpen, setIsNewCollectionDialogOpen, setIsEditDialogOpen, setIsAddingToCollection },
+  loadingControls: { setIsBatchDeleting, setIsSavingEdit, setIsCreatingCollection, isBatchDeleting },
+  editDialog: { editingItem, setEditingItem },
+  collectionForm: { addToCollectionId, newCollectionName, setNewCollectionName },
+}: UseAssetLibraryActionsParams) {
 
   const { success, error: showError } = useToastHelpers();
   const queryClient = useQueryClient();

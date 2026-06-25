@@ -29,7 +29,7 @@ interface ProviderFormProps {
   selectedTemplate: string;
   onTemplateChange: (value: string) => void;
   isAdding: boolean;
-  keyValidation: { valid: boolean; error?: string };
+  keyValidation: { valid: boolean; errorKey?: string };
   detectedInfo: DetectResult | null;
   detectedAll?: {
     builtinMatches: DetectResult[];
@@ -167,7 +167,7 @@ export function ProviderForm({
               <>
                 <XCircle size={16} style={{ color: "var(--destructive)" }} />
                 <span style={{ color: "var(--destructive)" }}>
-                  {keyValidation.error}
+                  {keyValidation.errorKey ? t(keyValidation.errorKey) : null}
                 </span>
               </>
             )}

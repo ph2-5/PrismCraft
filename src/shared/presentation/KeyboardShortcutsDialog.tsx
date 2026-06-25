@@ -1,5 +1,6 @@
 import { Keyboard } from "lucide-react";
 import { t } from "@/shared/constants/messages";
+import { Modal } from "./Modal";
 
 interface Shortcut {
   key: string;
@@ -46,12 +47,14 @@ export function KeyboardShortcutsDialog({
     return acc;
   }, {} as Record<string, Shortcut[]>);
 
-  if (!open) return null;
-
   return (
-    <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 672, maxHeight: "80vh", overflowY: "auto" }}>
-        <div style={{ marginBottom: 12 }}>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={t("ui.keyboardShortcuts")}
+      style={{ maxWidth: 672, maxHeight: "80vh", overflowY: "auto" }}
+    >
+      <div style={{ marginBottom: 12 }}>
           <div className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600 }}>
             <Keyboard className="w-5 h-5" />
             {t("ui.keyboardShortcuts")}
@@ -82,8 +85,7 @@ export function KeyboardShortcutsDialog({
             {t("ui.pressEscToClose")}
           </p>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -93,7 +95,7 @@ export function KeyboardShortcutsTrigger({
   onOpen: () => void;
 }) {
   return (
-    <button type="button" className="btn btn-ghost btn-sm h-8 gap-1" onClick={onOpen}>
+    <button type="button" aria-label={t("aria.shortcutHelp")} className="btn btn-ghost btn-sm h-8 gap-1" onClick={onOpen}>
       <Keyboard className="w-4 h-4" />
       <span className="hidden md:inline text-xs">{t("ui.shortcuts")}</span>
     </button>

@@ -73,11 +73,11 @@ const systemItems: NavEntry[] = [
 
 // 未来规划预览：对齐预览页面使用 emoji
 const futurePreviewItems: { href: string; labelKey: string; emoji: string }[] = [
-  { href: "/login", labelKey: "登录/注册", emoji: "🔑" },
-  { href: "/template-market", labelKey: "模板市场", emoji: "🛒" },
-  { href: "/workflow", labelKey: "工作流编辑器", emoji: "🔗" },
-  { href: "/workspace", labelKey: "团队协作", emoji: "👥" },
-  { href: "/mobile", labelKey: "移动端预览", emoji: "📱" },
+  { href: "/login", labelKey: "sidebar.login", emoji: "🔑" },
+  { href: "/template-market", labelKey: "sidebar.templateMarket", emoji: "🛒" },
+  { href: "/workflow", labelKey: "sidebar.workflow", emoji: "🔗" },
+  { href: "/workspace", labelKey: "sidebar.workspace", emoji: "👥" },
+  { href: "/mobile", labelKey: "sidebar.mobile", emoji: "📱" },
 ];
 
 interface NavItemProps {
@@ -97,6 +97,7 @@ const NavItem = memo(function NavItem({ labelKey, icon: Icon, emoji, isActive, c
       className={cn("nav-item", isActive && "active")}
       style={collapsed ? { justifyContent: "center" } : undefined}
       title={collapsed ? t(labelKey) : undefined}
+      aria-label={t(labelKey)}
     >
       {Icon && <Icon className="icon" />}
       {emoji && <span className="icon">{emoji}</span>}
@@ -422,6 +423,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
             className="nav-item"
             style={collapsed ? { justifyContent: "center" } : undefined}
             title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+            aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
           >
             {collapsed ? (
               <ChevronsRight className="icon" />

@@ -3,6 +3,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
+import { Modal } from "./Modal";
 
 interface AutoSaveRecord {
   id: string;
@@ -60,15 +61,17 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
 
   const latestSave = autoSaves[0]!;
   const saveTime = latestSave.timestamp
-    ? new Date(latestSave.timestamp).toLocaleString("zh-CN")
+    ? new Date(latestSave.timestamp).toLocaleString()
     : t("crash.unknownTime");
 
-  if (!open) return null;
-
   return (
-    <div className="modal-overlay" onClick={() => setOpen(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
-        <div style={{ marginBottom: 12 }}>
+    <Modal
+      open={open}
+      onClose={() => setOpen(false)}
+      ariaLabel={t("crash.unsavedData")}
+      style={{ maxWidth: 480 }}
+    >
+      <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 16, fontWeight: 600 }}>{t("crash.unsavedData")}</div>
           <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 4 }}>
             {t("crash.unsavedDataDesc", { count: autoSaves.length, time: saveTime })}
@@ -83,7 +86,7 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
               <span>{save.type || t("crash.unknownType")}</span>
               <span>
                 {save.timestamp
-                  ? new Date(save.timestamp).toLocaleTimeString("zh-CN")
+                  ? new Date(save.timestamp).toLocaleTimeString()
                   : ""}
               </span>
             </div>
@@ -100,7 +103,6 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
           </button>
           <button type="button" className="btn btn-primary" onClick={() => setOpen(false)}>{t("crash.acknowledged")}</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

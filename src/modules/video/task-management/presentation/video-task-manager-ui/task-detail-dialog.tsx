@@ -5,6 +5,7 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants/messages";
+import { Modal } from "@/shared/presentation/Modal";
 import { StatusBadge, getTaskDisplayStatus } from "./status-badge";
 
 function formatTime(timestamp: string | undefined): string {
@@ -69,23 +70,21 @@ export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }:
   };
 
   return (
-    <>
-      {isOpen && (
-        <div className="modal-overlay" onClick={() => onClose()}>
-          <div
-            className="modal"
-            style={{ maxWidth: "42rem", maxHeight: "80vh", overflowY: "auto" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                <Info className="w-5 h-5" />
-                {t("task.detailTitle")}
-              </div>
-              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
-                {t("task.taskIdLabel", { id: task.taskId })}
-              </div>
-            </div>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel={t("task.detailTitle")}
+      style={{ maxWidth: "42rem", maxHeight: "80vh", overflowY: "auto" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <Info className="w-5 h-5" />
+          {t("task.detailTitle")}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+          {t("task.taskIdLabel", { id: task.taskId })}
+        </div>
+      </div>
 
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
@@ -167,9 +166,6 @@ export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }:
                 {t("common.retry")}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </>
+    </Modal>
   );
 }

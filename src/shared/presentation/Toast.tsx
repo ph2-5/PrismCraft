@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
 import { t } from "@/shared/constants/messages";
+import { IconButton } from "./IconButton";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -102,14 +103,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         return updated;
       });
 
-      const duration =
-        toast.duration ?? (toast.type === "error" ? 10000 : 5000);
-      if (duration !== 0) {
-        const timer = setTimeout(() => {
-          hideToast(id);
-        }, duration);
-        timersRef.current.set(id, timer);
-      }
+      // 自动消失计时器由 ToastItem 内部管理（支持 hover 暂停），
+      // 这里不再设置，避免双重计时器。
     },
     [hideToast],
   );
@@ -199,7 +194,7 @@ function ToastContainer({
   );
 }
 
-const PROGRESS_DURATION: Record<ToastType, number> = {
+const DEFAULT_DURATION: Record<ToastType, number> = {
   success: 3000,
   error: 8000,
   warning: 5000,
@@ -235,7 +230,37 @@ const TYPE_COLORS: Record<ToastType, { icon: string; border: string; progress: s
 
 function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   const colors = TYPE_COLORS[toast.type];
-  const progressDuration = toast.duration ?? PROGRESS_DURATION[toast.type];
+  // 进度条与 toast 持续时间必须一致，避免视觉断裂（进度条到底后 toast 仍显示的空窗期）
+  const duration = toast.duration ?? DEFAULT_DURATION[toast.type];
+  const [paused, setPaused] = useState(false);
+  const remainingRef = useRef(duration);
+  const startedAtRef = useRef<number>(Date.now());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 设置/重置自动消失计时器（支持 hover 暂停后恢复）
+  useEffect(() => {
+    if (toast.exiting || duration === 0) return;
+    if (paused) {
+      // 暂停时记录剩余时间
+      remainingRef.current -= Date.now() - startedAtRef.current;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    } else {
+      // 恢复或首次启动
+      startedAtRef.current = Date.now();
+      timerRef.current = setTimeout(() => {
+        onClose();
+      }, remainingRef.current);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [paused, toast.exiting, duration, onClose]);
 
   const iconMap = {
     success: <CheckCircle className={`w-5 h-5 ${colors.icon}`} />,
@@ -251,6 +276,8 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
           ? "opacity-0 translate-x-8 scale-95"
           : "animate-slide-in-from-right"
       }`}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
       <div className="mt-0.5 animate-bounce-in">{iconMap[toast.type]}</div>
       <div className="flex-1 min-w-0">
@@ -272,21 +299,22 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
           </button>
         )}
       </div>
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs h-6 w-6 -mr-2 -mt-2 shrink-0 hover:bg-muted/50"
+      <IconButton
+        variant="ghost"
+        className="btn-xs h-6 w-6 -mr-2 -mt-2 shrink-0 hover:bg-muted/50"
         onClick={onClose}
         aria-label={t("aria.dismissNotification")}
       >
         <X className="w-3.5 h-3.5" />
-      </button>
+      </IconButton>
 
       {!toast.exiting && (
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-muted/30">
           <div
             className={`h-full ${colors.progress} rounded-full`}
             style={{
-              animation: `toast-progress ${progressDuration}ms linear forwards`,
+              animation: `toast-progress ${duration}ms linear forwards`,
+              animationPlayState: paused ? "paused" : "running",
             }}
           />
         </div>

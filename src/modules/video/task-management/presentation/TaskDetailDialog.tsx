@@ -3,6 +3,7 @@ import type { VideoTask } from "@/modules/video/task-management";
 import { getStatusColor, getStatusStyle, getStatusLabel } from "./task-status-helpers";
 import { t } from "@/shared/constants";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface TaskDetailDialogProps {
   open: boolean;
@@ -26,23 +27,21 @@ export function TaskDetailDialog({
   if (!task) return null;
 
   return (
-    <>
-      {open && (
-        <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-          <div
-            className="modal"
-            style={{ maxWidth: "42rem", maxHeight: "90vh", overflowY: "auto" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                <Video className="w-5 h-5" />
-                {t("task.taskLabel") + t("common.detail")}
-              </div>
-              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
-                {task.beatTitle || `${t("task.taskLabel")} ${task.taskId?.substring(0, 8)}`}
-              </div>
-            </div>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={t("task.taskLabel") + t("common.detail")}
+      style={{ maxWidth: "42rem", maxHeight: "90vh", overflowY: "auto" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <Video className="w-5 h-5" />
+          {t("task.taskLabel") + t("common.detail")}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+          {task.beatTitle || `${t("task.taskLabel")} ${task.taskId?.substring(0, 8)}`}
+        </div>
+      </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -202,9 +201,6 @@ export function TaskDetailDialog({
                 {t("common.close")}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </>
+    </Modal>
   );
 }

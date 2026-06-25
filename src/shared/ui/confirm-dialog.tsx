@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { AlertTriangle, Trash2, AlertCircle } from "lucide-react";
 import { t } from "@/shared/constants/messages";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface ConfirmOptions {
   title?: string;
@@ -56,10 +57,14 @@ export function useConfirmDialog() {
     });
   }, []);
 
-  const ConfirmDialogComponent = state.open ? (
-    <div className="modal-overlay" onClick={() => handleCancel()}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 425 }}>
-        <div className="flex items-start gap-4 p-2">
+  const ConfirmDialogComponent = (
+    <Modal
+      open={state.open}
+      onClose={handleCancel}
+      ariaLabel={t("common.confirm")}
+      style={{ maxWidth: 425 }}
+    >
+      <div className="flex items-start gap-4 p-2">
           {state.options.variant === "danger" && (
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
               <Trash2 className="w-5 h-5 text-destructive" />
@@ -96,9 +101,8 @@ export function useConfirmDialog() {
             {state.options.confirmText}
           </button>
         </div>
-      </div>
-    </div>
-  ) : null;
+    </Modal>
+  );
 
   return { confirm, ConfirmDialogComponent };
 }

@@ -1,5 +1,6 @@
 import { Plus, Trash2, Settings2 } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import type { WizardState } from "./plugin-creator-types";
 
 interface PluginResponseFormatProps {
@@ -96,16 +97,17 @@ export function PluginResponseFormat({ state, updateField }: PluginResponseForma
                 <option value="completed">{t("plugin.statusCompleted")}</option>
                 <option value="failed">{t("plugin.statusFailed")}</option>
               </select>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
+              <IconButton
+                variant="ghost"
+                className="btn-sm"
                 style={{ color: "var(--destructive)", flexShrink: 0 }}
                 onClick={() => {
                   updateField("statusMapping", state.statusMapping.filter((m) => m._uid !== mapping._uid));
                 }}
+                aria-label={t("aria.removeStatusMapping")}
               >
                 <Trash2 size={16} />
-              </button>
+              </IconButton>
             </div>
           ))}
           <button

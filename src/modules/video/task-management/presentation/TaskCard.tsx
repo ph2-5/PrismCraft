@@ -74,6 +74,7 @@ export const TaskCard = React.memo(function TaskCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
+              aria-label={t("aria.toggleSelection")}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleSelection(task.taskId);

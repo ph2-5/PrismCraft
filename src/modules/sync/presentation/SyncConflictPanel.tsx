@@ -11,6 +11,8 @@ import {
 import type { SyncConflict, SyncEntityType } from "@/modules/sync";
 import { t } from "@/shared/constants";
 import { errorLogger } from "@/shared/error-logger";
+import { Modal } from "@/shared/presentation/Modal";
+import { IconButton } from "@/shared/presentation/IconButton";
 
 interface SyncConflictPanelProps {
   conflicts: SyncConflict[];
@@ -69,17 +71,18 @@ function ConflictCard({
             {conflict.entityId.slice(0, 8)}...
           </span>
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
+        <IconButton
+          variant="ghost"
+          className="btn-sm"
           onClick={() => setExpanded(!expanded)}
+          aria-label={t("aria.toggleExpand")}
         >
           {expanded ? (
             <ChevronUp className="h-4 w-4" />
           ) : (
             <ChevronDown className="h-4 w-4" />
           )}
-        </button>
+        </IconButton>
       </div>
 
       {expanded && (
@@ -182,67 +185,64 @@ export function SyncConflictPanel({
   );
 
   return (
-    isOpen && (
-      <div className="modal-overlay" onClick={() => onClose()}>
-        <div
-          className="modal"
-          style={{ maxWidth: "42rem", maxHeight: "80vh", overflowY: "auto" }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 16, fontWeight: 600 }} className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              {t("sync.conflictTitle")}
-            </div>
-            <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
-              {t("sync.conflictDesc", { count: unresolvedConflicts.length })}
-            </div>
-          </div>
-
-          <div className="space-y-4 py-4">
-            {unresolvedConflicts.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-                <Check className="h-8 w-8 text-green-500" />
-                <p>{t("sync.allResolved")}</p>
-              </div>
-            ) : (
-              unresolvedConflicts.map((conflict) => (
-                <ConflictCard
-                  key={`${conflict.entityType}:${conflict.entityId}`}
-                  conflict={conflict}
-                  onResolve={(resolution, mergedData) =>
-                    handleResolve(conflict, resolution, mergedData)
-                  }
-                />
-              ))
-            )}
-          </div>
-
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-            {unresolvedConflicts.length > 0 && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => onResolveAll("local")}
-                >
-                  {t("sync.keepAllLocal")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => onResolveAll("remote")}
-                >
-                  {t("sync.keepAllRemote")}
-                </button>
-              </>
-            )}
-            <button type="button" className="btn btn-primary btn-sm" onClick={onClose}>
-              {unresolvedConflicts.length === 0 ? t("sync.done") : t("sync.later")}
-            </button>
-          </div>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel={t("sync.conflictTitle")}
+      style={{ maxWidth: "42rem", maxHeight: "80vh", overflowY: "auto" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600 }} className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-yellow-500" />
+          {t("sync.conflictTitle")}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+          {t("sync.conflictDesc", { count: unresolvedConflicts.length })}
         </div>
       </div>
-    )
+
+      <div className="space-y-4 py-4">
+        {unresolvedConflicts.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+            <Check className="h-8 w-8 text-green-500" />
+            <p>{t("sync.allResolved")}</p>
+          </div>
+        ) : (
+          unresolvedConflicts.map((conflict) => (
+            <ConflictCard
+              key={`${conflict.entityType}:${conflict.entityId}`}
+              conflict={conflict}
+              onResolve={(resolution, mergedData) =>
+                handleResolve(conflict, resolution, mergedData)
+              }
+            />
+          ))
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+        {unresolvedConflicts.length > 0 && (
+          <>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => onResolveAll("local")}
+            >
+              {t("sync.keepAllLocal")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => onResolveAll("remote")}
+            >
+              {t("sync.keepAllRemote")}
+            </button>
+          </>
+        )}
+        <button type="button" className="btn btn-primary btn-sm" onClick={onClose}>
+          {unresolvedConflicts.length === 0 ? t("sync.done") : t("sync.later")}
+        </button>
+      </div>
+    </Modal>
   );
 }

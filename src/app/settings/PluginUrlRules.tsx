@@ -1,5 +1,6 @@
 import { Plus, Trash2, Globe } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import type { WizardState } from "./plugin-creator-types";
 
 interface PluginUrlRulesProps {
@@ -46,9 +47,9 @@ export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
               }}
               placeholder="api.example.com"
             />
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
+            <IconButton
+              variant="ghost"
+              className="btn-sm"
               style={{ color: "var(--destructive)", flexShrink: 0, padding: "6px 8px" }}
               onClick={() => {
                 updateField(
@@ -56,9 +57,10 @@ export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
                   state.apiUrlPatterns.filter((p) => p._uid !== pattern._uid)
                 );
               }}
+              aria-label={t("aria.removeUrlPattern")}
             >
               <Trash2 size={16} />
-            </button>
+            </IconButton>
           </div>
         ))}
         <button

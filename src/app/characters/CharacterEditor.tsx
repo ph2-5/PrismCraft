@@ -256,12 +256,12 @@ export function CharacterEditor({
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
                 {styleSuggestions.slice(0, 8).map((style) => (
                   <span
-                    key={style}
+                    key={style.value}
                     className="badge"
                     style={{ cursor: "pointer" }}
-                    onClick={() => { setCurrentCharacter({ ...currentCharacter, style }, true); setShowStyleSuggestions(false); }}
+                    onClick={() => { setCurrentCharacter({ ...currentCharacter, style: style.value }, true); setShowStyleSuggestions(false); }}
                   >
-                    {style}
+                    {t(style.labelKey)}
                   </span>
                 ))}
               </div>

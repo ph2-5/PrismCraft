@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import type { CharacterOutfit } from "@/domain/schemas";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface OutfitDialogProps {
   open: boolean;
@@ -28,21 +29,20 @@ export function OutfitDialog({
   onRemoveAccessory,
 }: OutfitDialogProps) {
   return (
-    open && (
-      <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-        <div
-          className="modal"
-          style={{ maxWidth: "32rem" }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 16, fontWeight: 600 }}>
-              {editingOutfit ? t("outfit.editTitle") : t("outfit.addTitle")}
-            </div>
-            <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
-              {t("outfit.createVariant")}
-            </div>
-          </div>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={editingOutfit ? t("outfit.editTitle") : t("outfit.addTitle")}
+      style={{ maxWidth: "32rem" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600 }}>
+          {editingOutfit ? t("outfit.editTitle") : t("outfit.addTitle")}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+          {t("outfit.createVariant")}
+        </div>
+      </div>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label htmlFor="outfit-name">{t("outfit.nameLabel")}</label>
@@ -136,8 +136,6 @@ export function OutfitDialog({
               {editingOutfit ? t("outfit.saveChanges") : t("outfit.addOutfitButton")}
             </button>
           </div>
-        </div>
-      </div>
-    )
+    </Modal>
   );
 }

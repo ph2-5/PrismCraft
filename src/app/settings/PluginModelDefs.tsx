@@ -1,5 +1,6 @@
 import { Plus, Trash2, Box } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import type { WizardState, ModelDefinition } from "./plugin-creator-types";
 import { ModelParams } from "./ModelParams";
 
@@ -50,15 +51,15 @@ export function PluginModelDefs({
                 </span>
               </div>
               {state.models.length > 1 && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <IconButton
+                  variant="ghost"
+                  className="btn-sm"
                   style={{ color: "var(--destructive)", height: 32, width: 32, padding: 0 }}
                   onClick={() => removeModel(index)}
                   aria-label={t("aria.removeModel")}
                 >
                   <Trash2 size={16} />
-                </button>
+                </IconButton>
               )}
             </div>
 

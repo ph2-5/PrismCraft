@@ -2,6 +2,7 @@ import { Search, Copy, ExternalLink, BookOpen } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } from "../services/video-tracker";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface TaskTrackingDialogProps {
   open: boolean;
@@ -41,23 +42,21 @@ export function TaskTrackingDialog({
   const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
 
   return (
-    <>
-      {open && (
-        <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-          <div
-            className="modal"
-            style={{ maxWidth: "42rem" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                <Search className="w-5 h-5" />
-                {t("task.trackingTitle")}
-              </div>
-              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
-                {t("task.trackingDesc")}
-              </div>
-            </div>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={t("task.trackingTitle")}
+      style={{ maxWidth: "42rem" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <Search className="w-5 h-5" />
+          {t("task.trackingTitle")}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+          {t("task.trackingDesc")}
+        </div>
+      </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -132,9 +131,6 @@ export function TaskTrackingDialog({
                 {t("common.close")}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </>
+    </Modal>
   );
 }

@@ -1,4 +1,5 @@
 import { t } from "@/shared/constants/messages";
+import type { StyleOption } from "@/modules/character";
 
 interface VariantGeneratorProps {
   typeLabel: string;
@@ -6,7 +7,7 @@ interface VariantGeneratorProps {
   onVariantCountChange: (count: number) => void;
   selectedStyle: string;
   onSelectedStyleChange: (style: string) => void;
-  styleOptions: string[];
+  styleOptions: readonly StyleOption[];
   isGenerating: boolean;
 }
 
@@ -43,8 +44,8 @@ export function VariantGenerator({
         >
           <option value="">{t("batch.autoSelect")}</option>
           {styleOptions.map((style) => (
-            <option key={style} value={style}>
-              {style}
+            <option key={style.value} value={style.value}>
+              {t(style.labelKey)}
             </option>
           ))}
         </select>

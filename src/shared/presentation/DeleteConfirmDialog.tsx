@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { t } from "@/shared/constants";
+import { Modal } from "./Modal";
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -24,12 +25,13 @@ export function DeleteConfirmDialog({
   onConfirm,
   referenceCheck,
 }: DeleteConfirmDialogProps) {
-  if (!open) return null;
-
   return (
-    <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div style={{ marginBottom: 12 }}>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={`${t("confirm.deleteTitle")}${entityLabel}`}
+    >
+      <div style={{ marginBottom: 12 }}>
           <div className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600 }}>
             <AlertTriangle className="w-5 h-5 text-destructive" />
             {t("confirm.deleteTitle")}{entityLabel}
@@ -91,7 +93,6 @@ export function DeleteConfirmDialog({
             {isDeleting ? t("common.deleting") : t("confirm.deleteTitle")}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

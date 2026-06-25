@@ -1,5 +1,6 @@
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 import type { EditingItem } from "./asset-library-shared";
 
 interface AssetEditDialogProps {
@@ -20,17 +21,25 @@ export function AssetEditDialog({
   onEditingItemChange,
 }: AssetEditDialogProps) {
   return (
-    <>
-      {open && (
-        <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "42rem" }}>
-            <h2 className="text-lg font-semibold mb-4">
-              {editingItem?._type === "character"
-                ? t("asset.editCharacter")
-                : editingItem?._type === "scene"
-                  ? t("asset.editScene")
-                  : t("asset.editStoryboard")}
-            </h2>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={
+        editingItem?._type === "character"
+          ? t("asset.editCharacter")
+          : editingItem?._type === "scene"
+            ? t("asset.editScene")
+            : t("asset.editStoryboard")
+      }
+      style={{ maxWidth: "42rem" }}
+    >
+      <h2 className="text-lg font-semibold mb-4">
+        {editingItem?._type === "character"
+          ? t("asset.editCharacter")
+          : editingItem?._type === "scene"
+            ? t("asset.editScene")
+            : t("asset.editStoryboard")}
+      </h2>
             {editingItem && (
               <div className="space-y-4">
                 {(() => {
@@ -121,9 +130,6 @@ export function AssetEditDialog({
                 {isSavingEdit ? t("common.saving") : t("common.save")}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </>
+    </Modal>
   );
 }

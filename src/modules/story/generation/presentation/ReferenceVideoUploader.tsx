@@ -12,6 +12,7 @@ import type { ReferenceVideoConfig } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface MinimalAsset {
   id: string;
@@ -298,55 +299,52 @@ export function ReferenceVideoUploader({
         </div>
       )}
 
-      {assetSelectorOpen && (
-        <div className="modal-overlay" onClick={() => setAssetSelectorOpen(false)}>
-          <div
-            className="modal bg-slate-800 border-slate-700 text-white"
-            style={{ maxWidth: "56rem" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 16, fontWeight: 600 }}>{t("refVideo.selectFromLibrary")}</div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 py-4 max-h-96 overflow-y-auto">
-              {assets.filter((asset) => asset.type === "video").length > 0 ? (
-                assets
-                  .filter((asset) => asset.type === "video")
-                  .map((asset) => (
-                    <div
-                      key={asset.id}
-                      onClick={() => handleSelectFromAssetLibrary(asset)}
-                      className="cursor-pointer group relative aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-purple-500 transition-all bg-slate-900"
-                    >
-                      <video
-                        src={asset.url}
-                        className="w-full h-full object-cover"
-                        muted
-                        onError={createSimpleVideoErrorHandler()}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                        <p className="text-xs text-white font-medium truncate">
-                          {asset.name}
-                        </p>
-                      </div>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                        <Video className="w-8 h-8 text-white" />
-                      </div>
-                    </div>
-                  ))
-              ) : (
-                <div className="col-span-full text-center py-8 text-slate-400">
-                  <Video className="w-12 h-12 mx-auto mb-3 text-slate-500" />
-                  <p className="text-sm">{t("refVideo.noVideosInLibrary")}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {t("refVideo.uploadImageOrVideoFirst")}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+      <Modal
+        open={assetSelectorOpen}
+        onClose={() => setAssetSelectorOpen(false)}
+        ariaLabel={t("refVideo.selectFromLibrary")}
+        style={{ maxWidth: "56rem" }}
+      >
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{t("refVideo.selectFromLibrary")}</div>
         </div>
-      )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 py-4 max-h-96 overflow-y-auto">
+          {assets.filter((asset) => asset.type === "video").length > 0 ? (
+            assets
+              .filter((asset) => asset.type === "video")
+              .map((asset) => (
+                <div
+                  key={asset.id}
+                  onClick={() => handleSelectFromAssetLibrary(asset)}
+                  className="cursor-pointer group relative aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-purple-500 transition-all bg-slate-900"
+                >
+                  <video
+                    src={asset.url}
+                    className="w-full h-full object-cover"
+                    muted
+                    onError={createSimpleVideoErrorHandler()}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                    <p className="text-xs text-white font-medium truncate">
+                      {asset.name}
+                    </p>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                    <Video className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+              ))
+          ) : (
+            <div className="col-span-full text-center py-8 text-slate-400">
+              <Video className="w-12 h-12 mx-auto mb-3 text-slate-500" />
+              <p className="text-sm">{t("refVideo.noVideosInLibrary")}</p>
+              <p className="text-xs text-slate-500 mt-1">
+                {t("refVideo.uploadImageOrVideoFirst")}
+              </p>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

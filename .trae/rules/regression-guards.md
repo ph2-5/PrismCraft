@@ -3848,3 +3848,313 @@ const MAX_TOTAL_BLOB_SIZE_MB = 10240; // ✅ 10 GB
 **Verification**: Both constants are module-private (not exported), so use `fs.readFileSync` + regex extraction (see R146 domain-purity test pattern). Read both source files, extract `MAX_CACHE_BYTES` (eval the arithmetic expression safely) and `MAX_TOTAL_BLOB_SIZE_MB` (literal number). Assert `MAX_CACHE_BYTES === MAX_TOTAL_BLOB_SIZE_MB * 1024 * 1024`, both equal 10 GB, and the infra source contains a `MAX_TOTAL_BLOB_SIZE_MB` mention within 300 chars of `MAX_CACHE_BYTES`.
 
 **Discovered in**: Batch 2 performance optimization audit found `MAX_CACHE_BYTES` was 2 GB while `MAX_TOTAL_BLOB_SIZE_MB` was 10 GB — the infrastructure-layer limit was dead code (services layer evicted first), masking the inconsistency. Test: `src/infrastructure/storage/__tests__/regression-r157-video-cache-limits-consistency.test.ts`.
+
+---
+
+## R158-R166: Batch 3 UI/UX + i18n 优化回归防护
+
+> 以下规则为批次 3 UI/UX 与国际化优化的回归防护，详细 BAD/GOOD 示例见本节及对应测试文件。
+
+### R158: Toast Hover Pause MUST Use useRef + useState Pattern (Single Timer, No Double Timing)
+
+`ToastItem` in `src/shared/presentation/Toast.tsx` MUST manage auto-dismiss with a single timer driven by `useState(paused)` + `useRef(remainingRef)` + `useRef(startedAtRef)` + `useRef(timerRef)`. On `mouseenter` set `paused=true`; the effect decrements `remainingRef` by the elapsed wall-clock since `startedAtRef`, then clears `timerRef`. On `mouseleave` set `paused=false`; the effect resets `startedAtRef = Date.now()` and schedules a new `setTimeout` for the remaining duration. The progress bar (`animation: toast-progress ${duration}ms linear`) MUST use `animationPlayState: paused ? "paused" : "running"` so the visual bar stays in sync with the logical timer. `ToastProvider.showToast` MUST NOT set its own auto-dismiss `setTimeout` for the same toast — that would create a double timer that fires `onClose` even while paused.
+
+**BAD** — Two timers, hover pause has no effect on dismiss:
+```tsx
+function ToastItem({ toast, onClose }) {
+  const duration = toast.duration ?? 3000;
+  // ❌ Provider also sets setTimeout(onClose, duration) — fires while paused
+  useEffect(() => {
+    const t = setTimeout(onClose, duration);
+    return () => clearTimeout(t);
+  }, [duration, onClose]);
+  // ❌ No paused state, no remainingRef, progress bar keeps animating on hover
+}
+```
+
+**GOOD** — Single source of truth, paused state controls both timer and progress bar:
+```tsx
+function ToastItem({ toast, onClose }) {
+  const duration = toast.duration ?? DEFAULT_DURATION[toast.type];
+  const [paused, setPaused] = useState(false);
+  const remainingRef = useRef(duration);
+  const startedAtRef = useRef(Date.now());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (toast.exiting || duration === 0) return;
+    if (paused) {
+      remainingRef.current -= Date.now() - startedAtRef.current;
+      if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    } else {
+      startedAtRef.current = Date.now();
+      timerRef.current = setTimeout(onClose, remainingRef.current);
+    }
+    return () => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; } };
+  }, [paused, toast.exiting, duration, onClose]);
+  // progress bar:
+  <div style={{ animation: `toast-progress ${duration}ms linear forwards`, animationPlayState: paused ? "paused" : "running" }} />
+}
+```
+
+**Verification**: Render a Toast with fake timers. Verify hovering sets `paused=true` and the progress bar's `animationPlayState` is `"paused"`. Advance fake timers past `duration` while hovered — assert `onClose` NOT called. Un-hover — assert a new timer scheduled for the remaining time, and after that elapses `onClose` IS called. Verify `ToastProvider.showToast` does not register a separate auto-dismiss timer for the same toast id.
+
+**Discovered in**: Batch 3 P0-1 Toast hover pause optimization. Test: `src/shared/presentation/__tests__/regression-r158-toast-hover-pause.test.tsx`.
+
+### R159: validateApiKey MUST Return errorKey (i18n key), NOT Hardcoded Chinese Strings
+
+`validateApiKey` in `src/infrastructure/ai-providers/api-config/detect.ts` MUST return `{ valid: boolean; errorKey?: string }`. The `errorKey` MUST be a dotted i18n key (e.g. `"provider.apiKey.empty"`, `"provider.apiKey.tooShort"`, `"provider.apiKey.tooLong"`, `"provider.apiKey.placeholderDetected"`, `"provider.apiKey.invalidChars"`), NOT a localized Chinese string. Callers translate via `t(result.errorKey)`. This keeps `detect.ts` a pure function with no dependency on the renderer i18n module, and allows the same key to render in any locale.
+
+**BAD** — Returns localized Chinese, breaks i18n:
+```typescript
+export function validateApiKey(apiKey: string): { valid: boolean; error?: string } {
+  if (!apiKey) return { valid: false, error: "API Key 不能为空" }; // ❌ hardcoded Chinese
+  if (apiKey.length < 10) return { valid: false, error: "API Key 长度不足" };
+}
+// caller:
+if (!result.valid) showToast(result.error); // ❌ always Chinese, no translation
+```
+
+**GOOD** — Returns i18n key, caller translates:
+```typescript
+export function validateApiKey(apiKey: string): { valid: boolean; errorKey?: string } {
+  if (!apiKey) return { valid: false, errorKey: "provider.apiKey.empty" };
+  if (apiKey.length < 10) return { valid: false, errorKey: "provider.apiKey.tooShort" };
+  if (apiKey.length > 512) return { valid: false, errorKey: "provider.apiKey.tooLong" };
+  if (apiKey.includes("your_") || apiKey.includes("placeholder"))
+    return { valid: false, errorKey: "provider.apiKey.placeholderDetected" };
+  if (/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(apiKey))
+    return { valid: false, errorKey: "provider.apiKey.invalidChars" };
+  return { valid: true };
+}
+// caller:
+if (!result.valid && result.errorKey) showToast(t(result.errorKey)); // ✅ translated per locale
+```
+
+**Verification**: Call `validateApiKey` with empty, short (<10), long (>512), placeholder, control-char, and valid inputs. Assert each invalid result has `errorKey` matching `^provider\.apiKey\.` and NOT containing any CJK characters. Assert `valid: true` results have `errorKey === undefined`. Grep `detect.ts` to confirm no Chinese characters inside the `validateApiKey` body.
+
+**Discovered in**: Batch 3 P0-5 i18n refactor of API key validation. Test: `src/__tests__/lib/api-config/regression-r159-validate-api-key-errorkey.test.ts`.
+
+### R160: Modal Components MUST Use the Unified `<Modal>` Component
+
+Dialog components that render an overlay + centered panel + Escape-to-close + aria-modal MUST use the shared `Modal` component at `src/shared/presentation/Modal.tsx`. The `Modal` component provides `role="dialog"`, `aria-modal="true"`, `aria-label` (or `aria-labelledby`), `tabIndex={-1}` on the container (for screen reader focus), Escape key handling, and overlay-click-to-close. New dialog components MUST NOT re-implement these primitives inline (custom `<div className="modal-overlay">` + manual `keydown` listener + manual `aria-modal`).
+
+**BAD** — Re-implements overlay/Escape/aria inline:
+```tsx
+function MyDialog({ open, onClose }) {
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+        {/* ... */}
+      </div>
+    </div>
+  ); // ❌ Duplicated boilerplate, no container focus, drift across dialogs
+}
+```
+
+**GOOD** — Delegates to unified `<Modal>`:
+```tsx
+import { Modal } from "@/shared/presentation/Modal";
+function MyDialog({ open, onClose }) {
+  return (
+    <Modal open={open} onClose={onClose} ariaLabel="My dialog" style={{ maxWidth: 480 }}>
+      {/* ... */}
+    </Modal>
+  ); // ✅ Single source of truth for overlay/Escape/aria-modal/focus
+}
+```
+
+**Verification**: Grep the migrated modal files (OutfitDialog, SwitchConfirmDialog, BulkDeleteDialog, DeleteConfirmDialog, TaskDetailDialog, TaskTrackingDialog, VideoPreviewDialog, task-detail-dialog, TemplateSelectDialog, AssetEditDialog, AssetCollectionDialogs, VersionDialog, SyncConflictPanel, SyncSettingsPanel, BatchOperations, ReferenceVideoUploader, ProjectExportImport, confirm.tsx, story/page.tsx) for an `import` of `Modal` from `@/shared/presentation/Modal`. Assert the `Modal` component renders `role="dialog"`, `aria-modal="true"`, and a focusable container (`tabIndex={-1}`) when `open=true`.
+
+**Discovered in**: Batch 3 P0-6 + P2-11 unified Modal component migration. Test: `src/shared/presentation/__tests__/regression-r160-modal-component-required.test.tsx`.
+
+### R161: IconButton MUST Require aria-label (No Unlabeled Icon-Only Buttons)
+
+`IconButton` in `src/shared/presentation/IconButton.tsx` MUST declare `aria-label: string` as a REQUIRED prop in `IconButtonProps`. It MUST NOT render an icon-only `<button>` without an `aria-label`. Icon-only buttons (close, delete, settings, etc.) are invisible to screen readers without an accessible name; the only purpose of `IconButton` over a plain `<button>` is to enforce the accessible-name contract. The component MUST pass `aria-label` through to the underlying `<button>` element so assistive tech can announce it.
+
+**BAD** — Optional aria-label, silent a11y regression:
+```tsx
+interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  aria-label?: string; // ❌ optional — caller can omit, button has no accessible name
+  variant?: IconButtonVariant;
+}
+export function IconButton({ "aria-label": label, ...rest }) {
+  return <button {...rest}>{/* icon */}</button>; // ❌ label may be undefined
+}
+// caller:
+<IconButton onClick={close}><X /></IconButton> // ❌ screen reader: "button" with no name
+```
+
+**GOOD** — Required aria-label enforced at compile time:
+```tsx
+export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  "aria-label": string; // ✅ required — TS error if omitted
+  variant?: IconButtonVariant;
+  children: ReactNode;
+}
+export function IconButton({ "aria-label": ariaLabel, variant = "ghost", type = "button", className = "", children, ...rest }) {
+  return <button type={type} aria-label={ariaLabel} className={...} {...rest}>{children}</button>;
+}
+// caller MUST supply:
+<IconButton aria-label="关闭" onClick={close}><X /></IconButton> // ✅ screen reader: "关闭"
+```
+
+**Verification**: Read `IconButton.tsx` source — assert the `IconButtonProps["aria-label"]` type is `string` (not `string | undefined`, not optional). Render `<IconButton aria-label="删除"><X /></IconButton>` and assert the rendered button has `getAttribute("aria-label") === "删除"` and is queryable via `getByRole("button", { name: "删除" })`. Verify a missing `aria-label` is a TypeScript compile error (covered by `typecheck:test`).
+
+**Discovered in**: Batch 3 P2-12 IconButton a11y component. Test: `src/shared/presentation/__tests__/regression-r161-icon-button-aria-required.test.tsx`.
+
+### R162: Config-Layer Display Strings MUST Use labelKey, But Prompt-Building value MUST Stay as the Chinese String
+
+Option lists in `src/modules/character/constants.ts` (and similar config files) that back UI `<select>`/option lists MUST expose both a `value` (the actual semantic value, used when building AI prompts) and a `labelKey` (dotted i18n key, used for display). The `value` MUST be the original Chinese string (e.g. `"日式动漫"`) because prompts are sent to the AI in that exact form — translating the value would change prompt semantics. The `labelKey` MUST be a `styleOption.*` (or analogous) i18n key so the UI can render in the user's locale. UI components MUST display `t(option.labelKey)`, NEVER `option.value`. Prompt builders MUST use `option.value`, NEVER `t(option.labelKey)`.
+
+**BAD** — Single field, either i18n breaks prompts or prompts break i18n:
+```typescript
+export const styleSuggestions = ["日式动漫", "写实风格", ...]; // ❌ no labelKey → UI shows Chinese always
+// OR:
+export const styleSuggestions = [
+  { value: "japanese-anime", label: "日式动漫" }, // ❌ value is not what the prompt needs; prompt gets English id
+];
+```
+
+**GOOD** — value is the prompt string, labelKey is the display string:
+```typescript
+export interface StyleOption { value: string; labelKey: string; }
+export const styleSuggestions: readonly StyleOption[] = [
+  { value: "日式动漫", labelKey: "styleOption.japanese-anime" }, // ✅ value feeds prompt, labelKey feeds UI
+  { value: "写实风格", labelKey: "styleOption.realistic" },
+  // ...
+];
+// UI:
+{styleSuggestions.map(o => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
+// Prompt builder:
+const style = styleSuggestions.find(o => o.value === selectedValue)!;
+prompt += `风格：${style.value}`; // ✅ Chinese value sent to AI
+```
+
+**Verification**: Import `styleSuggestions` and assert every entry is `{ value: string, labelKey: string }` and `labelKey` starts with `"styleOption."`. Assert every `value` is a non-empty CJK string (the prompt-facing value MUST stay Chinese). Grep `constants.ts` to confirm no `label:` field (only `labelKey:`). Grep the UI consumers (e.g. character presentation) to confirm they call `t(option.labelKey)` for display and `option.value` for prompt building.
+
+**Discovered in**: Batch 3 P2-13 style option i18n refactor. Test: `src/modules/character/__tests__/regression-r162-style-options-labelkey.test.ts`.
+
+### R163: Global :focus-visible Style MUST Live in globals.css (Single Source for Keyboard Focus Ring)
+
+The keyboard focus ring for interactive elements (`button`, `a`, `[tabindex]`) MUST be defined once in `src/app/globals.css` as a `:focus-visible` rule, using `outline: 2px solid var(--ring, var(--primary))` and `outline-offset: 2px`. A companion `button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none }` rule MUST suppress the ring for mouse clicks. Individual components MUST NOT override `:focus-visible` per-component (per-component overrides cause drift: some buttons get a ring, others don't). Components MAY add a `border-radius` via the shared rule, but MUST NOT set their own `outline` for focus.
+
+**BAD** — Per-component focus styles, inconsistent ring:
+```css
+/* Foo.module.css */
+.btn-foo:focus { outline: 1px solid blue; } /* ❌ mouse click shows ring, different color */
+```
+```tsx
+<button className="..." style={{ outline: '2px solid red' }}>...</button> /* ❌ hardcoded */
+```
+
+**GOOD** — Global rule, all interactive elements inherit:
+```css
+/* src/app/globals.css */
+:focus-visible {
+  outline: 2px solid var(--ring, var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+```
+
+**Verification**: Read `src/app/globals.css` and assert (via regex) a `:focus-visible` rule exists with `outline` declaration, AND a `button:focus:not(:focus-visible)` / `a:focus:not(:focus-visible)` rule exists with `outline: none`. Grep `src/**/*.css` and `src/**/*.tsx` for inline `outline:` style props on focusable elements and flag any non-global focus ring definitions.
+
+**Discovered in**: Batch 3 P0-3 global focus-visible style. Test: `src/app/__tests__/regression-r163-focus-visible-style.test.ts`.
+
+### R164: Modal MUST Focus Its Container on Open (tabIndex={-1}) for Screen Readers
+
+When `Modal` opens (`open` transitions false→true), it MUST call `modalRef.current?.focus()` so the dialog container receives keyboard focus. The container MUST have `tabIndex={-1}` so a `<div>` is focusable programmatically (a normal div cannot receive `.focus()`). This is required by WAI-ARIA for screen reader users: without container focus, the screen reader stays on the trigger element and the modal content is not announced. The Escape handler and overlay-click handler MUST be registered only while `open===true`.
+
+**BAD** — No container focus, screen reader stranded on trigger:
+```tsx
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" role="dialog" aria-modal="true">{children}</div>
+      {/* ❌ no tabIndex, no focus() call — SR stays on trigger */}
+    </div>
+  );
+}
+```
+
+**GOOD** — Container focuses on open:
+```tsx
+function Modal({ open, onClose, children, ariaLabel }) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose); onCloseRef.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    modalRef.current?.focus(); // ✅ SR announces dialog
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div ref={modalRef} className="modal" role="dialog" aria-modal="true" aria-label={ariaLabel} tabIndex={-1}>{children}</div>
+    </div>
+  );
+}
+```
+
+**Verification**: Render `<Modal open={true} ...>` and assert the container element (found via `role="dialog"`) has `tabIndex === -1` and is `document.activeElement` after the open effect runs. Toggle `open` false→true and assert focus moves to the container. Verify the Escape key handler is only attached while `open===true` (spy on `window.addEventListener`).
+
+**Discovered in**: Batch 3 P0-6 + R164 a11y hardening of unified Modal. Test: `src/shared/presentation/__tests__/regression-r164-modal-focus-trap.test.tsx`.
+
+### R165: Coming-Soon Page Titles MUST Use t() (i18n), Not Hardcoded Strings
+
+Coming-soon pages (`src/app/coming-soon/*.tsx`) that render `<ComingSoon title={...} />` MUST pass `t("sidebar.<page>")` as the title, NOT a hardcoded Chinese/English string. The `descriptionKey` MUST also be an i18n key. This keeps the sidebar label and the page title in sync (both come from the same `sidebar.*` key) and supports locale switching. Currently `LoginPage`, `AgentPage`, `ComposerPage`, `MobilePage`, `WorkspacePage`, `WorkflowPage`, `TemplateMarketPage`, `StoryPage` follow this pattern.
+
+**BAD** — Hardcoded title, breaks locale switch:
+```tsx
+export default function LoginPage() {
+  return <ComingSoon icon="🔑" title="登录" descriptionKey="comingSoon.agentDesc" />; // ❌ hardcoded Chinese
+}
+```
+
+**GOOD** — Title from i18n:
+```tsx
+import { t } from "@/shared/constants/messages";
+export default function LoginPage() {
+  return <ComingSoon icon="🔑" title={t("sidebar.login")} descriptionKey="comingSoon.agentDesc" />; // ✅
+}
+```
+
+**Verification**: For each coming-soon page file, assert the `title` prop passed to `<ComingSoon>` is a call expression `t("sidebar.<something>")` (AST or regex), NOT a string literal. Optionally render each page with a `t` mock returning the key and assert the title text matches the expected `sidebar.*` key.
+
+**Discovered in**: Batch 3 P1-9 coming-soon page i18n. Test: `src/app/coming-soon/__tests__/regression-r165-coming-soon-i18n.test.tsx`.
+
+### R166: Date Formatting MUST Use toLocaleString()/toLocaleTimeString() Without Hardcoded "zh-CN" Locale
+
+When formatting `Date` instances for user-facing display (e.g. crash recovery timestamps, task created-at), code MUST call `date.toLocaleString()` or `date.toLocaleTimeString()` WITHOUT a hardcoded `"zh-CN"` locale argument. Passing the user's default locale (no argument, or `undefined`) lets the OS/browser locale win — a Chinese-locale user sees `2026/6/25 14:30:00`, an English-locale user sees `6/25/2026, 2:30:00 PM`. Hardcoding `"zh-CN"` forces Chinese formatting on all users, defeating i18n. (Explicit locale args are allowed ONLY for non-user-facing logs.)
+
+**BAD** — Hardcoded zh-CN locale, English users see Chinese dates:
+```tsx
+const saveTime = new Date(timestamp).toLocaleString("zh-CN"); // ❌ forced Chinese format
+const timeStr = new Date(timestamp).toLocaleTimeString("zh-CN");
+```
+
+**GOOD** — Default locale, OS decides:
+```tsx
+const saveTime = new Date(timestamp).toLocaleString(); // ✅ user's locale
+const timeStr = new Date(timestamp).toLocaleTimeString();
+```
+
+**Verification**: Grep `src/**/*.tsx` for `toLocaleString("zh-CN")` and `toLocaleTimeString("zh-CN")` (and `toLocaleString('zh-CN')`) — assert zero matches in user-facing components. Specifically assert `src/shared/presentation/CrashRecoveryDialog.tsx` calls `.toLocaleString()` and `.toLocaleTimeString()` with no arguments.
+
+**Discovered in**: Batch 3 P1-10 CrashRecoveryDialog date localization. Test: `src/shared/presentation/__tests__/regression-r166-date-locale.test.tsx`.

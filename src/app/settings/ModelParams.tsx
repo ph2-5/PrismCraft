@@ -1,5 +1,6 @@
 import { Plus, Trash2, ChevronRight } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import type { ModelDefinition } from "./plugin-creator-types";
 
 interface ModelParamsProps {
@@ -58,9 +59,9 @@ export function ModelParams({
                   }}
                   placeholder={t("plugin.durationLabelPlaceholder")}
                 />
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <IconButton
+                  variant="ghost"
+                  className="btn-sm"
                   style={{ color: "var(--destructive)", height: 32, width: 32, padding: 0, flexShrink: 0 }}
                   onClick={() => {
                     updateModel(index, { durations: model.durations.filter((item) => item._uid !== d._uid) });
@@ -68,7 +69,7 @@ export function ModelParams({
                   aria-label={t("aria.removeDuration")}
                 >
                   <Trash2 size={14} />
-                </button>
+                </IconButton>
               </div>
             ))}
             <button
@@ -138,9 +139,9 @@ export function ModelParams({
                   placeholder={t("plugin.resolutionHeightPlaceholder")}
                   type="number"
                 />
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <IconButton
+                  variant="ghost"
+                  className="btn-sm"
                   style={{ color: "var(--destructive)", height: 32, width: 32, padding: 0, flexShrink: 0 }}
                   onClick={() => {
                     updateModel(index, { resolutions: model.resolutions.filter((item) => item._uid !== r._uid) });
@@ -148,7 +149,7 @@ export function ModelParams({
                   aria-label={t("aria.removeResolution")}
                 >
                   <Trash2 size={14} />
-                </button>
+                </IconButton>
               </div>
             ))}
             <button
@@ -192,9 +193,9 @@ export function ModelParams({
                   }}
                   placeholder={t("plugin.labelPlaceholder")}
                 />
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <IconButton
+                  variant="ghost"
+                  className="btn-sm"
                   style={{ color: "var(--destructive)", height: 32, width: 32, padding: 0, flexShrink: 0 }}
                   onClick={() => {
                     updateModel(index, { styles: model.styles.filter((item) => item._uid !== s._uid) });
@@ -202,7 +203,7 @@ export function ModelParams({
                   aria-label={t("aria.removeStyle")}
                 >
                   <Trash2 size={14} />
-                </button>
+                </IconButton>
               </div>
             ))}
             <button

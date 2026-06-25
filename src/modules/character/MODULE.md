@@ -32,7 +32,8 @@
 |-----|------|------|
 | `defaultCharacter` | Character | 默认角色值 |
 | `personalitySuggestions` | `string[]` | 性格建议列表 |
-| `styleSuggestions` | `string[]` | 风格建议列表 |
+| `styleSuggestions` | `readonly StyleOption[]` | 风格建议列表（value 字段为持久化与 prompt 构造用中文风格词，labelKey 字段为 i18n 显示 key） |
+| `StyleOption` | interface | 风格选项类型，跨模块共享，含 value 与 labelKey 两个 string 字段 |
 | `genderSuggestions` | `string[]` | 性别建议列表 |
 | `heightSuggestions` | `string[]` | 身高建议列表 |
 | `buildSuggestions` | `string[]` | 体型建议列表 |

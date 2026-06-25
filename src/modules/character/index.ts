@@ -6,6 +6,7 @@ export {
   genderSuggestions,
   heightSuggestions,
   buildSuggestions,
+  type StyleOption,
 } from "./constants";
 export {
   useCharacterImage,

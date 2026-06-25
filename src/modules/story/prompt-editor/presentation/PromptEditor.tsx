@@ -4,6 +4,7 @@ import { usePromptEditor } from "../hooks";
 import type { PromptEditorContext } from "../services";
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 
 interface PromptEditorProps {
   beat: StoryBeat;
@@ -85,14 +86,16 @@ export function PromptEditor({
           {CONTEXT_LABELS[context]}
         </span>
         <div className="toolbar">
-          <button
-            className="btn btn-ghost btn-xs"
+          <IconButton
+            variant="ghost"
+            className="btn-xs"
             onClick={resetToDefault}
             disabled={isGenerating || hasAIPreview}
             title={t("prompt.reset")}
+            aria-label={t("aria.reset")}
           >
             <RotateCcw className="w-3 h-3" />
-          </button>
+          </IconButton>
           <button
             className="btn btn-ghost btn-xs"
             onClick={() => generateWithAI()}

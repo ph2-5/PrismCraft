@@ -1,5 +1,6 @@
 import { ImageIcon } from "lucide-react";
 import { t } from "@/shared/constants";
+import { Modal } from "./Modal";
 
 interface Asset {
   id: string;
@@ -26,12 +27,14 @@ export function AssetSelectorDialog({
 }: AssetSelectorDialogProps) {
   const imageAssets = assets.filter((a) => a.type === "image");
 
-  if (!open) return null;
-
   return (
-    <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1024, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <div style={{ marginBottom: 12 }}>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={t("dialog.selectAsset")}
+      style={{ maxWidth: 1024, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
+    >
+      <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 16, fontWeight: 600 }}>{t("dialog.selectAsset")}</div>
           <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{description}</div>
         </div>
@@ -79,8 +82,7 @@ export function AssetSelectorDialog({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

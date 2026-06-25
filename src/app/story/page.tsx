@@ -7,6 +7,7 @@ import { VersionDialog } from "@/modules/story";
 import { TemplateManagerDialog } from "@/modules/story";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ComingSoon } from "@/shared/presentation/ComingSoon";
+import { Modal } from "@/shared/presentation/Modal";
 import { StoryProvider } from "./StoryProvider";
 import { SwitchConfirmDialog } from "./SwitchConfirmDialog";
 import { useStoryPage } from "./hooks/useStoryPage";
@@ -190,55 +191,49 @@ function StoryPageContent() {
         />
 
         {/* 删除确认弹窗 */}
-        {story.deleteDialogOpen && (
-          <div
-            className="modal-overlay"
-            onClick={() => handleDeleteDialogOpenChange(false)}
-          >
-            <div
-              className="modal"
-              onClick={(e) => e.stopPropagation()}
-              style={{ minWidth: 420 }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: "var(--destructive)", marginBottom: 8 }}>
-                <Trash2 size={18} />
-                {t("story.confirmDeleteProject")}
-              </div>
-              <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 12 }}>
-                {t("story.confirmDeleteProjectDesc")}
-              </p>
-              <div style={{ marginBottom: 16 }}>
-                <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 8 }}>
-                  {t("story.deleteConfirmInputHint", { name: story.currentStory.title || t("story.unnamed") })}
-                </p>
-                <input
-                  className="input"
-                  value={deleteConfirmInput}
-                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
-                  placeholder={t("story.deleteConfirmInputPlaceholder")}
-                  style={{ width: "100%", fontSize: 12, padding: "6px 10px" }}
-                />
-              </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={handleDeleteCancel}
-                >
-                  {t("common.cancel")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  disabled={deleteConfirmInput !== (story.currentStory.title || t("story.unnamed"))}
-                  onClick={story.performDeleteStory}
-                >
-                  {t("story.confirmDeleteButton")}
-                </button>
-              </div>
-            </div>
+        <Modal
+          open={story.deleteDialogOpen}
+          onClose={() => handleDeleteDialogOpenChange(false)}
+          ariaLabel={t("story.confirmDeleteProject")}
+          style={{ minWidth: 420 }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: "var(--destructive)", marginBottom: 8 }}>
+            <Trash2 size={18} />
+            {t("story.confirmDeleteProject")}
           </div>
-        )}
+          <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 12 }}>
+            {t("story.confirmDeleteProjectDesc")}
+          </p>
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 8 }}>
+              {t("story.deleteConfirmInputHint", { name: story.currentStory.title || t("story.unnamed") })}
+            </p>
+            <input
+              className="input"
+              value={deleteConfirmInput}
+              onChange={(e) => setDeleteConfirmInput(e.target.value)}
+              placeholder={t("story.deleteConfirmInputPlaceholder")}
+              style={{ width: "100%", fontSize: 12, padding: "6px 10px" }}
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={handleDeleteCancel}
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              disabled={deleteConfirmInput !== (story.currentStory.title || t("story.unnamed"))}
+              onClick={story.performDeleteStory}
+            >
+              {t("story.confirmDeleteButton")}
+            </button>
+          </div>
+        </Modal>
 
         <SwitchConfirmDialog
           open={showSwitchConfirmDialog}

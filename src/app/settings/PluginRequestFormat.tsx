@@ -1,5 +1,6 @@
 import { Plus, Trash2, FileCode } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import type { WizardState } from "./plugin-creator-types";
 
 interface PluginRequestFormatProps {
@@ -157,9 +158,9 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
                 }}
                 placeholder={t("plugin.fieldValuePlaceholder")}
               />
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
+              <IconButton
+                variant="ghost"
+                className="btn-sm"
                 style={{ color: "var(--destructive)", flexShrink: 0 }}
                 onClick={() => {
                   updateField("extraFields", state.extraFields.filter((f) => f._uid !== field._uid));
@@ -167,7 +168,7 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
                 aria-label={t("aria.removeField")}
               >
                 <Trash2 size={16} />
-              </button>
+              </IconButton>
             </div>
           ))}
           <button

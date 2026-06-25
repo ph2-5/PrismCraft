@@ -33,11 +33,32 @@ export const personalitySuggestions = [
   "大叔", "萝莉", "女王", "骑士", "智者", "疯子", "毒舌",
 ];
 
-export const styleSuggestions = [
-  "日式动漫", "写实风格", "卡通风格", "Q版/萌系", "像素风格", "水彩风格",
-  "赛博朋克", "奇幻风格", "蒸汽朋克", "哥特风格", "浮世绘", "油画风格",
-  "素描风格", "3D渲染", "低多边形", "美式漫画", "韩漫风格", "国风/古风",
-  "未来主义", "复古风",
+export interface StyleOption {
+  value: string;
+  labelKey: string;
+}
+
+export const styleSuggestions: readonly StyleOption[] = [
+  { value: "日式动漫", labelKey: "styleOption.japanese-anime" },
+  { value: "写实风格", labelKey: "styleOption.realistic" },
+  { value: "卡通风格", labelKey: "styleOption.cartoon" },
+  { value: "Q版/萌系", labelKey: "styleOption.chibi" },
+  { value: "像素风格", labelKey: "styleOption.pixel" },
+  { value: "水彩风格", labelKey: "styleOption.watercolor" },
+  { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
+  { value: "奇幻风格", labelKey: "styleOption.fantasy" },
+  { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
+  { value: "哥特风格", labelKey: "styleOption.gothic" },
+  { value: "浮世绘", labelKey: "styleOption.ukiyoe" },
+  { value: "油画风格", labelKey: "styleOption.oil-painting" },
+  { value: "素描风格", labelKey: "styleOption.sketch" },
+  { value: "3D渲染", labelKey: "styleOption.3d-render" },
+  { value: "低多边形", labelKey: "styleOption.low-poly" },
+  { value: "美式漫画", labelKey: "styleOption.american-comic" },
+  { value: "韩漫风格", labelKey: "styleOption.korean-comic" },
+  { value: "国风/古风", labelKey: "styleOption.chinese-classical" },
+  { value: "未来主义", labelKey: "styleOption.futurism" },
+  { value: "复古风", labelKey: "styleOption.retro" },
 ];
 
 export const genderSuggestions = ["男性", "女性", "中性", "无性别", "双性", "其他"];

@@ -4,6 +4,7 @@ import { useToastHelpers } from "@/shared/presentation/Toast";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { Download, Upload, Package, FileArchive, AlertCircle, CheckCircle } from "lucide-react";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface ProjectExportImportProps {
   onImport?: (data: ProjectData) => void;
@@ -171,81 +172,75 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
       </div>
 
       {/* 导入预览对话框 */}
-      {importDialogOpen && (
-        <div
-          className="modal-overlay"
-          onClick={() => setImportDialogOpen(false)}
-        >
-          <div
-            className="modal"
-            onClick={(e) => e.stopPropagation()}
-            style={{ minWidth: 420 }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
-              <FileArchive size={18} />
-              {t("asset.confirmImportProject")}
-            </div>
-            <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 16 }}>
-              {t("asset.confirmImportDesc")}
-            </p>
+      <Modal
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        ariaLabel={t("asset.confirmImportProject")}
+        style={{ minWidth: 420 }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+          <FileArchive size={18} />
+          {t("asset.confirmImportProject")}
+        </div>
+        <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 16 }}>
+          {t("asset.confirmImportDesc")}
+        </p>
 
-            {importPreview && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "16px 0" }}>
-                <div
-                  style={{
-                    padding: 16,
-                    background: "rgba(var(--primary-rgb, 99, 102, 241), 0.1)",
-                    borderRadius: 8,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <CheckCircle size={14} style={{ color: "var(--success)" }} />
-                    <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.characterCount", { count: importPreview.characters.length })}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <CheckCircle size={14} style={{ color: "var(--success)" }} />
-                    <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.sceneCount", { count: importPreview.scenes.length })}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <CheckCircle size={14} style={{ color: "var(--success)" }} />
-                    <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.storyCount", { count: importPreview.stories.length })}</span>
-                  </div>
-                  {importPreview.exportedAt && (
-                    <div style={{ fontSize: 11, color: "var(--muted-fg)", paddingTop: 8 }}>
-                      {t("asset.exportTime", { time: new Date(importPreview.exportedAt).toLocaleString() })}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--warning)" }}>
-                  <AlertCircle size={14} style={{ marginTop: 2 }} />
-                  <p>{t("asset.importMergeWarning")}</p>
-                </div>
+        {importPreview && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "16px 0" }}>
+            <div
+              style={{
+                padding: 16,
+                background: "rgba(var(--primary-rgb, 99, 102, 241), 0.1)",
+                borderRadius: 8,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={14} style={{ color: "var(--success)" }} />
+                <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.characterCount", { count: importPreview.characters.length })}</span>
               </div>
-            )}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={14} style={{ color: "var(--success)" }} />
+                <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.sceneCount", { count: importPreview.scenes.length })}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={14} style={{ color: "var(--success)" }} />
+                <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.storyCount", { count: importPreview.stories.length })}</span>
+              </div>
+              {importPreview.exportedAt && (
+                <div style={{ fontSize: 11, color: "var(--muted-fg)", paddingTop: 8 }}>
+                  {t("asset.exportTime", { time: new Date(importPreview.exportedAt).toLocaleString() })}
+                </div>
+              )}
+            </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => setImportDialogOpen(false)}
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleConfirmImport}
-              >
-                {t("asset.confirmImport")}
-              </button>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--warning)" }}>
+              <AlertCircle size={14} style={{ marginTop: 2 }} />
+              <p>{t("asset.importMergeWarning")}</p>
             </div>
           </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => setImportDialogOpen(false)}
+          >
+            {t("common.cancel")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleConfirmImport}
+          >
+            {t("asset.confirmImport")}
+          </button>
         </div>
-      )}
+      </Modal>
     </>
   );
 }

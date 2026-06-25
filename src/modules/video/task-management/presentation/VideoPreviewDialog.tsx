@@ -1,6 +1,7 @@
 import { Video, Download, AlertTriangle } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 
 const VIDEO_MAX_HEIGHT_STYLE = { maxHeight: "60vh" } as const;
 
@@ -26,25 +27,23 @@ export function VideoPreviewDialog({
   onDownloadVideo,
 }: VideoPreviewDialogProps) {
   return (
-    <>
-      {open && (
-        <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-          <div
-            className="modal"
-            style={{ maxWidth: "56rem" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                <Video className="w-5 h-5" />
-                {t("task.videoPreview")}
-              </div>
-              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
-                {task
-                  ? task.beatTitle || `${t("task.taskLabel")} ${(task.taskId || "unknown").substring(0, 8)}`
-                  : t("task.viewGeneratedVideo")}
-              </div>
-            </div>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={t("task.videoPreview")}
+      style={{ maxWidth: "56rem" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <Video className="w-5 h-5" />
+          {t("task.videoPreview")}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+          {task
+            ? task.beatTitle || `${t("task.taskLabel")} ${(task.taskId || "unknown").substring(0, 8)}`
+            : t("task.viewGeneratedVideo")}
+        </div>
+      </div>
 
             {task && videoLoading && (
               <div className="p-12 text-center space-y-4">
@@ -101,9 +100,6 @@ export function VideoPreviewDialog({
                 {t("common.close")}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </>
+    </Modal>
   );
 }

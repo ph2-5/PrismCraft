@@ -124,21 +124,54 @@ export const PROMPT_TEMPLATES = {
     `${description}，${style}风格，高质量，电影级画面，场景设计`,
 } as const;
 
-// 风格选项
-export const STYLE_OPTIONS = {
+// 风格选项（labelKey 指向 i18n key，value 为持久化与 prompt 构造用的中文风格词）
+export interface ConfigStyleOption {
+  value: string;
+  labelKey: string;
+}
+
+export const STYLE_OPTIONS: Readonly<{
+  CHARACTER: readonly ConfigStyleOption[];
+  SCENE: readonly ConfigStyleOption[];
+}> = {
   CHARACTER: [
-    "日式动漫", "写实风格", "卡通风格", "Q版/萌系", "像素风格",
-    "水彩风格", "赛博朋克", "奇幻风格", "蒸汽朋克", "哥特风格",
-    "浮世绘", "油画风格", "素描风格", "3D渲染", "低多边形",
-    "美式漫画", "韩漫风格", "国风/古风", "未来主义", "复古风",
-  ] as const,
+    { value: "日式动漫", labelKey: "styleOption.japanese-anime" },
+    { value: "写实风格", labelKey: "styleOption.realistic" },
+    { value: "卡通风格", labelKey: "styleOption.cartoon" },
+    { value: "Q版/萌系", labelKey: "styleOption.chibi" },
+    { value: "像素风格", labelKey: "styleOption.pixel" },
+    { value: "水彩风格", labelKey: "styleOption.watercolor" },
+    { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
+    { value: "奇幻风格", labelKey: "styleOption.fantasy" },
+    { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
+    { value: "哥特风格", labelKey: "styleOption.gothic" },
+    { value: "浮世绘", labelKey: "styleOption.ukiyoe" },
+    { value: "油画风格", labelKey: "styleOption.oil-painting" },
+    { value: "素描风格", labelKey: "styleOption.sketch" },
+    { value: "3D渲染", labelKey: "styleOption.3d-render" },
+    { value: "低多边形", labelKey: "styleOption.low-poly" },
+    { value: "美式漫画", labelKey: "styleOption.american-comic" },
+    { value: "韩漫风格", labelKey: "styleOption.korean-comic" },
+    { value: "国风/古风", labelKey: "styleOption.chinese-classical" },
+    { value: "未来主义", labelKey: "styleOption.futurism" },
+    { value: "复古风", labelKey: "styleOption.retro" },
+  ],
 
   SCENE: [
-    "写实风格", "卡通风格", "水彩风格", "油画风格",
-    "赛博朋克", "奇幻风格", "蒸汽朋克", "哥特风格",
-    "未来主义", "复古风", "极简风格", "华丽风格",
-  ] as const,
-} as const;
+    { value: "写实风格", labelKey: "styleOption.realistic" },
+    { value: "卡通风格", labelKey: "styleOption.cartoon" },
+    { value: "水彩风格", labelKey: "styleOption.watercolor" },
+    { value: "油画风格", labelKey: "styleOption.oil-painting" },
+    { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
+    { value: "奇幻风格", labelKey: "styleOption.fantasy" },
+    { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
+    { value: "哥特风格", labelKey: "styleOption.gothic" },
+    { value: "未来主义", labelKey: "styleOption.futurism" },
+    { value: "复古风", labelKey: "styleOption.retro" },
+    { value: "极简风格", labelKey: "styleOption.minimalist" },
+    { value: "华丽风格", labelKey: "styleOption.ornate" },
+  ],
+};
 
 // 日志工具
 import { errorLogger } from "@/shared/error-logger";

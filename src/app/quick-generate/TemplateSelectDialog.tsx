@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { LayoutTemplate, Grid3x3 } from "lucide-react";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 import {
   templateCategories,
   getTemplatesByCategory,
@@ -21,41 +22,36 @@ export function TemplateSelectDialog({
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   return (
-    <>
-      {open && (
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={t("quickGenerate.selectVideoTemplate")}
+      style={{ maxWidth: "48rem" }}
+    >
+      <div style={{ marginBottom: 12 }}>
         <div
-          className="modal-overlay"
-          onClick={() => onOpenChange(false)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 16,
+            fontWeight: 600,
+            color: "var(--fg)",
+          }}
         >
-          <div
-            className="modal"
-            style={{ maxWidth: "48rem" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ marginBottom: 12 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 16,
-                  fontWeight: 600,
-                  color: "var(--fg)",
-                }}
-              >
-                <LayoutTemplate className="w-5 h-5" />
-                {t("quickGenerate.selectVideoTemplate")}
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "var(--muted-fg)",
-                  marginTop: 4,
-                }}
-              >
-                {t("quickGenerate.selectTemplateDesc")}
-              </div>
-            </div>
+          <LayoutTemplate className="w-5 h-5" />
+          {t("quickGenerate.selectVideoTemplate")}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            color: "var(--muted-fg)",
+            marginTop: 4,
+          }}
+        >
+          {t("quickGenerate.selectTemplateDesc")}
+        </div>
+      </div>
 
             <div className="flex flex-wrap gap-2 mb-4">
               {templateCategories.map((category) => (
@@ -120,9 +116,6 @@ export function TemplateSelectDialog({
                 {t("common.cancel")}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </>
+    </Modal>
   );
 }

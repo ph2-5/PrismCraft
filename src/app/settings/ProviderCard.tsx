@@ -13,6 +13,7 @@ import {
   type ModelConfig,
 } from "@/infrastructure/api-config-facade";
 import { getModelParameterProfile } from "@/shared/model-capabilities";
+import { IconButton } from "@/shared/presentation/IconButton";
 
 interface CapabilityItem {
   id: ApiCapability;
@@ -100,26 +101,28 @@ export function ProviderCard({
               );
             })}
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <IconButton
+            variant="ghost"
+            className="btn-sm"
             onClick={(e) => {
               e.stopPropagation();
               onUpdateProviderModels(provider.id);
             }}
+            aria-label={t("aria.refreshProviderModels")}
           >
             <Sparkles size={16} style={{ color: "var(--primary)" }} />
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          </IconButton>
+          <IconButton
+            variant="ghost"
+            className="btn-sm"
             onClick={(e) => {
               e.stopPropagation();
               onRemoveProvider(provider.id);
             }}
+            aria-label={t("aria.removeProvider")}
           >
             <Trash2 size={16} style={{ color: "var(--destructive)" }} />
-          </button>
+          </IconButton>
           <ChevronDown
             size={16}
             style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "none" }}
@@ -257,15 +260,16 @@ export function ProviderCard({
                         />
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
+                    <IconButton
+                      variant="ghost"
+                      className="btn-sm"
                       onClick={() =>
                         onRemoveModel(provider.id, index)
                       }
+                      aria-label={t("aria.removeModel")}
                     >
                       <Trash2 size={12} style={{ color: "var(--destructive)" }} />
-                    </button>
+                    </IconButton>
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

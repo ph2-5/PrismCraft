@@ -1,5 +1,6 @@
 import { Trash2, ChevronDown, Puzzle, Code } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import { PluginDetail } from "./PluginDetail";
 
 interface PluginInfo {
@@ -114,16 +115,17 @@ export function PluginList({
                       )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
+                      <IconButton
+                        variant="ghost"
+                        className="btn-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDelete(plugin.id, plugin.displayName);
                         }}
+                        aria-label={t("aria.deletePlugin")}
                       >
                         <Trash2 size={16} style={{ color: "var(--destructive)" }} />
-                      </button>
+                      </IconButton>
                       <ChevronDown size={16} style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "none" }} />
                     </div>
                   </div>
@@ -156,16 +158,17 @@ export function PluginList({
                       <span className="badge" style={{ fontSize: 12, flexShrink: 0, background: "var(--warning)" }}>{t("plugin.codePlugin")}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
+                      <IconButton
+                        variant="ghost"
+                        className="btn-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDelete(plugin.id, plugin.displayName);
                         }}
+                        aria-label={t("aria.deletePlugin")}
                       >
                         <Trash2 size={16} style={{ color: "var(--destructive)" }} />
-                      </button>
+                      </IconButton>
                       <ChevronDown size={16} style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "none" }} />
                     </div>
                   </div>

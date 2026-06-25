@@ -51,6 +51,7 @@ export const TaskCard = memo(function TaskCard({
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
+              aria-label={t("aria.toggleSelection")}
               checked={isSelected}
               onChange={(e) => {
                 e.stopPropagation();

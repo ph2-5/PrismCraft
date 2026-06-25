@@ -4,6 +4,7 @@ import {
   type ApiCapability,
   type ApiConfig,
 } from "@/infrastructure/api-config-facade";
+import { IconButton } from "@/shared/presentation/IconButton";
 
 interface CapabilityItem {
   id: ApiCapability;
@@ -138,9 +139,9 @@ export function ModelMappingSection({
                   ))
                 )}
               </select>
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs"
+              <IconButton
+                variant="ghost"
+                className="btn-xs"
                 onClick={() => onTestCapability(cap.id)}
                 disabled={
                   !currentValue ||
@@ -148,13 +149,14 @@ export function ModelMappingSection({
                   isDisabled
                 }
                 title={t("connection.title")}
+                aria-label={t("aria.testCapability")}
               >
                 {testingCapability === cap.id ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
                   "🧪"
                 )}
-              </button>
+              </IconButton>
 
               {cap.id === "vision" && visionInfo.hasVision && (
                 <div style={{ marginTop: 8, padding: 8, borderRadius: 6, background: "var(--card2)", fontSize: 11, color: "var(--muted-fg)" }}>

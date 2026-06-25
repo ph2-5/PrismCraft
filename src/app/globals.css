@@ -421,3 +421,14 @@
 /* Drag & Skeleton */
 .dragging { opacity: 0.5; transform: scale(1.02); }
 .skeleton-shimmer { background: linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+
+/* 全局键盘焦点样式 — 仅键盘 Tab 导航时显示，鼠标点击不显示 */
+:focus-visible {
+  outline: 2px solid var(--ring, var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}

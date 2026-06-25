@@ -22,6 +22,7 @@ import type {
 import { toDateFromTimestamp } from "./asset-library-shared";
 import type { EditingItem } from "./asset-library-shared";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 
 // 统一的卡片图片区样式
 const cardImageAreaStyle: React.CSSProperties = {
@@ -357,25 +358,25 @@ export const CollectionCard = memo(function CollectionCard({
             {col.name}
           </div>
           <div style={{ display: "flex", gap: 4 }}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs"
+            <IconButton
+              variant="ghost"
+              className="btn-xs"
               onClick={() => onExportCollection(col.id)}
               title={t("asset.exportCollection")}
               aria-label={t("aria.exportCollection")}
             >
               <Download size={12} />
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs"
+            </IconButton>
+            <IconButton
+              variant="ghost"
+              className="btn-xs"
               style={{ color: "var(--destructive)" }}
               onClick={() => onDeleteCollection(col.id)}
               title={t("asset.deleteCollection")}
               aria-label={t("aria.deleteCollection")}
             >
               <Trash2 size={12} />
-            </button>
+            </IconButton>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted-fg)" }}>

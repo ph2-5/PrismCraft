@@ -109,37 +109,37 @@ describe("api-config/detect", () => {
     it("should reject empty key", () => {
       const result = validateApiKey("");
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("不能为空");
+      expect(result.errorKey).toBe("provider.apiKey.empty");
     });
 
     it("should reject short key", () => {
       const result = validateApiKey("abc");
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("长度过短");
+      expect(result.errorKey).toBe("provider.apiKey.tooShort");
     });
 
     it("should reject overly long key", () => {
       const result = validateApiKey("a".repeat(513));
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("长度过长");
+      expect(result.errorKey).toBe("provider.apiKey.tooLong");
     });
 
     it("should reject placeholder key", () => {
       const result = validateApiKey("your_api_key_here");
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("替换");
+      expect(result.errorKey).toBe("provider.apiKey.placeholderDetected");
     });
 
     it("should reject key with control characters", () => {
       const result = validateApiKey("sk-test\x00key-1234567890");
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("非法字符");
+      expect(result.errorKey).toBe("provider.apiKey.invalidChars");
     });
 
     it("should accept valid key", () => {
       const result = validateApiKey("sk-1234567890abcdef1234567890abcdef");
       expect(result.valid).toBe(true);
-      expect(result.error).toBeUndefined();
+      expect(result.errorKey).toBeUndefined();
     });
   });
 });

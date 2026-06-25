@@ -200,3 +200,58 @@
 **验证结果**：typecheck + 4471 测试通过（新增 28 个）+ lint + lint:arch 全部通过
 
 **后续待办**：批次 3（UI/UX + i18n）、批次 4（架构重构）
+
+### [2026-06-25] 批次 3 UI/UX + i18n 优化 + R158-R166 回归防护 — 已完成
+
+**审计范围**：批次 3 共完成 12 项 UI/UX + i18n 优化（P0×6 + P1×3 + P2×3）。
+
+**P0 高优先级（6 项）**：
+- P0-1: `src/shared/presentation/Toast.tsx` — 添加 hover 暂停逻辑（useState paused + useRef remainingRef + startedAtRef + timerRef 单计时器模式，animationPlayState 控制进度条）
+- P0-2: `src/shared/presentation/KeyboardShortcutsDialog.tsx` — 全局 Escape 监听（后被 Modal 接管）
+- P0-3: `src/app/globals.css` — 全局 :focus-visible outline 样式（2px solid var(--ring)，button/a 焦点环）
+- P0-4: `src/shared/presentation/Sidebar.tsx` — NavItem + 折叠按钮 aria-label，5 个 futurePreviewItems labelKey i18n 化
+- P0-5: `src/infrastructure/ai-providers/api-config/detect.ts` — validateApiKey 返回 errorKey 而非中文字符串；`src/app/settings/ProviderForm.tsx` + `src/__tests__/lib/api-config/detect.test.ts` 联动改造
+- P0-6: 创建 `src/shared/presentation/Modal.tsx` 统一 Modal 组件（role=dialog + aria-modal + Escape + overlay click + focus + data-modal-container），迁移 5 个高频 modal（DeleteConfirmDialog, KeyboardShortcutsDialog, CrashRecoveryDialog, AssetSelectorDialog, confirm-dialog）
+
+**P1 中优先级（3 项）**：
+- P1-7: `src/modules/video/task-management/presentation/TaskCard.tsx` + `task-card.tsx` — Square/CheckSquare 选择按钮添加 aria-label
+- P1-9: 5 个 coming-soon 页面（Login/TemplateMarket/Workflow/Workspace/Mobile）— title 用 `t()` 国际化
+- P1-10: `src/shared/presentation/CrashRecoveryDialog.tsx` — `toLocaleString("zh-CN")` → `toLocaleString()`
+
+**P2 低优先级（3 项）**：
+- P2-11: 迁移剩余 19 个 modal 到统一 `<Modal>` 组件（22 个 modal 实例，跳过 SearchDialog 因 tailwind 工具类样式体系不同）
+- P2-12: 创建 `src/shared/presentation/IconButton.tsx` 强制 aria-label prop（TypeScript 层面 `string` 非 optional），迁移 23 个图标按钮到 IconButton（11 个文件），新增 8 个 aria.xxx i18n key，新增 IconButton 测试（8 tests）
+- P2-13: 风格选项 i18n — `src/modules/character/constants.ts` 引入 `{value, labelKey}` 结构（value 保留中文兼容持久化 + prompt 构造，labelKey 用于 UI 显示），新增 22 个 styleOption.* i18n key，修改 8 个文件（constants.ts, CharacterEditor.tsx, BatchOperations.tsx, VariantGenerator.tsx 等），跳过 prompt 构造代码
+
+**回归防护（本次提交）** — R158-R166 共 9 条规则 + 80 个回归测试：
+- R158: `src/shared/presentation/__tests__/regression-r158-toast-hover-pause.test.tsx`（9 tests）
+- R159: `src/__tests__/lib/api-config/regression-r159-validate-api-key-errorkey.test.ts`（8 tests）
+- R160: `src/shared/presentation/__tests__/regression-r160-modal-component-required.test.tsx`（10 tests）
+- R161: `src/shared/presentation/__tests__/regression-r161-icon-button-aria-required.test.tsx`（9 tests）
+- R162: `src/modules/character/__tests__/regression-r162-style-options-labelkey.test.ts`（9 tests）
+- R163: `src/app/__tests__/regression-r163-focus-visible-style.test.ts`（7 tests）
+- R164: `src/shared/presentation/__tests__/regression-r164-modal-focus-trap.test.tsx`（10 tests）
+- R165: `src/app/coming-soon/__tests__/regression-r165-coming-soon-i18n.test.tsx`（10 tests）
+- R166: `src/shared/presentation/__tests__/regression-r166-date-locale.test.tsx`（8 tests）
+
+**新增 i18n key 清单（共 35 个）**：
+- `provider.apiKey.empty/tooShort/tooLong/placeholderDetected/invalidChars`（5）
+- `sidebar.login/templateMarket/workflow/workspace/mobile`（5）
+- `aria.toggleSelection/toggleSidebar/shortcutHelp`（3）
+- `aria.reset/toggleExpand/deletePlugin/testCapability/removeStatusMapping/removeUrlPattern/refreshProviderModels/removeProvider`（8）
+- `styleOption.realistic/anime/2dIllustration/cinematic/chineseChic/cyberpunk/chineseClassical/3dCartoon/pixelArt/watercolor/...`（22 个，含 11 个 character styleSuggestions + 11 个 asset BatchOperations 内联）
+- （注：messages.ts 中的 `style.*` 10 个 key 为预存死代码，未被引用）
+
+**新增组件清单**：
+- `src/shared/presentation/Modal.tsx` — 统一 Modal 组件
+- `src/shared/presentation/IconButton.tsx` — 强制 aria-label 的图标按钮组件
+
+**文档更新**：
+- `.trae/rules/regression-guards.md` — 追加 R158-R166 九条规则
+- `.trae/rules/project_rules.md` — R1-R157 → R1-R166（all 141 → all 151 guards），类别统计表更新（UI 健壮性 9→14，工程质量 22→26）
+- `.trae/rules/regression/index.md` — 总数 146 → 155，分类编号列表加入 R158-R166
+- `src/modules/character/MODULE.md` — 公共 API 文档更新 styleSuggestions 签名 + StyleOption 类型
+
+**验证结果**：typecheck + lint + lint:arch 全部通过 + 4559 测试通过（新增 88 个：80 回归 + 8 IconButton）
+
+**后续待办**：批次 4（P2 架构重构）— StoryProvider Context 拆分、React.lazy 路由分割、saveVideoTask 重复提取、useAssetLibraryActions 22 参数重构

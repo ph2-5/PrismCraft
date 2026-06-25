@@ -23,6 +23,7 @@ import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { SafeImage } from "@/shared/ui/safe-image";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 
 interface BeatOverviewCardProps {
   beat: StoryBeat;
@@ -204,28 +205,30 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                   <div className="flex items-center gap-1">
                     <MoveVertical className="w-4 h-4 text-purple-400/70" />
                     <div className="flex gap-1">
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
+                      <IconButton
+                        variant="ghost"
+                        className="btn-xs h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
                         disabled={index === 0}
                         onClick={(e) => {
                           e.stopPropagation();
                           onMoveBeat(beat.id, "up");
                         }}
+                        aria-label={t("aria.moveUpBeat")}
                       >
                         <ChevronUp className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
+                      </IconButton>
+                      <IconButton
+                        variant="ghost"
+                        className="btn-xs h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
                         disabled={index === totalBeats - 1}
                         onClick={(e) => {
                           e.stopPropagation();
                           onMoveBeat(beat.id, "down");
                         }}
+                        aria-label={t("aria.moveDownBeat")}
                       >
                         <ChevronDown className="w-4 h-4" />
-                      </button>
+                      </IconButton>
                     </div>
                   </div>
                 )}

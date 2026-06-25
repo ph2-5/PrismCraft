@@ -75,9 +75,9 @@ export function FramePairStepContent({
     <AppCard
       className={`transition-all ${
         status === "generating"
-          ? "border-blue-500/50 shadow-lg shadow-blue-500/10"
+          ? "border-primary/50 shadow-lg shadow-primary/10"
           : status === "completed"
-            ? "border-emerald-500/30"
+            ? "border-success/30"
             : status === "pending"
               ? "opacity-50"
               : ""
@@ -88,12 +88,12 @@ export function FramePairStepContent({
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
               status === "completed"
-                ? "bg-emerald-500/20 text-emerald-400"
+                ? "bg-success/20 text-success"
                 : status === "generating"
-                  ? "bg-blue-500/20"
+                  ? "bg-primary/20"
                   : status === "pending"
-                    ? "bg-slate-700/50 text-slate-500"
-                    : "bg-slate-700/50 text-slate-400"
+                    ? "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground"
             }`}
             style={status === "generating" ? { color: "var(--primary)" } : undefined}
           >
@@ -105,11 +105,11 @@ export function FramePairStepContent({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white">
+              <span className="text-sm font-medium text-foreground">
                 {t("keyframe.stepFramePair")}
               </span>
               {status === "completed" && (
-                <span className="text-xs text-emerald-400">✓</span>
+                <span className="text-xs text-success">✓</span>
               )}
               {status === "generating" && (
                 <span className="text-xs animate-pulse" style={{ color: "var(--primary)" }}>
@@ -117,7 +117,7 @@ export function FramePairStepContent({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {t("keyframe.framePairDesc")}
             </p>
           </div>
@@ -138,7 +138,7 @@ export function FramePairStepContent({
             />
             <button
               type="button"
-              className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
+              className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
               onClick={() => firstFrameInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1" />
@@ -146,7 +146,7 @@ export function FramePairStepContent({
             </button>
             <button
               type="button"
-              className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
+              className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
               onClick={() => lastFrameInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1" />
@@ -155,7 +155,7 @@ export function FramePairStepContent({
             {!hasFramePair ? (
               <button
                 type="button"
-                className="btn btn-primary btn-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+                className="btn btn-primary btn-sm bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                 onClick={() => onPreEditGenerate("firstFrame")}
                 disabled={isGenerating || !hasKeyframe}
               >
@@ -169,7 +169,7 @@ export function FramePairStepContent({
             ) : onRegenerateFramePair ? (
               <button
                 type="button"
-                className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
+                className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
                 onClick={onRegenerateFramePair}
                 disabled={isGenerating}
               >
@@ -184,14 +184,14 @@ export function FramePairStepContent({
           <div className="mt-3 grid grid-cols-2 gap-3">
             {firstFrame && (
               <div>
-                <p className="text-xs text-slate-400 mb-1">
+                <p className="text-xs text-muted-foreground mb-1">
                   {t("keyframe.firstFrame")}
                 </p>
                 <div className="relative group">
                   <img
                     src={resolveMediaUrl(beat.localFirstFramePath, firstFrame.imageUrl) || ""}
                     alt={t("keyframe.firstFrame")}
-                    className="w-full max-h-48 object-contain rounded-lg border border-slate-700"
+                    className="w-full max-h-48 object-contain rounded-lg border border-border"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
                 </div>
@@ -199,14 +199,14 @@ export function FramePairStepContent({
             )}
             {lastFrame && (
               <div>
-                <p className="text-xs text-slate-400 mb-1">
+                <p className="text-xs text-muted-foreground mb-1">
                   {t("keyframe.lastFrame")}
                 </p>
                 <div className="relative group">
                   <img
                     src={resolveMediaUrl(beat.localLastFramePath, lastFrame.imageUrl) || ""}
                     alt={t("keyframe.lastFrame")}
-                    className="w-full max-h-48 object-contain rounded-lg border border-slate-700"
+                    className="w-full max-h-48 object-contain rounded-lg border border-border"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
                 </div>

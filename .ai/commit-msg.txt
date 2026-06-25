@@ -1,22 +1,25 @@
-refactor(arch+feat): batch 4 architecture refactors + project switching + lazy navigation
+refactor(ui): batch 5 - eliminate all hardcoded Tailwind colors
 
-Architecture refactors (4 items):
-- StoryProvider P0: delete dead code, remove 8 fields from Context
-- React.lazy: 4 first-paint components lazy-loaded
-- saveVideoTask: new persist-task.ts, 7 call sites refactored
-- useAssetLibraryActions: dead param removed, 20 params packed into 6 objects
+Cleaned 188 hardcoded color occurrences across 30 files to 0 residual.
 
-Feature A: project concept wiring (8 files):
-- Route /storyboard/:storyId for deep linking
-- StoryProvider loads by URL storyId then activeStoryId then first story
-- StoryHeader wired into page.tsx
-- Home page: card onClick passes storyId, new project button fixed
-- SidebarWithSearch: search results navigate with storyId
+Replaced slate/gray/white/blue hardcoded colors with semantic variables:
+- text-slate-*/text-gray-* -> text-muted-foreground
+- bg-slate-*/bg-gray-* -> bg-card2/bg-muted/bg-card
+- border-slate-*/border-gray-* -> border-border
+- dark: prefix removed (dark-first design system)
+- bg-white -> bg-card
+- blue-500/blue-50 -> primary/primary-10
+- emerald -> success, purple -> primary
 
-Feature B: lazy navigation state (4 files):
-- BeforeUnloadGuard: removed useBlocker+confirm, kept beforeunload
-- useNavigationGuard: guardedPush simplified to sync navigate
-- R71 regression rule marked as superseded
-- r71 test rewritten with 5 new cases
+Files cleaned:
+- template/presentation: TemplateManagerDialog, TemplateCard, AssetPicker (24 fixes)
+- quick-generate: AdvancedSettingsCard, QuickGenerateForm, TemplateSelectDialog (31 fixes)
+- asset/video/prompt/shared: BatchProgressDialog, MediaExporter, TaskCard,
+  ModelSelector, confirm.tsx, feedback.tsx, router.tsx etc (~100 fixes)
+- story/generation: StepIndicator, PromptPreview (2 fixes)
+- story/planning+beat-editor: story-constants.ts, BeatOverviewCard (5 fixes)
 
-Tests: 4667 to 4668
+New regression rule R181: hardcoded Tailwind colors forbidden,
+must use semantic variables (text-muted-foreground, bg-card2, border-border, etc.)
+
+Tests: 4668 passed. typecheck + lint + lint:arch all clean.

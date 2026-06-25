@@ -44,7 +44,7 @@ export function AssetSelectorDialog({
               <div
                 key={asset.id}
                 onClick={() => onSelect(asset)}
-                className="cursor-pointer group relative aspect-square rounded-lg overflow-hidden border border-slate-700 hover:border-amber-500 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="cursor-pointer group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-warning transition-all focus:outline-none focus:ring-2 focus:ring-warning"
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -76,7 +76,7 @@ export function AssetSelectorDialog({
             ))}
           </div>
           {imageAssets.length === 0 && (
-            <div className="text-center py-12 text-slate-400">
+            <div className="text-center py-12 text-muted-foreground">
               <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>{t("dialog.noImagesInLibrary")}</p>
             </div>

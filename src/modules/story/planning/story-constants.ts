@@ -44,7 +44,7 @@ export const genres = [
 export const tones = [
   { value: "light", label: "轻松", color: "bg-yellow-500" },
   { value: "neutral", label: "中性", color: "bg-blue-500" },
-  { value: "dark", label: "沉重", color: "bg-gray-700" },
+  { value: "dark", label: "沉重", color: "bg-muted" },
   { value: "epic", label: "史诗", color: "bg-purple-500" },
   { value: "intimate", label: "温馨", color: "bg-pink-500" },
 ];

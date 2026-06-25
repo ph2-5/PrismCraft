@@ -152,7 +152,7 @@ export function VideoTaskManager({
                   </span>
                 )}
                 {selectedTaskIds.size > 0 && (
-                  <span className="badge badge-info bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                  <span className="badge badge-info bg-primary/10 text-primary">
                     {t("task.selectedCount", { count: selectedTaskIds.size })}
                   </span>
                 )}
@@ -237,7 +237,7 @@ export function VideoTaskManager({
                     {isStoryGroup || groupBy !== "none" ? (
                       <button
                         type="button"
-                        className="flex items-center gap-2 text-purple-700 dark:text-purple-400 mb-2 w-full hover:bg-purple-50 dark:hover:bg-purple-900/10 rounded px-2 py-1 transition-colors"
+                        className="flex items-center gap-2 text-primary mb-2 w-full hover:bg-primary/10 rounded px-2 py-1 transition-colors"
                         onClick={() => toggleGroupCollapse(groupId)}
                       >
                         <FolderOpen className="w-4 h-4" />

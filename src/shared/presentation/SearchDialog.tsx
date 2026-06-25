@@ -87,7 +87,7 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={t("search.searchPlaceholder")}
-            className="flex-1 bg-transparent outline-none text-foreground placeholder-gray-400"
+            className="flex-1 bg-transparent outline-none text-foreground placeholder-muted-foreground"
             autoFocus
           />
           {isSearching && (

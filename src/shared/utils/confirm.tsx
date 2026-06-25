@@ -59,18 +59,18 @@ export function confirm(
       >
         <div className="flex items-start gap-4 p-2">
           {options.variant === "danger" && (
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
-              <Trash2 className="w-5 h-5 text-red-500" />
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+              <Trash2 className="w-5 h-5 text-destructive" />
             </div>
           )}
           {options.variant === "warning" && (
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-              <AlertCircle className="w-5 h-5 text-yellow-500" />
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-warning" />
             </div>
           )}
           {options.variant === "default" && (
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-blue-500" />
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-primary" />
             </div>
           )}
           <div className="flex-1">

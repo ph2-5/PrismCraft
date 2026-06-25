@@ -89,7 +89,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
     return {
       icon: <Zap className="w-3 h-3" />,
       text: t("beat.pendingGenerate"),
-      color: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+      color: "bg-muted text-muted-foreground border-muted",
     };
   };
 
@@ -99,7 +99,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
     <>
       <div
         className={cn(
-          "card group relative overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-xl hover:shadow-purple-500/10 border-purple-700/30 hover:border-purple-500/50 bg-slate-800/40",
+          "card group relative overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-xl hover:shadow-primary/10 border-primary/30 hover:border-primary/50 bg-card2",
           isSelected &&
             "ring-2 ring-primary border-primary shadow-lg shadow-primary/10",
         )}
@@ -126,10 +126,10 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                   className="object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-900/40 to-slate-900 flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-card2 flex items-center justify-center">
                   <div className="text-center">
-                    <Film className="w-10 h-10 mx-auto mb-2 text-purple-500/60" />
-                    <p className="text-xs text-purple-400/70">{t("beat.waitingGenerate")}</p>
+                    <Film className="w-10 h-10 mx-auto mb-2 text-primary/60" />
+                    <p className="text-xs text-muted-foreground">{t("beat.waitingGenerate")}</p>
                   </div>
                 </div>
               )}

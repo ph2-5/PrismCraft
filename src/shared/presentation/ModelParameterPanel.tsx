@@ -108,16 +108,16 @@ export function ModelParameterPanel({
   const cfgScaleId = useId();
 
   const isDark = variant === "dark";
-  const labelClass = isDark ? "text-slate-300" : "";
+  const labelClass = isDark ? "text-muted-foreground" : "";
   const btnDefaultClass = isDark
-    ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+    ? "bg-primary hover:bg-primary/90 text-primary-foreground border-primary"
     : "";
   const btnOutlineClass = isDark
-    ? "border-slate-700 hover:border-purple-500 text-slate-300"
+    ? "border-border hover:border-primary text-muted-foreground"
     : "";
-  const selectTriggerClass = isDark ? "bg-slate-800 border-slate-700" : "";
-  const inputClass = isDark ? "bg-slate-800 border-slate-700" : "";
-  const textareaClass = isDark ? "bg-slate-800 border-slate-700 text-sm" : "";
+  const selectTriggerClass = isDark ? "bg-card2 border-border" : "";
+  const inputClass = isDark ? "bg-card2 border-border" : "";
+  const textareaClass = isDark ? "bg-card2 border-border text-sm" : "";
 
   const handleDurationChange = useCallback(
     (value: number) => onValuesChange({ duration: value }),
@@ -275,7 +275,7 @@ export function ModelParameterPanel({
           <label className={labelClass}>{t("modelParam.refStrategy")}</label>
           <p className="text-xs text-muted-foreground">{t("modelParam.refStrategyDesc")}</p>
           <div className="flex flex-wrap gap-2">
-            <span className={cn("badge", strategy.useCharacterRef ? "border-success/50 text-success" : "border-slate-600/50 text-slate-500")}>
+            <span className={cn("badge", strategy.useCharacterRef ? "border-success/50 text-success" : "border-border/50 text-muted-foreground")}>
               {t("modelParam.charRefSupported")}: {
                 strategy.referenceStrategy.characterRef === "native_field"
                   ? t("modelParam.refModeNative")
@@ -286,7 +286,7 @@ export function ModelParameterPanel({
                       : t("modelParam.refModeNone")
               }
             </span>
-            <span className={cn("badge", strategy.useSceneRef ? "border-success/50 text-success" : "border-slate-600/50 text-slate-500")}>
+            <span className={cn("badge", strategy.useSceneRef ? "border-success/50 text-success" : "border-border/50 text-muted-foreground")}>
               {t("modelParam.sceneRefSupported")}: {
                 strategy.referenceStrategy.sceneRef === "native_field"
                   ? t("modelParam.refModeNative")

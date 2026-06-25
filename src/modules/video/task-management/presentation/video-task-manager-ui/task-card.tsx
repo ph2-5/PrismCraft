@@ -61,7 +61,7 @@ export const TaskCardBase = memo(function TaskCardBase({
                 e.stopPropagation();
                 onToggleSelection(task.taskId);
               }}
-              className="h-4 w-4 rounded border-gray-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-border focus:ring-primary"
               style={{ color: "var(--primary)" }}
             />
             <StatusBadge status={getTaskDisplayStatus(task.status)} />

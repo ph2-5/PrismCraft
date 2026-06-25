@@ -45,8 +45,8 @@ export class ErrorBoundary extends Component<Props, State> {
           label: t("errorBoundary.loadingLabel"),
           icon: Loader,
           hint: t("errorBoundary.loadingHint"),
-          color: "text-orange-500",
-          bg: "bg-orange-50 dark:bg-orange-950/30",
+          color: "text-warning",
+          bg: "bg-warning/10",
         };
       case "network":
         return {

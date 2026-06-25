@@ -65,7 +65,7 @@ export const TaskCard = React.memo(function TaskCard({
       key={taskKey}
       className={`card border transition-colors ${
         isSelected
-          ? "border-purple-500 bg-purple-50/50 dark:bg-purple-900/20"
+          ? "border-primary bg-primary/10"
           : ""
       }`}
       style={{ padding: 16, ...(isSelected ? undefined : { borderColor: "var(--border)" }) }}

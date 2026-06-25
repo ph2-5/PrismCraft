@@ -108,7 +108,7 @@ export function ModelSelector({
   if (isLoading) {
     return (
       <div className="flex items-center gap-2">
-        <div className={`${compact ? "w-[180px] h-8" : "w-[240px] h-9"} border border-slate-700 bg-slate-800/50 rounded-md animate-pulse`} />
+        <div className={`${compact ? "w-[180px] h-8" : "w-[240px] h-9"} border border-border bg-card2 rounded-md animate-pulse`} />
       </div>
     );
   }
@@ -117,7 +117,7 @@ export function ModelSelector({
     return (
       <Link
         to="/settings"
-        className={`flex items-center gap-1.5 ${compact ? "text-xs" : "text-sm"} text-amber-400 hover:text-amber-300 transition-colors`}
+        className={`flex items-center gap-1.5 ${compact ? "text-xs" : "text-sm"} text-warning hover:text-warning transition-colors`}
       >
         <Settings2 className="w-3 h-3" />
         {t("model.pleaseConfigure", { capability: capabilityLabels[capability] })}
@@ -128,13 +128,13 @@ export function ModelSelector({
   return (
     <div className="flex items-center gap-2">
       {!compact && (
-        <span className="text-sm text-slate-400 flex items-center gap-1">
+        <span className="text-sm text-muted-foreground flex items-center gap-1">
           <Settings2 className="w-3 h-3" />
           {t("model.modelLabel", { capability: capabilityLabels[capability] })}
         </span>
       )}
       <select
-        className={`select ${compact ? "w-[180px] h-8 text-xs" : "w-[240px]"} border-slate-700 bg-slate-800/50`}
+        className={`select ${compact ? "w-[180px] h-8 text-xs" : "w-[240px]"} border-border bg-card2`}
         value={currentValue}
         onChange={(e) => handleValueChange(e.target.value)}
       >

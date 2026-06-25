@@ -159,7 +159,7 @@ export function KeyframePanel({
   return (
     <div className="space-y-3">
       {!isFirstBeat && hasPrevKeyframe && prevBeat?.keyframe?.imageUrl && (
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg p-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card2 rounded-lg p-2">
           <Link2 className="w-3 h-3" />
           <span>{t("keyframe.prevBeatKeyframe")}</span>
           <img
@@ -170,7 +170,7 @@ export function KeyframePanel({
               ) || ""
             }
             alt={t("keyframe.prevBeatKeyframe")}
-            className="w-8 h-8 rounded object-cover border border-slate-600"
+            className="w-8 h-8 rounded object-cover border border-border"
           />
         </div>
       )}
@@ -236,7 +236,7 @@ export function KeyframePanel({
 
       <button
         type="button"
-        className="btn btn-primary w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-500 hover:via-purple-500 hover:to-pink-500 text-white font-medium"
+        className="btn btn-primary w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-medium"
         onClick={handleOneClickGenerate}
         disabled={isGenerating}
       >

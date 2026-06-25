@@ -4573,3 +4573,42 @@ function setupApiHandlers(): void {
 **Verification**: 检查注册函数行数，>100 行的注册函数应拆分为按类别分组的子函数。
 
 **Discovered in**: 深度审计工程质量修复。Test: `electron/src/__tests__/regression-r180-function-split.test.ts`。
+
+### R181: 禁止硬编码 Tailwind 颜色类名（必须使用语义变量）
+
+项目支持 6 个主题（默认/cyber/amber/minimal/lavender/emerald），所有颜色必须通过 `globals.css` 中的语义变量引用。硬编码 `slate-*`、`gray-*`、`dark:` 前缀等颜色不会随主题切换，导致视觉断裂。
+
+**禁止使用的类名**：
+- `text-slate-*`, `bg-slate-*`, `border-slate-*`
+- `text-gray-*`, `bg-gray-*`, `border-gray-*`
+- `dark:` 前缀（项目是暗色优先，`:root` 即为暗色）
+- `bg-white`（改用 `bg-card`）
+- `bg-blue-50`, `border-blue-500`（改用 `bg-primary/10`, `border-primary`）
+
+**必须使用的语义变量**：
+
+| 场景 | 语义类名 |
+|------|---------|
+| 次要文本 | `text-muted-foreground` |
+| 主文本 | `text-foreground` |
+| 卡片背景 | `bg-card` / `bg-card2` |
+| 边框 | `border-border` |
+| muted 背景 | `bg-muted` |
+| 主色调 | `text-primary`, `bg-primary`, `border-primary` |
+| 成功 | `text-success`, `bg-success/10` |
+| 警告 | `text-warning`, `bg-warning/10` |
+| 错误 | `text-destructive`, `bg-destructive/10` |
+
+**BAD**:
+```tsx
+<div className="text-slate-400 bg-slate-800/50 border-slate-700 dark:bg-slate-900" />
+```
+
+**GOOD**:
+```tsx
+<div className="text-muted-foreground bg-card2 border-border" />
+```
+
+**Verification**: `grep -r "text-slate-\|bg-slate-\|border-slate-\|text-gray-\|bg-gray-\|border-gray-" src/ --include="*.tsx" --include="*.ts"` 应返回 0 结果。
+
+**Discovered in**: 批次 5 UI 颜色系统清理。188 处硬编码颜色已全部替换为语义变量。

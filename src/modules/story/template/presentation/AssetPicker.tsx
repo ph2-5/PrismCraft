@@ -130,7 +130,7 @@ export default function AssetPicker({
             {previewAsset && (
               <button
                 onClick={() => setPreviewAsset(null)}
-                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-1 rounded-lg hover:bg-muted"
                 style={{ color: "var(--muted-fg)" }}
                 aria-label={t("aria.goBack")}
               >
@@ -143,7 +143,7 @@ export default function AssetPicker({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="p-1 rounded-lg hover:bg-muted"
             style={{ color: "var(--muted-fg)" }}
             aria-label={t("aria.close")}
           >
@@ -153,7 +153,7 @@ export default function AssetPicker({
 
         {previewAsset ? (
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="aspect-video rounded-lg overflow-hidden border dark:border-gray-600" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
+            <div className="aspect-video rounded-lg overflow-hidden border border-border" style={{ borderColor: "var(--border)", background: "var(--muted)" }}>
               {previewAsset.type === "video" ? (
                 <video
                   src={previewAsset.url}
@@ -208,8 +208,8 @@ export default function AssetPicker({
                 onClick={() => setActiveTab("library")}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "library"
-                    ? "border-blue-500"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
                 style={activeTab === "library" ? { color: "var(--primary)" } : undefined}
               >
@@ -220,8 +220,8 @@ export default function AssetPicker({
                 onClick={() => setActiveTab("local")}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "local"
-                    ? "border-blue-500"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? "border-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
                 style={activeTab === "local" ? { color: "var(--primary)" } : undefined}
               >
@@ -244,7 +244,7 @@ export default function AssetPicker({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={t("assetPicker.searchPlaceholder")}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white text-sm"
+                      className="w-full pl-9 pr-3 py-2 border border-border rounded-lg bg-card text-sm"
                       style={{ color: "var(--muted-fg)" }}
                     />
                   </div>
@@ -264,7 +264,7 @@ export default function AssetPicker({
                         <button
                           key={asset.id}
                           onClick={() => setPreviewAsset(asset)}
-                          className="relative group aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                          className="relative group aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
                         >
                           {asset.type === "video" ? (
                             <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--muted)" }}>
@@ -293,7 +293,7 @@ export default function AssetPicker({
               {activeTab === "local" && (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                  className="border-2 border-dashed border-border rounded-lg p-12 text-center cursor-pointer hover:border-primary transition-colors"
                 >
                   {accept === "video" ? (
                     <Video size={40} className="mx-auto mb-3" style={{ color: "var(--muted-fg)" }} />

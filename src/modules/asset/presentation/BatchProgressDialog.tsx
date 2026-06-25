@@ -114,15 +114,15 @@ export function BatchProgressDialog({
           aria-live="polite"
         >
           <span className="flex items-center gap-1">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-success" />
             {t("asset.completedCount", { count: completedCount })}
           </span>
           <span className="flex items-center gap-1">
-            <AlertCircle className="h-4 w-4 text-red-500" />
+            <AlertCircle className="h-4 w-4 text-destructive" />
             {t("asset.failedCount", { count: failedCount })}
           </span>
           <span className="flex items-center gap-1">
-            <Loader2 className="h-4 w-4 text-blue-500" />
+            <Loader2 className="h-4 w-4 text-primary" />
             {t("asset.pendingCount", { count: pendingCount })}
           </span>
         </div>
@@ -298,16 +298,16 @@ interface TaskCardProps {
 
 function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCardProps) {
   const statusColors = {
-    pending: "bg-gray-100",
-    generating: "bg-blue-50",
-    completed: "bg-green-50",
-    failed: "bg-red-50",
+    pending: "bg-muted",
+    generating: "bg-primary/10",
+    completed: "bg-success/10",
+    failed: "bg-destructive/10",
   };
 
   return (
     <div
       className={`relative rounded-lg border-2 p-3 transition-all ${
-        isSelected ? "border-blue-500" : "border-transparent"
+        isSelected ? "border-primary" : "border-transparent"
       } ${statusColors[task.status]}`}
       onClick={task.status === "completed" && !isGenerating ? onToggleSelection : undefined}
     >
@@ -320,7 +320,7 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
       )}
 
       {task.status === "generating" && (
-        <div className="w-full h-32 flex items-center justify-center bg-gray-100 rounded mb-2">
+        <div className="w-full h-32 flex items-center justify-center bg-muted rounded mb-2">
           <div className="flex flex-col items-center justify-center p-8">
             <div className="h-12 w-12 rounded-full border-4 border-border border-t-primary animate-spin" />
             <p className="mt-4 text-muted-foreground font-medium">{t("common.generating")}</p>
@@ -329,13 +329,13 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
       )}
 
       {task.status === "failed" && (
-        <div className="w-full h-32 flex items-center justify-center bg-red-50 rounded mb-2 text-red-500">
+        <div className="w-full h-32 flex items-center justify-center bg-destructive/10 rounded mb-2 text-destructive">
           <AlertCircle className="h-8 w-8" />
         </div>
       )}
 
       {task.status === "pending" && (
-        <div className="w-full h-32 flex items-center justify-center bg-gray-100 rounded mb-2 text-gray-400">
+        <div className="w-full h-32 flex items-center justify-center bg-muted rounded mb-2 text-muted-foreground">
           {t("common.pending")}...
         </div>
       )}
@@ -356,11 +356,11 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
       )}
 
       {task.status === "failed" && task.error && (
-        <div className="text-xs text-red-500 mt-1 truncate">{task.error}</div>
+        <div className="text-xs text-destructive mt-1 truncate">{task.error}</div>
       )}
 
       {isSelected && (
-        <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+        <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
           <CheckCircle2 className="h-3 w-3" />
         </div>
       )}
@@ -372,16 +372,16 @@ type TaskListItemProps = TaskCardProps;
 
 function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: TaskListItemProps) {
   const statusIcons = {
-    pending: <Loader2 className="h-4 w-4 text-gray-400" />,
-    generating: <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />,
-    completed: <CheckCircle2 className="h-4 w-4 text-green-500" />,
-    failed: <AlertCircle className="h-4 w-4 text-red-500" />,
+    pending: <Loader2 className="h-4 w-4 text-muted-foreground" />,
+    generating: <Loader2 className="h-4 w-4 text-primary animate-spin" />,
+    completed: <CheckCircle2 className="h-4 w-4 text-success" />,
+    failed: <AlertCircle className="h-4 w-4 text-destructive" />,
   };
 
   return (
     <div
       className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-        isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
+        isSelected ? "border-primary bg-primary/10" : "border-border"
       }`}
       onClick={task.status === "completed" && !isGenerating ? onToggleSelection : undefined}
     >
@@ -410,11 +410,11 @@ function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: Tas
           </div>
         )}
         {task.status === "failed" && task.error && (
-          <div className="text-xs text-red-500 truncate">{task.error}</div>
+          <div className="text-xs text-destructive truncate">{task.error}</div>
         )}
       </div>
 
-      {isSelected && <CheckCircle2 className="h-4 w-4 text-blue-500" />}
+      {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
     </div>
   );
 }

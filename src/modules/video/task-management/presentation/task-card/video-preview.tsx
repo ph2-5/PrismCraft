@@ -71,7 +71,7 @@ export function VideoPreview({
       </div>
       <div className="group relative">
         <div
-          className="aspect-video bg-slate-900 rounded-lg overflow-hidden cursor-pointer"
+          className="aspect-video bg-background rounded-lg overflow-hidden cursor-pointer"
           onClick={() => onOpenPreview(task)}
           role="button"
           tabIndex={0}

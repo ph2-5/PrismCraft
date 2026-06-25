@@ -101,7 +101,7 @@ export function PromptPreview({
           <div className="flex items-center gap-2">
             <h4 className="font-medium">{t("prompt.generatedPrompt")}</h4>
             {isFeatureAnchored && (
-              <span className="badge badge-info bg-purple-600 text-[10px]">
+              <span className="badge badge-info bg-primary/20 text-[10px]">
                 <Shield className="w-3 h-3 mr-1" />
                 {t("prompt.featureAnchoring")}
               </span>

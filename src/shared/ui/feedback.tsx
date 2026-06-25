@@ -190,7 +190,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className={`flex flex-col items-center justify-center p-8 text-center ${className}`}>
-      {icon || <Info className="h-12 w-12 text-gray-300" />}
+      {icon || <Info className="h-12 w-12 text-muted-foreground" />}
       <h3 className="mt-4 text-lg font-medium text-foreground">{title}</h3>
       {description && <p className="mt-1 text-sm text-muted-foreground max-w-sm">{description}</p>}
       {action && (

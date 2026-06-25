@@ -51,13 +51,13 @@ export function AdvancedSettingsCard({
       >
         <div className="flex items-center justify-between">
           <div className="text-lg flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-            <Settings className="w-5 h-5 text-slate-400" />
+            <Settings className="w-5 h-5 text-muted-foreground" />
             {t("quickGenerate.advancedSettings")}
           </div>
           {showAdvanced ? (
-            <ChevronUp className="w-5 h-5 text-slate-500" />
+            <ChevronUp className="w-5 h-5 text-muted-foreground" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-slate-500" />
+            <ChevronDown className="w-5 h-5 text-muted-foreground" />
           )}
         </div>
       </div>
@@ -65,8 +65,8 @@ export function AdvancedSettingsCard({
         <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-slate-300">{t("quickGenerate.smartOptimization")}</label>
-              <p className="text-sm text-slate-500">
+              <label className="text-muted-foreground">{t("quickGenerate.smartOptimization")}</label>
+              <p className="text-sm text-muted-foreground">
                 {t("quickGenerate.smartOptimizationDesc")}
               </p>
             </div>
@@ -80,7 +80,7 @@ export function AdvancedSettingsCard({
           </div>
 
           <div className="space-y-2">
-            <label className="text-slate-300">{t("quickGenerate.negativePrompt")}</label>
+            <label className="text-muted-foreground">{t("quickGenerate.negativePrompt")}</label>
             <textarea
               className="textarea"
               style={{ fontSize: 12 }}
@@ -91,13 +91,13 @@ export function AdvancedSettingsCard({
           </div>
 
           <div className="space-y-2">
-            <label className="text-slate-300">{t("quickGenerate.referenceImage")}</label>
+            <label className="text-muted-foreground">{t("quickGenerate.referenceImage")}</label>
             {referenceImage ? (
               <div className="relative inline-block">
                 <img
                   src={referenceImage}
                   alt={t("quickGenerate.reference")}
-                  className="w-32 h-32 rounded-lg object-cover border border-slate-700"
+                  className="w-32 h-32 rounded-lg object-cover border border-border"
                 />
                 <button
                   type="button"
@@ -110,8 +110,8 @@ export function AdvancedSettingsCard({
                 </button>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center">
-                <p className="text-slate-500 text-sm mb-2">
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                <p className="text-muted-foreground text-sm mb-2">
                   {t("quickGenerate.clickUploadRefImage")}
                 </p>
                 <input
@@ -146,7 +146,7 @@ export function AdvancedSettingsCard({
           </div>
 
           <div className="space-y-2">
-            <label className="text-slate-300 flex items-center gap-2">
+            <label className="text-muted-foreground flex items-center gap-2">
               <Film className="w-4 h-4" />
               {t("quickGenerate.referenceVideoOptional")}
             </label>
@@ -155,11 +155,11 @@ export function AdvancedSettingsCard({
                 <video
                   src={referenceVideo}
                   controls
-                  className="w-full max-h-48 rounded-lg border border-slate-700"
+                  className="w-full max-h-48 rounded-lg border border-border"
                   onError={createSimpleVideoErrorHandler()}
                 />
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm text-slate-400">
+                  <span className="text-sm text-muted-foreground">
                     {referenceVideoName}
                   </span>
                   <button
@@ -173,8 +173,8 @@ export function AdvancedSettingsCard({
                 </div>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center">
-                <p className="text-slate-500 text-sm mb-2">
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                <p className="text-muted-foreground text-sm mb-2">
                   {t("quickGenerate.uploadRefVideoDesc")}
                 </p>
                 <input

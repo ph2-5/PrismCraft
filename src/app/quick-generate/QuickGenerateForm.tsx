@@ -135,7 +135,7 @@ export function QuickGenerateForm({
                   color: "var(--fg)",
                 }}
               >
-                <Sparkles className="w-5 h-5 text-purple-400" />
+                <Sparkles className="w-5 h-5 text-primary" />
                 {t("quickGenerate.describeVideo")}
               </div>
               <div
@@ -167,7 +167,7 @@ export function QuickGenerateForm({
             onChange={(e) => onPromptTextChange(e.target.value)}
             placeholder={t("story.quickPromptPlaceholder")}
           />
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             {t("quickGenerate.promptHint")}
           </p>
 
@@ -266,8 +266,8 @@ export function QuickGenerateForm({
                       flex items-center gap-2 p-2 rounded-lg border-2 transition-all
                       ${
                         selectedCharacters.includes(char.id)
-                          ? "border-purple-500 bg-purple-900/40"
-                          : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+                          ? "border-primary bg-primary/20"
+                          : "border-border bg-card2 hover:border-primary/50"
                       }
                     `}
                   >
@@ -278,11 +278,11 @@ export function QuickGenerateForm({
                         className="w-8 h-8 rounded object-cover"
                       />
                     )}
-                    <span className="text-sm text-slate-300">
+                    <span className="text-sm text-muted-foreground">
                       {char.name}
                     </span>
                     {selectedCharacters.includes(char.id) && (
-                      <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
                     )}
                   </button>
                 ))}
@@ -341,8 +341,8 @@ export function QuickGenerateForm({
                       flex items-center gap-2 p-2 rounded-lg border-2 transition-all
                       ${
                         selectedScene === scene.id
-                          ? "border-blue-500 bg-blue-900/40"
-                          : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+                          ? "border-primary bg-primary/20"
+                          : "border-border bg-card2 hover:border-primary/50"
                       }
                     `}
                   >
@@ -353,11 +353,11 @@ export function QuickGenerateForm({
                         className="w-8 h-8 rounded object-cover"
                       />
                     )}
-                    <span className="text-sm text-slate-300">
+                    <span className="text-sm text-muted-foreground">
                       {scene.name}
                     </span>
                     {selectedScene === scene.id && (
-                      <CheckCircle2 className="w-4 h-4 text-blue-400" />
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
                     )}
                   </button>
                 ))}

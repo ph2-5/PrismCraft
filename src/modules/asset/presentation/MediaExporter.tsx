@@ -182,7 +182,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
 
   const themeClasses = type === "character"
     ? {
-        card: "bg-slate-800/50 border-purple-800/50 shadow-lg shadow-purple-500/10",
+        card: "bg-card2 border-purple-800/50 shadow-lg shadow-purple-500/10",
         header: "bg-gradient-to-r from-purple-900/30 to-violet-900/30 border-b border-purple-800/30",
         title: "text-purple-100",
         desc: "text-purple-300",
@@ -193,15 +193,15 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         infoTitle: "text-purple-300",
       }
     : {
-        card: "bg-slate-800/50 border-blue-800/50 shadow-lg shadow-blue-500/10",
-        header: "bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border-b border-blue-800/30",
-        title: "text-blue-100",
-        desc: "text-blue-300",
-        imageBadge: "bg-blue-900/50 border-blue-700 text-blue-200",
+        card: "bg-card2 border-primary shadow-lg shadow-primary/10",
+        header: "bg-gradient-to-r from-primary/30 to-cyan-900/30 border-b border-primary",
+        title: "text-primary",
+        desc: "text-primary",
+        imageBadge: "bg-primary/20 border-primary text-primary",
         videoBadge: "bg-cyan-900/50 border-cyan-700 text-cyan-200",
-        exportBtn: "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 shadow-lg shadow-blue-500/20",
-        infoBorder: "border-blue-800/20",
-        infoTitle: "text-blue-300",
+        exportBtn: "bg-gradient-to-r from-primary to-cyan-600 hover:from-primary hover:to-cyan-500 shadow-lg shadow-primary/20",
+        infoBorder: "border-primary/20",
+        infoTitle: "text-primary",
       };
 
   return (
@@ -246,13 +246,13 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         {/* 状态提示 */}
         {exportStatus === "success" && (
           <div
-            className={`flex items-center gap-2 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700/50`}
+            className={`flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/50`}
           >
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span className="text-emerald-200">{t("asset.exportSuccess")}</span>
+            <CheckCircle2 className="w-5 h-5 text-success" />
+            <span className="text-success">{t("asset.exportSuccess")}</span>
             <button
               type="button"
-              className={`btn btn-ghost btn-sm ml-auto h-8 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/30`}
+              className={`btn btn-ghost btn-sm ml-auto h-8 text-success hover:text-success hover:bg-success/10`}
               onClick={resetStatus}
             >
               {t("asset.continueButton")}
@@ -261,12 +261,12 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         )}
 
         {exportStatus === "error" && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-900/30 border border-rose-700/50">
-            <AlertCircle className="w-5 h-5 text-rose-400" />
-            <span className="text-rose-200">{t("asset.exportFailedRetry")}</span>
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/50">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            <span className="text-destructive">{t("asset.exportFailedRetry")}</span>
             <button
               type="button"
-              className="btn btn-ghost btn-sm ml-auto h-8 text-rose-300 hover:text-rose-100 hover:bg-rose-900/30"
+              className="btn btn-ghost btn-sm ml-auto h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={resetStatus}
             >
               {t("common.retry")}
@@ -293,7 +293,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           {hasImage && (
             <button
               type="button"
-              className="btn btn-outline gap-2 bg-slate-700 hover:bg-slate-600 text-slate-100 border-0"
+              className="btn btn-outline gap-2 bg-muted hover:bg-muted text-foreground border-0"
               onClick={handleDownloadImage}
               disabled={isExporting}
             >
@@ -305,7 +305,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           {hasVideo && (
             <button
               type="button"
-              className="btn btn-outline gap-2 bg-slate-700 hover:bg-slate-600 text-slate-100 border-0"
+              className="btn btn-outline gap-2 bg-muted hover:bg-muted text-foreground border-0"
               onClick={handleDownloadVideo}
               disabled={isExporting}
             >
@@ -317,7 +317,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
 
         {/* 说明 */}
         <div
-          className={`p-4 rounded-lg bg-slate-900/30 border ${themeClasses.infoBorder} text-sm text-slate-400`}
+          className={`p-4 rounded-lg bg-background/30 border ${themeClasses.infoBorder} text-sm text-muted-foreground`}
         >
           <p className={`font-medium ${themeClasses.infoTitle} mb-2`}>
             {t("asset.usageGuide")}

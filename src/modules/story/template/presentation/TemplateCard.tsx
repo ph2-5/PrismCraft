@@ -36,7 +36,7 @@ export const TemplateCard = memo(function TemplateCard({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   return (
-    <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
+    <div className="border border-border rounded-lg p-4 hover:border-primary transition-colors">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <h3 className="font-medium" style={{ color: "var(--muted-fg)" }}>
@@ -69,27 +69,27 @@ export const TemplateCard = memo(function TemplateCard({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setIsPreviewOpen(!isPreviewOpen)}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
+            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
             title={t("template.preview")}
           >
             <FileText size={16} />
           </button>
           <button
             onClick={() => onApply(template)}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600"
+            className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary-hover"
           >
             {t("template.apply")}
           </button>
           <button
             onClick={() => onExport(template)}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600"
+            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-success"
             title={t("template.export")}
           >
             <Download size={16} />
           </button>
           <button
             onClick={() => onDelete(template.id)}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-red-600"
+            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive"
             title={t("common.delete")}
           >
             <Trash2 size={16} />
@@ -98,7 +98,7 @@ export const TemplateCard = memo(function TemplateCard({
       </div>
 
       {isPreviewOpen && (
-        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div className="mt-3 pt-3 border-t border-border">
           <div className="space-y-2">
             {template.beats.map((beat, i) => (
               <div

@@ -172,8 +172,8 @@ export function ReferenceVideoUploader({
       {/* 开关 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Video className="w-4 h-4 text-purple-400" />
-          <label className="text-purple-100">{t("refVideo.useRefVideo")}</label>
+          <Video className="w-4 h-4 text-primary" />
+          <label className="text-primary">{t("refVideo.useRefVideo")}</label>
         </div>
         <input
           type="checkbox"
@@ -186,11 +186,11 @@ export function ReferenceVideoUploader({
         <div className="space-y-4">
           {/* 视频预览/上传区 */}
           {config.videoUrl ? (
-            <div className="card bg-slate-800/50 border-purple-700/50" style={{ padding: 16 }}>
+            <div className="card bg-card2 border-primary/50" style={{ padding: 16 }}>
               <div>
                 <div className="space-y-3">
                   {/* 视频预览 */}
-                  <div className="relative aspect-video bg-slate-900/50 rounded-lg overflow-hidden">
+                  <div className="relative aspect-video bg-background rounded-lg overflow-hidden">
                     <video
                       src={config.videoUrl}
                       controls
@@ -202,7 +202,7 @@ export function ReferenceVideoUploader({
                   {/* 视频信息 */}
                   <div className="flex items-center justify-between">
                     <div className="text-sm">
-                      <p className="text-purple-100 font-medium">
+                      <p className="text-primary font-medium">
                         {config.name || t("refVideo.refVideoName")}
                       </p>
                     </div>
@@ -223,8 +223,8 @@ export function ReferenceVideoUploader({
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
                   isDragging
-                    ? "border-purple-500 bg-purple-500/10"
-                    : "border-purple-700/50 bg-slate-800/50 hover:border-purple-500 hover:bg-purple-500/5"
+                    ? "border-primary bg-primary/10"
+                    : "border-primary/50 bg-card2 hover:border-primary hover:bg-primary/5"
                 }`}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={handleDragOver}
@@ -240,14 +240,14 @@ export function ReferenceVideoUploader({
                 />
                 {isUploading ? (
                   <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
-                    <p className="text-purple-100">{t("refVideo.uploading")}</p>
+                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                    <p className="text-primary">{t("refVideo.uploading")}</p>
                   </div>
                 ) : (
                   <>
-                    <Upload className="w-12 h-12 mx-auto mb-4 text-purple-400" />
-                    <p className="text-purple-100 mb-2">{t("refVideo.uploadRefVideo")}</p>
-                    <p className="text-sm text-purple-300">
+                    <Upload className="w-12 h-12 mx-auto mb-4 text-primary" />
+                    <p className="text-primary mb-2">{t("refVideo.uploadRefVideo")}</p>
+                    <p className="text-sm text-primary">
                       {t("refVideo.clickOrDrag")}
                     </p>
                   </>
@@ -257,7 +257,7 @@ export function ReferenceVideoUploader({
               {assets.length > 0 && (
                 <button
                   type="button"
-                  className="btn btn-outline btn-sm w-full bg-slate-800 border-purple-700/50 text-purple-100 hover:bg-purple-900/20"
+                  className="btn btn-outline btn-sm w-full bg-card2 border-primary/50 text-primary hover:bg-primary/20"
                   onClick={() => setAssetSelectorOpen(true)}
                 >
                   <FolderOpen className="w-4 h-4 mr-2" />
@@ -270,12 +270,12 @@ export function ReferenceVideoUploader({
           {/* 模仿级别设置 */}
           {config.videoUrl && (
             <div className="space-y-3">
-              <label className="text-purple-100 flex items-center gap-2">
+              <label className="text-primary flex items-center gap-2">
                 <Sliders className="w-4 h-4" />
                 {t("refVideo.mimicryLevel")}
               </label>
               <select
-                className="select bg-slate-800/50 border-purple-700/50 text-purple-100"
+                className="select bg-card2 border-primary/50 text-primary"
                 value={config.mimicryLevel}
                 onChange={(e) =>
                   updateMimicryLevel(e.target.value as "light" | "medium" | "deep")
@@ -285,13 +285,13 @@ export function ReferenceVideoUploader({
                   <option
                     key={key}
                     value={key}
-                    className="text-purple-100"
+                    className="text-primary"
                   >
                     {label}
                   </option>
                 ))}
               </select>
-              <p className="text-sm text-purple-300">
+              <p className="text-sm text-primary">
                 {mimicryLevelDescriptions[config.mimicryLevel]}
               </p>
             </div>
@@ -316,7 +316,7 @@ export function ReferenceVideoUploader({
                 <div
                   key={asset.id}
                   onClick={() => handleSelectFromAssetLibrary(asset)}
-                  className="cursor-pointer group relative aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-purple-500 transition-all bg-slate-900"
+                  className="cursor-pointer group relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-all bg-background"
                 >
                   <video
                     src={asset.url}
@@ -325,20 +325,20 @@ export function ReferenceVideoUploader({
                     onError={createSimpleVideoErrorHandler()}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                    <p className="text-xs text-white font-medium truncate">
+                    <p className="text-xs text-foreground font-medium truncate">
                       {asset.name}
                     </p>
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                    <Video className="w-8 h-8 text-white" />
+                    <Video className="w-8 h-8 text-foreground" />
                   </div>
                 </div>
               ))
           ) : (
-            <div className="col-span-full text-center py-8 text-slate-400">
-              <Video className="w-12 h-12 mx-auto mb-3 text-slate-500" />
+            <div className="col-span-full text-center py-8 text-muted-foreground">
+              <Video className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
               <p className="text-sm">{t("refVideo.noVideosInLibrary")}</p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {t("refVideo.uploadImageOrVideoFirst")}
               </p>
             </div>

@@ -28,27 +28,27 @@ interface ShotGenerationPanelProps {
 const statusConfig: Record<ShotGenerationStatus, { label: string; color: string; icon: typeof Play | null }> = {
   idle: {
     label: t("shot.notGenerated"),
-    color: "bg-gray-500",
+    color: "bg-muted",
     icon: null,
   },
   pending: {
     label: t("shot.waiting"),
-    color: "bg-yellow-500",
+    color: "bg-warning",
     icon: null,
   },
   generating: {
     label: t("shot.generating"),
-    color: "bg-blue-500",
+    color: "bg-primary",
     icon: Loader2,
   },
   completed: {
     label: t("shot.completed"),
-    color: "bg-green-500",
+    color: "bg-success",
     icon: CheckCircle,
   },
   failed: {
     label: t("shot.failedStatus"),
-    color: "bg-red-500",
+    color: "bg-destructive",
     icon: AlertCircle,
   },
 };
@@ -73,7 +73,7 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
   return (
     <div className="space-y-4">
       {isFeatureAnchored && anchoring && (
-        <div className="bg-purple-900/20 border border-purple-700/30 rounded-lg p-3 text-xs text-purple-300">
+        <div className="bg-primary/20 border border-primary/30 rounded-lg p-3 text-xs text-primary">
           <div className="flex items-center gap-2 mb-1">
             <Shield className="w-4 h-4" />
             <span className="font-medium">{t("shot.featureAnchoringEnabled")}</span>
@@ -82,16 +82,16 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
             {t("shot.featureAnchoringDesc")}
           </p>
           <div className="mt-2 flex gap-2">
-            <span className="badge badge-info bg-blue-600/50 text-[10px]">
+            <span className="badge badge-info bg-primary/50 text-[10px]">
               {t("shot.characterCount", { count: anchoring.characterAnchors.length })}
             </span>
             {anchoring.previewImageUrl && (
-              <span className="badge badge-info bg-cyan-600/50 text-[10px]">{t("shot.previewRef")}</span>
+              <span className="badge badge-info bg-primary/50 text-[10px]">{t("shot.previewRef")}</span>
             )}
-            <span className="badge badge-info bg-amber-600/50 text-[10px]">
+            <span className="badge badge-info bg-warning/50 text-[10px]">
               {t("shot.frameBindingDisabled")}
             </span>
-            <span className="badge badge-info bg-purple-600/50 text-[10px]">
+            <span className="badge badge-info bg-primary/50 text-[10px]">
               {t("shot.consistency", { percent: Math.round((anchoring.featureConsistencyStrength ?? DEFAULT_CONSISTENCY_STRENGTH) * 100) })}
             </span>
           </div>
@@ -113,7 +113,7 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
               <Link to={`/story/beat/${beat.id}`}>
                 <button
                   type="button"
-                  className="btn btn-outline btn-sm gap-1.5 border-purple-600/50 text-purple-100 hover:bg-purple-900/30"
+                  className="btn btn-outline btn-sm gap-1.5 border-primary/50 text-primary hover:bg-primary/30"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   {t("shot.detail")}
@@ -124,7 +124,7 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
                   type="button"
                   onClick={onRegenerate}
                   disabled={isGenerating}
-                  className="btn btn-outline btn-sm gap-1.5 border-purple-600/50 text-purple-100 hover:bg-purple-900/30"
+                  className="btn btn-outline btn-sm gap-1.5 border-primary/50 text-primary hover:bg-primary/30"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   {t("shot.regenerate")}
@@ -161,17 +161,17 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
 
           {consistencyCheck && (
             <div
-              className={`mt-4 p-3 rounded-lg border ${consistencyCheck.passed ? "border-green-700/30" : "bg-amber-900/10 border-amber-700/30"}`}
+              className={`mt-4 p-3 rounded-lg border ${consistencyCheck.passed ? "border-success/30" : "bg-warning/10 border-warning/30"}`}
               style={consistencyCheck.passed ? { background: "rgba(var(--success-rgb), 0.1)" } : undefined}
             >
               <div className="flex items-center gap-2 mb-2">
                 {consistencyCheck.passed ? (
                   <CheckCircle className="w-4 h-4" style={{ color: "var(--success)" }} />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                  <AlertCircle className="w-4 h-4 text-warning" />
                 )}
                 <span
-                  className={`text-sm font-medium ${consistencyCheck.passed ? "" : "text-amber-400"}`}
+                  className={`text-sm font-medium ${consistencyCheck.passed ? "" : "text-warning"}`}
                   style={consistencyCheck.passed ? { color: "var(--success)" } : undefined}
                 >
                   {t("shot.visualConsistency", { status: consistencyCheck.passed ? t("shot.consistencyPassed") : t("shot.consistencyAttention") })}
@@ -180,17 +180,17 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
                   className={cn(
                     "badge badge-info",
                     consistencyCheck.overallScore >= 0.8
-                      ? "bg-green-600"
+                      ? "bg-success"
                       : consistencyCheck.overallScore >= 0.5
-                        ? "bg-amber-600"
-                        : "bg-red-600",
+                        ? "bg-warning"
+                        : "bg-destructive",
                   )}
                 >
                   {Math.round(consistencyCheck.overallScore * 100)}%
                 </span>
               </div>
               {consistencyCheck.characterScores.map((cs) => (
-                <div key={cs.elementId} className="text-xs text-slate-400 ml-6">
+                <div key={cs.elementId} className="text-xs text-muted-foreground ml-6">
                   {t("shot.characterQuote", { name: cs.elementName })}
                   {Math.round(cs.score * 100)}%
                   {cs.issues.length > 0 && ` - ${cs.issues.join("；")}`}
@@ -201,7 +201,7 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
                   <div className="mt-2 ml-6">
                     <button
                       type="button"
-                      className="btn btn-outline btn-sm text-amber-400 border-amber-600/50 hover:bg-amber-900/20"
+                      className="btn btn-outline btn-sm text-warning border-warning/50 hover:bg-warning/20"
                       onClick={onRegenerate}
                     >
                       <RefreshCw className="w-3 h-3 mr-1" />
@@ -213,7 +213,7 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
           )}
 
           {error && (
-            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" style={{ color: "var(--destructive)" }} />
                 <span className="text-sm" style={{ color: "var(--destructive)" }}>{error}</span>

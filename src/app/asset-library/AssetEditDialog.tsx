@@ -53,7 +53,7 @@ export function AssetEditDialog({
                       ? (editingItem.generatedImage || editingItem.scenePath)
                       : editingItem.previewPath;
                   return imageUrl ? (
-                    <div className="aspect-video bg-slate-800 rounded-lg overflow-hidden">
+                    <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                       <img
                         src={resolveImageUrl(imageUrl)}
                         alt={t("asset.preview")}

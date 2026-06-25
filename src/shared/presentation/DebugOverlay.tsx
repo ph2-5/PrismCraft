@@ -45,7 +45,7 @@ export function DebugOverlay() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-[9999] bg-gray-900 text-white p-4 rounded-lg max-w-sm text-xs"
+      className="fixed bottom-4 right-4 z-[9999] bg-background text-foreground p-4 rounded-lg max-w-sm text-xs"
       role="dialog"
       aria-modal="true"
       aria-label={t("debug.title")}
@@ -59,7 +59,7 @@ export function DebugOverlay() {
       <div className="space-y-2">
         <p>{t("debug.overlayCount", { count: elements.length })}</p>
         {elements.map((el, i) => (
-          <div key={i} className="bg-gray-800 p-1 rounded">
+          <div key={i} className="bg-muted p-1 rounded">
             {el.tagName} - {el.className.slice(0, 50)}
           </div>
         ))}

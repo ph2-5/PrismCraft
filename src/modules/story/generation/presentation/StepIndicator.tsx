@@ -31,10 +31,10 @@ export function StepIndicator({
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 ${
                   isCompleted
-                    ? "bg-emerald-500/20 text-emerald-400"
+                    ? "bg-success/20 text-success"
                     : isActive
-                      ? "bg-blue-500/20"
-                      : "bg-slate-700/50 text-slate-500"
+                      ? "bg-primary/20"
+                      : "bg-muted text-muted-foreground"
                 }`}
                 style={!isCompleted && isActive ? { color: "var(--primary)" } : undefined}
               >
@@ -49,12 +49,12 @@ export function StepIndicator({
               <span
                 className={`text-xs truncate ${
                   isCompleted
-                    ? "text-emerald-400"
+                    ? "text-success"
                     : isActive
                       ? ""
                       : isPending
-                        ? "text-slate-500"
-                        : "text-slate-300"
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground"
                 }`}
                 style={!isCompleted && isActive ? { color: "var(--primary)" } : undefined}
               >
@@ -64,7 +64,7 @@ export function StepIndicator({
             {index < steps.length - 1 && (
               <div
                 className={`flex-1 h-px mx-2 ${
-                  isCompleted ? "bg-emerald-500/30" : "bg-slate-700"
+                  isCompleted ? "bg-success/30" : "bg-muted"
                 }`}
               />
             )}

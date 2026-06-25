@@ -67,10 +67,10 @@ export function KeyboardShortcutsDialog({
         <div className="space-y-6">
           {Object.entries(categorizedShortcuts).map(([category, categoryShortcuts]) => (
             <div key={category}>
-              <h3 className="font-semibold text-sm text-gray-300 mb-3">{category}</h3>
+              <h3 className="font-semibold text-sm text-muted-foreground mb-3">{category}</h3>
               <div className="space-y-2">
                 {categoryShortcuts.map((shortcut) => (
-                  <div key={shortcut.description} className="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded">
+                  <div key={shortcut.description} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded">
                     <span className="text-sm">{shortcut.description}</span>
                     <ShortcutKeyBadge shortcut={shortcut} />
                   </div>

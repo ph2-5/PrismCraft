@@ -335,3 +335,20 @@
 **验证结果**：typecheck + typecheck:electron + lint + lint:arch 全部通过 + 4668 测试通过（+1 新测试）
 
 **后续待办**：route handlers as 断言消除（schema 设计债务）、首页导出入口迁移（从"新建项目"按钮移到设置页）
+
+### [2026-06-26] 批次 5 UI 颜色系统清理 — 已完成
+
+**清理范围**：188 处硬编码 Tailwind 颜色类名 → 0 处残留
+
+**清理分组**：
+1. **旧 shadcn 双模式样式**（3 文件 24 处）：TemplateManagerDialog、TemplateCard、AssetPicker — 移除全部 `dark:` 前缀、`gray-*`/`white`/`blue-*` 替换为语义变量
+2. **quick-generate 模块**（3 文件 31 处）：AdvancedSettingsCard、QuickGenerateForm、TemplateSelectDialog — `slate-*`/`purple-*`/`blue-*` 替换为语义变量
+3. **asset/video/prompt/shared 模块**（20 文件 ~100 处）：BatchProgressDialog（明亮主题残留）、MediaExporter、TaskCard、ModelSelector、AssetEditDialog、confirm.tsx、feedback.tsx、router.tsx 等
+4. **story/generation 模块**（2 文件 2 处）：StepIndicator（`bg-emerald-500/30` → `bg-success/30`）、PromptPreview（`bg-purple-600` → `bg-primary/20`）
+5. **story/planning + beat-editor**（2 文件 5 处）：story-constants.ts（`bg-gray-700` → `bg-muted`）、BeatOverviewCard.tsx（`slate-*`/`purple-*` → 语义变量）
+
+**新增回归规则 R181**：禁止硬编码 Tailwind 颜色类名（`text-slate-*`/`bg-gray-*`/`dark:` 前缀等），必须使用语义变量（`text-muted-foreground`/`bg-card2`/`border-border` 等）
+
+**验证结果**：typecheck + lint + lint:arch 全部通过 + 4668 测试通过
+
+**后续待办**：route handlers as 断言消除（schema 设计债务）、首页导出入口迁移、story-constants.ts 中 tones 数组的其他装饰色（yellow/blue/purple/pink）是否需要语义化（低优先级，这些是图例点指示色非主题依赖）

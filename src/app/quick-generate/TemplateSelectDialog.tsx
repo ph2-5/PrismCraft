@@ -74,24 +74,24 @@ export function TemplateSelectDialog({
               {getTemplatesByCategory(selectedCategory).map((template) => (
                 <div
                   key={template.id}
-                  className="p-4 rounded-lg border border-purple-700/50 bg-slate-900/50 hover:bg-slate-900 cursor-pointer transition-all"
+                  className="p-4 rounded-lg border border-primary/50 bg-card2 hover:bg-card cursor-pointer transition-all"
                   onClick={() => onApplyTemplate(template)}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-medium text-purple-100 flex items-center gap-2">
-                        <Grid3x3 className="w-4 h-4 text-purple-400" />
+                      <h3 className="font-medium text-primary flex items-center gap-2">
+                        <Grid3x3 className="w-4 h-4 text-primary" />
                         {t(template.nameKey)}
                       </h3>
-                      <p className="text-sm text-purple-300 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {t(template.descKey)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                         {t("quickGenerate.seconds", { count: template.duration })}
                       </span>
-                      <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                         {t(template.categoryKey)}
                       </span>
                     </div>

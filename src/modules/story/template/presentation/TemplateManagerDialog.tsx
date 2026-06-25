@@ -129,7 +129,7 @@ export default function TemplateManagerDialog({
           </h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="p-1 rounded-lg hover:bg-muted"
             style={{ color: "var(--muted-fg)" }}
             aria-label={t("aria.close")}
           >
@@ -186,7 +186,7 @@ export default function TemplateManagerDialog({
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
                   placeholder={t("template.templateNamePlaceholder")}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card" style={{ color: "var(--muted-fg)" }}
                 />
               </div>
               <div>
@@ -198,7 +198,7 @@ export default function TemplateManagerDialog({
                   onChange={(e) => setTemplateDesc(e.target.value)}
                   placeholder={t("template.descriptionPlaceholder")}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card" style={{ color: "var(--muted-fg)" }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ export default function TemplateManagerDialog({
                   <select
                     value={templateCategory}
                     onChange={(e) => setTemplateCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card" style={{ color: "var(--muted-fg)" }}
                   >
                     {TEMPLATE_CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
@@ -227,7 +227,7 @@ export default function TemplateManagerDialog({
                     value={templateGenre}
                     onChange={(e) => setTemplateGenre(e.target.value)}
                     placeholder={t("template.genrePlaceholder")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card" style={{ color: "var(--muted-fg)" }}
                   />
                 </div>
               </div>
@@ -241,7 +241,7 @@ export default function TemplateManagerDialog({
                     value={templateTone}
                     onChange={(e) => setTemplateTone(e.target.value)}
                     placeholder={t("template.tonePlaceholder")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card" style={{ color: "var(--muted-fg)" }}
                   />
                 </div>
                 <div>
@@ -253,14 +253,14 @@ export default function TemplateManagerDialog({
                     value={templateTags}
                     onChange={(e) => setTemplateTags(e.target.value)}
                     placeholder={t("template.tagsPlaceholder")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white" style={{ color: "var(--muted-fg)" }}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card" style={{ color: "var(--muted-fg)" }}
                   />
                 </div>
               </div>
               <button
                 onClick={handleSave}
                 disabled={!templateName.trim() || currentBeats.length === 0}
-                className="w-full py-2.5 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t("template.saveTemplateButton", { count: currentBeats.length })}
               </button>
@@ -275,7 +275,7 @@ export default function TemplateManagerDialog({
                 </h3>
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                  className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
                 >
                   <Upload size={32} className="mx-auto mb-2" style={{ color: "var(--muted-fg)" }} />
                   <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
@@ -305,7 +305,7 @@ export default function TemplateManagerDialog({
                     onClick={() => {
                       exportMultipleTemplates(savedTemplates);
                     }}
-                    className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600"
+                    className="px-4 py-2 rounded-lg bg-success text-white font-medium hover:bg-success/80"
                   >
                     {t("template.exportAllTemplates", { count: savedTemplates.length })}
                   </button>

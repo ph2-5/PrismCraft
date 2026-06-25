@@ -19,8 +19,11 @@ let checkIntervalId: ReturnType<typeof setInterval> | null = null;
 let isMonitoring = false;
 let boundHandleOnline: (() => void) | null = null;
 let boundHandleOffline: (() => void) | null = null;
+let stateInitialized = false;
 
-if (typeof window !== "undefined") {
+function ensureStateInitialized(): void {
+  if (stateInitialized || typeof window === "undefined") return;
+  stateInitialized = true;
   const prev = window.__NETWORK_MONITOR_STATE__;
   if (prev && typeof prev === "object") {
     if (prev.checkIntervalId) clearInterval(prev.checkIntervalId);
@@ -124,6 +127,7 @@ async function updateQuality(): Promise<void> {
 export function startMonitoring(): void {
   if (isMonitoring) return;
 
+  ensureStateInitialized();
   isMonitoring = true;
   updateQuality();
 

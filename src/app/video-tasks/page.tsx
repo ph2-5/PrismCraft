@@ -23,6 +23,9 @@ export default function VideoTasksPage() {
     allTasks,
     startBackgroundProcessing,
     recoverTask,
+    statusFilter,
+    setStatusFilter,
+    handleRefresh,
     isClearingCompleted,
     isClearingFailed,
     handleClearCompleted,
@@ -43,14 +46,19 @@ export default function VideoTasksPage() {
             <select
               className="select"
               style={{ fontSize: 12 }}
-              defaultValue="all"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
             >
               <option value="all">{t("task.statusAll")}</option>
               <option value="processing">{t("task.statusProcessing")}</option>
               <option value="completed">{t("task.statusCompleted")}</option>
               <option value="failed">{t("task.statusFailed")}</option>
             </select>
-            <button type="button" className="btn btn-ghost btn-xs">
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              onClick={handleRefresh}
+            >
               🔄 {t("task.refresh")}
             </button>
           </div>

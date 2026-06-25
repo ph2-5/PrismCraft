@@ -4,6 +4,7 @@ import { t } from "@/shared/constants";
 interface AssetUploadSectionProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDropFiles?: (files: FileList) => void;
   visible?: boolean;
   onClose?: () => void;
 }
@@ -51,9 +52,53 @@ const closeBtnRowStyle: React.CSSProperties = {
 export function AssetUploadSection({
   fileInputRef,
   onImport,
+  onDropFiles,
   visible = false,
   onClose,
 }: AssetUploadSectionProps) {
+  const [isDragOver, setIsDragOver] = React.useState(false);
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      if (onDropFiles) {
+        onDropFiles(files);
+      } else if (fileInputRef.current) {
+        const dt = new DataTransfer();
+        for (let i = 0; i < files.length; i++) {
+          const f = files.item(i);
+          if (f) dt.items.add(f);
+        }
+        fileInputRef.current.files = dt.files;
+        fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const dropZoneStyle: React.CSSProperties = isDragOver
+    ? { ...uploadDropZoneStyle, borderColor: "var(--primary)", background: "rgba(var(--primary-rgb), 0.08)" }
+    : uploadDropZoneStyle;
+
   // 预览页面：上传区域默认隐藏，点击"上传素材"按钮才显示
   if (!visible) {
     return (
@@ -69,7 +114,22 @@ export function AssetUploadSection({
 
   return (
     <div style={uploadAreaWrapperStyle}>
-      <div style={uploadDropZoneStyle}>
+      <div
+        style={dropZoneStyle}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+      >
         <div style={uploadIconStyle}>📤</div>
         <div style={uploadTitleStyle}>{t("asset.dragOrClickToUpload")}</div>
         <div style={uploadDescStyle}>{t("asset.uploadFormatHint")}</div>

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { useVideoTaskManager } from "@/modules/video";
 import { confirm } from "@/shared/utils/confirm";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants";
+
+type StatusFilter = "all" | "processing" | "completed" | "failed";
 
 export function useVideoTasksPage() {
   const { guardedPush } = useNavigationGuard();
@@ -18,6 +20,7 @@ export function useVideoTasksPage() {
 
   const [isClearingCompleted, setIsClearingCompleted] = useState(false);
   const [isClearingFailed, setIsClearingFailed] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const tasks = allTasks ?? [];
   const totalTasks = tasks.length;
@@ -31,6 +34,24 @@ export function useVideoTasksPage() {
   const failedTasks = tasks.filter((task) => task.status === "failed" || task.status === "timeout").length;
   const completionRate =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const filteredTasks = useMemo(() => {
+    if (statusFilter === "all") return tasks;
+    if (statusFilter === "processing") {
+      return tasks.filter((task) => task.status === "generating" || task.status === "pending");
+    }
+    if (statusFilter === "completed") {
+      return tasks.filter((task) => task.status === "completed");
+    }
+    if (statusFilter === "failed") {
+      return tasks.filter((task) => task.status === "failed" || task.status === "timeout");
+    }
+    return tasks;
+  }, [tasks, statusFilter]);
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   const handleClearCompleted = async () => {
     if (
@@ -75,9 +96,13 @@ export function useVideoTasksPage() {
     failedTasks,
     completionRate,
     // Task data
-    allTasks,
+    allTasks: filteredTasks,
     startBackgroundProcessing,
     recoverTask,
+    // Filter
+    statusFilter,
+    setStatusFilter,
+    handleRefresh,
     // Loading states
     isClearingCompleted,
     isClearingFailed,

@@ -23,12 +23,12 @@ export class PageErrorBoundary extends Component<Props, State> {
     errorCount: 0,
   };
 
-  public static getDerivedStateFromError(error: Error, prev: State): Partial<State> {
-    const nextCount = prev.errorCount + 1;
-    return { hasError: true, error, errorCount: nextCount };
+  public static getDerivedStateFromError(error: Error): Partial<State> {
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.setState((prev) => ({ errorCount: prev.errorCount + 1 }));
     errorLogger.error(`[PageErrorBoundary${this.props.pageName ? `:${this.props.pageName}` : ""}]`, { error, errorInfo });
   }
 

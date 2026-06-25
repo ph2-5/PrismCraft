@@ -332,13 +332,14 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
 
   const handleDeleteStoryboard = useCallback(async (id: string) => {
     if (!(await confirm(t("confirm.deleteBeat"), t("confirm.deleteBeatTitle")))) return;
-    storyboardAssetService
-      .remove(id)
-      .then(() => loadSecondaryData())
-      .catch((e: unknown) =>
-        showError(t("error.deleteFailed"), mapUserFacingError(e)),
-      );
-  }, [loadSecondaryData, showError]);
+    try {
+      await storyboardAssetService.remove(id);
+      await loadSecondaryData();
+      success(t("success.deleted"), t("success.assetDeleted"));
+    } catch (e) {
+      showError(t("error.deleteFailed"), mapUserFacingError(e));
+    }
+  }, [loadSecondaryData, showError, success]);
 
   const updateStoriesAfterCharacterDelete = useCallback(async (characterId: string) => {
     const updatedStories = stories.map((story) => {

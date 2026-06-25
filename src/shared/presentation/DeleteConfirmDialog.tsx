@@ -80,8 +80,13 @@ export function DeleteConfirmDialog({
           <button
             type="button"
             className="btn btn-danger"
-            disabled={isDeleting}
+            disabled={isDeleting || (referenceCheck?.references.length ?? 0) > 0}
             onClick={onConfirm}
+            title={
+              (referenceCheck?.references.length ?? 0) > 0
+                ? t("delete.cannotDeleteReferenced", { entityLabel })
+                : undefined
+            }
           >
             {isDeleting ? t("common.deleting") : t("confirm.deleteTitle")}
           </button>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ProjectExportImport } from "@/modules/asset";
@@ -6,6 +7,25 @@ import { ErrorLogViewer } from "@/shared/presentation/ErrorBoundary";
 import { ApiConfigPanel } from "./ApiConfigPanel";
 import { SyncSettingsPanel } from "@/modules/sync";
 import { useSettingsPage, type SettingsTab } from "./hooks/useSettingsPage";
+import { getCacheDirectory, getDiskSpace } from "@/shared/file-http";
+import { storyService } from "@/modules/story";
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
+function formatUptime(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
 
 function AutoSaveSettings({
   enabled,
@@ -110,10 +130,66 @@ function SyncSettings({ openDialog }: { openDialog: () => void }) {
 }
 
 function SystemInfoCard() {
+  const [diskInfo, setDiskInfo] = useState<{ text: string; ok: boolean } | null>(null);
+  const [projectCount, setProjectCount] = useState<number | null>(null);
+  const [uptime, setUptime] = useState<string>("—");
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const cacheDirResult = await getCacheDirectory().catch(() => null);
+        const dirPath = cacheDirResult?.path ?? "";
+        const [diskResult, storiesResult] = await Promise.all([
+          getDiskSpace(dirPath).catch(() => null),
+          storyService.getAll().catch(() => null),
+        ]);
+        if (cancelled) return;
+        if (diskResult && diskResult.success && diskResult.totalBytes && diskResult.availableBytes !== undefined) {
+          const used = diskResult.totalBytes - diskResult.availableBytes;
+          const usedPct = (used / diskResult.totalBytes) * 100;
+          setDiskInfo({
+            text: `${formatBytes(used)} / ${formatBytes(diskResult.totalBytes)}`,
+            ok: usedPct < 90,
+          });
+        } else {
+          setDiskInfo({ text: "—", ok: false });
+        }
+        if (storiesResult?.ok && Array.isArray(storiesResult.value)) {
+          setProjectCount(storiesResult.value.length);
+        } else {
+          setProjectCount(null);
+        }
+      } catch {
+        if (!cancelled) {
+          setDiskInfo({ text: "—", ok: false });
+          setProjectCount(null);
+        }
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const STORAGE_KEY = "prismcraft-start-time";
+    let startTime = Number(sessionStorage.getItem(STORAGE_KEY));
+    if (!startTime || Number.isNaN(startTime)) {
+      startTime = Date.now();
+      sessionStorage.setItem(STORAGE_KEY, String(startTime));
+    }
+    const update = () => setUptime(formatUptime(Date.now() - startTime));
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const systemOk = diskInfo?.ok !== false;
+
   return (
     <div className="card" style={{ padding: 16 }}>
       <div className="section-label">
-        <span className="dot ok"></span> {t("settings.systemInfo")}
+        <span className={`dot ${systemOk ? "ok" : "error"}`}></span> {t("settings.systemInfo")}
       </div>
       <div
         style={{
@@ -124,11 +200,11 @@ function SystemInfoCard() {
         }}
       >
         <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>—</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>{diskInfo?.text ?? "..."}</div>
           <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.diskSpace")}</div>
         </div>
         <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>—</div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{projectCount ?? "..."}</div>
           <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.totalProjects")}</div>
         </div>
         <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
@@ -136,7 +212,7 @@ function SystemInfoCard() {
           <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.version")}</div>
         </div>
         <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>—</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>{uptime}</div>
           <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.uptime")}</div>
         </div>
       </div>

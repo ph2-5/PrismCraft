@@ -20,8 +20,11 @@ async function withCacheMutex<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 let beforeUnloadHandler: (() => void) | null = null;
+let beforeUnloadRegistered = false;
 
-if (typeof window !== "undefined") {
+function ensureBeforeUnloadRegistered(): void {
+  if (beforeUnloadRegistered || typeof window === "undefined") return;
+  beforeUnloadRegistered = true;
   beforeUnloadHandler = () => {
     cleanupAllObjectUrls();
   };
@@ -33,10 +36,12 @@ export function cleanupVideoCache(): void {
   if (beforeUnloadHandler && typeof window !== "undefined") {
     window.removeEventListener("beforeunload", beforeUnloadHandler);
     beforeUnloadHandler = null;
+    beforeUnloadRegistered = false;
   }
 }
 
 export function registerObjectUrl(taskId: string, url: string): void {
+  ensureBeforeUnloadRegistered();
   // 超过上限时淘汰最旧条目（Map 保持插入顺序）
   if (objectUrlRegistry.size >= MAX_OBJECT_URLS && !objectUrlRegistry.has(taskId)) {
     const oldestKey = objectUrlRegistry.keys().next().value;

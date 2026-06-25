@@ -2240,6 +2240,7 @@ const messages: Record<MessageKey, string> = {
   "delete.refWillInvalidate": "删除后，相关故事中的{entityLabel}引用将失效。建议先修改故事内容。",
   "delete.viewRefsInStoryboard": "可在故事板页面查看引用该元素的分镜",
   "delete.confirmDeleteEntity": "确定要删除这个{entityLabel}吗？此操作不可撤销。",
+  "delete.cannotDeleteReferenced": "该{entityLabel}正被引用，无法删除。请先移除相关引用。",
 
   "saveStatus.saving": "保存中...",
   "saveStatus.saved": "已保存",

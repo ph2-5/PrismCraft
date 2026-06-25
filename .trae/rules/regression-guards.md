@@ -3462,3 +3462,252 @@ export function closeDatabase() {
 **Verification**: Spy on `clearTimeout`/`clearInterval`. Call `closeDatabase`. Verify all 4 timers cleared. Call `startScheduledBackup` twice. Verify only one timer created.
 
 **Discovered in**: Database lifecycle audit found startup timers not cleared on close, causing backup to fire after shutdown. Test: `electron/src/database/__tests__/regression-r130-timer-cleanup-on-close.test.ts`.
+
+### R131: PageErrorBoundary.getDerivedStateFromError MUST Be Single-Argument
+
+`getDerivedStateFromError` in `src/shared/presentation/PageErrorBoundary.tsx` MUST accept only a single `error` parameter. The `errorCount` accumulation MUST happen in `componentDidCatch` via `this.setState((prev) => ({ errorCount: prev.errorCount + 1 }))`, NOT in `getDerivedStateFromError`. React only passes `error` to `getDerivedStateFromError` — any second parameter (e.g., `prev`) will always be `undefined`, so reading `prev.errorCount` there would never accumulate.
+
+**BAD** — Two-parameter signature, errorCount never increments:
+```typescript
+public static getDerivedStateFromError(error: Error, prev: State): Partial<State> {
+  // ❌ React only passes `error`, so `prev` is always undefined
+  return { hasError: true, error, errorCount: (prev?.errorCount ?? 0) + 1 };
+}
+```
+
+**GOOD** — Single-argument, accumulate in componentDidCatch:
+```typescript
+public static getDerivedStateFromError(error: Error): Partial<State> {
+  // ✅ Only return hasError + error; do not touch errorCount here
+  return { hasError: true, error };
+}
+
+public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  // ✅ errorCount accumulated here using functional setState
+  this.setState((prev) => ({ errorCount: prev.errorCount + 1 }));
+  errorLogger.error(...);
+}
+```
+
+**Verification**: Check `getDerivedStateFromError.length === 1`. Trigger multiple errors (with retry in between). Verify `errorCount` increments by 1 each time and `canRetry` flips to `false` once `errorCount >= MAX_RETRY_ATTEMPTS`.
+
+**Discovered in**: P0 fix audit found `getDerivedStateFromError(error, prev)` accepting two parameters, but React only passes `error`, causing `errorCount` to never accumulate and `canRetry` to stay `true` forever. Test: `src/shared/presentation/__tests__/regression-r131-error-boundary-error-count.test.tsx`.
+
+### R132: VideoTasksPage Filter and Refresh MUST Be Wired Up
+
+`useVideoTasksPage` in `src/app/video-tasks/hooks/useVideoTasksPage.ts` MUST expose a working `statusFilter` state, `setStatusFilter` setter, `filteredTasks` (filtered by `statusFilter`), and `handleRefresh` (calls `window.location.reload()`). The `<select>` element MUST bind `value={statusFilter}` and `onChange={setStatusFilter}`. The refresh button MUST bind `onClick={handleRefresh}`.
+
+**BAD** — No state, no binding, refresh button dead:
+```typescript
+// ❌ No statusFilter state, no setter returned
+return { allTasks: tasks, /* no filter, no refresh */ };
+// In JSX:
+<select>...</select> // ❌ No value/onChange
+<button>刷新</button>  // ❌ No onClick
+```
+
+**GOOD** — State + filtering + refresh wired:
+```typescript
+const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+const filteredTasks = useMemo(() => {
+  if (statusFilter === "all") return tasks;
+  if (statusFilter === "processing") return tasks.filter(t => t.status === "generating" || t.status === "pending");
+  // ...
+}, [tasks, statusFilter]);
+const handleRefresh = () => { window.location.reload(); };
+return { allTasks: filteredTasks, statusFilter, setStatusFilter, handleRefresh, ... };
+```
+
+**Verification**: Render hook with mixed-status tasks. Verify `setStatusFilter("completed")` filters out non-completed tasks. Verify `handleRefresh` calls `window.location.reload()`. Verify all three (`statusFilter`, `setStatusFilter`, `handleRefresh`) are returned.
+
+**Discovered in**: P0 fix audit found VideoTasksPage `<select>` had no `value`/`onChange` binding and refresh button had no `onClick`, making both controls dead. Test: `src/app/video-tasks/hooks/__tests__/regression-r132-status-filter-and-refresh.test.ts`.
+
+### R133: AssetUploadSection Drag Handlers MUST Not Be Empty Stubs
+
+`AssetUploadSection` in `src/app/asset-library/AssetUploadSection.tsx` MUST actually handle `onDrop`, `onDragOver`, `onDragEnter`, `onDragLeave` events. Empty stub handlers (`() => {}`) are forbidden on the drop zone. The `onDrop` handler MUST either call `onDropFiles(files)` prop or fallback to setting `fileInputRef.current.files` and dispatching a `change` event. The drop zone MUST have `role="button"`, `tabIndex={0}`, and `onKeyDown` handling Enter/Space for keyboard accessibility.
+
+**BAD** — Empty drag handlers, no keyboard support:
+```typescript
+<div
+  onDrop={() => {}}        // ❌ Empty stub
+  onDragOver={() => {}}    // ❌ Empty stub
+  onDragEnter={() => {}}   // ❌ Empty stub
+  onDragLeave={() => {}}   // ❌ Empty stub
+>
+  拖拽文件到此处
+</div>
+```
+
+**GOOD** — Real handlers + keyboard support:
+```typescript
+const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  e.preventDefault();
+  setIsDragOver(false);
+  const files = e.dataTransfer.files;
+  if (files && files.length > 0) {
+    if (onDropFiles) onDropFiles(files);
+    else if (fileInputRef.current) {
+      // Fallback: transfer files to hidden input and dispatch change
+      const dt = new DataTransfer();
+      for (const f of files) dt.items.add(f);
+      fileInputRef.current.files = dt.files;
+      fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+};
+<div
+  onDrop={handleDrop}
+  onDragOver={(e) => e.preventDefault()}
+  onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
+  onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+  role="button"
+  tabIndex={0}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  }}
+>
+```
+
+**Verification**: Render with `visible={true}`. Fire `drop` event with files, verify `onDropFiles` called with `FileList`. Fire `dragEnter`/`dragLeave`, verify `borderColor` toggles between `"var(--primary)"` and default. Fire `keyDown` with Enter/Space, verify `fileInputRef.current.click()` called.
+
+**Discovered in**: P0 fix audit found drag handlers were empty stubs — users dragging files into the upload zone got no response. Test: `src/app/asset-library/__tests__/regression-r133-upload-drop-zone.test.tsx`.
+
+### R134: DeleteConfirmDialog MUST Disable Confirm When Entity Is Referenced
+
+`DeleteConfirmDialog` in `src/shared/presentation/DeleteConfirmDialog.tsx` MUST disable the confirm button when `referenceCheck.references.length > 0`. Deleting an entity that is still referenced by other elements would create dangling references. The button MUST also have a `title` attribute explaining why deletion is blocked.
+
+**BAD** — Confirm button always enabled:
+```typescript
+<button onClick={onConfirm}>  // ❌ No disabled check, user can delete referenced entity
+  {isDeleting ? "删除中" : "确认删除"}
+</button>
+```
+
+**GOOD** — Disable when referenced:
+```typescript
+<button
+  disabled={isDeleting || (referenceCheck?.references.length ?? 0) > 0}
+  onClick={onConfirm}
+  title={
+    (referenceCheck?.references.length ?? 0) > 0
+      ? t("delete.cannotDeleteReferenced", { entityLabel })
+      : undefined
+  }
+>
+```
+
+**Verification**: Render with `referenceCheck.references.length === 2`. Verify confirm button is disabled and has `title`. Click the disabled button — verify `onConfirm` is NOT called. Render with `references.length === 0`, verify button is enabled and `onConfirm` IS called on click.
+
+**Discovered in**: P0 fix audit found confirm button remained clickable even when the entity had active references, allowing users to delete referenced entities and create dangling references. Test: `src/shared/presentation/__tests__/regression-r134-delete-dialog-disable-on-referenced.test.tsx`.
+
+### R135: useBeatDetail MUST Subscribe via Zustand Selector, NOT Custom setInterval Polling
+
+`useBeatDetail` in `src/app/story/beat/$beatId/use-beat-detail.ts` MUST subscribe to the video task via `useVideoTaskStore((s) => s.allTasks.find((t) => t.beatId === beatId))` selector. The polling-engine is the single source of truth for task status updates. Custom `setInterval` polling in hooks is forbidden because it duplicates the polling-engine's work, wastes API quota, and can desynchronize from the store.
+
+**BAD** — Custom 5s setInterval, duplicates polling-engine:
+```typescript
+export function useBeatDetail() {
+  const [task, setTask] = useState<VideoTask>();
+  useEffect(() => {
+    const interval = setInterval(async () => {  // ❌ Duplicate polling
+      const result = await provider.getTask(beatId);
+      if (result.ok) setTask(result.value);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [beatId]);
+}
+```
+
+**GOOD** — Zustand selector subscription:
+```typescript
+export function useBeatDetail() {
+  // ✅ Subscribe to store; polling-engine updates the store, this re-renders
+  const task = useVideoTaskStore((s) => {
+    if (!beatId) return undefined;
+    return s.allTasks.find((t) => t.beatId === beatId);
+  });
+  // No setInterval — polling-engine owns the polling lifecycle
+}
+```
+
+**Verification**: Spy on `global.setInterval`. Render the hook with mocked `useVideoTaskStore`. Verify `setInterval` is NEVER called. Verify `useVideoTaskStore` is called with a selector function. Call the selector with a state containing matching `beatId` — verify it returns the right task.
+
+**Discovered in**: P0 fix audit found `useBeatDetail` ran a custom 5-second `setInterval` polling task status, duplicating polling-engine work and causing double API calls. Test: `src/app/story/beat/$beatId/__tests__/regression-r135-no-setinterval-polling.test.ts`.
+
+### R136: network-monitor MUST Defer Side Effects to startMonitoring()
+
+`src/infrastructure/network/network-monitor.ts` MUST NOT execute any top-level side effects during module load. Specifically, `window.__NETWORK_MONITOR_STATE__` MUST NOT be set, and `window.addEventListener("online"/"offline")` MUST NOT be called at module scope. All side effects MUST be deferred to `startMonitoring()` (via `ensureStateInitialized()`). This prevents accidental registration on bare imports, simplifies HMR, and makes the module testable without triggering global state mutation.
+
+**BAD** — Top-level side effects on import:
+```typescript
+// ❌ Module scope executes immediately on import
+window.__NETWORK_MONITOR_STATE__ = { /* ... */ };
+window.addEventListener("online", handleOnline);
+window.addEventListener("offline", handleOffline);
+export function startMonitoring() { /* ... */ }
+```
+
+**GOOD** — Lazy initialization inside startMonitoring:
+```typescript
+let stateInitialized = false;
+function ensureStateInitialized(): void {
+  if (stateInitialized || typeof window === "undefined") return;
+  stateInitialized = true;
+  window.__NETWORK_MONITOR_STATE__ = { /* getters */ };
+}
+export function startMonitoring(): void {
+  if (isMonitoring) return;
+  ensureStateInitialized();  // ✅ Side effect deferred
+  isMonitoring = true;
+  // ...
+  window.addEventListener("online", boundHandleOnline);
+  window.addEventListener("offline", boundHandleOffline);
+}
+```
+
+**Verification**: Reset modules, spy on `window.addEventListener`, dynamically `import()` the module. Verify spy NOT called and `window.__NETWORK_MONITOR_STATE__` is undefined. Call `startMonitoring()`. Verify `__NETWORK_MONITOR_STATE__` is set and `addEventListener` called with `online`/`offline`.
+
+**Discovered in**: P0 fix audit found `network-monitor.ts` registered `window.__NETWORK_MONITOR_STATE__` at module scope, causing the side effect to fire on any import (including tests and HMR). Test: `src/infrastructure/network/__tests__/regression-r136-no-top-level-side-effects.test.ts`.
+
+### R137: video-cache MUST Defer beforeunload Registration to registerObjectUrl()
+
+`src/infrastructure/storage/video-cache.ts` MUST NOT register a `beforeunload` listener at module scope. The `window.addEventListener("beforeunload", ...)` call MUST be wrapped in a lazy initializer (`ensureBeforeUnloadRegistered()`) that is invoked from `registerObjectUrl()`. `cleanupVideoCache()` MUST remove the listener. This pattern prevents HMR-time duplicate registrations and makes the module testable.
+
+**BAD** — Top-level beforeunload registration:
+```typescript
+// ❌ Fires on every import, including tests and HMR
+window.addEventListener("beforeunload", () => {
+  cleanupAllObjectUrls();
+});
+export function registerObjectUrl(...) { /* ... */ }
+```
+
+**GOOD** — Lazy registration with cleanup:
+```typescript
+let beforeUnloadHandler: (() => void) | null = null;
+let beforeUnloadRegistered = false;
+function ensureBeforeUnloadRegistered(): void {
+  if (beforeUnloadRegistered || typeof window === "undefined") return;
+  beforeUnloadRegistered = true;
+  beforeUnloadHandler = () => { cleanupAllObjectUrls(); };
+  window.addEventListener("beforeunload", beforeUnloadHandler);
+}
+export function cleanupVideoCache(): void {
+  if (beforeUnloadHandler && typeof window !== "undefined") {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+    beforeUnloadHandler = null;
+    beforeUnloadRegistered = false;
+  }
+}
+export function registerObjectUrl(taskId: string, url: string): void {
+  ensureBeforeUnloadRegistered();  // ✅ Deferred
+  // ...
+}
+```
+
+**Verification**: Reset modules, spy on `window.addEventListener`, dynamically `import()` the module. Verify spy NOT called with `"beforeunload"`. Call `registerObjectUrl()`. Verify `addEventListener` called once with `"beforeunload"`. Call `registerObjectUrl()` again — verify no second registration (idempotent). Call `cleanupVideoCache()`. Verify `removeEventListener` called.
+
+**Discovered in**: P0 fix audit found `video-cache.ts` registered `beforeunload` at module scope, causing duplicate listeners on HMR and making the module untestable in isolation. Test: `src/infrastructure/storage/__tests__/regression-r137-no-top-level-beforeunload.test.ts`.

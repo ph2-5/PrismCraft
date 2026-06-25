@@ -140,3 +140,36 @@
 **验证结果**：全部 126 个 e2e 测试通过（14.2 分钟），单元测试 4998 个通过
 
 **版本**：0.10.0 → 0.11.0
+
+### [2026-06-25] 全项目审计 + P0 功能 bug 修复 + R131-R137 回归防护 — 已完成
+
+**审计范围**：5 维度并行审计（UI/UX 反人类设计 + 代码质量 + 性能 + 架构合规 + 错误处理/i18n）共发现 107 个问题。
+
+**批次 1 P0 功能 bug 修复（commit 20db421）** — 10 项：
+- 修复 1: `src/shared/presentation/PageErrorBoundary.tsx` — `getDerivedStateFromError` 改为单参数，errorCount 累加移到 `componentDidCatch`
+- 修复 2: `src/app/video-tasks/hooks/useVideoTasksPage.ts` + `src/app/video-tasks/page.tsx` — 实现 statusFilter 过滤 + 刷新按钮绑定（原为 no-op）
+- 修复 3: `src/app/asset-library/AssetUploadSection.tsx` — 实现真实 DnD + 键盘支持（原为空 stub）
+- 修复 4: `src/app/asset-library/useAssetLibraryActions.ts` — `handleDeleteStoryboard` 添加 await + success toast
+- 修复 5: `src/shared/presentation/DeleteConfirmDialog.tsx` — 引用时 confirm 按钮 disabled + tooltip
+- 修复 6: AssetToolbar 批量删除（审计误报，已有 confirm，跳过）
+- 修复 7: `src/app/story/beat/$beatId/use-beat-detail.ts` — 移除 5 秒 setInterval 自定义轮询，改用 Zustand selector 订阅
+- 修复 8: `src/infrastructure/network/network-monitor.ts` — 顶层副作用移入 `ensureStateInitialized()`
+- 修复 9: `src/infrastructure/storage/video-cache.ts` — 顶层 beforeunload 移入 `ensureBeforeUnloadRegistered()`
+- 修复 10: `src/app/settings/page.tsx` — SystemInfoCard 替换硬编码 "—" 为真实磁盘/项目数/运行时间
+
+**回归防护（本次提交）** — R131-R137 共 7 条规则 + 63 个回归测试：
+- R131: `src/shared/presentation/__tests__/regression-r131-error-boundary-error-count.test.tsx`（5 tests）
+- R132: `src/app/video-tasks/hooks/__tests__/regression-r132-status-filter-and-refresh.test.ts`（9 tests）
+- R133: `src/app/asset-library/__tests__/regression-r133-upload-drop-zone.test.tsx`（11 tests）
+- R134: `src/shared/presentation/__tests__/regression-r134-delete-dialog-disable-on-referenced.test.tsx`（11 tests）
+- R135: `src/app/story/beat/$beatId/__tests__/regression-r135-no-setinterval-polling.test.ts`（9 tests）
+- R136: `src/infrastructure/network/__tests__/regression-r136-no-top-level-side-effects.test.ts`（9 tests）
+- R137: `src/infrastructure/storage/__tests__/regression-r137-no-top-level-beforeunload.test.ts`（9 tests）
+
+**文档更新**：
+- `.trae/rules/regression-guards.md` — 追加 R131-R137 七条规则（BAD/GOOD 示例 + Verification + Discovered in）
+- `.trae/rules/project_rules.md` — R1-R130 → R1-R137，类别统计表更新
+
+**验证结果**：typecheck + typecheck:electron + 4380 测试通过（新增 63 个）+ lint + lint:arch 全部通过
+
+**后续待办**：批次 2（性能优化）、批次 3（UI/UX + i18n）、批次 4（架构重构）

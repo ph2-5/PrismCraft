@@ -39,13 +39,17 @@ function useStoryContext(): StoryContextValue {
   useEffect(() => { showErrorRef.current = showError; }, [showError]);
 
   const storyState = useStoryState();
-  const assetLoader = useAssetLoader({
-    getAllCharacters: () => characterService.getAll(),
-    getAllScenes: () => sceneService.getAll(),
-    getStoryboardAssets: async () => {
-      return container.storyboardStorage.getStoryboardAssets();
-    },
-  });
+  const assetLoaderServices = useMemo(
+    () => ({
+      getAllCharacters: () => characterService.getAll(),
+      getAllScenes: () => sceneService.getAll(),
+      getStoryboardAssets: async () => {
+        return container.storyboardStorage.getStoryboardAssets();
+      },
+    }),
+    [],
+  );
+  const assetLoader = useAssetLoader(assetLoaderServices);
 
   const uploadHandlers = useUploadHandlers(
     storyState.setBeats,

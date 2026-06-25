@@ -23,15 +23,45 @@ export function useVideoTasksPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const tasks = allTasks ?? [];
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(
-    (task) => task.status === "completed",
-  ).length;
-  const processingTasks = tasks.filter(
-    (task) => task.status === "generating",
-  ).length;
-  const pendingTasks = tasks.filter((task) => task.status === "pending").length;
-  const failedTasks = tasks.filter((task) => task.status === "failed" || task.status === "timeout").length;
+
+  // 单次遍历计算所有统计值，避免 4 次 O(n) filter
+  const {
+    totalTasks,
+    completedTasks,
+    processingTasks,
+    pendingTasks,
+    failedTasks,
+  } = useMemo(() => {
+    let completed = 0;
+    let processing = 0;
+    let pending = 0;
+    let failed = 0;
+    for (const task of tasks) {
+      switch (task.status) {
+        case "completed":
+          completed++;
+          break;
+        case "generating":
+          processing++;
+          break;
+        case "pending":
+          pending++;
+          break;
+        case "failed":
+        case "timeout":
+          failed++;
+          break;
+      }
+    }
+    return {
+      totalTasks: tasks.length,
+      completedTasks: completed,
+      processingTasks: processing,
+      pendingTasks: pending,
+      failedTasks: failed,
+    };
+  }, [tasks]);
+
   const completionRate =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 

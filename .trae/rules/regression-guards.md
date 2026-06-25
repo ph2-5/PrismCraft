@@ -3711,3 +3711,140 @@ export function registerObjectUrl(taskId: string, url: string): void {
 **Verification**: Reset modules, spy on `window.addEventListener`, dynamically `import()` the module. Verify spy NOT called with `"beforeunload"`. Call `registerObjectUrl()`. Verify `addEventListener` called once with `"beforeunload"`. Call `registerObjectUrl()` again — verify no second registration (idempotent). Call `cleanupVideoCache()`. Verify `removeEventListener` called.
 
 **Discovered in**: P0 fix audit found `video-cache.ts` registered `beforeunload` at module scope, causing duplicate listeners on HMR and making the module untestable in isolation. Test: `src/infrastructure/storage/__tests__/regression-r137-no-top-level-beforeunload.test.ts`.
+
+### R154: useAssetLoader MUST Load Characters/Scenes/StoryboardAssets via Promise.all
+
+`useAssetLoader` in `src/modules/story/beat-editor/hooks/useAssetLoader.ts` MUST load the three asset sources (`getAllCharacters`, `getAllScenes`, `getStoryboardAssets`) concurrently via `Promise.all([services.A(), services.B(), services.C()])`. Sequential `await` chains are FORBIDDEN — they make first-screen latency equal to `T(chars) + T(scenes) + T(storyboard)` instead of `max(...)`, degrading performance by 50–60%.
+
+**BAD** — Sequential awaits (perf regression):
+```typescript
+useEffect(() => {
+  const load = async () => {
+    const chars = await services.getAllCharacters(); // ❌ waits full duration
+    const scns = await services.getAllScenes();        // ❌ starts only after chars
+    const sbAssets = await services.getStoryboardAssets(); // ❌ starts only after scenes
+    // ...
+  };
+  load();
+}, [services]);
+```
+
+**GOOD** — Concurrent via Promise.all:
+```typescript
+useEffect(() => {
+  const load = async () => {
+    const [charsResult, scnsResult, sbAssets] = await Promise.all([ // ✅ all start together
+      services.getAllCharacters(),
+      services.getAllScenes(),
+      services.getStoryboardAssets(),
+    ]);
+    // ...
+  };
+  load();
+}, [services]);
+```
+
+**Verification**: Mock three services with deferred promises that never resolve. Call `useAssetLoader` once and verify all three service spies were called synchronously (proves Promise.all concurrent dispatch, not serial await). Also: with delays 200ms/150ms/100ms, total elapsed must be `< SERIAL_SUM * 0.7` (well below 450ms, near max 200ms).
+
+**Discovered in**: Batch 2 performance optimization audit found sequential `await` chain causing 50–60% first-screen latency regression in the story editor. Test: `src/modules/story/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts`.
+
+### R155: StoryProvider MUST Memoize the services Object Passed to useAssetLoader
+
+`StoryProvider` in `src/app/story/StoryProvider.tsx` MUST wrap the `services` object passed to `useAssetLoader` in `useMemo(..., [])`. The services object literal MUST NOT be inlined at the `useAssetLoader(services)` call site, because `useAssetLoader` has an internal `useEffect` with `[services]` dependency — every re-render would create a new object reference, re-triggering the effect and re-fetching characters/scenes/storyboard from the database.
+
+**BAD** — Inline services object (effect re-fires every render):
+```typescript
+const assetLoader = useAssetLoader({ // ❌ new object every render
+  getAllCharacters: () => characterService.getAll(),
+  getAllScenes: () => sceneService.getAll(),
+  getStoryboardAssets: async () => container.storyboardStorage.getStoryboardAssets(),
+});
+```
+
+**GOOD** — Memoized services object (stable reference):
+```typescript
+const assetLoaderServices = useMemo( // ✅ stable reference across renders
+  () => ({
+    getAllCharacters: () => characterService.getAll(),
+    getAllScenes: () => sceneService.getAll(),
+    getStoryboardAssets: async () => container.storyboardStorage.getStoryboardAssets(),
+  }),
+  [],
+);
+const assetLoader = useAssetLoader(assetLoaderServices);
+```
+
+**Verification**: Mock `useAssetLoader` to capture the `services` argument on each call. Render `<StoryProvider>` once, then `rerender` it 3 times with different children. Verify `useAssetLoader` was called 4 times AND every captured `services` reference is `===` to the first one (i.e., same object identity across all renders).
+
+**Discovered in**: Batch 2 performance optimization audit found inline services object causing `useAssetLoader` effect to re-fire on every state change (beat edits, saveStatus toggle), triggering redundant database queries and UI flicker. Test: `src/app/story/__tests__/regression-r155-story-provider-services-memo.test.tsx`.
+
+### R156: useVideoTasksPage Statistics MUST Be Memoized (Single Pass) and timeout Counts as failed
+
+`useVideoTasksPage` in `src/app/video-tasks/hooks/useVideoTasksPage.ts` MUST compute the five statistics (`totalTasks`, `completedTasks`, `processingTasks`, `pendingTasks`, `failedTasks`) via a single `useMemo`-wrapped pass with a `switch` over `task.status`. Five separate `tasks.filter(...)` calls are FORBIDDEN (5× O(n) allocations per render). Additionally, `timeout` status tasks MUST be counted under `failedTasks` (not omitted, not a separate category).
+
+**BAD** — Five filters + missing timeout:
+```typescript
+const completedTasks = tasks.filter(t => t.status === "completed").length;   // ❌ 5 passes
+const processingTasks = tasks.filter(t => t.status === "generating").length; // ❌ 5 passes
+const pendingTasks = tasks.filter(t => t.status === "pending").length;      // ❌ 5 passes
+const failedTasks = tasks.filter(t => t.status === "failed").length;         // ❌ drops timeout!
+// totalTasks also recomputed separately
+```
+
+**GOOD** — Single useMemo pass, timeout folded into failed:
+```typescript
+const { totalTasks, completedTasks, processingTasks, pendingTasks, failedTasks } = useMemo(() => {
+  let completed = 0, processing = 0, pending = 0, failed = 0;
+  for (const task of tasks) {
+    switch (task.status) {
+      case "completed": completed++; break;
+      case "generating": processing++; break;
+      case "pending": pending++; break;
+      case "failed":
+      case "timeout":   // ✅ timeout folded into failed
+        failed++; break;
+    }
+  }
+  return { totalTasks: tasks.length, completedTasks: completed, processingTasks: processing, pendingTasks: pending, failedTasks: failed };
+}, [tasks]);
+```
+
+**Verification**: Pass mixed-status tasks (pending/generating/completed/failed/timeout) and verify counts are correct, `failedTasks` includes timeout tasks, sum of categories equals `totalTasks`. Change tasks and `rerender` — verify stats recompute (memoize invalidates correctly). Verify `statusFilter='failed'` returns both `failed` and `timeout` tasks.
+
+**Discovered in**: Batch 2 performance optimization audit found 5 sequential `filter` calls creating 5 intermediate arrays per render; also found `timeout` tasks were not folded into `failedTasks`, causing the failed count to disagree with the filtered task list. Test: `src/app/video-tasks/hooks/__tests__/regression-r156-tasks-stats-memo.test.ts`.
+
+### R157: video-cache Size Limits MUST Be Consistent Between Infrastructure and Services Layers
+
+The `MAX_CACHE_BYTES` constant in `src/infrastructure/storage/video-cache.ts` (inside `cacheVideoFile`) MUST be byte-equal to `MAX_TOTAL_BLOB_SIZE_MB * 1024 * 1024` in `src/modules/video/cache/services/video-cache.ts`. Both MUST equal `10 * 1024 * 1024 * 1024` (10 GB). The infrastructure-layer constant serves as a defensive fallback after the services layer (which fires at 90% threshold, ≈9 GB) — if the two constants drift, either the infra limit becomes unreachable dead code (regression to old 2 GB bug) or the two layers disagree on the eviction threshold.
+
+The infrastructure-layer source MUST also retain a comment near `MAX_CACHE_BYTES` mentioning `MAX_TOTAL_BLOB_SIZE_MB`, so future maintainers know to update both together.
+
+**BAD** — Constants drifted (infrastructure layer reverted to 2 GB dead code):
+```typescript
+// src/infrastructure/storage/video-cache.ts (cacheVideoFile body)
+const MAX_CACHE_BYTES = 2 * 1024 * 1024 * 1024; // ❌ 2 GB — services layer already
+                                                //     evicts at 9 GB, this never fires
+```
+
+```typescript
+// src/modules/video/cache/services/video-cache.ts
+const MAX_TOTAL_BLOB_SIZE_MB = 10240; // 10 GB — different from infra layer
+```
+
+**GOOD** — Both layers aligned at 10 GB with explanatory comment:
+```typescript
+// src/infrastructure/storage/video-cache.ts (cacheVideoFile body)
+// 与 services/video-cache.ts 的 MAX_TOTAL_BLOB_SIZE_MB (10240MB = 10GB) 保持一致。
+// services 层在 cacheVideoBlob 调用本方法之前会先做大小检查（保留 70% 阈值），
+// 因此此处的 MAX_CACHE_BYTES 主要作为防御性 fallback。
+const MAX_CACHE_BYTES = 10 * 1024 * 1024 * 1024; // ✅ 10 GB
+```
+
+```typescript
+// src/modules/video/cache/services/video-cache.ts
+const MAX_TOTAL_BLOB_SIZE_MB = 10240; // ✅ 10 GB
+```
+
+**Verification**: Both constants are module-private (not exported), so use `fs.readFileSync` + regex extraction (see R146 domain-purity test pattern). Read both source files, extract `MAX_CACHE_BYTES` (eval the arithmetic expression safely) and `MAX_TOTAL_BLOB_SIZE_MB` (literal number). Assert `MAX_CACHE_BYTES === MAX_TOTAL_BLOB_SIZE_MB * 1024 * 1024`, both equal 10 GB, and the infra source contains a `MAX_TOTAL_BLOB_SIZE_MB` mention within 300 chars of `MAX_CACHE_BYTES`.
+
+**Discovered in**: Batch 2 performance optimization audit found `MAX_CACHE_BYTES` was 2 GB while `MAX_TOTAL_BLOB_SIZE_MB` was 10 GB — the infrastructure-layer limit was dead code (services layer evicted first), masking the inconsistency. Test: `src/infrastructure/storage/__tests__/regression-r157-video-cache-limits-consistency.test.ts`.

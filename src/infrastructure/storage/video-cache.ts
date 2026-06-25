@@ -102,7 +102,10 @@ export const videoCacheStorage = {
     fileSize: number;
   }): Promise<void> {
     return withCacheMutex(async () => {
-      const MAX_CACHE_BYTES = 2 * 1024 * 1024 * 1024;
+      // 与 services/video-cache.ts 的 MAX_TOTAL_BLOB_SIZE_MB (10240MB = 10GB) 保持一致。
+      // services 层在 cacheVideoBlob 调用本方法之前会先做大小检查（保留 70% 阈值），
+      // 因此此处的 MAX_CACHE_BYTES 主要作为防御性 fallback。
+      const MAX_CACHE_BYTES = 10 * 1024 * 1024 * 1024;
       const currentSize = await videoCacheStorage.getTotalVideoCacheSize();
       if (currentSize + meta.fileSize > MAX_CACHE_BYTES) {
         await videoCacheStorage.cleanVideoCacheBySizeLimit(MAX_CACHE_BYTES - meta.fileSize);

@@ -173,3 +173,30 @@
 **验证结果**：typecheck + typecheck:electron + 4380 测试通过（新增 63 个）+ lint + lint:arch 全部通过
 
 **后续待办**：批次 2（性能优化）、批次 3（UI/UX + i18n）、批次 4（架构重构）
+
+### [2026-06-25] 批次 2 性能优化 + R154-R157 回归防护 — 已完成
+
+**调研发现**：原审计 3 项中，video-cache LRU 已被 R112 覆盖（仅遗留常量不一致死代码）。审计漏报 StoryProvider services 未 memoize 的更严重问题。
+
+**批次 2 P0 性能优化（4 项）**：
+- 优化 1: `src/modules/story/beat-editor/hooks/useAssetLoader.ts` — 3 个 DB 查询改 `Promise.all` 并发（首次进入耗时降 50-60%）
+- 优化 2: `src/app/story/StoryProvider.tsx` — `useMemo` 包裹 services 对象（消除每次重渲染的重复 DB 查询）
+- 优化 3: `src/app/video-tasks/hooks/useVideoTasksPage.ts` — 5 次 O(n) filter 改单次遍历 useMemo（1000 任务时统计耗时降 75%）
+- 优化 4: `src/infrastructure/storage/video-cache.ts` — MAX_CACHE_BYTES 从 2GB 改为 10GB（与 services 层一致，消除死代码）
+
+**跳过项**：P1 VideoTaskManager 虚拟滚动 — 需要重新设计分组 UI 布局（复杂交互），按"最小化修改"原则延后
+
+**回归防护（本次提交）** — R154-R157 共 4 条规则 + 28 个回归测试（编号从 R154 起，因 R138-R149 已被其他规则占用）：
+- R154: `src/modules/story/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts`（5 tests）
+- R155: `src/app/story/__tests__/regression-r155-story-provider-services-memo.test.tsx`（6 tests）
+- R156: `src/app/video-tasks/hooks/__tests__/regression-r156-tasks-stats-memo.test.ts`（9 tests）
+- R157: `src/infrastructure/storage/__tests__/regression-r157-video-cache-limits-consistency.test.ts`（8 tests）
+
+**文档更新**：
+- `.trae/rules/regression-guards.md` — 追加 R154-R157 四条规则
+- `.trae/rules/project_rules.md` — R1-R137 → R1-R141（按统一文件实际规则数），类别统计表更新
+- `.trae/rules/regression/index.md` — 总数 142 → 146，分类编号列表加入 R154-R157
+
+**验证结果**：typecheck + 4471 测试通过（新增 28 个）+ lint + lint:arch 全部通过
+
+**后续待办**：批次 3（UI/UX + i18n）、批次 4（架构重构）

@@ -1,5 +1,4 @@
 import { Image as ImageIcon, Upload, RefreshCw, Loader2 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 import { AppCard } from "@/shared/ui/app-card";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants/messages";
@@ -110,30 +109,28 @@ export function KeyframeStepContent({
               className="hidden"
               onChange={(e) => onFileSelect(e, onUploadKeyframe)}
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="bg-slate-700 hover:bg-slate-600"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
               onClick={() => keyframeInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1" />
               {t("common.upload")}
-            </Button>
+            </button>
             {hasKeyframe ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-slate-700 hover:bg-slate-600"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
                 onClick={onRegenerateKeyframe}
                 disabled={isGenerating}
               >
                 <RefreshCw className="w-4 h-4 mr-1" />
                 {t("common.regenerate")}
-              </Button>
+              </button>
             ) : (
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+              <button
+                type="button"
+                className="btn btn-primary btn-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
                 onClick={() => onPreEditGenerate("keyframe")}
                 disabled={isGenerating}
               >
@@ -143,7 +140,7 @@ export function KeyframeStepContent({
                   <ImageIcon className="w-4 h-4 mr-1" />
                 )}
                 {t("keyframe.generateKeyframe")}
-              </Button>
+              </button>
             )}
           </div>
         </div>

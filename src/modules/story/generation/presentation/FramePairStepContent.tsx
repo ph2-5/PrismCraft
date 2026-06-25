@@ -1,5 +1,4 @@
 import { Camera, Upload, Loader2, RefreshCw } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 import { AppCard } from "@/shared/ui/app-card";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants/messages";
@@ -137,28 +136,26 @@ export function FramePairStepContent({
               className="hidden"
               onChange={(e) => onFileSelect(e, onUploadLastFrame)}
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="bg-slate-700 hover:bg-slate-600"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
               onClick={() => firstFrameInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1" />
               {t("keyframe.uploadFirstFrame")}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="bg-slate-700 hover:bg-slate-600"
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
               onClick={() => lastFrameInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1" />
               {t("keyframe.uploadLastFrame")}
-            </Button>
+            </button>
             {!hasFramePair ? (
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+              <button
+                type="button"
+                className="btn btn-primary btn-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
                 onClick={() => onPreEditGenerate("firstFrame")}
                 disabled={isGenerating || !hasKeyframe}
               >
@@ -168,18 +165,17 @@ export function FramePairStepContent({
                   <Camera className="w-4 h-4 mr-1" />
                 )}
                 {t("keyframe.generateFramePair")}
-              </Button>
+              </button>
             ) : onRegenerateFramePair ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-slate-700 hover:bg-slate-600"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
                 onClick={onRegenerateFramePair}
                 disabled={isGenerating}
               >
                 <RefreshCw className="w-4 h-4 mr-1" />
                 {t("common.regenerate")}
-              </Button>
+              </button>
             ) : null}
           </div>
         </div>

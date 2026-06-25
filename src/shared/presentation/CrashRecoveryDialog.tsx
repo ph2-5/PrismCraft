@@ -1,13 +1,4 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { t } from "@/shared/constants";
@@ -72,15 +63,17 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
     ? new Date(latestSave.timestamp).toLocaleString("zh-CN")
     : t("crash.unknownTime");
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("crash.unsavedData")}</DialogTitle>
-          <DialogDescription>
+    <div className="modal-overlay" onClick={() => setOpen(false)}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{t("crash.unsavedData")}</div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 4 }}>
             {t("crash.unsavedDataDesc", { count: autoSaves.length, time: saveTime })}
-          </DialogDescription>
-        </DialogHeader>
+          </div>
+        </div>
         <div className="max-h-40 overflow-y-auto space-y-1">
           {autoSaves.slice(0, 5).map((save) => (
             <div
@@ -101,13 +94,13 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
             </div>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={handleDismiss}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+          <button type="button" className="btn btn-outline" onClick={handleDismiss}>
             {t("crash.dismissAndClearConfirm")}
-          </Button>
-          <Button onClick={() => setOpen(false)}>{t("crash.acknowledged")}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => setOpen(false)}>{t("crash.acknowledged")}</button>
+        </div>
+      </div>
+    </div>
   );
 }

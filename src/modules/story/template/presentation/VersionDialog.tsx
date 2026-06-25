@@ -1,16 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
 import { Save, RefreshCw, Trash2 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
@@ -138,112 +127,128 @@ export function VersionDialog({
 
   return (
     <>
-      <Dialog open={open && !confirmAction} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t("version.controlTitle")}</DialogTitle>
-            <DialogDescription>{t("version.controlDesc")}</DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 space-y-3">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Label htmlFor="version-name" className="sr-only">{t("version.nameLabel")}</Label>
-                <Input
-                  id="version-name"
-                  placeholder={t("version.namePlaceholder")}
-                  value={versionName}
-                  onChange={(e) => setVersionName(e.target.value)}
-                />
+      {open && !confirmAction && (
+        <div className="modal-overlay" onClick={() => onOpenChange(false)}>
+          <div
+            className="modal"
+            style={{ maxWidth: "32rem" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>{t("version.controlTitle")}</div>
+              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{t("version.controlDesc")}</div>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label htmlFor="version-name" className="sr-only">{t("version.nameLabel")}</label>
+                  <input
+                    className="input"
+                    id="version-name"
+                    placeholder={t("version.namePlaceholder")}
+                    value={versionName}
+                    onChange={(e) => setVersionName(e.target.value)}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveVersion}
+                  disabled={beats.length === 0 || isSaving}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {t("common.save")}
+                </button>
               </div>
-              <Button
-                onClick={handleSaveVersion}
-                disabled={beats.length === 0 || isSaving}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {t("common.save")}
-              </Button>
+            </div>
+            <div className="mt-4 max-h-[400px] py-4 overflow-y-auto">
+              {versions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {t("version.noSavedVersions")}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {versions.map((version) => (
+                    <div
+                      key={version.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer transition-colors ${
+                        selectedVersion?.id === version.id
+                          ? "border-primary bg-primary/10"
+                          : ""
+                      }`}
+                      onClick={() => setSelectedVersion(version)}
+                    >
+                      <div>
+                        <h4 className="font-medium">
+                          {version.changeSummary || version.title || t("template.versionTime", { time: formatVersionTime(version.timestamp) })}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {t("version.savedAt", { time: formatVersionTime(version.timestamp) })}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRestoreVersion(version);
+                          }}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteVersion(version.id);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="mt-4 max-h-[400px] py-4 overflow-y-auto">
-            {versions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t("version.noSavedVersions")}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {versions.map((version) => (
-                  <div
-                    key={version.id}
-                    className={`flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer transition-colors ${
-                      selectedVersion?.id === version.id
-                        ? "border-primary bg-primary/10"
-                        : ""
-                    }`}
-                    onClick={() => setSelectedVersion(version)}
-                  >
-                    <div>
-                      <h4 className="font-medium">
-                        {version.changeSummary || version.title || t("template.versionTime", { time: formatVersionTime(version.timestamp) })}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {t("version.savedAt", { time: formatVersionTime(version.timestamp) })}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRestoreVersion(version);
-                        }}
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteVersion(version.id);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
-      <Dialog open={!!confirmAction} onOpenChange={(isOpen) => { if (!isOpen) handleCancelConfirm(); }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              {confirmAction === "restore" ? t("version.confirmRestore") : t("version.confirmDelete")}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmAction === "restore"
-                ? t("version.restoreWarning")
-                : t("version.deleteWarning")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={handleCancelConfirm}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              variant={confirmAction === "delete" ? "destructive" : "default"}
-              onClick={handleConfirmAction}
-            >
-              {t("common.confirm")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {confirmAction && (
+        <div className="modal-overlay" onClick={handleCancelConfirm}>
+          <div
+            className="modal"
+            style={{ maxWidth: "24rem" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>
+                {confirmAction === "restore" ? t("version.confirmRestore") : t("version.confirmDelete")}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+                {confirmAction === "restore"
+                  ? t("version.restoreWarning")
+                  : t("version.deleteWarning")}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={handleCancelConfirm}>
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                className={confirmAction === "delete" ? "btn btn-danger btn-sm" : "btn btn-primary btn-sm"}
+                onClick={handleConfirmAction}
+              >
+                {t("common.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

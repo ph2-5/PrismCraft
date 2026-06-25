@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { Loader2, Sparkles, Link2 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants/messages";
@@ -235,8 +234,9 @@ export function KeyframePanel({
         onFileSelect={handleFileSelect}
       />
 
-      <Button
-        className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-500 hover:via-purple-500 hover:to-pink-500 text-white font-medium"
+      <button
+        type="button"
+        className="btn btn-primary w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-500 hover:via-purple-500 hover:to-pink-500 text-white font-medium"
         onClick={handleOneClickGenerate}
         disabled={isGenerating}
       >
@@ -246,7 +246,7 @@ export function KeyframePanel({
           <Sparkles className="w-4 h-4 mr-2" />
         )}
         {t("keyframe.oneClickGenerate")}
-      </Button>
+      </button>
 
       <PromptFloatingBall
         beat={beat}

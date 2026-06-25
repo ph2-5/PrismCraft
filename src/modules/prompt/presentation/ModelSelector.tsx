@@ -2,14 +2,6 @@ import { useState, useEffect } from "react";
 import type { ApiCapability } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
 import type { ModelSelection } from "@/domain/schemas";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import { Badge } from "@/shared/ui/badge";
 import { Bot, Image as ImageIcon, Video, Eye, Settings2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { errorLogger } from "@/shared/error-logger";
@@ -141,36 +133,23 @@ export function ModelSelector({
           {t("model.modelLabel", { capability: capabilityLabels[capability] })}
         </span>
       )}
-      <Select value={currentValue} onValueChange={handleValueChange}>
-        <SelectTrigger className={`${compact ? "w-[180px] h-8 text-xs" : "w-[240px]"} border-slate-700 bg-slate-800/50`}>
-          <SelectValue placeholder={t("model.selectModel", { capability: capabilityLabels[capability] })}>
-            {value ? (
-              <span className="truncate">
-                {value.providerName} / {value.modelName}
-              </span>
-            ) : (
-              <span className="text-slate-400">{t("model.defaultModel")}</span>
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">{t("model.defaultOption")}</SelectItem>
-          {availableModels.map((m) => (
-            <SelectItem key={m.value} value={m.value}>
-              <div className="flex items-center gap-2">
-                <span>{m.providerName}</span>
-                <span className="text-slate-400">/</span>
-                <span>{m.modelName}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <select
+        className={`select ${compact ? "w-[180px] h-8 text-xs" : "w-[240px]"} border-slate-700 bg-slate-800/50`}
+        value={currentValue}
+        onChange={(e) => handleValueChange(e.target.value)}
+      >
+        <option value="">{t("model.defaultOption")}</option>
+        {availableModels.map((m) => (
+          <option key={m.value} value={m.value}>
+            {m.providerName} / {m.modelName}
+          </option>
+        ))}
+      </select>
       {value && (
-        <Badge variant="secondary" className="text-xs">
+        <span className="badge badge-muted text-xs">
           {capabilityIcons[capability]}
           <span className="ml-1">{value.modelName}</span>
-        </Badge>
+        </span>
       )}
     </div>
   );

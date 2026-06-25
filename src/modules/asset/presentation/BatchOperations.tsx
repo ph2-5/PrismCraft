@@ -1,13 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { t } from "@/shared/constants";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/shared/ui/dialog";
 import type { BatchTask, Character, Scene, BatchTaskResult } from "@/domain/schemas";
 import { Layers, Users, Image } from "lucide-react";
 import { container } from "@/infrastructure/di";
@@ -313,55 +305,65 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
   const pendingCount = tasks.filter((t) => t.status === "pending").length;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
+    <>
+      <button
+        type="button"
+        className="btn btn-outline btn-sm"
+        onClick={() => setOpen(true)}
       >
         <Layers className="h-4 w-4" />
         {t("batch.batchGenerate")}
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <TypeIcon className="h-5 w-5" />
-            {t("batch.generateVariantsTitle", { type: typeLabel })}
-          </DialogTitle>
-          <DialogDescription>
-            {t("batch.generateVariantsDesc", { count: items.length, type: typeLabel, variantCount })}
-          </DialogDescription>
-        </DialogHeader>
+      </button>
+      {open && (
+        <div className="modal-overlay" onClick={() => setOpen(false)}>
+          <div
+            className="modal"
+            style={{ maxWidth: "56rem", maxHeight: "90vh", overflowY: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 16, fontWeight: 600 }} className="flex items-center gap-2">
+                <TypeIcon className="h-5 w-5" />
+                {t("batch.generateVariantsTitle", { type: typeLabel })}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+                {t("batch.generateVariantsDesc", { count: items.length, type: typeLabel, variantCount })}
+              </div>
+            </div>
 
-        <VariantGenerator
-          typeLabel={typeLabel}
-          variantCount={variantCount}
-          onVariantCountChange={setVariantCount}
-          selectedStyle={selectedStyle}
-          onSelectedStyleChange={setSelectedStyle}
-          styleOptions={styleOptions}
-          isGenerating={isGenerating}
-        />
+            <VariantGenerator
+              typeLabel={typeLabel}
+              variantCount={variantCount}
+              onVariantCountChange={setVariantCount}
+              selectedStyle={selectedStyle}
+              onSelectedStyleChange={setSelectedStyle}
+              styleOptions={styleOptions}
+              isGenerating={isGenerating}
+            />
 
-        <BatchProgressDialog
-          tasks={tasks}
-          isGenerating={isGenerating}
-          overallProgress={overallProgress}
-          completedCount={completedCount}
-          failedCount={failedCount}
-          pendingCount={pendingCount}
-          selectedResults={selectedResults}
-          viewMode={viewMode}
-          globalError={globalError}
-          hasItems={items.length > 0}
-          onStartGeneration={startBatchGeneration}
-          onCancelGeneration={cancelGeneration}
-          onRetryFailed={retryFailed}
-          onDownloadAll={downloadAll}
-          onSaveSelected={saveSelected}
-          onToggleResultSelection={toggleResultSelection}
-          onViewModeChange={setViewMode}
-          onRetryGlobalError={startBatchGeneration}
-        />
-      </DialogContent>
-    </Dialog>
+            <BatchProgressDialog
+              tasks={tasks}
+              isGenerating={isGenerating}
+              overallProgress={overallProgress}
+              completedCount={completedCount}
+              failedCount={failedCount}
+              pendingCount={pendingCount}
+              selectedResults={selectedResults}
+              viewMode={viewMode}
+              globalError={globalError}
+              hasItems={items.length > 0}
+              onStartGeneration={startBatchGeneration}
+              onCancelGeneration={cancelGeneration}
+              onRetryFailed={retryFailed}
+              onDownloadAll={downloadAll}
+              onSaveSelected={saveSelected}
+              onToggleResultSelection={toggleResultSelection}
+              onViewModeChange={setViewMode}
+              onRetryGlobalError={startBatchGeneration}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

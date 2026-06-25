@@ -1,4 +1,3 @@
-import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { t } from "@/shared/constants";
@@ -14,9 +13,9 @@ export function BeatFooter({ onDeleteBeat, onClose }: BeatFooterProps) {
   return (
     <>
       <div className="border-t border-border p-5 flex items-center justify-between bg-muted/20 shrink-0">
-        <Button
-          variant="destructive"
-          size="sm"
+        <button
+          type="button"
+          className="btn btn-danger btn-sm"
           onClick={() => {
             confirmDialog({
               title: t("beat.deleteBeatTitle"),
@@ -31,10 +30,10 @@ export function BeatFooter({ onDeleteBeat, onClose }: BeatFooterProps) {
           }}
         >
           {t("beat.deleteBeatButton")}
-        </Button>
-        <Button variant="outline" size="sm" onClick={onClose}>
+        </button>
+        <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>
           {t("common.close")}
-        </Button>
+        </button>
       </div>
       {ConfirmDialogComponent}
     </>

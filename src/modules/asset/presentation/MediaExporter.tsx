@@ -1,13 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/shared/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Badge } from "@/shared/ui/badge";
 import {
   FileText,
   Image as ImageIcon,
@@ -203,46 +194,44 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
       };
 
   return (
-    <Card
-      className={themeClasses.card}
+    <div
+      className={`card ${themeClasses.card}`}
+      style={{ padding: 16 }}
     >
-      <CardHeader
+      <div
         className={themeClasses.header}
+        style={{ paddingBottom: 12 }}
       >
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className={`${themeClasses.title} flex items-center gap-2`}>
+            <div className={`${themeClasses.title} flex items-center gap-2`} style={{ fontSize: 16, fontWeight: 600 }}>
               {type === "character" ? (
                 <User className="w-5 h-5" />
               ) : (
                 <Settings className="w-5 h-5" />
               )}
               {type === "character" ? t("asset.characterExportTitle") : t("asset.sceneExportTitle")}
-            </CardTitle>
-            <CardDescription className={themeClasses.desc}>
+            </div>
+            <div className={themeClasses.desc} style={{ fontSize: 12 }}>
               {t("asset.exportTypeData", { type: type === "character" ? t("sidebar.characters") : t("sidebar.scenes") })}
-            </CardDescription>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {hasImage && (
-              <Badge
-                className={themeClasses.imageBadge}
-              >
+              <span className={`badge ${themeClasses.imageBadge}`}>
                 {t("asset.hasImage")}
-              </Badge>
+              </span>
             )}
             {hasVideo && (
-              <Badge
-                className={themeClasses.videoBadge}
-              >
+              <span className={`badge ${themeClasses.videoBadge}`}>
                 {t("asset.hasVideo")}
-              </Badge>
+              </span>
             )}
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-6 pt-6">
+      <div className="space-y-6 pt-6">
         {/* 状态提示 */}
         {exportStatus === "success" && (
           <div
@@ -250,14 +239,13 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           >
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
             <span className="text-emerald-200">{t("asset.exportSuccess")}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`ml-auto h-8 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/30`}
+            <button
+              type="button"
+              className={`btn btn-ghost btn-sm ml-auto h-8 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/30`}
               onClick={resetStatus}
             >
               {t("asset.continueButton")}
-            </Button>
+            </button>
           </div>
         )}
 
@@ -265,21 +253,21 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-900/30 border border-rose-700/50">
             <AlertCircle className="w-5 h-5 text-rose-400" />
             <span className="text-rose-200">{t("asset.exportFailedRetry")}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto h-8 text-rose-300 hover:text-rose-100 hover:bg-rose-900/30"
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm ml-auto h-8 text-rose-300 hover:text-rose-100 hover:bg-rose-900/30"
               onClick={resetStatus}
             >
               {t("common.retry")}
-            </Button>
+            </button>
           </div>
         )}
 
         {/* 导出按钮 */}
         <div className="flex flex-wrap gap-3">
-          <Button
-            className={`gap-2 ${themeClasses.exportBtn}`}
+          <button
+            type="button"
+            className={`btn btn-primary gap-2 ${themeClasses.exportBtn}`}
             onClick={handleExportProject}
             disabled={isExporting || !item.id}
           >
@@ -289,30 +277,30 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
               <FileText className="w-4 h-4" />
             )}
             {t("asset.exportProjectFile")}
-          </Button>
+          </button>
 
           {hasImage && (
-            <Button
-              variant="secondary"
-              className="gap-2 bg-slate-700 hover:bg-slate-600 text-slate-100 border-0"
+            <button
+              type="button"
+              className="btn btn-outline gap-2 bg-slate-700 hover:bg-slate-600 text-slate-100 border-0"
               onClick={handleDownloadImage}
               disabled={isExporting}
             >
               <ImageIcon className="w-4 h-4" />
               {t("asset.downloadImage")}
-            </Button>
+            </button>
           )}
 
           {hasVideo && (
-            <Button
-              variant="secondary"
-              className="gap-2 bg-slate-700 hover:bg-slate-600 text-slate-100 border-0"
+            <button
+              type="button"
+              className="btn btn-outline gap-2 bg-slate-700 hover:bg-slate-600 text-slate-100 border-0"
               onClick={handleDownloadVideo}
               disabled={isExporting}
             >
               <Video className="w-4 h-4" />
               {t("asset.downloadVideo")}
-            </Button>
+            </button>
           )}
         </div>
 
@@ -332,8 +320,8 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
             </li>
           </ul>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

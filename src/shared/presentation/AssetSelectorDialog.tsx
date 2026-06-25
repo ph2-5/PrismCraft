@@ -1,11 +1,4 @@
 import { ImageIcon } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
 import { t } from "@/shared/constants";
 
 interface Asset {
@@ -33,14 +26,16 @@ export function AssetSelectorDialog({
 }: AssetSelectorDialogProps) {
   const imageAssets = assets.filter((a) => a.type === "image");
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{t("dialog.selectAsset")}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto">
+    <div className="modal-overlay" onClick={() => onOpenChange(false)}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1024, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{t("dialog.selectAsset")}</div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{description}</div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto" }}>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
             {imageAssets.map((asset) => (
               <div
@@ -84,8 +79,8 @@ export function AssetSelectorDialog({
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
 

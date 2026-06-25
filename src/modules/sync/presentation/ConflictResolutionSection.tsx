@@ -1,11 +1,3 @@
-import { Label } from "@/shared/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import { t } from "@/shared/constants";
 import type { ConflictStrategy } from "@/modules/sync";
 
@@ -22,22 +14,18 @@ export function ConflictResolutionSection({
 }: ConflictResolutionSectionProps) {
   return (
     <div className="space-y-2">
-      <Label>{t("sync.conflictStrategy")}</Label>
-      <Select
+      <label>{t("sync.conflictStrategy")}</label>
+      <select
+        className="select"
         value={conflictStrategy}
-        onValueChange={(value) => onConflictStrategyChange(value as ConflictStrategy)}
+        onChange={(e) => onConflictStrategyChange(e.target.value as ConflictStrategy)}
         disabled={!enabled}
       >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="last-write-wins">{t("sync.lastWriteWins")}</SelectItem>
-          <SelectItem value="local-wins">{t("sync.localPriority")}</SelectItem>
-          <SelectItem value="remote-wins">{t("sync.remotePriority")}</SelectItem>
-          <SelectItem value="manual">{t("sync.manualResolve")}</SelectItem>
-        </SelectContent>
-      </Select>
+        <option value="last-write-wins">{t("sync.lastWriteWins")}</option>
+        <option value="local-wins">{t("sync.localPriority")}</option>
+        <option value="remote-wins">{t("sync.remotePriority")}</option>
+        <option value="manual">{t("sync.manualResolve")}</option>
+      </select>
       <p className="text-xs text-muted-foreground">
         {conflictStrategy === "last-write-wins" && t("sync.lastWriteWinsDesc")}
         {conflictStrategy === "local-wins" && t("sync.localPriorityDesc")}

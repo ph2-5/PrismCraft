@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/shared/ui/button";
-import { Badge } from "@/shared/ui/badge";
 import {
   Video,
   Download,
@@ -45,8 +43,8 @@ export function VideoPreview({
           <span className="font-medium" style={{ color: "var(--success)" }}>{t("task.videoGenerated")}</span>
         </div>
         {cacheState?.exists && (
-          <Badge
-            className="flex items-center gap-1"
+          <span
+            className="badge badge-info flex items-center gap-1"
             style={{ background: "rgba(var(--primary-rgb), 0.1)", color: "var(--primary)" }}
           >
             <svg
@@ -68,7 +66,7 @@ export function VideoPreview({
                 ({cacheState.fileSizeMB.toFixed(2)}MB)
               </span>
             )}
-          </Badge>
+          </span>
         )}
       </div>
       <div className="group relative">
@@ -95,44 +93,40 @@ export function VideoPreview({
         </div>
       </div>
       <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 px-3 text-xs flex-1 gap-1"
+        <button
+          type="button"
+          className="btn btn-outline btn-sm h-8 px-3 text-xs flex-1 gap-1"
           onClick={() => onOpenPreview(task)}
         >
           <Play className="w-3 h-3" />
           {t("task.previewButton")}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 px-3 text-xs flex-1 gap-1"
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline btn-sm h-8 px-3 text-xs flex-1 gap-1"
           onClick={() => onOpenDetail(task)}
         >
           <ChevronRight className="w-3 h-3" />
           {t("shot.detail")}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 px-3 text-xs flex-1 gap-1"
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline btn-sm h-8 px-3 text-xs flex-1 gap-1"
           onClick={() => onDownloadVideo(task)}
         >
           <Download className="w-3 h-3" />
           {t("task.downloadButton")}
-        </Button>
+        </button>
         {cacheState?.exists && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-3 text-xs flex-1 gap-1"
+          <button
+            type="button"
+            className="btn btn-outline btn-sm h-8 px-3 text-xs flex-1 gap-1"
             style={{ color: "var(--destructive)", borderColor: "var(--destructive)" }}
             onClick={() => onDeleteCache(task)}
           >
             <Trash2 className="w-3 h-3" />
             {t("common.delete")}
-          </Button>
+          </button>
         )}
       </div>
     </div>

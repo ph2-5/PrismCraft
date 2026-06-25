@@ -1,12 +1,4 @@
 import { Camera } from "lucide-react";
-import { Label } from "@/shared/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import type { StoryBeat, ShotInstructionTemplate } from "@/domain/schemas";
 import {
   SHOT_SIZE_OPTIONS,
@@ -52,71 +44,59 @@ export function ShotInstructionSection({
       </h3>
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <Label className="text-foreground mb-2 block">{t("beat.shotSize")}</Label>
-          <Select
+          <label className="text-foreground mb-2 block">{t("beat.shotSize")}</label>
+          <select
+            className="select bg-muted/50 border-border"
             value={currentInstruction.shotSize}
-            onValueChange={(value) =>
+            onChange={(e) =>
               handleUpdateShotInstruction({
-                shotSize: value as ShotInstructionTemplate["shotSize"],
+                shotSize: e.target.value as ShotInstructionTemplate["shotSize"],
               })
             }
           >
-            <SelectTrigger className="bg-muted/50 border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SHOT_SIZE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {SHOT_SIZE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
-          <Label className="text-foreground mb-2 block">{t("beat.cameraMovement")}</Label>
-          <Select
+          <label className="text-foreground mb-2 block">{t("beat.cameraMovement")}</label>
+          <select
+            className="select bg-muted/50 border-border"
             value={currentInstruction.cameraMovement}
-            onValueChange={(value) =>
+            onChange={(e) =>
               handleUpdateShotInstruction({
                 cameraMovement:
-                  value as ShotInstructionTemplate["cameraMovement"],
+                  e.target.value as ShotInstructionTemplate["cameraMovement"],
               })
             }
           >
-            <SelectTrigger className="bg-muted/50 border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CAMERA_MOVEMENT_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {CAMERA_MOVEMENT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
-          <Label className="text-foreground mb-2 block">{t("beat.angle")}</Label>
-          <Select
+          <label className="text-foreground mb-2 block">{t("beat.angle")}</label>
+          <select
+            className="select bg-muted/50 border-border"
             value={currentInstruction.cameraAngle}
-            onValueChange={(value) =>
+            onChange={(e) =>
               handleUpdateShotInstruction({
-                cameraAngle: value as ShotInstructionTemplate["cameraAngle"],
+                cameraAngle: e.target.value as ShotInstructionTemplate["cameraAngle"],
               })
             }
           >
-            <SelectTrigger className="bg-muted/50 border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CAMERA_ANGLE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {CAMERA_ANGLE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
     </div>

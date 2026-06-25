@@ -2,7 +2,6 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/shared/utils/utils"
-import { Button } from "@/shared/ui/button"
 
 function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -44,14 +43,39 @@ function InputGroupAddon({
   )
 }
 
+type InputGroupButtonVariant = "default" | "outline" | "ghost" | "destructive" | "secondary" | "link";
+type InputGroupButtonSize = "default" | "sm" | "xs" | "icon" | "lg";
+
+interface InputGroupButtonProps extends React.ComponentProps<"button"> {
+  variant?: InputGroupButtonVariant;
+  size?: InputGroupButtonSize;
+}
+
 function InputGroupButton({
   className,
+  variant = "default",
+  size,
   ...props
-}: React.ComponentProps<typeof Button>) {
+}: InputGroupButtonProps) {
+  const variantClass =
+    variant === "outline" || variant === "secondary"
+      ? "btn btn-outline"
+      : variant === "ghost"
+        ? "btn btn-ghost"
+        : variant === "destructive"
+          ? "btn btn-danger"
+          : "btn btn-primary";
+  const sizeClass =
+    size === "sm"
+      ? "btn-sm"
+      : size === "xs" || size === "icon"
+        ? "btn-xs"
+        : "";
   return (
-    <Button
+    <button
+      type="button"
       data-slot="input-group-button"
-      className={cn("", className)}
+      className={cn(variantClass, sizeClass, className)}
       {...props}
     />
   )

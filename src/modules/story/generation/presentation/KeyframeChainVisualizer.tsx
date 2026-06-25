@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { Link, Image, CheckCircle } from "lucide-react";
-import { Badge } from "@/shared/ui/badge";
 import type { StoryBeat } from "@/domain/schemas";
 import { t } from "@/shared/constants";
 
@@ -50,13 +49,15 @@ export function KeyframeChainVisualizer({
           <Link className="w-4 h-4 text-purple-400" />
           {t("keyframe.chainInheritance")}
         </h4>
-        <Badge
+        <span
           className={
-            chainStatus.validChain ? "bg-green-600/50" : "bg-amber-600/50"
+            chainStatus.validChain
+              ? "badge badge-info bg-green-600/50"
+              : "badge badge-info bg-amber-600/50"
           }
         >
           {chainStatus.validChain ? t("keyframe.chainComplete") : t("keyframe.chainBroken")}
-        </Badge>
+        </span>
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-2">

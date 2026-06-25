@@ -1,5 +1,4 @@
 import { Play, Upload, Loader2, RefreshCw } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 import { AppCard } from "@/shared/ui/app-card";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
@@ -103,19 +102,18 @@ export function VideoStepContent({
               className="hidden"
               onChange={(e) => onFileSelect(e, onUploadVideo)}
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="bg-slate-700 hover:bg-slate-600"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
               onClick={() => videoInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1" />
               {t("common.upload")}
-            </Button>
+            </button>
             {!hasVideo ? (
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+              <button
+                type="button"
+                className="btn btn-primary btn-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
                 onClick={onGenerateVideo}
                 disabled={isGenerating || !hasFramePair}
               >
@@ -125,18 +123,17 @@ export function VideoStepContent({
                   <Play className="w-4 h-4 mr-1" />
                 )}
                 {t("beat.generateVideo")}
-              </Button>
+              </button>
             ) : onRegenerateVideo ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-slate-700 hover:bg-slate-600"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm bg-slate-700 hover:bg-slate-600"
                 onClick={onRegenerateVideo}
                 disabled={isGenerating}
               >
                 <RefreshCw className="w-4 h-4 mr-1" />
                 {t("common.regenerate")}
-              </Button>
+              </button>
             ) : null}
           </div>
         </div>

@@ -28,46 +28,6 @@ vi.mock("@/shared/constants", () => ({
   t: mockT,
 }));
 
-vi.mock("@/shared/ui/dialog", () => ({
-  Dialog: ({ children, open, onOpenChange }: { children: React.ReactNode; open: boolean; onOpenChange: (open: boolean) => void }) => {
-    if (!open) return null;
-    return (
-      <div data-testid="dialog" data-open={open}>
-        <div data-testid="dialog-overlay" onClick={() => onOpenChange(false)} />
-        {children}
-      </div>
-    );
-  },
-  DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
-  DialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
-  DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock("@/shared/ui/input", () => ({
-  Input: ({ value, onChange, placeholder }: { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder?: string }) => (
-    <input
-      data-testid="delete-confirm-input"
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-    />
-  ),
-}));
-
-vi.mock("@/shared/ui/button", () => ({
-  Button: ({ children, disabled, onClick, variant }: { children: React.ReactNode; disabled?: boolean; onClick?: () => void; variant?: string }) => (
-    <button
-      data-testid={`button-${variant ?? "default"}`}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  ),
-}));
-
 vi.mock("lucide-react", () => ({
   Trash2: () => <span data-testid="icon-trash" />,
 }));

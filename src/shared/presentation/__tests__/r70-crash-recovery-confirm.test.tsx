@@ -45,26 +45,6 @@ vi.mock("@/shared/error-logger", () => ({
   errorLogger: mockErrorLogger,
 }));
 
-vi.mock("@/shared/ui/dialog", () => ({
-  Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) => {
-    if (!open) return null;
-    return <div data-testid="crash-dialog">{children}</div>;
-  },
-  DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
-  DialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
-  DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock("@/shared/ui/button", () => ({
-  Button: ({ children, onClick, variant }: { children: React.ReactNode; onClick?: () => void; variant?: string }) => (
-    <button data-testid={`button-${variant ?? "default"}`} onClick={onClick}>
-      {children}
-    </button>
-  ),
-}));
-
 import { CrashRecoveryDialog } from "../CrashRecoveryDialog";
 
 describe("R70: Irreversible data clearing must require confirmation", () => {
@@ -89,7 +69,7 @@ describe("R70: Irreversible data clearing must require confirmation", () => {
       />,
     );
 
-    const dismissButton = await screen.findByTestId("button-outline");
+    const dismissButton = await screen.findByRole("button", { name: /清除并忽略/ });
     await userEvent.setup().click(dismissButton);
 
     expect(mockConfirm).toHaveBeenCalledWith(
@@ -108,7 +88,7 @@ describe("R70: Irreversible data clearing must require confirmation", () => {
       />,
     );
 
-    const dismissButton = await screen.findByTestId("button-outline");
+    const dismissButton = await screen.findByRole("button", { name: /清除并忽略/ });
     await userEvent.setup().click(dismissButton);
 
     expect(mockConfirm).toHaveBeenCalled();
@@ -125,7 +105,7 @@ describe("R70: Irreversible data clearing must require confirmation", () => {
       />,
     );
 
-    const dismissButton = await screen.findByTestId("button-outline");
+    const dismissButton = await screen.findByRole("button", { name: /清除并忽略/ });
     await userEvent.setup().click(dismissButton);
 
     expect(mockConfirm).toHaveBeenCalled();

@@ -9,7 +9,6 @@ import {
   Check,
   ArrowLeft,
 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { t } from "@/shared/constants";
 
@@ -171,20 +170,21 @@ export default function AssetPicker({
               </div>
             </div>
             <div className="flex gap-2 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
+              <button
+                type="button"
+                className="btn btn-outline flex-1"
                 onClick={() => setPreviewAsset(null)}
               >
                 {t("assetPicker.backToSelect")}
-              </Button>
-              <Button
-                className="flex-1"
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex-1"
                 onClick={handleConfirmSelection}
               >
                 <Check className="w-4 h-4 mr-1" />
                 {t("assetPicker.confirmSelection")}
-              </Button>
+              </button>
             </div>
           </div>
         ) : (

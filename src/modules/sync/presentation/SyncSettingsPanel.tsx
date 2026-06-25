@@ -1,16 +1,4 @@
 import { useState, useCallback, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Switch } from "@/shared/ui/switch";
-import { Label } from "@/shared/ui/label";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import {
@@ -300,119 +288,133 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              {t("sync.settingsTitle")}
-            </DialogTitle>
-            <DialogDescription>
-              {t("sync.description")}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-200">
-                {t("sync.devWarning")}
-              </p>
+      {isOpen && (
+        <div className="modal-overlay" onClick={() => onClose()}>
+          <div
+            className="modal"
+            style={{ maxWidth: "32rem", maxHeight: "90vh", overflowY: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 16, fontWeight: 600 }} className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                {t("sync.settingsTitle")}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+                {t("sync.description")}
+              </div>
             </div>
 
-            {/* 同步开关 */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>{t("sync.enableSync")}</Label>
-                <p className="text-xs text-muted-foreground">
-                  {t("sync.enableSyncHint")}
+            <div className="space-y-6 py-4">
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-200">
+                  {t("sync.devWarning")}
                 </p>
               </div>
-              <Switch
-                checked={config.enabled}
-                onCheckedChange={(checked) =>
-                  setConfig((prev) => ({ ...prev, enabled: checked }))
-                }
-              />
-            </div>
 
-            {/* 服务器配置 */}
-            <ServerConfigSection
-              serverUrl={serverUrl}
-              onServerUrlChange={handleServerUrlChange}
-              username={username}
-              onUsernameChange={handleUsernameChange}
-              password={password}
-              onPasswordChange={handlePasswordChange}
-              connectionStatus={connectionStatus}
-              connectionMessage={connectionMessage}
-              serverVersion={serverVersion}
-              onTestConnection={handleTestConnection}
-              enabled={config.enabled}
-            />
-
-            {/* 自动同步 */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>{t("sync.autoSync")}</Label>
-                <p className="text-xs text-muted-foreground">
-                  {t("sync.autoSyncHint")}
-                </p>
+              {/* 同步开关 */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <label>{t("sync.enableSync")}</label>
+                  <p className="text-xs text-muted-foreground">
+                    {t("sync.enableSyncHint")}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={config.enabled}
+                  onChange={(e) =>
+                    setConfig((prev) => ({ ...prev, enabled: e.target.checked }))
+                  }
+                />
               </div>
-              <Switch
-                checked={config.autoSync}
-                onCheckedChange={(checked) =>
-                  setConfig((prev) => ({ ...prev, autoSync: checked }))
-                }
-                disabled={!config.enabled}
+
+              {/* 服务器配置 */}
+              <ServerConfigSection
+                serverUrl={serverUrl}
+                onServerUrlChange={handleServerUrlChange}
+                username={username}
+                onUsernameChange={handleUsernameChange}
+                password={password}
+                onPasswordChange={handlePasswordChange}
+                connectionStatus={connectionStatus}
+                connectionMessage={connectionMessage}
+                serverVersion={serverVersion}
+                onTestConnection={handleTestConnection}
+                enabled={config.enabled}
               />
+
+              {/* 自动同步 */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <label>{t("sync.autoSync")}</label>
+                  <p className="text-xs text-muted-foreground">
+                    {t("sync.autoSyncHint")}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={config.autoSync}
+                  onChange={(e) =>
+                    setConfig((prev) => ({ ...prev, autoSync: e.target.checked }))
+                  }
+                  disabled={!config.enabled}
+                />
+              </div>
+
+              {/* 同步间隔 */}
+              <div className="space-y-2">
+                <label>{t("sync.syncIntervalSeconds")}</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={10}
+                  max={3600}
+                  value={Math.floor(config.syncInterval / 1000)}
+                  onChange={(e) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      syncInterval: Math.max(10, parseInt(e.target.value) || 30) * 1000,
+                    }))
+                  }
+                  disabled={!config.enabled || !config.autoSync}
+                />
+              </div>
+
+              <ConflictResolutionSection
+                conflictStrategy={config.conflictStrategy}
+                onConflictStrategyChange={(strategy) => setConfig((prev) => ({ ...prev, conflictStrategy: strategy }))}
+                enabled={config.enabled}
+              />
+
+              <SyncStatusSection status={status} syncResult={syncResult} />
             </div>
 
-            {/* 同步间隔 */}
-            <div className="space-y-2">
-              <Label>{t("sync.syncIntervalSeconds")}</Label>
-              <Input
-                type="number"
-                min={10}
-                max={3600}
-                value={Math.floor(config.syncInterval / 1000)}
-                onChange={(e) =>
-                  setConfig((prev) => ({
-                    ...prev,
-                    syncInterval: Math.max(10, parseInt(e.target.value) || 30) * 1000,
-                  }))
-                }
-                disabled={!config.enabled || !config.autoSync}
-              />
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm gap-1"
+                onClick={handleSyncNow}
+                disabled={isSyncing || !config.enabled || !hasServerConfig}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                />
+                {isSyncing ? t("sync.syncing") : t("sync.syncNow")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? t("common.saving") : t("sync.saveSettings")}
+              </button>
             </div>
-
-            <ConflictResolutionSection
-              conflictStrategy={config.conflictStrategy}
-              onConflictStrategyChange={(strategy) => setConfig((prev) => ({ ...prev, conflictStrategy: strategy }))}
-              enabled={config.enabled}
-            />
-
-            <SyncStatusSection status={status} syncResult={syncResult} />
           </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSyncNow}
-              disabled={isSyncing || !config.enabled || !hasServerConfig}
-              className="gap-1"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
-              />
-              {isSyncing ? t("sync.syncing") : t("sync.syncNow")}
-            </Button>
-            <Button variant="default" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? t("common.saving") : t("sync.saveSettings")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       <SyncConflictPanel
         conflicts={conflicts}

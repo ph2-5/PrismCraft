@@ -1,6 +1,3 @@
-import { Input } from "@/shared/ui/input";
-import { Button } from "@/shared/ui/button";
-import { Label } from "@/shared/ui/label";
 import { Search, Loader2 } from "lucide-react";
 import { t } from "@/shared/constants";
 
@@ -19,18 +16,19 @@ export function RecoverySection({
 }: RecoverySectionProps) {
   return (
     <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--border)" }}>
-      <Label className="text-sm font-medium">{t("task.recoverFailedVideo")}</Label>
+      <label className="text-sm font-medium">{t("task.recoverFailedVideo")}</label>
       <div className="flex gap-2">
-        <Input
+        <input
+          className="input flex-1"
           placeholder={t("task.enterTaskId")}
           value={recoveryTaskId}
           onChange={(e) => onRecoveryTaskIdChange(e.target.value)}
-          className="flex-1"
         />
-        <Button
+        <button
+          type="button"
+          className="btn btn-primary gap-2"
           onClick={onRecover}
           disabled={isRecovering}
-          className="gap-2"
         >
           {isRecovering ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -38,7 +36,7 @@ export function RecoverySection({
             <Search className="w-4 h-4" />
           )}
           {t("task.recoverButton")}
-        </Button>
+        </button>
       </div>
       <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
         {t("task.recoverHint")}

@@ -9,11 +9,9 @@ import {
 } from "lucide-react";
 import { memo } from "react";
 
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
+import { cn } from "@/shared/utils/utils";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
-import { Badge } from "@/shared/ui/badge";
 import { Link } from "react-router-dom";
 import type { StoryBeat, ShotGenerationStatus } from "@/domain/schemas";
 import { t } from "@/shared/constants";
@@ -84,27 +82,27 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
             {t("shot.featureAnchoringDesc")}
           </p>
           <div className="mt-2 flex gap-2">
-            <Badge className="bg-blue-600/50 text-[10px]">
+            <span className="badge badge-info bg-blue-600/50 text-[10px]">
               {t("shot.characterCount", { count: anchoring.characterAnchors.length })}
-            </Badge>
+            </span>
             {anchoring.previewImageUrl && (
-              <Badge className="bg-cyan-600/50 text-[10px]">{t("shot.previewRef")}</Badge>
+              <span className="badge badge-info bg-cyan-600/50 text-[10px]">{t("shot.previewRef")}</span>
             )}
-            <Badge className="bg-amber-600/50 text-[10px]">
+            <span className="badge badge-info bg-amber-600/50 text-[10px]">
               {t("shot.frameBindingDisabled")}
-            </Badge>
-            <Badge className="bg-purple-600/50 text-[10px]">
+            </span>
+            <span className="badge badge-info bg-purple-600/50 text-[10px]">
               {t("shot.consistency", { percent: Math.round((anchoring.featureConsistencyStrength ?? DEFAULT_CONSISTENCY_STRENGTH) * 100) })}
-            </Badge>
+            </span>
           </div>
         </div>
       )}
 
-      <Card>
-        <CardContent className="p-4">
+      <div className="card" style={{ padding: 16 }}>
+        <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Badge className={config.color}>{config.label}</Badge>
+              <span className={cn("badge badge-info", config.color)}>{config.label}</span>
               {Icon && (
                 <Icon
                   className={`w-4 h-4 ${status === "generating" ? "animate-spin" : ""}`}
@@ -113,31 +111,30 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
             </div>
             <div className="flex gap-2">
               <Link to={`/story/beat/${beat.id}`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 border-purple-600/50 text-purple-100 hover:bg-purple-900/30"
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm gap-1.5 border-purple-600/50 text-purple-100 hover:bg-purple-900/30"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   {t("shot.detail")}
-                </Button>
+                </button>
               </Link>
               {status === "completed" && onRegenerate && (
-                <Button
+                <button
+                  type="button"
                   onClick={onRegenerate}
                   disabled={isGenerating}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 border-purple-600/50 text-purple-100 hover:bg-purple-900/30"
+                  className="btn btn-outline btn-sm gap-1.5 border-purple-600/50 text-purple-100 hover:bg-purple-900/30"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   {t("shot.regenerate")}
-                </Button>
+                </button>
               )}
-              <Button
+              <button
+                type="button"
                 onClick={onGenerate}
                 disabled={isGenerating}
-                className="gap-2"
+                className="btn btn-primary gap-2"
               >
                 {isGenerating ? (
                   <>
@@ -152,7 +149,7 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
                       : t("shot.independentGenerate")}
                   </>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -179,17 +176,18 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
                 >
                   {t("shot.visualConsistency", { status: consistencyCheck.passed ? t("shot.consistencyPassed") : t("shot.consistencyAttention") })}
                 </span>
-                <Badge
-                  className={
+                <span
+                  className={cn(
+                    "badge badge-info",
                     consistencyCheck.overallScore >= 0.8
                       ? "bg-green-600"
                       : consistencyCheck.overallScore >= 0.5
                         ? "bg-amber-600"
-                        : "bg-red-600"
-                  }
+                        : "bg-red-600",
+                  )}
                 >
                   {Math.round(consistencyCheck.overallScore * 100)}%
-                </Badge>
+                </span>
               </div>
               {consistencyCheck.characterScores.map((cs) => (
                 <div key={cs.elementId} className="text-xs text-slate-400 ml-6">
@@ -201,15 +199,14 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
               {consistencyCheck.recommendation === "regenerate" &&
                 onRegenerate && (
                   <div className="mt-2 ml-6">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-amber-400 border-amber-600/50 hover:bg-amber-900/20"
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm text-amber-400 border-amber-600/50 hover:bg-amber-900/20"
                       onClick={onRegenerate}
                     >
                       <RefreshCw className="w-3 h-3 mr-1" />
                       {t("shot.suggestRegenerate")}
-                    </Button>
+                    </button>
                   </div>
                 )}
             </div>
@@ -223,8 +220,8 @@ export const ShotGenerationPanel = memo(function ShotGenerationPanel({
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <div className="text-sm text-muted-foreground">
         <p>{t("shot.tips")}</p>

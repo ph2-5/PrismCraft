@@ -1,13 +1,5 @@
 import { memo } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Button } from "@/shared/ui/button";
-import {
   ChevronDown,
   ChevronRight,
   Download,
@@ -49,9 +41,10 @@ export const TaskCard = memo(function TaskCard({
   onViewDetail,
 }: TaskCardProps) {
   return (
-    <Card className="overflow-hidden">
-      <CardHeader
+    <div className="card" style={{ padding: 16, overflow: "hidden" }}>
+      <div
         className="pb-3 cursor-pointer"
+        style={{ paddingBottom: 12, cursor: "pointer" }}
         onClick={() => onToggleExpanded(task.taskId)}
       >
         <div className="flex items-center justify-between">
@@ -68,21 +61,21 @@ export const TaskCard = memo(function TaskCard({
             />
             <StatusBadge status={getTaskDisplayStatus(task.status)} />
             <div>
-              <CardTitle className="text-sm">
+              <div className="text-sm" style={{ fontSize: 16, fontWeight: 600 }}>
                 {task.prompt?.slice(0, 50) || t("task.noPrompt")}
                 {(task.prompt?.length || 0) > 50 ? "..." : ""}
-              </CardTitle>
-              <CardDescription className="text-xs">
+              </div>
+              <div className="text-xs" style={{ fontSize: 12, color: "var(--muted-fg)" }}>
                 {formatDuration(now - new Date(task.createdAt).getTime())} · {task.providerId || t("common.unknown")}
                 {task.storyId ? ` · ${t("task.beatLabel")}: ${task.storyTitle || task.beatTitle || t("task.relatedStory")}` : ` · ${t("sidebar.quickGenerate")}`}
-              </CardDescription>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {(getTaskDisplayStatus(task.status) === "failed" || getTaskDisplayStatus(task.status) === "timeout") && (
-              <Button
-                size="sm"
-                variant="outline"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRetry(task.taskId);
@@ -90,12 +83,12 @@ export const TaskCard = memo(function TaskCard({
               >
                 <RefreshCw className="w-3 h-3 mr-1" />
                 {t("common.retry")}
-              </Button>
+              </button>
             )}
             {task.videoUrl && (
-              <Button
-                size="sm"
-                variant="outline"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   onViewDetail(task);
@@ -103,7 +96,7 @@ export const TaskCard = memo(function TaskCard({
               >
                 <Eye className="w-3 h-3 mr-1" />
                 {t("task.view")}
-              </Button>
+              </button>
             )}
             {isExpanded ? (
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -112,10 +105,10 @@ export const TaskCard = memo(function TaskCard({
             )}
           </div>
         </div>
-      </CardHeader>
+      </div>
 
       {isExpanded && (
-        <CardContent className="pt-0 space-y-4">
+        <div className="pt-0 space-y-4">
           {task.prompt && (
             <div>
               <p className="text-sm text-muted-foreground mb-1">{t("beat.prompt")}</p>
@@ -133,24 +126,24 @@ export const TaskCard = memo(function TaskCard({
                 onError={createVideoErrorHandler()}
               />
               <div className="mt-2 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
                   onClick={() => onViewDetail(task)}
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   {t("task.viewDetail")}
-                </Button>
+                </button>
                 <a
                   href={resolveImageUrl(task.videoUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   download
                 >
-                  <Button size="sm" variant="outline">
+                  <button type="button" className="btn btn-outline btn-sm">
                     <Download className="w-4 h-4 mr-2" />
                     {t("beat.download")}
-                  </Button>
+                  </button>
                 </a>
               </div>
             </div>
@@ -162,8 +155,8 @@ export const TaskCard = memo(function TaskCard({
               <p className="text-sm" style={{ color: "var(--warning)" }}>{task.message}</p>
             </div>
           )}
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </div>
   );
 });

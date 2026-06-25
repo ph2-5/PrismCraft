@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { X, Sparkles, Settings, Image as ImageIcon, Video, FileText } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { useNavigationGuard } from "./BeforeUnloadGuard";
 import { checkConfigStatus } from "@/shared/api-config";
@@ -148,26 +147,27 @@ export function OnboardingGuide() {
 
           <div className="flex gap-3 w-full">
             {currentStep > 0 && (
-              <Button variant="outline" onClick={handlePrev}>
+              <button type="button" className="btn btn-outline" onClick={handlePrev}>
                 {t("onboarding.prevStep")}
-              </Button>
+              </button>
             )}
             {step.action ? (
-              <Button
-                className="flex-1"
+              <button
+                type="button"
+                className="btn btn-primary flex-1"
                 onClick={() => step.action && handleActionClick(step.action.href)}
               >
                 {step.action.label}
-              </Button>
+              </button>
             ) : (
-              <Button onClick={handleNext} className="flex-1">
+              <button type="button" className="btn btn-primary flex-1" onClick={handleNext}>
                 {isLastStep ? t("onboarding.finish") : t("onboarding.nextStep")}
-              </Button>
+              </button>
             )}
             {!isLastStep && (
-              <Button variant="outline" onClick={handleSkip}>
+              <button type="button" className="btn btn-outline" onClick={handleSkip}>
                 {t("onboarding.skip")}
-              </Button>
+              </button>
             )}
           </div>
         </div>

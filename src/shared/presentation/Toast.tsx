@@ -8,7 +8,6 @@ import React, {
   useMemo,
 } from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
-import { Button } from "@/shared/ui/button";
 import { t } from "@/shared/constants/messages";
 
 export type ToastType = "success" | "error" | "warning" | "info";
@@ -273,15 +272,14 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
           </button>
         )}
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-6 w-6 -mr-2 -mt-2 shrink-0 hover:bg-muted/50"
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs h-6 w-6 -mr-2 -mt-2 shrink-0 hover:bg-muted/50"
         onClick={onClose}
         aria-label={t("aria.dismissNotification")}
       >
         <X className="w-3.5 h-3.5" />
-      </Button>
+      </button>
 
       {!toast.exiting && (
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-muted/30">

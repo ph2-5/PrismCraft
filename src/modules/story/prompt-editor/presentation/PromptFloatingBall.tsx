@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Send, Loader2, Sparkles, Check, RotateCcw } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { Textarea } from "@/shared/ui/textarea";
 import { generatePromptWithAI } from "../services";
 import type { PromptEditorContext } from "../services";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
@@ -254,30 +252,28 @@ export function PromptFloatingBall({
                   {t("prompt.preEditPrompt")}
                 </span>
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm h-6 px-2 text-[10px] text-muted-foreground hover:text-destructive"
                     onClick={handleDiscardPrompt}
-                    className="h-6 px-2 text-[10px] text-muted-foreground hover:text-destructive"
                   >
                     <RotateCcw className="w-3 h-3 mr-1" />
                     {t("prompt.discard")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm h-6 px-2 text-[10px] text-primary"
                     onClick={handleConfirmPrompt}
-                    className="h-6 px-2 text-[10px] text-primary"
                   >
                     <Check className="w-3 h-3 mr-1" />
                     {t("prompt.confirmApply")}
-                  </Button>
+                  </button>
                 </div>
               </div>
-              <Textarea
+              <textarea
+                className="textarea resize-none text-xs font-mono min-h-[60px] border-primary/30"
                 value={editingPrompt}
                 onChange={(e) => setEditingPrompt(e.target.value)}
-                className="resize-none text-xs font-mono min-h-[60px] border-primary/30"
                 rows={3}
               />
             </div>
@@ -285,27 +281,27 @@ export function PromptFloatingBall({
 
           <div className="p-3 border-t border-border">
             <div className="flex gap-2">
-              <Textarea
+              <textarea
+                className="textarea resize-none text-xs min-h-[36px] flex-1"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={t("prompt.describeEffect")}
-                className="resize-none text-xs min-h-[36px] flex-1"
                 rows={1}
                 disabled={isGenerating}
               />
-              <Button
-                size="sm"
+              <button
+                type="button"
+                className="btn btn-primary btn-sm h-9 w-9 p-0 shrink-0"
                 onClick={handleSend}
                 disabled={isGenerating || !input.trim()}
-                className="h-9 w-9 p-0 shrink-0"
               >
                 {isGenerating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

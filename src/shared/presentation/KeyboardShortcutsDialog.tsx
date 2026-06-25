@@ -1,11 +1,3 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
 import { Keyboard } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 
@@ -54,18 +46,20 @@ export function KeyboardShortcutsDialog({
     return acc;
   }, {} as Record<string, Shortcut[]>);
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <div className="modal-overlay" onClick={() => onOpenChange(false)}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 672, maxHeight: "80vh", overflowY: "auto" }}>
+        <div style={{ marginBottom: 12 }}>
+          <div className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600 }}>
             <Keyboard className="w-5 h-5" />
             {t("ui.keyboardShortcuts")}
-          </DialogTitle>
-          <DialogDescription>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
             {t("ui.shortcutDesc")}
-          </DialogDescription>
-        </DialogHeader>
+          </div>
+        </div>
 
         <div className="space-y-6">
           {Object.entries(categorizedShortcuts).map(([category, categoryShortcuts]) => (
@@ -88,8 +82,8 @@ export function KeyboardShortcutsDialog({
             {t("ui.pressEscToClose")}
           </p>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
 
@@ -99,9 +93,9 @@ export function KeyboardShortcutsTrigger({
   onOpen: () => void;
 }) {
   return (
-    <Button variant="ghost" size="sm" onClick={onOpen} className="h-8 gap-1">
+    <button type="button" className="btn btn-ghost btn-sm h-8 gap-1" onClick={onOpen}>
       <Keyboard className="w-4 h-4" />
       <span className="hidden md:inline text-xs">{t("ui.shortcuts")}</span>
-    </Button>
+    </button>
   );
 }

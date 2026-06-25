@@ -1,5 +1,4 @@
 import { cn } from "@/shared/utils/utils";
-import { Card } from "./card";
 
 interface AppCardProps {
   children: React.ReactNode;
@@ -9,14 +8,10 @@ interface AppCardProps {
 
 export function AppCard({ children, className, hover = false }: AppCardProps) {
   return (
-    <Card
-      className={cn(
-        "bg-card border-border shadow-sm",
-        hover && "hover:border-primary/30 transition-colors duration-200",
-        className,
-      )}
+    <div
+      className={cn("card", hover && "transition-colors duration-200", className)}
     >
       {children}
-    </Card>
+    </div>
   );
 }

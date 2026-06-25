@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from "react";
 import { useVirtualList } from "@/shared/hooks/use-virtual-list";
 import { t } from "@/shared/constants/messages";
 import { useCurrentTime } from "@/shared/hooks/use-current-time";
-import { Button } from "@/shared/ui/button";
 import { Trash2, Clock } from "lucide-react";
 import type { VideoTask } from "@/domain/schemas";
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
@@ -113,10 +112,10 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
           <p className="text-sm" style={{ color: "var(--destructive)" }}>
             {t("task.selectedCount", { count: selectedTaskIds.size })}
           </p>
-          <Button variant="destructive" size="sm" onClick={handleRemoveSelected}>
+          <button type="button" className="btn btn-danger btn-sm" onClick={handleRemoveSelected}>
             <Trash2 className="w-4 h-4 mr-2" />
             {t("task.deleteSelected")}
-          </Button>
+          </button>
         </div>
       )}
 
@@ -160,13 +159,13 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
 
           {hasMore && (
             <div className="flex justify-center py-4">
-              <Button
-                variant="outline"
-                size="sm"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
                 onClick={() => setVisibleCount((c) => c + 20)}
               >
                 {t("task.loadMore", { count: sortedTasks.length - visibleCount })}
-              </Button>
+              </button>
             </div>
           )}
 

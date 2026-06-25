@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Badge } from "@/shared/ui/badge";
 import {
   Cloud,
   CloudOff,
@@ -24,24 +23,24 @@ export function SyncStatusIndicator({ status, onClick }: SyncStatusIndicatorProp
 
   let icon = <CloudOff className="h-4 w-4" />;
   let label = t("sync.notSynced");
-  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+  let badgeClassName = "badge";
 
   if (isSyncing) {
     icon = <RefreshCw className="h-4 w-4 animate-spin" />;
     label = t("sync.syncingShort");
-    variant = "secondary";
+    badgeClassName = "badge badge-muted";
   } else if (conflicts > 0) {
     icon = <AlertTriangle className="h-4 w-4" />;
     label = t("sync.conflictCount", { count: conflicts });
-    variant = "destructive";
+    badgeClassName = "badge badge-danger";
   } else if (pendingChanges > 0) {
     icon = <Cloud className="h-4 w-4" />;
     label = t("sync.pendingSyncCount", { count: pendingChanges });
-    variant = "secondary";
+    badgeClassName = "badge badge-muted";
   } else if (lastSyncAt) {
     icon = <CheckCircle2 className="h-4 w-4" />;
     label = t("sync.synced");
-    variant = "default";
+    badgeClassName = "badge badge-info";
   }
 
   const timeText = lastSyncAt
@@ -55,10 +54,10 @@ export function SyncStatusIndicator({ status, onClick }: SyncStatusIndicatorProp
       onMouseLeave={() => setShowTooltip(false)}
     >
       <button onClick={onClick} className="cursor-pointer">
-        <Badge variant={variant} className="gap-1">
+        <span className={`${badgeClassName} gap-1`}>
           {icon}
           <span className="hidden sm:inline">{label}</span>
-        </Badge>
+        </span>
       </button>
       {showTooltip && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-md shadow-md border whitespace-nowrap z-50">

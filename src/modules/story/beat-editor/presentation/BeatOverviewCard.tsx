@@ -13,9 +13,6 @@ import {
   Trash2,
   MoveVertical,
 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
-import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/utils/utils";
 import { getBeatCharacterIds } from "@/domain/utils";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
@@ -99,9 +96,9 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
 
   return (
     <>
-      <Card
+      <div
         className={cn(
-          "group relative overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-xl hover:shadow-purple-500/10 border-purple-700/30 hover:border-purple-500/50 bg-slate-800/40",
+          "card group relative overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-xl hover:shadow-purple-500/10 border-purple-700/30 hover:border-purple-500/50 bg-slate-800/40",
           isSelected &&
             "ring-2 ring-primary border-primary shadow-lg shadow-primary/10",
         )}
@@ -109,7 +106,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
       >
         <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 via-pink-500 to-purple-500 group-hover:w-2 transition-all duration-300" />
 
-        <CardContent className="p-0">
+        <div>
           <div className="flex flex-col">
             <div className="relative overflow-hidden h-36">
               {videoGen ? (
@@ -140,20 +137,20 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                 <div className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white font-bold text-sm shadow-lg border border-purple-500/30">
                   {index + 1}
                 </div>
-                <Badge
-                  className={`${typeInfo?.color || "bg-purple-600/70"} shadow-md border border-purple-400/30`}
+                <span
+                  className={`badge badge-info ${typeInfo?.color || "bg-purple-600/70"} shadow-md border border-purple-400/30`}
                 >
                   {typeInfo?.label || t("beat.typeLabel")}
-                </Badge>
+                </span>
               </div>
 
               <div className="absolute top-3 right-3">
-                <Badge
-                  className={`${statusInfo.color} backdrop-blur-sm shadow-md border`}
+                <span
+                  className={`badge badge-info ${statusInfo.color} backdrop-blur-sm shadow-md border`}
                 >
                   {statusInfo.icon}
                   <span className="ml-1 text-xs">{statusInfo.text}</span>
-                </Badge>
+                </span>
               </div>
 
               <div className="absolute bottom-3 right-3">
@@ -207,10 +204,9 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                   <div className="flex items-center gap-1">
                     <MoveVertical className="w-4 h-4 text-purple-400/70" />
                     <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
                         disabled={index === 0}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -218,11 +214,10 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                         }}
                       >
                         <ChevronUp className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
                         disabled={index === totalBeats - 1}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -230,16 +225,15 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                         }}
                       >
                         <ChevronDown className="w-4 h-4" />
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 )}
 
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10 h-7 px-2"
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm text-xs text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10 h-7 px-2"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEditClick(beat);
@@ -247,12 +241,11 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                   >
                     <Edit2 className="w-3.5 h-3.5 mr-1.5" />
                     {t("beat.editLabel")}
-                  </Button>
+                  </button>
                   {onDeleteBeat && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs text-purple-300/80 hover:text-red-400 hover:bg-red-500/10 h-7 px-2"
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm text-xs text-purple-300/80 hover:text-red-400 hover:bg-red-500/10 h-7 px-2"
                       onClick={(e) => {
                         e.stopPropagation();
                         confirmDialog({
@@ -267,14 +260,14 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                       {t("common.delete")}
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
       {ConfirmDialogComponent}
     </>
   );

@@ -162,6 +162,7 @@ export function QuickGenerateForm({
           <textarea
             className="textarea"
             style={{ fontSize: 12, minHeight: "8rem", resize: "vertical" }}
+            aria-label={t("quickGenerate.describeVideo")}
             value={promptText}
             onChange={(e) => onPromptTextChange(e.target.value)}
             placeholder={t("story.quickPromptPlaceholder")}

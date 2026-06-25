@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants";
 import { Modal } from "@/shared/presentation/Modal";
@@ -20,6 +21,9 @@ export function AssetEditDialog({
   onSave,
   onEditingItemChange,
 }: AssetEditDialogProps) {
+  const nameId = useId();
+  const descId = useId();
+  const tagsId = useId();
   return (
     <Modal
       open={open}
@@ -59,8 +63,9 @@ export function AssetEditDialog({
                   ) : null;
                 })()}
                 <div>
-                  <label className="text-sm font-medium">{t("asset.name")}</label>
+                  <label htmlFor={nameId} className="text-sm font-medium">{t("asset.name")}</label>
                   <input
+                    id={nameId}
                     className="input"
                     style={{ fontSize: 12, padding: "6px 10px" }}
                     value={editingItem._type === "storyboard" ? "" : (editingItem.name || "")}
@@ -70,8 +75,9 @@ export function AssetEditDialog({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t("asset.description")}</label>
+                  <label htmlFor={descId} className="text-sm font-medium">{t("asset.description")}</label>
                   <textarea
+                    id={descId}
                     className="textarea"
                     style={{ fontSize: 12 }}
                     value={editingItem._type === "storyboard" ? (editingItem.script || "") : (editingItem.description || "")}
@@ -92,10 +98,11 @@ export function AssetEditDialog({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">
+                  <label htmlFor={tagsId} className="text-sm font-medium">
                     {t("asset.tagsCommaSeparated")}
                   </label>
                   <input
+                    id={tagsId}
                     className="input"
                     style={{ fontSize: 12, padding: "6px 10px" }}
                     value={editingItem._type === "storyboard" ? "" : (editingItem.tags || []).join(", ")}

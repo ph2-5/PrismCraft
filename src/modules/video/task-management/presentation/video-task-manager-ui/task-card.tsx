@@ -10,14 +10,8 @@ import type { VideoTask } from "@/domain/schemas";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { t } from "@/shared/constants/messages";
+import { formatDuration } from "@/shared/utils/format";
 import { StatusBadge, getTaskDisplayStatus } from "./status-badge";
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return t("task.justNow");
-  if (ms < 60000) return t("task.secondsAgo", { count: Math.floor(ms / 1000) });
-  if (ms < 3600000) return t("task.minutesAgo", { count: Math.floor(ms / 60000) });
-  return t("task.hoursAgo", { count: Math.floor(ms / 3600000) });
-}
 
 interface TaskCardProps {
   task: VideoTask;
@@ -30,7 +24,7 @@ interface TaskCardProps {
   onViewDetail: (task: VideoTask) => void;
 }
 
-export const TaskCard = memo(function TaskCard({
+export const TaskCardBase = memo(function TaskCardBase({
   task,
   isSelected,
   isExpanded,
@@ -46,6 +40,16 @@ export const TaskCard = memo(function TaskCard({
         className="pb-3 cursor-pointer"
         style={{ paddingBottom: 12, cursor: "pointer" }}
         onClick={() => onToggleExpanded(task.taskId)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggleExpanded(task.taskId);
+          }
+        }}
+        aria-label={t("aria.toggleExpand")}
+        aria-expanded={isExpanded}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

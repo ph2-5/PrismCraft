@@ -5,22 +5,22 @@
 
 **⚠️ 关键隔离原则**：规则是回归防护，NOT 发现工具。不要用此列表作为未来审计的起点。
 
-**总计：155 条规则 | 8 个分类**
+**总计：169 条规则 | 8 个分类**
 
 | 分类 | 规则编号 | 规则数 | 文件 |
 |------|---------|--------|------|
 | 一、数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68, R69, R72, R109, R116, R125, R141, R157 | 22 | [data-consistency.md](data-consistency.md) |
 | 二、异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67, R85, R106, R110, R115, R117, R122, R127, R140 | 21 | [async-safety.md](async-safety.md) |
 | 三、错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63, R86, R108, R129, R134, R136 | 16 | [error-handling.md](error-handling.md) |
-| 四、UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35, R158, R160, R161, R163, R164 | 14 | [ui-robustness.md](ui-robustness.md) |
-| 五、工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60, R87, R88, R92, R107, R135, R154, R155, R156, R159, R162, R165, R166 | 26 | [engineering.md](engineering.md) |
+| 四、UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35, R158, R160, R161, R163, R164, R167, R168, R169, R170, R171, R172, R173, R174 | 22 | [ui-robustness.md](ui-robustness.md) |
+| 五、工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60, R87, R88, R92, R107, R135, R154, R155, R156, R159, R162, R165, R166, R175, R176, R177, R178, R179, R180 | 32 | [engineering.md](engineering.md) |
 | 六、平台兼容 | R21, R43, R49, R51, R52, R61 | 6 | [platform.md](platform.md) |
 | 七、用户安全防护 | R70, R71, R73, R74, R75, R76, R77, R89, R90, R91, R93, R94, R95, R96, R97, R98, R99 | 17 | [user-safety.md](user-safety.md) |
 | 八、系统安全 | R78, R79, R80, R81, R82, R83, R84, R100, R101, R102, R103, R104, R105, R111, R112, R113, R114, R118, R119, R120, R121, R123, R124, R126, R128, R130, R131, R132, R133, R137, R138, R139, R142 | 33 | [system-security.md](system-security.md) |
 
 ## 使用方式
 
-- AI 上下文加载时，按需加载相关分类文件，而非加载全部 155 条规则
+- AI 上下文加载时，按需加载相关分类文件，而非加载全部 169 条规则
 - 每个分类文件包含该分类下所有规则的完整文本（BAD/GOOD 示例、验证方法、发现来源）
 - 完整原始文件见 [../regression-guards.md](../regression-guards.md)
 
@@ -69,3 +69,24 @@
 | R164 | Modal 打开时必须聚焦 modal 容器（tabIndex={-1}）以支持屏幕阅读器 | UI 健壮性 | `src/shared/presentation/__tests__/regression-r164-modal-focus-trap.test.tsx` |
 | R165 | coming-soon 页面 title 必须使用 `t()` 国际化（sidebar.login 等） | 工程质量 | `src/app/coming-soon/__tests__/regression-r165-coming-soon-i18n.test.tsx` |
 | R166 | 日期格式化使用 `toLocaleString()` / `toLocaleTimeString()` 而非硬编码 "zh-CN" locale | 工程质量 | `src/shared/presentation/__tests__/regression-r166-date-locale.test.tsx` |
+
+## R167-R180 新增规则速览（深度审计全量修复 a11y/i18n/工程质量）
+
+> 以下规则为深度审计 P0+P1+P2 全量修复的无障碍（a11y）、i18n、工程质量回归防护，详细 BAD/GOOD 示例见 `regression-guards.md` 末尾及对应测试文件。
+
+| 规则 | 主题 | 分类 | 测试文件 |
+|------|------|------|---------|
+| R167 | 自定义模态框必须使用 Modal 组件或补 role/aria-modal | UI 健壮性 | `src/shared/presentation/__tests__/regression-r167-custom-modal-role.test.tsx` |
+| R168 | 纯图标按钮必须有 aria-label | UI 健壮性 | `src/shared/presentation/__tests__/regression-r168-icon-button-aria.test.tsx` |
+| R169 | div onClick 必须补 role="button"/tabIndex/onKeyDown | UI 健壮性 | `src/shared/presentation/__tests__/regression-r169-div-onclick-role.test.tsx` |
+| R170 | Tab 模式必须使用 Tabs 组件（role="tablist"/role="tab"） | UI 健壮性 | `src/shared/presentation/__tests__/regression-r170-tabs-component.test.tsx` |
+| R171 | 表单控件必须有 label 关联（htmlFor 或 aria-label） | UI 健壮性 | `src/app/__tests__/regression-r171-form-label-association.test.tsx` |
+| R172 | 进度条必须有 role="progressbar" + aria-valuenow/min/max | UI 健壮性 | `src/modules/asset/presentation/__tests__/regression-r172-progressbar-role.test.tsx` |
+| R173 | 动态状态变化必须有 aria-live（role="status"） | UI 健壮性 | `src/modules/asset/presentation/__tests__/regression-r173-aria-live.test.tsx` |
+| R174 | 装饰性 emoji 必须 aria-hidden="true" | UI 健壮性 | `src/modules/story/beat-editor/presentation/__tests__/regression-r174-emoji-aria-hidden.test.tsx` |
+| R175 | throw Error 必须用 t() 国际化（用户可见错误） | 工程质量 | `src/__tests__/lib/regression-r175-throw-error-i18n.test.ts` |
+| R176 | 数据常量层双用途字段（value + labelKey） | 工程质量 | `src/modules/character/__tests__/regression-r176-data-constant-labelkey.test.ts` |
+| R177 | DOM 操作必须用 useRef（禁止 document.getElementById） | 工程质量 | `src/app/quick-generate/__tests__/regression-r177-dom-use-ref.test.tsx` |
+| R178 | 回调参数不能遮蔽导入的 t（filter((t) => ...) 在导入 t 的文件中违规） | 工程质量 | `src/modules/video/task-management/hooks/__tests__/regression-r178-callback-no-shadow.test.ts` |
+| R179 | Port 接口扩展优先于 as 断言（cancelTask? 在接口定义） | 工程质量 | `src/domain/ports/__tests__/regression-r179-port-interface-extension.test.ts` |
+| R180 | 函数职责单一（>100 行的注册函数应拆分） | 工程质量 | `electron/src/__tests__/regression-r180-function-split.test.ts` |

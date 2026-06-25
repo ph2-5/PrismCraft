@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface AssetItem {
   id: string;
@@ -64,8 +65,6 @@ export default function AssetPicker({
     };
   }, []);
 
-  if (!isOpen) return null;
-
   const filteredAssets = assets.filter((asset) => {
     if (accept === "image" && asset.type !== "image") return false;
     if (accept === "video" && asset.type !== "video") return false;
@@ -108,9 +107,24 @@ export default function AssetPicker({
         ? "video/*"
         : "image/*,video/*";
 
+  const modalTitle = previewAsset
+    ? t("assetPicker.confirmSelection")
+    : title || (accept === "video" ? t("assetPicker.selectVideo") : accept === "image" ? t("assetPicker.selectImage") : t("assetPicker.selectAsset"));
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[600px] max-h-[75vh] flex flex-col">
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel={modalTitle}
+      style={{
+        maxWidth: "600px",
+        maxHeight: "75vh",
+        padding: 0,
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+      }}
+    >
         <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="flex items-center gap-2">
             {previewAsset && (
@@ -118,20 +132,20 @@ export default function AssetPicker({
                 onClick={() => setPreviewAsset(null)}
                 className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                 style={{ color: "var(--muted-fg)" }}
+                aria-label={t("aria.goBack")}
               >
                 <ArrowLeft size={16} />
               </button>
             )}
             <h3 className="font-medium" style={{ color: "var(--muted-fg)" }}>
-              {previewAsset
-                ? t("assetPicker.confirmSelection")
-                : title || (accept === "video" ? t("assetPicker.selectVideo") : accept === "image" ? t("assetPicker.selectImage") : t("assetPicker.selectAsset"))}
+              {modalTitle}
             </h3>
           </div>
           <button
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
             style={{ color: "var(--muted-fg)" }}
+            aria-label={t("aria.close")}
           >
             <X size={18} />
           </button>
@@ -305,7 +319,6 @@ export default function AssetPicker({
           onChange={handleLocalFile}
           className="hidden"
         />
-      </div>
-    </div>
+    </Modal>
   );
 }

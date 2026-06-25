@@ -18,6 +18,14 @@ interface MediaExporterProps {
   item: Character | Scene;
 }
 
+function isCharacter(item: Character | Scene): item is Character {
+  return "personality" in item;
+}
+
+function isScene(item: Character | Scene): item is Scene {
+  return "timeOfDay" in item;
+}
+
 // 导出项目数据
 export interface CharacterExportData {
   version: string;
@@ -52,22 +60,25 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
       let exportData;
       let filename;
 
-      if (type === "character") {
+      if (type === "character" && isCharacter(item)) {
         exportData = {
           version: "1.0.0",
           type: "character" as const,
-          character: item as Character,
+          character: item,
           exportedAt: new Date().toISOString(),
         } satisfies CharacterExportData;
         filename = `${itemName || "character"}-project.json`;
-      } else {
+      } else if (isScene(item)) {
         exportData = {
           version: "1.0.0",
           type: "scene" as const,
-          scene: item as Scene,
+          scene: item,
           exportedAt: new Date().toISOString(),
         } satisfies SceneExportData;
         filename = `${itemName || "scene"}-project.json`;
+      } else {
+        // Defensive: should not happen for well-formed Character/Scene items
+        throw new Error(`Cannot export item of type "${type}": missing required fields`);
       }
 
       downloadJSONFile(exportData, filename);
@@ -97,7 +108,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         document.body.removeChild(link);
         setExportStatus("success");
       } else {
-        const response = await fetch(imageUrl, { mode: "cors" }).catch(() => null);
+        const response = await fetch(imageUrl, { mode: "cors" }).catch((e) => { errorLogger.warn("[MediaExporter] fetch image failed", e); return null; });
         if (response && response.ok) {
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);
@@ -139,7 +150,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         document.body.removeChild(link);
         setExportStatus("success");
       } else {
-        const response = await fetch(videoUrl, { mode: "cors" }).catch(() => null);
+        const response = await fetch(videoUrl, { mode: "cors" }).catch((e) => { errorLogger.warn("[MediaExporter] fetch video failed", e); return null; });
         if (response && response.ok) {
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);

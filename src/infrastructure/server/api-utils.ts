@@ -1,4 +1,5 @@
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 export class ApiError extends Error {
   status: number;
@@ -16,16 +17,16 @@ export async function safeParseJson(
   try {
     const text = await request.text();
     if (!text.trim()) {
-      throw new ApiError("请求体不能为空", 400);
+      throw new ApiError(t("error.requestBodyEmpty"), 400);
     }
     const parsed = JSON.parse(text);
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      throw new ApiError("请求体必须是 JSON 对象", 400);
+      throw new ApiError(t("error.requestBodyMustBeObject"), 400);
     }
     return parsed as Record<string, unknown>;
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    throw new ApiError("无效的 JSON 格式", 400);
+    throw new ApiError(t("error.requestJsonInvalid"), 400);
   }
 }
 

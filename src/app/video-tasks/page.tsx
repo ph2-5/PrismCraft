@@ -74,6 +74,7 @@ export default function VideoTasksPage() {
               gap: 12,
               marginBottom: 16,
             }}
+            aria-live="polite"
           >
             {/* 总任务数 */}
             <div className="card" style={{ padding: 14 }}>
@@ -229,6 +230,11 @@ export default function VideoTasksPage() {
               <div
                 className="progress-bar"
                 style={{ marginTop: 8, background: "rgba(var(--primary-rgb), 0.2)" }}
+                role="progressbar"
+                aria-label={t("task.completionRate")}
+                aria-valuenow={completionRate}
+                aria-valuemin={0}
+                aria-valuemax={100}
               >
                 <div
                   className="progress-fill"

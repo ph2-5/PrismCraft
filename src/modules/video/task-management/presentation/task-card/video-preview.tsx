@@ -73,6 +73,15 @@ export function VideoPreview({
         <div
           className="aspect-video bg-slate-900 rounded-lg overflow-hidden cursor-pointer"
           onClick={() => onOpenPreview(task)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpenPreview(task);
+            }
+          }}
+          aria-label={t("aria.previewVideo")}
         >
           {videoError ? (
             <div className="w-full h-full flex items-center justify-center">

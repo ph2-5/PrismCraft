@@ -4,6 +4,7 @@ import { generatePromptWithAI } from "../services";
 import type { PromptEditorContext } from "../services";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 
 interface PromptFloatingBallProps {
   beat: StoryBeat;
@@ -199,6 +200,7 @@ export function PromptFloatingBall({
         className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors flex items-center justify-center z-50 cursor-pointer"
         style={ballStyle}
         title={`AI ${t("prompt.assistantTitle", { context: CONTEXT_SHORT[context] })}`}
+        aria-label={t("aria.openPromptAssistant")}
       >
         <Sparkles className="w-5 h-5" />
       </button>
@@ -207,6 +209,10 @@ export function PromptFloatingBall({
         <div
           className="fixed z-50 w-80 bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
           style={{ right: 24, bottom: 88, maxHeight: "min(480px, calc(100vh - 120px))" }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("prompt.assistantTitle", { context: CONTEXT_SHORT[context] })}
+          tabIndex={-1}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
             <div className="flex items-center gap-2">
@@ -218,6 +224,7 @@ export function PromptFloatingBall({
             <button
               onClick={() => setIsOpen(false)}
               className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={t("aria.close")}
             >
               <X className="w-4 h-4" />
             </button>
@@ -290,18 +297,19 @@ export function PromptFloatingBall({
                 rows={1}
                 disabled={isGenerating}
               />
-              <button
-                type="button"
-                className="btn btn-primary btn-sm h-9 w-9 p-0 shrink-0"
+              <IconButton
+                variant="primary"
+                className="btn-sm h-9 w-9 p-0 shrink-0"
                 onClick={handleSend}
                 disabled={isGenerating || !input.trim()}
+                aria-label={t("aria.sendPrompt")}
               >
                 {isGenerating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
-              </button>
+              </IconButton>
             </div>
           </div>
         </div>

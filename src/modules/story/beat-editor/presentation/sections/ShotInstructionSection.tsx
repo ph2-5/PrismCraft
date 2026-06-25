@@ -56,7 +56,7 @@ export function ShotInstructionSection({
           >
             {SHOT_SIZE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>
@@ -75,7 +75,7 @@ export function ShotInstructionSection({
           >
             {CAMERA_MOVEMENT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>
@@ -93,7 +93,7 @@ export function ShotInstructionSection({
           >
             {CAMERA_ANGLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>

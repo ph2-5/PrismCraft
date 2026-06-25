@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { useId, type RefObject } from "react";
 import { ArrowRight, Loader2, Upload } from "lucide-react";
 import type { Collection, ImportMode } from "@/domain/schemas";
 import { t } from "@/shared/constants";
@@ -47,6 +47,7 @@ export function AssetCollectionDialogs({
   setImportMode,
   fileInputRef,
 }: AssetCollectionDialogsProps) {
+  const importModeId = useId();
   return (
     <>
       <Modal
@@ -60,6 +61,7 @@ export function AssetCollectionDialogs({
         </p>
         <select
           className="select"
+          aria-label={t("asset.selectCollection")}
           value={addToCollectionId}
           onChange={(e) => {
             if (e.target.value) setAddToCollectionId(e.target.value);
@@ -108,6 +110,7 @@ export function AssetCollectionDialogs({
           className="input"
           style={{ fontSize: 12, padding: "6px 10px" }}
           data-testid="asset-collection-name-input"
+          aria-label={t("asset.collectionNamePlaceholder")}
           value={newCollectionName}
           onChange={(e) => setNewCollectionName(e.target.value)}
           placeholder={t("asset.collectionNamePlaceholder")}
@@ -146,8 +149,9 @@ export function AssetCollectionDialogs({
         </p>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">{t("asset.importMode")}</label>
+            <label htmlFor={importModeId} className="text-sm font-medium">{t("asset.importMode")}</label>
             <select
+              id={importModeId}
               className="select"
               value={importMode}
               onChange={(e) => {

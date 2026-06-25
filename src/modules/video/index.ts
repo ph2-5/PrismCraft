@@ -36,7 +36,7 @@ export {
 } from "./cache";
 export { recoverVideoByTaskId } from "./recovery";
 export { saveVideoTask } from "./recovery";
-export { buildTrackingInfo } from "./task-management";
+export { buildTrackingInfoByProviderId } from "./task-management";
 export { detectVideoCodec, isCodecSupportedByProvider } from "./utils";
 export { extractVideoFrames } from "./utils";
 export { downloadJSONFile } from "./utils";

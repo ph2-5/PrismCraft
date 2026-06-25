@@ -65,7 +65,7 @@ export function TemplateSelectDialog({
                   }`}
                   onClick={() => setSelectedCategory(category.id)}
                 >
-                  {category.name}
+                  {t(category.nameKey)}
                 </button>
               ))}
             </div>
@@ -81,10 +81,10 @@ export function TemplateSelectDialog({
                     <div>
                       <h3 className="font-medium text-purple-100 flex items-center gap-2">
                         <Grid3x3 className="w-4 h-4 text-purple-400" />
-                        {template.name}
+                        {t(template.nameKey)}
                       </h3>
                       <p className="text-sm text-purple-300 mt-1">
-                        {template.description}
+                        {t(template.descKey)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export function TemplateSelectDialog({
                         {t("quickGenerate.seconds", { count: template.duration })}
                       </span>
                       <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
-                        {template.style}
+                        {t(template.categoryKey)}
                       </span>
                     </div>
                   </div>

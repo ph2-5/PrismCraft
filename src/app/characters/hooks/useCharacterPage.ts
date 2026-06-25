@@ -206,7 +206,7 @@ export function useCharacterPage() {
         if (beat.characterIds?.includes(currentCharacter.id)) {
           beats.push({
             id: beat.id,
-            title: `第${beat.sequence ?? beat.order ?? 0}镜 · ${beat.title || beat.description?.slice(0, 20) || "未命名"}`,
+            title: `${t("scene.shotNumber", { n: beat.sequence ?? beat.order ?? 0 })} · ${beat.title || beat.description?.slice(0, 20) || t("story.unnamed")}`,
             status: beat.generationStatus === "completed" ? "✓" : beat.generationStatus === "generating" ? "⏳" : undefined,
           });
         }

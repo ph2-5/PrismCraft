@@ -110,6 +110,17 @@ export const CharacterCard = memo(function CharacterCard({
             e.stopPropagation();
             onToggleSelect(char.id);
           }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSelect(char.id);
+            }
+          }}
+          aria-label={t("aria.toggleSelection")}
+          aria-pressed={isSelected}
         >
           {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
         </div>
@@ -199,6 +210,17 @@ export const SceneCard = memo(function SceneCard({
             e.stopPropagation();
             onToggleSelect(scene.id);
           }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSelect(scene.id);
+            }
+          }}
+          aria-label={t("aria.toggleSelection")}
+          aria-pressed={isSelected}
         >
           {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
         </div>
@@ -284,6 +306,17 @@ export const StoryboardCard = memo(function StoryboardCard({
             e.stopPropagation();
             onToggleSelect(sb.id);
           }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSelect(sb.id);
+            }
+          }}
+          aria-label={t("aria.toggleSelection")}
+          aria-pressed={isSelected}
         >
           {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
         </div>

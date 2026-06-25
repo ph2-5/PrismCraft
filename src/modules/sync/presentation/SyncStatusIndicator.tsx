@@ -53,7 +53,7 @@ export function SyncStatusIndicator({ status, onClick }: SyncStatusIndicatorProp
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
-      <button onClick={onClick} className="cursor-pointer">
+      <button onClick={onClick} className="cursor-pointer" aria-label={label}>
         <span className={`${badgeClassName} gap-1`}>
           {icon}
           <span className="hidden sm:inline">{label}</span>

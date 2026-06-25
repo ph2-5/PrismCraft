@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { t } from "@/shared/constants/messages";
 import { cn } from "@/shared/utils/utils";
+import { Tabs } from "@/shared/presentation/Tabs";
 import type { BatchTask } from "@/domain/schemas";
 import {
   Wand2,
@@ -83,20 +84,35 @@ export function BatchProgressDialog({
 
       {isGenerating && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div
+            className="flex items-center justify-between"
+            role="status"
+            aria-live="polite"
+          >
             <span className="text-sm text-muted-foreground">
               {t("asset.overallProgress", { completed: completedCount, total: tasks.length })}
             </span>
             <span className="text-sm font-medium">{overallProgress}%</span>
           </div>
-          <div className="progress-bar h-2">
+          <div
+            className="progress-bar h-2"
+            role="progressbar"
+            aria-label={t("common.generating")}
+            aria-valuenow={overallProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <div className="progress-fill" style={{ width: `${overallProgress}%` }} />
           </div>
         </div>
       )}
 
       {tasks.length > 0 && (
-        <div className="flex items-center gap-4 text-sm">
+        <div
+          className="flex items-center gap-4 text-sm"
+          role="status"
+          aria-live="polite"
+        >
           <span className="flex items-center gap-1">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
             {t("asset.completedCount", { count: completedCount })}
@@ -174,17 +190,15 @@ export function BatchProgressDialog({
 
       {tasks.length > 0 && (
         <div className="w-full">
-          <div className="top-tabs">
-            <button className={cn("top-tab", tabValue === "all" && "active")} onClick={() => setTabValue("all")}>
-              {t("batch.tabAll", { count: tasks.length })}
-            </button>
-            <button className={cn("top-tab", tabValue === "completed" && "active")} onClick={() => setTabValue("completed")}>
-              {t("batch.tabCompleted", { count: completedCount })}
-            </button>
-            <button className={cn("top-tab", tabValue === "failed" && "active")} onClick={() => setTabValue("failed")}>
-              {t("batch.tabFailed", { count: failedCount })}
-            </button>
-          </div>
+          <Tabs
+            tabs={[
+              { id: "all", label: t("batch.tabAll", { count: tasks.length }) },
+              { id: "completed", label: t("batch.tabCompleted", { count: completedCount }) },
+              { id: "failed", label: t("batch.tabFailed", { count: failedCount }) },
+            ]}
+            activeTab={tabValue}
+            onChange={setTabValue}
+          />
 
           {tabValue === "all" && (
             <div className="mt-4">
@@ -329,7 +343,14 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
       <div className="text-sm font-medium truncate">{task.itemName}</div>
 
       {task.status === "generating" && (
-        <div className="progress-bar h-1 mt-2">
+        <div
+          className="progress-bar h-1 mt-2"
+          role="progressbar"
+          aria-label={t("common.generating")}
+          aria-valuenow={task.progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
           <div className="progress-fill" style={{ width: `${task.progress}%` }} />
         </div>
       )}
@@ -377,7 +398,14 @@ function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: Tas
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{task.itemName}</div>
         {task.status === "generating" && (
-          <div className="progress-bar h-1 mt-1">
+          <div
+            className="progress-bar h-1 mt-1"
+            role="progressbar"
+            aria-label={t("common.generating")}
+            aria-valuenow={task.progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <div className="progress-fill" style={{ width: `${task.progress}%` }} />
           </div>
         )}

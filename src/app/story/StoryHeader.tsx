@@ -46,7 +46,15 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
           <ChevronDown className="w-3.5 h-3.5 shrink-0" />
         </button>
         {showProjectDropdown && (
-          <div className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto">
+          <div
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setShowProjectDropdown(false);
+              }
+            }}
+            className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto"
+          >
             <button
               className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
               onClick={async () => {
@@ -71,6 +79,15 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
             {story.stories.map((s) => (
               <div
                 key={s.id}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowProjectDropdown(false);
+                    onSwitchStory(s);
+                  }
+                }}
                 className={`w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center justify-between group ${
                   s.id === story.currentStory.id ? "bg-muted" : ""
                 }`}

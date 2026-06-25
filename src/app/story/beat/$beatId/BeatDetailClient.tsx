@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
+import { Tabs } from "@/shared/presentation/Tabs";
 import type { StoryBeat, Story } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
 import { useBeatDetail } from "./use-beat-detail";
@@ -114,11 +115,15 @@ function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps &
 
           <div className="space-y-4">
             <div>
-              <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)" }}>
-                <button type="button" className={`top-tab ${activeTab === "video" ? "active" : ""}`} onClick={() => setActiveTab("video")}>{t("beat.tabVideo")}</button>
-                <button type="button" className={`top-tab ${activeTab === "details" ? "active" : ""}`} onClick={() => setActiveTab("details")}>{t("beat.tabDetails")}</button>
-                <button type="button" className={`top-tab ${activeTab === "tech" ? "active" : ""}`} onClick={() => setActiveTab("tech")}>{t("beat.tabTech")}</button>
-              </div>
+              <Tabs
+                tabs={[
+                  { id: "video", label: t("beat.tabVideo") },
+                  { id: "details", label: t("beat.tabDetails") },
+                  { id: "tech", label: t("beat.tabTech") },
+                ]}
+                activeTab={activeTab}
+                onChange={setActiveTab}
+              />
 
               {activeTab === "video" && (
                 <div className="space-y-4">

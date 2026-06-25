@@ -88,7 +88,7 @@ export const DEFAULT_PROVIDER: ProviderInfo = {
     "请根据您API提供商的文档进行查询，通常需要：1. 登录API平台 2. 查找任务查询API 3. 使用任务ID进行查询",
 };
 
-export function getProviderInfo(apiUrl?: string): ProviderInfo {
+export function getProviderInfoByApiUrl(apiUrl?: string): ProviderInfo {
   if (!apiUrl) return DEFAULT_PROVIDER;
 
   let hostname = "";
@@ -127,7 +127,7 @@ export interface TrackingInfo {
   providerWebsite?: string;
 }
 
-export function buildTrackingInfo(
+export function buildTrackingInfoByApiUrl(
   taskId: string,
   apiUrl?: string,
   apiKeyPreview?: string,
@@ -136,7 +136,7 @@ export function buildTrackingInfo(
   const effectiveApiUrl = apiUrl;
   const effectiveModel = model;
 
-  const provider = getProviderInfo(effectiveApiUrl);
+  const provider = getProviderInfoByApiUrl(effectiveApiUrl);
 
   const taskUrl = provider.taskUrlPattern?.(taskId);
 

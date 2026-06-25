@@ -4,8 +4,6 @@ import {
   type CharacterInput,
   type SceneInput,
   type ElementInput,
-  type BeatInput,
-  type QuickModeParams,
 } from "../prompt/prompt-service";
 
 interface Beat {
@@ -66,7 +64,7 @@ export function buildVideoGenerationParams(params: {
   const prompt =
     prebuiltPrompt ||
     generateSingleBeatPrompt({
-      beat: beat as BeatInput | undefined,
+      beat,
       characters,
       scenes,
       elements,
@@ -138,7 +136,7 @@ export function buildQuickVideoParams(params: {
       characters,
       scene,
       referenceImage,
-    } as QuickModeParams);
+    });
 
   return {
     prompt: videoPrompt,

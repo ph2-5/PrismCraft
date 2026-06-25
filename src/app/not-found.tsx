@@ -8,12 +8,10 @@ export default function NotFound() {
 
   return (
     <PageErrorBoundary pageName={t("page.notFound")}>
-      <div className="flex flex-col items-center justify-center min-h-[400px] p-8 space-y-4">
-        <h1 className="text-6xl font-bold text-muted-foreground">404</h1>
-        <h2 className="text-xl font-semibold">{t("page.notFound")}</h2>
-        <p className="text-muted-foreground text-center max-w-md">
-          {t("page.notFoundDesc")}
-        </p>
+      <div className="coming-soon">
+        <div className="coming-soon-icon">404</div>
+        <h2 className="coming-soon-title">{t("page.notFound")}</h2>
+        <p className="coming-soon-desc">{t("page.notFoundDesc")}</p>
         <button
           type="button"
           className="btn btn-primary btn-sm"

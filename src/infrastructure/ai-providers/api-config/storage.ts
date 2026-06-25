@@ -287,7 +287,7 @@ export function addProvider(
 ): ApiConfig {
   const exists = config.providers.some((p) => p.id === provider.id);
   if (exists) {
-    throw new Error(`提供商 ID "${provider.id}" 已存在`);
+    throw new Error(t("error.providerIdExists", { id: provider.id }));
   }
 
   return {

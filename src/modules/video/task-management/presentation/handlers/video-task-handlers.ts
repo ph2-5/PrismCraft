@@ -3,7 +3,7 @@ import { type VideoTask, useVideoTaskStore } from "@/modules/video/task-manageme
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { getVideoUrlWithCache } from "@/modules/video/cache";
 import { useToastHelpers } from "@/shared/presentation/Toast";
-import { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } from "@/modules/video/task-management";
+import { buildTrackingInfoByProviderId, copyTrackingInfoToClipboard, openTaskQueryLink } from "@/modules/video/task-management";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
@@ -70,14 +70,14 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   };
 
   const handleCopyTracking = async (task: VideoTask) => {
-    const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
+    const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
     const result = await copyTrackingInfoToClipboard(trackingInfo);
     if (result.ok) success(t("video.copySuccess"), t("video.trackingCopied"));
     else error(t("error.copyFailed"), t("error.clipboardUnavailable"));
   };
 
   const handleOpenCloudLink = (task: VideoTask) => {
-    const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
+    const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
     const opened = openTaskQueryLink(trackingInfo);
     if (!opened) error(t("error.cannotOpenLink"), t("video.openCloudConsoleHint"));
   };

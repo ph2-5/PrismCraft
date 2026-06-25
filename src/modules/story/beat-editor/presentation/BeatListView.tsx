@@ -46,9 +46,14 @@ function BeatCard({ beat, index, characters, scenes, onEditClick, isSelected }: 
     : null;
 
   const shotSize = beat.shotInstruction?.shotSize || beat.shotType;
-  const shotLabel = shotSize
-    ? SHOT_SIZE_OPTIONS.find((o) => o.value === shotSize)?.label || String(shotSize)
-    : "";
+  const shotSizeOption = shotSize
+    ? SHOT_SIZE_OPTIONS.find((o) => o.value === shotSize)
+    : undefined;
+  const shotLabel = shotSizeOption
+    ? t(shotSizeOption.labelKey)
+    : shotSize
+      ? String(shotSize)
+      : "";
 
   const hasVideo = !!beat.videoGen?.videoUrl;
   const hasKeyframe = !!beat.keyframe?.imageUrl;

@@ -24,7 +24,7 @@
 
 > 以下为 `index.ts` 的完整导出列表，详细签名见各子域章节。
 
-**task-management**: `VideoTask`、`useVideoTaskManager`、`useVideoTaskStore`、`useVideoTaskQueries`、`useVideoTaskCommands`、`useVideoTaskPolling`、`useVideoTasks`、`useFailedVideoTasks`、`useRecoverVideo`、`useCleanExpiredTasks`、`useStartBackgroundRecovery`、`buildTrackingInfo`、`VideoTaskManager`、`VideoTaskManagerInitializer`、`VideoTaskManagerUI`
+**task-management**: `VideoTask`、`useVideoTaskManager`、`useVideoTaskStore`、`useVideoTaskQueries`、`useVideoTaskCommands`、`useVideoTaskPolling`、`useVideoTasks`、`useFailedVideoTasks`、`useRecoverVideo`、`useCleanExpiredTasks`、`useStartBackgroundRecovery`、`buildTrackingInfoByProviderId`、`VideoTaskManager`、`VideoTaskManagerInitializer`、`VideoTaskManagerUI`
 
 **cache**: `useVideoCacheStats`、`cacheVideoBlob`、`getCachedVideoUrl`、`getVideoUrlWithCache`、`removeCachedVideo`、`cleanExpiredVideoCache`、`getCacheStats`、`revokeObjectURL`、`touchMemoryCache`、`clearMemoryCache`、`checkCachedVideo`、`getVideoFileStream`、`getCachedVideo`、`cacheImageBlob`、`getCachedImagePath`、`getImageUrlWithCache`、`removeCachedImage`、`cleanExpiredImageCache`、`getImageCacheStats`、`recoverUncachedImages`
 
@@ -267,7 +267,7 @@ interface TrackingInfo {
   apiDocUrl?: string
 }
 
-function buildTrackingInfo(taskId: string, apiUrl?: string, providerId?: string, model?: string): TrackingInfo
+function buildTrackingInfoByProviderId(taskId: string, apiUrl?: string, providerId?: string, model?: string): TrackingInfo
 function copyTrackingInfoToClipboard(trackingInfo: TrackingInfo): Promise<Result<void>>
 function openTaskQueryLink(trackingInfo: TrackingInfo): boolean
 ```

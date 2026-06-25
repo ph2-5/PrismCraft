@@ -4,14 +4,14 @@ import { useHomePage } from "./hooks/useHomePage";
 
 function HomeSkeleton() {
   return (
-    <div className="flex flex-col space-y-6 animate-pulse">
-      <div className="h-24 bg-muted rounded-lg" />
+    <div className="flex flex-col space-y-6">
+      <div className="h-24 skeleton-shimmer rounded-lg" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-48 bg-muted rounded-lg" />
+          <div key={i} className="h-48 skeleton-shimmer rounded-lg" />
         ))}
       </div>
-      <div className="h-64 bg-muted rounded-lg" />
+      <div className="h-64 skeleton-shimmer rounded-lg" />
     </div>
   );
 }
@@ -45,18 +45,18 @@ export default function Home() {
         >
           <div className="inline-flex items-center gap-3 mb-2">
             <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+              className="w-12 h-12 rounded-[14px] flex items-center justify-center text-2xl"
               style={{
-                background: "linear-gradient(135deg, var(--primary), var(--primary-hover))",
+                background: "linear-gradient(135deg, #6366f1, #a855f7)",
                 boxShadow: "0 4px 20px rgba(var(--primary-rgb), 0.3)",
               }}
             >
               🎬
             </div>
             <span
-              className="text-3xl font-extrabold"
+              className="text-[26px] font-extrabold"
               style={{
-                background: "linear-gradient(135deg, var(--primary-hover), var(--primary))",
+                background: "linear-gradient(135deg, #a5b4fc, #c4b5fd)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
@@ -89,7 +89,7 @@ export default function Home() {
               className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
               style={{ background: "rgba(var(--primary-rgb), 0.06)" }}
             />
-            <div className="text-3xl mb-3 relative">📖</div>
+            <div className="text-[32px] mb-3 relative">📖</div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.storyMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.storyModeDesc")}
@@ -123,7 +123,7 @@ export default function Home() {
               className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
               style={{ background: "rgba(var(--warning-rgb), 0.06)" }}
             />
-            <div className="text-3xl mb-3 relative">🎬</div>
+            <div className="text-[32px] mb-3 relative">🎬</div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.storyboardMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.storyboardModeDesc")}
@@ -157,7 +157,7 @@ export default function Home() {
               className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
               style={{ background: "rgba(var(--success-rgb), 0.06)" }}
             />
-            <div className="text-3xl mb-3 relative">⚡</div>
+            <div className="text-[32px] mb-3 relative">⚡</div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.quickMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.quickModeDesc")}
@@ -190,6 +190,8 @@ export default function Home() {
             {stories.slice(0, 6).map((story) => {
               const charCount = characters.length;
               const sceneCount = scenes.length;
+              const beatCount = story.beats?.length ?? 0;
+              const assetCount = story.elementIds?.length ?? 0;
               return (
                 <div
                   key={story.id}
@@ -206,10 +208,10 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-3 mb-2.5">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+                      className="w-10 h-10 rounded-[10px] flex items-center justify-center text-lg shrink-0"
                       style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-hover))" }}
                     >
-                      📖
+                      🌃
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold truncate">{story.title || t("story.unnamed")}</div>
@@ -220,6 +222,8 @@ export default function Home() {
                   <div className="flex gap-3.5 text-[11px] text-muted-foreground mb-2">
                     <span>👤 {charCount}</span>
                     <span>🏙 {sceneCount}</span>
+                    <span>🎬 {beatCount}</span>
+                    <span>📦 {assetCount}</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground">
                     {story.updatedAt ? new Date(story.updatedAt).toLocaleDateString("zh-CN") : ""}
@@ -256,7 +260,7 @@ export default function Home() {
               <QuickEntryCard icon="📦" title={t("home.assetLibrary")} subtitle={t("home.assetManage")} onClick={() => navigate("/asset-library")} />
               <QuickEntryCard icon="📋" title={t("home.videoTasks")} subtitle={t("home.taskManage")} onClick={() => navigate("/video-tasks")} />
               <QuickEntryCard icon="🛒" title={t("home.templateMarket")} subtitle={`12 ${t("home.templates")}`} onClick={() => navigate("/template-market")} />
-              <QuickEntryCard icon="🔧" title={t("home.workflowEditor")} subtitle={t("home.visualOrchestration")} onClick={() => navigate("/workflow")} />
+              <QuickEntryCard icon="🔗" title={t("home.workflowEditor")} subtitle={t("home.visualOrchestration")} onClick={() => navigate("/workflow")} />
             </div>
           </div>
         </div>

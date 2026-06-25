@@ -1,5 +1,6 @@
 import { cn } from "@/shared/utils/utils";
 import { Loader2 } from "lucide-react";
+import { t } from "@/shared/constants";
 
 interface LoadingStateProps {
   message?: string;
@@ -8,7 +9,7 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({
-  message = "加载中...",
+  message = t("common.loading"),
   className,
   size = "md",
 }: LoadingStateProps) {

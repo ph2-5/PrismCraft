@@ -203,8 +203,8 @@ function ScenesPageContent() {
                   >
                     <option value="">{t("scene.timeOfDayPlaceholder")}</option>
                     {timeSuggestions.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
+                      <option key={s.value} value={s.value}>
+                        {t(s.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -226,8 +226,8 @@ function ScenesPageContent() {
                   >
                     <option value="">{t("scene.weatherPlaceholder")}</option>
                     {weatherSuggestions.map((w) => (
-                      <option key={w} value={w}>
-                        {w}
+                      <option key={w.value} value={w.value}>
+                        {t(w.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -249,8 +249,8 @@ function ScenesPageContent() {
                   >
                     <option value="">{t("scene.typePlaceholder")}</option>
                     {typeSuggestions.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
+                      <option key={s.value} value={s.value}>
+                        {t(s.labelKey)}
                       </option>
                     ))}
                   </select>

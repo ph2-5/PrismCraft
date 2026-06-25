@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useId } from "react";
 import { cn } from "@/shared/utils/utils";
 import { t } from "@/shared/constants";
 import {
@@ -102,6 +102,10 @@ export function ModelParameterPanel({
 }: ModelParameterPanelProps) {
   const resolved = useMemo(() => resolveProfile(modelId), [modelId]);
   const strategy = useMemo(() => modelId ? getVideoGenerationStrategy(modelId) : null, [modelId]);
+  const resolutionId = useId();
+  const negativePromptId = useId();
+  const seedId = useId();
+  const cfgScaleId = useId();
 
   const isDark = variant === "dark";
   const labelClass = isDark ? "text-slate-300" : "";
@@ -183,8 +187,9 @@ export function ModelParameterPanel({
       </div>
 
       <div className="space-y-2">
-        <label className={labelClass}>{t("modelParam.resolution")}</label>
+        <label htmlFor={resolutionId} className={labelClass}>{t("modelParam.resolution")}</label>
         <select
+          id={resolutionId}
           className={cn("select", selectTriggerClass)}
           value={values.resolution}
           onChange={(e) => handleResolutionChange(e.target.value)}
@@ -219,8 +224,9 @@ export function ModelParameterPanel({
 
       {resolved.showNegativePrompt && (
         <div className="space-y-2">
-          <label className={labelClass}>{t("modelParam.negativePrompt")}</label>
+          <label htmlFor={negativePromptId} className={labelClass}>{t("modelParam.negativePrompt")}</label>
           <textarea
+            id={negativePromptId}
             className={cn("textarea", textareaClass)}
             value={values.negativePrompt}
             onChange={handleNegativePromptChange}
@@ -231,8 +237,9 @@ export function ModelParameterPanel({
 
       {resolved.showSeed && (
         <div className="space-y-2">
-          <label className={labelClass}>{t("modelParam.seed")}</label>
+          <label htmlFor={seedId} className={labelClass}>{t("modelParam.seed")}</label>
           <input
+            id={seedId}
             type="number"
             className={cn("input", inputClass)}
             value={values.seed}
@@ -245,12 +252,13 @@ export function ModelParameterPanel({
       {resolved.cfgScaleConfig && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className={labelClass}>{t("modelParam.cfgScale")}</label>
+            <label htmlFor={cfgScaleId} className={labelClass}>{t("modelParam.cfgScale")}</label>
             <span className="text-sm text-muted-foreground">
               {values.cfgScale}
             </span>
           </div>
           <input
+            id={cfgScaleId}
             type="range"
             className="slider"
             min={resolved.cfgScaleConfig.min}

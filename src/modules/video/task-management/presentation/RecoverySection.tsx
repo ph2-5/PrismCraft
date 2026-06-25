@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { t } from "@/shared/constants";
 
@@ -14,11 +15,13 @@ export function RecoverySection({
   onRecover,
   isRecovering,
 }: RecoverySectionProps) {
+  const recoveryInputId = useId();
   return (
     <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--border)" }}>
-      <label className="text-sm font-medium">{t("task.recoverFailedVideo")}</label>
+      <label htmlFor={recoveryInputId} className="text-sm font-medium">{t("task.recoverFailedVideo")}</label>
       <div className="flex gap-2">
         <input
+          id={recoveryInputId}
           className="input flex-1"
           placeholder={t("task.enterTaskId")}
           value={recoveryTaskId}

@@ -71,11 +71,18 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-background rounded-xl shadow-2xl border border-border overflow-hidden">
+      <div
+        className="w-full max-w-2xl bg-background rounded-xl shadow-2xl border border-border overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("aria.searchDialog")}
+        tabIndex={-1}
+      >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           <Search className="w-5 h-5 text-muted-foreground" />
           <input
             type="text"
+            aria-label={t("aria.searchDialog")}
             value={searchTerm}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}

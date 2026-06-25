@@ -4158,3 +4158,415 @@ const timeStr = new Date(timestamp).toLocaleTimeString();
 **Verification**: Grep `src/**/*.tsx` for `toLocaleString("zh-CN")` and `toLocaleTimeString("zh-CN")` (and `toLocaleString('zh-CN')`) — assert zero matches in user-facing components. Specifically assert `src/shared/presentation/CrashRecoveryDialog.tsx` calls `.toLocaleString()` and `.toLocaleTimeString()` with no arguments.
 
 **Discovered in**: Batch 3 P1-10 CrashRecoveryDialog date localization. Test: `src/shared/presentation/__tests__/regression-r166-date-locale.test.tsx`.
+
+---
+
+## R167-R180: 深度审计全量修复回归防护
+
+> 以下规则为深度审计 P0+P1+P2 全量修复的无障碍（a11y）、i18n、工程质量回归防护。
+> 详细 BAD/GOOD 示例及测试文件见各规则下文。
+
+### R167: 自定义模态框必须使用 Modal 组件或补 role/aria-modal
+
+当组件需要渲染模态对话框（fixed inset-0 overlay + 居中面板）时，必须使用统一的 `<Modal>` 组件（`src/shared/presentation/Modal.tsx`），该组件已内置 `role="dialog"`、`aria-modal="true"`、`aria-label`、`tabIndex={-1}`、Escape 关闭、overlay 点击关闭。若因特殊原因不能使用 `<Modal>`，则必须手动补齐 `role="dialog" aria-modal="true" aria-label={...}`。裸 `<div className="fixed inset-0 z-50">` 无 ARIA 语义，屏幕阅读器无法识别为对话框。
+
+**BAD** — 裸 div overlay 无 ARIA 语义：
+```tsx
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div className="bg-white rounded-lg p-6">{children}</div>
+</div>
+```
+
+**GOOD** — 使用统一 Modal 组件：
+```tsx
+<Modal open={open} onClose={onClose} ariaLabel={t("dialog.title")}>
+  {children}
+</Modal>
+```
+
+**GOOD** — 手动补齐 ARIA（仅在无法使用 Modal 时）：
+```tsx
+<div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("dialog.title")}>
+  <div className="bg-white rounded-lg p-6">{children}</div>
+</div>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `fixed inset-0` 的 div，确认每个匹配项要么使用 `<Modal>` 组件，要么有 `role="dialog" aria-modal="true"`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/shared/presentation/__tests__/regression-r167-custom-modal-role.test.tsx`。
+
+### R168: 纯图标按钮必须有 aria-label
+
+纯图标按钮（按钮内仅含图标无文字）必须提供 `aria-label`，使屏幕阅读器能朗读按钮用途。使用 `<IconButton>` 组件（强制 aria-label prop）或手动在 `<button>` 上添加 `aria-label`。无 aria-label 的纯图标按钮对屏幕阅读器用户不可用。
+
+**BAD** — 纯图标按钮无 aria-label：
+```tsx
+<button onClick={onClose}>
+  <X className="h-4 w-4" />
+</button>
+```
+
+**GOOD** — 使用 IconButton 组件（强制 aria-label）：
+```tsx
+<IconButton aria-label={t("aria.close")} onClick={onClose}>
+  <X className="h-4 w-4" />
+</IconButton>
+```
+
+**GOOD** — 手动补 aria-label：
+```tsx
+<button aria-label={t("aria.close")} onClick={onClose}>
+  <X className="h-4 w-4" />
+</button>
+```
+
+**Verification**: Grep `src/**/*.tsx` for 含 lucide 图标的 `<button>`，确认每个纯图标按钮有 `aria-label` 或使用 `<IconButton>`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/shared/presentation/__tests__/regression-r168-icon-button-aria.test.tsx`。
+
+### R169: div onClick 必须补 role="button"/tabIndex/onKeyDown
+
+当 `<div>` 用作可点击按钮（有 `onClick`）时，必须补齐 `role="button"`、`tabIndex={0}`、`onKeyDown`（处理 Enter/Space），以及 `aria-label`。裸 `<div onClick>` 对键盘用户不可达，对屏幕阅读器用户不可识别为按钮。
+
+**BAD** — div onClick 无 ARIA/键盘支持：
+```tsx
+<div onClick={handleClick} className="cursor-pointer">
+  {label}
+</div>
+```
+
+**GOOD** — 补齐 role/tabIndex/onKeyDown/aria-label：
+```tsx
+<div
+  role="button"
+  tabIndex={0}
+  onClick={handleClick}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  }}
+  aria-label={label}
+  className="cursor-pointer"
+>
+  {label}
+</div>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `<div` + `onClick`，确认每个匹配项有 `role="button"` 和 `tabIndex`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/shared/presentation/__tests__/regression-r169-div-onclick-role.test.tsx`。
+
+### R170: Tab 模式必须使用 Tabs 组件
+
+当 UI 实现标签页切换（多个 button 切换 active 状态）时，必须使用统一的 `<Tabs>` 组件（`src/shared/presentation/Tabs.tsx`），该组件已内置 `role="tablist"`、`role="tab"`、`aria-selected`、roving tabindex、键盘导航（ArrowLeft/Right/Home/End）。手写多个 button 作为 tab 缺少 ARIA 语义和键盘支持。
+
+**BAD** — 手写 tab 按钮无 ARIA 语义：
+```tsx
+<div className="top-tabs">
+  {tabs.map((tab) => (
+    <button
+      key={tab.id}
+      className={cn("top-tab", activeTab === tab.id && "active")}
+      onClick={() => onChange(tab.id)}
+    >
+      {tab.label}
+    </button>
+  ))}
+</div>
+```
+
+**GOOD** — 使用统一 Tabs 组件：
+```tsx
+<Tabs
+  tabs={[{ id: "all", label: t("tab.all") }, { id: "done", label: t("tab.done") }]}
+  activeTab={activeTab}
+  onChange={onChange}
+/>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `top-tab-btn` 或手写 tab 模式，确认使用 `<Tabs>` 组件。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/shared/presentation/__tests__/regression-r170-tabs-component.test.tsx`。
+
+### R171: 表单控件必须有 label 关联
+
+表单控件（`<input>`、`<select>`、`<textarea>`）必须有可见 label 关联（`<label htmlFor={id}>` + `id`）或 `aria-label`/`aria-labelledby`。无 label 的表单控件对屏幕阅读器用户不可用。
+
+**BAD** — input 无 label：
+```tsx
+<input
+  type="text"
+  value={value}
+  onChange={(e) => onChange(e.target.value)}
+  placeholder="输入名称"
+/>
+```
+
+**GOOD** — label + htmlFor 关联：
+```tsx
+<label htmlFor="char-name">{t("form.name")}</label>
+<input
+  id="char-name"
+  type="text"
+  value={value}
+  onChange={(e) => onChange(e.target.value)}
+/>
+```
+
+**GOOD** — aria-label（当可见 label 不适用时）：
+```tsx
+<input
+  type="text"
+  aria-label={t("form.name")}
+  value={value}
+  onChange={(e) => onChange(e.target.value)}
+/>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `<input`、`<select`、`<textarea`，确认每个控件有 label 关联或 aria-label。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/app/__tests__/regression-r171-form-label-association.test.tsx`。
+
+### R172: 进度条必须有 role="progressbar"
+
+进度条（`<div className="progress-bar">`）必须有 `role="progressbar"`、`aria-valuenow`、`aria-valuemin={0}`、`aria-valuemax={100}`，使屏幕阅读器能朗读进度。裸 div 进度条对屏幕阅读器用户不可感知。
+
+**BAD** — 进度条无 ARIA：
+```tsx
+<div className="progress-bar h-2">
+  <div className="progress-fill" style={{ width: `${progress}%` }} />
+</div>
+```
+
+**GOOD** — 补齐 role 和 aria 属性：
+```tsx
+<div
+  className="progress-bar h-2"
+  role="progressbar"
+  aria-label={t("common.generating")}
+  aria-valuenow={progress}
+  aria-valuemin={0}
+  aria-valuemax={100}
+>
+  <div className="progress-fill" style={{ width: `${progress}%` }} />
+</div>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `progress-bar`，确认每个进度条有 `role="progressbar"`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/modules/asset/presentation/__tests__/regression-r172-progressbar-role.test.tsx`。
+
+### R173: 动态状态变化必须有 aria-live
+
+动态变化的状态文本（如任务计数、进度百分比、轮询结果）必须放在 `role="status" aria-live="polite"` 容器中，使屏幕阅读器在内容变化时自动朗读。无 aria-live 的动态文本对屏幕阅读器用户不可感知。
+
+**BAD** — 动态计数无 aria-live：
+```tsx
+<div className="flex items-center gap-4 text-sm">
+  <span>已完成 {completedCount}</span>
+  <span>失败 {failedCount}</span>
+</div>
+```
+
+**GOOD** — 容器补 role="status" aria-live="polite"：
+```tsx
+<div className="flex items-center gap-4 text-sm" role="status" aria-live="polite">
+  <span>{t("asset.completedCount", { count: completedCount })}</span>
+  <span>{t("asset.failedCount", { count: failedCount })}</span>
+</div>
+```
+
+**Verification**: Grep `src/**/*.tsx` for 动态数字容器，确认有 `role="status" aria-live="polite"`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/modules/asset/presentation/__tests__/regression-r173-aria-live.test.tsx`。
+
+### R174: 装饰性 emoji 必须 aria-hidden
+
+装饰性 emoji（如 🗑、🌅、📤）必须添加 `aria-hidden="true"`，防止屏幕阅读器朗读 emoji 的冗长描述。当 emoji 旁有文字 label 时，emoji 纯装饰；当 emoji 是唯一内容时，应补 aria-label 或改用图标组件。
+
+**BAD** — 装饰性 emoji 无 aria-hidden：
+```tsx
+<button onClick={onDelete}>
+  <span>🗑</span> 删除
+</button>
+```
+
+**GOOD** — emoji aria-hidden：
+```tsx
+<button onClick={onDelete}>
+  <span aria-hidden="true">🗑</span> {t("common.delete")}
+</button>
+```
+
+**Verification**: Grep `src/**/*.tsx` for emoji 字符（🗑🌅📤📥✨▶️ 等），确认装饰性 emoji 有 `aria-hidden="true"`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/modules/story/beat-editor/presentation/__tests__/regression-r174-emoji-aria-hidden.test.tsx`。
+
+### R175: throw Error 必须用 t() 国际化
+
+用户可见的 `throw new Error(...)` 消息必须用 `t()` 国际化（渲染进程）或 `@shared/i18n`（主进程），不能硬编码中文字符串。开发者内部错误（如 "useStory must be used within a StoryProvider"）和错误码常量（如 "PREVIEW_REQUIRED_BEFORE_KEYFRAME"）不受此规则约束，因为它们不展示给最终用户。
+
+**BAD** — 用户可见错误硬编码中文：
+```tsx
+if (!apiKey) throw new Error("API Key 不能为空");
+```
+
+**GOOD** — 用 t() 国际化：
+```tsx
+if (!apiKey) throw new Error(t("error.apiKeyRequired"));
+```
+
+**GOOD** — 错误码常量（非用户可见，不受约束）：
+```tsx
+throw new Error("PREVIEW_REQUIRED_BEFORE_KEYFRAME");
+```
+
+**Verification**: Grep `src/**/*.ts(x)` for `throw new Error("`，确认用户可见错误消息用 `t()` 而非硬编码中文。
+
+**Discovered in**: 深度审计 i18n 修复。Test: `src/__tests__/lib/regression-r175-throw-error-i18n.test.ts`。
+
+### R176: 数据常量层双用途字段（value + labelKey）
+
+数据常量（如风格选项、类型选项）需同时支持 prompt 构造（中文 value）和 UI 显示（i18n labelKey）时，必须使用 `{ value, labelKey }` 结构而非 `{ value, label }`。`value` 是发送给 AI 的中文 prompt 字符串（不可翻译），`labelKey` 是点分 i18n key 用于 UI 显示。`label` 字段同时承担两种用途会导致 i18n 与 prompt 语义耦合。
+
+**BAD** — label 字段双用途：
+```tsx
+export const genres = [
+  { value: "drama", label: "剧情", description: "情感驱动的故事" },
+];
+// label 同时用于 UI 显示和（可能的）prompt 构造 → i18n 时 label 翻译会破坏 prompt
+```
+
+**GOOD** — value + labelKey 分离：
+```tsx
+export const genres = [
+  { value: "剧情", labelKey: "genre.drama", description: "情感驱动的故事" },
+];
+// value 用于 prompt 构造（中文），labelKey 用于 UI 显示（t(labelKey)）
+```
+
+**Verification**: 检查数据常量文件（`constants.ts`、`story-constants.ts` 等），确认 UI 显示用 `t(labelKey)`，prompt 构造用 `value`。
+
+**Discovered in**: 深度审计 i18n 修复（R162 的泛化）。Test: `src/modules/character/__tests__/regression-r176-data-constant-labelkey.test.ts`。
+
+### R177: DOM 操作必须用 useRef
+
+React 组件内对 DOM 元素的操作（如 `.click()`、`.focus()`、`.scrollIntoView()`）必须通过 `useRef` 引用元素，不能使用 `document.getElementById` / `document.querySelector`。`document.getElementById` 在 React 的虚拟 DOM 之外操作，可能导致引用过期、SSR 不兼容、多实例冲突。
+
+**BAD** — document.getElementById 操作 DOM：
+```tsx
+const handleSubmit = () => {
+  document.getElementById("file-input")?.click();
+};
+```
+
+**GOOD** — useRef 引用 DOM：
+```tsx
+const fileInputRef = useRef<HTMLInputElement>(null);
+const handleSubmit = () => {
+  fileInputRef.current?.click();
+};
+// JSX: <input ref={fileInputRef} type="file" />
+```
+
+**Verification**: Grep `src/**/*.ts(x)` for `document.getElementById`，确认仅在入口文件（main.tsx）使用，组件内一律用 `useRef`。
+
+**Discovered in**: 深度审计工程质量修复。Test: `src/app/quick-generate/__tests__/regression-r177-dom-use-ref.test.tsx`。
+
+### R178: 回调参数不能遮蔽导入的 t
+
+当文件导入了 i18n 的 `t` 函数（`import { t } from "@/shared/constants/messages"`）后，回调函数参数不能命名为 `t`，否则会遮蔽（shadow）i18n 的 `t`，导致回调内调用 `t(...)` 实际调用的是回调参数而非 i18n 函数（运行时错误或静默失败）。
+
+**BAD** — 回调参数 t 遮蔽 i18n 的 t：
+```tsx
+import { t } from "@/shared/constants/messages";
+// ...
+{tasks.filter((t) => t.status === "completed")}
+//                                  ^ 此 t 是 task，遮蔽了 i18n 的 t
+// 若回调内需要 t() 会调用错误的 t
+```
+
+**GOOD** — 用语义化参数名：
+```tsx
+import { t } from "@/shared/constants/messages";
+// ...
+{tasks.filter((task) => task.status === "completed")}
+```
+
+**Verification**: Grep `src/**/*.ts(x)` for 回调参数命名 `t`（如 `.filter((t)`、`.map((t)`、`.find((t)`），确认在导入了 `t` 的文件中不使用 `t` 作为回调参数名。
+
+**Discovered in**: 深度审计工程质量修复。Test: `src/modules/video/task-management/hooks/__tests__/regression-r178-callback-no-shadow.test.ts`。
+
+### R179: Port 接口扩展优先于 as 断言
+
+当需要调用 Port 接口未定义的可选方法（如 `cancelTask`）时，必须在 Port 接口定义中声明可选方法（`cancelTask?(...): ...`），不能在调用处用 `as` 断言扩展接口。`as` 断言绕过类型检查，且散落在各调用处难以维护；接口扩展集中定义契约，TypeScript 编译器能正确检查实现。
+
+**BAD** — as 断言扩展 Port 接口：
+```tsx
+const provider = container.videoProvider as {
+  generateVideo: (...) => ...;
+  cancelTask?: (taskId: string) => Promise<void>;
+};
+await provider.cancelTask?.(taskId);
+```
+
+**GOOD** — Port 接口定义可选方法：
+```tsx
+// domain/ports/ai-provider-port.ts
+export interface IVideoProvider {
+  generateVideo(...): Promise<...>;
+  // 可选：服务端任务取消（best-effort）
+  cancelTask?(taskId: string): Promise<void>;
+}
+// 调用处
+await container.videoProvider.cancelTask?.(taskId);
+```
+
+**Verification**: Grep `src/**/*.ts(x)` for `container.\w+ as {` 或 `as IVideoProvider &`，确认 Port 接口扩展在接口定义处而非调用处。
+
+**Discovered in**: 深度审计工程质量修复。Test: `src/domain/ports/__tests__/regression-r179-port-interface-extension.test.ts`。
+
+### R180: 函数职责单一（>100 行的注册函数应拆分）
+
+注册函数（如 IPC handler 注册、事件监听注册）超过 100 行时，必须按类别拆分为独立的注册函数（如 `registerLogHandlers`、`registerShellHandlers`、`registerWindowHandlers`），由顶层函数调用。单函数承担多类别注册导致难以定位、难以测试、修改风险扩散。
+
+**BAD** — 单个函数 121 行注册 7 类 handler：
+```tsx
+function setupApiHandlers() {
+  // 日志 handler (10 行)
+  ipcMain.on("log:security", ...);
+  // 健康检查 handler (15 行)
+  ipcMain.handle("api:health", ...);
+  // Shell handler (40 行)
+  ipcMain.handle("shell:open-external", ...);
+  ipcMain.handle("shell:open-path", ...);
+  // 窗口 handler (30 行)
+  ipcMain.on("window:minimize", ...);
+  // 配置 handler (26 行)
+  ipcMain.on("config:get", ...);
+  // 总计 121 行 → 难以测试、修改风险高
+}
+```
+
+**GOOD** — 按类别拆分：
+```tsx
+function registerLogHandlers(): void { /* ... */ }
+function registerHealthHandlers(): void { /* ... */ }
+function registerShellHandlers(): void { /* ... */ }
+function registerWindowHandlers(): void { /* ... */ }
+function registerConfigHandlers(): void { /* ... */ }
+
+function setupApiHandlers(): void {
+  registerLogHandlers();
+  registerHealthHandlers();
+  registerShellHandlers();
+  registerWindowHandlers();
+  registerConfigHandlers();
+}
+```
+
+**Verification**: 检查注册函数行数，>100 行的注册函数应拆分为按类别分组的子函数。
+
+**Discovered in**: 深度审计工程质量修复。Test: `electron/src/__tests__/regression-r180-function-split.test.ts`。

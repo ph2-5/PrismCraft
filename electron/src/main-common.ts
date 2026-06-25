@@ -41,7 +41,7 @@ function validateConfigKey(key: string): boolean {
   if (!key || typeof key !== "string") return false;
   if (key.length > 256) return false;
   const keys = key.split(".");
-  const topLevelKey = keys[0]!;
+  const topLevelKey = keys[0] ?? "";
   if (!ALLOWED_CONFIG_KEYS.has(topLevelKey)) return false;
   for (const k of keys) {
     if (k === "__proto__" || k === "constructor" || k === "prototype") {
@@ -87,7 +87,7 @@ function applyConfigValue(config: Record<string, unknown>, key: string, value: u
     const keys = key.split(".");
     let current: Record<string, unknown> = config;
     for (let i = 0; i < keys.length - 1; i++) {
-      const k = keys[i]!;
+      const k = keys[i] ?? "";
       if (
         !(k in current) ||
         typeof current[k] !== "object" ||
@@ -97,7 +97,7 @@ function applyConfigValue(config: Record<string, unknown>, key: string, value: u
       }
       current = current[k] as Record<string, unknown>;
     }
-    current[keys[keys.length - 1]!] = value;
+    current[keys[keys.length - 1] ?? ""] = value;
   } else {
     config[key] = value;
   }
@@ -115,9 +115,7 @@ interface SetupApiHandlersOptions {
   checkForUpdates?: () => Promise<unknown>;
 }
 
-function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
-  const { checkForUpdates } = options;
-
+function registerLogHandlers(): void {
   ipcMain.on("log:security", (_event, data: { level: string; message: string }) => {
     if (data.level === "error") {
       logger.error("[Preload]", new Error(data.message));
@@ -125,7 +123,9 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
       logger.warn("[Preload]", { message: data.message });
     }
   });
+}
 
+function registerHealthHandlers(checkForUpdates?: () => Promise<unknown>): void {
   ipcMain.handle("api:health", async () => {
     return { status: "ok", timestamp: Date.now() };
   });
@@ -136,7 +136,9 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
     }
     return { success: true, updateAvailable: false };
   });
+}
 
+function registerShellHandlers(): void {
   ipcMain.handle("shell:open-external", async (_event, url: string) => {
     if (!url || typeof url !== "string") {
       return { success: false, error: "Invalid URL" };
@@ -170,22 +172,9 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
       return { success: false, error: (e as Error).message };
     }
   });
+}
 
-  ipcMain.handle("config:get", async (_event, key: string) => {
-    if (key && !validateConfigKey(key)) return null;
-    const config = await loadConfigAsync();
-    return getConfigValue(config, key);
-  });
-
-  ipcMain.handle("config:set", async (_event, key: string, value: unknown) => {
-    if (!validateConfigKey(key)) return false;
-    if (!validateConfigValue(value)) return false;
-    const config = await loadConfigAsync();
-    applyConfigValue(config, key, value);
-    saveConfig(config);
-    return true;
-  });
-
+function registerWindowHandlers(): void {
   // 窗口控制 IPC（无框窗口需要前端触发）
   ipcMain.handle("window:minimize", () => {
     const win = BrowserWindow.getFocusedWindow();
@@ -208,6 +197,23 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
   ipcMain.handle("window:isMaximized", () => {
     const win = BrowserWindow.getFocusedWindow();
     return win ? win.isMaximized() : false;
+  });
+}
+
+function registerConfigHandlers(): void {
+  ipcMain.handle("config:get", async (_event, key: string) => {
+    if (key && !validateConfigKey(key)) return null;
+    const config = await loadConfigAsync();
+    return getConfigValue(config, key);
+  });
+
+  ipcMain.handle("config:set", async (_event, key: string, value: unknown) => {
+    if (!validateConfigKey(key)) return false;
+    if (!validateConfigValue(value)) return false;
+    const config = await loadConfigAsync();
+    applyConfigValue(config, key, value);
+    saveConfig(config);
+    return true;
   });
 
   // 注意：ipcMain.on 是同步的，无法使用 loadConfigAsync()。
@@ -236,6 +242,14 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
     saveConfig(config);
     event.returnValue = true;
   });
+}
+
+function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
+  registerLogHandlers();
+  registerHealthHandlers(options.checkForUpdates);
+  registerShellHandlers();
+  registerWindowHandlers();
+  registerConfigHandlers();
 }
 
 const MIME_TYPES: Record<string, string> = {

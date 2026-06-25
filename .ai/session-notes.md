@@ -255,3 +255,53 @@
 **验证结果**：typecheck + lint + lint:arch 全部通过 + 4559 测试通过（新增 88 个：80 回归 + 8 IconButton）
 
 **后续待办**：批次 4（P2 架构重构）— StoryProvider Context 拆分、React.lazy 路由分割、saveVideoTask 重复提取、useAssetLibraryActions 22 参数重构
+
+### [2026-06-25] 深度审计 + P0+P1+P2 全量修复 + R167-R180 回归防护 — 已完成
+
+**审计范围**：4 维度并行深度审计（i18n 残留 + 可访问性 + 代码异味 + UI 对比预览页），共发现约 200 处问题。
+
+**P0 修复（40 项）**：
+- 可访问性 P0：6 个自定义模态框迁移到 Modal（TemplateManagerDialog, AssetPicker, onboarding；SearchDialog/DebugOverlay/PromptFloatingBall 仅补 role/aria-modal）、10 个纯图标按钮补 aria-label、4 个 div onClick 补 role="button"/tabIndex/onKeyDown
+- UI 视觉 P0：Toast 组件重写（shadcn Tailwind 颜色类 → CSS 变量）、主页 Brand Hero 修正（渐变/字号/圆角/emoji/数据列补全）、删除死代码（QuickActions.tsx, ProjectList.tsx）、story Tab emoji 补全、settings Tab 双重样式修复
+- i18n P0：user-facing-error typeMap、LoadingState 默认值、throw Error 复用现有 key、数据常量层改造（video-templates, scene/constants, shot-prompt 采用 {value, labelKey} 结构）、新增约 210 个 i18n key
+- 代码异味 P0：BeatDetailEditor:423 双重断言修复、AdvancedSettingsCard DOM 操作改用 useRef、非空断言修复、静默吞错改用 errorLogger
+
+**P1 修复（47 项）**：
+- 可访问性 + UI P1：创建 Tabs 组件（role="tablist" + roving tabindex + 键盘导航）、迁移 5 处 Tab 实现、9 处表单 label 关联、2 处焦点管理（ThemeSwitcher, StoryHeader）、2 处 overlay role、UI 细节（emoji 字号、badge 透明度、团队成员头像、not-found 页面、HomeSkeleton）
+- 代码异味 P1：创建 `src/shared/utils/format.ts` 统一格式化函数、video-tracker 重命名消歧、TaskCard 重命名为 TaskCardBase、清理 3 处不必要 as 断言、重命名 13 处回调参数 t→task、Port 接口扩展 cancelTask 可选方法
+
+**P2 修复（64 项）**：
+- 可访问性 P2：aria-live / role="status"（2 处）、role="progressbar"（5 处进度条）
+- i18n P2：plugin-routes.ts 硬编码中文（新建 server 端 i18n 模块 `electron/src/shared/i18n.ts`）、BeatDetailEditor emoji aria-hidden（8 处）
+- 代码异味 P2：shared-logic 类型守卫（isRecordLike, isObjectArray）、main-common.ts setupApiHandlers 拆分为 5 个注册函数
+- 跳过项：errorLogger 中文日志（开发者可见，保留中文便于排障）、import-export as 断言（风险大于收益）、PollingStoreAccessor 断言（跨 CQRS 架构，风险高）
+
+**新增组件**：
+- `src/shared/presentation/Tabs.tsx` — 可访问 Tab 组件
+- `src/shared/utils/format.ts` — 统一格式化函数
+- `electron/src/shared/i18n.ts` — server 端轻量 i18n 模块
+
+**回归防护（本次提交）** — R167-R180 共 14 条规则 + 108 个回归测试：
+- R167: `src/shared/presentation/__tests__/regression-r167-custom-modal-role.test.tsx`（8 tests）
+- R168: `src/shared/presentation/__tests__/regression-r168-icon-button-aria.test.tsx`（7 tests）
+- R169: `src/shared/presentation/__tests__/regression-r169-div-onclick-role.test.tsx`（8 tests）
+- R170: `src/shared/presentation/__tests__/regression-r170-tabs-component.test.tsx`（9 tests）
+- R171: `src/app/__tests__/regression-r171-form-label-association.test.tsx`（8 tests）
+- R172: `src/modules/asset/presentation/__tests__/regression-r172-progressbar-role.test.tsx`（7 tests）
+- R173: `src/modules/asset/presentation/__tests__/regression-r173-aria-live.test.tsx`（8 tests）
+- R174: `src/modules/story/beat-editor/presentation/__tests__/regression-r174-emoji-aria-hidden.test.tsx`（8 tests）
+- R175: `src/__tests__/lib/regression-r175-throw-error-i18n.test.ts`（9 tests）
+- R176: `src/modules/character/__tests__/regression-r176-data-constant-labelkey.test.ts`（10 tests）
+- R177: `src/app/quick-generate/__tests__/regression-r177-dom-use-ref.test.tsx`（8 tests）
+- R178: `src/modules/video/task-management/hooks/__tests__/regression-r178-callback-no-shadow.test.ts`（9 tests）
+- R179: `src/domain/ports/__tests__/regression-r179-port-interface-extension.test.ts`（9 tests）
+- R180: `electron/src/__tests__/regression-r180-function-split.test.ts`（11 tests）
+
+**文档更新**：
+- `.trae/rules/regression-guards.md` — 追加 R167-R180 十四条规则
+- `.trae/rules/project_rules.md` — R1-R166 → R1-R180（all 151 → all 166 guards），类别统计表更新（UI 健壮性 14→22，工程质量 26→32）
+- `.trae/rules/regression/index.md` — 总数 155 → 169，分类编号列表加入 R167-R180
+
+**验证结果**：typecheck + typecheck:electron + lint + lint:arch 全部通过 + 4667 测试通过（新增 108 个回归测试）
+
+**后续待办**：批次 4（P2 架构重构）— StoryProvider Context 拆分、React.lazy 路由分割、saveVideoTask 重复提取、useAssetLibraryActions 22 参数重构、route handlers as 断言消除（schema 设计债务）

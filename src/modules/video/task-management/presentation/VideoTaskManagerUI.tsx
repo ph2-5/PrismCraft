@@ -8,7 +8,7 @@ import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { TaskCard } from "./video-task-manager-ui/task-card";
+import { TaskCardBase } from "./video-task-manager-ui/task-card";
 import { TaskDetailDialog } from "./video-task-manager-ui/task-detail-dialog";
 
 const VIRTUAL_LIST_CONTAINER_STYLE = { maxHeight: "60vh", overflow: "auto" } as const;
@@ -126,7 +126,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
               const task = sortedTasks[virtualItem.index]!;
               return (
                 <div key={task.taskId} style={{ position: "absolute", top: virtualItem.start, left: 0, width: "100%", height: virtualItem.size }}>
-                  <TaskCard
+                  <TaskCardBase
                     task={task}
                     isSelected={selectedTaskIds.has(task.taskId)}
                     isExpanded={expandedTaskId === task.taskId}
@@ -144,7 +144,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
       ) : (
         <div className="space-y-3">
           {visibleTasks.map((task) => (
-            <TaskCard
+            <TaskCardBase
               key={task.taskId}
               task={task}
               isSelected={selectedTaskIds.has(task.taskId)}

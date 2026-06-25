@@ -65,10 +65,10 @@ export function mapUserFacingError(error: unknown): string {
           const message = error.message;
           if (typeof message === "string" && code === "api_not_configured") {
             const typeMap: Record<string, string> = {
-              text: "文本",
-              video: "视频",
-              image: "图片",
-              vision: "视觉",
+              text: t("capability.text"),
+              video: t("capability.video"),
+              image: t("capability.image"),
+              vision: t("capability.vision"),
             };
             params.type = typeMap[message] || message;
           }

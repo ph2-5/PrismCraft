@@ -120,7 +120,14 @@ export const TaskCard = React.memo(function TaskCard({
           </div>
           {task.status === "generating" && (
             <>
-              <div className="progress-bar h-2">
+              <div
+                className="progress-bar h-2"
+                role="progressbar"
+                aria-label={t("common.generating")}
+                aria-valuenow={task.progress || 0}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
                 <div className="progress-fill" style={{ width: `${task.progress || 0}%` }} />
               </div>
               <div className="text-xs text-right" style={{ color: "var(--muted-fg)" }}>

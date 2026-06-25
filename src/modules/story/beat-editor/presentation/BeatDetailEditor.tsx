@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { t } from "@/shared/constants";
+import { Tabs } from "@/shared/presentation/Tabs";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { getBeatCharacterIds } from "@/domain/utils";
 import {
@@ -12,7 +13,6 @@ import type {
   Scene,
   StoryElement,
   ShotInstructionTemplate,
-  ElementType,
 } from "@/domain/schemas";
 import { PromptEditor, PromptFloatingBall } from "@/modules/story/prompt-editor";
 import type { PromptEditorContext } from "@/modules/story/prompt-editor";
@@ -206,12 +206,12 @@ export function BeatDetailEditor({
 
   const shotSizeLabel = (() => {
     const option = SHOT_SIZE_OPTIONS.find((o) => o.value === currentInstruction.shotSize);
-    return option?.label || "";
+    return option ? t(option.labelKey) : "";
   })();
 
   const cameraMovementLabel = (() => {
     const option = CAMERA_MOVEMENT_OPTIONS.find((o) => o.value === currentInstruction.cameraMovement);
-    return option?.label || "";
+    return option ? t(option.labelKey) : "";
   })();
 
   const durationLabel = beat.duration ?? 0;
@@ -341,7 +341,7 @@ export function BeatDetailEditor({
             onClick={handleDeleteClick}
             aria-label={t("common.delete")}
           >
-            🗑
+            <span aria-hidden="true">🗑</span>
           </button>
         </div>
       </div>
@@ -360,36 +360,16 @@ export function BeatDetailEditor({
         {/* COLUMN 1: Prompt editor (3-tab) + Shot properties */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
           {/* Prompt tabs */}
-          <div style={{ display: "flex", borderBottom: "1px solid var(--border)" }}>
-            <button
-              className={`top-tab ${promptTab === "keyframe" ? "active" : ""}`}
-              onClick={() => setPromptTab("keyframe")}
-              style={{ fontSize: 12, padding: "7px 12px" }}
-            >
-              {t("prompt.keyframePrompt")}
-            </button>
-            <button
-              className={`top-tab ${promptTab === "firstFrame" ? "active" : ""}`}
-              onClick={() => setPromptTab("firstFrame")}
-              style={{ fontSize: 12, padding: "7px 12px" }}
-            >
-              {t("prompt.firstFramePrompt")}
-            </button>
-            <button
-              className={`top-tab ${promptTab === "lastFrame" ? "active" : ""}`}
-              onClick={() => setPromptTab("lastFrame")}
-              style={{ fontSize: 12, padding: "7px 12px" }}
-            >
-              {t("prompt.lastFramePrompt")}
-            </button>
-            <button
-              className={`top-tab ${promptTab === "video" ? "active" : ""}`}
-              onClick={() => setPromptTab("video")}
-              style={{ fontSize: 12, padding: "7px 12px" }}
-            >
-              {t("prompt.videoPrompt")}
-            </button>
-          </div>
+          <Tabs
+            tabs={[
+              { id: "keyframe", label: t("prompt.keyframePrompt") },
+              { id: "firstFrame", label: t("prompt.firstFramePrompt") },
+              { id: "lastFrame", label: t("prompt.lastFramePrompt") },
+              { id: "video", label: t("prompt.videoPrompt") },
+            ]}
+            activeTab={promptTab}
+            onChange={(id) => setPromptTab(id as PromptEditorContext)}
+          />
 
           {/* Prompt editor card */}
           <div className="card2" style={{ padding: 12, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 10, overflow: "hidden" }}>
@@ -420,7 +400,7 @@ export function BeatDetailEditor({
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "4px 0" }}>
                 {boundElements.map((el) => {
                   const isCharacter = el.type === "character";
-                  const isScene = (el as StoryElement).type === ("scene" as unknown as ElementType);
+                  const isScene = (el.type as string) === "scene";
                   if (!isCharacter && !isScene) return null;
                   return (
                     <span key={el.id} className={`prompt-binding-tag ${isCharacter ? "char" : "scene"}`}>
@@ -477,7 +457,7 @@ export function BeatDetailEditor({
               >
                 {SHOT_SIZE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </option>
                 ))}
               </select>
@@ -493,7 +473,7 @@ export function BeatDetailEditor({
               >
                 {CAMERA_MOVEMENT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </option>
                 ))}
               </select>
@@ -673,7 +653,7 @@ export function BeatDetailEditor({
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
               ) : (
-                <span>🌅</span>
+                <span aria-hidden="true">🌅</span>
               )}
             </div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
@@ -689,7 +669,7 @@ export function BeatDetailEditor({
                 onClick={() => keyframeInputRef.current?.click()}
                 aria-label={t("common.upload")}
               >
-                📤
+                <span aria-hidden="true">📤</span>
               </button>
               {onRegenerateKeyframe && keyframeImage && (
                 <button
@@ -774,14 +754,14 @@ export function BeatDetailEditor({
                 onClick={() => firstFrameInputRef.current?.click()}
                 aria-label={t("keyframe.uploadFirstFrame")}
               >
-                📤
+                <span aria-hidden="true">📤</span>
               </button>
               <button
                 className="btn btn-outline btn-xs"
                 onClick={() => lastFrameInputRef.current?.click()}
                 aria-label={t("keyframe.uploadLastFrame")}
               >
-                📥
+                <span aria-hidden="true">📥</span>
               </button>
             </div>
           </div>
@@ -812,7 +792,7 @@ export function BeatDetailEditor({
                   controls
                 />
               ) : (
-                <span>▶️</span>
+                <span aria-hidden="true">▶️</span>
               )}
             </div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
@@ -833,7 +813,7 @@ export function BeatDetailEditor({
                 onClick={() => videoInputRef.current?.click()}
                 aria-label={t("common.upload")}
               >
-                📤
+                <span aria-hidden="true">📤</span>
               </button>
             </div>
           </div>
@@ -845,7 +825,7 @@ export function BeatDetailEditor({
             onClick={handleOneClickGenerate}
             disabled={generatingKeyframe}
           >
-            ✨ {t("keyframe.oneClickGenerate")}
+            <span aria-hidden="true">✨</span> {t("keyframe.oneClickGenerate")}
           </button>
         </div>
       </div>

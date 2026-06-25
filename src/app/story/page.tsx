@@ -8,6 +8,7 @@ import { TemplateManagerDialog } from "@/modules/story";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ComingSoon } from "@/shared/presentation/ComingSoon";
 import { Modal } from "@/shared/presentation/Modal";
+import { Tabs } from "@/shared/presentation/Tabs";
 import { StoryProvider } from "./StoryProvider";
 import { SwitchConfirmDialog } from "./SwitchConfirmDialog";
 import { useStoryPage } from "./hooks/useStoryPage";
@@ -34,48 +35,29 @@ function StoryPageContent() {
   return (
     <PageErrorBoundary pageName={t("page.storyboard")}>
       <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <button
-              type="button"
-              className={`top-tab ${activeTab === "storyboard" ? "active" : ""}`}
-              onClick={() => setActiveTab("storyboard")}
-            >
-              {t("story.tab.storyboard")}
-            </button>
-            <button
-              type="button"
-              className={`top-tab ${activeTab === "ai-generate" ? "active" : ""}`}
-              onClick={() => setActiveTab("ai-generate")}
-            >
-              {t("story.tab.aiGenerate")}
-            </button>
-            <button
-              type="button"
-              className={`top-tab ${activeTab === "preview-export" ? "active" : ""}`}
-              onClick={() => setActiveTab("preview-export")}
-            >
-              {t("story.tab.previewExport")}
-            </button>
-            <button
-              type="button"
-              className={`top-tab ${activeTab === "comments" ? "active" : ""}`}
-              onClick={() => setActiveTab("comments")}
-            >
-              {t("story.tab.comments")}
-            </button>
-            <button
-              type="button"
-              className={`top-tab ${activeTab === "audio" ? "active" : ""}`}
-              onClick={() => setActiveTab("audio")}
-            >
-              {t("story.tab.audio")}
-            </button>
-          </div>
-          <div className="toolbar" style={{ paddingRight: 8 }}>
+        <div className="top-tabs" style={{ padding: 0, alignItems: "stretch", justifyContent: "space-between" }}>
+          <Tabs
+            tabs={[
+              { id: "storyboard", label: t("story.tab.storyboard") },
+              { id: "ai-generate", label: t("story.tab.aiGenerate") },
+              { id: "preview-export", label: t("story.tab.previewExport") },
+              { id: "comments", label: t("story.tab.comments") },
+              { id: "audio", label: t("story.tab.audio") },
+            ]}
+            activeTab={activeTab}
+            onChange={(id) => setActiveTab(id as typeof activeTab)}
+          />
+          <div className="toolbar" style={{ paddingRight: 32 }}>
             <span style={{ fontSize: 12, color: "var(--muted-fg)" }}>
               {story.currentStory.title || t("beat.unnamedProject")}
             </span>
+            {/* 团队成员头像组（占位，协作功能未实现） */}
+            <div className="flex items-center" aria-hidden="true">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)", marginRight: -6 }}>A</div>
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2" style={{ background: "linear-gradient(135deg, #ec4899, #f59e0b)", borderColor: "var(--bg)" }}>B</div>
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2" style={{ background: "linear-gradient(135deg, #10b981, #06b6d4)", borderColor: "var(--bg)", marginLeft: -6 }}>C</div>
+            </div>
+            <span style={{ color: "var(--border)" }}>|</span>
             <button
               type="button"
               className="btn btn-ghost btn-xs"

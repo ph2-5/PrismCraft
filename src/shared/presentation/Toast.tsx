@@ -201,30 +201,26 @@ const DEFAULT_DURATION: Record<ToastType, number> = {
   info: 4000,
 };
 
-const TYPE_COLORS: Record<ToastType, { icon: string; border: string; progress: string; glow: string }> = {
+const TYPE_COLORS: Record<ToastType, { icon: React.CSSProperties; border: React.CSSProperties; progress: React.CSSProperties }> = {
   success: {
-    icon: "text-emerald-400",
-    border: "border-emerald-500/30",
-    progress: "bg-emerald-400",
-    glow: "shadow-emerald-500/10",
+    icon: { color: "rgb(var(--success-rgb))" },
+    border: { borderColor: "rgba(var(--success-rgb), 0.3)" },
+    progress: { backgroundColor: "rgb(var(--success-rgb))" },
   },
   error: {
-    icon: "text-destructive",
-    border: "border-red-500/30",
-    progress: "bg-red-400",
-    glow: "shadow-red-500/10",
+    icon: { color: "rgb(var(--destructive-rgb))" },
+    border: { borderColor: "rgba(var(--destructive-rgb), 0.3)" },
+    progress: { backgroundColor: "rgb(var(--destructive-rgb))" },
   },
   warning: {
-    icon: "text-amber-400",
-    border: "border-amber-500/30",
-    progress: "bg-amber-400",
-    glow: "shadow-amber-500/10",
+    icon: { color: "rgb(var(--warning-rgb))" },
+    border: { borderColor: "rgba(var(--warning-rgb), 0.3)" },
+    progress: { backgroundColor: "rgb(var(--warning-rgb))" },
   },
   info: {
-    icon: "text-sky-400",
-    border: "border-sky-500/30",
-    progress: "bg-sky-400",
-    glow: "shadow-sky-500/10",
+    icon: { color: "rgb(var(--info-rgb, var(--primary-rgb)))" },
+    border: { borderColor: "rgba(var(--info-rgb, var(--primary-rgb)), 0.3)" },
+    progress: { backgroundColor: "rgb(var(--info-rgb, var(--primary-rgb)))" },
   },
 };
 
@@ -263,19 +259,20 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   }, [paused, toast.exiting, duration, onClose]);
 
   const iconMap = {
-    success: <CheckCircle className={`w-5 h-5 ${colors.icon}`} />,
-    error: <AlertCircle className={`w-5 h-5 ${colors.icon}`} />,
-    warning: <AlertTriangle className={`w-5 h-5 ${colors.icon}`} />,
-    info: <Info className={`w-5 h-5 ${colors.icon}`} />,
+    success: <CheckCircle className="w-5 h-5" style={colors.icon} />,
+    error: <AlertCircle className="w-5 h-5" style={colors.icon} />,
+    warning: <AlertTriangle className="w-5 h-5" style={colors.icon} />,
+    info: <Info className="w-5 h-5" style={colors.icon} />,
   };
 
   return (
     <div
-      className={`relative flex items-start gap-3 p-4 rounded-xl bg-card/95 backdrop-blur-sm border ${colors.border} shadow-lg ${colors.glow} min-w-[320px] max-w-[420px] transition-all duration-400 ease-out overflow-hidden ${
+      className={`relative flex items-start gap-3 p-4 rounded-xl bg-card/95 backdrop-blur-sm border shadow-lg min-w-[320px] max-w-[420px] transition-all duration-400 ease-out overflow-hidden ${
         toast.exiting
           ? "opacity-0 translate-x-8 scale-95"
           : "animate-slide-in-from-right"
       }`}
+      style={colors.border}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -311,8 +308,9 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       {!toast.exiting && (
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-muted/30">
           <div
-            className={`h-full ${colors.progress} rounded-full`}
+            className="h-full rounded-full"
             style={{
+              ...colors.progress,
               animation: `toast-progress ${duration}ms linear forwards`,
               animationPlayState: paused ? "paused" : "running",
             }}

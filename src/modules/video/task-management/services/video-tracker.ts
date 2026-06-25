@@ -66,11 +66,11 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
 };
 
-export function getProviderInfo(providerId: string): ProviderConfig | undefined {
+export function getProviderInfoByProviderId(providerId: string): ProviderConfig | undefined {
   return PROVIDERS[providerId];
 }
 
-export function buildTrackingInfo(
+export function buildTrackingInfoByProviderId(
   taskId: string,
   apiUrl?: string,
   providerId?: string,

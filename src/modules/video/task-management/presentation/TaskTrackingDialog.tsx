@@ -1,6 +1,6 @@
 import { Search, Copy, ExternalLink, BookOpen } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
-import { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } from "../services/video-tracker";
+import { buildTrackingInfoByProviderId, copyTrackingInfoToClipboard, openTaskQueryLink } from "../services/video-tracker";
 import { t } from "@/shared/constants";
 import { Modal } from "@/shared/presentation/Modal";
 
@@ -22,7 +22,7 @@ export function TaskTrackingDialog({
   if (!task) return null;
 
   const handleCopyTracking = async () => {
-    const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
+    const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
     const result = await copyTrackingInfoToClipboard(trackingInfo);
     if (result.ok) {
       onToastSuccess(t("success.copied"), t("task.copyAllInfo"));
@@ -32,14 +32,14 @@ export function TaskTrackingDialog({
   };
 
   const handleOpenCloudLink = () => {
-    const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
+    const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
     const opened = openTaskQueryLink(trackingInfo);
     if (!opened) {
       onToastError(t("error.openLinkFailed"), t("task.manualQuery"));
     }
   };
 
-  const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
+  const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
 
   return (
     <Modal

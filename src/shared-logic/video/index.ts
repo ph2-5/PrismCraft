@@ -8,8 +8,8 @@ export {
 export {
   PROVIDERS,
   DEFAULT_PROVIDER,
-  getProviderInfo,
-  buildTrackingInfo,
+  getProviderInfoByApiUrl,
+  buildTrackingInfoByApiUrl,
 } from "./video-tracker";
 export type { TrackingInfo } from "./video-tracker";
 

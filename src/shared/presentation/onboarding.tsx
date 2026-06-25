@@ -5,6 +5,7 @@ import { useNavigationGuard } from "./BeforeUnloadGuard";
 import { checkConfigStatus } from "@/shared/api-config";
 import { usePreference } from "@/shared/utils/preferences";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface OnboardingStep {
   title: string;
@@ -105,14 +106,21 @@ export function OnboardingGuide() {
     handleClose();
   };
 
-  if (completed) return null;
-
   const step = ONBOARDING_STEPS[currentStep]!;
   const isLastStep = currentStep === ONBOARDING_STEPS.length - 1;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background border rounded-xl shadow-xl max-w-md w-full p-6 relative">
+    <Modal
+      open={!completed}
+      onClose={handleClose}
+      ariaLabel={t("onboarding.welcomeStudioTitle")}
+      style={{
+        maxWidth: "28rem",
+        padding: "1.5rem",
+        position: "relative",
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+      }}
+    >
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 hover:text-foreground transition-colors"
@@ -130,9 +138,9 @@ export function OnboardingGuide() {
           <p className="mb-6" style={{ color: "var(--muted-fg)" }}>{step.description}</p>
 
           <div className="flex gap-2 mb-6">
-            {ONBOARDING_STEPS.map((step, index) => (
+            {ONBOARDING_STEPS.map((s, index) => (
               <button
-                key={step.title}
+                key={s.title}
                 onClick={() => setCurrentStep(index)}
                 className={`h-3 w-3 rounded-full transition-colors cursor-pointer ${
                   index === currentStep
@@ -141,6 +149,8 @@ export function OnboardingGuide() {
                       ? "bg-primary/60"
                       : "bg-muted"
                 }`}
+                aria-label={t("aria.gotoStep", { title: s.title })}
+                aria-current={index === currentStep ? "step" : undefined}
               />
             ))}
           </div>
@@ -171,8 +181,7 @@ export function OnboardingGuide() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

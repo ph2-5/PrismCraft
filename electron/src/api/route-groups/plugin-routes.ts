@@ -6,6 +6,7 @@ import { CODE_PLUGINS_DIR } from "../../plugins/code-plugin-loader";
 import fs from "fs";
 import path from "path";
 import { getLogger } from "../../logging";
+import { t } from "@shared/i18n";
 import {
   videoSelectStrategySchema,
   videoDetectFormatSchema,
@@ -169,15 +170,15 @@ export const pluginRoutes: Record<string, Route> = {
       // large and brittle. Validation is delegated to validatePluginConfig below.
       const config = b.config as unknown as UserPluginConfig;
       if (!config) {
-        return { success: false, error: "缺少插件配置" };
+        return { success: false, error: t("error.pluginConfigMissing") };
       }
       const validation = validatePluginConfig(config);
       if (!validation.valid) {
-        return { success: false, error: `插件配置无效: ${validation.errors.join("; ")}` };
+        return { success: false, error: t("error.pluginConfigInvalid", { errors: validation.errors.join("; ") }) };
       }
       const existing = pluginRegistry.selectById(config.id);
       if (existing && !pluginRegistry.isUserPlugin(config.id)) {
-        return { success: false, error: `插件 ID "${config.id}" 与内置插件冲突` };
+        return { success: false, error: t("error.pluginIdConflict", { id: config.id }) };
       }
       const result = saveUserPlugin(config);
       if (!result.success) {
@@ -200,10 +201,10 @@ export const pluginRoutes: Record<string, Route> = {
     schema: pluginDeleteSchema,
     handler: async (_m, b) => {
       if (!b.pluginId) {
-        return { success: false, error: "缺少 pluginId" };
+        return { success: false, error: t("error.pluginIdMissing") };
       }
       if (!pluginRegistry.isUserPlugin(b.pluginId)) {
-        return { success: false, error: "不能删除内置插件" };
+        return { success: false, error: t("error.cannotDeleteBuiltinPlugin") };
       }
       const result = deleteUserPlugin(b.pluginId);
       if (!result.success) {
@@ -242,7 +243,7 @@ export const pluginRoutes: Record<string, Route> = {
       // nested interface. Validation is performed by validatePluginConfig which checks the shape.
       const config = b.config as unknown as UserPluginConfig;
       if (!config) {
-        return { success: false, error: "缺少插件配置" };
+        return { success: false, error: t("error.pluginConfigMissing") };
       }
       const validation = validatePluginConfig(config);
       return { success: true, data: { valid: validation.valid, errors: validation.errors } };

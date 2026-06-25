@@ -32,7 +32,7 @@ export const characterService = {
     };
     return fromAsyncThrowable(async () => {
       await container.characterStorage.createCharacter({ ...dataWithNormalizedGender, id });
-      const created = { ...dataWithNormalizedGender, id } as Character;
+      const created: Character = { ...dataWithNormalizedGender, id };
       container.eventBus.emit(DomainEvents.CHARACTER_CREATED, { id, characterName: created.name });
       return created;
     });

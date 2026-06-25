@@ -65,6 +65,27 @@ export interface StoryPlanValidationResult {
   autoFixed: string[];
 }
 
+/**
+ * Type guard: a non-null object treated as a string-keyed record.
+ * Replaces unsafe `as Record<string, unknown>` assertions on `unknown` values
+ * that have already been narrowed to "object" via typeof checks. Arrays are
+ * intentionally allowed to preserve the original `typeof === "object"` behavior.
+ */
+function isRecordLike(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * Type guard: every element of an array is a non-null object. Used to narrow
+ * `unknown[]` to `CharacterInput[]` / `SceneInput[]` whose fields are all
+ * optional, so any object satisfies the structural contract. The generic
+ * parameter lets callers pick the target element type without runtime field
+ * checks (all fields are optional, so structural compatibility holds).
+ */
+function isObjectArray<T extends object>(value: unknown[]): value is T[] {
+  return value.every((v) => typeof v === "object" && v !== null);
+}
+
 interface FewShotInput {
   genre: string;
   tone: string;
@@ -479,13 +500,12 @@ export function convertToStoryBeats(
     const structuredElementBindings: Record<string, unknown> = {};
     if (rawElementBindings && typeof rawElementBindings === "object") {
       for (const [elId, binding] of Object.entries(rawElementBindings)) {
-        if (binding && typeof binding === "object") {
-          const b = binding as Record<string, unknown>;
+        if (isRecordLike(binding)) {
           structuredElementBindings[elId] = {
-            role: b.role || (elId.startsWith("CHAR") ? "main_character" : "prop"),
-            action: b.action ? String(b.action) : undefined,
-            position: b.position ? String(b.position) : undefined,
-            emotion: b.emotion ? String(b.emotion) : undefined,
+            role: binding.role || (elId.startsWith("CHAR") ? "main_character" : "prop"),
+            action: binding.action ? String(binding.action) : undefined,
+            position: binding.position ? String(binding.position) : undefined,
+            emotion: binding.emotion ? String(binding.emotion) : undefined,
           };
         }
       }
@@ -578,8 +598,8 @@ export async function generateStoryPlanWithValidation(
   const basePrompt = opts.planPrompt || generateStoryPlanPrompt({
     title: story.title, description: story.description, genre: story.genre,
     tone: story.tone, targetDuration: story.targetDuration,
-    characters: (Array.isArray(characters) ? characters : []) as CharacterInput[],
-    scenes: (Array.isArray(scenes) ? scenes : []) as SceneInput[],
+    characters: isObjectArray<CharacterInput>(characters) ? characters : [],
+    scenes: isObjectArray<SceneInput>(scenes) ? scenes : [],
   });
 
   const fewShotContext: FewShotInput = {

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Settings, ChevronDown, ChevronUp, X, Film, Trash2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
@@ -31,6 +32,8 @@ export function AdvancedSettingsCard({
   onUploadReferenceVideo,
   onRemoveReferenceVideo,
 }: AdvancedSettingsCardProps) {
+  const refImageUploadRef = useRef<HTMLInputElement>(null);
+  const refVideoUploadRef = useRef<HTMLInputElement>(null);
   return (
     <div className="card" style={{ padding: 0 }}>
       <div
@@ -70,6 +73,8 @@ export function AdvancedSettingsCard({
             <button
               type="button"
               className={`toggle ${enableSmartOptimization ? "on" : ""}`}
+              aria-label={t("quickGenerate.smartOptimization")}
+              aria-pressed={enableSmartOptimization}
               onClick={() => onSmartOptimizationChange(!enableSmartOptimization)}
             />
           </div>
@@ -114,6 +119,7 @@ export function AdvancedSettingsCard({
                   accept="image/*"
                   className="hidden"
                   id="ref-image-upload"
+                  ref={refImageUploadRef}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -131,9 +137,7 @@ export function AdvancedSettingsCard({
                 <button
                   type="button"
                   className="btn btn-outline"
-                  onClick={() =>
-                    document.getElementById("ref-image-upload")?.click()
-                  }
+                  onClick={() => refImageUploadRef.current?.click()}
                 >
                   {t("quickGenerate.selectImage")}
                 </button>
@@ -178,6 +182,7 @@ export function AdvancedSettingsCard({
                   accept="video/*"
                   className="hidden"
                   id="ref-video-upload"
+                  ref={refVideoUploadRef}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -188,9 +193,7 @@ export function AdvancedSettingsCard({
                 <button
                   type="button"
                   className="btn btn-outline"
-                  onClick={() =>
-                    document.getElementById("ref-video-upload")?.click()
-                  }
+                  onClick={() => refVideoUploadRef.current?.click()}
                 >
                   <Film className="w-4 h-4 mr-2" />
                   {t("quickGenerate.selectVideo")}

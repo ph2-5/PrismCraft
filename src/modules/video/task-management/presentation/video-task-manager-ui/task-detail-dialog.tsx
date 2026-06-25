@@ -5,14 +5,9 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants/messages";
+import { formatTimestamp } from "@/shared/utils/format";
 import { Modal } from "@/shared/presentation/Modal";
 import { StatusBadge, getTaskDisplayStatus } from "./status-badge";
-
-function formatTime(timestamp: string | undefined): string {
-  if (!timestamp) return t("common.unknown");
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
-}
 
 interface TaskDetailDialogProps {
   task: VideoTask;
@@ -94,7 +89,7 @@ export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }:
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t("beat.createdAt")}</p>
-                  <p className="text-sm font-medium">{formatTime(task.createdAt)}</p>
+                  <p className="text-sm font-medium">{formatTimestamp(task.createdAt)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t("task.retryCount")}</p>

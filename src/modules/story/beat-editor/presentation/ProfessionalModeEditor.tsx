@@ -227,7 +227,7 @@ export function ProfessionalModeEditor({
     const shotSize = beat.shotInstruction?.shotSize || beat.shotType;
     if (!shotSize) return "";
     const option = SHOT_SIZE_OPTIONS.find((o) => o.value === shotSize);
-    return option?.label || String(shotSize);
+    return option ? t(option.labelKey) : String(shotSize);
   }, []);
 
   const renderTimelineCard = useCallback(

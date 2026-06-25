@@ -29,7 +29,7 @@ export const storyboardRoutes: Record<string, Route> = {
   "video/tracking-info": defineRoute({
     schema: videoTrackingInfoSchema,
     handler: async (_m, b) => {
-      const info = videoTracker.buildTrackingInfo(
+      const info = videoTracker.buildTrackingInfoByApiUrl(
         b.taskId,
         b.apiUrl,
         b.apiKeyPreview,
@@ -42,7 +42,7 @@ export const storyboardRoutes: Record<string, Route> = {
   "video/provider-info": defineRoute({
     schema: videoProviderInfoSchema,
     handler: async (_m, b) => {
-      const info = videoTracker.getProviderInfo(b.apiUrl);
+      const info = videoTracker.getProviderInfoByApiUrl(b.apiUrl);
       return { success: true, data: info };
     },
     methods: ["POST"],

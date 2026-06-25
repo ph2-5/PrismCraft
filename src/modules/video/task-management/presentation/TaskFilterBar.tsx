@@ -37,6 +37,7 @@ export function TaskFilterBar({
         <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-fg)" }} />
         <input
           className="input pl-8 h-8 text-sm"
+          aria-label={t("task.searchPlaceholder")}
           placeholder={t("task.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -44,6 +45,7 @@ export function TaskFilterBar({
       </div>
       <select
         className="select w-28 h-8 text-xs"
+        aria-label={t("task.allStatus")}
         value={statusFilter}
         onChange={(e) => onStatusFilterChange(e.target.value as FilterStatus)}
       >
@@ -56,6 +58,7 @@ export function TaskFilterBar({
       </select>
       <select
         className="select w-28 h-8 text-xs"
+        aria-label={t("task.allTime")}
         value={timeRange}
         onChange={(e) => onTimeRangeChange(e.target.value as TimeRange)}
       >
@@ -66,6 +69,7 @@ export function TaskFilterBar({
       </select>
       <select
         className="select w-28 h-8 text-xs"
+        aria-label={t("task.groupByStory")}
         value={groupBy}
         onChange={(e) => onGroupByChange(e.target.value as GroupBy)}
       >
@@ -76,6 +80,7 @@ export function TaskFilterBar({
       </select>
       <select
         className="select w-28 h-8 text-xs"
+        aria-label={t("task.sortByCreated")}
         value={sortField}
         onChange={(e) => onSortFieldChange(e.target.value as SortField)}
       >

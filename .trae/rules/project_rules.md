@@ -572,7 +572,7 @@ Note: Pure functions from `@/infrastructure/*` that modules need are exported vi
 
 ## Regression Guards (from Bug Audit)
 
-> Full regression guard rules (R1-R166) are split by category in `.trae/rules/regression/`.
+> Full regression guard rules (R1-R180) are split by category in `.trae/rules/regression/`.
 > Start with `index.md` for the category overview, then load only the relevant category file.
 > The original unified file is at [regression-guards.md](./regression-guards.md) (181KB, not recommended for AI context loading).
 
@@ -602,15 +602,15 @@ When AI discovers a bug (during audit, code review, or development), it MUST fol
 5. **Implement automated detection** — ESLint rule, architecture scan script, or CR rule
 6. **Update project docs** — Update rule count in `project_rules.md`, update MODULE.md if invariants changed
 
-**Quick reference — all 151 guards by category:**
+**Quick reference — all 166 guards by category:**
 
 | Category | Count | Key Concern |
 |----------|-------|-------------|
 | 数据一致性 | 21 | 数据不丢、不脏、不冲突（含 R109 transactional delete orphan tracking, R116 sync push-pull atomicity, R125 import ON CONFLICT, R157 video-cache constants cross-layer consistency） |
 | 异步安全 | 20 | 并发、竞态、轮询、生命周期（含 R115 commands delegate to store, R117 setup idempotent, R122 clear tasks notify server, R127 persistence debounce, R135 Zustand selector no setInterval） |
 | 错误处理 | 16 | 错误不吞、不假成功、用户可理解（含 R108 api client result no throw, R129 JSON.parse try/catch, R134 delete dialog disable on referenced, R136 bulk-save failures） |
-| UI 健壮性 | 14 | 界面不崩、有反馈、无泄漏（含 R131 error boundary error count, R132 filter/refresh wiring, R133 drag handlers non-empty, R158 Toast hover pause single-timer, R160 unified Modal component, R161 IconButton aria-label required, R163 global :focus-visible, R164 Modal container focus） |
-| 工程质量 | 26 | 依赖合规、构建安全、测试可靠（含 R107 upload size limit, R135 secureConfigRouteSchema, R136 network-monitor deferred side effects, R137 video-cache deferred beforeunload, R154 useAssetLoader Promise.all concurrency, R155 StoryProvider services useMemo, R156 useVideoTasksPage single-pass stats memo, R159 validateApiKey errorKey i18n, R162 styleOptions labelKey/value split, R165 coming-soon t() i18n, R166 toLocaleString no zh-CN locale） |
+| UI 健壮性 | 22 | 界面不崩、有反馈、无泄漏、a11y 可访问（含 R158 Toast hover pause, R160 unified Modal, R161 IconButton aria-label, R163 focus-visible, R164 Modal focus, R167 custom modal role/aria-modal, R168 icon button aria-label, R169 div onClick role, R170 Tabs component, R171 form label, R172 progressbar role, R173 aria-live, R174 emoji aria-hidden） |
+| 工程质量 | 32 | 依赖合规、构建安全、测试可靠、i18n（含 R154 useAssetLoader Promise.all, R155 StoryProvider useMemo, R156 stats memo, R159 validateApiKey errorKey, R162 labelKey/value split, R165 coming-soon t(), R166 no zh-CN locale, R175 throw Error t() i18n, R176 data constant labelKey, R177 DOM useRef, R178 callback no shadow t, R179 Port interface extension, R180 function split） |
 | 平台兼容 | 6 | IPC、Electron环境、进程模型 |
 | 用户安全防护 | 17 | 破坏性操作需确认、数据清除需保护 |
 | 系统安全 | 30 | 沙箱隔离防逃逸、IPC通道注册检查（含 R105 SSRF 防护, R118 redirect SSRF guard, R119 openPath whitelist, R120 no plaintext fallback, R123 sandbox constructor lock, R124 apikey header, R126 IPC no credential leak, R128 IPC input validation, R130 timer cleanup, R131 foreign keys, R132 sync http client SSRF, R133 SSRF fail-close, R137 param sanitization） |

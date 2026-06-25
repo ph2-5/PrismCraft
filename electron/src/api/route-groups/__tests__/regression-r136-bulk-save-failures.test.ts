@@ -60,8 +60,8 @@ vi.mock("@shared-logic/video/video-recovery", () => ({
 }));
 
 vi.mock("@shared-logic/video/video-tracker", () => ({
-  buildTrackingInfo: vi.fn(),
-  getProviderInfo: vi.fn(),
+  buildTrackingInfoByApiUrl: vi.fn(),
+  getProviderInfoByApiUrl: vi.fn(),
 }));
 
 function createMockDb() {

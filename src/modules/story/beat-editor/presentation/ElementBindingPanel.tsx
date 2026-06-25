@@ -45,7 +45,7 @@ export function ElementBindingPanel({
     .filter((e): e is StoryElement => !!e);
 
   const boundCharacters = boundElements.filter((e) => e.type === "character");
-  const boundScenes = boundElements.filter((e) => (e as StoryElement).type === ("scene" as unknown as ElementType));
+  const boundScenes = boundElements.filter((e) => (e.type as string) === "scene");
   const boundProps = boundElements.filter((e) => e.type === "prop" || e.type === "effect");
 
   const getElementBinding = (elementId: string) => {
@@ -114,7 +114,7 @@ export function ElementBindingPanel({
   };
 
   const handleAddScene = (scene: Scene) => {
-    const existingElement = elements.find((e) => (e as StoryElement).type === ("scene" as unknown as ElementType) && e.name === scene.name);
+    const existingElement = elements.find((e) => (e.type as string) === "scene" && e.name === scene.name);
     let elementId: string;
     if (existingElement) {
       elementId = existingElement.id;
@@ -215,7 +215,7 @@ export function ElementBindingPanel({
   };
 
   const availableCharacters = characters.filter((char) => !boundElements.some((el) => el.type === "character" && el.name === char.name));
-  const availableScenes = scenes.filter((sc) => !boundElements.some((el) => (el as StoryElement).type === ("scene" as unknown as ElementType) && el.name === sc.name));
+  const availableScenes = scenes.filter((sc) => !boundElements.some((el) => (el.type as string) === "scene" && el.name === sc.name));
 
   return (
     <>
@@ -408,7 +408,16 @@ export function ElementBindingPanel({
 
       {/* Asset selector dialog */}
       {assetSelectorOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }} onClick={() => setAssetSelectorOpen(false)}>
+        <div
+          role="presentation"
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}
+          onClick={() => setAssetSelectorOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setAssetSelectorOpen(false);
+            }
+          }}
+        >
           <div className="card" style={{ maxWidth: 600, width: "90%", maxHeight: "70vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{t("element.selectFromAssetLibrary")}</div>
             {assets.filter((a) => a.type === "image").length === 0 ? (
@@ -416,7 +425,20 @@ export function ElementBindingPanel({
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                 {assets.filter((a) => a.type === "image").map((asset) => (
-                  <div key={asset.id} style={{ cursor: "pointer", borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }} onClick={() => handleSelectAsset(asset)}>
+                  <div
+                    key={asset.id}
+                    style={{ cursor: "pointer", borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}
+                    onClick={() => handleSelectAsset(asset)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSelectAsset(asset);
+                      }
+                    }}
+                    aria-label={t("aria.selectAsset", { name: asset.name })}
+                  >
                     {asset.url && <img src={resolveImageUrl(asset.url)} alt={asset.name} style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }} />}
                     <div style={{ padding: 4, fontSize: 11 }}>{asset.name}</div>
                   </div>

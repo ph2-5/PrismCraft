@@ -44,10 +44,15 @@ export function DebugOverlay() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] bg-gray-900 text-white p-4 rounded-lg max-w-sm text-xs">
+    <div
+      className="fixed bottom-4 right-4 z-[9999] bg-gray-900 text-white p-4 rounded-lg max-w-sm text-xs"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("debug.title")}
+    >
       <div className="flex justify-between items-center mb-2">
         <span className="font-bold">{t("debug.title")}</span>
-        <button onClick={() => setIsDevToolsOpen(false)} style={{ color: "var(--muted-fg)" }}>
+        <button onClick={() => setIsDevToolsOpen(false)} style={{ color: "var(--muted-fg)" }} aria-label={t("aria.close")}>
           ×
         </button>
       </div>

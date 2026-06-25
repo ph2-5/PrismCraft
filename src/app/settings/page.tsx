@@ -9,13 +9,8 @@ import { SyncSettingsPanel } from "@/modules/sync";
 import { useSettingsPage, type SettingsTab } from "./hooks/useSettingsPage";
 import { getCacheDirectory, getDiskSpace } from "@/shared/file-http";
 import { storyService } from "@/modules/story";
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
-  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${bytes} B`;
-}
+import { errorLogger } from "@/shared/error-logger";
+import { formatBytes } from "@/shared/utils/format";
 
 function formatUptime(ms: number): string {
   const seconds = Math.floor(ms / 1000);
@@ -138,11 +133,11 @@ function SystemInfoCard() {
     let cancelled = false;
     const load = async () => {
       try {
-        const cacheDirResult = await getCacheDirectory().catch(() => null);
+        const cacheDirResult = await getCacheDirectory().catch((e) => { errorLogger.warn("[Settings] getCacheDirectory failed", e); return null; });
         const dirPath = cacheDirResult?.path ?? "";
         const [diskResult, storiesResult] = await Promise.all([
-          getDiskSpace(dirPath).catch(() => null),
-          storyService.getAll().catch(() => null),
+          getDiskSpace(dirPath).catch((e) => { errorLogger.warn("[Settings] getDiskSpace failed", e); return null; }),
+          storyService.getAll().catch((e) => { errorLogger.warn("[Settings] storyService.getAll failed", e); return null; }),
         ]);
         if (cancelled) return;
         if (diskResult && diskResult.success && diskResult.totalBytes && diskResult.availableBytes !== undefined) {
@@ -286,7 +281,6 @@ export default function SettingsPage() {
                 style={{
                   flex: 1,
                   justifyContent: "center",
-                  background: activeTab === tab.id ? "var(--primary)" : "transparent",
                 }}
                 onClick={() => setActiveTab(tab.id)}
               >

@@ -15,6 +15,8 @@ import {
   importTemplateFromFile,
 } from "@/modules/story";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
+import { Tabs } from "@/shared/presentation/Tabs";
 import { exportMultipleTemplates } from "../services/storyboard-template";
 import { TemplateCard } from "./TemplateCard";
 
@@ -56,8 +58,6 @@ export default function TemplateManagerDialog({
   const [templateTags, setTemplateTags] = useState("");
   const [importError, setImportError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  if (!isOpen) return null;
 
   const handleSave = () => {
     if (!templateName.trim()) return;
@@ -110,8 +110,19 @@ export default function TemplateManagerDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[680px] max-h-[85vh] flex flex-col">
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel={t("template.managerTitle")}
+      style={{
+        maxWidth: "680px",
+        maxHeight: "85vh",
+        padding: 0,
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+      }}
+    >
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <h2 className="text-lg font-semibold" style={{ color: "var(--muted-fg)" }}>
             {t("template.managerTitle")}
@@ -120,32 +131,21 @@ export default function TemplateManagerDialog({
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
             style={{ color: "var(--muted-fg)" }}
+            aria-label={t("aria.close")}
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex border-b" style={{ borderColor: "var(--border)" }}>
-          {[
-            { key: "load", label: t("template.myTemplates"), icon: FileText },
-            { key: "save", label: t("template.saveTemplate"), icon: Plus },
-            { key: "import", label: t("template.importExport"), icon: Upload },
-          ].map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key as "load" | "save" | "import")}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === key
-                  ? "border-blue-500"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              }`}
-              style={activeTab === key ? { color: "var(--primary)" } : undefined}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          tabs={[
+            { id: "load", label: t("template.myTemplates"), icon: <FileText size={16} /> },
+            { id: "save", label: t("template.saveTemplate"), icon: <Plus size={16} /> },
+            { id: "import", label: t("template.importExport"), icon: <Upload size={16} /> },
+          ]}
+          activeTab={activeTab}
+          onChange={(id) => setActiveTab(id as "load" | "save" | "import")}
+        />
 
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === "load" && (
@@ -314,7 +314,6 @@ export default function TemplateManagerDialog({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

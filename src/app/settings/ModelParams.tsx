@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Plus, Trash2, ChevronRight } from "lucide-react";
 import { t } from "@/shared/constants";
 import { IconButton } from "@/shared/presentation/IconButton";
@@ -18,6 +19,9 @@ export function ModelParams({
   updateModel,
   toggleModelParams,
 }: ModelParamsProps) {
+  const negativePromptCheckId = useId();
+  const seedCheckId = useId();
+  const cfgScaleCheckId = useId();
   return (
     <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
       <button
@@ -38,6 +42,7 @@ export function ModelParams({
                   className="input"
                   style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 32 }}
                   type="number"
+                  aria-label={t("plugin.durationValuePlaceholder")}
                   value={d.value}
                   onChange={(e) => {
                     const durations = model.durations.map((item) =>
@@ -50,6 +55,7 @@ export function ModelParams({
                 <input
                   className="input"
                   style={{ fontSize: 12, padding: "6px 10px", height: 32 }}
+                  aria-label={t("plugin.durationLabelPlaceholder")}
                   value={d.label}
                   onChange={(e) => {
                     const durations = model.durations.map((item) =>
@@ -222,25 +228,28 @@ export function ModelParams({
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
+                id={negativePromptCheckId}
                 type="checkbox"
                 checked={model.negativePrompt}
                 onChange={(e) => updateModel(index, { negativePrompt: e.target.checked })}
               />
-              <label style={{ fontSize: 11 }}>{t("plugin.negativePrompt")}</label>
+              <label htmlFor={negativePromptCheckId} style={{ fontSize: 11 }}>{t("plugin.negativePrompt")}</label>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
+                id={seedCheckId}
                 type="checkbox"
                 checked={model.seed}
                 onChange={(e) => updateModel(index, { seed: e.target.checked })}
               />
-              <label style={{ fontSize: 11 }}>{t("plugin.seedValue")}</label>
+              <label htmlFor={seedCheckId} style={{ fontSize: 11 }}>{t("plugin.seedValue")}</label>
             </div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
+                id={cfgScaleCheckId}
                 type="checkbox"
                 checked={model.cfgScale !== null}
                 onChange={(e) => {
@@ -249,7 +258,7 @@ export function ModelParams({
                   });
                 }}
               />
-              <label style={{ fontSize: 11 }}>{t("plugin.cfgScale")}</label>
+              <label htmlFor={cfgScaleCheckId} style={{ fontSize: 11 }}>{t("plugin.cfgScale")}</label>
             </div>
             {model.cfgScale && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 24 }}>

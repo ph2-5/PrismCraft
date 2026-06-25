@@ -168,7 +168,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 
   removeTasksByBeatId: async (beatId) => {
-    const tasks = get().allTasks.filter((t) => t.beatId === beatId);
+    const tasks = get().allTasks.filter((task) => task.beatId === beatId);
     for (const task of tasks) {
       if (TaskMachine.isPollable(task.status)) {
         try {
@@ -184,14 +184,14 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       errorLogger.error("Failed to remove video tasks by beatId", error);
       throw error;
     }
-    await clearCacheForTasks(tasks.map((t) => t.taskId));
-    get().setAllTasks((prev) => prev.filter((t) => t.beatId !== beatId));
+    await clearCacheForTasks(tasks.map((task) => task.taskId));
+    get().setAllTasks((prev) => prev.filter((task) => task.beatId !== beatId));
     scheduleSync();
     checkAndStartOrStopPolling();
   },
 
   removeTasksByStoryId: async (storyId) => {
-    const tasks = get().allTasks.filter((t) => t.storyId === storyId);
+    const tasks = get().allTasks.filter((task) => task.storyId === storyId);
     for (const task of tasks) {
       if (TaskMachine.isPollable(task.status)) {
         try {
@@ -207,8 +207,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       errorLogger.error("Failed to remove video tasks by storyId", error);
       throw error;
     }
-    await clearCacheForTasks(tasks.map((t) => t.taskId));
-    get().setAllTasks((prev) => prev.filter((t) => t.storyId !== storyId));
+    await clearCacheForTasks(tasks.map((task) => task.taskId));
+    get().setAllTasks((prev) => prev.filter((task) => task.storyId !== storyId));
     scheduleSync();
     checkAndStartOrStopPolling();
   },
@@ -225,7 +225,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         }
       }
     }
-    const activeIds = activeTasks.map((t) => t.taskId);
+    const activeIds = activeTasks.map((task) => task.taskId);
     if (activeIds.length === 0) return;
     try {
       await container.videoTaskStorage.batchDeleteVideoTasks(activeIds);
@@ -250,7 +250,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         }
       }
     }
-    const taskIds = allTasks.map((t) => t.taskId);
+    const taskIds = allTasks.map((task) => task.taskId);
     try {
       await container.videoTaskStorage.clearVideoTasks();
       await clearCacheForTasks(taskIds);
@@ -389,7 +389,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
         return {
           ...newTask,
           promptWasTruncated: result.data?.promptWasTruncated || false,
-        } as VideoTask & { promptWasTruncated?: boolean };
+        };
       } else {
         throw new Error(result.error || "Failed to create video task");
       }
@@ -406,7 +406,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   },
 
   cancelTask: async (taskId) => {
-    const task = get().allTasks.find((t) => t.taskId === taskId);
+    const task = get().allTasks.find((task) => task.taskId === taskId);
     if (!task) return;
 
     const result = TaskMachine.transition(
@@ -426,9 +426,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
 
     // 尝试通知服务端取消（best-effort，失败不影响本地取消）
     try {
-      const provider = container.videoProvider as {
-        cancelTask?: (taskId: string) => Promise<void>;
-      };
+      const provider = container.videoProvider;
       if (typeof provider.cancelTask === "function") {
         await provider.cancelTask(taskId);
       }
@@ -449,14 +447,14 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     }
 
     get().setAllTasks((prev) =>
-      prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
+      prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
     );
     scheduleSync();
     checkAndStartOrStopPolling();
   },
 
   recoverTask: (taskId, status, videoUrl) => {
-    const task = get().allTasks.find((t) => t.taskId === taskId);
+    const task = get().allTasks.find((task) => task.taskId === taskId);
     if (!task) return;
 
     const mappedStatus = mapApiStatus(status, videoUrl);
@@ -476,8 +474,8 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
 
     const updatedTask = result.value;
     get().setAllTasks((prev) =>
-      prev.map((t) =>
-        t.taskId === taskId ? updatedTask : t,
+      prev.map((task) =>
+        task.taskId === taskId ? updatedTask : task,
       ),
     );
     scheduleSync();
@@ -510,7 +508,7 @@ export function useVideoTaskManager() {
   const isBackgroundProcessing = store((s) => s.isBackgroundProcessing);
 
   const activeTasks = useMemo(
-    () => allTasks.filter((t) => t.status === "pending" || t.status === "generating"),
+    () => allTasks.filter((task) => task.status === "pending" || task.status === "generating"),
     [allTasks],
   );
   const hasActiveTasks = activeTasks.length > 0;

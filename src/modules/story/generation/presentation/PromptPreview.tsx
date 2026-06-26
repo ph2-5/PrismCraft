@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Copy, Check, Shield } from "lucide-react";
 import { promptBuilder } from "@/modules/prompt";
 import { errorLogger } from "@/shared/error-logger";
-import { t } from "@/shared/constants";
+import { t, COPY_RESET_DELAY_MS } from "@/shared/constants";
 import type { StoryBeat, StoryElement } from "@/domain/schemas";
 
 interface PromptPreviewProps {
@@ -72,7 +72,7 @@ export function PromptPreview({
       await navigator.clipboard.writeText(prompt);
       setCopied(true);
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), COPY_RESET_DELAY_MS);
     } catch (e) {
       errorLogger.warn("[PromptPreview] Clipboard write failed, falling back to execCommand", e as Error);
       const textArea = document.createElement("textarea");
@@ -86,7 +86,7 @@ export function PromptPreview({
         document.execCommand("copy");
         setCopied(true);
         if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-        copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+        copiedTimerRef.current = setTimeout(() => setCopied(false), COPY_RESET_DELAY_MS);
       } catch {
         errorLogger.error(t("error.copyFailed"));
       }

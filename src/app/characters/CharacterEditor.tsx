@@ -438,7 +438,7 @@ export function CharacterEditor({
           <Trash2 style={{ width: 14, height: 14 }} />
           {t("character.deleteCharacter")}
         </button>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saveStatus === "saving"} style={{ flex: 1, gap: 4 }}>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saveStatus === "saving" || !currentCharacter.name.trim()} style={{ flex: 1, gap: 4 }}>
           <Save style={{ width: 14, height: 14 }} />
           {saveStatus === "saving" ? t("common.saving") : t("character.saveCharacter")}
         </button>

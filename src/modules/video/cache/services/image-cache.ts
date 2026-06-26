@@ -3,7 +3,7 @@ import { fromAsyncThrowable } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
-import { t } from "@/shared/constants";
+import { t, CACHE_RETRY_INTERVAL_MS } from "@/shared/constants";
 import {
   writeFile as httpWriteFile,
   getFileInfo as httpGetFileInfo,
@@ -140,7 +140,7 @@ export async function cacheImageBlob(
       } catch (error) {
         if (isHttpExpiredError(error) && attempt === 0) {
           errorLogger.warn("[ImageCache] URL过期，重试中...", error);
-          await new Promise((r) => setTimeout(r, 1000));
+          await new Promise((r) => setTimeout(r, CACHE_RETRY_INTERVAL_MS));
           continue;
         }
 

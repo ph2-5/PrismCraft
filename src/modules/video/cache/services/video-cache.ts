@@ -3,7 +3,7 @@ import { fromAsyncThrowable } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { registerObjectUrl, revokeObjectUrl, resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
-import { t } from "@/shared/constants";
+import { t, CACHE_RETRY_INTERVAL_MS } from "@/shared/constants";
 import { AppError } from "@/domain/types/result";
 import {
   writeFile as httpWriteFile,
@@ -212,7 +212,7 @@ export async function cacheVideoBlob(
                 new AppError("CACHE_VIDEO_ERROR", `URL过期，已刷新重试 (attempt ${attempt + 1})`, error),
                 "VideoCache",
               );
-              await new Promise((r) => setTimeout(r, 1000));
+              await new Promise((r) => setTimeout(r, CACHE_RETRY_INTERVAL_MS));
               continue;
             }
           } catch (recoveryError) {

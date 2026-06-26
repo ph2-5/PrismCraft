@@ -1,3 +1,5 @@
+import { BLOB_URL_LONG_REVOKE_DELAY_MS } from "@/shared/constants";
+
 function downloadTextFile(content: string, filename: string, mimeType = "text/plain") {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
@@ -7,7 +9,7 @@ function downloadTextFile(content: string, filename: string, mimeType = "text/pl
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_LONG_REVOKE_DELAY_MS);
 }
 
 export function downloadJSONFile(data: unknown, filename: string) {

@@ -2,7 +2,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { handleError } from "@/shared/error-handler";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { t } from "@/shared/constants";
+import { t, BLOB_URL_LONG_REVOKE_DELAY_MS } from "@/shared/constants";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import {
   type ModelParameterValues,
@@ -106,7 +106,7 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), BLOB_URL_LONG_REVOKE_DELAY_MS);
       success(t("success.downloadStarted"), t("success.videoDownloadStarted"));
     } catch (err) {
       errorLogger.warn("[BeatDetailClient] 视频下载失败:", err instanceof Error ? err : undefined);

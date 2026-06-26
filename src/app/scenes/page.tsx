@@ -613,7 +613,7 @@ function ScenesPageContent() {
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={handleSave}
-                disabled={saveStatus === "saving"}
+                disabled={saveStatus === "saving" || !currentScene.name.trim()}
               >
                 {saveStatus === "saving" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

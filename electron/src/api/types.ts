@@ -17,7 +17,6 @@ export interface ApiError {
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
-  ok?: boolean;
   data?: T;
   error?: string | StructuredError;
   httpStatus?: number;

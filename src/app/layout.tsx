@@ -4,6 +4,7 @@ import { SidebarWithSearch } from "./SidebarWithSearch";
 import { ToastProvider } from "@/shared/presentation/Toast";
 import { NetworkStatusAlert } from "@/shared/presentation/NetworkStatusAlert";
 import { BeforeUnloadGuard } from "@/shared/presentation/BeforeUnloadGuard";
+import { GlobalKeyboardActions } from "@/shared/presentation/GlobalKeyboardActions";
 import { QueryProvider } from "@/presentation/providers/query-provider";
 import { ThemeProvider } from "@/shared/presentation/ThemeProvider";
 import { ClientProviders } from "./ClientProviders";
@@ -44,6 +45,7 @@ export function RootLayout() {
           <BeforeUnloadGuard />
           <TitleBar />
           <ToastProvider>
+            <GlobalKeyboardActions />
             <NetworkStatusAlert />
             <SidebarWithSearch />
             <main

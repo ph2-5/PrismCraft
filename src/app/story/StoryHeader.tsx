@@ -205,7 +205,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
         type="button"
         className="btn btn-outline btn-sm gap-1.5 h-8"
         onClick={story.handleSave}
-        disabled={story.saveStatus === "saving"}
+        disabled={story.saveStatus === "saving" || !(story.currentStory.title ?? "").trim()}
       >
         <Save className="w-3.5 h-3.5" />
         {t("common.save")}

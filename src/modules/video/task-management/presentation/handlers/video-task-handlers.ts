@@ -9,6 +9,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { isAllowedVideoUrl } from "@/shared/utils/url-validation";
 import { t } from "@/shared/constants/messages";
+import { BATCH_OPERATION_INTERVAL_MS } from "@/shared/constants";
 import { useCacheOperations } from "./use-cache-operations";
 import { useTaskSelection } from "./use-task-selection";
 
@@ -185,7 +186,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     const selectedTasks = filteredTasks.filter((t) => selection.selectedTaskIds.has(t.taskId));
     const completedTasks = selectedTasks.filter((t) => t.status === "completed" && t.videoUrl);
     if (completedTasks.length === 0) { error(t("error.cannotDownload"), t("video.noCompletedVideos")); return; }
-    for (const task of completedTasks) { await handleDownloadVideo(task); await new Promise((r) => setTimeout(r, 500)); }
+    for (const task of completedTasks) { await handleDownloadVideo(task); await new Promise((r) => setTimeout(r, BATCH_OPERATION_INTERVAL_MS)); }
     success(t("video.batchDownload"), t("video.batchDownloadStarted", { count: completedTasks.length }));
   };
 

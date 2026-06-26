@@ -93,15 +93,13 @@ const ERROR_CATEGORY_MAP: Record<string, ErrorCategory> = {
   STORAGE_ERROR: "database_busy",
   CONFIGURATION_ERROR: "invalid_params",
   NOT_FOUND: "invalid_params",
-  api_not_configured: "invalid_params",
-  empty_prompt: "invalid_params",
-  unknown_provider: "invalid_params",
-  missing_task_id: "invalid_params",
-  invalid_task_id: "invalid_params",
-  network_error: "network",
-  provider_error: "server_error",
-  timeout_error: "timeout",
-  plugin_error: "server_error",
+  API_NOT_CONFIGURED: "invalid_params",
+  EMPTY_PROMPT: "invalid_params",
+  UNKNOWN_PROVIDER: "invalid_params",
+  MISSING_TASK_ID: "invalid_params",
+  INVALID_TASK_ID: "invalid_params",
+  PROVIDER_ERROR: "server_error",
+  PLUGIN_ERROR: "server_error",
 };
 
 const CATEGORY_PATTERNS: Array<{
@@ -120,9 +118,9 @@ const CATEGORY_PATTERNS: Array<{
 
 export function classifyError(errorCode?: string, errorMessage?: string): ErrorCategory {
   if (errorCode) {
-    const mapped = ERROR_CATEGORY_MAP[errorCode];
-    if (mapped) return mapped;
     const upperCode = errorCode.toUpperCase();
+    const mapped = ERROR_CATEGORY_MAP[upperCode];
+    if (mapped) return mapped;
     for (const group of CATEGORY_PATTERNS) {
       if (group.patterns.some((p) => p.test(upperCode))) return group.category;
     }

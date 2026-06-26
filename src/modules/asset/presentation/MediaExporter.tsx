@@ -11,7 +11,7 @@ import {
 import type { Character, Scene } from "@/domain/schemas";
 import { downloadJSONFile } from "@/shared/utils/file-download";
 import { errorLogger } from "@/shared/error-logger";
-import { t } from "@/shared/constants";
+import { t, BLOB_URL_LONG_REVOKE_DELAY_MS } from "@/shared/constants";
 
 interface MediaExporterProps {
   type: "character" | "scene";
@@ -118,7 +118,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_LONG_REVOKE_DELAY_MS);
           setExportStatus("success");
         } else {
           window.open(imageUrl, "_blank");
@@ -160,7 +160,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_LONG_REVOKE_DELAY_MS);
           setExportStatus("success");
         } else {
           window.open(videoUrl, "_blank");

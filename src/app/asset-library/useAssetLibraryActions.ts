@@ -23,6 +23,7 @@ import { checkCharacterReferences, checkSceneReferences } from "@/domain/service
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
+import { BLOB_URL_REVOKE_DELAY_MS } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants/messages";
 import { container } from "@/infrastructure/di";
@@ -179,7 +180,7 @@ export function useAssetLibraryActions({
       a.href = url;
       a.download = `export-${activeTab}-${Date.now()}.asa`;
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
       clearSelection();
       success(t("success.exported"), t("asset.exportedCount", { count: ids.length }));
     } catch (e) {
@@ -276,7 +277,7 @@ export function useAssetLibraryActions({
       a.href = url;
       a.download = `collection.asa`;
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
       success(t("success.exported"), t("asset.collectionExported"));
     } catch (e) {
       showError(t("error.exportFailed"), mapUserFacingError(e));

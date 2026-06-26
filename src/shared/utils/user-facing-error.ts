@@ -37,6 +37,14 @@ const EXTRA_PATTERNS: Array<{ pattern: RegExp; messageKey: string }> = [
   { pattern: /BEAT_REQUIRES_CHARACTER_OR_SCENE/, messageKey: "error.beatRequiresBinding" },
   { pattern: /KEYFRAME_REQUIRED/, messageKey: "error.framePairRequiresKeyframe" },
   { pattern: /FRAME_PAIR_REQUIRED/, messageKey: "error.videoRequiresFramePair" },
+  // 文件操作错误码（来自 electron/src/api/route-groups/file-routes.ts 的 FILE_ERRORS）
+  { pattern: /FILE_PATH_NOT_ALLOWED/, messageKey: "error.filePathNotAllowed" },
+  { pattern: /FILE_NOT_FOUND/, messageKey: "error.fileNotFound" },
+  { pattern: /FILE_TOO_LARGE/, messageKey: "error.fileTooLarge" },
+  { pattern: /FILE_INVALID_KEY/, messageKey: "error.fileInvalidKey" },
+  { pattern: /FILE_INVALID_CATEGORY/, messageKey: "error.fileInvalidCategory" },
+  { pattern: /FILE_SOURCE_PATH_NOT_ALLOWED/, messageKey: "error.fileSourcePathNotAllowed" },
+  { pattern: /FILE_SOURCE_NOT_FOUND/, messageKey: "error.fileSourceNotFound" },
 ];
 
 function hasCode(e: unknown): e is { code: unknown } {

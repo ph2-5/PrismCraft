@@ -141,7 +141,7 @@ describe("reference-engine", () => {
         contentType: ReferenceContentType.FullVideo,
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toBe("无法找到引用的分镜");
+      expect(result.error).toBe("Cannot find referenced shot");
     });
 
     it("被引用分镜未生成视频时应返回无效", () => {
@@ -154,7 +154,7 @@ describe("reference-engine", () => {
         contentType: ReferenceContentType.FullVideo,
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toBe("被引用的分镜尚未生成视频");
+      expect(result.error).toBe("Referenced shot has not generated video");
     });
 
     it("Custom 方向但目标分镜不存在时应返回无效", () => {
@@ -165,7 +165,7 @@ describe("reference-engine", () => {
         contentType: ReferenceContentType.FullVideo,
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toBe("引用的分镜不存在");
+      expect(result.error).toBe("Referenced shot does not exist");
     });
 
     it("VideoSegment 类型但未设置 segmentDuration 时应返回无效", () => {
@@ -175,7 +175,7 @@ describe("reference-engine", () => {
         contentType: ReferenceContentType.VideoSegment,
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toBe("请设置引用片段时长");
+      expect(result.error).toBe("Please set reference segment duration");
     });
 
     it("VideoSegment 类型但 segmentDuration 为 0 时应返回无效", () => {
@@ -186,7 +186,7 @@ describe("reference-engine", () => {
         segmentDuration: 0,
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toBe("请设置引用片段时长");
+      expect(result.error).toBe("Please set reference segment duration");
     });
 
     it("VideoSegment 类型但 segmentDuration 超过分镜时长时应返回无效", () => {
@@ -197,7 +197,7 @@ describe("reference-engine", () => {
         segmentDuration: 10,
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toBe("引用片段时长不能超过分镜时长");
+      expect(result.error).toBe("Reference segment duration cannot exceed shot duration");
     });
 
     it("VideoSegment 类型且 segmentDuration 合理时应通过", () => {
@@ -316,7 +316,7 @@ describe("reference-engine", () => {
         direction: ReferenceDirection.Previous,
         contentType: ReferenceContentType.FullVideo,
       });
-      expect(desc).toBe("引用上一分镜的完整视频");
+      expect(desc).toBe("Reference previous shot full video");
     });
 
     it("应该构建 Next 方向的描述", () => {
@@ -325,7 +325,7 @@ describe("reference-engine", () => {
         direction: ReferenceDirection.Next,
         contentType: ReferenceContentType.LastFrame,
       });
-      expect(desc).toBe("引用下一分镜的结尾画面");
+      expect(desc).toBe("Reference next shot last frame");
     });
 
     it("应该构建 Custom 方向的描述（带分镜序号）", () => {
@@ -335,7 +335,7 @@ describe("reference-engine", () => {
         targetShotId: "shot-3",
         contentType: ReferenceContentType.FirstFrame,
       });
-      expect(desc).toBe("引用第3分镜的开头画面");
+      expect(desc).toBe("Reference shot 3 first frame");
     });
 
     it("应该构建 VideoSegment 类型的描述（带时长）", () => {
@@ -345,7 +345,7 @@ describe("reference-engine", () => {
         contentType: ReferenceContentType.VideoSegment,
         segmentDuration: 2,
       });
-      expect(desc).toBe("引用上一分镜的2秒片段");
+      expect(desc).toBe("Reference previous shot 2s segment");
     });
 
     it("目标分镜不存在时应返回空字符串", () => {

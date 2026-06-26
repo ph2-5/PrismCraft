@@ -268,7 +268,7 @@ export function ProfessionalModeEditor({
                 style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px 8px 0 0" }}
               />
             ) : (
-              <span style={{ fontSize: 24, opacity: 0.6 }}>🌅</span>
+              <span style={{ fontSize: 24, opacity: 0.6 }} aria-hidden="true">🌅</span>
             )}
             <div className="tc-bindings">
               {charNames.map((name: string, idx: number) => (

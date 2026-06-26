@@ -100,6 +100,7 @@ export function useQuickGenerateState() {
         cancelled = true;
       };
     }
+    return;
   }, [currentTask?.videoUrl, currentTask?.taskId, currentTask?.status]);
 
   const effectiveVideoUrl = useMemo(() => {

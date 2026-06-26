@@ -174,7 +174,7 @@ describe("video-task-params", () => {
         duration: 5,
       });
       expect(result.prompt).toContain("一只猫在奔跑");
-      expect(result.prompt).toContain("【视频内容】");
+      expect(result.prompt).toContain("[Video Content]");
     });
 
     it("duration 默认值应为 5", () => {
@@ -205,9 +205,9 @@ describe("video-task-params", () => {
     it("应该包含风格描述", () => {
       const result = buildQuickVideoParams({
         prompt: "test",
-        style: "动漫",
+        style: "anime",
       });
-      expect(result.prompt).toContain("日本动漫风格");
+      expect(result.prompt).toContain("Japanese anime style, bright colors, smooth lines");
     });
 
     it("应该包含分辨率描述", () => {
@@ -215,7 +215,7 @@ describe("video-task-params", () => {
         prompt: "test",
         resolution: "4K",
       });
-      expect(result.prompt).toContain("4K超高清分辨率");
+      expect(result.prompt).toContain("4K Ultra HD resolution");
     });
 
     it("无 referenceImage 时 referenceImageUrl 应为 undefined", () => {

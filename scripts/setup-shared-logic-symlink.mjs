@@ -2,6 +2,16 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+/**
+ * @shared-logic 符号链接脚本（postinstall）。
+ *
+ * 注意：electron/tsconfig.json 未通过 paths 别名配置 @shared-logic/*，因为
+ * "../src/shared-logic/*" 在 rootDir "./src" 之外会触发 TS6059 错误。
+ * 因此 TypeScript 类型检查依赖本脚本创建的 node_modules/@shared-logic junction
+ * 来解析 @shared-logic/* 导入（node_modules 中的文件不受 rootDir 约束）。
+ * 运行时解析由 electron/src/shared-logic-resolve.ts 的 Module._resolveFilename 处理。
+ */
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const symlinkPath = path.join(projectRoot, "node_modules", "@shared-logic");

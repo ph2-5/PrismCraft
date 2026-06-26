@@ -40,6 +40,7 @@ export function PerformanceMonitorPanel() {
 
       return () => clearInterval(intervalId);
     }
+    return;
   }, []);
 
   const getPerformanceMetrics = (): PerformanceMetric[] => {

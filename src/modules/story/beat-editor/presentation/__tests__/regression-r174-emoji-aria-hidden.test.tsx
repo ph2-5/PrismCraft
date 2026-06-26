@@ -6,12 +6,28 @@
  *   阅读器朗读 emoji 的冗长描述。
  *
  * 被测代码：
- *   src/modules/story/beat-editor/presentation/BeatDetailEditor.tsx
+ *   src/modules/story/beat-editor/presentation/ 目录下所有拆分后的 .tsx 文件
+ *   （BeatDetailEditor.tsx, BeatNavigation.tsx, BeatPromptPanel.tsx,
+ *     BeatUploadPanel.tsx, BeatGenerationPanel.tsx）
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { readFile } from "fs/promises";
+import { readFile, readdir } from "fs/promises";
 import { join } from "path";
+
+const PRESENTATION_DIR = join(
+  process.cwd(),
+  "src/modules/story/beat-editor/presentation",
+);
+
+const DECORATIVE_EMOJIS = ["🗑", "🌅", "📤", "📥", "▶️", "✨"];
+
+async function listPresentationTsxFiles(): Promise<string[]> {
+  const entries = await readdir(PRESENTATION_DIR, { withFileTypes: true });
+  return entries
+    .filter((e) => e.isFile() && e.name.endsWith(".tsx"))
+    .map((e) => join(PRESENTATION_DIR, e.name));
+}
 
 function EmojiSpan({ emoji, hidden, label }: { emoji: string; hidden?: boolean; label?: string }) {
   return (
@@ -46,20 +62,21 @@ describe("R174: 装饰性 emoji 必须 aria-hidden", () => {
     expect(span.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("BeatDetailEditor.tsx 源码中装饰性 emoji 有 aria-hidden='true'", async () => {
-    const source = await readFile(
-      join(process.cwd(), "src/modules/story/beat-editor/presentation/BeatDetailEditor.tsx"),
-      "utf-8",
-    );
-    // 仅检查已知装饰性 emoji（🗑🌅📤📥▶️✨），不检查功能性 emoji（👤✓⚠🏙🔄）
-    const decorativeEmojis = ["🗑", "🌅", "📤", "📥", "▶️", "✨"];
+  it("beat-editor presentation 目录下所有 .tsx 文件中装饰性 emoji 都有 aria-hidden='true'", async () => {
+    const files = await listPresentationTsxFiles();
+    expect(files.length, "presentation 目录下应至少有一个 .tsx 文件").toBeGreaterThan(0);
+
     const offenders: string[] = [];
-    for (const emoji of decorativeEmojis) {
-      if (!source.includes(emoji)) continue;
-      const lines = source.split("\n").filter((l) => l.includes(emoji));
-      for (const line of lines) {
-        if (!line.includes('aria-hidden="true"')) {
-          offenders.push(`emoji "${emoji}" 缺少 aria-hidden: ${line.trim()}`);
+    for (const file of files) {
+      const source = await readFile(file, "utf-8");
+      for (const emoji of DECORATIVE_EMOJIS) {
+        if (!source.includes(emoji)) continue;
+        const lines = source.split("\n").filter((l) => l.includes(emoji));
+        for (const line of lines) {
+          if (!line.includes('aria-hidden="true"')) {
+            const rel = file.replace(process.cwd() + "\\", "").replace(/\\/g, "/");
+            offenders.push(`${rel}: emoji "${emoji}" 缺少 aria-hidden: ${line.trim()}`);
+          }
         }
       }
     }
@@ -69,22 +86,19 @@ describe("R174: 装饰性 emoji 必须 aria-hidden", () => {
     ).toEqual([]);
   });
 
-  it("BeatDetailEditor.tsx 源码中常见装饰 emoji 都被 aria-hidden", async () => {
-    const source = await readFile(
-      join(process.cwd(), "src/modules/story/beat-editor/presentation/BeatDetailEditor.tsx"),
-      "utf-8",
-    );
-    // 检查特定装饰性 emoji
-    const emojis = ["🗑", "🌅", "📤", "📥", "▶️", "✨"];
-    for (const emoji of emojis) {
-      if (source.includes(emoji)) {
-        // 找到 emoji 所在行，检查该行有 aria-hidden
-        const lines = source.split("\n").filter((l) => l.includes(emoji));
-        for (const line of lines) {
-          expect(
-            line.includes('aria-hidden="true"'),
-            `emoji "${emoji}" 所在行缺少 aria-hidden="true"：${line.trim()}`,
-          ).toBe(true);
+  it("所有 presentation .tsx 文件中常见装饰 emoji 都被 aria-hidden", async () => {
+    const files = await listPresentationTsxFiles();
+    for (const file of files) {
+      const source = await readFile(file, "utf-8");
+      for (const emoji of DECORATIVE_EMOJIS) {
+        if (source.includes(emoji)) {
+          const lines = source.split("\n").filter((l) => l.includes(emoji));
+          for (const line of lines) {
+            expect(
+              line.includes('aria-hidden="true"'),
+              `${file}: emoji "${emoji}" 所在行缺少 aria-hidden="true"：${line.trim()}`,
+            ).toBe(true);
+          }
         }
       }
     }
@@ -112,13 +126,13 @@ describe("R174: 装饰性 emoji 必须 aria-hidden", () => {
     expect(button).not.toBeNull();
   });
 
-  it("BeatDetailEditor.tsx 中 emoji span 使用 aria-hidden（源码断言）", async () => {
-    const source = await readFile(
-      join(process.cwd(), "src/modules/story/beat-editor/presentation/BeatDetailEditor.tsx"),
-      "utf-8",
-    );
-    // 至少有 5 个 aria-hidden="true" 的 span（多个 emoji）
-    const ariaHiddenCount = (source.match(/aria-hidden="true"/g) || []).length;
+  it("presentation 目录所有 .tsx 累计至少有 5 个 aria-hidden='true'", async () => {
+    const files = await listPresentationTsxFiles();
+    let ariaHiddenCount = 0;
+    for (const file of files) {
+      const source = await readFile(file, "utf-8");
+      ariaHiddenCount += (source.match(/aria-hidden="true"/g) || []).length;
+    }
     expect(ariaHiddenCount).toBeGreaterThanOrEqual(5);
   });
 });

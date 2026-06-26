@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Result } from "@/domain/types";
+import type { Story } from "@/domain/schemas";
 import {
   useCharacters,
 } from "@/modules/character";
@@ -343,22 +344,15 @@ export function useAssetLibraryActions({
     }
   }, [loadSecondaryData, showError, success]);
 
-  const updateStoriesAfterCharacterDelete = useCallback(async (characterId: string) => {
-    const updatedStories = stories.map((story) => {
-      const updatedBeats = (story.beats || []).map((beat) => {
-        const updated = { ...beat };
-        if (updated.characterIds?.includes(characterId)) {
-          updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
-        }
-        return updated;
-      });
-      const updatedCharacters = (story.characters || []).filter((cid) => cid !== characterId);
-      return { ...story, characters: updatedCharacters, beats: updatedBeats };
-    });
+  const updateStoriesAfterEntityDelete = useCallback(async (
+    _entityId: string,
+    transformStory: (story: Story) => Story,
+    isAffected: (original: Story) => boolean,
+  ) => {
+    const updatedStories = stories.map((story) => transformStory(story));
     for (const updatedStory of updatedStories) {
       const original = stories.find((s) => s.id === updatedStory.id);
-      const wasAffected = original?.beats?.some((b) => b.characterIds?.includes(characterId)) || original?.characters?.includes(characterId);
-      if (wasAffected) {
+      if (original && isAffected(original)) {
         const result = await storyService.update(updatedStory.id, updatedStory);
         if (!result.ok) {
           errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
@@ -367,27 +361,39 @@ export function useAssetLibraryActions({
     }
   }, [stories]);
 
+  const updateStoriesAfterCharacterDelete = useCallback(async (characterId: string) => {
+    await updateStoriesAfterEntityDelete(
+      characterId,
+      (story) => ({
+        ...story,
+        characters: (story.characters || []).filter((cid) => cid !== characterId),
+        beats: (story.beats || []).map((beat) => {
+          const updated = { ...beat };
+          if (updated.characterIds?.includes(characterId)) {
+            updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
+          }
+          return updated;
+        }),
+      }),
+      (original) => original.beats?.some((b) => b.characterIds?.includes(characterId)) || original.characters?.includes(characterId),
+    );
+  }, [updateStoriesAfterEntityDelete]);
+
   const updateStoriesAfterSceneDelete = useCallback(async (sceneId: string) => {
-    const updatedStories = stories.map((story) => {
-      const updatedBeats = (story.beats || []).map((beat) => {
-        const updated = { ...beat };
-        if (updated.sceneId === sceneId) delete updated.sceneId;
-        return updated;
-      });
-      const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
-      return { ...story, scenes: updatedScenes, beats: updatedBeats };
-    });
-    for (const updatedStory of updatedStories) {
-      const original = stories.find((s) => s.id === updatedStory.id);
-      const wasAffected = original?.beats?.some((b) => b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
-      if (wasAffected) {
-        const result = await storyService.update(updatedStory.id, updatedStory);
-        if (!result.ok) {
-          errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
-        }
-      }
-    }
-  }, [stories]);
+    await updateStoriesAfterEntityDelete(
+      sceneId,
+      (story) => ({
+        ...story,
+        scenes: (story.scenes || []).filter((sid) => sid !== sceneId),
+        beats: (story.beats || []).map((beat) => {
+          const updated = { ...beat };
+          if (updated.sceneId === sceneId) delete updated.sceneId;
+          return updated;
+        }),
+      }),
+      (original) => original.beats?.some((b) => b.sceneId === sceneId) || original.scenes?.includes(sceneId),
+    );
+  }, [updateStoriesAfterEntityDelete]);
 
   const handleEditItem = useCallback((item: EditingItem) => {
     setEditingItem(item);

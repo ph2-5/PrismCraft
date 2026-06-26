@@ -4,47 +4,47 @@ import { t } from "@/shared/constants/messages";
 import { Puzzle, FileJson, Code2, ShieldCheck, ListChecks } from "lucide-react";
 
 const declarativeRequiredFields = [
-  { field: "id", desc: "插件唯一 ID（不能与内置 ID 冲突）" },
-  { field: "version", desc: "语义化版本号，如 1.0.0" },
-  { field: "displayName", desc: "展示名称" },
-  { field: "match.apiUrlPatterns", desc: "API URL 匹配模式数组" },
-  { field: "capabilities", desc: "video/image/text/vision 能力声明" },
-  { field: "transport", desc: "imageMode / videoMode 传输方式" },
-  { field: "auth", desc: "bearer / api-key-header / api-key-query / custom" },
-  { field: "endpoints", desc: "video/image/text/vision 各端点" },
-  { field: "request", desc: "各能力的 bodyFormat 与字段映射" },
-  { field: "response", desc: "taskIdPath / videoUrlPath / imageUrlPath 等路径" },
+  { field: "id", descKey: "pluginDoc.decl.id" },
+  { field: "version", descKey: "pluginDoc.decl.version" },
+  { field: "displayName", descKey: "pluginDoc.decl.displayName" },
+  { field: "match.apiUrlPatterns", descKey: "pluginDoc.decl.apiUrlPatterns" },
+  { field: "capabilities", descKey: "pluginDoc.decl.capabilities" },
+  { field: "transport", descKey: "pluginDoc.decl.transport" },
+  { field: "auth", descKey: "pluginDoc.decl.auth" },
+  { field: "endpoints", descKey: "pluginDoc.decl.endpoints" },
+  { field: "request", descKey: "pluginDoc.decl.request" },
+  { field: "response", descKey: "pluginDoc.decl.response" },
 ];
 
 const codeRequiredFields = [
-  { field: "id: string", desc: "插件唯一 ID" },
-  { field: "displayName: string", desc: "展示名称" },
-  { field: "match(apiUrl, model): boolean", desc: "URL/模型匹配函数" },
-  { field: "videoCapabilities", desc: "视频能力声明对象" },
-  { field: "imageCapabilities", desc: "图片能力声明对象" },
-  { field: "getModelCapabilities(modelId)", desc: "返回模型能力与参数" },
-  { field: "buildVideoRequest(ctx)", desc: "构建视频请求 body/endpoint" },
-  { field: "buildImageRequest(ctx)", desc: "构建图片请求 body/endpoint" },
-  { field: "extractTaskId(data)", desc: "从响应提取任务 ID" },
-  { field: "extractVideoUrl(data)", desc: "从响应提取视频 URL" },
-  { field: "extractImageUrl(data)", desc: "从响应提取图片 URL" },
-  { field: "getAuthHeaders(apiKey)", desc: "返回鉴权 headers" },
-  { field: "getModelParameterProfile(modelId)", desc: "返回模型参数档位" },
+  { field: "id: string", descKey: "pluginDoc.codeReq.id" },
+  { field: "displayName: string", descKey: "pluginDoc.codeReq.displayName" },
+  { field: "match(apiUrl, model): boolean", descKey: "pluginDoc.codeReq.match" },
+  { field: "videoCapabilities", descKey: "pluginDoc.codeReq.videoCapabilities" },
+  { field: "imageCapabilities", descKey: "pluginDoc.codeReq.imageCapabilities" },
+  { field: "getModelCapabilities(modelId)", descKey: "pluginDoc.codeReq.getModelCapabilities" },
+  { field: "buildVideoRequest(ctx)", descKey: "pluginDoc.codeReq.buildVideoRequest" },
+  { field: "buildImageRequest(ctx)", descKey: "pluginDoc.codeReq.buildImageRequest" },
+  { field: "extractTaskId(data)", descKey: "pluginDoc.codeReq.extractTaskId" },
+  { field: "extractVideoUrl(data)", descKey: "pluginDoc.codeReq.extractVideoUrl" },
+  { field: "extractImageUrl(data)", descKey: "pluginDoc.codeReq.extractImageUrl" },
+  { field: "getAuthHeaders(apiKey)", descKey: "pluginDoc.codeReq.getAuthHeaders" },
+  { field: "getModelParameterProfile(modelId)", descKey: "pluginDoc.codeReq.getModelParameterProfile" },
 ];
 
 const codeOptionalFields = [
-  { field: "matchPatterns", desc: "URL/模型匹配模式（用于自动检测）" },
-  { field: "apiKeyDetection", desc: "API Key 自动识别规则" },
-  { field: "buildTextRequest(ctx)", desc: "构建文本请求（启用 text 能力时）" },
-  { field: "buildVisionRequest(ctx)", desc: "构建视觉请求（启用 vision 能力时）" },
-  { field: "extractTextContent(response)", desc: "从文本响应提取内容" },
-  { field: "extractStatus(response)", desc: "提取任务状态/进度" },
-  { field: "getStatusMethod()", desc: "返回 GET/POST（默认 GET）" },
-  { field: "getAvailableModels()", desc: "返回可用模型列表" },
-  { field: "getCloudInfo(baseUrl)", desc: "返回云端任务查询信息" },
-  { field: "preferLocalData", desc: "是否优先使用本地数据" },
-  { field: "getImageTransportMode(purpose)", desc: "返回图片传输方式" },
-  { field: "appendAuthToUrl(url, apiKey)", desc: "URL 鉴权拼接" },
+  { field: "matchPatterns", descKey: "pluginDoc.codeOpt.matchPatterns" },
+  { field: "apiKeyDetection", descKey: "pluginDoc.codeOpt.apiKeyDetection" },
+  { field: "buildTextRequest(ctx)", descKey: "pluginDoc.codeOpt.buildTextRequest" },
+  { field: "buildVisionRequest(ctx)", descKey: "pluginDoc.codeOpt.buildVisionRequest" },
+  { field: "extractTextContent(response)", descKey: "pluginDoc.codeOpt.extractTextContent" },
+  { field: "extractStatus(response)", descKey: "pluginDoc.codeOpt.extractStatus" },
+  { field: "getStatusMethod()", descKey: "pluginDoc.codeOpt.getStatusMethod" },
+  { field: "getAvailableModels()", descKey: "pluginDoc.codeOpt.getAvailableModels" },
+  { field: "getCloudInfo(baseUrl)", descKey: "pluginDoc.codeOpt.getCloudInfo" },
+  { field: "preferLocalData", descKey: "pluginDoc.codeOpt.preferLocalData" },
+  { field: "getImageTransportMode(purpose)", descKey: "pluginDoc.codeOpt.getImageTransportMode" },
+  { field: "appendAuthToUrl(url, apiKey)", descKey: "pluginDoc.codeOpt.appendAuthToUrl" },
 ];
 
 const declarativeExample = `{
@@ -204,7 +204,7 @@ function CodeBlock({ code }: { code: string }) {
   );
 }
 
-function FieldRow({ field, desc }: { field: string; desc: string }) {
+function FieldRow({ field, descKey }: { field: string; descKey: string }) {
   return (
     <div
       style={{
@@ -229,7 +229,7 @@ function FieldRow({ field, desc }: { field: string; desc: string }) {
       >
         {field}
       </code>
-      <span style={{ fontSize: 12, color: "var(--muted-fg)", flex: 1 }}>{desc}</span>
+      <span style={{ fontSize: 12, color: "var(--muted-fg)", flex: 1 }}>{t(descKey)}</span>
     </div>
   );
 }
@@ -305,7 +305,7 @@ export default function PluginsPage() {
             </div>
             <div style={{ marginBottom: 12 }}>
               {declarativeRequiredFields.map((item) => (
-                <FieldRow key={item.field} field={item.field} desc={item.desc} />
+                <FieldRow key={item.field} field={item.field} descKey={item.descKey} />
               ))}
             </div>
 
@@ -338,7 +338,7 @@ export default function PluginsPage() {
             </div>
             <div style={{ marginBottom: 12 }}>
               {codeRequiredFields.map((item) => (
-                <FieldRow key={item.field} field={item.field} desc={item.desc} />
+                <FieldRow key={item.field} field={item.field} descKey={item.descKey} />
               ))}
             </div>
 
@@ -348,7 +348,7 @@ export default function PluginsPage() {
             </div>
             <div style={{ marginBottom: 12 }}>
               {codeOptionalFields.map((item) => (
-                <FieldRow key={item.field} field={item.field} desc={item.desc} />
+                <FieldRow key={item.field} field={item.field} descKey={item.descKey} />
               ))}
             </div>
 

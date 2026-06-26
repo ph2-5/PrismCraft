@@ -49,7 +49,7 @@ describe("consistency-check", () => {
       expect(result.passed).toBe(false);
       expect(result.overallScore).toBe(0.5);
       expect(result.recommendation).toBe("adjust");
-      expect(result.characterScores[0]!.issues).toContain("缺少角色参考图");
+      expect(result.characterScores[0]!.issues).toContain("Missing character reference image");
     });
 
     it("缺少特征标签的角色应给出问题提示", () => {
@@ -67,7 +67,7 @@ describe("consistency-check", () => {
         elements: [{ id: "c1", name: "小蓝" }],
       });
       expect(result.characterScores[0]!.issues).toContain(
-        "缺少角色特征标签，一致性约束可能不足",
+        "Missing character feature tags, consistency constraint may be insufficient",
       );
     });
 
@@ -86,7 +86,7 @@ describe("consistency-check", () => {
         },
         elements: [],
       });
-      expect(result.characterScores[0]!.elementName).toBe("未知角色");
+      expect(result.characterScores[0]!.elementName).toBe("Unknown character");
     });
 
     it("空锚点列表时 overallScore 应为 0", () => {
@@ -163,7 +163,7 @@ describe("consistency-check", () => {
         characterAnchors: [],
       });
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("特征锚定已启用但未配置任何角色锚点");
+      expect(result.errors).toContain("Feature anchoring is enabled but no character anchors are configured");
     });
 
     it("角色锚点缺少参考图时应报错", () => {
@@ -174,7 +174,7 @@ describe("consistency-check", () => {
         ],
       });
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('角色锚点"c1"缺少参考图');
+      expect(result.errors).toContain('Character anchor "c1" is missing reference image');
     });
 
     it("角色锚点缺少特征标签时应给出警告", () => {
@@ -189,7 +189,7 @@ describe("consistency-check", () => {
         ],
       });
       expect(result.valid).toBe(true);
-      expect(result.warnings).toContain('角色锚点"c1"缺少特征标签');
+      expect(result.warnings).toContain('Character anchor "c1" is missing feature tags');
     });
 
     it("权重过低时应给出警告", () => {
@@ -205,7 +205,7 @@ describe("consistency-check", () => {
         ],
       });
       expect(result.warnings).toContain(
-        '角色锚点"c1"权重异常(0.1)，建议范围0.3-1.0',
+        'Character anchor "c1" has abnormal weight (0.1), recommended range 0.3-1.0',
       );
     });
 
@@ -222,7 +222,7 @@ describe("consistency-check", () => {
         ],
       });
       expect(result.warnings).toContain(
-        '角色锚点"c1"权重异常(1.5)，建议范围0.3-1.0',
+        'Character anchor "c1" has abnormal weight (1.5), recommended range 0.3-1.0',
       );
     });
 
@@ -240,7 +240,7 @@ describe("consistency-check", () => {
         disableFrameBinding: false,
       });
       expect(result.warnings).toContain(
-        "特征锚定模式下建议禁用帧绑定(disableFrameBinding=true)",
+        "It is recommended to disable frame binding in feature anchoring mode (disableFrameBinding=true)",
       );
     });
 
@@ -259,7 +259,7 @@ describe("consistency-check", () => {
         featureConsistencyStrength: 0.2,
       });
       expect(result.warnings).toContain(
-        "特征一致性强度过低，可能导致角色崩坏",
+        "Feature consistency strength is too low, may cause character distortion",
       );
     });
 
@@ -278,7 +278,7 @@ describe("consistency-check", () => {
         featureConsistencyStrength: 0.97,
       });
       expect(result.warnings).toContain(
-        "特征一致性强度过高，可能限制视频动态表现力",
+        "Feature consistency strength is too high, may limit video dynamic expression",
       );
     });
   });
@@ -302,7 +302,7 @@ describe("consistency-check", () => {
         },
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("禁止使用上一分镜尾帧作为参考帧");
+      expect(result.error).toContain("Using previous shot's last frame as reference is forbidden");
     });
 
     it("fixedImage 锁定类型为 first_frame 时应不通过", () => {
@@ -312,7 +312,7 @@ describe("consistency-check", () => {
         },
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("禁止将参考图绑定为首帧或尾帧");
+      expect(result.error).toContain("Binding reference image as first or last frame is forbidden");
     });
 
     it("fixedImage 锁定类型为 last_frame 时应不通过", () => {
@@ -322,7 +322,7 @@ describe("consistency-check", () => {
         },
       });
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("禁止将参考图绑定为首帧或尾帧");
+      expect(result.error).toContain("Binding reference image as first or last frame is forbidden");
     });
 
     it("fixedImage 锁定类型为其他值时应通过", () => {

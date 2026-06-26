@@ -56,18 +56,18 @@ export function performConfigCheck(params: ConfigCheckParams): ConfigCheckResult
     const issues: string[] = [];
 
     if (!anchor.referenceImageUrl) {
-      issues.push("缺少角色参考图");
+      issues.push("Missing character reference image");
     }
 
     if (!anchor.featureTags || anchor.featureTags.length === 0) {
-      issues.push("缺少角色特征标签，一致性约束可能不足");
+      issues.push("Missing character feature tags, consistency constraint may be insufficient");
     }
 
     const score = Math.max(0, 0.8 - issues.length * 0.3);
 
     characterScores.push({
       elementId: anchor.elementId,
-      elementName: element?.name || "未知角色",
+      elementName: element?.name || "Unknown character",
       score,
       issues,
     });
@@ -120,34 +120,34 @@ export function validateFeatureAnchoringConfig(
   }
 
   if (!config.characterAnchors || config.characterAnchors.length === 0) {
-    errors.push("特征锚定已启用但未配置任何角色锚点");
+    errors.push("Feature anchoring is enabled but no character anchors are configured");
   }
 
   if (config.characterAnchors) {
     for (const anchor of config.characterAnchors) {
       if (!anchor.referenceImageUrl) {
-        errors.push(`角色锚点"${anchor.elementId}"缺少参考图`);
+        errors.push(`Character anchor "${anchor.elementId}" is missing reference image`);
       }
       if (!anchor.featureTags || anchor.featureTags.length === 0) {
-        warnings.push(`角色锚点"${anchor.elementId}"缺少特征标签`);
+        warnings.push(`Character anchor "${anchor.elementId}" is missing feature tags`);
       }
       if (anchor.weight < 0.3 || anchor.weight > 1.0) {
         warnings.push(
-          `角色锚点"${anchor.elementId}"权重异常(${anchor.weight})，建议范围0.3-1.0`,
+          `Character anchor "${anchor.elementId}" has abnormal weight (${anchor.weight}), recommended range 0.3-1.0`,
         );
       }
     }
   }
 
   if (!config.disableFrameBinding) {
-    warnings.push("特征锚定模式下建议禁用帧绑定(disableFrameBinding=true)");
+    warnings.push("It is recommended to disable frame binding in feature anchoring mode (disableFrameBinding=true)");
   }
 
   if (config.featureConsistencyStrength !== undefined && config.featureConsistencyStrength < 0.3) {
-    warnings.push("特征一致性强度过低，可能导致角色崩坏");
+    warnings.push("Feature consistency strength is too low, may cause character distortion");
   }
   if (config.featureConsistencyStrength !== undefined && config.featureConsistencyStrength > 0.95) {
-    warnings.push("特征一致性强度过高，可能限制视频动态表现力");
+    warnings.push("Feature consistency strength is too high, may limit video dynamic expression");
   }
 
   return {
@@ -168,7 +168,7 @@ export function validateNoFrameBinding(params: {
   if (videoRequestParams.previousLastFrameUrl) {
     return {
       valid: false,
-      error: "禁止使用上一分镜尾帧作为参考帧，特征锚定模式下不依赖帧间绑定",
+      error: "Using previous shot's last frame as reference is forbidden; feature anchoring mode does not rely on inter-frame binding",
     };
   }
 
@@ -179,7 +179,7 @@ export function validateNoFrameBinding(params: {
   ) {
     return {
       valid: false,
-      error: "特征锚定模式下禁止将参考图绑定为首帧或尾帧，参考图仅做特征约束",
+      error: "Binding reference image as first or last frame is forbidden in feature anchoring mode; reference image is for feature constraint only",
     };
   }
 

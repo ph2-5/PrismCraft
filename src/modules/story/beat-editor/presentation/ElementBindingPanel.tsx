@@ -121,6 +121,10 @@ export function ElementBindingPanel({
     } else {
       // Create scene element asynchronously
       container.elementManager.then(async (em) => {
+        // "scene" 不在 ElementType 枚举（"character" | "prop" | "effect"）中，
+        // 但 elementManager.createElement 在运行时接受任意字符串。
+        // 修改 ElementType 枚举属于领域级变更，影响 storyElementSchema 校验和
+        // 其他模块的类型守卫，此处保留 cast 避免连锁修改。
         const newElement = await em.createElement(("scene" as unknown as ElementType), scene.name, scene.description || "");
         if (scene.scenePath || scene.generatedImage) {
           await em.updateElement(newElement.id, {
@@ -170,8 +174,9 @@ export function ElementBindingPanel({
     onUpdateBeat({ ...beat, elementBindings: newElementBindings });
   };
 
-  const handleImageUpload = (elementId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageUpload = (elementId: string, event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
     if (!file) return;
     const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_IMAGE_SIZE) {
@@ -273,7 +278,7 @@ export function ElementBindingPanel({
               </div>
               {/* Reference image actions */}
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                <button className="btn btn-ghost btn-xs" onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = (e) => handleImageUpload(element.id, e as unknown as React.ChangeEvent<HTMLInputElement>); input.click(); }} style={{ gap: 2 }}>
+                <button className="btn btn-ghost btn-xs" onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = (e) => handleImageUpload(element.id, e); input.click(); }} style={{ gap: 2 }}>
                   <Upload style={{ width: 10, height: 10 }} /> {t("element.uploadRef")}
                 </button>
                 <button className="btn btn-ghost btn-xs" onClick={() => handleSelectFromAssetLibrary(element.id)} style={{ gap: 2 }}>
@@ -351,7 +356,7 @@ export function ElementBindingPanel({
                 <input className="input" style={{ fontSize: 11, padding: "4px 6px" }} value={binding.description || ""} onChange={(e) => handleUpdateBinding(element.id, "description", e.target.value)} placeholder={t("element.supplementaryPlaceholder")} />
               </div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                <button className="btn btn-ghost btn-xs" onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = (e) => handleImageUpload(element.id, e as unknown as React.ChangeEvent<HTMLInputElement>); input.click(); }} style={{ gap: 2 }}>
+                <button className="btn btn-ghost btn-xs" onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = (e) => handleImageUpload(element.id, e); input.click(); }} style={{ gap: 2 }}>
                   <Upload style={{ width: 10, height: 10 }} /> {t("element.uploadRef")}
                 </button>
                 <button className="btn btn-ghost btn-xs" onClick={() => handleSelectFromAssetLibrary(element.id)} style={{ gap: 2 }}>
@@ -396,7 +401,7 @@ export function ElementBindingPanel({
           <div style={{ display: "flex", gap: 4 }}>
             <button className="btn btn-outline btn-xs" style={{ flex: 1 }} onClick={() => handleCreateNewElement("character")}>👤 {t("element.characterLabel")}</button>
             <button className="btn btn-outline btn-xs" style={{ flex: 1 }} onClick={() => handleCreateNewElement("prop")}>📦 {t("element.propLabel")}</button>
-            <button className="btn btn-outline btn-xs" style={{ flex: 1 }} onClick={() => handleCreateNewElement("effect")}>✨ {t("element.effectLabel")}</button>
+            <button className="btn btn-outline btn-xs" style={{ flex: 1 }} onClick={() => handleCreateNewElement("effect")}><span aria-hidden="true">✨</span> {t("element.effectLabel")}</button>
           </div>
           <button className="btn btn-ghost btn-xs" onClick={() => setShowAddMenu(false)}>{t("common.cancel")}</button>
         </div>

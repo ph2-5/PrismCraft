@@ -1,19 +1,31 @@
-fix(quality): batch 8 - hotkeys, form validation, code quality rules
+refactor(arch): batch 9 - eliminate all historical technical debt
 
 P1 fixes:
-- Wire up useGlobalKeyboardActions in ToastProvider via GlobalKeyboardActions
-  component (Ctrl+Z/S now functional: undo/redo shows "not supported" toast,
-  Ctrl+S prevented from browser save dialog)
-- Add name validation to 3 forms (CharacterEditor, SceneEditor, StoryHeader):
-  save button disabled when name/title is empty
+- Split BeatDetailEditor God Component (834 lines, 27 props) into 4 focused
+  sub-components: BeatNavigation, BeatUploadPanel, BeatPromptPanel,
+  BeatGenerationPanel. Parent reduced to ~280 lines.
+- Document shotType/camera deprecated fields with detailed migration path
+  TODO (61+30 usage points, LLM pipeline coupling, too risky to force migrate)
 
 P2 fixes:
-- Extract setTimeout magic numbers to timers.ts constants (14 replacements
-  across 10 files: BLOB_URL_REVOKE_DELAY_MS, COPY_RESET_DELAY_MS, etc.)
-- Add 5 eslint code quality rules (max-lines, max-lines-per-function,
-  max-params, max-depth, complexity) as warn level
-- Unify error-codes naming to uppercase (ERROR_CATEGORY_MAP keys)
-  with toUpperCase() fallback in classifyError for API compatibility
-- Remove unused ApiResponse.ok field (redundant with success)
+- Eliminate all 24 route `as` assertions (Cause A) in shot-routes.ts and
+  storyboard-routes.ts by adding 7 mirror Zod schemas in electron/api/schemas.ts
+- Clean shared-logic hardcoded Chinese to English (reference-engine,
+  consistency-check, prompt-service) — architecture-compliant (zero-dep layer
+  cannot use t()), updated test assertions
+- Fix useAssetLibraryActions DRY: extract updateStoriesAfterEntityDelete
+  generic function, eliminate duplicate character/scene delete logic
+- file-routes.ts: replace hardcoded English error strings with error codes
+  (FILE_PATH_NOT_ALLOWED etc.), add i18n mapping in user-facing-error.ts
+- PluginsPage.tsx: replace 35 hardcoded Chinese desc fields with descKey
+  i18n pattern
+- Add tsconfig strict options: noFallthroughCasesInSwitch, noImplicitReturns
+  (fixed 3 TS7030 errors in QuickGenerateState/PerformanceMonitorPanel/
+  task-initializer)
+- ElementBindingPanel: remove 2 `as unknown as` (Event narrowing), document
+  1 remaining (ElementType enum constraint)
+- Delete docs/废弃/ directory (16 archived files, in git history)
+- Fix existing a11y: ElementBindingPanel emoji aria-hidden, ProfessionalModeEditor
+  emoji aria-hidden
 
-Tests: 4661 passed. typecheck + lint:arch all clean.
+Tests: 4661 passed. typecheck + typecheck:electron + lint + lint:arch all clean.

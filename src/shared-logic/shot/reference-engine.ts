@@ -53,27 +53,27 @@ export function validateReference(
   ) {
     const targetShot = allShots.find((s) => s.id === reference.targetShotId);
     if (!targetShot) {
-      return { valid: false, error: "引用的分镜不存在" };
+      return { valid: false, error: "Referenced shot does not exist" };
     }
   }
 
   const targetShot = getTargetShot(shot, allShots, reference);
   if (!targetShot) {
-    return { valid: false, error: "无法找到引用的分镜" };
+    return { valid: false, error: "Cannot find referenced shot" };
   }
   if (
     !(targetShot.videoGen && targetShot.videoGen.videoUrl) &&
     !(targetShot.generationResult && targetShot.generationResult.videoUrl)
   ) {
-    return { valid: false, error: "被引用的分镜尚未生成视频" };
+    return { valid: false, error: "Referenced shot has not generated video" };
   }
 
   if (reference.contentType === ReferenceContentType.VideoSegment) {
     if (!reference.segmentDuration || reference.segmentDuration <= 0) {
-      return { valid: false, error: "请设置引用片段时长" };
+      return { valid: false, error: "Please set reference segment duration" };
     }
     if (reference.segmentDuration > (targetShot.duration ?? 0)) {
-      return { valid: false, error: "引用片段时长不能超过分镜时长" };
+      return { valid: false, error: "Reference segment duration cannot exceed shot duration" };
     }
   }
 
@@ -141,19 +141,19 @@ export function buildReferenceDescription(
   const targetSequence = targetShot.sequence;
   const directionText =
     reference.direction === ReferenceDirection.Previous
-      ? "上一分镜"
+      ? "previous shot"
       : reference.direction === ReferenceDirection.Next
-        ? "下一分镜"
-        : `第${targetSequence}分镜`;
+        ? "next shot"
+        : `shot ${targetSequence}`;
 
   const contentText =
     reference.contentType === ReferenceContentType.FullVideo
-      ? "完整视频"
+      ? "full video"
       : reference.contentType === ReferenceContentType.LastFrame
-        ? "结尾画面"
+        ? "last frame"
         : reference.contentType === ReferenceContentType.FirstFrame
-          ? "开头画面"
-          : `${reference.segmentDuration}秒片段`;
+          ? "first frame"
+          : `${reference.segmentDuration}s segment`;
 
-  return `引用${directionText}的${contentText}`;
+  return `Reference ${directionText} ${contentText}`;
 }

@@ -229,6 +229,7 @@ export function setupBeforeUnloadHandler(store: StoreAccessor): void {
       clearTimeout(pollingState.syncTimeoutId);
       pollingState.syncTimeoutId = null;
     }
+    return;
   };
   window.addEventListener("beforeunload", pollingState.beforeUnloadHandler);
 }

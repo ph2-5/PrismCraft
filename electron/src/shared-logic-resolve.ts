@@ -6,6 +6,14 @@ import { execSync } from "child_process";
 /**
  * shared-logic 模块解析器（彻底版）。
  *
+ * 注意：electron/tsconfig.json 未通过 paths 别名配置 @shared-logic/*，因为
+ * "../src/shared-logic/*" 在 rootDir "./src" 之外会触发 TS6059 错误。
+ * 类型解析依赖 scripts/setup-shared-logic-symlink.mjs 创建的 node_modules/@shared-logic junction。
+ *
+ * 本文件处理运行时解析：Node.js CommonJS 模块解析不读取 tsconfig paths，
+ * 主进程运行时通过 Module._resolveFilename 将 @shared-logic/* 重定向到
+ * electron/dist/shared-logic/ 编译产物。
+ *
  * 设计原则：
  * - shared-logic 编译产物始终位于 electron/dist/shared-logic/（跟主进程代码同目录）
  * - 编译后 __dirname = electron/dist/，所以 shared-logic 目录 = __dirname/shared-logic

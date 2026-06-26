@@ -112,12 +112,13 @@ describe("R149: file/read 文件大小限制", () => {
     const result = await handler("POST", { key: "large-file.mp4" });
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/too large|超过|过大/i);
+    // 错误以错误码形式返回，渲染端通过 mapUserFacingError 映射为 i18n
+    expect(result.error).toBe("FILE_TOO_LARGE");
     // readFile 不应被调用
     expect(mockReadFile).not.toHaveBeenCalled();
   });
 
-  it("错误消息应包含文件大小信息", async () => {
+  it("超大文件应返回 FILE_TOO_LARGE 错误码", async () => {
     const largeSize = 100 * 1024 * 1024; // 100MB
     mockStat.mockResolvedValue({
       size: largeSize,
@@ -130,8 +131,8 @@ describe("R149: file/read 文件大小限制", () => {
     const result = await handler("POST", { key: "huge-file.mp4" });
 
     expect(result.success).toBe(false);
-    // 错误消息应包含实际文件大小
-    expect(result.error).toContain(String(largeSize));
+    // 错误码统一返回，文件大小通过 logger.warn 记录到主进程日志
+    expect(result.error).toBe("FILE_TOO_LARGE");
   });
 
   it("文件大小等于 50MB 边界应成功（<=）", async () => {
@@ -178,7 +179,7 @@ describe("R149: file/read 文件大小限制", () => {
     const result = await handler("POST", { key: "large-base64.mp4" });
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/too large|超过|过大/i);
+    expect(result.error).toBe("FILE_TOO_LARGE");
     expect(mockReadFile).not.toHaveBeenCalled();
   });
 });

@@ -7,7 +7,7 @@ import type { VideoTask } from "@/domain/schemas";
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
-import { EmptyState } from "@/shared/ui/empty-state";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import { TaskCardBase } from "./video-task-manager-ui/task-card";
 import { TaskDetailDialog } from "./video-task-manager-ui/task-detail-dialog";
 

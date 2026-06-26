@@ -88,7 +88,7 @@ Files indexed: 542
   - [class] infrastructure\api\client.ts
 
 ### AppCard
-  - [function] shared\ui\app-card.tsx
+  - [function] shared\presentation\AppCard.tsx
 
 ### AppContainer
   - [type] infrastructure\di\container.ts
@@ -665,9 +665,6 @@ Files indexed: 542
 ### ErrorCodeEntry
   - [interface] domain\types\error-codes.ts
 
-### ErrorDisplay
-  - [function] shared\ui\feedback.tsx
-
 ### ErrorDomain
   - [type] domain\types\error-codes.ts
 
@@ -832,24 +829,6 @@ Files indexed: 542
 ### Input
   - [named] shared\ui\input.tsx
 
-### InputGroup
-  - [named] shared\ui\input-group.tsx
-
-### InputGroupAddon
-  - [named] shared\ui\input-group.tsx
-
-### InputGroupButton
-  - [named] shared\ui\input-group.tsx
-
-### InputGroupInput
-  - [named] shared\ui\input-group.tsx
-
-### InputGroupText
-  - [named] shared\ui\input-group.tsx
-
-### InputGroupTextarea
-  - [named] shared\ui\input-group.tsx
-
 ### IntelligentRecoveryResult
   - [interface] modules\video\recovery\services\video-intelligent-recovery-service.ts
 
@@ -905,10 +884,6 @@ Files indexed: 542
 
 ### Lifecycle
   - [type] infrastructure\di\types.ts
-
-### LoadingState
-  - [function] shared\ui\feedback.tsx
-  - [function] shared\ui\loading-state.tsx
 
 ### LogLevel
   - [type] shared\error-logger.ts
@@ -1584,7 +1559,6 @@ Files indexed: 542
 
 ### StatusBadge
   - [function] modules\video\task-management\presentation\video-task-manager-ui\status-badge.tsx
-  - [function] shared\ui\status-badge.tsx
 
 ### StatusMapping
   - [interface] app\settings\plugin-creator-types.ts
@@ -4556,9 +4530,6 @@ Files indexed: 542
   - [named] modules\video\index.ts
   - [function] modules\video\task-management\hooks\use-video-tasks.ts
   - [named] modules\video\task-management\index.ts
-
-### useConfirmDialog
-  - [function] shared\ui\confirm-dialog.tsx
 
 ### useCreateCharacter
   - [named] modules\character\hooks\index.ts

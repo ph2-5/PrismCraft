@@ -1,5 +1,5 @@
 import { Camera, Upload, Loader2, RefreshCw } from "lucide-react";
-import { AppCard } from "@/shared/ui/app-card";
+import { AppCard } from "@/shared/presentation/AppCard";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants/messages";
 import { PromptEditor } from "../../prompt-editor";

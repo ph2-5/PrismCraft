@@ -60,7 +60,7 @@ describe("generateBeatImagePrompt - 描述完整性", () => {
   describe("非增强模式场景视觉细节", () => {
     it("非增强模式应包含场景视觉描述（元素和色调）", () => {
       const scene = makeScene();
-      const beat = makeBeat({ scene: "scene-1" });
+      const beat = makeBeat({ sceneId: "scene-1" });
 
       const prompt = generateBeatImagePrompt({
         beat,
@@ -264,7 +264,7 @@ describe("generateBeatImagePrompt - 描述完整性", () => {
 describe("generateSimpleBeatImagePrompt - 描述完整性", () => {
   it("应包含场景氛围描述", () => {
     const scene = makeScene();
-    const beat = makeBeat({ scene: "scene-1" });
+    const beat = makeBeat({ sceneId: "scene-1" });
 
     const prompt = generateSimpleBeatImagePrompt(beat, [], [scene]);
 

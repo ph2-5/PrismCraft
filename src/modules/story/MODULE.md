@@ -111,7 +111,7 @@ useStorySaver(props: {
 ```typescript
 DEFAULT_STORY: Story
 genres: Array<{ value: string; label: string; description: string }>
-tones: Array<{ value: string; label: string; color: string }>
+tones: Array<{ value: string; label: string }>
 beatTypes: Array<{ value: string; label: string; color: string; description: string }>
 type CreationMode = "quick" | "professional"
 type QuickInputMode = "direct" | "placeholder" | "plain"
@@ -428,7 +428,7 @@ applyTemplate(template: StoryTemplate, characters?: string[], scenes?: string[])
 
 ```typescript
 interface StoryboardTemplate { id: string; name: string; description: string; category: string; genre: string; tone: string; tags: string[]; author: string; beats: StoryboardTemplateBeat[]; totalDuration: number; version: number; createdAt: number; updatedAt: number }
-interface StoryboardTemplateBeat { type: string; title: string; content: string; duration: number; shotType?: string; cameraAngle?: string; cameraMovement?: string; cameraDistance?: string; cameraSpeed?: string; generationPrompt?: string; imageGenerationPrompt?: string; firstFramePrompt?: string; lastFramePrompt?: string }
+interface StoryboardTemplateBeat { type: string; title: string; content: string; duration: number; shotType?: string; cameraAngle?: string; cameraMovement?: string; cameraDistance?: string; cameraSpeed?: string; imageGenerationPrompt?: string; firstFramePrompt?: string; lastFramePrompt?: string }
 type StoryVersion (from @/domain/schemas)
 interface StoryTemplate { id: string; name: string; description: string; genre: string[]; tone: string[]; beats: TemplateBeat[] }
 ```

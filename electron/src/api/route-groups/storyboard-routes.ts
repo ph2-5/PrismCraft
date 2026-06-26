@@ -53,7 +53,9 @@ export const storyboardRoutes: Record<string, Route> = {
       const result = await storyboardGeneration.generateBeatKeyframe(
         apiGatewayAdapter,
         promptService,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.beat as Beat,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.prevBeat as Beat | undefined,
         b.options,
       );
@@ -67,6 +69,7 @@ export const storyboardRoutes: Record<string, Route> = {
       const result = await storyboardGeneration.generateBeatFramePair(
         apiGatewayAdapter,
         promptService,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.beat as Beat,
         b.options,
       );
@@ -79,6 +82,7 @@ export const storyboardRoutes: Record<string, Route> = {
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatVideo(
         apiGatewayAdapter,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.beat as Beat,
         b.options,
       );
@@ -92,7 +96,9 @@ export const storyboardRoutes: Record<string, Route> = {
       const result = await storyboardGeneration.generateBeatFullWorkflow(
         apiGatewayAdapter,
         promptService,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.beat as Beat,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.prevBeat as Beat | undefined,
         b.options,
       );
@@ -106,7 +112,9 @@ export const storyboardRoutes: Record<string, Route> = {
       const result = await storyboardGeneration.generateKeyframeChain(
         apiGatewayAdapter,
         promptService,
+        // Schema uses z.array(z.unknown()) for complex shared-logic types; as assertion bridges to strict function signature
         b.beats as Beat[],
+        // Schema uses z.record(z.string(), z.unknown()) for options; as assertion bridges to strict function signature
         b.options as Parameters<typeof storyboardGeneration.generateKeyframeChain>[3],
       );
       return { success: true, data: result };

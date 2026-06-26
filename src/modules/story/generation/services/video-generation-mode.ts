@@ -16,8 +16,8 @@ export function determineVideoGenerationMode(
   const currShotType = beat.shotType;
   if (prevShotType && currShotType && prevShotType !== currShotType) return "first_frame_anchor";
 
-  const prevScene = prevBeat.sceneId || prevBeat.scene;
-  const currScene = beat.sceneId || beat.scene;
+  const prevScene = prevBeat.sceneId;
+  const currScene = beat.sceneId;
   if (prevScene && currScene && prevScene !== currScene) return "first_frame_anchor";
 
   return "reference_video_continuation";

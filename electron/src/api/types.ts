@@ -42,5 +42,9 @@ export function defineRoute(
   route: { handler: RouteHandler; methods: string[] },
 ): Route;
 export function defineRoute(route: { handler: RouteHandler; schema?: ZodType; methods: string[] }): Route {
+  // Cause E: defineRoute uses TypeScript overload pattern; the implementation signature accepts
+  // a permissive shape and the `as Route` assertion bridges to the public Route<T> return type.
+  // Removing it would require duplicating the overload's type logic in the implementation,
+  // which is the standard TypeScript overload pattern and not a true type-safety hole.
   return route as Route;
 }

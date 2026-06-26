@@ -63,7 +63,6 @@ export function BeatTechTab({
             <div className="p-3 rounded-lg bg-muted/50 border border-border max-h-40 overflow-y-auto">
               <code className="text-xs text-muted-foreground whitespace-pre-wrap">
                 {beat.videoGen?.prompt ||
-                  beat.generationPrompt ||
                   t("story.notGenerated")}
               </code>
             </div>

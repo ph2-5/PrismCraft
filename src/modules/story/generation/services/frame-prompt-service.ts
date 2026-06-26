@@ -60,7 +60,7 @@ export async function generateFramePrompts(
 
     const charIds = getBeatCharacterIds(beat);
     const charDesc = buildCharacterVisualDesc(characters, charIds);
-    const sceneDesc = buildSceneVisualDesc(scenes, beat.sceneId || beat.scene);
+    const sceneDesc = buildSceneVisualDesc(scenes, beat.sceneId);
 
     const beatContent = beat.content || beat.description || "";
     if (!beatContent.trim() && !charDesc && !sceneDesc) {

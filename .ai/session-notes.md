@@ -352,3 +352,35 @@
 **验证结果**：typecheck + lint + lint:arch 全部通过 + 4668 测试通过
 
 **后续待办**：route handlers as 断言消除（schema 设计债务）、首页导出入口迁移、story-constants.ts 中 tones 数组的其他装饰色（yellow/blue/purple/pink）是否需要语义化（低优先级，这些是图例点指示色非主题依赖）
+
+### [2026-06-26] 批次 6 全面债务清理 — 已完成
+
+**1. StoryBeat deprecated 字段清理**：
+- 移除 `scene` 字段（18 处 fallback 改为 sceneId，数据库已迁移）
+- 移除 `generationPrompt` 字段（2 处 UI fallback 移除，3 处显式 undefined 移除）
+- 修正 `imageGenerationPrompt` 注释（从错误的 "No longer used" 改为 "LLM-generated initial keyframe prompt text"）
+- **保留** `shotType` 和 `camera`（高风险，需重构 LLM 管线）
+- 移除 7 个 deprecated fallback 兼容性测试
+
+**2. shared/ui 目录清理（8 文件全部处理）**：
+- 删除 4 个死代码（feedback/input-group/loading-state/status-badge，0 引用）
+- 替换 confirm-dialog（3 个 beat-editor 文件改用命令式 `confirm()`）
+- 迁移 3 个活跃组件到 shared/presentation/（AppCard/EmptyState/SafeImage）
+- **shared/ui 目录已删除**
+
+**3. 死代码清理**：
+- tones.color 字段（完全未使用的死代码，已删除）
+- useHomePage.ts 中 exportAllData/downloadExportMutation（设置页已有完整导出入口）
+
+**4. route handlers as 断言消除**：
+- 消除 5 处断言（Cause D: API 响应类型 4 处 + Cause C: 接口无索引签名 1 处）
+- 新增 `TextApiResult` 类型收窄 generateText 返回值
+- 用 `z.record(z.string(), z.unknown()).parse()` 替代 `as unknown as Record`
+- 保留 21 处断言并添加注释（Cause A: schema z.unknown() 19 处 + Cause B: passthrough 1 处 + Cause E: 重载 1 处）
+
+**验证结果**：typecheck + typecheck:electron + lint + lint:arch 全通过 + 4661 renderer tests + 952 electron tests
+
+**后续待办**：
+- shotType/camera deprecated 字段清理（需重构 LLM 生成管线，让 LLM 直接输出 shotInstruction）
+- 原因 A 的 19 处 as 断言（需在 shared-logic 导出完整 Zod schema）
+- imageGenerationPrompt 字段与 keyframe.prompt 的语义关系决策

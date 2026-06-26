@@ -185,8 +185,6 @@ export function convertToStoryBeats(
       lastFramePrompt: lastFramePrompt || undefined,
       enhancedGeneration: globalEnhancedGeneration || false,
       elementBindings: finalElementBindings,
-      scene: undefined,
-      generationPrompt: undefined,
       transition: undefined,
       imageUrl: undefined,
       videoReferenceUrl: undefined,

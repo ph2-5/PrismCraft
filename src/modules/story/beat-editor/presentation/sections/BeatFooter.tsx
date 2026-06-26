@@ -1,5 +1,5 @@
 import { errorLogger } from "@/shared/error-logger";
-import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants";
 
 interface BeatFooterProps {
@@ -8,7 +8,19 @@ interface BeatFooterProps {
 }
 
 export function BeatFooter({ onDeleteBeat, onClose }: BeatFooterProps) {
-  const { confirm: confirmDialog, ConfirmDialogComponent } = useConfirmDialog();
+  const handleDeleteClick = async () => {
+    try {
+      const confirmed = await confirm({
+        title: t("beat.deleteBeatTitle"),
+        description: t("beat.deleteBeatDesc"),
+        confirmText: t("common.delete"),
+        variant: "danger",
+      });
+      if (confirmed) onDeleteBeat();
+    } catch (err) {
+      errorLogger.warn("[BeatDetailEditor] confirm dialog error", err);
+    }
+  };
 
   return (
     <>
@@ -16,18 +28,7 @@ export function BeatFooter({ onDeleteBeat, onClose }: BeatFooterProps) {
         <button
           type="button"
           className="btn btn-danger btn-sm"
-          onClick={() => {
-            confirmDialog({
-              title: t("beat.deleteBeatTitle"),
-              description: t("beat.deleteBeatDesc"),
-              confirmText: t("common.delete"),
-              variant: "danger",
-            }).then((confirmed) => {
-              if (confirmed) onDeleteBeat();
-            }).catch((err) => {
-              errorLogger.warn("[BeatDetailEditor] confirm dialog error", err);
-            });
-          }}
+          onClick={handleDeleteClick}
         >
           {t("beat.deleteBeatButton")}
         </button>
@@ -35,7 +36,6 @@ export function BeatFooter({ onDeleteBeat, onClose }: BeatFooterProps) {
           {t("common.close")}
         </button>
       </div>
-      {ConfirmDialogComponent}
     </>
   );
 }

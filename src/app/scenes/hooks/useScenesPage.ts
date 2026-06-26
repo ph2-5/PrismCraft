@@ -235,7 +235,7 @@ export function useScenesPage() {
     }> = [];
     for (const story of stories) {
       for (const beat of story.beats || []) {
-        if (beat.sceneId === currentScene.id || beat.scene === currentScene.id) {
+        if (beat.sceneId === currentScene.id) {
           result.push({
             storyId: story.id,
             storyTitle: story.title,

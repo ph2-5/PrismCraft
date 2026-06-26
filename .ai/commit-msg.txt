@@ -1,25 +1,25 @@
-refactor(ui): batch 5 - eliminate all hardcoded Tailwind colors
+refactor(debt): batch 6 - comprehensive debt cleanup
 
-Cleaned 188 hardcoded color occurrences across 30 files to 0 residual.
+1. StoryBeat deprecated field cleanup:
+   - Remove scene field (18 fallbacks -> sceneId, DB already migrated)
+   - Remove generationPrompt field (2 UI fallbacks, 3 explicit undefined)
+   - Fix imageGenerationPrompt annotation (was wrongly marked deprecated)
+   - Remove 7 deprecated fallback compatibility tests
 
-Replaced slate/gray/white/blue hardcoded colors with semantic variables:
-- text-slate-*/text-gray-* -> text-muted-foreground
-- bg-slate-*/bg-gray-* -> bg-card2/bg-muted/bg-card
-- border-slate-*/border-gray-* -> border-border
-- dark: prefix removed (dark-first design system)
-- bg-white -> bg-card
-- blue-500/blue-50 -> primary/primary-10
-- emerald -> success, purple -> primary
+2. shared/ui directory cleanup (8 files):
+   - Delete 4 dead code files (feedback/input-group/loading-state/status-badge)
+   - Replace confirm-dialog with imperative confirm() (3 beat-editor files)
+   - Migrate 3 active components to shared/presentation/ (AppCard/EmptyState/SafeImage)
+   - shared/ui/ directory deleted entirely
 
-Files cleaned:
-- template/presentation: TemplateManagerDialog, TemplateCard, AssetPicker (24 fixes)
-- quick-generate: AdvancedSettingsCard, QuickGenerateForm, TemplateSelectDialog (31 fixes)
-- asset/video/prompt/shared: BatchProgressDialog, MediaExporter, TaskCard,
-  ModelSelector, confirm.tsx, feedback.tsx, router.tsx etc (~100 fixes)
-- story/generation: StepIndicator, PromptPreview (2 fixes)
-- story/planning+beat-editor: story-constants.ts, BeatOverviewCard (5 fixes)
+3. Dead code cleanup:
+   - tones.color field (completely unused, deleted)
+   - useHomePage exportAllData/downloadExportMutation (settings page has export)
 
-New regression rule R181: hardcoded Tailwind colors forbidden,
-must use semantic variables (text-muted-foreground, bg-card2, border-border, etc.)
+4. Route handler as assertion elimination:
+   - Eliminate 5 assertions (Cause D: API response type 4 + Cause C: no index signature 1)
+   - Add TextApiResult type to narrow generateText return
+   - Use z.record().parse() instead of as unknown as Record
+   - 21 retained assertions annotated with reasons
 
-Tests: 4668 passed. typecheck + lint + lint:arch all clean.
+Tests: 4661 renderer + 952 electron all pass

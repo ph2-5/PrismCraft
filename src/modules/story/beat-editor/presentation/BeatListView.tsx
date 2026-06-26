@@ -41,8 +41,8 @@ function BeatCard({ beat, index, characters, scenes, onEditClick, isSelected }: 
   const charNames = charIds
     .map((id: string) => characters.find((c) => c.id === id)?.name)
     .filter((n): n is string => Boolean(n));
-  const sceneName = (beat.sceneId || beat.scene)
-    ? scenes.find((s) => s.id === (beat.sceneId || beat.scene))?.name
+  const sceneName = beat.sceneId
+    ? scenes.find((s) => s.id === beat.sceneId)?.name
     : null;
 
   const shotSize = beat.shotInstruction?.shotSize || beat.shotType;

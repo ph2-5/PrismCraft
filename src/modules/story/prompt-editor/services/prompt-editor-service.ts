@@ -93,8 +93,8 @@ function buildContextSection(request: PromptEditorRequest): string {
     }
   }
 
-  if (scenes && scenes.length > 0 && (beat.sceneId || beat.scene)) {
-    const boundScene = scenes.find((s) => s.id === (beat.sceneId || beat.scene));
+  if (scenes && scenes.length > 0 && beat.sceneId) {
+    const boundScene = scenes.find((s) => s.id === beat.sceneId);
     if (boundScene) {
       parts.push("");
       parts.push("【绑定场景】");

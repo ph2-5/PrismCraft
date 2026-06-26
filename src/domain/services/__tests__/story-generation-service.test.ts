@@ -182,8 +182,8 @@ describe("StoryGenerationService", () => {
       expect(result.sceneRef).toBeUndefined();
     });
 
-    it("beat 使用 scene 字段而非 sceneId 时也能解析场景", () => {
-      const beat = createMockBeat({ scene: "scene-1", sceneId: undefined });
+    it("beat 使用 sceneId 字段时能解析场景", () => {
+      const beat = createMockBeat({ sceneId: "scene-1" });
       const scenes = [createMockScene({ id: "scene-1", name: "森林", imageUrl: "http://example.com/forest.png" })];
       const result = StoryGenerationService.resolveGenerationContext({
         beat,

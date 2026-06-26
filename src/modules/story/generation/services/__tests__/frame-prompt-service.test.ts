@@ -116,7 +116,6 @@ describe("generateFramePrompts", () => {
       description: "",
       characterIds: [],
       sceneId: undefined,
-      scene: undefined,
     };
 
     const result = await generateFramePrompts({

@@ -123,7 +123,6 @@ describe("flattenBeat", () => {
       characterIds: ["c1", "c2"],
       sceneId: "s1",
       shotType: "close_up",
-      generationPrompt: "gen prompt",
       imageGenerationPrompt: "img prompt",
       firstFramePrompt: "ff prompt",
       lastFramePrompt: "lf prompt",
@@ -163,7 +162,6 @@ describe("flattenBeat", () => {
     expect(result.generationContainer.videoUrl).toBe("vurl");
     expect(result.generationContainer.videoTaskId).toBe("tid");
     expect(result.generationContainer.videoStatus).toBe("done");
-    expect(result.generationContainer.generationPrompt).toBe("gen prompt");
     expect(result.generationContainer.imageGenerationPrompt).toBe("img prompt");
     expect(result.generationContainer.firstFramePromptGen).toBe("ffpg");
     expect(result.generationContainer.lastFramePromptGen).toBe("lfpg");

@@ -19,8 +19,8 @@ import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
 import { beatTypes } from "@/modules/story";
-import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { SafeImage } from "@/shared/ui/safe-image";
+import { confirm } from "@/shared/utils/confirm";
+import { SafeImage } from "@/shared/presentation/SafeImage";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { IconButton } from "@/shared/presentation/IconButton";
@@ -48,14 +48,13 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
   totalBeats = 0,
   isSelected = false,
 }: BeatOverviewCardProps) {
-  const { confirm: confirmDialog, ConfirmDialogComponent } = useConfirmDialog();
   const typeInfo = beatTypes.find((t) => t.value === beat.type);
   const charIds = getBeatCharacterIds(beat);
   const charNames = charIds
     .map((id: string) => characters.find((c) => c.id === id)?.name)
     .filter((n): n is string => Boolean(n));
-  const sceneName = (beat.sceneId || beat.scene)
-    ? scenes.find((s) => s.id === (beat.sceneId || beat.scene))?.name
+  const sceneName = beat.sceneId
+    ? scenes.find((s) => s.id === beat.sceneId)?.name
     : null;
   const keyframeImage = resolveMediaUrl(beat.localKeyframePath, beat.keyframe?.imageUrl);
   const videoGen = resolveMediaUrl(beat.localVideoPath, beat.videoGen?.videoUrl);
@@ -94,6 +93,21 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
   };
 
   const statusInfo = getStatusInfo();
+
+  const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    try {
+      const confirmed = await confirm({
+        title: t("beat.deleteBeatTitle"),
+        description: t("beat.deleteBeatConfirm"),
+        confirmText: t("common.delete"),
+        variant: "danger",
+      });
+      if (confirmed && onDeleteBeat) onDeleteBeat(beat.id);
+    } catch (err) {
+      errorLogger.warn("[BeatOverviewCard] Confirm dialog failed", err);
+    }
+  };
 
   return (
     <>
@@ -249,17 +263,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm text-xs text-purple-300/80 hover:text-red-400 hover:bg-red-500/10 h-7 px-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        confirmDialog({
-                          title: t("beat.deleteBeatTitle"),
-                          description: t("beat.deleteBeatConfirm"),
-                          confirmText: t("common.delete"),
-                          variant: "danger",
-                    }).then((confirmed) => {
-                      if (confirmed) onDeleteBeat(beat.id);
-                    }).catch((e) => { errorLogger.warn("[BeatOverviewCard] Confirm dialog failed", e); });
-                      }}
+                      onClick={handleDeleteClick}
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                       {t("common.delete")}
@@ -271,7 +275,6 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
           </div>
         </div>
       </div>
-      {ConfirmDialogComponent}
     </>
   );
 });

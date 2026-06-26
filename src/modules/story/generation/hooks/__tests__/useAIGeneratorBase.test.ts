@@ -309,32 +309,30 @@ describe("useAIGeneratorBase", () => {
       expect(refs.characterRefs).toEqual(["https://img.example.com/alice.png", "https://img.example.com/bob.png"]);
     });
 
-    it("beat 无 sceneId 和 scene 时应返回 undefined sceneRef", () => {
+    it("beat 无 sceneId 时应返回 undefined sceneRef", () => {
       const props = createDefaultProps();
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
       const beatNoScene: StoryBeat = {
         ...mockBeat1,
         sceneId: undefined,
-        scene: undefined,
       };
       const refs = result.current.resolveRefs(beatNoScene);
       expect(refs.sceneRef).toBeUndefined();
       expect(resolveSceneRef).not.toHaveBeenCalled();
     });
 
-    it("应优先使用 beat.sceneId，其次使用 beat.scene", () => {
+    it("应使用 beat.sceneId 查找场景", () => {
       (resolveSceneRef as ReturnType<typeof vi.fn>).mockReturnValue("https://img.example.com/scene.png");
 
       const props = createDefaultProps();
       const { result } = renderHook(() => useAIGeneratorBase(props));
 
-      const beatWithBoth: StoryBeat = {
+      const beatWithSceneId: StoryBeat = {
         ...mockBeat1,
         sceneId: "scene-1",
-        scene: "scene-2",
       };
-      result.current.resolveRefs(beatWithBoth);
+      result.current.resolveRefs(beatWithSceneId);
       expect(resolveSceneRef).toHaveBeenCalledWith(
         expect.objectContaining({ id: "scene-1" }),
       );
@@ -350,24 +348,6 @@ describe("useAIGeneratorBase", () => {
       };
       const refs = result.current.resolveRefs(beatBadScene);
       expect(refs.sceneRef).toBeUndefined();
-    });
-
-    it("应使用 beat.scene 作为 fallback 查找场景", () => {
-      (resolveSceneRef as ReturnType<typeof vi.fn>).mockReturnValue("/path/to/castle.png");
-
-      const props = createDefaultProps();
-      const { result } = renderHook(() => useAIGeneratorBase(props));
-
-      const beatSceneFallback: StoryBeat = {
-        ...mockBeat1,
-        sceneId: undefined,
-        scene: "scene-2",
-      };
-      const refs = result.current.resolveRefs(beatSceneFallback);
-      expect(refs.sceneRef).toBe("/path/to/castle.png");
-      expect(resolveSceneRef).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "scene-2" }),
-      );
     });
   });
 
@@ -946,7 +926,6 @@ describe("useAIGeneratorBase", () => {
         description: "test",
         type: "scene",
         characterIds: [],
-        sceneId: undefined,
         elementIds: [],
         enhancedGeneration: false,
       };

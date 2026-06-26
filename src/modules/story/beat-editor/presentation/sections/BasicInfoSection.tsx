@@ -48,9 +48,9 @@ export function BasicInfoSection({
             </label>
             <select
               className="select bg-muted/50 border-border"
-              value={(beat.sceneId || beat.scene) || ""}
+              value={beat.sceneId || ""}
               onChange={(e) =>
-                onUpdateField("scene", e.target.value || undefined)
+                onUpdateField("sceneId", e.target.value || undefined)
               }
             >
               <option value="">{t("beat.sceneSelectPlaceholder")}</option>

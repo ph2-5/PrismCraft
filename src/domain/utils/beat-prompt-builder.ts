@@ -74,7 +74,7 @@ export function generateBeatImagePrompt(params: BeatImagePromptParams): string {
     parts.push(`镜头构图：${shotInstructionToPrompt(shotInstruction)}`);
   }
 
-  const sceneId = beat.sceneId || beat.scene;
+  const sceneId = beat.sceneId;
   if (sceneId) {
     const sceneObj = scenes.find((s) => s.id === sceneId);
     if (sceneObj) {
@@ -166,7 +166,7 @@ export function generateSimpleBeatImagePrompt(
     );
   }
 
-  const simpleSceneId = beat.sceneId || beat.scene;
+  const simpleSceneId = beat.sceneId;
   if (simpleSceneId) {
     const sceneObj = scenes.find((s) => s.id === simpleSceneId);
     if (sceneObj) {

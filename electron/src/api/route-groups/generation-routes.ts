@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Route } from "../types";
 import { defineRoute } from "../types";
 import * as apiGateway from "../../api-gateway";
@@ -79,7 +80,9 @@ export const generationRoutes: Record<string, Route> = {
       const params = videoTaskService.buildVideoGenerationParams(b);
       // VideoGenerationParams is an interface (no implicit index signature), so it is not
       // directly assignable to Record<string, unknown> expected by generateVideo.
-      return apiGateway.generateVideo(params as unknown as Record<string, unknown>);
+      // Use zod runtime validation to safely narrow the typed params to a Record.
+      const videoParams = z.record(z.string(), z.unknown()).parse(params);
+      return apiGateway.generateVideo(videoParams);
     },
     methods: ["POST"],
   }),
@@ -149,18 +152,21 @@ export const generationRoutes: Record<string, Route> = {
       const imagePrompt = b.imagePrompt;
       const detailedPromptInstruction = b.detailedPromptInstruction;
       let finalPrompt: string =
-        imagePrompt || promptService.generateCharacterImagePrompt(character as import("@shared-logic/prompt/prompt-service").CharacterInput);
+        imagePrompt ||
+        // Schema uses z.record(z.string(), z.unknown()) for character; as assertion bridges to strict CharacterInput type
+        promptService.generateCharacterImagePrompt(character as import("@shared-logic/prompt/prompt-service").CharacterInput);
       if (useDetailedPrompt && !imagePrompt) {
         const instruction: string =
           detailedPromptInstruction ||
+          // Schema uses z.record(z.string(), z.unknown()) for character; as assertion bridges to strict CharacterInput type
           promptService.generateCharacterDetailedPromptInstruction(character as import("@shared-logic/prompt/prompt-service").CharacterInput);
         const detailedResult = await apiGateway.generateText({
           prompt: instruction,
           maxTokens: 300,
           temperature: 0.7,
         });
-        if (detailedResult.success && (detailedResult.data as Record<string, unknown>)?.text) {
-          finalPrompt = (detailedResult.data as Record<string, unknown>).text as string;
+        if (detailedResult.success && detailedResult.data?.text) {
+          finalPrompt = detailedResult.data.text;
         }
       }
       return apiGateway.generateImage({
@@ -185,12 +191,15 @@ export const generationRoutes: Record<string, Route> = {
       const detailedPromptInstruction = b.detailedPromptInstruction;
       let finalPrompt: string =
         imagePrompt ||
+        // Schema uses z.record(z.string(), z.unknown()) for scene; as assertion narrows unknown to string
         (scene.imageGenerationPrompt as string | undefined) ||
+        // Schema uses z.record(z.string(), z.unknown()) for scene; as assertion bridges to strict SceneInput type
         promptService.generateSceneImagePrompt(scene as import("@shared-logic/prompt/prompt-service").SceneInput);
       if (useDetailedPrompt && !imagePrompt) {
         const instruction: string =
           detailedPromptInstruction ||
           promptService.generateScenePromptOptimization(
+            // Schema uses z.record(z.string(), z.unknown()) for scene; as assertion narrows unknown to string
             (scene.description as string | undefined) || finalPrompt,
           );
         const detailedResult = await apiGateway.generateText({
@@ -198,8 +207,8 @@ export const generationRoutes: Record<string, Route> = {
           maxTokens: 300,
           temperature: 0.8,
         });
-        if (detailedResult.success && (detailedResult.data as Record<string, unknown>)?.text) {
-          finalPrompt = (detailedResult.data as Record<string, unknown>).text as string;
+        if (detailedResult.success && detailedResult.data?.text) {
+          finalPrompt = detailedResult.data.text;
         }
       }
       return apiGateway.generateImage({

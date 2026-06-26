@@ -1,5 +1,5 @@
 import { Play, Upload, Loader2, RefreshCw } from "lucide-react";
-import { AppCard } from "@/shared/ui/app-card";
+import { AppCard } from "@/shared/presentation/AppCard";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { t } from "@/shared/constants/messages";

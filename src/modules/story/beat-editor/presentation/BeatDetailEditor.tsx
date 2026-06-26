@@ -18,7 +18,7 @@ import { PromptEditor, PromptFloatingBall } from "@/modules/story/prompt-editor"
 import type { PromptEditorContext } from "@/modules/story/prompt-editor";
 import { PromptPreview } from "@/modules/story/generation";
 import { ElementBindingPanel } from "./ElementBindingPanel";
-import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { confirm } from "@/shared/utils/confirm";
 import { errorLogger } from "@/shared/error-logger";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 
@@ -86,7 +86,6 @@ export function BeatDetailEditor({
   imageProviderId,
   imageModelId,
 }: BeatDetailEditorProps) {
-  const { confirm: confirmDialog, ConfirmDialogComponent } = useConfirmDialog();
   const { error: showError } = useToastHelpers();
   const [promptTab, setPromptTab] = useState<PromptEditorContext>("keyframe");
   const keyframeInputRef = useRef<HTMLInputElement>(null);
@@ -164,7 +163,7 @@ export function BeatDetailEditor({
     onUpdateBeat({ ...beat, [field]: value } as StoryBeat);
   };
 
-  const selectedScene = scenes.find((scene) => scene.id === (beat.sceneId || beat.scene));
+  const selectedScene = scenes.find((scene) => scene.id === beat.sceneId);
   const _prevBeat = index > 0 ? allShots[index - 1]! : null;
   void _prevBeat;
 
@@ -235,17 +234,18 @@ export function BeatDetailEditor({
     .map((id) => characters.find((c) => c.id === id))
     .filter((c): c is Character => !!c);
 
-  const handleDeleteClick = () => {
-    confirmDialog({
-      title: t("beat.deleteBeatTitle"),
-      description: t("beat.deleteBeatDesc"),
-      confirmText: t("common.delete"),
-      variant: "danger",
-    }).then((confirmed) => {
+  const handleDeleteClick = async () => {
+    try {
+      const confirmed = await confirm({
+        title: t("beat.deleteBeatTitle"),
+        description: t("beat.deleteBeatDesc"),
+        confirmText: t("common.delete"),
+        variant: "danger",
+      });
       if (confirmed) onDeleteBeat();
-    }).catch((err) => {
+    } catch (err) {
       errorLogger.warn("[BeatDetailEditor] confirm dialog error", err);
-    });
+    }
   };
 
   const handleMoveUp = () => {
@@ -829,7 +829,6 @@ export function BeatDetailEditor({
           </button>
         </div>
       </div>
-      {ConfirmDialogComponent}
     </div>
   );
 }

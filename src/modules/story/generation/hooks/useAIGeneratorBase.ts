@@ -88,7 +88,7 @@ export function useAIGeneratorBase(props: AIGeneratorBaseProps) {
       const elements = elementsRef?.current;
       const characterRefs = resolveCharacterRefs(characterIds, charactersRef.current, beat, elements);
 
-      const sceneId = beat.sceneId || beat.scene;
+      const sceneId = beat.sceneId;
       const sceneObj = sceneId
         ? scenesRef.current.find((s) => s.id === sceneId)
         : undefined;

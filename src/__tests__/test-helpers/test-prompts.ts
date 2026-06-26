@@ -21,7 +21,7 @@ export interface StoryBeatTestData {
     content?: string;
     character?: string;
     characters?: string[];
-    scene?: string;
+    sceneId?: string;
     shotType?: string;
     cameraAngle?: string;
     cameraMovement?: string;
@@ -169,7 +169,7 @@ export const storyBeatTestData: StoryBeatTestData[] = [
       description: "女主角在雨夜潜入敌方基地",
       content: "雨夜，女主角身穿黑色紧身衣，从屋顶潜入戒备森严的敌方基地。她动作敏捷，避开巡逻的机器人哨兵，利用绳索下到地面。基地内部灯火通明，红色警报灯闪烁。",
       character: "char-001",
-      scene: "scene-001",
+      sceneId: "scene-001",
       shotType: "medium",
       cameraAngle: "low",
       cameraMovement: "tracking",
@@ -224,7 +224,7 @@ export const storyBeatTestData: StoryBeatTestData[] = [
       description: "三方势力在废弃工厂对峙",
       content: "废弃工厂内，女主角、神秘男子和反派头目形成三角对峙。女主角手持武器指向反派，神秘男子站在中间试图调解，反派头目冷笑地看着两人。工厂内布满了废弃的机器和散落的零件，阳光从破损的屋顶照射下来，形成明暗对比。",
       characters: ["char-001", "char-002", "char-003"],
-      scene: "scene-002",
+      sceneId: "scene-002",
       shotType: "wide",
       cameraAngle: "eye_level",
       cameraMovement: "pan",
@@ -301,7 +301,7 @@ export const storyBeatTestData: StoryBeatTestData[] = [
       description: "主角发现惊人真相的瞬间",
       content: "在古老的图书馆中，主角找到了揭示身世之谜的古籍。当她翻开最后一页时，一道神秘的光芒从书中涌出，照亮了她震惊的脸庞。镜头缓慢推近，捕捉她眼中的泪水和颤抖的双手。窗外的月光透过彩色玻璃窗洒进来，形成斑斓的光影。",
       character: "char-001",
-      scene: "scene-003",
+      sceneId: "scene-003",
       shotType: "close",
       cameraAngle: "eye_level",
       cameraMovement: "push",

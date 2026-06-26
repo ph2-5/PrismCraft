@@ -68,8 +68,8 @@ export function generateEnhancedVideoPrompt(
         if (shotPrompt) parts.push(`镜头指令：${shotPrompt}`);
       }
 
-      if (beat.sceneId || beat.scene) {
-        const sceneObj = scenes.find((s) => s.id === (beat.sceneId || beat.scene));
+      if (beat.sceneId) {
+        const sceneObj = scenes.find((s) => s.id === beat.sceneId);
         if (sceneObj) {
           parts.push(
             `场景：${sceneObj.name}，${buildSceneAtmosphereDesc(sceneObj)}，${buildSceneVisualDesc(sceneObj)}`,

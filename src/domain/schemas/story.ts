@@ -151,8 +151,6 @@ export const storyBeatSchema = z.object({
   // ── Character & scene bindings ──
   characterIds: z.array(z.string()),
   characterOutfits: z.record(z.string(), z.string()).optional(),
-  /** @deprecated Use sceneId instead. Kept for backward compatibility during migration. */
-  scene: nullToUndef(z.string()),
   sceneId: nullToUndef(z.string()),
   sceneElements: z.array(z.custom<SceneElement>()).optional(),
   elementIds: z.array(z.string()),
@@ -174,13 +172,11 @@ export const storyBeatSchema = z.object({
   template: templateConfigSchema.optional(),
   generationStatus: shotGenerationStatusSchema.optional(),
   generationResult: shotGenerationResultSchema.optional(),
-  /** @deprecated No longer used in prompt generation pipeline. Kept for data compatibility. */
-  generationPrompt: nullToUndef(z.string()),
   enhancedGeneration: z.preprocess(
     (v) => (v == null ? undefined : Boolean(v)),
     z.boolean().optional(),
   ),
-  /** @deprecated No longer used in prompt generation pipeline. Kept for data compatibility. */
+  /** LLM-generated initial keyframe prompt text. Used in storyboard generation pipeline as prompt source. */
   imageGenerationPrompt: nullToUndef(z.string()),
   firstFramePrompt: nullToUndef(z.string()),
   lastFramePrompt: nullToUndef(z.string()),

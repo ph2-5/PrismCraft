@@ -137,7 +137,7 @@ export function generateSingleBeatPrompt(
     }
   }
 
-  const sceneId = beat.sceneId || beat.scene;
+  const sceneId = beat.sceneId;
   if (sceneId) {
     const sceneObj = scenes.find((s) => s.id === sceneId);
     if (sceneObj) {

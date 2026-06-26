@@ -188,7 +188,7 @@ describe("reference-check-service", () => {
       expect(result.canDelete).toBe(false);
     });
 
-    it("被 beat.scene 引用时应不可删除", () => {
+    it("被 beat.sceneId 引用时应不可删除（scene 字段已清理）", () => {
       const stories = [
         buildStory({
           beats: [
@@ -198,7 +198,6 @@ describe("reference-check-service", () => {
               description: "测试分镜",
               type: "action",
               characterIds: [],
-              scene: undefined,
               sceneId: "scene-1",
               elementIds: [],
               shotType: "medium",

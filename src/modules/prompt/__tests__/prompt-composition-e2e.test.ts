@@ -132,7 +132,6 @@ function makeFullBeat(): StoryBeat {
     duration: 8,
     characterIds: ["char-1", "char-2"],
     characterOutfits: { "char-1": "outfit-1" },
-    scene: "scene-1",
     sceneId: "scene-1",
     elementIds: ["elem-1", "elem-2"],
     elementBindings: {
@@ -440,22 +439,8 @@ describe("端到端提示词组合测试 - SingleBeatPrompt", () => {
     expect(result).toContain("动作场景模板");
   });
 
-  it("sceneId 字段兼容性：sceneId 存在时能正确查找场景", () => {
+  it("sceneId 字段查找场景：sceneId 存在时能正确查找场景", () => {
     const beat = makeBeat({ sceneId: "scene-1" });
-    const scenes = [makeScene()];
-
-    const result = generateSingleBeatPrompt({
-      beat,
-      index: 0,
-      characters: [],
-      scenes,
-    });
-
-    expect(result).toContain("古老森林");
-  });
-
-  it("scene 字段兼容性：仅 scene 存在时能正确查找场景", () => {
-    const beat = makeBeat({ scene: "scene-1", sceneId: undefined });
     const scenes = [makeScene()];
 
     const result = generateSingleBeatPrompt({
@@ -623,23 +608,9 @@ describe("端到端提示词组合测试 - ProfessionalVideoPrompt", () => {
     expect(result).toContain("模板");
   });
 
-  it("scene 字段查找场景：professional 模式使用 beat.scene", () => {
+  it("sceneId 字段查找场景：professional 模式使用 beat.sceneId", () => {
     const scenes = [makeScene()];
-    const beat = makeBeat({ scene: "scene-1", content: "测试内容" });
-
-    const result = generateProfessionalVideoPrompt({
-      story: { title: "测试", description: "", genre: "剧情", tone: "中性", targetDuration: 60 },
-      beats: [beat],
-      characters: [],
-      scenes,
-    });
-
-    expect(result).toContain("古老森林");
-  });
-
-  it("sceneId 字段查找场景：professional 模式现在也兼容 beat.sceneId", () => {
-    const scenes = [makeScene()];
-    const beat = makeBeat({ sceneId: "scene-1", scene: undefined, content: "测试内容" });
+    const beat = makeBeat({ sceneId: "scene-1", content: "测试内容" });
 
     const result = generateProfessionalVideoPrompt({
       story: { title: "测试", description: "", genre: "剧情", tone: "中性", targetDuration: 60 },
@@ -816,9 +787,9 @@ describe("端到端提示词组合测试 - BeatImagePrompt", () => {
     expect(result).toContain("masterpiece");
   });
 
-  it("非增强模式：scene + characterIds", () => {
+  it("非增强模式：sceneId + characterIds", () => {
     const beat = makeBeat({
-      scene: "scene-1",
+      sceneId: "scene-1",
       characterIds: ["char-1"],
     });
     const characters = [makeCharacter()];
@@ -836,7 +807,7 @@ describe("端到端提示词组合测试 - BeatImagePrompt", () => {
     expect(result).toContain("银色发色");
   });
 
-  it("sceneId vs scene 字段兼容性", () => {
+  it("sceneId 字段查找场景：增强模式与非增强模式均可正确查找", () => {
     const scenes = [makeScene()];
 
     const beatWithSceneId = makeBeat({ sceneId: "scene-1" });
@@ -847,16 +818,16 @@ describe("端到端提示词组合测试 - BeatImagePrompt", () => {
       isEnhanced: true,
     });
 
-    const beatWithScene = makeBeat({ scene: "scene-1" });
-    const resultWithScene = generateBeatImagePrompt({
-      beat: beatWithScene,
+    const beatWithSceneIdNonEnhanced = makeBeat({ sceneId: "scene-1" });
+    const resultWithSceneIdNonEnhanced = generateBeatImagePrompt({
+      beat: beatWithSceneIdNonEnhanced,
       characters: [],
       scenes,
       isEnhanced: false,
     });
 
     expect(resultWithSceneId).toContain("古老森林");
-    expect(resultWithScene).toContain("古老森林");
+    expect(resultWithSceneIdNonEnhanced).toContain("古老森林");
   });
 });
 

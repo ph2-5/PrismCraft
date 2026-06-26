@@ -72,7 +72,6 @@ const mockBeatNoBinding: StoryBeat = {
   type: "action",
   characterIds: [],
   sceneId: undefined,
-  scene: undefined,
   elementIds: [],
   enhancedGeneration: false,
 };
@@ -324,41 +323,6 @@ describe("useKeyframeGenerator", () => {
         sceneId: "scene-1",
       };
       mockFindBeat.mockReturnValue(beatWithSceneOnly);
-
-      const props = createDefaultProps();
-      props.showConfirm = vi.fn();
-
-      mockWithGenerationState.mockImplementation(async (_beatId: string, fn: (signal: AbortSignal) => Promise<unknown>) => {
-        return fn(new AbortController().signal);
-      });
-
-      (StoryGenerationService.resolveGenerationContext as ReturnType<typeof vi.fn>).mockReturnValue({
-        characterRef: undefined,
-        sceneRef: "https://img.example.com/forest.png",
-      });
-
-      (generateBeatKeyframe as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        value: mockKeyframe,
-      });
-
-      const { result } = renderHook(() => useKeyframeGenerator(props));
-
-      await act(async () => {
-        await result.current.generateKeyframe("beat-1");
-      });
-
-      expect(props.showConfirm).not.toHaveBeenCalled();
-    });
-
-    it("有 beat.scene 绑定时不应弹出确认对话框", async () => {
-      const beatWithSceneField: StoryBeat = {
-        ...mockBeat1,
-        characterIds: [],
-        sceneId: undefined,
-        scene: "scene-1",
-      };
-      mockFindBeat.mockReturnValue(beatWithSceneField);
 
       const props = createDefaultProps();
       props.showConfirm = vi.fn();

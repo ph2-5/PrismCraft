@@ -193,7 +193,7 @@ describe("generatePromptWithAI", () => {
 
     await generatePromptWithAI({
       context: "keyframe",
-      beat: { ...mockBeat, characterIds: ["char-1"], scene: "scene-1" },
+      beat: { ...mockBeat, characterIds: ["char-1"], sceneId: "scene-1" },
       characters: mockCharacters,
       scenes: mockScenes,
     });

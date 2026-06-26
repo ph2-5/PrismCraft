@@ -26,7 +26,7 @@ function resolveGenerationContext(ctx: BeatGenerationContext): ResolvedGeneratio
   const characterIds = beat.characterIds || [];
   const characterRefs = resolveCharacterRefs(characterIds, characters, beat, elements);
 
-  const sceneId = beat.sceneId || beat.scene;
+  const sceneId = beat.sceneId;
   const sceneObj = sceneId
     ? scenes.find((s) => s.id === sceneId)
     : undefined;

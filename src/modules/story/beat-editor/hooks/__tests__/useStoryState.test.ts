@@ -184,9 +184,7 @@ describe("useStoryState", () => {
       expect(beat.elementIds).toEqual([]);
       expect(beat.characterIds).toEqual([]);
       expect(beat.enhancedGeneration).toBe(true);
-      expect(beat.scene).toBeUndefined();
       expect(beat.sceneId).toBeUndefined();
-      expect(beat.generationPrompt).toBeUndefined();
       expect(beat.imageUrl).toBeUndefined();
       expect(beat.transition).toBeUndefined();
     });

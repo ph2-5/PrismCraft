@@ -81,12 +81,6 @@ describe("determineVideoGenerationMode", () => {
     const prevBeat = buildBeat({ id: "beat-0", shotType: "wide" } as Partial<StoryBeat>);
     expect(determineVideoGenerationMode(beat, prevBeat)).toBe("reference_video_continuation");
   });
-
-  it("handles prevBeat with scene field instead of sceneId", () => {
-    const beat = buildBeat({ sceneId: "scene-2" } as Partial<StoryBeat>);
-    const prevBeat = buildBeat({ id: "beat-0", scene: "scene-1" } as Partial<StoryBeat>);
-    expect(determineVideoGenerationMode(beat, prevBeat)).toBe("first_frame_anchor");
-  });
 });
 
 describe("buildStyleEnhancedPrompt", () => {

@@ -1078,13 +1078,6 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 export function Label(props: React.LabelHTMLAttributes<HTMLLabelElement>): JSX.Element;
 ```
 
-#### input-group.tsx
-
-```typescript
-// 输入框分组组件
-export function InputGroup(props: React.HTMLAttributes<HTMLDivElement>): JSX.Element;
-```
-
 #### button.tsx
 
 ```typescript
@@ -1153,7 +1146,7 @@ export function AlertTitle(props: React.HTMLAttributes<HTMLHeadingElement>): JSX
 export function AlertDescription(props: React.HTMLAttributes<HTMLParagraphElement>): JSX.Element;
 ```
 
-#### safe-image.tsx
+#### SafeImage.tsx （已迁移至 `shared/presentation/`）
 
 ```typescript
 interface SafeImageProps {
@@ -1171,41 +1164,6 @@ interface SafeImageProps {
 export function SafeImage(props: SafeImageProps): JSX.Element;
 ```
 
-#### feedback.tsx
-
-```typescript
-interface ErrorDisplayProps {
-  error?: string;
-  code?: ApiErrorCode;
-  suggestion?: string;
-  onRetry?: () => void;
-  className?: string;
-}
-
-interface LoadingStateProps {
-  message?: string;
-  className?: string;
-}
-
-interface EmptyStateProps {
-  icon?: React.ElementType;
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-  className?: string;
-}
-
-interface SuccessStateProps {
-  message: string;
-  className?: string;
-}
-
-export function ErrorDisplay(props: ErrorDisplayProps): JSX.Element;
-export function LoadingState(props: LoadingStateProps): JSX.Element;
-export function EmptyState(props: EmptyStateProps): JSX.Element;
-export function SuccessState(props: SuccessStateProps): JSX.Element;
-```
-
 #### empty-state.tsx
 
 ```typescript
@@ -1220,49 +1178,7 @@ interface EmptyStateProps {
 export function EmptyState(props: EmptyStateProps): JSX.Element;
 ```
 
-#### confirm-dialog.tsx
-
-```typescript
-interface ConfirmOptions {
-  title?: string;
-  description?: string;
-  confirmText?: string;
-  cancelText?: string;
-  variant?: "danger" | "warning" | "default";
-}
-
-/** 确认对话框 Hook */
-export function useConfirmDialog(): {
-  confirm: (options?: ConfirmOptions) => Promise<boolean>;
-  ConfirmDialogComponent: React.FC;
-};
-```
-
-#### status-badge.tsx
-
-```typescript
-interface StatusBadgeProps extends VariantProps<typeof statusBadgeVariants> {
-  children: React.ReactNode;
-  className?: string;
-}
-
-/** 状态徽章组件 */
-export function StatusBadge(props: StatusBadgeProps): JSX.Element;
-// variant: "default" | "success" | "warning" | "error" | "info" | "pending"
-```
-
-#### loading-state.tsx
-
-```typescript
-interface LoadingStateProps {
-  message?: string;
-  className?: string;
-}
-
-export function LoadingState(props: LoadingStateProps): JSX.Element;
-```
-
-#### app-card.tsx
+#### AppCard.tsx （已迁移至 `shared/presentation/`）
 
 ```typescript
 interface AppCardProps {

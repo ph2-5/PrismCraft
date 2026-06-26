@@ -81,7 +81,7 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
   }, [beat.elementIds]);
 
   const handleCopyPrompt = useCallback(() => {
-    const prompt = beat.videoGen?.prompt || beat.generationPrompt || "";
+    const prompt = beat.videoGen?.prompt || "";
     navigator.clipboard.writeText(prompt).then(() => {
       success(t("success.copied"), t("success.promptCopied"));
     }).catch((err) => {

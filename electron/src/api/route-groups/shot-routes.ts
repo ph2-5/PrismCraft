@@ -29,8 +29,11 @@ export const shotRoutes: Record<string, Route> = {
     schema: shotValidateReferenceSchema,
     handler: async (_m, b) => {
       const result = referenceEngine.validateReference(
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.shot as Shot,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.allShots as Shot[],
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.reference as Reference,
       );
       return { success: true, data: result };
@@ -41,8 +44,11 @@ export const shotRoutes: Record<string, Route> = {
     schema: shotGetReferenceVideoUrlSchema,
     handler: async (_m, b) => {
       const url = referenceEngine.getReferenceVideoUrl(
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.shot as Shot,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.allShots as Shot[],
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.reference as Reference,
       );
       return { success: true, data: { videoUrl: url } };
@@ -53,8 +59,11 @@ export const shotRoutes: Record<string, Route> = {
     schema: shotBuildReferenceDescriptionSchema,
     handler: async (_m, b) => {
       const desc = referenceEngine.buildReferenceDescription(
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.shot as Shot,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.allShots as Shot[],
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.reference as Reference,
       );
       return { success: true, data: { description: desc } };
@@ -75,6 +84,7 @@ export const shotRoutes: Record<string, Route> = {
   "validate/feature-anchoring": defineRoute({
     schema: validateFeatureAnchoringSchema,
     handler: async (_m, b) => {
+      // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
       const config = b.config as FeatureAnchoringConfig;
       const result = consistencyCheck.validateFeatureAnchoringConfig(config);
       return { success: true, data: result };
@@ -94,6 +104,7 @@ export const shotRoutes: Record<string, Route> = {
     handler: async (_m, b) => {
       const result = referenceCheck.checkCharacterReferences(
         b.characterId,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
         b.stories as RefStory[],
       );
       return { success: true, data: result };
@@ -103,7 +114,11 @@ export const shotRoutes: Record<string, Route> = {
   "reference/check-scene": defineRoute({
     schema: referenceCheckSceneSchema,
     handler: async (_m, b) => {
-      const result = referenceCheck.checkSceneReferences(b.sceneId, b.stories as RefStory[]);
+      const result = referenceCheck.checkSceneReferences(
+        b.sceneId,
+        // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
+        b.stories as RefStory[],
+      );
       return { success: true, data: result };
     },
     methods: ["POST"],
@@ -131,7 +146,9 @@ export const shotRoutes: Record<string, Route> = {
       const result = await visualConsistencyCheck.checkBeatElementConsistency(
         apiGatewayAdapter,
         {
+          // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
           beat: b.beat as VisualBeat,
+          // Schema uses z.unknown() for complex shared-logic types; as assertion bridges to strict function signature
           elements: b.elements as Element[],
           getGeneratedImageUrl: (elementId: string) =>
             (b.generatedImageMap || {})[elementId],

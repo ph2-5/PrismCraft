@@ -44,11 +44,9 @@ function parseBeatRow(b: Record<string, unknown>) {
       return [];
     })(),
     sceneId: parsed.scene_id,
-    scene: undefined,
     shotType: cameraContainer?.shotType && VALID_SHOT_TYPES.has(cameraContainer.shotType as string)
       ? cameraContainer.shotType
       : undefined,
-    generationPrompt: generationContainer?.generationPrompt,
     imageGenerationPrompt: generationContainer?.imageGenerationPrompt,
     firstFramePrompt: generationContainer?.firstFramePrompt,
     lastFramePrompt: generationContainer?.lastFramePrompt,

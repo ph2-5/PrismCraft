@@ -183,7 +183,6 @@ export function flattenBeat(beat: Record<string, unknown>, now: number) {
   const videoUrl = videoGen?.videoUrl || beat.videoUrl || beat.video_url || null;
   const videoTaskId = videoGen?.taskId || beat.videoTaskId || beat.video_task_id || null;
   const videoStatus = videoGen?.status || beat.videoStatus || beat.video_status || null;
-  const generationPrompt = beat.generationPrompt || beat.generation_prompt || null;
   const imageGenerationPrompt = beat.imageGenerationPrompt || beat.image_generation_prompt || null;
   const firstFramePromptGen = beat.firstFramePromptGen || beat.first_frame_prompt_gen || null;
   const lastFramePromptGen = beat.lastFramePromptGen || beat.last_frame_prompt_gen || null;
@@ -201,7 +200,6 @@ export function flattenBeat(beat: Record<string, unknown>, now: number) {
   if (videoUrl) generationContainer.videoUrl = videoUrl;
   if (videoTaskId) generationContainer.videoTaskId = videoTaskId;
   if (videoStatus) generationContainer.videoStatus = videoStatus;
-  if (generationPrompt) generationContainer.generationPrompt = generationPrompt;
   if (imageGenerationPrompt) generationContainer.imageGenerationPrompt = imageGenerationPrompt;
   if (firstFramePromptGen) generationContainer.firstFramePromptGen = firstFramePromptGen;
   if (lastFramePromptGen) generationContainer.lastFramePromptGen = lastFramePromptGen;
@@ -264,7 +262,7 @@ export function buildBeatInsert(
       Array.isArray(beat.characterIds)
         ? toSqlValue(beat.characterIds)
         : beat.character_ids || beat.character_ids_json || null,
-      beat.sceneId || beat.scene_id || beat.scene || null,
+      beat.sceneId || beat.scene_id || null,
       toSqlValue(flat.cameraContainer),
       toSqlValue(flat.generationContainer),
       flat.metaContainer ? toSqlValue(flat.metaContainer) : null,

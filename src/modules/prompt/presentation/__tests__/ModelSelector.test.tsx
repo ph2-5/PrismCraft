@@ -40,32 +40,6 @@ vi.mock("react-router-dom", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/select", () => ({
-  Select: ({ children, value, onValueChange }: { children: React.ReactNode; value: string; onValueChange: (value: string) => void }) => (
-    <select
-      value={value}
-      onChange={(e) => onValueChange(e.target.value)}
-      data-testid="select"
-    >
-      {children}
-    </select>
-  ),
-  SelectContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  SelectItem: ({ value, children }: { value: string; children: React.ReactNode }) => (
-    <option value={value}>{children}</option>
-  ),
-  SelectTrigger: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="select-trigger" className={className}>{children}</div>
-  ),
-  SelectValue: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
-
-vi.mock("@/shared/ui/badge", () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => (
-    <span data-testid="badge">{children}</span>
-  ),
-}));
-
 vi.mock("lucide-react", () => ({
   Bot: () => <span data-testid="icon-bot">Bot</span>,
   Image: () => <span data-testid="icon-image">Image</span>,
@@ -136,10 +110,10 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     expect(select).toBeInTheDocument();
 
     const options = select.querySelectorAll("option");
@@ -154,10 +128,10 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} capability="text" />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     const optionTexts = Array.from(select.querySelectorAll("option")).map((o) => o.textContent);
 
     expect(optionTexts.some((t) => t?.includes("GPT-4"))).toBe(true);
@@ -195,10 +169,10 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} onChange={onChange} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     await userEvent.selectOptions(select, "");
 
     expect(onChange).toHaveBeenCalledWith(null);
@@ -209,10 +183,10 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} capability="text" onChange={onChange} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     await userEvent.selectOptions(select, "openai/gpt-4");
 
     expect(onChange).toHaveBeenCalledWith({
@@ -236,10 +210,10 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} value={value} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select") as HTMLSelectElement;
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
     expect(select.value).toBe("openai/gpt-4");
   });
 
@@ -255,27 +229,27 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} capability="text" value={value} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("badge")).toBeInTheDocument();
+      expect(screen.getByText("GPT-4")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("badge")).toHaveTextContent("GPT-4");
+    expect(screen.getByText("GPT-4")).toHaveTextContent("GPT-4");
   });
 
   it("does not show Badge when value is null", async () => {
     render(<ModelSelector {...defaultProps} value={null} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    expect(screen.queryByTestId("badge")).not.toBeInTheDocument();
+    expect(screen.queryByText("GPT-4")).not.toBeInTheDocument();
   });
 
   it("re-fetches models when capability changes", async () => {
     const { rerender } = render(<ModelSelector {...defaultProps} capability="text" />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
     expect(mockLoadConfig).toHaveBeenCalledTimes(1);
@@ -286,7 +260,7 @@ describe("ModelSelector", () => {
       expect(mockLoadConfig).toHaveBeenCalledTimes(2);
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     const optionTexts = Array.from(select.querySelectorAll("option")).map((o) => o.textContent);
 
     expect(optionTexts.some((t) => t?.includes("DALL-E 3"))).toBe(true);
@@ -329,10 +303,10 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const trigger = screen.getByTestId("select-trigger");
+    const trigger = screen.getByRole("combobox");
     expect(trigger.className).toContain("w-[180px]");
   });
 
@@ -340,12 +314,12 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} compact={false} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
     expect(screen.getByText("文本模型:")).toBeInTheDocument();
 
-    const trigger = screen.getByTestId("select-trigger");
+    const trigger = screen.getByRole("combobox");
     expect(trigger.className).toContain("w-[240px]");
   });
 
@@ -354,10 +328,10 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} capability="image" onChange={onChange} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     await userEvent.selectOptions(select, "openai/dall-e-3");
 
     expect(onChange).toHaveBeenCalledWith(
@@ -372,10 +346,10 @@ describe("ModelSelector", () => {
     render(<ModelSelector {...defaultProps} capability="vision" onChange={onChange} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     await userEvent.selectOptions(select, "zhipu/glm-4v");
 
     expect(onChange).toHaveBeenCalledWith({

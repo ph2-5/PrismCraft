@@ -9,6 +9,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -23,6 +25,11 @@
     "paths": {
       "@shared/*": ["./src/shared/*"],
       "@domain/*": ["./src/domain/*"]
+      // 注意：@shared-logic/* 未通过 tsconfig paths 配置，因为 "../src/shared-logic/*"
+      // 在 rootDir "./src" 之外，会触发 TS6059 错误。
+      // 类型解析依赖 scripts/setup-shared-logic-symlink.mjs 创建的
+      // node_modules/@shared-logic junction（指向 src/shared-logic）。
+      // 运行时解析依赖 electron/src/shared-logic-resolve.ts 的 Module._resolveFilename hack。
     }
   },
   "include": ["src/**/*"],

@@ -1,6 +1,5 @@
 import { Image as ImageIcon, Upload, RefreshCw, Loader2 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { AppCard } from "@/shared/ui/app-card";
+import { AppCard } from "@/shared/presentation/AppCard";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants/messages";
 import { PromptEditor } from "../../prompt-editor";
@@ -60,9 +59,9 @@ export function KeyframeStepContent({
     <AppCard
       className={`transition-all ${
         status === "generating"
-          ? "border-blue-500/50 shadow-lg shadow-blue-500/10"
+          ? "border-primary/50 shadow-lg shadow-primary/10"
           : status === "completed"
-            ? "border-emerald-500/30"
+            ? "border-success/30"
             : ""
       }`}
     >
@@ -71,11 +70,12 @@ export function KeyframeStepContent({
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
               status === "completed"
-                ? "bg-emerald-500/20 text-emerald-400"
+                ? "bg-success/20 text-success"
                 : status === "generating"
-                  ? "bg-blue-500/20 text-blue-400"
-                  : "bg-slate-700/50 text-slate-400"
+                  ? "bg-primary/20"
+                  : "bg-muted text-muted-foreground"
             }`}
+            style={status === "generating" ? { color: "var(--primary)" } : undefined}
           >
             {status === "generating" ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -85,19 +85,19 @@ export function KeyframeStepContent({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white">
+              <span className="text-sm font-medium text-foreground">
                 {t("keyframe.stepKeyframe")}
               </span>
               {status === "completed" && (
-                <span className="text-xs text-emerald-400">✓</span>
+                <span className="text-xs text-success">✓</span>
               )}
               {status === "generating" && (
-                <span className="text-xs text-blue-400 animate-pulse">
+                <span className="text-xs animate-pulse" style={{ color: "var(--primary)" }}>
                   {t("keyframe.generating")}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {t("keyframe.keyframeDesc")}
             </p>
           </div>
@@ -109,30 +109,28 @@ export function KeyframeStepContent({
               className="hidden"
               onChange={(e) => onFileSelect(e, onUploadKeyframe)}
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="bg-slate-700 hover:bg-slate-600"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
               onClick={() => keyframeInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1" />
               {t("common.upload")}
-            </Button>
+            </button>
             {hasKeyframe ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-slate-700 hover:bg-slate-600"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
                 onClick={onRegenerateKeyframe}
                 disabled={isGenerating}
               >
                 <RefreshCw className="w-4 h-4 mr-1" />
                 {t("common.regenerate")}
-              </Button>
+              </button>
             ) : (
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+              <button
+                type="button"
+                className="btn btn-primary btn-sm bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                 onClick={() => onPreEditGenerate("keyframe")}
                 disabled={isGenerating}
               >
@@ -142,7 +140,7 @@ export function KeyframeStepContent({
                   <ImageIcon className="w-4 h-4 mr-1" />
                 )}
                 {t("keyframe.generateKeyframe")}
-              </Button>
+              </button>
             )}
           </div>
         </div>
@@ -158,7 +156,7 @@ export function KeyframeStepContent({
                   ) || ""
                 }
                 alt={t("keyframe.stepKeyframe")}
-                className="w-full max-h-64 object-contain rounded-lg border border-slate-700"
+                className="w-full max-h-64 object-contain rounded-lg border border-border"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
             </div>

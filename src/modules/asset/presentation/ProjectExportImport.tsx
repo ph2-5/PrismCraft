@@ -1,15 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
-import { Progress } from "@/shared/ui/progress";
-import { Switch } from "@/shared/ui/switch";
-import { Label } from "@/shared/ui/label";
 import { useProjectExport, type ProjectData } from "@/modules/asset";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { Download, Upload, Package, FileArchive, AlertCircle, CheckCircle } from "lucide-react";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface ProjectExportImportProps {
   onImport?: (data: ProjectData) => void;
@@ -94,127 +89,158 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="w-5 h-5" />
+      <div className="card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 14 }}>
+            <Package size={18} />
             {t("asset.projectPackTitle")}
-          </CardTitle>
-          <CardDescription>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 4 }}>
             {t("asset.projectPackDesc")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* 导出选项 */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="space-y-0.5">
-              <Label>{t("asset.includeAssets")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("asset.includeAssetsDesc")}
-              </p>
-            </div>
-            <Switch
-              checked={includeAssets}
-              onCheckedChange={setIncludeAssets}
-            />
+          </p>
+        </div>
+
+        {/* 导出选项 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: 16,
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+          }}
+        >
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 500 }}>{t("asset.includeAssets")}</label>
+            <p style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 2 }}>
+              {t("asset.includeAssetsDesc")}
+            </p>
           </div>
-
-          {/* 导出进度 */}
-          {isExporting && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>{t("asset.exportingProgress")}</span>
-                <span>{progress}%</span>
-              </div>
-              <Progress value={progress} />
-            </div>
-          )}
-
-          {/* 操作按钮 */}
-          <div className="flex gap-2">
-            <Button
-              onClick={handleExport}
-              disabled={isExporting}
-              className="flex-1"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              {isExporting ? t("common.exporting") : t("asset.exportProject")}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isImporting}
-              className="flex-1"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              {isImporting ? t("asset.readingFile") : t("asset.importProject")}
-            </Button>
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".zip"
-            onChange={handleFileSelect}
-            className="hidden"
+          <button
+            type="button"
+            className={`toggle ${includeAssets ? "on" : ""}`}
+            onClick={() => setIncludeAssets(!includeAssets)}
+            aria-label={t("asset.includeAssets")}
           />
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* 导出进度 */}
+        {isExporting && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+              <span>{t("asset.exportingProgress")}</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        )}
+
+        {/* 操作按钮 */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleExport}
+            disabled={isExporting}
+            style={{ flex: 1 }}
+          >
+            <Download size={14} style={{ marginRight: 4 }} />
+            {isExporting ? t("common.exporting") : t("asset.exportProject")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            style={{ flex: 1 }}
+          >
+            <Upload size={14} style={{ marginRight: 4 }} />
+            {isImporting ? t("asset.readingFile") : t("asset.importProject")}
+          </button>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip"
+          onChange={handleFileSelect}
+          style={{ display: "none" }}
+        />
+      </div>
 
       {/* 导入预览对话框 */}
-      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileArchive className="w-5 h-5" />
-              {t("asset.confirmImportProject")}
-            </DialogTitle>
-            <DialogDescription>
-              {t("asset.confirmImportDesc")}
-            </DialogDescription>
-          </DialogHeader>
+      <Modal
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        ariaLabel={t("asset.confirmImportProject")}
+        style={{ minWidth: 420 }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+          <FileArchive size={18} />
+          {t("asset.confirmImportProject")}
+        </div>
+        <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 16 }}>
+          {t("asset.confirmImportDesc")}
+        </p>
 
-          {importPreview && (
-            <div className="space-y-4 py-4">
-              <div className="p-4 bg-muted rounded-lg space-y-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">{t("asset.characterCount", { count: importPreview.characters.length })}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">{t("asset.sceneCount", { count: importPreview.scenes.length })}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">{t("asset.storyCount", { count: importPreview.stories.length })}</span>
-                </div>
-                {importPreview.exportedAt && (
-                  <div className="text-xs text-muted-foreground pt-2">
-                    {t("asset.exportTime", { time: new Date(importPreview.exportedAt).toLocaleString() })}
-                  </div>
-                )}
+        {importPreview && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "16px 0" }}>
+            <div
+              style={{
+                padding: 16,
+                background: "rgba(var(--primary-rgb, 99, 102, 241), 0.1)",
+                borderRadius: 8,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={14} style={{ color: "var(--success)" }} />
+                <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.characterCount", { count: importPreview.characters.length })}</span>
               </div>
-
-              <div className="flex items-start gap-2 text-sm text-yellow-600">
-                <AlertCircle className="w-4 h-4 mt-0.5" />
-                <p>
-                  {t("asset.importMergeWarning")}
-                </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={14} style={{ color: "var(--success)" }} />
+                <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.sceneCount", { count: importPreview.scenes.length })}</span>
               </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={14} style={{ color: "var(--success)" }} />
+                <span style={{ fontWeight: 500, fontSize: 13 }}>{t("asset.storyCount", { count: importPreview.stories.length })}</span>
+              </div>
+              {importPreview.exportedAt && (
+                <div style={{ fontSize: 11, color: "var(--muted-fg)", paddingTop: 8 }}>
+                  {t("asset.exportTime", { time: new Date(importPreview.exportedAt).toLocaleString() })}
+                </div>
+              )}
             </div>
-          )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button onClick={handleConfirmImport}>
-              {t("asset.confirmImport")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--warning)" }}>
+              <AlertCircle size={14} style={{ marginTop: 2 }} />
+              <p>{t("asset.importMergeWarning")}</p>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => setImportDialogOpen(false)}
+          >
+            {t("common.cancel")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleConfirmImport}
+          >
+            {t("asset.confirmImport")}
+          </button>
+        </div>
+      </Modal>
     </>
   );
 }

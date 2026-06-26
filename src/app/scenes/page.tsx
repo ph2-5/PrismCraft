@@ -1,48 +1,19 @@
-import { useState, useRef, useCallback, useEffect, Suspense } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { useDirtyState } from "@/shared/hooks/use-dirty-state";
-import {
-  useScenes,
-} from "@/modules/scene";
-import {
-  useStories,
-  storyService,
-} from "@/modules/story";
-import {
-  useMediaAssets,
-  useCreateMediaAsset,
-} from "@/modules/asset";
-import { sceneService } from "@/modules/scene";
-import { errorLogger } from "@/shared/error-logger";
-import { mapUserFacingError } from "@/shared/utils/user-facing-error";
-import { resolveImageUrl } from "@/shared/utils/image-url";
+import { Suspense } from "react";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
-import { Button } from "@/shared/ui/button";
-import { Label } from "@/shared/ui/label";
-import { Textarea } from "@/shared/ui/textarea";
-import type { Scene } from "@/domain/schemas";
-import {
-  Save,
-  X,
-  Loader2,
-  Sparkles,
-} from "lucide-react";
-import { useToastHelpers } from "@/shared/presentation/Toast";
+import { SaveStatusIndicator } from "@/shared/presentation/SaveStatusIndicator";
+import { Wand2, Upload, ScanLine, Save, Loader2, Folder, Sparkles, X, Trash2 } from "lucide-react";
 import { t } from "@/shared/constants/messages";
-import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
 import { MediaExporter } from "@/modules/asset";
-import { SceneEditorTabs } from "./components/SceneEditorTabs";
-import { ImageActionToolbar } from "./components/ImageActionToolbar";
+import { ModelSelector } from "@/modules/prompt";
 import { SceneList } from "./components/SceneList";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
+import { useScenesPage } from "./hooks/useScenesPage";
 import {
-  defaultScene,
-  useSceneImage,
-  useSceneCRUD,
+  typeSuggestions,
+  timeSuggestions,
+  weatherSuggestions,
 } from "@/modules/scene";
-import { confirm } from "@/shared/utils/confirm";
 
 export default function ScenesPage() {
   return (
@@ -53,56 +24,18 @@ export default function ScenesPage() {
 }
 
 function ScenesPageContent() {
-  const { markDirty, markClean, isDirty } = useDirtyState();
-  const queryClient = useQueryClient();
-  const createMediaAssetMutation = useCreateMediaAsset();
-  const [searchParams] = useSearchParams();
-  const highlightId = searchParams.get("highlight");
-
-  const { data: scenes = [], isLoading: scenesLoading } = useScenes();
-  const { data: stories = [] } = useStories();
-  const { data: assets = [], isLoading: _assetsLoading } = useMediaAssets();
-  const [showAssetSelector, setShowAssetSelector] = useState(false);
-  const [currentScene, setCurrentSceneRaw] = useState<Scene>(defaultScene);
-  const currentSceneRef = useRef(currentScene);
-
-  useEffect(() => { currentSceneRef.current = currentScene; }, [currentScene]);
-  const setCurrentScene = useCallback(
-    (update: Scene | ((prev: Scene) => Scene), shouldMarkDirty = false) => {
-      setCurrentSceneRaw(update);
-      if (shouldMarkDirty) markDirty("scenes");
-    },
-    [markDirty],
-  );
-  const [customElement, setCustomElement] = useState("");
-  const [customColor, setCustomColor] = useState("");
-  const { success, error: showError } = useToastHelpers();
-
-  const addAssetToLibrary = async (
-    url: string,
-    type: "image" | "video",
-    name: string,
-    boundTo?: { type: "character" | "scene"; id: string; name: string },
-  ) => {
-    await createMediaAssetMutation.mutateAsync({
-      name,
-      type,
-      url,
-      description: "",
-      tags: [],
-      boundTo,
-    });
-  };
-
   const {
-    isGenerating,
+    scenesLoading,
+    assets,
+    currentScene,
+    setCurrentScene,
+    customElement,
+    setCustomElement,
     generatedImage,
-    setGeneratedImage,
+    isGenerating,
     isUploading,
     isAnalyzing,
     isOptimizingPrompt,
-    imageSize,
-    setImageSize,
     fileInputRef,
     analyzeFileInputRef,
     selectedImageModel,
@@ -114,16 +47,6 @@ function ScenesPageContent() {
     handleFileUpload,
     handleAnalyzeFileUpload,
     clearImage,
-  } = useSceneImage({
-    currentScene,
-    currentSceneRef,
-    setCurrentScene,
-    addAssetToLibrary,
-    success,
-    showError,
-  });
-
-  const {
     deleteDialogOpen,
     setDeleteDialogOpen,
     sceneToDelete,
@@ -136,242 +59,569 @@ function ScenesPageContent() {
     isDeleting,
     addItem,
     removeItem,
-  } = useSceneCRUD({
-    currentScene,
-    setCurrentScene,
-    generatedImage,
-    setCustomElement,
-    setCustomColor,
-    setGeneratedImage,
-    addAssetToLibrary,
-    generatePrompt,
-    success,
-    showError,
-    stories,
-    markDirty,
-    markClean,
-    onUpdateStoriesAfterDelete: async (sceneId, storiesList) => {
-      const updatedStories = storiesList.map((story) => {
-        const updatedBeats = (story.beats || []).map((beat) => {
-          const updated = { ...beat };
-          if (updated.sceneId === sceneId) delete updated.sceneId;
-          return updated;
-        });
-        const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
-        return { ...story, scenes: updatedScenes, beats: updatedBeats };
-      });
-      const failedStories: string[] = [];
-      const affectedStories = updatedStories.filter((updatedStory) => {
-        const original = storiesList.find((s) => s.id === updatedStory.id);
-        return original?.beats?.some((b) => b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
-      });
-      const results = await Promise.allSettled(
-        affectedStories.map((updatedStory) =>
-          storyService.update(updatedStory.id, updatedStory),
-        ),
-      );
-      results.forEach((result, i) => {
-        if (result.status === "rejected") {
-          errorLogger.warn("[Scenes] 更新关联故事异常", result.reason);
-          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
-        } else if (!result.value.ok) {
-          errorLogger.warn("[Scenes] 更新关联故事失败", { storyId: affectedStories[i]!.id, error: result.value.error });
-          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
-        }
-      });
-      if (failedStories.length > 0) {
-        showError(t("story.partialUpdateFailed"), t("story.partialUpdateFailedDetail", { items: failedStories.join("、") }));
-      }
-    },
-  });
-
-  const handleSaveRef = useRef(handleSave);
-  useEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
-
-  const handleSelectScene = useCallback(
-    async (scene: Scene) => {
-      if (currentScene.id && currentScene.id !== scene.id && isDirty("scenes")) {
-        if (
-          !(await confirm(
-            t("scene.unsavedChangesDesc"),
-            t("scene.unsavedChanges"),
-          ))
-        )
-          return;
-      }
-      setCurrentScene(scene);
-      setGeneratedImage(resolveImageUrl(scene.scenePath || scene.generatedImage) || null);
-    },
-    [currentScene.id, isDirty, setCurrentScene, setGeneratedImage],
-  );
-
-  const handleNewScene = useCallback(async () => {
-    if (currentScene.id && isDirty("scenes")) {
-      if (
-        !(await confirm(
-          t("scene.unsavedChangesDesc"),
-          t("scene.unsavedChanges"),
-        ))
-      )
-        return;
-    }
-    setCurrentScene(defaultScene);
-    setCustomElement("");
-    setCustomColor("");
-  }, [currentScene.id, isDirty, setCurrentScene]);
-
-  useGlobalKeyboardActions({
-    onSave: () => handleSaveRef.current(),
-  });
-
-  useEffect(() => {
-    if (!highlightId || scenes.length === 0) return;
-    const found = scenes.find((s) => s.id === highlightId);
-    if (found) {
-      setCurrentSceneRaw(found);
-      setGeneratedImage(found.generatedImage || found.scenePath || null);
-    }
-  }, [highlightId, scenes, setGeneratedImage]);
+    handleSelectScene,
+    handleNewScene,
+    handleAssetSelect,
+    showAssetSelector,
+    setShowAssetSelector,
+    isDirty,
+    searchQuery,
+    setSearchQuery,
+    showElementInput,
+    setShowElementInput,
+    filteredScenes,
+    referencedBeats,
+    avatarImage,
+  } = useScenesPage();
 
   return (
     <PageErrorBoundary pageName={t("scene.pageName")}>
-      <div className="h-full flex gap-3">
-        <SceneList
-          scenes={scenes}
-          scenesLoading={scenesLoading}
-          currentSceneId={currentScene.id}
-          isDirty={isDirty("scenes")}
-          onSelectScene={handleSelectScene}
-          onDeleteScene={handleDelete}
-          onNewScene={handleNewScene}
-        />
+      <div
+        className="fade-in"
+        style={{ display: "flex", flexDirection: "column", height: "100%" }}
+      >
+        {/* Top Tabs Header */}
+        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>🏙 {t("scene.title")}</span>
+          <div className="toolbar">
+            <input
+              className="input"
+              placeholder={t("scene.searchPlaceholder")}
+              style={{ fontSize: 12, padding: "6px 10px", width: 180 }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleNewScene}
+            >
+              + {t("scene.createNewScene")}
+            </button>
+          </div>
+        </div>
 
-        <div className="flex-1 min-w-0 border border-border rounded-lg bg-card overflow-hidden">
-          <div className="h-full overflow-y-auto">
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold">
-                {currentScene.id ? t("scene.editScene") : t("scene.createNewScene")}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {t("scene.allFieldsOptional")}
-              </p>
-            </div>
-            <div className="p-4">
-              <SceneEditorTabs
-                currentScene={currentScene}
-                setCurrentScene={setCurrentScene}
-                customElement={customElement}
-                setCustomElement={setCustomElement}
-                customColor={customColor}
-                setCustomColor={setCustomColor}
-                addItem={addItem}
-                removeItem={removeItem}
-              />
+        {/* Main Content - Left/Right Split */}
+        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          {/* Left: Scene List */}
+          <SceneList
+            scenes={filteredScenes}
+            scenesLoading={scenesLoading}
+            currentSceneId={currentScene.id}
+            isDirty={isDirty}
+            onSelectScene={handleSelectScene}
+            onDeleteScene={handleDelete}
+            onNewScene={handleNewScene}
+          />
 
-              <div className="mt-6 p-4 rounded-lg bg-slate-900/50 border border-blue-800/30 space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-blue-200">
-                    {t("scene.imageGenerationPrompt")}
-                  </Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 border-blue-700 bg-blue-900/20 hover:bg-blue-900/40 text-blue-200"
-                    onClick={optimizePrompt}
-                    disabled={isOptimizingPrompt}
-                  >
-                    {isOptimizingPrompt ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    {isOptimizingPrompt ? t("scene.optimizing") : t("scene.aiOptimize")}
-                  </Button>
-                </div>
-                <Textarea
-                  value={
-                    currentScene.imageGenerationPrompt ||
-                    generatePrompt(currentScene)
-                  }
+          {/* Right: Detail Editor */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflowY: "auto",
+              padding: 16,
+              gap: 12,
+              minWidth: 0,
+            }}
+          >
+            {/* Header: avatar + name + badges + 换封面 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                className="element-avatar scene"
+                style={{
+                  width: 64,
+                  height: 64,
+                  fontSize: 28,
+                  borderRadius: 14,
+                  backgroundImage: avatarImage ? `url(${avatarImage})` : undefined,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              >
+                {!avatarImage && "🏙"}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <input
+                  className="input"
+                  data-testid="scene-name-input"
+                  style={{ fontSize: 16, fontWeight: 700, padding: "6px 10px" }}
+                  value={currentScene.name}
+                  placeholder={t("scene.namePlaceholder")}
                   onChange={(e) =>
-                    setCurrentScene((prev) => ({
-                      ...prev,
-                      imageGenerationPrompt: e.target.value,
-                    }), true)
+                    setCurrentScene(
+                      (prev) => ({ ...prev, name: e.target.value }),
+                      true,
+                    )
                   }
-                  placeholder={t("scene.promptPlaceholder")}
-                  rows={6}
-                  className="bg-slate-800/50 border-blue-700/50 text-blue-100 placeholder:text-blue-400/60 focus-visible:ring-blue-500 resize-none"
                 />
-                {!currentScene.imageGenerationPrompt && (
-                  <p className="text-xs text-blue-400/60">
-                    {t("scene.promptAutoFillHint")}
-                  </p>
+                <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                  <span className="badge badge-info">
+                    {currentScene.type || t("scene.label")}
+                  </span>
+                  <span className="badge" style={{ fontSize: 9 }}>
+                    {t("scene.referencedBy", { count: referencedBeats.length })}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => setShowAssetSelector(true)}
+              >
+                🔄 {t("scene.changeCover")}
+              </button>
+            </div>
+
+            {/* 基本信息 card */}
+            <div className="card" style={{ padding: 14 }}>
+              <div className="section-label" style={{ marginBottom: 10 }}>
+                {t("scene.basicInfo")}
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: 8,
+                }}
+              >
+                <div>
+                  <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+                    {t("scene.timeLabel")}
+                  </label>
+                  <select
+                    className="select"
+                    style={{ fontSize: 12, width: "100%" }}
+                    value={currentScene.timeOfDay}
+                    onChange={(e) =>
+                      setCurrentScene(
+                        (prev) => ({ ...prev, timeOfDay: e.target.value }),
+                        true,
+                      )
+                    }
+                  >
+                    <option value="">{t("scene.timeOfDayPlaceholder")}</option>
+                    {timeSuggestions.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {t(s.labelKey)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+                    {t("scene.weatherLabel")}
+                  </label>
+                  <select
+                    className="select"
+                    style={{ fontSize: 12, width: "100%" }}
+                    value={currentScene.weather}
+                    onChange={(e) =>
+                      setCurrentScene(
+                        (prev) => ({ ...prev, weather: e.target.value }),
+                        true,
+                      )
+                    }
+                  >
+                    <option value="">{t("scene.weatherPlaceholder")}</option>
+                    {weatherSuggestions.map((w) => (
+                      <option key={w.value} value={w.value}>
+                        {t(w.labelKey)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+                    {t("scene.sceneType")}
+                  </label>
+                  <select
+                    className="select"
+                    style={{ fontSize: 12, width: "100%" }}
+                    value={currentScene.type}
+                    onChange={(e) =>
+                      setCurrentScene(
+                        (prev) => ({ ...prev, type: e.target.value }),
+                        true,
+                      )
+                    }
+                  >
+                    <option value="">{t("scene.typePlaceholder")}</option>
+                    {typeSuggestions.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {t(s.labelKey)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 氛围描述 card */}
+            <div className="card" style={{ padding: 14 }}>
+              <div className="section-label" style={{ marginBottom: 8 }}>
+                {t("scene.atmosphereDesc")}
+              </div>
+              <textarea
+                className="textarea"
+                rows={3}
+                style={{ fontSize: 12 }}
+                value={currentScene.description}
+                placeholder={t("scene.descriptionPlaceholder")}
+                onChange={(e) =>
+                  setCurrentScene(
+                    (prev) => ({ ...prev, description: e.target.value }),
+                    true,
+                  )
+                }
+              />
+            </div>
+
+            {/* 空间描述 card */}
+            <div className="card" style={{ padding: 14 }}>
+              <div className="section-label" style={{ marginBottom: 8 }}>
+                {t("scene.spaceDesc")}
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 8,
+                }}
+              >
+                <div>
+                  <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+                    {t("scene.lighting")}
+                  </label>
+                  <input
+                    className="input"
+                    style={{ fontSize: 12, padding: 6 }}
+                    value={currentScene.lighting}
+                    placeholder={t("scene.lightingPlaceholder")}
+                    onChange={(e) =>
+                      setCurrentScene(
+                        (prev) => ({ ...prev, lighting: e.target.value }),
+                        true,
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+                    {t("scene.colorTone")}
+                  </label>
+                  <input
+                    className="input"
+                    style={{ fontSize: 12, padding: 6 }}
+                    value={currentScene.mood}
+                    placeholder={t("scene.colorTonePlaceholder")}
+                    onChange={(e) =>
+                      setCurrentScene(
+                        (prev) => ({ ...prev, mood: e.target.value }),
+                        true,
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 场景元素 card */}
+            <div className="card" style={{ padding: 14 }}>
+              <div className="section-label" style={{ marginBottom: 8 }}>
+                {t("scene.elements")}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {currentScene.elements.map((element) => (
+                  <span
+                    key={element}
+                    className="badge"
+                    style={{ fontSize: 10, cursor: "pointer" }}
+                    onClick={() => removeItem("elements", element)}
+                    title={t("common.delete")}
+                  >
+                    {element} ✕
+                  </span>
+                ))}
+                {showElementInput ? (
+                  <input
+                    className="input"
+                    style={{ fontSize: 10, width: 120, padding: "2px 6px" }}
+                    value={customElement}
+                    autoFocus
+                    onChange={(e) => setCustomElement(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addItem("elements", customElement);
+                        setShowElementInput(false);
+                      } else if (e.key === "Escape") {
+                        setShowElementInput(false);
+                      }
+                    }}
+                    onBlur={() => setShowElementInput(false)}
+                    placeholder={t("scene.addElementPlaceholder")}
+                  />
+                ) : (
+                  <span
+                    className="badge badge-info"
+                    style={{
+                      fontSize: 10,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setShowElementInput(true)}
+                  >
+                    {t("scene.addElement")}
+                  </span>
                 )}
               </div>
+            </div>
 
+            {/* 引用此场景的分镜 card */}
+            <div className="card" style={{ padding: 14 }}>
+              <div className="section-label" style={{ marginBottom: 8 }}>
+                📖 {t("scene.referencedShots")}
+              </div>
+              {referencedBeats.length === 0 ? (
+                <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+                  {t("scene.noReferences")}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                  }}
+                >
+                  {referencedBeats.map((beat) => {
+                    const isCompleted =
+                      beat.generationStatus === "completed" ||
+                      Boolean(beat.imageUrl);
+                    return (
+                      <div
+                        key={`${beat.storyId}-${beat.sequence}`}
+                        className="element-card"
+                        style={{
+                          alignItems: "center",
+                          padding: 8,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <span style={{ fontSize: 18 }}>🎬</span>
+                        <span style={{ fontSize: 12, fontWeight: 500 }}>
+                          {t("scene.shotNumber", { n: beat.sequence })}
+                          {beat.title ? ` · ${beat.title}` : ""}
+                        </span>
+                        <span
+                          className={
+                            isCompleted ? "badge badge-success" : "badge badge-info"
+                          }
+                          style={{ fontSize: 9, marginLeft: "auto" }}
+                        >
+                          {isCompleted ? "✓" : "⏳"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 图片生成区 */}
+            <div className="card" style={{ padding: 14 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                }}
+              >
+                <div className="section-label">
+                  {t("scene.imageGenerationPrompt")}
+                </div>
+                <button
+                  type="button"
+                  className={`btn ${isOptimizingPrompt ? "btn-primary" : "btn-outline"} btn-sm`}
+                  onClick={optimizePrompt}
+                  disabled={isOptimizingPrompt}
+                  style={{ gap: 4 }}
+                >
+                  {isOptimizingPrompt ? (
+                    <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+                  ) : (
+                    <Sparkles style={{ width: 14, height: 14 }} />
+                  )}
+                  {isOptimizingPrompt ? t("scene.optimizing") : t("scene.aiOptimize")}
+                </button>
+              </div>
+              <div
+                className="card2"
+                style={{
+                  padding: 10,
+                  fontSize: 12,
+                  lineHeight: 1.7,
+                  marginBottom: 8,
+                  maxHeight: 100,
+                  overflowY: "auto",
+                }}
+              >
+                {generatePrompt(currentScene)}
+              </div>
               {(generatedImage ||
                 currentScene.scenePath ||
                 currentScene.generatedImage) && (
-                <div className="mt-6 p-4 rounded-lg bg-slate-900/50 border border-cyan-800/30 space-y-3">
-                  <Label className="text-sm font-medium text-cyan-200">
-                    {t("scene.sceneImage")}
-                  </Label>
-                  <div className="relative aspect-video max-w-lg mx-auto rounded-lg overflow-hidden border border-cyan-700/50 shadow-lg shadow-cyan-500/20">
-                    <img
-                      src={resolveImageUrl(
-                        generatedImage ||
-                          currentScene.scenePath ||
-                          currentScene.generatedImage,
-                      )}
-                      alt={t("scene.sceneImage")}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-2"
-                      onClick={saveImageToScene}
-                      disabled={!currentScene.id}
-                    >
-                      <Save className="w-4 h-4" />
-                      {t("scene.saveToScene")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={clearImage}
-                    >
-                      <X className="w-4 h-4" />
-                      {t("scene.clear")}
-                    </Button>
-                  </div>
+                <div
+                  style={{
+                    width: "100%",
+                    aspectRatio: "1 / 1",
+                    maxWidth: 200,
+                    margin: "0 auto 8px",
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <img
+                    src={avatarImage}
+                    alt={t("scene.sceneImage")}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
                 </div>
               )}
-
-              <ImageActionToolbar
-                isDirty={isDirty("scenes")}
-                saveStatus={saveStatus}
-                saveError={saveError}
-                handleSave={handleSave}
-                isGenerating={isGenerating}
-                imageSize={imageSize}
-                setImageSize={setImageSize}
-                generateImage={generateImage}
-                selectedImageModel={selectedImageModel}
-                setSelectedImageModel={setSelectedImageModel}
-                isUploading={isUploading}
-                fileInputRef={fileInputRef}
-                handleFileUpload={handleFileUpload}
-                isAnalyzing={isAnalyzing}
-                analyzeFileInputRef={analyzeFileInputRef}
-                handleAnalyzeFileUpload={handleAnalyzeFileUpload}
-                onShowAssetSelector={() => setShowAssetSelector(true)}
-                entityType="scene"
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={generateImage}
+                  disabled={isGenerating}
+                  style={{ gap: 4 }}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+                  ) : (
+                    <Wand2 style={{ width: 14, height: 14 }} />
+                  )}
+                  {isGenerating ? t("scene.generating") : t("scene.generateImage")}
+                </button>
+                <ModelSelector
+                  capability="image"
+                  value={selectedImageModel}
+                  onChange={setSelectedImageModel}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={saveImageToScene}
+                  disabled={!currentScene.id}
+                  style={{ gap: 4 }}
+                >
+                  <Save style={{ width: 14, height: 14 }} />
+                  {t("scene.saveToScene")}
+                </button>
+                {generatedImage && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={clearImage}
+                    style={{ gap: 4 }}
+                  >
+                    <X style={{ width: 14, height: 14 }} />
+                    {t("scene.clear")}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  style={{ gap: 4 }}
+                >
+                  {isUploading ? (
+                    <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+                  ) : (
+                    <Upload style={{ width: 14, height: 14 }} />
+                  )}
+                  {isUploading ? t("scene.uploading") : t("scene.uploadImage")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setShowAssetSelector(true)}
+                  style={{ gap: 4 }}
+                >
+                  <Folder style={{ width: 14, height: 14 }} />
+                  {t("scene.selectFromLibrary")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => analyzeFileInputRef.current?.click()}
+                  disabled={isAnalyzing || isUploading}
+                  style={{ gap: 4 }}
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+                  ) : (
+                    <ScanLine style={{ width: 14, height: 14 }} />
+                  )}
+                  {isAnalyzing ? t("scene.analyzing") : t("scene.analyzeScene")}
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileUpload}
               />
+              <input
+                ref={analyzeFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAnalyzeFileUpload}
+              />
+            </div>
+
+            {/* Bottom action bar */}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                justifyContent: "flex-end",
+                alignItems: "center",
+              }}
+            >
+              <SaveStatusIndicator
+                status={isDirty ? "unsaved" : saveStatus}
+                errorMessage={saveError}
+              />
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={() =>
+                  handleDelete(currentScene.id, currentScene.name)
+                }
+                disabled={!currentScene.id}
+              >
+                <Trash2 className="w-4 h-4" /> {t("scene.deleteScene")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleSave}
+                disabled={saveStatus === "saving" || !currentScene.name.trim()}
+              >
+                {saveStatus === "saving" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {saveStatus === "saving" ? t("scene.saving") : t("common.save")}
+              </button>
             </div>
           </div>
         </div>
@@ -393,24 +643,7 @@ function ScenesPageContent() {
         onOpenChange={setShowAssetSelector}
         assets={assets}
         description={t("scene.selectImage")}
-        onSelect={async (asset) => {
-          setGeneratedImage(asset.url);
-          if (currentScene.id) {
-            try {
-              const result = await sceneService.update(currentScene.id, {
-                ...currentScene,
-                scenePath: asset.url,
-                generatedImage: asset.url,
-              });
-              if (!result.ok) throw result.error;
-              queryClient.invalidateQueries({ queryKey: ["scenes"] });
-            } catch (err) {
-              showError(t("error.saveFailed"), mapUserFacingError(err));
-            }
-          }
-          setShowAssetSelector(false);
-          success(t("success.applied"), t("success.imageSelectedFromLibrary"));
-        }}
+        onSelect={handleAssetSelect}
       />
     </PageErrorBoundary>
   );

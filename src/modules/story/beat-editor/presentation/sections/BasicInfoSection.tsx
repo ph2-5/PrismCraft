@@ -1,14 +1,4 @@
 import { Settings, Film } from "lucide-react";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { Textarea } from "@/shared/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import type { StoryBeat, Scene } from "@/domain/schemas";
 import { t } from "@/shared/constants";
 
@@ -39,57 +29,46 @@ export function BasicInfoSection({
         </div>
         <div className="space-y-4">
           <div>
-            <Label className="text-foreground mb-2 block">
+            <label className="text-foreground mb-2 block">
               {t("beat.beatTitle")}
-            </Label>
-            <Input
+            </label>
+            <input
+              className="input bg-muted/50 border-border"
               data-testid="beat-title-input"
               value={beat.title || ""}
               onChange={(e) =>
                 onUpdateField("title", e.target.value)
               }
               placeholder={t("beat.beatTitlePlaceholder")}
-              className="bg-muted/50 border-border"
             />
           </div>
           <div>
-            <Label className="text-foreground mb-2 block">
+            <label className="text-foreground mb-2 block">
               {t("beat.sceneSelect")}
-            </Label>
-            <Select
-              value={(beat.sceneId || beat.scene) || ""}
-              onValueChange={(value) =>
-                onUpdateField("scene", value ?? undefined)
+            </label>
+            <select
+              className="select bg-muted/50 border-border"
+              value={beat.sceneId || ""}
+              onChange={(e) =>
+                onUpdateField("sceneId", e.target.value || undefined)
               }
             >
-              <SelectTrigger className="bg-muted/50 border-border">
-                <SelectValue placeholder={t("beat.sceneSelectPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {scenes.map((scene) => (
-                  <SelectItem key={scene.id} value={scene.id}>
-                    <div className="flex items-center gap-2">
-                      {scene.generatedImage && (
-                        <img
-                          src={scene.generatedImage}
-                          alt={scene.name}
-                          className="w-8 h-8 rounded object-cover"
-                        />
-                      )}
-                      <span>{scene.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="">{t("beat.sceneSelectPlaceholder")}</option>
+              {scenes.map((scene) => (
+                <option key={scene.id} value={scene.id}>
+                  {scene.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <Label className="text-foreground mb-2 block">
+              <label className="text-foreground mb-2 block">
                 {t("beat.duration")}
-              </Label>
+              </label>
               <div className="flex items-center gap-2">
-                <Input
+                <input
+                  className="input bg-muted/50 border-border"
                   type="number"
                   value={beat.duration ?? 0}
                   onChange={(e) =>
@@ -99,7 +78,6 @@ export function BasicInfoSection({
                     )
                   }
                   min={1}
-                  className="bg-muted/50 border-border"
                 />
                 <span className="text-sm text-muted-foreground">
                   {t("beat.durationSeconds")}
@@ -115,7 +93,8 @@ export function BasicInfoSection({
           <Film className="w-5 h-5 text-primary" />
           {t("beat.beatContent")}
         </h3>
-        <Textarea
+        <textarea
+          className="textarea bg-muted/50 border-border resize-none"
           data-testid="beat-content-textarea"
           value={beat.content || beat.description || ""}
           onChange={(e) => {
@@ -128,7 +107,6 @@ export function BasicInfoSection({
           }}
           placeholder={t("beat.beatContentPlaceholder")}
           rows={9}
-          className="bg-muted/50 border-border resize-none"
         />
       </div>
     </>

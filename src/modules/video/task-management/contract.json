@@ -4,12 +4,12 @@
   "dependencies": ["video-cache", "video-recovery", "domain", "infrastructure/di", "shared-ui", "shared-utils", "shared-presentation"],
   "publicAPI": {
     "hooks": ["useVideoTaskManager", "useVideoTaskStore", "useVideoTasks", "useFailedVideoTasks", "useRecoverVideo", "useCleanExpiredTasks", "useStartBackgroundRecovery"],
-    "services": ["TaskMachine", "mapApiStatus", "buildTrackingInfo", "copyTrackingInfoToClipboard", "openTaskQueryLink", "isValidTransition", "isStuck", "STUCK_TASK_THRESHOLD_MS", "VALID_TRANSITIONS", "TERMINAL_STATUSES", "TransitionError"],
+    "services": ["TaskMachine", "mapApiStatus", "buildTrackingInfoByProviderId", "copyTrackingInfoToClipboard", "openTaskQueryLink", "isValidTransition", "isStuck", "STUCK_TASK_THRESHOLD_MS", "VALID_TRANSITIONS", "TERMINAL_STATUSES", "TransitionError"],
     "components": ["VideoTaskManager", "VideoTaskManagerInitializer", "VideoTaskManagerUI"]
   },
   "invariants": [
     "任务状态变更必须通过 useVideoTaskStore 统一管理",
-    "任务追踪信息 buildTrackingInfo 不暴露完整API密钥",
+    "任务追踪信息 buildTrackingInfoByProviderId 不暴露完整API密钥",
     "视频预览必须通过 cache 子域获取 URL",
     "状态转换必须通过 TaskMachine.transition 校验，合法路径：pending→generating→completed|failed|cancelled|timeout, failed|timeout→retrying→generating, completed→pending(重置)",
     "completed 只能回到 pending（重置），不能直接 retrying 或 generating",

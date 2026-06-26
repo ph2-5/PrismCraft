@@ -1,5 +1,4 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { Button } from "@/shared/ui/button";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants/messages";
@@ -24,12 +23,12 @@ export class PageErrorBoundary extends Component<Props, State> {
     errorCount: 0,
   };
 
-  public static getDerivedStateFromError(error: Error, prev: State): Partial<State> {
-    const nextCount = prev.errorCount + 1;
-    return { hasError: true, error, errorCount: nextCount };
+  public static getDerivedStateFromError(error: Error): Partial<State> {
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.setState((prev) => ({ errorCount: prev.errorCount + 1 }));
     errorLogger.error(`[PageErrorBoundary${this.props.pageName ? `:${this.props.pageName}` : ""}]`, { error, errorInfo });
   }
 
@@ -53,18 +52,18 @@ export class PageErrorBoundary extends Component<Props, State> {
           </p>
           {canRetry ? (
             <div className="flex gap-3">
-              <Button variant="outline" onClick={this.handleRetry}>
+              <button type="button" className="btn btn-outline" onClick={this.handleRetry}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 {t("common.retry")}
-              </Button>
-              <Button onClick={() => window.location.reload()}>{t("error.refreshPage")}</Button>
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>{t("error.refreshPage")}</button>
             </div>
           ) : (
             <div className="space-y-2 text-center">
               <p className="text-sm text-muted-foreground">
                 {t("error.retryRepeatedShort")}
               </p>
-              <Button onClick={() => window.location.reload()}>{t("error.refreshPage")}</Button>
+              <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>{t("error.refreshPage")}</button>
             </div>
           )}
         </div>

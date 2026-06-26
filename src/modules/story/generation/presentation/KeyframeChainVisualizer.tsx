@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { Link, Image, CheckCircle } from "lucide-react";
-import { Badge } from "@/shared/ui/badge";
 import type { StoryBeat } from "@/domain/schemas";
 import { t } from "@/shared/constants";
 
@@ -44,19 +43,21 @@ export function KeyframeChainVisualizer({
   if (beats.length === 0) return null;
 
   return (
-    <div className="bg-slate-800/50 border border-purple-700/30 rounded-xl p-4">
+    <div className="bg-card2 border border-primary/30 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-purple-100 flex items-center gap-2">
-          <Link className="w-4 h-4 text-purple-400" />
+        <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
+          <Link className="w-4 h-4 text-primary" />
           {t("keyframe.chainInheritance")}
         </h4>
-        <Badge
+        <span
           className={
-            chainStatus.validChain ? "bg-green-600/50" : "bg-amber-600/50"
+            chainStatus.validChain
+              ? "badge badge-info bg-success/50"
+              : "badge badge-info bg-warning/50"
           }
         >
           {chainStatus.validChain ? t("keyframe.chainComplete") : t("keyframe.chainBroken")}
-        </Badge>
+        </span>
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-2">
@@ -67,10 +68,10 @@ export function KeyframeChainVisualizer({
               <div
                 className={`w-6 h-0.5 ${
                   item.isLinked
-                    ? "bg-blue-500"
+                    ? "bg-primary"
                     : item.hasKeyframe
-                      ? "bg-purple-500/30"
-                      : "bg-slate-600"
+                      ? "bg-primary/30"
+                      : "bg-muted"
                 }`}
               />
             )}
@@ -80,9 +81,9 @@ export function KeyframeChainVisualizer({
               className={`relative w-10 h-10 rounded-lg flex items-center justify-center border-2 ${
                 item.hasKeyframe
                   ? item.isLinked || item.isFirst
-                    ? "border-blue-500 bg-blue-500/20"
-                    : "border-purple-500 bg-purple-500/20"
-                  : "border-slate-600 bg-slate-700/50"
+                    ? "border-primary bg-primary/20"
+                    : "border-primary bg-primary/20"
+                  : "border-border bg-muted"
               }`}
               title={t("beat.shotNumber", { number: index + 1 }) +
                 (item.hasKeyframe
@@ -103,21 +104,21 @@ export function KeyframeChainVisualizer({
                       className="w-full h-full object-cover rounded-md"
                     />
                   ) : (
-                    <Image className="w-4 h-4 text-purple-400" />
+                    <Image className="w-4 h-4 text-primary" />
                   )}
                   {/* 状态指示器 */}
                   <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center">
                     {item.hasVideo ? (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-500 bg-slate-900 rounded-full" />
+                      <CheckCircle className="w-3.5 h-3.5 bg-background rounded-full" style={{ color: "var(--success)" }} />
                     ) : item.hasFramePair ? (
-                      <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-slate-900" />
+                      <div className="w-3 h-3 rounded-full bg-primary border-2 border-background" />
                     ) : (
-                      <div className="w-3 h-3 rounded-full bg-amber-500 border-2 border-slate-900" />
+                      <div className="w-3 h-3 rounded-full bg-warning border-2 border-background" />
                     )}
                   </div>
                 </>
               ) : (
-                <span className="text-xs text-slate-400">{index + 1}</span>
+                <span className="text-xs text-muted-foreground">{index + 1}</span>
               )}
             </div>
           </div>
@@ -125,21 +126,21 @@ export function KeyframeChainVisualizer({
       </div>
 
       {/* 图例 */}
-      <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-purple-400">
+      <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-primary">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-blue-500 border border-slate-900" />
+          <div className="w-3 h-3 rounded-full bg-primary border border-background" />
           <span>{t("keyframe.linked")}</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-amber-500 border border-slate-900" />
+          <div className="w-3 h-3 rounded-full bg-warning border border-background" />
           <span>{t("keyframe.previewOnly")}</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-green-500 border border-slate-900" />
+          <div className="w-3 h-3 rounded-full bg-success border border-background" />
           <span>{t("keyframe.videoCompleted")}</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-4 h-0.5 bg-blue-500" />
+          <div className="w-4 h-0.5 bg-primary" />
           <span>{t("keyframe.chainRef")}</span>
         </div>
       </div>

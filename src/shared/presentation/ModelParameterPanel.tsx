@@ -1,17 +1,5 @@
-import { useMemo, useCallback } from "react";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Textarea } from "@/shared/ui/textarea";
-import { Slider } from "@/shared/ui/slider";
-import { Label } from "@/shared/ui/label";
-import { Badge } from "@/shared/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+import { useMemo, useCallback, useId } from "react";
+import { cn } from "@/shared/utils/utils";
 import { t } from "@/shared/constants";
 import {
   getModelParameterProfile,
@@ -114,19 +102,22 @@ export function ModelParameterPanel({
 }: ModelParameterPanelProps) {
   const resolved = useMemo(() => resolveProfile(modelId), [modelId]);
   const strategy = useMemo(() => modelId ? getVideoGenerationStrategy(modelId) : null, [modelId]);
+  const resolutionId = useId();
+  const negativePromptId = useId();
+  const seedId = useId();
+  const cfgScaleId = useId();
 
   const isDark = variant === "dark";
-  const labelClass = isDark ? "text-slate-300" : "";
+  const labelClass = isDark ? "text-muted-foreground" : "";
   const btnDefaultClass = isDark
-    ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+    ? "bg-primary hover:bg-primary/90 text-primary-foreground border-primary"
     : "";
   const btnOutlineClass = isDark
-    ? "border-slate-700 hover:border-purple-500 text-slate-300"
+    ? "border-border hover:border-primary text-muted-foreground"
     : "";
-  const selectTriggerClass = isDark ? "bg-slate-800 border-slate-700" : "";
-  const selectContentClass = isDark ? "bg-slate-800 border-slate-700" : "";
-  const inputClass = isDark ? "bg-slate-800 border-slate-700" : "";
-  const textareaClass = isDark ? "bg-slate-800 border-slate-700 text-sm" : "";
+  const selectTriggerClass = isDark ? "bg-card2 border-border" : "";
+  const inputClass = isDark ? "bg-card2 border-border" : "";
+  const textareaClass = isDark ? "bg-card2 border-border text-sm" : "";
 
   const handleDurationChange = useCallback(
     (value: number) => onValuesChange({ duration: value }),
@@ -176,80 +167,84 @@ export function ModelParameterPanel({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label className={labelClass}>{t("modelParam.duration")}</Label>
+        <label className={labelClass}>{t("modelParam.duration")}</label>
         <div className="flex flex-wrap gap-2">
           {resolved.durations.map((opt) => (
-            <Button
+            <button
               key={opt.value}
-              variant={values.duration === opt.value ? "default" : "outline"}
-              size="sm"
-              className={
-                values.duration === opt.value ? btnDefaultClass : btnOutlineClass
-              }
+              type="button"
+              className={cn(
+                values.duration === opt.value ? "btn btn-primary" : "btn btn-outline",
+                "btn-sm",
+                values.duration === opt.value ? btnDefaultClass : btnOutlineClass,
+              )}
               onClick={() => handleDurationChange(opt.value)}
             >
               {opt.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label className={labelClass}>{t("modelParam.resolution")}</Label>
-        <Select value={values.resolution} onValueChange={handleResolutionChange}>
-          <SelectTrigger className={selectTriggerClass}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className={selectContentClass}>
-            {resolved.resolutions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <label htmlFor={resolutionId} className={labelClass}>{t("modelParam.resolution")}</label>
+        <select
+          id={resolutionId}
+          className={cn("select", selectTriggerClass)}
+          value={values.resolution}
+          onChange={(e) => handleResolutionChange(e.target.value)}
+        >
+          {resolved.resolutions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-2">
-        <Label className={labelClass}>{t("modelParam.style")}</Label>
+        <label className={labelClass}>{t("modelParam.style")}</label>
         <div className="flex flex-wrap gap-2">
           {resolved.styles.map((style) => (
-            <Button
+            <button
               key={style.value}
-              variant={values.style === style.value ? "default" : "outline"}
-              size="sm"
-              className={
-                values.style === style.value ? btnDefaultClass : btnOutlineClass
-              }
+              type="button"
+              className={cn(
+                values.style === style.value ? "btn btn-primary" : "btn btn-outline",
+                "btn-sm",
+                values.style === style.value ? btnDefaultClass : btnOutlineClass,
+              )}
               onClick={() => handleStyleChange(style.value)}
             >
               {style.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       {resolved.showNegativePrompt && (
         <div className="space-y-2">
-          <Label className={labelClass}>{t("modelParam.negativePrompt")}</Label>
-          <Textarea
+          <label htmlFor={negativePromptId} className={labelClass}>{t("modelParam.negativePrompt")}</label>
+          <textarea
+            id={negativePromptId}
+            className={cn("textarea", textareaClass)}
             value={values.negativePrompt}
             onChange={handleNegativePromptChange}
             placeholder={t("modelParam.negativePromptPlaceholder")}
-            className={textareaClass}
           />
         </div>
       )}
 
       {resolved.showSeed && (
         <div className="space-y-2">
-          <Label className={labelClass}>{t("modelParam.seed")}</Label>
-          <Input
+          <label htmlFor={seedId} className={labelClass}>{t("modelParam.seed")}</label>
+          <input
+            id={seedId}
             type="number"
+            className={cn("input", inputClass)}
             value={values.seed}
             onChange={handleSeedChange}
             placeholder={t("modelParam.seedPlaceholder")}
-            className={inputClass}
           />
         </div>
       )}
@@ -257,31 +252,30 @@ export function ModelParameterPanel({
       {resolved.cfgScaleConfig && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className={labelClass}>{t("modelParam.cfgScale")}</Label>
+            <label htmlFor={cfgScaleId} className={labelClass}>{t("modelParam.cfgScale")}</label>
             <span className="text-sm text-muted-foreground">
               {values.cfgScale}
             </span>
           </div>
-          <Slider
+          <input
+            id={cfgScaleId}
+            type="range"
+            className="slider"
             min={resolved.cfgScaleConfig.min}
             max={resolved.cfgScaleConfig.max}
             step={resolved.cfgScaleConfig.step}
-            value={[values.cfgScale]}
-            onValueChange={handleCfgScaleChange}
+            value={values.cfgScale}
+            onChange={(e) => handleCfgScaleChange(Number(e.target.value))}
           />
         </div>
       )}
 
       {strategy && (
         <div className="space-y-2">
-          <Label className={labelClass}>{t("modelParam.refStrategy")}</Label>
+          <label className={labelClass}>{t("modelParam.refStrategy")}</label>
           <p className="text-xs text-muted-foreground">{t("modelParam.refStrategyDesc")}</p>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className={
-              strategy.useCharacterRef
-                ? "border-green-600/50 text-green-400"
-                : "border-slate-600/50 text-slate-500"
-            }>
+            <span className={cn("badge", strategy.useCharacterRef ? "border-success/50 text-success" : "border-border/50 text-muted-foreground")}>
               {t("modelParam.charRefSupported")}: {
                 strategy.referenceStrategy.characterRef === "native_field"
                   ? t("modelParam.refModeNative")
@@ -291,12 +285,8 @@ export function ModelParameterPanel({
                       ? t("modelParam.refModeBake")
                       : t("modelParam.refModeNone")
               }
-            </Badge>
-            <Badge variant="outline" className={
-              strategy.useSceneRef
-                ? "border-green-600/50 text-green-400"
-                : "border-slate-600/50 text-slate-500"
-            }>
+            </span>
+            <span className={cn("badge", strategy.useSceneRef ? "border-success/50 text-success" : "border-border/50 text-muted-foreground")}>
               {t("modelParam.sceneRefSupported")}: {
                 strategy.referenceStrategy.sceneRef === "native_field"
                   ? t("modelParam.refModeNative")
@@ -306,7 +296,7 @@ export function ModelParameterPanel({
                       ? t("modelParam.refModeBake")
                       : t("modelParam.refModeNone")
               }
-            </Badge>
+            </span>
           </div>
         </div>
       )}

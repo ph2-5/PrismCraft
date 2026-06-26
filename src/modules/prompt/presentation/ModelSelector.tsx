@@ -2,14 +2,6 @@ import { useState, useEffect } from "react";
 import type { ApiCapability } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
 import type { ModelSelection } from "@/domain/schemas";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import { Badge } from "@/shared/ui/badge";
 import { Bot, Image as ImageIcon, Video, Eye, Settings2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { errorLogger } from "@/shared/error-logger";
@@ -23,6 +15,8 @@ interface ModelSelectorProps {
   value?: ModelSelection | null;
   onChange: (selection: ModelSelection | null) => void;
   compact?: boolean;
+  // 可选：应用到内部 select 元素的 id，用于 <label htmlFor> 关联
+  id?: string;
 }
 
 const capabilityIcons: Record<ApiCapability, React.ReactNode> = {
@@ -44,6 +38,7 @@ export function ModelSelector({
   value,
   onChange,
   compact = true,
+  id,
 }: ModelSelectorProps) {
   const [availableModels, setAvailableModels] = useState<
     Array<{
@@ -116,7 +111,7 @@ export function ModelSelector({
   if (isLoading) {
     return (
       <div className="flex items-center gap-2">
-        <div className={`${compact ? "w-[180px] h-8" : "w-[240px] h-9"} border border-slate-700 bg-slate-800/50 rounded-md animate-pulse`} />
+        <div className={`${compact ? "w-[180px] h-8" : "w-[240px] h-9"} border border-border bg-card2 rounded-md animate-pulse`} />
       </div>
     );
   }
@@ -125,7 +120,7 @@ export function ModelSelector({
     return (
       <Link
         to="/settings"
-        className={`flex items-center gap-1.5 ${compact ? "text-xs" : "text-sm"} text-amber-400 hover:text-amber-300 transition-colors`}
+        className={`flex items-center gap-1.5 ${compact ? "text-xs" : "text-sm"} text-warning hover:text-warning transition-colors`}
       >
         <Settings2 className="w-3 h-3" />
         {t("model.pleaseConfigure", { capability: capabilityLabels[capability] })}
@@ -136,41 +131,29 @@ export function ModelSelector({
   return (
     <div className="flex items-center gap-2">
       {!compact && (
-        <span className="text-sm text-slate-400 flex items-center gap-1">
+        <span className="text-sm text-muted-foreground flex items-center gap-1">
           <Settings2 className="w-3 h-3" />
           {t("model.modelLabel", { capability: capabilityLabels[capability] })}
         </span>
       )}
-      <Select value={currentValue} onValueChange={handleValueChange}>
-        <SelectTrigger className={`${compact ? "w-[180px] h-8 text-xs" : "w-[240px]"} border-slate-700 bg-slate-800/50`}>
-          <SelectValue placeholder={t("model.selectModel", { capability: capabilityLabels[capability] })}>
-            {value ? (
-              <span className="truncate">
-                {value.providerName} / {value.modelName}
-              </span>
-            ) : (
-              <span className="text-slate-400">{t("model.defaultModel")}</span>
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="">{t("model.defaultOption")}</SelectItem>
-          {availableModels.map((m) => (
-            <SelectItem key={m.value} value={m.value}>
-              <div className="flex items-center gap-2">
-                <span>{m.providerName}</span>
-                <span className="text-slate-400">/</span>
-                <span>{m.modelName}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <select
+        id={id}
+        className={`select ${compact ? "w-[180px] h-8 text-xs" : "w-[240px]"} border-border bg-card2`}
+        value={currentValue}
+        onChange={(e) => handleValueChange(e.target.value)}
+      >
+        <option value="">{t("model.defaultOption")}</option>
+        {availableModels.map((m) => (
+          <option key={m.value} value={m.value}>
+            {m.providerName} / {m.modelName}
+          </option>
+        ))}
+      </select>
       {value && (
-        <Badge variant="secondary" className="text-xs">
+        <span className="badge badge-muted text-xs">
           {capabilityIcons[capability]}
           <span className="ml-1">{value.modelName}</span>
-        </Badge>
+        </span>
       )}
     </div>
   );

@@ -21,12 +21,6 @@ vi.mock("@/shared/utils/toast-bridge", () => ({
   emitToast: vi.fn(),
 }));
 
-vi.mock("@/shared/ui/button", () => ({
-  Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
-    <button onClick={onClick}>{children}</button>
-  ),
-}));
-
 vi.mock("lucide-react", () => ({
   X: () => <span>×</span>,
   CheckCircle: () => <span>✓</span>,

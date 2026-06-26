@@ -1,4 +1,3 @@
-import { Film } from "lucide-react";
 import { t } from "@/shared/constants";
 import { BeatDetailEditor } from "./BeatDetailEditor";
 import type { Character, Scene, StoryBeat, StoryElement } from "@/domain/schemas";
@@ -23,6 +22,7 @@ interface BeatDetailViewProps {
   onClose: () => void;
   onPrevBeat: () => void;
   onNextBeat: () => void;
+  onMoveBeat?: (beatId: string, direction: "up" | "down") => void;
   onUpdateBeat: (beat: StoryBeat) => void;
   onDeleteBeat: () => void;
   onGenerateKeyframe: () => Promise<StoryBeat | void>;
@@ -51,6 +51,7 @@ export function BeatDetailView({
   onClose,
   onPrevBeat,
   onNextBeat,
+  onMoveBeat,
   onUpdateBeat,
   onDeleteBeat,
   onGenerateKeyframe,
@@ -67,7 +68,7 @@ export function BeatDetailView({
   imageModelId,
 }: BeatDetailViewProps) {
   return (
-    <div className="flex-1 min-w-0 border border-border rounded-lg bg-card overflow-hidden">
+    <div className="flex-1 min-w-0 flex flex-col" style={{ borderLeft: "1px solid var(--border)" }}>
       {editingBeat ? (
         <BeatDetailEditor
           beat={editingBeat}
@@ -81,6 +82,7 @@ export function BeatDetailView({
           onClose={onClose}
           onPrevBeat={onPrevBeat}
           onNextBeat={onNextBeat}
+          onMoveBeat={onMoveBeat}
           onUpdateBeat={onUpdateBeat}
           onDeleteBeat={onDeleteBeat}
           onGenerateKeyframe={onGenerateKeyframe}
@@ -97,11 +99,11 @@ export function BeatDetailView({
           imageModelId={imageModelId}
         />
       ) : (
-        <div className="h-full flex items-center justify-center text-muted-foreground">
+        <div className="h-full flex items-center justify-center" style={{ color: "var(--muted-fg)" }}>
           <div className="text-center">
-            <Film className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <p className="text-sm">{t("beat.selectBeatToView")}</p>
-            <p className="text-xs mt-1">{t("beat.orClickAIPlan")}</p>
+            <div style={{ fontSize: 48, opacity: 0.2, marginBottom: 12 }}>🎬</div>
+            <p style={{ fontSize: 14 }}>{t("beat.selectBeatToView")}</p>
+            <p style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>{t("beat.orClickAIPlan")}</p>
           </div>
         </div>
       )}

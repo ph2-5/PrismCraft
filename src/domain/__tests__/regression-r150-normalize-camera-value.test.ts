@@ -14,8 +14,6 @@ import { describe, it, expect } from "vitest";
 import {
   resolveShotInstruction,
   SHOT_SIZE_OPTIONS,
-  CAMERA_MOVEMENT_OPTIONS,
-  CAMERA_ANGLE_OPTIONS,
 } from "@/domain/utils/shot-prompt";
 
 describe("R150: normalizeCameraValue 别名表正确性", () => {

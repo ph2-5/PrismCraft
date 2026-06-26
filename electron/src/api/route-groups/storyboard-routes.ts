@@ -1,7 +1,7 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
 import { createApiGatewayAdapter } from "../../api-gateway";
-import type { ApiGateway, Beat } from "@shared-logic/story/storyboard-generation";
+import type { ApiGateway } from "@shared-logic/story/storyboard-generation";
 import * as promptService from "@shared-logic/prompt/prompt-service";
 import * as storyboardGeneration from "@shared-logic/story/storyboard-generation";
 import * as videoRecovery from "@shared-logic/video/video-recovery";
@@ -29,7 +29,7 @@ export const storyboardRoutes: Record<string, Route> = {
   "video/tracking-info": defineRoute({
     schema: videoTrackingInfoSchema,
     handler: async (_m, b) => {
-      const info = videoTracker.buildTrackingInfo(
+      const info = videoTracker.buildTrackingInfoByApiUrl(
         b.taskId,
         b.apiUrl,
         b.apiKeyPreview,
@@ -42,7 +42,7 @@ export const storyboardRoutes: Record<string, Route> = {
   "video/provider-info": defineRoute({
     schema: videoProviderInfoSchema,
     handler: async (_m, b) => {
-      const info = videoTracker.getProviderInfo(b.apiUrl);
+      const info = videoTracker.getProviderInfoByApiUrl(b.apiUrl);
       return { success: true, data: info };
     },
     methods: ["POST"],
@@ -53,8 +53,8 @@ export const storyboardRoutes: Record<string, Route> = {
       const result = await storyboardGeneration.generateBeatKeyframe(
         apiGatewayAdapter,
         promptService,
-        b.beat as Beat,
-        b.prevBeat as Beat | undefined,
+        b.beat,
+        b.prevBeat,
         b.options,
       );
       return { success: true, data: result };
@@ -67,7 +67,7 @@ export const storyboardRoutes: Record<string, Route> = {
       const result = await storyboardGeneration.generateBeatFramePair(
         apiGatewayAdapter,
         promptService,
-        b.beat as Beat,
+        b.beat,
         b.options,
       );
       return { success: true, data: result };
@@ -79,7 +79,7 @@ export const storyboardRoutes: Record<string, Route> = {
     handler: async (_m, b) => {
       const result = await storyboardGeneration.generateBeatVideo(
         apiGatewayAdapter,
-        b.beat as Beat,
+        b.beat,
         b.options,
       );
       return { success: true, data: result };
@@ -92,8 +92,8 @@ export const storyboardRoutes: Record<string, Route> = {
       const result = await storyboardGeneration.generateBeatFullWorkflow(
         apiGatewayAdapter,
         promptService,
-        b.beat as Beat,
-        b.prevBeat as Beat | undefined,
+        b.beat,
+        b.prevBeat,
         b.options,
       );
       return { success: true, data: result };
@@ -106,8 +106,8 @@ export const storyboardRoutes: Record<string, Route> = {
       const result = await storyboardGeneration.generateKeyframeChain(
         apiGatewayAdapter,
         promptService,
-        b.beats as Beat[],
-        b.options as Parameters<typeof storyboardGeneration.generateKeyframeChain>[3],
+        b.beats,
+        b.options,
       );
       return { success: true, data: result };
     },

@@ -1,22 +1,12 @@
 import React from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Progress } from "@/shared/ui/progress";
-import { Button } from "@/shared/ui/button";
 import { t } from "@/shared/constants";
-import { Badge } from "@/shared/ui/badge";
 import {
   Square,
   CheckSquare,
   Film,
 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
-import { getStatusIcon, getStatusColor, getStatusLabel } from "./task-status-helpers";
+import { getStatusIcon, getStatusColor, getStatusStyle, getStatusLabel } from "./task-status-helpers";
 import { VideoPreview, TaskActions } from "./task-card";
 
 interface TaskCardProps {
@@ -71,57 +61,58 @@ export const TaskCard = React.memo(function TaskCard({
     `task-${task.storyId || index}-${task.createdAt || index}-${index}`;
 
   return (
-    <Card
+    <div
       key={taskKey}
-      className={`border transition-colors ${
+      className={`card border transition-colors ${
         isSelected
-          ? "border-purple-500 bg-purple-50/50 dark:bg-purple-900/20"
-          : "border-gray-200 dark:border-gray-800"
+          ? "border-primary bg-primary/10"
+          : ""
       }`}
+      style={{ padding: 16, ...(isSelected ? undefined : { borderColor: "var(--border)" }) }}
     >
-      <CardHeader className="pb-2">
+      <div style={{ paddingBottom: 12 }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
+              aria-label={t("aria.toggleSelection")}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleSelection(task.taskId);
               }}
-              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-1 rounded hover:bg-muted"
             >
               {isSelected ? (
                 <CheckSquare className="w-4 h-4 text-purple-600" />
               ) : (
-                <Square className="w-4 h-4 text-gray-400" />
+                <Square className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />
               )}
             </button>
-            <CardTitle className="text-sm font-medium">
+            <div className="text-sm font-medium" style={{ fontSize: 16, fontWeight: 600 }}>
               {task.beatTitle || `${t("task.taskLabel")} ${(task.taskId || "unknown").substring(0, 8)}...`}
-            </CardTitle>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className={getStatusColor(task.status)}>
+            <span className={`badge badge-info ${getStatusColor(task.status)}`} style={getStatusStyle(task.status)}>
               {getStatusLabel(task.status)}
-            </Badge>
+            </span>
             {task.beatId && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs gap-1"
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm h-6 px-2 text-xs gap-1"
                 onClick={() => onJumpToBeat(task)}
               >
                 <Film className="w-3 h-3" />
                 {t("task.beatButton")}
-              </Button>
+              </button>
             )}
           </div>
         </div>
-        <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="text-xs" style={{ fontSize: 12, color: "var(--muted-fg)" }}>
           {t("task.createdAtAgo", { time: new Date(task.createdAt).toLocaleString() })}
           {task.model && ` · ${t("task.modelLabel", { model: task.model })}`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </div>
+      </div>
+      <div>
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
             {getStatusIcon(task.status)}
@@ -129,8 +120,17 @@ export const TaskCard = React.memo(function TaskCard({
           </div>
           {task.status === "generating" && (
             <>
-              <Progress value={task.progress || 0} className="h-2" />
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-right">
+              <div
+                className="progress-bar h-2"
+                role="progressbar"
+                aria-label={t("common.generating")}
+                aria-valuenow={task.progress || 0}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div className="progress-fill" style={{ width: `${task.progress || 0}%` }} />
+              </div>
+              <div className="text-xs text-right" style={{ color: "var(--muted-fg)" }}>
                 {task.progress || 0}%
               </div>
             </>
@@ -158,7 +158,7 @@ export const TaskCard = React.memo(function TaskCard({
             pollTask={pollTask}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 });

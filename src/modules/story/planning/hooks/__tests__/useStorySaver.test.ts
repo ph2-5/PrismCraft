@@ -281,8 +281,7 @@ describe("useStorySaver regression tests", () => {
           content: "内容",
           description: "描述",
           characterIds: ["角色A"],
-          scene: "场景B",
-          generationPrompt: "生成提示词",
+          sceneId: "场景B",
           imageGenerationPrompt: "图片生成提示词",
           firstFramePrompt: "首帧提示词",
           lastFramePrompt: "尾帧提示词",
@@ -305,8 +304,7 @@ describe("useStorySaver regression tests", () => {
           content: "内容",
           description: "描述",
           characterIds: ["角色A"],
-          scene: "场景B",
-          generationPrompt: "生成提示词",
+          sceneId: "场景B",
           imageGenerationPrompt: "图片生成提示词",
           firstFramePrompt: "首帧提示词",
           lastFramePrompt: "尾帧提示词",
@@ -339,7 +337,6 @@ describe("useStorySaver regression tests", () => {
         const beat = createBeat({
           title: "有标题",
           content: "有内容",
-          generationPrompt: undefined,
           imageUrl: undefined,
         });
         const props = createPropsWithBeats({ beats: [beat] });

@@ -41,7 +41,7 @@ function validateConfigKey(key: string): boolean {
   if (!key || typeof key !== "string") return false;
   if (key.length > 256) return false;
   const keys = key.split(".");
-  const topLevelKey = keys[0]!;
+  const topLevelKey = keys[0] ?? "";
   if (!ALLOWED_CONFIG_KEYS.has(topLevelKey)) return false;
   for (const k of keys) {
     if (k === "__proto__" || k === "constructor" || k === "prototype") {
@@ -66,28 +66,43 @@ function validateConfigValue(value: unknown): boolean {
     return false;
   }
   if (type === "string") {
-    if ((value as string).startsWith("data:") || (value as string).startsWith("javascript:"))
+    // R182/L4: 扩展危险协议黑名单
+    const dangerousProtocols = ["data:", "javascript:", "vbscript:", "file:", "blob:"];
+    const lowerValue = (value as string).toLowerCase();
+    if (dangerousProtocols.some((p) => lowerValue.startsWith(p))) {
       return false;
+    }
   }
   return true;
 }
 
 function applyConfigValue(config: Record<string, unknown>, key: string, value: unknown): void {
-  if (
-    key === "ai_animation_studio_api_config" &&
-    typeof value === "object" &&
-    value !== null
-  ) {
+  if (key === "ai_animation_studio_api_config") {
+    // 前端 saveConfig 会将整个 config 序列化为 JSON 字符串作为 value 发送。
+    // 必须正确解析字符串或对象，并执行浅层字段拷贝（Object.assign 顶层覆盖即可，
+    // 因为前端调用方已经传入完整 config 对象）。
     let apiConfig: unknown = value;
     if (typeof value === "string") {
-      try { apiConfig = JSON.parse(value); } catch { apiConfig = {}; }
+      try {
+        apiConfig = JSON.parse(value);
+      } catch {
+        logger.warn("[Main] applyConfigValue received malformed JSON string for ai_animation_studio_api_config, ignoring");
+        return;
+      }
     }
-    Object.assign(config, apiConfig);
+    if (apiConfig && typeof apiConfig === "object") {
+      Object.assign(config, apiConfig as Record<string, unknown>);
+      // 显式删除可能由前端误传的明文 apiKey 字段引用（防止落盘）
+      // apiKey 由 keyStorage 管理，不应通过此路径写入 config 文件
+      // 注意：config.providers[*].apiKey 已由 saveConfigAsync 转换为 $secure: 引用
+    } else {
+      logger.warn("[Main] applyConfigValue received non-object value for ai_animation_studio_api_config, ignoring");
+    }
   } else if (key.includes(".")) {
     const keys = key.split(".");
     let current: Record<string, unknown> = config;
     for (let i = 0; i < keys.length - 1; i++) {
-      const k = keys[i]!;
+      const k = keys[i] ?? "";
       if (
         !(k in current) ||
         typeof current[k] !== "object" ||
@@ -97,7 +112,7 @@ function applyConfigValue(config: Record<string, unknown>, key: string, value: u
       }
       current = current[k] as Record<string, unknown>;
     }
-    current[keys[keys.length - 1]!] = value;
+    current[keys[keys.length - 1] ?? ""] = value;
   } else {
     config[key] = value;
   }
@@ -115,9 +130,7 @@ interface SetupApiHandlersOptions {
   checkForUpdates?: () => Promise<unknown>;
 }
 
-function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
-  const { checkForUpdates } = options;
-
+function registerLogHandlers(): void {
   ipcMain.on("log:security", (_event, data: { level: string; message: string }) => {
     if (data.level === "error") {
       logger.error("[Preload]", new Error(data.message));
@@ -125,7 +138,9 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
       logger.warn("[Preload]", { message: data.message });
     }
   });
+}
 
+function registerHealthHandlers(checkForUpdates?: () => Promise<unknown>): void {
   ipcMain.handle("api:health", async () => {
     return { status: "ok", timestamp: Date.now() };
   });
@@ -136,7 +151,9 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
     }
     return { success: true, updateAvailable: false };
   });
+}
 
+function registerShellHandlers(): void {
   ipcMain.handle("shell:open-external", async (_event, url: string) => {
     if (!url || typeof url !== "string") {
       return { success: false, error: "Invalid URL" };
@@ -170,22 +187,9 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
       return { success: false, error: (e as Error).message };
     }
   });
+}
 
-  ipcMain.handle("config:get", async (_event, key: string) => {
-    if (key && !validateConfigKey(key)) return null;
-    const config = await loadConfigAsync();
-    return getConfigValue(config, key);
-  });
-
-  ipcMain.handle("config:set", async (_event, key: string, value: unknown) => {
-    if (!validateConfigKey(key)) return false;
-    if (!validateConfigValue(value)) return false;
-    const config = await loadConfigAsync();
-    applyConfigValue(config, key, value);
-    saveConfig(config);
-    return true;
-  });
-
+function registerWindowHandlers(): void {
   // 窗口控制 IPC（无框窗口需要前端触发）
   ipcMain.handle("window:minimize", () => {
     const win = BrowserWindow.getFocusedWindow();
@@ -208,6 +212,23 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
   ipcMain.handle("window:isMaximized", () => {
     const win = BrowserWindow.getFocusedWindow();
     return win ? win.isMaximized() : false;
+  });
+}
+
+function registerConfigHandlers(): void {
+  ipcMain.handle("config:get", async (_event, key: string) => {
+    if (key && !validateConfigKey(key)) return null;
+    const config = await loadConfigAsync();
+    return getConfigValue(config, key);
+  });
+
+  ipcMain.handle("config:set", async (_event, key: string, value: unknown) => {
+    if (!validateConfigKey(key)) return false;
+    if (!validateConfigValue(value)) return false;
+    const config = await loadConfigAsync();
+    applyConfigValue(config, key, value);
+    saveConfig(config);
+    return true;
   });
 
   // 注意：ipcMain.on 是同步的，无法使用 loadConfigAsync()。
@@ -236,6 +257,14 @@ function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
     saveConfig(config);
     event.returnValue = true;
   });
+}
+
+function setupApiHandlers(options: SetupApiHandlersOptions = {}): void {
+  registerLogHandlers();
+  registerHealthHandlers(options.checkForUpdates);
+  registerShellHandlers();
+  registerWindowHandlers();
+  registerConfigHandlers();
 }
 
 const MIME_TYPES: Record<string, string> = {
@@ -556,6 +585,8 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
 
   mainWindow.once("ready-to-show", () => {
     logger.info("[Main] Window ready");
+    // 启动时最大化窗口（保留自定义标题栏按钮可用，不遮挡任务栏）
+    mainWindow.maximize();
     mainWindow.show();
     if (openDevTools) {
       mainWindow.webContents.openDevTools();

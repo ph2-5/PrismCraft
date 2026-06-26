@@ -4,10 +4,13 @@ import React, {
   useMemo,
   useEffect,
   useRef,
+  useState,
 } from "react";
+import { useParams } from "react-router-dom";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants/messages";
 import { errorLogger } from "@/shared/error-logger";
+import { useAppStore } from "@/shared/app-store";
 import { container } from "@/infrastructure/di";
 import { useVideoTaskManager } from "@/modules/video";
 import { storyService } from "@/modules/story";
@@ -39,13 +42,17 @@ function useStoryContext(): StoryContextValue {
   useEffect(() => { showErrorRef.current = showError; }, [showError]);
 
   const storyState = useStoryState();
-  const assetLoader = useAssetLoader({
-    getAllCharacters: () => characterService.getAll(),
-    getAllScenes: () => sceneService.getAll(),
-    getStoryboardAssets: async () => {
-      return container.storyboardStorage.getStoryboardAssets();
-    },
-  });
+  const assetLoaderServices = useMemo(
+    () => ({
+      getAllCharacters: () => characterService.getAll(),
+      getAllScenes: () => sceneService.getAll(),
+      getStoryboardAssets: async () => {
+        return container.storyboardStorage.getStoryboardAssets();
+      },
+    }),
+    [],
+  );
+  const assetLoader = useAssetLoader(assetLoaderServices);
 
   const uploadHandlers = useUploadHandlers(
     storyState.setBeats,
@@ -230,36 +237,25 @@ function useStoryContext(): StoryContextValue {
       setVersionDialogOpen: storySaver.setVersionDialogOpen,
       deleteDialogOpen: storySaver.deleteDialogOpen,
       setDeleteDialogOpen: storySaver.setDeleteDialogOpen,
-      tasks: videoTaskManager.tasks,
-      addTask: videoTaskManager.addTask,
-      createTask: videoTaskManager.createTask,
-      pollTask: videoTaskManager.pollTask,
-      removeTask: videoTaskManager.removeTask,
-      removeTasks: videoTaskManager.removeTasks,
       saveStatus: storySaver.saveStatus,
       saveError: storySaver.saveError,
       isVideoUrlPersisting,
-      success,
-      showError,
+      isStoryLoading: false,
     }),
     [
       storyState, assetLoader, uploadHandlers, planner,
       keyframeGenerator, framePairGenerator, videoGenerator,
       batchGenerator, storySaver, deleteBeatWithCleanup, switchToStory,
       generatingBeats,
-      videoTaskManager.tasks,
-      videoTaskManager.addTask,
-      videoTaskManager.createTask,
-      videoTaskManager.pollTask,
-      videoTaskManager.removeTask,
-      videoTaskManager.removeTasks,
-      isVideoUrlPersisting, success, showError,
+      isVideoUrlPersisting,
     ],
   );
 }
 
 export function StoryProvider({ children }: { children: React.ReactNode }) {
   const value = useStoryContext();
+  const { storyId: urlStoryId } = useParams<{ storyId: string }>();
+  const [isStoryLoading, setIsStoryLoading] = useState(true);
 
   const setStoriesRef = useRef(value.setStories);
   useEffect(() => { setStoriesRef.current = value.setStories; }, [value.setStories]);
@@ -269,39 +265,69 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { setBeatsRef.current = value.setBeats; }, [value.setBeats]);
   const markCleanRef = useRef(value.markClean);
   useEffect(() => { markCleanRef.current = value.markClean; }, [value.markClean]);
-  const showErrorRef2 = useRef(value.showError);
-  useEffect(() => { showErrorRef2.current = value.showError; }, [value.showError]);
+  const { error: showError } = useToastHelpers();
+  const showErrorRef = useRef(showError);
+  useEffect(() => { showErrorRef.current = showError; }, [showError]);
 
   useEffect(() => {
     let cancelled = false;
+    // 优先级：URL storyId > activeStoryId（持久化记忆）> 第一个故事（fallback）
+    const activeStoryId = useAppStore.getState().activeStoryId;
+    const targetStoryId = urlStoryId ?? activeStoryId;
+
     storyService
       .getAll()
-      .then((result) => {
-        if (!cancelled && result.ok) {
-          if (result.value.length > 0) {
-            setStoriesRef.current(result.value);
-            const firstStory = result.value[0];
-            if (firstStory) {
-              setCurrentStoryRef.current(firstStory, true);
-              setBeatsRef.current(firstStory.beats || [], true);
-            }
-          }
+      .then(async (result) => {
+        if (cancelled || !result.ok) return;
+        if (result.value.length === 0) {
           markCleanRef.current("story");
+          return;
         }
+        setStoriesRef.current(result.value);
+
+        // 尝试加载目标故事（URL 指定或上次激活）
+        if (targetStoryId) {
+          const targetResult = await storyService.getById(targetStoryId);
+          if (!cancelled && targetResult.ok) {
+            const story = targetResult.value;
+            setCurrentStoryRef.current(story, true);
+            setBeatsRef.current(story.beats || [], true);
+            useAppStore.getState().setActiveStoryId(story.id);
+            markCleanRef.current("story");
+            return;
+          }
+        }
+
+        // Fallback：第一个故事
+        const firstStory = result.value[0];
+        if (firstStory) {
+          setCurrentStoryRef.current(firstStory, true);
+          setBeatsRef.current(firstStory.beats || [], true);
+          useAppStore.getState().setActiveStoryId(firstStory.id);
+        }
+        markCleanRef.current("story");
       })
       .catch((err) => {
         if (!cancelled) {
           errorLogger.warn("Failed to load stories from storyService", err);
-          showErrorRef2.current(t("error.loadFailed"), t("story.loadFailed"));
+          showErrorRef.current(t("error.loadFailed"), t("story.loadFailed"));
         }
+      })
+      .finally(() => {
+        if (!cancelled) setIsStoryLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [urlStoryId]);
+
+  const valueWithLoading = useMemo(
+    () => ({ ...value, isStoryLoading }),
+    [value, isStoryLoading],
+  );
 
   return (
-    <StoryContext.Provider value={value}>{children}</StoryContext.Provider>
+    <StoryContext.Provider value={valueWithLoading}>{children}</StoryContext.Provider>
   );
 }
 

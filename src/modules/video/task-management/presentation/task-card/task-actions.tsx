@@ -1,4 +1,3 @@
-import { Button } from "@/shared/ui/button";
 import {
   RefreshCw,
   Loader2,
@@ -41,30 +40,28 @@ export function TaskActions({
   pollTask,
 }: TaskActionsProps) {
   return (
-    <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+    <div className="flex flex-col gap-2 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs" style={{ color: "var(--muted-fg)" }}>
           {t("task.taskIdPrefix")}
-          <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
+          <code className="px-1 py-0.5 rounded" style={{ background: "var(--muted)" }}>
             {task.taskId}
           </code>
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm h-6 px-2 text-xs"
           onClick={() => onCopyTaskId(task.taskId)}
         >
           {t("task.copyButton")}
-        </Button>
+        </button>
       </div>
       <div className="flex gap-2">
         {(task.status === "pending" || task.status === "generating") &&
           pollTask && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-3 text-xs flex-1 gap-1"
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm h-7 px-3 text-xs flex-1 gap-1"
               onClick={() => onManualPoll(task)}
               disabled={pollingTaskId === task.taskId}
             >
@@ -74,13 +71,12 @@ export function TaskActions({
                 <RefreshCw className="w-3 h-3" />
               )}
               {t("task.manualQuery")}
-            </Button>
+            </button>
           )}
         {(task.status === "failed" || task.status === "timeout") && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-3 text-xs flex-1 gap-1 text-orange-600 hover:text-orange-700"
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm h-7 px-3 text-xs flex-1 gap-1 text-orange-600 hover:text-orange-700"
             onClick={() => onRetryTask(task)}
             disabled={retryingTaskId === task.taskId}
           >
@@ -90,13 +86,13 @@ export function TaskActions({
               <RotateCcw className="w-3 h-3" />
             )}
             {t("task.regenerateButton")}
-          </Button>
+          </button>
         )}
         {(task.status === "pending" || task.status === "generating" || task.status === "retrying" || task.status === "timeout") && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-3 text-xs flex-1 gap-1 text-gray-500 hover:text-gray-700"
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm h-7 px-3 text-xs flex-1 gap-1 hover:text-foreground"
+            style={{ color: "var(--muted-fg)" }}
             onClick={() => onCancelTask(task)}
             disabled={cancellingTaskId === task.taskId}
           >
@@ -106,35 +102,32 @@ export function TaskActions({
               <Ban className="w-3 h-3" />
             )}
             {t("task.cancelButton")}
-          </Button>
+          </button>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-3 text-xs flex-1 gap-1"
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm h-7 px-3 text-xs flex-1 gap-1"
           onClick={() => onOpenTracking(task)}
         >
           <Search className="w-3 h-3" />
           {t("task.trackingButton")}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-3 text-xs flex-1 gap-1"
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm h-7 px-3 text-xs flex-1 gap-1"
           onClick={() => onCopyTracking(task)}
         >
           <Copy className="w-3 h-3" />
           {t("task.copyButton")}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-3 text-xs flex-1 gap-1"
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm h-7 px-3 text-xs flex-1 gap-1"
           onClick={() => onOpenCloudLink(task)}
         >
           <ExternalLink className="w-3 h-3" />
           {t("task.consoleButton")}
-        </Button>
+        </button>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
 import { Trash2, ChevronDown, Puzzle, Code } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import { PluginDetail } from "./PluginDetail";
 
 interface PluginInfo {
@@ -70,19 +69,19 @@ export function PluginList({
   return (
     <>
       {builtInPlugins.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">{t("plugin.builtinPlugins", { count: builtInPlugins.length })}</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 500, color: "var(--muted-fg)" }}>{t("plugin.builtinPlugins", { count: builtInPlugins.length })}</h4>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
             {builtInPlugins.map((plugin) => (
-              <div key={plugin.id} className="flex items-center justify-between p-2.5 border rounded-lg bg-slate-800/30">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                  <span className="text-sm font-medium truncate">{plugin.displayName}</span>
-                  <Badge variant="secondary" className="text-xs shrink-0">{t("plugin.builtin")}</Badge>
+              <div key={plugin.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 10, border: "1px solid var(--border)", borderRadius: 8, background: "var(--muted)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 9999, flexShrink: 0, background: "var(--primary)" }} />
+                  <span style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{plugin.displayName}</span>
+                  <span className="badge badge-muted" style={{ fontSize: 12, flexShrink: 0 }}>{t("plugin.builtin")}</span>
                 </div>
-                <div className="flex gap-1 shrink-0 ml-2">
+                <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 8 }}>
                   {plugin.videoCapabilities.defaultModel && (
-                    <Badge variant="outline" className="text-xs">{plugin.videoCapabilities.defaultModel}</Badge>
+                    <span className="badge badge-muted" style={{ fontSize: 12 }}>{plugin.videoCapabilities.defaultModel}</span>
                   )}
                 </div>
               </div>
@@ -92,41 +91,42 @@ export function PluginList({
       )}
 
       {declarativePlugins.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-purple-400 flex items-center gap-1">
-            <Puzzle className="h-3.5 w-3.5" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center", gap: 4, color: "var(--primary)" }}>
+            <Puzzle size={14} />
             {t("plugin.declarativePlugins", { count: declarativePlugins.length })}
           </h4>
-          <div className="space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {declarativePlugins.map((plugin) => {
               const isExpanded = expandedPlugin === plugin.id;
               const fileInfo = userPluginFiles.find((f) => f.id === plugin.id);
               return (
-                <div key={plugin.id} className="border rounded-lg overflow-hidden">
+                <div key={plugin.id} style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
                   <div
-                    className="flex items-center justify-between p-3 cursor-pointer bg-purple-900/20"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, cursor: "pointer", background: "rgba(var(--primary-rgb), 0.2)" }}
                     onClick={() => onToggleExpand(isExpanded ? null : plugin.id)}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
-                      <span className="font-medium truncate">{plugin.displayName}</span>
-                      <Badge className="text-xs bg-purple-700 shrink-0">{t("plugin.declarative")}</Badge>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 9999, flexShrink: 0, background: "var(--primary)" }} />
+                      <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{plugin.displayName}</span>
+                      <span className="badge" style={{ fontSize: 12, flexShrink: 0, background: "var(--primary)" }}>{t("plugin.declarative")}</span>
                       {fileInfo && (
-                        <span className="text-xs text-muted-foreground shrink-0">v{fileInfo.version}</span>
+                        <span style={{ fontSize: 12, color: "var(--muted-fg)", flexShrink: 0 }}>v{fileInfo.version}</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <IconButton
                         variant="ghost"
-                        size="sm"
+                        className="btn-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDelete(plugin.id, plugin.displayName);
                         }}
+                        aria-label={t("aria.deletePlugin")}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <Trash2 size={16} style={{ color: "var(--destructive)" }} />
+                      </IconButton>
+                      <ChevronDown size={16} style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "none" }} />
                     </div>
                   </div>
                   {isExpanded && <PluginDetail plugin={plugin} />}
@@ -138,37 +138,38 @@ export function PluginList({
       )}
 
       {codePlugins.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-orange-400 flex items-center gap-1">
-            <Code className="h-3.5 w-3.5" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center", gap: 4, color: "var(--warning)" }}>
+            <Code size={14} />
             {t("plugin.codePlugins", { count: codePlugins.length })}
           </h4>
-          <div className="space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {codePlugins.map((plugin) => {
               const isExpanded = expandedPlugin === plugin.id;
               return (
-                <div key={plugin.id} className="border rounded-lg overflow-hidden">
+                <div key={plugin.id} style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
                   <div
-                    className="flex items-center justify-between p-3 cursor-pointer bg-orange-900/20"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, cursor: "pointer", background: "rgba(var(--warning-rgb), 0.2)" }}
                     onClick={() => onToggleExpand(isExpanded ? null : plugin.id)}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
-                      <span className="font-medium truncate">{plugin.displayName}</span>
-                      <Badge className="text-xs bg-orange-700 shrink-0">{t("plugin.codePlugin")}</Badge>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 9999, flexShrink: 0, background: "var(--warning)" }} />
+                      <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{plugin.displayName}</span>
+                      <span className="badge" style={{ fontSize: 12, flexShrink: 0, background: "var(--warning)" }}>{t("plugin.codePlugin")}</span>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <IconButton
                         variant="ghost"
-                        size="sm"
+                        className="btn-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDelete(plugin.id, plugin.displayName);
                         }}
+                        aria-label={t("aria.deletePlugin")}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <Trash2 size={16} style={{ color: "var(--destructive)" }} />
+                      </IconButton>
+                      <ChevronDown size={16} style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "none" }} />
                     </div>
                   </div>
                   {isExpanded && <PluginDetail plugin={plugin} />}
@@ -180,9 +181,9 @@ export function PluginList({
       )}
 
       {!hasAnyPlugin && (
-        <div className="text-center py-6 text-gray-500 border-2 border-dashed rounded-lg">
-          <Puzzle className="w-10 h-10 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">{t("plugin.noPlugins")}</p>
+        <div style={{ textAlign: "center", padding: "24px 0", border: "2px dashed var(--border)", borderRadius: 8, color: "var(--muted-fg)" }}>
+          <Puzzle size={40} style={{ margin: "0 auto 12px", opacity: 0.5, display: "block" }} />
+          <p style={{ fontSize: 14 }}>{t("plugin.noPlugins")}</p>
         </div>
       )}
     </>

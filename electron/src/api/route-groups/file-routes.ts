@@ -30,6 +30,21 @@ import fsp from "fs/promises";
 import path from "path";
 import os from "os";
 
+/**
+ * 文件操作错误码。
+ * 主进程返回错误码字符串，渲染进程通过 mapUserFacingError 的 EXTRA_PATTERNS
+ * 映射到 i18n key 进行本地化展示（见 src/shared/utils/user-facing-error.ts）。
+ */
+const FILE_ERRORS = {
+  PATH_NOT_ALLOWED: "FILE_PATH_NOT_ALLOWED",
+  FILE_NOT_FOUND: "FILE_NOT_FOUND",
+  FILE_TOO_LARGE: "FILE_TOO_LARGE",
+  INVALID_KEY: "FILE_INVALID_KEY",
+  INVALID_CATEGORY: "FILE_INVALID_CATEGORY",
+  SOURCE_PATH_NOT_ALLOWED: "FILE_SOURCE_PATH_NOT_ALLOWED",
+  SOURCE_NOT_FOUND: "FILE_SOURCE_NOT_FOUND",
+} as const;
+
 const UPLOAD_BASE_DIR = path.join(os.tmpdir(), "ai-animation-studio", "uploads");
 
 const USER_DATA_ROOT = getUserDataRootDir();
@@ -47,6 +62,14 @@ const CATEGORY_DIRS: Record<string, string> = {
   upload: UPLOAD_BASE_DIR,
   plugin: PLUGIN_BASE_DIR,
 };
+
+// file/list 大目录保护：超过 MAX_DIR_SCAN 个文件时只扫描前 N 个并附带 warning。
+// 避免数千文件导致内存爆炸和长时间阻塞 IPC。 caller 可据此决定是否需要
+// 更细粒度的索引方案（如 DB 索引 / 文件名前缀分桶）。
+const MAX_DIR_SCAN = 5000;
+// stat 并发批次大小：50 是经验值，在 Windows/Linux/macOS 上均稳定，
+// 既能显著降低串行延迟，又不会过载 fs 句柄。
+const STAT_BATCH_SIZE = 50;
 
 const ALLOWED_ROOTS = [
   ...Object.values(CATEGORY_DIRS),
@@ -119,17 +142,20 @@ async function resolvePath(key: string, category?: string): Promise<string> {
   // 兼容旧物理路径
   if (path.isAbsolute(key) || key.includes("/") || key.includes("\\")) {
     if (!(await isPathAllowed(key))) {
-      throw new Error(`Path not allowed: ${key}`);
+      logger.warn("[File HTTP] resolvePath rejected path", { key });
+      throw new Error(FILE_ERRORS.PATH_NOT_ALLOWED);
     }
     return key;
   }
   if (!isFilenameSafe(key)) {
-    throw new Error(`Invalid key: ${key}`);
+    logger.warn("[File HTTP] resolvePath rejected invalid key", { key });
+    throw new Error(FILE_ERRORS.INVALID_KEY);
   }
   if (category) {
     const dir = CATEGORY_DIRS[category];
     if (!dir) {
-      throw new Error(`Invalid category: ${category}`);
+      logger.warn("[File HTTP] resolvePath rejected invalid category", { category });
+      throw new Error(FILE_ERRORS.INVALID_CATEGORY);
     }
     return path.join(dir, key);
   }
@@ -140,13 +166,14 @@ async function resolvePath(key: string, category?: string): Promise<string> {
       return candidate;
     }
   }
-  throw new Error(`File not found in any category: ${key}`);
+  logger.warn("[File HTTP] resolvePath file not found in any category", { key });
+  throw new Error(FILE_ERRORS.FILE_NOT_FOUND);
 }
 
 async function ensureDir(category: string): Promise<void> {
   const dir = CATEGORY_DIRS[category];
   if (!dir) {
-    throw new Error(`Invalid category: ${category}`);
+    throw new Error(FILE_ERRORS.INVALID_CATEGORY);
   }
   if (!(await pathExists(dir))) {
     await fsp.mkdir(dir, { recursive: true });
@@ -156,7 +183,7 @@ async function ensureDir(category: string): Promise<void> {
 function toFileCategory(cat: string): string {
   const valid = ["character", "scene", "storyboard", "video-cache", "image-cache", "upload", "plugin"];
   if (!valid.includes(cat)) {
-    throw new Error(`Invalid file category: ${cat}`);
+    throw new Error(FILE_ERRORS.INVALID_CATEGORY);
   }
   return cat;
 }
@@ -206,16 +233,17 @@ export const fileRoutes: Record<string, Route> = {
       try {
         const filePath = await resolvePath(body.key);
         if (!(await isPathAllowed(filePath))) {
-          return { success: false, error: "Path not allowed" };
+          return { success: false, error: FILE_ERRORS.PATH_NOT_ALLOWED };
         }
         if (!(await pathExists(filePath))) {
-          return { success: false, error: "File not found" };
+          return { success: false, error: FILE_ERRORS.FILE_NOT_FOUND };
         }
         // 文件大小限制，避免读取超大文件导致 OOM
         const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
         const stat = await fsp.stat(filePath);
         if (stat.size > MAX_READ_SIZE) {
-          return { success: false, error: `File too large (${stat.size} bytes), max ${MAX_READ_SIZE} bytes` };
+          logger.warn("[File HTTP] read rejected oversized file", { size: stat.size, max: MAX_READ_SIZE });
+          return { success: false, error: FILE_ERRORS.FILE_TOO_LARGE };
         }
         const buffer = await fsp.readFile(filePath);
         return { success: true, data: { base64: buffer.toString("base64") } };
@@ -233,16 +261,17 @@ export const fileRoutes: Record<string, Route> = {
       try {
         const filePath = await resolvePath(body.key);
         if (!(await isPathAllowed(filePath))) {
-          return { success: false, error: "Path not allowed" };
+          return { success: false, error: FILE_ERRORS.PATH_NOT_ALLOWED };
         }
         if (!(await pathExists(filePath))) {
-          return { success: false, error: "File not found" };
+          return { success: false, error: FILE_ERRORS.FILE_NOT_FOUND };
         }
         // 文件大小限制，避免读取超大文件导致 OOM
         const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
         const stat = await fsp.stat(filePath);
         if (stat.size > MAX_READ_SIZE) {
-          return { success: false, error: `File too large (${stat.size} bytes), max ${MAX_READ_SIZE} bytes` };
+          logger.warn("[File HTTP] read-base64 rejected oversized file", { size: stat.size, max: MAX_READ_SIZE });
+          return { success: false, error: FILE_ERRORS.FILE_TOO_LARGE };
         }
         const buffer = await fsp.readFile(filePath);
         const mime = getMimeFromExt(filePath);
@@ -261,7 +290,7 @@ export const fileRoutes: Record<string, Route> = {
       try {
         const filePath = await resolvePath(body.key);
         if (!(await isPathAllowed(filePath))) {
-          return { success: false, error: "Path not allowed" };
+          return { success: false, error: FILE_ERRORS.PATH_NOT_ALLOWED };
         }
         let deleted = false;
         if (await pathExists(filePath)) {
@@ -303,10 +332,10 @@ export const fileRoutes: Record<string, Route> = {
 
         const sourcePath = await resolvePath(body.sourceKey);
         if (!(await isPathAllowed(sourcePath))) {
-          return { success: false, error: "Source path not allowed" };
+          return { success: false, error: FILE_ERRORS.SOURCE_PATH_NOT_ALLOWED };
         }
         if (!(await pathExists(sourcePath))) {
-          return { success: false, error: "Source file not found" };
+          return { success: false, error: FILE_ERRORS.SOURCE_NOT_FOUND };
         }
 
         const sourceExt = path.extname(sourcePath);
@@ -337,9 +366,24 @@ export const fileRoutes: Record<string, Route> = {
         const offset = typeof body.offset === "number" ? Math.max(body.offset, 0) : 0;
 
         // 注意：按 createdAt 排序需要对所有文件执行 stat，无法仅 stat 分页范围。
-        // 大目录（数千文件）会有较高内存峰值。已通过 500 条上限限制返回规模，
-        // 若目录极大需考虑改用文件名排序或增量索引方案。
+        // 安全上限：目录文件数超过 MAX_DIR_SCAN 时只扫描前 N 个并附带 warning，
+        // 避免数千文件导致内存爆炸和长时间阻塞。 caller 可据此决定是否需要
+        // 更细粒度的索引方案。
         const files = await fsp.readdir(dir);
+        const totalOnDisk = files.length;
+        let truncated = false;
+        let scannedFiles = files;
+        if (totalOnDisk > MAX_DIR_SCAN) {
+          truncated = true;
+          scannedFiles = files.slice(0, MAX_DIR_SCAN);
+          logger.warn(
+            `[File HTTP] list: directory ${category} has ${totalOnDisk} entries, ` +
+              `scanning only first ${MAX_DIR_SCAN} (truncated).`,
+          );
+        }
+
+        // 并行 stat：每批 STAT_BATCH_SIZE 个并发，避免串行等待 + 防止
+        // 一次性 Promise.all 在超大目录上压爆 fs 句柄。
         const results: Array<{
           key: string;
           category: string;
@@ -348,27 +392,42 @@ export const fileRoutes: Record<string, Route> = {
           createdAt: number;
           updatedAt: number;
         }> = [];
-
-        for (const file of files) {
-          const filePath = path.join(dir, file);
-          try {
-            const stat = await fsp.stat(filePath);
-            if (!stat.isFile()) continue;
-            results.push({
-              key: file,
-              category,
-              size: stat.size,
-              mimeType: getMimeFromExt(filePath),
-              createdAt: Math.floor(stat.birthtime.getTime() / 1000),
-              updatedAt: Math.floor(stat.mtime.getTime() / 1000),
-            });
-          } catch {
-            // 跳过无法访问的文件
+        for (let i = 0; i < scannedFiles.length; i += STAT_BATCH_SIZE) {
+          const batch = scannedFiles.slice(i, i + STAT_BATCH_SIZE);
+          const settled = await Promise.allSettled(
+            batch.map(async (file) => {
+              const filePath = path.join(dir, file);
+              const stat = await fsp.stat(filePath);
+              if (!stat.isFile()) return null;
+              return {
+                key: file,
+                category,
+                size: stat.size,
+                mimeType: getMimeFromExt(filePath),
+                createdAt: Math.floor(stat.birthtime.getTime() / 1000),
+                updatedAt: Math.floor(stat.mtime.getTime() / 1000),
+              } as const;
+            }),
+          );
+          for (const r of settled) {
+            if (r.status === "fulfilled" && r.value) {
+              results.push(r.value);
+            }
+            // rejected / non-file entries: 跳过无法访问的文件
           }
         }
         results.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         const paginatedResults = results.slice(offset, offset + limit);
-        return { success: true, data: { files: paginatedResults, total: results.length, offset, limit } };
+        return {
+          success: true,
+          data: {
+            files: paginatedResults,
+            total: results.length,
+            offset,
+            limit,
+            ...(truncated ? { warning: `DIRECTORY_TRUNCATED: scanned ${MAX_DIR_SCAN} of ${totalOnDisk} entries` } : {}),
+          },
+        };
       } catch (error) {
         logger.error("[File HTTP] list failed:", error instanceof Error ? error : new Error(String(error)));
         return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -427,7 +486,7 @@ export const fileRoutes: Record<string, Route> = {
 
         const filePath = await resolvePath(body.key, category);
         if (!(await isPathAllowed(filePath))) {
-          return { success: false, error: "Path not allowed" };
+          return { success: false, error: FILE_ERRORS.PATH_NOT_ALLOWED };
         }
 
         const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
@@ -460,7 +519,7 @@ export const fileRoutes: Record<string, Route> = {
       try {
         const filePath = path.resolve(body.filePath);
         if (!(await isPathAllowed(filePath))) {
-          return { success: false, error: "Path not allowed" };
+          return { success: false, error: FILE_ERRORS.PATH_NOT_ALLOWED };
         }
         // 确保父目录存在
         const parentDir = path.dirname(filePath);
@@ -476,7 +535,8 @@ export const fileRoutes: Record<string, Route> = {
         // 大小限制（对齐 IPC 的 100MB）
         const MAX_WRITE_SIZE = 100 * 1024 * 1024;
         if (buffer.length > MAX_WRITE_SIZE) {
-          return { success: false, error: "File too large" };
+          logger.warn("[File HTTP] write rejected oversized buffer", { size: buffer.length, max: MAX_WRITE_SIZE });
+          return { success: false, error: FILE_ERRORS.FILE_TOO_LARGE };
         }
         await fsp.writeFile(filePath, buffer);
         return { success: true };
@@ -510,7 +570,7 @@ export const fileRoutes: Record<string, Route> = {
       try {
         const resolvedPath = path.resolve(body.dirPath);
         if (!(await isPathAllowed(resolvedPath))) {
-          return { success: false, error: "Path not allowed" };
+          return { success: false, error: FILE_ERRORS.PATH_NOT_ALLOWED };
         }
         const statfs = await fsp.statfs(resolvedPath);
         return {

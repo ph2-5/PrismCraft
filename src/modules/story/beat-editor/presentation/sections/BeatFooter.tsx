@@ -1,6 +1,5 @@
-import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
-import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants";
 
 interface BeatFooterProps {
@@ -9,34 +8,34 @@ interface BeatFooterProps {
 }
 
 export function BeatFooter({ onDeleteBeat, onClose }: BeatFooterProps) {
-  const { confirm: confirmDialog, ConfirmDialogComponent } = useConfirmDialog();
+  const handleDeleteClick = async () => {
+    try {
+      const confirmed = await confirm({
+        title: t("beat.deleteBeatTitle"),
+        description: t("beat.deleteBeatDesc"),
+        confirmText: t("common.delete"),
+        variant: "danger",
+      });
+      if (confirmed) onDeleteBeat();
+    } catch (err) {
+      errorLogger.warn("[BeatDetailEditor] confirm dialog error", err);
+    }
+  };
 
   return (
     <>
       <div className="border-t border-border p-5 flex items-center justify-between bg-muted/20 shrink-0">
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => {
-            confirmDialog({
-              title: t("beat.deleteBeatTitle"),
-              description: t("beat.deleteBeatDesc"),
-              confirmText: t("common.delete"),
-              variant: "danger",
-            }).then((confirmed) => {
-              if (confirmed) onDeleteBeat();
-            }).catch((err) => {
-              errorLogger.warn("[BeatDetailEditor] confirm dialog error", err);
-            });
-          }}
+        <button
+          type="button"
+          className="btn btn-danger btn-sm"
+          onClick={handleDeleteClick}
         >
           {t("beat.deleteBeatButton")}
-        </Button>
-        <Button variant="outline" size="sm" onClick={onClose}>
+        </button>
+        <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>
           {t("common.close")}
-        </Button>
+        </button>
       </div>
-      {ConfirmDialogComponent}
     </>
   );
 }

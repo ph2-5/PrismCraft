@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  getProviderInfo,
-  buildTrackingInfo,
+  getProviderInfoByProviderId,
+  buildTrackingInfoByProviderId,
   copyTrackingInfoToClipboard,
   openTaskQueryLink,
 } from "../video-tracker";
 import type { TrackingInfo } from "../video-tracker";
 
 describe("video-tracker", () => {
-  describe("getProviderInfo", () => {
+  describe("getProviderInfoByProviderId", () => {
     it("应返回已知 provider 的配置", () => {
-      const kling = getProviderInfo("kling");
+      const kling = getProviderInfoByProviderId("kling");
       expect(kling).toBeDefined();
       expect(kling?.name).toBe("可灵 (Kling)");
       expect(kling?.id).toBe("kling");
@@ -20,22 +20,22 @@ describe("video-tracker", () => {
     it("应返回所有已知 provider", () => {
       const providers = ["kling", "minimax", "jimeng", "vidu", "luma", "runway"];
       for (const id of providers) {
-        expect(getProviderInfo(id)).toBeDefined();
+        expect(getProviderInfoByProviderId(id)).toBeDefined();
       }
     });
 
     it("未知 provider 应返回 undefined", () => {
-      expect(getProviderInfo("unknown_provider")).toBeUndefined();
+      expect(getProviderInfoByProviderId("unknown_provider")).toBeUndefined();
     });
 
     it("空字符串应返回 undefined", () => {
-      expect(getProviderInfo("")).toBeUndefined();
+      expect(getProviderInfoByProviderId("")).toBeUndefined();
     });
   });
 
-  describe("buildTrackingInfo", () => {
+  describe("buildTrackingInfoByProviderId", () => {
     it("有 providerId 时应构建完整信息", () => {
-      const info = buildTrackingInfo("task-123", "https://api.example.com", "kling", "v1");
+      const info = buildTrackingInfoByProviderId("task-123", "https://api.example.com", "kling", "v1");
       expect(info.providerName).toBe("可灵 (Kling)");
       expect(info.model).toBe("v1");
       expect(info.apiUrl).toBe("https://api.example.com");
@@ -45,17 +45,17 @@ describe("video-tracker", () => {
     });
 
     it("有 statusQueryUrl 的 provider 应生成查询端点", () => {
-      const info = buildTrackingInfo("task-456", undefined, "kling");
+      const info = buildTrackingInfoByProviderId("task-456", undefined, "kling");
       expect(info.queryEndpoint).toBe("https://platform.klingai.com/task?taskId=task-456");
     });
 
     it("无 statusQueryUrl 的 provider 不应生成查询端点", () => {
-      const info = buildTrackingInfo("task-789", undefined, "jimeng");
+      const info = buildTrackingInfoByProviderId("task-789", undefined, "jimeng");
       expect(info.queryEndpoint).toBeUndefined();
     });
 
     it("无 providerId 时应使用默认值", () => {
-      const info = buildTrackingInfo("task-001", "https://api.example.com");
+      const info = buildTrackingInfoByProviderId("task-001", "https://api.example.com");
       expect(info.providerName).toBeUndefined();
       expect(info.model).toBeUndefined();
       expect(info.apiUrl).toBe("https://api.example.com");
@@ -65,13 +65,13 @@ describe("video-tracker", () => {
     });
 
     it("未知 providerId 应使用默认 howToCheck", () => {
-      const info = buildTrackingInfo("task-002", undefined, "nonexistent");
+      const info = buildTrackingInfoByProviderId("task-002", undefined, "nonexistent");
       expect(info.providerName).toBeUndefined();
       expect(info.howToCheck).toBe("请联系服务商获取任务状态查询方式");
     });
 
     it("所有参数为空时仍应返回有效结构", () => {
-      const info = buildTrackingInfo("task-003");
+      const info = buildTrackingInfoByProviderId("task-003");
       expect(info.providerName).toBeUndefined();
       expect(info.model).toBeUndefined();
       expect(info.apiUrl).toBeUndefined();

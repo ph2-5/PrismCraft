@@ -1,8 +1,7 @@
+import { useState } from "react";
 import { t } from "@/shared/constants/messages";
-import { Button } from "@/shared/ui/button";
-import { Progress } from "@/shared/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
-import { ErrorDisplay, LoadingState } from "@/shared/ui/feedback";
+import { cn } from "@/shared/utils/utils";
+import { Tabs } from "@/shared/presentation/Tabs";
 import type { BatchTask } from "@/domain/schemas";
 import {
   Wand2,
@@ -57,40 +56,73 @@ export function BatchProgressDialog({
   onViewModeChange,
   onRetryGlobalError,
 }: BatchProgressDialogProps) {
+  const [tabValue, setTabValue] = useState("all");
+
   return (
     <div className="space-y-4">
       {globalError && (
-        <ErrorDisplay
-          error={globalError}
-          onRetry={onRetryGlobalError}
-          className="mb-4"
-        />
+        <div
+          className="rounded-lg border p-4 mb-4"
+          style={{ background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)" }}
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 mt-0.5" style={{ color: "#ef4444" }} />
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium" style={{ color: "#ef4444" }}>{globalError}</h4>
+              <button
+                type="button"
+                onClick={onRetryGlobalError}
+                className="mt-3 text-sm font-medium underline hover:opacity-80"
+                style={{ color: "#ef4444" }}
+              >
+                {t("common.retry")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {isGenerating && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div
+            className="flex items-center justify-between"
+            role="status"
+            aria-live="polite"
+          >
             <span className="text-sm text-muted-foreground">
               {t("asset.overallProgress", { completed: completedCount, total: tasks.length })}
             </span>
             <span className="text-sm font-medium">{overallProgress}%</span>
           </div>
-          <Progress value={overallProgress} className="h-2" />
+          <div
+            className="progress-bar h-2"
+            role="progressbar"
+            aria-label={t("common.generating")}
+            aria-valuenow={overallProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div className="progress-fill" style={{ width: `${overallProgress}%` }} />
+          </div>
         </div>
       )}
 
       {tasks.length > 0 && (
-        <div className="flex items-center gap-4 text-sm">
+        <div
+          className="flex items-center gap-4 text-sm"
+          role="status"
+          aria-live="polite"
+        >
           <span className="flex items-center gap-1">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-success" />
             {t("asset.completedCount", { count: completedCount })}
           </span>
           <span className="flex items-center gap-1">
-            <AlertCircle className="h-4 w-4 text-red-500" />
+            <AlertCircle className="h-4 w-4 text-destructive" />
             {t("asset.failedCount", { count: failedCount })}
           </span>
           <span className="flex items-center gap-1">
-            <Loader2 className="h-4 w-4 text-blue-500" />
+            <Loader2 className="h-4 w-4 text-primary" />
             {t("asset.pendingCount", { count: pendingCount })}
           </span>
         </div>
@@ -98,101 +130,112 @@ export function BatchProgressDialog({
 
       <div className="flex items-center gap-2">
         {!isGenerating ? (
-          <Button
+          <button
+            type="button"
+            className="btn btn-primary gap-2"
             onClick={onStartGeneration}
             disabled={!hasItems}
-            className="gap-2"
           >
             <Wand2 className="h-4 w-4" />
             {t("asset.startBatch")}
-          </Button>
+          </button>
         ) : (
-          <Button variant="destructive" onClick={onCancelGeneration} className="gap-2">
+          <button type="button" className="btn btn-danger gap-2" onClick={onCancelGeneration}>
             <X className="h-4 w-4" />
             {t("asset.cancelBatch")}
-          </Button>
+          </button>
         )}
 
         {failedCount > 0 && !isGenerating && (
-          <Button variant="outline" onClick={onRetryFailed} className="gap-2">
+          <button type="button" className="btn btn-outline gap-2" onClick={onRetryFailed}>
             <RefreshCw className="h-4 w-4" />
             {t("asset.retryFailed")}
-          </Button>
+          </button>
         )}
 
         {completedCount > 0 && !isGenerating && (
           <>
-            <Button variant="outline" onClick={onDownloadAll} className="gap-2">
+            <button type="button" className="btn btn-outline gap-2" onClick={onDownloadAll}>
               <Download className="h-4 w-4" />
               {t("asset.downloadAll")}
-            </Button>
+            </button>
             {selectedResults.size > 0 && (
-              <Button onClick={onSaveSelected} className="gap-2">
+              <button type="button" className="btn btn-primary gap-2" onClick={onSaveSelected}>
                 <CheckCircle2 className="h-4 w-4" />
                 {t("asset.saveSelected", { count: selectedResults.size })}
-              </Button>
+              </button>
             )}
           </>
         )}
 
         {tasks.length > 0 && (
           <div className="ml-auto flex items-center gap-1 border rounded-lg p-1">
-            <Button
-              variant={viewMode === "grid" ? "secondary" : "ghost"}
-              size="sm"
+            <button
+              type="button"
+              className={cn("btn btn-sm", viewMode === "grid" ? "btn-outline" : "btn-ghost")}
               onClick={() => onViewModeChange("grid")}
             >
               <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="sm"
+            </button>
+            <button
+              type="button"
+              className={cn("btn btn-sm", viewMode === "list" ? "btn-outline" : "btn-ghost")}
               onClick={() => onViewModeChange("list")}
             >
               <List className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
         )}
       </div>
 
       {tasks.length > 0 && (
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList>
-            <TabsTrigger value="all">{t("batch.tabAll", { count: tasks.length })}</TabsTrigger>
-            <TabsTrigger value="completed">{t("batch.tabCompleted", { count: completedCount })}</TabsTrigger>
-            <TabsTrigger value="failed">{t("batch.tabFailed", { count: failedCount })}</TabsTrigger>
-          </TabsList>
+        <div className="w-full">
+          <Tabs
+            tabs={[
+              { id: "all", label: t("batch.tabAll", { count: tasks.length }) },
+              { id: "completed", label: t("batch.tabCompleted", { count: completedCount }) },
+              { id: "failed", label: t("batch.tabFailed", { count: failedCount }) },
+            ]}
+            activeTab={tabValue}
+            onChange={setTabValue}
+          />
 
-          <TabsContent value="all" className="mt-4">
-            <TaskGrid
-              tasks={tasks}
-              viewMode={viewMode}
-              selectedResults={selectedResults}
-              onToggleSelection={onToggleResultSelection}
-              isGenerating={isGenerating}
-            />
-          </TabsContent>
+          {tabValue === "all" && (
+            <div className="mt-4">
+              <TaskGrid
+                tasks={tasks}
+                viewMode={viewMode}
+                selectedResults={selectedResults}
+                onToggleSelection={onToggleResultSelection}
+                isGenerating={isGenerating}
+              />
+            </div>
+          )}
 
-          <TabsContent value="completed" className="mt-4">
-            <TaskGrid
-              tasks={tasks.filter((t) => t.status === "completed")}
-              viewMode={viewMode}
-              selectedResults={selectedResults}
-              onToggleSelection={onToggleResultSelection}
-              isGenerating={isGenerating}
-            />
-          </TabsContent>
+          {tabValue === "completed" && (
+            <div className="mt-4">
+              <TaskGrid
+                tasks={tasks.filter((t) => t.status === "completed")}
+                viewMode={viewMode}
+                selectedResults={selectedResults}
+                onToggleSelection={onToggleResultSelection}
+                isGenerating={isGenerating}
+              />
+            </div>
+          )}
 
-          <TabsContent value="failed" className="mt-4">
-            <TaskGrid
-              tasks={tasks.filter((t) => t.status === "failed")}
-              viewMode={viewMode}
-              selectedResults={selectedResults}
-              onToggleSelection={onToggleResultSelection}
-              isGenerating={isGenerating}
-            />
-          </TabsContent>
-        </Tabs>
+          {tabValue === "failed" && (
+            <div className="mt-4">
+              <TaskGrid
+                tasks={tasks.filter((t) => t.status === "failed")}
+                viewMode={viewMode}
+                selectedResults={selectedResults}
+                onToggleSelection={onToggleResultSelection}
+                isGenerating={isGenerating}
+              />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -255,16 +298,16 @@ interface TaskCardProps {
 
 function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCardProps) {
   const statusColors = {
-    pending: "bg-gray-100",
-    generating: "bg-blue-50",
-    completed: "bg-green-50",
-    failed: "bg-red-50",
+    pending: "bg-muted",
+    generating: "bg-primary/10",
+    completed: "bg-success/10",
+    failed: "bg-destructive/10",
   };
 
   return (
     <div
       className={`relative rounded-lg border-2 p-3 transition-all ${
-        isSelected ? "border-blue-500" : "border-transparent"
+        isSelected ? "border-primary" : "border-transparent"
       } ${statusColors[task.status]}`}
       onClick={task.status === "completed" && !isGenerating ? onToggleSelection : undefined}
     >
@@ -277,19 +320,22 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
       )}
 
       {task.status === "generating" && (
-        <div className="w-full h-32 flex items-center justify-center bg-gray-100 rounded mb-2">
-          <LoadingState message={t("common.generating")} />
+        <div className="w-full h-32 flex items-center justify-center bg-muted rounded mb-2">
+          <div className="flex flex-col items-center justify-center p-8">
+            <div className="h-12 w-12 rounded-full border-4 border-border border-t-primary animate-spin" />
+            <p className="mt-4 text-muted-foreground font-medium">{t("common.generating")}</p>
+          </div>
         </div>
       )}
 
       {task.status === "failed" && (
-        <div className="w-full h-32 flex items-center justify-center bg-red-50 rounded mb-2 text-red-500">
+        <div className="w-full h-32 flex items-center justify-center bg-destructive/10 rounded mb-2 text-destructive">
           <AlertCircle className="h-8 w-8" />
         </div>
       )}
 
       {task.status === "pending" && (
-        <div className="w-full h-32 flex items-center justify-center bg-gray-100 rounded mb-2 text-gray-400">
+        <div className="w-full h-32 flex items-center justify-center bg-muted rounded mb-2 text-muted-foreground">
           {t("common.pending")}...
         </div>
       )}
@@ -297,15 +343,24 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
       <div className="text-sm font-medium truncate">{task.itemName}</div>
 
       {task.status === "generating" && (
-        <Progress value={task.progress} className="h-1 mt-2" />
+        <div
+          className="progress-bar h-1 mt-2"
+          role="progressbar"
+          aria-label={t("common.generating")}
+          aria-valuenow={task.progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div className="progress-fill" style={{ width: `${task.progress}%` }} />
+        </div>
       )}
 
       {task.status === "failed" && task.error && (
-        <div className="text-xs text-red-500 mt-1 truncate">{task.error}</div>
+        <div className="text-xs text-destructive mt-1 truncate">{task.error}</div>
       )}
 
       {isSelected && (
-        <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+        <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
           <CheckCircle2 className="h-3 w-3" />
         </div>
       )}
@@ -317,16 +372,16 @@ type TaskListItemProps = TaskCardProps;
 
 function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: TaskListItemProps) {
   const statusIcons = {
-    pending: <Loader2 className="h-4 w-4 text-gray-400" />,
-    generating: <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />,
-    completed: <CheckCircle2 className="h-4 w-4 text-green-500" />,
-    failed: <AlertCircle className="h-4 w-4 text-red-500" />,
+    pending: <Loader2 className="h-4 w-4 text-muted-foreground" />,
+    generating: <Loader2 className="h-4 w-4 text-primary animate-spin" />,
+    completed: <CheckCircle2 className="h-4 w-4 text-success" />,
+    failed: <AlertCircle className="h-4 w-4 text-destructive" />,
   };
 
   return (
     <div
       className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-        isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
+        isSelected ? "border-primary bg-primary/10" : "border-border"
       }`}
       onClick={task.status === "completed" && !isGenerating ? onToggleSelection : undefined}
     >
@@ -343,14 +398,23 @@ function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: Tas
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{task.itemName}</div>
         {task.status === "generating" && (
-          <Progress value={task.progress} className="h-1 mt-1" />
+          <div
+            className="progress-bar h-1 mt-1"
+            role="progressbar"
+            aria-label={t("common.generating")}
+            aria-valuenow={task.progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div className="progress-fill" style={{ width: `${task.progress}%` }} />
+          </div>
         )}
         {task.status === "failed" && task.error && (
-          <div className="text-xs text-red-500 truncate">{task.error}</div>
+          <div className="text-xs text-destructive truncate">{task.error}</div>
         )}
       </div>
 
-      {isSelected && <CheckCircle2 className="h-4 w-4 text-blue-500" />}
+      {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
     </div>
   );
 }

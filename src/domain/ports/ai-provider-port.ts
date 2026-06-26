@@ -101,6 +101,13 @@ export interface IVideoProvider {
     format?: string;
     referenceVideo?: string | null;
   }): Promise<ApiResponse<VideoGenerationResult>>;
+
+  /**
+   * Best-effort server-side task cancellation.
+   * Implementations that support cancellation SHOULD override this;
+   * callers treat failure as non-fatal (best-effort).
+   */
+  cancelTask?(taskId: string): Promise<void>;
 }
 
 export interface IImageProvider {

@@ -14,6 +14,7 @@
 | ★☆☆ | [ports.md](ports.md) | Port 接口清单（16 个 Port） | 新增/修改 Port 时 |
 | ★☆☆ | [di-tokens.md](di-tokens.md) | DI 容器 Token 参考 | 新增/修改 DI Token 时 |
 | ★☆☆ | [CODE_CATALOG.md](CODE_CATALOG.md) | 完整代码目录与文件说明 | 定位文件时 |
+| ★☆☆ | [API_REFERENCE.md](API_REFERENCE.md)（含 [PART1](API_REFERENCE_PART1.md)~[PART4](API_REFERENCE_PART4.md)） | React Hooks/组件/Store/服务 API 参考（分 5 部分） | 查阅模块 API 时 |
 
 ## AI 维护规则（.trae/rules/，仅本地）
 
@@ -23,7 +24,7 @@
 | `architecture-rules.md` | 依赖方向、模块结构、DI 容器、API 路由、CQRS | 新功能/重构 |
 | `testing-rules.md` | 测试位置、模板、Mock 策略、覆盖率要求 | 编写测试时 |
 | `regression-guard-automation.md` | Q1-Q5 回归防护决策框架 | Bug 修复时 |
-| `regression/`: `async-safety.md`, `data-consistency.md`, `engineering.md`, `error-handling.md`, `platform.md`, `system-security.md`, `ui-robustness.md`, `user-safety.md` | 142 条回归守则（R1-R142），8 大类 | Bug 修复/代码审查 |
+| `regression/`: `async-safety.md`, `data-consistency.md`, `engineering.md`, `error-handling.md`, `platform.md`, `system-security.md`, `ui-robustness.md`, `user-safety.md` | 165+ 条回归守则（R1-R165），8 大类 | Bug 修复/代码审查 |
 | `ai-tool-integration.md` | AI 工具集成指南（防幻觉、会话管理） | 优化 AI 工作流 |
 
 ## 专项文档

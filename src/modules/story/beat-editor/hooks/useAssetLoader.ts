@@ -36,11 +36,13 @@ export function useAssetLoader(services: AssetLoaderServices) {
     let cancelled = false;
     const loadData = async () => {
       try {
-        const charsResult = await services.getAllCharacters();
-        const scnsResult = await services.getAllScenes();
+        const [charsResult, scnsResult, sbAssets] = await Promise.all([
+          services.getAllCharacters(),
+          services.getAllScenes(),
+          services.getStoryboardAssets(),
+        ]);
         const chars = charsResult.ok ? charsResult.value || [] : [];
         const scns = scnsResult.ok ? scnsResult.value || [] : [];
-        const sbAssets = await services.getStoryboardAssets();
 
         const determineAssetType = (url?: string): "image" | "video" => {
           if (!url) return "image";

@@ -3,7 +3,7 @@ import type { StoryBeat, ChainMode } from "@/domain/schemas";
 import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
-import { t } from "@/shared/constants";
+import { t, BATCH_OPERATION_INTERVAL_MS } from "@/shared/constants";
 
 export type BatchStrategy = "all_serial" | "skip_completed" | "parallel_batch";
 export type GenerationLevel = "keyframe" | "framepair" | "video";
@@ -170,7 +170,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         if (cancelledRef.current) break;
 
         if (!shouldSkipDelay && i < targetBeats.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, BATCH_OPERATION_INTERVAL_MS));
         }
       }
 
@@ -266,7 +266,7 @@ export function useBatchGenerator(props: UseBatchGeneratorProps) {
         if (cancelledRef.current) break;
 
         if (!shouldSkipDelay && i < targetBeats.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, BATCH_OPERATION_INTERVAL_MS));
         }
       }
 

@@ -2,18 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-vi.mock("@/shared/ui/badge", () => ({
-  Badge: ({ children, variant, className }: { children: React.ReactNode; variant?: string; className?: string }) => (
-    <span data-testid="badge" data-variant={variant} className={className}>{children}</span>
-  ),
-}));
-
-vi.mock("@/shared/ui/button", () => ({
-  Button: ({ children, onClick, variant, size }: { children: React.ReactNode; onClick?: (e: React.MouseEvent) => void; variant?: string; size?: string }) => (
-    <button onClick={onClick} data-variant={variant} data-size={size}>{children}</button>
-  ),
-}));
-
 vi.mock("@/shared/constants", () => ({
   t: (key: string, params?: Record<string, unknown>) => {
     if (params) return `${key}:${JSON.stringify(params)}`;

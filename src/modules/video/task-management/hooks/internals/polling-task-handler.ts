@@ -2,7 +2,7 @@ import type { VideoTask } from "@/domain/schemas";
 import { TaskMachine, mapApiStatus, isValidTransition } from "../../domain";
 import { container } from "@/infrastructure/di";
 import { cacheVideoBlob } from "@/modules/video/cache";
-import { saveVideoTask } from "@/modules/video/recovery";
+import { persistVideoTask } from "./persist-task";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
@@ -119,6 +119,12 @@ const NETWORK_ERROR_PATTERNS = [
   /ERR_ADDRESS_UNREACHABLE/i, /ERR_NETWORK_CHANGED/i,
 ];
 
+/**
+ * Exported so the manual-poll path (pollTaskShared) can reuse the same
+ * network-error detection as the auto-poll path (handlePollException).
+ */
+export { NETWORK_ERROR_PATTERNS };
+
 function isNetworkError(error: unknown): boolean {
   if (error instanceof TypeError && error.message.includes("fetch")) return true;
   if (error instanceof Error) {
@@ -161,38 +167,20 @@ async function handlePollException(
       message: t("task.queryExceptionProgress", { current: failCount, max: MAX_POLL_FAILURES }),
     });
   }
-  try {
-    const pollSaveResult = await saveVideoTask({
-      taskId: task.taskId,
+  await persistVideoTask(
+    {
+      ...task,
       status: failCount >= MAX_POLL_FAILURES ? "timeout" : task.status,
-      progress: task.progress,
-      videoUrl: task.videoUrl,
       message: failCount >= MAX_POLL_FAILURES
         ? t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES })
         : task.message,
-      createdAt: task.createdAt,
-      model: task.model,
-      prompt: task.prompt,
-      parameters: task.parameters,
-      apiUrl: task.apiUrl,
-      apiEndpoint: task.apiEndpoint,
-      providerId: task.providerId,
-      providerModelId: task.providerModelId,
-      providerFormat: task.providerFormat,
-      fixedImageUrl: task.fixedImageUrl,
-      fixedImageLockType: task.fixedImageLockType,
-      storyId: task.storyId,
-      storyTitle: task.storyTitle,
-      beatId: task.beatId,
-      beatTitle: task.beatTitle,
       pollFailureCount: failCount >= MAX_POLL_FAILURES ? 0 : failCount,
-    });
-    if (!pollSaveResult.ok) {
-      errorLogger.error("[VideoTaskManager] Failed to save poll failure", pollSaveResult.error);
-    }
-  } catch (saveError) {
-    errorLogger.error("[VideoTaskManager] Failed to save poll failure", saveError);
-  }
+    },
+    {
+      logLevel: "error",
+      logLabel: "Failed to save poll failure",
+    },
+  );
   errorLogger.warn(
     `[VideoTaskManager] Poll failed for ${task.taskId} (attempt ${failCount}/${MAX_POLL_FAILURES})`,
     error,
@@ -225,7 +213,7 @@ async function pollSingleTask(
         const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
         emitToast("success", t("task.videoGenerated"), t("task.videoSavingLocal", { label: taskLabel }));
       }
-      const mappedStatus = mapApiStatus(pollResp.data.status || "failed", pollResp.data.videoUrl);
+      const mappedStatus = mapApiStatus(pollResp.data.status || "generating", pollResp.data.videoUrl);
       if (!isValidTransition(task.status, mappedStatus)) {
         errorLogger.warn(
           { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=${mappedStatus}` },
@@ -246,36 +234,20 @@ async function pollSingleTask(
       // 立即持久化已获取的 videoUrl，不依赖 2s 去抖同步
       // 防止应用崩溃/被杀时 videoUrl 丢失导致 token 浪费
       if (justCompleted && pollResp.data.videoUrl) {
-        try {
-          const persistResult = await saveVideoTask({
-            taskId: task.taskId,
+        await persistVideoTask(
+          {
+            ...task,
             status: mappedStatus,
             progress: pollResp.data.progress || task.progress,
             videoUrl: pollResp.data.videoUrl,
             message: pollResp.data.message || task.message,
-            createdAt: task.createdAt,
-            model: task.model,
-            prompt: task.prompt,
-            parameters: task.parameters,
-            apiUrl: task.apiUrl,
-            apiEndpoint: task.apiEndpoint,
-            providerId: task.providerId,
-            providerModelId: task.providerModelId,
-            providerFormat: task.providerFormat,
-            fixedImageUrl: task.fixedImageUrl,
-            fixedImageLockType: task.fixedImageLockType,
-            storyId: task.storyId,
-            storyTitle: task.storyTitle,
-            beatId: task.beatId,
-            beatTitle: task.beatTitle,
             pollFailureCount: 0,
-          });
-          if (!persistResult.ok) {
-            errorLogger.error(`[VideoTaskManager] Failed to persist videoUrl for ${task.taskId}`, persistResult.error);
-          }
-        } catch (persistError) {
-          errorLogger.error(`[VideoTaskManager] Exception persisting videoUrl for ${task.taskId}`, persistError);
-        }
+          },
+          {
+            logLevel: "error",
+            logLabel: `Failed to persist videoUrl for ${task.taskId}`,
+          },
+        );
       }
     } else {
       const apiErrorMsg = pollResp.error || t("task.apiReturnFailed");
@@ -303,38 +275,20 @@ async function pollSingleTask(
           const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
           emitToast("warning", t("task.queryFailRecoverableLabel", { label: taskLabel }), t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }));
         }
-        try {
-          const pollSaveResult = await saveVideoTask({
-            taskId: task.taskId,
+        await persistVideoTask(
+          {
+            ...task,
             status: failCount >= MAX_POLL_FAILURES ? "timeout" : task.status,
-            progress: task.progress,
-            videoUrl: task.videoUrl,
             message: failCount >= MAX_POLL_FAILURES
               ? t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES })
               : task.message,
-            createdAt: task.createdAt,
-            model: task.model,
-            prompt: task.prompt,
-            parameters: task.parameters,
-            apiUrl: task.apiUrl,
-            apiEndpoint: task.apiEndpoint,
-            providerId: task.providerId,
-            providerModelId: task.providerModelId,
-            providerFormat: task.providerFormat,
-            fixedImageUrl: task.fixedImageUrl,
-            fixedImageLockType: task.fixedImageLockType,
-            storyId: task.storyId,
-            storyTitle: task.storyTitle,
-            beatId: task.beatId,
-            beatTitle: task.beatTitle,
             pollFailureCount: failCount >= MAX_POLL_FAILURES ? 0 : failCount,
-          });
-          if (!pollSaveResult.ok) {
-            errorLogger.error("[VideoTaskManager] Failed to save non-retryable poll failure", pollSaveResult.error);
-          }
-        } catch (saveError) {
-          errorLogger.error("[VideoTaskManager] Failed to save non-retryable poll failure", saveError);
-        }
+          },
+          {
+            logLevel: "error",
+            logLabel: "Failed to save non-retryable poll failure",
+          },
+        );
       }
     }
   } catch (error) {

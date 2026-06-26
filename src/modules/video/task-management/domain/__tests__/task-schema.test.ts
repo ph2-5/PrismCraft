@@ -71,14 +71,18 @@ describe("task-schema", () => {
       expect(mapApiStatus("error")).toBe("failed");
     });
 
-    it("should map cancelled to failed", () => {
-      expect(mapApiStatus("cancelled")).toBe("failed");
+    it("should map cancelled to cancelled (not failed)", () => {
+      // M2 fix: cancelled 是用户主动取消，应映射为 cancelled 终态而非 failed。
+      // 之前映射为 failed 会让恢复服务误判为可重试，导致已取消任务被自动重试。
+      expect(mapApiStatus("cancelled")).toBe("cancelled");
     });
 
-    it("should default to failed for unknown statuses", () => {
-      expect(mapApiStatus("unknown")).toBe("failed");
-      expect(mapApiStatus("")).toBe("failed");
-      expect(mapApiStatus("random_string")).toBe("failed");
+    it("should default to generating for unknown statuses", () => {
+      // H1 fix: 未知 Provider 状态字符串（如 rendering/converting/moderating）
+      // 必须降级为 generating，让轮询继续，而不是误判为 failed（假失败）。
+      expect(mapApiStatus("unknown")).toBe("generating");
+      expect(mapApiStatus("")).toBe("generating");
+      expect(mapApiStatus("random_string")).toBe("generating");
     });
 
     it("should be case-insensitive", () => {
@@ -89,9 +93,11 @@ describe("task-schema", () => {
 
     it("should not override non-completed statuses with videoUrl", () => {
       expect(mapApiStatus("failed", "https://example.com/video.mp4")).toBe("failed");
-      expect(mapApiStatus("unknown", "https://example.com/video.mp4")).toBe("failed");
+      // H1 fix: unknown 现在降级为 generating（不是 failed），即使附带 videoUrl 也不应改变。
+      expect(mapApiStatus("unknown", "https://example.com/video.mp4")).toBe("generating");
       expect(mapApiStatus("error", "https://example.com/video.mp4")).toBe("failed");
-      expect(mapApiStatus("cancelled", "https://example.com/video.mp4")).toBe("failed");
+      // M2 fix: cancelled 映射为 cancelled，videoUrl 不应改变它。
+      expect(mapApiStatus("cancelled", "https://example.com/video.mp4")).toBe("cancelled");
       expect(mapApiStatus("pending", "https://example.com/video.mp4")).toBe("pending");
       expect(mapApiStatus("processing", "https://example.com/video.mp4")).toBe("generating");
     });
@@ -110,13 +116,15 @@ describe("task-schema", () => {
 
     it("should not treat empty string videoUrl as present", () => {
       expect(mapApiStatus("failed", "")).toBe("failed");
-      expect(mapApiStatus("unknown", "")).toBe("failed");
+      // H1 fix: unknown 降级为 generating（不带 videoUrl 时也如此）。
+      expect(mapApiStatus("unknown", "")).toBe("generating");
     });
 
     it("should fall back to status mapping when videoUrl is absent", () => {
       expect(mapApiStatus("completed")).toBe("generating");
       expect(mapApiStatus("failed")).toBe("failed");
-      expect(mapApiStatus("unknown")).toBe("failed");
+      // H1 fix: unknown 降级为 generating，避免假失败。
+      expect(mapApiStatus("unknown")).toBe("generating");
     });
   });
 });

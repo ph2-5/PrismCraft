@@ -2046,6 +2046,9 @@ const handleDismiss = async () => {
 
 ### R71: Route Navigation MUST Intercept When Dirty State Exists
 
+> **注：自 2026-06 起产品决定路由切换不再弹窗，由 autosave + beforeunload 兜底。此规则已废弃。**
+> **`useNavigationGuard` 已移除 `useBlocker` + `confirm` 路由拦截，`guardedPush` 直接 `navigate(href)` 且不清脏状态（R64 约束）。仅保留 `BeforeUnloadGuard` 的 `beforeunload` 监听（程序关闭时浏览器原生提示）。保留以下规则文本作为历史记录。**
+
 When a user has unsaved changes (dirty state), the application MUST intercept all navigation events — including browser back/forward buttons, not just programmatic navigation via `guardedPush`. Using `useBlocker` from react-router-dom ensures that browser-initiated navigation is also caught and confirmed.
 
 **BAD** — Only programmatic navigation is guarded:
@@ -3462,3 +3465,1206 @@ export function closeDatabase() {
 **Verification**: Spy on `clearTimeout`/`clearInterval`. Call `closeDatabase`. Verify all 4 timers cleared. Call `startScheduledBackup` twice. Verify only one timer created.
 
 **Discovered in**: Database lifecycle audit found startup timers not cleared on close, causing backup to fire after shutdown. Test: `electron/src/database/__tests__/regression-r130-timer-cleanup-on-close.test.ts`.
+
+### R131: PageErrorBoundary.getDerivedStateFromError MUST Be Single-Argument
+
+`getDerivedStateFromError` in `src/shared/presentation/PageErrorBoundary.tsx` MUST accept only a single `error` parameter. The `errorCount` accumulation MUST happen in `componentDidCatch` via `this.setState((prev) => ({ errorCount: prev.errorCount + 1 }))`, NOT in `getDerivedStateFromError`. React only passes `error` to `getDerivedStateFromError` — any second parameter (e.g., `prev`) will always be `undefined`, so reading `prev.errorCount` there would never accumulate.
+
+**BAD** — Two-parameter signature, errorCount never increments:
+```typescript
+public static getDerivedStateFromError(error: Error, prev: State): Partial<State> {
+  // ❌ React only passes `error`, so `prev` is always undefined
+  return { hasError: true, error, errorCount: (prev?.errorCount ?? 0) + 1 };
+}
+```
+
+**GOOD** — Single-argument, accumulate in componentDidCatch:
+```typescript
+public static getDerivedStateFromError(error: Error): Partial<State> {
+  // ✅ Only return hasError + error; do not touch errorCount here
+  return { hasError: true, error };
+}
+
+public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  // ✅ errorCount accumulated here using functional setState
+  this.setState((prev) => ({ errorCount: prev.errorCount + 1 }));
+  errorLogger.error(...);
+}
+```
+
+**Verification**: Check `getDerivedStateFromError.length === 1`. Trigger multiple errors (with retry in between). Verify `errorCount` increments by 1 each time and `canRetry` flips to `false` once `errorCount >= MAX_RETRY_ATTEMPTS`.
+
+**Discovered in**: P0 fix audit found `getDerivedStateFromError(error, prev)` accepting two parameters, but React only passes `error`, causing `errorCount` to never accumulate and `canRetry` to stay `true` forever. Test: `src/shared/presentation/__tests__/regression-r131-error-boundary-error-count.test.tsx`.
+
+### R132: VideoTasksPage Filter and Refresh MUST Be Wired Up
+
+`useVideoTasksPage` in `src/app/video-tasks/hooks/useVideoTasksPage.ts` MUST expose a working `statusFilter` state, `setStatusFilter` setter, `filteredTasks` (filtered by `statusFilter`), and `handleRefresh` (calls `window.location.reload()`). The `<select>` element MUST bind `value={statusFilter}` and `onChange={setStatusFilter}`. The refresh button MUST bind `onClick={handleRefresh}`.
+
+**BAD** — No state, no binding, refresh button dead:
+```typescript
+// ❌ No statusFilter state, no setter returned
+return { allTasks: tasks, /* no filter, no refresh */ };
+// In JSX:
+<select>...</select> // ❌ No value/onChange
+<button>刷新</button>  // ❌ No onClick
+```
+
+**GOOD** — State + filtering + refresh wired:
+```typescript
+const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+const filteredTasks = useMemo(() => {
+  if (statusFilter === "all") return tasks;
+  if (statusFilter === "processing") return tasks.filter(t => t.status === "generating" || t.status === "pending");
+  // ...
+}, [tasks, statusFilter]);
+const handleRefresh = () => { window.location.reload(); };
+return { allTasks: filteredTasks, statusFilter, setStatusFilter, handleRefresh, ... };
+```
+
+**Verification**: Render hook with mixed-status tasks. Verify `setStatusFilter("completed")` filters out non-completed tasks. Verify `handleRefresh` calls `window.location.reload()`. Verify all three (`statusFilter`, `setStatusFilter`, `handleRefresh`) are returned.
+
+**Discovered in**: P0 fix audit found VideoTasksPage `<select>` had no `value`/`onChange` binding and refresh button had no `onClick`, making both controls dead. Test: `src/app/video-tasks/hooks/__tests__/regression-r132-status-filter-and-refresh.test.ts`.
+
+### R133: AssetUploadSection Drag Handlers MUST Not Be Empty Stubs
+
+`AssetUploadSection` in `src/app/asset-library/AssetUploadSection.tsx` MUST actually handle `onDrop`, `onDragOver`, `onDragEnter`, `onDragLeave` events. Empty stub handlers (`() => {}`) are forbidden on the drop zone. The `onDrop` handler MUST either call `onDropFiles(files)` prop or fallback to setting `fileInputRef.current.files` and dispatching a `change` event. The drop zone MUST have `role="button"`, `tabIndex={0}`, and `onKeyDown` handling Enter/Space for keyboard accessibility.
+
+**BAD** — Empty drag handlers, no keyboard support:
+```typescript
+<div
+  onDrop={() => {}}        // ❌ Empty stub
+  onDragOver={() => {}}    // ❌ Empty stub
+  onDragEnter={() => {}}   // ❌ Empty stub
+  onDragLeave={() => {}}   // ❌ Empty stub
+>
+  拖拽文件到此处
+</div>
+```
+
+**GOOD** — Real handlers + keyboard support:
+```typescript
+const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  e.preventDefault();
+  setIsDragOver(false);
+  const files = e.dataTransfer.files;
+  if (files && files.length > 0) {
+    if (onDropFiles) onDropFiles(files);
+    else if (fileInputRef.current) {
+      // Fallback: transfer files to hidden input and dispatch change
+      const dt = new DataTransfer();
+      for (const f of files) dt.items.add(f);
+      fileInputRef.current.files = dt.files;
+      fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+};
+<div
+  onDrop={handleDrop}
+  onDragOver={(e) => e.preventDefault()}
+  onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
+  onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+  role="button"
+  tabIndex={0}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  }}
+>
+```
+
+**Verification**: Render with `visible={true}`. Fire `drop` event with files, verify `onDropFiles` called with `FileList`. Fire `dragEnter`/`dragLeave`, verify `borderColor` toggles between `"var(--primary)"` and default. Fire `keyDown` with Enter/Space, verify `fileInputRef.current.click()` called.
+
+**Discovered in**: P0 fix audit found drag handlers were empty stubs — users dragging files into the upload zone got no response. Test: `src/app/asset-library/__tests__/regression-r133-upload-drop-zone.test.tsx`.
+
+### R134: DeleteConfirmDialog MUST Disable Confirm When Entity Is Referenced
+
+`DeleteConfirmDialog` in `src/shared/presentation/DeleteConfirmDialog.tsx` MUST disable the confirm button when `referenceCheck.references.length > 0`. Deleting an entity that is still referenced by other elements would create dangling references. The button MUST also have a `title` attribute explaining why deletion is blocked.
+
+**BAD** — Confirm button always enabled:
+```typescript
+<button onClick={onConfirm}>  // ❌ No disabled check, user can delete referenced entity
+  {isDeleting ? "删除中" : "确认删除"}
+</button>
+```
+
+**GOOD** — Disable when referenced:
+```typescript
+<button
+  disabled={isDeleting || (referenceCheck?.references.length ?? 0) > 0}
+  onClick={onConfirm}
+  title={
+    (referenceCheck?.references.length ?? 0) > 0
+      ? t("delete.cannotDeleteReferenced", { entityLabel })
+      : undefined
+  }
+>
+```
+
+**Verification**: Render with `referenceCheck.references.length === 2`. Verify confirm button is disabled and has `title`. Click the disabled button — verify `onConfirm` is NOT called. Render with `references.length === 0`, verify button is enabled and `onConfirm` IS called on click.
+
+**Discovered in**: P0 fix audit found confirm button remained clickable even when the entity had active references, allowing users to delete referenced entities and create dangling references. Test: `src/shared/presentation/__tests__/regression-r134-delete-dialog-disable-on-referenced.test.tsx`.
+
+### R135: useBeatDetail MUST Subscribe via Zustand Selector, NOT Custom setInterval Polling
+
+`useBeatDetail` in `src/app/story/beat/$beatId/use-beat-detail.ts` MUST subscribe to the video task via `useVideoTaskStore((s) => s.allTasks.find((t) => t.beatId === beatId))` selector. The polling-engine is the single source of truth for task status updates. Custom `setInterval` polling in hooks is forbidden because it duplicates the polling-engine's work, wastes API quota, and can desynchronize from the store.
+
+**BAD** — Custom 5s setInterval, duplicates polling-engine:
+```typescript
+export function useBeatDetail() {
+  const [task, setTask] = useState<VideoTask>();
+  useEffect(() => {
+    const interval = setInterval(async () => {  // ❌ Duplicate polling
+      const result = await provider.getTask(beatId);
+      if (result.ok) setTask(result.value);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [beatId]);
+}
+```
+
+**GOOD** — Zustand selector subscription:
+```typescript
+export function useBeatDetail() {
+  // ✅ Subscribe to store; polling-engine updates the store, this re-renders
+  const task = useVideoTaskStore((s) => {
+    if (!beatId) return undefined;
+    return s.allTasks.find((t) => t.beatId === beatId);
+  });
+  // No setInterval — polling-engine owns the polling lifecycle
+}
+```
+
+**Verification**: Spy on `global.setInterval`. Render the hook with mocked `useVideoTaskStore`. Verify `setInterval` is NEVER called. Verify `useVideoTaskStore` is called with a selector function. Call the selector with a state containing matching `beatId` — verify it returns the right task.
+
+**Discovered in**: P0 fix audit found `useBeatDetail` ran a custom 5-second `setInterval` polling task status, duplicating polling-engine work and causing double API calls. Test: `src/app/story/beat/$beatId/__tests__/regression-r135-no-setinterval-polling.test.ts`.
+
+### R136: network-monitor MUST Defer Side Effects to startMonitoring()
+
+`src/infrastructure/network/network-monitor.ts` MUST NOT execute any top-level side effects during module load. Specifically, `window.__NETWORK_MONITOR_STATE__` MUST NOT be set, and `window.addEventListener("online"/"offline")` MUST NOT be called at module scope. All side effects MUST be deferred to `startMonitoring()` (via `ensureStateInitialized()`). This prevents accidental registration on bare imports, simplifies HMR, and makes the module testable without triggering global state mutation.
+
+**BAD** — Top-level side effects on import:
+```typescript
+// ❌ Module scope executes immediately on import
+window.__NETWORK_MONITOR_STATE__ = { /* ... */ };
+window.addEventListener("online", handleOnline);
+window.addEventListener("offline", handleOffline);
+export function startMonitoring() { /* ... */ }
+```
+
+**GOOD** — Lazy initialization inside startMonitoring:
+```typescript
+let stateInitialized = false;
+function ensureStateInitialized(): void {
+  if (stateInitialized || typeof window === "undefined") return;
+  stateInitialized = true;
+  window.__NETWORK_MONITOR_STATE__ = { /* getters */ };
+}
+export function startMonitoring(): void {
+  if (isMonitoring) return;
+  ensureStateInitialized();  // ✅ Side effect deferred
+  isMonitoring = true;
+  // ...
+  window.addEventListener("online", boundHandleOnline);
+  window.addEventListener("offline", boundHandleOffline);
+}
+```
+
+**Verification**: Reset modules, spy on `window.addEventListener`, dynamically `import()` the module. Verify spy NOT called and `window.__NETWORK_MONITOR_STATE__` is undefined. Call `startMonitoring()`. Verify `__NETWORK_MONITOR_STATE__` is set and `addEventListener` called with `online`/`offline`.
+
+**Discovered in**: P0 fix audit found `network-monitor.ts` registered `window.__NETWORK_MONITOR_STATE__` at module scope, causing the side effect to fire on any import (including tests and HMR). Test: `src/infrastructure/network/__tests__/regression-r136-no-top-level-side-effects.test.ts`.
+
+### R137: video-cache MUST Defer beforeunload Registration to registerObjectUrl()
+
+`src/infrastructure/storage/video-cache.ts` MUST NOT register a `beforeunload` listener at module scope. The `window.addEventListener("beforeunload", ...)` call MUST be wrapped in a lazy initializer (`ensureBeforeUnloadRegistered()`) that is invoked from `registerObjectUrl()`. `cleanupVideoCache()` MUST remove the listener. This pattern prevents HMR-time duplicate registrations and makes the module testable.
+
+**BAD** — Top-level beforeunload registration:
+```typescript
+// ❌ Fires on every import, including tests and HMR
+window.addEventListener("beforeunload", () => {
+  cleanupAllObjectUrls();
+});
+export function registerObjectUrl(...) { /* ... */ }
+```
+
+**GOOD** — Lazy registration with cleanup:
+```typescript
+let beforeUnloadHandler: (() => void) | null = null;
+let beforeUnloadRegistered = false;
+function ensureBeforeUnloadRegistered(): void {
+  if (beforeUnloadRegistered || typeof window === "undefined") return;
+  beforeUnloadRegistered = true;
+  beforeUnloadHandler = () => { cleanupAllObjectUrls(); };
+  window.addEventListener("beforeunload", beforeUnloadHandler);
+}
+export function cleanupVideoCache(): void {
+  if (beforeUnloadHandler && typeof window !== "undefined") {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+    beforeUnloadHandler = null;
+    beforeUnloadRegistered = false;
+  }
+}
+export function registerObjectUrl(taskId: string, url: string): void {
+  ensureBeforeUnloadRegistered();  // ✅ Deferred
+  // ...
+}
+```
+
+**Verification**: Reset modules, spy on `window.addEventListener`, dynamically `import()` the module. Verify spy NOT called with `"beforeunload"`. Call `registerObjectUrl()`. Verify `addEventListener` called once with `"beforeunload"`. Call `registerObjectUrl()` again — verify no second registration (idempotent). Call `cleanupVideoCache()`. Verify `removeEventListener` called.
+
+**Discovered in**: P0 fix audit found `video-cache.ts` registered `beforeunload` at module scope, causing duplicate listeners on HMR and making the module untestable in isolation. Test: `src/infrastructure/storage/__tests__/regression-r137-no-top-level-beforeunload.test.ts`.
+
+### R154: useAssetLoader MUST Load Characters/Scenes/StoryboardAssets via Promise.all
+
+`useAssetLoader` in `src/modules/story/beat-editor/hooks/useAssetLoader.ts` MUST load the three asset sources (`getAllCharacters`, `getAllScenes`, `getStoryboardAssets`) concurrently via `Promise.all([services.A(), services.B(), services.C()])`. Sequential `await` chains are FORBIDDEN — they make first-screen latency equal to `T(chars) + T(scenes) + T(storyboard)` instead of `max(...)`, degrading performance by 50–60%.
+
+**BAD** — Sequential awaits (perf regression):
+```typescript
+useEffect(() => {
+  const load = async () => {
+    const chars = await services.getAllCharacters(); // ❌ waits full duration
+    const scns = await services.getAllScenes();        // ❌ starts only after chars
+    const sbAssets = await services.getStoryboardAssets(); // ❌ starts only after scenes
+    // ...
+  };
+  load();
+}, [services]);
+```
+
+**GOOD** — Concurrent via Promise.all:
+```typescript
+useEffect(() => {
+  const load = async () => {
+    const [charsResult, scnsResult, sbAssets] = await Promise.all([ // ✅ all start together
+      services.getAllCharacters(),
+      services.getAllScenes(),
+      services.getStoryboardAssets(),
+    ]);
+    // ...
+  };
+  load();
+}, [services]);
+```
+
+**Verification**: Mock three services with deferred promises that never resolve. Call `useAssetLoader` once and verify all three service spies were called synchronously (proves Promise.all concurrent dispatch, not serial await). Also: with delays 200ms/150ms/100ms, total elapsed must be `< SERIAL_SUM * 0.7` (well below 450ms, near max 200ms).
+
+**Discovered in**: Batch 2 performance optimization audit found sequential `await` chain causing 50–60% first-screen latency regression in the story editor. Test: `src/modules/story/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts`.
+
+### R155: StoryProvider MUST Memoize the services Object Passed to useAssetLoader
+
+`StoryProvider` in `src/app/story/StoryProvider.tsx` MUST wrap the `services` object passed to `useAssetLoader` in `useMemo(..., [])`. The services object literal MUST NOT be inlined at the `useAssetLoader(services)` call site, because `useAssetLoader` has an internal `useEffect` with `[services]` dependency — every re-render would create a new object reference, re-triggering the effect and re-fetching characters/scenes/storyboard from the database.
+
+**BAD** — Inline services object (effect re-fires every render):
+```typescript
+const assetLoader = useAssetLoader({ // ❌ new object every render
+  getAllCharacters: () => characterService.getAll(),
+  getAllScenes: () => sceneService.getAll(),
+  getStoryboardAssets: async () => container.storyboardStorage.getStoryboardAssets(),
+});
+```
+
+**GOOD** — Memoized services object (stable reference):
+```typescript
+const assetLoaderServices = useMemo( // ✅ stable reference across renders
+  () => ({
+    getAllCharacters: () => characterService.getAll(),
+    getAllScenes: () => sceneService.getAll(),
+    getStoryboardAssets: async () => container.storyboardStorage.getStoryboardAssets(),
+  }),
+  [],
+);
+const assetLoader = useAssetLoader(assetLoaderServices);
+```
+
+**Verification**: Mock `useAssetLoader` to capture the `services` argument on each call. Render `<StoryProvider>` once, then `rerender` it 3 times with different children. Verify `useAssetLoader` was called 4 times AND every captured `services` reference is `===` to the first one (i.e., same object identity across all renders).
+
+**Discovered in**: Batch 2 performance optimization audit found inline services object causing `useAssetLoader` effect to re-fire on every state change (beat edits, saveStatus toggle), triggering redundant database queries and UI flicker. Test: `src/app/story/__tests__/regression-r155-story-provider-services-memo.test.tsx`.
+
+### R156: useVideoTasksPage Statistics MUST Be Memoized (Single Pass) and timeout Counts as failed
+
+`useVideoTasksPage` in `src/app/video-tasks/hooks/useVideoTasksPage.ts` MUST compute the five statistics (`totalTasks`, `completedTasks`, `processingTasks`, `pendingTasks`, `failedTasks`) via a single `useMemo`-wrapped pass with a `switch` over `task.status`. Five separate `tasks.filter(...)` calls are FORBIDDEN (5× O(n) allocations per render). Additionally, `timeout` status tasks MUST be counted under `failedTasks` (not omitted, not a separate category).
+
+**BAD** — Five filters + missing timeout:
+```typescript
+const completedTasks = tasks.filter(t => t.status === "completed").length;   // ❌ 5 passes
+const processingTasks = tasks.filter(t => t.status === "generating").length; // ❌ 5 passes
+const pendingTasks = tasks.filter(t => t.status === "pending").length;      // ❌ 5 passes
+const failedTasks = tasks.filter(t => t.status === "failed").length;         // ❌ drops timeout!
+// totalTasks also recomputed separately
+```
+
+**GOOD** — Single useMemo pass, timeout folded into failed:
+```typescript
+const { totalTasks, completedTasks, processingTasks, pendingTasks, failedTasks } = useMemo(() => {
+  let completed = 0, processing = 0, pending = 0, failed = 0;
+  for (const task of tasks) {
+    switch (task.status) {
+      case "completed": completed++; break;
+      case "generating": processing++; break;
+      case "pending": pending++; break;
+      case "failed":
+      case "timeout":   // ✅ timeout folded into failed
+        failed++; break;
+    }
+  }
+  return { totalTasks: tasks.length, completedTasks: completed, processingTasks: processing, pendingTasks: pending, failedTasks: failed };
+}, [tasks]);
+```
+
+**Verification**: Pass mixed-status tasks (pending/generating/completed/failed/timeout) and verify counts are correct, `failedTasks` includes timeout tasks, sum of categories equals `totalTasks`. Change tasks and `rerender` — verify stats recompute (memoize invalidates correctly). Verify `statusFilter='failed'` returns both `failed` and `timeout` tasks.
+
+**Discovered in**: Batch 2 performance optimization audit found 5 sequential `filter` calls creating 5 intermediate arrays per render; also found `timeout` tasks were not folded into `failedTasks`, causing the failed count to disagree with the filtered task list. Test: `src/app/video-tasks/hooks/__tests__/regression-r156-tasks-stats-memo.test.ts`.
+
+### R157: video-cache Size Limits MUST Be Consistent Between Infrastructure and Services Layers
+
+The `MAX_CACHE_BYTES` constant in `src/infrastructure/storage/video-cache.ts` (inside `cacheVideoFile`) MUST be byte-equal to `MAX_TOTAL_BLOB_SIZE_MB * 1024 * 1024` in `src/modules/video/cache/services/video-cache.ts`. Both MUST equal `10 * 1024 * 1024 * 1024` (10 GB). The infrastructure-layer constant serves as a defensive fallback after the services layer (which fires at 90% threshold, ≈9 GB) — if the two constants drift, either the infra limit becomes unreachable dead code (regression to old 2 GB bug) or the two layers disagree on the eviction threshold.
+
+The infrastructure-layer source MUST also retain a comment near `MAX_CACHE_BYTES` mentioning `MAX_TOTAL_BLOB_SIZE_MB`, so future maintainers know to update both together.
+
+**BAD** — Constants drifted (infrastructure layer reverted to 2 GB dead code):
+```typescript
+// src/infrastructure/storage/video-cache.ts (cacheVideoFile body)
+const MAX_CACHE_BYTES = 2 * 1024 * 1024 * 1024; // ❌ 2 GB — services layer already
+                                                //     evicts at 9 GB, this never fires
+```
+
+```typescript
+// src/modules/video/cache/services/video-cache.ts
+const MAX_TOTAL_BLOB_SIZE_MB = 10240; // 10 GB — different from infra layer
+```
+
+**GOOD** — Both layers aligned at 10 GB with explanatory comment:
+```typescript
+// src/infrastructure/storage/video-cache.ts (cacheVideoFile body)
+// 与 services/video-cache.ts 的 MAX_TOTAL_BLOB_SIZE_MB (10240MB = 10GB) 保持一致。
+// services 层在 cacheVideoBlob 调用本方法之前会先做大小检查（保留 70% 阈值），
+// 因此此处的 MAX_CACHE_BYTES 主要作为防御性 fallback。
+const MAX_CACHE_BYTES = 10 * 1024 * 1024 * 1024; // ✅ 10 GB
+```
+
+```typescript
+// src/modules/video/cache/services/video-cache.ts
+const MAX_TOTAL_BLOB_SIZE_MB = 10240; // ✅ 10 GB
+```
+
+**Verification**: Both constants are module-private (not exported), so use `fs.readFileSync` + regex extraction (see R146 domain-purity test pattern). Read both source files, extract `MAX_CACHE_BYTES` (eval the arithmetic expression safely) and `MAX_TOTAL_BLOB_SIZE_MB` (literal number). Assert `MAX_CACHE_BYTES === MAX_TOTAL_BLOB_SIZE_MB * 1024 * 1024`, both equal 10 GB, and the infra source contains a `MAX_TOTAL_BLOB_SIZE_MB` mention within 300 chars of `MAX_CACHE_BYTES`.
+
+**Discovered in**: Batch 2 performance optimization audit found `MAX_CACHE_BYTES` was 2 GB while `MAX_TOTAL_BLOB_SIZE_MB` was 10 GB — the infrastructure-layer limit was dead code (services layer evicted first), masking the inconsistency. Test: `src/infrastructure/storage/__tests__/regression-r157-video-cache-limits-consistency.test.ts`.
+
+---
+
+## R158-R166: Batch 3 UI/UX + i18n 优化回归防护
+
+> 以下规则为批次 3 UI/UX 与国际化优化的回归防护，详细 BAD/GOOD 示例见本节及对应测试文件。
+
+### R158: Toast Hover Pause MUST Use useRef + useState Pattern (Single Timer, No Double Timing)
+
+`ToastItem` in `src/shared/presentation/Toast.tsx` MUST manage auto-dismiss with a single timer driven by `useState(paused)` + `useRef(remainingRef)` + `useRef(startedAtRef)` + `useRef(timerRef)`. On `mouseenter` set `paused=true`; the effect decrements `remainingRef` by the elapsed wall-clock since `startedAtRef`, then clears `timerRef`. On `mouseleave` set `paused=false`; the effect resets `startedAtRef = Date.now()` and schedules a new `setTimeout` for the remaining duration. The progress bar (`animation: toast-progress ${duration}ms linear`) MUST use `animationPlayState: paused ? "paused" : "running"` so the visual bar stays in sync with the logical timer. `ToastProvider.showToast` MUST NOT set its own auto-dismiss `setTimeout` for the same toast — that would create a double timer that fires `onClose` even while paused.
+
+**BAD** — Two timers, hover pause has no effect on dismiss:
+```tsx
+function ToastItem({ toast, onClose }) {
+  const duration = toast.duration ?? 3000;
+  // ❌ Provider also sets setTimeout(onClose, duration) — fires while paused
+  useEffect(() => {
+    const t = setTimeout(onClose, duration);
+    return () => clearTimeout(t);
+  }, [duration, onClose]);
+  // ❌ No paused state, no remainingRef, progress bar keeps animating on hover
+}
+```
+
+**GOOD** — Single source of truth, paused state controls both timer and progress bar:
+```tsx
+function ToastItem({ toast, onClose }) {
+  const duration = toast.duration ?? DEFAULT_DURATION[toast.type];
+  const [paused, setPaused] = useState(false);
+  const remainingRef = useRef(duration);
+  const startedAtRef = useRef(Date.now());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (toast.exiting || duration === 0) return;
+    if (paused) {
+      remainingRef.current -= Date.now() - startedAtRef.current;
+      if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    } else {
+      startedAtRef.current = Date.now();
+      timerRef.current = setTimeout(onClose, remainingRef.current);
+    }
+    return () => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; } };
+  }, [paused, toast.exiting, duration, onClose]);
+  // progress bar:
+  <div style={{ animation: `toast-progress ${duration}ms linear forwards`, animationPlayState: paused ? "paused" : "running" }} />
+}
+```
+
+**Verification**: Render a Toast with fake timers. Verify hovering sets `paused=true` and the progress bar's `animationPlayState` is `"paused"`. Advance fake timers past `duration` while hovered — assert `onClose` NOT called. Un-hover — assert a new timer scheduled for the remaining time, and after that elapses `onClose` IS called. Verify `ToastProvider.showToast` does not register a separate auto-dismiss timer for the same toast id.
+
+**Discovered in**: Batch 3 P0-1 Toast hover pause optimization. Test: `src/shared/presentation/__tests__/regression-r158-toast-hover-pause.test.tsx`.
+
+### R159: validateApiKey MUST Return errorKey (i18n key), NOT Hardcoded Chinese Strings
+
+`validateApiKey` in `src/infrastructure/ai-providers/api-config/detect.ts` MUST return `{ valid: boolean; errorKey?: string }`. The `errorKey` MUST be a dotted i18n key (e.g. `"provider.apiKey.empty"`, `"provider.apiKey.tooShort"`, `"provider.apiKey.tooLong"`, `"provider.apiKey.placeholderDetected"`, `"provider.apiKey.invalidChars"`), NOT a localized Chinese string. Callers translate via `t(result.errorKey)`. This keeps `detect.ts` a pure function with no dependency on the renderer i18n module, and allows the same key to render in any locale.
+
+**BAD** — Returns localized Chinese, breaks i18n:
+```typescript
+export function validateApiKey(apiKey: string): { valid: boolean; error?: string } {
+  if (!apiKey) return { valid: false, error: "API Key 不能为空" }; // ❌ hardcoded Chinese
+  if (apiKey.length < 10) return { valid: false, error: "API Key 长度不足" };
+}
+// caller:
+if (!result.valid) showToast(result.error); // ❌ always Chinese, no translation
+```
+
+**GOOD** — Returns i18n key, caller translates:
+```typescript
+export function validateApiKey(apiKey: string): { valid: boolean; errorKey?: string } {
+  if (!apiKey) return { valid: false, errorKey: "provider.apiKey.empty" };
+  if (apiKey.length < 10) return { valid: false, errorKey: "provider.apiKey.tooShort" };
+  if (apiKey.length > 512) return { valid: false, errorKey: "provider.apiKey.tooLong" };
+  if (apiKey.includes("your_") || apiKey.includes("placeholder"))
+    return { valid: false, errorKey: "provider.apiKey.placeholderDetected" };
+  if (/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(apiKey))
+    return { valid: false, errorKey: "provider.apiKey.invalidChars" };
+  return { valid: true };
+}
+// caller:
+if (!result.valid && result.errorKey) showToast(t(result.errorKey)); // ✅ translated per locale
+```
+
+**Verification**: Call `validateApiKey` with empty, short (<10), long (>512), placeholder, control-char, and valid inputs. Assert each invalid result has `errorKey` matching `^provider\.apiKey\.` and NOT containing any CJK characters. Assert `valid: true` results have `errorKey === undefined`. Grep `detect.ts` to confirm no Chinese characters inside the `validateApiKey` body.
+
+**Discovered in**: Batch 3 P0-5 i18n refactor of API key validation. Test: `src/__tests__/lib/api-config/regression-r159-validate-api-key-errorkey.test.ts`.
+
+### R160: Modal Components MUST Use the Unified `<Modal>` Component
+
+Dialog components that render an overlay + centered panel + Escape-to-close + aria-modal MUST use the shared `Modal` component at `src/shared/presentation/Modal.tsx`. The `Modal` component provides `role="dialog"`, `aria-modal="true"`, `aria-label` (or `aria-labelledby`), `tabIndex={-1}` on the container (for screen reader focus), Escape key handling, and overlay-click-to-close. New dialog components MUST NOT re-implement these primitives inline (custom `<div className="modal-overlay">` + manual `keydown` listener + manual `aria-modal`).
+
+**BAD** — Re-implements overlay/Escape/aria inline:
+```tsx
+function MyDialog({ open, onClose }) {
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+        {/* ... */}
+      </div>
+    </div>
+  ); // ❌ Duplicated boilerplate, no container focus, drift across dialogs
+}
+```
+
+**GOOD** — Delegates to unified `<Modal>`:
+```tsx
+import { Modal } from "@/shared/presentation/Modal";
+function MyDialog({ open, onClose }) {
+  return (
+    <Modal open={open} onClose={onClose} ariaLabel="My dialog" style={{ maxWidth: 480 }}>
+      {/* ... */}
+    </Modal>
+  ); // ✅ Single source of truth for overlay/Escape/aria-modal/focus
+}
+```
+
+**Verification**: Grep the migrated modal files (OutfitDialog, SwitchConfirmDialog, BulkDeleteDialog, DeleteConfirmDialog, TaskDetailDialog, TaskTrackingDialog, VideoPreviewDialog, task-detail-dialog, TemplateSelectDialog, AssetEditDialog, AssetCollectionDialogs, VersionDialog, SyncConflictPanel, SyncSettingsPanel, BatchOperations, ReferenceVideoUploader, ProjectExportImport, confirm.tsx, story/page.tsx) for an `import` of `Modal` from `@/shared/presentation/Modal`. Assert the `Modal` component renders `role="dialog"`, `aria-modal="true"`, and a focusable container (`tabIndex={-1}`) when `open=true`.
+
+**Discovered in**: Batch 3 P0-6 + P2-11 unified Modal component migration. Test: `src/shared/presentation/__tests__/regression-r160-modal-component-required.test.tsx`.
+
+### R161: IconButton MUST Require aria-label (No Unlabeled Icon-Only Buttons)
+
+`IconButton` in `src/shared/presentation/IconButton.tsx` MUST declare `aria-label: string` as a REQUIRED prop in `IconButtonProps`. It MUST NOT render an icon-only `<button>` without an `aria-label`. Icon-only buttons (close, delete, settings, etc.) are invisible to screen readers without an accessible name; the only purpose of `IconButton` over a plain `<button>` is to enforce the accessible-name contract. The component MUST pass `aria-label` through to the underlying `<button>` element so assistive tech can announce it.
+
+**BAD** — Optional aria-label, silent a11y regression:
+```tsx
+interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  aria-label?: string; // ❌ optional — caller can omit, button has no accessible name
+  variant?: IconButtonVariant;
+}
+export function IconButton({ "aria-label": label, ...rest }) {
+  return <button {...rest}>{/* icon */}</button>; // ❌ label may be undefined
+}
+// caller:
+<IconButton onClick={close}><X /></IconButton> // ❌ screen reader: "button" with no name
+```
+
+**GOOD** — Required aria-label enforced at compile time:
+```tsx
+export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  "aria-label": string; // ✅ required — TS error if omitted
+  variant?: IconButtonVariant;
+  children: ReactNode;
+}
+export function IconButton({ "aria-label": ariaLabel, variant = "ghost", type = "button", className = "", children, ...rest }) {
+  return <button type={type} aria-label={ariaLabel} className={...} {...rest}>{children}</button>;
+}
+// caller MUST supply:
+<IconButton aria-label="关闭" onClick={close}><X /></IconButton> // ✅ screen reader: "关闭"
+```
+
+**Verification**: Read `IconButton.tsx` source — assert the `IconButtonProps["aria-label"]` type is `string` (not `string | undefined`, not optional). Render `<IconButton aria-label="删除"><X /></IconButton>` and assert the rendered button has `getAttribute("aria-label") === "删除"` and is queryable via `getByRole("button", { name: "删除" })`. Verify a missing `aria-label` is a TypeScript compile error (covered by `typecheck:test`).
+
+**Discovered in**: Batch 3 P2-12 IconButton a11y component. Test: `src/shared/presentation/__tests__/regression-r161-icon-button-aria-required.test.tsx`.
+
+### R162: Config-Layer Display Strings MUST Use labelKey, But Prompt-Building value MUST Stay as the Chinese String
+
+Option lists in `src/modules/character/constants.ts` (and similar config files) that back UI `<select>`/option lists MUST expose both a `value` (the actual semantic value, used when building AI prompts) and a `labelKey` (dotted i18n key, used for display). The `value` MUST be the original Chinese string (e.g. `"日式动漫"`) because prompts are sent to the AI in that exact form — translating the value would change prompt semantics. The `labelKey` MUST be a `styleOption.*` (or analogous) i18n key so the UI can render in the user's locale. UI components MUST display `t(option.labelKey)`, NEVER `option.value`. Prompt builders MUST use `option.value`, NEVER `t(option.labelKey)`.
+
+**BAD** — Single field, either i18n breaks prompts or prompts break i18n:
+```typescript
+export const styleSuggestions = ["日式动漫", "写实风格", ...]; // ❌ no labelKey → UI shows Chinese always
+// OR:
+export const styleSuggestions = [
+  { value: "japanese-anime", label: "日式动漫" }, // ❌ value is not what the prompt needs; prompt gets English id
+];
+```
+
+**GOOD** — value is the prompt string, labelKey is the display string:
+```typescript
+export interface StyleOption { value: string; labelKey: string; }
+export const styleSuggestions: readonly StyleOption[] = [
+  { value: "日式动漫", labelKey: "styleOption.japanese-anime" }, // ✅ value feeds prompt, labelKey feeds UI
+  { value: "写实风格", labelKey: "styleOption.realistic" },
+  // ...
+];
+// UI:
+{styleSuggestions.map(o => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
+// Prompt builder:
+const style = styleSuggestions.find(o => o.value === selectedValue)!;
+prompt += `风格：${style.value}`; // ✅ Chinese value sent to AI
+```
+
+**Verification**: Import `styleSuggestions` and assert every entry is `{ value: string, labelKey: string }` and `labelKey` starts with `"styleOption."`. Assert every `value` is a non-empty CJK string (the prompt-facing value MUST stay Chinese). Grep `constants.ts` to confirm no `label:` field (only `labelKey:`). Grep the UI consumers (e.g. character presentation) to confirm they call `t(option.labelKey)` for display and `option.value` for prompt building.
+
+**Discovered in**: Batch 3 P2-13 style option i18n refactor. Test: `src/modules/character/__tests__/regression-r162-style-options-labelkey.test.ts`.
+
+### R163: Global :focus-visible Style MUST Live in globals.css (Single Source for Keyboard Focus Ring)
+
+The keyboard focus ring for interactive elements (`button`, `a`, `[tabindex]`) MUST be defined once in `src/app/globals.css` as a `:focus-visible` rule, using `outline: 2px solid var(--ring, var(--primary))` and `outline-offset: 2px`. A companion `button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none }` rule MUST suppress the ring for mouse clicks. Individual components MUST NOT override `:focus-visible` per-component (per-component overrides cause drift: some buttons get a ring, others don't). Components MAY add a `border-radius` via the shared rule, but MUST NOT set their own `outline` for focus.
+
+**BAD** — Per-component focus styles, inconsistent ring:
+```css
+/* Foo.module.css */
+.btn-foo:focus { outline: 1px solid blue; } /* ❌ mouse click shows ring, different color */
+```
+```tsx
+<button className="..." style={{ outline: '2px solid red' }}>...</button> /* ❌ hardcoded */
+```
+
+**GOOD** — Global rule, all interactive elements inherit:
+```css
+/* src/app/globals.css */
+:focus-visible {
+  outline: 2px solid var(--ring, var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+```
+
+**Verification**: Read `src/app/globals.css` and assert (via regex) a `:focus-visible` rule exists with `outline` declaration, AND a `button:focus:not(:focus-visible)` / `a:focus:not(:focus-visible)` rule exists with `outline: none`. Grep `src/**/*.css` and `src/**/*.tsx` for inline `outline:` style props on focusable elements and flag any non-global focus ring definitions.
+
+**Discovered in**: Batch 3 P0-3 global focus-visible style. Test: `src/app/__tests__/regression-r163-focus-visible-style.test.ts`.
+
+### R164: Modal MUST Focus Its Container on Open (tabIndex={-1}) for Screen Readers
+
+When `Modal` opens (`open` transitions false→true), it MUST call `modalRef.current?.focus()` so the dialog container receives keyboard focus. The container MUST have `tabIndex={-1}` so a `<div>` is focusable programmatically (a normal div cannot receive `.focus()`). This is required by WAI-ARIA for screen reader users: without container focus, the screen reader stays on the trigger element and the modal content is not announced. The Escape handler and overlay-click handler MUST be registered only while `open===true`.
+
+**BAD** — No container focus, screen reader stranded on trigger:
+```tsx
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" role="dialog" aria-modal="true">{children}</div>
+      {/* ❌ no tabIndex, no focus() call — SR stays on trigger */}
+    </div>
+  );
+}
+```
+
+**GOOD** — Container focuses on open:
+```tsx
+function Modal({ open, onClose, children, ariaLabel }) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose); onCloseRef.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    modalRef.current?.focus(); // ✅ SR announces dialog
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div ref={modalRef} className="modal" role="dialog" aria-modal="true" aria-label={ariaLabel} tabIndex={-1}>{children}</div>
+    </div>
+  );
+}
+```
+
+**Verification**: Render `<Modal open={true} ...>` and assert the container element (found via `role="dialog"`) has `tabIndex === -1` and is `document.activeElement` after the open effect runs. Toggle `open` false→true and assert focus moves to the container. Verify the Escape key handler is only attached while `open===true` (spy on `window.addEventListener`).
+
+**Discovered in**: Batch 3 P0-6 + R164 a11y hardening of unified Modal. Test: `src/shared/presentation/__tests__/regression-r164-modal-focus-trap.test.tsx`.
+
+### R165: Coming-Soon Page Titles MUST Use t() (i18n), Not Hardcoded Strings
+
+Coming-soon pages (`src/app/coming-soon/*.tsx`) that render `<ComingSoon title={...} />` MUST pass `t("sidebar.<page>")` as the title, NOT a hardcoded Chinese/English string. The `descriptionKey` MUST also be an i18n key. This keeps the sidebar label and the page title in sync (both come from the same `sidebar.*` key) and supports locale switching. Currently `LoginPage`, `AgentPage`, `ComposerPage`, `MobilePage`, `WorkspacePage`, `WorkflowPage`, `TemplateMarketPage`, `StoryPage` follow this pattern.
+
+**BAD** — Hardcoded title, breaks locale switch:
+```tsx
+export default function LoginPage() {
+  return <ComingSoon icon="🔑" title="登录" descriptionKey="comingSoon.agentDesc" />; // ❌ hardcoded Chinese
+}
+```
+
+**GOOD** — Title from i18n:
+```tsx
+import { t } from "@/shared/constants/messages";
+export default function LoginPage() {
+  return <ComingSoon icon="🔑" title={t("sidebar.login")} descriptionKey="comingSoon.agentDesc" />; // ✅
+}
+```
+
+**Verification**: For each coming-soon page file, assert the `title` prop passed to `<ComingSoon>` is a call expression `t("sidebar.<something>")` (AST or regex), NOT a string literal. Optionally render each page with a `t` mock returning the key and assert the title text matches the expected `sidebar.*` key.
+
+**Discovered in**: Batch 3 P1-9 coming-soon page i18n. Test: `src/app/coming-soon/__tests__/regression-r165-coming-soon-i18n.test.tsx`.
+
+### R166: Date Formatting MUST Use toLocaleString()/toLocaleTimeString() Without Hardcoded "zh-CN" Locale
+
+When formatting `Date` instances for user-facing display (e.g. crash recovery timestamps, task created-at), code MUST call `date.toLocaleString()` or `date.toLocaleTimeString()` WITHOUT a hardcoded `"zh-CN"` locale argument. Passing the user's default locale (no argument, or `undefined`) lets the OS/browser locale win — a Chinese-locale user sees `2026/6/25 14:30:00`, an English-locale user sees `6/25/2026, 2:30:00 PM`. Hardcoding `"zh-CN"` forces Chinese formatting on all users, defeating i18n. (Explicit locale args are allowed ONLY for non-user-facing logs.)
+
+**BAD** — Hardcoded zh-CN locale, English users see Chinese dates:
+```tsx
+const saveTime = new Date(timestamp).toLocaleString("zh-CN"); // ❌ forced Chinese format
+const timeStr = new Date(timestamp).toLocaleTimeString("zh-CN");
+```
+
+**GOOD** — Default locale, OS decides:
+```tsx
+const saveTime = new Date(timestamp).toLocaleString(); // ✅ user's locale
+const timeStr = new Date(timestamp).toLocaleTimeString();
+```
+
+**Verification**: Grep `src/**/*.tsx` for `toLocaleString("zh-CN")` and `toLocaleTimeString("zh-CN")` (and `toLocaleString('zh-CN')`) — assert zero matches in user-facing components. Specifically assert `src/shared/presentation/CrashRecoveryDialog.tsx` calls `.toLocaleString()` and `.toLocaleTimeString()` with no arguments.
+
+**Discovered in**: Batch 3 P1-10 CrashRecoveryDialog date localization. Test: `src/shared/presentation/__tests__/regression-r166-date-locale.test.tsx`.
+
+---
+
+## R167-R180: 深度审计全量修复回归防护
+
+> 以下规则为深度审计 P0+P1+P2 全量修复的无障碍（a11y）、i18n、工程质量回归防护。
+> 详细 BAD/GOOD 示例及测试文件见各规则下文。
+
+### R167: 自定义模态框必须使用 Modal 组件或补 role/aria-modal
+
+当组件需要渲染模态对话框（fixed inset-0 overlay + 居中面板）时，必须使用统一的 `<Modal>` 组件（`src/shared/presentation/Modal.tsx`），该组件已内置 `role="dialog"`、`aria-modal="true"`、`aria-label`、`tabIndex={-1}`、Escape 关闭、overlay 点击关闭。若因特殊原因不能使用 `<Modal>`，则必须手动补齐 `role="dialog" aria-modal="true" aria-label={...}`。裸 `<div className="fixed inset-0 z-50">` 无 ARIA 语义，屏幕阅读器无法识别为对话框。
+
+**BAD** — 裸 div overlay 无 ARIA 语义：
+```tsx
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div className="bg-white rounded-lg p-6">{children}</div>
+</div>
+```
+
+**GOOD** — 使用统一 Modal 组件：
+```tsx
+<Modal open={open} onClose={onClose} ariaLabel={t("dialog.title")}>
+  {children}
+</Modal>
+```
+
+**GOOD** — 手动补齐 ARIA（仅在无法使用 Modal 时）：
+```tsx
+<div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("dialog.title")}>
+  <div className="bg-white rounded-lg p-6">{children}</div>
+</div>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `fixed inset-0` 的 div，确认每个匹配项要么使用 `<Modal>` 组件，要么有 `role="dialog" aria-modal="true"`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/shared/presentation/__tests__/regression-r167-custom-modal-role.test.tsx`。
+
+### R168: 纯图标按钮必须有 aria-label
+
+纯图标按钮（按钮内仅含图标无文字）必须提供 `aria-label`，使屏幕阅读器能朗读按钮用途。使用 `<IconButton>` 组件（强制 aria-label prop）或手动在 `<button>` 上添加 `aria-label`。无 aria-label 的纯图标按钮对屏幕阅读器用户不可用。
+
+**BAD** — 纯图标按钮无 aria-label：
+```tsx
+<button onClick={onClose}>
+  <X className="h-4 w-4" />
+</button>
+```
+
+**GOOD** — 使用 IconButton 组件（强制 aria-label）：
+```tsx
+<IconButton aria-label={t("aria.close")} onClick={onClose}>
+  <X className="h-4 w-4" />
+</IconButton>
+```
+
+**GOOD** — 手动补 aria-label：
+```tsx
+<button aria-label={t("aria.close")} onClick={onClose}>
+  <X className="h-4 w-4" />
+</button>
+```
+
+**Verification**: Grep `src/**/*.tsx` for 含 lucide 图标的 `<button>`，确认每个纯图标按钮有 `aria-label` 或使用 `<IconButton>`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/shared/presentation/__tests__/regression-r168-icon-button-aria.test.tsx`。
+
+### R169: div onClick 必须补 role="button"/tabIndex/onKeyDown
+
+当 `<div>` 用作可点击按钮（有 `onClick`）时，必须补齐 `role="button"`、`tabIndex={0}`、`onKeyDown`（处理 Enter/Space），以及 `aria-label`。裸 `<div onClick>` 对键盘用户不可达，对屏幕阅读器用户不可识别为按钮。
+
+**BAD** — div onClick 无 ARIA/键盘支持：
+```tsx
+<div onClick={handleClick} className="cursor-pointer">
+  {label}
+</div>
+```
+
+**GOOD** — 补齐 role/tabIndex/onKeyDown/aria-label：
+```tsx
+<div
+  role="button"
+  tabIndex={0}
+  onClick={handleClick}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  }}
+  aria-label={label}
+  className="cursor-pointer"
+>
+  {label}
+</div>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `<div` + `onClick`，确认每个匹配项有 `role="button"` 和 `tabIndex`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/shared/presentation/__tests__/regression-r169-div-onclick-role.test.tsx`。
+
+### R170: Tab 模式必须使用 Tabs 组件
+
+当 UI 实现标签页切换（多个 button 切换 active 状态）时，必须使用统一的 `<Tabs>` 组件（`src/shared/presentation/Tabs.tsx`），该组件已内置 `role="tablist"`、`role="tab"`、`aria-selected`、roving tabindex、键盘导航（ArrowLeft/Right/Home/End）。手写多个 button 作为 tab 缺少 ARIA 语义和键盘支持。
+
+**BAD** — 手写 tab 按钮无 ARIA 语义：
+```tsx
+<div className="top-tabs">
+  {tabs.map((tab) => (
+    <button
+      key={tab.id}
+      className={cn("top-tab", activeTab === tab.id && "active")}
+      onClick={() => onChange(tab.id)}
+    >
+      {tab.label}
+    </button>
+  ))}
+</div>
+```
+
+**GOOD** — 使用统一 Tabs 组件：
+```tsx
+<Tabs
+  tabs={[{ id: "all", label: t("tab.all") }, { id: "done", label: t("tab.done") }]}
+  activeTab={activeTab}
+  onChange={onChange}
+/>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `top-tab-btn` 或手写 tab 模式，确认使用 `<Tabs>` 组件。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/shared/presentation/__tests__/regression-r170-tabs-component.test.tsx`。
+
+### R171: 表单控件必须有 label 关联
+
+表单控件（`<input>`、`<select>`、`<textarea>`）必须有可见 label 关联（`<label htmlFor={id}>` + `id`）或 `aria-label`/`aria-labelledby`。无 label 的表单控件对屏幕阅读器用户不可用。
+
+**BAD** — input 无 label：
+```tsx
+<input
+  type="text"
+  value={value}
+  onChange={(e) => onChange(e.target.value)}
+  placeholder="输入名称"
+/>
+```
+
+**GOOD** — label + htmlFor 关联：
+```tsx
+<label htmlFor="char-name">{t("form.name")}</label>
+<input
+  id="char-name"
+  type="text"
+  value={value}
+  onChange={(e) => onChange(e.target.value)}
+/>
+```
+
+**GOOD** — aria-label（当可见 label 不适用时）：
+```tsx
+<input
+  type="text"
+  aria-label={t("form.name")}
+  value={value}
+  onChange={(e) => onChange(e.target.value)}
+/>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `<input`、`<select`、`<textarea`，确认每个控件有 label 关联或 aria-label。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/app/__tests__/regression-r171-form-label-association.test.tsx`。
+
+### R172: 进度条必须有 role="progressbar"
+
+进度条（`<div className="progress-bar">`）必须有 `role="progressbar"`、`aria-valuenow`、`aria-valuemin={0}`、`aria-valuemax={100}`，使屏幕阅读器能朗读进度。裸 div 进度条对屏幕阅读器用户不可感知。
+
+**BAD** — 进度条无 ARIA：
+```tsx
+<div className="progress-bar h-2">
+  <div className="progress-fill" style={{ width: `${progress}%` }} />
+</div>
+```
+
+**GOOD** — 补齐 role 和 aria 属性：
+```tsx
+<div
+  className="progress-bar h-2"
+  role="progressbar"
+  aria-label={t("common.generating")}
+  aria-valuenow={progress}
+  aria-valuemin={0}
+  aria-valuemax={100}
+>
+  <div className="progress-fill" style={{ width: `${progress}%` }} />
+</div>
+```
+
+**Verification**: Grep `src/**/*.tsx` for `progress-bar`，确认每个进度条有 `role="progressbar"`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/modules/asset/presentation/__tests__/regression-r172-progressbar-role.test.tsx`。
+
+### R173: 动态状态变化必须有 aria-live
+
+动态变化的状态文本（如任务计数、进度百分比、轮询结果）必须放在 `role="status" aria-live="polite"` 容器中，使屏幕阅读器在内容变化时自动朗读。无 aria-live 的动态文本对屏幕阅读器用户不可感知。
+
+**BAD** — 动态计数无 aria-live：
+```tsx
+<div className="flex items-center gap-4 text-sm">
+  <span>已完成 {completedCount}</span>
+  <span>失败 {failedCount}</span>
+</div>
+```
+
+**GOOD** — 容器补 role="status" aria-live="polite"：
+```tsx
+<div className="flex items-center gap-4 text-sm" role="status" aria-live="polite">
+  <span>{t("asset.completedCount", { count: completedCount })}</span>
+  <span>{t("asset.failedCount", { count: failedCount })}</span>
+</div>
+```
+
+**Verification**: Grep `src/**/*.tsx` for 动态数字容器，确认有 `role="status" aria-live="polite"`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/modules/asset/presentation/__tests__/regression-r173-aria-live.test.tsx`。
+
+### R174: 装饰性 emoji 必须 aria-hidden
+
+装饰性 emoji（如 🗑、🌅、📤）必须添加 `aria-hidden="true"`，防止屏幕阅读器朗读 emoji 的冗长描述。当 emoji 旁有文字 label 时，emoji 纯装饰；当 emoji 是唯一内容时，应补 aria-label 或改用图标组件。
+
+**BAD** — 装饰性 emoji 无 aria-hidden：
+```tsx
+<button onClick={onDelete}>
+  <span>🗑</span> 删除
+</button>
+```
+
+**GOOD** — emoji aria-hidden：
+```tsx
+<button onClick={onDelete}>
+  <span aria-hidden="true">🗑</span> {t("common.delete")}
+</button>
+```
+
+**Verification**: Grep `src/**/*.tsx` for emoji 字符（🗑🌅📤📥✨▶️ 等），确认装饰性 emoji 有 `aria-hidden="true"`。
+
+**Discovered in**: 深度审计 a11y 修复。Test: `src/modules/story/beat-editor/presentation/__tests__/regression-r174-emoji-aria-hidden.test.tsx`。
+
+### R175: throw Error 必须用 t() 国际化
+
+用户可见的 `throw new Error(...)` 消息必须用 `t()` 国际化（渲染进程）或 `@shared/i18n`（主进程），不能硬编码中文字符串。开发者内部错误（如 "useStory must be used within a StoryProvider"）和错误码常量（如 "PREVIEW_REQUIRED_BEFORE_KEYFRAME"）不受此规则约束，因为它们不展示给最终用户。
+
+**BAD** — 用户可见错误硬编码中文：
+```tsx
+if (!apiKey) throw new Error("API Key 不能为空");
+```
+
+**GOOD** — 用 t() 国际化：
+```tsx
+if (!apiKey) throw new Error(t("error.apiKeyRequired"));
+```
+
+**GOOD** — 错误码常量（非用户可见，不受约束）：
+```tsx
+throw new Error("PREVIEW_REQUIRED_BEFORE_KEYFRAME");
+```
+
+**Verification**: Grep `src/**/*.ts(x)` for `throw new Error("`，确认用户可见错误消息用 `t()` 而非硬编码中文。
+
+**Discovered in**: 深度审计 i18n 修复。Test: `src/__tests__/lib/regression-r175-throw-error-i18n.test.ts`。
+
+### R176: 数据常量层双用途字段（value + labelKey）
+
+数据常量（如风格选项、类型选项）需同时支持 prompt 构造（中文 value）和 UI 显示（i18n labelKey）时，必须使用 `{ value, labelKey }` 结构而非 `{ value, label }`。`value` 是发送给 AI 的中文 prompt 字符串（不可翻译），`labelKey` 是点分 i18n key 用于 UI 显示。`label` 字段同时承担两种用途会导致 i18n 与 prompt 语义耦合。
+
+**BAD** — label 字段双用途：
+```tsx
+export const genres = [
+  { value: "drama", label: "剧情", description: "情感驱动的故事" },
+];
+// label 同时用于 UI 显示和（可能的）prompt 构造 → i18n 时 label 翻译会破坏 prompt
+```
+
+**GOOD** — value + labelKey 分离：
+```tsx
+export const genres = [
+  { value: "剧情", labelKey: "genre.drama", description: "情感驱动的故事" },
+];
+// value 用于 prompt 构造（中文），labelKey 用于 UI 显示（t(labelKey)）
+```
+
+**Verification**: 检查数据常量文件（`constants.ts`、`story-constants.ts` 等），确认 UI 显示用 `t(labelKey)`，prompt 构造用 `value`。
+
+**Discovered in**: 深度审计 i18n 修复（R162 的泛化）。Test: `src/modules/character/__tests__/regression-r176-data-constant-labelkey.test.ts`。
+
+### R177: DOM 操作必须用 useRef
+
+React 组件内对 DOM 元素的操作（如 `.click()`、`.focus()`、`.scrollIntoView()`）必须通过 `useRef` 引用元素，不能使用 `document.getElementById` / `document.querySelector`。`document.getElementById` 在 React 的虚拟 DOM 之外操作，可能导致引用过期、SSR 不兼容、多实例冲突。
+
+**BAD** — document.getElementById 操作 DOM：
+```tsx
+const handleSubmit = () => {
+  document.getElementById("file-input")?.click();
+};
+```
+
+**GOOD** — useRef 引用 DOM：
+```tsx
+const fileInputRef = useRef<HTMLInputElement>(null);
+const handleSubmit = () => {
+  fileInputRef.current?.click();
+};
+// JSX: <input ref={fileInputRef} type="file" />
+```
+
+**Verification**: Grep `src/**/*.ts(x)` for `document.getElementById`，确认仅在入口文件（main.tsx）使用，组件内一律用 `useRef`。
+
+**Discovered in**: 深度审计工程质量修复。Test: `src/app/quick-generate/__tests__/regression-r177-dom-use-ref.test.tsx`。
+
+### R178: 回调参数不能遮蔽导入的 t
+
+当文件导入了 i18n 的 `t` 函数（`import { t } from "@/shared/constants/messages"`）后，回调函数参数不能命名为 `t`，否则会遮蔽（shadow）i18n 的 `t`，导致回调内调用 `t(...)` 实际调用的是回调参数而非 i18n 函数（运行时错误或静默失败）。
+
+**BAD** — 回调参数 t 遮蔽 i18n 的 t：
+```tsx
+import { t } from "@/shared/constants/messages";
+// ...
+{tasks.filter((t) => t.status === "completed")}
+//                                  ^ 此 t 是 task，遮蔽了 i18n 的 t
+// 若回调内需要 t() 会调用错误的 t
+```
+
+**GOOD** — 用语义化参数名：
+```tsx
+import { t } from "@/shared/constants/messages";
+// ...
+{tasks.filter((task) => task.status === "completed")}
+```
+
+**Verification**: Grep `src/**/*.ts(x)` for 回调参数命名 `t`（如 `.filter((t)`、`.map((t)`、`.find((t)`），确认在导入了 `t` 的文件中不使用 `t` 作为回调参数名。
+
+**Discovered in**: 深度审计工程质量修复。Test: `src/modules/video/task-management/hooks/__tests__/regression-r178-callback-no-shadow.test.ts`。
+
+### R179: Port 接口扩展优先于 as 断言
+
+当需要调用 Port 接口未定义的可选方法（如 `cancelTask`）时，必须在 Port 接口定义中声明可选方法（`cancelTask?(...): ...`），不能在调用处用 `as` 断言扩展接口。`as` 断言绕过类型检查，且散落在各调用处难以维护；接口扩展集中定义契约，TypeScript 编译器能正确检查实现。
+
+**BAD** — as 断言扩展 Port 接口：
+```tsx
+const provider = container.videoProvider as {
+  generateVideo: (...) => ...;
+  cancelTask?: (taskId: string) => Promise<void>;
+};
+await provider.cancelTask?.(taskId);
+```
+
+**GOOD** — Port 接口定义可选方法：
+```tsx
+// domain/ports/ai-provider-port.ts
+export interface IVideoProvider {
+  generateVideo(...): Promise<...>;
+  // 可选：服务端任务取消（best-effort）
+  cancelTask?(taskId: string): Promise<void>;
+}
+// 调用处
+await container.videoProvider.cancelTask?.(taskId);
+```
+
+**Verification**: Grep `src/**/*.ts(x)` for `container.\w+ as {` 或 `as IVideoProvider &`，确认 Port 接口扩展在接口定义处而非调用处。
+
+**Discovered in**: 深度审计工程质量修复。Test: `src/domain/ports/__tests__/regression-r179-port-interface-extension.test.ts`。
+
+### R180: 函数职责单一（>100 行的注册函数应拆分）
+
+注册函数（如 IPC handler 注册、事件监听注册）超过 100 行时，必须按类别拆分为独立的注册函数（如 `registerLogHandlers`、`registerShellHandlers`、`registerWindowHandlers`），由顶层函数调用。单函数承担多类别注册导致难以定位、难以测试、修改风险扩散。
+
+**BAD** — 单个函数 121 行注册 7 类 handler：
+```tsx
+function setupApiHandlers() {
+  // 日志 handler (10 行)
+  ipcMain.on("log:security", ...);
+  // 健康检查 handler (15 行)
+  ipcMain.handle("api:health", ...);
+  // Shell handler (40 行)
+  ipcMain.handle("shell:open-external", ...);
+  ipcMain.handle("shell:open-path", ...);
+  // 窗口 handler (30 行)
+  ipcMain.on("window:minimize", ...);
+  // 配置 handler (26 行)
+  ipcMain.on("config:get", ...);
+  // 总计 121 行 → 难以测试、修改风险高
+}
+```
+
+**GOOD** — 按类别拆分：
+```tsx
+function registerLogHandlers(): void { /* ... */ }
+function registerHealthHandlers(): void { /* ... */ }
+function registerShellHandlers(): void { /* ... */ }
+function registerWindowHandlers(): void { /* ... */ }
+function registerConfigHandlers(): void { /* ... */ }
+
+function setupApiHandlers(): void {
+  registerLogHandlers();
+  registerHealthHandlers();
+  registerShellHandlers();
+  registerWindowHandlers();
+  registerConfigHandlers();
+}
+```
+
+**Verification**: 检查注册函数行数，>100 行的注册函数应拆分为按类别分组的子函数。
+
+**Discovered in**: 深度审计工程质量修复。Test: `electron/src/__tests__/regression-r180-function-split.test.ts`。
+
+### R181: 禁止硬编码 Tailwind 颜色类名（必须使用语义变量）
+
+项目支持 6 个主题（默认/cyber/amber/minimal/lavender/emerald），所有颜色必须通过 `globals.css` 中的语义变量引用。硬编码 `slate-*`、`gray-*`、`dark:` 前缀等颜色不会随主题切换，导致视觉断裂。
+
+**禁止使用的类名**：
+- `text-slate-*`, `bg-slate-*`, `border-slate-*`
+- `text-gray-*`, `bg-gray-*`, `border-gray-*`
+- `dark:` 前缀（项目是暗色优先，`:root` 即为暗色）
+- `bg-white`（改用 `bg-card`）
+- `bg-blue-50`, `border-blue-500`（改用 `bg-primary/10`, `border-primary`）
+
+**必须使用的语义变量**：
+
+| 场景 | 语义类名 |
+|------|---------|
+| 次要文本 | `text-muted-foreground` |
+| 主文本 | `text-foreground` |
+| 卡片背景 | `bg-card` / `bg-card2` |
+| 边框 | `border-border` |
+| muted 背景 | `bg-muted` |
+| 主色调 | `text-primary`, `bg-primary`, `border-primary` |
+| 成功 | `text-success`, `bg-success/10` |
+| 警告 | `text-warning`, `bg-warning/10` |
+| 错误 | `text-destructive`, `bg-destructive/10` |
+
+**BAD**:
+```tsx
+<div className="text-slate-400 bg-slate-800/50 border-slate-700 dark:bg-slate-900" />
+```
+
+**GOOD**:
+```tsx
+<div className="text-muted-foreground bg-card2 border-border" />
+```
+
+**Verification**: `grep -r "text-slate-\|bg-slate-\|border-slate-\|text-gray-\|bg-gray-\|border-gray-" src/ --include="*.tsx" --include="*.ts"` 应返回 0 结果。
+
+**Discovered in**: 批次 5 UI 颜色系统清理。188 处硬编码颜色已全部替换为语义变量。
+
+---
+
+### R182: `/api/config/set` 必须走异步 keyStorage 持久化（禁止明文 apiKey 落盘）
+
+**Rule**: 前端 `saveConfig` 发送的 `ai_animation_studio_api_config` 字段必须通过 `saveConfigAsync()` 持久化，apiKey 通过 `$secure:` 引用机制存入 keyStorage，禁止明文 apiKey 写入 `config.json`。
+
+**Why**: 前端 `saveConfig` 会将整个 config 序列化为 JSON 字符串作为 `value` 发送到 `/api/config/set`。`applyConfigValue` 必须正确解析字符串或对象，否则 `typeof value === "object"` 对字符串永远为 false，导致：
+1. 明文 apiKey 写入磁盘 `config.json`（安全漏洞）
+2. apiKey 更新丢失（用户感知不到，但下次重启后 keyStorage 仍是旧值）
+
+**Requirements**:
+1. `applyConfigValue(key, value)` 在 `key === "ai_animation_studio_api_config"` 时必须先尝试 `JSON.parse(value)`，解析失败时 warn 并 return，不能静默写入字符串
+2. `/api/config/set` 路由必须调用 `saveConfigAsync(config)` 而非 `saveConfig(config)`（sync 版本会在检测到明文 apiKey 时 throw）
+3. `saveConfig` (sync) 检测到明文 apiKey 必须抛错，强制调用方迁移到 `saveConfigAsync`
+4. `validateConfigValue` 必须拒绝 `data:`、`javascript:`、`vbscript:`、`file:`、`blob:` 协议
+5. `PlaintextFallbackStrategy` 必须 fail-close，拒绝明文 JSON 格式
+6. `SafeStorageStrategy` 必须用 `writeChain` Promise 链串行化写操作，防止并发覆盖
+
+**BAD**:
+```typescript
+// ❌ applyConfigValue 不解析字符串，直接 typeof 判断
+function applyConfigValue(config, key, value) {
+  if (key === "ai_animation_studio_api_config") {
+    if (typeof value === "object") {  // 字符串永远不是 object
+      Object.assign(config, value);
+    }
+  }
+}
+// 结果：apiKey 明文落盘 + 更新丢失
+```
+
+**GOOD**:
+```typescript
+// ✅ 正确解析字符串，使用 saveConfigAsync 持久化
+function applyConfigValue(config, key, value) {
+  if (key === "ai_animation_studio_api_config") {
+    let apiConfig = value;
+    if (typeof value === "string") {
+      try { apiConfig = JSON.parse(value); }
+      catch { logger.warn("malformed JSON"); return; }
+    }
+    if (apiConfig && typeof apiConfig === "object") {
+      Object.assign(config, apiConfig);
+    }
+  }
+}
+// 路由层：
+const saved = await saveConfigAsync(config);  // 异步持久化到 keyStorage
+```
+
+**Verification**: `npm run test:electron -- regression-r182` 必须通过 17 个测试用例。
+
+**Test**: `electron/src/__tests__/regression-r182-config-set-async-persistence.test.ts`
+
+**Discovered in**: v0.12.1 API 配置系统彻底性修复。C1 Critical bug：前端 saveConfig 绕过 keyStorage。

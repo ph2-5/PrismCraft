@@ -24,6 +24,10 @@ let initDbPromise: Promise<DatabaseInterface> | null = null;
 let initRetryCount = 0;
 let initPermanentlyFailed = false;
 let operationQueue: Promise<void> = Promise.resolve();
+// 读写分离说明：
+// - 写操作（run/exec）通过 enqueueOperation 串行化，保护事务语义、避免竞争。
+// - 读操作（query）不再排队 — better-sqlite3 是同步 API，且 WAL 模式下读不阻塞写，
+//   串行化读只会无谓增加延迟（数千小读会被前面的大写阻塞）。
 let isPersistenceAvailable = true;
 let lastSaveTime = Date.now();
 let consecutiveSaveFailures = 0;
@@ -41,6 +45,11 @@ const VALID_TABLE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
 const SOFT_DELETE_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const SOFT_DELETE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+// 软删除清理覆盖的表：仅包含用户可显式删除的内容实体。
+// 不包含 video_tasks（有自己的生命周期清理）、story_beats（依赖 stories 级联）、
+// 错误日志/sync_changelog（有自己的清理逻辑）。
+// 新增表前请确认该表确有 is_deleted 列（BASE_COL_DEFS 自动添加）。
+const SOFT_DELETE_TABLES = ["characters", "scenes", "elements"] as const;
 let softDeleteCleanupInterval: ReturnType<typeof setInterval> | null = null;
 let softDeleteStartupTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -414,11 +423,12 @@ export function closeDatabase(): void {
 }
 
 export async function query(sql: string, params: QueryParams = []): Promise<DatabaseResult[]> {
-  return enqueueOperation(() => {
-    const db = getDb();
-    const stmt = db.prepare(sql);
-    return stmt.all(...params);
-  });
+  // 读操作不走 enqueueOperation：better-sqlite3 是同步 API，且 WAL 模式下读不阻塞写。
+  // 串行化读会让数千小读被前面的大写操作无谓阻塞，显著增加延迟。
+  // 注意：调用方仍应 await 本函数，以保证 read-modify-write 跨多个语句时的语义。
+  const db = getDb();
+  const stmt = db.prepare(sql);
+  return stmt.all(...params);
 }
 
 export async function run(sql: string, params: QueryParams = []): Promise<RunResult> {
@@ -528,20 +538,37 @@ function getBackupDir(): string {
 }
 
 function performCheckpoint(): boolean {
-  try {
-    const db = getDb();
-    if (!db) return false;
+  // Checkpoint 重试：WAL checkpoint 偶尔会因 WAL 文件被其他进程持有而失败，
+  // 重试 3 次（每次间隔 100ms）能显著降低失败率。
+  // 失败时仍返回 false，调用方（如 closeDatabase）会继续 close，
+  // SQLite 在下次启动时会自动重放 WAL，数据不会丢失，只是 WAL 文件未清理。
+  const MAX_CHECKPOINT_RETRIES = 3;
+  const RETRY_DELAY_MS = 100;
 
-    if (typeof db.checkpoint === "function") {
-      db.checkpoint();
-    } else if (typeof db.exec === "function") {
-      db.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+  for (let attempt = 1; attempt <= MAX_CHECKPOINT_RETRIES; attempt++) {
+    try {
+      const db = getDb();
+      if (!db) return false;
+
+      if (typeof db.checkpoint === "function") {
+        db.checkpoint();
+      } else if (typeof db.exec === "function") {
+        db.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+      }
+      return true;
+    } catch (error) {
+      const isLastAttempt = attempt === MAX_CHECKPOINT_RETRIES;
+      logger.error(
+        `[DB] Checkpoint attempt ${attempt}/${MAX_CHECKPOINT_RETRIES} failed:`,
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      if (isLastAttempt) return false;
+      // 同步 sleep：better-sqlite3 是同步 API，这里阻塞 100ms 是可接受的。
+      // 用 Atomics.wait 实现同步 sleep，避免引入 worker/async 复杂度。
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RETRY_DELAY_MS);
     }
-    return true;
-  } catch (error) {
-    logger.error("[DB] Checkpoint failed:", error instanceof Error ? error : new Error(String(error)));
-    return false;
   }
+  return false;
 }
 
 async function createBackup(): Promise<string | null> {
@@ -653,8 +680,7 @@ function performSoftDeleteCleanup(): void {
   try {
     const db = getDb();
     const cutoff = Math.floor((Date.now() - SOFT_DELETE_MAX_AGE_MS) / 1000);
-    const tables = ["characters", "scenes"];
-    for (const table of tables) {
+    for (const table of SOFT_DELETE_TABLES) {
       if (!VALID_TABLE_IDENTIFIER.test(table)) {
         logger.warn(`[DB] Invalid table name in soft delete cleanup: ${table}`);
         continue;

@@ -3,6 +3,7 @@ export type AudioCodec = "aac" | "mp3" | "opus" | "vorbis" | "unknown";
 export type ContainerFormat = "mp4" | "webm" | "mov" | "avi" | "mkv" | "unknown";
 
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 export interface VideoCodecInfo {
   container: ContainerFormat;
@@ -162,7 +163,7 @@ export function getVideoCodecLabel(codec: VideoCodec): string {
     vp8: "VP8",
     vp9: "VP9",
     av1: "AV1",
-    unknown: "未知",
+    unknown: t("common.unknown"),
   };
   return labels[codec];
 }
@@ -174,7 +175,7 @@ export function getContainerLabel(container: ContainerFormat): string {
     mov: "MOV",
     avi: "AVI",
     mkv: "MKV",
-    unknown: "未知",
+    unknown: t("common.unknown"),
   };
   return labels[container];
 }

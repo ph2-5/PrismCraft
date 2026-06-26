@@ -1,6 +1,6 @@
 # PrismCraft — 项目全方位指南
 
-> 版本：0.10.0 | 许可证：UNLICENSED | 最后更新：2026-06-21
+> 版本：0.12.1 | 许可证：UNLICENSED | 最后更新：2026-06-27
 
 ---
 
@@ -34,13 +34,13 @@ PrismCraft 是一款**本地优先（local-first）、离线可用（offline-cap
 
 ### 1.4 项目版本与规模
 
-- **版本**：0.10.0
+- **版本**：0.12.1
 - **许可证**：私有（未开源）
 - **业务模块**：9 个（story、video、shot、prompt、asset、sync、character、scene、persistence）
 - **子域**：44 个
 - **AI Provider 插件**：13 个
 - **数据库表**：29 张（14 业务表 + 5 关系表 + 6 缓存表 + 3 同步表 + 1 系统表）
-- **回归防护规则**：108 条（R1-R114，8 大类）
+- **回归防护规则**：165+ 条（R1-R165，8 大类）
 - **i18n 键**：2000+
 
 ---
@@ -169,7 +169,7 @@ strict 模式启用所有严格类型检查选项：
 | 子域 | 44 |
 | AI Provider 插件 | 13 |
 | 数据库表 | 29 |
-| 回归防护规则 | 108 |
+| 回归防护规则 | 142 |
 | i18n 键 | 2000+ |
 
 ### 4.2 模块规模分布
@@ -1604,7 +1604,80 @@ function sanitizeLog(message: string): string {
 
 ### 15.1 API Key 存储
 
-API Key 通过 electron-store 加密存储，使用 IPC `secure-config:*` 通道：
+#### 15.1.1 双层存储架构（v0.12.1+）
+
+API Key 采用**双层存储**架构，分离元数据与敏感数据：
+
+| 层 | 存储介质 | 内容 | 加密方式 |
+|----|---------|------|---------|
+| 元数据层 | `electron-store` (`config-metadata.json`) | provider 配置、baseUrl、model | electron-store encryptionKey（基于 safeStorage 派生） |
+| 敏感数据层 | `keyStorage`（`keys.enc`） | apiKey 明文 | Electron safeStorage + AES-256-GCM |
+
+**`$secure:` 引用机制**：元数据层不存明文 apiKey，只存引用 `$secure:providerId`，运行时由 `loadConfigAsync()` 解析为真实 apiKey。
+
+```typescript
+// config-metadata.json（脱敏后）
+{
+  "openai": {
+    "baseUrl": "https://api.openai.com/v1",
+    "apiKey": "$secure:openai"   // ← 引用，非明文
+  }
+}
+```
+
+#### 15.1.2 saveConfigAsync 异步持久化流程
+
+前端 `saveConfig` → HTTP `/api/config/set` → `applyConfigValue` → `saveConfigAsync` → `keyStorage.save`：
+
+```typescript
+// 1. 前端 storage.ts
+saveConfig(config) → httpConfigSet("ai_animation_studio_api_config", JSON.stringify(config))
+
+// 2. /api/config/set 路由（core-routes.ts）
+const config = await loadConfigAsync();
+applyConfigValue(config, "ai_animation_studio_api_config", value);  // value 可能是 JSON 字符串
+const saved = await saveConfigAsync(config);  // ✅ 异步持久化到 keyStorage
+
+// 3. applyConfigValue 必须正确解析字符串（R182）
+if (typeof value === "string") {
+  apiConfig = JSON.parse(value);  // ❌ 不解析会导致 typeof "object" 永远 false
+}
+
+// 4. saveConfigAsync 提取 apiKey 字段，存入 keyStorage，替换为 $secure: 引用
+for (const [providerId, provider] of Object.entries(config.providers)) {
+  if (provider.apiKey && !provider.apiKey.startsWith("$secure:")) {
+    await keyStorage.save(`$secure:${providerId}`, provider.apiKey);
+    provider.apiKey = `$secure:${providerId}`;
+  }
+}
+```
+
+#### 15.1.3 sync vs async 持久化 API
+
+| 函数 | 同步性 | 行为 | 使用场景 |
+|------|--------|------|---------|
+| `saveConfig(config)` | sync | 检测到明文 apiKey 必须 **throw**（R182） | 仅用于无 apiKey 的配置项 |
+| `saveConfigAsync(config)` | async | 提取 apiKey 存入 keyStorage，写入 `$secure:` 引用 | **所有含 apiKey 的配置必须用此函数** |
+| `loadConfig()` | sync | 不解析 `$secure:` 引用，返回引用字符串 | 仅历史兼容 |
+| `loadConfigAsync()` | async | 解析 `$secure:` 引用，返回真实 apiKey | **运行时读取必须用此函数** |
+
+#### 15.1.4 keyStorage 策略层
+
+```typescript
+// SafeStorageStrategy（主策略）
+- Electron safeStorage + AES-256-GCM
+- dataCache 内存缓存 + writeChain Promise 链串行化（防并发覆盖）
+- 文件格式：{ iv, ciphertext } 二进制
+
+// PlaintextFallbackStrategy（回退策略，v0.12.1 改为 fail-close）
+- safeStorage 不可用时回退
+- ❌ v0.12.1 前：接受明文 JSON（安全漏洞）
+- ✅ v0.12.1 后：fail-close，仅接受加密格式
+```
+
+#### 15.1.5 旧版 secure-config IPC（兼容层）
+
+历史 API，仍可用但推荐迁移到 `/api/config/*` HTTP 路由：
 
 ```typescript
 // 渲染进程
@@ -1617,6 +1690,19 @@ ipcMain.handle("secure-config:set", async (_event, { key, value }) => {
 ```
 
 **禁止**将 API Key 存储在 localStorage 或使用 XOR 混淆。
+
+#### 15.1.6 API Key 自动检测（v0.12.1+）
+
+ProviderCard 组件提供四态 API Key 状态指示器：
+
+| 状态 | 图标 | 触发条件 |
+|------|------|---------|
+| idle | — | 初始状态或未配置 apiKey |
+| verifying | Loader2 | 正在调用 testConnection 验证 |
+| valid | CheckCircle2 | testConnection 返回 success |
+| invalid | AlertCircle | testConnection 返回 failure |
+
+`maskApiKeyForDisplay(apiKey)` 函数检测 `$secure:` 引用前缀并显示占位符 `••••••••`，避免引用字符串泄露给用户。
 
 ### 15.2 SSRF 防护
 
@@ -2333,7 +2419,7 @@ vi.mock("@/infrastructure/di", () => ({
   container: { videoTaskStorage: mockStorage },
 }));
 
-vi.mock("@/shared/ui/*", () => ({
+vi.mock("@/shared/presentation/*", () => ({
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
 }));
 
@@ -2704,7 +2790,7 @@ npm run build:mac
 
 - `out/` 目录打包到 asar
 - better-sqlite3 原生模块通过 `asarUnpack` 解包（原生模块无法在 asar 内加载）
-- 构建时依赖（vite、@vitejs/plugin-react、sharp、shadcn）排除在 electron-builder `files` 之外，减小包体积
+- 构建时依赖（vite、@vitejs/plugin-react、sharp）排除在 electron-builder `files` 之外，减小包体积
 
 ---
 
@@ -2765,7 +2851,7 @@ typecheck → architecture check → lint-staged
 - **次版本号**：向后兼容的功能新增
 - **修订号**：向后兼容的问题修复
 
-当前版本：0.10.0（初始开发阶段）
+当前版本：0.12.1（初始开发阶段）
 
 ### 25.2 发布步骤
 
@@ -2831,7 +2917,7 @@ typecheck → architecture check → lint-staged
 
 ### 27.1 概述
 
-108 条回归防护规则（R1-R114）是从历史 Bug 中抽象出的检测规则，防止已知 Bug 模式重现。这些规则是**回归防护**，不是发现工具——下一次审计必须从零开始发现新问题。
+165+ 条回归防护规则（R1-R165）是从历史 Bug 中抽象出的检测规则，防止已知 Bug 模式重现。这些规则是**回归防护**，不是发现工具——下一次审计必须从零开始发现新问题。
 
 规则按 8 大类组织：
 

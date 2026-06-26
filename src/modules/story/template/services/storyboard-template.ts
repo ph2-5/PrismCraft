@@ -30,7 +30,6 @@ export interface StoryboardTemplateBeat {
   cameraMovement?: string;
   cameraDistance?: string;
   cameraSpeed?: string;
-  generationPrompt?: string;
   imageGenerationPrompt?: string;
   firstFramePrompt?: string;
   lastFramePrompt?: string;
@@ -68,7 +67,6 @@ export function createTemplateFromBeats(
       cameraMovement: beat.camera?.movement,
       cameraDistance: beat.camera?.distance,
       cameraSpeed: beat.camera?.speed,
-      generationPrompt: beat.generationPrompt,
       imageGenerationPrompt: beat.imageGenerationPrompt,
       firstFramePrompt: beat.firstFramePrompt,
       lastFramePrompt: beat.lastFramePrompt,
@@ -97,7 +95,6 @@ export function applyTemplateToBeats(
       distance: beat.cameraDistance,
       speed: beat.cameraSpeed,
     },
-    generationPrompt: beat.generationPrompt,
     imageGenerationPrompt: beat.imageGenerationPrompt,
     firstFramePrompt: beat.firstFramePrompt,
     lastFramePrompt: beat.lastFramePrompt,

@@ -5,7 +5,7 @@ import { container } from "@/infrastructure/di";
 import { safeRun, safeQuery } from "@/shared/db-core";
 import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
-import { t } from "@/shared/constants";
+import { t, BLOB_URL_LONG_REVOKE_DELAY_MS } from "@/shared/constants";
 import { writeFile as fileHttpWriteFile } from "@/shared/file-http";
 
 export const importDataSchema = z.object({
@@ -266,7 +266,7 @@ export async function downloadExport(): Promise<Result<void>> {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_LONG_REVOKE_DELAY_MS);
 
     return ok(undefined);
   } catch (e) {

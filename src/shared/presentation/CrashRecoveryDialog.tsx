@@ -1,17 +1,9 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
+import { Modal } from "./Modal";
 
 interface AutoSaveRecord {
   id: string;
@@ -69,18 +61,22 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
 
   const latestSave = autoSaves[0]!;
   const saveTime = latestSave.timestamp
-    ? new Date(latestSave.timestamp).toLocaleString("zh-CN")
+    ? new Date(latestSave.timestamp).toLocaleString()
     : t("crash.unknownTime");
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("crash.unsavedData")}</DialogTitle>
-          <DialogDescription>
+    <Modal
+      open={open}
+      onClose={() => setOpen(false)}
+      ariaLabel={t("crash.unsavedData")}
+      style={{ maxWidth: 480 }}
+    >
+      <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{t("crash.unsavedData")}</div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 4 }}>
             {t("crash.unsavedDataDesc", { count: autoSaves.length, time: saveTime })}
-          </DialogDescription>
-        </DialogHeader>
+          </div>
+        </div>
         <div className="max-h-40 overflow-y-auto space-y-1">
           {autoSaves.slice(0, 5).map((save) => (
             <div
@@ -90,7 +86,7 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
               <span>{save.type || t("crash.unknownType")}</span>
               <span>
                 {save.timestamp
-                  ? new Date(save.timestamp).toLocaleTimeString("zh-CN")
+                  ? new Date(save.timestamp).toLocaleTimeString()
                   : ""}
               </span>
             </div>
@@ -101,13 +97,12 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
             </div>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={handleDismiss}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+          <button type="button" className="btn btn-outline" onClick={handleDismiss}>
             {t("crash.dismissAndClearConfirm")}
-          </Button>
-          <Button onClick={() => setOpen(false)}>{t("crash.acknowledged")}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => setOpen(false)}>{t("crash.acknowledged")}</button>
+        </div>
+    </Modal>
   );
 }

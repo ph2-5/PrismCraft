@@ -1,142 +1,76 @@
-# Session Log
+# Session Notes
 
-> **追加式日志** — AI 每次会话只追加新条目，不修改或删除已有条目。
-> 防止多会话同时写入时互相覆盖。
-> 超过 30 条时，旧条目归档到 `.ai/session-archive/`。
-
----
-
-## 如何使用
-
-### 会话开始时
-1. 读取本文件最后 5 条记录 → 了解最近变更
-2. 读取 `.ai/work-claims.md` → 了解哪些工作正在进行
-3. 运行 `node .ai/context-snapshot.mjs` → 获取当前代码状态摘要
-
-### 会话结束时
-1. 在本文件末尾**追加**一条记录（不修改已有内容）
-2. 在 `.ai/work-claims.md` 中更新或释放工作声明
-3. 如果有未完成的工作，在声明中标注进度和下一步
+> 本文件采用**追加式**设计：只追加，不修改。每个会话在文件末尾添加新条目。
+> 超过 30 条记录时，旧条目自动移到 `.ai/session-archive/`。
 
 ---
 
-## 日志记录
+## 批次 1-3：UI 重构 + shadcn 清理 + i18n/a11y 优化
+- 7 个主页面 UI/业务逻辑分层
+- 删除 16 个无引用 shadcn 组件
+- globals.css 设计系统 + 5 套主题
+- Toast 重写、Modal 统一、Tabs 可访问组件
+- 210+ i18n key 补充、IconButton aria-label 强制
+- 深度审计 P0+P1+P2 全量修复（R167-R180）
+- 性能优化 P0（R154-R157）+ i18n/UX 优化（R158-R166）
+- 验证：typecheck ✅、lint ✅、test ✅
 
-### [2026-06-14] 架构重构 — 已完成
-- 创建 `src/shared-logic/` 层（16 文件），消除主进程/渲染进程逻辑重复
-- `defineRoute` 泛型化 + Zod `z.infer` 类型推导（30+ Request 类型）
-- `ApiResponse<T>` 泛型化 + `ApiError` 类型
-- Zustand Store CQRS 拆分（state/queries/commands/polling 四层）
-- SyncEngine 类化（6 个模块级 let → 类属性）
-- 视觉一致性结构化（JSON 优先 + 正则降级解析）
-- DI 容器内省（`TOKEN_IDS` + `getTokenRegistry()`）
-- ESLint `no-direct-db-ipc` 规则
-- 删除 15 个废弃文件
-- 拆分 regression-guards.md 为 9 个按类别文件
-- 回归防护自动化协议（Q1-Q5 决策框架）
-- AI 工具集成指南 + 追加式会话日志 + 工作声明机制 + 上下文快照脚本
+## 批次 4：架构重构
+- StoryProvider 清理：删除死代码 + 移除 8 字段
+- React.lazy 首屏优化：4 个首屏组件 lazy 化
+- saveVideoTask 提取：新建 persist-task.ts
+- useAssetLibraryActions 重构：22 扁平参数打包为 6 语义对象
+- 项目切换功能 + 懒加载导航
+- 验证：typecheck ✅、lint ✅
 
-### [2026-06-14] AI 协作机制 — 已完成
-- 改造 session-notes.md 为追加式日志（防多会话覆盖）
-- 创建工作声明机制 `.ai/work-claims.md`（防会话冲突）
-- 创建上下文快照脚本 `.ai/context-snapshot.mjs`（新会话快速恢复上下文）
-- 更新 ai-tool-integration.md（频繁切换对话场景）
+## 批次 5：UI 颜色系统清理
+- 188 处硬编码 Tailwind 颜色 → 0 残留
+- 新增 R181 回归规则
+- 修正回归规则计数为 167（R181 added）
+- 验证：lint ✅、color-grep ✅
 
----
+## 批次 6：StoryBeat schema 清理
+- 移除 scene + generationPrompt deprecated 字段
+- shared/ui 目录删除，迁移到 shared/presentation
+- route as 断言部分消除
+- 验证：typecheck ✅
 
-## 已知风险
-- shared-logic 中 logger 被移除，路由处理器需自行记录日志
-- Route.handler 方法语法双变，理论上允许不匹配的 body 类型（defineRoute 输入端仍严格）
+## 批次 7：全面 UI/UX 打磨
+- 移除侧栏伪造 AI 进度
+- 修复版本号不一致（统一 APP_VERSION 常量）
+- 修复"故事模式"入口指向 ComingSoon
+- 移除伪造团队协作头像
+- 修复默认 Tab（video → details）
+- 修复 useStoryPersistence 状态卡死
+- 统一 Loading 组件（新建 PageLoader）
+- Modal 焦点陷阱
+- emoji → Lucide 图标
+- 验证：typecheck ✅、lint ✅、test ✅
 
-## 架构速查
-```
-依赖方向: app → modules → shared-logic → domain
-                    ↓           ↓
-                  shared    infrastructure/di
+## 批次 8：快捷键 + 表单校验 + eslint
+- 接入 useGlobalKeyboardActions（Ctrl+Z/S）
+- 3 个表单名称必填校验
+- setTimeout 魔法数字提取（14 处）
+- eslint max-lines/max-params/complexity 规则
+- error-codes 命名统一大写
+- 验证：lint ✅、typecheck ✅
 
-新增层: src/shared-logic/ — 纯业务逻辑，零外部依赖
-新增路径别名: @/shared-logic/* (renderer), @shared-logic/* (main process)
-新增 API 模式: defineRoute({ schema, handler, methods }) — handler body 自动推导类型
-新增 DI: syncEngine token (E 类懒加载)
-新增 ESLint: no-direct-db-ipc (modules 层禁止 IPC 数据库操作)
-```
+## 批次 9：历史遗留问题全面清理
+- BeatDetailEditor 拆分（834 行 → 280 行 + 4 子组件：BasicInfoSection / ShotInstructionSection / GenerateTabContent / SettingsTabContent）
+- 路由 as 断言消除（24 处）
+- shared-logic 中文清理
+- useAssetLibraryActions DRY 修复
+- file-routes i18n 化
+- PluginsPage 标准化
+- tsconfig 严格选项
+- docs/废弃/ 清理
+- commit: 0155100 (refactor(arch): batch 9 - eliminate all historical technical debt)
+- 验证：typecheck ✅、lint ✅
 
-### [2026-06-20] 全项目底层代码逻辑问题审计与修复 — 已完成
+## 当前回归规则计数
+- R1-R181（181 条规则）
 
-**审计范围**：全项目底层代码逻辑问题（安全、数据完整性、状态同步、资源生命周期、IPC/API、业务逻辑、中危问题）
-
-**修复阶段**：
-1. **阶段1-3（致命问题）**：安全漏洞、数据完整性、数据持久化（前序会话已完成）
-2. **阶段4（状态同步高危）**：commands 委托 store action、sync push-pull 原子性、useStoryPersistence debounce
-3. **阶段5（资源生命周期高危）**：FileTransport flush 失败回队列、closeAllTransports、setup 函数幂等
-4. **阶段6（IPC/API 安全高危）**：重定向 SSRF、openPath 白名单、token 不返回、解密不回退明文、base64 回退移除、providerId 校验、sync Zod schema
-5. **阶段7（业务逻辑高危）**：pending→completed 转换、批量取消通知服务端、沙箱 constructor 锁定、apiKey header 传递、INSERT OR REPLACE → ON CONFLICT
-6. **阶段8（中危问题）**：输入验证（config-storage/secure-config）、边界条件 NaN 检查（scenes/changelog/queries/s3-file-storage/error-logger/database/ssrf-guard）、资源释放（db-connection 定时器）、错误处理（plugin-worker catch 日志）、并发（download-manager 重复调度）、日志可观测性、SQL 注释剥离、shared-logic-resolve 运行时检查
-
-**回归防护**：
-- 新增 R110-R130 共 21 条回归规则（R110-R114 为补全已有测试的规则文档，R115-R130 为本次新增）
-- 创建 15 个回归测试文件，全部通过验证
-- 更新 regression-guards.md（总计 130 条规则）和 regression/index.md 分类索引
-
-**修改文件清单**（阶段4-8）：
-- `src/modules/video/task-management/hooks/use-video-task-commands.ts` — 委托 store action
-- `src/domain/types/sync.ts` — SyncPushResult.syncedIds 字段
-- `src/modules/sync/engine/sync-protocol.ts` — 移除提前 markChangesSynced
-- `src/modules/sync/engine/sync-engine-class.ts` — 原子化 markChangesSynced
-- `src/app/story/useStoryPersistence.ts` — 500ms debounce
-- `electron/src/logging/transports/file.transport.ts` — flush 失败回队列
-- `electron/src/logging/logger.ts` — closeAllTransports
-- `electron/src/lifecycle/cleanup.ts` — 关闭 logger transport
-- `src/modules/video/task-management/hooks/internals/task-initializer.ts` — 4个 setup 幂等
-- `electron/src/api-gateway-utils.ts` — 重定向 SSRF 校验
-- `electron/src/main-common.ts` — openPath 路径白名单
-- `electron/src/handlers/sync.ts` — 移除 token 返回
-- `electron/src/security/key-storage/strategies/safe-storage.strategy.ts` — 不回退明文
-- `electron/src/handlers/config.ts` — 移除 base64 回退
-- `electron/src/handlers/secure-config.ts` — providerId + apiKey 校验
-- `electron/src/api/schemas.ts` — syncTestSchema/syncProxySchema
-- `electron/src/api/route-groups/core-routes.ts` — 绑定 sync schema
-- `src/modules/video/task-management/domain/task-machine.ts` — pending→completed
-- `src/modules/video/task-management/hooks/use-video-task-manager.ts` — 批量取消通知
-- `electron/src/plugins/plugin-worker.ts` — constructor 锁定 + catch 日志
-- `electron/src/plugins/providers/google.ts` — apiKey header
-- `src/modules/asset/asset-library/asa-export-service.ts` — ON CONFLICT DO UPDATE
-- `electron/src/handlers/config-storage.ts` — 输入校验 + 审计日志
-- `src/infrastructure/ai-providers/offline-queue-ops.ts` — JSON.parse try/catch + 日志
-- `src/infrastructure/storage/scenes.ts` — parseInt NaN 检查
-- `src/modules/sync/engine/changelog.ts` — lastSyncAt NaN 检查
-- `src/infrastructure/storage/elements/queries.ts` — nextCode NaN 检查
-- `src/infrastructure/storage/s3-file-storage.ts` — size/timestamp NaN 检查
-- `src/shared/error-logger.ts` — 移除非空断言
-- `electron/src/handlers/database.ts` — SQL 注释剥离 + 空检查
-- `electron/src/security/ssrf-guard/ssrf-guard.ts` — IPv6 NaN 检查
-- `electron/src/database/db-connection.ts` — 定时器清理 + 启动日志
-- `electron/src/plugins/plugin-process-manager.ts` — kill 错误日志
-- `src/infrastructure/network/download-manager.ts` — 重复调度防护
-- `electron/src/shared-logic-resolve.ts` — _resolveFilename 运行时检查
-
-**验证结果**：typecheck + typecheck:electron + lint + lint:arch 全部通过，222 测试文件 4201 测试通过（含新增 15 个回归测试）
-
-### [2026-06-20] E2E 测试覆盖率分析与补充优化 — 已完成
-
-**分析范围**：15 个 e2e 测试文件，识别 5 个关键覆盖缺口和 3 个质量问题
-
-**新增测试文件**：
-- `tests/not-found-page.spec.ts` — 6 个测试，覆盖 404 页面和无效 beat 路由（此前无 e2e）
-- `tests/beat-detail-page.spec.ts` — 5 个测试，覆盖 `/story/beat/:beatId` 路由（此前无 e2e）
-- `tests/video-task-workflow.spec.ts` — 9 个测试，覆盖视频任务页面内容和 mock 工作流（此前极浅）
-- `tests/network-resilience.spec.ts` — 7 个测试，覆盖 API 500 错误和慢速响应韧性（此前完全缺失）
-- `tests/helpers/console-errors.ts` — 可复用的 `captureConsoleErrors` 工具 + `IGNORED_ERROR_PATTERNS` 过滤
-
-**修改的测试文件**：
-- `tests/story-delete-confirmation.spec.ts` — 修复静默通过模式，添加控制台错误检查和导航离开测试
-- `tests/tsconfig.json` — include 添加 `./helpers/*.ts`
-
-**关键修复**：
-1. **Playwright + @base-ui/react click 挂起**：Story 页面原生 `click()` 挂起，改用 `clickButtonByText(page.evaluate)` 变通
-2. **network-resilience 超时根因**：`page.route("**/api/**")` glob 模式匹配了 Vite 模块路径 `/src/infrastructure/api/client.ts`，导致 JS 模块加载失败、React 无法挂载。改用函数匹配器仅拦截路径以 `/api/` 开头的真实 API 端点
-3. **network-resilience networkidle 超时**：`waitForAppReady` 的 `waitForLoadState("networkidle")` 在 API 全部 500 时永不完成，改用 `domcontentloaded` + `main`/`error-card` 可见
-
-**验证结果**：全部 126 个 e2e 测试通过（14.2 分钟），单元测试 4998 个通过
-
-**版本**：0.10.0 → 0.11.0
+## 后续待办
+- shotType/camera deprecated 字段迁移（需重构 LLM 管线）
+- imageGenerationPrompt 语义决策
+- 9 个 ComingSoon 占位页面（产品功能未实现）

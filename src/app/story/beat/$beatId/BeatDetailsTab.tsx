@@ -1,5 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
-import { Badge } from "@/shared/ui/badge";
 import { t } from "@/shared/constants";
 import type { StoryBeat } from "@/domain/schemas";
 
@@ -23,13 +21,13 @@ interface BeatDetailsTabProps {
 export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
   return (
     <>
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-foreground">
+      <div className="card">
+        <div style={{ paddingBottom: 12 }}>
+          <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
             {t("beat.content")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+          </div>
+        </div>
+        <div className="space-y-3">
           <div>
             <Label className="text-xs text-muted-foreground">{t("beat.titleLabel")}</Label>
             <p className="text-sm text-foreground">
@@ -56,17 +54,17 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {beat.camera && (
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-foreground">
+        <div className="card">
+          <div style={{ paddingBottom: 12 }}>
+            <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
               {t("beat.cameraParams")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+            </div>
+          </div>
+          <div className="space-y-2">
             {beat.camera.angle && (
               <div className="flex justify-between">
                 <span className="text-xs text-muted-foreground">{t("beat.angle")}</span>
@@ -91,18 +89,18 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
                 </span>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {beat.elementIds && beat.elementIds.length > 0 && (
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-foreground">
+        <div className="card">
+          <div style={{ paddingBottom: 12 }}>
+            <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
               {t("beat.elementBinding")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+            </div>
+          </div>
+          <div className="space-y-2">
             {beat.elementIds.map((elementId) => {
               const binding = beat.elementBindings?.[elementId];
               const name = elementNames[elementId];
@@ -116,9 +114,9 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
                       {name || elementId}
                     </span>
                     {binding?.role && (
-                      <Badge variant="outline" className="text-xs">
+                      <span className="badge badge-muted text-xs">
                         {binding.role}
-                      </Badge>
+                      </span>
                     )}
                   </div>
                   {name && (
@@ -139,8 +137,8 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </>
   );

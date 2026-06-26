@@ -1176,7 +1176,7 @@ useEffect(() => {
 - `vi.hoisted()`：用于模块导入前必须存在的 mock 函数
 - `vi.mock()`：模块级 mock（DI 容器、外部包、UI 组件）
 - `overrideToken()`：替换 DI 容器中的特定 token
-- UI 组件 mock：`@/shared/ui/*` mock 为简单 HTML 元素
+- UI 组件 mock：`@/shared/presentation/*` mock 为简单 HTML 元素
 - `react-router-dom` Link mock 为 `<a>` 标签
 
 **测试结构**：
@@ -1220,7 +1220,7 @@ describe("ComponentName", () => {
 **electron-builder 打包**：
 - `out/` 打包为 asar（Electron 应用归档格式）
 - better-sqlite3 原生模块通过 `asarUnpack` 解包（原生 .node 文件无法在 asar 内加载）
-- 构建时依赖（vite、@vitejs/plugin-react、sharp、shadcn）排除在 electron-builder `files` 外，减小包体积
+- 构建时依赖（vite、@vitejs/plugin-react、sharp）排除在 electron-builder `files` 外，减小包体积
 
 **发布流程**：
 - 推送 `v*` tag 触发 GitHub Actions release workflow

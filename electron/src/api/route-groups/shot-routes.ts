@@ -1,10 +1,6 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
 import { createApiGatewayAdapter } from "../../api-gateway";
-import type { Shot, Reference } from "@shared-logic/shot/reference-engine";
-import type { Element, Beat as VisualBeat } from "@shared-logic/shot/visual-consistency-check";
-import type { FeatureAnchoringConfig } from "@shared-logic/shot/consistency-check";
-import type { Story as RefStory } from "@shared-logic/shot/reference-check";
 import * as referenceEngine from "@shared-logic/shot/reference-engine";
 import * as consistencyCheck from "@shared-logic/shot/consistency-check";
 import * as referenceCheck from "@shared-logic/shot/reference-check";
@@ -29,9 +25,9 @@ export const shotRoutes: Record<string, Route> = {
     schema: shotValidateReferenceSchema,
     handler: async (_m, b) => {
       const result = referenceEngine.validateReference(
-        b.shot as Shot,
-        b.allShots as Shot[],
-        b.reference as Reference,
+        b.shot,
+        b.allShots,
+        b.reference,
       );
       return { success: true, data: result };
     },
@@ -41,9 +37,9 @@ export const shotRoutes: Record<string, Route> = {
     schema: shotGetReferenceVideoUrlSchema,
     handler: async (_m, b) => {
       const url = referenceEngine.getReferenceVideoUrl(
-        b.shot as Shot,
-        b.allShots as Shot[],
-        b.reference as Reference,
+        b.shot,
+        b.allShots,
+        b.reference,
       );
       return { success: true, data: { videoUrl: url } };
     },
@@ -53,9 +49,9 @@ export const shotRoutes: Record<string, Route> = {
     schema: shotBuildReferenceDescriptionSchema,
     handler: async (_m, b) => {
       const desc = referenceEngine.buildReferenceDescription(
-        b.shot as Shot,
-        b.allShots as Shot[],
-        b.reference as Reference,
+        b.shot,
+        b.allShots,
+        b.reference,
       );
       return { success: true, data: { description: desc } };
     },
@@ -64,10 +60,7 @@ export const shotRoutes: Record<string, Route> = {
   "validate/consistency": defineRoute({
     schema: validateConsistencySchema,
     handler: async (_m, b) => {
-      // Schema uses z.object({}).passthrough() for forward compatibility with config shape;
-      // performConfigCheck expects a specific FeatureAnchoringConfig-derived type from shared-logic.
-      // The assertion bridges the permissive schema to the strict function signature.
-      const result = consistencyCheck.performConfigCheck(b as unknown as Parameters<typeof consistencyCheck.performConfigCheck>[0]);
+      const result = consistencyCheck.performConfigCheck(b);
       return { success: true, data: result };
     },
     methods: ["POST"],
@@ -75,8 +68,7 @@ export const shotRoutes: Record<string, Route> = {
   "validate/feature-anchoring": defineRoute({
     schema: validateFeatureAnchoringSchema,
     handler: async (_m, b) => {
-      const config = b.config as FeatureAnchoringConfig;
-      const result = consistencyCheck.validateFeatureAnchoringConfig(config);
+      const result = consistencyCheck.validateFeatureAnchoringConfig(b.config);
       return { success: true, data: result };
     },
     methods: ["POST"],
@@ -94,7 +86,7 @@ export const shotRoutes: Record<string, Route> = {
     handler: async (_m, b) => {
       const result = referenceCheck.checkCharacterReferences(
         b.characterId,
-        b.stories as RefStory[],
+        b.stories,
       );
       return { success: true, data: result };
     },
@@ -103,7 +95,10 @@ export const shotRoutes: Record<string, Route> = {
   "reference/check-scene": defineRoute({
     schema: referenceCheckSceneSchema,
     handler: async (_m, b) => {
-      const result = referenceCheck.checkSceneReferences(b.sceneId, b.stories as RefStory[]);
+      const result = referenceCheck.checkSceneReferences(
+        b.sceneId,
+        b.stories,
+      );
       return { success: true, data: result };
     },
     methods: ["POST"],
@@ -116,9 +111,7 @@ export const shotRoutes: Record<string, Route> = {
         {
           generatedImageUrl: b.generatedImageUrl,
           referenceImageUrl: b.referenceImageUrl,
-          // Schema uses z.record(z.string(), z.unknown()) for element; Element is a complex
-          // shared-logic type. The assertion bridges the loose schema to the strict type.
-          element: b.element as unknown as Element,
+          element: b.element,
         },
       );
       return { success: true, data: result };
@@ -131,8 +124,8 @@ export const shotRoutes: Record<string, Route> = {
       const result = await visualConsistencyCheck.checkBeatElementConsistency(
         apiGatewayAdapter,
         {
-          beat: b.beat as VisualBeat,
-          elements: b.elements as Element[],
+          beat: b.beat,
+          elements: b.elements,
           getGeneratedImageUrl: (elementId: string) =>
             (b.generatedImageMap || {})[elementId],
         },

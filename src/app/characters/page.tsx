@@ -1,32 +1,13 @@
-import { useState, useRef, useEffect, useCallback, Suspense } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { useDirtyState } from "@/shared/hooks/use-dirty-state";
-import { useCharacters } from "@/modules/character";
-import { useStories, storyService } from "@/modules/story";
-import { useMediaAssets, useCreateMediaAsset } from "@/modules/asset";
-import { characterService } from "@/modules/character";
-import { mapUserFacingError } from "@/shared/utils/user-facing-error";
-import { resolveImageUrl } from "@/shared/utils/image-url";
+import { Suspense } from "react";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
-import { useToastHelpers } from "@/shared/presentation/Toast";
-import { t } from "@/shared/constants/messages";
-import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
 import { OutfitDialog } from "@/modules/character";
 import { MediaExporter } from "@/modules/asset";
-import {
-  defaultCharacter,
-  useCharacterImage,
-  useCharacterCRUD,
-  useOutfitManagement,
-} from "@/modules/character";
-import { confirm } from "@/shared/utils/confirm";
-import type { Character } from "@/domain/schemas";
+import { t } from "@/shared/constants/messages";
 import { CharacterList } from "./CharacterList";
 import { CharacterEditor } from "./CharacterEditor";
-import { CharacterImageSection } from "./CharacterImageSection";
+import { useCharacterPage } from "./hooks/useCharacterPage";
 
 export default function CharactersPage() {
   return (
@@ -37,363 +18,122 @@ export default function CharactersPage() {
 }
 
 function CharactersPageContent() {
-  const { markDirty, markClean, isDirty } = useDirtyState();
-  const queryClient = useQueryClient();
-  const createMediaAssetMutation = useCreateMediaAsset();
-  const [searchParams] = useSearchParams();
-  const highlightId = searchParams.get("highlight");
-
-  const { data: characters = [], isLoading: charactersLoading } = useCharacters();
-  const { data: stories = [] } = useStories();
-  const { data: assets = [], isLoading: _assetsLoading } = useMediaAssets();
-  const [showAssetSelector, setShowAssetSelector] = useState(false);
-  const [currentCharacter, setCurrentCharacterRaw] =
-    useState<Character>(defaultCharacter);
-  const setCurrentCharacter = useCallback(
-    (update: Character | ((prev: Character) => Character), shouldMarkDirty = false) => {
-      setCurrentCharacterRaw(update);
-      if (shouldMarkDirty) markDirty("characters");
-    },
-    [markDirty],
-  );
-  const currentCharacterRef = useRef(currentCharacter);
-  useEffect(() => { currentCharacterRef.current = currentCharacter; }, [currentCharacter]);
-  const [customTrait, setCustomTrait] = useState("");
-  const [, setCustomStyle] = useState("");
-  const { success, error: showError } = useToastHelpers();
-
-  const addAssetToLibrary = async (
-    url: string,
-    type: "image" | "video",
-    name: string,
-    boundTo?: { type: "character" | "scene"; id: string; name: string },
-  ) => {
-    await createMediaAssetMutation.mutateAsync({
-      name,
-      type,
-      url,
-      description: "",
-      tags: [],
-      boundTo,
-    });
-  };
-
-  const {
-    isGenerating,
-    setIsGenerating,
-    generatedImage,
-    setGeneratedImage,
-    isUploading,
-    isAnalyzing,
-    useDetailedPrompt,
-    setUseDetailedPrompt,
-    imageSize,
-    setImageSize,
-    fileInputRef,
-    analyzeFileInputRef,
-    selectedImageModel,
-    setSelectedImageModel,
-    generatePrompt,
-    generateImage,
-    saveImageToCharacter,
-    handleFileUpload,
-    handleAnalyzeFileUpload,
-  } = useCharacterImage({
-    currentCharacter,
-    currentCharacterRef,
-    setCurrentCharacter,
-    addAssetToLibrary,
-    success,
-    showError,
-  });
-
-  const {
-    deleteDialogOpen,
-    setDeleteDialogOpen,
-    characterToDelete,
-    referenceCheck,
-    handleSave,
-    saveStatus,
-    saveError,
-    handleDelete,
-    performDelete,
-    isDeleting,
-    addTrait,
-    removeTrait,
-  } = useCharacterCRUD({
-    currentCharacter,
-    setCurrentCharacter,
-    generatedImage,
-    setCustomTrait,
-    setCustomStyle,
-    setGeneratedImage,
-    addAssetToLibrary,
-    generatePrompt,
-    success,
-    showError,
-    stories,
-    markDirty,
-    markClean,
-    onUpdateStoriesAfterDelete: async (characterId, storiesList) => {
-      const updatedStories = storiesList.map((story) => {
-        const updatedBeats = (story.beats || []).map((beat) => {
-          const updated = { ...beat };
-          if (updated.characterIds?.includes(characterId)) {
-            updated.characterIds = updated.characterIds.filter(
-              (cid) => cid !== characterId,
-            );
-          }
-          return updated;
-        });
-        const updatedCharacters = (story.characters || []).filter(
-          (cid) => cid !== characterId,
-        );
-        return { ...story, characters: updatedCharacters, beats: updatedBeats };
-      });
-      const failedStories: string[] = [];
-      const affectedStories = updatedStories.filter((updatedStory) => {
-        const original = storiesList.find((s) => s.id === updatedStory.id);
-        return (
-          original?.characters?.includes(characterId) ||
-          original?.beats?.some(
-            (b) =>
-              b.characterIds?.includes(characterId),
-          )
-        );
-      });
-      const results = await Promise.allSettled(
-        affectedStories.map((updatedStory) =>
-          storyService.update(updatedStory.id, updatedStory),
-        ),
-      );
-      results.forEach((result, i) => {
-        if (result.status === "rejected" || (result.status === "fulfilled" && !result.value.ok)) {
-          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
-        }
-      });
-      if (failedStories.length > 0) {
-        showError(t("story.partialRefFailed"), t("story.partialRefFailedDetail", { items: failedStories.join("、") }));
-      }
-    },
-  });
-
-  const {
-    showOutfitDialog,
-    setShowOutfitDialog,
-    editingOutfit,
-    setEditingOutfit,
-    outfitForm,
-    setOutfitForm,
-    customAccessory,
-    setCustomAccessory,
-    handleAddOutfit,
-    handleDeleteOutfit,
-    handleSetDefaultOutfit,
-    handleEditOutfit,
-    handleGenerateOutfitImage,
-    addAccessory,
-    removeAccessory,
-  } = useOutfitManagement({
-    currentCharacter,
-    setCurrentCharacter,
-    setIsGenerating,
-    addAssetToLibrary,
-    success,
-    showError,
-  });
-
-  const handleSaveRef = useRef(handleSave);
-  useEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
-
-  const handleSelectCharacter = useCallback(
-    async (char: Character) => {
-      if (
-        currentCharacter.id &&
-        char.id !== currentCharacter.id &&
-        isDirty("characters")
-      ) {
-        if (
-          !(await confirm(
-            t("character.unsavedSwitchConfirm"),
-            t("character.unsavedChanges"),
-          ))
-        )
-          return;
-      }
-      setCurrentCharacter(char);
-      setGeneratedImage(
-        resolveImageUrl(char.avatarPath || char.generatedImage || char.refImagePath) || null,
-      );
-    },
-    [currentCharacter.id, isDirty, setCurrentCharacter, setGeneratedImage],
-  );
-
-  const handleDeleteCharacter = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      const charId = (e.currentTarget.closest("[data-char-id]") as HTMLElement)?.dataset.charId;
-      if (charId) handleDelete(charId);
-    },
-    [handleDelete],
-  );
-
-  useGlobalKeyboardActions({
-    onSave: () => handleSaveRef.current(),
-  });
-
-  useEffect(() => {
-    if (!highlightId || characters.length === 0) return;
-    const found = characters.find((c) => c.id === highlightId);
-    if (found) {
-      setCurrentCharacterRaw(found);
-      setGeneratedImage(found.generatedImage || found.refImagePath || null);
-    }
-  }, [highlightId, characters, setGeneratedImage]);
-
-  const handleCreateNew = useCallback(async () => {
-    if (currentCharacter.id && isDirty("characters")) {
-      if (
-        !(await confirm(
-          t("character.unsavedSwitchConfirm"),
-          t("character.unsavedChanges"),
-        ))
-      )
-        return;
-    }
-    setCurrentCharacter(defaultCharacter);
-    setCustomTrait("");
-    setCustomStyle("");
-  }, [currentCharacter.id, isDirty, setCurrentCharacter, setCustomTrait, setCustomStyle]);
-
-  const handleAddOutfitClick = useCallback(() => {
-    setEditingOutfit(null);
-    setOutfitForm({
-      name: "",
-      description: "",
-      clothing: "",
-      accessories: [],
-    });
-    setShowOutfitDialog(true);
-  }, [setEditingOutfit, setOutfitForm, setShowOutfitDialog]);
+  const page = useCharacterPage();
 
   return (
     <PageErrorBoundary pageName={t("page.characters")}>
-      <div className="h-full flex gap-3">
-        <CharacterList
-          characters={characters}
-          charactersLoading={charactersLoading}
-          onSelectCharacter={handleSelectCharacter}
-          onDeleteCharacter={handleDeleteCharacter}
-          onCreateNew={handleCreateNew}
-        />
-
-        <div className="flex-1 min-w-0 border border-border rounded-lg bg-card overflow-hidden">
-          <div className="h-full overflow-y-auto">
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold">
-                {currentCharacter.id ? t("character.editCharacter") : t("character.createNew")}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {t("character.allFieldsOptional")}
-              </p>
-            </div>
-            <div className="p-4">
-              <CharacterEditor
-                currentCharacter={currentCharacter}
-                setCurrentCharacter={setCurrentCharacter}
-                customTrait={customTrait}
-                setCustomTrait={setCustomTrait}
-                addTrait={addTrait}
-                removeTrait={removeTrait}
-                isGenerating={isGenerating}
-                onAddOutfit={handleAddOutfitClick}
-                onEditOutfit={handleEditOutfit}
-                onDeleteOutfit={handleDeleteOutfit}
-                onSetDefaultOutfit={handleSetDefaultOutfit}
-                onGenerateOutfitImage={handleGenerateOutfitImage}
-              />
-
-              <CharacterImageSection
-                currentCharacter={currentCharacter}
-                generatedImage={generatedImage}
-                setGeneratedImage={setGeneratedImage}
-                isGenerating={isGenerating}
-                isUploading={isUploading}
-                isAnalyzing={isAnalyzing}
-                useDetailedPrompt={useDetailedPrompt}
-                setUseDetailedPrompt={setUseDetailedPrompt}
-                imageSize={imageSize}
-                setImageSize={setImageSize}
-                selectedImageModel={selectedImageModel}
-                setSelectedImageModel={setSelectedImageModel}
-                generatePrompt={generatePrompt}
-                generateImage={generateImage}
-                saveImageToCharacter={saveImageToCharacter}
-                fileInputRef={fileInputRef}
-                analyzeFileInputRef={analyzeFileInputRef}
-                handleFileUpload={handleFileUpload}
-                handleAnalyzeFileUpload={handleAnalyzeFileUpload}
-                setShowAssetSelector={setShowAssetSelector}
-                isDirty={isDirty("characters")}
-                saveStatus={saveStatus}
-                saveError={saveError}
-                handleSave={handleSave}
-              />
-            </div>
+      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        {/* Top Tabs */}
+        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>👤 {t("sidebar.characters")}</span>
+          <div className="toolbar">
+            <input
+              className="input"
+              placeholder={t("character.searchPlaceholder")}
+              style={{ fontSize: 12, padding: "6px 10px", width: 180 }}
+              value={page.search}
+              onChange={(e) => page.setSearch(e.target.value)}
+            />
+            <button className="btn btn-primary btn-sm" onClick={page.handleCreateNew}>
+              + {t("character.createNew")}
+            </button>
           </div>
         </div>
+
+        {/* Content: Left List + Right Detail Editor */}
+        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          <CharacterList
+            characters={page.filteredCharacters}
+            charactersLoading={page.charactersLoading}
+            onSelectCharacter={page.handleSelectCharacter}
+            onDeleteCharacter={page.handleDeleteCharacter}
+            onCreateNew={page.handleCreateNew}
+          />
+
+          {/* Right: Detail Editor */}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflowY: "auto", padding: 16, gap: 12 }}>
+            {page.showEditor ? (
+              <CharacterEditor
+                currentCharacter={page.currentCharacter}
+                setCurrentCharacter={page.setCurrentCharacter}
+                customTrait={page.customTrait}
+                setCustomTrait={page.setCustomTrait}
+                addTrait={page.addTrait}
+                removeTrait={page.removeTrait}
+                isGenerating={page.isGenerating}
+                isUploading={page.isUploading}
+                isAnalyzing={page.isAnalyzing}
+                generatedImage={page.generatedImage}
+                setGeneratedImage={page.setGeneratedImage}
+                useDetailedPrompt={page.useDetailedPrompt}
+                setUseDetailedPrompt={page.setUseDetailedPrompt}
+                selectedImageModel={page.selectedImageModel}
+                setSelectedImageModel={page.setSelectedImageModel}
+                generatePrompt={page.generatePrompt}
+                generateImage={page.generateImage}
+                saveImageToCharacter={page.saveImageToCharacter}
+                fileInputRef={page.fileInputRef}
+                analyzeFileInputRef={page.analyzeFileInputRef}
+                handleFileUpload={page.handleFileUpload}
+                handleAnalyzeFileUpload={page.handleAnalyzeFileUpload}
+                setShowAssetSelector={page.setShowAssetSelector}
+                onAddOutfit={page.handleAddOutfitClick}
+                onEditOutfit={page.handleEditOutfit}
+                onDeleteOutfit={page.handleDeleteOutfit}
+                onSetDefaultOutfit={page.handleSetDefaultOutfit}
+                onGenerateOutfitImage={page.handleGenerateOutfitImage}
+                referencedBeats={page.referencedBeats}
+                isDirty={page.isDirty}
+                saveStatus={page.saveStatus}
+                saveError={page.saveError}
+                handleSave={page.handleSave}
+                handleDelete={() => page.currentCharacter.id && page.performDelete(page.currentCharacter.id)}
+              />
+            ) : (
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-fg)" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 48, marginBottom: 8 }}>👤</div>
+                  <p style={{ fontSize: 14 }}>{t("character.selectOrCreate")}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {page.currentCharacter.id && (
+          <MediaExporter type="character" item={page.currentCharacter} />
+        )}
+
+        <DeleteConfirmDialog
+          open={page.deleteDialogOpen}
+          onOpenChange={page.setDeleteDialogOpen}
+          entityLabel={t("sidebar.characters")}
+          isDeleting={page.isDeleting}
+          onConfirm={() => page.characterToDelete && page.performDelete(page.characterToDelete)}
+          referenceCheck={page.referenceCheck}
+        />
+
+        <OutfitDialog
+          open={page.showOutfitDialog}
+          onOpenChange={page.setShowOutfitDialog}
+          editingOutfit={page.editingOutfit}
+          outfitForm={page.outfitForm}
+          setOutfitForm={page.setOutfitForm}
+          customAccessory={page.customAccessory}
+          setCustomAccessory={page.setCustomAccessory}
+          onAddOutfit={page.handleAddOutfit}
+          onAddAccessory={page.addAccessory}
+          onRemoveAccessory={page.removeAccessory}
+        />
+
+        <AssetSelectorDialog
+          open={page.showAssetSelector}
+          onOpenChange={page.setShowAssetSelector}
+          assets={page.assets}
+          description={t("character.selectImageAsCharacter")}
+          onSelect={page.handleAssetSelect}
+        />
       </div>
-
-      {currentCharacter.id && (
-        <MediaExporter type="character" item={currentCharacter} />
-      )}
-
-      <DeleteConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        entityLabel={t("sidebar.characters")}
-        isDeleting={isDeleting}
-        onConfirm={() => characterToDelete && performDelete(characterToDelete)}
-        referenceCheck={referenceCheck}
-      />
-
-      <OutfitDialog
-        open={showOutfitDialog}
-        onOpenChange={setShowOutfitDialog}
-        editingOutfit={editingOutfit}
-        outfitForm={outfitForm}
-        setOutfitForm={setOutfitForm}
-        customAccessory={customAccessory}
-        setCustomAccessory={setCustomAccessory}
-        onAddOutfit={handleAddOutfit}
-        onAddAccessory={addAccessory}
-        onRemoveAccessory={removeAccessory}
-      />
-
-      <AssetSelectorDialog
-        open={showAssetSelector}
-        onOpenChange={setShowAssetSelector}
-        assets={assets}
-        description={t("character.selectImageAsCharacter")}
-        onSelect={async (asset) => {
-          setGeneratedImage(asset.url);
-          if (currentCharacter.id) {
-            try {
-              const result = await characterService.update(currentCharacter.id, {
-                ...currentCharacter,
-                refImagePath: asset.url,
-                generatedImage: asset.url,
-              });
-              if (!result.ok) throw result.error;
-              queryClient.invalidateQueries({ queryKey: ["characters"] });
-            } catch (err) {
-              showError(t("error.saveFailed"), mapUserFacingError(err));
-            }
-          }
-          setShowAssetSelector(false);
-          success(t("success.applied"), t("success.imageSelectedFromLibrary"));
-        }}
-      />
     </PageErrorBoundary>
   );
 }

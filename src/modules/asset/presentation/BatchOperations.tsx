@@ -1,18 +1,12 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { t } from "@/shared/constants";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/shared/ui/dialog";
 import type { BatchTask, Character, Scene, BatchTaskResult } from "@/domain/schemas";
 import { Layers, Users, Image } from "lucide-react";
 import { container } from "@/infrastructure/di";
 import { extractErrorMessage } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
+import type { StyleOption } from "@/modules/character";
+import { Modal } from "@/shared/presentation/Modal";
 import { VariantGenerator } from "./VariantGenerator";
 import { BatchProgressDialog } from "./BatchProgressDialog";
 
@@ -60,17 +54,42 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
   const typeLabel = type === "character" ? t("search.typeCharacter") : t("search.typeScene");
   const TypeIcon = type === "character" ? Users : Image;
 
-  const styleOptions = useMemo(() => type === "character"
+  const styleOptions = useMemo<readonly StyleOption[]>(() => type === "character"
     ? [
-        "日式动漫", "写实风格", "卡通风格", "Q版/萌系", "像素风格",
-        "水彩风格", "赛博朋克", "奇幻风格", "蒸汽朋克", "哥特风格",
-        "浮世绘", "油画风格", "素描风格", "3D渲染", "低多边形",
-        "美式漫画", "韩漫风格", "国风/古风", "未来主义", "复古风",
+        { value: "日式动漫", labelKey: "styleOption.japanese-anime" },
+        { value: "写实风格", labelKey: "styleOption.realistic" },
+        { value: "卡通风格", labelKey: "styleOption.cartoon" },
+        { value: "Q版/萌系", labelKey: "styleOption.chibi" },
+        { value: "像素风格", labelKey: "styleOption.pixel" },
+        { value: "水彩风格", labelKey: "styleOption.watercolor" },
+        { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
+        { value: "奇幻风格", labelKey: "styleOption.fantasy" },
+        { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
+        { value: "哥特风格", labelKey: "styleOption.gothic" },
+        { value: "浮世绘", labelKey: "styleOption.ukiyoe" },
+        { value: "油画风格", labelKey: "styleOption.oil-painting" },
+        { value: "素描风格", labelKey: "styleOption.sketch" },
+        { value: "3D渲染", labelKey: "styleOption.3d-render" },
+        { value: "低多边形", labelKey: "styleOption.low-poly" },
+        { value: "美式漫画", labelKey: "styleOption.american-comic" },
+        { value: "韩漫风格", labelKey: "styleOption.korean-comic" },
+        { value: "国风/古风", labelKey: "styleOption.chinese-classical" },
+        { value: "未来主义", labelKey: "styleOption.futurism" },
+        { value: "复古风", labelKey: "styleOption.retro" },
       ]
     : [
-        "写实风格", "卡通风格", "水彩风格", "油画风格",
-        "赛博朋克", "奇幻风格", "蒸汽朋克", "哥特风格",
-        "未来主义", "复古风", "极简风格", "华丽风格",
+        { value: "写实风格", labelKey: "styleOption.realistic" },
+        { value: "卡通风格", labelKey: "styleOption.cartoon" },
+        { value: "水彩风格", labelKey: "styleOption.watercolor" },
+        { value: "油画风格", labelKey: "styleOption.oil-painting" },
+        { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
+        { value: "奇幻风格", labelKey: "styleOption.fantasy" },
+        { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
+        { value: "哥特风格", labelKey: "styleOption.gothic" },
+        { value: "未来主义", labelKey: "styleOption.futurism" },
+        { value: "复古风", labelKey: "styleOption.retro" },
+        { value: "极简风格", labelKey: "styleOption.minimalist" },
+        { value: "华丽风格", labelKey: "styleOption.ornate" },
       ], [type]);
 
   const initializeTasks = useCallback(() => {
@@ -94,7 +113,8 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
 
   const buildVariantPrompt = useCallback((item: Character | Scene, variantIndex: number) => {
     const basePrompt = item.prompt || item.description || "";
-    const style = selectedStyle || styleOptions[variantIndex % styleOptions.length];
+    const fallbackStyle = styleOptions[variantIndex % styleOptions.length]?.value ?? "";
+    const style = selectedStyle || fallbackStyle;
 
     const variations = [
       "正面视角，标准姿势",
@@ -313,23 +333,30 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
   const pendingCount = tasks.filter((t) => t.status === "pending").length;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
+    <>
+      <button
+        type="button"
+        className="btn btn-outline btn-sm"
+        onClick={() => setOpen(true)}
       >
         <Layers className="h-4 w-4" />
         {t("batch.batchGenerate")}
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      </button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        ariaLabel={t("batch.generateVariantsTitle", { type: typeLabel })}
+        style={{ maxWidth: "56rem", maxHeight: "90vh", overflowY: "auto" }}
+      >
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }} className="flex items-center gap-2">
             <TypeIcon className="h-5 w-5" />
             {t("batch.generateVariantsTitle", { type: typeLabel })}
-          </DialogTitle>
-          <DialogDescription>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
             {t("batch.generateVariantsDesc", { count: items.length, type: typeLabel, variantCount })}
-          </DialogDescription>
-        </DialogHeader>
+          </div>
+        </div>
 
         <VariantGenerator
           typeLabel={typeLabel}
@@ -361,7 +388,7 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
           onViewModeChange={setViewMode}
           onRetryGlobalError={startBatchGeneration}
         />
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
   );
 }

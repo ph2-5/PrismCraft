@@ -13,19 +13,17 @@ import {
   Trash2,
   MoveVertical,
 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
-import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/utils/utils";
 import { getBeatCharacterIds } from "@/domain/utils";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createSimpleVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
 import { beatTypes } from "@/modules/story";
-import { useConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { SafeImage } from "@/shared/ui/safe-image";
+import { confirm } from "@/shared/utils/confirm";
+import { SafeImage } from "@/shared/presentation/SafeImage";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 
 interface BeatOverviewCardProps {
   beat: StoryBeat;
@@ -50,14 +48,13 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
   totalBeats = 0,
   isSelected = false,
 }: BeatOverviewCardProps) {
-  const { confirm: confirmDialog, ConfirmDialogComponent } = useConfirmDialog();
   const typeInfo = beatTypes.find((t) => t.value === beat.type);
   const charIds = getBeatCharacterIds(beat);
   const charNames = charIds
     .map((id: string) => characters.find((c) => c.id === id)?.name)
     .filter((n): n is string => Boolean(n));
-  const sceneName = (beat.sceneId || beat.scene)
-    ? scenes.find((s) => s.id === (beat.sceneId || beat.scene))?.name
+  const sceneName = beat.sceneId
+    ? scenes.find((s) => s.id === beat.sceneId)?.name
     : null;
   const keyframeImage = resolveMediaUrl(beat.localKeyframePath, beat.keyframe?.imageUrl);
   const videoGen = resolveMediaUrl(beat.localVideoPath, beat.videoGen?.videoUrl);
@@ -91,17 +88,32 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
     return {
       icon: <Zap className="w-3 h-3" />,
       text: t("beat.pendingGenerate"),
-      color: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+      color: "bg-muted text-muted-foreground border-muted",
     };
   };
 
   const statusInfo = getStatusInfo();
 
+  const handleDeleteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    try {
+      const confirmed = await confirm({
+        title: t("beat.deleteBeatTitle"),
+        description: t("beat.deleteBeatConfirm"),
+        confirmText: t("common.delete"),
+        variant: "danger",
+      });
+      if (confirmed && onDeleteBeat) onDeleteBeat(beat.id);
+    } catch (err) {
+      errorLogger.warn("[BeatOverviewCard] Confirm dialog failed", err);
+    }
+  };
+
   return (
     <>
-      <Card
+      <div
         className={cn(
-          "group relative overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-xl hover:shadow-purple-500/10 border-purple-700/30 hover:border-purple-500/50 bg-slate-800/40",
+          "card group relative overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-xl hover:shadow-primary/10 border-primary/30 hover:border-primary/50 bg-card2",
           isSelected &&
             "ring-2 ring-primary border-primary shadow-lg shadow-primary/10",
         )}
@@ -109,7 +121,7 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
       >
         <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 via-pink-500 to-purple-500 group-hover:w-2 transition-all duration-300" />
 
-        <CardContent className="p-0">
+        <div>
           <div className="flex flex-col">
             <div className="relative overflow-hidden h-36">
               {videoGen ? (
@@ -128,10 +140,10 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                   className="object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-900/40 to-slate-900 flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-card2 flex items-center justify-center">
                   <div className="text-center">
-                    <Film className="w-10 h-10 mx-auto mb-2 text-purple-500/60" />
-                    <p className="text-xs text-purple-400/70">{t("beat.waitingGenerate")}</p>
+                    <Film className="w-10 h-10 mx-auto mb-2 text-primary/60" />
+                    <p className="text-xs text-muted-foreground">{t("beat.waitingGenerate")}</p>
                   </div>
                 </div>
               )}
@@ -140,20 +152,20 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                 <div className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white font-bold text-sm shadow-lg border border-purple-500/30">
                   {index + 1}
                 </div>
-                <Badge
-                  className={`${typeInfo?.color || "bg-purple-600/70"} shadow-md border border-purple-400/30`}
+                <span
+                  className={`badge badge-info ${typeInfo?.color || "bg-purple-600/70"} shadow-md border border-purple-400/30`}
                 >
                   {typeInfo?.label || t("beat.typeLabel")}
-                </Badge>
+                </span>
               </div>
 
               <div className="absolute top-3 right-3">
-                <Badge
-                  className={`${statusInfo.color} backdrop-blur-sm shadow-md border`}
+                <span
+                  className={`badge badge-info ${statusInfo.color} backdrop-blur-sm shadow-md border`}
                 >
                   {statusInfo.icon}
                   <span className="ml-1 text-xs">{statusInfo.text}</span>
-                </Badge>
+                </span>
               </div>
 
               <div className="absolute bottom-3 right-3">
@@ -207,39 +219,38 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                   <div className="flex items-center gap-1">
                     <MoveVertical className="w-4 h-4 text-purple-400/70" />
                     <div className="flex gap-1">
-                      <Button
+                      <IconButton
                         variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
+                        className="btn-xs h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
                         disabled={index === 0}
                         onClick={(e) => {
                           e.stopPropagation();
                           onMoveBeat(beat.id, "up");
                         }}
+                        aria-label={t("aria.moveUpBeat")}
                       >
                         <ChevronUp className="w-4 h-4" />
-                      </Button>
-                      <Button
+                      </IconButton>
+                      <IconButton
                         variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
+                        className="btn-xs h-7 w-7 text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10"
                         disabled={index === totalBeats - 1}
                         onClick={(e) => {
                           e.stopPropagation();
                           onMoveBeat(beat.id, "down");
                         }}
+                        aria-label={t("aria.moveDownBeat")}
                       >
                         <ChevronDown className="w-4 h-4" />
-                      </Button>
+                      </IconButton>
                     </div>
                   </div>
                 )}
 
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10 h-7 px-2"
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm text-xs text-purple-300/80 hover:text-purple-400 hover:bg-purple-500/10 h-7 px-2"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEditClick(beat);
@@ -247,35 +258,23 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
                   >
                     <Edit2 className="w-3.5 h-3.5 mr-1.5" />
                     {t("beat.editLabel")}
-                  </Button>
+                  </button>
                   {onDeleteBeat && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs text-purple-300/80 hover:text-red-400 hover:bg-red-500/10 h-7 px-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        confirmDialog({
-                          title: t("beat.deleteBeatTitle"),
-                          description: t("beat.deleteBeatConfirm"),
-                          confirmText: t("common.delete"),
-                          variant: "danger",
-                    }).then((confirmed) => {
-                      if (confirmed) onDeleteBeat(beat.id);
-                    }).catch((e) => { errorLogger.warn("[BeatOverviewCard] Confirm dialog failed", e); });
-                      }}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm text-xs text-purple-300/80 hover:text-red-400 hover:bg-red-500/10 h-7 px-2"
+                      onClick={handleDeleteClick}
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                       {t("common.delete")}
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-      {ConfirmDialogComponent}
+        </div>
+      </div>
     </>
   );
 });

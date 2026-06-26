@@ -95,9 +95,7 @@ export function useStoryPersistence({
                 showErrorRef.current(t("story.autoSaveVideoUrlFailed"), t("story.autoSaveVideoUrlFailedDesc"));
               }
             } finally {
-              if (!cancelled) {
-                setIsVideoUrlPersisting(false);
-              }
+              setIsVideoUrlPersisting(false);
             }
           }
 

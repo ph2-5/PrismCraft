@@ -1,24 +1,6 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import { Checkbox } from "@/shared/ui/checkbox";
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
 import { Plus, Trash2, Box } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import type { WizardState, ModelDefinition } from "./plugin-creator-types";
 import { ModelParams } from "./ModelParams";
 
@@ -40,132 +22,136 @@ export function PluginModelDefs({
   toggleModelParams,
 }: PluginModelDefsProps) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ paddingBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Box className="w-5 h-5" />
+            <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              <Box size={20} />
               {t("plugin.modelDefs")}
-            </CardTitle>
-            <CardDescription>{t("plugin.modelDefsDesc")}</CardDescription>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{t("plugin.modelDefsDesc")}</div>
           </div>
-          <Button variant="outline" size="sm" onClick={addModel}>
-            <Plus className="h-4 w-4 mr-1" />
+          <button type="button" className="btn btn-outline btn-sm" onClick={addModel}>
+            <Plus size={16} style={{ marginRight: 4 }} />
             {t("plugin.addModel")}
-          </Button>
+          </button>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {state.models.map((model, index) => (
-          <div key={model._uid} className="p-4 border rounded-lg bg-slate-800/30 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
+          <div key={model._uid} style={{ padding: 16, border: "1px solid var(--border)", borderRadius: 8, background: "rgba(30, 41, 59, 0.3)", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="badge badge-muted" style={{ fontSize: 11 }}>
                   {model.type === "video" ? t("plugin.modelTypeVideo") : model.type === "image" ? t("plugin.modelTypeImage") : t("plugin.modelTypeText")}
-                </Badge>
-                <span className="text-sm font-medium">
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 500 }}>
                   {model.modelId || t("plugin.modelFallbackName", { index: index + 1 })}
                 </span>
               </div>
               {state.models.length > 1 && (
-                <Button
+                <IconButton
                   variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-red-500"
+                  className="btn-sm"
+                  style={{ color: "var(--destructive)", height: 32, width: 32, padding: 0 }}
                   onClick={() => removeModel(index)}
                   aria-label={t("aria.removeModel")}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <Trash2 size={16} />
+                </IconButton>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">{t("plugin.modelId")} <span className="text-red-400">*</span></Label>
-                <Input
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11 }}>{t("plugin.modelId")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 36 }}
                   value={model.modelId}
                   onChange={(e) => updateModel(index, { modelId: e.target.value })}
                   placeholder="model-v1"
-                  className="font-mono h-9 text-sm"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{t("plugin.displayName")} <span className="text-red-400">*</span></Label>
-                <Input
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11 }}>{t("plugin.displayName")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", height: 36 }}
                   value={model.displayName}
                   onChange={(e) => updateModel(index, { displayName: e.target.value })}
                   placeholder="Model V1"
-                  className="h-9 text-sm"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">{t("plugin.modelType")}</Label>
-                <Select
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11 }}>{t("plugin.modelType")}</label>
+                <select
+                  className="select"
+                  style={{ height: 36, fontSize: 12 }}
                   value={model.type}
-                  onValueChange={(v) => updateModel(index, { type: v as ModelDefinition["type"] })}
+                  onChange={(e) => updateModel(index, { type: e.target.value as ModelDefinition["type"] })}
                 >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="video">{t("plugin.modelTypeVideo")}</SelectItem>
-                    <SelectItem value="image">{t("plugin.modelTypeImage")}</SelectItem>
-                    <SelectItem value="text">{t("plugin.modelTypeText")}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="video">{t("plugin.modelTypeVideo")}</option>
+                  <option value="image">{t("plugin.modelTypeImage")}</option>
+                  <option value="text">{t("plugin.modelTypeText")}</option>
+                </select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{t("plugin.maxDurationSeconds")}</Label>
-                <Input
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11 }}>{t("plugin.maxDurationSeconds")}</label>
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 36 }}
                   type="number"
                   value={model.maxDuration}
                   onChange={(e) => updateModel(index, { maxDuration: Number(e.target.value) || 0 })}
-                  className="font-mono h-9 text-sm"
                   disabled={model.type !== "video"}
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{t("plugin.maxResolution")}</Label>
-                <Input
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11 }}>{t("plugin.maxResolution")}</label>
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 36 }}
                   type="number"
                   value={model.maxResolution}
                   onChange={(e) => updateModel(index, { maxResolution: Number(e.target.value) || 0 })}
-                  className="font-mono h-9 text-sm"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-4 flex-wrap">
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               {model.type === "video" && (
                 <>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="checkbox"
                       checked={model.supportsLastFrame}
-                      onCheckedChange={(v) => updateModel(index, { supportsLastFrame: v === true })}
+                      onChange={(e) => updateModel(index, { supportsLastFrame: e.target.checked })}
                     />
-                    <Label className="text-xs">{t("plugin.supportsLastFrame")}</Label>
+                    <label style={{ fontSize: 11 }}>{t("plugin.supportsLastFrame")}</label>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="checkbox"
                       checked={model.supportsReferenceVideo}
-                      onCheckedChange={(v) => updateModel(index, { supportsReferenceVideo: v === true })}
+                      onChange={(e) => updateModel(index, { supportsReferenceVideo: e.target.checked })}
                     />
-                    <Label className="text-xs">{t("plugin.supportsReferenceVideo")}</Label>
+                    <label style={{ fontSize: 11 }}>{t("plugin.supportsReferenceVideo")}</label>
                   </div>
                 </>
               )}
               {model.type === "image" && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
                     checked={model.supportsReferenceImage}
-                    onCheckedChange={(v) => updateModel(index, { supportsReferenceImage: v === true })}
+                    onChange={(e) => updateModel(index, { supportsReferenceImage: e.target.checked })}
                   />
-                  <Label className="text-xs">{t("plugin.supportsReferenceImage")}</Label>
+                  <label style={{ fontSize: 11 }}>{t("plugin.supportsReferenceImage")}</label>
                 </div>
               )}
             </div>
@@ -179,7 +165,7 @@ export function PluginModelDefs({
             />
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

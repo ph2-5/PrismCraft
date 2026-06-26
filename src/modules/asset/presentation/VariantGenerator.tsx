@@ -1,13 +1,5 @@
 import { t } from "@/shared/constants/messages";
-import { Label } from "@/shared/ui/label";
-import { Input } from "@/shared/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+import type { StyleOption } from "@/modules/character";
 
 interface VariantGeneratorProps {
   typeLabel: string;
@@ -15,7 +7,7 @@ interface VariantGeneratorProps {
   onVariantCountChange: (count: number) => void;
   selectedStyle: string;
   onSelectedStyleChange: (style: string) => void;
-  styleOptions: string[];
+  styleOptions: readonly StyleOption[];
   isGenerating: boolean;
 }
 
@@ -31,8 +23,9 @@ export function VariantGenerator({
   return (
     <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
       <div className="space-y-2">
-        <Label>{t("batch.variantCountLabel", { type: typeLabel })}</Label>
-        <Input
+        <label>{t("batch.variantCountLabel", { type: typeLabel })}</label>
+        <input
+          className="input"
           type="number"
           min={1}
           max={10}
@@ -42,24 +35,20 @@ export function VariantGenerator({
         />
       </div>
       <div className="space-y-2">
-        <Label>{t("batch.styleOptional")}</Label>
-        <Select
+        <label>{t("batch.styleOptional")}</label>
+        <select
+          className="select"
           value={selectedStyle}
-          onValueChange={(value) => onSelectedStyleChange(value || "")}
+          onChange={(e) => onSelectedStyleChange(e.target.value)}
           disabled={isGenerating}
         >
-          <SelectTrigger>
-            <SelectValue placeholder={t("batch.autoSelect")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">{t("batch.autoSelect")}</SelectItem>
-            {styleOptions.map((style) => (
-              <SelectItem key={style} value={style}>
-                {style}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="">{t("batch.autoSelect")}</option>
+          {styleOptions.map((style) => (
+            <option key={style.value} value={style.value}>
+              {t(style.labelKey)}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );

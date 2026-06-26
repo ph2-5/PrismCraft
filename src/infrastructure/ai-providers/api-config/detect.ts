@@ -158,29 +158,32 @@ export function detectProvider(apiKey: string): DetectResult | null {
 
 /**
  * 验证 API Key 格式是否有效
+ *
+ * 返回 errorKey（i18n key）而非中文字符串，调用方通过 t(errorKey) 翻译显示。
+ * 这样可保持本函数为纯函数，不依赖渲染进程的 i18n 模块。
  */
 export function validateApiKey(apiKey: string): {
   valid: boolean;
-  error?: string;
+  errorKey?: string;
 } {
   if (!apiKey) {
-    return { valid: false, error: "API Key 不能为空" };
+    return { valid: false, errorKey: "provider.apiKey.empty" };
   }
 
   if (apiKey.length < 10) {
-    return { valid: false, error: "API Key 长度过短" };
+    return { valid: false, errorKey: "provider.apiKey.tooShort" };
   }
 
   if (apiKey.length > 512) {
-    return { valid: false, error: "API Key 长度过长" };
+    return { valid: false, errorKey: "provider.apiKey.tooLong" };
   }
 
   if (apiKey.includes("your_") || apiKey.includes("placeholder")) {
-    return { valid: false, error: "请替换为真实的 API Key" };
+    return { valid: false, errorKey: "provider.apiKey.placeholderDetected" };
   }
 
   if (/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(apiKey)) {
-    return { valid: false, error: "API Key 包含非法字符" };
+    return { valid: false, errorKey: "provider.apiKey.invalidChars" };
   }
 
   return { valid: true };

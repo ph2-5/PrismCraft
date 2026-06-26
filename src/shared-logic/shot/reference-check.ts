@@ -9,7 +9,7 @@ export interface Story {
 interface StoryBeat {
   characters?: string[];
   character?: string;
-  scene?: string;
+  sceneId?: string;
 }
 
 export interface ReferenceResult {
@@ -71,7 +71,7 @@ export function checkSceneReferences(
 ): ReferenceResult {
   return checkElementReferences(sceneId, stories, {
     storyListField: "scenes",
-    beatMatcher: (beat) => beat.scene === sceneId,
+    beatMatcher: (beat) => beat.sceneId === sceneId,
   });
 }
 

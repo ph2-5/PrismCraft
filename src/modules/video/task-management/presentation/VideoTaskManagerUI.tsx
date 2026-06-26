@@ -2,14 +2,13 @@ import { useState, useMemo, useCallback } from "react";
 import { useVirtualList } from "@/shared/hooks/use-virtual-list";
 import { t } from "@/shared/constants/messages";
 import { useCurrentTime } from "@/shared/hooks/use-current-time";
-import { Button } from "@/shared/ui/button";
 import { Trash2, Clock } from "lucide-react";
 import type { VideoTask } from "@/domain/schemas";
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
-import { EmptyState } from "@/shared/ui/empty-state";
-import { TaskCard } from "./video-task-manager-ui/task-card";
+import { EmptyState } from "@/shared/presentation/EmptyState";
+import { TaskCardBase } from "./video-task-manager-ui/task-card";
 import { TaskDetailDialog } from "./video-task-manager-ui/task-detail-dialog";
 
 const VIRTUAL_LIST_CONTAINER_STYLE = { maxHeight: "60vh", overflow: "auto" } as const;
@@ -106,14 +105,17 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
   return (
     <div className="space-y-4">
       {selectedTaskIds.size > 0 && (
-        <div className="flex items-center justify-between p-4 bg-red-900/20 border border-red-700 rounded-lg">
-          <p className="text-sm text-red-300">
+        <div
+          className="flex items-center justify-between p-4 border rounded-lg"
+          style={{ background: "rgba(var(--destructive-rgb), 0.2)", borderColor: "var(--destructive)" }}
+        >
+          <p className="text-sm" style={{ color: "var(--destructive)" }}>
             {t("task.selectedCount", { count: selectedTaskIds.size })}
           </p>
-          <Button variant="destructive" size="sm" onClick={handleRemoveSelected}>
+          <button type="button" className="btn btn-danger btn-sm" onClick={handleRemoveSelected}>
             <Trash2 className="w-4 h-4 mr-2" />
             {t("task.deleteSelected")}
-          </Button>
+          </button>
         </div>
       )}
 
@@ -124,7 +126,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
               const task = sortedTasks[virtualItem.index]!;
               return (
                 <div key={task.taskId} style={{ position: "absolute", top: virtualItem.start, left: 0, width: "100%", height: virtualItem.size }}>
-                  <TaskCard
+                  <TaskCardBase
                     task={task}
                     isSelected={selectedTaskIds.has(task.taskId)}
                     isExpanded={expandedTaskId === task.taskId}
@@ -142,7 +144,7 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
       ) : (
         <div className="space-y-3">
           {visibleTasks.map((task) => (
-            <TaskCard
+            <TaskCardBase
               key={task.taskId}
               task={task}
               isSelected={selectedTaskIds.has(task.taskId)}
@@ -157,13 +159,13 @@ export function VideoTaskManagerUI({ tasks, pollTask, removeTask, removeTasks }:
 
           {hasMore && (
             <div className="flex justify-center py-4">
-              <Button
-                variant="outline"
-                size="sm"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
                 onClick={() => setVisibleCount((c) => c + 20)}
               >
                 {t("task.loadMore", { count: sortedTasks.length - visibleCount })}
-              </Button>
+              </button>
             </div>
           )}
 

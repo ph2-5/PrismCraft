@@ -1,14 +1,6 @@
 import { AlertTriangle } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
 import { t } from "@/shared/constants";
+import { Modal } from "./Modal";
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -34,14 +26,17 @@ export function DeleteConfirmDialog({
   referenceCheck,
 }: DeleteConfirmDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={`${t("confirm.deleteTitle")}${entityLabel}`}
+    >
+      <div style={{ marginBottom: 12 }}>
+          <div className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600 }}>
             <AlertTriangle className="w-5 h-5 text-destructive" />
             {t("confirm.deleteTitle")}{entityLabel}
-          </DialogTitle>
-          <DialogDescription>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 8 }}>
             {referenceCheck && referenceCheck.references.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-destructive font-medium">
@@ -73,25 +68,31 @@ export function DeleteConfirmDialog({
             ) : (
               t("delete.confirmDeleteEntity", { entityLabel })
             )}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button
-            variant="outline"
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+          <button
+            type="button"
+            className="btn btn-outline"
             onClick={() => onOpenChange(false)}
             disabled={isDeleting}
           >
             {t("common.cancel")}
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={isDeleting}
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            disabled={isDeleting || (referenceCheck?.references.length ?? 0) > 0}
             onClick={onConfirm}
+            title={
+              (referenceCheck?.references.length ?? 0) > 0
+                ? t("delete.cannotDeleteReferenced", { entityLabel })
+                : undefined
+            }
           >
             {isDeleting ? t("common.deleting") : t("confirm.deleteTitle")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+        </div>
+    </Modal>
   );
 }

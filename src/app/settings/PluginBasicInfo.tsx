@@ -1,13 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
-import { Textarea } from "@/shared/ui/textarea";
-import { Label } from "@/shared/ui/label";
 import { Wand2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { WizardState } from "./plugin-creator-types";
@@ -19,55 +9,60 @@ interface PluginBasicInfoProps {
 
 export function PluginBasicInfo({ state, updateField }: PluginBasicInfoProps) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Wand2 className="w-5 h-5" />
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ paddingBottom: 12 }}>
+        <div style={{ fontSize: 18, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+          <Wand2 size={20} />
           {t("plugin.basicInfo")}
-        </CardTitle>
-        <CardDescription>{t("plugin.basicInfoDesc")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>{t("plugin.pluginId")} <span className="text-red-400">*</span></Label>
-          <Input
+        </div>
+        <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.basicInfoDesc")}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label>{t("plugin.pluginId")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+          <input
+            className="input"
+            style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
             value={state.id}
             onChange={(e) => updateField("id", e.target.value)}
             placeholder="my-provider"
-            className="font-mono"
           />
-          <p className="text-xs text-muted-foreground">{t("plugin.pluginIdHint")}</p>
+          <p style={{ fontSize: 12, color: "var(--muted-fg)" }}>{t("plugin.pluginIdHint")}</p>
           {state.id && !/^[a-z][a-z0-9-]*$/.test(state.id) && (
-            <p className="text-xs text-red-400">{t("plugin.pluginIdInvalid")}</p>
+            <p style={{ fontSize: 12, color: "var(--destructive)" }}>{t("plugin.pluginIdInvalid")}</p>
           )}
         </div>
-        <div className="space-y-2">
-          <Label>{t("plugin.displayName")} <span className="text-red-400">*</span></Label>
-          <Input
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label>{t("plugin.displayName")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+          <input
+            className="input"
+            style={{ fontSize: 12, padding: "6px 10px" }}
             value={state.displayName}
             onChange={(e) => updateField("displayName", e.target.value)}
             placeholder="My AI Provider"
           />
         </div>
-        <div className="space-y-2">
-          <Label>{t("plugin.version")}</Label>
-          <Input
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label>{t("plugin.version")}</label>
+          <input
+            className="input"
+            style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
             value={state.version}
             onChange={(e) => updateField("version", e.target.value)}
             placeholder="1.0.0"
-            className="font-mono"
           />
         </div>
-        <div className="space-y-2">
-          <Label>{t("plugin.description")}</Label>
-          <Textarea
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label>{t("plugin.description")}</label>
+          <textarea
+            className="textarea"
+            style={{ fontSize: 12, minHeight: 80 }}
             value={state.description}
             onChange={(e) => updateField("description", e.target.value)}
             placeholder={t("plugin.descriptionPlaceholder")}
-            className="min-h-[80px]"
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

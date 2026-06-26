@@ -19,8 +19,13 @@ export function useBeatDetail(): UseBeatDetailResult {
   const beatId = params.beatId;
   const [story, setStory] = useState<Story | null>(null);
   const [beat, setBeat] = useState<StoryBeat | null>(null);
-  const [task, setTask] = useState<VideoTask | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+
+  // 通过 Zustand selector 订阅任务状态，由 polling-engine 统一负责轮询
+  const task = useVideoTaskStore((s) => {
+    if (!beatId) return undefined;
+    return s.allTasks.find((t) => t.beatId === beatId);
+  });
 
   useEffect(() => {
     if (!beatId) {
@@ -45,12 +50,6 @@ export function useBeatDetail(): UseBeatDetailResult {
             setBeat(foundBeat);
           }
         }
-
-        const tasks = useVideoTaskStore.getState().allTasks;
-        const foundTask = tasks.find((t: VideoTask) => t.beatId === resolvedBeatId);
-        if (!cancelled && foundTask) {
-          setTask(foundTask);
-        }
       } catch (error) {
         if (!cancelled) errorLogger.error("Failed to load beat detail", error);
       } finally {
@@ -60,30 +59,8 @@ export function useBeatDetail(): UseBeatDetailResult {
 
     loadData();
 
-    const intervalId = setInterval(async () => {
-      try {
-        const tasks = useVideoTaskStore.getState().allTasks;
-        const currentTask = tasks.find((t: VideoTask) => t.beatId === resolvedBeatId);
-        if (currentTask) {
-          setTask((prev) => {
-            if (
-              prev?.status !== currentTask.status ||
-              prev?.progress !== currentTask.progress ||
-              prev?.videoUrl !== currentTask.videoUrl
-            ) {
-              return currentTask;
-            }
-            return prev;
-          });
-        }
-      } catch (error) {
-        errorLogger.debug("[BeatDetail] 轮询任务状态失败:", error instanceof Error ? error.message : error);
-      }
-    }, 5000);
-
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
     };
   }, [beatId]);
 

@@ -127,12 +127,12 @@ describe("reference-check", () => {
       expect(result.referencingStories[0]!.storyId).toBe("story-1");
     });
 
-    it("应该检测场景在 beats.scene 中的引用", () => {
+    it("应该检测场景在 beats.sceneId 中的引用", () => {
       const stories: Story[] = [
         {
           id: "story-1",
           title: "故事一",
-          beats: [{ scene: "s1" }, { scene: "s1" }, { scene: "s2" }],
+          beats: [{ sceneId: "s1" }, { sceneId: "s1" }, { sceneId: "s2" }],
         },
       ];
       const result = checkSceneReferences("s1", stories);
@@ -146,7 +146,7 @@ describe("reference-check", () => {
           id: "story-1",
           title: "故事一",
           scenes: ["s2"],
-          beats: [{ scene: "s2" }],
+          beats: [{ sceneId: "s2" }],
         },
       ];
       const result = checkSceneReferences("s1", stories);
@@ -192,7 +192,7 @@ describe("reference-check", () => {
           id: "story-1",
           title: "故事一",
           scenes: ["s1"],
-          beats: [{ scene: "s2" }],
+          beats: [{ sceneId: "s2" }],
         },
       ];
       const result = checkMultipleSceneReferences(["s1", "s2", "s3"], stories);

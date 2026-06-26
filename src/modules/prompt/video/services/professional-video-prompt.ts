@@ -67,8 +67,8 @@ export function generateProfessionalVideoPrompt(
         .filter(Boolean);
       if (charDescs.length > 0) parts.push(`角色：${charDescs.join("；")}`);
 
-      const sceneObj = (beat.sceneId || beat.scene)
-        ? scenes.find((s) => s.id === (beat.sceneId || beat.scene))
+      const sceneObj = beat.sceneId
+        ? scenes.find((s) => s.id === beat.sceneId)
         : null;
       if (sceneObj) {
         parts.push(

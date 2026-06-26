@@ -121,6 +121,14 @@ export async function generateBeatKeyframe(
 
   const content = llmPrompt || beat.content || beat.description || "";
 
+  // Empty prompt guard: prevent sending meaningless empty content to the
+  // AI gateway. Without this, apiGateway.generateKeyframe receives
+  // { content: "" } and behavior depends on the plugin (may waste tokens
+  // or generate unrelated images).
+  if (!content.trim()) {
+    throw new Error("EMPTY_KEYFRAME_CONTENT");
+  }
+
   const shotRequirement = {
     shotType: beat.shotType,
     cameraAngle: beat.camera?.angle,
@@ -244,12 +252,16 @@ export async function generateBeatVideo(
     throw new Error("FRAME_PAIR_REQUIRED_BEFORE_VIDEO");
   }
 
+  // Resolve prompt; reject empty/whitespace-only prompts instead of falling
+  // back to a generic "动画视频" literal. The previous fallback sent a
+  // meaningless prompt to the AI gateway, producing uncontrollable results.
+  const prompt = options?.prompt || beat.content || beat.description || "";
+  if (!prompt.trim()) {
+    throw new Error("EMPTY_VIDEO_PROMPT");
+  }
+
   const result = await apiGateway.generateVideo({
-    prompt:
-      options?.prompt ||
-      beat.content ||
-      beat.description ||
-      "动画视频",
+    prompt,
     firstFrameUrl: beat.framePair.firstFrame.imageUrl,
     lastFrameUrl: beat.framePair.lastFrame?.imageUrl,
     characterRef: options?.characterRef,

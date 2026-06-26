@@ -22,8 +22,8 @@ import {
   getConfigValue,
   applyConfigValue,
   loadConfigAsync,
-  saveConfig,
 } from "../../main-common";
+import { saveConfigAsync } from "../../handlers/config";
 import { getLogger } from "../../logging";
 
 const logger = getLogger("core-routes");
@@ -65,7 +65,12 @@ export const coreRoutes: Record<string, Route> = {
         }
         const config = await loadConfigAsync();
         applyConfigValue(config, key, value);
-        saveConfig(config);
+        // R182: 必须使用 saveConfigAsync 以确保 apiKey 通过 keyStorage 加密持久化，
+        // 同步 saveConfig 仅清理明文 apiKey 不写入 keyStorage，会导致 apiKey 更新丢失。
+        const saved = await saveConfigAsync(config);
+        if (!saved) {
+          return { success: false, error: "Failed to persist config (saveConfigAsync returned false)" };
+        }
         return { success: true };
       } catch (error) {
         logger.error("[Core HTTP] config/set failed:", error instanceof Error ? error : new Error(String(error)));

@@ -1,13 +1,6 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
 import { Keyboard } from "lucide-react";
 import { t } from "@/shared/constants/messages";
+import { Modal } from "./Modal";
 
 interface Shortcut {
   key: string;
@@ -26,15 +19,15 @@ interface KeyboardShortcutsDialogProps {
 
 function ShortcutKeyBadge({ shortcut }: { shortcut: Shortcut }) {
   const keys = [];
-  if (shortcut.ctrl) keys.push(<kbd key="ctrl" className="px-2 py-1 text-xs bg-gray-700 rounded">Ctrl</kbd>);
-  if (shortcut.meta) keys.push(<kbd key="cmd" className="px-2 py-1 text-xs bg-gray-700 rounded">⌘</kbd>);
-  if (shortcut.alt) keys.push(<kbd key="alt" className="px-2 py-1 text-xs bg-gray-700 rounded">Alt</kbd>);
-  if (shortcut.shift) keys.push(<kbd key="shift" className="px-2 py-1 text-xs bg-gray-700 rounded">⇧</kbd>);
+  if (shortcut.ctrl) keys.push(<kbd key="ctrl" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>Ctrl</kbd>);
+  if (shortcut.meta) keys.push(<kbd key="cmd" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>⌘</kbd>);
+  if (shortcut.alt) keys.push(<kbd key="alt" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>Alt</kbd>);
+  if (shortcut.shift) keys.push(<kbd key="shift" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>⇧</kbd>);
   
   const key = shortcut.key.length === 1 ? shortcut.key.toUpperCase() : shortcut.key;
-  keys.push(<kbd key="key" className="px-2 py-1 text-xs bg-gray-700 rounded">{key}</kbd>);
+  keys.push(<kbd key="key" className="px-2 py-1 text-xs rounded" style={{ background: "var(--muted)" }}>{key}</kbd>);
 
-  return <div className="flex gap-1">{keys.map((k, i) => [i > 0 && <span key={`sep-${i}`} className="text-gray-400">+</span>, k])}</div>;
+  return <div className="flex gap-1">{keys.map((k, i) => [i > 0 && <span key={`sep-${i}`} style={{ color: "var(--muted-fg)" }}>+</span>, k])}</div>;
 }
 
 export function KeyboardShortcutsDialog({
@@ -55,25 +48,29 @@ export function KeyboardShortcutsDialog({
   }, {} as Record<string, Shortcut[]>);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={t("ui.keyboardShortcuts")}
+      style={{ maxWidth: 672, maxHeight: "80vh", overflowY: "auto" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+          <div className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600 }}>
             <Keyboard className="w-5 h-5" />
             {t("ui.keyboardShortcuts")}
-          </DialogTitle>
-          <DialogDescription>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
             {t("ui.shortcutDesc")}
-          </DialogDescription>
-        </DialogHeader>
+          </div>
+        </div>
 
         <div className="space-y-6">
           {Object.entries(categorizedShortcuts).map(([category, categoryShortcuts]) => (
             <div key={category}>
-              <h3 className="font-semibold text-sm text-gray-300 mb-3">{category}</h3>
+              <h3 className="font-semibold text-sm text-muted-foreground mb-3">{category}</h3>
               <div className="space-y-2">
                 {categoryShortcuts.map((shortcut) => (
-                  <div key={shortcut.description} className="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded">
+                  <div key={shortcut.description} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded">
                     <span className="text-sm">{shortcut.description}</span>
                     <ShortcutKeyBadge shortcut={shortcut} />
                   </div>
@@ -83,13 +80,12 @@ export function KeyboardShortcutsDialog({
           ))}
         </div>
 
-        <div className="mt-6 pt-4 border-t border-gray-700">
-          <p className="text-xs text-gray-400 text-center">
+        <div className="mt-6 pt-4 border-t" style={{ borderColor: "var(--border)" }}>
+          <p className="text-xs text-center" style={{ color: "var(--muted-fg)" }}>
             {t("ui.pressEscToClose")}
           </p>
         </div>
-      </DialogContent>
-    </Dialog>
+    </Modal>
   );
 }
 
@@ -99,9 +95,9 @@ export function KeyboardShortcutsTrigger({
   onOpen: () => void;
 }) {
   return (
-    <Button variant="ghost" size="sm" onClick={onOpen} className="h-8 gap-1">
+    <button type="button" aria-label={t("aria.shortcutHelp")} className="btn btn-ghost btn-sm h-8 gap-1" onClick={onOpen}>
       <Keyboard className="w-4 h-4" />
       <span className="hidden md:inline text-xs">{t("ui.shortcuts")}</span>
-    </Button>
+    </button>
   );
 }

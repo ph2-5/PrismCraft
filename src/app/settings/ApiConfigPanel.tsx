@@ -4,18 +4,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Button } from "@/shared/ui/button";
-import { Alert, AlertDescription } from "@/shared/ui/alert";
-import {
   Plus,
-  CheckCircle,
-  XCircle,
   Loader2,
   Key,
   Bot,
@@ -52,16 +41,17 @@ import { useInvalidateProviderTemplates } from "@/shared/hooks/use-provider-temp
 import { ProviderCard } from "./ProviderCard";
 import { ProviderForm } from "./ProviderForm";
 import { ModelMappingSection } from "./ModelMappingSection";
+import { PageLoader } from "@/shared/presentation/PageLoader";
 
 const capabilities: {
   id: ApiCapability;
   name: string;
   icon: React.ReactNode;
 }[] = [
-  { id: "text", name: t("capability.text"), icon: <Bot className="w-4 h-4" /> },
-  { id: "image", name: t("capability.image"), icon: <ImageIcon className="w-4 h-4" /> },
-  { id: "vision", name: t("capability.vision"), icon: <Eye className="w-4 h-4" /> },
-  { id: "video", name: t("capability.video"), icon: <Video className="w-4 h-4" /> },
+  { id: "text", name: t("capability.text"), icon: <Bot size={16} /> },
+  { id: "image", name: t("capability.image"), icon: <ImageIcon size={16} /> },
+  { id: "vision", name: t("capability.vision"), icon: <Eye size={16} /> },
+  { id: "video", name: t("capability.video"), icon: <Video size={16} /> },
 ];
 
 export function ApiConfigPanel() {
@@ -78,9 +68,11 @@ export function ApiConfigPanel() {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
-  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  // Base URL 自定义状态（默认关闭，对齐用户需求）
+  const [enableCustomBaseUrl, setEnableCustomBaseUrl] = useState(false);
+  const [customBaseUrl, setCustomBaseUrl] = useState("");
 
-  const [useFreeImageBackup, setUseFreeImageBackup] = useState(false);
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
 
   const [useCustomVision, setUseCustomVision] = useState(false);
 
@@ -118,7 +110,6 @@ export function ApiConfigPanel() {
         const loaded = await loadConfig();
         if (!cancelled) {
           setConfig(loaded);
-          setUseFreeImageBackup(loaded.freeImageBackup ?? false);
           setStatus(await checkConfigStatus());
         }
       } catch (e) {
@@ -167,6 +158,11 @@ export function ApiConfigPanel() {
 
       newProvider.name = providerName;
 
+      // 应用自定义 Base URL（如果启用）
+      if (enableCustomBaseUrl && customBaseUrl.trim()) {
+        newProvider.baseUrl = customBaseUrl.trim();
+      }
+
       const updatedConfig = addProvider(config, newProvider);
       setConfig(updatedConfig);
       saveConfig(updatedConfig);
@@ -175,6 +171,8 @@ export function ApiConfigPanel() {
       setNewProviderKey("");
       setNewProviderName("");
       setSelectedTemplate("");
+      setEnableCustomBaseUrl(false);
+      setCustomBaseUrl("");
       setShowAddForm(false);
       showSuccess(t("success.added"), t("provider.addedWithName", { name: providerName }));
       refreshPluginCaches();
@@ -223,13 +221,19 @@ export function ApiConfigPanel() {
       ),
     };
     setConfig(updatedConfig);
-    setStatus(await checkConfigStatus());
 
     if (saveConfigDebounced.current) {
       clearTimeout(saveConfigDebounced.current);
     }
-    saveConfigDebounced.current = setTimeout(() => {
-      saveConfig(updatedConfig);
+    // R182/M2: debounced saveConfig 失败时通过 toast 反馈，避免静默失败
+    saveConfigDebounced.current = setTimeout(async () => {
+      try {
+        await saveConfig(updatedConfig);
+        // 保存成功后再刷新 status（反映真实持久化结果）
+        setStatus(await checkConfigStatus());
+      } catch (e) {
+        showError(t("error.saveFailed"), mapUserFacingError(e));
+      }
     }, 500);
   };
 
@@ -338,34 +342,45 @@ export function ApiConfigPanel() {
     }
   };
 
-  const handleSetFreeImageBackup = (val: boolean) => {
-    setUseFreeImageBackup(val);
-    const updatedConfig = {
-      ...config,
-      freeImageBackup: val,
-    };
-    setConfig(updatedConfig);
-    saveConfig(updatedConfig);
-  };
+  const handleTestAllConnections = useCallback(async () => {
+    // 顺序测试所有已配置的能力
+    for (const cap of capabilities) {
+      if (config.mapping[cap.id]) {
+        await handleTestCapability(cap.id);
+      }
+    }
+  }, [config.mapping]);
+
+  const handleSaveConfig = useCallback(async () => {
+    try {
+      await saveConfig(config);
+      // R182/L6: 保存成功后刷新 status 反映真实持久化结果
+      setStatus(await checkConfigStatus());
+      showSuccess(t("success.saved"), t("success.saved"));
+    } catch (e) {
+      showError(t("error.saveFailed"), mapUserFacingError(e));
+    }
+  }, [config, showError]);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <PageLoader size="lg" />
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">{t("provider.configuredProviders")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* 顶部提示：对齐预览页面 Alert */}
+      <div style={{ padding: 12, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 8, fontSize: 11, color: "var(--muted-fg)" }}>
+        💡 {t("config.encryptedStorageHint")}
+      </div>
+
+      <div className="card" style={{ padding: 16 }}>
+        <div className="section-label" style={{ marginBottom: 10 }}>🔑 {t("provider.configuredProviders")}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {config.providers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
-              <Key className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <div style={{ textAlign: "center", padding: "32px 0", border: "2px dashed var(--border)", borderRadius: 8, color: "var(--muted-fg)" }}>
+              <Key size={48} style={{ margin: "0 auto 16px", opacity: 0.5 }} />
               <p>{t("provider.noConfig")}</p>
             </div>
           ) : (
@@ -391,14 +406,15 @@ export function ApiConfigPanel() {
           )}
 
           {!showAddForm ? (
-            <Button
-              variant="outline"
-              className="w-full"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ borderStyle: "dashed", justifyContent: "center", gap: 6 }}
               onClick={() => setShowAddForm(true)}
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus size={14} />
               {t("provider.addProvider")}
-            </Button>
+            </button>
           ) : (
             <ProviderForm
               newProviderKey={newProviderKey}
@@ -415,82 +431,73 @@ export function ApiConfigPanel() {
               onAdd={handleAddProvider}
               onCancel={() => setShowAddForm(false)}
               capabilities={capabilities}
+              onBaseUrlEnable={setEnableCustomBaseUrl}
+              onBaseUrlChange={setCustomBaseUrl}
             />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <ModelMappingSection
         config={config}
-        useFreeImageBackup={useFreeImageBackup}
         useCustomVision={useCustomVision}
         testingCapability={testingCapability}
         onSetMapping={handleSetMapping}
         onTestCapability={handleTestCapability}
-        onSetFreeImageBackup={handleSetFreeImageBackup}
         onSetCustomVision={setUseCustomVision}
         capabilities={capabilities}
       />
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">{t("connection.title")}</CardTitle>
-          <CardDescription>{t("connection.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {capabilities.map((cap) => {
-              const result = testResults[cap.id];
-              return (
-                <Button
-                  key={cap.id}
-                  variant={result?.success ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleTestCapability(cap.id)}
-                  disabled={
-                    !config.mapping[cap.id] || testingCapability === cap.id
-                  }
-                  className={
-                    result?.success ? "bg-green-600 hover:bg-green-700" : ""
-                  }
-                >
-                  {testingCapability === cap.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : result?.success ? (
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                  ) : (
-                    cap.icon
-                  )}
-                  {t("connection.testName", { name: cap.name })}
-                  {result && !result.success && (
-                    <XCircle className="h-4 w-4 ml-2 text-red-500" />
-                  )}
-                </Button>
-              );
-            })}
-          </div>
-
-          {Object.entries(testResults).map(
-            ([cap, result]) =>
-              result && (
-                <Alert
-                  key={cap}
-                  variant={result.success ? "default" : "destructive"}
-                  className={`mt-4 ${result.success ? "bg-green-900/20 border-green-800" : ""}`}
-                >
-                  <AlertDescription
-                    className={result.success ? "text-green-700" : ""}
-                  >
-                    {capabilities.find((c) => c.id === cap)?.name}:{" "}
-                    {result.message}
-                  </AlertDescription>
-                </Alert>
-              ),
-          )}
-        </CardContent>
-      </Card>
-
       <PluginManager />
+
+      {/* 测试结果显示：对齐预览页面，轻量级 inline alert，非独立 card */}
+      {Object.entries(testResults).map(
+        ([cap, result]) =>
+          result && (
+            <div
+              key={cap}
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: result.success
+                  ? "rgba(var(--success-rgb, 16, 185, 129), 0.1)"
+                  : "rgba(var(--destructive-rgb, 239, 68, 68), 0.1)",
+                border: `1px solid ${result.success ? "var(--success)" : "var(--destructive)"}`,
+                fontSize: 12,
+                color: "var(--muted-fg)",
+              }}
+            >
+              <div style={result.success ? { color: "var(--success)" } : undefined}>
+                {capabilities.find((c) => c.id === cap)?.name}: {result.message}
+              </div>
+            </div>
+          ),
+      )}
+
+      {/* 底部按钮：对齐预览页面 */}
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          className="btn btn-outline btn-sm"
+          onClick={handleTestAllConnections}
+          disabled={testingCapability !== null}
+        >
+          {testingCapability !== null ? (
+            <Loader2 size={14} className="animate-spin" style={{ marginRight: 6 }} />
+          ) : (
+            <span style={{ marginRight: 6 }}>🧪</span>
+          )}
+          {t("connection.testAll")}
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={handleSaveConfig}
+        >
+          <span style={{ marginRight: 6 }}>💾</span>
+          {t("connection.save")}
+        </button>
+      </div>
     </div>
   );
 }

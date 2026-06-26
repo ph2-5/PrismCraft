@@ -15,5 +15,5 @@ export {
 export { VideoTaskManager } from "./presentation/VideoTaskManager";
 export { VideoTaskManagerInitializer } from "./presentation/VideoTaskManagerInitializer";
 export { VideoTaskManagerUI } from "./presentation/VideoTaskManagerUI";
-export { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } from "./services/video-tracker";
+export { buildTrackingInfoByProviderId, copyTrackingInfoToClipboard, openTaskQueryLink } from "./services/video-tracker";
 export { removeTasksByBeatId, removeTasksByStoryId } from "./services/task-removal-service";

@@ -1,6 +1,4 @@
-import { Input } from "@/shared/ui/input";
-import { Button } from "@/shared/ui/button";
-import { Label } from "@/shared/ui/label";
+import { useId } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { t } from "@/shared/constants";
 
@@ -17,20 +15,23 @@ export function RecoverySection({
   onRecover,
   isRecovering,
 }: RecoverySectionProps) {
+  const recoveryInputId = useId();
   return (
-    <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
-      <Label className="text-sm font-medium">{t("task.recoverFailedVideo")}</Label>
+    <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--border)" }}>
+      <label htmlFor={recoveryInputId} className="text-sm font-medium">{t("task.recoverFailedVideo")}</label>
       <div className="flex gap-2">
-        <Input
+        <input
+          id={recoveryInputId}
+          className="input flex-1"
           placeholder={t("task.enterTaskId")}
           value={recoveryTaskId}
           onChange={(e) => onRecoveryTaskIdChange(e.target.value)}
-          className="flex-1"
         />
-        <Button
+        <button
+          type="button"
+          className="btn btn-primary gap-2"
           onClick={onRecover}
           disabled={isRecovering}
-          className="gap-2"
         >
           {isRecovering ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -38,9 +39,9 @@ export function RecoverySection({
             <Search className="w-4 h-4" />
           )}
           {t("task.recoverButton")}
-        </Button>
+        </button>
       </div>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
         {t("task.recoverHint")}
       </p>
     </div>

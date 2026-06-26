@@ -36,7 +36,7 @@ export function DebugOverlay() {
     return (
       <button
         onClick={() => setIsDevToolsOpen(true)}
-        className="fixed bottom-4 right-4 z-[9999] bg-red-500 text-white px-3 py-1 rounded text-xs"
+        className="fixed bottom-4 right-4 z-[9999] bg-destructive text-white px-3 py-1 rounded text-xs"
       >
         {t("debug.toggle")}
       </button>
@@ -44,17 +44,22 @@ export function DebugOverlay() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] bg-gray-900 text-white p-4 rounded-lg max-w-sm text-xs">
+    <div
+      className="fixed bottom-4 right-4 z-[9999] bg-background text-foreground p-4 rounded-lg max-w-sm text-xs"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("debug.title")}
+    >
       <div className="flex justify-between items-center mb-2">
         <span className="font-bold">{t("debug.title")}</span>
-        <button onClick={() => setIsDevToolsOpen(false)} className="text-gray-400">
+        <button onClick={() => setIsDevToolsOpen(false)} style={{ color: "var(--muted-fg)" }} aria-label={t("aria.close")}>
           ×
         </button>
       </div>
       <div className="space-y-2">
         <p>{t("debug.overlayCount", { count: elements.length })}</p>
         {elements.map((el, i) => (
-          <div key={i} className="bg-gray-800 p-1 rounded">
+          <div key={i} className="bg-muted p-1 rounded">
             {el.tagName} - {el.className.slice(0, 50)}
           </div>
         ))}

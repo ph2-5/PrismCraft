@@ -1,13 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/shared/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Badge } from "@/shared/ui/badge";
 import {
   FileText,
   Image as ImageIcon,
@@ -20,11 +11,19 @@ import {
 import type { Character, Scene } from "@/domain/schemas";
 import { downloadJSONFile } from "@/shared/utils/file-download";
 import { errorLogger } from "@/shared/error-logger";
-import { t } from "@/shared/constants";
+import { t, BLOB_URL_LONG_REVOKE_DELAY_MS } from "@/shared/constants";
 
 interface MediaExporterProps {
   type: "character" | "scene";
   item: Character | Scene;
+}
+
+function isCharacter(item: Character | Scene): item is Character {
+  return "personality" in item;
+}
+
+function isScene(item: Character | Scene): item is Scene {
+  return "timeOfDay" in item;
 }
 
 // 导出项目数据
@@ -61,22 +60,25 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
       let exportData;
       let filename;
 
-      if (type === "character") {
+      if (type === "character" && isCharacter(item)) {
         exportData = {
           version: "1.0.0",
           type: "character" as const,
-          character: item as Character,
+          character: item,
           exportedAt: new Date().toISOString(),
         } satisfies CharacterExportData;
         filename = `${itemName || "character"}-project.json`;
-      } else {
+      } else if (isScene(item)) {
         exportData = {
           version: "1.0.0",
           type: "scene" as const,
-          scene: item as Scene,
+          scene: item,
           exportedAt: new Date().toISOString(),
         } satisfies SceneExportData;
         filename = `${itemName || "scene"}-project.json`;
+      } else {
+        // Defensive: should not happen for well-formed Character/Scene items
+        throw new Error(`Cannot export item of type "${type}": missing required fields`);
       }
 
       downloadJSONFile(exportData, filename);
@@ -106,7 +108,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         document.body.removeChild(link);
         setExportStatus("success");
       } else {
-        const response = await fetch(imageUrl, { mode: "cors" }).catch(() => null);
+        const response = await fetch(imageUrl, { mode: "cors" }).catch((e) => { errorLogger.warn("[MediaExporter] fetch image failed", e); return null; });
         if (response && response.ok) {
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);
@@ -116,7 +118,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_LONG_REVOKE_DELAY_MS);
           setExportStatus("success");
         } else {
           window.open(imageUrl, "_blank");
@@ -148,7 +150,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         document.body.removeChild(link);
         setExportStatus("success");
       } else {
-        const response = await fetch(videoUrl, { mode: "cors" }).catch(() => null);
+        const response = await fetch(videoUrl, { mode: "cors" }).catch((e) => { errorLogger.warn("[MediaExporter] fetch video failed", e); return null; });
         if (response && response.ok) {
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);
@@ -158,7 +160,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_LONG_REVOKE_DELAY_MS);
           setExportStatus("success");
         } else {
           window.open(videoUrl, "_blank");
@@ -180,7 +182,7 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
 
   const themeClasses = type === "character"
     ? {
-        card: "bg-slate-800/50 border-purple-800/50 shadow-lg shadow-purple-500/10",
+        card: "bg-card2 border-purple-800/50 shadow-lg shadow-purple-500/10",
         header: "bg-gradient-to-r from-purple-900/30 to-violet-900/30 border-b border-purple-800/30",
         title: "text-purple-100",
         desc: "text-purple-300",
@@ -191,95 +193,92 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
         infoTitle: "text-purple-300",
       }
     : {
-        card: "bg-slate-800/50 border-blue-800/50 shadow-lg shadow-blue-500/10",
-        header: "bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border-b border-blue-800/30",
-        title: "text-blue-100",
-        desc: "text-blue-300",
-        imageBadge: "bg-blue-900/50 border-blue-700 text-blue-200",
+        card: "bg-card2 border-primary shadow-lg shadow-primary/10",
+        header: "bg-gradient-to-r from-primary/30 to-cyan-900/30 border-b border-primary",
+        title: "text-primary",
+        desc: "text-primary",
+        imageBadge: "bg-primary/20 border-primary text-primary",
         videoBadge: "bg-cyan-900/50 border-cyan-700 text-cyan-200",
-        exportBtn: "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 shadow-lg shadow-blue-500/20",
-        infoBorder: "border-blue-800/20",
-        infoTitle: "text-blue-300",
+        exportBtn: "bg-gradient-to-r from-primary to-cyan-600 hover:from-primary hover:to-cyan-500 shadow-lg shadow-primary/20",
+        infoBorder: "border-primary/20",
+        infoTitle: "text-primary",
       };
 
   return (
-    <Card
-      className={themeClasses.card}
+    <div
+      className={`card ${themeClasses.card}`}
+      style={{ padding: 16 }}
     >
-      <CardHeader
+      <div
         className={themeClasses.header}
+        style={{ paddingBottom: 12 }}
       >
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className={`${themeClasses.title} flex items-center gap-2`}>
+            <div className={`${themeClasses.title} flex items-center gap-2`} style={{ fontSize: 16, fontWeight: 600 }}>
               {type === "character" ? (
                 <User className="w-5 h-5" />
               ) : (
                 <Settings className="w-5 h-5" />
               )}
               {type === "character" ? t("asset.characterExportTitle") : t("asset.sceneExportTitle")}
-            </CardTitle>
-            <CardDescription className={themeClasses.desc}>
+            </div>
+            <div className={themeClasses.desc} style={{ fontSize: 12 }}>
               {t("asset.exportTypeData", { type: type === "character" ? t("sidebar.characters") : t("sidebar.scenes") })}
-            </CardDescription>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {hasImage && (
-              <Badge
-                className={themeClasses.imageBadge}
-              >
+              <span className={`badge ${themeClasses.imageBadge}`}>
                 {t("asset.hasImage")}
-              </Badge>
+              </span>
             )}
             {hasVideo && (
-              <Badge
-                className={themeClasses.videoBadge}
-              >
+              <span className={`badge ${themeClasses.videoBadge}`}>
                 {t("asset.hasVideo")}
-              </Badge>
+              </span>
             )}
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-6 pt-6">
+      <div className="space-y-6 pt-6">
         {/* 状态提示 */}
         {exportStatus === "success" && (
           <div
-            className={`flex items-center gap-2 p-3 rounded-lg bg-emerald-900/30 border border-emerald-700/50`}
+            className={`flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/50`}
           >
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span className="text-emerald-200">{t("asset.exportSuccess")}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`ml-auto h-8 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/30`}
+            <CheckCircle2 className="w-5 h-5 text-success" />
+            <span className="text-success">{t("asset.exportSuccess")}</span>
+            <button
+              type="button"
+              className={`btn btn-ghost btn-sm ml-auto h-8 text-success hover:text-success hover:bg-success/10`}
               onClick={resetStatus}
             >
               {t("asset.continueButton")}
-            </Button>
+            </button>
           </div>
         )}
 
         {exportStatus === "error" && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-900/30 border border-rose-700/50">
-            <AlertCircle className="w-5 h-5 text-rose-400" />
-            <span className="text-rose-200">{t("asset.exportFailedRetry")}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto h-8 text-rose-300 hover:text-rose-100 hover:bg-rose-900/30"
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/50">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            <span className="text-destructive">{t("asset.exportFailedRetry")}</span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm ml-auto h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={resetStatus}
             >
               {t("common.retry")}
-            </Button>
+            </button>
           </div>
         )}
 
         {/* 导出按钮 */}
         <div className="flex flex-wrap gap-3">
-          <Button
-            className={`gap-2 ${themeClasses.exportBtn}`}
+          <button
+            type="button"
+            className={`btn btn-primary gap-2 ${themeClasses.exportBtn}`}
             onClick={handleExportProject}
             disabled={isExporting || !item.id}
           >
@@ -289,36 +288,36 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
               <FileText className="w-4 h-4" />
             )}
             {t("asset.exportProjectFile")}
-          </Button>
+          </button>
 
           {hasImage && (
-            <Button
-              variant="secondary"
-              className="gap-2 bg-slate-700 hover:bg-slate-600 text-slate-100 border-0"
+            <button
+              type="button"
+              className="btn btn-outline gap-2 bg-muted hover:bg-muted text-foreground border-0"
               onClick={handleDownloadImage}
               disabled={isExporting}
             >
               <ImageIcon className="w-4 h-4" />
               {t("asset.downloadImage")}
-            </Button>
+            </button>
           )}
 
           {hasVideo && (
-            <Button
-              variant="secondary"
-              className="gap-2 bg-slate-700 hover:bg-slate-600 text-slate-100 border-0"
+            <button
+              type="button"
+              className="btn btn-outline gap-2 bg-muted hover:bg-muted text-foreground border-0"
               onClick={handleDownloadVideo}
               disabled={isExporting}
             >
               <Video className="w-4 h-4" />
               {t("asset.downloadVideo")}
-            </Button>
+            </button>
           )}
         </div>
 
         {/* 说明 */}
         <div
-          className={`p-4 rounded-lg bg-slate-900/30 border ${themeClasses.infoBorder} text-sm text-slate-400`}
+          className={`p-4 rounded-lg bg-background/30 border ${themeClasses.infoBorder} text-sm text-muted-foreground`}
         >
           <p className={`font-medium ${themeClasses.infoTitle} mb-2`}>
             {t("asset.usageGuide")}
@@ -332,8 +331,8 @@ export function MediaExporter({ type, item }: MediaExporterProps) {
             </li>
           </ul>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

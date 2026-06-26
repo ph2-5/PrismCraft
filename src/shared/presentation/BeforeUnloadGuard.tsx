@@ -1,8 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
-import { useLocation, useNavigate, useBlocker } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
-import { confirm } from "@/shared/utils/confirm";
-import { t } from "@/shared/constants/messages";
 
 export function BeforeUnloadGuard() {
   const dirtyCount = useDirtyState((s) => s.dirtyKeys.size);
@@ -37,45 +35,10 @@ export function BeforeUnloadGuard() {
 
 export function useNavigationGuard() {
   const navigate = useNavigate();
-  const dirtyCount = useDirtyState((s) => s.dirtyKeys.size);
-  const markAllClean = useDirtyState((s) => s.markAllClean);
-  const dirtyRef = useRef(dirtyCount > 0);
-
-  useEffect(() => {
-    dirtyRef.current = dirtyCount > 0;
-  }, [dirtyCount]);
-
-  const blocker = useBlocker(dirtyCount > 0);
-
-  useEffect(() => {
-    if (blocker.state === "blocked") {
-      confirm(t("nav.unsavedChangesConfirm"), t("nav.unsavedChanges")).then((confirmed) => {
-        if (confirmed) {
-          markAllClean();
-          blocker.proceed?.();
-        } else {
-          blocker.reset?.();
-        }
-      }).catch(() => {
-        // confirm 对话框异常关闭时重置阻塞状态
-        blocker.reset?.();
-      });
-    }
-  }, [blocker, markAllClean]);
 
   const guardedPush = useCallback(
-    async (href: string) => {
-      if (dirtyRef.current) {
-        const confirmed = await confirm(
-          t("nav.unsavedChangesConfirm"),
-          t("nav.unsavedChanges"),
-        );
-        if (!confirmed) return;
-        markAllClean();
-      }
-      navigate(href);
-    },
-    [navigate, markAllClean],
+    (href: string) => navigate(href),
+    [navigate],
   );
 
   return { guardedPush };

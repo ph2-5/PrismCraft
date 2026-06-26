@@ -1,20 +1,17 @@
-import { useEffect } from "react";
-import { Layers, Zap } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { useEffect, useRef } from "react";
 import { t } from "@/shared/constants";
+import { getBeatCharacterIds } from "@/domain/utils";
 import type {
   StoryBeat,
   Character,
   Scene,
   StoryElement,
 } from "@/domain/schemas";
-import type { PromptEditorContext } from "@/modules/story/prompt-editor";
-import { BeatHeader } from "./sections/BeatHeader";
-import { BasicInfoSection } from "./sections/BasicInfoSection";
-import { ShotInstructionSection } from "./sections/ShotInstructionSection";
-import { SettingsTabContent } from "./sections/SettingsTabContent";
-import { GenerateTabContent } from "./sections/GenerateTabContent";
-import { BeatFooter } from "./sections/BeatFooter";
+import { ElementBindingPanel } from "./ElementBindingPanel";
+import { BeatNavigation } from "./BeatNavigation";
+import { BeatPromptPanel } from "./BeatPromptPanel";
+import { BeatGenerationPanel } from "./BeatGenerationPanel";
+import { BeatUploadPanel, type BeatUploadPanelHandle } from "./BeatUploadPanel";
 
 interface MinimalAsset {
   id: string;
@@ -35,6 +32,7 @@ interface BeatDetailEditorProps {
   onClose: () => void;
   onPrevBeat: () => void;
   onNextBeat: () => void;
+  onMoveBeat?: (beatId: string, direction: "up" | "down") => void;
   onUpdateBeat: (updatedBeat: StoryBeat) => void;
   onDeleteBeat: () => void;
   onGenerateKeyframe?: () => Promise<StoryBeat | void>;
@@ -46,7 +44,7 @@ interface BeatDetailEditorProps {
   onUploadFirstFrame?: (beatId: string, file: File) => void;
   onUploadLastFrame?: (beatId: string, file: File) => void;
   onUploadVideo?: (beatId: string, file: File) => void;
-  onPromptChange?: (context: PromptEditorContext, prompt: string) => void;
+  onPromptChange?: (context: import("@/modules/story/prompt-editor").PromptEditorContext, prompt: string) => void;
   imageProviderId?: string;
   imageModelId?: string;
 }
@@ -63,6 +61,7 @@ export function BeatDetailEditor({
   onClose,
   onPrevBeat,
   onNextBeat,
+  onMoveBeat,
   onUpdateBeat,
   onDeleteBeat,
   onGenerateKeyframe,
@@ -78,15 +77,11 @@ export function BeatDetailEditor({
   imageProviderId,
   imageModelId,
 }: BeatDetailEditorProps) {
-  const handleUpdateField = (
-    field: keyof StoryBeat,
-    value: StoryBeat[keyof StoryBeat],
-  ) => {
-    onUpdateBeat({ ...beat, [field]: value } as StoryBeat);
-  };
+  const uploadPanelHandle = useRef<BeatUploadPanelHandle>(null);
 
-  const selectedScene = scenes.find((scene) => scene.id === (beat.sceneId || beat.scene));
-  const prevBeat = index > 0 ? allShots[index - 1]! : null;
+  const selectedScene = scenes.find((scene) => scene.id === beat.sceneId);
+  const _prevBeat = index > 0 ? allShots[index - 1]! : null;
+  void _prevBeat;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -108,111 +103,180 @@ export function BeatDetailEditor({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  // Consistency check data
+  const consistencyCheck = beat.consistencyCheck;
+  const charIds = getBeatCharacterIds(beat);
+  const boundCharacters = charIds
+    .map((id) => characters.find((c) => c.id === id))
+    .filter((c): c is Character => !!c);
+
+  // Bound elements for binding count
+  const boundElementIds = beat.elementIds || [];
+  const boundElements = boundElementIds
+    .map((id) => elements.find((e) => e.id === id))
+    .filter((e): e is StoryElement => !!e);
+
   return (
     <div
       className="h-full flex flex-col"
       role="region"
       aria-label={t("beat.editBeatN", { n: index + 1 })}
     >
-      <BeatHeader
-        beatTitle={beat.title || ""}
+      <BeatNavigation
+        beat={beat}
         index={index}
         totalBeats={totalBeats}
-        selectedScene={selectedScene}
-        onClose={onClose}
         onPrevBeat={onPrevBeat}
         onNextBeat={onNextBeat}
+        onMoveBeat={onMoveBeat}
+        onDeleteBeat={onDeleteBeat}
       />
 
-      <div className="flex-1 overflow-hidden p-0">
-        <div className="h-full flex flex-col md:flex-row">
-          <div className="w-full md:w-1/2 md:border-r border-border overflow-y-auto">
-            <div className="p-6 space-y-6">
-              <BasicInfoSection
-                beat={beat}
-                scenes={scenes}
-                onUpdateBeat={onUpdateBeat}
-                onUpdateField={handleUpdateField}
-              />
-              <ShotInstructionSection
-                beat={beat}
-                onUpdateField={handleUpdateField}
-              />
+      {/* Three-column editor */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          padding: 12,
+          gap: 12,
+          overflowY: "auto",
+          minHeight: 0,
+        }}
+      >
+        {/* COLUMN 1: Prompt editor (3-tab) + Shot properties */}
+        <BeatPromptPanel
+          beat={beat}
+          characters={characters}
+          scenes={scenes}
+          elements={elements}
+          allShots={allShots}
+          onUpdateBeat={onUpdateBeat}
+          onPromptChange={onPromptChange}
+          onGenerateKeyframe={onGenerateKeyframe}
+          onGenerateFramePair={onGenerateFramePair}
+          onGenerateVideoNew={onGenerateVideoNew}
+          generatingKeyframe={generatingKeyframe}
+          imageProviderId={imageProviderId}
+          imageModelId={imageModelId}
+        />
+
+        {/* COLUMN 2: Element binding + consistency check */}
+        <div
+          style={{
+            width: 300,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            overflowY: "auto",
+          }}
+        >
+          {/* Section header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div className="section-label" style={{ marginBottom: 0 }}>
+              <span className="dot ok"></span> {t("beat.elementBinding")}
             </div>
+            <span className="badge badge-info">
+              {t("beat.boundCount", { count: boundElements.length })}
+            </span>
           </div>
 
-          <div className="w-full md:w-1/2 flex flex-col">
-            <Tabs
-              defaultValue="settings"
-              className="flex-1 flex flex-col min-h-0"
-            >
-              <TabsList className="mx-4 mt-4 bg-muted/50 shrink-0">
-                <TabsTrigger
-                  value="settings"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <Layers className="w-4 h-4 mr-2" />
-                  {t("common.settings")}
-                </TabsTrigger>
-                <TabsTrigger
-                  value="generate"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  {t("common.generate")}
-                </TabsTrigger>
-              </TabsList>
+          {/* Element binding panel - existing business logic */}
+          <ElementBindingPanel
+            beat={beat}
+            elements={elements}
+            characters={characters}
+            scenes={scenes}
+            assets={assets}
+            onUpdateBeat={onUpdateBeat}
+          />
 
-              <div className="flex-1 overflow-hidden">
-                <TabsContent
-                  value="settings"
-                  className="h-full overflow-y-auto p-6 m-0"
-                >
-                  <SettingsTabContent
-                    beat={beat}
-                    elements={elements}
-                    characters={characters}
-                    assets={assets}
-                    allShots={allShots}
-                    onUpdateBeat={onUpdateBeat}
-                  />
-                </TabsContent>
+          {/* Divider */}
+          <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>
 
-                <TabsContent
-                  value="generate"
-                  className="h-full overflow-y-auto p-6 m-0"
-                >
-                  <GenerateTabContent
-                    beat={beat}
-                    index={index}
-                    totalBeats={totalBeats}
-                    prevBeat={prevBeat}
-                    generatingKeyframe={generatingKeyframe}
-                    onGenerateKeyframe={onGenerateKeyframe}
-                    onGenerateFramePair={onGenerateFramePair}
-                    onGenerateVideoNew={onGenerateVideoNew}
-                    onRegenerateKeyframe={onRegenerateKeyframe}
-                    onUploadKeyframe={onUploadKeyframe}
-                    onUploadFirstFrame={onUploadFirstFrame}
-                    onUploadLastFrame={onUploadLastFrame}
-                    onUploadVideo={onUploadVideo}
-                    onPromptChange={onPromptChange}
-                    imageProviderId={imageProviderId}
-                    imageModelId={imageModelId}
-                    characters={characters}
-                    scenes={scenes}
-                  />
-                </TabsContent>
+          {/* Consistency check */}
+          <div className="section-label">
+            <span className="dot ok"></span> {t("beat.consistencyCheck")}
+          </div>
+          <div className="card" style={{ padding: 10, fontSize: 12 }}>
+            {consistencyCheck && consistencyCheck.characterScores.length > 0 ? (
+              consistencyCheck.characterScores.map((score) => {
+                const isPass = score.score >= 0.8;
+                return (
+                  <div key={score.elementId}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span>👤 {score.elementName}</span>
+                      <span style={{ color: isPass ? "var(--success)" : "var(--warning)" }}>
+                        {isPass ? "✓" : "⚠"} {(score.score * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="progress-bar" style={{ marginBottom: 8 }}>
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${score.score * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : boundCharacters.length === 0 ? (
+              <div style={{ color: "var(--muted-fg)", textAlign: "center", padding: "8px 0" }}>
+                {t("beat.unboundCharacter")}
               </div>
-            </Tabs>
-
-            <BeatFooter
-              onDeleteBeat={onDeleteBeat}
-              onClose={onClose}
-            />
+            ) : (
+              boundCharacters.map((char) => (
+                <div key={char.id}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span>👤 {char.name}</span>
+                    <span style={{ color: "var(--muted-fg)" }}>—</span>
+                  </div>
+                  <div className="progress-bar" style={{ marginBottom: 8 }}>
+                    <div className="progress-fill" style={{ width: "0%" }}></div>
+                  </div>
+                </div>
+              ))
+            )}
+            {selectedScene && (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>🏙 {selectedScene.name}</span>
+                  <span style={{ color: "var(--success)" }}>
+                    {consistencyCheck ? "✓" : "—"}
+                  </span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: consistencyCheck ? `${consistencyCheck.overallScore * 100}%` : "0%" }}
+                  ></div>
+                </div>
+              </>
+            )}
           </div>
         </div>
+
+        {/* COLUMN 3: Preview cards with full operations */}
+        <BeatGenerationPanel
+          beat={beat}
+          onGenerateKeyframe={onGenerateKeyframe}
+          onGenerateFramePair={onGenerateFramePair}
+          onGenerateVideoNew={onGenerateVideoNew}
+          onRegenerateKeyframe={onRegenerateKeyframe}
+          generatingKeyframe={generatingKeyframe}
+          imageModelId={imageModelId}
+          uploadPanelHandle={uploadPanelHandle}
+        />
       </div>
+
+      {/* Hidden file inputs - rendered once and triggered via ref */}
+      <BeatUploadPanel
+        ref={uploadPanelHandle}
+        beatId={beat.id}
+        onUploadKeyframe={onUploadKeyframe}
+        onUploadFirstFrame={onUploadFirstFrame}
+        onUploadLastFrame={onUploadLastFrame}
+        onUploadVideo={onUploadVideo}
+      />
     </div>
   );
 }

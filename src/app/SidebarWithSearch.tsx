@@ -9,7 +9,7 @@ import type { SearchResult } from "@/domain/schemas";
 const ROUTE_MAP: Record<SearchResult["type"], string> = {
   character: "/characters",
   scene: "/scenes",
-  story: "/story",
+  story: "/storyboard",
 };
 
 export function SidebarWithSearch() {
@@ -45,6 +45,10 @@ export function SidebarWithSearch() {
   }, []);
 
   const handleSearchSelect = useCallback((result: SearchResult) => {
+    if (result.type === "story") {
+      guardedPush(`/storyboard/${result.id}`);
+      return;
+    }
     const basePath = ROUTE_MAP[result.type];
     guardedPush(`${basePath}?highlight=${encodeURIComponent(result.id)}`);
   }, [guardedPush]);

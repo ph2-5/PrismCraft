@@ -69,7 +69,6 @@ function parseBeatRow(b: Record<string, unknown>) {
       VALID_SHOT_TYPES.has(cameraContainer.shotType as string)
         ? cameraContainer.shotType
         : undefined,
-    generationPrompt: generationContainer?.generationPrompt,
     imageGenerationPrompt: generationContainer?.imageGenerationPrompt,
     firstFramePrompt: generationContainer?.firstFramePrompt,
     lastFramePrompt: generationContainer?.lastFramePrompt,
@@ -213,7 +212,6 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
       characterIds: ["char-1", "char-2"],
       sceneId: "scene-1",
       shotType: "close",
-      generationPrompt: "生成提示词",
       imageGenerationPrompt: "图片生成提示词",
       firstFramePrompt: "首帧提示词",
       lastFramePrompt: "末帧提示词",
@@ -268,7 +266,6 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
     );
     expect(flat.generationContainer.videoTaskId).toBe("task-abc-123");
     expect(flat.generationContainer.videoStatus).toBe("completed");
-    expect(flat.generationContainer.generationPrompt).toBe("生成提示词");
     expect(flat.generationContainer.imageGenerationPrompt).toBe(
       "图片生成提示词",
     );
@@ -292,7 +289,6 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
     expect(result.characterIds).toEqual(["char-1", "char-2"]);
     expect(result.sceneId).toBe("scene-1");
     expect(result.shotType).toBe("close");
-    expect(result.generationPrompt).toBe("生成提示词");
     expect(result.enhancedGeneration).toBe(true);
     expect(result.camera).toEqual({
       angle: "low",

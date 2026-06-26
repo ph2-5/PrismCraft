@@ -3,6 +3,7 @@ import { fromAsyncThrowable } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
+import { t, CACHE_RETRY_INTERVAL_MS } from "@/shared/constants";
 import {
   writeFile as httpWriteFile,
   getFileInfo as httpGetFileInfo,
@@ -78,7 +79,7 @@ export async function cacheImageBlob(
         if (diskSpace?.success && diskSpace.availableBytes !== undefined) {
           const minRequiredBytes = 1024 * 1024;
           if (diskSpace.availableBytes < minRequiredBytes) {
-            throw new Error(`磁盘空间不足: ${Math.round(diskSpace.availableBytes / 1024 / 1024)}MB 可用`);
+            throw new Error(`${t("error.diskFull")} (${Math.round(diskSpace.availableBytes / 1024 / 1024)}MB)`);
           }
         }
 
@@ -139,7 +140,7 @@ export async function cacheImageBlob(
       } catch (error) {
         if (isHttpExpiredError(error) && attempt === 0) {
           errorLogger.warn("[ImageCache] URL过期，重试中...", error);
-          await new Promise((r) => setTimeout(r, 1000));
+          await new Promise((r) => setTimeout(r, CACHE_RETRY_INTERVAL_MS));
           continue;
         }
 

@@ -1,5 +1,3 @@
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Copy } from "lucide-react";
 import { t } from "@/shared/constants";
 import {
@@ -43,30 +41,28 @@ export function BeatTechTab({
 }: BeatTechTabProps) {
   return (
     <>
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-foreground">
+      <div className="card">
+        <div style={{ paddingBottom: 12 }}>
+          <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
             {t("beat.genParams")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+          </div>
+        </div>
+        <div className="space-y-3">
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label className="text-xs text-muted-foreground">{t("beat.prompt")}</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-xs"
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
                 onClick={handleCopyPrompt}
               >
                 <Copy className="w-3 h-3 mr-1" />
                 {t("story.copyButton")}
-              </Button>
+              </button>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 border border-border max-h-40 overflow-y-auto">
               <code className="text-xs text-muted-foreground whitespace-pre-wrap">
                 {beat.videoGen?.prompt ||
-                  beat.generationPrompt ||
                   t("story.notGenerated")}
               </code>
             </div>
@@ -110,16 +106,16 @@ export function BeatTechTab({
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-foreground">
+      <div className="card">
+        <div style={{ paddingBottom: 12 }}>
+          <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
             {t("modelParam.modelParams")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </div>
+        </div>
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">{t("quickGenerate.videoModel")}</Label>
             <ModelSelector
@@ -133,16 +129,16 @@ export function BeatTechTab({
             values={modelParams}
             onValuesChange={handleModelParamsChange}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-foreground">
+      <div className="card">
+        <div style={{ paddingBottom: 12 }}>
+          <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
             {t("beat.genHistory")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+          </div>
+        </div>
+        <div className="space-y-2">
           <div className="flex justify-between">
             <span className="text-xs text-muted-foreground">{t("beat.createdAt")}</span>
             <span className="text-sm text-foreground">
@@ -181,8 +177,8 @@ export function BeatTechTab({
               </span>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </>
   );
 }

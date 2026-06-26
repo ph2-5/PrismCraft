@@ -1,6 +1,3 @@
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
 import { CheckCircle2, AlertTriangle, Loader2, Server, Unplug } from "lucide-react";
 import { t } from "@/shared/constants";
 
@@ -41,8 +38,9 @@ export function ServerConfigSection({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs">{t("sync.serverAddress")}</Label>
-        <Input
+        <label className="text-xs">{t("sync.serverAddress")}</label>
+        <input
+          className="input"
           data-testid="sync-server-url-input"
           placeholder="https://sync.example.com"
           value={serverUrl}
@@ -53,8 +51,9 @@ export function ServerConfigSection({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-xs">{t("sync.username")}</Label>
-          <Input
+          <label className="text-xs">{t("sync.username")}</label>
+          <input
+            className="input"
             data-testid="sync-username-input"
             placeholder="admin"
             value={username}
@@ -63,8 +62,9 @@ export function ServerConfigSection({
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs">{t("sync.password")}</Label>
-          <Input
+          <label className="text-xs">{t("sync.password")}</label>
+          <input
+            className="input"
             type="password"
             placeholder="••••••••"
             value={password}
@@ -104,9 +104,9 @@ export function ServerConfigSection({
             </>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
+        <button
+          type="button"
+          className="btn btn-outline btn-sm h-7 text-xs"
           onClick={onTestConnection}
           disabled={
             !enabled ||
@@ -115,10 +115,9 @@ export function ServerConfigSection({
             !password ||
             connectionStatus === "testing"
           }
-          className="h-7 text-xs"
         >
           {connectionStatus === "testing" ? t("sync.testing") : t("sync.testConnection")}
-        </Button>
+        </button>
       </div>
     </div>
   );

@@ -20,7 +20,6 @@ const mockBeat: StoryBeat = {
   characterIds: [],
   enhancedGeneration: false,
   elementIds: [],
-  generationPrompt: "生成提示词",
   imageGenerationPrompt: "图像提示词",
   firstFramePrompt: "首帧提示词",
   lastFramePrompt: "尾帧提示词",
@@ -68,7 +67,6 @@ describe("createTemplateFromBeats", () => {
     expect(tplBeat.cameraMovement).toBe("pan");
     expect(tplBeat.cameraDistance).toBe("medium");
     expect(tplBeat.cameraSpeed).toBe("normal");
-    expect(tplBeat.generationPrompt).toBe("生成提示词");
     expect(tplBeat.imageGenerationPrompt).toBe("图像提示词");
     expect(tplBeat.firstFramePrompt).toBe("首帧提示词");
     expect(tplBeat.lastFramePrompt).toBe("尾帧提示词");
@@ -138,7 +136,6 @@ describe("applyTemplateToBeats", () => {
         cameraMovement: "pan",
         cameraDistance: "medium",
         cameraSpeed: "normal",
-        generationPrompt: "生成提示词",
         imageGenerationPrompt: "图像提示词",
         firstFramePrompt: "首帧提示词",
         lastFramePrompt: "尾帧提示词",
@@ -183,7 +180,6 @@ describe("applyTemplateToBeats", () => {
   it("应映射提示词字段", () => {
     const beats = applyTemplateToBeats(mockTemplate);
 
-    expect(beats[0]!.generationPrompt).toBe("生成提示词");
     expect(beats[0]!.imageGenerationPrompt).toBe("图像提示词");
     expect(beats[0]!.firstFramePrompt).toBe("首帧提示词");
     expect(beats[0]!.lastFramePrompt).toBe("尾帧提示词");

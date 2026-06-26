@@ -121,6 +121,17 @@ export const storyGenerateVideoSchema = z.object({
   beatId: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
+  // Fields used by buildVideoGenerationParams; declared as unknown because Beat/CharacterInput
+  // are shared-logic types that cannot be imported into the Electron schema layer.
+  beat: z.unknown().optional(),
+  characters: z.array(z.unknown()).optional(),
+  scenes: z.array(z.unknown()).optional(),
+  elements: z.array(z.unknown()).optional(),
+  shotInstruction: z.string().optional(),
+  firstFrameUrl: z.string().optional(),
+  lastFrameUrl: z.string().optional(),
+  duration: z.number().optional(),
+  videoPrompt: z.string().optional(),
 });
 export type StoryGenerateVideoRequest = z.infer<typeof storyGenerateVideoSchema>;
 
@@ -226,93 +237,211 @@ export const videoProviderInfoSchema = z.object({
 });
 export type VideoProviderInfoRequest = z.infer<typeof videoProviderInfoSchema>;
 
+// ── shared-logic mirror schemas (Electron cannot import @/domain/*) ────
+// These mirror the types exported from @shared-logic/shot/reference-engine.
+const slShotSchema = z.object({
+  id: z.string(),
+  sequence: z.number().optional(),
+  duration: z.number().optional(),
+  videoGen: z.object({ videoUrl: z.string().optional() }).optional(),
+  generationResult: z.object({
+    videoUrl: z.string().optional(),
+    lastFrameUrl: z.string().optional(),
+    firstFrameUrl: z.string().optional(),
+  }).optional(),
+}).passthrough();
+
+const slReferenceSchema = z.object({
+  direction: z.enum(["none", "previous", "next", "custom"]),
+  contentType: z.enum(["full_video", "last_frame", "first_frame", "video_segment"]).optional(),
+  targetShotId: z.string().optional(),
+  segmentDuration: z.number().optional(),
+}).passthrough();
+
 export const shotValidateReferenceSchema = z.object({
-  shot: z.unknown(),
-  allShots: z.array(z.unknown()),
-  reference: z.unknown(),
+  shot: slShotSchema,
+  allShots: z.array(slShotSchema),
+  reference: slReferenceSchema,
 });
 export type ShotValidateReferenceRequest = z.infer<typeof shotValidateReferenceSchema>;
 
 export const shotGetReferenceVideoUrlSchema = z.object({
-  shot: z.unknown(),
-  allShots: z.array(z.unknown()),
-  reference: z.unknown(),
+  shot: slShotSchema,
+  allShots: z.array(slShotSchema),
+  reference: slReferenceSchema,
 });
 export type ShotGetReferenceVideoUrlRequest = z.infer<typeof shotGetReferenceVideoUrlSchema>;
 
 export const shotBuildReferenceDescriptionSchema = z.object({
-  shot: z.unknown(),
-  allShots: z.array(z.unknown()),
-  reference: z.unknown(),
+  shot: slShotSchema,
+  allShots: z.array(slShotSchema),
+  reference: slReferenceSchema,
 });
 export type ShotBuildReferenceDescriptionRequest = z.infer<typeof shotBuildReferenceDescriptionSchema>;
 
-export const validateConsistencySchema = z.object({}).passthrough();
+// Mirror types from @shared-logic/shot/consistency-check.
+const slFeatureAnchoringConfigSchema = z.object({
+  enabled: z.boolean(),
+  characterAnchors: z.array(z.object({
+    elementId: z.string(),
+    referenceImageUrl: z.string().optional(),
+    featureTags: z.array(z.string()).optional(),
+    weight: z.number(),
+  }).passthrough()),
+  disableFrameBinding: z.boolean().optional(),
+  featureConsistencyStrength: z.number().optional(),
+}).passthrough();
+
+const slConsistencyElementSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+}).passthrough();
+
+export const validateConsistencySchema = z.object({
+  featureAnchoring: slFeatureAnchoringConfigSchema,
+  elements: z.array(slConsistencyElementSchema),
+}).passthrough();
 export type ValidateConsistencyRequest = z.infer<typeof validateConsistencySchema>;
 
 export const validateFeatureAnchoringSchema = z.object({
-  config: z.unknown(),
+  config: slFeatureAnchoringConfigSchema,
 });
 export type ValidateFeatureAnchoringRequest = z.infer<typeof validateFeatureAnchoringSchema>;
 
 export const validateNoFrameBindingSchema = z.object({}).passthrough();
 export type ValidateNoFrameBindingRequest = z.infer<typeof validateNoFrameBindingSchema>;
 
+// Mirror types from @shared-logic/shot/reference-check.
+const slRefStorySchema = z.object({
+  id: z.string(),
+  title: z.string().optional(),
+  characters: z.array(z.string()).optional(),
+  scenes: z.array(z.string()).optional(),
+  beats: z.array(z.object({
+    characters: z.array(z.string()).optional(),
+    character: z.string().optional(),
+    sceneId: z.string().optional(),
+  }).passthrough()).optional(),
+}).passthrough();
+
 export const referenceCheckCharacterSchema = z.object({
   characterId: z.string(),
-  stories: z.array(z.unknown()),
+  stories: z.array(slRefStorySchema),
 });
 export type ReferenceCheckCharacterRequest = z.infer<typeof referenceCheckCharacterSchema>;
 
 export const referenceCheckSceneSchema = z.object({
   sceneId: z.string(),
-  stories: z.array(z.unknown()),
+  stories: z.array(slRefStorySchema),
 });
 export type ReferenceCheckSceneRequest = z.infer<typeof referenceCheckSceneSchema>;
+
+// Mirror types from @shared-logic/shot/visual-consistency-check.
+const slVisualElementSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string().optional(),
+  description: z.string().optional(),
+  featureAnchor: z.object({ featureTags: z.array(z.string()).optional() }).optional(),
+  characterConfig: z.object({
+    appearance: z.object({
+      hairColor: z.string().optional(),
+      hairStyle: z.string().optional(),
+      eyeColor: z.string().optional(),
+      clothing: z.string().optional(),
+    }).optional(),
+  }).optional(),
+  bindings: z.array(z.object({ type: z.string(), url: z.string() }).passthrough()).optional(),
+}).passthrough();
+
+const slVisualBeatSchema = z.object({
+  id: z.string(),
+  elementIds: z.array(z.string()).optional(),
+}).passthrough();
 
 export const visualConsistencyCheckSchema = z.object({
   generatedImageUrl: z.string().optional(),
   referenceImageUrl: z.string().optional(),
-  element: z.record(z.string(), z.unknown()),
+  element: slVisualElementSchema,
 });
 export type VisualConsistencyCheckRequest = z.infer<typeof visualConsistencyCheckSchema>;
 
 export const visualConsistencyCheckBeatSchema = z.object({
-  beat: z.unknown(),
-  elements: z.array(z.unknown()),
+  beat: slVisualBeatSchema,
+  elements: z.array(slVisualElementSchema),
   generatedImageMap: z.record(z.string(), z.string()).optional(),
 });
 export type VisualConsistencyCheckBeatRequest = z.infer<typeof visualConsistencyCheckBeatSchema>;
 
+// Mirror types from @shared-logic/story/storyboard-generation.
+const slStoryboardBeatSchema = z.object({
+  id: z.string(),
+  content: z.string().optional(),
+  description: z.string().optional(),
+  duration: z.number().optional(),
+  shotType: z.string().optional(),
+  camera: z.object({
+    angle: z.string().optional(),
+    movement: z.string().optional(),
+  }).optional(),
+  enhancedGeneration: z.boolean().optional(),
+  imageGenerationPrompt: z.string().optional(),
+  firstFramePrompt: z.string().optional(),
+  lastFramePrompt: z.string().optional(),
+  keyframe: z.object({
+    imageUrl: z.string().optional(),
+    prompt: z.string().optional(),
+  }).optional(),
+  framePair: z.object({
+    firstFrame: z.object({ imageUrl: z.string().optional() }).optional(),
+    lastFrame: z.object({ imageUrl: z.string().optional() }).optional(),
+  }).optional(),
+  // 场景转换：元信息字段，prompt-engine 当前不解析，passthrough 透传
+  sceneId: z.string().optional(),
+  sceneTransitions: z.array(z.object({
+    sceneId: z.string(),
+    transitionType: z.enum(["cut", "dissolve", "wipe", "fade"]).optional(),
+    description: z.string().optional(),
+  }).passthrough()).optional(),
+}).passthrough();
+
 export const storyboardGenerateKeyframeSchema = z.object({
-  beat: z.unknown(),
-  prevBeat: z.unknown().optional(),
+  beat: slStoryboardBeatSchema,
+  prevBeat: slStoryboardBeatSchema.optional(),
   options: z.record(z.string(), z.unknown()),
 });
 export type StoryboardGenerateKeyframeRequest = z.infer<typeof storyboardGenerateKeyframeSchema>;
 
 export const storyboardGenerateFramePairSchema = z.object({
-  beat: z.unknown(),
+  beat: slStoryboardBeatSchema,
   options: z.record(z.string(), z.unknown()),
 });
 export type StoryboardGenerateFramePairRequest = z.infer<typeof storyboardGenerateFramePairSchema>;
 
 export const storyboardGenerateVideoSchema = z.object({
-  beat: z.unknown(),
+  beat: slStoryboardBeatSchema,
   options: z.record(z.string(), z.unknown()),
 });
 export type StoryboardGenerateVideoRequest = z.infer<typeof storyboardGenerateVideoSchema>;
 
 export const storyboardGenerateFullWorkflowSchema = z.object({
-  beat: z.unknown(),
-  prevBeat: z.unknown().optional(),
+  beat: slStoryboardBeatSchema,
+  prevBeat: slStoryboardBeatSchema.optional(),
   options: z.record(z.string(), z.unknown()),
 });
 export type StoryboardGenerateFullWorkflowRequest = z.infer<typeof storyboardGenerateFullWorkflowSchema>;
 
+// Chain options include non-serializable function callbacks (getCharacterRef,
+// getSceneRef, onFailure) that cannot be validated by Zod over HTTP. Only the
+// serializable fields are validated; passthrough preserves extra keys.
+const slStoryboardChainOptionsSchema = z.object({
+  providerId: z.string().optional(),
+  modelId: z.string().optional(),
+}).passthrough();
+
 export const storyboardGenerateKeyframeChainSchema = z.object({
-  beats: z.array(z.unknown()),
-  options: z.record(z.string(), z.unknown()),
+  beats: z.array(slStoryboardBeatSchema),
+  options: slStoryboardChainOptionsSchema,
 });
 export type StoryboardGenerateKeyframeChainRequest = z.infer<typeof storyboardGenerateKeyframeChainSchema>;
 
@@ -418,23 +547,38 @@ export type ConfigGetRequest = z.infer<typeof configGetSchema>;
 
 export const configSetSchema = z.object({
   key: z.string().min(1).max(256),
-  value: z.unknown(),
+  // R182/L3: 限制 value 为基础类型或简单 record，避免任意 unknown 注入
+  value: z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.record(z.string(), z.unknown()),
+    z.array(z.unknown()),
+  ]),
 });
 export type ConfigSetRequest = z.infer<typeof configSetSchema>;
 
 // 通用 config/secure-config/sync-config 路由 Schema（兼容多 action 形态）
 export const configRouteSchema = z.object({
   key: z.string().optional(),
-  value: z.unknown().optional(),
+  value: z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.record(z.string(), z.unknown()),
+    z.array(z.unknown()),
+  ]).optional(),
   action: z.enum(["get", "set", "delete", "list"]).optional(),
 }).passthrough();
 export type ConfigRouteRequest = z.infer<typeof configRouteSchema>;
 
 export const secureConfigRouteSchema = z.object({
   operation: z.enum(["save", "load", "clear"]),
-  config: z.unknown().optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
   providerId: z.string().optional(),
-  data: z.unknown().optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 }).passthrough();
 export type SecureConfigRouteRequest = z.infer<typeof secureConfigRouteSchema>;
 

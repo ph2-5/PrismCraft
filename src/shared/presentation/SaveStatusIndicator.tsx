@@ -31,7 +31,7 @@ const statusConfig: Record<
   saved: {
     icon: Check,
     label: t("saveStatus.saved"),
-    className: "text-green-500",
+    className: "text-success",
   },
   error: {
     icon: AlertCircle,

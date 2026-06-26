@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Result } from "@/domain/types";
+import type { Story } from "@/domain/schemas";
 import {
   useCharacters,
 } from "@/modules/character";
@@ -23,6 +24,7 @@ import { checkCharacterReferences, checkSceneReferences } from "@/domain/service
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
+import { BLOB_URL_REVOKE_DELAY_MS } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants/messages";
 import { container } from "@/infrastructure/di";
@@ -34,50 +36,51 @@ import type { AssetTab, EditingItem } from "./AssetCardGrid";
 import { fetchSecondaryData } from "./AssetCardGrid";
 
 interface UseAssetLibraryActionsParams {
-  activeTab: AssetTab;
-  selectedIds: Set<string>;
-  clearSelection: () => void;
-  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  // 选择上下文
+  selection: {
+    activeTab: AssetTab;
+    selectedIds: Set<string>;
+    clearSelection: () => void;
+    setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  };
+  // 数据同步
   setSecondaryData: (data: { storyboards: import("@/domain/schemas").StoryboardAsset[]; collections: import("@/domain/schemas").Collection[]; collectionAssets: import("@/domain/schemas").CollectionAsset[] }) => void;
-  setIsBatchDeleting: (v: boolean) => void;
-  setIsAddingToCollection: (v: boolean) => void;
-  setIsCollectionDialogOpen: (v: boolean) => void;
-  setIsImportDialogOpen: (v: boolean) => void;
-  setIsNewCollectionDialogOpen: (v: boolean) => void;
-  setIsEditDialogOpen: (v: boolean) => void;
-  setEditingItem: (item: EditingItem | null) => void;
-  setIsSavingEdit: (v: boolean) => void;
-  setIsCreatingCollection: (v: boolean) => void;
-  setNewCollectionName: (v: string) => void;
-  setAddToCollectionId: (v: string) => void;
-  addToCollectionId: string;
-  newCollectionName: string;
-  editingItem: EditingItem | null;
-  isBatchDeleting: boolean;
+  // 弹窗开关集合
+  dialogControls: {
+    setIsCollectionDialogOpen: (v: boolean) => void;
+    setIsImportDialogOpen: (v: boolean) => void;
+    setIsNewCollectionDialogOpen: (v: boolean) => void;
+    setIsEditDialogOpen: (v: boolean) => void;
+    setIsAddingToCollection: (v: boolean) => void;
+  };
+  // loading 开关集合
+  loadingControls: {
+    setIsBatchDeleting: (v: boolean) => void;
+    setIsSavingEdit: (v: boolean) => void;
+    setIsCreatingCollection: (v: boolean) => void;
+    isBatchDeleting: boolean;
+  };
+  // 编辑弹窗上下文
+  editDialog: {
+    editingItem: EditingItem | null;
+    setEditingItem: (item: EditingItem | null) => void;
+  };
+  // 收藏集表单上下文
+  collectionForm: {
+    addToCollectionId: string;
+    newCollectionName: string;
+    setNewCollectionName: (v: string) => void;
+  };
 }
 
-export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
-  const {
-    activeTab,
-    selectedIds,
-    clearSelection,
-    setSelectedIds,
-    setSecondaryData,
-    setIsBatchDeleting,
-    setIsAddingToCollection,
-    setIsCollectionDialogOpen,
-    setIsImportDialogOpen,
-    setIsNewCollectionDialogOpen,
-    setIsEditDialogOpen,
-    setEditingItem,
-    setIsSavingEdit,
-    setIsCreatingCollection,
-    setNewCollectionName,
-    addToCollectionId,
-    newCollectionName,
-    editingItem,
-    isBatchDeleting,
-  } = params;
+export function useAssetLibraryActions({
+  selection: { activeTab, selectedIds, clearSelection, setSelectedIds },
+  setSecondaryData,
+  dialogControls: { setIsCollectionDialogOpen, setIsImportDialogOpen, setIsNewCollectionDialogOpen, setIsEditDialogOpen, setIsAddingToCollection },
+  loadingControls: { setIsBatchDeleting, setIsSavingEdit, setIsCreatingCollection, isBatchDeleting },
+  editDialog: { editingItem, setEditingItem },
+  collectionForm: { addToCollectionId, newCollectionName, setNewCollectionName },
+}: UseAssetLibraryActionsParams) {
 
   const { success, error: showError } = useToastHelpers();
   const queryClient = useQueryClient();
@@ -178,7 +181,7 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
       a.href = url;
       a.download = `export-${activeTab}-${Date.now()}.asa`;
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
       clearSelection();
       success(t("success.exported"), t("asset.exportedCount", { count: ids.length }));
     } catch (e) {
@@ -275,7 +278,7 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
       a.href = url;
       a.download = `collection.asa`;
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
       success(t("success.exported"), t("asset.collectionExported"));
     } catch (e) {
       showError(t("error.exportFailed"), mapUserFacingError(e));
@@ -332,59 +335,65 @@ export function useAssetLibraryActions(params: UseAssetLibraryActionsParams) {
 
   const handleDeleteStoryboard = useCallback(async (id: string) => {
     if (!(await confirm(t("confirm.deleteBeat"), t("confirm.deleteBeatTitle")))) return;
-    storyboardAssetService
-      .remove(id)
-      .then(() => loadSecondaryData())
-      .catch((e: unknown) =>
-        showError(t("error.deleteFailed"), mapUserFacingError(e)),
-      );
-  }, [loadSecondaryData, showError]);
+    try {
+      await storyboardAssetService.remove(id);
+      await loadSecondaryData();
+      success(t("success.deleted"), t("success.assetDeleted"));
+    } catch (e) {
+      showError(t("error.deleteFailed"), mapUserFacingError(e));
+    }
+  }, [loadSecondaryData, showError, success]);
+
+  const updateStoriesAfterEntityDelete = useCallback(async (
+    _entityId: string,
+    transformStory: (story: Story) => Story,
+    isAffected: (original: Story) => boolean,
+  ) => {
+    const updatedStories = stories.map((story) => transformStory(story));
+    for (const updatedStory of updatedStories) {
+      const original = stories.find((s) => s.id === updatedStory.id);
+      if (original && isAffected(original)) {
+        const result = await storyService.update(updatedStory.id, updatedStory);
+        if (!result.ok) {
+          errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
+        }
+      }
+    }
+  }, [stories]);
 
   const updateStoriesAfterCharacterDelete = useCallback(async (characterId: string) => {
-    const updatedStories = stories.map((story) => {
-      const updatedBeats = (story.beats || []).map((beat) => {
-        const updated = { ...beat };
-        if (updated.characterIds?.includes(characterId)) {
-          updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
-        }
-        return updated;
-      });
-      const updatedCharacters = (story.characters || []).filter((cid) => cid !== characterId);
-      return { ...story, characters: updatedCharacters, beats: updatedBeats };
-    });
-    for (const updatedStory of updatedStories) {
-      const original = stories.find((s) => s.id === updatedStory.id);
-      const wasAffected = original?.beats?.some((b) => b.characterIds?.includes(characterId)) || original?.characters?.includes(characterId);
-      if (wasAffected) {
-        const result = await storyService.update(updatedStory.id, updatedStory);
-        if (!result.ok) {
-          errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
-        }
-      }
-    }
-  }, [stories]);
+    await updateStoriesAfterEntityDelete(
+      characterId,
+      (story) => ({
+        ...story,
+        characters: (story.characters || []).filter((cid) => cid !== characterId),
+        beats: (story.beats || []).map((beat) => {
+          const updated = { ...beat };
+          if (updated.characterIds?.includes(characterId)) {
+            updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
+          }
+          return updated;
+        }),
+      }),
+      (original) => original.beats?.some((b) => b.characterIds?.includes(characterId)) || original.characters?.includes(characterId),
+    );
+  }, [updateStoriesAfterEntityDelete]);
 
   const updateStoriesAfterSceneDelete = useCallback(async (sceneId: string) => {
-    const updatedStories = stories.map((story) => {
-      const updatedBeats = (story.beats || []).map((beat) => {
-        const updated = { ...beat };
-        if (updated.sceneId === sceneId) delete updated.sceneId;
-        return updated;
-      });
-      const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
-      return { ...story, scenes: updatedScenes, beats: updatedBeats };
-    });
-    for (const updatedStory of updatedStories) {
-      const original = stories.find((s) => s.id === updatedStory.id);
-      const wasAffected = original?.beats?.some((b) => b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
-      if (wasAffected) {
-        const result = await storyService.update(updatedStory.id, updatedStory);
-        if (!result.ok) {
-          errorLogger.warn("[AssetLibrary] 更新关联故事失败", { storyId: updatedStory.id, error: result.error });
-        }
-      }
-    }
-  }, [stories]);
+    await updateStoriesAfterEntityDelete(
+      sceneId,
+      (story) => ({
+        ...story,
+        scenes: (story.scenes || []).filter((sid) => sid !== sceneId),
+        beats: (story.beats || []).map((beat) => {
+          const updated = { ...beat };
+          if (updated.sceneId === sceneId) delete updated.sceneId;
+          return updated;
+        }),
+      }),
+      (original) => original.beats?.some((b) => b.sceneId === sceneId) || original.scenes?.includes(sceneId),
+    );
+  }, [updateStoriesAfterEntityDelete]);
 
   const handleEditItem = useCallback((item: EditingItem) => {
     setEditingItem(item);

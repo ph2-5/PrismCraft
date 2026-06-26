@@ -100,6 +100,7 @@ export function useQuickGenerateState() {
         cancelled = true;
       };
     }
+    return;
   }, [currentTask?.videoUrl, currentTask?.taskId, currentTask?.status]);
 
   const effectiveVideoUrl = useMemo(() => {
@@ -159,7 +160,7 @@ export function useQuickGenerateState() {
         state.referenceImage ||
         selectedSceneObj?.generatedImage ||
         (selectedCharObjs.length > 0
-          ? selectedCharObjs[0]!.generatedImage
+          ? selectedCharObjs[0]?.generatedImage
           : undefined);
 
       let referenceVideoBase64: string | null = null;
@@ -268,7 +269,7 @@ export function useQuickGenerateState() {
         style,
       } = applyVideoTemplate(template);
       dispatch({ type: "APPLY_TEMPLATE", prompt, duration: templateDuration, style });
-      showSuccess(t("quickGenerate.templateApplied"), t("quickGenerate.templateAppliedDesc", { name: template.name }));
+      showSuccess(t("quickGenerate.templateApplied"), t("quickGenerate.templateAppliedDesc", { name: t(template.nameKey) }));
     },
     [showSuccess],
   );

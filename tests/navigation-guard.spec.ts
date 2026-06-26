@@ -9,7 +9,7 @@ test.describe("Navigation guard basic functionality", () => {
   test("should navigate freely when no unsaved changes", async ({ page }) => {
     await installElectronMock(page);
     await mockApiRoutes(page);
-    await navigateTo(page, "/story", M);
+    await navigateTo(page, "/storyboard", M);
 
     const sidebarBtn = page.locator("aside a, aside button, nav a, nav button").filter({ hasText: "角色" }).first();
     const visible = await sidebarBtn.isVisible({ timeout: 5000 }).catch(() => false);
@@ -24,7 +24,7 @@ test.describe("Navigation guard basic functionality", () => {
   test("should load story page with title input", async ({ page }) => {
     await installElectronMock(page);
     await mockApiRoutes(page);
-    await navigateTo(page, "/story", M);
+    await navigateTo(page, "/storyboard", M);
 
     const titleInput = page.locator('[data-testid="story-title-input"]');
     const visible = await titleInput.isVisible({ timeout: 5000 }).catch(() => false);
@@ -34,7 +34,7 @@ test.describe("Navigation guard basic functionality", () => {
   test("should load story page with save status indicator", async ({ page }) => {
     await installElectronMock(page);
     await mockApiRoutes(page);
-    await navigateTo(page, "/story", M);
+    await navigateTo(page, "/storyboard", M);
 
     const saveStatus = page.locator("[data-save-status], [aria-label*='保存']").first();
     const titleInput = page.locator('[data-testid="story-title-input"]');

@@ -1,41 +1,66 @@
 import "./globals.css";
+import { lazy, Suspense } from "react";
 import { SidebarWithSearch } from "./SidebarWithSearch";
-import { OnboardingGuide } from "@/shared/presentation/onboarding";
 import { ToastProvider } from "@/shared/presentation/Toast";
 import { NetworkStatusAlert } from "@/shared/presentation/NetworkStatusAlert";
-import { ConfigCheckBanner } from "@/modules/prompt";
-import { PerformanceMonitorPanel } from "@/shared/presentation/PerformanceMonitorPanel";
-import { MigrationInitializer } from "./MigrationInitializer";
-import { VideoTaskManagerInitializer } from "@/modules/video";
 import { BeforeUnloadGuard } from "@/shared/presentation/BeforeUnloadGuard";
+import { GlobalKeyboardActions } from "@/shared/presentation/GlobalKeyboardActions";
 import { QueryProvider } from "@/presentation/providers/query-provider";
 import { ThemeProvider } from "@/shared/presentation/ThemeProvider";
 import { ClientProviders } from "./ClientProviders";
 import { TitleBar } from "@/shared/presentation/TitleBar";
+import { isElectron } from "@/shared/utils/platform";
 import { Outlet } from "react-router-dom";
 
+// Lazy-loaded side-effect and non-critical components to reduce first-screen bundle
+const MigrationInitializer = lazy(() =>
+  import("./MigrationInitializer").then((m) => ({ default: m.MigrationInitializer }))
+);
+const VideoTaskManagerInitializer = lazy(() =>
+  import("@/modules/video/task-management/presentation/VideoTaskManagerInitializer").then((m) => ({
+    default: m.VideoTaskManagerInitializer,
+  }))
+);
+const OnboardingGuide = lazy(() =>
+  import("@/shared/presentation/onboarding").then((m) => ({ default: m.OnboardingGuide }))
+);
+const PerformanceMonitorPanel = lazy(() =>
+  import("@/shared/presentation/PerformanceMonitorPanel").then((m) => ({
+    default: m.PerformanceMonitorPanel,
+  }))
+);
+
 export function RootLayout() {
+  const electron = isElectron();
   return (
     <ClientProviders>
       <QueryProvider>
         <ThemeProvider>
-          <MigrationInitializer />
-          <VideoTaskManagerInitializer />
+          <Suspense fallback={null}>
+            <MigrationInitializer />
+          </Suspense>
+          <Suspense fallback={null}>
+            <VideoTaskManagerInitializer />
+          </Suspense>
           <BeforeUnloadGuard />
           <TitleBar />
           <ToastProvider>
+            <GlobalKeyboardActions />
             <NetworkStatusAlert />
             <SidebarWithSearch />
             <main
-              className="flex-1 h-full overflow-y-auto transition-[margin-left] duration-200 pt-9"
+              className={`flex-1 h-full overflow-hidden transition-[margin-left] duration-200${electron ? " pt-9" : ""}`}
               style={{ marginLeft: "var(--sidebar-width, 220px)" }}
             >
-              <ConfigCheckBanner />
-              <div className="p-6"><Outlet /></div>
+              <Outlet />
             </main>
           </ToastProvider>
-          <OnboardingGuide />
-          <PerformanceMonitorPanel />
+          <Suspense fallback={null}>
+            <OnboardingGuide />
+          </Suspense>
+          <Suspense fallback={null}>
+            <PerformanceMonitorPanel />
+          </Suspense>
         </ThemeProvider>
       </QueryProvider>
     </ClientProviders>

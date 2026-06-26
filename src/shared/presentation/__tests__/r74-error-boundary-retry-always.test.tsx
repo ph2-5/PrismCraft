@@ -53,26 +53,6 @@ vi.mock("@/shared/utils/error-classifier", () => ({
   classifyErrorSeverity: mockClassifyErrorSeverity,
 }));
 
-vi.mock("@/shared/ui/button", () => ({
-  Button: ({ children, onClick, disabled, variant }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; variant?: string }) => (
-    <button
-      data-testid={`button-${variant ?? "default"}`}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
-  ),
-}));
-
-vi.mock("@/shared/ui/card", () => ({
-  Card: ({ children }: { children: React.ReactNode }) => <div data-testid="card">{children}</div>,
-  CardHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  CardTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
-  CardDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
-  CardContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
 vi.mock("lucide-react", () => ({
   AlertCircle: () => <span data-testid="icon-alert" />,
   RefreshCw: () => <span data-testid="icon-refresh" />,
@@ -114,11 +94,9 @@ describe("R74: Error recovery must not remove retry option based on count", () =
       </TestErrorBoundary>,
     );
 
-    const retryButton = screen.getAllByTestId("button-outline").find(
-      (btn) => btn.textContent?.includes("重试"),
-    );
-    expect(retryButton).toBeDefined();
-    expect(retryButton!).not.toBeDisabled();
+    const retryButton = screen.getByRole("button", { name: /重试/ });
+    expect(retryButton).toBeInTheDocument();
+    expect(retryButton).not.toBeDisabled();
 
     consoleError.mockRestore();
   });
@@ -146,11 +124,9 @@ describe("R74: Error recovery must not remove retry option based on count", () =
       </TestErrorBoundary>,
     );
 
-    const retryButton = screen.getAllByTestId("button-outline").find(
-      (btn) => btn.textContent?.includes("再试一次"),
-    );
-    expect(retryButton).toBeDefined();
-    expect(retryButton!).not.toBeDisabled();
+    const retryButton = screen.getByRole("button", { name: /再试一次/ });
+    expect(retryButton).toBeInTheDocument();
+    expect(retryButton).not.toBeDisabled();
 
     consoleError.mockRestore();
   });

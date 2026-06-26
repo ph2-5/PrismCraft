@@ -139,7 +139,7 @@ export async function apiCall<T>(
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
     if (error instanceof Error && error.name === "AbortError") {
-      throw new ApiClientError("请求超时，请稍后重试", 408, "TIMEOUT");
+      throw new ApiClientError(t("error.requestTimeout"), 408, "TIMEOUT");
     }
 
     const isNetworkError = isNetworkErrorClassified(error);

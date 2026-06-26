@@ -29,27 +29,6 @@ vi.mock("@/shared/utils/user-facing-error", () => ({
   mapUserFacingError: vi.fn((err: unknown) => err instanceof Error ? err.message : String(err)),
 }));
 
-vi.mock("@/shared/ui/button", () => ({
-  Button: ({ children, onClick, disabled }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean }) => (
-    <button onClick={onClick} disabled={disabled}>{children}</button>
-  ),
-}));
-
-vi.mock("@/shared/ui/textarea", () => ({
-  Textarea: ({ value, onChange, placeholder }: { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder?: string }) => (
-    <textarea value={value} onChange={onChange} placeholder={placeholder} data-testid="json-textarea" />
-  ),
-}));
-
-vi.mock("@/shared/ui/alert", () => ({
-  Alert: ({ children, variant }: { children: React.ReactNode; variant?: string }) => <div data-testid="alert" data-variant={variant}>{children}</div>,
-  AlertDescription: ({ children }: { children: React.ReactNode }) => <div data-testid="alert-desc">{children}</div>,
-}));
-
-vi.mock("@/shared/ui/label", () => ({
-  Label: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
-}));
-
 vi.mock("lucide-react", () => ({
   Loader2: () => <span data-testid="loader-icon">Loading</span>,
   Upload: () => <span>Upload</span>,
@@ -86,7 +65,7 @@ describe("PluginAddForm", () => {
   it("renders JSON input textarea", () => {
     render(<PluginAddForm {...buildProps()} />);
 
-    expect(screen.getByTestId("json-textarea")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
   });
 
   it("renders validate and add buttons", () => {
@@ -107,7 +86,7 @@ describe("PluginAddForm", () => {
   it("enables buttons when input has content", () => {
     render(<PluginAddForm {...buildProps()} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), VALID_JSON);
+    setInputValue(screen.getByRole("textbox"), VALID_JSON);
 
     expect(screen.getByText("plugin.validateConfig").closest("button")).not.toBeDisabled();
     expect(screen.getByText("plugin.addPluginBtn").closest("button")).not.toBeDisabled();
@@ -117,11 +96,10 @@ describe("PluginAddForm", () => {
     const user = userEvent.setup();
     render(<PluginAddForm {...buildProps()} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), "not valid json");
+    setInputValue(screen.getByRole("textbox"), "not valid json");
     await user.click(screen.getByText("plugin.validateConfig"));
 
-    expect(screen.getByTestId("alert")).toBeInTheDocument();
-    expect(screen.getByTestId("alert")).toHaveAttribute("data-variant", "destructive");
+    expect(screen.getByText(/plugin.jsonParseFailed/)).toBeInTheDocument();
   });
 
   it("shows validation result from API on valid JSON", async () => {
@@ -130,13 +108,12 @@ describe("PluginAddForm", () => {
 
     render(<PluginAddForm {...buildProps()} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), VALID_JSON);
+    setInputValue(screen.getByRole("textbox"), VALID_JSON);
     await user.click(screen.getByText("plugin.validateConfig"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("alert")).toBeInTheDocument();
+      expect(screen.getByText(/plugin.configValidationPassed/)).toBeInTheDocument();
     });
-    expect(screen.getByTestId("alert")).toHaveAttribute("data-variant", "default");
   });
 
   it("shows validation errors from API when config is invalid", async () => {
@@ -145,14 +122,12 @@ describe("PluginAddForm", () => {
 
     render(<PluginAddForm {...buildProps()} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), VALID_JSON);
+    setInputValue(screen.getByRole("textbox"), VALID_JSON);
     await user.click(screen.getByText("plugin.validateConfig"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("alert")).toBeInTheDocument();
+      expect(screen.getByText(/Missing id field/)).toBeInTheDocument();
     });
-    expect(screen.getByTestId("alert")).toHaveAttribute("data-variant", "destructive");
-    expect(screen.getByText(/Missing id field/)).toBeInTheDocument();
   });
 
   it("calls addPlugin and onAdded when add button is clicked with valid config", async () => {
@@ -163,7 +138,7 @@ describe("PluginAddForm", () => {
 
     render(<PluginAddForm {...buildProps({ onAdded })} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), VALID_JSON);
+    setInputValue(screen.getByRole("textbox"), VALID_JSON);
     await user.click(screen.getByText("plugin.addPluginBtn"));
 
     await waitFor(() => {
@@ -180,7 +155,7 @@ describe("PluginAddForm", () => {
 
     render(<PluginAddForm {...buildProps({ onAdded })} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), VALID_JSON);
+    setInputValue(screen.getByRole("textbox"), VALID_JSON);
     await user.click(screen.getByText("plugin.addPluginBtn"));
 
     await waitFor(() => {
@@ -198,7 +173,7 @@ describe("PluginAddForm", () => {
 
     render(<PluginAddForm {...buildProps({ onAdded })} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), VALID_JSON);
+    setInputValue(screen.getByRole("textbox"), VALID_JSON);
     await user.click(screen.getByText("plugin.addPluginBtn"));
 
     await waitFor(() => {
@@ -213,7 +188,7 @@ describe("PluginAddForm", () => {
 
     render(<PluginAddForm {...buildProps({ onAdded })} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), "invalid json content");
+    setInputValue(screen.getByRole("textbox"), "invalid json content");
     await user.click(screen.getByText("plugin.addPluginBtn"));
 
     expect(mockShowError).toHaveBeenCalled();
@@ -238,16 +213,16 @@ describe("PluginAddForm", () => {
 
     render(<PluginAddForm {...buildProps()} />);
 
-    setInputValue(screen.getByTestId("json-textarea"), VALID_JSON);
+    setInputValue(screen.getByRole("textbox"), VALID_JSON);
     await user.click(screen.getByText("plugin.validateConfig"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("alert")).toBeInTheDocument();
+      expect(screen.getByText(/plugin.configValidationPassed/)).toBeInTheDocument();
     });
 
-    setInputValue(screen.getByTestId("json-textarea"), VALID_JSON + " updated");
+    setInputValue(screen.getByRole("textbox"), VALID_JSON + " updated");
 
-    expect(screen.queryByTestId("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(/plugin.configValidationPassed/)).not.toBeInTheDocument();
   });
 
   it("renders file upload button", () => {

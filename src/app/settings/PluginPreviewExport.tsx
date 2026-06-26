@@ -1,13 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Textarea } from "@/shared/ui/textarea";
-import { Alert, AlertDescription } from "@/shared/ui/alert";
-import { Button } from "@/shared/ui/button";
 import { CheckCircle, XCircle, Copy, Download, Upload, Loader2, Eye } from "lucide-react";
 import { t } from "@/shared/constants";
 
@@ -33,52 +23,53 @@ export function PluginPreviewExport({
   onDownload,
 }: PluginPreviewExportProps) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Eye className="w-5 h-5" />
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ paddingBottom: 12 }}>
+        <div style={{ fontSize: 18, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+          <Eye size={20} />
           {t("plugin.previewExport")}
-        </CardTitle>
-        <CardDescription>{t("plugin.previewExportDesc")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Textarea
+        </div>
+        <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.previewExportDesc")}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <textarea
+          className="textarea"
+          style={{ fontSize: 12, minHeight: 300, background: "#0f172a", fontFamily: "monospace" }}
           value={generatedJson}
           readOnly
-          className="font-mono text-xs min-h-[300px] bg-slate-900"
         />
 
         {validationResult && (
-          <Alert variant={validationResult.valid ? "default" : "destructive"} className={validationResult.valid ? "bg-green-900/20 border-green-800" : ""}>
-            <AlertDescription className={validationResult.valid ? "text-green-700" : ""}>
+          <div style={{ padding: 12, borderRadius: 8, background: validationResult.valid ? "rgba(var(--success-rgb, 16, 185, 129), 0.1)" : "rgba(var(--destructive-rgb, 239, 68, 68), 0.1)", border: `1px solid ${validationResult.valid ? "var(--success)" : "var(--destructive)"}`, fontSize: 12, color: "var(--muted-fg)" }}>
+            <div style={validationResult.valid ? { color: "var(--success)" } : undefined}>
               {validationResult.valid ? (
-                <span className="flex items-center gap-1"><CheckCircle className="h-4 w-4" /> {t("plugin.configValidationPassed")}</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={16} /> {t("plugin.configValidationPassed")}</span>
               ) : (
-                <span className="flex items-start gap-1"><XCircle className="h-4 w-4 mt-0.5 shrink-0" /> {validationResult.errors.join("; ")}</span>
+                <span style={{ display: "flex", alignItems: "flex-start", gap: 4 }}><XCircle size={16} style={{ marginTop: 2, flexShrink: 0 }} /> {validationResult.errors.join("; ")}</span>
               )}
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         )}
 
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={onCopy}>
-            <Copy className="h-4 w-4 mr-1" />
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onCopy}>
+            <Copy size={16} style={{ marginRight: 4 }} />
             {t("plugin.copyToClipboard")}
-          </Button>
-          <Button variant="outline" onClick={onValidate} disabled={isValidating}>
-            {isValidating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+          </button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onValidate} disabled={isValidating}>
+            {isValidating ? <Loader2 size={16} className="animate-spin" style={{ marginRight: 4 }} /> : <CheckCircle size={16} style={{ marginRight: 4 }} />}
             {t("plugin.validate")}
-          </Button>
-          <Button variant="outline" onClick={onDownload}>
-            <Download className="h-4 w-4 mr-1" />
+          </button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onDownload}>
+            <Download size={16} style={{ marginRight: 4 }} />
             {t("plugin.downloadJson")}
-          </Button>
-          <Button onClick={onInstall} disabled={isInstalling}>
-            {isInstalling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={onInstall} disabled={isInstalling}>
+            {isInstalling ? <Loader2 size={16} className="animate-spin" style={{ marginRight: 4 }} /> : <Upload size={16} style={{ marginRight: 4 }} />}
             {t("plugin.installPlugin")}
-          </Button>
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

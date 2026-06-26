@@ -3,16 +3,6 @@ import { render, fireEvent } from "@testing-library/react";
 import React from "react";
 import type { VideoTask } from "@/domain/schemas";
 
-vi.mock("@/shared/ui/button", () => ({
-  Button: ({ children, onClick, ...props }: { children: React.ReactNode; onClick?: () => void; [key: string]: unknown }) => (
-    <button onClick={onClick} {...props}>{children}</button>
-  ),
-}));
-
-vi.mock("@/shared/ui/badge", () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-}));
-
 vi.mock("lucide-react", () => ({
   Video: () => <span>VideoIcon</span>,
   Download: () => <span>DownloadIcon</span>,

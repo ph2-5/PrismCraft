@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Minus, Square, X, Maximize2 } from "lucide-react";
 import { cn } from "@/shared/utils/utils";
 import { t } from "@/shared/constants";
+import { errorLogger } from "@/shared/error-logger";
 
 /**
  * 无框窗口的自定义标题栏
@@ -16,22 +17,22 @@ export function TitleBar(): React.ReactElement | null {
   useEffect(() => {
     if (!isElectron) return;
     window.electronAPI?.windowIsMaximized?.().then((m) => setIsMaximized(!!m)).catch((e) => {
-      console.warn("[TitleBar] windowIsMaximized failed", e);
+      errorLogger.warn("[TitleBar] windowIsMaximized failed", e);
     });
   }, [isElectron]);
 
   const handleMinimize = useCallback(() => {
     window.electronAPI?.windowMinimize?.().catch((e) => {
-      console.warn("[TitleBar] windowMinimize failed", e);
+      errorLogger.warn("[TitleBar] windowMinimize failed", e);
     });
   }, []);
 
   const handleMaximize = useCallback(async () => {
     await window.electronAPI?.windowMaximize?.().catch((e) => {
-      console.warn("[TitleBar] windowMaximize failed", e);
+      errorLogger.warn("[TitleBar] windowMaximize failed", e);
     });
     const maximized = await window.electronAPI?.windowIsMaximized?.().catch((e) => {
-      console.warn("[TitleBar] windowIsMaximized failed", e);
+      errorLogger.warn("[TitleBar] windowIsMaximized failed", e);
       return false;
     });
     setIsMaximized(!!maximized);
@@ -39,7 +40,7 @@ export function TitleBar(): React.ReactElement | null {
 
   const handleClose = useCallback(() => {
     window.electronAPI?.windowClose?.().catch((e) => {
-      console.warn("[TitleBar] windowClose failed", e);
+      errorLogger.warn("[TitleBar] windowClose failed", e);
     });
   }, []);
 
@@ -88,7 +89,7 @@ export function TitleBar(): React.ReactElement | null {
           onClick={handleClose}
           className={cn(
             "h-full w-11 flex items-center justify-center",
-            "text-muted-foreground hover:text-foreground hover:bg-red-500/80 hover:text-white",
+            "text-muted-foreground hover:text-foreground hover:bg-destructive hover:text-white",
             "transition-colors duration-150",
           )}
           aria-label={t("aria.close")}

@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   PROVIDERS,
   DEFAULT_PROVIDER,
-  getProviderInfo,
-  buildTrackingInfo,
+  getProviderInfoByApiUrl,
+  buildTrackingInfoByApiUrl,
 } from "../video-tracker";
 
 describe("video-tracker", () => {
@@ -52,61 +52,61 @@ describe("video-tracker", () => {
     });
   });
 
-  describe("getProviderInfo", () => {
+  describe("getProviderInfoByApiUrl", () => {
     it("apiUrl 为空时应返回 DEFAULT_PROVIDER", () => {
-      expect(getProviderInfo(undefined)).toBe(DEFAULT_PROVIDER);
-      expect(getProviderInfo("")).toBe(DEFAULT_PROVIDER);
+      expect(getProviderInfoByApiUrl(undefined)).toBe(DEFAULT_PROVIDER);
+      expect(getProviderInfoByApiUrl("")).toBe(DEFAULT_PROVIDER);
     });
 
     it("应该根据 URL hostname 匹配 provider（火山引擎）", () => {
-      const info = getProviderInfo("https://ark.cn-beijing.volces.com/api/v1");
+      const info = getProviderInfoByApiUrl("https://ark.cn-beijing.volces.com/api/v1");
       expect(info.name).toBe("火山引擎 (Doubao)");
     });
 
     it("应该根据 URL hostname 匹配 provider（阿里云）", () => {
-      const info = getProviderInfo("https://dashscope.aliyuncs.com/api/v1");
+      const info = getProviderInfoByApiUrl("https://dashscope.aliyuncs.com/api/v1");
       expect(info.name).toBe("阿里云百炼 (DashScope)");
     });
 
     it("应该根据 URL hostname 匹配 provider（可灵）", () => {
-      const info = getProviderInfo("https://api.klingai.com/api/v1");
+      const info = getProviderInfoByApiUrl("https://api.klingai.com/api/v1");
       expect(info.name).toBe("可灵AI (Kling)");
     });
 
     it("应该根据 URL hostname 匹配 provider（智谱）", () => {
-      const info = getProviderInfo("https://open.bigmodel.cn/api/paas/v4");
+      const info = getProviderInfoByApiUrl("https://open.bigmodel.cn/api/paas/v4");
       expect(info.name).toBe("智谱AI (GLM)");
     });
 
     it("应该根据 URL hostname 匹配 provider（OpenAI）", () => {
-      const info = getProviderInfo("https://api.openai.com/v1");
+      const info = getProviderInfoByApiUrl("https://api.openai.com/v1");
       expect(info.name).toBe("OpenAI");
     });
 
     it("未知 URL hostname 时应返回 DEFAULT_PROVIDER", () => {
-      const info = getProviderInfo("https://unknown-provider.com/api");
+      const info = getProviderInfoByApiUrl("https://unknown-provider.com/api");
       expect(info).toBe(DEFAULT_PROVIDER);
     });
 
     it("无效 URL 但包含 provider domain 时应正确匹配", () => {
-      const info = getProviderInfo("this-is-not-a-url-but-contains-volces.com-path");
+      const info = getProviderInfoByApiUrl("this-is-not-a-url-but-contains-volces.com-path");
       expect(info.name).toBe("火山引擎 (Doubao)");
     });
 
     it("无效 URL 且不包含任何已知 domain 时应返回 DEFAULT_PROVIDER", () => {
-      const info = getProviderInfo("not-a-url-at-all");
+      const info = getProviderInfoByApiUrl("not-a-url-at-all");
       expect(info).toBe(DEFAULT_PROVIDER);
     });
 
     it("子域名匹配应正确工作", () => {
-      const info = getProviderInfo("https://subdomain.klingai.com/api");
+      const info = getProviderInfoByApiUrl("https://subdomain.klingai.com/api");
       expect(info.name).toBe("可灵AI (Kling)");
     });
   });
 
-  describe("buildTrackingInfo", () => {
+  describe("buildTrackingInfoByApiUrl", () => {
     it("应该构建完整的追踪信息（火山引擎）", () => {
-      const info = buildTrackingInfo(
+      const info = buildTrackingInfoByApiUrl(
         "task-123",
         "https://ark.cn-beijing.volces.com/api/v1",
         "sk-***abc",
@@ -125,24 +125,24 @@ describe("video-tracker", () => {
     });
 
     it("apiUrl 为空时 queryEndpoint 应为 undefined", () => {
-      const info = buildTrackingInfo("task-123", undefined, "key", "model");
+      const info = buildTrackingInfoByApiUrl("task-123", undefined, "key", "model");
       expect(info.apiUrl).toBe("");
       expect(info.queryEndpoint).toBeUndefined();
       expect(info.providerName).toBe("自定义API");
     });
 
     it("model 为空时应该使用空字符串", () => {
-      const info = buildTrackingInfo("task-123", "https://api.klingai.com");
+      const info = buildTrackingInfoByApiUrl("task-123", "https://api.klingai.com");
       expect(info.model).toBe("");
     });
 
     it("apiKeyPreview 为空时应该使用空字符串", () => {
-      const info = buildTrackingInfo("task-123", "https://api.klingai.com");
+      const info = buildTrackingInfoByApiUrl("task-123", "https://api.klingai.com");
       expect(info.apiKeyPreview).toBe("");
     });
 
     it("未知 provider 时应使用 DEFAULT_PROVIDER 信息", () => {
-      const info = buildTrackingInfo(
+      const info = buildTrackingInfoByApiUrl(
         "task-123",
         "https://unknown.com/api",
         "key",
@@ -156,7 +156,7 @@ describe("video-tracker", () => {
     });
 
     it("taskUrl 应该根据 taskId 生成", () => {
-      const info = buildTrackingInfo(
+      const info = buildTrackingInfoByApiUrl(
         "abc-123",
         "https://api.klingai.com",
       );
@@ -166,7 +166,7 @@ describe("video-tracker", () => {
     });
 
     it("queryEndpoint 应该包含 baseUrl 和 taskId", () => {
-      const info = buildTrackingInfo(
+      const info = buildTrackingInfoByApiUrl(
         "task-xyz",
         "https://api.klingai.com",
       );

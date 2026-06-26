@@ -3,12 +3,13 @@ import { type VideoTask, useVideoTaskStore } from "@/modules/video/task-manageme
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { getVideoUrlWithCache } from "@/modules/video/cache";
 import { useToastHelpers } from "@/shared/presentation/Toast";
-import { buildTrackingInfo, copyTrackingInfoToClipboard, openTaskQueryLink } from "@/modules/video/task-management";
+import { buildTrackingInfoByProviderId, copyTrackingInfoToClipboard, openTaskQueryLink } from "@/modules/video/task-management";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { isAllowedVideoUrl } from "@/shared/utils/url-validation";
 import { t } from "@/shared/constants/messages";
+import { BATCH_OPERATION_INTERVAL_MS } from "@/shared/constants";
 import { useCacheOperations } from "./use-cache-operations";
 import { useTaskSelection } from "./use-task-selection";
 
@@ -70,14 +71,14 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   };
 
   const handleCopyTracking = async (task: VideoTask) => {
-    const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
+    const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
     const result = await copyTrackingInfoToClipboard(trackingInfo);
     if (result.ok) success(t("video.copySuccess"), t("video.trackingCopied"));
     else error(t("error.copyFailed"), t("error.clipboardUnavailable"));
   };
 
   const handleOpenCloudLink = (task: VideoTask) => {
-    const trackingInfo = buildTrackingInfo(task.taskId, task.apiUrl, undefined, task.model);
+    const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
     const opened = openTaskQueryLink(trackingInfo);
     if (!opened) error(t("error.cannotOpenLink"), t("video.openCloudConsoleHint"));
   };
@@ -185,7 +186,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     const selectedTasks = filteredTasks.filter((t) => selection.selectedTaskIds.has(t.taskId));
     const completedTasks = selectedTasks.filter((t) => t.status === "completed" && t.videoUrl);
     if (completedTasks.length === 0) { error(t("error.cannotDownload"), t("video.noCompletedVideos")); return; }
-    for (const task of completedTasks) { await handleDownloadVideo(task); await new Promise((r) => setTimeout(r, 500)); }
+    for (const task of completedTasks) { await handleDownloadVideo(task); await new Promise((r) => setTimeout(r, BATCH_OPERATION_INTERVAL_MS)); }
     success(t("video.batchDownload"), t("video.batchDownloadStarted", { count: completedTasks.length }));
   };
 

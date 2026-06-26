@@ -1,19 +1,7 @@
 import { X } from "lucide-react";
 import type { CharacterOutfit } from "@/domain/schemas";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import { Textarea } from "@/shared/ui/textarea";
-import { Badge } from "@/shared/ui/badge";
 import { t } from "@/shared/constants";
+import { Modal } from "@/shared/presentation/Modal";
 
 interface OutfitDialogProps {
   open: boolean;
@@ -41,100 +29,113 @@ export function OutfitDialog({
   onRemoveAccessory,
 }: OutfitDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{editingOutfit ? t("outfit.editTitle") : t("outfit.addTitle")}</DialogTitle>
-          <DialogDescription>{t("outfit.createVariant")}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="outfit-name">{t("outfit.nameLabel")}</Label>
-            <Input
-              id="outfit-name"
-              data-testid="outfit-name-input"
-              placeholder={t("outfit.namePlaceholder")}
-              value={outfitForm.name || ""}
-              onChange={(e) =>
-                setOutfitForm({ ...outfitForm, name: e.target.value })
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="outfit-description">{t("outfit.descriptionLabel")}</Label>
-            <Textarea
-              id="outfit-description"
-              placeholder={t("outfit.descriptionPlaceholder")}
-              rows={2}
-              value={outfitForm.description || ""}
-              onChange={(e) =>
-                setOutfitForm({
-                  ...outfitForm,
-                  description: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="outfit-clothing">{t("outfit.clothingDetail")}</Label>
-            <Textarea
-              id="outfit-clothing"
-              placeholder={t("outfit.clothingPlaceholder")}
-              rows={3}
-              value={outfitForm.clothing || ""}
-              onChange={(e) =>
-                setOutfitForm({
-                  ...outfitForm,
-                  clothing: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("outfit.accessories")}</Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder={t("outfit.accessoryPlaceholder")}
-                value={customAccessory}
-                onChange={(e) => setCustomAccessory(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    onAddAccessory();
-                  }
-                }}
-                className="flex-1"
-              />
-              <Button onClick={onAddAccessory}>{t("common.add")}</Button>
-            </div>
-            {outfitForm.accessories && outfitForm.accessories.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {outfitForm.accessories.map((acc) => (
-                  <Badge
-                    key={acc}
-                    className="cursor-pointer px-3 py-1 gap-1"
-                    onClick={() => onRemoveAccessory(acc)}
-                  >
-                    {acc}
-                    <X className="w-3 h-3" />
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={editingOutfit ? t("outfit.editTitle") : t("outfit.addTitle")}
+      style={{ maxWidth: "32rem" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600 }}>
+          {editingOutfit ? t("outfit.editTitle") : t("outfit.addTitle")}
         </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            {t("common.cancel")}
-          </Button>
-          <Button onClick={onAddOutfit}>
-            {editingOutfit ? t("outfit.saveChanges") : t("outfit.addOutfitButton")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+          {t("outfit.createVariant")}
+        </div>
+      </div>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="outfit-name">{t("outfit.nameLabel")}</label>
+              <input
+                className="input"
+                id="outfit-name"
+                data-testid="outfit-name-input"
+                placeholder={t("outfit.namePlaceholder")}
+                value={outfitForm.name || ""}
+                onChange={(e) =>
+                  setOutfitForm({ ...outfitForm, name: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="outfit-description">{t("outfit.descriptionLabel")}</label>
+              <textarea
+                className="textarea"
+                id="outfit-description"
+                placeholder={t("outfit.descriptionPlaceholder")}
+                rows={2}
+                value={outfitForm.description || ""}
+                onChange={(e) =>
+                  setOutfitForm({
+                    ...outfitForm,
+                    description: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="outfit-clothing">{t("outfit.clothingDetail")}</label>
+              <textarea
+                className="textarea"
+                id="outfit-clothing"
+                placeholder={t("outfit.clothingPlaceholder")}
+                rows={3}
+                value={outfitForm.clothing || ""}
+                onChange={(e) =>
+                  setOutfitForm({
+                    ...outfitForm,
+                    clothing: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label>{t("outfit.accessories")}</label>
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1"
+                  placeholder={t("outfit.accessoryPlaceholder")}
+                  value={customAccessory}
+                  onChange={(e) => setCustomAccessory(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      onAddAccessory();
+                    }
+                  }}
+                />
+                <button type="button" className="btn btn-primary btn-sm" onClick={onAddAccessory}>
+                  {t("common.add")}
+                </button>
+              </div>
+              {outfitForm.accessories && outfitForm.accessories.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {outfitForm.accessories.map((acc) => (
+                    <span
+                      key={acc}
+                      className="badge badge-info cursor-pointer px-3 py-1 gap-1"
+                      onClick={() => onRemoveAccessory(acc)}
+                    >
+                      {acc}
+                      <X className="w-3 h-3" />
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => onOpenChange(false)}
+            >
+              {t("common.cancel")}
+            </button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={onAddOutfit}>
+              {editingOutfit ? t("outfit.saveChanges") : t("outfit.addOutfitButton")}
+            </button>
+          </div>
+    </Modal>
   );
 }

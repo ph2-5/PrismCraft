@@ -2,7 +2,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { handleError } from "@/shared/error-handler";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { t } from "@/shared/constants";
+import { t, BLOB_URL_LONG_REVOKE_DELAY_MS } from "@/shared/constants";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import {
   type ModelParameterValues,
@@ -81,7 +81,7 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
   }, [beat.elementIds]);
 
   const handleCopyPrompt = useCallback(() => {
-    const prompt = beat.videoGen?.prompt || beat.generationPrompt || "";
+    const prompt = beat.videoGen?.prompt || "";
     navigator.clipboard.writeText(prompt).then(() => {
       success(t("success.copied"), t("success.promptCopied"));
     }).catch((err) => {
@@ -106,7 +106,7 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), BLOB_URL_LONG_REVOKE_DELAY_MS);
       success(t("success.downloadStarted"), t("success.videoDownloadStarted"));
     } catch (err) {
       errorLogger.warn("[BeatDetailClient] 视频下载失败:", err instanceof Error ? err : undefined);
@@ -162,15 +162,15 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
   const getStatusColor = (status?: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        return "bg-success/10 text-success";
       case "failed":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        return "bg-destructive/10 text-destructive";
       case "generating":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        return "bg-primary/10 text-primary";
       case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+        return "bg-warning/10 text-warning";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+        return "bg-muted text-muted-foreground";
     }
   };
 

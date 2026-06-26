@@ -1,12 +1,4 @@
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
-import { Button } from "@/shared/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/shared/ui/card";
 import { AlertCircle, RefreshCw, RotateCcw, Copy, ChevronDown, ChevronRight, WifiOff, Loader, Bug } from "lucide-react";
 import { logger } from "@/config/constants";
 import { errorLogger } from "@/shared/error-logger";
@@ -53,16 +45,16 @@ export class ErrorBoundary extends Component<Props, State> {
           label: t("errorBoundary.loadingLabel"),
           icon: Loader,
           hint: t("errorBoundary.loadingHint"),
-          color: "text-orange-500",
-          bg: "bg-orange-50 dark:bg-orange-950/30",
+          color: "text-warning",
+          bg: "bg-warning/10",
         };
       case "network":
         return {
           label: t("errorBoundary.networkLabel"),
           icon: WifiOff,
           hint: t("errorBoundary.networkHint"),
-          color: "text-blue-500",
-          bg: "bg-blue-50 dark:bg-blue-950/30",
+          color: "text-primary",
+          bg: "bg-primary/10",
         };
       default:
         return {
@@ -199,17 +191,17 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-          <Card className="max-w-lg w-full">
-            <CardHeader>
+          <div className="card max-w-lg w-full" style={{ padding: 16 }}>
+            <div style={{ paddingBottom: 12 }}>
               <div className="flex items-center gap-2 text-destructive">
                 <AlertCircle className="w-6 h-6" />
-                <CardTitle>{t("errorBoundary.title")}</CardTitle>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{t("errorBoundary.title")}</div>
               </div>
-              <CardDescription>
+              <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
                 {t("errorBoundary.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </div>
+            </div>
+            <div className="space-y-4">
               <div className={`p-4 rounded-lg text-sm ${config.bg}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <SeverityIcon className={`w-4 h-4 ${config.color}`} />
@@ -252,48 +244,48 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
 
               <div className="space-y-2">
-                <Button
+                <button
+                  type="button"
                   onClick={this.handleRetry}
-                  className="w-full"
-                  variant="outline"
+                  className="btn btn-outline w-full"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   {this.state.errorCount < 3 ? t("common.retry") : t("errorBoundary.tryAgain")}
-                </Button>
+                </button>
                 {this.state.errorCount >= 3 && (
                   <p className="text-sm text-muted-foreground text-center">
                     {t("errorBoundary.multipleErrorsHint")}
                   </p>
                 )}
 
-                <Button onClick={this.handleReload} className="w-full">
+                <button type="button" onClick={this.handleReload} className="btn btn-primary w-full">
                   <RotateCcw className="w-4 h-4 mr-2" />
                   {t("errorBoundary.reloadPage")}
-                </Button>
+                </button>
 
-                <Button
+                <button
+                  type="button"
                   onClick={this.handleCopyError}
-                  className="w-full"
-                  variant="outline"
+                  className="btn btn-outline w-full"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   {this.state.copied ? t("errorBoundary.copied") : t("errorBoundary.copyErrorDetail")}
-                </Button>
+                </button>
 
-                <Button
+                <button
+                  type="button"
                   onClick={this.handleReset}
-                  className="w-full"
-                  variant="destructive"
+                  className="btn btn-danger w-full"
                 >
                   {t("errorBoundary.resetAndRecover")}
-                </Button>
+                </button>
               </div>
 
               <p className="text-xs text-muted-foreground text-center">
                 {t("errorBoundary.persistentHint")}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       );
     }
@@ -348,38 +340,38 @@ export function ErrorLogViewer({ loadLogs, clearLogs }: ErrorLogViewerProps) {
 
   if (logs.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("errorBoundary.errorLog")}</CardTitle>
-          <CardDescription>{t("errorBoundary.noErrorRecords")}</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ paddingBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{t("errorBoundary.errorLog")}</div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{t("errorBoundary.noErrorRecords")}</div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ paddingBottom: 12 }}>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <div className="flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600 }}>
               <AlertCircle className="w-5 h-5 text-destructive" />
               {t("errorBoundary.errorLog")}
-            </CardTitle>
-            <CardDescription>{t("errorBoundary.recentErrorCount", { count: logs.length })}</CardDescription>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{t("errorBoundary.recentErrorCount", { count: logs.length })}</div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefreshLogs} disabled={refreshing}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleRefreshLogs} disabled={refreshing}>
               <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />
               {t("errorBoundary.refreshLogs")}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleClearLogs}>
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleClearLogs}>
               {t("errorBoundary.clearLogs")}
-            </Button>
+            </button>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {logs.map((log, index) => (
             <div key={`${log.timestamp}-${index}`} className="p-3 bg-muted rounded-lg text-sm">
@@ -395,7 +387,7 @@ export function ErrorLogViewer({ loadLogs, clearLogs }: ErrorLogViewerProps) {
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

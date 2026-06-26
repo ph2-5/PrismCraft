@@ -207,12 +207,12 @@ function generateVideoPrompt(params: VideoPromptParams): string {
     const charDescs = characters.map((c) => {
       const desc = buildCharacterFullDesc(c);
       const imgNote = c.generatedImage
-        ? `【重要】保持角色形象与参考图片完全一致：${c.name}`
+        ? `[Important] Keep character appearance fully consistent with reference image: ${c.name}`
         : "";
-      return `${c.name}：${desc}${imgNote}`;
+      return `${c.name}: ${desc}${imgNote}`;
     });
-    parts.push(`【核心角色】\n${charDescs.join("\n")}`);
-    parts.push("【角色要求】视频全程保持以上角色的形象、服装、特征完全一致");
+    parts.push(`[Core Characters]\n${charDescs.join("\n")}`);
+    parts.push("[Character Requirements] Keep the appearance, clothing, and features of the above characters fully consistent throughout the video");
   }
 
   if (scenes.length > 0) {
@@ -220,47 +220,47 @@ function generateVideoPrompt(params: VideoPromptParams): string {
       const desc = buildSceneAtmosphereDesc(s);
       const visual = buildSceneVisualDesc(s);
       const imgNote = s.generatedImage
-        ? "【重要】保持场景与参考图片完全一致"
+        ? "[Important] Keep scene fully consistent with reference image"
         : "";
-      return `${s.name}：${[desc, visual].filter(Boolean).join("，")}${imgNote}`;
+      return `${s.name}: ${[desc, visual].filter(Boolean).join(", ")}${imgNote}`;
     });
-    parts.push(`【固定场景】\n${sceneDescs.join("\n")}`);
+    parts.push(`[Fixed Scenes]\n${sceneDescs.join("\n")}`);
   }
 
   if (elements && elements.length > 0) {
     const elDescs = elements.map((e) => {
       const typeLabel =
-        e.type === "character" ? "角色" : e.type === "prop" ? "道具" : "特效";
-      const tags = e.featureAnchor?.featureTags?.join("、") || "";
-      return `${e.id}（${typeLabel}）：${e.name}${tags ? `，视觉特征：${tags}` : ""}`;
+        e.type === "character" ? "Character" : e.type === "prop" ? "Prop" : "Effect";
+      const tags = e.featureAnchor?.featureTags?.join(", ") || "";
+      return `${e.id} (${typeLabel}): ${e.name}${tags ? `, visual features: ${tags}` : ""}`;
     });
-    parts.push(`【全局元素定义】\n${elDescs.join("\n")}`);
-    parts.push("【元素要求】跨分镜保持同一元素的视觉一致性");
+    parts.push(`[Global Element Definitions]\n${elDescs.join("\n")}`);
+    parts.push("[Element Requirements] Maintain visual consistency of the same element across shots");
   }
 
   if (beat) {
-    parts.push(`【视频内容】\n${beat.content || beat.description || ""}`);
+    parts.push(`[Video Content]\n${beat.content || beat.description || ""}`);
 
     if (beat.shotType) {
       const shotTag = SHOT_TYPE_MAP[beat.shotType] || beat.shotType;
-      parts.push(`【景别】${shotTag}`);
+      parts.push(`[Shot Type] ${shotTag}`);
     }
     if (beat.camera) {
-      if (beat.camera.angle) parts.push(`【镜头角度】${beat.camera.angle}`);
+      if (beat.camera.angle) parts.push(`[Camera Angle] ${beat.camera.angle}`);
       if (beat.camera.movement) {
         const moveTag =
           CAMERA_MOVEMENT_MAP[beat.camera.movement] || beat.camera.movement;
-        parts.push(`【运镜方式】${moveTag}`);
+        parts.push(`[Camera Movement] ${moveTag}`);
       }
     }
-    if (beat.duration) parts.push(`【时长】${beat.duration}秒`);
+    if (beat.duration) parts.push(`[Duration] ${beat.duration}s`);
   }
 
   if (shotInstruction) {
-    parts.push(`【镜头指令】${shotInstruction}`);
+    parts.push(`[Shot Instruction] ${shotInstruction}`);
   }
 
-  parts.push(`【质量要求】\n${QUALITY_TAGS_VIDEO.join(", ")}`);
+  parts.push(`[Quality Requirements]\n${QUALITY_TAGS_VIDEO.join(", ")}`);
 
   return parts.join("\n\n");
 }
@@ -274,61 +274,61 @@ function generateQuickModeVideoPrompt(params: QuickModeParams): string {
   const parts: string[] = [];
 
   const STYLE_PRESETS: Record<string, string> = {
-    写实: "真实摄影风格，自然光线，细腻纹理",
-    动漫: "日本动漫风格，明亮色彩，流畅线条",
-    二次元: "二次元插画风格，鲜艳色彩，萌系风格",
-    电影感: "电影大片风格，电影级构图，戏剧性光线",
-    国潮: "中国风，传统元素，东方美学",
-    赛博朋克: "赛博朋克风格，霓虹灯光，未来都市",
-    古风: "中国古典风格，水墨元素，古代场景",
-    "3D卡通": "3D卡通渲染风格，圆润造型，明亮色彩",
-    像素风: "像素艺术风格，复古游戏感",
-    水彩: "水彩画风格，柔和过渡，艺术感",
+    realistic: "Realistic photography style, natural lighting, fine textures",
+    anime: "Japanese anime style, bright colors, smooth lines",
+    "2d": "2D illustration style, vivid colors, moe style",
+    cinematic: "Cinematic style, cinematic composition, dramatic lighting",
+    chinese_style: "Chinese style, traditional elements, oriental aesthetics",
+    cyberpunk: "Cyberpunk style, neon lights, futuristic city",
+    classical: "Classical Chinese style, ink elements, ancient scenes",
+    "3d_cartoon": "3D cartoon render style, rounded shapes, bright colors",
+    pixel: "Pixel art style, retro game feel",
+    watercolor: "Watercolor painting style, soft transitions, artistic feel",
   };
 
   const RESOLUTION_CONFIG: Record<string, string> = {
-    "720p": "1280x720 高清分辨率",
-    "1080p": "1920x1080 全高清分辨率",
-    "4K": "3840x2160 4K超高清分辨率",
+    "720p": "1280x720 HD resolution",
+    "1080p": "1920x1080 Full HD resolution",
+    "4K": "3840x2160 4K Ultra HD resolution",
   };
 
   if (characters.length > 0) {
     const charDescs = characters.map((c) => {
       const desc = c.description || c.name;
       const imgNote = c.generatedImage
-        ? `【重要】保持角色形象与参考图片完全一致：${c.name}`
+        ? `[Important] Keep character appearance fully consistent with reference image: ${c.name}`
         : "";
-      return `${c.name}：${desc}${imgNote}`;
+      return `${c.name}: ${desc}${imgNote}`;
     });
-    parts.push(`【核心角色】\n${charDescs.join("\n")}`);
-    parts.push("【角色要求】视频全程保持以上角色的形象、服装、特征完全一致");
+    parts.push(`[Core Characters]\n${charDescs.join("\n")}`);
+    parts.push("[Character Requirements] Keep the appearance, clothing, and features of the above characters fully consistent throughout the video");
   }
 
   if (scene) {
     const desc = buildSceneAtmosphereDesc(scene);
     const visual = buildSceneVisualDesc(scene);
     const imgNote = scene.generatedImage
-      ? "【重要】保持场景与参考图片完全一致"
+      ? "[Important] Keep scene fully consistent with reference image"
       : "";
     parts.push(
-      `【固定场景】${scene.name}：${[desc, visual].filter(Boolean).join("，")}${imgNote}`,
+      `[Fixed Scenes] ${scene.name}: ${[desc, visual].filter(Boolean).join(", ")}${imgNote}`,
     );
-    parts.push("【场景要求】视频全程在该场景中进行");
+    parts.push("[Scene Requirements] The entire video takes place in this scene");
   }
 
-  parts.push(`【视频内容】\n${prompt}`);
+  parts.push(`[Video Content]\n${prompt}`);
 
   const styleDesc = STYLE_PRESETS[style || ""] || style;
   const resDesc =
     RESOLUTION_CONFIG[resolution || ""] || RESOLUTION_CONFIG["1080p"];
-  parts.push(`【画面风格】${styleDesc}`);
-  parts.push(`【技术参数】${resDesc}，视频时长${duration}秒`);
+  parts.push(`[Visual Style] ${styleDesc}`);
+  parts.push(`[Technical Parameters] ${resDesc}, video duration ${duration}s`);
 
   if (params.referenceImage) {
-    parts.push("【参考素材】请参考提供的图片进行生成");
+    parts.push("[Reference Material] Please refer to the provided image for generation");
   }
 
-  parts.push(`【质量要求】\n${QUALITY_TAGS_VIDEO.join(", ")}`);
+  parts.push(`[Quality Requirements]\n${QUALITY_TAGS_VIDEO.join(", ")}`);
 
   return parts.join("\n\n");
 }
@@ -344,21 +344,21 @@ function generateKeyframePrompt(params: {
   prevKeyframe?: string;
 }): string {
   const parts: string[] = [];
-  parts.push("生成一张高质量的分镜预览图，要求：");
-  if (params.content) parts.push(`画面内容：${params.content}`);
+  parts.push("Generate a high-quality storyboard preview image. Requirements:");
+  if (params.content) parts.push(`Visual content: ${params.content}`);
   if (params.shotRequirement) {
     const { shotType, cameraAngle, cameraMovement, action } =
       params.shotRequirement;
-    if (shotType) parts.push(`景别：${shotType}`);
-    if (cameraAngle) parts.push(`镜头角度：${cameraAngle}`);
-    if (cameraMovement) parts.push(`运镜方式：${cameraMovement}`);
-    if (action) parts.push(`动作：${action}`);
+    if (shotType) parts.push(`Shot type: ${shotType}`);
+    if (cameraAngle) parts.push(`Camera angle: ${cameraAngle}`);
+    if (cameraMovement) parts.push(`Camera movement: ${cameraMovement}`);
+    if (action) parts.push(`Action: ${action}`);
   }
   if (params.prevKeyframe) {
-    parts.push("保持与上一分镜相同的色调、光影风格和构图语言");
+    parts.push("Maintain the same color tone, lighting style, and composition language as the previous shot");
   }
   parts.push(
-    "画面要求：构图精美、光影自然、细节丰富、适合作为动画分镜参考",
+    "Image requirements: exquisite composition, natural lighting, rich details, suitable as animation storyboard reference",
   );
   return joinParts([...parts, ...QUALITY_TAGS_IMAGE]);
 }
@@ -368,18 +368,18 @@ function generateFirstFramePrompt(params: {
   actionDescription?: string;
 }): string {
   const parts: string[] = [];
-  parts.push("生成视频的第一帧（起始画面），要求：");
+  parts.push("Generate the first frame of the video (opening shot). Requirements:");
   parts.push(
-    "这是视频的起始画面，角色处于动作开始前的初始状态。",
+    "This is the opening shot of the video, with the character in the initial state before the action begins.",
   );
   if (params.keyframePrompt)
-    parts.push(`基于以下预览图的风格和构图：${params.keyframePrompt}`);
+    parts.push(`Based on the style and composition of the following preview image: ${params.keyframePrompt}`);
   if (params.actionDescription)
     parts.push(
-      `动作起始状态：${params.actionDescription}（开始前的瞬间）`,
+      `Action start state: ${params.actionDescription} (the moment before starting)`,
     );
   parts.push(
-    "画面要求：清晰展示角色起始姿态、表情自然、光影与预览图保持一致。",
+    "Image requirements: clearly show the character's starting pose, natural expressions, lighting consistent with the preview image.",
   );
   return joinParts([...parts, ...QUALITY_TAGS_IMAGE]);
 }
@@ -390,20 +390,20 @@ function generateLastFramePrompt(params: {
   duration?: number;
 }): string {
   const parts: string[] = [];
-  parts.push("生成视频的最后一帧（结束画面），要求：");
+  parts.push("Generate the last frame of the video (ending shot). Requirements:");
   parts.push(
-    "这是视频的结束画面，角色处于动作完成后的最终状态。",
+    "This is the ending shot of the video, with the character in the final state after the action is completed.",
   );
   if (params.keyframePrompt)
-    parts.push(`基于以下预览图的风格和构图：${params.keyframePrompt}`);
+    parts.push(`Based on the style and composition of the following preview image: ${params.keyframePrompt}`);
   if (params.actionDescription)
     parts.push(
-      `动作结束状态：${params.actionDescription}（完成后的瞬间）`,
+      `Action end state: ${params.actionDescription} (the moment after completion)`,
     );
   if (params.duration)
-    parts.push(`视频时长约 ${params.duration} 秒后的最终状态。`);
+    parts.push(`Final state after approximately ${params.duration} seconds of video.`);
   parts.push(
-    "画面要求：清晰展示角色结束姿态、动作完成感强、光影与预览图和首帧保持一致。",
+    "Image requirements: clearly show the character's ending pose, strong sense of action completion, lighting consistent with the preview image and first frame.",
   );
   return joinParts([...parts, ...QUALITY_TAGS_IMAGE]);
 }
@@ -420,102 +420,102 @@ function generateStoryPlanPrompt(params: StoryPlanParams): string {
   } = params;
 
   const genreGuide: Record<string, string> = {
-    drama: "剧情片节奏：缓慢铺垫→矛盾激化→情感爆发→余韵收尾",
-    comedy: "喜剧节奏：快速建立情境→误会叠加→笑点爆发→皆大欢喜",
-    action: "动作片节奏：紧张开场→危机升级→高潮对决→胜利收尾",
-    thriller: "悬疑节奏：悬念设置→线索铺陈→反转揭秘→真相大白",
-    romance: "爱情节奏：相遇→相知→矛盾→和解",
-    scifi: "科幻节奏：世界观建立→科技展示→危机出现→解决突破",
-    fantasy: "奇幻节奏：异世界引入→冒险启程→试炼成长→终极对决",
-    horror: "恐怖节奏：不安铺垫→恐怖递增→惊吓爆发→余恐未消",
+    drama: "Drama pacing: slow buildup -> conflict escalation -> emotional outburst -> lingering conclusion",
+    comedy: "Comedy pacing: quick setup -> stacking misunderstandings -> punchline eruption -> happy resolution",
+    action: "Action pacing: tense opening -> crisis escalation -> climactic showdown -> victorious conclusion",
+    thriller: "Thriller pacing: suspense setup -> clue laying -> twist reveal -> truth emerges",
+    romance: "Romance pacing: encounter -> growing closer -> conflict -> reconciliation",
+    scifi: "Sci-fi pacing: world-building -> tech showcase -> crisis emerges -> breakthrough resolution",
+    fantasy: "Fantasy pacing: otherworld intro -> adventure begins -> trials and growth -> ultimate showdown",
+    horror: "Horror pacing: unease buildup -> escalating dread -> scare eruption -> lingering terror",
   };
 
   const toneGuide: Record<string, string> = {
-    neutral: "中性基调，客观叙事",
-    light: "轻松明快，色彩明亮，节奏轻快",
-    warm: "温馨细腻，近景多，暖色调",
-    dark: "沉重压抑，暗色调，慢节奏，特写多",
-    epic: "宏大壮阔，大场景，史诗配乐感",
-    intimate: "温馨细腻，近景多，暖色调",
-    humorous: "幽默诙谐，节奏轻快，夸张表现",
+    neutral: "Neutral tone, objective narration",
+    light: "Light and bright, vivid colors, brisk pace",
+    warm: "Warm and tender, many close-ups, warm color palette",
+    dark: "Heavy and oppressive, dark tones, slow pace, many close-ups",
+    epic: "Grand and sweeping, large-scale scenes, epic soundtrack feel",
+    intimate: "Warm and tender, many close-ups, warm color palette",
+    humorous: "Humorous and witty, brisk pace, exaggerated expression",
   };
 
   const charDescs =
     characters.length > 0
-      ? `\n\n已有角色：\n${characters.map((c) => `- ${c.name}：${buildCharacterFullDesc(c)}`).join("\n")}`
+      ? `\n\nExisting characters:\n${characters.map((c) => `- ${c.name}: ${buildCharacterFullDesc(c)}`).join("\n")}`
       : "";
 
   const sceneDescs =
     scenes.length > 0
-      ? `\n\n已有场景：\n${scenes.map((s) => `- ${s.name}（${s.type || ""}）：${buildSceneAtmosphereDesc(s)}${s.description ? `，${s.description}` : ""}`).join("\n")}`
+      ? `\n\nExisting scenes:\n${scenes.map((s) => `- ${s.name} (${s.type || ""}): ${buildSceneAtmosphereDesc(s)}${s.description ? `, ${s.description}` : ""}`).join("\n")}`
       : "";
 
-  return `你是一位专业的动画分镜导演，请根据以下故事信息，规划一个逻辑完整的剧情结构。
+  return `You are a professional animation storyboard director. Based on the following story information, plan a logically complete plot structure.
 
-故事标题：${title || "未命名"}
-故事类型：${genre || "剧情"}
-故事基调：${tone || "中性"}
-故事简介：${description || "无"}
-目标总时长：${targetDuration || 60} 秒
+Story title: ${title || "Untitled"}
+Story genre: ${genre || "Drama"}
+Story tone: ${tone || "Neutral"}
+Story synopsis: ${description || "None"}
+Target total duration: ${targetDuration || 60} seconds
 ${charDescs}${sceneDescs}
 
-类型节奏指导：${genreGuide[genre || "drama"] || genreGuide.drama}
-基调指导：${toneGuide[tone || "neutral"] || toneGuide.neutral}
+Genre pacing guide: ${genreGuide[genre || "drama"] || genreGuide.drama}
+Tone guide: ${toneGuide[tone || "neutral"] || toneGuide.neutral}
 
-重要说明：
-- 每个镜头将生成独立的视频片段，然后按顺序拼接
-- 请重点规划每个镜头的时长和排列顺序
-- 所有镜头的 duration 总和必须等于目标总时长 ${targetDuration || 60} 秒
+Important notes:
+- Each shot will generate an independent video clip, then be concatenated in order
+- Focus on planning the duration and arrangement order of each shot
+- The sum of all shots' duration must equal the target total duration of ${targetDuration || 60} seconds
 
-请按照以下格式返回JSON数组：
+Please return a JSON array in the following format:
 [
   {
     "type": "scene" | "dialogue" | "action" | "transition" | "effect",
-    "title": "镜头标题",
-    "content": "详细描述",
-    "duration": 秒数
+    "title": "Shot title",
+    "content": "Detailed description",
+    "duration": number_of_seconds
   }
 ]
 
-规划要求：
-1. 剧情要有完整的起承转合逻辑结构
-2. 镜头类型要多样化
-3. 每个镜头的 duration 要合理
-4. content 描述要详细具体
-5. 镜头数量建议：${Math.max(4, Math.floor((targetDuration || 60) / 8))}-${Math.min(15, Math.ceil((targetDuration || 60) / 4))}个`;
+Planning requirements:
+1. The plot must have a complete beginning-development-climax-resolution structure
+2. Shot types should be diverse
+3. Each shot's duration should be reasonable
+4. Content descriptions should be detailed and specific
+5. Recommended number of shots: ${Math.max(4, Math.floor((targetDuration || 60) / 8))}-${Math.min(15, Math.ceil((targetDuration || 60) / 4))}`;
 }
 
 function generateCharacterAnalysisPrompt(): string {
-  return `分析这张图片中的角色，提取以下信息并以 JSON 格式返回：
+  return `Analyze the character in this image, extract the following information and return it in JSON format:
 {
-  "name": "角色名称",
-  "gender": "性别",
-  "age": "年龄数字",
-  "style": "艺术风格",
-  "personality": ["性格特征1", "性格特征2"],
+  "name": "Character name",
+  "gender": "Gender",
+  "age": "Age number",
+  "style": "Art style",
+  "personality": ["Personality trait 1", "Personality trait 2"],
   "appearance": {
-    "hairColor": "发色",
-    "hairStyle": "发型",
-    "eyeColor": "眼睛颜色",
-    "height": "身高描述",
-    "build": "体型",
-    "clothing": "服装描述"
+    "hairColor": "Hair color",
+    "hairStyle": "Hair style",
+    "eyeColor": "Eye color",
+    "height": "Height description",
+    "build": "Body type",
+    "clothing": "Clothing description"
   },
-  "description": "角色整体描述"
+  "description": "Overall character description"
 }`;
 }
 
 function generateSceneAnalysisPrompt(): string {
-  return `分析这张图片中的场景，提取以下信息并以 JSON 格式返回：
+  return `Analyze the scene in this image, extract the following information and return it in JSON format:
 {
-  "name": "场景名称",
-  "type": "场景类型",
-  "timeOfDay": "时间",
-  "weather": "天气",
-  "mood": "氛围/情绪",
-  "elements": ["元素1", "元素2"],
-  "colorPalette": "色调描述",
-  "description": "场景整体描述"
+  "name": "Scene name",
+  "type": "Scene type",
+  "timeOfDay": "Time of day",
+  "weather": "Weather",
+  "mood": "Mood/atmosphere",
+  "elements": ["Element 1", "Element 2"],
+  "colorPalette": "Color palette description",
+  "description": "Overall scene description"
 }`;
 }
 

@@ -131,8 +131,21 @@ export const templateConfigSchema = z.object({
   matchTiming: z.boolean().optional(),
 });
 
+/**
+ * 旧版镜头属性容器。整体被 `storyBeatSchema.camera` 字段使用（标记为 @deprecated）。
+ *
+ * 字段归属：
+ * - `angle` / `movement`：与 `shotInstructionSchema.cameraAngle` / `cameraMovement` 重合，应迁移到 shotInstruction
+ * - `distance` / `speed`：shotInstruction 中无对应字段，专业模式编辑独有，需保留在 camera 容器中
+ * - `relationType` / `transitionType` / `transitionDuration`：镜头间关系/转场，camera-consistency-validator 使用，shotInstruction 中无对应字段
+ *
+ * 迁移时不要整体废弃此 schema：`distance`/`speed`/`relationType`/`transitionType`/`transitionDuration` 没有 shotInstruction 替代品。
+ * 详见 `story.ts` 中 `camera` 字段的 @deprecated 注释和迁移路径 TODO。
+ */
 export const beatCameraSchema = z.object({
+  /** @deprecated Use `shotInstruction.cameraAngle` instead. */
   angle: z.string().optional(),
+  /** @deprecated Use `shotInstruction.cameraMovement` instead. */
   movement: z.string().optional(),
   distance: z.string().optional(),
   speed: z.string().optional(),
@@ -141,7 +154,19 @@ export const beatCameraSchema = z.object({
   transitionDuration: z.number().optional(),
 });
 
-export const elementTypeSchema = z.enum(["character", "prop", "effect"]);
+/**
+ * 元素类型枚举。
+ *
+ * 历史背景：原本只有 `["character", "prop", "effect"]` 三种，UI 通过 `as unknown as`
+ * cast 绕过将 "scene" 视作第四种类型。已正式纳入枚举，避免类型不一致的隐患。
+ *
+ * - `character`：角色，绑定到 StoryBeat.elementBindings，由 characterAnchors 处理一致性
+ * - `prop`：道具，由 propAnchors 处理一致性
+ * - `effect`：特效，与 prop 处理方式相同（无专属字段，未来可扩展）
+ * - `scene`：场景，绑定到 StoryBeat.sceneId 单值字段；不在 featureAnchoring 中处理
+ *   （场景一致性由 shotReference + visualConsistency 负责）
+ */
+export const elementTypeSchema = z.enum(["character", "prop", "effect", "scene"]);
 export const assetTypeSchema = z.enum(["image", "video", "text"]);
 
 export const assetBindingSchema = z.object({

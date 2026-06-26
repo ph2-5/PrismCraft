@@ -42,11 +42,11 @@ export const genres = [
 ];
 
 export const tones = [
-  { value: "light", label: "轻松", color: "bg-yellow-500" },
-  { value: "neutral", label: "中性", color: "bg-blue-500" },
-  { value: "dark", label: "沉重", color: "bg-gray-700" },
-  { value: "epic", label: "史诗", color: "bg-purple-500" },
-  { value: "intimate", label: "温馨", color: "bg-pink-500" },
+  { value: "light", label: "轻松" },
+  { value: "neutral", label: "中性" },
+  { value: "dark", label: "沉重" },
+  { value: "epic", label: "史诗" },
+  { value: "intimate", label: "温馨" },
 ];
 
 export const beatTypes = [

@@ -34,30 +34,6 @@ vi.mock("react-router-dom", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/select", () => ({
-  Select: ({ children, value, onValueChange }: { children: React.ReactNode; value: string; onValueChange: (value: string) => void }) => (
-    <select
-      value={value}
-      onChange={(e) => onValueChange(e.target.value)}
-      data-testid="select"
-    >
-      {children}
-    </select>
-  ),
-  SelectContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  SelectItem: ({ value }: { value: string; children?: React.ReactNode }) => (
-    <option value={value} data-testid={`option-${value}`} />
-  ),
-  SelectTrigger: () => null,
-  SelectValue: () => null,
-}));
-
-vi.mock("@/shared/ui/badge", () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => (
-    <span data-testid="badge">{children}</span>
-  ),
-}));
-
 vi.mock("lucide-react", () => ({
   Bot: () => <span>Bot</span>,
   Image: () => <span>Image</span>,
@@ -122,10 +98,10 @@ describe("ModelSelector - API Key 边界状态", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     const optionValues = Array.from(select.querySelectorAll("option")).map((o) => o.value);
     expect(optionValues).toContain("");
     expect(optionValues).toContain("seedance/seedance-v1");
@@ -177,10 +153,10 @@ describe("ModelSelector - API Key 边界状态", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    const select = screen.getByTestId("select");
+    const select = screen.getByRole("combobox");
     await userEvent.selectOptions(select, "seedance/seedance-v1");
 
     expect(onChange).toHaveBeenCalledWith(
@@ -222,7 +198,7 @@ describe("ModelSelector - API Key 边界状态", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("select")).toBeInTheDocument();
+      expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
   });
 });

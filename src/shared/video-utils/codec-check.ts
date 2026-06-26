@@ -1,6 +1,7 @@
 import type { VideoModelFormat } from "@/domain/types";
 import type { VideoCodecInfo } from "./video-codec";
 import { getProviderSupportedCodecs, getProviderMaxDuration } from "./provider-codecs";
+import { t } from "@/shared/constants";
 
 export function isCodecSupportedByProvider(
   codecInfo: VideoCodecInfo,
@@ -14,7 +15,11 @@ export function isCodecSupportedByProvider(
   if (!allowed.includes(codecInfo.videoCodec)) {
     return {
       supported: false,
-      reason: `${providerFormat} 不支持 ${codecInfo.videoCodec.toUpperCase()} 编码，支持: ${allowed.map((c) => c.toUpperCase()).join(", ")}`,
+      reason: t("error.codecNotSupported", {
+        provider: providerFormat,
+        codec: codecInfo.videoCodec.toUpperCase(),
+        supported: allowed.map((c) => c.toUpperCase()).join(", "),
+      }),
     };
   }
 
@@ -22,7 +27,11 @@ export function isCodecSupportedByProvider(
   if (maxDur && codecInfo.duration > maxDur) {
     return {
       supported: false,
-      reason: `${providerFormat} 最大支持 ${maxDur} 秒视频，当前视频 ${Math.round(codecInfo.duration)} 秒`,
+      reason: t("error.durationExceeds", {
+        provider: providerFormat,
+        max: maxDur,
+        current: Math.round(codecInfo.duration),
+      }),
     };
   }
 

@@ -1,18 +1,7 @@
 import { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle } from "lucide-react";
-import { Card, CardContent } from "@/shared/ui/card";
-import { Badge } from "@/shared/ui/badge";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
 import { container } from "@/infrastructure/di";
 import type { StoryBeat, ShotReference } from "@/domain/schemas";
 
@@ -50,6 +39,7 @@ export function ShotReferenceConfig({
   const [validation, setValidation] = useState<{
     valid: boolean;
     error?: string;
+    warnings?: string[];
   }>({ valid: true });
 
   const [prevBeatReference, setPrevBeatReference] = useState(beat.reference);
@@ -62,7 +52,7 @@ export function ShotReferenceConfig({
   }
 
   const effectiveValidation = reference.direction === "none"
-    ? { valid: true }
+    ? { valid: true, warnings: [] as string[] }
     : validation;
 
   const currentIndex = allShots.findIndex((s) => s.id === beat.id);
@@ -122,8 +112,8 @@ export function ShotReferenceConfig({
       {(isFirstShot && reference.direction === "previous") ||
       (isLastShot && reference.direction === "next") ? (
         <div className="flex items-center gap-2 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-          <AlertCircle className="w-4 h-4 text-yellow-500" />
-          <span className="text-sm text-yellow-500">
+          <AlertCircle className="w-4 h-4" style={{ color: "var(--warning)" }} />
+          <span className="text-sm" style={{ color: "var(--warning)" }}>
             {isFirstShot && reference.direction === "previous"
               ? t("shot.noPreviousBeat")
               : t("shot.noNextBeat")}
@@ -132,86 +122,76 @@ export function ShotReferenceConfig({
       ) : null}
 
       <div>
-        <Label>{t("shot.refDirection")}</Label>
-        <Select
+        <label>{t("shot.refDirection")}</label>
+        <select
+          className="select"
           value={reference.direction}
-          onValueChange={(value) =>
-            handleUpdate({ direction: value as ShotReference["direction"] })
+          onChange={(e) =>
+            handleUpdate({ direction: e.target.value as ShotReference["direction"] })
           }
         >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {directionOptions.map((opt) => (
-              <SelectItem
-                key={opt.value}
-                value={opt.value}
-                disabled={
-                  (opt.value === "previous" && isFirstShot) ||
-                  (opt.value === "next" && isLastShot)
-                }
-              >
-                {opt.label()}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {directionOptions.map((opt) => (
+            <option
+              key={opt.value}
+              value={opt.value}
+              disabled={
+                (opt.value === "previous" && isFirstShot) ||
+                (opt.value === "next" && isLastShot)
+              }
+            >
+              {opt.label()}
+            </option>
+          ))}
+        </select>
       </div>
 
       {reference.direction === "custom" && (
         <div>
-          <Label>{t("shot.selectBeat")}</Label>
-          <Select
+          <label>{t("shot.selectBeat")}</label>
+          <select
+            className="select"
             value={reference.targetShotId || ""}
-            onValueChange={(value) =>
-              handleUpdate({ targetShotId: value || undefined })
+            onChange={(e) =>
+              handleUpdate({ targetShotId: e.target.value || undefined })
             }
           >
-            <SelectTrigger>
-              <SelectValue placeholder={t("shot.selectBeatPlaceholder")} />
-            </SelectTrigger>
-            <SelectContent>
-              {allShots
-                .filter((s) => s.id !== beat.id)
-                .map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {t("shot.beatN", { n: s.sequence })}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+            <option value="">{t("shot.selectBeatPlaceholder")}</option>
+            {allShots
+              .filter((s) => s.id !== beat.id)
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {t("shot.beatN", { n: s.sequence })}
+                </option>
+              ))}
+          </select>
         </div>
       )}
 
       {reference.direction !== "none" && (
         <>
           <div>
-            <Label>{t("shot.refContent")}</Label>
-            <Select
+            <label>{t("shot.refContent")}</label>
+            <select
+              className="select"
               value={reference.contentType}
-              onValueChange={(value) =>
-                handleUpdate({ contentType: value as ShotReference["contentType"] })
+              onChange={(e) =>
+                handleUpdate({ contentType: e.target.value as ShotReference["contentType"] })
               }
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {contentTypeOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {contentTypeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label()}
+                </option>
+              ))}
+            </select>
           </div>
 
           {reference.contentType === "video_segment" && (
             <div className="space-y-3">
               <div>
-                <Label>{t("shot.segmentDuration")}</Label>
-                <Input
+                <label>{t("shot.segmentDuration")}</label>
+                <input
+                  className="input"
                   type="number"
                   min={0.5}
                   max={beat.duration}
@@ -225,33 +205,29 @@ export function ShotReferenceConfig({
                 />
               </div>
               <div>
-                <Label>{t("shot.segmentPosition")}</Label>
-                <Select
+                <label>{t("shot.segmentPosition")}</label>
+                <select
+                  className="select"
                   value={reference.segmentPosition || "end"}
-                  onValueChange={(value) =>
-                    handleUpdate({ segmentPosition: value as "start" | "end" })
+                  onChange={(e) =>
+                    handleUpdate({ segmentPosition: e.target.value as "start" | "end" })
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="start">{t("common.start")}</SelectItem>
-                    <SelectItem value="end">{t("common.end")}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="start">{t("common.start")}</option>
+                  <option value="end">{t("common.end")}</option>
+                </select>
               </div>
             </div>
           )}
 
           {targetShot && (
-            <Card>
-              <CardContent className="p-4">
+            <div className="card" style={{ padding: 16 }}>
+              <div>
                 <div className="flex items-center gap-2 mb-2">
                   {effectiveValidation.valid ? (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="w-4 h-4" style={{ color: "var(--success)" }} />
                   ) : (
-                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    <AlertCircle className="w-4 h-4" style={{ color: "var(--destructive)" }} />
                   )}
                   <span className="font-medium">{t("shot.refInfo")}</span>
                 </div>
@@ -261,21 +237,39 @@ export function ShotReferenceConfig({
                     {t("shot.genStatus")}
                     {targetShot.videoGen?.videoUrl ||
                     targetShot.generationResult?.videoUrl ? (
-                      <Badge variant="default" className="ml-1">
+                      <span className="badge badge-info ml-1">
                         {t("shot.generated")}
-                      </Badge>
+                      </span>
                     ) : (
-                      <Badge variant="destructive" className="ml-1">
+                      <span className="badge badge-danger ml-1">
                         {t("shot.notGenerated")}
-                      </Badge>
+                      </span>
                     )}
                   </p>
                   {!effectiveValidation.valid && (
-                    <p className="text-red-500">{effectiveValidation.error}</p>
+                    <p style={{ color: "var(--destructive)" }}>{effectiveValidation.error}</p>
+                  )}
+                  {effectiveValidation.warnings && effectiveValidation.warnings.length > 0 && (
+                    <div
+                      className="mt-2 p-2 rounded-lg border"
+                      style={{
+                        backgroundColor: "var(--warning-bg, rgba(234, 179, 8, 0.1))",
+                        borderColor: "var(--warning-border, rgba(234, 179, 8, 0.3))",
+                      }}
+                    >
+                      <p className="text-sm font-medium mb-1" style={{ color: "var(--warning)" }}>
+                        {t("shot.refWarningsTitle")}
+                      </p>
+                      <ul className="text-sm space-y-1" style={{ color: "var(--warning)" }}>
+                        {effectiveValidation.warnings.map((w, i) => (
+                          <li key={i}>• {w}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </>
       )}

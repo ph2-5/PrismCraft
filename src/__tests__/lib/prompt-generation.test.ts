@@ -78,7 +78,7 @@ describe("Challenging Prompts Test Suite", () => {
         description: beatData.beat.description ?? "",
         title: beatData.beat.title,
         content: beatData.beat.content,
-        scene: beatData.beat.scene,
+        sceneId: beatData.beat.sceneId,
         shotType: beatData.beat.shotType,
         camera: {
           angle: beatData.beat.cameraAngle,
@@ -141,7 +141,7 @@ describe("Challenging Prompts Test Suite", () => {
         description: beatData.beat.description ?? "",
         title: beatData.beat.title,
         content: beatData.beat.content,
-        scene: beatData.beat.scene,
+        sceneId: beatData.beat.sceneId,
         elementIds: [],
         characterIds: [beatData.beat.character].filter(Boolean) as string[],
         enhancedGeneration: false,
@@ -257,7 +257,7 @@ describe("Challenging Prompts Test Suite", () => {
         title: multiCharData.beat.title,
         content: multiCharData.beat.content,
         characterIds: multiCharData.beat.characters ?? [],
-        scene: multiCharData.beat.scene,
+        sceneId: multiCharData.beat.sceneId,
         elementIds: [],
         enhancedGeneration: false,
       };

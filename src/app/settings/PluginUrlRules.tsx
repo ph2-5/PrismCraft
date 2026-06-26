@@ -1,22 +1,6 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import { Button } from "@/shared/ui/button";
 import { Plus, Trash2, Globe } from "lucide-react";
 import { t } from "@/shared/constants";
+import { IconButton } from "@/shared/presentation/IconButton";
 import type { WizardState } from "./plugin-creator-types";
 
 interface PluginUrlRulesProps {
@@ -26,35 +10,34 @@ interface PluginUrlRulesProps {
 
 export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Globe className="w-5 h-5" />
+    <div className="card" style={{ padding: 0 }}>
+      <div style={{ padding: 16, paddingBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <Globe size={20} />
           {t("plugin.urlRules")}
-        </CardTitle>
-        <CardDescription>{t("plugin.urlRulesDesc")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>{t("plugin.matchMode")}</Label>
-          <Select
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 4 }}>{t("plugin.urlRulesDesc")}</div>
+      </div>
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label>{t("plugin.matchMode")}</label>
+          <select
+            className="select"
+            style={{ width: 200 }}
             value={state.matchMode}
-            onValueChange={(v) => updateField("matchMode", v as WizardState["matchMode"])}
+            onChange={(e) => updateField("matchMode", e.target.value as WizardState["matchMode"])}
           >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="contains">{t("plugin.matchContains")}</SelectItem>
-              <SelectItem value="prefix">{t("plugin.matchPrefix")}</SelectItem>
-              <SelectItem value="regex">{t("plugin.matchRegex")}</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">{t("plugin.matchModeHint")}</p>
+            <option value="contains">{t("plugin.matchContains")}</option>
+            <option value="prefix">{t("plugin.matchPrefix")}</option>
+            <option value="regex">{t("plugin.matchRegex")}</option>
+          </select>
+          <p style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("plugin.matchModeHint")}</p>
         </div>
         {state.apiUrlPatterns.map((pattern) => (
-          <div key={pattern._uid} className="flex items-center gap-2">
-            <Input
+          <div key={pattern._uid} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              className="input"
+              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
               value={pattern.pattern}
               onChange={(e) => {
                 const patterns = state.apiUrlPatterns.map((p) =>
@@ -63,26 +46,26 @@ export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
                 updateField("apiUrlPatterns", patterns);
               }}
               placeholder="api.example.com"
-              className="font-mono"
             />
-            <Button
+            <IconButton
               variant="ghost"
-              size="icon"
-              className="shrink-0 text-red-500 hover:text-red-400"
+              className="btn-sm"
+              style={{ color: "var(--destructive)", flexShrink: 0, padding: "6px 8px" }}
               onClick={() => {
                 updateField(
                   "apiUrlPatterns",
                   state.apiUrlPatterns.filter((p) => p._uid !== pattern._uid)
                 );
               }}
+              aria-label={t("aria.removeUrlPattern")}
             >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+              <Trash2 size={16} />
+            </IconButton>
           </div>
         ))}
-        <Button
-          variant="outline"
-          size="sm"
+        <button
+          type="button"
+          className="btn btn-outline btn-sm"
           onClick={() => {
             updateField("apiUrlPatterns", [
               ...state.apiUrlPatterns,
@@ -90,13 +73,13 @@ export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
             ]);
           }}
         >
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus size={16} style={{ marginRight: 4 }} />
           {t("plugin.addUrlPattern")}
-        </Button>
+        </button>
         {state.apiUrlPatterns.length === 0 && (
-          <p className="text-xs text-muted-foreground">{t("plugin.urlPatternRequired")}</p>
+          <p style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("plugin.urlPatternRequired")}</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

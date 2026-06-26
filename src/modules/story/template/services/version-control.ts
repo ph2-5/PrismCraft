@@ -184,10 +184,11 @@ export function formatVersionTime(timestamp: number): string {
   const date = new Date(timestamp);
   const now = new Date();
   const diff = Math.max(0, now.getTime() - timestamp);
-  if (diff < 60 * 1000) return "刚刚";
-  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))}分钟前`;
+  if (diff < 60 * 1000) return t("task.justNow");
+  if (diff < 60 * 60 * 1000)
+    return t("task.minutesAgo", { count: Math.floor(diff / (60 * 1000)) });
   if (diff < 24 * 60 * 60 * 1000)
-    return `${Math.floor(diff / (60 * 60 * 1000))}小时前`;
+    return t("task.hoursAgo", { count: Math.floor(diff / (60 * 60 * 1000)) });
   return date.toLocaleString("zh-CN", {
     month: "short",
     day: "numeric",

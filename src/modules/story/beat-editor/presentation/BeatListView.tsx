@@ -1,20 +1,10 @@
-import { useCallback, useMemo, memo } from "react";
+import { useCallback, memo } from "react";
 import { useVirtualList } from "@/shared/hooks/use-virtual-list";
 import {
   Plus,
-  Sparkles,
   Film,
-  LayoutTemplate,
-  BookOpen,
-  AlertCircle,
-  Image,
-  Camera,
-  Video,
   Loader2,
 } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { Switch } from "@/shared/ui/switch";
-import { StatusBadge } from "@/shared/ui/status-badge";
 import {
   DndContext,
   closestCenter,
@@ -32,10 +22,159 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { BeatOverviewCard } from "./BeatOverviewCard";
-import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants";
+import { getBeatCharacterIds } from "@/domain/utils";
+import { SHOT_SIZE_OPTIONS } from "@/modules/shot";
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
+
+interface BeatCardProps {
+  beat: StoryBeat;
+  index: number;
+  characters: Character[];
+  scenes: Scene[];
+  onEditClick: (beat: StoryBeat) => void;
+  isSelected: boolean;
+}
+
+function BeatCard({ beat, index, characters, scenes, onEditClick, isSelected }: BeatCardProps) {
+  const charIds = getBeatCharacterIds(beat);
+  const charNames = charIds
+    .map((id: string) => characters.find((c) => c.id === id)?.name)
+    .filter((n): n is string => Boolean(n));
+  const sceneName = beat.sceneId
+    ? scenes.find((s) => s.id === beat.sceneId)?.name
+    : null;
+
+  const shotSize = beat.shotInstruction?.shotSize || beat.shotType;
+  const shotSizeOption = shotSize
+    ? SHOT_SIZE_OPTIONS.find((o) => o.value === shotSize)
+    : undefined;
+  const shotLabel = shotSizeOption
+    ? t(shotSizeOption.labelKey)
+    : shotSize
+      ? String(shotSize)
+      : "";
+
+  const hasVideo = !!beat.videoGen?.videoUrl;
+  const hasKeyframe = !!beat.keyframe?.imageUrl;
+  const hasFramePair = !!beat.framePair?.firstFrame?.imageUrl;
+
+  const statusBadge = hasVideo
+    ? <span className="badge badge-success">✓</span>
+    : hasFramePair
+      ? <span className="badge badge-success">✓</span>
+      : hasKeyframe
+        ? <span className="badge badge-success">✓</span>
+        : <span className="badge badge-info">⏳</span>;
+
+  return (
+    <div
+      className="card"
+      style={{
+        padding: "10px 12px",
+        cursor: "pointer",
+        borderColor: isSelected ? "var(--primary)" : undefined,
+      }}
+      onClick={() => onEditClick(beat)}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span
+          className="badge badge-info"
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 7,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 11,
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
+          {index + 1}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>
+            {beat.title || t("beat.shotNumber", { number: index + 1 })}
+          </div>
+          {(beat.content || beat.description) && (
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--muted-fg)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {beat.content || beat.description}
+            </div>
+          )}
+        </div>
+        {statusBadge}
+      </div>
+      <div style={{ display: "flex", gap: 4, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+        {shotLabel && (
+          <span
+            style={{
+              fontSize: 10,
+              padding: "2px 6px",
+              borderRadius: 4,
+              background: "var(--muted)",
+              color: "var(--muted-fg)",
+            }}
+          >
+            {shotLabel}·{beat.duration ?? 0}s
+          </span>
+        )}
+        {charNames.length > 0 ? (
+          charNames.map((name: string, idx: number) => (
+            <span
+              key={`char-${idx}`}
+              className="badge badge-info"
+              style={{ fontSize: 10, padding: "2px 6px" }}
+            >
+              👤{name}
+            </span>
+          ))
+        ) : (
+          <span
+            className="badge"
+            style={{
+              fontSize: 10,
+              padding: "2px 6px",
+              color: "var(--warning)",
+              border: "1px dashed var(--warning)",
+            }}
+          >
+            {t("beat.unboundCharacter")}
+          </span>
+        )}
+        {sceneName ? (
+          <span
+            className="badge badge-success"
+            style={{ fontSize: 10, padding: "2px 6px" }}
+          >
+            🏙{sceneName}
+          </span>
+        ) : (
+          <span
+            className="badge"
+            style={{
+              fontSize: 10,
+              padding: "2px 6px",
+              color: "var(--warning)",
+              border: "1px dashed var(--warning)",
+            }}
+          >
+            {t("beat.unboundScene")}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const SortableBeatCard = memo(function SortableBeatCard({
   beat,
@@ -43,21 +182,8 @@ const SortableBeatCard = memo(function SortableBeatCard({
   characters,
   scenes,
   onEditClick,
-  onMoveBeat,
-  onDeleteBeat,
-  totalBeats,
   isSelected,
-}: {
-  beat: StoryBeat;
-  index: number;
-  characters: Character[];
-  scenes: Scene[];
-  onEditClick: (beat: StoryBeat) => void;
-  onMoveBeat: (beatId: string, direction: "up" | "down") => void;
-  onDeleteBeat: (beatId: string) => void;
-  totalBeats: number;
-  isSelected: boolean;
-}) {
+}: BeatCardProps) {
   const {
     attributes,
     listeners,
@@ -76,15 +202,12 @@ const SortableBeatCard = memo(function SortableBeatCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <BeatOverviewCard
+      <BeatCard
         beat={beat}
         index={index}
         characters={characters}
         scenes={scenes}
         onEditClick={onEditClick}
-        onMoveBeat={onMoveBeat}
-        onDeleteBeat={onDeleteBeat}
-        totalBeats={totalBeats}
         isSelected={isSelected}
       />
     </div>
@@ -120,30 +243,20 @@ export function BeatListView({
   editingBeatId,
   onEditClick,
   onAddBeat,
-  onMoveBeat,
-  onDeleteBeat,
+  onMoveBeat: _onMoveBeat,
+  onDeleteBeat: _onDeleteBeat,
   onReorderBeats,
-  onPlanStoryWithAI,
-  onOpenTemplateDialog,
-  onOpenVersionDialog,
-  isPlanningStory,
-  generationEnhanced,
-  onToggleGenerationEnhanced,
-  onBatchGenerateKeyframes,
-  onBatchGenerateFramePairs,
-  onBatchGenerateVideos,
+  onPlanStoryWithAI: _onPlanStoryWithAI,
+  onOpenTemplateDialog: _onOpenTemplateDialog,
+  onOpenVersionDialog: _onOpenVersionDialog,
+  isPlanningStory: _isPlanningStory,
+  generationEnhanced: _generationEnhanced,
+  onToggleGenerationEnhanced: _onToggleGenerationEnhanced,
+  onBatchGenerateKeyframes: _onBatchGenerateKeyframes,
+  onBatchGenerateFramePairs: _onBatchGenerateFramePairs,
+  onBatchGenerateVideos: _onBatchGenerateVideos,
   assetsLoading,
 }: BeatListViewProps) {
-  const totalDuration = useMemo(
-    () => beats.reduce((sum, b) => sum + (b.duration || 0), 0),
-    [beats],
-  );
-
-  const completedBeats = useMemo(
-    () => beats.filter((b) => b.videoGen?.videoUrl).length,
-    [beats],
-  );
-
   const dndSensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
@@ -177,167 +290,73 @@ export function BeatListView({
   });
 
   return (
-    <div className="w-[280px] shrink-0 flex flex-col border border-border rounded-lg bg-card overflow-hidden">
-      <div className="px-3 py-2.5 border-b border-border shrink-0 space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Film className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">{t("beat.beatContent")}</span>
-            <StatusBadge
-              variant={
-                completedBeats === beats.length && beats.length > 0
-                  ? "success"
-                  : "default"
-              }
-            >
-              {completedBeats}/{beats.length}
-            </StatusBadge>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {t("beat.shotsCountShort", { count: beats.length, duration: totalDuration })}
+    <div
+      style={{
+        width: 340,
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflowY: "auto",
+        padding: 16,
+        gap: 10,
+        borderRight: "1px solid var(--border)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 14, fontWeight: 600 }}>
+          {t("beat.beatList")}{" "}
+          <span style={{ color: "var(--muted-fg)", fontWeight: 400, fontSize: 12 }}>
+            {beats.length}
           </span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={onPlanStoryWithAI}
-            disabled={isPlanningStory}
-            className="gap-1 h-7 text-xs flex-1"
-          >
-            <Sparkles className="w-3 h-3" />
-            {isPlanningStory ? t("beat.planning") : t("beat.aiPlanning")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onAddBeat}
-            className="gap-1 h-7 text-xs"
-          >
-            <Plus className="w-3 h-3" />
-            {t("beat.addButton")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenTemplateDialog}
-            className="gap-1 h-7 text-xs"
-          >
-            <LayoutTemplate className="w-3 h-3" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenVersionDialog}
-            className="gap-1 h-7 text-xs"
-          >
-            <BookOpen className="w-3 h-3" />
-          </Button>
-        </div>
-
-        {beats.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                if (await confirm(t("confirm.batchGenerateAll", { count: beats.length, action: t("beat.batchGeneratePreview") }), t("beat.batchGeneratePreview"))) {
-                  onBatchGenerateKeyframes?.();
-                }
-              }}
-              disabled={isPlanningStory}
-              className="gap-1 text-xs h-6 flex-1"
-              title={t("beat.batchKeyframeTitle")}
-            >
-              <Image className="w-3 h-3" />
-              {t("beat.keyframeButton")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                if (await confirm(t("confirm.batchGenerateAll", { count: beats.length, action: t("beat.batchFramePairTitle") }), t("beat.batchFramePairTitle"))) {
-                  onBatchGenerateFramePairs?.();
-                }
-              }}
-              disabled={isPlanningStory}
-              className="gap-1 text-xs h-6 flex-1"
-              title={t("beat.batchFramePairTitle")}
-            >
-              <Camera className="w-3 h-3" />
-              {t("beat.framePairButton")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                if (await confirm(t("confirm.batchGenerateAll", { count: beats.length, action: t("beat.batchVideoTitle") }) + "\n" + t("batch.mayConsumeApiQuota"), t("beat.batchVideoTitle"))) {
-                  onBatchGenerateVideos?.();
-                }
-              }}
-              disabled={isPlanningStory}
-              className="gap-1 text-xs h-6 flex-1"
-              title={t("beat.batchVideoTitle")}
-            >
-              <Video className="w-3 h-3" />
-              {t("beat.videoButton")}
-            </Button>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={generationEnhanced}
-            onCheckedChange={(checked) =>
-              onToggleGenerationEnhanced?.(checked)
-            }
-            className="scale-75 origin-left"
-          />
-          <span className="text-xs text-muted-foreground">{t("beat.aiPlanningEnhanced")}</span>
-          <button
-            className="text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
-            title={t("beat.aiPlanningEnhancedHint")}
-          >
-            <AlertCircle className="w-3 h-3" />
-          </button>
-        </div>
+        </span>
+        <button className="btn btn-primary btn-sm" onClick={onAddBeat}>
+          <Plus style={{ width: 14, height: 14 }} />
+          {t("beat.addButton")}
+        </button>
       </div>
 
-      <div ref={shouldVirtualize ? parentRef : undefined} className="flex-1 overflow-y-auto p-2">
-        {assetsLoading ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm gap-2">
-            <Loader2 className="w-6 h-6 animate-spin opacity-50" />
-            <p>{t("beat.loadingAssets")}</p>
-          </div>
-        ) : beats.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            <Film className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p>{t("beat.noBeatsAdded")}</p>
-            <p className="text-xs mt-1">{t("beat.clickAIOrAdd")}</p>
-          </div>
-        ) : shouldVirtualize ? (
+      {assetsLoading ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 0", color: "var(--muted-fg)", fontSize: 13, gap: 8 }}>
+          <Loader2 style={{ width: 24, height: 24, animation: "spin 1s linear infinite", opacity: 0.5 }} />
+          <p>{t("beat.loadingAssets")}</p>
+        </div>
+      ) : beats.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "32px 0", color: "var(--muted-fg)", fontSize: 13 }}>
+          <Film style={{ width: 32, height: 32, margin: "0 auto 8px", opacity: 0.3 }} />
+          <p>{t("beat.noBeatsAdded")}</p>
+          <p style={{ fontSize: 11, marginTop: 4 }}>{t("beat.clickAIOrAdd")}</p>
+        </div>
+      ) : shouldVirtualize ? (
+        <div ref={parentRef} style={{ flex: 1, overflowY: "auto" }}>
           <div style={{ height: totalSize, position: "relative" }}>
             {virtualItems.map((virtualItem) => {
               const beat = beats[virtualItem.index]!;
               return (
-                <div key={beat.id} style={{ position: "absolute", top: virtualItem.start, left: 0, width: "100%", height: virtualItem.size }}>
-                  <BeatOverviewCard
+                <div
+                  key={beat.id}
+                  style={{
+                    position: "absolute",
+                    top: virtualItem.start,
+                    left: 0,
+                    width: "100%",
+                    height: virtualItem.size,
+                  }}
+                >
+                  <BeatCard
                     beat={beat}
                     index={virtualItem.index}
                     characters={characters}
                     scenes={scenes}
                     onEditClick={onEditClick}
-                    onMoveBeat={onMoveBeat}
-                    onDeleteBeat={onDeleteBeat}
-                    totalBeats={beats.length}
                     isSelected={editingBeatId === beat.id}
                   />
                 </div>
               );
             })}
           </div>
-        ) : (
+        </div>
+      ) : (
+        <div ref={shouldVirtualize ? parentRef : undefined} style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
           <DndContext
             sensors={dndSensors}
             collisionDetection={closestCenter}
@@ -347,26 +366,21 @@ export function BeatListView({
               items={beats.map((b) => b.id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="space-y-1.5">
-                {beats.map((beat, index) => (
-                  <SortableBeatCard
-                    key={beat.id}
-                    beat={beat}
-                    index={index}
-                    characters={characters}
-                    scenes={scenes}
-                    onEditClick={onEditClick}
-                    onMoveBeat={onMoveBeat}
-                    onDeleteBeat={onDeleteBeat}
-                    totalBeats={beats.length}
-                    isSelected={editingBeatId === beat.id}
-                  />
-                ))}
-              </div>
+              {beats.map((beat, index) => (
+                <SortableBeatCard
+                  key={beat.id}
+                  beat={beat}
+                  index={index}
+                  characters={characters}
+                  scenes={scenes}
+                  onEditClick={onEditClick}
+                  isSelected={editingBeatId === beat.id}
+                />
+              ))}
             </SortableContext>
           </DndContext>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

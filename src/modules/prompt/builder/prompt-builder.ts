@@ -7,6 +7,17 @@ import type {
 } from "@/domain/schemas";
 import { shotInstructionToPrompt } from "@/domain/utils";
 
+/**
+ * 仅把可被大模型访问的 URL（http/https/data）拼到 prompt 文本中。
+ * file:// / blob: / 本地路径对大模型无意义（模型无法访问本地文件系统），
+ * 且会暴露本地文件结构。图片本身已通过 reference 通道（characterRef/sceneRef）
+ * 传输到 apiGateway，prompt 文本里的 URL 仅作为对模型的"参考图已附加"提示。
+ */
+const SHAREABLE_URL_PROTOCOL = /^(https?:|data:)/i;
+function isShareableUrl(url: string | undefined | null): url is string {
+  return typeof url === "string" && SHAREABLE_URL_PROTOCOL.test(url);
+}
+
 export class PromptBuilder {
   buildGlobalElementDefinitions(elements: StoryElement[]): string {
     if (!elements || elements.length === 0) return "";
@@ -45,7 +56,12 @@ export class PromptBuilder {
 
       const imageBinding = element.bindings?.find((b) => b.type === "image");
       if (imageBinding?.url) {
-        parts.push(`  参考图：${imageBinding.url}`);
+        if (isShareableUrl(imageBinding.url)) {
+          parts.push(`  参考图：${imageBinding.url}`);
+        } else {
+          // 本地 URL（file://、blob: 等）对大模型无意义，仅提示已附加。
+          parts.push(`  参考图：已附加（通过 reference 通道传输）`);
+        }
         parts.push(`  一致性约束：严格继承参考图中的全部视觉特征，包括颜色、材质、形状、比例`);
       }
 
@@ -328,7 +344,12 @@ export class PromptBuilder {
 
     const imageBinding = element.bindings?.find((b) => b.type === "image");
     if (imageBinding?.url) {
-      parts.push(`  参考图：${imageBinding.url}（严格继承视觉特征）`);
+      if (isShareableUrl(imageBinding.url)) {
+        parts.push(`  参考图：${imageBinding.url}（严格继承视觉特征）`);
+      } else {
+        // 本地 URL（file://、blob: 等）对大模型无意义，仅提示已附加。
+        parts.push(`  参考图：已附加（严格继承视觉特征）`);
+      }
     }
 
     return parts.join("\n");

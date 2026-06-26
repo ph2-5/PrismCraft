@@ -1,14 +1,5 @@
 import { useRef, useMemo } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Button } from "@/shared/ui/button";
-import { Badge } from "@/shared/ui/badge";
-import {
   PlayCircle,
   Download,
   Trash2,
@@ -148,22 +139,22 @@ export function VideoTaskManager({
 
   return (
     <div className="w-full">
-      <Card className="border border-gray-200 dark:border-gray-800">
-        <CardHeader>
+      <div className="card border" style={{ padding: 16, borderColor: "var(--border)" }}>
+        <div style={{ paddingBottom: 12 }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="text-lg font-medium">{t("task.videoTaskManagement")}</CardTitle>
+              <div className="text-lg font-medium" style={{ fontSize: 16, fontWeight: 600 }}>{t("task.videoTaskManagement")}</div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
-                <CardDescription>{t("task.videoTaskManagementDesc")}</CardDescription>
+                <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{t("task.videoTaskManagementDesc")}</div>
                 {cacheStats && cacheStats.count > 0 && (
-                  <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                  <span className="badge badge-info" style={{ background: "rgba(var(--primary-rgb), 0.1)", color: "var(--primary)" }}>
                     {t("task.localCacheInfo", { count: cacheStats.count, size: cacheStats.totalSizeMB.toFixed(2) })}
-                  </Badge>
+                  </span>
                 )}
                 {selectedTaskIds.size > 0 && (
-                  <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                  <span className="badge badge-info bg-primary/10 text-primary">
                     {t("task.selectedCount", { count: selectedTaskIds.size })}
-                  </Badge>
+                  </span>
                 )}
               </div>
             </div>
@@ -171,34 +162,34 @@ export function VideoTaskManager({
               {filteredTasks.length > 0 && (
                 <>
                   {selectedTaskIds.size < filteredTasks.length ? (
-                    <Button variant="outline" size="sm" onClick={selectAllFilteredTasks} className="gap-1">
+                    <button type="button" className="btn btn-outline btn-sm gap-1" onClick={selectAllFilteredTasks}>
                       <Square className="w-4 h-4" />
                       {t("task.selectAll")}
-                    </Button>
+                    </button>
                   ) : (
-                    <Button variant="outline" size="sm" onClick={deselectAllTasks} className="gap-1">
+                    <button type="button" className="btn btn-outline btn-sm gap-1" onClick={deselectAllTasks}>
                       <CheckSquare className="w-4 h-4" />
                       {t("task.deselectAll")}
-                    </Button>
+                    </button>
                   )}
                 </>
               )}
               {selectedTaskIds.size > 0 && (
                 <>
-                  <Button variant="outline" size="sm" onClick={handleBatchDownload} className="gap-1">
+                  <button type="button" className="btn btn-outline btn-sm gap-1" onClick={handleBatchDownload}>
                     <Download className="w-4 h-4" />
                     {t("video.batchDownload")}
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-1">
+                  </button>
+                  <button type="button" className="btn btn-danger btn-sm gap-1" onClick={handleBulkDelete}>
                     <Trash2 className="w-4 h-4" />
                     {t("task.batchDelete")}
-                  </Button>
+                  </button>
                 </>
               )}
-              <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-1">
+              <button type="button" className="btn btn-outline btn-sm gap-1" onClick={handleExportCSV}>
                 <FileDown className="w-4 h-4" />
                 {t("task.exportCSV")}
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -216,10 +207,10 @@ export function VideoTaskManager({
             sortDesc={sortDesc}
             onSortDescChange={setSortDesc}
           />
-        </CardHeader>
-        <CardContent className="space-y-6">
+        </div>
+        <div className="space-y-6">
           {filteredTasks.length > 0 && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+            <div className="text-xs flex items-center justify-between" style={{ color: "var(--muted-fg)" }}>
               <span>{t("task.totalTaskCount", { count: filteredTasks.length })}</span>
               {filteredTasks.length > 50 && (
                 <span>{t("task.groupCollapseEnabled")}</span>
@@ -238,21 +229,22 @@ export function VideoTaskManager({
                     ? groupId
                     : groupBy === "date"
                       ? groupId
-                    : t("task.noGroup");
+                      : t("task.noGroup");
                 const isCollapsed = collapsedGroups.has(groupId);
 
                 return (
                   <div key={groupId || "ungrouped"} className="space-y-2">
                     {isStoryGroup || groupBy !== "none" ? (
                       <button
-                        className="flex items-center gap-2 text-purple-700 dark:text-purple-400 mb-2 w-full hover:bg-purple-50 dark:hover:bg-purple-900/10 rounded px-2 py-1 transition-colors"
+                        type="button"
+                        className="flex items-center gap-2 text-primary mb-2 w-full hover:bg-primary/10 rounded px-2 py-1 transition-colors"
                         onClick={() => toggleGroupCollapse(groupId)}
                       >
                         <FolderOpen className="w-4 h-4" />
                         <span className="font-medium">{storyTitle}</span>
-                        <Badge variant="outline" className="ml-2">
+                        <span className="badge ml-2">
                           {t("task.shotCount", { count: groupTasks.length })}
-                        </Badge>
+                        </span>
                         <span className="ml-auto text-xs">
                           {isCollapsed ? t("common.expand") : t("common.collapse")}
                         </span>
@@ -296,10 +288,10 @@ export function VideoTaskManager({
               })}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12" style={{ color: "var(--muted-fg)" }}>
               <PlayCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-sm">{t("task.noTasks")}</p>
-              <p className="text-xs mt-1 text-gray-400">{t("task.noTasksHint")}</p>
+              <p className="text-xs mt-1" style={{ color: "var(--muted-fg)" }}>{t("task.noTasksHint")}</p>
             </div>
           )}
 
@@ -311,13 +303,13 @@ export function VideoTaskManager({
           />
 
           {hasActiveTasks && onBackgroundProcess && (
-            <Button variant="default" onClick={onBackgroundProcess} className="w-full">
+            <button type="button" className="btn btn-primary w-full" onClick={onBackgroundProcess}>
               <PlayCircle className="w-4 h-4 mr-2" />
               {t("task.backgroundProcessing")}
-            </Button>
+            </button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <TaskTrackingDialog
         open={trackingDialogOpen}

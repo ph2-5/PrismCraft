@@ -1,6 +1,5 @@
 import { Play, Upload, Loader2, RefreshCw } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { AppCard } from "@/shared/ui/app-card";
+import { AppCard } from "@/shared/presentation/AppCard";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { t } from "@/shared/constants/messages";
@@ -49,9 +48,9 @@ export function VideoStepContent({
     <AppCard
       className={`transition-all ${
         status === "generating"
-          ? "border-blue-500/50 shadow-lg shadow-blue-500/10"
+          ? "border-primary/50 shadow-lg shadow-primary/10"
           : status === "completed"
-            ? "border-emerald-500/30"
+            ? "border-success/30"
             : status === "pending"
               ? "opacity-50"
               : ""
@@ -62,13 +61,14 @@ export function VideoStepContent({
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
               status === "completed"
-                ? "bg-emerald-500/20 text-emerald-400"
+                ? "bg-success/20 text-success"
                 : status === "generating"
-                  ? "bg-blue-500/20 text-blue-400"
+                  ? "bg-primary/20"
                   : status === "pending"
-                    ? "bg-slate-700/50 text-slate-500"
-                    : "bg-slate-700/50 text-slate-400"
+                    ? "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground"
             }`}
+            style={status === "generating" ? { color: "var(--primary)" } : undefined}
           >
             {status === "generating" ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -78,19 +78,19 @@ export function VideoStepContent({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white">
+              <span className="text-sm font-medium text-foreground">
                 {t("keyframe.stepVideo")}
               </span>
               {status === "completed" && (
-                <span className="text-xs text-emerald-400">✓</span>
+                <span className="text-xs text-success">✓</span>
               )}
               {status === "generating" && (
-                <span className="text-xs text-blue-400 animate-pulse">
+                <span className="text-xs animate-pulse" style={{ color: "var(--primary)" }}>
                   {t("keyframe.generating")}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {t("keyframe.videoDesc")}
             </p>
           </div>
@@ -102,19 +102,18 @@ export function VideoStepContent({
               className="hidden"
               onChange={(e) => onFileSelect(e, onUploadVideo)}
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="bg-slate-700 hover:bg-slate-600"
+            <button
+              type="button"
+              className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
               onClick={() => videoInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-1" />
               {t("common.upload")}
-            </Button>
+            </button>
             {!hasVideo ? (
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+              <button
+                type="button"
+                className="btn btn-primary btn-sm bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                 onClick={onGenerateVideo}
                 disabled={isGenerating || !hasFramePair}
               >
@@ -124,18 +123,17 @@ export function VideoStepContent({
                   <Play className="w-4 h-4 mr-1" />
                 )}
                 {t("beat.generateVideo")}
-              </Button>
+              </button>
             ) : onRegenerateVideo ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-slate-700 hover:bg-slate-600"
+              <button
+                type="button"
+                className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
                 onClick={onRegenerateVideo}
                 disabled={isGenerating}
               >
                 <RefreshCw className="w-4 h-4 mr-1" />
                 {t("common.regenerate")}
-              </Button>
+              </button>
             ) : null}
           </div>
         </div>
@@ -145,7 +143,7 @@ export function VideoStepContent({
             <video
               src={resolveMediaUrl(localVideoPath, videoUrl) || ""}
               controls
-              className="w-full max-h-64 rounded-lg border border-slate-700"
+              className="w-full max-h-64 rounded-lg border border-border"
               onError={createVideoErrorHandler(videoUrl)}
             />
           </div>

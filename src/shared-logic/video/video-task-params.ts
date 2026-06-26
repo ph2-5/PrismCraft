@@ -4,8 +4,6 @@ import {
   type CharacterInput,
   type SceneInput,
   type ElementInput,
-  type BeatInput,
-  type QuickModeParams,
 } from "../prompt/prompt-service";
 
 interface Beat {
@@ -66,7 +64,7 @@ export function buildVideoGenerationParams(params: {
   const prompt =
     prebuiltPrompt ||
     generateSingleBeatPrompt({
-      beat: beat as BeatInput | undefined,
+      beat,
       characters,
       scenes,
       elements,
@@ -85,6 +83,15 @@ export function buildVideoGenerationParams(params: {
         "尾帧画面：视频必须以尾帧画面结束，保持角色姿态、表情、场景完全一致",
       );
     enhancedPrompt = `${prompt}\n\n【首尾帧画面约束】\n${frameConstraints.join("\n")}`;
+  }
+
+  // Empty-prompt guard: previously this function returned a params object
+  // even when prompt was an empty string (e.g., when beat/characters/scenes
+  // were all undefined due to upstream schema issues). The api-gateway only
+  // rejects truly empty strings, so a prompt with only "[Quality Requirements]"
+  // could slip through. Explicitly reject here so callers see the real cause.
+  if (!enhancedPrompt.trim()) {
+    throw new Error("EMPTY_GENERATED_PROMPT");
   }
 
   return {
@@ -138,7 +145,7 @@ export function buildQuickVideoParams(params: {
       characters,
       scene,
       referenceImage,
-    } as QuickModeParams);
+    });
 
   return {
     prompt: videoPrompt,

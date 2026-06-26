@@ -1,12 +1,6 @@
 import { ImageIcon } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
 import { t } from "@/shared/constants";
+import { Modal } from "./Modal";
 
 interface Asset {
   id: string;
@@ -34,19 +28,23 @@ export function AssetSelectorDialog({
   const imageAssets = assets.filter((a) => a.type === "image");
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{t("dialog.selectAsset")}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto">
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={t("dialog.selectAsset")}
+      style={{ maxWidth: 1024, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{t("dialog.selectAsset")}</div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{description}</div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto" }}>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
             {imageAssets.map((asset) => (
               <div
                 key={asset.id}
                 onClick={() => onSelect(asset)}
-                className="cursor-pointer group relative aspect-square rounded-lg overflow-hidden border border-slate-700 hover:border-amber-500 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="cursor-pointer group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-warning transition-all focus:outline-none focus:ring-2 focus:ring-warning"
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -78,14 +76,13 @@ export function AssetSelectorDialog({
             ))}
           </div>
           {imageAssets.length === 0 && (
-            <div className="text-center py-12 text-slate-400">
+            <div className="text-center py-12 text-muted-foreground">
               <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>{t("dialog.noImagesInLibrary")}</p>
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </Modal>
   );
 }
 

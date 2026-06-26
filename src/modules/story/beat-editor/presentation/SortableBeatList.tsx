@@ -59,52 +59,106 @@ function SortableBeatItem({
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors cursor-pointer ${
-        isSelected
-          ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600"
-          : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-800"
-      } ${isDragging ? "shadow-lg" : ""}`}
+      style={{
+        ...style,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "10px 12px",
+        borderRadius: 8,
+        border: `1px solid ${isSelected ? "var(--primary)" : "var(--border)"}`,
+        background: isSelected ? "rgba(99,102,241,0.08)" : "var(--card)",
+        cursor: "pointer",
+        transition: "border-color 0.15s, background 0.15s",
+        boxShadow: isDragging ? "0 4px 12px rgba(0,0,0,0.15)" : undefined,
+      }}
       onClick={() => onSelect(beat.id)}
     >
       <button
-        className="p-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 touch-none"
+        style={{
+          padding: 4,
+          cursor: "grab",
+          color: "var(--muted-fg)",
+          touchAction: "none",
+          background: "transparent",
+          border: "none",
+        }}
         {...attributes}
         {...listeners}
       >
         <GripVertical size={16} />
       </button>
 
-      <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400 shrink-0">
+      <span
+        style={{
+          width: 24,
+          height: 24,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          background: "var(--muted)",
+          fontSize: 11,
+          fontWeight: 500,
+          color: "var(--muted-fg)",
+          flexShrink: 0,
+        }}
+      >
         {index + 1}
       </span>
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: "var(--fg)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
           {beat.title || t("beat.shotNumber", { number: index + 1 })}
         </p>
         {beat.description && (
-          <p className="text-xs text-gray-500 truncate mt-0.5">
+          <p
+            style={{
+              fontSize: 11,
+              color: "var(--muted-fg)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              marginTop: 2,
+            }}
+          >
             {beat.description}
           </p>
         )}
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {beat.shotType && (
-          <span className="text-xs px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+          <span className="badge badge-info" style={{ fontSize: 10 }}>
             {beat.shotType}
           </span>
         )}
-        <span className="flex items-center gap-0.5 text-xs text-gray-400">
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            fontSize: 11,
+            color: "var(--muted-fg)",
+          }}
+        >
           <Clock size={12} />
           {beat.duration || 5}s
         </span>
         {hasKeyframe && (
-          <Image size={14} className="text-green-500" />
+          <Image size={14} style={{ color: "var(--success)" }} />
         )}
         {hasVideo && (
-          <Video size={14} className="text-blue-500" />
+          <Video size={14} style={{ color: "var(--primary)" }} />
         )}
       </div>
     </div>
@@ -148,10 +202,16 @@ export default function SortableBeatList({
 
   if (beats.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400">
-        <Film size={40} className="mx-auto mb-2 opacity-50" />
-        <p className="text-sm">{t("beat.noBeatsYet")}</p>
-        <p className="text-xs mt-1">{t("beat.addBeatsToStart")}</p>
+      <div
+        style={{
+          textAlign: "center",
+          padding: "48px 0",
+          color: "var(--muted-fg)",
+        }}
+      >
+        <Film size={40} style={{ margin: "0 auto 8px", opacity: 0.5 }} />
+        <p style={{ fontSize: 13 }}>{t("beat.noBeatsYet")}</p>
+        <p style={{ fontSize: 12, marginTop: 4 }}>{t("beat.addBeatsToStart")}</p>
       </div>
     );
   }
@@ -166,8 +226,10 @@ export default function SortableBeatList({
         items={beats.map((b) => b.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground mb-1">{t("beat.dragToReorder")}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <p style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 4 }}>
+            {t("beat.dragToReorder")}
+          </p>
           {beats.map((beat, index) => (
             <SortableBeatItem
               key={beat.id}

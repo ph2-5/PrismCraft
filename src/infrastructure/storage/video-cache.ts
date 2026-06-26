@@ -20,8 +20,11 @@ async function withCacheMutex<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 let beforeUnloadHandler: (() => void) | null = null;
+let beforeUnloadRegistered = false;
 
-if (typeof window !== "undefined") {
+function ensureBeforeUnloadRegistered(): void {
+  if (beforeUnloadRegistered || typeof window === "undefined") return;
+  beforeUnloadRegistered = true;
   beforeUnloadHandler = () => {
     cleanupAllObjectUrls();
   };
@@ -33,10 +36,12 @@ export function cleanupVideoCache(): void {
   if (beforeUnloadHandler && typeof window !== "undefined") {
     window.removeEventListener("beforeunload", beforeUnloadHandler);
     beforeUnloadHandler = null;
+    beforeUnloadRegistered = false;
   }
 }
 
 export function registerObjectUrl(taskId: string, url: string): void {
+  ensureBeforeUnloadRegistered();
   // 超过上限时淘汰最旧条目（Map 保持插入顺序）
   if (objectUrlRegistry.size >= MAX_OBJECT_URLS && !objectUrlRegistry.has(taskId)) {
     const oldestKey = objectUrlRegistry.keys().next().value;
@@ -97,7 +102,10 @@ export const videoCacheStorage = {
     fileSize: number;
   }): Promise<void> {
     return withCacheMutex(async () => {
-      const MAX_CACHE_BYTES = 2 * 1024 * 1024 * 1024;
+      // 与 services/video-cache.ts 的 MAX_TOTAL_BLOB_SIZE_MB (10240MB = 10GB) 保持一致。
+      // services 层在 cacheVideoBlob 调用本方法之前会先做大小检查（保留 70% 阈值），
+      // 因此此处的 MAX_CACHE_BYTES 主要作为防御性 fallback。
+      const MAX_CACHE_BYTES = 10 * 1024 * 1024 * 1024;
       const currentSize = await videoCacheStorage.getTotalVideoCacheSize();
       if (currentSize + meta.fileSize > MAX_CACHE_BYTES) {
         await videoCacheStorage.cleanVideoCacheBySizeLimit(MAX_CACHE_BYTES - meta.fileSize);

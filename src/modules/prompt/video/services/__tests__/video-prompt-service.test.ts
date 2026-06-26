@@ -176,7 +176,7 @@ describe("generateProfessionalVideoPrompt", () => {
   it("场景氛围：beat 中的场景应包含氛围描述", () => {
     const result = generateProfessionalVideoPrompt({
       story: makeStory(),
-      beats: [makeBeat({ scene: "s1", title: "镜头1", content: "内容" })],
+      beats: [makeBeat({ sceneId: "s1", title: "镜头1", content: "内容" })],
       characters: [],
       scenes: [makeScene({ id: "s1", name: "森林" })],
     });

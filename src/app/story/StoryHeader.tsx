@@ -1,13 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import { Plus, ChevronDown, Trash2, Save } from "lucide-react";
 import { DEFAULT_STORY, genres, tones } from "@/modules/story";
 import { t } from "@/shared/constants";
@@ -44,19 +35,26 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
   return (
     <>
       <div className="relative" ref={dropdownRef}>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 min-w-[160px] justify-between"
+        <button
+          type="button"
+          className="btn btn-outline btn-sm gap-2 min-w-[160px] justify-between"
           onClick={() => setShowProjectDropdown(!showProjectDropdown)}
         >
           <span className="truncate">
             {story.currentStory.title || t("beat.unnamedProject")}
           </span>
           <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-        </Button>
+        </button>
         {showProjectDropdown && (
-          <div className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto">
+          <div
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setShowProjectDropdown(false);
+              }
+            }}
+            className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto"
+          >
             <button
               className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
               onClick={async () => {
@@ -73,7 +71,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
               }}
             >
               <Plus className="w-4 h-4 text-primary" />
-              {t("beat.createBeat")}
+              {t("story.newProject")}
             </button>
             {story.stories.length > 0 && (
               <div className="border-t border-border my-1" />
@@ -81,6 +79,15 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
             {story.stories.map((s) => (
               <div
                 key={s.id}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowProjectDropdown(false);
+                    onSwitchStory(s);
+                  }
+                }}
                 className={`w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center justify-between group ${
                   s.id === story.currentStory.id ? "bg-muted" : ""
                 }`}
@@ -90,7 +97,14 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
                 }}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                  <div
+                    className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, var(--primary), var(--primary-hover))",
+                      color: "white",
+                    }}
+                  >
                     {(s.title || "?").charAt(0)}
                   </div>
                   <span className="truncate">
@@ -117,7 +131,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
         )}
       </div>
 
-      <Input
+      <input
         data-testid="story-title-input"
         placeholder={t("story.titlePlaceholder")}
         value={story.currentStory.title ?? ""}
@@ -127,11 +141,12 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
             title: e.target.value,
           }))
         }
-        className="max-w-[200px] h-8 text-sm"
+        className="input max-w-[200px] h-8 text-sm"
+        style={{ fontSize: 12, padding: "6px 10px" }}
         aria-label={t("story.titlePlaceholder")}
       />
 
-      <Input
+      <input
         data-testid="story-description-input"
         placeholder={t("story.descPlaceholder")}
         value={story.currentStory.description ?? ""}
@@ -141,51 +156,44 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
             description: e.target.value,
           }))
         }
-        className="max-w-[240px] h-8 text-sm flex-1"
+        className="input max-w-[240px] h-8 text-sm flex-1"
+        style={{ fontSize: 12, padding: "6px 10px" }}
         aria-label={t("story.descPlaceholder")}
       />
 
-      <Select
+      <select
+        className="select w-24 h-8 text-xs"
         value={story.currentStory.genre ?? ""}
-        onValueChange={(value) =>
+        onChange={(e) =>
           story.setCurrentStory((prev) => ({
             ...prev,
-            genre: value || undefined,
+            genre: e.target.value || undefined,
           }))
         }
       >
-        <SelectTrigger className="w-24 h-8 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {genres.map((genre) => (
-            <SelectItem key={genre.value} value={genre.value}>
-              {genre.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        {genres.map((genre) => (
+          <option key={genre.value} value={genre.value}>
+            {genre.label}
+          </option>
+        ))}
+      </select>
 
-      <Select
+      <select
+        className="select w-24 h-8 text-xs"
         value={story.currentStory.tone ?? ""}
-        onValueChange={(value) =>
+        onChange={(e) =>
           story.setCurrentStory((prev) => ({
             ...prev,
-            tone: value || undefined,
+            tone: e.target.value || undefined,
           }))
         }
       >
-        <SelectTrigger className="w-24 h-8 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {tones.map((tone) => (
-            <SelectItem key={tone.value} value={tone.value}>
-              {tone.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        {tones.map((tone) => (
+          <option key={tone.value} value={tone.value}>
+            {tone.label}
+          </option>
+        ))}
+      </select>
 
       <div className="flex-1" />
 
@@ -193,16 +201,15 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
         status={story.hasUnsavedChanges ? "unsaved" : story.saveStatus}
         errorMessage={story.saveError}
       />
-      <Button
-        variant="outline"
-        size="sm"
+      <button
+        type="button"
+        className="btn btn-outline btn-sm gap-1.5 h-8"
         onClick={story.handleSave}
-        disabled={story.saveStatus === "saving"}
-        className="gap-1.5 h-8"
+        disabled={story.saveStatus === "saving" || !(story.currentStory.title ?? "").trim()}
       >
         <Save className="w-3.5 h-3.5" />
         {t("common.save")}
-      </Button>
+      </button>
     </>
   );
 }

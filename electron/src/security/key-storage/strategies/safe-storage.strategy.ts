@@ -31,6 +31,8 @@ export class SafeStorageStrategy implements KeyStorageStrategy {
   readonly priority = 1; // 最高优先级
 
   private dataCache: Map<string, string> | null = null;
+  // R182/H2: 写互斥锁，防止多窗口并发 save 时 dataCache 与文件内容互相覆盖
+  private writeChain: Promise<void> = Promise.resolve();
 
   isAvailable(): boolean {
     try {
@@ -43,9 +45,17 @@ export class SafeStorageStrategy implements KeyStorageStrategy {
 
   async save(key: string, value: string): Promise<StorageResult> {
     try {
-      const data = await this.loadAllData();
-      data.set(key, value);
-      await this.saveAllData(data);
+      // 串行化所有写操作，避免并发 save 导致 dataCache 与文件状态不一致
+      const run = async (): Promise<void> => {
+        const data = await this.loadAllData();
+        data.set(key, value);
+        await this.saveAllData(data);
+      };
+      // 将本次写操作链接到写链尾部，确保串行执行
+      const next = this.writeChain.then(run, run);
+      // 更新写链但不要让链上的 rejection 阻断后续调用
+      this.writeChain = next.catch(() => {});
+      await next;
       return { ok: true, value: undefined };
     } catch (error) {
       return { ok: false, error: `safeStorage save failed: ${(error as Error).message}` };
@@ -64,10 +74,15 @@ export class SafeStorageStrategy implements KeyStorageStrategy {
 
   async delete(key: string): Promise<StorageResult> {
     try {
-      const data = await this.loadAllData();
-      data.delete(key);
-      await this.saveAllData(data);
-      this.dataCache = null; // 清除缓存
+      const run = async (): Promise<void> => {
+        const data = await this.loadAllData();
+        data.delete(key);
+        await this.saveAllData(data);
+        this.dataCache = null; // 清除缓存
+      };
+      const next = this.writeChain.then(run, run);
+      this.writeChain = next.catch(() => {});
+      await next;
       return { ok: true, value: undefined };
     } catch (error) {
       return { ok: false, error: `safeStorage delete failed: ${(error as Error).message}` };

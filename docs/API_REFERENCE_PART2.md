@@ -2109,9 +2109,11 @@ function useAssetLoader(services: AssetLoaderServices): {
 
 #### `BeatDetailEditor`
 
+> 已拆分为 BeatNavigation + BeatUploadPanel + BeatPromptPanel + BeatGenerationPanel + BeatDetailEditor（父组件）
+
 ```typescript
 function BeatDetailEditor(props: React.ComponentProps<typeof BeatDetailEditor>): JSX.Element;
-// 镜头详情编辑器
+// 镜头详情编辑器（父组件）
 ```
 
 #### `BeatOverviewCard`

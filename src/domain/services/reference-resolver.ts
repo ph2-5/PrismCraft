@@ -24,14 +24,15 @@ function resolveElementBindingImage(
   if (!element) return undefined;
 
   const primaryBinding = element.bindings?.find((b) => b.isPrimary && b.type === "image");
-  if (isValidRefUrl(primaryBinding?.url)) return primaryBinding!.url;
+  const primaryBindingUrl = primaryBinding?.url;
+  if (isValidRefUrl(primaryBindingUrl)) return primaryBindingUrl;
 
   const firstImageBinding = element.bindings?.find((b) => b.type === "image");
-  if (isValidRefUrl(firstImageBinding?.url)) return firstImageBinding!.url;
+  const firstImageBindingUrl = firstImageBinding?.url;
+  if (isValidRefUrl(firstImageBindingUrl)) return firstImageBindingUrl;
 
-  if (isValidRefUrl(element.featureAnchor?.referenceImageUrl)) {
-    return element.featureAnchor!.referenceImageUrl;
-  }
+  const featureAnchorUrl = element.featureAnchor?.referenceImageUrl;
+  if (isValidRefUrl(featureAnchorUrl)) return featureAnchorUrl;
 
   return undefined;
 }

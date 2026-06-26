@@ -1,278 +1,346 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from "react";
-import { useCharacters } from "@/modules/character";
-import { useScenes } from "@/modules/scene";
-import { errorLogger } from "@/shared/error-logger";
-import { isElectron } from "@/shared/utils/platform";
-import { Badge } from "@/shared/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { useState } from "react";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
-import {
-  Users,
-  Image as ImageIcon,
-  Film,
-  FolderOpen,
-} from "lucide-react";
-import type {
-  StoryboardAsset,
-  Collection,
-  CollectionAsset,
-  ImportMode,
-} from "@/domain/schemas";
 import { t } from "@/shared/constants/messages";
-import { AssetCardGrid, fetchSecondaryData } from "./AssetCardGrid";
-import type { AssetTab, EditingItem } from "./AssetCardGrid";
+import { AssetCardGrid } from "./AssetCardGrid";
 import { AssetEditDialog } from "./AssetEditDialog";
 import { AssetCollectionDialogs } from "./AssetCollectionDialogs";
 import { AssetUploadSection } from "./AssetUploadSection";
 import { AssetToolbar } from "./AssetToolbar";
-import { useAssetLibraryActions } from "./useAssetLibraryActions";
+import { useAssetLibraryPage } from "./hooks/useAssetLibraryPage";
+import type { AssetTab } from "./AssetCardGrid";
+
+// 预览页面左侧分类树容器样式：
+// width:200px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;
+// padding:12px;display:flex;flex-direction:column;gap:2px;
+const categoryTreeStyle: React.CSSProperties = {
+  width: 200,
+  flexShrink: 0,
+  borderRight: "1px solid var(--border)",
+  overflowY: "auto",
+  padding: 12,
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+};
+
+const categoryDividerStyle: React.CSSProperties = {
+  borderTop: "1px solid var(--border)",
+  margin: "8px 0",
+};
+
+// 预览页面分类按钮基础样式：
+// justify-content:flex-start;width:100%;
+const categoryBtnBaseStyle: React.CSSProperties = {
+  justifyContent: "flex-start",
+  width: "100%",
+};
+
+// 预览页面选中态：background:rgba(99,102,241,0.1);color:var(--fg);
+const categoryBtnActiveStyle: React.CSSProperties = {
+  background: "rgba(99,102,241,0.1)",
+  color: "var(--fg)",
+};
+
+// 预览页面计数标签：font-size:10px;color:var(--muted-fg);margin-left:auto;
+const countBadgeStyle: React.CSSProperties = {
+  fontSize: 10,
+  color: "var(--muted-fg)",
+  marginLeft: "auto",
+};
+
+// 预览页面道具子分类容器样式：
+// margin-left:12px;display:flex;flex-direction:column;gap:1px;
+const propSubCatsStyle: React.CSSProperties = {
+  marginLeft: 12,
+  display: "flex",
+  flexDirection: "column",
+  gap: 1,
+};
+
+interface CategoryButtonProps {
+  icon: string;
+  label: string;
+  count?: number;
+  active: boolean;
+  onClick: () => void;
+  size?: "sm" | "xs";
+}
+
+function CategoryButton({ icon, label, count, active, onClick, size = "sm" }: CategoryButtonProps) {
+  const btnClassName = size === "xs" ? "btn btn-ghost btn-xs" : "btn btn-ghost btn-sm";
+  const extraStyle: React.CSSProperties =
+    size === "xs"
+      ? { justifyContent: "flex-start", width: "100%", fontSize: 11 }
+      : { ...categoryBtnBaseStyle };
+  return (
+    <button
+      type="button"
+      className={btnClassName}
+      style={{
+        ...extraStyle,
+        ...(active ? categoryBtnActiveStyle : {}),
+      }}
+      onClick={onClick}
+    >
+      <span style={{ marginRight: 6 }}>{icon}</span>
+      {label}
+      {count !== undefined && count > 0 && (
+        <span style={countBadgeStyle}>{count}</span>
+      )}
+    </button>
+  );
+}
 
 export default function AssetLibraryPage() {
-  const { data: characters = [], isLoading: charactersLoading } = useCharacters();
-  const { data: scenes = [], isLoading: scenesLoading } = useScenes();
-  const [activeTab, setActiveTab] = useState<AssetTab>("characters");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [importMode, setImportMode] = useState<ImportMode>("skip");
-
-  const [storyboards, setStoryboards] = useState<StoryboardAsset[]>([]);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [collectionAssets, setCollectionAssets] = useState<CollectionAsset[]>([]);
-  const [secondaryDataLoading, setSecondaryDataLoading] = useState(true);
-
-  const setSecondaryData = useCallback((data: { storyboards: StoryboardAsset[]; collections: Collection[]; collectionAssets: CollectionAsset[] }) => {
-    setStoryboards(data.storyboards);
-    setCollections(data.collections);
-    setCollectionAssets(data.collectionAssets);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!isElectron()) {
-        if (!cancelled) setSecondaryDataLoading(false);
-        return;
-      }
-      try {
-        const data = await fetchSecondaryData();
-        if (!cancelled) {
-          setSecondaryData(data);
-          setSecondaryDataLoading(false);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          errorLogger.warn("Failed to load secondary data", err);
-          setSecondaryDataLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [setSecondaryData]);
-
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] = useState(false);
-
-  const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const [newCollectionName, setNewCollectionName] = useState("");
-  const [addToCollectionId, setAddToCollectionId] = useState("");
-  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
-  const [isAddingToCollection, setIsAddingToCollection] = useState(false);
-  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const selectAll = useCallback((ids: string[]) => {
-    setSelectedIds(new Set(ids));
-  }, []);
-
-  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
-
-  const actions = useAssetLibraryActions({
-    activeTab,
-    selectedIds,
-    clearSelection,
-    setSelectedIds,
-    setSecondaryData,
-    setIsBatchDeleting,
-    setIsAddingToCollection,
-    setIsCollectionDialogOpen,
-    setIsImportDialogOpen,
-    setIsNewCollectionDialogOpen,
-    setIsEditDialogOpen,
-    setEditingItem,
-    setIsSavingEdit,
-    setIsCreatingCollection,
-    setNewCollectionName,
-    setAddToCollectionId,
-    addToCollectionId,
-    newCollectionName,
-    editingItem,
+  const {
+    characters,
+    scenes,
+    storyboards,
+    collections,
+    collectionAssets,
+    filteredCharacters,
+    filteredScenes,
+    filteredStoryboards,
+    currentItems,
+    charactersLoading,
+    scenesLoading,
+    secondaryDataLoading,
     isBatchDeleting,
-  });
+    isSavingEdit,
+    isAddingToCollection,
+    isCreatingCollection,
+    activeTab,
+    searchQuery,
+    setSearchQuery,
+    handleTabChange,
+    selectedIds,
+    toggleSelect,
+    clearSelection,
+    handleSelectAll,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    isCollectionDialogOpen,
+    setIsCollectionDialogOpen,
+    isImportDialogOpen,
+    setIsImportDialogOpen,
+    isNewCollectionDialogOpen,
+    setIsNewCollectionDialogOpen,
+    editingItem,
+    handleEditingItemChange,
+    addToCollectionId,
+    setAddToCollectionId,
+    newCollectionName,
+    setNewCollectionName,
+    importMode,
+    setImportMode,
+    fileInputRef,
+    handleOpenImportDialog,
+    handleOpenCollectionDialog,
+    handleNewCollection,
+    handleImport,
+    handleBatchDelete,
+    handleBatchExport,
+    handleAddToCollection,
+    handleCreateCollection,
+    handleDeleteCharacter,
+    handleDeleteScene,
+    handleDeleteStoryboard,
+    handleDeleteCollection,
+    handleExportCollection,
+    handleEditItem,
+    handleSaveEdit,
+  } = useAssetLibraryPage();
 
-  const filteredCharacters = useMemo(
-    () =>
-      characters.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.tags?.some((t) =>
-            t.toLowerCase().includes(searchQuery.toLowerCase()),
-          ),
-      ),
-    [characters, searchQuery],
-  );
-
-  const filteredScenes = useMemo(
-    () =>
-      scenes.filter(
-        (s) =>
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.tags?.some((t) =>
-            t.toLowerCase().includes(searchQuery.toLowerCase()),
-          ),
-      ),
-    [scenes, searchQuery],
-  );
-
-  const filteredStoryboards = useMemo(
-    () =>
-      storyboards.filter((sb) =>
-        sb.script.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
-    [storyboards, searchQuery],
-  );
-
-  const currentItems =
-    activeTab === "characters"
-      ? filteredCharacters
-      : activeTab === "scenes"
-        ? filteredScenes
-        : activeTab === "storyboards"
-          ? filteredStoryboards
-          : searchQuery
-            ? collections.filter((c) =>
-                c.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-              )
-            : collections;
+  // 上传区域显示状态（纯 UI 状态，对齐预览页面行为）
+  const [showUploadArea, setShowUploadArea] = useState(false);
 
   return (
     <PageErrorBoundary>
-      <div className="h-full space-y-4">
+      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        {/* Top Tabs Header — 对齐预览页面：space-between 标题栏 + toolbar */}
+        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>
+            📦 {t("asset.libraryTitle")}
+          </span>
+          <div className="toolbar">
+            <input
+              className="input"
+              placeholder={t("asset.searchNameDescTag")}
+              style={{ fontSize: 12, padding: "6px 10px", width: 180 }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowUploadArea(true)}
+            >
+              + {t("common.upload")}
+            </button>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={handleOpenImportDialog}
+            >
+              📥 {t("asset.importAsa")}
+            </button>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={handleBatchExport}
+            >
+              📤 {t("asset.export")}
+            </button>
+          </div>
+        </div>
+
+        {/* Upload Section — 对齐预览页面：默认隐藏，点击"上传素材"显示 */}
         <AssetUploadSection
-          onOpenImportDialog={() => setIsImportDialogOpen(true)}
+          visible={showUploadArea}
+          onClose={() => setShowUploadArea(false)}
           fileInputRef={fileInputRef}
-          onImport={actions.handleImport}
+          onImport={handleImport}
         />
 
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => {
-            setActiveTab(v as AssetTab);
-            clearSelection();
-            setSearchQuery("");
-          }}
-        >
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="characters" className="gap-1">
-              <Users className="w-4 h-4" />
-              {t("asset.characterLibrary")}
-              {characters.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs">
-                  {characters.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="scenes" className="gap-1">
-              <ImageIcon className="w-4 h-4" />
-              {t("asset.sceneLibrary")}
-              {scenes.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs">
-                  {scenes.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="storyboards" className="gap-1">
-              <Film className="w-4 h-4" />
-              {t("asset.storyboardLibrary")}
-              {storyboards.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs">
-                  {storyboards.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="collections" className="gap-1">
-              <FolderOpen className="w-4 h-4" />
-              {t("asset.myCollections")}
-              {collections.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs">
-                  {collections.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+        {/* Batch Toolbar — 对齐预览页面：选中时显示 */}
+        <AssetToolbar
+          activeTab={activeTab}
+          selectedIdsSize={selectedIds.size}
+          isBatchDeleting={isBatchDeleting}
+          onBatchDelete={handleBatchDelete}
+          onBatchExport={handleBatchExport}
+          onOpenCollectionDialog={handleOpenCollectionDialog}
+          onClearSelection={clearSelection}
+          onSelectAll={handleSelectAll}
+          showSelectAll={currentItems.length > 0}
+        />
 
-          <AssetToolbar
-            activeTab={activeTab}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            selectedIdsSize={selectedIds.size}
-            isBatchDeleting={isBatchDeleting}
-            onBatchDelete={actions.handleBatchDelete}
-            onBatchExport={actions.handleBatchExport}
-            onOpenCollectionDialog={() => setIsCollectionDialogOpen(true)}
-            onClearSelection={clearSelection}
-            onSelectAll={() =>
-              selectAll(currentItems.map((i: { id: string }) => i.id))
-            }
-            showSelectAll={currentItems.length > 0}
-          />
+        {/* Main Content: Left Category Tree + Right Grid */}
+        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          {/* Left: Category Tree — 完全对齐预览页面分类树 */}
+          <div style={categoryTreeStyle}>
+            <div className="section-label" style={{ marginBottom: 6 }}>
+              {t("asset.category")}
+            </div>
+            {/* 全部素材 — 默认选中 */}
+            <CategoryButton
+              icon="📁"
+              label={t("asset.allAssets")}
+              active={activeTab === "all"}
+              onClick={() => handleTabChange("all" as AssetTab)}
+            />
+            {/* 角色素材 */}
+            <CategoryButton
+              icon="👤"
+              label={t("asset.characterLibrary")}
+              count={characters.length}
+              active={activeTab === "characters"}
+              onClick={() => handleTabChange("characters" as AssetTab)}
+            />
+            {/* 场景素材 */}
+            <CategoryButton
+              icon="🏙"
+              label={t("asset.sceneLibrary")}
+              count={scenes.length}
+              active={activeTab === "scenes"}
+              onClick={() => handleTabChange("scenes" as AssetTab)}
+            />
+            {/* 分镜素材 */}
+            <CategoryButton
+              icon="🎬"
+              label={t("asset.storyboardLibrary")}
+              count={storyboards.length}
+              active={activeTab === "storyboards"}
+              onClick={() => handleTabChange("storyboards" as AssetTab)}
+            />
+            {/* 道具 + 子分类 */}
+            <CategoryButton
+              icon="📦"
+              label={t("asset.props")}
+              active={activeTab === "props"}
+              onClick={() => handleTabChange("props" as AssetTab)}
+            />
+            <div style={propSubCatsStyle}>
+              <CategoryButton
+                icon="└ 👗"
+                label={t("asset.propClothing")}
+                active={activeTab === "prop-clothing"}
+                onClick={() => handleTabChange("prop-clothing" as AssetTab)}
+                size="xs"
+              />
+              <CategoryButton
+                icon="└ ⚔"
+                label={t("asset.propWeapon")}
+                active={activeTab === "prop-weapon"}
+                onClick={() => handleTabChange("prop-weapon" as AssetTab)}
+                size="xs"
+              />
+              <CategoryButton
+                icon="└ 💍"
+                label={t("asset.propAccessory")}
+                active={activeTab === "prop-accessory"}
+                onClick={() => handleTabChange("prop-accessory" as AssetTab)}
+                size="xs"
+              />
+              <CategoryButton
+                icon="└ 🔧"
+                label={t("asset.propProp")}
+                active={activeTab === "prop-prop"}
+                onClick={() => handleTabChange("prop-prop" as AssetTab)}
+                size="xs"
+              />
+            </div>
+            {/* 分隔线 */}
+            <div style={categoryDividerStyle} />
+            {/* 收藏集 */}
+            <CategoryButton
+              icon="⭐"
+              label={t("asset.myCollections")}
+              count={collections.length}
+              active={activeTab === "collections"}
+              onClick={() => handleTabChange("collections" as AssetTab)}
+            />
+            {/* 媒体资产 */}
+            <CategoryButton
+              icon="🖼"
+              label={t("asset.media")}
+              active={activeTab === "media"}
+              onClick={() => handleTabChange("media" as AssetTab)}
+            />
+          </div>
 
-          <AssetCardGrid
-            activeTab={activeTab}
-            characters={characters}
-            scenes={scenes}
-            collections={collections}
-            collectionAssets={collectionAssets}
-            filteredCharacters={filteredCharacters}
-            filteredScenes={filteredScenes}
-            filteredStoryboards={filteredStoryboards}
-            charactersLoading={charactersLoading}
-            scenesLoading={scenesLoading}
-            secondaryDataLoading={secondaryDataLoading}
-            selectedIds={selectedIds}
-            onToggleSelect={toggleSelect}
-            onEditItem={actions.handleEditItem}
-            onDeleteCharacter={actions.handleDeleteCharacter}
-            onDeleteScene={actions.handleDeleteScene}
-            onDeleteStoryboard={actions.handleDeleteStoryboard}
-            onDeleteCollection={actions.handleDeleteCollection}
-            onExportCollection={actions.handleExportCollection}
-            onNewCollection={() => setIsNewCollectionDialogOpen(true)}
-          />
-        </Tabs>
+          {/* Right: Grid */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+            <AssetCardGrid
+              activeTab={activeTab}
+              characters={characters}
+              scenes={scenes}
+              collections={collections}
+              collectionAssets={collectionAssets}
+              filteredCharacters={filteredCharacters}
+              filteredScenes={filteredScenes}
+              filteredStoryboards={filteredStoryboards}
+              charactersLoading={charactersLoading}
+              scenesLoading={scenesLoading}
+              secondaryDataLoading={secondaryDataLoading}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onEditItem={handleEditItem}
+              onDeleteCharacter={handleDeleteCharacter}
+              onDeleteScene={handleDeleteScene}
+              onDeleteStoryboard={handleDeleteStoryboard}
+              onDeleteCollection={handleDeleteCollection}
+              onExportCollection={handleExportCollection}
+              onNewCollection={handleNewCollection}
+            />
+          </div>
+        </div>
 
+        {/* Dialogs (unchanged) */}
         <AssetEditDialog
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           editingItem={editingItem}
           isSavingEdit={isSavingEdit}
-          onSave={actions.handleSaveEdit}
-          onEditingItemChange={(item) => setEditingItem(item)}
+          onSave={handleSaveEdit}
+          onEditingItemChange={handleEditingItemChange}
         />
 
         <AssetCollectionDialogs
@@ -287,11 +355,11 @@ export default function AssetLibraryPage() {
           addToCollectionId={addToCollectionId}
           setAddToCollectionId={setAddToCollectionId}
           isAddingToCollection={isAddingToCollection}
-          onAddToCollection={actions.handleAddToCollection}
+          onAddToCollection={handleAddToCollection}
           newCollectionName={newCollectionName}
           setNewCollectionName={setNewCollectionName}
           isCreatingCollection={isCreatingCollection}
-          onCreateCollection={actions.handleCreateCollection}
+          onCreateCollection={handleCreateCollection}
           importMode={importMode}
           setImportMode={setImportMode}
           fileInputRef={fileInputRef}

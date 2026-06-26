@@ -1,11 +1,5 @@
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { Wifi, WifiOff, RefreshCw } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/shared/ui/alert";
 import { useNetworkMonitor } from "@/shared/hooks/use-network-monitor";
 import { t } from "@/shared/constants/messages";
 
@@ -66,31 +60,34 @@ export function NetworkStatusAlert() {
   if (!isOnline) {
     return (
       <div className="fixed top-16 left-0 right-0 z-50 px-4">
-        <Alert variant="destructive" className="max-w-2xl mx-auto">
-          <WifiOff className="h-4 w-4" />
-          <AlertTitle>{t("network.disconnected")}</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span>
-              {offlineDuration > 0
-                ? t("network.offlineDuration", { duration: formatOfflineDuration(offlineDuration) })
-                : t("network.checkConnection")}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={reconnect}
-              disabled={isReconnecting}
-              className="ml-4"
-            >
-              {isReconnecting ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              {isReconnecting ? t("network.reconnecting") : t("network.reconnect")}
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <div style={{ padding: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card2)" }} className="max-w-2xl mx-auto">
+          <div className="flex items-start gap-3">
+            <WifiOff className="h-4 w-4 mt-0.5" />
+            <div className="flex-1">
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t("network.disconnected")}</div>
+              <div className="flex items-center justify-between" style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+                <span>
+                  {offlineDuration > 0
+                    ? t("network.offlineDuration", { duration: formatOfflineDuration(offlineDuration) })
+                    : t("network.checkConnection")}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm ml-4"
+                  onClick={reconnect}
+                  disabled={isReconnecting}
+                >
+                  {isReconnecting ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  {isReconnecting ? t("network.reconnecting") : t("network.reconnect")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -98,14 +95,18 @@ export function NetworkStatusAlert() {
   if (showReconnectSuccess) {
     return (
       <div className="fixed top-16 left-0 right-0 z-50 px-4">
-        <Alert className="max-w-2xl mx-auto bg-green-900/20 border-green-800">
-          <Wifi className="h-4 w-4 text-green-400" />
-          <AlertTitle className="text-green-300">{t("network.recovered")}</AlertTitle>
-          <AlertDescription className="text-green-400">
-            {t("network.recoveredDesc")}
-            <span className="block text-xs mt-1">{t("network.retrySuggestion")}</span>
-          </AlertDescription>
-        </Alert>
+        <div style={{ padding: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card2)" }} className="max-w-2xl mx-auto bg-success/20 border-success">
+          <div className="flex items-start gap-3">
+            <Wifi className="h-4 w-4 mt-0.5" style={{ color: "var(--success)" }} />
+            <div className="flex-1">
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }} className="text-success">{t("network.recovered")}</div>
+              <div className="text-success" style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+                {t("network.recoveredDesc")}
+                <span className="block text-xs mt-1">{t("network.retrySuggestion")}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

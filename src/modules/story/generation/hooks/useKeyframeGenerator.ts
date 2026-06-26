@@ -52,7 +52,7 @@ export function useKeyframeGenerator(props: UseKeyframeGeneratorProps) {
       const beat = findBeat(beatId);
       if (!beat) return;
       const hasCharacterBinding = (beat.characterIds?.length ?? 0) > 0;
-      const hasSceneBinding = !!(beat.sceneId || beat.scene);
+      const hasSceneBinding = !!beat.sceneId;
       if (!hasCharacterBinding && !hasSceneBinding) {
         const confirmed = showConfirm
           ? await showConfirm(

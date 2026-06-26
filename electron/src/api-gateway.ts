@@ -23,7 +23,14 @@ import { withRetry, isRetryableError } from "./api-gateway-retry";
 
 const logger = getLogger("api-gateway");
 
-async function generateText(body: Record<string, unknown>): Promise<ApiResult> {
+/**
+ * Result type for {@link generateText}. Narrows `ApiResult.data` to the concrete
+ * `{ text: string }` shape returned on success, so route handlers can access
+ * `data.text` without `as` assertions.
+ */
+type TextApiResult = ApiResult & { data?: { text: string } };
+
+async function generateText(body: Record<string, unknown>): Promise<TextApiResult> {
   const { prompt, maxTokens, temperature } = body as Record<string, unknown>;
   const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,

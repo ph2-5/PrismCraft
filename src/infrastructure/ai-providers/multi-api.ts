@@ -1,10 +1,12 @@
 import { apiCallWithRetry, ApiClientError, getErrorMessage } from "./core";
 import { resolveCapability } from "./config";
+import { invalidateConfigCache } from "./api-config/storage";
 import { generateText } from "./text";
 import { generateImage, analyzeImage } from "./image";
 import { generateVideo } from "./video";
 import type { ApiResponse, VideoGenerationResult } from "@/domain/schemas";
 import { extractErrorMessage } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
 
 export async function generateVideoWithMultiAPI(
@@ -132,6 +134,9 @@ export async function testConnection(
       const status = error.statusCode;
       if (status === 401 || status === 403) {
         suggestion = t("test.suggestion.checkApiKey");
+        // R182/M4: apiKey 失效或被撤销时，立即失效 config cache，
+        // 避免用户更新 apiKey 后 2s 内仍读到旧 cache 导致 test 失败
+        invalidateConfigCache();
       } else if (status === 404) {
         suggestion = t("test.suggestion.checkBaseUrl");
       } else if (status === 0 || (status !== undefined && status >= 500)) {
@@ -140,9 +145,12 @@ export async function testConnection(
     } else if (error instanceof TypeError && String(error).includes("fetch")) {
       suggestion = t("test.suggestion.checkNetwork");
     }
+    // R182/M5: 使用 mapUserFacingError 替代原始 baseMessage，
+    // 避免上游 API 错误（可能包含部分 apiKey 前缀）直接透传到 UI
+    const safeMessage = mapUserFacingError(baseMessage);
     return {
       success: false,
-      message: suggestion ? `${baseMessage}\n${suggestion}` : baseMessage,
+      message: suggestion ? `${safeMessage}\n${suggestion}` : safeMessage,
     };
   }
 }

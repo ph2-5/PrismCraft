@@ -1,20 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
-import { Label } from "@/shared/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import { Checkbox } from "@/shared/ui/checkbox";
 import { Settings2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { WizardState } from "./plugin-creator-types";
@@ -26,102 +9,103 @@ interface PluginApiConfigProps {
 
 export function PluginApiConfig({ state, updateField }: PluginApiConfigProps) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Settings2 className="w-5 h-5" />
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ paddingBottom: 12 }}>
+        <div style={{ fontSize: 18, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+          <Settings2 size={20} />
           {t("plugin.apiConfig")}
-        </CardTitle>
-        <CardDescription>{t("plugin.apiConfigDesc")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>{t("plugin.authType")}</Label>
-          <Select
+        </div>
+        <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.apiConfigDesc")}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label>{t("plugin.authType")}</label>
+          <select
+            className="select"
             value={state.authType}
-            onValueChange={(v) => updateField("authType", v as WizardState["authType"])}
+            onChange={(e) => updateField("authType", e.target.value as WizardState["authType"])}
           >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="bearer">{t("plugin.authBearer")}</SelectItem>
-              <SelectItem value="api-key-header">{t("plugin.authApiKeyHeader")}</SelectItem>
-              <SelectItem value="api-key-query">{t("plugin.authApiKeyQuery")}</SelectItem>
-              <SelectItem value="custom">{t("plugin.authCustom")}</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="bearer">{t("plugin.authBearer")}</option>
+            <option value="api-key-header">{t("plugin.authApiKeyHeader")}</option>
+            <option value="api-key-query">{t("plugin.authApiKeyQuery")}</option>
+            <option value="custom">{t("plugin.authCustom")}</option>
+          </select>
         </div>
         {state.authType === "api-key-header" && (
-          <div className="space-y-2">
-            <Label>{t("plugin.authHeaderName")}</Label>
-            <Input
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label>{t("plugin.authHeaderName")}</label>
+            <input
+              className="input"
+              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
               value={state.authHeader}
               onChange={(e) => updateField("authHeader", e.target.value)}
               placeholder="X-API-Key"
-              className="font-mono"
             />
           </div>
         )}
         {state.authType === "api-key-query" && (
-          <div className="space-y-2">
-            <Label>{t("plugin.authQueryName")}</Label>
-            <Input
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label>{t("plugin.authQueryName")}</label>
+            <input
+              className="input"
+              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
               value={state.authQueryName}
               onChange={(e) => updateField("authQueryName", e.target.value)}
               placeholder="api_key"
-              className="font-mono"
             />
           </div>
         )}
 
-        <div className="border-t pt-4 space-y-3">
-          <h4 className="text-sm font-medium">{t("plugin.videoCapabilities")}</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label className="text-xs">{t("plugin.defaultVideoModel")} <span className="text-red-400">*</span></Label>
-              <Input
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 500 }}>{t("plugin.videoCapabilities")}</h4>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 12 }}>{t("plugin.defaultVideoModel")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+              <input
+                className="input"
+                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
                 value={state.defaultVideoModel}
                 onChange={(e) => updateField("defaultVideoModel", e.target.value)}
                 placeholder="model-v1"
-                className="font-mono"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">{t("plugin.maxDurationSeconds")}</Label>
-              <Input
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 12 }}>{t("plugin.maxDurationSeconds")}</label>
+              <input
+                className="input"
+                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
                 type="number"
                 value={state.maxDuration}
                 onChange={(e) => updateField("maxDuration", Number(e.target.value) || 10)}
-                className="font-mono"
               />
             </div>
           </div>
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Checkbox checked={state.supportsLastFrame} onCheckedChange={(v) => updateField("supportsLastFrame", v === true)} />
-              <Label className="text-xs">{t("plugin.supportsLastFrame")}</Label>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={state.supportsLastFrame} onChange={(e) => updateField("supportsLastFrame", e.target.checked)} />
+              <label style={{ fontSize: 12 }}>{t("plugin.supportsLastFrame")}</label>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={state.supportsReferenceVideo} onCheckedChange={(v) => updateField("supportsReferenceVideo", v === true)} />
-              <Label className="text-xs">{t("plugin.supportsReferenceVideo")}</Label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={state.supportsReferenceVideo} onChange={(e) => updateField("supportsReferenceVideo", e.target.checked)} />
+              <label style={{ fontSize: 12 }}>{t("plugin.supportsReferenceVideo")}</label>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={state.supportsMimicryLevel} onCheckedChange={(v) => updateField("supportsMimicryLevel", v === true)} />
-              <Label className="text-xs">{t("plugin.supportsMimicryLevel")}</Label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={state.supportsMimicryLevel} onChange={(e) => updateField("supportsMimicryLevel", e.target.checked)} />
+              <label style={{ fontSize: 12 }}>{t("plugin.supportsMimicryLevel")}</label>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={state.supportsCharacterRef} onCheckedChange={(v) => updateField("supportsCharacterRef", v === true)} />
-              <Label className="text-xs">{t("plugin.supportsCharacterRef")}</Label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={state.supportsCharacterRef} onChange={(e) => updateField("supportsCharacterRef", e.target.checked)} />
+              <label style={{ fontSize: 12 }}>{t("plugin.supportsCharacterRef")}</label>
             </div>
             {state.supportsCharacterRef && (
-              <div className="space-y-2 pl-4">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs">{t("plugin.characterRefMode")}</Label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <label style={{ fontSize: 12 }}>{t("plugin.characterRefMode")}</label>
                   <select
+                    className="select"
+                    style={{ fontSize: 12, padding: "4px 8px" }}
                     value={state.characterRefMode}
                     onChange={(e) => updateField("characterRefMode", e.target.value as "native_field" | "multimodal" | "ref_field" | "text_append" | "none")}
-                    className="text-xs border rounded px-2 py-1"
                   >
                     <option value="native_field">native_field</option>
                     <option value="multimodal">multimodal</option>
@@ -130,30 +114,32 @@ export function PluginApiConfig({ state, updateField }: PluginApiConfigProps) {
                   </select>
                 </div>
                 {state.characterRefMode === "native_field" && (
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs">{t("plugin.characterRefField")}</Label>
-                    <Input
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <label style={{ fontSize: 12 }}>{t("plugin.characterRefField")}</label>
+                    <input
+                      className="input"
+                      style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", width: 192 }}
                       value={state.characterRefField}
                       onChange={(e) => updateField("characterRefField", e.target.value)}
                       placeholder="subject_reference"
-                      className="font-mono text-xs w-48"
                     />
                   </div>
                 )}
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <Checkbox checked={state.supportsSceneRef} onCheckedChange={(v) => updateField("supportsSceneRef", v === true)} />
-              <Label className="text-xs">{t("plugin.supportsSceneRef")}</Label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={state.supportsSceneRef} onChange={(e) => updateField("supportsSceneRef", e.target.checked)} />
+              <label style={{ fontSize: 12 }}>{t("plugin.supportsSceneRef")}</label>
             </div>
             {state.supportsSceneRef && (
-              <div className="space-y-2 pl-4">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs">{t("plugin.sceneRefMode")}</Label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <label style={{ fontSize: 12 }}>{t("plugin.sceneRefMode")}</label>
                   <select
+                    className="select"
+                    style={{ fontSize: 12, padding: "4px 8px" }}
                     value={state.sceneRefMode}
                     onChange={(e) => updateField("sceneRefMode", e.target.value as "native_field" | "multimodal" | "ref_field" | "text_append" | "none")}
-                    className="text-xs border rounded px-2 py-1"
                   >
                     <option value="native_field">native_field</option>
                     <option value="multimodal">multimodal</option>
@@ -162,24 +148,26 @@ export function PluginApiConfig({ state, updateField }: PluginApiConfigProps) {
                   </select>
                 </div>
                 {state.sceneRefMode === "native_field" && (
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs">{t("plugin.sceneRefField")}</Label>
-                    <Input
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <label style={{ fontSize: 12 }}>{t("plugin.sceneRefField")}</label>
+                    <input
+                      className="input"
+                      style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", width: 192 }}
                       value={state.sceneRefField}
                       onChange={(e) => updateField("sceneRefField", e.target.value)}
                       placeholder="scene_reference"
-                      className="font-mono text-xs w-48"
                     />
                   </div>
                 )}
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <Label className="text-xs">{t("plugin.imageUploadMode")}</Label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <label style={{ fontSize: 12 }}>{t("plugin.imageUploadMode")}</label>
               <select
+                className="select"
+                style={{ fontSize: 12, padding: "4px 8px" }}
                 value={state.imageUploadMode}
                 onChange={(e) => updateField("imageUploadMode", e.target.value as "base64" | "url" | "upload")}
-                className="text-xs border rounded px-2 py-1"
               >
                 <option value="base64">base64</option>
                 <option value="url">url</option>
@@ -189,58 +177,61 @@ export function PluginApiConfig({ state, updateField }: PluginApiConfigProps) {
           </div>
         </div>
 
-        <div className="border-t pt-4 space-y-3">
-          <h4 className="text-sm font-medium">{t("plugin.imageCapabilities")}</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label className="text-xs">{t("plugin.defaultImageModel")} <span className="text-red-400">*</span></Label>
-              <Input
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 500 }}>{t("plugin.imageCapabilities")}</h4>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 12 }}>{t("plugin.defaultImageModel")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+              <input
+                className="input"
+                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
                 value={state.defaultImageModel}
                 onChange={(e) => updateField("defaultImageModel", e.target.value)}
                 placeholder="image-v1"
-                className="font-mono"
               />
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Checkbox checked={state.supportsReferenceImage} onCheckedChange={(v) => updateField("supportsReferenceImage", v === true)} />
-              <Label className="text-xs">{t("plugin.supportsReferenceImage")}</Label>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={state.supportsReferenceImage} onChange={(e) => updateField("supportsReferenceImage", e.target.checked)} />
+              <label style={{ fontSize: 12 }}>{t("plugin.supportsReferenceImage")}</label>
             </div>
           </div>
         </div>
 
-        <div className="border-t pt-4 space-y-3">
-          <h4 className="text-sm font-medium">{t("plugin.transportConfig")}</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label className="text-xs">{t("plugin.imageTransportMode")}</Label>
-              <Select value={state.imageMode} onValueChange={(v) => updateField("imageMode", v as WizardState["imageMode"])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="base64">{t("plugin.transportBase64")}</SelectItem>
-                  <SelectItem value="url">{t("plugin.transportUrl")}</SelectItem>
-                  <SelectItem value="upload">{t("plugin.uploadMode")}</SelectItem>
-                </SelectContent>
-              </Select>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 500 }}>{t("plugin.transportConfig")}</h4>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 12 }}>{t("plugin.imageTransportMode")}</label>
+              <select
+                className="select"
+                value={state.imageMode}
+                onChange={(e) => updateField("imageMode", e.target.value as WizardState["imageMode"])}
+              >
+                <option value="base64">{t("plugin.transportBase64")}</option>
+                <option value="url">{t("plugin.transportUrl")}</option>
+                <option value="upload">{t("plugin.uploadMode")}</option>
+              </select>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">{t("plugin.videoTransportMode")}</Label>
-              <Select value={state.videoMode} onValueChange={(v) => updateField("videoMode", v as WizardState["videoMode"])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="base64">{t("plugin.transportBase64")}</SelectItem>
-                  <SelectItem value="url">{t("plugin.transportUrl")}</SelectItem>
-                </SelectContent>
-              </Select>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 12 }}>{t("plugin.videoTransportMode")}</label>
+              <select
+                className="select"
+                value={state.videoMode}
+                onChange={(e) => updateField("videoMode", e.target.value as WizardState["videoMode"])}
+              >
+                <option value="base64">{t("plugin.transportBase64")}</option>
+                <option value="url">{t("plugin.transportUrl")}</option>
+              </select>
             </div>
-            <div className="flex items-center gap-2 pt-5">
-              <Checkbox checked={state.preferLocalData} onCheckedChange={(v) => updateField("preferLocalData", v === true)} />
-              <Label className="text-xs">{t("plugin.preferLocalData")}</Label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 20 }}>
+              <input type="checkbox" checked={state.preferLocalData} onChange={(e) => updateField("preferLocalData", e.target.checked)} />
+              <label style={{ fontSize: 12 }}>{t("plugin.preferLocalData")}</label>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

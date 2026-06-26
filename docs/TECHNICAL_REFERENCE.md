@@ -2442,7 +2442,7 @@ describe("ComponentName", () => {
 - 使用 `vi.hoisted()` 创建必须在模块导入前存在的 mock 函数
 - 使用 `vi.mock()` 进行模块级 mock (DI container、外部包、UI 组件)
 - 使用 `overrideToken()` 从 DI 替换特定 container token
-- Mock UI 组件 (`@/shared/ui/*`) 为简单 HTML 元素
+- Mock UI 组件 (`@/shared/presentation/*`) 为简单 HTML 元素
 - Mock `react-router-dom` Link 为 `<a>` 标签
 - 测试文件允许 `@/infrastructure/*` 导入 (warn 级别, 非 error)
 
@@ -2496,7 +2496,7 @@ ESLint 9 flat config, 使用以下插件:
 | `@/lib` | 已全部迁移, 使用 `@/modules/*`、`@/infrastructure/*` 或 `@/shared/*` |
 | `@/application/services` | 已弃用, 直接从各模块导入服务 |
 | `@/application/hooks` | 已弃用, 直接从各模块导入 hooks |
-| `@/components` | 已迁移, 使用 `@/shared/ui`、`@/shared/presentation` 或各模块的 `presentation/` |
+| `@/components` | 已迁移, 使用 `@/shared/presentation` 或各模块的 `presentation/` |
 
 #### 关键规则
 

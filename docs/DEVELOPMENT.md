@@ -415,7 +415,7 @@ describe("ComponentName", () => {
 - **`vi.hoisted()`**：用于必须在模块导入前存在的 mock 函数
 - **`vi.mock()`**：模块级 mock（DI 容器、外部包、UI 组件）
 - **`overrideToken()`**：从 DI 替换特定容器 token，用于服务级 mock
-- **UI 组件 Mock**：将 `@/shared/ui/*` mock 为简单 HTML 元素
+- **UI 组件 Mock**：将 `@/shared/presentation/*` mock 为简单 HTML 元素
 - **路由 Mock**：将 `react-router-dom` 的 `Link` mock 为 `<a>` 标签
 
 ### 6.5 覆盖率要求

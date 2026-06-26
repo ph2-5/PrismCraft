@@ -1,6 +1,6 @@
 # PrismCraft — 完整 API 参考手册
 
-> 版本: 0.10.0 | 更新日期: 2026-06-21 | 架构: Electron + Vite + React + DDD
+> 版本: 0.11.0 | 更新日期: 2026-06-21 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -71,7 +71,7 @@ domain → NOTHING (pure types)
 | 端口接口 | 第一部分 | domain/ports/* |
 | Result 类型 | 第一部分 | domain/types/result.ts |
 | React Hooks | 第二部分 | 各模块 hooks/ |
-| React 组件 | 第二/三/四部分 | 各模块 presentation/, shared/ui/, shared/presentation/ |
+| React 组件 | 第二/三/四部分 | 各模块 presentation/, shared/presentation/ |
 | Zustand Store | 第二部分 | video/task-management, shared/app-store |
 | 纯函数 (shared-logic) | 第一部分 | shared-logic/* |
 | API 请求 Schema | 第四部分 | electron/api/schemas.ts |

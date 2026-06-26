@@ -1176,7 +1176,7 @@ useEffect(() => {
 - `vi.hoisted()`：用于模块导入前必须存在的 mock 函数
 - `vi.mock()`：模块级 mock（DI 容器、外部包、UI 组件）
 - `overrideToken()`：替换 DI 容器中的特定 token
-- UI 组件 mock：`@/shared/ui/*` mock 为简单 HTML 元素
+- UI 组件 mock：`@/shared/presentation/*` mock 为简单 HTML 元素
 - `react-router-dom` Link mock 为 `<a>` 标签
 
 **测试结构**：

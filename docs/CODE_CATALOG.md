@@ -1,6 +1,6 @@
 # PrismCraft - 完整代码目录
 
-> 版本: 0.10.0 | 更新日期: 2026-06-21 | 架构: Electron + Vite + React + DDD
+> 版本: 0.11.0 | 更新日期: 2026-06-21 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -321,7 +321,7 @@ prismcraft-source-code/
 | | `story-constants.ts` | 默认故事、类型/基调/分镜类型常量 |
 | `beat-editor/` | `hooks/useStoryState.ts` | 分镜状态管理 |
 | | `hooks/useAssetLoader.ts` | 资产加载 Hook |
-| | `presentation/BeatDetailEditor.tsx` | 分镜详情编辑器 |
+| | `presentation/BeatDetailEditor.tsx` | 分镜详情编辑器（父组件，已拆分为 BeatNavigation + BeatUploadPanel + BeatPromptPanel + BeatGenerationPanel） |
 | | `presentation/BeatOverviewCard.tsx` | 分镜概览卡片 |
 | | `presentation/SortableBeatList.tsx` | 可排序分镜列表 |
 | | `presentation/ElementBindingPanel.tsx` | 元素绑定面板 |
@@ -542,7 +542,7 @@ prismcraft-source-code/
 | `types/api.ts` | API 类型 |
 | `types/ipc.ts` | IPC 类型 |
 
-### 6.8 共享 UI 组件 (`shared/ui/`)
+### 6.8 共享 UI 组件 (`shared/presentation/`)
 
 | 文件 | 说明 |
 |------|------|

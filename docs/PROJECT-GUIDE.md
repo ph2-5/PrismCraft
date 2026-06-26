@@ -40,7 +40,7 @@ PrismCraft 是一款**本地优先（local-first）、离线可用（offline-cap
 - **子域**：44 个
 - **AI Provider 插件**：13 个
 - **数据库表**：29 张（14 业务表 + 5 关系表 + 6 缓存表 + 3 同步表 + 1 系统表）
-- **回归防护规则**：142 条（R1-R142，8 大类）
+- **回归防护规则**：165+ 条（R1-R165，8 大类）
 - **i18n 键**：2000+
 
 ---
@@ -2333,7 +2333,7 @@ vi.mock("@/infrastructure/di", () => ({
   container: { videoTaskStorage: mockStorage },
 }));
 
-vi.mock("@/shared/ui/*", () => ({
+vi.mock("@/shared/presentation/*", () => ({
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
 }));
 
@@ -2831,7 +2831,7 @@ typecheck → architecture check → lint-staged
 
 ### 27.1 概述
 
-142 条回归防护规则（R1-R142）是从历史 Bug 中抽象出的检测规则，防止已知 Bug 模式重现。这些规则是**回归防护**，不是发现工具——下一次审计必须从零开始发现新问题。
+165+ 条回归防护规则（R1-R165）是从历史 Bug 中抽象出的检测规则，防止已知 Bug 模式重现。这些规则是**回归防护**，不是发现工具——下一次审计必须从零开始发现新问题。
 
 规则按 8 大类组织：
 

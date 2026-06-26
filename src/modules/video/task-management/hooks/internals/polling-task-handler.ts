@@ -119,6 +119,12 @@ const NETWORK_ERROR_PATTERNS = [
   /ERR_ADDRESS_UNREACHABLE/i, /ERR_NETWORK_CHANGED/i,
 ];
 
+/**
+ * Exported so the manual-poll path (pollTaskShared) can reuse the same
+ * network-error detection as the auto-poll path (handlePollException).
+ */
+export { NETWORK_ERROR_PATTERNS };
+
 function isNetworkError(error: unknown): boolean {
   if (error instanceof TypeError && error.message.includes("fetch")) return true;
   if (error instanceof Error) {
@@ -207,7 +213,7 @@ async function pollSingleTask(
         const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
         emitToast("success", t("task.videoGenerated"), t("task.videoSavingLocal", { label: taskLabel }));
       }
-      const mappedStatus = mapApiStatus(pollResp.data.status || "failed", pollResp.data.videoUrl);
+      const mappedStatus = mapApiStatus(pollResp.data.status || "generating", pollResp.data.videoUrl);
       if (!isValidTransition(task.status, mappedStatus)) {
         errorLogger.warn(
           { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=${mappedStatus}` },

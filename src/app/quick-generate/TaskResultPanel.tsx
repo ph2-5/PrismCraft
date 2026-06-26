@@ -136,6 +136,26 @@ export function TaskResultPanel({
         </div>
       )}
 
+      {!currentTask && tasks.filter((t) => t.taskId !== activeTaskId).length === 0 && (
+        <div
+          className="card"
+          style={{
+            padding: 32,
+            border: "1px dashed var(--border)",
+            background: "var(--card2)",
+            textAlign: "center",
+          }}
+        >
+          <Film size={48} style={{ margin: "0 auto 12px", color: "var(--muted-fg)", opacity: 0.3 }} />
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>
+            {t("quickGenerate.noResultTitle")}
+          </div>
+          <p style={{ fontSize: 12, color: "var(--muted-fg)", lineHeight: 1.6 }}>
+            {t("quickGenerate.noResultDesc")}
+          </p>
+        </div>
+      )}
+
       {tasks.filter((t) => t.taskId !== activeTaskId).length > 0 && (
         <div
           className="card"

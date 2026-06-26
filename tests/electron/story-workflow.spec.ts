@@ -12,7 +12,7 @@ async function addBeat(page: Page) {
 test.describe("Story page load and empty state", () => {
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
   });
 
   test("should load the story page and display the editor", async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe("Story page load and empty state", () => {
 test.describe("Add beat", () => {
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
   });
 
   test("should create a new beat when clicking add button", async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe("Add beat", () => {
 test.describe("Edit beat", () => {
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await addBeat(page);
   });
 
@@ -97,7 +97,7 @@ test.describe("Edit beat", () => {
 test.describe("Delete beat", () => {
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await addBeat(page);
   });
 
@@ -115,7 +115,7 @@ test.describe("Delete beat", () => {
 test.describe("Save story project", () => {
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
   });
 
   test("should save story project", async ({ page }) => {
@@ -131,7 +131,7 @@ test.describe("Save story project", () => {
 test.describe("Template dialog", () => {
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await dismissOverlays(page);
   });
 
@@ -175,7 +175,7 @@ test.describe("Template dialog", () => {
 test.describe("Version management", () => {
   test.beforeEach(async ({ page }) => {
     await mockApiRoutes(page);
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await dismissOverlays(page);
   });
 

@@ -89,6 +89,16 @@ function getMimeFromExt(filePath: string): string {
  * - 兼容旧物理路径（绝对路径或含分隔符）→ 直接使用，但需通过安全校验
  */
 export class LocalFileStorage implements IFileStorage {
+  /**
+   * listFiles 大目录保护：超过此值的目录只扫描前 N 个文件，避免内存爆炸。
+   * 与 file/list HTTP 路由保持一致（见 electron/src/api/route-groups/file-routes.ts）。
+   */
+  static readonly MAX_DIR_SCAN = 5000;
+  /**
+   * stat 并发批次大小：50 在 Windows/Linux/macOS 上均稳定。
+   */
+  static readonly STAT_BATCH_SIZE = 50;
+
   private readonly allowedRoots: string[];
 
   constructor() {
@@ -282,24 +292,36 @@ export class LocalFileStorage implements IFileStorage {
       return [];
     }
 
+    // 大目录保护：与 file/list HTTP 路由保持一致的上限与并发策略。
+    // 渲染进程直接走此实现（不走 HTTP），故必须同样保护。
     const files = await fsp.readdir(dir);
-    const results: FileMetadata[] = [];
+    let scannedFiles = files;
+    if (files.length > LocalFileStorage.MAX_DIR_SCAN) {
+      scannedFiles = files.slice(0, LocalFileStorage.MAX_DIR_SCAN);
+    }
 
-    for (const file of files) {
-      const filePath = path.join(dir, file);
-      try {
-        const stat = await fsp.stat(filePath);
-        if (!stat.isFile()) continue;
-        results.push({
-          key: file,
-          category,
-          size: stat.size,
-          mimeType: getMimeFromExt(filePath),
-          createdAt: Math.floor(stat.birthtime.getTime() / 1000),
-          updatedAt: Math.floor(stat.mtime.getTime() / 1000),
-        });
-      } catch {
-        // 跳过无法访问的文件
+    const results: FileMetadata[] = [];
+    for (let i = 0; i < scannedFiles.length; i += LocalFileStorage.STAT_BATCH_SIZE) {
+      const batch = scannedFiles.slice(i, i + LocalFileStorage.STAT_BATCH_SIZE);
+      const settled = await Promise.allSettled(
+        batch.map(async (file) => {
+          const filePath = path.join(dir, file);
+          const stat = await fsp.stat(filePath);
+          if (!stat.isFile()) return null;
+          return {
+            key: file,
+            category,
+            size: stat.size,
+            mimeType: getMimeFromExt(filePath),
+            createdAt: Math.floor(stat.birthtime.getTime() / 1000),
+            updatedAt: Math.floor(stat.mtime.getTime() / 1000),
+          } as FileMetadata;
+        }),
+      );
+      for (const r of settled) {
+        if (r.status === "fulfilled" && r.value) {
+          results.push(r.value);
+        }
       }
     }
     return results;

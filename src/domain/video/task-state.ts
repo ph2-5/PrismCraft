@@ -20,6 +20,15 @@ export const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
   // 允许 failed → completed：防止假失败导致已生成的视频被丢弃
   failed: ["retrying", "cancelled", "completed"],
   cancelled: [],
+  // `retrying` 是状态机层面定义的"恢复中"中间态，语义为：
+  //   failed/timeout → retrying → generating（恢复服务接管后重新轮询）
+  // 当前生产代码中，恢复服务直接从 failed/timeout 转到 generating/completed
+  // （见 video-recovery-service.ts），未经过 retrying 中间态。
+  // UI 的"重试"按钮使用本地 loading 状态（setRetryingTaskId）承担视觉反馈，
+  // 因此 retrying 在生产路径上暂未被赋值。保留此状态是为了：
+  //   1. 支持未来"原地重试"流程（不跳转 beat 页面，直接重新发起生成）
+  //   2. 与 contract.json 中已声明的恢复路径保持一致
+  //   3. isStuck / isPollable 已正确处理 retrying，未来启用零成本
   retrying: ["generating", "completed", "failed", "cancelled", "timeout"],
   // 允许 timeout → completed：超时后云端可能仍在生成，恢复服务需要能标记完成
   timeout: ["retrying", "failed", "cancelled", "completed"],

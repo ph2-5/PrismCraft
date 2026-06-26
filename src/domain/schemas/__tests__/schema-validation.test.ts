@@ -1872,14 +1872,14 @@ describe("shot-system schemas", () => {
 
   describe("elementTypeSchema", () => {
     it("should accept valid types", () => {
-      const types = ["character", "prop", "effect"];
+      const types = ["character", "prop", "effect", "scene"];
       for (const t of types) {
         expect(elementTypeSchema.parse(t)).toBe(t);
       }
     });
 
     it("should reject invalid types", () => {
-      expect(() => elementTypeSchema.parse("scene")).toThrow();
+      expect(() => elementTypeSchema.parse("invalid")).toThrow();
     });
   });
 
@@ -2003,7 +2003,7 @@ describe("shot-system schemas", () => {
 
     it("should reject invalid elementType", () => {
       expect(() =>
-        elementFeatureAnchorSchema.parse({ ...validAnchor, elementType: "scene" })
+        elementFeatureAnchorSchema.parse({ ...validAnchor, elementType: "invalid" })
       ).toThrow();
     });
 
@@ -2087,7 +2087,7 @@ describe("shot-system schemas", () => {
 
     it("should reject invalid type enum", () => {
       expect(() =>
-        storyElementSchema.parse({ ...validElement, type: "scene" })
+        storyElementSchema.parse({ ...validElement, type: "invalid" })
       ).toThrow();
     });
 
@@ -2099,7 +2099,7 @@ describe("shot-system schemas", () => {
   describe("elementLibrarySchema", () => {
     const validLibrary = {
       elements: [],
-      nextCode: { character: 1, prop: 1, effect: 1 },
+      nextCode: { character: 1, prop: 1, effect: 1, scene: 1 },
     };
 
     it("should parse valid data successfully", () => {
@@ -2121,7 +2121,7 @@ describe("shot-system schemas", () => {
             updatedAt: "2024-01-01T00:00:00Z",
           },
         ],
-        nextCode: { character: 2, prop: 1, effect: 1 },
+        nextCode: { character: 2, prop: 1, effect: 1, scene: 1 },
       });
       expect(result.elements).toHaveLength(1);
     });

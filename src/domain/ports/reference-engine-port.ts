@@ -2,10 +2,15 @@ import type { ShotReference, StoryBeat } from "@/domain/schemas";
 
 /**
  * Validation result for reference operations
+ *
+ * `errors` 阻止操作（如引用的目标分镜不存在），`warnings` 不阻止但需告知用户
+ * （如目标分镜的末帧尚未生成，引用可能无效）。caller 应同时展示两者。
  */
 interface ReferenceValidationResult {
   valid: boolean;
   error?: string;
+  errors?: string[];
+  warnings?: string[];
 }
 
 /**

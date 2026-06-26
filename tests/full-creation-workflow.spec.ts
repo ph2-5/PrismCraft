@@ -71,7 +71,7 @@ test.describe("Full Creation Workflow", () => {
     // =====================================================
     // Step 3: Create a story with manual beats
     // =====================================================
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
 
     await expect(page.locator("main").first()).toBeVisible();
     await dismissOverlays(page);

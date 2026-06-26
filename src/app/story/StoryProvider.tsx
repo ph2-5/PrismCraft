@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import { useParams } from "react-router-dom";
 import { useToastHelpers } from "@/shared/presentation/Toast";
@@ -239,6 +240,7 @@ function useStoryContext(): StoryContextValue {
       saveStatus: storySaver.saveStatus,
       saveError: storySaver.saveError,
       isVideoUrlPersisting,
+      isStoryLoading: false,
     }),
     [
       storyState, assetLoader, uploadHandlers, planner,
@@ -253,6 +255,7 @@ function useStoryContext(): StoryContextValue {
 export function StoryProvider({ children }: { children: React.ReactNode }) {
   const value = useStoryContext();
   const { storyId: urlStoryId } = useParams<{ storyId: string }>();
+  const [isStoryLoading, setIsStoryLoading] = useState(true);
 
   const setStoriesRef = useRef(value.setStories);
   useEffect(() => { setStoriesRef.current = value.setStories; }, [value.setStories]);
@@ -309,14 +312,22 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
           errorLogger.warn("Failed to load stories from storyService", err);
           showErrorRef.current(t("error.loadFailed"), t("story.loadFailed"));
         }
+      })
+      .finally(() => {
+        if (!cancelled) setIsStoryLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, [urlStoryId]);
 
+  const valueWithLoading = useMemo(
+    () => ({ ...value, isStoryLoading }),
+    [value, isStoryLoading],
+  );
+
   return (
-    <StoryContext.Provider value={value}>{children}</StoryContext.Provider>
+    <StoryContext.Provider value={valueWithLoading}>{children}</StoryContext.Provider>
   );
 }
 

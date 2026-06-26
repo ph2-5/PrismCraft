@@ -8,6 +8,7 @@ import { TemplateManagerDialog } from "@/modules/story";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ComingSoon } from "@/shared/presentation/ComingSoon";
 import { Modal } from "@/shared/presentation/Modal";
+import { PageLoader } from "@/shared/presentation/PageLoader";
 import { Tabs } from "@/shared/presentation/Tabs";
 import { StoryProvider } from "./StoryProvider";
 import { StoryHeader } from "./StoryHeader";
@@ -77,7 +78,11 @@ function StoryPageContent() {
           </div>
         </div>
 
-        {activeTab === "storyboard" ? (
+        {story.isStoryLoading ? (
+          <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <PageLoader size="lg" label={t("common.loading")} />
+          </div>
+        ) : activeTab === "storyboard" ? (
           <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             <ProfessionalModeEditor
               currentStory={story.currentStory}
@@ -121,28 +126,28 @@ function StoryPageContent() {
               <ComingSoon
                 icon="🤖"
                 title={t("story.tab.aiGenerate")}
-                descriptionKey="comingSoon.agentDesc"
+                descriptionKey="comingSoon.storyAiGenerateDesc"
               />
             )}
             {activeTab === "preview-export" && (
               <ComingSoon
                 icon="🎬"
                 title={t("story.tab.previewExport")}
-                descriptionKey="comingSoon.composerDesc"
+                descriptionKey="comingSoon.storyPreviewExportDesc"
               />
             )}
             {activeTab === "comments" && (
               <ComingSoon
                 icon="💬"
                 title={t("story.tab.comments")}
-                descriptionKey="comingSoon.agentDesc"
+                descriptionKey="comingSoon.storyCommentsDesc"
               />
             )}
             {activeTab === "audio" && (
               <ComingSoon
                 icon="🎵"
                 title={t("story.tab.audio")}
-                descriptionKey="comingSoon.pluginsDesc"
+                descriptionKey="comingSoon.storyAudioDesc"
               />
             )}
           </div>

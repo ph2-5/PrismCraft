@@ -183,7 +183,7 @@ test.describe("Data Persistence", () => {
   });
 
   test("should persist story data across reload", async ({ page }) => {
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await dismissOverlays(page);
 
     const titleInput = page.locator('[data-testid="story-title-input"]');

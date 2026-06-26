@@ -1150,7 +1150,9 @@ describe("useVideoTaskStore", () => {
       expect(useVideoTaskStore.getState().allTasks[0]!.pollFailureCount).toBe(1);
     });
 
-    it("should mark task as failed when pollFailureCount reaches MAX_POLL_FAILURES", async () => {
+    it("should mark task as timeout when pollFailureCount reaches MAX_POLL_FAILURES", async () => {
+      // H2 fix: 查询失败不等于生成失败。达到 MAX_POLL_FAILURES 时转为 timeout（可恢复），
+      // 而非 failed（终态）。云端视频可能仍在生成或已生成完成，恢复服务会继续查询。
       const task = makeTask({ taskId: "t-poll-6", status: "generating", pollFailureCount: 29 });
       useVideoTaskStore.setState({ allTasks: [task] });
 
@@ -1167,13 +1169,8 @@ describe("useVideoTaskStore", () => {
 
       expect(mockWithTransitionGuard).toHaveBeenCalledWith(
         expect.objectContaining({ taskId: "t-poll-6" }),
-        "failed",
+        "timeout",
         expect.objectContaining({ pollFailureCount: 0 }),
-      );
-      expect(mockEmitToast).toHaveBeenCalledWith(
-        "error",
-        "视频生成失败",
-        expect.stringContaining("t-poll-6"),
       );
     });
 

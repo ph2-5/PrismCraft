@@ -10,7 +10,7 @@ test.describe("Story delete confirmation UI", () => {
   test("should render story page with project dropdown", async ({ page }) => {
     await installElectronMock(page);
     await mockApiRoutes(page);
-    await navigateTo(page, "/story", M);
+    await navigateTo(page, "/storyboard", M);
 
     const dropdownBtn = page.locator("button").filter({ hasText: /项目|故事|未命名/ }).first();
     await expect(dropdownBtn).toBeVisible({ timeout: 10000 });
@@ -19,7 +19,7 @@ test.describe("Story delete confirmation UI", () => {
   test("should have save button on story page", async ({ page }) => {
     await installElectronMock(page);
     await mockApiRoutes(page);
-    await navigateTo(page, "/story", M);
+    await navigateTo(page, "/storyboard", M);
 
     const saveBtn = page.locator("button", { hasText: "保存" }).first();
     await expect(saveBtn).toBeVisible({ timeout: 10000 });
@@ -30,7 +30,7 @@ test.describe("Story delete confirmation UI", () => {
     await mockApiRoutes(page);
     const getErrors = captureConsoleErrors(page);
 
-    await navigateTo(page, "/story", M);
+    await navigateTo(page, "/storyboard", M);
 
     const criticalErrors = getErrors();
     expect(criticalErrors, criticalErrors.join("\n")).toHaveLength(0);
@@ -41,7 +41,7 @@ test.describe("Navigation guard beforeunload", () => {
   test("should register beforeunload listener when story page loads", async ({ page }) => {
     await installElectronMock(page);
     await mockApiRoutes(page);
-    await navigateTo(page, "/story", M);
+    await navigateTo(page, "/storyboard", M);
 
     // beforeunload 监听器由 BeforeUnloadGuard 组件注册
     // 验证页面正常加载且无关键错误即表示守卫已激活
@@ -51,7 +51,7 @@ test.describe("Navigation guard beforeunload", () => {
   test("should not crash when navigating away from story page", async ({ page }) => {
     await installElectronMock(page);
     await mockApiRoutes(page);
-    await navigateTo(page, "/story", M);
+    await navigateTo(page, "/storyboard", M);
     await dismissOverlays(page);
 
     const getErrors = captureConsoleErrors(page);

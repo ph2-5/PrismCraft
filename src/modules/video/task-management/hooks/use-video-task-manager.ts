@@ -29,6 +29,7 @@ import {
   pollTaskShared,
   type PollingStoreAccessor,
 } from "./internals/shared-polling-logic";
+import { checkForDuplicateVideos } from "../../recovery/services/duplicate-detection-service";
 
 export type { VideoTask, VideoTaskStatus };
 
@@ -265,6 +266,34 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     }
     set({ isCreating: true });
     try {
+      // Pre-flight duplicate check: if a highly similar completed task exists,
+      // reuse it instead of burning tokens on a duplicate Provider request.
+      // Caller can still trigger a fresh generation by removing the existing
+      // task first (deleteTask) or using the retry path.
+      const duplicateProbe: Partial<VideoTask> = {
+        prompt,
+        providerId: extraOptions?.providerId,
+        providerModelId: extraOptions?.modelId,
+        fixedImageUrl: extraOptions?.fixedImageUrl ?? undefined,
+        referenceVideoUrl: extraOptions?.referenceVideo ?? undefined,
+      };
+      const duplicate = await checkForDuplicateVideos(duplicateProbe, get().allTasks);
+      if (duplicate.hasDuplicate && duplicate.existingTaskId) {
+        const existing = get().allTasks.find((t) => t.taskId === duplicate.existingTaskId);
+        if (existing && existing.videoUrl) {
+          const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || existing.taskId.slice(0, 8);
+          emitToast(
+            "info",
+            t("video.duplicateDetectedTitle"),
+            t("video.duplicateDetectedDetail", { label: taskLabel, similarity: Math.round((duplicate.similarity ?? 0) * 100) }),
+          );
+          errorLogger.info(
+            `[VideoTaskManager] 重复检测命中，复用已存在任务 ${existing.taskId} (相似度 ${Math.round((duplicate.similarity ?? 0) * 100)}%)`,
+          );
+          return existing;
+        }
+      }
+
       let result;
       const hasFrameOptions =
         extraOptions?.lastFrameUrl ||

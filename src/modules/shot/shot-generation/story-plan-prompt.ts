@@ -1,5 +1,15 @@
 import type { Character, Scene, Story, StoryElement } from "@/domain/schemas";
 
+/**
+ * 仅把可被大模型访问的 URL（http/https/data）拼到 prompt 文本中。
+ * file:// / blob: / 本地路径对大模型无意义，且会暴露本地文件结构。
+ * 与 prompt-builder.ts 保持一致（详见 isShareableUrl）。
+ */
+const SHAREABLE_URL_PROTOCOL = /^(https?:|data:)/i;
+function isShareableUrl(url: string | undefined | null): url is string {
+  return typeof url === "string" && SHAREABLE_URL_PROTOCOL.test(url);
+}
+
 interface StoryPlanPromptContext {
   story: Partial<Story>;
   characters: Character[];
@@ -94,7 +104,14 @@ function buildElementDefinitions(elements: StoryElement[], language: "en" | "zh"
     if (el.description) lines.push(isEn ? `  Description: ${el.description}` : `  描述：${el.description}`);
     if (el.bindings && el.bindings.length > 0) {
       const primary = el.bindings.find((b) => b.isPrimary) || el.bindings[0];
-      if (primary) lines.push(isEn ? `  Reference Image: ${primary.url}` : `  参考图：${primary.url}`);
+      if (primary) {
+        // 本地 URL（file://、blob: 等）对大模型无意义，仅提示已附加。
+        const refLabel = isEn ? "Reference Image" : "参考图";
+        const refValue = isShareableUrl(primary.url)
+          ? primary.url
+          : isEn ? "(attached via reference channel)" : "（已通过 reference 通道附加）";
+        lines.push(`  ${refLabel}: ${refValue}`);
+      }
     }
     if (
       el.featureAnchor?.featureTags &&

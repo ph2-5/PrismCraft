@@ -4,7 +4,7 @@ import {
   registerCacheVideoBlobFn,
 } from "@/modules/video/recovery";
 import { persistVideoTask } from "./persist-task";
-import { cacheVideoBlob, registerRecoveryFn, removeCachedVideo } from "@/modules/video/cache";
+import { cacheVideoBlob, registerRecoveryFn } from "@/modules/video/cache";
 import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { emitToast } from "@/shared/utils/toast-bridge";
@@ -21,6 +21,7 @@ import {
   scheduleSync,
   checkAndStartOrStopPolling,
 } from "../internals";
+import { NETWORK_ERROR_PATTERNS } from "./polling-task-handler";
 import {
   loadTasksFromStorage,
   setupRecoveredEventListener,
@@ -127,7 +128,7 @@ export async function pollTaskShared(
           ),
         );
       }
-      const mappedStatus = mapApiStatus(result.data.status || "failed", result.data.videoUrl);
+      const mappedStatus = mapApiStatus(result.data.status || "generating", result.data.videoUrl);
       const guardUpdates = withTransitionGuard(task, mappedStatus, {
         progress: result.data.progress || task.progress,
         videoUrl: result.data.videoUrl,
@@ -158,21 +159,66 @@ export async function pollTaskShared(
     }
   } catch (error) {
     errorLogger.error("Error polling task", error);
+
+    // Align with polling-task-handler.ts handlePollException: network errors
+    // must NOT count as poll failures (cloud video may still be generating).
+    const isNetworkError = (() => {
+      if (error instanceof TypeError && error.message.includes("fetch")) return true;
+      if (error instanceof Error) {
+        return NETWORK_ERROR_PATTERNS.some((p) => p.test(error.message));
+      }
+      return false;
+    })();
+
+    if (isNetworkError) {
+      const updatedTask: VideoTask = {
+        ...task,
+        message: t("task.networkErrorRetry"),
+      };
+      try {
+        await persistVideoTask(updatedTask, {
+          logLevel: "warn",
+          logLabel: "Network error polling task (not counted as failure)",
+        });
+      } catch (saveError) {
+        errorLogger.error("[VideoTaskManager] Failed to save network-error status", saveError);
+      }
+      store.getState().setAllTasks((prev) =>
+        prev.map((t) => (t.taskId === taskId ? updatedTask : t)),
+      );
+      scheduleSync();
+      checkAndStartOrStopPolling();
+      return;
+    }
+
+    // Non-network error: count toward MAX_POLL_FAILURES; on reach, transition
+    // to "timeout" (recoverable) instead of "failed" (terminal). Do NOT delete
+    // cached video — the cloud video may still complete successfully.
     const failCount = (task.pollFailureCount || 0) + 1;
-    let updatedTask: VideoTask = {
+    const reachedMax = failCount >= MAX_POLL_FAILURES;
+    const targetStatus: VideoTask["status"] = reachedMax ? "timeout" : task.status;
+    const guardedUpdates = reachedMax
+      ? withTransitionGuard(task, "timeout", {
+          message: t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }),
+          pollFailureCount: 0,
+        })
+      : {};
+    const updatedTask: VideoTask = {
       ...task,
-      pollFailureCount: failCount,
-      message: t("video.queryFailedReason", { reason: mapUserFacingError(error) }),
+      ...guardedUpdates,
+      status: targetStatus,
+      pollFailureCount: reachedMax ? 0 : failCount,
+      message: reachedMax
+        ? t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES })
+        : t("video.queryFailedReason", { reason: mapUserFacingError(error) }),
     };
-    if (failCount >= MAX_POLL_FAILURES) {
-      const guarded = withTransitionGuard(task, "failed", {
-        message: t("video.consecutivePollFailed", { count: MAX_POLL_FAILURES }),
-        pollFailureCount: 0,
-      });
-      updatedTask = { ...updatedTask, ...guarded };
+    if (reachedMax) {
       const taskLabel = task.beatTitle || task.storyTitle || taskId.slice(0, 8);
-      emitToast("error", t("video.generateFailed"), t("video.pollingFailedDetail", { taskLabel }));
-      removeCachedVideo(taskId).catch((e) => { errorLogger.warn("[VideoTaskManager] removeCachedVideo failed", e); });
+      emitToast(
+        "warning",
+        t("task.queryFailRecoverableLabel", { label: taskLabel }),
+        t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }),
+      );
     }
     try {
       await persistVideoTask(updatedTask, {

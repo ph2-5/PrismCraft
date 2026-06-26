@@ -247,7 +247,7 @@ test.describe("Scene Edit Field Combination Persistence", () => {
 
 test.describe("Story/Beat Edit Field Combination Persistence", () => {
   test.beforeEach(async ({ page }) => {
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await dismissOverlays(page);
     // 等待 story 编辑器渲染完成
     await page.locator('[data-testid="story-title-input"]').first().waitFor({ state: "visible", timeout: 15000 });
@@ -274,7 +274,7 @@ test.describe("Story/Beat Edit Field Combination Persistence", () => {
    */
   async function reloadStoryPage(page: Page) {
     await navigateTo(page, "/");
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await dismissOverlays(page);
     await page.locator('[data-testid="story-title-input"]').first().waitFor({ state: "visible", timeout: 15000 });
   }
@@ -478,7 +478,7 @@ test.describe("Scene Image Path Persistence", () => {
 
 test.describe("Beat Keyframe/Video Path Persistence", () => {
   test("编辑 beat 标题后 local_keyframe_path 和 local_video_path 应保留", async ({ page }) => {
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await dismissOverlays(page);
     await page.locator('[data-testid="story-title-input"]').first().waitFor({ state: "visible", timeout: 15000 });
 

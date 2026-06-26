@@ -1,6 +1,6 @@
 # PrismCraft 技术参考文档
 
-> **版本**: 0.11.0 | **最后更新**: 2026-06-24 | **架构**: Vite 8 + React Router 7
+> **版本**: 0.12.1 | **最后更新**: 2026-06-27 | **架构**: Vite 8 + React Router 7
 
 ---
 
@@ -35,7 +35,7 @@
 | 属性 | 值 |
 |------|------|
 | 项目名称 | PrismCraft |
-| 版本 | 0.11.0 |
+| 版本 | 0.12.1 |
 | 描述 | AI 驱动的动画制作工具 — 本地优先，支持从故事创作到视频生成的完整工作流 |
 | 构建目标 | Electron 桌面应用 (local-first, offline-capable) |
 | 语言 | TypeScript (strict mode) |
@@ -1859,8 +1859,16 @@ Drizzle ORM 仓库层, 提供类型安全的数据访问。
 | 文件 | 说明 |
 |------|------|
 | `secure-storage.ts` | electron-store 加密存储 (API 密钥) |
+| `key-storage/key-storage.ts` | keyStorage 统一入口（v0.12.1+） |
+| `key-storage/strategies/safe-storage.strategy.ts` | safeStorage + AES-256-GCM 策略（含 writeChain 互斥） |
+| `key-storage/strategies/plaintext-fallback.strategy.ts` | 回退策略（fail-close，拒绝明文 JSON） |
+| `handlers/config.ts` | `saveConfig` (sync, 抛错) / `saveConfigAsync` (async, keyStorage 持久化) |
 
-API 密钥通过 `electron-store` 加密存储, 通过 IPC (`secure-config:*` 通道) 访问, **绝不**存储在 localStorage 或使用 XOR 混淆。
+API 密钥采用**双层存储**：元数据存于 `electron-store`，敏感 apiKey 存于 `keyStorage`（`$secure:` 引用机制）。前端 `saveConfig` → `/api/config/set` → `applyConfigValue` → `saveConfigAsync` → `keyStorage.save`。
+
+**`saveConfigAsync`** 会提取 provider 中的 apiKey 字段，存入 keyStorage，并在 config 中替换为 `$secure:providerId` 引用。`loadConfigAsync` 在运行时反向解析引用为真实 apiKey。`saveConfig` (sync) 检测到明文 apiKey 会 throw Error（R182 回归规则）。
+
+绝不存储在 localStorage 或使用 XOR 混淆。
 
 ---
 

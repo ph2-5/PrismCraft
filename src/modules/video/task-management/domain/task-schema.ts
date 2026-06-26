@@ -20,15 +20,18 @@ const API_STATUS_MAP: Record<string, string | null> = {
   success: "completed",
   failed: "failed",
   error: "failed",
-  cancelled: "failed",
+  cancelled: "cancelled",
 };
 
-export function mapApiStatus(apiStatus: string, videoUrl?: string): "pending" | "generating" | "completed" | "failed" {
+export function mapApiStatus(apiStatus: string, videoUrl?: string): "pending" | "generating" | "completed" | "failed" | "cancelled" {
   const mapped = API_STATUS_MAP[apiStatus.toLowerCase()];
-  if (mapped === "pending" || mapped === "generating" || mapped === "completed" || mapped === "failed") {
+  if (mapped === "pending" || mapped === "generating" || mapped === "completed" || mapped === "failed" || mapped === "cancelled") {
     if (mapped === "completed" && videoUrl) return "completed";
     if (mapped === "completed" && !videoUrl) return "generating";
     return mapped;
   }
-  return "failed";
+  // Unknown Provider status strings (e.g. "rendering", "converting", "moderating")
+  // must NOT be mapped to "failed" — that causes false-failure. Downgrade to
+  // "generating" so polling continues until a terminal status is observed.
+  return "generating";
 }

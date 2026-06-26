@@ -4612,3 +4612,59 @@ function setupApiHandlers(): void {
 **Verification**: `grep -r "text-slate-\|bg-slate-\|border-slate-\|text-gray-\|bg-gray-\|border-gray-" src/ --include="*.tsx" --include="*.ts"` 应返回 0 结果。
 
 **Discovered in**: 批次 5 UI 颜色系统清理。188 处硬编码颜色已全部替换为语义变量。
+
+---
+
+### R182: `/api/config/set` 必须走异步 keyStorage 持久化（禁止明文 apiKey 落盘）
+
+**Rule**: 前端 `saveConfig` 发送的 `ai_animation_studio_api_config` 字段必须通过 `saveConfigAsync()` 持久化，apiKey 通过 `$secure:` 引用机制存入 keyStorage，禁止明文 apiKey 写入 `config.json`。
+
+**Why**: 前端 `saveConfig` 会将整个 config 序列化为 JSON 字符串作为 `value` 发送到 `/api/config/set`。`applyConfigValue` 必须正确解析字符串或对象，否则 `typeof value === "object"` 对字符串永远为 false，导致：
+1. 明文 apiKey 写入磁盘 `config.json`（安全漏洞）
+2. apiKey 更新丢失（用户感知不到，但下次重启后 keyStorage 仍是旧值）
+
+**Requirements**:
+1. `applyConfigValue(key, value)` 在 `key === "ai_animation_studio_api_config"` 时必须先尝试 `JSON.parse(value)`，解析失败时 warn 并 return，不能静默写入字符串
+2. `/api/config/set` 路由必须调用 `saveConfigAsync(config)` 而非 `saveConfig(config)`（sync 版本会在检测到明文 apiKey 时 throw）
+3. `saveConfig` (sync) 检测到明文 apiKey 必须抛错，强制调用方迁移到 `saveConfigAsync`
+4. `validateConfigValue` 必须拒绝 `data:`、`javascript:`、`vbscript:`、`file:`、`blob:` 协议
+5. `PlaintextFallbackStrategy` 必须 fail-close，拒绝明文 JSON 格式
+6. `SafeStorageStrategy` 必须用 `writeChain` Promise 链串行化写操作，防止并发覆盖
+
+**BAD**:
+```typescript
+// ❌ applyConfigValue 不解析字符串，直接 typeof 判断
+function applyConfigValue(config, key, value) {
+  if (key === "ai_animation_studio_api_config") {
+    if (typeof value === "object") {  // 字符串永远不是 object
+      Object.assign(config, value);
+    }
+  }
+}
+// 结果：apiKey 明文落盘 + 更新丢失
+```
+
+**GOOD**:
+```typescript
+// ✅ 正确解析字符串，使用 saveConfigAsync 持久化
+function applyConfigValue(config, key, value) {
+  if (key === "ai_animation_studio_api_config") {
+    let apiConfig = value;
+    if (typeof value === "string") {
+      try { apiConfig = JSON.parse(value); }
+      catch { logger.warn("malformed JSON"); return; }
+    }
+    if (apiConfig && typeof apiConfig === "object") {
+      Object.assign(config, apiConfig);
+    }
+  }
+}
+// 路由层：
+const saved = await saveConfigAsync(config);  // 异步持久化到 keyStorage
+```
+
+**Verification**: `npm run test:electron -- regression-r182` 必须通过 17 个测试用例。
+
+**Test**: `electron/src/__tests__/regression-r182-config-set-async-persistence.test.ts`
+
+**Discovered in**: v0.12.1 API 配置系统彻底性修复。C1 Critical bug：前端 saveConfig 绕过 keyStorage。

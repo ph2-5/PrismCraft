@@ -11,6 +11,7 @@ import type {
   StoryBeat,
   Character,
   Scene,
+  SceneTransition,
 } from "@/domain/schemas";
 import { validateReferenceImageQuality, buildFeatureAnchoringConfig } from "@/modules/shot";
 import type { MinimalAsset } from "./types";
@@ -36,6 +37,7 @@ export function ElementBindingPanel({
   const [assetSelectorOpen, setAssetSelectorOpen] = useState(false);
   const [selectingImageForElement, setSelectingImageForElement] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showSceneTransitionMenu, setShowSceneTransitionMenu] = useState(false);
   const [imageQualityMap, setImageQualityMap] = useState<Record<string, ReferenceImageQuality>>({});
   void imageQualityMap; // 保留用于未来质量检测展示
 
@@ -45,7 +47,7 @@ export function ElementBindingPanel({
     .filter((e): e is StoryElement => !!e);
 
   const boundCharacters = boundElements.filter((e) => e.type === "character");
-  const boundScenes = boundElements.filter((e) => (e.type as string) === "scene");
+  const boundScenes = boundElements.filter((e) => e.type === "scene");
   const boundProps = boundElements.filter((e) => e.type === "prop" || e.type === "effect");
 
   const getElementBinding = (elementId: string) => {
@@ -114,18 +116,14 @@ export function ElementBindingPanel({
   };
 
   const handleAddScene = (scene: Scene) => {
-    const existingElement = elements.find((e) => (e.type as string) === "scene" && e.name === scene.name);
+    const existingElement = elements.find((e) => e.type === "scene" && e.name === scene.name);
     let elementId: string;
     if (existingElement) {
       elementId = existingElement.id;
     } else {
       // Create scene element asynchronously
       container.elementManager.then(async (em) => {
-        // "scene" 不在 ElementType 枚举（"character" | "prop" | "effect"）中，
-        // 但 elementManager.createElement 在运行时接受任意字符串。
-        // 修改 ElementType 枚举属于领域级变更，影响 storyElementSchema 校验和
-        // 其他模块的类型守卫，此处保留 cast 避免连锁修改。
-        const newElement = await em.createElement(("scene" as unknown as ElementType), scene.name, scene.description || "");
+        const newElement = await em.createElement("scene", scene.name, scene.description || "");
         if (scene.scenePath || scene.generatedImage) {
           await em.updateElement(newElement.id, {
             bindings: [{ type: "image" as const, url: scene.scenePath || scene.generatedImage || "", name: t("element.refImageName", { name: scene.name }), uploadedAt: new Date().toISOString(), isPrimary: true }],
@@ -144,6 +142,26 @@ export function ElementBindingPanel({
     newElementBindings[elementId] = { imageUrl: scene.scenePath || scene.generatedImage, text: scene.description || "", description: scene.description || "" };
     onUpdateBeat({ ...beat, elementIds: newElementIds, elementBindings: newElementBindings, sceneId: scene.id });
     setShowAddMenu(false);
+  };
+
+  const handleAddSceneTransition = (targetSceneId: string) => {
+    const transitions = beat.sceneTransitions || [];
+    if (transitions.some((tr) => tr.sceneId === targetSceneId)) return;
+    const newTransitions = [...transitions, { sceneId: targetSceneId }];
+    onUpdateBeat({ ...beat, sceneTransitions: newTransitions });
+    setShowSceneTransitionMenu(false);
+  };
+
+  const handleRemoveSceneTransition = (targetSceneId: string) => {
+    const transitions = beat.sceneTransitions || [];
+    const newTransitions = transitions.filter((tr) => tr.sceneId !== targetSceneId);
+    onUpdateBeat({ ...beat, sceneTransitions: newTransitions.length === 0 ? undefined : newTransitions });
+  };
+
+  const handleUpdateSceneTransition = (targetSceneId: string, updates: Partial<SceneTransition>) => {
+    const transitions = beat.sceneTransitions || [];
+    const newTransitions = transitions.map((tr) => (tr.sceneId === targetSceneId ? { ...tr, ...updates } : tr));
+    onUpdateBeat({ ...beat, sceneTransitions: newTransitions });
   };
 
   const handleCreateNewElement = async (type: ElementType) => {
@@ -220,7 +238,7 @@ export function ElementBindingPanel({
   };
 
   const availableCharacters = characters.filter((char) => !boundElements.some((el) => el.type === "character" && el.name === char.name));
-  const availableScenes = scenes.filter((sc) => !boundElements.some((el) => (el.type as string) === "scene" && el.name === sc.name));
+  const availableScenes = scenes.filter((sc) => !boundElements.some((el) => el.type === "scene" && el.name === sc.name));
 
   return (
     <>
@@ -298,6 +316,12 @@ export function ElementBindingPanel({
         const binding = getElementBinding(element.id);
         const scene = scenes.find((s) => s.name === element.name);
         const imageUrl = binding.imageUrl || scene?.scenePath || scene?.generatedImage;
+        // 场景转换：仅在主场景（beat.sceneId 匹配的 scene）卡片中显示
+        const isMainScene = scene && beat.sceneId === scene.id;
+        const sceneTransitions = beat.sceneTransitions || [];
+        const availableTransitionScenes = scenes.filter(
+          (sc) => sc.id !== beat.sceneId && !sceneTransitions.some((tr) => tr.sceneId === sc.id),
+        );
         return (
           <div key={element.id} className="element-card">
             <div className={`element-avatar ${element.type}`}>{imageUrl ? <img src={resolveImageUrl(imageUrl)} alt={element.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏙"}</div>
@@ -331,6 +355,78 @@ export function ElementBindingPanel({
                 <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.supplementaryDesc")}</label>
                 <input className="input" style={{ fontSize: 11, padding: "4px 6px" }} value={binding.description || ""} onChange={(e) => handleUpdateBinding(element.id, "description", e.target.value)} placeholder={t("element.supplementaryPlaceholder")} />
               </div>
+              {isMainScene && (
+                <div style={{ borderTop: "1px dashed var(--border)", paddingTop: 6, marginTop: 2 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: "var(--muted-fg)", marginBottom: 4 }}>
+                    {t("element.sceneTransitions")}
+                  </div>
+                  <div style={{ fontSize: 9, color: "var(--muted-fg)", marginBottom: 6 }}>
+                    {t("element.sceneTransitionsHint")}
+                  </div>
+                  {sceneTransitions.map((transition) => {
+                    const targetScene = scenes.find((s) => s.id === transition.sceneId);
+                    if (!targetScene) return null;
+                    return (
+                      <div key={transition.sceneId} style={{ display: "flex", flexDirection: "column", gap: 4, padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 11, fontWeight: 600 }}>→ 🏙 {targetScene.name}</span>
+                          <button className="btn btn-ghost btn-xs" style={{ color: "var(--destructive)", padding: "0 4px" }} onClick={() => handleRemoveSceneTransition(transition.sceneId)}>✕</button>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 4 }}>
+                          <select
+                            className="select"
+                            style={{ fontSize: 10, padding: "2px 4px" }}
+                            value={transition.transitionType || ""}
+                            onChange={(e) => handleUpdateSceneTransition(transition.sceneId, { transitionType: (e.target.value || undefined) as SceneTransition["transitionType"] })}
+                          >
+                            <option value="">{t("element.selectTransitionType")}</option>
+                            <option value="cut">{t("element.transitionCut")}</option>
+                            <option value="dissolve">{t("element.transitionDissolve")}</option>
+                            <option value="wipe">{t("element.transitionWipe")}</option>
+                            <option value="fade">{t("element.transitionFade")}</option>
+                          </select>
+                          <input
+                            className="input"
+                            style={{ fontSize: 10, padding: "2px 4px" }}
+                            value={transition.description || ""}
+                            onChange={(e) => handleUpdateSceneTransition(transition.sceneId, { description: e.target.value })}
+                            placeholder={t("element.transitionDescPlaceholder")}
+                            aria-label={t("element.transitionDesc")}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {showSceneTransitionMenu ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "4px 0" }}>
+                      {availableTransitionScenes.length === 0 ? (
+                        <div style={{ fontSize: 10, color: "var(--muted-fg)", textAlign: "center" }}>{t("element.noMoreScenes")}</div>
+                      ) : (
+                        availableTransitionScenes.map((sc) => (
+                          <button
+                            key={sc.id}
+                            className="btn btn-ghost btn-xs"
+                            style={{ justifyContent: "flex-start", gap: 6 }}
+                            onClick={() => handleAddSceneTransition(sc.id)}
+                          >
+                            {(sc.scenePath || sc.generatedImage) && <img src={resolveImageUrl(sc.scenePath || sc.generatedImage || "")} alt={sc.name} style={{ width: 16, height: 16, borderRadius: 3, objectFit: "cover" }} />}
+                            <span>{sc.name}</span>
+                          </button>
+                        ))
+                      )}
+                      <button className="btn btn-ghost btn-xs" onClick={() => setShowSceneTransitionMenu(false)}>{t("common.cancel")}</button>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn btn-outline btn-xs"
+                      style={{ width: "100%", justifyContent: "center", borderStyle: "dashed", padding: 6, color: "var(--muted-fg)" }}
+                      onClick={() => setShowSceneTransitionMenu(true)}
+                    >
+                      + {t("element.addSceneTransition")}
+                    </button>
+                  )}
+                </div>
+              )}
               <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                 <button className="btn btn-ghost btn-xs" style={{ color: "var(--destructive)" }} onClick={() => handleRemoveElement(element.id)}>✕ {t("element.remove")}</button>
               </div>

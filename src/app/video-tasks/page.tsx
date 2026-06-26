@@ -20,6 +20,7 @@ export default function VideoTasksPage() {
     pendingTasks,
     failedTasks,
     completionRate,
+    isLoading,
     allTasks,
     startBackgroundProcessing,
     recoverTask,
@@ -91,7 +92,8 @@ export default function VideoTasksPage() {
                 <List size={16} />
                 {t("task.totalTasks")}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{totalTasks}</div>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{isLoading ? "..." : totalTasks}</div>
+
             </div>
 
             {/* 已完成 */}
@@ -117,7 +119,7 @@ export default function VideoTasksPage() {
                 {t("task.completedCount")}
               </div>
               <div style={{ fontSize: 24, fontWeight: 700, color: "var(--success)" }}>
-                {completedTasks}
+                {isLoading ? "..." : completedTasks}
               </div>
             </div>
 
@@ -144,7 +146,7 @@ export default function VideoTasksPage() {
                 {t("task.pendingCount")}
               </div>
               <div style={{ fontSize: 24, fontWeight: 700, color: "var(--warning)" }}>
-                {pendingTasks}
+                {isLoading ? "..." : pendingTasks}
               </div>
             </div>
 
@@ -171,7 +173,7 @@ export default function VideoTasksPage() {
                 {t("task.generatingCount")}
               </div>
               <div style={{ fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>
-                {processingTasks}
+                {isLoading ? "..." : processingTasks}
               </div>
             </div>
 
@@ -198,7 +200,7 @@ export default function VideoTasksPage() {
                 {t("task.failedCount")}
               </div>
               <div style={{ fontSize: 24, fontWeight: 700, color: "var(--destructive)" }}>
-                {failedTasks}
+                {isLoading ? "..." : failedTasks}
               </div>
             </div>
 
@@ -225,7 +227,7 @@ export default function VideoTasksPage() {
                 {t("task.completionRate")}
               </div>
               <div style={{ fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>
-                {completionRate}%
+                {isLoading ? "..." : `${completionRate}%`}
               </div>
               <div
                 className="progress-bar"
@@ -238,7 +240,7 @@ export default function VideoTasksPage() {
               >
                 <div
                   className="progress-fill"
-                  style={{ width: `${completionRate}%`, background: "var(--primary)" }}
+                  style={{ width: isLoading ? 0 : `${completionRate}%`, background: "var(--primary)" }}
                 />
               </div>
             </div>
@@ -279,7 +281,12 @@ export default function VideoTasksPage() {
                 {t("task.taskListDesc")}
               </div>
             </div>
-            {totalTasks === 0 ? (
+            {isLoading ? (
+              <div style={{ textAlign: "center", padding: "64px 0" }}>
+                <Loader2 size={32} className="animate-spin" style={{ margin: "0 auto 16px", color: "var(--muted-fg)" }} />
+                <p style={{ color: "var(--muted-fg)", fontSize: 13 }}>{t("common.loading")}</p>
+              </div>
+            ) : totalTasks === 0 ? (
               <div style={{ textAlign: "center", padding: "64px 0" }}>
                 <Video size={64} style={{ margin: "0 auto 16px", color: "var(--muted-fg)", opacity: 0.2 }} />
                 <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("task.noTasks")}</h2>

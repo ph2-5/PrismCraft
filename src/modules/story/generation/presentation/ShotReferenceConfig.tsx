@@ -39,6 +39,7 @@ export function ShotReferenceConfig({
   const [validation, setValidation] = useState<{
     valid: boolean;
     error?: string;
+    warnings?: string[];
   }>({ valid: true });
 
   const [prevBeatReference, setPrevBeatReference] = useState(beat.reference);
@@ -51,7 +52,7 @@ export function ShotReferenceConfig({
   }
 
   const effectiveValidation = reference.direction === "none"
-    ? { valid: true }
+    ? { valid: true, warnings: [] as string[] }
     : validation;
 
   const currentIndex = allShots.findIndex((s) => s.id === beat.id);
@@ -247,6 +248,24 @@ export function ShotReferenceConfig({
                   </p>
                   {!effectiveValidation.valid && (
                     <p style={{ color: "var(--destructive)" }}>{effectiveValidation.error}</p>
+                  )}
+                  {effectiveValidation.warnings && effectiveValidation.warnings.length > 0 && (
+                    <div
+                      className="mt-2 p-2 rounded-lg border"
+                      style={{
+                        backgroundColor: "var(--warning-bg, rgba(234, 179, 8, 0.1))",
+                        borderColor: "var(--warning-border, rgba(234, 179, 8, 0.3))",
+                      }}
+                    >
+                      <p className="text-sm font-medium mb-1" style={{ color: "var(--warning)" }}>
+                        {t("shot.refWarningsTitle")}
+                      </p>
+                      <ul className="text-sm space-y-1" style={{ color: "var(--warning)" }}>
+                        {effectiveValidation.warnings.map((w, i) => (
+                          <li key={i}>• {w}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>

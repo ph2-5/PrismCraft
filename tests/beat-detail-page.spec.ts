@@ -41,7 +41,7 @@ test.describe("Beat Detail Page via Story Editor", () => {
   test.beforeEach(async ({ page }) => {
     await installElectronMock(page);
     await mockApiRoutes(page);
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await dismissOverlays(page);
     await page.waitForTimeout(1000);
 
@@ -82,7 +82,7 @@ test.describe("Beat Detail Page Console Errors", () => {
     await mockApiRoutes(page);
 
     // 先创建 beat
-    await navigateTo(page, "/story");
+    await navigateTo(page, "/storyboard");
     await dismissOverlays(page);
     await page.waitForTimeout(1000);
     await fillInput(page, '[data-testid="story-title-input"]', "控制台错误测试");

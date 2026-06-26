@@ -14,6 +14,7 @@ export async function createElement(
     character: "CHAR",
     prop: "PROP",
     effect: "EFFECT",
+    scene: "SCENE",
   };
   const prefix = prefixMap[type];
   const now = Math.floor(Date.now() / 1000);

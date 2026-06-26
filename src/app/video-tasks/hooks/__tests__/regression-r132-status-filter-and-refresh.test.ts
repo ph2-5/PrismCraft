@@ -19,12 +19,14 @@ import type { VideoTask } from "@/modules/video";
 
 const {
   mockUseVideoTaskManager,
+  mockUseVideoTaskStore,
   mockUseNavigationGuard,
   mockConfirm,
   mockToastHelpers,
   mockT,
 } = vi.hoisted(() => ({
   mockUseVideoTaskManager: vi.fn(),
+  mockUseVideoTaskStore: vi.fn((selector: (s: { isInitialized: boolean }) => boolean) => selector({ isInitialized: true })),
   mockUseNavigationGuard: vi.fn(() => ({ guardedPush: vi.fn() })),
   mockConfirm: vi.fn(),
   mockToastHelpers: {
@@ -40,6 +42,7 @@ const {
 
 vi.mock("@/modules/video", () => ({
   useVideoTaskManager: mockUseVideoTaskManager,
+  useVideoTaskStore: mockUseVideoTaskStore,
 }));
 
 vi.mock("@/shared/presentation/BeforeUnloadGuard", () => ({

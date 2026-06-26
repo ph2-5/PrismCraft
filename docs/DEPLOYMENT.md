@@ -1,6 +1,6 @@
 # PrismCraft 部署与运维指南
 
-> 版本：0.11.0 | 更新日期：2026-06-21
+> 版本：0.12.1 | 更新日期：2026-06-27
 
 ## 1. 环境要求
 
@@ -190,7 +190,7 @@ npm run rebuild    # 等价于 npx electron-rebuild
 npm run build:win
 ```
 
-产物：NSIS 安装程序（`release/PrismCraft Setup 0.11.0.exe`）
+产物：NSIS 安装程序（`release/PrismCraft Setup 0.12.1.exe`）
 
 NSIS 配置：
 - 非一键安装，允许用户选择安装目录
@@ -289,8 +289,8 @@ npm run validate:full
 3. **创建版本标签：**
 
 ```powershell
-git tag v0.11.0
-git push origin v0.11.0
+git tag v0.12.1
+git push origin v0.12.1
 ```
 
 4. **自动触发 Release 流水线**（`.github/workflows/release.yml`）

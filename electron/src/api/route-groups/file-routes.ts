@@ -63,6 +63,14 @@ const CATEGORY_DIRS: Record<string, string> = {
   plugin: PLUGIN_BASE_DIR,
 };
 
+// file/list 大目录保护：超过 MAX_DIR_SCAN 个文件时只扫描前 N 个并附带 warning。
+// 避免数千文件导致内存爆炸和长时间阻塞 IPC。 caller 可据此决定是否需要
+// 更细粒度的索引方案（如 DB 索引 / 文件名前缀分桶）。
+const MAX_DIR_SCAN = 5000;
+// stat 并发批次大小：50 是经验值，在 Windows/Linux/macOS 上均稳定，
+// 既能显著降低串行延迟，又不会过载 fs 句柄。
+const STAT_BATCH_SIZE = 50;
+
 const ALLOWED_ROOTS = [
   ...Object.values(CATEGORY_DIRS),
   ...getAllUserDataDirs(),
@@ -358,9 +366,24 @@ export const fileRoutes: Record<string, Route> = {
         const offset = typeof body.offset === "number" ? Math.max(body.offset, 0) : 0;
 
         // 注意：按 createdAt 排序需要对所有文件执行 stat，无法仅 stat 分页范围。
-        // 大目录（数千文件）会有较高内存峰值。已通过 500 条上限限制返回规模，
-        // 若目录极大需考虑改用文件名排序或增量索引方案。
+        // 安全上限：目录文件数超过 MAX_DIR_SCAN 时只扫描前 N 个并附带 warning，
+        // 避免数千文件导致内存爆炸和长时间阻塞。 caller 可据此决定是否需要
+        // 更细粒度的索引方案。
         const files = await fsp.readdir(dir);
+        const totalOnDisk = files.length;
+        let truncated = false;
+        let scannedFiles = files;
+        if (totalOnDisk > MAX_DIR_SCAN) {
+          truncated = true;
+          scannedFiles = files.slice(0, MAX_DIR_SCAN);
+          logger.warn(
+            `[File HTTP] list: directory ${category} has ${totalOnDisk} entries, ` +
+              `scanning only first ${MAX_DIR_SCAN} (truncated).`,
+          );
+        }
+
+        // 并行 stat：每批 STAT_BATCH_SIZE 个并发，避免串行等待 + 防止
+        // 一次性 Promise.all 在超大目录上压爆 fs 句柄。
         const results: Array<{
           key: string;
           category: string;
@@ -369,27 +392,42 @@ export const fileRoutes: Record<string, Route> = {
           createdAt: number;
           updatedAt: number;
         }> = [];
-
-        for (const file of files) {
-          const filePath = path.join(dir, file);
-          try {
-            const stat = await fsp.stat(filePath);
-            if (!stat.isFile()) continue;
-            results.push({
-              key: file,
-              category,
-              size: stat.size,
-              mimeType: getMimeFromExt(filePath),
-              createdAt: Math.floor(stat.birthtime.getTime() / 1000),
-              updatedAt: Math.floor(stat.mtime.getTime() / 1000),
-            });
-          } catch {
-            // 跳过无法访问的文件
+        for (let i = 0; i < scannedFiles.length; i += STAT_BATCH_SIZE) {
+          const batch = scannedFiles.slice(i, i + STAT_BATCH_SIZE);
+          const settled = await Promise.allSettled(
+            batch.map(async (file) => {
+              const filePath = path.join(dir, file);
+              const stat = await fsp.stat(filePath);
+              if (!stat.isFile()) return null;
+              return {
+                key: file,
+                category,
+                size: stat.size,
+                mimeType: getMimeFromExt(filePath),
+                createdAt: Math.floor(stat.birthtime.getTime() / 1000),
+                updatedAt: Math.floor(stat.mtime.getTime() / 1000),
+              } as const;
+            }),
+          );
+          for (const r of settled) {
+            if (r.status === "fulfilled" && r.value) {
+              results.push(r.value);
+            }
+            // rejected / non-file entries: 跳过无法访问的文件
           }
         }
         results.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         const paginatedResults = results.slice(offset, offset + limit);
-        return { success: true, data: { files: paginatedResults, total: results.length, offset, limit } };
+        return {
+          success: true,
+          data: {
+            files: paginatedResults,
+            total: results.length,
+            offset,
+            limit,
+            ...(truncated ? { warning: `DIRECTORY_TRUNCATED: scanned ${MAX_DIR_SCAN} of ${totalOnDisk} entries` } : {}),
+          },
+        };
       } catch (error) {
         logger.error("[File HTTP] list failed:", error instanceof Error ? error : new Error(String(error)));
         return { success: false, error: error instanceof Error ? error.message : String(error) };

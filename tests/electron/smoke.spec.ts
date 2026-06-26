@@ -78,9 +78,9 @@ test.describe("Page Navigation via Direct URL", () => {
     });
   }
 
-  test("should load /story page correctly", async ({ page }) => {
-    await navigateTo(page, "/story");
-    expect(page.url()).toContain("/story");
+  test("should load /storyboard page correctly", async ({ page }) => {
+    await navigateTo(page, "/storyboard");
+    expect(page.url()).toContain("/storyboard");
     await expect(page.locator("main").first()).toBeVisible();
   });
 
@@ -104,14 +104,14 @@ test.describe("Page Navigation via Direct URL", () => {
     expect(page.url()).toContain("/scenes");
   });
 
-  test("should navigate from homepage to story via link click", async ({ page }) => {
+  test("should navigate from homepage to storyboard via card click", async ({ page }) => {
     await navigateTo(page, "/");
     await dismissOverlays(page);
-    const link = page.locator("a[href='/story']").first();
-    await expect(link).toBeVisible();
-    await link.click();
-    await page.waitForURL("**/story", { timeout: 15000 });
-    expect(page.url()).toContain("/story");
+    const card = page.locator("text=故事模式").first();
+    await expect(card).toBeVisible();
+    await card.click();
+    await page.waitForURL("**/storyboard", { timeout: 15000 });
+    expect(page.url()).toContain("/storyboard");
   });
 
   test("should navigate from homepage to quick generate via link click", async ({ page }) => {

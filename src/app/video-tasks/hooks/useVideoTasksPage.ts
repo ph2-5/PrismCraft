@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
-import { useVideoTaskManager } from "@/modules/video";
+import { useVideoTaskManager, useVideoTaskStore } from "@/modules/video";
 import { confirm } from "@/shared/utils/confirm";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants";
@@ -17,6 +17,7 @@ export function useVideoTasksPage() {
     clearFailedTasks,
     recoverTask,
   } = useVideoTaskManager();
+  const isInitialized = useVideoTaskStore((s) => s.isInitialized);
 
   const [isClearingCompleted, setIsClearingCompleted] = useState(false);
   const [isClearingFailed, setIsClearingFailed] = useState(false);
@@ -114,7 +115,7 @@ export function useVideoTasksPage() {
     }
   };
 
-  const navigateToStory = () => guardedPush("/story");
+  const navigateToStory = () => guardedPush("/storyboard");
   const navigateToQuickGenerate = () => guardedPush("/quick-generate");
 
   return {
@@ -125,6 +126,7 @@ export function useVideoTasksPage() {
     pendingTasks,
     failedTasks,
     completionRate,
+    isLoading: !isInitialized,
     // Task data
     allTasks: filteredTasks,
     startBackgroundProcessing,

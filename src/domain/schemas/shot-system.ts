@@ -154,7 +154,19 @@ export const beatCameraSchema = z.object({
   transitionDuration: z.number().optional(),
 });
 
-export const elementTypeSchema = z.enum(["character", "prop", "effect"]);
+/**
+ * 元素类型枚举。
+ *
+ * 历史背景：原本只有 `["character", "prop", "effect"]` 三种，UI 通过 `as unknown as`
+ * cast 绕过将 "scene" 视作第四种类型。已正式纳入枚举，避免类型不一致的隐患。
+ *
+ * - `character`：角色，绑定到 StoryBeat.elementBindings，由 characterAnchors 处理一致性
+ * - `prop`：道具，由 propAnchors 处理一致性
+ * - `effect`：特效，与 prop 处理方式相同（无专属字段，未来可扩展）
+ * - `scene`：场景，绑定到 StoryBeat.sceneId 单值字段；不在 featureAnchoring 中处理
+ *   （场景一致性由 shotReference + visualConsistency 负责）
+ */
+export const elementTypeSchema = z.enum(["character", "prop", "effect", "scene"]);
 export const assetTypeSchema = z.enum(["image", "video", "text"]);
 
 export const assetBindingSchema = z.object({

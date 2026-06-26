@@ -6,7 +6,9 @@ export class ReferenceEngine {
     shot: StoryBeat,
     allShots: StoryBeat[],
     reference: ShotReference,
-  ): { valid: boolean; error?: string } {
+  ): { valid: boolean; error?: string; warnings?: string[] } {
+    const warnings: string[] = [];
+
     if (
       reference.direction === "custom" &&
       reference.targetShotId
@@ -21,6 +23,24 @@ export class ReferenceEngine {
     if (!targetShot) {
       return { valid: false, error: t("shot.refNotFound") };
     }
+
+    // Warnings: 目标分镜存在但缺少引用所需的资源（末帧/首帧）。
+    // 这些不是错误（valid 仍为 true），但需要告知用户引用可能无效。
+    if (
+      reference.contentType === "last_frame" &&
+      !targetShot.generationResult?.lastFrameUrl &&
+      !targetShot.videoGen?.videoUrl
+    ) {
+      warnings.push(t("shot.refTargetMissingLastFrame"));
+    }
+    if (
+      reference.contentType === "first_frame" &&
+      !targetShot.generationResult?.firstFrameUrl &&
+      !targetShot.videoGen?.videoUrl
+    ) {
+      warnings.push(t("shot.refTargetMissingFirstFrame"));
+    }
+
     if (
       !targetShot.videoGen?.videoUrl &&
       !targetShot.generationResult?.videoUrl
@@ -37,7 +57,7 @@ export class ReferenceEngine {
       }
     }
 
-    return { valid: true };
+    return warnings.length > 0 ? { valid: true, warnings } : { valid: true };
   }
 
   getTargetShot(

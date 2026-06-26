@@ -4,7 +4,7 @@ import { errorLogger } from "@/shared/error-logger";
 
 const TIMESTAMP_THRESHOLD = 1e12;
 
-const VALID_TASK_STATUS = new Set(["pending", "generating", "completed", "failed", "cancelled", "retrying"]);
+const VALID_TASK_STATUS = new Set(["pending", "generating", "completed", "failed", "cancelled", "retrying", "timeout"]);
 
 function normalizeTaskStatus(raw: unknown): VideoTask["status"] {
   if (raw == null) return "pending";

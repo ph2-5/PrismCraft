@@ -55,7 +55,7 @@ export async function getLibrary(): Promise<ElementLibrary> {
 
   const elements: StoryElement[] = rows.map(parseElementRow);
 
-  const nextCode = { character: 1, prop: 1, effect: 1 };
+  const nextCode = { character: 1, prop: 1, effect: 1, scene: 1 };
   for (const element of elements) {
     const match = element.id.match(/_(\d+)$/);
     if (match && match[1]) {

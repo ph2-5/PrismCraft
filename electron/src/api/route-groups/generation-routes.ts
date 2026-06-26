@@ -77,7 +77,13 @@ export const generationRoutes: Record<string, Route> = {
   "story/generate-video": defineRoute({
     schema: storyGenerateVideoSchema,
     handler: async (_m, b) => {
-      const params = videoTaskService.buildVideoGenerationParams(b);
+      // Schema uses z.unknown().optional() for beat/characters/scenes/elements because
+      // these are complex shared-logic types (Beat/CharacterInput/SceneInput) that
+      // cannot be imported into the Electron schema layer; buildVideoGenerationParams
+      // expects a strongly-typed input, so we cast through unknown.
+      const params = videoTaskService.buildVideoGenerationParams(
+        b as unknown as Parameters<typeof videoTaskService.buildVideoGenerationParams>[0],
+      );
       // VideoGenerationParams is an interface (no implicit index signature), so it is not
       // directly assignable to Record<string, unknown> expected by generateVideo.
       // Use zod runtime validation to safely narrow the typed params to a Record.

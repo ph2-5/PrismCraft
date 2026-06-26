@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import type { StoryBeat } from "@/domain/schemas";
@@ -26,6 +27,8 @@ export function BeatGenerationPanel({
   uploadPanelHandle,
 }: BeatGenerationPanelProps) {
   const { error: showError } = useToastHelpers();
+  // Lightbox state - 点击图片放大查看
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleOneClickGenerate = async () => {
     try {
@@ -81,7 +84,9 @@ export function BeatGenerationPanel({
             <img
               src={keyframeImage}
               alt={beat.title || ""}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              title={t("beat.clickToEnlarge")}
+              onClick={() => setLightboxImage(keyframeImage)}
+              style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }}
             />
           ) : (
             <span aria-hidden="true">🌅</span>
@@ -140,7 +145,9 @@ export function BeatGenerationPanel({
               <img
                 src={firstFrameImage}
                 alt="first frame"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                title={t("beat.clickToEnlarge")}
+                onClick={() => setLightboxImage(firstFrameImage)}
+                style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }}
               />
             ) : (
               <span>首帧</span>
@@ -165,7 +172,9 @@ export function BeatGenerationPanel({
               <img
                 src={lastFrameImage}
                 alt="last frame"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                title={t("beat.clickToEnlarge")}
+                onClick={() => setLightboxImage(lastFrameImage)}
+                style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }}
               />
             ) : (
               <span>尾帧</span>
@@ -258,6 +267,52 @@ export function BeatGenerationPanel({
       >
         <span aria-hidden="true">✨</span> {t("keyframe.oneClickGenerate")}
       </button>
+
+      {/* Lightbox - 点击图片放大查看 */}
+      {lightboxImage && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("beat.clickToEnlarge")}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.9)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            cursor: "zoom-out",
+            padding: 24,
+          }}
+          onClick={() => setLightboxImage(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setLightboxImage(null);
+          }}
+          tabIndex={-1}
+        >
+          <img
+            src={lightboxImage}
+            alt="enlarged preview"
+            style={{
+              maxWidth: "90vw",
+              maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: 8,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="btn btn-ghost btn-xs"
+            style={{ position: "absolute", top: 16, right: 16, color: "white" }}
+            onClick={() => setLightboxImage(null)}
+            aria-label={t("common.close")}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

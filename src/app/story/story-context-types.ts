@@ -85,4 +85,5 @@ export interface StoryContextValue {
   saveError: string;
 
   isVideoUrlPersisting: boolean;
+  isStoryLoading: boolean;
 }

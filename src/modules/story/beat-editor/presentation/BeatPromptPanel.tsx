@@ -106,11 +106,6 @@ export function BeatPromptPanel({
     });
   };
 
-  const boundElementIds = beat.elementIds || [];
-  const boundElements = boundElementIds
-    .map((id) => elements.find((e) => e.id === id))
-    .filter((e): e is StoryElement => !!e);
-
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
       {/* Prompt tabs */}
@@ -149,21 +144,6 @@ export function BeatPromptPanel({
             scenes={scenes}
           />
         </div>
-        {/* Binding visual tags - shows bound characters/scenes inline */}
-        {boundElements.length > 0 && (
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "4px 0" }}>
-            {boundElements.map((el) => {
-              const isCharacter = el.type === "character";
-              const isScene = (el.type as string) === "scene";
-              if (!isCharacter && !isScene) return null;
-              return (
-                <span key={el.id} className={`prompt-binding-tag ${isCharacter ? "char" : "scene"}`}>
-                  {isCharacter ? "👤" : "🏙"} {el.name}
-                </span>
-              );
-            })}
-          </div>
-        )}
         {/* Toolbar: model chip + generate button */}
         <div className="toolbar">
           {imageModelId && (

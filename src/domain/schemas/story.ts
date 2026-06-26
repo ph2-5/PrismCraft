@@ -49,7 +49,10 @@ export const referenceImageWeightSchema = z.object({
   url: z.string(),
   weight: z.number().min(0).max(1),
   type: z.enum(["portrait", "scene", "style", "prev_frame"]),
-  description: z.string(),
+  // Reserved for future per-image caption support. Currently not read by any
+  // prompt-engine/prompt-service/api-gateway code path; image content is conveyed
+  // via character/scene description fields in the prompt text itself.
+  description: z.string().optional(),
 });
 
 export const promptLabSchema = z.object({
@@ -114,6 +117,21 @@ export const elementBindingSchema = z.object({
   imageUrl: z.string().optional(),
 });
 
+/**
+ * 场景转换项。表达"主场景（StoryBeat.sceneId）→ 目标场景"的过渡。
+ *
+ * 设计说明：
+ * - `sceneId` 指向目标场景（必须存在于 scenes 表中，删除场景时由调用方校验）
+ * - `transitionType` 复用 beatCameraSchema 中的转场枚举（cut/dissolve/wipe/fade）
+ * - `description` 可选，让用户标注"为什么转场"（如"开门进入新房间"）
+ * - 该字段是元信息，prompt-engine 当前不解析；后续可在 prompt 生成时拼入【场景转换】标签
+ */
+export const sceneTransitionSchema = z.object({
+  sceneId: z.string(),
+  transitionType: z.enum(["cut", "dissolve", "wipe", "fade"]).optional(),
+  description: z.string().optional(),
+});
+
 export const VALID_SHOT_TYPES = new Set([
   "wide",
   "medium",
@@ -152,6 +170,13 @@ export const storyBeatSchema = z.object({
   characterIds: z.array(z.string()),
   characterOutfits: z.record(z.string(), z.string()).optional(),
   sceneId: nullToUndef(z.string()),
+  /**
+   * 场景转换列表。当单张分镜需要进行一系列场景转换时使用（例如"开门进入新房间 → 走过走廊 → 抵达客厅"）。
+   *
+   * 与 `sceneId` 关系：`sceneId` 是分镜的"起始主场景"，`sceneTransitions` 描述从主场景过渡到其他场景的序列。
+   * 一张分镜可以只绑定一个场景（`sceneId` only），也可以是"主场景 + 转场序列"（`sceneId` + `sceneTransitions`）。
+   */
+  sceneTransitions: z.array(sceneTransitionSchema).optional(),
   sceneElements: z.array(z.custom<SceneElement>()).optional(),
   elementIds: z.array(z.string()),
   elementBindings: z.record(z.string(), elementBindingSchema).optional(),
@@ -309,6 +334,7 @@ export type StoryBeatKeyframe = z.infer<typeof storyBeatKeyframeSchema>;
 export type StoryBeatFramePair = z.infer<typeof storyBeatFramePairSchema>;
 export type StoryBeatVideoGeneration = z.infer<typeof storyBeatVideoSchema>;
 export type ElementBinding = z.infer<typeof elementBindingSchema>;
+export type SceneTransition = z.infer<typeof sceneTransitionSchema>;
 export type BeatCamera = z.infer<typeof beatCameraSchema>;
 export type ChainMode = z.infer<typeof chainModeSchema>;
 export type BeatInput = z.infer<typeof beatInputSchema>;

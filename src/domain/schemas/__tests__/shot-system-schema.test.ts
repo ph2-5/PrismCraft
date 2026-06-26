@@ -224,14 +224,14 @@ describe("referenceVideoSchema", () => {
 
 describe("elementTypeSchema", () => {
   it("应接受所有合法枚举值", () => {
-    const values = ["character", "prop", "effect"];
+    const values = ["character", "prop", "effect", "scene"];
     for (const val of values) {
       expect(elementTypeSchema.safeParse(val).success).toBe(true);
     }
   });
 
   it("应拒绝非法枚举值", () => {
-    expect(elementTypeSchema.safeParse("scene").success).toBe(false);
+    expect(elementTypeSchema.safeParse("invalid").success).toBe(false);
   });
 });
 

@@ -1,6 +1,6 @@
 # PrismCraft — 完整 API 参考手册
 
-> 版本: 0.11.0 | 更新日期: 2026-06-21 | 架构: Electron + Vite + React + DDD
+> 版本: 0.12.1 | 更新日期: 2026-06-27 | 架构: Electron + Vite + React + DDD
 
 ---
 

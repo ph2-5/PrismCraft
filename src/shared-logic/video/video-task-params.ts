@@ -85,6 +85,15 @@ export function buildVideoGenerationParams(params: {
     enhancedPrompt = `${prompt}\n\n【首尾帧画面约束】\n${frameConstraints.join("\n")}`;
   }
 
+  // Empty-prompt guard: previously this function returned a params object
+  // even when prompt was an empty string (e.g., when beat/characters/scenes
+  // were all undefined due to upstream schema issues). The api-gateway only
+  // rejects truly empty strings, so a prompt with only "[Quality Requirements]"
+  // could slip through. Explicitly reject here so callers see the real cause.
+  if (!enhancedPrompt.trim()) {
+    throw new Error("EMPTY_GENERATED_PROMPT");
+  }
+
   return {
     prompt: enhancedPrompt,
     firstFrameUrl:

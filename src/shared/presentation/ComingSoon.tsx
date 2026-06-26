@@ -3,7 +3,20 @@ import { t } from "@/shared/constants";
 interface ComingSoonProps {
   icon: string;
   title: string;
-  descriptionKey: "comingSoon.agentDesc" | "comingSoon.composerDesc" | "comingSoon.pluginsDesc";
+  descriptionKey:
+    | "comingSoon.agentDesc"
+    | "comingSoon.composerDesc"
+    | "comingSoon.pluginsDesc"
+    | "comingSoon.storyDesc"
+    | "comingSoon.loginDesc"
+    | "comingSoon.templateMarketDesc"
+    | "comingSoon.workflowDesc"
+    | "comingSoon.workspaceDesc"
+    | "comingSoon.mobileDesc"
+    | "comingSoon.storyAiGenerateDesc"
+    | "comingSoon.storyPreviewExportDesc"
+    | "comingSoon.storyCommentsDesc"
+    | "comingSoon.storyAudioDesc";
 }
 
 export function ComingSoon({ icon, title, descriptionKey }: ComingSoonProps) {

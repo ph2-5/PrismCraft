@@ -73,7 +73,7 @@ const FEATURE_TABLES: TableDef[] = [
     name: "video_tasks",
     featureGroup: "video",
     columns: {
-      status: { type: "TEXT", default: "'pending'", check: "IN ('pending', 'generating', 'completed', 'failed', 'cancelled', 'retrying')" },
+      status: { type: "TEXT", default: "'pending'", check: "IN ('pending', 'generating', 'completed', 'failed', 'cancelled', 'retrying', 'timeout')" },
       progress: { type: "INTEGER", default: "0" },
       video_url: { type: "TEXT" },
       local_video_path: { type: "TEXT" },
@@ -292,7 +292,7 @@ const FEATURE_TABLES: TableDef[] = [
       story_id: { type: "TEXT" },
       beat_id: { type: "TEXT" },
       asset_id: { type: "TEXT" },
-      status: { type: "TEXT", default: "'pending'", check: "IN ('pending', 'generating', 'completed', 'failed', 'cancelled', 'retrying')" },
+      status: { type: "TEXT", default: "'pending'", check: "IN ('pending', 'generating', 'completed', 'failed', 'cancelled', 'retrying', 'timeout')" },
       input_params: { type: "TEXT" },
       output_path: { type: "TEXT" },
       output_url: { type: "TEXT" },

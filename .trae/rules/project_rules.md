@@ -602,7 +602,7 @@ When AI discovers a bug (during audit, code review, or development), it MUST fol
 5. **Implement automated detection** — ESLint rule, architecture scan script, or CR rule
 6. **Update project docs** — Update rule count in `project_rules.md`, update MODULE.md if invariants changed
 
-**Quick reference — all 167 guards by category:**
+**Quick reference — all 168 guards by category:**
 
 | Category | Count | Key Concern |
 |----------|-------|-------------|

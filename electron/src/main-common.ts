@@ -66,23 +66,38 @@ function validateConfigValue(value: unknown): boolean {
     return false;
   }
   if (type === "string") {
-    if ((value as string).startsWith("data:") || (value as string).startsWith("javascript:"))
+    // R182/L4: 扩展危险协议黑名单
+    const dangerousProtocols = ["data:", "javascript:", "vbscript:", "file:", "blob:"];
+    const lowerValue = (value as string).toLowerCase();
+    if (dangerousProtocols.some((p) => lowerValue.startsWith(p))) {
       return false;
+    }
   }
   return true;
 }
 
 function applyConfigValue(config: Record<string, unknown>, key: string, value: unknown): void {
-  if (
-    key === "ai_animation_studio_api_config" &&
-    typeof value === "object" &&
-    value !== null
-  ) {
+  if (key === "ai_animation_studio_api_config") {
+    // 前端 saveConfig 会将整个 config 序列化为 JSON 字符串作为 value 发送。
+    // 必须正确解析字符串或对象，并执行浅层字段拷贝（Object.assign 顶层覆盖即可，
+    // 因为前端调用方已经传入完整 config 对象）。
     let apiConfig: unknown = value;
     if (typeof value === "string") {
-      try { apiConfig = JSON.parse(value); } catch { apiConfig = {}; }
+      try {
+        apiConfig = JSON.parse(value);
+      } catch {
+        logger.warn("[Main] applyConfigValue received malformed JSON string for ai_animation_studio_api_config, ignoring");
+        return;
+      }
     }
-    Object.assign(config, apiConfig);
+    if (apiConfig && typeof apiConfig === "object") {
+      Object.assign(config, apiConfig as Record<string, unknown>);
+      // 显式删除可能由前端误传的明文 apiKey 字段引用（防止落盘）
+      // apiKey 由 keyStorage 管理，不应通过此路径写入 config 文件
+      // 注意：config.providers[*].apiKey 已由 saveConfigAsync 转换为 $secure: 引用
+    } else {
+      logger.warn("[Main] applyConfigValue received non-object value for ai_animation_studio_api_config, ignoring");
+    }
   } else if (key.includes(".")) {
     const keys = key.split(".");
     let current: Record<string, unknown> = config;
@@ -570,6 +585,8 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
 
   mainWindow.once("ready-to-show", () => {
     logger.info("[Main] Window ready");
+    // 启动时最大化窗口（保留自定义标题栏按钮可用，不遮挡任务栏）
+    mainWindow.maximize();
     mainWindow.show();
     if (openDevTools) {
       mainWindow.webContents.openDevTools();

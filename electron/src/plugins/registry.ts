@@ -28,6 +28,14 @@ export class PluginRegistry {
     const index = this.plugins.findIndex((p) => p.id === pluginId);
     if (index === -1) return false;
     this.plugins.splice(index, 1);
+    // R182/H5: 删除 code plugin 时必须清理 worker 进程，否则会累积僵尸进程
+    if (this.codePluginIds.has(pluginId)) {
+      try {
+        unregisterProcessManager(pluginId);
+      } catch (e) {
+        logger.warn(`Failed to unregister process manager for ${pluginId}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
     this.userPluginIds.delete(pluginId);
     this.codePluginIds.delete(pluginId);
     logger.info(`Unregistered provider plugin: ${pluginId}`);

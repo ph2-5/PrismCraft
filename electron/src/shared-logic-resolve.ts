@@ -4,21 +4,24 @@ import fs from "fs";
 import { execSync } from "child_process";
 
 /**
- * shared-logic 模块解析器（彻底版）。
+ * 主进程运行时模块别名解析器。
  *
- * 注意：electron/tsconfig.json 未通过 paths 别名配置 @shared-logic/*，因为
- * "../src/shared-logic/*" 在 rootDir "./src" 之外会触发 TS6059 错误。
- * 类型解析依赖 scripts/setup-shared-logic-symlink.mjs 创建的 node_modules/@shared-logic junction。
+ * 处理两类 tsconfig paths 别名（Node.js CJS 运行时不读 tsconfig paths）：
  *
- * 本文件处理运行时解析：Node.js CommonJS 模块解析不读取 tsconfig paths，
- * 主进程运行时通过 Module._resolveFilename 将 @shared-logic/* 重定向到
- * electron/dist/shared-logic/ 编译产物。
+ * 1. `@shared-logic/*` → `electron/dist/shared-logic/*`
+ *    shared-logic 层位于 rootDir 之外，编译产物单独放置。
+ *
+ * 2. `@shared/*` → `electron/dist/shared/*`
+ *    electron/src/shared/ 内的模块（如 i18n），编译后位于 dist/shared/。
+ *
+ * 3. `@domain/*` → `electron/dist/domain/*`
+ *    electron/src/domain/ 内的模块（如 types），编译后位于 dist/domain/。
  *
  * 设计原则：
- * - shared-logic 编译产物始终位于 electron/dist/shared-logic/（跟主进程代码同目录）
- * - 编译后 __dirname = electron/dist/，所以 shared-logic 目录 = __dirname/shared-logic
+ * - 编译产物始终位于 electron/dist/（与主进程代码同目录）
+ * - 编译后 __dirname = electron/dist/，所以子目录 = __dirname/<subdir>
  * - 不依赖 app.isPackaged、不检查 out/、不回退到 src/（src 是 .ts 源码，主进程无法 require）
- * - 打包后 __dirname 位于 resources/app.asar/electron/dist/，shared-logic 一起打包
+ * - 打包后 __dirname 位于 resources/app.asar/electron/dist/，子目录一起打包
  *
  * 自动恢复机制：
  * - 如果 electron/dist/shared-logic 不存在，自动同步触发 tsc 编译
@@ -28,11 +31,12 @@ import { execSync } from "child_process";
  * 编译命令：npm run build:shared-logic（tsc -p tsconfig.shared-logic.json）
  */
 
-const SHARED_LOGIC_DIR = path.resolve(__dirname, "shared-logic");
+const DIST_DIR = __dirname;
+const SHARED_LOGIC_DIR = path.resolve(DIST_DIR, "shared-logic");
 
 if (!fs.existsSync(SHARED_LOGIC_DIR)) {
   // 自动同步编译 shared-logic（开发模式 fallback）
-  const projectRoot = path.resolve(__dirname, "..", "..");
+  const projectRoot = path.resolve(DIST_DIR, "..", "..");
   const tsconfigPath = path.join(projectRoot, "tsconfig.shared-logic.json");
   try {
     execSync(`npx tsc -p "${tsconfigPath}"`, {
@@ -51,7 +55,12 @@ if (!fs.existsSync(SHARED_LOGIC_DIR)) {
   }
 }
 
-const PREFIX = "@shared-logic/";
+// 运行时别名前缀 → dist 子目录映射
+const ALIAS_MAP: Record<string, string> = {
+  "@shared-logic/": "shared-logic",
+  "@shared/": "shared",
+  "@domain/": "domain",
+};
 
 /**
  * Node.js 内部模块解析函数的类型（非公开 API，需手动声明）。
@@ -72,9 +81,13 @@ if (typeof mod._resolveFilename !== "function") {
 const originalResolveFilename: ResolveFilename = mod._resolveFilename;
 
 mod._resolveFilename = function (request: string, ...args: unknown[]): string {
-  if (request.startsWith(PREFIX)) {
-    const subPath = request.slice(PREFIX.length);
-    request = path.resolve(SHARED_LOGIC_DIR, subPath);
+  for (const prefix of Object.keys(ALIAS_MAP)) {
+    if (request.startsWith(prefix)) {
+      const subPath = request.slice(prefix.length);
+      const targetDir = ALIAS_MAP[prefix]!;
+      request = path.resolve(DIST_DIR, targetDir, subPath);
+      break;
+    }
   }
   return originalResolveFilename.call(this, request, ...args);
 };

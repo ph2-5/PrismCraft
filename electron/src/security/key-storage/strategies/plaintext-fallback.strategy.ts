@@ -171,10 +171,9 @@ export class PlaintextFallbackStrategy implements KeyStorageStrategy {
           if (typeof v === "string") data.set(k, v);
         }
       } else {
-        // 明文 JSON（旧格式）
-        for (const [k, v] of Object.entries(packet)) {
-          if (typeof v === "string") data.set(k, v);
-        }
+        // R182: fail-close — 拒绝明文 JSON 格式，避免攻击者通过文件写入注入明文 apiKey
+        // （与 SafeStorageStrategy 的 fail-close 策略一致）
+        logger.warn("[FallbackStorage] Rejecting plaintext JSON keys file (fail-close). Only encrypted format (iv+ciphertext) is accepted.");
       }
     } catch (error) {
       logger.error("[FallbackStorage] Failed to load keys:", error instanceof Error ? error : new Error(String(error)));

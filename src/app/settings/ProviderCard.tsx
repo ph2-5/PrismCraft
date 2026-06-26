@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { t } from "@/shared/constants";
 import {
   Plus,
@@ -5,6 +6,10 @@ import {
   ChevronDown,
   Sparkles,
   Settings2,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import {
   type ApiCapability,
@@ -14,6 +19,7 @@ import {
 } from "@/infrastructure/api-config-facade";
 import { getModelParameterProfile } from "@/shared/model-capabilities";
 import { IconButton } from "@/shared/presentation/IconButton";
+import { testConnection } from "@/infrastructure/ai-providers";
 
 interface CapabilityItem {
   id: ApiCapability;
@@ -40,6 +46,61 @@ function getCapabilityBadges(provider: ApiConfig["providers"][0]) {
   return Array.from(caps);
 }
 
+// H3: 安全脱敏 apiKey 用于 header 显示（避免泄露 $secure: 引用或暴露内部结构）
+function maskApiKeyForDisplay(apiKey: string): string {
+  if (!apiKey) return t("provider.keyNotConfigured");
+  // R182/H3: 检测 $secure: 引用、空字符串、或加载失败后的占位符
+  if (apiKey.startsWith("$secure:")) {
+    // keyStorage 解密失败或引用未解析，提示用户重新输入
+    return t("provider.apiKeyStatusPlaceholder");
+  }
+  if (apiKey.length < 8) return t("provider.apiKeyStatusInvalid");
+  // 不保留首尾字符（避免泄露 provider 类型，如 AIza 前缀）
+  return "••••••••";
+}
+
+// H4: Base URL 协议白名单 + 内网段预校验
+type BaseUrlValidation = {
+  status: "empty" | "ok" | "invalid-scheme" | "private-range";
+  message: string;
+};
+
+function validateBaseUrl(url: string): BaseUrlValidation {
+  const trimmed = url.trim();
+  if (!trimmed) return { status: "empty", message: "" };
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return { status: "invalid-scheme", message: t("provider.baseUrlInvalidScheme") };
+  }
+  // 内网 IP 段检测（仅用于 UI 提示，实际拦截由后端 ssrfGuard 完成）
+  try {
+    const u = new URL(trimmed);
+    const host = u.hostname;
+    const privatePatterns = [
+      /^10\./,
+      /^172\.(1[6-9]|2\d|3[01])\./,
+      /^192\.168\./,
+      /^127\./,
+      /^0\./,
+      /^169\.254\./,
+      /^::1$/,
+      /^fc00:/i,
+      /^fe80:/i,
+    ];
+    if (privatePatterns.some((p) => p.test(host))) {
+      return { status: "private-range", message: t("provider.baseUrlPrivateRange") };
+    }
+    return { status: "ok", message: t("provider.baseUrlLooksGood") };
+  } catch {
+    return { status: "invalid-scheme", message: t("provider.baseUrlInvalidScheme") };
+  }
+}
+
+type ApiKeyVerifyState =
+  | { kind: "idle" }
+  | { kind: "verifying" }
+  | { kind: "valid" }
+  | { kind: "invalid"; message: string };
+
 export function ProviderCard({
   provider,
   isExpanded,
@@ -53,7 +114,80 @@ export function ProviderCard({
   capabilities,
 }: ProviderCardProps) {
   const caps = getCapabilityBadges(provider);
-  const isConfigured = !!provider.apiKey;
+  const isConfigured = !!provider.apiKey && !provider.apiKey.startsWith("$secure:");
+  const [apiKeyState, setApiKeyState] = useState<ApiKeyVerifyState>({ kind: "idle" });
+  const baseUrlValidation = validateBaseUrl(provider.baseUrl);
+
+  // 新增: API Key 自动检测存在性 + 是否需要更新
+  // 当 apiKey 为空或为 $secure: 引用时，显示"需要更新"状态
+  const apiKeyNeedsUpdate = !provider.apiKey || provider.apiKey.startsWith("$secure:");
+  const apiKeyDisplay = maskApiKeyForDisplay(provider.apiKey);
+
+  const handleVerifyApiKey = async () => {
+    setApiKeyState({ kind: "verifying" });
+    try {
+      // 用第一个可用的 video 能力模型测试连接，如果没有就用 image
+      const testCap: ApiCapability = caps.includes("video")
+        ? "video"
+        : caps.includes("image")
+          ? "image"
+          : caps.includes("text")
+            ? "text"
+            : "vision";
+      // 找到该 provider 下支持 testCap 能力的第一个 model
+      const targetModel = provider.models.find((m) => m.capabilities.includes(testCap));
+      const result = await testConnection(testCap, provider.id, targetModel?.id);
+      if (result.success) {
+        setApiKeyState({ kind: "valid" });
+      } else {
+        setApiKeyState({ kind: "invalid", message: result.message });
+      }
+    } catch (e) {
+      setApiKeyState({ kind: "invalid", message: (e as Error).message });
+    }
+  };
+
+  // API Key 状态指示器
+  const apiKeyStatusBadge = (() => {
+    if (apiKeyState.kind === "verifying") {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--muted-fg)" }}>
+          <Loader2 size={11} className="animate-spin" />
+          {t("provider.apiKeyVerifying")}
+        </span>
+      );
+    }
+    if (apiKeyState.kind === "valid") {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--success)" }}>
+          <CheckCircle2 size={11} />
+          {t("provider.apiKeyVerifySuccess")}
+        </span>
+      );
+    }
+    if (apiKeyState.kind === "invalid") {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--destructive)" }}>
+          <AlertCircle size={11} />
+          {t("provider.apiKeyStatusInvalid")}
+        </span>
+      );
+    }
+    if (apiKeyNeedsUpdate) {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--warning)" }}>
+          <AlertTriangle size={11} />
+          {t("provider.apiKeyStatusNeedsUpdate")}
+        </span>
+      );
+    }
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--success)" }}>
+        <CheckCircle2 size={11} />
+        {t("provider.apiKeyStatusConfigured")}
+      </span>
+    );
+  })();
 
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
@@ -77,9 +211,7 @@ export function ProviderCard({
           <div>
             <div style={{ fontWeight: 500 }}>{provider.name}</div>
             <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--muted-fg)" }}>
-              {provider.apiKey
-                ? `${provider.apiKey.slice(0, 4)}****${provider.apiKey.slice(-2)}`
-                : t("provider.keyNotConfigured")}
+              {apiKeyDisplay}
             </div>
           </div>
         </div>
@@ -173,29 +305,75 @@ export function ProviderCard({
                       baseUrl: e.target.value,
                     })
                   }
+                  aria-invalid={baseUrlValidation.status === "invalid-scheme"}
                 />
+                {baseUrlValidation.status === "invalid-scheme" && (
+                  <div style={{ fontSize: 10, color: "var(--destructive)", marginTop: 2 }}>
+                    <AlertCircle size={10} style={{ verticalAlign: "middle", marginRight: 2 }} />
+                    {baseUrlValidation.message}
+                  </div>
+                )}
+                {baseUrlValidation.status === "private-range" && (
+                  <div style={{ fontSize: 10, color: "var(--warning)", marginTop: 2 }}>
+                    <AlertTriangle size={10} style={{ verticalAlign: "middle", marginRight: 2 }} />
+                    {baseUrlValidation.message}
+                  </div>
+                )}
+                {baseUrlValidation.status === "ok" && (
+                  <div style={{ fontSize: 10, color: "var(--success)", marginTop: 2 }}>
+                    <CheckCircle2 size={10} style={{ verticalAlign: "middle", marginRight: 2 }} />
+                    {baseUrlValidation.message}
+                  </div>
+                )}
               </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label
-                htmlFor={`apiKey-${provider.id}`}
-                style={{ fontSize: 11 }}
-              >
-                {t("provider.apiKey")}
-              </label>
-              <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px" }}
-                id={`apiKey-${provider.id}`}
-                type="password"
-                value={provider.apiKey}
-                onChange={(e) =>
-                  onUpdateProvider(provider.id, {
-                    apiKey: e.target.value,
-                  })
-                }
-              />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label
+                  htmlFor={`apiKey-${provider.id}`}
+                  style={{ fontSize: 11 }}
+                >
+                  {t("provider.apiKey")}
+                </label>
+                {apiKeyStatusBadge}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  className="input"
+                  style={{ fontSize: 12, padding: "6px 10px", flex: 1 }}
+                  id={`apiKey-${provider.id}`}
+                  type="password"
+                  value={provider.apiKey}
+                  onChange={(e) => {
+                    onUpdateProvider(provider.id, {
+                      apiKey: e.target.value,
+                    });
+                    // 用户编辑 apiKey 时重置验证状态
+                    setApiKeyState({ kind: "idle" });
+                  }}
+                  placeholder={apiKeyNeedsUpdate ? t("provider.apiKeyPlaceholder") : ""}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={handleVerifyApiKey}
+                  disabled={apiKeyState.kind === "verifying" || !provider.apiKey || provider.apiKey.startsWith("$secure:")}
+                  style={{ flexShrink: 0 }}
+                >
+                  {apiKeyState.kind === "verifying" ? (
+                    <Loader2 size={12} className="animate-spin" style={{ marginRight: 4 }} />
+                  ) : (
+                    <CheckCircle2 size={12} style={{ marginRight: 4 }} />
+                  )}
+                  {t("provider.apiKeyVerifyButton")}
+                </button>
+              </div>
+              {apiKeyState.kind === "invalid" && (
+                <div style={{ fontSize: 10, color: "var(--destructive)", marginTop: 2 }}>
+                  {t("provider.apiKeyVerifyFailed", { message: apiKeyState.message })}
+                </div>
+              )}
             </div>
           </div>
 

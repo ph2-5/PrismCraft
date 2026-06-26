@@ -221,13 +221,19 @@ export function ApiConfigPanel() {
       ),
     };
     setConfig(updatedConfig);
-    setStatus(await checkConfigStatus());
 
     if (saveConfigDebounced.current) {
       clearTimeout(saveConfigDebounced.current);
     }
-    saveConfigDebounced.current = setTimeout(() => {
-      saveConfig(updatedConfig);
+    // R182/M2: debounced saveConfig 失败时通过 toast 反馈，避免静默失败
+    saveConfigDebounced.current = setTimeout(async () => {
+      try {
+        await saveConfig(updatedConfig);
+        // 保存成功后再刷新 status（反映真实持久化结果）
+        setStatus(await checkConfigStatus());
+      } catch (e) {
+        showError(t("error.saveFailed"), mapUserFacingError(e));
+      }
     }, 500);
   };
 
@@ -348,6 +354,8 @@ export function ApiConfigPanel() {
   const handleSaveConfig = useCallback(async () => {
     try {
       await saveConfig(config);
+      // R182/L6: 保存成功后刷新 status 反映真实持久化结果
+      setStatus(await checkConfigStatus());
       showSuccess(t("success.saved"), t("success.saved"));
     } catch (e) {
       showError(t("error.saveFailed"), mapUserFacingError(e));

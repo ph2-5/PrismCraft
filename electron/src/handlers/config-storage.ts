@@ -105,16 +105,19 @@ export function restoreConfigVersion(version: number): boolean {
     const history = getConfigHistory();
     const target = history.find(h => h.version === version);
     if (!target) return false;
-    
+
     const store = getConfigStore();
     const current = getConfigMetadata();
     if (current) {
-      const history = (store.get("config-metadata-history", []) as ConfigMetadata[]).slice(0, MAX_HISTORY - 1);
-      history.unshift(current);
-      store.set("config-metadata-history", history);
+      // R182/L1: 重命名内层变量，避免遮蔽外层 history
+      const updatedHistory = (store.get("config-metadata-history", []) as ConfigMetadata[]).slice(0, MAX_HISTORY - 1);
+      updatedHistory.unshift(current);
+      store.set("config-metadata-history", updatedHistory);
     }
-    
-    store.set(CONFIG_STORE_KEY, { ...target, version: Date.now() });
+
+    // R182/L2: 用递增计数器替代 Date.now()，避免同毫秒内多次 restore 导致 version 重复
+    const newVersion = (current?.version ?? 0) + 1;
+    store.set(CONFIG_STORE_KEY, { ...target, version: newVersion });
     return true;
   } catch (error) {
     logger.error("Failed to restore config version", error as Error);

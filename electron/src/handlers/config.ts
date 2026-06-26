@@ -217,6 +217,18 @@ async function saveConfigAsync(config: AppConfig): Promise<boolean> {
 
 /** 同步保存配置（兼容旧代码） */
 function saveConfig(config: AppConfig): boolean {
+  // R182/M1: 在 try 块之前检测明文 apiKey，确保 throw 能传播到调用方。
+  // sync saveConfig 无法调用异步 keyStorage.save()，会导致 apiKey 更新丢失。
+  // 抛错而非静默 warn，强制调用方迁移到 saveConfigAsync()。
+  const hasPlaintextKey = config.providers.some(
+    (p) => p.apiKey && !p.apiKey.startsWith("$secure:"),
+  );
+  if (hasPlaintextKey) {
+    throw new Error(
+      "saveConfig (sync) detected plaintext apiKey — use saveConfigAsync() to persist apiKey to keyStorage",
+    );
+  }
+
   try {
     ensureConfigDir();
     const configFile = getConfigFile();
@@ -228,24 +240,11 @@ function saveConfig(config: AppConfig): boolean {
         logger.warn("Failed to create config backup before atomic write");
       }
     }
-    // 安全防护：同步保存路径无法调用异步的 keyStorage.save()，
-    // 因此在写入前将明文 apiKey 替换为 $secure: 引用，避免明文密钥落盘。
-    // 注意：这不会将 apiKey 保存到 keyStorage，调用方应使用 saveConfigAsync() 完整保存。
-    let hasPlaintextKey = false;
+    // 安全防护：明文 apiKey 已在上文检测并抛错，此处所有 apiKey 必然是 $secure: 引用
     const configToSave: AppConfig = {
       ...config,
-      providers: config.providers.map((p) => {
-        if (p.apiKey && !p.apiKey.startsWith("$secure:")) {
-          hasPlaintextKey = true;
-          return { ...p, apiKey: `$secure:${p.id}` };
-        }
-        return p;
-      }),
       _migratedToSecureStorage: true,
     };
-    if (hasPlaintextKey) {
-      logger.warn("saveConfig (sync) detected plaintext apiKey — stripped before write. Use saveConfigAsync() to persist apiKey to keyStorage.");
-    }
     const data = JSON.stringify(configToSave, null, 2);
     const tempPath = `${configFile}.tmp`;
     fs.writeFileSync(tempPath, data);

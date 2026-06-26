@@ -121,6 +121,17 @@ export const storyGenerateVideoSchema = z.object({
   beatId: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
+  // Fields used by buildVideoGenerationParams; declared as unknown because Beat/CharacterInput
+  // are shared-logic types that cannot be imported into the Electron schema layer.
+  beat: z.unknown().optional(),
+  characters: z.array(z.unknown()).optional(),
+  scenes: z.array(z.unknown()).optional(),
+  elements: z.array(z.unknown()).optional(),
+  shotInstruction: z.string().optional(),
+  firstFrameUrl: z.string().optional(),
+  lastFrameUrl: z.string().optional(),
+  duration: z.number().optional(),
+  videoPrompt: z.string().optional(),
 });
 export type StoryGenerateVideoRequest = z.infer<typeof storyGenerateVideoSchema>;
 
@@ -385,6 +396,13 @@ const slStoryboardBeatSchema = z.object({
     firstFrame: z.object({ imageUrl: z.string().optional() }).optional(),
     lastFrame: z.object({ imageUrl: z.string().optional() }).optional(),
   }).optional(),
+  // 场景转换：元信息字段，prompt-engine 当前不解析，passthrough 透传
+  sceneId: z.string().optional(),
+  sceneTransitions: z.array(z.object({
+    sceneId: z.string(),
+    transitionType: z.enum(["cut", "dissolve", "wipe", "fade"]).optional(),
+    description: z.string().optional(),
+  }).passthrough()).optional(),
 }).passthrough();
 
 export const storyboardGenerateKeyframeSchema = z.object({
@@ -529,23 +547,38 @@ export type ConfigGetRequest = z.infer<typeof configGetSchema>;
 
 export const configSetSchema = z.object({
   key: z.string().min(1).max(256),
-  value: z.unknown(),
+  // R182/L3: 限制 value 为基础类型或简单 record，避免任意 unknown 注入
+  value: z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.record(z.string(), z.unknown()),
+    z.array(z.unknown()),
+  ]),
 });
 export type ConfigSetRequest = z.infer<typeof configSetSchema>;
 
 // 通用 config/secure-config/sync-config 路由 Schema（兼容多 action 形态）
 export const configRouteSchema = z.object({
   key: z.string().optional(),
-  value: z.unknown().optional(),
+  value: z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.record(z.string(), z.unknown()),
+    z.array(z.unknown()),
+  ]).optional(),
   action: z.enum(["get", "set", "delete", "list"]).optional(),
 }).passthrough();
 export type ConfigRouteRequest = z.infer<typeof configRouteSchema>;
 
 export const secureConfigRouteSchema = z.object({
   operation: z.enum(["save", "load", "clear"]),
-  config: z.unknown().optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
   providerId: z.string().optional(),
-  data: z.unknown().optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 }).passthrough();
 export type SecureConfigRouteRequest = z.infer<typeof secureConfigRouteSchema>;
 

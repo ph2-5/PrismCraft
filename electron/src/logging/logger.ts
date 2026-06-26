@@ -21,7 +21,18 @@ import type {
 import { LOG_LEVEL_VALUES } from "./types";
 
 const SENSITIVE_PATTERNS = [
-  /sk-[a-zA-Z0-9]{20,}/g,
+  // OpenAI sk- 前缀（含 sk-proj- 变体）
+  /\bsk-[a-zA-Z0-9_-]{20,}/g,
+  // Anthropic sk-ant- 前缀
+  /\bsk-ant-[a-zA-Z0-9_-]{20,}/g,
+  // Google AI Studio API Key（AIza 开头，长度 39）
+  /\bAIza[a-zA-Z0-9_-]{35}/g,
+  // Google ?key= URL 参数
+  /\bkey=([a-zA-Z0-9_-]{20,})/gi,
+  // Azure OpenAI ?api-version=...&key= 参数（已由上面 key= 覆盖，此处保留语义）
+  // Bearer JWT Token
+  /\bBearer\s+[a-zA-Z0-9_.-]{20,}/gi,
+  // 通用 apiKey/secret/password/token 键值对
   /[a-zA-Z0-9_-]*api[_-]?key[a-zA-Z0-9_-]*\s*[:=]\s*["']?[\w-]{8,}["']?/gi,
   /[a-zA-Z0-9_-]*secret[a-zA-Z0-9_-]*\s*[:=]\s*["']?[\w-]{8,}["']?/gi,
   /[a-zA-Z0-9_-]*password[a-zA-Z0-9_-]*\s*[:=]\s*["']?[^\s"']{4,}["']?/gi,
@@ -31,9 +42,9 @@ const SENSITIVE_PATTERNS = [
 function redactSensitive(input: string): string {
   let result = input;
   for (const pattern of SENSITIVE_PATTERNS) {
-    result = result.replace(pattern, (match) => {
-      const prefix = match.substring(0, Math.min(4, match.length));
-      return `${prefix}***REDACTED***`;
+    result = result.replace(pattern, () => {
+      // R182/H6: 不保留前缀，避免泄露 provider 类型（如 AIza 暴露 Google）
+      return "***REDACTED***";
     });
   }
   return result;

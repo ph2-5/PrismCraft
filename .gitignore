@@ -99,3 +99,6 @@ docs/project-docs-2025*/
 
 # Trae IDE (project rules are version-controlled for AI maintenance)
 # .trae/
+
+# Build artifacts (v0.12.1+)
+release2/

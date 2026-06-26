@@ -1,25 +1,30 @@
-refactor(debt): batch 6 - comprehensive debt cleanup
+fix(ui/ux): batch 7 - comprehensive polish + runtime fixes
 
-1. StoryBeat deprecated field cleanup:
-   - Remove scene field (18 fallbacks -> sceneId, DB already migrated)
-   - Remove generationPrompt field (2 UI fallbacks, 3 explicit undefined)
-   - Fix imageGenerationPrompt annotation (was wrongly marked deprecated)
-   - Remove 7 deprecated fallback compatibility tests
+4-dimension audit (UI/UX, runtime, architecture, anti-human design)
+found P0:6, P1:29, P2:36, P3:31 issues.
 
-2. shared/ui directory cleanup (8 files):
-   - Delete 4 dead code files (feedback/input-group/loading-state/status-badge)
-   - Replace confirm-dialog with imperative confirm() (3 beat-editor files)
-   - Migrate 3 active components to shared/presentation/ (AppCard/EmptyState/SafeImage)
-   - shared/ui/ directory deleted entirely
+P0 fixes (6):
+- Remove fake AI progress sidebar (hardcoded "67%" mock data)
+- Fix version mismatch (v0.10 vs v0.11.0) -> unified APP_VERSION constant
+- Add missing .dot.error CSS class for SystemInfoCard
+- Fix story mode entry pointing to ComingSoon -> /storyboard
+- Remove fake team avatars (A/B/C placeholders)
 
-3. Dead code cleanup:
-   - tones.color field (completely unused, deleted)
-   - useHomePage exportAllData/downloadExportMutation (settings page has export)
+P1 fixes (8):
+- Fix default beat detail tab (video -> details)
+- Remove hardcoded template count "12"
+- Fix QuickGenerateForm 4 hardcoded inline colors -> var(--xxx)
+- Fix useStoryPersistence state stuck (finally unconditional reset)
+- Unify loading: new PageLoader component, replace 3 inconsistent spinners
+- Unify empty state: CharacterList uses EmptyState component
+- Modal focus trap (Tab cycling + focus restore)
+- Dynamic project status badge based on beat video completion
 
-4. Route handler as assertion elimination:
-   - Eliminate 5 assertions (Cause D: API response type 4 + Cause C: no index signature 1)
-   - Add TextApiResult type to narrow generateText return
-   - Use z.record().parse() instead of as unknown as Record
-   - 21 retained assertions annotated with reasons
+Other fixes:
+- Scene page emoji -> Lucide icons (Trash2, Save)
+- AssetUploadSection ✕ char -> Lucide X icon
+- SceneList hardcoded Chinese logs -> English structured logs
+- QuickGenerateForm label htmlFor association
+- Non-form labels converted to span (WAI-ARIA compliance)
 
-Tests: 4661 renderer + 952 electron all pass
+Tests: 4661 passed. typecheck + lint + lint:arch all clean.

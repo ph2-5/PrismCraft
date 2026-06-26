@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { SaveStatusIndicator } from "@/shared/presentation/SaveStatusIndicator";
-import { Wand2, Upload, ScanLine, Save, Loader2, Folder, Sparkles, X } from "lucide-react";
+import { Wand2, Upload, ScanLine, Save, Loader2, Folder, Sparkles, X, Trash2 } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 import { MediaExporter } from "@/modules/asset";
 import { ModelSelector } from "@/modules/prompt";
@@ -607,7 +607,7 @@ function ScenesPageContent() {
                 }
                 disabled={!currentScene.id}
               >
-                🗑 {t("scene.deleteScene")}
+                <Trash2 className="w-4 h-4" /> {t("scene.deleteScene")}
               </button>
               <button
                 type="button"
@@ -618,7 +618,7 @@ function ScenesPageContent() {
                 {saveStatus === "saving" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  "💾"
+                  <Save className="w-4 h-4" />
                 )}
                 {saveStatus === "saving" ? t("scene.saving") : t("common.save")}
               </button>

@@ -61,7 +61,7 @@ export const SceneList = memo(function SceneList({
             type="scene"
             items={scenes}
             onComplete={(results) => {
-              errorLogger.info("批量生成完成", results);
+              errorLogger.info("Batch generation completed", results);
             }}
             onSave={async (itemId, imageUrl, _variantIndex) => {
               const item = scenes.find((s) => s.id === itemId);

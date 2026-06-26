@@ -15,6 +15,8 @@ interface ModelSelectorProps {
   value?: ModelSelection | null;
   onChange: (selection: ModelSelection | null) => void;
   compact?: boolean;
+  // 可选：应用到内部 select 元素的 id，用于 <label htmlFor> 关联
+  id?: string;
 }
 
 const capabilityIcons: Record<ApiCapability, React.ReactNode> = {
@@ -36,6 +38,7 @@ export function ModelSelector({
   value,
   onChange,
   compact = true,
+  id,
 }: ModelSelectorProps) {
   const [availableModels, setAvailableModels] = useState<
     Array<{
@@ -134,6 +137,7 @@ export function ModelSelector({
         </span>
       )}
       <select
+        id={id}
         className={`select ${compact ? "w-[180px] h-8 text-xs" : "w-[240px]"} border-border bg-card2`}
         value={currentValue}
         onChange={(e) => handleValueChange(e.target.value)}

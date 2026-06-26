@@ -51,12 +51,6 @@ function StoryPageContent() {
           />
           <div className="toolbar" style={{ paddingRight: 32 }}>
             <StoryHeader story={story} onSwitchStory={switchStory} />
-            {/* 团队成员头像组（占位，协作功能未实现） */}
-            <div className="flex items-center" aria-hidden="true">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)", marginRight: -6 }}>A</div>
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2" style={{ background: "linear-gradient(135deg, #ec4899, #f59e0b)", borderColor: "var(--bg)" }}>B</div>
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2" style={{ background: "linear-gradient(135deg, #10b981, #06b6d4)", borderColor: "var(--bg)", marginLeft: -6 }}>C</div>
-            </div>
             <span style={{ color: "var(--border)" }}>|</span>
             <button
               type="button"

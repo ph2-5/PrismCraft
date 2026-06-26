@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
+import { PageLoader } from "@/shared/presentation/PageLoader";
 import { Tabs } from "@/shared/presentation/Tabs";
 import type { StoryBeat, Story } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
@@ -24,7 +25,7 @@ interface BeatDetailPageProps {
 }
 
 function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps & { setBeat: (beat: StoryBeat | null) => void }) {
-  const [activeTab, setActiveTab] = useState("video");
+  const [activeTab, setActiveTab] = useState("details");
 
   const {
     guardedPush,
@@ -179,10 +180,7 @@ export default function BeatDetailClient() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">{t("common.loading")}</p>
-        </div>
+        <PageLoader size="md" label={t("common.loading")} />
       </div>
     );
   }

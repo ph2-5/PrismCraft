@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t } from "@/shared/constants";
+import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ProjectExportImport } from "@/modules/asset";
 import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
@@ -203,7 +203,7 @@ function SystemInfoCard() {
           <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.totalProjects")}</div>
         </div>
         <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--success)" }}>v0.11.0</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--success)" }}>{APP_VERSION}</div>
           <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.version")}</div>
         </div>
         <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>

@@ -41,6 +41,7 @@ import { useInvalidateProviderTemplates } from "@/shared/hooks/use-provider-temp
 import { ProviderCard } from "./ProviderCard";
 import { ProviderForm } from "./ProviderForm";
 import { ModelMappingSection } from "./ModelMappingSection";
+import { PageLoader } from "@/shared/presentation/PageLoader";
 
 const capabilities: {
   id: ApiCapability;
@@ -355,9 +356,7 @@ export function ApiConfigPanel() {
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 256 }}>
-        <Loader2 size={32} className="animate-spin" />
-      </div>
+      <PageLoader size="lg" />
     );
   }
 

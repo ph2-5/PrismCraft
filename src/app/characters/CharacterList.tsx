@@ -5,8 +5,10 @@ import { CharacterListItem } from "@/modules/character";
 import { BatchOperations } from "@/modules/asset";
 import { errorLogger } from "@/shared/error-logger";
 import type { Character } from "@/domain/schemas";
-import { Users, Loader2 } from "lucide-react";
+import { Users } from "lucide-react";
 import { t } from "@/shared/constants/messages";
+import { PageLoader } from "@/shared/presentation/PageLoader";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 
 interface CharacterListProps {
   characters: Character[];
@@ -79,18 +81,13 @@ export const CharacterList = memo(function CharacterList({
         </div>
       )}
       {charactersLoading ? (
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "32px" }}>
-          <Loader2 className="animate-spin" size={24} style={{ color: "var(--muted-fg)" }} />
-          <div style={{ fontSize: 12, marginTop: 12, color: "var(--muted-fg)" }}>{t("character.loadingList")}</div>
-        </div>
+        <PageLoader size="md" label={t("character.loadingList")} />
       ) : characters.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "32px 16px", color: "var(--muted-fg)" }}>
-          <div style={{ fontSize: 32, marginBottom: 8, display: "flex", justifyContent: "center" }}>
-            <Users style={{ width: 32, height: 32 }} />
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>{t("character.emptyList")}</div>
-          <div style={{ fontSize: 12, marginTop: 4 }}>{t("character.emptyListHint")}</div>
-        </div>
+        <EmptyState
+          icon={Users}
+          title={t("character.emptyList")}
+          description={t("character.emptyListHint")}
+        />
       ) : (
         characters.map((char) => (
           <div key={char.id} data-char-id={char.id}>

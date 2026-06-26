@@ -384,3 +384,45 @@
 - shotType/camera deprecated 字段清理（需重构 LLM 生成管线，让 LLM 直接输出 shotInstruction）
 - 原因 A 的 19 处 as 断言（需在 shared-logic 导出完整 Zod schema）
 - imageGenerationPrompt 字段与 keyframe.prompt 的语义关系决策
+
+### [2026-06-26] 批次 7 全面 UI/UX 打磨 + 运行时修复 — 已完成
+
+**4 维度深度审计**（UI/UX 视觉交互 + 运行时问题 + 代码架构 + 反人类设计）发现 P0:6, P1:29, P2:36, P3:31
+
+**P0 修复（6 项）**：
+1. 移除侧栏伪造 AI 生成进度（硬编码"第3镜 67%"假数据）
+2. 修复版本号不一致（首页 v0.10 vs 设置页 v0.11.0）→ 统一 APP_VERSION 常量
+3. 补全 .dot.error CSS 类（SystemInfoCard 状态指示点无样式）
+4. 修复"故事模式"入口指向 ComingSoon → 改为 /storyboard
+5. 移除侧栏假进度（Ctrl+Z/S 快捷键派发保留但监听端未接线，后续决策）
+6. Ctrl+Z/S 死代码标记为已知债务（需要 undo/redo 历史栈实现，单独决策）
+
+**P1 修复（8 项）**：
+1. 移除伪造团队协作头像（A/B/C 占位）
+2. 修复分镜详情默认 Tab（video → details）
+3. 移除首页硬编码模板数"12"
+4. 修复 QuickGenerateForm 4 处硬编码内联颜色（rgba/hex → var(--xxx)）
+5. 修复 useStoryPersistence 状态卡死（finally 无条件重置）
+6. 统一 Loading 组件（新建 PageLoader.tsx，替换 3 处不一致 spinner）
+7. 统一空状态（CharacterList 改用 EmptyState 组件）
+8. Modal 焦点陷阱（Tab 循环 + 焦点恢复）
+
+**其他修复**：
+- Scene 页面 emoji → Lucide 图标（🗑→Trash2, 💾→Save）
+- AssetUploadSection ✕ 字符 → Lucide X 图标
+- SceneList 硬编码中文日志 → 英文结构化日志
+- QuickGenerateForm 表单 label htmlFor 关联（videoModel）+ 3 处非表单 label → span
+- 项目状态徽章根据 beats 视频完成率动态显示
+
+**验证结果**：typecheck + lint + lint:arch 全通过 + 4661 测试全通过
+
+**后续待办（按优先级）**：
+- P1: Ctrl+Z/S undo/redo 实现决策
+- P1: 响应式适配（移动端不可用）
+- P1: 表单校验普遍缺失
+- P1: 网络断开无 UI 提示
+- P1: shared-logic 与 modules 三处重复实现合并
+- P1: StoryProvider/BeatDetailEditor God Component 拆分
+- P2: setTimeout 魔法数字提取
+- P2: eslint max-lines/max-params 规则
+- P2: i18n 真正多语言支持

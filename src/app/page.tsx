@@ -1,4 +1,4 @@
-import { t } from "@/shared/constants";
+import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { useHomePage } from "./hooks/useHomePage";
 
@@ -61,7 +61,7 @@ export default function Home() {
             >
               PrismCraft
             </span>
-            <span className="badge badge-info text-[10px] align-super">v0.10</span>
+            <span className="badge badge-info text-[10px] align-super">{APP_VERSION}</span>
           </div>
           <div className="text-sm text-muted-foreground mb-1.5">{t("home.brandSlogan")}</div>
           <div className="text-[11px] text-muted-foreground opacity-60">{t("home.brandSub")}</div>
@@ -73,7 +73,7 @@ export default function Home() {
           <div
             className="card p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
             style={{ border: `2px solid rgba(var(--primary-rgb), 0.15)` }}
-            onClick={() => navigate("/story")}
+            onClick={() => navigate("/storyboard")}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "rgba(var(--primary-rgb), 0.4)";
               e.currentTarget.style.boxShadow = "0 8px 30px rgba(var(--primary-rgb), 0.1)";
@@ -187,8 +187,16 @@ export default function Home() {
             {stories.slice(0, 6).map((story) => {
               const charCount = story.characters?.length ?? 0;
               const sceneCount = story.scenes?.length ?? 0;
-              const beatCount = story.beats?.length ?? 0;
+              const beats = story.beats ?? [];
+              const beatCount = beats.length;
               const assetCount = story.elementIds?.length ?? 0;
+              const completedBeats = beats.filter((b) => Boolean(b.videoGen?.videoUrl)).length;
+              const statusBadgeClass =
+                beatCount === 0
+                  ? "badge-warning"
+                  : completedBeats === beatCount
+                    ? "badge-success"
+                    : "badge-info";
               return (
                 <div
                   key={story.id}
@@ -214,7 +222,7 @@ export default function Home() {
                       <div className="text-sm font-bold truncate">{story.title || t("story.unnamed")}</div>
                       <div className="text-[11px] text-muted-foreground truncate">{story.description || ""}</div>
                     </div>
-                    <span className="badge badge-success text-[9px]">{t("home.inProgress")}</span>
+                    <span className={`badge ${statusBadgeClass} text-[9px]`}>{t("home.inProgress")}</span>
                   </div>
                   <div className="flex gap-3.5 text-[11px] text-muted-foreground mb-2">
                     <span>👤 {charCount}</span>
@@ -256,7 +264,7 @@ export default function Home() {
               <QuickEntryCard icon="🏙" title={t("home.sceneManage")} subtitle={`${scenes.length} ${t("home.scenes")}`} onClick={() => navigate("/scenes")} />
               <QuickEntryCard icon="📦" title={t("home.assetLibrary")} subtitle={t("home.assetManage")} onClick={() => navigate("/asset-library")} />
               <QuickEntryCard icon="📋" title={t("home.videoTasks")} subtitle={t("home.taskManage")} onClick={() => navigate("/video-tasks")} />
-              <QuickEntryCard icon="🛒" title={t("home.templateMarket")} subtitle={`12 ${t("home.templates")}`} onClick={() => navigate("/template-market")} />
+              <QuickEntryCard icon="🛒" title={t("home.templateMarket")} subtitle={t("comingSoon.title")} onClick={() => navigate("/template-market")} />
               <QuickEntryCard icon="🔗" title={t("home.workflowEditor")} subtitle={t("home.visualOrchestration")} onClick={() => navigate("/workflow")} />
             </div>
           </div>

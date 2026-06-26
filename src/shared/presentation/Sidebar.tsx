@@ -396,27 +396,6 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
           ))}
         </nav>
 
-        {/* AI 生成状态盒 */}
-        {!collapsed && (
-          <div style={{ margin: 8, padding: "10px 12px", background: "var(--card2)", borderRadius: 10, border: "1px solid rgba(99,102,241,0.15)" }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
-              {t("sidebar.aiGenerating")}
-            </div>
-            <div style={{ fontSize: 11 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0" }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--primary)", animation: "pulse-dot 1.5s infinite" }} />
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>第3镜 · 关键帧</span>
-                <span style={{ color: "var(--muted-fg)" }}>67%</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0" }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--primary)", animation: "pulse-dot 1.5s infinite" }} />
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>第5镜 · 首尾帧</span>
-                <span style={{ color: "var(--muted-fg)" }}>42%</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div style={{ borderTop: "1px solid var(--border)", padding: 8, flexShrink: 0 }}>
           <button
             onClick={toggleCollapsed}

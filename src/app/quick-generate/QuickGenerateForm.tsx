@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
   Sparkles,
   User,
@@ -111,14 +112,16 @@ export function QuickGenerateForm({
     if (partial.cfgScale !== undefined) onCfgScaleChange(partial.cfgScale);
   };
 
+  const videoModelInputId = useId();
+
   return (
     <div className="lg:col-span-2 space-y-6">
       <div
         className="card"
         style={{
           padding: 16,
-          border: "2px solid rgba(91, 33, 116, 0.3)",
-          background: "rgba(15, 23, 42, 0.8)",
+          border: "2px solid var(--border)",
+          background: "var(--card2)",
           backdropFilter: "blur(8px)",
         }}
       >
@@ -172,7 +175,7 @@ export function QuickGenerateForm({
           </p>
 
           <div className="pt-4">
-            <label
+            <span
               style={{
                 display: "block",
                 fontSize: 12,
@@ -181,7 +184,7 @@ export function QuickGenerateForm({
               }}
             >
               {t("quickGenerate.quickTry")}
-            </label>
+            </span>
             <div className="flex flex-wrap gap-2">
               {quickExamples.map((example) => (
                 <button
@@ -204,7 +207,7 @@ export function QuickGenerateForm({
         style={{
           padding: 16,
           border: "1px solid var(--border)",
-          background: "rgba(15, 23, 42, 0.6)",
+          background: "var(--card2)",
         }}
       >
         <div style={{ padding: "12px 16px 4px" }}>
@@ -214,13 +217,14 @@ export function QuickGenerateForm({
         </div>
         <div style={{ padding: "0 16px 16px" }} className="space-y-6">
           <div className="space-y-2">
-            <label style={{ fontSize: 13, color: "var(--fg)" }}>
+            <label htmlFor={videoModelInputId} style={{ fontSize: 13, color: "var(--fg)" }}>
               {t("quickGenerate.videoModel")}
             </label>
             <ModelSelector
               capability="video"
               value={selectedVideoModel}
               onChange={onSelectedVideoModelChange}
+              id={videoModelInputId}
             />
           </div>
 
@@ -239,7 +243,7 @@ export function QuickGenerateForm({
           />
 
           <div className="space-y-2">
-            <label
+            <span
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -250,7 +254,7 @@ export function QuickGenerateForm({
             >
               <User className="w-4 h-4" />
               {t("quickGenerate.lockMainCharacter")}
-            </label>
+            </span>
             {charactersLoading ? (
               <div className="flex items-center gap-2 p-3">
                 <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -314,7 +318,7 @@ export function QuickGenerateForm({
           </div>
 
           <div className="space-y-2">
-            <label
+            <span
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -325,7 +329,7 @@ export function QuickGenerateForm({
             >
               <Image className="w-4 h-4" />
               {t("quickGenerate.lockScene")}
-            </label>
+            </span>
             {scenesLoading ? (
               <div className="flex items-center gap-2 p-3">
                 <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -413,7 +417,7 @@ export function QuickGenerateForm({
           height: 56,
           fontSize: 18,
           fontWeight: 600,
-          background: "linear-gradient(to right, #9333ea, #db2777)",
+          background: "var(--primary)",
         }}
         onClick={onGenerate}
         disabled={isGenerating || !promptText.trim()}

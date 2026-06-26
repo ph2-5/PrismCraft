@@ -1,4 +1,5 @@
 import React from "react";
+import { X } from "lucide-react";
 import { t } from "@/shared/constants";
 
 interface AssetUploadSectionProps {
@@ -137,7 +138,7 @@ export function AssetUploadSection({
       {onClose && (
         <div style={closeBtnRowStyle}>
           <button type="button" className="btn btn-ghost btn-xs" onClick={onClose}>
-            ✕ {t("common.close")}
+            <X className="w-3 h-3" /> {t("common.close")}
           </button>
         </div>
       )}

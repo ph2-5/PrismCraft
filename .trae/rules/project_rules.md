@@ -613,7 +613,7 @@ When AI discovers a bug (during audit, code review, or development), it MUST fol
 | 工程质量 | 34 | 依赖合规、构建安全、测试可靠、i18n（含 R154 useAssetLoader Promise.all, R155 StoryProvider useMemo, R156 stats memo, R159 validateApiKey errorKey, R162 labelKey/value split, R165 coming-soon t(), R166 no zh-CN locale, R175 throw Error t() i18n, R176 data constant labelKey, R177 DOM useRef, R178 callback no shadow t, R179 Port interface extension, R180 function split, R181 no hardcoded Tailwind colors, R182 config/set async keyStorage persistence） |
 | 平台兼容 | 6 | IPC、Electron环境、进程模型 |
 | 用户安全防护 | 17 | 破坏性操作需确认、数据清除需保护 |
-| 系统安全 | 30 | 沙箱隔离防逃逸、IPC通道注册检查（含 R105 SSRF 防护, R118 redirect SSRF guard, R119 openPath whitelist, R120 no plaintext fallback, R123 sandbox constructor lock, R124 apikey header, R126 IPC no credential leak, R128 IPC input validation, R130 timer cleanup, R131 foreign keys, R132 sync http client SSRF, R133 SSRF fail-close, R137 param sanitization） |
+| 系统安全 | 33 | 沙箱隔离防逃逸、IPC通道注册检查（含 R105 SSRF 防护, R118 redirect SSRF guard, R119 openPath whitelist, R120 no plaintext fallback, R123 sandbox constructor lock, R124 apikey header, R126 IPC no credential leak, R128 IPC input validation, R130 timer cleanup, R131 foreign keys, R132 sync http client SSRF, R133 SSRF fail-close, R137 param sanitization, R138 schema-builder quotes, R139 identifier validation, R142 api-gateway fail-close） |
 
 > For individual rule details, see `.trae/rules/regression/{category}.md`.
 

@@ -11,7 +11,6 @@ export type SettingsTab =
   | "api"
   | "autosave"
   | "sync"
-  | "project"
   | "system";
 
 interface AutoSaveSettingsData {

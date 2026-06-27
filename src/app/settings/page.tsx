@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
-import { ProjectExportImport } from "@/modules/asset";
 import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
 import { ErrorLogViewer } from "@/shared/presentation/ErrorBoundary";
 import { ApiConfigPanel } from "./ApiConfigPanel";
@@ -235,7 +234,6 @@ export default function SettingsPage() {
     { id: "api", icon: "🔑", label: t("settings.apiConfig") },
     { id: "autosave", icon: "💾", label: t("settings.autoSave") },
     { id: "sync", icon: "🔄", label: t("sync.settingsTitle") },
-    { id: "project", icon: "📦", label: t("settings.projectPack") },
     { id: "system", icon: "📊", label: t("settings.systemStatus") },
   ];
 
@@ -246,7 +244,7 @@ export default function SettingsPage() {
         <div className="top-tabs" style={{ justifyContent: "space-between" }}>
           <span style={{ fontWeight: 600, fontSize: 14 }}>⚙ {t("page.settings")}</span>
           <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
-            {t("settings.apiConfig")} · {t("settings.autoSave")} · {t("sync.settingsTitle")} · {t("settings.projectPack")} · {t("settings.systemStatus")}
+            {t("settings.apiConfig")} · {t("settings.autoSave")} · {t("sync.settingsTitle")} · {t("settings.systemStatus")}
           </span>
         </div>
 
@@ -330,13 +328,6 @@ export default function SettingsPage() {
           {activeTab === "sync" && (
             <div role="tabpanel" aria-label={t("sync.settingsTitle")}>
               <SyncSettings openDialog={openSyncDialog} />
-            </div>
-          )}
-
-          {/* Tab: 项目包 */}
-          {activeTab === "project" && (
-            <div role="tabpanel" aria-label={t("settings.projectPack")}>
-              <ProjectExportImport />
             </div>
           )}
 

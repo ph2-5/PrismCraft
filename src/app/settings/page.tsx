@@ -263,6 +263,8 @@ export default function SettingsPage() {
         >
           {/* Settings Tabs - 对齐预览页面的Tab容器 */}
           <div
+            role="tablist"
+            aria-label={t("page.settings")}
             style={{
               display: "flex",
               gap: 2,
@@ -277,6 +279,9 @@ export default function SettingsPage() {
               <button
                 key={tab.id}
                 type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                data-active={activeTab === tab.id ? "true" : undefined}
                 className={`btn btn-sm ${activeTab === tab.id ? "btn-primary" : "btn-ghost"}`}
                 style={{
                   flex: 1,
@@ -291,7 +296,7 @@ export default function SettingsPage() {
 
           {/* Tab: API配置 */}
           {activeTab === "api" && (
-            <>
+            <div role="tabpanel" aria-label={t("settings.apiConfig")}>
               <div
                 style={{
                   padding: 12,
@@ -306,28 +311,38 @@ export default function SettingsPage() {
                 💡 {t("settings.apiConfigTip")}
               </div>
               <ApiConfigPanel />
-            </>
+            </div>
           )}
 
           {/* Tab: 自动保存 */}
           {activeTab === "autosave" && (
-            <AutoSaveSettings
-              enabled={autoSaveEnabled}
-              intervalMinutes={autoSaveIntervalMinutes}
-              onEnabledChange={onAutoSaveEnabledChange}
-              onIntervalChange={onAutoSaveIntervalChange}
-            />
+            <div role="tabpanel" aria-label={t("settings.autoSave")}>
+              <AutoSaveSettings
+                enabled={autoSaveEnabled}
+                intervalMinutes={autoSaveIntervalMinutes}
+                onEnabledChange={onAutoSaveEnabledChange}
+                onIntervalChange={onAutoSaveIntervalChange}
+              />
+            </div>
           )}
 
           {/* Tab: 同步 */}
-          {activeTab === "sync" && <SyncSettings openDialog={openSyncDialog} />}
+          {activeTab === "sync" && (
+            <div role="tabpanel" aria-label={t("sync.settingsTitle")}>
+              <SyncSettings openDialog={openSyncDialog} />
+            </div>
+          )}
 
           {/* Tab: 项目包 */}
-          {activeTab === "project" && <ProjectExportImport />}
+          {activeTab === "project" && (
+            <div role="tabpanel" aria-label={t("settings.projectPack")}>
+              <ProjectExportImport />
+            </div>
+          )}
 
           {/* Tab: 系统状态 */}
           {activeTab === "system" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div role="tabpanel" aria-label={t("settings.systemStatus")} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <MemoryMonitorPanel clearErrorLogs={clearErrorLogs} />
               <ErrorLogViewer loadLogs={loadErrorLogs} clearLogs={clearErrorLogsAll} />
               <SystemInfoCard />

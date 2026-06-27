@@ -10,7 +10,8 @@ test.describe("NotFound page content", () => {
     await page.goto("/nonexistent-page-xyz-12345");
     await waitForAppReady(page);
 
-    await expect(page.locator("h1").first()).toContainText("404");
+    // UI 重构后 404 是独立 text，标题用 h2 "页面未找到"
+    await expect(page.locator("text=404").first()).toBeVisible({ timeout: 10000 });
     await expect(page.locator("text=页面未找到").first()).toBeVisible({ timeout: 5000 });
     await expect(page.locator("text=您访问的页面不存在").first()).toBeVisible({ timeout: 5000 });
   });

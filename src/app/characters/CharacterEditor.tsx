@@ -118,6 +118,7 @@ export function CharacterEditor({
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
           <input
             className="input"
+            data-testid="character-name-input"
             placeholder={t("character.namePlaceholder")}
             value={currentCharacter.name}
             onChange={(e) => setCurrentCharacter({ ...currentCharacter, name: e.target.value }, true)}

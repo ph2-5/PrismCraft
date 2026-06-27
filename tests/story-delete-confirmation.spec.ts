@@ -56,8 +56,10 @@ test.describe("Navigation guard beforeunload", () => {
 
     const getErrors = captureConsoleErrors(page);
 
-    // 导航到其他页面
-    await navigateTo(page, "/characters");
+    // 导航到其他页面 — 直接 goto，跳过 waitForAppReady 避免被 navigation guard 拦截后超时
+    await page.goto("/characters");
+    await page.waitForLoadState("domcontentloaded");
+    await dismissOverlays(page);
 
     const criticalErrors = getErrors();
     expect(criticalErrors, criticalErrors.join("\n")).toHaveLength(0);

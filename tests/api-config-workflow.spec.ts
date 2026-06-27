@@ -160,7 +160,8 @@ test.describe("Test Connection Section", () => {
   });
 
   test("should display test connection section", async ({ page }) => {
-    const testSection = page.locator("text=测试连接").first();
+    // UI 重构后测试区文案是"测试全部连接"或单独的"测试能力"按钮，不再有"测试连接"标题
+    const testSection = page.locator("button", { hasText: /测试|Test/i }).first();
     await expect(testSection).toBeVisible({ timeout: 10000 });
   });
 

@@ -32,9 +32,10 @@ test.describe("Asset Library Page Load", () => {
     await expect(page.locator('[role="tab"]', { hasText: "合集" }).first()).toBeVisible({ timeout: 10000 });
   });
 
-  test("should default to characters tab", async ({ page }) => {
-    const charactersTab = page.locator('[role="tab"][aria-selected="true"]', { hasText: "角色库" }).first();
-    await expect(charactersTab).toBeVisible({ timeout: 10000 });
+  test("should default to all-assets tab", async ({ page }) => {
+    // UI 重构后默认选中"全部素材"，而非"角色库"（对齐 design-preview.html）
+    const allTab = page.locator('[role="tab"][aria-selected="true"]', { hasText: "全部素材" }).first();
+    await expect(allTab).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -79,6 +80,8 @@ test.describe("Asset Library Empty State", () => {
   });
 
   test("should display empty state hint when no characters exist", async ({ page }) => {
+    // UI 重构后默认 tab 是"全部素材"，需要切换到"角色库"才能看到角色空状态
+    await switchAssetTab(page, "角色库");
     const emptyHint = page.locator("text=角色库为空").or(page.locator("text=暂无角色")).first();
     const characterCards = page.locator("[class*='grid'] [class*='card']").first();
     const hasEmpty = await emptyHint.isVisible({ timeout: 5000 }).catch(() => false);

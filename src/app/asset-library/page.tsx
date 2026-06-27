@@ -75,6 +75,9 @@ function CategoryButton({ icon, label, count, active, onClick, size = "sm" }: Ca
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
+      data-active={active ? "true" : undefined}
       className={btnClassName}
       style={{
         ...extraStyle,
@@ -165,6 +168,7 @@ export default function AssetLibraryPage() {
           <div className="toolbar">
             <input
               className="input"
+              data-testid="asset-search-input"
               placeholder={t("asset.searchNameDescTag")}
               style={{ fontSize: 12, padding: "6px 10px", width: 180 }}
               value={searchQuery}
@@ -215,7 +219,7 @@ export default function AssetLibraryPage() {
         {/* Main Content: Left Category Tree + Right Grid */}
         <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
           {/* Left: Category Tree — 完全对齐预览页面分类树 */}
-          <div style={categoryTreeStyle}>
+          <div role="tablist" aria-label={t("asset.category")} style={categoryTreeStyle}>
             <div className="section-label" style={{ marginBottom: 6 }}>
               {t("asset.category")}
             </div>
@@ -307,7 +311,7 @@ export default function AssetLibraryPage() {
           </div>
 
           {/* Right: Grid */}
-          <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+          <div role="tabpanel" style={{ flex: 1, overflowY: "auto", padding: 16 }}>
             <AssetCardGrid
               activeTab={activeTab}
               characters={characters}

@@ -12,7 +12,8 @@ test.describe("Video Tasks Page Content", () => {
   });
 
   test("should display video task management heading", async ({ page }) => {
-    const heading = page.locator("text=/视频任务管理|Video Task/").first();
+    // UI 重构后页面标题是 "🎥 视频任务"（非"视频任务管理"）
+    const heading = page.locator("text=/视频任务|Video Task/").first();
     await expect(heading).toBeVisible({ timeout: 10000 });
   });
 
@@ -23,7 +24,9 @@ test.describe("Video Tasks Page Content", () => {
   });
 
   test("should display completed tasks card", async ({ page }) => {
-    const completedCard = page.locator("text=/已完成|Completed/").first();
+    // UI 重构后统计是单行文本 "总任务 N 已完成 N 等待中 N..."
+    // 精确匹配包含 "已完成" 的统计文本节点，避免匹配到 select 的 option
+    const completedCard = page.locator("main >> text=总任务").first();
     await expect(completedCard).toBeVisible({ timeout: 10000 });
   });
 

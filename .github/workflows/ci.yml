@@ -50,6 +50,12 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Build shared-logic (required for electron typecheck)
+        run: npm run build:shared-logic
+
+      - name: Setup shared-logic symlink (required for electron typecheck)
+        run: node scripts/setup-shared-logic-symlink.mjs
+
       - name: TypeScript type check (root)
         run: npx tsc --noEmit
 

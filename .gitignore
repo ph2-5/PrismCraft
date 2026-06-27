@@ -102,3 +102,6 @@ docs/project-docs-2025*/
 
 # Build artifacts (v0.12.1+)
 release2/
+
+# Buyer-facing document (not for open-source release)
+README_FOR_BUYER.md

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrismCraft — AI 驱动的动画创作工作站</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #12121a;
+    --card: #1a1a26;
+    --card2: #20202e;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --fg: #f5f5fa;
+    --muted: #8a8a9e;
+    --primary: #7c6cff;
+    --primary-rgb: 124,108,255;
+    --accent: #ff6b9d;
+    --accent2: #5eead4;
+    --success: #5eead4;
+    --warning: #fbbf24;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+  .grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .glow {
+    position: absolute; border-radius: 50%; filter: blur(80px);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    position: relative; padding: 80px 24px; text-align: center;
+    overflow: hidden;
+  }
+  .hero .glow-1 {
+    width: 600px; height: 600px; background: rgba(124,108,255,0.22);
+    top: -100px; left: 50%; transform: translateX(-50%);
+  }
+  .hero .glow-2 {
+    width: 400px; height: 400px; background: rgba(255,107,157,0.15);
+    bottom: -50px; right: 10%;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 16px; border-radius: 999px;
+    border: 1px solid var(--border2);
+    background: rgba(124,108,255,0.1);
+    font-size: 12px; letter-spacing: 0.5px; color: var(--primary);
+    margin-bottom: 28px; position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent2); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .hero h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 900; line-height: 1.05;
+    background: linear-gradient(135deg, #fff 0%, #c9c4ff 40%, #ff6b9d 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative; z-index: 1;
+    letter-spacing: -2px;
+  }
+  .hero .tagline {
+    font-size: clamp(16px, 2vw, 22px); color: var(--muted);
+    max-width: 640px; margin: 24px auto 0;
+    position: relative; z-index: 1;
+  }
+  .hero .tagline strong { color: var(--fg); font-weight: 500; }
+  .hero-meta {
+    display: flex; gap: 32px; flex-wrap: wrap; justify-content: center;
+    margin-top: 48px; position: relative; z-index: 1;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted);
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 6px; }
+  .hero-meta b { color: var(--accent2); font-weight: 600; }
+
+  /* ── Section common ── */
+  section { position: relative; padding: 100px 24px; z-index: 1; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--primary);
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 700; line-height: 1.2;
+    margin-bottom: 16px; letter-spacing: -1px;
+  }
+  .section-desc { color: var(--muted); max-width: 640px; font-size: 16px; }
+
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px; margin-top: 56px;
+    background: var(--border); border-radius: 16px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .stat-cell {
+    background: var(--card); padding: 36px 28px;
+    transition: background 0.3s;
+  }
+  .stat-cell:hover { background: var(--card2); }
+  .stat-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 42px; font-weight: 600;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  /* ── Pipeline ── */
+  .pipeline {
+    display: flex; flex-direction: column; gap: 0;
+    margin-top: 56px; border-radius: 16px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .pipe-step {
+    display: flex; align-items: stretch; gap: 0;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    transition: background 0.3s;
+  }
+  .pipe-step:last-child { border-bottom: none; }
+  .pipe-step:hover { background: var(--card2); }
+  .pipe-num {
+    flex-shrink: 0; width: 64px; display: flex; align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 24px;
+    font-weight: 600; color: var(--primary);
+    border-right: 1px solid var(--border);
+  }
+  .pipe-body { padding: 28px 32px; flex: 1; }
+  .pipe-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .pipe-desc { color: var(--muted); font-size: 14px; }
+  .pipe-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 4px;
+    background: rgba(124,108,255,0.15); color: var(--primary);
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    margin-left: 10px; vertical-align: middle;
+  }
+
+  /* ── Feature cards ── */
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px; margin-top: 56px;
+  }
+  .feature-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px;
+    transition: transform 0.3s, border-color 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .feature-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transform: scaleX(0); transform-origin: left; transition: transform 0.4s;
+  }
+  .feature-card:hover { transform: translateY(-4px); border-color: var(--border2); }
+  .feature-card:hover::before { transform: scaleX(1); }
+  .feature-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin-bottom: 20px;
+    background: rgba(124,108,255,0.12);
+  }
+  .feature-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+  .feature-desc { color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+  /* ── Models ── */
+  .models-wrap { margin-top: 56px; }
+  .models-cloud {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px;
+  }
+  .model-chip {
+    padding: 10px 18px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--card);
+    font-size: 14px; transition: all 0.3s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .model-chip:hover {
+    border-color: var(--primary); background: rgba(124,108,255,0.1);
+    transform: translateY(-2px);
+  }
+  .model-chip .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent2);
+  }
+  .model-chip .dot.video { background: var(--accent); }
+  .model-chip .dot.image { background: var(--primary); }
+
+  /* ── Architecture ── */
+  .arch-diagram {
+    margin-top: 48px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px; overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8;
+    color: var(--muted);
+  }
+  .arch-diagram .layer { display: flex; align-items: center; gap: 12px; }
+  .arch-diagram .layer-name {
+    color: var(--accent2); font-weight: 600; min-width: 120px;
+  }
+  .arch-diagram .layer-content { color: var(--muted); }
+  .arch-diagram .arrow { color: var(--primary); padding: 2px 0; }
+
+  /* ── CTA ── */
+  .cta {
+    text-align: center; padding: 120px 24px;
+    position: relative; overflow: hidden;
+  }
+  .cta .glow-1 {
+    width: 500px; height: 500px; background: rgba(124,108,255,0.2);
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+  }
+  .cta h2 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(36px, 5vw, 56px); font-weight: 700;
+    position: relative; z-index: 1; margin-bottom: 20px;
+    letter-spacing: -1px;
+  }
+  .cta p { color: var(--muted); max-width: 560px; margin: 0 auto 40px; position: relative; z-index: 1; }
+  .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 32px; border-radius: 12px;
+    font-size: 15px; font-weight: 500; text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none; cursor: pointer;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(124,108,255,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,108,255,0.4); }
+  .btn-outline {
+    background: transparent; color: var(--fg);
+    border: 1px solid var(--border2);
+  }
+  .btn-outline:hover { border-color: var(--primary); background: rgba(124,108,255,0.05); }
+
+  /* ── Footer ── */
+  footer {
+    padding: 40px 24px; text-align: center;
+    border-top: 1px solid var(--border);
+    font-size: 13px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  footer a { color: var(--primary); text-decoration: none; }
+
+  /* ── Animations ── */
+  .fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.8s, transform 0.8s; }
+  .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 640px) {
+    .pipe-num { width: 48px; font-size: 18px; }
+    .pipe-body { padding: 20px; }
+    .stat-cell { padding: 24px 20px; }
+    .arch-diagram { padding: 24px; font-size: 11px; }
+    .arch-diagram .layer-name { min-width: 80px; }
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero">
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <div class="badge"><span class="dot"></span> TRAE AI 创造力大赛 · 生活娱乐赛道</div>
+  <h1>PrismCraft</h1>
+  <p class="tagline">
+    <strong>AI 驱动的动画创作工作站</strong> —— 从一个故事想法，到一段完整动画短片。<br>
+    统一接入 13+ AI 模型，结构化分镜创作流，跨镜头一致性保证。
+  </p>
+  <div class="hero-meta">
+    <span>版本 <b>v0.12.0</b></span>
+    <span>测试 <b>4800+</b></span>
+    <span>回归规则 <b>181</b></span>
+    <span>本地优先桌面应用</span>
+  </div>
+</section>
+
+<!-- ═══════════════ STATS ═══════════════ -->
+<section>
+  <div class="container">
+    <div class="section-label fade-up">/ 项目数据</div>
+    <h2 class="section-title fade-up">用工程化标准做创意工具</h2>
+    <p class="section-desc fade-up">不只是能用，而是可维护、可扩展、可回归的工程化产品。</p>
+    <div class="stats-grid fade-up">
+      <div class="stat-cell">
+        <div class="stat-num">13+</div>
+        <div class="stat-label">AI 模型统一接入<br>Kling · Pika · Runway · MiniMax · OpenAI …</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">4800+</div>
+        <div class="stat-label">单元测试<br>275 个测试文件全通过</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">181</div>
+        <div class="stat-label">回归规则<br>每条规则对应一个历史 Bug</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">0</div>
+        <div class="stat-label">架构违规<br>ESLint + 自定义规则强制约束</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ PIPELINE ═══════════════ -->
+<section>
+  <div class="container">
+    <div class="section-label fade-up">/ 创作流水线</div>
+    <h2 class="section-title fade-up">端到端创作流</h2>
+    <p class="section-desc fade-up">从故事灵感到视频成片，四步走完整创作链路，每一步都有 AI 辅助。</p>
+    <div class="pipeline fade-up">
+      <div class="pipe-step">
+        <div class="pipe-num">01</div>
+        <div class="pipe-body">
+          <div class="pipe-title">故事规划 <span class="pipe-tag">LLM</span></div>
+          <div class="pipe-desc">输入故事标题、类型、基调，AI 自动拆解为结构化分镜（StoryBeat），每个镜头绑定角色、场景、道具。</div>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">02</div>
+        <div class="pipe-body">
+          <div class="pipe-title">关键帧生成 <span class="pipe-tag">Image Model</span></div>
+          <div class="pipe-desc">为每个镜头生成关键帧画面，支持首尾帧对（Frame Pair）生成，自动注入角色/场景元素绑定信息保证一致性。</div>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">03</div>
+        <div class="pipe-body">
+          <div class="pipe-title">视频生成 <span class="pipe-tag">Video Model</span></div>
+          <div class="pipe-desc">基于关键帧 + Prompt 生成视频片段，支持首尾帧驱动、参考图加权、批量生成，任务队列后台轮询。</div>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">04</div>
+        <div class="pipe-body">
+          <div class="pipe-title">一致性校验 <span class="pipe-tag">Reference Engine</span></div>
+          <div class="pipe-desc">跨镜头角色/场景一致性检查，引用引擎自动比对，避免"换脸"和"场景漂移"。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FEATURES ═══════════════ -->
+<section>
+  <div class="container">
+    <div class="section-label fade-up">/ 核心能力</div>
+    <h2 class="section-title fade-up">四大核心设计</h2>
+    <div class="feature-grid fade-up">
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <div class="feature-title">多模型统一接入</div>
+        <div class="feature-desc">13+ AI 提供商通过统一接口接入。声明式 JSON 插件实现零代码新增模型，4 层能力解析（插件配置 → 精确匹配 → 前缀模糊 → 保守默认）自动适配模型差异。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎬</div>
+        <div class="feature-title">专业分镜系统</div>
+        <div class="feature-desc">三级生成流水线：故事规划 → 镜头生成 → 引用检查。每个 Beat 绑定角色/场景/道具，Prompt 引擎自动注入元素信息，LLM 规划结果经 Zod Schema 校验。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <div class="feature-title">AI 可维护性工程</div>
+        <div class="feature-desc">零依赖 shared-logic 层双向复用、DI 容器管理有状态服务、contract.json 约束模块边界。让 AI 编程工具用最少上下文做最正确决策。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">本地优先 & 数据隐私</div>
+        <div class="feature-desc">Electron 桌面应用，数据存储在本地 SQLite。API 密钥使用系统级加密（Windows Credential Manager / macOS Keychain），HTTP API + IPC 双通道文件操作。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ MODELS ═══════════════ -->
+<section>
+  <div class="container">
+    <div class="section-label fade-up">/ 模型生态</div>
+    <h2 class="section-title fade-up">统一接入的 AI 模型</h2>
+    <p class="section-desc fade-up">一个应用，接入主流 AI 视频与图像模型。新增模型只需写一个 JSON 配置文件。</p>
+    <div class="models-wrap fade-up">
+      <div class="models-cloud">
+        <div class="model-chip"><span class="dot video"></span> Kling (可灵)</div>
+        <div class="model-chip"><span class="dot video"></span> Pika</div>
+        <div class="model-chip"><span class="dot video"></span> Runway</div>
+        <div class="model-chip"><span class="dot video"></span> MiniMax</div>
+        <div class="model-chip"><span class="dot video"></span> OpenAI Sora</div>
+        <div class="model-chip"><span class="dot video"></span> Vidu</div>
+        <div class="model-chip"><span class="dot video"></span> Hailuo (海螺)</div>
+        <div class="model-chip"><span class="dot video"></span> Jimeng (即梦)</div>
+        <div class="model-chip"><span class="dot image"></span> Seedream</div>
+        <div class="model-chip"><span class="dot image"></span> FLUX</div>
+        <div class="model-chip"><span class="dot image"></span> DALL·E</div>
+        <div class="model-chip"><span class="dot image"></span> Stable Diffusion</div>
+        <div class="model-chip"><span class="dot image"></span> Nano Banana</div>
+        <div class="model-chip" style="border-style:dashed; color:var(--muted)"><span class="dot"></span> + 自定义插件</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ ARCHITECTURE ═══════════════ -->
+<section>
+  <div class="container">
+    <div class="section-label fade-up">/ 架构设计</div>
+    <h2 class="section-title fade-up">AI 可维护性工程化</h2>
+    <p class="section-desc fade-up">分层架构 + 依赖注入 + 契约约束，让 AI 编程工具能精准理解项目结构。</p>
+    <div class="arch-diagram fade-up">
+      <div class="layer"><span class="layer-name">app/</span><span class="layer-content">页面层 · 路由 · PageErrorBoundary</span></div>
+      <div class="arrow">↓</div>
+      <div class="layer"><span class="layer-name">modules/</span><span class="layer-content">业务模块 (video / story / character / scene / prompt / shot)</span></div>
+      <div class="arrow">↓</div>
+      <div class="layer"><span class="layer-name">shared-logic/</span><span class="layer-content">零依赖纯逻辑层 · 双向复用 (renderer ↔ main)</span></div>
+      <div class="arrow">↓</div>
+      <div class="layer"><span class="layer-name">shared/</span><span class="layer-content">代理导出 · 统一 file-http 层 · UI 组件</span></div>
+      <div class="arrow">↓</div>
+      <div class="layer"><span class="layer-name">infrastructure/</span><span class="layer-content">DI 容器 · Storage · Repository · Port 实现</span></div>
+      <div class="arrow">↓</div>
+      <div class="layer"><span class="layer-name">domain/</span><span class="layer-content">纯类型 · Zod Schema · Port 接口</span></div>
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); color:var(--muted); font-size:12px;">
+        ⟶ 依赖方向严格单向 · ESLint 强制约束 · contract.json 定义模块边界<br>
+        ⟶ 181 条回归规则 · 每条对应一个历史 Bug · 防止重复踩坑<br>
+        ⟶ 4800+ 单元测试 · 126 E2E 测试 · 架构 lint 自动检查
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ CTA ═══════════════ -->
+<section class="cta">
+  <div class="glow glow-1"></div>
+  <h2 class="fade-up">从一个故事想法开始</h2>
+  <p class="fade-up">PrismCraft 把专业影视分镜工作流，用 AI 重新实现。让每个人都能做出有叙事性的动画短片。</p>
+  <div class="cta-buttons fade-up">
+    <a class="btn btn-primary" href="#">⬇ 下载安装包 (Windows)</a>
+    <a class="btn btn-outline" href="#features">查看功能</a>
+  </div>
+</section>
+
+<footer>
+  PrismCraft v0.12.0 · TRAE AI 创造力大赛参赛作品 · 本地优先 · 数据隐私优先
+</footer>
+
+<script>
+  // Scroll fade-up animation
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

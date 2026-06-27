@@ -33,6 +33,130 @@ import { checkForDuplicateVideos } from "../../recovery/services/duplicate-detec
 
 export type { VideoTask, VideoTaskStatus };
 
+/**
+ * createTask 的扩展选项。
+ * 抽到模块作用域以便辅助函数引用，避免类型重复定义。
+ */
+export interface VideoTaskExtraOptions {
+  fixedImageUrl?: string;
+  fixedImageLockType?: "character" | "scene";
+  referenceVideo?: string | null;
+  duration?: number;
+  storyId?: string;
+  storyTitle?: string;
+  beatId?: string;
+  beatTitle?: string;
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
+  providerId?: string;
+  modelId?: string;
+  format?: string;
+  characterRef?: string;
+  characterRefs?: string[];
+  sceneRef?: string;
+}
+
+/**
+ * 重复检测：若命中已有任务则返回该任务，否则返回 null。
+ * 命中时同步发出 toast 和日志，行为与原内联逻辑一致。
+ */
+async function tryReuseDuplicateVideoTask(
+  prompt: string,
+  extraOptions: VideoTaskExtraOptions | undefined,
+  allTasks: VideoTask[],
+): Promise<VideoTask | null> {
+  const duplicateProbe: Partial<VideoTask> = {
+    prompt,
+    providerId: extraOptions?.providerId,
+    providerModelId: extraOptions?.modelId,
+    fixedImageUrl: extraOptions?.fixedImageUrl ?? undefined,
+    referenceVideoUrl: extraOptions?.referenceVideo ?? undefined,
+  };
+  const duplicate = await checkForDuplicateVideos(duplicateProbe, allTasks);
+  if (!duplicate.hasDuplicate || !duplicate.existingTaskId) return null;
+
+  const existing = allTasks.find((t) => t.taskId === duplicate.existingTaskId);
+  if (!existing || !existing.videoUrl) return null;
+
+  const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || existing.taskId.slice(0, 8);
+  emitToast(
+    "info",
+    t("video.duplicateDetectedTitle"),
+    t("video.duplicateDetectedDetail", { label: taskLabel, similarity: Math.round((duplicate.similarity ?? 0) * 100) }),
+  );
+  errorLogger.info(
+    `[VideoTaskManager] 重复检测命中，复用已存在任务 ${existing.taskId} (相似度 ${Math.round((duplicate.similarity ?? 0) * 100)}%)`,
+  );
+  return existing;
+}
+
+/**
+ * 派发 provider 视频生成请求。
+ * 存在首/尾/固定帧时走 generateVideoWithFrames，否则走 generateVideo。
+ */
+async function dispatchProviderVideoRequest(
+  prompt: string,
+  extraOptions: VideoTaskExtraOptions | undefined,
+) {
+  const hasFrameOptions =
+    extraOptions?.lastFrameUrl ||
+    extraOptions?.firstFrameUrl ||
+    extraOptions?.fixedImageUrl;
+
+  const commonApiOptions = {
+    duration: extraOptions?.duration,
+    referenceVideo: extraOptions?.referenceVideo,
+    providerId: extraOptions?.providerId,
+    modelId: extraOptions?.modelId,
+    format: extraOptions?.format,
+    characterRef: extraOptions?.characterRef,
+    characterRefs: extraOptions?.characterRefs,
+    sceneRef: extraOptions?.sceneRef,
+  };
+
+  if (hasFrameOptions) {
+    return container.videoProvider.generateVideoWithFrames({
+      prompt,
+      firstFrameUrl: extraOptions?.firstFrameUrl || extraOptions?.fixedImageUrl,
+      lastFrameUrl: extraOptions?.lastFrameUrl,
+      ...commonApiOptions,
+    });
+  }
+  return container.videoProvider.generateVideo(prompt, {
+    ...commonApiOptions,
+    firstFrameUrl: extraOptions?.fixedImageUrl,
+  });
+}
+
+/**
+ * 基于 provider 返回数据构造 VideoTask 内存对象。
+ */
+function buildNewVideoTask(
+  prompt: string,
+  extraOptions: VideoTaskExtraOptions | undefined,
+  providerData: { taskId: string; providerId: string; providerModelId: string; providerFormat?: string },
+): VideoTask {
+  return {
+    taskId: providerData.taskId,
+    status: "pending",
+    progress: 0,
+    message: extraOptions?.beatTitle
+      ? t("video.taskSubmittedWithBeat", { beatTitle: extraOptions.beatTitle })
+      : t("video.taskSubmitted"),
+    createdAt: new Date().toISOString(),
+    prompt,
+    fixedImageUrl: extraOptions?.fixedImageUrl,
+    fixedImageLockType: extraOptions?.fixedImageLockType,
+    providerId: providerData.providerId,
+    providerModelId: providerData.providerModelId,
+    providerFormat: providerData.providerFormat,
+    storyId: extraOptions?.storyId,
+    storyTitle: extraOptions?.storyTitle,
+    beatId: extraOptions?.beatId,
+    beatTitle: extraOptions?.beatTitle,
+  };
+}
+
 interface VideoTaskManagerState {
   allTasks: VideoTask[];
   isBackgroundProcessing: boolean;
@@ -58,24 +182,7 @@ interface VideoTaskManagerState {
   createTask: (
     prompt: string,
     _deprecated?: undefined,
-    extraOptions?: {
-      fixedImageUrl?: string;
-      fixedImageLockType?: "character" | "scene";
-      referenceVideo?: string | null;
-      duration?: number;
-      storyId?: string;
-      storyTitle?: string;
-      beatId?: string;
-      beatTitle?: string;
-      firstFrameUrl?: string;
-      lastFrameUrl?: string;
-      providerId?: string;
-      modelId?: string;
-      format?: string;
-      characterRef?: string;
-      characterRefs?: string[];
-      sceneRef?: string;
-    },
+    extraOptions?: VideoTaskExtraOptions,
   ) => Promise<(VideoTask & { promptWasTruncated?: boolean }) | null>;
   pollTask: (taskId: string) => Promise<void>;
   cancelTask: (taskId: string) => Promise<void>;
@@ -270,116 +377,55 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
       // reuse it instead of burning tokens on a duplicate Provider request.
       // Caller can still trigger a fresh generation by removing the existing
       // task first (deleteTask) or using the retry path.
-      const duplicateProbe: Partial<VideoTask> = {
-        prompt,
-        providerId: extraOptions?.providerId,
-        providerModelId: extraOptions?.modelId,
-        fixedImageUrl: extraOptions?.fixedImageUrl ?? undefined,
-        referenceVideoUrl: extraOptions?.referenceVideo ?? undefined,
-      };
-      const duplicate = await checkForDuplicateVideos(duplicateProbe, get().allTasks);
-      if (duplicate.hasDuplicate && duplicate.existingTaskId) {
-        const existing = get().allTasks.find((t) => t.taskId === duplicate.existingTaskId);
-        if (existing && existing.videoUrl) {
-          const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || existing.taskId.slice(0, 8);
-          emitToast(
-            "info",
-            t("video.duplicateDetectedTitle"),
-            t("video.duplicateDetectedDetail", { label: taskLabel, similarity: Math.round((duplicate.similarity ?? 0) * 100) }),
-          );
-          errorLogger.info(
-            `[VideoTaskManager] 重复检测命中，复用已存在任务 ${existing.taskId} (相似度 ${Math.round((duplicate.similarity ?? 0) * 100)}%)`,
-          );
-          return existing;
-        }
-      }
+      const reused = await tryReuseDuplicateVideoTask(prompt, extraOptions, get().allTasks);
+      if (reused) return reused;
 
-      let result;
-      const hasFrameOptions =
-        extraOptions?.lastFrameUrl ||
-        extraOptions?.firstFrameUrl ||
-        extraOptions?.fixedImageUrl;
-
-      const commonApiOptions = {
-        duration: extraOptions?.duration,
-        referenceVideo: extraOptions?.referenceVideo,
-        providerId: extraOptions?.providerId,
-        modelId: extraOptions?.modelId,
-        format: extraOptions?.format,
-        characterRef: extraOptions?.characterRef,
-        characterRefs: extraOptions?.characterRefs,
-        sceneRef: extraOptions?.sceneRef,
-      };
-
-      if (hasFrameOptions) {
-        result = await container.videoProvider.generateVideoWithFrames({
-          prompt,
-          firstFrameUrl:
-            extraOptions?.firstFrameUrl || extraOptions?.fixedImageUrl,
-          lastFrameUrl: extraOptions?.lastFrameUrl,
-          ...commonApiOptions,
-        });
-      } else {
-        result = await container.videoProvider.generateVideo(prompt, {
-          ...commonApiOptions,
-          firstFrameUrl: extraOptions?.fixedImageUrl,
-        });
-      }
-      if (result.success && result.data) {
-        const taskId = result.data.taskId;
-        if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
-          throw new Error("Invalid task ID from provider");
-        }
-        const newTask: VideoTask = {
-          taskId,
-          status: "pending",
-          progress: 0,
-          message: extraOptions?.beatTitle
-            ? t("video.taskSubmittedWithBeat", { beatTitle: extraOptions.beatTitle })
-            : t("video.taskSubmitted"),
-          createdAt: new Date().toISOString(),
-          prompt,
-          fixedImageUrl: extraOptions?.fixedImageUrl,
-          fixedImageLockType: extraOptions?.fixedImageLockType,
-          providerId: result.data.providerId,
-          providerModelId: result.data.providerModelId,
-          providerFormat: result.data.providerFormat,
-          storyId: extraOptions?.storyId,
-          storyTitle: extraOptions?.storyTitle,
-          beatId: extraOptions?.beatId,
-          beatTitle: extraOptions?.beatTitle,
-        };
-
-        const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
-        await persistVideoTask(newTask, {
-          logLabel: "持久化任务失败，仅保留在内存中",
-          toastOnFailure: {
-            titleKey: "warning.memoryOnly",
-            detailKey: "warning.memoryOnlyDetail",
-            detailArgs: { taskLabel },
-          },
-          catchExceptions: false,
-        });
-
-        get().setAllTasks((prev) => [newTask, ...prev]);
-
-        schedulePolling();
-
-        emitToast("success", t("video.taskSubmittedTitle"), t("video.taskSubmittedProcessing", { label: taskLabel }));
-
-        if (result.data?.promptWasTruncated) {
-          errorLogger.warn(
-            `[VideoTaskManager] 提示词已被截断，原始长度: ${result.data.originalPromptLength} 字符`,
-          );
-        }
-
-        return {
-          ...newTask,
-          promptWasTruncated: result.data?.promptWasTruncated || false,
-        };
-      } else {
+      // 派发 provider 请求（根据是否有首/尾/固定帧选择接口）
+      const result = await dispatchProviderVideoRequest(prompt, extraOptions);
+      if (!result.success || !result.data) {
         throw new Error(result.error || "Failed to create video task");
       }
+
+      // 校验 taskId 合法性
+      const taskId = result.data.taskId;
+      if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
+        throw new Error("Invalid task ID from provider");
+      }
+
+      // 构造 VideoTask 并持久化（持久化失败仅保留内存，不阻塞流程）
+      // 此处 result.data.providerId/providerModelId 已由 success 分支保证存在
+      const newTask = buildNewVideoTask(prompt, extraOptions, {
+        taskId,
+        providerId: result.data.providerId!,
+        providerModelId: result.data.providerModelId!,
+        providerFormat: result.data.providerFormat,
+      });
+      const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
+      await persistVideoTask(newTask, {
+        logLabel: "持久化任务失败，仅保留在内存中",
+        toastOnFailure: {
+          titleKey: "warning.memoryOnly",
+          detailKey: "warning.memoryOnlyDetail",
+          detailArgs: { taskLabel },
+        },
+        catchExceptions: false,
+      });
+
+      // 更新内存状态并启动轮询
+      get().setAllTasks((prev) => [newTask, ...prev]);
+      schedulePolling();
+      emitToast("success", t("video.taskSubmittedTitle"), t("video.taskSubmittedProcessing", { label: taskLabel }));
+
+      if (result.data?.promptWasTruncated) {
+        errorLogger.warn(
+          `[VideoTaskManager] 提示词已被截断，原始长度: ${result.data.originalPromptLength} 字符`,
+        );
+      }
+
+      return {
+        ...newTask,
+        promptWasTruncated: result.data?.promptWasTruncated || false,
+      };
     } catch (error) {
       errorLogger.error("Error creating video task", error);
       throw error;

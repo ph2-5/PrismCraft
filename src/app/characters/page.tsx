@@ -69,6 +69,7 @@ function CharactersPageContent() {
                 setUseDetailedPrompt={page.setUseDetailedPrompt}
                 selectedImageModel={page.selectedImageModel}
                 setSelectedImageModel={page.setSelectedImageModel}
+                imageSize={page.imageSize}
                 generatePrompt={page.generatePrompt}
                 generateImage={page.generateImage}
                 saveImageToCharacter={page.saveImageToCharacter}

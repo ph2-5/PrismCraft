@@ -66,16 +66,19 @@ test.describe("Beat Detail Page via Story Editor", () => {
     expect(dialogVisible || detailVisible).toBe(true);
   });
 
-  // 跳过原因：测试设计脆弱——clickButtonByText("编辑") 会匹配到首页 "未来规划预览" 区域
-  // 的 ComingSoon 卡片，导致页面被导航到 /workflow-editor 等未实现页面，而非真正的 beat 详情。
-  // 需要更精确的按钮定位（如通过 beat card 容器范围查找）。
-  test.skip("should display beat content area after opening edit", async ({ page }) => {
-    await clickButtonByText(page, "编辑");
+  // Story 页面没有显式"编辑"按钮，beat 卡片本身 onClick 触发编辑（ProfessionalModeEditor.tsx）。
+  // 之前的 clickButtonByText("编辑") 会全局匹配，误中首页 "未来规划预览" ComingSoon 卡片，
+  // 导致页面被导航到 /workflow-editor 等未实现页面。改为直接点击 .timeline-card beat 卡片。
+  test("should display beat content area after opening edit", async ({ page }) => {
+    // 点击 beat 卡片本身（第一个 .timeline-card 是 beat，dashed 边框的 "+" 是添加按钮）
+    const beatCard = page.locator(".timeline-card:not([style*='dashed'])").first();
+    await beatCard.click({ force: true });
     await page.waitForTimeout(1000);
 
-    // 验证存在可编辑的内容区域（textarea 或 input）
-    const contentArea = page.locator("textarea, input[type='text']").first();
-    await expect(contentArea).toBeVisible({ timeout: 5000 });
+    // 验证 BeatDetailEditor 已显示 — 检查其独特的 section-label 文本
+    // "元素绑定" / "一致性检查" 是 BeatDetailEditor 中独有的标签
+    const beatDetail = page.locator("text=/元素绑定|一致性检查/").first();
+    await expect(beatDetail).toBeVisible({ timeout: 5000 });
   });
 });
 

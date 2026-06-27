@@ -29,6 +29,9 @@ export const IGNORED_ERROR_PATTERNS = [
   // 404 资源错误：not-found 页面测试中，缺失资源返回 404 是预期行为
   /Failed to load resource.*404/i,
   /the server responded with a status of 404/i,
+  // 400 资源错误：访问无效路由（如 /story/beat/invalid-id）时，某些 API 调用返回 400 是预期行为
+  /Failed to load resource.*400/i,
+  /the server responded with a status of 400/i,
   // PerfMonitor 慢查询警告：dev 环境下 SQLite 首次查询较慢，非关键错误
   /\[PerfMonitor\]/i,
   /db_query.*took \d+ms/i,

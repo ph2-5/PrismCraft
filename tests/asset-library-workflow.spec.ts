@@ -81,30 +81,47 @@ test.describe("Asset Library Empty State", () => {
 
   test("should display empty state hint when no characters exist", async ({ page }) => {
     // UI 重构后默认 tab 是"全部素材"，需要切换到"角色库"才能看到角色空状态
+    // 测试环境可能累积角色数据，所以"空状态或角色卡片"任一存在即可
     await switchAssetTab(page, "角色库");
     const emptyHint = page.locator("text=角色库为空").or(page.locator("text=暂无角色")).first();
-    const characterCards = page.locator("[class*='grid'] [class*='card']").first();
-    const hasEmpty = await emptyHint.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasCards = await characterCards.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasEmpty || hasCards).toBe(true);
+    // 按钮使用 aria-label（非可见文本），必须用 getByRole name 匹配
+    const deleteBtn = page.getByRole("button", { name: "删除角色" });
+    await expect.poll(
+      async () => {
+        const hasEmpty = await emptyHint.isVisible().catch(() => false);
+        const count = await deleteBtn.count();
+        return hasEmpty || count > 0;
+      },
+      { timeout: 8000, intervals: [200, 500, 1000] }
+    ).toBe(true);
   });
 
   test("should display empty state hint when no scenes exist", async ({ page }) => {
     await switchAssetTab(page, "场景库");
     const emptyHint = page.locator("text=场景库为空").or(page.locator("text=暂无场景")).first();
-    const sceneCards = page.locator('[role="tabpanel"] [class*="card"]').first();
-    const hasEmpty = await emptyHint.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasCards = await sceneCards.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasEmpty || hasCards).toBe(true);
+    const deleteBtn = page.getByRole("button", { name: /删除/ });
+    await expect.poll(
+      async () => {
+        const hasEmpty = await emptyHint.isVisible().catch(() => false);
+        const count = await deleteBtn.count();
+        return hasEmpty || count > 0;
+      },
+      { timeout: 8000, intervals: [200, 500, 1000] }
+    ).toBe(true);
   });
 
   test("should display empty state hint when no collections exist", async ({ page }) => {
     await switchAssetTab(page, "合集");
     const emptyHint = page.locator("text=暂无合集").or(page.locator("text=合集为空")).first();
-    const collectionCards = page.locator('[role="tabpanel"] [class*="card"]').first();
-    const hasEmpty = await emptyHint.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasCards = await collectionCards.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasEmpty || hasCards).toBe(true);
+    const deleteBtn = page.getByRole("button", { name: /删除/ });
+    await expect.poll(
+      async () => {
+        const hasEmpty = await emptyHint.isVisible().catch(() => false);
+        const count = await deleteBtn.count();
+        return hasEmpty || count > 0;
+      },
+      { timeout: 8000, intervals: [200, 500, 1000] }
+    ).toBe(true);
   });
 });
 

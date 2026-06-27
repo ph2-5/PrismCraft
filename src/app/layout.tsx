@@ -58,9 +58,12 @@ export function RootLayout() {
           <Suspense fallback={null}>
             <OnboardingGuide />
           </Suspense>
-          <Suspense fallback={null}>
-            <PerformanceMonitorPanel />
-          </Suspense>
+          {/* 性能监视面板仅在开发环境显示，避免生产环境遮挡右下角按钮（如"保存角色"） */}
+          {import.meta.env.DEV && (
+            <Suspense fallback={null}>
+              <PerformanceMonitorPanel />
+            </Suspense>
+          )}
         </ThemeProvider>
       </QueryProvider>
     </ClientProviders>

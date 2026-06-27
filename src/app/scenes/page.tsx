@@ -611,6 +611,7 @@ function ScenesPageContent() {
               </button>
               <button
                 type="button"
+                data-testid="scene-save-button"
                 className="btn btn-primary btn-sm"
                 onClick={handleSave}
                 disabled={saveStatus === "saving" || !currentScene.name.trim()}

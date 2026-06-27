@@ -60,6 +60,7 @@
     "test-reports",
     "scripts/test-config",
     "scripts/video-test-tool",
+    "scripts/*.ts",
     "vitest.config.ts",
     "vitest.config.electron.ts",
     "playwright.config.ts"

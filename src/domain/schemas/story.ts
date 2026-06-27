@@ -124,7 +124,7 @@ export const elementBindingSchema = z.object({
  * - `sceneId` 指向目标场景（必须存在于 scenes 表中，删除场景时由调用方校验）
  * - `transitionType` 复用 beatCameraSchema 中的转场枚举（cut/dissolve/wipe/fade）
  * - `description` 可选，让用户标注"为什么转场"（如"开门进入新房间"）
- * - 该字段是元信息，prompt-engine 当前不解析；后续可在 prompt 生成时拼入【场景转换】标签
+ * - prompt-engine 在 `single-beat-prompt.ts` 中解析此字段，拼入【场景转换】标签
  */
 export const sceneTransitionSchema = z.object({
   sceneId: z.string(),

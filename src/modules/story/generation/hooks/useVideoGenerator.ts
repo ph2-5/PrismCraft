@@ -107,15 +107,20 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
           ? prevVideoUrl
           : null;
 
-        const basePrompt = generateSingleBeatPrompt({
-          beat,
-          index: beatsRef.current.findIndex((b) => b.id === beatId),
-          characters: charactersRef.current,
-          scenes: scenesRef.current,
-          shotInstruction: beat.shotInstruction,
-          elements,
-          characterOutfits: beat.characterOutfits,
-        });
+        // 优先使用用户在编辑框中手动修改的 prompt（beat.videoGen.prompt），
+        // 否则由 generateSingleBeatPrompt 自动构建
+        const userEditedPrompt = beat.videoGen?.prompt?.trim();
+        const basePrompt = userEditedPrompt
+          ? userEditedPrompt
+          : generateSingleBeatPrompt({
+              beat,
+              index: beatsRef.current.findIndex((b) => b.id === beatId),
+              characters: charactersRef.current,
+              scenes: scenesRef.current,
+              shotInstruction: beat.shotInstruction,
+              elements,
+              characterOutfits: beat.characterOutfits,
+            });
 
         const promptLanguage = strategy?.promptLanguage || "auto";
         const enhancedPrompt = StoryGenerationService.buildVideoPrompt(

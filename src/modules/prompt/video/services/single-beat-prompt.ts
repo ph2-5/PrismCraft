@@ -150,6 +150,28 @@ export function generateSingleBeatPrompt(
     }
   }
 
+  // 场景转换序列：从主场景过渡到其他场景的转场（sceneTransitions）
+  if (beat.sceneTransitions && beat.sceneTransitions.length > 0) {
+    const transitionTypeMap: Record<string, string> = {
+      cut: "硬切",
+      dissolve: "溶解",
+      wipe: "擦除",
+      fade: "淡入淡出",
+    };
+    const transitionLines = beat.sceneTransitions.map((t, i) => {
+      const targetScene = scenes.find((s) => s.id === t.sceneId);
+      const sceneName = targetScene?.name || "未知场景";
+      const typeLabel = t.transitionType
+        ? transitionTypeMap[t.transitionType] || t.transitionType
+        : "转场";
+      const desc = t.description ? ` — ${t.description}` : "";
+      return `${i + 1}. ${typeLabel}至"${sceneName}"${desc}`;
+    });
+    parts.push("");
+    parts.push("【场景转换】");
+    parts.push(...transitionLines);
+  }
+
   const charIds = getBeatCharacterIds(beat);
   if (charIds.length > 0) {
     const charDescs = charIds

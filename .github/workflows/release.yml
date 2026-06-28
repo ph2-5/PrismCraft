@@ -53,16 +53,10 @@ jobs:
       - name: Rebuild native modules for Electron
         run: npx electron-rebuild -f -w better-sqlite3
 
-      - name: Package Electron app
-        run: npx electron-builder --mac --publish=never
+      - name: Package Electron app and publish to GitHub Release
+        run: npx electron-builder --mac --publish=always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron-build-mac
-          path: release/
 
   release-win:
     runs-on: windows-latest
@@ -111,13 +105,7 @@ jobs:
         env:
           PYTHON: ${{ env.pythonLocation }}\python.exe
 
-      - name: Package Electron app
-        run: npx electron-builder --win --x64 --publish=never
+      - name: Package Electron app and publish to GitHub Release
+        run: npx electron-builder --win --x64 --publish=always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron-build-win
-          path: release/

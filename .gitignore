@@ -105,3 +105,6 @@ release2/
 
 # Buyer-facing document (not for open-source release)
 README_FOR_BUYER.md
+
+# Contest submission materials (报名贴、初赛贴、创意提案 — 大赛专属，不入公开仓库)
+docs/contest/

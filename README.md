@@ -172,4 +172,7 @@ prismcraft/
 - ❌ **禁止商业使用**：未经书面授权，不得用于商业目的
 - 🔄 **作者保留随时闭源的权利**：未来版本可能转为闭源
 
-如需商业授权，请联系作者。
+如需商业授权，请联系作者：
+
+- **GitHub Issues**：[ph2-5/PrismCraft/issues](https://github.com/ph2-5/PrismCraft/issues)
+- **Trae 社区**：[@u590909302648505](https://forum.trae.cn/u/u590909302648505)

@@ -79,26 +79,37 @@ jobs:
           node-version: "22"
           cache: "npm"
 
+      - name: Setup Python for node-gyp
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
       - name: Install dependencies
+        shell: pwsh
         run: |
-          for i in 1 2 3; do
-            if npm ci --ignore-scripts; then
-              echo "Dependencies installed successfully"
+          $maxAttempts = 3
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            npm ci --ignore-scripts
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Dependencies installed successfully"
               break
-            elif [ $i -lt 3 ]; then
-              echo "Attempt $i failed, retrying in 30 seconds..."
-              sleep 30
-            else
-              echo "All 3 attempts failed"
+            }
+            if ($attempt -lt $maxAttempts) {
+              Write-Host "Attempt $attempt failed, retrying in 30 seconds..."
+              Start-Sleep -Seconds 30
+            } else {
+              Write-Host "All $maxAttempts attempts failed"
               exit 1
-            fi
-          done
+            }
+          }
 
       - name: Build for Electron
         run: npm run build:electron
 
       - name: Rebuild native modules for Electron
         run: npx electron-rebuild -f -w better-sqlite3
+        env:
+          PYTHON: ${{ env.pythonLocation }}\python.exe
 
       - name: Package Electron app
         run: npx electron-builder --win --x64 --publish=never

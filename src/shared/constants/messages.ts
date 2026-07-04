@@ -1357,6 +1357,7 @@ const messages: Record<MessageKey, string> = {
   "character.noOutfitsHint": "点击上方按钮添加角色的不同服装",
   "character.addPersonality": "添加性格特征",
   "character.personalityPlaceholder": "输入性格特征，按回车添加...",
+  "character.personality": "性格特征",
   "character.add": "添加",
   "character.addedTraits": "已添加特征（点击删除）：",
   "character.quickReference": "快捷参考（点击添加）：",

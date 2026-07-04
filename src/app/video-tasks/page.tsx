@@ -273,43 +273,35 @@ export default function VideoTasksPage() {
             )}
           </div>
 
-          {/* 任务列表 */}
-          <div className="card" style={{ padding: 16 }}>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{t("task.taskList")}</div>
-              <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 2 }}>
-                {t("task.taskListDesc")}
+          {/* 任务列表 — 直接平铺，不再用 card 容器包裹（对齐预览页样式） */}
+          {isLoading ? (
+            <div style={{ textAlign: "center", padding: "64px 0" }}>
+              <Loader2 size={32} className="animate-spin" style={{ margin: "0 auto 16px", color: "var(--muted-fg)" }} />
+              <p style={{ color: "var(--muted-fg)", fontSize: 13 }}>{t("common.loading")}</p>
+            </div>
+          ) : totalTasks === 0 ? (
+            <div style={{ textAlign: "center", padding: "64px 0" }}>
+              <Video size={64} style={{ margin: "0 auto 16px", color: "var(--muted-fg)", opacity: 0.2 }} />
+              <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("task.noTasks")}</h2>
+              <p style={{ color: "var(--muted-fg)", marginBottom: 24 }}>
+                {t("task.noTasksHint")}
+              </p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={navigateToStory}>
+                  {t("task.viewStoryboard")}
+                </button>
+                <button type="button" className="btn btn-outline btn-sm" onClick={navigateToQuickGenerate}>
+                  {t("task.quickGenerate")}
+                </button>
               </div>
             </div>
-            {isLoading ? (
-              <div style={{ textAlign: "center", padding: "64px 0" }}>
-                <Loader2 size={32} className="animate-spin" style={{ margin: "0 auto 16px", color: "var(--muted-fg)" }} />
-                <p style={{ color: "var(--muted-fg)", fontSize: 13 }}>{t("common.loading")}</p>
-              </div>
-            ) : totalTasks === 0 ? (
-              <div style={{ textAlign: "center", padding: "64px 0" }}>
-                <Video size={64} style={{ margin: "0 auto 16px", color: "var(--muted-fg)", opacity: 0.2 }} />
-                <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("task.noTasks")}</h2>
-                <p style={{ color: "var(--muted-fg)", marginBottom: 24 }}>
-                  {t("task.noTasksHint")}
-                </p>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={navigateToStory}>
-                    {t("task.viewStoryboard")}
-                  </button>
-                  <button type="button" className="btn btn-outline btn-sm" onClick={navigateToQuickGenerate}>
-                    {t("task.quickGenerate")}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <VideoTaskManagerComponent
-                tasks={allTasks}
-                onBackgroundProcess={startBackgroundProcessing}
-                onTaskRecovered={recoverTask}
-              />
-            )}
-          </div>
+          ) : (
+            <VideoTaskManagerComponent
+              tasks={allTasks}
+              onBackgroundProcess={startBackgroundProcessing}
+              onTaskRecovered={recoverTask}
+            />
+          )}
         </div>
       </div>
     </PageErrorBoundary>

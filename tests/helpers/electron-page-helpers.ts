@@ -1,7 +1,8 @@
 import type { Page } from "@playwright/test";
 
 export async function dismissOverlays(page: Page) {
-  const overlay = page.locator("div.fixed.inset-0.z-50").first();
+  // 匹配 Tailwind 风格的 overlay (div.fixed.inset-0.z-50) 和 Modal 组件 (.modal-overlay)
+  const overlay = page.locator("div.fixed.inset-0.z-50, .modal-overlay").first();
   if (await overlay.isVisible({ timeout: 1000 }).catch(() => false)) {
     const skipBtn = overlay.locator("button", { hasText: "跳过" }).first();
     if (await skipBtn.isVisible({ timeout: 500 }).catch(() => false)) {
@@ -15,6 +16,10 @@ export async function dismissOverlays(page: Page) {
       await page.waitForTimeout(300);
       if (!(await overlay.isVisible({ timeout: 500 }).catch(() => false))) return;
     }
+    // 点击 overlay 自身关闭（Modal 组件支持 closeOnOverlayClick）
+    await overlay.click({ force: true, timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    if (!(await overlay.isVisible({ timeout: 500 }).catch(() => false))) return;
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
   }

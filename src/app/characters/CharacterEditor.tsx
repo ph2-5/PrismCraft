@@ -139,12 +139,12 @@ export function CharacterEditor({
           </div>
         </div>
         <button
-          className="btn btn-outline btn-sm"
+          className="btn btn-outline btn-xs"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
           style={{ gap: 4 }}
         >
-          {isUploading ? <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} /> : <Upload style={{ width: 14, height: 14 }} />}
+          {isUploading ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <Upload style={{ width: 12, height: 12 }} />}
           {t("character.changeAvatar")}
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
@@ -236,7 +236,7 @@ export function CharacterEditor({
               <datalist id="trait-suggestions">
                 {personalitySuggestions.map((s) => <option key={s} value={s} />)}
               </datalist>
-              <button className="btn btn-outline btn-sm" onClick={() => addTrait(customTrait)}>
+              <button className="btn btn-outline btn-xs" onClick={() => addTrait(customTrait)}>
                 {t("character.add")}
               </button>
             </div>
@@ -307,7 +307,7 @@ export function CharacterEditor({
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div className="section-label">{t("character.outfitBranch")}</div>
-          <button className="btn btn-outline btn-sm" onClick={onAddOutfit} style={{ gap: 4 }}>
+          <button className="btn btn-outline btn-xs" onClick={onAddOutfit} style={{ gap: 4 }}>
             <Plus style={{ width: 12, height: 12 }} />
             {t("character.addOutfit")}
           </button>
@@ -327,11 +327,11 @@ export function CharacterEditor({
                     )}
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => onEditOutfit(outfit)} style={{ gap: 4 }}>
+                    <button className="btn btn-ghost btn-xs" onClick={() => onEditOutfit(outfit)} style={{ gap: 4 }}>
                       {t("character.edit")}
                     </button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => onDeleteOutfit(outfit.id)} aria-label={t("character.deleteOutfitLabel")} style={{ gap: 4 }}>
-                      <Trash2 style={{ width: 14, height: 14 }} />
+                    <button className="btn btn-ghost btn-xs" onClick={() => onDeleteOutfit(outfit.id)} aria-label={t("character.deleteOutfitLabel")} style={{ gap: 4 }}>
+                      <Trash2 style={{ width: 12, height: 12 }} />
                     </button>
                   </div>
                 </div>
@@ -341,12 +341,12 @@ export function CharacterEditor({
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                  <button className="btn btn-outline btn-sm" onClick={() => onGenerateOutfitImage(outfit)} disabled={isGenerating} style={{ flex: 1, gap: 4 }}>
-                    {isGenerating ? <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} /> : <Wand2 style={{ width: 14, height: 14 }} />}
+                  <button className="btn btn-primary btn-xs" onClick={() => onGenerateOutfitImage(outfit)} disabled={isGenerating} style={{ flex: 1, gap: 4 }}>
+                    {isGenerating ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <Wand2 style={{ width: 12, height: 12 }} />}
                     {t("character.generateImage")}
                   </button>
                   {!outfit.isDefault && (
-                    <button className="btn btn-outline btn-sm" onClick={() => onSetDefaultOutfit(outfit.id)}>
+                    <button className="btn btn-outline btn-xs" onClick={() => onSetDefaultOutfit(outfit.id)}>
                       {t("character.setDefault")}
                     </button>
                   )}
@@ -406,14 +406,40 @@ export function CharacterEditor({
         referencedBeats={referencedBeats}
       />
 
-      {/* 底部操作栏 */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0" }}>
+      {/* 底部吸底操作栏 */}
+      <div
+        style={{
+          position: "sticky",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          padding: "10px 0",
+          marginTop: 8,
+          background: "var(--bg)",
+          borderTop: "1px solid var(--border)",
+          zIndex: 10,
+        }}
+      >
         <SaveStatusIndicator status={isDirty ? "unsaved" : saveStatus} errorMessage={saveError ?? undefined} />
-        <button className="btn btn-danger btn-sm" onClick={handleDelete} style={{ gap: 4 }}>
-          <Trash2 style={{ width: 14, height: 14 }} />
+        <button
+          className="btn btn-ghost btn-xs"
+          onClick={handleDelete}
+          aria-label={t("character.deleteCharacter")}
+          style={{ gap: 4, color: "var(--destructive)" }}
+        >
+          <Trash2 style={{ width: 12, height: 12 }} />
           {t("character.deleteCharacter")}
         </button>
-        <button className="btn btn-primary" data-testid="character-save-button" onClick={handleSave} disabled={saveStatus === "saving" || !currentCharacter.name.trim()} style={{ flex: 1, gap: 4 }}>
+        <button
+          className="btn btn-primary btn-sm"
+          data-testid="character-save-button"
+          onClick={handleSave}
+          disabled={saveStatus === "saving" || !currentCharacter.name.trim()}
+          style={{ flex: 1, gap: 4, justifyContent: "center" }}
+        >
           <Save style={{ width: 14, height: 14 }} />
           {saveStatus === "saving" ? t("common.saving") : t("character.saveCharacter")}
         </button>
@@ -530,11 +556,11 @@ function AiRequestPreview({
           <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 2 }}>{t("character.requestPreviewHint")}</div>
         </div>
         <button
-          className={`btn ${useDetailedPrompt ? "btn-primary" : "btn-outline"} btn-sm`}
+          className={`btn ${useDetailedPrompt ? "btn-primary" : "btn-outline"} btn-xs`}
           onClick={() => setUseDetailedPrompt(!useDetailedPrompt)}
           style={{ gap: 4 }}
         >
-          <Sparkles style={{ width: 14, height: 14 }} />
+          <Sparkles style={{ width: 12, height: 12 }} />
           {useDetailedPrompt ? t("character.aiOptimized") : t("character.aiOptimize")}
         </button>
       </div>
@@ -631,32 +657,36 @@ function AiRequestPreview({
       )}
 
       {/* 5. 操作按钮区 */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-        <button className="btn btn-primary btn-sm" onClick={generateImage} disabled={isGenerating} style={{ gap: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+        {/* 主操作：生成图片 */}
+        <button className="btn btn-primary btn-sm" onClick={generateImage} disabled={isGenerating} style={{ width: "100%", justifyContent: "center", gap: 4 }}>
           {isGenerating ? <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} /> : <Wand2 style={{ width: 14, height: 14 }} />}
           {isGenerating ? t("common.generating") : t("character.generateImage")}
         </button>
-        <button className="btn btn-outline btn-sm" onClick={saveImageToCharacter} disabled={!currentCharacter.id} style={{ gap: 4 }}>
-          <Save style={{ width: 14, height: 14 }} />
-          {t("character.saveToCharacter")}
-        </button>
-        {generatedImage && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setGeneratedImage(null)}>
-            {t("character.clear")}
+        {/* 次要操作：上传 / 库选 / 识别 / 保存 / 清除 */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <button className="btn btn-outline btn-xs" onClick={saveImageToCharacter} disabled={!currentCharacter.id} style={{ gap: 4 }}>
+            <Save style={{ width: 12, height: 12 }} />
+            {t("character.saveToCharacter")}
           </button>
-        )}
-        <button className="btn btn-outline btn-sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ gap: 4 }}>
-          {isUploading ? <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} /> : <Upload style={{ width: 14, height: 14 }} />}
-          {isUploading ? t("common.uploading") : t("character.uploadImage")}
-        </button>
-        <button className="btn btn-outline btn-sm" onClick={() => setShowAssetSelector(true)} style={{ gap: 4 }}>
-          <Folder style={{ width: 14, height: 14 }} />
-          {t("character.selectFromLibrary")}
-        </button>
-        <button className="btn btn-outline btn-sm" onClick={() => analyzeFileInputRef.current?.click()} disabled={isAnalyzing || isUploading} style={{ gap: 4 }}>
-          {isAnalyzing ? <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} /> : <ScanLine style={{ width: 14, height: 14 }} />}
-          {isAnalyzing ? t("common.analyzing") : t("character.recognizePerson")}
-        </button>
+          <button className="btn btn-outline btn-xs" onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ gap: 4 }}>
+            {isUploading ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <Upload style={{ width: 12, height: 12 }} />}
+            {isUploading ? t("common.uploading") : t("character.uploadImage")}
+          </button>
+          <button className="btn btn-outline btn-xs" onClick={() => setShowAssetSelector(true)} style={{ gap: 4 }}>
+            <Folder style={{ width: 12, height: 12 }} />
+            {t("character.selectFromLibrary")}
+          </button>
+          <button className="btn btn-outline btn-xs" onClick={() => analyzeFileInputRef.current?.click()} disabled={isAnalyzing || isUploading} style={{ gap: 4 }}>
+            {isAnalyzing ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <ScanLine style={{ width: 12, height: 12 }} />}
+            {isAnalyzing ? t("common.analyzing") : t("character.recognizePerson")}
+          </button>
+          {generatedImage && (
+            <button className="btn btn-ghost btn-xs" onClick={() => setGeneratedImage(null)}>
+              {t("character.clear")}
+            </button>
+          )}
+        </div>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
         <input ref={analyzeFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAnalyzeFileUpload} />
       </div>
@@ -664,7 +694,7 @@ function AiRequestPreview({
       {/* 6. 完整请求 JSON（可折叠） */}
       <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8 }}>
         <button
-          className="btn btn-ghost btn-sm"
+          className="btn btn-ghost btn-xs"
           onClick={() => setShowFullRequest(!showFullRequest)}
           style={{ gap: 4, fontSize: 11 }}
         >

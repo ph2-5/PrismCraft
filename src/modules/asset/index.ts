@@ -13,4 +13,4 @@ export {
   useProjectExport,
 } from "./hooks";
 export type { ProjectData, ExportResult } from "./hooks";
-export { BatchOperations, MediaExporter, ProjectExportImport } from "./presentation";
+export { BatchOperations, ProjectExportImport } from "./presentation";

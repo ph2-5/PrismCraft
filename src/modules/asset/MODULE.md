@@ -63,7 +63,6 @@
 | API | 签名 | 说明 |
 |-----|------|------|
 | `BatchOperations` | `React.FC` | 批量操作组件 |
-| `MediaExporter` | `React.FC` | 媒体导出组件 |
 | `ProjectExportImport` | `React.FC` | 项目导入导出组件 |
 
 ---

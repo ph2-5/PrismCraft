@@ -3,7 +3,6 @@ import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { SaveStatusIndicator } from "@/shared/presentation/SaveStatusIndicator";
 import { Wand2, Upload, ScanLine, Save, Loader2, Folder, Sparkles, X, Trash2 } from "lucide-react";
 import { t } from "@/shared/constants/messages";
-import { MediaExporter } from "@/modules/asset";
 import { ModelSelector } from "@/modules/prompt";
 import { SceneList } from "./components/SceneList";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
@@ -167,7 +166,7 @@ function ScenesPageContent() {
               </div>
               <button
                 type="button"
-                className="btn btn-outline btn-sm"
+                className="btn btn-outline btn-xs"
                 onClick={() => setShowAssetSelector(true)}
               >
                 🔄 {t("scene.changeCover")}
@@ -444,15 +443,15 @@ function ScenesPageContent() {
                 </div>
                 <button
                   type="button"
-                  className={`btn ${isOptimizingPrompt ? "btn-primary" : "btn-outline"} btn-sm`}
+                  className={`btn ${isOptimizingPrompt ? "btn-primary" : "btn-outline"} btn-xs`}
                   onClick={optimizePrompt}
                   disabled={isOptimizingPrompt}
                   style={{ gap: 4 }}
                 >
                   {isOptimizingPrompt ? (
-                    <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+                    <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />
                   ) : (
-                    <Sparkles style={{ width: 14, height: 14 }} />
+                    <Sparkles style={{ width: 12, height: 12 }} />
                   )}
                   {isOptimizingPrompt ? t("scene.optimizing") : t("scene.aiOptimize")}
                 </button>
@@ -491,84 +490,90 @@ function ScenesPageContent() {
                   />
                 </div>
               )}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={generateImage}
-                  disabled={isGenerating}
-                  style={{ gap: 4 }}
-                >
-                  {isGenerating ? (
-                    <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
-                  ) : (
-                    <Wand2 style={{ width: 14, height: 14 }} />
-                  )}
-                  {isGenerating ? t("scene.generating") : t("scene.generateImage")}
-                </button>
-                <ModelSelector
-                  capability="image"
-                  value={selectedImageModel}
-                  onChange={setSelectedImageModel}
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={saveImageToScene}
-                  disabled={!currentScene.id}
-                  style={{ gap: 4 }}
-                >
-                  <Save style={{ width: 14, height: 14 }} />
-                  {t("scene.saveToScene")}
-                </button>
-                {generatedImage && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {/* 主操作：生成图片 + 模型选择 */}
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={clearImage}
+                    className="btn btn-primary btn-sm"
+                    onClick={generateImage}
+                    disabled={isGenerating}
+                    style={{ flex: 1, justifyContent: "center", gap: 4 }}
+                  >
+                    {isGenerating ? (
+                      <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+                    ) : (
+                      <Wand2 style={{ width: 14, height: 14 }} />
+                    )}
+                    {isGenerating ? t("scene.generating") : t("scene.generateImage")}
+                  </button>
+                  <ModelSelector
+                    capability="image"
+                    value={selectedImageModel}
+                    onChange={setSelectedImageModel}
+                  />
+                </div>
+                {/* 次要操作：保存 / 清除 / 上传 / 库选 / 识别 */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-xs"
+                    onClick={saveImageToScene}
+                    disabled={!currentScene.id}
                     style={{ gap: 4 }}
                   >
-                    <X style={{ width: 14, height: 14 }} />
-                    {t("scene.clear")}
+                    <Save style={{ width: 12, height: 12 }} />
+                    {t("scene.saveToScene")}
                   </button>
-                )}
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  style={{ gap: 4 }}
-                >
-                  {isUploading ? (
-                    <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
-                  ) : (
-                    <Upload style={{ width: 14, height: 14 }} />
+                  {generatedImage && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={clearImage}
+                      style={{ gap: 4 }}
+                    >
+                      <X style={{ width: 12, height: 12 }} />
+                      {t("scene.clear")}
+                    </button>
                   )}
-                  {isUploading ? t("scene.uploading") : t("scene.uploadImage")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => setShowAssetSelector(true)}
-                  style={{ gap: 4 }}
-                >
-                  <Folder style={{ width: 14, height: 14 }} />
-                  {t("scene.selectFromLibrary")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => analyzeFileInputRef.current?.click()}
-                  disabled={isAnalyzing || isUploading}
-                  style={{ gap: 4 }}
-                >
-                  {isAnalyzing ? (
-                    <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
-                  ) : (
-                    <ScanLine style={{ width: 14, height: 14 }} />
-                  )}
-                  {isAnalyzing ? t("scene.analyzing") : t("scene.analyzeScene")}
-                </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-xs"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    style={{ gap: 4 }}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />
+                    ) : (
+                      <Upload style={{ width: 12, height: 12 }} />
+                    )}
+                    {isUploading ? t("scene.uploading") : t("scene.uploadImage")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-xs"
+                    onClick={() => setShowAssetSelector(true)}
+                    style={{ gap: 4 }}
+                  >
+                    <Folder style={{ width: 12, height: 12 }} />
+                    {t("scene.selectFromLibrary")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-xs"
+                    onClick={() => analyzeFileInputRef.current?.click()}
+                    disabled={isAnalyzing || isUploading}
+                    style={{ gap: 4 }}
+                  >
+                    {isAnalyzing ? (
+                      <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />
+                    ) : (
+                      <ScanLine style={{ width: 12, height: 12 }} />
+                    )}
+                    {isAnalyzing ? t("scene.analyzing") : t("scene.analyzeScene")}
+                  </button>
+                </div>
               </div>
               <input
                 ref={fileInputRef}
@@ -587,12 +592,21 @@ function ScenesPageContent() {
             </div>
 
             {/* Bottom action bar */}
+            {/* 底部吸底操作栏 */}
             <div
               style={{
+                position: "sticky",
+                bottom: 0,
+                left: 0,
+                right: 0,
                 display: "flex",
                 gap: 8,
-                justifyContent: "flex-end",
                 alignItems: "center",
+                padding: "10px 0",
+                marginTop: 8,
+                background: "var(--bg)",
+                borderTop: "1px solid var(--border)",
+                zIndex: 10,
               }}
             >
               <SaveStatusIndicator
@@ -601,13 +615,15 @@ function ScenesPageContent() {
               />
               <button
                 type="button"
-                className="btn btn-danger btn-sm"
+                className="btn btn-ghost btn-xs"
                 onClick={() =>
                   handleDelete(currentScene.id, currentScene.name)
                 }
                 disabled={!currentScene.id}
+                aria-label={t("scene.deleteScene")}
+                style={{ gap: 4, color: "var(--destructive)" }}
               >
-                <Trash2 className="w-4 h-4" /> {t("scene.deleteScene")}
+                <Trash2 style={{ width: 12, height: 12 }} /> {t("scene.deleteScene")}
               </button>
               <button
                 type="button"
@@ -615,11 +631,12 @@ function ScenesPageContent() {
                 className="btn btn-primary btn-sm"
                 onClick={handleSave}
                 disabled={saveStatus === "saving" || !currentScene.name.trim()}
+                style={{ flex: 1, justifyContent: "center", gap: 4 }}
               >
                 {saveStatus === "saving" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
                 ) : (
-                  <Save className="w-4 h-4" />
+                  <Save style={{ width: 14, height: 14 }} />
                 )}
                 {saveStatus === "saving" ? t("scene.saving") : t("common.save")}
               </button>
@@ -627,8 +644,6 @@ function ScenesPageContent() {
           </div>
         </div>
       </div>
-
-      {currentScene.id && <MediaExporter type="scene" item={currentScene} />}
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}

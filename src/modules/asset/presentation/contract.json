@@ -1,11 +1,11 @@
 {
   "name": "asset-presentation",
-  "description": "资产模块 UI 展示：批量操作、媒体导出、项目导入导出 UI 组件",
+  "description": "资产模块 UI 展示：批量操作、项目导入导出 UI 组件",
   "dependencies": ["asset-hooks", "shared-ui", "@tanstack/react-query"],
   "publicAPI": {
     "hooks": [],
     "services": [],
-    "components": ["BatchOperations", "MediaExporter", "ProjectExportImport"]
+    "components": ["BatchOperations", "ProjectExportImport"]
   },
   "invariants": [
     "presentation 子域依赖 hooks 子域获取数据",

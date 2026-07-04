@@ -3,7 +3,6 @@ import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
 import { OutfitDialog } from "@/modules/character";
-import { MediaExporter } from "@/modules/asset";
 import { t } from "@/shared/constants/messages";
 import { CharacterList } from "./CharacterList";
 import { CharacterEditor } from "./CharacterEditor";
@@ -100,10 +99,6 @@ function CharactersPageContent() {
             )}
           </div>
         </div>
-
-        {page.currentCharacter.id && (
-          <MediaExporter type="character" item={page.currentCharacter} />
-        )}
 
         <DeleteConfirmDialog
           open={page.deleteDialogOpen}

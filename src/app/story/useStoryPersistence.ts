@@ -28,6 +28,52 @@ interface UseStoryPersistenceParams {
 // debounce 时长：合并短时间内的多次 completedTaskUrls 变更，避免并发持久化
 const PERSIST_DEBOUNCE_MS = 500;
 
+interface PersistData {
+  id: string;
+  keyframeImageUrl?: string;
+  firstFrameImageUrl?: string;
+  lastFrameImageUrl?: string;
+  videoUrl?: string;
+  localKeyframePath?: string;
+  localFirstFramePath?: string;
+  localLastFramePath?: string;
+  localVideoPath?: string;
+}
+
+interface CacheBeatImageArgs {
+  beatId: string;
+  field: keyof StoryBeat;
+  url: string;
+}
+
+async function cacheSingleBeatImage(
+  args: CacheBeatImageArgs,
+  applyCacheToBeats: (beatId: string, field: keyof StoryBeat, localPath: string) => void,
+): Promise<void> {
+  try {
+    const cacheResult = await getImageUrlWithCache(args.url);
+    if (cacheResult.ok && cacheResult.value.fromCache && cacheResult.value.url.startsWith("file://")) {
+      const localPath = cacheResult.value.url.replace(/^file:\/\//, "");
+      applyCacheToBeats(args.beatId, args.field, localPath);
+    }
+  } catch (e) {
+    errorLogger.debug("[StoryProvider] 图片缓存失败", e);
+  }
+}
+
+async function cacheBeatImages(
+  beats: StoryBeat[],
+  isCancelled: () => boolean,
+  applyCacheToBeats: (beatId: string, field: keyof StoryBeat, localPath: string) => void,
+): Promise<void> {
+  const cacheRequests = filterRemoteCacheRequests(buildCacheRequests(beats));
+  for (const { beatId, field, url } of cacheRequests) {
+    if (isCancelled()) break;
+    await cacheSingleBeatImage({ beatId, field: field as keyof StoryBeat, url }, applyCacheToBeats);
+    if (isCancelled()) break;
+  }
+}
+
 export function useStoryPersistence({
   beatsRef,
   setBeats,
@@ -51,87 +97,68 @@ export function useStoryPersistence({
   useEffect(() => {
     let cancelled = false;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const isCancelled = () => cancelled;
+
+    const applyCacheToBeats = (beatId: string, field: keyof StoryBeat, localPath: string) => {
+      setBeatsRef.current((prev) =>
+        prev.map((b) => (b.id === beatId ? { ...b, [field]: localPath } : b)),
+      );
+    };
+
+    const persistVideoUrls = async () => {
+      const allPersistData: PersistData[] = [];
+      for (const [beatId, videoUrl] of allCompletedTaskUrls.entries()) {
+        allPersistData.push({ id: beatId, videoUrl });
+      }
+      if (allPersistData.length === 0) return;
+
+      setIsVideoUrlPersisting(true);
+      try {
+        await storyService.updateBeatMediaUrls(allPersistData);
+        if (!isCancelled()) {
+          setStoriesRef.current((prev) =>
+            syncStoriesWithVideoUrls(prev, allCompletedTaskUrls),
+          );
+        }
+      } catch (e) {
+        if (!isCancelled()) {
+          errorLogger.warn("自动保存视频URL失败", e);
+          markDirty("story");
+          showErrorRef.current(t("story.autoSaveVideoUrlFailed"), t("story.autoSaveVideoUrlFailedDesc"));
+        }
+      } finally {
+        setIsVideoUrlPersisting(false);
+      }
+    };
+
+    const updateStoryTimestamp = async () => {
+      const currentStory = currentStoryRef.current;
+      if (!currentStory?.id) return;
+      const result = await storyService.update(currentStory.id, {
+        id: currentStory.id,
+        updatedAt: Math.floor(Date.now() / 1000),
+      });
+      if (!result.ok) throw result.error;
+    };
 
     const updateVideoUrls = async () => {
       const currentBeats = beatsRef.current;
       const updates = buildVideoUrlUpdates(currentBeats, completedTaskUrls);
       if (updates.length === 0) return;
 
-      if (!cancelled) {
+      if (!isCancelled()) {
         setBeatsRef.current((prev) => applyVideoUrlUpdates(prev, updates));
       }
 
-      if (!cancelled) {
-        try {
-          const allPersistData: Array<{
-            id: string;
-            keyframeImageUrl?: string;
-            firstFrameImageUrl?: string;
-            lastFrameImageUrl?: string;
-            videoUrl?: string;
-            localKeyframePath?: string;
-            localFirstFramePath?: string;
-            localLastFramePath?: string;
-            localVideoPath?: string;
-          }> = [];
-
-          for (const [beatId, videoUrl] of allCompletedTaskUrls.entries()) {
-            allPersistData.push({ id: beatId, videoUrl });
-          }
-
-          if (allPersistData.length > 0) {
-            setIsVideoUrlPersisting(true);
-            try {
-              await storyService.updateBeatMediaUrls(allPersistData);
-              if (!cancelled) {
-                setStoriesRef.current((prev) =>
-                  syncStoriesWithVideoUrls(prev, allCompletedTaskUrls),
-                );
-              }
-            } catch (e) {
-              if (!cancelled) {
-                errorLogger.warn("自动保存视频URL失败", e);
-                markDirty("story");
-                showErrorRef.current(t("story.autoSaveVideoUrlFailed"), t("story.autoSaveVideoUrlFailedDesc"));
-              }
-            } finally {
-              setIsVideoUrlPersisting(false);
-            }
-          }
-
-          const currentStory = currentStoryRef.current;
-          if (currentStory?.id) {
-            const result = await storyService.update(currentStory.id, {
-              id: currentStory.id,
-              updatedAt: Math.floor(Date.now() / 1000),
-            });
-            if (!result.ok) throw result.error;
-          }
-
-          if (!cancelled) {
-            const latestBeats = beatsRef.current;
-            const cacheRequests = filterRemoteCacheRequests(buildCacheRequests(latestBeats));
-            // 串行处理缓存请求，避免并发 IIFE 导致状态覆盖
-            for (const { beatId, field, url } of cacheRequests) {
-              if (cancelled) break;
-              try {
-                const cacheResult = await getImageUrlWithCache(url);
-                if (cancelled) break;
-                if (cacheResult.ok && cacheResult.value.fromCache && cacheResult.value.url.startsWith("file://")) {
-                  const localPath = cacheResult.value.url.replace(/^file:\/\//, "");
-                  setBeatsRef.current((prev) =>
-                    prev.map((b) => b.id === beatId ? { ...b, [field]: localPath } : b),
-                  );
-                }
-              } catch (e) {
-                errorLogger.debug("[StoryProvider] 图片缓存失败", e);
-              }
-            }
-          }
-        } catch (e) {
-          errorLogger.warn("自动保存视频URL失败", e);
-          showErrorRef.current(t("story.autoSaveVideoUrlFailed"), t("story.autoSaveVideoUrlFailedDesc"));
+      try {
+        await persistVideoUrls();
+        await updateStoryTimestamp();
+        if (!isCancelled()) {
+          await cacheBeatImages(beatsRef.current, isCancelled, applyCacheToBeats);
         }
+      } catch (e) {
+        errorLogger.warn("自动保存视频URL失败", e);
+        showErrorRef.current(t("story.autoSaveVideoUrlFailed"), t("story.autoSaveVideoUrlFailedDesc"));
       }
     };
 

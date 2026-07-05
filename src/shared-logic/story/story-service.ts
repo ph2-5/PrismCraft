@@ -472,87 +472,121 @@ function validateRawStoryBeats(parsed: unknown): RawStoryBeat[] {
   return parsed as RawStoryBeat[];
 }
 
+function parseElementBindings(raw: RawStoryBeat): {
+  ids: string[];
+  bindings: Record<string, unknown>;
+} {
+  const rawElementIds = raw.ei || raw.elementIds;
+  const ids = Array.isArray(rawElementIds) ? rawElementIds.map(String) : [];
+  const rawBindings = raw.eb || raw.elementBindings;
+  const bindings: Record<string, unknown> = {};
+
+  if (rawBindings && typeof rawBindings === "object") {
+    for (const [elId, binding] of Object.entries(rawBindings)) {
+      if (isRecordLike(binding)) {
+        bindings[elId] = {
+          role: binding.role || (elId.startsWith("CHAR") ? "main_character" : "prop"),
+          action: binding.action ? String(binding.action) : undefined,
+          position: binding.position ? String(binding.position) : undefined,
+          emotion: binding.emotion ? String(binding.emotion) : undefined,
+        };
+      }
+    }
+  }
+
+  return { ids, bindings };
+}
+
+function extractFallbackElements(content: string): {
+  ids: string[];
+  bindings: Record<string, unknown>;
+} {
+  const elementIdRegex = /\b(CHAR|PROP|EFFECT)_\d{3}\b/g;
+  const extracted = content.match(elementIdRegex) || [];
+  const ids = [...new Set(extracted)];
+  const bindings: Record<string, unknown> = {};
+  for (const elId of ids) {
+    bindings[elId] = { role: elId.startsWith("CHAR") ? "main_character" : "prop" };
+  }
+  return { ids, bindings };
+}
+
+function resolveElements(
+  content: string,
+  raw: RawStoryBeat,
+): { ids: string[] | undefined; bindings: Record<string, unknown> | undefined } {
+  const structured = parseElementBindings(raw);
+  if (structured.ids.length > 0 || Object.keys(structured.bindings).length > 0) {
+    return {
+      ids: structured.ids.length > 0 ? structured.ids : undefined,
+      bindings: Object.keys(structured.bindings).length > 0 ? structured.bindings : undefined,
+    };
+  }
+
+  const fallback = extractFallbackElements(content);
+  return {
+    ids: fallback.ids.length > 0 ? fallback.ids : undefined,
+    bindings: fallback.ids.length > 0 ? fallback.bindings : undefined,
+  };
+}
+
+function buildBeatFromRaw(
+  raw: RawStoryBeat,
+  index: number,
+  enhancedGeneration: boolean,
+  idGenerator?: (index: number) => string,
+): StoryBeat {
+  const title = String(raw.t || raw.title || "");
+  const content = String(raw.c || raw.content || "");
+  const description = String(raw.desc || raw.description || content || "");
+  const shotType = String(raw.st || raw.shotType || "");
+  const cameraAngle = String(raw.ca || raw.cameraAngle || "");
+  const cameraMovement = String(raw.cm || raw.cameraMovement || "");
+  const rawDuration = raw.d ?? raw.duration;
+  const duration = typeof rawDuration === "number" && !isNaN(rawDuration) ? rawDuration : 5;
+  const type = String(raw.tp || raw.type || "");
+  const rawCharacterIds = raw.ci || raw.characterIds;
+  const characterIds = Array.isArray(rawCharacterIds) ? rawCharacterIds.map(String) : [];
+  const sceneId = raw.si || raw.sceneId ? String(raw.si || raw.sceneId) : undefined;
+  const keyframePrompt = String(raw.kp || raw.keyframePrompt || "");
+  const firstFramePrompt = String(raw.fp || raw.firstFramePrompt || "");
+  const lastFramePrompt = String(raw.lp || raw.lastFramePrompt || "");
+
+  const { ids: elementIds, bindings: elementBindings } = resolveElements(content, raw);
+
+  const beat: StoryBeat = {
+    // ID 生成需要唯一性；默认使用 Date.now()+Math.random()（非纯），可通过 idGenerator 注入纯函数
+    id: idGenerator ? idGenerator(index) : `beat-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
+    sequence: index + 1,
+    title: title || `分镜${index + 1}`,
+    content: content || "",
+    description: description || content || "",
+    duration,
+    type: type || "action",
+    shotType: shotType || "medium",
+    characterIds,
+    sceneId,
+    camera: { angle: cameraAngle || undefined, movement: cameraMovement || undefined },
+    imageGenerationPrompt: keyframePrompt || undefined,
+    firstFramePrompt: firstFramePrompt || undefined,
+    lastFramePrompt: lastFramePrompt || undefined,
+    enhancedGeneration,
+    elementIds,
+    elementBindings,
+  };
+
+  if (raw.dialogue) beat.content = `${beat.content}\n对话：${raw.dialogue}`;
+  if (raw.emotion) beat.content = `${beat.content}\n情绪：${raw.emotion}`;
+
+  return beat;
+}
+
 export function convertToStoryBeats(
   rawBeats: RawStoryBeat[],
   enhancedGeneration = true,
   idGenerator?: (index: number) => string,
 ): StoryBeat[] {
-  return rawBeats.map((raw, index) => {
-    const title = String(raw.t || raw.title || "");
-    const content = String(raw.c || raw.content || "");
-    const description = String(raw.desc || raw.description || content || "");
-    const shotType = String(raw.st || raw.shotType || "");
-    const cameraAngle = String(raw.ca || raw.cameraAngle || "");
-    const cameraMovement = String(raw.cm || raw.cameraMovement || "");
-    const rawDuration = raw.d ?? raw.duration;
-    const duration = typeof rawDuration === "number" && !isNaN(rawDuration) ? rawDuration : 5;
-    const type = String(raw.tp || raw.type || "");
-    const rawCharacterIds = raw.ci || raw.characterIds;
-    const characterIds = Array.isArray(rawCharacterIds) ? rawCharacterIds.map(String) : [];
-    const sceneId = raw.si || raw.sceneId ? String(raw.si || raw.sceneId) : undefined;
-    const keyframePrompt = String(raw.kp || raw.keyframePrompt || "");
-    const firstFramePrompt = String(raw.fp || raw.firstFramePrompt || "");
-    const lastFramePrompt = String(raw.lp || raw.lastFramePrompt || "");
-
-    const rawElementIds = raw.ei || raw.elementIds;
-    const structuredElementIds = Array.isArray(rawElementIds) ? rawElementIds.map(String) : [];
-    const rawElementBindings = raw.eb || raw.elementBindings;
-    const structuredElementBindings: Record<string, unknown> = {};
-    if (rawElementBindings && typeof rawElementBindings === "object") {
-      for (const [elId, binding] of Object.entries(rawElementBindings)) {
-        if (isRecordLike(binding)) {
-          structuredElementBindings[elId] = {
-            role: binding.role || (elId.startsWith("CHAR") ? "main_character" : "prop"),
-            action: binding.action ? String(binding.action) : undefined,
-            position: binding.position ? String(binding.position) : undefined,
-            emotion: binding.emotion ? String(binding.emotion) : undefined,
-          };
-        }
-      }
-    }
-
-    let fallbackElementIds: string[] = [];
-    const fallbackElementBindings: Record<string, unknown> = {};
-    if (structuredElementIds.length === 0) {
-      const elementIdRegex = /\b(CHAR|PROP|EFFECT)_\d{3}\b/g;
-      const extracted = content.match(elementIdRegex) || [];
-      fallbackElementIds = [...new Set(extracted)];
-      for (const elId of fallbackElementIds) {
-        fallbackElementBindings[elId] = { role: elId.startsWith("CHAR") ? "main_character" : "prop" };
-      }
-    }
-
-    const finalElementIds = structuredElementIds.length > 0 ? structuredElementIds : fallbackElementIds;
-    const finalElementBindings =
-      Object.keys(structuredElementBindings).length > 0 ? structuredElementBindings :
-      Object.keys(fallbackElementBindings).length > 0 ? fallbackElementBindings : undefined;
-
-    const beat: StoryBeat = {
-      // ID 生成需要唯一性；默认使用 Date.now()+Math.random()（非纯），可通过 idGenerator 注入纯函数
-      id: idGenerator ? idGenerator(index) : `beat-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
-      sequence: index + 1,
-      title: title || `分镜${index + 1}`,
-      content: content || "",
-      description: description || content || "",
-      duration,
-      type: type || "action",
-      shotType: shotType || "medium",
-      characterIds,
-      sceneId,
-      camera: { angle: cameraAngle || undefined, movement: cameraMovement || undefined },
-      imageGenerationPrompt: keyframePrompt || undefined,
-      firstFramePrompt: firstFramePrompt || undefined,
-      lastFramePrompt: lastFramePrompt || undefined,
-      enhancedGeneration,
-      elementIds: finalElementIds.length > 0 ? finalElementIds : undefined,
-      elementBindings: finalElementBindings,
-    };
-
-    if (raw.dialogue) beat.content = `${beat.content}\n对话：${raw.dialogue}`;
-    if (raw.emotion) beat.content = `${beat.content}\n情绪：${raw.emotion}`;
-
-    return beat;
-  });
+  return rawBeats.map((raw, index) => buildBeatFromRaw(raw, index, enhancedGeneration, idGenerator));
 }
 
 interface StoryInput {

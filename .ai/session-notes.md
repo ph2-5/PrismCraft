@@ -75,7 +75,7 @@
 - imageGenerationPrompt 语义决策
 - 9 个 ComingSoon 占位页面（产品功能未实现）
 
-## 批次 10：Phase 0.5 v1.0 发布前全面打磨（Task 0.5.1-0.5.6）
+## 批次 10：Phase 0.5 v1.0.0 发布前全面打磨（Task 0.5.1-0.5.6）
 
 ### Task 0.5.1：分镜页面布局修复
 - 删除 ProfessionalModeEditor 底部面板（ShotReferenceConfig + ReferenceVideoUploader 容器）
@@ -110,8 +110,8 @@
 - 删除 src/modules/novel/ 目录（domain/contract.json, domain/types.ts, MODULE.md, index.ts）
 - 无外部依赖、无测试依赖、无 vite 配置引用
 
-### Task 0.5.6：版本号统一到 v1.0
-- src/shared/constants/app-version.ts: v0.12.2 → v1.0
+### Task 0.5.6：版本号统一到 v1.0.0
+- src/shared/constants/app-version.ts: v0.12.2 → v1.0.0（3 段语义化版本，符合测试约束）
 - package.json: 0.12.2 → 1.0.0
 - package-lock.json: 0.12.2 → 1.0.0
 - 7 个文档文件同步：README.md, API_REFERENCE.md, TECHNICAL_REFERENCE.md, PROJECT-GUIDE.md, DEPLOYMENT.md, CODE_CATALOG.md

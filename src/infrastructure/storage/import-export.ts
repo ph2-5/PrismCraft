@@ -105,12 +105,37 @@ export const importExportStorage = {
     strategy: "replace" | "merge" | "skip" = "skip",
   ): Promise<Record<string, number>> {
     const result: Record<string, number> = {};
+    const tables = buildImportTables();
 
-    const tables: {
-      key: string;
-      tableName: string;
-      createFn: (item: Record<string, unknown>) => Promise<void | string | DbRunResult>;
-    }[] = [
+    if (strategy === "replace") {
+      Object.assign(result, await importWithReplace(data, tables));
+    } else {
+      for (const table of tables) {
+        const items = data[table.key];
+        if (!Array.isArray(items)) continue;
+
+        if (strategy === "merge") {
+          result[table.key] = await importWithMerge(table, items);
+        } else {
+          result[table.key] = await importWithSkip(table, items);
+        }
+      }
+    }
+
+    await importCollectionAssets(data, strategy, result);
+
+    return result;
+  },
+};
+
+type ImportTable = {
+  key: string;
+  tableName: string;
+  createFn: (item: Record<string, unknown>) => Promise<void | string | DbRunResult>;
+};
+
+function buildImportTables(): ImportTable[] {
+  return [
       {
         key: "characters",
         tableName: "characters",
@@ -262,193 +287,250 @@ export const importExportStorage = {
           ),
       },
     ];
+}
 
-    for (const table of tables) {
-      const items = data[table.key];
-      if (!Array.isArray(items)) continue;
+async function importWithReplace(
+  data: Record<string, unknown[]>,
+  tables: ImportTable[],
+): Promise<Record<string, number>> {
+  const result: Record<string, number> = {};
+  const VALID_TABLE_NAMES = new Set(tables.map((t) => t.tableName));
 
-      if (strategy === "replace") {
-        const VALID_TABLE_NAMES = new Set(tables.map((t) => t.tableName));
+  for (const insTable of tables) {
+    const insItems = data[insTable.key];
+    if (!Array.isArray(insItems) || insItems.length === 0) continue;
+    if (!VALID_TABLE_NAMES.has(insTable.tableName)) continue;
 
-        for (const insTable of tables) {
-          const insItems = data[insTable.key];
-          if (!Array.isArray(insItems) || insItems.length === 0) continue;
-          if (!VALID_TABLE_NAMES.has(insTable.tableName)) continue;
-          let tableImported = 0;
-          const importedIds: string[] = [];
-          const pk = TABLE_PRIMARY_KEYS[insTable.tableName] || "id";
-          for (const item of insItems) {
-            try {
-              await insTable.createFn(item as Record<string, unknown>);
-              tableImported++;
-              const record = item as Record<string, unknown>;
-              const idValue = record[pk] || record.id;
-              if (idValue) importedIds.push(String(idValue));
-            } catch (e) {
-              errorLogger.warn(
-              `[Import] replace导入 ${insTable.tableName} 记录失败`,
-              e,
-            );
-            }
-          }
-          if (importedIds.length > 0) {
-            const safeTable = sanitizeTable(insTable.tableName);
-            const safePk = sanitizeIdentifier(pk);
-            const placeholders = importedIds.map(() => "?").join(",");
-            await safeRun(
-              `DELETE FROM ${safeTable} WHERE ${safePk} NOT IN (${placeholders})`,
-              importedIds,
-            );
-          }
-          result[insTable.key] = tableImported;
-        }
+    const importedIds = await importReplaceTable(insTable, insItems);
+    await deleteNonImportedRecords(insTable, importedIds.ids);
+    result[insTable.key] = importedIds.count;
+  }
 
-        if (Array.isArray(data.stories) && data.stories.length > 0) {
-          const importedStoryIds = (data.stories as Record<string, unknown>[])
-            .map((s) => String(s.id || ""))
-            .filter(Boolean);
-          if (importedStoryIds.length > 0) {
-            const placeholders = importedStoryIds.map(() => "?").join(",");
-            await safeTransaction([
-              { sql: `DELETE FROM story_characters WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
-              { sql: `DELETE FROM story_scenes WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
-              { sql: `DELETE FROM story_beats WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
-              { sql: `DELETE FROM story_elements WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
-            ]);
-          }
-        }
-      } else if (strategy === "merge") {
-        let imported = 0;
-        let updated = 0;
-        for (const item of items) {
-          const record = item as Record<string, unknown>;
-          const pk = TABLE_PRIMARY_KEYS[table.tableName] || "id";
-          const pkValue = record[pk] || record.id;
-          if (!pkValue) continue;
-          const existing = await safeQuery(
-            `SELECT ${sanitizeIdentifier(pk)} FROM ${sanitizeTable(table.tableName)} WHERE ${sanitizeIdentifier(pk)} = ?`,
-            [pkValue],
-          );
-          try {
-            if (existing.length > 0) {
-              const camelRecord = convertRecordToCamel(record);
-              const hasUpdateFn =
-                (table.tableName === "characters" &&
-                  characterStorage.updateCharacter) ||
-                (table.tableName === "scenes" && sceneStorage.updateScene) ||
-                (table.tableName === "stories" && storyStorage.updateStory) ||
-                (table.tableName === "video_tasks" &&
-                  videoTaskStorage.updateVideoTask);
-              if (hasUpdateFn) {
-                if (table.tableName === "characters") {
-                  await characterStorage.updateCharacter(
-                    pkValue as string,
-                    camelRecord,
-                  );
-                } else if (table.tableName === "scenes") {
-                  await sceneStorage.updateScene(pkValue as string, camelRecord);
-                } else if (table.tableName === "stories") {
-                  await storyStorage.updateStory(pkValue as string, camelRecord);
-                } else if (table.tableName === "video_tasks") {
-                  await videoTaskStorage.updateVideoTask(
-                    pkValue as string,
-                    camelRecord,
-                  );
-                }
-                updated++;
-              } else {
-                const columns = Object.keys(record).filter(
-                  (k) =>
-                    k !== pk &&
-                    !k.startsWith("_") &&
-                    /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k),
-                );
-                if (columns.length > 0) {
-                  const safeColumns = columns.map((c) => sanitizeIdentifier(camelToSnakeCase(c)));
-                  const safePk = sanitizeIdentifier(pk);
-                  const sets = safeColumns
-                    .map((c) => `${c} = ?`)
-                    .join(", ");
-                  const values = columns.map((c) => toSqlValue(record[c]));
-                  await safeRun(
-                    `UPDATE ${sanitizeIdentifier(table.tableName)} SET ${sets} WHERE ${safePk} = ?`,
-                    [...values, pkValue],
-                  );
-                  updated++;
-                }
-              }
-            } else {
-              await table.createFn(record);
-              imported++;
-            }
-          } catch (e) {
-            errorLogger.warn(
-              `[Import] merge导入 ${table.tableName} 记录失败`,
-              { pkValue, error: e },
-            );
-          }
-        }
-        result[table.key] = imported + updated;
+  await cleanupOrphanedStoryRelations(data);
+
+  return result;
+}
+
+async function importReplaceTable(
+  table: ImportTable,
+  items: unknown[],
+): Promise<{ count: number; ids: string[] }> {
+  let tableImported = 0;
+  const importedIds: string[] = [];
+  const pk = TABLE_PRIMARY_KEYS[table.tableName] || "id";
+
+  for (const item of items) {
+    try {
+      await table.createFn(item as Record<string, unknown>);
+      tableImported++;
+      const record = item as Record<string, unknown>;
+      const idValue = record[pk] || record.id;
+      if (idValue) importedIds.push(String(idValue));
+    } catch (e) {
+      errorLogger.warn(
+        `[Import] replace导入 ${table.tableName} 记录失败`,
+        e,
+      );
+    }
+  }
+  return { count: tableImported, ids: importedIds };
+}
+
+async function deleteNonImportedRecords(
+  table: ImportTable,
+  importedIds: string[],
+): Promise<void> {
+  if (importedIds.length === 0) return;
+  const pk = TABLE_PRIMARY_KEYS[table.tableName] || "id";
+  const safeTable = sanitizeTable(table.tableName);
+  const safePk = sanitizeIdentifier(pk);
+  const placeholders = importedIds.map(() => "?").join(",");
+  await safeRun(
+    `DELETE FROM ${safeTable} WHERE ${safePk} NOT IN (${placeholders})`,
+    importedIds,
+  );
+}
+
+async function cleanupOrphanedStoryRelations(
+  data: Record<string, unknown[]>,
+): Promise<void> {
+  if (!Array.isArray(data.stories) || data.stories.length === 0) return;
+  const importedStoryIds = (data.stories as Record<string, unknown>[])
+    .map((s) => String(s.id || ""))
+    .filter(Boolean);
+  if (importedStoryIds.length === 0) return;
+
+  const placeholders = importedStoryIds.map(() => "?").join(",");
+  await safeTransaction([
+    { sql: `DELETE FROM story_characters WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
+    { sql: `DELETE FROM story_scenes WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
+    { sql: `DELETE FROM story_beats WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
+    { sql: `DELETE FROM story_elements WHERE story_id NOT IN (${placeholders})`, params: importedStoryIds },
+  ]);
+}
+
+async function importWithMerge(
+  table: ImportTable,
+  items: unknown[],
+): Promise<number> {
+  let imported = 0;
+  let updated = 0;
+
+  for (const item of items) {
+    const record = item as Record<string, unknown>;
+    const pk = TABLE_PRIMARY_KEYS[table.tableName] || "id";
+    const pkValue = record[pk] || record.id;
+    if (!pkValue) continue;
+
+    const existing = await safeQuery(
+      `SELECT ${sanitizeIdentifier(pk)} FROM ${sanitizeTable(table.tableName)} WHERE ${sanitizeIdentifier(pk)} = ?`,
+      [pkValue],
+    );
+
+    try {
+      if (existing.length > 0) {
+        const didUpdate = await mergeUpdateItem(table, record, pkValue, pk);
+        if (didUpdate) updated++;
       } else {
-        const VALID_TABLE_NAMES = new Set(tables.map((t) => t.tableName));
-        if (!VALID_TABLE_NAMES.has(table.tableName)) {
-          result[table.key] = 0;
-          continue;
-        }
-        let imported = 0;
-        for (const item of items) {
-          const record = item as Record<string, unknown>;
-          const pk = TABLE_PRIMARY_KEYS[table.tableName] || "id";
-          const pkValue = record[pk] || record.id;
-          if (!pkValue) {
-            continue;
-          }
-          const existing = await safeQuery(
-            `SELECT ${sanitizeIdentifier(pk)} FROM ${sanitizeTable(table.tableName)} WHERE ${sanitizeIdentifier(pk)} = ?`,
-            [pkValue],
-          );
-          if (existing.length > 0) continue;
-          try {
-            await table.createFn(item as Record<string, unknown>);
-            imported++;
-          } catch (e) {
-            errorLogger.warn(
-              `[Import] 导入 ${table.tableName} 记录失败`,
-              { recordId: record.id, error: e },
-            );
-          }
-        }
-        result[table.key] = imported;
+        await table.createFn(record);
+        imported++;
       }
+    } catch (e) {
+      errorLogger.warn(
+        `[Import] merge导入 ${table.tableName} 记录失败`,
+        { pkValue, error: e },
+      );
     }
+  }
 
-    if (Array.isArray(data.collectionAssets)) {
-      let imported = 0;
-      const importedKeys: string[] = [];
-      for (const ca of data.collectionAssets) {
-        const item = ca as Record<string, unknown>;
-        try {
-          await collectionStorage.addAssetToCollection(
-            String(item.collectionId || item.collection_id),
-            String(item.assetType || item.asset_type),
-            String(item.assetId || item.asset_id),
-          );
-          imported++;
-          importedKeys.push(`${String(item.collectionId || item.collection_id)}:${String(item.assetType || item.asset_type)}:${String(item.assetId || item.asset_id)}`);
-        } catch (e) {
-          errorLogger.warn("[Import] collectionAssets 导入失败", e);
-        }
-      }
-      if (strategy === "replace" && importedKeys.length > 0) {
-        const placeholders = importedKeys.map(() => "?").join(",");
-        await safeRun(
-          `DELETE FROM collection_assets WHERE concat(collection_id, ':', asset_type, ':', asset_id) NOT IN (${placeholders})`,
-          importedKeys,
-        );
-      }
-      result.collectionAssets = imported;
+  return imported + updated;
+}
+
+async function mergeUpdateItem(
+  table: ImportTable,
+  record: Record<string, unknown>,
+  pkValue: unknown,
+  pk: string,
+): Promise<boolean> {
+  const camelRecord = convertRecordToCamel(record);
+  const hasUpdateFn =
+    (table.tableName === "characters" && characterStorage.updateCharacter) ||
+    (table.tableName === "scenes" && sceneStorage.updateScene) ||
+    (table.tableName === "stories" && storyStorage.updateStory) ||
+    (table.tableName === "video_tasks" && videoTaskStorage.updateVideoTask);
+
+  if (hasUpdateFn) {
+    return await updateWithStorage(table.tableName, pkValue as string, camelRecord);
+  }
+
+  return await updateWithRawColumns(table.tableName, record, pkValue, pk);
+}
+
+async function updateWithStorage(
+  tableName: string,
+  pkValue: string,
+  camelRecord: Record<string, unknown>,
+): Promise<boolean> {
+  if (tableName === "characters") {
+    await characterStorage.updateCharacter(pkValue, camelRecord);
+  } else if (tableName === "scenes") {
+    await sceneStorage.updateScene(pkValue, camelRecord);
+  } else if (tableName === "stories") {
+    await storyStorage.updateStory(pkValue, camelRecord);
+  } else if (tableName === "video_tasks") {
+    await videoTaskStorage.updateVideoTask(pkValue, camelRecord);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+async function updateWithRawColumns(
+  tableName: string,
+  record: Record<string, unknown>,
+  pkValue: unknown,
+  pk: string,
+): Promise<boolean> {
+  const columns = Object.keys(record).filter(
+    (k) =>
+      k !== pk &&
+      !k.startsWith("_") &&
+      /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k),
+  );
+  if (columns.length === 0) return false;
+
+  const safeColumns = columns.map((c) => sanitizeIdentifier(camelToSnakeCase(c)));
+  const safePk = sanitizeIdentifier(pk);
+  const sets = safeColumns.map((c) => `${c} = ?`).join(", ");
+  const values = columns.map((c) => toSqlValue(record[c]));
+  await safeRun(
+    `UPDATE ${sanitizeIdentifier(tableName)} SET ${sets} WHERE ${safePk} = ?`,
+    [...values, pkValue],
+  );
+  return true;
+}
+
+async function importWithSkip(
+  table: ImportTable,
+  items: unknown[],
+): Promise<number> {
+  const pk = TABLE_PRIMARY_KEYS[table.tableName] || "id";
+  let imported = 0;
+
+  for (const item of items) {
+    const record = item as Record<string, unknown>;
+    const pkValue = record[pk] || record.id;
+    if (!pkValue) continue;
+
+    const existing = await safeQuery(
+      `SELECT ${sanitizeIdentifier(pk)} FROM ${sanitizeTable(table.tableName)} WHERE ${sanitizeIdentifier(pk)} = ?`,
+      [pkValue],
+    );
+    if (existing.length > 0) continue;
+
+    try {
+      await table.createFn(item as Record<string, unknown>);
+      imported++;
+    } catch (e) {
+      errorLogger.warn(
+        `[Import] 导入 ${table.tableName} 记录失败`,
+        { recordId: record.id, error: e },
+      );
     }
+  }
 
-    return result;
-  },
-};
+  return imported;
+}
+
+async function importCollectionAssets(
+  data: Record<string, unknown[]>,
+  strategy: "replace" | "merge" | "skip",
+  result: Record<string, number>,
+): Promise<void> {
+  if (!Array.isArray(data.collectionAssets)) return;
+
+  let imported = 0;
+  const importedKeys: string[] = [];
+  for (const ca of data.collectionAssets) {
+    const item = ca as Record<string, unknown>;
+    try {
+      await collectionStorage.addAssetToCollection(
+        String(item.collectionId || item.collection_id),
+        String(item.assetType || item.asset_type),
+        String(item.assetId || item.asset_id),
+      );
+      imported++;
+      importedKeys.push(`${String(item.collectionId || item.collection_id)}:${String(item.assetType || item.asset_type)}:${String(item.assetId || item.asset_id)}`);
+    } catch (e) {
+      errorLogger.warn("[Import] collectionAssets 导入失败", e);
+    }
+  }
+  if (strategy === "replace" && importedKeys.length > 0) {
+    const placeholders = importedKeys.map(() => "?").join(",");
+    await safeRun(
+      `DELETE FROM collection_assets WHERE concat(collection_id, ':', asset_type, ':', asset_id) NOT IN (${placeholders})`,
+      importedKeys,
+    );
+  }
+  result.collectionAssets = imported;
+}

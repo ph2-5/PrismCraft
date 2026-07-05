@@ -45,11 +45,19 @@ interface PluginListItem {
   apiKeyDetection?: { baseUrl?: string };
 }
 
+interface PluginModelProfile {
+  modelId: string;
+  displayName?: string;
+  capabilities?: Record<string, unknown>;
+  parameters?: Record<string, unknown>;
+  providerId?: string;
+}
+
 interface PluginsListResponse {
   success: boolean;
   data?: {
     plugins: PluginListItem[];
-    modelProfiles?: Record<string, { modelId: string; displayName?: string; capabilities?: Record<string, unknown>; parameters?: Record<string, unknown>; providerId?: string }>;
+    modelProfiles?: Record<string, PluginModelProfile>;
   };
 }
 
@@ -92,102 +100,14 @@ export async function loadPluginTemplates(): Promise<void> {
 
   const loadPromise = (async () => {
     try {
-      const baseUrl = `http://localhost:${API_SERVER_PORT}`;
-      const response = await fetch(`${baseUrl}/api/plugins/list`, {
-        headers: { ...ELECTRON_APP_HEADERS, "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
+      const result = await fetchPluginsListResponse();
+      if (!result) {
         pluginTemplatesLoaded = false;
         pluginTemplatesLoading = null;
         return;
       }
 
-      const result: PluginsListResponse = await response.json();
-      if (!result.success || !result.data?.plugins) {
-        pluginTemplatesLoaded = false;
-        pluginTemplatesLoading = null;
-        return;
-      }
-
-      const newTemplates: Record<string, PluginProviderTemplate> = {};
-
-      for (const plugin of result.data.plugins) {
-        const templateId = plugin.id;
-        const baseUrlFromDetection = plugin.apiKeyDetection?.baseUrl ?? "";
-        const format = resolveFormat(plugin.id);
-
-        const builtinTemplate = PROVIDER_TEMPLATES[templateId];
-        const models: ModelConfig[] = [];
-
-        if (builtinTemplate) {
-          for (const m of builtinTemplate.models) {
-            models.push({ ...m });
-          }
-        }
-
-        if (plugin.videoCapabilities?.defaultModel) {
-          const defaultModel = plugin.videoCapabilities.defaultModel;
-          if (!models.some((m) => m.id === defaultModel)) {
-            const defaultProfile = result.data.modelProfiles?.[defaultModel];
-            models.push({
-              id: defaultModel,
-              name: defaultProfile?.displayName ?? defaultModel,
-              capabilities: ["video"],
-              defaultParams: { duration: plugin.videoCapabilities.maxDuration ?? 5 },
-            });
-          }
-        }
-
-        if (plugin.imageCapabilities?.defaultModel) {
-          const defaultModel = plugin.imageCapabilities.defaultModel;
-          if (!models.some((m) => m.id === defaultModel)) {
-            const defaultProfile = result.data.modelProfiles?.[defaultModel];
-            models.push({
-              id: defaultModel,
-              name: defaultProfile?.displayName ?? defaultModel,
-              capabilities: ["image"],
-              defaultParams: {},
-            });
-          }
-        }
-
-        if (result.data.modelProfiles) {
-          const pluginProfiles = Object.values(result.data.modelProfiles).filter(
-            (p) => p.providerId === plugin.id,
-          );
-          for (const profile of pluginProfiles) {
-            if (models.some((m) => m.id === profile.modelId)) continue;
-            const caps: string[] = [];
-            if (profile.parameters) {
-              if ("durations" in profile.parameters) caps.push("video");
-              if ("resolutions" in profile.parameters && !caps.includes("video")) caps.push("image");
-            }
-            if (caps.length === 0) caps.push("video");
-            models.push({
-              id: profile.modelId,
-              name: profile.displayName ?? profile.modelId,
-              capabilities: caps as ModelConfig["capabilities"],
-              defaultParams: {},
-            });
-          }
-        }
-
-        const isDeprecated = plugin.id === "openai-sora";
-        newTemplates[templateId] = {
-          name: plugin.displayName,
-          format,
-          baseUrl: baseUrlFromDetection,
-          models,
-          pluginId: plugin.id,
-          isUserPlugin: plugin.isUserPlugin,
-          isCodePlugin: false,
-          deprecated: isDeprecated,
-          deprecatedReason: isDeprecated ? "Sora API 已于 2026年3月24日关停" : undefined,
-        };
-      }
-
-      pluginTemplates = newTemplates;
+      pluginTemplates = buildPluginTemplates(result);
       pluginTemplatesLoaded = true;
     } catch (e) {
       errorLogger.warn("[Templates] 加载插件模板失败", e);
@@ -205,6 +125,134 @@ export async function loadPluginTemplates(): Promise<void> {
       pluginTemplatesLoading = null;
     }
   }
+}
+
+async function fetchPluginsListResponse(): Promise<PluginsListResponse | null> {
+  const baseUrl = `http://localhost:${API_SERVER_PORT}`;
+  const response = await fetch(`${baseUrl}/api/plugins/list`, {
+    headers: { ...ELECTRON_APP_HEADERS, "Content-Type": "application/json" },
+  });
+
+  if (!response.ok) return null;
+
+  const result: PluginsListResponse = await response.json();
+  if (!result.success || !result.data?.plugins) return null;
+
+  return result;
+}
+
+function collectBuiltinModels(builtinTemplate: ProviderTemplate | undefined): ModelConfig[] {
+  if (!builtinTemplate) return [];
+  return builtinTemplate.models.map((m) => ({ ...m }));
+}
+
+function ensureModelExists(
+  models: ModelConfig[],
+  modelId: string,
+  displayName: string | undefined,
+  capabilities: ModelConfig["capabilities"],
+  defaultParams: ModelConfig["defaultParams"],
+): void {
+  if (models.some((m) => m.id === modelId)) return;
+  models.push({
+    id: modelId,
+    name: displayName ?? modelId,
+    capabilities,
+    defaultParams,
+  });
+}
+
+function collectProfileModels(
+  models: ModelConfig[],
+  plugin: PluginListItem,
+  modelProfiles?: Record<string, PluginModelProfile>,
+): void {
+  if (!modelProfiles) return;
+  const pluginProfiles = Object.values(modelProfiles).filter(
+    (p) => p.providerId === plugin.id,
+  );
+  for (const profile of pluginProfiles) {
+    if (models.some((m) => m.id === profile.modelId)) continue;
+    const caps = resolveProfileCapabilities(profile.parameters);
+    models.push({
+      id: profile.modelId,
+      name: profile.displayName ?? profile.modelId,
+      capabilities: caps,
+      defaultParams: {},
+    });
+  }
+}
+
+function resolveProfileCapabilities(parameters?: Record<string, unknown>): ModelConfig["capabilities"] {
+  const caps: string[] = [];
+  if (parameters) {
+    if ("durations" in parameters) caps.push("video");
+    if ("resolutions" in parameters && !caps.includes("video")) caps.push("image");
+  }
+  if (caps.length === 0) caps.push("video");
+  return caps as ModelConfig["capabilities"];
+}
+
+function buildPluginTemplate(
+  plugin: PluginListItem,
+  models: ModelConfig[],
+): PluginProviderTemplate {
+  const baseUrlFromDetection = plugin.apiKeyDetection?.baseUrl ?? "";
+  const format = resolveFormat(plugin.id);
+  const isDeprecated = plugin.id === "openai-sora";
+
+  return {
+    name: plugin.displayName,
+    format,
+    baseUrl: baseUrlFromDetection,
+    models,
+    pluginId: plugin.id,
+    isUserPlugin: plugin.isUserPlugin,
+    isCodePlugin: false,
+    deprecated: isDeprecated,
+    deprecatedReason: isDeprecated ? "Sora API 已于 2026年3月24日关停" : undefined,
+  };
+}
+
+function buildPluginTemplates(result: PluginsListResponse): Record<string, PluginProviderTemplate> {
+  const newTemplates: Record<string, PluginProviderTemplate> = {};
+  const modelProfiles = result.data?.modelProfiles;
+
+  for (const plugin of result.data!.plugins) {
+    const templateId = plugin.id;
+    const builtinTemplate = PROVIDER_TEMPLATES[templateId];
+    const models = collectBuiltinModels(builtinTemplate);
+
+    if (plugin.videoCapabilities?.defaultModel) {
+      const defaultModel = plugin.videoCapabilities.defaultModel;
+      const defaultProfile = modelProfiles?.[defaultModel];
+      ensureModelExists(
+        models,
+        defaultModel,
+        defaultProfile?.displayName,
+        ["video"],
+        { duration: plugin.videoCapabilities.maxDuration ?? 5 },
+      );
+    }
+
+    if (plugin.imageCapabilities?.defaultModel) {
+      const defaultModel = plugin.imageCapabilities.defaultModel;
+      const defaultProfile = modelProfiles?.[defaultModel];
+      ensureModelExists(
+        models,
+        defaultModel,
+        defaultProfile?.displayName,
+        ["image"],
+        {},
+      );
+    }
+
+    collectProfileModels(models, plugin, modelProfiles);
+
+    newTemplates[templateId] = buildPluginTemplate(plugin, models);
+  }
+
+  return newTemplates;
 }
 
 export function getAllTemplates(): Record<string, ProviderTemplate> {

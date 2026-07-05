@@ -109,7 +109,7 @@ describe("generateText", () => {
       modelId: "gpt-4",
     });
 
-    const callBody = JSON.parse(mockApiCallWithRetry.mock.calls[0][1].body);
+    const callBody = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body as string);
     expect(callBody.maxTokens).toBe(300);
     expect(callBody.temperature).toBe(0.7);
   });
@@ -127,7 +127,7 @@ describe("generateText", () => {
       temperature: 0.5,
     });
 
-    const callBody = JSON.parse(mockApiCallWithRetry.mock.calls[0][1].body);
+    const callBody = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body as string);
     expect(callBody.maxTokens).toBe(1000);
     expect(callBody.temperature).toBe(0.5);
   });
@@ -147,7 +147,7 @@ describe("generateText", () => {
       modelId: "gpt-4",
     });
 
-    const callBody = JSON.parse(mockApiCallWithRetry.mock.calls[0][1].body);
+    const callBody = JSON.parse(mockApiCallWithRetry.mock.calls[0]![1]!.body as string);
     expect(callBody.prompt).toBe("截断后的提示词");
     expect(callBody.promptWasTruncated).toBe(true);
   });

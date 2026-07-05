@@ -102,13 +102,13 @@ describe("R137: video-cache 禁止顶层 beforeunload 注册", () => {
 
     mod.registerObjectUrl("task-1", "blob:https://example.com/1");
     const callsAfterFirst = addEventListenerSpy.mock.calls.filter(
-      ([event]) => event === "beforeunload",
+      ([event]: [string, ...unknown[]]) => event === "beforeunload",
     ).length;
 
     mod.registerObjectUrl("task-2", "blob:https://example.com/2");
     mod.registerObjectUrl("task-3", "blob:https://example.com/3");
     const callsAfterThird = addEventListenerSpy.mock.calls.filter(
-      ([event]) => event === "beforeunload",
+      ([event]: [string, ...unknown[]]) => event === "beforeunload",
     ).length;
 
     // ensureBeforeUnloadRegistered 通过 beforeUnloadRegistered 标志守卫，应只注册一次
@@ -145,7 +145,7 @@ describe("R137: video-cache 禁止顶层 beforeunload 注册", () => {
 
     mod.registerObjectUrl("task-1", "blob:https://example.com/1");
     const callsAfterFirstRegister = addEventListenerSpy.mock.calls.filter(
-      ([event]) => event === "beforeunload",
+      ([event]: [string, ...unknown[]]) => event === "beforeunload",
     ).length;
     expect(callsAfterFirstRegister).toBe(1);
 
@@ -155,7 +155,7 @@ describe("R137: video-cache 禁止顶层 beforeunload 注册", () => {
     addEventListenerSpy.mockClear();
     mod.registerObjectUrl("task-2", "blob:https://example.com/2");
     const callsAfterSecondRegister = addEventListenerSpy.mock.calls.filter(
-      ([event]) => event === "beforeunload",
+      ([event]: [string, ...unknown[]]) => event === "beforeunload",
     ).length;
     expect(callsAfterSecondRegister).toBe(1);
   });

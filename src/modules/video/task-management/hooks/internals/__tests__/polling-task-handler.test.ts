@@ -156,8 +156,8 @@ describe("handleTimedOutTasks", () => {
 
     // 验证 store 中的任务状态为 timeout
     const updatedTasks = store.getState().allTasks;
-    expect(updatedTasks[0].status).toBe("timeout");
-    expect(updatedTasks[0].message).toBe("task.timeoutMayStillGenerating");
+    expect(updatedTasks[0]!.status).toBe("timeout");
+    expect(updatedTasks[0]!.message).toBe("task.timeoutMayStillGenerating");
   });
 });
 

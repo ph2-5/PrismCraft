@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { safeQuery, safeRun, safeTransaction } from "@/infrastructure/storage/sqlite-core";
 import { isElectron } from "@/shared/utils/platform";
 
 vi.mock("@/shared/utils/platform", () => ({
@@ -25,11 +24,25 @@ const mockElectronAPI = {
   dbTransaction: vi.fn(),
 };
 
+// 动态导入，确保每个测试文件使用独立的模块实例（重置 _httpAvailable 缓存）
+let safeQuery: typeof import("@/infrastructure/storage/sqlite-core").safeQuery;
+let safeRun: typeof import("@/infrastructure/storage/sqlite-core").safeRun;
+let safeTransaction: typeof import("@/infrastructure/storage/sqlite-core").safeTransaction;
+
 describe("storage/sqlite-core enhanced", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // Mock fetch 让 HTTP API 探测失败，使代码走 IPC fallback 路径
+    // 必须在 beforeEach 内 stub，因为 setup.ts 的 afterEach 会调用 vi.unstubAllGlobals()
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("HTTP server not available in test")));
     vi.mocked(isElectron).mockReturnValue(true);
     (window as unknown as Record<string, unknown>).electronAPI = mockElectronAPI;
+    // 重置模块缓存，确保 _httpAvailable 被重置为 null
+    vi.resetModules();
+    const mod = await import("@/infrastructure/storage/sqlite-core");
+    safeQuery = mod.safeQuery;
+    safeRun = mod.safeRun;
+    safeTransaction = mod.safeTransaction;
   });
 
   describe("safeQuery", () => {

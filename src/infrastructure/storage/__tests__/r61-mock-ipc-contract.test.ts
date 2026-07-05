@@ -27,8 +27,13 @@ describe("R61: Mock IPC return format must match production contract", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock fetch 让 HTTP API 探测失败，使代码走 IPC fallback 路径
+    // 必须在 beforeEach 内 stub，因为 setup.ts 的 afterEach 会调用 vi.unstubAllGlobals()
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("HTTP server not available in test")));
     vi.mocked(isElectron).mockReturnValue(true);
     (window as unknown as Record<string, unknown>).electronAPI = mockElectronAPI;
+    // 重置模块缓存，确保 _httpAvailable 被重置为 null
+    vi.resetModules();
   });
 
   afterEach(() => {

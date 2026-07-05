@@ -16,8 +16,6 @@ import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
 
 const {
   mockVideoTaskStorage,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  mockVideoProvider,
   mockContainer,
   mockPollingState,
   mockSaveVideoTask,

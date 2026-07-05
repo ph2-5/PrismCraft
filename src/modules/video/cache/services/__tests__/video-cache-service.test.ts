@@ -59,6 +59,49 @@ vi.mock("@/modules/video/recovery", () => ({
   recoverVideoByTaskId: vi.fn(),
 }));
 
+// Mock @/shared/file-http 统一通信层，委托到测试设置的 electronAPI mock
+// 避免真实 HTTP 探测命中本地服务器导致 IPC fallback 不触发
+vi.mock("@/shared/file-http", () => ({
+  writeFile: vi.fn(async (filePath: string, data: unknown) => {
+    const api = (window as unknown as { electronAPI?: { writeFile?: (p: string, d: ArrayBuffer) => Promise<{ success: boolean; error?: string }> } }).electronAPI;
+    if (!api?.writeFile) return { success: false, error: "No electronAPI" };
+    const buffer = data instanceof ArrayBuffer ? data : new TextEncoder().encode(String(data)).buffer as ArrayBuffer;
+    return api.writeFile(filePath, buffer);
+  }),
+  readFile: vi.fn(async (filePath: string) => {
+    const api = (window as unknown as { electronAPI?: { readFile?: (p: string) => Promise<{ success: boolean; data?: ArrayBuffer; error?: string }> } }).electronAPI;
+    if (!api?.readFile) return null;
+    return api.readFile(filePath);
+  }),
+  getFileInfo: vi.fn(async (filePath: string) => {
+    const api = (window as unknown as { electronAPI?: { getFileInfo?: (p: string) => Promise<{ success: boolean; size?: number; error?: string } | null> } }).electronAPI;
+    if (!api?.getFileInfo) return null;
+    return api.getFileInfo(filePath);
+  }),
+  getCacheDirectory: vi.fn(async () => {
+    const api = (window as unknown as { electronAPI?: { getCacheDirectory?: () => Promise<{ success: boolean; path?: string; error?: string }> } }).electronAPI;
+    if (!api?.getCacheDirectory) return { success: false, error: "No electronAPI" };
+    return api.getCacheDirectory();
+  }),
+  getDiskSpace: vi.fn(async (dirPath: string) => {
+    const api = (window as unknown as { electronAPI?: { getDiskSpace?: (p: string) => Promise<{ success: boolean; availableBytes?: number; totalBytes?: number; error?: string } | null> } }).electronAPI;
+    if (!api?.getDiskSpace) return null;
+    return api.getDiskSpace(dirPath);
+  }),
+  fileExists: vi.fn(async (filePath: string) => {
+    const api = (window as unknown as { electronAPI?: { fileExists?: (p: string) => Promise<boolean | { exists?: boolean }> } }).electronAPI;
+    if (!api?.fileExists) return false;
+    const result = await api.fileExists(filePath);
+    return typeof result === "boolean" ? result : !!result?.exists;
+  }),
+  deleteFile: vi.fn(async (filePath: string) => {
+    const api = (window as unknown as { electronAPI?: { deleteFile?: (p: string) => Promise<boolean | { success?: boolean }> } }).electronAPI;
+    if (!api?.deleteFile) return false;
+    const result = await api.deleteFile(filePath);
+    return typeof result === "boolean" ? result : !!result?.success;
+  }),
+}));
+
 import { container } from "@/infrastructure/di";
 import { resilientFetch } from "@/shared/video-cache";
 import { isElectron } from "@/shared/utils/platform";

@@ -126,28 +126,21 @@ import {
   setupBackgroundRecoveryInterval,
   setupCacheCleanupInterval,
   setupBeforeUnloadHandler,
+  type StoreAccessor,
 } from "../task-initializer";
 
 // 由于 pollingState 是从 mock 中导出的字面量对象，我们需要直接引用它
 // 通过再次 import 获取同一引用
 import { pollingState } from "../polling-engine";
 
-interface MockStore {
-  getState: () => {
-    allTasks: unknown[];
-    recoverTask: (taskId: string, status: string, videoUrl?: string) => void;
-  };
-  set: (partial: unknown) => void;
-}
-
-function createMockStore(): MockStore {
+function createMockStore(): StoreAccessor {
   return {
     getState: () => ({
       allTasks: [],
       recoverTask: vi.fn(),
     }),
     set: vi.fn(),
-  };
+  } as unknown as StoreAccessor;
 }
 
 describe("R117: setup 函数必须幂等", () => {

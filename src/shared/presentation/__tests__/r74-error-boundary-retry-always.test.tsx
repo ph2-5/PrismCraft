@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import React, { type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 const { mockT, mockConfirm, mockErrorLogger, mockClassifyErrorSeverity } = vi.hoisted(() => ({
   mockT: vi.fn((key: string) => {

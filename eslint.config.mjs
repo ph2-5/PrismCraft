@@ -212,6 +212,12 @@ const eslintConfig = tseslint.config(
     files: ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
+      // 测试用例本身需要长 setup（mock 配置、多步断言），放宽行数限制
+      "max-lines-per-function": ["warn", { max: 300, skipBlankLines: true, skipComments: true }],
+      // 测试嵌套 describe/it/expect 链路天然较深
+      "max-depth": ["warn", 5],
+      // 测试分支覆盖多场景，复杂度适度放宽
+      "complexity": ["warn", 25],
     },
   },
   {

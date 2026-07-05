@@ -28,8 +28,7 @@
 | `updateSyncConfig` | `(config: Partial<SyncConfig>) → void` | 更新同步配置 |
 | `getSyncConfig` | `() → SyncConfig` | 获取同步配置 |
 | `setConflictCallback` | `(cb: (conflict: SyncConflict) => Promise<ConflictStrategy>) → void` | 设置冲突回调 |
-| `recordChange` | `(entityType: SyncEntityType, entityId: string, operation: ChangeOperation, data?: Record<string, unknown>) → Promise<void>` | 记录变更（异步，内部需 await getDeviceId） |
-| `getDeviceId` | `() → Promise<string>` | 获取设备 ID（异步，HTTP 优先 + IPC 回退 + 内存缓存 `_cachedDeviceId`） |
+| `recordChange` | `(entityType: SyncEntityType, entityId: string, operation: ChangeOperation, data?: Record<string, unknown>) → Promise<void>` | 记录变更（异步） |
 | `compareVectorClocks` | `(a: VectorClock, b: VectorClock) → -1 \| 0 \| 1` | 比较向量时钟 |
 | `mergeVectorClocks` | `(a: VectorClock, b: VectorClock) → VectorClock` | 合并向量时钟 |
 | `createVectorClock` | `(deviceId: string) → VectorClock` | 创建向量时钟 |
@@ -107,7 +106,7 @@ presentation ← @/domain/types/sync, @/shared/ui
 - **INV-8**：状态指示器实时反映同步状态（idle / syncing / error）
 - **INV-9**：`presentation` 子域不依赖 `engine` 子域的内部实现
 - **INV-10**：同步状态变更必须记录 `sync_id`
-- **INV-11**：`getDeviceId()` 为异步函数，使用 HTTP `/api/config/get` 优先 + IPC `electronAPI.getConfig` 回退 + 内存缓存 `_cachedDeviceId`；所有调用方必须 `await`
+- **INV-11**：内部函数 `getDeviceId()`（非公共 API）为异步函数，使用 HTTP `/api/config/get` 优先 + IPC `electronAPI.getConfig` 回退 + 内存缓存 `_cachedDeviceId`；模块内所有调用方必须 `await`
 
 ---
 

@@ -655,6 +655,7 @@ describe("useKeyframeGenerator", () => {
           return await fn(new AbortController().signal);
         } catch {
           props.showError(errorTitle, "generation failed");
+          return undefined;
         }
       });
 
@@ -684,6 +685,7 @@ describe("useKeyframeGenerator", () => {
           return await fn(new AbortController().signal);
         } catch {
           props.showError(errorTitle, "预览图生成失败");
+          return undefined;
         }
       });
 

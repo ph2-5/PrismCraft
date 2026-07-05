@@ -196,8 +196,8 @@ describe("normalizeImages", () => {
     ];
     const results = await normalizeImages(urls);
     expect(results).toHaveLength(2);
-    expect(results[0].format).toBe("image/jpeg");
-    expect(results[1].format).toBe("image/png");
+    expect(results[0]!.format).toBe("image/jpeg");
+    expect(results[1]!.format).toBe("image/png");
   });
 
   it("应过滤处理失败的图片", async () => {

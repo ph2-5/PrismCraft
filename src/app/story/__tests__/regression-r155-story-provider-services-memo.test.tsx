@@ -18,7 +18,6 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
-import React from "react";
 
 // 用 vi.hoisted 提升 mock，确保在 StoryProvider 模块导入前生效。
 // 关键：mockUseAssetLoader 会捕获每次渲染传入的 services 引用。

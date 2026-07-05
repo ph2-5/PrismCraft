@@ -140,7 +140,7 @@ describe("R135: useBeatDetail 禁止 setInterval 自定义轮询", () => {
   });
 
   it("当 beatId 参数缺失时，selector 应返回 undefined", async () => {
-    mockUseParams.mockReturnValue({}); // 无 beatId
+    mockUseParams.mockReturnValue({} as { beatId: string }); // 无 beatId
 
     renderHook(() => useBeatDetail());
     await vi.runAllTimersAsync();

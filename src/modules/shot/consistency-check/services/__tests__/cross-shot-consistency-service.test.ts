@@ -53,6 +53,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["黑发", "蓝眼"], weight: 0.8 },
             ],
@@ -63,6 +65,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["黑发", "蓝眼"], weight: 0.8 },
             ],
@@ -90,6 +94,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["黑发", "蓝眼"], weight: 0.8 },
             ],
@@ -100,6 +106,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["金发", "绿眼"], weight: 0.8 },
             ],
@@ -126,6 +134,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref1.png", featureTags: ["黑发", "蓝眼"], weight: 0.8 },
             ],
@@ -136,6 +146,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref2.png", featureTags: ["黑发", "蓝眼"], weight: 0.8 },
             ],
@@ -163,6 +175,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1", "elem-2"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["黑发", "蓝眼"], weight: 0.8 },
               { elementId: "elem-2", referenceImageUrl: "ref-b.png", featureTags: ["红发"], weight: 0.8 },
@@ -174,6 +188,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1", "elem-2"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["黑发", "蓝眼"], weight: 0.8 },
               { elementId: "elem-2", referenceImageUrl: "ref-b.png", featureTags: ["金发"], weight: 0.8 },
@@ -209,6 +225,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref1.png", featureTags: ["黑发", "蓝眼"], weight: 0.8 },
             ],
@@ -219,6 +237,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref2.png", featureTags: ["金发", "绿眼"], weight: 0.8 },
             ],
@@ -243,6 +263,8 @@ describe("checkCrossShotConsistency", () => {
           elementBindings: { "elem-1": { role: "主角" } },
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["黑发"], weight: 0.8 },
             ],
@@ -253,6 +275,8 @@ describe("checkCrossShotConsistency", () => {
           elementBindings: { "elem-1": { role: "主角" } },
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["金发"], weight: 0.8 },
             ],
@@ -293,6 +317,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [],
             propAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["木质", "棕色"], weight: 0.8 },
@@ -304,6 +330,8 @@ describe("checkCrossShotConsistency", () => {
           elementIds: ["elem-1"],
           featureAnchoring: {
             enabled: true,
+            disableFrameBinding: true,
+            featureConsistencyStrength: 0.8,
             characterAnchors: [],
             propAnchors: [
               { elementId: "elem-1", referenceImageUrl: "ref.png", featureTags: ["金属", "银色"], weight: 0.8 },

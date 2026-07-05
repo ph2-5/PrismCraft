@@ -4,7 +4,7 @@
 
 [![Version](https://img.shields.io/badge/version-0.12.2-blue)](package.json)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5800%2B-brightgreen)](docs/DEVELOPMENT.md)
+[![Tests](https://img.shields.io/badge/tests-4800%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Updated](https://img.shields.io/badge/updated-2026--07--04-green)]()
 
@@ -147,7 +147,7 @@ prismcraft/
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 4200+ |
+| 单元测试 | 4800+ |
 | E2E 测试 | 126 个（Electron 集成 + 页面加载） |
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |

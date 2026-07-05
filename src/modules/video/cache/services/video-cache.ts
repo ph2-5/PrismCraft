@@ -79,161 +79,207 @@ export async function cacheVideoBlob(
   videoUrl: string,
 ): Promise<Result<boolean>> {
   return fromAsyncThrowable(async () => {
-    let currentUrl = videoUrl;
-
-    const task = await container.videoTaskStorage.getVideoTaskById(taskId);
-    if (task?.urlObtainedAt && task?.videoUrl) {
-      const urlTtl = task.urlTtl ?? DEFAULT_URL_TTL;
-      const elapsed = Math.floor(Date.now() / 1000) - task.urlObtainedAt;
-      if (elapsed > urlTtl * 0.8) {
-        const freshUrl = await refreshVideoUrl(taskId);
-        if (freshUrl) currentUrl = freshUrl;
-      }
-    }
+    let currentUrl = await refreshUrlIfNeeded(taskId, videoUrl);
 
     for (let attempt = 0; attempt < CACHE_RETRY_COUNT; attempt++) {
       try {
         const cached = await container.videoCacheStorage.getCachedVideoFile(taskId);
         if (cached) return true;
 
-        const stats = await container.videoCacheStorage.getVideoCacheStats();
-        if (
-          stats.count >= MAX_CACHE_SIZE ||
-          stats.totalSize > MAX_TOTAL_BLOB_SIZE_MB * 1024 * 1024 * 0.9
-        ) {
-          const filesToDelete = await container.videoCacheStorage.cleanVideoCacheBySizeLimit(
-            MAX_TOTAL_BLOB_SIZE_MB * 0.7 * 1024 * 1024,
-          );
-          for (const file of filesToDelete) {
-            try {
-              const exists = await httpFileExists(file);
-              if (exists) await httpDeleteFile(file);
-            } catch (e) {
-              errorLogger.warn(
-                new AppError("CACHE_CLEANUP_ERROR", "删除过期缓存文件失败", e),
-                "VideoCache",
-              );
-            }
-          }
-        }
-
-        const cacheDirResult = await httpGetCacheDirectory();
-        if (!cacheDirResult?.success || !cacheDirResult.path) {
-          throw new Error("Failed to get cache directory");
-        }
-        const cacheDir = cacheDirResult.path;
-        const filePath = `${cacheDir}/${taskId}.mp4`;
-
-        const diskSpace = await httpGetDiskSpace(cacheDir);
-        if (diskSpace?.success && diskSpace.availableBytes !== undefined) {
-          const minRequiredBytes = 10 * 1024 * 1024;
-          if (diskSpace.availableBytes < minRequiredBytes) {
-            throw new Error(`${t("error.diskFull")} (${Math.round(diskSpace.availableBytes / 1024 / 1024)}MB)`);
-          }
-        }
-
-        const abortController = new AbortController();
-        const downloadCtx = { data: null as Uint8Array | null };
-
-        const result = await resilientFetch({
-          url: currentUrl,
-          destination: async (data: Uint8Array) => {
-            downloadCtx.data = data;
-          },
-          signal: abortController.signal,
-          onProgress: () => {},
-        });
-
-        if (!result.success || !downloadCtx.data) {
-          throw new Error("Download failed");
-        }
-
-        const downloadedData = downloadCtx.data;
-
-        const writeResult = await httpWriteFile(
-          filePath,
-          downloadedData.buffer as ArrayBuffer,
-        );
-        if (!writeResult?.success) {
-          throw new Error("Failed to write file to disk");
-        }
-
-        const fileInfo = await httpGetFileInfo(filePath);
-        if (fileInfo && fileInfo.success && result.totalBytes > 0 && fileInfo.size !== result.totalBytes) {
-          await httpDeleteFile(filePath);
-          throw new Error(`下载不完整: ${fileInfo.size}/${result.totalBytes} bytes`);
-        }
-
-        try {
-          await container.videoCacheStorage.cacheVideoFile({
-            taskId,
-            filePath,
-            originalUrl: currentUrl,
-            mimeType: "video/mp4",
-            fileSize: downloadedData.byteLength,
-          });
-        } catch (dbError) {
-          errorLogger.warn(
-            new AppError("CACHE_DB_ERROR", "数据库记录失败，清理已写入的缓存文件", dbError),
-            "VideoCache",
-          );
-          try {
-            const exists = await httpFileExists(filePath);
-            if (exists) await httpDeleteFile(filePath);
-          } catch (cleanupError) {
-            errorLogger.warn(
-              new AppError("CACHE_CLEANUP_ERROR", "清理失败缓存文件失败", cleanupError),
-              "VideoCache",
-            );
-          }
-          throw dbError;
-        }
-
-        try {
-          await container.videoTaskStorage.updateVideoTask(taskId, {
-            localVideoPath: filePath,
-          });
-        } catch (syncError) {
-          errorLogger.warn(
-            new AppError("CACHE_SYNC_ERROR", "同步本地路径到 video_tasks 失败", syncError),
-            "VideoCache",
-          );
-        }
+        await ensureCacheSpace();
+        const filePath = await prepareCacheFile(taskId);
+        const { data, totalBytes } = await downloadVideoData(currentUrl);
+        await writeVideoFile(filePath, data);
+        await verifyFileIntegrity(filePath, totalBytes);
+        await cacheVideoRecord(taskId, filePath, currentUrl, data);
+        await syncLocalPath(taskId, filePath);
 
         return true;
       } catch (error) {
-        if (isHttpExpiredError(error) && attempt === 0) {
-          try {
-            const recoveryFn = getRecoveryFn();
-            const recoveryResult = recoveryFn ? await recoveryFn(taskId) : null;
-            if (recoveryResult?.ok && recoveryResult.value?.videoUrl) {
-              currentUrl = recoveryResult.value.videoUrl;
-              errorLogger.warn(
-                new AppError("CACHE_VIDEO_ERROR", `URL过期，已刷新重试 (attempt ${attempt + 1})`, error),
-                "VideoCache",
-              );
-              await new Promise((r) => setTimeout(r, CACHE_RETRY_INTERVAL_MS));
-              continue;
-            }
-          } catch (recoveryError) {
-            errorLogger.warn(
-              new AppError("CACHE_VIDEO_ERROR", "URL刷新失败", recoveryError),
-              "VideoCache",
-            );
-          }
+        const recoveryResult = await handleDownloadError(taskId, error, attempt);
+        if (recoveryResult.recovered) {
+          currentUrl = recoveryResult.newUrl!;
+          continue;
         }
-
-        errorLogger.warn(
-          new AppError("CACHE_VIDEO_ERROR", `Failed (attempt ${attempt + 1})`, error),
-          "VideoCache",
-        );
-        if (attempt < CACHE_RETRY_COUNT - 1) {
-          await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
-        }
+        if (attempt >= CACHE_RETRY_COUNT - 1) break;
+        await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
       }
     }
     return false;
   });
+}
+
+async function refreshUrlIfNeeded(taskId: string, videoUrl: string): Promise<string> {
+  const task = await container.videoTaskStorage.getVideoTaskById(taskId);
+  if (!task?.urlObtainedAt || !task?.videoUrl) return videoUrl;
+
+  const urlTtl = task.urlTtl ?? DEFAULT_URL_TTL;
+  const elapsed = Math.floor(Date.now() / 1000) - task.urlObtainedAt;
+  if (elapsed <= urlTtl * 0.8) return videoUrl;
+
+  const freshUrl = await refreshVideoUrl(taskId);
+  return freshUrl || videoUrl;
+}
+
+async function ensureCacheSpace(): Promise<void> {
+  const stats = await container.videoCacheStorage.getVideoCacheStats();
+  const needsCleanup =
+    stats.count >= MAX_CACHE_SIZE ||
+    stats.totalSize > MAX_TOTAL_BLOB_SIZE_MB * 1024 * 1024 * 0.9;
+  if (!needsCleanup) return;
+
+  const filesToDelete = await container.videoCacheStorage.cleanVideoCacheBySizeLimit(
+    MAX_TOTAL_BLOB_SIZE_MB * 0.7 * 1024 * 1024,
+  );
+  for (const file of filesToDelete) {
+    try {
+      const exists = await httpFileExists(file);
+      if (exists) await httpDeleteFile(file);
+    } catch (e) {
+      errorLogger.warn(
+        new AppError("CACHE_CLEANUP_ERROR", "删除过期缓存文件失败", e),
+        "VideoCache",
+      );
+    }
+  }
+}
+
+async function prepareCacheFile(taskId: string): Promise<string> {
+  const cacheDirResult = await httpGetCacheDirectory();
+  if (!cacheDirResult?.success || !cacheDirResult.path) {
+    throw new Error("Failed to get cache directory");
+  }
+  const cacheDir = cacheDirResult.path;
+  const filePath = `${cacheDir}/${taskId}.mp4`;
+
+  const diskSpace = await httpGetDiskSpace(cacheDir);
+  if (diskSpace?.success && diskSpace.availableBytes !== undefined) {
+    const minRequiredBytes = 10 * 1024 * 1024;
+    if (diskSpace.availableBytes < minRequiredBytes) {
+      throw new Error(`${t("error.diskFull")} (${Math.round(diskSpace.availableBytes / 1024 / 1024)}MB)`);
+    }
+  }
+
+  return filePath;
+}
+
+async function downloadVideoData(url: string): Promise<{ data: Uint8Array; totalBytes: number }> {
+  const abortController = new AbortController();
+  const downloadCtx = { data: null as Uint8Array | null };
+
+  const result = await resilientFetch({
+    url,
+    destination: async (data: Uint8Array) => {
+      downloadCtx.data = data;
+    },
+    signal: abortController.signal,
+    onProgress: () => {},
+  });
+
+  if (!result.success || !downloadCtx.data) {
+    throw new Error("Download failed");
+  }
+
+  return { data: downloadCtx.data, totalBytes: result.totalBytes };
+}
+
+async function writeVideoFile(filePath: string, data: Uint8Array): Promise<void> {
+  const writeResult = await httpWriteFile(
+    filePath,
+    data.buffer as ArrayBuffer,
+  );
+  if (!writeResult?.success) {
+    throw new Error("Failed to write file to disk");
+  }
+}
+
+async function verifyFileIntegrity(filePath: string, expectedBytes: number): Promise<void> {
+  if (expectedBytes <= 0) return;
+  const fileInfo = await httpGetFileInfo(filePath);
+  if (!fileInfo || !fileInfo.success || fileInfo.size === expectedBytes) return;
+
+  await httpDeleteFile(filePath);
+  throw new Error(`下载不完整: ${fileInfo.size}/${expectedBytes} bytes`);
+}
+
+async function cacheVideoRecord(
+  taskId: string,
+  filePath: string,
+  originalUrl: string,
+  data: Uint8Array,
+): Promise<void> {
+  try {
+    await container.videoCacheStorage.cacheVideoFile({
+      taskId,
+      filePath,
+      originalUrl,
+      mimeType: "video/mp4",
+      fileSize: data.byteLength,
+    });
+  } catch (dbError) {
+    errorLogger.warn(
+      new AppError("CACHE_DB_ERROR", "数据库记录失败，清理已写入的缓存文件", dbError),
+      "VideoCache",
+    );
+    try {
+      const exists = await httpFileExists(filePath);
+      if (exists) await httpDeleteFile(filePath);
+    } catch (cleanupError) {
+      errorLogger.warn(
+        new AppError("CACHE_CLEANUP_ERROR", "清理失败缓存文件失败", cleanupError),
+        "VideoCache",
+      );
+    }
+    throw dbError;
+  }
+}
+
+async function syncLocalPath(taskId: string, filePath: string): Promise<void> {
+  try {
+    await container.videoTaskStorage.updateVideoTask(taskId, {
+      localVideoPath: filePath,
+    });
+  } catch (syncError) {
+    errorLogger.warn(
+      new AppError("CACHE_SYNC_ERROR", "同步本地路径到 video_tasks 失败", syncError),
+      "VideoCache",
+    );
+  }
+}
+
+async function handleDownloadError(
+  taskId: string,
+  error: unknown,
+  attempt: number,
+): Promise<{ recovered: boolean; newUrl?: string }> {
+  errorLogger.warn(
+    new AppError("CACHE_VIDEO_ERROR", `Failed (attempt ${attempt + 1})`, error),
+    "VideoCache",
+  );
+
+  if (!isHttpExpiredError(error) || attempt !== 0) {
+    return { recovered: false };
+  }
+
+  try {
+    const recoveryFn = getRecoveryFn();
+    const recoveryResult = recoveryFn ? await recoveryFn(taskId) : null;
+    if (recoveryResult?.ok && recoveryResult.value?.videoUrl) {
+      errorLogger.warn(
+        new AppError("CACHE_VIDEO_ERROR", `URL过期，已刷新重试 (attempt ${attempt + 1})`, error),
+        "VideoCache",
+      );
+      await new Promise((r) => setTimeout(r, CACHE_RETRY_INTERVAL_MS));
+      return { recovered: true, newUrl: recoveryResult.value.videoUrl };
+    }
+  } catch (recoveryError) {
+    errorLogger.warn(
+      new AppError("CACHE_VIDEO_ERROR", "URL刷新失败", recoveryError),
+      "VideoCache",
+    );
+  }
+
+  return { recovered: false };
 }
 
 export async function recoverUncachedVideos(): Promise<Result<number>> {

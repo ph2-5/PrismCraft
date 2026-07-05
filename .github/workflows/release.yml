@@ -10,7 +10,6 @@ permissions:
   contents: write
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   npm_config_fetch_timeout: 600000
   npm_config_fetch_retry_mintimeout: 20000
   npm_config_fetch_retry_maxtimeout: 600000

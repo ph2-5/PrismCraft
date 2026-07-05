@@ -52,46 +52,38 @@ function buildSceneVisualDesc(scenes: Scene[], sceneId?: string): string {
   return parts.join("，");
 }
 
-export async function generateFramePrompts(
-  input: FramePromptInput,
-): Promise<Result<FramePromptOutput>> {
-  return fromAsyncThrowable(async () => {
-    const { beat, index, characters, scenes, styleGuide, prevBeatDescription, nextBeatDescription, textProvider } = input;
+function buildCameraInfo(beat: StoryBeat): string {
+  const resolvedShot = resolveShotInstruction(beat);
+  const shotLabel = resolvedShot?.shotSize
+    ? SHOT_SIZE_OPTIONS.find(o => o.value === resolvedShot.shotSize)?.label || resolvedShot.shotSize
+    : "中景";
+  const cameraMovementLabel = resolvedShot?.cameraMovement
+    ? CAMERA_MOVEMENT_OPTIONS.find(o => o.value === resolvedShot.cameraMovement)?.label || resolvedShot.cameraMovement
+    : "静止";
+  const cameraAngleLabel = resolvedShot?.cameraAngle
+    ? CAMERA_ANGLE_OPTIONS.find(o => o.value === resolvedShot.cameraAngle)?.label || resolvedShot.cameraAngle
+    : "平视";
 
-    const charIds = getBeatCharacterIds(beat);
-    const charDesc = buildCharacterVisualDesc(characters, charIds);
-    const sceneDesc = buildSceneVisualDesc(scenes, beat.sceneId);
+  return resolvedShot
+    ? `角度：${cameraAngleLabel}，运动：${cameraMovementLabel}，景别：${shotLabel}`
+    : `景别：${shotLabel}`;
+}
 
-    const beatContent = beat.content || beat.description || "";
-    if (!beatContent.trim() && !charDesc && !sceneDesc) {
-      throw new ValidationError(t("error.framePromptEmpty"));
-    }
+function buildStyleSection(styleGuide: StoryStyleGuide | undefined): string {
+  if (!styleGuide) return "";
+  const palette = styleGuide.colorPalette?.length ? `；配色：${styleGuide.colorPalette.join("、")}` : "";
+  return `整体风格：${styleGuide.artStyle || "未指定"}；氛围：${styleGuide.moodAtmosphere || "未指定"}${palette}`;
+}
 
-    const styleSection = styleGuide
-      ? `整体风格：${styleGuide.artStyle || "未指定"}；氛围：${styleGuide.moodAtmosphere || "未指定"}${styleGuide.colorPalette?.length ? `；配色：${styleGuide.colorPalette.join("、")}` : ""}`
-      : "";
+function buildContextSection(prev?: string, next?: string): string {
+  const parts: string[] = [];
+  if (prev) parts.push(`上一镜头内容：${prev}`);
+  if (next) parts.push(`下一镜头内容：${next}`);
+  return parts.length > 0 ? `\n\n上下文：\n${parts.join("\n")}` : "";
+}
 
-    const resolvedShot = resolveShotInstruction(beat);
-    const shotLabel = resolvedShot?.shotSize
-      ? SHOT_SIZE_OPTIONS.find(o => o.value === resolvedShot.shotSize)?.label || resolvedShot.shotSize
-      : "中景";
-    const cameraMovementLabel = resolvedShot?.cameraMovement
-      ? CAMERA_MOVEMENT_OPTIONS.find(o => o.value === resolvedShot.cameraMovement)?.label || resolvedShot.cameraMovement
-      : "静止";
-    const cameraAngleLabel = resolvedShot?.cameraAngle
-      ? CAMERA_ANGLE_OPTIONS.find(o => o.value === resolvedShot.cameraAngle)?.label || resolvedShot.cameraAngle
-      : "平视";
-
-    const cameraInfo = resolvedShot
-      ? `角度：${cameraAngleLabel}，运动：${cameraMovementLabel}，景别：${shotLabel}`
-      : `景别：${shotLabel}`;
-
-    const contextParts: string[] = [];
-    if (prevBeatDescription) contextParts.push(`上一镜头内容：${prevBeatDescription}`);
-    if (nextBeatDescription) contextParts.push(`下一镜头内容：${nextBeatDescription}`);
-    const contextSection = contextParts.length > 0 ? `\n\n上下文：\n${contextParts.join("\n")}` : "";
-
-    const prompt = `你是一位专业的动画分镜师。请为以下分镜生成首帧和尾帧的视觉描述提示词。
+function buildFramePromptText(beat: StoryBeat, index: number, charDesc: string, sceneDesc: string, cameraInfo: string, styleSection: string, contextSection: string): string {
+  return `你是一位专业的动画分镜师。请为以下分镜生成首帧和尾帧的视觉描述提示词。
 
 分镜编号：第${index + 1}镜头
 分镜标题：${beat.title || "未命名"}
@@ -116,6 +108,54 @@ ${contextSection}
 4. 保持角色外观与风格描述一致
 5. 如果有上一镜头信息，首帧应考虑与上一镜头的视觉衔接
 6. 如果有下一镜头信息，尾帧应为下一镜头的视觉过渡做铺垫`;
+}
+
+function parseFramePromptResult(text: string, beat: StoryBeat): FramePromptOutput {
+  const fallback = beat.content || beat.description || "";
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    errorLogger.warn(
+      { code: "FRAME_PROMPT_FORMAT_ERROR", message: `LLM 帧提示词返回格式异常: ${text.substring(0, 100)}` },
+      "FramePromptService",
+    );
+    return { firstFramePrompt: fallback, lastFramePrompt: fallback };
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]) as FramePromptOutput;
+    return {
+      firstFramePrompt: parsed.firstFramePrompt || fallback,
+      lastFramePrompt: parsed.lastFramePrompt || fallback,
+    };
+  } catch {
+    errorLogger.warn(
+      { code: "FRAME_PROMPT_PARSE_ERROR", message: `LLM 帧提示词 JSON 解析失败: ${text.substring(0, 100)}` },
+      "FramePromptService",
+    );
+    return { firstFramePrompt: fallback, lastFramePrompt: fallback };
+  }
+}
+
+export async function generateFramePrompts(
+  input: FramePromptInput,
+): Promise<Result<FramePromptOutput>> {
+  return fromAsyncThrowable(async () => {
+    const { beat, index, characters, scenes, styleGuide, prevBeatDescription, nextBeatDescription, textProvider } = input;
+
+    const charIds = getBeatCharacterIds(beat);
+    const charDesc = buildCharacterVisualDesc(characters, charIds);
+    const sceneDesc = buildSceneVisualDesc(scenes, beat.sceneId);
+
+    const beatContent = beat.content || beat.description || "";
+    if (!beatContent.trim() && !charDesc && !sceneDesc) {
+      throw new ValidationError(t("error.framePromptEmpty"));
+    }
+
+    const cameraInfo = buildCameraInfo(beat);
+    const styleSection = buildStyleSection(styleGuide);
+    const contextSection = buildContextSection(prevBeatDescription, nextBeatDescription);
+    const prompt = buildFramePromptText(beat, index, charDesc, sceneDesc, cameraInfo, styleSection, contextSection);
 
     const result = await textProvider.generateText(prompt, {
       maxTokens: 600,
@@ -126,35 +166,7 @@ ${contextSection}
       throw new Error(result.error || t("error.framePromptGenFailed"));
     }
 
-    const text = result.data.text.trim();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      errorLogger.warn(
-        { code: "FRAME_PROMPT_FORMAT_ERROR", message: `LLM 帧提示词返回格式异常: ${text.substring(0, 100)}` },
-        "FramePromptService",
-      );
-      return {
-        firstFramePrompt: beat.content || beat.description || "",
-        lastFramePrompt: beat.content || beat.description || "",
-      };
-    }
-
-    try {
-      const parsed = JSON.parse(jsonMatch[0]) as FramePromptOutput;
-      return {
-        firstFramePrompt: parsed.firstFramePrompt || beat.content || beat.description || "",
-        lastFramePrompt: parsed.lastFramePrompt || beat.content || beat.description || "",
-      };
-    } catch {
-      errorLogger.warn(
-        { code: "FRAME_PROMPT_PARSE_ERROR", message: `LLM 帧提示词 JSON 解析失败: ${text.substring(0, 100)}` },
-        "FramePromptService",
-      );
-      return {
-        firstFramePrompt: beat.content || beat.description || "",
-        lastFramePrompt: beat.content || beat.description || "",
-      };
-    }
+    return parseFramePromptResult(result.data.text.trim(), beat);
   });
 }
 

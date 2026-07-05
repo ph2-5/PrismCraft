@@ -6,7 +6,6 @@ import { ProfessionalModeEditor } from "@/modules/story";
 import { VersionDialog } from "@/modules/story";
 import { TemplateManagerDialog } from "@/modules/story";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
-import { ComingSoon } from "@/shared/presentation/ComingSoon";
 import { Modal } from "@/shared/presentation/Modal";
 import { PageLoader } from "@/shared/presentation/PageLoader";
 import { Tabs } from "@/shared/presentation/Tabs";
@@ -42,10 +41,6 @@ function StoryPageContent() {
           <Tabs
             tabs={[
               { id: "storyboard", label: t("story.tab.storyboard") },
-              { id: "ai-generate", label: t("story.tab.aiGenerate") },
-              { id: "preview-export", label: t("story.tab.previewExport") },
-              { id: "comments", label: t("story.tab.comments") },
-              { id: "audio", label: t("story.tab.audio") },
             ]}
             activeTab={activeTab}
             onChange={(id) => setActiveTab(id as typeof activeTab)}
@@ -120,38 +115,7 @@ function StoryPageContent() {
               assetsLoading={story.assetsLoading}
             />
           </div>
-        ) : (
-          <div style={{ flex: 1, minHeight: 0 }}>
-            {activeTab === "ai-generate" && (
-              <ComingSoon
-                icon="🤖"
-                title={t("story.tab.aiGenerate")}
-                descriptionKey="comingSoon.storyAiGenerateDesc"
-              />
-            )}
-            {activeTab === "preview-export" && (
-              <ComingSoon
-                icon="🎬"
-                title={t("story.tab.previewExport")}
-                descriptionKey="comingSoon.storyPreviewExportDesc"
-              />
-            )}
-            {activeTab === "comments" && (
-              <ComingSoon
-                icon="💬"
-                title={t("story.tab.comments")}
-                descriptionKey="comingSoon.storyCommentsDesc"
-              />
-            )}
-            {activeTab === "audio" && (
-              <ComingSoon
-                icon="🎵"
-                title={t("story.tab.audio")}
-                descriptionKey="comingSoon.storyAudioDesc"
-              />
-            )}
-          </div>
-        )}
+        ) : null}
 
         <TemplateManagerDialog
           isOpen={story.templateDialogOpen}

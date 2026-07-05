@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Search, X, Loader2 } from "lucide-react";
 import type { SearchResult } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
@@ -18,12 +18,15 @@ const ROUTE_MAP: Record<SearchResult["type"], string> = {
   story: "/storyboard",
 };
 
+const SEARCH_DEBOUNCE_MS = 250;
+
 export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDialogProps) {
   const { guardedPush } = useNavigationGuard();
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchIdRef = useRef(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const performSearch = useCallback(async (searchTerm: string) => {
     if (!searchTerm.trim()) {
@@ -45,10 +48,30 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
     }
   }, [onSearch]);
 
+  // Debounced search: only fire after user stops typing for SEARCH_DEBOUNCE_MS
+  useEffect(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (!searchTerm.trim()) {
+      setResults([]);
+      return;
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      performSearch(searchTerm);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [searchTerm, performSearch]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    performSearch(value);
+    setSearchTerm(e.target.value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

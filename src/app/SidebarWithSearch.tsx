@@ -26,21 +26,26 @@ export function SidebarWithSearch() {
     const characters = charResult.ok ? charResult.value : [];
     const scenes = sceneResult.ok ? sceneResult.value : [];
     const stories = storyResult.ok ? storyResult.value : [];
-    characters.slice(0, 50).forEach((char) => {
+
+    // Filter first, then slice — ensures matches beyond index 50 are searchable
+    for (const char of characters) {
+      if (searchResults.length >= 20) break;
       if (char.name?.toLowerCase().includes(lowerTerm) || char.description?.toLowerCase().includes(lowerTerm) || char.style?.toLowerCase().includes(lowerTerm)) {
         searchResults.push({ type: "character", id: char.id, title: char.name, subtitle: char.description?.slice(0, 60) || "" });
       }
-    });
-    scenes.slice(0, 50).forEach((scene) => {
+    }
+    for (const scene of scenes) {
+      if (searchResults.length >= 20) break;
       if (scene.name?.toLowerCase().includes(lowerTerm) || scene.description?.toLowerCase().includes(lowerTerm)) {
         searchResults.push({ type: "scene", id: scene.id, title: scene.name, subtitle: scene.description?.slice(0, 60) || "" });
       }
-    });
-    stories.slice(0, 50).forEach((story) => {
+    }
+    for (const story of stories) {
+      if (searchResults.length >= 20) break;
       if (story.title?.toLowerCase().includes(lowerTerm) || story.description?.toLowerCase().includes(lowerTerm)) {
         searchResults.push({ type: "story", id: story.id, title: story.title, subtitle: story.description?.slice(0, 60) || "" });
       }
-    });
+    }
     return searchResults;
   }, []);
 

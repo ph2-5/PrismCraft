@@ -95,31 +95,32 @@ export function PromptPreview({
   };
 
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h4 className="font-medium">{t("prompt.generatedPrompt")}</h4>
-            {isFeatureAnchored && (
-              <span className="badge badge-info bg-primary/20 text-[10px]">
-                <Shield className="w-3 h-3 mr-1" />
-                {t("prompt.featureAnchoring")}
-              </span>
-            )}
-          </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={handleCopy}>
-            {copied ? (
-              <Check className="w-4 h-4 mr-1" style={{ color: "var(--success)" }} />
-            ) : (
-              <Copy className="w-4 h-4 mr-1" />
-            )}
-            {copied ? t("common.copied") : t("common.copy")}
-          </button>
+    <div className="card" style={{ padding: 10, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: "100%" }}>
+      <div className="flex items-center justify-between mb-2" style={{ flexShrink: 0 }}>
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted-fg)" }}>{t("prompt.generatedPrompt")}</span>
+          {isFeatureAnchored && (
+            <span className="badge badge-info bg-primary/20 text-[10px]">
+              <Shield className="w-3 h-3 mr-1" />
+              {t("prompt.featureAnchoring")}
+            </span>
+          )}
         </div>
-        <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg font-mono">
-          {prompt}
-        </pre>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={handleCopy} style={{ fontSize: 11 }}>
+          {copied ? (
+            <Check className="w-3 h-3 mr-1" style={{ color: "var(--success)" }} />
+          ) : (
+            <Copy className="w-3 h-3 mr-1" />
+          )}
+          {copied ? t("common.copied") : t("common.copy")}
+        </button>
       </div>
+      <pre
+        className="whitespace-pre-wrap bg-muted rounded-lg font-mono"
+        style={{ fontSize: 11, padding: 8, flex: 1, minHeight: 0, overflow: "auto", margin: 0 }}
+      >
+        {prompt}
+      </pre>
     </div>
   );
 }

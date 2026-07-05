@@ -73,7 +73,7 @@ export default function Home() {
           <div
             className="card p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
             style={{ border: `2px solid rgba(var(--primary-rgb), 0.15)` }}
-            onClick={() => navigate("/storyboard")}
+            onClick={() => navigate("/story")}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "rgba(var(--primary-rgb), 0.4)";
               e.currentTarget.style.boxShadow = "0 8px 30px rgba(var(--primary-rgb), 0.1)";
@@ -259,13 +259,11 @@ export default function Home() {
           {/* 快速入口 */}
           <div className="mt-6 border-t border-border pt-5">
             <div className="text-sm font-bold mb-3">⚡ {t("home.quickEntry")}</div>
-            <div className="grid grid-cols-6 gap-2.5">
+            <div className="grid grid-cols-4 gap-2.5">
               <QuickEntryCard icon="👤" title={t("home.characterManage")} subtitle={`${characters.length} ${t("home.characters")}`} onClick={() => navigate("/characters")} />
               <QuickEntryCard icon="🏙" title={t("home.sceneManage")} subtitle={`${scenes.length} ${t("home.scenes")}`} onClick={() => navigate("/scenes")} />
               <QuickEntryCard icon="📦" title={t("home.assetLibrary")} subtitle={t("home.assetManage")} onClick={() => navigate("/asset-library")} />
               <QuickEntryCard icon="📋" title={t("home.videoTasks")} subtitle={t("home.taskManage")} onClick={() => navigate("/video-tasks")} />
-              <QuickEntryCard icon="🛒" title={t("home.templateMarket")} subtitle={t("comingSoon.title")} onClick={() => navigate("/template-market")} />
-              <QuickEntryCard icon="🔗" title={t("home.workflowEditor")} subtitle={t("home.visualOrchestration")} onClick={() => navigate("/workflow")} />
             </div>
           </div>
         </div>

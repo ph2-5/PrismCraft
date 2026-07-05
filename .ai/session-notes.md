@@ -74,3 +74,74 @@
 - shotType/camera deprecated 字段迁移（需重构 LLM 管线）
 - imageGenerationPrompt 语义决策
 - 9 个 ComingSoon 占位页面（产品功能未实现）
+
+## 批次 10：Phase 0.5 v1.0 发布前全面打磨（Task 0.5.1-0.5.6）
+
+### Task 0.5.1：分镜页面布局修复
+- 删除 ProfessionalModeEditor 底部面板（ShotReferenceConfig + ReferenceVideoUploader 容器）
+- ShotReferenceConfig 移入 BeatDetailEditor 第二列（ElementBindingPanel 之后）
+- ReferenceVideoUploader 改为可折叠面板（默认收起，展开 maxHeight: 320，全宽显示）
+- BeatPromptPanel 编辑区 flex:1 minHeight:180，预览区 maxHeight:240（上下结构优化）
+- PromptPreview 样式微调（padding 10, fontSize 11, flex+overflow）
+
+### Task 0.5.2：P0 隐患修复（3 项）
+- SearchDialog 加入 250ms debounce（useEffect + setTimeout + cleanup）
+- SidebarWithSearch 修复"先 slice(0,50) 再 filter"为"先 filter 再 slice(0,20)"
+- useScenesPage / useCharacterPage highlight useEffect 加 useRef + isDirty 守卫
+- video-tasks handleRefresh 从 window.location.reload() 改为 useVideoTaskStore.getState().initialize()
+- R132 回归测试更新（验证 mockInitialize 被调用）
+
+### Task 0.5.3：P1 反人类设计修复（9 项）
+- P1-1：首页"故事模式"跳转 /story（不再和"分镜模式"同 URL）
+- P1-2：Story 页面仅保留 storyboard tab（移除 4 个 ComingSoon tab）
+- P1-3：侧栏移除 futurePreviewItems 数组和渲染
+- P1-4：场景元素 badge 改为 badge + 独立 × 按钮（hover 变红）
+- P1-5：场景图片 1:1 → 16:9，maxWidth 200 → 320
+- P1-6：video-tasks 统计卡片 repeat(6,1fr) → repeat(auto-fit, minmax(160px, 1fr))
+- P1-7：Beat 删除清理失败加入 showError toast（新增 i18n key error.cleanupFailed/Desc）
+- P1-8：handleTestAllConnections 改为 Promise.allSettled 并行 + handleTestCapability 用 useCallback
+- P1-9：搜索先 slice 再 filter（已在 P0-1 修复）
+
+### Task 0.5.4：ComingSoon 清理
+- 首页移除 2 个 ComingSoon 快速入口（模板市场、工作流编辑器），改为 4 列布局
+- Story 页面移除 ComingSoon 死代码和未使用 import
+
+### Task 0.5.5：novel 模块占位处理
+- 删除 src/modules/novel/ 目录（domain/contract.json, domain/types.ts, MODULE.md, index.ts）
+- 无外部依赖、无测试依赖、无 vite 配置引用
+
+### Task 0.5.6：版本号统一到 v1.0
+- src/shared/constants/app-version.ts: v0.12.2 → v1.0
+- package.json: 0.12.2 → 1.0.0
+- package-lock.json: 0.12.2 → 1.0.0
+- 7 个文档文件同步：README.md, API_REFERENCE.md, TECHNICAL_REFERENCE.md, PROJECT-GUIDE.md, DEPLOYMENT.md, CODE_CATALOG.md
+
+### 验证结果
+- typecheck ✅（0 errors）
+- lint ✅（0 errors, 264 warnings — 已存在的 max-lines/complexity 警告）
+- lint:arch ✅（无架构违规）
+- 测试：729 + 152 + 235 + 21 = 1137 个测试全部通过
+
+### 修改文件清单
+- src/modules/story/beat-editor/presentation/ProfessionalModeEditor.tsx
+- src/modules/story/beat-editor/presentation/BeatDetailEditor.tsx
+- src/modules/story/beat-editor/presentation/BeatPromptPanel.tsx
+- src/modules/story/generation/presentation/PromptPreview.tsx
+- src/shared/presentation/SearchDialog.tsx
+- src/app/SidebarWithSearch.tsx
+- src/app/scenes/hooks/useScenesPage.ts
+- src/app/characters/hooks/useCharacterPage.ts
+- src/app/video-tasks/hooks/useVideoTasksPage.ts
+- src/app/video-tasks/hooks/__tests__/regression-r132-status-filter-and-refresh.test.ts
+- src/app/page.tsx
+- src/app/story/page.tsx
+- src/shared/presentation/Sidebar.tsx
+- src/app/scenes/page.tsx
+- src/app/video-tasks/page.tsx
+- src/app/story/useStoryActions.ts
+- src/app/settings/ApiConfigPanel.tsx
+- src/shared/constants/messages.ts
+- src/shared/constants/app-version.ts
+- package.json, package-lock.json
+- 7 个文档文件
+- 删除 src/modules/novel/ 目录（4 文件）

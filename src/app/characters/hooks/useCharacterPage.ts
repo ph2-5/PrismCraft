@@ -167,14 +167,20 @@ export function useCharacterPage() {
   }, [outfitHook.setEditingOutfit, outfitHook.setOutfitForm, outfitHook.setShowOutfitDialog]);
 
   // ── 高亮跳转 ──
+  // 只在 highlightId 本身变化时触发，避免 characters 数组引用变化（react-query invalidate）覆盖未保存编辑
+  const lastHighlightIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!highlightId || characters.length === 0) return;
+    if (lastHighlightIdRef.current === highlightId) return;
+    lastHighlightIdRef.current = highlightId;
+    // 守卫：如果当前正在编辑且当前 character 不是要高亮的 character，不覆盖
+    if (isDirty("characters") && currentCharacter.id !== highlightId) return;
     const found = characters.find((c) => c.id === highlightId);
     if (found) {
       setCurrentCharacterRaw(found);
       imageHook.setGeneratedImage(found.generatedImage || found.refImagePath || null);
     }
-  }, [highlightId, characters, imageHook.setGeneratedImage]);
+  }, [highlightId, characters, imageHook.setGeneratedImage, isDirty, currentCharacter.id, setCurrentCharacterRaw]);
 
   // ── 素材库选择回调 ──
   const handleAssetSelect = useCallback(

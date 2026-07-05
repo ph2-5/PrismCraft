@@ -6,8 +6,6 @@ import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { getBeatCharacterIds } from "@/domain/utils";
 import { SHOT_SIZE_OPTIONS } from "@/modules/shot";
-import { ShotReferenceConfig, ReferenceVideoUploader } from "@/modules/story/generation";
-import { useToastHelpers } from "@/shared/presentation/Toast";
 import type { Character, Scene, StoryBeat, StoryElement } from "@/domain/schemas";
 import type { BatchOptions, BatchResult } from "@/modules/story/generation";
 import type { PromptEditorContext } from "@/modules/story/prompt-editor";
@@ -96,7 +94,6 @@ export function ProfessionalModeEditor({
   const [elements, setElements] = useState<StoryElement[]>([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const pendingNewBeatRef = useRef<boolean>(false);
-  const { error: showError } = useToastHelpers();
 
   const editingBeat = useMemo(
     () => beats.find((b) => b.id === editingBeatId) || null,
@@ -418,42 +415,6 @@ export function ProfessionalModeEditor({
           </div>
         </div>
       </div>
-
-      {/* Shot Reference & Reference Video - moved from COLUMN 2 to align with preview design */}
-      {editingBeat && (
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            padding: "8px 12px",
-            borderTop: "1px solid var(--border)",
-            flexShrink: 0,
-            background: "var(--card2)",
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-            <div className="section-label" style={{ marginBottom: 0 }}>
-              <span className="dot ok"></span> {t("beat.shotReference")}
-            </div>
-            <ShotReferenceConfig
-              beat={editingBeat}
-              allShots={beats}
-              onUpdateBeat={handleUpdateBeat}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-            <div className="section-label" style={{ marginBottom: 0 }}>
-              <span className="dot ok"></span> {t("beat.referenceVideo")}
-            </div>
-            <ReferenceVideoUploader
-              referenceVideo={editingBeat.referenceVideo}
-              assets={assets}
-              onUpdate={(config) => handleUpdateBeat({ ...editingBeat, referenceVideo: config })}
-              onError={(message) => showError(t("error.uploadFailed"), message)}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Preview Modal - shows all generated videos */}
       {showPreviewModal && (

@@ -39,6 +39,8 @@ const messages: Record<MessageKey, string> = {
   "error.importFailed": "导入失败",
   "error.analyzeFailed": "分析失败",
   "error.loadFailed": "加载失败",
+  "error.cleanupFailed": "部分资源清理失败",
+  "error.cleanupFailedDesc": "分镜已删除，但关联的视频任务或图片缓存未能完全清理，可能需要手动清理。",
   "error.operationFailed": "操作失败，请稍后重试",
   "error.openLinkFailed": "无法打开链接",
   "error.networkError": "网络连接异常，请检查网络后重试",

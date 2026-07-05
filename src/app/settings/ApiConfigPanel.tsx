@@ -305,7 +305,7 @@ export function ApiConfigPanel() {
     showSuccess(t("success.saved"), t("provider.capabilityMappingUpdated", { name: capName }));
   };
 
-  const handleTestCapability = async (capability: ApiCapability) => {
+  const handleTestCapability = useCallback(async (capability: ApiCapability) => {
     setTestingCapability(capability);
 
     try {
@@ -340,15 +340,52 @@ export function ApiConfigPanel() {
     } finally {
       setTestingCapability(null);
     }
-  };
+  }, [config.mapping]);
 
   const handleTestAllConnections = useCallback(async () => {
-    // 顺序测试所有已配置的能力
-    for (const cap of capabilities) {
-      if (config.mapping[cap.id]) {
-        await handleTestCapability(cap.id);
+    // 并行测试所有已配置的能力（Promise.allSettled，避免一个失败影响其他）
+    setTestingCapability("all" as ApiCapability);
+    const configuredCaps = capabilities.filter((cap) => config.mapping[cap.id]);
+
+    const settled = await Promise.allSettled(
+      configuredCaps.map(async (cap) => {
+        const mappingValue = config.mapping[cap.id];
+        let providerId: string | undefined;
+        let modelId: string | undefined;
+
+        if (mappingValue) {
+          const lastSlashIndex = mappingValue.lastIndexOf("/");
+          if (lastSlashIndex !== -1) {
+            providerId = mappingValue.substring(0, lastSlashIndex);
+            modelId = mappingValue.substring(lastSlashIndex + 1);
+          }
+        }
+
+        const result = await testConnection(cap.id, providerId, modelId);
+        return { cap: cap.id, result };
+      }),
+    );
+
+    const newResults: Record<string, { success: boolean; message: string }> = {};
+    for (const [index, status] of settled.entries()) {
+      const cap = configuredCaps[index];
+      if (!cap) continue;
+      if (status.status === "fulfilled") {
+        const { result } = status.value;
+        newResults[cap.id] = {
+          success: result.success,
+          message: result.success ? t("connection.success") : result.message,
+        };
+      } else {
+        newResults[cap.id] = {
+          success: false,
+          message: t("connection.testFailed", { message: (status.reason as Error)?.message ?? "" }),
+        };
       }
     }
+
+    setTestResults((prev) => ({ ...prev, ...newResults }));
+    setTestingCapability(null);
   }, [config.mapping]);
 
   const handleSaveConfig = useCallback(async () => {

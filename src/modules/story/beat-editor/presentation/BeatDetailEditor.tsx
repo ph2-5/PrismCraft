@@ -1,6 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { t } from "@/shared/constants";
 import { getBeatCharacterIds } from "@/domain/utils";
+import { ShotReferenceConfig, ReferenceVideoUploader } from "@/modules/story/generation";
+import { useToastHelpers } from "@/shared/presentation/Toast";
 import type {
   StoryBeat,
   Character,
@@ -78,6 +80,8 @@ export function BeatDetailEditor({
   imageModelId,
 }: BeatDetailEditorProps) {
   const uploadPanelHandle = useRef<BeatUploadPanelHandle>(null);
+  const { error: showError } = useToastHelpers();
+  const [refVideoExpanded, setRefVideoExpanded] = useState(false);
 
   const selectedScene = scenes.find((scene) => scene.id === beat.sceneId);
   const _prevBeat = index > 0 ? allShots[index - 1]! : null;
@@ -194,6 +198,19 @@ export function BeatDetailEditor({
           {/* Divider */}
           <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>
 
+          {/* Shot reference config - moved from bottom panel to column 2 */}
+          <div className="section-label">
+            <span className="dot ok"></span> {t("beat.shotReference")}
+          </div>
+          <ShotReferenceConfig
+            beat={beat}
+            allShots={allShots}
+            onUpdateBeat={onUpdateBeat}
+          />
+
+          {/* Divider */}
+          <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>
+
           {/* Consistency check */}
           <div className="section-label">
             <span className="dot ok"></span> {t("beat.consistencyCheck")}
@@ -266,6 +283,38 @@ export function BeatDetailEditor({
           imageModelId={imageModelId}
           uploadPanelHandle={uploadPanelHandle}
         />
+      </div>
+
+      {/* Collapsible reference video panel - default collapsed to avoid squeezing editor */}
+      <div style={{ flexShrink: 0, borderTop: "1px solid var(--border)" }}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          style={{ width: "100%", justifyContent: "space-between", padding: "6px 12px", fontSize: 11 }}
+          onClick={() => setRefVideoExpanded((v) => !v)}
+          aria-expanded={refVideoExpanded}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 10 }}>{refVideoExpanded ? "▼" : "▶"}</span>
+            <span style={{ fontWeight: 600, color: "var(--muted-fg)" }}>{t("beat.referenceVideo")}</span>
+            {beat.referenceVideo?.enabled && beat.referenceVideo?.videoUrl && (
+              <span className="badge badge-info" style={{ fontSize: 10 }}>✓</span>
+            )}
+          </span>
+          <span style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+            {refVideoExpanded ? t("common.collapse") : t("common.expand")}
+          </span>
+        </button>
+        {refVideoExpanded && (
+          <div style={{ padding: "8px 12px 12px", maxHeight: 320, overflowY: "auto" }}>
+            <ReferenceVideoUploader
+              referenceVideo={beat.referenceVideo}
+              assets={assets}
+              onUpdate={(config) => onUpdateBeat({ ...beat, referenceVideo: config })}
+              onError={(message) => showError(t("error.uploadFailed"), message)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Hidden file inputs - rendered once and triggered via ref */}

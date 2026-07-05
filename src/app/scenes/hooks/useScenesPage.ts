@@ -181,14 +181,20 @@ export function useScenesPage() {
   }, [currentScene.id, isDirty, setCurrentScene]);
 
   // ── 高亮跳转 ──
+  // 只在 highlightId 本身变化时触发，避免 scenes 数组引用变化（react-query invalidate）覆盖未保存编辑
+  const lastHighlightIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!highlightId || scenes.length === 0) return;
+    if (lastHighlightIdRef.current === highlightId) return;
+    lastHighlightIdRef.current = highlightId;
+    // 守卫：如果当前正在编辑且当前 scene 不是要高亮的 scene，不覆盖
+    if (isDirty("scenes") && currentScene.id !== highlightId) return;
     const found = scenes.find((s) => s.id === highlightId);
     if (found) {
       setCurrentSceneRaw(found);
       imageHook.setGeneratedImage(found.generatedImage || found.scenePath || null);
     }
-  }, [highlightId, scenes, imageHook.setGeneratedImage]);
+  }, [highlightId, scenes, imageHook.setGeneratedImage, isDirty, currentScene.id, setCurrentSceneRaw]);
 
   // ── 素材库选择回调 ──
   const handleAssetSelect = useCallback(

@@ -1,6 +1,6 @@
 # PrismCraft — 项目全方位指南
 
-> 版本：0.12.2 | 许可证：UNLICENSED | 最后更新：2026-07-04
+> 版本：1.0.0 | 许可证：UNLICENSED | 最后更新：2026-07-04
 
 ---
 
@@ -34,7 +34,7 @@ PrismCraft 是一款**本地优先（local-first）、离线可用（offline-cap
 
 ### 1.4 项目版本与规模
 
-- **版本**：0.12.2
+- **版本**：1.0.0
 - **许可证**：私有（未开源）
 - **业务模块**：9 个（story、video、shot、prompt、asset、sync、character、scene、persistence）
 - **子域**：44 个
@@ -2851,7 +2851,7 @@ typecheck → architecture check → lint-staged
 - **次版本号**：向后兼容的功能新增
 - **修订号**：向后兼容的问题修复
 
-当前版本：0.12.2（初始开发阶段）
+当前版本：1.0.0
 
 ### 25.2 发布步骤
 

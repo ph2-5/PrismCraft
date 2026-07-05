@@ -4,11 +4,17 @@
  * 回归规则目的：
  *   src/app/video-tasks/hooks/useVideoTasksPage.ts 必须返回有效的 statusFilter
  *   state、setStatusFilter、filteredTasks（按 status 过滤）以及 handleRefresh
- *   （实际调用 window.location.reload）。
+ *   （实际调用 useVideoTaskStore.getState().initialize() 重新从 DB 加载任务，
+ *   不再使用 window.location.reload 以避免丢失内存状态）。
  *
  * 历史问题：
  *   原 select 元素没有 value/onChange 绑定，刷新按钮没有 onClick，导致用户
  *   无法过滤任务列表，刷新按钮点击无反应。
+ *
+ * 变更历史：
+ *   - 初版：handleRefresh 调用 window.location.reload()
+ *   - 修订（Phase 0.5 P0-3）：改为 useVideoTaskStore.getState().initialize()，
+ *     避免重载整个 renderer 进程导致内存状态、轮询引擎、未保存表单丢失。
  *
  * 被测代码：
  *   src/app/video-tasks/hooks/useVideoTasksPage.ts
@@ -24,6 +30,7 @@ const {
   mockConfirm,
   mockToastHelpers,
   mockT,
+  mockInitialize,
 } = vi.hoisted(() => ({
   mockUseVideoTaskManager: vi.fn(),
   mockUseVideoTaskStore: vi.fn((selector: (s: { isInitialized: boolean }) => boolean) => selector({ isInitialized: true })),
@@ -38,11 +45,14 @@ const {
     if (params) return `${key}:${JSON.stringify(params)}`;
     return key;
   }),
+  mockInitialize: vi.fn(),
 }));
 
 vi.mock("@/modules/video", () => ({
   useVideoTaskManager: mockUseVideoTaskManager,
-  useVideoTaskStore: mockUseVideoTaskStore,
+  useVideoTaskStore: Object.assign(mockUseVideoTaskStore, {
+    getState: () => ({ initialize: mockInitialize }),
+  }),
 }));
 
 vi.mock("@/shared/presentation/BeforeUnloadGuard", () => ({
@@ -89,17 +99,8 @@ function makeMixedTasks(): VideoTask[] {
 }
 
 describe("R132: VideoTasksPage statusFilter 与刷新按钮", () => {
-  let reloadSpy: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    reloadSpy = vi.fn();
-    // window.location.reload 在 jsdom 中是只读的，通过 defineProperty 替换
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      writable: true,
-      value: { reload: reloadSpy },
-    });
   });
 
   afterEach(() => {
@@ -210,7 +211,7 @@ describe("R132: VideoTasksPage statusFilter 与刷新按钮", () => {
     expect(typeof result.current.handleRefresh).toBe("function");
   });
 
-  it("调用 handleRefresh 应触发 window.location.reload", () => {
+  it("调用 handleRefresh 应触发 useVideoTaskStore.getState().initialize() 重新加载任务", () => {
     setupManager(makeMixedTasks());
 
     const { result } = renderHook(() => useVideoTasksPage());
@@ -219,7 +220,7 @@ describe("R132: VideoTasksPage statusFilter 与刷新按钮", () => {
       result.current.handleRefresh();
     });
 
-    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(mockInitialize).toHaveBeenCalledTimes(1);
   });
 
   it("setStatusFilter 必须被返回且为函数", () => {

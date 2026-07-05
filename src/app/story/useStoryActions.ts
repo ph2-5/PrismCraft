@@ -15,9 +15,11 @@ interface UseStoryActionsParams {
 export function useStoryActions({ storyState, showError }: UseStoryActionsParams) {
   const deleteBeatWithCleanup = useCallback(async (beatId: string) => {
     const beat = storyState.beatsRef.current.find((b) => b.id === beatId);
+    let cleanupFailed = false;
     try {
       await useVideoTaskStore.getState().removeTasksByBeatId(beatId);
     } catch (e) {
+      cleanupFailed = true;
       errorLogger.warn("[StoryProvider] 删除beat关联VideoTask失败", e);
     }
     if (beat) {
@@ -25,12 +27,16 @@ export function useStoryActions({ storyState, showError }: UseStoryActionsParams
         try {
           await removeCachedImage(url);
         } catch (e) {
+          cleanupFailed = true;
           errorLogger.debug("[StoryProvider] 清理图片缓存失败", e);
         }
       }
     }
+    if (cleanupFailed) {
+      showError(t("error.cleanupFailed"), t("error.cleanupFailedDesc"));
+    }
     storyState.deleteBeat(beatId);
-  }, [storyState]);
+  }, [storyState, showError]);
 
   const switchToStory = useCallback(async (storyId: string) => {
     const result = await storyService.getById(storyId);

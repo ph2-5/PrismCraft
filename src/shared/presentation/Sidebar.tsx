@@ -71,14 +71,8 @@ const systemItems: NavEntry[] = [
   { href: "/settings", labelKey: "sidebar.settings", icon: Settings },
 ];
 
-// 未来规划预览：对齐预览页面使用 emoji
-const futurePreviewItems: { href: string; labelKey: string; emoji: string }[] = [
-  { href: "/login", labelKey: "sidebar.login", emoji: "🔑" },
-  { href: "/template-market", labelKey: "sidebar.templateMarket", emoji: "🛒" },
-  { href: "/workflow", labelKey: "sidebar.workflow", emoji: "🔗" },
-  { href: "/workspace", labelKey: "sidebar.workspace", emoji: "👥" },
-  { href: "/mobile", labelKey: "sidebar.mobile", emoji: "📱" },
-];
+// 未来规划预览：已移除（1.0 限定核心工作流，Task 0.5.4）
+// 路由配置保留在 router 中，URL 直接访问仍可进入 ComingSoon 页面
 
 interface NavItemProps {
   labelKey: string;
@@ -374,20 +368,6 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
               key={item.href}
               labelKey={item.labelKey}
               icon={item.icon}
-              isActive={pathname.startsWith(item.href)}
-              collapsed={collapsed}
-              href={item.href}
-              onNavigate={handleNavClick}
-            />
-          ))}
-
-          {/* 未来规划预览 */}
-          <NavGroupLabel collapsed={collapsed}>{t("sidebar.futurePreview")}</NavGroupLabel>
-          {futurePreviewItems.map((item) => (
-            <NavItem
-              key={item.href}
-              labelKey={item.labelKey}
-              emoji={item.emoji}
               isActive={pathname.startsWith(item.href)}
               collapsed={collapsed}
               href={item.href}

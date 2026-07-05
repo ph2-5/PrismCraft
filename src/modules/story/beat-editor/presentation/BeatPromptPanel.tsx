@@ -107,7 +107,7 @@ export function BeatPromptPanel({
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minWidth: 0, minHeight: 0, height: "100%" }}>
       {/* Prompt tabs */}
       <Tabs
         tabs={[
@@ -120,8 +120,8 @@ export function BeatPromptPanel({
         onChange={(id) => setPromptTab(id as PromptEditorContext)}
       />
 
-      {/* Prompt editor card */}
-      <div className="card2" style={{ padding: 12, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 10, overflow: "hidden" }}>
+      {/* Prompt editor card (flex:1, can grow) */}
+      <div className="card2" style={{ padding: 12, flex: 1, minHeight: 180, display: "flex", flexDirection: "column", gap: 10, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted-fg)" }}>{t("beat.promptLabel")}</span>
         </div>
@@ -237,11 +237,8 @@ export function BeatPromptPanel({
         scenes={scenes}
       />
 
-      {/* Prompt Preview - shows final generated prompt */}
-      <div className="card" style={{ padding: 10, flexShrink: 0 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted-fg)", marginBottom: 6 }}>
-          {t("beat.promptPreview")}
-        </div>
+      {/* Prompt Preview - maxHeight limited to avoid squeezing editor */}
+      <div style={{ flexShrink: 0, maxHeight: 240, display: "flex", flexDirection: "column", minHeight: 0 }}>
         <PromptPreview
           beat={beat}
           elements={elements}

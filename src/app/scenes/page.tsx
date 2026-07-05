@@ -336,11 +336,27 @@ function ScenesPageContent() {
                   <span
                     key={element}
                     className="badge"
-                    style={{ fontSize: 10, cursor: "pointer" }}
-                    onClick={() => removeItem("elements", element)}
-                    title={t("common.delete")}
+                    style={{ fontSize: 10, display: "inline-flex", alignItems: "center", gap: 4 }}
                   >
-                    {element} ✕
+                    {element}
+                    <button
+                      type="button"
+                      aria-label={t("common.delete")}
+                      onClick={() => removeItem("elements", element)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                        fontSize: 11,
+                        lineHeight: 1,
+                        color: "var(--muted-fg)",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "var(--danger)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-fg)"; }}
+                    >
+                      ✕
+                    </button>
                   </span>
                 ))}
                 {showElementInput ? (
@@ -475,8 +491,8 @@ function ScenesPageContent() {
                 <div
                   style={{
                     width: "100%",
-                    aspectRatio: "1 / 1",
-                    maxWidth: 200,
+                    aspectRatio: "16 / 9",
+                    maxWidth: 320,
                     margin: "0 auto 8px",
                     borderRadius: 8,
                     overflow: "hidden",

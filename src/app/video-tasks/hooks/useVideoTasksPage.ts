@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { useVideoTaskManager, useVideoTaskStore } from "@/modules/video";
 import { confirm } from "@/shared/utils/confirm";
@@ -80,9 +80,10 @@ export function useVideoTasksPage() {
     return tasks;
   }, [tasks, statusFilter]);
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+  const handleRefresh = useCallback(() => {
+    // 重新从 DB 加载任务，而不是重载整个 renderer 进程
+    useVideoTaskStore.getState().initialize();
+  }, []);
 
   const handleClearCompleted = async () => {
     if (

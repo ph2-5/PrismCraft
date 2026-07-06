@@ -41,6 +41,27 @@ export function toStorageTimestampOrNow(value: unknown): number {
   return toStorageTimestamp(value) ?? Math.floor(Date.now() / 1000);
 }
 
+function optionalString(value: unknown): string | undefined {
+  return value != null ? String(value) : undefined;
+}
+
+function optionalNumber(value: unknown): number | undefined {
+  return value != null ? Number(value) : undefined;
+}
+
+function parseParametersField(parameters: unknown): Record<string, unknown> | undefined {
+  if (!parameters) return undefined;
+  if (typeof parameters === "string") {
+    try {
+      return JSON.parse(parameters) as Record<string, unknown>;
+    } catch (e) {
+      errorLogger.warn("[VideoTaskParser] parameters JSON parse failed", e);
+      return undefined;
+    }
+  }
+  return parameters as Record<string, unknown>;
+}
+
 export function parseVideoTask(record: Record<string, unknown>): VideoTask {
   const config = parseConfig(record.config as string | null | undefined);
   const provider = parseProvider(record.provider as string | null | undefined);
@@ -51,8 +72,8 @@ export function parseVideoTask(record: Record<string, unknown>): VideoTask {
     taskId: String(record.id || ""),
     status: normalizeTaskStatus(record.status),
     progress: Number(record.progress || 0),
-    videoUrl: record.video_url ? String(record.video_url) : undefined,
-    localVideoPath: record.local_video_path ? String(record.local_video_path) : undefined,
+    videoUrl: optionalString(record.video_url),
+    localVideoPath: optionalString(record.local_video_path),
     message: String(record.message || ""),
     createdAt: normalizeTimestamp(record.created_at, 0),
     updatedAt: normalizeTimestamp(record.updated_at, 0),
@@ -61,47 +82,26 @@ export function parseVideoTask(record: Record<string, unknown>): VideoTask {
     pollFailureCount: Number(tracking.poll_failure_count || 0),
     pollCount: Number(tracking.poll_count || 0),
     recoveryAttempts: Number(tracking.recovery_attempts || 0),
-    beatId: record.beat_id ? String(record.beat_id) : undefined,
-    storyId: record.story_id ? String(record.story_id) : undefined,
-    providerId: provider.provider_id ? String(provider.provider_id) : undefined,
-    providerModelId: provider.provider_model_id
-      ? String(provider.provider_model_id)
-      : undefined,
-    providerFormat: provider.provider_format
-      ? String(provider.provider_format)
-      : undefined,
-    model: config.model ? String(config.model) : undefined,
-    prompt: config.prompt ? String(config.prompt) : undefined,
-    parameters: config.parameters
-      ? (typeof config.parameters === "string"
-        ? (() => { try { return JSON.parse(config.parameters as string) as Record<string, unknown>; } catch (e) { errorLogger.warn("[VideoTaskParser] parameters JSON parse failed", e); return undefined; } })()
-        : config.parameters as Record<string, unknown>)
-      : undefined,
-    fixedImageUrl: mediaRefs.fixed_image_url
-      ? String(mediaRefs.fixed_image_url)
-      : undefined,
-    fixedImageLockType: mediaRefs.fixed_image_lock_type
-      ? (String(mediaRefs.fixed_image_lock_type) as "character" | "scene")
-      : undefined,
-    referenceVideoUrl: mediaRefs.reference_video_url
-      ? String(mediaRefs.reference_video_url)
-      : undefined,
-    referenceVideoMimicryLevel: mediaRefs.reference_video_mimicry_level
-      ? (String(mediaRefs.reference_video_mimicry_level) as
-          | "light"
-          | "medium"
-          | "deep")
-      : undefined,
-    templateId: config.template_id ? String(config.template_id) : undefined,
-    templateShots: config.template_shots
-      ? String(config.template_shots)
-      : undefined,
-    storyTitle: config.story_title ? String(config.story_title) : undefined,
-    beatTitle: config.beat_title ? String(config.beat_title) : undefined,
-    apiUrl: provider.api_url ? String(provider.api_url) : undefined,
-    apiEndpoint: provider.api_endpoint ? String(provider.api_endpoint) : undefined,
-    urlObtainedAt: tracking.url_obtained_at ? Number(tracking.url_obtained_at) : undefined,
-    urlTtl: tracking.url_ttl ? Number(tracking.url_ttl) : undefined,
+    beatId: optionalString(record.beat_id),
+    storyId: optionalString(record.story_id),
+    providerId: optionalString(provider.provider_id),
+    providerModelId: optionalString(provider.provider_model_id),
+    providerFormat: optionalString(provider.provider_format),
+    model: optionalString(config.model),
+    prompt: optionalString(config.prompt),
+    parameters: parseParametersField(config.parameters),
+    fixedImageUrl: optionalString(mediaRefs.fixed_image_url),
+    fixedImageLockType: optionalString(mediaRefs.fixed_image_lock_type) as "character" | "scene" | undefined,
+    referenceVideoUrl: optionalString(mediaRefs.reference_video_url),
+    referenceVideoMimicryLevel: optionalString(mediaRefs.reference_video_mimicry_level) as "light" | "medium" | "deep" | undefined,
+    templateId: optionalString(config.template_id),
+    templateShots: optionalString(config.template_shots),
+    storyTitle: optionalString(config.story_title),
+    beatTitle: optionalString(config.beat_title),
+    apiUrl: optionalString(provider.api_url),
+    apiEndpoint: optionalString(provider.api_endpoint),
+    urlObtainedAt: optionalNumber(tracking.url_obtained_at),
+    urlTtl: optionalNumber(tracking.url_ttl),
   };
 }
 
@@ -200,6 +200,30 @@ export function buildTrackingJson(task: Partial<VideoTask>, createdAtSec?: numbe
   return JSON.stringify(tracking);
 }
 
+function processFixedValue(jsKey: string, value: unknown): unknown {
+  if (jsKey === "status" && typeof value === "string") {
+    return toStorageStatus(value);
+  }
+  return value;
+}
+
+function processTrackingValue(key: string, value: unknown): unknown {
+  if (key !== "last_polled_at" && key !== "expires_at") return value;
+  if (typeof value === "string") return toStorageTimestamp(value) ?? value;
+  if (typeof value === "number" && value > 1e12) return Math.floor(value / 1000);
+  return value;
+}
+
+function processJsonValue(target: JsonContainerTarget, value: unknown): unknown {
+  if (target.container === "tracking") {
+    return processTrackingValue(target.key, value);
+  }
+  if (target.key === "parameters" && typeof value === "object" && value !== null) {
+    return JSON.stringify(value);
+  }
+  return value;
+}
+
 export function buildUpdateSets(updates: Partial<VideoTask>): { sql: string; params: unknown[] } {
   const fixedSets: string[] = [];
   const fixedValues: unknown[] = [];
@@ -210,27 +234,14 @@ export function buildUpdateSets(updates: Partial<VideoTask>): { sql: string; par
     if (value === undefined) continue;
 
     if (target.type === "fixed") {
-      let processedValue = value;
-      if (jsKey === "status" && typeof value === "string") {
-        processedValue = toStorageStatus(value);
-      }
+      const processedValue = processFixedValue(jsKey, value);
       fixedSets.push(`${target.column} = ?`);
       fixedValues.push(processedValue === null || processedValue === undefined ? null : processedValue);
     } else {
       if (!containerUpdates[target.container]) {
         containerUpdates[target.container] = [];
       }
-      let processedValue = value;
-      if (target.container === "tracking") {
-        if ((target.key === "last_polled_at" || target.key === "expires_at") && typeof value === "string") {
-          processedValue = toStorageTimestamp(value) ?? value;
-        } else if ((target.key === "last_polled_at" || target.key === "expires_at") && typeof value === "number" && value > 1e12) {
-          processedValue = Math.floor(value / 1000);
-        }
-      }
-      if (target.key === "parameters" && typeof value === "object" && value !== null) {
-        processedValue = JSON.stringify(value);
-      }
+      const processedValue = processJsonValue(target, value);
       containerUpdates[target.container]!.push({ key: target.key, value: processedValue });
     }
   }

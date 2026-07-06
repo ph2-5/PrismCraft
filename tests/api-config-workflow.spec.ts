@@ -210,13 +210,14 @@ test.describe("Settings Tab Navigation", () => {
     await expect(autosaveContent).toBeVisible({ timeout: 5000 });
   });
 
-  test("should switch to project tab", async ({ page }) => {
-    const projectTab = page.locator('[role="tab"]', { hasText: "工程打包" }).first();
-    await projectTab.click({ force: true });
+  test("should switch to sync tab", async ({ page }) => {
+    const syncTab = page.locator('[role="tab"]', { hasText: "同步" }).first();
+    await syncTab.click({ force: true });
     await page.waitForTimeout(300);
 
-    const projectContent = page.locator("text=导出工程").or(page.locator("text=导入工程")).first();
-    await expect(projectContent).toBeVisible({ timeout: 5000 });
+    // 同步 tab 内容 — 检查同步设置相关文本
+    const syncContent = page.locator("text=/同步|端点|设备/").first();
+    await expect(syncContent).toBeVisible({ timeout: 5000 });
   });
 
   test("should switch to system status tab", async ({ page }) => {

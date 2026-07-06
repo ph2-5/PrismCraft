@@ -53,17 +53,15 @@ test.describe("Beat Detail Page via Story Editor", () => {
   });
 
   test("should navigate to beat detail via edit button", async ({ page }) => {
-    // 使用 clickButtonByText 变通方案（原生 click 在 Story 页面会挂起）
-    await clickButtonByText(page, "编辑");
+    // Story 页面没有显式"编辑"按钮，beat 卡片本身 onClick 触发编辑（ProfessionalModeEditor.tsx）。
+    // 点击 beat 卡片本身（第一个 .timeline-card 是 beat，dashed 边框的 "+" 是添加按钮）
+    const beatCard = page.locator(".timeline-card:not([style*='dashed'])").first();
+    await beatCard.click({ force: true });
     await page.waitForTimeout(1000);
 
-    // 编辑可能打开对话框或导航到详情页
-    const dialog = page.locator('[role="dialog"]').first();
-    const detailPage = page.locator("text=/分镜|Beat|视频预览|生成视频/").first();
-
-    const dialogVisible = await dialog.isVisible({ timeout: 3000 }).catch(() => false);
-    const detailVisible = await detailPage.isVisible({ timeout: 3000 }).catch(() => false);
-    expect(dialogVisible || detailVisible).toBe(true);
+    // 验证 BeatDetailEditor 已显示 — 检查其独特的 section-label 文本
+    const beatDetail = page.locator("text=/元素绑定|一致性检查/").first();
+    await expect(beatDetail).toBeVisible({ timeout: 5000 });
   });
 
   // Story 页面没有显式"编辑"按钮，beat 卡片本身 onClick 触发编辑（ProfessionalModeEditor.tsx）。
@@ -97,8 +95,9 @@ test.describe("Beat Detail Page Console Errors", () => {
 
     const getErrors = captureConsoleErrors(page);
 
-    // 尝试通过编辑进入详情
-    await clickButtonByText(page, "编辑");
+    // 点击 beat 卡片进入详情（无显式"编辑"按钮，beat 卡片本身 onClick 触发编辑）
+    const beatCard = page.locator(".timeline-card:not([style*='dashed'])").first();
+    await beatCard.click({ force: true });
     await page.waitForTimeout(1000);
 
     const criticalErrors = getErrors();

@@ -1,8 +1,5 @@
 import { useState, useRef } from "react";
-import { Loader2, Sparkles, Link2 } from "lucide-react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
-import { resolveMediaUrl } from "@/shared/utils/image-url";
-import { t } from "@/shared/constants/messages";
 import { PromptFloatingBall } from "../../prompt-editor";
 import type { PromptEditorContext } from "../../prompt-editor";
 import { StepIndicator } from "./StepIndicator";
@@ -10,6 +7,14 @@ import { KeyframeStepContent } from "./KeyframeStepContent";
 import { FramePairStepContent } from "./FramePairStepContent";
 import { VideoStepContent } from "./VideoStepContent";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
+import {
+  runWithErrorHandling,
+  PrevBeatKeyframeBanner,
+  OneClickGenerateButton,
+  buildStepInfos,
+  resolveActiveStep,
+  createFileSelectHandler,
+} from "./KeyframePanelParts";
 
 interface KeyframePanelProps {
   beat: StoryBeat;
@@ -70,109 +75,55 @@ export function KeyframePanel({
     !!beat.framePair?.lastFrame?.imageUrl;
   const hasVideo = !!beat.videoGen?.videoUrl;
 
-  const activeStep = hasVideo ? 2 : hasFramePair ? 2 : hasKeyframe ? 1 : 0;
+  const activeStep = resolveActiveStep(hasKeyframe, hasFramePair, hasVideo);
+  const stepInfos = buildStepInfos({ hasKeyframe, hasFramePair, hasVideo });
 
-  const stepInfos = [
-    {
-      id: "keyframe",
-      label: t("keyframe.stepKeyframe"),
-      completed: hasKeyframe,
-    },
-    {
-      id: "framePair",
-      label: t("keyframe.stepFramePair"),
-      completed: hasFramePair,
-    },
-    {
-      id: "video",
-      label: t("keyframe.stepVideo"),
-      completed: hasVideo,
-    },
-  ];
+  const { handleFileSelect, handlePreEditGenerate } = createFileSelectHandler(
+    setExpandedPrompt,
+  );
 
-  const handleFileSelect = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    handler?: (file: File) => void,
-  ) => {
-    const file = e.target.files?.[0];
-    if (file && handler) {
-      handler(file);
-    }
-    e.target.value = "";
-  };
-
-  const handlePreEditGenerate = (context: PromptEditorContext) => {
-    setExpandedPrompt(context);
-  };
-
-  const handleConfirmKeyframeGenerate = async (
+  const handleConfirmKeyframeGenerate = (
     _context: PromptEditorContext,
     _prompt: string,
-  ) => {
-    try {
-      setExpandedPrompt(null);
-      await onGenerateKeyframe();
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : t("error.keyframeBatchFailed");
-      showError(t("error.keyframeBatchFailed"), message);
-    }
-  };
+  ) =>
+    runWithErrorHandling({
+      action: onGenerateKeyframe,
+      showError,
+      onBeforeRun: () => setExpandedPrompt(null),
+    });
 
-  const handleConfirmFramePairGenerate = async (
+  const handleConfirmFramePairGenerate = (
     _context: PromptEditorContext,
     _prompt: string,
-  ) => {
-    try {
-      setExpandedPrompt(null);
-      await onGenerateFramePair();
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : t("error.keyframeBatchFailed");
-      showError(t("error.keyframeBatchFailed"), message);
-    }
-  };
+  ) =>
+    runWithErrorHandling({
+      action: onGenerateFramePair,
+      showError,
+      onBeforeRun: () => setExpandedPrompt(null),
+    });
 
-  const handleOneClickGenerate = async () => {
-    try {
-      if (!hasKeyframe) {
-        await onGenerateKeyframe();
-      }
-      if (!hasFramePair) {
-        await onGenerateFramePair();
-      }
-      if (!hasVideo) {
-        await onGenerateVideo();
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : t("error.keyframeBatchFailed");
-      showError(t("error.keyframeBatchFailed"), message);
-    }
-  };
+  const handleOneClickGenerate = () =>
+    runWithErrorHandling({
+      action: async () => {
+        if (!hasKeyframe) await onGenerateKeyframe();
+        if (!hasFramePair) await onGenerateFramePair();
+        if (!hasVideo) await onGenerateVideo();
+      },
+      showError,
+    });
 
   const handlePromptGenerated = (
     _context: PromptEditorContext,
     _prompt: string,
   ) => {};
 
+  const showPrevBeatBanner =
+    !isFirstBeat && hasPrevKeyframe && !!prevBeat?.keyframe?.imageUrl;
+
   return (
     <div className="space-y-3">
-      {!isFirstBeat && hasPrevKeyframe && prevBeat?.keyframe?.imageUrl && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card2 rounded-lg p-2">
-          <Link2 className="w-3 h-3" />
-          <span>{t("keyframe.prevBeatKeyframe")}</span>
-          <img
-            src={
-              resolveMediaUrl(
-                prevBeat.localKeyframePath,
-                prevBeat.keyframe?.imageUrl,
-              ) || ""
-            }
-            alt={t("keyframe.prevBeatKeyframe")}
-            className="w-8 h-8 rounded object-cover border border-border"
-          />
-        </div>
+      {showPrevBeatBanner && prevBeat && (
+        <PrevBeatKeyframeBanner prevBeat={prevBeat} />
       )}
 
       <StepIndicator
@@ -234,19 +185,10 @@ export function KeyframePanel({
         onFileSelect={handleFileSelect}
       />
 
-      <button
-        type="button"
-        className="btn btn-primary w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-medium"
+      <OneClickGenerateButton
+        isGenerating={isGenerating}
         onClick={handleOneClickGenerate}
-        disabled={isGenerating}
-      >
-        {isGenerating ? (
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-        ) : (
-          <Sparkles className="w-4 h-4 mr-2" />
-        )}
-        {t("keyframe.oneClickGenerate")}
-      </button>
+      />
 
       <PromptFloatingBall
         beat={beat}

@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   npm_config_fetch_timeout: 600000
   npm_config_fetch_retry_mintimeout: 20000
@@ -103,21 +107,33 @@ jobs:
             fi
           done
 
-      - name: Run npm audit
-        run: npm audit --audit-level=critical || echo "非 critical 漏洞均为 devDependencies 传递依赖，不影响生产代码"
+      - name: Run npm audit (critical vulnerabilities fail the build)
+        run: npm audit --audit-level=critical
 
-      - name: Secret Scan
+      - name: Secret Scan (hardcoded secrets fail the build)
         run: |
           echo "Checking for hardcoded secrets..."
-          grep -r -n -E "(api[_-]?key|apikey|secret[_-]?key|secretkey|password|token)\s*[=:]\s*['\"][^'\"]{10,}['\"]" \
+          # Exclude test files (mock tokens) and require alphanumeric start (skip template literals ${...})
+          if grep -r -n -E "(api[_-]?key|apikey|secret[_-]?key|secretkey|password|token)\s*[=:]\s*['\"][a-zA-Z0-9][^'\"]{9,}['\"]" \
             --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
             --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist \
-            . || echo "No hardcoded secrets found"
+            --exclude-dir=__tests__ --exclude="*.test.*" --exclude="*.spec.*" \
+            .; then
+            echo "::error::Hardcoded secrets detected — failing the build"
+            exit 1
+          else
+            echo "✅ No hardcoded secrets found"
+          fi
 
-          grep -r -n -E "-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----" \
+          if grep -r -n -E "-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----" \
             --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
             --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist \
-            . || echo "No private keys found"
+            .; then
+            echo "::error::Private key detected — failing the build"
+            exit 1
+          else
+            echo "✅ No private keys found"
+          fi
 
   unit-tests:
     runs-on: ubuntu-latest

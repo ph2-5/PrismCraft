@@ -28,7 +28,7 @@ const MODAL_FILES = [
   "src/modules/video/task-management/presentation/video-task-manager-ui/task-detail-dialog.tsx",
   "src/app/quick-generate/TemplateSelectDialog.tsx",
   "src/app/asset-library/AssetEditDialog.tsx",
-  "src/app/asset-library/AssetCollectionDialogs.tsx",
+  "src/app/asset-library/AssetCollectionDialogsParts.tsx",
   "src/modules/story/template/presentation/VersionDialog.tsx",
   "src/modules/sync/presentation/SyncConflictPanel.tsx",
   "src/modules/sync/presentation/SyncSettingsPanel.tsx",

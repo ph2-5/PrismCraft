@@ -73,6 +73,13 @@ describe("R174: 装饰性 emoji 必须 aria-hidden", () => {
         if (!source.includes(emoji)) continue;
         const lines = source.split("\n").filter((l) => l.includes(emoji));
         for (const line of lines) {
+          // Skip lines where emoji is inside a JSX prop string value (e.g., emptyEmoji="🌅")
+          // The rendering component handles aria-hidden for these
+          const emojiIdx = line.indexOf(emoji);
+          const propQuoteIdx = line.indexOf('="');
+          if (propQuoteIdx !== -1 && propQuoteIdx < emojiIdx && !line.includes(">")) {
+            continue;
+          }
           if (!line.includes('aria-hidden="true"')) {
             const rel = file.replace(process.cwd() + "\\", "").replace(/\\/g, "/");
             offenders.push(`${rel}: emoji "${emoji}" 缺少 aria-hidden: ${line.trim()}`);
@@ -94,6 +101,12 @@ describe("R174: 装饰性 emoji 必须 aria-hidden", () => {
         if (source.includes(emoji)) {
           const lines = source.split("\n").filter((l) => l.includes(emoji));
           for (const line of lines) {
+            // Skip lines where emoji is inside a JSX prop string value (e.g., emptyEmoji="🌅")
+            const emojiIdx = line.indexOf(emoji);
+            const propQuoteIdx = line.indexOf('="');
+            if (propQuoteIdx !== -1 && propQuoteIdx < emojiIdx && !line.includes(">")) {
+              continue;
+            }
             expect(
               line.includes('aria-hidden="true"'),
               `${file}: emoji "${emoji}" 所在行缺少 aria-hidden="true"：${line.trim()}`,

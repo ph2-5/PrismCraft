@@ -79,6 +79,47 @@ async function deleteExcludingIds(table: string, idColumn: string, keepIds: stri
   );
 }
 
+interface ImportItemsOptions<T> {
+  items: T[];
+  createFn: (item: T) => Promise<unknown>;
+  getId?: (item: T) => string | undefined;
+  errorCode: string;
+  errorLabel: string;
+  replaceTable?: { table: string; idColumn: string };
+  mergeStrategy: MergeStrategy;
+  onReplaceAll?: () => Promise<void>;
+}
+
+async function importItems<T>(opts: ImportItemsOptions<T>): Promise<{ count: number; errors: string[] }> {
+  const { items, createFn, getId, errorCode, errorLabel, replaceTable, mergeStrategy, onReplaceAll } = opts;
+  const errors: string[] = [];
+  const importedIds: string[] = [];
+  let count = 0;
+
+  if (mergeStrategy === "replace" && onReplaceAll && items.length > 0) {
+    await onReplaceAll();
+  }
+
+  for (const item of items) {
+    try {
+      await createFn(item);
+      count++;
+      const id = getId?.(item);
+      if (id) importedIds.push(id);
+    } catch (e) {
+      const msg = `[Import] ${errorLabel} skip: ${e instanceof Error ? e.message : String(e)}`;
+      errorLogger.warn({ code: errorCode, message: msg }, String(e));
+      errors.push(msg);
+    }
+  }
+
+  if (mergeStrategy === "replace" && replaceTable && importedIds.length > 0) {
+    await deleteExcludingIds(replaceTable.table, replaceTable.idColumn, importedIds);
+  }
+
+  return { count, errors };
+}
+
 export async function importData(
   data: unknown,
   options: { mergeStrategy?: MergeStrategy } = {},
@@ -108,97 +149,68 @@ export async function importData(
     Object.assign(imported, storageResult);
 
     if (validData.videoTemplates?.length) {
-      const importedIds: string[] = [];
-      let count = 0;
-      for (const template of validData.videoTemplates) {
-        try {
-          await container.templateStorage.createVideoTemplate(template);
-          count++;
-          if (template.id && typeof template.id === "string") {
-            importedIds.push(template.id);
-          }
-        } catch (e) {
-          const msg = `[Import] videoTemplate skip: ${e instanceof Error ? e.message : String(e)}`;
-          errorLogger.warn({ code: "IMPORT_VIDEO_TEMPLATE_SKIP", message: msg }, String(e));
-          errors.push(msg);
-        }
-      }
-      if (mergeStrategy === "replace" && importedIds.length > 0) {
-        await deleteExcludingIds("video_templates", "id", importedIds);
-      }
-      imported.videoTemplates = count;
+      const result = await importItems({
+        items: validData.videoTemplates,
+        createFn: (template) => container.templateStorage.createVideoTemplate(template),
+        getId: (template) => (template.id && typeof template.id === "string" ? template.id : undefined),
+        errorCode: "IMPORT_VIDEO_TEMPLATE_SKIP",
+        errorLabel: "videoTemplate",
+        replaceTable: { table: "video_templates", idColumn: "id" },
+        mergeStrategy,
+      });
+      errors.push(...result.errors);
+      imported.videoTemplates = result.count;
     }
 
     if (validData.autoSaves?.length) {
-      const importedIds: string[] = [];
-      let count = 0;
-      for (const save of validData.autoSaves) {
-        try {
-          await container.autoSaveStorage.createAutoSave({
-            id: save.id as string,
-            type: save.type as string,
-            data: (save as Record<string, unknown>).data_json || save.data,
-            timestamp: save.timestamp as number,
-          });
-          count++;
-          if (save.id && typeof save.id === "string") {
-            importedIds.push(save.id as string);
-          }
-        } catch (e) {
-          const msg = `[Import] autoSave skip: ${e instanceof Error ? e.message : String(e)}`;
-          errorLogger.warn({ code: "IMPORT_AUTO_SAVE_SKIP", message: msg }, String(e));
-          errors.push(msg);
-        }
-      }
-      if (mergeStrategy === "replace" && importedIds.length > 0) {
-        await deleteExcludingIds("auto_saves", "id", importedIds);
-      }
-      imported.autoSaves = count;
+      const result = await importItems({
+        items: validData.autoSaves,
+        createFn: (save) => container.autoSaveStorage.createAutoSave({
+          id: save.id as string,
+          type: save.type as string,
+          data: (save as Record<string, unknown>).data_json || save.data,
+          timestamp: save.timestamp as number,
+        }),
+        getId: (save) => (save.id && typeof save.id === "string" ? save.id : undefined),
+        errorCode: "IMPORT_AUTO_SAVE_SKIP",
+        errorLabel: "autoSave",
+        replaceTable: { table: "auto_saves", idColumn: "id" },
+        mergeStrategy,
+      });
+      errors.push(...result.errors);
+      imported.autoSaves = result.count;
     }
 
     if (validData.errorLogs?.length) {
-      if (mergeStrategy === "replace") {
-        await safeRun("DELETE FROM error_logs");
-      }
-      let count = 0;
-      for (const log of validData.errorLogs) {
-        try {
-          await container.errorLogStorage.addErrorLog({
-            message: log.message as string,
-            stack: log.stack as string | undefined,
-            timestamp: log.timestamp as number,
-            component: log.component as string | undefined,
-          });
-          count++;
-        } catch (e) {
-          const msg = `[Import] errorLog skip: ${e instanceof Error ? e.message : String(e)}`;
-          errorLogger.warn({ code: "IMPORT_ERROR_LOG_SKIP", message: msg }, String(e));
-          errors.push(msg);
-        }
-      }
-      imported.errorLogs = count;
+      const result = await importItems({
+        items: validData.errorLogs,
+        createFn: (log) => container.errorLogStorage.addErrorLog({
+          message: log.message as string,
+          stack: log.stack as string | undefined,
+          timestamp: log.timestamp as number,
+          component: log.component as string | undefined,
+        }),
+        errorCode: "IMPORT_ERROR_LOG_SKIP",
+        errorLabel: "errorLog",
+        mergeStrategy,
+        onReplaceAll: async () => { await safeRun("DELETE FROM error_logs"); },
+      });
+      errors.push(...result.errors);
+      imported.errorLogs = result.count;
     }
 
     if (validData.sessions?.length) {
-      const importedKeys: string[] = [];
-      let count = 0;
-      for (const session of validData.sessions) {
-        try {
-          await container.sessionStorage.setSession(session.key as string, session.value);
-          count++;
-          if (session.key && typeof session.key === "string") {
-            importedKeys.push(session.key as string);
-          }
-        } catch (e) {
-          const msg = `[Import] session skip: ${e instanceof Error ? e.message : String(e)}`;
-          errorLogger.warn({ code: "IMPORT_SESSION_SKIP", message: msg }, String(e));
-          errors.push(msg);
-        }
-      }
-      if (mergeStrategy === "replace" && importedKeys.length > 0) {
-        await deleteExcludingIds("sessions", "key", importedKeys);
-      }
-      imported.sessions = count;
+      const result = await importItems({
+        items: validData.sessions,
+        createFn: (session) => container.sessionStorage.setSession(session.key as string, session.value),
+        getId: (session) => (session.key && typeof session.key === "string" ? session.key : undefined),
+        errorCode: "IMPORT_SESSION_SKIP",
+        errorLabel: "session",
+        replaceTable: { table: "sessions", idColumn: "key" },
+        mergeStrategy,
+      });
+      errors.push(...result.errors);
+      imported.sessions = result.count;
     }
 
     return ok({ success: true, imported, errors });

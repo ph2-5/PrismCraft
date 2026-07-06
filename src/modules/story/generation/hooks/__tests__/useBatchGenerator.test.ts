@@ -13,6 +13,7 @@ vi.mock("@/shared/utils/confirm", () => ({
 
 vi.mock("@/shared/constants", () => ({
   t: vi.fn((key: string) => key),
+  BATCH_OPERATION_INTERVAL_MS: 0,
 }));
 
 vi.mock("@/domain/utils", () => ({

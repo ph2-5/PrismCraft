@@ -105,6 +105,7 @@ const noDirectDbIpcPlugin = {
           "dbBatchInsert",
           "dbGet",
           "dbTransaction",
+          "saveImage",
         ]);
 
         function isElectronApiObject(obj) {

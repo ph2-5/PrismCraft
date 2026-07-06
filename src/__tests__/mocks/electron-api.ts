@@ -15,7 +15,6 @@ function createElectronApiMock() {
     getConfig: vi.fn<(key: string) => string | null>().mockReturnValue(null),
     setConfig: vi.fn<(key: string, value: unknown) => boolean>().mockReturnValue(true),
 
-    saveImage: vi.fn().mockResolvedValue("/mock/path.png"),
     deleteFile: vi.fn().mockResolvedValue(undefined),
     readFileAsBase64: vi.fn().mockResolvedValue("data:image/png;base64,"),
     getAssetsDir: vi.fn().mockResolvedValue("/mock/assets"),

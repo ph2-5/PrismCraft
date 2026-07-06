@@ -33,7 +33,7 @@ const IPC_PERMISSIONS: Record<string, string[]> = {
   ],
   READWRITE: [
     "db:run", "db:batch-insert", "db:init", "db:save",
-    "assets:save-image", "assets:save-buffer", "assets:copy-file",
+    "assets:save-buffer", "assets:copy-file",
     "fs:write-file", "image:normalize", "config:set",
     "secure-config:save", "secure-config:delete",
   ],
@@ -127,7 +127,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
       return false;
     }
   },
-  saveImage: createSecureIpcInvoker("assets:save-image"),
   deleteFile: createSecureIpcInvoker("assets:delete-file"),
   readFileAsBase64: createSecureIpcInvoker("assets:read-file-base64"),
   getAssetsDir: createSecureIpcInvoker("assets:get-dir"),

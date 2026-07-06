@@ -16,7 +16,6 @@ declare global {
       };
       getConfig: (key: string) => string | null;
       setConfig: (key: string, value: unknown) => boolean;
-      saveImage: (base64Data: string, subDir: string, filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
       deleteFile: (filePath: string) => Promise<{ success: boolean }>;
       readFileAsBase64: (filePath: string) => Promise<{ success: boolean; base64?: string }>;
       getAssetsDir: () => Promise<{ success: boolean; dir: string }>;

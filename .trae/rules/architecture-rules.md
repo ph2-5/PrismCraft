@@ -81,8 +81,8 @@ module-name/
 
 ## IPC Channel Separation (CRITICAL)
 
-- **Allowed direct IPC in modules**: `saveImage`, `saveFileDialog`, `openFileDialog`, `secureConfigResolve` (desktop-only). File operations (`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`) and config read/write (`getConfig`, `setConfig`) MUST go through `@/shared/file-http` unified layer (HTTP `/api/file/*` + `/api/config/*` with IPC fallback).
-- **Forbidden IPC in modules**: `dbQuery`, `dbRun`, `dbBatchInsert`, `dbGet`, `dbTransaction` (enforced by ESLint `no-direct-db-ipc` rule)
+- **Allowed direct IPC in modules**: `saveFileDialog`, `openFileDialog`, `secureConfigResolve` (desktop-only). File operations (`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`) and config read/write (`getConfig`, `setConfig`) MUST go through `@/shared/file-http` unified layer (HTTP `/api/file/*` + `/api/config/*` with IPC fallback).
+- **Forbidden IPC in modules**: `dbQuery`, `dbRun`, `dbBatchInsert`, `dbGet`, `dbTransaction`, `saveImage` (enforced by ESLint `no-direct-db-ipc` rule)
 
 ### File & Config Unified HTTP Layer
 

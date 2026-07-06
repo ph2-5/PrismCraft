@@ -343,7 +343,7 @@ const registry = getTokenRegistry(); // Array<{ key, id, category }>
 
 Business logic MUST go through HTTP API, not direct IPC database operations:
 
-- **Allowed direct IPC in modules**: `saveImage`, `saveFileDialog`, `openFileDialog`, `secureConfigResolve` (desktop-only). File operations (`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`) and config read/write (`getConfig`, `setConfig`) MUST go through `@/shared/file-http` unified layer (HTTP `/api/file/*` + `/api/config/*` with IPC fallback).
+- **Allowed direct IPC in modules**: `saveFileDialog`, `openFileDialog`, `secureConfigResolve` (desktop-only). File operations (`writeFile`, `readFile`, `getFileInfo`, `getCacheDirectory`, `getDiskSpace`, `fileExists`, `deleteFile`) and config read/write (`getConfig`, `setConfig`) MUST go through `@/shared/file-http` unified layer (HTTP `/api/file/*` + `/api/config/*` with IPC fallback).
 - **Forbidden IPC in modules**: `dbQuery`, `dbRun`, `dbBatchInsert`, `dbGet`, `dbTransaction` (enforced by ESLint `no-direct-db-ipc` rule)
 
 ### DI Container Usage

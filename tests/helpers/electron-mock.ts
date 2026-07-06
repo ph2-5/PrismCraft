@@ -250,7 +250,6 @@ window.electronAPI = {
   secureConfigDelete: async function() { return { success: true }; },
   secureConfigResolve: async function() { return { success: true, data: null }; },
   secureConfigHas: async function() { return { success: true, data: false }; },
-  saveImage: async function() { return { success: true, data: "" }; },
   deleteFile: async function() { return { success: true }; },
   readFileAsBase64: async function() { return { success: true, data: "" }; },
   getAssetsDir: async function() { return { success: true, data: "" }; },

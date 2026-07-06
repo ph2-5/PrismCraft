@@ -66,32 +66,6 @@ export async function ensureVideoCacheDir(): Promise<string> {
   return VIDEO_CACHE_DIR;
 }
 
-async function saveBase64Image(
-  base64Data: string,
-  subDir: string,
-  filename: string,
-): Promise<string> {
-  await ensureAssetsDir();
-  if (!isFilenameSafe(filename)) {
-    throw new Error("Invalid filename: " + filename);
-  }
-  const targetDir = SUB_DIRS[subDir] || ASSETS_BASE_DIR;
-  const matches = base64Data.match(/^data:image\/(\w+);base64,/);
-  let ext = "png";
-  let pureBase64 = base64Data;
-  if (matches) {
-    ext = matches[1] === "jpeg" ? "jpg" : matches[1]!;
-    pureBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
-  }
-  const finalFilename = filename.endsWith(`.${ext}`)
-    ? filename
-    : `${filename}.${ext}`;
-  const filePath = path.join(targetDir, finalFilename);
-  const buffer = Buffer.from(pureBase64, "base64");
-  await fsp.writeFile(filePath, buffer);
-  return filePath;
-}
-
 async function deleteAssetFile(filePath: string): Promise<boolean> {
   if (!(await isPathAllowed(filePath))) {
     logger.error("[Assets] Path not allowed:", undefined, { path: filePath });
@@ -142,25 +116,6 @@ async function getAssetsDir(): Promise<string> {
 }
 
 export function setupAssetHandlers(): void {
-  ipcMain.handle(
-    "assets:save-image",
-    async (
-      _event: Electron.IpcMainInvokeEvent,
-      { base64Data, subDir, filename }: {
-        base64Data: string;
-        subDir: string;
-        filename: string;
-      },
-    ) => {
-      try {
-        const filePath = await saveBase64Image(base64Data, subDir, filename);
-        return { success: true, filePath };
-      } catch (e) {
-        return { success: false, error: (e as Error).message };
-      }
-    },
-  );
-
   ipcMain.handle(
     "assets:delete-file",
     async (

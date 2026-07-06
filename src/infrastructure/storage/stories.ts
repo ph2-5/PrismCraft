@@ -10,6 +10,74 @@ function asRecord(obj: unknown): Record<string, unknown> {
   return (obj && typeof obj === "object" ? obj : {}) as Record<string, unknown>;
 }
 
+type Statement = { sql: string; params: unknown[] };
+
+function isNonEmptyArray(value: unknown): value is unknown[] {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function buildCharacterLinkStatements(storyId: string, characters: unknown[]): Statement[] {
+  return characters.map((charId, i) => ({
+    sql: "INSERT OR IGNORE INTO story_characters (story_id, character_id, display_order) VALUES (?, ?, ?)",
+    params: [storyId, charId, i],
+  }));
+}
+
+function buildSceneLinkStatements(storyId: string, scenes: unknown[]): Statement[] {
+  return scenes.map((sceneId, i) => ({
+    sql: "INSERT OR IGNORE INTO story_scenes (story_id, scene_id, display_order) VALUES (?, ?, ?)",
+    params: [storyId, sceneId, i],
+  }));
+}
+
+function buildElementLinkStatements(
+  storyId: string,
+  elementIds: unknown[],
+  elementBindings?: Record<string, unknown>,
+): Statement[] {
+  return elementIds.map((elId) => {
+    const binding = elementBindings?.[elId as string];
+    return {
+      sql: "INSERT OR IGNORE INTO story_elements (story_id, element_id, binding_config) VALUES (?, ?, ?)",
+      params: [storyId, elId, binding ? JSON.stringify(binding) : null],
+    };
+  });
+}
+
+function buildBeatInsertStatements(
+  storyId: string,
+  beats: unknown[],
+  now: number,
+): Statement[] {
+  return beats.map((beat, i) => {
+    const beatRecord = asRecord(beat);
+    const beatId = (beatRecord.id as string) || `beat_${storyId}_${i}_${Date.now()}`;
+    return buildBeatInsert(beatId, storyId, i, beatRecord, now);
+  });
+}
+
+function buildBeatRemovalStatements(beatIds: string[]): Statement[] {
+  const statements: Statement[] = [];
+  for (const removedId of beatIds) {
+    statements.push(
+      { sql: "DELETE FROM video_tasks WHERE beat_id = ?", params: [removedId] },
+      { sql: "DELETE FROM generation_tasks WHERE beat_id = ?", params: [removedId] },
+      { sql: "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?", params: [removedId] },
+      { sql: "DELETE FROM story_beats WHERE id = ?", params: [removedId] },
+    );
+  }
+  return statements;
+}
+
+async function findRemovedBeatIds(storyId: string, newBeats: unknown[]): Promise<string[]> {
+  const newBeatIds = new Set(newBeats.map((b) => asRecord(b).id as string).filter(Boolean));
+  const existingBeats = await safeQuery<{ id: string }>(
+    "SELECT id FROM story_beats WHERE story_id = ?",
+    [storyId],
+  );
+  return existingBeats.map((r) => r.id).filter((bid) => !newBeatIds.has(bid));
+}
+
 function parseStory(record: Record<string, unknown>): Record<string, unknown> {
   const parsed = parseRecordWithTable(record, "stories");
   const fieldMap: Record<string, string> = {
@@ -93,7 +161,7 @@ export const storyStorage = {
       story.id ||
       `story_${crypto.randomUUID()}`;
 
-    const statements: { sql: string; params: unknown[] }[] = [];
+    const statements: Statement[] = [];
     statements.push({
       sql: `INSERT OR IGNORE INTO stories (id, title, description, genre, tone, target_duration, keyframe_chain_valid, style_guide_json, owner_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -112,49 +180,17 @@ export const storyStorage = {
       ],
     });
 
-    if (
-      story.characters &&
-      Array.isArray(story.characters) &&
-      story.characters.length > 0
-    ) {
-      for (let i = 0; i < story.characters.length; i++) {
-        statements.push({
-          sql: `INSERT OR IGNORE INTO story_characters (story_id, character_id, display_order) VALUES (?, ?, ?)`,
-          params: [id, story.characters[i], i],
-        });
-      }
+    if (isNonEmptyArray(story.characters)) {
+      statements.push(...buildCharacterLinkStatements(id, story.characters));
     }
-    if (
-      story.scenes &&
-      Array.isArray(story.scenes) &&
-      story.scenes.length > 0
-    ) {
-      for (let i = 0; i < story.scenes.length; i++) {
-        statements.push({
-          sql: `INSERT OR IGNORE INTO story_scenes (story_id, scene_id, display_order) VALUES (?, ?, ?)`,
-          params: [id, story.scenes[i], i],
-        });
-      }
+    if (isNonEmptyArray(story.scenes)) {
+      statements.push(...buildSceneLinkStatements(id, story.scenes));
     }
-    if (story.beats && Array.isArray(story.beats) && story.beats.length > 0) {
-      for (let i = 0; i < story.beats.length; i++) {
-        const beat = asRecord(story.beats[i]);
-        const beatId = (beat.id as string) || `beat_${id}_${i}_${Date.now()}`;
-        statements.push(buildBeatInsert(beatId, id, i, beat, now));
-      }
+    if (isNonEmptyArray(story.beats)) {
+      statements.push(...buildBeatInsertStatements(id, story.beats, now));
     }
-    if (
-      story.elementIds &&
-      Array.isArray(story.elementIds) &&
-      story.elementIds.length > 0
-    ) {
-      for (const elId of story.elementIds) {
-        const binding = story.elementBindings?.[elId as string];
-        statements.push({
-          sql: `INSERT OR IGNORE INTO story_elements (story_id, element_id, binding_config) VALUES (?, ?, ?)`,
-          params: [id, elId, binding ? JSON.stringify(binding) : null],
-        });
-      }
+    if (isNonEmptyArray(story.elementIds)) {
+      statements.push(...buildElementLinkStatements(id, story.elementIds, story.elementBindings));
     }
 
     await safeTransaction(statements).catch((e) => {
@@ -203,79 +239,30 @@ export const storyStorage = {
       whereParts.push("version = ?");
       values.push(version);
     }
-    const allStatements: { sql: string; params: unknown[] }[] = [
+    const allStatements: Statement[] = [
       {
         sql: `UPDATE stories SET ${sets.join(", ")} WHERE ${whereParts.join(" AND ")}`,
         params: values,
       },
     ];
 
-    if (story.characters !== undefined && Array.isArray(story.characters)) {
-      allStatements.push({
-        sql: "DELETE FROM story_characters WHERE story_id = ?",
-        params: [id],
-      });
-      for (let i = 0; i < story.characters.length; i++) {
-        allStatements.push({
-          sql: "INSERT OR IGNORE INTO story_characters (story_id, character_id, display_order) VALUES (?, ?, ?)",
-          params: [id, story.characters[i], i],
-        });
-      }
+    if (Array.isArray(story.characters)) {
+      allStatements.push({ sql: "DELETE FROM story_characters WHERE story_id = ?", params: [id] });
+      allStatements.push(...buildCharacterLinkStatements(id, story.characters));
     }
-    if (story.scenes !== undefined && Array.isArray(story.scenes)) {
-      allStatements.push({
-        sql: "DELETE FROM story_scenes WHERE story_id = ?",
-        params: [id],
-      });
-      for (let i = 0; i < story.scenes.length; i++) {
-        allStatements.push({
-          sql: "INSERT OR IGNORE INTO story_scenes (story_id, scene_id, display_order) VALUES (?, ?, ?)",
-          params: [id, story.scenes[i], i],
-        });
-      }
+    if (Array.isArray(story.scenes)) {
+      allStatements.push({ sql: "DELETE FROM story_scenes WHERE story_id = ?", params: [id] });
+      allStatements.push(...buildSceneLinkStatements(id, story.scenes));
     }
-    if (story.elementIds !== undefined && Array.isArray(story.elementIds)) {
-      allStatements.push({
-        sql: "DELETE FROM story_elements WHERE story_id = ?",
-        params: [id],
-      });
-      for (const elId of story.elementIds) {
-        const binding = story.elementBindings?.[elId as string];
-        allStatements.push({
-          sql: "INSERT OR IGNORE INTO story_elements (story_id, element_id, binding_config) VALUES (?, ?, ?)",
-          params: [id, elId, binding ? JSON.stringify(binding) : null],
-        });
-      }
+    if (Array.isArray(story.elementIds)) {
+      allStatements.push({ sql: "DELETE FROM story_elements WHERE story_id = ?", params: [id] });
+      allStatements.push(...buildElementLinkStatements(id, story.elementIds, story.elementBindings));
     }
-    if (story.beats !== undefined && Array.isArray(story.beats)) {
-      const newBeatIds = new Set(
-        story.beats
-          .map((b) => asRecord(b).id as string)
-          .filter(Boolean),
-      );
-      const existingBeats = await safeQuery<{ id: string }>(
-        "SELECT id FROM story_beats WHERE story_id = ?",
-        [id],
-      );
-      const removedBeatIds = existingBeats
-        .map((r) => r.id)
-        .filter((bid) => !newBeatIds.has(bid));
-
-      for (const removedId of removedBeatIds) {
-        allStatements.push(
-          { sql: "DELETE FROM video_tasks WHERE beat_id = ?", params: [removedId] },
-          { sql: "DELETE FROM generation_tasks WHERE beat_id = ?", params: [removedId] },
-          { sql: "DELETE FROM media_assets WHERE bound_to_type = 'beat' AND bound_to_id = ?", params: [removedId] },
-          { sql: "DELETE FROM story_beats WHERE id = ?", params: [removedId] },
-        );
-      }
-
+    if (Array.isArray(story.beats)) {
+      const removedBeatIds = await findRemovedBeatIds(id, story.beats);
+      allStatements.push(...buildBeatRemovalStatements(removedBeatIds));
       const beatNow = Math.floor(Date.now() / 1000);
-      for (let i = 0; i < story.beats.length; i++) {
-        const beat = asRecord(story.beats[i]);
-        const beatId = (beat.id as string) || `beat_${id}_${i}_${Date.now()}`;
-        allStatements.push(buildBeatInsert(beatId, id, i, beat, beatNow));
-      }
+      allStatements.push(...buildBeatInsertStatements(id, story.beats, beatNow));
     }
     const results = await safeTransaction(allStatements).catch((e) => {
       errorLogger.error(

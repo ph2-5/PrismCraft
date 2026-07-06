@@ -1,10 +1,15 @@
-import { Camera, Upload, Loader2, RefreshCw } from "lucide-react";
 import { AppCard } from "@/shared/presentation/AppCard";
-import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants/messages";
-import { PromptEditor } from "../../prompt-editor";
 import type { PromptEditorContext } from "../../prompt-editor";
 import type { StoryBeat, Character, Scene } from "@/domain/schemas";
+import {
+  resolveFramePairStatus,
+  getCardClassName,
+  IconCircle,
+  FramePairHeaderActions,
+  FramePreview,
+  ExpandedPromptEditors,
+} from "./FramePairStepContentParts";
 
 interface FramePairStepContentProps {
   beat: StoryBeat;
@@ -60,49 +65,22 @@ export function FramePairStepContent({
   characters,
   scenes,
 }: FramePairStepContentProps) {
-  const status = hasFramePair
-    ? "completed"
-    : isActiveStep && isGenerating
-      ? "generating"
-      : !hasKeyframe
-        ? "pending"
-        : "ready";
+  const status = resolveFramePairStatus({
+    hasFramePair,
+    isActiveStep,
+    isGenerating,
+    hasKeyframe,
+  });
 
   const firstFrame = beat.framePair?.firstFrame;
   const lastFrame = beat.framePair?.lastFrame;
+  const showPreview = hasFramePair && (firstFrame || lastFrame);
 
   return (
-    <AppCard
-      className={`transition-all ${
-        status === "generating"
-          ? "border-primary/50 shadow-lg shadow-primary/10"
-          : status === "completed"
-            ? "border-success/30"
-            : status === "pending"
-              ? "opacity-50"
-              : ""
-      }`}
-    >
+    <AppCard className={`transition-all ${getCardClassName(status)}`}>
       <div className="p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-              status === "completed"
-                ? "bg-success/20 text-success"
-                : status === "generating"
-                  ? "bg-primary/20"
-                  : status === "pending"
-                    ? "bg-muted text-muted-foreground"
-                    : "bg-muted text-muted-foreground"
-            }`}
-            style={status === "generating" ? { color: "var(--primary)" } : undefined}
-          >
-            {status === "generating" ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Camera className="w-4 h-4" />
-            )}
-          </div>
+          <IconCircle status={status} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-foreground">
@@ -121,126 +99,48 @@ export function FramePairStepContent({
               {t("keyframe.framePairDesc")}
             </p>
           </div>
-          <div className="flex gap-2">
-            <input
-              ref={firstFrameInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => onFileSelect(e, onUploadFirstFrame)}
-            />
-            <input
-              ref={lastFrameInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => onFileSelect(e, onUploadLastFrame)}
-            />
-            <button
-              type="button"
-              className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
-              onClick={() => firstFrameInputRef.current?.click()}
-            >
-              <Upload className="w-4 h-4 mr-1" />
-              {t("keyframe.uploadFirstFrame")}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
-              onClick={() => lastFrameInputRef.current?.click()}
-            >
-              <Upload className="w-4 h-4 mr-1" />
-              {t("keyframe.uploadLastFrame")}
-            </button>
-            {!hasFramePair ? (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
-                onClick={() => onPreEditGenerate("firstFrame")}
-                disabled={isGenerating || !hasKeyframe}
-              >
-                {isGenerating && isActiveStep ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <Camera className="w-4 h-4 mr-1" />
-                )}
-                {t("keyframe.generateFramePair")}
-              </button>
-            ) : onRegenerateFramePair ? (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm bg-muted hover:bg-muted/80"
-                onClick={onRegenerateFramePair}
-                disabled={isGenerating}
-              >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                {t("common.regenerate")}
-              </button>
-            ) : null}
-          </div>
+          <FramePairHeaderActions
+            hasFramePair={hasFramePair}
+            isGenerating={isGenerating}
+            isActiveStep={isActiveStep}
+            hasKeyframe={hasKeyframe}
+            firstFrameInputRef={firstFrameInputRef}
+            lastFrameInputRef={lastFrameInputRef}
+            onUploadFirstFrame={onUploadFirstFrame}
+            onUploadLastFrame={onUploadLastFrame}
+            onPreEditGenerate={onPreEditGenerate}
+            onRegenerateFramePair={onRegenerateFramePair}
+            onFileSelect={onFileSelect}
+          />
         </div>
 
-        {hasFramePair && (firstFrame || lastFrame) && (
+        {showPreview && (
           <div className="mt-3 grid grid-cols-2 gap-3">
-            {firstFrame && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  {t("keyframe.firstFrame")}
-                </p>
-                <div className="relative group">
-                  <img
-                    src={resolveMediaUrl(beat.localFirstFramePath, firstFrame.imageUrl) || ""}
-                    alt={t("keyframe.firstFrame")}
-                    className="w-full max-h-48 object-contain rounded-lg border border-border"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
-                </div>
-              </div>
-            )}
-            {lastFrame && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  {t("keyframe.lastFrame")}
-                </p>
-                <div className="relative group">
-                  <img
-                    src={resolveMediaUrl(beat.localLastFramePath, lastFrame.imageUrl) || ""}
-                    alt={t("keyframe.lastFrame")}
-                    className="w-full max-h-48 object-contain rounded-lg border border-border"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
-                </div>
-              </div>
-            )}
+            <FramePreview
+              label={t("keyframe.firstFrame")}
+              imageUrl={firstFrame?.imageUrl}
+              localPath={beat.localFirstFramePath}
+              alt={t("keyframe.firstFrame")}
+            />
+            <FramePreview
+              label={t("keyframe.lastFrame")}
+              imageUrl={lastFrame?.imageUrl}
+              localPath={beat.localLastFramePath}
+              alt={t("keyframe.lastFrame")}
+            />
           </div>
         )}
 
-        <div className="mt-3 space-y-2">
-          {expandedPrompt === "firstFrame" && (
-            <PromptEditor
-              context="firstFrame"
-              beat={beat}
-              onPromptChange={onPromptChange}
-              onConfirmGenerate={onConfirmFramePairGenerate}
-              providerId={providerId}
-              modelId={modelId}
-              characters={characters}
-              scenes={scenes}
-            />
-          )}
-          {expandedPrompt === "lastFrame" && (
-            <PromptEditor
-              context="lastFrame"
-              beat={beat}
-              onPromptChange={onPromptChange}
-              onConfirmGenerate={onConfirmFramePairGenerate}
-              providerId={providerId}
-              modelId={modelId}
-              characters={characters}
-              scenes={scenes}
-            />
-          )}
-        </div>
+        <ExpandedPromptEditors
+          expandedPrompt={expandedPrompt}
+          beat={beat}
+          onPromptChange={onPromptChange}
+          onConfirmFramePairGenerate={onConfirmFramePairGenerate}
+          providerId={providerId}
+          modelId={modelId}
+          characters={characters}
+          scenes={scenes}
+        />
       </div>
     </AppCard>
   );

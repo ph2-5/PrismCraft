@@ -75,6 +75,139 @@ export function normalizeEnumValue(
   return undefined;
 }
 
+interface FieldFixResult {
+  value: unknown;
+  message?: string;
+}
+
+function fixEnumField(
+  rawValue: unknown,
+  aliases: Record<string, string>,
+  validValues: string[],
+  defaultValue: string,
+  fieldName: string,
+): FieldFixResult {
+  const normalized = normalizeEnumValue(
+    rawValue as string,
+    aliases,
+    validValues,
+  );
+  if (normalized && normalized !== rawValue) {
+    return {
+      value: normalized,
+      message: `${fieldName}: "${rawValue}" → "${normalized}"`,
+    };
+  }
+  if (!rawValue) {
+    return {
+      value: defaultValue,
+      message: `${fieldName}: 缺失 → "${defaultValue}" (默认值)`,
+    };
+  }
+  if (!normalized && rawValue) {
+    return {
+      value: defaultValue,
+      message: `${fieldName}: "${rawValue}" 无效 → "${defaultValue}" (默认值)`,
+    };
+  }
+  return { value: normalized };
+}
+
+function fixOptionalEnumField(
+  rawValue: unknown,
+  aliases: Record<string, string>,
+  validValues: string[],
+  defaultValue: string,
+  fieldName: string,
+): FieldFixResult {
+  const normalized = normalizeEnumValue(
+    rawValue as string,
+    aliases,
+    validValues,
+  );
+  if (normalized && normalized !== rawValue) {
+    return {
+      value: normalized,
+      message: `${fieldName}: "${rawValue}" → "${normalized}"`,
+    };
+  }
+  if (!normalized && rawValue) {
+    return {
+      value: defaultValue,
+      message: `${fieldName}: "${rawValue}" 无效 → "${defaultValue}" (默认值)`,
+    };
+  }
+  return { value: normalized };
+}
+
+function fixDurationField(rawValue: unknown): FieldFixResult {
+  if (typeof rawValue === "number") {
+    if (rawValue < 2) {
+      return { value: 2, message: `duration: ${rawValue} → 2 (最小值)` };
+    }
+    if (rawValue > 30) {
+      return { value: 30, message: `duration: ${rawValue} → 30 (最大值)` };
+    }
+    return { value: rawValue };
+  }
+  if (rawValue === undefined || rawValue === null) {
+    return { value: 5, message: "duration: 缺失 → 5 (默认值)" };
+  }
+  return { value: rawValue };
+}
+
+function fixPromptField(
+  prompt: unknown,
+  fixed: Record<string, unknown>,
+): FieldFixResult {
+  if (typeof prompt !== "string" || prompt.length >= 10) {
+    return { value: prompt };
+  }
+  const context = [
+    fixed.shotType ? `${fixed.shotType} shot` : "",
+    fixed.cameraMovement ? `${fixed.cameraMovement} camera` : "",
+    fixed.cameraAngle ? `${fixed.cameraAngle} angle` : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+  if (!context) return { value: prompt };
+  return {
+    value: `${prompt}, ${context}`,
+    message: `prompt: 过短(${prompt.length}字符)，已补充镜头上下文`,
+  };
+}
+
+const VALID_SHOT_TYPES = [
+  "wide",
+  "medium",
+  "close",
+  "extreme_close",
+  "low",
+  "high",
+  "birdseye",
+  "wormseye",
+];
+
+const VALID_CAMERA_MOVEMENTS = [
+  "static",
+  "push",
+  "pull",
+  "pan",
+  "orbit",
+  "crane_up",
+  "crane_down",
+  "tracking",
+];
+
+const VALID_CAMERA_ANGLES = [
+  "eye_level",
+  "low",
+  "high",
+  "birds_eye",
+  "worms_eye",
+  "dutch",
+];
+
 export function fixShotParams(data: Record<string, unknown>): {
   fixed: Record<string, unknown>;
   autoFixed: string[];
@@ -82,113 +215,43 @@ export function fixShotParams(data: Record<string, unknown>): {
   const fixed = { ...data };
   const autoFixed: string[] = [];
 
-  const validShotTypes = [
-    "wide",
-    "medium",
-    "close",
-    "extreme_close",
-    "low",
-    "high",
-    "birdseye",
-    "wormseye",
-  ];
-  const normalizedShotType = normalizeEnumValue(
-    data.shotType as string,
+  const shotTypeFix = fixEnumField(
+    data.shotType,
     SHOT_TYPE_ALIASES,
-    validShotTypes,
+    VALID_SHOT_TYPES,
+    "medium",
+    "shotType",
   );
-  if (normalizedShotType && normalizedShotType !== data.shotType) {
-    fixed.shotType = normalizedShotType;
-    autoFixed.push(`shotType: "${data.shotType}" → "${normalizedShotType}"`);
-  } else if (!data.shotType) {
-    fixed.shotType = "medium";
-    autoFixed.push('shotType: 缺失 → "medium" (默认值)');
-  } else if (!normalizedShotType && data.shotType) {
-    fixed.shotType = "medium";
-    autoFixed.push(`shotType: "${data.shotType}" 无效 → "medium" (默认值)`);
-  }
+  fixed.shotType = shotTypeFix.value;
+  if (shotTypeFix.message) autoFixed.push(shotTypeFix.message);
 
-  const validMovements = [
-    "static",
-    "push",
-    "pull",
-    "pan",
-    "orbit",
-    "crane_up",
-    "crane_down",
-    "tracking",
-  ];
-  const normalizedMovement = normalizeEnumValue(
-    data.cameraMovement as string,
+  const movementFix = fixOptionalEnumField(
+    data.cameraMovement,
     CAMERA_MOVEMENT_ALIASES,
-    validMovements,
+    VALID_CAMERA_MOVEMENTS,
+    "static",
+    "cameraMovement",
   );
-  if (normalizedMovement && normalizedMovement !== data.cameraMovement) {
-    fixed.cameraMovement = normalizedMovement;
-    autoFixed.push(
-      `cameraMovement: "${data.cameraMovement}" → "${normalizedMovement}"`,
-    );
-  } else if (!normalizedMovement && data.cameraMovement) {
-    fixed.cameraMovement = "static";
-    autoFixed.push(
-      `cameraMovement: "${data.cameraMovement}" 无效 → "static" (默认值)`,
-    );
-  }
+  fixed.cameraMovement = movementFix.value;
+  if (movementFix.message) autoFixed.push(movementFix.message);
 
-  const validAngles = [
-    "eye_level",
-    "low",
-    "high",
-    "birds_eye",
-    "worms_eye",
-    "dutch",
-  ];
-  const normalizedAngle = normalizeEnumValue(
-    data.cameraAngle as string,
+  const angleFix = fixOptionalEnumField(
+    data.cameraAngle,
     CAMERA_ANGLE_ALIASES,
-    validAngles,
+    VALID_CAMERA_ANGLES,
+    "eye_level",
+    "cameraAngle",
   );
-  if (normalizedAngle && normalizedAngle !== data.cameraAngle) {
-    fixed.cameraAngle = normalizedAngle;
-    autoFixed.push(`cameraAngle: "${data.cameraAngle}" → "${normalizedAngle}"`);
-  } else if (!normalizedAngle && data.cameraAngle) {
-    fixed.cameraAngle = "eye_level";
-    autoFixed.push(
-      `cameraAngle: "${data.cameraAngle}" 无效 → "eye_level" (默认值)`,
-    );
-  }
+  fixed.cameraAngle = angleFix.value;
+  if (angleFix.message) autoFixed.push(angleFix.message);
 
-  if (typeof data.duration === "number") {
-    if (data.duration < 2) {
-      fixed.duration = 2;
-      autoFixed.push(`duration: ${data.duration} → 2 (最小值)`);
-    } else if (data.duration > 30) {
-      fixed.duration = 30;
-      autoFixed.push(`duration: ${data.duration} → 30 (最大值)`);
-    }
-  } else if (data.duration === undefined || data.duration === null) {
-    fixed.duration = 5;
-    autoFixed.push("duration: 缺失 → 5 (默认值)");
-  }
+  const durationFix = fixDurationField(data.duration);
+  fixed.duration = durationFix.value;
+  if (durationFix.message) autoFixed.push(durationFix.message);
 
-  if (typeof data.prompt === "string") {
-    if (data.prompt.length < 10) {
-      const context = [
-        data.shotType ? `${fixed.shotType} shot` : "",
-        data.cameraMovement ? `${fixed.cameraMovement} camera` : "",
-        data.cameraAngle ? `${fixed.cameraAngle} angle` : "",
-      ]
-        .filter(Boolean)
-        .join(", ");
-
-      if (context) {
-        fixed.prompt = `${data.prompt}, ${context}`;
-        autoFixed.push(
-          `prompt: 过短(${data.prompt.length}字符)，已补充镜头上下文`,
-        );
-      }
-    }
-  }
+  const promptFix = fixPromptField(data.prompt, fixed);
+  fixed.prompt = promptFix.value;
+  if (promptFix.message) autoFixed.push(promptFix.message);
 
   return { fixed, autoFixed };
 }
@@ -278,11 +341,8 @@ export function generateFallbackParams(
   };
 }
 
-export function fixStoryBeat(data: Record<string, unknown>): {
-  fixed: Record<string, unknown>;
-  autoFixed: string[];
-} {
-  const normalized: Record<string, unknown> = {
+function normalizeStoryBeatFields(data: Record<string, unknown>): Record<string, unknown> {
+  return {
     title: data.t || data.title,
     content: data.c || data.content,
     description: data.desc || data.description,
@@ -294,7 +354,36 @@ export function fixStoryBeat(data: Record<string, unknown>): {
     characterIds: data.ci || data.characterIds,
     sceneId: data.si || data.sceneId,
   };
+}
 
+function inferShotTypeFromContent(content: string): string {
+  if (content.includes("全景") || content.includes("establishing")) {
+    return "wide";
+  }
+  if (content.includes("特写") || content.includes("close-up")) {
+    return "close";
+  }
+  return "medium";
+}
+
+function inferBeatTypeFromContent(content: string): string {
+  if (content.includes("对话") || content.includes("说") || content.includes('"')) {
+    return "dialogue";
+  }
+  if (content.includes("转场") || content.includes("过渡")) {
+    return "transition";
+  }
+  if (content.includes("特效") || content.includes("效果")) {
+    return "effect";
+  }
+  return "action";
+}
+
+export function fixStoryBeat(data: Record<string, unknown>): {
+  fixed: Record<string, unknown>;
+  autoFixed: string[];
+} {
+  const normalized = normalizeStoryBeatFields(data);
   const fixed = { ...normalized };
   const autoFixed: string[] = [];
 
@@ -315,31 +404,13 @@ export function fixStoryBeat(data: Record<string, unknown>): {
 
   if (!fixed.shotType) {
     const content = (fixed.content || fixed.description || "") as string;
-    if (content.includes("全景") || content.includes("establishing")) {
-      fixed.shotType = "wide";
-    } else if (content.includes("特写") || content.includes("close-up")) {
-      fixed.shotType = "close";
-    } else {
-      fixed.shotType = "medium";
-    }
+    fixed.shotType = inferShotTypeFromContent(content);
     autoFixed.push(`shotType: 缺失 → "${fixed.shotType}" (根据内容推断)`);
   }
 
   if (!fixed.type) {
     const content = (fixed.content || fixed.description || "") as string;
-    if (
-      content.includes("对话") ||
-      content.includes("说") ||
-      content.includes('"')
-    ) {
-      fixed.type = "dialogue";
-    } else if (content.includes("转场") || content.includes("过渡")) {
-      fixed.type = "transition";
-    } else if (content.includes("特效") || content.includes("效果")) {
-      fixed.type = "effect";
-    } else {
-      fixed.type = "action";
-    }
+    fixed.type = inferBeatTypeFromContent(content);
     autoFixed.push(`type: 缺失 → "${fixed.type}" (根据内容推断)`);
   }
 

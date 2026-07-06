@@ -1,5 +1,11 @@
-import { generateStoryPlanPrompt } from "../prompt/prompt-service";
-import type { CharacterInput, SceneInput } from "../prompt/prompt-service";
+// 重新导出 story-plan-generator 中的类型和函数，保持向后兼容
+export type {
+  StoryInput,
+  GenerateStoryPlanOptions,
+  TextGenerationResult,
+  GenerateStoryPlanResult,
+} from "./story-plan-generator";
+export { generateStoryPlanWithValidation } from "./story-plan-generator";
 
 export interface RawStoryBeat {
   t?: string;
@@ -74,140 +80,6 @@ export interface StoryPlanValidationResult {
 function isRecordLike(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
-
-/**
- * Type guard: every element of an array is a non-null object. Used to narrow
- * `unknown[]` to `CharacterInput[]` / `SceneInput[]` whose fields are all
- * optional, so any object satisfies the structural contract. The generic
- * parameter lets callers pick the target element type without runtime field
- * checks (all fields are optional, so structural compatibility holds).
- */
-function isObjectArray<T extends object>(value: unknown[]): value is T[] {
-  return value.every((v) => typeof v === "object" && v !== null);
-}
-
-interface FewShotInput {
-  genre: string;
-  tone: string;
-  beatIndex: number;
-  totalBeats: number;
-  hasAction?: boolean;
-  hasDialogue?: boolean;
-}
-
-interface FewShotOutput {
-  title: string;
-  content: string;
-  shotType: string;
-  cameraAngle: string;
-  cameraMovement: string;
-  duration: number;
-  type: string;
-}
-
-interface FewShotExample {
-  input: FewShotInput;
-  output: FewShotOutput;
-}
-
-const FEW_SHOT_EXAMPLES: FewShotExample[] = [
-  {
-    input: { genre: "action", tone: "epic", beatIndex: 0, totalBeats: 8, hasAction: true },
-    output: {
-      title: "黎明破晓",
-      content: "广袤的荒野上，朝阳从地平线升起，金色的光芒穿透薄雾。远处一座孤独的城镇轮廓逐渐清晰，风卷起沙尘掠过镜头。",
-      shotType: "wide", cameraAngle: "eye_level", cameraMovement: "crane_up", duration: 5, type: "scene",
-    },
-  },
-  {
-    input: { genre: "action", tone: "epic", beatIndex: 2, totalBeats: 8, hasAction: true },
-    output: {
-      title: "对峙",
-      content: "主角与对手面对面站立，目光如炬。风吹动两人的衣角，空气中弥漫着紧张的气氛。主角缓缓拔出武器，刀刃反射出冷光。",
-      shotType: "medium", cameraAngle: "low", cameraMovement: "push", duration: 4, type: "action",
-    },
-  },
-  {
-    input: { genre: "action", tone: "epic", beatIndex: 5, totalBeats: 8, hasAction: true },
-    output: {
-      title: "绝地反击",
-      content: "主角在劣势中突然爆发，一记重击将对手击退。镜头跟随主角的动作快速推进，捕捉每一个力量爆发的瞬间。",
-      shotType: "close", cameraAngle: "low", cameraMovement: "tracking", duration: 3, type: "action",
-    },
-  },
-  {
-    input: { genre: "romance", tone: "intimate", beatIndex: 0, totalBeats: 6, hasDialogue: true },
-    output: {
-      title: "初遇",
-      content: "午后的咖啡馆，阳光透过落地窗洒下斑驳光影。她低头翻阅书页，他推门而入，风铃轻响。两人目光偶然交汇，时间仿佛静止。",
-      shotType: "medium", cameraAngle: "eye_level", cameraMovement: "push", duration: 6, type: "scene",
-    },
-  },
-  {
-    input: { genre: "romance", tone: "intimate", beatIndex: 3, totalBeats: 6, hasDialogue: true },
-    output: {
-      title: "心声",
-      content: "她望着窗外的雨幕，轻声说出藏在心底的话。他沉默片刻，然后温柔地握住她的手。特写两人交握的手指，雨滴在窗上滑落。",
-      shotType: "close", cameraAngle: "eye_level", cameraMovement: "static", duration: 5, type: "dialogue",
-    },
-  },
-  {
-    input: { genre: "mystery", tone: "dark", beatIndex: 0, totalBeats: 7 },
-    output: {
-      title: "深夜来电",
-      content: "凌晨三点，手机屏幕在黑暗中亮起。主角接起电话，对面只有沉重的呼吸声。窗外霓虹灯闪烁，映照出主角紧张的面容。",
-      shotType: "close", cameraAngle: "high", cameraMovement: "static", duration: 4, type: "scene",
-    },
-  },
-  {
-    input: { genre: "mystery", tone: "dark", beatIndex: 4, totalBeats: 7 },
-    output: {
-      title: "真相浮现",
-      content: "主角翻阅旧档案，一张泛黄的照片从文件堆中滑落。照片上的日期与案件发生日完全吻合。镜头缓缓推向照片，揭示关键线索。",
-      shotType: "extreme_close", cameraAngle: "eye_level", cameraMovement: "push", duration: 4, type: "action",
-    },
-  },
-  {
-    input: { genre: "comedy", tone: "light", beatIndex: 2, totalBeats: 5, hasDialogue: true },
-    output: {
-      title: "乌龙误会",
-      content: "主角拿着花束满怀期待地走向对方，却认错了人。一个完全陌生的人接过花束，满脸困惑。主角尴尬地站在原地，周围人忍俊不禁。",
-      shotType: "medium", cameraAngle: "eye_level", cameraMovement: "static", duration: 4, type: "dialogue",
-    },
-  },
-  {
-    input: { genre: "scifi", tone: "epic", beatIndex: 0, totalBeats: 8 },
-    output: {
-      title: "星际启航",
-      content: "巨大的太空站悬浮在蓝色星球轨道上，飞船依次驶出端口。引擎喷射出蓝白色光焰，镜头从太空站全景推至驾驶舱内主角坚定的目光。",
-      shotType: "wide", cameraAngle: "birds_eye", cameraMovement: "pull", duration: 6, type: "scene",
-    },
-  },
-  {
-    input: { genre: "fantasy", tone: "epic", beatIndex: 3, totalBeats: 8, hasAction: true },
-    output: {
-      title: "魔法觉醒",
-      content: "主角双手爆发出耀眼的金色光芒，魔法符文在空中浮现旋转。周围的风暴被力量驱散，光芒照亮了整个战场。镜头环绕主角，展现力量觉醒的壮观场面。",
-      shotType: "medium", cameraAngle: "low", cameraMovement: "orbit", duration: 4, type: "effect",
-    },
-  },
-  {
-    input: { genre: "drama", tone: "neutral", beatIndex: 0, totalBeats: 6 },
-    output: {
-      title: "日常开始",
-      content: "清晨的街道，行人匆匆。主角走出公寓大门，深呼吸一口新鲜空气。镜头跟随主角的脚步，展现平凡而真实的城市生活。",
-      shotType: "medium", cameraAngle: "eye_level", cameraMovement: "tracking", duration: 5, type: "scene",
-    },
-  },
-  {
-    input: { genre: "drama", tone: "dark", beatIndex: 4, totalBeats: 6, hasDialogue: true },
-    output: {
-      title: "崩溃边缘",
-      content: "主角独自坐在昏暗的房间里，手中的信纸微微颤抖。泪水无声地滑落，打湿了纸上的字迹。镜头缓缓推向主角的面容，捕捉每一个细微的情感变化。",
-      shotType: "close", cameraAngle: "eye_level", cameraMovement: "push", duration: 5, type: "dialogue",
-    },
-  },
-];
 
 const SHOT_TYPE_ALIASES: Record<string, string> = {
   特写: "close", 近景: "close", 中景: "medium", 全景: "wide", 远景: "wide",
@@ -335,11 +207,21 @@ export function fixShotParams(data: ShotParamsData): {
   return { fixed, autoFixed };
 }
 
-export function fixStoryBeat(data: StoryBeatData): {
-  fixed: StoryBeatData;
-  autoFixed: string[];
-} {
-  const normalized: StoryBeatData = {
+function resolveShotTypeFromContent(content: string): string {
+  if (content.includes("全景") || content.includes("establishing")) return "wide";
+  if (content.includes("特写") || content.includes("close-up")) return "close";
+  return "medium";
+}
+
+function resolveTypeFromContent(content: string): string {
+  if (content.includes("对话") || content.includes("说")) return "dialogue";
+  if (content.includes("转场") || content.includes("过渡")) return "transition";
+  if (content.includes("特效") || content.includes("效果")) return "effect";
+  return "action";
+}
+
+function normalizeStoryBeatData(data: StoryBeatData): StoryBeatData {
+  return {
     title: data.t || data.title,
     content: data.c || data.content,
     description: data.desc || data.description,
@@ -356,29 +238,38 @@ export function fixStoryBeat(data: StoryBeatData): {
     elementIds: data.ei || data.elementIds,
     elementBindings: data.eb || data.elementBindings,
   };
+}
 
-  const fixed = { ...normalized };
-  const autoFixed: string[] = [];
-
-  if (!fixed.title && fixed.content) { fixed.title = String(fixed.content).slice(0, 20) + "..."; autoFixed.push("title: 从content自动生成"); }
-  if (!fixed.content && fixed.description) { fixed.content = fixed.description; autoFixed.push("content: 从description复制"); }
-  if (!fixed.duration || typeof fixed.duration !== "number") { fixed.duration = 5; autoFixed.push("duration: 缺失 → 5"); }
+function applyStoryBeatAutoFixes(fixed: StoryBeatData, autoFixed: string[]): void {
+  if (!fixed.title && fixed.content) {
+    fixed.title = String(fixed.content).slice(0, 20) + "...";
+    autoFixed.push("title: 从content自动生成");
+  }
+  if (!fixed.content && fixed.description) {
+    fixed.content = fixed.description;
+    autoFixed.push("content: 从description复制");
+  }
+  if (!fixed.duration || typeof fixed.duration !== "number") {
+    fixed.duration = 5;
+    autoFixed.push("duration: 缺失 → 5");
+  }
   if (!fixed.shotType) {
-    const content = String(fixed.content || "");
-    if (content.includes("全景") || content.includes("establishing")) fixed.shotType = "wide";
-    else if (content.includes("特写") || content.includes("close-up")) fixed.shotType = "close";
-    else fixed.shotType = "medium";
+    fixed.shotType = resolveShotTypeFromContent(String(fixed.content || ""));
     autoFixed.push(`shotType: 缺失 → "${fixed.shotType}"`);
   }
   if (!fixed.type) {
-    const content = String(fixed.content || "");
-    if (content.includes("对话") || content.includes("说")) fixed.type = "dialogue";
-    else if (content.includes("转场") || content.includes("过渡")) fixed.type = "transition";
-    else if (content.includes("特效") || content.includes("效果")) fixed.type = "effect";
-    else fixed.type = "action";
+    fixed.type = resolveTypeFromContent(String(fixed.content || ""));
     autoFixed.push(`type: 缺失 → "${fixed.type}"`);
   }
+}
 
+export function fixStoryBeat(data: StoryBeatData): {
+  fixed: StoryBeatData;
+  autoFixed: string[];
+} {
+  const fixed = { ...normalizeStoryBeatData(data) };
+  const autoFixed: string[] = [];
+  applyStoryBeatAutoFixes(fixed, autoFixed);
   return { fixed, autoFixed };
 }
 
@@ -400,36 +291,6 @@ export function validateStoryPlan(plan: RawStoryBeat[]): StoryPlanValidationResu
   }
 
   return { fixedPlan, errors: allErrors, autoFixed: allAutoFixed };
-}
-
-function selectFewShotExamples(context: FewShotInput, count = 3): FewShotExample[] {
-  const scored = FEW_SHOT_EXAMPLES.map((example) => {
-    let score = 0;
-    if (example.input.genre === context.genre) score += 3;
-    if (example.input.tone === context.tone) score += 2;
-    const posDiff = Math.abs(
-      example.input.beatIndex / Math.max(example.input.totalBeats, 1) -
-      context.beatIndex / Math.max(context.totalBeats, 1),
-    );
-    score += Math.max(0, 2 - posDiff * 4);
-    return { example, score };
-  });
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, count).map((s) => s.example);
-}
-
-function buildFewShotPrompt(examples: FewShotExample[]): string {
-  if (examples.length === 0) return "";
-  const parts = ["以下是几个高质量的分镜示例，请参考其结构和详细程度：\n"];
-  examples.forEach((example, i) => {
-    parts.push(`示例${i + 1}（${example.input.genre}/${example.input.tone}，第${example.input.beatIndex + 1}镜/共${example.input.totalBeats}镜）：`);
-    parts.push(`  标题：${example.output.title}`);
-    parts.push(`  内容：${example.output.content}`);
-    parts.push(`  景别：${example.output.shotType} | 角度：${example.output.cameraAngle} | 运镜：${example.output.cameraMovement}`);
-    parts.push(`  时长：${example.output.duration}秒 | 类型：${example.output.type}`);
-    parts.push("");
-  });
-  return parts.join("\n");
 }
 
 export function parseStoryPlanJSON(text: string): RawStoryBeat[] | null {
@@ -530,54 +391,88 @@ function resolveElements(
   };
 }
 
+interface BeatFieldValues {
+  title: string;
+  content: string;
+  description: string;
+  shotType: string;
+  cameraAngle: string;
+  cameraMovement: string;
+  duration: number;
+  type: string;
+  characterIds: string[];
+  sceneId?: string;
+  keyframePrompt: string;
+  firstFramePrompt: string;
+  lastFramePrompt: string;
+}
+
+// eslint-disable-next-line complexity -- 数据映射函数，|| 为字段 fallback 非逻辑分支
+function extractBeatFieldValues(raw: RawStoryBeat): BeatFieldValues {
+  const rawDuration = raw.d ?? raw.duration;
+  const rawCharacterIds = raw.ci || raw.characterIds;
+
+  return {
+    title: String(raw.t || raw.title || ""),
+    content: String(raw.c || raw.content || ""),
+    description: String(raw.desc || raw.description || raw.c || raw.content || ""),
+    shotType: String(raw.st || raw.shotType || ""),
+    cameraAngle: String(raw.ca || raw.cameraAngle || ""),
+    cameraMovement: String(raw.cm || raw.cameraMovement || ""),
+    duration: typeof rawDuration === "number" && !isNaN(rawDuration) ? rawDuration : 5,
+    type: String(raw.tp || raw.type || ""),
+    characterIds: Array.isArray(rawCharacterIds) ? rawCharacterIds.map(String) : [],
+    sceneId: raw.si || raw.sceneId ? String(raw.si || raw.sceneId) : undefined,
+    keyframePrompt: String(raw.kp || raw.keyframePrompt || ""),
+    firstFramePrompt: String(raw.fp || raw.firstFramePrompt || ""),
+    lastFramePrompt: String(raw.lp || raw.lastFramePrompt || ""),
+  };
+}
+
+function buildBeatObject(
+  fields: BeatFieldValues,
+  index: number,
+  enhancedGeneration: boolean,
+  elementIds: string[] | undefined,
+  elementBindings: Record<string, unknown> | undefined,
+  idGenerator?: (index: number) => string,
+): StoryBeat {
+  return {
+    id: idGenerator ? idGenerator(index) : `beat-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
+    sequence: index + 1,
+    title: fields.title || `分镜${index + 1}`,
+    content: fields.content || "",
+    description: fields.description || fields.content || "",
+    duration: fields.duration,
+    type: fields.type || "action",
+    shotType: fields.shotType || "medium",
+    characterIds: fields.characterIds,
+    sceneId: fields.sceneId,
+    camera: { angle: fields.cameraAngle || undefined, movement: fields.cameraMovement || undefined },
+    imageGenerationPrompt: fields.keyframePrompt || undefined,
+    firstFramePrompt: fields.firstFramePrompt || undefined,
+    lastFramePrompt: fields.lastFramePrompt || undefined,
+    enhancedGeneration,
+    elementIds,
+    elementBindings,
+  };
+}
+
+function appendDialogueAndEmotion(beat: StoryBeat, raw: RawStoryBeat): void {
+  if (raw.dialogue) beat.content = `${beat.content}\n对话：${raw.dialogue}`;
+  if (raw.emotion) beat.content = `${beat.content}\n情绪：${raw.emotion}`;
+}
+
 function buildBeatFromRaw(
   raw: RawStoryBeat,
   index: number,
   enhancedGeneration: boolean,
   idGenerator?: (index: number) => string,
 ): StoryBeat {
-  const title = String(raw.t || raw.title || "");
-  const content = String(raw.c || raw.content || "");
-  const description = String(raw.desc || raw.description || content || "");
-  const shotType = String(raw.st || raw.shotType || "");
-  const cameraAngle = String(raw.ca || raw.cameraAngle || "");
-  const cameraMovement = String(raw.cm || raw.cameraMovement || "");
-  const rawDuration = raw.d ?? raw.duration;
-  const duration = typeof rawDuration === "number" && !isNaN(rawDuration) ? rawDuration : 5;
-  const type = String(raw.tp || raw.type || "");
-  const rawCharacterIds = raw.ci || raw.characterIds;
-  const characterIds = Array.isArray(rawCharacterIds) ? rawCharacterIds.map(String) : [];
-  const sceneId = raw.si || raw.sceneId ? String(raw.si || raw.sceneId) : undefined;
-  const keyframePrompt = String(raw.kp || raw.keyframePrompt || "");
-  const firstFramePrompt = String(raw.fp || raw.firstFramePrompt || "");
-  const lastFramePrompt = String(raw.lp || raw.lastFramePrompt || "");
-
-  const { ids: elementIds, bindings: elementBindings } = resolveElements(content, raw);
-
-  const beat: StoryBeat = {
-    // ID 生成需要唯一性；默认使用 Date.now()+Math.random()（非纯），可通过 idGenerator 注入纯函数
-    id: idGenerator ? idGenerator(index) : `beat-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
-    sequence: index + 1,
-    title: title || `分镜${index + 1}`,
-    content: content || "",
-    description: description || content || "",
-    duration,
-    type: type || "action",
-    shotType: shotType || "medium",
-    characterIds,
-    sceneId,
-    camera: { angle: cameraAngle || undefined, movement: cameraMovement || undefined },
-    imageGenerationPrompt: keyframePrompt || undefined,
-    firstFramePrompt: firstFramePrompt || undefined,
-    lastFramePrompt: lastFramePrompt || undefined,
-    enhancedGeneration,
-    elementIds,
-    elementBindings,
-  };
-
-  if (raw.dialogue) beat.content = `${beat.content}\n对话：${raw.dialogue}`;
-  if (raw.emotion) beat.content = `${beat.content}\n情绪：${raw.emotion}`;
-
+  const fields = extractBeatFieldValues(raw);
+  const { ids: elementIds, bindings: elementBindings } = resolveElements(fields.content, raw);
+  const beat = buildBeatObject(fields, index, enhancedGeneration, elementIds, elementBindings, idGenerator);
+  appendDialogueAndEmotion(beat, raw);
   return beat;
 }
 
@@ -587,120 +482,4 @@ export function convertToStoryBeats(
   idGenerator?: (index: number) => string,
 ): StoryBeat[] {
   return rawBeats.map((raw, index) => buildBeatFromRaw(raw, index, enhancedGeneration, idGenerator));
-}
-
-interface StoryInput {
-  title?: string;
-  description?: string;
-  genre?: string;
-  tone?: string;
-  targetDuration?: number;
-}
-
-interface GenerateStoryPlanOptions {
-  maxRetries?: number;
-  autoFix?: boolean;
-  fewShotCount?: number;
-  enhancedGeneration?: boolean;
-  planPrompt?: string;
-}
-
-interface TextGenerationResult {
-  success: boolean;
-  data?: { text?: string };
-  error?: string | { code: string; message: string };
-}
-
-interface GenerateStoryPlanResult {
-  beats: StoryBeat[];
-  validationResults: StoryPlanValidationResult[];
-  autoFixedCount: number;
-  retryCount: number;
-  fixDetails: string[];
-}
-
-export async function generateStoryPlanWithValidation(
-  story: StoryInput,
-  characters: unknown[],
-  scenes: unknown[],
-  options: GenerateStoryPlanOptions,
-  generateTextFn: (prompt: string, opts: Record<string, unknown>) => Promise<TextGenerationResult>,
-): Promise<GenerateStoryPlanResult> {
-  const opts: GenerateStoryPlanOptions = { maxRetries: 5, autoFix: true, fewShotCount: 3, enhancedGeneration: true, ...options };
-  const maxRetries = opts.maxRetries ?? 5;
-
-  const basePrompt = opts.planPrompt || generateStoryPlanPrompt({
-    title: story.title, description: story.description, genre: story.genre,
-    tone: story.tone, targetDuration: story.targetDuration,
-    characters: isObjectArray<CharacterInput>(characters) ? characters : [],
-    scenes: isObjectArray<SceneInput>(scenes) ? scenes : [],
-  });
-
-  const fewShotContext: FewShotInput = {
-    genre: story.genre || "drama", tone: story.tone || "neutral",
-    beatIndex: 0, totalBeats: Math.floor((story.targetDuration || 60) / 5),
-  };
-  const fewShotExamples = selectFewShotExamples(fewShotContext, opts.fewShotCount);
-  const fewShotSection = buildFewShotPrompt(fewShotExamples);
-  const enrichedPrompt = `${basePrompt}\n\n${fewShotSection}`;
-
-  let rawBeats: RawStoryBeat[] | null = null;
-  let lastValidationErrors: string[] | undefined = undefined;
-  let retryCount = 0;
-  const validationResults: StoryPlanValidationResult[] = [];
-  let autoFixedCount = 0;
-  const fixDetails: string[] = [];
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const promptToSend = lastValidationErrors
-        ? `${enrichedPrompt}\n\n【重要修正要求】上一轮生成的参数存在以下问题，请务必修正：\n${lastValidationErrors.map((e, i) => `${i + 1}. ${e}`).join("\n")}`
-        : enrichedPrompt;
-
-      const result = await generateTextFn(promptToSend, { maxTokens: 4000, temperature: 0.7 });
-      if (!result.success || !result.data?.text) {
-        const errMsg = typeof result.error === "string" ? result.error : result.error?.message || "AI 未返回有效文本";
-        throw new Error(errMsg);
-      }
-
-      rawBeats = parseStoryPlanJSON(result.data.text);
-      if (!rawBeats || rawBeats.length === 0) throw new Error("STORY_PLAN_PARSE_FAILED");
-
-      const validation = validateStoryPlan(rawBeats);
-      validationResults.push(validation);
-      autoFixedCount += validation.autoFixed.length;
-      fixDetails.push(...validation.autoFixed);
-      if (validation.errors.length === 0) break;
-      lastValidationErrors = validation.errors;
-      retryCount++;
-    } catch (error) {
-      retryCount++;
-      if (attempt >= maxRetries) throw new Error(`STORY_PLAN_GENERATION_FAILED: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  if (!rawBeats) throw new Error("STORY_PLAN_GENERATION_FAILED");
-
-  const beats = convertToStoryBeats(rawBeats, opts.enhancedGeneration);
-
-  for (const beat of beats) {
-    if (beat.shotType || beat.camera) {
-      const { fixed, autoFixed } = fixShotParams({
-        shotType: beat.shotType, cameraAngle: beat.camera?.angle,
-        cameraMovement: beat.camera?.movement, duration: beat.duration,
-      });
-      if (autoFixed.length > 0 && opts.autoFix) {
-        autoFixedCount += autoFixed.length;
-        fixDetails.push(...autoFixed.map((f: string) => `[${beat.title}] ${f}`));
-        if (fixed.shotType) beat.shotType = fixed.shotType;
-        if (fixed.duration) beat.duration = fixed.duration;
-        if (beat.camera) {
-          if (fixed.cameraAngle) beat.camera.angle = fixed.cameraAngle;
-          if (fixed.cameraMovement) beat.camera.movement = fixed.cameraMovement;
-        }
-      }
-    }
-  }
-
-  return { beats, validationResults, autoFixedCount, retryCount, fixDetails };
 }

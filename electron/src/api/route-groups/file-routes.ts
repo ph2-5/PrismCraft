@@ -70,6 +70,10 @@ const MAX_DIR_SCAN = 5000;
 // stat 并发批次大小：50 是经验值，在 Windows/Linux/macOS 上均稳定，
 // 既能显著降低串行延迟，又不会过载 fs 句柄。
 const STAT_BATCH_SIZE = 50;
+// 文件读写安全上限：避免一次性读入超大文件导致内存爆炸。
+// read/read-base64 共享 50MB 上限，write 100MB 上限（与 HTTP body 限制对齐）。
+const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_WRITE_SIZE = 100 * 1024 * 1024; // 100MB
 
 const ALLOWED_ROOTS = [
   ...Object.values(CATEGORY_DIRS),
@@ -239,7 +243,6 @@ export const fileRoutes: Record<string, Route> = {
           return { success: false, error: FILE_ERRORS.FILE_NOT_FOUND };
         }
         // 文件大小限制，避免读取超大文件导致 OOM
-        const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
         const stat = await fsp.stat(filePath);
         if (stat.size > MAX_READ_SIZE) {
           logger.warn("[File HTTP] read rejected oversized file", { size: stat.size, max: MAX_READ_SIZE });
@@ -267,7 +270,6 @@ export const fileRoutes: Record<string, Route> = {
           return { success: false, error: FILE_ERRORS.FILE_NOT_FOUND };
         }
         // 文件大小限制，避免读取超大文件导致 OOM
-        const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
         const stat = await fsp.stat(filePath);
         if (stat.size > MAX_READ_SIZE) {
           logger.warn("[File HTTP] read-base64 rejected oversized file", { size: stat.size, max: MAX_READ_SIZE });
@@ -533,7 +535,6 @@ export const fileRoutes: Record<string, Route> = {
           ? Buffer.from(body.data as string, "base64")
           : typeof body.data === "string" ? Buffer.from(body.data, "utf-8") : Buffer.from(body.data);
         // 大小限制（对齐 IPC 的 100MB）
-        const MAX_WRITE_SIZE = 100 * 1024 * 1024;
         if (buffer.length > MAX_WRITE_SIZE) {
           logger.warn("[File HTTP] write rejected oversized buffer", { size: buffer.length, max: MAX_WRITE_SIZE });
           return { success: false, error: FILE_ERRORS.FILE_TOO_LARGE };

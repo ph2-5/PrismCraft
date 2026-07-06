@@ -1,4 +1,4 @@
-import { type ApiConfig, type ApiCapability, type ProviderConfig } from "./types";
+import { type ApiConfig, type ApiCapability, type ProviderConfig, type ApiFormat } from "./types";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { loadConfigFromFile, saveConfigToFile } from "./server-encryption";
@@ -29,14 +29,150 @@ export async function saveServerConfig(config: ApiConfig): Promise<void> {
   errorLogger.info("[API Config] 服务端配置已更新并保存到文件");
 }
 
-export async function loadServerConfig(): Promise<ApiConfig> {
-  if (serverSideConfig) {
-    return serverSideConfig;
-  }
+function getCachedConfig(): ApiConfig | null {
+  if (serverSideConfig) return serverSideConfig;
+  if (cachedConfig && Date.now() - lastCacheTime < CACHE_MAX_AGE) return cachedConfig;
+  return null;
+}
 
-  if (cachedConfig && Date.now() - lastCacheTime < CACHE_MAX_AGE) {
-    return cachedConfig;
+function createEmptyConfig(): ApiConfig {
+  return {
+    version: 1,
+    providers: [],
+    mapping: {},
+    fallback: { enabled: true, order: ["text", "image", "vision", "video"] },
+  };
+}
+
+function findProviderByCredentials(
+  config: ApiConfig,
+  apiKey: string,
+  baseUrl: string,
+): ProviderConfig | undefined {
+  return config.providers.find((p) => p.apiKey === apiKey && p.baseUrl === baseUrl);
+}
+
+function addNewProvider(
+  config: ApiConfig,
+  id: string,
+  name: string,
+  format: ApiFormat,
+  baseUrl: string,
+  apiKey: string,
+  modelId: string,
+  capability: ApiCapability,
+): void {
+  config.providers.push({
+    id,
+    name,
+    format,
+    baseUrl,
+    apiKey,
+    models: [{ id: modelId, name: modelId, capabilities: [capability] }],
+  });
+  config.mapping[capability] = `${id}/${modelId}`;
+}
+
+function addOrMergeProvider(
+  config: ApiConfig,
+  newId: string,
+  name: string,
+  format: ApiFormat,
+  baseUrl: string,
+  apiKey: string,
+  modelId: string,
+  capability: ApiCapability,
+): void {
+  if (!apiKey) return;
+  const existing = findProviderByCredentials(config, apiKey, baseUrl);
+  if (existing) {
+    existing.models.push({ id: modelId, name: modelId, capabilities: [capability] });
+    config.mapping[capability] = `${existing.id}/${modelId}`;
+  } else {
+    addNewProvider(config, newId, name, format, baseUrl, apiKey, modelId, capability);
   }
+}
+
+function addVisionProvider(
+  config: ApiConfig,
+  apiKey: string,
+  baseUrl: string,
+  modelId: string,
+): void {
+  if (!apiKey) return;
+  const existing = findProviderByCredentials(config, apiKey, baseUrl);
+  if (existing) {
+    const existingModel = existing.models.find((m) => m.id === modelId);
+    if (existingModel) {
+      if (!existingModel.capabilities.includes("vision")) existingModel.capabilities.push("vision");
+    } else {
+      existing.models.push({ id: modelId, name: modelId, capabilities: ["vision"] });
+    }
+    config.mapping.vision = `${existing.id}/${modelId}`;
+  } else {
+    addNewProvider(config, "env-vision", t("api.envVision"), "openai", baseUrl, apiKey, modelId, "vision");
+  }
+}
+
+function addTextProviderFromEnv(config: ApiConfig, env: NodeJS.ProcessEnv): void {
+  const apiKey = env.AI_TEXT_API_KEY || env.OPENAI_API_KEY || env.MOONSHOT_API_KEY || env.VOLCENGINE_API_KEY;
+  const apiUrl = env.AI_TEXT_API_URL || env.OPENAI_API_URL || "https://api.openai.com/v1";
+  const model = env.AI_TEXT_MODEL || "gpt-4o";
+  if (apiKey) {
+    addNewProvider(config, "env-text", t("api.envText"), "openai", apiUrl, apiKey, model, "text");
+  }
+}
+
+function addImageProviderFromEnv(config: ApiConfig, env: NodeJS.ProcessEnv): void {
+  const apiKey = env.AI_IMAGE_API_KEY || env.VOLCENGINE_API_KEY || env.OPENAI_API_KEY;
+  const apiUrl = env.AI_IMAGE_API_URL || "https://api.openai.com/v1";
+  const model = env.AI_IMAGE_MODEL || "dall-e-3";
+  if (apiKey) {
+    addOrMergeProvider(config, "env-image", t("api.envImage"), "openai", apiUrl, apiKey, model, "image");
+  }
+}
+
+function addVideoProviderFromEnv(config: ApiConfig, env: NodeJS.ProcessEnv): void {
+  const apiKey = env.AI_VIDEO_API_KEY || env.SEEDANCE_API_KEY || env.ZHIPU_API_KEY;
+  const apiUrl = env.AI_VIDEO_API_URL || "https://open.bigmodel.cn/api/paas/v4";
+  const model = env.AI_VIDEO_MODEL || "cogvideox-3";
+  if (apiKey) {
+    addNewProvider(config, "env-video", t("api.envVideo"), "zhipu", apiUrl, apiKey, model, "video");
+  }
+}
+
+function addVisionProviderFromEnv(config: ApiConfig, env: NodeJS.ProcessEnv, textApiKey: string | undefined): void {
+  const apiKey = env.AI_VISION_API_KEY || textApiKey;
+  const apiUrl = env.AI_VISION_API_URL || env.AI_TEXT_API_URL || env.OPENAI_API_URL || "https://api.openai.com/v1";
+  const model = env.AI_VISION_MODEL || "gpt-4o";
+  if (apiKey) {
+    addVisionProvider(config, apiKey, apiUrl, model);
+  }
+}
+
+function buildEnvConfig(env: NodeJS.ProcessEnv): ApiConfig {
+  const config = createEmptyConfig();
+  addTextProviderFromEnv(config, env);
+  addImageProviderFromEnv(config, env);
+  addVideoProviderFromEnv(config, env);
+  const textApiKey = env.AI_TEXT_API_KEY || env.OPENAI_API_KEY || env.MOONSHOT_API_KEY || env.VOLCENGINE_API_KEY;
+  addVisionProviderFromEnv(config, env, textApiKey);
+  return config;
+}
+
+function isPackagedEnvironment(): boolean {
+  if (process.env.ELECTRON_IS_PACKAGED === "1") return true;
+  return Boolean(
+    process.execPath &&
+      !process.execPath.includes("node") &&
+      !process.execPath.includes("electron") &&
+      process.execPath.includes("AI Animation"),
+  );
+}
+
+export async function loadServerConfig(): Promise<ApiConfig> {
+  const cached = getCachedConfig();
+  if (cached) return cached;
 
   const fileConfig = await loadConfigFromFile();
   if (fileConfig) {
@@ -45,154 +181,8 @@ export async function loadServerConfig(): Promise<ApiConfig> {
     return fileConfig;
   }
 
-  const config: ApiConfig = {
-    version: 1,
-    providers: [],
-    mapping: {},
-    fallback: {
-      enabled: true,
-      order: ["text", "image", "vision", "video"],
-    },
-  };
-
-  const env = process.env;
-
-  const textApiKey =
-    env.AI_TEXT_API_KEY ||
-    env.OPENAI_API_KEY ||
-    env.MOONSHOT_API_KEY ||
-    env.VOLCENGINE_API_KEY;
-  const textApiUrl =
-    env.AI_TEXT_API_URL || env.OPENAI_API_URL || "https://api.openai.com/v1";
-  const textModel = env.AI_TEXT_MODEL || "gpt-4o";
-
-  if (textApiKey) {
-    config.providers.push({
-      id: "env-text",
-      name: t("api.envText"),
-      format: "openai",
-      baseUrl: textApiUrl,
-      apiKey: textApiKey,
-      models: [
-        {
-          id: textModel,
-          name: textModel,
-          capabilities: ["text"],
-        },
-      ],
-    });
-    config.mapping.text = `env-text/${textModel}`;
-  }
-
-  const imageApiKey =
-    env.AI_IMAGE_API_KEY || env.VOLCENGINE_API_KEY || env.OPENAI_API_KEY;
-  const imageApiUrl = env.AI_IMAGE_API_URL || "https://api.openai.com/v1";
-  const imageModel = env.AI_IMAGE_MODEL || "dall-e-3";
-
-  if (imageApiKey) {
-    const existingProvider = config.providers.find(
-      (p) => p.apiKey === imageApiKey && p.baseUrl === imageApiUrl,
-    );
-    if (existingProvider) {
-      existingProvider.models.push({
-        id: imageModel,
-        name: imageModel,
-        capabilities: ["image"],
-      });
-      config.mapping.image = `${existingProvider.id}/${imageModel}`;
-    } else {
-      config.providers.push({
-        id: "env-image",
-        name: t("api.envImage"),
-        format: "openai",
-        baseUrl: imageApiUrl,
-        apiKey: imageApiKey,
-        models: [
-          {
-            id: imageModel,
-            name: imageModel,
-            capabilities: ["image"],
-          },
-        ],
-      });
-      config.mapping.image = `env-image/${imageModel}`;
-    }
-  }
-
-  const videoApiKey =
-    env.AI_VIDEO_API_KEY || env.SEEDANCE_API_KEY || env.ZHIPU_API_KEY;
-  const videoApiUrl =
-    env.AI_VIDEO_API_URL || "https://open.bigmodel.cn/api/paas/v4";
-  const videoModel = env.AI_VIDEO_MODEL || "cogvideox-3";
-
-  if (videoApiKey) {
-    config.providers.push({
-      id: "env-video",
-      name: t("api.envVideo"),
-      format: "zhipu",
-      baseUrl: videoApiUrl,
-      apiKey: videoApiKey,
-      models: [
-        {
-          id: videoModel,
-          name: videoModel,
-          capabilities: ["video"],
-        },
-      ],
-    });
-    config.mapping.video = `env-video/${videoModel}`;
-  }
-
-  const visionApiKey = env.AI_VISION_API_KEY || textApiKey;
-  const visionApiUrl = env.AI_VISION_API_URL || textApiUrl;
-  const visionModel = env.AI_VISION_MODEL || "gpt-4o";
-
-  if (visionApiKey) {
-    const existingProvider = config.providers.find(
-      (p) => p.apiKey === visionApiKey && p.baseUrl === visionApiUrl,
-    );
-    if (existingProvider) {
-      const existingModel = existingProvider.models.find(
-        (m) => m.id === visionModel,
-      );
-      if (existingModel) {
-        if (!existingModel.capabilities.includes("vision")) {
-          existingModel.capabilities.push("vision");
-        }
-      } else {
-        existingProvider.models.push({
-          id: visionModel,
-          name: visionModel,
-          capabilities: ["vision"],
-        });
-      }
-      config.mapping.vision = `${existingProvider.id}/${visionModel}`;
-    } else {
-      config.providers.push({
-        id: "env-vision",
-        name: t("api.envVision"),
-        format: "openai",
-        baseUrl: visionApiUrl,
-        apiKey: visionApiKey,
-        models: [
-          {
-            id: visionModel,
-            name: visionModel,
-            capabilities: ["vision"],
-          },
-        ],
-      });
-      config.mapping.vision = `env-vision/${visionModel}`;
-    }
-  }
-
-  const isPackagedApp =
-    process.env.ELECTRON_IS_PACKAGED === "1" ||
-    (process.execPath &&
-      !process.execPath.includes("node") &&
-      !process.execPath.includes("electron") &&
-      process.execPath.includes("AI Animation"));
-  if (config.providers.length > 0 && !isPackagedApp) {
+  const config = buildEnvConfig(process.env);
+  if (config.providers.length > 0 && !isPackagedEnvironment()) {
     await saveConfigToFile(config);
   }
 
@@ -232,41 +222,23 @@ export async function getCapabilityConfigForServer(
   return { provider: provider || null, modelId: modelId || null };
 }
 
+function validateProvider(provider: ProviderConfig): boolean {
+  if (!provider.id || !provider.name || !provider.format || !provider.baseUrl || !provider.apiKey) return false;
+  if (!Array.isArray(provider.models)) return false;
+  return provider.models.every((m) => m.id && m.name && Array.isArray(m.capabilities));
+}
+
 function validateClientConfig(config: Partial<ApiConfig>): boolean {
   if (config.providers) {
     if (!Array.isArray(config.providers)) return false;
-    for (const provider of config.providers) {
-      if (
-        !provider.id ||
-        !provider.name ||
-        !provider.format ||
-        !provider.baseUrl ||
-        !provider.apiKey ||
-        !Array.isArray(provider.models)
-      ) {
-        return false;
-      }
-      for (const model of provider.models) {
-        if (!model.id || !model.name || !Array.isArray(model.capabilities)) {
-          return false;
-        }
-      }
-    }
+    if (!config.providers.every(validateProvider)) return false;
   }
-
-  if (config.mapping) {
-    if (typeof config.mapping !== "object" || config.mapping === null)
-      return false;
-  }
-
+  if (config.mapping && (typeof config.mapping !== "object" || config.mapping === null)) return false;
   if (config.fallback) {
-    if (typeof config.fallback !== "object" || config.fallback === null)
-      return false;
+    if (typeof config.fallback !== "object" || config.fallback === null) return false;
     if (typeof config.fallback.enabled !== "boolean") return false;
-    if (config.fallback.order && !Array.isArray(config.fallback.order))
-      return false;
+    if (config.fallback.order && !Array.isArray(config.fallback.order)) return false;
   }
-
   return true;
 }
 

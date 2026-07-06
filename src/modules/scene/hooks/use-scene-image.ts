@@ -23,6 +23,159 @@ interface UseSceneImageProps {
   showError: (title: string, description?: string) => void;
 }
 
+const ANALYZE_TIMEOUT_MS = 60000;
+const MIN_IMAGE_SIZE = 14;
+
+function buildImageOptions(
+  imageSize: string,
+  selectedImageModel: { providerId: string; modelId: string } | null,
+): CustomApiConfig & { size?: string } {
+  const options: CustomApiConfig & { size?: string } = { size: imageSize };
+  if (selectedImageModel) {
+    options.providerId = selectedImageModel.providerId;
+    options.modelId = selectedImageModel.modelId;
+  }
+  return options;
+}
+
+async function saveImageToSceneRecord(
+  scene: Scene,
+  imageUrl: string,
+  queryClient: ReturnType<typeof useQueryClient>,
+  addAssetToLibrary: UseSceneImageProps["addAssetToLibrary"],
+  success: (title: string, description?: string) => void,
+  showError: (title: string, description?: string) => void,
+): Promise<void> {
+  if (!scene.id) return;
+  try {
+    const result = await sceneService.update(scene.id, {
+      ...scene,
+      scenePath: imageUrl,
+      generatedImage: imageUrl,
+    });
+    if (!result.ok) throw result.error;
+    queryClient.invalidateQueries({ queryKey: ["scenes"] });
+    addAssetToLibrary(imageUrl, "image", scene.name || "场景图片", {
+      type: "scene",
+      id: scene.id,
+      name: scene.name || "未命名场景",
+    });
+    success(t("success.saved"), t("success.imageSavedToLibrary"));
+  } catch (err) {
+    errorLogger.error("[SceneImage] 保存图像到场景失败", err instanceof Error ? err : undefined);
+    showError(t("error.saveFailed"), mapUserFacingError(err));
+  }
+}
+
+interface AnalyzeOptions {
+  selectedImageModel: { providerId: string; modelId: string } | null;
+  queryClient: ReturnType<typeof useQueryClient>;
+  currentSceneRef: React.MutableRefObject<Scene>;
+  setCurrentScene: UseSceneImageProps["setCurrentScene"];
+  addAssetToLibrary: UseSceneImageProps["addAssetToLibrary"];
+  success: (title: string, description?: string) => void;
+  showError: (title: string, description?: string) => void;
+  isAnalyzingRef: React.MutableRefObject<boolean>;
+  analyzeTimeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
+  setIsAnalyzing: (v: boolean | ((prev: boolean) => boolean)) => void;
+}
+
+async function persistAnalyzedSceneImage(
+  imageUrl: string,
+  analyzed: Partial<Scene>,
+  opts: AnalyzeOptions,
+): Promise<void> {
+  const scene = opts.currentSceneRef.current;
+  if (scene.id) {
+    try {
+      const updateResult = await sceneService.update(scene.id, {
+        ...scene,
+        scenePath: imageUrl,
+        generatedImage: imageUrl,
+      });
+      if (!updateResult.ok) throw updateResult.error;
+      opts.queryClient.invalidateQueries({ queryKey: ["scenes"] });
+    } catch (err) {
+      errorLogger.error("[SceneImage] 分析后保存图像到场景失败", err instanceof Error ? err : undefined);
+      opts.showError(t("error.saveFailed"), mapUserFacingError(err));
+    }
+  }
+  opts.addAssetToLibrary(imageUrl, "image", analyzed.name || scene.name || "场景图片", {
+    type: "scene",
+    id: scene.id,
+    name: analyzed.name || scene.name || "未命名场景",
+  });
+  opts.success(t("success.analysisComplete"), t("success.sceneAnalysisResult", { name: analyzed.name || "未命名场景" }));
+}
+
+async function performSceneImageAnalysis(imageUrl: string, opts: AnalyzeOptions): Promise<void> {
+  const sceneIdAtStart = opts.currentSceneRef.current.id;
+  opts.analyzeTimeoutRef.current = setTimeout(() => {
+    opts.setIsAnalyzing((prev) => {
+      if (prev) {
+        opts.isAnalyzingRef.current = false;
+        opts.showError(t("image.analyzeTimeout"));
+        return false;
+      }
+      return prev;
+    });
+  }, ANALYZE_TIMEOUT_MS);
+
+  opts.isAnalyzingRef.current = true;
+  opts.setIsAnalyzing(true);
+  try {
+    const { width, height } = await validateImageSize(imageUrl);
+    if (width < MIN_IMAGE_SIZE || height < MIN_IMAGE_SIZE) {
+      opts.showError(
+        t("error.imageTooSmall"),
+        t("error.imageSizeMin", { size: `${MIN_IMAGE_SIZE}像素。当前尺寸: 宽度 = ${width}, 高度 = ${height}。` }),
+      );
+      return;
+    }
+
+    const analyzeOptions: { providerId?: string; modelId?: string } = {};
+    if (opts.selectedImageModel?.providerId && opts.selectedImageModel?.modelId) {
+      analyzeOptions.providerId = opts.selectedImageModel.providerId;
+      analyzeOptions.modelId = opts.selectedImageModel.modelId;
+    }
+    const result = await container.imageProvider.analyzeImage(
+      imageUrl, "scene", undefined,
+      { providerId: analyzeOptions.providerId, modelId: analyzeOptions.modelId },
+    );
+    if (opts.currentSceneRef.current.id !== sceneIdAtStart) return;
+
+    if (!result.success || !result.data?.analyzed) {
+      opts.showError(t("image.analyzeFailed"), result.error || result.message || t("common.retry"));
+      return;
+    }
+
+    const analyzed = result.data.analyzed as Partial<Scene>;
+    opts.setCurrentScene((prev) => ({
+      ...prev,
+      elements: analyzed.elements ?? prev.elements,
+      colors: analyzed.colors ?? prev.colors,
+      lighting: analyzed.lighting ?? prev.lighting,
+      mood: analyzed.mood ?? prev.mood,
+      weather: analyzed.weather ?? prev.weather,
+      timeOfDay: analyzed.timeOfDay ?? prev.timeOfDay,
+      scenePath: imageUrl,
+      generatedImage: imageUrl,
+    }), true);
+
+    await persistAnalyzedSceneImage(imageUrl, analyzed, opts);
+  } catch (err) {
+    errorLogger.error("分析失败:", err);
+    opts.showError(t("image.analyzeFailed"), mapUserFacingError(err));
+  } finally {
+    if (opts.analyzeTimeoutRef.current) {
+      clearTimeout(opts.analyzeTimeoutRef.current);
+      opts.analyzeTimeoutRef.current = null;
+    }
+    opts.isAnalyzingRef.current = false;
+    opts.setIsAnalyzing(false);
+  }
+}
+
 export function useSceneImage({
   currentScene, currentSceneRef, setCurrentScene, addAssetToLibrary, success, showError,
 }: UseSceneImageProps) {
@@ -63,15 +216,13 @@ export function useSceneImage({
   };
 
   const generateImage = async () => {
-    // ref 级别防重复提交，防止快速双击导致多次生成
     if (isGeneratingRef.current) return;
     const basicPrompt = currentScene.imageGenerationPrompt || generateSimpleSceneImagePrompt(currentScene);
     if (!basicPrompt || basicPrompt === "请输入场景信息生成提示词...") { showError(t("image.fillInfo"), t("image.fillInfoHint")); return; }
     isGeneratingRef.current = true;
     setIsGenerating(true);
     try {
-      const imageOptions: CustomApiConfig & { size?: string } = { size: imageSize };
-      if (selectedImageModel) { imageOptions.providerId = selectedImageModel.providerId; imageOptions.modelId = selectedImageModel.modelId; }
+      const imageOptions = buildImageOptions(imageSize, selectedImageModel);
       const result = await container.imageProvider.generateImage(basicPrompt, "scene", imageOptions);
       if (result.success && result.data?.imageUrl) { setGeneratedImage(result.data.imageUrl); success(t("success.imageGenerated"), t("success.sceneImageGeneratedDesc")); }
       else { showError(t("image.generateFailed"), result.error || t("image.checkApiConfig")); }
@@ -81,13 +232,14 @@ export function useSceneImage({
 
   const saveImageToScene = async () => {
     if (generatedImage && currentScene.id) {
-      try {
-        const result = await sceneService.update(currentScene.id, { ...currentScene, scenePath: generatedImage, generatedImage });
-        if (!result.ok) throw result.error;
-        queryClient.invalidateQueries({ queryKey: ["scenes"] });
-        addAssetToLibrary(generatedImage, "image", currentScene.name || "场景图片", { type: "scene", id: currentScene.id, name: currentScene.name || "未命名场景" });
-        success(t("success.saved"), t("success.imageSavedToLibrary"));
-      } catch (err) { errorLogger.error("[SceneImage] 保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), mapUserFacingError(err)); }
+      await saveImageToSceneRecord(
+        currentScene,
+        generatedImage,
+        queryClient,
+        addAssetToLibrary,
+        success,
+        showError,
+      );
     }
   };
 
@@ -97,67 +249,46 @@ export function useSceneImage({
     setIsUploading(true);
     try {
       const result = await container.fileUploader.uploadFile(file);
-      if (result.success && result.data?.url) {
-        const imageUrl = result.data.url;
-        setGeneratedImage(imageUrl);
-        if (currentScene.id) {
-          try {
-            const updateResult = await sceneService.update(currentScene.id, { ...currentScene, scenePath: imageUrl, generatedImage: imageUrl });
-            if (!updateResult.ok) throw updateResult.error;
-            queryClient.invalidateQueries({ queryKey: ["scenes"] });
-            addAssetToLibrary(imageUrl, "image", currentScene.name || "场景图片", { type: "scene", id: currentScene.id, name: currentScene.name || "未命名场景" });
-          } catch (err) { errorLogger.error("[SceneImage] 上传后保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), mapUserFacingError(err)); }
-        } else { addAssetToLibrary(imageUrl, "image", "上传的图片"); }
-        success(t("success.uploaded"), t("success.imageSavedToLibrary"));
-      } else { showError(t("error.uploadFailed"), result.error || t("common.retry")); }
-    } catch (err) { errorLogger.error({ code: "UPLOAD_ERROR", message: t("error.uploadFailed"), cause: err }); showError(t("error.uploadFailed"), mapUserFacingError(err)); }
+      if (!result.success || !result.data?.url) {
+        showError(t("error.uploadFailed"), result.error || t("common.retry"));
+        return;
+      }
+      const imageUrl = result.data.url;
+      setGeneratedImage(imageUrl);
+      if (currentScene.id) {
+        await saveImageToSceneRecord(
+          currentScene,
+          imageUrl,
+          queryClient,
+          addAssetToLibrary,
+          success,
+          showError,
+        );
+      } else {
+        addAssetToLibrary(imageUrl, "image", "上传的图片");
+      }
+      success(t("success.uploaded"), t("success.imageSavedToLibrary"));
+    } catch (err) {
+      errorLogger.error({ code: "UPLOAD_ERROR", message: t("error.uploadFailed"), cause: err });
+      showError(t("error.uploadFailed"), mapUserFacingError(err));
+    }
     finally { setIsUploading(false); }
   };
 
   const analyzeImage = async (imageUrl: string) => {
     if (isAnalyzingRef.current) return;
-    const sceneIdAtStart = currentSceneRef.current.id;
-    analyzeTimeoutRef.current = setTimeout(() => {
-      setIsAnalyzing((prev) => { if (prev) { isAnalyzingRef.current = false; showError(t("image.analyzeTimeout")); return false; } return prev; });
-    }, 60000);
-    isAnalyzingRef.current = true;
-    setIsAnalyzing(true);
-    try {
-      const { width, height } = await validateImageSize(imageUrl);
-      const MIN_SIZE = 14;
-      if (width < MIN_SIZE || height < MIN_SIZE) { showError(t("error.imageTooSmall"), t("error.imageSizeMin", { size: `${MIN_SIZE}像素。当前尺寸: 宽度 = ${width}, 高度 = ${height}。` })); return; }
-      const analyzeOptions: { providerId?: string; modelId?: string } = {};
-      if (selectedImageModel?.providerId && selectedImageModel?.modelId) { analyzeOptions.providerId = selectedImageModel.providerId; analyzeOptions.modelId = selectedImageModel.modelId; }
-      const result = await container.imageProvider.analyzeImage(imageUrl, "scene", undefined, { providerId: analyzeOptions.providerId, modelId: analyzeOptions.modelId });
-      if (currentSceneRef.current.id !== sceneIdAtStart) return;
-
-      if (result.success && result.data?.analyzed) {
-        const analyzed = result.data.analyzed as Partial<Scene>;
-        setCurrentScene((prev) => ({
-          ...prev,
-          elements: analyzed.elements ?? prev.elements,
-          colors: analyzed.colors ?? prev.colors,
-          lighting: analyzed.lighting ?? prev.lighting,
-          mood: analyzed.mood ?? prev.mood,
-          weather: analyzed.weather ?? prev.weather,
-          timeOfDay: analyzed.timeOfDay ?? prev.timeOfDay,
-          scenePath: imageUrl,
-          generatedImage: imageUrl,
-        }), true);
-        if (currentSceneRef.current.id) {
-          try {
-            const updateResult = await sceneService.update(currentSceneRef.current.id, {
-              ...currentSceneRef.current,
-              scenePath: imageUrl,
-              generatedImage: imageUrl,
-            }); if (!updateResult.ok) throw updateResult.error; queryClient.invalidateQueries({ queryKey: ["scenes"] }); }
-          catch (err) { errorLogger.error("[SceneImage] 分析后保存图像到场景失败", err instanceof Error ? err : undefined); showError(t("error.saveFailed"), mapUserFacingError(err)); }
-        }
-        addAssetToLibrary(imageUrl, "image", analyzed.name || currentSceneRef.current.name || "场景图片", { type: "scene", id: currentSceneRef.current.id, name: analyzed.name || currentSceneRef.current.name || "未命名场景" });
-        success(t("success.analysisComplete"), t("success.sceneAnalysisResult", { name: analyzed.name || "未命名场景" }));
-      } else { showError(t("image.analyzeFailed"), result.error || result.message || t("common.retry")); }
-    } catch (err) { errorLogger.error("分析失败:", err); showError(t("image.analyzeFailed"), mapUserFacingError(err)); }
-    finally { if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null; } isAnalyzingRef.current = false; setIsAnalyzing(false); }
+    await performSceneImageAnalysis(imageUrl, {
+      selectedImageModel,
+      queryClient,
+      currentSceneRef,
+      setCurrentScene,
+      addAssetToLibrary,
+      success,
+      showError,
+      isAnalyzingRef,
+      analyzeTimeoutRef,
+      setIsAnalyzing,
+    });
   };
 
   const handleAnalyzeFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

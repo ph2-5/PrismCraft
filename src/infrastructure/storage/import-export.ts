@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- import-export 包含大量表定义，拆分后仍超过 500 行 */
 import { parseRecordWithTable, toSqlValue } from "./core";
 import type { DbRunResult } from "./core";
 import type { StoryVersion } from "@/domain/schemas";
@@ -134,159 +135,180 @@ type ImportTable = {
   createFn: (item: Record<string, unknown>) => Promise<void | string | DbRunResult>;
 };
 
+function buildEntityImportTables(): ImportTable[] {
+  return [
+    {
+      key: "characters",
+      tableName: "characters",
+      createFn: (item) => characterStorage.createCharacter(item),
+    },
+    {
+      key: "scenes",
+      tableName: "scenes",
+      createFn: (item) => sceneStorage.createScene(item),
+    },
+    {
+      key: "stories",
+      tableName: "stories",
+      createFn: (item) => storyStorage.createStory(item),
+    },
+    {
+      key: "videoTasks",
+      tableName: "video_tasks",
+      createFn: (item) => videoTaskStorage.createVideoTask(item as Partial<VideoTask> & { taskId: string }),
+    },
+  ];
+}
+
+async function createMediaAssetFromRecord(item: Record<string, unknown>): Promise<void> {
+  await mediaAssetRepository.create({
+    id: String(item.id || ""),
+    name: String(item.name || ""),
+    description: item.description ? String(item.description) : undefined,
+    type: (item.type as "image" | "video") || "image",
+    url: String(item.url || ""),
+    thumbnailUrl: item.thumbnailUrl ? String(item.thumbnailUrl) : undefined,
+    tags: Array.isArray(item.tags) ? item.tags.map(String) : undefined,
+    createdAt: item.createdAt ? String(item.createdAt) : undefined,
+    updatedAt: item.updatedAt ? String(item.updatedAt) : undefined,
+    boundTo: item.boundTo
+      ? {
+          type: (item.boundTo as Record<string, unknown>).type as "character" | "scene",
+          id: String((item.boundTo as Record<string, unknown>).id || ""),
+          name: String((item.boundTo as Record<string, unknown>).name || ""),
+        }
+      : undefined,
+    fileSize: typeof item.fileSize === "number" ? item.fileSize : undefined,
+    mimeType: item.mimeType ? String(item.mimeType) : undefined,
+    width: typeof item.width === "number" ? item.width : undefined,
+    height: typeof item.height === "number" ? item.height : undefined,
+    duration: typeof item.duration === "number" ? item.duration : undefined,
+  } as Partial<MediaAsset> & { id: string });
+}
+
+function buildAssetImportTables(): ImportTable[] {
+  return [
+    {
+      key: "assets",
+      tableName: "media_assets",
+      createFn: async (item) => {
+        await createMediaAssetFromRecord(item as Record<string, unknown>);
+      },
+    },
+    {
+      key: "storyVersions",
+      tableName: "story_versions",
+      createFn: (item) => {
+        return versionStorage.createStoryVersion(item as Partial<StoryVersion> & { storyId: string; beats: StoryVersion["beats"] });
+      },
+    },
+    {
+      key: "storyboardAssets",
+      tableName: "storyboard_assets",
+      createFn: (item) => storyboardStorage.createStoryboardAsset(item),
+    },
+    {
+      key: "collections",
+      tableName: "collections",
+      createFn: async (item: Record<string, unknown>) => {
+        await collectionStorage.createCollection(
+          String(item.name || ""),
+          item.id ? String(item.id) : undefined,
+        );
+      },
+    },
+  ];
+}
+
+function buildSqlImportTables(): ImportTable[] {
+  return [
+    {
+      key: "videoCache",
+      tableName: "video_cache",
+      createFn: (item) =>
+        safeRun(
+          `INSERT OR IGNORE INTO video_cache (task_id, file_path, original_url, mime_type, file_size, cached_at, owner_id, version, sync_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            item.task_id,
+            item.file_path || null,
+            item.original_url || null,
+            item.mime_type || null,
+            item.file_size || 0,
+            item.cached_at || Math.floor(Date.now() / 1000),
+            1,
+            1,
+            null,
+          ],
+        ),
+    },
+    {
+      key: "astTemplates",
+      tableName: "ast_templates",
+      createFn: (item) =>
+        safeRun(
+          `INSERT OR IGNORE INTO ast_templates (id, name, description, category, genre, tone, tags, author, total_duration, beats_count, characters_count, scenes_count, ast_file_path, ast_file_size, is_public, parent_template_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            item.id,
+            item.name || "",
+            item.description || null,
+            item.category || null,
+            item.genre || null,
+            item.tone || null,
+            item.tags || null,
+            item.author || null,
+            item.total_duration || 0,
+            item.beats_count || 0,
+            item.characters_count || 0,
+            item.scenes_count || 0,
+            item.ast_file_path || null,
+            item.ast_file_size || null,
+            item.is_public ? 1 : 0,
+            item.parent_template_id || null,
+            item.created_at || Math.floor(Date.now() / 1000),
+            item.updated_at || Math.floor(Date.now() / 1000),
+          ],
+        ),
+    },
+    {
+      key: "assetTags",
+      tableName: "asset_tags",
+      createFn: (item) =>
+        safeRun(
+          `INSERT OR IGNORE INTO asset_tags (asset_id, asset_type, tag, confidence, created_at) VALUES (?, ?, ?, ?, ?)`,
+          [
+            item.asset_id,
+            item.asset_type || "character",
+            item.tag,
+            item.confidence || 1.0,
+            item.created_at || Math.floor(Date.now() / 1000),
+          ],
+        ),
+    },
+    {
+      key: "autoSaves",
+      tableName: "auto_saves",
+      createFn: (item) =>
+        safeRun(
+          `INSERT OR IGNORE INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?)`,
+          [
+            item.id,
+            item.type || item.auto_saved ? "story" : "character",
+            toSqlValue(item.data_json || item.data),
+            item.timestamp ||
+              item.created_at ||
+              Math.floor(Date.now() / 1000),
+          ],
+        ),
+    },
+  ];
+}
+
 function buildImportTables(): ImportTable[] {
   return [
-      {
-        key: "characters",
-        tableName: "characters",
-        createFn: (item) => characterStorage.createCharacter(item),
-      },
-      {
-        key: "scenes",
-        tableName: "scenes",
-        createFn: (item) => sceneStorage.createScene(item),
-      },
-      {
-        key: "stories",
-        tableName: "stories",
-        createFn: (item) => storyStorage.createStory(item),
-      },
-      {
-        key: "videoTasks",
-        tableName: "video_tasks",
-        createFn: (item) => videoTaskStorage.createVideoTask(item as Partial<VideoTask> & { taskId: string }),
-      },
-      {
-        key: "assets",
-        tableName: "media_assets",
-        createFn: async (item) => {
-          const record = item as Record<string, unknown>;
-          await mediaAssetRepository.create({
-            id: String(record.id || ""),
-            name: String(record.name || ""),
-            description: record.description ? String(record.description) : undefined,
-            type: (record.type as "image" | "video") || "image",
-            url: String(record.url || ""),
-            thumbnailUrl: record.thumbnailUrl ? String(record.thumbnailUrl) : undefined,
-            tags: Array.isArray(record.tags) ? record.tags.map(String) : undefined,
-            createdAt: record.createdAt ? String(record.createdAt) : undefined,
-            updatedAt: record.updatedAt ? String(record.updatedAt) : undefined,
-            boundTo: record.boundTo
-              ? {
-                  type: (record.boundTo as Record<string, unknown>).type as "character" | "scene",
-                  id: String((record.boundTo as Record<string, unknown>).id || ""),
-                  name: String((record.boundTo as Record<string, unknown>).name || ""),
-                }
-              : undefined,
-            fileSize: typeof record.fileSize === "number" ? record.fileSize : undefined,
-            mimeType: record.mimeType ? String(record.mimeType) : undefined,
-            width: typeof record.width === "number" ? record.width : undefined,
-            height: typeof record.height === "number" ? record.height : undefined,
-            duration: typeof record.duration === "number" ? record.duration : undefined,
-          } as Partial<MediaAsset> & { id: string });
-        },
-      },
-      {
-        key: "storyVersions",
-        tableName: "story_versions",
-        createFn: (item) => {
-          return versionStorage.createStoryVersion(item as Partial<StoryVersion> & { storyId: string; beats: StoryVersion["beats"] });
-        },
-      },
-      {
-        key: "storyboardAssets",
-        tableName: "storyboard_assets",
-        createFn: (item) => storyboardStorage.createStoryboardAsset(item),
-      },
-      {
-        key: "collections",
-        tableName: "collections",
-        createFn: async (item: Record<string, unknown>) => {
-          await collectionStorage.createCollection(
-            String(item.name || ""),
-            item.id ? String(item.id) : undefined,
-          );
-        },
-      },
-      {
-        key: "videoCache",
-        tableName: "video_cache",
-        createFn: (item) =>
-          safeRun(
-            `INSERT OR IGNORE INTO video_cache (task_id, file_path, original_url, mime_type, file_size, cached_at, owner_id, version, sync_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              item.task_id,
-              item.file_path || null,
-              item.original_url || null,
-              item.mime_type || null,
-              item.file_size || 0,
-              item.cached_at || Math.floor(Date.now() / 1000),
-              1,
-              1,
-              null,
-            ],
-          ),
-      },
-      {
-        key: "astTemplates",
-        tableName: "ast_templates",
-        createFn: (item) =>
-          safeRun(
-            `INSERT OR IGNORE INTO ast_templates (id, name, description, category, genre, tone, tags, author, total_duration, beats_count, characters_count, scenes_count, ast_file_path, ast_file_size, is_public, parent_template_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              item.id,
-              item.name || "",
-              item.description || null,
-              item.category || null,
-              item.genre || null,
-              item.tone || null,
-              item.tags || null,
-              item.author || null,
-              item.total_duration || 0,
-              item.beats_count || 0,
-              item.characters_count || 0,
-              item.scenes_count || 0,
-              item.ast_file_path || null,
-              item.ast_file_size || null,
-              item.is_public ? 1 : 0,
-              item.parent_template_id || null,
-              item.created_at || Math.floor(Date.now() / 1000),
-              item.updated_at || Math.floor(Date.now() / 1000),
-            ],
-          ),
-      },
-      {
-        key: "assetTags",
-        tableName: "asset_tags",
-        createFn: (item) =>
-          safeRun(
-            `INSERT OR IGNORE INTO asset_tags (asset_id, asset_type, tag, confidence, created_at) VALUES (?, ?, ?, ?, ?)`,
-            [
-              item.asset_id,
-              item.asset_type || "character",
-              item.tag,
-              item.confidence || 1.0,
-              item.created_at || Math.floor(Date.now() / 1000),
-            ],
-          ),
-      },
-      {
-        key: "autoSaves",
-        tableName: "auto_saves",
-        createFn: (item) =>
-          safeRun(
-            `INSERT OR IGNORE INTO auto_saves (id, type, data_json, timestamp) VALUES (?, ?, ?, ?)`,
-            [
-              item.id,
-              item.type || item.auto_saved ? "story" : "character",
-              toSqlValue(item.data_json || item.data),
-              item.timestamp ||
-                item.created_at ||
-                Math.floor(Date.now() / 1000),
-            ],
-          ),
-      },
-    ];
+    ...buildEntityImportTables(),
+    ...buildAssetImportTables(),
+    ...buildSqlImportTables(),
+  ];
 }
 
 async function importWithReplace(

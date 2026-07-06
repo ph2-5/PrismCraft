@@ -63,6 +63,8 @@ export function useApiConfigHandlers(capabilities: ApiCapabilityMeta[]) {
   const [useCustomVision, setUseCustomVision] = useState(false);
 
   const saveConfigDebounced = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestConfigRef = useRef<ApiConfig | null>(null);
+  latestConfigRef.current = config;
 
   const refreshPluginCaches = useCallback(async () => {
     await Promise.allSettled([
@@ -86,6 +88,14 @@ export function useApiConfigHandlers(capabilities: ApiCapabilityMeta[]) {
     return () => {
       if (saveConfigDebounced.current) {
         clearTimeout(saveConfigDebounced.current);
+        saveConfigDebounced.current = null;
+        // 卸载时若有未完成的 debounce 保存，立即执行最后一次保存（不显示 toast 避免卸载后 setState 警告）
+        const pendingConfig = latestConfigRef.current;
+        if (pendingConfig) {
+          saveConfig(pendingConfig).catch((e) => {
+            errorLogger.warn("[ApiConfig] 卸载时 flush 保存失败", e);
+          });
+        }
       }
     };
   }, []);

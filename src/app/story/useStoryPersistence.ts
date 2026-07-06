@@ -177,7 +177,8 @@ export function useStoryPersistence({
         debounceTimer = null;
       }
     };
-  }, [completedTaskUrls, allCompletedTaskUrls, beatsRef]);
+    // beatsRef 是稳定的 MutableRefObject，引用永远不变，无需作为依赖
+  }, [completedTaskUrls, allCompletedTaskUrls]);
 
   return { isVideoUrlPersisting };
 }

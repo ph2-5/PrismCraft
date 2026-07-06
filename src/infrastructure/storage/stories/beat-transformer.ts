@@ -1,234 +1,168 @@
 import { toSqlValue } from "../core";
 
-export function flattenBeat(beat: Record<string, unknown>, now: number) {
-  const camera = beat.camera as Record<string, unknown> | undefined;
-  const keyframe = beat.keyframe as Record<string, unknown> | undefined;
-  const framePair = beat.framePair as Record<string, unknown> | undefined;
-  const firstFrame = framePair?.firstFrame as
-    | Record<string, unknown>
-    | undefined;
-  const lastFrame = framePair?.lastFrame as Record<string, unknown> | undefined;
-  const videoGen = beat.videoGen as Record<string, unknown> | undefined;
+function firstOf<T>(...values: Array<unknown>): T | null {
+  for (const v of values) {
+    if (v !== undefined && v !== null && v !== "") return v as T;
+  }
+  return null;
+}
 
-  const knownKeys = new Set([
-    "id",
-    "sequence",
-    "order",
-    "description",
-    "duration",
-    "type",
-    "title",
-    "content",
-    "characterIds",
-    "character_ids",
-    "character_ids_json",
-    "sceneId",
-    "scene_id",
-    "scene",
-    "shotType",
-    "shot_type",
-    "generationPrompt",
-    "generation_prompt",
-    "imageGenerationPrompt",
-    "image_generation_prompt",
-    "firstFramePrompt",
-    "first_frame_prompt",
-    "lastFramePrompt",
-    "last_frame_prompt",
-    "firstFramePromptGen",
-    "first_frame_prompt_gen",
-    "lastFramePromptGen",
-    "last_frame_prompt_gen",
-    "enhancedGeneration",
-    "enhanced_generation",
-    "createdAt",
-    "created_at",
-    "updatedAt",
-    "updated_at",
-    "keyframeImageUrl",
-    "keyframe_image_url",
-    "keyframePrompt",
-    "keyframe_prompt",
-    "keyframeGeneratedAt",
-    "keyframe_generated_at",
-    "firstFrameUrl",
-    "first_frame_url",
-    "lastFrameUrl",
-    "last_frame_url",
-    "framePairGeneratedAt",
-    "frame_pair_generated_at",
-    "videoUrl",
-    "video_url",
-    "videoTaskId",
-    "video_task_id",
-    "videoStatus",
-    "video_status",
-    "cameraAngle",
-    "camera_angle",
-    "cameraMovement",
-    "camera_movement",
-    "cameraDistance",
-    "camera_distance",
-    "cameraSpeed",
-    "camera_speed",
-    "characterOutfits",
-    "character_outfits",
-    "character_outfits_json",
-    "camera",
-    "generation",
-    "meta",
-    "keyframe",
-    "framePair",
-    "videoGen",
-  ]);
+function extractExtraFromObject(
+  source: Record<string, unknown>,
+  prefix: string,
+  flattenedKeys: Set<string>,
+  extra: Record<string, unknown>,
+): void {
+  for (const [sk, sv] of Object.entries(source)) {
+    if (!flattenedKeys.has(sk) && sv !== undefined && sv !== null) {
+      extra[`${prefix}.${sk}`] = sv;
+    }
+  }
+}
 
-  const FLATTENED_KEYFRAME_KEYS = new Set([
-    "imageUrl",
-    "prompt",
-    "generatedAt",
-    "source",
-  ]);
-  const FLATTENED_FRAMEPAIR_KEYS = new Set([
-    "firstFrame",
-    "lastFrame",
-    "generatedAt",
-    "firstFrameUrl",
-    "lastFrameUrl",
-    "firstFramePrompt",
-    "lastFramePrompt",
-    "source",
-  ]);
-  const FLATTENED_VIDEOGEN_KEYS = new Set(["videoUrl", "taskId", "status", "prompt", "createdAt", "source", "error"]);
-  const FLATTENED_CAMERA_KEYS = new Set([
-    "angle",
-    "movement",
-    "distance",
-    "speed",
-  ]);
+const FLATTENED_KEYFRAME_KEYS = new Set(["imageUrl", "prompt", "generatedAt", "source"]);
+const FLATTENED_FRAMEPAIR_KEYS = new Set([
+  "firstFrame",
+  "lastFrame",
+  "generatedAt",
+  "firstFrameUrl",
+  "lastFrameUrl",
+  "firstFramePrompt",
+  "lastFramePrompt",
+  "source",
+]);
+const FLATTENED_VIDEOGEN_KEYS = new Set(["videoUrl", "taskId", "status", "prompt", "createdAt", "source", "error"]);
+const FLATTENED_CAMERA_KEYS = new Set(["angle", "movement", "distance", "speed"]);
 
+const KNOWN_BEAT_KEYS = new Set([
+  "id", "sequence", "order", "description", "duration", "type", "title", "content",
+  "characterIds", "character_ids", "character_ids_json",
+  "sceneId", "scene_id", "scene",
+  "shotType", "shot_type",
+  "generationPrompt", "generation_prompt",
+  "imageGenerationPrompt", "image_generation_prompt",
+  "firstFramePrompt", "first_frame_prompt",
+  "lastFramePrompt", "last_frame_prompt",
+  "firstFramePromptGen", "first_frame_prompt_gen",
+  "lastFramePromptGen", "last_frame_prompt_gen",
+  "enhancedGeneration", "enhanced_generation",
+  "createdAt", "created_at", "updatedAt", "updated_at",
+  "keyframeImageUrl", "keyframe_image_url",
+  "keyframePrompt", "keyframe_prompt",
+  "keyframeGeneratedAt", "keyframe_generated_at",
+  "firstFrameUrl", "first_frame_url",
+  "lastFrameUrl", "last_frame_url",
+  "framePairGeneratedAt", "frame_pair_generated_at",
+  "videoUrl", "video_url",
+  "videoTaskId", "video_task_id",
+  "videoStatus", "video_status",
+  "cameraAngle", "camera_angle",
+  "cameraMovement", "camera_movement",
+  "cameraDistance", "camera_distance",
+  "cameraSpeed", "camera_speed",
+  "characterOutfits", "character_outfits", "character_outfits_json",
+  "camera", "generation", "meta", "keyframe", "framePair", "videoGen",
+]);
+
+function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {
   const extra: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(beat)) {
     if (v === undefined || v === null) continue;
-
-    if (k === "keyframe" && typeof v === "object" && v !== null) {
-      for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
-        if (
-          !FLATTENED_KEYFRAME_KEYS.has(sk) &&
-          sv !== undefined &&
-          sv !== null
-        ) {
-          extra[`keyframe.${sk}`] = sv;
-        }
-      }
-      continue;
+    if (typeof v === "object" && v !== null) {
+      const obj = v as Record<string, unknown>;
+      if (k === "keyframe") { extractExtraFromObject(obj, "keyframe", FLATTENED_KEYFRAME_KEYS, extra); continue; }
+      if (k === "framePair") { extractExtraFromObject(obj, "framePair", FLATTENED_FRAMEPAIR_KEYS, extra); continue; }
+      if (k === "videoGen") { extractExtraFromObject(obj, "videoGen", FLATTENED_VIDEOGEN_KEYS, extra); continue; }
+      if (k === "camera") { extractExtraFromObject(obj, "camera", FLATTENED_CAMERA_KEYS, extra); continue; }
     }
-    if (k === "framePair" && typeof v === "object" && v !== null) {
-      for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
-        if (
-          !FLATTENED_FRAMEPAIR_KEYS.has(sk) &&
-          sv !== undefined &&
-          sv !== null
-        ) {
-          extra[`framePair.${sk}`] = sv;
-        }
-      }
-      continue;
-    }
-    if (k === "videoGen" && typeof v === "object" && v !== null) {
-      for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
-        if (
-          !FLATTENED_VIDEOGEN_KEYS.has(sk) &&
-          sv !== undefined &&
-          sv !== null
-        ) {
-          extra[`videoGen.${sk}`] = sv;
-        }
-      }
-      continue;
-    }
-    if (k === "camera" && typeof v === "object" && v !== null) {
-      for (const [sk, sv] of Object.entries(v as Record<string, unknown>)) {
-        if (!FLATTENED_CAMERA_KEYS.has(sk) && sv !== undefined && sv !== null) {
-          extra[`camera.${sk}`] = sv;
-        }
-      }
-      continue;
-    }
-
-    if (knownKeys.has(k)) continue;
+    if (KNOWN_BEAT_KEYS.has(k)) continue;
     extra[k] = v;
   }
+  return extra;
+}
 
-  const cameraContainer: Record<string, unknown> = {};
-  const cameraAngle = camera?.angle || beat.cameraAngle || beat.camera_angle || null;
-  const cameraMovement = camera?.movement || beat.cameraMovement || beat.camera_movement || null;
-  const cameraDistance = camera?.distance || beat.cameraDistance || beat.camera_distance || null;
-  const cameraSpeed = camera?.speed || beat.cameraSpeed || beat.camera_speed || null;
-  const shotType = beat.shotType || beat.shot_type || null;
-  if (cameraAngle) cameraContainer.angle = cameraAngle;
-  if (cameraMovement) cameraContainer.movement = cameraMovement;
-  if (cameraDistance) cameraContainer.distance = cameraDistance;
-  if (cameraSpeed) cameraContainer.speed = cameraSpeed;
-  if (shotType) cameraContainer.shotType = shotType;
+function buildCameraContainer(
+  beat: Record<string, unknown>,
+  camera: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const container: Record<string, unknown> = {};
+  const angle = firstOf(camera?.angle, beat.cameraAngle, beat.camera_angle);
+  const movement = firstOf(camera?.movement, beat.cameraMovement, beat.camera_movement);
+  const distance = firstOf(camera?.distance, beat.cameraDistance, beat.camera_distance);
+  const speed = firstOf(camera?.speed, beat.cameraSpeed, beat.camera_speed);
+  const shotType = firstOf(beat.shotType, beat.shot_type);
+  if (angle) container.angle = angle;
+  if (movement) container.movement = movement;
+  if (distance) container.distance = distance;
+  if (speed) container.speed = speed;
+  if (shotType) container.shotType = shotType;
+  return container;
+}
 
-  const generationContainer: Record<string, unknown> = {};
-  const keyframeImageUrl = keyframe?.imageUrl || beat.keyframeImageUrl || beat.keyframe_image_url || null;
-  const keyframePrompt = keyframe?.prompt || beat.keyframePrompt || beat.keyframe_prompt || null;
-  const keyframeGeneratedAt = keyframe?.generatedAt || beat.keyframeGeneratedAt || beat.keyframe_generated_at || null;
-  const firstFrameUrl = firstFrame?.imageUrl || framePair?.firstFrameUrl || beat.firstFrameUrl || beat.first_frame_url || null;
-  const firstFramePrompt = firstFrame?.prompt || framePair?.firstFramePrompt || beat.firstFramePrompt || beat.first_frame_prompt || null;
-  const lastFrameUrl = lastFrame?.imageUrl || framePair?.lastFrameUrl || beat.lastFrameUrl || beat.last_frame_url || null;
-  const lastFramePrompt = lastFrame?.prompt || framePair?.lastFramePrompt || beat.lastFramePrompt || beat.last_frame_prompt || null;
-  const framePairGeneratedAt = framePair?.generatedAt || beat.framePairGeneratedAt || beat.frame_pair_generated_at || null;
-  const videoUrl = videoGen?.videoUrl || beat.videoUrl || beat.video_url || null;
-  const videoTaskId = videoGen?.taskId || beat.videoTaskId || beat.video_task_id || null;
-  const videoStatus = videoGen?.status || beat.videoStatus || beat.video_status || null;
-  const imageGenerationPrompt = beat.imageGenerationPrompt || beat.image_generation_prompt || null;
-  const firstFramePromptGen = beat.firstFramePromptGen || beat.first_frame_prompt_gen || null;
-  const lastFramePromptGen = beat.lastFramePromptGen || beat.last_frame_prompt_gen || null;
-  const enhancedGeneration = beat.enhancedGeneration === true || beat.enhanced_generation === true || beat.enhancedGeneration === 1 || beat.enhanced_generation === 1;
-  const characterOutfits = beat.characterOutfits || beat.character_outfits || null;
+function buildGenerationContainer(
+  beat: Record<string, unknown>,
+  keyframe: Record<string, unknown> | undefined,
+  framePair: Record<string, unknown> | undefined,
+  firstFrame: Record<string, unknown> | undefined,
+  lastFrame: Record<string, unknown> | undefined,
+  videoGen: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const container: Record<string, unknown> = {};
+  const assign = (key: string, value: unknown) => { if (value) container[key] = value; };
 
-  if (keyframeImageUrl) generationContainer.keyframeImageUrl = keyframeImageUrl;
-  if (keyframePrompt) generationContainer.keyframePrompt = keyframePrompt;
-  if (keyframeGeneratedAt) generationContainer.keyframeGeneratedAt = keyframeGeneratedAt;
-  if (firstFrameUrl) generationContainer.firstFrameUrl = firstFrameUrl;
-  if (firstFramePrompt) generationContainer.firstFramePrompt = firstFramePrompt;
-  if (lastFrameUrl) generationContainer.lastFrameUrl = lastFrameUrl;
-  if (lastFramePrompt) generationContainer.lastFramePrompt = lastFramePrompt;
-  if (framePairGeneratedAt) generationContainer.framePairGeneratedAt = framePairGeneratedAt;
-  if (videoUrl) generationContainer.videoUrl = videoUrl;
-  if (videoTaskId) generationContainer.videoTaskId = videoTaskId;
-  if (videoStatus) generationContainer.videoStatus = videoStatus;
-  if (imageGenerationPrompt) generationContainer.imageGenerationPrompt = imageGenerationPrompt;
-  if (firstFramePromptGen) generationContainer.firstFramePromptGen = firstFramePromptGen;
-  if (lastFramePromptGen) generationContainer.lastFramePromptGen = lastFramePromptGen;
-  if (enhancedGeneration) generationContainer.enhancedGeneration = true;
-  if (characterOutfits) generationContainer.characterOutfits = characterOutfits;
+  assign("keyframeImageUrl", firstOf(keyframe?.imageUrl, beat.keyframeImageUrl, beat.keyframe_image_url));
+  assign("keyframePrompt", firstOf(keyframe?.prompt, beat.keyframePrompt, beat.keyframe_prompt));
+  assign("keyframeGeneratedAt", firstOf(keyframe?.generatedAt, beat.keyframeGeneratedAt, beat.keyframe_generated_at));
+  assign("firstFrameUrl", firstOf(firstFrame?.imageUrl, framePair?.firstFrameUrl, beat.firstFrameUrl, beat.first_frame_url));
+  assign("firstFramePrompt", firstOf(firstFrame?.prompt, framePair?.firstFramePrompt, beat.firstFramePrompt, beat.first_frame_prompt));
+  assign("lastFrameUrl", firstOf(lastFrame?.imageUrl, framePair?.lastFrameUrl, beat.lastFrameUrl, beat.last_frame_url));
+  assign("lastFramePrompt", firstOf(lastFrame?.prompt, framePair?.lastFramePrompt, beat.lastFramePrompt, beat.last_frame_prompt));
+  assign("framePairGeneratedAt", firstOf(framePair?.generatedAt, beat.framePairGeneratedAt, beat.frame_pair_generated_at));
+  assign("videoUrl", firstOf(videoGen?.videoUrl, beat.videoUrl, beat.video_url));
+  assign("videoTaskId", firstOf(videoGen?.taskId, beat.videoTaskId, beat.video_task_id));
+  assign("videoStatus", firstOf(videoGen?.status, beat.videoStatus, beat.video_status));
+  assign("imageGenerationPrompt", firstOf(beat.imageGenerationPrompt, beat.image_generation_prompt));
+  assign("firstFramePromptGen", firstOf(beat.firstFramePromptGen, beat.first_frame_prompt_gen));
+  assign("lastFramePromptGen", firstOf(beat.lastFramePromptGen, beat.last_frame_prompt_gen));
+
+  const enhanced = beat.enhancedGeneration === true || beat.enhanced_generation === true ||
+    beat.enhancedGeneration === 1 || beat.enhanced_generation === 1;
+  if (enhanced) container.enhancedGeneration = true;
+
+  assign("characterOutfits", firstOf(beat.characterOutfits, beat.character_outfits));
+  return container;
+}
+
+export interface FlattenedBeat {
+  cameraContainer: Record<string, unknown>;
+  generationContainer: Record<string, unknown>;
+  metaContainer: Record<string, unknown> | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export function flattenBeat(beat: Record<string, unknown>, now: number): FlattenedBeat {
+  const camera = beat.camera as Record<string, unknown> | undefined;
+  const keyframe = beat.keyframe as Record<string, unknown> | undefined;
+  const framePair = beat.framePair as Record<string, unknown> | undefined;
+  const firstFrame = framePair?.firstFrame as Record<string, unknown> | undefined;
+  const lastFrame = framePair?.lastFrame as Record<string, unknown> | undefined;
+  const videoGen = beat.videoGen as Record<string, unknown> | undefined;
+
+  const extra = buildExtra(beat);
+  const cameraContainer = buildCameraContainer(beat, camera);
+  const generationContainer = buildGenerationContainer(beat, keyframe, framePair, firstFrame, lastFrame, videoGen);
 
   return {
     cameraContainer,
     generationContainer,
     metaContainer: Object.keys(extra).length > 0 ? extra : null,
-    createdAt: beat.createdAt || beat.created_at || now,
-    updatedAt: beat.updatedAt || beat.updated_at || now,
+    createdAt: firstOf<number>(beat.createdAt, beat.created_at, now) as number,
+    updatedAt: firstOf<number>(beat.updatedAt, beat.updated_at, now) as number,
   };
 }
 
-export function buildBeatInsert(
-  beatId: string,
-  storyId: string,
-  index: number,
-  beat: Record<string, unknown>,
-  now: number,
-): { sql: string; params: unknown[] } {
-  const flat = flattenBeat(beat, now);
-  const localVideoPath = beat.localVideoPath || beat.local_video_path || null;
-  const localKeyframePath = beat.localKeyframePath || beat.local_keyframe_path || null;
-  const localFirstFramePath = beat.localFirstFramePath || beat.local_first_frame_path || null;
-  const localLastFramePath = beat.localLastFramePath || beat.local_last_frame_path || null;
-  return {
-    sql: `INSERT INTO story_beats (id, story_id, sequence, order_num, title, content, description, duration, type, character_ids_json, scene_id, camera, generation, meta, local_video_path, local_keyframe_path, local_first_frame_path, local_last_frame_path, owner_id, created_at, updated_at)
+const BEAT_INSERT_SQL = `INSERT INTO story_beats (id, story_id, sequence, order_num, title, content, description, duration, type, character_ids_json, scene_id, camera, generation, meta, local_video_path, local_keyframe_path, local_first_frame_path, local_last_frame_path, owner_id, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        story_id = excluded.story_id,
@@ -248,7 +182,27 @@ export function buildBeatInsert(
        local_keyframe_path = excluded.local_keyframe_path,
        local_first_frame_path = excluded.local_first_frame_path,
        local_last_frame_path = excluded.local_last_frame_path,
-       updated_at = excluded.updated_at`,
+       updated_at = excluded.updated_at`;
+
+function resolveCharacterIdsValue(beat: Record<string, unknown>): unknown {
+  if (Array.isArray(beat.characterIds)) return toSqlValue(beat.characterIds);
+  return beat.character_ids || beat.character_ids_json || null;
+}
+
+function resolveLocalPath(beat: Record<string, unknown>, camel: string, snake: string): unknown {
+  return beat[camel] || beat[snake] || null;
+}
+
+export function buildBeatInsert(
+  beatId: string,
+  storyId: string,
+  index: number,
+  beat: Record<string, unknown>,
+  now: number,
+): { sql: string; params: unknown[] } {
+  const flat = flattenBeat(beat, now);
+  return {
+    sql: BEAT_INSERT_SQL,
     params: [
       beatId,
       storyId,
@@ -259,17 +213,15 @@ export function buildBeatInsert(
       beat.description || null,
       beat.duration || null,
       beat.type || null,
-      Array.isArray(beat.characterIds)
-        ? toSqlValue(beat.characterIds)
-        : beat.character_ids || beat.character_ids_json || null,
+      resolveCharacterIdsValue(beat),
       beat.sceneId || beat.scene_id || null,
       toSqlValue(flat.cameraContainer),
       toSqlValue(flat.generationContainer),
       flat.metaContainer ? toSqlValue(flat.metaContainer) : null,
-      localVideoPath,
-      localKeyframePath,
-      localFirstFramePath,
-      localLastFramePath,
+      resolveLocalPath(beat, "localVideoPath", "local_video_path"),
+      resolveLocalPath(beat, "localKeyframePath", "local_keyframe_path"),
+      resolveLocalPath(beat, "localFirstFramePath", "local_first_frame_path"),
+      resolveLocalPath(beat, "localLastFramePath", "local_last_frame_path"),
       1,
       flat.createdAt,
       flat.updatedAt,

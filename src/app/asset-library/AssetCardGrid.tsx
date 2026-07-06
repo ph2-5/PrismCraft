@@ -18,7 +18,7 @@ import type {
 } from "@/domain/schemas";
 import { t } from "@/shared/constants";
 import { CharacterCard, SceneCard, StoryboardCard, CollectionCard } from "./AssetCards";
-import type { AssetTab } from "./asset-library-shared";
+import type { AssetTab, EditingItem } from "./asset-library-shared";
 export type { AssetTab, EditingItem } from "./asset-library-shared";
 export { fetchSecondaryData } from "./asset-library-shared";
 
@@ -36,7 +36,7 @@ interface AssetCardGridProps {
   secondaryDataLoading: boolean;
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
-  onEditItem: (item: import("./asset-library-shared").EditingItem) => void;
+  onEditItem: (item: EditingItem) => void;
   onDeleteCharacter: (id: string) => void;
   onDeleteScene: (id: string) => void;
   onDeleteStoryboard: (id: string) => void;
@@ -45,14 +45,12 @@ interface AssetCardGridProps {
   onNewCollection: () => void;
 }
 
-// 预览页面统一的 grid 布局
 const gridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
   gap: 10,
 };
 
-// 预览页面统一的空状态样式
 function EmptyState({ icon: Icon, title, desc }: { icon: typeof Users; title: string; desc: string }) {
   return (
     <div className="card" style={{ padding: 20, textAlign: "center" }}>
@@ -63,7 +61,6 @@ function EmptyState({ icon: Icon, title, desc }: { icon: typeof Users; title: st
   );
 }
 
-// 预览页面统一的加载状态样式
 function LoadingState() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "64px 0" }}>
@@ -72,249 +69,310 @@ function LoadingState() {
   );
 }
 
-export function AssetCardGrid({
-  activeTab,
-  characters,
-  scenes,
+interface CardGridSectionProps {
+  isLoading: boolean;
+  isEmpty: boolean;
+  emptyIcon: typeof Users;
+  emptyTitle: string;
+  emptyDesc: string;
+  children: React.ReactNode;
+}
+
+function CardGridSection({ isLoading, isEmpty, emptyIcon, emptyTitle, emptyDesc, children }: CardGridSectionProps) {
+  if (isLoading) return <LoadingState />;
+  if (isEmpty) return <EmptyState icon={emptyIcon} title={emptyTitle} desc={emptyDesc} />;
+  return <div style={gridStyle}>{children}</div>;
+}
+
+interface CharactersTabProps {
+  isLoading: boolean;
+  filteredCharacters: Character[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onEditItem: (item: EditingItem) => void;
+  onDeleteCharacter: (id: string) => void;
+}
+
+function CharactersTab({ isLoading, filteredCharacters, selectedIds, onToggleSelect, onEditItem, onDeleteCharacter }: CharactersTabProps) {
+  return (
+    <CardGridSection
+      isLoading={isLoading}
+      isEmpty={filteredCharacters.length === 0}
+      emptyIcon={Users}
+      emptyTitle={t("asset.characterLibraryEmpty")}
+      emptyDesc={t("asset.characterLibraryEmptyDesc")}
+    >
+      {filteredCharacters.map((char) => (
+        <CharacterCard
+          key={char.id}
+          char={char}
+          isSelected={selectedIds.has(char.id)}
+          onToggleSelect={onToggleSelect}
+          onEditItem={onEditItem}
+          onDeleteCharacter={onDeleteCharacter}
+        />
+      ))}
+    </CardGridSection>
+  );
+}
+
+interface ScenesTabProps {
+  isLoading: boolean;
+  filteredScenes: Scene[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onEditItem: (item: EditingItem) => void;
+  onDeleteScene: (id: string) => void;
+}
+
+function ScenesTab({ isLoading, filteredScenes, selectedIds, onToggleSelect, onEditItem, onDeleteScene }: ScenesTabProps) {
+  return (
+    <CardGridSection
+      isLoading={isLoading}
+      isEmpty={filteredScenes.length === 0}
+      emptyIcon={ImageIcon}
+      emptyTitle={t("asset.sceneLibraryEmpty")}
+      emptyDesc={t("asset.sceneLibraryEmptyDesc")}
+    >
+      {filteredScenes.map((scene) => (
+        <SceneCard
+          key={scene.id}
+          scene={scene}
+          isSelected={selectedIds.has(scene.id)}
+          onToggleSelect={onToggleSelect}
+          onEditItem={onEditItem}
+          onDeleteScene={onDeleteScene}
+        />
+      ))}
+    </CardGridSection>
+  );
+}
+
+interface StoryboardsTabProps {
+  isLoading: boolean;
+  filteredStoryboards: StoryboardAsset[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onEditItem: (item: EditingItem) => void;
+  onDeleteStoryboard: (id: string) => void;
+}
+
+function StoryboardsTab({ isLoading, filteredStoryboards, selectedIds, onToggleSelect, onEditItem, onDeleteStoryboard }: StoryboardsTabProps) {
+  return (
+    <CardGridSection
+      isLoading={isLoading}
+      isEmpty={filteredStoryboards.length === 0}
+      emptyIcon={Film}
+      emptyTitle={t("asset.storyboardLibraryEmpty")}
+      emptyDesc={t("asset.storyboardLibraryEmptyDesc")}
+    >
+      {filteredStoryboards.map((sb) => (
+        <StoryboardCard
+          key={sb.id}
+          sb={sb}
+          isSelected={selectedIds.has(sb.id)}
+          onToggleSelect={onToggleSelect}
+          onEditItem={onEditItem}
+          onDeleteStoryboard={onDeleteStoryboard}
+        />
+      ))}
+    </CardGridSection>
+  );
+}
+
+interface CollectionsTabProps {
+  isLoading: boolean;
+  collections: Collection[];
+  collectionAssets: CollectionAsset[];
+  characters: Character[];
+  scenes: Scene[];
+  onNewCollection: () => void;
+  onDeleteCollection: (id: string) => void;
+  onExportCollection: (id: string) => void;
+}
+
+function CollectionsTab({
+  isLoading,
   collections,
   collectionAssets,
+  characters,
+  scenes,
+  onNewCollection,
+  onDeleteCollection,
+  onExportCollection,
+}: CollectionsTabProps) {
+  const getCollectionAssetCount = (collectionId: string) =>
+    collectionAssets.filter((ca) => ca.collectionId === collectionId).length;
+
+  return (
+    <>
+      <div style={{ marginBottom: 12 }}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={onNewCollection}>
+          <Plus size={14} style={{ marginRight: 4 }} />
+          {t("asset.newCollection")}
+        </button>
+      </div>
+      <CardGridSection
+        isLoading={isLoading}
+        isEmpty={collections.length === 0}
+        emptyIcon={FolderOpen}
+        emptyTitle={t("asset.noCollections")}
+        emptyDesc={t("asset.noCollectionsDesc")}
+      >
+        {collections.map((col) => (
+          <CollectionCard
+            key={col.id}
+            col={col}
+            assetCount={getCollectionAssetCount(col.id)}
+            collectionAssets={collectionAssets}
+            characters={characters}
+            scenes={scenes}
+            onDeleteCollection={onDeleteCollection}
+            onExportCollection={onExportCollection}
+          />
+        ))}
+      </CardGridSection>
+    </>
+  );
+}
+
+interface AllTabSectionProps {
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}
+
+function AllTabSection({ title, count, children }: AllTabSectionProps) {
+  if (count === 0) return null;
+  return (
+    <div>
+      <div className="section-label" style={{ marginBottom: 8 }}>{title} ({count})</div>
+      <div style={gridStyle}>{children}</div>
+    </div>
+  );
+}
+
+interface AllTabProps {
+  isLoading: boolean;
+  filteredCharacters: Character[];
+  filteredScenes: Scene[];
+  filteredStoryboards: StoryboardAsset[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onEditItem: (item: EditingItem) => void;
+  onDeleteCharacter: (id: string) => void;
+  onDeleteScene: (id: string) => void;
+  onDeleteStoryboard: (id: string) => void;
+}
+
+function AllTab({
+  isLoading,
   filteredCharacters,
   filteredScenes,
   filteredStoryboards,
-  charactersLoading,
-  scenesLoading,
-  secondaryDataLoading,
   selectedIds,
   onToggleSelect,
   onEditItem,
   onDeleteCharacter,
   onDeleteScene,
   onDeleteStoryboard,
-  onDeleteCollection,
-  onExportCollection,
-  onNewCollection,
-}: AssetCardGridProps) {
-  const getCollectionAssetCount = (collectionId: string) => {
-    return collectionAssets.filter((ca) => ca.collectionId === collectionId)
-      .length;
-  };
-
+}: AllTabProps) {
+  if (isLoading) return <LoadingState />;
+  const isEmpty = filteredCharacters.length === 0 && filteredScenes.length === 0 && filteredStoryboards.length === 0;
+  if (isEmpty) {
+    return <EmptyState icon={Layers} title={t("asset.allAssetsEmpty")} desc={t("asset.allAssetsEmptyDesc")} />;
+  }
   return (
-    <>
-      {activeTab === "characters" && (
-        <>
-          {charactersLoading ? (
-            <LoadingState />
-          ) : filteredCharacters.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title={t("asset.characterLibraryEmpty")}
-              desc={t("asset.characterLibraryEmptyDesc")}
-            />
-          ) : (
-            <div style={gridStyle}>
-              {filteredCharacters.map((char) => (
-                <CharacterCard
-                  key={char.id}
-                  char={char}
-                  isSelected={selectedIds.has(char.id)}
-                  onToggleSelect={onToggleSelect}
-                  onEditItem={onEditItem}
-                  onDeleteCharacter={onDeleteCharacter}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {activeTab === "scenes" && (
-        <>
-          {scenesLoading ? (
-            <LoadingState />
-          ) : filteredScenes.length === 0 ? (
-            <EmptyState
-              icon={ImageIcon}
-              title={t("asset.sceneLibraryEmpty")}
-              desc={t("asset.sceneLibraryEmptyDesc")}
-            />
-          ) : (
-            <div style={gridStyle}>
-              {filteredScenes.map((scene) => (
-                <SceneCard
-                  key={scene.id}
-                  scene={scene}
-                  isSelected={selectedIds.has(scene.id)}
-                  onToggleSelect={onToggleSelect}
-                  onEditItem={onEditItem}
-                  onDeleteScene={onDeleteScene}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {activeTab === "storyboards" && (
-        <>
-          {secondaryDataLoading ? (
-            <LoadingState />
-          ) : filteredStoryboards.length === 0 ? (
-            <EmptyState
-              icon={Film}
-              title={t("asset.storyboardLibraryEmpty")}
-              desc={t("asset.storyboardLibraryEmptyDesc")}
-            />
-          ) : (
-            <div style={gridStyle}>
-              {filteredStoryboards.map((sb) => (
-                <StoryboardCard
-                  key={sb.id}
-                  sb={sb}
-                  isSelected={selectedIds.has(sb.id)}
-                  onToggleSelect={onToggleSelect}
-                  onEditItem={onEditItem}
-                  onDeleteStoryboard={onDeleteStoryboard}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {activeTab === "collections" && (
-        <>
-          <div style={{ marginBottom: 12 }}>
-            <button type="button" className="btn btn-primary btn-sm" onClick={onNewCollection}>
-              <Plus size={14} style={{ marginRight: 4 }} />
-              {t("asset.newCollection")}
-            </button>
-          </div>
-          {secondaryDataLoading ? (
-            <LoadingState />
-          ) : collections.length === 0 ? (
-            <EmptyState
-              icon={FolderOpen}
-              title={t("asset.noCollections")}
-              desc={t("asset.noCollectionsDesc")}
-            />
-          ) : (
-            <div style={gridStyle}>
-              {collections.map((col) => (
-                <CollectionCard
-                  key={col.id}
-                  col={col}
-                  assetCount={getCollectionAssetCount(col.id)}
-                  collectionAssets={collectionAssets}
-                  characters={characters}
-                  scenes={scenes}
-                  onDeleteCollection={onDeleteCollection}
-                  onExportCollection={onExportCollection}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* 全部素材 — 组合视图，对齐预览页面 */}
-      {activeTab === "all" && (
-        <>
-          {charactersLoading || scenesLoading || secondaryDataLoading ? (
-            <LoadingState />
-          ) : filteredCharacters.length === 0 &&
-            filteredScenes.length === 0 &&
-            filteredStoryboards.length === 0 ? (
-            <EmptyState
-              icon={Layers}
-              title={t("asset.allAssetsEmpty")}
-              desc={t("asset.allAssetsEmptyDesc")}
-            />
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {filteredCharacters.length > 0 && (
-                <div>
-                  <div className="section-label" style={{ marginBottom: 8 }}>
-                    👤 {t("asset.characterLibrary")} ({filteredCharacters.length})
-                  </div>
-                  <div style={gridStyle}>
-                    {filteredCharacters.map((char) => (
-                      <CharacterCard
-                        key={char.id}
-                        char={char}
-                        isSelected={selectedIds.has(char.id)}
-                        onToggleSelect={onToggleSelect}
-                        onEditItem={onEditItem}
-                        onDeleteCharacter={onDeleteCharacter}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {filteredScenes.length > 0 && (
-                <div>
-                  <div className="section-label" style={{ marginBottom: 8 }}>
-                    🏙 {t("asset.sceneLibrary")} ({filteredScenes.length})
-                  </div>
-                  <div style={gridStyle}>
-                    {filteredScenes.map((scene) => (
-                      <SceneCard
-                        key={scene.id}
-                        scene={scene}
-                        isSelected={selectedIds.has(scene.id)}
-                        onToggleSelect={onToggleSelect}
-                        onEditItem={onEditItem}
-                        onDeleteScene={onDeleteScene}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {filteredStoryboards.length > 0 && (
-                <div>
-                  <div className="section-label" style={{ marginBottom: 8 }}>
-                    🎬 {t("asset.storyboardLibrary")} ({filteredStoryboards.length})
-                  </div>
-                  <div style={gridStyle}>
-                    {filteredStoryboards.map((sb) => (
-                      <StoryboardCard
-                        key={sb.id}
-                        sb={sb}
-                        isSelected={selectedIds.has(sb.id)}
-                        onToggleSelect={onToggleSelect}
-                        onEditItem={onEditItem}
-                        onDeleteStoryboard={onDeleteStoryboard}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* 道具分类 — 对齐预览页面（暂无数据支持，显示空状态） */}
-      {(activeTab === "props" ||
-        activeTab === "prop-clothing" ||
-        activeTab === "prop-weapon" ||
-        activeTab === "prop-accessory" ||
-        activeTab === "prop-prop") && (
-        <EmptyState
-          icon={Package}
-          title={t("asset.propsEmpty")}
-          desc={t("asset.propsEmptyDesc")}
-        />
-      )}
-
-      {/* 媒体资产分类 — 对齐预览页面（暂无数据支持，显示空状态） */}
-      {activeTab === "media" && (
-        <EmptyState
-          icon={MediaIcon}
-          title={t("asset.mediaEmpty")}
-          desc={t("asset.mediaEmptyDesc")}
-        />
-      )}
-    </>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <AllTabSection title={`👤 ${t("asset.characterLibrary")}`} count={filteredCharacters.length}>
+        {filteredCharacters.map((char) => (
+          <CharacterCard
+            key={char.id}
+            char={char}
+            isSelected={selectedIds.has(char.id)}
+            onToggleSelect={onToggleSelect}
+            onEditItem={onEditItem}
+            onDeleteCharacter={onDeleteCharacter}
+          />
+        ))}
+      </AllTabSection>
+      <AllTabSection title={`🏙 ${t("asset.sceneLibrary")}`} count={filteredScenes.length}>
+        {filteredScenes.map((scene) => (
+          <SceneCard
+            key={scene.id}
+            scene={scene}
+            isSelected={selectedIds.has(scene.id)}
+            onToggleSelect={onToggleSelect}
+            onEditItem={onEditItem}
+            onDeleteScene={onDeleteScene}
+          />
+        ))}
+      </AllTabSection>
+      <AllTabSection title={`🎬 ${t("asset.storyboardLibrary")}`} count={filteredStoryboards.length}>
+        {filteredStoryboards.map((sb) => (
+          <StoryboardCard
+            key={sb.id}
+            sb={sb}
+            isSelected={selectedIds.has(sb.id)}
+            onToggleSelect={onToggleSelect}
+            onEditItem={onEditItem}
+            onDeleteStoryboard={onDeleteStoryboard}
+          />
+        ))}
+      </AllTabSection>
+    </div>
   );
+}
+
+const PROPS_TABS: ReadonlySet<AssetTab> = new Set(["props", "prop-clothing", "prop-weapon", "prop-accessory", "prop-prop"]);
+
+export function AssetCardGrid(props: AssetCardGridProps) {
+  const { activeTab } = props;
+
+  if (activeTab === "characters") {
+    return <CharactersTab isLoading={props.charactersLoading} filteredCharacters={props.filteredCharacters} selectedIds={props.selectedIds} onToggleSelect={props.onToggleSelect} onEditItem={props.onEditItem} onDeleteCharacter={props.onDeleteCharacter} />;
+  }
+  if (activeTab === "scenes") {
+    return <ScenesTab isLoading={props.scenesLoading} filteredScenes={props.filteredScenes} selectedIds={props.selectedIds} onToggleSelect={props.onToggleSelect} onEditItem={props.onEditItem} onDeleteScene={props.onDeleteScene} />;
+  }
+  if (activeTab === "storyboards") {
+    return <StoryboardsTab isLoading={props.secondaryDataLoading} filteredStoryboards={props.filteredStoryboards} selectedIds={props.selectedIds} onToggleSelect={props.onToggleSelect} onEditItem={props.onEditItem} onDeleteStoryboard={props.onDeleteStoryboard} />;
+  }
+  if (activeTab === "collections") {
+    return (
+      <CollectionsTab
+        isLoading={props.secondaryDataLoading}
+        collections={props.collections}
+        collectionAssets={props.collectionAssets}
+        characters={props.characters}
+        scenes={props.scenes}
+        onNewCollection={props.onNewCollection}
+        onDeleteCollection={props.onDeleteCollection}
+        onExportCollection={props.onExportCollection}
+      />
+    );
+  }
+  if (activeTab === "all") {
+    return (
+      <AllTab
+        isLoading={props.charactersLoading || props.scenesLoading || props.secondaryDataLoading}
+        filteredCharacters={props.filteredCharacters}
+        filteredScenes={props.filteredScenes}
+        filteredStoryboards={props.filteredStoryboards}
+        selectedIds={props.selectedIds}
+        onToggleSelect={props.onToggleSelect}
+        onEditItem={props.onEditItem}
+        onDeleteCharacter={props.onDeleteCharacter}
+        onDeleteScene={props.onDeleteScene}
+        onDeleteStoryboard={props.onDeleteStoryboard}
+      />
+    );
+  }
+  if (PROPS_TABS.has(activeTab)) {
+    return <EmptyState icon={Package} title={t("asset.propsEmpty")} desc={t("asset.propsEmptyDesc")} />;
+  }
+  if (activeTab === "media") {
+    return <EmptyState icon={MediaIcon} title={t("asset.mediaEmpty")} desc={t("asset.mediaEmptyDesc")} />;
+  }
+  return null;
 }

@@ -18,6 +18,132 @@ function isShareableUrl(url: string | undefined | null): url is string {
   return typeof url === "string" && SHAREABLE_URL_PROTOCOL.test(url);
 }
 
+function getTypeLabel(type: StoryElement["type"]): string {
+  return type === "character" ? "角色" : type === "prop" ? "道具" : "特效";
+}
+
+interface AppearanceBuildOptions {
+  label: string;
+  trailer?: string;
+  includeBuild?: boolean;
+}
+
+function buildCharacterAppearanceLine(
+  appearance: NonNullable<NonNullable<StoryElement["characterConfig"]>["appearance"]>,
+  options: AppearanceBuildOptions,
+): string {
+  const appearanceParts: string[] = [];
+  if (appearance.hairColor) appearanceParts.push(`${appearance.hairColor}发色`);
+  if (appearance.hairStyle) appearanceParts.push(`${appearance.hairStyle}发型`);
+  if (appearance.eyeColor) appearanceParts.push(`${appearance.eyeColor}眼睛`);
+  if (options.includeBuild && appearance.build) {
+    appearanceParts.push(`${appearance.build}身材`);
+  }
+  if (appearance.clothing) appearanceParts.push(`穿着${appearance.clothing}`);
+  if (appearanceParts.length === 0) return "";
+  return `  ${options.label}：${appearanceParts.join("、")}${options.trailer || ""}`;
+}
+
+interface ImageBindingOptions {
+  urlSuffix?: string;
+  fallbackSuffix: string;
+  consistencyLine?: string;
+}
+
+function appendImageBindingDesc(
+  parts: string[],
+  element: StoryElement,
+  options: ImageBindingOptions,
+): void {
+  const imageBinding = element.bindings?.find((b) => b.type === "image");
+  if (!imageBinding?.url) return;
+  if (isShareableUrl(imageBinding.url)) {
+    parts.push(`  参考图：${imageBinding.url}${options.urlSuffix || ""}`);
+  } else {
+    parts.push(`  参考图：已附加${options.fallbackSuffix}`);
+  }
+  if (options.consistencyLine) {
+    parts.push(`  一致性约束：${options.consistencyLine}`);
+  }
+}
+
+function appendFeatureAnchorDesc(
+  parts: string[],
+  anchor: NonNullable<StoryElement["featureAnchor"]>,
+): void {
+  if (anchor.featureTags.length > 0) {
+    parts.push(`  核心特征：${anchor.featureTags.join("、")}`);
+  }
+  if (anchor.confidence > 0) {
+    parts.push(`  特征置信度：${Math.round(anchor.confidence * 100)}%`);
+  }
+}
+
+function appendGlobalElementDetails(
+  parts: string[],
+  element: StoryElement,
+): void {
+  if (element.type === "character" && element.characterConfig?.appearance) {
+    const line = buildCharacterAppearanceLine(
+      element.characterConfig.appearance,
+      { label: "外观", includeBuild: true },
+    );
+    if (line) parts.push(line);
+  }
+  if (element.type === "prop" && element.description) {
+    parts.push(`  外观：${element.description}`);
+  }
+  appendImageBindingDesc(parts, element, {
+    fallbackSuffix: "（通过 reference 通道传输）",
+    consistencyLine:
+      "严格继承参考图中的全部视觉特征，包括颜色、材质、形状、比例",
+  });
+  if (element.featureAnchor) {
+    appendFeatureAnchorDesc(parts, element.featureAnchor);
+  }
+}
+
+type ElementBinding = NonNullable<StoryBeat["elementBindings"]>[string];
+
+function appendElementBindingDetails(
+  parts: string[],
+  binding: ElementBinding | undefined,
+): void {
+  if (!binding) return;
+  const usageParts: string[] = [];
+  if (binding.position) usageParts.push(`位于${binding.position}`);
+  if (binding.action) usageParts.push(`正在${binding.action}`);
+  if (binding.emotion) usageParts.push(`表情${binding.emotion}`);
+  if (binding.role) usageParts.push(`角色定位：${binding.role}`);
+  if (binding.text) usageParts.push(`台词：${binding.text}`);
+  if (usageParts.length > 0) {
+    parts.push(`  本分镜表现：${usageParts.join("，")}`);
+  }
+  if (binding.description) {
+    parts.push(`  详细说明：${binding.description}`);
+  }
+  if (binding.imageUrl) {
+    parts.push(`  参考图片：${binding.imageUrl}（保持视觉特征一致）`);
+  }
+}
+
+function appendUsageCharacterAppearance(
+  parts: string[],
+  element: StoryElement,
+): void {
+  if (element.type !== "character" || !element.characterConfig?.appearance) {
+    return;
+  }
+  const line = buildCharacterAppearanceLine(
+    element.characterConfig.appearance,
+    {
+      label: "外观提醒",
+      trailer: "（必须与全局定义一致）",
+    },
+  );
+  if (line) parts.push(line);
+}
+
 export class PromptBuilder {
   buildGlobalElementDefinitions(elements: StoryElement[]): string {
     if (!elements || elements.length === 0) return "";
@@ -28,53 +154,8 @@ export class PromptBuilder {
     parts.push("");
 
     for (const element of elements) {
-      const typeLabel =
-        element.type === "character"
-          ? "角色"
-          : element.type === "prop"
-            ? "道具"
-            : "特效";
-
-      parts.push(`${element.id}（${typeLabel}）：${element.name}`);
-
-      if (element.type === "character" && element.characterConfig?.appearance) {
-        const app = element.characterConfig.appearance;
-        const appearanceParts: string[] = [];
-        if (app.hairColor) appearanceParts.push(`${app.hairColor}发色`);
-        if (app.hairStyle) appearanceParts.push(`${app.hairStyle}发型`);
-        if (app.eyeColor) appearanceParts.push(`${app.eyeColor}眼睛`);
-        if (app.build) appearanceParts.push(`${app.build}身材`);
-        if (app.clothing) appearanceParts.push(`穿着${app.clothing}`);
-        if (appearanceParts.length > 0) {
-          parts.push(`  外观：${appearanceParts.join("、")}`);
-        }
-      }
-
-      if (element.type === "prop" && element.description) {
-        parts.push(`  外观：${element.description}`);
-      }
-
-      const imageBinding = element.bindings?.find((b) => b.type === "image");
-      if (imageBinding?.url) {
-        if (isShareableUrl(imageBinding.url)) {
-          parts.push(`  参考图：${imageBinding.url}`);
-        } else {
-          // 本地 URL（file://、blob: 等）对大模型无意义，仅提示已附加。
-          parts.push(`  参考图：已附加（通过 reference 通道传输）`);
-        }
-        parts.push(`  一致性约束：严格继承参考图中的全部视觉特征，包括颜色、材质、形状、比例`);
-      }
-
-      if (element.featureAnchor) {
-        const anchor = element.featureAnchor;
-        if (anchor.featureTags.length > 0) {
-          parts.push(`  核心特征：${anchor.featureTags.join("、")}`);
-        }
-        if (anchor.confidence > 0) {
-          parts.push(`  特征置信度：${Math.round(anchor.confidence * 100)}%`);
-        }
-      }
-
+      parts.push(`${element.id}（${getTypeLabel(element.type)}）：${element.name}`);
+      appendGlobalElementDetails(parts, element);
       parts.push("");
     }
 
@@ -303,54 +384,15 @@ export class PromptBuilder {
   ): string {
     const parts: string[] = [];
     const binding = shot.elementBindings?.[element.id];
-    const typeLabel =
-      element.type === "character"
-        ? "角色"
-        : element.type === "prop"
-          ? "道具"
-          : "特效";
 
-    parts.push(`${element.id}（${typeLabel}）：${element.name}`);
+    parts.push(`${element.id}（${getTypeLabel(element.type)}）：${element.name}`);
 
-    if (binding) {
-      const usageParts: string[] = [];
-      if (binding.position) usageParts.push(`位于${binding.position}`);
-      if (binding.action) usageParts.push(`正在${binding.action}`);
-      if (binding.emotion) usageParts.push(`表情${binding.emotion}`);
-      if (binding.role) usageParts.push(`角色定位：${binding.role}`);
-      if (binding.text) usageParts.push(`台词：${binding.text}`);
-      if (usageParts.length > 0) {
-        parts.push(`  本分镜表现：${usageParts.join("，")}`);
-      }
-      if (binding.description) {
-        parts.push(`  详细说明：${binding.description}`);
-      }
-      if (binding.imageUrl) {
-        parts.push(`  参考图片：${binding.imageUrl}（保持视觉特征一致）`);
-      }
-    }
-
-    if (element.type === "character" && element.characterConfig?.appearance) {
-      const app = element.characterConfig.appearance;
-      const appearanceParts: string[] = [];
-      if (app.hairColor) appearanceParts.push(`${app.hairColor}发色`);
-      if (app.hairStyle) appearanceParts.push(`${app.hairStyle}发型`);
-      if (app.eyeColor) appearanceParts.push(`${app.eyeColor}眼睛`);
-      if (app.clothing) appearanceParts.push(`穿着${app.clothing}`);
-      if (appearanceParts.length > 0) {
-        parts.push(`  外观提醒：${appearanceParts.join("、")}（必须与全局定义一致）`);
-      }
-    }
-
-    const imageBinding = element.bindings?.find((b) => b.type === "image");
-    if (imageBinding?.url) {
-      if (isShareableUrl(imageBinding.url)) {
-        parts.push(`  参考图：${imageBinding.url}（严格继承视觉特征）`);
-      } else {
-        // 本地 URL（file://、blob: 等）对大模型无意义，仅提示已附加。
-        parts.push(`  参考图：已附加（严格继承视觉特征）`);
-      }
-    }
+    appendElementBindingDetails(parts, binding);
+    appendUsageCharacterAppearance(parts, element);
+    appendImageBindingDesc(parts, element, {
+      urlSuffix: "（严格继承视觉特征）",
+      fallbackSuffix: "（严格继承视觉特征）",
+    });
 
     return parts.join("\n");
   }

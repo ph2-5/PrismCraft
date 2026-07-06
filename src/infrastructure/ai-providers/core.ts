@@ -62,6 +62,120 @@ function isCircuitBreakerError(error: unknown): boolean {
   return e.code === "CIRCUIT_OPEN" || e.code === "CIRCUIT_HALF_OPEN_LIMIT";
 }
 
+interface ParsedErrorInfo {
+  message: string;
+  code: string | undefined;
+}
+
+function extractErrorValueInfo(
+  errorValue: unknown,
+  responseStatus: number,
+  fallbackCode: string | undefined,
+): ParsedErrorInfo {
+  if (typeof errorValue === "object" && errorValue !== null) {
+    const obj = errorValue as { message?: string; code?: string };
+    return {
+      message: obj.message || obj.code || `HTTP ${responseStatus}`,
+      code: obj.code || fallbackCode,
+    };
+  }
+  return {
+    message: (errorValue as string) || `HTTP ${responseStatus}`,
+    code: fallbackCode,
+  };
+}
+
+async function parseErrorResponse(response: Response): Promise<ParsedErrorInfo> {
+  let errorData: { error?: string | { code?: string; message?: string }; code?: string } = {};
+  try {
+    errorData = await response.json();
+  } catch (e) {
+    errorLogger.warn("[ApiClient] 响应 JSON 解析失败", e);
+    const text = await response.text().catch(() => "");
+    errorData = { error: text || `HTTP ${response.status}` };
+  }
+  const fallbackCode = errorData.code || statusCodeToErrorCode(response.status);
+  return extractErrorValueInfo(errorData.error, response.status, fallbackCode);
+}
+
+async function parseSuccessResponse<T>(response: Response): Promise<T> {
+  try {
+    return (await response.json()) as T;
+  } catch (e) {
+    errorLogger.warn("[ApiClient] 成功响应 JSON 解析失败", e);
+    throw new ApiClientError(
+      "响应格式错误：无法解析 JSON",
+      response.status,
+      "INVALID_RESPONSE",
+    );
+  }
+}
+
+function shouldQueueRequest(endpoint: string, error: unknown): boolean {
+  const isNetworkError = isNetworkErrorClassified(error);
+  const isCircuitError = isCircuitBreakerError(error);
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  return (
+    (isNetworkError || isOffline || isCircuitError) &&
+    QUEUEABLE_ENDPOINTS.some((e) => endpoint.startsWith(e))
+  );
+}
+
+function buildQueuePayload(endpoint: string, options: ApiRequestOptions): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  if (options.body) {
+    try {
+      Object.assign(payload, JSON.parse(options.body as string));
+    } catch {
+      payload._rawBody = options.body;
+      payload._rawBodyType = typeof options.body;
+      errorLogger.warn("[ApiClient] 离线队列 payload 解析失败，使用原始 body");
+    }
+  }
+  payload._endpoint = endpoint;
+  payload._method = options.method || "POST";
+  return payload;
+}
+
+async function tryEnqueueOfflineRequest<T>(
+  endpoint: string,
+  options: ApiRequestOptions,
+): Promise<T | null> {
+  try {
+    const payload = buildQueuePayload(endpoint, options);
+    const queuedId = await enqueueRequest(endpoint, payload);
+    if (!queuedId) return null;
+    const queuedResponse: QueuedResponse = {
+      success: false,
+      error: t("error.offlineQueued"),
+      message: t("error.offlineQueued"),
+      queued: true,
+      queueId: queuedId,
+    };
+    return queuedResponse as T;
+  } catch (queueError) {
+    errorLogger.warn("[ApiClient] 离线队列入队失败:", queueError);
+    return null;
+  }
+}
+
+function buildFetchRequest(
+  url: string,
+  options: ApiRequestOptions,
+  signal: AbortSignal,
+): Promise<Response> {
+  return fetch(url, {
+    method: options.method || "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...ELECTRON_APP_HEADERS,
+      ...options.headers,
+    },
+    body: options.body,
+    signal,
+  });
+}
+
 export async function apiCall<T>(
   endpoint: string,
   options: ApiRequestOptions = {},
@@ -84,106 +198,32 @@ export async function apiCall<T>(
       : "";
     const url = `${baseUrl}/api/${endpoint}`;
 
-    const response = await executeThroughCircuit(
-      endpoint,
-      () =>
-        fetch(url, {
-          method: options.method || "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...ELECTRON_APP_HEADERS,
-            ...options.headers,
-          },
-          body: options.body,
-          signal: controller.signal,
-        }),
+    const response = await executeThroughCircuit(endpoint, () =>
+      buildFetchRequest(url, options, controller.signal),
     );
 
     if (!response.ok) {
-      let errorData: { error?: string | { code?: string; message?: string }; code?: string } = {};
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        errorLogger.warn("[ApiClient] 响应 JSON 解析失败", e);
-        const text = await response.text().catch(() => "");
-        errorData = { error: text || `HTTP ${response.status}` };
-      }
-      const errorValue = errorData.error;
-      const errorMessage = typeof errorValue === "object" && errorValue !== null
-        ? (errorValue.message || errorValue.code || `HTTP ${response.status}`)
-        : (errorValue || `HTTP ${response.status}`);
-      const errorCode = typeof errorValue === "object" && errorValue !== null && errorValue.code
-        ? errorValue.code
-        : (errorData.code || statusCodeToErrorCode(response.status));
-      throw new ApiClientError(
-        errorMessage,
-        response.status,
-        errorCode,
-      );
+      const errorInfo = await parseErrorResponse(response);
+      throw new ApiClientError(errorInfo.message, response.status, errorInfo.code);
     }
 
-    try {
-      const data = (await response.json()) as T;
-      if (options.method === "GET" || !options.method) {
-        apiCache.set(endpoint, data, { body: options.body });
-      }
-      return data;
-    } catch (e) {
-      errorLogger.warn("[ApiClient] 成功响应 JSON 解析失败", e);
-      throw new ApiClientError(
-        "响应格式错误：无法解析 JSON",
-        response.status,
-        "INVALID_RESPONSE",
-      );
+    const data = await parseSuccessResponse<T>(response);
+    if (options.method === "GET" || !options.method) {
+      apiCache.set(endpoint, data, { body: options.body });
     }
+    return data;
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
     if (error instanceof Error && error.name === "AbortError") {
       throw new ApiClientError(t("error.requestTimeout"), 408, "TIMEOUT");
     }
 
-    const isNetworkError = isNetworkErrorClassified(error);
-    const isCircuitError = isCircuitBreakerError(error);
-    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-
-    if (
-      (isNetworkError || isOffline || isCircuitError) &&
-      QUEUEABLE_ENDPOINTS.some((e) => endpoint.startsWith(e))
-    ) {
-      try {
-        const payload: Record<string, unknown> = {};
-        if (options.body) {
-          try {
-            Object.assign(payload, JSON.parse(options.body as string));
-          } catch {
-            payload._rawBody = options.body;
-            payload._rawBodyType = typeof options.body;
-            errorLogger.warn(
-              "[ApiClient] 离线队列 payload 解析失败，使用原始 body",
-            );
-          }
-        }
-        payload._endpoint = endpoint;
-        payload._method = options.method || "POST";
-        const queuedId = await enqueueRequest(endpoint, payload);
-        if (queuedId) {
-          const queuedResponse: QueuedResponse = {
-            success: false,
-            error: t("error.offlineQueued"),
-            message: t("error.offlineQueued"),
-            queued: true,
-            queueId: queuedId,
-          };
-          return queuedResponse as T;
-        }
-      } catch (queueError) {
-        errorLogger.warn("[ApiClient] 离线队列入队失败:", queueError);
-      }
+    if (shouldQueueRequest(endpoint, error)) {
+      const queued = await tryEnqueueOfflineRequest<T>(endpoint, options);
+      if (queued !== null) return queued;
     }
 
-    throw new ApiClientError(
-      extractErrorMessage(error),
-    );
+    throw new ApiClientError(extractErrorMessage(error));
   } finally {
     clearTimeout(timeoutId);
   }

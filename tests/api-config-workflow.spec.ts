@@ -2,6 +2,18 @@ import { test, expect } from "@playwright/test";
 import { navigateTo, waitForAppReady, dismissOverlays } from "./helpers/page-helpers";
 import { installElectronMock } from "./helpers/electron-mock";
 import { mockApiRoutes } from "./helpers/mock-api";
+import { captureConsoleErrors } from "./helpers/console-errors";
+
+let getErrors: () => string[] = () => [];
+
+test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
 
 test.describe("API Config Page Load", () => {
   test.beforeEach(async ({ page }) => {

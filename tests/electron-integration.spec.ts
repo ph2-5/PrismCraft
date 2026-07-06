@@ -1,8 +1,11 @@
 import { test, expect, _electron as electron } from "@playwright/test";
+import { captureConsoleErrors } from "./helpers/console-errors";
 
 test.describe("Electron Integration Tests", () => {
   let app: electron.ElectronApplication;
   let page: electron.Page;
+  let getErrors: () => string[] = () => [];
+  let errorsBefore = 0;
 
   test.beforeAll(async () => {
     app = await electron.launch({
@@ -14,10 +17,20 @@ test.describe("Electron Integration Tests", () => {
     });
     page = await app.firstWindow();
     await page.waitForLoadState("domcontentloaded");
+    getErrors = captureConsoleErrors(page);
   });
 
   test.afterAll(async () => {
     await app.close();
+  });
+
+  test.beforeEach(async () => {
+    errorsBefore = getErrors().length;
+  });
+
+  test.afterEach(async () => {
+    const newErrors = getErrors().slice(errorsBefore);
+    expect(newErrors, newErrors.join("\n")).toEqual([]);
   });
 
   test("should launch Electron app", async () => {

@@ -1,4 +1,5 @@
 import { test, expect, _electron as electron } from "@playwright/test";
+import { captureConsoleErrors } from "./helpers/console-errors";
 
 const MAIN_PAGES = [
   { path: "/", name: "Home" },
@@ -11,27 +12,10 @@ const MAIN_PAGES = [
   { path: "/settings", name: "Settings" },
 ];
 
-const IGNORED_ERROR_PATTERNS = [
-  /favicon/i,
-  /manifest/i,
-  /ResizeObserver/i,
-  /\[SyncSchema\]/,
-  /Schema update should be done/,
-  // 网络类错误：dev server 慢启动或 API provider 不可达时偶发，不应阻塞页面加载测试
-  /net::ERR/i,
-  /ERR_CONNECTION_REFUSED/i,
-  /Failed to fetch/i,
-  /NetworkError/i,
-];
-
-function isCriticalError(msg: string): boolean {
-  return !IGNORED_ERROR_PATTERNS.some((p) => p.test(msg));
-}
-
 test.describe("Electron Page Loading", () => {
   let app: electron.ElectronApplication;
   let page: electron.Page;
-  let consoleErrors: string[] = [];
+  let getErrors: () => string[] = () => [];
 
   test.beforeAll(async () => {
     app = await electron.launch({
@@ -44,11 +28,7 @@ test.describe("Electron Page Loading", () => {
     page = await app.firstWindow();
     await page.waitForLoadState("domcontentloaded");
 
-    page.on("console", (msg) => {
-      if (msg.type() === "error") {
-        consoleErrors.push(msg.text());
-      }
-    });
+    getErrors = captureConsoleErrors(page);
   });
 
   test.afterAll(async () => {
@@ -67,7 +47,7 @@ test.describe("Electron Page Loading", () => {
 
   for (const { path, name } of MAIN_PAGES) {
     test(`should load ${name} page without critical errors`, async () => {
-      const errorsBefore = consoleErrors.length;
+      const errorsBefore = getErrors().length;
       await page.goto(`http://localhost:3000${path}`);
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(1000);
@@ -75,18 +55,17 @@ test.describe("Electron Page Loading", () => {
       const main = page.locator("main").first();
       await expect(main).toBeVisible({ timeout: 10000 });
 
-      const newErrors = consoleErrors.slice(errorsBefore);
-      const criticalErrors = newErrors.filter(isCriticalError);
+      const newErrors = getErrors().slice(errorsBefore);
 
       expect(
-        criticalErrors.length,
-        `${name} page has critical console errors: ${criticalErrors.join("\n")}`,
+        newErrors.length,
+        `${name} page has critical console errors: ${newErrors.join("\n")}`,
       ).toBe(0);
     });
   }
 
   test("should have no critical errors across all pages", async () => {
-    const criticalErrors = consoleErrors.filter(isCriticalError);
+    const criticalErrors = getErrors();
 
     if (criticalErrors.length > 0) {
       console.log("Critical console errors found:");

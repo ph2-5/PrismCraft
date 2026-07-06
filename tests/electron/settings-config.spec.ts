@@ -1,5 +1,17 @@
 import { test, expect } from "../helpers/electron-fixture";
 import { navigateTo, waitForAppReady, dismissOverlays } from "../helpers/electron-page-helpers";
+import { captureConsoleErrors } from "../helpers/console-errors";
+
+let getErrors: () => string[] = () => [];
+
+test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
 
 test.describe("Settings Page", () => {
   test.beforeEach(async ({ page }) => {

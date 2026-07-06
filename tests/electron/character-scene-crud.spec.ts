@@ -1,5 +1,17 @@
 import { test, expect, type Page } from "../helpers/electron-fixture";
 import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "../helpers/electron-page-helpers";
+import { captureConsoleErrors } from "../helpers/console-errors";
+
+let getErrors: () => string[] = () => [];
+
+test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
 
 /**
  * Character & Scene CRUD E2E tests

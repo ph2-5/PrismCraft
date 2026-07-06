@@ -21,13 +21,6 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-async function switchTab(page: Page, tabName: string) {
-  const tab = page.locator('[role="tab"]', { hasText: tabName }).first();
-  await tab.waitFor({ state: "visible", timeout: 5000 });
-  await tab.click({ force: true });
-  await page.waitForTimeout(300);
-}
-
 /**
  * 填写输入框 — 强制等待元素可见，不再静默跳过。
  * 如果元素在超时内未出现，测试会失败（暴露真实问题而非静默跳过）。
@@ -42,6 +35,15 @@ async function fillTextarea(page: Page, selector: string, value: string) {
   const ta = page.locator(selector).first();
   await ta.waitFor({ state: "visible", timeout: 8000 });
   await ta.fill(value);
+}
+
+/**
+ * 选择 select 元素的值 — 用于场景的 type/timeOfDay/weather 等下拉框。
+ */
+async function selectOption(page: Page, selector: string, value: string) {
+  const select = page.locator(selector).first();
+  await select.waitFor({ state: "visible", timeout: 8000 });
+  await select.selectOption(value);
 }
 
 /**
@@ -103,13 +105,12 @@ test.describe("Character Edit Field Combination Persistence", () => {
     await verifyPersistedAfterNavigation(page, "/characters", '[data-testid="character-name-input"]', charName);
   });
 
-  test("组合2: name + age + style + description（基础完整）", async ({ page }) => {
+  test("组合2: name + style + description（基础完整）", async ({ page }) => {
     const charName = uniqueSuffix("基础角色");
 
     await fillInput(page, '[data-testid="character-name-input"]', charName);
-    await fillInput(page, '[data-testid="character-age-input"]', "25");
     await fillInput(page, '[data-testid="character-style-input"]', "赛博朋克");
-    await fillTextarea(page, "#description", "测试描述内容");
+    await fillTextarea(page, '[data-testid="character-description-input"]', "测试描述内容");
     await clickSaveButton(page, "保存角色");
 
     await verifyPersistedAfterNavigation(page, "/characters", '[data-testid="character-name-input"]', charName);
@@ -119,18 +120,15 @@ test.describe("Character Edit Field Combination Persistence", () => {
     const charName = uniqueSuffix("外貌角色");
 
     await fillInput(page, '[data-testid="character-name-input"]', charName);
-    await switchTab(page, "外貌设定");
     await fillInput(page, '[data-testid="character-hair-color-input"]', "渐变粉蓝");
     await fillInput(page, '[data-testid="character-hair-style-input"]', "短发");
-    await switchTab(page, "基础信息");
     await clickSaveButton(page, "保存角色");
 
     await verifyPersistedAfterNavigation(page, "/characters", '[data-testid="character-name-input"]', charName);
   });
 
-  test("组合4: name 为空但 age + style 有值（边界：name为空自动生成）", async ({ page }) => {
-    // 不填 name，只填 age 和 style
-    await fillInput(page, '[data-testid="character-age-input"]', "30");
+  test("组合4: name 为空但 style 有值（边界：name为空自动生成）", async ({ page }) => {
+    // 不填 name，只填 style
     await fillInput(page, '[data-testid="character-style-input"]', "现代都市");
 
     // 保存 — name 为空时应自动生成 "未命名角色_时间戳"
@@ -150,11 +148,10 @@ test.describe("Character Edit Field Combination Persistence", () => {
     expect(await unnamedChar.count()).toBeGreaterThan(0);
   });
 
-  test("组合5: name + description 为空但 age + style 有值", async ({ page }) => {
+  test("组合5: name + description 为空但 style 有值", async ({ page }) => {
     const charName = uniqueSuffix("无描述角色");
 
     await fillInput(page, '[data-testid="character-name-input"]', charName);
-    await fillInput(page, '[data-testid="character-age-input"]', "28");
     await fillInput(page, '[data-testid="character-style-input"]', "古风");
     await clickSaveButton(page, "保存角色");
 
@@ -187,42 +184,26 @@ test.describe("Scene Edit Field Combination Persistence", () => {
     const sceneName = uniqueSuffix("基础场景");
 
     await fillInput(page, '[data-testid="scene-name-input"]', sceneName);
-    await fillInput(page, '[data-testid="scene-type-input"]', "魔法森林");
-    await fillTextarea(page, "#description", "测试场景描述");
+    await selectOption(page, '[data-testid="scene-type-input"]', "魔法学院");
+    await fillTextarea(page, '[data-testid="scene-description-input"]', "测试场景描述");
     await clickSaveButton(page, "保存场景");
 
     await verifyPersistedAfterNavigation(page, "/scenes", '[data-testid="scene-name-input"]', sceneName);
   });
 
-  test("组合3: name + timeOfDay + weather + mood（氛围字段）", async ({ page }) => {
+  test("组合3: name + timeOfDay + weather（氛围字段）", async ({ page }) => {
     const sceneName = uniqueSuffix("氛围场景");
 
     await fillInput(page, '[data-testid="scene-name-input"]', sceneName);
-    await switchTab(page, "氛围视觉");
-    await fillInput(page, '[data-testid="scene-time-of-day-input"]', "夜晚");
-    await fillInput(page, '[data-testid="scene-weather-input"]', "雨天");
-    await fillInput(page, '[data-testid="scene-mood-input"]', "神秘");
-    await switchTab(page, "基础设定");
+    await selectOption(page, '[data-testid="scene-time-of-day-input"]', "夜晚");
+    await selectOption(page, '[data-testid="scene-weather-input"]', "小雨");
     await clickSaveButton(page, "保存场景");
 
     await verifyPersistedAfterNavigation(page, "/scenes", '[data-testid="scene-name-input"]', sceneName);
   });
 
-  test("组合4: name + cameraAngle（镜头字段）", async ({ page }) => {
-    const sceneName = uniqueSuffix("镜头场景");
-
-    await fillInput(page, '[data-testid="scene-name-input"]', sceneName);
-    await switchTab(page, "镜头设置");
-    await fillInput(page, '[data-testid="scene-camera-angle-input"]', "俯视");
-    await switchTab(page, "基础设定");
-    await clickSaveButton(page, "保存场景");
-
-    await verifyPersistedAfterNavigation(page, "/scenes", '[data-testid="scene-name-input"]', sceneName);
-  });
-
-  test("组合5: name 为空但 type + description 有值（边界：name为空自动生成）", async ({ page }) => {
-    await fillInput(page, '[data-testid="scene-type-input"]', "现代都市");
-    await fillTextarea(page, "#description", "无名场景描述");
+  test("组合4: name 为空但 type 有值（边界：name为空自动生成）", async ({ page }) => {
+    await selectOption(page, '[data-testid="scene-type-input"]', "未来都市");
 
     // 保存 — name 为空时应自动生成 "未命名场景_时间戳"
     const saveBtn = page.locator("button", { hasText: "保存场景" }).first();
@@ -238,6 +219,16 @@ test.describe("Scene Edit Field Combination Persistence", () => {
 
     const unnamedScene = page.locator("text=/未命名场景_\\d+/").first();
     expect(await unnamedScene.count()).toBeGreaterThan(0);
+  });
+
+  test("组合5: name + description 为空但 type 有值", async ({ page }) => {
+    const sceneName = uniqueSuffix("无描述场景");
+
+    await fillInput(page, '[data-testid="scene-name-input"]', sceneName);
+    await selectOption(page, '[data-testid="scene-type-input"]', "古代宫殿");
+    await clickSaveButton(page, "保存场景");
+
+    await verifyPersistedAfterNavigation(page, "/scenes", '[data-testid="scene-name-input"]', sceneName);
   });
 });
 

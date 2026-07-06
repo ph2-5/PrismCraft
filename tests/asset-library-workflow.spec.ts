@@ -1,6 +1,18 @@
 import { test, expect, type Page } from "@playwright/test";
 import { navigateTo, waitForAppReady, dismissOverlays } from "./helpers/page-helpers";
 import { installElectronMock } from "./helpers/electron-mock";
+import { captureConsoleErrors } from "./helpers/console-errors";
+
+let getErrors: () => string[] = () => [];
+
+test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
 
 async function switchAssetTab(page: Page, tabValue: string) {
   const tab = page.locator('[role="tab"]', { hasText: new RegExp(tabValue) }).first();

@@ -2,6 +2,18 @@ import { test, expect } from "@playwright/test";
 import { navigateTo, waitForAppReady, dismissOverlays } from "./helpers/page-helpers";
 import { installElectronMock } from "./helpers/electron-mock";
 import { mockApiRoutes } from "./helpers/mock-api";
+import { captureConsoleErrors } from "./helpers/console-errors";
+
+let getErrors: () => string[] = () => [];
+
+test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
 
 async function openSyncDialog(page: import("@playwright/test").Page) {
   const syncTab = page.locator('[role="tab"]', { hasText: /同步/i }).first();

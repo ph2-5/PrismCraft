@@ -159,6 +159,7 @@ export function SceneBasicInfoCard({
           </label>
           <select
             className="select"
+            data-testid="scene-time-of-day-input"
             style={{ fontSize: 12, width: "100%" }}
             value={scene.timeOfDay}
             onChange={(e) =>
@@ -182,6 +183,7 @@ export function SceneBasicInfoCard({
           </label>
           <select
             className="select"
+            data-testid="scene-weather-input"
             style={{ fontSize: 12, width: "100%" }}
             value={scene.weather}
             onChange={(e) =>
@@ -205,6 +207,7 @@ export function SceneBasicInfoCard({
           </label>
           <select
             className="select"
+            data-testid="scene-type-input"
             style={{ fontSize: 12, width: "100%" }}
             value={scene.type}
             onChange={(e) =>
@@ -238,6 +241,7 @@ export function SceneAtmosphereCard({
       </div>
       <textarea
         className="textarea"
+        data-testid="scene-description-input"
         rows={3}
         style={{ fontSize: 12 }}
         value={scene.description}

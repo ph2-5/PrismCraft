@@ -1,4 +1,4 @@
-﻿/* eslint-disable max-lines -- 组件已合理拆分至 AiRequestPreview.tsx，剩余子组件均为本文件专用 */
+/* eslint-disable max-lines -- 组件已合理拆分至 AiRequestPreview.tsx，剩余子组件均为本文件专用 */
 import {
   personalitySuggestions,
   styleSuggestions,
@@ -236,12 +236,14 @@ function AppearanceCard({ character, setCurrentCharacter }: BasicInfoCardProps) 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
         <input
           className="input"
+          data-testid="character-hair-color-input"
           placeholder={t("character.hairColorPlaceholder")}
           value={character.appearance.hairColor}
           onChange={(e) => setCurrentCharacter({ ...character, appearance: { ...character.appearance, hairColor: e.target.value } }, true)}
         />
         <input
           className="input"
+          data-testid="character-hair-style-input"
           placeholder={t("character.hairStylePlaceholder")}
           value={character.appearance.hairStyle}
           onChange={(e) => setCurrentCharacter({ ...character, appearance: { ...character.appearance, hairStyle: e.target.value } }, true)}
@@ -306,6 +308,7 @@ function PersonalityStyleCard({
           <label className="section-label" style={{ fontSize: 11 }}>{t("character.style")}</label>
           <input
             className="input"
+            data-testid="character-style-input"
             placeholder={t("character.stylePlaceholder")}
             value={character.style}
             onChange={(e) => setCurrentCharacter({ ...character, style: e.target.value }, true)}
@@ -329,6 +332,7 @@ function PersonalityStyleCard({
       </div>
       <textarea
         className="textarea"
+        data-testid="character-description-input"
         placeholder={t("character.descriptionPlaceholder")}
         rows={3}
         value={character.description}

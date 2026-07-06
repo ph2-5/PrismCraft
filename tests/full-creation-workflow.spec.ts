@@ -2,6 +2,18 @@ import { test, expect, type Page } from "@playwright/test";
 import { navigateTo, waitForAppReady, dismissOverlays, fillInput, clickButtonByText } from "./helpers/page-helpers";
 import { installElectronMock } from "./helpers/electron-mock";
 import { mockApiRoutes } from "./helpers/mock-api";
+import { captureConsoleErrors } from "./helpers/console-errors";
+
+let getErrors: () => string[] = () => [];
+
+test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
 
 async function setupPage(page: Page, path: string) {
   await installElectronMock(page);

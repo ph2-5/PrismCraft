@@ -1,8 +1,11 @@
 import { test, expect } from "../helpers/electron-fixture";
 import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "../helpers/electron-page-helpers";
+import { captureConsoleErrors } from "../helpers/console-errors";
 
+// 注意：/story 路由映射到 ComingSoon 占位页（src/app/coming-soon/StoryPage.tsx），
+// 而非完整故事编辑器。完整故事编辑器在 /storyboard 路由（src/app/story/page.tsx）。
 const MAIN_PAGES = [
-  { path: "/story", name: "Story" },
+  { path: "/story", name: "Story (ComingSoon placeholder)" },
   { path: "/characters", name: "Characters" },
   { path: "/scenes", name: "Scenes" },
   { path: "/asset-library", name: "Asset Library" },
@@ -19,9 +22,10 @@ test.describe("Homepage Loading and Content Verification", () => {
 
   test("should display main heading on homepage", async ({ page }) => {
     await navigateTo(page, "/");
-    const heading = page.locator("h1").first();
+    // 首页无 <h1>，brandSlogan 渲染在 div 中："从故事到动画，一站式 AI 创作工作台"（含 "AI" 不含 "用AI"）
+    const heading = page.locator("text=从故事到动画").first();
     await expect(heading).toBeVisible();
-    await expect(heading).toContainText("用AI");
+    await expect(heading).toContainText("AI");
   });
 
   test("should display quick generate button", async ({ page }) => {
@@ -107,7 +111,9 @@ test.describe("Page Navigation via Direct URL", () => {
   test("should navigate from homepage to storyboard via card click", async ({ page }) => {
     await navigateTo(page, "/");
     await dismissOverlays(page);
-    const card = page.locator("text=故事模式").first();
+    // "故事模式"卡片导航到 /story（ComingSoon 占位页），
+    // "分镜模式"卡片才导航到 /storyboard（完整故事编辑器）。
+    const card = page.locator("text=分镜模式").first();
     await expect(card).toBeVisible();
     await card.click();
     await page.waitForURL("**/storyboard", { timeout: 15000 });
@@ -195,66 +201,25 @@ test.describe("JavaScript Error Detection", () => {
   const ALL_PAGES = ["/", "/characters", "/scenes", "/story", "/video-tasks", "/quick-generate", "/settings"];
 
   test("should have no uncaught JavaScript errors across all pages", async ({ page }) => {
-    const jsErrors: string[] = [];
-    page.on("pageerror", (error) => {
-      jsErrors.push(error.message);
-    });
+    const getErrors = captureConsoleErrors(page);
 
     for (const path of ALL_PAGES) {
       await navigateTo(page, path);
     }
 
-    const criticalErrors = jsErrors.filter(
-      (e) =>
-        !e.includes("favicon") &&
-        !e.includes("manifest") &&
-        !e.includes("service-worker") &&
-        !e.includes("ResizeObserver") &&
-        !e.includes("Loading chunk") &&
-        !e.includes("hydration") &&
-        !e.includes("Next.js") &&
-        !e.includes("webpack") &&
-        !e.includes("HMR") &&
-        !e.includes("Fast Refresh") &&
-        !e.includes("React"),
-    );
-    expect(criticalErrors.length).toBe(0);
+    const criticalErrors = getErrors();
+    expect(criticalErrors, criticalErrors.join("\n")).toHaveLength(0);
   });
 
   test("should have no excessive console errors on any page", async ({ page }) => {
-    const consoleErrors: string[] = [];
-    page.on("console", (msg) => {
-      if (msg.type() === "error") {
-        consoleErrors.push(msg.text());
-      }
-    });
+    const getErrors = captureConsoleErrors(page);
 
     for (const { path } of MAIN_PAGES) {
       await navigateTo(page, path);
     }
 
-    const criticalErrors = consoleErrors.filter(
-      (e) =>
-        !e.includes("favicon") &&
-        !e.includes("manifest") &&
-        !e.includes("service-worker") &&
-        !e.includes("ResizeObserver") &&
-        !e.includes("net::ERR") &&
-        !e.includes("404") &&
-        !e.includes("hydration") &&
-        !e.includes("Next.js") &&
-        !e.includes("webpack") &&
-        !e.includes("HMR") &&
-        !e.includes("Fast Refresh") &&
-        !e.includes("React") &&
-        !e.includes("[SyncSchema]") &&
-        !e.includes("Schema update should be done") &&
-        !e.includes("Failed to fetch") &&
-        !e.includes("NetworkError") &&
-        !e.includes("ERR_CONNECTION_REFUSED") &&
-        !e.includes("localhost"),
-    );
-    expect(criticalErrors.length).toBeLessThan(100);
+    const criticalErrors = getErrors();
+    expect(criticalErrors, criticalErrors.join("\n")).toHaveLength(0);
   });
 });
 

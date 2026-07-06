@@ -1,6 +1,18 @@
 import { test, expect } from "../helpers/electron-fixture";
 import { navigateTo, waitForAppReady } from "../helpers/electron-page-helpers";
 import { mockApiRoutes } from "../helpers/mock-api";
+import { captureConsoleErrors } from "../helpers/console-errors";
+
+let getErrors: () => string[] = () => [];
+
+test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
 
 test.describe("Quick Generate Page", () => {
   test.beforeEach(async ({ page }) => {

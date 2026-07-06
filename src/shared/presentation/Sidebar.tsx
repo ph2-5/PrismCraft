@@ -14,6 +14,7 @@ import {
   Book,
   MapPin,
   Link as LinkIcon,
+  Film,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, memo } from "react";
 import { SearchDialog } from "./SearchDialog";
@@ -129,13 +130,13 @@ function NavGroupLabel({ children, collapsed }: { children: React.ReactNode; col
   return <div className="nav-section">{children}</div>;
 }
 
-function NavGroupHeader({ icon, title, desc, collapsed, withBorderTop = false }: { icon: string; title: string; desc: string; collapsed: boolean; withBorderTop?: boolean }) {
+function NavGroupHeader({ icon, title, desc, collapsed, withBorderTop = false }: { icon: React.ReactNode; title: string; desc: string; collapsed: boolean; withBorderTop?: boolean }) {
   if (collapsed) return <div style={{ borderTop: "1px solid var(--border)", margin: "8px 0" }} />;
   const titlePadding = withBorderTop ? "12px 14px 2px" : "6px 14px 2px";
   return (
     <div style={withBorderTop ? { borderTop: "1px solid var(--border)", marginTop: 6 } : undefined}>
       <div style={{ padding: titlePadding, fontSize: 11, fontWeight: 700, color: "var(--fg)", display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ fontSize: 14 }}>{icon}</span> {title}
+        <span style={{ display: "inline-flex", alignItems: "center" }}>{icon}</span> {title}
       </div>
       <div style={{ padding: "2px 14px 6px", fontSize: 10, color: "var(--muted-fg)" }}>{desc}</div>
     </div>
@@ -297,7 +298,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
             <div
               className="sidebar-logo-icon"
             >
-              🎬
+              <Film size={20} />
             </div>
             {!collapsed && (
               <span className="sidebar-logo-text">
@@ -310,7 +311,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
         <nav style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
           {/* 自由创作 */}
           <NavGroupHeader
-            icon="🎬"
+            icon={<Wand2 size={14} />}
             title={t("sidebar.freeCreation")}
             desc={t("sidebar.freeCreationDesc")}
             collapsed={collapsed}
@@ -329,7 +330,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
 
           {/* 故事创作 */}
           <NavGroupHeader
-            icon="📖"
+            icon={<Book size={14} />}
             title={t("sidebar.storyCreation")}
             desc={t("sidebar.storyCreationDesc")}
             collapsed={collapsed}

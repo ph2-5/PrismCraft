@@ -1,17 +1,12 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useCharacters } from "@/modules/character";
 import { useScenes } from "@/modules/scene";
-import { errorLogger } from "@/shared/error-logger";
-import { isElectron } from "@/shared/utils/platform";
-import type {
-  StoryboardAsset,
-  Collection,
-  CollectionAsset,
-  ImportMode,
-} from "@/domain/schemas";
-import { fetchSecondaryData } from "../AssetCardGrid";
-import type { AssetTab, EditingItem } from "../AssetCardGrid";
+import type { ImportMode } from "@/domain/schemas";
+import type { AssetTab } from "../AssetCardGrid";
 import { useAssetLibraryActions } from "../useAssetLibraryActions";
+import { useAssetFiltering } from "./useAssetFiltering";
+import { useSecondaryDataLoader } from "./useSecondaryDataLoader";
+import { useAssetDialogState } from "./useAssetDialogState";
 
 export function useAssetLibraryPage() {
   const { data: characters = [], isLoading: charactersLoading } = useCharacters();
@@ -21,56 +16,17 @@ export function useAssetLibraryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importMode, setImportMode] = useState<ImportMode>("skip");
-
-  const [storyboards, setStoryboards] = useState<StoryboardAsset[]>([]);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [collectionAssets, setCollectionAssets] = useState<CollectionAsset[]>([]);
-  const [secondaryDataLoading, setSecondaryDataLoading] = useState(true);
-
-  const setSecondaryData = useCallback((data: { storyboards: StoryboardAsset[]; collections: Collection[]; collectionAssets: CollectionAsset[] }) => {
-    setStoryboards(data.storyboards);
-    setCollections(data.collections);
-    setCollectionAssets(data.collectionAssets);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!isElectron()) {
-        if (!cancelled) setSecondaryDataLoading(false);
-        return;
-      }
-      try {
-        const data = await fetchSecondaryData();
-        if (!cancelled) {
-          setSecondaryData(data);
-          setSecondaryDataLoading(false);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          errorLogger.warn("Failed to load secondary data", err);
-          setSecondaryDataLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [setSecondaryData]);
-
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] = useState(false);
-
-  const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const [newCollectionName, setNewCollectionName] = useState("");
-  const [addToCollectionId, setAddToCollectionId] = useState("");
-  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
-  const [isAddingToCollection, setIsAddingToCollection] = useState(false);
-  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    storyboards,
+    collections,
+    collectionAssets,
+    secondaryDataLoading,
+    setSecondaryData,
+  } = useSecondaryDataLoader();
+
+  const dialogState = useAssetDialogState();
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -90,60 +46,32 @@ export function useAssetLibraryPage() {
   const actions = useAssetLibraryActions({
     selection: { activeTab, selectedIds, clearSelection, setSelectedIds },
     setSecondaryData,
-    dialogControls: { setIsCollectionDialogOpen, setIsImportDialogOpen, setIsNewCollectionDialogOpen, setIsEditDialogOpen, setIsAddingToCollection },
-    loadingControls: { setIsBatchDeleting, setIsSavingEdit, setIsCreatingCollection, isBatchDeleting },
-    editDialog: { editingItem, setEditingItem },
-    collectionForm: { addToCollectionId, newCollectionName, setNewCollectionName },
+    dialogControls: {
+      setIsCollectionDialogOpen: dialogState.setIsCollectionDialogOpen,
+      setIsImportDialogOpen: dialogState.setIsImportDialogOpen,
+      setIsNewCollectionDialogOpen: dialogState.setIsNewCollectionDialogOpen,
+      setIsEditDialogOpen: dialogState.setIsEditDialogOpen,
+      setIsAddingToCollection: dialogState.setIsAddingToCollection,
+    },
+    loadingControls: {
+      setIsBatchDeleting: dialogState.setIsBatchDeleting,
+      setIsSavingEdit: dialogState.setIsSavingEdit,
+      setIsCreatingCollection: dialogState.setIsCreatingCollection,
+      isBatchDeleting: dialogState.isBatchDeleting,
+    },
+    editDialog: {
+      editingItem: dialogState.editingItem,
+      setEditingItem: dialogState.setEditingItem,
+    },
+    collectionForm: {
+      addToCollectionId: dialogState.addToCollectionId,
+      newCollectionName: dialogState.newCollectionName,
+      setNewCollectionName: dialogState.setNewCollectionName,
+    },
   });
 
-  const filteredCharacters = useMemo(
-    () =>
-      characters.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.tags?.some((t) =>
-            t.toLowerCase().includes(searchQuery.toLowerCase()),
-          ),
-      ),
-    [characters, searchQuery],
-  );
-
-  const filteredScenes = useMemo(
-    () =>
-      scenes.filter(
-        (s) =>
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.tags?.some((t) =>
-            t.toLowerCase().includes(searchQuery.toLowerCase()),
-          ),
-      ),
-    [scenes, searchQuery],
-  );
-
-  const filteredStoryboards = useMemo(
-    () =>
-      storyboards.filter((sb) =>
-        sb.script.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
-    [storyboards, searchQuery],
-  );
-
-  const currentItems =
-    activeTab === "characters"
-      ? filteredCharacters
-      : activeTab === "scenes"
-        ? filteredScenes
-        : activeTab === "storyboards"
-          ? filteredStoryboards
-          : activeTab === "collections"
-            ? searchQuery
-              ? collections.filter((c) =>
-                  c.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-                )
-              : collections
-            : [];
+  const { filteredCharacters, filteredScenes, filteredStoryboards, currentItems } =
+    useAssetFiltering({ activeTab, searchQuery, characters, scenes, storyboards, collections });
 
   const handleTabChange = useCallback((v: string) => {
     setActiveTab(v as AssetTab);
@@ -151,25 +79,9 @@ export function useAssetLibraryPage() {
     setSearchQuery("");
   }, [clearSelection]);
 
-  const handleOpenImportDialog = useCallback(() => {
-    setIsImportDialogOpen(true);
-  }, []);
-
-  const handleOpenCollectionDialog = useCallback(() => {
-    setIsCollectionDialogOpen(true);
-  }, []);
-
-  const handleNewCollection = useCallback(() => {
-    setIsNewCollectionDialogOpen(true);
-  }, []);
-
   const handleSelectAll = useCallback(() => {
     selectAll(currentItems.map((i: { id: string }) => i.id));
   }, [selectAll, currentItems]);
-
-  const handleEditingItemChange = useCallback((item: EditingItem | null) => {
-    setEditingItem(item);
-  }, []);
 
   return {
     // Data
@@ -187,10 +99,10 @@ export function useAssetLibraryPage() {
     charactersLoading,
     scenesLoading,
     secondaryDataLoading,
-    isBatchDeleting,
-    isSavingEdit,
-    isAddingToCollection,
-    isCreatingCollection,
+    isBatchDeleting: dialogState.isBatchDeleting,
+    isSavingEdit: dialogState.isSavingEdit,
+    isAddingToCollection: dialogState.isAddingToCollection,
+    isCreatingCollection: dialogState.isCreatingCollection,
 
     // Tab & search
     activeTab,
@@ -205,24 +117,24 @@ export function useAssetLibraryPage() {
     handleSelectAll,
 
     // Dialog states
-    isEditDialogOpen,
-    setIsEditDialogOpen,
-    isCollectionDialogOpen,
-    setIsCollectionDialogOpen,
-    isImportDialogOpen,
-    setIsImportDialogOpen,
-    isNewCollectionDialogOpen,
-    setIsNewCollectionDialogOpen,
+    isEditDialogOpen: dialogState.isEditDialogOpen,
+    setIsEditDialogOpen: dialogState.setIsEditDialogOpen,
+    isCollectionDialogOpen: dialogState.isCollectionDialogOpen,
+    setIsCollectionDialogOpen: dialogState.setIsCollectionDialogOpen,
+    isImportDialogOpen: dialogState.isImportDialogOpen,
+    setIsImportDialogOpen: dialogState.setIsImportDialogOpen,
+    isNewCollectionDialogOpen: dialogState.isNewCollectionDialogOpen,
+    setIsNewCollectionDialogOpen: dialogState.setIsNewCollectionDialogOpen,
 
     // Edit dialog
-    editingItem,
-    handleEditingItemChange,
+    editingItem: dialogState.editingItem,
+    handleEditingItemChange: dialogState.handleEditingItemChange,
 
     // Collection dialogs
-    addToCollectionId,
-    setAddToCollectionId,
-    newCollectionName,
-    setNewCollectionName,
+    addToCollectionId: dialogState.addToCollectionId,
+    setAddToCollectionId: dialogState.setAddToCollectionId,
+    newCollectionName: dialogState.newCollectionName,
+    setNewCollectionName: dialogState.setNewCollectionName,
     importMode,
     setImportMode,
 
@@ -230,9 +142,9 @@ export function useAssetLibraryPage() {
     fileInputRef,
 
     // Actions
-    handleOpenImportDialog,
-    handleOpenCollectionDialog,
-    handleNewCollection,
+    handleOpenImportDialog: dialogState.handleOpenImportDialog,
+    handleOpenCollectionDialog: dialogState.handleOpenCollectionDialog,
+    handleNewCollection: dialogState.handleNewCollection,
     handleImport: actions.handleImport,
     handleBatchDelete: actions.handleBatchDelete,
     handleBatchExport: actions.handleBatchExport,

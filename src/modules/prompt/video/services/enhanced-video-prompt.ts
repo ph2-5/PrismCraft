@@ -30,6 +30,19 @@ interface EnhancedVideoPromptParams {
   template?: TemplateConfig;
 }
 
+const REFERENCE_DIRECTION_MAP: Record<string, string> = {
+  previous: "上一个镜头",
+  next: "下一个镜头",
+  custom: "指定镜头",
+};
+
+const REFERENCE_CONTENT_TYPE_MAP: Record<string, string> = {
+  full_video: "完整视频",
+  last_frame: "尾帧画面",
+  first_frame: "首帧画面",
+  video_segment: "视频片段",
+};
+
 export function generateEnhancedVideoPrompt(
   params: EnhancedVideoPromptParams,
 ): string {
@@ -54,160 +67,7 @@ export function generateEnhancedVideoPrompt(
       : "";
 
   const beatDetails = beats
-    .map((beat, index) => {
-      const parts: string[] = [];
-      parts.push(`【镜头${index + 1}】${beat.title || "未命名"}`);
-
-      const resolvedShot = resolveShotInstruction(beat);
-      if (resolvedShot) {
-        const shotPrompt = shotInstructionToPrompt({
-          shotSize: resolvedShot.shotSize,
-          cameraMovement: resolvedShot.cameraMovement,
-          cameraAngle: resolvedShot.cameraAngle,
-        });
-        if (shotPrompt) parts.push(`镜头指令：${shotPrompt}`);
-      }
-
-      if (beat.sceneId) {
-        const sceneObj = scenes.find((s) => s.id === beat.sceneId);
-        if (sceneObj) {
-          parts.push(
-            `场景：${sceneObj.name}，${buildSceneAtmosphereDesc(sceneObj)}，${buildSceneVisualDesc(sceneObj)}`,
-          );
-        }
-      }
-
-      if (beat.sceneElements && beat.sceneElements.length > 0) {
-        const groups = new Map<number, SceneElement[]>();
-        beat.sceneElements.forEach((el) => {
-          const group = el.timelineGroup ?? 0;
-          if (!groups.has(group)) groups.set(group, []);
-          const groupList = groups.get(group);
-          if (groupList) groupList.push(el);
-        });
-
-        const sortedGroups = Array.from(groups.entries()).sort(
-          ([a], [b]) => a - b,
-        );
-
-        if (sortedGroups.length > 1) {
-          sortedGroups.forEach(([group, elementsInGroup], groupIndex) => {
-            const elementDescs = [...elementsInGroup]
-              .sort((a, b) => (a.timelineOrder ?? 0) - (b.timelineOrder ?? 0))
-              .map((el) => {
-                const elParts: string[] = [];
-                if (el.type === "existing_character" && el.characterId) {
-                  const char = characters.find((c) => c.id === el.characterId);
-                  if (char)
-                    elParts.push(
-                      `${char.name}（${buildCharacterAppearanceDesc(char)}）`,
-                    );
-                  else
-                    elParts.push(el.name || el.description || "未知角色");
-                } else {
-                  elParts.push(el.name);
-                }
-                const effects = buildElementEffectDesc(el);
-                if (effects) elParts.push(effects);
-                return elParts.join("，");
-              });
-            const isFirst = groupIndex === 0;
-            const hasMultipleElements = elementsInGroup.length > 1;
-            const label = hasMultipleElements ? "同时进行" : "进行";
-            parts.push(
-              `${isFirst ? "" : "→ "}时间${group + 1}：${elementDescs.join("；")}${hasMultipleElements ? `（${label}）` : ""}`,
-            );
-          });
-        } else {
-          const elementDescs = [...beat.sceneElements]
-            .sort((a, b) => (a.timelineOrder ?? 0) - (b.timelineOrder ?? 0))
-            .map((el) => {
-              const elParts: string[] = [];
-              if (el.type === "existing_character" && el.characterId) {
-                const char = characters.find((c) => c.id === el.characterId);
-                if (char)
-                  elParts.push(
-                    `${char.name}（${buildCharacterAppearanceDesc(char)}）`,
-                  );
-                else
-                  elParts.push(el.name || el.description || "未知角色");
-              } else {
-                elParts.push(el.name);
-              }
-              const effects = buildElementEffectDesc(el);
-              if (effects) elParts.push(effects);
-              return elParts.join("，");
-            });
-          const hasMultipleElements = elementDescs.length > 1;
-          parts.push(
-            `场景元素：${elementDescs.join("；")}${hasMultipleElements ? "（同时进行）" : ""}`,
-          );
-        }
-      }
-
-      if (beat.elementBindings && elements && elements.length > 0) {
-        const bindingDescs = Object.entries(beat.elementBindings)
-          .map(([elementId, binding]) => {
-            const element = elements.find((e) => e.id === elementId);
-            if (!element) return null;
-            const bindingParts: string[] = [element.name];
-            if (binding.role) bindingParts.push(`角色：${binding.role}`);
-            if (binding.position) bindingParts.push(`位置：${binding.position}`);
-            if (binding.action) bindingParts.push(`动作：${binding.action}`);
-            if (binding.emotion) bindingParts.push(`表情：${binding.emotion}`);
-            if (binding.description) bindingParts.push(binding.description);
-            if (binding.text) bindingParts.push(`台词："${binding.text}"`);
-            if (binding.imageUrl) bindingParts.push(`参考图：${binding.imageUrl}`);
-            return bindingParts.join("，");
-          })
-          .filter(Boolean);
-        if (bindingDescs.length > 0) {
-          parts.push(`元素绑定：${bindingDescs.join("；")}`);
-        }
-      }
-
-      if (beat.transition && beat.transition !== "无") {
-        const transKeyword =
-          TRANSITION_KEYWORDS[beat.transition] || beat.transition;
-        parts.push(`转场：${transKeyword}`);
-      }
-
-      parts.push(`内容：${beat.description || beat.content || "无描述"}`);
-      parts.push(`时长：${beat.duration || 5}秒`);
-
-      if (beat.promptLayers) {
-        const layerParts: string[] = [];
-        if (beat.promptLayers.coreElements)
-          layerParts.push(`核心元素：${beat.promptLayers.coreElements}`);
-        if (beat.promptLayers.cameraAction)
-          layerParts.push(`镜头动作：${beat.promptLayers.cameraAction}`);
-        if (beat.promptLayers.styleAtmosphere)
-          layerParts.push(`风格氛围：${beat.promptLayers.styleAtmosphere}`);
-        if (layerParts.length > 0) parts.push(`提示词层级：${layerParts.join("；")}`);
-      }
-
-      if (beat.reference && beat.reference.direction !== "none") {
-        const directionMap: Record<string, string> = {
-          previous: "上一个镜头",
-          next: "下一个镜头",
-          custom: "指定镜头",
-        };
-        const dirLabel = directionMap[beat.reference.direction] || "其他镜头";
-        const contentTypeMap: Record<string, string> = {
-          full_video: "完整视频",
-          last_frame: "尾帧画面",
-          first_frame: "首帧画面",
-          video_segment: "视频片段",
-        };
-        const ctLabel = contentTypeMap[beat.reference.contentType] || beat.reference.contentType;
-        parts.push(`镜头引用：引用${dirLabel}的${ctLabel}作为参考，保持视觉连贯性`);
-        if (beat.reference.segmentDuration) {
-          parts.push(`引用片段时长：${beat.reference.segmentDuration}秒`);
-        }
-      }
-
-      return parts.join("\n");
-    })
+    .map((beat, index) => buildBeatDetails(beat, index, characters, scenes, elements))
     .join("\n\n");
 
   const featureAnchoringSection =
@@ -215,20 +75,11 @@ export function generateEnhancedVideoPrompt(
       ? buildFeatureAnchoringSection(featureAnchoring)
       : "";
 
-  const fixedDesc = fixedImage ? buildFixedImageDesc(fixedImage) : "";
-  const refDesc = referenceVideo ? buildReferenceVideoDesc(referenceVideo) : "";
-  const tplDesc = template ? buildTemplateDesc(template) : "";
-
-  const aiEnhanceSectionParts: string[] = [];
-  if (fixedDesc) aiEnhanceSectionParts.push(`【参考图片说明】\n${fixedDesc}`);
-  const otherParts = [refDesc, tplDesc].filter(Boolean);
-  if (otherParts.length > 0)
-    aiEnhanceSectionParts.push(`【其他生成要求】\n${otherParts.join("\n")}`);
-
-  const aiEnhanceSection =
-    aiEnhanceSectionParts.length > 0
-      ? `\n\n${aiEnhanceSectionParts.join("\n\n")}`
-      : "";
+  const aiEnhanceSection = buildAiEnhanceSection(
+    fixedImage,
+    referenceVideo,
+    template,
+  );
 
   const globalSection = globalElementSection
     ? `\n\n${globalElementSection}`
@@ -248,6 +99,214 @@ ${beatDetails}${globalSection}${featureAnchoringSection}${aiEnhanceSection}
 3. 按照指定的运镜方式拍摄
 4. 在镜头之间使用指定的转场效果
 5. 保持整体节奏和氛围的一致性`;
+}
+
+function buildBeatDetails(
+  beat: StoryBeat,
+  index: number,
+  characters: Character[],
+  scenes: Scene[],
+  elements?: StoryElement[],
+): string {
+  const parts: string[] = [];
+  parts.push(`【镜头${index + 1}】${beat.title || "未命名"}`);
+
+  appendShotInstruction(parts, beat);
+  appendSceneLine(parts, beat, scenes);
+  appendSceneElementsSection(parts, beat, characters);
+  appendElementBindings(parts, beat, elements);
+  appendTransition(parts, beat);
+  appendContentAndDuration(parts, beat);
+  appendPromptLayers(parts, beat);
+  appendBeatReferenceLine(parts, beat);
+
+  return parts.join("\n");
+}
+
+function appendShotInstruction(parts: string[], beat: StoryBeat): void {
+  const resolvedShot = resolveShotInstruction(beat);
+  if (!resolvedShot) return;
+  const shotPrompt = shotInstructionToPrompt({
+    shotSize: resolvedShot.shotSize,
+    cameraMovement: resolvedShot.cameraMovement,
+    cameraAngle: resolvedShot.cameraAngle,
+  });
+  if (shotPrompt) parts.push(`镜头指令：${shotPrompt}`);
+}
+
+function appendSceneLine(
+  parts: string[],
+  beat: StoryBeat,
+  scenes: Scene[],
+): void {
+  if (!beat.sceneId) return;
+  const sceneObj = scenes.find((s) => s.id === beat.sceneId);
+  if (!sceneObj) return;
+  parts.push(
+    `场景：${sceneObj.name}，${buildSceneAtmosphereDesc(sceneObj)}，${buildSceneVisualDesc(sceneObj)}`,
+  );
+}
+
+function appendSceneElementsSection(
+  parts: string[],
+  beat: StoryBeat,
+  characters: Character[],
+): void {
+  if (!beat.sceneElements || beat.sceneElements.length === 0) return;
+  const groups = groupSceneElementsByTimeline(beat.sceneElements);
+  const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a - b);
+
+  if (sortedGroups.length > 1) {
+    sortedGroups.forEach(([group, elementsInGroup], groupIndex) => {
+      const elementDescs = sortAndMapElements(elementsInGroup, characters);
+      const isFirst = groupIndex === 0;
+      const hasMultipleElements = elementsInGroup.length > 1;
+      const label = hasMultipleElements ? "同时进行" : "进行";
+      parts.push(
+        `${isFirst ? "" : "→ "}时间${group + 1}：${elementDescs.join("；")}${hasMultipleElements ? `（${label}）` : ""}`,
+      );
+    });
+  } else {
+    const elementDescs = sortAndMapElements(beat.sceneElements, characters);
+    const hasMultipleElements = elementDescs.length > 1;
+    parts.push(
+      `场景元素：${elementDescs.join("；")}${hasMultipleElements ? "（同时进行）" : ""}`,
+    );
+  }
+}
+
+function groupSceneElementsByTimeline(
+  sceneElements: SceneElement[],
+): Map<number, SceneElement[]> {
+  const groups = new Map<number, SceneElement[]>();
+  sceneElements.forEach((el) => {
+    const group = el.timelineGroup ?? 0;
+    if (!groups.has(group)) groups.set(group, []);
+    const groupList = groups.get(group);
+    if (groupList) groupList.push(el);
+  });
+  return groups;
+}
+
+function sortAndMapElements(
+  elements: SceneElement[],
+  characters: Character[],
+): string[] {
+  return [...elements]
+    .sort((a, b) => (a.timelineOrder ?? 0) - (b.timelineOrder ?? 0))
+    .map((el) => buildSceneElementDesc(el, characters));
+}
+
+function buildSceneElementDesc(
+  el: SceneElement,
+  characters: Character[],
+): string {
+  const elParts: string[] = [];
+  if (el.type === "existing_character" && el.characterId) {
+    const char = characters.find((c) => c.id === el.characterId);
+    if (char) {
+      elParts.push(`${char.name}（${buildCharacterAppearanceDesc(char)}）`);
+    } else {
+      elParts.push(el.name || el.description || "未知角色");
+    }
+  } else {
+    elParts.push(el.name);
+  }
+  const effects = buildElementEffectDesc(el);
+  if (effects) elParts.push(effects);
+  return elParts.join("，");
+}
+
+function appendElementBindings(
+  parts: string[],
+  beat: StoryBeat,
+  elements?: StoryElement[],
+): void {
+  if (!beat.elementBindings || !elements || elements.length === 0) return;
+  const bindingDescs = Object.entries(beat.elementBindings)
+    .map(([elementId, binding]) => {
+      const element = elements.find((e) => e.id === elementId);
+      if (!element) return null;
+      return buildElementBindingDesc(element.name, binding);
+    })
+    .filter(Boolean);
+  if (bindingDescs.length > 0) {
+    parts.push(`元素绑定：${bindingDescs.join("；")}`);
+  }
+}
+
+type ElementBinding = NonNullable<StoryBeat["elementBindings"]>[string];
+
+function buildElementBindingDesc(
+  name: string,
+  binding: ElementBinding,
+): string {
+  const bindingParts: string[] = [name];
+  if (binding.role) bindingParts.push(`角色：${binding.role}`);
+  if (binding.position) bindingParts.push(`位置：${binding.position}`);
+  if (binding.action) bindingParts.push(`动作：${binding.action}`);
+  if (binding.emotion) bindingParts.push(`表情：${binding.emotion}`);
+  if (binding.description) bindingParts.push(binding.description);
+  if (binding.text) bindingParts.push(`台词："${binding.text}"`);
+  if (binding.imageUrl) bindingParts.push(`参考图：${binding.imageUrl}`);
+  return bindingParts.join("，");
+}
+
+function appendTransition(parts: string[], beat: StoryBeat): void {
+  if (!beat.transition || beat.transition === "无") return;
+  const transKeyword = TRANSITION_KEYWORDS[beat.transition] || beat.transition;
+  parts.push(`转场：${transKeyword}`);
+}
+
+function appendContentAndDuration(parts: string[], beat: StoryBeat): void {
+  parts.push(`内容：${beat.description || beat.content || "无描述"}`);
+  parts.push(`时长：${beat.duration || 5}秒`);
+}
+
+function appendPromptLayers(parts: string[], beat: StoryBeat): void {
+  if (!beat.promptLayers) return;
+  const layerParts: string[] = [];
+  if (beat.promptLayers.coreElements)
+    layerParts.push(`核心元素：${beat.promptLayers.coreElements}`);
+  if (beat.promptLayers.cameraAction)
+    layerParts.push(`镜头动作：${beat.promptLayers.cameraAction}`);
+  if (beat.promptLayers.styleAtmosphere)
+    layerParts.push(`风格氛围：${beat.promptLayers.styleAtmosphere}`);
+  if (layerParts.length > 0)
+    parts.push(`提示词层级：${layerParts.join("；")}`);
+}
+
+function appendBeatReferenceLine(parts: string[], beat: StoryBeat): void {
+  if (!beat.reference || beat.reference.direction === "none") return;
+  const dirLabel =
+    REFERENCE_DIRECTION_MAP[beat.reference.direction] || "其他镜头";
+  const ctLabel =
+    REFERENCE_CONTENT_TYPE_MAP[beat.reference.contentType] ||
+    beat.reference.contentType;
+  parts.push(`镜头引用：引用${dirLabel}的${ctLabel}作为参考，保持视觉连贯性`);
+  if (beat.reference.segmentDuration) {
+    parts.push(`引用片段时长：${beat.reference.segmentDuration}秒`);
+  }
+}
+
+function buildAiEnhanceSection(
+  fixedImage?: FixedImageConfig,
+  referenceVideo?: ReferenceVideoConfig,
+  template?: TemplateConfig,
+): string {
+  const fixedDesc = fixedImage ? buildFixedImageDesc(fixedImage) : "";
+  const refDesc = referenceVideo ? buildReferenceVideoDesc(referenceVideo) : "";
+  const tplDesc = template ? buildTemplateDesc(template) : "";
+
+  const aiEnhanceSectionParts: string[] = [];
+  if (fixedDesc) aiEnhanceSectionParts.push(`【参考图片说明】\n${fixedDesc}`);
+  const otherParts = [refDesc, tplDesc].filter(Boolean);
+  if (otherParts.length > 0)
+    aiEnhanceSectionParts.push(`【其他生成要求】\n${otherParts.join("\n")}`);
+
+  return aiEnhanceSectionParts.length > 0
+    ? `\n\n${aiEnhanceSectionParts.join("\n\n")}`
+    : "";
 }
 
 function buildFeatureAnchoringSection(

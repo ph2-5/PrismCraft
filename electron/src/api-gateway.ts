@@ -1,5 +1,6 @@
 import { getLogger } from "./logging/logger";
 import { pluginRegistry } from "./plugins";
+import type { TextStreamChunk, TextStreamToolDef } from "./plugins";
 import { API_ERROR_CODES } from "./api-gateway-error-codes";
 import {
   type ApiResult,
@@ -7,6 +8,7 @@ import {
   buildVideoRequest,
   getAuthHeaders,
   makeRequest,
+  makeStreamingRequest,
   extractTaskId,
   extractVideoUrl,
   extractStatus,
@@ -93,6 +95,124 @@ async function generateText(body: Record<string, unknown>): Promise<TextApiResul
       : ((((response.choices as Record<string, unknown>[])?.[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string) || "";
 
     return { success: true, data: { text } };
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message,
+      httpStatus: (error as Error & { statusCode?: number }).statusCode || 500,
+    };
+  }
+}
+
+/**
+ * 流式文本生成（Task 1.0）。
+ * 通过 SSE 流式接收 AI provider 的响应，每收到一个 chunk 通过 onChunk 回调实时传出。
+ * 流结束后返回完整的累积文本。
+ *
+ * 与 generateText 的区别：
+ * - 使用 makeStreamingRequest 而非 makeRequest（不缓冲完整响应）
+ * - 调用 plugin.buildTextStreamRequest 构建 stream:true 的请求体
+ * - 调用 plugin.extractTextChunk 解析 SSE 行
+ * - 不走 withRetry（流式响应部分失败难以安全重试）
+ *
+ * 如果 plugin 未实现流式方法，自动回退到普通 generateText（但不会调用 onChunk）。
+ */
+async function generateTextStream(
+  body: Record<string, unknown>,
+  options: {
+    onChunk: (chunk: TextStreamChunk) => void;
+  },
+): Promise<TextApiResult> {
+  const { prompt, maxTokens, temperature, tools: toolsRaw } = body as Record<string, unknown>;
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
+    body,
+    "text",
+  );
+
+  if (!effectiveApiKey) {
+    return {
+      success: false,
+      error: { code: API_ERROR_CODES.API_NOT_CONFIGURED, message: "text" },
+      code: API_ERROR_CODES.API_NOT_CONFIGURED,
+      httpStatus: 400,
+    };
+  }
+
+  if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+    return {
+      success: false,
+      error: "empty_prompt",
+      code: API_ERROR_CODES.EMPTY_PROMPT,
+      httpStatus: 400,
+    };
+  }
+
+  const safeMaxTokens = Math.min(Math.max(1, (maxTokens as number) || 4096), 16384);
+  const safeTemperature = Math.min(Math.max(0, (temperature as number) ?? 0.7), 2);
+
+  // 归一化 tools 字段（OpenAI function-calling 格式）
+  let tools: TextStreamToolDef[] | undefined;
+  if (Array.isArray(toolsRaw) && toolsRaw.length > 0) {
+    tools = (toolsRaw as unknown[])
+      .map((t) => {
+        const fn = (t as { function?: Record<string, unknown> })?.function;
+        if (!fn) return null;
+        return {
+          type: "function" as const,
+          function: {
+            name: String(fn.name ?? ""),
+            description: String(fn.description ?? ""),
+            parameters: (fn.parameters as Record<string, unknown>) || { type: "object", properties: {} },
+          },
+        };
+      })
+      .filter((t): t is TextStreamToolDef => t !== null);
+    if (tools.length === 0) tools = undefined;
+  }
+
+  try {
+    const plugin = resolvedPlugin || pluginRegistry.select(effectiveApiUrl || "", effectiveModel);
+    if (!plugin) {
+      return { success: false, error: "unknown_provider", code: API_ERROR_CODES.UNKNOWN_PROVIDER, httpStatus: 400 };
+    }
+
+    // plugin 未实现流式接口 → 回退到普通 generateText（不流式，但保证功能可用）
+    if (!plugin.buildTextStreamRequest || !plugin.extractTextChunk) {
+      logger.warn(`Plugin ${plugin.id} does not support streaming, falling back to non-streaming generateText`);
+      return generateText(body);
+    }
+
+    const { body: reqBody, endpoint } = plugin.buildTextStreamRequest({
+      prompt: prompt as string,
+      model: effectiveModel,
+      maxTokens: safeMaxTokens,
+      temperature: safeTemperature,
+      tools,
+    });
+
+    const requestUrl = plugin.appendAuthToUrl
+      ? plugin.appendAuthToUrl(`${effectiveApiUrl}${endpoint}`, effectiveApiKey)
+      : `${effectiveApiUrl}${endpoint}`;
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      ...await getAuthHeaders(plugin, effectiveApiKey, endpoint),
+    };
+
+    let fullText = "";
+    await makeStreamingRequest(requestUrl, {
+      method: "POST",
+      headers: requestHeaders,
+      body: JSON.stringify(reqBody),
+      onLine: (line) => {
+        const chunk = plugin.extractTextChunk!(line);
+        if (!chunk) return;
+        if (chunk.delta) fullText += chunk.delta;
+        options.onChunk(chunk);
+      },
+    });
+
+    return { success: true, data: { text: fullText } };
   } catch (error) {
     return {
       success: false,
@@ -384,6 +504,7 @@ async function videoStatus(body: Record<string, unknown>): Promise<ApiResult> {
 
 export {
   generateText,
+  generateTextStream,
   handleUpload,
   getUploadedFile,
   analyzeImage,

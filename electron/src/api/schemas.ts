@@ -91,6 +91,28 @@ export const generateTextSchema = z.object({
 });
 export type GenerateTextRequest = z.infer<typeof generateTextSchema>;
 
+// Task 1.0: 流式文本生成 schema（在 generateTextSchema 基础上增加 tools 字段）
+export const generateTextStreamSchema = z.object({
+  prompt: z.string(),
+  maxTokens: z.number().optional(),
+  temperature: z.number().optional(),
+  providerId: z.string().optional(),
+  modelId: z.string().optional(),
+  tools: z
+    .array(
+      z.object({
+        type: z.literal("function"),
+        function: z.object({
+          name: z.string(),
+          description: z.string(),
+          parameters: z.record(z.string(), z.unknown()),
+        }),
+      }),
+    )
+    .optional(),
+});
+export type GenerateTextStreamRequest = z.infer<typeof generateTextStreamSchema>;
+
 export const testConnectionSchema = z.object({
   apiUrl: z.string(),
   apiKey: z.string().optional(),

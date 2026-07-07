@@ -7,8 +7,11 @@
  *   也必须是 i18n key。这保持 sidebar 标签与页面标题同步，并支持 locale 切换。
  *
  * 被测代码：
- *   src/app/coming-soon/{Login,Agent,Composer,Mobile,Workspace,Workflow,
+ *   src/app/coming-soon/{Login,Composer,Mobile,Workspace,Workflow,
  *     TemplateMarket,Story}Page.tsx
+ *
+ * 注意：AgentPage 已升级为真实 Agent UI（src/modules/agent/presentation/AgentPage.tsx），
+ *      不再使用 ComingSoon 组件，因此从本测试中移除。
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -37,10 +40,9 @@ vi.mock("@/shared/presentation/ComingSoon", () => ({
   ComingSoon: mockComingSoon,
 }));
 
-// coming-soon 页面清单（不含 PluginsPage —— 那是文档页，不是 ComingSoon）
+// coming-soon 页面清单（AgentPage 已升级为真实 UI，不再在此列表；PluginsPage 是文档页）
 const COMING_SOON_PAGES = [
   { file: "src/app/coming-soon/LoginPage.tsx", expectedKey: "sidebar.login" },
-  { file: "src/app/coming-soon/AgentPage.tsx", expectedKey: "sidebar.agent" },
   { file: "src/app/coming-soon/ComposerPage.tsx", expectedKey: "sidebar.composer" },
   { file: "src/app/coming-soon/MobilePage.tsx", expectedKey: "sidebar.mobile" },
   { file: "src/app/coming-soon/WorkspacePage.tsx", expectedKey: "sidebar.workspace" },
@@ -59,13 +61,6 @@ describe("R165: coming-soon 页面 title 必须用 t() 国际化", () => {
     render(<LoginPage />);
     expect(mockT).toHaveBeenCalledWith("sidebar.login");
     expect(screen.getByTestId("cs-title").textContent).toBe("sidebar.login");
-  });
-
-  it("AgentPage 渲染时 title 来自 t('sidebar.agent')", async () => {
-    const { default: AgentPage } = await import("../AgentPage");
-    render(<AgentPage />);
-    expect(mockT).toHaveBeenCalledWith("sidebar.agent");
-    expect(screen.getByTestId("cs-title").textContent).toBe("sidebar.agent");
   });
 
   it("ComposerPage 渲染时 title 来自 t('sidebar.composer')", async () => {

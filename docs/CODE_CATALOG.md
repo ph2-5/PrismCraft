@@ -1,6 +1,6 @@
 # PrismCraft - 完整代码目录
 
-> 版本: 1.1.1 | 更新日期: 2026-07-07 | 架构: Electron + Vite + React + DDD
+> 版本: 1.2.0 | 更新日期: 2026-07-07 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -41,7 +41,8 @@ prismcraft-source-code/
 ├── src/
 │   ├── domain/              # 领域层：纯类型、端口接口、领域服务
 │   ├── shared-logic/        # 共享逻辑层：零外部依赖的纯函数
-│   ├── modules/             # 模块层：9 个业务模块
+│   ├── modules/             # 模块层：10 个业务模块
+│   │   ├── agent/           # AI 助手模块（Agent Loop、Tool Registry、21 工具文件）
 │   │   ├── asset/           # 资产库管理
 │   │   ├── character/       # 角色管理
 │   │   ├── persistence/     # 持久化守护
@@ -1276,6 +1277,7 @@ IPC 安全桥接，定义了 `electronAPI` 对象，包含：
 | `work-claims.md` | 工作声明（防会话冲突） |
 | `context-snapshot.mjs` | 上下文快照脚本 |
 | `symbol-index.md` | 符号索引 |
+| `modules/agent.md` | agent 模块 AI 上下文 |
 | `modules/asset.md` | asset 模块 AI 上下文 |
 | `modules/character.md` | character 模块 AI 上下文 |
 | `modules/scene.md` | scene 模块 AI 上下文 |

@@ -435,3 +435,46 @@ export async function setConfig(key: string, value: unknown): Promise<boolean> {
     return false;
   }
 }
+
+/** 文件类别（与主进程 fileCategorySchema 对齐） */
+export type FileCategory =
+  | "character"
+  | "scene"
+  | "storyboard"
+  | "video-cache"
+  | "image-cache"
+  | "upload"
+  | "plugin";
+
+/** 列出指定类别目录下的文件 */
+export async function listFiles(
+  category: FileCategory,
+  options: { limit?: number; offset?: number } = {},
+): Promise<{ success: boolean; data?: { files: Array<{ name: string; size: number; modified: string }>; total: number; offset: number; limit: number }; error?: string } | null> {
+  const httpResult = await httpFileCall<{ files: Array<{ name: string; size: number; modified: string }>; total: number; offset: number; limit: number }>("file/list", {
+    category,
+    limit: options.limit,
+    offset: options.offset,
+  });
+  if (httpResult !== null) {
+    return httpResult;
+  }
+  return null;
+}
+
+/** 复制文件到目标类别目录 */
+export async function copyFile(
+  sourceKey: string,
+  targetCategory: FileCategory,
+  targetKey: string,
+): Promise<{ success: boolean; error?: string } | null> {
+  const httpResult = await httpFileCall<{ key: string }>("file/copy", {
+    sourceKey,
+    targetCategory,
+    targetKey,
+  });
+  if (httpResult !== null) {
+    return httpResult;
+  }
+  return null;
+}

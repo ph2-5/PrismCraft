@@ -8,6 +8,9 @@ import type {
   VideoBuildContext,
   ImageBuildContext,
   TextBuildContext,
+  TextStreamBuildContext,
+  TextStreamChunk,
+  TextStreamToolCall,
   VisionBuildContext,
   VideoRequestResult,
   ImageRequestResult,
@@ -96,6 +99,93 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
         temperature: ctx.temperature,
       },
       endpoint: "/chat/completions",
+    };
+  }
+
+  /**
+   * 流式文本请求默认构建（Task 1.0）。
+   * 复用 buildTextRequest 的 body，追加 stream:true 与可选的 tools 字段。
+   * 支持 OpenAI 兼容流式 API 的 provider 无需覆盖；非标准 provider 可自行重写。
+   */
+  buildTextStreamRequest(ctx: TextStreamBuildContext): TextRequestResult {
+    const base = this.buildTextRequest(ctx);
+    const body: Record<string, unknown> = { ...base.body, stream: true };
+    if (ctx.tools && ctx.tools.length > 0) {
+      body.tools = ctx.tools.map((t) => ({ type: t.type, function: t.function }));
+    }
+    return { ...base, body };
+  }
+
+  /**
+   * SSE 单行解析默认实现（Task 1.0）。
+   * 输入为原始行（含 "data:" 前缀），返回解析后的 chunk 或 undefined（跳过）。
+   * 兼容 OpenAI 流式格式：choices[0].delta.content / tool_calls / finish_reason。
+   *
+   * 职责划分：上游 makeStreamingRequest 负责按 "\n" 切分原始字节流为行数组，
+   *          本方法只负责将单行转换为 chunk。
+   */
+  extractTextChunk(rawLine: string): TextStreamChunk | undefined {
+    const trimmed = rawLine.trim();
+    if (!trimmed || !trimmed.startsWith("data:")) return undefined;
+
+    const data = trimmed.slice(5).trim();
+
+    // [DONE] 标记 → 正常结束
+    if (data === "[DONE]") {
+      return { delta: "", finishReason: "stop" };
+    }
+
+    // 解析 JSON
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(data) as Record<string, unknown>;
+    } catch {
+      // 非 JSON 行（如注释、心跳）直接跳过
+      return undefined;
+    }
+
+    const choices = parsed.choices as Record<string, unknown>[] | undefined;
+    if (!Array.isArray(choices) || choices.length === 0) return undefined;
+
+    const choice = choices[0] as Record<string, unknown>;
+    const delta = choice.delta as Record<string, unknown> | undefined;
+    const deltaText = (delta?.content as string) || "";
+
+    // 提取增量 tool_calls（OpenAI 流式格式：每个 chunk 可能只含 index + 部分 arguments）
+    let toolCalls: TextStreamToolCall[] | undefined;
+    const rawToolCalls = delta?.tool_calls as Record<string, unknown>[] | undefined;
+    if (Array.isArray(rawToolCalls) && rawToolCalls.length > 0) {
+      toolCalls = rawToolCalls
+        .map((tc) => {
+          const fn = tc.function as Record<string, unknown> | undefined;
+          const id = (tc.id as string) || "";
+          const name = (fn?.name as string) || "";
+          const args = (fn?.arguments as string) || "";
+          // 完全空的 tool_call 片段（仅 index）跳过，避免产生噪声
+          if (!id && !name && !args) return null;
+          return {
+            id,
+            function: { name, arguments: args },
+          };
+        })
+        .filter((tc): tc is TextStreamToolCall => tc !== null);
+      if (toolCalls.length === 0) toolCalls = undefined;
+    }
+
+    // 映射 finish_reason
+    const rawFinish = choice.finish_reason as string | undefined;
+    const mappedFinish: TextStreamChunk["finishReason"] | undefined =
+      rawFinish === "stop" || rawFinish === "tool_calls" || rawFinish === "length"
+        ? rawFinish
+        : undefined;
+
+    // 空 chunk 且无结束信号 → 跳过以减少回调噪声
+    if (!deltaText && !toolCalls && !mappedFinish) return undefined;
+
+    return {
+      delta: deltaText,
+      toolCalls,
+      finishReason: mappedFinish,
     };
   }
 

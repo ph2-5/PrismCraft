@@ -89,6 +89,51 @@ export interface TextBuildContext {
   temperature: number;
 }
 
+/**
+ * 流式文本生成上下文（Task 1.0）。
+ * 在 TextBuildContext 基础上增加 tools 字段，供 Agent Loop 声明可调用的工具。
+ */
+export interface TextStreamBuildContext extends TextBuildContext {
+  tools?: TextStreamToolDef[];
+}
+
+/**
+ * 工具定义（OpenAI function-calling 格式）。
+ * 与 domain/ports/ai-provider-port.ts 的 ToolDef 形状一致，独立定义以保持 plugin 层零外部依赖。
+ */
+export interface TextStreamToolDef {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+/**
+ * 流式生成中的工具调用请求（模型生成）。
+ * arguments 是 JSON 字符串，需在执行前 parse。
+ */
+export interface TextStreamToolCall {
+  id: string;
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+/**
+ * 流式生成的单个 chunk。
+ * - delta: 本次新增的文本片段
+ * - toolCalls: 模型请求调用的工具（增量返回，可能只含部分字段）
+ * - finishReason: 结束原因（stop=正常结束 / tool_calls=请求工具 / length=达到 maxTokens）
+ */
+export interface TextStreamChunk {
+  delta: string;
+  toolCalls?: TextStreamToolCall[];
+  finishReason?: "stop" | "tool_calls" | "length";
+}
+
 export interface VisionBuildContext {
   prompt: string;
   model?: string;
@@ -216,6 +261,20 @@ export interface AIProviderPlugin {
 
   buildTextRequest(ctx: TextBuildContext): TextRequestResult;
 
+  /**
+   * 流式文本请求构建（Task 1.0）。
+   * 默认实现：在 buildTextRequest 基础上添加 stream:true 和 tools 字段。
+   * 支持流式的 provider 可覆盖以定制 body。
+   */
+  buildTextStreamRequest?(ctx: TextStreamBuildContext): TextRequestResult;
+
+  /**
+   * 解析 SSE 流的单行（Task 1.0）。
+   * 输入为原始行（含 "data: " 前缀），返回解析后的 chunk 或 undefined（跳过该行）。
+   * 默认实现：解析 OpenAI 兼容格式（choices[0].delta.content / tool_calls / finish_reason）。
+   */
+  extractTextChunk?(rawLine: string): TextStreamChunk | undefined;
+
   buildVisionRequest(ctx: VisionBuildContext): VisionRequestResult;
 
   getImageTransportMode(purpose: ImagePurpose): ImageTransportMode;
@@ -258,6 +317,8 @@ export interface AsyncAIProviderPlugin extends AIProviderPlugin {
   buildVideoRequestAsync?(ctx: VideoBuildContext): Promise<VideoRequestResult>;
   buildImageRequestAsync?(ctx: ImageBuildContext): Promise<ImageRequestResult>;
   buildTextRequestAsync?(ctx: TextBuildContext): Promise<TextRequestResult>;
+  buildTextStreamRequestAsync?(ctx: TextStreamBuildContext): Promise<TextRequestResult>;
+  extractTextChunkAsync?(rawLine: string): Promise<TextStreamChunk | undefined>;
   buildVisionRequestAsync?(ctx: VisionBuildContext): Promise<VisionRequestResult>;
   getAuthHeadersAsync?(apiKey: string, endpoint?: string): Promise<Record<string, string>>;
   extractTaskIdAsync?(response: Record<string, unknown>): Promise<string | undefined>;

@@ -54,7 +54,7 @@ import {
   queryVideoStatus,
 } from "@/infrastructure/ai-providers/video";
 import { generateImage, analyzeImage } from "@/infrastructure/ai-providers/image";
-import { generateText } from "@/infrastructure/ai-providers/text";
+import { generateText, generateTextStream } from "@/infrastructure/ai-providers/text";
 import { uploadFile } from "@/infrastructure/ai-providers/utils";
 import { safeQuery, safeRun, safeTransaction } from "@/infrastructure/storage/sqlite-core";
 import { registerChangeTracker, unregisterChangeTracker } from "@/infrastructure/storage/core";
@@ -84,6 +84,7 @@ const imageProvider: IImageProvider = {
 
 const textProvider: ITextProvider = {
   generateText,
+  generateTextStream,
 };
 
 const fileUploader: IFileUploader = {

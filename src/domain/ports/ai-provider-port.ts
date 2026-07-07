@@ -148,6 +148,60 @@ export interface ITextProvider {
       modelId?: string;
     },
   ): Promise<ApiResponse<{ text: string }>>;
+
+  /**
+   * 流式文本生成（Task 1.0）。
+   * 通过 onChunk 回调逐块返回内容，避免等待完整响应。
+   * 用于 Agent Loop 的实时推理输出。
+   */
+  generateTextStream(
+    prompt: string,
+    options?: {
+      maxTokens?: number;
+      temperature?: number;
+      providerId?: string;
+      modelId?: string;
+      tools?: ToolDef[];
+      onChunk: (chunk: StreamChunk) => void;
+    },
+  ): Promise<ApiResponse<{ text: string }>>;
+}
+
+/**
+ * 工具定义（OpenAI function-calling 格式）。
+ * 供 Agent Loop 在推理时声明可调用的工具。
+ */
+export interface ToolDef {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+/**
+ * 工具调用请求（模型生成）。
+ * arguments 是 JSON 字符串，需在执行前 parse。
+ */
+export interface ToolCall {
+  id: string;
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+/**
+ * 流式生成的单个 chunk。
+ * - delta: 本次新增的文本片段
+ * - toolCalls: 模型请求调用的工具（仅在 finishReason === "tool_calls" 时有值）
+ * - finishReason: 结束原因（stop=正常结束 / tool_calls=请求工具 / length=达到 maxTokens）
+ */
+export interface StreamChunk {
+  delta: string;
+  toolCalls?: ToolCall[];
+  finishReason?: "stop" | "tool_calls" | "length";
 }
 
 export interface IFileUploader {

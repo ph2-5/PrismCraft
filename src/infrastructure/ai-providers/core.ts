@@ -338,3 +338,129 @@ export async function checkApiHealth(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * 流式 API 调用（Task 1.0）。
+ * 用于消费 server.ts 的 SSE 流式响应（Content-Type: text/event-stream）。
+ *
+ * SSE 协议（由 server.ts 产生）：
+ * - chunk:  `data: {"_t":"chunk","chunk":...}\n\n`   → 调用 onChunk(chunk)
+ * - done:   `data: {"_t":"done","result":...}\n\n`    → resolve(result)
+ * - error:  `data: {"_t":"error","error":"..."}\n\n`  → reject
+ *
+ * 与 apiCall 的区别：
+ * - 不走 circuit breaker / offline queue（流式响应难以安全重试）
+ * - 不走 apiCache（流式响应不可缓存）
+ * - 使用 ReadableStream 实时消费，不缓冲完整响应
+ *
+ * @returns 流式结束时返回 done 事件中的 result（通常是完整的 ApiResponse）
+ */
+export async function apiCallStream<TChunk, TResult>(
+  endpoint: string,
+  options: ApiRequestOptions,
+  callbacks: {
+    onChunk: (chunk: TChunk) => void;
+  },
+): Promise<TResult> {
+  const STREAM_TIMEOUT = 300000; // 流式生成可能较慢，5 分钟
+  const baseUrl = isElectron()
+    ? `http://localhost:${API_SERVER_PORT}`
+    : "";
+  const url = `${baseUrl}/api/${endpoint}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT);
+
+  try {
+    const response = await fetch(url, {
+      method: options.method || "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+        ...ELECTRON_APP_HEADERS,
+        ...options.headers,
+      },
+      body: options.body,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorInfo = await parseErrorResponse(response);
+      throw new ApiClientError(errorInfo.message, response.status, errorInfo.code);
+    }
+
+    if (!response.body) {
+      throw new ApiClientError(
+        "流式响应无 body",
+        response.status,
+        "INVALID_RESPONSE",
+      );
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        // 最后一段可能不完整，保留在 buffer
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data:")) continue;
+
+          const data = trimmed.slice(5).trim();
+          if (!data) continue;
+
+          let parsed: {
+            _t?: string;
+            chunk?: unknown;
+            result?: unknown;
+            error?: string;
+          };
+          try {
+            parsed = JSON.parse(data);
+          } catch {
+            // 非 JSON 行跳过
+            continue;
+          }
+
+          if (parsed._t === "chunk" && parsed.chunk !== undefined) {
+            callbacks.onChunk(parsed.chunk as TChunk);
+          } else if (parsed._t === "done") {
+            return parsed.result as TResult;
+          } else if (parsed._t === "error") {
+            throw new ApiClientError(
+              parsed.error || "流式响应错误",
+              500,
+              "STREAM_ERROR",
+            );
+          }
+        }
+      }
+
+      // 流结束但没收到 done 事件
+      throw new ApiClientError(
+        "流式响应意外结束",
+        500,
+        "STREAM_ENDED_PREMATURELY",
+      );
+    } finally {
+      reader.releaseLock();
+    }
+  } catch (error) {
+    if (error instanceof ApiClientError) throw error;
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ApiClientError(t("error.requestTimeout"), 408, "TIMEOUT");
+    }
+    throw new ApiClientError(extractErrorMessage(error));
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}

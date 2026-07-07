@@ -4,7 +4,7 @@ import { getLogger } from "../logging";
 import { API_SERVER_PORT, APP_SERVER_PORT, DEV_SERVER_PORT } from "../config/ports";
 import { getDb, CURRENT_SCHEMA_VERSION } from "../database";
 import { routes } from "./routes";
-import type { ApiRequest } from "./types";
+import type { ApiRequest, Route, StreamSink } from "./types";
 import {
   handleCors,
   checkAuthHeader,
@@ -28,6 +28,58 @@ const API_PORT = API_SERVER_PORT;
 
 registerAllowedOrigin(APP_SERVER_PORT);
 registerAllowedOrigin(DEV_SERVER_PORT);
+
+/**
+ * 执行流式路由（Task 1.0）。
+ * 设置 SSE 响应头，创建 StreamSink 传入 handler，
+ * handler 通过 sink.sendChunk 发送业务 chunk，
+ * handler 返回后发送 done 事件，抛错时发送 error 事件。
+ *
+ * SSE 协议：
+ * - chunk:  `data: {"_t":"chunk","chunk":...}\n\n`
+ * - done:   `data: {"_t":"done","result":...}\n\n`
+ * - error:  `data: {"_t":"error","error":"..."}\n\n`
+ */
+async function executeStreamRoute(
+  route: Route,
+  method: string,
+  body: ApiRequest,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+): Promise<void> {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+
+  const sink: StreamSink = {
+    sendChunk: (data: unknown) => {
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ _t: "chunk", chunk: data })}\n\n`);
+      }
+    },
+  };
+
+  try {
+    const result = await route.handler(method, body, req, sink);
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ _t: "done", result })}\n\n`);
+      res.end();
+    }
+  } catch (error: unknown) {
+    logger.error("[API] Stream handler error:", error instanceof Error ? error : undefined);
+    if (!res.writableEnded) {
+      res.write(
+        `data: ${JSON.stringify({
+          _t: "error",
+          error: error instanceof Error ? error.message : String(error),
+        })}\n\n`,
+      );
+      res.end();
+    }
+  }
+}
 
 function startApiServer(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -172,7 +224,11 @@ function startApiServer(): Promise<void> {
                 }));
                 return;
               }
-              const result = await route.handler(req.method || "GET", parseResult.data, req);
+              if (route.stream === true) {
+                await executeStreamRoute(route, req.method || "GET", parseResult.data, req, res);
+                return;
+              }
+              const result = await route.handler(req.method || "GET", parseResult.data, req, undefined);
 
               const resultObj = result as Record<string, unknown>;
               const isSuccess = resultObj && typeof resultObj === "object" && resultObj.success !== false;
@@ -185,7 +241,11 @@ function startApiServer(): Promise<void> {
               res.writeHead(httpStatus);
               res.end(JSON.stringify(result));
             } else {
-              const result = await route.handler(req.method || "GET", fullBody, req);
+              if (route.stream === true) {
+                await executeStreamRoute(route, req.method || "GET", fullBody, req, res);
+                return;
+              }
+              const result = await route.handler(req.method || "GET", fullBody, req, undefined);
 
               const resultObj = result as Record<string, unknown>;
               const isSuccess = resultObj && typeof resultObj === "object" && resultObj.success !== false;

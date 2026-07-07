@@ -1,0 +1,117 @@
+/**
+ * 历史会话侧边栏
+ *
+ * 显示已保存的会话列表，支持：
+ * - 加载历史会话
+ * - 删除历史会话
+ * - 新建会话
+ */
+
+"use client";
+
+import type { SessionListItem } from "../services/session-storage";
+import { t } from "@/shared/constants";
+import { MessageSquare, Plus, Trash2, Clock } from "lucide-react";
+
+interface SessionHistoryProps {
+  sessions: SessionListItem[];
+  currentSessionId: string;
+  onLoad: (sessionId: string) => void;
+  onDelete: (sessionId: string) => void;
+  onNew: () => void;
+}
+
+/** 格式化时间戳为相对时间 */
+function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diff < minute) return "刚刚";
+  if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`;
+  if (diff < day) return `${Math.floor(diff / hour)} 小时前`;
+  if (diff < 7 * day) return `${Math.floor(diff / day)} 天前`;
+  // 超过 7 天显示日期
+  const date = new Date(timestamp);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+export function SessionHistory({
+  sessions,
+  currentSessionId,
+  onLoad,
+  onDelete,
+  onNew,
+}: SessionHistoryProps) {
+  return (
+    <div className="flex h-full flex-col">
+      {/* 新建会话按钮 */}
+      <div className="border-b border-border p-2">
+        <button
+          onClick={onNew}
+          className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {t("agent.newSession")}
+        </button>
+      </div>
+
+      {/* 会话列表 */}
+      <div className="flex-1 overflow-y-auto p-2">
+        {sessions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center text-xs text-muted-foreground">
+            <Clock className="mb-2 h-8 w-8 opacity-30" />
+            {t("agent.noHistory")}
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {sessions.map((session) => {
+              const isActive = session.id === currentSessionId;
+              return (
+                <div
+                  key={session.id}
+                  className={`group flex cursor-pointer items-start gap-2 rounded-md border px-2.5 py-2 transition-colors ${
+                    isActive
+                      ? "border-primary bg-primary/5"
+                      : "border-transparent hover:bg-muted"
+                  }`}
+                  onClick={() => !isActive && onLoad(session.id)}
+                >
+                  <MessageSquare
+                    className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-medium">
+                      {session.title}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <span>{formatRelativeTime(session.updatedAt)}</span>
+                      <span>·</span>
+                      <span>{session.messageCount} 条</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(t("agent.deleteSessionConfirm"))) {
+                        onDelete(session.id);
+                      }
+                    }}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                    title={t("agent.deleteSession")}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

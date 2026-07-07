@@ -427,6 +427,112 @@ export async function makeRequest(
   });
 }
 
+export interface StreamingRequestOptions extends HttpRequestOptions {
+  /** 收到一行 SSE 数据时回调（已去除换行符，可能为空字符串） */
+  onLine: (line: string) => void;
+}
+
+/**
+ * 流式 HTTP 请求（Task 1.0）。
+ * 与 makeRequest 的区别：不缓冲完整响应，而是按行通过 onLine 回调实时传出。
+ * 用于消费 AI provider 的 SSE 流式响应（Content-Type: text/event-stream）。
+ *
+ * 安全：与 makeRequest 一致，请求前做 SSRF 校验（fail-close）。
+ * 错误处理：非 2xx 状态码会缓冲完整 body 后 reject；2xx 状态码按行回调，结束时 resolve。
+ * 内存防护：流式响应累计上限 50MB，错误响应上限 1MB。
+ */
+export async function makeStreamingRequest(
+  url: string,
+  options: StreamingRequestOptions,
+): Promise<void> {
+  const DEFAULT_TIMEOUT = 300000; // 流式生成可能较慢，5 分钟
+  if (await isPrivateUrl(url)) {
+    throw new Error("Cannot access private/internal URLs");
+  }
+
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith("https") ? https : http;
+    const req = client.request(url, options, (res) => {
+      const statusCode = res.statusCode ?? 0;
+
+      // 非 2xx：缓冲完整 body 后 reject（错误响应通常不大）
+      if (statusCode < 200 || statusCode >= 300) {
+        const chunks: Buffer[] = [];
+        let totalSize = 0;
+        const MAX_ERROR_SIZE = 1 * 1024 * 1024;
+        res.on("data", (chunk: Buffer) => {
+          chunks.push(chunk);
+          totalSize += chunk.length;
+          if (totalSize > MAX_ERROR_SIZE) {
+            req.destroy(new Error("Error response too large"));
+          }
+        });
+        res.on("end", () => {
+          const data = Buffer.concat(chunks).toString("utf-8");
+          const error = new Error(`HTTP ${statusCode}: ${data}`);
+          (error as Error & { statusCode?: number }).statusCode = statusCode;
+          reject(error);
+        });
+        res.on("error", reject);
+        return;
+      }
+
+      // 2xx：按行流式回调
+      let lineBuffer = "";
+      const MAX_RESPONSE_SIZE = 50 * 1024 * 1024;
+      let totalSize = 0;
+
+      res.on("data", (chunk: Buffer) => {
+        totalSize += chunk.length;
+        if (totalSize > MAX_RESPONSE_SIZE) {
+          req.destroy(new Error("Response too large"));
+          return;
+        }
+
+        lineBuffer += chunk.toString("utf-8");
+        const lines = lineBuffer.split("\n");
+        // 最后一段可能不完整（未以 \n 结尾），保留在 buffer 等待下一个 chunk
+        lineBuffer = lines.pop() || "";
+
+        for (const line of lines) {
+          try {
+            options.onLine(line);
+          } catch (e) {
+            // 回调抛错视为致命错误，终止请求
+            req.destroy(e instanceof Error ? e : new Error(String(e)));
+            return;
+          }
+        }
+      });
+
+      res.on("end", () => {
+        // flush 残留 buffer（最后一行可能未以 \n 结尾）
+        if (lineBuffer) {
+          try {
+            options.onLine(lineBuffer);
+          } catch (e) {
+            reject(e instanceof Error ? e : new Error(String(e)));
+            return;
+          }
+        }
+        resolve();
+      });
+
+      res.on("error", reject);
+    });
+
+    req.setTimeout(options.timeout || DEFAULT_TIMEOUT, () => {
+      req.destroy(new Error("Request timeout"));
+    });
+
+    req.on("error", reject);
+    if (options.body) {
+      req.write(options.body);
+    }
+    req.end();
+  });
+}
+
 export async function handleUpload(body: Record<string, unknown>): Promise<ApiResult> {
   const { file, filename, mimetype: _mimetype } = body as Record<string, unknown>;
 

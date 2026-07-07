@@ -13,6 +13,7 @@ import {
   generateVideoSchema,
   videoStatusSchema,
   generateTextSchema,
+  generateTextStreamSchema,
   storyPlanSchema,
   storyGenerateVideoSchema,
   storyGenerateKeyframeSchema,
@@ -58,6 +59,23 @@ export const generationRoutes: Record<string, Route> = {
   "generate-text": defineRoute({
     schema: generateTextSchema,
     handler: (_m, b) => apiGateway.generateText(b),
+    methods: ["POST"],
+  }),
+  // Task 1.0: 流式文本生成（SSE）
+  // handler 通过第 4 个参数 stream（StreamSink）实时推送 chunk 到客户端。
+  // server.ts 会设置 Content-Type: text/event-stream 并在 handler 返回后发送 done 事件。
+  "generate-text-stream": defineRoute({
+    schema: generateTextStreamSchema,
+    stream: true,
+    handler: async (_m, b, _req, stream) => {
+      if (!stream) {
+        // 防御性回退：理论上 stream: true 路由一定会收到 sink
+        return apiGateway.generateTextStream(b, { onChunk: () => {} });
+      }
+      return apiGateway.generateTextStream(b, {
+        onChunk: (chunk) => stream.sendChunk(chunk),
+      });
+    },
     methods: ["POST"],
   }),
   "story/plan": defineRoute({

@@ -213,3 +213,26 @@ Seedance 2.5（2026-07-06 上线）支持 30秒 4K 直出（200-400MB），Kling
 - package.json, package-lock.json
 - 7 个文档文件
 - 删除 src/modules/novel/ 目录（4 文件）
+
+### [2026-07-07] Phase 1 Task 1.0：ITextProvider 流式改造 — 已完成
+- **目标**：为 Agent Loop（Task 1.1）提供实时推理输出能力，文本生成从"请求-完整响应"模式改为 SSE 流式
+- **9 阶段改造**（4 层架构全程贯通）：
+  1. domain 层：`ITextProvider` 新增 `generateTextStream` + `ToolDef`/`ToolCall`/`StreamChunk` 类型（[ai-provider-port.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/domain/ports/ai-provider-port.ts)）
+  2. plugin 层：`AIProviderPlugin` 新增可选 `buildTextStreamRequest`/`extractTextChunk`，`BaseAIProviderPlugin` 提供默认实现（stream:true + OpenAI SSE 解析）（[types.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/electron/src/plugins/types.ts) + [base-provider.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/electron/src/plugins/base-provider.ts)）
+  3. api-gateway-utils：新增 `makeStreamingRequest`（按行回调，SSRF 校验，50MB 上限，5 分钟超时）（[api-gateway-utils.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/electron/src/api-gateway-utils.ts)）
+  4. api-gateway：新增 `generateTextStream`（plugin 不支持时自动回退到 `generateText`）（[api-gateway.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/electron/src/api-gateway.ts)）
+  5. server.ts + types.ts：`Route` 接口新增 `stream?: boolean`，`RouteHandler` 第 4 参数 `StreamSink`，`executeStreamRoute` helper 发送 SSE（chunk/done/error 三事件）（[server.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/electron/src/api/server.ts) + [types.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/electron/src/api/types.ts)）
+  6. schemas + routes：`generateTextStreamSchema`（含 tools 字段）+ `generate-text-stream` 路由（stream:true）（[schemas.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/electron/src/api/schemas.ts) + [generation-routes.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/electron/src/api/route-groups/generation-routes.ts)）
+  7. renderer：`apiCallStream`（ReadableStream 消费 SSE，按 `_t` 字段分发）+ `generateTextStream` 实现（[core.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/infrastructure/ai-providers/core.ts) + [text.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/infrastructure/ai-providers/text.ts)）
+  8. DI container：`textProvider` 注册 `generateTextStream`（[container.ts](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/infrastructure/di/container.ts)）
+  9. plugins/index.ts barrel re-export 新类型
+- **SSE 协议**：`data: {"_t":"chunk","chunk":...}\n\n` / `data: {"_t":"done","result":...}\n\n` / `data: {"_t":"error","error":"..."}\n\n`
+- **安全**：流式请求复用 `isPrivateUrl` SSRF 校验（fail-close），与 makeRequest 一致
+- **回退策略**：plugin 未实现流式接口时自动回退到 `generateText`（保证功能可用，但不流式）
+- 验证：typecheck 干净 / lint 0 errors / electron 1211 passed | 15 skipped / renderer 4972 passed
+- **未做**：未编写流式专用测试（建议 Task 1.1 Agent Loop 集成时补测）/ 未为非 OpenAI 兼容 provider 覆盖流式方法
+
+### 交接
+- Task 1.0 已完成，可进入 Task 1.1（Agent Loop 核心）
+- 所有改动已通过 typecheck + lint + 测试验证
+- 下一步：Task 1.1 Agent Loop 核心（依赖本次的 `generateTextStream` + `StreamChunk`/`ToolDef`/`ToolCall`）

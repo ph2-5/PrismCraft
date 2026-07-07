@@ -1,6 +1,6 @@
 # PrismCraft 部署与运维指南
 
-> 版本：1.1.0 | 更新日期：2026-07-07
+> 版本：1.1.1 | 更新日期：2026-07-07
 
 ## 1. 环境要求
 
@@ -289,8 +289,8 @@ npm run validate:full
 3. **创建版本标签：**
 
 ```powershell
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.1.1
+git push origin v1.1.1
 ```
 
 4. **自动触发 Release 流水线**（`.github/workflows/release.yml`）

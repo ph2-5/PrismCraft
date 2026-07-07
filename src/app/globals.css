@@ -112,6 +112,15 @@
   --sidebar-accent-foreground: #f1f5f9;
   --sidebar-border: #27272e;
   --sidebar-ring: #6366f1;
+
+  /* Task 0.2: 半透明颜色 token（对齐 design-preview.html 的 glass 效果）
+     使用 color-mix 自动跟随各主题的 --card / --border / --primary 变化，
+     无需在每个 [data-theme] 块重复定义。 */
+  --card-glass: color-mix(in srgb, var(--card) 80%, transparent);
+  --card-glass-border: color-mix(in srgb, var(--border) 50%, transparent);
+  --bg-subtle-gradient: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--primary) 5%, transparent) 0%, transparent 70%);
+  --agent-bg: color-mix(in srgb, var(--card) 95%, transparent);
+  --agent-border: color-mix(in srgb, var(--border) 60%, transparent);
 }
 
 .dark {

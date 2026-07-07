@@ -50,7 +50,10 @@ export function RootLayout() {
             <SidebarWithSearch />
             <main
               className={`flex-1 h-full overflow-hidden transition-[margin-left] duration-200${electron ? " pt-9" : ""}`}
-              style={{ marginLeft: "var(--sidebar-width, 220px)" }}
+              style={{
+                marginLeft: "var(--sidebar-width, 220px)",
+                background: "var(--bg-subtle-gradient)",
+              }}
             >
               <Outlet />
             </main>

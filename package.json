@@ -105,7 +105,8 @@
     "win": {
       "target": "nsis",
       "icon": "public/icon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "artifactName": "PrismCraft-Setup.exe"
     },
     "nsis": {
       "oneClick": false,
@@ -131,7 +132,8 @@
         }
       ],
       "icon": "public/icon.icns",
-      "category": "public.app-category.graphics-design"
+      "category": "public.app-category.graphics-design",
+      "artifactName": "PrismCraft-${arch}.${ext}"
     },
     "dmg": {
       "contents": [

@@ -481,6 +481,8 @@ export const generateStyleGuideTool: ToolImpl = {
             type: "string",
             description: "参考图 URL（可选，当前版本暂未直接使用，保留供后续支持参考图风格迁移）",
           },
+          providerId: { type: "string", description: "指定 LLM/图片 provider ID（可选，不填用默认）" },
+          modelId: { type: "string", description: "指定 LLM/图片 model ID（可选）" },
         },
         required: ["storyId"],
       },
@@ -495,6 +497,9 @@ export const generateStyleGuideTool: ToolImpl = {
     const { sceneService } = await import("@/modules/scene");
 
     const storyId = String(args.storyId);
+    const providerId = args.providerId ? String(args.providerId) : undefined;
+    const modelId = args.modelId ? String(args.modelId) : undefined;
+
     const storyResult = await storyService.getById(storyId);
     if (!storyResult.ok) {
       return { success: false, error: `获取故事失败：${storyResult.error.message}` };
@@ -527,6 +532,8 @@ export const generateStyleGuideTool: ToolImpl = {
       customArtStyle: styleDescription,
       textProvider: container.textProvider,
       imageProvider: container.imageProvider,
+      providerId,
+      modelId,
     });
 
     if (!result.ok) {
@@ -557,6 +564,8 @@ export const generateFramePromptsTool: ToolImpl = {
             type: "string",
             description: "指定分镜 ID。如不提供则为故事的所有分镜批量生成。",
           },
+          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
         },
         required: ["storyId"],
       },
@@ -572,6 +581,8 @@ export const generateFramePromptsTool: ToolImpl = {
 
     const storyId = String(args.storyId);
     const beatId = args.beatId ? String(args.beatId) : undefined;
+    const providerId = args.providerId ? String(args.providerId) : undefined;
+    const modelId = args.modelId ? String(args.modelId) : undefined;
 
     const storyResult = await storyService.getById(storyId);
     if (!storyResult.ok) {
@@ -621,6 +632,8 @@ export const generateFramePromptsTool: ToolImpl = {
         prevBeatDescription,
         nextBeatDescription,
         textProvider,
+        providerId,
+        modelId,
       });
       if (!result.ok) {
         return { success: false, error: `生成帧提示词失败：${result.error.message}` };
@@ -644,6 +657,8 @@ export const generateFramePromptsTool: ToolImpl = {
       scenes,
       styleGuide,
       textProvider,
+      providerId,
+      modelId,
     });
     if (!result.ok) {
       return { success: false, error: `批量生成帧提示词失败：${result.error.message}` };
@@ -685,6 +700,8 @@ export const generateStoryIdeasTool: ToolImpl = {
             type: "string",
             description: "风格偏好（如：温馨、热血、悬疑）",
           },
+          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
         },
         required: ["theme"],
       },
@@ -696,6 +713,8 @@ export const generateStoryIdeasTool: ToolImpl = {
     const theme = String(args.theme);
     const count = args.count != null ? Math.min(Math.max(Number(args.count), 1), 10) : 3;
     const style = args.style ? String(args.style) : undefined;
+    const providerId = args.providerId ? String(args.providerId) : undefined;
+    const modelId = args.modelId ? String(args.modelId) : undefined;
 
     const prompt = `你是一位创意编剧。请根据以下主题生成 ${count} 个动画故事创意。
 
@@ -721,6 +740,8 @@ ${style ? `风格偏好：${style}` : ""}
     const result = await container.textProvider.generateText(prompt, {
       maxTokens: 2048,
       temperature: 0.8,
+      providerId,
+      modelId,
     });
     if (!result.success) {
       return { success: false, error: result.error || "故事创意生成失败" };
@@ -760,6 +781,8 @@ export const suggestCharacterBackstoryTool: ToolImpl = {
             type: "string",
             description: "故事上下文（可选，帮助生成更贴合剧情的背景）",
           },
+          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
         },
         required: ["characterId"],
       },
@@ -771,6 +794,8 @@ export const suggestCharacterBackstoryTool: ToolImpl = {
     const { characterService } = await import("@/modules/character");
     const characterId = String(args.characterId);
     const storyContext = args.storyContext ? String(args.storyContext) : "";
+    const providerId = args.providerId ? String(args.providerId) : undefined;
+    const modelId = args.modelId ? String(args.modelId) : undefined;
 
     const charResult = await characterService.getById(characterId);
     if (!charResult.ok) {
@@ -799,6 +824,8 @@ ${storyContext ? `\n故事上下文：${storyContext}` : ""}
     const result = await container.textProvider.generateText(prompt, {
       maxTokens: 1024,
       temperature: 0.7,
+      providerId,
+      modelId,
     });
     if (!result.success) {
       return { success: false, error: result.error || "角色背景故事生成失败" };
@@ -826,6 +853,8 @@ export const suggestSceneDescriptionTool: ToolImpl = {
             type: "string",
             description: "故事上下文（可选，帮助生成更贴合剧情的描述）",
           },
+          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
         },
         required: ["sceneId"],
       },
@@ -837,6 +866,8 @@ export const suggestSceneDescriptionTool: ToolImpl = {
     const { sceneService } = await import("@/modules/scene");
     const sceneId = String(args.sceneId);
     const storyContext = args.storyContext ? String(args.storyContext) : "";
+    const providerId = args.providerId ? String(args.providerId) : undefined;
+    const modelId = args.modelId ? String(args.modelId) : undefined;
 
     const sceneResult = await sceneService.getById(sceneId);
     if (!sceneResult.ok) {
@@ -867,6 +898,8 @@ ${storyContext ? `\n故事上下文：${storyContext}` : ""}
     const result = await container.textProvider.generateText(prompt, {
       maxTokens: 768,
       temperature: 0.7,
+      providerId,
+      modelId,
     });
     if (!result.success) {
       return { success: false, error: result.error || "场景描述生成失败" };
@@ -890,6 +923,8 @@ export const checkStoryConsistencyTool: ToolImpl = {
         type: "object",
         properties: {
           storyId: { type: "string", description: "故事 ID（必填）" },
+          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
         },
         required: ["storyId"],
       },
@@ -900,6 +935,8 @@ export const checkStoryConsistencyTool: ToolImpl = {
   async execute(args) {
     const { storyService } = await import("@/modules/story");
     const storyId = String(args.storyId);
+    const providerId = args.providerId ? String(args.providerId) : undefined;
+    const modelId = args.modelId ? String(args.modelId) : undefined;
 
     const storyResult = await storyService.getById(storyId);
     if (!storyResult.ok) {
@@ -951,6 +988,8 @@ ${beatsSummary}
     const result = await container.textProvider.generateText(prompt, {
       maxTokens: 1024,
       temperature: 0.3,
+      providerId,
+      modelId,
     });
     if (!result.success) {
       return { success: false, error: result.error || "一致性分析失败" };

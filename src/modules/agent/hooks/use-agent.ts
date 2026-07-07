@@ -46,6 +46,7 @@ import {
 } from "../services/memory-service";
 import { usePreference } from "@/shared/utils/preferences";
 import { t } from "@/shared/constants";
+import type { ModelSelection } from "@/domain/schemas";
 
 /** 创建新会话（带 i18n 默认标题） */
 function createNewSession(): AgentSession {
@@ -59,12 +60,15 @@ export interface AgentSettings {
   persona: AgentPersona;
   maxIterations: number;
   temperature: number;
+  /** Agent 主 LLM 使用的文本模型（null=使用全局 mapping 的 text capability） */
+  textModel?: ModelSelection | null;
 }
 
 const DEFAULT_SETTINGS: AgentSettings = {
   persona: "default",
   maxIterations: 10,
   temperature: 0.7,
+  textModel: null,
 };
 
 const SETTINGS_KEY = "agent-settings";
@@ -95,10 +99,13 @@ function generateSessionTitle(session: AgentSession): string {
  * 触发条件：用户消息数达到阈值
  * 流程：LLM 抽取 → 合并到核心记忆 + 追加摘要到归档记忆
  */
-async function triggerMemoryExtraction(session: AgentSession): Promise<void> {
+async function triggerMemoryExtraction(
+  session: AgentSession,
+  options?: { providerId?: string; modelId?: string },
+): Promise<void> {
   try {
     if (!shouldExtract(session.messages)) return;
-    const extracted = await extractFromConversation(session.messages, session.id);
+    const extracted = await extractFromConversation(session.messages, session.id, options);
     if (!extracted) return;
     await applyExtractedMemory(extracted, session.id);
   } catch {
@@ -194,6 +201,8 @@ export function useAgent(): UseAgentReturn {
       maxIterations: settings.maxIterations,
       temperature: settings.temperature,
       systemPromptOverride: settings.persona === "default" ? undefined : persona,
+      providerId: settings.textModel?.providerId,
+      modelId: settings.textModel?.modelId,
     };
   }, [settings]);
 
@@ -273,7 +282,10 @@ export function useAgent(): UseAgentReturn {
         // 发送完成后自动保存会话
         await saveCurrentSession();
         // 异步触发记忆抽取（不阻断 UI，失败静默）
-        void triggerMemoryExtraction(sessionRef.current);
+        void triggerMemoryExtraction(sessionRef.current, {
+          providerId: settings.textModel?.providerId,
+          modelId: settings.textModel?.modelId,
+        });
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
         setError(err.message);
@@ -304,7 +316,10 @@ export function useAgent(): UseAgentReturn {
     // 保存当前会话前，先异步触发记忆抽取（不阻断清空操作）
     const currentSession = sessionRef.current;
     if (currentSession.messages.length > 0) {
-      void triggerMemoryExtraction(currentSession).then(() => {
+      void triggerMemoryExtraction(currentSession, {
+        providerId: settings.textModel?.providerId,
+        modelId: settings.textModel?.modelId,
+      }).then(() => {
         void persistSession(currentSession).then(() => refreshHistory());
       });
     }
@@ -313,7 +328,7 @@ export function useAgent(): UseAgentReturn {
     setToolExecutions([]);
     setError(null);
     triggerRender();
-  }, [isStreaming, cancel, refreshHistory, triggerRender]);
+  }, [isStreaming, cancel, refreshHistory, triggerRender, settings.textModel]);
 
   const setSessionTitle = useCallback(
     (title: string) => {

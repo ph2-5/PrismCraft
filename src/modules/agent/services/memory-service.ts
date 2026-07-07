@@ -338,6 +338,7 @@ export async function deleteArchivalMemory(id: string): Promise<boolean> {
 export async function extractFromConversation(
   messages: AgentMessage[],
   _sessionId?: string,
+  options?: { providerId?: string; modelId?: string },
 ): Promise<ExtractedMemory | null> {
   // 过滤出最近的消息（最多 20 条，跳过 tool 消息）
   const recentMessages = messages
@@ -385,6 +386,8 @@ ${conversationText}
     const result = await container.textProvider.generateText(prompt, {
       maxTokens: 1024,
       temperature: 0.3,
+      providerId: options?.providerId,
+      modelId: options?.modelId,
     });
 
     if (!result.success || !result.data) return null;

@@ -2776,6 +2776,8 @@ const messages: Record<MessageKey, string> = {
   "agent.persona.technicalDesc": "运维诊断，专注问题排查",
   "agent.maxIterations": "最大循环次数",
   "agent.temperature": "温度",
+  "agent.model": "AI 模型",
+  "agent.modelHint": "不选则使用设置中的默认文本模型",
   "agent.history": "历史会话",
   "agent.noHistory": "暂无历史会话",
   "agent.copyMessage": "复制",

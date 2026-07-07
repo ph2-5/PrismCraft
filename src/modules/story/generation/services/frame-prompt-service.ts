@@ -16,6 +16,8 @@ interface FramePromptInput {
   prevBeatDescription?: string;
   nextBeatDescription?: string;
   textProvider: ITextProvider;
+  providerId?: string;
+  modelId?: string;
 }
 
 interface FramePromptOutput {
@@ -141,7 +143,7 @@ export async function generateFramePrompts(
   input: FramePromptInput,
 ): Promise<Result<FramePromptOutput>> {
   return fromAsyncThrowable(async () => {
-    const { beat, index, characters, scenes, styleGuide, prevBeatDescription, nextBeatDescription, textProvider } = input;
+    const { beat, index, characters, scenes, styleGuide, prevBeatDescription, nextBeatDescription, textProvider, providerId, modelId } = input;
 
     const charIds = getBeatCharacterIds(beat);
     const charDesc = buildCharacterVisualDesc(characters, charIds);
@@ -160,6 +162,8 @@ export async function generateFramePrompts(
     const result = await textProvider.generateText(prompt, {
       maxTokens: 600,
       temperature: 0.7,
+      providerId,
+      modelId,
     });
 
     if (!result.success || !result.data?.text) {
@@ -178,6 +182,8 @@ export async function batchGenerateFramePrompts(
     elements?: StoryElement[];
     styleGuide?: StoryStyleGuide;
     textProvider: ITextProvider;
+    providerId?: string;
+    modelId?: string;
   },
 ): Promise<Result<Map<string, FramePromptOutput>>> {
   return fromAsyncThrowable(async () => {
@@ -199,6 +205,8 @@ export async function batchGenerateFramePrompts(
           prevBeatDescription,
           nextBeatDescription,
           textProvider: options.textProvider,
+          providerId: options.providerId,
+          modelId: options.modelId,
         });
 
         if (result.ok) {

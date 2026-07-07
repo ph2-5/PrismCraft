@@ -23,6 +23,7 @@ import {
   checkFfmpegAvailable,
   resetFfmpegCache,
 } from "../services/ffmpeg-service";
+import { ModelSelector } from "@/modules/prompt";
 import { X, Check, Loader2 } from "lucide-react";
 
 interface AgentSettingsPanelProps {
@@ -73,6 +74,22 @@ export function AgentSettingsPanel({ settings, onUpdate, onClose }: AgentSetting
               {settings.persona === p.key && <Check className="h-3.5 w-3.5 text-primary" />}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* AI 模型选择 */}
+      <div className="mb-3">
+        <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+          {t("agent.model")}
+        </div>
+        <ModelSelector
+          capability="text"
+          value={settings.textModel ?? null}
+          onChange={(selection) => onUpdate({ textModel: selection })}
+          compact
+        />
+        <div className="mt-1 text-[10px] text-muted-foreground">
+          {t("agent.modelHint")}
         </div>
       </div>
 

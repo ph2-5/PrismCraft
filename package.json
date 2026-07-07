@@ -1,6 +1,6 @@
 {
   "name": "prismcraft",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI 驱动的动画制作工具 - 本地优先，支持从故事创作到视频生成的完整工作流",
   "author": "PrismCraft",
   "license": "CC-BY-NC-4.0",
@@ -50,6 +50,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:electron": "vitest run --config vitest.config.electron.ts",
+    "test:local-cloud": "vitest run --config vitest.config.electron.ts electron/src/plugins/__tests__/local-cloud-mock/",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:electron": "npm run build:shared-logic && playwright test --config playwright.electron.config.ts",

@@ -144,6 +144,15 @@ export class MiniMaxPlugin extends BaseAIProviderPlugin implements AIProviderPlu
     );
   }
 
+  extractVideoUrl(data: Record<string, unknown>): string | undefined {
+    // MiniMax 完成态: { file_id, file_download_url }
+    return (
+      (data.file_download_url as string | undefined) ||
+      (data.video_url as string | undefined) ||
+      (data.url as string | undefined)
+    );
+  }
+
   getVideoStatusEndpoint(
     baseUrl: string,
     taskId: string,

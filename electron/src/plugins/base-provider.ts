@@ -47,6 +47,7 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
   abstract buildImageRequest(ctx: ImageBuildContext): ImageRequestResult;
 
   extractTaskId(data: Record<string, unknown>): string | undefined {
+    if (!data || typeof data !== "object") return undefined;
     return (
       (data.id as string | undefined) ||
       (data.task_id as string | undefined) ||
@@ -56,6 +57,7 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
   }
 
   extractVideoUrl(data: Record<string, unknown>): string | undefined {
+    if (!data || typeof data !== "object") return undefined;
     return (
       (data.video_url as string | undefined) ||
       (data.url as string | undefined) ||
@@ -69,6 +71,7 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
   }
 
   extractImageUrl(data: Record<string, unknown>): string | undefined {
+    if (!data || typeof data !== "object") return undefined;
     const responseData = (data.data as Record<string, unknown>[])?.[0];
     if (responseData?.url) return responseData.url as string;
     if (responseData?.b64_json)
@@ -167,6 +170,7 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
   }
 
   extractTextContent(response: Record<string, unknown>): string {
+    if (!response || typeof response !== "object") return "";
     const choices = response.choices as Record<string, unknown>[] | undefined;
     if (choices && Array.isArray(choices) && choices.length > 0) {
       const message = choices[0]?.message as Record<string, unknown> | undefined;
@@ -180,6 +184,9 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
     progress?: number;
     message?: string;
   } {
+    if (!response || typeof response !== "object") {
+      return { status: "unknown" };
+    }
     const r = response as Record<string, unknown>;
     const status = (r.status as string) || "generating";
     const progress = (r.progress as number) || (r.progress_percentage as number);

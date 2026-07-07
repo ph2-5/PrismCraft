@@ -217,6 +217,33 @@ export class GooglePlugin
     return url;
   }
 
+  extractTaskId(data: Record<string, unknown>): string | undefined {
+    // Google 返回 { name: "operations/{taskId}" }
+    if (typeof data.name === "string") {
+      const name = data.name as string;
+      const slashIdx = name.lastIndexOf("/");
+      return slashIdx >= 0 ? name.slice(slashIdx + 1) : name;
+    }
+    return (
+      (data.id as string | undefined) ||
+      (data.task_id as string | undefined)
+    );
+  }
+
+  extractVideoUrl(data: Record<string, unknown>): string | undefined {
+    // Google 完成态: { response: { generatedSamples: [{ video: { uri } }] } }
+    const response = data.response as Record<string, unknown> | undefined;
+    if (response) {
+      const samples = response.generatedSamples as Record<string, unknown>[] | undefined;
+      if (Array.isArray(samples) && samples.length > 0) {
+        const video = samples[0]?.video as Record<string, unknown> | undefined;
+        if (video?.uri) return video.uri as string;
+      }
+    }
+    // 失败态: { error: { message } }
+    return undefined;
+  }
+
   getVideoStatusEndpoint(
     baseUrl: string,
     taskId: string,

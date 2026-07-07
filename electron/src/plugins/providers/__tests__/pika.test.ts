@@ -45,7 +45,7 @@ describe("PikaPlugin", () => {
       expect(plugin.videoCapabilities.supportsLastFrame).toBe(false);
       expect(plugin.videoCapabilities.supportsCharacterRef).toBe(false);
       expect(plugin.videoCapabilities.supportsSceneRef).toBe(false);
-      expect(plugin.videoCapabilities.maxDuration).toBe(5);
+      expect(plugin.videoCapabilities.maxDuration).toBe(10);
       expect(plugin.videoCapabilities.defaultModel).toBe("pika-2.2");
       expect(plugin.videoCapabilities.imageUploadMode).toBe("url");
     });
@@ -108,10 +108,10 @@ describe("PikaPlugin", () => {
       expect(result.body.image_url).toBeUndefined();
     });
 
-    it("should cap duration at maxDuration (5)", () => {
-      const ctx: VideoBuildContext = { prompt: "a cat", duration: 10 };
+    it("should cap duration at maxDuration (10)", () => {
+      const ctx: VideoBuildContext = { prompt: "a cat", duration: 15 };
       const result = plugin.buildVideoRequest(ctx);
-      expect(result.body.duration).toBe(5);
+      expect(result.body.duration).toBe(10);
     });
 
     it("should pass duration as-is when within limit", () => {

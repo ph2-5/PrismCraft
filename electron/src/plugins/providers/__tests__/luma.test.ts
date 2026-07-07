@@ -45,7 +45,7 @@ describe("LumaPlugin", () => {
       expect(plugin.videoCapabilities.supportsLastFrame).toBe(true);
       expect(plugin.videoCapabilities.supportsCharacterRef).toBe(false);
       expect(plugin.videoCapabilities.supportsSceneRef).toBe(false);
-      expect(plugin.videoCapabilities.maxDuration).toBe(5);
+      expect(plugin.videoCapabilities.maxDuration).toBe(9);
       expect(plugin.videoCapabilities.defaultModel).toBe("dream-machine-1.6");
       expect(plugin.videoCapabilities.imageUploadMode).toBe("url");
     });

@@ -48,7 +48,8 @@ export class PikaPlugin extends BaseAIProviderPlugin implements AIProviderPlugin
     sceneRefMode: "none" as ImageRefMode,
     imageUploadMode: "url" as const,
     defaultModel: "pika-2.2",
-    maxDuration: 5,
+    // Pika 2.2 单次最长 10 秒（-d 10 参数）
+    maxDuration: 10,
     supportedCodecs: ["h264", "h265"],
     urlTtl: 86400,
   };

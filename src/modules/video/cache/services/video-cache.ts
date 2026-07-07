@@ -13,6 +13,7 @@ import {
   getDiskSpace as httpGetDiskSpace,
   fileExists as httpFileExists,
   deleteFile as httpDeleteFile,
+  httpDownloadToFile,
 } from "@/shared/file-http";
 
 type RecoveryFn = (taskId: string) => Promise<Result<{ videoUrl?: string; message: string; status?: string }>>;
@@ -88,10 +89,9 @@ export async function cacheVideoBlob(
 
         await ensureCacheSpace();
         const filePath = await prepareCacheFile(taskId);
-        const { data, totalBytes } = await downloadVideoData(currentUrl);
-        await writeVideoFile(filePath, data);
+        const { totalBytes } = await downloadVideoToFile(currentUrl, filePath);
         await verifyFileIntegrity(filePath, totalBytes);
-        await cacheVideoRecord(taskId, filePath, currentUrl, data);
+        await cacheVideoRecord(taskId, filePath, currentUrl, totalBytes);
         await syncLocalPath(taskId, filePath);
 
         return true;
@@ -193,6 +193,32 @@ async function writeVideoFile(filePath: string, data: Uint8Array): Promise<void>
   }
 }
 
+/**
+ * 下载视频到文件（方案 C）。
+ *
+ * 优先走流式下载（主进程直接 fetch + pipeline，数据不进渲染进程内存），
+ * 用于支持 Seedance 2.5 30秒 4K / Kling 180秒 等大视频。
+ *
+ * 若主进程 HTTP API 不可用（httpDownloadToFile 返回 null），回退到
+ * resilientFetch + httpWriteFile 路径——此路径会占用渲染进程内存（整个视频 Uint8Array），
+ * 但功能仍可用，作为兜底保证。
+ */
+async function downloadVideoToFile(url: string, filePath: string): Promise<{ totalBytes: number }> {
+  const streamResult = await httpDownloadToFile(url, filePath);
+  if (streamResult !== null) {
+    if (!streamResult.success || !streamResult.data) {
+      throw new Error(streamResult.error ?? "Stream download failed");
+    }
+    return { totalBytes: streamResult.data.totalBytes };
+  }
+
+  // Fallback: resilientFetch + httpWriteFile（占用渲染进程内存）
+  errorLogger.warn("[VideoCache] httpDownloadToFile 不可用，回退到 resilientFetch + httpWriteFile 路径");
+  const { data, totalBytes } = await downloadVideoData(url);
+  await writeVideoFile(filePath, data);
+  return { totalBytes };
+}
+
 async function verifyFileIntegrity(filePath: string, expectedBytes: number): Promise<void> {
   if (expectedBytes <= 0) return;
   const fileInfo = await httpGetFileInfo(filePath);
@@ -206,7 +232,7 @@ async function cacheVideoRecord(
   taskId: string,
   filePath: string,
   originalUrl: string,
-  data: Uint8Array,
+  totalBytes: number,
 ): Promise<void> {
   try {
     await container.videoCacheStorage.cacheVideoFile({
@@ -214,7 +240,7 @@ async function cacheVideoRecord(
       filePath,
       originalUrl,
       mimeType: "video/mp4",
-      fileSize: data.byteLength,
+      fileSize: totalBytes,
     });
   } catch (dbError) {
     errorLogger.warn(

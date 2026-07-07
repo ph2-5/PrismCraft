@@ -48,7 +48,8 @@ export class LumaPlugin extends BaseAIProviderPlugin implements AIProviderPlugin
     sceneRefMode: "none" as ImageRefMode,
     imageUploadMode: "url" as const,
     defaultModel: "dream-machine-1.6",
-    maxDuration: 5,
+    // Luma Ray2 单次最长 9 秒
+    maxDuration: 9,
     supportedCodecs: ["h264", "h265"],
     urlTtl: 86400,
   };

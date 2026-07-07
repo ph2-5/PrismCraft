@@ -71,9 +71,12 @@ const MAX_DIR_SCAN = 5000;
 // 既能显著降低串行延迟，又不会过载 fs 句柄。
 const STAT_BATCH_SIZE = 50;
 // 文件读写安全上限：避免一次性读入超大文件导致内存爆炸。
-// read/read-base64 共享 50MB 上限，write 100MB 上限（与 HTTP body 限制对齐）。
+// read/read-base64 共享 50MB 上限，write 100MB 上限（与 HTTP JSON body 限制对齐）。
+// write-binary 500MB 上限：用于支持 Seedance 2.5 30秒 4K / Kling 180秒 等大视频直写
+// （绕过 base64 膨胀，走 application/octet-stream）。
 const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_WRITE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_WRITE_SIZE = 100 * 1024 * 1024; // 100MB（JSON 路径）
+const MAX_WRITE_BINARY_SIZE = 500 * 1024 * 1024; // 500MB（octet-stream 路径）
 
 const ALLOWED_ROOTS = [
   ...Object.values(CATEGORY_DIRS),
@@ -543,6 +546,45 @@ export const fileRoutes: Record<string, Route> = {
         return { success: true };
       } catch (error) {
         logger.error("[File HTTP] write failed:", error instanceof Error ? error : new Error(String(error)));
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    },
+    methods: ["POST"],
+  }),
+
+  // 二进制直写路由（application/octet-stream）：绕过 base64 编码 + JSON.parse，
+  // 用于大视频文件（>20MB）直写到磁盘。filePath 通过 X-File-Path header 传递。
+  // server.ts 会检测 Content-Type 并将原始 Buffer 挂到 req.__rawBuffer。
+  "file/write-binary": defineRoute({
+    handler: async (_method, _body, req) => {
+      try {
+        // 从自定义 header 读取目标路径（header 须经 ELECTRON_APP_HEADERS 白名单）
+        const filePath = path.resolve(req.headers["x-file-path"] as string);
+        if (!(await isPathAllowed(filePath))) {
+          return { success: false, error: FILE_ERRORS.PATH_NOT_ALLOWED };
+        }
+        // 确保父目录存在
+        const parentDir = path.dirname(filePath);
+        if (!(await pathExists(parentDir))) {
+          await fsp.mkdir(parentDir, { recursive: true });
+        }
+        // 从 req 读取原始 Buffer（server.ts 在二进制模式下挂载）
+        const rawBuffer = (req as import("http").IncomingMessage & { __rawBuffer?: Buffer }).__rawBuffer;
+        if (!rawBuffer || rawBuffer.length === 0) {
+          return { success: false, error: "Empty binary body" };
+        }
+        // 二进制路径的独立限额（500MB，支持 Seedance 2.5 30秒 4K / Kling 180秒）
+        if (rawBuffer.length > MAX_WRITE_BINARY_SIZE) {
+          logger.warn("[File HTTP] write-binary rejected oversized buffer", {
+            size: rawBuffer.length,
+            max: MAX_WRITE_BINARY_SIZE,
+          });
+          return { success: false, error: FILE_ERRORS.FILE_TOO_LARGE };
+        }
+        await fsp.writeFile(filePath, rawBuffer);
+        return { success: true };
+      } catch (error) {
+        logger.error("[File HTTP] write-binary failed:", error instanceof Error ? error : new Error(String(error)));
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     },

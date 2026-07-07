@@ -38,7 +38,8 @@ export class OpenAISoraPlugin extends BaseAIProviderPlugin {
     imageUploadMode: "base64" as const,
     maxCharacterRefs: 1,
     defaultModel: "sora-2",
-    maxDuration: 20,
+    // Sora 2 单次最长 10 秒（独立 App 形态，比 Sora 1 的 60 秒更短）
+    maxDuration: 10,
     supportedCodecs: ["h264", "h265"],
     urlTtl: 3600,
   };

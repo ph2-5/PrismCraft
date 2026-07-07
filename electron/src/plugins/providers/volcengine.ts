@@ -28,7 +28,8 @@ const VIDEO_CAPABILITIES: VideoCapabilities = {
   imageUploadMode: "base64",
   maxCharacterRefs: 4,
   defaultModel: "doubao-seedance-1-0-pro-250528",
-  maxDuration: 12,
+  // maxDuration 取各模型最大值：doubao-seedance-2-5 支持原生 30 秒
+  maxDuration: 30,
   supportedCodecs: ["h264", "h265"],
   urlTtl: 86400,
 };
@@ -39,6 +40,20 @@ const IMAGE_CAPABILITIES: ImageCapabilities = {
 };
 
 const MODEL_CAPS_MAP: Record<string, ModelCapabilities> = {
+  "doubao-seedance-2-5": {
+    // Seedance 2.5 (2026-07-06 上线)：单段原生 30 秒 4K 直出，50 路全模态参考
+    maxReferences: 50,
+    maxResolution: 4096,
+    maxSizeMB: 10,
+    supportsLastFrame: true,
+    referenceMode: "separate",
+    defaultImageSize: "3840x2160",
+    supportedImageSizes: [
+      { width: 3840, height: 2160, label: "3840×2160 (4K)", aspectRatio: "16:9" },
+      { width: 2160, height: 3840, label: "2160×3840 (4K 竖屏)", aspectRatio: "9:16" },
+      { width: 1920, height: 1920, label: "1920×1920", aspectRatio: "1:1" },
+    ],
+  },
   "doubao-seedance-1-0-pro-250528": {
     maxReferences: 4,
     maxResolution: 2048,
@@ -289,6 +304,23 @@ export class VolcenginePlugin extends BaseAIProviderPlugin implements AIProvider
 
   getImageTransportMode(_purpose: ImagePurpose): ImageTransportMode {
     return "base64";
+  }
+
+  extractVideoUrl(data: Record<string, unknown>): string | undefined {
+    // Volcengine 完成态: { content: [{ type: "video_url", video_url: { url } }] }
+    const content = data.content as Record<string, unknown>[] | undefined;
+    if (Array.isArray(content)) {
+      for (const item of content) {
+        if (item?.type === "video_url") {
+          const videoUrl = item.video_url as Record<string, unknown> | undefined;
+          if (videoUrl?.url) return videoUrl.url as string;
+        }
+      }
+    }
+    return (
+      (data.video_url as string | undefined) ||
+      (data.url as string | undefined)
+    );
   }
 
   getVideoStatusEndpoint(

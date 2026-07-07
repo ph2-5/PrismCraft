@@ -100,12 +100,17 @@ vi.mock("@/shared/file-http", () => ({
     const result = await api.deleteFile(filePath);
     return typeof result === "boolean" ? result : !!result?.success;
   }),
+  // 方案 C：httpDownloadToFile 默认返回 null（模拟 HTTP 不可用），
+  // 让 cacheVideoBlob 走 fallback 路径（resilientFetch + httpWriteFile），保持现有测试逻辑。
+  // 流式优先路径的测试见下方 "cacheVideoBlob (stream download)" describe 块。
+  httpDownloadToFile: vi.fn().mockResolvedValue(null),
 }));
 
 import { container } from "@/infrastructure/di";
 import { resilientFetch } from "@/shared/video-cache";
 import { isElectron } from "@/shared/utils/platform";
 import { recoverVideoByTaskId } from "@/modules/video/recovery";
+import { httpDownloadToFile } from "@/shared/file-http";
 
 function setupElectronAPIMock(overrides?: Record<string, unknown>) {
   (window as unknown as { electronAPI: Record<string, unknown> }).electronAPI = {
@@ -133,6 +138,8 @@ describe("video-cache-service", () => {
     }
     (resilientFetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Download failed"));
     (recoverVideoByTaskId as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, error: new Error("Recovery failed") });
+    // 默认模拟 HTTP 不可用，走 fallback 路径。流式优先测试在下方 describe 块中覆盖。
+    (httpDownloadToFile as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   });
 
   describe("revokeObjectURL", () => {
@@ -510,5 +517,100 @@ describe("video-cache-service", () => {
       const result = await getCachedVideo("error");
       expect(result).toBeNull();
     });
+  });
+
+  // ── 方案 C：流式下载优先路径 ────────────────────────────────────────
+  describe("cacheVideoBlob (stream download)", () => {
+    it("流式下载成功时应跳过 resilientFetch，直接用 totalBytes 写缓存记录", async () => {
+      setupElectronAPIMock();
+      (container.videoCacheStorage.getCachedVideoFile as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (container.videoCacheStorage.getVideoCacheStats as ReturnType<typeof vi.fn>).mockResolvedValue({
+        count: 0,
+        totalSize: 0,
+      });
+      (container.videoCacheStorage.cacheVideoFile as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+      // getFileInfo 返回与流式下载 totalBytes 一致的大小，verifyFileIntegrity 通过
+      ((window as unknown as { electronAPI: Record<string, unknown> }).electronAPI.getFileInfo as ReturnType<typeof vi.fn>)
+        .mockResolvedValue({ success: true, size: 2048 });
+
+      // 流式下载成功
+      (httpDownloadToFile as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        data: { totalBytes: 2048, duration: 100 },
+      });
+
+      const result = await cacheVideoBlob("task-stream-1", "https://example.com/big.mp4");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value).toBe(true);
+
+      // 流式路径被调用
+      expect(httpDownloadToFile).toHaveBeenCalledWith(
+        "https://example.com/big.mp4",
+        expect.any(String),
+      );
+      // fallback 路径未被调用
+      expect(resilientFetch).not.toHaveBeenCalled();
+      // 缓存记录使用流式返回的 totalBytes
+      expect(container.videoCacheStorage.cacheVideoFile).toHaveBeenCalledWith(
+        expect.objectContaining({ taskId: "task-stream-1", fileSize: 2048 }),
+      );
+    }, 30000);
+
+    it("流式下载返回 success:false 时应抛出错误并触发重试", async () => {
+      setupElectronAPIMock();
+      (container.videoCacheStorage.getCachedVideoFile as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (container.videoCacheStorage.getVideoCacheStats as ReturnType<typeof vi.fn>).mockResolvedValue({
+        count: 0,
+        totalSize: 0,
+      });
+
+      // 流式下载始终失败
+      (httpDownloadToFile as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: false,
+        error: "Download failed",
+      });
+
+      const result = await cacheVideoBlob("task-stream-2", "https://example.com/fail.mp4");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value).toBe(false);
+
+      // 流式路径被调用（每次重试都先试流式）
+      expect(httpDownloadToFile).toHaveBeenCalled();
+      // fallback 路径未被调用（httpDownloadToFile 返回了非 null，不走 fallback）
+      expect(resilientFetch).not.toHaveBeenCalled();
+    }, 30000);
+
+    it("httpDownloadToFile 返回 null（HTTP 不可用）时应回退到 resilientFetch", async () => {
+      setupElectronAPIMock();
+      (container.videoCacheStorage.getCachedVideoFile as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (container.videoCacheStorage.getVideoCacheStats as ReturnType<typeof vi.fn>).mockResolvedValue({
+        count: 0,
+        totalSize: 0,
+      });
+
+      // HTTP 不可用
+      (httpDownloadToFile as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      // fallback 路径成功：resilientFetch mock 需要调用 destination 回调设置 data
+      (resilientFetch as ReturnType<typeof vi.fn>).mockImplementation(async (opts: {
+        destination?: (data: Uint8Array) => Promise<void>;
+      }) => {
+        if (opts.destination) {
+          await opts.destination(new Uint8Array(1024));
+        }
+        return { success: true, totalBytes: 1024, duration: 50, fromCache: false };
+      });
+
+      const result = await cacheVideoBlob("task-stream-3", "https://example.com/fallback.mp4");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value).toBe(true);
+
+      // 流式路径被调用但返回 null
+      expect(httpDownloadToFile).toHaveBeenCalled();
+      // fallback 路径被调用
+      expect(resilientFetch).toHaveBeenCalledWith(expect.objectContaining({ url: "https://example.com/fallback.mp4" }));
+    }, 30000);
   });
 });

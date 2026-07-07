@@ -1,6 +1,6 @@
 # PrismCraft - 完整代码目录
 
-> 版本: 1.0.1 | 更新日期: 2026-07-07 | 架构: Electron + Vite + React + DDD
+> 版本: 1.1.0 | 更新日期: 2026-07-07 | 架构: Electron + Vite + React + DDD
 
 ---
 

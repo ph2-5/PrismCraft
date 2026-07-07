@@ -99,7 +99,7 @@ export function handleCors(req: import("http").IncomingMessage, res: import("htt
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Electron-App",
+    "Content-Type, Authorization, X-Electron-App, X-File-Path",
   );
   res.setHeader("Content-Type", "application/json");
 

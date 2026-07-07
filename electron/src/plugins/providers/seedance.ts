@@ -26,7 +26,8 @@ const VIDEO_CAPABILITIES: VideoCapabilities = {
   characterRefMode: "bake_into_first",
   sceneRefMode: "bake_into_first",
   defaultModel: "seedance-1.5-pro",
-  maxDuration: 12,
+  // maxDuration 取各模型最大值：Seedance 2.5 支持原生 30 秒
+  maxDuration: 30,
   supportedCodecs: ["h264", "h265"],
   urlTtl: 86400,
 };
@@ -37,6 +38,20 @@ const IMAGE_CAPABILITIES: ImageCapabilities = {
 };
 
 const MODEL_CAPS_MAP: Record<string, ModelCapabilities> = {
+  "seedance-2.5": {
+    // Seedance 2.5 (2026-07-06 上线)：单段原生 30 秒 4K 直出
+    maxReferences: 50, // 50 路全模态参考（30 图 + 10 视频 + 10 音频）
+    maxResolution: 4096, // 4K 原生直出
+    maxSizeMB: 10,
+    supportsLastFrame: true,
+    referenceMode: "separate",
+    defaultImageSize: "3840x2160",
+    supportedImageSizes: [
+      { width: 3840, height: 2160, label: "3840×2160 (4K)", aspectRatio: "16:9" },
+      { width: 2160, height: 3840, label: "2160×3840 (4K 竖屏)", aspectRatio: "9:16" },
+      { width: 1920, height: 1920, label: "1920×1920", aspectRatio: "1:1" },
+    ],
+  },
   "seedance-2.0": {
     maxReferences: 4,
     maxResolution: 2048,

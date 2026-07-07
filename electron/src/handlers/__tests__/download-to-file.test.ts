@@ -19,6 +19,14 @@ import fsp from "fs/promises";
 import path from "path";
 import os from "os";
 import { getUserDataRootDir } from "../../app-paths";
+
+// mock ssrfGuard 避免 DNS 解析（测试用 example.com 无法解析）
+vi.mock("../../security", () => ({
+  ssrfGuard: {
+    validate: vi.fn().mockResolvedValue({ safe: true }),
+  },
+}));
+
 import { downloadToFile } from "../download-to-file";
 
 // 使用真实的 USER_DATA_ROOT 构造测试路径

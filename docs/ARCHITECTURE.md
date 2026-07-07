@@ -131,7 +131,7 @@ domain → NOTHING（纯类型）
 | character | 2872 | 3 | 角色管理：角色 CRUD、服装管理、角色图片生成 |
 | scene | 1855 | 3 | 场景管理：场景 CRUD、图片生成 |
 | persistence | 982 | 0 | 自动保存、持久化守护、事务性删除 |
-| agent | — | — | AI 助手模块（Agent Loop、Tool Registry、18 域 130+ 工具、记忆系统、流式输出） |
+| agent | 35417 | 5 | AI 助手模块（Agent Loop、Tool Registry、18 域 150 工具、记忆系统、流式输出） |
 
 ### 4.2 各模块详细说明
 

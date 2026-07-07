@@ -3100,7 +3100,7 @@ ai-animation-studio-source-code/
 │   │   ├── character/             # 角色模块 (hooks, services, presentation)
 │   │   ├── scene/                 # 场景模块 (hooks, services, presentation)
 │   │   ├── persistence/           # 持久化模块 (hooks, services)
-│   │   └── agent/                 # AI 助手模块 (Agent Loop, Tool Registry, 18 域 130+ 工具, 记忆系统, 流式输出)
+│   │   └── agent/                 # AI 助手模块 (Agent Loop, Tool Registry, 18 域 150 工具, 记忆系统, 流式输出)
 │   ├── infrastructure/            # 基础设施
 │   │   ├── di/                    # DI 容器 (container, types, registry)
 │   │   ├── ai-providers/          # AI 供应商 (core, video, image, text, model-adapter, api-config, offline-queue, ...)

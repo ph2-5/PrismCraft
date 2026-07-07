@@ -145,22 +145,22 @@ async function uploadAndReplaceUrl(opts: ReplaceUrlOptions): Promise<void> {
   const persistentUrl = await uploadAndGetPersistentUrl(file);
   let tempUrlRevoked = false;
 
-  const updateBeat = (updater: (b: StoryBeat) => StoryBeat) =>
+  const applyBeatUpdate = (mutate: (b: StoryBeat) => StoryBeat) =>
     setBeats((prev) =>
       mapBeat(prev, beatId, (b) => {
         if (getCurrentUrl(b, matchField) !== tempUrl) return b;
         revokeBlobUrl(tempUrl);
         for (const url of extraRevokes) revokeBlobUrl(url);
         tempUrlRevoked = true;
-        return updater(b);
+        return mutate(b);
       }),
     );
 
   if (persistentUrl) {
-    updateBeat((b) => buildPersistentUpdate(b, matchField, persistentUrl));
+    applyBeatUpdate((b) => buildPersistentUpdate(b, matchField, persistentUrl));
     success?.(successToast.title, successToast.desc);
   } else {
-    updateBeat((b) => buildRollback(b, matchField, previousUrl));
+    applyBeatUpdate((b) => buildRollback(b, matchField, previousUrl));
     showError?.(errorToast.title, errorToast.desc);
   }
 

@@ -187,7 +187,7 @@ function CodeBlock({ code }: { code: string }) {
     <pre
       style={{
         fontSize: 11,
-        background: "#0f172a",
+        background: "var(--card2)",
         padding: 14,
         borderRadius: 8,
         overflow: "auto",

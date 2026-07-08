@@ -1,5 +1,5 @@
 import React from "react";
-import { X } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { t } from "@/shared/constants";
 
 interface AssetUploadSectionProps {
@@ -131,7 +131,7 @@ export function AssetUploadSection({
           }
         }}
       >
-        <div style={uploadIconStyle}>📤</div>
+        <div style={uploadIconStyle}><Upload size={32} style={{ margin: "0 auto" }} /></div>
         <div style={uploadTitleStyle}>{t("asset.dragOrClickToUpload")}</div>
         <div style={uploadDescStyle}>{t("asset.uploadFormatHint")}</div>
       </div>

@@ -258,10 +258,10 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
               fontWeight: 500,
               transition: "background 0.2s, color 0.2s",
               ...(isActive
-                ? { background: "var(--primary)", color: "#fff" }
+                ? { background: "var(--primary)", color: "var(--primary-foreground)" }
                 : isPast
-                  ? { background: "rgba(127, 127, 127, 0.3)", color: "var(--muted-fg)", cursor: "pointer" }
-                  : { background: "rgba(127, 127, 127, 0.1)", color: "var(--muted-fg)", cursor: "default" }),
+                  ? { background: "color-mix(in srgb, var(--muted-fg) 30%, transparent)", color: "var(--muted-fg)", cursor: "pointer" }
+                  : { background: "color-mix(in srgb, var(--muted-fg) 10%, transparent)", color: "var(--muted-fg)", cursor: "default" }),
             }}
           >
             <Icon size={14} />

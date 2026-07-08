@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, Lightbulb, FlaskConical, Save } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { ApiCapability } from "@/infrastructure/api-config-facade";
 
@@ -13,14 +13,14 @@ export function EncryptedStorageHint() {
     <div
       style={{
         padding: 12,
-        background: "rgba(99,102,241,0.08)",
-        border: "1px solid rgba(99,102,241,0.2)",
+        background: "rgba(var(--primary-rgb), 0.08)",
+        border: "1px solid rgba(var(--primary-rgb), 0.2)",
         borderRadius: 8,
         fontSize: 11,
         color: "var(--muted-fg)",
       }}
     >
-      💡 {t("config.encryptedStorageHint")}
+      <Lightbulb className="inline-block" size={12} /> {t("config.encryptedStorageHint")}
     </div>
   );
 }
@@ -84,7 +84,7 @@ export function BottomActionBar({
         {testingCapability !== null ? (
           <Loader2 size={14} className="animate-spin" style={{ marginRight: 6 }} />
         ) : (
-          <span style={{ marginRight: 6 }}>🧪</span>
+          <FlaskConical size={14} style={{ marginRight: 6 }} />
         )}
         {t("connection.testAll")}
       </button>
@@ -93,7 +93,7 @@ export function BottomActionBar({
         className="btn btn-primary btn-sm"
         onClick={onSaveConfig}
       >
-        <span style={{ marginRight: 6 }}>💾</span>
+        <Save size={14} style={{ marginRight: 6 }} />
         {t("connection.save")}
       </button>
     </div>

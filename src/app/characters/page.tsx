@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { User } from "lucide-react";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
@@ -24,7 +25,7 @@ function CharactersPageContent() {
       <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         {/* Top Tabs */}
         <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>👤 {t("sidebar.characters")}</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}><User size={14} /> {t("sidebar.characters")}</span>
           <div className="toolbar">
             <input
               className="input"
@@ -92,7 +93,7 @@ function CharactersPageContent() {
             ) : (
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-fg)" }}>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 48, marginBottom: 8 }}>👤</div>
+                  <div style={{ fontSize: 48, marginBottom: 8 }}><User size={48} /></div>
                   <p style={{ fontSize: 14 }}>{t("character.selectOrCreate")}</p>
                 </div>
               </div>

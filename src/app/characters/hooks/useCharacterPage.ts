@@ -213,7 +213,7 @@ export function useCharacterPage() {
           beats.push({
             id: beat.id,
             title: `${t("scene.shotNumber", { n: beat.sequence ?? beat.order ?? 0 })} · ${beat.title || beat.description?.slice(0, 20) || t("story.unnamed")}`,
-            status: beat.generationStatus === "completed" ? "✓" : beat.generationStatus === "generating" ? "⏳" : undefined,
+            status: beat.generationStatus === "completed" ? "✓" : beat.generationStatus === "generating" ? "" : undefined,
           });
         }
       }

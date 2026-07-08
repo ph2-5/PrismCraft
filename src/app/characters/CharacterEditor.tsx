@@ -18,6 +18,7 @@ import {
   Save,
   Trash2,
   Upload,
+  User,
 } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 import { useState } from "react";
@@ -364,7 +365,7 @@ function CharacterHeader({
         {avatarUrl ? (
           <img src={resolveImageUrl(avatarUrl)} alt={character.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
-          <span style={{ fontSize: 28 }}>👤</span>
+          <User size={28} />
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>

@@ -10,6 +10,10 @@ import {
   Sparkles,
   X,
   Trash2,
+  Building2,
+  RefreshCw,
+  BookOpen,
+  Film,
 } from "lucide-react";
 import { ModelSelector } from "@/modules/prompt";
 import { SaveStatusIndicator, type SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
@@ -49,7 +53,7 @@ export function ScenePageHeader({
 }: ScenePageHeaderProps) {
   return (
     <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-      <span style={{ fontWeight: 600, fontSize: 14 }}>🏙 {t("scene.title")}</span>
+      <span style={{ fontWeight: 600, fontSize: 14 }}><Building2 className="inline-block" size={14} /> {t("scene.title")}</span>
       <div className="toolbar">
         <input
           className="input"
@@ -99,7 +103,7 @@ export function SceneDetailHeader({
           backgroundPosition: "center",
         }}
       >
-        {!avatarImage && "🏙"}
+        {!avatarImage && ""}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <input
@@ -126,7 +130,7 @@ export function SceneDetailHeader({
         className="btn btn-outline btn-xs"
         onClick={onChangeCover}
       >
-        🔄 {t("scene.changeCover")}
+        <RefreshCw className="inline-block" size={12} /> {t("scene.changeCover")}
       </button>
     </div>
   );
@@ -417,7 +421,7 @@ export function SceneReferencedBeatsCard({
   return (
     <div className="card" style={{ padding: 14 }}>
       <div className="section-label" style={{ marginBottom: 8 }}>
-        📖 {t("scene.referencedShots")}
+        <BookOpen className="inline-block" size={14} /> {t("scene.referencedShots")}
       </div>
       {beats.length === 0 ? (
         <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
@@ -444,7 +448,7 @@ export function SceneReferencedBeatsCard({
                   cursor: "pointer",
                 }}
               >
-                <span style={{ fontSize: 18 }}>🎬</span>
+                <span style={{ fontSize: 18, display: "inline-flex", alignItems: "center" }}><Film size={18} /></span>
                 <span style={{ fontSize: 12, fontWeight: 500 }}>
                   {t("scene.shotNumber", { n: beat.sequence })}
                   {beat.title ? ` · ${beat.title}` : ""}
@@ -453,7 +457,7 @@ export function SceneReferencedBeatsCard({
                   className={isCompleted ? "badge badge-success" : "badge badge-info"}
                   style={{ fontSize: 9, marginLeft: "auto" }}
                 >
-                  {isCompleted ? "✓" : "⏳"}
+                  {isCompleted ? "✓" : ""}
                 </span>
               </div>
             );

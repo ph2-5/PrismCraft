@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Lightbulb, RefreshCw, Settings } from "lucide-react";
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
@@ -47,7 +48,7 @@ function AutoSaveSettings({
           borderRadius: 6,
         }}
       >
-        💡 {t("settings.autoSaveHint")}
+        <Lightbulb className="inline-block" size={12} /> {t("settings.autoSaveHint")}
       </div>
       <div
         className="element-card"
@@ -112,11 +113,11 @@ function SyncSettings({ openDialog }: { openDialog: () => void }) {
           borderRadius: 6,
         }}
       >
-        💡 {t("sync.description")}
+        <Lightbulb className="inline-block" size={12} /> {t("sync.description")}
       </div>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button type="button" className="btn btn-primary btn-sm" onClick={openDialog}>
-          🔄 {t("sync.settingsTitle")}
+          <RefreshCw className="inline-block" size={12} /> {t("sync.settingsTitle")}
         </button>
       </div>
     </div>
@@ -231,10 +232,10 @@ export default function SettingsPage() {
   } = useSettingsPage();
 
   const tabs: { id: SettingsTab; icon: string; label: string }[] = [
-    { id: "api", icon: "🔑", label: t("settings.apiConfig") },
-    { id: "autosave", icon: "💾", label: t("settings.autoSave") },
-    { id: "sync", icon: "🔄", label: t("sync.settingsTitle") },
-    { id: "system", icon: "📊", label: t("settings.systemStatus") },
+    { id: "api", icon: "", label: t("settings.apiConfig") },
+    { id: "autosave", icon: "", label: t("settings.autoSave") },
+    { id: "sync", icon: "", label: t("sync.settingsTitle") },
+    { id: "system", icon: "", label: t("settings.systemStatus") },
   ];
 
   return (
@@ -242,7 +243,7 @@ export default function SettingsPage() {
       <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         {/* top-tabs 标题栏 - 对齐预览页面 */}
         <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>⚙ {t("page.settings")}</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}><Settings className="inline-block" size={14} /> {t("page.settings")}</span>
           <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
             {t("settings.apiConfig")} · {t("settings.autoSave")} · {t("sync.settingsTitle")} · {t("settings.systemStatus")}
           </span>
@@ -298,15 +299,15 @@ export default function SettingsPage() {
               <div
                 style={{
                   padding: 12,
-                  background: "rgba(99, 102, 241, 0.08)",
-                  border: "1px solid rgba(99, 102, 241, 0.2)",
+                  background: "rgba(var(--primary-rgb), 0.08)",
+                  border: "1px solid rgba(var(--primary-rgb), 0.2)",
                   borderRadius: 8,
                   marginBottom: 12,
                   fontSize: 11,
                   color: "var(--muted-fg)",
                 }}
               >
-                💡 {t("settings.apiConfigTip")}
+                <Lightbulb className="inline-block" size={12} /> {t("settings.apiConfigTip")}
               </div>
               <ApiConfigPanel />
             </div>

@@ -16,7 +16,7 @@ export function PluginSchemaViewer({ schemaData }: PluginSchemaViewerProps) {
         <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.pluginSchemaDesc")}</div>
       </div>
       <div>
-        <pre style={{ fontSize: 12, background: "#0f172a", padding: 16, borderRadius: 8, overflow: "auto", maxHeight: 600, fontFamily: "monospace", color: "var(--muted-fg)", whiteSpace: "pre-wrap" }}>
+        <pre style={{ fontSize: 12, background: "var(--card2)", padding: 16, borderRadius: 8, overflow: "auto", maxHeight: 600, fontFamily: "monospace", color: "var(--muted-fg)", whiteSpace: "pre-wrap" }}>
           {JSON.stringify(schemaData, null, 2)}
         </pre>
       </div>

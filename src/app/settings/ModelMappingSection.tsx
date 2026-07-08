@@ -1,5 +1,5 @@
 import { t } from "@/shared/constants";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeftRight, FlaskConical } from "lucide-react";
 import {
   type ApiCapability,
   type ApiConfig,
@@ -24,10 +24,10 @@ interface ModelMappingSectionProps {
 
 // 每个 capability 对应的 emoji + 背景色，对齐预览页面 element-card 布局
 const CAPABILITY_VISUAL: Record<ApiCapability, { emoji: string; bg: string }> = {
-  text: { emoji: "💬", bg: "rgba(99,102,241,0.15)" },
-  image: { emoji: "🖼", bg: "rgba(168,85,247,0.15)" },
-  vision: { emoji: "👁", bg: "rgba(16,185,129,0.15)" },
-  video: { emoji: "🎬", bg: "rgba(245,158,11,0.15)" },
+  text: { emoji: "", bg: "rgba(var(--primary-rgb), 0.15)" },
+  image: { emoji: "", bg: "color-mix(in srgb, var(--chart-2) 15%, transparent)" },
+  vision: { emoji: "", bg: "rgba(var(--success-rgb), 0.15)" },
+  video: { emoji: "", bg: "rgba(var(--warning-rgb), 0.15)" },
 };
 
 function getAvailableModels(config: ApiConfig, capability: ApiCapability) {
@@ -89,7 +89,7 @@ export function ModelMappingSection({
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div className="section-label" style={{ marginBottom: 10 }}>🔀 {t("mapping.title")}</div>
+      <div className="section-label" style={{ marginBottom: 10 }}><ArrowLeftRight className="inline-block" size={14} /> {t("mapping.title")}</div>
       <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 12 }}>{t("mapping.description")}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {capabilities.map((cap) => {
@@ -154,7 +154,7 @@ export function ModelMappingSection({
                 {testingCapability === cap.id ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
-                  "🧪"
+                  <FlaskConical size={14} />
                 )}
               </IconButton>
 

@@ -1,3 +1,14 @@
+import {
+  Film,
+  BookOpen,
+  Zap,
+  FolderOpen,
+  Image as ImageIcon,
+  Users,
+  Building2,
+  Package,
+  Plus,
+} from "lucide-react";
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { useHomePage } from "./hooks/useHomePage";
@@ -45,16 +56,16 @@ export default function Home() {
             <div
               className="w-12 h-12 rounded-[14px] flex items-center justify-center text-2xl"
               style={{
-                background: "linear-gradient(135deg, #6366f1, #a855f7)",
+                background: "linear-gradient(135deg, var(--primary), var(--chart-2))",
                 boxShadow: "0 4px 20px rgba(var(--primary-rgb), 0.3)",
               }}
             >
-              🎬
+              <Film size={24} />
             </div>
             <span
               className="text-[26px] font-extrabold"
               style={{
-                background: "linear-gradient(135deg, #a5b4fc, #c4b5fd)",
+                background: "linear-gradient(135deg, var(--primary-hover), var(--chart-4))",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
@@ -87,7 +98,7 @@ export default function Home() {
               className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
               style={{ background: "rgba(var(--primary-rgb), 0.06)" }}
             />
-            <div className="text-[32px] mb-3 relative">📖</div>
+            <div className="text-[32px] mb-3 relative"><BookOpen size={32} /></div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.storyMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.storyModeDesc")}
@@ -121,7 +132,7 @@ export default function Home() {
               className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
               style={{ background: "rgba(var(--warning-rgb), 0.06)" }}
             />
-            <div className="text-[32px] mb-3 relative">🎬</div>
+            <div className="text-[32px] mb-3 relative"><Film size={32} /></div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.storyboardMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.storyboardModeDesc")}
@@ -155,7 +166,7 @@ export default function Home() {
               className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
               style={{ background: "rgba(var(--success-rgb), 0.06)" }}
             />
-            <div className="text-[32px] mb-3 relative">⚡</div>
+            <div className="text-[32px] mb-3 relative"><Zap size={32} /></div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.quickMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.quickModeDesc")}
@@ -175,7 +186,7 @@ export default function Home() {
         {/* 最近项目 */}
         <div className="p-6 flex-1 overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[15px] font-bold">📂 {t("home.recentProjects")}</div>
+            <div className="text-[15px] font-bold"><FolderOpen className="inline-block" size={16} /> {t("home.recentProjects")}</div>
             <button
               className="btn btn-primary btn-sm"
               onClick={() => navigate("/storyboard")}
@@ -216,7 +227,7 @@ export default function Home() {
                       className="w-10 h-10 rounded-[10px] flex items-center justify-center text-lg shrink-0"
                       style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-hover))" }}
                     >
-                      🌃
+                      <ImageIcon size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold truncate">{story.title || t("story.unnamed")}</div>
@@ -225,10 +236,10 @@ export default function Home() {
                     <span className={`badge ${statusBadgeClass} text-[9px]`}>{t("home.inProgress")}</span>
                   </div>
                   <div className="flex gap-3.5 text-[11px] text-muted-foreground mb-2">
-                    <span>👤 {charCount}</span>
-                    <span>🏙 {sceneCount}</span>
-                    <span>🎬 {beatCount}</span>
-                    <span>📦 {assetCount}</span>
+                    <span><Users className="inline-block" size={12} /> {charCount}</span>
+                    <span><Building2 className="inline-block" size={12} /> {sceneCount}</span>
+                    <span><Film className="inline-block" size={12} /> {beatCount}</span>
+                    <span><Package className="inline-block" size={12} /> {assetCount}</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground">
                     {story.updatedAt ? new Date(story.updatedAt).toLocaleDateString("zh-CN") : ""}
@@ -250,7 +261,7 @@ export default function Home() {
                 }}
                 onClick={() => navigate("/storyboard")}
               >
-                <div className="text-3xl opacity-40">➕</div>
+                <div className="text-3xl opacity-40"><Plus size={32} /></div>
                 <div className="text-[13px] text-muted-foreground">{t("home.newProject")}</div>
               </div>
             )}
@@ -258,12 +269,12 @@ export default function Home() {
 
           {/* 快速入口 */}
           <div className="mt-6 border-t border-border pt-5">
-            <div className="text-sm font-bold mb-3">⚡ {t("home.quickEntry")}</div>
+            <div className="text-sm font-bold mb-3"><Zap className="inline-block" size={14} /> {t("home.quickEntry")}</div>
             <div className="grid grid-cols-4 gap-2.5">
-              <QuickEntryCard icon="👤" title={t("home.characterManage")} subtitle={`${characters.length} ${t("home.characters")}`} onClick={() => navigate("/characters")} />
-              <QuickEntryCard icon="🏙" title={t("home.sceneManage")} subtitle={`${scenes.length} ${t("home.scenes")}`} onClick={() => navigate("/scenes")} />
-              <QuickEntryCard icon="📦" title={t("home.assetLibrary")} subtitle={t("home.assetManage")} onClick={() => navigate("/asset-library")} />
-              <QuickEntryCard icon="📋" title={t("home.videoTasks")} subtitle={t("home.taskManage")} onClick={() => navigate("/video-tasks")} />
+              <QuickEntryCard icon="" title={t("home.characterManage")} subtitle={`${characters.length} ${t("home.characters")}`} onClick={() => navigate("/characters")} />
+              <QuickEntryCard icon="" title={t("home.sceneManage")} subtitle={`${scenes.length} ${t("home.scenes")}`} onClick={() => navigate("/scenes")} />
+              <QuickEntryCard icon="" title={t("home.assetLibrary")} subtitle={t("home.assetManage")} onClick={() => navigate("/asset-library")} />
+              <QuickEntryCard icon="" title={t("home.videoTasks")} subtitle={t("home.taskManage")} onClick={() => navigate("/video-tasks")} />
             </div>
           </div>
         </div>

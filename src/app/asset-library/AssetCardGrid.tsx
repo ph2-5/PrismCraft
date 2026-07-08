@@ -284,7 +284,7 @@ function AllTab({
   }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <AllTabSection title={`👤 ${t("asset.characterLibrary")}`} count={filteredCharacters.length}>
+      <AllTabSection title={t("asset.characterLibrary")} count={filteredCharacters.length}>
         {filteredCharacters.map((char) => (
           <CharacterCard
             key={char.id}
@@ -296,7 +296,7 @@ function AllTab({
           />
         ))}
       </AllTabSection>
-      <AllTabSection title={`🏙 ${t("asset.sceneLibrary")}`} count={filteredScenes.length}>
+      <AllTabSection title={t("asset.sceneLibrary")} count={filteredScenes.length}>
         {filteredScenes.map((scene) => (
           <SceneCard
             key={scene.id}
@@ -308,7 +308,7 @@ function AllTab({
           />
         ))}
       </AllTabSection>
-      <AllTabSection title={`🎬 ${t("asset.storyboardLibrary")}`} count={filteredStoryboards.length}>
+      <AllTabSection title={t("asset.storyboardLibrary")} count={filteredStoryboards.length}>
         {filteredStoryboards.map((sb) => (
           <StoryboardCard
             key={sb.id}

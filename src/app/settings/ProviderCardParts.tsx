@@ -472,7 +472,7 @@ function ModelCapabilityToggleGroup({
                     color: "var(--primary)",
                   }
                 : {
-                    background: "rgba(127, 127, 127, 0.15)",
+                    background: "color-mix(in srgb, var(--muted-fg) 15%, transparent)",
                     color: "var(--muted-fg)",
                   }),
             }}

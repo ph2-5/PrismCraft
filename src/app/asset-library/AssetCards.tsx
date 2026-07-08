@@ -438,10 +438,10 @@ export const CollectionCard = memo(function CollectionCard({
                     style={{ fontSize: 10 }}
                   >
                     {ca.assetType === "character"
-                      ? "👤"
+                      ? ""
                       : ca.assetType === "scene"
-                        ? "🏞️"
-                        : "🎬"}
+                        ? ""
+                        : ""}
                     {name}
                   </span>
                 );

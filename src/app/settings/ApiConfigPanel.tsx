@@ -82,7 +82,7 @@ export function ApiConfigPanel() {
       <EncryptedStorageHint />
 
       <div className="card" style={{ padding: 16 }}>
-        <div className="section-label" style={{ marginBottom: 10 }}>🔑 {t("provider.configuredProviders")}</div>
+        <div className="section-label" style={{ marginBottom: 10 }}><Key size={14} /> {t("provider.configuredProviders")}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {config.providers.length === 0 ? (
             <div style={{ textAlign: "center", padding: "32px 0", border: "2px dashed var(--border)", borderRadius: 8, color: "var(--muted-fg)" }}>

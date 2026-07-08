@@ -8,6 +8,7 @@ import {
   Trash2,
   Video,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { useVideoTasksPage } from "./hooks/useVideoTasksPage";
@@ -41,7 +42,7 @@ export default function VideoTasksPage() {
         {/* top-tabs 标题栏 */}
         <div className="top-tabs" style={{ justifyContent: "space-between" }}>
           <span style={{ fontWeight: 600, fontSize: 14 }}>
-            🎥 {t("page.videoTasks")}
+            <Video className="inline-block" size={14} /> {t("page.videoTasks")}
           </span>
           <div className="toolbar">
             <select
@@ -60,7 +61,7 @@ export default function VideoTasksPage() {
               className="btn btn-ghost btn-xs"
               onClick={handleRefresh}
             >
-              🔄 {t("task.refresh")}
+              <RefreshCw className="inline-block" size={12} /> {t("task.refresh")}
             </button>
           </div>
         </div>

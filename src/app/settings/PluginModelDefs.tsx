@@ -40,7 +40,7 @@ export function PluginModelDefs({
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {state.models.map((model, index) => (
-          <div key={model._uid} style={{ padding: 16, border: "1px solid var(--border)", borderRadius: 8, background: "rgba(30, 41, 59, 0.3)", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div key={model._uid} style={{ padding: 16, border: "1px solid var(--border)", borderRadius: 8, background: "color-mix(in srgb, var(--card2) 50%, transparent)", display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="badge badge-muted" style={{ fontSize: 11 }}>

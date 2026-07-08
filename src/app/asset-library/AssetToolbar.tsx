@@ -1,6 +1,8 @@
 import {
   Trash2,
   Loader2,
+  FolderOpen,
+  Upload,
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { AssetTab } from "./AssetCardGrid";
@@ -18,12 +20,12 @@ interface AssetToolbarProps {
 }
 
 // 预览页面 batch toolbar 样式：
-// padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(99,102,241,0.08);
+// padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(var(--primary-rgb),0.08);
 // align-items:center;gap:10px;
 const batchToolbarStyle: React.CSSProperties = {
   padding: "8px 16px",
   borderBottom: "1px solid var(--border)",
-  background: "rgba(99,102,241,0.08)",
+  background: "rgba(var(--primary-rgb), 0.08)",
   display: "flex",
   alignItems: "center",
   gap: 10,
@@ -73,10 +75,10 @@ export function AssetToolbar({
         className="btn btn-outline btn-xs"
         onClick={onOpenCollectionDialog}
       >
-        📁 {t("asset.addToCollection")}
+        <FolderOpen className="inline-block" size={12} /> {t("asset.addToCollection")}
       </button>
       <button type="button" className="btn btn-outline btn-xs" onClick={onBatchExport}>
-        📤 {t("asset.export")}
+        <Upload className="inline-block" size={12} /> {t("asset.export")}
       </button>
       <button
         type="button"

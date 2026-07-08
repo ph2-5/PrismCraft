@@ -1,3 +1,4 @@
+import { Package, Download, Upload } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 import type { AssetTab } from "./AssetCardGrid";
 
@@ -23,7 +24,7 @@ const categoryBtnBaseStyle: React.CSSProperties = {
 };
 
 const categoryBtnActiveStyle: React.CSSProperties = {
-  background: "rgba(99,102,241,0.1)",
+  background: "rgba(var(--primary-rgb), 0.1)",
   color: "var(--fg)",
 };
 
@@ -108,62 +109,62 @@ export function CategoryTree({
         {t("asset.category")}
       </div>
       <CategoryButton
-        icon="📁"
+        icon=""
         label={t("asset.allAssets")}
         active={activeTab === "all"}
         onClick={() => onTabChange("all")}
       />
       <CategoryButton
-        icon="👤"
+        icon=""
         label={t("asset.characterLibrary")}
         count={charactersCount}
         active={activeTab === "characters"}
         onClick={() => onTabChange("characters")}
       />
       <CategoryButton
-        icon="🏙"
+        icon=""
         label={t("asset.sceneLibrary")}
         count={scenesCount}
         active={activeTab === "scenes"}
         onClick={() => onTabChange("scenes")}
       />
       <CategoryButton
-        icon="🎬"
+        icon=""
         label={t("asset.storyboardLibrary")}
         count={storyboardsCount}
         active={activeTab === "storyboards"}
         onClick={() => onTabChange("storyboards")}
       />
       <CategoryButton
-        icon="📦"
+        icon=""
         label={t("asset.props")}
         active={activeTab === "props"}
         onClick={() => onTabChange("props")}
       />
       <div style={propSubCatsStyle}>
         <CategoryButton
-          icon="└ 👗"
+          icon="└"
           label={t("asset.propClothing")}
           active={activeTab === "prop-clothing"}
           onClick={() => onTabChange("prop-clothing")}
           size="xs"
         />
         <CategoryButton
-          icon="└ ⚔"
+          icon="└"
           label={t("asset.propWeapon")}
           active={activeTab === "prop-weapon"}
           onClick={() => onTabChange("prop-weapon")}
           size="xs"
         />
         <CategoryButton
-          icon="└ 💍"
+          icon="└"
           label={t("asset.propAccessory")}
           active={activeTab === "prop-accessory"}
           onClick={() => onTabChange("prop-accessory")}
           size="xs"
         />
         <CategoryButton
-          icon="└ 🔧"
+          icon="└"
           label={t("asset.propProp")}
           active={activeTab === "prop-prop"}
           onClick={() => onTabChange("prop-prop")}
@@ -172,14 +173,14 @@ export function CategoryTree({
       </div>
       <div style={categoryDividerStyle} />
       <CategoryButton
-        icon="⭐"
+        icon=""
         label={t("asset.myCollections")}
         count={collectionsCount}
         active={activeTab === "collections"}
         onClick={() => onTabChange("collections")}
       />
       <CategoryButton
-        icon="🖼"
+        icon=""
         label={t("asset.media")}
         active={activeTab === "media"}
         onClick={() => onTabChange("media")}
@@ -206,7 +207,7 @@ export function TopHeader({
   return (
     <div className="top-tabs" style={{ justifyContent: "space-between" }}>
       <span style={{ fontWeight: 600, fontSize: 14 }}>
-        📦 {t("asset.libraryTitle")}
+        <Package className="inline-block" size={14} /> {t("asset.libraryTitle")}
       </span>
       <div className="toolbar">
         <input
@@ -227,13 +228,13 @@ export function TopHeader({
           className="btn btn-outline btn-sm"
           onClick={onOpenImportDialog}
         >
-          📥 {t("asset.importAsa")}
+          <Download className="inline-block" size={12} /> {t("asset.importAsa")}
         </button>
         <button
           className="btn btn-outline btn-sm"
           onClick={onBatchExport}
         >
-          📤 {t("asset.export")}
+          <Upload className="inline-block" size={12} /> {t("asset.export")}
         </button>
       </div>
     </div>

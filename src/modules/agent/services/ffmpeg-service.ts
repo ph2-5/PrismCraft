@@ -115,6 +115,72 @@ async function executeFfmpegCommand(
   }
 }
 
+// ============= 内部辅助函数 =============
+
+/**
+ * 探测视频时长（秒）
+ *
+ * 使用 `ffmpeg -i input -f null -` 触发 ffmpeg 输出文件信息，
+ * 从 stderr 解析 "Duration: HH:MM:SS.xx" 获取时长。
+ */
+async function probeVideoDuration(videoPath: string): Promise<number | null> {
+  const result = await executeFfmpegCommand(["-i", videoPath, "-f", "null", "-"], {
+    timeout: 30_000,
+  });
+  // ffmpeg -f null - 正常完成时 exit code 0，stderr 包含 Duration 信息
+  const stderr = result.stderr ?? "";
+  const match = stderr.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const hours = parseInt(match[1]!, 10);
+  const minutes = parseInt(match[2]!, 10);
+  const seconds = parseFloat(match[3]!);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * 将用户传入的 transition 名称映射到 ffmpeg xfade 的 transition 类型
+ *
+ * xfade 支持的 transition：fade, wipeleft, wiperight, wipeup, wipedown,
+ * slideleft, slideright, slideup, slidedown, circlecrop, rectcrop, distance,
+ * fadeblack, fadewhite, radial, smoothleft, smoothright, smoothup, smoothdown,
+ * circleopen, circleclose, vertopen, vertclose, horzopen, horzclose, dissolve,
+ * pixelize, diagtl, diagtr, diagbl, diagbr, hlslice, hrslice, vuslice, vdslice,
+ * hblur, fadegrays, wipetl, wipetr, wipebl, wipebr, squeezes, squeezeh, zoomin
+ */
+function mapTransitionToXfade(transition: string): string {
+  switch (transition) {
+    case "fade":
+    case "cut":
+      return "fade"; // cut 用 duration 极小的 fade 模拟
+    case "dissolve":
+      return "dissolve";
+    case "fadeblack":
+      return "fadeblack";
+    case "fadewhite":
+      return "fadewhite";
+    case "slideleft":
+      return "slideleft";
+    case "slideright":
+      return "slideright";
+    case "slideup":
+      return "slideup";
+    case "slidedown":
+      return "slidedown";
+    case "wipeleft":
+      return "wipeleft";
+    case "wiperight":
+      return "wiperight";
+    case "circleopen":
+      return "circleopen";
+    case "circleclose":
+      return "circleclose";
+    case "zoomin":
+      return "zoomin";
+    default:
+      return "fade";
+  }
+}
+
 // ============= 公共 API =============
 
 /**
@@ -426,18 +492,60 @@ export async function mergeVideos(
       };
     }
 
-    // 带转场效果：使用 xfade filter（复杂，这里简化处理）
-    // TODO: 完整实现 xfade 链
+    // 带转场效果：使用 xfade filter 链
+    // 1. 探测每个视频时长
+    const durations: number[] = [];
+    for (const p of videoPaths) {
+      const dur = await probeVideoDuration(p);
+      if (dur === null) {
+        return {
+          success: false,
+          error: `无法探测视频时长：${p}（请确保文件存在且 ffmpeg 可用）`,
+        };
+      }
+      durations.push(dur);
+    }
+
+    // 2. cut 类型用极短 duration 模拟硬切
+    const xfadeType = mapTransitionToXfade(transition);
+    const effectiveDuration = transition === "cut" ? 0.01 : transitionDuration;
+
+    // 3. 构建 xfade filter_complex 链
+    //    [0:v][1:v]xfade=transition=T:duration=D:offset=O0[v01];
+    //    [v01][2:v]xfade=transition=T:duration=D:offset=O1[v012];
+    //    ...
+    //    offset[i] = sum(durations[0..i]) - (i+1) * effectiveDuration
+    const filterParts: string[] = [];
+    let prevLabel = "[0:v]";
+    let cumulativeOffset = 0;
+    for (let i = 1; i < videoPaths.length; i++) {
+      cumulativeOffset += durations[i - 1]! - effectiveDuration;
+      const isLast = i === videoPaths.length - 1;
+      const outLabel = isLast ? "[out]" : `[v0-${i}]`;
+      filterParts.push(
+        `${prevLabel}[${i}:v]xfade=transition=${xfadeType}:duration=${effectiveDuration}:offset=${cumulativeOffset.toFixed(3)}${outLabel}`,
+      );
+      prevLabel = outLabel;
+    }
+
+    // 4. 构建 ffmpeg 命令
     const args = [
-      "-f", "concat", "-safe", "0", "-i",
       ...videoPaths.flatMap((p) => ["-i", p]),
+      "-filter_complex", filterParts.join(";"),
+      "-map", "[out]",
       "-y", outPath,
     ];
     const result = await executeFfmpegCommand(args);
     return {
       ...result,
       outputPath: result.success ? outPath : undefined,
-      metadata: { videoCount: videoPaths.length, transition, transitionDuration },
+      metadata: {
+        videoCount: videoPaths.length,
+        transition,
+        transitionDuration: effectiveDuration,
+        durations,
+        totalDuration: durations.reduce((sum, d) => sum + d, 0) - (videoPaths.length - 1) * effectiveDuration,
+      },
     };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : String(e) };

@@ -34,7 +34,7 @@ export function PluginPreviewExport({
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <textarea
           className="textarea"
-          style={{ fontSize: 12, minHeight: 300, background: "#0f172a", fontFamily: "monospace" }}
+          style={{ fontSize: 12, minHeight: 300, background: "var(--card2)", fontFamily: "monospace" }}
           value={generatedJson}
           readOnly
         />

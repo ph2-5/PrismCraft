@@ -1,3 +1,4 @@
+import { Zap, ClipboardList } from "lucide-react";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { TemplateSelectDialog } from "./TemplateSelectDialog";
@@ -13,7 +14,7 @@ export default function QuickGeneratePage() {
       <div className="fade-in flex flex-col h-full">
         <div className="top-tabs" style={{ justifyContent: "space-between" }}>
           <span style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
-            ⚡ {t("quickGenerate.pageName")}
+            <Zap size={14} /> {t("quickGenerate.pageName")}
           </span>
           <div className="toolbar">
             <button
@@ -21,7 +22,7 @@ export default function QuickGeneratePage() {
               className="btn btn-outline btn-sm"
               onClick={vm.onOpenTemplateDialog}
             >
-              📋 {t("quickGenerate.selectTemplate")}
+              <ClipboardList className="inline-block" size={12} /> {t("quickGenerate.selectTemplate")}
             </button>
             <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
               {t("quickGenerate.heroDesc")}

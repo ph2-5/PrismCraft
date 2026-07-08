@@ -1,4 +1,4 @@
-import { Film, Download, Layers, Trash2, RefreshCw, AlertCircle } from "lucide-react";
+import { Film, Download, Layers, Trash2, RefreshCw, AlertCircle, Lightbulb, Drama, Home, Settings } from "lucide-react";
 import { type VideoTask } from "@/modules/video";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
@@ -284,10 +284,10 @@ export function TaskResultPanel({
           style={{ padding: "0 16px 16px" }}
           className="space-y-3 text-sm"
         >
-          <p style={{ color: "var(--muted-fg)" }}>💡 {t("quickGenerate.tipDetailedDesc")}</p>
-          <p style={{ color: "var(--muted-fg)" }}>🎭 {t("quickGenerate.tipLockCharacter")}</p>
-          <p style={{ color: "var(--muted-fg)" }}>🏠 {t("quickGenerate.tipLockScene")}</p>
-          <p style={{ color: "var(--muted-fg)" }}>⚙️ {t("quickGenerate.tipProMode")}</p>
+          <p style={{ color: "var(--muted-fg)" }}><Lightbulb className="inline-block" size={12} /> {t("quickGenerate.tipDetailedDesc")}</p>
+          <p style={{ color: "var(--muted-fg)" }}><Drama className="inline-block" size={12} /> {t("quickGenerate.tipLockCharacter")}</p>
+          <p style={{ color: "var(--muted-fg)" }}><Home className="inline-block" size={12} /> {t("quickGenerate.tipLockScene")}</p>
+          <p style={{ color: "var(--muted-fg)" }}><Settings className="inline-block" size={12} /> {t("quickGenerate.tipProMode")}</p>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants/messages";
+import { COPY_RESET_DELAY_MS } from "@/shared/constants";
 import { formatTimestamp } from "@/shared/utils/format";
 import { Modal } from "@/shared/presentation/Modal";
 import { StatusBadge, getTaskDisplayStatus } from "./status-badge";
@@ -33,7 +34,7 @@ export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }:
   const handleCopyUrl = useCallback(async () => {
     if (!task.videoUrl) return;
     const resetCopied = () => {
-      copyResetTimerRef.current = setTimeout(() => setUrlCopied(false), 2000);
+      copyResetTimerRef.current = setTimeout(() => setUrlCopied(false), COPY_RESET_DELAY_MS);
     };
     try {
       await navigator.clipboard.writeText(task.videoUrl);

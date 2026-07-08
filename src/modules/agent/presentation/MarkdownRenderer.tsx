@@ -18,7 +18,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Check, Copy } from "lucide-react";
-import { t } from "@/shared/constants";
+import { t, COPY_RESET_DELAY_MS } from "@/shared/constants";
 
 interface MarkdownRendererProps {
   content: string;
@@ -41,7 +41,7 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+      copyTimerRef.current = setTimeout(() => setCopied(false), COPY_RESET_DELAY_MS);
     } catch {
       // 剪贴板不可用时静默失败
     }

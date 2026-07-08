@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Result } from "@/domain/types";
 import { isElectron } from "@/shared/utils/platform";
+import { DEFAULT_STALE_TIME_MS } from "@/shared/constants";
 
 /**
  * Minimal CRUD service contract that createCrudHooks relies on.
@@ -53,7 +54,7 @@ export function createCrudHooks<T, TCreateInput, TUpdateInput extends { id: stri
         return result.value;
       },
       enabled: isElectron(),
-      staleTime: 5 * 60 * 1000,
+      staleTime: DEFAULT_STALE_TIME_MS,
     });
 
   const useOne = (id: string) =>

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-q
 import { loadModelProfilesFromServer, getAllModelProfiles, type ModelParameterProfile } from "@/shared/model-capabilities";
 import { isElectron } from "@/shared/utils/platform";
 import { errorLogger } from "@/shared/error-logger";
+import { DEFAULT_STALE_TIME_MS } from "@/shared/constants";
 
 const MODEL_CAPABILITIES_QUERY_KEY = ["model-capabilities"] as const;
 
@@ -13,7 +14,7 @@ export function useModelCapabilities(): UseQueryResult<Record<string, ModelParam
       return getAllModelProfiles();
     },
     enabled: isElectron(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }
 

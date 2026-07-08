@@ -4,7 +4,7 @@ import { logger } from "@/config/constants";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
 import { classifyErrorSeverity, type ErrorSeverity } from "@/shared/utils/error-classifier";
-import { t } from "@/shared/constants";
+import { t, COPY_RESET_DELAY_MS } from "@/shared/constants";
 
 interface Props {
   children: ReactNode;
@@ -126,7 +126,7 @@ export class ErrorBoundary extends Component<Props, State> {
     const markCopied = () => {
       this.setState({ copied: true });
       if (this.copyTimerId) clearTimeout(this.copyTimerId);
-      this.copyTimerId = setTimeout(() => this.setState({ copied: false }), 2000);
+      this.copyTimerId = setTimeout(() => this.setState({ copied: false }), COPY_RESET_DELAY_MS);
     };
 
     if (navigator.clipboard && navigator.clipboard.writeText) {

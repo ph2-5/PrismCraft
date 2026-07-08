@@ -6,6 +6,19 @@ import type {
   VideoVerificationResult,
 } from "../types/video-recovery-types";
 
+/** 任务最大存活时间（2 小时），超过则不再重试 */
+const MAX_TASK_AGE_MS = 120 * 60 * 1000;
+/** 任务刚创建的宽限期（30 秒），期间不建议重试 */
+const TASK_GRACE_PERIOD_MS = 30000;
+/** 生成中任务的重试延迟基数（30 秒） */
+const GENERATING_RETRY_BASE_MS = 30000;
+/** 生成中任务的重试延迟递增步长（10 秒/次） */
+const GENERATING_RETRY_STEP_MS = 10000;
+/** 生成中任务的重试延迟上限（2 分钟） */
+const GENERATING_RETRY_MAX_MS = 120000;
+/** 触发速率限制后的最小重试延迟（1 分钟） */
+const RATE_LIMIT_MIN_DELAY_MS = 60000;
+
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 60,
   baseDelayMs: 10000,
@@ -37,8 +50,7 @@ export class SmartRetryEngine {
     }
 
     const taskAge = Date.now() - new Date(task.createdAt).getTime();
-    const maxTaskAge = 120 * 60 * 1000;
-    if (taskAge > maxTaskAge) {
+    if (taskAge > MAX_TASK_AGE_MS) {
       return {
         shouldRetry: false,
         reason: "任务已超时（超过2小时），不再重试",
@@ -77,13 +89,13 @@ export class SmartRetryEngine {
     } else if (task.status === "generating" || task.status === "pending") {
       const timeSinceCreation = Date.now() - new Date(task.createdAt).getTime();
 
-      if (timeSinceCreation < 30000) {
+      if (timeSinceCreation < TASK_GRACE_PERIOD_MS) {
         decision = {
           shouldRetry: false,
           reason: "任务刚开始处理，建议等待",
           errorCategory: "unknown",
           confidence: "high",
-          retryAfterMs: 30000,
+          retryAfterMs: TASK_GRACE_PERIOD_MS,
           tokenWasteRisk: "low",
         };
       } else if (task.pollCount && task.pollCount > 5) {
@@ -101,7 +113,7 @@ export class SmartRetryEngine {
           reason: "任务仍在生成中",
           errorCategory: "unknown",
           confidence: "high",
-          retryAfterMs: Math.min(30000 + previousAttempts * 10000, 120000),
+          retryAfterMs: Math.min(GENERATING_RETRY_BASE_MS + previousAttempts * GENERATING_RETRY_STEP_MS, GENERATING_RETRY_MAX_MS),
           tokenWasteRisk: "low",
         };
       }
@@ -117,7 +129,7 @@ export class SmartRetryEngine {
 
     if (decision.shouldRetry) {
       const retryAfterMs = decision.retryAfterMs ?? this.calculateNextRetryDelay(previousAttempts);
-      if (taskAge + retryAfterMs > maxTaskAge) {
+      if (taskAge + retryAfterMs > MAX_TASK_AGE_MS) {
         return {
           shouldRetry: false,
           reason: "重试延迟将超出任务最大存活时间，不再重试",
@@ -209,7 +221,7 @@ export class SmartRetryEngine {
           reason: "触发API速率限制，需要等待后重试",
           errorCategory: category,
           confidence: "high",
-          retryAfterMs: Math.max(this.calculateNextRetryDelay(previousAttempts), 60000),
+          retryAfterMs: Math.max(this.calculateNextRetryDelay(previousAttempts), RATE_LIMIT_MIN_DELAY_MS),
           tokenWasteRisk: "low",
         };
 

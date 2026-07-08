@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllTemplatesAsync, type ProviderTemplate } from "@/shared/api-config";
 import { isElectron } from "@/shared/utils/platform";
 import { errorLogger } from "@/shared/error-logger";
+import { DEFAULT_STALE_TIME_MS } from "@/shared/constants";
 
 const PROVIDER_TEMPLATES_QUERY_KEY = ["provider-templates"] as const;
 
@@ -10,7 +11,7 @@ export function useProviderTemplates() {
     queryKey: PROVIDER_TEMPLATES_QUERY_KEY,
     queryFn: () => getAllTemplatesAsync(),
     enabled: isElectron(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }
 

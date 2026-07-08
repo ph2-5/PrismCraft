@@ -13,7 +13,7 @@ import type { AgentMessage, ToolExecution } from "../domain/types";
 import { ToolCallCard } from "./ToolCallCard";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { User, Bot, Copy, Check } from "lucide-react";
-import { t } from "@/shared/constants";
+import { t, COPY_RESET_DELAY_MS } from "@/shared/constants";
 
 interface AgentMessageViewProps {
   message: AgentMessage;
@@ -35,7 +35,7 @@ export function AgentMessageView({ message, toolExecutions }: AgentMessageViewPr
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+      copyTimerRef.current = setTimeout(() => setCopied(false), COPY_RESET_DELAY_MS);
     } catch {
       // 剪贴板不可用时静默失败
     }

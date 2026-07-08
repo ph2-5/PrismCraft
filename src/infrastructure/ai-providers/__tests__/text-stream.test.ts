@@ -95,7 +95,7 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
       expect.objectContaining({ onChunk: expect.any(Function) }),
     );
     // body 应包含 prompt
-    const callArgs = mockApiCallStream.mock.calls[0][1];
+    const callArgs = mockApiCallStream.mock.calls[0]![1]!;
     expect(callArgs.body).toContain("测试提示词");
   });
 
@@ -109,7 +109,7 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
     await generateTextStream("hello", { onChunk: () => {} });
 
     expect(mockResolveCapability).toHaveBeenCalledWith("text");
-    const callArgs = mockApiCallStream.mock.calls[0][1];
+    const callArgs = mockApiCallStream.mock.calls[0]![1]!;
     expect(callArgs.body).toContain('"providerId":"deepseek"');
     expect(callArgs.body).toContain('"modelId":"deepseek-chat"');
   });
@@ -125,7 +125,7 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
       onChunk: () => {},
     });
 
-    const callArgs = mockApiCallStream.mock.calls[0][1];
+    const callArgs = mockApiCallStream.mock.calls[0]![1]!;
     expect(callArgs.body).toContain('"maxTokens":2048');
     expect(callArgs.body).toContain('"temperature":0.3');
   });
@@ -139,7 +139,7 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
       onChunk: () => {},
     });
 
-    const callArgs = mockApiCallStream.mock.calls[0][1];
+    const callArgs = mockApiCallStream.mock.calls[0]![1]!;
     expect(callArgs.body).toContain('"maxTokens":300');
   });
 
@@ -152,7 +152,7 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
       onChunk: () => {},
     });
 
-    const callArgs = mockApiCallStream.mock.calls[0][1];
+    const callArgs = mockApiCallStream.mock.calls[0]![1]!;
     expect(callArgs.body).toContain('"temperature":0.7');
   });
 
@@ -177,7 +177,7 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
       onChunk: () => {},
     });
 
-    const callArgs = mockApiCallStream.mock.calls[0][1];
+    const callArgs = mockApiCallStream.mock.calls[0]![1]!;
     const body = JSON.parse(callArgs.body);
     expect(body.tools).toEqual(tools);
   });
@@ -192,7 +192,7 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
       onChunk: () => {},
     });
 
-    const callArgs = mockApiCallStream.mock.calls[0][1];
+    const callArgs = mockApiCallStream.mock.calls[0]![1]!;
     const body = JSON.parse(callArgs.body);
     expect(body.tools).toBeUndefined();
   });
@@ -230,7 +230,7 @@ describe("generateTextStream (Task 1.0 流式文本生成)", () => {
       onChunk: () => {},
     });
 
-    const callArgs = mockApiCallStream.mock.calls[0][1];
+    const callArgs = mockApiCallStream.mock.calls[0]![1]!;
     const body = JSON.parse(callArgs.body);
     expect(body.prompt).toBe("truncated prompt");
     expect(body.promptWasTruncated).toBe(true);

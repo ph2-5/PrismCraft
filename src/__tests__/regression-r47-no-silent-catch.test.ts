@@ -70,7 +70,7 @@ function findConsoleInCatch(content: string, filePath: string): string[] {
   const lines = content.split("\n");
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
     // 跳过注释行
     const trimmed = line.trim();
     if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) {
@@ -84,7 +84,7 @@ function findConsoleInCatch(content: string, filePath: string): string[] {
     let braceDepth = 0;
     let foundOpenBrace = false;
     for (let j = i; j < Math.min(i + 10, lines.length); j++) {
-      const scanLine = lines[j];
+      const scanLine = lines[j]!;
       for (const ch of scanLine) {
         if (ch === "{") {
           braceDepth++;

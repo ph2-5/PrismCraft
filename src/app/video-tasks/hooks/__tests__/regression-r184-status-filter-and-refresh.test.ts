@@ -91,6 +91,7 @@ function makeMixedTasks(): VideoTask[] {
     makeTask("t-pending-2", "pending"),
     makeTask("t-gen-1", "generating"),
     makeTask("t-gen-2", "generating"),
+    makeTask("t-retry-1", "retrying"),
     makeTask("t-done-1", "completed"),
     makeTask("t-done-2", "completed"),
     makeTask("t-failed-1", "failed"),
@@ -127,7 +128,7 @@ describe("R184: VideoTasksPage statusFilter 与刷新按钮", () => {
     expect(result.current.allTasks).toHaveLength(tasks.length);
   });
 
-  it("statusFilter='processing' 只包含 generating 和 pending", () => {
+  it("statusFilter='processing' 只包含 generating 和 retrying（与统计逻辑一致，不含 pending）", () => {
     const tasks = makeMixedTasks();
     setupManager(tasks);
 
@@ -138,17 +139,13 @@ describe("R184: VideoTasksPage statusFilter 与刷新按钮", () => {
     });
 
     expect(result.current.statusFilter).toBe("processing");
-    expect(result.current.allTasks).toHaveLength(4); // 2 pending + 2 generating
+    expect(result.current.allTasks).toHaveLength(3); // 2 generating + 1 retrying
     const ids = result.current.allTasks.map((t) => t.taskId);
     expect(ids).toEqual(
-      expect.arrayContaining([
-        "t-pending-1",
-        "t-pending-2",
-        "t-gen-1",
-        "t-gen-2",
-      ]),
+      expect.arrayContaining(["t-gen-1", "t-gen-2", "t-retry-1"]),
     );
-    // 不应包含 completed/failed/timeout
+    // 不应包含 pending/completed/failed/timeout
+    expect(ids).not.toContain("t-pending-1");
     expect(ids).not.toContain("t-done-1");
     expect(ids).not.toContain("t-failed-1");
   });

@@ -152,7 +152,7 @@ prismcraft/
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |
 | 架构扫描 | 通过（DDD 依赖方向） |
-| 回归守卫 | 180+ 条规则，8 大类 |
+| 回归守卫 | 183 条规则，8 大类 |
 | i18n 键 | 2000+ |
 
 ## 安全设计
@@ -178,3 +178,12 @@ prismcraft/
 
 - **GitHub Issues**：[ph2-5/PrismCraft/issues](https://github.com/ph2-5/PrismCraft/issues)
 - **Trae 社区**：[@u590909302648505](https://forum.trae.cn/u/u590909302648505)
+
+## 商标免责声明
+
+本项目名称 "PrismCraft" 及相关标识仅用于软件产品识别目的。本项目与以下实体无任何关联、 endorsement 或从属关系：
+
+- 任何其他名为 "PrismCraft" 的游戏、软件或产品
+- 任何第三方公司、组织或品牌
+
+所有提及的第三方商标、服务标记、产品名称均归各自所有者所有，本项目不主张对这些标记的任何权利。AI 提供商名称（Kling、Pika、Runway、MiniMax、OpenAI、Luma 等）均为各自公司的商标。

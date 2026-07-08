@@ -52,8 +52,18 @@ jobs:
       - name: Rebuild native modules for Electron
         run: npx electron-rebuild -f -w better-sqlite3
 
-      - name: Package Electron app and publish to GitHub Release
-        run: npx electron-builder --mac --publish=always
+      - name: Package Electron app (no auto-publish, upload via gh CLI)
+        run: npx electron-builder --mac --publish=never
+
+      - name: Upload macOS assets to GitHub Release
+        run: |
+          # 通过 gh CLI 上传到现有 release（支持 tag 触发和 workflow_dispatch）
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [ -z "$TAG" ] || [ "$TAG" = "$GITHUB_REF" ]; then
+            TAG="v$(node -p "require('./package.json').version")"
+          fi
+          echo "Uploading macOS assets to release $TAG"
+          gh release upload "$TAG" release/PrismCraft-*.dmg release/PrismCraft-*.dmg.blockmap release/PrismCraft-*.zip release/PrismCraft-*.zip.blockmap release/latest-mac.yml --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -104,7 +114,18 @@ jobs:
         env:
           PYTHON: ${{ env.pythonLocation }}\python.exe
 
-      - name: Package Electron app and publish to GitHub Release
-        run: npx electron-builder --win --x64 --publish=always
+      - name: Package Electron app (no auto-publish, upload via gh CLI)
+        run: npx electron-builder --win --x64 --publish=never
+
+      - name: Upload Windows assets to GitHub Release
+        shell: pwsh
+        run: |
+          # 通过 gh CLI 上传到现有 release（支持 tag 触发和 workflow_dispatch）
+          $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
+          if (-not $tag -or $tag -eq $env:GITHUB_REF) {
+            $tag = "v$(node -p "require('./package.json').version")"
+          }
+          Write-Host "Uploading Windows assets to release $tag"
+          gh release upload $tag release/PrismCraft-Setup.exe release/PrismCraft-Setup.exe.blockmap release/latest.yml --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

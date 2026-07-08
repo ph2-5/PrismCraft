@@ -120,7 +120,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
             onClick={() => void loadMemory()}
             disabled={loading}
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-            title="刷新"
+            title={t("agent.refreshMemory")}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </button>

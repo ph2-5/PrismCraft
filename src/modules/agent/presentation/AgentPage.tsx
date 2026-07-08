@@ -115,7 +115,7 @@ export function AgentPage() {
             <button
               onClick={() => setShowHistory(!showHistory)}
               className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title={showHistory ? "隐藏历史" : "显示历史"}
+              title={showHistory ? t("agent.hideHistory") : t("agent.showHistory")}
             >
               {showHistory ? (
                 <PanelLeftClose className="h-4 w-4" />

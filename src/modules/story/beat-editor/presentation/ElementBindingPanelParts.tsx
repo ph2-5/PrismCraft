@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Upload, Folder } from "lucide-react";
+import type { ReactNode } from "react";
+import { Upload, Folder, User, Package, Sparkles, MapPin } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import type {
@@ -23,7 +24,7 @@ interface ElementAvatarProps {
   type: StoryElement["type"];
   imageUrl?: string;
   name: string;
-  placeholder: string;
+  placeholder: ReactNode;
 }
 
 export function ElementAvatar({ type, imageUrl, name, placeholder }: ElementAvatarProps) {
@@ -150,7 +151,7 @@ export function SceneTransitionList({
                 justifyContent: "space-between",
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 600 }}>→ 🏙 {targetScene.name}</span>
+              <span style={{ fontSize: 11, fontWeight: 600 }}><MapPin style={{ width: 11, height: 11, display: "inline", verticalAlign: "middle" }} /> {targetScene.name}</span>
               <button
                 className="btn btn-ghost btn-xs"
                 style={{ color: "var(--destructive)", padding: "0 4px" }}
@@ -319,21 +320,21 @@ export function AddElementMenu({
           style={{ flex: 1 }}
           onClick={() => onCreateNewElement("character")}
         >
-          👤 {t("element.characterLabel")}
+          <User style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("element.characterLabel")}
         </button>
         <button
           className="btn btn-outline btn-xs"
           style={{ flex: 1 }}
           onClick={() => onCreateNewElement("prop")}
         >
-          📦 {t("element.propLabel")}
+          <Package style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("element.propLabel")}
         </button>
         <button
           className="btn btn-outline btn-xs"
           style={{ flex: 1 }}
           onClick={() => onCreateNewElement("effect")}
         >
-          <span aria-hidden="true">✨</span> {t("element.effectLabel")}
+          <Sparkles style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("element.effectLabel")}
         </button>
       </div>
       <button className="btn btn-ghost btn-xs" onClick={onCancel}>

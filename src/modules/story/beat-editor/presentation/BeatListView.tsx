@@ -4,6 +4,9 @@ import {
   Plus,
   Film,
   Loader2,
+  User,
+  Clock,
+  MapPin,
 } from "lucide-react";
 import {
   DndContext,
@@ -65,7 +68,7 @@ function BeatCard({ beat, index, characters, scenes, onEditClick, isSelected }: 
       ? <span className="badge badge-success">✓</span>
       : hasKeyframe
         ? <span className="badge badge-success">✓</span>
-        : <span className="badge badge-info">⏳</span>;
+        : <Clock style={{ width: 10, height: 10 }} />;
 
   return (
     <div
@@ -135,7 +138,7 @@ function BeatCard({ beat, index, characters, scenes, onEditClick, isSelected }: 
               className="badge badge-info"
               style={{ fontSize: 10, padding: "2px 6px" }}
             >
-              👤{name}
+              <User style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} />{name}
             </span>
           ))
         ) : (
@@ -156,7 +159,7 @@ function BeatCard({ beat, index, characters, scenes, onEditClick, isSelected }: 
             className="badge badge-success"
             style={{ fontSize: 10, padding: "2px 6px" }}
           >
-            🏙{sceneName}
+            <MapPin style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} />{sceneName}
           </span>
         ) : (
           <span

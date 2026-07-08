@@ -63,17 +63,17 @@ export function BatchProgressDialog({
       {globalError && (
         <div
           className="rounded-lg border p-4 mb-4"
-          style={{ background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)" }}
+          style={{ background: "rgba(var(--destructive-rgb), 0.1)", borderColor: "rgba(var(--destructive-rgb), 0.3)" }}
         >
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 mt-0.5" style={{ color: "#ef4444" }} />
+            <AlertCircle className="h-5 w-5 mt-0.5" style={{ color: "var(--destructive)" }} />
             <div className="flex-1 min-w-0">
               <h4 className="font-medium" style={{ color: "#ef4444" }}>{globalError}</h4>
               <button
                 type="button"
                 onClick={onRetryGlobalError}
                 className="mt-3 text-sm font-medium underline hover:opacity-80"
-                style={{ color: "#ef4444" }}
+                style={{ color: "var(--destructive)" }}
               >
                 {t("common.retry")}
               </button>

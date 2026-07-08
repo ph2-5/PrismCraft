@@ -30,6 +30,9 @@ import {
   Settings as SettingsIcon,
   PanelLeft,
   PanelLeftClose,
+  Search,
+  BarChart3,
+  Video,
 } from "lucide-react";
 
 export function AgentPage() {
@@ -238,10 +241,10 @@ export function AgentPage() {
 /** 空状态引导 */
 function EmptyState() {
   const suggestions = [
-    { icon: "🔍", text: t("agent.suggestion.queryCharacters") },
-    { icon: "🔧", text: t("agent.suggestion.configureApi") },
-    { icon: "📊", text: t("agent.suggestion.projectStatus") },
-    { icon: "🎥", text: t("agent.suggestion.failedTasks") },
+    { icon: Search, text: t("agent.suggestion.queryCharacters") },
+    { icon: SettingsIcon, text: t("agent.suggestion.configureApi") },
+    { icon: BarChart3, text: t("agent.suggestion.projectStatus") },
+    { icon: Video, text: t("agent.suggestion.failedTasks") },
   ];
 
   return (
@@ -257,7 +260,7 @@ function EmptyState() {
             key={s.text}
             className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
           >
-            <span className="text-lg">{s.icon}</span>
+            <s.icon className="h-4 w-4 text-primary" />
             <span className="text-muted-foreground">{s.text}</span>
           </div>
         ))}

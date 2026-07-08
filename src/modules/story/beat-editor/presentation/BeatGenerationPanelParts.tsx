@@ -1,4 +1,5 @@
-import type { RefObject } from "react";
+import type { RefObject, ReactNode } from "react";
+import { Upload, RefreshCw, Download, Play, Image as ImageIcon } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { StoryBeat } from "@/domain/schemas";
 import type { useToastHelpers } from "@/shared/presentation/Toast";
@@ -10,7 +11,7 @@ interface PreviewBoxProps {
   imageUrl: string | null;
   alt: string;
   emptyText?: string;
-  emptyEmoji?: string;
+  emptyEmoji?: ReactNode;
   opacity?: number;
   fontSize?: number;
   onImageClick?: (url: string) => void;
@@ -85,7 +86,7 @@ export function KeyframePreviewCard({
       <PreviewBox
         imageUrl={keyframeImage}
         alt={beatTitle}
-        emptyEmoji="🌅"
+        emptyEmoji={<ImageIcon size={36} />}
         onImageClick={onImageClick}
       />
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
@@ -101,7 +102,7 @@ export function KeyframePreviewCard({
           onClick={() => uploadPanelHandle.current?.triggerKeyframeUpload()}
           aria-label={t("common.upload")}
         >
-          <span aria-hidden="true">📤</span>
+          <Upload style={{ width: 12, height: 12 }} aria-hidden="true" />
         </button>
         {onRegenerate && keyframeImage && (
           <button
@@ -110,7 +111,7 @@ export function KeyframePreviewCard({
             disabled={generatingKeyframe}
             aria-label={t("common.regenerate")}
           >
-            🔄
+            <RefreshCw style={{ width: 12, height: 12 }} aria-hidden="true" />
           </button>
         )}
       </div>
@@ -171,14 +172,14 @@ export function FramePairPreviewCard({
           onClick={() => uploadPanelHandle.current?.triggerFirstFrameUpload()}
           aria-label={t("keyframe.uploadFirstFrame")}
         >
-          <span aria-hidden="true">📤</span>
+          <Upload style={{ width: 12, height: 12 }} aria-hidden="true" />
         </button>
         <button
           className="btn btn-outline btn-xs"
           onClick={() => uploadPanelHandle.current?.triggerLastFrameUpload()}
           aria-label={t("keyframe.uploadLastFrame")}
         >
-          <span aria-hidden="true">📥</span>
+          <Download style={{ width: 12, height: 12 }} aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -226,7 +227,7 @@ export function VideoGenerationCard({
             controls
           />
         ) : (
-          <span aria-hidden="true">▶️</span>
+          <Play size={36} aria-hidden="true" />
         )}
       </div>
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
@@ -247,7 +248,7 @@ export function VideoGenerationCard({
           onClick={() => uploadPanelHandle.current?.triggerVideoUpload()}
           aria-label={t("common.upload")}
         >
-          <span aria-hidden="true">📤</span>
+          <Upload style={{ width: 12, height: 12 }} aria-hidden="true" />
         </button>
       </div>
     </div>

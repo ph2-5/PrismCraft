@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from "react";
+import { Zap, Image as ImageIcon, User, Clapperboard, Play, MapPin } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { container } from "@/infrastructure/di";
@@ -252,7 +253,7 @@ export function ProfessionalModeEditor({
           <div className="tc-thumb">
             {isVideoGenerating ? (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 4, width: "100%", height: "100%" }}>
-                <span style={{ fontSize: 20 }}>⚡</span>
+                <Zap size={20} />
                 <span style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("beat.generating")}</span>
                 <div className="progress-bar" style={{ width: 60 }}>
                   <div className="progress-fill" style={{ width: "67%" }}></div>
@@ -265,14 +266,14 @@ export function ProfessionalModeEditor({
                 style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px 8px 0 0" }}
               />
             ) : (
-              <span style={{ fontSize: 24, opacity: 0.6 }} aria-hidden="true">🌅</span>
+              <ImageIcon size={24} style={{ opacity: 0.6 }} aria-hidden="true" />
             )}
             <div className="tc-bindings">
               {charNames.map((name: string, idx: number) => (
-                <span key={`char-${idx}`} className="tc-bind-tag">👤{name}</span>
+                <span key={`char-${idx}`} className="tc-bind-tag"><User style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} />{name}</span>
               ))}
               {sceneName && (
-                <span className="tc-bind-tag">🏙{sceneName}</span>
+                <span className="tc-bind-tag"><MapPin style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} />{sceneName}</span>
               )}
             </div>
           </div>
@@ -354,14 +355,14 @@ export function ProfessionalModeEditor({
               onClick={() => onBatchGenerateVideos?.()}
               disabled={isPlanningStory || beats.length === 0}
             >
-              🎬 {t("story.generateAllVideos")}
+              <Clapperboard style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("story.generateAllVideos")}
             </button>
             <button
               className="btn btn-outline btn-xs"
               onClick={() => setShowPreviewModal(true)}
               disabled={beats.length === 0}
             >
-              ▶ {t("story.preview")}
+              <Play style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("story.preview")}
             </button>
           </div>
         </div>

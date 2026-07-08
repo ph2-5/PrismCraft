@@ -67,7 +67,7 @@ function SortableBeatItem({
         padding: "10px 12px",
         borderRadius: 8,
         border: `1px solid ${isSelected ? "var(--primary)" : "var(--border)"}`,
-        background: isSelected ? "rgba(99,102,241,0.08)" : "var(--card)",
+        background: isSelected ? "rgba(var(--primary-rgb), 0.08)" : "var(--card)",
         cursor: "pointer",
         transition: "border-color 0.15s, background 0.15s",
         boxShadow: isDragging ? "0 4px 12px rgba(0,0,0,0.15)" : undefined,

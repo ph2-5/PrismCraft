@@ -1,3 +1,4 @@
+import { Film } from "lucide-react";
 import { t } from "@/shared/constants";
 import { BeatDetailEditor } from "./BeatDetailEditor";
 import type { Character, Scene, StoryBeat, StoryElement } from "@/domain/schemas";
@@ -101,7 +102,7 @@ export function BeatDetailView({
       ) : (
         <div className="h-full flex items-center justify-center" style={{ color: "var(--muted-fg)" }}>
           <div className="text-center">
-            <div style={{ fontSize: 48, opacity: 0.2, marginBottom: 12 }}>🎬</div>
+            <Film size={48} style={{ opacity: 0.2, marginBottom: 12 }} />
             <p style={{ fontSize: 14 }}>{t("beat.selectBeatToView")}</p>
             <p style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>{t("beat.orClickAIPlan")}</p>
           </div>

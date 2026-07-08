@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS } from "@/modules/shot";
 import type { StoryBeat, ShotInstructionTemplate } from "@/domain/schemas";
@@ -142,7 +143,7 @@ export function BeatNavigation({
           onClick={handleDeleteClick}
           aria-label={t("common.delete")}
         >
-          <span aria-hidden="true">🗑</span>
+          <Trash2 style={{ width: 12, height: 12 }} aria-hidden="true" />
         </button>
       </div>
     </div>

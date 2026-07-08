@@ -191,7 +191,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
             <div
               style={{
                 padding: 16,
-                background: "rgba(var(--primary-rgb, 99, 102, 241), 0.1)",
+                background: "rgba(var(--primary-rgb), 0.1)",
                 borderRadius: 8,
                 display: "flex",
                 flexDirection: "column",

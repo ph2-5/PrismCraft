@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { User, Package, MapPin } from "lucide-react";
 import { t } from "@/shared/constants";
 import type {
   StoryElement,
@@ -36,7 +37,7 @@ export function CharacterElementCard({
   const imageUrl = binding.imageUrl || element.bindings?.find((b) => b.isPrimary)?.url;
   return (
     <div className="element-card">
-      <ElementAvatar type="character" imageUrl={imageUrl} name={element.name} placeholder="👤" />
+      <ElementAvatar type="character" imageUrl={imageUrl} name={element.name} placeholder={<User size={24} />} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <input
@@ -156,7 +157,7 @@ export function SceneElementCard({
 
   return (
     <div className="element-card">
-      <ElementAvatar type="scene" imageUrl={imageUrl} name={element.name} placeholder="🏙" />
+      <ElementAvatar type="scene" imageUrl={imageUrl} name={element.name} placeholder={<MapPin size={24} />} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 13, fontWeight: 600 }}>{element.name}</span>
@@ -243,7 +244,7 @@ export function PropElementCard({
   const imageUrl = binding.imageUrl || element.bindings?.find((b) => b.isPrimary)?.url;
   return (
     <div className="element-card">
-      <ElementAvatar type={element.type} imageUrl={imageUrl} name={element.name} placeholder="📦" />
+      <ElementAvatar type={element.type} imageUrl={imageUrl} name={element.name} placeholder={<Package size={24} />} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <input

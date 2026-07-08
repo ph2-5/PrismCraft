@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { User, Check, AlertTriangle, MapPin } from "lucide-react";
 import { t } from "@/shared/constants";
 import { getBeatCharacterIds } from "@/domain/utils";
 import { ShotReferenceConfig, ReferenceVideoUploader } from "@/modules/story/generation";
@@ -222,9 +223,9 @@ export function BeatDetailEditor({
                 return (
                   <div key={score.elementId}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span>👤 {score.elementName}</span>
+                      <span><User style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {score.elementName}</span>
                       <span style={{ color: isPass ? "var(--success)" : "var(--warning)" }}>
-                        {isPass ? "✓" : "⚠"} {(score.score * 100).toFixed(0)}%
+                        {isPass ? <Check style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> : <AlertTriangle style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} />} {(score.score * 100).toFixed(0)}%
                       </span>
                     </div>
                     <div className="progress-bar" style={{ marginBottom: 8 }}>
@@ -244,7 +245,7 @@ export function BeatDetailEditor({
               boundCharacters.map((char) => (
                 <div key={char.id}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span>👤 {char.name}</span>
+                    <span><User style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {char.name}</span>
                     <span style={{ color: "var(--muted-fg)" }}>—</span>
                   </div>
                   <div className="progress-bar" style={{ marginBottom: 8 }}>
@@ -256,7 +257,7 @@ export function BeatDetailEditor({
             {selectedScene && (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>🏙 {selectedScene.name}</span>
+                  <span><MapPin style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {selectedScene.name}</span>
                   <span style={{ color: "var(--success)" }}>
                     {consistencyCheck ? "✓" : "—"}
                   </span>

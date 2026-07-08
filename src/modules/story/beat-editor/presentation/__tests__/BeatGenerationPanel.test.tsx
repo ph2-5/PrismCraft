@@ -50,15 +50,15 @@ describe("BeatGenerationPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("未生成关键帧时应渲染占位 emoji 🌅", () => {
+  it("未生成关键帧时应渲染占位图标", () => {
     const uploadPanelHandle = { current: null } as React.RefObject<BeatUploadPanelHandle | null>;
-    render(
+    const { container } = render(
       <BeatGenerationPanel
         beat={createBeat()}
         uploadPanelHandle={uploadPanelHandle}
       />,
     );
-    expect(screen.getByText("🌅")).not.toBeNull();
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   it("已有 keyframe.imageUrl 时应渲染 <img>（resolveMediaUrl 被调用）", () => {
@@ -109,15 +109,15 @@ describe("BeatGenerationPanel", () => {
     expect(screen.getByAltText("last frame")).not.toBeNull();
   });
 
-  it("未生成视频时应渲染 ▶️ 占位", () => {
+  it("未生成视频时应渲染播放图标占位", () => {
     const uploadPanelHandle = { current: null } as React.RefObject<BeatUploadPanelHandle | null>;
-    render(
+    const { container } = render(
       <BeatGenerationPanel
         beat={createBeat()}
         uploadPanelHandle={uploadPanelHandle}
       />,
     );
-    expect(screen.getByText("▶️")).not.toBeNull();
+    expect(container.querySelector("svg")).not.toBeNull();
   });
 
   it("已有 videoGen.videoUrl 时应渲染 <video>", () => {

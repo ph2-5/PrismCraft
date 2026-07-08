@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Image as ImageIcon, Clapperboard, Film } from "lucide-react";
 import { t } from "@/shared/constants";
 import { Tabs } from "@/shared/presentation/Tabs";
 import { SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS } from "@/modules/shot";
@@ -165,10 +166,10 @@ export function BeatPromptPanel({
             disabled={generatingKeyframe}
           >
             {promptTab === "keyframe"
-              ? `🖼 ${t("keyframe.generateKeyframe")}`
+              ? <><ImageIcon style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("keyframe.generateKeyframe")}</>
               : promptTab === "video"
-                ? `🎬 ${t("beat.generateVideo")}`
-                : `🎞 ${t("keyframe.generateFramePair")}`}
+                ? <><Clapperboard style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("beat.generateVideo")}</>
+                : <><Film style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("keyframe.generateFramePair")}</>}
           </button>
         </div>
       </div>

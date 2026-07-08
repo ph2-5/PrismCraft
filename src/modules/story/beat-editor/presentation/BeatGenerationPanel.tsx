@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import type { StoryBeat } from "@/domain/schemas";
@@ -93,7 +94,7 @@ export function BeatGenerationPanel({
         onClick={handleOneClickGenerate}
         disabled={generatingKeyframe}
       >
-        <span aria-hidden="true">✨</span> {t("keyframe.oneClickGenerate")}
+        <Sparkles style={{ width: 14, height: 14 }} aria-hidden="true" /> {t("keyframe.oneClickGenerate")}
       </button>
 
       {lightboxImage && (

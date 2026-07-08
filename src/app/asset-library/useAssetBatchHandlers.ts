@@ -67,8 +67,10 @@ export function useAssetBatchHandlers({
       setSecondaryData(data);
     } catch (err) {
       errorLogger.warn("Failed to load secondary data", err);
+      // 二级数据加载失败时提示用户，避免 UI 静默显示空状态
+      showError(t("asset.loadSecondaryFailed"), mapUserFacingError(err));
     }
-  }, [setSecondaryData]);
+  }, [setSecondaryData, showError]);
 
   const handleBatchDelete = useCallback(async () => {
     const ids = Array.from(selectedIds);

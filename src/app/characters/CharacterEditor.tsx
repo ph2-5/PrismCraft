@@ -467,6 +467,7 @@ function CharacterActionFooter({
         onClick={onSave}
         disabled={saveStatus === "saving" || !canSave}
         style={{ flex: 1, gap: 4, justifyContent: "center" }}
+        title={saveStatus !== "saving" && !canSave ? t("hint.saveCharacter") : undefined}
       >
         <Save style={{ width: 14, height: 14 }} />
         {saveStatus === "saving" ? t("common.saving") : t("character.saveCharacter")}

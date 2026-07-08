@@ -1,4 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// mock t: 返回 key 本身，便于断言
+vi.mock("@/shared/constants", () => ({
+  t: vi.fn((key: string) => key),
+}));
+
 import {
   getProviderInfoByProviderId,
   buildTrackingInfoByProviderId,
@@ -12,7 +18,7 @@ describe("video-tracker", () => {
     it("应返回已知 provider 的配置", () => {
       const kling = getProviderInfoByProviderId("kling");
       expect(kling).toBeDefined();
-      expect(kling?.name).toBe("可灵 (Kling)");
+      expect(kling?.nameKey).toBe("video.provider.kling");
       expect(kling?.id).toBe("kling");
       expect(kling?.baseUrl).toBe("https://api.klingai.com");
     });
@@ -36,12 +42,12 @@ describe("video-tracker", () => {
   describe("buildTrackingInfoByProviderId", () => {
     it("有 providerId 时应构建完整信息", () => {
       const info = buildTrackingInfoByProviderId("task-123", "https://api.example.com", "kling", "v1");
-      expect(info.providerName).toBe("可灵 (Kling)");
+      expect(info.providerName).toBe("video.provider.kling");
       expect(info.model).toBe("v1");
       expect(info.apiUrl).toBe("https://api.example.com");
       expect(info.queryEndpoint).toContain("task-123");
       expect(info.apiDocUrl).toBe("https://platform.klingai.com/docs");
-      expect(info.howToCheck).toContain("可灵平台");
+      expect(info.howToCheck).toBe("video.howToCheck.kling");
     });
 
     it("有 statusQueryUrl 的 provider 应生成查询端点", () => {
@@ -60,14 +66,14 @@ describe("video-tracker", () => {
       expect(info.model).toBeUndefined();
       expect(info.apiUrl).toBe("https://api.example.com");
       expect(info.queryEndpoint).toBeUndefined();
-      expect(info.howToCheck).toBe("请联系服务商获取任务状态查询方式");
+      expect(info.howToCheck).toBe("video.howToCheckFallback");
       expect(info.apiDocUrl).toBeUndefined();
     });
 
     it("未知 providerId 应使用默认 howToCheck", () => {
       const info = buildTrackingInfoByProviderId("task-002", undefined, "nonexistent");
       expect(info.providerName).toBeUndefined();
-      expect(info.howToCheck).toBe("请联系服务商获取任务状态查询方式");
+      expect(info.howToCheck).toBe("video.howToCheckFallback");
     });
 
     it("所有参数为空时仍应返回有效结构", () => {
@@ -76,7 +82,7 @@ describe("video-tracker", () => {
       expect(info.model).toBeUndefined();
       expect(info.apiUrl).toBeUndefined();
       expect(info.queryEndpoint).toBeUndefined();
-      expect(info.howToCheck).toBe("请联系服务商获取任务状态查询方式");
+      expect(info.howToCheck).toBe("video.howToCheckFallback");
       expect(info.apiDocUrl).toBeUndefined();
     });
   });
@@ -92,11 +98,11 @@ describe("video-tracker", () => {
 
     it("成功复制时应返回 ok: true", async () => {
       const info: TrackingInfo = {
-        providerName: "可灵 (Kling)",
+        providerName: "video.provider.kling",
         model: "v1",
         apiUrl: "https://api.example.com",
         queryEndpoint: "https://platform.klingai.com/task?taskId=123",
-        howToCheck: "1. 登录可灵平台",
+        howToCheck: "video.howToCheck.kling",
         apiDocUrl: "https://docs.example.com",
       };
 
@@ -105,35 +111,37 @@ describe("video-tracker", () => {
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledOnce();
       const text = vi.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
-      expect(text).toContain("可灵 (Kling)");
+      expect(text).toContain("video.provider.kling");
       expect(text).toContain("v1");
       expect(text).toContain("https://api.example.com");
       expect(text).toContain("https://platform.klingai.com/task?taskId=123");
-      expect(text).toContain("1. 登录可灵平台");
+      expect(text).toContain("video.howToCheck.kling");
       expect(text).toContain("https://docs.example.com");
     });
 
     it("缺少可选字段时应使用默认值", async () => {
       const info: TrackingInfo = {
-        howToCheck: "联系服务商",
+        howToCheck: "video.howToCheckFallback",
       };
 
       const result = await copyTrackingInfoToClipboard(info);
       expect(result.ok).toBe(true);
 
       const text = vi.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
-      expect(text).toContain("服务商: 未知");
-      expect(text).toContain("模型: 未知");
-      expect(text).toContain("API地址: 未记录");
-      expect(text).toContain("查询端点: 未记录");
-      expect(text).not.toContain("API文档");
+      // t mock 返回 key 本身：`task.providerLabel: common.unknown`
+      expect(text).toContain("task.providerLabel: common.unknown");
+      expect(text).toContain("task.modelLabelText: common.unknown");
+      expect(text).toContain("task.apiUrlLabel: common.notRecorded");
+      expect(text).toContain("task.queryEndpoint: common.notRecorded");
+      // apiDocUrl 缺失时不应出现 apiDocLabel
+      expect(text).not.toContain("task.apiDocLabel");
     });
 
     it("clipboard 失败时应返回 ok: false", async () => {
       vi.mocked(navigator.clipboard.writeText).mockRejectedValue(new Error("Permission denied"));
 
       const info: TrackingInfo = {
-        howToCheck: "联系服务商",
+        howToCheck: "video.howToCheckFallback",
       };
 
       const result = await copyTrackingInfoToClipboard(info);
@@ -151,7 +159,7 @@ describe("video-tracker", () => {
     it("有 queryEndpoint 时应打开查询链接", () => {
       const info: TrackingInfo = {
         queryEndpoint: "https://platform.klingai.com/task?taskId=123",
-        howToCheck: "联系服务商",
+        howToCheck: "video.howToCheckFallback",
       };
 
       const result = openTaskQueryLink(info);
@@ -164,7 +172,7 @@ describe("video-tracker", () => {
 
     it("无 queryEndpoint 但有 apiDocUrl 时应打开文档链接", () => {
       const info: TrackingInfo = {
-        howToCheck: "联系服务商",
+        howToCheck: "video.howToCheckFallback",
         apiDocUrl: "https://docs.example.com",
       };
 
@@ -176,7 +184,7 @@ describe("video-tracker", () => {
     it("有 queryEndpoint 时不应打开 apiDocUrl", () => {
       const info: TrackingInfo = {
         queryEndpoint: "https://platform.klingai.com/task?taskId=123",
-        howToCheck: "联系服务商",
+        howToCheck: "video.howToCheckFallback",
         apiDocUrl: "https://docs.example.com",
       };
 
@@ -190,7 +198,7 @@ describe("video-tracker", () => {
 
     it("无 queryEndpoint 和 apiDocUrl 时应返回 false", () => {
       const info: TrackingInfo = {
-        howToCheck: "联系服务商",
+        howToCheck: "video.howToCheckFallback",
       };
 
       const result = openTaskQueryLink(info);

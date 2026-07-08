@@ -306,6 +306,11 @@ export function ProviderConfigSection({
             onClick={onVerifyApiKey}
             disabled={apiKeyState.kind === "verifying" || !provider.apiKey || provider.apiKey.startsWith("$secure:")}
             style={{ flexShrink: 0 }}
+            title={
+              apiKeyState.kind !== "verifying" && (!provider.apiKey || provider.apiKey.startsWith("$secure:"))
+                ? t("hint.verifyApiKey")
+                : undefined
+            }
           >
             {apiKeyState.kind === "verifying" ? (
               <Loader2 size={12} className="animate-spin" style={{ marginRight: 4 }} />
@@ -463,6 +468,9 @@ function ModelCapabilityToggleGroup({
         return (
           <div
             key={cap}
+            role="switch"
+            aria-checked={isEnabled}
+            tabIndex={0}
             style={{
               display: "flex",
               alignItems: "center",
@@ -486,6 +494,13 @@ function ModelCapabilityToggleGroup({
                   }),
             }}
             onClick={() => onToggle(cap, isEnabled)}
+            onKeyDown={(e) => {
+              // R169: 可点击 div 必须支持键盘操作（Enter/Space 触发，与 button 一致）
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggle(cap, isEnabled);
+              }
+            }}
           >
             {capConfig?.icon}
             {capConfig?.name}

@@ -397,6 +397,11 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
             className="btn btn-outline btn-sm gap-1"
             onClick={handleSyncNow}
             disabled={isSyncing || !config.enabled || !hasServerConfig}
+            title={
+              !isSyncing && (!config.enabled || !hasServerConfig)
+                ? t("hint.syncNow")
+                : undefined
+            }
           >
             <RefreshCw
               className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}

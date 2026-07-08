@@ -19,9 +19,12 @@ export function useAutoSave({ enabled, intervalMinutes, onSave, isDirty }: UseAu
   const retryCountRef = useRef(0);
   const cancelledRef = useRef(false);
   const onSaveRef = useRef(onSave);
+  // 与 onSaveRef 对称：用 ref 同步 isDirty，避免 setInterval 闭包捕获过期引用（stale closure）
+  const isDirtyRef = useRef(isDirty);
   useEffect(() => {
     onSaveRef.current = onSave;
-  }, [onSave]);
+    isDirtyRef.current = isDirty;
+  }, [onSave, isDirty]);
 
   const guardedSave = useCallback(async () => {
     if (savingRef.current) {
@@ -66,7 +69,8 @@ export function useAutoSave({ enabled, intervalMinutes, onSave, isDirty }: UseAu
     cancelledRef.current = false;
 
     const timer = setInterval(() => {
-      if (isDirty && !isDirty()) return;
+      // 通过 ref 读取最新 isDirty，避免 setInterval 闭包捕获过期引用
+      if (isDirtyRef.current && !isDirtyRef.current()) return;
       guardedSave();
     }, intervalMs);
 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from "react";
-import { Zap, Image as ImageIcon, User, Clapperboard, Play, MapPin } from "lucide-react";
+import { Zap, Image as ImageIcon, User, Clapperboard, Play, MapPin, X } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { container } from "@/infrastructure/di";
@@ -454,8 +454,9 @@ export function ProfessionalModeEditor({
               <button
                 className="btn btn-ghost btn-xs"
                 onClick={() => setShowPreviewModal(false)}
+                aria-label={t("aria.close")}
               >
-                ✕
+                <X size={14} aria-hidden="true" />
               </button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>

@@ -44,14 +44,14 @@ interface AiRequestPreviewProps {
 function useReferenceImages(character: Character, generatedImage: string | null) {
   return useMemo(() => {
     const imgs: { url: string; label: string }[] = [];
-    if (generatedImage) imgs.push({ url: generatedImage, label: "生成图" });
-    if (character.avatarPath) imgs.push({ url: character.avatarPath, label: "头像" });
-    if (character.generatedImage) imgs.push({ url: character.generatedImage, label: "已生成图" });
-    if (character.refImagePath) imgs.push({ url: character.refImagePath, label: "参考图" });
+    if (generatedImage) imgs.push({ url: generatedImage, label: t("character.refImageGenerated") });
+    if (character.avatarPath) imgs.push({ url: character.avatarPath, label: t("character.avatar") });
+    if (character.generatedImage) imgs.push({ url: character.generatedImage, label: t("character.refImageGeneratedExisting") });
+    if (character.refImagePath) imgs.push({ url: character.refImagePath, label: t("character.refImage") });
     (character.outfits || []).forEach((outfit, idx) => {
       const outfitImg = outfit.imageUrl || outfit.localImagePath || outfit.thumbnailPath;
       if (outfitImg) {
-        imgs.push({ url: outfitImg, label: outfit.name || `造型 ${idx + 1}` });
+        imgs.push({ url: outfitImg, label: outfit.name || t("character.outfitLabel", { index: idx + 1 }) });
       }
     });
     return imgs;
@@ -167,7 +167,7 @@ function ActionButtons({
         {isGenerating ? t("common.generating") : t("character.generateImage")}
       </button>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <button className="btn btn-outline btn-xs" onClick={saveImageToCharacter} disabled={!currentCharacter.id} style={{ gap: 4 }}>
+        <button className="btn btn-outline btn-xs" onClick={saveImageToCharacter} disabled={!currentCharacter.id} style={{ gap: 4 }} title={!currentCharacter.id ? t("hint.saveToCharacter") : undefined}>
           <Save style={{ width: 12, height: 12 }} />
           {t("character.saveToCharacter")}
         </button>

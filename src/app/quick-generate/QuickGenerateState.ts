@@ -187,7 +187,7 @@ function useGenerateActions(
     deps.dispatch({ type: "SET_GENERATED_PROMPT", value: result });
     await executeGenerate(
       state,
-      deps as unknown as GenerateDeps,
+      deps,
       promptOverride,
     );
   }, [state, deps]);

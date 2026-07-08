@@ -3,13 +3,15 @@ import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { useVideoTaskManager, useVideoTaskStore } from "@/modules/video";
 import { confirm } from "@/shared/utils/confirm";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { errorLogger } from "@/shared/error-logger";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
 
 type StatusFilter = "all" | "processing" | "completed" | "failed";
 
 export function useVideoTasksPage() {
   const { guardedPush } = useNavigationGuard();
-  const { success: showSuccess } = useToastHelpers();
+  const { success: showSuccess, error: showError } = useToastHelpers();
   const {
     allTasks,
     startBackgroundProcessing,
@@ -43,6 +45,7 @@ export function useVideoTasksPage() {
           completed++;
           break;
         case "generating":
+        case "retrying": // retrying 视为进行中（与 POLLABLE_STATUSES 一致）
           processing++;
           break;
         case "pending":
@@ -50,6 +53,7 @@ export function useVideoTasksPage() {
           break;
         case "failed":
         case "timeout":
+        case "cancelled": // cancelled 视为失败类（不可恢复终态）
           failed++;
           break;
       }
@@ -75,7 +79,9 @@ export function useVideoTasksPage() {
       return tasks.filter((task) => task.status === "completed");
     }
     if (statusFilter === "failed") {
-      return tasks.filter((task) => task.status === "failed" || task.status === "timeout");
+      return tasks.filter(
+        (task) => task.status === "failed" || task.status === "timeout" || task.status === "cancelled",
+      );
     }
     return tasks;
   }, [tasks, statusFilter]);
@@ -96,6 +102,10 @@ export function useVideoTasksPage() {
       try {
         await clearCompletedTasks();
         showSuccess(t("task.clearCompletedSuccess"), t("task.clearCompletedSuccessDesc"));
+      } catch (e) {
+        // R47/R50: 清除任务失败时必须给用户反馈，不能让 rejection 静默冒泡
+        errorLogger.error("[VideoTasksPage] clearCompletedTasks failed", e);
+        showError(t("error.clearFailed"), mapUserFacingError(e));
       } finally {
         setIsClearingCompleted(false);
       }
@@ -109,7 +119,11 @@ export function useVideoTasksPage() {
       setIsClearingFailed(true);
       try {
         await clearFailedTasks();
-        showSuccess(t("task.clearCompletedSuccess"), t("task.clearFailedSuccessDesc"));
+        showSuccess(t("task.clearFailedSuccess"), t("task.clearFailedSuccessDesc"));
+      } catch (e) {
+        // R47/R50: 清除失败任务本身失败时也要反馈
+        errorLogger.error("[VideoTasksPage] clearFailedTasks failed", e);
+        showError(t("error.clearFailed"), mapUserFacingError(e));
       } finally {
         setIsClearingFailed(false);
       }

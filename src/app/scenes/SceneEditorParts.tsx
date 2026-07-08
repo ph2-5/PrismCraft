@@ -825,6 +825,7 @@ export function SceneActionFooter({
         onClick={onSave}
         disabled={saveStatus === "saving" || !canSave}
         style={{ flex: 1, justifyContent: "center", gap: 4 }}
+        title={saveStatus !== "saving" && !canSave ? t("hint.saveScene") : undefined}
       >
         {saveStatus === "saving" ? (
           <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />

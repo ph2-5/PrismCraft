@@ -115,6 +115,11 @@ export function ServerConfigSection({
             !password ||
             connectionStatus === "testing"
           }
+          title={
+            connectionStatus !== "testing" && (!enabled || !serverUrl || !username || !password)
+              ? t("hint.syncTestConnection")
+              : undefined
+          }
         >
           {connectionStatus === "testing" ? t("sync.testing") : t("sync.testConnection")}
         </button>

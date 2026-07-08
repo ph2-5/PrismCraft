@@ -117,6 +117,7 @@ export function SessionHistory({
                     }}
                     className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
                     title={t("agent.deleteSession")}
+                    aria-label={t("agent.deleteSession")}
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>

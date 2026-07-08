@@ -181,7 +181,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
 
       <select
         className="select w-24 h-8 text-xs"
-        aria-label="基调"
+        aria-label={t("aria.tone")}
         value={story.currentStory.tone ?? ""}
         onChange={(e) =>
           story.setCurrentStory((prev) => ({
@@ -208,6 +208,11 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
         className="btn btn-outline btn-sm gap-1.5 h-8"
         onClick={story.handleSave}
         disabled={story.saveStatus === "saving" || !(story.currentStory.title ?? "").trim()}
+        title={
+          story.saveStatus !== "saving" && !(story.currentStory.title ?? "").trim()
+            ? t("hint.saveStory")
+            : undefined
+        }
       >
         <Save className="w-3.5 h-3.5" />
         {t("common.save")}

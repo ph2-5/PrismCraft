@@ -299,7 +299,7 @@ export function BeatDetailEditor({
             <span style={{ fontSize: 10 }}>{refVideoExpanded ? "▼" : "▶"}</span>
             <span style={{ fontWeight: 600, color: "var(--muted-fg)" }}>{t("beat.referenceVideo")}</span>
             {beat.referenceVideo?.enabled && beat.referenceVideo?.videoUrl && (
-              <span className="badge badge-info" style={{ fontSize: 10 }}>✓</span>
+              <span className="badge badge-info" style={{ fontSize: 10, display: "inline-flex", alignItems: "center" }}><Check style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /></span>
             )}
           </span>
           <span style={{ fontSize: 10, color: "var(--muted-fg)" }}>

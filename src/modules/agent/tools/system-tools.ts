@@ -69,12 +69,11 @@ export const getProjectStatsTool: ToolImpl = {
     try {
       const { checkConfigStatus } = await import("@/shared/api-config");
       const status = await checkConfigStatus();
-      const statusMap = status as unknown as Record<string, boolean>;
       const caps: string[] = [];
-      if (statusMap.text) caps.push("text");
-      if (statusMap.image) caps.push("image");
-      if (statusMap.vision) caps.push("vision");
-      if (statusMap.video) caps.push("video");
+      if (status.text.configured) caps.push("text");
+      if (status.image.configured) caps.push("image");
+      if (status.vision.configured) caps.push("vision");
+      if (status.video.configured) caps.push("video");
       stats.configuredCapabilities = caps;
     } catch {
       // 配置模块未加载，忽略

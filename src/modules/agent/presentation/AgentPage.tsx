@@ -116,6 +116,7 @@ export function AgentPage() {
               onClick={() => setShowHistory(!showHistory)}
               className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={showHistory ? t("agent.hideHistory") : t("agent.showHistory")}
+              aria-label={showHistory ? t("agent.hideHistory") : t("agent.showHistory")}
             >
               {showHistory ? (
                 <PanelLeftClose className="h-4 w-4" />
@@ -137,6 +138,7 @@ export function AgentPage() {
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.memory.management")}
+              aria-label={t("agent.memory.management")}
             >
               <Brain className="h-4 w-4" />
             </button>
@@ -148,6 +150,7 @@ export function AgentPage() {
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.settings")}
+              aria-label={t("agent.settings")}
             >
               <SettingsIcon className="h-4 w-4" />
             </button>

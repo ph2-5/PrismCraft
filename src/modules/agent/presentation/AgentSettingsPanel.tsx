@@ -47,6 +47,7 @@ export function AgentSettingsPanel({ settings, onUpdate, onClose }: AgentSetting
         <button
           onClick={onClose}
           className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          aria-label={t("aria.close")}
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -215,6 +216,7 @@ function FfmpegConfigSection() {
               onClick={handleClear}
               className="rounded-md border border-border px-1.5 py-1 text-[10px] text-muted-foreground hover:bg-muted"
               title={t("agent.ffmpeg.clear")}
+              aria-label={t("agent.ffmpeg.clear")}
             >
               <X className="h-3 w-3" />
             </button>
@@ -443,6 +445,7 @@ function SearchConfigSection() {
               onClick={handleClear}
               className="rounded-md border border-border px-1.5 py-1 text-[10px] text-muted-foreground hover:bg-muted"
               title={t("agent.search.clear")}
+              aria-label={t("agent.search.clear")}
             >
               <X className="h-3 w-3" />
             </button>

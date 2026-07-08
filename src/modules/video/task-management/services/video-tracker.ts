@@ -1,5 +1,6 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
+import { t } from "@/shared/constants";
 
 export interface TrackingInfo {
   providerName?: string;
@@ -11,58 +12,58 @@ export interface TrackingInfo {
 }
 
 interface ProviderConfig {
-  name: string;
+  nameKey: string;
   id: string;
   baseUrl: string;
   docsUrl?: string;
   statusQueryUrl?: string;
-  howToCheck?: string;
+  howToCheckKey: string;
 }
 
 const PROVIDERS: Record<string, ProviderConfig> = {
   kling: {
-    name: "可灵 (Kling)",
+    nameKey: "video.provider.kling",
     id: "kling",
     baseUrl: "https://api.klingai.com",
     docsUrl: "https://platform.klingai.com/docs",
     statusQueryUrl: "https://platform.klingai.com/task",
-    howToCheck: "1. 登录可灵平台\n2. 进入「任务管理」页面\n3. 使用任务ID搜索",
+    howToCheckKey: "video.howToCheck.kling",
   },
   minimax: {
-    name: "MiniMax (海螺)",
+    nameKey: "video.provider.minimax",
     id: "minimax",
     baseUrl: "https://api.minimax.chat",
     docsUrl: "https://platform.minimaxi.com/document",
     statusQueryUrl: "https://platform.minimaxi.com/task",
-    howToCheck: "1. 登录MiniMax平台\n2. 进入「任务查询」页面\n3. 输入任务ID查询",
+    howToCheckKey: "video.howToCheck.minimax",
   },
   jimeng: {
-    name: "即梦 (Jimeng)",
+    nameKey: "video.provider.jimeng",
     id: "jimeng",
     baseUrl: "https://jimeng.jianying.com",
     docsUrl: "https://jimeng.jianying.com",
-    howToCheck: "1. 登录即梦平台\n2. 查看生成历史",
+    howToCheckKey: "video.howToCheck.jimeng",
   },
   vidu: {
-    name: "Vidu",
+    nameKey: "video.provider.vidu",
     id: "vidu",
     baseUrl: "https://api.vidu.cn",
     docsUrl: "https://docs.vidu.cn",
-    howToCheck: "1. 登录Vidu平台\n2. 查看任务状态",
+    howToCheckKey: "video.howToCheck.vidu",
   },
   luma: {
-    name: "Luma",
+    nameKey: "video.provider.luma",
     id: "luma",
     baseUrl: "https://api.lumalabs.ai",
     docsUrl: "https://docs.lumalabs.ai",
-    howToCheck: "1. 登录Luma平台\n2. 查看生成历史",
+    howToCheckKey: "video.howToCheck.luma",
   },
   runway: {
-    name: "Runway",
+    nameKey: "video.provider.runway",
     id: "runway",
     baseUrl: "https://api.runwayml.com",
     docsUrl: "https://docs.runwayml.com",
-    howToCheck: "1. 登录Runway平台\n2. 查看任务列表",
+    howToCheckKey: "video.howToCheck.runway",
   },
 };
 
@@ -78,13 +79,13 @@ export function buildTrackingInfoByProviderId(
 ): TrackingInfo {
   const provider = providerId ? PROVIDERS[providerId] : undefined;
   return {
-    providerName: provider?.name,
+    providerName: provider ? t(provider.nameKey) : undefined,
     model,
     apiUrl,
     queryEndpoint: provider?.statusQueryUrl
       ? `${provider.statusQueryUrl}?taskId=${taskId}`
       : undefined,
-    howToCheck: provider?.howToCheck || "请联系服务商获取任务状态查询方式",
+    howToCheck: provider ? t(provider.howToCheckKey) : t("video.howToCheckFallback"),
     apiDocUrl: provider?.docsUrl,
   };
 }
@@ -94,15 +95,15 @@ export async function copyTrackingInfoToClipboard(
 ): Promise<Result<void>> {
   return fromAsyncThrowable(async () => {
     const lines: string[] = [
-      `服务商: ${trackingInfo.providerName || "未知"}`,
-      `模型: ${trackingInfo.model || "未知"}`,
-      `API地址: ${trackingInfo.apiUrl || "未记录"}`,
-      `查询端点: ${trackingInfo.queryEndpoint || "未记录"}`,
+      `${t("task.providerLabel")}: ${trackingInfo.providerName || t("common.unknown")}`,
+      `${t("task.modelLabelText")}: ${trackingInfo.model || t("common.unknown")}`,
+      `${t("task.apiUrlLabel")}: ${trackingInfo.apiUrl || t("common.notRecorded")}`,
+      `${t("task.queryEndpoint")}: ${trackingInfo.queryEndpoint || t("common.notRecorded")}`,
       "",
-      `查询方式:\n${trackingInfo.howToCheck}`,
+      `${t("task.queryMethodLabel")}:\n${trackingInfo.howToCheck}`,
     ];
     if (trackingInfo.apiDocUrl) {
-      lines.push("", `API文档: ${trackingInfo.apiDocUrl}`);
+      lines.push("", `${t("task.apiDocLabel")}: ${trackingInfo.apiDocUrl}`);
     }
     await navigator.clipboard.writeText(lines.join("\n"));
   });

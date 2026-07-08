@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { Upload, Folder, User, Package, Sparkles, MapPin } from "lucide-react";
+import { Upload, Folder, User, Package, Sparkles, MapPin, X } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { Modal } from "@/shared/presentation/Modal";
@@ -92,8 +92,9 @@ export function RemoveElementButton({ onClick }: RemoveElementButtonProps) {
         className="btn btn-ghost btn-xs"
         style={{ color: "var(--destructive)" }}
         onClick={onClick}
+        aria-label={t("element.remove")}
       >
-        ✕ {t("element.remove")}
+        <X style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("element.remove")}
       </button>
     </div>
   );
@@ -157,8 +158,9 @@ export function SceneTransitionList({
                 className="btn btn-ghost btn-xs"
                 style={{ color: "var(--destructive)", padding: "0 4px" }}
                 onClick={() => onRemove(transition.sceneId)}
+                aria-label={t("aria.removeSceneTransition")}
               >
-                ✕
+                <X style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" />
               </button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 4 }}>

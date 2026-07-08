@@ -267,6 +267,11 @@ export default function TemplateManagerDialog({
                 onClick={handleSave}
                 disabled={!templateName.trim() || currentBeats.length === 0}
                 className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                title={
+                  !templateName.trim() || currentBeats.length === 0
+                    ? t("hint.saveTemplate")
+                    : undefined
+                }
               >
                 {t("template.saveTemplateButton", { count: currentBeats.length })}
               </button>

@@ -4,6 +4,8 @@ import { characterService } from "@/modules/character";
 import { CharacterListItem } from "@/modules/character";
 import { BatchOperations } from "@/modules/asset";
 import { errorLogger } from "@/shared/error-logger";
+import { useToastHelpers } from "@/shared/presentation/Toast";
+import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import type { Character } from "@/domain/schemas";
 import { Users } from "lucide-react";
 import { t } from "@/shared/constants/messages";
@@ -26,6 +28,7 @@ export const CharacterList = memo(function CharacterList({
   onCreateNew: _onCreateNew,
 }: CharacterListProps) {
   const queryClient = useQueryClient();
+  const { error: showError } = useToastHelpers();
 
   return (
     <div
@@ -70,10 +73,9 @@ export const CharacterList = memo(function CharacterList({
                     queryKey: ["characters"],
                   });
                 } catch (e) {
-                  errorLogger.warn(
-                    t("character.batchSaveFailed"),
-                    e instanceof Error ? e.message : e,
-                  );
+                  // R47: 批量保存失败必须告知用户，避免用户以为保存成功导致数据丢失感
+                  errorLogger.error("[CharacterList] batch save failed", e);
+                  showError(t("character.batchSaveFailed"), mapUserFacingError(e));
                 }
               }
             }}

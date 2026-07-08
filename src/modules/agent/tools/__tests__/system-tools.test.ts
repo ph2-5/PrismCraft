@@ -98,7 +98,12 @@ beforeEach(() => {
   mocks.characterService.getAll.mockResolvedValue(ok([]));
   mocks.sceneService.getAll.mockResolvedValue(ok([]));
   mocks.useVideoTaskStore.getState.mockReturnValue({ allTasks: [] });
-  mocks.checkConfigStatus.mockResolvedValue({});
+  mocks.checkConfigStatus.mockResolvedValue({
+    text: { configured: false, provider: "", available: false },
+    image: { configured: false, provider: "", available: false },
+    vision: { configured: false, provider: "", available: false },
+    video: { configured: false, provider: "", available: false },
+  });
   mocks.toolRegistry.size.mockReturnValue(0);
   mocks.toolRegistry.getAllNames.mockReturnValue([]);
   mocks.getCacheDirectory.mockResolvedValue({ success: true, path: "/cache" });
@@ -117,10 +122,10 @@ describe("get_project_stats", () => {
     mocks.characterService.getAll.mockResolvedValue(ok([{ id: "c1" }, { id: "c2" }]));
     mocks.sceneService.getAll.mockResolvedValue(ok([{ id: "s1" }]));
     mocks.checkConfigStatus.mockResolvedValue({
-      text: true,
-      image: false,
-      vision: true,
-      video: false,
+      text: { configured: true, provider: "p1", available: true },
+      image: { configured: false, provider: "", available: false },
+      vision: { configured: true, provider: "p2", available: true },
+      video: { configured: false, provider: "", available: false },
     });
 
     const result = await getProjectStatsTool.execute({}, makeCtx());

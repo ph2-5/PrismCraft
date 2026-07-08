@@ -339,11 +339,12 @@ async function extractVideoFramesSafe(file: File): Promise<{ firstFrame: string;
   }
 }
 
-function orDefault<T>(...values: Array<T | undefined | null | "">): T {
+// 限制为 string：所有调用点 T 均为 string，避免 `as unknown as T` 双重断言绕过类型检查
+function orDefault(...values: Array<string | undefined | null | "">): string {
   for (const v of values) {
     if (v !== undefined && v !== null && v !== "") return v;
   }
-  return "" as unknown as T;
+  return "";
 }
 
 function buildVideoGenContainer(b: StoryBeat, tempUrl: string) {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 
@@ -56,7 +57,7 @@ export function DebugOverlay() {
       <div className="flex justify-between items-center mb-2">
         <span className="font-bold">{t("debug.title")}</span>
         <button onClick={() => setIsDevToolsOpen(false)} style={{ color: "var(--muted-fg)" }} aria-label={t("aria.close")}>
-          ×
+          <X size={14} aria-hidden="true" />
         </button>
       </div>
       <div className="space-y-2">

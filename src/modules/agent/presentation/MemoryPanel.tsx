@@ -129,12 +129,14 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
             disabled={loading}
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
             title={t("agent.refreshMemory")}
+            aria-label={t("agent.refreshMemory")}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </button>
           <button
             onClick={onClose}
             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label={t("aria.close")}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -190,6 +192,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                     onClick={() => void handleRemovePreference(k)}
                     disabled={actionLoading}
                     className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    aria-label={t("aria.removePreference")}
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -224,6 +227,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                     onClick={() => void handleRemoveFact(f.key)}
                     disabled={actionLoading}
                     className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    aria-label={t("aria.removeFact")}
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>

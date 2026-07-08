@@ -1,6 +1,6 @@
 import type { RefObject, ReactNode } from "react";
 import { useRef, useEffect } from "react";
-import { Upload, RefreshCw, Download, Play, Image as ImageIcon } from "lucide-react";
+import { Upload, RefreshCw, Download, Play, Image as ImageIcon, X } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { StoryBeat } from "@/domain/schemas";
 import type { useToastHelpers } from "@/shared/presentation/Toast";
@@ -336,7 +336,7 @@ export function LightboxDialog({ image, onClose }: LightboxDialogProps) {
         onClick={onClose}
         aria-label={t("common.close")}
       >
-        ✕
+        <X size={14} aria-hidden="true" />
       </button>
     </div>
   );

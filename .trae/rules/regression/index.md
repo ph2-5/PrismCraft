@@ -59,7 +59,7 @@
 |------|------|------|---------|
 | R154 | `useAssetLoader` 必须使用 `Promise.all` 并发加载角色/场景/分镜资产，禁止顺序 await | 工程质量 | `src/modules/story/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts` |
 | R155 | `StoryProvider` 传入 `useAssetLoader` 的 services 对象必须用 `useMemo(..., [])` 包裹，保证引用稳定 | 工程质量 | `src/app/story/__tests__/regression-r155-story-provider-services-memo.test.tsx` |
-| R156 | `useVideoTasksPage` 统计必须用 `useMemo` 单次遍历计算，timeout 计入 failed | 工程质量 | `src/app/video-tasks/hooks/__tests__/regression-r156-tasks-stats-memo.test.ts` |
+| R156 | `useVideoTasksPage` 统计必须用 `useMemo` 单次遍历计算，timeout/retrying/cancelled 正确分类（timeout/cancelled→failed, retrying→processing） | 工程质量 | `src/app/video-tasks/hooks/__tests__/regression-r156-tasks-stats-memo.test.ts` |
 | R157 | `video-cache` 大小常量在 infrastructure/services 两层必须一致（均 = 10GB） | 数据一致性 | `src/infrastructure/storage/__tests__/regression-r157-video-cache-limits-consistency.test.ts` |
 
 ## R158-R166 新增规则速览（批次 3 UI/UX + i18n 优化）

@@ -73,7 +73,8 @@ export function useVideoTasksPage() {
   const filteredTasks = useMemo(() => {
     if (statusFilter === "all") return tasks;
     if (statusFilter === "processing") {
-      return tasks.filter((task) => task.status === "generating" || task.status === "pending");
+      // 与统计逻辑一致：processing = generating + retrying（不含 pending）
+      return tasks.filter((task) => task.status === "generating" || task.status === "retrying");
     }
     if (statusFilter === "completed") {
       return tasks.filter((task) => task.status === "completed");

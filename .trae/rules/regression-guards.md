@@ -517,6 +517,44 @@ const handleSave = useCallback(async () => {
 }, []);
 ```
 
+**Extension — isDirtyRef pattern (2026-07-08)**: The same ref-over-state principle applies to **dirty state tracking** in auto-save scenarios. `setInterval` callbacks capture stale `isDirty` state values, causing either missed saves (dirty flag was true but closure saw false) or redundant saves (dirty flag was false but closure saw true). The fix mirrors `savingRef`: store the dirty-check function in a ref and keep it synced with state via `useEffect`.
+
+**BAD — setInterval captures stale isDirty state**:
+```typescript
+const [isDirty, setIsDirty] = useState(false);
+// ❌ setInterval closure captures isDirty at creation time — never sees updates
+useEffect(() => {
+  const id = setInterval(() => {
+    if (isDirty) onSaveRef.current();  // stale: always false
+  }, 5000);
+  return () => clearInterval(id);
+}, []); // isDirty not in deps → stale closure
+```
+
+**GOOD — isDirtyRef synced via effect, read inside interval**:
+```typescript
+const [isDirty, setIsDirty] = useState(false);
+const isDirtyRef = useRef(isDirty);
+const onSaveRef = useRef(onSave);
+
+// Keep ref in sync with state — ref is the source of truth inside interval
+useEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
+useEffect(() => { onSaveRef.current = onSave; }, [onSave]);
+
+useEffect(() => {
+  const id = setInterval(() => {
+    if (isDirtyRef.current) {  // ✅ always reads latest value
+      onSaveRef.current();
+    }
+  }, 5000);
+  return () => clearInterval(id);
+}, []); // empty deps OK — refs are mutable
+```
+
+**Verification**: Spy on `onSave`. Toggle `isDirty` true → wait interval → verify save fired. Toggle `isDirty` false → wait interval → verify no save. Toggle rapidly → verify exactly one save per dirty cycle (no double-save, no missed save).
+
+**Discovered in**: `use-auto-save.ts` auto-save hook found to skip dirty stories because `setInterval` closure captured initial `isDirty=false` and never updated. Fix: `isDirtyRef` synced via `useEffect`, read inside interval. Test: `src/modules/persistence/hooks/__tests__/regression-r10-is-dirty-ref-pattern.test.ts`.
+
 ### R11: Cross-Entity Async Callbacks Must Verify Ownership
 When an async callback (e.g., video task completion, polling result) updates state for an entity that may have changed since the callback was scheduled (e.g., user switched stories), the callback MUST verify the entity ID matches the current context before applying state updates. This is especially critical for long-running async operations like video generation, AI planning, and file uploads.
 
@@ -4155,30 +4193,37 @@ const assetLoader = useAssetLoader(assetLoaderServices);
 
 **Discovered in**: Batch 2 performance optimization audit found inline services object causing `useAssetLoader` effect to re-fire on every state change (beat edits, saveStatus toggle), triggering redundant database queries and UI flicker. Test: `src/app/story/__tests__/regression-r155-story-provider-services-memo.test.tsx`.
 
-### R156: useVideoTasksPage Statistics MUST Be Memoized (Single Pass) and timeout Counts as failed
+### R156: useVideoTasksPage Statistics MUST Be Memoized (Single Pass) with Full Non-Terminal Status Classification
 
-`useVideoTasksPage` in `src/app/video-tasks/hooks/useVideoTasksPage.ts` MUST compute the five statistics (`totalTasks`, `completedTasks`, `processingTasks`, `pendingTasks`, `failedTasks`) via a single `useMemo`-wrapped pass with a `switch` over `task.status`. Five separate `tasks.filter(...)` calls are FORBIDDEN (5× O(n) allocations per render). Additionally, `timeout` status tasks MUST be counted under `failedTasks` (not omitted, not a separate category).
+`useVideoTasksPage` in `src/app/video-tasks/hooks/useVideoTasksPage.ts` MUST compute the five statistics (`totalTasks`, `completedTasks`, `processingTasks`, `pendingTasks`, `failedTasks`) via a single `useMemo`-wrapped pass with a `switch` over `task.status`. Five separate `tasks.filter(...)` calls are FORBIDDEN (5× O(n) allocations per render). Additionally, the following non-terminal status classifications MUST be applied:
 
-**BAD** — Five filters + missing timeout:
+- `timeout` → `failedTasks` (not omitted, not a separate category)
+- `retrying` → `processingTasks` (retrying is still in-flight, consistent with `POLLABLE_STATUSES`)
+- `cancelled` → `failedTasks` (cancelled is an unrecoverable terminal state, same bucket as failed/timeout)
+
+**BAD** — Five filters + missing timeout/retrying/cancelled:
 ```typescript
 const completedTasks = tasks.filter(t => t.status === "completed").length;   // ❌ 5 passes
-const processingTasks = tasks.filter(t => t.status === "generating").length; // ❌ 5 passes
+const processingTasks = tasks.filter(t => t.status === "generating").length; // ❌ 5 passes, drops retrying!
 const pendingTasks = tasks.filter(t => t.status === "pending").length;      // ❌ 5 passes
-const failedTasks = tasks.filter(t => t.status === "failed").length;         // ❌ drops timeout!
+const failedTasks = tasks.filter(t => t.status === "failed").length;         // ❌ drops timeout + cancelled!
 // totalTasks also recomputed separately
 ```
 
-**GOOD** — Single useMemo pass, timeout folded into failed:
+**GOOD** — Single useMemo pass, full non-terminal classification:
 ```typescript
 const { totalTasks, completedTasks, processingTasks, pendingTasks, failedTasks } = useMemo(() => {
   let completed = 0, processing = 0, pending = 0, failed = 0;
   for (const task of tasks) {
     switch (task.status) {
       case "completed": completed++; break;
-      case "generating": processing++; break;
+      case "generating":
+      case "retrying":  // ✅ retrying folded into processing (still in-flight)
+        processing++; break;
       case "pending": pending++; break;
       case "failed":
       case "timeout":   // ✅ timeout folded into failed
+      case "cancelled": // ✅ cancelled folded into failed (unrecoverable terminal)
         failed++; break;
     }
   }
@@ -4186,9 +4231,17 @@ const { totalTasks, completedTasks, processingTasks, pendingTasks, failedTasks }
 }, [tasks]);
 ```
 
-**Verification**: Pass mixed-status tasks (pending/generating/completed/failed/timeout) and verify counts are correct, `failedTasks` includes timeout tasks, sum of categories equals `totalTasks`. Change tasks and `rerender` — verify stats recompute (memoize invalidates correctly). Verify `statusFilter='failed'` returns both `failed` and `timeout` tasks.
+**Extension — statusFilter consistency (2026-07-08)**: The `statusFilter='failed'` filter MUST also include `timeout` AND `cancelled` tasks, mirroring the statistics classification. Inconsistency between statistics classification and filter logic causes the failed count to disagree with the filtered task list (count says 5 failed, filter shows 3). The same classification mapping MUST be applied in both places.
 
-**Discovered in**: Batch 2 performance optimization audit found 5 sequential `filter` calls creating 5 intermediate arrays per render; also found `timeout` tasks were not folded into `failedTasks`, causing the failed count to disagree with the filtered task list. Test: `src/app/video-tasks/hooks/__tests__/regression-r156-tasks-stats-memo.test.ts`.
+**Verification**: Pass mixed-status tasks (pending/generating/retrying/completed/failed/timeout/cancelled) and verify:
+1. `failedTasks` includes failed + timeout + cancelled tasks
+2. `processingTasks` includes generating + retrying tasks
+3. Sum of categories equals `totalTasks`
+4. `statusFilter='failed'` returns failed + timeout + cancelled tasks (consistent with `failedTasks` count)
+5. `statusFilter='processing'` returns generating + retrying tasks (consistent with `processingTasks` count)
+6. Change tasks and `rerender` — verify stats recompute (memoize invalidates correctly)
+
+**Discovered in**: Batch 2 performance optimization audit found 5 sequential `filter` calls creating 5 intermediate arrays per render; also found `timeout` tasks were not folded into `failedTasks`, causing the failed count to disagree with the filtered task list. 2026-07-08 extension: `retrying` and `cancelled` statuses added to video task model but statistics/filter logic not updated, causing same kind of count/list disagreement. Test: `src/app/video-tasks/hooks/__tests__/regression-r156-tasks-stats-memo.test.ts`.
 
 ### R157: video-cache Size Limits MUST Be Consistent Between Infrastructure and Services Layers
 

@@ -19,20 +19,20 @@
 > These rules are **regression guards** — they prevent known bug patterns from reappearing.
 > They are NOT discovery tools for future audits. Future audits must start from usage scenarios, not from this list.
 >
-> **Total: 142 rules | 8 categories**
+> **Total: 183 rules | 8 categories**
 
 ## 目录
 
-- [一、数据一致性（25 条）](#一数据一致性25-条) — 数据不丢、不脏、不冲突
-- [二、异步安全（14 条）](#二异步安全14-条) — 并发、竞态、轮询、生命周期
-- [三、错误处理（12 条）](#三错误处理12-条) — 错误不吞、不假成功、用户可理解
-- [四、UI 健壮性（9 条）](#四ui-健壮性9-条) — 界面不崩、有反馈、无泄漏
-- [五、工程质量（17 条）](#五工程质量17-条) — 依赖合规、构建安全、测试可靠
+- [一、数据一致性（22 条）](#一数据一致性22-条) — 数据不丢、不脏、不冲突
+- [二、异步安全（22 条）](#二异步安全22-条) — 并发、竞态、轮询、生命周期
+- [三、错误处理（16 条）](#三错误处理16-条) — 错误不吞、不假成功、用户可理解
+- [四、UI 健壮性（24 条）](#四ui-健壮性24-条) — 界面不崩、有反馈、无泄漏
+- [五、工程质量（38 条）](#五工程质量38-条) — 依赖合规、构建安全、测试可靠
 - [六、平台兼容（6 条）](#六平台兼容6-条) — IPC、Electron 环境、进程模型
-- [七、用户安全防护（7 条）](#七用户安全防护7-条) — 破坏性操作需确认、数据清除需保护
-- [八、系统安全（7 条）](#八系统安全7-条) — 沙箱隔离、并发保护、资源生命周期、DOM 安全
+- [七、用户安全防护（17 条）](#七用户安全防护17-条) — 破坏性操作需确认、数据清除需保护
+- [八、系统安全（38 条）](#八系统安全38-条) — 沙箱隔离、并发保护、资源生命周期、DOM 安全
 
-## 一、数据一致性（25 条）
+## 一、数据一致性（22 条）
 
 > 核心关注：数据不丢、不脏、不冲突
 
@@ -461,7 +461,7 @@ useAutoSave({
 
 **Discovered in**: Story page auto-save was disabled when `story.beats.length === 0`. Users who edited story title/description without adding beats would lose their changes on crash — auto-save never triggered.
 
-## 二、异步安全（14 条）
+## 二、异步安全（22 条）
 
 > 核心关注：并发、竞态、轮询、生命周期
 
@@ -896,7 +896,7 @@ const handlePollException = (task: VideoTask, error: unknown) => {
 
 **Discovered in**: Video task polling incremented `pollFailureCount` on every error including network timeouts. Users on unstable connections saw tasks marked as "failed" even though the video was still generating on the provider side.
 
-## 三、错误处理（12 条）
+## 三、错误处理（16 条）
 
 > 核心关注：错误不吞、不假成功、用户可理解
 
@@ -1241,7 +1241,7 @@ return [...failedTasks, ...timeoutTasks];
 
 **Discovered in**: Video task timeout directly marked tasks as `failed`, making it impossible to distinguish between "provider confirmed failure" and "we stopped polling". Users couldn't tell whether their video might still be generating, and recovery guidance was misleading.
 
-## 四、UI 健壮性（9 条）
+## 四、UI 健壮性（24 条）
 
 > 核心关注：界面不崩、有反馈、无泄漏
 
@@ -1394,7 +1394,7 @@ useEffect(() => {
 }, []);
 ```
 
-## 五、工程质量（17 条）
+## 五、工程质量（38 条）
 
 > 核心关注：依赖合规、构建安全、测试可靠
 
@@ -2002,7 +2002,7 @@ dbQuery: async (sql, params) => {
 
 **Discovered in**: e2e test audit — `dbQuery` mock returned raw array, `safeQuery` checked `response.success` (undefined on array), threw error, `useVideoTaskManager` showed error toast.
 
-## 七、用户安全防护（7 条）
+## 七、用户安全防护（17 条）
 
 > 核心关注：破坏性操作需确认、数据清除需保护、不可逆操作需二次验证
 
@@ -2437,7 +2437,37 @@ buildImageRequest(ctx: ImageBuildContext) {
 
 **Discovered in**: Volcengine 和 Seedance provider 的 `buildImageRequest` 不支持 `ref_image` 参数，导致 bake_into_first 模式下首帧生成时参考图 URL 被丢弃。
 
-## 八、系统安全（7 条）
+### R135: secureConfigRouteSchema 必须使用 operation 字段（与 handler 一致）
+
+`secureConfigRouteSchema` in `electron/src/api/schemas.ts` MUST use the `operation` field (matching the handler), NOT the `action` field. If the schema uses `action` but the handler reads `operation`, all secure-config requests will fail validation (missing `operation`), or worse, schema validation passes but the handler reads `undefined`, causing config operations to be silently skipped.
+
+**BAD** — Schema 使用 action，handler 读取 operation：
+```typescript
+// schemas.ts
+export const secureConfigRouteSchema = z.object({
+  action: z.enum(["save", "load", "clear"]), // ❌ 字段名不匹配
+});
+
+// handler
+const { operation } = body; // ❌ 读取到 undefined
+```
+
+**GOOD** — Schema 与 handler 一致使用 operation：
+```typescript
+// schemas.ts
+export const secureConfigRouteSchema = z.object({
+  operation: z.enum(["save", "load", "clear"]), // ✅ 与 handler 一致
+});
+
+// handler
+const { operation } = body; // ✅ 正确读取
+```
+
+**Verification**: 调用 `secureConfigRouteSchema.safeParse({ operation: "save" })`，验证返回 `success: true`。调用 `secureConfigRouteSchema.safeParse({ action: "save" })`，验证返回 `success: false`（缺少 `operation` 字段）。
+
+**Discovered in**: API schema 一致性审计发现 `secureConfigRouteSchema` 使用 `action` 字段而 handler 读取 `operation`，导致配置操作被跳过。Test: `electron/src/api/__tests__/regression-r135-secure-config-schema.test.ts`。
+
+## 八、系统安全（38 条）
 
 > 核心关注：沙箱隔离防逃逸、IPC 通道注册检查、插件热加载缓存刷新、Blob URL 安全生命周期、异步重入守卫、批量并行执行、声明式 onError
 
@@ -3460,6 +3490,125 @@ export function closeDatabase() {
 **Verification**: Spy on `clearTimeout`/`clearInterval`. Call `closeDatabase`. Verify all 4 timers cleared. Call `startScheduledBackup` twice. Verify only one timer created.
 
 **Discovered in**: Database lifecycle audit found startup timers not cleared on close, causing backup to fire after shutdown. Test: `electron/src/database/__tests__/regression-r130-timer-cleanup-on-close.test.ts`.
+
+### R131: SQLite 外键约束必须启用（PRAGMA foreign_keys = ON）
+
+数据库连接创建后必须执行 `PRAGMA foreign_keys = ON`，确保 SQLite 外键约束被启用。`initDatabase` 在执行 schema SQL 前必须调用 `db.pragma("foreign_keys = ON")`。外键约束未启用时，可以插入违反外键关系的数据（如指向不存在的 `story_id` 的 `video_task`），导致数据库一致性被破坏，可能引发数据泄漏、孤儿记录或应用逻辑错误。数据库恢复路径（关闭后重新初始化）也必须重新启用外键约束。
+
+**BAD** — 外键约束未启用：
+```typescript
+function initDatabase() {
+  const db = new BetterSqlite3(DB_PATH);
+  db.exec(getSchemaSQL()); // ❌ 未先执行 PRAGMA foreign_keys = ON
+  return db;
+}
+```
+
+**GOOD** — 启用外键约束：
+```typescript
+function initDatabase() {
+  const db = new BetterSqlite3(DB_PATH);
+  db.pragma("journal_mode = WAL");
+  db.pragma("foreign_keys = ON"); // ✅ 在 schema 执行前启用
+  db.exec(getSchemaSQL());
+  return db;
+}
+```
+
+**Verification**: 调用 `initDatabase`，验证 `db.pragma` 被调用且参数包含 `"foreign_keys = ON"`。验证 `getSchemaSQL()` 输出包含 `foreign_keys = ON`。验证数据库恢复路径也调用 `pragma("foreign_keys = ON")`。
+
+**Discovered in**: 数据库完整性审计发现外键约束未启用，允许插入违反外键关系的孤儿记录。Test: `electron/src/database/__tests__/regression-r131-foreign-keys-enabled.test.ts`。
+
+### R132: sync-http-client 发起 HTTP 请求前必须调用 SSRF 校验
+
+`makeSyncRequest` in `electron/src/sync-http-client.ts` MUST call `ssrfGuard.validate(url)` before initiating any HTTP/HTTPS request. If `ssrfGuard.validate` returns `{ safe: false }`, the request MUST be rejected with an error containing "URL blocked by SSRF guard", and no HTTP request MUST be initiated. 攻击者配置恶意同步服务器 URL（如 `http://169.254.169.254/latest/meta-data/`），若不校验则可访问云元数据端点获取敏感凭证，或访问内网服务（如 `http://127.0.0.1:8080/admin`）造成内网探测。
+
+**BAD** — 不校验 SSRF，直接发起请求：
+```typescript
+async function makeSyncRequest(url: string, options) {
+  const req = http.request(url, options); // ❌ 未调用 ssrfGuard.validate
+  return handleResponse(req);
+}
+```
+
+**GOOD** — 发起请求前校验 SSRF：
+```typescript
+async function makeSyncRequest(url: string, options) {
+  const validation = await ssrfGuard.validate(url);
+  if (!validation.safe) {
+    throw new Error(`URL blocked by SSRF guard: ${validation.reason}`);
+  }
+  const req = http.request(url, options); // ✅ 校验通过后才请求
+  return handleResponse(req);
+}
+```
+
+**Verification**: Mock `ssrfGuard.validate` 返回 `{ safe: false }`，调用 `makeSyncRequest`，验证抛出包含 "URL blocked by SSRF guard" 的错误，且 `http.request`/`https.request` 未被调用。Mock 返回 `{ safe: true }` 时验证请求正常发起。
+
+**Discovered in**: 同步客户端 SSRF 审计发现 `makeSyncRequest` 未校验 URL，允许访问内网和云元数据端点。Test: `electron/src/__tests__/regression-r132-sync-http-client-ssrf.test.ts`。
+
+### R133: SSRF 校验异常时必须 fail-close（视为私有 URL）
+
+`isPrivateUrl` MUST return `true` (treat as private URL) when `ssrfGuard.validate` throws an exception, blocking the request. This is the fail-close strategy — when validation fails, the request MUST be blocked. A fail-open implementation (returning `false` on exception) would let an attacker craft a URL that crashes the SSRF resolver (e.g. via DNS timeout on a non-existent domain) to bypass the private-URL check and reach internal services or cloud metadata endpoints.
+
+**BAD** — Fail-open（异常时放行）：
+```typescript
+async function isPrivateUrl(url: string): Promise<boolean> {
+  try {
+    const result = await ssrfGuard.validate(url);
+    return !result.safe;
+  } catch (e) {
+    return false; // ❌ fail-open — 攻击者通过构造异常 URL 绕过 SSRF
+  }
+}
+```
+
+**GOOD** — Fail-close（异常时阻止）：
+```typescript
+async function isPrivateUrl(url: string): Promise<boolean> {
+  try {
+    const result = await ssrfGuard.validate(url);
+    return !result.safe;
+  } catch (e) {
+    return true; // ✅ fail-close — 视为私有 URL，阻止请求
+  }
+}
+```
+
+**Verification**: Mock `ssrfGuard.validate` 抛出异常，调用 `isPrivateUrl`，验证返回 `true`。验证异常情况下请求被阻止。
+
+**Discovered in**: SSRF fail-close 一致性审计发现 `isPrivateUrl` 在异常时 fail-open，允许攻击者通过构造 DNS 解析异常的 URL 绕过 SSRF 防护。Test: `electron/src/__tests__/regression-r133-ssrf-fail-close.test.ts`。
+
+### R137: db-interface 错误消息中的 params 必须经 sanitizeParams 脱敏
+
+`BetterSqlite3Statement` (and related db-interface error paths) MUST pass `params` through `sanitizeParams` before including them in error messages. `sanitizeParams` MUST truncate long strings (>100 characters) to prevent sensitive information (API Keys, passwords, long payloads) from leaking into log files or error messages. Raw `params` MUST NOT appear in any error message or log entry.
+
+**BAD** — 错误消息包含原始 params：
+```typescript
+function safeRun(sql: string, params: unknown[]) {
+  try {
+    return stmt.run(...params);
+  } catch (e) {
+    throw new Error(`SQL failed: ${sql}, params: ${JSON.stringify(params)}`); // ❌ 原始 params 泄漏
+  }
+}
+```
+
+**GOOD** — params 经 sanitizeParams 脱敏：
+```typescript
+function safeRun(sql: string, params: unknown[]) {
+  try {
+    return stmt.run(...params);
+  } catch (e) {
+    const sanitized = sanitizeParams(params); // ✅ 长字符串截断
+    throw new Error(`SQL failed: ${sql}, params: ${JSON.stringify(sanitized)}`);
+  }
+}
+```
+
+**Verification**: Mock 数据库操作抛出异常，params 包含长字符串（>100 字符）。验证错误消息中的 params 已被截断，不包含完整原始字符串。验证短字符串 params 正常显示。
+
+**Discovered in**: 数据库错误消息审计发现原始 params 包含 API Key 等敏感信息，泄漏到日志文件。Test: `electron/src/database/__tests__/regression-r137-param-sanitization.test.ts`。
 
 ### R138: schema-builder Identifiers MUST Be Wrapped in Double Quotes
 

@@ -3466,6 +3466,380 @@ export function closeDatabase() {
 
 **Discovered in**: Database lifecycle audit found startup timers not cleared on close, causing backup to fire after shutdown. Test: `electron/src/database/__tests__/regression-r130-timer-cleanup-on-close.test.ts`.
 
+### R138: schema-builder Identifiers MUST Be Wrapped in Double Quotes
+
+`generateTableSQL` and `generateJunctionTableSQL` in `electron/src/database/schema-builder.ts` MUST wrap all table names and column names in double quotes (`"`) in the generated SQL — including `CREATE TABLE`, `INDEX`, and `CHECK` constraint clauses. Double quotes are SQLite's standard identifier quoting mechanism. Without quoting, a maliciously crafted table/column name (e.g. `users; DROP TABLE users--`) could inject arbitrary SQL.
+
+**BAD** — Identifiers unquoted (SQL injection risk):
+```typescript
+function generateTableSQL(def: TableDef): string {
+  // ❌ table/column names concatenated raw, no quoting
+  let sql = `CREATE TABLE IF NOT EXISTS ${def.name} (id TEXT PRIMARY KEY)`;
+  for (const [col, conf] of Object.entries(def.columns)) {
+    sql += `, ${col} ${conf.type}`; // ❌ unquoted column
+  }
+  return sql;
+}
+```
+
+**GOOD** — Identifiers wrapped in double quotes:
+```typescript
+function generateTableSQL(def: TableDef): string {
+  let sql = `CREATE TABLE IF NOT EXISTS "${def.name}" ("id" TEXT PRIMARY KEY)`;
+  for (const [col, conf] of Object.entries(def.columns)) {
+    sql += `, "${col}" ${conf.type}`; // ✅ quoted identifier
+  }
+  // INDEX clauses also quoted: ON "test_table"("ref_id")
+  return sql;
+}
+```
+
+**Verification**: Call `generateTableSQL` / `generateJunctionTableSQL` with sample `TableDef`. Assert output contains `"table_name"` in `CREATE TABLE`, quoted column names, quoted `INDEX` clauses (`ON "table"("col")`), and quoted columns inside `CHECK` constraints.
+
+**Discovered in**: SQL injection hardening audit of schema-builder. Test: `electron/src/database/__tests__/regression-r138-schema-builder-quotes.test.ts`.
+
+### R139: validateSqlIdentifier MUST Use `^[a-zA-Z_][a-zA-Z0-9_]*$` Regex
+
+`VALID_TABLE_IDENTIFIER` (and `validateSqlIdentifier`) in `electron/src/database/db-connection.ts` MUST use the regex `/^[a-zA-Z_][a-zA-Z0-9_]*$/` to validate identifiers. The regex MUST reject any identifier containing special characters (`;`, quotes, spaces, hyphens). Weakening the regex (e.g. allowing semicolons or quotes) would allow a crafted table name like `users; DROP TABLE users--` to pass validation and enable SQL injection. The regex only permits letters, digits, and underscores, and MUST start with a letter or underscore.
+
+**BAD** — Overly permissive regex (allows injection):
+```typescript
+// ❌ allows spaces, semicolons, hyphens → injection possible
+const VALID_TABLE_IDENTIFIER = /^[a-zA-Z_][\w\s;-]*$/;
+```
+
+**GOOD** — Strict regex (letters/digits/underscore only):
+```typescript
+// ✅ only letters, digits, underscore; must start with letter/underscore
+const VALID_TABLE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+export function validateSqlIdentifier(name: string): boolean {
+  return VALID_TABLE_IDENTIFIER.test(name);
+}
+```
+
+**Verification**: Read `db-connection.ts` source, extract the `VALID_TABLE_IDENTIFIER` regex literal. Assert the pattern equals `^[a-zA-Z_][a-zA-Z0-9_]*$`. Feed malicious identifiers (`users; DROP TABLE`, `"weird"name`, `a-b`) and verify all are rejected.
+
+**Discovered in**: SQL identifier validation hardening audit. Test: `electron/src/database/__tests__/regression-r139-identifier-validation.test.ts`.
+
+### R140: polling-engine MUST Be Lazily Initialized (No Module-Level Side Effects)
+
+`polling-engine.ts` in `src/modules/video/task-management/hooks/internals/` MUST NOT execute side effects at module load time (e.g. assigning `window.__VIDEO_TASK_POLLING_STATE__`, creating timers, registering event listeners). All initialization MUST go through an explicit `initPollingEngine()` call. Module-level side effects break SSR/test environments (no `window`), cause polling-engine instance conflicts, and leak timers/listeners.
+
+**BAD** — Module-level side effect:
+```typescript
+// ❌ runs on import — throws in SSR, leaks timers
+export const pollingState = {
+  pollingTimeoutId: null,
+  pollCount: 0,
+};
+window.__VIDEO_TASK_POLLING_STATE__ = pollingState; // ❌ module-level
+setTimeout(startPolling, 1000); // ❌ timer created on import
+```
+
+**GOOD** — Lazy init via explicit call:
+```typescript
+export const pollingState = { pollingTimeoutId: null, pollCount: 0, /* ... */ };
+let initialized = false;
+
+export function initPollingEngine(): void {
+  if (initialized) return; // idempotent
+  window.__VIDEO_TASK_POLLING_STATE__ = pollingState; // ✅ only on call
+  initialized = true;
+}
+// No timers/listeners registered at module top-level
+```
+
+**Verification**: Spy on `setTimeout` and `window.addEventListener`. Import the module dynamically. Assert `window.__VIDEO_TASK_POLLING_STATE__` is `undefined` and no timers/listeners were created. Then call `initPollingEngine()` and assert the global is set; call again and assert idempotency (same reference).
+
+**Discovered in**: Polling engine refactor found module-level `window` assignment breaking SSR/test environments and leaking timers. Test: `src/modules/video/task-management/hooks/internals/__tests__/regression-r140-polling-engine-lazy-init.test.ts`.
+
+### R141: db/run HTTP Route MUST Call scheduleSave After Successful Write
+
+The `db/run` HTTP route in `electron/src/api/route-groups/db-routes.ts` MUST call `scheduleSave()` after `run()` succeeds, mirroring the IPC `db:run` handler behavior. Without `scheduleSave()`, the WAL journal is written but never checkpointed to the main database file — a crash or abnormal exit after the write would lose data.
+
+**BAD** — Write succeeds but persistence not triggered:
+```typescript
+"db/run": defineRoute({
+  handler: async (_method, body) => {
+    await ensureDbInitialized();
+    const result = await run(body.sql, body.params);
+    // ❌ no scheduleSave — WAL not checkpointed, data lost on crash
+    return { success: true, data: result };
+  },
+})
+```
+
+**GOOD** — scheduleSave after successful write:
+```typescript
+"db/run": defineRoute({
+  handler: async (_method, body) => {
+    await ensureDbInitialized();
+    const result = await run(body.sql, body.params);
+    scheduleSave(); // ✅ checkpoint WAL to main DB file
+    return { success: true, data: result };
+  },
+})
+```
+
+**Verification**: Mock `run` to resolve. Invoke the `db/run` handler. Assert `scheduleSave` was called exactly once after `run` resolves. Then mock `run` to reject; assert `scheduleSave` is NOT called on failure.
+
+**Discovered in**: Consistency audit found HTTP `db/run` route missing the `scheduleSave()` call present in the IPC handler. Test: `electron/src/api/__tests__/regression-r141-db-run-schedule-save.test.ts`.
+
+### R142: api-gateway-utils isPrivateUrl MUST Fail-Close on Exceptions
+
+`isPrivateUrl` in `electron/src/api-gateway-utils.ts` MUST return `true` (treat as private) when `ssrfGuard.validate` throws an exception, blocking the request — consistent with the fail-close behavior in `test-connection.ts`. A fail-open implementation (returning `false` on exception) would let an attacker craft a URL that crashes the SSRF resolver to bypass the private-URL check and reach internal services.
+
+**BAD** — Fail-open (exception bypasses SSRF):
+```typescript
+async function isPrivateUrl(url: string): Promise<boolean> {
+  try {
+    const result = await ssrfGuard.validate(url);
+    return !result.safe;
+  } catch (e) {
+    return false; // ❌ fail-open — attacker bypasses SSRF by crashing resolver
+  }
+}
+```
+
+**GOOD** — Fail-close (exception blocks request):
+```typescript
+async function isPrivateUrl(url: string): Promise<boolean> {
+  try {
+    const result = await ssrfGuard.validate(url);
+    return !result.safe;
+  } catch (e) {
+    return true; // ✅ fail-close — treat as private, block the request
+  }
+}
+```
+
+**Verification**: Mock `ssrfGuard.validate` to reject with an error. Call `makeRequest`. Assert it throws `/private|internal/i`. Then mock `validate` to resolve with `{ safe: false }`; assert the request is still blocked.
+
+**Discovered in**: SSRF fail-close consistency audit found api-gateway-utils diverging from test-connection.ts. Test: `electron/src/__tests__/regression-r142-api-gateway-ssrf-fail-close.test.ts`.
+
+### R143: validateSql MUST Defend Against Double-Quote Table-Name Whitelist Bypass
+
+`validateSql` in `electron/src/handlers/database.ts` MUST correctly extract table names wrapped in double quotes when checking against `ALLOWED_TABLES`. The table-name extraction regex MUST tolerate optional double quotes (`"?`) so that `SELECT * FROM "secret_table"` is still matched and rejected for non-whitelisted tables. Without the quote-tolerant regex, the pattern `FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)` fails to match quoted identifiers, letting non-whitelisted tables bypass the whitelist.
+
+**BAD** — Regex misses quoted table names:
+```typescript
+// ❌ does not match "secret_table" → non-whitelisted table bypasses check
+const fromRegex = /FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi;
+```
+
+**GOOD** — Regex tolerates optional double quotes:
+```typescript
+// ✅ optional "? captures table name whether quoted or not
+const fromRegex = /FROM\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?(?:\s|$)/gi;
+// "secret_table" now matched → rejected as non-whitelisted
+```
+
+**Verification**: Call `validateSql` with `SELECT * FROM "secret_table"`. Assert it throws `/not in the allowed list/i`. Repeat with unquoted `secret_table`, `INSERT INTO "secret_table" ...`, and `UPDATE "secret_table" ...` — all must throw. Whitelisted tables (e.g. `users`) with quotes must pass.
+
+**Discovered in**: SQL whitelist bypass audit found quoted table names evading the `FROM` regex. Test: `electron/src/handlers/__tests__/regression-r143-validate-sql-quote-bypass.test.ts`.
+
+### R144: SSRF Guard MUST Perform Dual-Stack DNS Resolution (IPv4 + IPv6)
+
+`ssrfGuard.validate` in `electron/src/security/ssrf-guard/ssrf-guard.ts` MUST resolve both IPv4 (`dns.resolve4`) and IPv6 (`dns.resolve6`) addresses in parallel via `Promise.all` and check both for private IP ranges. Checking only IPv4 lets an attacker configure DNS to return a public IPv4 + private IPv6; the client may then connect over IPv6 to an internal service (DNS rebinding). If either stack resolves to a private address, the request MUST be rejected.
+
+**BAD** — Only IPv4 checked (IPv6 rebinding):
+```typescript
+async validate(url: string) {
+  const v4 = await resolve4(hostname); // ❌ IPv6 never checked
+  if (v4.some(isPrivateV4)) return { safe: false };
+  return { safe: true }; // attacker's public-v4 + private-v6 domain passes
+}
+```
+
+**GOOD** — Parallel dual-stack check:
+```typescript
+async validate(url: string) {
+  const [v4, v6] = await Promise.all([ // ✅ both stacks resolved
+    resolve4(hostname),
+    resolve6(hostname),
+  ]);
+  if (v4.some(isPrivateV4) || v6.some(isPrivateV6)) {
+    return { safe: false, reason: "private IP detected" };
+  }
+  return { safe: true };
+}
+```
+
+**Verification**: Mock `dns.resolve4` to return a private IPv4 (`10.0.0.1`) and `resolve6` to return empty; assert `safe === false`. Reverse: mock `resolve4` empty and `resolve6` to return `::1`; assert `safe === false`. Mock both public; assert `safe === true`.
+
+**Discovered in**: SSRF dual-stack audit found single-stack (IPv4-only) resolution vulnerable to DNS rebinding. Test: `electron/src/__tests__/regression-r144-ssrf-dual-stack-check.test.ts`.
+
+### R145: isSensitiveQuery MUST Detect CTE and RETURNING Clauses for Redaction
+
+`isSensitiveQuery` in `electron/src/handlers/database.ts` MUST recognize CTE (`WITH ... SELECT`) and `RETURNING` clauses that reference sensitive tables (`sessions`, `error_logs`, `sync_conflict_backup`), and flag such queries for result redaction. Checking only simple `SELECT` lets an attacker exfiltrate sensitive data via `WITH x AS (SELECT * FROM sessions) SELECT * FROM x` or `UPDATE sessions SET ... RETURNING key, value`, bypassing redaction.
+
+**BAD** — Only simple SELECT checked:
+```typescript
+function isSensitiveQuery(sql: string): boolean {
+  // ❌ misses CTE-wrapped and RETURNING access to sensitive tables
+  return /SELECT\s+\*\s+FROM\s+(sessions|error_logs)/i.test(sql);
+}
+```
+
+**GOOD** — CTE + RETURNING covered:
+```typescript
+function isSensitiveQuery(sql: string): boolean {
+  const SENSITIVE = /sessions|error_logs|sync_conflict_backup/i;
+  // ✅ detect sensitive table anywhere: CTE body, RETURNING, direct FROM
+  if (SENSITIVE.test(sql)) {
+    return /WITH\s|SELECT|INSERT|UPDATE|DELETE|RETURNING/i.test(sql);
+  }
+  return false;
+}
+// "WITH x AS (SELECT * FROM sessions) SELECT * FROM x" → true
+// "UPDATE sessions SET ... RETURNING key" → true
+```
+
+**Verification**: Call `isSensitiveQuery` with CTE forms (`WITH x AS (SELECT * FROM sessions) SELECT * FROM x`, `... error_logs ...`, `... sync_conflict_backup ...`) and `RETURNING` forms. Assert all return `true`. Non-sensitive table queries must return `false`.
+
+**Discovered in**: Sensitive-data redaction audit found CTE/RETURNING clauses bypassing `isSensitiveQuery`. Test: `electron/src/handlers/__tests__/regression-r145-cte-returning-redact.test.ts`.
+
+### R146: domain Layer MUST Have Zero External Dependencies
+
+All `.ts` files under `src/domain/` MUST NOT import from any other project layer (`@/shared/*`, `@/infrastructure/*`, `@/modules/*`, `@/shared-logic/*`). The domain layer defines pure types only; importing from other layers creates circular dependencies and violates the layered architecture (domain is the innermost layer with zero external dependencies). Type-only re-exports of domain-internal types are allowed.
+
+**BAD** — domain imports from shared:
+```typescript
+// src/domain/something.ts
+// ❌ domain importing shared → circular dep, layering violation
+import { t } from "@/shared/constants";
+import type { Config } from "@/infrastructure/config";
+```
+
+**GOOD** — domain is pure (no external imports):
+```typescript
+// src/domain/something.ts
+// ✅ zero external imports — only relative domain-internal imports
+import type { Story } from "./story";
+export interface Something { /* ... */ }
+```
+
+**Verification**: Recursively scan `src/domain/` for all `.ts` files (excluding `__tests__` and `.test.ts`). Extract all import/export-from paths from each file. Assert none start with `@/shared/`, `@/infrastructure/`, `@/modules/`, or `@/shared-logic/`.
+
+**Discovered in**: Architecture purity audit found domain files importing from `@/shared/*`, breaking the dependency direction. Test: `src/domain/__tests__/regression-r146-domain-purity.test.ts`.
+
+### R147: Cross-Module Store Access MUST Go Through Public API
+
+Cross-module access to the video task store MUST go through the module's public API barrel (`@/modules/video/task-management`) — e.g. `useVideoTaskManager`, `useVideoTaskQueries`, `useVideoTaskState` — NOT by directly importing the internal `useVideoTaskStore` from deep paths. Direct internal imports bypass module encapsulation, break callers when the module is refactored internally, violate the dependency direction, and make cross-module data flow hard to trace. The ESLint rule blocks deep-path cross-module imports; this guard enforces the same for store access specifically.
+
+**BAD** — Direct import of internal store:
+```typescript
+// src/modules/persistence/services/transactional-delete.ts
+// ❌ deep-path internal store import — bypasses module encapsulation
+import { useVideoTaskStore } from "@/modules/video/task-management/hooks/internals/use-video-task-store";
+```
+
+**GOOD** — Public API access:
+```typescript
+// src/modules/persistence/services/transactional-delete.ts
+// ✅ import via public barrel — stable, encapsulated
+import { useVideoTaskManager } from "@/modules/video/task-management";
+```
+
+**Verification**: Scan known cross-module consumers (`transactional-delete.ts`, `useStorySaver.ts`) for `import ... useVideoTaskStore ... from` with a path that is NOT `@/modules/video/task-management`. Assert no direct deep-path imports of `useVideoTaskStore`. Assert each consumer imports from `@/modules/video/task-management`.
+
+**Discovered in**: Cross-module coupling audit found `transactional-delete.ts` and `useStorySaver.ts` directly importing the internal store. Test: `src/modules/__tests__/regression-r147-cross-module-store-access.test.ts`.
+
+### R148: Backup Database Connection MUST Be Closed in finally Block
+
+In `createBackup` (`electron/src/database/db-connection.ts`), the `verifyDb` connection opened to validate backup integrity MUST be closed inside a `finally` block wrapping the verification queries. If `verifyDb.close()` sits inside the `try` block (or outside `finally`), an exception thrown by the verification query leaks the file handle; long-running processes can exhaust resources. `try { ...verifyDb.prepare... } finally { verifyDb.close() }` guarantees closure regardless of exceptions.
+
+**BAD** — close() not protected by finally:
+```typescript
+async function createBackup(...) {
+  const verifyDb = new BetterSqlite3(backupPath);
+  // ❌ if prepare() throws, close() never runs → handle leak
+  const row = verifyDb.prepare("PRAGMA integrity_check").get();
+  verifyDb.close();
+}
+```
+
+**GOOD** — close() in finally:
+```typescript
+async function createBackup(...) {
+  const verifyDb = new BetterSqlite3(backupPath);
+  try {
+    const row = verifyDb.prepare("PRAGMA integrity_check").get(); // ✅ may throw
+  } finally {
+    verifyDb.close(); // ✅ always runs, even on exception
+  }
+}
+```
+
+**Verification**: Structural check on `db-connection.ts` source: assert `createBackup` exists, a `verifyDb` is created via `new BetterSqlite3`, and `verifyDb.close()` appears inside a `finally` block that follows a `try` block containing `verifyDb.prepare`. Assert the `try { ... } finally { verifyDb.close() }` pattern matches.
+
+**Discovered in**: Database connection lifecycle audit found backup verification leaking handles on query exceptions. Test: `electron/src/database/__tests__/regression-r148-backup-connection-leak.test.ts`.
+
+### R149: file/read Route MUST Enforce 50MB Size Limit
+
+The `file/read` HTTP route in `electron/src/api/route-groups/file-routes.ts` MUST check file size via `fsp.stat` BEFORE calling `fsp.readFile`, and reject reads of files larger than 50MB (`MAX_READ_SIZE = 50 * 1024 * 1024`) by returning the `FILE_TOO_LARGE` error code without reading the file. Reading without a size check lets an attacker supply a multi-GB file (e.g. a video) and exhaust main-process memory (OOM crash). Files of exactly 50MB (boundary) MUST be allowed (`<=`).
+
+**BAD** — Read without size check:
+```typescript
+"file/read": defineRoute({
+  handler: async (_method, body) => {
+    const path = resolveKey(body.key);
+    // ❌ no size check — multi-GB file OOMs the main process
+    const content = await fsp.readFile(path);
+    return { success: true, data: content };
+  },
+})
+```
+
+**GOOD** — Stat before read, reject > 50MB:
+```typescript
+const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
+"file/read": defineRoute({
+  handler: async (_method, body) => {
+    const path = resolveKey(body.key);
+    const stat = await fsp.stat(path);
+    if (stat.size > MAX_READ_SIZE) { // ✅ reject oversized files
+      return { success: false, error: "FILE_TOO_LARGE" };
+    }
+    const content = await fsp.readFile(path); // only read if <= 50MB
+    return { success: true, data: content };
+  },
+})
+```
+
+**Verification**: Mock `fsp.stat` to return `size: 10MB`; invoke handler; assert `success === true` and `readFile` called. Mock `stat` to return `size: 60MB`; assert `success === false`, `error === "FILE_TOO_LARGE"`, and `readFile` NOT called. Boundary: `size: 50MB` exactly must succeed.
+
+**Discovered in**: Main-process OOM audit found `file/read` reading unbounded file sizes. Test: `electron/src/api/__tests__/regression-r149-file-read-size-limit.test.ts`.
+
+### R150: normalizeCameraValue MUST Apply Alias Tables Correctly Without Cross-Table Pollution
+
+`normalizeCameraValue` (private to `src/domain/utils/shot-prompt.ts`, exercised via public `resolveShotInstruction`) MUST apply each alias table only to its intended field. `SHOT_SIZE_ALIASES` (e.g. `full → wide`, `close-up → close`, `medium-shot → medium`, `extreme-close-up → extreme_close`, `establishing → extreme_wide`) MUST only normalize the `shotType` field, NOT camera `movement` or `angle`. The same literal value (e.g. `"full"`) MUST behave differently depending on context: as `shotType` it aliases to `wide`, but as camera `movement`/`angle` it stays `"full"`. Unknown values and standard values MUST pass through unchanged.
+
+**BAD** — Alias table applied to wrong field:
+```typescript
+// ❌ SHOT_SIZE_ALIASES leaks into camera movement/angle normalization
+function resolveShotInstruction(input) {
+  const movement = normalizeCameraValue(input.camera.movement, SHOT_SIZE_ALIASES);
+  // "full" movement wrongly becomes "wide"
+}
+```
+
+**GOOD** — Each alias table scoped to its field:
+```typescript
+// ✅ shotType uses SHOT_SIZE_ALIASES; camera movement/angle use their own (or none)
+function resolveShotInstruction(input) {
+  const shotSize = normalizeCameraValue(input.shotType, SHOT_SIZE_ALIASES);
+  // "full" → "wide" (alias), "close" → "close" (standard passthrough)
+  const movement = normalizeCameraValue(input.camera.movement, CAMERA_MOVEMENT_ALIASES);
+  // "full" stays "full" (no alias in movement table)
+}
+```
+
+**Verification**: Call `resolveShotInstruction({ shotType: "full" })`; assert `shotSize === "wide"`. Call with `shotType: "close-up"` → `close`, `"medium-shot"` → `medium`, `"extreme-close-up"` → `extreme_close`, `"establishing"` → `extreme_wide`. Assert standard values (`close`, `wide`, `medium`) pass through. Assert unknown values pass through unchanged. Cross-table: `{ camera: { movement: "full" }, shotType: "medium" }` MUST yield `cameraMovement === "full"` (no alias) and `shotSize === "medium"`.
+
+**Discovered in**: Camera-value normalization audit found alias tables cross-polluting between shot size and camera movement/angle. Test: `src/domain/__tests__/regression-r150-normalize-camera-value.test.ts`.
+
 ### R183: PageErrorBoundary.getDerivedStateFromError MUST Be Single-Argument
 
 `getDerivedStateFromError` in `src/shared/presentation/PageErrorBoundary.tsx` MUST accept only a single `error` parameter. The `errorCount` accumulation MUST happen in `componentDidCatch` via `this.setState((prev) => ({ errorCount: prev.errorCount + 1 }))`, NOT in `getDerivedStateFromError`. React only passes `error` to `getDerivedStateFromError` — any second parameter (e.g., `prev`) will always be `undefined`, so reading `prev.errorCount` there would never accumulate.

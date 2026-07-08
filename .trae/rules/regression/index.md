@@ -5,18 +5,18 @@
 
 **⚠️ 关键隔离原则**：规则是回归防护，NOT 发现工具。不要用此列表作为未来审计的起点。
 
-**总计：174 条规则 | 8 个分类**
+**总计：187 条规则 | 8 个分类**
 
 | 分类 | 规则编号 | 规则数 | 文件 |
 |------|---------|--------|------|
-| 一、数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68, R69, R72, R109, R116, R125, R141, R157 | 22 | [data-consistency.md](data-consistency.md) |
+| 一、数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68, R69, R72, R109, R116, R125, R141, R150, R157 | 23 | [data-consistency.md](data-consistency.md) |
 | 二、异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67, R85, R106, R110, R115, R117, R122, R127, R140, R187 | 22 | [async-safety.md](async-safety.md) |
 | 三、错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63, R86, R108, R129, R134, R136 | 16 | [error-handling.md](error-handling.md) |
 | 四、UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35, R158, R160, R161, R163, R164, R167, R168, R169, R170, R171, R172, R173, R174, R183, R184, R185, R186 | 26 | [ui-robustness.md](ui-robustness.md) |
-| 五、工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60, R87, R88, R92, R107, R135, R154, R155, R156, R159, R162, R165, R166, R175, R176, R177, R178, R179, R180, R181, R182, R188, R189 | 36 | [engineering.md](engineering.md) |
+| 五、工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60, R87, R88, R92, R107, R135, R146, R147, R154, R155, R156, R159, R162, R165, R166, R175, R176, R177, R178, R179, R180, R181, R182, R188, R189 | 38 | [engineering.md](engineering.md) |
 | 六、平台兼容 | R21, R43, R49, R51, R52, R61 | 6 | [platform.md](platform.md) |
 | 七、用户安全防护 | R70, R71, R73, R74, R75, R76, R77, R89, R90, R91, R93, R94, R95, R96, R97, R98, R99 | 17 | [user-safety.md](user-safety.md) |
-| 八、系统安全 | R78, R79, R80, R81, R82, R83, R84, R100, R101, R102, R103, R104, R105, R111, R112, R113, R114, R118, R119, R120, R121, R123, R124, R126, R128, R130, R131, R132, R133, R137, R138, R139, R142 | 33 | [system-security.md](system-security.md) |
+| 八、系统安全 | R78, R79, R80, R81, R82, R83, R84, R100, R101, R102, R103, R104, R105, R111, R112, R113, R114, R118, R119, R120, R121, R123, R124, R126, R128, R130, R131, R132, R133, R137, R138, R139, R142, R143, R144, R145, R148, R149 | 38 | [system-security.md](system-security.md) |
 
 ## 使用方式
 
@@ -24,7 +24,7 @@
 - 每个分类文件包含该分类下所有规则的完整文本（BAD/GOOD 示例、验证方法、发现来源）
 - 完整原始文件见 [../regression-guards.md](../regression-guards.md)
 
-## R131-R142 新增规则速览
+## R131-R150 新增规则速览
 
 > 以下规则为后续安全审计与一致性补强新增，详细 BAD/GOOD 示例见对应分类文件与测试文件。
 
@@ -42,6 +42,14 @@
 | R140 | polling-engine 必须通过 `initPollingEngine()` 惰性初始化，禁止模块级副作用 | 异步安全 | `src/modules/video/task-management/hooks/internals/__tests__/regression-r140-polling-engine-lazy-init.test.ts` |
 | R141 | db/run HTTP 路由在写操作成功后必须调用 `scheduleSave()` | 数据一致性 | `electron/src/api/__tests__/regression-r141-db-run-schedule-save.test.ts` |
 | R142 | api-gateway-utils `isPrivateUrl` 异常时必须 fail-close（返回 true） | 系统安全 | `electron/src/__tests__/regression-r142-api-gateway-ssrf-fail-close.test.ts` |
+| R143 | validateSql 表名白名单必须防御双引号绕过（正则兼容 `"?`） | 系统安全 | `electron/src/handlers/__tests__/regression-r143-validate-sql-quote-bypass.test.ts` |
+| R144 | SSRF 校验必须并行解析 IPv4+IPv6 双栈（防 DNS rebinding） | 系统安全 | `electron/src/__tests__/regression-r144-ssrf-dual-stack-check.test.ts` |
+| R145 | isSensitiveQuery 必须识别 CTE/RETURNING 子句并脱敏 | 系统安全 | `electron/src/handlers/__tests__/regression-r145-cte-returning-redact.test.ts` |
+| R146 | domain 层必须零外部依赖（纯净性） | 工程质量 | `src/domain/__tests__/regression-r146-domain-purity.test.ts` |
+| R147 | 跨模块 Store 访问必须走公共 API（禁止深路径直导 useVideoTaskStore） | 工程质量 | `src/modules/__tests__/regression-r147-cross-module-store-access.test.ts` |
+| R148 | createBackup 的 verifyDb.close() 必须在 finally 块中（防连接泄漏） | 系统安全 | `electron/src/database/__tests__/regression-r148-backup-connection-leak.test.ts` |
+| R149 | file/read 路由必须在读取前检查文件大小（>50MB 拒绝） | 系统安全 | `electron/src/api/__tests__/regression-r149-file-read-size-limit.test.ts` |
+| R150 | normalizeCameraValue 别名表必须按字段隔离（防跨表污染） | 数据一致性 | `src/domain/__tests__/regression-r150-normalize-camera-value.test.ts` |
 
 ## R154-R157 新增规则速览（批次 2 性能优化）
 

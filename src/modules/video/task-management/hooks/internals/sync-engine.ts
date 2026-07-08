@@ -8,6 +8,8 @@ import { t } from "@/shared/constants";
 import { pollingState } from "./polling-engine";
 
 const SYNC_DEBOUNCE_MS = 2000;
+/** 任务过期时间（720 小时 = 30 天），用于计算 expiresAt */
+const TASK_EXPIRY_MS = 720 * 60 * 60 * 1000;
 
 interface SyncStoreAccessor {
   getState: () => { allTasks: VideoTask[] };
@@ -40,8 +42,8 @@ export function scheduleSync() {
         prompt: task.prompt,
         parameters: task.parameters,
         expiresAt: task.createdAt
-          ? new Date(new Date(task.createdAt).getTime() + 720 * 60 * 60 * 1000).toISOString()
-          : new Date(Date.now() + 720 * 60 * 60 * 1000).toISOString(),
+          ? new Date(new Date(task.createdAt).getTime() + TASK_EXPIRY_MS).toISOString()
+          : new Date(Date.now() + TASK_EXPIRY_MS).toISOString(),
         lastPolledAt: new Date().toISOString(),
         apiUrl: task.apiUrl,
         apiEndpoint: task.apiEndpoint,

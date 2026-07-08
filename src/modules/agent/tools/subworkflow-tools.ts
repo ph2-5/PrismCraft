@@ -26,6 +26,9 @@ import { TOOL_TIMEOUTS, toolExecutor } from "../services/tool-executor";
 import { toolRegistry } from "../services/tool-registry";
 import { container } from "@/infrastructure/di";
 
+/** 小说转分镜时文本最大字符数（避免 token 超限） */
+const NOVEL_TEXT_MAX_CHARS = 8000;
+
 // ============= 辅助函数 =============
 
 /** 用 textProvider 推理生成 JSON（从文本中提取第一个 JSON 对象） */
@@ -1285,9 +1288,9 @@ export const autoCreateFromNovelTool: ToolImpl = {
     }
 
     // 截断过长的小说文本（避免 token 超限）
-    const truncatedText = novelText.length > 8000 ? novelText.slice(0, 8000) + "…" : novelText;
-    if (novelText.length > 8000) {
-      ctx.onProgress?.(`警告：小说文本过长（${novelText.length} 字符），已截断到 8000 字符`);
+    const truncatedText = novelText.length > NOVEL_TEXT_MAX_CHARS ? novelText.slice(0, NOVEL_TEXT_MAX_CHARS) + "…" : novelText;
+    if (novelText.length > NOVEL_TEXT_MAX_CHARS) {
+      ctx.onProgress?.(`警告：小说文本过长（${novelText.length} 字符），已截断到 ${NOVEL_TEXT_MAX_CHARS} 字符`);
     }
 
     // Step 2: 用 AI 分析小说，提取角色、场景、情节点

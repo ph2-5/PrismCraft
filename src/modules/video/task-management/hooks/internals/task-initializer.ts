@@ -10,6 +10,9 @@ import { AppError } from "@/domain/types/result";
 import type { VideoTask } from "@/domain/schemas";
 import { pollingState, checkAndStartOrStopPolling } from "./polling-engine";
 
+/** 定期清理过期视频缓存和任务记录的间隔（30 分钟） */
+const CACHE_CLEANUP_INTERVAL_MS = 30 * 60 * 1000;
+
 interface InitStateSlice {
   allTasks: VideoTask[];
   isInitialized: boolean;
@@ -135,7 +138,7 @@ export function setupCacheCleanupInterval(): void {
     } catch (err) {
       errorLogger.warn("[VideoTaskManager] 定期清理失败", err);
     }
-  }, 30 * 60 * 1000);
+  }, CACHE_CLEANUP_INTERVAL_MS);
 }
 
 export function setupBeforeUnloadHandler(store: StoreAccessor): void {

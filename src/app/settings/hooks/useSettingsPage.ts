@@ -6,6 +6,10 @@ import { container } from "@/infrastructure/di";
 import { usePreference } from "@/shared/utils/preferences";
 
 const AUTOSAVE_STORAGE_KEY = "ai-animation-autosave-settings";
+/** 设置页错误日志显示上限，超过则清理 */
+const SETTINGS_ERROR_LOG_LIMIT = 100;
+/** 清理后保留的条数 */
+const SETTINGS_ERROR_LOG_KEEP = 50;
 
 export type SettingsTab =
   | "api"
@@ -55,8 +59,8 @@ export function useSettingsPage() {
   // ── Error log handlers ──
   const clearErrorLogs = async () => {
     const logs = await container.errorLogStorage.getErrorLogs<{ timestamp: number }>();
-    if (logs.length > 100) {
-      await container.errorLogStorage.deleteOldErrorLogs(50);
+    if (logs.length > SETTINGS_ERROR_LOG_LIMIT) {
+      await container.errorLogStorage.deleteOldErrorLogs(SETTINGS_ERROR_LOG_KEEP);
     }
   };
 

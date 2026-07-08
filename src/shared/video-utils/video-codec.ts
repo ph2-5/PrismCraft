@@ -16,6 +16,9 @@ export interface VideoCodecInfo {
   bitrate: number;
 }
 
+/** 探测视频编解码器时读取的文件头部最大大小（64KB） */
+const VIDEO_HEADER_MAX_BYTES = 64 * 1024;
+
 const CONTAINER_MIME_MAP: Record<string, ContainerFormat> = {
   "video/mp4": "mp4",
   "video/webm": "webm",
@@ -124,7 +127,7 @@ export async function detectVideoCodec(
     probeVideoElement(file),
     (async () => {
       try {
-        const headerSize = Math.min(file.size, 64 * 1024);
+        const headerSize = Math.min(file.size, VIDEO_HEADER_MAX_BYTES);
         const header = await file.slice(0, headerSize).arrayBuffer();
         return await probeVideoCodecFromBuffer(header);
       } catch (e) {

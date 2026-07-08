@@ -73,6 +73,9 @@ export async function loadPluginDetectionRules(): Promise<void> {
 // ── 检测逻辑 ──
 
 const CONFIDENCE_ORDER: Record<string, number> = { high: 3, medium: 2, low: 1 };
+/** API Key 长度校验上下限 */
+const API_KEY_MIN_LENGTH = 10;
+const API_KEY_MAX_LENGTH = 512;
 
 function matchPluginRulesAll(apiKey: string): DetectResult[] {
   const matches: DetectResult[] = [];
@@ -170,11 +173,11 @@ export function validateApiKey(apiKey: string): {
     return { valid: false, errorKey: "provider.apiKey.empty" };
   }
 
-  if (apiKey.length < 10) {
+  if (apiKey.length < API_KEY_MIN_LENGTH) {
     return { valid: false, errorKey: "provider.apiKey.tooShort" };
   }
 
-  if (apiKey.length > 512) {
+  if (apiKey.length > API_KEY_MAX_LENGTH) {
     return { valid: false, errorKey: "provider.apiKey.tooLong" };
   }
 

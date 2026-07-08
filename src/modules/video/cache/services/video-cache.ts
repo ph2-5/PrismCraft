@@ -32,6 +32,8 @@ const MAX_CACHE_SIZE = 500;
 const MAX_TOTAL_BLOB_SIZE_MB = 10240;
 const CACHE_RETRY_COUNT = 3;
 const DEFAULT_URL_TTL = 3600;
+/** 视频缓存下载失败后的退避基数（每次重试递增） */
+const CACHE_BACKOFF_BASE_MS = 3000;
 
 const memoryCache = new Map<string, { blob: Blob; mimeType: string; cachedAt: number }>();
 
@@ -102,7 +104,7 @@ export async function cacheVideoBlob(
           continue;
         }
         if (attempt >= CACHE_RETRY_COUNT - 1) break;
-        await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
+        await new Promise((r) => setTimeout(r, CACHE_BACKOFF_BASE_MS * (attempt + 1)));
       }
     }
     return false;

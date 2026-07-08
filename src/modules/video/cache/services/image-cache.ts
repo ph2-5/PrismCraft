@@ -16,6 +16,8 @@ import {
 const CACHE_RETRY_COUNT = 2;
 const MAX_IMAGE_CACHE_SIZE = 500;
 const MAX_TOTAL_IMAGE_SIZE_MB = 512;
+/** 图片缓存失败后的退避基数（每次重试递增） */
+const CACHE_BACKOFF_BASE_MS = 2000;
 
 function isHttpExpiredError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -149,7 +151,7 @@ export async function cacheImageBlob(
           error,
         );
         if (attempt < CACHE_RETRY_COUNT - 1) {
-          await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+          await new Promise((r) => setTimeout(r, CACHE_BACKOFF_BASE_MS * (attempt + 1)));
         }
       }
     }

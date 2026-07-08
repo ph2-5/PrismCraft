@@ -1,6 +1,11 @@
 import { safeQuery, safeRun } from "./sqlite-core";
 import { parseRecord } from "./core";
 
+/** 错误日志最大条数，超过则触发清理 */
+const MAX_ERROR_LOGS = 1000;
+/** 触发清理后保留的条数 */
+const ERROR_LOGS_KEEP_AFTER_CLEANUP = 800;
+
 export const errorLogStorage = {
   async addErrorLog(error: {
     message: string;
@@ -18,8 +23,8 @@ export const errorLogStorage = {
       ],
     );
     const count = await this.getErrorLogCount();
-    if (count > 1000) {
-      await this.deleteOldErrorLogs(800);
+    if (count > MAX_ERROR_LOGS) {
+      await this.deleteOldErrorLogs(ERROR_LOGS_KEEP_AFTER_CLEANUP);
     }
   },
 

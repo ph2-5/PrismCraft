@@ -12,6 +12,9 @@ interface AutoSaveRecord {
   timestamp: number;
 }
 
+/** 崩溃恢复窗口期（24 小时内的自动保存才会被展示） */
+const RECOVERY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 interface CrashRecoveryDialogProps {
   loadAutoSaves: () => Promise<AutoSaveRecord[]>;
   deleteAutoSave: (id: string) => Promise<void>;
@@ -28,7 +31,7 @@ export function CrashRecoveryDialog({ loadAutoSaves, deleteAutoSave }: CrashReco
       try {
         const saves = await loadAutoSaves();
         const recentSaves = saves.filter(
-          (s) => Date.now() - (s.timestamp || 0) < 24 * 60 * 60 * 1000,
+          (s) => Date.now() - (s.timestamp || 0) < RECOVERY_WINDOW_MS,
         );
         if (!cancelled && recentSaves.length > 0) {
           setAutoSaves(recentSaves);

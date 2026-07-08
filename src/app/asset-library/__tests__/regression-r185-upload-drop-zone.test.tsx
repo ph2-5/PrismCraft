@@ -1,5 +1,5 @@
 /**
- * R133: AssetUploadSection 拖拽区域必须实际处理 drop 事件
+ * R185: AssetUploadSection 拖拽区域必须实际处理 drop 事件
  *
  * 回归规则目的：
  *   src/app/asset-library/AssetUploadSection.tsx 的拖拽区域必须实际处理 drop
@@ -64,7 +64,7 @@ function makeDataTransferWithFiles(files: File[]): DataTransfer {
   return dt;
 }
 
-describe("R133: AssetUploadSection 拖拽区域实际处理 drop 事件", () => {
+describe("R185: AssetUploadSection 拖拽区域实际处理 drop 事件", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

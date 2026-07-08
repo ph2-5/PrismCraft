@@ -1,5 +1,5 @@
 /**
- * R135: useBeatDetail 必须使用 Zustand selector 订阅 task，禁止 setInterval 自定义轮询
+ * R187: useBeatDetail 必须使用 Zustand selector 订阅 task，禁止 setInterval 自定义轮询
  *
  * 回归规则目的：
  *   src/app/story/beat/$beatId/use-beat-detail.ts 必须通过 useVideoTaskStore 的
@@ -54,7 +54,7 @@ vi.mock("react-router-dom", () => ({
 
 import { useBeatDetail } from "../use-beat-detail";
 
-describe("R135: useBeatDetail 禁止 setInterval 自定义轮询", () => {
+describe("R187: useBeatDetail 禁止 setInterval 自定义轮询", () => {
   let setIntervalSpy: ReturnType<typeof vi.spyOn>;
   let clearIntervalSpy: ReturnType<typeof vi.spyOn>;
   let setTimeoutSpy: ReturnType<typeof vi.spyOn>;

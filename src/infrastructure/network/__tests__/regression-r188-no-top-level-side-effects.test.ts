@@ -1,5 +1,5 @@
 /**
- * R136: network-monitor 模块加载时禁止顶层副作用，副作用必须延迟到 startMonitoring()
+ * R188: network-monitor 模块加载时禁止顶层副作用，副作用必须延迟到 startMonitoring()
  *
  * 回归规则目的：
  *   src/infrastructure/network/network-monitor.ts 模块加载时不应执行任何顶层副作用
@@ -42,7 +42,7 @@ vi.mock("../network.config", () => ({
   NETWORK_CONFIG: mockNetworkConfig,
 }));
 
-describe("R136: network-monitor 禁止顶层副作用", () => {
+describe("R188: network-monitor 禁止顶层副作用", () => {
   let addEventListenerSpy: ReturnType<typeof vi.spyOn>;
   let removeEventListenerSpy: ReturnType<typeof vi.spyOn>;
   let originalNetworkState: unknown;

@@ -1,5 +1,5 @@
 /**
- * R137: video-cache 模块加载时禁止顶层 beforeunload 注册，必须延迟到 registerObjectUrl()
+ * R189: video-cache 模块加载时禁止顶层 beforeunload 注册，必须延迟到 registerObjectUrl()
  *
  * 回归规则目的：
  *   src/infrastructure/storage/video-cache.ts 模块加载时不应注册 window.beforeunload
@@ -40,7 +40,7 @@ vi.mock("@/shared/error-logger", () => ({
   errorLogger: mockErrorLogger,
 }));
 
-describe("R137: video-cache 禁止顶层 beforeunload 注册", () => {
+describe("R189: video-cache 禁止顶层 beforeunload 注册", () => {
   let addEventListenerSpy: ReturnType<typeof vi.spyOn>;
   let removeEventListenerSpy: ReturnType<typeof vi.spyOn>;
 

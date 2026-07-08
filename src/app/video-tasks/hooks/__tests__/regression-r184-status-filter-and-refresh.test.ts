@@ -1,5 +1,5 @@
 /**
- * R132: VideoTasksPage statusFilter 必须实际过滤 tasks，刷新按钮必须有 onClick
+ * R184: VideoTasksPage statusFilter 必须实际过滤 tasks，刷新按钮必须有 onClick
  *
  * 回归规则目的：
  *   src/app/video-tasks/hooks/useVideoTasksPage.ts 必须返回有效的 statusFilter
@@ -98,7 +98,7 @@ function makeMixedTasks(): VideoTask[] {
   ];
 }
 
-describe("R132: VideoTasksPage statusFilter 与刷新按钮", () => {
+describe("R184: VideoTasksPage statusFilter 与刷新按钮", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

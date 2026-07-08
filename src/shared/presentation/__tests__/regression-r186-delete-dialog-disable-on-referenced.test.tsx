@@ -1,5 +1,5 @@
 /**
- * R134: DeleteConfirmDialog 在有引用时 confirm 按钮必须 disabled
+ * R186: DeleteConfirmDialog 在有引用时 confirm 按钮必须 disabled
  *
  * 回归规则目的：
  *   src/shared/presentation/DeleteConfirmDialog.tsx 当 referenceCheck.references.length > 0
@@ -28,7 +28,7 @@ vi.mock("lucide-react", () => ({
 
 import { DeleteConfirmDialog } from "../DeleteConfirmDialog";
 
-describe("R134: DeleteConfirmDialog 引用时禁用 confirm 按钮", () => {
+describe("R186: DeleteConfirmDialog 引用时禁用 confirm 按钮", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {

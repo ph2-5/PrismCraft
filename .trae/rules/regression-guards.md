@@ -3466,7 +3466,7 @@ export function closeDatabase() {
 
 **Discovered in**: Database lifecycle audit found startup timers not cleared on close, causing backup to fire after shutdown. Test: `electron/src/database/__tests__/regression-r130-timer-cleanup-on-close.test.ts`.
 
-### R131: PageErrorBoundary.getDerivedStateFromError MUST Be Single-Argument
+### R183: PageErrorBoundary.getDerivedStateFromError MUST Be Single-Argument
 
 `getDerivedStateFromError` in `src/shared/presentation/PageErrorBoundary.tsx` MUST accept only a single `error` parameter. The `errorCount` accumulation MUST happen in `componentDidCatch` via `this.setState((prev) => ({ errorCount: prev.errorCount + 1 }))`, NOT in `getDerivedStateFromError`. React only passes `error` to `getDerivedStateFromError` — any second parameter (e.g., `prev`) will always be `undefined`, so reading `prev.errorCount` there would never accumulate.
 
@@ -3494,9 +3494,9 @@ public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
 
 **Verification**: Check `getDerivedStateFromError.length === 1`. Trigger multiple errors (with retry in between). Verify `errorCount` increments by 1 each time and `canRetry` flips to `false` once `errorCount >= MAX_RETRY_ATTEMPTS`.
 
-**Discovered in**: P0 fix audit found `getDerivedStateFromError(error, prev)` accepting two parameters, but React only passes `error`, causing `errorCount` to never accumulate and `canRetry` to stay `true` forever. Test: `src/shared/presentation/__tests__/regression-r131-error-boundary-error-count.test.tsx`.
+**Discovered in**: P0 fix audit found `getDerivedStateFromError(error, prev)` accepting two parameters, but React only passes `error`, causing `errorCount` to never accumulate and `canRetry` to stay `true` forever. Test: `src/shared/presentation/__tests__/regression-r183-error-boundary-error-count.test.tsx`.
 
-### R132: VideoTasksPage Filter and Refresh MUST Be Wired Up
+### R184: VideoTasksPage Filter and Refresh MUST Be Wired Up
 
 `useVideoTasksPage` in `src/app/video-tasks/hooks/useVideoTasksPage.ts` MUST expose a working `statusFilter` state, `setStatusFilter` setter, `filteredTasks` (filtered by `statusFilter`), and `handleRefresh` (calls `window.location.reload()`). The `<select>` element MUST bind `value={statusFilter}` and `onChange={setStatusFilter}`. The refresh button MUST bind `onClick={handleRefresh}`.
 
@@ -3523,9 +3523,9 @@ return { allTasks: filteredTasks, statusFilter, setStatusFilter, handleRefresh, 
 
 **Verification**: Render hook with mixed-status tasks. Verify `setStatusFilter("completed")` filters out non-completed tasks. Verify `handleRefresh` calls `window.location.reload()`. Verify all three (`statusFilter`, `setStatusFilter`, `handleRefresh`) are returned.
 
-**Discovered in**: P0 fix audit found VideoTasksPage `<select>` had no `value`/`onChange` binding and refresh button had no `onClick`, making both controls dead. Test: `src/app/video-tasks/hooks/__tests__/regression-r132-status-filter-and-refresh.test.ts`.
+**Discovered in**: P0 fix audit found VideoTasksPage `<select>` had no `value`/`onChange` binding and refresh button had no `onClick`, making both controls dead. Test: `src/app/video-tasks/hooks/__tests__/regression-r184-status-filter-and-refresh.test.ts`.
 
-### R133: AssetUploadSection Drag Handlers MUST Not Be Empty Stubs
+### R185: AssetUploadSection Drag Handlers MUST Not Be Empty Stubs
 
 `AssetUploadSection` in `src/app/asset-library/AssetUploadSection.tsx` MUST actually handle `onDrop`, `onDragOver`, `onDragEnter`, `onDragLeave` events. Empty stub handlers (`() => {}`) are forbidden on the drop zone. The `onDrop` handler MUST either call `onDropFiles(files)` prop or fallback to setting `fileInputRef.current.files` and dispatching a `change` event. The drop zone MUST have `role="button"`, `tabIndex={0}`, and `onKeyDown` handling Enter/Space for keyboard accessibility.
 
@@ -3576,9 +3576,9 @@ const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
 
 **Verification**: Render with `visible={true}`. Fire `drop` event with files, verify `onDropFiles` called with `FileList`. Fire `dragEnter`/`dragLeave`, verify `borderColor` toggles between `"var(--primary)"` and default. Fire `keyDown` with Enter/Space, verify `fileInputRef.current.click()` called.
 
-**Discovered in**: P0 fix audit found drag handlers were empty stubs — users dragging files into the upload zone got no response. Test: `src/app/asset-library/__tests__/regression-r133-upload-drop-zone.test.tsx`.
+**Discovered in**: P0 fix audit found drag handlers were empty stubs — users dragging files into the upload zone got no response. Test: `src/app/asset-library/__tests__/regression-r185-upload-drop-zone.test.tsx`.
 
-### R134: DeleteConfirmDialog MUST Disable Confirm When Entity Is Referenced
+### R186: DeleteConfirmDialog MUST Disable Confirm When Entity Is Referenced
 
 `DeleteConfirmDialog` in `src/shared/presentation/DeleteConfirmDialog.tsx` MUST disable the confirm button when `referenceCheck.references.length > 0`. Deleting an entity that is still referenced by other elements would create dangling references. The button MUST also have a `title` attribute explaining why deletion is blocked.
 
@@ -3604,9 +3604,9 @@ const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
 
 **Verification**: Render with `referenceCheck.references.length === 2`. Verify confirm button is disabled and has `title`. Click the disabled button — verify `onConfirm` is NOT called. Render with `references.length === 0`, verify button is enabled and `onConfirm` IS called on click.
 
-**Discovered in**: P0 fix audit found confirm button remained clickable even when the entity had active references, allowing users to delete referenced entities and create dangling references. Test: `src/shared/presentation/__tests__/regression-r134-delete-dialog-disable-on-referenced.test.tsx`.
+**Discovered in**: P0 fix audit found confirm button remained clickable even when the entity had active references, allowing users to delete referenced entities and create dangling references. Test: `src/shared/presentation/__tests__/regression-r186-delete-dialog-disable-on-referenced.test.tsx`.
 
-### R135: useBeatDetail MUST Subscribe via Zustand Selector, NOT Custom setInterval Polling
+### R187: useBeatDetail MUST Subscribe via Zustand Selector, NOT Custom setInterval Polling
 
 `useBeatDetail` in `src/app/story/beat/$beatId/use-beat-detail.ts` MUST subscribe to the video task via `useVideoTaskStore((s) => s.allTasks.find((t) => t.beatId === beatId))` selector. The polling-engine is the single source of truth for task status updates. Custom `setInterval` polling in hooks is forbidden because it duplicates the polling-engine's work, wastes API quota, and can desynchronize from the store.
 
@@ -3638,9 +3638,9 @@ export function useBeatDetail() {
 
 **Verification**: Spy on `global.setInterval`. Render the hook with mocked `useVideoTaskStore`. Verify `setInterval` is NEVER called. Verify `useVideoTaskStore` is called with a selector function. Call the selector with a state containing matching `beatId` — verify it returns the right task.
 
-**Discovered in**: P0 fix audit found `useBeatDetail` ran a custom 5-second `setInterval` polling task status, duplicating polling-engine work and causing double API calls. Test: `src/app/story/beat/$beatId/__tests__/regression-r135-no-setinterval-polling.test.ts`.
+**Discovered in**: P0 fix audit found `useBeatDetail` ran a custom 5-second `setInterval` polling task status, duplicating polling-engine work and causing double API calls. Test: `src/app/story/beat/$beatId/__tests__/regression-r187-no-setinterval-polling.test.ts`.
 
-### R136: network-monitor MUST Defer Side Effects to startMonitoring()
+### R188: network-monitor MUST Defer Side Effects to startMonitoring()
 
 `src/infrastructure/network/network-monitor.ts` MUST NOT execute any top-level side effects during module load. Specifically, `window.__NETWORK_MONITOR_STATE__` MUST NOT be set, and `window.addEventListener("online"/"offline")` MUST NOT be called at module scope. All side effects MUST be deferred to `startMonitoring()` (via `ensureStateInitialized()`). This prevents accidental registration on bare imports, simplifies HMR, and makes the module testable without triggering global state mutation.
 
@@ -3673,9 +3673,9 @@ export function startMonitoring(): void {
 
 **Verification**: Reset modules, spy on `window.addEventListener`, dynamically `import()` the module. Verify spy NOT called and `window.__NETWORK_MONITOR_STATE__` is undefined. Call `startMonitoring()`. Verify `__NETWORK_MONITOR_STATE__` is set and `addEventListener` called with `online`/`offline`.
 
-**Discovered in**: P0 fix audit found `network-monitor.ts` registered `window.__NETWORK_MONITOR_STATE__` at module scope, causing the side effect to fire on any import (including tests and HMR). Test: `src/infrastructure/network/__tests__/regression-r136-no-top-level-side-effects.test.ts`.
+**Discovered in**: P0 fix audit found `network-monitor.ts` registered `window.__NETWORK_MONITOR_STATE__` at module scope, causing the side effect to fire on any import (including tests and HMR). Test: `src/infrastructure/network/__tests__/regression-r188-no-top-level-side-effects.test.ts`.
 
-### R137: video-cache MUST Defer beforeunload Registration to registerObjectUrl()
+### R189: video-cache MUST Defer beforeunload Registration to registerObjectUrl()
 
 `src/infrastructure/storage/video-cache.ts` MUST NOT register a `beforeunload` listener at module scope. The `window.addEventListener("beforeunload", ...)` call MUST be wrapped in a lazy initializer (`ensureBeforeUnloadRegistered()`) that is invoked from `registerObjectUrl()`. `cleanupVideoCache()` MUST remove the listener. This pattern prevents HMR-time duplicate registrations and makes the module testable.
 
@@ -3713,7 +3713,7 @@ export function registerObjectUrl(taskId: string, url: string): void {
 
 **Verification**: Reset modules, spy on `window.addEventListener`, dynamically `import()` the module. Verify spy NOT called with `"beforeunload"`. Call `registerObjectUrl()`. Verify `addEventListener` called once with `"beforeunload"`. Call `registerObjectUrl()` again — verify no second registration (idempotent). Call `cleanupVideoCache()`. Verify `removeEventListener` called.
 
-**Discovered in**: P0 fix audit found `video-cache.ts` registered `beforeunload` at module scope, causing duplicate listeners on HMR and making the module untestable in isolation. Test: `src/infrastructure/storage/__tests__/regression-r137-no-top-level-beforeunload.test.ts`.
+**Discovered in**: P0 fix audit found `video-cache.ts` registered `beforeunload` at module scope, causing duplicate listeners on HMR and making the module untestable in isolation. Test: `src/infrastructure/storage/__tests__/regression-r189-no-top-level-beforeunload.test.ts`.
 
 ### R154: useAssetLoader MUST Load Characters/Scenes/StoryboardAssets via Promise.all
 

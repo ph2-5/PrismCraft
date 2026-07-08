@@ -1,5 +1,5 @@
 /**
- * R131: PageErrorBoundary errorCount 必须在多次错误后正确累加
+ * R183: PageErrorBoundary errorCount 必须在多次错误后正确累加
  *
  * 回归规则目的：
  *   src/shared/presentation/PageErrorBoundary.tsx 中的 getDerivedStateFromError
@@ -62,7 +62,7 @@ class ThrowingChild extends Component<ThrowingChildProps> {
   }
 }
 
-describe("R131: PageErrorBoundary errorCount 必须正确累加", () => {
+describe("R183: PageErrorBoundary errorCount 必须正确累加", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {

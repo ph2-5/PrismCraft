@@ -5,15 +5,15 @@
 
 **⚠️ 关键隔离原则**：规则是回归防护，NOT 发现工具。不要用此列表作为未来审计的起点。
 
-**总计：167 条规则 | 8 个分类**
+**总计：174 条规则 | 8 个分类**
 
 | 分类 | 规则编号 | 规则数 | 文件 |
 |------|---------|--------|------|
 | 一、数据一致性 | R1, R2, R8, R9, R13, R14, R30, R36, R37, R42, R45, R64, R65, R66, R68, R69, R72, R109, R116, R125, R141, R157 | 22 | [data-consistency.md](data-consistency.md) |
-| 二、异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67, R85, R106, R110, R115, R117, R122, R127, R140 | 21 | [async-safety.md](async-safety.md) |
+| 二、异步安全 | R4, R10, R11, R12, R29, R31, R32, R34, R38, R46, R48, R62, R67, R85, R106, R110, R115, R117, R122, R127, R140, R187 | 22 | [async-safety.md](async-safety.md) |
 | 三、错误处理 | R5, R6, R15, R17, R18, R44, R47, R50, R53, R56, R63, R86, R108, R129, R134, R136 | 16 | [error-handling.md](error-handling.md) |
-| 四、UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35, R158, R160, R161, R163, R164, R167, R168, R169, R170, R171, R172, R173, R174 | 22 | [ui-robustness.md](ui-robustness.md) |
-| 五、工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60, R87, R88, R92, R107, R135, R154, R155, R156, R159, R162, R165, R166, R175, R176, R177, R178, R179, R180, R181, R182 | 34 | [engineering.md](engineering.md) |
+| 四、UI 健壮性 | R7, R16, R19, R20, R22, R23, R24, R25, R35, R158, R160, R161, R163, R164, R167, R168, R169, R170, R171, R172, R173, R174, R183, R184, R185, R186 | 26 | [ui-robustness.md](ui-robustness.md) |
+| 五、工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60, R87, R88, R92, R107, R135, R154, R155, R156, R159, R162, R165, R166, R175, R176, R177, R178, R179, R180, R181, R182, R188, R189 | 36 | [engineering.md](engineering.md) |
 | 六、平台兼容 | R21, R43, R49, R51, R52, R61 | 6 | [platform.md](platform.md) |
 | 七、用户安全防护 | R70, R71, R73, R74, R75, R76, R77, R89, R90, R91, R93, R94, R95, R96, R97, R98, R99 | 17 | [user-safety.md](user-safety.md) |
 | 八、系统安全 | R78, R79, R80, R81, R82, R83, R84, R100, R101, R102, R103, R104, R105, R111, R112, R113, R114, R118, R119, R120, R121, R123, R124, R126, R128, R130, R131, R132, R133, R137, R138, R139, R142 | 33 | [system-security.md](system-security.md) |
@@ -92,3 +92,17 @@
 | R180 | 函数职责单一（>100 行的注册函数应拆分） | 工程质量 | `electron/src/__tests__/regression-r180-function-split.test.ts` |
 | R181 | 禁止硬编码 Tailwind 颜色类名（必须使用语义变量） | 工程质量 | — |
 | R182 | /api/config/set 必须走异步 keyStorage 持久化（禁止明文 apiKey 落盘） | 工程质量 | `electron/src/__tests__/regression-r182-config-set-async-persistence.test.ts` |
+
+## R183-R189 新增规则速览（P0 修复审计 UI 规则，原 R131-R137 重新编号）
+
+> 以下规则为 P0 修复审计产物，原编号 R131-R137 与系统安全规则冲突，重新编号为 R183-R189。详细 BAD/GOOD 示例见 `regression-guards.md` 及对应测试文件。
+
+| 规则 | 主题 | 分类 | 测试文件 |
+|------|------|------|---------|
+| R183 | `PageErrorBoundary.getDerivedStateFromError` 必须单参数，errorCount 在 componentDidCatch 中累加 | UI 健壮性 | `src/shared/presentation/__tests__/regression-r183-error-boundary-error-count.test.tsx` |
+| R184 | `VideoTasksPage` statusFilter 与刷新按钮必须实际绑定（value/onChange/onClick） | UI 健壮性 | `src/app/video-tasks/hooks/__tests__/regression-r184-status-filter-and-refresh.test.ts` |
+| R185 | `AssetUploadSection` 拖拽 handlers 不能为空 stub，需支持键盘 | UI 健壮性 | `src/app/asset-library/__tests__/regression-r185-upload-drop-zone.test.tsx` |
+| R186 | `DeleteConfirmDialog` 有引用时 confirm 按钮必须 disabled | UI 健壮性 | `src/shared/presentation/__tests__/regression-r186-delete-dialog-disable-on-referenced.test.tsx` |
+| R187 | `useBeatDetail` 必须用 Zustand selector 订阅，禁止自定义 setInterval 轮询 | 异步安全 | `src/app/story/beat/$beatId/__tests__/regression-r187-no-setinterval-polling.test.ts` |
+| R188 | `network-monitor` 顶层副作用必须延迟到 startMonitoring() | 工程质量 | `src/infrastructure/network/__tests__/regression-r188-no-top-level-side-effects.test.ts` |
+| R189 | `video-cache` beforeunload 注册必须延迟到 registerObjectUrl() | 工程质量 | `src/infrastructure/storage/__tests__/regression-r189-no-top-level-beforeunload.test.ts` |

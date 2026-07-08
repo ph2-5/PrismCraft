@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "description": "AI 驱动的动画制作工具 - 本地优先，支持从故事创作到视频生成的完整工作流",
   "author": "PrismCraft",
-  "license": "Apache-2.0",
+  "license": "CC-BY-NC-4.0",
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@dnd-kit/core": "^6.3.1",

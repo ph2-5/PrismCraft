@@ -2,9 +2,9 @@
 
 > 本地优先的 AI 动画创作桌面应用，覆盖故事构思 → 角色设计 → 场景搭建 → 分镜编排 → AI 视频生成 → 导出成品的完整工作流。
 
-[![Version](https://img.shields.io/badge/version-1.0-blue)](package.json)
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4800%2B-brightgreen)](docs/DEVELOPMENT.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)](package.json)
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-5752%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Updated](https://img.shields.io/badge/updated-2026--07--04-green)]()
 
@@ -147,12 +147,12 @@ prismcraft/
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 4800+ |
+| 单元测试 | 5752+ |
 | E2E 测试 | 126 个（Electron 集成 + 页面加载） |
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |
 | 架构扫描 | 通过（DDD 依赖方向） |
-| 回归守卫 | 142 条规则，8 大类 |
+| 回归守卫 | 180+ 条规则，8 大类 |
 | i18n 键 | 2000+ |
 
 ## 安全设计
@@ -165,15 +165,16 @@ prismcraft/
 
 ## 许可
 
-本项目采用 [Apache License 2.0](LICENSE) 开源协议。
+本项目采用 [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](LICENSE) 协议。
 
-- ✅ **商业使用**：允许商业使用，包括闭源衍生产品
-- ✅ **修改和分发**：允许修改、分发、再授权
-- ✅ **专利授权**：包含明确的专利授权条款
-- ✅ **必须署名**：保留版权声明和协议链接
-- ✅ **声明变更**：修改文件需注明变更
+- ✅ **署名**：必须给出适当署名，提供协议链接，并注明是否作了修改
+- ✅ **共享**：可以在任何媒介中以任何格式复制和分发材料
+- ✅ **改编**：可以混合、转换材料并在此基础上创作
+- ❌ **非商业性使用**：不得将材料用于商业目的
 
-如需商业支持或定制开发，请联系作者：
+> ⚠️ **商业使用须知**：如需将本项目或其衍生作品用于商业用途（包括闭源商业产品、SaaS 服务、内部生产环境等），必须获得作者的商业授权。请联系作者获取商业授权许可。
+
+如需商业授权、技术支持或定制开发，请联系作者：
 
 - **GitHub Issues**：[ph2-5/PrismCraft/issues](https://github.com/ph2-5/PrismCraft/issues)
 - **Trae 社区**：[@u590909302648505](https://forum.trae.cn/u/u590909302648505)

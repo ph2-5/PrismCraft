@@ -32,6 +32,7 @@ const messages: Record<MessageKey, string> = {
   "common.upload": "上传",
 
   "error.saveFailed": "保存失败",
+  "error.switchStoryFailed": "切换故事失败",
   "error.deleteFailed": "删除失败",
   "error.uploadFailed": "上传失败",
   "error.generateFailed": "生成失败",

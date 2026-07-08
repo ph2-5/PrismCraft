@@ -167,9 +167,14 @@ export function useStorySwitching(
   const [pendingSwitchStory, setPendingSwitchStory] = useState<StoryShape["stories"][number] | null>(null);
 
   const performSwitchStory = async (s: StoryShape["stories"][number]) => {
-    await story.switchToStory(s.id);
-    setShowSwitchConfirmDialog(false);
-    setPendingSwitchStory(null);
+    try {
+      await story.switchToStory(s.id);
+      setShowSwitchConfirmDialog(false);
+      setPendingSwitchStory(null);
+    } catch (error) {
+      errorLogger.error("[Story] 切换故事失败", error instanceof Error ? error : undefined);
+      showError(t("error.switchStoryFailed"), mapUserFacingError(error));
+    }
   };
 
   const switchStory = (s: StoryShape["stories"][number]) => {

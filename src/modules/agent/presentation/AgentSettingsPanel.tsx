@@ -13,12 +13,13 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { AgentSettings } from "../hooks/use-agent";
 import type { AgentPersona } from "../domain/prompts";
 import { AGENT_PERSONAS } from "../domain/prompts";
 import { t } from "@/shared/constants";
 import { getConfig, setConfig } from "@/shared/file-http";
+import { errorLogger } from "@/shared/error-logger";
 import {
   checkFfmpegAvailable,
   resetFfmpegCache,
@@ -188,7 +189,9 @@ function FfmpegConfigSection() {
 
   const handleClear = useCallback(() => {
     setPath("");
-    void setConfig("ffmpegPath", null);
+    void setConfig("ffmpegPath", null).catch((e) => {
+      errorLogger.warn("[Agent] 清除 ffmpegPath 失败", e instanceof Error ? e : undefined);
+    });
     resetFfmpegCache();
     setStatus({ state: "idle" });
   }, []);
@@ -272,6 +275,7 @@ function SearchConfigSection() {
   const [engine, setEngine] = useState<string>("bing");
   const [engineId, setEngineId] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 加载已保存的搜索配置
   useEffect(() => {
@@ -292,18 +296,31 @@ function SearchConfigSection() {
     };
   }, []);
 
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    };
+  }, []);
+
   const handleSave = useCallback(async () => {
     setStatus("saving");
     const trimmedKey = apiKey.trim();
     const trimmedEngineId = engineId.trim();
-    const ok1 = await setConfig("searchApiKey", trimmedKey || null);
-    const ok2 = await setConfig("searchEngine", engine);
-    const ok3 = await setConfig("searchEngineId", trimmedEngineId || null);
-    if (ok1 && ok2 && ok3) {
-      setStatus("saved");
-      // 2 秒后恢复 idle
-      setTimeout(() => setStatus("idle"), 2000);
-    } else {
+    try {
+      const ok1 = await setConfig("searchApiKey", trimmedKey || null);
+      const ok2 = await setConfig("searchEngine", engine);
+      const ok3 = await setConfig("searchEngineId", trimmedEngineId || null);
+      if (ok1 && ok2 && ok3) {
+        setStatus("saved");
+        // 2 秒后恢复 idle
+        if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+        statusTimerRef.current = setTimeout(() => setStatus("idle"), 2000);
+      } else {
+        setStatus("failed");
+      }
+    } catch (e) {
+      errorLogger.warn("[Agent] 保存搜索配置失败", e instanceof Error ? e : undefined);
       setStatus("failed");
     }
   }, [apiKey, engine, engineId]);
@@ -312,8 +329,12 @@ function SearchConfigSection() {
     setApiKey("");
     setEngineId("");
     setEngine("bing");
-    await setConfig("searchApiKey", null);
-    await setConfig("searchEngineId", null);
+    try {
+      await setConfig("searchApiKey", null);
+      await setConfig("searchEngineId", null);
+    } catch (e) {
+      errorLogger.warn("[Agent] 清除搜索配置失败", e instanceof Error ? e : undefined);
+    }
     setStatus("idle");
   }, []);
 

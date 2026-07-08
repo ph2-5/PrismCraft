@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { AgentMessage, ToolExecution } from "../domain/types";
 import { ToolCallCard } from "./ToolCallCard";
 import { MarkdownRenderer } from "./MarkdownRenderer";
@@ -22,12 +22,20 @@ interface AgentMessageViewProps {
 
 export function AgentMessageView({ message, toolExecutions }: AgentMessageViewProps) {
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // 剪贴板不可用时静默失败
     }

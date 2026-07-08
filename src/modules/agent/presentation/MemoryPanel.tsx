@@ -24,6 +24,7 @@ import {
 } from "../services/memory-service";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
+import { errorLogger } from "@/shared/error-logger";
 import { X, Brain, Trash2, RefreshCw } from "lucide-react";
 
 interface MemoryPanelProps {
@@ -66,6 +67,8 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
       if (ok) {
         await loadMemory();
       }
+    } catch (e) {
+      errorLogger.warn("[Agent] 删除偏好失败", e instanceof Error ? e : undefined);
     } finally {
       setActionLoading(false);
     }
@@ -79,6 +82,8 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
       if (ok) {
         await loadMemory();
       }
+    } catch (e) {
+      errorLogger.warn("[Agent] 删除事实失败", e instanceof Error ? e : undefined);
     } finally {
       setActionLoading(false);
     }
@@ -99,6 +104,9 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
       } else {
         setError(t("agent.memory.clearFailed"));
       }
+    } catch (e) {
+      errorLogger.warn("[Agent] 清空核心记忆失败", e instanceof Error ? e : undefined);
+      setError(t("agent.memory.clearFailed"));
     } finally {
       setActionLoading(false);
     }

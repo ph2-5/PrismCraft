@@ -1,4 +1,4 @@
-import { Play, Upload, Loader2, RefreshCw } from "lucide-react";
+import { Play, Upload, Loader2, RefreshCw, Check } from "lucide-react";
 import { AppCard } from "@/shared/presentation/AppCard";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { createVideoErrorHandler } from "@/shared/utils/media-error-handler";
@@ -82,7 +82,7 @@ export function VideoStepContent({
                 {t("keyframe.stepVideo")}
               </span>
               {status === "completed" && (
-                <span className="text-xs text-success">✓</span>
+                <Check className="w-3 h-3 text-success" />
               )}
               {status === "generating" && (
                 <span className="text-xs animate-pulse" style={{ color: "var(--primary)" }}>

@@ -7,6 +7,7 @@ import {
   User,
   Clock,
   MapPin,
+  Check,
 } from "lucide-react";
 import {
   DndContext,
@@ -63,11 +64,11 @@ function BeatCard({ beat, index, characters, scenes, onEditClick, isSelected }: 
   const hasFramePair = !!beat.framePair?.firstFrame?.imageUrl;
 
   const statusBadge = hasVideo
-    ? <span className="badge badge-success">✓</span>
+    ? <span className="badge badge-success"><Check style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle" }} /></span>
     : hasFramePair
-      ? <span className="badge badge-success">✓</span>
+      ? <span className="badge badge-success"><Check style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle" }} /></span>
       : hasKeyframe
-        ? <span className="badge badge-success">✓</span>
+        ? <span className="badge badge-success"><Check style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle" }} /></span>
         : <Clock style={{ width: 10, height: 10 }} />;
 
   return (

@@ -89,7 +89,16 @@ export const CharacterCard = memo(function CharacterCard({
         cursor: "pointer",
         border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
       }}
+      role="button"
+      tabIndex={0}
+      aria-label={char.name || t("element.characterLabel")}
       onClick={() => onEditItem({ ...char, _type: "character" })}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEditItem({ ...char, _type: "character" });
+        }
+      }}
     >
       <div style={cardImageAreaStyle}>
         {hasImage ? (
@@ -189,7 +198,16 @@ export const SceneCard = memo(function SceneCard({
         cursor: "pointer",
         border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
       }}
+      role="button"
+      tabIndex={0}
+      aria-label={scene.name || t("scene.title")}
       onClick={() => onEditItem({ ...scene, _type: "scene" })}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEditItem({ ...scene, _type: "scene" });
+        }
+      }}
     >
       <div style={cardImageAreaStyle}>
         {hasImage ? (
@@ -283,7 +301,16 @@ export const StoryboardCard = memo(function StoryboardCard({
         cursor: "pointer",
         border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
       }}
+      role="button"
+      tabIndex={0}
+      aria-label={sb.script || t("story.untitled")}
       onClick={() => onEditItem({ ...sb, _type: "storyboard" })}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEditItem({ ...sb, _type: "storyboard" });
+        }
+      }}
     >
       <div style={cardImageAreaStyle}>
         {hasImage ? (

@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { AppCard } from "@/shared/presentation/AppCard";
 import { t } from "@/shared/constants/messages";
 import type { PromptEditorContext } from "../../prompt-editor";
@@ -87,7 +88,7 @@ export function FramePairStepContent({
                 {t("keyframe.stepFramePair")}
               </span>
               {status === "completed" && (
-                <span className="text-xs text-success">✓</span>
+                <Check className="w-3 h-3 text-success" />
               )}
               {status === "generating" && (
                 <span className="text-xs animate-pulse" style={{ color: "var(--primary)" }}>

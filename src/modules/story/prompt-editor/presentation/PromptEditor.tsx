@@ -194,7 +194,7 @@ export function PromptEditor({
             onClick={clearError}
             style={{ color: "var(--muted-fg)", cursor: "pointer", background: "none", border: "none", padding: 0 }}
           >
-            ✕
+            <X className="w-3 h-3" />
           </button>
         </div>
       )}

@@ -104,7 +104,16 @@ export function PluginList({
                 <div key={plugin.id} style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
                   <div
                     style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, cursor: "pointer", background: "rgba(var(--primary-rgb), 0.2)" }}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
                     onClick={() => onToggleExpand(isExpanded ? null : plugin.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onToggleExpand(isExpanded ? null : plugin.id);
+                      }
+                    }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                       <div style={{ width: 8, height: 8, borderRadius: 9999, flexShrink: 0, background: "var(--primary)" }} />
@@ -150,7 +159,16 @@ export function PluginList({
                 <div key={plugin.id} style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
                   <div
                     style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, cursor: "pointer", background: "rgba(var(--warning-rgb), 0.2)" }}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
                     onClick={() => onToggleExpand(isExpanded ? null : plugin.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onToggleExpand(isExpanded ? null : plugin.id);
+                      }
+                    }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                       <div style={{ width: 8, height: 8, borderRadius: 9999, flexShrink: 0, background: "var(--warning)" }} />

@@ -259,7 +259,7 @@ export function BeatDetailEditor({
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span><MapPin style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {selectedScene.name}</span>
                   <span style={{ color: "var(--success)" }}>
-                    {consistencyCheck ? "✓" : "—"}
+                    {consistencyCheck ? <Check style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> : "—"}
                   </span>
                 </div>
                 <div className="progress-bar">

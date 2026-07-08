@@ -14,6 +14,7 @@ import {
   RefreshCw,
   BookOpen,
   Film,
+  Check,
 } from "lucide-react";
 import { ModelSelector } from "@/modules/prompt";
 import { SaveStatusIndicator, type SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
@@ -373,7 +374,7 @@ export function SceneElementsCard({
                 e.currentTarget.style.color = "var(--muted-fg)";
               }}
             >
-              ✕
+              <X style={{ width: 10, height: 10 }} />
             </button>
           </span>
         ))}
@@ -457,7 +458,7 @@ export function SceneReferencedBeatsCard({
                   className={isCompleted ? "badge badge-success" : "badge badge-info"}
                   style={{ fontSize: 9, marginLeft: "auto" }}
                 >
-                  {isCompleted ? "✓" : ""}
+                  {isCompleted ? <Check style={{ width: 10, height: 10 }} /> : null}
                 </span>
               </div>
             );

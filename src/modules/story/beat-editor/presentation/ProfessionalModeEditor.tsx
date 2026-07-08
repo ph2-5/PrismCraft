@@ -429,7 +429,14 @@ export function ProfessionalModeEditor({
             justifyContent: "center",
             zIndex: 50,
           }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("story.preview")}
+          tabIndex={-1}
           onClick={() => setShowPreviewModal(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowPreviewModal(false);
+          }}
         >
           <div
             className="card"

@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Upload, RefreshCw, Loader2 } from "lucide-react";
+import { Image as ImageIcon, Upload, RefreshCw, Loader2, Check } from "lucide-react";
 import { AppCard } from "@/shared/presentation/AppCard";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { t } from "@/shared/constants/messages";
@@ -89,7 +89,7 @@ export function KeyframeStepContent({
                 {t("keyframe.stepKeyframe")}
               </span>
               {status === "completed" && (
-                <span className="text-xs text-success">✓</span>
+                <Check className="w-3 h-3 text-success" />
               )}
               {status === "generating" && (
                 <span className="text-xs animate-pulse" style={{ color: "var(--primary)" }}>

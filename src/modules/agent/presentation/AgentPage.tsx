@@ -21,6 +21,7 @@ import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { MemoryPanel } from "./MemoryPanel";
 import { SessionHistory } from "./SessionHistory";
 import { t } from "@/shared/constants";
+import { confirm } from "@/shared/utils/confirm";
 import {
   Send,
   Square,
@@ -80,9 +81,13 @@ export function AgentPage() {
     }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (session.messages.length > 0) {
-      if (!confirm(t("agent.confirmClear"))) return;
+      const ok = await confirm({
+        description: t("agent.confirmClear"),
+        variant: "danger",
+      });
+      if (!ok) return;
     }
     clearSession();
   };

@@ -11,6 +11,7 @@
 
 import type { SessionListItem } from "../services/session-storage";
 import { t } from "@/shared/constants";
+import { confirm } from "@/shared/utils/confirm";
 import { MessageSquare, Plus, Trash2, Clock } from "lucide-react";
 
 interface SessionHistoryProps {
@@ -95,9 +96,13 @@ export function SessionHistory({
                     </div>
                   </div>
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      if (confirm(t("agent.deleteSessionConfirm"))) {
+                      const ok = await confirm({
+                        description: t("agent.deleteSessionConfirm"),
+                        variant: "danger",
+                      });
+                      if (ok) {
                         onDelete(session.id);
                       }
                     }}

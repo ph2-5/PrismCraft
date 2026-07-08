@@ -23,6 +23,7 @@ import {
   type CoreMemory,
 } from "../services/memory-service";
 import { t } from "@/shared/constants";
+import { confirm } from "@/shared/utils/confirm";
 import { X, Brain, Trash2, RefreshCw } from "lucide-react";
 
 interface MemoryPanelProps {
@@ -85,7 +86,11 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
 
   /** 清空所有核心记忆 */
   const handleClearAll = async () => {
-    if (!confirm(t("agent.memory.confirmClear"))) return;
+    const confirmed = await confirm({
+      description: t("agent.memory.confirmClear"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
     setActionLoading(true);
     try {
       const ok = await clearCoreMemory();

@@ -3,7 +3,7 @@
 > 本地优先的 AI 动画创作桌面应用，覆盖故事构思 → 角色设计 → 场景搭建 → 分镜编排 → AI 视频生成 → 导出成品的完整工作流。
 
 [![Version](https://img.shields.io/badge/version-1.0-blue)](package.json)
-[![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-4800%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Updated](https://img.shields.io/badge/updated-2026--07--04-green)]()
@@ -165,14 +165,15 @@ prismcraft/
 
 ## 许可
 
-本项目采用 [CC BY-NC 4.0](LICENSE)（署名-非商业性使用 4.0 国际）协议开源。
+本项目采用 [Apache License 2.0](LICENSE) 开源协议。
 
-- ✅ **可自由使用**：学习、研究、修改、分发
+- ✅ **商业使用**：允许商业使用，包括闭源衍生产品
+- ✅ **修改和分发**：允许修改、分发、再授权
+- ✅ **专利授权**：包含明确的专利授权条款
 - ✅ **必须署名**：保留版权声明和协议链接
-- ❌ **禁止商业使用**：未经书面授权，不得用于商业目的
-- 🔄 **作者保留随时闭源的权利**：未来版本可能转为闭源
+- ✅ **声明变更**：修改文件需注明变更
 
-如需商业授权，请联系作者：
+如需商业支持或定制开发，请联系作者：
 
 - **GitHub Issues**：[ph2-5/PrismCraft/issues](https://github.com/ph2-5/PrismCraft/issues)
 - **Trae 社区**：[@u590909302648505](https://forum.trae.cn/u/u590909302648505)

@@ -758,7 +758,7 @@ Before submitting any code change, verify:
 7. **Contract sync**: If public API changed, update MODULE.md + contract.json + index.ts
 8. **Test coverage**: New services/hooks have tests in `__tests__/`
 9. **Validation pass**: `npx eslint .` + `npx tsc --noEmit` + `npx vitest run`
-10. **Video onError guard**: All `<video>` onError handlers use `data-retried` guard (R19)
+10. **Video onError guard**: All `<video>` onError handlers use `data-retried` guard (R7)
 11. **No fetch("/api/...")**: All internal communication uses DI/IPC/proxy exports (R21)
 12. **Async button loading**: Delete/save confirm buttons have loading state (R22/R23)
 13. **Action feedback**: Explicit user actions provide success toast feedback (R24)

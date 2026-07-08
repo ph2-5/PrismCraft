@@ -100,24 +100,35 @@ if (mergeStrategy === "replace" && importedIds.length > 0) {
 }
 ```
 
-### R14: Async AI Analysis Must Merge Results, Not Replace
-When an async AI analysis operation completes and updates an entity (e.g., character image analysis, scene analysis), it MUST merge its results into the current state rather than replacing the entire entity. The user may have edited fields during the async operation.
+### R14: Async AI Analysis Must Merge Results Selectively, Not Spread Override
+When an async AI analysis operation (image analysis, scene analysis, character analysis) completes and updates entity state, it MUST merge only the fields that AI actually produced (e.g., appearance, style, elements, colors) using `??` (nullish coalescing), NOT spread-override the entire entity with `{ ...prev, ...analysisResult }`. Spread override will overwrite user edits made during the async operation on fields like `name`, `description`, `gender`.
 
 **BAD**:
 ```typescript
 const snapshot = ref.current;
 const updated = { ...snapshot, ...analysisResult };
 setState(updated); // Overwrites user edits made during analysis
+
+// 或更直接的形式：
+setCurrentCharacter((prev) => ({ ...prev, ...analysisResult }), true);
 ```
 
 **GOOD**:
 ```typescript
 setState((prev) => ({
   ...prev,
-  name: analyzed.name || prev.name,
-  description: analyzed.description || prev.description,
+  name: analyzed.name ?? prev.name,
+  description: analyzed.description ?? prev.description,
   // Only overwrite fields that AI actually produced
 }));
+
+// 完整示例：
+setCurrentCharacter((prev) => ({
+  ...prev,
+  appearance: analysisResult.appearance ?? prev.appearance,
+  style: analysisResult.style ?? prev.style,
+  personality: analysisResult.personality ?? prev.personality,
+}), true);
 ```
 
 ### R30: Cascade Delete Operations Must Be Atomic
@@ -143,24 +154,6 @@ await safeTransaction([
   { sql: "DELETE FROM character_outfits WHERE character_id = ?", params: [id] },
   { sql: "DELETE FROM characters WHERE id = ?", params: [id] },
 ]);
-```
-
-### R36: Async AI Analysis Results MUST Use Selective Merge, Not Spread Override
-When an async AI analysis operation (image analysis, scene analysis, character analysis) completes and updates entity state, it MUST merge only the fields that AI actually produced (e.g., appearance, style, elements, colors) using `??` (nullish coalescing), NOT spread-override the entire entity with `{ ...prev, ...analysisResult }`. Spread override will overwrite user edits made during the async operation on fields like `name`, `description`, `gender`.
-
-**BAD**:
-```typescript
-setCurrentCharacter((prev) => ({ ...prev, ...analysisResult }), true);
-```
-
-**GOOD**:
-```typescript
-setCurrentCharacter((prev) => ({
-  ...prev,
-  appearance: analysisResult.appearance ?? prev.appearance,
-  style: analysisResult.style ?? prev.style,
-  personality: analysisResult.personality ?? prev.personality,
-}), true);
 ```
 
 ### R37: Dynamic SQL Table Names MUST Be Validated Against Identifier Pattern

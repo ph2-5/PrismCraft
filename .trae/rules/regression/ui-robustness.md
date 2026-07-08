@@ -2,44 +2,7 @@
 
 > 核心关注：界面不崩、有反馈、无泄漏
 
-### R7: Video onError Must Guard Against Infinite Retry Loops
-When a `<video>` element fails to load and the onError handler sets a fallback `src`, the handler MUST prevent re-triggering if the fallback also fails. Without a guard, an infinite onError loop will occur.
-
-**BAD**:
-```tsx
-<video onError={(e) => { (e.target as HTMLVideoElement).src = fallbackUrl; }} />
-```
-
-**GOOD**:
-```tsx
-<video onError={(e) => {
-  const target = e.target as HTMLVideoElement;
-  if (!target.dataset.retried) {
-    target.dataset.retried = "1";
-    target.src = fallbackUrl;
-  }
-}} />
-```
-
-### R16: ErrorBoundary Must Limit Retry Attempts
-When an ErrorBoundary catches a rendering error, the retry button MUST be disabled after a configurable number of consecutive failures (default: 3). Repeatedly retrying a deterministic error creates an infinite crash-retry loop that degrades the user experience. After the limit, guide the user to refresh or reset instead.
-
-**BAD**:
-```tsx
-<Button onClick={() => setState({ hasError: false })}>重试</Button>
-// User can click this infinitely, each time the component crashes again
-```
-
-**GOOD**:
-```tsx
-{errorCount < 3 ? (
-  <Button onClick={() => setState({ hasError: false })}>重试</Button>
-) : (
-  <p>错误多次重复出现，请尝试刷新页面或重置</p>
-)}
-```
-
-### R19: Video onError Must Use data-retried Guard (Extended R7)
+### R7: Video onError Must Use data-retried Guard Against Infinite Retry Loops
 When a `<video>` element's onError handler sets a fallback or retry `src`, the handler MUST use a `dataset.retried` guard to prevent infinite onError loops. This applies to ALL video elements across the app, not just specific pages. Without this guard, a fallback URL that also fails will trigger onError again, creating an infinite loop.
 
 **BAD**:
@@ -66,12 +29,13 @@ When a `<video>` element's onError handler sets a fallback or retry `src`, the h
 />
 ```
 
-### R20: ErrorBoundary Retry Must Have Limit (Extended R16)
-When an ErrorBoundary catches a rendering error, the retry mechanism MUST limit consecutive retry attempts (default: 3). After the limit, the UI MUST guide the user to refresh or reset instead of offering another retry button. This applies to ALL ErrorBoundary implementations, including page-level and component-level boundaries.
+### R16: ErrorBoundary Must Limit Retry Attempts
+When an ErrorBoundary catches a rendering error, the retry mechanism MUST limit consecutive retry attempts (default: 3). After the limit, the UI MUST guide the user to refresh or reset instead of offering another retry button. This applies to ALL ErrorBoundary implementations, including page-level and component-level boundaries. Repeatedly retrying a deterministic error creates an infinite crash-retry loop that degrades the user experience.
 
 **BAD**:
 ```tsx
 <Button onClick={() => setState({ hasError: false })}>重试</Button>
+// User can click this infinitely, each time the component crashes again
 ```
 
 **GOOD**:

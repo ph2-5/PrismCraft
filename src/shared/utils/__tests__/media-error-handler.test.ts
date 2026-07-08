@@ -48,7 +48,7 @@ describe("media-error-handler", () => {
       expect(el.dataset.retried).toBe("1");
     });
 
-    it("should not set fallback src when data-retried already set (R19 guard)", () => {
+    it("should not set fallback src when data-retried already set (R7 guard)", () => {
       const handler = createVideoErrorHandler(null, "http://fallback.com/video.mp4");
       const el = createMockVideoElement("http://example.com/video.mp4");
       el.dataset.retried = "1";
@@ -99,7 +99,7 @@ describe("media-error-handler", () => {
       expect(mockResolveMediaUrl).toHaveBeenCalledWith("/local/path.mp4", "http://remote/video.mp4");
     });
 
-    it("should prevent infinite retry loop when fallback also fails (R19)", () => {
+    it("should prevent infinite retry loop when fallback also fails (R7)", () => {
       const handler = createVideoErrorHandler(null, "http://fallback.com/video.mp4");
       const el = createMockVideoElement("http://example.com/video.mp4");
       mockResolveMediaUrl.mockReturnValue("http://fallback.com/video.mp4");
@@ -194,7 +194,7 @@ describe("media-error-handler", () => {
       expect(mockResolveImageUrl).not.toHaveBeenCalled();
     });
 
-    it("should not set fallback when data-retried already set (R19 guard)", () => {
+    it("should not set fallback when data-retried already set (R7 guard)", () => {
       const handler = createImageUrlErrorHandler("http://fallback.com/image.png");
       const el = createMockImageElement("http://example.com/image.png");
       el.dataset.retried = "1";

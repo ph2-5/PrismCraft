@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-describe("R36: AI analysis must use selective merge, not spread override", () => {
+describe("R14: AI analysis must use selective merge, not spread override", () => {
   it("should preserve user-edited name when AI analysis completes", () => {
     const currentCharacter = {
       id: "char_1",

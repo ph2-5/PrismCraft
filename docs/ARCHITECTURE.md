@@ -1003,10 +1003,10 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 - R31：用户主动触发的异步保存必须验证实体上下文——保存开始时快照实体 ID，保存完成后验证当前实体 ID 未变
 - R32：批量生成循环必须检查组件卸载取消——`cancelledRef` + useEffect cleanup + 循环内 break
 
-**UI 健壮性（R7, R16, R19, R20）**：
+**UI 健壮性（R7, R16）**：
 
-- R7/R19：Video onError 必须使用 data-retried 守卫——防止 fallback URL 也失败时的无限循环
-- R16/R20：ErrorBoundary 重试次数限制（默认 3 次）——确定性错误不应无限重试
+- R7：Video onError 必须使用 data-retried 守卫——防止 fallback URL 也失败时的无限循环（适用于所有 video 元素）
+- R16：ErrorBoundary 重试次数限制（默认 3 次）——确定性错误不应无限重试（适用于所有 ErrorBoundary 实现）
 
 **Electron 兼容（R21）**：禁止 `fetch("/api/...")`——Electron + output: "export" 无服务端，所有内部通信走 DI/IPC/代理导出
 
@@ -1025,11 +1025,11 @@ invariants 是不可协商的业务规则。违反不变量的修改必须改变
 - R28：批量查询优于 N+1 循环查询——Storage 层的 getAll 方法必须使用批量查询（一次查询所有关联数据，内存按父 ID 分组），而非逐条查询关联数据
 - R33：写操作前的存在性检查应尽可能消除——UPDATE WHERE id=? 自然处理不存在的记录（影响 0 行），无需预先 SELECT
 
-**Vibe Coding 审计（R34-R36）**：
+**Vibe Coding 审计（R34-R35）**：
 
 - R34：Zustand store 更新必须使用函数式 `set(state => ...)`——`get()+set({})` 模式在并发时会覆盖其他更新
 - R35：Blob URL 必须在组件卸载时 revoke——`URL.createObjectURL()` 创建的预览 URL 需用 `useRef` 跟踪并在 useEffect cleanup 中释放
-- R36：异步 AI 分析结果必须选择性合并——只覆盖 AI 产生的字段（`??` 运算符），不能 spread 覆盖用户正在编辑的 `name`/`description`
+- R14：异步 AI 分析结果必须选择性合并——只覆盖 AI 产生的字段（`??` 运算符），不能 spread 覆盖用户正在编辑的 `name`/`description`/`gender`
 
 **IPC 效率（R39-R41）**：
 

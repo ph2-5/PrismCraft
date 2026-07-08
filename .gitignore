@@ -91,6 +91,9 @@ ai-animation-studio-*.zip
 # AI context files (maintenance guides for AI-driven development)
 # .ai/
 
+# Internal licensing strategy doc (author-only, not for public release)
+.ai/licensing-strategy.md
+
 # Obsolete docs
 docs/废弃/
 

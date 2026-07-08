@@ -76,7 +76,7 @@ export function TaskActions({
         {(task.status === "failed" || task.status === "timeout") && (
           <button
             type="button"
-            className="btn btn-ghost btn-sm h-7 px-3 text-xs flex-1 gap-1 text-orange-600 hover:text-orange-700"
+            className="btn btn-ghost btn-sm h-7 px-3 text-xs flex-1 gap-1 text-warning hover:text-warning/80"
             onClick={() => onRetryTask(task)}
             disabled={retryingTaskId === task.taskId}
           >

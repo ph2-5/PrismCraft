@@ -211,17 +211,17 @@ export function ApiKeyAlert() {
   if (!isVisible) return null;
 
   return (
-    <div className="bg-yellow-900/20 border border-yellow-800 rounded-lg p-4 mb-4">
+    <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 mb-4">
       <div className="flex items-start gap-3">
         <Sparkles className="h-5 w-5 mt-0.5" style={{ color: "var(--warning)" }} />
         <div className="flex-1">
-          <h4 className="font-medium text-yellow-300">{t("onboarding.apiKeyNotConfigured")}</h4>
+          <h4 className="font-medium text-warning">{t("onboarding.apiKeyNotConfigured")}</h4>
           <p className="text-sm mt-1" style={{ color: "var(--warning)" }}>
             {t("onboarding.apiKeyNotConfiguredDesc")}
           </p>
           <button
             onClick={() => guardedPush("/settings")}
-            className="inline-flex items-center gap-1 text-sm font-medium text-yellow-300 hover:text-yellow-200 mt-2 underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-warning hover:text-warning/80 mt-2 underline"
           >
             {t("onboarding.goToSettingsLink")} <Settings className="h-3 w-3" />
           </button>

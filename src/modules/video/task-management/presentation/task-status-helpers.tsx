@@ -22,11 +22,11 @@ export function getStatusIcon(status: VideoTaskStatus) {
     case "failed":
       return <XCircle className="w-4 h-4" style={{ color: "var(--destructive)" }} />;
     case "retrying":
-      return <RotateCcw className="w-4 h-4 text-orange-500" />;
+      return <RotateCcw className="w-4 h-4" style={{ color: "var(--warning)" }} />;
     case "cancelled":
       return <Ban className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />;
     case "timeout":
-      return <Timer className="w-4 h-4 text-orange-500" />;
+      return <Timer className="w-4 h-4" style={{ color: "var(--warning)" }} />;
     default:
       return <Clock className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />;
   }

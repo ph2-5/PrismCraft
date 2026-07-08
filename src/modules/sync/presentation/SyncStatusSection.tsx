@@ -14,11 +14,11 @@ export function SyncStatusSection({ status, syncResult }: SyncStatusSectionProps
         <div className="rounded-lg border p-3 space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium">
             {status.conflicts > 0 ? (
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
             ) : status.pendingChanges > 0 ? (
-              <Cloud className="h-4 w-4 text-blue-500" />
+              <Cloud className="h-4 w-4 text-primary" />
             ) : status.lastSyncAt ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
             ) : (
               <CloudOff className="h-4 w-4 text-muted-foreground" />
             )}

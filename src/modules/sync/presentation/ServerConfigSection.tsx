@@ -78,8 +78,8 @@ export function ServerConfigSection({
         <div className="flex items-center gap-2 text-xs">
           {connectionStatus === "connected" && (
             <>
-              <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-              <span className="text-green-600">{connectionMessage}</span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+              <span className="text-success">{connectionMessage}</span>
               {serverVersion && (
                 <span className="text-muted-foreground">({serverVersion})</span>
               )}
@@ -87,14 +87,14 @@ export function ServerConfigSection({
           )}
           {connectionStatus === "testing" && (
             <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
-              <span className="text-blue-500">{t("sync.testingConnection")}</span>
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              <span className="text-primary">{t("sync.testingConnection")}</span>
             </>
           )}
           {connectionStatus === "error" && (
             <>
-              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
-              <span className="text-red-500">{connectionMessage}</span>
+              <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+              <span className="text-destructive">{connectionMessage}</span>
             </>
           )}
           {connectionStatus === "disconnected" && (

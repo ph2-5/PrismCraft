@@ -68,7 +68,7 @@ export function BatchProgressDialog({
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 mt-0.5" style={{ color: "var(--destructive)" }} />
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium" style={{ color: "#ef4444" }}>{globalError}</h4>
+              <h4 className="font-medium" style={{ color: "var(--destructive)" }}>{globalError}</h4>
               <button
                 type="button"
                 onClick={onRetryGlobalError}

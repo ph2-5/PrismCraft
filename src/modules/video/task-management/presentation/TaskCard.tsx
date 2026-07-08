@@ -82,7 +82,7 @@ export const TaskCard = React.memo(function TaskCard({
               className="p-1 rounded hover:bg-muted"
             >
               {isSelected ? (
-                <CheckSquare className="w-4 h-4 text-purple-600" />
+                <CheckSquare className="w-4 h-4 text-primary" />
               ) : (
                 <Square className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />
               )}

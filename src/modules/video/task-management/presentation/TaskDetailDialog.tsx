@@ -187,7 +187,7 @@ export function TaskDetailDialog({
                 {(task.status === "failed" || task.status === "timeout") && (
                   <button
                     type="button"
-                    className="btn btn-outline flex-1 gap-1 text-orange-600"
+                    className="btn btn-outline flex-1 gap-1 text-warning"
                     onClick={() => onRetryTask(task)}
                   >
                     <RotateCcw className="w-4 h-4" />

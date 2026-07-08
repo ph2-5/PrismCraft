@@ -68,7 +68,7 @@ export function DebugOverlay() {
           </div>
         ))}
         <button
-          onClick={forceCloseAll} className="bg-red-600 px-2 py-1 rounded w-full">
+          onClick={forceCloseAll} className="bg-destructive px-2 py-1 rounded w-full">
           {t("debug.forceCloseAll")}
         </button>
       </div>

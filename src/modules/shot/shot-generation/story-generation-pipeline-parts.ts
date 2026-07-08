@@ -32,11 +32,19 @@ interface RetryParams {
   maxTokens: number;
 }
 
+/** LLM 重试退避策略参数 */
+const RETRY_TEMPERATURE_FLOOR = 0.3;
+const RETRY_TEMPERATURE_CEIL = 0.7;
+const RETRY_TEMPERATURE_DECAY = 0.4;
+const RETRY_MAX_TOKENS_FLOOR = 2000;
+const RETRY_MAX_TOKENS_CEIL = 4000;
+const RETRY_MAX_TOKENS_DECAY = 2000;
+
 function getRetryParams(attempt: number, maxAttempts: number): RetryParams {
   const safeMaxAttempts = Math.max(maxAttempts, 1);
   const progress = attempt / safeMaxAttempts;
-  const temperature = Math.max(0.3, 0.7 - progress * 0.4);
-  const maxTokens = Math.max(2000, 4000 - Math.floor(progress * 2000));
+  const temperature = Math.max(RETRY_TEMPERATURE_FLOOR, RETRY_TEMPERATURE_CEIL - progress * RETRY_TEMPERATURE_DECAY);
+  const maxTokens = Math.max(RETRY_MAX_TOKENS_FLOOR, RETRY_MAX_TOKENS_CEIL - Math.floor(progress * RETRY_MAX_TOKENS_DECAY));
   return { temperature, maxTokens };
 }
 

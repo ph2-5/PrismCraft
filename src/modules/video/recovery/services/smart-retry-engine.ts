@@ -5,9 +5,10 @@ import type {
   RetryConfig,
   VideoVerificationResult,
 } from "../types/video-recovery-types";
+import { MINUTE_MS } from "@/shared/constants";
 
 /** 任务最大存活时间（2 小时），超过则不再重试 */
-const MAX_TASK_AGE_MS = 120 * 60 * 1000;
+const MAX_TASK_AGE_MS = 120 * MINUTE_MS;
 /** 任务刚创建的宽限期（30 秒），期间不建议重试 */
 const TASK_GRACE_PERIOD_MS = 30000;
 /** 生成中任务的重试延迟基数（30 秒） */

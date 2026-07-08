@@ -3,7 +3,7 @@ import { fromAsyncThrowable, err, NotFoundError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import type { VideoTask } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
-import { t } from "@/shared/constants";
+import { t, HOUR_MS, DAY_MS, MINUTE_MS } from "@/shared/constants";
 import { AppError } from "@/domain/types/result";
 import { TaskMachine, isValidTransition, isStuck, STUCK_TASK_THRESHOLD_MS } from "@/domain/video/task-state";
 
@@ -21,8 +21,8 @@ function getCacheVideoBlobFn(): CacheVideoBlobFn | null {
 
 const EXPIRY_HOURS = 720;
 // 恢复窗口延长至 24 小时，远大于轮询超时（2 小时），确保超时任务仍有充足的恢复时间
-const MAX_POLL_DURATION_MS = 24 * 60 * 60 * 1000;
-const POLL_INTERVAL_MS = 60 * 1000;
+const MAX_POLL_DURATION_MS = DAY_MS;
+const POLL_INTERVAL_MS = MINUTE_MS;
 // 恢复次数上限提升至 240 次（24 小时 / 60 秒 ≈ 1440 次，留余量）
 const MAX_RECOVERY_ATTEMPTS = 240;
 
@@ -35,7 +35,7 @@ export interface VideoRecoverySuccessResult {
 export async function saveVideoTask(task: VideoTask): Promise<Result<void>> {
   return fromAsyncThrowable(async () => {
     const nowIso = new Date().toISOString();
-    const expiresAtIso = task.expiresAt || new Date(Date.now() + EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+    const expiresAtIso = task.expiresAt || new Date(Date.now() + EXPIRY_HOURS * HOUR_MS).toISOString();
     const record = {
       ...task,
       expiresAt: expiresAtIso,

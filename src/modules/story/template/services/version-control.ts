@@ -3,7 +3,7 @@ import { fromAsyncThrowable, ok } from "@/domain/types";
 import type { Story, StoryBeat, StoryVersion } from "@/domain/schemas";
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
-import { t } from "@/shared/constants";
+import { t, MINUTE_MS, HOUR_MS, DAY_MS } from "@/shared/constants";
 
 const MAX_VERSIONS_PER_STORY = 20;
 
@@ -184,11 +184,11 @@ export function formatVersionTime(timestamp: number): string {
   const date = new Date(timestamp);
   const now = new Date();
   const diff = Math.max(0, now.getTime() - timestamp);
-  if (diff < 60 * 1000) return t("task.justNow");
-  if (diff < 60 * 60 * 1000)
-    return t("task.minutesAgo", { count: Math.floor(diff / (60 * 1000)) });
-  if (diff < 24 * 60 * 60 * 1000)
-    return t("task.hoursAgo", { count: Math.floor(diff / (60 * 60 * 1000)) });
+  if (diff < MINUTE_MS) return t("task.justNow");
+  if (diff < HOUR_MS)
+    return t("task.minutesAgo", { count: Math.floor(diff / MINUTE_MS) });
+  if (diff < DAY_MS)
+    return t("task.hoursAgo", { count: Math.floor(diff / HOUR_MS) });
   return date.toLocaleString("zh-CN", {
     month: "short",
     day: "numeric",

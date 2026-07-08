@@ -3,7 +3,7 @@ import { fromAsyncThrowable } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
-import { t, CACHE_RETRY_INTERVAL_MS } from "@/shared/constants";
+import { t, CACHE_RETRY_INTERVAL_MS, DAY_MS } from "@/shared/constants";
 import {
   writeFile as httpWriteFile,
   getFileInfo as httpGetFileInfo,
@@ -209,7 +209,7 @@ export async function removeCachedImage(sourceUrl: string): Promise<Result<void>
 }
 
 export async function cleanExpiredImageCache(
-  maxAgeMs: number = 30 * 24 * 60 * 60 * 1000,
+  maxAgeMs: number = 30 * DAY_MS,
 ): Promise<Result<number>> {
   return fromAsyncThrowable(async () => {
     const filesToDelete = await container.imageCacheStorage.cleanExpiredImageCache(maxAgeMs);

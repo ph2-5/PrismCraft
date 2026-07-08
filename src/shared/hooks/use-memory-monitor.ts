@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { logger } from "@/config/constants";
 import { errorLogger } from "@/shared/error-logger";
+import { MINUTE_MS } from "@/shared/constants";
 
 declare global {
   interface Window {
@@ -73,7 +74,7 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
   const autoCleanup = useCallback(async () => {
     const now = Date.now();
 
-    if (now - lastCleanupRef.current < 5 * 60 * 1000) {
+    if (now - lastCleanupRef.current < 5 * MINUTE_MS) {
       return;
     }
 

@@ -4,12 +4,12 @@ import { cleanExpiredTasks } from "@/modules/video/recovery";
 import { cleanExpiredVideoCache } from "@/modules/video/cache";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
-import { t } from "@/shared/constants";
+import { t, HOUR_MS } from "@/shared/constants";
 import { pollingState } from "./polling-engine";
 
 const SYNC_DEBOUNCE_MS = 2000;
 /** 任务过期时间（720 小时 = 30 天），用于计算 expiresAt */
-const TASK_EXPIRY_MS = 720 * 60 * 60 * 1000;
+const TASK_EXPIRY_MS = 720 * HOUR_MS;
 
 interface SyncStoreAccessor {
   getState: () => { allTasks: VideoTask[] };

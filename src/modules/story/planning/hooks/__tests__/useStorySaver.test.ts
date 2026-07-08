@@ -67,9 +67,13 @@ vi.mock("@/shared/utils/user-facing-error", () => ({
   mapUserFacingError: vi.fn((e: unknown) => e instanceof Error ? e.message : String(e)),
 }));
 
-vi.mock("@/shared/constants", () => ({
-  t: vi.fn((key: string) => key),
-}));
+vi.mock("@/shared/constants", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/constants")>();
+  return {
+    ...actual,
+    t: vi.fn((key: string) => key),
+  };
+});
 
 vi.mock("@/domain/types/result", () => ({
   fromAsyncThrowable: (fn: () => Promise<unknown>) => {

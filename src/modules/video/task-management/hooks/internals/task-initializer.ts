@@ -3,7 +3,7 @@ import { startBackgroundRecovery, cleanExpiredTasks } from "@/modules/video/reco
 import { cleanExpiredVideoCache } from "@/modules/video/cache";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
-import { t } from "@/shared/constants";
+import { t, MINUTE_MS } from "@/shared/constants";
 import { isElectron } from "@/shared/utils/platform";
 import { API_SERVER_PORT } from "@/config/ports";
 import { AppError } from "@/domain/types/result";
@@ -11,7 +11,7 @@ import type { VideoTask } from "@/domain/schemas";
 import { pollingState, checkAndStartOrStopPolling } from "./polling-engine";
 
 /** 定期清理过期视频缓存和任务记录的间隔（30 分钟） */
-const CACHE_CLEANUP_INTERVAL_MS = 30 * 60 * 1000;
+const CACHE_CLEANUP_INTERVAL_MS = 30 * MINUTE_MS;
 
 interface InitStateSlice {
   allTasks: VideoTask[];

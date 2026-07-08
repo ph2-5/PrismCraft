@@ -38,10 +38,14 @@ vi.mock("@/shared/error-logger", () => ({
   extractErrorMessage: vi.fn((e: unknown) => String(e)),
 }));
 
-vi.mock("@/shared/constants", () => ({
-  t: vi.fn((key: string) => key),
-  CACHE_RETRY_INTERVAL_MS: 1000,
-}));
+vi.mock("@/shared/constants", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/constants")>();
+  return {
+    ...actual,
+    t: vi.fn((key: string) => key),
+    CACHE_RETRY_INTERVAL_MS: 1000,
+  };
+});
 
 vi.mock("@/shared/file-http", () => mocks.fileHttp);
 

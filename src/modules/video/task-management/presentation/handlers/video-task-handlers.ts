@@ -9,7 +9,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { isAllowedVideoUrl } from "@/shared/utils/url-validation";
 import { t } from "@/shared/constants/messages";
-import { BATCH_OPERATION_INTERVAL_MS } from "@/shared/constants";
+import { BATCH_OPERATION_INTERVAL_MS, MINUTE_MS } from "@/shared/constants";
 import { useCacheOperations } from "./use-cache-operations";
 import { useTaskSelection } from "./use-task-selection";
 
@@ -28,6 +28,11 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   const { guardedPush } = useNavigationGuard();
   const { success, error } = useToastHelpers();
   const blobUrlTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  /** CSV 导出 blob URL 释放延迟（30 秒） */
+  const CSV_BLOB_REVOKE_DELAY_MS = 30 * 1000;
+  /** 视频下载 blob URL 释放延迟（1 分钟） */
+  const VIDEO_BLOB_REVOKE_DELAY_MS = MINUTE_MS;
 
   const cacheOps = useCacheOperations({ completedTaskIds });
   const selection = useTaskSelection({
@@ -132,7 +137,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    const timer = setTimeout(() => URL.revokeObjectURL(url), 30000);
+    const timer = setTimeout(() => URL.revokeObjectURL(url), CSV_BLOB_REVOKE_DELAY_MS);
     blobUrlTimersRef.current.add(timer);
     success(t("success.exported"), t("video.exportedToCsv", { count: rows.length }));
   };
@@ -158,14 +163,14 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
         const response = await fetch(downloadUrl);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const contentLength = response.headers.get("content-length");
-        const maxSize = 500 * 1024 * 1024;
+        const maxSize = 500 * 1024 * 1024; // 500MB 视频下载大小上限
         if (contentLength && !Number.isNaN(parseInt(contentLength, 10)) && parseInt(contentLength, 10) > maxSize) throw new Error("File too large");
         const blob = await response.blob();
         if (blob.size > maxSize) throw new Error("File too large");
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a"); link.href = url; link.download = filename;
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        const timer = setTimeout(() => URL.revokeObjectURL(url), 60000);
+        const timer = setTimeout(() => URL.revokeObjectURL(url), VIDEO_BLOB_REVOKE_DELAY_MS);
         blobUrlTimersRef.current.add(timer);
         success(t("video.downloadStarted"), t("video.videoDownloadingShort"));
       } catch (err) {

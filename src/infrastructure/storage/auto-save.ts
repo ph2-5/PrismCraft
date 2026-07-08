@@ -1,5 +1,6 @@
 import { safeQuery, safeRun } from "./sqlite-core";
 import { parseRecordWithTable } from "./core";
+import { DAY_MS } from "@/shared/constants";
 
 export const autoSaveStorage = {
   async getAutoSaves<T = Record<string, unknown>>(): Promise<T[]> {
@@ -49,7 +50,7 @@ export const autoSaveStorage = {
     await safeRun("DELETE FROM auto_saves");
   },
 
-  async cleanExpiredAutoSaves(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): Promise<number> {
+  async cleanExpiredAutoSaves(maxAgeMs: number = 7 * DAY_MS): Promise<number> {
     const cutoff = Math.floor((Date.now() - maxAgeMs) / 1000);
     const before = await safeQuery<{ id: string }>(
       "SELECT id FROM auto_saves WHERE timestamp < ?",

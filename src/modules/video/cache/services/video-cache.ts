@@ -3,7 +3,7 @@ import { fromAsyncThrowable } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import { registerObjectUrl, revokeObjectUrl, resilientFetch } from "@/shared/video-cache";
 import { errorLogger } from "@/shared/error-logger";
-import { t, CACHE_RETRY_INTERVAL_MS } from "@/shared/constants";
+import { t, CACHE_RETRY_INTERVAL_MS, DAY_MS } from "@/shared/constants";
 import { AppError } from "@/domain/types/result";
 import {
   writeFile as httpWriteFile,
@@ -395,7 +395,7 @@ export async function removeCachedVideo(taskId: string): Promise<Result<void>> {
 }
 
 export async function cleanExpiredVideoCache(
-  maxAgeMs: number = 30 * 24 * 60 * 60 * 1000,
+  maxAgeMs: number = 30 * DAY_MS,
 ): Promise<Result<number>> {
   return fromAsyncThrowable(async () => {
     const filesToDelete = await container.videoCacheStorage.cleanExpiredVideoCache(maxAgeMs);

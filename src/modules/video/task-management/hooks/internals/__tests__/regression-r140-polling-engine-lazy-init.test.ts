@@ -45,9 +45,10 @@ vi.mock("@/shared/error-logger", () => ({
   errorLogger: mockErrorLogger,
 }));
 
-vi.mock("@/shared/constants", () => ({
-  t: mockT,
-}));
+vi.mock("@/shared/constants", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/constants")>();
+  return { ...actual, t: mockT };
+});
 
 vi.mock("../polling-task-handler", () => ({
   handleTimedOutTasks: mockHandleTimedOutTasks,

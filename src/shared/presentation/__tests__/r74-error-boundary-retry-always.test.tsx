@@ -37,9 +37,13 @@ const { mockT, mockConfirm, mockErrorLogger, mockClassifyErrorSeverity } = vi.ho
   mockClassifyErrorSeverity: vi.fn(() => "app"),
 }));
 
-vi.mock("@/shared/constants", () => ({
-  t: mockT,
-}));
+vi.mock("@/shared/constants", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/constants")>();
+  return {
+    ...actual,
+    t: mockT,
+  };
+});
 
 vi.mock("@/shared/utils/confirm", () => ({
   confirm: mockConfirm,

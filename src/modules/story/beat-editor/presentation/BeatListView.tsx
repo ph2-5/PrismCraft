@@ -80,6 +80,15 @@ function BeatCard({ beat, index, characters, scenes, onEditClick, isSelected }: 
         borderColor: isSelected ? "var(--primary)" : undefined,
       }}
       onClick={() => onEditClick(beat)}
+      role="button"
+      tabIndex={0}
+      aria-label={beat.title || t("beat.shotNumber", { number: index + 1 })}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEditClick(beat);
+        }
+      }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span

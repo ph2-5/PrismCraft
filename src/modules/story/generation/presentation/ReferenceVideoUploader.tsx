@@ -230,6 +230,15 @@ export function ReferenceVideoUploader({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
+                aria-label={t("refVideo.uploadRefVideo")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
               >
                 <input
                   ref={fileInputRef}
@@ -317,6 +326,15 @@ export function ReferenceVideoUploader({
                   key={asset.id}
                   onClick={() => handleSelectFromAssetLibrary(asset)}
                   className="cursor-pointer group relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-all bg-background"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={asset.name}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSelectFromAssetLibrary(asset);
+                    }
+                  }}
                 >
                   <video
                     src={asset.url}

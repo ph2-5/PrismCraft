@@ -183,6 +183,7 @@ export default function TemplateManagerDialog({
                 </label>
                 <input
                   type="text"
+                  aria-label={t("template.templateName")}
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
                   placeholder={t("template.templateNamePlaceholder")}
@@ -196,6 +197,7 @@ export default function TemplateManagerDialog({
                 <textarea
                   value={templateDesc}
                   onChange={(e) => setTemplateDesc(e.target.value)}
+                  aria-label={t("template.description")}
                   placeholder={t("template.descriptionPlaceholder")}
                   rows={2}
                   className="w-full px-3 py-2 border border-border rounded-lg bg-card" style={{ color: "var(--muted-fg)" }}
@@ -209,6 +211,7 @@ export default function TemplateManagerDialog({
                   <select
                     value={templateCategory}
                     onChange={(e) => setTemplateCategory(e.target.value)}
+                    aria-label={t("template.category")}
                     className="w-full px-3 py-2 border border-border rounded-lg bg-card" style={{ color: "var(--muted-fg)" }}
                   >
                     {TEMPLATE_CATEGORIES.map((c) => (
@@ -224,6 +227,7 @@ export default function TemplateManagerDialog({
                   </label>
                   <input
                     type="text"
+                    aria-label={t("template.genre")}
                     value={templateGenre}
                     onChange={(e) => setTemplateGenre(e.target.value)}
                     placeholder={t("template.genrePlaceholder")}
@@ -238,6 +242,7 @@ export default function TemplateManagerDialog({
                   </label>
                   <input
                     type="text"
+                    aria-label={t("template.tone")}
                     value={templateTone}
                     onChange={(e) => setTemplateTone(e.target.value)}
                     placeholder={t("template.tonePlaceholder")}
@@ -250,6 +255,7 @@ export default function TemplateManagerDialog({
                   </label>
                   <input
                     type="text"
+                    aria-label={t("template.tagsComma")}
                     value={templateTags}
                     onChange={(e) => setTemplateTags(e.target.value)}
                     placeholder={t("template.tagsPlaceholder")}
@@ -276,6 +282,15 @@ export default function TemplateManagerDialog({
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t("template.clickToSelectFile")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
                 >
                   <Upload size={32} className="mx-auto mb-2" style={{ color: "var(--muted-fg)" }} />
                   <p className="text-sm" style={{ color: "var(--muted-fg)" }}>

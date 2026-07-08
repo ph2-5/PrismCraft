@@ -85,6 +85,15 @@ export default function Home() {
             className="card p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
             style={{ border: `2px solid rgba(var(--primary-rgb), 0.15)` }}
             onClick={() => navigate("/story")}
+            role="button"
+            tabIndex={0}
+            aria-label={t("home.storyMode")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/story");
+              }
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "rgba(var(--primary-rgb), 0.4)";
               e.currentTarget.style.boxShadow = "0 8px 30px rgba(var(--primary-rgb), 0.1)";
@@ -119,6 +128,15 @@ export default function Home() {
             className="card p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
             style={{ border: `2px solid rgba(var(--warning-rgb), 0.15)` }}
             onClick={() => navigate("/storyboard")}
+            role="button"
+            tabIndex={0}
+            aria-label={t("home.storyboardMode")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/storyboard");
+              }
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "rgba(var(--warning-rgb), 0.4)";
               e.currentTarget.style.boxShadow = "0 8px 30px rgba(var(--warning-rgb), 0.1)";
@@ -153,6 +171,15 @@ export default function Home() {
             className="card p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
             style={{ border: `2px solid rgba(var(--success-rgb), 0.15)` }}
             onClick={() => navigate("/quick-generate")}
+            role="button"
+            tabIndex={0}
+            aria-label={t("home.quickMode")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/quick-generate");
+              }
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "rgba(var(--success-rgb), 0.4)";
               e.currentTarget.style.boxShadow = "0 8px 30px rgba(var(--success-rgb), 0.1)";

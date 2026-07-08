@@ -155,6 +155,7 @@ function StoryPageContent() {
             </p>
             <input
               className="input"
+              aria-label="删除确认输入框"
               value={deleteConfirmInput}
               onChange={(e) => setDeleteConfirmInput(e.target.value)}
               placeholder={t("story.deleteConfirmInputPlaceholder")}

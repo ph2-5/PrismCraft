@@ -51,6 +51,15 @@ export const BeatOverviewCard = React.memo(function BeatOverviewCard({
           "ring-2 ring-primary border-primary shadow-lg shadow-primary/10",
       )}
       onClick={() => onEditClick(beat)}
+      role="button"
+      tabIndex={0}
+      aria-label={beat.title || t("beat.shotNumber", { number: index + 1 })}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEditClick(beat);
+        }
+      }}
     >
       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 via-pink-500 to-purple-500 group-hover:w-2 transition-all duration-300" />
 

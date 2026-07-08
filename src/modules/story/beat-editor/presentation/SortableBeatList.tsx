@@ -73,6 +73,15 @@ function SortableBeatItem({
         boxShadow: isDragging ? "0 4px 12px rgba(0,0,0,0.15)" : undefined,
       }}
       onClick={() => onSelect(beat.id)}
+      role="button"
+      tabIndex={0}
+      aria-label={beat.title || t("beat.shotNumber", { number: index + 1 })}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(beat.id);
+        }
+      }}
     >
       <button
         style={{

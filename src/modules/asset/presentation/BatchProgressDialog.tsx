@@ -310,6 +310,15 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
         isSelected ? "border-primary" : "border-transparent"
       } ${statusColors[task.status]}`}
       onClick={task.status === "completed" && !isGenerating ? onToggleSelection : undefined}
+      role="button"
+      tabIndex={task.status === "completed" && !isGenerating ? 0 : -1}
+      aria-label={task.itemName}
+      onKeyDown={(e) => {
+        if (task.status === "completed" && !isGenerating && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onToggleSelection();
+        }
+      }}
     >
       {task.status === "completed" && task.result?.imageUrl && (
         <img
@@ -384,6 +393,15 @@ function TaskListItem({ task, isSelected, onToggleSelection, isGenerating }: Tas
         isSelected ? "border-primary bg-primary/10" : "border-border"
       }`}
       onClick={task.status === "completed" && !isGenerating ? onToggleSelection : undefined}
+      role="button"
+      tabIndex={task.status === "completed" && !isGenerating ? 0 : -1}
+      aria-label={task.itemName}
+      onKeyDown={(e) => {
+        if (task.status === "completed" && !isGenerating && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onToggleSelection();
+        }
+      }}
     >
       {statusIcons[task.status]}
 

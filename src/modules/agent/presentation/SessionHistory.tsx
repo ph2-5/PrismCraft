@@ -79,6 +79,15 @@ export function SessionHistory({
                       : "border-transparent hover:bg-muted"
                   }`}
                   onClick={() => !isActive && onLoad(session.id)}
+                  role="button"
+                  tabIndex={isActive ? -1 : 0}
+                  aria-label={session.title}
+                  onKeyDown={(e) => {
+                    if (!isActive && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      onLoad(session.id);
+                    }
+                  }}
                 >
                   <MessageSquare
                     className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${

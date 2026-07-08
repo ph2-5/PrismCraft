@@ -76,6 +76,15 @@ export function TemplateSelectDialog({
                   key={template.id}
                   className="p-4 rounded-lg border border-primary/50 bg-card2 hover:bg-card cursor-pointer transition-all"
                   onClick={() => onApplyTemplate(template)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t(template.nameKey)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onApplyTemplate(template);
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div>

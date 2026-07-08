@@ -48,6 +48,7 @@ export default function VideoTasksPage() {
             <select
               className="select"
               style={{ fontSize: 12 }}
+              aria-label="状态筛选"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
             >

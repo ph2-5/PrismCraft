@@ -177,6 +177,15 @@ export function VersionDialog({
                       : ""
                   }`}
                   onClick={() => setSelectedVersion(version)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={version.changeSummary || version.title || t("template.versionTime", { time: formatVersionTime(version.timestamp) })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedVersion(version);
+                    }
+                  }}
                 >
                   <div>
                     <h4 className="font-medium">

@@ -27,6 +27,7 @@ export function VariantGenerator({
         <input
           className="input"
           type="number"
+          aria-label={t("batch.variantCountLabel", { type: typeLabel })}
           min={1}
           max={10}
           value={variantCount}
@@ -38,6 +39,7 @@ export function VariantGenerator({
         <label>{t("batch.styleOptional")}</label>
         <select
           className="select"
+          aria-label={t("batch.styleOptional")}
           value={selectedStyle}
           onChange={(e) => onSelectedStyleChange(e.target.value)}
           disabled={isGenerating}

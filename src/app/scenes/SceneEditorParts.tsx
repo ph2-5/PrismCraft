@@ -405,6 +405,15 @@ export function SceneElementsCard({
               cursor: "pointer",
             }}
             onClick={() => setShowElementInput(true)}
+            role="button"
+            tabIndex={0}
+            aria-label={t("scene.addElement")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowElementInput(true);
+              }
+            }}
           >
             {t("scene.addElement")}
           </span>

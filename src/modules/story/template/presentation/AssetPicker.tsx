@@ -294,6 +294,15 @@ export default function AssetPicker({
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="border-2 border-dashed border-border rounded-lg p-12 text-center cursor-pointer hover:border-primary transition-colors"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t("assetPicker.clickToSelectFile", { type: accept === "video" ? t("assetPicker.video") : accept === "image" ? t("assetPicker.image") : t("assetPicker.selectAsset") })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
                 >
                   {accept === "video" ? (
                     <Video size={40} className="mx-auto mb-3" style={{ color: "var(--muted-fg)" }} />

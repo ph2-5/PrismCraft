@@ -297,7 +297,21 @@ function PersonalityStyleCard({
           {character.personality.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
               {character.personality.map((trait) => (
-                <span key={trait} className="badge badge-info" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }} onClick={() => removeTrait(trait)}>
+                <span
+                  key={trait}
+                  className="badge badge-info"
+                  style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}
+                  onClick={() => removeTrait(trait)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${t("common.remove")} ${trait}`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      removeTrait(trait);
+                    }
+                  }}
+                >
                   {trait}
                   <X style={{ width: 10, height: 10 }} />
                 </span>
@@ -323,6 +337,16 @@ function PersonalityStyleCard({
                   className="badge"
                   style={{ cursor: "pointer" }}
                   onClick={() => { setCurrentCharacter({ ...character, style: style.value }, true); setShowStyleSuggestions(false); }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t(style.labelKey)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setCurrentCharacter({ ...character, style: style.value }, true);
+                      setShowStyleSuggestions(false);
+                    }
+                  }}
                 >
                   {t(style.labelKey)}
                 </span>

@@ -94,6 +94,7 @@ export function OutfitDialog({
               <div className="flex gap-2">
                 <input
                   className="input flex-1"
+                  aria-label={t("outfit.accessories")}
                   placeholder={t("outfit.accessoryPlaceholder")}
                   value={customAccessory}
                   onChange={(e) => setCustomAccessory(e.target.value)}
@@ -115,6 +116,15 @@ export function OutfitDialog({
                       key={acc}
                       className="badge badge-info cursor-pointer px-3 py-1 gap-1"
                       onClick={() => onRemoveAccessory(acc)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${t("common.remove")} ${acc}`}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRemoveAccessory(acc);
+                        }
+                      }}
                     >
                       {acc}
                       <X className="w-3 h-3" />

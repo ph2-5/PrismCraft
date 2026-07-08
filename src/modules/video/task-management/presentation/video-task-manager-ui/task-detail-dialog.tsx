@@ -121,6 +121,7 @@ export function TaskDetailDialog({ task, isOpen, onClose, onRecover, onRemove }:
                     <input
                       type="text"
                       readOnly
+                      aria-label={t("task.videoUrlLabel")}
                       value={task.videoUrl}
                       className="flex-1 text-xs bg-muted/50 border border-border rounded px-2 py-1.5 text-muted-foreground truncate cursor-text select-all"
                       onClick={(e) => (e.target as HTMLInputElement).select()}

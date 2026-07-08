@@ -165,6 +165,7 @@ export function SceneTransitionList({
               <select
                 className="select"
                 style={{ fontSize: 10, padding: "2px 4px" }}
+                aria-label={t("element.transitionType")}
                 value={transition.transitionType || ""}
                 onChange={(e) =>
                   onUpdate(transition.sceneId, {

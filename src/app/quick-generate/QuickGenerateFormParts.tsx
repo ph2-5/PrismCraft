@@ -2,7 +2,7 @@ import {
   Sparkles,
   LayoutTemplate,
   User,
-  RefreshCw,
+  Loader2,
   CheckCircle2,
   Plus,
   Image,
@@ -144,7 +144,7 @@ export function CharacterSelector({
       </span>
       {charactersLoading ? (
         <div className="flex items-center gap-2 p-3">
-          <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           <span className="text-sm text-muted-foreground">{t("scene.loadingCharacters")}</span>
         </div>
       ) : characters.length > 0 ? (
@@ -237,7 +237,7 @@ export function SceneSelector({
       </span>
       {scenesLoading ? (
         <div className="flex items-center gap-2 p-3">
-          <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           <span className="text-sm text-muted-foreground">{t("scene.loadingScenes")}</span>
         </div>
       ) : scenes.length > 0 ? (
@@ -326,7 +326,7 @@ export function GenerateButton({
     >
       {isGenerating ? (
         <>
-          <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
           {t("task.generatingVideo")}
         </>
       ) : (

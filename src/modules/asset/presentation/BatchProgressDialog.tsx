@@ -322,7 +322,7 @@ function TaskCard({ task, isSelected, onToggleSelection, isGenerating }: TaskCar
       {task.status === "generating" && (
         <div className="w-full h-32 flex items-center justify-center bg-muted rounded mb-2">
           <div className="flex flex-col items-center justify-center p-8">
-            <div className="h-12 w-12 rounded-full border-4 border-border border-t-primary animate-spin" />
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="mt-4 text-muted-foreground font-medium">{t("common.generating")}</p>
           </div>
         </div>

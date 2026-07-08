@@ -1,4 +1,4 @@
-import { Video, Download, AlertTriangle } from "lucide-react";
+import { Video, Download, AlertTriangle, Loader2 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
 import { t } from "@/shared/constants";
 import { Modal } from "@/shared/presentation/Modal";
@@ -47,7 +47,7 @@ export function VideoPreviewDialog({
 
             {task && videoLoading && (
               <div className="p-12 text-center space-y-4">
-                <div className="animate-spin w-10 h-10 border-2 border-primary border-t-transparent rounded-full mx-auto" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
                 <p style={{ color: "var(--muted-fg)" }}>{t("task.videoLoading")}</p>
               </div>
             )}

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
-import { Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { Wifi, WifiOff, RefreshCw, Loader2 } from "lucide-react";
 import { useNetworkMonitor } from "@/shared/hooks/use-network-monitor";
 import { t } from "@/shared/constants/messages";
 
@@ -78,7 +78,7 @@ export function NetworkStatusAlert() {
                   disabled={isReconnecting}
                 >
                   {isReconnecting ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <RefreshCw className="h-4 w-4 mr-2" />
                   )}

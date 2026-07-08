@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import { RootLayout } from "./app/layout";
+import { PageLoader } from "./shared/presentation/PageLoader";
 
 const Home = lazy(() => import("./app/page"));
 const StoryboardPage = lazy(() => import("./app/story/page"));
@@ -12,14 +13,6 @@ const QuickGeneratePage = lazy(() => import("./app/quick-generate/page"));
 const SettingsPage = lazy(() => import("./app/settings/page"));
 const VideoTasksPage = lazy(() => import("./app/video-tasks/page"));
 const NotFound = lazy(() => import("./app/not-found"));
-
-function PageLoader() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-border" />
-    </div>
-  );
-}
 
 function withSuspense(Component: React.LazyExoticComponent<React.ComponentType>) {
   return (

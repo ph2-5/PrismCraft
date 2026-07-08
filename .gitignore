@@ -94,6 +94,10 @@ ai-animation-studio-*.zip
 # Internal licensing strategy doc (author-only, not for public release)
 .ai/licensing-strategy.md
 
+# AI session state files (contain local paths and dev discussion, not for public)
+.ai/session-notes.md
+.ai/work-claims.md
+
 # Obsolete docs
 docs/废弃/
 

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Upload, Folder, User, Package, Sparkles, MapPin } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveImageUrl } from "@/shared/utils/image-url";
+import { Modal } from "@/shared/presentation/Modal";
 import type {
   StoryElement,
   StoryBeat,
@@ -357,27 +358,13 @@ export function AssetSelectorDialog({
 }: AssetSelectorDialogProps) {
   const imageAssets = assets.filter((a) => a.type === "image");
   return (
-    <div
-      role="presentation"
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-      }}
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
+    <Modal
+      open={true}
+      onClose={onClose}
+      ariaLabel={t("element.selectFromAssetLibrary")}
+      style={{ maxWidth: 600, width: "90%", maxHeight: "70vh", overflowY: "auto" }}
     >
-      <div
-        className="card"
-        style={{ maxWidth: 600, width: "90%", maxHeight: "70vh", overflowY: "auto" }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="card" style={{ padding: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
           {t("element.selectFromAssetLibrary")}
         </div>
@@ -420,7 +407,7 @@ export function AssetSelectorDialog({
           </div>
         )}
       </div>
-    </div>
+    </Modal>
   );
 }
 

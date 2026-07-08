@@ -210,9 +210,11 @@ export function PromptFloatingBall({
           className="fixed z-50 w-80 bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
           style={{ right: 24, bottom: 88, maxHeight: "min(480px, calc(100vh - 120px))" }}
           role="dialog"
-          aria-modal="true"
           aria-label={t("prompt.assistantTitle", { context: CONTEXT_SHORT[context] })}
           tabIndex={-1}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setIsOpen(false);
+          }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
             <div className="flex items-center gap-2">

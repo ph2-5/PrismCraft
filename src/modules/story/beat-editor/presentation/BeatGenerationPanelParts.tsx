@@ -1,4 +1,5 @@
 import type { RefObject, ReactNode } from "react";
+import { useRef, useEffect } from "react";
 import { Upload, RefreshCw, Download, Play, Image as ImageIcon } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { StoryBeat } from "@/domain/schemas";
@@ -261,8 +262,44 @@ interface LightboxDialogProps {
 }
 
 export function LightboxDialog({ image, onClose }: LightboxDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      onClose();
+      return;
+    }
+    if (e.key === "Tab") {
+      const container = dialogRef.current;
+      if (!container) return;
+      const focusable = container.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) {
+        e.preventDefault();
+        container.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first || document.activeElement === container) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    }
+  };
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={t("beat.clickToEnlarge")}
@@ -278,9 +315,7 @@ export function LightboxDialog({ image, onClose }: LightboxDialogProps) {
         padding: 24,
       }}
       onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
+      onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
       <img

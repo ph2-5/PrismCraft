@@ -27,6 +27,9 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
   const [isSearching, setIsSearching] = useState(false);
   const searchIdRef = useRef(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   const performSearch = useCallback(async (searchTerm: string) => {
     if (!searchTerm.trim()) {
@@ -70,6 +73,55 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
     };
   }, []);
 
+  // Focus trap + auto-focus on open
+  useEffect(() => {
+    if (!isOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const container = dialogRef.current;
+    if (container) {
+      const firstFocusable = container.querySelector<HTMLElement>(
+        'input:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      );
+      (firstFocusable ?? container).focus();
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key === "Tab") {
+        const container = dialogRef.current;
+        if (!container) return;
+        const focusable = container.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) {
+          e.preventDefault();
+          container.focus();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first || document.activeElement === container) {
+            e.preventDefault();
+            last?.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first?.focus();
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [isOpen]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -93,13 +145,18 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
+        ref={dialogRef}
         className="w-full max-w-2xl bg-background rounded-xl shadow-2xl border border-border overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-label={t("aria.searchDialog")}
         tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           <Search className="w-5 h-5 text-muted-foreground" />
@@ -111,7 +168,6 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
             onKeyDown={handleKeyDown}
             placeholder={t("search.searchPlaceholder")}
             className="flex-1 bg-transparent outline-none text-foreground placeholder-muted-foreground"
-            autoFocus
           />
           {isSearching && (
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />

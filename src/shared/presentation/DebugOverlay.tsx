@@ -47,8 +47,11 @@ export function DebugOverlay() {
     <div
       className="fixed bottom-4 right-4 z-[9999] bg-background text-foreground p-4 rounded-lg max-w-sm text-xs"
       role="dialog"
-      aria-modal="true"
       aria-label={t("debug.title")}
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setIsDevToolsOpen(false);
+      }}
     >
       <div className="flex justify-between items-center mb-2">
         <span className="font-bold">{t("debug.title")}</span>

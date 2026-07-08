@@ -45,6 +45,7 @@ import {
   applyExtractedMemory,
 } from "../services/memory-service";
 import { usePreference } from "@/shared/utils/preferences";
+import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import type { ModelSelection } from "@/domain/schemas";
 
@@ -108,8 +109,9 @@ async function triggerMemoryExtraction(
     const extracted = await extractFromConversation(session.messages, session.id, options);
     if (!extracted) return;
     await applyExtractedMemory(extracted, session.id);
-  } catch {
-    // 记忆抽取失败不影响主流程
+  } catch (e) {
+    // 记忆抽取失败不影响主流程，但记录日志便于排查
+    errorLogger.warn("[Agent] 记忆抽取失败", e);
   }
 }
 
@@ -319,9 +321,17 @@ export function useAgent(): UseAgentReturn {
       void triggerMemoryExtraction(currentSession, {
         providerId: settings.textModel?.providerId,
         modelId: settings.textModel?.modelId,
-      }).then(() => {
-        void persistSession(currentSession).then(() => refreshHistory());
-      });
+      })
+        .then(() =>
+          persistSession(currentSession)
+            .then(() => refreshHistory())
+            .catch((e) => {
+              errorLogger.warn("[Agent] 会话保存失败", e);
+            }),
+        )
+        .catch((e) => {
+          errorLogger.warn("[Agent] 记忆抽取或会话保存失败", e);
+        });
     }
     // 创建新会话
     sessionRef.current = createNewSession();

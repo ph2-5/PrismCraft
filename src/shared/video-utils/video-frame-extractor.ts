@@ -74,8 +74,21 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
       };
 
       let capturedCount = 0;
+      // seek 阶段独立超时保护，防止 seeked 事件未触发导致 Promise 悬挂
+      let seekTimeoutId: ReturnType<typeof setTimeout> | null = null;
+      const SEEK_TIMEOUT_MS = 10_000;
+
+      const resetSeekTimeout = () => {
+        if (seekTimeoutId) {
+          clearTimeout(seekTimeoutId);
+        }
+        seekTimeoutId = setTimeout(() => {
+          safeReject(new Error(t("error.videoFrameTimeout")));
+        }, SEEK_TIMEOUT_MS);
+      };
 
       const captureFrame = (time: number) => {
+        resetSeekTimeout();
         video.currentTime = time;
       };
 
@@ -86,6 +99,10 @@ export function extractVideoFrames(file: File): Promise<ExtractedFrames> {
           capturedCount++;
           captureFrame(Math.max(0, duration - 0.1));
         } else if (capturedCount === 1) {
+          if (seekTimeoutId) {
+            clearTimeout(seekTimeoutId);
+            seekTimeoutId = null;
+          }
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           frames.lastFrame = canvas.toDataURL("image/jpeg", 0.92);
           capturedCount++;

@@ -27,6 +27,7 @@ import {
   shouldExtract,
   getCoreMemorySize,
   getArchivalMemoryCount,
+  _resetSearchEngine,
 } from "../memory-service";
 import type { AgentMessage } from "../../domain/types";
 
@@ -37,7 +38,13 @@ const mocks = vi.hoisted(() => ({
   writeFile: vi.fn(),
   readFile: vi.fn(),
   getCacheDirectory: vi.fn(),
+  fileExists: vi.fn(),
   textProvider: { generateText: vi.fn() },
+  // 三模式向量检索 mock：默认全部不可用 → 退回关键词匹配
+  embeddingProvider: {
+    generateEmbedding: vi.fn(),
+    generateEmbeddings: vi.fn(),
+  },
 }));
 
 vi.mock("@/shared/file-http", () => ({
@@ -46,10 +53,14 @@ vi.mock("@/shared/file-http", () => ({
   writeFile: mocks.writeFile,
   readFile: mocks.readFile,
   getCacheDirectory: mocks.getCacheDirectory,
+  fileExists: mocks.fileExists,
 }));
 
 vi.mock("@/infrastructure/di", () => ({
-  container: { textProvider: mocks.textProvider },
+  container: {
+    textProvider: mocks.textProvider,
+    embeddingProvider: mocks.embeddingProvider,
+  },
 }));
 
 // ============= Helpers =============
@@ -77,6 +88,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 describe("memory-service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // 重置 VectorSearchEngine 单例（避免 store 缓存跨测试污染）
+    _resetSearchEngine();
     // 显式重置默认 mock 值
     mocks.getConfig.mockResolvedValue(undefined);
     mocks.setConfig.mockResolvedValue(undefined);
@@ -87,6 +100,10 @@ describe("memory-service", () => {
       path: "/test/cache",
     });
     mocks.textProvider.generateText.mockResolvedValue({ success: false });
+    // 三模式向量检索默认不可用：API 返回失败，本地模型文件不存在 → 退回关键词匹配
+    mocks.embeddingProvider.generateEmbedding.mockResolvedValue({ success: false });
+    mocks.embeddingProvider.generateEmbeddings.mockResolvedValue({ success: false });
+    mocks.fileExists.mockResolvedValue(false);
   });
 
   // ============= getCoreMemory =============
@@ -465,6 +482,96 @@ describe("memory-service", () => {
 
       const result = await searchArchivalMemory("nonexistent_keyword", 5);
       expect(result).toEqual([]);
+    });
+
+    it("API 向量检索优先（embeddingProvider 可用时使用语义检索）", async () => {
+      const entries = [
+        {
+          id: "cat",
+          type: "summary",
+          content: "cats",
+          createdAt: Date.now(),
+        },
+        {
+          id: "dog",
+          type: "summary",
+          content: "dogs",
+          createdAt: Date.now(),
+        },
+      ];
+      // Embedding 独立存储（S5）：archival.json 不含 embedding，由 embeddings.json 提供
+      const embeddingStore = {
+        meta: { modelId: "api", dimensions: 2, updatedAt: 1 },
+        entries: {
+          cat: { embedding: [1, 0], updatedAt: 1 },
+          dog: { embedding: [0, 1], updatedAt: 1 },
+        },
+      };
+      mocks.readFile.mockImplementation(async (path: string) => {
+        if (String(path).endsWith("archival.json")) {
+          return { success: true, data: encodeJson(entries) };
+        }
+        if (String(path).endsWith("embeddings.json")) {
+          return { success: true, data: encodeJson(embeddingStore) };
+        }
+        return { success: false, data: undefined };
+      });
+      // embeddings.json 存在 → store 会读取它
+      mocks.fileExists.mockResolvedValue(true);
+      // query embedding 更接近 cat
+      mocks.embeddingProvider.generateEmbedding.mockResolvedValue({
+        success: true,
+        data: { embedding: [0.9, 0.1] },
+      });
+
+      const result = await searchArchivalMemory("feline", 2);
+      expect(result).toHaveLength(2);
+      // cat 与 query 余弦相似度更高，应排在前面
+      expect(result[0].id).toBe("cat");
+      expect(result[1].id).toBe("dog");
+    });
+
+    it("28. API 向量检索懒生成缺失 embedding 并持久化", async () => {
+      const entries = [
+        {
+          id: "1",
+          type: "summary",
+          content: "cats",
+          createdAt: Date.now(),
+          // archival.json 不含 embedding，由 EmbeddingStore 独立管理
+        },
+      ];
+      // archival.json 返回 entries；embeddings.json 不存在（fileExists=false）
+      mocks.readFile.mockImplementation(async (path: string) => {
+        if (String(path).endsWith("archival.json")) {
+          return { success: true, data: encodeJson(entries) };
+        }
+        return { success: false, data: undefined };
+      });
+      // embeddings.json 不存在 → store 初始为空 → 触发懒生成
+      mocks.fileExists.mockResolvedValue(false);
+      // query embedding
+      mocks.embeddingProvider.generateEmbedding.mockResolvedValue({
+        success: true,
+        data: { embedding: [1, 0] },
+      });
+      // backfill 批量生成 embedding
+      mocks.embeddingProvider.generateEmbeddings.mockResolvedValue({
+        success: true,
+        data: { embeddings: [[1, 0]] },
+      });
+
+      const result = await searchArchivalMemory("cats", 5);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("1");
+      // 验证 embedding 持久化到独立文件（embeddings.json）
+      expect(mocks.writeFile).toHaveBeenCalled();
+      const writeCalls = mocks.writeFile.mock.calls;
+      // 至少有一次写入 embeddings.json
+      const embeddingWriteCall = writeCalls.find(
+        (call: unknown[]) => typeof call[0] === "string" && String(call[0]).endsWith("embeddings.json"),
+      );
+      expect(embeddingWriteCall).toBeDefined();
     });
   });
 

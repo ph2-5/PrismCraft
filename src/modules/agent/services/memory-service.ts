@@ -11,10 +11,19 @@
  *
  * 2. 归档记忆（Archival Memory）— 按需检索，存储会话摘要和重要决策
  *    - 存储：缓存目录 agent/memory/archival.json
- *    - 检索：关键词匹配 + 时间衰减排序（不引入向量库）
+ *    - Embedding 独立存储：agent/memory/embeddings.json（含 modelId/dimensions 元信息）
+ *    - 检索：委托 VectorSearchEngine 三策略链（API > 本地模型 > 关键词）
  *    - 容量上限：200 条，超出按时间淘汰
  *
  * 3. 工作记忆（Working Memory）— 当前会话消息历史（已有 AgentSession.messages）
+ *
+ * 三模式向量检索（委托 vector-search 子模块）：
+ * - 模式 1（API）：embedding capability 已配置时，调用 container.embeddingProvider
+ * - 模式 2（本地）：用户拖入 ONNX 模型文件时，调用本地推理引擎
+ * - 模式 3（关键词）：以上都不可用时，退回关键词匹配 + 时间衰减
+ * - 优先级：API > 本地模型 > 关键词
+ * - 渐进增强：无任何向量配置时零破坏，保持原有行为
+ * - Embedding 独立存储：与 archival.json 解耦，支持维度版本检测与自动失效
  *
  * 自动抽取流程：
  * - 会话结束时（或达到抽取阈值）触发
@@ -23,14 +32,22 @@
  * - 摘要追加到归档记忆
  *
  * 设计要点：
- * - 零外部依赖，仅用 @/shared/file-http 和 @/infrastructure/di
+ * - 归档记忆检索委托 VectorSearchEngine，本模块只负责存储与抽取
+ * - Embedding 不再混入 archival.json，独立存到 embeddings.json（S5）
  * - 所有操作 try/catch，失败不阻断 Agent Loop
  * - 核心记忆大小超限时自动淘汰最旧的 fact
+ * - 向量检索失败时静默退回关键词匹配
  */
 
 import { container } from "@/infrastructure/di";
 import { getConfig, setConfig, writeFile, readFile, getCacheDirectory } from "@/shared/file-http";
 import type { AgentMessage } from "../domain/types";
+import {
+  createDefaultEngine,
+  type VectorSearchEngine,
+  type EmbeddingStore,
+  type ProgressCallback,
+} from "./vector-search";
 
 // ============= 类型定义 =============
 
@@ -63,6 +80,15 @@ export interface ArchivalMemoryEntry {
   createdAt: number;
   /** 标签（便于分类检索） */
   tags?: string[];
+  /**
+   * 内容的向量嵌入（已废弃，不再使用）
+   *
+   * S5 之后 embedding 独立存储到 embeddings.json，由 EmbeddingStore 管理。
+   * 此字段保留仅为向后兼容旧 archival.json 数据的读取（解析时由 getAllArchivalMemory 忽略）。
+   * 新数据不再写入此字段；VectorSearchEngine 的策略从 EmbeddingStore 读取。
+   * @deprecated 使用 EmbeddingStore（vector-search/embedding-store）替代
+   */
+  embedding?: number[];
 }
 
 /** LLM 自动抽取结果 */
@@ -256,17 +282,24 @@ async function saveArchivalMemory(entries: ArchivalMemoryEntry[]): Promise<boole
 }
 
 /**
- * 检索归档记忆（关键词匹配 + 时间衰减排序）
+ * 检索归档记忆（委托 VectorSearchEngine 三策略链）
  *
- * 算法：
- * 1. 将 query 分词
- * 2. 每条记忆按关键词命中次数计分
- * 3. 时间衰减：7 天内 ×1.5，30 天内 ×1.0，更早 ×0.7
- * 4. 按总分倒序返回
+ * 策略链顺序：API 向量 > 本地模型向量 > 关键词匹配（兜底）
+ * - API/本地策略失败时自动退回关键词匹配
+ * - Embedding 独立存储在 embeddings.json（与 archival.json 解耦）
+ * - 维度版本检测：切换模型时自动清空旧 embedding（S2）
+ *
+ * @param query 检索关键词或自然语言查询；空 query 返回最近 N 条
+ * @param limit 返回条数上限，默认 5
+ * @param onProgress 可选进度回调（backfill 大批量 embedding 时触发，UI 显示进度条）
+ *                   - phase="backfill"：正在生成缺失 embedding
+ *                   - phase="search"：正在计算相似度
+ *                   - strategy：当前生效的策略名称（"api" / "local" / "keyword"）
  */
 export async function searchArchivalMemory(
   query: string,
   limit: number = 5,
+  onProgress?: ProgressCallback,
 ): Promise<ArchivalMemoryEntry[]> {
   if (!query || !query.trim()) {
     // 空 query 返回最近 N 条
@@ -277,42 +310,56 @@ export async function searchArchivalMemory(
   const all = await getAllArchivalMemory();
   if (all.length === 0) return [];
 
-  const keywords = query
-    .toLowerCase()
-    .split(/[\s,，。、;；:：?？!！]+/)
-    .filter((k) => k.length > 0);
+  return getSearchEngine().search(query, all, limit, onProgress);
+}
 
-  const now = Date.now();
-  const DAY_MS = 24 * 60 * 60 * 1000;
+// ============= VectorSearchEngine 单例管理 =============
 
-  const scored = all.map((entry) => {
-    const content = entry.content.toLowerCase();
-    const tags = (entry.tags ?? []).join(" ").toLowerCase();
-    const haystack = `${content} ${tags}`;
+/**
+ * 模块级引擎单例
+ *
+ * 首次调用 searchArchivalMemory 时懒初始化。
+ * 测试可通过 _setSearchEngine / _resetSearchEngine 替换或重置。
+ */
+let _searchEngine: VectorSearchEngine | null = null;
 
-    let score = 0;
-    for (const kw of keywords) {
-      if (haystack.includes(kw)) {
-        score += 1;
-      }
-    }
+/** 获取引擎单例（首次调用时创建默认引擎） */
+function getSearchEngine(): VectorSearchEngine {
+  if (!_searchEngine) {
+    _searchEngine = createDefaultEngine();
+  }
+  return _searchEngine;
+}
 
-    // 时间衰减
-    const ageDays = (now - entry.createdAt) / DAY_MS;
-    if (ageDays < 7) {
-      score *= 1.5;
-    } else if (ageDays > 30) {
-      score *= 0.7;
-    }
+/**
+ * 注入自定义引擎（测试用）
+ *
+ * 允许测试替换引擎实现，避免真实文件 I/O 与 API 调用。
+ * 必须在测试 beforeEach 中调用，测试 afterEach 中调用 _resetSearchEngine。
+ *
+ * @param engine 自定义引擎实例；传 null 等同于 _resetSearchEngine
+ * @param store 可选，同时暴露 EmbeddingStore 供测试断言
+ */
+export function _setSearchEngine(
+  engine: VectorSearchEngine | null,
+  store?: EmbeddingStore,
+): void {
+  _searchEngine = engine;
+  _testStore = store ?? null;
+}
 
-    return { entry, score };
-  });
+/** 测试用 EmbeddingStore 引用（_setSearchEngine 时设置） */
+let _testStore: EmbeddingStore | null = null;
 
-  return scored
-    .filter((s) => s.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((s) => s.entry);
+/** 获取测试注入的 EmbeddingStore（无注入时返回 null） */
+export function _getTestEmbeddingStore(): EmbeddingStore | null {
+  return _testStore;
+}
+
+/** 重置引擎单例（测试用，恢复默认懒初始化行为） */
+export function _resetSearchEngine(): void {
+  _searchEngine = null;
+  _testStore = null;
 }
 
 /** 删除归档记忆条目 */

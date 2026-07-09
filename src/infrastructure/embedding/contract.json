@@ -1,0 +1,67 @@
+{
+  "name": "embedding",
+  "description": "本地 ONNX embedding 模型管理（多模型 registry + 完整性校验）+ transformers.js 推理引擎 + 余弦相似度计算",
+  "layer": "infrastructure",
+  "dependencies": [
+    "@/shared/file-http",
+    "@/shared/error-logger",
+    "@/domain/ports",
+    "@huggingface/transformers"
+  ],
+  "publicAPI": {
+    "modelManagement": [
+      "getModelDirectory",
+      "detectLocalModel",
+      "deleteLocalModel",
+      "listLocalModels",
+      "getActiveModelId",
+      "getActiveModelEntry",
+      "setActiveModel",
+      "removeModel",
+      "installModelFromFiles",
+      "deriveModelId",
+      "_setActiveModelChangeCallback"
+    ],
+    "inference": [
+      "getLocalEmbeddingProvider",
+      "preloadLocalModel",
+      "clearLocalModelCache"
+    ],
+    "similarity": [
+      "cosineSimilarity",
+      "batchCosineSimilarity",
+      "findTopK"
+    ],
+    "constants": [
+      "ACCEPTED_ONNX_FILES",
+      "ALL_REQUIRED_FILES"
+    ],
+    "types": [
+      "EmbeddingModelInfo",
+      "ModelStatus",
+      "LocalModelEntry",
+      "ModelRegistry"
+    ]
+  },
+  "invariants": [
+    "同一时间只有一个 active 模型（transformers.js pipeline 单例限制）",
+    "setActiveModel 被调用时必须触发 _onActiveModelChange 回调，清空 provider 的 pipeline 缓存",
+    "installModelFromFiles 安装前必须通过完整性校验（ONNX magic byte + tokenizer JSON 结构 + config.json modelName/dimensions）",
+    "installModelFromFiles 失败时必须回滚：删除已写入的子目录文件，不修改 registry.json",
+    "removeModel 删除 active 模型后必须自动切换 active 到第一个可用模型或 null",
+    "软迁移：detectLocalModel 发现根目录有完整模型文件但无 registry.json 时，不移动文件，只创建 registry.json 注册根目录模型为 active",
+    "registry.json 格式版本固定为 1，未来格式变更需迁移逻辑",
+    "modelId 从 modelName 派生：小写 + 非 [a-z0-9-] 替换为 - + 去除首尾 -",
+    "ONNX 文件名灵活：支持 7 种候选（model.onnx / model_quantized.onnx / model_fp16.onnx 等），按 ONNX_FILE_CANDIDATES 顺序查找",
+    "所有文件操作必须通过 @/shared/file-http 统一层，禁止直接调用 electronAPI",
+    "detectLocalModel / deleteLocalModel / getModelDirectory 签名保持向后兼容（已有测试 mock 依赖）",
+    "ModelStatus.integrityErrors 与 missingFiles 区分：integrityErrors 表示文件存在但内容不合法，missingFiles 表示文件缺失",
+    "维度版本检测：setEmbeddings 时 modelId/dimensions 与 store meta 不一致必须先清空旧 entries",
+    "findTopK 返回结果按相似度降序排列，长度不超过 k"
+  ],
+  "consumers": [
+    "@/modules/agent/services/vector-search/strategies.ts (LocalVectorStrategy)",
+    "@/modules/agent/services/memory-service.ts (searchArchivalMemory)",
+    "@/app/settings/EmbeddingModelPanel.tsx (UI)"
+  ]
+}

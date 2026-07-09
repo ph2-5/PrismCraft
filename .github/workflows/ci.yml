@@ -169,6 +169,9 @@ jobs:
       - name: Rebuild better-sqlite3 for current Node.js
         run: npm rebuild better-sqlite3 || npm rebuild better-sqlite3
 
+      - name: Install Electron binary (required for electron tests)
+        run: node node_modules/electron/install.js
+
       - name: Build shared-logic (required for electron tests)
         run: npm run build:shared-logic
 

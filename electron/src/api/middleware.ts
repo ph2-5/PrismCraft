@@ -1,4 +1,13 @@
 import type net from "net";
+import crypto from "crypto";
+
+/**
+ * R-SEC2: 应用启动时生成的随机 token，用于校验 X-Electron-App header。
+ * 防止非应用进程（如浏览器、恶意脚本）通过 localhost 调用 HTTP API。
+ * 通过 process.env.ELECTRON_APP_TOKEN 传递给 preload 脚本，preload 注入到 window.electronAPI.appToken。
+ */
+export const APP_AUTH_TOKEN = crypto.randomUUID();
+process.env.ELECTRON_APP_TOKEN = APP_AUTH_TOKEN;
 
 interface RateLimitEntry {
   enabled: boolean;
@@ -113,9 +122,10 @@ export function handleCors(req: import("http").IncomingMessage, res: import("htt
 }
 
 export function checkAuthHeader(req: import("http").IncomingMessage, res: import("http").ServerResponse): boolean {
-  if (!req.headers["x-electron-app"]) {
+  const token = req.headers["x-electron-app"];
+  if (!token || token !== APP_AUTH_TOKEN) {
     res.writeHead(403, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Missing X-Electron-App header" }));
+    res.end(JSON.stringify({ error: "Missing or invalid X-Electron-App header" }));
     return false;
   }
   return true;

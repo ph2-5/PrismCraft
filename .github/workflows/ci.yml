@@ -169,8 +169,19 @@ jobs:
       - name: Rebuild better-sqlite3 for current Node.js
         run: npm rebuild better-sqlite3 || npm rebuild better-sqlite3
 
+      - name: Build shared-logic (required for electron tests)
+        run: npm run build:shared-logic
+
+      - name: Setup shared-logic symlink (required for electron tests)
+        run: node scripts/setup-shared-logic-symlink.mjs
+
       - name: Run unit tests
         run: npx vitest run
+        env:
+          CI: true
+
+      - name: Run electron main process tests
+        run: npm run test:electron
         env:
           CI: true
 

@@ -1,6 +1,6 @@
 {
   "name": "prismcraft",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "AI 驱动的动画制作工具 - 本地优先，支持从故事创作到视频生成的完整工作流",
   "author": "PrismCraft",
   "license": "CC-BY-NC-4.0",
@@ -54,7 +54,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:electron": "npm run build:shared-logic && playwright test --config playwright.electron.config.ts",
     "test:e2e:electron-all": "npm run build:shared-logic && playwright test --config playwright.electron-all.config.ts",
-    "validate": "npm run typecheck && npm run typecheck:electron && npm run typecheck:test && npm run lint && npm run lint:arch && node scripts/check-module-api-consistency.mjs && node scripts/validate-contracts.mjs && npm run test",
+    "validate": "npm run typecheck && npm run typecheck:electron && npm run typecheck:test && npm run lint && npm run lint:arch && node scripts/check-module-api-consistency.mjs && node scripts/validate-contracts.mjs && npm run test && npm run test:local-cloud",
     "validate:full": "npm run validate && npm run test:coverage",
     "graph": "npx tsx scripts/build-module-graph.ts",
     "di-docs": "npx tsx scripts/generate-di-docs.ts",

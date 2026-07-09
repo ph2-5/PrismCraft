@@ -13,7 +13,7 @@ import type { VideoTask } from "@/modules/video";
 import { container } from "@/infrastructure/di";
 import { useModelSelection } from "@/modules/prompt";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
-import { generateBeatFramePair } from "@/modules/story";
+import { generateBeatFramePair, storyService } from "@/modules/story";
 import { checkVisualConsistency } from "@/modules/shot/consistency-check";
 import { StoryGenerationService } from "@/domain/services";
 import { characterService } from "@/modules/character";
@@ -24,9 +24,10 @@ interface UseBeatDetailActionsParams {
   beat: StoryBeat;
   task?: VideoTask;
   setBeat: (beat: StoryBeat | null) => void;
+  onUpdateBeat?: (id: string, updates: Partial<StoryBeat>) => void;
 }
 
-export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDetailActionsParams) {
+export function useBeatDetailActions({ story, beat, task, setBeat, onUpdateBeat }: UseBeatDetailActionsParams) {
   const { guardedPush } = useNavigationGuard();
   const { success, error: showError } = useToastHelpers();
 
@@ -258,13 +259,25 @@ export function useBeatDetailActions({ story, beat, task, setBeat }: UseBeatDeta
       }
 
       setBeat(updatedBeat);
+      onUpdateBeat?.(updatedBeat.id, updatedBeat);
+
+      // Persist to DB so StoryProvider reloads fresh data when returning to list
+      const updatedBeats = (story.beats || []).map((b) => (b.id === updatedBeat.id ? updatedBeat : b));
+      void storyService.update(story.id, { id: story.id, beats: updatedBeats }).then((result) => {
+        if (!result.ok) {
+          errorLogger.warn("[BeatDetail] Failed to persist beat update", result.error);
+        }
+      }).catch((err) => {
+        errorLogger.warn("[BeatDetail] Failed to persist beat update", err);
+      });
+
       success(t("success.generated"), t("success.framePairGeneratedDesc"));
     } catch (err) {
       showError(t("story.cannotGenerateVideo"), mapUserFacingError(err));
     } finally {
       setIsRegenerating(false);
     }
-  }, [beat, story, setBeat, success, showError]);
+  }, [beat, story, setBeat, onUpdateBeat, success, showError]);
 
   return {
     guardedPush,

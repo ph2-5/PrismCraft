@@ -11,6 +11,7 @@ import { PageLoader } from "@/shared/presentation/PageLoader";
 import { Tabs } from "@/shared/presentation/Tabs";
 import type { StoryBeat, Story } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
+import { useStory } from "@/app/story/StoryProvider";
 import { useBeatDetail } from "./use-beat-detail";
 import { useBeatDetailActions } from "./use-beat-detail-actions";
 import { BeatVideoPreview } from "./BeatVideoPreview";
@@ -24,7 +25,10 @@ interface BeatDetailPageProps {
   task?: VideoTask;
 }
 
-function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps & { setBeat: (beat: StoryBeat | null) => void }) {
+function BeatDetailContent({ story, beat, task, setBeat, onUpdateBeat }: BeatDetailPageProps & {
+  setBeat: (beat: StoryBeat | null) => void;
+  onUpdateBeat?: (id: string, updates: Partial<StoryBeat>) => void;
+}) {
   const [activeTab, setActiveTab] = useState("details");
 
   const {
@@ -45,7 +49,7 @@ function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps &
     getStatusLabel,
     handleRegenerate,
     isRegenerating,
-  } = useBeatDetailActions({ story, beat, task, setBeat });
+  } = useBeatDetailActions({ story, beat, task, setBeat, onUpdateBeat });
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,6 +180,7 @@ function BeatDetailContent({ story, beat, task, setBeat }: BeatDetailPageProps &
 
 export default function BeatDetailClient() {
   const { story, beat, setBeat, task, loading } = useBeatDetail();
+  const { updateBeat } = useStory();
 
   if (loading) {
     return (
@@ -201,7 +206,7 @@ export default function BeatDetailClient() {
 
   return (
     <PageErrorBoundary pageName={t("beat.detail")}>
-      <BeatDetailContent story={story} beat={beat} task={task} setBeat={setBeat} />
+      <BeatDetailContent story={story} beat={beat} task={task} setBeat={setBeat} onUpdateBeat={updateBeat} />
     </PageErrorBoundary>
   );
 }

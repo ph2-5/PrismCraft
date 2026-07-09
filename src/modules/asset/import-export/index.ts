@@ -6,7 +6,7 @@ import { safeRun, safeQuery } from "@/shared/db-core";
 import { sanitizeIdentifier, sanitizeTable } from "@/shared/sql-safety";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { t, BLOB_URL_LONG_REVOKE_DELAY_MS } from "@/shared/constants";
-import { writeFile as fileHttpWriteFile } from "@/shared/file-http";
+import { writeFile as fileHttpWriteFile, fileExists, getCacheDirectory } from "@/shared/file-http";
 
 export const importDataSchema = z.object({
   characters: z.array(z.record(z.string(), z.unknown())).optional(),
@@ -33,6 +33,11 @@ export const importResultSchema = z.object({
   success: z.boolean(),
   imported: z.record(z.string(), z.number()),
   errors: z.array(z.string()),
+  // 跨机器导入时的图片路径迁移统计
+  migration: z.object({
+    cleared: z.number(),
+    remapped: z.number(),
+  }).optional(),
 });
 
 export type ImportResult = z.infer<typeof importResultSchema>;
@@ -120,6 +125,132 @@ async function importItems<T>(opts: ImportItemsOptions<T>): Promise<{ count: num
   return { count, errors };
 }
 
+// ===== 跨机器图片路径迁移 =====
+
+// 已知的图片/媒体路径字段名集合（覆盖 characters/scenes/outfits/story_beats 等表）
+const IMAGE_PATH_FIELDS: ReadonlySet<string> = new Set([
+  "image_path",
+  "thumbnail_path",
+  "avatar_path",
+  "avatar_url",
+  "preview_path",
+  "ref_image_path",
+  "generated_image",
+  "image_url",
+  "local_image_path",
+  "local_video_path",
+  "local_keyframe_path",
+  "local_first_frame_path",
+  "local_last_frame_path",
+  "src",
+]);
+
+// 判断是否为远程/协议路径（http、data、file、vcache、icache、/api/），无需迁移
+function isProtocolPath(p: string): boolean {
+  return (
+    p.startsWith("http://") ||
+    p.startsWith("https://") ||
+    p.startsWith("data:") ||
+    p.startsWith("file://") ||
+    p.startsWith("vcache://") ||
+    p.startsWith("icache://") ||
+    p.startsWith("/api/")
+  );
+}
+
+// 判断是否为绝对路径（Windows 盘符如 C:\ 或 Unix 根路径 /）
+function isAbsolutePath(p: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(p) || p.startsWith("/") || p.startsWith("\\");
+}
+
+// 路径拼接（不依赖 node:path，兼容渲染进程环境）
+function joinPath(base: string, relative: string): string {
+  const normalizedBase = base.replace(/[\\/]+$/, "");
+  const normalizedRelative = relative.replace(/^[\\/]+/, "");
+  return `${normalizedBase}/${normalizedRelative}`;
+}
+
+// 从缓存目录（USER_DATA_ROOT/Cache/Videos）推导 Assets 目录（USER_DATA_ROOT/Assets）
+function deriveAssetsDirFromCacheDir(cacheDir: string): string | null {
+  const normalized = cacheDir.replace(/\\/g, "/").replace(/\/+$/, "");
+  const segments = normalized.split("/");
+  // 至少需要 3 段（如 C:/Users/PrismCraft/Cache/Videos）
+  if (segments.length < 3) return null;
+  // 去掉最后两级（Cache/Videos），得到 userData 根目录
+  const rootSegments = segments.slice(0, -2);
+  const root = rootSegments.join("/");
+  if (!root) return null;
+  return `${root}/Assets`;
+}
+
+// 路径迁移统计
+export interface MigrationStats {
+  // 清空的不存在绝对路径数
+  cleared: number;
+  // 重映射的相对路径数（在目标机器找到并改写为本地路径）
+  remapped: number;
+}
+
+/**
+ * 跨机器导入时迁移图片路径。
+ *
+ * - 绝对路径：若目标机器上文件不存在，清空该字段（让 UI 显示占位图）
+ * - 相对路径：在 userDataImagesDir 下查找，找到则改写为本地绝对路径
+ * - 远程/协议路径（http、data: 等）：跳过，不处理
+ *
+ * 该函数直接修改 data 中的行对象（原地迁移），同时返回统计信息。
+ *
+ * @param data 已通过 schema 校验的导入数据
+ * @param userDataImagesDir 目标机器的 userData 图片基础目录
+ */
+export async function migrateImagePaths(
+  data: ImportData,
+  userDataImagesDir: string,
+): Promise<MigrationStats> {
+  const stats: MigrationStats = { cleared: 0, remapped: 0 };
+
+  for (const [, value] of Object.entries(data)) {
+    if (!Array.isArray(value)) continue;
+    const rows = value as readonly unknown[];
+    for (const row of rows) {
+      if (row === null || typeof row !== "object") continue;
+      const record = row as Record<string, unknown>;
+
+      for (const field of IMAGE_PATH_FIELDS) {
+        const raw = record[field];
+        if (typeof raw !== "string" || raw === "") continue;
+
+        // 远程/协议路径：跳过
+        if (isProtocolPath(raw)) continue;
+
+        if (isAbsolutePath(raw)) {
+          // 绝对路径：检查目标机器上是否存在
+          const exists = await fileExists(raw);
+          if (!exists) {
+            record[field] = null;
+            stats.cleared++;
+            errorLogger.warn(
+              "[Import] 路径迁移：清空不存在的绝对路径",
+              { field, path: raw },
+            );
+          }
+        } else {
+          // 相对路径：在目标机器的 userData 图片目录下查找
+          const candidatePath = joinPath(userDataImagesDir, raw);
+          const exists = await fileExists(candidatePath);
+          if (exists) {
+            record[field] = candidatePath;
+            stats.remapped++;
+          }
+          // 未找到时保留原值（可能由 LocalFileStorage 按类别目录解析）
+        }
+      }
+    }
+  }
+
+  return stats;
+}
+
 export async function importData(
   data: unknown,
   options: { mergeStrategy?: MergeStrategy } = {},
@@ -133,8 +264,29 @@ export async function importData(
   const { mergeStrategy = "merge" } = options;
   const errors: string[] = [];
   const imported: Record<string, number> = {};
+  let migrationStats: MigrationStats | undefined;
 
   try {
+    // 跨机器路径迁移：获取本地图片目录，检测并修正导入数据中的图片路径
+    try {
+      const cacheDirResult = await getCacheDirectory();
+      if (cacheDirResult.success && cacheDirResult.path) {
+        const assetsDir = deriveAssetsDirFromCacheDir(cacheDirResult.path);
+        if (assetsDir) {
+          migrationStats = await migrateImagePaths(validData, assetsDir);
+          if (migrationStats.cleared > 0 || migrationStats.remapped > 0) {
+            errorLogger.warn(
+              "[Import] 路径迁移完成",
+              { cleared: migrationStats.cleared, remapped: migrationStats.remapped },
+            );
+          }
+        }
+      }
+    } catch (e) {
+      // 路径迁移失败不阻断导入流程
+      errorLogger.warn("[Import] 路径迁移失败，跳过", e instanceof Error ? e : new Error(String(e)));
+    }
+
     const dataForStorage: Record<string, unknown[]> = {};
     for (const [key, value] of Object.entries(validData)) {
       if (Array.isArray(value)) {
@@ -213,7 +365,7 @@ export async function importData(
       imported.sessions = result.count;
     }
 
-    return ok({ success: true, imported, errors });
+    return ok({ success: true, imported, errors, migration: migrationStats });
   } catch (error) {
     const msg = extractErrorMessage(error);
     return err(new AppError("IMPORT_ERROR", msg, error));

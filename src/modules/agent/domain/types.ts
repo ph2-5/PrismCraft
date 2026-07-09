@@ -153,6 +153,16 @@ export interface AgentLoopCallbacks {
   onError?: (error: Error) => void;
   /** 取消信号 */
   signal?: AbortSignal;
+  /**
+   * 危险工具确认回调（如 delete_file/move_file 等 requiresConfirmation=true 的工具）。
+   *
+   * 回调应返回 Promise<boolean>：
+   * - true：用户确认执行
+   * - false：用户拒绝，工具不执行，返回"已取消"结果
+   *
+   * 若未提供此回调，则默认拒绝所有需要确认的工具（安全默认）。
+   */
+  onConfirmationRequired?: (toolCall: ToolCall) => Promise<boolean>;
 }
 
 /** 创建空会话（title 为空，由调用方设置 i18n 标题） */

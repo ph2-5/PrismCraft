@@ -26,6 +26,7 @@ vi.mock("@/shared/sql-safety", () => ({
 vi.mock("../entity-mapping", () => ({
   getTableName: mockGetTableName,
   getPkColumn: mockGetPkColumn,
+  TABLES_WITHOUT_UPDATED_AT: new Set(["video_tasks", "story_versions"]),
 }));
 
 import { resolveConflict, markConflict } from "../conflict-resolution";

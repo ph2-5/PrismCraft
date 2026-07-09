@@ -76,6 +76,14 @@ vi.mock("@/shared/utils/platform", () => ({
   isElectron: vi.fn(() => false),
 }));
 
+// P1-2 修复：mock verifyVideoUrl 避免真实 fetch 调用
+vi.mock("../video-verification-service", () => ({
+  verifyVideoUrl: vi.fn().mockResolvedValue({
+    ok: true,
+    value: { isValid: true, reason: "mock valid", details: {}, confidence: "high" },
+  }),
+}));
+
 import { container } from "@/infrastructure/di";
 
 function createMockTask(overrides: Record<string, unknown> = {}) {

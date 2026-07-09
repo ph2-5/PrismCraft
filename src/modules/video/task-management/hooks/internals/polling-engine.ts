@@ -1,4 +1,4 @@
-import type { VideoTask } from "@/domain/schemas";
+import type { VideoTask, VideoTaskStatus } from "@/domain/schemas";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
@@ -183,13 +183,41 @@ export function cleanupAllPollingResources() {
   pollingState.consecutiveErrors = 0;
 }
 
+// 轮询竞态保护终态集合：以下状态视为终态，不应被旧轮询结果覆盖。
+// 注：与 task-state.ts 中的 TERMINAL_STATUSES（仅 completed/cancelled，用于状态机迁移）不同，
+// 此处额外包含 failed/timeout，因为对轮询竞态而言，failed/timeout 同样不应被旧轮询结果回退为非终态。
+const POLLING_PROTECTED_STATUSES: ReadonlySet<VideoTaskStatus> = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+  "timeout",
+]);
+
 function applyTaskUpdates(updates: Map<string, Partial<VideoTask>>): void {
   if (updates.size === 0) return;
   const state = getStore().getState();
   state.setAllTasks((prev) =>
     prev.map((task) => {
       const update = updates.get(task.taskId);
-      return update ? { ...task, ...update } : task;
+      if (!update) return task;
+
+      const newStatus = update.status;
+      // 竞态保护：仅当更新包含状态字段时才需要校验状态优先级
+      if (newStatus !== undefined) {
+        const currentIsTerminal = POLLING_PROTECTED_STATUSES.has(task.status);
+
+        if (currentIsTerminal) {
+          // 当前已是终态（用户已取消/完成/失败/超时），拒绝轮询结果覆盖：
+          //   - 新更新是非终态（pending/generating/retrying）→ 旧轮询结果，忽略以防取消失效
+          //   - 新更新也是终态 → 保留当前状态（用户操作优先），避免终态被轮询数据污染
+          return task;
+        }
+        // 当前非终态：
+        //   - 新更新是终态 → 覆盖当前状态（终态优先于非终态）
+        //   - 新更新是非终态 → 正常合并
+      }
+
+      return { ...task, ...update };
     }),
   );
 }

@@ -2,7 +2,7 @@ import type { SyncConflict, SyncEntityType } from "./types";
 import { safeQuery, safeRun } from "@/shared/db-core";
 import { errorLogger } from "@/shared/error-logger";
 import { fromAsyncThrowable } from "@/domain/types/result";
-import { getTableName, getPkColumn } from "./entity-mapping";
+import { getTableName, getPkColumn, TABLES_WITHOUT_UPDATED_AT } from "./entity-mapping";
 import { sanitizeIdentifier } from "@/shared/sql-safety";
 
 export async function resolveConflict(conflict: SyncConflict, conflictStrategy: string): Promise<void> {
@@ -68,6 +68,21 @@ export async function resolveConflict(conflict: SyncConflict, conflictStrategy: 
       const remoteData: Record<string, unknown> = conflict.remoteData || {};
       const localTime = (localData.updated_at as number) || 0;
       const remoteTime = (remoteData.updated_at as number) || 0;
+
+      // P0-3 修复：对无 updated_at 列的表（video_tasks/story_versions），
+      // localTime 和 remoteTime 都为 0，导致 `remoteTime >= localTime` 恒真，
+      // remote 恒胜——本地变更永远被远程覆盖，即使本地更新更晚。
+      // 这与 LWW 语义相悖：LWW 应比较时间戳，无时间戳时无法判定"谁更晚"。
+      // 修复策略：对无 updated_at 的表，回退到 local-wins 行为（保留本地数据），
+      // 标记为 conflict 待用户手动解决。这比静默丢弃本地变更更安全。
+      if (TABLES_WITHOUT_UPDATED_AT.has(tableName)) {
+        // 无时间戳可比较，标记冲突而非静默 remote-wins
+        await markConflict(conflict.entityType, conflict.entityId);
+        errorLogger.warn(
+          `[SyncEngine] LWW 无法比较无 updated_at 的表 ${tableName} (entityId=${conflict.entityId})，已标记为 conflict`,
+        );
+        break;
+      }
 
       if (remoteTime >= localTime && remoteData) {
         const backupResult = await fromAsyncThrowable(async () => {

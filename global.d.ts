@@ -14,6 +14,7 @@ declare global {
         electron: string;
         chrome: string;
       };
+      appToken?: string;
       getConfig: (key: string) => string | null;
       setConfig: (key: string, value: unknown) => boolean;
       deleteFile: (filePath: string) => Promise<{ success: boolean }>;

@@ -46,6 +46,7 @@ const imageProvider = {
 
 const textProvider = {
   generateText: vi.fn(),
+  generateTextStream: vi.fn(),
 } as ITextProvider;
 
 const providers = { videoProvider, imageProvider, textProvider };

@@ -51,7 +51,7 @@ vi.mock("@/shared/api-config", () => ({
 
 // ── Mock toolExecutor ──
 vi.mock("../tool-executor", () => ({
-  toolExecutor: { execute: mockExecute },
+  toolExecutor: { execute: mockExecute, requiresConfirmation: vi.fn().mockReturnValue(false) },
 }));
 
 // ── Mock toolRegistry ──

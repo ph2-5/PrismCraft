@@ -46,9 +46,24 @@ interface PluginMetadata {
 let loadedPlugin: Record<string, unknown> | null = null;
 let cachedConfig: { apiKey?: string; apiUrl?: string } = {};
 
-const SANITIZED_CODE_PREFIX = `
+/**
+ * R123: 沙箱前缀代码。
+ *
+ * 必须包含 Object.prototype.constructor 锁定（writable: false, configurable: false），
+ * 切断 constructor 链逃逸路径——恶意插件通过 `{}.constructor.constructor('return process')()`
+ * 沿 constructor 链向上访问 Function 构造器，进而访问全局对象逃逸沙箱。
+ *
+ * 锁定后 Object.prototype.constructor 指向 Object 自身，无法再沿链向上获取 Function。
+ *
+ * 注意：在 IIFE 严格模式下 `this` 为 undefined，因此直接使用 Object.defineProperty
+ * 而非通过 this.constructor 保存原始引用。
+ *
+ * 导出供回归测试 (regression-r123) 验证源码内容，避免测试自测自的假阳性。
+ */
+export const SANITIZED_CODE_PREFIX = `
 (function() {
   'use strict';
+  try { Object.defineProperty(Object.prototype, 'constructor', { value: Object, writable: false, configurable: false }); } catch (e) { console.warn('[plugin-worker] Failed to lock Object.prototype.constructor:', e); }
 `;
 
 const SANITIZED_CODE_SUFFIX = `
@@ -379,12 +394,41 @@ const heartbeatTimer = setInterval(() => {
   }
 }, 15_000);
 
+/**
+ * P2-3 修复：内存泄漏防护。
+ *
+ * 插件 worker 是长期运行的子进程，插件内部可能通过闭包、缓存等方式
+ * 逐渐泄漏内存而无感知。定期检查堆使用量，超阈值时主动退出，
+ * 由 code-plugin-adapter 的 attemptRestart 机制自动重启。
+ */
+const MEMORY_CHECK_INTERVAL_MS = 60_000;
+const MEMORY_THRESHOLD_MB = 150;
+
+const memoryCheckTimer = setInterval(() => {
+  const heapUsedMB = process.memoryUsage().heapUsed / (1024 * 1024);
+  if (heapUsedMB > MEMORY_THRESHOLD_MB) {
+    console.warn(
+      `[plugin-worker] 堆内存 ${heapUsedMB.toFixed(1)}MB 超过阈值 ${MEMORY_THRESHOLD_MB}MB，主动退出以释放内存`,
+    );
+    send({
+      type: "error",
+      id: "",
+      message: `PLUGIN_MEMORY_LIMIT_EXCEEDED: ${heapUsedMB.toFixed(1)}MB`,
+    });
+    clearInterval(memoryCheckTimer);
+    clearInterval(heartbeatTimer);
+    process.exit(1);
+  }
+}, MEMORY_CHECK_INTERVAL_MS);
+
 process.on("exit", () => {
   clearInterval(heartbeatTimer);
+  clearInterval(memoryCheckTimer);
 });
 
 process.on("disconnect", () => {
   clearInterval(heartbeatTimer);
+  clearInterval(memoryCheckTimer);
   loadedPlugin = null;
   process.exit(0);
 });

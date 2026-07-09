@@ -10,6 +10,7 @@ import { generateFramePrompts, batchGenerateFramePrompts } from "../frame-prompt
 
 const mockTextProvider: ITextProvider = {
   generateText: vi.fn(),
+  generateTextStream: vi.fn(),
 };
 
 const mockBeat: StoryBeat = {

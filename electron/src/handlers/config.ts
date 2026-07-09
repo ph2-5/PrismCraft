@@ -178,27 +178,41 @@ async function saveConfigAsync(config: AppConfig): Promise<boolean> {
 
     const configFile = getConfigFile();
     const configBackupFile = getConfigBackupFile();
+    let backupCreated = false;
 
     if (fs.existsSync(configFile)) {
       try {
         fs.copyFileSync(configFile, configBackupFile);
+        backupCreated = true;
       } catch {
         logger.warn("Failed to create config backup before save");
       }
     }
 
     // 创建配置副本，将 API Key 替换为引用
+    const providers: ProviderConfig[] = [];
+    for (const p of config.providers) {
+      if (p.apiKey && !p.apiKey.startsWith("$secure:") && !isMaskedApiKey(p.apiKey)) {
+        const result = await keyStorage.save(`${KEY_STORAGE_PREFIX}${p.id}`, p.apiKey);
+        if (!result.ok) {
+          // R-SEC3: keyStorage.save 失败时保留原始 apiKey，不替换为 $secure: 引用，
+          // 不修改 _migratedToSecureStorage 标志，记录错误并返回失败。
+          logger.error(`Failed to save API Key to keyStorage for provider ${p.id}: ${result.error}`);
+          return false;
+        }
+        providers.push({ ...p, apiKey: `$secure:${p.id}` });
+      } else if (p.apiKey && isMaskedApiKey(p.apiKey) && !p.apiKey.startsWith("$secure:")) {
+        // R-SEC1: 脱敏 apiKey（来自 config/get 返回）不应写回 keyStorage，
+        // 保留 $secure: 引用以避免覆盖真实密钥
+        providers.push({ ...p, apiKey: `$secure:${p.id}` });
+      } else {
+        providers.push(p);
+      }
+    }
+
     const configToSave: AppConfig = {
       ...config,
-      providers: await Promise.all(
-        config.providers.map(async (p) => {
-          if (p.apiKey && !p.apiKey.startsWith("$secure:")) {
-            await keyStorage.save(`${KEY_STORAGE_PREFIX}${p.id}`, p.apiKey);
-            return { ...p, apiKey: `$secure:${p.id}` };
-          }
-          return p;
-        })
-      ),
+      providers,
       _migratedToSecureStorage: true,
     };
 
@@ -206,6 +220,17 @@ async function saveConfigAsync(config: AppConfig): Promise<boolean> {
     const tempPath = `${configFile}.tmp`;
     fs.writeFileSync(tempPath, data);
     fs.renameSync(tempPath, configFile);
+
+    // R-SEC4: 迁移成功后删除备份文件，防止明文 config.json.backup 永久残留
+    if (backupCreated) {
+      try {
+        if (fs.existsSync(configBackupFile)) {
+          fs.unlinkSync(configBackupFile);
+        }
+      } catch {
+        logger.warn("Failed to delete config backup after successful save");
+      }
+    }
 
     logger.info("Config saved successfully");
     return true;
@@ -256,10 +281,15 @@ function saveConfig(config: AppConfig): boolean {
   }
 }
 
-function maskApiKey(key: string): string {
+export function maskApiKey(key: string): string {
   if (!key || key.length <= 8) return "****";
   if (key.startsWith("$secure:")) return "****-****";
   return key.slice(0, 4) + "****" + key.slice(-4);
+}
+
+/** 检测 apiKey 是否为脱敏值（来自 config/get 返回的脱敏 apiKey 不应写回 keyStorage） */
+function isMaskedApiKey(key: string): boolean {
+  return key.includes("****");
 }
 
 async function handleConfig(method: string, _body: Record<string, unknown>): Promise<Record<string, unknown>> {

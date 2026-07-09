@@ -11,6 +11,7 @@ import {
 import { parseCharacterWithOutfits, parseCharactersWithOutfits } from "./characters/parser";
 import { errorLogger } from "@/shared/error-logger";
 import { VersionConflictError } from "@/shared/errors/version-conflict";
+import { safeJsonParseArray } from "@/shared/utils/safe-json";
 
 const CHARACTER_FIELD_TARGETS: Record<string, FieldTarget> = {
   name: { type: "fixed", column: "name" },
@@ -162,8 +163,21 @@ export const characterStorage = {
     );
     const beatUpdates: { sql: string; params: unknown[] }[] = [];
     for (const beat of affectedBeats) {
-      const ids = beat.character_ids_json.split(",").filter((cid: string) => cid !== id);
-      const newValue = ids.length > 0 ? ids.join(",") : null;
+      const raw = beat.character_ids_json;
+      // character_ids_json 标准存储格式为 JSON 数组（如 ["char_1","char_2"]），
+      // 兼容旧的 CSV 格式（如 "char_1,char_2"）。解析逻辑参照 relations.ts 的 parseBeatRow。
+      let ids: string[];
+      if (typeof raw === "string" && raw.trim().startsWith("[")) {
+        ids = safeJsonParseArray<string>(raw);
+      } else if (raw) {
+        ids = String(raw).split(",").filter(Boolean);
+      } else {
+        ids = [];
+      }
+      const filtered = ids.filter((cid) => cid !== id);
+      if (filtered.length === ids.length) continue;
+      // 统一写回 JSON 数组格式，顺带将旧 CSV 数据迁移为 JSON
+      const newValue = filtered.length > 0 ? JSON.stringify(filtered) : null;
       beatUpdates.push({
         sql: "UPDATE story_beats SET character_ids_json = ? WHERE id = ?",
         params: [newValue, beat.id],

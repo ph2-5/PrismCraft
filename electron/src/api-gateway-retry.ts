@@ -1,4 +1,5 @@
 import { getLogger } from "./logging/logger";
+import { retryWithBackoff } from "@shared-logic/retry/retry-with-backoff";
 
 const logger = getLogger("api-gateway-retry");
 
@@ -55,6 +56,19 @@ export function isRetryableError(error: unknown): boolean {
   return false;
 }
 
+/**
+ * 带重试的异步执行器（适配层）。
+ *
+ * 内部代理到 @shared-logic/retry/retry-with-backoff 的 retryWithBackoff，
+ * 对外保持原有 (fn, options) 签名与行为不变。
+ *
+ * 行为：
+ *  - 默认 maxRetries=2（总尝试 3 次），baseDelay=1000ms
+ *  - 指数退避 + 抖动 [0.5*delay, delay]
+ *  - 默认可重试判定使用本文件的 isRetryableError（保留 HTTP 429/5xx、网络错误码、消息模式）
+ *  - 可通过 retryableCheck 覆盖可重试判定
+ *  - 每次重试通过 logger.warn 记录
+ */
 export async function withRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {},
@@ -63,29 +77,18 @@ export async function withRetry<T>(
   const baseDelay = options.baseDelay ?? 1000;
   const retryableCheck = options.retryableCheck ?? isRetryableError;
 
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-
-      if (attempt >= maxRetries || !retryableCheck(error)) {
-        throw error;
-      }
-
-      const jitter = 0.5 + Math.random() * 0.5;
-      const delay = baseDelay * Math.pow(2, attempt) * jitter;
-
+  return retryWithBackoff<T>({
+    fn,
+    maxRetries,
+    baseDelayMs: baseDelay,
+    backoff: "exponential",
+    shouldJitter: true,
+    retryOn: retryableCheck,
+    onRetry: (attempt: number, error: Error, delayMs: number) => {
       logger.warn(
-        `Retry attempt ${attempt + 1}/${maxRetries} after ${Math.round(delay)}ms`,
-        { error: error instanceof Error ? error.message : String(error) },
+        `Retry attempt ${attempt}/${maxRetries} after ${Math.round(delayMs)}ms`,
+        { error: error.message },
       );
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-
-  throw lastError;
+    },
+  });
 }

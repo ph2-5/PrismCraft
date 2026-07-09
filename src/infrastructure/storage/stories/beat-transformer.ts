@@ -62,6 +62,7 @@ const KNOWN_BEAT_KEYS = new Set([
   "cameraSpeed", "camera_speed",
   "characterOutfits", "character_outfits", "character_outfits_json",
   "camera", "generation", "meta", "keyframe", "framePair", "videoGen",
+  "elementIds", "elementBindings",
 ]);
 
 function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {
@@ -79,6 +80,17 @@ function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {
     extra[k] = v;
   }
   return extra;
+}
+
+function buildMetaContainer(
+  beat: Record<string, unknown>,
+  extra: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const container: Record<string, unknown> = {};
+  if (beat.elementIds != null) container.elementIds = beat.elementIds;
+  if (beat.elementBindings != null) container.elementBindings = beat.elementBindings;
+  Object.assign(container, extra);
+  return Object.keys(container).length > 0 ? container : null;
 }
 
 function buildCameraContainer(
@@ -156,7 +168,7 @@ export function flattenBeat(beat: Record<string, unknown>, now: number): Flatten
   return {
     cameraContainer,
     generationContainer,
-    metaContainer: Object.keys(extra).length > 0 ? extra : null,
+    metaContainer: buildMetaContainer(beat, extra),
     createdAt: firstOf<number>(beat.createdAt, beat.created_at, now) as number,
     updatedAt: firstOf<number>(beat.updatedAt, beat.updated_at, now) as number,
   };

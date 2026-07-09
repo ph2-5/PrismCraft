@@ -22,7 +22,11 @@ const originalFetch = global.fetch;
 
 beforeEach(() => {
   global.fetch = mockFetch;
-  vi.clearAllMocks();
+  // 使用 mockReset() 而非 vi.clearAllMocks()：
+  // clearAllMocks 只清调用历史，不清 mockResolvedValueOnce 队列，
+  // 导致前序测试的 once 队列泄漏到后续测试（如 429 mock 泄漏到 400 测试）。
+  mockFetch.mockReset();
+  mockExecuteThroughCircuit.mockReset();
   mockExecuteThroughCircuit.mockImplementation(<T>(_providerId: string, fn: () => Promise<T>) => fn());
   apiCache.invalidateAll();
 });
@@ -294,7 +298,7 @@ describe("apiCallWithRetry", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ task_id: "retry_success" });
-  });
+  }, 15000);
 
   it("429 重试时应使用至少 5000ms 的延迟", async () => {
     const startTime = Date.now();
@@ -318,7 +322,7 @@ describe("apiCallWithRetry", () => {
     const elapsed = Date.now() - startTime;
     expect(elapsed).toBeGreaterThanOrEqual(2500);
     expect(mockFetch).toHaveBeenCalledTimes(2);
-  });
+  }, 15000);
 
   it("408 超时错误时应重试", async () => {
     mockFetch

@@ -259,6 +259,26 @@ describe("PluginProcessManager", () => {
     it("should throw if never loaded", async () => {
       await expect(manager.restart()).rejects.toThrow("PLUGIN_NOT_LOADED_CANNOT_RESTART");
     });
+
+    it("should throw MANAGER_SHUT_DOWN_DURING_RESTART_BACKOFF if shutdown is called during backoff", async () => {
+      await loadPlugin();
+      // 触发 crash 使 recentCrashes 非空，restart 时会产生退避延迟
+      proc()._emit("exit", 1, null);
+
+      const p = manager.restart();
+      // 立即附加 catch 防止定时器回调中的 rejection 成为 unhandled rejection
+      p.catch(() => {});
+      // restart 内部的 shutdown() 立即完成（process 已为 null），进入退避延迟
+      await vi.advanceTimersByTimeAsync(0);
+
+      // 在退避延迟期间调用 shutdown（模拟 shutdownAllProcessManagers）
+      await manager.shutdown().catch(() => {});
+
+      // 快进退避延迟（1s 基础延迟）
+      await vi.advanceTimersByTimeAsync(2000);
+
+      await expect(p).rejects.toThrow("MANAGER_SHUT_DOWN_DURING_RESTART_BACKOFF");
+    });
   });
 
   describe("getMetrics()", () => {

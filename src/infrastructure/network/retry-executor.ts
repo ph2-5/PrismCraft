@@ -1,4 +1,8 @@
 import type { RetryPolicy } from "./types";
+import {
+  retryWithBackoff,
+  calculateBackoffDelay,
+} from "@/shared-logic/retry/retry-with-backoff";
 
 const RETRY_POLICIES: Record<string, RetryPolicy> = {
   api: {
@@ -39,29 +43,14 @@ function calculateDelay(
   attempt: number,
   policy: RetryPolicy,
 ): number {
-  let delay: number;
-
-  switch (policy.backoff) {
-    case "exponential":
-      delay = policy.baseDelay * Math.pow(2, attempt);
-      break;
-    case "linear":
-      delay = policy.baseDelay * (attempt + 1);
-      break;
-    case "fixed":
-      delay = policy.baseDelay;
-      break;
-    default:
-      delay = policy.baseDelay * Math.pow(2, attempt);
-  }
-
-  delay = Math.min(delay, policy.maxDelay);
-
-  if (policy.jitter) {
-    delay = delay * (0.5 + Math.random() * 0.5);
-  }
-
-  return Math.floor(delay);
+  // 代理到统一实现，行为与原内联实现完全一致
+  return calculateBackoffDelay(
+    attempt,
+    policy.baseDelay,
+    policy.backoff,
+    policy.maxDelay,
+    policy.jitter,
+  );
 }
 
 function isRetryableError(error: unknown, policy: RetryPolicy): boolean {
@@ -101,6 +90,16 @@ function isClientError(error: unknown): boolean {
   return false;
 }
 
+/**
+ * 带重试的异步执行器（适配层）。
+ *
+ * 内部代理到 @/shared-logic/retry/retry-with-backoff 的 retryWithBackoff，
+ * 对外保持原有 (fn, policy, signal) 签名与行为不变。
+ *
+ * 可重试判定规则（与历史行为一致）：
+ *  - 4xx 客户端错误（除 429/408）立即抛出，不重试
+ *  - 错误码命中 policy.retryableErrors 才重试（retryableErrors 为空时全部重试）
+ */
 export async function executeWithRetry<T>(
   fn: () => Promise<T>,
   policy: RetryPolicy | keyof typeof RETRY_POLICIES,
@@ -109,52 +108,21 @@ export async function executeWithRetry<T>(
   const resolvedPolicy: RetryPolicy =
     typeof policy === "string" ? RETRY_POLICIES[policy]! : policy;
 
-  let lastError: Error = new Error("All retries exhausted");
-
-  for (let attempt = 0; attempt <= resolvedPolicy.maxRetries; attempt++) {
-    if (signal?.aborted) {
-      throw new DOMException("Request was aborted", "AbortError");
-    }
-
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-
-      if (isClientError(error)) {
-        throw error;
-      }
-
-      if (!isRetryableError(error, resolvedPolicy)) {
-        throw error;
-      }
-
-      if (attempt >= resolvedPolicy.maxRetries) {
-        throw lastError;
-      }
-
-      const delay = calculateDelay(attempt, resolvedPolicy);
-
-      resolvedPolicy.onRetry?.(attempt + 1, lastError, delay);
-
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, delay);
-
-        if (signal) {
-          const onAbort = () => {
-            clearTimeout(timer);
-            signal.removeEventListener("abort", onAbort);
-            reject(new DOMException("Request was aborted", "AbortError"));
-          };
-          signal.addEventListener("abort", onAbort, { once: true });
-        }
-      }).catch((abortError) => {
-        throw abortError;
-      });
-    }
-  }
-
-  throw lastError;
+  return retryWithBackoff<T>({
+    fn,
+    maxRetries: resolvedPolicy.maxRetries,
+    baseDelayMs: resolvedPolicy.baseDelay,
+    maxDelayMs: resolvedPolicy.maxDelay,
+    backoff: resolvedPolicy.backoff,
+    shouldJitter: resolvedPolicy.jitter,
+    signal,
+    onRetry: resolvedPolicy.onRetry,
+    // 可重试谓词：客户端错误（4xx 除 429/408）不可重试，其余按 policy.retryableErrors 判定
+    retryOn: (error: unknown) => {
+      if (isClientError(error)) return false;
+      return isRetryableError(error, resolvedPolicy);
+    },
+  });
 }
 
 export { RETRY_POLICIES, calculateDelay, isRetryableError };

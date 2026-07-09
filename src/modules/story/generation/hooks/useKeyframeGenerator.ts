@@ -67,12 +67,14 @@ export function useKeyframeGenerator(props: UseKeyframeGeneratorProps) {
       }
       return withGenerationState(beatId, async (signal) => {
         const prevBeat = resolvePrevBeat(beatId, prevBeatOverride);
+        // 可选链防御：测试环境可能未 mock elementStorage，真实环境一定存在
+        const elements = await container.elementStorage?.getAllElements?.() ?? [];
         const { characterRefs, sceneRef } = StoryGenerationService.resolveGenerationContext({
           beat,
           prevBeat,
           characters: charactersRef.current,
           scenes: scenesRef.current,
-          elements: [],
+          elements,
         });
 
         const keyframeResult = await generateBeatKeyframe(beat, prevBeat, {

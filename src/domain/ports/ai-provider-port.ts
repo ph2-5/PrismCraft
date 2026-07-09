@@ -163,6 +163,8 @@ export interface ITextProvider {
       modelId?: string;
       tools?: ToolDef[];
       onChunk: (chunk: StreamChunk) => void;
+      /** P1-1 修复：支持外部 abort，让用户取消按钮在 LLM 推理期间生效 */
+      signal?: AbortSignal;
     },
   ): Promise<ApiResponse<{ text: string }>>;
 }

@@ -22,6 +22,7 @@ import type {
   AgentLoopConfig,
   AgentLoopCallbacks,
   ToolContext,
+  ToolResult,
 } from "../domain/types";
 import { DEFAULT_AGENT_CONFIG } from "../domain/types";
 import {
@@ -94,6 +95,8 @@ export class AgentLoop {
   private session: AgentSession;
   private callbacks: AgentLoopCallbacks;
   private aborted = false;
+  /** P1-1 修复：LLM 流式推理的 AbortController，使 abort() 能中断正在进行的流式调用 */
+  private llmAbortController: AbortController | null = null;
 
   constructor(
     session: AgentSession,
@@ -105,9 +108,13 @@ export class AgentLoop {
     this.config = { ...DEFAULT_AGENT_CONFIG, ...config };
   }
 
-  /** 中止循环 */
+  /** 中止循环（P1-1 修复：同时中断 LLM 流式推理） */
   abort(): void {
     this.aborted = true;
+    if (this.llmAbortController) {
+      this.llmAbortController.abort();
+      this.llmAbortController = null;
+    }
   }
 
   /** 运行 Agent Loop */
@@ -136,6 +143,9 @@ export class AgentLoop {
       let finishReason: StreamChunk["finishReason"] | undefined;
 
       try {
+        // P1-1 修复：为每次 LLM 流式调用创建独立 AbortController，
+        // 使 abort() 能中断正在进行的流式推理（之前取消按钮在 LLM 推理期间无效）
+        this.llmAbortController = new AbortController();
         const result = await container.textProvider.generateTextStream(prompt, {
           onChunk: (chunk) => {
             // delta → 实时输出
@@ -159,7 +169,9 @@ export class AgentLoop {
           providerId: this.config.providerId,
           modelId: this.config.modelId,
           tools: toolRegistry.getToolDefs(this.config.enabledTools),
+          signal: this.llmAbortController.signal,
         });
+        this.llmAbortController = null;
 
         if (!result.success) {
           // LLM 调用失败
@@ -192,6 +204,26 @@ export class AgentLoop {
               this.handleAbort();
               return;
             }
+
+            // 危险工具确认检查（R-P0-1 修复）：
+            // requiresConfirmation=true 的工具（如 delete_file/move_file）必须经用户确认。
+            // 未提供 onConfirmationRequired 回调时，安全默认拒绝执行。
+            if (toolExecutor.requiresConfirmation(tc)) {
+              const approved = this.callbacks.onConfirmationRequired
+                ? await this.callbacks.onConfirmationRequired(tc)
+                : false;
+              if (!approved) {
+                const cancelledResult: ToolResult = {
+                  success: false,
+                  error: "用户拒绝执行此操作（需要确认）",
+                  duration: 0,
+                };
+                conversationManager.appendToolResult(this.session, tc.id, tc.function.name, cancelledResult);
+                this.callbacks.onToolResult(tc.id, cancelledResult);
+                continue;
+              }
+            }
+
             this.callbacks.onToolCall(tc);
             const result = await toolExecutor.execute(tc, ctx);
             conversationManager.appendToolResult(this.session, tc.id, tc.function.name, result);
@@ -205,6 +237,7 @@ export class AgentLoop {
         // 无工具调用，结束循环
         return;
       } catch (e) {
+        this.llmAbortController = null;
         conversationManager.finishStreaming(this.session);
         const err = e instanceof Error ? e : new Error(String(e));
         assistantMsg.content = assistantMsg.content || `发生错误：${err.message}`;

@@ -69,6 +69,14 @@ vi.mock("@/modules/video/task-management", () => ({
   STUCK_TASK_THRESHOLD_MS: 30 * 60 * 1000,
 }));
 
+// P1-2 修复：mock verifyVideoUrl 避免真实 fetch 调用
+vi.mock("../video-verification-service", () => ({
+  verifyVideoUrl: vi.fn().mockResolvedValue({
+    ok: true,
+    value: { isValid: true, reason: "mock valid", details: {}, confidence: "high" },
+  }),
+}));
+
 import { recoverVideoByTaskId, registerCacheVideoBlobFn } from "../video-recovery-service";
 import type { Result } from "@/domain/types/result";
 

@@ -108,8 +108,12 @@ function parseBeatRow(b: Record<string, unknown>) {
   if (parsed.local_first_frame_path) beat.localFirstFramePath = parsed.local_first_frame_path;
   if (parsed.local_last_frame_path) beat.localLastFramePath = parsed.local_last_frame_path;
 
+  if (metaContainer?.elementIds != null) beat.elementIds = metaContainer.elementIds;
+  if (metaContainer?.elementBindings != null) beat.elementBindings = metaContainer.elementBindings;
+
   if (metaContainer) {
     for (const [k, v] of Object.entries(metaContainer)) {
+      if (k === "elementIds" || k === "elementBindings") continue;
       const parts = k.split(".");
       let target: Record<string, unknown> = beat;
       for (let i = 0; i < parts.length - 1; i++) {

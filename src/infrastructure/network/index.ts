@@ -37,6 +37,7 @@ export {
   resetCircuitBreaker,
   resetAllCircuitBreakers,
   getAllCircuitStates,
+  buildCircuitBreakerKey,
 } from "./circuit-breaker";
 
 export {

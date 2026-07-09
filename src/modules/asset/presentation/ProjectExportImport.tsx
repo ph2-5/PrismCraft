@@ -43,7 +43,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.zip')) {
+    if (!file.name.endsWith('.json')) {
       showError(t("error.invalidFileFormat"), t("error.selectZipFile"));
       return;
     }
@@ -165,7 +165,7 @@ export function ProjectExportImport({ onImport }: ProjectExportImportProps) {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".zip"
+          accept=".json"
           onChange={handleFileSelect}
           style={{ display: "none" }}
         />

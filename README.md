@@ -2,7 +2,7 @@
 
 > 本地优先的 AI 动画创作桌面应用，覆盖故事构思 → 角色设计 → 场景搭建 → 分镜编排 → AI 视频生成 → 导出成品的完整工作流。
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-1.2.1-blue)](package.json)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-5752%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
@@ -198,7 +198,7 @@ prismcraft/
 如需商业授权、技术支持或定制开发，请联系作者：
 
 - **GitHub Issues**：[ph2-5/PrismCraft/issues](https://github.com/ph2-5/PrismCraft/issues)（推荐，公开透明）
-- **Trae 社区**：[@u590909302648505](https://forum.trae.cn/u/u590909302648505)（私信）
+- **Trae 社区**：[@ph2.5](https://forum.trae.cn/u/ph2.5)（私信）
 
 > 💡 **欢迎询价**：无论预算大小，都欢迎联系讨论。可根据具体使用场景灵活定价。
 

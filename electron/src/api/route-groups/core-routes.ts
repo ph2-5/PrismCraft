@@ -1,6 +1,7 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
-import { handleConfig, handleSecureConfig } from "../../handlers/config";
+import { handleConfig, handleSecureConfig, maskApiKey } from "../../handlers/config";
+import type { AppConfig, ProviderConfig } from "../../handlers/config";
 import { handleTestConnection } from "../../handlers/test-connection";
 import { handleSyncConfig, handleSyncTest, handleSyncProxy } from "../../handlers/sync";
 import * as apiGateway from "../../api-gateway";
@@ -28,6 +29,15 @@ import { getLogger } from "../../logging";
 
 const logger = getLogger("core-routes");
 
+/** 对 config 中每个 provider 的 apiKey 做脱敏处理，防止明文 apiKey 通过 HTTP 返回前端 */
+function maskConfigApiKeys(config: AppConfig): AppConfig {
+  const providers: ProviderConfig[] = config.providers.map((p) => ({
+    ...p,
+    apiKey: p.apiKey ? maskApiKey(p.apiKey) : "",
+  }));
+  return { ...config, providers };
+}
+
 export const coreRoutes: Record<string, Route> = {
   config: defineRoute({ schema: configRouteSchema, handler: handleConfig, methods: ["GET", "POST", "HEAD"] }),
   "secure-config": defineRoute({ schema: secureConfigRouteSchema, handler: handleSecureConfig, methods: ["POST"] }),
@@ -42,7 +52,10 @@ export const coreRoutes: Record<string, Route> = {
           return { success: false, error: "Invalid config key" };
         }
         const config = await loadConfigAsync();
-        const value = getConfigValue(config, key);
+        // R-SEC1: 对 apiKey 做脱敏处理，防止明文 apiKey 通过 HTTP 返回前端。
+        // 前端需要明文 apiKey 时通过 secure-config:resolve IPC 获取。
+        const safeConfig = maskConfigApiKeys(config);
+        const value = getConfigValue(safeConfig, key);
         return { success: true, data: { value } };
       } catch (error) {
         logger.error("[Core HTTP] config/get failed:", error instanceof Error ? error : new Error(String(error)));

@@ -12,18 +12,12 @@
 import { describe, it, expect } from "vitest";
 import vm from "vm";
 
-// 复制 plugin-worker.ts 中的 SANITIZED_CODE_PREFIX（源文件未导出，且导入会有副作用）
-const SANITIZED_CODE_PREFIX = `
-(function() {
-  'use strict';
-  const _origConstructor = this.constructor;
-  // 阻止 constructor 链逃逸：将 Object.prototype.constructor 锁定为 Object，不可重写
-  try { Object.defineProperty(Object.prototype, 'constructor', { value: Object, writable: false, configurable: false }); } catch (e) { console.warn('[plugin-worker] Failed to lock Object.prototype.constructor:', e); }
-`;
+// R123 修复：从真实源文件导入 SANITIZED_CODE_PREFIX，避免测试"自测自"假阳性。
+// 之前测试文件内自带副本，从未验证生产源码，导致 R123 防护缺失未被发现。
+import { SANITIZED_CODE_PREFIX } from "../plugin-worker";
 
 const SANITIZED_CODE_SUFFIX = `
-})();
-`;
+})();`;
 
 /**
  * 创建一个独立的 vm 上下文（拥有自己的内置对象，不影响外部 Node.js 环境），

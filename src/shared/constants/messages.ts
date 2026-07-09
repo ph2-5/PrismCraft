@@ -91,7 +91,7 @@ const messages: Record<MessageKey, string> = {
   "error.videoUrlMissing": "任务已完成但未返回视频URL",
   "error.taskStatus": "任务状态: {status}",
   "error.invalidFileFormat": "文件格式错误",
-  "error.selectZipFile": "请选择 ZIP 格式的工程文件",
+  "error.selectZipFile": "请选择 JSON 格式的工程文件",
   "error.cannotGenerateDownload": "无法生成下载文件",
   "error.keyframeUploadServerFailed": "预览图上传到服务器失败，请重试",
   "error.firstFrameUploadServerFailed": "首帧上传到服务器失败，请重试",

@@ -9,6 +9,8 @@ import { API_SERVER_PORT } from "@/config/ports";
 import { AppError } from "@/domain/types/result";
 import type { VideoTask } from "@/domain/schemas";
 import { pollingState, checkAndStartOrStopPolling } from "./polling-engine";
+// P1-6 修复：接入跨窗口任务同步
+import { startCrossWindowSync } from "./sync-engine";
 
 /** 定期清理过期视频缓存和任务记录的间隔（30 分钟） */
 const CACHE_CLEANUP_INTERVAL_MS = 30 * MINUTE_MS;
@@ -235,4 +237,30 @@ export function setupBeforeUnloadHandler(store: StoreAccessor): void {
     return;
   };
   window.addEventListener("beforeunload", pollingState.beforeUnloadHandler);
+}
+
+/**
+ * P1-6 修复：启动跨窗口任务变更监听。
+ *
+ * 多窗口场景下，窗口 A 持久化任务后通过 BroadcastChannel 通知窗口 B。
+ * 窗口 B 收到通知后从 SQLite 重新加载任务到内存 store，实现准实时同步。
+ * 在任务初始化时调用一次。
+ */
+export function setupCrossWindowSync(store: StoreAccessor): void {
+  if (typeof window === "undefined") return;
+  startCrossWindowSync(async () => {
+    try {
+      const tasks = await container.videoTaskStorage.getVideoTasks();
+      // 竞态保护：组件卸载后不再更新状态
+      if (pollingState.beforeUnloadHandler === null) return;
+      store.set((state) => {
+        const loadedIds = new Set(tasks.map((t) => t.taskId));
+        const concurrentAdditions = state.allTasks.filter((t) => !loadedIds.has(t.taskId));
+        return { allTasks: [...tasks, ...concurrentAdditions] };
+      });
+      checkAndStartOrStopPolling();
+    } catch (err) {
+      errorLogger.warn("[VideoTaskManager] 跨窗口同步重新加载失败", err);
+    }
+  });
 }

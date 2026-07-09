@@ -1,5 +1,10 @@
+import { StoryProvider } from "@/app/story/StoryProvider";
 import BeatDetailClient from "./BeatDetailClient";
 
 export default function BeatDetailPage() {
-  return <BeatDetailClient />;
+  return (
+    <StoryProvider>
+      <BeatDetailClient />
+    </StoryProvider>
+  );
 }

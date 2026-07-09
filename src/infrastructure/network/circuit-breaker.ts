@@ -18,8 +18,8 @@ function getConfig(): CircuitBreakerModuleConfig {
   return NETWORK_CONFIG.circuitBreaker;
 }
 
-function getOrCreateBreaker(providerId: string): CircuitBreakerState {
-  let breaker = breakers.get(providerId);
+function getOrCreateBreaker(breakerKey: string): CircuitBreakerState {
+  let breaker = breakers.get(breakerKey);
   if (!breaker) {
     if (breakers.size >= MAX_BREAKERS) {
       const oldestKey = breakers.keys().next().value;
@@ -36,9 +36,29 @@ function getOrCreateBreaker(providerId: string): CircuitBreakerState {
       lastFailureTime: 0,
       lastStateChangeTime: Date.now(),
     };
-    breakers.set(providerId, breaker);
+    breakers.set(breakerKey, breaker);
   }
   return breaker;
+}
+
+/**
+ * 构造复合熔断 key：`providerId:endpoint`
+ *
+ * 维度隔离语义：
+ * - 同一 provider 的不同 endpoint 仍独立熔断（保持现状）
+ * - 不同 provider 即使 endpoint 相同也独立熔断（修复维度耦合）
+ * - 若 providerId 缺失（如 GET 请求无 body），回退到仅 endpoint 维度，保持向后兼容
+ *
+ * 调用方应使用此函数构造 key，避免直接拼接字符串导致格式不一致。
+ */
+export function buildCircuitBreakerKey(
+  providerId: string | undefined | null,
+  endpoint: string,
+): string {
+  if (!providerId) {
+    return endpoint;
+  }
+  return `${providerId}:${endpoint}`;
 }
 
 function tryTransitionToHalfOpen(breaker: CircuitBreakerState, config: CircuitBreakerConfig): void {
@@ -86,19 +106,40 @@ function recordFailure(breaker: CircuitBreakerState, config: CircuitBreakerConfi
   }
 }
 
-export function getCircuitBreaker(providerId: string): CircuitBreakerState {
-  return getOrCreateBreaker(providerId);
+/**
+ * 获取指定熔断 key 的熔断器状态。
+ *
+ * @param breakerKey 熔断 key，应由 `buildCircuitBreakerKey(providerId, endpoint)` 构造，
+ *                  形成 `providerId:endpoint` 复合维度，避免不同 provider 共享 endpoint 时互相影响。
+ */
+export function getCircuitBreaker(breakerKey: string): CircuitBreakerState {
+  return getOrCreateBreaker(breakerKey);
 }
 
-export function getCircuitState(providerId: string): CircuitState {
-  const breaker = getOrCreateBreaker(providerId);
+/**
+ * 获取指定熔断 key 的当前状态（closed / open / half-open）。
+ *
+ * @param breakerKey 熔断 key，应由 `buildCircuitBreakerKey(providerId, endpoint)` 构造。
+ */
+export function getCircuitState(breakerKey: string): CircuitState {
+  const breaker = getOrCreateBreaker(breakerKey);
   const config = getConfig();
   tryTransitionToHalfOpen(breaker, config);
   return breaker.state;
 }
 
+/**
+ * 通过熔断器执行异步函数。
+ *
+ * @param breakerKey 熔断 key，应由 `buildCircuitBreakerKey(providerId, endpoint)` 构造，
+ *                  形成 `providerId:endpoint` 复合维度。
+ *                  - 同一 provider 的不同 endpoint 仍独立熔断（保持现状）
+ *                  - 不同 provider 即使 endpoint 相同也独立熔断（修复维度耦合）
+ * @param fn 待执行的异步函数
+ * @param fallback 熔断器开启时的回退函数（可选）
+ */
 export async function executeThroughCircuit<T>(
-  providerId: string,
+  breakerKey: string,
   fn: () => Promise<T>,
   fallback?: () => Promise<T>,
 ): Promise<T> {
@@ -108,7 +149,7 @@ export async function executeThroughCircuit<T>(
     return fn();
   }
 
-  const breaker = getOrCreateBreaker(providerId);
+  const breaker = getOrCreateBreaker(breakerKey);
   tryTransitionToHalfOpen(breaker, config);
 
   if (breaker.state === "open") {
@@ -116,7 +157,7 @@ export async function executeThroughCircuit<T>(
       return fallback();
     }
     throw Object.assign(
-      new Error(`Circuit breaker is open for provider: ${providerId}`),
+      new Error(`Circuit breaker is open for key: ${breakerKey}`),
       { code: "CIRCUIT_OPEN" as const },
     );
   }
@@ -128,7 +169,7 @@ export async function executeThroughCircuit<T>(
         return fallback();
       }
       throw Object.assign(
-        new Error(`Circuit breaker half-open concurrency limit reached for provider: ${providerId}`),
+        new Error(`Circuit breaker half-open concurrency limit reached for key: ${breakerKey}`),
         { code: "CIRCUIT_HALF_OPEN_LIMIT" as const },
       );
     }
@@ -155,8 +196,13 @@ export async function executeThroughCircuit<T>(
   }
 }
 
-export function resetCircuitBreaker(providerId: string): void {
-  breakers.delete(providerId);
+/**
+ * 重置指定熔断 key 的熔断器。
+ *
+ * @param breakerKey 熔断 key，应由 `buildCircuitBreakerKey(providerId, endpoint)` 构造。
+ */
+export function resetCircuitBreaker(breakerKey: string): void {
+  breakers.delete(breakerKey);
 }
 
 export function resetAllCircuitBreakers(): void {

@@ -65,6 +65,8 @@ export async function generateTextStream(
     modelId?: string;
     tools?: ToolDef[];
     onChunk: (chunk: StreamChunk) => void;
+    /** P1-1 修复：外部 abort 信号，让 Agent Loop 的取消按钮在 LLM 推理期间生效 */
+    signal?: AbortSignal;
   },
 ): Promise<ApiResponse<{ text: string }>> {
   try {
@@ -103,6 +105,7 @@ export async function generateTextStream(
       },
       {
         onChunk: (chunk) => onChunk(chunk),
+        signal: options?.signal,
       },
     );
   } catch (error) {

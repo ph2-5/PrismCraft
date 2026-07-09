@@ -121,6 +121,13 @@ export class PluginProcessManager {
       await new Promise((r) => setTimeout(r, delay));
     }
 
+    // P1-5 四审修复：退避延迟期间 dispose()/unregisterProcessManager 可能被调用，
+    // 导致 isShuttingDown 被重新设为 true。此时不应继续 spawn 新进程，否则会产生孤儿进程。
+    // 抛出异常使 attemptRestart 进入 catch 块，catch 块检查 disposed 后不再调度重试。
+    if (this.isShuttingDown) {
+      throw new Error("MANAGER_SHUT_DOWN_DURING_RESTART_BACKOFF");
+    }
+
     return this.load(this.filePath);
   }
 

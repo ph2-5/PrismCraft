@@ -104,6 +104,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     electron: process.versions.electron,
     chrome: process.versions.chrome,
   },
+  appToken: process.env.ELECTRON_APP_TOKEN,
   getConfig: (key: string) => {
     try {
       const config = createSecureSyncIpcInvoker("config:get")(key);

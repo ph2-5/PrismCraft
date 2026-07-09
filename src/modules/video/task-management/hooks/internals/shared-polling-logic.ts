@@ -28,6 +28,7 @@ import {
   setupBackgroundRecoveryInterval,
   setupCacheCleanupInterval,
   setupBeforeUnloadHandler,
+  setupCrossWindowSync,
   type StoreAccessor,
 } from "../internals/task-initializer";
 
@@ -91,6 +92,8 @@ export function initializePolling(store: PollingStoreAccessor) {
   setupBackgroundRecoveryInterval();
   setupCacheCleanupInterval();
   setupBeforeUnloadHandler(store);
+  // P1-6 修复：启动跨窗口任务变更监听
+  setupCrossWindowSync(store);
 }
 
 /**

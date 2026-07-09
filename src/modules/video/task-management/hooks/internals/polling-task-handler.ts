@@ -297,6 +297,15 @@ async function pollSingleTask(
 }
 
 const CONCURRENT_LIMIT = 3;
+/**
+ * P2-1 修复：单次轮询周期的最大任务数。
+ *
+ * 之前所有活跃任务都在单个轮询周期内处理，100+ 任务时单轮耗时数分钟，
+ * 导致 15s 轮询间隔形同虚设，且易触发 API 限流。
+ *
+ * 限制为 15 个/周期（5 批 × 3 并发），未轮询到的任务在下一周期优先处理。
+ */
+const MAX_TASKS_PER_POLL_CYCLE = 15;
 
 export async function pollActiveTasks(
   tasks: VideoTask[],
@@ -309,13 +318,24 @@ export async function pollActiveTasks(
     hasSuccess: false,
   };
 
+  // P2-1 修复：保留原有过滤逻辑（timeout 任务可通过轮询恢复为 completed），
+  // 但增加单轮任务数上限和按 lastPolledAt 排序，避免大量任务导致单轮耗时过长
   const activeTaskList = tasks.filter(
     (t) => t.status !== "completed" && t.status !== "failed",
   );
 
-  for (let i = 0; i < activeTaskList.length; i += CONCURRENT_LIMIT) {
+  // P2-1 修复：按 lastPolledAt 升序排序（最久未轮询的优先），限制单轮任务数
+  const tasksToPoll = activeTaskList
+    .sort((a, b) => {
+      const aTime = a.lastPolledAt ? new Date(a.lastPolledAt).getTime() : 0;
+      const bTime = b.lastPolledAt ? new Date(b.lastPolledAt).getTime() : 0;
+      return aTime - bTime;
+    })
+    .slice(0, MAX_TASKS_PER_POLL_CYCLE);
+
+  for (let i = 0; i < tasksToPoll.length; i += CONCURRENT_LIMIT) {
     if (signal.aborted) return result;
-    const batch = activeTaskList.slice(i, i + CONCURRENT_LIMIT);
+    const batch = tasksToPoll.slice(i, i + CONCURRENT_LIMIT);
     await Promise.allSettled(
       batch.map((task) => pollSingleTask(task, signal, result)),
     );

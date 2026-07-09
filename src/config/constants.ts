@@ -46,9 +46,15 @@ export const DEFAULT_SHOT_SEQUENCES = [
 ] as const;
 
 // API 配置
+// R-SEC2: X-Electron-App header 携带主进程启动时生成的随机 token，
+// 由 preload 注入到 window.electronAPI.appToken。checkAuthHeader 校验此 token。
+// 在非 Electron 环境（如测试）中回退为 "true"。
 export const ELECTRON_APP_HEADERS: Record<string, string> = {
-  "X-Electron-App": "true",
-} as const;
+  "X-Electron-App":
+    (typeof window !== "undefined" &&
+      (window as Window & { electronAPI?: { appToken?: string } }).electronAPI?.appToken) ||
+    "true",
+};
 
 export const API_CONFIG = {
   TIMEOUT: 30000, // 30秒

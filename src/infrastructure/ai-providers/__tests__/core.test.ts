@@ -450,7 +450,7 @@ describe("ai-providers/core", () => {
       const result = await apiCallWithRetry("test");
       expect(result).toEqual({ value: 2 });
       expect(globalThis.fetch).toHaveBeenCalledTimes(2);
-    });
+    }, 15000);
 
     it("does not retry on 400 client error", async () => {
       vi.mocked(globalThis.fetch).mockResolvedValue({

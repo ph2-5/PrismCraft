@@ -8,6 +8,7 @@ import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
 import { isNetworkError as isNetworkErrorClassified } from "@/shared/utils/error-classifier";
 import { executeThroughCircuit } from "@/infrastructure/network/circuit-breaker";
 import { t } from "@/shared/constants";
+import { retryWithBackoff } from "@/shared-logic/retry/retry-with-backoff";
 
 export interface QueuedResponse {
   success: false;
@@ -176,6 +177,22 @@ function buildFetchRequest(
   });
 }
 
+/**
+ * 从请求 body 中提取 providerId，用于构造复合熔断 key。
+ *
+ * 请求 body（如 ImageGenerationRequestBody / VideoGenerationRequestBody 等）
+ * 均可选携带 providerId 字段。若 body 不是合法 JSON 或不含 providerId，返回 undefined。
+ */
+function extractProviderIdFromBody(body: string | undefined): string | undefined {
+  if (!body) return undefined;
+  try {
+    const parsed = JSON.parse(body) as { providerId?: string };
+    return parsed.providerId;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function apiCall<T>(
   endpoint: string,
   options: ApiRequestOptions = {},
@@ -198,7 +215,12 @@ export async function apiCall<T>(
       : "";
     const url = `${baseUrl}/api/${endpoint}`;
 
-    const response = await executeThroughCircuit(endpoint, () =>
+    // 构造复合熔断 key：`providerId:endpoint`
+    // - 不同 provider 即使 endpoint 相同也独立熔断（修复维度耦合）
+    // - 若 body 中无 providerId（如 GET 请求），回退到仅 endpoint 维度，保持向后兼容
+    const providerId = extractProviderIdFromBody(options.body);
+    const breakerKey = providerId ? `${providerId}:${endpoint}` : endpoint;
+    const response = await executeThroughCircuit(breakerKey, () =>
       buildFetchRequest(url, options, controller.signal),
     );
 
@@ -234,41 +256,43 @@ export async function apiCallWithRetry<T>(
   options: ApiRequestOptions = {},
   retries = 3,
 ): Promise<T> {
-  let lastError: Error = new Error("请求失败");
-
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await apiCall<T>(endpoint, options);
-    } catch (error) {
-      lastError = error as Error;
-
-      const isClientError =
-        error instanceof ApiClientError &&
-        error.statusCode !== undefined &&
-        error.statusCode >= 400 &&
-        error.statusCode < 500;
-
-      const shouldRetry =
-        !isClientError ||
-        (error instanceof ApiClientError &&
-          (error.statusCode === 429 || error.statusCode === 408));
-
-      if (!shouldRetry) {
-        throw error;
-      }
-
-      if (i < retries - 1) {
-        let delay = Math.pow(2, i) * 1000;
-        if (error instanceof ApiClientError && error.statusCode === 429) {
-          delay = Math.max(delay, 5000);
+  // 代理到统一重试实现 @/shared-logic/retry/retry-with-backoff
+  // 对外保持 (endpoint, options, retries) 签名与历史行为不变：
+  //  - 总尝试次数 = retries（首次 + 最多 retries-1 次重试）
+  //  - 4xx 客户端错误（除 429/408）不重试
+  //  - 5xx / 429 / 408 / 无状态码错误（网络错误）重试
+  //  - 指数退避 + 抖动，基础延迟 1000ms
+  return retryWithBackoff<T>({
+    fn: () => apiCall<T>(endpoint, options),
+    maxRetries: Math.max(0, retries - 1),
+    baseDelayMs: 1000,
+    backoff: "exponential",
+    shouldJitter: true,
+    retryOn: (error: unknown) => {
+      // 使用鸭子类型检查 statusCode 属性，避免 instanceof 在测试模块隔离中失效
+      if (error && typeof error === "object" && "statusCode" in error) {
+        const status = (error as { statusCode?: number }).statusCode;
+        if (status !== undefined && status >= 400 && status < 500) {
+          // 4xx：仅 429（限流）和 408（超时）可重试
+          return status === 429 || status === 408;
         }
-        delay = delay * (0.5 + Math.random() * 0.5);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        // 5xx 或无状态码（网络错误包装）：可重试
+        return true;
       }
-    }
-  }
-
-  throw lastError!;
+      // 非 ApiClientError：可重试（兼容性保留）
+      return true;
+    },
+    // 429 限流时强制至少 5000ms 延迟（与服务端 Retry-After 语义对齐）
+    getDelayOverride: (error: Error, defaultDelay: number) => {
+      if (error && typeof error === "object" && "statusCode" in error) {
+        const status = (error as { statusCode?: number }).statusCode;
+        if (status === 429) {
+          return Math.max(defaultDelay, 5000);
+        }
+      }
+      return defaultDelay;
+    },
+  });
 }
 
 export async function apiCallWithFallback<T>(
@@ -360,6 +384,8 @@ export async function apiCallStream<TChunk, TResult>(
   options: ApiRequestOptions,
   callbacks: {
     onChunk: (chunk: TChunk) => void;
+    /** P1-1 修复：外部 abort 信号，允许调用方在流式传输期间取消 */
+    signal?: AbortSignal;
   },
 ): Promise<TResult> {
   const STREAM_TIMEOUT = 300000; // 流式生成可能较慢，5 分钟
@@ -370,6 +396,17 @@ export async function apiCallStream<TChunk, TResult>(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT);
+
+  // P1-1 修复：将外部 signal 联动到内部 controller，
+  // 使外部 abort 时也能中断流式 fetch 和 reader.read()
+  if (callbacks.signal) {
+    if (callbacks.signal.aborted) {
+      clearTimeout(timeoutId);
+      controller.abort();
+    } else {
+      callbacks.signal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
 
   try {
     const response = await fetch(url, {

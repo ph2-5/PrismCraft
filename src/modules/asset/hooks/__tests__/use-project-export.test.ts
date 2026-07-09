@@ -4,12 +4,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { type ReactNode } from "react";
 import { ok, err, AppError } from "@/domain/types";
 
-const { mockDownloadExport } = vi.hoisted(() => ({
+const { mockDownloadExport, mockImportData } = vi.hoisted(() => ({
   mockDownloadExport: vi.fn<() => Promise<unknown>>(),
+  mockImportData: vi.fn<(data: unknown) => Promise<unknown>>(),
 }));
 
 vi.mock("../../import-export", () => ({
   downloadExport: mockDownloadExport,
+  importData: mockImportData,
 }));
 
 import { useProjectExport } from "../../hooks/use-project-export";
@@ -27,6 +29,8 @@ function createWrapper() {
 describe("useProjectExport", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // importData 默认返回 ok，期望失败的测试可单独覆盖
+    mockImportData.mockResolvedValue(ok({}));
   });
 
   describe("初始状态", () => {

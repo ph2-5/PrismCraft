@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { downloadExport } from "../import-export";
+import { downloadExport, importData } from "../import-export";
 import type { Character, Scene, Story } from "@/domain/schemas";
 
 export interface ProjectData {
@@ -26,7 +26,7 @@ export function useProjectExport() {
   const exportProject = async (_options: { includeAssets?: boolean }) => {
     setProgress(50);
     try {
-      const result = await downloadExport();
+      const result = await exportMutation.mutateAsync();
       setProgress(100);
       if (result.ok) {
         return { success: true, filename: `project-export-${Date.now()}.json` };
@@ -41,14 +41,18 @@ export function useProjectExport() {
   const importProject = async (file: File) => {
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
+      const parsed = JSON.parse(text) as Record<string, unknown>;
+      const result = await importData(parsed);
+      if (!result.ok) {
+        return { success: false, error: result.error.message, blobUrls: [] as string[] };
+      }
       return {
         success: true,
         data: {
-          characters: data.characters || [],
-          scenes: data.scenes || [],
-          stories: data.stories || [],
-          exportedAt: data.exportedAt,
+          characters: (Array.isArray(parsed.characters) ? parsed.characters : []) as Character[],
+          scenes: (Array.isArray(parsed.scenes) ? parsed.scenes : []) as Scene[],
+          stories: (Array.isArray(parsed.stories) ? parsed.stories : []) as Story[],
+          exportedAt: typeof parsed.exportedAt === "string" ? parsed.exportedAt : undefined,
         } as ProjectData,
         blobUrls: [] as string[],
       };

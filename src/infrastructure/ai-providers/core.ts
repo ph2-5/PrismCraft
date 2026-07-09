@@ -38,6 +38,9 @@ const QUEUEABLE_ENDPOINTS = [
   "generate-text",
   "generate-keyframe",
   "generate-frame-pair",
+  "generate-embedding",
+  "generate-audio",
+  "transcribe-audio",
   "upload",
 ];
 

@@ -212,3 +212,92 @@ export interface IFileUploader {
     | { success: false; error: string; message?: string; data?: { url: string; [key: string]: unknown } }
   >;
 }
+
+/**
+ * Embedding Provider 接口（向量嵌入生成）
+ *
+ * 用途：
+ * - 记忆系统的语义检索（将文本转为向量后做余弦相似度匹配）
+ * - 跨会话内容去重与相关性排序
+ * - 未来可扩展到图片/多模态 embedding
+ *
+ * 实现端点：调用本地 Electron HTTP 服务 `/api/generate-embedding`，
+ * 由 api-gateway 转发到 OpenAI 兼容的 `/embeddings` 接口。
+ */
+export interface IEmbeddingProvider {
+  /**
+   * 生成单段文本的向量嵌入
+   * @param input 文本内容
+   * @returns 向量数组（维度由模型决定，OpenAI text-embedding-3-small 为 1536 维）
+   */
+  generateEmbedding(
+    input: string,
+    options?: {
+      providerId?: string;
+      modelId?: string;
+    },
+  ): Promise<ApiResponse<{ embedding: number[] }>>;
+
+  /**
+   * 批量生成向量嵌入（提升网络效率）
+   * @param inputs 文本数组（建议单批 <= 64 条，避免超时）
+   * @returns 向量数组的数组，与输入顺序一一对应
+   */
+  generateEmbeddings?(
+    inputs: string[],
+    options?: {
+      providerId?: string;
+      modelId?: string;
+    },
+  ): Promise<ApiResponse<{ embeddings: number[][] }>>;
+}
+
+/**
+ * 音频能力类型
+ * - tts：文字转语音（Text-to-Speech）
+ * - stt：语音转文字（Speech-to-Text，转写）
+ * - music：配乐生成（异步任务，类似视频生成）
+ * - voiceover：旁白配音（基于 TTS 但带情感与语速控制）
+ */
+export type AudioCapability = "tts" | "stt" | "music" | "voiceover";
+
+/**
+ * 音频 Provider 接口
+ *
+ * 实现端点：调用本地 Electron HTTP 服务 `/api/generate-audio` 与 `/api/transcribe-audio`。
+ * 由于各家 provider 的音频 API 差异较大，当前实现以 OpenAI 兼容格式为主
+ * （`/audio/speech` 与 `/audio/transcriptions`），其他格式通过插件扩展。
+ */
+export interface IAudioProvider {
+  /**
+   * 文字转语音（同步返回音频 URL）
+   * @param text 待合成语音的文本
+   * @param options.voice 音色（如 "alloy"/"echo"/"nova"，OpenAI 标准）
+   * @param options.format 输出格式（"mp3"/"wav"/"opus"）
+   * @returns 音频文件 URL（本地缓存路径或远程 URL）
+   */
+  synthesizeSpeech(
+    text: string,
+    options?: {
+      voice?: string;
+      format?: string;
+      speed?: number;
+      providerId?: string;
+      modelId?: string;
+    },
+  ): Promise<ApiResponse<{ audioUrl: string; duration?: number }>>;
+
+  /**
+   * 语音转文字（转写）
+   * @param audioUrl 音频文件 URL
+   * @returns 转写后的文本
+   */
+  transcribeAudio?(
+    audioUrl: string,
+    options?: {
+      language?: string;
+      providerId?: string;
+      modelId?: string;
+    },
+  ): Promise<ApiResponse<{ text: string; segments?: Array<{ start: number; end: number; text: string }> }>>;
+}

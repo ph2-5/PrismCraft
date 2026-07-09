@@ -91,10 +91,18 @@ function makeTask(overrides?: Record<string, unknown>) {
 /** 全部 API 能力已配置的 checkConfigStatus mock */
 function allConfigured() {
   mocks.checkConfigStatus.mockResolvedValue({
-    text: { configured: true },
-    image: { configured: true },
-    vision: { configured: true },
-    video: { configured: true },
+    capabilities: {
+      text: { configured: true },
+      image: { configured: true },
+      vision: { configured: true },
+      video: { configured: true },
+      embedding: { configured: false },
+      audio: { configured: false },
+    },
+    allConfigured: true,
+    configuredCount: 4,
+    totalCount: 4,
+    missing: [],
   });
 }
 
@@ -568,10 +576,18 @@ describe("diagnose_system_health", () => {
 
   it("24. API 配置全部缺失时 status=critical 且 overallHealth=critical", async () => {
     mocks.checkConfigStatus.mockResolvedValue({
-      text: { configured: false },
-      image: { configured: false },
-      vision: { configured: false },
-      video: { configured: false },
+      capabilities: {
+        text: { configured: false },
+        image: { configured: false },
+        vision: { configured: false },
+        video: { configured: false },
+        embedding: { configured: false },
+        audio: { configured: false },
+      },
+      allConfigured: false,
+      configuredCount: 0,
+      totalCount: 4,
+      missing: ["文本生成", "图像生成", "视觉分析", "视频生成"],
     });
 
     const result = await diagnoseSystemHealthTool.execute(
@@ -664,10 +680,18 @@ describe("diagnose_system_health", () => {
 
   it("28. overallHealth 在有 warning 但无 critical 时为 warning", async () => {
     mocks.checkConfigStatus.mockResolvedValue({
-      text: { configured: true },
-      image: { configured: false },
-      vision: { configured: true },
-      video: { configured: true },
+      capabilities: {
+        text: { configured: true },
+        image: { configured: false },
+        vision: { configured: true },
+        video: { configured: true },
+        embedding: { configured: false },
+        audio: { configured: false },
+      },
+      allConfigured: false,
+      configuredCount: 3,
+      totalCount: 4,
+      missing: ["图像生成"],
     });
 
     const result = await diagnoseSystemHealthTool.execute(

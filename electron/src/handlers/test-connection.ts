@@ -5,7 +5,7 @@ import { pluginRegistry } from "../plugins";
 import type { AIProviderPlugin, AsyncAIProviderPlugin } from "../plugins";
 import { getLogger } from "../logging/logger";
 import { API_ERROR_CODES } from "../api-gateway-error-codes";
-import { ssrfGuard } from "../security/ssrf-guard/ssrf-guard";
+import { isPrivateUrl, registerUserEndpoint } from "../api-gateway-utils";
 
 const logger = getLogger("test-connection");
 
@@ -27,21 +27,6 @@ async function getAuthHeaders(plugin: AIProviderPlugin | undefined, apiKey: stri
     "Content-Type": "application/json",
     ...plugin.getAuthHeaders(apiKey),
   };
-}
-
-async function isPrivateUrl(urlStr: string): Promise<boolean> {
-  try {
-    const result = await ssrfGuard.validate(urlStr);
-    if (!result.safe) {
-      logger.warn("URL blocked by SSRF guard", { urlStr, reason: result.reason });
-      return true;
-    }
-    return false;
-  } catch {
-    // fail-close 策略：校验失败时视为私有 URL，阻止请求以避免 SSRF 风险
-    logger.warn("Failed to validate URL in SSRF guard, blocking by default (fail-close)", { urlStr });
-    return true;
-  }
 }
 
 function buildAuthUrl(
@@ -189,6 +174,11 @@ export async function handleTestConnection(
   }
   const apiKey = effectiveApiKey;
   const apiUrl = effectiveApiUrl;
+
+  // 注册用户配置的 endpoint 到 SSRF 白名单（loopback 地址直接放行，支持 Ollama 等本地部署）
+  if (apiUrl) {
+    registerUserEndpoint(apiUrl);
+  }
 
   try {
     if (mode === "lightweight") {

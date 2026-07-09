@@ -211,13 +211,13 @@ export const configureApiProviderTool: ToolImpl = {
           apiKey: { type: "string", description: "API key（如 sk-xxx）" },
           vendor: {
             type: "string",
-            description: "API 厂商名称。支持：openai、anthropic、google、zhipu、kling、minimax、runway、pika、luma、seedance、kuaishou、volcengine 或自定义 baseUrl",
+            description: "API 厂商名称。支持所有已注册 provider（含内置与插件），如 openai、anthropic、google、zhipu、deepseek、moonshot、qwen、openrouter、ollama（本地部署）、kuaishou（含 Kling 模型）、minimax、runway、pika、luma、seedance、volcengine、fireworks、byteplus、bedrock、pollinations、pixverse 等，或自定义 baseUrl。ollama 不需要真实 apiKey，可传任意占位符。vendor 列表动态派生自 provider 注册表，新增 provider JSON 或插件后自动可用。",
           },
           baseUrl: { type: "string", description: "自定义 API base URL（可选，vendor 不在列表时必填）" },
           modelName: { type: "string", description: "默认模型名称（可选，如 gpt-4、claude-3-opus）" },
           capabilities: {
             type: "array",
-            items: { type: "string", enum: ["text", "image", "vision", "video"] },
+            items: { type: "string", enum: ["text", "image", "vision", "video", "embedding", "audio"] },
             description: "该 provider 支持的能力（可选，AI 会根据 vendor 自动推断）",
           },
           setAsDefault: { type: "boolean", description: "是否设为默认 provider，默认 true", default: true },
@@ -238,15 +238,16 @@ export const configureApiProviderTool: ToolImpl = {
 
     ctx.onProgress?.(`正在配置 ${vendor} provider...`);
 
-    // 1. 根据 vendor 推断 baseUrl 和 format
-    const vendorConfig = VENDOR_PRESETS[vendor];
+    // 1. 根据 vendor 推断 baseUrl 和 format（从 provider 注册表动态派生）
+    const vendorPresets = await getVendorPresets();
+    const vendorConfig = vendorPresets[vendor];
     const baseUrl = args.baseUrl ? String(args.baseUrl) : vendorConfig?.baseUrl;
     const format = vendorConfig?.format ?? "openai";
 
     if (!baseUrl) {
       return {
         success: false,
-        error: `未识别的 vendor "${vendor}"，请提供 baseUrl 参数或使用已知 vendor（${Object.keys(VENDOR_PRESETS).join("/")}）`,
+        error: `未识别的 vendor "${vendor}"，请提供 baseUrl 参数或使用已知 vendor（${Object.keys(vendorPresets).join("/")}）`,
       };
     }
 
@@ -275,8 +276,8 @@ export const configureApiProviderTool: ToolImpl = {
     // 4. 设置能力映射（如果设为默认）
     if (setAsDefault) {
       for (const cap of capabilities) {
-        if (["text", "image", "vision", "video"].includes(cap)) {
-          config.mapping[cap as "text" | "image" | "vision" | "video"] =
+        if (["text", "image", "vision", "video", "embedding", "audio"].includes(cap)) {
+          config.mapping[cap as "text" | "image" | "vision" | "video" | "embedding" | "audio"] =
             `${providerId}/${modelName || models[0]?.id || ""}`;
         }
       }
@@ -319,26 +320,68 @@ export const configureApiProviderTool: ToolImpl = {
   },
 };
 
-/** 已知 vendor 预设配置 */
-const VENDOR_PRESETS: Record<string, {
+/**
+ * Vendor 预设配置（从 provider 注册表动态派生，单一权威源）
+ *
+ * 派生自 @/shared/api-config 的 getAllTemplatesAsync()，覆盖所有内置 provider JSON
+ * 和已加载插件。新增 provider JSON 或插件后自动出现在 vendor 列表中，无需手动维护。
+ *
+ * 派生规则：
+ * - baseUrl ← template.baseUrl
+ * - format ← template.format（正确的 ApiFormat，修正了旧硬编码中错误的 format 值）
+ * - capabilities ← 合并所有 models 的 capabilities 去重
+ * - defaultModel ← 第一个 model.id（JSON 注册表顺序即推荐优先级）
+ */
+interface VendorPreset {
   baseUrl: string;
   format: string;
   capabilities: string[];
   defaultModel?: string;
-}> = {
-  openai: { baseUrl: "https://api.openai.com/v1", format: "openai", capabilities: ["text", "image", "vision"], defaultModel: "gpt-4o" },
-  anthropic: { baseUrl: "https://api.anthropic.com", format: "anthropic", capabilities: ["text", "vision"], defaultModel: "claude-3-5-sonnet-20241022" },
-  google: { baseUrl: "https://generativelanguage.googleapis.com/v1", format: "google", capabilities: ["text", "image", "vision", "video"], defaultModel: "gemini-1.5-pro" },
-  zhipu: { baseUrl: "https://open.bigmodel.cn/api/paas/v4", format: "zhipu", capabilities: ["text", "image", "vision"], defaultModel: "glm-4" },
-  kling: { baseUrl: "https://api.klingai.com/v1", format: "kling", capabilities: ["video"], defaultModel: "kling-v1" },
-  minimax: { baseUrl: "https://api.minimax.chat/v1", format: "minimax", capabilities: ["text", "video"], defaultModel: "abab6.5-chat" },
-  runway: { baseUrl: "https://api.runwayml.com/v1", format: "runway", capabilities: ["video"], defaultModel: "gen3-alpha" },
-  pika: { baseUrl: "https://api.pika.art/v1", format: "pika", capabilities: ["video"], defaultModel: "pika-2.0" },
-  luma: { baseUrl: "https://api.lumalabs.ai/v1", format: "luma", capabilities: ["video"], defaultModel: "ray-2" },
-  seedance: { baseUrl: "https://api.seedance.ai/v1", format: "seedance", capabilities: ["video"], defaultModel: "seedance-2.5" },
-  kuaishou: { baseUrl: "https://api.kuaishou.com/v1", format: "kuaishou", capabilities: ["video"], defaultModel: "kling-v1" },
-  volcengine: { baseUrl: "https://ark.cn-beijing.volces.com/api/v3", format: "volcengine", capabilities: ["text", "video"], defaultModel: "doubao-seedance-2-5" },
-};
+}
+
+/** 缓存派生结果（首次调用后复用，provider 注册表运行时不变） */
+let _vendorPresetsCache: Record<string, VendorPreset> | null = null;
+
+/**
+ * 获取 vendor 预设（从 provider 注册表派生）
+ *
+ * 首次调用异步加载模板，后续返回缓存。configure_api_provider 工具在 execute 中调用。
+ */
+async function getVendorPresets(): Promise<Record<string, VendorPreset>> {
+  if (_vendorPresetsCache) return _vendorPresetsCache;
+
+  const { getAllTemplatesAsync } = await import("@/shared/api-config");
+  const templates = await getAllTemplatesAsync();
+
+  const presets: Record<string, VendorPreset> = {};
+  for (const [vendorId, template] of Object.entries(templates)) {
+    // 跳过 custom 模板（无固定 baseUrl）
+    if (vendorId === "custom") continue;
+
+    // 合并所有 models 的 capabilities 去重
+    const capSet = new Set<string>();
+    for (const model of template.models) {
+      for (const cap of model.capabilities) {
+        capSet.add(cap);
+      }
+    }
+
+    presets[vendorId] = {
+      baseUrl: template.baseUrl,
+      format: template.format,
+      capabilities: Array.from(capSet),
+      defaultModel: template.models[0]?.id,
+    };
+  }
+
+  _vendorPresetsCache = presets;
+  return presets;
+}
+
+/** 重置 vendor 预设缓存（测试用，模仿 file-http 的 _resetHttpCache 模式） */
+export function _resetVendorPresetsCache(): void {
+  _vendorPresetsCache = null;
+}
 
 /** 导出所有配置工具 */
 export const configTools: ToolImpl[] = [

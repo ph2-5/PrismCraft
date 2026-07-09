@@ -64,7 +64,8 @@ export function useNetworkMonitor(options: NetworkOptions = {}) {
 
       try {
         const status = await checkConfigStatus();
-        return !!(status?.text?.configured || status?.image?.configured || status?.video?.configured);
+        const caps = status?.capabilities;
+        return !!(caps?.text?.configured || caps?.image?.configured || caps?.video?.configured);
       } catch (e) {
         logger.warn("[NetworkMonitor] 配置状态检查失败", e);
         return navigator.onLine;

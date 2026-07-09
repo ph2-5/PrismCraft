@@ -8,11 +8,43 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // Mock @/shared/api-config — vi.mock 会被 hoist 到所有 import 之前
-vi.mock("@/shared/api-config", () => ({
+// getAllTemplatesAsync mock 返回类 PROVIDER_TEMPLATES 结构，供 getVendorPresets 派生
+const mocks = vi.hoisted(() => ({
   loadConfig: vi.fn(),
   saveConfig: vi.fn(),
   checkConfigStatus: vi.fn(),
   testConnection: vi.fn(),
+  getAllTemplatesAsync: vi.fn(),
+}));
+
+// 测试用 provider 模板数据（模拟 PROVIDER_TEMPLATES 结构）
+const mockTemplates = {
+  openai: {
+    name: "OpenAI",
+    format: "openai" as const,
+    baseUrl: "https://api.openai.com/v1",
+    models: [
+      { id: "gpt-4o", name: "GPT-4o", capabilities: ["text", "image", "vision"] },
+      { id: "gpt-4o-mini", name: "GPT-4o mini", capabilities: ["text", "vision"] },
+    ],
+  },
+  ollama: {
+    name: "Ollama",
+    format: "openai" as const,
+    baseUrl: "http://localhost:11434/v1",
+    models: [
+      { id: "qwen2.5:7b", name: "Qwen 2.5 7B", capabilities: ["text"] },
+      { id: "nomic-embed-text", name: "Nomic Embed", capabilities: ["embedding"] },
+    ],
+  },
+};
+
+vi.mock("@/shared/api-config", () => ({
+  loadConfig: mocks.loadConfig,
+  saveConfig: mocks.saveConfig,
+  checkConfigStatus: mocks.checkConfigStatus,
+  testConnection: mocks.testConnection,
+  getAllTemplatesAsync: mocks.getAllTemplatesAsync,
 }));
 
 import {
@@ -28,6 +60,7 @@ import {
   validateApiKeyTool,
   testConnectionTool,
   checkApiHealthTool,
+  _resetVendorPresetsCache,
 } from "../config-tools";
 import type { ToolContext } from "../../domain/types";
 
@@ -92,10 +125,14 @@ interface MockConfigStatusItem {
 }
 
 interface MockConfigStatus {
-  text: MockConfigStatusItem;
-  image: MockConfigStatusItem;
-  vision: MockConfigStatusItem;
-  video: MockConfigStatusItem;
+  capabilities: {
+    text: MockConfigStatusItem;
+    image: MockConfigStatusItem;
+    vision: MockConfigStatusItem;
+    video: MockConfigStatusItem;
+    embedding: MockConfigStatusItem;
+    audio: MockConfigStatusItem;
+  };
   allConfigured: boolean;
   configuredCount: number;
   totalCount: number;
@@ -106,10 +143,14 @@ function makeMockConfigStatus(
   overrides?: Partial<MockConfigStatus>,
 ): MockConfigStatus {
   return {
-    text: { configured: true, provider: "openai", available: true, model: "gpt-4o" },
-    image: { configured: true, provider: "openai", available: true, model: "dall-e-3" },
-    vision: { configured: true, provider: "openai", available: true, model: "gpt-4o" },
-    video: { configured: false, provider: "未配置", available: false },
+    capabilities: {
+      text: { configured: true, provider: "openai", available: true, model: "gpt-4o" },
+      image: { configured: true, provider: "openai", available: true, model: "dall-e-3" },
+      vision: { configured: true, provider: "openai", available: true, model: "gpt-4o" },
+      video: { configured: false, provider: "未配置", available: false },
+      embedding: { configured: false, provider: "未配置", available: false },
+      audio: { configured: false, provider: "未配置", available: false },
+    },
     allConfigured: false,
     configuredCount: 3,
     totalCount: 4,
@@ -121,11 +162,15 @@ function makeMockConfigStatus(
 describe("config-tools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // 重置 vendor 预设缓存，确保每个测试重新派生（mock 可能被单测覆盖）
+    _resetVendorPresetsCache();
     // 设置默认 mock 行为，单个测试可覆盖
-    vi.mocked(loadConfig).mockResolvedValue(makeMockConfig() as never);
-    vi.mocked(saveConfig).mockResolvedValue(undefined);
-    vi.mocked(testConnection).mockResolvedValue({ success: true, message: "OK" });
-    vi.mocked(checkConfigStatus).mockResolvedValue(makeMockConfigStatus() as never);
+    mocks.loadConfig.mockResolvedValue(makeMockConfig() as never);
+    mocks.saveConfig.mockResolvedValue(undefined);
+    mocks.testConnection.mockResolvedValue({ success: true, message: "OK" });
+    mocks.checkConfigStatus.mockResolvedValue(makeMockConfigStatus() as never);
+    // getAllTemplatesAsync 默认返回 mock 模板（含 openai/ollama）
+    mocks.getAllTemplatesAsync.mockResolvedValue(mockTemplates);
   });
 
   describe("configure_api_provider", () => {
@@ -319,14 +364,17 @@ describe("config-tools", () => {
 
       expect(result.success).toBe(true);
       const data = result.data as MockConfigStatus;
-      // 4 个能力项
-      expect(data.text).toBeDefined();
-      expect(data.image).toBeDefined();
-      expect(data.vision).toBeDefined();
-      expect(data.video).toBeDefined();
-      // 默认 mock 中 text/image/vision 已配置，video 未配置
-      expect(data.text.configured).toBe(true);
-      expect(data.video.configured).toBe(false);
+      // 6 个能力项
+      const caps = data.capabilities;
+      expect(caps.text).toBeDefined();
+      expect(caps.image).toBeDefined();
+      expect(caps.vision).toBeDefined();
+      expect(caps.video).toBeDefined();
+      expect(caps.embedding).toBeDefined();
+      expect(caps.audio).toBeDefined();
+      // 默认 mock 中 text/image/vision 已配置，video/embedding/audio 未配置
+      expect(caps.text.configured).toBe(true);
+      expect(caps.video.configured).toBe(false);
       expect(data.allConfigured).toBe(false);
       expect(data.configuredCount).toBe(3);
       expect(data.totalCount).toBe(4);
@@ -336,7 +384,14 @@ describe("config-tools", () => {
     it("12. 全部能力已配置时 allConfigured=true", async () => {
       vi.mocked(checkConfigStatus).mockResolvedValue(
         makeMockConfigStatus({
-          video: { configured: true, provider: "kling", available: true, model: "kling-v1" },
+          capabilities: {
+            text: { configured: true, provider: "openai", available: true, model: "gpt-4o" },
+            image: { configured: true, provider: "openai", available: true, model: "dall-e-3" },
+            vision: { configured: true, provider: "openai", available: true, model: "gpt-4o" },
+            video: { configured: true, provider: "kling", available: true, model: "kling-v1" },
+            embedding: { configured: false, provider: "未配置", available: false },
+            audio: { configured: false, provider: "未配置", available: false },
+          },
           allConfigured: true,
           configuredCount: 4,
           missing: [],
@@ -355,9 +410,14 @@ describe("config-tools", () => {
     it("13. 全部能力未配置时 missing 包含全部 4 项", async () => {
       vi.mocked(checkConfigStatus).mockResolvedValue(
         makeMockConfigStatus({
-          text: { configured: false, provider: "未配置", available: false },
-          image: { configured: false, provider: "未配置", available: false },
-          vision: { configured: false, provider: "未配置", available: false },
+          capabilities: {
+            text: { configured: false, provider: "未配置", available: false },
+            image: { configured: false, provider: "未配置", available: false },
+            vision: { configured: false, provider: "未配置", available: false },
+            video: { configured: false, provider: "未配置", available: false },
+            embedding: { configured: false, provider: "未配置", available: false },
+            audio: { configured: false, provider: "未配置", available: false },
+          },
           allConfigured: false,
           configuredCount: 0,
           missing: ["文本生成", "图像生成", "视觉分析", "视频生成"],

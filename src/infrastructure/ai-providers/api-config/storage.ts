@@ -1,4 +1,4 @@
-import { type ApiConfig, type ProviderConfig } from "./types";
+import { type ApiConfig, type ApiCapability, type ProviderConfig } from "./types";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
 import { API_SERVER_PORT, ELECTRON_APP_HEADERS } from "@/config/constants";
@@ -319,7 +319,7 @@ export function removeProvider(
 
 export function setCapabilityMapping(
   config: ApiConfig,
-  capability: "text" | "image" | "vision" | "video",
+  capability: ApiCapability,
   providerModelId: string | undefined,
 ): ApiConfig {
   return {
@@ -333,7 +333,7 @@ export function setCapabilityMapping(
 
 export function getCapabilityConfig(
   config: ApiConfig,
-  capability: "text" | "image" | "vision" | "video",
+  capability: ApiCapability,
 ): { provider: ProviderConfig | null; modelId: string | null } {
   const mappingValue = config.mapping[capability];
   if (!mappingValue) {

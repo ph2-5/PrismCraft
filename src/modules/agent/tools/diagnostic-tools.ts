@@ -403,8 +403,8 @@ export const diagnoseSystemHealthTool: ToolImpl = {
       const { checkConfigStatus } = await import("@/shared/api-config");
       const status = await checkConfigStatus();
       const caps = ["text", "image", "vision", "video"] as const;
-      const configured = caps.filter((c) => status[c]?.configured);
-      const missing = caps.filter((c) => !status[c]?.configured);
+      const configured = caps.filter((c) => status.capabilities[c]?.configured);
+      const missing = caps.filter((c) => !status.capabilities[c]?.configured);
 
       if (missing.length === 0) {
         checks.push({

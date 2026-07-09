@@ -18,6 +18,8 @@ export {
   generateVideoWithFrames,
   queryVideoStatus,
 } from "./video";
+export { generateEmbedding, generateEmbeddings } from "./embedding";
+export { synthesizeSpeech, transcribeAudio } from "./audio";
 export {
   secureConfig,
   exportData,

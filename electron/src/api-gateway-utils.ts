@@ -131,9 +131,10 @@ export async function resolveApiConfig(
   let resolvedProviderId: string | null = providerId || null;
   let resolvedProviderModelId: string | null = modelId || null;
 
-  if (effectiveApiUrl) {
-    registerUserEndpoint(effectiveApiUrl);
-  }
+  // 收集所有解析过程中遇到的 endpoint（用户传的、provider 配置的、mapping 解析的）。
+  // 统一在函数末尾注册到 SSRF 白名单，避免分散注册导致遗漏。
+  const endpointCandidates: string[] = [];
+  if (effectiveApiUrl) endpointCandidates.push(effectiveApiUrl);
 
   if (providerId && modelId) {
     const config = await loadConfigAsync();
@@ -142,7 +143,7 @@ export async function resolveApiConfig(
       if (!effectiveApiUrl) effectiveApiUrl = provider.baseUrl;
       if (!effectiveApiKey) effectiveApiKey = provider.apiKey;
       if (!effectiveModel) effectiveModel = modelId;
-      if (provider.baseUrl) registerUserEndpoint(provider.baseUrl);
+      if (provider.baseUrl) endpointCandidates.push(provider.baseUrl);
       const modelConfig = provider.models?.find((m) => m.id === modelId);
       if (modelConfig && !effectiveModel) effectiveModel = modelConfig.id;
     } else {
@@ -165,6 +166,8 @@ export async function resolveApiConfig(
           if (!effectiveModel) effectiveModel = mId;
           if (!resolvedProviderId) resolvedProviderId = pId;
           if (!resolvedProviderModelId) resolvedProviderModelId = mId;
+          // M8 修复：capability mapping 解析出的 endpoint 也需注册到 SSRF 白名单
+          if (provider.baseUrl) endpointCandidates.push(provider.baseUrl);
         } else {
           logger.warn(`Mapping provider not found: ${pId}`);
         }
@@ -172,6 +175,12 @@ export async function resolveApiConfig(
     } else {
       logger.warn(`No mapping for capability: ${capability}`);
     }
+  }
+
+  // 统一注册所有候选 endpoint 到 SSRF 白名单
+  // （Set 自动去重，多次注册同一 endpoint 无副作用）
+  for (const endpoint of endpointCandidates) {
+    registerUserEndpoint(endpoint);
   }
 
   let resolvedPlugin: AIProviderPlugin | undefined;
@@ -229,7 +238,8 @@ export function registerUserEndpoint(urlStr: string): void {
   }
 }
 
-async function isPrivateUrl(urlStr: string): Promise<boolean> {
+/** 共享的 SSRF 校验函数（带 loopback 旁路），供 api-gateway 和 test-connection 复用 */
+export async function isPrivateUrl(urlStr: string): Promise<boolean> {
   try {
     const parsed = new URL(urlStr);
     const hostKey = parsed.port

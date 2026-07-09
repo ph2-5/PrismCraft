@@ -52,10 +52,14 @@ export function createDiContainerMock(overrides: Record<string, unknown> = {}) {
     getErrorMessage: vi.fn((e: unknown) => String(e)),
     loadConfig: vi.fn().mockResolvedValue({}),
     checkConfigStatus: vi.fn().mockResolvedValue({
-      text: { configured: true, provider: "openai", available: true, model: "gpt-4" },
-      image: { configured: true, provider: "openai", available: true, model: "dall-e-3" },
-      vision: { configured: true, provider: "openai", available: true, model: "gpt-4-vision" },
-      video: { configured: true, provider: "zhipu", available: true, model: "cogvideox" },
+      capabilities: {
+        text: { configured: true, provider: "openai", available: true, model: "gpt-4" },
+        image: { configured: true, provider: "openai", available: true, model: "dall-e-3" },
+        vision: { configured: true, provider: "openai", available: true, model: "gpt-4-vision" },
+        video: { configured: true, provider: "zhipu", available: true, model: "cogvideox" },
+        embedding: { configured: false, provider: "未配置", available: false },
+        audio: { configured: false, provider: "未配置", available: false },
+      },
       allConfigured: true,
       configuredCount: 4,
       totalCount: 4,

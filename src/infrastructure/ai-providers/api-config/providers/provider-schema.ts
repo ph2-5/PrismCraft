@@ -58,7 +58,7 @@ const ModelCapabilitiesOverridesSchema = ModelCapabilitiesSchema.partial().exten
 const ModelEntrySchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  capabilities: z.array(z.enum(["text", "image", "vision", "video"])),
+  capabilities: z.array(z.enum(["text", "image", "vision", "video", "embedding", "audio"])),
   defaultParams: DefaultParamsSchema.optional(),
   modelCapabilitiesPreset: z.string().optional(),
   modelCapabilitiesOverrides: ModelCapabilitiesOverridesSchema.optional(),

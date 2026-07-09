@@ -14,6 +14,9 @@ import {
   videoStatusSchema,
   generateTextSchema,
   generateTextStreamSchema,
+  generateEmbeddingSchema,
+  generateAudioSchema,
+  transcribeAudioSchema,
   storyPlanSchema,
   storyGenerateVideoSchema,
   storyGenerateKeyframeSchema,
@@ -76,6 +79,24 @@ export const generationRoutes: Record<string, Route> = {
         onChunk: (chunk) => stream.sendChunk(chunk),
       });
     },
+    methods: ["POST"],
+  }),
+  // Embedding 生成（向量嵌入，用于记忆系统语义检索）
+  "generate-embedding": defineRoute({
+    schema: generateEmbeddingSchema,
+    handler: (_m, b) => apiGateway.generateEmbedding(b),
+    methods: ["POST"],
+  }),
+  // 音频合成（TTS）
+  "generate-audio": defineRoute({
+    schema: generateAudioSchema,
+    handler: (_m, b) => apiGateway.generateAudio(b),
+    methods: ["POST"],
+  }),
+  // 音频转写（STT）
+  "transcribe-audio": defineRoute({
+    schema: transcribeAudioSchema,
+    handler: (_m, b) => apiGateway.transcribeAudio(b),
     methods: ["POST"],
   }),
   "story/plan": defineRoute({

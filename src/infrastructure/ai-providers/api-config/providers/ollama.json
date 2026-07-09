@@ -20,6 +20,18 @@
       "name": "LLaVA 7B",
       "capabilities": ["text", "vision"],
       "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+    },
+    {
+      "id": "nomic-embed-text",
+      "name": "Nomic Embed Text",
+      "capabilities": ["embedding"],
+      "defaultParams": {}
+    },
+    {
+      "id": "mxbai-embed-large",
+      "name": "Mxbai Embed Large",
+      "capabilities": ["embedding"],
+      "defaultParams": {}
     }
   ]
 }

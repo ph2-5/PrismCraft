@@ -113,6 +113,34 @@ export const generateTextStreamSchema = z.object({
 });
 export type GenerateTextStreamRequest = z.infer<typeof generateTextStreamSchema>;
 
+// Embedding 生成 schema
+export const generateEmbeddingSchema = z.object({
+  input: z.union([z.string(), z.array(z.string())]),
+  providerId: z.string().optional(),
+  modelId: z.string().optional(),
+});
+export type GenerateEmbeddingRequest = z.infer<typeof generateEmbeddingSchema>;
+
+// 音频合成（TTS）schema
+export const generateAudioSchema = z.object({
+  text: z.string(),
+  voice: z.string().optional(),
+  format: z.string().optional(),
+  speed: z.number().optional(),
+  providerId: z.string().optional(),
+  modelId: z.string().optional(),
+});
+export type GenerateAudioRequest = z.infer<typeof generateAudioSchema>;
+
+// 音频转写（STT）schema
+export const transcribeAudioSchema = z.object({
+  audioUrl: z.string(),
+  language: z.string().optional(),
+  providerId: z.string().optional(),
+  modelId: z.string().optional(),
+});
+export type TranscribeAudioRequest = z.infer<typeof transcribeAudioSchema>;
+
 export const testConnectionSchema = z.object({
   apiUrl: z.string(),
   apiKey: z.string().optional(),

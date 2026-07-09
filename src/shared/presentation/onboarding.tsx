@@ -194,10 +194,11 @@ export function ApiKeyAlert() {
     checkConfigStatus()
       .then((data) => {
         if (!data || cancelled) return;
+        const caps = data.capabilities;
         const hasConfig =
-          data.text?.configured ||
-          data.image?.configured ||
-          data.video?.configured;
+          caps.text?.configured ||
+          caps.image?.configured ||
+          caps.video?.configured;
         if (!hasConfig) {
           setIsVisible(true);
         }

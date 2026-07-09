@@ -9,6 +9,8 @@ import type {
   IImageProvider,
   ITextProvider,
   IFileUploader,
+  IEmbeddingProvider,
+  IAudioProvider,
   ISyncStorage,
   IVersionStorage,
   IElementStorage,
@@ -55,6 +57,8 @@ import {
 } from "@/infrastructure/ai-providers/video";
 import { generateImage, analyzeImage } from "@/infrastructure/ai-providers/image";
 import { generateText, generateTextStream } from "@/infrastructure/ai-providers/text";
+import { generateEmbedding, generateEmbeddings } from "@/infrastructure/ai-providers/embedding";
+import { synthesizeSpeech, transcribeAudio } from "@/infrastructure/ai-providers/audio";
 import { uploadFile } from "@/infrastructure/ai-providers/utils";
 import { safeQuery, safeRun, safeTransaction } from "@/infrastructure/storage/sqlite-core";
 import { registerChangeTracker, unregisterChangeTracker } from "@/infrastructure/storage/core";
@@ -87,6 +91,16 @@ const textProvider: ITextProvider = {
   generateTextStream,
 };
 
+const embeddingProvider: IEmbeddingProvider = {
+  generateEmbedding,
+  generateEmbeddings,
+};
+
+const audioProvider: IAudioProvider = {
+  synthesizeSpeech,
+  transcribeAudio,
+};
+
 const fileUploader: IFileUploader = {
   uploadFile: uploadFile as IFileUploader["uploadFile"],
 };
@@ -109,6 +123,8 @@ const tokens = {
   videoProvider: createToken<IVideoProvider>("videoProvider", () => videoProvider),
   imageProvider: createToken<IImageProvider>("imageProvider", () => imageProvider),
   textProvider: createToken<ITextProvider>("textProvider", () => textProvider),
+  embeddingProvider: createToken<IEmbeddingProvider>("embeddingProvider", () => embeddingProvider),
+  audioProvider: createToken<IAudioProvider>("audioProvider", () => audioProvider),
   fileUploader: createToken<IFileUploader>("fileUploader", () => fileUploader),
   syncStorage: createToken<ISyncStorage>("syncStorage", () => syncStorage),
   fileStorage: createToken("fileStorage", async () => {
@@ -226,6 +242,8 @@ export function getTokenRegistry(): Array<{
     videoProvider: "A",
     imageProvider: "A",
     textProvider: "A",
+    embeddingProvider: "A",
+    audioProvider: "A",
     fileUploader: "A",
     syncStorage: "A",
     fileStorage: "E",

@@ -22,6 +22,10 @@ const mocks = vi.hoisted(() => ({
     generateImage: vi.fn(),
     analyzeImage: vi.fn(),
   },
+  audioProvider: {
+    synthesizeSpeech: vi.fn(),
+    transcribeAudio: vi.fn(),
+  },
   characterService: {
     getById: vi.fn(),
     update: vi.fn(),
@@ -40,6 +44,7 @@ vi.mock("@/infrastructure/di", () => ({
   container: {
     textProvider: mocks.textProvider,
     imageProvider: mocks.imageProvider,
+    audioProvider: mocks.audioProvider,
   },
 }));
 
@@ -602,10 +607,15 @@ describe("generate_voiceover", () => {
 });
 
 // ============================================================
-// 8. text_to_speech（音频类降级）
+// 8. text_to_speech（CONFIG_MISSING 时优雅降级）
 // ============================================================
 describe("text_to_speech", () => {
-  it("26. 返回不支持提示和配置建议", async () => {
+  it("26. CONFIG_MISSING 时返回不支持提示和配置建议", async () => {
+    // 模拟未配置 audio 能力：synthesizeSpeech 抛出 CONFIG_MISSING 错误
+    mocks.audioProvider.synthesizeSpeech.mockRejectedValue(
+      new Error("CONFIG_MISSING: 没有配置 audio 能力的 provider"),
+    );
+
     const result = await textToSpeechTool.execute(
       { text: "转换文本", language: "zh" },
       makeCtx(),
@@ -620,10 +630,15 @@ describe("text_to_speech", () => {
 });
 
 // ============================================================
-// 9. transcribe_audio（音频类降级）
+// 9. transcribe_audio（CONFIG_MISSING 时优雅降级）
 // ============================================================
 describe("transcribe_audio", () => {
-  it("27. 返回不支持提示和配置建议", async () => {
+  it("27. CONFIG_MISSING 时返回不支持提示和配置建议", async () => {
+    // 模拟未配置 audio 能力：transcribeAudio 抛出 CONFIG_MISSING 错误
+    mocks.audioProvider.transcribeAudio.mockRejectedValue(
+      new Error("CONFIG_MISSING: 没有配置 audio 能力的 provider"),
+    );
+
     const result = await transcribeAudioTool.execute(
       { audioUrl: "https://example.com/audio.mp3", language: "zh" },
       makeCtx(),

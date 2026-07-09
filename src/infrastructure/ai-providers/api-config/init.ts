@@ -13,16 +13,51 @@ export interface ConfigStatusItem {
   model?: string;
 }
 
+/**
+ * 配置状态
+ *
+ * `capabilities` 用 Record<ApiCapability, ConfigStatusItem> 表示，
+ * 新增能力类型时无需修改此接口。
+ *
+ * `allConfigured` 仅检查**核心能力**（text/image/vision/video），
+ * embedding/audio 为可选能力，不强制要求配置。
+ */
 export interface ConfigStatus {
-  text: ConfigStatusItem;
-  image: ConfigStatusItem;
-  vision: ConfigStatusItem;
-  video: ConfigStatusItem;
+  /** 各能力的配置状态（包含所有 ApiCapability） */
+  capabilities: Record<ApiCapability, ConfigStatusItem>;
   // 用于UI的便捷属性
+  /** 核心能力是否全部配置（不含 embedding/audio） */
   allConfigured: boolean;
   configuredCount: number;
   totalCount: number;
   missing: string[];
+}
+
+/**
+ * 核心能力（必须配置才能正常运行）
+ *
+ * embedding/audio 为可选能力，缺失时仅影响相关功能（记忆向量检索/音频生成），
+ * 不阻塞主流程。
+ */
+const CORE_CAPABILITIES: ApiCapability[] = ["text", "image", "vision", "video"];
+
+/**
+ * 全部能力（用于遍历显示）
+ */
+const ALL_CAPABILITIES: ApiCapability[] = ["text", "image", "vision", "video", "embedding", "audio"];
+
+/**
+ * 能力的本地化名称映射
+ */
+function getCapabilityNames(): Record<ApiCapability, string> {
+  return {
+    text: t("api.textGeneration"),
+    image: t("api.imageGeneration"),
+    vision: t("api.visionAnalysis"),
+    video: t("api.videoGeneration"),
+    embedding: t("api.embeddingGeneration"),
+    audio: t("api.audioGeneration"),
+  };
 }
 
 /**
@@ -31,34 +66,27 @@ export interface ConfigStatus {
 export async function checkConfigStatus(): Promise<ConfigStatus> {
   const config = await loadConfig();
 
-  const text = checkCapabilityStatus(config, "text");
-  const image = checkCapabilityStatus(config, "image");
-  const vision = checkCapabilityStatus(config, "vision");
-  const video = checkCapabilityStatus(config, "video");
+  const capabilities = {} as Record<ApiCapability, ConfigStatusItem>;
+  for (const cap of ALL_CAPABILITIES) {
+    capabilities[cap] = checkCapabilityStatus(config, cap);
+  }
 
-  const capabilityNames: Record<ApiCapability, string> = {
-    text: t("api.textGeneration"),
-    image: t("api.imageGeneration"),
-    vision: t("api.visionAnalysis"),
-    video: t("api.videoGeneration"),
-  };
+  const capabilityNames = getCapabilityNames();
 
-  const items = [text, image, vision, video];
-  const configuredCount = items.filter((i) => i.configured).length;
-  const totalCount = items.length;
+  // 仅统计核心能力的配置情况
+  const coreItems = CORE_CAPABILITIES.map((cap) => capabilities[cap]);
+  const configuredCount = coreItems.filter((i) => i.configured).length;
+  const totalCount = coreItems.length;
   const missing: string[] = [];
 
-  (["text", "image", "vision", "video"] as ApiCapability[]).forEach((cap) => {
-    if (!items[["text", "image", "vision", "video"].indexOf(cap)]!.configured) {
+  CORE_CAPABILITIES.forEach((cap) => {
+    if (!capabilities[cap].configured) {
       missing.push(capabilityNames[cap]);
     }
   });
 
   return {
-    text,
-    image,
-    vision,
-    video,
+    capabilities,
     allConfigured: configuredCount === totalCount,
     configuredCount,
     totalCount,
@@ -92,30 +120,15 @@ function checkCapabilityStatus(
 }
 
 /**
- * 获取缺失的配置项
+ * 获取缺失的配置项（仅核心能力）
  */
 export async function getMissingCapabilities(): Promise<string[]> {
   const status = await checkConfigStatus();
-  const missing: string[] = [];
-
-  const capabilityNames: Record<ApiCapability, string> = {
-    text: t("api.textGeneration"),
-    image: t("api.imageGeneration"),
-    vision: t("api.visionAnalysis"),
-    video: t("api.videoGeneration"),
-  };
-
-  (["text", "image", "vision", "video"] as ApiCapability[]).forEach((cap) => {
-    if (!status[cap].configured) {
-      missing.push(capabilityNames[cap]);
-    }
-  });
-
-  return missing;
+  return status.missing;
 }
 
 /**
- * 检查是否所有功能都已配置
+ * 检查是否所有核心功能都已配置
  */
 export async function isFullyConfigured(): Promise<boolean> {
   return (await getMissingCapabilities()).length === 0;

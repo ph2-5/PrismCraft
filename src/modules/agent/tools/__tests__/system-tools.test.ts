@@ -99,10 +99,18 @@ beforeEach(() => {
   mocks.sceneService.getAll.mockResolvedValue(ok([]));
   mocks.useVideoTaskStore.getState.mockReturnValue({ allTasks: [] });
   mocks.checkConfigStatus.mockResolvedValue({
-    text: { configured: false, provider: "", available: false },
-    image: { configured: false, provider: "", available: false },
-    vision: { configured: false, provider: "", available: false },
-    video: { configured: false, provider: "", available: false },
+    capabilities: {
+      text: { configured: false, provider: "", available: false },
+      image: { configured: false, provider: "", available: false },
+      vision: { configured: false, provider: "", available: false },
+      video: { configured: false, provider: "", available: false },
+      embedding: { configured: false, provider: "", available: false },
+      audio: { configured: false, provider: "", available: false },
+    },
+    allConfigured: false,
+    configuredCount: 0,
+    totalCount: 4,
+    missing: ["文本生成", "图像生成", "视觉分析", "视频生成"],
   });
   mocks.toolRegistry.size.mockReturnValue(0);
   mocks.toolRegistry.getAllNames.mockReturnValue([]);
@@ -122,10 +130,18 @@ describe("get_project_stats", () => {
     mocks.characterService.getAll.mockResolvedValue(ok([{ id: "c1" }, { id: "c2" }]));
     mocks.sceneService.getAll.mockResolvedValue(ok([{ id: "s1" }]));
     mocks.checkConfigStatus.mockResolvedValue({
-      text: { configured: true, provider: "p1", available: true },
-      image: { configured: false, provider: "", available: false },
-      vision: { configured: true, provider: "p2", available: true },
-      video: { configured: false, provider: "", available: false },
+      capabilities: {
+        text: { configured: true, provider: "p1", available: true },
+        image: { configured: false, provider: "", available: false },
+        vision: { configured: true, provider: "p2", available: true },
+        video: { configured: false, provider: "", available: false },
+        embedding: { configured: false, provider: "", available: false },
+        audio: { configured: false, provider: "", available: false },
+      },
+      allConfigured: false,
+      configuredCount: 2,
+      totalCount: 4,
+      missing: ["图像生成", "视频生成"],
     });
 
     const result = await getProjectStatsTool.execute({}, makeCtx());

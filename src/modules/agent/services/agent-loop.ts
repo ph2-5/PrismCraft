@@ -3,7 +3,9 @@
  *
  * 算法：
  * 1. 构建初始消息序列（system prompt + 历史 + 用户消息）
- * 2. 调用 generateTextStream（流式）
+ * 2. 能力自适应调用 LLM：
+ *    a. 优先 generateChat（原生 function calling，messages 数组）
+ *    b. 降级 generateTextStream + serializeMessages（prompt 工程）
  * 3. onChunk：delta → 实时输出；toolCalls → 累积；finishReason → 判断结束
  * 4. finishReason="tool_calls" → 执行工具 → 结果回灌 → 重复
  * 5. finishReason="stop" → 结束
@@ -137,40 +139,65 @@ export class AgentLoop {
 
       // 调用 LLM（流式）
       const assistantMsg = conversationManager.startStreamingAssistant(this.session);
-      const prompt = this.serializeMessages(llmMessages);
       // 累积工具调用（流式可能分多块返回）
       const accumulatedToolCalls: Map<string, ToolCall> = new Map();
       let finishReason: StreamChunk["finishReason"] | undefined;
+      let receivedAnyChunk = false;
 
       try {
         // P1-1 修复：为每次 LLM 流式调用创建独立 AbortController，
         // 使 abort() 能中断正在进行的流式推理（之前取消按钮在 LLM 推理期间无效）
         this.llmAbortController = new AbortController();
-        const result = await container.textProvider.generateTextStream(prompt, {
-          onChunk: (chunk) => {
-            // delta → 实时输出
-            if (chunk.delta) {
-              conversationManager.appendDelta(this.session, chunk.delta);
-              this.callbacks.onChunk({ delta: chunk.delta });
+
+        // 共享的 onChunk 处理器（generateChat 和 generateTextStream 通用）
+        const handleChunk = (chunk: StreamChunk) => {
+          receivedAnyChunk = true;
+          // delta → 实时输出
+          if (chunk.delta) {
+            conversationManager.appendDelta(this.session, chunk.delta);
+            this.callbacks.onChunk({ delta: chunk.delta });
+          }
+          // toolCalls → 累积（按 id 合并增量）
+          if (chunk.toolCalls) {
+            for (const tc of chunk.toolCalls) {
+              this.mergeToolCall(accumulatedToolCalls, tc);
             }
-            // toolCalls → 累积（按 id 合并增量）
-            if (chunk.toolCalls) {
-              for (const tc of chunk.toolCalls) {
-                this.mergeToolCall(accumulatedToolCalls, tc);
-              }
-            }
-            // finishReason
-            if (chunk.finishReason) {
-              finishReason = chunk.finishReason;
-            }
-          },
+          }
+          // finishReason
+          if (chunk.finishReason) {
+            finishReason = chunk.finishReason;
+          }
+        };
+
+        const streamOpts = {
+          onChunk: handleChunk,
           maxTokens: this.config.maxTokensPerTurn,
           temperature: this.config.temperature,
           providerId: this.config.providerId,
           modelId: this.config.modelId,
           tools: toolRegistry.getToolDefs(this.config.enabledTools),
           signal: this.llmAbortController.signal,
-        });
+        };
+
+        // 能力自适应：优先使用原生对话补全（messages 数组 + 原生 function calling）
+        // 失败时降级到 generateTextStream + serializeMessages（prompt 工程）
+        let result;
+        try {
+          result = await container.textProvider.generateChat(llmMessages, streamOpts);
+        } catch (e) {
+          if (!receivedAnyChunk) {
+            // 未收到任何 chunk，安全降级到 serializeMessages
+            const prompt = this.serializeMessages(llmMessages);
+            result = await container.textProvider.generateTextStream(prompt, streamOpts);
+          } else {
+            throw e;
+          }
+        }
+        if (!result.success && !receivedAnyChunk) {
+          // generateChat 返回失败且未收到 chunk → 降级
+          const prompt = this.serializeMessages(llmMessages);
+          result = await container.textProvider.generateTextStream(prompt, streamOpts);
+        }
         this.llmAbortController = null;
 
         if (!result.success) {

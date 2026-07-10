@@ -13,5 +13,7 @@ export type { ShotInstruction, ShotInstructionTemplate, FeatureAnchoringConfig, 
 export { apiConfigSchema, apiErrorCodeSchema, apiResponseSchema, imageGenerationResultSchema, videoGenerationResultSchema, videoTaskStatusSchema, videoTaskSchema, healthStatusSchema, userApiConfigSchema } from "./api";
 export type { ApiConfig, ApiErrorCode, ApiResponse, ImageGenerationResult, VideoGenerationResult, HealthStatus, UserApiConfig, VideoTask, VideoTaskStatus, ModelSelection } from "./api";
 
+export type { LLMMessage, ToolDef, ToolCall, StreamChunk, ChatCompletionRequest, ChatCompletionResponse, ProviderCapability } from "./llm-message";
+
 export { mediaAssetSchema, videoTemplateShotSchema, videoTemplateSchema, collectionSchema, collectionAssetSchema, batchTaskSchema, batchTaskResultSchema, storyboardAssetSchema, asaExportDataSchema, searchResultSchema, enhancedVideoGenerationParamsSchema } from "./media";
 export type { MediaAssetType, AssetLibraryType, ImportMode, MediaAsset, VideoTemplateShot, VideoTemplate, Collection, CollectionAsset, BatchTask, BatchTaskResult, StoryboardAsset, AsaExportData, SearchResult, EnhancedVideoGenerationParams } from "./media";

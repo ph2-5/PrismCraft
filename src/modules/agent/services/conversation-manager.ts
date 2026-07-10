@@ -8,23 +8,13 @@
  * - 支持流式消息的增量更新
  */
 
-import type { ToolCall } from "@/domain/ports/ai-provider-port";
+import type { LLMMessage, ToolCall } from "@/domain/schemas/llm-message";
 import type { AgentSession, AgentMessage } from "../domain/types";
 import { generateMessageId } from "../domain/types";
 import { t } from "@/shared/constants";
 
-/** OpenAI 消息格式（发送给 LLM） */
-export interface LLMMessage {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string;
-  tool_calls?: Array<{
-    id: string;
-    type: "function";
-    function: { name: string; arguments: string };
-  }>;
-  tool_call_id?: string;
-  name?: string;
-}
+// Re-export LLMMessage for backward compatibility (existing imports from conversation-manager)
+export type { LLMMessage } from "@/domain/schemas/llm-message";
 
 /**
  * 滑动窗口大小硬上限（保留最近 N 条消息，防止极端情况）

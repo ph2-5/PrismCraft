@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import type { ApiCapability } from "@/infrastructure/di";
 import { loadConfig } from "@/shared/api-config";
 import type { ModelSelection } from "@/domain/schemas";
-import { Bot, Image as ImageIcon, Video, Eye, Settings2 } from "lucide-react";
+import { Bot, Image as ImageIcon, Video, Eye, Settings2, AudioWaveform, Boxes } from "lucide-react";
 import { Link } from "react-router-dom";
 import { errorLogger } from "@/shared/error-logger";
 import { preferencesStorage } from "@/shared/utils/preferences";
@@ -24,6 +24,8 @@ const capabilityIcons: Record<ApiCapability, React.ReactNode> = {
   image: <ImageIcon className="w-3 h-3" />,
   vision: <Eye className="w-3 h-3" />,
   video: <Video className="w-3 h-3" />,
+  embedding: <Boxes className="w-3 h-3" />,
+  audio: <AudioWaveform className="w-3 h-3" />,
 };
 
 const capabilityLabels: Record<ApiCapability, string> = {
@@ -31,6 +33,8 @@ const capabilityLabels: Record<ApiCapability, string> = {
   image: t("model.image"),
   vision: t("model.vision"),
   video: t("model.video"),
+  embedding: t("model.embedding"),
+  audio: t("model.audio"),
 };
 
 export function ModelSelector({

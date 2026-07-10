@@ -28,6 +28,8 @@ const CAPABILITY_VISUAL: Record<ApiCapability, { emoji: string; bg: string }> = 
   image: { emoji: "", bg: "color-mix(in srgb, var(--chart-2) 15%, transparent)" },
   vision: { emoji: "", bg: "rgba(var(--success-rgb), 0.15)" },
   video: { emoji: "", bg: "rgba(var(--warning-rgb), 0.15)" },
+  embedding: { emoji: "", bg: "color-mix(in srgb, var(--chart-3) 15%, transparent)" },
+  audio: { emoji: "", bg: "color-mix(in srgb, var(--chart-4) 15%, transparent)" },
 };
 
 function getAvailableModels(config: ApiConfig, capability: ApiCapability) {

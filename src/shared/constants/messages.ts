@@ -2272,6 +2272,8 @@ const messages: Record<MessageKey, string> = {
   "model.image": "图片",
   "model.vision": "视觉",
   "model.video": "视频",
+  "model.embedding": "向量",
+  "model.audio": "音频",
   "model.pleaseConfigure": "请先配置{capability}模型",
   "model.modelLabel": "{capability}模型:",
   "model.selectModel": "选择{capability}模型",

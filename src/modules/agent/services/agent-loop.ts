@@ -28,6 +28,7 @@ import type {
 } from "../domain/types";
 import type { AgentLoopDeps } from "../domain/ports";
 import { DEFAULT_AGENT_CONFIG } from "../domain/types";
+import { estimateTokens } from "@/shared-logic/agent";
 import {
   DEFAULT_SYSTEM_PROMPT,
   buildProjectStateSummary,
@@ -265,7 +266,10 @@ export class AgentLoop {
 
             this.callbacks.onToolCall(tc);
             const result = await this.deps.toolExecutor.execute(tc, ctx);
-            this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, result);
+            // 截断过大的工具结果（仅影响传给 LLM 的内容，UI 收到完整结果）
+            const maxResultTokens = this.config.maxToolResultTokens ?? 2000;
+            const llmResult = this.truncateToolResult(result, maxResultTokens);
+            this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, llmResult);
             this.callbacks.onToolResult(tc.id, result);
           }
 
@@ -353,6 +357,55 @@ export class AgentLoop {
         return m.content;
       })
       .join("\n\n---\n\n");
+  }
+
+  /**
+   * 截断过大的工具结果（防止消耗过多上下文 token）
+   *
+   * 策略：
+   * - 成功结果：将 data 序列化为 JSON，超限时保留头部 + 尾部，中间用省略号标记
+   * - 错误结果：error 字符串超限时截断尾部
+   * - 截断阈值由 config.maxToolResultTokens 控制（默认 2000）
+   *
+   * 注意：此方法仅影响传给 LLM 的内容，UI 回调收到的是完整结果。
+   */
+  private truncateToolResult(result: ToolResult, maxTokens: number): ToolResult {
+    if (!result.success) {
+      // 错误结果：截断 error 字符串
+      if (result.error) {
+        const errorTokens = estimateTokens(result.error);
+        if (errorTokens > maxTokens) {
+          // 按比例截断（ASCII 4 字符 ≈ 1 token，中文 1 字 ≈ 1.5 token，取保守 3 字符/token）
+          const keepChars = Math.floor(maxTokens * 3 * 0.8);
+          return {
+            ...result,
+            error: result.error.slice(0, keepChars) + "\n...[错误信息已截断]",
+          };
+        }
+      }
+      return result;
+    }
+
+    // 成功结果：序列化 data
+    const dataStr = JSON.stringify(result.data ?? null);
+    const dataTokens = estimateTokens(dataStr);
+    if (dataTokens <= maxTokens) {
+      return result;
+    }
+
+    // 超限截断：保留头部 60% + 尾部 40%，中间用省略号标记
+    const keepChars = Math.floor(maxTokens * 3 * 0.8); // token 转 char 近似（保守）
+    const headChars = Math.floor(keepChars * 0.6);
+    const tailChars = keepChars - headChars;
+    const truncated =
+      dataStr.slice(0, headChars) +
+      "\n...[内容已截断，原始约 " + dataTokens + " token]...\n" +
+      dataStr.slice(-tailChars);
+
+    return {
+      ...result,
+      data: { _truncated: true, preview: truncated, originalTokens: dataTokens },
+    };
   }
 
   /** 处理取消 */

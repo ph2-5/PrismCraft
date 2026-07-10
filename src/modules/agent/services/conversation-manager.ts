@@ -11,7 +11,8 @@
 import type { LLMMessage, ToolCall } from "@/domain/schemas/llm-message";
 import type { AgentSession, AgentMessage } from "../domain/types";
 import type { IConversationManager } from "../domain/ports";
-import { generateMessageId } from "../domain/types";
+import { generateMessageId, DEFAULT_CONTEXT_BUDGET } from "../domain/types";
+import { estimateContentTokens, TOKEN_OVERHEAD_PER_MESSAGE } from "@/shared-logic/agent";
 import { t } from "@/shared/constants";
 
 // Re-export LLMMessage for backward compatibility (existing imports from conversation-manager)
@@ -26,51 +27,17 @@ export type { LLMMessage } from "@/domain/schemas/llm-message";
 const MAX_MESSAGES = 100;
 
 /**
- * 上下文窗口 Token 预算（近似估算）
+ * 上下文窗口 Token 预算
  *
- * 设计依据：
- * - maxTokensPerTurn 默认 4096，上下文应留 2-3 倍余地
- * - system prompt（含项目状态 + 核心记忆 + 工具列表）约 1500-2500 token
- * - 因此消息历史预算约 6000 token，总 prompt 约 8000-10000 token
+ * 取自 DEFAULT_CONTEXT_BUDGET.maxHistoryTokens（默认 8000）。
+ * 可通过 buildLLMMessages 的 options.maxTokens 覆盖，适配不同模型窗口大小。
  *
- * 估算方式：字符数 / 4（中英文混合近似值，实际 token 数因模型而异）
- * - 中文：1 字 ≈ 1-2 token
- * - 英文：1 字符 ≈ 0.25 token
- * - 混合取 0.25 偏保守，确保不超限
+ * Token 估算委托 shared-logic/agent/token-estimator（中英文区分精确估算）：
+ * - CJK 汉字：1.5 token/字
+ * - ASCII：0.25 token/字符（4 字符 = 1 token）
+ * - 相比旧的字符数/4，中文估算更精确（旧法低估中文 token）
  */
-const MAX_CONTEXT_TOKENS = 6000;
-
-/**
- * 估算字符串的 token 数（近似值）
- *
- * 采用字符数 / 4 的简化估算：
- * - 英文：4 字符 ≈ 1 token（OpenAI BPE 平均）
- * - 中文：1 字 ≈ 1-2 token，但 /4 会低估
- * - 保守取 /4 可确保不超限，实际可能用更少 token
- *
- * 若需精确估算，可接入 tiktoken 库，但会增加包体积。
- * 对于滑动窗口场景，近似估算足够。
- */
-function estimateTokens(text: string): number {
-  if (!text) return 0;
-  return Math.ceil(text.length / 4);
-}
-
-/**
- * 估算单条消息的 token 数（含 role 标记开销）
- *
- * OpenAI 消息格式每条约有 4 token 的固定开销（role 标记 + 分隔符）。
- * tool_calls 的 arguments JSON 也会消耗 token，需计入。
- */
-function estimateMessageTokens(message: AgentMessage): number {
-  const OVERHEAD_TOKENS = 4;
-  let text = message.content ?? "";
-  // tool_calls 的 arguments 计入
-  if (message.toolCalls && message.toolCalls.length > 0) {
-    text += message.toolCalls.map((tc) => tc.function.arguments).join("");
-  }
-  return estimateTokens(text) + OVERHEAD_TOKENS;
-}
+const MAX_CONTEXT_TOKENS = DEFAULT_CONTEXT_BUDGET.maxHistoryTokens;
 
 class ConversationManager implements IConversationManager {
   /** 创建用户消息并追加到会话 */
@@ -184,7 +151,7 @@ class ConversationManager implements IConversationManager {
       const msg = session.messages[i];
       if (!msg) break;
 
-      const msgTokens = estimateMessageTokens(msg);
+      const msgTokens = estimateContentTokens(msg) + TOKEN_OVERHEAD_PER_MESSAGE;
 
       // 检查是否超预算
       if (usedTokens + msgTokens > maxTokens && selected.length > 0) {

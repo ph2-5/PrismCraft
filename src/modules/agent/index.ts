@@ -49,12 +49,13 @@ export type {
   ToolExecutionStatus,
   AgentLoopConfig,
   AgentLoopCallbacks,
+  ContextBudget,
   CoreMemory,
   MemoryFact,
   ArchivalMemoryEntry,
   ExtractedMemory,
 } from "./domain/types";
-export { createEmptySession, DEFAULT_AGENT_CONFIG } from "./domain/types";
+export { createEmptySession, DEFAULT_AGENT_CONFIG, DEFAULT_CONTEXT_BUDGET } from "./domain/types";
 
 // Port 接口（方案 3：Agent 服务 DI 化）
 export type {

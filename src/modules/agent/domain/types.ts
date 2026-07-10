@@ -96,6 +96,41 @@ export interface AgentSession {
   updatedAt: number;
 }
 
+/**
+ * 上下文窗口预算分配策略
+ *
+ * 将模型上下文窗口划分为三部分：
+ * 1. system prompt（项目状态 + 核心记忆 + 工具列表）
+ * 2. 历史消息（滑动窗口，超限截断）
+ * 3. 生成预留（maxTokensPerTurn）
+ *
+ * 设计依据：
+ * - 主流模型上下文窗口 8K-128K，默认按 16K 保守配置
+ * - system prompt 含动态项目状态，约 1500-3000 token
+ * - 生成预留与 maxTokensPerTurn 对齐
+ * - 历史消息占大头，保留尽量多的上下文
+ *
+ * 可通过 AgentLoopConfig.contextBudget 覆盖，适配不同模型窗口大小。
+ */
+export interface ContextBudget {
+  /** 上下文窗口总大小（token） */
+  totalBudget: number;
+  /** system prompt 最大 token（超出时记录警告，不截断 system） */
+  maxSystemPromptTokens: number;
+  /** 历史消息最大 token（超限时滑动窗口截断） */
+  maxHistoryTokens: number;
+  /** 为生成预留的 token（应 >= maxTokensPerTurn） */
+  reservedForGeneration: number;
+}
+
+/** 默认上下文预算（基于 16K 窗口的保守分配） */
+export const DEFAULT_CONTEXT_BUDGET: ContextBudget = {
+  totalBudget: 16000,
+  maxSystemPromptTokens: 4000,
+  maxHistoryTokens: 8000,
+  reservedForGeneration: 4096,
+};
+
 /** Agent Loop 配置 */
 export interface AgentLoopConfig {
   /** 最大循环次数（防死循环，默认 10） */
@@ -112,6 +147,10 @@ export interface AgentLoopConfig {
   providerId?: string;
   /** LLM model ID */
   modelId?: string;
+  /** 上下文预算配置（undefined=使用 DEFAULT_CONTEXT_BUDGET） */
+  contextBudget?: ContextBudget;
+  /** 工具结果最大 token（超限截断，默认 2000） */
+  maxToolResultTokens?: number;
 }
 
 /** Agent Loop 默认配置 */
@@ -119,6 +158,8 @@ export const DEFAULT_AGENT_CONFIG: AgentLoopConfig = {
   maxIterations: 10,
   maxTokensPerTurn: 4096,
   temperature: 0.7,
+  contextBudget: DEFAULT_CONTEXT_BUDGET,
+  maxToolResultTokens: 2000,
 };
 
 /** 工具执行状态（用于 UI 展示） */

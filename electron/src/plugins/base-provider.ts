@@ -11,6 +11,8 @@ import type {
   TextStreamBuildContext,
   TextStreamChunk,
   TextStreamToolCall,
+  ChatBuildContext,
+  ChatStreamBuildContext,
   VisionBuildContext,
   VideoRequestResult,
   ImageRequestResult,
@@ -109,6 +111,38 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
    */
   buildTextStreamRequest(ctx: TextStreamBuildContext): TextRequestResult {
     const base = this.buildTextRequest(ctx);
+    const body: Record<string, unknown> = { ...base.body, stream: true };
+    if (ctx.tools && ctx.tools.length > 0) {
+      body.tools = ctx.tools.map((t) => ({ type: t.type, function: t.function }));
+    }
+    return { ...base, body };
+  }
+
+  /**
+   * 原生对话补全请求构建（非流式）。
+   * 与 buildTextRequest 的区别：使用完整 messages 数组（含 role/tool_calls/tool_call_id），
+   * 而非单字符串 prompt 包装为单条 user message。
+   * 支持 OpenAI 兼容 /chat/completions 格式的 provider 无需覆盖。
+   */
+  buildChatRequest(ctx: ChatBuildContext): TextRequestResult {
+    return {
+      body: {
+        model: ctx.model || "gpt-4o",
+        messages: ctx.messages,
+        max_tokens: ctx.maxTokens,
+        temperature: ctx.temperature,
+      },
+      endpoint: "/chat/completions",
+    };
+  }
+
+  /**
+   * 原生对话补全流式请求构建。
+   * 复用 buildChatRequest 的 body，追加 stream:true 与可选的 tools 字段。
+   * 复用 extractTextChunk 解析 SSE（OpenAI 流式格式不变）。
+   */
+  buildChatStreamRequest(ctx: ChatStreamBuildContext): TextRequestResult {
+    const base = this.buildChatRequest(ctx);
     const body: Record<string, unknown> = { ...base.body, stream: true };
     if (ctx.tools && ctx.tools.length > 0) {
       body.tools = ctx.tools.map((t) => ({ type: t.type, function: t.function }));

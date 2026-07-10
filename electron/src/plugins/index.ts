@@ -15,6 +15,8 @@ export type {
   TextStreamToolDef,
   TextStreamToolCall,
   TextStreamChunk,
+  ChatBuildContext,
+  ChatStreamBuildContext,
   VisionBuildContext,
   VideoRequestResult,
   ImageRequestResult,

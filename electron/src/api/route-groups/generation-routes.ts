@@ -14,6 +14,8 @@ import {
   videoStatusSchema,
   generateTextSchema,
   generateTextStreamSchema,
+  generateChatSchema,
+  generateChatStreamSchema,
   generateEmbeddingSchema,
   generateAudioSchema,
   transcribeAudioSchema,
@@ -76,6 +78,26 @@ export const generationRoutes: Record<string, Route> = {
         return apiGateway.generateTextStream(b, { onChunk: () => {} });
       }
       return apiGateway.generateTextStream(b, {
+        onChunk: (chunk) => stream.sendChunk(chunk),
+      });
+    },
+    methods: ["POST"],
+  }),
+  // 原生对话补全（非流式，messages 数组，支持原生 function calling）
+  "generate-chat": defineRoute({
+    schema: generateChatSchema,
+    handler: (_m, b) => apiGateway.generateChat(b),
+    methods: ["POST"],
+  }),
+  // 原生对话补全流式（SSE，messages 数组 + tools）
+  "generate-chat-stream": defineRoute({
+    schema: generateChatStreamSchema,
+    stream: true,
+    handler: async (_m, b, _req, stream) => {
+      if (!stream) {
+        return apiGateway.generateChatStream(b, { onChunk: () => {} });
+      }
+      return apiGateway.generateChatStream(b, {
         onChunk: (chunk) => stream.sendChunk(chunk),
       });
     },

@@ -113,6 +113,55 @@ export const generateTextStreamSchema = z.object({
 });
 export type GenerateTextStreamRequest = z.infer<typeof generateTextStreamSchema>;
 
+// 原生对话补全 schema（非流式，messages 数组）
+export const generateChatSchema = z.object({
+  messages: z.array(
+    z.object({
+      role: z.string(),
+      content: z.string(),
+      tool_calls: z.unknown().optional(),
+      tool_call_id: z.string().optional(),
+      name: z.string().optional(),
+    }),
+  ),
+  maxTokens: z.number().optional(),
+  temperature: z.number().optional(),
+  providerId: z.string().optional(),
+  modelId: z.string().optional(),
+});
+export type GenerateChatRequest = z.infer<typeof generateChatSchema>;
+
+// 原生对话补全流式 schema（在 generateChatSchema 基础上增加 tools 和 stream 字段）
+export const generateChatStreamSchema = z.object({
+  messages: z.array(
+    z.object({
+      role: z.string(),
+      content: z.string(),
+      tool_calls: z.unknown().optional(),
+      tool_call_id: z.string().optional(),
+      name: z.string().optional(),
+    }),
+  ),
+  maxTokens: z.number().optional(),
+  temperature: z.number().optional(),
+  providerId: z.string().optional(),
+  modelId: z.string().optional(),
+  tools: z
+    .array(
+      z.object({
+        type: z.literal("function"),
+        function: z.object({
+          name: z.string(),
+          description: z.string(),
+          parameters: z.record(z.string(), z.unknown()),
+        }),
+      }),
+    )
+    .optional(),
+  stream: z.boolean().optional(),
+});
+export type GenerateChatStreamRequest = z.infer<typeof generateChatStreamSchema>;
+
 // Embedding 生成 schema
 export const generateEmbeddingSchema = z.object({
   input: z.union([z.string(), z.array(z.string())]),

@@ -36,6 +36,7 @@ const QUEUEABLE_ENDPOINTS = [
   "generate-image",
   "generate-video",
   "generate-text",
+  "generate-chat",
   "generate-keyframe",
   "generate-frame-pair",
   "generate-embedding",

@@ -98,6 +98,32 @@ export interface TextStreamBuildContext extends TextBuildContext {
 }
 
 /**
+ * 原生对话补全上下文（非流式）。
+ * 与 TextBuildContext 的区别：用 messages 数组替代单字符串 prompt，
+ * 支持完整对话历史（含 role/tool_calls/tool_call_id）。
+ */
+export interface ChatBuildContext {
+  messages: Array<{
+    role: string;
+    content: string;
+    tool_calls?: unknown;
+    tool_call_id?: string;
+    name?: string;
+  }>;
+  model?: string;
+  maxTokens: number;
+  temperature: number;
+}
+
+/**
+ * 原生对话补全流式上下文。
+ * 在 ChatBuildContext 基础上增加 tools 字段，供 Agent Loop 声明可调用的工具。
+ */
+export interface ChatStreamBuildContext extends ChatBuildContext {
+  tools?: TextStreamToolDef[];
+}
+
+/**
  * 工具定义（OpenAI function-calling 格式）。
  * 与 domain/ports/ai-provider-port.ts 的 ToolDef 形状一致，独立定义以保持 plugin 层零外部依赖。
  */
@@ -275,6 +301,20 @@ export interface AIProviderPlugin {
    */
   extractTextChunk?(rawLine: string): TextStreamChunk | undefined;
 
+  /**
+   * 原生对话补全请求构建（非流式）。
+   * 默认实现：构建 OpenAI /chat/completions 格式 body，messages 为完整对话数组。
+   * 与 buildTextRequest 的区别：使用完整 messages 数组而非单条 user message。
+   */
+  buildChatRequest?(ctx: ChatBuildContext): TextRequestResult;
+
+  /**
+   * 原生对话补全流式请求构建。
+   * 默认实现：在 buildChatRequest 基础上添加 stream:true 和 tools 字段。
+   * 复用 extractTextChunk 解析 SSE（OpenAI 流式格式不变）。
+   */
+  buildChatStreamRequest?(ctx: ChatStreamBuildContext): TextRequestResult;
+
   buildVisionRequest(ctx: VisionBuildContext): VisionRequestResult;
 
   getImageTransportMode(purpose: ImagePurpose): ImageTransportMode;
@@ -319,6 +359,8 @@ export interface AsyncAIProviderPlugin extends AIProviderPlugin {
   buildTextRequestAsync?(ctx: TextBuildContext): Promise<TextRequestResult>;
   buildTextStreamRequestAsync?(ctx: TextStreamBuildContext): Promise<TextRequestResult>;
   extractTextChunkAsync?(rawLine: string): Promise<TextStreamChunk | undefined>;
+  buildChatRequestAsync?(ctx: ChatBuildContext): Promise<TextRequestResult>;
+  buildChatStreamRequestAsync?(ctx: ChatStreamBuildContext): Promise<TextRequestResult>;
   buildVisionRequestAsync?(ctx: VisionBuildContext): Promise<VisionRequestResult>;
   getAuthHeadersAsync?(apiKey: string, endpoint?: string): Promise<Record<string, string>>;
   extractTaskIdAsync?(response: Record<string, unknown>): Promise<string | undefined>;

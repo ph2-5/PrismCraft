@@ -222,6 +222,280 @@ async function generateTextStream(
   }
 }
 
+/**
+ * 将 messages 数组序列化为 prompt 文本（fallback 用）。
+ * 当 plugin 未实现 buildChatRequest/buildChatStreamRequest 时，降级为文本 prompt。
+ */
+function serializeMessagesToPrompt(
+  messages: Array<{ role: string; content: string; tool_calls?: unknown; name?: string }>,
+): string {
+  return messages
+    .map((m) => {
+      if (m.role === "system") return `[system]\n${m.content}`;
+      if (m.role === "user") return `[user]\n${m.content}`;
+      if (m.role === "assistant") {
+        let text = `[assistant]\n${m.content}`;
+        if (m.tool_calls) text += `\n[tool_calls]\n${JSON.stringify(m.tool_calls)}`;
+        return text;
+      }
+      if (m.role === "tool") return `[tool_result ${m.name || ""}]\n${m.content}`;
+      return m.content;
+    })
+    .join("\n\n---\n\n");
+}
+
+/**
+ * 原生对话补全（非流式）。
+ *
+ * 与 generateText 的区别：
+ * - 接收结构化 messages 数组（含 role/tool_calls/tool_call_id），而非单字符串 prompt
+ * - 调用 plugin.buildChatRequest 构建请求（完整 messages 数组）
+ * - 支持 OpenAI 兼容原生 function calling
+ *
+ * 如果 plugin 未实现 buildChatRequest，降级到 buildTextRequest + 序列化 messages。
+ */
+async function generateChat(body: Record<string, unknown>): Promise<TextApiResult> {
+  const { messages: messagesRaw, maxTokens, temperature } = body as Record<string, unknown>;
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
+    body,
+    "text",
+  );
+
+  if (!effectiveApiKey) {
+    return {
+      success: false,
+      error: { code: API_ERROR_CODES.API_NOT_CONFIGURED, message: "text" },
+      code: API_ERROR_CODES.API_NOT_CONFIGURED,
+      httpStatus: 400,
+    };
+  }
+
+  if (!Array.isArray(messagesRaw) || messagesRaw.length === 0) {
+    return {
+      success: false,
+      error: "empty_messages",
+      code: API_ERROR_CODES.EMPTY_PROMPT,
+      httpStatus: 400,
+    };
+  }
+
+  const safeMaxTokens = Math.min(Math.max(1, (maxTokens as number) || 4096), 16384);
+  const safeTemperature = Math.min(Math.max(0, (temperature as number) ?? 0.7), 2);
+
+  const messages = (messagesRaw as Array<Record<string, unknown>>).map((m) => ({
+    role: String(m.role || "user"),
+    content: String(m.content || ""),
+    ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
+    ...(m.tool_call_id ? { tool_call_id: String(m.tool_call_id) } : {}),
+    ...(m.name ? { name: String(m.name) } : {}),
+  }));
+
+  try {
+    const plugin = resolvedPlugin || pluginRegistry.select(effectiveApiUrl || "", effectiveModel);
+    if (!plugin) {
+      return { success: false, error: "unknown_provider", code: API_ERROR_CODES.UNKNOWN_PROVIDER, httpStatus: 400 };
+    }
+
+    let reqBody: Record<string, unknown>;
+    let endpoint: string;
+
+    if (plugin.buildChatRequest) {
+      const result = plugin.buildChatRequest({
+        messages,
+        model: effectiveModel,
+        maxTokens: safeMaxTokens,
+        temperature: safeTemperature,
+      });
+      reqBody = result.body;
+      endpoint = result.endpoint;
+    } else {
+      logger.warn(`Plugin ${plugin.id} has no buildChatRequest, falling back to buildTextRequest with serialized messages`);
+      const result = plugin.buildTextRequest({
+        prompt: serializeMessagesToPrompt(messages),
+        model: effectiveModel,
+        maxTokens: safeMaxTokens,
+        temperature: safeTemperature,
+      });
+      reqBody = result.body;
+      endpoint = result.endpoint;
+    }
+
+    const requestUrl = plugin.appendAuthToUrl
+      ? plugin.appendAuthToUrl(`${effectiveApiUrl}${endpoint}`, effectiveApiKey)
+      : `${effectiveApiUrl}${endpoint}`;
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...await getAuthHeaders(plugin, effectiveApiKey, endpoint),
+    };
+
+    const response = (await withRetry(
+      () => makeRequest(requestUrl, {
+        method: "POST",
+        headers: requestHeaders,
+        body: JSON.stringify(reqBody),
+      }),
+      { maxRetries: 1, retryableCheck: isRetryableError },
+    )) as Record<string, unknown>;
+
+    const text = plugin.extractTextContent
+      ? plugin.extractTextContent(response)
+      : ((((response.choices as Record<string, unknown>[])?.[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string) || "";
+
+    return { success: true, data: { text } };
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message,
+      httpStatus: (error as Error & { statusCode?: number }).statusCode || 500,
+    };
+  }
+}
+
+/**
+ * 原生对话补全流式生成。
+ *
+ * 与 generateTextStream 的区别：
+ * - 接收结构化 messages 数组（含 role/tool_calls/tool_call_id），而非单字符串 prompt
+ * - 调用 plugin.buildChatStreamRequest 构建流式请求（完整 messages 数组 + stream:true + tools）
+ * - 支持 OpenAI 兼容原生 function calling（流式 tool_calls 增量返回）
+ *
+ * 如果 plugin 未实现 buildChatStreamRequest，降级到 buildTextStreamRequest + 序列化 messages。
+ * 如果 plugin 未实现流式方法，回退到非流式 generateChat。
+ */
+async function generateChatStream(
+  body: Record<string, unknown>,
+  options: {
+    onChunk: (chunk: TextStreamChunk) => void;
+  },
+): Promise<TextApiResult> {
+  const { messages: messagesRaw, maxTokens, temperature, tools: toolsRaw } = body as Record<string, unknown>;
+  const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
+    body,
+    "text",
+  );
+
+  if (!effectiveApiKey) {
+    return {
+      success: false,
+      error: { code: API_ERROR_CODES.API_NOT_CONFIGURED, message: "text" },
+      code: API_ERROR_CODES.API_NOT_CONFIGURED,
+      httpStatus: 400,
+    };
+  }
+
+  if (!Array.isArray(messagesRaw) || messagesRaw.length === 0) {
+    return {
+      success: false,
+      error: "empty_messages",
+      code: API_ERROR_CODES.EMPTY_PROMPT,
+      httpStatus: 400,
+    };
+  }
+
+  const safeMaxTokens = Math.min(Math.max(1, (maxTokens as number) || 4096), 16384);
+  const safeTemperature = Math.min(Math.max(0, (temperature as number) ?? 0.7), 2);
+
+  const messages = (messagesRaw as Array<Record<string, unknown>>).map((m) => ({
+    role: String(m.role || "user"),
+    content: String(m.content || ""),
+    ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
+    ...(m.tool_call_id ? { tool_call_id: String(m.tool_call_id) } : {}),
+    ...(m.name ? { name: String(m.name) } : {}),
+  }));
+
+  // 归一化 tools 字段（与 generateTextStream 相同逻辑）
+  let tools: TextStreamToolDef[] | undefined;
+  if (Array.isArray(toolsRaw) && toolsRaw.length > 0) {
+    tools = (toolsRaw as unknown[])
+      .map((t) => {
+        const fn = (t as { function?: Record<string, unknown> })?.function;
+        if (!fn) return null;
+        return {
+          type: "function" as const,
+          function: {
+            name: String(fn.name ?? ""),
+            description: String(fn.description ?? ""),
+            parameters: (fn.parameters as Record<string, unknown>) || { type: "object", properties: {} },
+          },
+        };
+      })
+      .filter((t): t is TextStreamToolDef => t !== null);
+    if (tools.length === 0) tools = undefined;
+  }
+
+  try {
+    const plugin = resolvedPlugin || pluginRegistry.select(effectiveApiUrl || "", effectiveModel);
+    if (!plugin) {
+      return { success: false, error: "unknown_provider", code: API_ERROR_CODES.UNKNOWN_PROVIDER, httpStatus: 400 };
+    }
+
+    // plugin 未实现流式接口 → 回退到非流式 generateChat
+    if (!plugin.extractTextChunk) {
+      logger.warn(`Plugin ${plugin.id} has no extractTextChunk, falling back to non-streaming generateChat`);
+      return generateChat(body);
+    }
+
+    let reqBody: Record<string, unknown>;
+    let endpoint: string;
+
+    if (plugin.buildChatStreamRequest) {
+      const result = plugin.buildChatStreamRequest({
+        messages,
+        model: effectiveModel,
+        maxTokens: safeMaxTokens,
+        temperature: safeTemperature,
+        tools,
+      });
+      reqBody = result.body;
+      endpoint = result.endpoint;
+    } else if (plugin.buildTextStreamRequest) {
+      logger.warn(`Plugin ${plugin.id} has no buildChatStreamRequest, falling back to buildTextStreamRequest with serialized messages`);
+      const result = plugin.buildTextStreamRequest({
+        prompt: serializeMessagesToPrompt(messages),
+        model: effectiveModel,
+        maxTokens: safeMaxTokens,
+        temperature: safeTemperature,
+        tools,
+      });
+      reqBody = result.body;
+      endpoint = result.endpoint;
+    } else {
+      logger.warn(`Plugin ${plugin.id} has no streaming support, falling back to non-streaming generateChat`);
+      return generateChat(body);
+    }
+
+    const requestUrl = plugin.appendAuthToUrl
+      ? plugin.appendAuthToUrl(`${effectiveApiUrl}${endpoint}`, effectiveApiKey)
+      : `${effectiveApiUrl}${endpoint}`;
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      ...await getAuthHeaders(plugin, effectiveApiKey, endpoint),
+    };
+
+    let fullText = "";
+    await makeStreamingRequest(requestUrl, {
+      method: "POST",
+      headers: requestHeaders,
+      body: JSON.stringify(reqBody),
+      onLine: (line) => {
+        const chunk = plugin.extractTextChunk!(line);
+        if (!chunk) return;
+        if (chunk.delta) fullText += chunk.delta;
+        options.onChunk(chunk);
+      },
+    });
+
+    return { success: true, data: { text: fullText } };
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message,
+      httpStatus: (error as Error & { statusCode?: number }).statusCode || 500,
+    };
+  }
+}
+
 async function generateVideo(body: Record<string, unknown>): Promise<ApiResult> {
   const {
     prompt,
@@ -804,6 +1078,8 @@ async function transcribeAudio(body: Record<string, unknown>): Promise<ApiResult
 export {
   generateText,
   generateTextStream,
+  generateChat,
+  generateChatStream,
   generateEmbedding,
   generateAudio,
   transcribeAudio,

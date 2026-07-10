@@ -56,7 +56,7 @@ import {
   queryVideoStatus,
 } from "@/infrastructure/ai-providers/video";
 import { generateImage, analyzeImage } from "@/infrastructure/ai-providers/image";
-import { generateText, generateTextStream } from "@/infrastructure/ai-providers/text";
+import { generateText, generateTextStream, generateChat } from "@/infrastructure/ai-providers/text";
 import { generateEmbedding, generateEmbeddings } from "@/infrastructure/ai-providers/embedding";
 import { synthesizeSpeech, transcribeAudio } from "@/infrastructure/ai-providers/audio";
 import { uploadFile } from "@/infrastructure/ai-providers/utils";
@@ -89,6 +89,7 @@ const imageProvider: IImageProvider = {
 const textProvider: ITextProvider = {
   generateText,
   generateTextStream,
+  generateChat,
 };
 
 const embeddingProvider: IEmbeddingProvider = {

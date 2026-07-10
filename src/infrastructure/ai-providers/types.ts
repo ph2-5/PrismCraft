@@ -68,6 +68,30 @@ export interface TextGenerationRequestBody {
   modelId?: string;
 }
 
+/**
+ * 原生对话补全请求体（Chat Completion）。
+ *
+ * 与 TextGenerationRequestBody 的区别：
+ * - 用 messages 数组替代单字符串 prompt
+ * - 支持 tools（function calling 定义）
+ * - 流式标志由调用方决定（有 onChunk 则 stream=true）
+ */
+export interface ChatCompletionRequestBody {
+  messages: Array<{
+    role: string;
+    content: string;
+    tool_calls?: unknown;
+    tool_call_id?: string;
+    name?: string;
+  }>;
+  maxTokens?: number;
+  temperature?: number;
+  tools?: unknown[];
+  stream?: boolean;
+  providerId?: string;
+  modelId?: string;
+}
+
 export interface KeyframeGenerationRequestBody {
   characterRef?: string;
   characterRefs?: string[];

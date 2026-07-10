@@ -3,6 +3,7 @@ import type {
   VideoGenerationResult,
   ImageGenerationResult,
 } from "@/domain/schemas/api";
+import type { LLMMessage } from "@/domain/schemas/llm-message";
 
 export interface IVideoProvider {
   generateVideo(
@@ -164,6 +165,30 @@ export interface ITextProvider {
       tools?: ToolDef[];
       onChunk: (chunk: StreamChunk) => void;
       /** P1-1 修复：支持外部 abort，让用户取消按钮在 LLM 推理期间生效 */
+      signal?: AbortSignal;
+    },
+  ): Promise<ApiResponse<{ text: string }>>;
+
+  /**
+   * 原生对话补全（Chat Completion）。
+   *
+   * 与 generateTextStream 的区别：
+   * - 接收结构化 messages 数组（含 role/tool_calls/tool_call_id），而非单字符串 prompt
+   * - 支持原生 function calling，LLM 以结构化格式理解工具调用历史
+   * - 流式 + 非流式统一入口（onChunk 可选：有则流式，无则非流式）
+   *
+   * 能力自适应：当 provider 支持原生 function calling 时，AgentLoop 优先调用此方法；
+   * 不支持时降级到 generateTextStream + serializeMessages。
+   */
+  generateChat(
+    messages: LLMMessage[],
+    options?: {
+      maxTokens?: number;
+      temperature?: number;
+      providerId?: string;
+      modelId?: string;
+      tools?: ToolDef[];
+      onChunk?: (chunk: StreamChunk) => void;
       signal?: AbortSignal;
     },
   ): Promise<ApiResponse<{ text: string }>>;

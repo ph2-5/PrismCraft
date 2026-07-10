@@ -26,6 +26,7 @@ import type {
   ToolContext,
   ToolResult,
 } from "../domain/types";
+import type { AgentLoopDeps } from "../domain/ports";
 import { DEFAULT_AGENT_CONFIG } from "../domain/types";
 import {
   DEFAULT_SYSTEM_PROMPT,
@@ -35,7 +36,7 @@ import {
 import { conversationManager } from "./conversation-manager";
 import { toolExecutor } from "./tool-executor";
 import { toolRegistry } from "./tool-registry";
-import { buildCoreMemoryPrompt } from "./memory-service";
+import { memoryService } from "./memory-service";
 import { t } from "@/shared/constants";
 
 /** 动态查询项目状态，构建状态摘要注入 system prompt */
@@ -99,15 +100,26 @@ export class AgentLoop {
   private aborted = false;
   /** P1-1 修复：LLM 流式推理的 AbortController，使 abort() 能中断正在进行的流式调用 */
   private llmAbortController: AbortController | null = null;
+  /** 协作者依赖（DI 注入，不传则用模块单例 + container 作为默认） */
+  private deps: AgentLoopDeps;
 
   constructor(
     session: AgentSession,
     callbacks: AgentLoopCallbacks,
     config?: Partial<AgentLoopConfig>,
+    deps?: Partial<AgentLoopDeps>,
   ) {
     this.session = session;
     this.callbacks = callbacks;
     this.config = { ...DEFAULT_AGENT_CONFIG, ...config };
+    // 协作者注入：不传的字段用模块单例/container 作为默认（向后兼容）
+    this.deps = {
+      conversationManager: deps?.conversationManager ?? conversationManager,
+      toolRegistry: deps?.toolRegistry ?? toolRegistry,
+      toolExecutor: deps?.toolExecutor ?? toolExecutor,
+      memoryService: deps?.memoryService ?? memoryService,
+      textProvider: deps?.textProvider ?? container.textProvider,
+    };
   }
 
   /** 中止循环（P1-1 修复：同时中断 LLM 流式推理） */
@@ -122,7 +134,7 @@ export class AgentLoop {
   /** 运行 Agent Loop */
   async run(userInput: string): Promise<void> {
     // 1. 追加用户消息
-    conversationManager.appendUserMessage(this.session, userInput);
+    this.deps.conversationManager.appendUserMessage(this.session, userInput);
 
     // 2. 构建初始 system prompt（动态注入项目状态）
     const systemPrompt = await this.buildSystemPrompt();
@@ -135,10 +147,10 @@ export class AgentLoop {
       }
 
       // 构建 LLM 消息序列
-      const llmMessages = conversationManager.buildLLMMessages(this.session, systemPrompt);
+      const llmMessages = this.deps.conversationManager.buildLLMMessages(this.session, systemPrompt);
 
       // 调用 LLM（流式）
-      const assistantMsg = conversationManager.startStreamingAssistant(this.session);
+      const assistantMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
       // 累积工具调用（流式可能分多块返回）
       const accumulatedToolCalls: Map<string, ToolCall> = new Map();
       let finishReason: StreamChunk["finishReason"] | undefined;
@@ -154,7 +166,7 @@ export class AgentLoop {
           receivedAnyChunk = true;
           // delta → 实时输出
           if (chunk.delta) {
-            conversationManager.appendDelta(this.session, chunk.delta);
+            this.deps.conversationManager.appendDelta(this.session, chunk.delta);
             this.callbacks.onChunk({ delta: chunk.delta });
           }
           // toolCalls → 累积（按 id 合并增量）
@@ -175,7 +187,7 @@ export class AgentLoop {
           temperature: this.config.temperature,
           providerId: this.config.providerId,
           modelId: this.config.modelId,
-          tools: toolRegistry.getToolDefs(this.config.enabledTools),
+          tools: this.deps.toolRegistry.getToolDefs(this.config.enabledTools),
           signal: this.llmAbortController.signal,
         };
 
@@ -183,12 +195,12 @@ export class AgentLoop {
         // 失败时降级到 generateTextStream + serializeMessages（prompt 工程）
         let result;
         try {
-          result = await container.textProvider.generateChat(llmMessages, streamOpts);
+          result = await this.deps.textProvider.generateChat(llmMessages, streamOpts);
         } catch (e) {
           if (!receivedAnyChunk) {
             // 未收到任何 chunk，安全降级到 serializeMessages
             const prompt = this.serializeMessages(llmMessages);
-            result = await container.textProvider.generateTextStream(prompt, streamOpts);
+            result = await this.deps.textProvider.generateTextStream(prompt, streamOpts);
           } else {
             throw e;
           }
@@ -196,13 +208,13 @@ export class AgentLoop {
         if (!result.success && !receivedAnyChunk) {
           // generateChat 返回失败且未收到 chunk → 降级
           const prompt = this.serializeMessages(llmMessages);
-          result = await container.textProvider.generateTextStream(prompt, streamOpts);
+          result = await this.deps.textProvider.generateTextStream(prompt, streamOpts);
         }
         this.llmAbortController = null;
 
         if (!result.success) {
           // LLM 调用失败
-          conversationManager.finishStreaming(this.session);
+          this.deps.conversationManager.finishStreaming(this.session);
           const errMsg = result.error || "LLM 调用失败";
           assistantMsg.content = assistantMsg.content || `调用失败：${errMsg}`;
           this.callbacks.onError?.(new Error(errMsg));
@@ -210,12 +222,12 @@ export class AgentLoop {
         }
 
         // 结束流式
-        conversationManager.finishStreaming(this.session, finishReason);
+        this.deps.conversationManager.finishStreaming(this.session, finishReason);
 
         // 处理工具调用
         const toolCalls = Array.from(accumulatedToolCalls.values());
         if (toolCalls.length > 0) {
-          conversationManager.setToolCalls(this.session, toolCalls);
+          this.deps.conversationManager.setToolCalls(this.session, toolCalls);
 
           // 执行工具
           const ctx: ToolContext = {
@@ -235,7 +247,7 @@ export class AgentLoop {
             // 危险工具确认检查（R-P0-1 修复）：
             // requiresConfirmation=true 的工具（如 delete_file/move_file）必须经用户确认。
             // 未提供 onConfirmationRequired 回调时，安全默认拒绝执行。
-            if (toolExecutor.requiresConfirmation(tc)) {
+            if (this.deps.toolExecutor.requiresConfirmation(tc)) {
               const approved = this.callbacks.onConfirmationRequired
                 ? await this.callbacks.onConfirmationRequired(tc)
                 : false;
@@ -245,15 +257,15 @@ export class AgentLoop {
                   error: "用户拒绝执行此操作（需要确认）",
                   duration: 0,
                 };
-                conversationManager.appendToolResult(this.session, tc.id, tc.function.name, cancelledResult);
+                this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, cancelledResult);
                 this.callbacks.onToolResult(tc.id, cancelledResult);
                 continue;
               }
             }
 
             this.callbacks.onToolCall(tc);
-            const result = await toolExecutor.execute(tc, ctx);
-            conversationManager.appendToolResult(this.session, tc.id, tc.function.name, result);
+            const result = await this.deps.toolExecutor.execute(tc, ctx);
+            this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, result);
             this.callbacks.onToolResult(tc.id, result);
           }
 
@@ -265,7 +277,7 @@ export class AgentLoop {
         return;
       } catch (e) {
         this.llmAbortController = null;
-        conversationManager.finishStreaming(this.session);
+        this.deps.conversationManager.finishStreaming(this.session);
         const err = e instanceof Error ? e : new Error(String(e));
         assistantMsg.content = assistantMsg.content || `发生错误：${err.message}`;
         this.callbacks.onError?.(err);
@@ -274,9 +286,9 @@ export class AgentLoop {
     }
 
     // 达到最大循环次数
-    const limitMsg = conversationManager.startStreamingAssistant(this.session);
+    const limitMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
     limitMsg.content = t("agent.maxIterationsReached", { count: this.config.maxIterations });
-    conversationManager.finishStreaming(this.session);
+    this.deps.conversationManager.finishStreaming(this.session);
     void limitMsg;
   }
 
@@ -306,9 +318,9 @@ export class AgentLoop {
   /** 构建 system prompt（动态注入项目状态 + 核心记忆） */
   private async buildSystemPrompt(): Promise<string> {
     const template = this.config.systemPromptOverride || DEFAULT_SYSTEM_PROMPT;
-    const toolDescs = toolRegistry.getToolDescriptions(this.config.enabledTools);
+    const toolDescs = this.deps.toolRegistry.getToolDescriptions(this.config.enabledTools);
     const projectState = await buildDynamicProjectState();
-    const coreMemory = await buildCoreMemoryPrompt();
+    const coreMemory = await this.deps.memoryService.buildCoreMemoryPrompt();
     return template
       .replace("{PROJECT_STATE}", projectState)
       .replace("{CORE_MEMORY}", coreMemory || "（暂无记忆）")

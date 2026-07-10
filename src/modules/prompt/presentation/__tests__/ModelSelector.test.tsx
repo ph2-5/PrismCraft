@@ -46,6 +46,8 @@ vi.mock("lucide-react", () => ({
   Video: () => <span data-testid="icon-video">Video</span>,
   Eye: () => <span data-testid="icon-eye">Eye</span>,
   Settings2: () => <span data-testid="icon-settings">Settings2</span>,
+  Boxes: () => <span data-testid="icon-boxes">Boxes</span>,
+  AudioWaveform: () => <span data-testid="icon-audio">AudioWaveform</span>,
 }));
 
 vi.mock("@/infrastructure/di", () => ({

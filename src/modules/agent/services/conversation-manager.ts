@@ -10,6 +10,7 @@
 
 import type { LLMMessage, ToolCall } from "@/domain/schemas/llm-message";
 import type { AgentSession, AgentMessage } from "../domain/types";
+import type { IConversationManager } from "../domain/ports";
 import { generateMessageId } from "../domain/types";
 import { t } from "@/shared/constants";
 
@@ -71,7 +72,7 @@ function estimateMessageTokens(message: AgentMessage): number {
   return estimateTokens(text) + OVERHEAD_TOKENS;
 }
 
-class ConversationManager {
+class ConversationManager implements IConversationManager {
   /** 创建用户消息并追加到会话 */
   appendUserMessage(session: AgentSession, content: string): AgentMessage {
     const msg: AgentMessage = {

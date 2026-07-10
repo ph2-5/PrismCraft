@@ -22,6 +22,7 @@ export { AgentLoop } from "./services/agent-loop";
 export { toolRegistry } from "./services/tool-registry";
 export { toolExecutor } from "./services/tool-executor";
 export { conversationManager } from "./services/conversation-manager";
+export { memoryService, MemoryService } from "./services/memory-service";
 export { runAgentLoop } from "./services/agent-loop";
 export {
   saveSession,
@@ -48,8 +49,21 @@ export type {
   ToolExecutionStatus,
   AgentLoopConfig,
   AgentLoopCallbacks,
+  CoreMemory,
+  MemoryFact,
+  ArchivalMemoryEntry,
+  ExtractedMemory,
 } from "./domain/types";
 export { createEmptySession, DEFAULT_AGENT_CONFIG } from "./domain/types";
+
+// Port 接口（方案 3：Agent 服务 DI 化）
+export type {
+  IConversationManager,
+  IToolRegistry,
+  IToolExecutor,
+  IMemoryService,
+  AgentLoopDeps,
+} from "./domain/ports";
 
 // 设置类型
 export type { AgentSettings } from "./hooks/use-agent";

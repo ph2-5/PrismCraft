@@ -11,13 +11,25 @@
 
 import type { ToolCall } from "@/domain/ports/ai-provider-port";
 import type { ToolResult, ToolContext } from "../domain/types";
+import type { IToolExecutor, IToolRegistry } from "../domain/ports";
 import { toolRegistry } from "./tool-registry";
 
 /** 默认超时：30 秒（查询类） */
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** 工具执行器 */
-export class ToolExecutor {
+export class ToolExecutor implements IToolExecutor {
+  /**
+   * 注入的工具注册表（不传则使用模块单例 toolRegistry）
+   *
+   * 方案 3 DI 化：允许测试注入 mock registry，或组合不同的工具集。
+   */
+  private readonly registry: IToolRegistry;
+
+  constructor(registry?: IToolRegistry) {
+    this.registry = registry ?? toolRegistry;
+  }
+
   /**
    * 执行单个工具调用
    * @param toolCall LLM 返回的工具调用请求
@@ -26,7 +38,7 @@ export class ToolExecutor {
    */
   async execute(toolCall: ToolCall, ctx: ToolContext): Promise<ToolResult> {
     const startTime = Date.now();
-    const tool = toolRegistry.get(toolCall.function.name);
+    const tool = this.registry.get(toolCall.function.name);
 
     if (!tool) {
       return {
@@ -110,7 +122,7 @@ export class ToolExecutor {
 
   /** 检查工具是否需要确认 */
   requiresConfirmation(toolCall: ToolCall): boolean {
-    const tool = toolRegistry.get(toolCall.function.name);
+    const tool = this.registry.get(toolCall.function.name);
     return tool?.requiresConfirmation ?? false;
   }
 }

@@ -41,7 +41,14 @@
 
 import { container } from "@/infrastructure/di";
 import { getConfig, setConfig, writeFile, readFile, getCacheDirectory } from "@/shared/file-http";
-import type { AgentMessage } from "../domain/types";
+import type {
+  AgentMessage,
+  CoreMemory,
+  MemoryFact,
+  ArchivalMemoryEntry,
+  ExtractedMemory,
+} from "../domain/types";
+import type { IMemoryService } from "../domain/ports";
 import {
   createDefaultEngine,
   type VectorSearchEngine,
@@ -49,57 +56,18 @@ import {
   type ProgressCallback,
 } from "./vector-search";
 
+// Re-export memory types from domain/types for backward compatibility
+// （类型已迁移到 domain/types.ts，此处 re-export 保持现有 import 路径不破坏）
+export type {
+  CoreMemory,
+  MemoryFact,
+  ArchivalMemoryEntry,
+  ExtractedMemory,
+} from "../domain/types";
+
 // ============= 类型定义 =============
-
-/** 核心记忆：常驻 prompt 的小量关键信息 */
-export interface CoreMemory {
-  /** 用户偏好（键值对，如 preferred_style: "赛博朋克"） */
-  preferences: Record<string, string | number | boolean>;
-  /** 项目事实（带 key 的列表，便于按 key 更新/删除） */
-  facts: MemoryFact[];
-}
-
-/** 项目事实条目 */
-export interface MemoryFact {
-  /** 事实键，如 "source_novel"、"target_duration" */
-  key: string;
-  /** 事实值 */
-  value: string;
-  /** 更新时间戳 */
-  updatedAt: number;
-}
-
-/** 归档记忆条目 */
-export interface ArchivalMemoryEntry {
-  id: string;
-  type: "summary" | "fact" | "decision";
-  content: string;
-  /** 来源会话 ID */
-  sessionId?: string;
-  /** 创建时间戳 */
-  createdAt: number;
-  /** 标签（便于分类检索） */
-  tags?: string[];
-  /**
-   * 内容的向量嵌入（已废弃，不再使用）
-   *
-   * S5 之后 embedding 独立存储到 embeddings.json，由 EmbeddingStore 管理。
-   * 此字段保留仅为向后兼容旧 archival.json 数据的读取（解析时由 getAllArchivalMemory 忽略）。
-   * 新数据不再写入此字段；VectorSearchEngine 的策略从 EmbeddingStore 读取。
-   * @deprecated 使用 EmbeddingStore（vector-search/embedding-store）替代
-   */
-  embedding?: number[];
-}
-
-/** LLM 自动抽取结果 */
-export interface ExtractedMemory {
-  /** 提取的偏好（会合并到核心记忆） */
-  preferences: Record<string, string | number | boolean>;
-  /** 提取的事实（会追加到核心记忆，同 key 覆盖） */
-  facts: Array<{ key: string; value: string }>;
-  /** 会话摘要（追加到归档记忆） */
-  summary: string;
-}
+// Memory 相关类型已迁移到 domain/types.ts（见文件顶部 re-export）。
+// 此处保留注释占位，避免 Git diff 误导。
 
 // ============= 常量 =============
 
@@ -594,3 +562,43 @@ export async function _resetAllMemory(): Promise<void> {
   await saveCoreMemory({ ...EMPTY_CORE_MEMORY });
   await saveArchivalMemory([]);
 }
+
+// ============= MemoryService class（方案 3：实现 IMemoryService 接口） =============
+
+/**
+ * 记忆服务实现（实现 IMemoryService 接口）
+ *
+ * 方案 3 Agent 服务 DI 化的产物：将原有纯函数包装为 class，
+ * 使 AgentLoop 可通过构造函数注入 IMemoryService mock 进行单元测试。
+ *
+ * 设计要点：
+ * - 内部委托给现有纯函数（零行为变更）
+ * - 现有代码继续直接调用纯函数（向后兼容）
+ * - 新代码可通过 IMemoryService 接口依赖（可测试、可替换）
+ * - textProvider 仍通过 container 获取（memory-service 内部实现细节，
+ *   不影响 AgentLoop 可测试性——测试 mock IMemoryService 接口即可）
+ */
+export class MemoryService implements IMemoryService {
+  async buildCoreMemoryPrompt(): Promise<string> {
+    return buildCoreMemoryPrompt();
+  }
+
+  shouldExtract(messages: AgentMessage[]): boolean {
+    return shouldExtract(messages);
+  }
+
+  async extractFromConversation(
+    messages: AgentMessage[],
+    sessionId?: string,
+    options?: { providerId?: string; modelId?: string },
+  ): Promise<ExtractedMemory | null> {
+    return extractFromConversation(messages, sessionId, options);
+  }
+
+  async applyExtractedMemory(extracted: ExtractedMemory, sessionId?: string): Promise<void> {
+    return applyExtractedMemory(extracted, sessionId);
+  }
+}
+
+/** 全局记忆服务单例（实现 IMemoryService） */
+export const memoryService = new MemoryService();

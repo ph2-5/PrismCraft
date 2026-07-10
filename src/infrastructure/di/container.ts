@@ -170,6 +170,27 @@ const tokens = {
     const { syncEngine } = await import("@/modules/sync/engine/engine");
     return syncEngine;
   }),
+
+  // ── F. Agent 服务（动态 import，避免 infrastructure 静态依赖 modules） ──
+  // AgentLoop 构造函数通过 deps 参数注入协作者（同步，不依赖 container）。
+  // 这些 token 供异步初始化场景使用（如 useAgent 预加载、测试 overrideToken 替换）。
+  // 消费者需 await：const cm = await container.agentConversationManager;
+  agentConversationManager: createToken("agentConversationManager", async () => {
+    const { conversationManager } = await import("@/modules/agent");
+    return conversationManager;
+  }),
+  agentToolRegistry: createToken("agentToolRegistry", async () => {
+    const { toolRegistry } = await import("@/modules/agent");
+    return toolRegistry;
+  }),
+  agentToolExecutor: createToken("agentToolExecutor", async () => {
+    const { toolExecutor } = await import("@/modules/agent");
+    return toolExecutor;
+  }),
+  agentMemoryService: createToken("agentMemoryService", async () => {
+    const { memoryService } = await import("@/modules/agent");
+    return memoryService;
+  }),
 };
 
 const registry = new ModuleRegistry();
@@ -269,6 +290,10 @@ export function getTokenRegistry(): Array<{
     elementManager: "E",
     referenceEngine: "E",
     syncEngine: "E",
+    agentConversationManager: "F",
+    agentToolRegistry: "F",
+    agentToolExecutor: "F",
+    agentMemoryService: "F",
   };
   return Object.entries(tokens).map(([key, token]) => ({
     key,

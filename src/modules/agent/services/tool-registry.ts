@@ -11,8 +11,9 @@
 
 import type { ToolDef } from "@/domain/ports/ai-provider-port";
 import type { ToolImpl, ToolDomain } from "../domain/types";
+import type { IToolRegistry } from "../domain/ports";
 
-class ToolRegistry {
+class ToolRegistry implements IToolRegistry {
   private tools = new Map<string, ToolImpl>();
 
   /** 注册工具（重名抛错，避免冲突） */

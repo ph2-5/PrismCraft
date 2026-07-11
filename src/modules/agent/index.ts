@@ -17,6 +17,8 @@ export { MarkdownRenderer } from "./presentation/MarkdownRenderer";
 export { AgentSettingsPanel, getPersonaPrompt } from "./presentation/AgentSettingsPanel";
 export { SessionHistory } from "./presentation/SessionHistory";
 export { CheckpointRecovery } from "./presentation/CheckpointRecovery";
+export { ToolPluginManager } from "./presentation/ToolPluginManager";
+export { ToolPluginEditor } from "./presentation/ToolPluginEditor";
 
 // 核心服务（供测试或高级用法使用）
 export { AgentLoop } from "./services/agent-loop";

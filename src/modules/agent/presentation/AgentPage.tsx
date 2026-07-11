@@ -21,6 +21,7 @@ import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { CheckpointRecovery } from "./CheckpointRecovery";
 import { MemoryPanel } from "./MemoryPanel";
 import { SessionHistory } from "./SessionHistory";
+import { ToolPluginManager } from "./ToolPluginManager";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import {
@@ -35,6 +36,7 @@ import {
   Search,
   BarChart3,
   Video,
+  Package,
 } from "lucide-react";
 
 export function AgentPage() {
@@ -60,6 +62,7 @@ export function AgentPage() {
   const [input, setInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
+  const [showPlugins, setShowPlugins] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -146,6 +149,7 @@ export function AgentPage() {
               onClick={() => {
                 setShowMemory(!showMemory);
                 setShowSettings(false);
+                setShowPlugins(false);
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.memory.management")}
@@ -155,8 +159,21 @@ export function AgentPage() {
             </button>
             <button
               onClick={() => {
+                setShowPlugins(!showPlugins);
+                setShowMemory(false);
+                setShowSettings(false);
+              }}
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={t("agent.plugin.management")}
+              aria-label={t("agent.plugin.management")}
+            >
+              <Package className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => {
                 setShowSettings(!showSettings);
                 setShowMemory(false);
+                setShowPlugins(false);
                 void refreshHistory();
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -188,6 +205,11 @@ export function AgentPage() {
           {/* 记忆管理面板（下拉） */}
           {showMemory && (
             <MemoryPanel onClose={() => setShowMemory(false)} />
+          )}
+
+          {/* 工具插件管理面板（下拉） */}
+          {showPlugins && (
+            <ToolPluginManager onClose={() => setShowPlugins(false)} />
           )}
         </div>
 

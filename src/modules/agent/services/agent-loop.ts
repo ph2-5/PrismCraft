@@ -38,6 +38,12 @@ import { conversationManager } from "./conversation-manager";
 import { toolExecutor } from "./tool-executor";
 import { toolRegistry } from "./tool-registry";
 import { memoryService } from "./memory-service";
+import {
+  initCheckpoint,
+  saveCheckpoint,
+  clearCheckpoint,
+  markInterrupted,
+} from "./session-checkpoint";
 import { t } from "@/shared/constants";
 
 /** 动态查询项目状态，构建状态摘要注入 system prompt */
@@ -123,19 +129,24 @@ export class AgentLoop {
     };
   }
 
-  /** 中止循环（P1-1 修复：同时中断 LLM 流式推理） */
+  /** 中止循环（P1-1 修复：同时中断 LLM 流式推理；P5 断点恢复：标记为中断） */
   abort(): void {
     this.aborted = true;
     if (this.llmAbortController) {
       this.llmAbortController.abort();
       this.llmAbortController = null;
     }
+    // P5 断点恢复：标记检查点为中断状态（异步，不阻断）
+    void markInterrupted(this.session.id).catch(() => {});
   }
 
   /** 运行 Agent Loop */
   async run(userInput: string): Promise<void> {
     // 1. 追加用户消息
     this.deps.conversationManager.appendUserMessage(this.session, userInput);
+
+    // P5 断点恢复：初始化检查点（异步，不阻断主流程）
+    void initCheckpoint(this.session, userInput).catch(() => {});
 
     // 2. 构建初始 system prompt（动态注入项目状态 + RAG + 摘要）
     const systemPrompt = await this.buildSystemPrompt(userInput);
@@ -221,6 +232,8 @@ export class AgentLoop {
           this.deps.conversationManager.finishStreaming(this.session);
           const errMsg = result.error || "LLM 调用失败";
           assistantMsg.content = assistantMsg.content || `调用失败：${errMsg}`;
+          // P5 断点恢复：LLM 失败时标记为中断
+          void markInterrupted(this.session.id).catch(() => {});
           this.callbacks.onError?.(new Error(errMsg));
           return;
         }
@@ -228,10 +241,15 @@ export class AgentLoop {
         // 结束流式
         this.deps.conversationManager.finishStreaming(this.session, finishReason);
 
+        // P5 断点恢复：每轮 LLM 完成后保存检查点（异步，不阻断）
+        void saveCheckpoint(this.session, { iteration: i + 1 }).catch(() => {});
+
         // 处理工具调用
         const toolCalls = Array.from(accumulatedToolCalls.values());
         if (toolCalls.length > 0) {
           this.deps.conversationManager.setToolCalls(this.session, toolCalls);
+          // 更新工具调用总数
+          void saveCheckpoint(this.session, { toolCallsTotal: toolCalls.length }).catch(() => {});
 
           // 执行工具
           const ctx: ToolContext = {
@@ -306,17 +324,26 @@ export class AgentLoop {
             this.callbacks.onToolResult(tc.id, result);
           }
 
+          // P5 断点恢复：工具执行完成后保存检查点（异步，不阻断）
+          void saveCheckpoint(this.session, {
+            toolCallsCompleted: (this.session.checkpoint?.toolCallsCompleted ?? 0) + toolCalls.length,
+          }).catch(() => {});
+
           // 继续下一轮循环
           continue;
         }
 
         // 无工具调用，结束循环
+        // P5 断点恢复：正常完成，清除检查点
+        void clearCheckpoint(this.session.id).catch(() => {});
         return;
       } catch (e) {
         this.llmAbortController = null;
         this.deps.conversationManager.finishStreaming(this.session);
         const err = e instanceof Error ? e : new Error(String(e));
         assistantMsg.content = assistantMsg.content || `发生错误：${err.message}`;
+        // P5 断点恢复：异常时标记为中断
+        void markInterrupted(this.session.id).catch(() => {});
         this.callbacks.onError?.(err);
         return;
       }
@@ -326,6 +353,8 @@ export class AgentLoop {
     const limitMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
     limitMsg.content = t("agent.maxIterationsReached", { count: this.config.maxIterations });
     this.deps.conversationManager.finishStreaming(this.session);
+    // P5 断点恢复：达到最大循环次数，标记为中断（未正常完成）
+    void markInterrupted(this.session.id).catch(() => {});
     void limitMsg;
   }
 

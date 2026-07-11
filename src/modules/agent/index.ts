@@ -100,3 +100,22 @@ export { specialistRegistry, SpecialistRegistry } from "./services/specialist-re
 export { runSpecialist, listAvailableSpecialists } from "./services/sub-agent-runner";
 export type { SpecialistAgent } from "./domain/specialist-types";
 export { BUILTIN_SPECIALISTS } from "./domain/specialist-types";
+
+// P5 断点恢复
+export {
+  initCheckpoint,
+  saveCheckpoint,
+  clearCheckpoint,
+  markInterrupted,
+  markRunningAsInterrupted,
+  listInterruptedSessions,
+  listRunningSessions,
+  getCheckpoint,
+  loadInterruptedSession,
+} from "./services/session-checkpoint";
+export type {
+  SessionCheckpoint,
+  CheckpointStatus,
+  CheckpointIndexEntry,
+} from "./domain/checkpoint-types";
+export { createCheckpoint } from "./domain/checkpoint-types";

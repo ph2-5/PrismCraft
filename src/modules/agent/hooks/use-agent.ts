@@ -40,6 +40,12 @@ import {
   type SessionListItem,
 } from "../services/session-storage";
 import {
+  markRunningAsInterrupted,
+  listInterruptedSessions,
+  loadInterruptedSession,
+  type CheckpointIndexEntry,
+} from "../services/session-checkpoint";
+import {
   shouldExtract,
   extractFromConversation,
   applyExtractedMemory,
@@ -140,6 +146,14 @@ export interface UseAgentReturn {
   deleteHistorySession: (sessionId: string) => Promise<void>;
   /** 刷新历史会话列表 */
   refreshHistory: () => Promise<void>;
+  /** 中断的会话列表（P5 断点恢复） */
+  interruptedSessions: CheckpointIndexEntry[];
+  /** 刷新中断会话列表 */
+  refreshInterruptedSessions: () => Promise<void>;
+  /** 恢复中断的会话（加载并展示历史，用户可重新发送消息继续） */
+  resumeInterruptedSession: (sessionId: string) => Promise<void>;
+  /** 忽略中断会话（清除检查点标记，保留会话历史） */
+  dismissInterruptedSession: (sessionId: string) => Promise<void>;
   /** 当前设置 */
   settings: AgentSettings;
   /** 更新设置 */
@@ -166,6 +180,7 @@ export function useAgent(): UseAgentReturn {
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [historySessions, setHistorySessions] = useState<SessionListItem[]>([]);
+  const [interruptedSessions, setInterruptedSessions] = useState<CheckpointIndexEntry[]>([]);
 
   const triggerRender = useCallback(() => {
     forceUpdate({});
@@ -181,9 +196,22 @@ export function useAgent(): UseAgentReturn {
     }
   }, []);
 
-  // 初始化：加载最近的会话 + 历史列表
+  /** 刷新中断会话列表（P5 断点恢复） */
+  const refreshInterruptedSessions = useCallback(async () => {
+    try {
+      const items = await listInterruptedSessions();
+      setInterruptedSessions(items);
+    } catch {
+      // 静默失败
+    }
+  }, []);
+
+  // 初始化：标记中断会话 + 加载最近的会话 + 历史列表
   useEffect(() => {
     void (async () => {
+      // P5 断点恢复：启动时将所有 running 状态的检查点标记为 interrupted
+      await markRunningAsInterrupted();
+      await refreshInterruptedSessions();
       await refreshHistory();
       // 如果有历史会话，加载最近的一个
       const items = await listSessions();
@@ -195,7 +223,7 @@ export function useAgent(): UseAgentReturn {
         }
       }
     })();
-     
+
   }, []);
 
   /** 根据设置构建 AgentLoopConfig */
@@ -377,6 +405,36 @@ export function useAgent(): UseAgentReturn {
     [refreshHistory],
   );
 
+  /** 恢复中断的会话（P5 断点恢复） */
+  const resumeInterruptedSession = useCallback(
+    async (sessionId: string) => {
+      if (isStreaming) return;
+      // 保存当前会话
+      await saveCurrentSession();
+      // 加载中断会话（会自动修正过期的 running 状态）
+      const loaded = await loadInterruptedSession(sessionId);
+      if (loaded) {
+        sessionRef.current = loaded;
+        setToolExecutions([]);
+        setError(null);
+        triggerRender();
+      }
+      // 刷新中断列表（恢复的会话不再标记为中断）
+      await refreshInterruptedSessions();
+    },
+    [isStreaming, saveCurrentSession, triggerRender, refreshInterruptedSessions],
+  );
+
+  /** 忽略中断会话（清除检查点标记，保留会话历史） */
+  const dismissInterruptedSession = useCallback(
+    async (sessionId: string) => {
+      const { clearCheckpoint } = await import("../services/session-checkpoint");
+      await clearCheckpoint(sessionId);
+      await refreshInterruptedSessions();
+    },
+    [refreshInterruptedSessions],
+  );
+
   /** 更新设置 */
   const updateSettings = useCallback(
     (partial: Partial<AgentSettings>) => {
@@ -398,6 +456,10 @@ export function useAgent(): UseAgentReturn {
     loadHistorySession,
     deleteHistorySession,
     refreshHistory,
+    interruptedSessions,
+    refreshInterruptedSessions,
+    resumeInterruptedSession,
+    dismissInterruptedSession,
     settings,
     updateSettings,
   };

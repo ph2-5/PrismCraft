@@ -8,6 +8,7 @@
  */
 
 import type { ToolDef, ToolCall, StreamChunk } from "@/domain/ports/ai-provider-port";
+import type { SessionCheckpoint } from "./checkpoint-types";
 
 /** Agent 消息角色 */
 export type AgentRole = "user" | "assistant" | "tool";
@@ -105,6 +106,14 @@ export interface AgentSession {
   conversationSummary?: string;
   /** 摘要覆盖的最新消息 ID（已摘要的消息范围标记，避免重复摘要） */
   summaryCoveredUpTo?: string;
+  /**
+   * P5 断点恢复：运行时检查点
+   *
+   * 仅在 AgentLoop 运行期间存在，正常完成后被清除。
+   * 应用重启时检测到此字段且 status=running，则标记为 interrupted，
+   * 用户可加载中断会话查看历史并重新发送消息继续。
+   */
+  checkpoint?: SessionCheckpoint;
 }
 
 /**

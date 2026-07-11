@@ -94,3 +94,9 @@ export type {
   ToolPluginLoadResult,
   ToolPluginsConfig,
 } from "./domain/tool-plugin-types";
+
+// P4 多 Agent 编排
+export { specialistRegistry, SpecialistRegistry } from "./services/specialist-registry";
+export { runSpecialist, listAvailableSpecialists } from "./services/sub-agent-runner";
+export type { SpecialistAgent } from "./domain/specialist-types";
+export { BUILTIN_SPECIALISTS } from "./domain/specialist-types";

@@ -31,12 +31,17 @@ import { subworkflowTools } from "./subworkflow-tools";
 import { memoryTools } from "./memory-tools";
 import { projectIoTools } from "./project-io-tools";
 import { fileManagementTools } from "./file-management-tools";
+import { specialistTools } from "./specialist-tools";
+import { specialistRegistry } from "../services/specialist-registry";
 
 let registered = false;
 
 /** 注册所有工具（幂等，重复调用无副作用） */
 export function registerAllTools(): void {
   if (registered) return;
+  // P4 多 Agent 编排：先注册内置 Specialist
+  specialistRegistry.registerBuiltins();
+
   toolRegistry.registerAll([
     ...assetTools,
     ...assetCrudTools,
@@ -59,6 +64,7 @@ export function registerAllTools(): void {
     ...memoryTools,
     ...projectIoTools,
     ...fileManagementTools,
+    ...specialistTools,
   ]);
   registered = true;
 }

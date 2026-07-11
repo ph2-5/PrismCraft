@@ -137,8 +137,11 @@ export class AgentLoop {
     // 1. 追加用户消息
     this.deps.conversationManager.appendUserMessage(this.session, userInput);
 
-    // 2. 构建初始 system prompt（动态注入项目状态）
+    // 2. 构建初始 system prompt（动态注入项目状态 + RAG + 摘要）
     const systemPrompt = await this.buildSystemPrompt(userInput);
+
+    // P2 深化：异步检测并触发对话摘要压缩（不阻断主流程）
+    void this.maybeSummarizeConversation();
 
     // 3. Agent Loop
     for (let i = 0; i < this.config.maxIterations; i++) {
@@ -349,7 +352,7 @@ export class AgentLoop {
     }
   }
 
-  /** 构建 system prompt（动态注入项目状态 + 核心记忆 + RAG 检索） */
+  /** 构建 system prompt（动态注入项目状态 + 核心记忆 + RAG 检索 + 对话摘要） */
   private async buildSystemPrompt(userMessage?: string): Promise<string> {
     const template = this.config.systemPromptOverride || DEFAULT_SYSTEM_PROMPT;
     const toolDescs = this.deps.toolRegistry.getToolDescriptions(this.config.enabledTools);
@@ -359,11 +362,84 @@ export class AgentLoop {
     const relevantMemory = userMessage
       ? await this.deps.memoryService.searchRelevant(userMessage, 3)
       : "";
+    // P2 深化：对话历史摘要注入
+    const conversationSummary = this.session.conversationSummary || "";
     return template
       .replace("{PROJECT_STATE}", projectState)
       .replace("{CORE_MEMORY}", coreMemory || "（暂无记忆）")
       .replace("{RELEVANT_MEMORY}", relevantMemory || "（无相关记忆）")
+      .replace("{CONVERSATION_SUMMARY}", conversationSummary || "（暂无摘要）")
       .replace("{AVAILABLE_TOOLS}", buildAvailableToolsSummary(toolDescs));
+  }
+
+  /**
+   * 检测并触发对话摘要压缩（P2 深化）
+   *
+   * 策略：
+   * - 计算当前消息历史的 token 总量
+   * - 超过阈值（maxHistoryTokens * 0.8）时触发摘要
+   * - 只摘要未被已摘要覆盖的旧消息（增量摘要）
+   * - 摘要结果缓存在 session.conversationSummary
+   * - 异步执行，不阻断 Agent Loop
+   */
+  private async maybeSummarizeConversation(): Promise<void> {
+    const maxHistoryTokens = this.config.contextBudget?.maxHistoryTokens
+      ?? DEFAULT_AGENT_CONFIG.contextBudget!.maxHistoryTokens;
+    const summarizeThreshold = Math.floor(maxHistoryTokens * 0.8);
+
+    // 估算当前消息 token 总量
+    const { estimateMessagesTokens } = await import("@/shared-logic/agent");
+    const totalTokens = estimateMessagesTokens(
+      this.session.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        toolCalls: m.toolCalls,
+      })),
+      false,
+    );
+
+    if (totalTokens < summarizeThreshold) {
+      return; // 未达阈值，不需要摘要
+    }
+
+    // 找到需要摘要的旧消息范围（未被 summaryCoveredUpTo 覆盖的）
+    const coveredId = this.session.summaryCoveredUpTo;
+    let toSummarize: typeof this.session.messages;
+    if (coveredId) {
+      const coveredIdx = this.session.messages.findIndex((m) => m.id === coveredId);
+      if (coveredIdx >= 0) {
+        // 摘要从 coveredIdx+1 开始到最近 N 条之前的消息（保留最近 10 条不摘要）
+        const recentKeep = 10;
+        const summarizeEnd = Math.max(coveredIdx + 1, this.session.messages.length - recentKeep);
+        toSummarize = this.session.messages.slice(coveredIdx + 1, summarizeEnd);
+      } else {
+        toSummarize = this.session.messages.slice(0, -10);
+      }
+    } else {
+      // 首次摘要：保留最近 10 条，摘要之前的
+      toSummarize = this.session.messages.slice(0, -10);
+    }
+
+    if (toSummarize.length < 3) {
+      return; // 可摘要的消息太少
+    }
+
+    // 异步触发摘要（不等待，不阻断）
+    void this.deps.memoryService
+      .summarizeConversation(toSummarize, this.session.conversationSummary)
+      .then((summary) => {
+        if (summary) {
+          this.session.conversationSummary = summary;
+          // 标记摘要覆盖到最后一条被摘要的消息
+          const lastSummarized = toSummarize[toSummarize.length - 1];
+          if (lastSummarized) {
+            this.session.summaryCoveredUpTo = lastSummarized.id;
+          }
+        }
+      })
+      .catch(() => {
+        // 摘要失败静默，不阻断
+      });
   }
 
   /** 序列化消息为 LLM 输入（textProvider 接收单字符串 prompt） */

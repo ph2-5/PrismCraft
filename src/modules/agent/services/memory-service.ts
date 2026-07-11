@@ -563,6 +563,71 @@ export async function _resetAllMemory(): Promise<void> {
   await saveArchivalMemory([]);
 }
 
+// ============= 上下文摘要压缩（P2 深化） =============
+
+/**
+ * 摘要对话历史（P2 上下文摘要压缩）
+ *
+ * 将旧消息压缩为摘要，释放上下文空间。
+ * - 使用 textProvider 从消息中提取关键信息
+ * - 支持增量摘要（合并已有摘要 + 新消息）
+ * - 失败时返回 null，不阻断 Agent Loop
+ *
+ * @param messages 需要摘要的消息列表
+ * @param existingSummary 已有的摘要（增量合并，传 undefined 表示首次摘要）
+ * @returns 新的摘要文本，或 null
+ */
+export async function summarizeConversation(
+  messages: AgentMessage[],
+  existingSummary?: string,
+): Promise<string | null> {
+  // 过滤出 user + assistant 消息（跳过 tool 消息，太结构化不适合摘要）
+  const dialogueMessages = messages.filter(
+    (m) => (m.role === "user" || (m.role === "assistant" && m.content)) && m.content,
+  );
+
+  if (dialogueMessages.length < 3) {
+    // 消息太少，不值得摘要
+    return null;
+  }
+
+  // 构建摘要 prompt
+  const conversationText = dialogueMessages
+    .map((m) => `${m.role === "user" ? "用户" : "助手"}: ${m.content!.slice(0, 500)}`)
+    .join("\n");
+
+  const summaryPrompt = existingSummary
+    ? `请更新以下对话摘要。合并已有摘要与新对话内容，保持简洁（200字以内）：
+
+已有摘要：
+${existingSummary}
+
+新对话：
+${conversationText}
+
+更新后的摘要（只输出摘要内容，不要其他文字）：`
+    : `请将以下对话摘要为简洁的要点（200字以内），保留关键决策、用户偏好和重要上下文：
+
+${conversationText}
+
+摘要（只输出摘要内容，不要其他文字）：`;
+
+  try {
+    const result = await container.textProvider.generateText(summaryPrompt, {
+      maxTokens: 300,
+      temperature: 0.3,
+    });
+
+    if (!result.success || !result.data?.text) {
+      return null;
+    }
+
+    return result.data.text.trim();
+  } catch {
+    return null;
+  }
+}
+
 // ============= MemoryService class（方案 3：实现 IMemoryService 接口） =============
 
 /**
@@ -601,6 +666,13 @@ export class MemoryService implements IMemoryService {
 
   async applyExtractedMemory(extracted: ExtractedMemory, sessionId?: string): Promise<void> {
     return applyExtractedMemory(extracted, sessionId);
+  }
+
+  async summarizeConversation(
+    messages: AgentMessage[],
+    existingSummary?: string,
+  ): Promise<string | null> {
+    return summarizeConversation(messages, existingSummary);
   }
 }
 

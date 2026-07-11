@@ -94,6 +94,16 @@ export interface AgentSession {
   messages: AgentMessage[];
   createdAt: number;
   updatedAt: number;
+  /**
+   * 对话摘要（P2 上下文摘要压缩）
+   *
+   * 当历史消息超过 token 预算被截断时，旧消息会被 LLM 摘要压缩。
+   * 摘要缓存在此字段，注入 system prompt 的 {CONVERSATION_SUMMARY} 占位符。
+   * 摘要随会话持久化，避免重复生成。
+   */
+  conversationSummary?: string;
+  /** 摘要覆盖的最新消息 ID（已摘要的消息范围标记，避免重复摘要） */
+  summaryCoveredUpTo?: string;
 }
 
 /**

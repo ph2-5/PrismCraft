@@ -166,6 +166,22 @@ export interface IMemoryService {
 
   /** 应用抽取结果到记忆系统（偏好合并 + 摘要追加） */
   applyExtractedMemory(extracted: ExtractedMemory, sessionId?: string): Promise<void>;
+
+  /**
+   * 摘要对话历史（P2 上下文摘要压缩）
+   *
+   * 将旧消息压缩为摘要，释放上下文空间。
+   * - 合并已有摘要与新消息（增量摘要，不重复摘要已覆盖的消息）
+   * - 失败时返回 null，不阻断 Agent Loop
+   *
+   * @param messages 需要摘要的消息列表
+   * @param existingSummary 已有的摘要（增量合并，传 undefined 表示首次摘要）
+   * @returns 新的摘要文本，或 null
+   */
+  summarizeConversation(
+    messages: AgentMessage[],
+    existingSummary?: string,
+  ): Promise<string | null>;
 }
 
 /**

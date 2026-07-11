@@ -16,7 +16,7 @@
 | 五、工程质量 | R3, R26, R27, R28, R33, R39, R40, R41, R54, R55, R57, R58, R59, R60, R87, R88, R92, R107, R135, R146, R147, R154, R155, R156, R159, R162, R165, R166, R175, R176, R177, R178, R179, R180, R181, R182, R188, R189 | 38 | [engineering.md](engineering.md) |
 | 六、平台兼容 | R21, R43, R49, R51, R52, R61 | 6 | [platform.md](platform.md) |
 | 七、用户安全防护 | R70, R71, R73, R74, R75, R76, R77, R89, R90, R91, R93, R94, R95, R96, R97, R98, R99 | 17 | [user-safety.md](user-safety.md) |
-| 八、系统安全 | R78, R79, R80, R81, R82, R83, R84, R100, R101, R102, R103, R104, R105, R111, R112, R113, R114, R118, R119, R120, R121, R123, R124, R126, R128, R130, R131, R132, R133, R137, R138, R139, R142, R143, R144, R145, R148, R149 | 38 | [system-security.md](system-security.md) |
+| 八、系统安全 | R78, R79, R80, R81, R82, R83, R84, R100, R101, R102, R103, R104, R105, R111, R112, R113, R114, R118, R119, R120, R121, R123, R124, R126, R128, R130, R131, R132, R133, R137, R138, R139, R142, R143, R144, R145, R148, R149, R190 | 39 | [system-security.md](system-security.md) |
 
 ## 使用方式
 
@@ -114,3 +114,4 @@
 | R187 | `useBeatDetail` 必须用 Zustand selector 订阅，禁止自定义 setInterval 轮询 | 异步安全 | `src/app/story/beat/$beatId/__tests__/regression-r187-no-setinterval-polling.test.ts` |
 | R188 | `network-monitor` 顶层副作用必须延迟到 startMonitoring() | 工程质量 | `src/infrastructure/network/__tests__/regression-r188-no-top-level-side-effects.test.ts` |
 | R189 | `video-cache` beforeunload 注册必须延迟到 registerObjectUrl() | 工程质量 | `src/infrastructure/storage/__tests__/regression-r189-no-top-level-beforeunload.test.ts` |
+| R190 | SSRF Guard 在 c-ares (dns.resolve4/6) 返回空时必须回退到 dns.lookup（系统 DNS），仍检查私有 IP | 系统安全 | — |

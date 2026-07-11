@@ -11,6 +11,24 @@
 
 - 暂无
 
+## [1.2.2] - 2026-07-11
+
+### Fixed
+
+- **SSRF 防护 DNS 回退修复**：`ssrf-guard` 的 `validateDns` 在 `dns.resolve4`/`dns.resolve6`（c-ares 库）返回空结果时，回退到 `dns.lookup`（系统 DNS via `getaddrinfo`），与 `fetch`/`http.request` 使用的解析方式一致。修复了在某些系统 DNS 配置下（c-ares 返回 `ECONNREFUSED`）所有公网 API 请求被误拦截为 "Cannot access private/internal URLs" 的问题。DNS rebinding 防护仍然有效——回退路径同样检查私有 IP (`d1814ae` 后修复)
+- 重构 `validateDns` 提取 `checkIpsAndCache` / `handleDnsFailure` 辅助方法，消除 3 处重复的私有 IP 检查与缓存逻辑
+
+### Changed
+
+- Agent 架构深化完成（P0-P5 + UI 集成 + E2E 测试），17 个 commits 累计：
+  - P0：LLMMessage 类型提升至 domain 层，`ITextProvider` 新增 `generateChat` 方法
+  - P1：Provider 接口改为 messages 数组，自适应双路径（原生 function calling 优先）
+  - P2：Agent 服务 DI 化（Port 接口 + 构造函数注入）
+  - P3：精确 Token 估算（CJK 1.5 token/char，ASCII 0.25 token/char）+ ContextBudget 分配
+  - P4：多 Agent 编排（`delegate_to_specialist` + 专家 Agent 管理面板）
+  - P5：断点恢复（AgentLoop 状态持久化 + 重启恢复 + 中断会话恢复横幅）
+  - E2E：12 场景覆盖 P0-P5 全链路（MockTextProvider + 真实 DeepSeek 冒烟验证）
+
 ## [1.2.1] - 2026-07-09
 
 ### Added

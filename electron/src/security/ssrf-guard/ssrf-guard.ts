@@ -327,25 +327,25 @@ class SsrfGuard {
           clearTimeout(timeout);
 
           const allAddrs = [...v4Addrs, ...v6Addrs];
+          // dns.resolve4/resolve6 使用 c-ares 库，在某些系统配置下会失败（如 ECONNREFUSED），
+          // 即使系统 DNS 正常工作。回退到 dns.lookup（通过 getaddrinfo 使用系统 DNS），
+          // 与 fetch/http.request 使用的解析方式一致，确保 DNS rebinding 防护仍然有效。
           if (allAddrs.length === 0) {
-            const policy = this.dnsFailurePolicy ?? "deny";
-            if (policy === "deny") {
-              resolve({ safe: false, reason: "DNS resolution failed: no addresses returned" });
-            } else {
-              logger.warn("DNS resolution returned no addresses, allowing due to policy", { hostname });
-              resolve({ safe: true });
-            }
+            dns.lookup(hostname, { all: true, family: 0 }, (lookupErr, lookupAddresses) => {
+              if (lookupErr || lookupAddresses.length === 0) {
+                resolve(this.handleDnsFailure(hostname, `DNS resolution failed: ${lookupErr?.message || "no addresses returned"}`));
+                return;
+              }
+              const ips = lookupAddresses.map((a) => a.address);
+              resolve(this.checkIpsAndCache(hostname, ips, "DNS lookup resolved to private IP"));
+            });
             return;
           }
 
           // 检查所有 IPv4 地址
           for (const ip of v4Addrs) {
             if (this.isPrivateIp(ip)) {
-              resolve({
-                safe: false,
-                reason: `DNS resolved to private IPv4: ${ip}`,
-                resolvedIp: ip,
-              });
+              resolve({ safe: false, reason: `DNS resolved to private IPv4: ${ip}`, resolvedIp: ip });
               return;
             }
           }
@@ -353,36 +353,54 @@ class SsrfGuard {
           // 检查所有 IPv6 地址
           for (const ip of v6Addrs) {
             if (this.isPrivateIp(ip)) {
-              resolve({
-                safe: false,
-                reason: `DNS resolved to private IPv6: ${ip}`,
-                resolvedIp: ip,
-              });
+              resolve({ safe: false, reason: `DNS resolved to private IPv6: ${ip}`, resolvedIp: ip });
               return;
             }
           }
 
           // 所有地址都是公网，优先使用第一个 IPv4 地址
-          const firstSafeIp = v4Addrs[0] ?? v6Addrs[0]!;
-          resolve({ safe: true, resolvedIp: firstSafeIp });
-          // 缓存大小限制：超过上限时删除最旧条目（Map 保持插入顺序）
-          if (this.resolvedIpCache.size >= this.MAX_CACHE_SIZE) {
-            const oldestKey = this.resolvedIpCache.keys().next().value;
-            if (oldestKey) this.resolvedIpCache.delete(oldestKey);
-          }
-          this.resolvedIpCache.set(hostname.toLowerCase(), { ip: firstSafeIp, timestamp: Date.now() });
+          resolve(this.checkIpsAndCache(hostname, allAddrs, "DNS resolved to private IP"));
         })
         .catch(() => {
           clearTimeout(timeout);
-          const policy = this.dnsFailurePolicy ?? "deny";
-          if (policy === "deny") {
-            resolve({ safe: false, reason: "DNS resolution failed" });
-          } else {
-            logger.warn("DNS resolution failed, allowing due to policy", { hostname });
-            resolve({ safe: true });
-          }
+          resolve(this.handleDnsFailure(hostname, "DNS resolution failed"));
         });
     });
+  }
+
+  /**
+   * 检查 IP 列表是否含私有地址，并缓存首个安全 IP。
+   * - 命中私有 IP → 返回 `{ safe: false, reason, resolvedIp }`
+   * - 全部公网 → 返回 `{ safe: true, resolvedIp }` 并写入缓存
+   */
+  private checkIpsAndCache(
+    hostname: string,
+    ips: string[],
+    privateReason: string,
+  ): SsrfValidationResult {
+    for (const ip of ips) {
+      if (this.isPrivateIp(ip)) {
+        return { safe: false, reason: `${privateReason}: ${ip}`, resolvedIp: ip };
+      }
+    }
+    const firstSafeIp = ips[0]!;
+    // 缓存大小限制：超过上限时删除最旧条目（Map 保持插入顺序）
+    if (this.resolvedIpCache.size >= this.MAX_CACHE_SIZE) {
+      const oldestKey = this.resolvedIpCache.keys().next().value;
+      if (oldestKey) this.resolvedIpCache.delete(oldestKey);
+    }
+    this.resolvedIpCache.set(hostname.toLowerCase(), { ip: firstSafeIp, timestamp: Date.now() });
+    return { safe: true, resolvedIp: firstSafeIp };
+  }
+
+  /** DNS 解析失败时按 dnsFailurePolicy 决定放行或拒绝 */
+  private handleDnsFailure(hostname: string, reason: string): SsrfValidationResult {
+    const policy = this.dnsFailurePolicy ?? "deny";
+    if (policy === "deny") {
+      return { safe: false, reason };
+    }
+    logger.warn("DNS resolution failed, allowing due to policy", { hostname, reason });
+    return { safe: true };
   }
 }
 

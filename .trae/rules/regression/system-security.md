@@ -1082,3 +1082,41 @@ const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
 
 **Discovered in**: Main-process OOM audit found `file/read` reading unbounded file sizes. Test: `electron/src/api/__tests__/regression-r149-file-read-size-limit.test.ts`.
 
+### R190: SSRF Guard MUST Fallback to dns.lookup When c-ares (dns.resolve4/6) Returns Empty
+
+`ssrfGuard.validateDns` in `electron/src/security/ssrf-guard/ssrf-guard.ts` MUST fall back to `dns.lookup` (system DNS via `getaddrinfo`) when both `dns.resolve4` and `dns.resolve6` (c-ares library) return empty results. The c-ares library used by `dns.resolve*` can fail with `ECONNREFUSED` on certain system DNS configurations (e.g. custom DNS servers, IPv6-only resolvers) even when the system DNS works fine for `fetch`/`http.request` (which use `dns.lookup`). Without the fallback, all public API requests get blocked by fail-close policy with "Cannot access private/internal URLs" / "DNS resolution failed: no addresses returned".
+
+The fallback path MUST still perform private IP checking on all resolved addresses — DNS rebinding protection remains effective because `dns.lookup` resolves real IPs via the OS.
+
+**BAD** — Only c-ares, no fallback (public APIs blocked on misconfigured systems):
+```typescript
+const allAddrs = [...v4Addrs, ...v6Addrs];
+if (allAddrs.length === 0) {
+  // ❌ c-ares ECONNREFUSED → fail-close → all public APIs blocked
+  return { safe: false, reason: "DNS resolution failed: no addresses returned" };
+}
+```
+
+**GOOD** — Fallback to system DNS, still check private IPs:
+```typescript
+const allAddrs = [...v4Addrs, ...v6Addrs];
+if (allAddrs.length === 0) {
+  // ✅ fall back to dns.lookup (getaddrinfo) — same resolver fetch/http use
+  const lookupAddrs = await dns.lookup(hostname, { all: true, family: 0 });
+  if (lookupAddrs.length === 0) {
+    return { safe: false, reason: "DNS resolution failed" };
+  }
+  // still check private IPs — DNS rebinding protection preserved
+  for (const { address } of lookupAddrs) {
+    if (isPrivateIp(address)) {
+      return { safe: false, reason: `DNS lookup resolved to private IP: ${address}` };
+    }
+  }
+  return { safe: true, resolvedIp: lookupAddrs[0].address };
+}
+```
+
+**Verification**: Mock `dns.resolve4` and `dns.resolve6` to both return empty arrays; mock `dns.lookup` to return `[{ address: "8.8.8.8" }]`; assert `safe === true`. Mock `dns.lookup` to return `[{ address: "10.0.0.1" }]`; assert `safe === false` and reason contains "private IP". Mock `dns.lookup` to throw; assert `safe === false` (fail-close).
+
+**Discovered in**: Runtime smoke test on Windows found DeepSeek API (`api.deepseek.com`) blocked by SSRF guard with "Cannot access private/internal URLs" because c-ares `dns.resolve4`/`dns.resolve6` returned `ECONNREFUSED` while system DNS (via `dns.lookup`) resolved correctly. Direct `fetch` to DeepSeek worked fine, confirming the issue was c-ares specific. Fix: `electron/src/security/ssrf-guard/ssrf-guard.ts` `validateDns` fallback path.
+

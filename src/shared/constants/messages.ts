@@ -2889,6 +2889,16 @@ const messages: Record<MessageKey, string> = {
   "agent.loadHistoryFailed": "加载历史会话失败",
   "agent.saveSessionFailed": "保存会话失败",
 
+  // P5 断点恢复
+  "agent.checkpoint.recovery": "恢复未完成的会话",
+  "agent.checkpoint.interruptedCount": "检测到 {count} 个未完成的会话",
+  "agent.checkpoint.resume": "恢复",
+  "agent.checkpoint.dismiss": "忽略",
+  "agent.checkpoint.dismissAll": "全部忽略",
+  "agent.checkpoint.interruptedAt": "中断于 {time}",
+  "agent.checkpoint.expand": "展开列表",
+  "agent.checkpoint.collapse": "收起",
+
   // 记忆系统
   "agent.memory": "记忆",
   "agent.memory.management": "记忆管理",

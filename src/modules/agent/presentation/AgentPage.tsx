@@ -18,6 +18,7 @@ import { useRef, useEffect, useState } from "react";
 import { useAgent } from "../hooks/use-agent";
 import { AgentMessageView } from "./AgentMessage";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
+import { CheckpointRecovery } from "./CheckpointRecovery";
 import { MemoryPanel } from "./MemoryPanel";
 import { SessionHistory } from "./SessionHistory";
 import { t } from "@/shared/constants";
@@ -49,6 +50,9 @@ export function AgentPage() {
     loadHistorySession,
     deleteHistorySession,
     refreshHistory,
+    interruptedSessions,
+    resumeInterruptedSession,
+    dismissInterruptedSession,
     settings,
     updateSettings,
   } = useAgent();
@@ -90,6 +94,13 @@ export function AgentPage() {
       if (!ok) return;
     }
     clearSession();
+  };
+
+  /** 忽略全部中断会话 */
+  const handleDismissAll = async () => {
+    await Promise.all(
+      interruptedSessions.map((entry) => dismissInterruptedSession(entry.sessionId)),
+    );
   };
 
   return (
@@ -185,6 +196,14 @@ export function AgentPage() {
           ref={scrollContainerRef}
           className="flex-1 overflow-y-auto px-4 py-4"
         >
+          {/* P5 断点恢复：中断会话恢复横幅 */}
+          <CheckpointRecovery
+            interruptedSessions={interruptedSessions}
+            onResume={resumeInterruptedSession}
+            onDismiss={dismissInterruptedSession}
+            onDismissAll={handleDismissAll}
+          />
+
           {session.messages.length === 0 ? (
             <EmptyState />
           ) : (

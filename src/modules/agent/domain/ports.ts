@@ -140,6 +140,20 @@ export interface IMemoryService {
   /** 构建核心记忆的 prompt 片段（注入 system prompt） */
   buildCoreMemoryPrompt(): Promise<string>;
 
+  /**
+   * 根据用户消息自动检索归档记忆（RAG 自动注入）
+   *
+   * 策略：
+   * - 根据用户最新消息检索 top-K 相关归档记忆
+   * - 返回格式化的 prompt 片段（注入 system prompt 的 {RELEVANT_MEMORY} 占位符）
+   * - 失败或无结果时返回空字符串（不阻断 Agent Loop）
+   *
+   * @param userMessage 用户最新消息
+   * @param limit 返回条数上限（默认 3）
+   * @returns 格式化的记忆片段，或空字符串
+   */
+  searchRelevant(userMessage: string, limit?: number): Promise<string>;
+
   /** 判断是否应该触发自动抽取（按用户消息数） */
   shouldExtract(messages: AgentMessage[]): boolean;
 

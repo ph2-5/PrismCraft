@@ -138,7 +138,7 @@ export class AgentLoop {
     this.deps.conversationManager.appendUserMessage(this.session, userInput);
 
     // 2. 构建初始 system prompt（动态注入项目状态）
-    const systemPrompt = await this.buildSystemPrompt();
+    const systemPrompt = await this.buildSystemPrompt(userInput);
 
     // 3. Agent Loop
     for (let i = 0; i < this.config.maxIterations; i++) {
@@ -349,15 +349,20 @@ export class AgentLoop {
     }
   }
 
-  /** 构建 system prompt（动态注入项目状态 + 核心记忆） */
-  private async buildSystemPrompt(): Promise<string> {
+  /** 构建 system prompt（动态注入项目状态 + 核心记忆 + RAG 检索） */
+  private async buildSystemPrompt(userMessage?: string): Promise<string> {
     const template = this.config.systemPromptOverride || DEFAULT_SYSTEM_PROMPT;
     const toolDescs = this.deps.toolRegistry.getToolDescriptions(this.config.enabledTools);
     const projectState = await buildDynamicProjectState();
     const coreMemory = await this.deps.memoryService.buildCoreMemoryPrompt();
+    // P1 深化：RAG 自动注入 — 根据用户消息检索归档记忆
+    const relevantMemory = userMessage
+      ? await this.deps.memoryService.searchRelevant(userMessage, 3)
+      : "";
     return template
       .replace("{PROJECT_STATE}", projectState)
       .replace("{CORE_MEMORY}", coreMemory || "（暂无记忆）")
+      .replace("{RELEVANT_MEMORY}", relevantMemory || "（无相关记忆）")
       .replace("{AVAILABLE_TOOLS}", buildAvailableToolsSummary(toolDescs));
   }
 

@@ -583,6 +583,10 @@ export class MemoryService implements IMemoryService {
     return buildCoreMemoryPrompt();
   }
 
+  async searchRelevant(userMessage: string, limit?: number): Promise<string> {
+    return searchRelevantMemory(userMessage, limit);
+  }
+
   shouldExtract(messages: AgentMessage[]): boolean {
     return shouldExtract(messages);
   }
@@ -602,3 +606,48 @@ export class MemoryService implements IMemoryService {
 
 /** 全局记忆服务单例（实现 IMemoryService） */
 export const memoryService = new MemoryService();
+
+// ============= RAG 自动注入（P1 深化） =============
+
+/**
+ * 根据用户消息自动检索归档记忆并格式化为 prompt 片段
+ *
+ * 策略：
+ * - 消息长度 <= 5 时不检索（太短无意义）
+ * - 调用 searchArchivalMemory 检索 top-K 相关记忆
+ * - 格式化为带时间戳的条目列表
+ * - 失败或无结果时返回空字符串
+ *
+ * @param userMessage 用户最新消息
+ * @param limit 返回条数上限（默认 3）
+ * @returns 格式化的记忆片段，或空字符串
+ */
+export async function searchRelevantMemory(
+  userMessage: string,
+  limit: number = 3,
+): Promise<string> {
+  // 太短的消息不触发检索
+  if (!userMessage || userMessage.trim().length <= 5) {
+    return "";
+  }
+
+  try {
+    const results = await searchArchivalMemory(userMessage, limit);
+    if (results.length === 0) {
+      return "";
+    }
+
+    // 格式化为 prompt 片段
+    const lines: string[] = [];
+    for (const entry of results) {
+      const time = new Date(entry.createdAt).toLocaleDateString("zh-CN");
+      const typeLabel = entry.type === "summary" ? "摘要" : entry.type === "fact" ? "事实" : "决策";
+      lines.push(`- [${typeLabel}][${time}] ${entry.content}`);
+    }
+
+    return lines.join("\n");
+  } catch {
+    // 检索失败不阻断 Agent Loop
+    return "";
+  }
+}

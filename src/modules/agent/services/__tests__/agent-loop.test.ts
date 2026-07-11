@@ -17,9 +17,11 @@ import type { ToolResult } from "../../domain/types";
 import { createEmptySession } from "../../domain/types";
 
 // ── 用 vi.hoisted 声明 mock 变量（vi.mock 工厂会在文件顶部执行） ──
-const { mockGenerateTextStream, mockExecute, mockVideoTaskStorage } = vi.hoisted(() => ({
+const { mockGenerateTextStream, mockGenerateChat, mockExecute, mockExecuteAll, mockVideoTaskStorage } = vi.hoisted(() => ({
   mockGenerateTextStream: vi.fn(),
+  mockGenerateChat: vi.fn(),
   mockExecute: vi.fn(),
+  mockExecuteAll: vi.fn(),
   mockVideoTaskStorage: {
     getVideoTasks: vi.fn().mockResolvedValue([]),
   },
@@ -30,6 +32,7 @@ vi.mock("@/infrastructure/di", () => ({
   container: {
     textProvider: {
       generateTextStream: mockGenerateTextStream,
+      generateChat: mockGenerateChat,
     },
     videoTaskStorage: mockVideoTaskStorage,
   },
@@ -51,7 +54,11 @@ vi.mock("@/shared/api-config", () => ({
 
 // ── Mock toolExecutor ──
 vi.mock("../tool-executor", () => ({
-  toolExecutor: { execute: mockExecute, requiresConfirmation: vi.fn().mockReturnValue(false) },
+  toolExecutor: {
+    execute: mockExecute,
+    executeAll: mockExecuteAll,
+    requiresConfirmation: vi.fn().mockReturnValue(false),
+  },
 }));
 
 // ── Mock toolRegistry ──
@@ -92,6 +99,8 @@ describe("AgentLoop", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVideoTaskStorage.getVideoTasks.mockResolvedValue([]);
+    // generateChat 默认返回失败，触发降级到 generateTextStream（测试原有行为）
+    mockGenerateChat.mockResolvedValue({ success: false, error: "not supported" });
   });
 
   describe("正常文本响应", () => {
@@ -156,18 +165,16 @@ describe("AgentLoop", () => {
         return mockStreamSuccess("查询完成");
       });
 
-      mockExecute.mockResolvedValue({
-        success: true,
-        data: { characters: [] },
-        duration: 10,
-      });
+      mockExecuteAll.mockResolvedValue([
+        { toolCall, result: { success: true, data: { characters: [] }, duration: 10 } },
+      ]);
 
       const loop = new AgentLoop(session, callbacks, { maxIterations: 5 });
       await loop.run("查询所有角色");
 
-      expect(mockExecute).toHaveBeenCalledTimes(1);
-      expect(mockExecute).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "tc_1" }),
+      expect(mockExecuteAll).toHaveBeenCalledTimes(1);
+      expect(mockExecuteAll).toHaveBeenCalledWith(
+        [expect.objectContaining({ id: "tc_1" })],
         expect.any(Object),
       );
       expect(callbacks.onToolCall).toHaveBeenCalledWith(toolCall);
@@ -194,16 +201,14 @@ describe("AgentLoop", () => {
         return mockStreamSuccess("抱歉");
       });
 
-      mockExecute.mockResolvedValue({
-        success: false,
-        error: "工具不存在",
-        duration: 5,
-      });
+      mockExecuteAll.mockResolvedValue([
+        { toolCall, result: { success: false, error: "工具不存在", duration: 5 } },
+      ]);
 
       const loop = new AgentLoop(session, callbacks, { maxIterations: 5 });
       await loop.run("test");
 
-      expect(mockExecute).toHaveBeenCalledTimes(1);
+      expect(mockExecuteAll).toHaveBeenCalledTimes(1);
       expect(callbacks.onToolResult).toHaveBeenCalledWith(
         "tc_fail",
         expect.objectContaining({ success: false }),
@@ -254,7 +259,9 @@ describe("AgentLoop", () => {
         return mockStreamSuccess("");
       });
 
-      mockExecute.mockResolvedValue({ success: true, data: {}, duration: 1 });
+      mockExecuteAll.mockImplementation(async (toolCalls: ToolCall[]) =>
+        toolCalls.map((tc) => ({ toolCall: tc, result: { success: true, data: {}, duration: 1 } })),
+      );
 
       const loop = new AgentLoop(session, callbacks, { maxIterations: 2 });
       await loop.run("test");
@@ -291,16 +298,19 @@ describe("AgentLoop", () => {
         return mockStreamSuccess("done");
       });
 
-      mockExecute.mockResolvedValue({ success: true, data: {}, duration: 1 });
+      mockExecuteAll.mockImplementation(async (toolCalls: ToolCall[]) =>
+        toolCalls.map((tc) => ({ toolCall: tc, result: { success: true, data: {}, duration: 1 } })),
+      );
 
       const loop = new AgentLoop(session, callbacks, { maxIterations: 3 });
       await loop.run("test");
 
       // 验证工具被调用，且参数合并正确
-      expect(mockExecute).toHaveBeenCalledTimes(1);
-      const executedCall = mockExecute.mock.calls[0]?.[0] as ToolCall;
-      expect(executedCall.function.name).toBe("search");
-      expect(executedCall.function.arguments).toBe('{"q":"test"}');
+      expect(mockExecuteAll).toHaveBeenCalledTimes(1);
+      const executedCalls = mockExecuteAll.mock.calls[0]?.[0] as ToolCall[];
+      const executedCall = executedCalls?.[0];
+      expect(executedCall?.function.name).toBe("search");
+      expect(executedCall?.function.arguments).toBe('{"q":"test"}');
     });
   });
 

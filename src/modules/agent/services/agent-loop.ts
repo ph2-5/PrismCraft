@@ -239,35 +239,65 @@ export class AgentLoop {
             },
           };
 
-          for (const tc of toolCalls) {
-            if (this.aborted) {
-              this.handleAbort();
-              return;
-            }
+          // P0 深化：工具并行执行
+          // 策略：
+          // 1. 先统一处理危险工具确认（串行询问，拒绝则标记跳过）
+          // 2. 确认通过的工具并行执行（executeAll）
+          // 3. 结果按 toolCalls 原始顺序回灌（保持 LLM 可读性）
+          if (this.aborted) {
+            this.handleAbort();
+            return;
+          }
 
-            // 危险工具确认检查（R-P0-1 修复）：
-            // requiresConfirmation=true 的工具（如 delete_file/move_file）必须经用户确认。
-            // 未提供 onConfirmationRequired 回调时，安全默认拒绝执行。
+          // Phase 1：危险工具确认（串行，避免并发弹窗冲突）
+          const approvedToolCalls: ToolCall[] = [];
+          const rejectedResults: Array<{ toolCall: ToolCall; result: ToolResult }> = [];
+
+          for (const tc of toolCalls) {
             if (this.deps.toolExecutor.requiresConfirmation(tc)) {
               const approved = this.callbacks.onConfirmationRequired
                 ? await this.callbacks.onConfirmationRequired(tc)
                 : false;
               if (!approved) {
-                const cancelledResult: ToolResult = {
-                  success: false,
-                  error: "用户拒绝执行此操作（需要确认）",
-                  duration: 0,
-                };
-                this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, cancelledResult);
-                this.callbacks.onToolResult(tc.id, cancelledResult);
+                rejectedResults.push({
+                  toolCall: tc,
+                  result: {
+                    success: false,
+                    error: "用户拒绝执行此操作（需要确认）",
+                    duration: 0,
+                  },
+                });
                 continue;
               }
             }
+            approvedToolCalls.push(tc);
+          }
 
+          // Phase 2：通知 UI 工具调用开始（所有已批准工具）
+          for (const tc of approvedToolCalls) {
             this.callbacks.onToolCall(tc);
-            const result = await this.deps.toolExecutor.execute(tc, ctx);
+          }
+
+          // Phase 3：并行执行已批准的工具
+          const maxResultTokens = this.config.maxToolResultTokens ?? 2000;
+          const executedResults = approvedToolCalls.length > 0
+            ? await this.deps.toolExecutor.executeAll(approvedToolCalls, ctx)
+            : [];
+
+          // Phase 4：按原始 toolCalls 顺序回灌结果（保持 LLM 可读性）
+          // 合并已执行结果和被拒绝结果，按原始顺序输出
+          const resultMap = new Map<string, ToolResult>();
+          for (const { toolCall, result } of executedResults) {
+            resultMap.set(toolCall.id, result);
+          }
+          for (const { toolCall, result } of rejectedResults) {
+            resultMap.set(toolCall.id, result);
+          }
+
+          for (const tc of toolCalls) {
+            const result = resultMap.get(tc.id);
+            if (!result) continue;
             // 截断过大的工具结果（仅影响传给 LLM 的内容，UI 收到完整结果）
-            const maxResultTokens = this.config.maxToolResultTokens ?? 2000;
             const llmResult = this.truncateToolResult(result, maxResultTokens);
             this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, llmResult);
             this.callbacks.onToolResult(tc.id, result);

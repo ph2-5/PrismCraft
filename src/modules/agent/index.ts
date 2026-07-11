@@ -34,7 +34,7 @@ export {
 } from "./services/session-storage";
 
 // 工具注册
-export { registerAllTools } from "./tools";
+export { registerAllTools, loadToolPlugins } from "./tools";
 
 // 领域类型
 export type {
@@ -72,3 +72,25 @@ export type { AgentSettings } from "./hooks/use-agent";
 // 人格模板
 export { AGENT_PERSONAS, DEFAULT_SYSTEM_PROMPT } from "./domain/prompts";
 export type { AgentPersona } from "./domain/prompts";
+
+// P3 工具插件化
+export {
+  loadToolPlugin,
+  unloadPlugin,
+  listLoadedPlugins,
+  saveToolPluginFile,
+  deleteToolPluginFile,
+  listToolPluginFiles,
+  loadAllToolPlugins,
+  ensureToolPluginsLoaded,
+} from "./services/tool-plugin-loader";
+export type {
+  ToolPluginConfig,
+  ToolPluginTool,
+  ToolPluginAction,
+  HttpCallAction,
+  BuiltinMirrorAction,
+  TextTemplateAction,
+  ToolPluginLoadResult,
+  ToolPluginsConfig,
+} from "./domain/tool-plugin-types";

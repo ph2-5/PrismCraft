@@ -32,6 +32,16 @@ class ToolRegistry implements IToolRegistry {
     }
   }
 
+  /**
+   * 卸载工具（P3 工具插件化）
+   *
+   * 用于动态移除插件工具。不存在时返回 false（不抛错，便于幂等卸载）。
+   * 内置工具也可被卸载，但通常不建议。
+   */
+  unregister(name: string): boolean {
+    return this.tools.delete(name);
+  }
+
   /** 按名称获取工具实现 */
   get(name: string): ToolImpl | undefined {
     return this.tools.get(name);

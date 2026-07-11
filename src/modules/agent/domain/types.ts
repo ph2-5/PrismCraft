@@ -59,7 +59,8 @@ export type ToolDomain =
   | "diagnostic"
   | "memory"
   | "project-io"
-  | "file-management";
+  | "file-management"
+  | "plugin";
 
 /** 工具执行上下文 */
 export interface ToolContext {

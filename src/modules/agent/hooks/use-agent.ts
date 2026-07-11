@@ -30,7 +30,7 @@ import type {
 import { createEmptySession } from "../domain/types";
 import type { StreamChunk, ToolCall } from "@/domain/ports/ai-provider-port";
 import { AgentLoop } from "../services/agent-loop";
-import { registerAllTools } from "../tools";
+import { registerAllTools, loadToolPlugins } from "../tools";
 import { AGENT_PERSONAS, type AgentPersona } from "../domain/prompts";
 import {
   persistSession,
@@ -147,9 +147,11 @@ export interface UseAgentReturn {
 }
 
 export function useAgent(): UseAgentReturn {
-  // 首次调用时注册工具
+  // 首次调用时注册工具 + 加载用户插件
   useEffect(() => {
     registerAllTools();
+    // P3 工具插件化：异步加载用户工具插件（不阻塞 UI）
+    void loadToolPlugins();
   }, []);
 
   // 持久化设置

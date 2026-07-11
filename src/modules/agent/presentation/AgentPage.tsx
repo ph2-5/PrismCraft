@@ -22,6 +22,7 @@ import { CheckpointRecovery } from "./CheckpointRecovery";
 import { MemoryPanel } from "./MemoryPanel";
 import { SessionHistory } from "./SessionHistory";
 import { ToolPluginManager } from "./ToolPluginManager";
+import { SpecialistPanel } from "./SpecialistPanel";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import {
@@ -37,6 +38,7 @@ import {
   BarChart3,
   Video,
   Package,
+  Users,
 } from "lucide-react";
 
 export function AgentPage() {
@@ -63,6 +65,7 @@ export function AgentPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
   const [showPlugins, setShowPlugins] = useState(false);
+  const [showSpecialists, setShowSpecialists] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -104,6 +107,14 @@ export function AgentPage() {
     await Promise.all(
       interruptedSessions.map((entry) => dismissInterruptedSession(entry.sessionId)),
     );
+  };
+
+  /** 委派任务给专家（通过 sendMessage 发送格式化指令） */
+  const handleDelegate = async (specialistId: string, task: string, context: string) => {
+    const instruction = context
+      ? `请委派任务给专家 \`${specialistId}\`：\n任务：${task}\n上下文：${context}`
+      : `请委派任务给专家 \`${specialistId}\`：\n${task}`;
+    await sendMessage(instruction);
   };
 
   return (
@@ -150,6 +161,7 @@ export function AgentPage() {
                 setShowMemory(!showMemory);
                 setShowSettings(false);
                 setShowPlugins(false);
+                setShowSpecialists(false);
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.memory.management")}
@@ -162,6 +174,7 @@ export function AgentPage() {
                 setShowPlugins(!showPlugins);
                 setShowMemory(false);
                 setShowSettings(false);
+                setShowSpecialists(false);
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.plugin.management")}
@@ -171,9 +184,23 @@ export function AgentPage() {
             </button>
             <button
               onClick={() => {
+                setShowSpecialists(!showSpecialists);
+                setShowMemory(false);
+                setShowSettings(false);
+                setShowPlugins(false);
+              }}
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={t("agent.specialist.management")}
+              aria-label={t("agent.specialist.management")}
+            >
+              <Users className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => {
                 setShowSettings(!showSettings);
                 setShowMemory(false);
                 setShowPlugins(false);
+                setShowSpecialists(false);
                 void refreshHistory();
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -210,6 +237,14 @@ export function AgentPage() {
           {/* 工具插件管理面板（下拉） */}
           {showPlugins && (
             <ToolPluginManager onClose={() => setShowPlugins(false)} />
+          )}
+
+          {/* 专家 Agent 管理面板（下拉） */}
+          {showSpecialists && (
+            <SpecialistPanel
+              onClose={() => setShowSpecialists(false)}
+              onDelegate={handleDelegate}
+            />
           )}
         </div>
 

@@ -19,6 +19,7 @@ export { SessionHistory } from "./presentation/SessionHistory";
 export { CheckpointRecovery } from "./presentation/CheckpointRecovery";
 export { ToolPluginManager } from "./presentation/ToolPluginManager";
 export { ToolPluginEditor } from "./presentation/ToolPluginEditor";
+export { SpecialistPanel } from "./presentation/SpecialistPanel";
 
 // 核心服务（供测试或高级用法使用）
 export { AgentLoop } from "./services/agent-loop";

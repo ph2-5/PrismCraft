@@ -830,9 +830,9 @@ describe("video-post-tools", () => {
       }
     });
 
-    it("34. compose_final_video 不要求用户确认（requiresConfirmation=false）", () => {
-      // 合成是新文件，不覆盖源，不需要确认
-      expect(composeFinalVideoTool.requiresConfirmation).toBe(false);
+    it("34. compose_final_video 标记为 limited 危险等级", () => {
+      // 合成消耗大量资源，标记为 limited（不自动确认，但记录危险等级）
+      expect(composeFinalVideoTool.dangerLevel).toBe("limited");
     });
   });
 });

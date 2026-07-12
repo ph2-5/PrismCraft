@@ -64,38 +64,46 @@ export const createVideoTaskTool: ToolImpl = {
         properties: {
           prompt: {
             type: "string",
+            maxLength: 5000,
             description: "视频生成提示词（必填）。描述期望的画面内容、镜头运动、动作等。",
           },
           firstFrameUrl: {
             type: "string",
+            maxLength: 2048,
             description: "首帧图片 URL。若提供，视频将从该帧开始生成。",
           },
           lastFrameUrl: {
             type: "string",
+            maxLength: 2048,
             description: "尾帧图片 URL。若提供，视频将结束于该帧。",
           },
           characterRef: {
             type: "string",
+            maxLength: 100,
             description: "角色 ID（用于角色一致性引用）。",
           },
           sceneRef: {
             type: "string",
+            maxLength: 100,
             description: "场景 ID（用于场景一致性引用）。",
           },
           duration: {
             type: "number",
+            minimum: 1,
+            maximum: 600,
             description: "视频时长（秒）。",
           },
-          providerId: { type: "string", description: "指定视频生成 provider ID（覆盖默认）" },
-          modelId: { type: "string", description: "指定视频生成 model ID（覆盖默认）" },
-          storyId: { type: "string", description: "关联的故事 ID（可选，便于按故事过滤）" },
-          beatId: { type: "string", description: "关联的分镜 ID（可选，便于按分镜过滤）" },
+          providerId: { type: "string", maxLength: 100, description: "指定视频生成 provider ID（覆盖默认）" },
+          modelId: { type: "string", maxLength: 100, description: "指定视频生成 model ID（覆盖默认）" },
+          storyId: { type: "string", maxLength: 100, description: "关联的故事 ID（可选，便于按故事过滤）" },
+          beatId: { type: "string", maxLength: 100, description: "关联的分镜 ID（可选，便于按分镜过滤）" },
         },
         required: ["prompt"],
       },
     },
   },
   domain: "video",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args) {
     const prompt = String(args.prompt);
@@ -217,6 +225,7 @@ export const listVideoTasksTool: ToolImpl = {
     },
   },
   domain: "video",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const storage = container.videoTaskStorage;
@@ -279,6 +288,7 @@ export const getVideoTaskTool: ToolImpl = {
     },
   },
   domain: "video",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const taskId = String(args.taskId);
@@ -314,6 +324,7 @@ export const queryVideoStatusTool: ToolImpl = {
     },
   },
   domain: "video",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const taskId = String(args.taskId);
@@ -388,7 +399,7 @@ export const cancelVideoTaskTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          taskId: { type: "string", description: "要取消的视频任务 ID（必填）" },
+          taskId: { type: "string", maxLength: 100, description: "要取消的视频任务 ID（必填）" },
         },
         required: ["taskId"],
       },
@@ -396,6 +407,7 @@ export const cancelVideoTaskTool: ToolImpl = {
   },
   domain: "video",
   requiresConfirmation: true,
+  dangerLevel: "destructive",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const taskId = String(args.taskId);
@@ -475,6 +487,7 @@ export const recoverVideoTaskTool: ToolImpl = {
     },
   },
   domain: "video",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const taskId = String(args.taskId);
@@ -605,7 +618,8 @@ export const batchCreateVideoTasksTool: ToolImpl = {
         properties: {
           tasks: {
             type: "array",
-            description: "任务列表（必填）。每个元素包含 prompt（必填）和可选的 firstFrameUrl/lastFrameUrl/storyId/beatId/duration。",
+            description: "任务列表（必填，最多 10 个）。每个元素包含 prompt（必填）和可选的 firstFrameUrl/lastFrameUrl/storyId/beatId/duration。",
+            maxItems: 10,
             items: {
               type: "object",
               properties: {
@@ -619,19 +633,23 @@ export const batchCreateVideoTasksTool: ToolImpl = {
               required: ["prompt"],
             },
           },
-          providerId: { type: "string", description: "指定视频生成 provider ID（应用于所有任务）" },
-          modelId: { type: "string", description: "指定视频生成 model ID（应用于所有任务）" },
+          providerId: { type: "string", maxLength: 100, description: "指定视频生成 provider ID（应用于所有任务）" },
+          modelId: { type: "string", maxLength: 100, description: "指定视频生成 model ID（应用于所有任务）" },
         },
         required: ["tasks"],
       },
     },
   },
   domain: "video",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args) {
     const tasksInput = args.tasks;
     if (!Array.isArray(tasksInput) || tasksInput.length === 0) {
       return { success: false, error: "tasks 必须是非空数组" };
+    }
+    if (tasksInput.length > 10) {
+      return { success: false, error: `tasks 数量超限（最多 10 个，实际 ${tasksInput.length} 个）。请分批提交。` };
     }
 
     const providerId = args.providerId ? String(args.providerId) : undefined;

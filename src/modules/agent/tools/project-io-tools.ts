@@ -19,6 +19,22 @@ import type { ToolImpl } from "../domain/types";
 import { TOOL_TIMEOUTS } from "../services/tool-executor";
 import { writeFile, readFile, getCacheDirectory } from "@/shared/file-http";
 
+// ============= 辅助函数 =============
+
+/**
+ * 检查路径是否属于 Agent 内部受保护目录。
+ * 防止 Agent 通过 export_project 覆盖审计日志/会话检查点。
+ */
+function isProtectedAgentPath(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/").toLowerCase();
+  const protectedSegments = [
+    "/agent/audit/",
+    "/agent/sessions/",
+    "/agent/tool-plugins/",
+  ];
+  return protectedSegments.some((seg) => normalized.includes(seg));
+}
+
 // ============= 工具实现 =============
 
 /** 导出整个项目数据为 JSON 文件 */
@@ -36,12 +52,14 @@ export const exportProjectTool: ToolImpl = {
           outputPath: {
             type: "string",
             description: "输出文件路径（.json）。不指定则保存到缓存目录，文件名自动生成。",
+            maxLength: 1024,
           },
         },
       },
     },
   },
   domain: "project-io",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { exportData } = await import("@/modules/asset/import-export");
@@ -54,6 +72,11 @@ export const exportProjectTool: ToolImpl = {
     const outputPath = args.outputPath
       ? String(args.outputPath)
       : await resolveOutputPath("project-exports", `project_${Date.now()}.json`);
+
+    // 保护 Agent 内部目录（防止覆盖审计日志/会话检查点）
+    if (isProtectedAgentPath(outputPath)) {
+      return { success: false, error: "输出路径受保护，不允许写入 Agent 内部目录" };
+    }
 
     const writeResult = await writeFile(outputPath, json);
     if (!writeResult.success) {
@@ -93,7 +116,7 @@ export const importProjectTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          filePath: { type: "string", description: "JSON 文件路径（必填）" },
+          filePath: { type: "string", description: "JSON 文件路径（必填）", maxLength: 1024 },
           mergeStrategy: {
             type: "string",
             enum: ["replace", "merge", "skip"],
@@ -107,6 +130,8 @@ export const importProjectTool: ToolImpl = {
   },
   domain: "project-io",
   timeoutMs: TOOL_TIMEOUTS.mutation,
+  dangerLevel: "destructive", // replace 策略会覆盖全量数据，标记为危险操作
+  requiresConfirmation: true,
   async execute(args) {
     const filePath = String(args.filePath);
     const mergeStrategy = String(args.mergeStrategy || "merge") as
@@ -167,12 +192,14 @@ export const exportCharactersTool: ToolImpl = {
           outputPath: {
             type: "string",
             description: "输出文件路径（.asa）。不指定则保存到缓存目录。",
+            maxLength: 1024,
           },
         },
       },
     },
   },
   domain: "project-io",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { assetExportService, characterService } = await import("@/modules/asset");
@@ -235,12 +262,14 @@ export const exportScenesTool: ToolImpl = {
           outputPath: {
             type: "string",
             description: "输出文件路径（.asa）。不指定则保存到缓存目录。",
+            maxLength: 1024,
           },
         },
       },
     },
   },
   domain: "project-io",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { assetExportService, sceneService } = await import("@/modules/asset");

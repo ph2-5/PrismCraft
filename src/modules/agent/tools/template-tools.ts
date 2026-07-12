@@ -120,14 +120,15 @@ export const listTemplatesTool: ToolImpl = {
             enum: ["wuxia", "scifi", "modern", "fantasy", "historical", "custom"],
             description: "按分类过滤（可选）",
           },
-          limit: { type: "number", description: "返回数量上限，默认 20，最大 100", default: 20 },
-          offset: { type: "number", description: "偏移量（分页），默认 0", default: 0 },
-          search: { type: "string", description: "搜索关键词（匹配名称/描述）" },
+          limit: { type: "number", description: "返回数量上限，默认 20，最大 100", default: 20, minimum: 1, maximum: 100 },
+          offset: { type: "number", description: "偏移量（分页），默认 0", default: 0, minimum: 0 },
+          search: { type: "string", description: "搜索关键词（匹配名称/描述）", maxLength: 500 },
         },
       },
     },
   },
   domain: "template",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const storage = container.templateStorage;
@@ -177,10 +178,11 @@ export const applyTemplateTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          templateId: { type: "string", description: "模板 ID（必填）" },
+          templateId: { type: "string", description: "模板 ID（必填）", maxLength: 100 },
           targetStoryId: {
             type: "string",
             description: "应用到指定故事（可选）。若提供，会将模板 beats 合并到该故事；否则创建新故事",
+            maxLength: 100,
           },
           options: {
             type: "object",
@@ -209,6 +211,7 @@ export const applyTemplateTool: ToolImpl = {
     },
   },
   domain: "template",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const templateId = String(args.templateId);
@@ -380,14 +383,14 @@ export const createTemplateTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "模板名称（必填）" },
-          description: { type: "string", description: "模板描述（必填）" },
+          name: { type: "string", description: "模板名称（必填）", maxLength: 200 },
+          description: { type: "string", description: "模板描述（必填）", maxLength: 1000 },
           category: {
             type: "string",
             enum: ["wuxia", "scifi", "modern", "fantasy", "historical", "custom"],
             description: "模板分类（必填）",
           },
-          sourceStoryId: { type: "string", description: "从指定故事创建（可选）。未提供则取最新故事" },
+          sourceStoryId: { type: "string", description: "从指定故事创建（可选）。未提供则取最新故事", maxLength: 100 },
           includeCharacters: { type: "boolean", description: "是否包含角色（默认 true）", default: true },
           includeScenes: { type: "boolean", description: "是否包含场景（默认 true）", default: true },
           includeBeats: { type: "boolean", description: "是否包含故事节拍（默认 true）", default: true },
@@ -397,6 +400,7 @@ export const createTemplateTool: ToolImpl = {
     },
   },
   domain: "template",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const name = String(args.name);
@@ -556,16 +560,19 @@ export const importTemplateTool: ToolImpl = {
           templatePath: {
             type: "string",
             description: "模板文件路径（JSON）。与 templateJson 二选一",
+            maxLength: 1024,
           },
           templateJson: {
             type: "string",
             description: "模板 JSON 字符串。与 templatePath 二选一",
+            maxLength: 50000,
           },
         },
       },
     },
   },
   domain: "template",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const templatePath = args.templatePath ? String(args.templatePath) : undefined;
@@ -663,10 +670,11 @@ export const exportTemplateTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          templateId: { type: "string", description: "模板 ID（必填）" },
+          templateId: { type: "string", description: "模板 ID（必填）", maxLength: 100 },
           outputPath: {
             type: "string",
             description: "输出文件路径（可选，默认写入缓存目录的 templates 子目录）",
+            maxLength: 1024,
           },
         },
         required: ["templateId"],
@@ -674,6 +682,7 @@ export const exportTemplateTool: ToolImpl = {
     },
   },
   domain: "template",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const templateId = String(args.templateId);

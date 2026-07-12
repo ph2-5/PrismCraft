@@ -36,6 +36,7 @@ export const getApiConfigTool: ToolImpl = {
     },
   },
   domain: "config",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute() {
     const { loadConfig } = await import("@/shared/api-config");
@@ -75,6 +76,7 @@ export const checkApiHealthTool: ToolImpl = {
     },
   },
   domain: "config",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute() {
     const { checkConfigStatus } = await import("@/shared/api-config");
@@ -97,6 +99,7 @@ export const listProvidersTool: ToolImpl = {
     },
   },
   domain: "config",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute() {
     const { loadConfig } = await import("@/shared/api-config");
@@ -142,6 +145,7 @@ export const testConnectionTool: ToolImpl = {
     },
   },
   domain: "config",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { testConnection } = await import("@/shared/api-config");
@@ -153,8 +157,8 @@ export const testConnectionTool: ToolImpl = {
     );
     return {
       success: result.success,
-      data: { capability, message: result.message },
-      error: result.success ? undefined : result.message,
+      data: { capability, message: result.success ? result.message : "连接测试失败" },
+      error: result.success ? undefined : "API 连接测试失败（详情请查看日志）",
     };
   },
 };
@@ -182,6 +186,7 @@ export const validateApiKeyTool: ToolImpl = {
     },
   },
   domain: "config",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { testConnection } = await import("@/shared/api-config");
@@ -189,8 +194,8 @@ export const validateApiKeyTool: ToolImpl = {
     const result = await testConnection(capability, String(args.providerId));
     return {
       success: result.success,
-      data: { providerId: args.providerId, capability, valid: result.success, message: result.message },
-      error: result.success ? undefined : `API key 验证失败：${result.message}`,
+      data: { providerId: args.providerId, capability, valid: result.success, message: result.success ? result.message : "验证失败" },
+      error: result.success ? undefined : "API key 验证失败（详情请查看日志）",
     };
   },
 };
@@ -208,13 +213,14 @@ export const configureApiProviderTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          apiKey: { type: "string", description: "API key（如 sk-xxx）" },
+          apiKey: { type: "string", description: "API key（如 sk-xxx）", maxLength: 500 },
           vendor: {
             type: "string",
+            maxLength: 200,
             description: "API 厂商名称。支持所有已注册 provider（含内置与插件），如 openai、anthropic、google、zhipu、deepseek、moonshot、qwen、openrouter、ollama（本地部署）、kuaishou（含 Kling 模型）、minimax、runway、pika、luma、seedance、volcengine、fireworks、byteplus、bedrock、pollinations、pixverse 等，或自定义 baseUrl。ollama 不需要真实 apiKey，可传任意占位符。vendor 列表动态派生自 provider 注册表，新增 provider JSON 或插件后自动可用。",
           },
-          baseUrl: { type: "string", description: "自定义 API base URL（可选，vendor 不在列表时必填）" },
-          modelName: { type: "string", description: "默认模型名称（可选，如 gpt-4、claude-3-opus）" },
+          baseUrl: { type: "string", description: "自定义 API base URL（可选，vendor 不在列表时必填）", maxLength: 2048 },
+          modelName: { type: "string", description: "默认模型名称（可选，如 gpt-4、claude-3-opus）", maxLength: 200 },
           capabilities: {
             type: "array",
             items: { type: "string", enum: ["text", "image", "vision", "video", "embedding", "audio"] },
@@ -228,6 +234,7 @@ export const configureApiProviderTool: ToolImpl = {
   },
   domain: "config",
   timeoutMs: TOOL_TIMEOUTS.mutation,
+  dangerLevel: "limited", // 修改 API 配置影响后续生成行为
   async execute(args, ctx) {
     const { loadConfig, saveConfig } = await import("@/shared/api-config");
     const { testConnection } = await import("@/shared/api-config");
@@ -294,7 +301,7 @@ export const configureApiProviderTool: ToolImpl = {
       testResults.push({
         capability: cap,
         success: result.success,
-        message: result.message,
+        message: result.success ? result.message : "测试失败",
       });
     }
 

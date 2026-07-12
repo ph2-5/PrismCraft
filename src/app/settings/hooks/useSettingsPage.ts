@@ -15,6 +15,8 @@ export type SettingsTab =
   | "api"
   | "autosave"
   | "sync"
+  | "embedding"
+  | "prompt-templates"
   | "system";
 
 interface AutoSaveSettingsData {

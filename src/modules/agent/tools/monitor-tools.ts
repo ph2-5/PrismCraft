@@ -76,6 +76,7 @@ export const monitorTasksTool: ToolImpl = {
     },
   },
   domain: "monitor",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const status = args.status ? String(args.status) : "active";
@@ -180,6 +181,7 @@ export const notifyCompletionTool: ToolImpl = {
     },
   },
   domain: "monitor",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const eventType = String(args.eventType) as "video_completed" | "video_failed" | "all";
@@ -237,14 +239,15 @@ export const getActivityLogTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          limit: { type: "number", description: "返回数量上限，默认 50，最大 200", default: 50 },
-          eventType: { type: "string", description: "按事件类型过滤（如 video_completed、character_created）" },
+          limit: { type: "number", description: "返回数量上限，默认 50，最大 200", default: 50, minimum: 1, maximum: 200 },
+          eventType: { type: "string", description: "按事件类型过滤（如 video_completed、character_created）", maxLength: 200 },
           since: { type: "number", description: "Unix 毫秒时间戳，只返回此时间之后的事件" },
         },
       },
     },
   },
   domain: "monitor",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     try {
@@ -315,13 +318,14 @@ export const watchProgressTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          taskId: { type: "string", description: "视频任务 ID（必填）" },
+          taskId: { type: "string", description: "视频任务 ID（必填）", maxLength: 100 },
         },
         required: ["taskId"],
       },
     },
   },
   domain: "monitor",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const taskId = String(args.taskId);
@@ -442,13 +446,14 @@ export const getErrorHistoryTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          limit: { type: "number", description: "返回数量上限，默认 20，最大 200", default: 20 },
+          limit: { type: "number", description: "返回数量上限，默认 20，最大 200", default: 20, minimum: 1, maximum: 200 },
           since: { type: "number", description: "Unix 毫秒时间戳，只返回此时间之后的错误" },
         },
       },
     },
   },
   domain: "monitor",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const limit = Math.min(Number(args.limit) || 20, 200);

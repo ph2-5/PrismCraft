@@ -9,6 +9,8 @@
 | ★★☆ | [DEPLOYMENT.md](DEPLOYMENT.md) | 构建、打包、CI/CD、运维监控、故障排查 | 部署/打包时 |
 | ★★☆ | [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) | 技术栈详解、各层设计、数据流、设计决策、术语表 | 深入了解系统 |
 | ★★☆ | [PROJECT-GUIDE.md](PROJECT-GUIDE.md) | 项目总览、设计哲学、契约体系、功能清单 | 了解项目全貌 |
+| ★★☆ | [USER-GUIDE.md](USER-GUIDE.md) | 面向终端用户的使用指南、配置教程、FAQ | 终端用户上手 |
+| ★★☆ | [HTTP-API.md](HTTP-API.md) | HTTP API 文档（85 条路由、9 个路由组） | 查阅主进程 API 时 |
 | ★★☆ | `src/modules/{target}/MODULE.md` | 目标模块公共 API、不变量、依赖 | 修改特定模块时 |
 | ★★☆ | `src/modules/{target}/{subdomain}/contract.json` | 子域合约、invariants | 修改特定子域时 |
 | ★☆☆ | [ports.md](ports.md) | Port 接口清单（16 个 Port） | 新增/修改 Port 时 |

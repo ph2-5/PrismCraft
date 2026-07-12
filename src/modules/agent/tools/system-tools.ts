@@ -26,6 +26,7 @@ export const getProjectStatsTool: ToolImpl = {
     },
   },
   domain: "system",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute() {
     const stats = {
@@ -97,6 +98,7 @@ export const getAppInfoTool: ToolImpl = {
     },
   },
   domain: "system",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute() {
     const { toolRegistry } = await import("../services/tool-registry");
@@ -129,6 +131,7 @@ export const getDiskUsageTool: ToolImpl = {
     },
   },
   domain: "system",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const { getCacheDirectory, getDiskSpace } = await import("@/shared/file-http");

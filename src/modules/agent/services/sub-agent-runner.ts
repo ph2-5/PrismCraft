@@ -7,6 +7,8 @@
  * - 防递归：子 Agent 不注册 delegate_to_specialist 工具（通过 enabledTools 白名单实现）
  * - 超时保护：子 Agent 默认 60s 超时（可配置）
  * - 上下文传递：主 Agent 将相关上下文作为子 Agent 的 task 前缀
+ * - 白名单硬执行：ToolExecutor 注入 allowedTools，LLM 幻觉调用白名单外工具会被拒绝
+ * - 危险操作确认：子 Agent 的危险操作通过 onConfirmationRequired 回调向上传播给主 Agent
  *
  * 工作流程：
  * 1. 主 Agent 调用 delegate_to_specialist(specialistId, task, context)
@@ -17,12 +19,13 @@
  *
  * 注意事项：
  * - 子 Agent 的 onChunk/onToolCall/onToolResult 回调为空操作（不直接显示给用户）
- * - 子 Agent 不触发用户确认（onConfirmationRequired 返回 true，由主 Agent 在委派前确认）
+ * - 子 Agent 的危险操作通过 onConfirmationRequired 向上传播给主 Agent UI
  * - 子 Agent 的 session 不持久化（临时内存对象）
  */
 
 import type { AgentSession, AgentLoopCallbacks, ToolResult, ToolContext } from "../domain/types";
 import { AgentLoop } from "./agent-loop";
+import { ToolExecutor } from "./tool-executor";
 import { specialistRegistry } from "./specialist-registry";
 import { createEmptySession } from "../domain/types";
 
@@ -36,6 +39,7 @@ const DEFAULT_SUB_AGENT_TIMEOUT_MS = 60_000;
  * @param task 子任务描述（子 Agent 的用户输入）
  * @param context 任务上下文（主 Agent 传递的背景信息，追加到 task 前面）
  * @param parentCtx 父工具上下文（用于取消信号传递）
+ * @param parentConfirmation 父 Agent 的确认回调（用于向上传播危险操作确认）
  * @returns ToolResult，data 含 specialist/task/result/toolCallsCount
  */
 export async function runSpecialist(
@@ -43,6 +47,7 @@ export async function runSpecialist(
   task: string,
   context: string,
   parentCtx?: ToolContext,
+  parentConfirmation?: (toolCall: import("@/domain/ports/ai-provider-port").ToolCall) => Promise<boolean>,
 ): Promise<ToolResult> {
   const startTime = Date.now();
 
@@ -72,7 +77,25 @@ export async function runSpecialist(
   let toolCallsCount = 0;
   const toolResultsSummary: string[] = [];
 
-  // 5. 配置 callbacks（不直接显示给用户）
+  // 5. 超时保护（必须在 callbacks 之前初始化，因为 callbacks 引用 timeoutController.signal）
+  const timeoutMs = DEFAULT_SUB_AGENT_TIMEOUT_MS;
+  const timeoutController = new AbortController();
+  const timer = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+  // 外部取消信号联动
+  if (parentCtx?.signal) {
+    if (parentCtx.signal.aborted) {
+      clearTimeout(timer);
+      return {
+        success: false,
+        error: "已取消",
+        duration: Date.now() - startTime,
+      };
+    }
+    parentCtx.signal.addEventListener("abort", () => timeoutController.abort(), { once: true });
+  }
+
+  // 6. 配置 callbacks（不直接显示给用户）
   const callbacks: AgentLoopCallbacks = {
     onChunk: (chunk) => {
       if (chunk.delta) {
@@ -93,45 +116,43 @@ export async function runSpecialist(
     onError: (error) => {
       toolResultsSummary.push(`- 子 Agent 错误: ${error.message.slice(0, 100)}`);
     },
-    // 子 Agent 的危险工具确认：由主 Agent 在委派前确认，子 Agent 内部默认允许
-    onConfirmationRequired: async () => true,
-    // 传递取消信号
-    signal: parentCtx?.signal,
+    // 危险工具确认：向上传播给主 Agent UI（如果主 Agent 提供了确认回调）
+    // 如果主 Agent 未提供确认回调，则默认拒绝（安全默认）
+    onConfirmationRequired: parentConfirmation ?? (async () => false),
+    // 传递超时 + 取消信号（timeoutController 同时响应 60s 超时和父 Agent 取消）
+    signal: timeoutController.signal,
   };
 
-  // 6. 构建 AgentLoop 配置
+  // 7. 构建 AgentLoop 配置
   const config: Partial<import("../domain/types").AgentLoopConfig> = {
     systemPromptOverride: specialist.systemPrompt,
     enabledTools: specialist.enabledTools,
     temperature: specialist.temperature,
     maxIterations: specialist.maxIterations ?? 5,
+    // P1-B：标记来源 Specialist，用于审计日志区分工具调用来源
+    specialistName: specialist.name,
   };
 
-  // 7. 创建并运行子 AgentLoop
-  const loop = new AgentLoop(session, callbacks, config);
+  // 7.1 创建带白名单的 ToolExecutor（硬执行 Specialist 工具白名单）
+  const whitelistedExecutor = new ToolExecutor(undefined, specialist.enabledTools);
 
-  // 超时保护
-  const timeoutMs = DEFAULT_SUB_AGENT_TIMEOUT_MS;
-  const timeoutController = new AbortController();
-  const timer = setTimeout(() => timeoutController.abort(), timeoutMs);
-
-  // 外部取消信号联动
-  if (parentCtx?.signal) {
-    if (parentCtx.signal.aborted) {
-      clearTimeout(timer);
-      return {
-        success: false,
-        error: "已取消",
-        duration: Date.now() - startTime,
-      };
-    }
-    parentCtx.signal.addEventListener("abort", () => timeoutController.abort(), { once: true });
-  }
+  // 8. 创建并运行子 AgentLoop（注入白名单 executor）
+  const loop = new AgentLoop(session, callbacks, config, {
+    toolExecutor: whitelistedExecutor,
+  });
 
   try {
     await loop.run(subTaskInput);
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
+    // 超时导致的 abort 不算错误
+    if (timeoutController.signal.aborted) {
+      return {
+        success: false,
+        error: `子 Agent 执行超时（${timeoutMs / 1000}s）`,
+        duration: Date.now() - startTime,
+      };
+    }
     return {
       success: false,
       error: `子 Agent 运行失败: ${errMsg}`,

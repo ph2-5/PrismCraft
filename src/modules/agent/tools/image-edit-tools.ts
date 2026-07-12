@@ -148,7 +148,7 @@ export const editImageTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          imageUrl: { type: "string", description: "输入图片 URL 或本地路径" },
+          imageUrl: { type: "string", maxLength: 2048, description: "输入图片 URL" },
           operations: {
             type: "array",
             description: "操作序列，按顺序依次应用。每个元素包含 type 和 params。",
@@ -170,6 +170,7 @@ export const editImageTool: ToolImpl = {
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);
@@ -210,17 +211,18 @@ export const cropImageTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          imageUrl: { type: "string", description: "输入图片 URL 或本地路径" },
-          x: { type: "number", description: "裁剪起始 X 坐标（像素）" },
-          y: { type: "number", description: "裁剪起始 Y 坐标（像素）" },
-          width: { type: "number", description: "裁剪宽度（像素）" },
-          height: { type: "number", description: "裁剪高度（像素）" },
+          imageUrl: { type: "string", maxLength: 2048, description: "输入图片 URL 或本地路径" },
+          x: { type: "number", minimum: 0, description: "裁剪起始 X 坐标（像素）" },
+          y: { type: "number", minimum: 0, description: "裁剪起始 Y 坐标（像素）" },
+          width: { type: "number", minimum: 1, maximum: 10000, description: "裁剪宽度（像素）" },
+          height: { type: "number", minimum: 1, maximum: 10000, description: "裁剪高度（像素）" },
         },
         required: ["imageUrl", "x", "y", "width", "height"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);
@@ -261,22 +263,24 @@ export const mergeImagesTool: ToolImpl = {
         properties: {
           imageUrls: {
             type: "array",
-            items: { type: "string" },
+            items: { type: "string", maxLength: 2048 },
             description: "图片 URL 数组（2-9 张）",
+            maxItems: 9,
           },
           layout: {
             type: "string",
             enum: ["horizontal", "vertical", "grid"],
             description: "排列方式：horizontal=水平排列, vertical=垂直排列, grid=网格排列",
           },
-          gap: { type: "number", description: "图片间距（像素），默认 10", default: 10 },
-          background: { type: "string", description: "背景色，默认 #ffffff", default: "#ffffff" },
+          gap: { type: "number", minimum: 0, maximum: 1000, description: "图片间距（像素），默认 10", default: 10 },
+          background: { type: "string", maxLength: 200, description: "背景色，默认 #ffffff", default: "#ffffff" },
         },
         required: ["imageUrls", "layout"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const imageUrls = (args.imageUrls as string[]) ?? [];
@@ -380,18 +384,19 @@ export const compositeImageTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          backgroundUrl: { type: "string", description: "背景图片 URL" },
-          foregroundUrl: { type: "string", description: "前景图片 URL" },
-          x: { type: "number", description: "前景左上角 X 坐标，默认 0", default: 0 },
-          y: { type: "number", description: "前景左上角 Y 坐标，默认 0", default: 0 },
-          scale: { type: "number", description: "前景缩放比例，默认 1.0", default: 1.0 },
-          opacity: { type: "number", description: "前景透明度（0-1），默认 1", default: 1 },
+          backgroundUrl: { type: "string", maxLength: 2048, description: "背景图片 URL" },
+          foregroundUrl: { type: "string", maxLength: 2048, description: "前景图片 URL" },
+          x: { type: "number", minimum: 0, description: "前景左上角 X 坐标，默认 0", default: 0 },
+          y: { type: "number", minimum: 0, description: "前景左上角 Y 坐标，默认 0", default: 0 },
+          scale: { type: "number", minimum: 0.01, maximum: 100, description: "前景缩放比例，默认 1.0", default: 1.0 },
+          opacity: { type: "number", minimum: 0, maximum: 1, description: "前景透明度（0-1），默认 1", default: 1 },
         },
         required: ["backgroundUrl", "foregroundUrl"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const backgroundUrl = String(args.backgroundUrl);
@@ -431,15 +436,16 @@ export const removeBackgroundTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          imageUrl: { type: "string", description: "输入图片 URL" },
-          providerId: { type: "string", description: "指定 AI provider ID（可选）" },
-          modelId: { type: "string", description: "指定 AI 模型 ID（可选）" },
+          imageUrl: { type: "string", maxLength: 2048, description: "输入图片 URL" },
+          providerId: { type: "string", maxLength: 100, description: "指定 AI provider ID（可选）" },
+          modelId: { type: "string", maxLength: 100, description: "指定 AI 模型 ID（可选）" },
         },
         required: ["imageUrl"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);
@@ -495,19 +501,20 @@ export const applyFilterTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          imageUrl: { type: "string", description: "输入图片 URL" },
+          imageUrl: { type: "string", maxLength: 2048, description: "输入图片 URL" },
           filter: {
             type: "string",
             enum: ["grayscale", "sepia", "invert", "blur", "sharpen", "vintage", "cool", "warm"],
             description: "滤镜类型",
           },
-          intensity: { type: "number", description: "强度（0-1），默认 1", default: 1 },
+          intensity: { type: "number", minimum: 0, maximum: 1, description: "强度（0-1），默认 1", default: 1 },
         },
         required: ["imageUrl", "filter"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);
@@ -621,17 +628,18 @@ export const adjustColorsTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          imageUrl: { type: "string", description: "输入图片 URL" },
-          brightness: { type: "number", description: "亮度调整（-100 到 100），默认 0", default: 0 },
-          contrast: { type: "number", description: "对比度调整（-100 到 100），默认 0", default: 0 },
-          saturation: { type: "number", description: "饱和度调整（-100 到 100），默认 0", default: 0 },
-          hue: { type: "number", description: "色相旋转（-180 到 180 度），默认 0", default: 0 },
+          imageUrl: { type: "string", maxLength: 2048, description: "输入图片 URL" },
+          brightness: { type: "number", minimum: -100, maximum: 100, description: "亮度调整（-100 到 100），默认 0", default: 0 },
+          contrast: { type: "number", minimum: -100, maximum: 100, description: "对比度调整（-100 到 100），默认 0", default: 0 },
+          saturation: { type: "number", minimum: -100, maximum: 100, description: "饱和度调整（-100 到 100），默认 0", default: 0 },
+          hue: { type: "number", minimum: -180, maximum: 180, description: "色相旋转（-180 到 180 度），默认 0", default: 0 },
         },
         required: ["imageUrl"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);
@@ -673,30 +681,31 @@ export const inpaintTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          imageUrl: { type: "string", description: "输入图片 URL" },
-          maskUrl: { type: "string", description: "蒙版图片 URL（白色区域表示需修复），可选" },
+          imageUrl: { type: "string", maxLength: 2048, description: "输入图片 URL" },
+          maskUrl: { type: "string", maxLength: 2048, description: "蒙版图片 URL（白色区域表示需修复），可选" },
           maskRegions: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                x: { type: "number" },
-                y: { type: "number" },
-                width: { type: "number" },
-                height: { type: "number" },
+                x: { type: "number", minimum: 0 },
+                y: { type: "number", minimum: 0 },
+                width: { type: "number", minimum: 1, maximum: 10000 },
+                height: { type: "number", minimum: 1, maximum: 10000 },
               },
             },
             description: "需修复的矩形区域列表（可选）",
           },
-          prompt: { type: "string", description: "修复提示词（可选）" },
-          providerId: { type: "string", description: "指定 AI provider ID（可选）" },
-          modelId: { type: "string", description: "指定 AI 模型 ID（可选）" },
+          prompt: { type: "string", maxLength: 5000, description: "修复提示词（可选）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 AI provider ID（可选）" },
+          modelId: { type: "string", maxLength: 100, description: "指定 AI 模型 ID（可选）" },
         },
         required: ["imageUrl"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);
@@ -731,23 +740,24 @@ export const addTextOverlayTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          imageUrl: { type: "string", description: "输入图片 URL" },
-          text: { type: "string", description: "水印文字内容" },
-          x: { type: "number", description: "文字左上角 X 坐标，默认 10", default: 10 },
-          y: { type: "number", description: "文字基线 Y 坐标，默认 10", default: 10 },
-          fontSize: { type: "number", description: "字体大小（px），默认 24", default: 24 },
-          fontFamily: { type: "string", description: "字体族，默认 Arial", default: "Arial" },
-          color: { type: "string", description: "文字颜色，默认 #ffffff", default: "#ffffff" },
-          strokeColor: { type: "string", description: "描边颜色，默认 #000000", default: "#000000" },
-          strokeWidth: { type: "number", description: "描边宽度（px），默认 2", default: 2 },
-          opacity: { type: "number", description: "透明度（0-1），默认 1", default: 1 },
-          rotation: { type: "number", description: "旋转角度（度），默认 0", default: 0 },
+          imageUrl: { type: "string", maxLength: 2048, description: "输入图片 URL" },
+          text: { type: "string", maxLength: 1000, description: "水印文字内容" },
+          x: { type: "number", minimum: 0, description: "文字左上角 X 坐标，默认 10", default: 10 },
+          y: { type: "number", minimum: 0, description: "文字基线 Y 坐标，默认 10", default: 10 },
+          fontSize: { type: "number", minimum: 1, maximum: 500, description: "字体大小（px），默认 24", default: 24 },
+          fontFamily: { type: "string", maxLength: 200, description: "字体族，默认 Arial", default: "Arial" },
+          color: { type: "string", maxLength: 200, description: "文字颜色，默认 #ffffff", default: "#ffffff" },
+          strokeColor: { type: "string", maxLength: 200, description: "描边颜色，默认 #000000", default: "#000000" },
+          strokeWidth: { type: "number", minimum: 0, maximum: 50, description: "描边宽度（px），默认 2", default: 2 },
+          opacity: { type: "number", minimum: 0, maximum: 1, description: "透明度（0-1），默认 1", default: 1 },
+          rotation: { type: "number", minimum: -360, maximum: 360, description: "旋转角度（度），默认 0", default: 0 },
         },
         required: ["imageUrl", "text"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);
@@ -804,18 +814,19 @@ export const resizeImageTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          imageUrl: { type: "string", description: "输入图片 URL" },
-          width: { type: "number", description: "目标宽度（像素），可选" },
-          height: { type: "number", description: "目标高度（像素），可选" },
+          imageUrl: { type: "string", maxLength: 2048, description: "输入图片 URL" },
+          width: { type: "number", minimum: 1, maximum: 10000, description: "目标宽度（像素），可选" },
+          height: { type: "number", minimum: 1, maximum: 10000, description: "目标高度（像素），可选" },
           maintainAspect: { type: "boolean", description: "是否保持宽高比，默认 true", default: true },
-          maxWidth: { type: "number", description: "最大宽度（仅缩小不放大），可选" },
-          maxHeight: { type: "number", description: "最大高度（仅缩小不放大），可选" },
+          maxWidth: { type: "number", minimum: 1, maximum: 10000, description: "最大宽度（仅缩小不放大），可选" },
+          maxHeight: { type: "number", minimum: 1, maximum: 10000, description: "最大高度（仅缩小不放大），可选" },
         },
         required: ["imageUrl"],
       },
     },
   },
   domain: "image-edit",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);

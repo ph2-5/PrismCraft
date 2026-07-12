@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
-import { Lightbulb, RefreshCw, Settings } from "lucide-react";
+import { Lightbulb, RefreshCw, Settings, Download } from "lucide-react";
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
 import { ErrorLogViewer } from "@/shared/presentation/ErrorBoundary";
 import { ApiConfigPanel } from "./ApiConfigPanel";
+import { EmbeddingModelPanel } from "./EmbeddingModelPanel";
+import { PromptTemplatePanel } from "./PromptTemplatePanel";
 import { SyncSettingsPanel } from "@/modules/sync";
 import { useSettingsPage, type SettingsTab } from "./hooks/useSettingsPage";
 import { getCacheDirectory, getDiskSpace } from "@/shared/file-http";
 import { storyService } from "@/modules/story";
 import { errorLogger } from "@/shared/error-logger";
 import { formatBytes } from "@/shared/utils/format";
+import { isElectron } from "@/shared/utils/platform";
 
 function formatUptime(ms: number): string {
   const seconds = Math.floor(ms / 1000);
@@ -128,6 +131,8 @@ function SystemInfoCard() {
   const [diskInfo, setDiskInfo] = useState<{ text: string; ok: boolean } | null>(null);
   const [projectCount, setProjectCount] = useState<number | null>(null);
   const [uptime, setUptime] = useState<string>("—");
+  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<string>("");
 
   useEffect(() => {
     let cancelled = false;
@@ -205,6 +210,42 @@ function SystemInfoCard() {
         <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
           <div style={{ fontSize: 20, fontWeight: 700, color: "var(--success)" }}>{APP_VERSION}</div>
           <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.version")}</div>
+          {isElectron() && window.electronAPI?.checkForUpdates && (
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ marginTop: 8, fontSize: 11 }}
+              disabled={updateChecking}
+              onClick={async () => {
+                setUpdateChecking(true);
+                setUpdateMessage("");
+                try {
+                  const result = await window.electronAPI!.checkForUpdates!();
+                  if (result.success && result.updateAvailable) {
+                    setUpdateMessage(t("settings.updateAvailable", { version: result.version ?? "" }));
+                  } else if (result.success) {
+                    setUpdateMessage(t("settings.updateLatest"));
+                  } else {
+                    setUpdateMessage(t("settings.updateError") + (result.error ? `: ${result.error}` : ""));
+                  }
+                } catch {
+                  setUpdateMessage(t("settings.updateError"));
+                } finally {
+                  setUpdateChecking(false);
+                }
+              }}
+            >
+              {updateChecking ? (
+                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Download className="h-3 w-3 mr-1" />
+              )}
+              {updateChecking ? t("settings.checkingUpdates") : t("settings.checkUpdates")}
+            </button>
+          )}
+          {updateMessage && (
+            <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 6 }}>{updateMessage}</div>
+          )}
         </div>
         <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>{uptime}</div>
@@ -235,6 +276,8 @@ export default function SettingsPage() {
     { id: "api", icon: "", label: t("settings.apiConfig") },
     { id: "autosave", icon: "", label: t("settings.autoSave") },
     { id: "sync", icon: "", label: t("sync.settingsTitle") },
+    { id: "embedding", icon: "", label: t("settings.embeddingModel") },
+    { id: "prompt-templates", icon: "", label: t("settings.promptTemplates") },
     { id: "system", icon: "", label: t("settings.systemStatus") },
   ];
 
@@ -245,7 +288,7 @@ export default function SettingsPage() {
         <div className="top-tabs" style={{ justifyContent: "space-between" }}>
           <span style={{ fontWeight: 600, fontSize: 14 }}><Settings className="inline-block" size={14} /> {t("page.settings")}</span>
           <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
-            {t("settings.apiConfig")} · {t("settings.autoSave")} · {t("sync.settingsTitle")} · {t("settings.systemStatus")}
+            {t("settings.apiConfig")} · {t("settings.autoSave")} · {t("sync.settingsTitle")} · {t("settings.embeddingModel")} · {t("settings.promptTemplates")} · {t("settings.systemStatus")}
           </span>
         </div>
 
@@ -329,6 +372,20 @@ export default function SettingsPage() {
           {activeTab === "sync" && (
             <div role="tabpanel" aria-label={t("sync.settingsTitle")}>
               <SyncSettings openDialog={openSyncDialog} />
+            </div>
+          )}
+
+          {/* Tab: 向量模型 */}
+          {activeTab === "embedding" && (
+            <div role="tabpanel" aria-label={t("settings.embeddingModel")}>
+              <EmbeddingModelPanel />
+            </div>
+          )}
+
+          {/* Tab: 提示词模板 */}
+          {activeTab === "prompt-templates" && (
+            <div role="tabpanel" aria-label={t("settings.promptTemplates")}>
+              <PromptTemplatePanel />
             </div>
           )}
 

@@ -11,6 +11,35 @@
 
 - 暂无
 
+## [1.2.3] - 2026-07-12
+
+### Security
+
+- **Agent 全面安全审查与修复（P0 + P1）**：
+  - **P0-1 插件 builtin-mirror 绕过确认**：`adaptTool()` 强制继承目标工具的 `dangerLevel` 和 `requiresConfirmation`，忽略插件声明的权限标记
+  - **P0-2 Agent 可篡改审计日志**：新增 `isProtectedAgentPath()` 拒绝操作 `/agent/audit/`、`/agent/sessions/`、`/agent/tool-plugins/` 内部目录
+  - **P0-3 子 Agent 超时形同虚设**：`timeoutController.signal` 正确传递给 `AgentLoop.callbacks.signal`，60 秒超时后立即中止 LLM 调用
+  - **P0-4 delete_memory 无确认**：标记 `dangerLevel: destructive` + `requiresConfirmation: true`
+  - **P0-5 merge_videos/compose_final_video 禁用确认**：改为 `dangerLevel: limited`
+  - **P0-6 全局 catch-all 暴露异常**：新增 `sanitizeErrorMessage()` 脱敏 API key/Authorization header，截断 >500 字符消息
+  - **P0-7 config/generation 错误透传**：不再透传原始 `result.message`，仅返回通用失败提示
+  - **P0-8 批量操作无限制**：`maxItems` + 运行时 `Array.length` 双重校验（batch_create_video_tasks 最多 10、batch_generate 最多 20 等）
+- **P1-a 审计日志读取接线**：barrel export（queryAuditLogs/getAuditStats/clearAuditLogs/clearAllAuditLogs）+ AuditLogPanel UI 面板（统计概览/Top 5 工具/筛选/列表/清除）
+- **P1-b specialist 字段填充**：`AgentLoopConfig` 新增 `specialistName` 字段，子 Agent 工具调用的审计日志 `specialist` 字段填充专家名
+- **P1-c 128 个工具 dangerLevel 标记补全**：所有工具按三级分类（safe 只读/limited 有副作用/destructive 不可逆）
+- **P1-d 输入验证完善**：22 个工具文件的 JSON Schema 参数添加 maxLength/minimum/maximum 约束，LLM 在生成参数时即可看到限制
+
+### Changed
+
+- AgentPage 工具栏新增 ScrollText 图标按钮打开审计日志面板，面板切换重构为 `showOnly()` 辅助函数
+- AgentSettingsPanel/SearchConfigSection 等面板的互斥切换逻辑统一化
+
+### Documentation
+
+- 更新 SECURITY.md：新增 7 个安全机制章节（权限分层/审计日志/错误脱敏/路径白名单/批量限制/输入验证/子 Agent 控制）
+- 更新 src/modules/agent/MODULE.md：新增审计日志 API、三级权限分层、安全约束完整说明
+- 更新 .ai/modules/agent.md：新增审计日志/dangerLevel/输入验证修改场景，补充边界约束
+
 ## [1.2.2] - 2026-07-11
 
 ### Fixed

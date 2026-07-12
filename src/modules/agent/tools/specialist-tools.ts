@@ -39,14 +39,17 @@ export const delegateToSpecialistTool: ToolImpl = {
             type: "string",
             description:
               "专家 ID。可用专家：character-creator（角色创建）/ video-producer（视频制作）/ story-writer（故事编剧）/ api-configurator（API配置）/ asset-finder（素材搜索）",
+            maxLength: 100,
           },
           task: {
             type: "string",
             description: "委派给专家的任务描述（应清晰明确，包含所有必要信息）",
+            maxLength: 5000,
           },
           context: {
             type: "string",
             description: "任务上下文（可选）。主 Agent 已知的背景信息，如用户偏好、项目状态等，帮助专家更好地完成任务。",
+            maxLength: 5000,
           },
         },
         required: ["specialist_id", "task"],
@@ -54,6 +57,7 @@ export const delegateToSpecialistTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: 120_000, // 子 Agent 可能需要多轮工具调用，给 2 分钟
   async execute(
     args: Record<string, unknown>,
@@ -82,7 +86,8 @@ export const delegateToSpecialistTool: ToolImpl = {
 
     ctx.onProgress?.(`委派任务给 ${specialistRegistry.get(specialistId)?.name}...`);
 
-    const result = await runSpecialist(specialistId, task, context, ctx);
+    // 传递父 Agent 的危险操作确认回调，使子 Agent 的危险操作也能弹出用户确认
+    const result = await runSpecialist(specialistId, task, context, ctx, ctx._confirmDangerous);
 
     if (result.success) {
       const resultText = (result.data as { result?: string } | null)?.result ?? "";
@@ -111,6 +116,7 @@ export const listSpecialistsTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(): Promise<ToolResult> {
     const list = specialistRegistry.listSummaries();

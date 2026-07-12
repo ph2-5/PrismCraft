@@ -306,6 +306,7 @@ export const generateBeatKeyframeTool: ToolImpl = {
     },
   },
   domain: "shot",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const storyId = String(args.storyId);
@@ -347,6 +348,7 @@ export const generateBeatFramePairTool: ToolImpl = {
     },
   },
   domain: "shot",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const storyId = String(args.storyId);
@@ -392,6 +394,7 @@ export const generateBeatVideoTool: ToolImpl = {
     },
   },
   domain: "shot",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args) {
     const storyId = String(args.storyId);
@@ -430,7 +433,8 @@ export const batchGenerateTool: ToolImpl = {
           beatIds: {
             type: "array",
             items: { type: "string" },
-            description: "指定分镜 ID 列表（不填则对全部分镜执行）",
+            maxItems: 20,
+            description: "指定分镜 ID 列表（最多 20 个，不填则对全部分镜执行，但不超过 20 个）",
           },
           providerId: { type: "string", description: "指定 AI 服务商 ID" },
           modelId: { type: "string", description: "指定模型 ID" },
@@ -440,6 +444,7 @@ export const batchGenerateTool: ToolImpl = {
     },
   },
   domain: "shot",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args) {
     const storyId = String(args.storyId);
@@ -458,6 +463,14 @@ export const batchGenerateTool: ToolImpl = {
     const targetBeatIds: string[] = Array.isArray(args.beatIds) && args.beatIds.length > 0
       ? args.beatIds.map((id) => String(id))
       : story.beats.map((b) => b.id);
+
+    // 数量上限保护（防止 LLM 批量生成过多内容）
+    if (targetBeatIds.length > 20) {
+      return {
+        success: false,
+        error: `分镜数量超限（最多 20 个，实际 ${targetBeatIds.length} 个）。请缩小范围或分批执行。`,
+      };
+    }
 
     const results: Array<Record<string, unknown>> = [];
     let totalSuccess = 0;
@@ -515,8 +528,8 @@ export const regenerateBeatTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID" },
-          beatId: { type: "string", description: "分镜 ID" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID" },
+          beatId: { type: "string", maxLength: 100, description: "分镜 ID" },
           target: {
             type: "string",
             enum: ["keyframe", "frame_pair", "video"],
@@ -524,16 +537,18 @@ export const regenerateBeatTool: ToolImpl = {
           },
           customPrompt: {
             type: "string",
+            maxLength: 5000,
             description: "新的提示词（keyframe/video 时作为生成提示词，frame_pair 时作为首帧提示词）",
           },
-          providerId: { type: "string", description: "指定 AI 服务商 ID" },
-          modelId: { type: "string", description: "指定模型 ID" },
+          providerId: { type: "string", maxLength: 100, description: "指定 AI 服务商 ID" },
+          modelId: { type: "string", maxLength: 100, description: "指定模型 ID" },
         },
         required: ["storyId", "beatId", "target"],
       },
     },
   },
   domain: "shot",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args) {
     const storyId = String(args.storyId);

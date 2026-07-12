@@ -100,10 +100,12 @@ describe("R133: SSRF fail-close 策略", () => {
   });
 
   it("ssrfGuard.validate 返回 safe: false 时，请求应被阻止", async () => {
+    // 使用非 loopback 地址，确保 isPrivateUrl 走完整 SSRF 校验路径
+    // （loopback 地址会被 registerUserEndpoint + isLoopbackHost 旁路放行，不走 ssrfGuard.validate）
     mockSsrfValidate.mockResolvedValue({ safe: false, reason: "Private IP" });
 
     const result = await testConnection.handleTestConnection("POST", {
-      apiUrl: "http://127.0.0.1:8080",
+      apiUrl: "http://example.com:8080",
       apiKey: "test-key",
       mode: "lightweight",
     });

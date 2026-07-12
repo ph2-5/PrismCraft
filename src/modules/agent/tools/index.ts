@@ -23,6 +23,7 @@ import { shotTools } from "./shot-tools";
 import { videoPostTools } from "./video-post-tools";
 import { audioTools } from "./audio-tools";
 import { templateTools } from "./template-tools";
+import { promptTemplateTools } from "./prompt-template-tools";
 import { workflowTools } from "./workflow-tools";
 import { monitorTools } from "./monitor-tools";
 import { diagnosticTools } from "./diagnostic-tools";
@@ -56,6 +57,7 @@ export function registerAllTools(): void {
     ...videoPostTools,
     ...audioTools,
     ...templateTools,
+    ...promptTemplateTools,
     ...workflowTools,
     ...monitorTools,
     ...diagnosticTools,

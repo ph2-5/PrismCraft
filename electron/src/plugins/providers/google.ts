@@ -48,8 +48,10 @@ export class GooglePlugin
   match(apiUrl: string, model?: string): boolean {
     return (
       apiUrl.includes("generativeai.googleapis.com") ||
+      apiUrl.includes("generativelanguage.googleapis.com") ||
       apiUrl.includes("aiplatform.googleapis.com") ||
-      (model?.includes("veo") ?? false)
+      (model?.includes("veo") ?? false) ||
+      (model?.includes("gemini") ?? false)
     );
   }
 
@@ -149,7 +151,7 @@ export class GooglePlugin
   buildTextRequest(ctx: TextBuildContext): TextRequestResult {
     return {
       body: {
-        model: ctx.model || "veo-3",
+        model: ctx.model || "gemini-2.0-flash",
         messages: [{ role: "user", content: ctx.prompt }],
         max_tokens: ctx.maxTokens,
         temperature: ctx.temperature,
@@ -161,7 +163,7 @@ export class GooglePlugin
   buildVisionRequest(ctx: VisionBuildContext): VisionRequestResult {
     return {
       body: {
-        model: ctx.model || "veo-3",
+        model: ctx.model || "gemini-2.0-flash",
         messages: [
           {
             role: "user",
@@ -275,7 +277,8 @@ export class GooglePlugin
         },
       ],
       suggestedName: "Google AI",
-      baseUrl: "https://generativeai.googleapis.com/v1",
+      // 使用 OpenAI 兼容端点，使 buildChatRequest/buildChatStreamRequest 的 /chat/completions 可用
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     };
   }
 }

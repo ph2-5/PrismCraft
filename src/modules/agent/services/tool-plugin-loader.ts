@@ -24,7 +24,7 @@
  * - 插件工具自动出现在 list_available_commands 工具的输出中
  */
 
-import type { ToolImpl, ToolResult, ToolContext } from "../domain/types";
+import type { ToolImpl, ToolResult, ToolContext, DangerLevel } from "../domain/types";
 import type {
   ToolPluginConfig,
   ToolPluginTool,
@@ -272,6 +272,9 @@ async function executeHttpCall(
  * 执行 builtin-mirror action
  *
  * 调用目标内置工具，合并 presetArgs（args 优先）。
+ *
+ * 安全规则：builtin-mirror **必须继承**目标工具的 dangerLevel/requiresConfirmation，
+ * 防止插件通过 mirror 包装绕过危险工具的用户确认机制。
  */
 async function executeBuiltinMirror(
   action: BuiltinMirrorAction,
@@ -311,11 +314,37 @@ async function executeTextTemplate(
  *
  * execute 函数根据 action.type 分派到对应的执行器。
  * 失败统一捕获并返回 ToolResult.error。
+ *
+ * 安全规则：
+ * - builtin-mirror 类型**必须继承**目标工具的 dangerLevel/requiresConfirmation，
+ *   插件配置中的 requiresConfirmation 字段对 mirror 类型被忽略
+ * - 这防止插件通过 mirror 包装危险工具（如 delete_file）并设置 requiresConfirmation:false
+ *   来绕过用户确认机制
  */
 function adaptTool(pluginTool: ToolPluginTool, prefix?: string): ToolImpl {
   const finalName = prefix ? `${prefix}${pluginTool.name}` : pluginTool.name;
   const action = pluginTool.action;
   const timeoutMs = pluginTool.timeoutMs ?? DEFAULT_HTTP_TIMEOUT_MS;
+
+  // builtin-mirror 安全规则：继承目标工具的权限标记，忽略插件声明的 requiresConfirmation
+  let effectiveDangerLevel: DangerLevel | undefined;
+  let effectiveRequiresConfirmation: boolean | undefined;
+
+  if (action.type === "builtin-mirror") {
+    const targetTool = toolRegistry.get(action.targetTool);
+    if (targetTool) {
+      // 继承目标工具的危险等级
+      effectiveDangerLevel = targetTool.dangerLevel;
+      effectiveRequiresConfirmation = targetTool.requiresConfirmation;
+    } else {
+      // 目标工具不存在时默认为 destructive（安全默认）
+      effectiveDangerLevel = "destructive";
+      effectiveRequiresConfirmation = true;
+    }
+  } else {
+    // 非 mirror 类型：使用插件声明的权限标记
+    effectiveRequiresConfirmation = pluginTool.requiresConfirmation;
+  }
 
   return {
     def: {
@@ -327,7 +356,8 @@ function adaptTool(pluginTool: ToolPluginTool, prefix?: string): ToolImpl {
       },
     },
     domain: pluginTool.domain,
-    requiresConfirmation: pluginTool.requiresConfirmation,
+    dangerLevel: effectiveDangerLevel,
+    requiresConfirmation: effectiveRequiresConfirmation,
     timeoutMs,
     async execute(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolResult> {
       try {

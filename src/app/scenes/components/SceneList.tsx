@@ -2,7 +2,7 @@ import { memo } from "react";
 import type { Scene } from "@/domain/schemas";
 import { SceneListItem } from "@/modules/scene";
 import { BatchOperations } from "@/modules/asset";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { ImageIcon, Loader2, Plus } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants/messages";
 import { sceneService } from "@/modules/scene";
@@ -25,7 +25,7 @@ export const SceneList = memo(function SceneList({
   isDirty: _isDirty,
   onSelectScene,
   onDeleteScene,
-  onNewScene: _onNewScene,
+  onNewScene,
 }: SceneListProps) {
   const queryClient = useQueryClient();
 
@@ -129,6 +129,17 @@ export const SceneList = memo(function SceneList({
           <div style={{ fontSize: 12, marginTop: 4 }}>
             {t("scene.noScenesDesc")}
           </div>
+          <button
+            onClick={onNewScene}
+            className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md transition-colors mt-3"
+            style={{
+              background: "rgba(var(--primary-rgb), 0.1)",
+              color: "var(--primary)",
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            {t("scene.createScene")}
+          </button>
         </div>
       ) : (
         scenes.map((scene) => (

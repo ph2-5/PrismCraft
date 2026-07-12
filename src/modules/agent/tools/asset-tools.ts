@@ -30,17 +30,18 @@ export const listCharactersTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "按名称模糊匹配（包含该字符串）" },
-          style: { type: "string", description: "按风格精确匹配（如：日式动漫、写实、赛博朋克）" },
-          tag: { type: "string", description: "按标签过滤（tags 数组中包含该值）" },
-          gender: { type: "string", description: "按性别过滤（男性/女性/中性/无性别）" },
-          limit: { type: "number", description: "返回数量上限，默认 20，最大 100", default: 20 },
-          offset: { type: "number", description: "偏移量（分页），默认 0", default: 0 },
+          name: { type: "string", description: "按名称模糊匹配（包含该字符串）", maxLength: 200 },
+          style: { type: "string", description: "按风格精确匹配（如：日式动漫、写实、赛博朋克）", maxLength: 200 },
+          tag: { type: "string", description: "按标签过滤（tags 数组中包含该值）", maxLength: 200 },
+          gender: { type: "string", description: "按性别过滤（男性/女性/中性/无性别）", maxLength: 200 },
+          limit: { type: "number", description: "返回数量上限，默认 20，最大 100", default: 20, minimum: 1, maximum: 100 },
+          offset: { type: "number", description: "偏移量（分页），默认 0", default: 0, minimum: 0 },
         },
       },
     },
   },
   domain: "asset",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const { characterService } = await import("@/modules/character");
@@ -100,18 +101,19 @@ export const listScenesTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "按名称模糊匹配" },
-          type: { type: "string", description: "按类型过滤（如：室内、室外、城市、自然）" },
-          mood: { type: "string", description: "按情绪过滤（如：温馨、紧张、神秘）" },
-          weather: { type: "string", description: "按天气过滤（如：晴天、雨天、夜晚）" },
-          tag: { type: "string", description: "按标签过滤" },
-          limit: { type: "number", description: "返回数量上限，默认 20，最大 100", default: 20 },
-          offset: { type: "number", description: "偏移量（分页），默认 0", default: 0 },
+          name: { type: "string", description: "按名称模糊匹配", maxLength: 200 },
+          type: { type: "string", description: "按类型过滤（如：室内、室外、城市、自然）", maxLength: 200 },
+          mood: { type: "string", description: "按情绪过滤（如：温馨、紧张、神秘）", maxLength: 200 },
+          weather: { type: "string", description: "按天气过滤（如：晴天、雨天、夜晚）", maxLength: 200 },
+          tag: { type: "string", description: "按标签过滤", maxLength: 200 },
+          limit: { type: "number", description: "返回数量上限，默认 20，最大 100", default: 20, minimum: 1, maximum: 100 },
+          offset: { type: "number", description: "偏移量（分页），默认 0", default: 0, minimum: 0 },
         },
       },
     },
   },
   domain: "asset",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const { sceneService } = await import("@/modules/scene");
@@ -175,13 +177,14 @@ export const getCharacterTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          characterId: { type: "string", description: "角色 ID" },
+          characterId: { type: "string", description: "角色 ID", maxLength: 100 },
         },
         required: ["characterId"],
       },
     },
   },
   domain: "asset",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const { characterService } = await import("@/modules/character");
@@ -204,13 +207,14 @@ export const getSceneTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          sceneId: { type: "string", description: "场景 ID" },
+          sceneId: { type: "string", description: "场景 ID", maxLength: 100 },
         },
         required: ["sceneId"],
       },
     },
   },
   domain: "asset",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const { sceneService } = await import("@/modules/scene");
@@ -233,15 +237,16 @@ export const searchAssetsTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          keyword: { type: "string", description: "搜索关键词（匹配名称、描述、标签）" },
+          keyword: { type: "string", description: "搜索关键词（匹配名称、描述、标签）", maxLength: 500 },
           assetType: { type: "string", enum: ["all", "character", "scene"], description: "资产类型过滤，默认 all", default: "all" },
-          limit: { type: "number", description: "每类资产返回上限，默认 10", default: 10 },
+          limit: { type: "number", description: "每类资产返回上限，默认 10", default: 10, minimum: 1, maximum: 50 },
         },
         required: ["keyword"],
       },
     },
   },
   domain: "asset",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const kw = String(args.keyword).toLowerCase();

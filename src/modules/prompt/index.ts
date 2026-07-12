@@ -59,3 +59,45 @@ export {
 } from "./builder";
 
 export { ModelSelector, useModelSelection, type ModelSelection } from "./presentation";
+
+// 提示词模板库（用户可编辑 + 内置高质量预设）
+export type {
+  PromptTemplateCategory,
+  PromptTemplateTarget,
+  PromptTemplateVariable,
+  PromptTemplate,
+  CreatePromptTemplateInput,
+  ApplyTemplateResult,
+  NegativePromptConfig,
+  NegativePromptScene,
+  OptimizedPromptResult,
+} from "./templates";
+
+export {
+  CATEGORY_LABELS,
+  TARGET_LABELS,
+  BUILTIN_TEMPLATES,
+  initTemplates,
+  listPromptTemplates,
+  searchPromptTemplates,
+  getPromptTemplate,
+  createPromptTemplate,
+  updatePromptTemplate,
+  deletePromptTemplate,
+  applyPromptTemplate,
+  exportPromptTemplates,
+  importPromptTemplates,
+  getPromptTemplateStats,
+  // 负面提示词智能生成
+  getNegativePrompt,
+  enhanceNegativePromptWithLLM,
+  getNegativePromptConfig,
+  saveNegativePromptConfig,
+  getSmartNegativePrompt,
+  // 提示词 LLM 自动优化
+  optimizeCharacterPrompt,
+  optimizeVideoPrompt,
+  optimizePrompt,
+  getCharacterStyles,
+  getVideoStyles,
+} from "./templates";

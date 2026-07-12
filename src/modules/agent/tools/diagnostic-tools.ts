@@ -34,7 +34,7 @@ export const diagnoseErrorTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          errorMessage: { type: "string", description: "错误信息（必填，尽量完整）" },
+          errorMessage: { type: "string", description: "错误信息（必填，尽量完整）", maxLength: 2000 },
           errorContext: {
             type: "object",
             description: "错误上下文（可选）",
@@ -50,6 +50,7 @@ export const diagnoseErrorTool: ToolImpl = {
     },
   },
   domain: "diagnostic",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const errorMessage = String(args.errorMessage);
@@ -196,8 +197,8 @@ export const autoFixTool: ToolImpl = {
             type: "object",
             description: "上下文（可选，含 errorMessage / providerId / capability 等）",
             properties: {
-              errorMessage: { type: "string" },
-              providerId: { type: "string" },
+              errorMessage: { type: "string", maxLength: 2000 },
+              providerId: { type: "string", maxLength: 200 },
               capability: { type: "string", enum: ["text", "image", "vision", "video"] },
             },
           },
@@ -207,6 +208,7 @@ export const autoFixTool: ToolImpl = {
     },
   },
   domain: "diagnostic",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args, ctx) {
     const errorType = String(args.errorType) as
@@ -386,6 +388,7 @@ export const diagnoseSystemHealthTool: ToolImpl = {
     },
   },
   domain: "diagnostic",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const depth = String(args.depth || "standard") as "quick" | "standard" | "thorough";
@@ -602,7 +605,7 @@ export const rollbackTool: ToolImpl = {
             enum: ["character", "scene", "story", "video_task"],
             description: "回滚目标类型",
           },
-          targetId: { type: "string", description: "目标 ID（必填）" },
+          targetId: { type: "string", description: "目标 ID（必填）", maxLength: 100 },
           backupPoint: { type: "number", description: "备份点时间戳（Unix 毫秒，可选，当前未使用）" },
         },
         required: ["targetType", "targetId"],
@@ -610,6 +613,7 @@ export const rollbackTool: ToolImpl = {
     },
   },
   domain: "diagnostic",
+  dangerLevel: "destructive",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const targetType = String(args.targetType) as

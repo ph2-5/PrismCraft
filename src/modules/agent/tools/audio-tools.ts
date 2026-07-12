@@ -49,12 +49,12 @@ export const mixAudioTool: ToolImpl = {
         properties: {
           audioPaths: {
             type: "array",
-            items: { type: "string" },
+            items: { type: "string", maxLength: 2048 },
             description: "音频文件路径列表（必填，2-8 个）",
             minItems: 2,
             maxItems: 8,
           },
-          outputPath: { type: "string", description: "输出文件路径（可选，默认写入缓存目录）" },
+          outputPath: { type: "string", maxLength: 1024, description: "输出文件路径（可选，默认写入缓存目录）" },
           volumes: {
             type: "array",
             items: { type: "number", minimum: 0, maximum: 2 },
@@ -66,6 +66,7 @@ export const mixAudioTool: ToolImpl = {
     },
   },
   domain: "audio",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const audioPaths = args.audioPaths;
@@ -143,14 +144,14 @@ export const adjustAudioSpeedTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          audioPath: { type: "string", description: "输入音频文件路径（必填）" },
+          audioPath: { type: "string", maxLength: 2048, description: "输入音频文件路径（必填）" },
           speed: {
             type: "number",
             minimum: 0.25,
             maximum: 4.0,
             description: "播放速度倍率（必填，0.25-4.0）。1 为原速，2 为两倍速，0.5 为半速",
           },
-          outputPath: { type: "string", description: "输出文件路径（可选，默认写入缓存目录）" },
+          outputPath: { type: "string", maxLength: 1024, description: "输出文件路径（可选，默认写入缓存目录）" },
           preservePitch: {
             type: "boolean",
             description: "是否保持音调不变（默认 true）。false 时变速会同时变调",
@@ -162,6 +163,7 @@ export const adjustAudioSpeedTool: ToolImpl = {
     },
   },
   domain: "audio",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const audioPath = String(args.audioPath);
@@ -222,19 +224,20 @@ export const normalizeAudioTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          audioPath: { type: "string", description: "输入音频文件路径（必填）" },
+          audioPath: { type: "string", maxLength: 2048, description: "输入音频文件路径（必填）" },
           targetLevel: {
             type: "number",
             description: "目标响度级别（dB，默认 -16）。常见值：-23（EBU R128 广播）、-16（播客）、-14（音乐流媒体）",
             default: -16,
           },
-          outputPath: { type: "string", description: "输出文件路径（可选，默认写入缓存目录）" },
+          outputPath: { type: "string", maxLength: 1024, description: "输出文件路径（可选，默认写入缓存目录）" },
         },
         required: ["audioPath"],
       },
     },
   },
   domain: "audio",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const audioPath = String(args.audioPath);
@@ -293,7 +296,7 @@ export const removeNoiseTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          audioPath: { type: "string", description: "输入音频文件路径（必填）" },
+          audioPath: { type: "string", maxLength: 2048, description: "输入音频文件路径（必填）" },
           noiseProfile: {
             type: "string",
             description: "噪声样本文件路径（可选）。提供一段纯噪声音频可显著提升降噪质量",
@@ -305,13 +308,14 @@ export const removeNoiseTool: ToolImpl = {
             description: "降噪强度（0-1，默认 0.5）。值越大降噪越强，但可能损伤原声",
             default: 0.5,
           },
-          outputPath: { type: "string", description: "输出文件路径（可选，默认写入缓存目录）" },
+          outputPath: { type: "string", maxLength: 1024, description: "输出文件路径（可选，默认写入缓存目录）" },
         },
         required: ["audioPath"],
       },
     },
   },
   domain: "audio",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const audioPath = String(args.audioPath);
@@ -371,7 +375,7 @@ export const splitAudioTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          audioPath: { type: "string", description: "输入音频文件路径（必填）" },
+          audioPath: { type: "string", maxLength: 2048, description: "输入音频文件路径（必填）" },
           segments: {
             type: "array",
             items: {
@@ -387,6 +391,7 @@ export const splitAudioTool: ToolImpl = {
           },
           outputPath: {
             type: "string",
+            maxLength: 1024,
             description: "输出目录（可选，默认写入缓存目录的 audio-split 子目录）。每个片段生成一个文件",
           },
         },
@@ -395,6 +400,7 @@ export const splitAudioTool: ToolImpl = {
     },
   },
   domain: "audio",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const audioPath = String(args.audioPath);

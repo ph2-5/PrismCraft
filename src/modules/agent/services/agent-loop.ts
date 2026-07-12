@@ -44,6 +44,8 @@ import {
   clearCheckpoint,
   markInterrupted,
 } from "./session-checkpoint";
+import { recordFewShot, buildFewShotPrompt } from "./tool-fewshot-cache";
+import { recordAudit } from "./audit-storage";
 import { t } from "@/shared/constants";
 
 /** 动态查询项目状态，构建状态摘要注入 system prompt */
@@ -109,6 +111,12 @@ export class AgentLoop {
   private llmAbortController: AbortController | null = null;
   /** 协作者依赖（DI 注入，不传则用模块单例 + container 作为默认） */
   private deps: AgentLoopDeps;
+  /** 当前用户输入（用于 few-shot 缓存记录用户意图） */
+  private currentInput: string = "";
+  /** P1-D：循环开始时间（用于总执行时间限制） */
+  private loopStartTime: number = 0;
+  /** P1-D：工具调用时间戳记录（用于频率限制，滑动窗口） */
+  private toolCallTimestamps: number[] = [];
 
   constructor(
     session: AgentSession,
@@ -143,6 +151,7 @@ export class AgentLoop {
   /** 运行 Agent Loop */
   async run(userInput: string): Promise<void> {
     // 1. 追加用户消息
+    this.currentInput = userInput;
     this.deps.conversationManager.appendUserMessage(this.session, userInput);
 
     // P5 断点恢复：初始化检查点（异步，不阻断主流程）
@@ -154,10 +163,23 @@ export class AgentLoop {
     // P2 深化：异步检测并触发对话摘要压缩（不阻断主流程）
     void this.maybeSummarizeConversation();
 
+    // P1-D：记录循环开始时间（用于总执行时间限制）
+    this.loopStartTime = Date.now();
+
     // 3. Agent Loop
     for (let i = 0; i < this.config.maxIterations; i++) {
       if (this.aborted) {
         this.handleAbort();
+        return;
+      }
+
+      // P1-D：总执行时间检查
+      if (this.isTotalDurationExceeded()) {
+        const timeoutMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
+        const maxMinutes = Math.floor((this.config.maxTotalDurationMs ?? 0) / 60000);
+        timeoutMsg.content = t("agent.totalDurationExceeded", { minutes: maxMinutes });
+        this.deps.conversationManager.finishStreaming(this.session);
+        void markInterrupted(this.session.id).catch(() => {});
         return;
       }
 
@@ -258,6 +280,8 @@ export class AgentLoop {
             onProgress: (_msg) => {
               // 通知 UI（可选）
             },
+            // 注入确认回调，使 delegate_to_specialist 工具能向上传播子 Agent 的危险操作确认
+            _confirmDangerous: this.callbacks.onConfirmationRequired,
           };
 
           // P0 深化：工具并行执行
@@ -299,11 +323,25 @@ export class AgentLoop {
             this.callbacks.onToolCall(tc);
           }
 
+          // P1-D：工具调用频率限制（等待至下一分钟窗口，支持中断）
+          if (this.aborted) {
+            this.handleAbort();
+            return;
+          }
+          await this.enforceRateLimit(approvedToolCalls.length);
+          if (this.aborted) {
+            this.handleAbort();
+            return;
+          }
+
           // Phase 3：并行执行已批准的工具
           const maxResultTokens = this.config.maxToolResultTokens ?? 2000;
           const executedResults = approvedToolCalls.length > 0
             ? await this.deps.toolExecutor.executeAll(approvedToolCalls, ctx)
             : [];
+
+          // P1-D：记录工具调用时间戳（用于频率限制统计）
+          this.recordToolCallTimestamps(approvedToolCalls.length);
 
           // Phase 4：按原始 toolCalls 顺序回灌结果（保持 LLM 可读性）
           // 合并已执行结果和被拒绝结果，按原始顺序输出
@@ -315,6 +353,9 @@ export class AgentLoop {
             resultMap.set(toolCall.id, result);
           }
 
+          // 构建被拒绝工具 ID 集合（用于审计日志状态判定）
+          const rejectedIds = new Set(rejectedResults.map((r) => r.toolCall.id));
+
           for (const tc of toolCalls) {
             const result = resultMap.get(tc.id);
             if (!result) continue;
@@ -322,6 +363,46 @@ export class AgentLoop {
             const llmResult = this.truncateToolResult(result, maxResultTokens);
             this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, llmResult);
             this.callbacks.onToolResult(tc.id, result);
+
+            // 预训练数据-2：记录成功的工具调用为 few-shot（异步，不阻断循环）
+            if (result.success) {
+              let parsedArgs: Record<string, unknown> = {};
+              try {
+                parsedArgs = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
+              } catch {
+                // 参数解析失败时记录空对象
+              }
+              void recordFewShot(tc.function.name, parsedArgs, result, this.currentInput).catch(() => {});
+            }
+
+            // P1-A：记录审计日志（异步，不阻断循环）
+            const isRejected = rejectedIds.has(tc.id);
+            const needsConfirm = this.deps.toolExecutor.requiresConfirmation(tc);
+            const dangerLevel = this.deps.toolExecutor.getDangerLevel(tc.function.name);
+            let resultPreview: string | undefined;
+            try {
+              if (result.success && result.data != null) {
+                resultPreview = JSON.stringify(result.data).slice(0, 500);
+              }
+            } catch {
+              // 序列化失败时无 preview
+            }
+            void recordAudit({
+              sessionId: this.session.id,
+              toolCallId: tc.id,
+              toolName: tc.function.name,
+              iteration: i,
+              argsJson: tc.function.arguments ?? "{}",
+              status: isRejected ? "rejected" : (result.success ? "done" : "error"),
+              success: !isRejected && result.success,
+              error: result.error,
+              resultPreview,
+              durationMs: result.duration,
+              dangerLevel,
+              confirmedByUser: needsConfirm ? !isRejected : undefined,
+              // P1-B：specialist 字段填充（主 Agent=undefined，子 Agent=specialist.name）
+              specialist: this.config.specialistName,
+            }).catch(() => {});
           }
 
           // P5 断点恢复：工具执行完成后保存检查点（异步，不阻断）
@@ -381,7 +462,7 @@ export class AgentLoop {
     }
   }
 
-  /** 构建 system prompt（动态注入项目状态 + 核心记忆 + RAG 检索 + 对话摘要） */
+  /** 构建 system prompt（动态注入项目状态 + 核心记忆 + RAG 检索 + 对话摘要 + few-shot） */
   private async buildSystemPrompt(userMessage?: string): Promise<string> {
     const template = this.config.systemPromptOverride || DEFAULT_SYSTEM_PROMPT;
     const toolDescs = this.deps.toolRegistry.getToolDescriptions(this.config.enabledTools);
@@ -393,12 +474,26 @@ export class AgentLoop {
       : "";
     // P2 深化：对话历史摘要注入
     const conversationSummary = this.session.conversationSummary || "";
-    return template
+    let prompt = template
       .replace("{PROJECT_STATE}", projectState)
       .replace("{CORE_MEMORY}", coreMemory || "（暂无记忆）")
       .replace("{RELEVANT_MEMORY}", relevantMemory || "（无相关记忆）")
       .replace("{CONVERSATION_SUMMARY}", conversationSummary || "（暂无摘要）")
       .replace("{AVAILABLE_TOOLS}", buildAvailableToolsSummary(toolDescs));
+
+    // 预训练数据-2：注入历史成功调用的 few-shot 示例（如有）
+    if (userMessage) {
+      try {
+        const fewShotPrompt = await buildFewShotPrompt(userMessage, 5);
+        if (fewShotPrompt) {
+          prompt += "\n\n" + fewShotPrompt;
+        }
+      } catch {
+        // few-shot 加载失败静默，不阻断主流程
+      }
+    }
+
+    return prompt;
   }
 
   /**
@@ -546,6 +641,72 @@ export class AgentLoop {
       ...result,
       data: { _truncated: true, preview: truncated, originalTokens: dataTokens },
     };
+  }
+
+  /**
+   * P1-D：检查总执行时间是否超限
+   * @returns true 表示已超限，应停止循环
+   */
+  private isTotalDurationExceeded(): boolean {
+    const maxDuration = this.config.maxTotalDurationMs ?? 0;
+    if (maxDuration <= 0 || this.loopStartTime === 0) return false;
+    return Date.now() - this.loopStartTime > maxDuration;
+  }
+
+  /**
+   * P1-D：工具调用频率限制（滑动窗口）
+   *
+   * 如果最近 60 秒内的工具调用次数已达上限，则异步等待至窗口外。
+   *
+   * @param pendingCount 本轮即将执行的工具调用数量
+   */
+  private async enforceRateLimit(pendingCount: number): Promise<void> {
+    const maxPerMinute = this.config.maxToolCallsPerMinute ?? 0;
+    if (maxPerMinute <= 0 || pendingCount === 0) return;
+
+    const now = Date.now();
+    const windowMs = 60_000;
+    // 清理 60 秒前的时间戳
+    this.toolCallTimestamps = this.toolCallTimestamps.filter((ts) => now - ts < windowMs);
+
+    if (this.toolCallTimestamps.length + pendingCount > maxPerMinute) {
+      // 需要等待：计算最早时间戳 + 60s 的时间点
+      const oldestInWindow = this.toolCallTimestamps[0] ?? now;
+      const waitUntil = oldestInWindow + windowMs;
+      const waitMs = waitUntil - now;
+      if (waitMs > 0) {
+        // 通知 UI 正在等待（可选）
+        this.deps.conversationManager.appendDelta(
+          this.session,
+          t("agent.rateLimitWaiting", { seconds: Math.ceil(waitMs / 1000) }),
+        );
+        // 等待（支持中断）
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, waitMs);
+          if (this.callbacks.signal) {
+            this.callbacks.signal.addEventListener("abort", () => {
+              clearTimeout(timer);
+              resolve();
+            }, { once: true });
+          }
+        });
+      }
+      // 等待后重新清理时间戳
+      const nowAfter = Date.now();
+      this.toolCallTimestamps = this.toolCallTimestamps.filter((ts) => nowAfter - ts < windowMs);
+    }
+  }
+
+  /**
+   * P1-D：记录工具调用时间戳（用于频率限制统计）
+   *
+   * @param count 本轮执行的工具调用数量
+   */
+  private recordToolCallTimestamps(count: number): void {
+    const now = Date.now();
+    for (let i = 0; i < count; i++) {
+      this.toolCallTimestamps.push(now);
+    }
   }
 
   /** 处理取消 */

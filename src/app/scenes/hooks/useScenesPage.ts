@@ -20,6 +20,7 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants/messages";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
+import { useDebouncedState } from "@/shared/hooks/useDebouncedState";
 import {
   defaultScene,
   useSceneImage,
@@ -61,7 +62,7 @@ export function useScenesPage() {
   const { success, error: showError } = useToastHelpers();
 
   // ── 搜索与元素输入状态（UI 状态但由 hook 管理） ──
-  const [searchQuery, setSearchQuery] = useState("");
+  const { value: searchQuery, setValue: setSearchQuery, debouncedValue: debouncedSearchQuery } = useDebouncedState("", 200);
   const [showElementInput, setShowElementInput] = useState(false);
 
   // ── 素材库添加 ──
@@ -219,13 +220,13 @@ export function useScenesPage() {
     [currentScene, imageHook.setGeneratedImage, queryClient, showError, success],
   );
 
-  // ── 过滤后的场景列表 ──
+  // ── 过滤后的场景列表（使用防抖搜索值） ──
   const filteredScenes = useMemo(() => {
-    if (!searchQuery.trim()) return scenes;
+    if (!debouncedSearchQuery.trim()) return scenes;
     return scenes.filter((s) =>
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      s.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()),
     );
-  }, [scenes, searchQuery]);
+  }, [scenes, debouncedSearchQuery]);
 
   // ── 引用当前场景的分镜 ──
   const referencedBeats = useMemo(() => {

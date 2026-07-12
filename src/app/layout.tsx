@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import { SidebarWithSearch } from "./SidebarWithSearch";
 import { ToastProvider } from "@/shared/presentation/Toast";
 import { NetworkStatusAlert } from "@/shared/presentation/NetworkStatusAlert";
+import { UpdateNotification } from "@/shared/presentation/UpdateNotification";
 import { BeforeUnloadGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { GlobalKeyboardActions } from "@/shared/presentation/GlobalKeyboardActions";
 import { QueryProvider } from "@/presentation/providers/query-provider";
@@ -47,6 +48,7 @@ export function RootLayout() {
           <ToastProvider>
             <GlobalKeyboardActions />
             <NetworkStatusAlert />
+            <UpdateNotification />
             <SidebarWithSearch />
             <main
               className={`flex-1 h-full overflow-hidden transition-[margin-left] duration-200${electron ? " pt-9" : ""}`}

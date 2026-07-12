@@ -48,6 +48,13 @@
 ### 工具注册
 - `registerAllTools()` — 注册所有 150 个工具（幂等，应用启动时调用）
 
+### 审计日志（v1.2.2 新增）
+- `queryAuditLogs(filter)` — 查询审计日志（支持按 sessionId/toolName/success/时间范围/limit 过滤）
+- `getAuditStats()` — 获取统计信息（总条目数/会话数/按工具统计）
+- `clearAuditLogs(sessionId)` — 清空指定会话的审计日志
+- `clearAllAuditLogs()` — 清空所有审计日志
+- 类型：`AuditEntry` / `AuditQueryFilter`
+
 ### 领域类型
 - `AgentSession` / `AgentMessage` / `AgentRole` — 会话数据结构
 - `ToolImpl` / `ToolResult` / `ToolContext` / `ToolDomain` — 工具类型
@@ -105,8 +112,65 @@ agent → domain（类型）
 
 ## 安全约束
 
-- 删除类工具 `requiresConfirmation: true`（Phase 2 实现）
+### 工具三级权限分层（v1.2.2）
+
+所有工具按 `dangerLevel` 分为三级，配合 `requiresConfirmation` 决定执行行为：
+
+| 等级 | 说明 | 工具示例 | 默认确认行为 |
+|------|------|---------|------------|
+| `safe` | 只读/查询操作 | list_characters, get_story, search_assets, recall_memory | 无需确认 |
+| `limited` | 有副作用但可恢复 | create_*, update_*, generate_*, edit_*, merge_*, auto_* | 按工具 `requiresConfirmation` 标记 |
+| `destructive` | 不可逆操作 | delete_*, move_*, cancel_video_task, rollback, import_project(replace) | 强制要求用户确认 |
+
+**插件 builtin-mirror 继承规则**：插件通过 `builtin-mirror` action 包装内置工具时，必须继承目标工具的 `dangerLevel` 和 `requiresConfirmation`，忽略插件声明的权限标记。
+
+### 审计日志持久化（v1.2.2）
+
+- **存储**：JSONL 格式，`{cacheDir}/agent/audit/{sessionId}.jsonl`
+- **字段**：timestamp/sessionId/toolCallId/toolName/iteration/argsJson/status/success/error/resultPreview/durationMs/dangerLevel/confirmedByUser/specialist
+- **淘汰**：单会话最大 500 条
+- **specialist 字段**：主 Agent 工具调用为 undefined，子 Agent 工具调用为专家名（通过 `AgentLoopConfig.specialistName` 传递）
+
+### 错误消息脱敏（v1.2.2）
+
+- 工具执行异常的 `e.message` 通过 `sanitizeErrorMessage()` 脱敏后返回给 LLM
+- 匹配 `sk-`/`key-`/`token-`/`Bearer` 前缀的 API key 替换为 `[REDACTED]`
+- 脱敏 `Authorization` header，截断 >500 字符消息
+- `config-tools`/`generation-tools` 失败时不透传原始 `result.message`
+
+### 路径白名单保护（v1.2.2）
+
+- `isProtectedAgentPath()` 拒绝操作 `/agent/audit/`、`/agent/sessions/`、`/agent/tool-plugins/` 内部目录
+- `isPathSafe()` 拒绝系统目录（Windows/System32、/etc、/usr 等）和 `..` 路径穿越
+
+### 批量操作限制（v1.2.2）
+
+| 工具 | 限制 |
+|------|------|
+| `batch_create_video_tasks.tasks` | 最多 10 个 |
+| `batch_generate.beatIds` | 最多 20 个 |
+| `batch_process.items` | 最多 20 个 |
+| `merge_videos.videoPaths` | 最多 10 个 |
+| `merge_images.imageUrls` | 最多 9 个 |
+
+### 输入验证约束（v1.2.2）
+
+所有工具参数在 JSON Schema 层声明约束：
+- prompt/text 类：`maxLength`（5000/2000/1000/500/200 按类型分级）
+- 数值参数：`minimum`/`maximum`（temperature 0-2, speed 0.25-4.0, opacity 0-1, limit 1-200 等）
+- URL/路径参数：`maxLength`（2048 for URL, 1024 for path, 100 for ID）
+
+### 子 Agent 超时与权限控制（v1.2.2）
+
+- 子 Agent 60 秒超时通过 `timeoutController.signal` 传递给 `AgentLoop.callbacks.signal`
+- 危险操作确认向上传播给主 Agent UI；未提供确认回调时默认拒绝
+- 子 Agent 通过 `ToolExecutor(whitelist)` 硬执行 Specialist 工具白名单
+
+### 其他安全约束
+
 - `maxIterations: 10` 防死循环
 - `maxTokensPerTurn: 4096` 防 token 溢出
+- `maxTotalDurationMs: 5 分钟` 总执行时间上限
+- `maxToolCallsPerMinute: 60` 工具调用频率上限
 - API key 在返回时脱敏（只显示前 4 位 + ***）
 - 工具超时：查询 30s / 变更 60s / 生成 5min / 视频 30min

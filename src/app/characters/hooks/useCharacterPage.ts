@@ -11,6 +11,7 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants/messages";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
+import { useDebouncedState } from "@/shared/hooks/useDebouncedState";
 import {
   defaultCharacter,
   useCharacterImage,
@@ -53,7 +54,7 @@ export function useCharacterPage() {
   const { success, error: showError } = useToastHelpers();
 
   // ── 搜索与创建状态（UI 状态但由 hook 管理） ──
-  const [search, setSearch] = useState("");
+  const { value: search, setValue: setSearch, debouncedValue: debouncedSearch } = useDebouncedState("", 200);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
   // ── 素材库添加 ──
@@ -221,16 +222,16 @@ export function useCharacterPage() {
     return beats;
   }, [stories, currentCharacter.id]);
 
-  // ── 过滤后的角色列表 ──
+  // ── 过滤后的角色列表（使用防抖搜索值） ──
   const filteredCharacters = useMemo(() => {
-    if (!search.trim()) return characters;
-    const q = search.toLowerCase();
+    if (!debouncedSearch.trim()) return characters;
+    const q = debouncedSearch.toLowerCase();
     return characters.filter((c) =>
       c.name.toLowerCase().includes(q) ||
       c.description.toLowerCase().includes(q) ||
       c.style.toLowerCase().includes(q),
     );
-  }, [characters, search]);
+  }, [characters, debouncedSearch]);
 
   // ── 是否显示编辑器 ──
   const showEditor = Boolean(currentCharacter.id) || isCreatingNew;

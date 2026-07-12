@@ -4,11 +4,11 @@
 
 | 子域 | 风险 | 原因 |
 |------|------|------|
-| services | 🔴 高 | Agent Loop 编排、流式 chunk 累积、工具调用结果回灌、maxIterations 防死循环、错误恢复 |
-| tools | 🟡 中 | 21 个工具文件、150 个工具、跨业务域调用、需通过其他模块 public API |
-| domain | 🟡 中 | System Prompt 模板、类型契约、人格定义 |
+| services | 🔴 高 | Agent Loop 编排、流式 chunk 累积、工具调用结果回灌、maxIterations 防死循环、错误恢复、审计日志记录、错误脱敏、子 Agent 超时控制 |
+| tools | 🟡 中 | 23 个工具文件、150 个工具、跨业务域调用、需通过其他模块 public API、三级 dangerLevel 分层、JSON Schema 输入验证、路径白名单保护 |
+| domain | 🟡 中 | System Prompt 模板、类型契约、人格定义、AgentLoopConfig（含 specialistName） |
 | hooks | 🟡 中 | 会话状态管理（ref + forceUpdate）、流式状态、工具执行状态、配置持久化 |
-| presentation | 🟢 低 | UI 组件，通过 useAgent 获取状态 |
+| presentation | 🟢 低 | UI 组件，通过 useAgent 获取状态；AuditLogPanel 直接调用审计日志 API |
 
 ## 子域依赖图
 
@@ -63,8 +63,18 @@ presentation ← hooks (useAgent), @/shared/ui
 
 ### 5. 修改工具执行超时策略
 - 修改文件：`services/tool-executor.ts`
-- 检查不变量：工具超时分级（查询 30s / 变更 60s / 生成 5min / 视频 30min）、删除类工具 `requiresConfirmation: true`（Phase 2）、API key 返回时脱敏（只显示前 4 位 + ***）
+- 检查不变量：工具超时分级（查询 30s / 变更 60s / 生成 5min / 视频 30min）、删除类工具 `requiresConfirmation: true`（Phase 2）、API key 返回时脱敏（只显示前 4 位 + ***）、错误消息通过 `sanitizeErrorMessage()` 脱敏后返回 LLM
 - 测试：`npx vitest run src/modules/agent/services/__tests__/tool-executor.test.ts`
+
+### 6. 修改审计日志（v1.2.2 新增）
+- 修改文件：`services/audit-storage.ts`（存储/查询/统计/清除）、`services/agent-loop.ts`（recordAudit 调用点）、`presentation/AuditLogPanel.tsx`（UI 面板）
+- 检查不变量：JSONL 格式存储到 `{cacheDir}/agent/audit/{sessionId}.jsonl`、单会话最大 500 条淘汰最旧、specialist 字段区分主 Agent(undefined)/子 Agent(专家名)
+- 测试：手动验证 AgentPage 工具栏 ScrollText 图标打开面板
+
+### 7. 修改工具 dangerLevel 或输入验证（v1.2.2 新增）
+- 修改文件：`tools/*.ts`（所有工具文件）、`services/tool-plugin-loader.ts`（builtin-mirror 继承规则）
+- 检查不变量：所有工具必须声明 `dangerLevel`（safe/limited/destructive）、插件 builtin-mirror 必须继承目标工具权限、JSON Schema 参数必须声明 maxLength/minimum/maximum
+- 测试：`npx vitest run src/modules/agent/tools/__tests__/`
 
 ## 内部实现细节（非明确要求不要修改）
 
@@ -81,9 +91,15 @@ presentation ← hooks (useAgent), @/shared/ui
 
 - **禁止**：Agent 工具直接访问 `@/infrastructure/*`（除 `@/infrastructure/di`）
 - **禁止**：Agent 工具直接调用 `electronAPI.*`
+- **禁止**：Agent 文件操作工具操作 `/agent/audit/`、`/agent/sessions/`、`/agent/tool-plugins/` 内部目录（`isProtectedAgentPath()` 强制校验）
 - **必须**：调用其他模块时通过其 public API（如 `characterService`、`sceneService`、`storyService`）
 - **必须**：文件操作通过 `@/shared/file-http`
 - **必须**：工具命名唯一（`toolRegistry.register` 时校验冲突）
+- **必须**：所有工具声明 `dangerLevel`（safe/limited/destructive）
+- **必须**：插件 builtin-mirror 继承目标工具的 `dangerLevel` 和 `requiresConfirmation`
+- **必须**：工具参数在 JSON Schema 层声明 maxLength/minimum/maximum 约束
+- **必须**：工具错误消息通过 `sanitizeErrorMessage()` 脱敏后返回 LLM
+- **必须**：批量操作通过 maxItems + 运行时校验限制规模
 
 ## 测试验证
 

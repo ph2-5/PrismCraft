@@ -107,8 +107,8 @@ export const searchWebImagesTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "搜索关键词" },
-          count: { type: "number", description: "返回数量，默认 10，最大 30", default: 10 },
+          query: { type: "string", description: "搜索关键词", maxLength: 500 },
+          count: { type: "number", description: "返回数量，默认 10，最大 30", default: 10, minimum: 1, maximum: 30 },
           source: {
             type: "string",
             enum: ["bing", "google", "baidu", "unsplash", "pexels"],
@@ -122,6 +122,7 @@ export const searchWebImagesTool: ToolImpl = {
     },
   },
   domain: "web",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const query = String(args.query);
@@ -317,8 +318,8 @@ export const searchWebTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "搜索关键词" },
-          count: { type: "number", description: "返回数量，默认 5，最大 20", default: 5 },
+          query: { type: "string", description: "搜索关键词", maxLength: 500 },
+          count: { type: "number", description: "返回数量，默认 5，最大 20", default: 5, minimum: 1, maximum: 20 },
           source: {
             type: "string",
             enum: ["bing", "google", "baidu"],
@@ -331,6 +332,7 @@ export const searchWebTool: ToolImpl = {
     },
   },
   domain: "web",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const query = String(args.query);
@@ -412,7 +414,7 @@ export const downloadWebAssetTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          url: { type: "string", description: "素材 URL（http/https）" },
+          url: { type: "string", description: "素材 URL（http/https）", maxLength: 2048 },
           assetType: {
             type: "string",
             enum: ["character", "scene", "prop"],
@@ -430,6 +432,7 @@ export const downloadWebAssetTool: ToolImpl = {
     },
   },
   domain: "web",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.download,
   requiresConfirmation: false,
   async execute(args) {
@@ -534,14 +537,14 @@ export const importFromUrlTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          url: { type: "string", description: "素材 URL（http/https）" },
+          url: { type: "string", description: "素材 URL（http/https）", maxLength: 2048 },
           assetType: {
             type: "string",
             enum: ["character", "scene", "prop", "image"],
             description: "素材类型",
           },
           name: { type: "string", description: "素材名称" },
-          description: { type: "string", description: "素材描述（可选）" },
+          description: { type: "string", description: "素材描述（可选）", maxLength: 1000 },
           tags: {
             type: "array",
             items: { type: "string" },
@@ -553,6 +556,7 @@ export const importFromUrlTool: ToolImpl = {
     },
   },
   domain: "web",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.download,
   requiresConfirmation: false,
   async execute(args) {
@@ -617,20 +621,21 @@ export const fetchWebContentTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          url: { type: "string", description: "网页 URL（http/https）" },
+          url: { type: "string", description: "网页 URL（http/https）", maxLength: 2048 },
           format: {
             type: "string",
             enum: ["text", "html", "markdown"],
             description: "输出格式，默认 markdown",
             default: "markdown",
           },
-          maxLength: { type: "number", description: "最大字符数，默认 10000", default: 10000 },
+          maxLength: { type: "number", description: "最大字符数，默认 10000", default: 10000, minimum: 100, maximum: 100000 },
         },
         required: ["url"],
       },
     },
   },
   domain: "web",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const url = String(args.url);
@@ -700,13 +705,14 @@ export const openInBrowserTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          url: { type: "string", description: "要打开的 URL" },
+          url: { type: "string", description: "要打开的 URL", maxLength: 2048 },
         },
         required: ["url"],
       },
     },
   },
   domain: "web",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const url = String(args.url);
@@ -760,9 +766,9 @@ export const bookmarkResourceTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          url: { type: "string", description: "资源 URL" },
-          title: { type: "string", description: "资源标题" },
-          description: { type: "string", description: "资源描述（可选）" },
+          url: { type: "string", description: "资源 URL", maxLength: 2048 },
+          title: { type: "string", description: "资源标题", maxLength: 200 },
+          description: { type: "string", description: "资源描述（可选）", maxLength: 1000 },
           tags: {
             type: "array",
             items: { type: "string" },
@@ -779,6 +785,7 @@ export const bookmarkResourceTool: ToolImpl = {
     },
   },
   domain: "web",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const url = String(args.url);
@@ -837,13 +844,14 @@ export const listBookmarksTool: ToolImpl = {
             enum: ["reference", "inspiration", "asset", "tutorial"],
             description: "按分类过滤（可选）",
           },
-          tag: { type: "string", description: "按标签过滤（可选）" },
-          limit: { type: "number", description: "返回数量上限，默认 20", default: 20 },
+          tag: { type: "string", description: "按标签过滤（可选）", maxLength: 200 },
+          limit: { type: "number", description: "返回数量上限，默认 20", default: 20, minimum: 1, maximum: 200 },
         },
       },
     },
   },
   domain: "web",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const category = args.category ? String(args.category) : undefined;

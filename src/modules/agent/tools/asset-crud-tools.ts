@@ -173,11 +173,11 @@ export const createCharacterTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "角色名称（必填）" },
-          style: { type: "string", description: "艺术风格（如：日式动漫、写实、赛博朋克）" },
-          gender: { type: "string", description: "性别（男性/女性/中性/无性别）" },
-          age: { type: "number", description: "年龄" },
-          description: { type: "string", description: "角色描述" },
+          name: { type: "string", description: "角色名称（必填）", maxLength: 200 },
+          style: { type: "string", description: "艺术风格（如：日式动漫、写实、赛博朋克）", maxLength: 200 },
+          gender: { type: "string", description: "性别（男性/女性/中性/无性别）", maxLength: 200 },
+          age: { type: "number", description: "年龄", minimum: 0, maximum: 1000 },
+          description: { type: "string", description: "角色描述", maxLength: 1000 },
           tags: { type: "array", items: { type: "string" }, description: "标签列表" },
           appearance: {
             type: "object",
@@ -194,14 +194,16 @@ export const createCharacterTool: ToolImpl = {
           personality: {
             type: "string",
             description: "性格描述，可用 、 分隔多个特征（如：勇敢、善良、坚强）",
+            maxLength: 1000,
           },
-          customPrompt: { type: "string", description: "自定义生成提示词" },
+          customPrompt: { type: "string", description: "自定义生成提示词", maxLength: 5000 },
         },
         required: ["name"],
       },
     },
   },
   domain: "asset",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { characterService } = await import("@/modules/character");
@@ -250,12 +252,12 @@ export const updateCharacterTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          characterId: { type: "string", description: "要更新的角色 ID（必填）" },
-          name: { type: "string", description: "新名称" },
-          style: { type: "string", description: "新风格" },
-          gender: { type: "string", description: "新性别" },
-          age: { type: "number", description: "新年龄" },
-          description: { type: "string", description: "新描述" },
+          characterId: { type: "string", description: "要更新的角色 ID（必填）", maxLength: 100 },
+          name: { type: "string", description: "新名称", maxLength: 200 },
+          style: { type: "string", description: "新风格", maxLength: 200 },
+          gender: { type: "string", description: "新性别", maxLength: 200 },
+          age: { type: "number", description: "新年龄", minimum: 0, maximum: 1000 },
+          description: { type: "string", description: "新描述", maxLength: 1000 },
           tags: { type: "array", items: { type: "string" }, description: "新标签列表" },
           appearance: {
             type: "object",
@@ -269,14 +271,15 @@ export const updateCharacterTool: ToolImpl = {
             },
             description: "新外观信息",
           },
-          personality: { type: "string", description: "新性格描述（可用 、 分隔）" },
-          customPrompt: { type: "string", description: "新自定义提示词" },
+          personality: { type: "string", description: "新性格描述（可用 、 分隔）", maxLength: 1000 },
+          customPrompt: { type: "string", description: "新自定义提示词", maxLength: 5000 },
         },
         required: ["characterId"],
       },
     },
   },
   domain: "asset",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { characterService } = await import("@/modules/character");
@@ -313,7 +316,7 @@ export const deleteCharacterTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          characterId: { type: "string", description: "要删除的角色 ID（必填）" },
+          characterId: { type: "string", description: "要删除的角色 ID（必填）", maxLength: 100 },
           force: {
             type: "boolean",
             description: "是否跳过引用检查强制删除，默认 false",
@@ -326,6 +329,7 @@ export const deleteCharacterTool: ToolImpl = {
   },
   domain: "asset",
   requiresConfirmation: true,
+  dangerLevel: "destructive",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { characterService } = await import("@/modules/character");
@@ -378,12 +382,12 @@ export const createSceneTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "场景名称（必填）" },
-          type: { type: "string", description: "场景类型（如：室内、室外、城市、自然）" },
-          timeOfDay: { type: "string", description: "时间（如：白天、黄昏、夜晚）" },
-          weather: { type: "string", description: "天气（如：晴天、雨天、雪天）" },
-          mood: { type: "string", description: "情绪氛围（如：温馨、紧张、神秘）" },
-          description: { type: "string", description: "场景描述" },
+          name: { type: "string", description: "场景名称（必填）", maxLength: 200 },
+          type: { type: "string", description: "场景类型（如：室内、室外、城市、自然）", maxLength: 200 },
+          timeOfDay: { type: "string", description: "时间（如：白天、黄昏、夜晚）", maxLength: 200 },
+          weather: { type: "string", description: "天气（如：晴天、雨天、雪天）", maxLength: 200 },
+          mood: { type: "string", description: "情绪氛围（如：温馨、紧张、神秘）", maxLength: 200 },
+          description: { type: "string", description: "场景描述", maxLength: 1000 },
           tags: { type: "array", items: { type: "string" }, description: "标签列表" },
           lighting: {
             type: "object",
@@ -402,13 +406,14 @@ export const createSceneTool: ToolImpl = {
             },
             description: "相机信息",
           },
-          customPrompt: { type: "string", description: "自定义生成提示词" },
+          customPrompt: { type: "string", description: "自定义生成提示词", maxLength: 5000 },
         },
         required: ["name"],
       },
     },
   },
   domain: "asset",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { sceneService } = await import("@/modules/scene");
@@ -460,13 +465,13 @@ export const updateSceneTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          sceneId: { type: "string", description: "要更新的场景 ID（必填）" },
-          name: { type: "string", description: "新名称" },
-          type: { type: "string", description: "新类型" },
-          timeOfDay: { type: "string", description: "新时间" },
-          weather: { type: "string", description: "新天气" },
-          mood: { type: "string", description: "新情绪" },
-          description: { type: "string", description: "新描述" },
+          sceneId: { type: "string", description: "要更新的场景 ID（必填）", maxLength: 100 },
+          name: { type: "string", description: "新名称", maxLength: 200 },
+          type: { type: "string", description: "新类型", maxLength: 200 },
+          timeOfDay: { type: "string", description: "新时间", maxLength: 200 },
+          weather: { type: "string", description: "新天气", maxLength: 200 },
+          mood: { type: "string", description: "新情绪", maxLength: 200 },
+          description: { type: "string", description: "新描述", maxLength: 1000 },
           tags: { type: "array", items: { type: "string" }, description: "新标签列表" },
           lighting: {
             type: "object",
@@ -485,13 +490,14 @@ export const updateSceneTool: ToolImpl = {
             },
             description: "新相机信息",
           },
-          customPrompt: { type: "string", description: "新自定义提示词" },
+          customPrompt: { type: "string", description: "新自定义提示词", maxLength: 5000 },
         },
         required: ["sceneId"],
       },
     },
   },
   domain: "asset",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { sceneService } = await import("@/modules/scene");
@@ -529,7 +535,7 @@ export const deleteSceneTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          sceneId: { type: "string", description: "要删除的场景 ID（必填）" },
+          sceneId: { type: "string", description: "要删除的场景 ID（必填）", maxLength: 100 },
           force: {
             type: "boolean",
             description: "是否跳过引用检查强制删除，默认 false",
@@ -542,6 +548,7 @@ export const deleteSceneTool: ToolImpl = {
   },
   domain: "asset",
   requiresConfirmation: true,
+  dangerLevel: "destructive",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { sceneService } = await import("@/modules/scene");
@@ -599,7 +606,7 @@ export const tagAssetTool: ToolImpl = {
             enum: ["character", "scene"],
             description: "素材类型（必填）",
           },
-          assetId: { type: "string", description: "素材 ID（必填）" },
+          assetId: { type: "string", description: "素材 ID（必填）", maxLength: 100 },
           tags: {
             type: "array",
             items: { type: "string" },
@@ -617,6 +624,7 @@ export const tagAssetTool: ToolImpl = {
     },
   },
   domain: "asset",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const assetType = String(args.assetType);
@@ -710,9 +718,10 @@ export const organizeAssetsTool: ToolImpl = {
     },
   },
   domain: "asset",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
-    const assetType = String(args.assetType || "all");
+    const assetType = String(args.assetType);
     const sortBy = String(args.sortBy || "name");
     const dryRun = args.dryRun === undefined ? true : Boolean(args.dryRun);
 
@@ -831,6 +840,8 @@ export const deduplicateAssetsTool: ToolImpl = {
             type: "number",
             description: "相似度阈值（0-1），默认 0.85。越高越严格",
             default: 0.85,
+            minimum: 0,
+            maximum: 1,
           },
           dryRun: {
             type: "boolean",
@@ -842,9 +853,10 @@ export const deduplicateAssetsTool: ToolImpl = {
     },
   },
   domain: "asset",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
-    const assetType = String(args.assetType || "all");
+    const assetType = String(args.assetType);
     const threshold = Math.min(Math.max(Number(args.threshold) || 0.85, 0), 1);
 
     type DuplicatePair = {

@@ -40,6 +40,11 @@ declare global {
       windowMaximize: () => Promise<void>;
       windowClose: () => Promise<void>;
       windowIsMaximized: () => Promise<boolean>;
+      checkForUpdates: () => Promise<{ success: boolean; updateAvailable?: boolean; version?: string; error?: string }>;
+      restartApp: () => Promise<void>;
+      onUpdateAvailable: (callback: (info: { version?: string }) => void) => () => void;
+      onUpdateDownloaded: (callback: (info: { version?: string }) => void) => () => void;
+      onUpdateError: (callback: (message: string) => void) => () => void;
     };
     __OFFLINE_QUEUE_STATE__?: {
       autoProcessInterval?: ReturnType<typeof setInterval> | null;

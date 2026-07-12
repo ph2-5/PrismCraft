@@ -49,10 +49,13 @@ import {
   shouldExtract,
   extractFromConversation,
   applyExtractedMemory,
+  ensureSeedMemory,
 } from "../services/memory-service";
 import { usePreference } from "@/shared/utils/preferences";
 import { errorLogger } from "@/shared/error-logger";
+import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants";
+import { toolRegistry } from "../services/tool-registry";
 import type { ModelSelection } from "@/domain/schemas";
 
 /** 创建新会话（带 i18n 默认标题） */
@@ -211,6 +214,9 @@ export function useAgent(): UseAgentReturn {
     void (async () => {
       // P5 断点恢复：启动时将所有 running 状态的检查点标记为 interrupted
       await markRunningAsInterrupted();
+      // 预训练数据-3：首次启动时注入种子记忆（通用动画创作知识 + 项目最佳实践）
+      // 幂等：已注入标记存在则跳过，不阻断主流程
+      await ensureSeedMemory();
       await refreshInterruptedSessions();
       await refreshHistory();
       // 如果有历史会话，加载最近的一个
@@ -297,6 +303,67 @@ export function useAgent(): UseAgentReturn {
           },
           onError: (err: Error) => {
             setError(err.message);
+          },
+          // 危险工具确认回调：弹出确认对话框，用户确认后执行
+          onConfirmationRequired: async (toolCall: ToolCall) => {
+            const toolName = toolCall.function.name;
+
+            // P1-C：从 toolRegistry 获取工具描述和危险等级
+            const toolImpl = toolRegistry.get(toolName);
+            const toolDesc = toolImpl?.def.function.description ?? "";
+            const dangerLevel = toolImpl?.dangerLevel ?? (toolImpl?.requiresConfirmation ? "destructive" : "safe");
+
+            // 解析参数为 key-value 格式（字段化展示）
+            let parsedArgs: Record<string, unknown> = {};
+            try {
+              parsedArgs = toolCall.function.arguments
+                ? JSON.parse(toolCall.function.arguments)
+                : {};
+            } catch {
+              // 解析失败时用原始字符串
+            }
+
+            // 构建参数列表文本（key-value 格式）
+            const argEntries = Object.entries(parsedArgs);
+            let argsText: string;
+            if (argEntries.length > 0) {
+              argsText = argEntries.map(([key, val]) => {
+                const valStr = typeof val === "string" ? val : JSON.stringify(val);
+                const truncated = valStr.length > 100 ? valStr.slice(0, 100) + "…" : valStr;
+                return `  ${key}: ${truncated}`;
+              }).join("\n");
+            } else {
+              argsText = `  ${toolCall.function.arguments?.slice(0, 500) ?? "(无参数)"}`;
+            }
+
+            // 构建风险等级标签
+            const dangerLabel = dangerLevel === "destructive"
+              ? t("agent.dangerLevelDestructive")
+              : dangerLevel === "limited"
+                ? t("agent.dangerLevelLimited")
+                : t("agent.dangerLevelSafe");
+
+            // 构建描述：工具描述 + 风险等级 + 参数
+            const descParts: string[] = [
+              t("agent.confirmToolDescription"),
+              "",
+              `${t("agent.confirmToolName")}: ${toolName}`,
+            ];
+            if (toolDesc) {
+              // 工具描述截断到 200 字符
+              const descTrunc = toolDesc.length > 200 ? toolDesc.slice(0, 200) + "…" : toolDesc;
+              descParts.push(`${t("agent.confirmToolDescLabel")}: ${descTrunc}`);
+            }
+            descParts.push(`${t("agent.confirmDangerLevel")}: ${dangerLabel}`);
+            descParts.push(`${t("agent.confirmToolArgs")}:`);
+            descParts.push(argsText);
+
+            return confirm({
+              title: t("agent.confirmToolTitle"),
+              description: descParts.join("\n"),
+              confirmText: t("agent.confirmToolDanger"),
+              variant: "danger",
+            });
           },
           signal: abortController.signal,
         },

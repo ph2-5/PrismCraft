@@ -28,6 +28,57 @@ import {
   type FileCategory,
 } from "@/shared/file-http";
 
+/**
+ * 客户端路径安全校验（深度防御，服务端已有 ALLOWED_ROOTS 限制）。
+ *
+ * 拒绝明显危险的路径模式：
+ * - 系统目录（Windows / macOS / Linux）
+ * - 路径遍历（../）
+ * - 空路径
+ * - Agent 内部受保护目录（审计日志、会话检查点等）
+ */
+function isPathSafe(filePath: string): boolean {
+  if (!filePath || filePath.trim() === "") return false;
+  // 拒绝路径遍历
+  if (filePath.includes("..")) return false;
+  // 拒绝系统根目录和关键系统路径
+  const dangerousPatterns = [
+    /^\/etc\//i,
+    /^\/var\//i,
+    /^\/usr\//i,
+    /^\/bin\//i,
+    /^\/sbin\//i,
+    /^\/boot\//i,
+    /^\/System\//i,
+    /^\/Library\//i,
+    /^C:\\Windows\\/i,
+    /^C:\\Program Files/i,
+    /^C:\\Program Files \(x86\)/i,
+  ];
+  if (dangerousPatterns.some((p) => p.test(filePath))) return false;
+  // 拒绝 Agent 内部受保护目录（防止 Agent 篡改审计日志/会话检查点）
+  if (isProtectedAgentPath(filePath)) return false;
+  return true;
+}
+
+/**
+ * 检查路径是否属于 Agent 内部受保护目录。
+ *
+ * 受保护目录：
+ * - agent/audit/ — 审计日志（防止 Agent 删除/篡改审计记录）
+ * - agent/sessions/ — 会话检查点（防止 Agent 篡改会话历史）
+ * - agent/tool-plugins/ — 工具插件配置（防止 Agent 修改自身权限）
+ */
+function isProtectedAgentPath(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/").toLowerCase();
+  const protectedSegments = [
+    "/agent/audit/",
+    "/agent/sessions/",
+    "/agent/tool-plugins/",
+  ];
+  return protectedSegments.some((seg) => normalized.includes(seg));
+}
+
 // ============= 工具实现 =============
 
 /** 列出指定类别目录下的文件 */
@@ -47,14 +98,15 @@ export const listFilesTool: ToolImpl = {
             enum: ["character", "scene", "storyboard", "video-cache", "image-cache", "upload", "plugin"],
             description: "文件类别",
           },
-          limit: { type: "number", description: "返回上限，默认 100，最大 500", default: 100 },
-          offset: { type: "number", description: "偏移量，默认 0", default: 0 },
+          limit: { type: "number", description: "返回上限，默认 100，最大 500", default: 100, minimum: 1, maximum: 500 },
+          offset: { type: "number", description: "偏移量，默认 0", default: 0, minimum: 0 },
         },
         required: ["category"],
       },
     },
   },
   domain: "file-management",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const category = String(args.category) as FileCategory;
@@ -90,16 +142,20 @@ export const getFileInfoTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          filePath: { type: "string", description: "文件路径" },
+          filePath: { type: "string", description: "文件路径", maxLength: 1024 },
         },
         required: ["filePath"],
       },
     },
   },
   domain: "file-management",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const filePath = String(args.filePath);
+    if (!isPathSafe(filePath)) {
+      return { success: false, error: "路径不安全（系统目录/路径遍历/受保护目录）" };
+    }
     const result = await getFileInfo(filePath);
     if (result === null) {
       return { success: false, error: "文件服务不可用" };
@@ -124,7 +180,7 @@ export const deleteFileTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          filePath: { type: "string", description: "要删除的文件路径" },
+          filePath: { type: "string", description: "要删除的文件路径", maxLength: 1024 },
         },
         required: ["filePath"],
       },
@@ -133,8 +189,13 @@ export const deleteFileTool: ToolImpl = {
   domain: "file-management",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   requiresConfirmation: true,
+  dangerLevel: "destructive",
   async execute(args) {
     const filePath = String(args.filePath);
+    // 客户端路径安全校验（深度防御）
+    if (!isPathSafe(filePath)) {
+      return { success: false, error: "文件路径不安全：禁止访问系统目录或路径遍历" };
+    }
     const success = await deleteFile(filePath);
     return {
       success,
@@ -154,24 +215,29 @@ export const copyFileTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          sourceKey: { type: "string", description: "源文件路径或 key" },
+          sourceKey: { type: "string", description: "源文件路径或 key", maxLength: 1024 },
           targetCategory: {
             type: "string",
             enum: ["character", "scene", "storyboard", "video-cache", "image-cache", "upload", "plugin"],
             description: "目标类别",
           },
-          targetKey: { type: "string", description: "目标文件名/key" },
+          targetKey: { type: "string", description: "目标文件名/key", maxLength: 1024 },
         },
         required: ["sourceKey", "targetCategory", "targetKey"],
       },
     },
   },
   domain: "file-management",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const sourceKey = String(args.sourceKey);
     const targetCategory = String(args.targetCategory) as FileCategory;
     const targetKey = String(args.targetKey);
+
+    if (!isPathSafe(sourceKey)) {
+      return { success: false, error: "源路径不安全（系统目录/路径遍历/受保护目录）" };
+    }
 
     const result = await copyFile(sourceKey, targetCategory, targetKey);
     if (result === null) {
@@ -198,13 +264,13 @@ export const moveFileTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          sourceKey: { type: "string", description: "源文件路径或 key" },
+          sourceKey: { type: "string", description: "源文件路径或 key", maxLength: 1024 },
           targetCategory: {
             type: "string",
             enum: ["character", "scene", "storyboard", "video-cache", "image-cache", "upload", "plugin"],
             description: "目标类别",
           },
-          targetKey: { type: "string", description: "目标文件名/key" },
+          targetKey: { type: "string", description: "目标文件名/key", maxLength: 1024 },
           deleteSource: {
             type: "boolean",
             description: "是否删除源文件，默认 true",
@@ -218,8 +284,13 @@ export const moveFileTool: ToolImpl = {
   domain: "file-management",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   requiresConfirmation: true,
+  dangerLevel: "destructive",
   async execute(args) {
     const sourceKey = String(args.sourceKey);
+    // 客户端路径安全校验（深度防御）
+    if (!isPathSafe(sourceKey)) {
+      return { success: false, error: "源文件路径不安全：禁止访问系统目录或路径遍历" };
+    }
     const targetCategory = String(args.targetCategory) as FileCategory;
     const targetKey = String(args.targetKey);
     const deleteSource = args.deleteSource !== false;
@@ -267,12 +338,13 @@ export const getDiskSpaceTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          dirPath: { type: "string", description: "查询路径（可选，默认缓存目录）" },
+          dirPath: { type: "string", description: "查询路径（可选，默认缓存目录）", maxLength: 1024 },
         },
       },
     },
   },
   domain: "file-management",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     let dirPath = args.dirPath ? String(args.dirPath) : undefined;

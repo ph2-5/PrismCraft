@@ -55,10 +55,12 @@ export const saveMemoryTool: ToolImpl = {
           key: {
             type: "string",
             description: "记忆键。fact 常用：source_novel/target_duration/art_style/project_name；preference 常用：preferred_style/preferred_provider/language/theme",
+            maxLength: 200,
           },
           value: {
             type: "string",
             description: "记忆值（fact 必须是字符串，preference 会自动转换类型）",
+            maxLength: 10000,
           },
         },
         required: ["type", "key", "value"],
@@ -66,6 +68,7 @@ export const saveMemoryTool: ToolImpl = {
     },
   },
   domain: "memory",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const type = String(args.type) as "fact" | "preference";
@@ -133,11 +136,14 @@ export const recallMemoryTool: ToolImpl = {
           query: {
             type: "string",
             description: "搜索关键词（如『赛博朋克项目』、『角色创建』、『API 配置』）",
+            maxLength: 500,
           },
           limit: {
             type: "number",
             description: "返回数量上限，默认 5，最大 20",
             default: 5,
+            minimum: 1,
+            maximum: 20,
           },
         },
         required: ["query"],
@@ -145,6 +151,7 @@ export const recallMemoryTool: ToolImpl = {
     },
   },
   domain: "memory",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const query = String(args.query);
@@ -196,6 +203,7 @@ export const getUserPreferencesTool: ToolImpl = {
     },
   },
   domain: "memory",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute() {
     try {
@@ -236,10 +244,12 @@ export const updatePreferenceTool: ToolImpl = {
           key: {
             type: "string",
             description: "偏好键（如 preferred_style、preferred_provider、language、theme）",
+            maxLength: 200,
           },
           value: {
             type: "string",
             description: "偏好值（字符串形式，会自动转换 true/false/数字）",
+            maxLength: 10000,
           },
           valueType: {
             type: "string",
@@ -252,6 +262,7 @@ export const updatePreferenceTool: ToolImpl = {
     },
   },
   domain: "memory",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const key = String(args.key);
@@ -308,7 +319,8 @@ export const deleteMemoryTool: ToolImpl = {
       name: "delete_memory",
       description:
         "删除记忆条目。可删除：1) 单个 fact（按 key）；2) 单个 preference（按 key）；3) 单条归档记忆（按 id）；4) 清空所有核心记忆。" +
-        "适用于：用户说『忘记我之前的偏好』、『删除那个错误的事实』、『清空所有记忆』。",
+        "适用于：用户说『忘记我之前的偏好』、『删除那个错误的事实』、『清空所有记忆』。" +
+        "注意：target=all_core 会清空所有核心记忆（不可逆），需要用户确认。",
       parameters: {
         type: "object",
         properties: {
@@ -320,6 +332,7 @@ export const deleteMemoryTool: ToolImpl = {
           key: {
             type: "string",
             description: "目标键（target=fact/preference 时必填）或归档记忆 ID（target=archival 时必填）",
+            maxLength: 200,
           },
         },
         required: ["target"],
@@ -327,6 +340,8 @@ export const deleteMemoryTool: ToolImpl = {
     },
   },
   domain: "memory",
+  dangerLevel: "destructive",
+  requiresConfirmation: true,
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const target = String(args.target);
@@ -413,12 +428,15 @@ export const listArchivalMemoryTool: ToolImpl = {
             type: "number",
             description: "返回数量上限，默认 10，最大 50",
             default: 10,
+            minimum: 1,
+            maximum: 50,
           },
         },
       },
     },
   },
   domain: "memory",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const limit = Math.min(Number(args.limit) || 10, 50);

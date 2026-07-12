@@ -25,6 +25,11 @@ import {
   FileWarning,
   AlertTriangle,
   Power,
+  Download,
+  ExternalLink,
+  Copy,
+  Terminal,
+  Zap,
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import {
@@ -39,6 +44,54 @@ import {
 } from "@/infrastructure/embedding";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { prewarmEmbeddings } from "@/modules/agent";
+
+/**
+ * 推荐模型预设（与 scripts/download-embedding-model.mjs 中的 MODEL_PRESETS 保持一致）。
+ *
+ * 用于在 UI 中展示下载引导，让用户知道有哪些可用模型以及如何下载。
+ * 字段含义：
+ * - repoId：HuggingFace 仓库 ID（下载命令和页面链接用）
+ * - modelName：显示名
+ * - language：语言
+ * - dimensions：向量维度
+ * - size：量化版大致体积（仅供参考）
+ * - description：简短描述
+ */
+const RECOMMENDED_MODELS = [
+  {
+    repoId: "Xenova/all-MiniLM-L6-v2",
+    modelName: "all-MiniLM-L6-v2",
+    language: "en",
+    dimensions: 384,
+    size: "~33MB",
+    description: "轻量英文模型，体积小速度快（推荐）",
+  },
+  {
+    repoId: "Xenova/bge-small-zh-v1.5",
+    modelName: "bge-small-zh-v1.5",
+    language: "zh",
+    dimensions: 512,
+    size: "~50MB",
+    description: "轻量中文模型，适合中文记忆检索",
+  },
+  {
+    repoId: "Xenova/multilingual-e5-small",
+    modelName: "multilingual-e5-small",
+    language: "multilingual",
+    dimensions: 384,
+    size: "~120MB",
+    description: "多语言模型，支持中英混合场景",
+  },
+  {
+    repoId: "Xenova/gte-small",
+    modelName: "gte-small",
+    language: "en",
+    dimensions: 384,
+    size: "~33MB",
+    description: "英文模型，检索效果略优于 MiniLM",
+  },
+] as const;
 
 /**
  * 必需的非 ONNX 文件（文件名固定，不支持变体）
@@ -166,6 +219,13 @@ export function EmbeddingModelPanel() {
   const [isDragOver, setIsDragOver] = useState(false);
   /** 当前正在切换/删除的模型 id（用于按钮 loading 态） */
   const [pendingId, setPendingId] = useState<string | null>(null);
+  /** 预热状态（预训练数据-4） */
+  const [prewarming, setPrewarming] = useState(false);
+  const [prewarmProgress, setPrewarmProgress] = useState<{
+    current: number;
+    total: number;
+    message?: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { success, error } = useToastHelpers();
 
@@ -296,6 +356,89 @@ export function EmbeddingModelPanel() {
     },
     [refreshStatus, success, error],
   );
+
+  // ── 下载引导：复制下载命令到剪贴板 ──
+
+  const handleCopyCommand = useCallback(
+    async (repoId: string) => {
+      const cmd = `node scripts/download-embedding-model.mjs --model ${repoId}`;
+      try {
+        await navigator.clipboard.writeText(cmd);
+        success(t("settings.embeddingModelCommandCopied"), cmd);
+      } catch (e) {
+        errorLogger.warn("[EmbeddingModelPanel] 复制命令失败", e);
+        // 降级：用 textarea + execCommand
+        const textarea = document.createElement("textarea");
+        textarea.value = cmd;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand("copy");
+          success(t("settings.embeddingModelCommandCopied"), cmd);
+        } catch {
+          error(t("settings.embeddingModelCopyFailed"), cmd);
+        }
+        document.body.removeChild(textarea);
+      }
+    },
+    [success, error],
+  );
+
+  // ── 下载引导：打开 HuggingFace 模型页面 ──
+
+  const handleOpenHuggingFace = useCallback((repoId: string) => {
+    const url = `https://huggingface.co/${repoId}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
+
+  // ── 预热 Embedding 缓存（预训练数据-4） ──
+
+  const handlePrewarm = useCallback(async () => {
+    setPrewarming(true);
+    setPrewarmProgress({ current: 0, total: 0 });
+    try {
+      const result = await prewarmEmbeddings((progress) => {
+        setPrewarmProgress({
+          current: progress.current,
+          total: progress.total,
+          message: progress.message,
+        });
+      });
+
+      if (result.success) {
+        if (result.total === 0) {
+          success(t("settings.embeddingPrewarmEmpty"), "");
+        } else {
+          const strategyLabel = result.strategy === "api"
+            ? t("settings.embeddingPrewarmStrategyApi")
+            : result.strategy === "local"
+              ? t("settings.embeddingPrewarmStrategyLocal")
+              : result.strategy ?? "";
+          success(
+            t("settings.embeddingPrewarmSuccess"),
+            t("settings.embeddingPrewarmResult", {
+              total: result.total,
+              strategy: strategyLabel,
+            }),
+          );
+        }
+      } else {
+        error(
+          t("settings.embeddingPrewarmFailed"),
+          result.message ?? t("settings.embeddingPrewarmNoStrategy"),
+        );
+      }
+    } catch (e) {
+      errorLogger.warn("[EmbeddingModelPanel] 预热失败", e);
+      error(
+        t("settings.embeddingPrewarmFailed"),
+        e instanceof Error ? e.message : String(e),
+      );
+    } finally {
+      setPrewarming(false);
+      setPrewarmProgress(null);
+    }
+  }, [success, error]);
 
   // ── 拖拽 ──
 
@@ -554,10 +697,144 @@ export function EmbeddingModelPanel() {
         </div>
       </div>
 
+      {/* 预热 Embedding 缓存（预训练数据-4） — 仅当有可用模型或 API embedding 时显示 */}
+      {(status?.available || installedModels.length > 0) && (
+        <div style={cardStyle}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
+              <Zap size={16} style={{ color: "var(--primary)" }} />
+              {t("settings.embeddingPrewarmTitle")}
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handlePrewarm}
+              disabled={prewarming || uploading}
+              style={{ fontSize: 11 }}
+            >
+              {prewarming ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+              {t("settings.embeddingPrewarmButton")}
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted-fg)", lineHeight: 1.6 }}>
+            {t("settings.embeddingPrewarmHint")}
+          </div>
+          {/* 预热进度条 */}
+          {prewarming && prewarmProgress && prewarmProgress.total > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 4 }}>
+                {prewarmProgress.message ?? t("settings.embeddingPrewarmProcessing", {
+                  current: prewarmProgress.current,
+                  total: prewarmProgress.total,
+                })}
+              </div>
+              <div style={progressContainerStyle}>
+                <div
+                  style={{
+                    width: `${Math.round((prewarmProgress.current / Math.max(prewarmProgress.total, 1)) * 100)}%`,
+                    height: "100%",
+                    background: "var(--primary)",
+                    borderRadius: 3,
+                    transition: "width 0.2s ease",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 模型列表 */}
       {installedModels.length > 0 && (
         <div>
           {installedModels.map((entry) => renderModelCard(entry))}
+        </div>
+      )}
+
+      {/* 下载引导（仅当无已安装模型时显示） */}
+      {installedModels.length === 0 && (
+        <div style={cardStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 13, fontWeight: 600 }}>
+            <Download size={16} style={{ color: "var(--primary)" }} />
+            {t("settings.embeddingModelDownloadGuide")}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 12, lineHeight: 1.6 }}>
+            {t("settings.embeddingModelDownloadHint")}
+          </div>
+
+          {/* 方式一：运行下载脚本 */}
+          <div style={{ marginBottom: 14, padding: 10, background: "var(--card2)", borderRadius: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+              <Terminal size={13} /> {t("settings.embeddingModelDownloadScript")}
+              <span style={{ fontSize: 10, color: "var(--success)", marginLeft: 4 }}>
+                {t("settings.embeddingModelRecommended")}
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 8 }}>
+              {t("settings.embeddingModelScriptHint")}
+            </div>
+            {/* 推荐模型列表 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {RECOMMENDED_MODELS.map((m) => (
+                <div
+                  key={m.repoId}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    padding: "8px 10px",
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 6,
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
+                      {m.repoId}
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 2 }}>
+                      {m.description}
+                      {" · "}
+                      {t("settings.embeddingModelDimensions")}: {m.dimensions}
+                      {" · "}
+                      {m.size}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleCopyCommand(m.repoId)}
+                      title={t("settings.embeddingModelCopyCommand")}
+                      style={{ fontSize: 11 }}
+                    >
+                      <Copy size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleOpenHuggingFace(m.repoId)}
+                      title={t("settings.embeddingModelOpenHuggingFace")}
+                      style={{ fontSize: 11 }}
+                    >
+                      <ExternalLink size={12} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 方式二：手动下载并拖拽 */}
+          <div style={{ padding: 10, background: "var(--card2)", borderRadius: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+              <ExternalLink size={13} /> {t("settings.embeddingModelManualDownload")}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted-fg)", lineHeight: 1.6 }}>
+              {t("settings.embeddingModelManualHint")}
+            </div>
+          </div>
         </div>
       )}
 

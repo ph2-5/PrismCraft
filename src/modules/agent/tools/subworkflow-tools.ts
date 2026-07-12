@@ -162,6 +162,7 @@ export const autoCreateCharacterTool: ToolImpl = {
         properties: {
           description: {
             type: "string",
+            maxLength: 2000,
             description: "用户对角色的描述（必填，如「赛博朋克风格的女性侦探，冷酷干练」）",
           },
           autoGenerateImage: {
@@ -171,6 +172,7 @@ export const autoCreateCharacterTool: ToolImpl = {
           },
           style: {
             type: "string",
+            maxLength: 200,
             description: "风格覆盖（可选，如「日式动漫」、「写实」）。不提供则由 AI 推断",
           },
         },
@@ -179,6 +181,7 @@ export const autoCreateCharacterTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args, ctx) {
     const description = String(args.description);
@@ -309,6 +312,7 @@ export const autoCreateSceneTool: ToolImpl = {
         properties: {
           description: {
             type: "string",
+            maxLength: 2000,
             description: "用户对场景的描述（必填，如「雨夜的赛博朋克街道，霓虹灯闪烁」）",
           },
           autoGenerateImage: {
@@ -318,6 +322,7 @@ export const autoCreateSceneTool: ToolImpl = {
           },
           style: {
             type: "string",
+            maxLength: 200,
             description: "风格覆盖（可选）。不提供则由 AI 推断",
           },
         },
@@ -326,6 +331,7 @@ export const autoCreateSceneTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args, ctx) {
     const description = String(args.description);
@@ -438,10 +444,12 @@ export const autoPlanStoryboardTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          title: { type: "string", description: "故事标题（必填）" },
-          description: { type: "string", description: "故事描述/简介（必填）" },
+          title: { type: "string", maxLength: 200, description: "故事标题（必填）" },
+          description: { type: "string", maxLength: 2000, description: "故事描述/简介（必填）" },
           targetDuration: {
             type: "number",
+            minimum: 1,
+            maximum: 300,
             description: "目标时长（秒），默认 60",
             default: 60,
           },
@@ -466,6 +474,7 @@ export const autoPlanStoryboardTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args, ctx) {
     const title = String(args.title);
@@ -610,16 +619,17 @@ export const autoGenerateBeatFullTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
-          beatId: { type: "string", description: "分镜 ID（必填）" },
-          providerId: { type: "string", description: "指定 provider ID（可选）" },
-          modelId: { type: "string", description: "指定模型 ID（可选）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
+          beatId: { type: "string", maxLength: 100, description: "分镜 ID（必填）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 provider ID（可选）" },
+          modelId: { type: "string", maxLength: 100, description: "指定模型 ID（可选）" },
         },
         required: ["storyId", "beatId"],
       },
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args, ctx) {
     const storyId = String(args.storyId);
@@ -748,14 +758,14 @@ export const autoGenerateVideoFullTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
           beatIds: {
             type: "array",
             items: { type: "string" },
             description: "要生成的分镜 ID 数组（可选，不填则生成全部）",
           },
-          providerId: { type: "string", description: "指定 provider ID（可选）" },
-          modelId: { type: "string", description: "指定模型 ID（可选）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 provider ID（可选）" },
+          modelId: { type: "string", maxLength: 100, description: "指定模型 ID（可选）" },
           addSubtitles: {
             type: "boolean",
             description: "是否添加字幕，默认 true",
@@ -772,6 +782,7 @@ export const autoGenerateVideoFullTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args, ctx) {
     const storyId = String(args.storyId);
@@ -999,13 +1010,13 @@ export const autoFindAndImportAssetTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "搜索关键词（必填）" },
+          query: { type: "string", maxLength: 500, description: "搜索关键词（必填）" },
           assetType: {
             type: "string",
             enum: ["character", "scene", "prop"],
             description: "素材类型（必填）",
           },
-          count: { type: "number", description: "搜索结果数量，默认 5", default: 5 },
+          count: { type: "number", minimum: 1, maximum: 20, description: "搜索结果数量，默认 5", default: 5 },
           autoImport: {
             type: "boolean",
             description: "是否自动选择第一个结果导入，默认 false",
@@ -1017,6 +1028,7 @@ export const autoFindAndImportAssetTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.download,
   async execute(args, ctx) {
     const query = String(args.query);
@@ -1107,6 +1119,7 @@ export const autoFixCommonErrorsTool: ToolImpl = {
         properties: {
           errorDescription: {
             type: "string",
+            maxLength: 2000,
             description: "错误描述（必填，完整的错误信息）",
           },
           errorContext: {
@@ -1119,6 +1132,7 @@ export const autoFixCommonErrorsTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args, ctx) {
     const errorDescription = String(args.errorDescription);
@@ -1229,18 +1243,23 @@ export const autoCreateFromNovelTool: ToolImpl = {
         properties: {
           novelText: {
             type: "string",
+            maxLength: 8000,
             description: "小说文本（与 novelFilePath 二选一）",
           },
           novelFilePath: {
             type: "string",
+            maxLength: 1024,
             description: "小说文件路径（与 novelText 二选一）",
           },
           title: {
             type: "string",
+            maxLength: 200,
             description: "故事标题（可选，不提供则由 AI 推断）",
           },
           maxBeats: {
             type: "number",
+            minimum: 1,
+            maximum: 50,
             description: "最大分镜数，默认 6",
             default: 6,
           },
@@ -1254,6 +1273,7 @@ export const autoCreateFromNovelTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args, ctx) {
     const titleOverride = args.title ? String(args.title) : undefined;
@@ -1626,8 +1646,8 @@ export const autoPolishVideoTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          videoPath: { type: "string", description: "视频文件路径（必填）" },
-          storyId: { type: "string", description: "故事 ID（可选，用于生成字幕文本）" },
+          videoPath: { type: "string", maxLength: 2048, description: "视频文件路径（必填）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（可选，用于生成字幕文本）" },
           addSubtitles: {
             type: "boolean",
             description: "是否添加字幕，默认 true",
@@ -1650,6 +1670,7 @@ export const autoPolishVideoTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args, ctx) {
     const videoPath = String(args.videoPath);

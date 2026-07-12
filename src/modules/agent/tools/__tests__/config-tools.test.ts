@@ -335,7 +335,8 @@ describe("config-tools", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("验证失败");
-      expect(result.error).toContain("Invalid API key");
+      // 错误消息已脱敏，不再包含原始 provider 错误
+      expect(result.error).not.toContain("sk-");
     });
   });
 

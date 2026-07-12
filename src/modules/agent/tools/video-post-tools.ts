@@ -54,10 +54,10 @@ export const mergeVideosTool: ToolImpl = {
         properties: {
           videoPaths: {
             type: "array",
-            items: { type: "string" },
+            items: { type: "string", maxLength: 1024 },
             description: "要合并的视频文件路径数组（2-10 个）",
           },
-          outputPath: { type: "string", description: "输出文件路径（可选，默认保存到缓存目录）" },
+          outputPath: { type: "string", maxLength: 1024, description: "输出文件路径（可选，默认保存到缓存目录）" },
           transition: {
             type: "string",
             enum: ["none", "fade", "cut", "dissolve"],
@@ -66,6 +66,8 @@ export const mergeVideosTool: ToolImpl = {
           },
           transitionDuration: {
             type: "number",
+            minimum: 0,
+            maximum: 10,
             description: "转场时长（秒），默认 0.5",
             default: 0.5,
           },
@@ -76,7 +78,7 @@ export const mergeVideosTool: ToolImpl = {
   },
   domain: "video-post",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
-  requiresConfirmation: false,
+  dangerLevel: "limited",
   async execute(args) {
     // 参数校验
     const videoPaths = Array.isArray(args.videoPaths)
@@ -147,6 +149,7 @@ export const trimVideoTool: ToolImpl = {
     },
   },
   domain: "video-post",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     // 参数校验
@@ -225,6 +228,7 @@ export const addTransitionTool: ToolImpl = {
     },
   },
   domain: "video-post",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     // 参数校验
@@ -309,6 +313,7 @@ export const addSubtitleTool: ToolImpl = {
     },
   },
   domain: "video-post",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     // 参数校验：subtitles 或 subtitlePath 至少一项
@@ -384,9 +389,9 @@ export const adjustVideoSpeedTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          videoPath: { type: "string", description: "源视频文件路径" },
-          speed: { type: "number", description: "速度倍数（0.25-4.0），<1 慢放，>1 加速" },
-          outputPath: { type: "string", description: "输出文件路径（可选，默认保存到缓存目录）" },
+          videoPath: { type: "string", maxLength: 1024, description: "源视频文件路径" },
+          speed: { type: "number", minimum: 0.25, maximum: 4.0, description: "速度倍数（0.25-4.0），<1 慢放，>1 加速" },
+          outputPath: { type: "string", maxLength: 1024, description: "输出文件路径（可选，默认保存到缓存目录）" },
           preserveAudio: { type: "boolean", description: "是否保留音频音调，默认 true", default: true },
         },
         required: ["videoPath", "speed"],
@@ -394,6 +399,7 @@ export const adjustVideoSpeedTool: ToolImpl = {
     },
   },
   domain: "video-post",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     // 参数校验
@@ -453,22 +459,23 @@ export const extractAudioTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          videoPath: { type: "string", description: "源视频文件路径" },
+          videoPath: { type: "string", maxLength: 1024, description: "源视频文件路径" },
           outputFormat: {
             type: "string",
             enum: ["mp3", "wav", "aac"],
             description: "输出音频格式，默认 mp3",
             default: "mp3",
           },
-          outputPath: { type: "string", description: "输出文件路径（可选，默认保存到缓存目录）" },
-          startTime: { type: "number", description: "提取开始时间（秒，可选）" },
-          endTime: { type: "number", description: "提取结束时间（秒，可选）" },
+          outputPath: { type: "string", maxLength: 1024, description: "输出文件路径（可选，默认保存到缓存目录）" },
+          startTime: { type: "number", minimum: 0, description: "提取开始时间（秒，可选）" },
+          endTime: { type: "number", minimum: 0, description: "提取结束时间（秒，可选）" },
         },
         required: ["videoPath"],
       },
     },
   },
   domain: "video-post",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     // 参数校验
@@ -535,6 +542,7 @@ export const replaceAudioTool: ToolImpl = {
     },
   },
   domain: "video-post",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     // 参数校验
@@ -606,6 +614,7 @@ export const generateThumbnailTool: ToolImpl = {
     },
   },
   domain: "video-post",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     // 参数校验
@@ -662,11 +671,12 @@ export const composeFinalVideoTool: ToolImpl = {
         properties: {
           videoPaths: {
             type: "array",
-            items: { type: "string" },
+            items: { type: "string", maxLength: 1024 },
             description: "视频片段路径数组（1-10 段）",
           },
           backgroundMusic: {
             type: "string",
+            maxLength: 1024,
             description: "背景音乐文件路径（可选）",
           },
           subtitles: {
@@ -674,9 +684,9 @@ export const composeFinalVideoTool: ToolImpl = {
             items: {
               type: "object",
               properties: {
-                text: { type: "string", description: "字幕文本" },
-                startTime: { type: "number", description: "开始时间（秒）" },
-                endTime: { type: "number", description: "结束时间（秒）" },
+                text: { type: "string", maxLength: 2000, description: "字幕文本" },
+                startTime: { type: "number", minimum: 0, description: "开始时间（秒）" },
+                endTime: { type: "number", minimum: 0, description: "结束时间（秒）" },
               },
             },
             description: "字幕数组（可选）",
@@ -689,12 +699,14 @@ export const composeFinalVideoTool: ToolImpl = {
           },
           transitionDuration: {
             type: "number",
+            minimum: 0,
+            maximum: 10,
             description: "转场时长（秒），默认 0.5",
             default: 0.5,
           },
-          fontSize: { type: "number", description: "字幕字体大小，默认 24", default: 24 },
-          fontColor: { type: "string", description: "字幕字体颜色，默认 #ffffff", default: "#ffffff" },
-          outputPath: { type: "string", description: "输出文件路径（可选，默认保存到缓存目录）" },
+          fontSize: { type: "number", minimum: 1, maximum: 500, description: "字幕字体大小，默认 24", default: 24 },
+          fontColor: { type: "string", maxLength: 200, description: "字幕字体颜色，默认 #ffffff", default: "#ffffff" },
+          outputPath: { type: "string", maxLength: 1024, description: "输出文件路径（可选，默认保存到缓存目录）" },
         },
         required: ["videoPaths"],
       },
@@ -702,7 +714,7 @@ export const composeFinalVideoTool: ToolImpl = {
   },
   domain: "video-post",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
-  requiresConfirmation: false,
+  dangerLevel: "limited",
   async execute(args) {
     // 参数校验
     const videoPaths = Array.isArray(args.videoPaths)

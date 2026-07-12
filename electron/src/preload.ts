@@ -45,6 +45,7 @@ const IPC_PERMISSIONS: Record<string, string[]> = {
   SYSTEM: [
     "shell:open-external", "shell:open-path", "dialog:open-file", "dialog:save-file", "db:close",
     "window:minimize", "window:maximize", "window:close", "window:isMaximized",
+    "check-updates", "app:restart",
   ],
   SECURE: [
     "secure-config:resolve",
@@ -156,4 +157,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
   windowMaximize: createSecureIpcInvoker("window:maximize"),
   windowClose: createSecureIpcInvoker("window:close"),
   windowIsMaximized: createSecureIpcInvoker("window:isMaximized"),
+  checkForUpdates: createSecureIpcInvoker("check-updates"),
+  restartApp: createSecureIpcInvoker("app:restart"),
+  onUpdateAvailable: (callback: (info: { version?: string }) => void) => {
+    const listener = (_event: unknown, info: { version?: string }) => callback(info);
+    ipcRenderer.on("update-available", listener);
+    return () => ipcRenderer.removeListener("update-available", listener);
+  },
+  onUpdateDownloaded: (callback: (info: { version?: string }) => void) => {
+    const listener = (_event: unknown, info: { version?: string }) => callback(info);
+    ipcRenderer.on("update-downloaded", listener);
+    return () => ipcRenderer.removeListener("update-downloaded", listener);
+  },
+  onUpdateError: (callback: (message: string) => void) => {
+    const listener = (_event: unknown, message: string) => callback(message);
+    ipcRenderer.on("update-error", listener);
+    return () => ipcRenderer.removeListener("update-error", listener);
+  },
 });

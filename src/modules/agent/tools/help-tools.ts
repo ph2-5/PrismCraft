@@ -560,6 +560,7 @@ export const explainFeatureTool: ToolImpl = {
           featureName: {
             type: "string",
             description: "要解释的功能名（如 shot-page、character-editor、video-generation）",
+            maxLength: 100,
           },
         },
         required: ["featureName"],
@@ -567,6 +568,7 @@ export const explainFeatureTool: ToolImpl = {
     },
   },
   domain: "help",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const featureName = String(args.featureName || "").trim();
@@ -673,6 +675,7 @@ export const showTutorialTool: ToolImpl = {
     },
   },
   domain: "help",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const topic = String(args.topic || "").trim();
@@ -774,6 +777,7 @@ export const getHelpTool: ToolImpl = {
           query: {
             type: "string",
             description: "搜索关键词（匹配标题、摘要、内容）。不填则不按关键词搜索。",
+            maxLength: 500,
           },
           category: {
             type: "string",
@@ -785,6 +789,7 @@ export const getHelpTool: ToolImpl = {
     },
   },
   domain: "help",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const query = args.query ? String(args.query).toLowerCase().trim() : "";
@@ -855,6 +860,7 @@ export const listAvailableCommandsTool: ToolImpl = {
           domain: {
             type: "string",
             description: "按业务域过滤（如 asset、video、story、help、generation、config、system 等）",
+            maxLength: 200,
           },
           includeDescriptions: {
             type: "boolean",
@@ -866,6 +872,7 @@ export const listAvailableCommandsTool: ToolImpl = {
     },
   },
   domain: "help",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const domainFilter = args.domain ? String(args.domain).trim() : "";
@@ -924,9 +931,9 @@ export const suggestNextActionTool: ToolImpl = {
             type: "object",
             description: "用户上下文（可选）",
             properties: {
-              current_page: { type: "string", description: "当前所在页面" },
-              last_action: { type: "string", description: "上一步操作" },
-              user_goal: { type: "string", description: "用户目标" },
+              current_page: { type: "string", description: "当前所在页面", maxLength: 200 },
+              last_action: { type: "string", description: "上一步操作", maxLength: 500 },
+              user_goal: { type: "string", description: "用户目标", maxLength: 1000 },
             },
           },
         },
@@ -934,6 +941,7 @@ export const suggestNextActionTool: ToolImpl = {
     },
   },
   domain: "help",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     // 1. 查询当前项目状态
@@ -1126,6 +1134,7 @@ export const getKeyboardShortcutsTool: ToolImpl = {
     },
   },
   domain: "help",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const context = String(args.context || "all").trim();

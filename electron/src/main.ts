@@ -1,7 +1,7 @@
 import "./shared-logic-resolve";
 
 import path from "path";
-import { app } from "electron";
+import { app, crashReporter } from "electron";
 import { autoUpdater } from "electron-updater";
 import { getLogger, loggerRegistry } from "./logging/logger";
 import { ConsoleTransport } from "./logging/transports/console.transport";
@@ -125,6 +125,23 @@ setupDatabaseHandlers();
 registerExportHandlers();
 registerSecureConfigHandlers();
 setupAutoUpdater();
+
+// 崩溃上报：本地写入 minidump 文件到 userData/crashes 目录
+// 不上传到远程服务器（隐私优先），用户可在设置中查看崩溃日志
+crashReporter.start({
+  productName: "PrismCraft",
+  companyName: "PrismCraft",
+  submitURL: "",
+  uploadToServer: false,
+});
+
+// 捕获未处理的 Promise rejection 和同步异常，写入日志文件
+process.on("uncaughtException", (error: Error) => {
+  logger.error("[Main] Uncaught exception:", error);
+});
+process.on("unhandledRejection", (reason: unknown) => {
+  logger.error("[Main] Unhandled rejection:", reason instanceof Error ? reason : new Error(String(reason)));
+});
 
 app.whenReady().then(async () => {
   registerAppProtocol();

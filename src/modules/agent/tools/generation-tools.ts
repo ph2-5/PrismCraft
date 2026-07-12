@@ -120,6 +120,7 @@ export const generateCharacterImageTool: ToolImpl = {
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const characterId = String(args.characterId);
@@ -203,26 +204,28 @@ export const generateSceneImageTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          sceneId: { type: "string", description: "场景 ID（必填）" },
+          sceneId: { type: "string", maxLength: 100, description: "场景 ID（必填）" },
           customPrompt: {
             type: "string",
+            maxLength: 5000,
             description: "自定义提示词，覆盖场景设定。",
           },
-          style: { type: "string", description: "风格覆盖。仅在自动构建提示词时生效。" },
+          style: { type: "string", maxLength: 200, description: "风格覆盖。仅在自动构建提示词时生效。" },
           size: {
             type: "string",
             enum: ["square", "square_hd", "landscape_4_3", "landscape_16_9"],
             description: "图片尺寸比例，默认 landscape_4_3",
             default: "landscape_4_3",
           },
-          providerId: { type: "string", description: "指定图片生成 provider ID" },
-          modelId: { type: "string", description: "指定图片生成 model ID" },
+          providerId: { type: "string", maxLength: 100, description: "指定图片生成 provider ID" },
+          modelId: { type: "string", maxLength: 100, description: "指定图片生成 model ID" },
         },
         required: ["sceneId"],
       },
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const sceneId = String(args.sceneId);
@@ -322,6 +325,7 @@ export const generatePropImageTool: ToolImpl = {
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const name = String(args.name);
@@ -384,6 +388,7 @@ export const analyzeImageTool: ToolImpl = {
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const imageUrl = String(args.imageUrl);
@@ -422,21 +427,24 @@ export const generateTextTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          prompt: { type: "string", description: "文本生成提示词（必填）" },
-          maxTokens: { type: "number", description: "最大 token 数，默认 2048", default: 2048 },
+          prompt: { type: "string", maxLength: 5000, description: "文本生成提示词（必填）" },
+          maxTokens: { type: "number", minimum: 1, maximum: 8192, description: "最大 token 数，默认 2048", default: 2048 },
           temperature: {
             type: "number",
+            minimum: 0,
+            maximum: 2,
             description: "温度（0-2），默认 0.7。越高越有创造性，越低越确定。",
             default: 0.7,
           },
-          providerId: { type: "string", description: "指定文本生成 provider ID" },
-          modelId: { type: "string", description: "指定文本生成 model ID" },
+          providerId: { type: "string", maxLength: 100, description: "指定文本生成 provider ID" },
+          modelId: { type: "string", maxLength: 100, description: "指定文本生成 model ID" },
         },
         required: ["prompt"],
       },
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const prompt = String(args.prompt);
@@ -478,17 +486,19 @@ export const generateMusicTool: ToolImpl = {
         properties: {
           prompt: {
             type: "string",
+            maxLength: 5000,
             description: "音乐风格描述，如「悬疑紧张的背景音乐」、「温馨欢快的旋律」",
           },
-          duration: { type: "number", description: "时长（秒），默认 30", default: 30 },
-          providerId: { type: "string", description: "指定音频 provider ID" },
-          modelId: { type: "string", description: "指定音频 model ID" },
+          duration: { type: "number", minimum: 1, maximum: 300, description: "时长（秒），默认 30", default: 30 },
+          providerId: { type: "string", maxLength: 100, description: "指定音频 provider ID" },
+          modelId: { type: "string", maxLength: 100, description: "指定音频 model ID" },
         },
         required: ["prompt"],
       },
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute() {
     return unsupportedAudioResult(
@@ -528,6 +538,7 @@ export const generateVoiceoverTool: ToolImpl = {
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute() {
     return unsupportedAudioResult(
@@ -562,6 +573,7 @@ export const textToSpeechTool: ToolImpl = {
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args: { text: string; voice?: string; format?: string; speed?: number; providerId?: string; modelId?: string }) {
     try {
@@ -596,7 +608,9 @@ export const textToSpeechTool: ToolImpl = {
           "可配置 TTS 服务（如 OpenAI TTS、Azure 语音服务）并在能力映射中添加 audio 能力。",
         );
       }
-      return { success: false, error: message };
+      // 脱敏错误消息（防止泄露 API key / endpoint）
+      const safeMsg = message.replace(/(?:sk|key|token|api[_-]?key|bearer)[-_:\s=]+[a-zA-Z0-9]{8,}/gi, "[REDACTED]").slice(0, 300);
+      return { success: false, error: `TTS 调用失败：${safeMsg}` };
     }
   },
 };
@@ -614,16 +628,17 @@ export const transcribeAudioTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          audioUrl: { type: "string", description: "音频文件 URL（必填，支持 local://、http(s)://、本地路径）" },
-          language: { type: "string", description: "音频语言代码，如 zh、en" },
-          providerId: { type: "string", description: "指定 ASR provider ID" },
-          modelId: { type: "string", description: "指定 ASR model ID" },
+          audioUrl: { type: "string", maxLength: 2048, description: "音频文件 URL（必填，支持 local://、http(s)://、本地路径）" },
+          language: { type: "string", maxLength: 200, description: "音频语言代码，如 zh、en" },
+          providerId: { type: "string", maxLength: 100, description: "指定 ASR provider ID" },
+          modelId: { type: "string", maxLength: 100, description: "指定 ASR model ID" },
         },
         required: ["audioUrl"],
       },
     },
   },
   domain: "generation",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args: { audioUrl: string; language?: string; providerId?: string; modelId?: string }) {
     try {
@@ -664,7 +679,9 @@ export const transcribeAudioTool: ToolImpl = {
           "可配置 ASR 服务（如 OpenAI Whisper、阿里云语音识别）并在能力映射中添加 audio 能力。",
         );
       }
-      return { success: false, error: message };
+      // 脱敏错误消息（防止泄露 API key / endpoint）
+      const safeMsg = message.replace(/(?:sk|key|token|api[_-]?key|bearer)[-_:\s=]+[a-zA-Z0-9]{8,}/gi, "[REDACTED]").slice(0, 300);
+      return { success: false, error: `语音识别调用失败：${safeMsg}` };
     }
   },
 };

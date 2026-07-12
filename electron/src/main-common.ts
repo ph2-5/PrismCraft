@@ -151,6 +151,12 @@ function registerHealthHandlers(checkForUpdates?: () => Promise<unknown>): void 
     }
     return { success: true, updateAvailable: false };
   });
+
+  ipcMain.handle("app:restart", () => {
+    logger.info("[Main] App restart requested by user");
+    app.relaunch();
+    app.exit(0);
+  });
 }
 
 function registerShellHandlers(): void {

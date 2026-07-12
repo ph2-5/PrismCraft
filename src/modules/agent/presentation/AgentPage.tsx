@@ -23,6 +23,7 @@ import { MemoryPanel } from "./MemoryPanel";
 import { SessionHistory } from "./SessionHistory";
 import { ToolPluginManager } from "./ToolPluginManager";
 import { SpecialistPanel } from "./SpecialistPanel";
+import { AuditLogPanel } from "./AuditLogPanel";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import {
@@ -39,6 +40,7 @@ import {
   Video,
   Package,
   Users,
+  ScrollText,
 } from "lucide-react";
 
 export function AgentPage() {
@@ -66,7 +68,17 @@ export function AgentPage() {
   const [showMemory, setShowMemory] = useState(false);
   const [showPlugins, setShowPlugins] = useState(false);
   const [showSpecialists, setShowSpecialists] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
+
+  /** 关闭其他面板，仅保留目标面板 */
+  const showOnly = (target: "audit" | "memory" | "plugins" | "specialists" | "settings") => {
+    setShowAudit(target === "audit");
+    setShowMemory(target === "memory");
+    setShowPlugins(target === "plugins");
+    setShowSpecialists(target === "specialists");
+    setShowSettings(target === "settings");
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -158,10 +170,8 @@ export function AgentPage() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
-                setShowMemory(!showMemory);
-                setShowSettings(false);
-                setShowPlugins(false);
-                setShowSpecialists(false);
+                if (showMemory) setShowMemory(false);
+                else showOnly("memory");
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.memory.management")}
@@ -171,10 +181,8 @@ export function AgentPage() {
             </button>
             <button
               onClick={() => {
-                setShowPlugins(!showPlugins);
-                setShowMemory(false);
-                setShowSettings(false);
-                setShowSpecialists(false);
+                if (showPlugins) setShowPlugins(false);
+                else showOnly("plugins");
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.plugin.management")}
@@ -184,10 +192,8 @@ export function AgentPage() {
             </button>
             <button
               onClick={() => {
-                setShowSpecialists(!showSpecialists);
-                setShowMemory(false);
-                setShowSettings(false);
-                setShowPlugins(false);
+                if (showSpecialists) setShowSpecialists(false);
+                else showOnly("specialists");
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.specialist.management")}
@@ -197,11 +203,22 @@ export function AgentPage() {
             </button>
             <button
               onClick={() => {
-                setShowSettings(!showSettings);
-                setShowMemory(false);
-                setShowPlugins(false);
-                setShowSpecialists(false);
-                void refreshHistory();
+                if (showAudit) setShowAudit(false);
+                else showOnly("audit");
+              }}
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={t("agent.audit.management")}
+              aria-label={t("agent.audit.management")}
+            >
+              <ScrollText className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => {
+                if (showSettings) setShowSettings(false);
+                else {
+                  showOnly("settings");
+                  void refreshHistory();
+                }
               }}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={t("agent.settings")}
@@ -245,6 +262,11 @@ export function AgentPage() {
               onClose={() => setShowSpecialists(false)}
               onDelegate={handleDelegate}
             />
+          )}
+
+          {/* 审计日志面板（下拉） */}
+          {showAudit && (
+            <AuditLogPanel onClose={() => setShowAudit(false)} />
           )}
         </div>
 

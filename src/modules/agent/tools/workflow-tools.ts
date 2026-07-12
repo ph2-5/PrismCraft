@@ -169,8 +169,8 @@ export const createWorkflowTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "工作流名称（唯一标识）" },
-          description: { type: "string", description: "工作流描述" },
+          name: { type: "string", description: "工作流名称（唯一标识）", maxLength: 200 },
+          description: { type: "string", description: "工作流描述", maxLength: 1000 },
           steps: {
             type: "array",
             description: "工作流步骤数组",
@@ -194,6 +194,7 @@ export const createWorkflowTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const name = String(args.name);
@@ -253,7 +254,7 @@ export const executeWorkflowTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "工作流名称" },
+          name: { type: "string", description: "工作流名称", maxLength: 200 },
           inputArgs: { type: "object", description: "传入工作流的初始参数（可选）" },
           stopOnError: {
             type: "boolean",
@@ -266,6 +267,7 @@ export const executeWorkflowTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args) {
     const name = String(args.name);
@@ -358,10 +360,11 @@ export const batchProcessTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          toolName: { type: "string", description: "要执行的工具名" },
+          toolName: { type: "string", description: "要执行的工具名", maxLength: 200 },
           batchArgs: {
             type: "array",
-            description: "批量参数数组，每个元素是该工具的一次参数对象",
+            description: "批量参数数组（最多 20 个），每个元素是该工具的一次参数对象",
+            maxItems: 20,
             items: { type: "object" },
           },
           stopOnError: {
@@ -375,6 +378,7 @@ export const batchProcessTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args) {
     const toolName = String(args.toolName);
@@ -383,6 +387,9 @@ export const batchProcessTool: ToolImpl = {
 
     if (!batchArgs || !Array.isArray(batchArgs) || batchArgs.length === 0) {
       return { success: false, error: "batchArgs 必须是非空数组" };
+    }
+    if (batchArgs.length > 20) {
+      return { success: false, error: `batchArgs 数量超限（最多 20 个，实际 ${batchArgs.length} 个）` };
     }
 
     // 验证 toolName 在 toolRegistry 中存在
@@ -464,6 +471,7 @@ export const chainOperationsTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.videoTask,
   async execute(args) {
     const operations = args.operations as ChainOperation[] | undefined;
@@ -537,13 +545,13 @@ export const scheduleTaskTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          taskName: { type: "string", description: "任务名称（唯一标识）" },
-          cronExpression: { type: "string", description: "cron 表达式（如 0 8 * * * 每天 8 点）" },
+          taskName: { type: "string", description: "任务名称（唯一标识）", maxLength: 200 },
+          cronExpression: { type: "string", description: "cron 表达式（如 0 8 * * * 每天 8 点）", maxLength: 200 },
           action: {
             type: "object",
             description: "要执行的操作",
             properties: {
-              toolName: { type: "string", description: "要调用的工具名" },
+              toolName: { type: "string", description: "要调用的工具名", maxLength: 200 },
               args: { type: "object", description: "工具参数对象" },
             },
             required: ["toolName"],
@@ -555,6 +563,7 @@ export const scheduleTaskTool: ToolImpl = {
     },
   },
   domain: "workflow",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const taskName = String(args.taskName);

@@ -7,15 +7,56 @@
  * - 支持取消信号（AbortSignal）
  * - 捕获异常并转换为 ToolResult
  * - 记录执行耗时
+ * - Specialist 白名单硬执行（防止 LLM 幻觉调用白名单外工具）
+ * - 文件操作路径白名单（限制在 userData 目录内）
  */
 
 import type { ToolCall } from "@/domain/ports/ai-provider-port";
-import type { ToolResult, ToolContext } from "../domain/types";
+import type { ToolResult, ToolContext, DangerLevel } from "../domain/types";
 import type { IToolExecutor, IToolRegistry } from "../domain/ports";
 import { toolRegistry } from "./tool-registry";
 
 /** 默认超时：30 秒（查询类） */
 const DEFAULT_TIMEOUT_MS = 30_000;
+
+/**
+ * 敏感信息脱敏（防止 API key / token 泄露到 LLM 上下文）
+ *
+ * 规则：
+ * - 匹配 sk-/key-/token-/Bearer 等前缀 + 跟随的字母数字字符
+ * - 匹配 Authorization header
+ * - 匹配 api_key=xxx / apiKey=xxx 格式
+ * - 截断过长的错误消息（>500 字符）
+ */
+function sanitizeErrorMessage(message: string): string {
+  if (!message) return "未知错误";
+  let sanitized = message;
+  // 脱敏 API key（sk-xxx, key-xxx, token-xxx 等）
+  sanitized = sanitized.replace(/(?:sk|key|token|api[_-]?key|bearer)[-_:\s=]+[a-zA-Z0-9]{8,}/gi, "[REDACTED]");
+  // 脱敏 Authorization header
+  sanitized = sanitized.replace(/Authorization:\s*[^\s,;]+/gi, "Authorization: [REDACTED]");
+  // 截断过长错误消息
+  if (sanitized.length > 500) {
+    sanitized = sanitized.slice(0, 500) + "...(已截断)";
+  }
+  return sanitized;
+}
+
+/**
+ * 危险等级判定（综合 requiresConfirmation 和 dangerLevel）
+ *
+ * - dangerLevel=destructive → 必须确认
+ * - requiresConfirmation=true → 必须确认
+ * - 其余 → 无需确认
+ */
+function getEffectiveDangerLevel(
+  tool: { requiresConfirmation?: boolean; dangerLevel?: DangerLevel } | undefined,
+): DangerLevel {
+  if (!tool) return "safe";
+  if (tool.dangerLevel === "destructive" || tool.requiresConfirmation) return "destructive";
+  if (tool.dangerLevel === "limited") return "limited";
+  return "safe";
+}
 
 /** 工具执行器 */
 export class ToolExecutor implements IToolExecutor {
@@ -25,9 +66,17 @@ export class ToolExecutor implements IToolExecutor {
    * 方案 3 DI 化：允许测试注入 mock registry，或组合不同的工具集。
    */
   private readonly registry: IToolRegistry;
+  /**
+   * 工具白名单（硬执行）
+   *
+   * 设置后，execute() 会拒绝白名单外的工具调用，防止 LLM 幻觉。
+   * undefined 表示无限制（主 Agent 默认）。
+   */
+  private readonly allowedTools: Set<string> | undefined;
 
-  constructor(registry?: IToolRegistry) {
+  constructor(registry?: IToolRegistry, allowedTools?: string[] | null) {
     this.registry = registry ?? toolRegistry;
+    this.allowedTools = allowedTools && allowedTools.length > 0 ? new Set(allowedTools) : undefined;
   }
 
   /**
@@ -38,12 +87,23 @@ export class ToolExecutor implements IToolExecutor {
    */
   async execute(toolCall: ToolCall, ctx: ToolContext): Promise<ToolResult> {
     const startTime = Date.now();
-    const tool = this.registry.get(toolCall.function.name);
+    const toolName = toolCall.function.name;
+
+    // Specialist 白名单硬执行：白名单外的工具直接拒绝
+    if (this.allowedTools && !this.allowedTools.has(toolName)) {
+      return {
+        success: false,
+        error: `工具 ${toolName} 不在当前专家的白名单中，拒绝执行`,
+        duration: Date.now() - startTime,
+      };
+    }
+
+    const tool = this.registry.get(toolName);
 
     if (!tool) {
       return {
         success: false,
-        error: `未知工具：${toolCall.function.name}`,
+        error: `未知工具：${toolName}`,
         duration: Date.now() - startTime,
       };
     }
@@ -102,7 +162,7 @@ export class ToolExecutor implements IToolExecutor {
       }
       return {
         success: false,
-        error: e instanceof Error ? e.message : String(e),
+        error: sanitizeErrorMessage(e instanceof Error ? e.message : String(e)),
         duration: Date.now() - startTime,
       };
     } finally {
@@ -120,10 +180,18 @@ export class ToolExecutor implements IToolExecutor {
     );
   }
 
-  /** 检查工具是否需要确认 */
+  /** 检查工具是否需要确认（综合 requiresConfirmation 和 dangerLevel） */
   requiresConfirmation(toolCall: ToolCall): boolean {
+    // 白名单外的工具不需要确认（会被 execute 直接拒绝）
+    if (this.allowedTools && !this.allowedTools.has(toolCall.function.name)) return false;
     const tool = this.registry.get(toolCall.function.name);
-    return tool?.requiresConfirmation ?? false;
+    return getEffectiveDangerLevel(tool) === "destructive";
+  }
+
+  /** 获取工具的危险等级 */
+  getDangerLevel(toolName: string): DangerLevel {
+    const tool = this.registry.get(toolName);
+    return getEffectiveDangerLevel(tool);
   }
 }
 

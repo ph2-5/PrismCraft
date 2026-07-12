@@ -26,6 +26,7 @@ import type {
   ToolDomain,
   ToolResult,
   ToolContext,
+  DangerLevel,
   ExtractedMemory,
 } from "./types";
 
@@ -122,6 +123,7 @@ export interface IToolRegistry {
  * 工具执行器接口
  *
  * 解析 ToolCall 参数、超时控制、异常捕获。依赖 IToolRegistry。
+ * 支持 Specialist 白名单硬执行和危险等级判定。
  */
 export interface IToolExecutor {
   /** 执行单个工具调用 */
@@ -133,8 +135,11 @@ export interface IToolExecutor {
     ctx: ToolContext,
   ): Promise<Array<{ toolCall: ToolCall; result: ToolResult }>>;
 
-  /** 检查工具是否需要确认 */
+  /** 检查工具是否需要确认（destructive 级别或 requiresConfirmation=true） */
   requiresConfirmation(toolCall: ToolCall): boolean;
+
+  /** 获取工具的危险等级 */
+  getDangerLevel(toolName: string): DangerLevel;
 }
 
 /**

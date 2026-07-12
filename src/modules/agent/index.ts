@@ -27,6 +27,12 @@ export { toolRegistry } from "./services/tool-registry";
 export { toolExecutor } from "./services/tool-executor";
 export { conversationManager } from "./services/conversation-manager";
 export { memoryService, MemoryService } from "./services/memory-service";
+export {
+  ensureSeedMemory,
+  getSeedMemoryStats,
+  resetSeedMemoryFlag,
+  prewarmEmbeddings,
+} from "./services/memory-service";
 export { runAgentLoop } from "./services/agent-loop";
 export {
   saveSession,
@@ -36,6 +42,15 @@ export {
   persistSession,
   type SessionListItem,
 } from "./services/session-storage";
+
+// 审计日志（读取/查询/统计/清除）
+export type { AuditEntry, AuditQueryFilter } from "./services/audit-storage";
+export {
+  queryAuditLogs,
+  clearAuditLogs,
+  clearAllAuditLogs,
+  getAuditStats,
+} from "./services/audit-storage";
 
 // 工具注册
 export { registerAllTools, loadToolPlugins } from "./tools";

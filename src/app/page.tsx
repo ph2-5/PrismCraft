@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
+import { ApiKeyAlert } from "@/shared/presentation/onboarding";
 import { useHomePage } from "./hooks/useHomePage";
 
 function HomeSkeleton() {
@@ -77,6 +78,9 @@ export default function Home() {
           <div className="text-sm text-muted-foreground mb-1.5">{t("home.brandSlogan")}</div>
           <div className="text-[11px] text-muted-foreground opacity-60">{t("home.brandSub")}</div>
         </div>
+
+        {/* API Key 未配置警告 */}
+        <ApiKeyAlert />
 
         {/* 三工作流卡片 */}
         <div className="grid grid-cols-3 gap-4 p-6 border-b border-border">

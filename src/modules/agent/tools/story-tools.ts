@@ -43,14 +43,15 @@ export const listStoriesTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          limit: { type: "number", description: "返回数量上限，默认 20，最大 100", default: 20 },
-          offset: { type: "number", description: "偏移量（分页），默认 0", default: 0 },
-          title: { type: "string", description: "按标题模糊匹配（包含该字符串）" },
+          limit: { type: "number", minimum: 1, maximum: 100, description: "返回数量上限，默认 20，最大 100", default: 20 },
+          offset: { type: "number", minimum: 0, description: "偏移量（分页），默认 0", default: 0 },
+          title: { type: "string", maxLength: 500, description: "按标题模糊匹配（包含该字符串）" },
         },
       },
     },
   },
   domain: "story",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const { storyService } = await import("@/modules/story");
@@ -99,13 +100,14 @@ export const getStoryTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
         },
         required: ["storyId"],
       },
     },
   },
   domain: "story",
+  dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const { storyService } = await import("@/modules/story");
@@ -131,15 +133,18 @@ export const createStoryTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          title: { type: "string", description: "故事标题（必填，不能为空）" },
-          description: { type: "string", description: "故事描述/简介（必填）" },
+          title: { type: "string", maxLength: 200, description: "故事标题（必填，不能为空）" },
+          description: { type: "string", maxLength: 2000, description: "故事描述/简介（必填）" },
           targetDuration: {
             type: "number",
+            minimum: 1,
+            maximum: 300,
             description: "目标时长（秒），默认 60",
             default: 60,
           },
           style: {
             type: "string",
+            maxLength: 200,
             description: "风格主题（如：剧情、喜剧、悬疑、奇幻），映射到故事的 genre 字段",
           },
           characters: {
@@ -158,6 +163,7 @@ export const createStoryTool: ToolImpl = {
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { storyService } = await import("@/modules/story");
@@ -210,12 +216,13 @@ export const updateStoryTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
-          title: { type: "string", description: "新标题" },
-          description: { type: "string", description: "新描述" },
-          targetDuration: { type: "number", description: "新目标时长（秒）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
+          title: { type: "string", maxLength: 200, description: "新标题" },
+          description: { type: "string", maxLength: 2000, description: "新描述" },
+          targetDuration: { type: "number", minimum: 1, maximum: 300, description: "新目标时长（秒）" },
           style: {
             type: "string",
+            maxLength: 200,
             description: "新风格主题（映射到 genre 字段）",
           },
         },
@@ -224,6 +231,7 @@ export const updateStoryTool: ToolImpl = {
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
     const { storyService } = await import("@/modules/story");
@@ -255,7 +263,7 @@ export const deleteStoryTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
         },
         required: ["storyId"],
       },
@@ -264,6 +272,7 @@ export const deleteStoryTool: ToolImpl = {
   domain: "story",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   requiresConfirmation: true,
+  dangerLevel: "destructive",
   async execute(args) {
     const { storyService } = await import("@/modules/story");
     const id = String(args.storyId);
@@ -289,9 +298,11 @@ export const planStoryTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
           maxBeats: {
             type: "number",
+            minimum: 1,
+            maximum: 50,
             description: "最大分镜数，默认 6。生成的分镜超过此数量时会被裁剪。",
             default: 6,
           },
@@ -309,6 +320,7 @@ export const planStoryTool: ToolImpl = {
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const { storyService } = await import("@/modules/story");
@@ -388,13 +400,14 @@ export const validateStoryPlanTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
         },
         required: ["storyId"],
       },
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
     const { storyService } = await import("@/modules/story");
@@ -472,23 +485,26 @@ export const generateStyleGuideTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
           styleDescription: {
             type: "string",
+            maxLength: 1000,
             description: "自定义风格描述（如：日式赛璐珞、水彩绘本风、写实3D）。如不提供则由 AI 自动推断。",
           },
           referenceImageUrl: {
             type: "string",
+            maxLength: 2048,
             description: "参考图 URL（可选，当前版本暂未直接使用，保留供后续支持参考图风格迁移）",
           },
-          providerId: { type: "string", description: "指定 LLM/图片 provider ID（可选，不填用默认）" },
-          modelId: { type: "string", description: "指定 LLM/图片 model ID（可选）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 LLM/图片 provider ID（可选，不填用默认）" },
+          modelId: { type: "string", maxLength: 100, description: "指定 LLM/图片 model ID（可选）" },
         },
         required: ["storyId"],
       },
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const { storyService } = await import("@/modules/story");
@@ -559,19 +575,21 @@ export const generateFramePromptsTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
           beatId: {
             type: "string",
+            maxLength: 100,
             description: "指定分镜 ID。如不提供则为故事的所有分镜批量生成。",
           },
-          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
-          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", maxLength: 100, description: "指定 LLM model ID（可选）" },
         },
         required: ["storyId"],
       },
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const { storyService } = await import("@/modules/story");
@@ -690,24 +708,28 @@ export const generateStoryIdeasTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          theme: { type: "string", description: "故事主题（必填，如：友情、冒险、成长）" },
+          theme: { type: "string", maxLength: 500, description: "故事主题（必填，如：友情、冒险、成长）" },
           count: {
             type: "number",
+            minimum: 1,
+            maximum: 20,
             description: "生成的方案数量，默认 3，最大 10",
             default: 3,
           },
           style: {
             type: "string",
+            maxLength: 200,
             description: "风格偏好（如：温馨、热血、悬疑）",
           },
-          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
-          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", maxLength: 100, description: "指定 LLM model ID（可选）" },
         },
         required: ["theme"],
       },
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const theme = String(args.theme);
@@ -776,19 +798,21 @@ export const suggestCharacterBackstoryTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          characterId: { type: "string", description: "角色 ID（必填）" },
+          characterId: { type: "string", maxLength: 100, description: "角色 ID（必填）" },
           storyContext: {
             type: "string",
+            maxLength: 5000,
             description: "故事上下文（可选，帮助生成更贴合剧情的背景）",
           },
-          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
-          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", maxLength: 100, description: "指定 LLM model ID（可选）" },
         },
         required: ["characterId"],
       },
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const { characterService } = await import("@/modules/character");
@@ -848,19 +872,21 @@ export const suggestSceneDescriptionTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          sceneId: { type: "string", description: "场景 ID（必填）" },
+          sceneId: { type: "string", maxLength: 100, description: "场景 ID（必填）" },
           storyContext: {
             type: "string",
+            maxLength: 5000,
             description: "故事上下文（可选，帮助生成更贴合剧情的描述）",
           },
-          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
-          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", maxLength: 100, description: "指定 LLM model ID（可选）" },
         },
         required: ["sceneId"],
       },
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const { sceneService } = await import("@/modules/scene");
@@ -922,15 +948,16 @@ export const checkStoryConsistencyTool: ToolImpl = {
       parameters: {
         type: "object",
         properties: {
-          storyId: { type: "string", description: "故事 ID（必填）" },
-          providerId: { type: "string", description: "指定 LLM provider ID（可选，不填用默认）" },
-          modelId: { type: "string", description: "指定 LLM model ID（可选）" },
+          storyId: { type: "string", maxLength: 100, description: "故事 ID（必填）" },
+          providerId: { type: "string", maxLength: 100, description: "指定 LLM provider ID（可选，不填用默认）" },
+          modelId: { type: "string", maxLength: 100, description: "指定 LLM model ID（可选）" },
         },
         required: ["storyId"],
       },
     },
   },
   domain: "story",
+  dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const { storyService } = await import("@/modules/story");

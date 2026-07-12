@@ -275,6 +275,11 @@ window.electronAPI = {
   windowMaximize: async function() {},
   windowClose: async function() {},
   windowIsMaximized: async function() { return false; },
+  checkForUpdates: async function() { return { success: true, updateAvailable: false }; },
+  restartApp: async function() {},
+  onUpdateAvailable: function() { return function() {}; },
+  onUpdateDownloaded: function() { return function() {}; },
+  onUpdateError: function() { return function() {}; },
   platform: "win32",
   versions: { node: "20.11.0", chrome: "120.0.0", electron: "28.0.0" },
 };

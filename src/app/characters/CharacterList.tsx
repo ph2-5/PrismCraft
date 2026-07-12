@@ -7,7 +7,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import type { Character } from "@/domain/schemas";
-import { Users } from "lucide-react";
+import { Users, Plus } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 import { PageLoader } from "@/shared/presentation/PageLoader";
 import { EmptyState } from "@/shared/presentation/EmptyState";
@@ -25,7 +25,7 @@ export const CharacterList = memo(function CharacterList({
   charactersLoading,
   onSelectCharacter,
   onDeleteCharacter,
-  onCreateNew: _onCreateNew,
+  onCreateNew,
 }: CharacterListProps) {
   const queryClient = useQueryClient();
   const { error: showError } = useToastHelpers();
@@ -89,6 +89,19 @@ export const CharacterList = memo(function CharacterList({
           icon={Users}
           title={t("character.emptyList")}
           description={t("character.emptyListHint")}
+          action={
+            <button
+              onClick={onCreateNew}
+              className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
+              style={{
+                background: "rgba(var(--primary-rgb), 0.1)",
+                color: "var(--primary)",
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              {t("character.createNew")}
+            </button>
+          }
         />
       ) : (
         characters.map((char) => (

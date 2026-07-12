@@ -91,6 +91,63 @@ export class VectorSearchEngine {
   getStrategies(): readonly RetrievalStrategy[] {
     return this.strategies;
   }
+
+  /**
+   * 预热 Embedding 缓存（预训练数据-4）
+   *
+   * 触发首个可用的向量策略为所有归档记忆条目预生成 embedding，
+   * 避免首次 RAG 检索时因懒生成导致延迟。
+   *
+   * 实现复用策略的 search 内部 backfill 逻辑：
+   * - 使用一个通用 query 触发 search（仅用于驱动 backfill）
+   * - search 结果被丢弃，仅关心 backfill 阶段的进度
+   * - 仅首个可用的向量策略会被触发（API 优先于本地）
+   * - 关键词策略无 embedding，不会被触发
+   *
+   * @param entries 所有归档记忆条目
+   * @param onProgress 可选进度回调（phase="backfill"）
+   * @returns 预热结果统计；success=false 表示无可用的向量策略
+   */
+  async prewarmEmbeddings(
+    entries: ArchivalMemoryEntry[],
+    onProgress?: ProgressCallback,
+  ): Promise<{ success: boolean; strategy?: string; message?: string }> {
+    if (entries.length === 0) {
+      return { success: true, message: "no entries" };
+    }
+
+    // 遍历策略，找到第一个可用的向量策略
+    for (const strategy of this.strategies) {
+      // 关键词策略无 embedding，跳过
+      if (strategy.name === "keyword") continue;
+
+      try {
+        const available = await strategy.isAvailable();
+        if (!available) continue;
+
+        // 使用通用 query 触发 search，目的是 backfill 所有缺失的 embedding
+        // search 结果被丢弃
+        const prewarmQuery = "prewarm all archival memory embeddings";
+        await strategy.search(prewarmQuery, entries, 1, onProgress);
+
+        return {
+          success: true,
+          strategy: strategy.name,
+        };
+      } catch (error) {
+        errorLogger.warn(
+          `[vector-engine] prewarm 策略 ${strategy.name} 异常:`,
+          error instanceof Error ? error.message : error,
+        );
+        // 继续尝试下一个策略
+      }
+    }
+
+    return {
+      success: false,
+      message: "no available vector strategy (API or local model required)",
+    };
+  }
 }
 
 /**

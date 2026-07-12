@@ -118,7 +118,7 @@ function renderToolResult(toolName: string, data: unknown): React.ReactNode {
     return (
       <div className="space-y-1">
         {typeof d.analyzed === "string" && (
-          <div className="text-muted-foreground">已分析：{d.analyzed}</div>
+          <div className="text-muted-foreground">{t("agent.toolResult.analyzed", { count: d.analyzed })}</div>
         )}
         <div className="whitespace-pre-wrap break-words text-foreground/90">{d.analysis}</div>
       </div>
@@ -162,34 +162,34 @@ function ImageResult({ data }: { data: Record<string, unknown> }) {
       {imageUrl ? (
         <img
           src={imageUrl}
-          alt="生成结果"
+          alt={t("agent.toolResult.generatedImage")}
           className="max-h-48 rounded border border-border object-contain"
           loading="lazy"
         />
       ) : (
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <ImageIcon className="h-3.5 w-3.5" />
-          <span>无图片预览</span>
+          <span>{t("agent.toolResult.noImagePreview")}</span>
         </div>
       )}
       {typeof data.prompt === "string" && data.prompt && (
         <div className="text-muted-foreground italic truncate" title={data.prompt}>
-          提示词：{data.prompt}
+          {t("agent.toolResult.prompt", { prompt: data.prompt })}
         </div>
       )}
       {"updated" in data && (
         <div className={data.updated ? "text-green-600" : "text-warning"}>
-          {data.updated ? "已更新到资产" : "资产更新失败（图片 URL 仍可用）"}
+          {data.updated ? t("agent.toolResult.assetUpdated") : t("agent.toolResult.assetUpdateFailed")}
         </div>
       )}
       {typeof data.name === "string" && (
-        <div className="text-muted-foreground">名称：{data.name}</div>
+        <div className="text-muted-foreground">{t("agent.toolResult.name", { name: data.name })}</div>
       )}
       {typeof data.characterId === "string" && (
-        <div className="text-muted-foreground font-mono text-[10px]">角色 ID：{data.characterId}</div>
+        <div className="text-muted-foreground font-mono text-[10px]">{t("agent.toolResult.characterId", { id: data.characterId })}</div>
       )}
       {typeof data.sceneId === "string" && (
-        <div className="text-muted-foreground font-mono text-[10px]">场景 ID：{data.sceneId}</div>
+        <div className="text-muted-foreground font-mono text-[10px]">{t("agent.toolResult.sceneId", { id: data.sceneId })}</div>
       )}
     </div>
   );
@@ -202,11 +202,11 @@ function AudioResult({ data }: { data: Record<string, unknown> }) {
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5 text-primary">
         <AudioIcon className="h-3.5 w-3.5" />
-        <span className="font-medium">语音合成结果</span>
+        <span className="font-medium">{t("agent.toolResult.ttsResult")}</span>
       </div>
       <audio src={audioUrl} controls className="w-full h-8" />
       {typeof data.duration === "number" && (
-        <div className="text-muted-foreground">时长：{data.duration.toFixed(1)}秒</div>
+        <div className="text-muted-foreground">{t("agent.toolResult.duration", { seconds: data.duration.toFixed(1) })}</div>
       )}
       <div className="text-muted-foreground font-mono text-[10px] truncate" title={audioUrl}>
         {audioUrl}
@@ -222,9 +222,9 @@ function TranscriptResult({ data }: { data: Record<string, unknown> }) {
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5 text-primary">
         <AudioIcon className="h-3.5 w-3.5" />
-        <span className="font-medium">识别结果</span>
+        <span className="font-medium">{t("agent.toolResult.transcriptionResult")}</span>
         {segments.length > 0 && (
-          <span className="text-muted-foreground">（{segments.length} 段）</span>
+          <span className="text-muted-foreground">{t("agent.toolResult.segmentsCount", { count: segments.length })}</span>
         )}
       </div>
       <div className="whitespace-pre-wrap break-words text-foreground/90">
@@ -232,7 +232,7 @@ function TranscriptResult({ data }: { data: Record<string, unknown> }) {
       </div>
       {segments.length > 0 && (
         <details className="text-muted-foreground">
-          <summary className="cursor-pointer text-[10px]">查看分段</summary>
+          <summary className="cursor-pointer text-[10px]">{t("agent.toolResult.viewSegments")}</summary>
           <div className="mt-1 space-y-0.5 font-mono text-[10px]">
             {segments.slice(0, 20).map((seg, i) => {
               const s = seg as { start?: number; end?: number; text?: string };
@@ -245,7 +245,7 @@ function TranscriptResult({ data }: { data: Record<string, unknown> }) {
                 </div>
               );
             })}
-            {segments.length > 20 && <div>... 共 {segments.length} 段</div>}
+            {segments.length > 20 && <div>{t("agent.toolResult.totalSegments", { count: segments.length })}</div>}
           </div>
         </details>
       )}
@@ -260,13 +260,13 @@ function CharacterCard({ data }: { data: Record<string, unknown> }) {
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5 text-primary font-medium">
         <UserIcon className="h-3.5 w-3.5" />
-        <span>角色已创建</span>
+        <span>{t("agent.toolResult.characterCreated")}</span>
       </div>
       <div className="font-medium text-foreground">{String(data.name ?? "")}</div>
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
-        {typeof data.style === "string" && data.style && <span>风格：{data.style}</span>}
-        {typeof data.gender === "string" && data.gender && <span>性别：{data.gender}</span>}
-        {typeof data.age !== "undefined" && <span>年龄：{String(data.age)}</span>}
+        {typeof data.style === "string" && data.style && <span>{t("agent.toolResult.style", { style: data.style })}</span>}
+        {typeof data.gender === "string" && data.gender && <span>{t("agent.toolResult.gender", { gender: data.gender })}</span>}
+        {typeof data.age !== "undefined" && <span>{t("agent.toolResult.age", { age: String(data.age) })}</span>}
       </div>
       {typeof data.description === "string" && data.description && (
         <div className="text-foreground/80 line-clamp-2">{data.description}</div>
@@ -279,7 +279,7 @@ function CharacterCard({ data }: { data: Record<string, unknown> }) {
         </div>
       )}
       {typeof data.id === "string" && (
-        <div className="text-muted-foreground font-mono text-[10px]">ID：{data.id}</div>
+        <div className="text-muted-foreground font-mono text-[10px]">{t("agent.toolResult.id", { id: data.id })}</div>
       )}
     </div>
   );
@@ -292,14 +292,14 @@ function SceneCard({ data }: { data: Record<string, unknown> }) {
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5 text-primary font-medium">
         <MapIcon className="h-3.5 w-3.5" />
-        <span>场景已创建</span>
+        <span>{t("agent.toolResult.sceneCreated")}</span>
       </div>
       <div className="font-medium text-foreground">{String(data.name ?? "")}</div>
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
-        {typeof data.type === "string" && data.type && <span>类型：{data.type}</span>}
-        {typeof data.timeOfDay === "string" && data.timeOfDay && <span>时间：{data.timeOfDay}</span>}
-        {typeof data.weather === "string" && data.weather && <span>天气：{data.weather}</span>}
-        {typeof data.mood === "string" && data.mood && <span>情绪：{data.mood}</span>}
+        {typeof data.type === "string" && data.type && <span>{t("agent.toolResult.type", { type: data.type })}</span>}
+        {typeof data.timeOfDay === "string" && data.timeOfDay && <span>{t("agent.toolResult.timeOfDay", { time: data.timeOfDay })}</span>}
+        {typeof data.weather === "string" && data.weather && <span>{t("agent.toolResult.weather", { weather: data.weather })}</span>}
+        {typeof data.mood === "string" && data.mood && <span>{t("agent.toolResult.mood", { mood: data.mood })}</span>}
       </div>
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -309,7 +309,7 @@ function SceneCard({ data }: { data: Record<string, unknown> }) {
         </div>
       )}
       {typeof data.id === "string" && (
-        <div className="text-muted-foreground font-mono text-[10px]">ID：{data.id}</div>
+        <div className="text-muted-foreground font-mono text-[10px]">{t("agent.toolResult.id", { id: data.id })}</div>
       )}
     </div>
   );
@@ -336,14 +336,14 @@ function ListResult({
       <div className="flex items-center gap-1.5 text-primary font-medium">
         <SearchIcon className="h-3.5 w-3.5" />
         <span>
-          {toolName === "search_assets" ? "搜索结果" : "列表"}
-          <span className="text-muted-foreground font-normal">（共 {total} 项）</span>
+          {toolName === "search_assets" ? t("agent.toolResult.searchResult") : t("agent.toolResult.list")}
+          <span className="text-muted-foreground font-normal">{t("agent.toolResult.totalItems", { total })}</span>
         </span>
       </div>
 
       {characters.length > 0 && (
         <div className="space-y-0.5">
-          <div className="text-muted-foreground font-medium">角色（{characters.length}）</div>
+          <div className="text-muted-foreground font-medium">{t("agent.toolResult.characters", { count: characters.length })}</div>
           {characters.map((c, i) => (
             <div key={i} className="flex items-center gap-2 rounded bg-background/40 px-1.5 py-0.5">
               <UserIcon className="h-3 w-3 text-primary shrink-0" />
@@ -361,7 +361,7 @@ function ListResult({
 
       {scenes.length > 0 && (
         <div className="space-y-0.5">
-          <div className="text-muted-foreground font-medium">场景（{scenes.length}）</div>
+          <div className="text-muted-foreground font-medium">{t("agent.toolResult.scenes", { count: scenes.length })}</div>
           {scenes.map((s, i) => (
             <div key={i} className="flex items-center gap-2 rounded bg-background/40 px-1.5 py-0.5">
               <MapIcon className="h-3 w-3 text-primary shrink-0" />
@@ -391,7 +391,7 @@ function ListResult({
       )}
 
       {total === 0 && (
-        <div className="text-muted-foreground italic">无匹配结果</div>
+        <div className="text-muted-foreground italic">{t("agent.toolResult.noMatch")}</div>
       )}
     </div>
   );

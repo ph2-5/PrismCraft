@@ -97,6 +97,14 @@ const memoryCache = new Map<string, AuditEntry[]>();
 const loadedSessions = new Set<string>();
 /** 缓存目录路径（带缓存） */
 let cachedBaseDir: string | null = null;
+/**
+ * P1-2 修复：按 sessionId 串行化 flushToDisk 的 promise 链
+ *
+ * 原问题：recordAudit 多次连续调用时，flushToDisk 是 fire-and-forget 全量重写，
+ * 并发执行时旧快照可能后写入覆盖新数据。
+ * 修复：每个 sessionId 维护一个 promise 链，新 flush 排队等待上一次完成后再执行。
+ */
+const flushChains = new Map<string, Promise<void>>();
 
 // ── 辅助函数 ──
 
@@ -159,13 +167,20 @@ async function loadFromDisk(sessionId: string): Promise<AuditEntry[]> {
   }
 }
 
-/** 将内存缓存 flush 到磁盘（全量重写 JSONL） */
+/**
+ * 将内存缓存 flush 到磁盘（全量重写 JSONL）
+ *
+ * P1-2 修复：通过 scheduleFlush 串行化，确保不会并发执行。
+ * 内部 flush 实现只读取当前内存快照并写入磁盘。
+ */
 async function flushToDisk(sessionId: string): Promise<void> {
   const entries = memoryCache.get(sessionId);
   if (!entries) return;
+  // 拷贝一份快照，避免在写入过程中内存被并发修改
+  const snapshot = entries.slice();
   try {
     const filePath = await getAuditFilePath(sessionId);
-    const text = entries.map((e) => JSON.stringify(e)).join("\n") + "\n";
+    const text = snapshot.map((e) => JSON.stringify(e)).join("\n") + "\n";
     const encoded = new TextEncoder().encode(text);
     const result = await writeFile(filePath, encoded);
     if (!result.success) {
@@ -174,6 +189,27 @@ async function flushToDisk(sessionId: string): Promise<void> {
   } catch (e) {
     errorLogger.debug("[AuditStorage] flush 异常", e);
   }
+}
+
+/**
+ * P1-2 修复：串行化调度 flushToDisk
+ *
+ * 每个 sessionId 一个 promise 链，新的 flush 请求排队等待上一次完成。
+ * 这样即使 recordAudit 高频调用，磁盘写入也不会并发执行，
+ * 避免旧快照后写入覆盖新数据。
+ */
+function scheduleFlush(sessionId: string): void {
+  const prev = flushChains.get(sessionId) ?? Promise.resolve();
+  const next = prev.then(() => flushToDisk(sessionId)).catch(() => {
+    // 单次 flush 失败不阻断后续 flush
+  });
+  flushChains.set(sessionId, next);
+  // 完成后清理引用，防止 Map 无限增长
+  void next.finally(() => {
+    if (flushChains.get(sessionId) === next) {
+      flushChains.delete(sessionId);
+    }
+  });
 }
 
 // ── 公开 API ──
@@ -203,8 +239,8 @@ export async function recordAudit(entry: Omit<AuditEntry, "timestamp">): Promise
     }
     memoryCache.set(entry.sessionId, list);
 
-    // 异步 flush（不阻断调用方）
-    void flushToDisk(entry.sessionId).catch(() => {});
+    // P1-2 修复：通过 scheduleFlush 串行化异步 flush（不阻断调用方，避免并发覆盖）
+    scheduleFlush(entry.sessionId);
   } catch (e) {
     errorLogger.debug("[AuditStorage] 记录审计日志失败", e);
   }

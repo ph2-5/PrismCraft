@@ -16,6 +16,7 @@
 import { useState } from "react";
 import type { CheckpointIndexEntry } from "../services/session-checkpoint";
 import { t } from "@/shared/constants";
+import { formatRelativeTime } from "@/shared/utils/format";
 import { AlertCircle, ChevronDown, ChevronUp, RotateCcw, X } from "lucide-react";
 
 interface CheckpointRecoveryProps {
@@ -27,22 +28,6 @@ interface CheckpointRecoveryProps {
   onDismiss: (sessionId: string) => void;
   /** 忽略全部 */
   onDismissAll: () => void;
-}
-
-/** 格式化时间戳为相对时间 */
-function formatRelativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diff < minute) return "刚刚";
-  if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`;
-  if (diff < day) return `${Math.floor(diff / hour)} 小时前`;
-  if (diff < 7 * day) return `${Math.floor(diff / day)} 天前`;
-  const date = new Date(timestamp);
-  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 export function CheckpointRecovery({

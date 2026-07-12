@@ -210,29 +210,46 @@ export async function getAllArchivalMemory(): Promise<ArchivalMemoryEntry[]> {
   }
 }
 
+/**
+ * P1-2 修复：addArchivalMemory 串行化锁
+ *
+ * 原问题：addArchivalMemory 是 read-modify-write 模式（getAllArchivalMemory → push → saveArchivalMemory），
+ * 并发调用时后写入会覆盖先写入的数据。
+ * 修复：用 promise 链串行化所有写操作。
+ */
+let archivalWriteChain: Promise<unknown> = Promise.resolve();
+
 /** 追加归档记忆条目 */
 export async function addArchivalMemory(
   entry: Omit<ArchivalMemoryEntry, "id" | "createdAt"> & { id?: string; createdAt?: number },
 ): Promise<boolean> {
-  const all = await getAllArchivalMemory();
-  const newEntry: ArchivalMemoryEntry = {
-    id: entry.id ?? `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    type: entry.type,
-    content: entry.content,
-    sessionId: entry.sessionId,
-    createdAt: entry.createdAt ?? Date.now(),
-    tags: entry.tags,
-  };
+  // P1-2 修复：串行化整个 read-modify-write 流程
+  const result = archivalWriteChain.then(async () => {
+    const all = await getAllArchivalMemory();
+    const newEntry: ArchivalMemoryEntry = {
+      id: entry.id ?? `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      type: entry.type,
+      content: entry.content,
+      sessionId: entry.sessionId,
+      createdAt: entry.createdAt ?? Date.now(),
+      tags: entry.tags,
+    };
 
-  all.push(newEntry);
+    all.push(newEntry);
 
-  // 容量限制：按时间排序后保留最新的 N 条
-  if (all.length > MAX_ARCHIVAL_ENTRIES) {
-    all.sort((a, b) => a.createdAt - b.createdAt);
-    all.splice(0, all.length - MAX_ARCHIVAL_ENTRIES);
-  }
+    // 容量限制：按时间排序后保留最新的 N 条
+    if (all.length > MAX_ARCHIVAL_ENTRIES) {
+      all.sort((a, b) => a.createdAt - b.createdAt);
+      all.splice(0, all.length - MAX_ARCHIVAL_ENTRIES);
+    }
 
-  return saveArchivalMemory(all);
+    return saveArchivalMemory(all);
+  }).catch(() => false);
+
+  // 更新链头，使后续调用排队
+  archivalWriteChain = result.then(() => undefined).catch(() => undefined);
+
+  return result;
 }
 
 /** 保存归档记忆（全量覆盖） */
@@ -332,10 +349,17 @@ export function _resetSearchEngine(): void {
 
 /** 删除归档记忆条目 */
 export async function deleteArchivalMemory(id: string): Promise<boolean> {
-  const all = await getAllArchivalMemory();
-  const filtered = all.filter((e) => e.id !== id);
-  if (filtered.length === all.length) return true;
-  return saveArchivalMemory(filtered);
+  // P1-2 修复：同样通过串行化锁防止并发覆盖
+  const result = archivalWriteChain.then(async () => {
+    const all = await getAllArchivalMemory();
+    const filtered = all.filter((e) => e.id !== id);
+    if (filtered.length === all.length) return true;
+    return saveArchivalMemory(filtered);
+  }).catch(() => false);
+
+  archivalWriteChain = result.then(() => undefined).catch(() => undefined);
+
+  return result;
 }
 
 // ============= 自动抽取 =============

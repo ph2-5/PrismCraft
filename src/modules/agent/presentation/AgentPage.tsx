@@ -41,6 +41,7 @@ import {
   Package,
   Users,
   ScrollText,
+  X,
 } from "lucide-react";
 
 export function AgentPage() {
@@ -49,6 +50,7 @@ export function AgentPage() {
     isStreaming,
     toolExecutions,
     error,
+    renderVersion,
     sendMessage,
     cancel,
     clearSession,
@@ -61,6 +63,7 @@ export function AgentPage() {
     dismissInterruptedSession,
     settings,
     updateSettings,
+    dismissError,
   } = useAgent();
 
   const [input, setInput] = useState("");
@@ -82,12 +85,16 @@ export function AgentPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // 自动滚动到最新消息
+  // P1-3 修复：自动滚动到最新消息
+  // 原问题：session.messages 被 conversation-manager 原地修改（push、content +=），引用不变，
+  // useEffect 依赖 [session.messages, toolExecutions] 不触发自动滚动。
+  // 修复：改用递增的 renderVersion 作为依赖，每次 session 变更（包括 delta）都触发滚动。
+  // 使用 "auto" 而非 "smooth" 避免流式输出时频繁 smooth 滚动卡顿。
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
     }
-  }, [session.messages, toolExecutions]);
+  }, [renderVersion, toolExecutions]);
 
   const handleSubmit = async () => {
     const text = input.trim();
@@ -133,7 +140,7 @@ export function AgentPage() {
     <div className="flex h-full">
       {/* 左侧：历史会话侧边栏 */}
       {showHistory && (
-        <div className="w-64 shrink-0 border-r border-border bg-background/50">
+        <div className="w-64 max-w-[80vw] shrink-0 border-r border-border bg-background/50">
           <SessionHistory
             sessions={historySessions}
             currentSessionId={session.id}
@@ -299,10 +306,18 @@ export function AgentPage() {
           )}
         </div>
 
-        {/* 错误提示 */}
+        {/* 错误提示（P1-4 修复：可关闭） */}
         {error && (
-          <div className="border-t border-destructive/20 bg-destructive/5 px-4 py-2 text-xs text-destructive">
-            {error}
+          <div className="flex items-center justify-between gap-2 border-t border-destructive/20 bg-destructive/5 px-4 py-2 text-xs text-destructive">
+            <span className="flex-1 break-words">{error}</span>
+            <button
+              onClick={dismissError}
+              className="shrink-0 rounded p-0.5 transition-colors hover:bg-destructive/10"
+              aria-label={t("agent.dismissError")}
+              title={t("agent.dismissError")}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
 
@@ -314,6 +329,7 @@ export function AgentPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t("agent.inputPlaceholder")}
+              aria-label={t("agent.inputPlaceholder")}
               rows={1}
               className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               style={{ minHeight: "40px", maxHeight: "200px" }}

@@ -375,34 +375,38 @@ export class AgentLoop {
               void recordFewShot(tc.function.name, parsedArgs, result, this.currentInput).catch(() => {});
             }
 
-            // P1-A：记录审计日志（异步，不阻断循环）
-            const isRejected = rejectedIds.has(tc.id);
-            const needsConfirm = this.deps.toolExecutor.requiresConfirmation(tc);
-            const dangerLevel = this.deps.toolExecutor.getDangerLevel(tc.function.name);
-            let resultPreview: string | undefined;
+            // P1-A：记录审计日志（异步，不阻断循环，整体 try-catch 确保审计失败不影响主循环）
             try {
+              const isRejected = rejectedIds.has(tc.id);
+              const needsConfirm = this.deps.toolExecutor.requiresConfirmation(tc);
+              const dangerLevel = this.deps.toolExecutor.getDangerLevel(tc.function.name);
+              let resultPreview: string | undefined;
               if (result.success && result.data != null) {
-                resultPreview = JSON.stringify(result.data).slice(0, 500);
+                try {
+                  resultPreview = JSON.stringify(result.data).slice(0, 500);
+                } catch {
+                  // 序列化失败时无 preview
+                }
               }
+              void recordAudit({
+                sessionId: this.session.id,
+                toolCallId: tc.id,
+                toolName: tc.function.name,
+                iteration: i,
+                argsJson: tc.function.arguments ?? "{}",
+                status: isRejected ? "rejected" : (result.success ? "done" : "error"),
+                success: !isRejected && result.success,
+                error: result.error,
+                resultPreview,
+                durationMs: result.duration,
+                dangerLevel,
+                confirmedByUser: needsConfirm ? !isRejected : undefined,
+                // P1-B：specialist 字段填充（主 Agent=undefined，子 Agent=specialist.name）
+                specialist: this.config.specialistName,
+              }).catch(() => {});
             } catch {
-              // 序列化失败时无 preview
+              // 审计日志记录失败时静默，不影响主循环
             }
-            void recordAudit({
-              sessionId: this.session.id,
-              toolCallId: tc.id,
-              toolName: tc.function.name,
-              iteration: i,
-              argsJson: tc.function.arguments ?? "{}",
-              status: isRejected ? "rejected" : (result.success ? "done" : "error"),
-              success: !isRejected && result.success,
-              error: result.error,
-              resultPreview,
-              durationMs: result.duration,
-              dangerLevel,
-              confirmedByUser: needsConfirm ? !isRejected : undefined,
-              // P1-B：specialist 字段填充（主 Agent=undefined，子 Agent=specialist.name）
-              specialist: this.config.specialistName,
-            }).catch(() => {});
           }
 
           // P5 断点恢复：工具执行完成后保存检查点（异步，不阻断）
@@ -682,12 +686,18 @@ export class AgentLoop {
         );
         // 等待（支持中断）
         await new Promise<void>((resolve) => {
-          const timer = setTimeout(resolve, waitMs);
+          const onAbort = () => {
+            clearTimeout(timer);
+            resolve();
+          };
+          const timer = setTimeout(() => {
+            if (this.callbacks.signal) {
+              this.callbacks.signal.removeEventListener("abort", onAbort);
+            }
+            resolve();
+          }, waitMs);
           if (this.callbacks.signal) {
-            this.callbacks.signal.addEventListener("abort", () => {
-              clearTimeout(timer);
-              resolve();
-            }, { once: true });
+            this.callbacks.signal.addEventListener("abort", onAbort, { once: true });
           }
         });
       }

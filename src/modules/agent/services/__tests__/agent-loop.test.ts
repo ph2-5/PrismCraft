@@ -58,6 +58,7 @@ vi.mock("../tool-executor", () => ({
     execute: mockExecute,
     executeAll: mockExecuteAll,
     requiresConfirmation: vi.fn().mockReturnValue(false),
+    getDangerLevel: vi.fn().mockReturnValue("safe"),
   },
 }));
 

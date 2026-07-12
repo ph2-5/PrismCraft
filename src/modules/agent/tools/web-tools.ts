@@ -18,6 +18,9 @@
  * - 错误处理完善，所有 fetch / 下载操作均 try/catch
  * - SSRF 基本校验：fetch_web_content 的 URL 必须是 http/https
  * - 搜索 API 在浏览器环境可能受 CORS 限制，description 中说明需配置 CORS 代理或服务端转发
+ *
+ * 特权访问声明：本文件通过 DI container 直接访问 elementStorage（prop 元素入库），
+ * 详见 MODULE.md "Agent 特权访问声明" 章节。
  */
 
 import type { ToolImpl } from "../domain/types";

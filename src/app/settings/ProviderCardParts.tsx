@@ -19,7 +19,7 @@ import {
 } from "@/infrastructure/api-config-facade";
 import { getModelParameterProfile } from "@/shared/model-capabilities";
 import { IconButton } from "@/shared/presentation/IconButton";
-import { testConnection } from "@/infrastructure/ai-providers";
+import { testConnection } from "@/shared/api-config";
 
 type ApiKeyVerifyState =
   | { kind: "idle" }

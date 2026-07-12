@@ -28,6 +28,40 @@ export function formatDuration(ms: number): string {
 }
 
 /**
+ * 将时间戳格式化为相对当前时间的字符串。
+ *
+ * P1-6 修复：从 CheckpointRecovery.tsx 和 SessionHistory.tsx 中提取的共享实现。
+ * - 1 分钟内：刚刚
+ * - 1 小时内：{count} 分钟前
+ * - 1 天内：{count} 小时前
+ * - 7 天内：{count} 天前
+ * - 超过 7 天：M/D（如 3/15）
+ *
+ * @param timestamp 毫秒时间戳
+ * @returns 本地化的相对时间字符串
+ */
+export function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diff < minute) return t("common.relativeTime.justNow");
+  if (diff < hour) {
+    return t("common.relativeTime.minutesAgo", { count: Math.floor(diff / minute) });
+  }
+  if (diff < day) {
+    return t("common.relativeTime.hoursAgo", { count: Math.floor(diff / hour) });
+  }
+  if (diff < 7 * day) {
+    return t("common.relativeTime.daysAgo", { count: Math.floor(diff / day) });
+  }
+  const date = new Date(timestamp);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+/**
  * 将字节数转换为可读的大小字符串。
  * e.g. "1.5 GB"、"200.0 MB"、"1.0 KB"、"512 B"
  */

@@ -83,6 +83,7 @@ export async function runSpecialist(
   const timer = setTimeout(() => timeoutController.abort(), timeoutMs);
 
   // 外部取消信号联动
+  const onParentAbort = () => timeoutController.abort();
   if (parentCtx?.signal) {
     if (parentCtx.signal.aborted) {
       clearTimeout(timer);
@@ -92,7 +93,7 @@ export async function runSpecialist(
         duration: Date.now() - startTime,
       };
     }
-    parentCtx.signal.addEventListener("abort", () => timeoutController.abort(), { once: true });
+    parentCtx.signal.addEventListener("abort", onParentAbort, { once: true });
   }
 
   // 6. 配置 callbacks（不直接显示给用户）
@@ -160,6 +161,9 @@ export async function runSpecialist(
     };
   } finally {
     clearTimeout(timer);
+    if (parentCtx?.signal) {
+      parentCtx.signal.removeEventListener("abort", onParentAbort);
+    }
     loop.abort(); // 确保子 Agent 的 LLM 调用被中止
   }
 

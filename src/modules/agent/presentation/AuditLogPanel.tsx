@@ -23,7 +23,8 @@ import {
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { errorLogger } from "@/shared/error-logger";
-import { X, ScrollText, Trash2, RefreshCw, Filter } from "lucide-react";
+import { downloadJSONFile } from "@/shared/utils/file-download";
+import { X, ScrollText, Trash2, RefreshCw, Filter, Download } from "lucide-react";
 
 interface AuditLogPanelProps {
   onClose: () => void;
@@ -33,6 +34,10 @@ interface AuditLogPanelProps {
 const LOAD_LIMIT = 100;
 /** 工具统计显示的 Top N */
 const TOP_TOOLS = 5;
+/** 分页每页条数 */
+const PAGE_SIZE = 20;
+/** 导出时使用的条数上限（足够大以导出全部） */
+const EXPORT_LIMIT = 100000;
 
 export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
   const [logs, setLogs] = useState<AuditEntry[]>([]);
@@ -44,10 +49,15 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<"idle" | "exporting" | "success" | "failed">("idle");
+  const [exportCount, setExportCount] = useState(0);
 
   // 筛选条件
   const [filterTool, setFilterTool] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<"" | "success" | "fail">("");
+
+  // 分页
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -59,6 +69,7 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
       ]);
       setLogs(entries);
       setStats(s);
+      setCurrentPage(1);
     } catch (e) {
       errorLogger.warn("[Agent] 加载审计日志失败", e instanceof Error ? e : undefined);
       setError(t("agent.audit.loadFailed"));
@@ -70,6 +81,17 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
+
+  // a11y：Escape 关闭面板
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   /** 清空全部审计日志 */
   const handleClearAll = async () => {
@@ -101,11 +123,37 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
         success: filterStatus === "success" ? true : filterStatus === "fail" ? false : undefined,
       });
       setLogs(entries);
+      setCurrentPage(1);
     } catch (e) {
       errorLogger.warn("[Agent] 筛选审计日志失败", e instanceof Error ? e : undefined);
       setError(t("agent.audit.loadFailed"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  /** 导出当前过滤条件下的所有日志为 JSON 文件 */
+  const handleExport = async () => {
+    setExportStatus("exporting");
+    try {
+      const entries = await queryAuditLogs({
+        limit: EXPORT_LIMIT,
+        toolName: filterTool || undefined,
+        success: filterStatus === "success" ? true : filterStatus === "fail" ? false : undefined,
+      });
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const filename = `audit-logs-all-${timestamp}.json`;
+      downloadJSONFile(entries, filename);
+      setExportCount(entries.length);
+      setExportStatus("success");
+      // 2 秒后恢复 idle
+      setTimeout(() => setExportStatus("idle"), 2000);
+    } catch (e) {
+      errorLogger.warn("[Agent] 导出审计日志失败", e instanceof Error ? e : undefined);
+      setExportStatus("failed");
+      setTimeout(() => setExportStatus("idle"), 2000);
     }
   };
 
@@ -124,8 +172,20 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
     return stats?.toolStats.slice(0, TOP_TOOLS) ?? [];
   }, [stats]);
 
+  /** 总页数 */
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  }, [logs.length]);
+
+  /** 当前页日志（自动钳制到有效范围） */
+  const pagedLogs = useMemo(() => {
+    const page = Math.min(currentPage, totalPages);
+    const start = (page - 1) * PAGE_SIZE;
+    return logs.slice(start, start + PAGE_SIZE);
+  }, [logs, currentPage, totalPages]);
+
   return (
-    <div className="absolute right-0 top-full z-50 mt-1 w-96 rounded-lg border border-border bg-popover p-3 shadow-md">
+    <div className="absolute right-0 top-full z-50 mt-1 max-h-[80vh] w-[calc(100vw-2rem)] max-w-96 overflow-y-auto rounded-lg border border-border bg-popover p-3 shadow-md">
       {/* 头部 */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
@@ -141,6 +201,15 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
             aria-label={t("agent.audit.refresh")}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <button
+            onClick={() => void handleExport()}
+            disabled={exportStatus === "exporting" || (stats?.totalEntries ?? 0) === 0}
+            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+            title={t("agent.audit.export")}
+            aria-label={t("agent.audit.export")}
+          >
+            <Download className={`h-3.5 w-3.5 ${exportStatus === "exporting" ? "animate-pulse" : ""}`} />
           </button>
           <button
             onClick={handleClearAll}
@@ -164,6 +233,18 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
       {error && (
         <div className="mb-2 rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
           {error}
+        </div>
+      )}
+
+      {/* 导出状态反馈 */}
+      {exportStatus === "success" && (
+        <div className="mb-2 rounded bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+          {t("agent.audit.exportSuccess", { count: exportCount })}
+        </div>
+      )}
+      {exportStatus === "failed" && (
+        <div className="mb-2 rounded bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
+          {t("agent.audit.exportFailed")}
         </div>
       )}
 
@@ -258,16 +339,37 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
             {loading ? t("agent.audit.loading") : t("agent.audit.noLogs")}
           </div>
         ) : (
-          logs.map((entry) => (
+          pagedLogs.map((entry) => (
             <AuditLogEntry key={entry.toolCallId} entry={entry} />
           ))
         )}
       </div>
 
-      {/* 底部计数 */}
+      {/* 底部分页 */}
       {logs.length > 0 && (
-        <div className="mt-2 border-t border-border pt-1.5 text-center text-[10px] text-muted-foreground">
-          {t("agent.audit.showingCount", { count: logs.length, total: stats?.totalEntries ?? 0 })}
+        <div className="mt-2 border-t border-border pt-1.5" aria-label={t("agent.audit.page")}>
+          <div className="mb-1 text-center text-[10px] text-muted-foreground">
+            {t("agent.audit.showingCount", { count: logs.length, total: stats?.totalEntries ?? 0 })}
+          </div>
+          <div className="flex items-center justify-between gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+              className="rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t("agent.audit.prevPage")}
+            </button>
+            <span className="text-[10px] text-muted-foreground">
+              {t("agent.audit.pageInfo", { current: Math.min(currentPage, totalPages), total: totalPages })}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t("agent.audit.nextPage")}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -290,10 +392,22 @@ function AuditLogEntry({ entry }: { entry: AuditEntry }) {
         ? "text-amber-600 dark:text-amber-400"
         : "text-muted-foreground";
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setExpanded(!expanded);
+    }
+  };
+
   return (
     <div
       className="rounded border border-border bg-background/50 px-2 py-1.5 text-xs cursor-pointer hover:bg-muted/30"
       onClick={() => setExpanded(!expanded)}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-expanded={expanded}
+      aria-label={t("aria.toggleExpand")}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="truncate font-mono font-medium" title={entry.toolName}>

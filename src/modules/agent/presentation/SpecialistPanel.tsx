@@ -14,7 +14,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { specialistRegistry } from "../services/specialist-registry";
 import { t } from "@/shared/constants";
 import {
@@ -40,6 +40,17 @@ export function SpecialistPanel({ onClose, onDelegate }: SpecialistPanelProps) {
   const [context, setContext] = useState("");
 
   const specialists = specialistRegistry.list();
+
+  // a11y：Escape 关闭面板
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   /** 展开/收起详情 */
   const toggleExpand = (id: string) => {

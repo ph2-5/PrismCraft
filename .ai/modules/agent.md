@@ -101,6 +101,35 @@ presentation ← hooks (useAgent), @/shared/ui
 - **必须**：工具错误消息通过 `sanitizeErrorMessage()` 脱敏后返回 LLM
 - **必须**：批量操作通过 maxItems + 运行时校验限制规模
 
+## Agent 特权访问声明
+
+Agent 模块作为**系统管理员**，部分场景下需要直接读写底层存储层（storage token），无法通过其他模块的 public API 完成。详见 `src/modules/agent/MODULE.md` 的"Agent 特权访问声明"章节。
+
+### 允许的特权访问（汇总）
+
+| Storage Token | 用途 | 涉及文件 |
+|---------------|------|---------|
+| `container.videoTaskStorage` | 视频任务记录读写 | video-tools.ts、monitor-tools.ts、diagnostic-tools.ts、help-tools.ts、services/agent-loop.ts |
+| `container.templateStorage` | 模板 CRUD | template-tools.ts |
+| `container.storyStorage` | 故事诊断与回滚 | diagnostic-tools.ts |
+| `container.versionStorage` | 故事版本备份查询 | diagnostic-tools.ts |
+| `container.errorLogStorage` | 错误历史查询 | monitor-tools.ts |
+| `container.elementStorage` | 道具元素入库 | web-tools.ts |
+
+### 声明依据
+
+1. Agent 作为系统管理员需要跨模块统一读写能力，与普通业务模块约束不同
+2. 与 architecture-rules.md 的 DI container "Storage 实例（Category C）"例外一致
+3. 部分 storage 操作在对应模块 service 层未暴露 public API，强行迁移会导致功能丢失
+
+### 特权访问的边界
+
+- **禁止**直接修改其他模块的 Zustand store 内部状态
+- **禁止**调用 `electronAPI.*`（文件操作仍走 `@/shared/file-http`）
+- **禁止**访问 `@/infrastructure/*` 中除 `@/infrastructure/di` 之外的其他模块
+- **必须**：所有特权访问在工具文件顶部注释中引用 MODULE.md 的声明
+- **必须**：当对应模块新增 public API 后，应优先迁移到 public API 调用
+
 ## 测试验证
 
 - 测试命令：`npx vitest run src/modules/agent`

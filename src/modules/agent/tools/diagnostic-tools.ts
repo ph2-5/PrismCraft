@@ -13,6 +13,9 @@
  * - diagnose_system_health 聚合多项检查，按严重程度计算 overallHealth
  * - rollback 当前项目无完整版本控制系统，story 有 saveVersion 备份；其他类型优雅降级
  * - 所有操作 try/catch，错误时返回友好错误信息
+ *
+ * 特权访问声明：本文件通过 DI container 直接访问 videoTaskStorage、storyStorage、versionStorage，
+ * 详见 MODULE.md "Agent 特权访问声明" 章节。
  */
 
 import type { ToolImpl } from "../domain/types";

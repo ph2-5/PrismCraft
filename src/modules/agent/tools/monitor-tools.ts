@@ -14,6 +14,9 @@
  * - 错误历史优先用 container.errorLogStorage；不可用时降级到配置存储
  * - 列表返回精简字段并截断 prompt（避免 token 浪费）
  * - 错误处理完善，存储失败时返回友好错误信息
+ *
+ * 特权访问声明：本文件通过 DI container 直接访问 videoTaskStorage 与 errorLogStorage，
+ * 详见 MODULE.md "Agent 特权访问声明" 章节。
  */
 
 import type { ToolImpl } from "../domain/types";

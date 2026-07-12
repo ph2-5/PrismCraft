@@ -128,6 +128,7 @@ export class ToolExecutor implements IToolExecutor {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     // 合并外部 signal
+    const onExternalAbort = () => controller.abort();
     if (ctx.signal) {
       if (ctx.signal.aborted) {
         clearTimeout(timer);
@@ -137,7 +138,7 @@ export class ToolExecutor implements IToolExecutor {
           duration: Date.now() - startTime,
         };
       }
-      ctx.signal.addEventListener("abort", () => controller.abort(), { once: true });
+      ctx.signal.addEventListener("abort", onExternalAbort, { once: true });
     }
 
     const childCtx: ToolContext = {
@@ -167,6 +168,9 @@ export class ToolExecutor implements IToolExecutor {
       };
     } finally {
       clearTimeout(timer);
+      if (ctx.signal) {
+        ctx.signal.removeEventListener("abort", onExternalAbort);
+      }
     }
   }
 

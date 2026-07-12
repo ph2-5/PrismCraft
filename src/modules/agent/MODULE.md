@@ -73,6 +73,39 @@
 - **必须**：文件操作通过 `@/shared/file-http`
 - **必须**：工具命名唯一（ToolRegistry 注册时校验冲突）
 
+## Agent 特权访问声明
+
+Agent 模块作为**系统管理员**，承担跨模块的统一编排与运维职责。部分场景下需要直接读写底层存储层（storage token），无法通过其他模块的 public API 完成。
+
+### 允许的特权访问
+
+Agent 模块的 `tools/` 与 `services/` 代码**允许**通过 DI container 直接访问以下 storage token：
+
+| Storage Token | 用途 | 涉及文件 |
+|---------------|------|---------|
+| `container.videoTaskStorage` | 查询/创建/更新视频任务记录（任务列表、状态轮询、批量创建） | video-tools.ts、monitor-tools.ts、diagnostic-tools.ts、help-tools.ts、services/agent-loop.ts |
+| `container.templateStorage` | 模板 CRUD（AST 模板元数据 + 内容文件） | template-tools.ts |
+| `container.storyStorage` | 故事诊断与回滚（查询历史故事） | diagnostic-tools.ts |
+| `container.versionStorage` | 故事版本备份查询（rollback 场景） | diagnostic-tools.ts |
+| `container.errorLogStorage` | 错误历史查询（监控/诊断） | monitor-tools.ts |
+| `container.elementStorage` | 道具（prop）元素入库（网络素材下载后注册） | web-tools.ts |
+
+### 声明依据
+
+1. **系统管理员角色**：Agent 通过 function-calling 操控项目所有功能，需要跨模块的统一读写能力，与普通业务模块的"仅通过 public API"约束不同。
+2. **与 architecture-rules.md 的"Port 实现"例外一致**：DI container 的 Token Categories 中，Storage 实例（Category C）即为 stateful storage modules，Agent 作为系统编排者访问这些 token 属于合理的依赖注入用途。
+3. **public API 不可替代**：部分 storage 操作（如 `getStoryVersions`、`getErrorLogs`、`createElement`）在对应模块的 service 层未暴露 public API，强行改为 public API 会导致功能丢失或大量重写。
+
+### 特权访问的边界
+
+即使享有特权访问，Agent 模块仍受以下约束：
+
+- **禁止**直接修改其他模块的 Zustand store 内部状态（如 `useVideoTaskStore.setState`）
+- **禁止**调用 `electronAPI.*`（文件操作仍走 `@/shared/file-http`）
+- **禁止**访问 `@/infrastructure/*` 中除 `@/infrastructure/di` 之外的其他模块
+- **必须**：所有特权访问在工具文件顶部注释中引用本声明
+- **必须**：当对应模块新增 public API 后，应优先迁移到 public API 调用（逐步消除特权访问）
+
 ## 依赖方向
 
 ```

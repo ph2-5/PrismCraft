@@ -12,6 +12,7 @@
 import type { SessionListItem } from "../services/session-storage";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
+import { formatRelativeTime } from "@/shared/utils/format";
 import { MessageSquare, Plus, Trash2, Clock } from "lucide-react";
 
 interface SessionHistoryProps {
@@ -20,23 +21,6 @@ interface SessionHistoryProps {
   onLoad: (sessionId: string) => void;
   onDelete: (sessionId: string) => void;
   onNew: () => void;
-}
-
-/** 格式化时间戳为相对时间 */
-function formatRelativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diff < minute) return "刚刚";
-  if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`;
-  if (diff < day) return `${Math.floor(diff / hour)} 小时前`;
-  if (diff < 7 * day) return `${Math.floor(diff / day)} 天前`;
-  // 超过 7 天显示日期
-  const date = new Date(timestamp);
-  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 export function SessionHistory({

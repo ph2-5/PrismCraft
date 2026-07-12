@@ -28,6 +28,7 @@ const ALLOWED_PATTERNS = [
   /下载图片失败/, // infrastructure image-normalization 内部错误（上层捕获）
   /下载不完整/, // infrastructure cache 内部错误（上层捕获）
   /缓存图片失败/, // infrastructure cache 内部错误（上层捕获）
+  /无法获取缓存目录/, // agent audit-storage / tool-fewshot-cache 内部错误（上层捕获）
 ];
 
 async function globTsFiles(dir: string, results: string[] = []): Promise<string[]> {

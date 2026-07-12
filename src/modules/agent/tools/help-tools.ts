@@ -16,6 +16,9 @@
  * - suggest_next_action 查询项目状态（角色/场景/故事/视频任务）后用 textProvider 推理
  * - 所有操作 try/catch，失败时返回友好错误信息
  * - 静态字典内容基于项目实际功能，真实可用
+ *
+ * 特权访问声明：本文件通过 DI container 直接访问 videoTaskStorage，
+ * 详见 MODULE.md "Agent 特权访问声明" 章节。
  */
 
 import type { ToolImpl } from "../domain/types";

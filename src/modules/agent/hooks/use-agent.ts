@@ -54,6 +54,7 @@ import {
 import { usePreference } from "@/shared/utils/preferences";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
+import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
 import { toolRegistry } from "../services/tool-registry";
 import type { ModelSelection } from "@/domain/schemas";
@@ -133,6 +134,13 @@ export interface UseAgentReturn {
   toolExecutions: ToolExecution[];
   /** 错误信息 */
   error: string | null;
+  /**
+   * P1-3 修复：递增的渲染版本号
+   *
+   * 每次 session 被原地修改（push、content +=）后递增，
+   * 供消费者作为 useEffect 依赖以触发响应式副作用（如自动滚动）。
+   */
+  renderVersion: number;
   /** 发送消息 */
   sendMessage: (text: string) => Promise<void>;
   /** 取消当前生成 */
@@ -161,6 +169,12 @@ export interface UseAgentReturn {
   settings: AgentSettings;
   /** 更新设置 */
   updateSettings: (partial: Partial<AgentSettings>) => void;
+  /**
+   * P1-4 修复：关闭错误提示
+   *
+   * 原问题：错误提示无关闭按钮，必须重新触发新消息才能清除。
+   */
+  dismissError: () => void;
 }
 
 export function useAgent(): UseAgentReturn {
@@ -179,6 +193,16 @@ export function useAgent(): UseAgentReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [, forceUpdate] = useState({});
+  /**
+   * P1-3 修复：递增的渲染版本号
+   *
+   * 原问题：session.messages 被 conversation-manager 原地修改（push、content +=），
+   * 引用始终不变，导致 AgentPage 的 useEffect([session.messages, ...]) 不触发自动滚动。
+   *
+   * 修复：每次 triggerRender 时递增 renderVersion，作为 AgentPage useEffect 的依赖。
+   * 这样流式 delta、消息追加、工具结果回灌都能触发自动滚动。
+   */
+  const [renderVersion, setRenderVersion] = useState(0);
   const [isStreaming, setIsStreaming] = useState(false);
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -187,6 +211,7 @@ export function useAgent(): UseAgentReturn {
 
   const triggerRender = useCallback(() => {
     forceUpdate({});
+    setRenderVersion((v) => v + 1);
   }, []);
 
   /** 刷新历史会话列表 */
@@ -252,8 +277,10 @@ export function useAgent(): UseAgentReturn {
     try {
       await persistSession(session);
       await refreshHistory();
-    } catch {
-      // 保存失败不阻断主流程
+    } catch (e) {
+      // P1-4 修复：保存失败时通过 toast 提示用户，避免静默丢失
+      errorLogger.warn("[Agent] 会话保存失败", e);
+      emitToast("error", t("agent.saveFailedTitle"), t("agent.saveFailedMessage"));
     }
   }, [refreshHistory]);
 
@@ -423,11 +450,14 @@ export function useAgent(): UseAgentReturn {
           persistSession(currentSession)
             .then(() => refreshHistory())
             .catch((e) => {
+              // P1-4 修复：保存失败时通过 toast 提示用户
               errorLogger.warn("[Agent] 会话保存失败", e);
+              emitToast("error", t("agent.saveFailedTitle"), t("agent.saveFailedMessage"));
             }),
         )
         .catch((e) => {
           errorLogger.warn("[Agent] 记忆抽取或会话保存失败", e);
+          emitToast("error", t("agent.saveFailedTitle"), t("agent.saveFailedMessage"));
         });
     }
     // 创建新会话
@@ -510,11 +540,17 @@ export function useAgent(): UseAgentReturn {
     [setSettings],
   );
 
+  /** P1-4 修复：关闭错误提示 */
+  const dismissError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return {
     session: sessionRef.current,
     isStreaming,
     toolExecutions,
     error,
+    renderVersion,
     sendMessage,
     cancel,
     clearSession,
@@ -529,6 +565,7 @@ export function useAgent(): UseAgentReturn {
     dismissInterruptedSession,
     settings,
     updateSettings,
+    dismissError,
   };
 }
 

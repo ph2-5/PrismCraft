@@ -17,6 +17,9 @@
  * - VideoTask 字段映射：firstFrameUrl→fixedImageUrl，modelId→providerModelId，error→message
  * - 列表返回精简字段并截断 prompt（避免 token 浪费）
  * - batch_create_video_tasks 处理部分失败（一个失败不影响其他）
+ *
+ * 特权访问声明：本文件通过 DI container 直接访问 videoTaskStorage，
+ * 详见 MODULE.md "Agent 特权访问声明" 章节。
  */
 
 import type { ToolImpl } from "../domain/types";

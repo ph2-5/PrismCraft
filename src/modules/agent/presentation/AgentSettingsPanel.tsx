@@ -24,8 +24,11 @@ import {
   checkFfmpegAvailable,
   resetFfmpegCache,
 } from "../services/ffmpeg-service";
+import { searchArchivalMemory } from "../services/memory-service";
+import type { ArchivalMemoryEntry } from "../services/memory-service";
+import { formatRelativeTime } from "@/shared/utils/format";
 import { ModelSelector } from "@/modules/prompt";
-import { X, Check, Loader2 } from "lucide-react";
+import { X, Check, Loader2, Search } from "lucide-react";
 
 interface AgentSettingsPanelProps {
   settings: AgentSettings;
@@ -40,8 +43,19 @@ const PERSONAS: Array<{ key: AgentPersona; labelKey: string; descKey: string }> 
 ];
 
 export function AgentSettingsPanel({ settings, onUpdate, onClose }: AgentSettingsPanelProps) {
+  // a11y：Escape 关闭面板
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-lg border border-border bg-popover p-3 shadow-md">
+    <div className="absolute right-0 top-full z-50 mt-1 max-h-[80vh] w-[calc(100vw-2rem)] max-w-96 overflow-y-auto rounded-lg border border-border bg-popover p-3 shadow-md">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">{t("agent.settings")}</h3>
         <button
@@ -138,6 +152,9 @@ export function AgentSettingsPanel({ settings, onUpdate, onClose }: AgentSetting
 
       {/* 搜索配置 */}
       <SearchConfigSection />
+
+      {/* 搜索配置测试（RAG 检索） */}
+      <SearchTestSection />
     </div>
   );
 }
@@ -451,6 +468,105 @@ function SearchConfigSection() {
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** 搜索配置测试区块 — 测试 RAG 检索是否正常工作 */
+function SearchTestSection() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ArchivalMemoryEntry[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleTest = useCallback(async () => {
+    const trimmed = query.trim();
+    if (!trimmed || loading) return;
+    setLoading(true);
+    setError(null);
+    setResults(null);
+    try {
+      const entries = await searchArchivalMemory(trimmed, 3);
+      setResults(entries);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [query, loading]);
+
+  return (
+    <div className="border-t border-border pt-3">
+      <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+        {t("agent.settings.searchTest.title")}
+      </div>
+      <div className="space-y-1.5">
+        <div className="flex gap-1">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                void handleTest();
+              }
+            }}
+            placeholder={t("agent.settings.searchTest.placeholder")}
+            className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          />
+          <button
+            onClick={handleTest}
+            disabled={loading || !query.trim()}
+            className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[10px] hover:bg-muted disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {t("agent.settings.searchTest.loading")}
+              </>
+            ) : (
+              <>
+                <Search className="h-3 w-3" />
+                {t("agent.settings.searchTest.button")}
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* 错误信息（不阻断 UI） */}
+        {error && (
+          <div className="rounded-md bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
+            {t("agent.settings.searchTest.error", { message: error })}
+          </div>
+        )}
+
+        {/* 搜索结果 */}
+        {results && (
+          <div className="space-y-1">
+            {results.length === 0 ? (
+              <div className="px-2 py-1.5 text-center text-[10px] text-muted-foreground italic">
+                {t("agent.settings.searchTest.noResults")}
+              </div>
+            ) : (
+              results.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded border border-border bg-background/50 px-2 py-1 text-[10px]"
+                >
+                  <div className="break-all text-muted-foreground">
+                    {entry.content.slice(0, 100)}
+                    {entry.content.length > 100 ? "..." : ""}
+                  </div>
+                  <div className="mt-0.5 text-muted-foreground/70">
+                    {formatRelativeTime(entry.createdAt)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

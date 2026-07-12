@@ -14,6 +14,9 @@
  * - apply/create 涉及角色/场景/故事的联动，动态 import 各 service
  * - 文件读写统一走 @/shared/file-http
  * - 错误处理完善，存储/服务失败时返回友好错误信息
+ *
+ * 特权访问声明：本文件通过 DI container 直接访问 templateStorage，
+ * 详见 MODULE.md "Agent 特权访问声明" 章节。
  */
 
 import type { ToolImpl } from "../domain/types";

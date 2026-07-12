@@ -10,7 +10,7 @@
  * - 记录所有工具调用（用于断言 P0 并行执行、P4 委派等）
  */
 
-import type { ToolCall, ToolDef, ToolResult, ToolContext } from "../../domain/types";
+import type { ToolCall, ToolDef, ToolResult, ToolContext, DangerLevel } from "../../domain/types";
 import type { IToolRegistry, IToolExecutor } from "../../domain/ports";
 import type { ToolImpl } from "../../domain/types";
 
@@ -123,6 +123,10 @@ export class MockToolExecutor implements IToolExecutor {
 
   requiresConfirmation(_toolCall: ToolCall): boolean {
     return false;
+  }
+
+  getDangerLevel(_toolName: string): DangerLevel {
+    return "safe";
   }
 
   /** 重置（每个测试用例前调用） */

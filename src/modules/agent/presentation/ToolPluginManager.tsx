@@ -94,6 +94,17 @@ export function ToolPluginManager({ onClose }: ToolPluginManagerProps) {
     void loadPlugins();
   }, [loadPlugins]);
 
+  // a11y：Escape 关闭面板
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   /** 获取禁用的插件 ID 列表 */
   const getDisabledPluginIds = async (): Promise<Set<string>> => {
     try {
@@ -286,7 +297,7 @@ export function ToolPluginManager({ onClose }: ToolPluginManagerProps) {
   const disabledCount = plugins.filter((p) => p.disabled).length;
 
   return (
-    <div className="absolute right-0 top-full z-50 mt-1 w-96 rounded-lg border border-border bg-popover p-3 shadow-md">
+    <div className="absolute right-0 top-full z-50 mt-1 max-h-[80vh] w-[calc(100vw-2rem)] max-w-96 overflow-y-auto rounded-lg border border-border bg-popover p-3 shadow-md">
       {/* 头部 */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5">

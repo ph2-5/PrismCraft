@@ -81,12 +81,26 @@ export async function initCheckpoint(
 /**
  * 清除检查点（AgentLoop 正常完成后调用）
  *
- * 从会话中移除 checkpoint 字段，并从索引中删除条目。
+ * P1-5 修复：除了从索引中移除外，还需加载会话并清除 session.checkpoint 字段，
+ * 否则正常完成的会话仍带有 status=running 的 checkpoint，
+ * 重启后会被 markRunningAsInterrupted 误判为中断。
+ *
  * 会话本身保留（包含所有消息历史）。
  */
 export async function clearCheckpoint(sessionId: string): Promise<boolean> {
   // 从索引中移除
   await removeFromCheckpointIndex(sessionId);
+  // P1-5 修复：同步清除 session.checkpoint 字段
+  try {
+    const session = await loadSession(sessionId);
+    if (session && session.checkpoint) {
+      // 使用 delete 移除可选属性，避免 TypeScript exactOptionalPropertyTypes 限制
+      delete session.checkpoint;
+      await saveSession(session);
+    }
+  } catch {
+    // 会话文件不存在或加载失败时静默（索引已清理，不影响主流程）
+  }
   return true;
 }
 

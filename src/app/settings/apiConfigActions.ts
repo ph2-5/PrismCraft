@@ -13,8 +13,7 @@ import {
   getTemplateWithPlugins,
   checkConfigStatus,
 } from "@/infrastructure/api-config-facade";
-import { saveConfig } from "@/infrastructure/api-config-facade";
-import { testConnection } from "@/infrastructure/ai-providers";
+import { saveConfig, testConnection } from "@/shared/api-config";
 
 interface ApiCapabilityMeta {
   id: ApiCapability;

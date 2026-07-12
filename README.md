@@ -2,9 +2,9 @@
 
 > 本地优先的 AI 动画创作桌面应用，覆盖故事构思 → 角色设计 → 场景搭建 → 分镜编排 → AI 视频生成 → 导出成品的完整工作流。
 
-[![Version](https://img.shields.io/badge/version-1.2.2-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-1.2.3-blue)](package.json)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-5752%2B-brightgreen)](docs/DEVELOPMENT.md)
+[![Tests](https://img.shields.io/badge/tests-6026%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Updated](https://img.shields.io/badge/updated-2026--07--12-green)]()
 

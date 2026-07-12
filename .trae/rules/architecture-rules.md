@@ -199,10 +199,12 @@ Three mechanisms exist for cross-module communication. Each has a specific scope
 
 ## HTTP Routes Registry
 
-`electron/src/api/routes.ts` merges 7 route groups exposing the following HTTP endpoints:
+`electron/src/api/routes.ts` merges 9 route groups exposing the following HTTP endpoints:
 
 - **core-routes.ts**: `config/get`, `config/set` (plus upload, export, test-connection, sync)
 - **db-routes.ts**: `db/query`, `db/run`, `db/transaction`
+- **download-routes.ts**: download management (start, cancel, progress, list)
+- **ffmpeg-routes.ts**: ffmpeg operations (probe, transcode, extract-frames, merge)
 - **file-routes.ts**: `file/save`, `file/read`, `file/read-base64`, `file/delete`, `file/exists`, `file/copy`, `file/list`, `file/info`, `file/write-atomic`, `file/write`, `file/cache-directory`, `file/disk-space`
 - **generation-routes.ts**: image/video/text generation, story generation
 - **plugin-routes.ts**: plugin management (list, add, delete, reload, etc.)

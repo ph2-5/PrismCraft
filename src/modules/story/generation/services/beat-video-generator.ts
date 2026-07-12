@@ -1,3 +1,21 @@
+/**
+ * @file beat-video-generator — 单分镜视频生成
+ *
+ * 职责：
+ * - 为单个 StoryBeat 生成视频（generateBeatVideo / generateBeatFramePair）
+ * - 根据模型能力自适应选择生成策略（首尾帧 / 仅首帧 / 纯文本）
+ * - 调用 video-service 的 HTTP API 与主进程通信
+ * - 返回 Result 类型，不抛异常（由 fromAsyncThrowable 包装）
+ *
+ * 调用方：
+ * - story 模块的批量视频生成流程
+ * - Agent 工具（video-tools.ts 的 generate_beat_video）
+ *
+ * 不做：
+ * - 不做批量编排（由 story 模块上层负责）
+ * - 不直接管理任务状态（由 video task-management 负责）
+ */
+
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable, ValidationError } from "@/domain/types";
 import type { StoryBeat } from "@/domain/schemas";

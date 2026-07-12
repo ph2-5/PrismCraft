@@ -187,6 +187,122 @@ async function handlePollException(
   );
 }
 
+type QueryVideoStatusResponse = Awaited<
+  ReturnType<typeof container.videoProvider.queryVideoStatus>
+>;
+type QueryVideoStatusData = NonNullable<QueryVideoStatusResponse["data"]>;
+
+function buildPollOptions(
+  task: VideoTask,
+): Parameters<typeof container.videoProvider.queryVideoStatus>[1] {
+  const pollOptions: Parameters<typeof container.videoProvider.queryVideoStatus>[1] = {};
+  if (task.providerId && task.providerModelId) {
+    pollOptions.providerId = task.providerId;
+    pollOptions.modelId = task.providerModelId;
+    if (task.providerFormat) {
+      pollOptions.format = task.providerFormat;
+    }
+  }
+  return pollOptions;
+}
+
+async function handlePollSuccess(
+  task: VideoTask,
+  data: QueryVideoStatusData,
+  result: PollResult,
+): Promise<void> {
+  result.hasSuccess = true;
+  const justCompleted = data.status === "completed" && !!data.videoUrl;
+  if (justCompleted && data.videoUrl) {
+    result.cacheTasks.push({ taskId: task.taskId, videoUrl: data.videoUrl });
+    const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
+    emitToast("success", t("task.videoGenerated"), t("task.videoSavingLocal", { label: taskLabel }));
+  }
+  const mappedStatus = mapApiStatus(data.status || "generating", data.videoUrl);
+  if (!isValidTransition(task.status, mappedStatus)) {
+    errorLogger.warn(
+      { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=${mappedStatus}` },
+      "VideoTaskManager",
+    );
+    result.taskUpdates.set(task.taskId, {
+      pollFailureCount: 0,
+    });
+    return;
+  }
+  result.taskUpdates.set(task.taskId, withTransitionGuard(task, mappedStatus, {
+    progress: data.progress || task.progress,
+    videoUrl: data.videoUrl,
+    message: data.message || task.message,
+    pollFailureCount: 0,
+  }));
+
+  // 立即持久化已获取的 videoUrl，不依赖 2s 去抖同步
+  // 防止应用崩溃/被杀时 videoUrl 丢失导致 token 浪费
+  if (justCompleted && data.videoUrl) {
+    await persistVideoTask(
+      {
+        ...task,
+        status: mappedStatus,
+        progress: data.progress || task.progress,
+        videoUrl: data.videoUrl,
+        message: data.message || task.message,
+        pollFailureCount: 0,
+      },
+      {
+        logLevel: "error",
+        logLabel: `Failed to persist videoUrl for ${task.taskId}`,
+      },
+    );
+  }
+}
+
+async function handlePollFailure(
+  task: VideoTask,
+  pollResp: QueryVideoStatusResponse,
+  result: PollResult,
+): Promise<void> {
+  const apiErrorMsg = pollResp.error || t("task.apiReturnFailed");
+  const isRetryable =
+    (hasRetryable(pollResp) && pollResp.retryable === true) ||
+    (hasDataRetryable(pollResp) && pollResp.data?.retryable === true);
+  if (isRetryable) {
+    result.taskUpdates.set(task.taskId, {
+      message: t("task.retryableQueryFail", { error: apiErrorMsg }),
+    });
+    return;
+  }
+  result.hasError = true;
+  const failCount = (task.pollFailureCount || 0) + 1;
+  result.taskUpdates.set(task.taskId, {
+    message: t("task.queryFail", { error: apiErrorMsg }),
+    pollFailureCount: failCount,
+  });
+  if (failCount >= MAX_POLL_FAILURES) {
+    // 查询失败不等于生成失败：转为 timeout（可恢复）而非 failed（终态）
+    // API 返回失败可能是临时性问题（限流、服务波动），云端视频可能仍在生成
+    result.taskUpdates.set(task.taskId, withTransitionGuard(task, "timeout", {
+      message: t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }),
+      pollFailureCount: 0,
+    }));
+    const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
+    emitToast("warning", t("task.queryFailRecoverableLabel", { label: taskLabel }), t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }));
+  }
+  await persistVideoTask(
+    {
+      ...task,
+      status: failCount >= MAX_POLL_FAILURES ? "timeout" : task.status,
+      message: failCount >= MAX_POLL_FAILURES
+        ? t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES })
+        : task.message,
+      pollFailureCount: failCount >= MAX_POLL_FAILURES ? 0 : failCount,
+    },
+    {
+      logLevel: "error",
+      logLabel: "Failed to save non-retryable poll failure",
+    },
+  );
+}
+
 async function pollSingleTask(
   task: VideoTask,
   signal: AbortSignal,
@@ -194,102 +310,14 @@ async function pollSingleTask(
 ): Promise<void> {
   if (signal.aborted) return;
   try {
-    const pollOptions: Parameters<typeof container.videoProvider.queryVideoStatus>[1] = {};
-    if (task.providerId && task.providerModelId) {
-      pollOptions.providerId = task.providerId;
-      pollOptions.modelId = task.providerModelId;
-      if (task.providerFormat) {
-        pollOptions.format = task.providerFormat;
-      }
-    }
+    const pollOptions = buildPollOptions(task);
     const pollResp = await container.videoProvider.queryVideoStatus(task.taskId, pollOptions);
     if (signal.aborted) return;
 
     if (pollResp.success && pollResp.data) {
-      result.hasSuccess = true;
-      const justCompleted = pollResp.data.status === "completed" && !!pollResp.data.videoUrl;
-      if (justCompleted && pollResp.data.videoUrl) {
-        result.cacheTasks.push({ taskId: task.taskId, videoUrl: pollResp.data.videoUrl });
-        const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
-        emitToast("success", t("task.videoGenerated"), t("task.videoSavingLocal", { label: taskLabel }));
-      }
-      const mappedStatus = mapApiStatus(pollResp.data.status || "generating", pollResp.data.videoUrl);
-      if (!isValidTransition(task.status, mappedStatus)) {
-        errorLogger.warn(
-          { code: "INVALID_TRANSITION", message: `taskId=${task.taskId}, from=${task.status}, to=${mappedStatus}` },
-          "VideoTaskManager",
-        );
-        result.taskUpdates.set(task.taskId, {
-          pollFailureCount: 0,
-        });
-        return;
-      }
-      result.taskUpdates.set(task.taskId, withTransitionGuard(task, mappedStatus, {
-        progress: pollResp.data.progress || task.progress,
-        videoUrl: pollResp.data.videoUrl,
-        message: pollResp.data.message || task.message,
-        pollFailureCount: 0,
-      }));
-
-      // 立即持久化已获取的 videoUrl，不依赖 2s 去抖同步
-      // 防止应用崩溃/被杀时 videoUrl 丢失导致 token 浪费
-      if (justCompleted && pollResp.data.videoUrl) {
-        await persistVideoTask(
-          {
-            ...task,
-            status: mappedStatus,
-            progress: pollResp.data.progress || task.progress,
-            videoUrl: pollResp.data.videoUrl,
-            message: pollResp.data.message || task.message,
-            pollFailureCount: 0,
-          },
-          {
-            logLevel: "error",
-            logLabel: `Failed to persist videoUrl for ${task.taskId}`,
-          },
-        );
-      }
+      await handlePollSuccess(task, pollResp.data, result);
     } else {
-      const apiErrorMsg = pollResp.error || t("task.apiReturnFailed");
-      const isRetryable =
-        (hasRetryable(pollResp) && pollResp.retryable === true) ||
-        (hasDataRetryable(pollResp) && pollResp.data?.retryable === true);
-      if (isRetryable) {
-        result.taskUpdates.set(task.taskId, {
-          message: t("task.retryableQueryFail", { error: apiErrorMsg }),
-        });
-      } else {
-        result.hasError = true;
-        const failCount = (task.pollFailureCount || 0) + 1;
-        result.taskUpdates.set(task.taskId, {
-          message: t("task.queryFail", { error: apiErrorMsg }),
-          pollFailureCount: failCount,
-        });
-        if (failCount >= MAX_POLL_FAILURES) {
-          // 查询失败不等于生成失败：转为 timeout（可恢复）而非 failed（终态）
-          // API 返回失败可能是临时性问题（限流、服务波动），云端视频可能仍在生成
-          result.taskUpdates.set(task.taskId, withTransitionGuard(task, "timeout", {
-            message: t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }),
-            pollFailureCount: 0,
-          }));
-          const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
-          emitToast("warning", t("task.queryFailRecoverableLabel", { label: taskLabel }), t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES }));
-        }
-        await persistVideoTask(
-          {
-            ...task,
-            status: failCount >= MAX_POLL_FAILURES ? "timeout" : task.status,
-            message: failCount >= MAX_POLL_FAILURES
-              ? t("task.queryFailRecoverable", { count: MAX_POLL_FAILURES })
-              : task.message,
-            pollFailureCount: failCount >= MAX_POLL_FAILURES ? 0 : failCount,
-          },
-          {
-            logLevel: "error",
-            logLabel: "Failed to save non-retryable poll failure",
-          },
-        );
-      }
+      await handlePollFailure(task, pollResp, result);
     }
   } catch (error) {
     await handlePollException(task, error, result);

@@ -158,64 +158,80 @@ export async function generateBeatKeyframe(
   };
 }
 
-export async function generateBeatFramePair(
+type ImageGenerationResponse = Awaited<ReturnType<ApiGateway["generateImage"]>>;
+
+function buildFramePairImageOptions(
+  options: GenerationOptions | undefined,
+): Record<string, unknown> {
+  const imageOpts: Record<string, unknown> = { category: "scene" };
+  if (options?.providerId) imageOpts.providerId = options.providerId;
+  if (options?.modelId) imageOpts.modelId = options.modelId;
+  return imageOpts;
+}
+
+function collectFramePairErrors(
+  firstResult: ImageGenerationResponse | null,
+  lastResult: ImageGenerationResponse | null,
+): string[] {
+  const errors: string[] = [];
+  if (!firstResult?.success || !firstResult.data?.imageUrl) {
+    errors.push(formatApiError(firstResult?.error, "首帧生成失败"));
+  }
+  if (!lastResult?.success || !lastResult.data?.imageUrl) {
+    errors.push(formatApiError(lastResult?.error, "尾帧生成失败"));
+  }
+  return errors;
+}
+
+async function generateFramePairFromPrompts(
   apiGateway: ApiGateway,
-  _promptService: unknown,
-  beat: Beat,
-  options?: GenerationOptions,
+  keyframeUrl: string,
+  options: GenerationOptions | undefined,
+  firstFramePrompt: string,
+  lastFramePrompt: string,
 ): Promise<FramePairResult> {
-  if (!beat.keyframe?.imageUrl) {
-    throw new Error("PREVIEW_REQUIRED_BEFORE_KEYFRAME");
+  const imageOpts = buildFramePairImageOptions(options);
+
+  const results = await Promise.allSettled([
+    apiGateway.generateImage({ prompt: firstFramePrompt, ...imageOpts }),
+    apiGateway.generateImage({ prompt: lastFramePrompt, ...imageOpts }),
+  ]);
+
+  const firstResult =
+    results[0].status === "fulfilled" ? results[0].value : null;
+  const lastResult =
+    results[1].status === "fulfilled" ? results[1].value : null;
+
+  const errors = collectFramePairErrors(firstResult, lastResult);
+  if (errors.length > 0) {
+    throw new Error(errors.join("; "));
   }
 
-  const enhancedEnabled = beat.enhancedGeneration === true;
-  const firstFramePrompt = enhancedEnabled ? beat.firstFramePrompt : undefined;
-  const lastFramePrompt = enhancedEnabled ? beat.lastFramePrompt : undefined;
+  return {
+    firstFrame: {
+      imageUrl: firstResult?.data?.imageUrl ?? "",
+      prompt: firstFramePrompt,
+      derivedFrom: keyframeUrl,
+    },
+    lastFrame: {
+      imageUrl: lastResult?.data?.imageUrl ?? "",
+      prompt: lastFramePrompt,
+      derivedFrom: keyframeUrl,
+    },
+    generatedAt: options?.now?.() ?? Date.now(),
+  };
+}
 
-  if (firstFramePrompt && lastFramePrompt) {
-    const imageOpts: Record<string, unknown> = { category: "scene" };
-    if (options?.providerId) imageOpts.providerId = options.providerId;
-    if (options?.modelId) imageOpts.modelId = options.modelId;
-
-    const results = await Promise.allSettled([
-      apiGateway.generateImage({ prompt: firstFramePrompt, ...imageOpts }),
-      apiGateway.generateImage({ prompt: lastFramePrompt, ...imageOpts }),
-    ]);
-
-    const firstResult =
-      results[0].status === "fulfilled" ? results[0].value : null;
-    const lastResult =
-      results[1].status === "fulfilled" ? results[1].value : null;
-
-    const errors: string[] = [];
-    if (!firstResult?.success || !firstResult.data?.imageUrl) {
-      errors.push(formatApiError(firstResult?.error, "首帧生成失败"));
-    }
-    if (!lastResult?.success || !lastResult.data?.imageUrl) {
-      errors.push(formatApiError(lastResult?.error, "尾帧生成失败"));
-    }
-    if (errors.length > 0) {
-      throw new Error(errors.join("; "));
-    }
-
-    return {
-      firstFrame: {
-        imageUrl: firstResult?.data?.imageUrl ?? "",
-        prompt: firstFramePrompt,
-        derivedFrom: beat.keyframe.imageUrl,
-      },
-      lastFrame: {
-        imageUrl: lastResult?.data?.imageUrl ?? "",
-        prompt: lastFramePrompt,
-        derivedFrom: beat.keyframe.imageUrl,
-      },
-      generatedAt: options?.now?.() ?? Date.now(),
-    };
-  }
-
+async function generateFramePairViaGateway(
+  apiGateway: ApiGateway,
+  beat: Beat,
+  keyframeUrl: string,
+  keyframePrompt: string | undefined,
+  options: GenerationOptions | undefined,
+): Promise<FramePairResult> {
   const result = await apiGateway.generateFramePair({
-    keyframeUrl: beat.keyframe.imageUrl,
-    keyframePrompt: beat.keyframe.prompt,
+    keyframeUrl,
+    keyframePrompt,
     characterRef: options?.characterRef,
     sceneRef: options?.sceneRef,
     actionDescription: beat.content || beat.description,
@@ -232,15 +248,45 @@ export async function generateBeatFramePair(
     firstFrame: {
       imageUrl: result.data.firstFrame.imageUrl,
       prompt: result.data.firstFrame.prompt,
-      derivedFrom: beat.keyframe.imageUrl,
+      derivedFrom: keyframeUrl,
     },
     lastFrame: {
       imageUrl: result.data.lastFrame.imageUrl,
       prompt: result.data.lastFrame.prompt,
-      derivedFrom: beat.keyframe.imageUrl,
+      derivedFrom: keyframeUrl,
     },
     generatedAt: result.data.generatedAt,
   };
+}
+
+export async function generateBeatFramePair(
+  apiGateway: ApiGateway,
+  _promptService: unknown,
+  beat: Beat,
+  options?: GenerationOptions,
+): Promise<FramePairResult> {
+  if (!beat.keyframe?.imageUrl) {
+    throw new Error("PREVIEW_REQUIRED_BEFORE_KEYFRAME");
+  }
+
+  const keyframeUrl = beat.keyframe.imageUrl;
+  const keyframePrompt = beat.keyframe.prompt;
+
+  const enhancedEnabled = beat.enhancedGeneration === true;
+  const firstFramePrompt = enhancedEnabled ? beat.firstFramePrompt : undefined;
+  const lastFramePrompt = enhancedEnabled ? beat.lastFramePrompt : undefined;
+
+  if (firstFramePrompt && lastFramePrompt) {
+    return generateFramePairFromPrompts(
+      apiGateway,
+      keyframeUrl,
+      options,
+      firstFramePrompt,
+      lastFramePrompt,
+    );
+  }
+
+  return generateFramePairViaGateway(apiGateway, beat, keyframeUrl, keyframePrompt, options);
 }
 
 export async function generateBeatVideo(

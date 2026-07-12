@@ -1,7 +1,7 @@
 # HTTP API 文档
 
 > 本文档描述 PrismCraft（AI Animation Studio）Electron 桌面应用主进程内置的 HTTP API Server。
-> 版本: 1.2.1 | 更新日期: 2026-07-12
+> 版本: 1.2.3 | 更新日期: 2026-07-12
 
 ---
 

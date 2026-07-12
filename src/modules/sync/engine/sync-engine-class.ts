@@ -1,3 +1,28 @@
+/**
+ * @file SyncEngine — 多设备同步引擎
+ *
+ * 职责：
+ * - 协调本地变更推送（pushChanges）与远端变更拉取（pullChanges）
+ * - 基于 vector clock 的因果一致性检测
+ * - 冲突解决（resolveConflict）+ 远端变更应用（applyRemoteChanges）
+ * - 变更日志记录（recordChange / markChangesSynced / cleanupSyncedChanges）
+ *
+ * 流程：
+ *   1. ensureSyncSchema → 确保数据库表存在
+ *   2. pushChanges → 推送本地未同步变更
+ *   3. pullChanges → 拉取远端变更
+ *   4. applyRemoteChanges → 应用到本地（含冲突解决）
+ *   5. updateLastSyncTime → 记录同步时间戳
+ *
+ * 调用方：
+ * - sync 模块 engine.ts（initSyncEngine / performSync / startAutoSync）
+ * - DI container（container.syncEngine）
+ *
+ * 不做：
+ * - 不直接操作 UI（通过 SyncConfig 事件回调通知）
+ * - 不直接发起 HTTP 请求（由 sync-protocol.ts 封装）
+ */
+
 import {
   type SyncConfig,
   type SyncConflict,

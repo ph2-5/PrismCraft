@@ -1,3 +1,33 @@
+/**
+ * @file Story Generation Pipeline — 故事生成流水线
+ *
+ * 职责：
+ * - 将用户输入的故事文本转化为结构化分镜（StoryBeat[]）
+ * - 多轮重试 + LLM 调用 + 计划解析 + 后验证自动修复
+ * - 能力自适应：根据模型是否支持首尾帧，自动剥离不支持的字段
+ * - 参考图质量检查 + 分镜参数自动修正（applyShotParamsAutoFix）
+ * - 通过 PipelineProgress 向 UI 推送进度（validating/generating/post_validating/completed/failed）
+ *
+ * 流程：
+ *   validating → generating（LLM 调用，maxRetries 次重试）
+ *              → post_validating（后验证 + 自动修复）
+ *              → completed / failed
+ *
+ * 依赖：
+ * - story-generation-pipeline-parts：拆分出的辅助函数（保持本文件复杂度可控）
+ * - shot-validator：分镜验证器
+ * - textProvider（通过 callTextProvider 间接调用）
+ *
+ * 调用方：
+ * - useStoryGeneration hook（story 模块）
+ * - Agent 工具（story-tools.ts 的 generate_storyboard）
+ *
+ * 关键不变式：
+ * - 失败时必须推送 failed 阶段进度，确保 UI 状态收敛
+ * - LLM 调用失败不中断流水线，进入下一轮重试
+ * - 后验证自动修复仅修改可修复字段，不改变分镜数量
+ */
+
 import {
   formatValidationResult,
   type ValidationResult,

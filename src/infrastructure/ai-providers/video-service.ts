@@ -1,3 +1,21 @@
+/**
+ * @file Video Service — 视频生成 HTTP 通信层
+ *
+ * 职责：
+ * - 封装视频生成相关 HTTP API 调用（generateVideo / generateFramePair / generateKeyframe / getVideoStatus）
+ * - 处理首尾帧/参考图的 base64 归一化（blob:、data:、file:// 等本地 URL 统一转 base64）
+ * - 依赖 model-capabilities 做能力自适应（首尾帧支持、参考图数量上限等）
+ * - 与主进程 `/api/generation/*` 路由通信，支持 apiCallWithRetry 重试
+ *
+ * 调用方：
+ * - 渲染层 video 模块（useVideoGenerator / beat-video-generator）
+ * - story-pipeline 的视频生成步骤
+ *
+ * 不做：
+ * - 不做业务逻辑（如分镜编排、批量生成），由上层模块负责
+ * - 不直接访问 IPC，统一走 HTTP API
+ */
+
 import type { ApiResponse, VideoGenerationResult } from "@/domain/schemas";
 import { AppError } from "@/domain/types";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";

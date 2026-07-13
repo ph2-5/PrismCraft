@@ -2,7 +2,7 @@
  * R184: VideoTasksPage statusFilter 必须实际过滤 tasks，刷新按钮必须有 onClick
  *
  * 回归规则目的：
- *   src/app/video-tasks/hooks/useVideoTasksPage.ts 必须返回有效的 statusFilter
+ *   src/modules/video-tasks/hooks/use-video-tasks-page.ts 必须返回有效的 statusFilter
  *   state、setStatusFilter、filteredTasks（按 status 过滤）以及 handleRefresh
  *   （实际调用 useVideoTaskStore.getState().initialize() 重新从 DB 加载任务，
  *   不再使用 window.location.reload 以避免丢失内存状态）。
@@ -17,7 +17,7 @@
  *     避免重载整个 renderer 进程导致内存状态、轮询引擎、未保存表单丢失。
  *
  * 被测代码：
- *   src/app/video-tasks/hooks/useVideoTasksPage.ts
+ *   src/modules/video-tasks/hooks/use-video-tasks-page.ts
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";

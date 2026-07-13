@@ -138,6 +138,11 @@ export default defineConfig({
               priority: 15,
             },
             {
+              name: "app-pages",
+              test: /src[\\/]modules[\\/](characters|scenes|asset-library|quick-generate|video-tasks)[\\/]/,
+              priority: 15,
+            },
+            {
               name: "common",
               minShareCount: 2,
               minSize: 10000,

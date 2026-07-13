@@ -2,7 +2,7 @@
  * R156: useVideoTasksPage Statistics MUST Be Memoized (Single Pass) with Full Non-Terminal Status Classification
  *
  * 回归规则目的：
- *   src/app/video-tasks/hooks/useVideoTasksPage.ts 中的统计计算
+ *   src/modules/video-tasks/hooks/use-video-tasks-page.ts 中的统计计算
  *   (totalTasks / completedTasks / processingTasks / pendingTasks / failedTasks)
  *   必须用 useMemo 单次遍历计算，且非终态状态必须正确分类：
  *   - timeout → failedTasks（超时视为失败）
@@ -17,7 +17,7 @@
  *   到 VideoTaskStatus 但统计/筛选逻辑未同步更新，导致同样的数量不一致问题。
  *
  * 被测代码：
- *   src/app/video-tasks/hooks/useVideoTasksPage.ts
+ *   src/modules/video-tasks/hooks/use-video-tasks-page.ts
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";

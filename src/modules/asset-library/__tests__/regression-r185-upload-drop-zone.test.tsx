@@ -2,7 +2,7 @@
  * R185: AssetUploadSection 拖拽区域必须实际处理 drop 事件
  *
  * 回归规则目的：
- *   src/app/asset-library/AssetUploadSection.tsx 的拖拽区域必须实际处理 drop
+ *   src/modules/asset-library/AssetUploadSection.tsx 的拖拽区域必须实际处理 drop
  *   事件——调用 onDropFiles prop 或 fallback 到 fileInputRef.dispatchEvent。
  *   drag handlers 不能是空 stub，isDragOver 状态必须正确切换以提供视觉反馈，
  *   且必须支持键盘（Enter/Space 触发 click）以符合无障碍要求。
@@ -11,7 +11,7 @@
  *   原实现 drag handlers 为空 stub，用户拖拽文件无反应。
  *
  * 被测代码：
- *   src/app/asset-library/AssetUploadSection.tsx
+ *   src/modules/asset-library/AssetUploadSection.tsx
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";

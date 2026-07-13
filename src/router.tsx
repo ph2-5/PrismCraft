@@ -6,12 +6,12 @@ import { PageLoader } from "./shared/presentation/PageLoader";
 const Home = lazy(() => import("./app/page"));
 const StoryboardPage = lazy(() => import("./app/story/page"));
 const BeatDetailPage = lazy(() => import("./app/story/beat/$beatId/page"));
-const CharactersPage = lazy(() => import("./app/characters/page"));
-const ScenesPage = lazy(() => import("./app/scenes/page"));
-const AssetLibraryPage = lazy(() => import("./app/asset-library/page"));
-const QuickGeneratePage = lazy(() => import("./app/quick-generate/page"));
+const CharactersPage = lazy(() => import("./modules/characters/page"));
+const ScenesPage = lazy(() => import("./modules/scenes/page"));
+const AssetLibraryPage = lazy(() => import("./modules/asset-library/page"));
+const QuickGeneratePage = lazy(() => import("./modules/quick-generate/page"));
 const SettingsPage = lazy(() => import("./modules/settings/page"));
-const VideoTasksPage = lazy(() => import("./app/video-tasks/page"));
+const VideoTasksPage = lazy(() => import("./modules/video-tasks/page"));
 const NotFound = lazy(() => import("./app/not-found"));
 
 function withSuspense(Component: React.LazyExoticComponent<React.ComponentType>) {

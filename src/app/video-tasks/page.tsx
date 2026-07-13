@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
-import { useVideoTasksPage } from "./hooks/useVideoTasksPage";
+import { useVideoTasksPage } from "./hooks/use-video-tasks-page";
 
 export default function VideoTasksPage() {
   const {

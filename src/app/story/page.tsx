@@ -12,7 +12,7 @@ import { Tabs } from "@/shared/presentation/Tabs";
 import { StoryProvider } from "./StoryProvider";
 import { StoryHeader } from "./StoryHeader";
 import { SwitchConfirmDialog } from "./SwitchConfirmDialog";
-import { useStoryPage } from "./hooks/useStoryPage";
+import { useStoryPage } from "./hooks/use-story-page";
 
 function StoryPageContent() {
   const {

@@ -14,7 +14,7 @@ import { ProviderCard } from "./ProviderCard";
 import { ProviderForm } from "./ProviderForm";
 import { ModelMappingSection } from "./ModelMappingSection";
 import { PageLoader } from "@/shared/presentation/PageLoader";
-import { useApiConfigHandlers } from "./useApiConfigHandlers";
+import { useApiConfigHandlers } from "./use-api-config-handlers";
 import { TestResultsList, BottomActionBar, EncryptedStorageHint } from "./ApiConfigPanelParts";
 import { t } from "@/shared/constants";
 

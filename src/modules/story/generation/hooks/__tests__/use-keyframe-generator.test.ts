@@ -25,7 +25,7 @@ vi.mock("@/shared/utils/confirm", () => ({
   confirm: vi.fn(),
 }));
 
-vi.mock("../useAIGeneratorBase", () => ({
+vi.mock("../use-ai-generator-base", () => ({
   useAIGeneratorBase: vi.fn(),
 }));
 
@@ -33,8 +33,8 @@ import { generateBeatKeyframe } from "@/modules/story";
 import { StoryGenerationService } from "@/domain/services";
 import { container } from "@/infrastructure/di";
 import { confirm } from "@/shared/utils/confirm";
-import { useAIGeneratorBase } from "../useAIGeneratorBase";
-import { useKeyframeGenerator } from "../useKeyframeGenerator";
+import { useAIGeneratorBase } from "../use-ai-generator-base";
+import { useKeyframeGenerator } from "../use-keyframe-generator";
 
 const mockKeyframe: StoryBeatKeyframe = {
   imageUrl: "https://img.example.com/keyframe.png",

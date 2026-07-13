@@ -3,7 +3,7 @@ import { generateBeatKeyframe } from "@/modules/story";
 import type { StoryBeat, Character, Scene, StoryStyleGuide, ModelSelection } from "@/domain/schemas";
 import { StoryGenerationService } from "@/domain/services";
 import { container } from "@/infrastructure/di";
-import { useAIGeneratorBase } from "./useAIGeneratorBase";
+import { useAIGeneratorBase } from "./use-ai-generator-base";
 import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants";
 

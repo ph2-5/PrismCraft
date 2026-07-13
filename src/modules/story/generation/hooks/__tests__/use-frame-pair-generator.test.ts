@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { StoryBeat } from "@/domain/schemas";
-import { useFramePairGenerator } from "../useFramePairGenerator";
+import { useFramePairGenerator } from "../use-frame-pair-generator";
 
 vi.mock("@/modules/story", () => ({
   generateBeatFramePair: vi.fn().mockResolvedValue({
@@ -45,7 +45,7 @@ vi.mock("@/shared/constants", () => ({
   t: vi.fn((key: string) => key),
 }));
 
-vi.mock("../useAIGeneratorBase", () => ({
+vi.mock("../use-ai-generator-base", () => ({
   useAIGeneratorBase: () => ({
     findBeat: vi.fn((id: string) => beats.find((b) => b.id === id)),
     resolvePrevBeat: vi.fn(() => null),

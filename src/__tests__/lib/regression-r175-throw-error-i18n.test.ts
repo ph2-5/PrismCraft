@@ -142,9 +142,9 @@ describe("R175: throw Error 必须用 t() 国际化", () => {
     }
   });
 
-  it("useAssetLibraryActions.ts 的 throw Error 使用错误码（非中文）", async () => {
+  it("use-asset-library-actions.ts 的 throw Error 使用错误码（非中文）", async () => {
     const source = await readFile(
-      join(process.cwd(), "src/app/asset-library/useAssetLibraryActions.ts"),
+      join(process.cwd(), "src/app/asset-library/use-asset-library-actions.ts"),
       "utf-8",
     );
     const throwLines = source.split("\n").filter((l) => /throw new Error/.test(l));

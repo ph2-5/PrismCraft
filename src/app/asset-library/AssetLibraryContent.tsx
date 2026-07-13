@@ -4,7 +4,7 @@ import { AssetCollectionDialogs } from "./AssetCollectionDialogs";
 import { AssetUploadSection } from "./AssetUploadSection";
 import { AssetToolbar } from "./AssetToolbar";
 import { CategoryTree, TopHeader } from "./CategoryTree";
-import type { useAssetLibraryPage } from "./hooks/useAssetLibraryPage";
+import type { useAssetLibraryPage } from "./hooks/use-asset-library-page";
 
 type HookResult = ReturnType<typeof useAssetLibraryPage>;
 

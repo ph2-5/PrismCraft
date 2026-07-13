@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { StoryBeat, Story } from "@/domain/schemas";
-import { useStoryState } from "../useStoryState";
+import { useStoryState } from "../use-story-state";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
 
 vi.mock("@/modules/prompt", () => ({

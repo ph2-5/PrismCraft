@@ -33,7 +33,7 @@ vi.mock("@/shared/constants", () => ({
   t: vi.fn((key: string) => key),
 }));
 
-import { useUploadHandlers } from "../useUploadHandlers";
+import { useUploadHandlers } from "../use-upload-handlers";
 
 const mockBeat: StoryBeat = {
   id: "beat-1",

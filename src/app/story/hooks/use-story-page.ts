@@ -8,7 +8,7 @@ import {
   useStoryKeyboardSave,
   useStorySwitching,
   useStoryVideoGeneration,
-} from "./useStoryPageParts";
+} from "./use-story-page-parts";
 
 export type StoryTab =
   | "storyboard"

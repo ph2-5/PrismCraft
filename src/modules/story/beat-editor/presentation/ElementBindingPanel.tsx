@@ -7,7 +7,7 @@ import {
   SceneElementCard,
   PropElementCard,
 } from "./ElementBindingCards";
-import { useElementBindingHandlers } from "./useElementBindingHandlers";
+import { useElementBindingHandlers } from "./use-element-binding-handlers";
 
 interface ElementBindingPanelProps {
   beat: StoryBeat;

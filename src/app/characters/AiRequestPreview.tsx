@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { ModelSelector } from "@/modules/prompt";
 import { resolveImageUrl } from "@/shared/utils/image-url";
-import { useGenerationStage } from "@/shared/presentation/useGenerationStage";
+import { useGenerationStage } from "@/shared/presentation/use-generation-stage";
 import type { Character, ModelSelection } from "@/domain/schemas";
 import {
   Wand2,

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { StoryBeat, StoryBeatFramePair } from "@/domain/schemas";
-import { useBatchGenerator } from "../useBatchGenerator";
+import { useBatchGenerator } from "../use-batch-generator";
 
 vi.mock("@/shared/error-logger", () => ({
   errorLogger: { warn: vi.fn(), error: vi.fn() },

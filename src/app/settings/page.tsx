@@ -8,7 +8,7 @@ import { ApiConfigPanel } from "./ApiConfigPanel";
 import { EmbeddingModelPanel } from "./EmbeddingModelPanel";
 import { PromptTemplatePanel } from "./PromptTemplatePanel";
 import { SyncSettingsPanel } from "@/modules/sync";
-import { useSettingsPage, type SettingsTab } from "./hooks/useSettingsPage";
+import { useSettingsPage, type SettingsTab } from "./hooks/use-settings-page";
 import { getCacheDirectory, getDiskSpace } from "@/shared/file-http";
 import { storyService } from "@/modules/story";
 import { errorLogger } from "@/shared/error-logger";

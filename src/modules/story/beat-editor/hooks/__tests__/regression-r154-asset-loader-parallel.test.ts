@@ -31,7 +31,7 @@ vi.mock("@/shared/error-logger", () => ({
   errorLogger: mockErrorLogger,
 }));
 
-import { useAssetLoader } from "../useAssetLoader";
+import { useAssetLoader } from "../use-asset-loader";
 
 const mockCharacter: Character = {
   id: "char-1",

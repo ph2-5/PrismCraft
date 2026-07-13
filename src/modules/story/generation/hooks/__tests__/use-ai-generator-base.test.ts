@@ -13,7 +13,7 @@ vi.mock("@/shared/error-handler", () => ({
 
 import { resolveCharacterRefs, resolveSceneRef } from "@/modules/story";
 import { getErrorMessage } from "@/shared/error-handler";
-import { useAIGeneratorBase } from "../useAIGeneratorBase";
+import { useAIGeneratorBase } from "../use-ai-generator-base";
 
 const mockBeat1: StoryBeat = {
   id: "beat-1",

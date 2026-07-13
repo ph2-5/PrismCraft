@@ -48,7 +48,7 @@ vi.mock("@/shared/utils/confirm", () => ({
   confirm: vi.fn().mockResolvedValue(true),
 }));
 
-import { useStorySaver } from "../../hooks/useStorySaver";
+import { useStorySaver } from "../../hooks/use-story-saver";
 
 function buildProps(overrides = {}) {
   const story: Story = {

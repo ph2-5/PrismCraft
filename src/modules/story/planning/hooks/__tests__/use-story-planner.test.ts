@@ -44,7 +44,7 @@ vi.mock("@/shared/constants", () => ({
   t: vi.fn((key: string) => key),
 }));
 
-import { useStoryPlanner } from "../useStoryPlanner";
+import { useStoryPlanner } from "../use-story-planner";
 
 const mockStory: Story = {
   id: "story-1",

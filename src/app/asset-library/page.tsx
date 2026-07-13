@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
-import { useAssetLibraryPage } from "./hooks/useAssetLibraryPage";
+import { useAssetLibraryPage } from "./hooks/use-asset-library-page";
 import { AssetLibraryContent } from "./AssetLibraryContent";
 
 export default function AssetLibraryPage() {

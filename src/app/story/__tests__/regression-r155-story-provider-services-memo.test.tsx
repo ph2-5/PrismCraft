@@ -212,15 +212,15 @@ vi.mock("@/domain/types", () => ({
   // 让 VideoModelFormat 在测试中是 string 即可
 }));
 
-vi.mock("../useStoryActions", () => ({
+vi.mock("../use-story-actions", () => ({
   useStoryActions: mockUseStoryActions,
 }));
 
-vi.mock("../useStoryPersistence", () => ({
+vi.mock("../use-story-persistence", () => ({
   useStoryPersistence: mockUseStoryPersistence,
 }));
 
-vi.mock("../useStoryVideo", () => ({
+vi.mock("../use-story-video", () => ({
   useStoryVideo: mockUseStoryVideo,
 }));
 

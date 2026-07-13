@@ -3,10 +3,10 @@ import { useCharacters } from "@/modules/character";
 import { useScenes } from "@/modules/scene";
 import type { ImportMode } from "@/domain/schemas";
 import type { AssetTab } from "../AssetCardGrid";
-import { useAssetLibraryActions } from "../useAssetLibraryActions";
-import { useAssetFiltering } from "./useAssetFiltering";
-import { useSecondaryDataLoader } from "./useSecondaryDataLoader";
-import { useAssetDialogState } from "./useAssetDialogState";
+import { useAssetLibraryActions } from "../use-asset-library-actions";
+import { useAssetFiltering } from "./use-asset-filtering";
+import { useSecondaryDataLoader } from "./use-secondary-data-loader";
+import { useAssetDialogState } from "./use-asset-dialog-state";
 
 export function useAssetLibraryPage() {
   const { data: characters = [], isLoading: charactersLoading } = useCharacters();

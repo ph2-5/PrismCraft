@@ -16,7 +16,7 @@ vi.mock("@/shared/constants", () => ({
   t: vi.fn((key: string) => key),
 }));
 
-import { useFrameUploadHandlers } from "../useFrameUploadHandlers";
+import { useFrameUploadHandlers } from "../use-frame-upload-handlers";
 
 const mockBeatWithKeyframe: StoryBeat = {
   id: "beat-1",

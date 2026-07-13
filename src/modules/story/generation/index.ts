@@ -1,10 +1,10 @@
-export { useAIGeneratorBase } from "./hooks/useAIGeneratorBase";
-export type { AIGeneratorBaseProps, ResolvedRefs } from "./hooks/useAIGeneratorBase";
-export { useKeyframeGenerator } from "./hooks/useKeyframeGenerator";
-export { useFramePairGenerator } from "./hooks/useFramePairGenerator";
-export { useVideoGenerator } from "./hooks/useVideoGenerator";
-export { useBatchGenerator } from "./hooks/useBatchGenerator";
-export type { BatchOptions, BatchResult } from "./hooks/useBatchGenerator";
+export { useAIGeneratorBase } from "./hooks/use-ai-generator-base";
+export type { AIGeneratorBaseProps, ResolvedRefs } from "./hooks/use-ai-generator-base";
+export { useKeyframeGenerator } from "./hooks/use-keyframe-generator";
+export { useFramePairGenerator } from "./hooks/use-frame-pair-generator";
+export { useVideoGenerator } from "./hooks/use-video-generator";
+export { useBatchGenerator } from "./hooks/use-batch-generator";
+export type { BatchOptions, BatchResult } from "./hooks/use-batch-generator";
 export const BatchStrategy = {
   ALL_SERIAL: "all_serial",
   SKIP_COMPLETED: "skip_completed",
@@ -17,7 +17,7 @@ export const GenerationLevel = {
   VIDEO: "video",
 } as const;
 export type GenerationLevel = (typeof GenerationLevel)[keyof typeof GenerationLevel];
-export { useUploadHandlers } from "./hooks/useUploadHandlers";
+export { useUploadHandlers } from "./hooks/use-upload-handlers";
 export { ShotGenerationPanel } from "./presentation/ShotGenerationPanel";
 export { KeyframePanel } from "./presentation/KeyframePanel";
 export { KeyframeChainVisualizer } from "./presentation/KeyframeChainVisualizer";

@@ -3,7 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import {
   useDebouncedState,
   useDebouncedCallback,
-} from "../../shared/hooks/useDebouncedState";
+} from "../../shared/hooks/use-debounced-state";
 
 describe("useDebouncedState", () => {
   afterEach(() => {

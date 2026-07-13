@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useId } from "react";
 import { t } from "@/shared/constants";
-import { useGenerationStage } from "@/shared/presentation/useGenerationStage";
+import { useGenerationStage } from "@/shared/presentation/use-generation-stage";
 import type { Character, Scene } from "@/domain/schemas";
 
 interface PromptCardProps {

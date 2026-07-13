@@ -7,7 +7,7 @@ import { getFirstFrameUrl } from "@/domain/utils";
 import { container } from "@/infrastructure/di";
 import { handleError } from "@/shared/error-handler";
 import { errorLogger } from "@/shared/error-logger";
-import { useAIGeneratorBase } from "./useAIGeneratorBase";
+import { useAIGeneratorBase } from "./use-ai-generator-base";
 import { t } from "@/shared/constants";
 
 interface UseFramePairGeneratorProps {

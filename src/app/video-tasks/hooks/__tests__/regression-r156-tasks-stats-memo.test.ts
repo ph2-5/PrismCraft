@@ -67,7 +67,7 @@ vi.mock("@/shared/constants", () => ({
   t: mockT,
 }));
 
-import { useVideoTasksPage } from "../useVideoTasksPage";
+import { useVideoTasksPage } from "../use-video-tasks-page";
 
 /** 构造模拟 VideoTask */
 function makeTask(id: string, status: VideoTask["status"]): VideoTask {

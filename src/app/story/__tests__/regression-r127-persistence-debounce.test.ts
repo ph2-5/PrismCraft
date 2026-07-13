@@ -72,7 +72,7 @@ vi.mock("@/shared/hooks/use-dirty-state", () => ({
   useDirtyState: () => ({ markDirty: mockMarkDirty }),
 }));
 
-import { useStoryPersistence } from "../useStoryPersistence";
+import { useStoryPersistence } from "../use-story-persistence";
 import type { Story, StoryBeat } from "@/domain/schemas";
 
 /** 构造 useStoryPersistence 所需的参数 */

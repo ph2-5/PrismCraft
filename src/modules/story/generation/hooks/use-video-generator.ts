@@ -4,7 +4,7 @@ import type { Story, StoryBeat, Character, Scene, StoryStyleGuide, VideoTask, Mo
 import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { container } from "@/infrastructure/di";
 import { StoryGenerationService } from "@/domain/services";
-import { useAIGeneratorBase } from "./useAIGeneratorBase";
+import { useAIGeneratorBase } from "./use-ai-generator-base";
 import { determineVideoGenerationMode, type VideoGenerationMode } from "../services/storyboard-generation-service";
 import { getVideoGenerationStrategy } from "@/shared/model-capabilities";
 import { t } from "@/shared/constants";

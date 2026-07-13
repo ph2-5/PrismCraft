@@ -20,7 +20,7 @@ import { resolveImageUrl } from "@/shared/utils/image-url";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { t } from "@/shared/constants/messages";
 import { useGlobalKeyboardActions } from "@/shared/hooks/use-global-keyboard-actions";
-import { useDebouncedState } from "@/shared/hooks/useDebouncedState";
+import { useDebouncedState } from "@/shared/hooks/use-debounced-state";
 import {
   defaultScene,
   useSceneImage,

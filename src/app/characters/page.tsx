@@ -7,7 +7,7 @@ import { OutfitDialog } from "@/modules/character";
 import { t } from "@/shared/constants/messages";
 import { CharacterList } from "./CharacterList";
 import { CharacterEditor } from "./CharacterEditor";
-import { useCharacterPage } from "./hooks/useCharacterPage";
+import { useCharacterPage } from "./hooks/use-character-page";
 
 export default function CharactersPage() {
   return (

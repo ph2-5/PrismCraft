@@ -1,4 +1,4 @@
-export { useStoryPlanner } from "./hooks/useStoryPlanner";
+export { useStoryPlanner } from "./hooks/use-story-planner";
 export {
   useStories,
   useStory,
@@ -7,7 +7,7 @@ export {
   useUpdateStory,
   useDeleteStory,
 } from "./hooks/use-stories";
-export { useStorySaver } from "./hooks/useStorySaver";
+export { useStorySaver } from "./hooks/use-story-saver";
 export {
   planStory,
   checkTextApiConfig,

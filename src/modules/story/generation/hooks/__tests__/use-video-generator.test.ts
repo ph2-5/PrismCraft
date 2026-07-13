@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { StoryBeat } from "@/domain/schemas";
-import { useVideoGenerator } from "../useVideoGenerator";
+import { useVideoGenerator } from "../use-video-generator";
 
 vi.mock("@/modules/prompt", () => ({
   generateSingleBeatPrompt: vi.fn().mockReturnValue("base prompt"),
@@ -36,7 +36,7 @@ vi.mock("@/shared/constants", () => ({
   t: vi.fn((key: string) => key),
 }));
 
-vi.mock("../useAIGeneratorBase", () => ({
+vi.mock("../use-ai-generator-base", () => ({
   useAIGeneratorBase: () => ({
     findBeat: vi.fn((id: string) => beats.find((b) => b.id === id)),
     resolvePrevBeat: vi.fn(() => null),

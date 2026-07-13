@@ -4,7 +4,7 @@ import { t } from "@/shared/constants/messages";
 import { SceneList } from "./components/SceneList";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
-import { useScenesPage } from "./hooks/useScenesPage";
+import { useScenesPage } from "./hooks/use-scenes-page";
 import {
   ScenePageHeader,
   SceneDetailHeader,
@@ -16,7 +16,7 @@ import {
   SceneImageGenerationCard,
   SceneActionFooter,
 } from "./SceneEditorParts";
-import type { useScenesPage as UseScenesPage } from "./hooks/useScenesPage";
+import type { useScenesPage as UseScenesPage } from "./hooks/use-scenes-page";
 
 type ScenesPageState = ReturnType<typeof UseScenesPage>;
 

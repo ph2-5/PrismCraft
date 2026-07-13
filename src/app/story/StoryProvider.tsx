@@ -28,9 +28,9 @@ import {
   useBatchGenerator,
   useStorySaver,
 } from "@/modules/story";
-import { useStoryActions } from "./useStoryActions";
-import { useStoryPersistence } from "./useStoryPersistence";
-import { useStoryVideo } from "./useStoryVideo";
+import { useStoryActions } from "./use-story-actions";
+import { useStoryPersistence } from "./use-story-persistence";
+import { useStoryVideo } from "./use-story-video";
 import type { StoryContextValue } from "./story-context-types";
 
 const StoryContext = createContext<StoryContextValue | null>(null);

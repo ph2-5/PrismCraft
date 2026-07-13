@@ -12,7 +12,7 @@ import {
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ApiKeyAlert } from "@/shared/presentation/onboarding";
-import { useHomePage } from "./hooks/useHomePage";
+import { useHomePage } from "./hooks/use-home-page";
 
 function HomeSkeleton() {
   return (

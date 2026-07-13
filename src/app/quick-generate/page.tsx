@@ -2,7 +2,7 @@ import { Zap, ClipboardList } from "lucide-react";
 import { t } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { TemplateSelectDialog } from "./TemplateSelectDialog";
-import { useQuickGeneratePage } from "./hooks/useQuickGeneratePage";
+import { useQuickGeneratePage } from "./hooks/use-quick-generate-page";
 import { QuickGenerateForm } from "./QuickGenerateForm";
 import { QuickGenerateHistory } from "./QuickGenerateHistory";
 

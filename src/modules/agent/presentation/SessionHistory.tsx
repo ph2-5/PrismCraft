@@ -85,7 +85,7 @@ export function SessionHistory({
                     <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
                       <span>{formatRelativeTime(session.updatedAt)}</span>
                       <span>·</span>
-                      <span>{session.messageCount} 条</span>
+                      <span>{t("agent.messageCount", { count: session.messageCount })}</span>
                     </div>
                   </div>
                   <button

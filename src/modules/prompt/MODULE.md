@@ -19,6 +19,7 @@
 | `server-prompts` | [server-prompts/](./server-prompts/) | 首帧/尾帧提示词、角色/场景分析提示词（服务端 API 用） |
 | `builder` | [builder/](./builder/) | PromptBuilder 类、故事计划提示词、快速模式提示词、模型选项配置 |
 | `presentation` | [presentation/](./presentation/) | 模型选择器、配置检查横幅 |
+| `templates` | [templates/](./templates/) | 提示词模板库（内置 + 用户自定义）、负面提示词智能生成、LLM 提示词优化 |
 
 ---
 
@@ -105,6 +106,57 @@
 | `ModelSelector` | `React.FC<ModelSelectorProps>` | 模型选择器组件 |
 | `useModelSelection` | `() → ModelSelection` | 模型选择 Hook |
 | `ModelSelection` | `type` | 模型选择类型 |
+
+### templates 子域
+
+#### 模板库类型
+| API | 签名 | 说明 |
+|-----|------|------|
+| `PromptTemplateCategory` | `type` | 模板分类类型 |
+| `PromptTemplateTarget` | `type` | 模板目标类型（角色/场景/视频等） |
+| `PromptTemplateVariable` | `type` | 模板变量类型 |
+| `PromptTemplate` | `type` | 提示词模板类型 |
+| `CreatePromptTemplateInput` | `type` | 创建模板输入类型 |
+| `ApplyTemplateResult` | `type` | 应用模板结果类型 |
+| `NegativePromptConfig` | `type` | 负面提示词配置类型 |
+| `NegativePromptScene` | `type` | 负面提示词场景类型 |
+| `OptimizedPromptResult` | `type` | 优化提示词结果类型 |
+
+#### 模板库常量与函数
+| API | 签名 | 说明 |
+|-----|------|------|
+| `CATEGORY_LABELS` | `Record<string, string>` | 分类标签映射 |
+| `TARGET_LABELS` | `Record<string, string>` | 目标标签映射 |
+| `BUILTIN_TEMPLATES` | `PromptTemplate[]` | 内置模板列表 |
+| `initTemplates` | `() → Promise<void>` | 初始化模板库（幂等） |
+| `listPromptTemplates` | `() → PromptTemplate[]` | 列出所有模板 |
+| `searchPromptTemplates` | `(query: string) → PromptTemplate[]` | 搜索模板 |
+| `getPromptTemplate` | `(id: string) → PromptTemplate \| null` | 获取单个模板 |
+| `createPromptTemplate` | `(input: CreatePromptTemplateInput) → PromptTemplate` | 创建模板 |
+| `updatePromptTemplate` | `(id: string, patch: Partial<...>) → PromptTemplate` | 更新模板 |
+| `deletePromptTemplate` | `(id: string) → boolean` | 删除模板 |
+| `applyPromptTemplate` | `(id: string, vars: Record<string, string>) → ApplyTemplateResult` | 应用模板 |
+| `exportPromptTemplates` | `() → string` | 导出模板为 JSON 字符串 |
+| `importPromptTemplates` | `(json: string) → number` | 导入模板 |
+| `getPromptTemplateStats` | `() → object` | 获取模板统计信息 |
+
+#### 负面提示词智能生成
+| API | 签名 | 说明 |
+|-----|------|------|
+| `getNegativePrompt` | `(scene?: NegativePromptScene) → string` | 获取负面提示词 |
+| `enhanceNegativePromptWithLLM` | `(prompt: string) → Promise<string>` | 用 LLM 增强负面提示词 |
+| `getNegativePromptConfig` | `() → NegativePromptConfig` | 获取负面提示词配置 |
+| `saveNegativePromptConfig` | `(config: NegativePromptConfig) → void` | 保存负面提示词配置 |
+| `getSmartNegativePrompt` | `(scene?: NegativePromptScene) → Promise<string>` | 获取智能负面提示词 |
+
+#### LLM 提示词自动优化
+| API | 签名 | 说明 |
+|-----|------|------|
+| `optimizeCharacterPrompt` | `(prompt: string) → Promise<OptimizedPromptResult>` | 优化角色提示词 |
+| `optimizeVideoPrompt` | `(prompt: string) → Promise<OptimizedPromptResult>` | 优化视频提示词 |
+| `optimizePrompt` | `(prompt: string, type: string) → Promise<OptimizedPromptResult>` | 通用提示词优化 |
+| `getCharacterStyles` | `() → string[]` | 获取角色风格列表 |
+| `getVideoStyles` | `() → string[]` | 获取视频风格列表 |
 
 ---
 

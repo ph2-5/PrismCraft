@@ -259,7 +259,7 @@ export function ToolPluginManager({ onClose }: ToolPluginManagerProps) {
     try {
       const saved = await saveToolPluginFile(config);
       if (!saved) {
-        toast.error(t("agent.plugin.saveFailed", { error: "写入文件失败" }));
+        toast.error(t("agent.plugin.saveFailed", { error: t("agent.plugin.writeFileFailed") }));
         return;
       }
 
@@ -267,15 +267,11 @@ export function ToolPluginManager({ onClose }: ToolPluginManagerProps) {
       const result = await loadToolPlugin(config);
       if (result.registeredCount > 0) {
         toast.success(
-          t("agent.plugin.saveSuccess") +
-            "，" +
-            t("agent.plugin.loadSuccess", { count: result.registeredCount }),
+          t("agent.plugin.saveAndLoadSuccess", { count: result.registeredCount }),
         );
       } else if (result.errors.length > 0) {
         toast.warning(
-          t("agent.plugin.saveSuccess") +
-            "，" +
-            t("agent.plugin.loadFailed", { error: result.errors[0]!.error }),
+          t("agent.plugin.saveAndLoadPartial", { error: result.errors[0]!.error }),
         );
       } else {
         toast.success(t("agent.plugin.saveSuccess"));

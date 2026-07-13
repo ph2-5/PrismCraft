@@ -1,7 +1,7 @@
 {
   "name": "shot-generation",
   "description": "分镜生成管道：编排分镜的完整生成流程（参数校验 → Few-Shot 提示构建 → 故事计划生成 → 结果验证）",
-  "dependencies": ["@/domain/schemas", "@/domain/types", "@/infrastructure/ai-providers"],
+  "dependencies": ["@/domain/schemas", "@/domain/types", "@/shared/model-capabilities", "@/shared/constants"],
   "publicAPI": {
     "hooks": [],
     "services": ["validateShotParams", "validateStoryBeatOutput", "validateStoryPlanOutput", "generateFallbackParams", "formatValidationResult", "generateStoryPlanWithValidation", "selectFewShotExamples", "buildFewShotPrompt", "enrichPromptWithFewShot"],

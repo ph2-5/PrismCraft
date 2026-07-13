@@ -427,7 +427,7 @@ function AuditLogEntry({ entry }: { entry: AuditEntry }) {
             <span className={`font-mono ${dangerColor}`}>{entry.dangerLevel}</span>
           )}
           {entry.confirmedByUser && (
-            <span className="rounded bg-primary/10 px-1 text-primary">确认</span>
+            <span className="rounded bg-primary/10 px-1 text-primary">{t("agent.audit.confirmed")}</span>
           )}
           {entry.specialist && (
             <span className="rounded bg-blue-500/10 px-1 text-blue-600 dark:text-blue-400">

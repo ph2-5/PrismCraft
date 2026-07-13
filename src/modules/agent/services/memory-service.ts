@@ -136,9 +136,16 @@ export async function updatePreference(
   value: string | number | boolean,
 ): Promise<boolean> {
   if (!key || typeof key !== "string") return false;
-  const memory = await getCoreMemory();
-  memory.preferences[key] = value;
-  return saveCoreMemory(memory);
+  // 串行化 read-modify-write，防止并发覆盖（复用 archivalWriteChain）
+  const result = archivalWriteChain.then(async () => {
+    const memory = await getCoreMemory();
+    memory.preferences[key] = value;
+    return saveCoreMemory(memory);
+  }).catch(() => false);
+
+  archivalWriteChain = result.then(() => undefined).catch(() => undefined);
+
+  return result;
 }
 
 /** 保存事实（同 key 覆盖） */
@@ -162,11 +169,18 @@ export async function saveFact(key: string, value: string): Promise<boolean> {
 
 /** 删除事实 */
 export async function removeFact(key: string): Promise<boolean> {
-  const memory = await getCoreMemory();
-  const before = memory.facts.length;
-  memory.facts = memory.facts.filter((f) => f.key !== key);
-  if (memory.facts.length === before) return true; // 不存在也算成功
-  return saveCoreMemory(memory);
+  // 串行化 read-modify-write，防止并发覆盖（复用 archivalWriteChain）
+  const result = archivalWriteChain.then(async () => {
+    const memory = await getCoreMemory();
+    const before = memory.facts.length;
+    memory.facts = memory.facts.filter((f) => f.key !== key);
+    if (memory.facts.length === before) return true; // 不存在也算成功
+    return saveCoreMemory(memory);
+  }).catch(() => false);
+
+  archivalWriteChain = result.then(() => undefined).catch(() => undefined);
+
+  return result;
 }
 
 /** 删除偏好 */

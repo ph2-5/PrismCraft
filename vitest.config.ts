@@ -10,9 +10,7 @@ export default defineConfig({
     exclude: ['tests/**', 'node_modules/**', 'out/**', 'electron/dist/**', 'electron/src/**', '.stryker-tmp/**'],
     setupFiles: ['./src/__tests__/setup.ts'],
     pool: "forks",
-    poolOptions: {
-      forks: { maxForks: 2 },
-    },
+    forks: { maxForks: 2 },
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
@@ -86,6 +84,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // @huggingface/transformers 是可选依赖，未安装时 vitest 模块解析失败。
+      // 指向测试 mock，运行时 loadPipeline() 的 try/catch 会安全降级。
+      '@huggingface/transformers': path.resolve(__dirname, './src/__tests__/mocks/huggingface-transformers-mock.ts'),
     },
   },
 });

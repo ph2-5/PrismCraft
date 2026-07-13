@@ -13,9 +13,10 @@
  * - provider.generateEmbedding(text) 生成向量
  *
  * 类型设计：
- * - 使用 transformers.js 真实类型（pipeline / FeatureExtractionPipeline / Tensor）
+ * - 使用本地精简类型（LocalTensor / LocalFeatureExtractionPipeline / LocalPipelineFn）
+ * - 避免从 @huggingface/transformers 使用 import type（该包为可选依赖，未安装时会导致 vitest 模块解析失败）
  * - 动态 import 仍保留（避免主进程/renderer 启动时强制加载 WASM）
- * - 类型通过 `import type` 静态导入，运行时动态加载
+ * - 全局类型声明见 src/types/huggingface-transformers.d.ts
  *
  * 注意：
  * - 推理在主线程进行（Electron renderer），200 条短文本约 1-3 秒
@@ -31,22 +32,51 @@ import {
 } from "./model-manager";
 import { errorLogger } from "@/shared/error-logger";
 
-// transformers.js 真实类型（仅类型导入，不进 bundle）
-import type {
-  pipeline as PipelineFn,
-  FeatureExtractionPipeline,
-  Tensor,
-} from "@huggingface/transformers";
+// ============= transformers.js 本地类型定义 =============
+// 不使用 `import type` from "@huggingface/transformers"，因为该包是可选依赖
+// （仅在用户拖入 ONNX 模型时才需要）。vitest 预扫描会尝试解析所有 import 语句，
+// 包括 `import type`，未安装时会导致模块解析失败，影响依赖链上的所有测试。
+// 全局声明见 src/types/huggingface-transformers.d.ts，此处定义模块内使用的精简类型。
+
+/** transformers.js Tensor 类型（本地精简版） */
+interface LocalTensor {
+  data: Float32Array | Float64Array | number[];
+  dims: number[];
+  type: string;
+  tolist(): number[][];
+}
+
+/** transformers.js feature-extraction pipeline 类型（本地精简版） */
+interface LocalFeatureExtractionPipeline {
+  (
+    texts: string | string[],
+    options?: {
+      pooling?: "mean" | "max" | "cls";
+      normalize?: boolean;
+    },
+  ): Promise<LocalTensor>;
+}
+
+/** transformers.js pipeline 函数类型（本地精简版） */
+type LocalPipelineFn = (
+  task: string,
+  modelId: string,
+  options?: {
+    dtype?: string;
+    local_files_only?: boolean;
+    progress_callback?: (progress: unknown) => void;
+  },
+) => Promise<LocalFeatureExtractionPipeline>;
 
 /** 单批最大文本数（避免内存溢出） */
 const MAX_BATCH_SIZE = 32;
 
-/** transformers.js pipeline 函数类型（仅 feature-extraction 任务） */
-type PipelineFunction = typeof PipelineFn<"feature-extraction">;
+/** transformers.js pipeline 函数类型 */
+type PipelineFunction = LocalPipelineFn;
 
 /** 已加载的 pipeline 与对应模型信息 */
 interface LoadedPipeline {
-  pipeline: FeatureExtractionPipeline;
+  pipeline: LocalFeatureExtractionPipeline;
   info: LocalModelEntry;
 }
 
@@ -100,7 +130,7 @@ async function loadPipeline(): Promise<LoadedPipeline | null> {
           // 允许本地文件
           local_files_only: true,
         },
-      )) as FeatureExtractionPipeline;
+      )) as LocalFeatureExtractionPipeline;
 
       _loaded = { pipeline, info: entry };
       return _loaded;
@@ -118,14 +148,14 @@ async function loadPipeline(): Promise<LoadedPipeline | null> {
 /**
  * 将 transformers.js 的 Tensor 输出转换为 number[][]
  *
- * Tensor.data 的类型是 AnyTypedArray | any[]：
+ * LocalTensor.data 的类型是 Float32Array | Float64Array | number[]：
  * - 单条输入：data 通常是 Float32Array，dims=[seqLen, embedDim]（pooling 后 [1, embedDim]）
  * - 批量输入：data 仍是扁平 Float32Array，dims=[batchSize, seqLen, embedDim]
  *
  * 通过 dims 推断 batchSize，按 dimensions 切分。
  */
 function tensorToEmbeddings(
-  tensor: Tensor,
+  tensor: LocalTensor,
   dimensions: number,
 ): number[][] {
   const data = tensor.data;

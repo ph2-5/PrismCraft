@@ -23,47 +23,128 @@
 
 ## Public API
 
+### Hooks
+- `useAgent` — 主 Hook，管理会话/流式/工具状态，返回 `UseAgentReturn`
+- `UseAgentReturn` — useAgent 返回值类型
+- `AgentSettings` — Agent 设置类型
+
 ### React 组件
-- `useAgent()` — 主 Hook，管理会话/流式/工具状态，返回 `UseAgentReturn`
 - `AgentPage` — 主页面组件
 - `MarkdownRenderer` — Markdown 渲染组件（带代码高亮）
 - `AgentSettingsPanel` — Agent 设置面板（API 配置、人格选择、参数调整）
-- `getPersonaPrompt(persona)` — 获取人格模板的提示词
+- `getPersonaPrompt` — 获取人格模板的提示词
 - `SessionHistory` — 会话历史组件
+- `CheckpointRecovery` — 断点恢复组件（P5）
+- `ToolPluginManager` — 工具插件管理组件（P3）
+- `ToolPluginEditor` — 工具插件编辑器组件（P3）
+- `SpecialistPanel` — 专家子 Agent 面板组件（P4）
 
 ### 核心服务（高级用法/测试）
 - `AgentLoop` — Agent Loop 核心类
-- `runAgentLoop(config, callbacks)` — 启动 Agent Loop
+- `runAgentLoop` — 启动 Agent Loop
 - `toolRegistry` — 工具注册表（单例）
 - `toolExecutor` — 工具执行器（单例）
 - `conversationManager` — 会话管理器（单例）
 
+### 记忆服务
+- `memoryService` — 记忆服务单例
+- `MemoryService` — 记忆服务类
+- `ensureSeedMemory` — 确保种子记忆初始化
+- `getSeedMemoryStats` — 获取种子记忆统计
+- `resetSeedMemoryFlag` — 重置种子记忆标志
+- `prewarmEmbeddings` — 预热嵌入向量
+
 ### 会话持久化
-- `saveSession(session)` — 保存会话到磁盘
-- `loadSession(id)` — 加载会话
-- `listSessions()` — 列出所有会话
-- `deleteSession(id)` — 删除会话
-- `persistSession(session)` — 持久化会话（内部使用）
+- `saveSession` — 保存会话到磁盘
+- `loadSession` — 加载会话
+- `listSessions` — 列出所有会话
+- `deleteSession` — 删除会话
+- `persistSession` — 持久化会话（内部使用）
+- `SessionListItem` — 会话列表项类型
 
 ### 工具注册
-- `registerAllTools()` — 注册所有 150 个工具（幂等，应用启动时调用）
+- `registerAllTools` — 注册所有 150 个工具（幂等，应用启动时调用）
+- `loadToolPlugins` — 加载工具插件
 
 ### 审计日志（v1.2.2 新增）
-- `queryAuditLogs(filter)` — 查询审计日志（支持按 sessionId/toolName/success/时间范围/limit 过滤）
-- `getAuditStats()` — 获取统计信息（总条目数/会话数/按工具统计）
-- `clearAuditLogs(sessionId)` — 清空指定会话的审计日志
-- `clearAllAuditLogs()` — 清空所有审计日志
-- 类型：`AuditEntry` / `AuditQueryFilter`
+- `queryAuditLogs` — 查询审计日志（支持按 sessionId/toolName/success/时间范围/limit 过滤）
+- `getAuditStats` — 获取统计信息（总条目数/会话数/按工具统计）
+- `clearAuditLogs` — 清空指定会话的审计日志
+- `clearAllAuditLogs` — 清空所有审计日志
+- `AuditEntry` — 审计日志条目类型
+- `AuditQueryFilter` — 审计日志查询过滤类型
+
+### 工具插件（P3）
+- `loadToolPlugin` — 加载单个工具插件
+- `unloadPlugin` — 卸载插件
+- `listLoadedPlugins` — 列出已加载插件
+- `saveToolPluginFile` — 保存插件文件
+- `deleteToolPluginFile` — 删除插件文件
+- `listToolPluginFiles` — 列出插件文件
+- `loadAllToolPlugins` — 加载所有工具插件
+- `ensureToolPluginsLoaded` — 确保插件已加载（幂等）
+- `ToolPluginConfig` — 工具插件配置类型
+- `ToolPluginTool` — 工具插件工具定义类型
+- `ToolPluginAction` — 工具插件动作类型
+- `HttpCallAction` — HTTP 调用动作类型
+- `BuiltinMirrorAction` — 内置镜像动作类型
+- `TextTemplateAction` — 文本模板动作类型
+- `ToolPluginLoadResult` — 插件加载结果类型
+- `ToolPluginsConfig` — 插件集合配置类型
+
+### 多 Agent 编排（P4）
+- `specialistRegistry` — 专家注册表单例
+- `SpecialistRegistry` — 专家注册表类
+- `runSpecialist` — 运行专家子 Agent
+- `listAvailableSpecialists` — 列出可用专家
+- `SpecialistAgent` — 专家 Agent 类型
+- `BUILTIN_SPECIALISTS` — 内置专家列表
+
+### 断点恢复（P5）
+- `initCheckpoint` — 初始化断点
+- `saveCheckpoint` — 保存断点
+- `clearCheckpoint` — 清除断点
+- `markInterrupted` — 标记会话为中断
+- `markRunningAsInterrupted` — 标记运行中会话为中断
+- `listInterruptedSessions` — 列出中断的会话
+- `listRunningSessions` — 列出运行中的会话
+- `getCheckpoint` — 获取断点
+- `loadInterruptedSession` — 加载中断会话
+- `createCheckpoint` — 创建断点
+- `SessionCheckpoint` — 会话断点类型
+- `CheckpointStatus` — 断点状态类型
+- `CheckpointIndexEntry` — 断点索引项类型
+
+### Port 接口（DI 化）
+- `IConversationManager` — 会话管理器端口接口
+- `IToolRegistry` — 工具注册表端口接口
+- `IToolExecutor` — 工具执行器端口接口
+- `IMemoryService` — 记忆服务端口接口
+- `AgentLoopDeps` — Agent Loop 依赖接口
 
 ### 领域类型
-- `AgentSession` / `AgentMessage` / `AgentRole` — 会话数据结构
-- `ToolImpl` / `ToolResult` / `ToolContext` / `ToolDomain` — 工具类型
-- `ToolExecution` / `ToolExecutionStatus` — 工具执行状态
-- `AgentLoopConfig` / `AgentLoopCallbacks` — Loop 配置
-- `createEmptySession()` — 创建空会话
+- `AgentSession` — 会话数据结构
+- `AgentMessage` — 消息结构
+- `AgentRole` — 角色类型
+- `ToolImpl` — 工具实现类型
+- `ToolResult` — 工具结果类型
+- `ToolContext` — 工具上下文类型
+- `ToolDomain` — 工具域类型
+- `ToolExecution` — 工具执行类型
+- `ToolExecutionStatus` — 工具执行状态类型
+- `AgentLoopConfig` — Loop 配置类型
+- `AgentLoopCallbacks` — Loop 回调类型
+- `ContextBudget` — 上下文预算类型
+- `CoreMemory` — 核心记忆类型
+- `MemoryFact` — 记忆事实类型
+- `ArchivalMemoryEntry` — 归档记忆条目类型
+- `ExtractedMemory` — 提取记忆类型
+- `createEmptySession` — 创建空会话
 - `DEFAULT_AGENT_CONFIG` — 默认配置
-- `AgentSettings` — 设置类型
-- `AGENT_PERSONAS` / `DEFAULT_SYSTEM_PROMPT` / `AgentPersona` — 人格模板
+- `DEFAULT_CONTEXT_BUDGET` — 默认上下文预算
+- `AGENT_PERSONAS` — 人格模板映射
+- `DEFAULT_SYSTEM_PROMPT` — 默认系统提示词
+- `AgentPersona` — 人格模板类型
 
 ## 边界约束
 

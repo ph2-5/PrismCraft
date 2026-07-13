@@ -77,26 +77,26 @@ export function ToolPluginEditor({
   /** 实时校验 JSON 格式 */
   const parsedConfig = useMemo<{ ok: boolean; config?: ToolPluginConfig; error?: string }>(() => {
     if (!text.trim()) {
-      return { ok: false, error: "配置不能为空" };
+      return { ok: false, error: t("agent.plugin.validateEmpty") };
     }
     try {
       const parsed = JSON.parse(text) as unknown;
       // 基本字段校验
       if (!parsed || typeof parsed !== "object") {
-        return { ok: false, error: "配置必须是对象" };
+        return { ok: false, error: t("agent.plugin.validateNotObject") };
       }
       const c = parsed as Record<string, unknown>;
       if (typeof c.id !== "string" || !c.id) {
-        return { ok: false, error: "id 必须为非空字符串" };
+        return { ok: false, error: t("agent.plugin.validateIdRequired") };
       }
       if (typeof c.version !== "string" || !c.version) {
-        return { ok: false, error: "version 必须为非空字符串" };
+        return { ok: false, error: t("agent.plugin.validateVersionRequired") };
       }
       if (typeof c.displayName !== "string" || !c.displayName) {
-        return { ok: false, error: "displayName 必须为非空字符串" };
+        return { ok: false, error: t("agent.plugin.validateDisplayNameRequired") };
       }
       if (!Array.isArray(c.tools) || c.tools.length === 0) {
-        return { ok: false, error: "tools 必须为非空数组" };
+        return { ok: false, error: t("agent.plugin.validateToolsRequired") };
       }
       return { ok: true, config: c as unknown as ToolPluginConfig };
     } catch (e) {

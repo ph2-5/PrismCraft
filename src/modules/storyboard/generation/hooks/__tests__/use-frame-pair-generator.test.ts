@@ -10,7 +10,7 @@ vi.mock("@/modules/storyboard", () => ({
   }),
 }));
 
-vi.mock("@/modules/shot/consistency-check", () => ({
+vi.mock("@/modules/shot", () => ({
   checkVisualConsistency: vi.fn().mockResolvedValue({
     ok: true,
     value: { passed: true, overallScore: 0.9, characterScores: [] },
@@ -126,13 +126,13 @@ describe("useFramePairGenerator", () => {
       await result.current.generateFramePair("beat-1");
     });
 
-    const { checkVisualConsistency } = await import("@/modules/shot/consistency-check");
+    const { checkVisualConsistency } = await import("@/modules/shot");
     const callArgs = vi.mocked(checkVisualConsistency).mock.calls[0]?.[0];
     expect(callArgs?.generatedImageUrl).toBe("https://cdn.com/ff.jpg");
   });
 
   it("logs warning when consistency check fails", async () => {
-    const { checkVisualConsistency } = await import("@/modules/shot/consistency-check");
+    const { checkVisualConsistency } = await import("@/modules/shot");
     vi.mocked(checkVisualConsistency).mockResolvedValueOnce({
       ok: true,
       value: { passed: false, overallScore: 0.3, characterScores: [], recommendation: "adjust" as const },
@@ -148,7 +148,7 @@ describe("useFramePairGenerator", () => {
   });
 
   it("catches consistency check errors gracefully", async () => {
-    const { checkVisualConsistency } = await import("@/modules/shot/consistency-check");
+    const { checkVisualConsistency } = await import("@/modules/shot");
     vi.mocked(checkVisualConsistency).mockRejectedValueOnce(new Error("vision API failed"));
 
     const { result } = renderHook(() => useFramePairGenerator(createProps()));

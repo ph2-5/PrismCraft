@@ -76,7 +76,7 @@ export const autoGenerateBeatFullTool: ToolImpl = {
 
     // Step 2: 构造 providers 并调用 generateBeatFullWorkflow
     ctx.onProgress?.("正在生成分镜（关键帧 → 首尾帧 → 视频）…");
-    const { generateBeatFullWorkflow } = await import("@/modules/storyboard/generation");
+    const { generateBeatFullWorkflow } = await import("@/modules/storyboard");
     const providers = {
       videoProvider: container.videoProvider,
       imageProvider: container.imageProvider,
@@ -218,7 +218,7 @@ export const autoGenerateVideoFullTool: ToolImpl = {
     }
 
     // Step 2: 逐个生成
-    const { generateBeatFullWorkflow } = await import("@/modules/storyboard/generation");
+    const { generateBeatFullWorkflow } = await import("@/modules/storyboard");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 

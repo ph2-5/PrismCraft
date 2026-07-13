@@ -10,7 +10,7 @@
  * Mock 策略：
  * - container（textProvider / imageProvider）
  * - storyService / characterService / sceneService（动态 import）
- * - planStory（@/modules/storyboard/planning）
+ * - planStory（@/modules/storyboard）
  * - generateStyleGuide / generateFramePrompts / batchGenerateFramePrompts（@/modules/storyboard）
  * - TOOL_TIMEOUTS（../../services/tool-executor）
  *
@@ -60,9 +60,6 @@ vi.mock("@/modules/storyboard", () => ({
   generateStyleGuide: mocks.generateStyleGuide,
   generateFramePrompts: mocks.generateFramePrompts,
   batchGenerateFramePrompts: mocks.batchGenerateFramePrompts,
-}));
-
-vi.mock("@/modules/storyboard/planning", () => ({
   planStory: mocks.planStory,
 }));
 

@@ -14,7 +14,7 @@ import { container } from "@/infrastructure/di";
 import { useModelSelection } from "@/modules/prompt";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { generateBeatFramePair, storyService } from "@/modules/storyboard";
-import { checkVisualConsistency } from "@/modules/shot/consistency-check";
+import { checkVisualConsistency } from "@/modules/shot";
 import { StoryGenerationService } from "@/domain/services";
 import { characterService } from "@/modules/character";
 import { sceneService } from "@/modules/scene";

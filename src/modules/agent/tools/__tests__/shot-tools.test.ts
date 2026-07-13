@@ -12,7 +12,7 @@
  * - container（videoProvider / imageProvider / textProvider）
  * - storyService（动态 import @/modules/storyboard）
  * - characterService / sceneService（动态 import）
- * - generateBeatKeyframe / generateBeatFramePair / generateBeatVideo（@/modules/storyboard/generation）
+ * - generateBeatKeyframe / generateBeatFramePair / generateBeatVideo（@/modules/storyboard）
  * - TOOL_TIMEOUTS（../../services/tool-executor）
  *
  * 测试重点：前置条件检查、Result 模式错误传播、批量结果聚合、重生成清除旧结果
@@ -53,6 +53,9 @@ vi.mock("@/infrastructure/di", () => ({
 
 vi.mock("@/modules/storyboard", () => ({
   storyService: mocks.storyService,
+  generateBeatKeyframe: mocks.generateBeatKeyframe,
+  generateBeatFramePair: mocks.generateBeatFramePair,
+  generateBeatVideo: mocks.generateBeatVideo,
 }));
 
 vi.mock("@/modules/character", () => ({
@@ -61,12 +64,6 @@ vi.mock("@/modules/character", () => ({
 
 vi.mock("@/modules/scene", () => ({
   sceneService: mocks.sceneService,
-}));
-
-vi.mock("@/modules/storyboard/generation", () => ({
-  generateBeatKeyframe: mocks.generateBeatKeyframe,
-  generateBeatFramePair: mocks.generateBeatFramePair,
-  generateBeatVideo: mocks.generateBeatVideo,
 }));
 
 vi.mock("../../services/tool-executor", () => ({

@@ -93,7 +93,7 @@ export const autoPlanStoryboardTool: ToolImpl = {
     }
 
     ctx.onProgress?.("正在用 AI 规划分镜…");
-    const { planStory } = await import("@/modules/storyboard/planning");
+    const { planStory } = await import("@/modules/storyboard");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 

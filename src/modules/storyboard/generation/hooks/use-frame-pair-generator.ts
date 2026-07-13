@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { generateBeatFramePair } from "@/modules/storyboard";
-import { checkVisualConsistency } from "@/modules/shot/consistency-check";
+import { checkVisualConsistency } from "@/modules/shot";
 import type { StoryBeat, Character, Scene, StoryStyleGuide, ModelSelection, StoryElement } from "@/domain/schemas";
 import { StoryGenerationService } from "@/domain/services";
 import { getFirstFrameUrl } from "@/domain/utils";

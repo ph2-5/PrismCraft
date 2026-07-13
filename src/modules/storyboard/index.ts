@@ -1,5 +1,6 @@
 export {
   storyService,
+  planStory,
   useStoryPlanner,
   useStories,
   useStory,

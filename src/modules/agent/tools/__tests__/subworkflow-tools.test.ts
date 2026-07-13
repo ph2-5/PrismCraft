@@ -80,13 +80,7 @@ vi.mock("@/modules/scene", () => ({
 
 vi.mock("@/modules/storyboard", () => ({
   storyService: mocks.storyService,
-}));
-
-vi.mock("@/modules/storyboard/planning", () => ({
   planStory: mocks.planStory,
-}));
-
-vi.mock("@/modules/storyboard/generation", () => ({
   generateBeatFullWorkflow: mocks.generateBeatFullWorkflow,
   generateBeatKeyframe: mocks.generateBeatKeyframe,
 }));

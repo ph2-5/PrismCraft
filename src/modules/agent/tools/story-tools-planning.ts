@@ -56,7 +56,7 @@ export const planStoryTool: ToolImpl = {
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
     const { storyService } = await import("@/modules/storyboard");
-    const { planStory } = await import("@/modules/storyboard/planning");
+    const { planStory } = await import("@/modules/storyboard");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 

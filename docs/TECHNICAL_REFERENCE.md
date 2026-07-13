@@ -1,6 +1,6 @@
 # PrismCraft 技术参考文档
 
-> **版本**: 1.2.1 | **最后更新**: 2026-07-09 | **架构**: Vite 8 + React Router 7
+> **版本**: 1.2.3 | **最后更新**: 2026-07-13 | **架构**: Vite 8 + React Router 7
 
 ---
 
@@ -35,7 +35,7 @@
 | 属性 | 值 |
 |------|------|
 | 项目名称 | PrismCraft |
-| 版本 | 1.2.1 |
+| 版本 | 1.2.3 |
 | 描述 | AI 驱动的动画制作工具 — 本地优先，支持从故事创作到视频生成的完整工作流 |
 | 构建目标 | Electron 桌面应用 (local-first, offline-capable) |
 | 语言 | TypeScript (strict mode) |
@@ -2537,7 +2537,7 @@ ESLint 9 flat config, 使用以下插件:
 
 | 指标 | 值 |
 |------|------|
-| i18n 键数 | 2000+ |
+| i18n 键数 | 3076+ |
 | 迁移状态 | ✅ 完成 — R56 全量迁移完成 |
 | 覆盖范围 | app/pages + modules/presentation + shared/presentation + modules/hooks |
 | 例外 | AI 提示词模板、error-codes 业务数据、日志文本 (按规则不迁移) |

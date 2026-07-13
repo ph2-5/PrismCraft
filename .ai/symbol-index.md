@@ -1,6 +1,6 @@
 # Symbol Index
 
-Generated: 2026-06-26
+Generated: 2026-07-13
 
 > 本文件为目录树 + 模块一句话描述，用于 AI 工具快速定位代码。
 > 详细契约见各模块 `MODULE.md` 与 `contract.json`。
@@ -536,4 +536,4 @@ Generated: 2026-06-26
 - 路径别名：`@/`（renderer）、`@shared-logic/`（main process）、`@shared/`（main process）、`@domain/`（main process）
 - 模块入口：`src/modules/{name}/index.ts`（barrel），跨模块导入仅通过 barrel
 - 测试目录：各模块内 `__tests__/`，mocks 集中在 `src/__tests__/mocks/`
-- 回归规则：R1-R181 共 181 条，分布在 `.trae/rules/regression/` 与各模块测试文件中
+- 回归规则：R1-R151 共 151 条，分布在 `.trae/rules/regression/` 与各模块测试文件中

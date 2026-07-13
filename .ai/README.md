@@ -7,7 +7,7 @@
 ```
 .ai/
 ├── README.md              ← 本文件（入口）
-├── modules/               ← 10 个模块的详细维护指南
+├── modules/               ← 11 个模块的详细维护指南
 │   ├── agent.md
 │   ├── asset.md
 │   ├── character.md

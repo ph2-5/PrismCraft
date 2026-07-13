@@ -572,7 +572,7 @@ Note: Pure functions from `@/infrastructure/*` that modules need are exported vi
 
 ## Regression Guards (from Bug Audit)
 
-> Full regression guard rules (R1-R189) are split by category in `.trae/rules/regression/`.
+> Full regression guard rules (R1-R151) are split by category in `.trae/rules/regression/`.
 > Start with `index.md` for the category overview, then load only the relevant category file.
 > The original unified file is at [regression-guards.md](./regression-guards.md) (181KB, not recommended for AI context loading).
 
@@ -602,7 +602,7 @@ When AI discovers a bug (during audit, code review, or development), it MUST fol
 5. **Implement automated detection** — ESLint rule, architecture scan script, or CR rule
 6. **Update project docs** — Update rule count in `project_rules.md`, update MODULE.md if invariants changed
 
-**Quick reference — all 183 guards by category:**
+**Quick reference — all 151 guards by category:**
 
 | Category | Count | Key Concern |
 |----------|-------|-------------|

@@ -87,7 +87,7 @@ prismcraft-source-code/
 ```
 src/
 ├── domain/          → 纯类型、Schema、Result 类型。禁止导入 modules/ 或 infrastructure/
-├── modules/         → 9 个业务子域（story, video, shot, prompt, asset, sync, character, scene, persistence）
+├── modules/         → 11 个业务子域（story, video, shot, prompt, asset, sync, character, scene, persistence, agent）
 ├── infrastructure/  → DI 容器、存储、网络、API 客户端、AI 提供商
 ├── shared/          → 跨模块 UI（Toast、Sidebar、ErrorBoundary）、工具函数、错误日志
 ├── app/             → 页面组件和布局（通过 Context 消费模块）

@@ -11,7 +11,44 @@
 
 - 暂无
 
-## [1.2.3] - 2026-07-12
+## [1.2.3] - 2026-07-13
+
+### Added
+
+- **全面 UX 优化（P0-P2，12 维度）**：
+  - **P0**：清理 473→19 处内联样式（剩余为动态值），覆盖 30+ 文件，统一使用 design-preview CSS 类和 Tailwind 工具类，新增 `.home-hero-bg`/`.story-project-avatar`/`.dropzone`/`.validation-result` 等 CSS 类
+  - **P1-a**：修复 3 处硬编码 zh-CN locale（`format.ts`/`page.tsx`/`memory-service.ts`）
+  - **P1-b**：`use-auto-save.ts` 硬编码中文改用 `t()` + 新增 `error.saveFailedRetry` i18n key
+  - **P1-c**：BrowserWindow 添加 `minWidth:1024`/`minHeight:680`，防止窗口过小导致布局崩溃
+  - **P1-d**：创建 Tooltip 组件（`src/shared/presentation/Tooltip.tsx`），300ms 显示延迟，支持 4 方向定位
+  - **P1-e**：移除 `help-tools.ts` 未实现的 Ctrl+Z/Y 快捷键提示
+  - **P1-f**：Skeleton 加载状态推广到 characters/scenes/asset-library/video-tasks 4 个数据密集页
+  - **P1-g**：表单前端校验：CharacterEditor + QuickGenerateForm 添加 `required`/`aria-invalid`
+  - **P1-h**：`aria-live` 推广到 SaveStatusIndicator/Toast/AiRequestPreview 等 5 个动态内容文件
+  - **P1-i**：AI 生成进度反馈：`useGenerationStage` hook（3 阶段切换）+ 4 个阶段 i18n key
+  - **P1-j**：Sidebar 3 个 coming-soon 项添加灰色样式 + "即将推出" badge
+  - **P2-a**：响应式断点：quick-generate/characters 添加 `md:` 堆叠回退
+  - **P2-b**：空状态统一：11 处文案改为引导式，统一使用 EmptyState 组件
+  - **P2-c**：Skip to Main Content 链接 + `prefers-reduced-motion` 媒体查询支持
+
+### Fixed
+
+- 修复 `SceneEditorParts.tsx` 隐藏 bug：X 删除按钮 `onMouseEnter` 使用未定义的 `var(--danger)` 变量（项目使用 `--destructive`），改为 `hover:text-destructive` CSS 类
+
+### Changed
+
+- 统一 `.trae/rules/regression/` 回归规则编号，修正文档中 "183 条"/"165+ 条" → 实际 151 条
+- 更新所有文档版本号至 1.2.3，质量指标更新至最新值（6026 测试 / 151 回归规则 / 3076 i18n 键 / 30 张表）
+
+### Documentation
+
+- 更新 README.md：版本号 1.2.3，测试数 6026+，回归规则 151 条，i18n 键 3076+，更新日期 2026-07-13
+- 更新 docs/PROJECT-GUIDE.md：版本 1.2.3，模块数 11，子域数 40，回归规则 151 条，表数 30，日期 2026-07-13
+- 更新 docs/TECHNICAL_REFERENCE.md：版本 1.2.3，日期 2026-07-13
+- 更新 docs/CODE_CATALOG.md：版本 1.2.3，模块数 11，日期 2026-07-13
+- 更新 docs/DEPLOYMENT.md：版本 1.2.3，日期 2026-07-13
+- 更新 docs/README.md：回归规则数 151，移除 "165+" 描述
+- 更新 docs/ARCHITECTURE.md：模块数 11，回归规则 151 条
 
 ### Security
 
@@ -116,7 +153,9 @@
 
 - Phase 0 收尾：扩展 CSS Token 体系，新增微渐变背景 (`62ae833`)
 
-[Unreleased]: https://github.com/ph2-5/PrismCraft/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/ph2-5/PrismCraft/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/ph2-5/PrismCraft/releases/tag/v1.2.3
+[1.2.2]: https://github.com/ph2-5/PrismCraft/releases/tag/v1.2.2
 [1.2.1]: https://github.com/ph2-5/PrismCraft/releases/tag/v1.2.1
 [1.2.0]: https://github.com/ph2-5/PrismCraft/releases/tag/v1.2.0
 [1.1.1]: https://github.com/ph2-5/PrismCraft/releases/tag/v1.1.1

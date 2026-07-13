@@ -96,7 +96,7 @@ describe("Regression Guard: R{N} — {规则名称}", () => {
 Regression Guard: R{编号} — {规则名称}
 ```
 
-编号从 R110 开始（当前已有 R1-R142），按顺序递增。最新规则数与分类见 [regression/index.md](regression/index.md)。
+编号从 R110 开始（当前已有 R1-R151），按顺序递增。最新规则数与分类见 [regression/index.md](regression/index.md)。
 
 ### 3.3 测试文件位置
 
@@ -158,9 +158,9 @@ Regression Guard: R{编号} — {规则名称}
 | 用户安全防护 | R111-R120 | 破坏性操作需确认、数据清除需保护 |
 | 系统安全 | R121-R130（及后续扩展 R131-R133、R137-R139、R142 等） | 沙箱隔离、并发保护、资源生命周期 |
 
-> **说明**：上表中的"编号范围"为初始规划区间，仅作分类参考。实际规则编号已扩展至 R142，
+> **说明**：上表中的"编号范围"为初始规划区间，仅作分类参考。实际规则编号已扩展至 R151，
 > 部分新规则编号超出原区间但归属同一分类。完整的规则编号到分类映射以
-> [regression/index.md](regression/index.md) 的分类表为准（当前总计 142 条）。
+> [regression/index.md](regression/index.md) 的分类表为准（当前总计 151 条）。
 
 ### 4.3 自动化检测优先级
 

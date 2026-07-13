@@ -1,6 +1,6 @@
 # PrismCraft - 完整代码目录
 
-> 版本: 1.2.1 | 更新日期: 2026-07-09 | 架构: Electron + Vite + React + DDD
+> 版本: 1.2.3 | 更新日期: 2026-07-13 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -41,7 +41,7 @@ prismcraft-source-code/
 ├── src/
 │   ├── domain/              # 领域层：纯类型、端口接口、领域服务
 │   ├── shared-logic/        # 共享逻辑层：零外部依赖的纯函数
-│   ├── modules/             # 模块层：10 个业务模块
+│   ├── modules/             # 模块层：11 个业务模块
 │   │   ├── agent/           # AI 助手模块（Agent Loop、Tool Registry、21 工具文件）
 │   │   ├── asset/           # 资产库管理
 │   │   ├── character/       # 角色管理

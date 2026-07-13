@@ -6,7 +6,7 @@
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-6026%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
-[![Updated](https://img.shields.io/badge/updated-2026--07--12-green)]()
+[![Updated](https://img.shields.io/badge/updated-2026--07--13-green)]()
 
 ## 核心特性
 
@@ -54,7 +54,7 @@ npm run build:linux
 ```
 app/            → 页面组件和布局
   ↓
-modules/        → 9 个业务模块（story/video/shot/character/scene/...）
+modules/        → 11 个业务模块（story/video/shot/character/scene/...）
   ↓
 domain/         → 纯类型层，零依赖（Zod schemas + Port 接口）
 shared-logic/   → 零外部依赖纯逻辑（可在主进程和渲染进程双向复用）
@@ -130,7 +130,7 @@ prismcraft/
 │   ├── shared-logic/       # 零依赖纯逻辑（shot/prompt/video/story）
 │   ├── shared/             # 跨模块通用层（UI 组件、工具、常量）
 │   ├── infrastructure/     # 基础设施（DI 容器、存储、AI 提供商）
-│   ├── modules/            # 9 个业务模块
+│   ├── modules/            # 11 个业务模块
 │   └── app/                # 页面组件和布局
 ├── electron/src/           # 主进程源代码
 │   ├── api/                # HTTP API 路由（defineRoute + Zod）
@@ -147,13 +147,13 @@ prismcraft/
 
 | 指标 | 数值 |
 |------|------|
-| 单元测试 | 5752+ |
+| 单元测试 | 6026+ |
 | E2E 测试 | 126 个（Electron 集成 + 页面加载） |
 | 类型检查 | 严格模式，0 error |
 | ESLint | 0 error |
 | 架构扫描 | 通过（DDD 依赖方向） |
-| 回归守卫 | 183 条规则，8 大类 |
-| i18n 键 | 2000+ |
+| 回归守卫 | 151 条规则，8 大类 |
+| i18n 键 | 3076+ |
 
 ## 安全设计
 
@@ -193,7 +193,7 @@ prismcraft/
 | 年度商业许可 | SaaS / 企业内部 | 按年付费，含版本升级与技术支持 |
 | 定制开发 | 特定需求 | 按项目报价，含源码交付与部署指导 |
 
-**为什么需要商业授权**：本项目历经 3 个月持续开发，累计 93,000+ 行 TypeScript 代码、5,930+ 测试用例、183 条回归防护规则，覆盖 13 家 AI 提供商集成。商业授权是对项目质量的认可，也是持续维护的资金保障。
+**为什么需要商业授权**：本项目历经 3 个月持续开发，累计 237,000+ 行 TypeScript 代码、6,026+ 测试用例、151 条回归防护规则，覆盖 13 家 AI 提供商集成。商业授权是对项目质量的认可，也是持续维护的资金保障。
 
 如需商业授权、技术支持或定制开发，请联系作者：
 

@@ -10,7 +10,7 @@
 1. docs/ARCHITECTURE.md          → 全局架构、依赖方向、状态机、数据流
 2. src/modules/{target}/MODULE.md → 目标模块公共 API、不变量、依赖
 3. src/modules/{target}/{subdomain}/contract.json → 子域合约、invariants
-4. `.trae/rules/regression-guards.md` → 165+ 条回归守则
+4. `.trae/rules/regression-guards.md` → 151 条回归守则
 5. 本文档                         → 修改流程、验证步骤
 ```
 

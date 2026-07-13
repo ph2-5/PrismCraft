@@ -1,6 +1,6 @@
 # PrismCraft — 完整 API 参考手册
 
-> 版本: 1.2.1 | 更新日期: 2026-07-09 | 架构: Electron + Vite + React + DDD
+> 版本: 1.2.3 | 更新日期: 2026-07-13 | 架构: Electron + Vite + React + DDD
 
 ---
 
@@ -11,7 +11,7 @@
 | 部分 | 文件 | 覆盖范围 | 预估导出数 |
 |------|------|---------|-----------|
 | 第一部分 | [API_REFERENCE_PART1.md](./API_REFERENCE_PART1.md) | 领域层 + 共享逻辑层 | ~250 |
-| 第二部分 | [API_REFERENCE_PART2.md](./API_REFERENCE_PART2.md) | 10 个业务模块 | ~277 |
+| 第二部分 | [API_REFERENCE_PART2.md](./API_REFERENCE_PART2.md) | 11 个业务模块 | ~277 |
 | 第三部分 | [API_REFERENCE_PART3.md](./API_REFERENCE_PART3.md) | 共享层 + 基础设施层 | ~450 |
 | 第四部分 | [API_REFERENCE_PART4.md](./API_REFERENCE_PART4.md) | 应用层 + Electron 主进程 | ~210 |
 | **合计** | | | **~1187** |

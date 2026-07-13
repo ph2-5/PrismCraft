@@ -1,6 +1,6 @@
 # PrismCraft 部署与运维指南
 
-> 版本：1.2.1 | 更新日期：2026-07-09
+> 版本：1.2.3 | 更新日期：2026-07-13
 
 ## 1. 环境要求
 
@@ -190,7 +190,7 @@ npm run rebuild    # 等价于 npx electron-rebuild
 npm run build:win
 ```
 
-产物：NSIS 安装程序（`release/PrismCraft Setup 1.2.1.exe`）
+产物：NSIS 安装程序（`release/PrismCraft Setup 1.2.3.exe`）
 
 NSIS 配置：
 - 非一键安装，允许用户选择安装目录

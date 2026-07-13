@@ -57,7 +57,7 @@ export function AssetLibraryContent({
   } = hookResult;
 
   return (
-    <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className="fade-in flex flex-col h-full">
       <TopHeader
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
@@ -85,7 +85,7 @@ export function AssetLibraryContent({
         showSelectAll={currentItems.length > 0}
       />
 
-      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+      <div className="flex-1 flex min-h-0">
         <CategoryTree
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -95,7 +95,7 @@ export function AssetLibraryContent({
           collectionsCount={collections.length}
         />
 
-        <div role="tabpanel" style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        <div role="tabpanel" className="flex-1 overflow-y-auto p-4">
           <AssetCardGrid
             activeTab={activeTab}
             characters={characters}

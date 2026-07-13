@@ -237,7 +237,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
   };
 
   const renderStepIndicator = () => (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 16 }}>
+    <div className="flex items-center gap-1 mb-4">
       {STEPS.map((step, i) => {
         const Icon = step.icon;
         const isActive = i === currentStep;
@@ -248,21 +248,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
             onClick={() => {
               if (i < currentStep) setCurrentStep(i);
             }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 12px",
-              borderRadius: 8,
-              fontSize: 11,
-              fontWeight: 500,
-              transition: "background 0.2s, color 0.2s",
-              ...(isActive
-                ? { background: "var(--primary)", color: "var(--primary-foreground)" }
-                : isPast
-                  ? { background: "color-mix(in srgb, var(--muted-fg) 30%, transparent)", color: "var(--muted-fg)", cursor: "pointer" }
-                  : { background: "color-mix(in srgb, var(--muted-fg) 10%, transparent)", color: "var(--muted-fg)", cursor: "default" }),
-            }}
+            className={`wizard-step-btn ${isActive ? "active" : isPast ? "past" : "default"}`}
           >
             <Icon size={14} />
             <span>{step.label()}</span>
@@ -273,7 +259,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {renderStepIndicator()}
       {currentStep === 0 && <PluginBasicInfo state={state} updateField={updateField} />}
       {currentStep === 1 && <PluginApiConfig state={state} updateField={updateField} />}
@@ -302,17 +288,17 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
           onDownload={handleDownload}
         />
       )}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="flex items-center justify-between">
         <button
           type="button"
           className="btn btn-outline"
           onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
           disabled={currentStep === 0}
         >
-          <ChevronLeft size={16} style={{ marginRight: 4 }} />
+          <ChevronLeft size={16} className="mr-1" />
           {t("plugin.prevStep")}
         </button>
-        <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
+        <span className="text-[11px] text-muted-foreground">
           {currentStep + 1} / {STEPS.length}
         </span>
         {currentStep < STEPS.length - 1 ? (
@@ -323,11 +309,11 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
             disabled={!canProceed}
           >
             {t("plugin.nextStep")}
-            <ChevronRight size={16} style={{ marginLeft: 8 }} />
+            <ChevronRight size={16} className="ml-2" />
           </button>
         ) : (
           <button type="button" className="btn btn-primary" onClick={handleInstall} disabled={isInstalling || !canProceed}>
-            {isInstalling ? <Loader2 size={16} className="animate-spin" style={{ marginRight: 4 }} /> : <Upload size={16} style={{ marginRight: 4 }} />}
+            {isInstalling ? <Loader2 size={16} className="animate-spin mr-1" /> : <Upload size={16} className="mr-1" />}
             {t("plugin.installPlugin")}
           </button>
         )}

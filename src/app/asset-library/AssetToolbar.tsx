@@ -19,27 +19,6 @@ interface AssetToolbarProps {
   showSelectAll: boolean;
 }
 
-// 预览页面 batch toolbar 样式：
-// padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(var(--primary-rgb),0.08);
-// align-items:center;gap:10px;
-const batchToolbarStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  borderBottom: "1px solid var(--border)",
-  background: "rgba(var(--primary-rgb), 0.08)",
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-};
-
-const selectedCountStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: "var(--muted-fg)",
-};
-
-const spacerStyle: React.CSSProperties = {
-  flex: 1,
-};
-
 export function AssetToolbar({
   activeTab,
   selectedIdsSize,
@@ -57,8 +36,11 @@ export function AssetToolbar({
   }
 
   return (
-    <div style={batchToolbarStyle} data-testid="asset-batch-toolbar">
-      <span style={selectedCountStyle}>
+    <div
+      className="flex items-center gap-2.5 py-2 px-4 border-b border-border bg-primary/8"
+      data-testid="asset-batch-toolbar"
+    >
+      <span className="text-xs text-muted-foreground">
         {t("asset.selectedCount", { count: selectedIdsSize })}
       </span>
       {showSelectAll && (
@@ -69,7 +51,7 @@ export function AssetToolbar({
       <button type="button" className="btn btn-ghost btn-xs" onClick={onClearSelection}>
         {t("asset.deselect")}
       </button>
-      <div style={spacerStyle} />
+      <div className="flex-1" />
       <button
         type="button"
         className="btn btn-outline btn-xs"
@@ -87,9 +69,9 @@ export function AssetToolbar({
         onClick={onBatchDelete}
       >
         {isBatchDeleting ? (
-          <Loader2 size={12} className="animate-spin" style={{ marginRight: 4 }} />
+          <Loader2 size={12} className="animate-spin mr-1" />
         ) : (
-          <Trash2 size={12} style={{ marginRight: 4 }} />
+          <Trash2 size={12} className="mr-1" />
         )}
         {isBatchDeleting ? t("common.deleting") : t("common.delete")}
       </button>

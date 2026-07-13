@@ -41,7 +41,7 @@ export function useAutoSave({ enabled, intervalMinutes, onSave, isDirty }: UseAu
       } else {
         retryCountRef.current++;
         if (retryCountRef.current >= MAX_RETRY) {
-          emitToast("error", t("error.saveFailed"), "多次重试后仍无法保存，请手动保存您的更改");
+          emitToast("error", t("error.saveFailed"), t("error.saveFailedRetry"));
           retryCountRef.current = 0;
           pendingRef.current = false;
           savingRef.current = false;

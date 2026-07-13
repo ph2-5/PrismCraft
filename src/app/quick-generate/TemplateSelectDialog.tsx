@@ -28,26 +28,15 @@ export function TemplateSelectDialog({
       ariaLabel={t("quickGenerate.selectVideoTemplate")}
       style={{ maxWidth: "48rem" }}
     >
-      <div style={{ marginBottom: 12 }}>
+      <div className="mb-3">
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 16,
-            fontWeight: 600,
-            color: "var(--fg)",
-          }}
+          className="flex items-center gap-2 text-base font-semibold text-foreground"
         >
           <LayoutTemplate className="w-5 h-5" />
           {t("quickGenerate.selectVideoTemplate")}
         </div>
         <div
-          style={{
-            fontSize: 13,
-            color: "var(--muted-fg)",
-            marginTop: 4,
-          }}
+          className="text-[13px] text-muted-foreground mt-1"
         >
           {t("quickGenerate.selectTemplateDesc")}
         </div>
@@ -110,12 +99,7 @@ export function TemplateSelectDialog({
             </div>
 
             <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 8,
-                marginTop: 16,
-              }}
+              className="flex justify-end gap-2 mt-4"
             >
               <button
                 type="button"

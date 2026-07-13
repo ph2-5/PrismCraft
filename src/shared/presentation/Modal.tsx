@@ -9,6 +9,8 @@ interface ModalProps {
   closeOnOverlayClick?: boolean;
   // 可选：是否允许 Escape 关闭（默认 true）
   closeOnEscape?: boolean;
+  // 可选：应用到 modal 容器的额外 className（用于覆盖 maxWidth 等）
+  className?: string;
   // 可选：应用到 modal 容器的内联样式（用于保留各 modal 的自定义 maxWidth/maxHeight 等）
   style?: React.CSSProperties;
 }
@@ -20,6 +22,7 @@ export function Modal({
   ariaLabel,
   closeOnOverlayClick = true,
   closeOnEscape = true,
+  className,
   style,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
@@ -88,7 +91,7 @@ export function Modal({
     >
       <div
         ref={modalRef}
-        className="modal"
+        className={className ? `modal ${className}` : "modal"}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}

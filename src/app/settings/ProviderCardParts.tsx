@@ -107,12 +107,8 @@ export function ProviderCardHeader({
 }: ProviderCardHeaderProps) {
   return (
     <div
+      className="flex items-center justify-between p-3 cursor-pointer"
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 12,
-        cursor: "pointer",
         background: isConfigured
           ? "rgba(var(--success-rgb), 0.2)"
           : "rgba(var(--warning-rgb), 0.2)",
@@ -128,25 +124,26 @@ export function ProviderCardHeader({
         }
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="flex items-center gap-3">
         <div
-          style={{ width: 8, height: 8, borderRadius: "50%", background: isConfigured ? "var(--success)" : "var(--warning)" }}
+          className="w-2 h-2 rounded-full"
+          style={{ background: isConfigured ? "var(--success)" : "var(--warning)" }}
         />
         <div>
-          <div style={{ fontWeight: 500 }}>{provider.name}</div>
-          <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--muted-fg)" }}>
+          <div className="font-medium">{provider.name}</div>
+          <div className="text-[11px] font-mono text-muted-foreground">
             {apiKeyDisplay}
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ display: "flex", gap: 4 }}>
+      <div className="flex items-center gap-2">
+        <div className="flex gap-1">
           {caps.map((cap) => {
             const capConfig = capabilities.find((c) => c.id === cap);
             return (
-              <span key={cap} className="badge badge-muted" style={{ fontSize: 11 }}>
+              <span key={cap} className="badge badge-muted text-[11px]">
                 {capConfig?.icon}
-                <span style={{ marginLeft: 4 }}>{capConfig?.name}</span>
+                <span className="ml-1">{capConfig?.name}</span>
               </span>
             );
           })}
@@ -160,7 +157,7 @@ export function ProviderCardHeader({
           }}
           aria-label={t("aria.refreshProviderModels")}
         >
-          <Sparkles size={16} style={{ color: "var(--primary)" }} />
+          <Sparkles size={16} className="text-primary" />
         </IconButton>
         <IconButton
           variant="ghost"
@@ -171,7 +168,7 @@ export function ProviderCardHeader({
           }}
           aria-label={t("aria.removeProvider")}
         >
-          <Trash2 size={16} style={{ color: "var(--destructive)" }} />
+          <Trash2 size={16} className="text-destructive" />
         </IconButton>
         <ChevronDown
           size={16}
@@ -191,7 +188,7 @@ export function ApiKeyStatusBadge({
 }) {
   if (apiKeyState.kind === "verifying") {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--muted-fg)" }}>
+      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
         <Loader2 size={11} className="animate-spin" />
         {t("provider.apiKeyVerifying")}
       </span>
@@ -199,7 +196,7 @@ export function ApiKeyStatusBadge({
   }
   if (apiKeyState.kind === "valid") {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--success)" }}>
+      <span className="inline-flex items-center gap-1 text-[10px] text-success">
         <CheckCircle2 size={11} />
         {t("provider.apiKeyVerifySuccess")}
       </span>
@@ -207,7 +204,7 @@ export function ApiKeyStatusBadge({
   }
   if (apiKeyState.kind === "invalid") {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--destructive)" }}>
+      <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
         <AlertCircle size={11} />
         {t("provider.apiKeyStatusInvalid")}
       </span>
@@ -215,14 +212,14 @@ export function ApiKeyStatusBadge({
   }
   if (apiKeyNeedsUpdate) {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--warning)" }}>
+      <span className="inline-flex items-center gap-1 text-[10px] text-warning">
         <AlertTriangle size={11} />
         {t("provider.apiKeyStatusNeedsUpdate")}
       </span>
     );
   }
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--success)" }}>
+    <span className="inline-flex items-center gap-1 text-[10px] text-success">
       <CheckCircle2 size={11} />
       {t("provider.apiKeyStatusConfigured")}
     </span>
@@ -250,30 +247,28 @@ export function ProviderConfigSection({
   onApiKeyChange,
 }: ProviderConfigSectionProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <h4 style={{ fontWeight: 500, fontSize: 12 }}>{t("provider.providerConfig")}</h4>
+    <div className="flex flex-col gap-3">
+      <h4 className="font-medium text-xs">{t("provider.providerConfig")}</h4>
 
-      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label htmlFor={`name-${provider.id}`} style={{ fontSize: 11 }}>
+      <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
+        <div className="flex flex-col gap-1">
+          <label htmlFor={`name-${provider.id}`} className="text-[11px]">
             {t("provider.displayName")}
           </label>
           <input
-            className="input"
-            style={{ fontSize: 12, padding: "6px 10px" }}
+            className="input text-xs !px-2.5 !py-1.5"
             id={`name-${provider.id}`}
             value={provider.name}
             onChange={(e) => onUpdateProvider({ name: e.target.value })}
           />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label htmlFor={`baseUrl-${provider.id}`} style={{ fontSize: 11 }}>
+        <div className="flex flex-col gap-1">
+          <label htmlFor={`baseUrl-${provider.id}`} className="text-[11px]">
             {t("provider.baseUrl")}
           </label>
           <input
-            className="input"
-            style={{ fontSize: 12, padding: "6px 10px" }}
+            className="input text-xs !px-2.5 !py-1.5"
             id={`baseUrl-${provider.id}`}
             value={provider.baseUrl}
             onChange={(e) => onUpdateProvider({ baseUrl: e.target.value })}
@@ -283,17 +278,16 @@ export function ProviderConfigSection({
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <label htmlFor={`apiKey-${provider.id}`} style={{ fontSize: 11 }}>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <label htmlFor={`apiKey-${provider.id}`} className="text-[11px]">
             {t("provider.apiKey")}
           </label>
           <ApiKeyStatusBadge apiKeyState={apiKeyState} apiKeyNeedsUpdate={apiKeyNeedsUpdate} />
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <input
-            className="input"
-            style={{ fontSize: 12, padding: "6px 10px", flex: 1 }}
+            className="input text-xs !px-2.5 !py-1.5 flex-1"
             id={`apiKey-${provider.id}`}
             type="password"
             value={provider.apiKey}
@@ -302,10 +296,9 @@ export function ProviderConfigSection({
           />
           <button
             type="button"
-            className="btn btn-outline btn-sm"
+            className="btn btn-outline btn-sm shrink-0"
             onClick={onVerifyApiKey}
             disabled={apiKeyState.kind === "verifying" || !provider.apiKey || provider.apiKey.startsWith("$secure:")}
-            style={{ flexShrink: 0 }}
             title={
               apiKeyState.kind !== "verifying" && (!provider.apiKey || provider.apiKey.startsWith("$secure:"))
                 ? t("hint.verifyApiKey")
@@ -313,15 +306,15 @@ export function ProviderConfigSection({
             }
           >
             {apiKeyState.kind === "verifying" ? (
-              <Loader2 size={12} className="animate-spin" style={{ marginRight: 4 }} />
+              <Loader2 size={12} className="animate-spin mr-1" />
             ) : (
-              <CheckCircle2 size={12} style={{ marginRight: 4 }} />
+              <CheckCircle2 size={12} className="mr-1" />
             )}
             {t("provider.apiKeyVerifyButton")}
           </button>
         </div>
         {apiKeyState.kind === "invalid" && (
-          <div style={{ fontSize: 10, color: "var(--destructive)", marginTop: 2 }}>
+          <div className="text-[10px] text-destructive mt-0.5">
             {t("provider.apiKeyVerifyFailed", { message: apiKeyState.message })}
           </div>
         )}
@@ -333,24 +326,24 @@ export function ProviderConfigSection({
 function BaseUrlValidationMessage({ validation }: { validation: BaseUrlValidation }) {
   if (validation.status === "invalid-scheme") {
     return (
-      <div style={{ fontSize: 10, color: "var(--destructive)", marginTop: 2 }}>
-        <AlertCircle size={10} style={{ verticalAlign: "middle", marginRight: 2 }} />
+      <div className="text-[10px] text-destructive mt-0.5">
+        <AlertCircle size={10} className="align-middle mr-0.5" />
         {validation.message}
       </div>
     );
   }
   if (validation.status === "private-range") {
     return (
-      <div style={{ fontSize: 10, color: "var(--warning)", marginTop: 2 }}>
-        <AlertTriangle size={10} style={{ verticalAlign: "middle", marginRight: 2 }} />
+      <div className="text-[10px] text-warning mt-0.5">
+        <AlertTriangle size={10} className="align-middle mr-0.5" />
         {validation.message}
       </div>
     );
   }
   if (validation.status === "ok") {
     return (
-      <div style={{ fontSize: 10, color: "var(--success)", marginTop: 2 }}>
-        <CheckCircle2 size={10} style={{ verticalAlign: "middle", marginRight: 2 }} />
+      <div className="text-[10px] text-success mt-0.5">
+        <CheckCircle2 size={10} className="align-middle mr-0.5" />
         {validation.message}
       </div>
     );
@@ -398,25 +391,23 @@ function ModelRow({ model, index, capabilities, onUpdateModel, onRemoveModel }: 
   return (
     <div
       key={model.id || index}
-      style={{ padding: 12, border: "1px solid var(--border)", borderRadius: 8, background: "var(--card2)", display: "flex", flexDirection: "column", gap: 8 }}
+      className="p-3 border border-border rounded-lg bg-card2 flex flex-col gap-2"
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ flex: 1, display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={{ fontSize: 11 }}>{t("provider.modelId")}</label>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 grid gap-2 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px]">{t("provider.modelId")}</label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px" }}
+              className="input text-xs !px-2.5 !py-1.5"
               value={model.id}
               onChange={(e) => onUpdateModel(index, { id: e.target.value })}
               placeholder={t("provider.modelIdPlaceholder")}
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={{ fontSize: 11 }}>{t("provider.displayName")}</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px]">{t("provider.displayName")}</label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px" }}
+              className="input text-xs !px-2.5 !py-1.5"
               value={model.name}
               onChange={(e) => onUpdateModel(index, { name: e.target.value })}
             />
@@ -428,7 +419,7 @@ function ModelRow({ model, index, capabilities, onUpdateModel, onRemoveModel }: 
           onClick={() => onRemoveModel(index)}
           aria-label={t("aria.removeModel")}
         >
-          <Trash2 size={12} style={{ color: "var(--destructive)" }} />
+          <Trash2 size={12} className="text-destructive" />
         </IconButton>
       </div>
 
@@ -458,8 +449,8 @@ function ModelCapabilityToggleGroup({
   onToggle: (cap: ApiCapability, enabled: boolean) => void;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-[11px] text-muted-foreground">
         {t("provider.supportedCapabilities")}
       </span>
       {(["text", "image", "vision", "video"] as const).map((cap) => {
@@ -471,18 +462,8 @@ function ModelCapabilityToggleGroup({
             role="switch"
             aria-checked={isEnabled}
             tabIndex={0}
+            className="flex items-center gap-1 px-2 py-1 rounded-sm text-[11px] cursor-pointer transition-colors"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              paddingLeft: 8,
-              paddingRight: 8,
-              paddingTop: 4,
-              paddingBottom: 4,
-              borderRadius: 4,
-              fontSize: 11,
-              cursor: "pointer",
-              transition: "background 0.2s, color 0.2s",
               ...(isEnabled
                 ? {
                     background: "rgba(var(--primary-rgb), 0.3)",
@@ -515,12 +496,12 @@ function ModelParameterProfile({ modelId }: { modelId: string }) {
   const profile = getModelParameterProfile(modelId);
   if (!profile) return null;
   return (
-    <div style={{ marginTop: 8, padding: 8, border: "1px solid var(--border)", borderRadius: 4, background: "var(--card)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--muted-fg)", marginBottom: 6 }}>
+    <div className="mt-2 p-2 border border-border rounded-sm bg-card">
+      <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-1.5">
         <Settings2 size={12} />
         {t("plugin.modelParams")}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div className="flex flex-wrap gap-1.5">
         <ModelParameterProfileTags profile={profile} />
       </div>
     </div>
@@ -531,40 +512,40 @@ function ModelParameterProfileTags({ profile }: { profile: NonNullable<ReturnTyp
   const tags: React.ReactNode[] = [];
   if (profile.parameters.durations?.length) {
     tags.push(
-      <span key="dur" className="badge badge-muted" style={{ fontSize: 11 }}>
+      <span key="dur" className="badge badge-muted text-[11px]">
         {t("plugin.durationOptions")}: {profile.parameters.durations.map((d) => d.label).join(", ")}
       </span>,
     );
   }
   if (profile.parameters.resolutions?.length) {
     tags.push(
-      <span key="res" className="badge badge-muted" style={{ fontSize: 11 }}>
+      <span key="res" className="badge badge-muted text-[11px]">
         {t("plugin.resolutionOptions")}: {profile.parameters.resolutions.map((r) => r.label).join(", ")}
       </span>,
     );
   }
   if (profile.parameters.styles?.length) {
     tags.push(
-      <span key="style" className="badge badge-muted" style={{ fontSize: 11 }}>
+      <span key="style" className="badge badge-muted text-[11px]">
         {t("plugin.styleOptions")}: {profile.parameters.styles.map((s) => s.label).join(", ")}
       </span>,
     );
   }
   if (profile.parameters.negativePrompt) {
-    tags.push(<span key="neg" className="badge badge-muted" style={{ fontSize: 11 }}>{t("plugin.negativePrompt")}</span>);
+    tags.push(<span key="neg" className="badge badge-muted text-[11px]">{t("plugin.negativePrompt")}</span>);
   }
   if (profile.parameters.seed) {
-    tags.push(<span key="seed" className="badge badge-muted" style={{ fontSize: 11 }}>{t("plugin.seedSupport")}</span>);
+    tags.push(<span key="seed" className="badge badge-muted text-[11px]">{t("plugin.seedSupport")}</span>);
   }
   if (profile.parameters.cfgScale) {
     tags.push(
-      <span key="cfg" className="badge badge-muted" style={{ fontSize: 11 }}>
+      <span key="cfg" className="badge badge-muted text-[11px]">
         {t("plugin.cfgScale")}: {profile.parameters.cfgScale.min}-{profile.parameters.cfgScale.max}
       </span>,
     );
   }
   if (profile.parameters.lora) {
-    tags.push(<span key="lora" className="badge badge-muted" style={{ fontSize: 11 }}>{t("plugin.loraSupport")}</span>);
+    tags.push(<span key="lora" className="badge badge-muted text-[11px]">{t("plugin.loraSupport")}</span>);
   }
   return <>{tags}</>;
 }
@@ -579,15 +560,15 @@ interface ModelListProps {
 
 export function ModelList({ models, capabilities, onAddCustomModel, onUpdateModel, onRemoveModel }: ModelListProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h4 style={{ fontWeight: 500, fontSize: 12 }}>{t("provider.modelList")}</h4>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-xs">{t("provider.modelList")}</h4>
         <button type="button" className="btn btn-outline btn-sm" onClick={onAddCustomModel}>
-          <Plus size={12} style={{ marginRight: 4 }} />
+          <Plus size={12} className="mr-1" />
           {t("provider.addCustomModel")}
         </button>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="flex flex-col gap-2">
         {models.map((model, index) => (
           <ModelRow
             key={model.id || index}

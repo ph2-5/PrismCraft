@@ -53,13 +53,12 @@ export function ScenePageHeader({
   onNewScene,
 }: ScenePageHeaderProps) {
   return (
-    <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-      <span style={{ fontWeight: 600, fontSize: 14 }}><Building2 className="inline-block" size={14} /> {t("scene.title")}</span>
+    <div className="top-tabs justify-between">
+      <span className="font-semibold text-sm"><Building2 className="inline-block" size={14} /> {t("scene.title")}</span>
       <div className="toolbar">
         <input
-          className="input"
+          className="input !text-xs !py-1.5 !px-2.5 w-[180px]"
           placeholder={t("scene.searchPlaceholder")}
-          style={{ fontSize: 12, padding: "6px 10px", width: 180 }}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -91,37 +90,28 @@ export function SceneDetailHeader({
   onChangeCover,
 }: SceneDetailHeaderProps) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+    <div className="flex items-center gap-3.5">
       <div
-        className="element-avatar scene"
-        style={{
-          width: 64,
-          height: 64,
-          fontSize: 28,
-          borderRadius: 14,
-          backgroundImage: avatarImage ? `url(${avatarImage})` : undefined,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
+        className="element-avatar scene !w-16 !h-16 !text-[28px] !rounded-[14px] bg-cover bg-center"
+        style={avatarImage ? { backgroundImage: `url(${avatarImage})` } : undefined}
       >
         {!avatarImage && ""}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         <input
-          className="input"
+          className="input !text-base !font-bold !py-1.5 !px-2.5"
           data-testid="scene-name-input"
-          style={{ fontSize: 16, fontWeight: 700, padding: "6px 10px" }}
           value={scene.name}
           placeholder={t("scene.namePlaceholder")}
           onChange={(e) =>
             setCurrentScene((prev) => ({ ...prev, name: e.target.value }), true)
           }
         />
-        <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+        <div className="flex gap-1.5 mt-1">
           <span className="badge badge-info">
             {scene.type || t("scene.label")}
           </span>
-          <span className="badge" style={{ fontSize: 9 }}>
+          <span className="badge !text-[9px]">
             {t("scene.referencedBy", { count: referencedBeats.length })}
           </span>
         </div>
@@ -147,25 +137,18 @@ export function SceneBasicInfoCard({
   setCurrentScene,
 }: SceneBasicInfoCardProps) {
   return (
-    <div className="card" style={{ padding: 14 }}>
-      <div className="section-label" style={{ marginBottom: 10 }}>
+    <div className="card !p-3.5">
+      <div className="section-label mb-2.5">
         {t("scene.basicInfo")}
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: 8,
-        }}
-      >
+      <div className="grid grid-cols-3 gap-2">
         <div>
-          <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+          <label className="text-[10px] text-muted-foreground">
             {t("scene.timeLabel")}
           </label>
           <select
-            className="select"
+            className="select !text-xs w-full"
             data-testid="scene-time-of-day-input"
-            style={{ fontSize: 12, width: "100%" }}
             value={scene.timeOfDay}
             onChange={(e) =>
               setCurrentScene(
@@ -183,13 +166,12 @@ export function SceneBasicInfoCard({
           </select>
         </div>
         <div>
-          <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+          <label className="text-[10px] text-muted-foreground">
             {t("scene.weatherLabel")}
           </label>
           <select
-            className="select"
+            className="select !text-xs w-full"
             data-testid="scene-weather-input"
-            style={{ fontSize: 12, width: "100%" }}
             value={scene.weather}
             onChange={(e) =>
               setCurrentScene(
@@ -207,13 +189,12 @@ export function SceneBasicInfoCard({
           </select>
         </div>
         <div>
-          <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+          <label className="text-[10px] text-muted-foreground">
             {t("scene.sceneType")}
           </label>
           <select
-            className="select"
+            className="select !text-xs w-full"
             data-testid="scene-type-input"
-            style={{ fontSize: 12, width: "100%" }}
             value={scene.type}
             onChange={(e) =>
               setCurrentScene(
@@ -240,15 +221,14 @@ export function SceneAtmosphereCard({
   setCurrentScene,
 }: SceneBasicInfoCardProps) {
   return (
-    <div className="card" style={{ padding: 14 }}>
-      <div className="section-label" style={{ marginBottom: 8 }}>
+    <div className="card !p-3.5">
+      <div className="section-label mb-2">
         {t("scene.atmosphereDesc")}
       </div>
       <textarea
-        className="textarea"
+        className="textarea !text-xs"
         data-testid="scene-description-input"
         rows={3}
-        style={{ fontSize: 12 }}
         value={scene.description}
         placeholder={t("scene.descriptionPlaceholder")}
         onChange={(e) =>
@@ -267,24 +247,17 @@ export function SceneSpaceCard({
   setCurrentScene,
 }: SceneBasicInfoCardProps) {
   return (
-    <div className="card" style={{ padding: 14 }}>
-      <div className="section-label" style={{ marginBottom: 8 }}>
+    <div className="card !p-3.5">
+      <div className="section-label mb-2">
         {t("scene.spaceDesc")}
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8,
-        }}
-      >
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+          <label className="text-[10px] text-muted-foreground">
             {t("scene.lighting")}
           </label>
           <input
-            className="input"
-            style={{ fontSize: 12, padding: 6 }}
+            className="input !text-xs !p-1.5"
             value={scene.lighting}
             placeholder={t("scene.lightingPlaceholder")}
             onChange={(e) =>
@@ -296,12 +269,11 @@ export function SceneSpaceCard({
           />
         </div>
         <div>
-          <label style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+          <label className="text-[10px] text-muted-foreground">
             {t("scene.colorTone")}
           </label>
           <input
-            className="input"
-            style={{ fontSize: 12, padding: 6 }}
+            className="input !text-xs !p-1.5"
             value={scene.mood}
             placeholder={t("scene.colorTonePlaceholder")}
             onChange={(e) =>
@@ -337,51 +309,30 @@ export function SceneElementsCard({
   onRemoveItem,
 }: SceneElementsCardProps) {
   return (
-    <div className="card" style={{ padding: 14 }}>
-      <div className="section-label" style={{ marginBottom: 8 }}>
+    <div className="card !p-3.5">
+      <div className="section-label mb-2">
         {t("scene.elements")}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+      <div className="flex flex-wrap gap-1">
         {scene.elements.map((element) => (
           <span
             key={element}
             className="badge"
-            style={{
-              fontSize: 10,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-            }}
           >
             {element}
             <button
               type="button"
               aria-label={t("common.delete")}
               onClick={() => onRemoveItem("elements", element)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                fontSize: 11,
-                lineHeight: 1,
-                color: "var(--muted-fg)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--danger)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--muted-fg)";
-              }}
+              className="bg-transparent border-none cursor-pointer p-0 text-[11px] leading-none text-muted-foreground hover:text-destructive"
             >
-              <X style={{ width: 10, height: 10 }} />
+              <X size={10} />
             </button>
           </span>
         ))}
         {showElementInput ? (
           <input
-            className="input"
-            style={{ fontSize: 10, width: 120, padding: "2px 6px" }}
+            className="input !text-[10px] w-[120px] !py-0.5 !px-1.5"
             value={customElement}
             autoFocus
             onChange={(e) => setCustomElement(e.target.value)}
@@ -399,11 +350,7 @@ export function SceneElementsCard({
           />
         ) : (
           <span
-            className="badge badge-info"
-            style={{
-              fontSize: 10,
-              cursor: "pointer",
-            }}
+            className="badge badge-info cursor-pointer"
             onClick={() => setShowElementInput(true)}
             role="button"
             tabIndex={0}
@@ -429,45 +376,33 @@ export function SceneReferencedBeatsCard({
   beats: ReferencedBeat[];
 }) {
   return (
-    <div className="card" style={{ padding: 14 }}>
-      <div className="section-label" style={{ marginBottom: 8 }}>
+    <div className="card !p-3.5">
+      <div className="section-label mb-2">
         <BookOpen className="inline-block" size={14} /> {t("scene.referencedShots")}
       </div>
       {beats.length === 0 ? (
-        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+        <div className="text-xs text-muted-foreground">
           {t("scene.noReferences")}
         </div>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-          }}
-        >
+        <div className="flex flex-col gap-1">
           {beats.map((beat) => {
             const isCompleted =
               beat.generationStatus === "completed" || Boolean(beat.imageUrl);
             return (
               <div
                 key={`${beat.storyId}-${beat.sequence}`}
-                className="element-card"
-                style={{
-                  alignItems: "center",
-                  padding: 8,
-                  cursor: "pointer",
-                }}
+                className="element-card !items-center !p-2 cursor-pointer"
               >
-                <span style={{ fontSize: 18, display: "inline-flex", alignItems: "center" }}><Film size={18} /></span>
-                <span style={{ fontSize: 12, fontWeight: 500 }}>
+                <span className="text-lg inline-flex items-center"><Film size={18} /></span>
+                <span className="text-xs font-medium">
                   {t("scene.shotNumber", { n: beat.sequence })}
                   {beat.title ? ` · ${beat.title}` : ""}
                 </span>
                 <span
-                  className={isCompleted ? "badge badge-success" : "badge badge-info"}
-                  style={{ fontSize: 9, marginLeft: "auto" }}
+                  className={isCompleted ? "badge badge-success !text-[9px] ml-auto" : "badge badge-info !text-[9px] ml-auto"}
                 >
-                  {isCompleted ? <Check style={{ width: 10, height: 10 }} /> : null}
+                  {isCompleted ? <Check size={10} /> : null}
                 </span>
               </div>
             );
@@ -522,21 +457,13 @@ export function SceneImageGenerationCard({
   setShowAssetSelector,
 }: SceneImageGenerationCardProps) {
   return (
-    <div className="card" style={{ padding: 14 }}>
+    <div className="card !p-3.5">
       <PromptHeader
         isOptimizingPrompt={isOptimizingPrompt}
         optimizePrompt={optimizePrompt}
       />
       <div
-        className="card2"
-        style={{
-          padding: 10,
-          fontSize: 12,
-          lineHeight: 1.7,
-          marginBottom: 8,
-          maxHeight: 100,
-          overflowY: "auto",
-        }}
+        className="card2 p-2.5 text-xs leading-[1.7] mb-2 max-h-[100px] overflow-y-auto"
       >
         {generatePrompt(scene)}
       </div>
@@ -574,26 +501,18 @@ function PromptHeader({
   optimizePrompt: () => void;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 8,
-      }}
-    >
+    <div className="flex items-center justify-between mb-2">
       <div className="section-label">{t("scene.imageGenerationPrompt")}</div>
       <button
         type="button"
-        className={`btn ${isOptimizingPrompt ? "btn-primary" : "btn-outline"} btn-xs`}
+        className={`btn ${isOptimizingPrompt ? "btn-primary" : "btn-outline"} btn-xs !gap-1`}
         onClick={optimizePrompt}
         disabled={isOptimizingPrompt}
-        style={{ gap: 4 }}
       >
         {isOptimizingPrompt ? (
-          <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />
+          <Loader2 className="animate-spin" size={12} />
         ) : (
-          <Sparkles style={{ width: 12, height: 12 }} />
+          <Sparkles size={12} />
         )}
         {isOptimizingPrompt ? t("scene.optimizing") : t("scene.aiOptimize")}
       </button>
@@ -613,20 +532,12 @@ function ImagePreview({
   if (!(generatedImage || scene.scenePath || scene.generatedImage)) return null;
   return (
     <div
-      style={{
-        width: "100%",
-        aspectRatio: "16 / 9",
-        maxWidth: 320,
-        margin: "0 auto 8px",
-        borderRadius: 8,
-        overflow: "hidden",
-        border: "1px solid var(--border)",
-      }}
+      className="w-full aspect-video max-w-[320px] mx-auto mb-2 rounded-lg overflow-hidden border border-border"
     >
       <img
         src={avatarImage}
         alt={t("scene.sceneImage")}
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        className="w-full h-full object-cover"
       />
     </div>
   );
@@ -668,19 +579,18 @@ function ImageActionButtons({
   setShowAssetSelector,
 }: ImageActionButtonsProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-1.5 items-center">
         <button
           type="button"
-          className="btn btn-primary btn-sm"
+          className="btn btn-primary btn-sm flex-1 justify-center !gap-1"
           onClick={generateImage}
           disabled={isGenerating}
-          style={{ flex: 1, justifyContent: "center", gap: 4 }}
         >
           {isGenerating ? (
-            <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+            <Loader2 className="animate-spin" size={14} />
           ) : (
-            <Wand2 style={{ width: 14, height: 14 }} />
+            <Wand2 size={14} />
           )}
           {isGenerating ? t("scene.generating") : t("scene.generateImage")}
         </button>
@@ -690,62 +600,57 @@ function ImageActionButtons({
           onChange={setSelectedImageModel}
         />
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div className="flex flex-wrap gap-1.5">
         <button
           type="button"
-          className="btn btn-outline btn-xs"
+          className="btn btn-outline btn-xs !gap-1"
           onClick={saveImageToScene}
           disabled={!canSave}
-          style={{ gap: 4 }}
         >
-          <Save style={{ width: 12, height: 12 }} />
+          <Save size={12} />
           {t("scene.saveToScene")}
         </button>
         {generatedImage && (
           <button
             type="button"
-            className="btn btn-ghost btn-xs"
+            className="btn btn-ghost btn-xs !gap-1"
             onClick={clearImage}
-            style={{ gap: 4 }}
           >
-            <X style={{ width: 12, height: 12 }} />
+            <X size={12} />
             {t("scene.clear")}
           </button>
         )}
         <button
           type="button"
-          className="btn btn-outline btn-xs"
+          className="btn btn-outline btn-xs !gap-1"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          style={{ gap: 4 }}
         >
           {isUploading ? (
-            <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />
+            <Loader2 className="animate-spin" size={12} />
           ) : (
-            <Upload style={{ width: 12, height: 12 }} />
+            <Upload size={12} />
           )}
           {isUploading ? t("scene.uploading") : t("scene.uploadImage")}
         </button>
         <button
           type="button"
-          className="btn btn-outline btn-xs"
+          className="btn btn-outline btn-xs !gap-1"
           onClick={() => setShowAssetSelector(true)}
-          style={{ gap: 4 }}
         >
-          <Folder style={{ width: 12, height: 12 }} />
+          <Folder size={12} />
           {t("scene.selectFromLibrary")}
         </button>
         <button
           type="button"
-          className="btn btn-outline btn-xs"
+          className="btn btn-outline btn-xs !gap-1"
           onClick={() => analyzeFileInputRef.current?.click()}
           disabled={isAnalyzing || isUploading}
-          style={{ gap: 4 }}
         >
           {isAnalyzing ? (
-            <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />
+            <Loader2 className="animate-spin" size={12} />
           ) : (
-            <ScanLine style={{ width: 12, height: 12 }} />
+            <ScanLine size={12} />
           )}
           {isAnalyzing ? t("scene.analyzing") : t("scene.analyzeScene")}
         </button>
@@ -789,20 +694,7 @@ export function SceneActionFooter({
 }: SceneActionFooterProps) {
   return (
     <div
-      style={{
-        position: "sticky",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        display: "flex",
-        gap: 8,
-        alignItems: "center",
-        padding: "10px 0",
-        marginTop: 8,
-        background: "var(--bg)",
-        borderTop: "1px solid var(--border)",
-        zIndex: 10,
-      }}
+      className="sticky bottom-0 left-0 right-0 flex gap-2 items-center py-2.5 mt-2 bg-background border-t border-border z-10"
     >
       <SaveStatusIndicator
         status={isDirty ? "unsaved" : saveStatus}
@@ -810,27 +702,25 @@ export function SceneActionFooter({
       />
       <button
         type="button"
-        className="btn btn-ghost btn-xs"
+        className="btn btn-ghost btn-xs !gap-1 !text-destructive"
         onClick={onDelete}
         disabled={deleteDisabled}
         aria-label={t("scene.deleteScene")}
-        style={{ gap: 4, color: "var(--destructive)" }}
       >
-        <Trash2 style={{ width: 12, height: 12 }} /> {t("scene.deleteScene")}
+        <Trash2 size={12} /> {t("scene.deleteScene")}
       </button>
       <button
         type="button"
         data-testid="scene-save-button"
-        className="btn btn-primary btn-sm"
+        className="btn btn-primary btn-sm flex-1 justify-center !gap-1"
         onClick={onSave}
         disabled={saveStatus === "saving" || !canSave}
-        style={{ flex: 1, justifyContent: "center", gap: 4 }}
         title={saveStatus !== "saving" && !canSave ? t("hint.saveScene") : undefined}
       >
         {saveStatus === "saving" ? (
-          <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+          <Loader2 className="animate-spin" size={14} />
         ) : (
-          <Save style={{ width: 14, height: 14 }} />
+          <Save size={14} />
         )}
         {saveStatus === "saving" ? t("scene.saving") : t("common.save")}
       </button>

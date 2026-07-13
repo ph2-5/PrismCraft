@@ -37,29 +37,17 @@ function AutoSaveSettings({
   onIntervalChange: (val: string | null) => void;
 }) {
   return (
-    <div className="card" style={{ padding: 16, marginBottom: 12 }}>
+    <div className="card mb-3">
       <div className="section-label">
         <span className="dot ok"></span> {t("settings.autoSave")}
       </div>
-      <div
-        style={{
-          fontSize: 11,
-          color: "var(--muted-fg)",
-          marginBottom: 12,
-          padding: 8,
-          background: "var(--card2)",
-          borderRadius: 6,
-        }}
-      >
+      <div className="tip-box-sub mb-3">
         <Lightbulb className="inline-block" size={12} /> {t("settings.autoSaveHint")}
       </div>
-      <div
-        className="element-card"
-        style={{ alignItems: "center", justifyContent: "space-between" }}
-      >
+      <div className="element-card items-center justify-between">
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.enableAutoSave")}</div>
-          <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+          <div className="text-[13px] font-semibold">{t("settings.enableAutoSave")}</div>
+          <div className="text-[10px] text-muted-foreground">
             {t("settings.autoSaveHint")}
           </div>
         </div>
@@ -70,21 +58,10 @@ function AutoSaveSettings({
           aria-label={t("settings.enableAutoSave")}
         />
       </div>
-      <div
-        style={{
-          marginTop: 10,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: 10,
-          background: "var(--card2)",
-          borderRadius: 8,
-        }}
-      >
-        <span style={{ fontSize: 12, color: "var(--muted-fg)" }}>{t("settings.saveInterval")}</span>
+      <div className="mt-2.5 flex items-center gap-2.5 p-2.5 bg-card2 rounded-lg">
+        <span className="text-xs text-muted-foreground">{t("settings.saveInterval")}</span>
         <select
-          className="select"
-          style={{ fontSize: 12 }}
+          className="select text-xs"
           value={String(intervalMinutes)}
           onChange={(e) => onIntervalChange(e.target.value)}
         >
@@ -102,23 +79,14 @@ function AutoSaveSettings({
 
 function SyncSettings({ openDialog }: { openDialog: () => void }) {
   return (
-    <div className="card" style={{ padding: 16, marginBottom: 12 }}>
+    <div className="card mb-3">
       <div className="section-label">
         <span className="dot ok"></span> {t("sync.settingsTitle")}
       </div>
-      <div
-        style={{
-          fontSize: 11,
-          color: "var(--muted-fg)",
-          marginBottom: 12,
-          padding: 8,
-          background: "var(--card2)",
-          borderRadius: 6,
-        }}
-      >
+      <div className="tip-box-sub mb-3">
         <Lightbulb className="inline-block" size={12} /> {t("sync.description")}
       </div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+      <div className="flex gap-2 justify-end">
         <button type="button" className="btn btn-primary btn-sm" onClick={openDialog}>
           <RefreshCw className="inline-block" size={12} /> {t("sync.settingsTitle")}
         </button>
@@ -187,34 +155,26 @@ function SystemInfoCard() {
   const systemOk = diskInfo?.ok !== false;
 
   return (
-    <div className="card" style={{ padding: 16 }}>
+    <div className="card">
       <div className="section-label">
         <span className={`dot ${systemOk ? "ok" : "error"}`}></span> {t("settings.systemInfo")}
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8,
-          marginTop: 8,
-        }}
-      >
-        <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>{diskInfo?.text ?? "..."}</div>
-          <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.diskSpace")}</div>
+      <div className="grid grid-cols-2 gap-2 mt-2">
+        <div className="card2 p-3 rounded-lg text-center">
+          <div className="text-sm font-bold">{diskInfo?.text ?? "..."}</div>
+          <div className="text-[10px] text-muted-foreground">{t("settings.diskSpace")}</div>
         </div>
-        <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{projectCount ?? "..."}</div>
-          <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.totalProjects")}</div>
+        <div className="card2 p-3 rounded-lg text-center">
+          <div className="text-xl font-bold">{projectCount ?? "..."}</div>
+          <div className="text-[10px] text-muted-foreground">{t("settings.totalProjects")}</div>
         </div>
-        <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--success)" }}>{APP_VERSION}</div>
-          <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.version")}</div>
+        <div className="card2 p-3 rounded-lg text-center">
+          <div className="text-xl font-bold text-success">{APP_VERSION}</div>
+          <div className="text-[10px] text-muted-foreground">{t("settings.version")}</div>
           {isElectron() && window.electronAPI?.checkForUpdates && (
             <button
               type="button"
-              className="btn btn-outline btn-sm"
-              style={{ marginTop: 8, fontSize: 11 }}
+              className="btn btn-outline btn-sm mt-2 text-[11px]"
               disabled={updateChecking}
               onClick={async () => {
                 setUpdateChecking(true);
@@ -244,12 +204,12 @@ function SystemInfoCard() {
             </button>
           )}
           {updateMessage && (
-            <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 6 }}>{updateMessage}</div>
+            <div className="text-[10px] text-muted-foreground mt-1.5">{updateMessage}</div>
           )}
         </div>
-        <div className="card2" style={{ padding: 12, borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>{uptime}</div>
-          <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("settings.uptime")}</div>
+        <div className="card2 p-3 rounded-lg text-center">
+          <div className="text-sm font-bold">{uptime}</div>
+          <div className="text-[10px] text-muted-foreground">{t("settings.uptime")}</div>
         </div>
       </div>
     </div>
@@ -283,39 +243,22 @@ export default function SettingsPage() {
 
   return (
     <PageErrorBoundary pageName={t("page.settings")}>
-      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="fade-in flex flex-col h-full">
         {/* top-tabs 标题栏 - 对齐预览页面 */}
-        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}><Settings className="inline-block" size={14} /> {t("page.settings")}</span>
-          <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
+        <div className="top-tabs justify-between">
+          <span className="font-semibold text-sm"><Settings className="inline-block" size={14} /> {t("page.settings")}</span>
+          <span className="text-[11px] text-muted-foreground">
             {t("settings.apiConfig")} · {t("settings.autoSave")} · {t("sync.settingsTitle")} · {t("settings.embeddingModel")} · {t("settings.promptTemplates")} · {t("settings.systemStatus")}
           </span>
         </div>
 
         {/* 内容区 */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: 16,
-            maxWidth: 800,
-            margin: "0 auto",
-            width: "100%",
-          }}
-        >
+        <div className="flex-1 overflow-y-auto p-4 max-w-[800px] mx-auto w-full">
           {/* Settings Tabs - 对齐预览页面的Tab容器 */}
           <div
             role="tablist"
             aria-label={t("page.settings")}
-            style={{
-              display: "flex",
-              gap: 2,
-              marginBottom: 16,
-              background: "var(--card)",
-              padding: 4,
-              borderRadius: 10,
-              border: "1px solid var(--border)",
-            }}
+            className="flex gap-0.5 mb-4 bg-card p-1 rounded-[10px] border border-border"
           >
             {tabs.map((tab) => (
               <button
@@ -324,11 +267,7 @@ export default function SettingsPage() {
                 role="tab"
                 aria-selected={activeTab === tab.id}
                 data-active={activeTab === tab.id ? "true" : undefined}
-                className={`btn btn-sm ${activeTab === tab.id ? "btn-primary" : "btn-ghost"}`}
-                style={{
-                  flex: 1,
-                  justifyContent: "center",
-                }}
+                className={`btn btn-sm flex-1 justify-center ${activeTab === tab.id ? "btn-primary" : "btn-ghost"}`}
                 onClick={() => setActiveTab(tab.id)}
               >
                 {tab.icon} {tab.label}
@@ -339,17 +278,7 @@ export default function SettingsPage() {
           {/* Tab: API配置 */}
           {activeTab === "api" && (
             <div role="tabpanel" aria-label={t("settings.apiConfig")}>
-              <div
-                style={{
-                  padding: 12,
-                  background: "rgba(var(--primary-rgb), 0.08)",
-                  border: "1px solid rgba(var(--primary-rgb), 0.2)",
-                  borderRadius: 8,
-                  marginBottom: 12,
-                  fontSize: 11,
-                  color: "var(--muted-fg)",
-                }}
-              >
+              <div className="tip-box mb-3">
                 <Lightbulb className="inline-block" size={12} /> {t("settings.apiConfigTip")}
               </div>
               <ApiConfigPanel />
@@ -391,7 +320,7 @@ export default function SettingsPage() {
 
           {/* Tab: 系统状态 */}
           {activeTab === "system" && (
-            <div role="tabpanel" aria-label={t("settings.systemStatus")} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div role="tabpanel" aria-label={t("settings.systemStatus")} className="flex flex-col gap-3">
               <MemoryMonitorPanel clearErrorLogs={clearErrorLogs} />
               <ErrorLogViewer loadLogs={loadErrorLogs} clearLogs={clearErrorLogsAll} />
               <SystemInfoCard />

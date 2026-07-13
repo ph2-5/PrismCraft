@@ -153,7 +153,7 @@ describe("R185: AssetUploadSection 拖拽区域实际处理 drop 事件", () => 
     expect(inputEl.files!.item(0)!.name).toBe("fallback.png");
   });
 
-  it("dragEnter 应设置 isDragOver=true（borderColor 变为 primary）", () => {
+  it("dragEnter 应设置 isDragOver=true（添加 active 类）", () => {
     const fileInputRef = React.createRef<HTMLInputElement>();
 
     render(
@@ -166,15 +166,14 @@ describe("R185: AssetUploadSection 拖拽区域实际处理 drop 事件", () => 
     );
 
     const dropZone = screen.getByRole("button");
-    const initialBorderColor = dropZone.style.borderColor;
+    expect(dropZone.className).not.toContain("active");
 
     fireEvent.dragEnter(dropZone, { dataTransfer: new DataTransfer() });
 
-    expect(dropZone.style.borderColor).toBe("var(--primary)");
-    expect(dropZone.style.borderColor).not.toBe(initialBorderColor);
+    expect(dropZone.className).toContain("active");
   });
 
-  it("dragLeave 应重置 isDragOver=false", () => {
+  it("dragLeave 应重置 isDragOver=false（移除 active 类）", () => {
     const fileInputRef = React.createRef<HTMLInputElement>();
 
     render(
@@ -187,13 +186,12 @@ describe("R185: AssetUploadSection 拖拽区域实际处理 drop 事件", () => 
     );
 
     const dropZone = screen.getByRole("button");
-    const initialBorderColor = dropZone.style.borderColor;
 
     fireEvent.dragEnter(dropZone, { dataTransfer: new DataTransfer() });
-    expect(dropZone.style.borderColor).toBe("var(--primary)");
+    expect(dropZone.className).toContain("active");
 
     fireEvent.dragLeave(dropZone, { dataTransfer: new DataTransfer() });
-    expect(dropZone.style.borderColor).toBe(initialBorderColor);
+    expect(dropZone.className).not.toContain("active");
   });
 
   it("dragOver 必须调用 preventDefault（允许 drop）", () => {
@@ -305,16 +303,14 @@ describe("R185: AssetUploadSection 拖拽区域实际处理 drop 事件", () => 
 
     // 先 dragEnter 进入高亮状态
     fireEvent.dragEnter(dropZone, { dataTransfer: new DataTransfer() });
-    expect(dropZone.style.borderColor).toBe("var(--primary)");
+    expect(dropZone.className).toContain("active");
 
     // drop 后应退出高亮
     const file1 = new File(["c"], "x.png", { type: "image/png" });
     fireEvent.drop(dropZone, { dataTransfer: makeDataTransferWithFiles([file1]) });
 
-    // borderColor 应不再为 "var(--primary)"（isDragOver 已重置）
-    // 注意：uploadDropZoneStyle 用 border 简写设置颜色，所以 isDragOver=false 时
-    // style 中没有 borderColor 属性（值为空字符串），只要不为 primary 即可
-    expect(dropZone.style.borderColor).not.toBe("var(--primary)");
+    // isDragOver 已重置，active 类应被移除
+    expect(dropZone.className).not.toContain("active");
   });
 
   it("拖拽空文件列表时不应调用 onDropFiles", () => {

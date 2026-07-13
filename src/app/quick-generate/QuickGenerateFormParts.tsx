@@ -8,7 +8,9 @@ import {
   Image,
   Wand2,
 } from "lucide-react";
+import { useId } from "react";
 import { t } from "@/shared/constants";
+import { useGenerationStage } from "@/shared/presentation/useGenerationStage";
 import type { Character, Scene } from "@/domain/schemas";
 
 interface PromptCardProps {
@@ -16,6 +18,7 @@ interface PromptCardProps {
   onPromptTextChange: (value: string) => void;
   onOpenTemplateDialog: () => void;
   quickExamples: string[];
+  promptError?: string;
 }
 
 export function PromptCard({
@@ -23,39 +26,24 @@ export function PromptCard({
   onPromptTextChange,
   onOpenTemplateDialog,
   quickExamples,
+  promptError,
 }: PromptCardProps) {
+  const promptErrorId = useId();
   return (
     <div
-      className="card"
-      style={{
-        padding: 16,
-        border: "2px solid var(--border)",
-        background: "var(--card2)",
-        backdropFilter: "blur(8px)",
-      }}
+      className="card !border-2 !bg-card2 backdrop-blur"
     >
-      <div style={{ padding: "12px 16px 4px" }}>
+      <div className="px-4 pt-3 pb-1">
         <div className="flex items-center justify-between">
           <div>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 20,
-                fontWeight: 600,
-                color: "var(--fg)",
-              }}
+              className="flex items-center gap-2 text-xl font-semibold text-foreground"
             >
               <Sparkles className="w-5 h-5 text-primary" />
               {t("quickGenerate.describeVideo")}
             </div>
             <div
-              style={{
-                fontSize: 13,
-                color: "var(--muted-fg)",
-                marginTop: 4,
-              }}
+              className="text-[13px] text-muted-foreground mt-1"
             >
               {t("quickGenerate.describeVideoDesc")}
             </div>
@@ -70,27 +58,29 @@ export function PromptCard({
           </button>
         </div>
       </div>
-      <div style={{ padding: "0 16px 16px" }} className="space-y-4">
+      <div className="px-4 pb-4 space-y-4">
         <textarea
-          className="textarea"
-          style={{ fontSize: 12, minHeight: "8rem", resize: "vertical" }}
+          className="textarea !text-xs min-h-32 resize-y"
           aria-label={t("quickGenerate.describeVideo")}
           value={promptText}
           onChange={(e) => onPromptTextChange(e.target.value)}
           placeholder={t("story.quickPromptPlaceholder")}
+          required
+          aria-invalid={!!promptError}
+          aria-errormessage={promptError ? promptErrorId : undefined}
         />
+        {promptError && (
+          <p id={promptErrorId} role="alert" className="text-xs text-destructive">
+            {promptError}
+          </p>
+        )}
         <p className="text-sm text-muted-foreground">
           {t("quickGenerate.promptHint")}
         </p>
 
         <div className="pt-4">
           <span
-            style={{
-              display: "block",
-              fontSize: 12,
-              color: "var(--muted-fg)",
-              marginBottom: 8,
-            }}
+            className="block text-xs text-muted-foreground mb-2"
           >
             {t("quickGenerate.quickTry")}
           </span>
@@ -99,8 +89,7 @@ export function PromptCard({
               <button
                 key={example}
                 type="button"
-                className="btn btn-outline btn-sm"
-                style={{ fontSize: 11 }}
+                className="btn btn-outline btn-sm !text-[11px]"
                 onClick={() => onPromptTextChange(example)}
               >
                 {example.length > 20 ? `${example.slice(0, 20)}...` : example}
@@ -131,13 +120,7 @@ export function CharacterSelector({
   return (
     <div className="space-y-2">
       <span
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 13,
-          color: "var(--fg)",
-        }}
+        className="flex items-center gap-2 text-[13px] text-foreground"
       >
         <User className="w-4 h-4" />
         {t("quickGenerate.lockMainCharacter")}
@@ -179,8 +162,7 @@ export function CharacterSelector({
           ))}
           <button
             type="button"
-            className="btn btn-outline btn-sm"
-            style={{ borderStyle: "dashed", borderColor: "var(--muted)" }}
+            className="btn btn-outline btn-sm !border-dashed !border-muted"
             onClick={() => guardedPush("/characters")}
           >
             <Plus className="w-4 h-4 mr-1" />
@@ -190,12 +172,7 @@ export function CharacterSelector({
       ) : (
         <button
           type="button"
-          className="btn btn-outline btn-sm"
-          style={{
-            borderStyle: "dashed",
-            borderColor: "var(--muted)",
-            width: "100%",
-          }}
+          className="btn btn-outline btn-sm !border-dashed !border-muted w-full"
           onClick={() => guardedPush("/characters")}
         >
           <Plus className="w-4 h-4 mr-1" />
@@ -224,13 +201,7 @@ export function SceneSelector({
   return (
     <div className="space-y-2">
       <span
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 13,
-          color: "var(--fg)",
-        }}
+        className="flex items-center gap-2 text-[13px] text-foreground"
       >
         <Image className="w-4 h-4" />
         {t("quickGenerate.lockScene")}
@@ -272,8 +243,7 @@ export function SceneSelector({
           ))}
           <button
             type="button"
-            className="btn btn-outline btn-sm"
-            style={{ borderStyle: "dashed", borderColor: "var(--muted)" }}
+            className="btn btn-outline btn-sm !border-dashed !border-muted"
             onClick={() => guardedPush("/scenes")}
           >
             <Plus className="w-4 h-4 mr-1" />
@@ -283,12 +253,7 @@ export function SceneSelector({
       ) : (
         <button
           type="button"
-          className="btn btn-outline btn-sm"
-          style={{
-            borderStyle: "dashed",
-            borderColor: "var(--muted)",
-            width: "100%",
-          }}
+          className="btn btn-outline btn-sm !border-dashed !border-muted w-full"
           onClick={() => guardedPush("/scenes")}
         >
           <Plus className="w-4 h-4 mr-1" />
@@ -301,41 +266,48 @@ export function SceneSelector({
 
 interface GenerateButtonProps {
   isGenerating: boolean;
-  promptText: string;
   onGenerate: () => void;
 }
 
 export function GenerateButton({
   isGenerating,
-  promptText,
   onGenerate,
 }: GenerateButtonProps) {
+  const { stageLabel } = useGenerationStage(isGenerating, {
+    initialKey: "generate.stage.videoInitial",
+  });
+
   return (
-    <button
-      type="button"
-      className="btn btn-primary"
-      style={{
-        width: "100%",
-        height: 56,
-        fontSize: 18,
-        fontWeight: 600,
-        background: "var(--primary)",
-      }}
-      onClick={onGenerate}
-      disabled={isGenerating || !promptText.trim()}
-    >
-      {isGenerating ? (
-        <>
-          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-          {t("task.generatingVideo")}
-        </>
-      ) : (
-        <>
-          <Wand2 className="w-5 h-5 mr-2" />
-          {t("task.generateVideoNow")}
-        </>
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        className="btn btn-primary w-full h-14 !text-lg !font-semibold"
+        onClick={onGenerate}
+        disabled={isGenerating}
+        aria-live="polite"
+      >
+        {isGenerating ? (
+          <>
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            {t("task.generatingVideo")}
+          </>
+        ) : (
+          <>
+            <Wand2 className="w-5 h-5 mr-2" />
+            {t("task.generateVideoNow")}
+          </>
+        )}
+      </button>
+      {isGenerating && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="text-xs text-muted-foreground text-center"
+        >
+          {stageLabel}
+        </div>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -347,27 +319,17 @@ export function GeneratedPromptCard({ generatedPrompt }: GeneratedPromptCardProp
   return (
     <div
       className="card"
-      style={{
-        padding: 16,
-        border: "1px solid var(--border)",
-        background: "var(--card)",
-      }}
     >
-      <div style={{ padding: "12px 16px 4px" }}>
+      <div className="px-4 pt-3 pb-1">
         <div
-          style={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--fg)",
-          }}
+          className="text-sm font-medium text-foreground"
         >
           {t("task.actualPromptSent")}
         </div>
       </div>
-      <div style={{ padding: "0 16px 16px" }}>
+      <div className="px-4 pb-4">
         <p
-          className="whitespace-pre-wrap break-all max-h-32 overflow-y-auto"
-          style={{ fontSize: 12, color: "var(--muted-fg)" }}
+          className="whitespace-pre-wrap break-all max-h-32 overflow-y-auto text-xs text-muted-foreground"
         >
           {generatedPrompt}
         </p>

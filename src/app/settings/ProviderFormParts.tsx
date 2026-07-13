@@ -47,11 +47,11 @@ export function buildTemplateGroups(): TemplateGroups {
 
 export function ProviderFormSteps() {
   return (
-    <div style={{ padding: 12, borderRadius: 8, border: "1px solid var(--primary)", background: "rgba(var(--primary-rgb), 0.2)" }}>
-      <h4 style={{ fontWeight: 500, marginBottom: 8, color: "var(--primary)" }}>
+    <div className="p-3 rounded-lg border border-primary bg-[rgba(var(--primary-rgb),0.2)]">
+      <h4 className="font-medium mb-2 text-primary">
         {t("provider.addProviderSteps")}
       </h4>
-      <ol style={{ listStyleType: "decimal", listStylePosition: "inside", fontSize: 12, display: "flex", flexDirection: "column", gap: 4, color: "var(--primary)" }}>
+      <ol className="list-decimal list-inside text-xs flex flex-col gap-1 text-primary">
         <li>{t("provider.step1")}</li>
         <li>{t("provider.step2")}</li>
         <li>{t("provider.step3")}</li>
@@ -85,13 +85,12 @@ export function ApiKeyInputSection({
   hasMultipleSources,
 }: ApiKeyInputSectionProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="flex flex-col gap-2">
       <label htmlFor="apiKey">
-        {t("provider.apiKey")} <span style={{ color: "var(--destructive)" }}>*</span>
+        {t("provider.apiKey")} <span className="text-destructive">*</span>
       </label>
       <input
-        className="input"
-        style={{ fontSize: 12, padding: "6px 10px" }}
+        className="input text-xs !px-2.5 !py-1.5"
         id="apiKey"
         data-testid="provider-api-key-input"
         type="password"
@@ -100,7 +99,7 @@ export function ApiKeyInputSection({
         onChange={(e) => onKeyChange(e.target.value)}
       />
       {apiKey && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, flexWrap: "wrap" }}>
+        <div className="flex items-center gap-2 text-xs flex-wrap">
           <ApiKeyValidationBadge
             keyValidation={keyValidation}
             detectedInfo={detectedInfo}
@@ -129,8 +128,8 @@ function ApiKeyValidationBadge({
   if (!keyValidation.valid) {
     return (
       <>
-        <XCircle size={16} style={{ color: "var(--destructive)" }} />
-        <span style={{ color: "var(--destructive)" }}>
+        <XCircle size={16} className="text-destructive" />
+        <span className="text-destructive">
           {keyValidation.errorKey ? t(keyValidation.errorKey) : null}
         </span>
       </>
@@ -139,33 +138,27 @@ function ApiKeyValidationBadge({
   if (!detectedInfo) {
     return (
       <>
-        <AlertCircle size={16} style={{ color: "var(--warning)" }} />
-        <span style={{ color: "var(--warning)" }}>{t("provider.cannotAutoDetect")}</span>
+        <AlertCircle size={16} className="text-warning" />
+        <span className="text-warning">{t("provider.cannotAutoDetect")}</span>
       </>
     );
   }
   return (
     <>
-      <CheckCircle size={16} style={{ color: "var(--success)" }} />
+      <CheckCircle size={16} className="text-success" />
       <span>{t("provider.detected", { name: detectedInfo.suggestedName })}</span>
       <span className={`badge ${detectedInfo.confidence === "high" ? "badge-info" : "badge-muted"}`}>
         {detectedInfo.confidence === "high" ? t("provider.highConfidence") : t("provider.mediumConfidence")}
       </span>
-      <span
-        className="badge badge-muted"
-        style={{ fontSize: 11, borderColor: "var(--primary)", color: "var(--primary)" }}
-      >
-        {detectedInfo.source === "plugin" ? <Puzzle size={12} style={{ marginRight: 4 }} /> : null}
+      <span className="badge badge-muted text-[11px] !border-primary !text-primary">
+        {detectedInfo.source === "plugin" ? <Puzzle size={12} className="mr-1" /> : null}
         {detectedInfo.source === "plugin"
           ? t("plugin.detectedAsPlugin", { name: detectedInfo.suggestedName })
           : t("provider.sourceBuiltin")}
       </span>
       {hasMultipleSources && detectedAll && (
-        <span
-          className="badge badge-muted"
-          style={{ fontSize: 11, borderColor: "var(--warning)", color: "var(--warning)" }}
-        >
-          <AlertCircle size={12} style={{ marginRight: 4 }} />
+        <span className="badge badge-muted text-[11px] !border-warning !text-warning">
+          <AlertCircle size={12} className="mr-1" />
           {t("provider.multipleSources", {
             builtin: detectedAll.builtinMatches.length,
             plugin: detectedAll.pluginMatches.length,
@@ -191,13 +184,12 @@ export function TemplateSelectSection({
 }: TemplateSelectSectionProps) {
   if (!visible) return null;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="flex flex-col gap-2">
       <label>
-        {t("provider.selectProvider")} <span style={{ color: "var(--destructive)" }}>*</span>
+        {t("provider.selectProvider")} <span className="text-destructive">*</span>
       </label>
       <select
-        className="select"
-        style={{ fontSize: 12, padding: "6px 10px" }}
+        className="select text-xs !px-2.5 !py-1.5"
         data-testid="provider-select-template"
         value={selectedTemplate}
         onChange={(e) => onTemplateChange(e.target.value || "")}
@@ -237,18 +229,17 @@ interface ProviderNameInputProps {
 
 export function ProviderNameInput({ value, onChange, placeholder }: ProviderNameInputProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="flex flex-col gap-2">
       <label htmlFor="providerName">{t("provider.displayNameOptional")}</label>
       <input
-        className="input"
-        style={{ fontSize: 12, padding: "6px 10px" }}
+        className="input text-xs !px-2.5 !py-1.5"
         id="providerName"
         data-testid="provider-name-input"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
-      <p style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("provider.displayNameHint")}</p>
+      <p className="text-[11px] text-muted-foreground">{t("provider.displayNameHint")}</p>
     </div>
   );
 }
@@ -278,8 +269,8 @@ export function BaseUrlSection({ onBaseUrlEnable, onBaseUrlChange }: BaseUrlSect
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
         <label htmlFor="enableBaseUrl">{t("provider.customBaseUrl")}</label>
         <button
           type="button"
@@ -291,15 +282,14 @@ export function BaseUrlSection({ onBaseUrlEnable, onBaseUrlChange }: BaseUrlSect
       {enableBaseUrl && (
         <>
           <input
-            className="input"
-            style={{ fontSize: 12, padding: "6px 10px" }}
+            className="input text-xs !px-2.5 !py-1.5"
             id="baseUrl"
             data-testid="provider-base-url-input"
             placeholder={t("provider.baseUrlPlaceholder")}
             value={baseUrl}
             onChange={(e) => handleUrlChange(e.target.value)}
           />
-          <p style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("provider.baseUrlHint")}</p>
+          <p className="text-[11px] text-muted-foreground">{t("provider.baseUrlHint")}</p>
         </>
       )}
     </div>
@@ -312,19 +302,19 @@ interface SupportedFeaturesProps {
 
 export function SupportedFeatures({ capabilities }: SupportedFeaturesProps) {
   return (
-    <div style={{ background: "var(--card2)", padding: 12, borderRadius: 8 }}>
-      <h4 style={{ fontWeight: 500, marginBottom: 8, color: "var(--muted-fg)" }}>
+    <div className="bg-card2 p-3 rounded-lg">
+      <h4 className="font-medium mb-2 text-muted-foreground">
         {t("provider.supportedFeatures")}
       </h4>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div className="flex flex-wrap gap-2">
         {capabilities.map((cap) => (
-          <span key={cap.id} className="badge badge-muted" style={{ fontSize: 11 }}>
+          <span key={cap.id} className="badge badge-muted text-[11px]">
             {cap.icon}
-            <span style={{ marginLeft: 4 }}>{cap.name}</span>
+            <span className="ml-1">{cap.name}</span>
           </span>
         ))}
       </div>
-      <p style={{ fontSize: 11, marginTop: 8, color: "var(--muted-fg)" }}>{t("provider.afterAddHint")}</p>
+      <p className="text-[11px] mt-2 text-muted-foreground">{t("provider.afterAddHint")}</p>
     </div>
   );
 }
@@ -338,18 +328,17 @@ interface FormActionsProps {
 
 export function FormActions({ isAdding, canSubmit, onAdd, onCancel }: FormActionsProps) {
   return (
-    <div style={{ display: "flex", gap: 8 }}>
+    <div className="flex gap-2">
       <button
         type="button"
-        className="btn btn-primary"
+        className="btn btn-primary flex-1"
         onClick={onAdd}
         disabled={!canSubmit || isAdding}
-        style={{ flex: 1 }}
       >
         {isAdding ? (
-          <Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} />
+          <Loader2 size={16} className="animate-spin mr-2" />
         ) : (
-          <Plus size={16} style={{ marginRight: 8 }} />
+          <Plus size={16} className="mr-2" />
         )}
         {t("provider.addProvider")}
       </button>

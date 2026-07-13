@@ -78,15 +78,15 @@ export function ApiConfigPanel() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="flex flex-col gap-3">
       <EncryptedStorageHint />
 
-      <div className="card" style={{ padding: 16 }}>
-        <div className="section-label" style={{ marginBottom: 10 }}><Key size={14} /> {t("provider.configuredProviders")}</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="card">
+        <div className="section-label !mb-2.5"><Key size={14} /> {t("provider.configuredProviders")}</div>
+        <div className="flex flex-col gap-3">
           {config.providers.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "32px 0", border: "2px dashed var(--border)", borderRadius: 8, color: "var(--muted-fg)" }}>
-              <Key size={48} style={{ margin: "0 auto 16px", opacity: 0.5 }} />
+            <div className="text-center py-8 border-2 border-dashed border-border rounded-lg text-muted-foreground">
+              <Key size={48} className="mx-auto mb-4 opacity-50" />
               <p>{t("provider.noConfig")}</p>
             </div>
           ) : (
@@ -114,8 +114,7 @@ export function ApiConfigPanel() {
           {!showAddForm ? (
             <button
               type="button"
-              className="btn btn-outline btn-sm"
-              style={{ borderStyle: "dashed", justifyContent: "center", gap: 6 }}
+              className="btn btn-outline btn-sm !border-dashed justify-center gap-1.5"
               onClick={() => setShowAddForm(true)}
             >
               <Plus size={14} />

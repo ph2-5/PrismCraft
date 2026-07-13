@@ -22,8 +22,8 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
   return (
     <>
       <div className="card">
-        <div style={{ paddingBottom: 12 }}>
-          <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
+        <div className="pb-3">
+          <div className="text-sm text-foreground font-semibold">
             {t("beat.content")}
           </div>
         </div>
@@ -59,8 +59,8 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
 
       {beat.camera && (
         <div className="card">
-          <div style={{ paddingBottom: 12 }}>
-            <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
+          <div className="pb-3">
+            <div className="text-sm text-foreground font-semibold">
               {t("beat.cameraParams")}
             </div>
           </div>
@@ -95,8 +95,8 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
 
       {beat.elementIds && beat.elementIds.length > 0 && (
         <div className="card">
-          <div style={{ paddingBottom: 12 }}>
-            <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
+          <div className="pb-3">
+            <div className="text-sm text-foreground font-semibold">
               {t("beat.elementBinding")}
             </div>
           </div>

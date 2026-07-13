@@ -28,8 +28,8 @@ interface CardHeaderProps {
 
 function CardHeader({ title }: CardHeaderProps) {
   return (
-    <div style={{ paddingBottom: 12 }}>
-      <div className="text-sm text-foreground" style={{ fontWeight: 600 }}>
+    <div className="pb-3">
+      <div className="text-sm text-foreground font-semibold">
         {title}
       </div>
     </div>
@@ -201,7 +201,7 @@ function ConsistencyCheckCard({ beat, onRegenerate, isRegenerating }: Consistenc
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">{t("beat.overallScore")}</span>
           <div className="flex items-center gap-2">
-            <div className="progress-bar" style={{ width: 80 }}>
+            <div className="progress-bar w-20">
               <div className="progress-fill" style={{ width: `${overallPercent}%` }} />
             </div>
             <span className="text-sm font-medium">{overallPercent.toFixed(0)}%</span>

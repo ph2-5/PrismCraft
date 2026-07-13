@@ -58,7 +58,7 @@ export function ProviderForm({
   const showTemplateSelect = !!(newProviderKey && !detectedInfo);
 
   return (
-    <div style={{ padding: 16, border: "1px solid var(--border)", borderRadius: 8, background: "var(--card2)", display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="p-4 border border-border rounded-lg bg-card2 flex flex-col gap-4">
       <ProviderFormSteps />
       <ApiKeyInputSection
         apiKey={newProviderKey}

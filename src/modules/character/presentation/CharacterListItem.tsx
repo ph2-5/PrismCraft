@@ -15,66 +15,8 @@ interface CharacterListItemProps {
   onDelete: (e: React.MouseEvent) => void;
 }
 
-// 预览页面角色列表项样式：使用 card 类
-// padding:10px 12px;cursor:pointer;
+// 预览页面角色列表项样式：使用 card 类 + Tailwind 工具类
 // 选中态：border-color:var(--primary);
-const itemStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  cursor: "pointer",
-};
-
-// 预览页面头像样式：element-avatar character 类
-const avatarStyle: React.CSSProperties = {
-  width: 40,
-  height: 40,
-  borderRadius: 20,
-  objectFit: "cover",
-  flexShrink: 0,
-};
-
-// 预览页面头像占位符：渐变背景
-const avatarPlaceholderStyle: React.CSSProperties = {
-  width: 40,
-  height: 40,
-  borderRadius: 20,
-  background: "linear-gradient(135deg, var(--primary), var(--accent))",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "var(--primary-foreground)",
-  fontWeight: 700,
-  fontSize: 16,
-  flexShrink: 0,
-};
-
-const nameStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 600,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-};
-
-const styleStyle: React.CSSProperties = {
-  fontSize: 11,
-  color: "var(--muted-fg)",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-};
-
-const deleteBtnStyle: React.CSSProperties = {
-  padding: 4,
-  borderRadius: 4,
-  border: "none",
-  background: "transparent",
-  cursor: "pointer",
-  color: "var(--destructive)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-};
 
 export const CharacterListItem = React.memo(function CharacterListItem({
   character,
@@ -94,8 +36,7 @@ export const CharacterListItem = React.memo(function CharacterListItem({
 
   return (
     <div
-      className="card"
-      style={itemStyle}
+      className="card px-3 py-2.5 cursor-pointer"
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -107,30 +48,30 @@ export const CharacterListItem = React.memo(function CharacterListItem({
       }}
       aria-label={t("character.selectLabel", { name: character.name || t("character.unnamed") })}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="flex items-center gap-2.5">
         {showImage ? (
           <img
             src={characterImage}
             alt={character.name}
-            style={avatarStyle}
+            className="w-10 h-10 rounded-full object-cover shrink-0"
             onError={() => setImageError(true)}
           />
         ) : (
-          <div style={avatarPlaceholderStyle}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--primary-foreground)] font-bold text-base shrink-0 bg-[linear-gradient(135deg,var(--primary),var(--accent))]">
             {character.name.charAt(0) || "?"}
           </div>
         )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={nameStyle}>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-semibold truncate">
             {character.name || t("character.unnamed")}
           </div>
-          <div style={styleStyle}>
+          <div className="text-[11px] text-muted-foreground truncate">
             {character.style || t("character.noStyle")}
           </div>
         </div>
         <button
           type="button"
-          style={deleteBtnStyle}
+          className="p-1 rounded bg-transparent text-destructive flex items-center justify-center shrink-0 cursor-pointer border-none"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(e);

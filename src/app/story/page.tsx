@@ -36,8 +36,8 @@ function StoryPageContent() {
 
   return (
     <PageErrorBoundary pageName={t("page.storyboard")}>
-      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-        <div className="top-tabs" style={{ padding: 0, alignItems: "stretch", justifyContent: "space-between" }}>
+      <div className="fade-in flex flex-col h-full">
+        <div className="top-tabs !p-0 !items-stretch !justify-between">
           <Tabs
             tabs={[
               { id: "storyboard", label: t("story.tab.storyboard") },
@@ -45,9 +45,9 @@ function StoryPageContent() {
             activeTab={activeTab}
             onChange={(id) => setActiveTab(id as typeof activeTab)}
           />
-          <div className="toolbar" style={{ paddingRight: 32 }}>
+          <div className="toolbar pr-8">
             <StoryHeader story={story} onSwitchStory={switchStory} />
-            <span style={{ color: "var(--border)" }}>|</span>
+            <span className="text-border">|</span>
             <button
               type="button"
               className="btn btn-ghost btn-xs"
@@ -74,11 +74,11 @@ function StoryPageContent() {
         </div>
 
         {story.isStoryLoading ? (
-          <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="flex-1 min-h-0 flex items-center justify-center">
             <PageLoader size="lg" label={t("common.loading")} />
           </div>
         ) : activeTab === "storyboard" ? (
-          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <div className="flex-1 min-h-0 flex flex-col">
             <ProfessionalModeEditor
               currentStory={story.currentStory}
               beats={story.beats}
@@ -142,27 +142,26 @@ function StoryPageContent() {
           ariaLabel={t("story.confirmDeleteProject")}
           style={{ minWidth: 420 }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: "var(--destructive)", marginBottom: 8 }}>
+          <div className="flex items-center gap-2 font-semibold text-destructive mb-2">
             <Trash2 size={18} />
             {t("story.confirmDeleteProject")}
           </div>
-          <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 12 }}>
+          <p className="text-xs text-muted-foreground mb-3">
             {t("story.confirmDeleteProjectDesc")}
           </p>
-          <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 8 }}>
+          <div className="mb-4">
+            <p className="text-xs text-muted-foreground mb-2">
               {t("story.deleteConfirmInputHint", { name: story.currentStory.title || t("story.unnamed") })}
             </p>
             <input
-              className="input"
+              className="input !text-xs !px-2.5 !py-1.5"
               aria-label={t("aria.deleteConfirmInput")}
               value={deleteConfirmInput}
               onChange={(e) => setDeleteConfirmInput(e.target.value)}
               placeholder={t("story.deleteConfirmInputPlaceholder")}
-              style={{ width: "100%", fontSize: 12, padding: "6px 10px" }}
             />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <div className="flex justify-end gap-2">
             <button
               type="button"
               className="btn btn-outline btn-sm"

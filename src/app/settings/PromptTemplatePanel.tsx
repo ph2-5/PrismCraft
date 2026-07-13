@@ -304,39 +304,27 @@ export function PromptTemplatePanel() {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="flex flex-col gap-3">
       {/* 提示信息 */}
-      <div
-        style={{
-          padding: 12,
-          background: "rgba(var(--primary-rgb), 0.08)",
-          border: "1px solid rgba(var(--primary-rgb), 0.2)",
-          borderRadius: 8,
-          fontSize: 11,
-          color: "var(--muted-fg)",
-        }}
-      >
+      <div className="tip-box">
         <FileText className="inline-block" size={12} /> {t("settings.promptTemplatesHint")}
       </div>
 
       {/* 统计 + 操作按钮 */}
-      <div
-        className="card"
-        style={{ padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}
-      >
-        <span style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+      <div className="card flex justify-between items-center flex-wrap gap-2">
+        <span className="text-xs text-muted-foreground">
           {stats ? t("settings.promptTemplatesTotal", stats) : "..."}
         </span>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div className="flex gap-1.5 flex-wrap">
           <button className="btn btn-sm btn-ghost" onClick={() => void handleExportAll()}>
             <Download className="inline-block" size={12} /> {t("settings.promptTemplatesExportAll")}
           </button>
-          <label className="btn btn-sm btn-ghost" style={{ cursor: "pointer" }}>
+          <label className="btn btn-sm btn-ghost cursor-pointer">
             <Upload className="inline-block" size={12} /> {t("settings.promptTemplatesImportFile")}
             <input
               type="file"
               accept=".json"
-              style={{ display: "none" }}
+              className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) void handleImportFile(file);
@@ -351,26 +339,21 @@ export function PromptTemplatePanel() {
       </div>
 
       {/* 筛选栏 */}
-      <div
-        className="card"
-        style={{ padding: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
-      >
-        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+      <div className="card flex gap-2 flex-wrap items-center">
+        <div className="relative flex-1 min-w-[200px]">
           <Search
             size={12}
-            style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--muted-fg)" }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
           <input
-            className="input"
-            style={{ paddingLeft: 28, fontSize: 12, width: "100%" }}
+            className="input pl-7 text-xs w-full"
             placeholder={t("settings.promptTemplatesSearch")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
         </div>
         <select
-          className="select"
-          style={{ fontSize: 12 }}
+          className="select text-xs"
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value as PromptTemplateCategory | "")}
         >
@@ -380,8 +363,7 @@ export function PromptTemplatePanel() {
           ))}
         </select>
         <select
-          className="select"
-          style={{ fontSize: 12 }}
+          className="select text-xs"
           value={targetFilter}
           onChange={(e) => setTargetFilter(e.target.value as PromptTemplateTarget | "")}
         >
@@ -394,17 +376,17 @@ export function PromptTemplatePanel() {
 
       {/* 模板列表 */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: 24, color: "var(--muted-fg)" }}>
+        <div className="text-center py-6 text-muted-foreground">
           <Loader2 className="inline-block animate-spin" size={16} /> ...
         </div>
       ) : templates.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 24, color: "var(--muted-fg)", fontSize: 12 }}>
+        <div className="text-center py-6 text-muted-foreground text-xs">
           {keyword || categoryFilter || targetFilter
             ? t("settings.promptTemplatesNoResults")
             : t("settings.promptTemplatesEmpty")}
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {templates.map((template) => (
             <TemplateCard
               key={template.id}
@@ -458,69 +440,44 @@ function TemplateCard({
   onReset: () => void;
 }) {
   return (
-    <div className="card" style={{ padding: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>{template.name}</span>
+    <div className="card">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[13px] font-semibold">{template.name}</span>
             <span
-              style={{
-                fontSize: 10,
-                padding: "1px 6px",
-                borderRadius: 4,
-                background: template.builtin ? "rgba(var(--primary-rgb), 0.15)" : "var(--card2)",
-                color: template.builtin ? "var(--primary)" : "var(--muted-fg)",
-              }}
+              className="text-[10px] px-1.5 py-px rounded bg-card2 text-muted-foreground"
+              style={template.builtin ? { background: "rgba(var(--primary-rgb), 0.15)", color: "var(--primary)" } : undefined}
             >
               {template.builtin ? t("settings.promptTemplatesBuiltin") : t("settings.promptTemplatesUser")}
             </span>
-            <span style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+            <span className="text-[10px] text-muted-foreground">
               {CATEGORY_LABELS[template.category]} · {TARGET_LABELS[template.target]}
             </span>
           </div>
           {template.description && (
-            <div style={{ fontSize: 11, color: "var(--muted-fg)", marginTop: 4 }}>
+            <div className="text-[11px] text-muted-foreground mt-1">
               {template.description}
             </div>
           )}
           {template.styleTags && template.styleTags.length > 0 && (
-            <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+            <div className="flex gap-1 mt-1 flex-wrap">
               {template.styleTags.map((tag) => (
                 <span
                   key={tag}
-                  style={{
-                    fontSize: 10,
-                    padding: "1px 6px",
-                    borderRadius: 4,
-                    background: "var(--card2)",
-                    color: "var(--muted-fg)",
-                  }}
+                  className="text-[10px] px-1.5 py-px rounded bg-card2 text-muted-foreground"
                 >
                   {tag}
                 </span>
               ))}
             </div>
           )}
-          <div
-            style={{
-              fontSize: 10,
-              color: "var(--muted-fg)",
-              marginTop: 6,
-              padding: 8,
-              background: "var(--card2)",
-              borderRadius: 6,
-              fontFamily: "monospace",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              maxHeight: 80,
-              overflow: "hidden",
-            }}
-          >
+          <div className="text-[10px] text-muted-foreground mt-1.5 p-2 bg-card2 rounded-md font-mono whitespace-pre-wrap break-words max-h-20 overflow-hidden">
             {template.content.slice(0, 300)}
             {template.content.length > 300 ? "…" : ""}
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+        <div className="flex flex-col gap-1 shrink-0">
           <button className="btn btn-sm btn-primary" onClick={onApply} title={t("settings.promptTemplatesApply")}>
             <Play size={12} />
           </button>
@@ -561,25 +518,15 @@ function TemplateEditor({
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        padding: 16,
-      }}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4"
       onClick={onClose}
     >
       <div
-        className="card"
-        style={{ padding: 16, width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto" }}
+        className="card w-full max-w-[600px] max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-sm font-semibold">
             {state.mode === "create" ? t("settings.promptTemplatesCreate") : t("settings.promptTemplatesEdit")}
           </span>
           <button className="btn btn-sm btn-ghost" onClick={onClose}>
@@ -587,39 +534,36 @@ function TemplateEditor({
           </button>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
           <div>
-            <label style={{ fontSize: 11, color: "var(--muted-fg)", display: "block", marginBottom: 4 }}>
+            <label className="text-[11px] text-muted-foreground block mb-1">
               {t("settings.promptTemplateName")}
             </label>
             <input
-              className="input"
-              style={{ width: "100%", fontSize: 12 }}
+              className="input w-full text-xs"
               value={tpl.name ?? ""}
               onChange={(e) => onChange({ ...tpl, name: e.target.value })}
             />
           </div>
 
           <div>
-            <label style={{ fontSize: 11, color: "var(--muted-fg)", display: "block", marginBottom: 4 }}>
+            <label className="text-[11px] text-muted-foreground block mb-1">
               {t("settings.promptTemplatesDesc")}
             </label>
             <input
-              className="input"
-              style={{ width: "100%", fontSize: 12 }}
+              className="input w-full text-xs"
               value={tpl.description ?? ""}
               onChange={(e) => onChange({ ...tpl, description: e.target.value })}
             />
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 11, color: "var(--muted-fg)", display: "block", marginBottom: 4 }}>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-[11px] text-muted-foreground block mb-1">
                 {t("settings.promptTemplatesCategory")}
               </label>
               <select
-                className="select"
-                style={{ width: "100%", fontSize: 12 }}
+                className="select w-full text-xs"
                 value={tpl.category ?? "custom"}
                 onChange={(e) => onChange({ ...tpl, category: e.target.value as PromptTemplateCategory })}
               >
@@ -628,13 +572,12 @@ function TemplateEditor({
                 ))}
               </select>
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 11, color: "var(--muted-fg)", display: "block", marginBottom: 4 }}>
+            <div className="flex-1">
+              <label className="text-[11px] text-muted-foreground block mb-1">
                 {t("settings.promptTemplatesTarget")}
               </label>
               <select
-                className="select"
-                style={{ width: "100%", fontSize: 12 }}
+                className="select w-full text-xs"
                 value={tpl.target ?? "both"}
                 onChange={(e) => onChange({ ...tpl, target: e.target.value as PromptTemplateTarget })}
               >
@@ -646,12 +589,11 @@ function TemplateEditor({
           </div>
 
           <div>
-            <label style={{ fontSize: 11, color: "var(--muted-fg)", display: "block", marginBottom: 4 }}>
+            <label className="text-[11px] text-muted-foreground block mb-1">
               {t("settings.promptTemplatesStyleTags")}
             </label>
             <input
-              className="input"
-              style={{ width: "100%", fontSize: 12 }}
+              className="input w-full text-xs"
               placeholder="anime, cyberpunk, wuxia"
               value={(tpl.styleTags ?? []).join(", ")}
               onChange={(e) =>
@@ -664,31 +606,29 @@ function TemplateEditor({
           </div>
 
           <div>
-            <label style={{ fontSize: 11, color: "var(--muted-fg)", display: "block", marginBottom: 4 }}>
+            <label className="text-[11px] text-muted-foreground block mb-1">
               {t("settings.promptTemplatesContent")}
             </label>
             <textarea
-              className="input"
-              style={{ width: "100%", fontSize: 11, fontFamily: "monospace", minHeight: 120, resize: "vertical" }}
+              className="input w-full text-[11px] font-mono min-h-[120px] resize-y"
               value={tpl.content ?? ""}
               onChange={(e) => onChange({ ...tpl, content: e.target.value })}
             />
           </div>
 
           <div>
-            <label style={{ fontSize: 11, color: "var(--muted-fg)", display: "block", marginBottom: 4 }}>
+            <label className="text-[11px] text-muted-foreground block mb-1">
               {t("settings.promptTemplatesNegative")}
             </label>
             <textarea
-              className="input"
-              style={{ width: "100%", fontSize: 11, fontFamily: "monospace", minHeight: 60, resize: "vertical" }}
+              className="input w-full text-[11px] font-mono min-h-[60px] resize-y"
               value={tpl.negativePrompt ?? ""}
               onChange={(e) => onChange({ ...tpl, negativePrompt: e.target.value })}
             />
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+        <div className="flex justify-end gap-2 mt-4">
           <button className="btn btn-sm btn-ghost" onClick={onClose}>
             {t("settings.promptTemplatesCancel")}
           </button>
@@ -739,25 +679,15 @@ function TemplateApplier({
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        padding: 16,
-      }}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4"
       onClick={onClose}
     >
       <div
-        className="card"
-        style={{ padding: 16, width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto" }}
+        className="card w-full max-w-[600px] max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-sm font-semibold">
             {t("settings.promptTemplatesApplyTitle", { name: template.name })}
           </span>
           <button className="btn btn-sm btn-ghost" onClick={onClose}>
@@ -766,17 +696,16 @@ function TemplateApplier({
         </div>
 
         {usedVariables.length > 0 && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 6 }}>
+          <div className="mb-3">
+            <div className="text-[11px] text-muted-foreground mb-1.5">
               {t("settings.promptTemplatesApplyHint")}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="flex flex-col gap-1.5">
               {usedVariables.map((varName) => (
-                <div key={varName} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <code style={{ fontSize: 11, minWidth: 140, color: "var(--primary)" }}>{varName}</code>
+                <div key={varName} className="flex items-center gap-2">
+                  <code className="text-[11px] min-w-[140px] text-primary">{varName}</code>
                   <input
-                    className="input"
-                    style={{ flex: 1, fontSize: 12 }}
+                    className="input flex-1 text-xs"
                     placeholder={varName}
                     value={variables[varName] ?? ""}
                     onChange={(e) => onChange({ ...variables, [varName]: e.target.value })}
@@ -787,62 +716,31 @@ function TemplateApplier({
           </div>
         )}
 
-        <button className="btn btn-sm btn-primary" style={{ marginBottom: 12 }} onClick={onApply}>
+        <button className="btn btn-sm btn-primary mb-3" onClick={onApply}>
           <Play className="inline-block" size={12} /> {t("settings.promptTemplatesApply")}
         </button>
 
         {result && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {result.missingVariables.length > 0 && (
-              <div
-                style={{
-                  padding: 8,
-                  background: "rgba(245, 158, 11, 0.1)",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
-                  borderRadius: 6,
-                  fontSize: 11,
-                  color: "#f59e0b",
-                }}
-              >
+              <div className="warn-box">
                 {t("settings.promptTemplatesMissingVars", { vars: result.missingVariables.join(", ") })}
               </div>
             )}
             <div>
-              <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 4 }}>
+              <div className="text-[11px] text-muted-foreground mb-1">
                 {t("settings.promptTemplatesApplyResult")}
               </div>
-              <div
-                style={{
-                  padding: 10,
-                  background: "var(--card2)",
-                  borderRadius: 6,
-                  fontFamily: "monospace",
-                  fontSize: 11,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  maxHeight: 200,
-                  overflowY: "auto",
-                }}
-              >
+              <div className="p-2.5 bg-card2 rounded-md font-mono text-[11px] whitespace-pre-wrap break-words max-h-[200px] overflow-y-auto">
                 {result.prompt}
               </div>
             </div>
             {result.negativePrompt && (
               <div>
-                <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 4 }}>
+                <div className="text-[11px] text-muted-foreground mb-1">
                   {t("settings.promptTemplatesApplyNegative")}
                 </div>
-                <div
-                  style={{
-                    padding: 10,
-                    background: "var(--card2)",
-                    borderRadius: 6,
-                    fontFamily: "monospace",
-                    fontSize: 11,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
+                <div className="p-2.5 bg-card2 rounded-md font-mono text-[11px] whitespace-pre-wrap break-words">
                   {result.negativePrompt}
                 </div>
               </div>

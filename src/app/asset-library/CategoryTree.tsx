@@ -2,44 +2,13 @@ import { Package, Download, Upload } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 import type { AssetTab } from "./AssetCardGrid";
 
-const categoryTreeStyle: React.CSSProperties = {
-  width: 200,
-  flexShrink: 0,
-  borderRight: "1px solid var(--border)",
-  overflowY: "auto",
-  padding: 12,
-  display: "flex",
-  flexDirection: "column",
-  gap: 2,
-};
+const CATEGORY_TREE_CLASS = "w-[200px] shrink-0 border-r border-border overflow-y-auto p-3 flex flex-col gap-0.5";
 
-const categoryDividerStyle: React.CSSProperties = {
-  borderTop: "1px solid var(--border)",
-  margin: "8px 0",
-};
+const CATEGORY_DIVIDER_CLASS = "border-t border-border my-2";
 
-const categoryBtnBaseStyle: React.CSSProperties = {
-  justifyContent: "flex-start",
-  width: "100%",
-};
+const COUNT_BADGE_CLASS = "text-[10px] text-muted-foreground ml-auto";
 
-const categoryBtnActiveStyle: React.CSSProperties = {
-  background: "rgba(var(--primary-rgb), 0.1)",
-  color: "var(--fg)",
-};
-
-const countBadgeStyle: React.CSSProperties = {
-  fontSize: 10,
-  color: "var(--muted-fg)",
-  marginLeft: "auto",
-};
-
-const propSubCatsStyle: React.CSSProperties = {
-  marginLeft: 12,
-  display: "flex",
-  flexDirection: "column",
-  gap: 1,
-};
+const PROP_SUB_CATS_CLASS = "ml-3 flex flex-col gap-px";
 
 interface CategoryButtonProps {
   icon: string;
@@ -60,27 +29,24 @@ export function CategoryButton({
 }: CategoryButtonProps) {
   const btnClassName =
     size === "xs" ? "btn btn-ghost btn-xs" : "btn btn-ghost btn-sm";
-  const extraStyle: React.CSSProperties =
+  const extraClassName =
     size === "xs"
-      ? { justifyContent: "flex-start", width: "100%", fontSize: 11 }
-      : { ...categoryBtnBaseStyle };
+      ? "justify-start w-full text-[11px]"
+      : "justify-start w-full";
+  const activeClassName = active ? "bg-primary/10 text-foreground" : "";
   return (
     <button
       type="button"
       role="tab"
       aria-selected={active}
       data-active={active ? "true" : undefined}
-      className={btnClassName}
-      style={{
-        ...extraStyle,
-        ...(active ? categoryBtnActiveStyle : {}),
-      }}
+      className={`${btnClassName} ${extraClassName} ${activeClassName}`}
       onClick={onClick}
     >
-      <span style={{ marginRight: 6 }}>{icon}</span>
+      <span className="mr-1.5">{icon}</span>
       {label}
       {count !== undefined && count > 0 && (
-        <span style={countBadgeStyle}>{count}</span>
+        <span className={COUNT_BADGE_CLASS}>{count}</span>
       )}
     </button>
   );
@@ -104,8 +70,8 @@ export function CategoryTree({
   collectionsCount,
 }: CategoryTreeProps) {
   return (
-    <div role="tablist" aria-label={t("asset.category")} style={categoryTreeStyle}>
-      <div className="section-label" style={{ marginBottom: 6 }}>
+    <div role="tablist" aria-label={t("asset.category")} className={CATEGORY_TREE_CLASS}>
+      <div className="section-label mb-1.5">
         {t("asset.category")}
       </div>
       <CategoryButton
@@ -141,7 +107,7 @@ export function CategoryTree({
         active={activeTab === "props"}
         onClick={() => onTabChange("props")}
       />
-      <div style={propSubCatsStyle}>
+      <div className={PROP_SUB_CATS_CLASS}>
         <CategoryButton
           icon="└"
           label={t("asset.propClothing")}
@@ -171,7 +137,7 @@ export function CategoryTree({
           size="xs"
         />
       </div>
-      <div style={categoryDividerStyle} />
+      <div className={CATEGORY_DIVIDER_CLASS} />
       <CategoryButton
         icon=""
         label={t("asset.myCollections")}
@@ -205,16 +171,15 @@ export function TopHeader({
   onBatchExport,
 }: TopHeaderProps) {
   return (
-    <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-      <span style={{ fontWeight: 600, fontSize: 14 }}>
+    <div className="top-tabs justify-between">
+      <span className="font-semibold text-sm">
         <Package className="inline-block" size={14} /> {t("asset.libraryTitle")}
       </span>
       <div className="toolbar">
         <input
-          className="input"
+          className="input !text-xs !py-1.5 !px-2.5 w-[180px]"
           data-testid="asset-search-input"
           placeholder={t("asset.searchNameDescTag")}
-          style={{ fontSize: 12, padding: "6px 10px", width: 180 }}
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
         />

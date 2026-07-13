@@ -124,7 +124,7 @@ describe("useAutoSave", () => {
       expect(mockEmitToast).toHaveBeenCalledWith(
         "error",
         "error.saveFailed",
-        "多次重试后仍无法保存，请手动保存您的更改",
+        "error.saveFailedRetry",
       );
     });
 

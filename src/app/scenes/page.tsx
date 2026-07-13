@@ -57,15 +57,7 @@ function SceneDetailContainer(state: ScenesPageState) {
   } = state;
   return (
     <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        overflowY: "auto",
-        padding: 16,
-        gap: 12,
-        minWidth: 0,
-      }}
+      className="flex-1 flex flex-col overflow-y-auto p-4 gap-3 min-w-0"
     >
       <SceneDetailHeader
         scene={currentScene}
@@ -156,15 +148,14 @@ function ScenesPageContent() {
   return (
     <PageErrorBoundary pageName={t("scene.pageName")}>
       <div
-        className="fade-in"
-        style={{ display: "flex", flexDirection: "column", height: "100%" }}
+        className="fade-in flex flex-col h-full"
       >
         <ScenePageHeader
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onNewScene={handleNewScene}
         />
-        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        <div className="flex-1 flex min-h-0">
           <SceneList
             scenes={filteredScenes}
             scenesLoading={scenesLoading}

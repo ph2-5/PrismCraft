@@ -43,7 +43,7 @@ export function ProviderCard({
   const { apiKeyState, setApiKeyState, handleVerifyApiKey } = useApiKeyVerify(caps, provider);
 
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+    <div className="border border-border rounded-lg overflow-hidden">
       <ProviderCardHeader
         provider={provider}
         isConfigured={isConfigured}
@@ -57,7 +57,7 @@ export function ProviderCard({
       />
 
       {isExpanded && (
-        <div style={{ padding: 16, borderTop: "1px solid var(--border)", background: "var(--card2)", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="p-4 border-t border-border bg-card2 flex flex-col gap-4">
           <ProviderConfigSection
             provider={provider}
             baseUrlValidation={baseUrlValidation}
@@ -72,7 +72,7 @@ export function ProviderCard({
             }}
           />
 
-          <div style={{ height: 1, background: "var(--border)", margin: "8px 0" }} />
+          <div className="h-px bg-border my-2" />
 
           <ModelList
             models={provider.models}

@@ -9,7 +9,7 @@ export function formatTimestamp(
 ): string {
   if (!timestamp) return t("common.unknown");
   const date = new Date(timestamp);
-  return date.toLocaleTimeString("zh-CN", {
+  return date.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
   });

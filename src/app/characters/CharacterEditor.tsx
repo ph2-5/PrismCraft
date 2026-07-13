@@ -21,7 +21,7 @@ import {
   User,
 } from "lucide-react";
 import { t } from "@/shared/constants/messages";
-import { useState } from "react";
+import { useState, useId } from "react";
 import { AiRequestPreview } from "./AiRequestPreview";
 
 interface CharacterEditorProps {
@@ -77,44 +77,44 @@ function OutfitList({
 }: OutfitListProps) {
   return (
     <div className="card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+      <div className="flex justify-between items-center mb-2">
         <div className="section-label">{t("character.outfitBranch")}</div>
-        <button className="btn btn-outline btn-xs" onClick={onAddOutfit} style={{ gap: 4 }}>
-          <Plus style={{ width: 12, height: 12 }} />
+        <button className="btn btn-outline btn-xs gap-1" onClick={onAddOutfit}>
+          <Plus className="w-3 h-3" />
           {t("character.addOutfit")}
         </button>
       </div>
       {outfits && outfits.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {outfits.map((outfit) => (
-            <div key={outfit.id} className="element-card" style={{ padding: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontWeight: 500, fontSize: 13 }}>{outfit.name}</span>
+            <div key={outfit.id} className="element-card !p-2">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-[13px]">{outfit.name}</span>
                     {outfit.isDefault && <span className="badge badge-success">{t("character.defaultOutfit")}</span>}
                   </div>
                   {outfit.description && (
-                    <p style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 2 }}>{outfit.description}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{outfit.description}</p>
                   )}
                 </div>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <button className="btn btn-ghost btn-xs" onClick={() => onEditOutfit(outfit)} style={{ gap: 4 }}>
+                <div className="flex gap-1">
+                  <button className="btn btn-ghost btn-xs gap-1" onClick={() => onEditOutfit(outfit)}>
                     {t("character.edit")}
                   </button>
-                  <button className="btn btn-ghost btn-xs" onClick={() => onDeleteOutfit(outfit.id)} aria-label={t("character.deleteOutfitLabel")} style={{ gap: 4 }}>
-                    <Trash2 style={{ width: 12, height: 12 }} />
+                  <button className="btn btn-ghost btn-xs gap-1" onClick={() => onDeleteOutfit(outfit.id)} aria-label={t("character.deleteOutfitLabel")}>
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
               {outfit.imageUrl && (
-                <div style={{ width: 80, height: 80, borderRadius: 6, overflow: "hidden", marginTop: 6, border: "1px solid var(--border)" }}>
-                  <img src={resolveImageUrl(outfit.imageUrl)} alt={outfit.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div className="w-20 h-20 rounded-md overflow-hidden mt-1.5 border border-border">
+                  <img src={resolveImageUrl(outfit.imageUrl)} alt={outfit.name} className="w-full h-full object-cover" />
                 </div>
               )}
-              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                <button className="btn btn-primary btn-xs" onClick={() => onGenerateOutfitImage(outfit)} disabled={isGenerating} style={{ flex: 1, gap: 4 }}>
-                  {isGenerating ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <Wand2 style={{ width: 12, height: 12 }} />}
+              <div className="flex gap-1.5 mt-1.5">
+                <button className="btn btn-primary btn-xs flex-1 gap-1" onClick={() => onGenerateOutfitImage(outfit)} disabled={isGenerating} aria-live="polite">
+                  {isGenerating ? <Loader2 className="animate-spin w-3 h-3" /> : <Wand2 className="w-3 h-3" />}
                   {t("character.generateImage")}
                 </button>
                 {!outfit.isDefault && (
@@ -127,10 +127,10 @@ function OutfitList({
           ))}
         </div>
       ) : (
-        <div style={{ textAlign: "center", padding: 24, color: "var(--muted-fg)" }}>
-          <Shirt style={{ width: 32, height: 32, margin: "0 auto 8px", opacity: 0.5 }} />
-          <p style={{ fontSize: 13 }}>{t("character.noOutfits")}</p>
-          <p style={{ fontSize: 12 }}>{t("character.noOutfitsHint")}</p>
+        <div className="text-center p-6 text-muted-foreground">
+          <Shirt className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-[13px]">{t("character.noOutfits")}</p>
+          <p className="text-xs">{t("character.noOutfitsHint")}</p>
         </div>
       )}
     </div>
@@ -141,17 +141,17 @@ function EquipmentCard() {
   return (
     <div className="card">
       <div className="section-label">{t("character.equipmentProps")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label className="section-label" style={{ fontSize: 11 }}>{t("character.weapon")}</label>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="section-label !text-[11px]">{t("character.weapon")}</label>
           <input className="input" placeholder={t("character.weaponPlaceholder")} disabled />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label className="section-label" style={{ fontSize: 11 }}>{t("character.items")}</label>
+        <div className="flex flex-col gap-1">
+          <label className="section-label !text-[11px]">{t("character.items")}</label>
           <input className="input" placeholder={t("character.itemsPlaceholder")} disabled />
         </div>
       </div>
-      <p style={{ fontSize: 11, color: "var(--muted-fg)", marginTop: 6 }}>
+      <p className="text-[11px] text-muted-foreground mt-1.5">
         {t("character.equipmentPropsHint")}
       </p>
     </div>
@@ -163,16 +163,16 @@ function ReferencedBeatsCard({ beats }: { beats: { id: string; title: string; st
     <div className="card">
       <div className="section-label">{t("character.referencedShots")}</div>
       {beats.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className="flex flex-col gap-1">
           {beats.map((beat) => (
-            <div key={beat.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
-              <span style={{ fontSize: 13 }}>{beat.title}</span>
+            <div key={beat.id} className="flex justify-between items-center py-1 border-b border-border">
+              <span className="text-[13px]">{beat.title}</span>
               {beat.status && <span className="badge badge-success">{beat.status}</span>}
             </div>
           ))}
         </div>
       ) : (
-        <p style={{ fontSize: 12, color: "var(--muted-fg)", textAlign: "center", padding: 12 }}>
+        <p className="text-xs text-muted-foreground text-center p-3">
           {t("character.noReferencedShots")}
         </p>
       )}
@@ -189,9 +189,9 @@ function BasicInfoCard({ character, setCurrentCharacter }: BasicInfoCardProps) {
   return (
     <div className="card">
       <div className="section-label">{t("character.basicInfo")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label className="section-label" style={{ fontSize: 11 }}>{t("character.gender")}</label>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="section-label !text-[11px]">{t("character.gender")}</label>
           <select
             className="select"
             value={character.gender}
@@ -201,8 +201,8 @@ function BasicInfoCard({ character, setCurrentCharacter }: BasicInfoCardProps) {
             {genderSuggestions.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label className="section-label" style={{ fontSize: 11 }}>{t("character.height")}</label>
+        <div className="flex flex-col gap-1">
+          <label className="section-label !text-[11px]">{t("character.height")}</label>
           <input
             className="input"
             list="height-suggestions"
@@ -214,8 +214,8 @@ function BasicInfoCard({ character, setCurrentCharacter }: BasicInfoCardProps) {
             {heightSuggestions.map((h) => <option key={h} value={h} />)}
           </datalist>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label className="section-label" style={{ fontSize: 11 }}>{t("character.build")}</label>
+        <div className="flex flex-col gap-1">
+          <label className="section-label !text-[11px]">{t("character.build")}</label>
           <select
             className="select"
             value={character.appearance.build}
@@ -234,7 +234,7 @@ function AppearanceCard({ character, setCurrentCharacter }: BasicInfoCardProps) 
   return (
     <div className="card">
       <div className="section-label">{t("character.appearanceDesc")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+      <div className="grid grid-cols-2 gap-2 mb-2">
         <input
           className="input"
           data-testid="character-hair-color-input"
@@ -275,10 +275,10 @@ function PersonalityStyleCard({
   return (
     <div className="card">
       <div className="section-label">{t("character.personalityStyle")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label className="section-label" style={{ fontSize: 11 }}>{t("character.personality")}</label>
-          <div style={{ display: "flex", gap: 4 }}>
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        <div className="flex flex-col gap-1">
+          <label className="section-label !text-[11px]">{t("character.personality")}</label>
+          <div className="flex gap-1">
             <input
               className="input"
               list="trait-suggestions"
@@ -295,12 +295,11 @@ function PersonalityStyleCard({
             </button>
           </div>
           {character.personality.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+            <div className="flex flex-wrap gap-1 mt-1">
               {character.personality.map((trait) => (
                 <span
                   key={trait}
-                  className="badge badge-info"
-                  style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}
+                  className="badge badge-info cursor-pointer flex items-center gap-0.5"
                   onClick={() => removeTrait(trait)}
                   role="button"
                   tabIndex={0}
@@ -313,14 +312,14 @@ function PersonalityStyleCard({
                   }}
                 >
                   {trait}
-                  <X style={{ width: 10, height: 10 }} />
+                  <X className="w-2.5 h-2.5" />
                 </span>
               ))}
             </div>
           )}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label className="section-label" style={{ fontSize: 11 }}>{t("character.style")}</label>
+        <div className="flex flex-col gap-1">
+          <label className="section-label !text-[11px]">{t("character.style")}</label>
           <input
             className="input"
             data-testid="character-style-input"
@@ -330,12 +329,11 @@ function PersonalityStyleCard({
             onFocus={() => setShowStyleSuggestions(true)}
           />
           {showStyleSuggestions && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+            <div className="flex flex-wrap gap-1 mt-1">
               {styleSuggestions.slice(0, 8).map((style) => (
                 <span
                   key={style.value}
-                  className="badge"
-                  style={{ cursor: "pointer" }}
+                  className="badge cursor-pointer"
                   onClick={() => { setCurrentCharacter({ ...character, style: style.value }, true); setShowStyleSuggestions(false); }}
                   role="button"
                   tabIndex={0}
@@ -375,33 +373,39 @@ interface CharacterHeaderProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onNameChange: (name: string) => void;
+  nameError?: string;
 }
 
 function CharacterHeader({
-  character, avatarUrl, isUploading, referencedBeats, fileInputRef, onFileUpload, onNameChange,
+  character, avatarUrl, isUploading, referencedBeats, fileInputRef, onFileUpload, onNameChange, nameError,
 }: CharacterHeaderProps) {
+  const nameErrorId = useId();
   return (
-    <div className="card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
+    <div className="card flex items-center gap-3 !p-3">
       <div
-        className="element-avatar"
-        style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 8, overflow: "hidden" }}
+        className="element-avatar !w-16 !h-16 !shrink-0 !rounded-md overflow-hidden"
       >
         {avatarUrl ? (
-          <img src={resolveImageUrl(avatarUrl)} alt={character.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src={resolveImageUrl(avatarUrl)} alt={character.name} className="w-full h-full object-cover" />
         ) : (
           <User size={28} />
         )}
       </div>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
         <input
-          className="input"
+          className="input !text-base !font-semibold"
           data-testid="character-name-input"
           placeholder={t("character.namePlaceholder")}
           value={character.name}
           onChange={(e) => onNameChange(e.target.value)}
-          style={{ fontSize: 16, fontWeight: 600 }}
+          required
+          aria-invalid={!!nameError}
+          aria-errormessage={nameError ? nameErrorId : undefined}
         />
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {nameError && (
+          <p id={nameErrorId} role="alert" className="text-xs text-destructive">{nameError}</p>
+        )}
+        <div className="flex gap-1.5 flex-wrap">
           {character.gender && (
             <span className="badge badge-info">{character.gender}</span>
           )}
@@ -409,12 +413,12 @@ function CharacterHeader({
         </div>
       </div>
       <button
-        className="btn btn-outline btn-xs"
+        className="btn btn-outline btn-xs gap-1"
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading}
-        style={{ gap: 4 }}
+        aria-live="polite"
       >
-        {isUploading ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <Upload style={{ width: 12, height: 12 }} />}
+        {isUploading ? <Loader2 className="animate-spin w-3 h-3" /> : <Upload className="w-3 h-3" />}
         {t("character.changeAvatar")}
       </button>
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileUpload} />
@@ -435,41 +439,24 @@ function CharacterActionFooter({
   isDirty, saveStatus, saveError, canSave, onSave, onDelete,
 }: CharacterActionFooterProps) {
   return (
-    <div
-      style={{
-        position: "sticky",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        display: "flex",
-        gap: 8,
-        alignItems: "center",
-        padding: "10px 0",
-        marginTop: 8,
-        background: "var(--bg)",
-        borderTop: "1px solid var(--border)",
-        zIndex: 10,
-      }}
-    >
+    <div className="sticky bottom-0 left-0 right-0 flex gap-2 items-center py-2.5 mt-2 bg-background border-t border-border z-10">
       <SaveStatusIndicator status={isDirty ? "unsaved" : saveStatus} errorMessage={saveError ?? undefined} />
       <button
-        className="btn btn-ghost btn-xs"
+        className="btn btn-ghost btn-xs gap-1 !text-destructive"
         onClick={onDelete}
         aria-label={t("character.deleteCharacter")}
-        style={{ gap: 4, color: "var(--destructive)" }}
       >
-        <Trash2 style={{ width: 12, height: 12 }} />
+        <Trash2 className="w-3 h-3" />
         {t("character.deleteCharacter")}
       </button>
       <button
-        className="btn btn-primary btn-sm"
+        className="btn btn-primary btn-sm flex-1 gap-1 justify-center"
         data-testid="character-save-button"
         onClick={onSave}
-        disabled={saveStatus === "saving" || !canSave}
-        style={{ flex: 1, gap: 4, justifyContent: "center" }}
+        disabled={saveStatus === "saving"}
         title={saveStatus !== "saving" && !canSave ? t("hint.saveCharacter") : undefined}
       >
-        <Save style={{ width: 14, height: 14 }} />
+        <Save className="w-3.5 h-3.5" />
         {saveStatus === "saving" ? t("common.saving") : t("character.saveCharacter")}
       </button>
     </div>
@@ -514,6 +501,17 @@ export function CharacterEditor({
   handleDelete,
 }: CharacterEditorProps) {
   const avatarUrl = generatedImage || currentCharacter.avatarPath || currentCharacter.generatedImage || currentCharacter.refImagePath;
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateAndSave = () => {
+    const newErrors: Record<string, string> = {};
+    if (!currentCharacter.name.trim()) {
+      newErrors.name = t("validation.characterNameRequired");
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+    handleSave();
+  };
 
   return (
     <>
@@ -524,7 +522,11 @@ export function CharacterEditor({
         referencedBeats={referencedBeats}
         fileInputRef={fileInputRef}
         onFileUpload={handleFileUpload}
-        onNameChange={(name) => setCurrentCharacter({ ...currentCharacter, name }, true)}
+        onNameChange={(name) => {
+          setCurrentCharacter({ ...currentCharacter, name }, true);
+          if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+        }}
+        nameError={errors.name}
       />
 
       {/* 基本信息 card */}
@@ -590,7 +592,7 @@ export function CharacterEditor({
         saveStatus={saveStatus}
         saveError={saveError}
         canSave={!!currentCharacter.name.trim()}
-        onSave={handleSave}
+        onSave={validateAndSave}
         onDelete={handleDelete}
       />
     </>

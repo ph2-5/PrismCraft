@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/shared/presentation/ThemeProvider";
 import { ClientProviders } from "./ClientProviders";
 import { TitleBar } from "@/shared/presentation/TitleBar";
 import { isElectron } from "@/shared/utils/platform";
+import { t } from "@/shared/constants/messages";
 import { Outlet } from "react-router-dom";
 
 // Lazy-loaded side-effect and non-critical components to reduce first-screen bundle
@@ -44,6 +45,12 @@ export function RootLayout() {
             <VideoTaskManagerInitializer />
           </Suspense>
           <BeforeUnloadGuard />
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded"
+          >
+            {t("common.skipToMainContent")}
+          </a>
           <TitleBar />
           <ToastProvider>
             <GlobalKeyboardActions />
@@ -51,11 +58,8 @@ export function RootLayout() {
             <UpdateNotification />
             <SidebarWithSearch />
             <main
-              className={`flex-1 h-full overflow-hidden transition-[margin-left] duration-200${electron ? " pt-9" : ""}`}
-              style={{
-                marginLeft: "var(--sidebar-width, 220px)",
-                background: "var(--bg-subtle-gradient)",
-              }}
+              id="main-content"
+              className={`flex-1 h-full overflow-hidden transition-[margin-left] duration-200 ml-[var(--sidebar-width,220px)] bg-[var(--bg-subtle-gradient)]${electron ? " pt-9" : ""}`}
             >
               <Outlet />
             </main>

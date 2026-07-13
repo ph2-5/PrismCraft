@@ -1038,7 +1038,7 @@ export async function searchRelevantMemory(
     // 格式化为 prompt 片段
     const lines: string[] = [];
     for (const entry of results) {
-      const time = new Date(entry.createdAt).toLocaleDateString("zh-CN");
+      const time = new Date(entry.createdAt).toLocaleDateString();
       const typeLabel = entry.type === "summary" ? "摘要" : entry.type === "fact" ? "事实" : "决策";
       lines.push(`- [${typeLabel}][${time}] ${entry.content}`);
     }

@@ -12,8 +12,8 @@ export default function QuickGeneratePage() {
   return (
     <PageErrorBoundary pageName={t("quickGenerate.pageName")}>
       <div className="fade-in flex flex-col h-full">
-        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="top-tabs justify-between">
+          <span className="font-semibold text-sm flex items-center gap-2">
             <Zap size={14} /> {t("quickGenerate.pageName")}
           </span>
           <div className="toolbar">
@@ -24,14 +24,14 @@ export default function QuickGeneratePage() {
             >
               <ClipboardList className="inline-block" size={12} /> {t("quickGenerate.selectTemplate")}
             </button>
-            <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
+            <span className="text-[11px] text-muted-foreground">
               {t("quickGenerate.heroDesc")}
             </span>
           </div>
         </div>
 
-        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 20, gap: 14, overflowY: "auto" }}>
+        <div className="flex flex-col md:flex-row flex-1 min-h-0">
+          <div className="flex-1 flex flex-col p-5 gap-[14px] overflow-y-auto">
             <QuickGenerateForm
               promptText={vm.promptText}
               onPromptTextChange={vm.onPromptTextChange}
@@ -76,7 +76,9 @@ export default function QuickGeneratePage() {
             />
           </div>
 
-          <div style={{ width: 340, flexShrink: 0, borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", padding: 16, gap: 10, overflowY: "auto" }}>
+          <div
+            className="w-full md:w-[340px] md:shrink-0 border-t border-border md:border-t-0 md:border-l flex flex-col p-4 gap-2.5 overflow-y-auto"
+          >
             <QuickGenerateHistory
               currentTask={vm.currentTask}
               effectiveVideoUrl={vm.effectiveVideoUrl}

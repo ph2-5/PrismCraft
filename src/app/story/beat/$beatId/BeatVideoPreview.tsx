@@ -20,7 +20,7 @@ interface BeatVideoPreviewProps {
 export function BeatVideoPreview({ beat, task, videoUrl, guardedPush }: BeatVideoPreviewProps) {
   return (
     <>
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="card !p-0 overflow-hidden">
         <div>
           {videoUrl || beat.videoGen?.videoUrl || task?.videoUrl ? (
             <div className="relative aspect-video bg-black">

@@ -10,67 +10,62 @@ interface PluginResponseFormatProps {
 
 export function PluginResponseFormat({ state, updateField }: PluginResponseFormatProps) {
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div style={{ paddingBottom: 12 }}>
-        <div style={{ fontSize: 18, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+    <div className="card">
+      <div className="pb-3">
+        <div className="text-lg flex items-center gap-2 font-semibold">
           <Settings2 size={20} />
           {t("plugin.responseFormat")}
         </div>
-        <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.responseFormatDesc")}</div>
+        <div className="text-sm text-muted-foreground">{t("plugin.responseFormatDesc")}</div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label>{t("plugin.taskIdPath")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
+            <label>{t("plugin.taskIdPath")} <span className="text-destructive">*</span></label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={state.taskIdPath}
               onChange={(e) => updateField("taskIdPath", e.target.value)}
               placeholder="data.task_id"
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label>{t("plugin.statusPath")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+          <div className="flex flex-col gap-2">
+            <label>{t("plugin.statusPath")} <span className="text-destructive">*</span></label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={state.statusPath}
               onChange={(e) => updateField("statusPath", e.target.value)}
               placeholder="data.status"
             />
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
             <label>{t("plugin.videoUrlPath")}</label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={state.videoUrlPath}
               onChange={(e) => updateField("videoUrlPath", e.target.value)}
               placeholder="data.video_url"
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             <label>{t("plugin.imageUrlPath")}</label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={state.imageUrlPath}
               onChange={(e) => updateField("imageUrlPath", e.target.value)}
               placeholder="data.image_url"
             />
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           <label>{t("plugin.statusMapping")}</label>
-          <p style={{ fontSize: 12, color: "var(--muted-fg)" }}>{t("plugin.statusMappingHint")}</p>
+          <p className="text-xs text-muted-foreground">{t("plugin.statusMappingHint")}</p>
           {state.statusMapping.map((mapping) => (
-            <div key={mapping._uid} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={mapping._uid} className="flex items-center gap-2">
               <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 36 }}
+                className="input !text-xs !py-1.5 !px-2.5 !font-mono h-9"
                 value={mapping.apiStatus}
                 onChange={(e) => {
                   const statusMapping = state.statusMapping.map((m) =>
@@ -80,10 +75,9 @@ export function PluginResponseFormat({ state, updateField }: PluginResponseForma
                 }}
                 placeholder={t("plugin.apiStatusPlaceholder")}
               />
-              <span style={{ color: "var(--muted-fg)" }}>→</span>
+              <span className="text-muted-foreground">→</span>
               <select
-                className="select"
-                style={{ height: 36, width: 160, fontSize: 12 }}
+                className="select h-9 w-[160px] !text-xs"
                 value={mapping.appStatus}
                 onChange={(e) => {
                   const statusMapping = state.statusMapping.map((m) =>
@@ -99,8 +93,7 @@ export function PluginResponseFormat({ state, updateField }: PluginResponseForma
               </select>
               <IconButton
                 variant="ghost"
-                className="btn-sm"
-                style={{ color: "var(--destructive)", flexShrink: 0 }}
+                className="btn-sm !text-destructive shrink-0"
                 onClick={() => {
                   updateField("statusMapping", state.statusMapping.filter((m) => m._uid !== mapping._uid));
                 }}
@@ -117,7 +110,7 @@ export function PluginResponseFormat({ state, updateField }: PluginResponseForma
               updateField("statusMapping", [...state.statusMapping, { _uid: crypto.randomUUID(), apiStatus: "", appStatus: "pending" }]);
             }}
           >
-            <Plus size={16} style={{ marginRight: 4 }} />
+            <Plus size={16} className="mr-1" />
             {t("plugin.addStatusMapping")}
           </button>
         </div>

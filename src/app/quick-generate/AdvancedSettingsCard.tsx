@@ -35,9 +35,9 @@ export function AdvancedSettingsCard({
   const refImageUploadRef = useRef<HTMLInputElement>(null);
   const refVideoUploadRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="card" style={{ padding: 0 }}>
+    <div className="card !p-0">
       <div
-        style={{ cursor: "pointer", padding: 16 }}
+        className="cursor-pointer p-4"
         onClick={onToggleAdvanced}
         role="button"
         tabIndex={0}
@@ -50,7 +50,7 @@ export function AdvancedSettingsCard({
         }}
       >
         <div className="flex items-center justify-between">
-          <div className="text-lg flex items-center gap-2" style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="text-base font-semibold flex items-center gap-2">
             <Settings className="w-5 h-5 text-muted-foreground" />
             {t("quickGenerate.advancedSettings")}
           </div>
@@ -62,7 +62,7 @@ export function AdvancedSettingsCard({
         </div>
       </div>
       {showAdvanced && (
-        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="p-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
               <label className="text-muted-foreground">{t("quickGenerate.smartOptimization")}</label>
@@ -82,8 +82,7 @@ export function AdvancedSettingsCard({
           <div className="space-y-2">
             <label className="text-muted-foreground">{t("quickGenerate.negativePrompt")}</label>
             <textarea
-              className="textarea"
-              style={{ fontSize: 12 }}
+              className="textarea !text-xs"
               value={negativePrompt}
               onChange={(e) => onNegativePromptChange(e.target.value)}
               placeholder={t("quickGenerate.negativePromptPlaceholder")}
@@ -101,8 +100,7 @@ export function AdvancedSettingsCard({
                 />
                 <button
                   type="button"
-                  className="btn btn-danger btn-sm"
-                  style={{ position: "absolute", top: -8, right: -8, width: 24, height: 24, padding: 0, borderRadius: "50%" }}
+                  className="btn btn-danger btn-sm absolute -top-2 -right-2 w-6 h-6 !p-0 !rounded-full"
                   onClick={() => onReferenceImageChange(null)}
                   aria-label={t("quickGenerate.removeReferenceImage")}
                 >

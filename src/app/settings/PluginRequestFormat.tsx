@@ -10,63 +10,58 @@ interface PluginRequestFormatProps {
 
 export function PluginRequestFormat({ state, updateField }: PluginRequestFormatProps) {
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div style={{ paddingBottom: 12 }}>
-        <div style={{ fontSize: 18, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+    <div className="card">
+      <div className="pb-3">
+        <div className="text-lg flex items-center gap-2 font-semibold">
           <FileCode size={20} />
           {t("plugin.requestFormat")}
         </div>
-        <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.requestFormatDesc")}</div>
+        <div className="text-sm text-muted-foreground">{t("plugin.requestFormatDesc")}</div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 500 }}>{t("plugin.apiEndpoints")}</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: 12 }}>{t("plugin.videoGenerate")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+      <div className="flex flex-col gap-4">
+        <div className="border-b border-border pb-4 flex flex-col gap-3">
+          <h4 className="text-sm font-medium">{t("plugin.apiEndpoints")}</h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs">{t("plugin.videoGenerate")} <span className="text-destructive">*</span></label>
               <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+                className="input !text-xs !py-1.5 !px-2.5 !font-mono"
                 value={state.videoGenerateEndpoint}
                 onChange={(e) => updateField("videoGenerateEndpoint", e.target.value)}
                 placeholder="/v1/videos/generations"
               />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: 12 }}>{t("plugin.videoStatusQuery")} <span style={{ color: "var(--destructive)" }}>*</span></label>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs">{t("plugin.videoStatusQuery")} <span className="text-destructive">*</span></label>
               <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+                className="input !text-xs !py-1.5 !px-2.5 !font-mono"
                 value={state.videoStatusEndpoint}
                 onChange={(e) => updateField("videoStatusEndpoint", e.target.value)}
                 placeholder="/v1/videos/{taskId}"
               />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: 12 }}>{t("plugin.imageGenerate")}</label>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs">{t("plugin.imageGenerate")}</label>
               <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+                className="input !text-xs !py-1.5 !px-2.5 !font-mono"
                 value={state.imageGenerateEndpoint}
                 onChange={(e) => updateField("imageGenerateEndpoint", e.target.value)}
                 placeholder="/v1/images/generations"
               />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: 12 }}>{t("plugin.textGenerate")}</label>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs">{t("plugin.textGenerate")}</label>
               <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+                className="input !text-xs !py-1.5 !px-2.5 !font-mono"
                 value={state.textGenerateEndpoint}
                 onChange={(e) => updateField("textGenerateEndpoint", e.target.value)}
                 placeholder="/v1/chat/completions"
               />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: 12 }}>{t("plugin.visionAnalyze")}</label>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs">{t("plugin.visionAnalyze")}</label>
               <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+                className="input !text-xs !py-1.5 !px-2.5 !font-mono"
                 value={state.visionGenerateEndpoint}
                 onChange={(e) => updateField("visionGenerateEndpoint", e.target.value)}
                 placeholder="/v1/chat/completions"
@@ -75,7 +70,7 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           <label>{t("plugin.bodyFormat")}</label>
           <select
             className="select"
@@ -88,55 +83,50 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
             <option value="custom">{t("plugin.authCustom")}</option>
           </select>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
             <label>{t("plugin.promptFieldName")}</label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={state.promptField}
               onChange={(e) => updateField("promptField", e.target.value)}
               placeholder="prompt"
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             <label>{t("plugin.modelFieldName")}</label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={state.modelField}
               onChange={(e) => updateField("modelField", e.target.value)}
               placeholder="model"
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             <label>{t("plugin.durationFieldName")}</label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={state.durationField}
               onChange={(e) => updateField("durationField", e.target.value)}
               placeholder="duration"
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             <label>{t("plugin.firstFrameFieldName")}</label>
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={state.firstFrameField}
               onChange={(e) => updateField("firstFrameField", e.target.value)}
               placeholder="image_url"
             />
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           <label>{t("plugin.extraFields")}</label>
           {state.extraFields.map((field) => (
-            <div key={field._uid} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={field._uid} className="flex items-center gap-2">
               <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace", height: 36 }}
+                className="input !text-xs !py-1.5 !px-2.5 !font-mono h-9"
                 value={field.key}
                 onChange={(e) => {
                   const extraFields = state.extraFields.map((f) =>
@@ -147,8 +137,7 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
                 placeholder={t("plugin.fieldNamePlaceholder")}
               />
               <input
-                className="input"
-                style={{ fontSize: 12, padding: "6px 10px", height: 36 }}
+                className="input !text-xs !py-1.5 !px-2.5 h-9"
                 value={field.value}
                 onChange={(e) => {
                   const extraFields = state.extraFields.map((f) =>
@@ -160,8 +149,7 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
               />
               <IconButton
                 variant="ghost"
-                className="btn-sm"
-                style={{ color: "var(--destructive)", flexShrink: 0 }}
+                className="btn-sm !text-destructive shrink-0"
                 onClick={() => {
                   updateField("extraFields", state.extraFields.filter((f) => f._uid !== field._uid));
                 }}
@@ -178,7 +166,7 @@ export function PluginRequestFormat({ state, updateField }: PluginRequestFormatP
               updateField("extraFields", [...state.extraFields, { _uid: crypto.randomUUID(), key: "", value: "" }]);
             }}
           >
-            <Plus size={16} style={{ marginRight: 4 }} />
+            <Plus size={16} className="mr-1" />
             {t("plugin.addField")}
           </button>
         </div>

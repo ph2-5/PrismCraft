@@ -3,7 +3,6 @@ import {
   Image as ImageIcon,
   Film,
   FolderOpen,
-  Loader2,
   Plus,
   Package,
   Layers,
@@ -17,6 +16,7 @@ import type {
   CollectionAsset,
 } from "@/domain/schemas";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import { CharacterCard, SceneCard, StoryboardCard, CollectionCard } from "./AssetCards";
 import type { AssetTab, EditingItem } from "./asset-library-shared";
 export type { AssetTab, EditingItem } from "./asset-library-shared";
@@ -45,26 +45,20 @@ interface AssetCardGridProps {
   onNewCollection: () => void;
 }
 
-const gridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-  gap: 10,
-};
-
-function EmptyState({ icon: Icon, title, desc }: { icon: typeof Users; title: string; desc: string }) {
-  return (
-    <div className="card" style={{ padding: 20, textAlign: "center" }}>
-      <Icon size={48} style={{ margin: "0 auto 12px", color: "var(--muted-fg)", opacity: 0.3 }} />
-      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
-      <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>{desc}</div>
-    </div>
-  );
-}
+const GRID_CLASS = "grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5";
 
 function LoadingState() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "64px 0" }}>
-      <Loader2 size={32} className="animate-spin" style={{ color: "var(--muted-fg)" }} />
+    <div className={GRID_CLASS}>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="card !p-0 overflow-hidden">
+          <div className="skeleton-shimmer aspect-square" />
+          <div className="p-2.5">
+            <div className="h-3 w-3/4 skeleton-shimmer rounded mb-2" />
+            <div className="h-2.5 w-1/2 skeleton-shimmer rounded" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -80,8 +74,8 @@ interface CardGridSectionProps {
 
 function CardGridSection({ isLoading, isEmpty, emptyIcon, emptyTitle, emptyDesc, children }: CardGridSectionProps) {
   if (isLoading) return <LoadingState />;
-  if (isEmpty) return <EmptyState icon={emptyIcon} title={emptyTitle} desc={emptyDesc} />;
-  return <div style={gridStyle}>{children}</div>;
+  if (isEmpty) return <EmptyState icon={emptyIcon} title={emptyTitle} description={emptyDesc} />;
+  return <div className={GRID_CLASS}>{children}</div>;
 }
 
 interface CharactersTabProps {
@@ -206,9 +200,9 @@ function CollectionsTab({
 
   return (
     <>
-      <div style={{ marginBottom: 12 }}>
+      <div className="mb-3">
         <button type="button" className="btn btn-primary btn-sm" onClick={onNewCollection}>
-          <Plus size={14} style={{ marginRight: 4 }} />
+          <Plus size={14} className="mr-1" />
           {t("asset.newCollection")}
         </button>
       </div>
@@ -246,8 +240,8 @@ function AllTabSection({ title, count, children }: AllTabSectionProps) {
   if (count === 0) return null;
   return (
     <div>
-      <div className="section-label" style={{ marginBottom: 8 }}>{title} ({count})</div>
-      <div style={gridStyle}>{children}</div>
+      <div className="section-label mb-2">{title} ({count})</div>
+      <div className={GRID_CLASS}>{children}</div>
     </div>
   );
 }
@@ -280,10 +274,10 @@ function AllTab({
   if (isLoading) return <LoadingState />;
   const isEmpty = filteredCharacters.length === 0 && filteredScenes.length === 0 && filteredStoryboards.length === 0;
   if (isEmpty) {
-    return <EmptyState icon={Layers} title={t("asset.allAssetsEmpty")} desc={t("asset.allAssetsEmptyDesc")} />;
+    return <EmptyState icon={Layers} title={t("asset.allAssetsEmpty")} description={t("asset.allAssetsEmptyDesc")} />;
   }
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="flex flex-col gap-4">
       <AllTabSection title={t("asset.characterLibrary")} count={filteredCharacters.length}>
         {filteredCharacters.map((char) => (
           <CharacterCard
@@ -369,10 +363,10 @@ export function AssetCardGrid(props: AssetCardGridProps) {
     );
   }
   if (PROPS_TABS.has(activeTab)) {
-    return <EmptyState icon={Package} title={t("asset.propsEmpty")} desc={t("asset.propsEmptyDesc")} />;
+    return <EmptyState icon={Package} title={t("asset.propsEmpty")} description={t("asset.propsEmptyDesc")} />;
   }
   if (activeTab === "media") {
-    return <EmptyState icon={MediaIcon} title={t("asset.mediaEmpty")} desc={t("asset.mediaEmptyDesc")} />;
+    return <EmptyState icon={MediaIcon} title={t("asset.mediaEmpty")} description={t("asset.mediaEmptyDesc")} />;
   }
   return null;
 }

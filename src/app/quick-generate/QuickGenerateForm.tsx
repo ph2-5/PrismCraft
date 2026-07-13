@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import { t } from "@/shared/constants";
 import { ModelSelector } from "@/modules/prompt";
 import type { Character, Scene, ModelSelection } from "@/domain/schemas";
@@ -110,32 +110,42 @@ export function QuickGenerateForm({
   };
 
   const videoModelInputId = useId();
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateAndGenerate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!promptText.trim()) {
+      newErrors.prompt = t("validation.promptRequired");
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+    onGenerate();
+  };
 
   return (
     <div className="lg:col-span-2 space-y-6">
       <PromptCard
         promptText={promptText}
-        onPromptTextChange={onPromptTextChange}
+        onPromptTextChange={(value) => {
+          onPromptTextChange(value);
+          if (errors.prompt) setErrors((prev) => ({ ...prev, prompt: "" }));
+        }}
         onOpenTemplateDialog={onOpenTemplateDialog}
         quickExamples={quickExamples}
+        promptError={errors.prompt}
       />
 
       <div
-        className="card"
-        style={{
-          padding: 16,
-          border: "1px solid var(--border)",
-          background: "var(--card2)",
-        }}
+        className="card !bg-card2"
       >
-        <div style={{ padding: "12px 16px 4px" }}>
-          <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>
+        <div className="px-4 pt-3 pb-1">
+          <div className="text-lg font-semibold text-foreground">
             {t("quickGenerate.configVideoParams")}
           </div>
         </div>
-        <div style={{ padding: "0 16px 16px" }} className="space-y-6">
+        <div className="px-4 pb-4 space-y-6">
           <div className="space-y-2">
-            <label htmlFor={videoModelInputId} style={{ fontSize: 13, color: "var(--fg)" }}>
+            <label htmlFor={videoModelInputId} className="text-[13px] text-foreground">
               {t("quickGenerate.videoModel")}
             </label>
             <ModelSelector
@@ -195,8 +205,7 @@ export function QuickGenerateForm({
 
       <GenerateButton
         isGenerating={isGenerating}
-        promptText={promptText}
-        onGenerate={onGenerate}
+        onGenerate={validateAndGenerate}
       />
 
       {generatedPrompt && <GeneratedPromptCard generatedPrompt={generatedPrompt} />}

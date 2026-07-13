@@ -91,8 +91,7 @@ export function NewCollectionDialog({
       <h2 className="text-lg font-semibold mb-1">{t("asset.newCollection")}</h2>
       <p className="text-sm text-muted-foreground mb-4">{t("asset.newCollectionDesc")}</p>
       <input
-        className="input"
-        style={{ fontSize: 12, padding: "6px 10px" }}
+        className="input !text-xs !py-1.5 !px-2.5"
         data-testid="asset-collection-name-input"
         aria-label={t("asset.collectionNamePlaceholder")}
         value={newCollectionName}
@@ -160,8 +159,7 @@ export function ImportDialog({
         </div>
         <button
           type="button"
-          className="btn btn-primary btn-sm"
-          style={{ width: "100%", justifyContent: "center" }}
+          className="btn btn-primary btn-sm w-full justify-center"
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="w-4 h-4 mr-2" />

@@ -49,28 +49,12 @@ export default function Home() {
     <PageErrorBoundary pageName={t("page.home")}>
       <div className="fade-in flex flex-col h-full overflow-y-auto">
         {/* 品牌英雄区 */}
-        <div
-          className="text-center py-12 px-6 border-b border-border"
-          style={{ background: "linear-gradient(180deg, rgba(var(--primary-rgb), 0.06) 0%, transparent 100%)" }}
-        >
+        <div className="home-hero-bg text-center py-12 px-6 border-b border-border">
           <div className="inline-flex items-center gap-3 mb-2">
-            <div
-              className="w-12 h-12 rounded-[14px] flex items-center justify-center text-2xl"
-              style={{
-                background: "linear-gradient(135deg, var(--primary), var(--chart-2))",
-                boxShadow: "0 4px 20px rgba(var(--primary-rgb), 0.3)",
-              }}
-            >
+            <div className="home-brand-icon w-12 h-12 rounded-[14px] flex items-center justify-center text-2xl">
               <Film size={24} />
             </div>
-            <span
-              className="text-[26px] font-extrabold"
-              style={{
-                background: "linear-gradient(135deg, var(--primary-hover), var(--chart-4))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
+            <span className="home-brand-title text-[26px] font-extrabold">
               PrismCraft
             </span>
             <span className="badge badge-info text-[10px] align-super">{APP_VERSION}</span>
@@ -86,8 +70,7 @@ export default function Home() {
         <div className="grid grid-cols-3 gap-4 p-6 border-b border-border">
           {/* 故事模式 */}
           <div
-            className="card p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
-            style={{ border: `2px solid rgba(var(--primary-rgb), 0.15)` }}
+            className="card home-card-primary p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
             onClick={() => navigate("/story")}
             role="button"
             tabIndex={0}
@@ -98,25 +81,14 @@ export default function Home() {
                 navigate("/story");
               }
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(var(--primary-rgb), 0.4)";
-              e.currentTarget.style.boxShadow = "0 8px 30px rgba(var(--primary-rgb), 0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(var(--primary-rgb), 0.15)";
-              e.currentTarget.style.boxShadow = "";
-            }}
           >
-            <div
-              className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
-              style={{ background: "rgba(var(--primary-rgb), 0.06)" }}
-            />
+            <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-[rgba(var(--primary-rgb),0.06)]" />
             <div className="text-[32px] mb-3 relative"><BookOpen size={32} /></div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.storyMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.storyModeDesc")}
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] relative" style={{ color: "var(--primary-hover)" }}>
+            <div className="flex items-center gap-1.5 text-[11px] relative text-[var(--primary-hover)]">
               <span>{t("home.storyModeCta")}</span>
               <span className="text-sm">→</span>
             </div>
@@ -129,8 +101,7 @@ export default function Home() {
 
           {/* 分镜模式 */}
           <div
-            className="card p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
-            style={{ border: `2px solid rgba(var(--warning-rgb), 0.15)` }}
+            className="card home-card-warning p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
             onClick={() => navigate("/storyboard")}
             role="button"
             tabIndex={0}
@@ -141,39 +112,27 @@ export default function Home() {
                 navigate("/storyboard");
               }
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(var(--warning-rgb), 0.4)";
-              e.currentTarget.style.boxShadow = "0 8px 30px rgba(var(--warning-rgb), 0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(var(--warning-rgb), 0.15)";
-              e.currentTarget.style.boxShadow = "";
-            }}
           >
-            <div
-              className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
-              style={{ background: "rgba(var(--warning-rgb), 0.06)" }}
-            />
+            <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-[rgba(var(--warning-rgb),0.06)]" />
             <div className="text-[32px] mb-3 relative"><Film size={32} /></div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.storyboardMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.storyboardModeDesc")}
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] relative" style={{ color: "var(--warning)" }}>
+            <div className="flex items-center gap-1.5 text-[11px] relative text-warning">
               <span>{t("home.storyboardModeCta")}</span>
               <span className="text-sm">→</span>
             </div>
             <div className="flex gap-1 mt-2.5 relative">
-              <span className="badge text-[9px]" style={{ background: "rgba(var(--warning-rgb), 0.12)", color: "var(--warning)" }}>{t("home.elementBinding")}</span>
-              <span className="badge text-[9px]" style={{ background: "rgba(var(--warning-rgb), 0.12)", color: "var(--warning)" }}>{t("home.promptEdit")}</span>
-              <span className="badge text-[9px]" style={{ background: "rgba(var(--warning-rgb), 0.12)", color: "var(--warning)" }}>{t("home.shotByShot")}</span>
+              <span className="badge badge-warning text-[9px]">{t("home.elementBinding")}</span>
+              <span className="badge badge-warning text-[9px]">{t("home.promptEdit")}</span>
+              <span className="badge badge-warning text-[9px]">{t("home.shotByShot")}</span>
             </div>
           </div>
 
           {/* 快速生成 */}
           <div
-            className="card p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
-            style={{ border: `2px solid rgba(var(--success-rgb), 0.15)` }}
+            className="card home-card-success p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
             onClick={() => navigate("/quick-generate")}
             role="button"
             tabIndex={0}
@@ -184,25 +143,14 @@ export default function Home() {
                 navigate("/quick-generate");
               }
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(var(--success-rgb), 0.4)";
-              e.currentTarget.style.boxShadow = "0 8px 30px rgba(var(--success-rgb), 0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(var(--success-rgb), 0.15)";
-              e.currentTarget.style.boxShadow = "";
-            }}
           >
-            <div
-              className="absolute -top-5 -right-5 w-20 h-20 rounded-full"
-              style={{ background: "rgba(var(--success-rgb), 0.06)" }}
-            />
+            <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-[rgba(var(--success-rgb),0.06)]" />
             <div className="text-[32px] mb-3 relative"><Zap size={32} /></div>
             <div className="text-[15px] font-bold mb-1 relative">{t("home.quickMode")}</div>
             <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
               {t("home.quickModeDesc")}
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] relative" style={{ color: "var(--success)" }}>
+            <div className="flex items-center gap-1.5 text-[11px] relative text-success">
               <span>{t("home.quickModeCta")}</span>
               <span className="text-sm">→</span>
             </div>
@@ -225,7 +173,7 @@ export default function Home() {
               + {t("home.newProject")}
             </button>
           </div>
-          <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+          <div className="grid gap-3.5 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
             {stories.slice(0, 6).map((story) => {
               const charCount = story.characters?.length ?? 0;
               const sceneCount = story.scenes?.length ?? 0;
@@ -242,22 +190,11 @@ export default function Home() {
               return (
                 <div
                   key={story.id}
-                  className="card p-4 cursor-pointer transition-all hover:-translate-y-0.5"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "var(--primary)";
-                    e.currentTarget.style.boxShadow = "0 4px 16px rgba(var(--primary-rgb), 0.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border)";
-                    e.currentTarget.style.boxShadow = "";
-                  }}
+                  className="card home-project-card p-4 cursor-pointer transition-all hover:-translate-y-0.5"
                   onClick={() => navigate(`/storyboard/${story.id}`)}
                 >
                   <div className="flex items-center gap-3 mb-2.5">
-                    <div
-                      className="w-10 h-10 rounded-[10px] flex items-center justify-center text-lg shrink-0"
-                      style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-hover))" }}
-                    >
+                    <div className="home-story-icon w-10 h-10 rounded-[10px] flex items-center justify-center text-lg shrink-0">
                       <ImageIcon size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -273,23 +210,14 @@ export default function Home() {
                     <span><Package className="inline-block" size={12} /> {assetCount}</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground">
-                    {story.updatedAt ? new Date(story.updatedAt).toLocaleDateString("zh-CN") : ""}
+                    {story.updatedAt ? new Date(story.updatedAt).toLocaleDateString() : ""}
                   </div>
                 </div>
               );
             })}
             {stories.length === 0 && (
               <div
-                className="card p-4 flex items-center justify-center flex-col gap-2 transition-all"
-                style={{ border: "2px dashed var(--border)", minHeight: "130px" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--primary)";
-                  e.currentTarget.style.background = "rgba(var(--primary-rgb), 0.03)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border)";
-                  e.currentTarget.style.background = "";
-                }}
+                className="card home-empty-card p-4 flex items-center justify-center flex-col gap-2 transition-all"
                 onClick={() => navigate("/storyboard")}
               >
                 <div className="text-3xl opacity-40"><Plus size={32} /></div>
@@ -317,9 +245,7 @@ export default function Home() {
 function QuickEntryCard({ icon, title, subtitle, onClick }: { icon: string; title: string; subtitle: string; onClick: () => void }) {
   return (
     <div
-      className="card p-3.5 text-center cursor-pointer transition-all"
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+      className="card home-quick-entry p-3.5 text-center cursor-pointer transition-all"
       onClick={onClick}
     >
       <div className="text-2xl mb-1">{icon}</div>

@@ -10,46 +10,6 @@ interface AssetUploadSectionProps {
   onClose?: () => void;
 }
 
-// 预览页面上传区域外层样式：
-// padding:20px;border-bottom:1px solid var(--border);background:var(--card2);
-const uploadAreaWrapperStyle: React.CSSProperties = {
-  padding: 20,
-  borderBottom: "1px solid var(--border)",
-  background: "var(--card2)",
-};
-
-// 预览页面上传区域内层样式：
-// border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;
-const uploadDropZoneStyle: React.CSSProperties = {
-  border: "2px dashed var(--border)",
-  borderRadius: 12,
-  padding: 24,
-  textAlign: "center",
-  cursor: "pointer",
-};
-
-const uploadIconStyle: React.CSSProperties = {
-  fontSize: 32,
-  marginBottom: 8,
-};
-
-const uploadTitleStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 600,
-};
-
-const uploadDescStyle: React.CSSProperties = {
-  fontSize: 11,
-  color: "var(--muted-fg)",
-  marginTop: 4,
-};
-
-const closeBtnRowStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "flex-end",
-  marginTop: 8,
-};
-
 export function AssetUploadSection({
   fileInputRef,
   onImport,
@@ -96,10 +56,6 @@ export function AssetUploadSection({
     fileInputRef.current?.click();
   };
 
-  const dropZoneStyle: React.CSSProperties = isDragOver
-    ? { ...uploadDropZoneStyle, borderColor: "var(--primary)", background: "rgba(var(--primary-rgb), 0.08)" }
-    : uploadDropZoneStyle;
-
   // 预览页面：上传区域默认隐藏，点击"上传素材"按钮才显示
   if (!visible) {
     return (
@@ -107,16 +63,16 @@ export function AssetUploadSection({
         ref={fileInputRef}
         type="file"
         accept=".asa,image/*,video/*"
-        style={{ display: "none" }}
+        className="hidden"
         onChange={onImport}
       />
     );
   }
 
   return (
-    <div style={uploadAreaWrapperStyle}>
+    <div className="p-5 border-b border-border bg-card2">
       <div
-        style={dropZoneStyle}
+        className={`dropzone !p-6 ${isDragOver ? "active" : ""}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
@@ -131,12 +87,12 @@ export function AssetUploadSection({
           }
         }}
       >
-        <div style={uploadIconStyle}><Upload size={32} style={{ margin: "0 auto" }} /></div>
-        <div style={uploadTitleStyle}>{t("asset.dragOrClickToUpload")}</div>
-        <div style={uploadDescStyle}>{t("asset.uploadFormatHint")}</div>
+        <div className="mb-2"><Upload size={32} className="mx-auto" /></div>
+        <div className="text-[13px] font-semibold">{t("asset.dragOrClickToUpload")}</div>
+        <div className="text-[11px] text-muted-foreground mt-1">{t("asset.uploadFormatHint")}</div>
       </div>
       {onClose && (
-        <div style={closeBtnRowStyle}>
+        <div className="flex justify-end mt-2">
           <button type="button" className="btn btn-ghost btn-xs" onClick={onClose}>
             <X className="w-3 h-3" /> {t("common.close")}
           </button>
@@ -146,7 +102,7 @@ export function AssetUploadSection({
         ref={fileInputRef}
         type="file"
         accept=".asa,image/*,video/*"
-        style={{ display: "none" }}
+        className="hidden"
         onChange={onImport}
       />
     </div>

@@ -184,14 +184,14 @@ export default function PluginManager() {
 
   if (isLoading) {
     return (
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ paddingBottom: 12 }}>
-          <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="card">
+        <div className="pb-3">
+          <div className="flex items-center gap-2 text-base font-semibold">
             <Puzzle size={20} />
             {t("plugin.management")}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingTop: 32, paddingBottom: 32 }}>
+        <div className="flex items-center justify-center py-8">
           <Loader2 size={24} className="animate-spin" />
         </div>
       </div>
@@ -200,33 +200,33 @@ export default function PluginManager() {
 
   return (
     <>
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ paddingBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="card">
+        <div className="pb-3">
+          <div className="flex items-center justify-between">
             <div>
-              <div style={{ fontSize: 18, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+              <div className="flex items-center gap-2 text-lg font-semibold">
                 <Puzzle size={20} />
                 {t("plugin.management")}
               </div>
-              <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.managementDesc")}</div>
+              <div className="text-sm text-muted-foreground">{t("plugin.managementDesc")}</div>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               <button type="button" className="btn btn-outline btn-sm" onClick={handleShowSchema}>
-                <BookOpen size={16} style={{ marginRight: 4 }} />
+                <BookOpen size={16} className="mr-1" />
                 {showSchema ? t("plugin.hideSpec") : t("plugin.showSpec")}
               </button>
               <button type="button" className="btn btn-outline btn-sm" onClick={handleShowSpec}>
-                <FileText size={16} style={{ marginRight: 4 }} />
+                <FileText size={16} className="mr-1" />
                 {showSpec ? t("plugin.hideDoc") : t("plugin.showDoc")}
               </button>
               <button type="button" className="btn btn-outline btn-sm" onClick={handleReload} disabled={isReloading}>
-                {isReloading ? <Loader2 size={16} className="animate-spin" style={{ marginRight: 4 }} /> : <RefreshCw size={16} style={{ marginRight: 4 }} />}
+                {isReloading ? <Loader2 size={16} className="animate-spin mr-1" /> : <RefreshCw size={16} className="mr-1" />}
                 {t("plugin.reload")}
               </button>
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="flex flex-col gap-4">
           <PluginList
             builtInPlugins={builtInPlugins}
             declarativePlugins={declarativePlugins}
@@ -238,7 +238,7 @@ export default function PluginManager() {
           />
 
           {codePlugins.length > 0 && (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               <button
                 type="button"
                 className="btn btn-outline btn-sm"
@@ -246,9 +246,9 @@ export default function PluginManager() {
                 disabled={isReloadingCode}
               >
                 {isReloadingCode ? (
-                  <Loader2 size={16} className="animate-spin" style={{ marginRight: 4 }} />
+                  <Loader2 size={16} className="animate-spin mr-1" />
                 ) : (
-                  <RefreshCw size={16} style={{ marginRight: 4 }} />
+                  <RefreshCw size={16} className="mr-1" />
                 )}
                 {t("plugin.reloadCodePlugins")}
               </button>
@@ -257,21 +257,21 @@ export default function PluginManager() {
                 className="btn btn-outline btn-sm"
                 onClick={handleOpenCodePluginDir}
               >
-                <FolderOpen size={16} style={{ marginRight: 4 }} />
+                <FolderOpen size={16} className="mr-1" />
                 {t("plugin.openCodePluginDir")}
               </button>
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="flex gap-2">
             {!showAddForm && !showCreator ? (
               <>
-                <button type="button" className="btn btn-outline btn-sm" style={{ flex: 1 }} onClick={() => setShowCreator(true)}>
-                  <Puzzle size={16} style={{ marginRight: 8 }} />
+                <button type="button" className="btn btn-outline btn-sm flex-1" onClick={() => setShowCreator(true)}>
+                  <Puzzle size={16} className="mr-2" />
                   {t("plugin.createPlugin")}
                 </button>
-                <button type="button" className="btn btn-outline btn-sm" style={{ flex: 1 }} onClick={() => setShowAddForm(true)}>
-                  <Upload size={16} style={{ marginRight: 8 }} />
+                <button type="button" className="btn btn-outline btn-sm flex-1" onClick={() => setShowAddForm(true)}>
+                  <Upload size={16} className="mr-2" />
                   {t("plugin.importJson")}
                 </button>
               </>
@@ -287,11 +287,11 @@ export default function PluginManager() {
           </div>
 
           {userPluginFiles.some((f) => !f.valid) && (
-            <div style={{ padding: 12, borderRadius: 8, background: "rgba(var(--destructive-rgb, 239, 68, 68), 0.1)", border: "1px solid rgba(var(--destructive-rgb, 239, 68, 68), 0.3)", fontSize: 12, color: "var(--muted-fg)" }}>
+            <div className="plugin-invalid-box">
               <div>
-                <span style={{ fontWeight: 500 }}>{t("plugin.invalidPluginsExist")}</span>
+                <span className="font-medium">{t("plugin.invalidPluginsExist")}</span>
                 {userPluginFiles.filter((f) => !f.valid).map((f) => f.fileName).join(", ")}
-                <span style={{ fontSize: 12, marginLeft: 8 }}>{t("plugin.checkConfigOrDelete")}</span>
+                <span className="text-xs ml-2">{t("plugin.checkConfigOrDelete")}</span>
               </div>
             </div>
           )}

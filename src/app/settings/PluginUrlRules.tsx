@@ -10,20 +10,19 @@ interface PluginUrlRulesProps {
 
 export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
   return (
-    <div className="card" style={{ padding: 0 }}>
-      <div style={{ padding: 16, paddingBottom: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+    <div className="card !p-0">
+      <div className="p-4 pb-3">
+        <div className="text-base font-semibold flex items-center gap-2">
           <Globe size={20} />
           {t("plugin.urlRules")}
         </div>
-        <div style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 4 }}>{t("plugin.urlRulesDesc")}</div>
+        <div className="text-xs text-muted-foreground mt-1">{t("plugin.urlRulesDesc")}</div>
       </div>
-      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="p-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
           <label>{t("plugin.matchMode")}</label>
           <select
-            className="select"
-            style={{ width: 200 }}
+            className="select w-[200px]"
             value={state.matchMode}
             onChange={(e) => updateField("matchMode", e.target.value as WizardState["matchMode"])}
           >
@@ -31,13 +30,12 @@ export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
             <option value="prefix">{t("plugin.matchPrefix")}</option>
             <option value="regex">{t("plugin.matchRegex")}</option>
           </select>
-          <p style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("plugin.matchModeHint")}</p>
+          <p className="text-[11px] text-muted-foreground">{t("plugin.matchModeHint")}</p>
         </div>
         {state.apiUrlPatterns.map((pattern) => (
-          <div key={pattern._uid} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div key={pattern._uid} className="flex items-center gap-2">
             <input
-              className="input"
-              style={{ fontSize: 12, padding: "6px 10px", fontFamily: "monospace" }}
+              className="input !text-xs !py-1.5 !px-2.5 !font-mono"
               value={pattern.pattern}
               onChange={(e) => {
                 const patterns = state.apiUrlPatterns.map((p) =>
@@ -49,8 +47,7 @@ export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
             />
             <IconButton
               variant="ghost"
-              className="btn-sm"
-              style={{ color: "var(--destructive)", flexShrink: 0, padding: "6px 8px" }}
+              className="btn-sm !text-destructive shrink-0 !py-1.5 !px-2"
               onClick={() => {
                 updateField(
                   "apiUrlPatterns",
@@ -73,11 +70,11 @@ export function PluginUrlRules({ state, updateField }: PluginUrlRulesProps) {
             ]);
           }}
         >
-          <Plus size={16} style={{ marginRight: 4 }} />
+          <Plus size={16} className="mr-1" />
           {t("plugin.addUrlPattern")}
         </button>
         {state.apiUrlPatterns.length === 0 && (
-          <p style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("plugin.urlPatternRequired")}</p>
+          <p className="text-[11px] text-muted-foreground">{t("plugin.urlPatternRequired")}</p>
         )}
       </div>
     </div>

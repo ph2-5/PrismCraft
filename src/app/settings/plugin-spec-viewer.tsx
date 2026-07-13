@@ -7,16 +7,16 @@ interface PluginSpecViewerProps {
 
 export function PluginSpecViewer({ specContent }: PluginSpecViewerProps) {
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div style={{ paddingBottom: 12 }}>
-        <div style={{ fontSize: 18, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+    <div className="card">
+      <div className="pb-3">
+        <div className="flex items-center gap-2 text-lg font-semibold">
           <BookOpen size={20} />
           {t("plugin.pluginSpecDoc")}
         </div>
-        <div style={{ fontSize: 14, color: "var(--muted-fg)" }}>{t("plugin.pluginSpecDocDesc")}</div>
+        <div className="text-sm text-muted-foreground">{t("plugin.pluginSpecDocDesc")}</div>
       </div>
       <div>
-        <pre style={{ fontSize: 12, background: "var(--card2)", padding: 16, borderRadius: 8, overflow: "auto", maxHeight: 600, fontFamily: "monospace", color: "var(--muted-fg)", whiteSpace: "pre-wrap" }}>
+        <pre className="pre-block">
           {specContent}
         </pre>
       </div>

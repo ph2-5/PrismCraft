@@ -90,10 +90,10 @@ export function ModelMappingSection({
   const visionInfo = textModelHasVision(config);
 
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div className="section-label" style={{ marginBottom: 10 }}><ArrowLeftRight className="inline-block" size={14} /> {t("mapping.title")}</div>
-      <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 12 }}>{t("mapping.description")}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="card">
+      <div className="section-label mb-2.5"><ArrowLeftRight className="inline-block" size={14} /> {t("mapping.title")}</div>
+      <div className="text-[11px] text-muted-foreground mb-3">{t("mapping.description")}</div>
+      <div className="flex flex-col gap-2">
         {capabilities.map((cap) => {
           const models = getAvailableModels(config, cap.id);
           const currentValue = config.mapping[cap.id];
@@ -102,28 +102,18 @@ export function ModelMappingSection({
             cap.id === "vision" && !useCustomVision && visionInfo.hasVision;
 
           return (
-            <div key={cap.id} className="element-card" style={{ alignItems: "center" }}>
+            <div key={cap.id} className="element-card items-center">
               <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 6,
-                  background: visual.bg,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                  flexShrink: 0,
-                }}
+                className="w-7 h-7 rounded-md flex items-center justify-center text-sm shrink-0"
+                style={{ background: visual.bg }}
               >
                 {visual.emoji}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>{cap.name}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold">{cap.name}</div>
               </div>
               <select
-                className="select"
-                style={{ fontSize: 11, width: 180 }}
+                className="select text-[11px] w-[180px]"
                 value={currentValue || "_none"}
                 onChange={(e) => onSetMapping(cap.id, e.target.value)}
                 disabled={isDisabled}
@@ -161,11 +151,11 @@ export function ModelMappingSection({
               </IconButton>
 
               {cap.id === "vision" && visionInfo.hasVision && (
-                <div style={{ marginTop: 8, padding: 8, borderRadius: 6, background: "var(--card2)", fontSize: 11, color: "var(--muted-fg)" }}>
-                  <div style={{ fontSize: 11, color: "var(--success)", marginBottom: 6 }}>
+                <div className="mt-2 p-2 rounded-md bg-card2 text-[11px] text-muted-foreground">
+                  <div className="text-[11px] text-success mb-1.5">
                     {t("mapping.visionAutoDetect", { modelName: visionInfo.modelName ?? "" })}
                   </div>
-                  <label className="element-card" style={{ alignItems: "center", gap: 6, cursor: "pointer", padding: "6px 10px" }}>
+                  <label className="element-card items-center gap-1.5 cursor-pointer px-2.5 py-1.5">
                     <input
                       type="checkbox"
                       id="useCustomVision"

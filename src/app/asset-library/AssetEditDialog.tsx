@@ -35,7 +35,7 @@ export function AssetEditDialog({
             ? t("asset.editScene")
             : t("asset.editStoryboard")
       }
-      style={{ maxWidth: "42rem" }}
+      className="!max-w-2xl"
     >
       <h2 className="text-lg font-semibold mb-4">
         {editingItem?._type === "character"
@@ -66,8 +66,7 @@ export function AssetEditDialog({
                   <label htmlFor={nameId} className="text-sm font-medium">{t("asset.name")}</label>
                   <input
                     id={nameId}
-                    className="input"
-                    style={{ fontSize: 12, padding: "6px 10px" }}
+                    className="input !text-xs !py-1.5 !px-2.5"
                     value={editingItem._type === "storyboard" ? "" : (editingItem.name || "")}
                     onChange={(e) =>
                       onEditingItemChange({ ...editingItem, name: e.target.value } as EditingItem)
@@ -78,8 +77,7 @@ export function AssetEditDialog({
                   <label htmlFor={descId} className="text-sm font-medium">{t("asset.description")}</label>
                   <textarea
                     id={descId}
-                    className="textarea"
-                    style={{ fontSize: 12 }}
+                    className="textarea !text-xs"
                     value={editingItem._type === "storyboard" ? (editingItem.script || "") : (editingItem.description || "")}
                     onChange={(e) => {
                       if (editingItem._type === "storyboard") {
@@ -103,8 +101,7 @@ export function AssetEditDialog({
                   </label>
                   <input
                     id={tagsId}
-                    className="input"
-                    style={{ fontSize: 12, padding: "6px 10px" }}
+                    className="input !text-xs !py-1.5 !px-2.5"
                     value={editingItem._type === "storyboard" ? "" : (editingItem.tags || []).join(", ")}
                     onChange={(e) =>
                       onEditingItemChange({

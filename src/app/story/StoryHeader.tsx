@@ -97,14 +97,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
                 }}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div
-                    className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, var(--primary), var(--primary-hover))",
-                      color: "white",
-                    }}
-                  >
+                  <div className="story-project-avatar w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0">
                     {(s.title || "?").charAt(0)}
                   </div>
                   <span className="truncate">
@@ -141,8 +134,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
             title: e.target.value,
           }))
         }
-        className="input max-w-[200px] h-8 text-sm"
-        style={{ fontSize: 12, padding: "6px 10px" }}
+        className="input max-w-[200px] h-8 !text-xs !px-2.5 !py-1.5"
         aria-label={t("story.titlePlaceholder")}
       />
 
@@ -156,8 +148,7 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
             description: e.target.value,
           }))
         }
-        className="input max-w-[240px] h-8 text-sm flex-1"
-        style={{ fontSize: 12, padding: "6px 10px" }}
+        className="input max-w-[240px] h-8 !text-xs !px-2.5 !py-1.5 flex-1"
         aria-label={t("story.descPlaceholder")}
       />
 

@@ -10,16 +10,7 @@ interface ApiCapabilityMeta {
 
 export function EncryptedStorageHint() {
   return (
-    <div
-      style={{
-        padding: 12,
-        background: "rgba(var(--primary-rgb), 0.08)",
-        border: "1px solid rgba(var(--primary-rgb), 0.2)",
-        borderRadius: 8,
-        fontSize: 11,
-        color: "var(--muted-fg)",
-      }}
-    >
+    <div className="tip-box">
       <Lightbulb className="inline-block" size={12} /> {t("config.encryptedStorageHint")}
     </div>
   );
@@ -41,18 +32,15 @@ export function TestResultsList({
           result && (
             <div
               key={cap}
+              className="p-3 rounded-lg text-xs text-muted-foreground"
               style={{
-                padding: 12,
-                borderRadius: 8,
                 background: result.success
                   ? "rgba(var(--success-rgb, 16, 185, 129), 0.1)"
                   : "rgba(var(--destructive-rgb, 239, 68, 68), 0.1)",
                 border: `1px solid ${result.success ? "var(--success)" : "var(--destructive)"}`,
-                fontSize: 12,
-                color: "var(--muted-fg)",
               }}
             >
-              <div style={result.success ? { color: "var(--success)" } : undefined}>
+              <div className={result.success ? "text-success" : undefined}>
                 {capabilities.find((c) => c.id === cap)?.name}: {result.message}
               </div>
             </div>
@@ -74,7 +62,7 @@ export function BottomActionBar({
   onSaveConfig,
 }: BottomActionBarProps) {
   return (
-    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+    <div className="flex gap-2 justify-end">
       <button
         type="button"
         className="btn btn-outline btn-sm"
@@ -82,9 +70,9 @@ export function BottomActionBar({
         disabled={testingCapability !== null}
       >
         {testingCapability !== null ? (
-          <Loader2 size={14} className="animate-spin" style={{ marginRight: 6 }} />
+          <Loader2 size={14} className="animate-spin mr-1.5" />
         ) : (
-          <FlaskConical size={14} style={{ marginRight: 6 }} />
+          <FlaskConical size={14} className="mr-1.5" />
         )}
         {t("connection.testAll")}
       </button>
@@ -93,7 +81,7 @@ export function BottomActionBar({
         className="btn btn-primary btn-sm"
         onClick={onSaveConfig}
       >
-        <Save size={14} style={{ marginRight: 6 }} />
+        <Save size={14} className="mr-1.5" />
         {t("connection.save")}
       </button>
     </div>

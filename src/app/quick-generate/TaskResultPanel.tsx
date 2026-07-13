@@ -34,39 +34,27 @@ export function TaskResultPanel({
     <div className="space-y-6">
       {currentTask && (
         <div
-          className="card"
-          style={{
-            padding: 16,
-            border: "2px solid rgba(var(--primary-rgb), 0.5)",
-            background: "var(--card)",
-          }}
+          className="card !border-2 !border-[rgba(var(--primary-rgb),0.5)]"
         >
-          <div style={{ padding: "12px 16px 4px" }}>
+          <div className="px-4 pt-3 pb-1">
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 16,
-                fontWeight: 600,
-                color: "var(--fg)",
-              }}
+              className="flex items-center gap-2 text-base font-semibold text-foreground"
             >
-              <Film className="w-5 h-5" style={{ color: "var(--primary)" }} />
+              <Film className="w-5 h-5 text-primary" />
               {t("quickGenerate.currentTask")}
             </div>
           </div>
-          <div style={{ padding: "0 16px 16px" }} className="space-y-4">
+          <div className="px-4 pb-4 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span style={{ color: "var(--muted-fg)" }}>
+                <span className="text-muted-foreground">
                   {currentTask.status === "pending" && t("quickGenerate.queuing")}
                   {currentTask.status === "generating" && t("quickGenerate.generating")}
                   {currentTask.status === "completed" && t("quickGenerate.completed")}
                   {currentTask.status === "failed" && t("quickGenerate.generateFailed")}
                   {currentTask.status === "timeout" && t("quickGenerate.generateTimeout")}
                 </span>
-                <span style={{ color: "var(--muted-fg)" }}>
+                <span className="text-muted-foreground">
                   {currentTask.progress}%
                 </span>
               </div>
@@ -80,14 +68,10 @@ export function TaskResultPanel({
 
             {(currentTask.status === "failed" || currentTask.status === "timeout") && (
               <div
-                className="flex items-start gap-2 p-3 rounded-lg border"
-                style={{
-                  background: "rgba(var(--destructive-rgb), 0.3)",
-                  borderColor: "rgba(var(--destructive-rgb), 0.5)",
-                }}
+                className="flex items-start gap-2 p-3 rounded-lg border !bg-[rgba(var(--destructive-rgb),0.3)] !border-[rgba(var(--destructive-rgb),0.5)]"
               >
-                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "var(--destructive)" }} />
-                <p className="text-sm" style={{ color: "var(--destructive)" }}>
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-destructive" />
+                <p className="text-sm text-destructive">
                   {mapUserFacingError(currentTask.message) || t("quickGenerate.generateFailedRetry")}
                 </p>
               </div>
@@ -96,7 +80,7 @@ export function TaskResultPanel({
             {currentTask.status === "completed" &&
               effectiveVideoUrl && (
                 <div className="space-y-4">
-                  <div className="aspect-video rounded-lg overflow-hidden border" style={{ background: "#000", borderColor: "var(--border)" }}>
+                  <div className="aspect-video rounded-lg overflow-hidden border bg-black border-border">
                     <video
                       src={effectiveVideoUrl}
                       controls
@@ -109,8 +93,7 @@ export function TaskResultPanel({
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      className="btn btn-primary"
-                      style={{ flex: 1 }}
+                      className="btn btn-primary flex-1"
                       onClick={() =>
                         onDownload(
                           effectiveVideoUrl || "",
@@ -138,19 +121,13 @@ export function TaskResultPanel({
 
       {!currentTask && tasks.filter((t) => t.taskId !== activeTaskId).length === 0 && (
         <div
-          className="card"
-          style={{
-            padding: 32,
-            border: "1px dashed var(--border)",
-            background: "var(--card2)",
-            textAlign: "center",
-          }}
+          className="card !p-8 !border-dashed !bg-card2 text-center"
         >
-          <Film size={48} style={{ margin: "0 auto 12px", color: "var(--muted-fg)", opacity: 0.3 }} />
-          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>
+          <Film size={48} className="mx-auto mb-3 text-muted-foreground opacity-30" />
+          <div className="text-[15px] font-semibold text-foreground mb-1.5">
             {t("quickGenerate.noResultTitle")}
           </div>
-          <p style={{ fontSize: 12, color: "var(--muted-fg)", lineHeight: 1.6 }}>
+          <p className="text-xs text-muted-foreground leading-[1.6]">
             {t("quickGenerate.noResultDesc")}
           </p>
         </div>
@@ -159,15 +136,10 @@ export function TaskResultPanel({
       {tasks.filter((t) => t.taskId !== activeTaskId).length > 0 && (
         <div
           className="card"
-          style={{
-            padding: 16,
-            border: "1px solid var(--border)",
-            background: "var(--card)",
-          }}
         >
-          <div style={{ padding: "12px 16px 4px" }}>
+          <div className="px-4 pt-3 pb-1">
             <div className="flex items-center justify-between">
-              <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>
+              <div className="text-lg font-semibold text-foreground">
                 {t("quickGenerate.history")}
               </div>
               <button
@@ -186,7 +158,7 @@ export function TaskResultPanel({
               </button>
             </div>
           </div>
-          <div style={{ padding: "0 16px 16px" }} className="space-y-3 max-h-96 overflow-y-auto">
+          <div className="px-4 pb-4 space-y-3 max-h-96 overflow-y-auto">
             {tasks
               .filter((t) => t.taskId !== activeTaskId)
               .slice()
@@ -194,8 +166,7 @@ export function TaskResultPanel({
               .map((task) => (
                 <div
                   key={task.taskId}
-                  className="p-3 rounded-lg border"
-                  style={{ background: "var(--muted)", borderColor: "var(--border)" }}
+                  className="p-3 rounded-lg border bg-muted border-border"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span
@@ -221,7 +192,7 @@ export function TaskResultPanel({
                       {["pending", "generating"].includes(task.status) &&
                         t("quickGenerate.statusProcessing")}
                     </span>
-                    <span className="text-xs" style={{ color: "var(--muted-fg)" }}>
+                    <span className="text-xs text-muted-foreground">
                       {new Date(task.createdAt).toLocaleTimeString()}
                     </span>
                   </div>
@@ -229,8 +200,7 @@ export function TaskResultPanel({
                     <div className="flex gap-2 mt-2">
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm"
-                        style={{ flex: 1 }}
+                        className="btn btn-outline btn-sm flex-1"
                         onClick={() =>
                           onDownload(
                             task.videoUrl,
@@ -247,8 +217,7 @@ export function TaskResultPanel({
                     <div className="flex gap-2 mt-2">
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm"
-                        style={{ flex: 1 }}
+                        className="btn btn-outline btn-sm flex-1"
                         disabled={isGenerating}
                         onClick={() => {
                           if (isGenerating) return;
@@ -267,27 +236,20 @@ export function TaskResultPanel({
       )}
 
       <div
-        className="card"
-        style={{
-          padding: 16,
-          border: "1px solid var(--border)",
-          background:
-            "linear-gradient(to bottom right, rgba(var(--primary-rgb), 0.2), var(--card))",
-        }}
+        className="card quick-tips-card"
       >
-        <div style={{ padding: "12px 16px 4px" }}>
-          <div style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>
+        <div className="px-4 pt-3 pb-1">
+          <div className="text-lg font-semibold text-foreground">
             {t("quickGenerate.tips")}
           </div>
         </div>
         <div
-          style={{ padding: "0 16px 16px" }}
-          className="space-y-3 text-sm"
+          className="px-4 pb-4 space-y-3 text-sm"
         >
-          <p style={{ color: "var(--muted-fg)" }}><Lightbulb className="inline-block" size={12} /> {t("quickGenerate.tipDetailedDesc")}</p>
-          <p style={{ color: "var(--muted-fg)" }}><Drama className="inline-block" size={12} /> {t("quickGenerate.tipLockCharacter")}</p>
-          <p style={{ color: "var(--muted-fg)" }}><Home className="inline-block" size={12} /> {t("quickGenerate.tipLockScene")}</p>
-          <p style={{ color: "var(--muted-fg)" }}><Settings className="inline-block" size={12} /> {t("quickGenerate.tipProMode")}</p>
+          <p className="text-muted-foreground"><Lightbulb className="inline-block" size={12} /> {t("quickGenerate.tipDetailedDesc")}</p>
+          <p className="text-muted-foreground"><Drama className="inline-block" size={12} /> {t("quickGenerate.tipLockCharacter")}</p>
+          <p className="text-muted-foreground"><Home className="inline-block" size={12} /> {t("quickGenerate.tipLockScene")}</p>
+          <p className="text-muted-foreground"><Settings className="inline-block" size={12} /> {t("quickGenerate.tipProMode")}</p>
         </div>
       </div>
     </div>

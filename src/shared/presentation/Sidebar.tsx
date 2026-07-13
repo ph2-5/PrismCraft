@@ -46,6 +46,7 @@ interface NavEntry {
   href: string;
   labelKey: string;
   icon: React.ComponentType<{ className?: string }>;
+  comingSoon?: boolean;
 }
 
 const freeCreationItems: NavEntry[] = [
@@ -59,16 +60,16 @@ const freeCreationItems: NavEntry[] = [
 ];
 
 const storyCreationItems: NavEntry[] = [
-  { href: "/story", labelKey: "sidebar.story", icon: Book },
+  { href: "/story", labelKey: "sidebar.story", icon: Book, comingSoon: true },
 ];
 
 const toolItems: NavEntry[] = [
   { href: "/agent", labelKey: "sidebar.agent", icon: MapPin },
-  { href: "/composer", labelKey: "sidebar.composer", icon: ComposerIcon },
+  { href: "/composer", labelKey: "sidebar.composer", icon: ComposerIcon, comingSoon: true },
 ];
 
 const systemItems: NavEntry[] = [
-  { href: "/plugins", labelKey: "sidebar.plugins", icon: LinkIcon },
+  { href: "/plugins", labelKey: "sidebar.plugins", icon: LinkIcon, comingSoon: true },
   { href: "/settings", labelKey: "sidebar.settings", icon: Settings },
 ];
 
@@ -83,20 +84,29 @@ interface NavItemProps {
   collapsed: boolean;
   href: string;
   onNavigate: (href: string) => void;
+  comingSoon?: boolean;
 }
 
-const NavItem = memo(function NavItem({ labelKey, icon: Icon, emoji, isActive, collapsed, href, onNavigate }: NavItemProps) {
+const NavItem = memo(function NavItem({ labelKey, icon: Icon, emoji, isActive, collapsed, href, onNavigate, comingSoon }: NavItemProps) {
   return (
     <button
       onClick={() => onNavigate(href)}
       className={cn("nav-item", isActive && "active")}
-      style={collapsed ? { justifyContent: "center" } : undefined}
+      style={{
+        ...(collapsed ? { justifyContent: "center" } : undefined),
+        ...(comingSoon ? { opacity: 0.6 } : undefined),
+      }}
       title={collapsed ? t(labelKey) : undefined}
       aria-label={t(labelKey)}
     >
       {Icon && <Icon className="icon" />}
       {emoji && <span className="icon">{emoji}</span>}
-      {!collapsed && <span>{t(labelKey)}</span>}
+      {!collapsed && <span style={comingSoon ? { color: "var(--muted-fg)" } : undefined}>{t(labelKey)}</span>}
+      {!collapsed && comingSoon && (
+        <span className="badge badge-muted" style={{ marginLeft: "auto", fontSize: 9, padding: "1px 6px" }}>
+          {t("sidebar.comingSoon")}
+        </span>
+      )}
     </button>
   );
 });
@@ -325,6 +335,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
               collapsed={collapsed}
               href={item.href}
               onNavigate={handleNavClick}
+              comingSoon={item.comingSoon}
             />
           ))}
 
@@ -345,6 +356,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
               collapsed={collapsed}
               href={item.href}
               onNavigate={handleNavClick}
+              comingSoon={item.comingSoon}
             />
           ))}
 
@@ -359,6 +371,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
               collapsed={collapsed}
               href={item.href}
               onNavigate={handleNavClick}
+              comingSoon={item.comingSoon}
             />
           ))}
 
@@ -373,6 +386,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
               collapsed={collapsed}
               href={item.href}
               onNavigate={handleNavClick}
+              comingSoon={item.comingSoon}
             />
           ))}
         </nav>

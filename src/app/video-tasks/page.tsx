@@ -11,6 +11,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import { useVideoTasksPage } from "./hooks/useVideoTasksPage";
 
 export default function VideoTasksPage() {
@@ -38,16 +39,15 @@ export default function VideoTasksPage() {
 
   return (
     <PageErrorBoundary pageName={t("page.videoTasks")}>
-      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="fade-in flex flex-col h-full">
         {/* top-tabs 标题栏 */}
-        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>
+        <div className="top-tabs justify-between">
+          <span className="font-semibold text-sm">
             <Video className="inline-block" size={14} /> {t("page.videoTasks")}
           </span>
           <div className="toolbar">
             <select
-              className="select"
-              style={{ fontSize: 12 }}
+              className="select !text-xs"
               aria-label={t("aria.statusFilter")}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
@@ -68,172 +68,99 @@ export default function VideoTasksPage() {
         </div>
 
         {/* 内容区 */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+        <div className="flex-1 overflow-y-auto p-5">
           {/* 统计卡片 */}
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: 12,
-              marginBottom: 16,
-            }}
+            className="grid gap-3 mb-4 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]"
             aria-live="polite"
           >
             {/* 总任务数 */}
-            <div className="card" style={{ padding: 14 }}>
+            <div className="card !p-3.5">
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 12,
-                  color: "var(--muted-fg)",
-                  marginBottom: 8,
-                }}
+                className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
               >
                 <List size={16} />
                 {t("task.totalTasks")}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{isLoading ? "..." : totalTasks}</div>
+              <div className="text-2xl font-bold">{isLoading ? "..." : totalTasks}</div>
 
             </div>
 
             {/* 已完成 */}
             <div
-              className="card"
-              style={{
-                padding: 14,
-                background: "rgba(var(--success-rgb), 0.1)",
-                borderColor: "rgba(var(--success-rgb), 0.3)",
-              }}
+              className="card !p-3.5 !bg-[rgba(var(--success-rgb),0.1)] !border-[rgba(var(--success-rgb),0.3)]"
             >
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 12,
-                  color: "var(--success)",
-                  marginBottom: 8,
-                }}
+                className="flex items-center gap-2 text-xs text-success mb-2"
               >
                 <CheckCircle2 size={16} />
                 {t("task.completedCount")}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--success)" }}>
+              <div className="text-2xl font-bold text-success">
                 {isLoading ? "..." : completedTasks}
               </div>
             </div>
 
             {/* 待处理 */}
             <div
-              className="card"
-              style={{
-                padding: 14,
-                background: "rgba(var(--warning-rgb), 0.1)",
-                borderColor: "rgba(var(--warning-rgb), 0.3)",
-              }}
+              className="card !p-3.5 !bg-[rgba(var(--warning-rgb),0.1)] !border-[rgba(var(--warning-rgb),0.3)]"
             >
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 12,
-                  color: "var(--warning)",
-                  marginBottom: 8,
-                }}
+                className="flex items-center gap-2 text-xs text-warning mb-2"
               >
                 <Clock size={16} />
                 {t("task.pendingCount")}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--warning)" }}>
+              <div className="text-2xl font-bold text-warning">
                 {isLoading ? "..." : pendingTasks}
               </div>
             </div>
 
             {/* 生成中 */}
             <div
-              className="card"
-              style={{
-                padding: 14,
-                background: "rgba(var(--primary-rgb), 0.1)",
-                borderColor: "rgba(var(--primary-rgb), 0.3)",
-              }}
+              className="card !p-3.5 !bg-[rgba(var(--primary-rgb),0.1)] !border-[rgba(var(--primary-rgb),0.3)]"
             >
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 12,
-                  color: "var(--primary)",
-                  marginBottom: 8,
-                }}
+                className="flex items-center gap-2 text-xs text-primary mb-2"
               >
                 <Clock size={16} />
                 {t("task.generatingCount")}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>
+              <div className="text-2xl font-bold text-primary">
                 {isLoading ? "..." : processingTasks}
               </div>
             </div>
 
             {/* 失败 */}
             <div
-              className="card"
-              style={{
-                padding: 14,
-                background: "rgba(var(--destructive-rgb), 0.1)",
-                borderColor: "rgba(var(--destructive-rgb), 0.3)",
-              }}
+              className="card !p-3.5 !bg-[rgba(var(--destructive-rgb),0.1)] !border-[rgba(var(--destructive-rgb),0.3)]"
             >
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 12,
-                  color: "var(--destructive)",
-                  marginBottom: 8,
-                }}
+                className="flex items-center gap-2 text-xs text-destructive mb-2"
               >
                 <XCircle size={16} />
                 {t("task.failedCount")}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--destructive)" }}>
+              <div className="text-2xl font-bold text-destructive">
                 {isLoading ? "..." : failedTasks}
               </div>
             </div>
 
             {/* 完成率 */}
             <div
-              className="card"
-              style={{
-                padding: 14,
-                background: "rgba(var(--primary-rgb), 0.1)",
-                borderColor: "rgba(var(--primary-rgb), 0.3)",
-              }}
+              className="card !p-3.5 !bg-[rgba(var(--primary-rgb),0.1)] !border-[rgba(var(--primary-rgb),0.3)]"
             >
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 12,
-                  color: "var(--primary)",
-                  marginBottom: 8,
-                }}
+                className="flex items-center gap-2 text-xs text-primary mb-2"
               >
                 <CheckCircle2 size={16} />
                 {t("task.completionRate")}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>
+              <div className="text-2xl font-bold text-primary">
                 {isLoading ? "..." : `${completionRate}%`}
               </div>
               <div
-                className="progress-bar"
-                style={{ marginTop: 8, background: "rgba(var(--primary-rgb), 0.2)" }}
+                className="progress-bar mt-2 !bg-[rgba(var(--primary-rgb),0.2)]"
                 role="progressbar"
                 aria-label={t("task.completionRate")}
                 aria-valuenow={completionRate}
@@ -249,7 +176,7 @@ export default function VideoTasksPage() {
           </div>
 
           {/* 清除按钮 */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
+          <div className="flex justify-end gap-2 mb-4">
             {completedTasks > 0 && (
               <button
                 type="button"
@@ -264,8 +191,7 @@ export default function VideoTasksPage() {
             {failedTasks > 0 && (
               <button
                 type="button"
-                className="btn btn-outline btn-sm"
-                style={{ color: "var(--destructive)" }}
+                className="btn btn-outline btn-sm text-destructive"
                 disabled={isClearingFailed}
                 onClick={handleClearFailed}
               >
@@ -277,26 +203,36 @@ export default function VideoTasksPage() {
 
           {/* 任务列表 — 直接平铺，不再用 card 容器包裹（对齐预览页样式） */}
           {isLoading ? (
-            <div style={{ textAlign: "center", padding: "64px 0" }}>
-              <Loader2 size={32} className="animate-spin" style={{ margin: "0 auto 16px", color: "var(--muted-fg)" }} />
-              <p style={{ color: "var(--muted-fg)", fontSize: 13 }}>{t("common.loading")}</p>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="card">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 skeleton-shimmer rounded shrink-0" />
+                    <div className="w-16 h-5 skeleton-shimmer rounded shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="h-4 w-1/2 skeleton-shimmer rounded" />
+                      <div className="h-3 w-1/3 skeleton-shimmer rounded" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : totalTasks === 0 ? (
-            <div style={{ textAlign: "center", padding: "64px 0" }}>
-              <Video size={64} style={{ margin: "0 auto 16px", color: "var(--muted-fg)", opacity: 0.2 }} />
-              <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("task.noTasks")}</h2>
-              <p style={{ color: "var(--muted-fg)", marginBottom: 24 }}>
-                {t("task.noTasksHint")}
-              </p>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                <button type="button" className="btn btn-primary btn-sm" onClick={navigateToStory}>
-                  {t("task.viewStoryboard")}
-                </button>
-                <button type="button" className="btn btn-outline btn-sm" onClick={navigateToQuickGenerate}>
-                  {t("task.quickGenerate")}
-                </button>
-              </div>
-            </div>
+            <EmptyState
+              icon={Video}
+              title={t("task.noTasks")}
+              description={t("task.noTasksHint")}
+              action={
+                <div className="flex items-center justify-center gap-3">
+                  <button type="button" className="btn btn-primary btn-sm" onClick={navigateToStory}>
+                    {t("task.viewStoryboard")}
+                  </button>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={navigateToQuickGenerate}>
+                    {t("task.quickGenerate")}
+                  </button>
+                </div>
+              }
+            />
           ) : (
             <VideoTaskManagerComponent
               tasks={allTasks}

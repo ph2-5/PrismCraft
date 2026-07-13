@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { ModelSelector } from "@/modules/prompt";
 import { resolveImageUrl } from "@/shared/utils/image-url";
+import { useGenerationStage } from "@/shared/presentation/useGenerationStage";
 import type { Character, ModelSelection } from "@/domain/schemas";
 import {
   Wand2,
@@ -89,23 +90,18 @@ function useFullRequest(
 
 function ReferenceImageList({ images }: { images: { url: string; label: string }[] }) {
   if (images.length === 0) {
-    return <div style={{ fontSize: 11, color: "var(--muted-fg)", fontStyle: "italic" }}>{t("character.noReferenceImages")}</div>;
+    return <div className="text-[11px] text-muted-foreground italic">{t("character.noReferenceImages")}</div>;
   }
   return (
-    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+    <div className="flex gap-1.5 flex-wrap">
       {images.map((img, idx) => (
         <div
           key={`${img.url}-${idx}`}
-          style={{ position: "relative", width: 56, height: 56, borderRadius: 6, overflow: "hidden", border: "1px solid var(--border)" }}
+          className="relative w-14 h-14 rounded-md overflow-hidden border border-border"
           title={img.label}
         >
-          <img src={resolveImageUrl(img.url)} alt={img.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          <span style={{
-            position: "absolute", bottom: 0, left: 0, right: 0,
-            fontSize: 9, color: "white", background: "rgba(0,0,0,0.6)",
-            padding: "1px 4px", textAlign: "center", whiteSpace: "nowrap",
-            overflow: "hidden", textOverflow: "ellipsis",
-          }}>
+          <img src={resolveImageUrl(img.url)} alt={img.label} className="w-full h-full object-cover" />
+          <span className="absolute bottom-0 left-0 right-0 text-[9px] text-white bg-black/60 px-1 py-px text-center whitespace-nowrap overflow-hidden text-ellipsis">
             {img.label}
           </span>
         </div>
@@ -117,22 +113,22 @@ function ReferenceImageList({ images }: { images: { url: string; label: string }
 function ReferencedBeatsList({ beats }: { beats: { id: string; title: string; status?: string }[] }) {
   if (beats.length === 0) return null;
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-        <Link2 style={{ width: 12, height: 12, color: "var(--muted-fg)" }} />
-        <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("character.relatedContent")} ({beats.length})</span>
+    <div className="mb-2.5">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Link2 className="w-3 h-3 text-muted-foreground" />
+        <span className="text-[11px] text-muted-foreground">{t("character.relatedContent")} ({beats.length})</span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <div className="flex flex-col gap-[3px]">
         {beats.map((beat) => (
           <div
             key={beat.id}
-            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, padding: "3px 6px", background: "var(--hover-bg, rgba(0,0,0,0.03))", borderRadius: 4 }}
+            className="flex justify-between items-center text-[11px] py-[3px] px-1.5 bg-[var(--hover-bg,rgba(0,0,0,0.03))] rounded"
           >
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Film style={{ width: 10, height: 10, color: "var(--muted-fg)" }} />
+            <span className="flex items-center gap-1">
+              <Film className="w-2.5 h-2.5 text-muted-foreground" />
               {beat.title}
             </span>
-            {beat.status && <span className="badge badge-success" style={{ fontSize: 9 }}>{beat.status}</span>}
+            {beat.status && <span className="badge badge-success !text-[9px]">{beat.status}</span>}
           </div>
         ))}
       </div>
@@ -160,27 +156,36 @@ function ActionButtons({
   generatedImage: string | null;
   setGeneratedImage: (v: string | null) => void;
 }) {
+  const { stageLabel } = useGenerationStage(isGenerating, {
+    initialKey: "generate.stage.imageInitial",
+  });
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
-      <button className="btn btn-primary btn-sm" onClick={generateImage} disabled={isGenerating} style={{ width: "100%", justifyContent: "center", gap: 4 }}>
-        {isGenerating ? <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} /> : <Wand2 style={{ width: 14, height: 14 }} />}
+    <div className="flex flex-col gap-1.5 mb-2">
+      <button className="btn btn-primary btn-sm w-full justify-center gap-1" onClick={generateImage} disabled={isGenerating} aria-live="polite">
+        {isGenerating ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : <Wand2 className="w-3.5 h-3.5" />}
         {isGenerating ? t("common.generating") : t("character.generateImage")}
       </button>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <button className="btn btn-outline btn-xs" onClick={saveImageToCharacter} disabled={!currentCharacter.id} style={{ gap: 4 }} title={!currentCharacter.id ? t("hint.saveToCharacter") : undefined}>
-          <Save style={{ width: 12, height: 12 }} />
+      {isGenerating && (
+        <div role="status" aria-live="polite" className="text-xs text-muted-foreground text-center -mt-0.5">
+          {stageLabel}
+        </div>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        <button className="btn btn-outline btn-xs gap-1" onClick={saveImageToCharacter} disabled={!currentCharacter.id} title={!currentCharacter.id ? t("hint.saveToCharacter") : undefined}>
+          <Save className="w-3 h-3" />
           {t("character.saveToCharacter")}
         </button>
-        <button className="btn btn-outline btn-xs" onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ gap: 4 }}>
-          {isUploading ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <Upload style={{ width: 12, height: 12 }} />}
+        <button className="btn btn-outline btn-xs gap-1" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+          {isUploading ? <Loader2 className="animate-spin w-3 h-3" /> : <Upload className="w-3 h-3" />}
           {isUploading ? t("common.uploading") : t("character.uploadImage")}
         </button>
-        <button className="btn btn-outline btn-xs" onClick={() => setShowAssetSelector(true)} style={{ gap: 4 }}>
-          <Folder style={{ width: 12, height: 12 }} />
+        <button className="btn btn-outline btn-xs gap-1" onClick={() => setShowAssetSelector(true)}>
+          <Folder className="w-3 h-3" />
           {t("character.selectFromLibrary")}
         </button>
-        <button className="btn btn-outline btn-xs" onClick={() => analyzeFileInputRef.current?.click()} disabled={isAnalyzing || isUploading} style={{ gap: 4 }}>
-          {isAnalyzing ? <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} /> : <ScanLine style={{ width: 12, height: 12 }} />}
+        <button className="btn btn-outline btn-xs gap-1" onClick={() => analyzeFileInputRef.current?.click()} disabled={isAnalyzing || isUploading}>
+          {isAnalyzing ? <Loader2 className="animate-spin w-3 h-3" /> : <ScanLine className="w-3 h-3" />}
           {isAnalyzing ? t("common.analyzing") : t("character.recognizePerson")}
         </button>
         {generatedImage && (
@@ -198,21 +203,16 @@ function ActionButtons({
 function FullRequestJson({ request }: { request: unknown }) {
   const [showFullRequest, setShowFullRequest] = useState(false);
   return (
-    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+    <div className="border-t border-border pt-2">
       <button
-        className="btn btn-ghost btn-xs"
+        className="btn btn-ghost btn-xs gap-1"
         onClick={() => setShowFullRequest(!showFullRequest)}
-        style={{ gap: 4, fontSize: 11 }}
       >
-        {showFullRequest ? <ChevronDown style={{ width: 12, height: 12 }} /> : <ChevronRight style={{ width: 12, height: 12 }} />}
+        {showFullRequest ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         {showFullRequest ? t("character.hideFullRequest") : t("character.showFullRequest")}
       </button>
       {showFullRequest && (
-        <pre style={{
-          marginTop: 6, padding: 8,
-          background: "var(--hover-bg, rgba(0,0,0,0.03))", borderRadius: 4,
-          fontSize: 10, lineHeight: 1.5, overflowX: "auto", maxHeight: 200, overflowY: "auto",
-        }}>
+        <pre className="mt-1.5 p-2 bg-[var(--hover-bg,rgba(0,0,0,0.03))] rounded text-[10px] leading-[1.5] overflow-auto max-h-[200px]">
           {JSON.stringify(request, null, 2)}
         </pre>
       )}
@@ -250,39 +250,38 @@ export function AiRequestPreview({
 
   return (
     <div className="card">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+      <div className="flex items-center justify-between mb-2">
         <div>
           <div className="section-label">{t("character.requestPreview")}</div>
-          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 2 }}>{t("character.requestPreviewHint")}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">{t("character.requestPreviewHint")}</div>
         </div>
         <button
-          className={`btn ${useDetailedPrompt ? "btn-primary" : "btn-outline"} btn-xs`}
+          className={`btn ${useDetailedPrompt ? "btn-primary" : "btn-outline"} btn-xs gap-1`}
           onClick={() => setUseDetailedPrompt(!useDetailedPrompt)}
-          style={{ gap: 4 }}
         >
-          <Sparkles style={{ width: 12, height: 12 }} />
+          <Sparkles className="w-3 h-3" />
           {useDetailedPrompt ? t("character.aiOptimized") : t("character.aiOptimize")}
         </button>
       </div>
 
-      <div className="card2" style={{ padding: 10, fontSize: 12, lineHeight: 1.7, marginBottom: 10, maxHeight: 120, overflowY: "auto" }}>
+      <div className="card2 p-2.5 text-xs leading-[1.7] mb-2.5 max-h-[120px] overflow-y-auto">
         {generatePrompt(currentCharacter)}
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 4 }}>{t("character.modelConfig")}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div className="mb-2.5">
+        <div className="text-[11px] text-muted-foreground mb-1">{t("character.modelConfig")}</div>
+        <div className="flex items-center gap-2 flex-wrap">
           <ModelSelector capability="image" value={selectedImageModel} onChange={setSelectedImageModel} />
-          <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>
-            {t("character.imageSize")}: <code style={{ fontSize: 11 }}>{imageSize}</code>
+          <span className="text-[11px] text-muted-foreground">
+            {t("character.imageSize")}: <code className="text-[11px]">{imageSize}</code>
           </span>
         </div>
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-          <ImageIcon style={{ width: 12, height: 12, color: "var(--muted-fg)" }} />
-          <span style={{ fontSize: 11, color: "var(--muted-fg)" }}>{t("character.referenceImages")} ({referenceImages.length})</span>
+      <div className="mb-2.5">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <ImageIcon className="w-3 h-3 text-muted-foreground" />
+          <span className="text-[11px] text-muted-foreground">{t("character.referenceImages")} ({referenceImages.length})</span>
         </div>
         <ReferenceImageList images={referenceImages} />
       </div>

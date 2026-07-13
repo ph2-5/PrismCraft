@@ -275,6 +275,8 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       style={colors.border}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      role={toast.type === "error" ? "alert" : "status"}
+      aria-live={toast.type === "error" ? "assertive" : "polite"}
     >
       <div className="mt-0.5 animate-bounce-in">{iconMap[toast.type]}</div>
       <div className="flex-1 min-w-0">

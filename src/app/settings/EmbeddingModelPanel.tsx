@@ -121,93 +121,9 @@ interface UploadProgress {
 
 // ── 样式 ──
 
-const cardStyle: React.CSSProperties = {
-  padding: 16,
-  background: "var(--card)",
-  border: "1px solid var(--border)",
-  borderRadius: 10,
-  marginBottom: 12,
-};
-
-const dropZoneBaseStyle: React.CSSProperties = {
-  border: "2px dashed var(--border)",
-  borderRadius: 12,
-  padding: 32,
-  textAlign: "center",
-  cursor: "pointer",
-  transition: "border-color 0.2s, background 0.2s",
-};
-
-const infoRowStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  padding: "6px 0",
-  borderBottom: "1px solid var(--border)",
-  fontSize: 12,
-};
-
-const infoLabelStyle: React.CSSProperties = {
-  color: "var(--muted-fg)",
-  flexShrink: 0,
-};
-
-const infoValueStyle: React.CSSProperties = {
-  fontWeight: 500,
-  textAlign: "right",
-  wordBreak: "break-all" as const,
-};
-
-/** 警告条样式（缺失文件，黄色） */
-const warningBoxStyle: React.CSSProperties = {
-  padding: "8px 12px",
-  background: "rgba(234, 179, 8, 0.1)",
-  border: "1px solid rgba(234, 179, 8, 0.3)",
-  borderRadius: 6,
-  marginBottom: 12,
-  fontSize: 11,
-  color: "#a16207",
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 6,
-};
-
-/** 错误条样式（完整性校验失败，红色） */
-const errorBoxStyle: React.CSSProperties = {
-  padding: "8px 12px",
-  background: "rgba(239, 68, 68, 0.1)",
-  border: "1px solid rgba(239, 68, 68, 0.3)",
-  borderRadius: 6,
-  marginBottom: 12,
-  fontSize: 11,
-  color: "#b91c1c",
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 6,
-};
-
-/** 进度条容器 */
-const progressContainerStyle: React.CSSProperties = {
-  width: "100%",
-  height: 6,
-  background: "var(--border)",
-  borderRadius: 3,
-  overflow: "hidden",
-  marginTop: 8,
-};
-
-/** 启用中标记样式 */
-const enabledBadgeStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-  padding: "2px 8px",
-  background: "rgba(34, 197, 94, 0.12)",
-  border: "1px solid rgba(34, 197, 94, 0.3)",
-  borderRadius: 999,
-  fontSize: 11,
-  fontWeight: 600,
-  color: "#15803d",
-};
+// 复用 globals.css 中的 .card / .card-mb / .tip-box / .warn-box / .err-box /
+// .info-row / .info-label / .info-value / .progress-container / .enabled-badge /
+// .dropzone / .dropzone.active / .embedding-active-card 等通用类，避免重复定义。
 
 // ── 组件 ──
 
@@ -477,9 +393,7 @@ export function EmbeddingModelPanel() {
     }
   };
 
-  const dropZoneStyle: React.CSSProperties = isDragOver
-    ? { ...dropZoneBaseStyle, borderColor: "var(--primary)", background: "rgba(var(--primary-rgb), 0.08)" }
-    : dropZoneBaseStyle;
+  const dropZoneClassName = isDragOver ? "dropzone active" : "dropzone";
 
   /** 渲染上传进度（current/total + 文件名 + 进度条） */
   const renderUploadProgress = () => {
@@ -488,8 +402,8 @@ export function EmbeddingModelPanel() {
       ? Math.round((uploadProgress.current / uploadProgress.total) * 100)
       : 0;
     return (
-      <div style={{ width: "100%", marginTop: 4 }}>
-        <div style={{ fontSize: 12, color: "var(--muted-fg)", marginBottom: 4 }}>
+      <div className="w-full mt-1">
+        <div className="text-xs text-muted-foreground mb-1">
           {uploadProgress.fileName
             ? t("settings.embeddingModelUploadingProgress", {
                 current: uploadProgress.current + 1,
@@ -498,15 +412,10 @@ export function EmbeddingModelPanel() {
               })
             : t("settings.embeddingModelUploading")}
         </div>
-        <div style={progressContainerStyle}>
+        <div className="progress-container">
           <div
-            style={{
-              width: `${percent}%`,
-              height: "100%",
-              background: "var(--primary)",
-              borderRadius: 3,
-              transition: "width 0.2s ease",
-            }}
+            className="h-full bg-primary rounded-[3px] transition-[width] duration-200"
+            style={{ width: `${percent}%` }}
           />
         </div>
       </div>
@@ -520,37 +429,31 @@ export function EmbeddingModelPanel() {
     return (
       <div
         key={entry.id}
-        style={{
-          ...cardStyle,
-          ...(isActive
-            ? { borderColor: "rgba(34, 197, 94, 0.4)", boxShadow: "0 0 0 1px rgba(34, 197, 94, 0.1)" }
-            : {}),
-        }}
+        className={`card mb-3 ${isActive ? "embedding-active-card" : ""}`}
       >
         {/* 标题行：名称 + 操作 */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, minWidth: 0 }}>
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2 text-[13px] font-semibold min-w-0">
             {isActive ? (
-              <CheckCircle2 size={16} style={{ color: "var(--success)", flexShrink: 0 }} />
+              <CheckCircle2 size={16} className="text-success shrink-0" />
             ) : (
-              <Brain size={16} style={{ color: "var(--muted-fg)", flexShrink: 0 }} />
+              <Brain size={16} className="text-muted-foreground shrink-0" />
             )}
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap">
               {entry.modelName}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <div className="flex items-center gap-1.5 shrink-0">
             {isActive ? (
-              <span style={enabledBadgeStyle}>
+              <span className="enabled-badge">
                 <CheckCircle2 size={11} /> {t("settings.embeddingModelEnabled")}
               </span>
             ) : (
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                className="btn btn-ghost btn-sm text-[11px]"
                 onClick={() => handleEnable(entry)}
                 disabled={isPending || uploading}
-                style={{ fontSize: 11 }}
               >
                 {isPending ? <Loader2 size={12} className="animate-spin" /> : <Power size={12} />}
                 {t("settings.embeddingModelEnable")}
@@ -558,10 +461,9 @@ export function EmbeddingModelPanel() {
             )}
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost btn-sm text-destructive text-[11px]"
               onClick={() => handleRemove(entry)}
               disabled={isPending || uploading}
-              style={{ color: "var(--destructive)", fontSize: 11 }}
             >
               {isPending ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
             </button>
@@ -569,29 +471,27 @@ export function EmbeddingModelPanel() {
         </div>
 
         {/* 元信息 */}
-        <div style={{ marginBottom: 8 }}>
-          <div style={infoRowStyle}>
-            <span style={infoLabelStyle}>{t("settings.embeddingModelDimensions")}</span>
-            <span style={infoValueStyle}>{entry.dimensions}</span>
+        <div className="mb-2">
+          <div className="info-row">
+            <span className="info-label">{t("settings.embeddingModelDimensions")}</span>
+            <span className="info-value">{entry.dimensions}</span>
           </div>
-          <div style={infoRowStyle}>
-            <span style={infoLabelStyle}>{t("settings.embeddingModelMaxTokens")}</span>
-            <span style={infoValueStyle}>{entry.maxTokens}</span>
+          <div className="info-row">
+            <span className="info-label">{t("settings.embeddingModelMaxTokens")}</span>
+            <span className="info-value">{entry.maxTokens}</span>
           </div>
-          <div style={infoRowStyle}>
-            <span style={infoLabelStyle}>{t("settings.embeddingModelLanguage")}</span>
-            <span style={infoValueStyle}>{entry.language}</span>
+          <div className="info-row">
+            <span className="info-label">{t("settings.embeddingModelLanguage")}</span>
+            <span className="info-value">{entry.language}</span>
           </div>
-          <div style={infoRowStyle}>
-            <span style={infoLabelStyle}>ONNX</span>
-            <span style={{ ...infoValueStyle, fontFamily: "monospace", fontSize: 11 }}>
-              {entry.modelFileName}
-            </span>
+          <div className="info-row">
+            <span className="info-label">ONNX</span>
+            <span className="info-value font-mono text-[11px]">{entry.modelFileName}</span>
           </div>
           {entry.description && (
-            <div style={infoRowStyle}>
-              <span style={infoLabelStyle}>{t("settings.embeddingModelDescription")}</span>
-              <span style={infoValueStyle}>{entry.description}</span>
+            <div className="info-row">
+              <span className="info-label">{t("settings.embeddingModelDescription")}</span>
+              <span className="info-value">{entry.description}</span>
             </div>
           )}
         </div>
@@ -600,10 +500,10 @@ export function EmbeddingModelPanel() {
         {isActive && status && !status.available && (
           <>
             {status.missingFiles.length > 0 && (
-              <div style={warningBoxStyle}>
-                <FileWarning size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div className="warn-box">
+                <FileWarning size={14} className="shrink-0 mt-0.5" />
                 <div>
-                  <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                  <div className="font-semibold mb-0.5">
                     {t("settings.embeddingModelMissingFiles")}
                   </div>
                   <div>{status.missingFiles.join(", ")}</div>
@@ -611,18 +511,18 @@ export function EmbeddingModelPanel() {
               </div>
             )}
             {status.integrityErrors.length > 0 && (
-              <div style={errorBoxStyle}>
-                <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div className="err-box">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                 <div>
-                  <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                  <div className="font-semibold mb-0.5">
                     {t("settings.embeddingModelIntegrityErrors")}
                   </div>
-                  <div style={{ marginBottom: 4 }}>
+                  <div className="mb-1">
                     {t("settings.embeddingModelIntegrityTip")}
                   </div>
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                  <ul className="m-0 pl-4">
                     {status.integrityErrors.map((err, idx) => (
-                      <li key={idx} style={{ marginBottom: 2 }}>{err}</li>
+                      <li key={idx} className="mb-0.5">{err}</li>
                     ))}
                   </ul>
                 </div>
@@ -638,8 +538,8 @@ export function EmbeddingModelPanel() {
 
   if (loading) {
     return (
-      <div style={cardStyle}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted-fg)", fontSize: 12 }}>
+      <div className="card mb-3">
+        <div className="flex items-center gap-2 text-muted-foreground text-xs">
           <Loader2 size={14} className="animate-spin" />
           {t("settings.embeddingModelLoading")}
         </div>
@@ -655,36 +555,26 @@ export function EmbeddingModelPanel() {
   return (
     <div>
       {/* 说明 */}
-      <div
-        style={{
-          padding: 12,
-          background: "rgba(var(--primary-rgb), 0.08)",
-          border: "1px solid rgba(var(--primary-rgb), 0.2)",
-          borderRadius: 8,
-          marginBottom: 12,
-          fontSize: 11,
-          color: "var(--muted-fg)",
-        }}
-      >
+      <div className="tip-box mb-3">
         <Brain className="inline-block" size={12} /> {t("settings.embeddingModelTip")}
       </div>
 
       {/* 总体状态 */}
-      <div style={cardStyle}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, fontWeight: 600 }}>
+      <div className="card mb-3">
+        <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold">
           {status?.available ? (
             <>
-              <CheckCircle2 size={16} style={{ color: "var(--success)" }} />
+              <CheckCircle2 size={16} className="text-success" />
               {t("settings.embeddingModelInstalled")}
             </>
           ) : (
             <>
-              <XCircle size={16} style={{ color: "var(--muted-fg)" }} />
+              <XCircle size={16} className="text-muted-foreground" />
               {t("settings.embeddingModelNotInstalled")}
             </>
           )}
         </div>
-        <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+        <div className="text-xs text-muted-foreground">
           {t("settings.embeddingModelInstalledCount", { count: installedModels.length })}
           {" · "}
           {activeEntry ? (
@@ -699,44 +589,38 @@ export function EmbeddingModelPanel() {
 
       {/* 预热 Embedding 缓存（预训练数据-4） — 仅当有可用模型或 API embedding 时显示 */}
       {(status?.available || installedModels.length > 0) && (
-        <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
-              <Zap size={16} style={{ color: "var(--primary)" }} />
+        <div className="card mb-3">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 text-[13px] font-semibold">
+              <Zap size={16} className="text-primary" />
               {t("settings.embeddingPrewarmTitle")}
             </div>
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm text-[11px]"
               onClick={handlePrewarm}
               disabled={prewarming || uploading}
-              style={{ fontSize: 11 }}
             >
               {prewarming ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
               {t("settings.embeddingPrewarmButton")}
             </button>
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted-fg)", lineHeight: 1.6 }}>
+          <div className="text-[11px] text-muted-foreground leading-relaxed">
             {t("settings.embeddingPrewarmHint")}
           </div>
           {/* 预热进度条 */}
           {prewarming && prewarmProgress && prewarmProgress.total > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 4 }}>
+            <div className="mt-2.5">
+              <div className="text-[11px] text-muted-foreground mb-1">
                 {prewarmProgress.message ?? t("settings.embeddingPrewarmProcessing", {
                   current: prewarmProgress.current,
                   total: prewarmProgress.total,
                 })}
               </div>
-              <div style={progressContainerStyle}>
+              <div className="progress-container">
                 <div
-                  style={{
-                    width: `${Math.round((prewarmProgress.current / Math.max(prewarmProgress.total, 1)) * 100)}%`,
-                    height: "100%",
-                    background: "var(--primary)",
-                    borderRadius: 3,
-                    transition: "width 0.2s ease",
-                  }}
+                  className="h-full bg-primary rounded-[3px] transition-[width] duration-200"
+                  style={{ width: `${Math.round((prewarmProgress.current / Math.max(prewarmProgress.total, 1)) * 100)}%` }}
                 />
               </div>
             </div>
@@ -753,47 +637,38 @@ export function EmbeddingModelPanel() {
 
       {/* 下载引导（仅当无已安装模型时显示） */}
       {installedModels.length === 0 && (
-        <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 13, fontWeight: 600 }}>
-            <Download size={16} style={{ color: "var(--primary)" }} />
+        <div className="card mb-3">
+          <div className="flex items-center gap-2 mb-2.5 text-[13px] font-semibold">
+            <Download size={16} className="text-primary" />
             {t("settings.embeddingModelDownloadGuide")}
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 12, lineHeight: 1.6 }}>
+          <div className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
             {t("settings.embeddingModelDownloadHint")}
           </div>
 
           {/* 方式一：运行下载脚本 */}
-          <div style={{ marginBottom: 14, padding: 10, background: "var(--card2)", borderRadius: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+          <div className="mb-3.5 p-2.5 bg-card2 rounded-lg">
+            <div className="flex items-center gap-1.5 text-xs font-semibold mb-2">
               <Terminal size={13} /> {t("settings.embeddingModelDownloadScript")}
-              <span style={{ fontSize: 10, color: "var(--success)", marginLeft: 4 }}>
+              <span className="text-[10px] text-success ml-1">
                 {t("settings.embeddingModelRecommended")}
               </span>
             </div>
-            <div style={{ fontSize: 11, color: "var(--muted-fg)", marginBottom: 8 }}>
+            <div className="text-[11px] text-muted-foreground mb-2">
               {t("settings.embeddingModelScriptHint")}
             </div>
             {/* 推荐模型列表 */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="flex flex-col gap-1.5">
               {RECOMMENDED_MODELS.map((m) => (
                 <div
                   key={m.repoId}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 8,
-                    padding: "8px 10px",
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 6,
-                  }}
+                  className="flex items-center justify-between gap-2 px-2.5 py-2 bg-card border border-border rounded-md"
                 >
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold font-mono">
                       {m.repoId}
                     </div>
-                    <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 2 }}>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
                       {m.description}
                       {" · "}
                       {t("settings.embeddingModelDimensions")}: {m.dimensions}
@@ -801,22 +676,20 @@ export function EmbeddingModelPanel() {
                       {m.size}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  <div className="flex gap-1 shrink-0">
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
+                      className="btn btn-ghost btn-sm text-[11px]"
                       onClick={() => handleCopyCommand(m.repoId)}
                       title={t("settings.embeddingModelCopyCommand")}
-                      style={{ fontSize: 11 }}
                     >
                       <Copy size={12} />
                     </button>
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
+                      className="btn btn-ghost btn-sm text-[11px]"
                       onClick={() => handleOpenHuggingFace(m.repoId)}
                       title={t("settings.embeddingModelOpenHuggingFace")}
-                      style={{ fontSize: 11 }}
                     >
                       <ExternalLink size={12} />
                     </button>
@@ -827,11 +700,11 @@ export function EmbeddingModelPanel() {
           </div>
 
           {/* 方式二：手动下载并拖拽 */}
-          <div style={{ padding: 10, background: "var(--card2)", borderRadius: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+          <div className="p-2.5 bg-card2 rounded-lg">
+            <div className="flex items-center gap-1.5 text-xs font-semibold mb-1.5">
               <ExternalLink size={13} /> {t("settings.embeddingModelManualDownload")}
             </div>
-            <div style={{ fontSize: 11, color: "var(--muted-fg)", lineHeight: 1.6 }}>
+            <div className="text-[11px] text-muted-foreground leading-relaxed">
               {t("settings.embeddingModelManualHint")}
             </div>
           </div>
@@ -839,9 +712,9 @@ export function EmbeddingModelPanel() {
       )}
 
       {/* 上传区域（始终显示，支持追加安装新模型） */}
-      <div style={cardStyle}>
+      <div className="card mb-3">
         <div
-          style={dropZoneStyle}
+          className={dropZoneClassName}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}
@@ -857,18 +730,18 @@ export function EmbeddingModelPanel() {
           }}
         >
           {uploading ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <Loader2 size={32} className="animate-spin" style={{ margin: "0 auto" }} />
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.embeddingModelUploading")}</div>
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 size={32} className="animate-spin mx-auto" />
+              <div className="text-[13px] font-semibold">{t("settings.embeddingModelUploading")}</div>
               {renderUploadProgress()}
             </div>
           ) : (
             <>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>
-                <Upload size={32} style={{ margin: "0 auto" }} />
+              <div className="text-[32px] mb-2">
+                <Upload size={32} className="mx-auto" />
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t("settings.embeddingModelDragHint")}</div>
-              <div style={{ fontSize: 11, color: "var(--muted-fg)", marginTop: 4 }}>
+              <div className="text-[13px] font-semibold">{t("settings.embeddingModelDragHint")}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">
                 {t("settings.embeddingModelRequiredFiles")}
               </div>
             </>
@@ -879,7 +752,7 @@ export function EmbeddingModelPanel() {
           type="file"
           accept=".onnx,.json"
           multiple
-          style={{ display: "none" }}
+          className="hidden"
           onChange={handleFileInputChange}
         />
       </div>

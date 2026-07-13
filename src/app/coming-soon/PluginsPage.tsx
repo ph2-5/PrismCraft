@@ -185,19 +185,7 @@ const notes = [
 function CodeBlock({ code }: { code: string }) {
   return (
     <pre
-      style={{
-        fontSize: 11,
-        background: "var(--card2)",
-        padding: 14,
-        borderRadius: 8,
-        overflow: "auto",
-        maxHeight: 360,
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-        color: "var(--muted-fg)",
-        whiteSpace: "pre-wrap",
-        margin: 0,
-        border: "1px solid var(--border)",
-      }}
+      className="text-[11px] bg-card2 p-3.5 rounded-lg overflow-auto max-h-[360px] font-mono text-muted-foreground whitespace-pre-wrap m-0 border border-border"
     >
       {code}
     </pre>
@@ -207,29 +195,14 @@ function CodeBlock({ code }: { code: string }) {
 function FieldRow({ field, descKey }: { field: string; descKey: string }) {
   return (
     <div
-      style={{
-        display: "flex",
-        gap: 12,
-        padding: "8px 0",
-        borderBottom: "1px solid var(--border)",
-      }}
+      className="flex gap-3 py-2 border-b border-border"
     >
       <code
-        style={{
-          fontSize: 11,
-          fontFamily: "ui-monospace, monospace",
-          color: "var(--primary)",
-          flexShrink: 0,
-          minWidth: 220,
-          background: "rgba(var(--primary-rgb, 99, 102, 241), 0.08)",
-          padding: "2px 6px",
-          borderRadius: 4,
-          height: "fit-content",
-        }}
+        className="text-[11px] font-mono text-primary shrink-0 min-w-[220px] bg-[rgba(var(--primary-rgb),0.08)] px-1.5 py-0.5 rounded h-fit"
       >
         {field}
       </code>
-      <span style={{ fontSize: 12, color: "var(--muted-fg)", flex: 1 }}>{t(descKey)}</span>
+      <span className="text-xs text-muted-foreground flex-1">{t(descKey)}</span>
     </div>
   );
 }
@@ -239,10 +212,10 @@ export default function PluginsPage() {
 
   return (
     <PageErrorBoundary pageName={t("pluginDoc.title")}>
-      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="fade-in flex flex-col h-full">
         {/* top-tabs 标题栏 */}
-        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="top-tabs justify-between">
+          <span className="font-semibold text-sm flex items-center gap-2">
             <Puzzle size={16} />
             {t("pluginDoc.title")}
           </span>
@@ -257,102 +230,92 @@ export default function PluginsPage() {
 
         {/* 内容区 */}
         <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: 16,
-            maxWidth: 900,
-            margin: "0 auto",
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
+          className="flex-1 overflow-y-auto p-4 max-w-[900px] mx-auto w-full flex flex-col gap-4"
         >
           {/* 概述 */}
-          <div className="card" style={{ padding: 16 }}>
+          <div className="card">
             <div className="section-label">
               <span className="dot ok"></span> {t("pluginDoc.overview")}
             </div>
-            <p style={{ fontSize: 13, color: "var(--muted-fg)", marginTop: 8, lineHeight: 1.6 }}>
+            <p className="text-[13px] text-muted-foreground mt-2 leading-[1.6]">
               {t("pluginDoc.overviewDesc")}
             </p>
-            <p style={{ fontSize: 12, color: "var(--muted-fg)", marginTop: 8 }}>
+            <p className="text-xs text-muted-foreground mt-2">
               {t("pluginDoc.subtitle")}
             </p>
           </div>
 
           {/* 声明式插件 */}
-          <div className="card" style={{ padding: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <FileJson size={18} style={{ color: "var(--primary)" }} />
-              <span style={{ fontSize: 15, fontWeight: 600 }}>{t("pluginDoc.declarative")}</span>
+          <div className="card">
+            <div className="flex items-center gap-2 mb-2">
+              <FileJson size={18} className="text-primary" />
+              <span className="text-[15px] font-semibold">{t("pluginDoc.declarative")}</span>
             </div>
-            <p style={{ fontSize: 12, color: "var(--muted-fg)", lineHeight: 1.6, marginBottom: 12 }}>
+            <p className="text-xs text-muted-foreground leading-[1.6] mb-3">
               {t("pluginDoc.declarativeDesc")}
             </p>
 
-            <div style={{ background: "var(--card2)", padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 12 }}>
-              <span style={{ color: "var(--muted-fg)", marginRight: 8 }}>{t("pluginDoc.declarativeFile")}:</span>
-              <code style={{ fontFamily: "ui-monospace, monospace", color: "var(--primary)" }}>
+            <div className="bg-card2 p-2.5 rounded-lg mb-3 text-xs">
+              <span className="text-muted-foreground mr-2">{t("pluginDoc.declarativeFile")}:</span>
+              <code className="font-mono text-primary">
                 {t("pluginDoc.declarativeFileDesc")}
               </code>
             </div>
 
             {/* 必填字段 */}
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+            <div className="text-[13px] font-semibold mb-1.5">
               {t("pluginDoc.declarativeRequired")}
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               {declarativeRequiredFields.map((item) => (
                 <FieldRow key={item.field} field={item.field} descKey={item.descKey} />
               ))}
             </div>
 
-            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, marginTop: 4 }}>
+            <div className="text-xs font-semibold mb-2 mt-1">
               {t("pluginDoc.declarativeExample")}
             </div>
             <CodeBlock code={declarativeExample} />
           </div>
 
           {/* 代码插件 */}
-          <div className="card" style={{ padding: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <Code2 size={18} style={{ color: "var(--warning)" }} />
-              <span style={{ fontSize: 15, fontWeight: 600 }}>{t("pluginDoc.code")}</span>
+          <div className="card">
+            <div className="flex items-center gap-2 mb-2">
+              <Code2 size={18} className="text-warning" />
+              <span className="text-[15px] font-semibold">{t("pluginDoc.code")}</span>
             </div>
-            <p style={{ fontSize: 12, color: "var(--muted-fg)", lineHeight: 1.6, marginBottom: 12 }}>
+            <p className="text-xs text-muted-foreground leading-[1.6] mb-3">
               {t("pluginDoc.codeDesc")}
             </p>
 
-            <div style={{ background: "var(--card2)", padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 12 }}>
-              <span style={{ color: "var(--muted-fg)", marginRight: 8 }}>{t("pluginDoc.codeFile")}:</span>
-              <code style={{ fontFamily: "ui-monospace, monospace", color: "var(--warning)" }}>
+            <div className="bg-card2 p-2.5 rounded-lg mb-3 text-xs">
+              <span className="text-muted-foreground mr-2">{t("pluginDoc.codeFile")}:</span>
+              <code className="font-mono text-warning">
                 {t("pluginDoc.codeFileDesc")}
               </code>
             </div>
 
             {/* 必须字段 */}
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, marginTop: 8 }}>
+            <div className="text-[13px] font-semibold mb-1.5 mt-2">
               {t("pluginDoc.codeRequired")}
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               {codeRequiredFields.map((item) => (
                 <FieldRow key={item.field} field={item.field} descKey={item.descKey} />
               ))}
             </div>
 
             {/* 可选字段 */}
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+            <div className="text-[13px] font-semibold mb-1.5">
               {t("pluginDoc.codeOptional")}
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               {codeOptionalFields.map((item) => (
                 <FieldRow key={item.field} field={item.field} descKey={item.descKey} />
               ))}
             </div>
 
-            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, marginTop: 4 }}>
+            <div className="text-xs font-semibold mb-2 mt-1">
               {t("pluginDoc.declarativeExample")}
             </div>
             <CodeBlock code={codeExample} />
@@ -360,87 +323,65 @@ export default function PluginsPage() {
 
           {/* 安全限制 */}
           <div
-            className="card"
-            style={{
-              padding: 16,
-              background: "rgba(var(--warning-rgb, 245, 158, 11), 0.05)",
-              borderColor: "var(--warning)",
-            }}
+            className="card !bg-[rgba(var(--warning-rgb),0.05)] !border-warning"
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <ShieldCheck size={18} style={{ color: "var(--warning)" }} />
-              <span style={{ fontSize: 15, fontWeight: 600 }}>{t("pluginDoc.codeSafety")}</span>
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck size={18} className="text-warning" />
+              <span className="text-[15px] font-semibold">{t("pluginDoc.codeSafety")}</span>
             </div>
-            <p style={{ fontSize: 12, color: "var(--muted-fg)", lineHeight: 1.6 }}>
+            <p className="text-xs text-muted-foreground leading-[1.6]">
               {t("pluginDoc.codeSafetyDesc")}
             </p>
           </div>
 
           {/* 对比表 */}
-          <div className="card" style={{ padding: 16 }}>
-            <div className="section-label" style={{ marginBottom: 12 }}>
+          <div className="card">
+            <div className="section-label mb-3">
               <span className="dot ok"></span> {t("pluginDoc.compare")}
             </div>
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "120px 1fr 1fr",
-                gap: 1,
-                background: "var(--border)",
-                borderRadius: 8,
-                overflow: "hidden",
-              }}
+              className="grid gap-px bg-border rounded-lg overflow-hidden [grid-template-columns:120px_1fr_1fr]"
             >
-              <div style={{ background: "var(--card2)", padding: "10px 12px", fontSize: 12, fontWeight: 600 }}>
+              <div className="bg-card2 px-3 py-2.5 text-xs font-semibold">
                 {t("pluginDoc.compareTableType")}
               </div>
-              <div style={{ background: "var(--card2)", padding: "10px 12px", fontSize: 12, fontWeight: 600 }}>
+              <div className="bg-card2 px-3 py-2.5 text-xs font-semibold">
                 {t("pluginDoc.compareTableScene")}
               </div>
-              <div style={{ background: "var(--card2)", padding: "10px 12px", fontSize: 12, fontWeight: 600 }}>
+              <div className="bg-card2 px-3 py-2.5 text-xs font-semibold">
                 {t("pluginDoc.compareTableEffort")}
               </div>
 
-              <div style={{ background: "var(--card)", padding: "10px 12px", fontSize: 12, color: "var(--primary)", fontWeight: 500 }}>
+              <div className="bg-card px-3 py-2.5 text-xs text-primary font-medium">
                 {t("pluginDoc.compareTableDeclarative")}
               </div>
-              <div style={{ background: "var(--card)", padding: "10px 12px", fontSize: 12, color: "var(--muted-fg)" }}>
+              <div className="bg-card px-3 py-2.5 text-xs text-muted-foreground">
                 {t("pluginDoc.compareTableDeclarativeScene")}
               </div>
-              <div style={{ background: "var(--card)", padding: "10px 12px", fontSize: 12, color: "var(--muted-fg)" }}>
+              <div className="bg-card px-3 py-2.5 text-xs text-muted-foreground">
                 {t("pluginDoc.compareTableDeclarativeEffort")}
               </div>
 
-              <div style={{ background: "var(--card)", padding: "10px 12px", fontSize: 12, color: "var(--warning)", fontWeight: 500 }}>
+              <div className="bg-card px-3 py-2.5 text-xs text-warning font-medium">
                 {t("pluginDoc.compareTableCode")}
               </div>
-              <div style={{ background: "var(--card)", padding: "10px 12px", fontSize: 12, color: "var(--muted-fg)" }}>
+              <div className="bg-card px-3 py-2.5 text-xs text-muted-foreground">
                 {t("pluginDoc.compareTableCodeScene")}
               </div>
-              <div style={{ background: "var(--card)", padding: "10px 12px", fontSize: 12, color: "var(--muted-fg)" }}>
+              <div className="bg-card px-3 py-2.5 text-xs text-muted-foreground">
                 {t("pluginDoc.compareTableCodeEffort")}
               </div>
             </div>
           </div>
 
           {/* 开发流程 */}
-          <div className="card" style={{ padding: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <ListChecks size={18} style={{ color: "var(--success)" }} />
-              <span style={{ fontSize: 15, fontWeight: 600 }}>{t("pluginDoc.workflow")}</span>
+          <div className="card">
+            <div className="flex items-center gap-2 mb-3">
+              <ListChecks size={18} className="text-success" />
+              <span className="text-[15px] font-semibold">{t("pluginDoc.workflow")}</span>
             </div>
             <ol
-              style={{
-                listStyleType: "decimal",
-                listStylePosition: "inside",
-                fontSize: 12,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-                color: "var(--muted-fg)",
-                margin: 0,
-                paddingLeft: 4,
-              }}
+              className="list-decimal list-inside text-xs flex flex-col gap-1.5 text-muted-foreground m-0 pl-1"
             >
               {workflowSteps.map((step) => (
                 <li key={step}>{t(step)}</li>
@@ -450,28 +391,13 @@ export default function PluginsPage() {
 
           {/* 注意事项 */}
           <div
-            className="card"
-            style={{
-              padding: 16,
-              background: "rgba(var(--destructive-rgb, 239, 68, 68), 0.05)",
-              borderColor: "var(--destructive)",
-            }}
+            className="card !bg-[rgba(var(--destructive-rgb),0.05)] !border-destructive"
           >
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 10, color: "var(--destructive)" }}>
+            <div className="text-[15px] font-semibold mb-2.5 text-destructive">
               {t("pluginDoc.notes")}
             </div>
             <ul
-              style={{
-                listStyleType: "disc",
-                listStylePosition: "inside",
-                fontSize: 12,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-                color: "var(--muted-fg)",
-                margin: 0,
-                paddingLeft: 4,
-              }}
+              className="list-disc list-inside text-xs flex flex-col gap-1.5 text-muted-foreground m-0 pl-1"
             >
               {notes.map((note) => (
                 <li key={note}>{t(note)}</li>

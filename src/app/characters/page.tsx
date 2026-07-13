@@ -22,15 +22,14 @@ function CharactersPageContent() {
 
   return (
     <PageErrorBoundary pageName={t("page.characters")}>
-      <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="fade-in flex flex-col h-full">
         {/* Top Tabs */}
-        <div className="top-tabs" style={{ justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}><User size={14} /> {t("sidebar.characters")}</span>
+        <div className="top-tabs justify-between">
+          <span className="font-semibold text-sm"><User size={14} /> {t("sidebar.characters")}</span>
           <div className="toolbar">
             <input
-              className="input"
+              className="input !text-xs !py-1.5 !px-2.5 !w-[180px]"
               placeholder={t("character.searchPlaceholder")}
-              style={{ fontSize: 12, padding: "6px 10px", width: 180 }}
               value={page.search}
               onChange={(e) => page.setSearch(e.target.value)}
             />
@@ -41,7 +40,7 @@ function CharactersPageContent() {
         </div>
 
         {/* Content: Left List + Right Detail Editor */}
-        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        <div className="flex flex-col md:flex-row flex-1 min-h-0">
           <CharacterList
             characters={page.filteredCharacters}
             charactersLoading={page.charactersLoading}
@@ -51,7 +50,7 @@ function CharactersPageContent() {
           />
 
           {/* Right: Detail Editor */}
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflowY: "auto", padding: 16, gap: 12 }}>
+          <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 gap-3">
             {page.showEditor ? (
               <CharacterEditor
                 currentCharacter={page.currentCharacter}
@@ -91,10 +90,10 @@ function CharactersPageContent() {
                 handleDelete={() => page.currentCharacter.id && page.performDelete(page.currentCharacter.id)}
               />
             ) : (
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-fg)" }}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 48, marginBottom: 8 }}><User size={48} /></div>
-                  <p style={{ fontSize: 14 }}>{t("character.selectOrCreate")}</p>
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <div className="text-5xl mb-2"><User size={48} /></div>
+                  <p className="text-sm">{t("character.selectOrCreate")}</p>
                 </div>
               </div>
             )}

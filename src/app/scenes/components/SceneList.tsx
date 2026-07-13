@@ -2,9 +2,10 @@ import { memo } from "react";
 import type { Scene } from "@/domain/schemas";
 import { SceneListItem } from "@/modules/scene";
 import { BatchOperations } from "@/modules/asset";
-import { ImageIcon, Loader2, Plus } from "lucide-react";
+import { ImageIcon, Plus } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants/messages";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import { sceneService } from "@/modules/scene";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -36,27 +37,9 @@ export const SceneList = memo(function SceneList({
   };
 
   return (
-    <div
-      style={{
-        width: 300,
-        flexShrink: 0,
-        borderRight: "1px solid var(--border)",
-        overflowY: "auto",
-        padding: 12,
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-      }}
-    >
+    <div className="w-[300px] shrink-0 border-r border-border overflow-y-auto p-3 flex flex-col gap-1.5">
       {scenes.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            paddingBottom: 4,
-          }}
-        >
+        <div className="flex items-center justify-end pb-1">
           <BatchOperations
             type="scene"
             items={scenes}
@@ -88,59 +71,32 @@ export const SceneList = memo(function SceneList({
       )}
 
       {scenesLoading ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "32px",
-          }}
-        >
-          <Loader2
-            className="animate-spin"
-            size={24}
-            style={{ color: "var(--muted-fg)" }}
-          />
-          <p
-            style={{
-              marginTop: 12,
-              fontSize: 12,
-              color: "var(--muted-fg)",
-            }}
-          >
-            {t("scene.loadingScenes")}
-          </p>
-        </div>
+        Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="card px-3 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded skeleton-shimmer shrink-0" />
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="h-3 w-3/4 skeleton-shimmer rounded" />
+                <div className="h-2.5 w-1/2 skeleton-shimmer rounded" />
+              </div>
+            </div>
+          </div>
+        ))
       ) : scenes.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "32px 16px",
-            color: "var(--muted-fg)",
-          }}
-        >
-          <div style={{ fontSize: 32, marginBottom: 8 }}>
-            <ImageIcon style={{ width: 32, height: 32 }} />
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>
-            {t("scene.noScenes")}
-          </div>
-          <div style={{ fontSize: 12, marginTop: 4 }}>
-            {t("scene.noScenesDesc")}
-          </div>
-          <button
-            onClick={onNewScene}
-            className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md transition-colors mt-3"
-            style={{
-              background: "rgba(var(--primary-rgb), 0.1)",
-              color: "var(--primary)",
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            {t("scene.createScene")}
-          </button>
-        </div>
+        <EmptyState
+          icon={ImageIcon}
+          title={t("scene.noScenes")}
+          description={t("scene.noScenesDesc")}
+          action={
+            <button
+              onClick={onNewScene}
+              className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md transition-colors bg-[rgba(var(--primary-rgb),0.1)] text-primary"
+            >
+              <Plus className="h-4 w-4" />
+              {t("scene.createNewScene")}
+            </button>
+          }
+        />
       ) : (
         scenes.map((scene) => (
           <div key={scene.id} data-scene-id={scene.id}>

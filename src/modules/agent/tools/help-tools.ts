@@ -482,7 +482,7 @@ const HELP_DOCS: Array<{
     category: "shortcuts",
     summary: "全局、编辑器、分镜页面的常用快捷键。",
     content:
-      "全局快捷键：\n- Ctrl+N：新建项目\n- Ctrl+S：保存\n- Ctrl+O：打开\n- Ctrl+Z：撤销\n- Ctrl+Y：重做\n- Ctrl+,：打开设置\n- F11：全屏切换\n\n编辑器快捷键：\n- Ctrl+B：加粗\n- Ctrl+I：斜体\n- Ctrl+D：复制选中项\n- Delete：删除选中项\n- Esc：取消选中/关闭对话框\n\n分镜页面快捷键：\n- Ctrl+Enter：生成\n- Ctrl+Shift+D：复制分镜\n- Ctrl+Up/Down：调整分镜顺序\n- Space：预览",
+      "全局快捷键：\n- Ctrl+N：新建项目\n- Ctrl+S：保存\n- Ctrl+O：打开\n- Ctrl+,：打开设置\n- F11：全屏切换\n\n编辑器快捷键：\n- Ctrl+B：加粗\n- Ctrl+I：斜体\n- Ctrl+D：复制选中项\n- Delete：删除选中项\n- Esc：取消选中/关闭对话框\n\n分镜页面快捷键：\n- Ctrl+Enter：生成\n- Ctrl+Shift+D：复制分镜\n- Ctrl+Up/Down：调整分镜顺序\n- Space：预览",
   },
 ];
 
@@ -495,8 +495,6 @@ const KEYBOARD_SHORTCUTS: Array<{ key: string; description: string; context: str
   { key: "Ctrl+S", description: "保存当前项目", context: "global" },
   { key: "Ctrl+Shift+S", description: "另存为", context: "global" },
   { key: "Ctrl+O", description: "打开项目", context: "global" },
-  { key: "Ctrl+Z", description: "撤销上一步操作", context: "global" },
-  { key: "Ctrl+Y", description: "重做撤销的操作", context: "global" },
   { key: "Ctrl+,", description: "打开设置页面", context: "global" },
   { key: "F11", description: "全屏切换", context: "global" },
   { key: "Ctrl+P", description: "打印/导出", context: "global" },

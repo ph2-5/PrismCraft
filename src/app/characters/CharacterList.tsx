@@ -9,7 +9,6 @@ import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import type { Character } from "@/domain/schemas";
 import { Users, Plus } from "lucide-react";
 import { t } from "@/shared/constants/messages";
-import { PageLoader } from "@/shared/presentation/PageLoader";
 import { EmptyState } from "@/shared/presentation/EmptyState";
 
 interface CharacterListProps {
@@ -31,27 +30,9 @@ export const CharacterList = memo(function CharacterList({
   const { error: showError } = useToastHelpers();
 
   return (
-    <div
-      style={{
-        width: 300,
-        flexShrink: 0,
-        borderRight: "1px solid var(--border)",
-        overflowY: "auto",
-        padding: 12,
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-      }}
-    >
+    <div className="w-full md:w-[300px] md:shrink-0 border-b border-border md:border-b-0 md:border-r flex flex-col overflow-y-auto p-3 gap-1.5">
       {characters.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            paddingBottom: 4,
-          }}
-        >
+        <div className="flex items-center justify-end pb-1">
           <BatchOperations
             type="character"
             items={characters}
@@ -83,7 +64,17 @@ export const CharacterList = memo(function CharacterList({
         </div>
       )}
       {charactersLoading ? (
-        <PageLoader size="md" label={t("character.loadingList")} />
+        Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="card px-3 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-full skeleton-shimmer shrink-0" />
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="h-3 w-3/4 skeleton-shimmer rounded" />
+                <div className="h-2.5 w-1/2 skeleton-shimmer rounded" />
+              </div>
+            </div>
+          </div>
+        ))
       ) : characters.length === 0 ? (
         <EmptyState
           icon={Users}
@@ -92,11 +83,7 @@ export const CharacterList = memo(function CharacterList({
           action={
             <button
               onClick={onCreateNew}
-              className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
-              style={{
-                background: "rgba(var(--primary-rgb), 0.1)",
-                color: "var(--primary)",
-              }}
+              className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md transition-colors bg-[rgba(var(--primary-rgb),0.1)] text-[var(--primary)]"
             >
               <Plus className="h-4 w-4" />
               {t("character.createNew")}

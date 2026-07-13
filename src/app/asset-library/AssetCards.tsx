@@ -25,43 +25,21 @@ import { t } from "@/shared/constants";
 import { IconButton } from "@/shared/presentation/IconButton";
 
 // 统一的卡片图片区样式
-const cardImageAreaStyle: React.CSSProperties = {
-  aspectRatio: "1 / 1",
-  background: "var(--card2)",
-  position: "relative",
-  overflow: "hidden",
-};
+const CARD_IMAGE_AREA_CLASS = "aspect-square bg-card2 relative overflow-hidden";
 
 // 统一的卡片内容区样式
-const cardContentStyle: React.CSSProperties = {
-  padding: 10,
-};
+const CARD_CONTENT_CLASS = "p-2.5";
 
-// 统一的选中标记样式
-const selectBadgeStyle = (isSelected: boolean): React.CSSProperties => ({
-  position: "absolute",
-  top: 8,
-  left: 8,
-  cursor: "pointer",
-  color: isSelected ? "var(--primary)" : "var(--muted-fg)",
-  opacity: isSelected ? 1 : 0.5,
-});
+// 统一的选中标记样式（动态颜色/透明度由调用方按 isSelected 拼接）
+const selectBadgeClass = (isSelected: boolean): string =>
+  `absolute top-2 left-2 cursor-pointer ${isSelected ? "text-primary opacity-100" : "text-muted-foreground opacity-50"}`;
 
 // 统一的删除按钮样式
-const deleteBtnStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 8,
-  right: 8,
-  background: "rgba(0, 0, 0, 0.5)",
-  color: "var(--destructive)",
-  border: "none",
-  borderRadius: 4,
-  padding: 4,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
+const DELETE_BTN_CLASS = "absolute top-2 right-2 bg-black/50 text-destructive border-none rounded p-1 cursor-pointer flex items-center justify-center";
+
+// 选中态卡片 className（覆盖 .card 默认 border）
+const cardSelectedClass = (isSelected: boolean): string =>
+  isSelected ? "!border-2 !border-primary" : "";
 
 interface CharacterCardProps {
   char: Character;
@@ -82,13 +60,7 @@ export const CharacterCard = memo(function CharacterCard({
   const hasImage = (char.generatedImage || char.avatarPath) && !imageError;
   return (
     <div
-      className="card"
-      style={{
-        padding: 0,
-        overflow: "hidden",
-        cursor: "pointer",
-        border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
-      }}
+      className={`card !p-0 overflow-hidden cursor-pointer ${cardSelectedClass(isSelected)}`}
       role="button"
       tabIndex={0}
       aria-label={char.name || t("element.characterLabel")}
@@ -100,21 +72,21 @@ export const CharacterCard = memo(function CharacterCard({
         }
       }}
     >
-      <div style={cardImageAreaStyle}>
+      <div className={CARD_IMAGE_AREA_CLASS}>
         {hasImage ? (
           <img
             src={resolveImageUrl(char.generatedImage || char.avatarPath)}
             alt={char.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            className="w-full h-full object-cover"
             onError={() => setImageError(true)}
           />
         ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Users size={40} style={{ color: "var(--muted-fg)", opacity: 0.3 }} />
+          <div className="w-full h-full flex items-center justify-center">
+            <Users size={40} className="text-muted-foreground opacity-30" />
           </div>
         )}
         <div
-          style={selectBadgeStyle(isSelected)}
+          className={selectBadgeClass(isSelected)}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelect(char.id);
@@ -135,7 +107,7 @@ export const CharacterCard = memo(function CharacterCard({
         </div>
         <button
           type="button"
-          style={deleteBtnStyle}
+          className={DELETE_BTN_CLASS}
           onClick={(e) => {
             e.stopPropagation();
             onDeleteCharacter(char.id);
@@ -145,24 +117,24 @@ export const CharacterCard = memo(function CharacterCard({
           <Trash2 size={14} />
         </button>
       </div>
-      <div style={cardContentStyle}>
-        <div style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <div className={CARD_CONTENT_CLASS}>
+        <div className="text-xs font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
           {char.name || t("asset.unnamedCharacter")}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+        <div className="flex flex-wrap gap-1 mt-1">
           {(char.tags || []).slice(0, 2).map((tag) => (
-            <span key={tag} className="badge badge-muted" style={{ fontSize: 10 }}>
+            <span key={tag} className="badge badge-muted">
               {tag}
             </span>
           ))}
           {(char.tags || []).length > 2 && (
-            <span className="badge badge-muted" style={{ fontSize: 10 }}>
+            <span className="badge badge-muted">
               +{(char.tags || []).length - 2}
             </span>
           )}
         </div>
         {char.createdAt && (
-          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+          <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
             <Clock size={11} />
             {toDateFromTimestamp(char.createdAt).toLocaleDateString()}
           </div>
@@ -191,13 +163,7 @@ export const SceneCard = memo(function SceneCard({
   const hasImage = (scene.generatedImage || scene.scenePath) && !imageError;
   return (
     <div
-      className="card"
-      style={{
-        padding: 0,
-        overflow: "hidden",
-        cursor: "pointer",
-        border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
-      }}
+      className={`card !p-0 overflow-hidden cursor-pointer ${cardSelectedClass(isSelected)}`}
       role="button"
       tabIndex={0}
       aria-label={scene.name || t("scene.title")}
@@ -209,21 +175,21 @@ export const SceneCard = memo(function SceneCard({
         }
       }}
     >
-      <div style={cardImageAreaStyle}>
+      <div className={CARD_IMAGE_AREA_CLASS}>
         {hasImage ? (
           <img
             src={resolveImageUrl(scene.generatedImage || scene.scenePath)}
             alt={scene.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            className="w-full h-full object-cover"
             onError={() => setImageError(true)}
           />
         ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ImageIcon size={40} style={{ color: "var(--muted-fg)", opacity: 0.3 }} />
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageIcon size={40} className="text-muted-foreground opacity-30" />
           </div>
         )}
         <div
-          style={selectBadgeStyle(isSelected)}
+          className={selectBadgeClass(isSelected)}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelect(scene.id);
@@ -244,7 +210,7 @@ export const SceneCard = memo(function SceneCard({
         </div>
         <button
           type="button"
-          style={deleteBtnStyle}
+          className={DELETE_BTN_CLASS}
           onClick={(e) => {
             e.stopPropagation();
             onDeleteScene(scene.id);
@@ -254,19 +220,19 @@ export const SceneCard = memo(function SceneCard({
           <Trash2 size={14} />
         </button>
       </div>
-      <div style={cardContentStyle}>
-        <div style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <div className={CARD_CONTENT_CLASS}>
+        <div className="text-xs font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
           {scene.name || t("asset.unnamedScene")}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+        <div className="flex flex-wrap gap-1 mt-1">
           {(scene.tags || []).slice(0, 2).map((tag) => (
-            <span key={tag} className="badge badge-muted" style={{ fontSize: 10 }}>
+            <span key={tag} className="badge badge-muted">
               {tag}
             </span>
           ))}
         </div>
         {scene.atmosphere && (
-          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 4 }}>
+          <div className="text-[10px] text-muted-foreground mt-1">
             {scene.atmosphere}
           </div>
         )}
@@ -294,13 +260,7 @@ export const StoryboardCard = memo(function StoryboardCard({
   const hasImage = sb.previewPath && !imageError;
   return (
     <div
-      className="card"
-      style={{
-        padding: 0,
-        overflow: "hidden",
-        cursor: "pointer",
-        border: isSelected ? "2px solid var(--primary)" : "1px solid var(--border)",
-      }}
+      className={`card !p-0 overflow-hidden cursor-pointer ${cardSelectedClass(isSelected)}`}
       role="button"
       tabIndex={0}
       aria-label={sb.script || t("story.untitled")}
@@ -312,23 +272,23 @@ export const StoryboardCard = memo(function StoryboardCard({
         }
       }}
     >
-      <div style={cardImageAreaStyle}>
+      <div className={CARD_IMAGE_AREA_CLASS}>
         {hasImage ? (
           <img
             src={resolveImageUrl(sb.previewPath)}
             alt={t("asset.storyboardPreview")}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            className="w-full h-full object-cover"
             onError={() => setImageError(true)}
           />
         ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div style={{ color: "var(--muted-fg)", fontSize: 12, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          <div className="w-full h-full flex items-center justify-center p-4">
+            <div className="text-muted-foreground text-xs text-center line-clamp-3">
               {sb.script}
             </div>
           </div>
         )}
         <div
-          style={selectBadgeStyle(isSelected)}
+          className={selectBadgeClass(isSelected)}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelect(sb.id);
@@ -349,7 +309,7 @@ export const StoryboardCard = memo(function StoryboardCard({
         </div>
         <button
           type="button"
-          style={deleteBtnStyle}
+          className={DELETE_BTN_CLASS}
           onClick={(e) => {
             e.stopPropagation();
             onDeleteStoryboard(sb.id);
@@ -359,24 +319,24 @@ export const StoryboardCard = memo(function StoryboardCard({
           <Trash2 size={14} />
         </button>
       </div>
-      <div style={cardContentStyle}>
-        <div style={{ fontSize: 12, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+      <div className={CARD_CONTENT_CLASS}>
+        <div className="text-xs line-clamp-2">
           {sb.script}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+        <div className="flex items-center gap-1 mt-1">
           {sb.duration && (
-            <span className="badge badge-muted" style={{ fontSize: 10 }}>
+            <span className="badge badge-muted">
               {sb.duration}
             </span>
           )}
           {sb.shotType && (
-            <span className="badge badge-muted" style={{ fontSize: 10 }}>
+            <span className="badge badge-muted">
               {sb.shotType}
             </span>
           )}
         </div>
         {sb.characterIds?.length > 0 && (
-          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+          <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
             <Link size={11} />
             {t("asset.characterCountShort", { count: sb.characterIds.length })}
           </div>
@@ -410,14 +370,14 @@ export const CollectionCard = memo(function CollectionCard({
   };
 
   return (
-    <div className="card" style={{ padding: 12 }}>
-      <div style={{ paddingBottom: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+    <div className="card !p-3">
+      <div className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="text-[13px] font-semibold flex items-center gap-1.5">
             <FolderOpen size={14} />
             {col.name}
           </div>
-          <div style={{ display: "flex", gap: 4 }}>
+          <div className="flex gap-1">
             <IconButton
               variant="ghost"
               className="btn-xs"
@@ -429,8 +389,7 @@ export const CollectionCard = memo(function CollectionCard({
             </IconButton>
             <IconButton
               variant="ghost"
-              className="btn-xs"
-              style={{ color: "var(--destructive)" }}
+              className="btn-xs !text-destructive"
               onClick={() => onDeleteCollection(col.id)}
               title={t("asset.deleteCollection")}
               aria-label={t("aria.deleteCollection")}
@@ -439,14 +398,14 @@ export const CollectionCard = memo(function CollectionCard({
             </IconButton>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted-fg)" }}>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Package size={11} />
           {t("asset.assetCount", { count: assetCount })}
         </div>
       </div>
       <div>
         {assetCount > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          <div className="flex flex-wrap gap-1">
             {getCollectionAssets(col.id)
               .slice(0, 5)
               .map((ca) => {
@@ -462,7 +421,6 @@ export const CollectionCard = memo(function CollectionCard({
                   <span
                     key={String(ca.id || "")}
                     className="badge badge-muted"
-                    style={{ fontSize: 10 }}
                   >
                     {ca.assetType === "character"
                       ? ""
@@ -474,14 +432,14 @@ export const CollectionCard = memo(function CollectionCard({
                 );
               })}
             {assetCount > 5 && (
-              <span className="badge badge-muted" style={{ fontSize: 10 }}>
+              <span className="badge badge-muted">
                 +{assetCount - 5}
               </span>
             )}
           </div>
         )}
         {col.createdAt && (
-          <div style={{ fontSize: 10, color: "var(--muted-fg)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+          <div className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
             <Clock size={11} />
             {toDateFromTimestamp(col.createdAt).toLocaleDateString()}
           </div>

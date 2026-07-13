@@ -1,5 +1,5 @@
 /**
- * 记忆服务（Memory Service）
+ * 记忆服务（Memory Service）— 主入口
  *
  * 借鉴 Letta 分层记忆 + Mem0 自动抽取思想，实现轻量级记忆系统。
  *
@@ -25,11 +25,15 @@
  * - 渐进增强：无任何向量配置时零破坏，保持原有行为
  * - Embedding 独立存储：与 archival.json 解耦，支持维度版本检测与自动失效
  *
- * 自动抽取流程：
+ * 自动抽取流程（已拆分到 memory-service-extraction.ts）：
  * - 会话结束时（或达到抽取阈值）触发
  * - 用 textProvider 从最近 N 条消息中提取偏好、事实、摘要
  * - 偏好合并到核心记忆（覆盖同 key）
  * - 摘要追加到归档记忆
+ *
+ * 种子记忆（静态数据已拆分到 memory-service-seed-data.ts）：
+ * - 预置通用动画创作知识与项目最佳实践
+ * - 首次启动时自动注入到归档记忆
  *
  * 设计要点：
  * - 归档记忆检索委托 VectorSearchEngine，本模块只负责存储与抽取
@@ -39,7 +43,6 @@
  * - 向量检索失败时静默退回关键词匹配
  */
 
-import { container } from "@/infrastructure/di";
 import { getConfig, setConfig, writeFile, readFile, getCacheDirectory } from "@/shared/file-http";
 import type {
   AgentMessage,
@@ -55,6 +58,7 @@ import {
   type EmbeddingStore,
   type ProgressCallback,
 } from "./vector-search";
+import { SEED_MEMORY_ENTRIES } from "./memory-service-seed-data";
 
 // Re-export memory types from domain/types for backward compatibility
 // （类型已迁移到 domain/types.ts，此处 re-export 保持现有 import 路径不破坏）
@@ -64,6 +68,20 @@ export type {
   ArchivalMemoryEntry,
   ExtractedMemory,
 } from "../domain/types";
+
+// Import 抽取与摘要函数（从拆分文件）— MemoryService 类方法需要本地引用
+import {
+  extractFromConversation,
+  applyExtractedMemory,
+  summarizeConversation,
+} from "./memory-service-extraction";
+
+// Re-export for backward compatibility（保持外部 import 路径不破坏）
+export {
+  extractFromConversation,
+  applyExtractedMemory,
+  summarizeConversation,
+};
 
 // ============= 类型定义 =============
 // Memory 相关类型已迁移到 domain/types.ts（见文件顶部 re-export）。
@@ -121,7 +139,7 @@ export async function getCoreMemory(): Promise<CoreMemory> {
 }
 
 /** 保存核心记忆 */
-async function saveCoreMemory(memory: CoreMemory): Promise<boolean> {
+export async function saveCoreMemory(memory: CoreMemory): Promise<boolean> {
   try {
     await setConfig(CORE_MEMORY_KEY, memory);
     return true;
@@ -376,158 +394,6 @@ export async function deleteArchivalMemory(id: string): Promise<boolean> {
   return result;
 }
 
-// ============= 自动抽取 =============
-
-/**
- * 从对话中自动抽取记忆
- *
- * 使用 textProvider 分析最近的消息，提取：
- * - 用户偏好（如风格、provider 偏好）
- * - 项目事实（如改编来源、目标时长）
- * - 会话摘要（追加到归档记忆）
- *
- * 失败时不抛异常，返回 null。
- */
-export async function extractFromConversation(
-  messages: AgentMessage[],
-  _sessionId?: string,
-  options?: { providerId?: string; modelId?: string },
-): Promise<ExtractedMemory | null> {
-  // 过滤出最近的消息（最多 20 条，跳过 tool 消息）
-  const recentMessages = messages
-    .filter((m) => m.role === "user" || (m.role === "assistant" && m.content))
-    .slice(-20);
-
-  if (recentMessages.length < 3) {
-    // 消息太少，不值得抽取
-    return null;
-  }
-
-  const conversationText = recentMessages
-    .map((m) => {
-      const role = m.role === "user" ? "用户" : "助手";
-      return `[${role}] ${m.content}`;
-    })
-    .join("\n\n");
-
-  const prompt = `请分析以下对话，提取值得长期记住的信息。严格按 JSON 格式输出，不要输出其他内容。
-
-对话内容：
-${conversationText}
-
-请输出以下 JSON 结构：
-{
-  "preferences": {
-    "preferred_style": "用户偏好的视觉风格（如有）",
-    "preferred_provider": "用户偏好的 API provider（如有）",
-    "language": "用户使用语言（如 zh-CN）"
-  },
-  "facts": [
-    { "key": "source_novel", "value": "项目改编来源（如有）" },
-    { "key": "target_duration", "value": "目标视频时长（如有）" }
-  ],
-  "summary": "本次对话的 200 字摘要，包含用户的核心需求和达成的结果"
-}
-
-要求：
-1. 只提取明确出现的信息，不要臆测
-2. preferences 和 facts 可以为空对象/数组
-3. summary 必须填写
-4. 不要输出 JSON 以外的内容`;
-
-  try {
-    const result = await container.textProvider.generateText(prompt, {
-      maxTokens: 1024,
-      temperature: 0.3,
-      providerId: options?.providerId,
-      modelId: options?.modelId,
-    });
-
-    if (!result.success || !result.data) return null;
-
-    const text = result.data.text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-
-    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-
-    const preferences: Record<string, string | number | boolean> = {};
-    if (parsed.preferences && typeof parsed.preferences === "object") {
-      for (const [k, v] of Object.entries(parsed.preferences as Record<string, unknown>)) {
-        if (v != null && (typeof v === "string" || typeof v === "number" || typeof v === "boolean")) {
-          preferences[k] = v;
-        }
-      }
-    }
-
-    const facts: Array<{ key: string; value: string }> = [];
-    if (Array.isArray(parsed.facts)) {
-      for (const f of parsed.facts as Array<Record<string, unknown>>) {
-        if (f && typeof f.key === "string" && typeof f.value === "string" && f.value) {
-          facts.push({ key: f.key, value: f.value });
-        }
-      }
-    }
-
-    const summary =
-      typeof parsed.summary === "string" && parsed.summary.trim()
-        ? parsed.summary.trim()
-        : "";
-
-    return { preferences, facts, summary };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * 应用抽取结果到记忆系统
- *
- * - 偏好合并到核心记忆（覆盖同 key）
- * - 事实追加到核心记忆（同 key 覆盖）
- * - 摘要追加到归档记忆
- */
-export async function applyExtractedMemory(
-  extracted: ExtractedMemory,
-  sessionId?: string,
-): Promise<void> {
-  const memory = await getCoreMemory();
-
-  // 合并偏好
-  for (const [k, v] of Object.entries(extracted.preferences)) {
-    memory.preferences[k] = v;
-  }
-
-  // 合并事实
-  const now = Date.now();
-  for (const fact of extracted.facts) {
-    const idx = memory.facts.findIndex((f) => f.key === fact.key);
-    if (idx >= 0) {
-      memory.facts[idx] = { ...fact, updatedAt: now };
-    } else {
-      memory.facts.push({ ...fact, updatedAt: now });
-    }
-  }
-
-  // 限制 facts 数量
-  if (memory.facts.length > MAX_FACTS_COUNT) {
-    memory.facts.sort((a, b) => a.updatedAt - b.updatedAt);
-    memory.facts = memory.facts.slice(memory.facts.length - MAX_FACTS_COUNT);
-  }
-
-  await saveCoreMemory(memory);
-
-  // 追加摘要到归档记忆
-  if (extracted.summary) {
-    await addArchivalMemory({
-      type: "summary",
-      content: extracted.summary,
-      sessionId,
-      tags: ["auto-extracted"],
-    });
-  }
-}
-
 // ============= Prompt 构建 =============
 
 /**
@@ -606,114 +472,12 @@ export async function _resetAllMemory(): Promise<void> {
 /**
  * 种子记忆 — 预置通用动画创作知识与项目最佳实践
  *
- * 设计目的：
- * - 解决 Agent 记忆系统冷启动问题（首次使用归档记忆为空，RAG 检索无结果）
- * - 为 Agent 提供通用动画创作领域知识，提升建议质量
- * - 记录项目工作流程和工具使用最佳实践
- *
- * 实现要点：
- * - 种子记忆 id 以 "seed_" 前缀标识，便于识别和管理
- * - 首次启动时（archival.json 不存在或为空）自动注入
- * - Embedding 采用懒生成（与现有机制一致），首次 RAG 检索时按需生成
- * - 用户清空归档记忆后不会重新注入（通过 _seedMemoryInjected 标记保护）
- * - 种子记忆与用户记忆共存，遵循统一的容量限制（200 条）
+ * 静态数据 SEED_MEMORY_ENTRIES 已拆分到 memory-service-seed-data.ts。
+ * 此处保留函数实现，依赖 storage 函数（getAllArchivalMemory / saveArchivalMemory）。
  */
 
 /** 种子记忆注入标记配置键（独立于 archival.json，防止用户清空后被重复注入） */
 const SEED_MEMORY_FLAG_KEY = "agent.seedMemoryInjected";
-
-/** 种子记忆条目定义（id 由 ensureSeedMemory 内部统一加 "seed_" 前缀） */
-const SEED_MEMORY_ENTRIES: Array<{
-  localId: string;
-  type: "fact" | "decision" | "summary";
-  content: string;
-  tags: string[];
-}> = [
-  {
-    localId: "project_overview",
-    type: "fact",
-    content:
-      "本项目是 AI 动画创作工作站，核心能力包括：角色管理（创建/编辑/绑定）、场景管理（背景/环境）、故事分镜（beat-based 结构）、视频生成（多模型支持）、Agent 助手（工具调用 + 记忆系统）。工作流程通常为：导入小说 → 拆分故事 beat → 生成角色/场景 → 生成镜头 → 生成视频。",
-    tags: ["project", "overview", "workflow"],
-  },
-  {
-    localId: "character_design_principles",
-    type: "fact",
-    content:
-      "角色设计原则：1) 主角应有鲜明视觉特征（发型/服装/配色），便于 AI 生成一致性；2) 为每个角色绑定参考图，提升跨镜头一致性；3) 角色描述包含身高、体型、发型、瞳色、服装、配饰 6 个维度；4) 配角可简化描述，但需有辨识度；5) 角色关系图应在故事分镜阶段建立。",
-    tags: ["character", "design", "best-practice"],
-  },
-  {
-    localId: "scene_design_principles",
-    type: "fact",
-    content:
-      "场景设计原则：1) 场景应服务于故事氛围，与角色风格统一；2) 包含时间（日/夜）、天气、光照方向 3 个维度；3) 复杂场景建议拆分为多个子场景（如『客厅-白天』和『客厅-夜晚』）；4) 场景参考图应包含整体氛围和关键道具；5) 避免场景描述过于抽象，应有具体视觉元素。",
-    tags: ["scene", "design", "best-practice"],
-  },
-  {
-    localId: "story_structure",
-    type: "fact",
-    content:
-      "故事结构建议：1) 短视频（<60s）采用三段式：引入-冲突-解决；2) 中等长度（1-3min）可采用起承转合四幕结构；3) 每个 beat 应有明确的视觉焦点和情绪基调；4) beat 之间的过渡应自然，避免突兀切换；5) 角色动机在每个 beat 中应清晰可辨；6) 高潮 beat 应有更详细的镜头描述。",
-    tags: ["story", "structure", "narrative"],
-  },
-  {
-    localId: "shot_composition",
-    type: "fact",
-    content:
-      "镜头语言指南：1) 远景建立环境，近景强调情绪，特写突出细节；2) 运镜方式：推（强调）、拉（揭示）、摇（跟随）、移（并行）；3) 角色对话用中景，情绪表达用近景；4) 避免连续多个相同景别，应有节奏变化；5) 关键转折点建议用 Dutch angle 或低角度增强戏剧性；6) 生成视频时首尾帧应明确指定以保持连贯。",
-    tags: ["shot", "cinematography", "composition"],
-  },
-  {
-    localId: "video_generation_tips",
-    type: "fact",
-    content:
-      "视频生成最佳实践：1) 优先为首帧和尾帧提供参考图，提升画面连贯性；2) 描述应包含动作、运镜、氛围三层信息；3) 复杂动作拆分为多个短视频片段分别生成；4) 生成失败时检查 API key 配额和模型能力映射；5) 不同 provider 适配不同场景：Kling 适合写实、Pika 适合风格化、Runway 适合运镜；6) 批量生成时建议先测试单个镜头确认风格。",
-    tags: ["video", "generation", "best-practice"],
-  },
-  {
-    localId: "agent_tool_usage",
-    type: "decision",
-    content:
-      "Agent 工具使用规范：1) 危险操作（delete_file/move_file/delete_character 等）必须用户确认；2) 文件操作限制在项目目录内，禁止路径遍历；3) 跨模块协作优先使用模块 public API（如 useVideoTaskManager），避免直接操作 Store；4) 长任务（视频生成/批量处理）应使用轮询机制，不阻塞 Agent Loop；5) delegate_to_specialist 用于复杂子任务，子 Agent 权限不超过父 Agent。",
-    tags: ["agent", "tool", "permission", "best-practice"],
-  },
-  {
-    localId: "consistency_check",
-    type: "fact",
-    content:
-      "一致性检查要点：1) 角色一致性：跨镜头检查发型、服装、瞳色、体型；2) 场景一致性：同一场景的光照、道具位置应一致；3) 故事一致性：时间线、角色关系、情节逻辑；4) 使用 reference-engine 进行视觉一致性校验；5) 发现不一致时优先调整描述而非重新生成；6) 关键角色建议建立 reference sheet 作为基准。",
-    tags: ["consistency", "quality", "reference"],
-  },
-  {
-    localId: "api_config_guide",
-    type: "fact",
-    content:
-      "API 配置指南：1) API key 通过系统级加密存储（macOS Keychain / Windows Credential Manager）；2) 13+ provider 支持：DeepSeek、Kling、Pika、Runway、MiniMax、OpenAI 等；3) 模型能力通过 mapping 配置（text/image/vision/video）；4) 未知模型自动降级到保守默认能力；5) 声明式 JSON 插件可零代码接入新 provider；6) 建议为不同能力配置不同 provider 以优化成本。",
-    tags: ["api", "config", "provider"],
-  },
-  {
-    localId: "iteration_workflow",
-    type: "decision",
-    content:
-      "迭代工作流建议：1) 先生成静态画面（角色/场景）确认风格，再生成动态视频；2) 每个 beat 的视频生成后立即检查一致性，问题及时修正；3) 批量处理时保持参数一致（分辨率/时长/风格）；4) 使用项目状态查询工具（get_project_state）跟踪进度；5) 失败任务可通过 video-recovery 恢复；6) 最终成片前进行全局一致性检查。",
-    tags: ["workflow", "iteration", "best-practice"],
-  },
-  {
-    localId: "memory_system_guide",
-    type: "fact",
-    content:
-      "记忆系统说明：1) 核心记忆常驻 system prompt，存储用户偏好和项目事实（≤20 条）；2) 归档记忆按需 RAG 检索，存储会话摘要和重要决策（≤200 条）；3) 自动抽取在每 5 条用户消息后触发；4) Embedding 支持 API/本地模型/关键词三策略链；5) 本地 ONNX 模型需手动下载并拖入设置页面；6) 工具调用 few-shot 缓存记录成功调用示例辅助 LLM 决策。",
-    tags: ["memory", "system", "agent"],
-  },
-  {
-    localId: "common_pitfalls",
-    type: "decision",
-    content:
-      "常见陷阱与规避：1) 不要在 system prompt 中硬编码项目路径，使用 get_project_state 动态查询；2) 不要直接调用 electronAPI，应通过 file-http 统一层；3) 不要跨模块直接 import Store，使用 public API hook；4) 不要假设模型能力，使用 model-capabilities 查询；5) 不要在 shared-logic 中引入项目依赖，保持零依赖；6) 不要跳过 Zod schema 校验直接调用 API。",
-    tags: ["pitfall", "architecture", "best-practice"],
-  },
-];
 
 /**
  * 检查种子记忆是否已注入
@@ -886,71 +650,6 @@ export async function prewarmEmbeddings(
       total: 0,
       message: e instanceof Error ? e.message : String(e),
     };
-  }
-}
-
-// ============= 上下文摘要压缩（P2 深化） =============
-
-/**
- * 摘要对话历史（P2 上下文摘要压缩）
- *
- * 将旧消息压缩为摘要，释放上下文空间。
- * - 使用 textProvider 从消息中提取关键信息
- * - 支持增量摘要（合并已有摘要 + 新消息）
- * - 失败时返回 null，不阻断 Agent Loop
- *
- * @param messages 需要摘要的消息列表
- * @param existingSummary 已有的摘要（增量合并，传 undefined 表示首次摘要）
- * @returns 新的摘要文本，或 null
- */
-export async function summarizeConversation(
-  messages: AgentMessage[],
-  existingSummary?: string,
-): Promise<string | null> {
-  // 过滤出 user + assistant 消息（跳过 tool 消息，太结构化不适合摘要）
-  const dialogueMessages = messages.filter(
-    (m) => (m.role === "user" || (m.role === "assistant" && m.content)) && m.content,
-  );
-
-  if (dialogueMessages.length < 3) {
-    // 消息太少，不值得摘要
-    return null;
-  }
-
-  // 构建摘要 prompt
-  const conversationText = dialogueMessages
-    .map((m) => `${m.role === "user" ? "用户" : "助手"}: ${m.content!.slice(0, 500)}`)
-    .join("\n");
-
-  const summaryPrompt = existingSummary
-    ? `请更新以下对话摘要。合并已有摘要与新对话内容，保持简洁（200字以内）：
-
-已有摘要：
-${existingSummary}
-
-新对话：
-${conversationText}
-
-更新后的摘要（只输出摘要内容，不要其他文字）：`
-    : `请将以下对话摘要为简洁的要点（200字以内），保留关键决策、用户偏好和重要上下文：
-
-${conversationText}
-
-摘要（只输出摘要内容，不要其他文字）：`;
-
-  try {
-    const result = await container.textProvider.generateText(summaryPrompt, {
-      maxTokens: 300,
-      temperature: 0.3,
-    });
-
-    if (!result.success || !result.data?.text) {
-      return null;
-    }
-
-    return result.data.text.trim();
-  } catch {
-    return null;
   }
 }
 

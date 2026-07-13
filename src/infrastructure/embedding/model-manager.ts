@@ -28,127 +28,39 @@
  * - ONNX 文件：检查前 8 字节是否为 ONNX/protobuf 格式（0x08 开头或大小 > 1KB）
  * - tokenizer.json：必须是合法 JSON 且包含 model.model_type 或 vocab 字段
  * - config.json：必须包含 modelName（string）和 dimensions（正整数）
+ *
+ * 拆分说明：常量与类型定义见 model-manager-types.ts；完整性校验函数见 model-manager-integrity.ts。
  */
 
 import { getCacheDirectory, fileExists, readFile, writeFile, deleteFile } from "@/shared/file-http";
 import { errorLogger } from "@/shared/error-logger";
+import {
+  MODEL_DIR,
+  REGISTRY_FILE_NAME,
+  REGISTRY_VERSION,
+  ONNX_FILE_CANDIDATES,
+  REQUIRED_NON_ONNX_FILES,
+  OPTIONAL_FILES,
+  type EmbeddingModelInfo,
+  type LocalModelEntry,
+  type ModelRegistry,
+  type ModelStatus,
+} from "./model-manager-types";
+import {
+  findOnnxFile,
+  verifyOnnxIntegrity,
+  verifyTokenizerIntegrity,
+  verifyConfigIntegrity,
+} from "./model-manager-integrity";
 
-/** 模型目录名（相对于 cacheDir） */
-const MODEL_DIR = "models/embedding";
+// ============= 类型再导出（保持外部 import 签名不变） =============
 
-/** registry.json 文件名 */
-const REGISTRY_FILE_NAME = "registry.json";
-
-/** registry 格式版本 */
-const REGISTRY_VERSION = 1;
-
-/**
- * 候选 ONNX 模型文件名（按优先级排序）
- *
- * M1：支持标准名 + 常见量化变体。detectLocalModel 会按顺序查找第一个存在的文件。
- */
-const ONNX_FILE_CANDIDATES = [
-  "model.onnx",
-  "model_quantized.onnx",
-  "model_fp16.onnx",
-  "model_int8.onnx",
-  "model_fp32.onnx",
-  "model_q4.onnx",
-  "model_q8.onnx",
-] as const;
-
-/**
- * 必需的非 ONNX 文件
- *
- * 这些文件名固定（不支持变体），缺失则模型不可用。
- */
-const REQUIRED_NON_ONNX_FILES = ["tokenizer.json", "config.json"] as const;
-
-/**
- * 可选的辅助文件
- *
- * 存在则一并删除（清理时）；不存在则忽略。
- */
-const OPTIONAL_FILES = [
-  "tokenizer_config.json",
-  "special_tokens_map.json",
-  "vocab.txt",
-  "vocab.json",
-  "merges.txt",
-  "config.json.bak",
-] as const;
-
-/** ONNX 文件最小大小（1KB），小于此值视为损坏 */
-const MIN_ONNX_SIZE = 1024;
-
-/** ONNX/protobuf 文件 magic byte（field 1, varint wire type） */
-const PROTOBUF_MAGIC_BYTE = 0x08;
-
-/** 模型元信息 */
-export interface EmbeddingModelInfo {
-  modelName: string;
-  dimensions: number;
-  maxTokens: number;
-  language: string;
-  description: string;
-  /** 模型文件完整路径（实际选中的 .onnx 文件，可能是量化变体） */
-  modelPath: string;
-  /** 模型文件名（如 "model.onnx" / "model_quantized.onnx"） */
-  modelFileName: string;
-  /** tokenizer 文件完整路径 */
-  tokenizerPath: string;
-  /** 模型目录完整路径（根目录或子目录） */
-  directory: string;
-}
-
-/** 注册表中单个模型条目 */
-export interface LocalModelEntry {
-  /** 模型唯一 id（从 modelName 派生：小写 + 非 [a-z0-9-] 替换为 -） */
-  id: string;
-  /** 显示名称（来自 config.json） */
-  modelName: string;
-  dimensions: number;
-  maxTokens: number;
-  language: string;
-  description: string;
-  /** 模型文件所在目录（根目录或子目录，绝对路径） */
-  directory: string;
-  /** ONNX 文件名（如 "model.onnx"） */
-  modelFileName: string;
-  /** ONNX 文件完整路径 */
-  modelPath: string;
-  /** tokenizer 文件完整路径 */
-  tokenizerPath: string;
-  /** 添加时间戳（Date.now()） */
-  addedAt: number;
-}
-
-/** 多模型注册表 */
-export interface ModelRegistry {
-  version: number;
-  /** 当前启用模型 id（同一时间只有一个 active；null 表示无 active） */
-  activeModelId: string | null;
-  models: LocalModelEntry[];
-}
-
-/** 模型检测状态 */
-export interface ModelStatus {
-  available: boolean;
-  info: EmbeddingModelInfo | null;
-  /** 缺失的必需文件（相对路径） */
-  missingFiles: string[];
-  /**
-   * 完整性校验失败列表（M3）
-   *
-   * 文件存在但内容不合法时填充，例如 ["config.json (缺少 dimensions)"]
-   */
-  integrityErrors: string[];
-  directory: string;
-  /** M5：当前 active 模型 id（null 表示无 active） */
-  activeModelId: string | null;
-  /** M5：所有已安装模型列表 */
-  installedModels: LocalModelEntry[];
-}
+export type {
+  EmbeddingModelInfo,
+  LocalModelEntry,
+  ModelRegistry,
+  ModelStatus,
+} from "./model-manager-types";
 
 // ============= active 模型变更回调（供 provider 注册） =============
 
@@ -197,146 +109,6 @@ export async function getModelDirectory(): Promise<string> {
 async function getRegistryPath(): Promise<string> {
   const dir = await getModelDirectory();
   return `${dir}/${REGISTRY_FILE_NAME}`;
-}
-
-// ============= 内部辅助：文件查找 =============
-
-/**
- * 在候选 ONNX 文件名中查找第一个存在的文件
- *
- * M1：按 ONNX_FILE_CANDIDATES 顺序尝试，找到即返回。
- * 支持用户拖入量化变体（model_quantized.onnx 等）。
- *
- * @returns { path, fileName } 或 null（无任何 ONNX 文件）
- */
-async function findOnnxFile(
-  dir: string,
-): Promise<{ path: string; fileName: string } | null> {
-  for (const fileName of ONNX_FILE_CANDIDATES) {
-    const filePath = `${dir}/${fileName}`;
-    if (await fileExists(filePath)) {
-      return { path: filePath, fileName };
-    }
-  }
-  return null;
-}
-
-// ============= 内部辅助：完整性校验（M3，保留） =============
-
-/**
- * 校验 ONNX 文件完整性
- *
- * ONNX 文件是 protobuf 序列化格式：
- * - 第一个字节通常是 0x08（field 1, varint wire type）
- * - 或文件大小 > 1KB（保守阈值，避免空文件/损坏文件）
- *
- * @returns 错误消息（null 表示通过）
- */
-async function verifyOnnxIntegrity(filePath: string): Promise<string | null> {
-  const result = await readFile(filePath);
-  if (!result?.success || !result.data) {
-    return "无法读取 ONNX 文件";
-  }
-
-  const bytes = new Uint8Array(result.data);
-  if (bytes.length < MIN_ONNX_SIZE) {
-    return `ONNX 文件过小（${bytes.length} 字节，期望 ≥ ${MIN_ONNX_SIZE}）`;
-  }
-
-  // protobuf magic byte 检查（0x08 = field 1, wire type 0/varint）
-  // 部分 ONNX 文件可能以其他 field 开头，故只对明显非 protobuf 的文件报错
-  if (bytes[0] !== PROTOBUF_MAGIC_BYTE && bytes[0] !== 0x0a && bytes[0] !== 0x12) {
-    // 0x0a = field 1, wire type 2/length-delimited
-    // 0x12 = field 2, wire type 2/length-delimited
-    return `ONNX magic byte 异常（0x${bytes[0]!.toString(16).padStart(2, "0")}）`;
-  }
-
-  return null;
-}
-
-/**
- * 校验 tokenizer.json 完整性
- *
- * 必须是合法 JSON，且包含以下任一关键字段：
- * - model.model_type（如 "bert"、"mpnet"）
- * - vocab 或 model.vocab（词表）
- *
- * @returns 错误消息（null 表示通过）
- */
-async function verifyTokenizerIntegrity(filePath: string): Promise<string | null> {
-  const result = await readFile(filePath);
-  if (!result?.success || !result.data) {
-    return "无法读取 tokenizer.json";
-  }
-
-  let parsed: unknown;
-  try {
-    const text = new TextDecoder().decode(result.data);
-    parsed = JSON.parse(text);
-  } catch (e) {
-    return `tokenizer.json 不是合法 JSON：${e instanceof Error ? e.message : String(e)}`;
-  }
-
-  if (!parsed || typeof parsed !== "object") {
-    return "tokenizer.json 顶层不是对象";
-  }
-
-  const obj = parsed as Record<string, unknown>;
-  const hasModelType =
-    obj.model && typeof obj.model === "object" && "model_type" in (obj.model as object);
-  const hasVocab = "vocab" in obj || (obj.model && "vocab" in (obj.model as object));
-
-  if (!hasModelType && !hasVocab) {
-    return "tokenizer.json 缺少 model.model_type 或 vocab 字段";
-  }
-
-  return null;
-}
-
-/**
- * 校验 config.json 完整性
- *
- * 必须包含：
- * - modelName: 非空字符串
- * - dimensions: 正整数
- *
- * @returns 错误消息（null 表示通过）；同时返回解析后的配置
- */
-async function verifyConfigIntegrity(
-  filePath: string,
-): Promise<{ error: string | null; config: Record<string, unknown> | null }> {
-  const result = await readFile(filePath);
-  if (!result?.success || !result.data) {
-    return { error: "无法读取 config.json", config: null };
-  }
-
-  let parsed: unknown;
-  try {
-    const text = new TextDecoder().decode(result.data);
-    parsed = JSON.parse(text);
-  } catch (e) {
-    return {
-      error: `config.json 不是合法 JSON：${e instanceof Error ? e.message : String(e)}`,
-      config: null,
-    };
-  }
-
-  if (!parsed || typeof parsed !== "object") {
-    return { error: "config.json 顶层不是对象", config: null };
-  }
-
-  const config = parsed as Record<string, unknown>;
-
-  if (typeof config.modelName !== "string" || !config.modelName.trim()) {
-    return { error: "config.json 缺少 modelName（非空字符串）", config: null };
-  }
-
-  const dims = Number(config.dimensions);
-  if (!Number.isFinite(dims) || dims <= 0 || !Number.isInteger(dims)) {
-    return { error: "config.json dimensions 必须是正整数", config: null };
-  }
-
-  return { error: null, config };
 }
 
 // ============= 内部辅助：registry 读写 =============

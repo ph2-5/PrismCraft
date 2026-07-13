@@ -91,19 +91,15 @@ const NavItem = memo(function NavItem({ labelKey, icon: Icon, emoji, isActive, c
   return (
     <button
       onClick={() => onNavigate(href)}
-      className={cn("nav-item", isActive && "active")}
-      style={{
-        ...(collapsed ? { justifyContent: "center" } : undefined),
-        ...(comingSoon ? { opacity: 0.6 } : undefined),
-      }}
+      className={cn("nav-item", isActive && "active", collapsed && "is-collapsed", comingSoon && "is-coming-soon")}
       title={collapsed ? t(labelKey) : undefined}
       aria-label={t(labelKey)}
     >
       {Icon && <Icon className="icon" />}
       {emoji && <span className="icon">{emoji}</span>}
-      {!collapsed && <span style={comingSoon ? { color: "var(--muted-fg)" } : undefined}>{t(labelKey)}</span>}
+      {!collapsed && <span className={cn("nav-item-label", comingSoon && "is-coming-soon")}>{t(labelKey)}</span>}
       {!collapsed && comingSoon && (
-        <span className="badge badge-muted" style={{ marginLeft: "auto", fontSize: 9, padding: "1px 6px" }}>
+        <span className="badge badge-muted nav-item-badge">
           {t("sidebar.comingSoon")}
         </span>
       )}
@@ -136,19 +132,18 @@ function getSidebarCollapsedServerSnapshot(): boolean {
 }
 
 function NavGroupLabel({ children, collapsed }: { children: React.ReactNode; collapsed: boolean }) {
-  if (collapsed) return <div style={{ borderTop: "1px solid var(--border)", margin: "8px 0" }} />;
+  if (collapsed) return <div className="nav-divider" />;
   return <div className="nav-section">{children}</div>;
 }
 
 function NavGroupHeader({ icon, title, desc, collapsed, withBorderTop = false }: { icon: React.ReactNode; title: string; desc: string; collapsed: boolean; withBorderTop?: boolean }) {
-  if (collapsed) return <div style={{ borderTop: "1px solid var(--border)", margin: "8px 0" }} />;
-  const titlePadding = withBorderTop ? "12px 14px 2px" : "6px 14px 2px";
+  if (collapsed) return <div className="nav-divider" />;
   return (
-    <div style={withBorderTop ? { borderTop: "1px solid var(--border)", marginTop: 6 } : undefined}>
-      <div style={{ padding: titlePadding, fontSize: 11, fontWeight: 700, color: "var(--fg)", display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ display: "inline-flex", alignItems: "center" }}>{icon}</span> {title}
+    <div className={cn("nav-group-header", withBorderTop && "with-border-top")}>
+      <div className="nav-group-header-title">
+        <span className="nav-group-header-icon">{icon}</span> {title}
       </div>
-      <div style={{ padding: "2px 14px 6px", fontSize: 10, color: "var(--muted-fg)" }}>{desc}</div>
+      <div className="nav-group-header-desc">{desc}</div>
     </div>
   );
 }
@@ -283,27 +278,15 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
   return (
     <>
       <aside
-        className="sidebar"
-        style={{
-          width: sidebarWidth,
-          position: "fixed",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          paddingTop: electron ? 36 : 0,
-        } as React.CSSProperties}
+        className={cn("sidebar", electron && "is-electron")}
+        style={{ width: sidebarWidth }}
       >
         <div
-          className="sidebar-logo"
-          style={{
-            WebkitAppRegion: "drag",
-            justifyContent: collapsed ? "center" : undefined,
-          } as React.CSSProperties}
+          className={cn("sidebar-logo", collapsed && "is-collapsed")}
         >
           <Link
             to="/"
             title="PrismCraft"
-            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
           >
             <div
               className="sidebar-logo-icon"
@@ -318,7 +301,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
           </Link>
         </div>
 
-        <nav style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+        <nav className="sidebar-nav">
           {/* 自由创作 */}
           <NavGroupHeader
             icon={<Wand2 size={14} />}
@@ -391,11 +374,10 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
           ))}
         </nav>
 
-        <div style={{ borderTop: "1px solid var(--border)", padding: 8, flexShrink: 0 }}>
+        <div className="sidebar-footer">
           <button
             onClick={toggleCollapsed}
-            className="nav-item"
-            style={collapsed ? { justifyContent: "center" } : undefined}
+            className={cn("nav-item", collapsed && "is-collapsed")}
             title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
             aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
           >

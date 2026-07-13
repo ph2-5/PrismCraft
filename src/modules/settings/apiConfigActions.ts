@@ -12,7 +12,7 @@ import {
   createProviderFromTemplate,
   getTemplateWithPlugins,
   checkConfigStatus,
-} from "@/infrastructure/api-config-facade";
+} from "@/shared/api-config";
 import { saveConfig, testConnection } from "@/shared/api-config";
 
 interface ApiCapabilityMeta {

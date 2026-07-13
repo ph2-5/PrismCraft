@@ -1,4 +1,4 @@
-import { type ApiConfig, type ProviderConfig, type ModelConfig } from "@/infrastructure/api-config-facade";
+import { type ApiConfig, type ProviderConfig, type ModelConfig } from "@/shared/api-config";
 import {
   type CapabilityItem,
   getCapabilityBadges,

@@ -10,7 +10,7 @@ const CharactersPage = lazy(() => import("./app/characters/page"));
 const ScenesPage = lazy(() => import("./app/scenes/page"));
 const AssetLibraryPage = lazy(() => import("./app/asset-library/page"));
 const QuickGeneratePage = lazy(() => import("./app/quick-generate/page"));
-const SettingsPage = lazy(() => import("./app/settings/page"));
+const SettingsPage = lazy(() => import("./modules/settings/page"));
 const VideoTasksPage = lazy(() => import("./app/video-tasks/page"));
 const NotFound = lazy(() => import("./app/not-found"));
 

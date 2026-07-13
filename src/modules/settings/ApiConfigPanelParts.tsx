@@ -1,6 +1,6 @@
 import { Loader2, Lightbulb, FlaskConical, Save } from "lucide-react";
 import { t } from "@/shared/constants";
-import type { ApiCapability } from "@/infrastructure/api-config-facade";
+import type { ApiCapability } from "@/shared/api-config";
 
 interface ApiCapabilityMeta {
   id: ApiCapability;

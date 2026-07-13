@@ -16,7 +16,7 @@ import {
   type ApiCapability,
   type ProviderConfig,
   type ModelConfig,
-} from "@/infrastructure/api-config-facade";
+} from "@/shared/api-config";
 import { getModelParameterProfile } from "@/shared/model-capabilities";
 import { IconButton } from "@/shared/presentation/IconButton";
 import { testConnection } from "@/shared/api-config";

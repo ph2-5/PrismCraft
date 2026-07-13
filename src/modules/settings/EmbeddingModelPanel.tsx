@@ -41,7 +41,7 @@ import {
   ACCEPTED_ONNX_FILES,
   type ModelStatus,
   type LocalModelEntry,
-} from "@/infrastructure/embedding";
+} from "@/shared/embedding";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { prewarmEmbeddings } from "@/modules/agent";

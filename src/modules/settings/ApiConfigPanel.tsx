@@ -9,7 +9,7 @@ import {
 import PluginManager from "./plugin-manager";
 import {
   type ApiCapability,
-} from "@/infrastructure/api-config-facade";
+} from "@/shared/api-config";
 import { ProviderCard } from "./ProviderCard";
 import { ProviderForm } from "./ProviderForm";
 import { ModelMappingSection } from "./ModelMappingSection";

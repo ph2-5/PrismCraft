@@ -8,7 +8,7 @@ import {
   AlertCircle,
   Puzzle,
 } from "lucide-react";
-import { getAllTemplates, type PluginProviderTemplate, type ApiCapability, type DetectResult } from "@/infrastructure/api-config-facade";
+import { getAllTemplates, type PluginProviderTemplate, type ApiCapability, type DetectResult } from "@/shared/api-config";
 
 export interface CapabilityItem {
   id: ApiCapability;

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import {
   type DetectResult,
-} from "@/infrastructure/api-config-facade";
+} from "@/shared/api-config";
 import {
   ApiKeyInputSection,
   BaseUrlSection,

@@ -133,6 +133,11 @@ export default defineConfig({
               priority: 15,
             },
             {
+              name: "app-settings",
+              test: /src[\\/]modules[\\/]settings[\\/]/,
+              priority: 15,
+            },
+            {
               name: "common",
               minShareCount: 2,
               minSize: 10000,

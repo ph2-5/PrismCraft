@@ -3,7 +3,7 @@ import { Loader2, ArrowLeftRight, FlaskConical } from "lucide-react";
 import {
   type ApiCapability,
   type ApiConfig,
-} from "@/infrastructure/api-config-facade";
+} from "@/shared/api-config";
 import { IconButton } from "@/shared/presentation/IconButton";
 
 interface CapabilityItem {

@@ -19,7 +19,7 @@ import { PluginList } from "./PluginList";
 import {
   loadPluginDetectionRules,
   loadPluginTemplates,
-} from "@/infrastructure/api-config-facade";
+} from "@/shared/api-config";
 import { loadModelProfilesFromServer } from "@/shared/model-capabilities";
 import { useInvalidateModelCapabilities } from "@/shared/hooks/use-model-capabilities";
 import { useInvalidateProviderTemplates } from "@/shared/hooks/use-provider-templates";

@@ -10,7 +10,7 @@ import { PromptTemplatePanel } from "./PromptTemplatePanel";
 import { SyncSettingsPanel } from "@/modules/sync";
 import { useSettingsPage, type SettingsTab } from "./hooks/use-settings-page";
 import { getCacheDirectory, getDiskSpace } from "@/shared/file-http";
-import { storyService } from "@/modules/story";
+import { storyService } from "@/modules/storyboard";
 import { errorLogger } from "@/shared/error-logger";
 import { formatBytes } from "@/shared/utils/format";
 import { isElectron } from "@/shared/utils/platform";

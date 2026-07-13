@@ -3,7 +3,7 @@ import { Sidebar } from "@/shared/presentation/Sidebar";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { characterService } from "@/modules/character";
 import { sceneService } from "@/modules/scene";
-import { storyService } from "@/modules/story";
+import { storyService } from "@/modules/storyboard";
 import type { SearchResult } from "@/domain/schemas";
 
 const ROUTE_MAP: Record<SearchResult["type"], string> = {

@@ -10,8 +10,8 @@
  * Mock 策略：
  * - container（textProvider / imageProvider）
  * - storyService / characterService / sceneService（动态 import）
- * - planStory（@/modules/story/planning）
- * - generateStyleGuide / generateFramePrompts / batchGenerateFramePrompts（@/modules/story）
+ * - planStory（@/modules/storyboard/planning）
+ * - generateStyleGuide / generateFramePrompts / batchGenerateFramePrompts（@/modules/storyboard）
  * - TOOL_TIMEOUTS（../../services/tool-executor）
  *
  * 测试重点：参数解析、Result 模式错误传播、分页/过滤逻辑、降级路径
@@ -55,14 +55,14 @@ vi.mock("@/infrastructure/di", () => ({
   },
 }));
 
-vi.mock("@/modules/story", () => ({
+vi.mock("@/modules/storyboard", () => ({
   storyService: mocks.storyService,
   generateStyleGuide: mocks.generateStyleGuide,
   generateFramePrompts: mocks.generateFramePrompts,
   batchGenerateFramePrompts: mocks.batchGenerateFramePrompts,
 }));
 
-vi.mock("@/modules/story/planning", () => ({
+vi.mock("@/modules/storyboard/planning", () => ({
   planStory: mocks.planStory,
 }));
 

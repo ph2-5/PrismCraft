@@ -62,7 +62,7 @@ vi.mock("@/modules/scene", () => ({
   sceneService: mocks.sceneService,
 }));
 
-vi.mock("@/modules/story", () => ({
+vi.mock("@/modules/storyboard", () => ({
   storyService: mocks.storyService,
 }));
 

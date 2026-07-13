@@ -88,7 +88,7 @@ describe("R175: throw Error 必须用 t() 国际化", () => {
 
   it("StoryProvider.tsx 的 throw Error 是开发者 guard（非用户可见）", async () => {
     const source = await readFile(
-      join(process.cwd(), "src/app/story/StoryProvider.tsx"),
+      join(process.cwd(), "src/modules/storyboard/StoryProvider.tsx"),
       "utf-8",
     );
     const throwLines = source.split("\n").filter((l) => /throw new Error/.test(l));

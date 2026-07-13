@@ -98,8 +98,8 @@ export default defineConfig({
               priority: 18,
             },
             {
-              name: "app-story",
-              test: /src[\\/]modules[\\/]story[\\/]/,
+              name: "app-storyboard",
+              test: /src[\\/]modules[\\/]storyboard[\\/]/,
               priority: 15,
             },
             {

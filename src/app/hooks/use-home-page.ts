@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useCharacters } from "@/modules/character";
 import { useScenes } from "@/modules/scene";
-import { useStories } from "@/modules/story";
+import { useStories } from "@/modules/storyboard";
 
 export function useHomePage() {
   const { data: characters = [], isLoading: charactersLoading } = useCharacters();

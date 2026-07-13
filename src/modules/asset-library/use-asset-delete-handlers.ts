@@ -12,7 +12,7 @@ import {
 } from "@/modules/asset";
 import { useCharacters } from "@/modules/character";
 import { useScenes } from "@/modules/scene";
-import { useStories, storyService } from "@/modules/story";
+import { useStories, storyService } from "@/modules/storyboard";
 import { checkCharacterReferences, checkSceneReferences } from "@/domain/services";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";

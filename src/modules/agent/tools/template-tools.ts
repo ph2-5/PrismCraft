@@ -307,7 +307,7 @@ export const applyTemplateTool: ToolImpl = {
       }
 
       // 5. 创建/更新故事
-      const { storyService } = await import("@/modules/story");
+      const { storyService } = await import("@/modules/storyboard");
       const storyTitle = content.story?.title
         ? String(content.story.title)
         : `${content.name} - 故事`;
@@ -462,7 +462,7 @@ export const createTemplateTool: ToolImpl = {
       let story: Record<string, unknown> | null = null;
       let totalDuration = 0;
       if (includeBeats) {
-        const { storyService } = await import("@/modules/story");
+        const { storyService } = await import("@/modules/storyboard");
         let storyRecord;
         if (sourceStoryId) {
           const res = await storyService.getById(sourceStoryId);

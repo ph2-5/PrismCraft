@@ -193,7 +193,7 @@ export const checkStoryConsistencyTool: ToolImpl = {
   dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const storyId = String(args.storyId);
     const providerId = args.providerId ? String(args.providerId) : undefined;
     const modelId = args.modelId ? String(args.modelId) : undefined;

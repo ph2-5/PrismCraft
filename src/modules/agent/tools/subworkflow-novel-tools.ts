@@ -237,7 +237,7 @@ ${truncatedText}
 
     // Step 4: 创建故事
     ctx.onProgress?.("正在创建故事…");
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const createStoryResult = await storyService.create({
       title,
       description,
@@ -296,7 +296,7 @@ ${plotPoints.map((p, i) => `${i + 1}. ${p}`).join("\n")}
     if (!beatsData || beatsData.length === 0) {
       // 回退到 planStory
       ctx.onProgress?.("AI 分镜规划失败，回退到 planStory…");
-      const { planStory } = await import("@/modules/story/planning");
+      const { planStory } = await import("@/modules/storyboard/planning");
       const [charResult, sceneResult] = await Promise.all([
         characterService.getAll(),
         sceneService.getAll(),
@@ -372,7 +372,7 @@ ${plotPoints.map((p, i) => `${i + 1}. ${p}`).join("\n")}
     let generatedKeyframes = 0;
     if (autoGenerate && validBeats.length > 0) {
       ctx.onProgress?.("正在生成关键帧…");
-      const { generateBeatKeyframe } = await import("@/modules/story/generation");
+      const { generateBeatKeyframe } = await import("@/modules/storyboard/generation");
       const providers = {
         videoProvider: container.videoProvider,
         imageProvider: container.imageProvider,

@@ -4,8 +4,8 @@ import { RootLayout } from "./app/layout";
 import { PageLoader } from "./shared/presentation/PageLoader";
 
 const Home = lazy(() => import("./app/page"));
-const StoryboardPage = lazy(() => import("./app/story/page"));
-const BeatDetailPage = lazy(() => import("./app/story/beat/$beatId/page"));
+const StoryboardPage = lazy(() => import("./modules/storyboard/page"));
+const BeatDetailPage = lazy(() => import("./modules/storyboard/beat/$beatId/page"));
 const CharactersPage = lazy(() => import("./modules/characters/page"));
 const ScenesPage = lazy(() => import("./modules/scenes/page"));
 const AssetLibraryPage = lazy(() => import("./modules/asset-library/page"));

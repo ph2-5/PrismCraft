@@ -461,7 +461,7 @@ export const suggestNextActionTool: ToolImpl = {
     }
 
     try {
-      const { storyService } = await import("@/modules/story");
+      const { storyService } = await import("@/modules/storyboard");
       const r = await storyService.getAll();
       if (r.ok) storyCount = r.value.length;
     } catch {

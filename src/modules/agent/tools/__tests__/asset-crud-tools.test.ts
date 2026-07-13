@@ -9,7 +9,7 @@
  * Mock 策略：
  * - characterService / sceneService（动态导入 @/modules/character、@/modules/scene）
  * - checkCharacterReferences / checkSceneReferences（动态导入 @/modules/shot）
- * - storyService.getAll（动态导入 @/modules/story，用于引用检查）
+ * - storyService.getAll（动态导入 @/modules/storyboard，用于引用检查）
  * - TOOL_TIMEOUTS（静态导入 ../../services/tool-executor）
  *
  * 测试重点：参数解析、Result<T> 错误传播、引用检查、标签计算、相似度检测
@@ -48,7 +48,7 @@ vi.mock("@/modules/scene", () => ({
   sceneService: mocks.sceneService,
 }));
 
-vi.mock("@/modules/story", () => ({
+vi.mock("@/modules/storyboard", () => ({
   storyService: mocks.storyService,
 }));
 

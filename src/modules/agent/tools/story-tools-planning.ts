@@ -55,8 +55,8 @@ export const planStoryTool: ToolImpl = {
   dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
-    const { planStory } = await import("@/modules/story/planning");
+    const { storyService } = await import("@/modules/storyboard");
+    const { planStory } = await import("@/modules/storyboard/planning");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 
@@ -142,7 +142,7 @@ export const validateStoryPlanTool: ToolImpl = {
   dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 

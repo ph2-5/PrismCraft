@@ -66,7 +66,7 @@ describe("R147: 跨模块 Store 访问防护", () => {
   describe("use-story-saver.ts 不应直接导入 useVideoTaskStore", () => {
     const filePath = path.join(
       PROJECT_ROOT,
-      "src/modules/story/planning/hooks/use-story-saver.ts",
+      "src/modules/storyboard/planning/hooks/use-story-saver.ts",
     );
 
     it("文件应存在", () => {

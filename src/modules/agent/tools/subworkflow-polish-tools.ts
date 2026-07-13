@@ -65,7 +65,7 @@ export const autoPolishVideoTool: ToolImpl = {
 
         if (storyId) {
           // 用故事分镜生成字幕
-          const { storyService } = await import("@/modules/story");
+          const { storyService } = await import("@/modules/storyboard");
           const storyResult = await storyService.getById(storyId);
           if (storyResult.ok) {
             const story = storyResult.value;

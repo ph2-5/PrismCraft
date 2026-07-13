@@ -308,7 +308,7 @@ const eslintConfig = tseslint.config(
             {
               group: [
                 "@/modules/video/*/*",
-                "@/modules/story/*/*",
+                "@/modules/storyboard/*/*",
                 "@/modules/character/*/*",
                 "@/modules/scene/*/*",
                 "@/modules/shot/*/*",

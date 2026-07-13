@@ -11,7 +11,7 @@
  * 设计要点：
  * - 通过 DI container 构造 ProviderDeps（videoProvider/imageProvider/textProvider）
  * - storyService / characterService / sceneService 通过动态 import 获取（避免循环依赖）
- * - 分镜生成函数从 @/modules/story/generation 动态 import
+ * - 分镜生成函数从 @/modules/storyboard/generation 动态 import
  * - Result 模式：{ ok, value } | { ok: false, error }
  * - 前置条件检查：frame_pair 需要 keyframe.imageUrl，video 需要 framePair.firstFrameUrl
  * - 成功后通过 storyService.updateBeatMediaUrls 持久化媒体 URL 到数据库
@@ -49,7 +49,7 @@ async function resolveBeatContext(
   storyId: string,
   beatId: string,
 ): Promise<{ ok: true; value: BeatContext } | { ok: false; error: string }> {
-  const { storyService } = await import("@/modules/story");
+  const { storyService } = await import("@/modules/storyboard");
   const storyResult = await storyService.getById(storyId);
   if (!storyResult.ok) {
     return { ok: false, error: `获取故事失败：${storyResult.error.message}` };
@@ -91,7 +91,7 @@ async function persistBeatMediaUrls(
     videoUrl?: string;
   }>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { storyService } = await import("@/modules/story");
+  const { storyService } = await import("@/modules/storyboard");
   try {
     await storyService.updateBeatMediaUrls(updates);
     return { ok: true };
@@ -127,7 +127,7 @@ async function generateKeyframeCore(
   const { characters, scenes } = await getCharactersAndScenes();
   const providers = buildProviders();
 
-  const { generateBeatKeyframe } = await import("@/modules/story/generation");
+  const { generateBeatKeyframe } = await import("@/modules/storyboard/generation");
   const result = await generateBeatKeyframe(
     beat,
     prevBeat,
@@ -183,7 +183,7 @@ async function generateFramePairCore(
   const { characters, scenes } = await getCharactersAndScenes();
   const providers = buildProviders();
 
-  const { generateBeatFramePair } = await import("@/modules/story/generation");
+  const { generateBeatFramePair } = await import("@/modules/storyboard/generation");
   const result = await generateBeatFramePair(
     beat,
     {
@@ -246,7 +246,7 @@ async function generateVideoCore(
 
   const providers = buildProviders();
 
-  const { generateBeatVideo } = await import("@/modules/story/generation");
+  const { generateBeatVideo } = await import("@/modules/storyboard/generation");
   const result = await generateBeatVideo(
     beat,
     {
@@ -452,7 +452,7 @@ export const batchGenerateTool: ToolImpl = {
     const providerId = args.providerId ? String(args.providerId) : undefined;
     const modelId = args.modelId ? String(args.modelId) : undefined;
 
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const storyResult = await storyService.getById(storyId);
     if (!storyResult.ok) {
       return { success: false, error: `获取故事失败：${storyResult.error.message}` };

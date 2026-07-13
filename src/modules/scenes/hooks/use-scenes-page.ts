@@ -8,7 +8,7 @@ import {
 import {
   useStories,
   storyService,
-} from "@/modules/story";
+} from "@/modules/storyboard";
 import {
   useMediaAssets,
   useCreateMediaAsset,

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useDirtyState } from "@/shared/hooks/use-dirty-state";
 import { useCharacters } from "@/modules/character";
-import { useStories, storyService } from "@/modules/story";
+import { useStories, storyService } from "@/modules/storyboard";
 import { useMediaAssets, useCreateMediaAsset } from "@/modules/asset";
 import { characterService } from "@/modules/character";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";

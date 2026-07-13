@@ -346,7 +346,7 @@ export const deleteCharacterTool: ToolImpl = {
     // 引用检查
     if (!force) {
       const { checkCharacterReferences } = await import("@/modules/shot");
-      const { storyService } = await import("@/modules/story");
+      const { storyService } = await import("@/modules/storyboard");
       const storiesRes = await storyService.getAll();
       const stories = storiesRes.ok ? storiesRes.value : [];
       const checkResult = checkCharacterReferences(id, character.name, stories);
@@ -565,7 +565,7 @@ export const deleteSceneTool: ToolImpl = {
     // 引用检查
     if (!force) {
       const { checkSceneReferences } = await import("@/modules/shot");
-      const { storyService } = await import("@/modules/story");
+      const { storyService } = await import("@/modules/storyboard");
       const storiesRes = await storyService.getAll();
       const stories = storiesRes.ok ? storiesRes.value : [];
       const checkResult = checkSceneReferences(id, scene.name, stories);

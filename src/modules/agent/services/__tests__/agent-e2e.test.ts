@@ -49,7 +49,7 @@ vi.mock("@/modules/character", () => ({
 vi.mock("@/modules/scene", () => ({
   sceneService: { getAll: vi.fn().mockResolvedValue({ ok: true, value: [] }) },
 }));
-vi.mock("@/modules/story", () => ({
+vi.mock("@/modules/storyboard", () => ({
   storyService: { getAll: vi.fn().mockResolvedValue({ ok: true, value: [] }) },
 }));
 vi.mock("@/shared/api-config", () => ({

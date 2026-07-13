@@ -54,7 +54,7 @@ async function buildDynamicProjectState(): Promise<string> {
     const [characterResult, sceneResult, storyResult, allTasks, configResult] = await Promise.all([
       import("@/modules/character").then((m) => m.characterService.getAll()),
       import("@/modules/scene").then((m) => m.sceneService.getAll()),
-      import("@/modules/story").then((m) => m.storyService.getAll()),
+      import("@/modules/storyboard").then((m) => m.storyService.getAll()),
       container.videoTaskStorage.getVideoTasks(),
       import("@/shared/api-config").then((m) => m.loadConfig()),
     ]);

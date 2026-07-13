@@ -1,0 +1,17 @@
+{
+  "name": "storyboard-beat-editor",
+  "description": "分镜编辑：管理分镜状态、元素绑定、资产加载",
+  "dependencies": ["story-core", "story-generation", "story-prompt-editor", "shot-element-binding", "shot-feature-extraction", "domain-schemas"],
+  "publicAPI": {
+    "hooks": ["useStoryState", "useAssetLoader"],
+    "services": [],
+    "components": ["BeatDetailEditor", "BeatOverviewCard", "ProfessionalModeEditor", "ElementBindingPanel", "SortableBeatList"]
+  },
+  "invariants": [
+    "beat 顺序变更时必须同步 order 和 sequence",
+    "元素绑定变更时自动更新 featureAnchoring 配置",
+    "脏状态追踪必须在 beat 变更时触发",
+    "保存操作使用 skipDirty 参数抑制脏状态标记，避免保存后的状态更新触发不必要的脏状态",
+    "markClean 必须在保存成功后调用，不能在异步保存前调用"
+  ]
+}

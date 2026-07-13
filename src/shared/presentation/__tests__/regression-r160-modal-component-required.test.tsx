@@ -19,7 +19,7 @@ import { Modal } from "../Modal";
 // 已迁移到统一 Modal 的 19 个文件清单（相对项目根 src/）
 const MODAL_FILES = [
   "src/modules/character/presentation/OutfitDialog.tsx",
-  "src/app/story/SwitchConfirmDialog.tsx",
+  "src/modules/storyboard/SwitchConfirmDialog.tsx",
   "src/modules/video/task-management/presentation/BulkDeleteDialog.tsx",
   "src/modules/video/task-management/presentation/DeleteConfirmDialog.tsx",
   "src/modules/video/task-management/presentation/TaskDetailDialog.tsx",
@@ -29,14 +29,14 @@ const MODAL_FILES = [
   "src/modules/quick-generate/TemplateSelectDialog.tsx",
   "src/modules/asset-library/AssetEditDialog.tsx",
   "src/modules/asset-library/AssetCollectionDialogsParts.tsx",
-  "src/modules/story/template/presentation/VersionDialog.tsx",
+  "src/modules/storyboard/template/presentation/VersionDialog.tsx",
   "src/modules/sync/presentation/SyncConflictPanel.tsx",
   "src/modules/sync/presentation/SyncSettingsPanel.tsx",
   "src/modules/asset/presentation/BatchOperations.tsx",
-  "src/modules/story/generation/presentation/ReferenceVideoUploader.tsx",
+  "src/modules/storyboard/generation/presentation/ReferenceVideoUploader.tsx",
   "src/modules/asset/presentation/ProjectExportImport.tsx",
   "src/shared/utils/confirm.tsx",
-  "src/app/story/page.tsx",
+  "src/modules/storyboard/page.tsx",
 ];
 
 describe("R160: Modal 类组件必须使用统一 <Modal> 组件", () => {

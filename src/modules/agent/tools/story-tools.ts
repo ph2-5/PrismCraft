@@ -68,7 +68,7 @@ export const listStoriesTool: ToolImpl = {
   dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const result = await storyService.getAll();
     if (!result.ok) {
       return { success: false, error: `获取故事列表失败：${result.error.message}` };
@@ -124,7 +124,7 @@ export const getStoryTool: ToolImpl = {
   dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const id = String(args.storyId);
     const result = await storyService.getById(id);
     if (!result.ok) {
@@ -180,7 +180,7 @@ export const createStoryTool: ToolImpl = {
   dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const title = String(args.title);
     const description = String(args.description);
     const targetDuration = args.targetDuration != null ? Number(args.targetDuration) : 60;
@@ -248,7 +248,7 @@ export const updateStoryTool: ToolImpl = {
   dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.mutation,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const storyId = String(args.storyId);
 
     const result = await storyService.update(storyId, {
@@ -288,7 +288,7 @@ export const deleteStoryTool: ToolImpl = {
   requiresConfirmation: true,
   dangerLevel: "destructive",
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const id = String(args.storyId);
     const result = await storyService.delete(id);
     if (!result.ok) {

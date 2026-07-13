@@ -45,7 +45,7 @@ export const autoGenerateBeatFullTool: ToolImpl = {
 
     // Step 1: 获取故事和 beat
     ctx.onProgress?.("正在获取故事和分镜…");
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 
@@ -76,7 +76,7 @@ export const autoGenerateBeatFullTool: ToolImpl = {
 
     // Step 2: 构造 providers 并调用 generateBeatFullWorkflow
     ctx.onProgress?.("正在生成分镜（关键帧 → 首尾帧 → 视频）…");
-    const { generateBeatFullWorkflow } = await import("@/modules/story/generation");
+    const { generateBeatFullWorkflow } = await import("@/modules/storyboard/generation");
     const providers = {
       videoProvider: container.videoProvider,
       imageProvider: container.imageProvider,
@@ -200,7 +200,7 @@ export const autoGenerateVideoFullTool: ToolImpl = {
 
     // Step 1: 获取故事和 beats
     ctx.onProgress?.("正在获取故事…");
-    const { storyService } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
     const storyResult = await storyService.getById(storyId);
     if (!storyResult.ok) {
       return { success: false, error: `获取故事失败：${storyResult.error.message}` };
@@ -218,7 +218,7 @@ export const autoGenerateVideoFullTool: ToolImpl = {
     }
 
     // Step 2: 逐个生成
-    const { generateBeatFullWorkflow } = await import("@/modules/story/generation");
+    const { generateBeatFullWorkflow } = await import("@/modules/storyboard/generation");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 

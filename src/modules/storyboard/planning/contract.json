@@ -1,0 +1,15 @@
+{
+  "name": "storyboard-planning",
+  "description": "故事规划：AI生成分镜大纲、规划故事结构",
+  "dependencies": ["story-core", "shot-generation", "ai-providers", "storage/elementStorage"],
+  "publicAPI": {
+    "hooks": ["useStoryPlanner", "useStories", "useStory", "useStoryCount", "useCreateStory", "useUpdateStory", "useDeleteStory", "useStorySaver"],
+    "services": ["planStory", "checkTextApiConfig", "storyService", "DEFAULT_STORY", "genres", "tones", "beatTypes"],
+    "components": []
+  },
+  "invariants": [
+    "规划前必须检查文本API配置",
+    "规划会覆盖现有分镜，需用户确认",
+    "增强模式使用 Few-shot + Schema 校验"
+  ]
+}

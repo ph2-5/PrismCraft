@@ -54,8 +54,8 @@ export const generateStyleGuideTool: ToolImpl = {
   dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
-    const { generateStyleGuide } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
+    const { generateStyleGuide } = await import("@/modules/storyboard");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 
@@ -139,8 +139,8 @@ export const generateFramePromptsTool: ToolImpl = {
   dangerLevel: "limited",
   timeoutMs: TOOL_TIMEOUTS.generation,
   async execute(args) {
-    const { storyService } = await import("@/modules/story");
-    const { generateFramePrompts, batchGenerateFramePrompts } = await import("@/modules/story");
+    const { storyService } = await import("@/modules/storyboard");
+    const { generateFramePrompts, batchGenerateFramePrompts } = await import("@/modules/storyboard");
     const { characterService } = await import("@/modules/character");
     const { sceneService } = await import("@/modules/scene");
 

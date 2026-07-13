@@ -49,9 +49,9 @@ describe("R51: useQuery hooks must have enabled: isElectron() guard", () => {
   });
 
   const queryHooks = [
-    { name: "useStories", importPath: "@/modules/story/planning/hooks/use-stories", hookName: "useStories" },
-    { name: "useStory", importPath: "@/modules/story/planning/hooks/use-stories", hookName: "useStory", args: ["test-id"] },
-    { name: "useStoryCount", importPath: "@/modules/story/planning/hooks/use-stories", hookName: "useStoryCount" },
+    { name: "useStories", importPath: "@/modules/storyboard/planning/hooks/use-stories", hookName: "useStories" },
+    { name: "useStory", importPath: "@/modules/storyboard/planning/hooks/use-stories", hookName: "useStory", args: ["test-id"] },
+    { name: "useStoryCount", importPath: "@/modules/storyboard/planning/hooks/use-stories", hookName: "useStoryCount" },
     { name: "useCharacters", importPath: "@/modules/character/hooks/use-characters", hookName: "useCharacters" },
     { name: "useCharacter", importPath: "@/modules/character/hooks/use-characters", hookName: "useCharacter", args: ["test-id"] },
     { name: "useCharacterCount", importPath: "@/modules/character/hooks/use-characters", hookName: "useCharacterCount" },

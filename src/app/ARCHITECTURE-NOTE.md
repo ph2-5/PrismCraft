@@ -54,18 +54,13 @@
 
 ---
 
-## 三、未修复的技术债务（2 处）
+## 三、未修复的技术债务（0 处）
 
-### `src/app/MigrationInitializer.tsx`
+所有 `@/infrastructure/*` 直接导入违规已全部修复。`src/app/` 下仅剩 6 处 `@/infrastructure/di` 导入（architecture-rules.md 明确允许）。
 
-以下 infrastructure 模块在 `@/shared/` 下没有对应的代理模块：
+### MigrationInitializer.tsx 违规已修复（2026-07-14）
 
-| 行号 | 导入 | 来源模块 | 原因 |
-|------|------|----------|------|
-| 3 | `processPendingQueue, cleanCompletedRequests` | `@/infrastructure/ai-providers/offline-queue` | `@/shared/` 下无 offline-queue 代理 |
-| 4 | `apiCall` | `@/infrastructure/ai-providers/core` | `@/shared/` 下无 ai-providers/core 代理 |
-
-**后续迁移计划**：在 `@/shared/` 下新建 `ai-providers/index.ts` 代理模块，re-export `apiCall`、`processPendingQueue`、`cleanCompletedRequests` 等纯函数。注意 `apiCall` 涉及网络 I/O，需确认是否属于"纯函数"范畴；若不属于，则应通过 DI container 注入而非 shared 代理。
+新建 `@/shared/ai-providers/index.ts` 代理模块，re-export `apiCall`、`processPendingQueue`、`cleanCompletedRequests`，然后将 MigrationInitializer.tsx 的 2 处直接导入改为通过代理访问。
 
 ---
 
@@ -73,4 +68,4 @@
 
 - `npm run typecheck`：✅ 通过（0 错误）
 - `npm run lint:arch`：✅ 无架构违规
-- 已修复 14 处（settings 迁移 11 + 早期 3），保留 6 处（DI），剩余 2 处技术债务（MigrationInitializer）
+- 已修复 16 处（settings 迁移 11 + 早期 3 + MigrationInitializer 2），保留 6 处（DI），剩余 0 处技术债务

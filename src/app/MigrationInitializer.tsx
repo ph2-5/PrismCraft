@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { initSyncEngine, performSync } from "@/modules/sync";
-import { processPendingQueue, cleanCompletedRequests } from "@/infrastructure/ai-providers/offline-queue";
-import { apiCall } from "@/infrastructure/ai-providers/core";
+import { processPendingQueue, cleanCompletedRequests, apiCall } from "@/shared/ai-providers";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 

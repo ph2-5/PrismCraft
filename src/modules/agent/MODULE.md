@@ -55,12 +55,8 @@
 - `prewarmEmbeddings` — 预热嵌入向量
 
 ### 会话持久化
-- `saveSession` — 保存会话到磁盘
-- `loadSession` — 加载会话
-- `listSessions` — 列出所有会话
-- `deleteSession` — 删除会话
-- `persistSession` — 持久化会话（内部使用）
-- `SessionListItem` — 会话列表项类型
+会话存储 + 断点恢复已拆分至 `@/modules/agent-session`，详见该模块的 MODULE.md。
+agent barrel 仍 re-export `listSessions` 和 `SessionListItem` 保持向后兼容。
 
 ### 工具注册
 - `registerAllTools` — 注册所有 150 个工具（幂等，应用启动时调用）
@@ -96,19 +92,8 @@
 - `BUILTIN_SPECIALISTS` — 内置专家列表
 
 ### 断点恢复（P5）
-- `initCheckpoint` — 初始化断点
-- `saveCheckpoint` — 保存断点
-- `clearCheckpoint` — 清除断点
-- `markInterrupted` — 标记会话为中断
-- `markRunningAsInterrupted` — 标记运行中会话为中断
-- `listInterruptedSessions` — 列出中断的会话
-- `listRunningSessions` — 列出运行中的会话
-- `getCheckpoint` — 获取断点
-- `loadInterruptedSession` — 加载中断会话
-- `createCheckpoint` — 创建断点
-- `SessionCheckpoint` — 会话断点类型
-- `CheckpointStatus` — 断点状态类型
-- `CheckpointIndexEntry` — 断点索引项类型
+断点恢复已拆分至 `@/modules/agent-session`，详见该模块的 MODULE.md。
+agent barrel 仍 re-export `SessionCheckpoint`/`CheckpointStatus`/`CheckpointIndexEntry` 类型保持向后兼容。
 
 ### Port 接口（DI 化）
 - `IConversationManager` — 会话管理器端口接口

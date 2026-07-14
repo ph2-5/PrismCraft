@@ -14,7 +14,7 @@
 "use client";
 
 import { useState } from "react";
-import type { CheckpointIndexEntry } from "../services/session-checkpoint";
+import type { CheckpointIndexEntry } from "@/modules/agent-session";
 import { t } from "@/shared/constants";
 import { formatRelativeTime } from "@/shared/utils/format";
 import { AlertCircle, ChevronDown, ChevronUp, RotateCcw, X } from "lucide-react";

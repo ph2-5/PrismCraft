@@ -8,7 +8,8 @@
  */
 
 import type { ToolDef, ToolCall, StreamChunk } from "@/domain/ports/ai-provider-port";
-import type { SessionCheckpoint } from "./checkpoint-types";
+// SessionCheckpoint 类型已迁移至 @/modules/agent-session（阶段2-b），此处通过 barrel 导入
+import type { SessionCheckpoint } from "@/modules/agent-session";
 
 /** Agent 消息角色 */
 export type AgentRole = "user" | "assistant" | "tool";

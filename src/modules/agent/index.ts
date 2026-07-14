@@ -39,9 +39,12 @@ export type {
   ArchivalMemoryEntry,
   ExtractedMemory,
 } from "./domain/types";
-export type { SessionListItem } from "./services/session-storage";
-// listSessions 供 audit-log 模块动态导入（全局查询/清空审计日志时定位会话文件）
-export { listSessions } from "./services/session-storage";
+// 工厂函数（供 agent-session 等拆分模块的测试使用）
+export { createEmptySession, generateMessageId } from "./domain/types";
+// 会话存储 + 检查点已拆分至 @/modules/agent-session（阶段2-b）
+// 此处 re-export 保持向后兼容，audit-log 仍可通过 @/modules/agent 取 listSessions
+export type { SessionListItem } from "@/modules/agent-session";
+export { listSessions } from "@/modules/agent-session";
 export type {
   IConversationManager,
   IToolRegistry,
@@ -62,8 +65,9 @@ export type {
   ToolPluginsConfig,
 } from "./domain/tool-plugin-types";
 export type { SpecialistAgent } from "@/modules/agent-specialist";
+// 检查点类型已迁移至 @/modules/agent-session（阶段2-b），此处 re-export 保持向后兼容
 export type {
   SessionCheckpoint,
   CheckpointStatus,
   CheckpointIndexEntry,
-} from "./domain/checkpoint-types";
+} from "@/modules/agent-session";

@@ -8,9 +8,11 @@
  * - 保存时剔除 streaming 状态等临时字段
  * - 加载时重置 streaming=false（断点续接时上次的流式状态无意义）
  * - 通过 @/shared/file-http 统一层读写，不直接调 IPC
+ *
+ * 从 @/modules/agent/services/ 迁移至 @/modules/agent-session（阶段2-b）
  */
 
-import type { AgentSession } from "../domain/types";
+import type { AgentSession } from "@/modules/agent";
 import { writeFile, readFile, getCacheDirectory, deleteFile } from "@/shared/file-http";
 
 /** 会话存储目录名（相对缓存目录） */

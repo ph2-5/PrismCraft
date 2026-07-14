@@ -32,19 +32,20 @@ import type { StreamChunk, ToolCall } from "@/domain/ports/ai-provider-port";
 import { AgentLoop } from "../services/agent-loop";
 import { registerAllTools, loadToolPlugins } from "../tools";
 import { AGENT_PERSONAS, type AgentPersona } from "../domain/prompts";
+// session-storage 和 session-checkpoint 已拆分至 @/modules/agent-session（阶段2-b）
 import {
   persistSession,
   loadSession,
   listSessions,
   deleteSession,
   type SessionListItem,
-} from "../services/session-storage";
+} from "@/modules/agent-session";
 import {
   markRunningAsInterrupted,
   listInterruptedSessions,
   loadInterruptedSession,
   type CheckpointIndexEntry,
-} from "../services/session-checkpoint";
+} from "@/modules/agent-session";
 import {
   shouldExtract,
   extractFromConversation,
@@ -525,7 +526,7 @@ export function useAgent(): UseAgentReturn {
   /** 忽略中断会话（清除检查点标记，保留会话历史） */
   const dismissInterruptedSession = useCallback(
     async (sessionId: string) => {
-      const { clearCheckpoint } = await import("../services/session-checkpoint");
+      const { clearCheckpoint } = await import("@/modules/agent-session");
       await clearCheckpoint(sessionId);
       await refreshInterruptedSessions();
     },

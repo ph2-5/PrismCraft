@@ -39,12 +39,13 @@ import { conversationManager } from "./conversation-manager";
 import { toolExecutor } from "./tool-executor";
 import { toolRegistry } from "./tool-registry";
 import { memoryService } from "./memory-service";
+// session-checkpoint 已拆分至 @/modules/agent-session（阶段2-b）
 import {
   initCheckpoint,
   saveCheckpoint,
   clearCheckpoint,
   markInterrupted,
-} from "./session-checkpoint";
+} from "@/modules/agent-session";
 import { recordFewShot, buildFewShotPrompt } from "./tool-fewshot-cache";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";

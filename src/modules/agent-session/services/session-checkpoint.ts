@@ -14,9 +14,11 @@
  * 4. 用户重新发送消息 → AgentLoop 创建新 checkpoint 覆盖旧的
  *
  * 注意：检查点保存是"尽力而为"策略，失败静默不阻断主流程。
+ *
+ * 从 @/modules/agent/services/ 迁移至 @/modules/agent-session（阶段2-b）
  */
 
-import type { AgentSession } from "../domain/types";
+import type { AgentSession } from "@/modules/agent";
 import type { SessionCheckpoint, CheckpointIndexEntry, CheckpointStatus } from "../domain/checkpoint-types";
 import { createCheckpoint } from "../domain/checkpoint-types";
 

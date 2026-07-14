@@ -9,7 +9,7 @@
 
 "use client";
 
-import type { SessionListItem } from "../services/session-storage";
+import type { SessionListItem } from "@/modules/agent-session";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { formatRelativeTime } from "@/shared/utils/format";

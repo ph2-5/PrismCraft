@@ -783,7 +783,7 @@ SQLite (better-sqlite3, WAL mode)
 | app-infra-core | src/infrastructure/ | 20 |
 | app-shared | src/shared/ | 18 |
 | app-domain | src/domain/ | 18 |
-| app-story | src/modules/story/ | 15 |
+| app-story | src/modules/storyboard/ | 15 |
 | app-video | src/modules/video/ | 15 |
 | app-shot | src/modules/shot/ | 15 |
 | app-character | src/modules/character/ | 15 |

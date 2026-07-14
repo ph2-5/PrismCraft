@@ -310,7 +310,7 @@ prismcraft-source-code/
 
 > 故事创作与分镜管理模块，覆盖从故事规划、分镜编辑、AI 生成、批量编排到模板版本控制的完整工作流。
 
-**路径**: `src/modules/story/`
+**路径**: `src/modules/storyboard/`
 
 | 子域 | 文件 | 说明 |
 |------|------|------|
@@ -845,7 +845,7 @@ prismcraft-source-code/
 | `QuickActions.tsx` | 快速操作组件 |
 | `ProjectList.tsx` | 项目列表组件 |
 
-### 8.3 故事页面 (`app/story/`)
+### 8.3 故事页面 (`modules/storyboard/`)
 
 | 文件 | 说明 |
 |------|------|
@@ -1282,7 +1282,7 @@ IPC 安全桥接，定义了 `electronAPI` 对象，包含：
 | `modules/character.md` | character 模块 AI 上下文 |
 | `modules/scene.md` | scene 模块 AI 上下文 |
 | `modules/shot.md` | shot 模块 AI 上下文 |
-| `modules/story.md` | story 模块 AI 上下文 |
+| `modules/storyboard.md` | storyboard 模块 AI 上下文 |
 | `modules/persistence.md` | persistence 模块 AI 上下文 |
 | `modules/prompt.md` | prompt 模块 AI 上下文 |
 | `modules/sync.md` | sync 模块 AI 上下文 |

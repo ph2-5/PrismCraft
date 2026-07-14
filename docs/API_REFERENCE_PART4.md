@@ -164,7 +164,7 @@ export default function NotFound(): JSX.Element
 
 ---
 
-### 1.2 故事页面 (app/story/)
+### 1.2 故事页面 (modules/storyboard/)
 
 #### `StoryPage` (page.tsx)
 
@@ -437,7 +437,7 @@ function useStableCompletedUrls(
 
 ---
 
-### 1.3 分镜详情页 (app/story/beat/$beatId/)
+### 1.3 分镜详情页 (modules/storyboard/beat/$beatId/)
 
 #### `BeatDetailPage` (page.tsx)
 

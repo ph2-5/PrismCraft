@@ -16,7 +16,7 @@
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Check, Copy } from "lucide-react";
 import { t, COPY_RESET_DELAY_MS } from "@/shared/constants";
 
@@ -120,6 +120,13 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
 }
 
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
+  const blocks = useMemo(() => parseMarkdown(content), [content]);
+
+  return <div className={className}>{blocks}</div>;
+}
+
+/** 将 Markdown 文本解析为 React 节点数组（可被 useMemo 缓存） */
+function parseMarkdown(content: string): React.ReactNode[] {
   const lines = content.split("\n");
   const blocks: React.ReactNode[] = [];
   let i = 0;
@@ -230,5 +237,5 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     }
   }
 
-  return <div className={className}>{blocks}</div>;
+  return blocks;
 }

@@ -75,57 +75,57 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     finally { setIsRecovering(false); }
   };
 
-  const handleCopyTracking = async (task: VideoTask) => {
+  const handleCopyTracking = useCallback(async (task: VideoTask) => {
     const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
     const result = await copyTrackingInfoToClipboard(trackingInfo);
     if (result.ok) success(t("video.copySuccess"), t("video.trackingCopied"));
     else error(t("error.copyFailed"), t("error.clipboardUnavailable"));
-  };
+  }, [success, error]);
 
-  const handleOpenCloudLink = (task: VideoTask) => {
+  const handleOpenCloudLink = useCallback((task: VideoTask) => {
     const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
     const opened = openTaskQueryLink(trackingInfo);
     if (!opened) error(t("error.cannotOpenLink"), t("video.openCloudConsoleHint"));
-  };
+  }, [error]);
 
-  const handleOpenPreview = (task: VideoTask) => { if (task.videoUrl) openPreview(task); };
+  const handleOpenPreview = useCallback((task: VideoTask) => { if (task.videoUrl) openPreview(task); }, [openPreview]);
 
-  const handleManualPoll = async (task: VideoTask) => {
+  const handleManualPoll = useCallback(async (task: VideoTask) => {
     if (!pollTask) return;
     setPollingTaskId(task.taskId);
     try { await pollTask(task.taskId); success(t("video.querySuccess"), t("video.querySuccessDesc")); }
     catch (err) { errorLogger.error("[VideoTaskHandlers] 手动轮询失败", err instanceof Error ? err : undefined); error(t("error.operationFailed"), t("error.queryTaskStatusFailed")); }
     finally { setPollingTaskId(null); }
-  };
+  }, [pollTask, success, error]);
 
-  const handleRetryTask = async (task: VideoTask) => {
+  const handleRetryTask = useCallback(async (task: VideoTask) => {
     if (!task.beatId) { error(t("error.cannotRetry"), t("video.noBeatId")); return; }
     setRetryingTaskId(task.taskId);
     try { guardedPush(`/story/beat/${task.beatId}`); success(t("video.jumpSuccess"), t("video.jumpToBeatDesc")); }
     catch (err) { error(t("error.operationFailed"), mapUserFacingError(err)); }
     finally { setRetryingTaskId(null); }
-  };
+  }, [guardedPush, success, error]);
 
-  const handleCancelTask = async (task: VideoTask) => {
+  const handleCancelTask = useCallback(async (task: VideoTask) => {
     setCancellingTaskId(task.taskId);
     try { await useVideoTaskStore.getState().cancelTask(task.taskId); success(t("video.cancelled"), t("video.taskCancelled")); }
     catch (err) { error(t("error.operationFailed"), mapUserFacingError(err)); }
     finally { setCancellingTaskId(null); }
-  };
+  }, [success, error]);
 
-  const handleJumpToBeat = (task: VideoTask) => {
+  const handleJumpToBeat = useCallback((task: VideoTask) => {
     if (task.beatId) guardedPush(`/story/beat/${task.beatId}`);
     else error(t("error.cannotJump"), t("video.noBeatAssociated"));
-  };
+  }, [guardedPush, error]);
 
-  const handleOpenDetail = (task: VideoTask) => { setDetailTask(task); setDetailDrawerOpen(true); };
+  const handleOpenDetail = useCallback((task: VideoTask) => { setDetailTask(task); setDetailDrawerOpen(true); }, []);
 
-  const handleCopyTaskId = async (taskId: string) => {
+  const handleCopyTaskId = useCallback(async (taskId: string) => {
     try { await navigator.clipboard.writeText(taskId); success(t("success.copied"), t("video.taskIdCopiedToClipboard")); }
     catch (err) { errorLogger.error("[VideoTaskHandlers] 复制任务ID失败", err instanceof Error ? err : undefined); error(t("error.operationFailed"), t("error.clipboardUnavailable")); }
-  };
+  }, [success, error]);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = useCallback(() => {
     const headers = [t("task.csvTaskId"), t("task.csvStatus"), t("task.csvProgress"), t("task.csvModel"), t("task.csvStory"), t("task.csvBeat"), t("task.csvCreatedAt"), t("task.csvVideoUrl")];
     const rows = filteredTasks.map((t) => [t.taskId, t.status, `${t.progress}%`, t.model || "", t.storyTitle || "", t.beatTitle || "", new Date(t.createdAt).toLocaleString(), t.videoUrl || ""]);
     const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
@@ -140,7 +140,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     const timer = setTimeout(() => URL.revokeObjectURL(url), CSV_BLOB_REVOKE_DELAY_MS);
     blobUrlTimersRef.current.add(timer);
     success(t("success.exported"), t("video.exportedToCsv", { count: rows.length }));
-  };
+  }, [filteredTasks, success]);
 
   const handleDownloadVideo = useCallback(async (task: VideoTask) => {
     if (!task.videoUrl) return;
@@ -187,13 +187,13 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     }
   }, [success]);
 
-  const handleBatchDownload = async () => {
+  const handleBatchDownload = useCallback(async () => {
     const selectedTasks = filteredTasks.filter((t) => selection.selectedTaskIds.has(t.taskId));
     const completedTasks = selectedTasks.filter((t) => t.status === "completed" && t.videoUrl);
     if (completedTasks.length === 0) { error(t("error.cannotDownload"), t("video.noCompletedVideos")); return; }
     for (const task of completedTasks) { await handleDownloadVideo(task); await new Promise((r) => setTimeout(r, BATCH_OPERATION_INTERVAL_MS)); }
     success(t("video.batchDownload"), t("video.batchDownloadStarted", { count: completedTasks.length }));
-  };
+  }, [filteredTasks, selection.selectedTaskIds, handleDownloadVideo, success, error]);
 
   const hasActiveTasks = tasks.some((task) => task.status === "pending" || task.status === "generating");
 

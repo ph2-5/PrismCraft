@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, memo } from "react";
 import type { AgentMessage, ToolExecution } from "../domain/types";
 import { ToolCallCard } from "./ToolCallCard";
 import { MarkdownRenderer } from "./MarkdownRenderer";
@@ -20,7 +20,7 @@ interface AgentMessageViewProps {
   toolExecutions: ToolExecution[];
 }
 
-export function AgentMessageView({ message, toolExecutions }: AgentMessageViewProps) {
+export const AgentMessageView = memo(function AgentMessageView({ message, toolExecutions }: AgentMessageViewProps) {
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -130,4 +130,4 @@ export function AgentMessageView({ message, toolExecutions }: AgentMessageViewPr
   }
 
   return null;
-}
+});

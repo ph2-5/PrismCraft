@@ -1,4 +1,4 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useCallback } from "react";
 import {
   PlayCircle,
   Download,
@@ -137,6 +137,11 @@ export function VideoTaskManager({
     openPreview,
   });
 
+  const handleOpenTracking = useCallback((task: VideoTask) => {
+    setSelectedTask(task);
+    setTrackingDialogOpen(true);
+  }, []);
+
   return (
     <div className="w-full">
       <div className="card border" style={{ padding: 16, borderColor: "var(--border)" }}>
@@ -266,10 +271,7 @@ export function VideoTaskManager({
                             onManualPoll={handleManualPoll}
                             onRetryTask={handleRetryTask}
                             onCancelTask={handleCancelTask}
-                            onOpenTracking={(task) => {
-                              setSelectedTask(task);
-                              setTrackingDialogOpen(true);
-                            }}
+                            onOpenTracking={handleOpenTracking}
                             onCopyTracking={handleCopyTracking}
                             onOpenCloudLink={handleOpenCloudLink}
                             onJumpToBeat={handleJumpToBeat}

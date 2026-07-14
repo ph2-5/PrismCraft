@@ -66,13 +66,8 @@
 - `registerAllTools` — 注册所有 150 个工具（幂等，应用启动时调用）
 - `loadToolPlugins` — 加载工具插件
 
-### 审计日志（v1.2.2 新增）
-- `queryAuditLogs` — 查询审计日志（支持按 sessionId/toolName/success/时间范围/limit 过滤）
-- `getAuditStats` — 获取统计信息（总条目数/会话数/按工具统计）
-- `clearAuditLogs` — 清空指定会话的审计日志
-- `clearAllAuditLogs` — 清空所有审计日志
-- `AuditEntry` — 审计日志条目类型
-- `AuditQueryFilter` — 审计日志查询过滤类型
+### 审计日志
+审计日志已拆分至 `@/modules/audit-log`，详见该模块的 MODULE.md。
 
 ### 工具插件（P3）
 - `loadToolPlugin` — 加载单个工具插件

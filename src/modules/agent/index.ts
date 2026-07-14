@@ -17,13 +17,7 @@ export { conversationManager } from "./services/conversation-manager";
 export { memoryService, MemoryService } from "./services/memory-service";
 export { prewarmEmbeddings } from "./services/memory-service";
 
-// 审计日志（AuditLogPanel.tsx 从 barrel 导入）
-export type { AuditEntry, AuditQueryFilter } from "./services/audit-storage";
-export {
-  queryAuditLogs,
-  clearAllAuditLogs,
-  getAuditStats,
-} from "./services/audit-storage";
+// 审计日志已拆分至 @/modules/audit-log
 
 // 领域类型（保留 type 导出供类型推断和外部使用）
 export type { UseAgentReturn } from "./hooks/use-agent";
@@ -46,6 +40,8 @@ export type {
   ExtractedMemory,
 } from "./domain/types";
 export type { SessionListItem } from "./services/session-storage";
+// listSessions 供 audit-log 模块动态导入（全局查询/清空审计日志时定位会话文件）
+export { listSessions } from "./services/session-storage";
 export type {
   IConversationManager,
   IToolRegistry,

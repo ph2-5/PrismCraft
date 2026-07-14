@@ -267,7 +267,7 @@ export async function queryAuditLogs(filter: AuditQueryFilter = {}): Promise<Aud
     // 如果内存为空，尝试加载最近活跃的会话（通过 sessionIndex）
     if (candidates.length === 0) {
       try {
-        const { listSessions } = await import("./session-storage");
+        const { listSessions } = await import("@/modules/agent");
         const sessions = await listSessions();
         // 只加载最近的 N 个会话
         const recent = sessions.slice(0, MAX_SESSIONS_FOR_GLOBAL_QUERY);
@@ -328,7 +328,7 @@ export async function clearAllAuditLogs(): Promise<void> {
   // 清空磁盘文件需要遍历所有 session
   // 由于 file-http 不支持列目录，这里依赖 sessionIndex 来定位文件
   try {
-    const { listSessions } = await import("./session-storage");
+    const { listSessions } = await import("@/modules/agent");
     const sessions = await listSessions();
     for (const s of sessions) {
       try {
@@ -360,7 +360,7 @@ export async function getAuditStats(): Promise<{
   // 如果内存为空，尝试加载
   if (all.length === 0) {
     try {
-      const { listSessions } = await import("./session-storage");
+      const { listSessions } = await import("@/modules/agent");
       const sessions = await listSessions();
       const recent = sessions.slice(0, MAX_SESSIONS_FOR_GLOBAL_QUERY);
       for (const s of recent) {

@@ -19,7 +19,7 @@ import {
   getAuditStats,
   clearAllAuditLogs,
   type AuditEntry,
-} from "@/modules/agent";
+} from "@/modules/audit-log";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { errorLogger } from "@/shared/error-logger";

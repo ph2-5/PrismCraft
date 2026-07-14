@@ -46,7 +46,7 @@ import {
   markInterrupted,
 } from "./session-checkpoint";
 import { recordFewShot, buildFewShotPrompt } from "./tool-fewshot-cache";
-import { recordAudit } from "./audit-storage";
+import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
 
 /** 动态查询项目状态，构建状态摘要注入 system prompt */

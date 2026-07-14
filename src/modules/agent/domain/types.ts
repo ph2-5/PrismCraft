@@ -285,38 +285,13 @@ export function generateMessageId(): string {
 
 export type { ToolDef, ToolCall, StreamChunk };
 
-// ============= Memory 相关类型（从 services/memory-service.ts 迁移到 domain 层） =============
-// 迁移原因：Port 接口（IMemoryService）需要引用这些类型，按分层原则应在 domain 层定义。
-// memory-service.ts 仍 re-export 这些类型，保持向后兼容。
-
-/** 核心记忆：常驻 prompt 的小量关键信息 */
-export interface CoreMemory {
-  /** 用户偏好（键值对，如 preferred_style: "赛博朋克"） */
-  preferences: Record<string, string | number | boolean>;
-  /** 项目事实（带 key 的列表，便于按 key 更新/删除） */
-  facts: MemoryFact[];
-}
-
-/** 项目事实条目 */
-export interface MemoryFact {
-  /** 事实键，如 "source_novel"、"target_duration" */
-  key: string;
-  /** 事实值 */
-  value: string;
-  /** 更新时间戳 */
-  updatedAt: number;
-}
-
-// 归档记忆条目类型已提取到 @/domain/types/memory.ts（供 vector-search 独立模块共享）
+// ============= Memory 相关类型 =============
+// CoreMemory / MemoryFact / ExtractedMemory 已迁移至 @/modules/agent-memory/domain/types（阶段2-d）
+// ArchivalMemoryEntry 已提取到 @/domain/types/memory（供 vector-search 共享）
 // 此处 re-export 保持向后兼容（现有 import 路径不破坏）
-export type { ArchivalMemoryEntry } from "@/domain/types/memory";
-
-/** LLM 自动抽取结果 */
-export interface ExtractedMemory {
-  /** 提取的偏好（会合并到核心记忆） */
-  preferences: Record<string, string | number | boolean>;
-  /** 提取的事实（会追加到核心记忆，同 key 覆盖） */
-  facts: Array<{ key: string; value: string }>;
-  /** 会话摘要（追加到归档记忆） */
-  summary: string;
-}
+export type {
+  CoreMemory,
+  MemoryFact,
+  ExtractedMemory,
+  ArchivalMemoryEntry,
+} from "@/modules/agent-memory";

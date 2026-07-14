@@ -38,7 +38,7 @@ import {
 import { conversationManager } from "./conversation-manager";
 import { toolExecutor } from "./tool-executor";
 import { toolRegistry } from "./tool-registry";
-import { memoryService } from "./memory-service";
+import { memoryService } from "@/modules/agent-memory";
 // session-checkpoint 已拆分至 @/modules/agent-session（阶段2-b）
 import {
   initCheckpoint,

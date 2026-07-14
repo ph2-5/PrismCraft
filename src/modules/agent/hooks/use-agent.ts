@@ -51,7 +51,7 @@ import {
   extractFromConversation,
   applyExtractedMemory,
   ensureSeedMemory,
-} from "../services/memory-service";
+} from "@/modules/agent-memory";
 import { usePreference } from "@/shared/utils/preferences";
 import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";

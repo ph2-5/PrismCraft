@@ -188,7 +188,7 @@ const tokens = {
     return toolExecutor;
   }),
   agentMemoryService: createToken("agentMemoryService", async () => {
-    const { memoryService } = await import("@/modules/agent");
+    const { memoryService } = await import("@/modules/agent-memory");
     return memoryService;
   }),
 };

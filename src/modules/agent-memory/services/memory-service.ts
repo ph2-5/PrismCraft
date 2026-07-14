@@ -44,14 +44,16 @@
  */
 
 import { getConfig, setConfig, writeFile, readFile, getCacheDirectory } from "@/shared/file-http";
+// Memory 领域类型从本模块 domain/types 导入（阶段2-d 迁移）
 import type {
-  AgentMessage,
   CoreMemory,
   MemoryFact,
   ArchivalMemoryEntry,
   ExtractedMemory,
 } from "../domain/types";
-import type { IMemoryService } from "../domain/ports";
+// AgentMessage 和 IMemoryService 仍归属于 @/modules/agent（Agent 核心类型/端口接口）。
+// 通过 import type 引用，编译时擦除，无运行时循环依赖（与阶段2-b agent-session 模式一致）。
+import type { AgentMessage, IMemoryService } from "@/modules/agent";
 import {
   createDefaultEngine,
   type VectorSearchEngine,
@@ -61,7 +63,6 @@ import {
 import { SEED_MEMORY_ENTRIES } from "./memory-service-seed-data";
 
 // Re-export memory types from domain/types for backward compatibility
-// （类型已迁移到 domain/types.ts，此处 re-export 保持现有 import 路径不破坏）
 export type {
   CoreMemory,
   MemoryFact,

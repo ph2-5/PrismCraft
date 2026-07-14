@@ -20,7 +20,7 @@ import {
   createDefaultEngine,
   type RetrievalStrategy,
 } from "@/modules/vector-search";
-import type { ArchivalMemoryEntry } from "../memory-service";
+import type { ArchivalMemoryEntry } from "@/domain/types/memory";
 
 // ── vi.hoisted 声明 mock 变量 ──
 const mocks = vi.hoisted(() => ({

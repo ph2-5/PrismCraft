@@ -14,8 +14,7 @@ export { AgentPage } from "./presentation/AgentPage";
 export { toolRegistry } from "./services/tool-registry";
 export { toolExecutor } from "./services/tool-executor";
 export { conversationManager } from "./services/conversation-manager";
-export { memoryService, MemoryService } from "./services/memory-service";
-export { prewarmEmbeddings } from "./services/memory-service";
+export { memoryService, MemoryService, prewarmEmbeddings } from "@/modules/agent-memory";
 
 // 审计日志已拆分至 @/modules/audit-log
 

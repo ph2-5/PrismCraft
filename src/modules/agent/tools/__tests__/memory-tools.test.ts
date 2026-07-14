@@ -15,7 +15,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // ── Mock memory-service（路径相对于 tools/__tests__/） ──
-vi.mock("../../services/memory-service", () => ({
+vi.mock("@/modules/agent-memory/services/memory-service", () => ({
   saveFact: vi.fn(),
   updatePreference: vi.fn(),
   removeFact: vi.fn(),
@@ -39,7 +39,7 @@ import {
   deleteArchivalMemory,
   clearCoreMemory,
   getArchivalMemoryCount,
-} from "../../services/memory-service";
+} from "@/modules/agent-memory";
 import {
   saveMemoryTool,
   recallMemoryTool,

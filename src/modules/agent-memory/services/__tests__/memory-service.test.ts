@@ -29,7 +29,7 @@ import {
   getArchivalMemoryCount,
   _resetSearchEngine,
 } from "../memory-service";
-import type { AgentMessage } from "../../domain/types";
+import type { AgentMessage } from "@/modules/agent";
 
 // ── vi.hoisted 声明 mock 变量（vi.mock 工厂会在文件顶部执行） ──
 const mocks = vi.hoisted(() => ({

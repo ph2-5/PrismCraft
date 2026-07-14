@@ -21,7 +21,7 @@ import {
   removeFact,
   removePreference,
   type CoreMemory,
-} from "../services/memory-service";
+} from "@/modules/agent-memory";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { errorLogger } from "@/shared/error-logger";

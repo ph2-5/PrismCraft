@@ -65,7 +65,7 @@ vi.mock("../session-checkpoint", () => ({
 }));
 
 // ── Mock memory-service（避免真实 DB/embedding 调用） ──
-vi.mock("../memory-service", () => ({
+vi.mock("@/modules/agent-memory/services/memory-service", () => ({
   memoryService: {
     buildCoreMemoryPrompt: vi.fn().mockResolvedValue(""),
     searchRelevant: vi.fn().mockResolvedValue(""),

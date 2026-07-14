@@ -24,8 +24,8 @@ import {
   checkFfmpegAvailable,
   resetFfmpegCache,
 } from "@/modules/ffmpeg-runner";
-import { searchArchivalMemory } from "../services/memory-service";
-import type { ArchivalMemoryEntry } from "../services/memory-service";
+import { searchArchivalMemory } from "@/modules/agent-memory";
+import type { ArchivalMemoryEntry } from "@/modules/agent-memory";
 import { formatRelativeTime } from "@/shared/utils/format";
 import { ModelSelector } from "@/modules/prompt";
 import { X, Check, Loader2, Search } from "lucide-react";

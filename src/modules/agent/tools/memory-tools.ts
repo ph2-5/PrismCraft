@@ -30,7 +30,7 @@ import {
   deleteArchivalMemory,
   clearCoreMemory,
   getArchivalMemoryCount,
-} from "../services/memory-service";
+} from "@/modules/agent-memory";
 
 // ============= 工具实现 =============
 

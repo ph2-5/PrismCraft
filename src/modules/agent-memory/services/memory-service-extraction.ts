@@ -14,7 +14,10 @@
 
 import { container } from "@/infrastructure/di";
 import { extractJsonObject } from "@/shared-logic/json";
-import type { AgentMessage, ExtractedMemory } from "../domain/types";
+// ExtractedMemory 从本模块 domain/types 导入（阶段2-d 迁移）
+import type { ExtractedMemory } from "../domain/types";
+// AgentMessage 仍归属于 @/modules/agent（类型级依赖，编译时擦除）
+import type { AgentMessage } from "@/modules/agent";
 
 // ============= 常量（与 memory-service.ts 保持一致） =============
 

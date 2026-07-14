@@ -153,6 +153,103 @@ export async function fetchStoryRelations(storyId: string) {
   };
 }
 
+/** Group character IDs by story ID */
+function groupCharactersByStory(
+  characters: { character_id: string; story_id: string }[],
+): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const c of characters) {
+    const list = map.get(c.story_id) || [];
+    list.push(c.character_id);
+    map.set(c.story_id, list);
+  }
+  return map;
+}
+
+/** Group scene IDs by story ID */
+function groupScenesByStory(
+  scenes: { scene_id: string; story_id: string }[],
+): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const s of scenes) {
+    const list = map.get(s.story_id) || [];
+    list.push(s.scene_id);
+    map.set(s.story_id, list);
+  }
+  return map;
+}
+
+/** Group parsed beats by story ID */
+function groupBeatsByStory(
+  beats: Record<string, unknown>[],
+): Map<string, Record<string, unknown>[]> {
+  const map = new Map<string, Record<string, unknown>[]>();
+  for (const b of beats) {
+    const parsed = parseBeatRow(b);
+    const sid = String(parsed.storyId || "");
+    if (!sid) continue;
+    const list = map.get(sid) || [];
+    list.push(parsed);
+    map.set(sid, list);
+  }
+  return map;
+}
+
+/** Group element IDs and bindings by story ID */
+function groupElementsByStory(
+  elements: { element_id: string; binding_config: string; story_id: string }[],
+): Map<string, { ids: string[]; bindings: Record<string, unknown> }> {
+  const map = new Map<string, { ids: string[]; bindings: Record<string, unknown> }>();
+  for (const e of elements) {
+    const entry = map.get(e.story_id) || { ids: [], bindings: {} as Record<string, unknown> };
+    entry.ids.push(e.element_id);
+    if (e.binding_config) {
+      entry.bindings[e.element_id] = safeJsonParse(e.binding_config, {});
+    }
+    map.set(e.story_id, entry);
+  }
+  return map;
+}
+
+/** Merge all per-story maps into the final result */
+function buildRelationsResult(
+  charMap: Map<string, string[]>,
+  sceneMap: Map<string, string[]>,
+  beatMap: Map<string, Record<string, unknown>[]>,
+  elemMap: Map<string, { ids: string[]; bindings: Record<string, unknown> }>,
+): Map<string, {
+  characters: string[];
+  scenes: string[];
+  beats: Record<string, unknown>[];
+  elementIds: string[];
+  elementBindings: Record<string, unknown>;
+}> {
+  const allStoryIds = new Set<string>([
+    ...charMap.keys(),
+    ...sceneMap.keys(),
+    ...beatMap.keys(),
+    ...elemMap.keys(),
+  ]);
+  const result = new Map<string, {
+    characters: string[];
+    scenes: string[];
+    beats: Record<string, unknown>[];
+    elementIds: string[];
+    elementBindings: Record<string, unknown>;
+  }>();
+  for (const storyId of allStoryIds) {
+    const elemEntry = elemMap.get(storyId);
+    result.set(storyId, {
+      characters: charMap.get(storyId) || [],
+      scenes: sceneMap.get(storyId) || [],
+      beats: beatMap.get(storyId) || [],
+      elementIds: elemEntry?.ids || [],
+      elementBindings: elemEntry?.bindings || {},
+    });
+  }
+  return result;
+}
+
 export async function fetchAllStoryRelations(): Promise<Map<string, {
   characters: string[];
   scenes: string[];
@@ -175,65 +272,10 @@ export async function fetchAllStoryRelations(): Promise<Map<string, {
     ),
   ]);
 
-  const charMap = new Map<string, string[]>();
-  for (const c of characters) {
-    const list = charMap.get(c.story_id) || [];
-    list.push(c.character_id);
-    charMap.set(c.story_id, list);
-  }
-
-  const sceneMap = new Map<string, string[]>();
-  for (const s of scenes) {
-    const list = sceneMap.get(s.story_id) || [];
-    list.push(s.scene_id);
-    sceneMap.set(s.story_id, list);
-  }
-
-  const beatMap = new Map<string, Record<string, unknown>[]>();
-  for (const b of beats) {
-    const parsed = parseBeatRow(b);
-    const sid = String(parsed.storyId || "");
-    if (!sid) continue;
-    const list = beatMap.get(sid) || [];
-    list.push(parsed);
-    beatMap.set(sid, list);
-  }
-
-  const elemMap = new Map<string, { ids: string[]; bindings: Record<string, unknown> }>();
-  for (const e of elements) {
-    const entry = elemMap.get(e.story_id) || { ids: [], bindings: {} as Record<string, unknown> };
-    entry.ids.push(e.element_id);
-    if (e.binding_config) {
-      entry.bindings[e.element_id] = safeJsonParse(e.binding_config, {});
-    }
-    elemMap.set(e.story_id, entry);
-  }
-
-  const allStoryIds = new Set<string>([
-    ...charMap.keys(),
-    ...sceneMap.keys(),
-    ...beatMap.keys(),
-    ...elemMap.keys(),
-  ]);
-
-  const result = new Map<string, {
-    characters: string[];
-    scenes: string[];
-    beats: Record<string, unknown>[];
-    elementIds: string[];
-    elementBindings: Record<string, unknown>;
-  }>();
-
-  for (const storyId of allStoryIds) {
-    const elemEntry = elemMap.get(storyId);
-    result.set(storyId, {
-      characters: charMap.get(storyId) || [],
-      scenes: sceneMap.get(storyId) || [],
-      beats: beatMap.get(storyId) || [],
-      elementIds: elemEntry?.ids || [],
-      elementBindings: elemEntry?.bindings || {},
-    });
-  }
-
-  return result;
+  return buildRelationsResult(
+    groupCharactersByStory(characters),
+    groupScenesByStory(scenes),
+    groupBeatsByStory(beats),
+    groupElementsByStory(elements),
+  );
 }

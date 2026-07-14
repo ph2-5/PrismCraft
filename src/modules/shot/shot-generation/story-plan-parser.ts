@@ -147,74 +147,105 @@ function appendExtraFields(beat: StoryBeat, raw: Record<string, unknown>): void 
   if (raw.emotion) beat.content = `${beat.content}\n情绪：${raw.emotion}`;
 }
 
+/** Parse duration from raw value, defaulting to 5 */
+function parseDuration(raw: unknown): number {
+  if (typeof raw === "number" && !isNaN(raw)) return raw;
+  return 5;
+}
+
+/** Parse character IDs from raw value (array or falsy) */
+function parseCharacterIds(raw: unknown): string[] {
+  return Array.isArray(raw) ? raw.map(String) : [];
+}
+
+/** Parse scene ID from raw value, returning undefined when absent */
+function parseSceneId(raw: unknown): string | undefined {
+  return raw ? String(raw) : undefined;
+}
+
+/** Build camera object from angle/movement strings */
+function buildBeatCamera(angle: string, movement: string): StoryBeat["camera"] {
+  return { angle: angle || undefined, movement: movement || undefined };
+}
+
+/** Extract prompt fields from raw beat */
+function buildBeatPrompts(raw: Record<string, unknown>): Pick<StoryBeat, "imageGenerationPrompt" | "firstFramePrompt" | "lastFramePrompt"> {
+  return {
+    imageGenerationPrompt: pickString(raw, "kp", "keyframePrompt") || undefined,
+    firstFramePrompt: pickString(raw, "fp", "firstFramePrompt") || undefined,
+    lastFramePrompt: pickString(raw, "lp", "lastFramePrompt") || undefined,
+  };
+}
+
+/** Extract text fields (content, description, title) from raw beat */
+function buildBeatTextFields(raw: Record<string, unknown>, index: number) {
+  const content = pickString(raw, "c", "content") || "";
+  const description = pickString(raw, "desc", "description") || content;
+  return {
+    content,
+    description,
+    title: pickString(raw, "t", "title") || `分镜${index + 1}`,
+  };
+}
+
+/** Build a complete StoryBeat from raw beat data, or null if invalid */
+function buildBeatFromRaw(
+  raw: Record<string, unknown>,
+  index: number,
+  globalEnhancedGeneration: boolean,
+): StoryBeat | null {
+  const text = buildBeatTextFields(raw, index);
+  if (!text.description && !text.content) return null;
+
+  const shotType = pickString(raw, "st", "shotType");
+  const cameraAngle = pickString(raw, "ca", "cameraAngle");
+  const cameraMovement = pickString(raw, "cm", "cameraMovement");
+  const { ids: elementIds, bindings: elementBindings } = resolveElements(raw, text.content);
+
+  const beat: StoryBeat = {
+    id: `beat_${crypto.randomUUID()}`,
+    sequence: index + 1,
+    title: text.title,
+    content: text.content,
+    description: text.description,
+    duration: parseDuration(raw.d ?? raw.duration),
+    type: (pickString(raw, "tp", "type") as StoryBeat["type"]) || "action",
+    shotType: (shotType as StoryBeat["shotType"]) || "medium",
+    characterIds: parseCharacterIds(raw.ci || raw.characterIds),
+    elementIds,
+    sceneId: parseSceneId(raw.si || raw.sceneId),
+    camera: buildBeatCamera(cameraAngle, cameraMovement),
+    ...buildBeatPrompts(raw),
+    enhancedGeneration: globalEnhancedGeneration || false,
+    elementBindings,
+    transition: undefined,
+    imageUrl: undefined,
+    videoReferenceUrl: undefined,
+    uploadedKeyframe: undefined,
+    uploadedVideo: undefined,
+    customChainTarget: undefined,
+  };
+
+  const instruction = buildShotInstruction(shotType || "medium", cameraAngle || undefined, cameraMovement || undefined);
+  if (instruction) beat.shotInstruction = instruction;
+
+  appendExtraFields(beat, raw);
+  return beat;
+}
+
 export function convertToStoryBeats(
   rawBeats: Record<string, unknown>[],
   _story: Partial<Story>,
   globalEnhancedGeneration: boolean = true,
 ): StoryBeat[] {
   const validBeats: StoryBeat[] = [];
-
   for (const [index, raw] of rawBeats.entries()) {
-    const content = pickString(raw, "c", "content");
-    const description = pickString(raw, "desc", "description") || content;
-
-    if (!description && !content) {
+    const beat = buildBeatFromRaw(raw, index, globalEnhancedGeneration);
+    if (!beat) {
       errorLogger.warn(`[StoryPipeline] Skipping beat at index ${index}: missing description and content`);
       continue;
     }
-
-    const title = pickString(raw, "t", "title");
-    const shotType = pickString(raw, "st", "shotType");
-    const cameraAngle = pickString(raw, "ca", "cameraAngle");
-    const cameraMovement = pickString(raw, "cm", "cameraMovement");
-    const rawDuration = raw.d ?? raw.duration;
-    const duration = typeof rawDuration === "number" && !isNaN(rawDuration) ? rawDuration : 5;
-    const type = pickString(raw, "tp", "type");
-    const rawCharacterIds = raw.ci || raw.characterIds;
-    const characterIds = Array.isArray(rawCharacterIds) ? rawCharacterIds.map(String) : [];
-    const sceneId = raw.si || raw.sceneId ? String(raw.si || raw.sceneId) : undefined;
-    const keyframePrompt = pickString(raw, "kp", "keyframePrompt");
-    const firstFramePrompt = pickString(raw, "fp", "firstFramePrompt");
-    const lastFramePrompt = pickString(raw, "lp", "lastFramePrompt");
-
-    const { ids: finalElementIds, bindings: finalElementBindings } = resolveElements(raw, content);
-
-    const beat: StoryBeat = {
-      id: `beat_${crypto.randomUUID()}`,
-      sequence: index + 1,
-      title: title || `分镜${index + 1}`,
-      content: content || "",
-      description: description || content || "",
-      duration,
-      type: (type as StoryBeat["type"]) || "action",
-      shotType: (shotType as StoryBeat["shotType"]) || "medium",
-      characterIds,
-      elementIds: finalElementIds,
-      sceneId: sceneId || undefined,
-      camera: {
-        angle: cameraAngle || undefined,
-        movement: cameraMovement || undefined,
-      },
-      imageGenerationPrompt: keyframePrompt || undefined,
-      firstFramePrompt: firstFramePrompt || undefined,
-      lastFramePrompt: lastFramePrompt || undefined,
-      enhancedGeneration: globalEnhancedGeneration || false,
-      elementBindings: finalElementBindings,
-      transition: undefined,
-      imageUrl: undefined,
-      videoReferenceUrl: undefined,
-      uploadedKeyframe: undefined,
-      uploadedVideo: undefined,
-      customChainTarget: undefined,
-    };
-
-    const instruction = buildShotInstruction(shotType || "medium", cameraAngle || undefined, cameraMovement || undefined);
-    if (instruction) beat.shotInstruction = instruction;
-
-    appendExtraFields(beat, raw);
-
     validBeats.push(beat);
   }
-
   return validBeats;
 }

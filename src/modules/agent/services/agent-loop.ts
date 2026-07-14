@@ -19,6 +19,7 @@
 
 import { container } from "@/infrastructure/di";
 import type { ToolCall, StreamChunk } from "@/domain/ports/ai-provider-port";
+import type { LLMMessage } from "@/domain/schemas/llm-message";
 import type {
   AgentSession,
   AgentLoopConfig,
@@ -150,297 +151,298 @@ export class AgentLoop {
 
   /** 运行 Agent Loop */
   async run(userInput: string): Promise<void> {
-    // 1. 追加用户消息
     this.currentInput = userInput;
     this.deps.conversationManager.appendUserMessage(this.session, userInput);
-
-    // P5 断点恢复：初始化检查点（异步，不阻断主流程）
     void initCheckpoint(this.session, userInput).catch(() => {});
 
-    // 2. 构建初始 system prompt（动态注入项目状态 + RAG + 摘要）
     const systemPrompt = await this.buildSystemPrompt(userInput);
-
-    // P2 深化：异步检测并触发对话摘要压缩（不阻断主流程）
     void this.maybeSummarizeConversation();
-
-    // P1-D：记录循环开始时间（用于总执行时间限制）
     this.loopStartTime = Date.now();
 
-    // 3. Agent Loop
     for (let i = 0; i < this.config.maxIterations; i++) {
-      if (this.aborted) {
-        this.handleAbort();
-        return;
-      }
+      if (this.aborted) { this.handleAbort(); return; }
+      if (this.isTotalDurationExceeded()) { this.handleTotalDurationExceeded(); return; }
 
-      // P1-D：总执行时间检查
-      if (this.isTotalDurationExceeded()) {
-        const timeoutMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
-        const maxMinutes = Math.floor((this.config.maxTotalDurationMs ?? 0) / 60000);
-        timeoutMsg.content = t("agent.totalDurationExceeded", { minutes: maxMinutes });
-        this.deps.conversationManager.finishStreaming(this.session);
-        void markInterrupted(this.session.id).catch(() => {});
-        return;
-      }
-
-      // 构建 LLM 消息序列
       const llmMessages = this.deps.conversationManager.buildLLMMessages(this.session, systemPrompt);
-
-      // 调用 LLM（流式）
       const assistantMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
-      // 累积工具调用（流式可能分多块返回）
       const accumulatedToolCalls: Map<string, ToolCall> = new Map();
-      let finishReason: StreamChunk["finishReason"] | undefined;
-      let receivedAnyChunk = false;
 
       try {
-        // P1-1 修复：为每次 LLM 流式调用创建独立 AbortController，
-        // 使 abort() 能中断正在进行的流式推理（之前取消按钮在 LLM 推理期间无效）
-        this.llmAbortController = new AbortController();
-
-        // 共享的 onChunk 处理器（generateChat 和 generateTextStream 通用）
-        const handleChunk = (chunk: StreamChunk) => {
-          receivedAnyChunk = true;
-          // delta → 实时输出
-          if (chunk.delta) {
-            this.deps.conversationManager.appendDelta(this.session, chunk.delta);
-            this.callbacks.onChunk({ delta: chunk.delta });
-          }
-          // toolCalls → 累积（按 id 合并增量）
-          if (chunk.toolCalls) {
-            for (const tc of chunk.toolCalls) {
-              this.mergeToolCall(accumulatedToolCalls, tc);
-            }
-          }
-          // finishReason
-          if (chunk.finishReason) {
-            finishReason = chunk.finishReason;
-          }
-        };
-
-        const streamOpts = {
-          onChunk: handleChunk,
-          maxTokens: this.config.maxTokensPerTurn,
-          temperature: this.config.temperature,
-          providerId: this.config.providerId,
-          modelId: this.config.modelId,
-          tools: this.deps.toolRegistry.getToolDefs(this.config.enabledTools),
-          signal: this.llmAbortController.signal,
-        };
-
-        // 能力自适应：优先使用原生对话补全（messages 数组 + 原生 function calling）
-        // 失败时降级到 generateTextStream + serializeMessages（prompt 工程）
-        let result;
-        try {
-          result = await this.deps.textProvider.generateChat(llmMessages, streamOpts);
-        } catch (e) {
-          if (!receivedAnyChunk) {
-            // 未收到任何 chunk，安全降级到 serializeMessages
-            const prompt = this.serializeMessages(llmMessages);
-            result = await this.deps.textProvider.generateTextStream(prompt, streamOpts);
-          } else {
-            throw e;
-          }
-        }
-        if (!result.success && !receivedAnyChunk) {
-          // generateChat 返回失败且未收到 chunk → 降级
-          const prompt = this.serializeMessages(llmMessages);
-          result = await this.deps.textProvider.generateTextStream(prompt, streamOpts);
-        }
-        this.llmAbortController = null;
+        const { result, finishReason } = await this.callLLMWithFallback(llmMessages, accumulatedToolCalls);
 
         if (!result.success) {
-          // LLM 调用失败
-          this.deps.conversationManager.finishStreaming(this.session);
-          const errMsg = result.error || "LLM 调用失败";
-          assistantMsg.content = assistantMsg.content || `调用失败：${errMsg}`;
-          // P5 断点恢复：LLM 失败时标记为中断
-          void markInterrupted(this.session.id).catch(() => {});
-          this.callbacks.onError?.(new Error(errMsg));
+          this.handleLLMFailure(result.error || "LLM 调用失败", assistantMsg);
           return;
         }
 
-        // 结束流式
         this.deps.conversationManager.finishStreaming(this.session, finishReason);
-
-        // P5 断点恢复：每轮 LLM 完成后保存检查点（异步，不阻断）
         void saveCheckpoint(this.session, { iteration: i + 1 }).catch(() => {});
 
-        // 处理工具调用
         const toolCalls = Array.from(accumulatedToolCalls.values());
         if (toolCalls.length > 0) {
           this.deps.conversationManager.setToolCalls(this.session, toolCalls);
-          // 更新工具调用总数
           void saveCheckpoint(this.session, { toolCallsTotal: toolCalls.length }).catch(() => {});
-
-          // 执行工具
-          const ctx: ToolContext = {
-            sessionId: this.session.id,
-            signal: this.callbacks.signal,
-            onProgress: (_msg) => {
-              // 通知 UI（可选）
-            },
-            // 注入确认回调，使 delegate_to_specialist 工具能向上传播子 Agent 的危险操作确认
-            _confirmDangerous: this.callbacks.onConfirmationRequired,
-          };
-
-          // P0 深化：工具并行执行
-          // 策略：
-          // 1. 先统一处理危险工具确认（串行询问，拒绝则标记跳过）
-          // 2. 确认通过的工具并行执行（executeAll）
-          // 3. 结果按 toolCalls 原始顺序回灌（保持 LLM 可读性）
-          if (this.aborted) {
-            this.handleAbort();
-            return;
-          }
-
-          // Phase 1：危险工具确认（串行，避免并发弹窗冲突）
-          const approvedToolCalls: ToolCall[] = [];
-          const rejectedResults: Array<{ toolCall: ToolCall; result: ToolResult }> = [];
-
-          for (const tc of toolCalls) {
-            if (this.deps.toolExecutor.requiresConfirmation(tc)) {
-              const approved = this.callbacks.onConfirmationRequired
-                ? await this.callbacks.onConfirmationRequired(tc)
-                : false;
-              if (!approved) {
-                rejectedResults.push({
-                  toolCall: tc,
-                  result: {
-                    success: false,
-                    error: "用户拒绝执行此操作（需要确认）",
-                    duration: 0,
-                  },
-                });
-                continue;
-              }
-            }
-            approvedToolCalls.push(tc);
-          }
-
-          // Phase 2：通知 UI 工具调用开始（所有已批准工具）
-          for (const tc of approvedToolCalls) {
-            this.callbacks.onToolCall(tc);
-          }
-
-          // P1-D：工具调用频率限制（等待至下一分钟窗口，支持中断）
-          if (this.aborted) {
-            this.handleAbort();
-            return;
-          }
-          await this.enforceRateLimit(approvedToolCalls.length);
-          if (this.aborted) {
-            this.handleAbort();
-            return;
-          }
-
-          // Phase 3：并行执行已批准的工具
-          const maxResultTokens = this.config.maxToolResultTokens ?? 2000;
-          const executedResults = approvedToolCalls.length > 0
-            ? await this.deps.toolExecutor.executeAll(approvedToolCalls, ctx)
-            : [];
-
-          // P1-D：记录工具调用时间戳（用于频率限制统计）
-          this.recordToolCallTimestamps(approvedToolCalls.length);
-
-          // Phase 4：按原始 toolCalls 顺序回灌结果（保持 LLM 可读性）
-          // 合并已执行结果和被拒绝结果，按原始顺序输出
-          const resultMap = new Map<string, ToolResult>();
-          for (const { toolCall, result } of executedResults) {
-            resultMap.set(toolCall.id, result);
-          }
-          for (const { toolCall, result } of rejectedResults) {
-            resultMap.set(toolCall.id, result);
-          }
-
-          // 构建被拒绝工具 ID 集合（用于审计日志状态判定）
-          const rejectedIds = new Set(rejectedResults.map((r) => r.toolCall.id));
-
-          for (const tc of toolCalls) {
-            const result = resultMap.get(tc.id);
-            if (!result) continue;
-            // 截断过大的工具结果（仅影响传给 LLM 的内容，UI 收到完整结果）
-            const llmResult = this.truncateToolResult(result, maxResultTokens);
-            this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, llmResult);
-            this.callbacks.onToolResult(tc.id, result);
-
-            // 预训练数据-2：记录成功的工具调用为 few-shot（异步，不阻断循环）
-            if (result.success) {
-              let parsedArgs: Record<string, unknown> = {};
-              try {
-                parsedArgs = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
-              } catch {
-                // 参数解析失败时记录空对象
-              }
-              void recordFewShot(tc.function.name, parsedArgs, result, this.currentInput).catch(() => {});
-            }
-
-            // P1-A：记录审计日志（异步，不阻断循环，整体 try-catch 确保审计失败不影响主循环）
-            try {
-              const isRejected = rejectedIds.has(tc.id);
-              const needsConfirm = this.deps.toolExecutor.requiresConfirmation(tc);
-              const dangerLevel = this.deps.toolExecutor.getDangerLevel(tc.function.name);
-              let resultPreview: string | undefined;
-              if (result.success && result.data != null) {
-                try {
-                  resultPreview = JSON.stringify(result.data).slice(0, 500);
-                } catch {
-                  // 序列化失败时无 preview
-                }
-              }
-              void recordAudit({
-                sessionId: this.session.id,
-                toolCallId: tc.id,
-                toolName: tc.function.name,
-                iteration: i,
-                argsJson: tc.function.arguments ?? "{}",
-                status: isRejected ? "rejected" : (result.success ? "done" : "error"),
-                success: !isRejected && result.success,
-                error: result.error,
-                resultPreview,
-                durationMs: result.duration,
-                dangerLevel,
-                confirmedByUser: needsConfirm ? !isRejected : undefined,
-                // P1-B：specialist 字段填充（主 Agent=undefined，子 Agent=specialist.name）
-                specialist: this.config.specialistName,
-              }).catch(() => {});
-            } catch {
-              // 审计日志记录失败时静默，不影响主循环
-            }
-          }
-
-          // P5 断点恢复：工具执行完成后保存检查点（异步，不阻断）
-          void saveCheckpoint(this.session, {
-            toolCallsCompleted: (this.session.checkpoint?.toolCallsCompleted ?? 0) + toolCalls.length,
-          }).catch(() => {});
-
-          // 继续下一轮循环
+          if (this.aborted) { this.handleAbort(); return; }
+          const wasAborted = await this.processToolCalls(toolCalls, i);
+          if (wasAborted) { this.handleAbort(); return; }
           continue;
         }
 
-        // 无工具调用，结束循环
-        // P5 断点恢复：正常完成，清除检查点
         void clearCheckpoint(this.session.id).catch(() => {});
         return;
       } catch (e) {
-        this.llmAbortController = null;
-        this.deps.conversationManager.finishStreaming(this.session);
-        const err = e instanceof Error ? e : new Error(String(e));
-        assistantMsg.content = assistantMsg.content || `发生错误：${err.message}`;
-        // P5 断点恢复：异常时标记为中断
-        void markInterrupted(this.session.id).catch(() => {});
-        this.callbacks.onError?.(err);
+        this.handleLLMError(e, assistantMsg);
         return;
       }
     }
 
-    // 达到最大循环次数
+    this.handleMaxIterationsReached();
+  }
+
+  /** LLM 流式调用（能力自适应：generateChat → 降级 generateTextStream） */
+  private async callLLMWithFallback(
+    llmMessages: LLMMessage[],
+    accumulatedToolCalls: Map<string, ToolCall>,
+  ): Promise<{
+    result: { success: boolean; error?: string };
+    finishReason: StreamChunk["finishReason"] | undefined;
+  }> {
+    this.llmAbortController = new AbortController();
+    let finishReason: StreamChunk["finishReason"] | undefined;
+    let receivedAnyChunk = false;
+
+    const handleChunk = (chunk: StreamChunk) => {
+      receivedAnyChunk = true;
+      if (chunk.delta) {
+        this.deps.conversationManager.appendDelta(this.session, chunk.delta);
+        this.callbacks.onChunk({ delta: chunk.delta });
+      }
+      if (chunk.toolCalls) {
+        for (const tc of chunk.toolCalls) {
+          this.mergeToolCall(accumulatedToolCalls, tc);
+        }
+      }
+      if (chunk.finishReason) {
+        finishReason = chunk.finishReason;
+      }
+    };
+
+    const streamOpts = {
+      onChunk: handleChunk,
+      maxTokens: this.config.maxTokensPerTurn,
+      temperature: this.config.temperature,
+      providerId: this.config.providerId,
+      modelId: this.config.modelId,
+      tools: this.deps.toolRegistry.getToolDefs(this.config.enabledTools),
+      signal: this.llmAbortController.signal,
+    };
+
+    let result;
+    try {
+      result = await this.deps.textProvider.generateChat(llmMessages, streamOpts);
+    } catch (e) {
+      if (!receivedAnyChunk) {
+        const prompt = this.serializeMessages(llmMessages);
+        result = await this.deps.textProvider.generateTextStream(prompt, streamOpts);
+      } else {
+        throw e;
+      }
+    }
+    if (!result.success && !receivedAnyChunk) {
+      const prompt = this.serializeMessages(llmMessages);
+      result = await this.deps.textProvider.generateTextStream(prompt, streamOpts);
+    }
+    this.llmAbortController = null;
+
+    return { result, finishReason };
+  }
+
+  /** 工具调用完整处理（Phase 1-4 + 频率限制 + 审计），返回 true 表示被中止 */
+  private async processToolCalls(toolCalls: ToolCall[], iteration: number): Promise<boolean> {
+    const ctx: ToolContext = {
+      sessionId: this.session.id,
+      signal: this.callbacks.signal,
+      onProgress: () => {},
+      _confirmDangerous: this.callbacks.onConfirmationRequired,
+    };
+
+    // Phase 1：危险工具确认（串行，避免并发弹窗冲突）
+    const { approvedToolCalls, rejectedResults } = await this.confirmDangerousTools(toolCalls);
+
+    // Phase 2：通知 UI 工具调用开始
+    for (const tc of approvedToolCalls) {
+      this.callbacks.onToolCall(tc);
+    }
+
+    // P1-D：工具调用频率限制（前后检查 abort）
+    if (this.aborted) return true;
+    await this.enforceRateLimit(approvedToolCalls.length);
+    if (this.aborted) return true;
+
+    // Phase 3：并行执行已批准的工具
+    const executedResults = approvedToolCalls.length > 0
+      ? await this.deps.toolExecutor.executeAll(approvedToolCalls, ctx)
+      : [];
+    this.recordToolCallTimestamps(approvedToolCalls.length);
+
+    // Phase 4：按原始顺序回灌结果 + 审计日志
+    this.feedToolResultsBack(toolCalls, executedResults, rejectedResults, iteration);
+
+    // P5 断点恢复：工具执行完成后保存检查点
+    void saveCheckpoint(this.session, {
+      toolCallsCompleted: (this.session.checkpoint?.toolCallsCompleted ?? 0) + toolCalls.length,
+    }).catch(() => {});
+
+    return false;
+  }
+
+  /** Phase 1：危险工具确认（串行询问，拒绝则标记跳过） */
+  private async confirmDangerousTools(toolCalls: ToolCall[]): Promise<{
+    approvedToolCalls: ToolCall[];
+    rejectedResults: Array<{ toolCall: ToolCall; result: ToolResult }>;
+  }> {
+    const approvedToolCalls: ToolCall[] = [];
+    const rejectedResults: Array<{ toolCall: ToolCall; result: ToolResult }> = [];
+
+    for (const tc of toolCalls) {
+      if (this.deps.toolExecutor.requiresConfirmation(tc)) {
+        const approved = this.callbacks.onConfirmationRequired
+          ? await this.callbacks.onConfirmationRequired(tc)
+          : false;
+        if (!approved) {
+          rejectedResults.push({
+            toolCall: tc,
+            result: { success: false, error: "用户拒绝执行此操作（需要确认）", duration: 0 },
+          });
+          continue;
+        }
+      }
+      approvedToolCalls.push(tc);
+    }
+
+    return { approvedToolCalls, rejectedResults };
+  }
+
+  /** Phase 4：按原始 toolCalls 顺序回灌结果（含 few-shot 记录 + 审计日志） */
+  private feedToolResultsBack(
+    toolCalls: ToolCall[],
+    executedResults: Array<{ toolCall: ToolCall; result: ToolResult }>,
+    rejectedResults: Array<{ toolCall: ToolCall; result: ToolResult }>,
+    iteration: number,
+  ): void {
+    const maxResultTokens = this.config.maxToolResultTokens ?? 2000;
+    const resultMap = new Map<string, ToolResult>();
+    for (const { toolCall, result } of executedResults) {
+      resultMap.set(toolCall.id, result);
+    }
+    for (const { toolCall, result } of rejectedResults) {
+      resultMap.set(toolCall.id, result);
+    }
+
+    const rejectedIds = new Set(rejectedResults.map((r) => r.toolCall.id));
+
+    for (const tc of toolCalls) {
+      const result = resultMap.get(tc.id);
+      if (!result) continue;
+
+      const llmResult = this.truncateToolResult(result, maxResultTokens);
+      this.deps.conversationManager.appendToolResult(this.session, tc.id, tc.function.name, llmResult);
+      this.callbacks.onToolResult(tc.id, result);
+
+      // 预训练数据-2：记录成功的工具调用为 few-shot
+      if (result.success) {
+        this.recordFewShotFromToolCall(tc, result);
+      }
+
+      // P1-A：记录审计日志
+      this.recordToolAuditLog(tc, result, iteration, rejectedIds);
+    }
+  }
+
+  /** 记录 few-shot 示例（从工具调用中提取参数） */
+  private recordFewShotFromToolCall(tc: ToolCall, result: ToolResult): void {
+    let parsedArgs: Record<string, unknown> = {};
+    try {
+      parsedArgs = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
+    } catch {
+      // 参数解析失败时记录空对象
+    }
+    void recordFewShot(tc.function.name, parsedArgs, result, this.currentInput).catch(() => {});
+  }
+
+  /** P1-A：记录审计日志（异步，不阻断循环） */
+  private recordToolAuditLog(
+    tc: ToolCall,
+    result: ToolResult,
+    iteration: number,
+    rejectedIds: Set<string>,
+  ): void {
+    try {
+      const isRejected = rejectedIds.has(tc.id);
+      const needsConfirm = this.deps.toolExecutor.requiresConfirmation(tc);
+      const dangerLevel = this.deps.toolExecutor.getDangerLevel(tc.function.name);
+      let resultPreview: string | undefined;
+      if (result.success && result.data != null) {
+        try {
+          resultPreview = JSON.stringify(result.data).slice(0, 500);
+        } catch {
+          // 序列化失败时无 preview
+        }
+      }
+      void recordAudit({
+        sessionId: this.session.id,
+        toolCallId: tc.id,
+        toolName: tc.function.name,
+        iteration,
+        argsJson: tc.function.arguments ?? "{}",
+        status: isRejected ? "rejected" : (result.success ? "done" : "error"),
+        success: !isRejected && result.success,
+        error: result.error,
+        resultPreview,
+        durationMs: result.duration,
+        dangerLevel,
+        confirmedByUser: needsConfirm ? !isRejected : undefined,
+        specialist: this.config.specialistName,
+      }).catch(() => {});
+    } catch {
+      // 审计日志记录失败时静默，不影响主循环
+    }
+  }
+
+  /** 处理总执行时间超限 */
+  private handleTotalDurationExceeded(): void {
+    const timeoutMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
+    const maxMinutes = Math.floor((this.config.maxTotalDurationMs ?? 0) / 60000);
+    timeoutMsg.content = t("agent.totalDurationExceeded", { minutes: maxMinutes });
+    this.deps.conversationManager.finishStreaming(this.session);
+    void markInterrupted(this.session.id).catch(() => {});
+  }
+
+  /** 处理达到最大循环次数 */
+  private handleMaxIterationsReached(): void {
     const limitMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
     limitMsg.content = t("agent.maxIterationsReached", { count: this.config.maxIterations });
     this.deps.conversationManager.finishStreaming(this.session);
-    // P5 断点恢复：达到最大循环次数，标记为中断（未正常完成）
     void markInterrupted(this.session.id).catch(() => {});
     void limitMsg;
+  }
+
+  /** 处理 LLM 调用失败（返回 success=false） */
+  private handleLLMFailure(errorMsg: string, assistantMsg: { content: string }): void {
+    this.deps.conversationManager.finishStreaming(this.session);
+    assistantMsg.content = assistantMsg.content || `调用失败：${errorMsg}`;
+    void markInterrupted(this.session.id).catch(() => {});
+    this.callbacks.onError?.(new Error(errorMsg));
+  }
+
+  /** 处理 LLM 调用异常（throw） */
+  private handleLLMError(e: unknown, assistantMsg: { content: string }): void {
+    this.llmAbortController = null;
+    this.deps.conversationManager.finishStreaming(this.session);
+    const err = e instanceof Error ? e : new Error(String(e));
+    assistantMsg.content = assistantMsg.content || `发生错误：${err.message}`;
+    void markInterrupted(this.session.id).catch(() => {});
+    this.callbacks.onError?.(err);
   }
 
   /** 合并增量工具调用（OpenAI 流式返回可能分块） */

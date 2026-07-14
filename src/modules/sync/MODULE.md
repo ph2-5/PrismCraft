@@ -26,15 +26,7 @@
 | `performSync` | `() → Promise<SyncPushResult & SyncPullResult>` | 执行同步（推送+拉取） |
 | `getSyncStatus` | `() → Promise<SyncStatusInfo>` | 获取当前同步状态（异步，因 getDeviceId 已异步化） |
 | `updateSyncConfig` | `(config: Partial<SyncConfig>) → void` | 更新同步配置 |
-| `getSyncConfig` | `() → SyncConfig` | 获取同步配置 |
 | `setConflictCallback` | `(cb: (conflict: SyncConflict) => Promise<ConflictStrategy>) → void` | 设置冲突回调 |
-| `recordChange` | `(entityType: SyncEntityType, entityId: string, operation: ChangeOperation, data?: Record<string, unknown>) → Promise<void>` | 记录变更（异步） |
-| `compareVectorClocks` | `(a: VectorClock, b: VectorClock) → -1 \| 0 \| 1` | 比较向量时钟 |
-| `mergeVectorClocks` | `(a: VectorClock, b: VectorClock) → VectorClock` | 合并向量时钟 |
-| `createVectorClock` | `(deviceId: string) → VectorClock` | 创建向量时钟 |
-| `incrementVectorClock` | `(clock: VectorClock, deviceId: string) → VectorClock` | 递增向量时钟 |
-| `isVectorClockConflict` | `(a: VectorClock, b: VectorClock) → boolean` | 检测向量时钟冲突 |
-| `DEFAULT_SYNC_CONFIG` | `SyncConfig` | 默认同步配置 |
 | `SyncEntityType` | `type` | 同步实体类型 |
 | `ChangeOperation` | `type` | 变更操作类型 |
 | `SyncChangeLogEntry` | `type` | 同步变更日志条目 |
@@ -52,9 +44,33 @@
 
 | API | 签名 | 说明 |
 |-----|------|------|
-| `SyncConflictPanel` | `React.FC<SyncConflictPanelProps>` | 冲突解决面板（本地/远程/合并三种方式） |
 | `SyncSettingsPanel` | `React.FC<SyncSettingsPanelProps>` | 同步设置面板 |
-| `SyncStatusIndicator` | `React.FC` | 同步状态指示器 |
+
+---
+
+## 子域 API（非顶层导出）
+
+> 以下 API 仍存在于子域内部文件，但已从模块顶层 barrel (`index.ts`) 移除，不再属于模块公共 API。仅子域内部使用。
+
+### engine 子域（非顶层导出）
+
+| API | 签名 | 说明 | 实际位置 |
+|-----|------|------|----------|
+| `getSyncConfig` | `() → SyncConfig` | 获取同步配置 | `engine/engine.ts` |
+| `recordChange` | `(entityType: SyncEntityType, entityId: string, operation: ChangeOperation, data?: Record<string, unknown>) → Promise<void>` | 记录变更（异步） | `engine/changelog.ts` |
+| `compareVectorClocks` | `(a: VectorClock, b: VectorClock) → -1 \| 0 \| 1` | 比较向量时钟 | `@/domain/types/sync.ts` |
+| `mergeVectorClocks` | `(a: VectorClock, b: VectorClock) → VectorClock` | 合并向量时钟 | `@/domain/types/sync.ts` |
+| `createVectorClock` | `(deviceId: string) → VectorClock` | 创建向量时钟 | `@/domain/types/sync.ts` |
+| `incrementVectorClock` | `(clock: VectorClock, deviceId: string) → VectorClock` | 递增向量时钟 | `@/domain/types/sync.ts` |
+| `isVectorClockConflict` | `(a: VectorClock, b: VectorClock) → boolean` | 检测向量时钟冲突 | `@/domain/types/sync.ts` |
+| `DEFAULT_SYNC_CONFIG` | `SyncConfig` | 默认同步配置 | `engine/types.ts` |
+
+### presentation 子域（非顶层导出）
+
+| API | 签名 | 说明 | 实际位置 |
+|-----|------|------|----------|
+| `SyncConflictPanel` | `React.FC<SyncConflictPanelProps>` | 冲突解决面板（本地/远程/合并三种方式）；仍被 `SyncSettingsPanel` 内部使用 | `presentation/SyncConflictPanel.tsx` |
+| `SyncStatusIndicator` | `React.FC` | 同步状态指示器 | `presentation/SyncStatusIndicator.tsx` |
 
 ---
 

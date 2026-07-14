@@ -28,9 +28,7 @@
 - `checkVisualConsistency` — 评估分镜生成结果的视觉一致性评分
 - `performConfigCheck` — 执行生成配置检查
 - `validateFeatureAnchoringConfig` — 验证特征锚定配置有效性
-- `validateFeatureAnchoringConfigFull` — 特征锚定配置完整验证（别名导出）
 - `validateNoFrameBinding` — 验证无帧绑定参数
-- `validateNoFrameBindingParams` — 无帧绑定参数验证（别名导出）
 - `parseConsistencyAnalysisFromStructured` — 从结构化输出解析一致性分析结果
 - Type: `ConsistencyCheckInput`
 

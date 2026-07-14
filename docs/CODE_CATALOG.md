@@ -224,7 +224,7 @@ prismcraft-source-code/
 | `services/` | `transactional-delete.ts` | 事务性级联删除（数据库记录 + 本地文件清理） |
 
 **公共 API 导出** (`index.ts`):
-- Hooks：`useAutoSave`, `usePersistenceGuard`
+- Hooks：`useAutoSave`
 - 服务：`deleteCharacterWithRefs`, `deleteSceneWithRefs`
 
 ---
@@ -360,11 +360,11 @@ prismcraft-source-code/
 | | `presentation/PromptFloatingBall.tsx` | 提示词浮动球 |
 
 **公共 API 导出** (`index.ts`):
-- 规划：`storyService`, `useStoryPlanner`, `useStories`, `useStory`, `useStoryCount`, `useCreateStory`, `useUpdateStory`, `useDeleteStory`, `DEFAULT_STORY`, `genres`, `tones`, `beatTypes`, `useStorySaver`, `CreationMode`, `QuickInputMode`, `PlaceholderBinding`, `QuickStoryData`
+- 规划：`storyService`, `useStoryPlanner`, `useStories`, `useStory`, `useCreateStory`, `useUpdateStory`, `useDeleteStory`, `DEFAULT_STORY`, `genres`, `tones`, `beatTypes`, `useStorySaver`, `CreationMode`
 - 引用解析：`resolveCharacterRef`, `resolveCharacterRefs`, `resolveSceneRef`
-- 生成：`useAIGeneratorBase`, `useKeyframeGenerator`, `useFramePairGenerator`, `useVideoGenerator`, `useBatchGenerator`, `useUploadHandlers`, `ShotGenerationPanel`, `KeyframePanel`, `KeyframeChainVisualizer`, `PromptPreview`, `ShotReferenceConfig`, `ReferenceVideoUploader`, `generateBeatKeyframe`, `generateBeatFramePair`, `generateBeatVideo`, `generateBeatFullWorkflow`, `generateKeyframeChain`, `generateFramePairChain`, `determineVideoGenerationMode`, `generateFramePrompts`, `batchGenerateFramePrompts`, `generateStyleGuide`, `generateStylePromptOnly`, `AIGeneratorBaseProps`, `ResolvedRefs`, `VideoGenerationMode`, `BatchStrategy`, `GenerationLevel`, `BatchOptions`, `BatchResult`
+- 生成：`useAIGeneratorBase`, `useKeyframeGenerator`, `useFramePairGenerator`, `useVideoGenerator`, `useBatchGenerator`, `useUploadHandlers`, `ShotGenerationPanel`, `KeyframePanel`, `KeyframeChainVisualizer`, `PromptPreview`, `ShotReferenceConfig`, `ReferenceVideoUploader`, `generateBeatKeyframe`, `generateBeatFramePair`, `generateBeatVideo`, `generateBeatFullWorkflow`, `generateKeyframeChain`, `determineVideoGenerationMode`, `generateFramePrompts`, `batchGenerateFramePrompts`, `generateStyleGuide`, `AIGeneratorBaseProps`, `ResolvedRefs`, `VideoGenerationMode`, `BatchStrategy`, `GenerationLevel`, `BatchOptions`, `BatchResult`
 - 分镜编辑：`useStoryState`, `useAssetLoader`, `BeatDetailEditor`, `BeatOverviewCard`, `SortableBeatList`, `ElementBindingPanel`, `ProfessionalModeEditor`
-- 模板：`TemplateManagerDialog`, `VersionDialog`, `AssetPicker`, `StoryboardTemplate`, `StoryboardTemplateBeat`, `createTemplateFromBeats`, `applyTemplateToBeats`, `exportTemplateToFile`, `importTemplateFromFile`, `restoreVersion`, `formatVersionTime`, `saveVersion`, `getVersions`, `deleteVersion`, `cleanupVersions`, `getVersionStats`, `compareVersions`, `StoryVersion`, `getRecommendedTemplates`, `applyTemplate`, `StoryTemplate`
+- 模板：`TemplateManagerDialog`, `VersionDialog`, `AssetPicker`, `StoryboardTemplate`, `StoryboardTemplateBeat`, `createTemplateFromBeats`, `applyTemplateToBeats`, `exportTemplateToFile`, `importTemplateFromFile`, `restoreVersion`, `formatVersionTime`, `saveVersion`, `getVersions`, `deleteVersion`, `cleanupVersions`, `getVersionStats`, `StoryVersion`, `getRecommendedTemplates`, `applyTemplate`, `StoryTemplate`
 - 提示词编辑：`generatePromptWithAI`, `buildDefaultPrompt`, `usePromptEditor`, `PromptEditor`, `PromptFloatingBall`, `PromptEditorContext`, `PromptEditorRequest`, `PromptEditorResult`
 
 ---
@@ -394,10 +394,9 @@ prismcraft-source-code/
 | | `ConflictResolutionSection.tsx` | 冲突解决区域 |
 
 **公共 API 导出** (`index.ts`):
-- 引擎：`initSyncEngine`, `performSync`, `getSyncStatus`, `updateSyncConfig`, `getSyncConfig`, `setConflictCallback`, `recordChange`
+- 引擎：`initSyncEngine`, `performSync`, `getSyncStatus`, `updateSyncConfig`, `setConflictCallback`
 - 类型：`SyncEntityType`, `ChangeOperation`, `SyncChangeLogEntry`, `VectorClock`, `SyncStatus`, `SyncConflict`, `ConflictStrategy`, `SyncConfig`, `SyncStatusInfo`, `SyncPushResult`, `SyncPullResult`, `RemoteChange`
-- 向量时钟：`compareVectorClocks`, `mergeVectorClocks`, `createVectorClock`, `incrementVectorClock`, `isVectorClockConflict`, `DEFAULT_SYNC_CONFIG`
-- 组件：`SyncConflictPanel`, `SyncSettingsPanel`, `SyncStatusIndicator`
+- 组件：`SyncSettingsPanel`
 
 ---
 

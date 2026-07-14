@@ -3,7 +3,7 @@
 
 ## 模块概述
 
-持久化守护模块，负责自动保存（带重试限制与最小间隔）、持久化守护（防止数据丢失）、事务性级联删除（数据库记录 + 本地文件同步清理）。本模块是数据安全的核心保障层。
+持久化模块，负责自动保存（带重试限制与最小间隔）、事务性级联删除（数据库记录 + 本地文件同步清理）。本模块是数据安全的核心保障层。
 
 ---
 
@@ -11,7 +11,7 @@
 
 | 子域 | 路径 | 职责 |
 |------|------|------|
-| `hooks` | [hooks/](./hooks/) | useAutoSave（自动保存）、usePersistenceGuard（持久化守护） |
+| `hooks` | [hooks/](./hooks/) | useAutoSave（自动保存） |
 | `services` | [services/](./services/) | transactionalDelete（级联删除 + 本地文件清理） |
 
 ---
@@ -23,7 +23,6 @@
 | API | 签名 | 说明 |
 |-----|------|------|
 | `useAutoSave` | `(options: UseAutoSaveOptions & { isDirty?: () => boolean }) → { triggerSave }` | 自动保存 hook，带重试限制（MAX_RETRY=3）和最小间隔（MIN_INTERVAL=0.5min），支持 isDirty 检查跳过无变更保存 |
-| `usePersistenceGuard` | `() → { guardedSave }` | 持久化守护，防止数据丢失，带重试限制（MAX_RETRY=3） |
 
 ### services 子域
 
@@ -55,7 +54,7 @@ hooks ← @/domain/types/result, @/shared/utils/toast-bridge
 ```
 
 - `services`：底层子域，提供事务性删除等持久化核心服务
-- `hooks`：上层 React hooks 子域，提供自动保存和持久化守护
+- `hooks`：上层 React hooks 子域，提供自动保存
 
 ---
 
@@ -73,7 +72,6 @@ hooks ← @/domain/types/result, @/shared/utils/toast-bridge
 
 - **INV-1**：自动保存有 `MAX_RETRY` 限制（3 次），超过后停止重试并通过 `emitToast` 通知用户
 - **INV-2**：自动保存有 `MIN_INTERVAL` 限制（0.5 分钟），防止过于频繁的写入
-- **INV-3**：`usePersistenceGuard` 的 `cancelledRef` 防止组件卸载后继续保存
 - **INV-4**：`deleteCharacterWithRefs` / `deleteSceneWithRefs` 在删除时同步清理本地图片文件
 - **INV-5**：事务性删除使用 `safeTransaction` 保证原子性，所有 DELETE/UPDATE 语句在同一事务中执行
 - **INV-6**：`useAutoSave` 使用 `savingRef` + `pendingRef` 防止并发保存，保存中的请求会被标记为 pending 后续执行

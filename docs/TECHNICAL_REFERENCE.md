@@ -1626,15 +1626,14 @@ UI 组件子域。
 | Hook | 说明 |
 |------|------|
 | `useAutoSave` | 自动保存, 定期保存未提交的变更 |
-| `usePersistenceGuard` | 持久化守卫, 防止数据丢失 |
 
 #### 公共 API
 
 | 导出 | 类型 | 说明 |
 |------|------|------|
 | `useAutoSave` | Hook | 自动保存 Hook |
-| `usePersistenceGuard` | Hook | 持久化守卫 Hook |
-| `transactionalDelete` | Service | 事务性删除 |
+| `deleteCharacterWithRefs` | Service | 事务性删除角色（含文件清理） |
+| `deleteSceneWithRefs` | Service | 事务性删除场景（含文件清理） |
 
 ### 4.10 模块总览
 

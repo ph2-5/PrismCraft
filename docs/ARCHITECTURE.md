@@ -336,7 +336,7 @@ domain → NOTHING（纯类型）
 
 | 子域 | 职责 |
 |------|------|
-| hooks | useAutoSave、usePersistenceGuard |
+| hooks | useAutoSave |
 | services | transactionalDelete（级联删除+文件清理） |
 
 **关键设计决策**：
@@ -351,7 +351,7 @@ domain → NOTHING（纯类型）
 
 5. **事务性删除同步清理本地文件**：`deleteCharacterWithRefs` 和 `deleteSceneWithRefs` 不仅删除数据库记录，还同步清理本地图片文件。如果只删除数据库记录而保留文件，磁盘空间会逐渐被孤立文件占满。这个设计是回归防护 R2（删除必须级联）的实现。
 
-**边界约束**：自动保存有 MAX_RETRY（3 次）和 MIN_INTERVAL（1 秒）限制。`usePersistenceGuard` 的 `cancelledRef` 防止组件卸载后继续保存。`BeforeUnloadGuard` 仅在浏览器关闭时守卫，路由切换不清除脏状态——路由切换是用户可控的操作，不应隐式丢弃未保存修改的提醒。
+**边界约束**：自动保存有 MAX_RETRY（3 次）和 MIN_INTERVAL（1 秒）限制。`BeforeUnloadGuard` 仅在浏览器关闭时守卫，路由切换不清除脏状态——路由切换是用户可控的操作，不应隐式丢弃未保存修改的提醒。
 
 ## 五、依赖注入体系
 

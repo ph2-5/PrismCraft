@@ -533,6 +533,8 @@ function useAutoSave(options: UseAutoSaveOptions): {
 
 #### `usePersistenceGuard`
 
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
+
 ```typescript
 function usePersistenceGuard(): {
   guardedSave: (saveFn: () => Promise<void>) => Promise<void>;
@@ -562,12 +564,6 @@ function deleteSceneWithRefs(sceneId: string): Promise<Result<void>>;
 | 导出名 | 类型 | 签名 | 说明 |
 |--------|------|------|------|
 | `useAutoSave` | Hook | `(options: { data: unknown; saveFn: (data: unknown) => Promise<void>; intervalMs?: number; enabled?: boolean }) => { lastSavedAt: Date | null; isSaving: boolean; saveNow: () => Promise<void> }` | 自动保存 Hook |
-
-#### hooks/use-persistence-guard.ts
-
-| 导出名 | 类型 | 签名 | 说明 |
-|--------|------|------|------|
-| `usePersistenceGuard` | Hook | `(options: { hasUnsavedChanges: boolean; onSave: () => Promise<void>; onDiscard?: () => void }) => { isGuardActive: boolean; confirmNavigation: () => Promise<boolean> }` | 持久化守卫 Hook（防止未保存数据丢失） |
 
 #### services/transactional-delete.ts
 
@@ -1645,6 +1641,8 @@ function useStory(id: string): UseQueryResult<Story>;
 
 #### `useStoryCount`
 
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
+
 ```typescript
 function useStoryCount(): UseQueryResult<number>;
 ```
@@ -2010,6 +2008,8 @@ function generateKeyframeChain(beats: StoryBeat[], deps: ProviderDeps): Promise<
 
 #### `generateFramePairChain`
 
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
+
 ```typescript
 function generateFramePairChain(beats: StoryBeat[], deps: ProviderDeps): Promise<Result<StoryBeat[]>>;
 // 批量生成首尾帧链
@@ -2062,6 +2062,8 @@ function generateStyleGuide(input: StyleGuideInput): Promise<Result<StoryStyleGu
 ```
 
 #### `generateStylePromptOnly`
+
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
 
 ```typescript
 function generateStylePromptOnly(input: StyleGuideInput): Promise<Result<string>>;
@@ -2290,6 +2292,8 @@ function getVersionStats(storyId: string): Promise<Result<{ count: number; total
 ```
 
 #### `compareVersions`
+
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
 
 ```typescript
 function compareVersions(v1: StoryVersion, v2: StoryVersion): { added: number; removed: number; modified: number };
@@ -2541,7 +2545,6 @@ function PromptFloatingBall(props: React.ComponentProps<typeof PromptFloatingBal
 | 导出名 | 类型 | 签名 | 说明 |
 |--------|------|------|------|
 | `generateKeyframeChain` | 函数 | `(beats: StoryBeat[], characters: Character[], scenes: Scene[]) => Promise<Result<StoryBeat[]>>` | 生成关键帧链（连续分镜的关键帧） |
-| `generateFramePairChain` | 函数 | `(beats: StoryBeat[], characters: Character[], scenes: Scene[]) => Promise<Result<StoryBeat[]>>` | 生成首尾帧链 |
 
 #### generation/services/beat-frame-generator.ts
 
@@ -2575,7 +2578,6 @@ function PromptFloatingBall(props: React.ComponentProps<typeof PromptFloatingBal
 | 导出名 | 类型 | 签名 | 说明 |
 |--------|------|------|------|
 | `generateStyleGuide` | 函数 | `(story: Story, characters: Character[], scenes: Scene[]) => Promise<Result<StyleGuide>>` | 生成风格指南 |
-| `generateStylePromptOnly` | 函数 | `(story: Story) => string` | 仅生成风格提示词 |
 
 #### generation/services/video-generation-mode.ts
 
@@ -2656,7 +2658,6 @@ function PromptFloatingBall(props: React.ComponentProps<typeof PromptFloatingBal
 | `deleteVersion` | 函数 | `(_storyId: string, versionId: string) => Promise<Result<void>>` | 删除指定版本 |
 | `cleanupVersions` | 函数 | `(storyId: string, keepCount?: number) => Promise<Result<void>>` | 清理旧版本 |
 | `getVersionStats` | 函数 | `(storyId: string) => Promise<Result<{ total: number; autoSaved: number; manualSaved: number; oldestVersion: number \| null; newestVersion: number \| null }>>` | 获取版本统计信息 |
-| `compareVersions` | 函数 | `(v1: StoryVersion, v2: StoryVersion) => { beatsAdded: number; beatsRemoved: number; beatsModified: number; durationChanged: number; charactersChanged: boolean; scenesChanged: boolean }` | 比较两个版本差异 |
 | `formatVersionTime` | 函数 | `(timestamp: number) => string` | 格式化版本时间为可读字符串 |
 
 #### template/story-templates.ts
@@ -2722,6 +2723,8 @@ function setConflictCallback(callback: ((conflicts: SyncConflict[]) => void) | n
 ### 8.2 变更日志
 
 #### `recordChange`
+
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
 
 ```typescript
 function recordChange(
@@ -2854,12 +2857,16 @@ interface RemoteChange {
 
 #### `createVectorClock`
 
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
+
 ```typescript
 function createVectorClock(deviceId: string): VectorClock;
 // 创建初始向量时钟
 ```
 
 #### `incrementVectorClock`
+
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
 
 ```typescript
 function incrementVectorClock(clock: VectorClock, deviceId: string): VectorClock;
@@ -2868,6 +2875,8 @@ function incrementVectorClock(clock: VectorClock, deviceId: string): VectorClock
 
 #### `mergeVectorClocks`
 
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
+
 ```typescript
 function mergeVectorClocks(a: VectorClock, b: VectorClock): VectorClock;
 // 合并两个向量时钟（取每个键的最大值）
@@ -2875,12 +2884,16 @@ function mergeVectorClocks(a: VectorClock, b: VectorClock): VectorClock;
 
 #### `compareVectorClocks`
 
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
+
 ```typescript
-function compareVectorClocks(a: VectorClock, b: VectorClock): "before" | "after" | "concurrent" | "equal";
-// 比较两个向量时钟的先后关系
+function compareVectorClocks(a: VectorClock, b: VectorClock): number;
+// 比较两个向量时钟的先后关系：-1: a<b, 0: 并发, 1: a>b
 ```
 
 #### `isVectorClockConflict`
+
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
 
 ```typescript
 function isVectorClockConflict(a: VectorClock, b: VectorClock): boolean;
@@ -2888,6 +2901,8 @@ function isVectorClockConflict(a: VectorClock, b: VectorClock): boolean;
 ```
 
 #### `DEFAULT_SYNC_CONFIG`
+
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
 
 ```typescript
 const DEFAULT_SYNC_CONFIG: SyncConfig;
@@ -2897,6 +2912,8 @@ const DEFAULT_SYNC_CONFIG: SyncConfig;
 ### 8.5 组件
 
 #### `SyncConflictPanel`
+
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
 
 ```typescript
 function SyncConflictPanel(props: React.ComponentProps<typeof SyncConflictPanel>): JSX.Element;
@@ -2911,6 +2928,8 @@ function SyncSettingsPanel(props: React.ComponentProps<typeof SyncSettingsPanel>
 ```
 
 #### `SyncStatusIndicator`
+
+> ⚠️ **已从顶层 barrel 移除** — 仅子域内部使用，不再属于模块公共 API。
 
 ```typescript
 interface SyncStatusIndicatorProps {

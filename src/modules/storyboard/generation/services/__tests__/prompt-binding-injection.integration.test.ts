@@ -73,6 +73,7 @@ const imageProvider = {
 const textProvider = {
   generateText: vi.fn(),
   generateTextStream: vi.fn(),
+  generateChat: vi.fn(),
 } as ITextProvider;
 
 describe("prompt 绑定注入集成测试", () => {
@@ -90,7 +91,7 @@ describe("prompt 绑定注入集成测试", () => {
     }, providers);
 
     expectOk(result);
-    const call = (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const call = (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     // 绑定指令应注入到 prompt 前面
     expect(call.content).toContain("关键要求");
     expect(call.content).toContain("角色参考图");
@@ -110,7 +111,7 @@ describe("prompt 绑定注入集成测试", () => {
     }, providers);
 
     expectOk(result);
-    const call = (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const call = (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(call.content).toContain("场景环境");
     expect(call.content).toContain("场景参考图");
     expect(call.content).toContain("一个女孩走在街上");
@@ -128,7 +129,7 @@ describe("prompt 绑定注入集成测试", () => {
     }, providers);
 
     expectOk(result);
-    const call = (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const call = (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(call.content).toContain("角色参考图");
     expect(call.content).toContain("场景参考图");
     expect(call.content).toContain("一个女孩走在街上");
@@ -147,7 +148,7 @@ describe("prompt 绑定注入集成测试", () => {
     }, providers);
 
     expectOk(result);
-    const call = (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const call = (videoProvider.generateKeyframe as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(call.content).toBe("一个女孩走在街上");
     expect(call.content).not.toContain("关键要求");
     expect(call.content).not.toContain("角色参考图");

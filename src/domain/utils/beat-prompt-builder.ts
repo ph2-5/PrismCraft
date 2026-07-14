@@ -151,11 +151,15 @@ export function generateBeatImagePrompt(params: BeatImagePromptParams): string {
 
   parts.push(...buildSceneSection(beat, scenes));
 
-  if (isEnhanced) {
+  const hasEnhancedElements = isEnhanced && beat.sceneElements && beat.sceneElements.length > 0;
+  if (hasEnhancedElements) {
     parts.push(...buildEnhancedElementsSection(beat, characters));
-    parts.push(...buildResolvedShotSection(beat));
   } else {
     parts.push(...buildCharacterSection(beat, characters));
+  }
+
+  if (isEnhanced) {
+    parts.push(...buildResolvedShotSection(beat));
   }
 
   const contentPart = beat.content || beat.description || "";

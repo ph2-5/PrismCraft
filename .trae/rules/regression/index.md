@@ -57,8 +57,8 @@
 
 | 规则 | 主题 | 分类 | 测试文件 |
 |------|------|------|---------|
-| R154 | `useAssetLoader` 必须使用 `Promise.all` 并发加载角色/场景/分镜资产，禁止顺序 await | 工程质量 | `src/modules/story/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts` |
-| R155 | `StoryProvider` 传入 `useAssetLoader` 的 services 对象必须用 `useMemo(..., [])` 包裹，保证引用稳定 | 工程质量 | `src/app/story/__tests__/regression-r155-story-provider-services-memo.test.tsx` |
+| R154 | `useAssetLoader` 必须使用 `Promise.all` 并发加载角色/场景/分镜资产，禁止顺序 await | 工程质量 | `src/modules/storyboard/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts` |
+| R155 | `StoryProvider` 传入 `useAssetLoader` 的 services 对象必须用 `useMemo(..., [])` 包裹，保证引用稳定 | 工程质量 | `src/modules/storyboard/__tests__/regression-r155-story-provider-services-memo.test.tsx` |
 | R156 | `useVideoTasksPage` 统计必须用 `useMemo` 单次遍历计算，timeout/retrying/cancelled 正确分类（timeout/cancelled→failed, retrying→processing） | 工程质量 | `src/app/video-tasks/hooks/__tests__/regression-r156-tasks-stats-memo.test.ts` |
 | R157 | `video-cache` 大小常量在 infrastructure/services 两层必须一致（均 = 10GB） | 数据一致性 | `src/infrastructure/storage/__tests__/regression-r157-video-cache-limits-consistency.test.ts` |
 
@@ -91,7 +91,7 @@
 | R171 | 表单控件必须有 label 关联（htmlFor 或 aria-label） | UI 健壮性 | `src/app/__tests__/regression-r171-form-label-association.test.tsx` |
 | R172 | 进度条必须有 role="progressbar" + aria-valuenow/min/max | UI 健壮性 | `src/modules/asset/presentation/__tests__/regression-r172-progressbar-role.test.tsx` |
 | R173 | 动态状态变化必须有 aria-live（role="status"） | UI 健壮性 | `src/modules/asset/presentation/__tests__/regression-r173-aria-live.test.tsx` |
-| R174 | 装饰性 emoji 必须 aria-hidden="true" | UI 健壮性 | `src/modules/story/beat-editor/presentation/__tests__/regression-r174-emoji-aria-hidden.test.tsx` |
+| R174 | 装饰性 emoji 必须 aria-hidden="true" | UI 健壮性 | `src/modules/storyboard/beat-editor/presentation/__tests__/regression-r174-emoji-aria-hidden.test.tsx` |
 | R175 | throw Error 必须用 t() 国际化（用户可见错误） | 工程质量 | `src/__tests__/lib/regression-r175-throw-error-i18n.test.ts` |
 | R176 | 数据常量层双用途字段（value + labelKey） | 工程质量 | `src/modules/character/__tests__/regression-r176-data-constant-labelkey.test.ts` |
 | R177 | DOM 操作必须用 useRef（禁止 document.getElementById） | 工程质量 | `src/app/quick-generate/__tests__/regression-r177-dom-use-ref.test.tsx` |
@@ -111,7 +111,7 @@
 | R184 | `VideoTasksPage` statusFilter 与刷新按钮必须实际绑定（value/onChange/onClick） | UI 健壮性 | `src/app/video-tasks/hooks/__tests__/regression-r184-status-filter-and-refresh.test.ts` |
 | R185 | `AssetUploadSection` 拖拽 handlers 不能为空 stub，需支持键盘 | UI 健壮性 | `src/app/asset-library/__tests__/regression-r185-upload-drop-zone.test.tsx` |
 | R186 | `DeleteConfirmDialog` 有引用时 confirm 按钮必须 disabled | UI 健壮性 | `src/shared/presentation/__tests__/regression-r186-delete-dialog-disable-on-referenced.test.tsx` |
-| R187 | `useBeatDetail` 必须用 Zustand selector 订阅，禁止自定义 setInterval 轮询 | 异步安全 | `src/app/story/beat/$beatId/__tests__/regression-r187-no-setinterval-polling.test.ts` |
+| R187 | `useBeatDetail` 必须用 Zustand selector 订阅，禁止自定义 setInterval 轮询 | 异步安全 | `src/modules/storyboard/beat/$beatId/__tests__/regression-r187-no-setinterval-polling.test.ts` |
 | R188 | `network-monitor` 顶层副作用必须延迟到 startMonitoring() | 工程质量 | `src/infrastructure/network/__tests__/regression-r188-no-top-level-side-effects.test.ts` |
 | R189 | `video-cache` beforeunload 注册必须延迟到 registerObjectUrl() | 工程质量 | `src/infrastructure/storage/__tests__/regression-r189-no-top-level-beforeunload.test.ts` |
 | R190 | SSRF Guard 在 c-ares (dns.resolve4/6) 返回空时必须回退到 dns.lookup（系统 DNS），仍检查私有 IP | 系统安全 | — |

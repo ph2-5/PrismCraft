@@ -3,7 +3,7 @@ import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "..
 import { captureConsoleErrors } from "../helpers/console-errors";
 
 // 注意：/story 路由映射到 ComingSoon 占位页（src/app/coming-soon/StoryPage.tsx），
-// 而非完整故事编辑器。完整故事编辑器在 /storyboard 路由（src/app/story/page.tsx）。
+// 而非完整故事编辑器。完整故事编辑器在 /storyboard 路由（src/modules/storyboard/page.tsx）。
 const MAIN_PAGES = [
   { path: "/story", name: "Story (ComingSoon placeholder)" },
   { path: "/characters", name: "Characters" },

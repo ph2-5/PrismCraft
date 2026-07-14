@@ -1424,12 +1424,12 @@ When a module is always needed and has no circular dependency risk, it MUST use 
 
 **BAD**:
 ```typescript
-const { storyService } = await import("@/modules/story");
+const { storyService } = await import("@/modules/storyboard");
 ```
 
 **GOOD**:
 ```typescript
-import { storyService } from "@/modules/story";
+import { storyService } from "@/modules/storyboard";
 ```
 
 ### R27: DDD Layer Violations in App Layer Must Use DI Container
@@ -3372,7 +3372,7 @@ return {
 
 ### R127: Persistence Operations MUST Be Debounced
 
-`useStoryPersistence` in `src/app/story/useStoryPersistence.ts` MUST debounce `updateVideoUrls` (500ms) to merge rapid successive changes. This prevents concurrent persistence race conditions. On unmount, the debounce timer MUST be cleared.
+`useStoryPersistence` in `src/modules/storyboard/useStoryPersistence.ts` MUST debounce `updateVideoUrls` (500ms) to merge rapid successive changes. This prevents concurrent persistence race conditions. On unmount, the debounce timer MUST be cleared.
 
 **BAD** — No debounce, concurrent persistence race:
 ```typescript
@@ -3399,7 +3399,7 @@ useEffect(() => {
 
 **Verification**: Use fake timers. Trigger multiple rapid changes. Verify `updateVideoUrls` called once after 500ms. Verify unmount clears timer.
 
-**Discovered in**: Story persistence audit found concurrent writes causing race conditions. Test: `src/app/story/__tests__/regression-r127-persistence-debounce.test.ts`.
+**Discovered in**: Story persistence audit found concurrent writes causing race conditions. Test: `src/modules/storyboard/__tests__/regression-r127-persistence-debounce.test.ts`.
 
 ### R128: IPC Handlers MUST Validate Input
 
@@ -4126,7 +4126,7 @@ const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
 
 ### R187: useBeatDetail MUST Subscribe via Zustand Selector, NOT Custom setInterval Polling
 
-`useBeatDetail` in `src/app/story/beat/$beatId/use-beat-detail.ts` MUST subscribe to the video task via `useVideoTaskStore((s) => s.allTasks.find((t) => t.beatId === beatId))` selector. The polling-engine is the single source of truth for task status updates. Custom `setInterval` polling in hooks is forbidden because it duplicates the polling-engine's work, wastes API quota, and can desynchronize from the store.
+`useBeatDetail` in `src/modules/storyboard/beat/$beatId/use-beat-detail.ts` MUST subscribe to the video task via `useVideoTaskStore((s) => s.allTasks.find((t) => t.beatId === beatId))` selector. The polling-engine is the single source of truth for task status updates. Custom `setInterval` polling in hooks is forbidden because it duplicates the polling-engine's work, wastes API quota, and can desynchronize from the store.
 
 **BAD** — Custom 5s setInterval, duplicates polling-engine:
 ```typescript
@@ -4156,7 +4156,7 @@ export function useBeatDetail() {
 
 **Verification**: Spy on `global.setInterval`. Render the hook with mocked `useVideoTaskStore`. Verify `setInterval` is NEVER called. Verify `useVideoTaskStore` is called with a selector function. Call the selector with a state containing matching `beatId` — verify it returns the right task.
 
-**Discovered in**: P0 fix audit found `useBeatDetail` ran a custom 5-second `setInterval` polling task status, duplicating polling-engine work and causing double API calls. Test: `src/app/story/beat/$beatId/__tests__/regression-r187-no-setinterval-polling.test.ts`.
+**Discovered in**: P0 fix audit found `useBeatDetail` ran a custom 5-second `setInterval` polling task status, duplicating polling-engine work and causing double API calls. Test: `src/modules/storyboard/beat/$beatId/__tests__/regression-r187-no-setinterval-polling.test.ts`.
 
 ### R188: network-monitor MUST Defer Side Effects to startMonitoring()
 
@@ -4235,7 +4235,7 @@ export function registerObjectUrl(taskId: string, url: string): void {
 
 ### R154: useAssetLoader MUST Load Characters/Scenes/StoryboardAssets via Promise.all
 
-`useAssetLoader` in `src/modules/story/beat-editor/hooks/useAssetLoader.ts` MUST load the three asset sources (`getAllCharacters`, `getAllScenes`, `getStoryboardAssets`) concurrently via `Promise.all([services.A(), services.B(), services.C()])`. Sequential `await` chains are FORBIDDEN — they make first-screen latency equal to `T(chars) + T(scenes) + T(storyboard)` instead of `max(...)`, degrading performance by 50–60%.
+`useAssetLoader` in `src/modules/storyboard/beat-editor/hooks/useAssetLoader.ts` MUST load the three asset sources (`getAllCharacters`, `getAllScenes`, `getStoryboardAssets`) concurrently via `Promise.all([services.A(), services.B(), services.C()])`. Sequential `await` chains are FORBIDDEN — they make first-screen latency equal to `T(chars) + T(scenes) + T(storyboard)` instead of `max(...)`, degrading performance by 50–60%.
 
 **BAD** — Sequential awaits (perf regression):
 ```typescript
@@ -4267,11 +4267,11 @@ useEffect(() => {
 
 **Verification**: Mock three services with deferred promises that never resolve. Call `useAssetLoader` once and verify all three service spies were called synchronously (proves Promise.all concurrent dispatch, not serial await). Also: with delays 200ms/150ms/100ms, total elapsed must be `< SERIAL_SUM * 0.7` (well below 450ms, near max 200ms).
 
-**Discovered in**: Batch 2 performance optimization audit found sequential `await` chain causing 50–60% first-screen latency regression in the story editor. Test: `src/modules/story/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts`.
+**Discovered in**: Batch 2 performance optimization audit found sequential `await` chain causing 50–60% first-screen latency regression in the story editor. Test: `src/modules/storyboard/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts`.
 
 ### R155: StoryProvider MUST Memoize the services Object Passed to useAssetLoader
 
-`StoryProvider` in `src/app/story/StoryProvider.tsx` MUST wrap the `services` object passed to `useAssetLoader` in `useMemo(..., [])`. The services object literal MUST NOT be inlined at the `useAssetLoader(services)` call site, because `useAssetLoader` has an internal `useEffect` with `[services]` dependency — every re-render would create a new object reference, re-triggering the effect and re-fetching characters/scenes/storyboard from the database.
+`StoryProvider` in `src/modules/storyboard/StoryProvider.tsx` MUST wrap the `services` object passed to `useAssetLoader` in `useMemo(..., [])`. The services object literal MUST NOT be inlined at the `useAssetLoader(services)` call site, because `useAssetLoader` has an internal `useEffect` with `[services]` dependency — every re-render would create a new object reference, re-triggering the effect and re-fetching characters/scenes/storyboard from the database.
 
 **BAD** — Inline services object (effect re-fires every render):
 ```typescript
@@ -4297,7 +4297,7 @@ const assetLoader = useAssetLoader(assetLoaderServices);
 
 **Verification**: Mock `useAssetLoader` to capture the `services` argument on each call. Render `<StoryProvider>` once, then `rerender` it 3 times with different children. Verify `useAssetLoader` was called 4 times AND every captured `services` reference is `===` to the first one (i.e., same object identity across all renders).
 
-**Discovered in**: Batch 2 performance optimization audit found inline services object causing `useAssetLoader` effect to re-fire on every state change (beat edits, saveStatus toggle), triggering redundant database queries and UI flicker. Test: `src/app/story/__tests__/regression-r155-story-provider-services-memo.test.tsx`.
+**Discovered in**: Batch 2 performance optimization audit found inline services object causing `useAssetLoader` effect to re-fire on every state change (beat edits, saveStatus toggle), triggering redundant database queries and UI flicker. Test: `src/modules/storyboard/__tests__/regression-r155-story-provider-services-memo.test.tsx`.
 
 ### R156: useVideoTasksPage Statistics MUST Be Memoized (Single Pass) with Full Non-Terminal Status Classification
 
@@ -4938,7 +4938,7 @@ const timeStr = new Date(timestamp).toLocaleTimeString();
 
 **Verification**: Grep `src/**/*.tsx` for emoji 字符（🗑🌅📤📥✨▶️ 等），确认装饰性 emoji 有 `aria-hidden="true"`。
 
-**Discovered in**: 深度审计 a11y 修复。Test: `src/modules/story/beat-editor/presentation/__tests__/regression-r174-emoji-aria-hidden.test.tsx`。
+**Discovered in**: 深度审计 a11y 修复。Test: `src/modules/storyboard/beat-editor/presentation/__tests__/regression-r174-emoji-aria-hidden.test.tsx`。
 
 ### R175: throw Error 必须用 t() 国际化
 

@@ -28,12 +28,12 @@ When a module is always needed and has no circular dependency risk, it MUST use 
 
 **BAD**:
 ```typescript
-const { storyService } = await import("@/modules/story");
+const { storyService } = await import("@/modules/storyboard");
 ```
 
 **GOOD**:
 ```typescript
-import { storyService } from "@/modules/story";
+import { storyService } from "@/modules/storyboard";
 ```
 
 ### R27: DDD Layer Violations in App Layer Must Use DI Container
@@ -513,7 +513,7 @@ import { useVideoTaskManager } from "@/modules/video/task-management";
 
 ### R154: useAssetLoader MUST Load Characters/Scenes/StoryboardAssets via Promise.all
 
-`useAssetLoader` in `src/modules/story/beat-editor/hooks/useAssetLoader.ts` MUST load the three asset sources (`getAllCharacters`, `getAllScenes`, `getStoryboardAssets`) concurrently via `Promise.all([services.A(), services.B(), services.C()])`. Sequential `await` chains are FORBIDDEN — they make first-screen latency equal to `T(chars) + T(scenes) + T(storyboard)` instead of `max(...)`, degrading performance by 50–60%.
+`useAssetLoader` in `src/modules/storyboard/beat-editor/hooks/useAssetLoader.ts` MUST load the three asset sources (`getAllCharacters`, `getAllScenes`, `getStoryboardAssets`) concurrently via `Promise.all([services.A(), services.B(), services.C()])`. Sequential `await` chains are FORBIDDEN — they make first-screen latency equal to `T(chars) + T(scenes) + T(storyboard)` instead of `max(...)`, degrading performance by 50–60%.
 
 **BAD** — Sequential awaits (perf regression):
 ```typescript
@@ -545,11 +545,11 @@ useEffect(() => {
 
 **Verification**: Mock three services with deferred promises that never resolve. Call `useAssetLoader` once and verify all three service spies were called synchronously (proves Promise.all concurrent dispatch, not serial await). Also: with delays 200ms/150ms/100ms, total elapsed must be `< SERIAL_SUM * 0.7` (well below 450ms, near max 200ms).
 
-**Discovered in**: Batch 2 performance optimization audit found sequential `await` chain causing 50–60% first-screen latency regression in the story editor. Test: `src/modules/story/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts`.
+**Discovered in**: Batch 2 performance optimization audit found sequential `await` chain causing 50–60% first-screen latency regression in the story editor. Test: `src/modules/storyboard/beat-editor/hooks/__tests__/regression-r154-asset-loader-parallel.test.ts`.
 
 ### R155: StoryProvider MUST Memoize the services Object Passed to useAssetLoader
 
-`StoryProvider` in `src/app/story/StoryProvider.tsx` MUST wrap the `services` object passed to `useAssetLoader` in `useMemo(..., [])`. The services object literal MUST NOT be inlined at the `useAssetLoader(services)` call site, because `useAssetLoader` has an internal `useEffect` with `[services]` dependency — every re-render would create a new object reference, re-triggering the effect and re-fetching characters/scenes/storyboard from the database.
+`StoryProvider` in `src/modules/storyboard/StoryProvider.tsx` MUST wrap the `services` object passed to `useAssetLoader` in `useMemo(..., [])`. The services object literal MUST NOT be inlined at the `useAssetLoader(services)` call site, because `useAssetLoader` has an internal `useEffect` with `[services]` dependency — every re-render would create a new object reference, re-triggering the effect and re-fetching characters/scenes/storyboard from the database.
 
 **BAD** — Inline services object (effect re-fires every render):
 ```typescript
@@ -575,7 +575,7 @@ const assetLoader = useAssetLoader(assetLoaderServices);
 
 **Verification**: Mock `useAssetLoader` to capture the `services` argument on each call. Render `<StoryProvider>` once, then `rerender` it 3 times with different children. Verify `useAssetLoader` was called 4 times AND every captured `services` reference is `===` to the first one (i.e., same object identity across all renders).
 
-**Discovered in**: Batch 2 performance optimization audit found inline services object causing `useAssetLoader` effect to re-fire on every state change (beat edits, saveStatus toggle), triggering redundant database queries and UI flicker. Test: `src/app/story/__tests__/regression-r155-story-provider-services-memo.test.tsx`.
+**Discovered in**: Batch 2 performance optimization audit found inline services object causing `useAssetLoader` effect to re-fire on every state change (beat edits, saveStatus toggle), triggering redundant database queries and UI flicker. Test: `src/modules/storyboard/__tests__/regression-r155-story-provider-services-memo.test.tsx`.
 
 ### R156: useVideoTasksPage Statistics MUST Be Memoized (Single Pass) with Full Non-Terminal Status Classification
 

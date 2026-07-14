@@ -52,7 +52,7 @@ recovery ← task-management (通过 registerCacheVideoBlobFn/registerRecoveryFn
 - 测试：`npx vitest run src/modules/video/task-management/hooks`
 
 ### 6. 修改视频任务与故事联动
-- 修改文件：`task-management/hooks/use-video-task-manager.ts`、`app/story/useStoryVideo.ts`、`app/story/StoryProvider.tsx`
+- 修改文件：`task-management/hooks/use-video-task-manager.ts`、`src/modules/storyboard/use-story-video.ts`、`src/modules/storyboard/StoryProvider.tsx`
 - 关键模式：
   - **stableActions**: `useVideoTaskManager` 通过 `useMemo([store])` 缓存所有 action 方法为稳定引用
   - **useStableCompletedUrls**: `useStoryVideo` 中 `completedTaskUrls` Map 通过 shallow 比较确保只有内容真正变化时才创建新引用

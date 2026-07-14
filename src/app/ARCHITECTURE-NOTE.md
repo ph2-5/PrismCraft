@@ -36,31 +36,41 @@
 | `apiConfigActions.ts` | `testConnection` from `@/infrastructure/ai-providers` | `@/shared/api-config` |
 | `ProviderCardParts.tsx` | `testConnection` from `@/infrastructure/ai-providers` | `@/shared/api-config` |
 
+### 1.3 MigrationInitializer.tsx 违规修复（2026-07-14）
+
+新建 `@/shared/ai-providers/index.ts` 代理模块，re-export `apiCall`、`processPendingQueue`、`cleanCompletedRequests`，然后将 MigrationInitializer.tsx 的 2 处直接导入改为通过代理访问。
+
+### 1.4 app/ 层页面整体迁移（2026-07-14 完成）
+
+分两批次将 `src/app/` 下的业务页面整体迁移至 `src/modules/`：
+
+- **批次 1**（提交 `74c0e1d`）：5 个 app/ 页面迁移至 modules/
+- **批次 2**（提交 `aae6fec`）：`src/app/story/` → `src/modules/storyboard/`（21 文件，含 beat/$beatId/、hooks/、__tests__/）
+- **深层路径引用修复**（提交 `dae5ec4`）：49 处 `@/modules/xxx/yyy` 深层路径 → barrel 导出 `@/modules/xxx`
+
+迁移后 `src/app/` 仅保留以下文件：
+- `layout.tsx`、`page.tsx`、`not-found.tsx`、`favicon.ico`、`globals.css`
+- `ClientProviders.tsx`、`MigrationInitializer.tsx`、`SidebarWithSearch.tsx`
+- `agent/page.tsx`、`hooks/use-home-page.ts`
+- `coming-soon/`（占位页）、`__tests__/`（回归测试）
+
 ---
 
-## 二、允许保留的导入（6 处，不需修复）
+## 二、允许保留的导入（1 处，不需修复）
 
-### DI Container 导入（6 处）
+### DI Container 导入
 
 `@/infrastructure/di` 是 architecture-rules.md 明确允许 app/ 层导入的：
 
 - `src/app/ClientProviders.tsx:4` — `container`
-- `src/app/story/hooks/use-story-page-parts.ts:2` — `container`
-- `src/app/story/StoryProvider.tsx:14` — `container`
-- `src/app/asset-library/use-asset-edit-handlers.ts:11` — `container`
-- `src/app/story/beat/$beatId/use-beat-detail-actions.ts:13` — `container`
 
-注：原 `src/app/settings/hooks/useSettingsPage.ts` 的 DI 导入随 settings 迁移至 `src/modules/settings/`，不再属于 app/ 范围。
+迁移前曾有 6 处 DI 导入，其中 5 处随页面迁移至 `src/modules/`，现仅剩 1 处。
 
 ---
 
 ## 三、未修复的技术债务（0 处）
 
-所有 `@/infrastructure/*` 直接导入违规已全部修复。`src/app/` 下仅剩 6 处 `@/infrastructure/di` 导入（architecture-rules.md 明确允许）。
-
-### MigrationInitializer.tsx 违规已修复（2026-07-14）
-
-新建 `@/shared/ai-providers/index.ts` 代理模块，re-export `apiCall`、`processPendingQueue`、`cleanCompletedRequests`，然后将 MigrationInitializer.tsx 的 2 处直接导入改为通过代理访问。
+所有 `@/infrastructure/*` 直接导入违规已全部修复。`src/app/` 下仅剩 1 处 `@/infrastructure/di` 导入（architecture-rules.md 明确允许）。
 
 ---
 
@@ -68,4 +78,4 @@
 
 - `npm run typecheck`：✅ 通过（0 错误）
 - `npm run lint:arch`：✅ 无架构违规
-- 已修复 16 处（settings 迁移 11 + 早期 3 + MigrationInitializer 2），保留 6 处（DI），剩余 0 处技术债务
+- 已修复 16 处（settings 迁移 11 + 早期 3 + MigrationInitializer 2），保留 1 处（DI），剩余 0 处技术债务

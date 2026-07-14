@@ -125,6 +125,126 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   return <div className={className}>{blocks}</div>;
 }
 
+// ============= 块级解析辅助函数 =============
+
+type ParseResult = { block: React.ReactNode | null; nextI: number };
+
+/** 解析代码块 */
+function parseCodeBlock(lines: string[], i: number, key: number): ParseResult {
+  const lang = lines[i]!.trimStart().slice(3).trim();
+  const codeLines: string[] = [];
+  let idx = i + 1;
+  while (idx < lines.length && !lines[idx]?.trimStart().startsWith("```")) {
+    codeLines.push(lines[idx] ?? "");
+    idx++;
+  }
+  idx++; // 跳过结束的 ```
+  return {
+    block: <CodeBlock key={`code-${key}`} code={codeLines.join("\n")} lang={lang} />,
+    nextI: idx,
+  };
+}
+
+/** 根据标题级别获取 className */
+function headingClassName(level: number): string {
+  if (level === 1) return "text-base font-bold mt-3 mb-1";
+  if (level === 2) return "text-sm font-bold mt-2 mb-1";
+  return "text-sm font-semibold mt-2 mb-0.5";
+}
+
+/** 解析标题 */
+function parseHeading(line: string, key: number): ParseResult | null {
+  const match = line.match(/^(#{1,3})\s+(.*)$/);
+  if (!match || !match[1] || !match[2]) return null;
+  const level = match[1].length;
+  return {
+    block: (
+      <div key={`h-${key}`} className={headingClassName(level)}>
+        {renderInline(match[2], `h-${key}`)}
+      </div>
+    ),
+    nextI: -1, // nextI 由调用方处理（标题只占一行）
+  };
+}
+
+/** 收集连续匹配的列表项 */
+function collectListItems(lines: string[], i: number, regex: RegExp): { items: string[]; nextI: number } {
+  const items: string[] = [];
+  let idx = i;
+  while (idx < lines.length && regex.test(lines[idx] || "")) {
+    items.push(lines[idx]!.replace(regex, ""));
+    idx++;
+  }
+  return { items, nextI: idx };
+}
+
+/** 解析无序列表 */
+function parseUnorderedList(lines: string[], i: number, key: number): ParseResult | null {
+  const regex = /^\s*[-*]\s+/;
+  if (!regex.test(lines[i] || "")) return null;
+  const { items, nextI } = collectListItems(lines, i, regex);
+  return {
+    block: (
+      <ul key={`ul-${key}`} className="my-1 ml-4 list-disc space-y-0.5">
+        {items.map((item, idx) => (
+          <li key={idx} className="text-sm">
+            {renderInline(item, `ul-${key}-${idx}`)}
+          </li>
+        ))}
+      </ul>
+    ),
+    nextI,
+  };
+}
+
+/** 解析有序列表 */
+function parseOrderedList(lines: string[], i: number, key: number): ParseResult | null {
+  const regex = /^\s*\d+\.\s+/;
+  if (!regex.test(lines[i] || "")) return null;
+  const { items, nextI } = collectListItems(lines, i, regex);
+  return {
+    block: (
+      <ol key={`ol-${key}`} className="my-1 ml-4 list-decimal space-y-0.5">
+        {items.map((item, idx) => (
+          <li key={idx} className="text-sm">
+            {renderInline(item, `ol-${key}-${idx}`)}
+          </li>
+        ))}
+      </ol>
+    ),
+    nextI,
+  };
+}
+
+/** 判断行是否为块级边界（代码块/标题/列表/空行） */
+function isBlockBoundary(line: string | undefined): boolean {
+  if (!line) return true;
+  if (line.trim() === "") return true;
+  if (line.trimStart().startsWith("```")) return true;
+  if (/^(#{1,3})\s+/.test(line)) return true;
+  if (/^\s*[-*]\s+/.test(line)) return true;
+  if (/^\s*\d+\.\s+/.test(line)) return true;
+  return false;
+}
+
+/** 解析普通段落（连续非边界行合并） */
+function parseParagraph(lines: string[], i: number, key: number): ParseResult {
+  const paraLines: string[] = [];
+  let idx = i;
+  while (idx < lines.length && !isBlockBoundary(lines[idx])) {
+    paraLines.push(lines[idx]!);
+    idx++;
+  }
+  return {
+    block: (
+      <p key={`p-${key}`} className="text-sm leading-relaxed">
+        {renderInline(paraLines.join(" "), `p-${key}`)}
+      </p>
+    ),
+    nextI: idx,
+  };
+}
+
 /** 将 Markdown 文本解析为 React 节点数组（可被 useMemo 缓存） */
 function parseMarkdown(content: string): React.ReactNode[] {
   const lines = content.split("\n");
@@ -137,75 +257,33 @@ function parseMarkdown(content: string): React.ReactNode[] {
 
     // 代码块
     if (line?.trimStart().startsWith("```")) {
-      const lang = line.trimStart().slice(3).trim();
-      const codeLines: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i]?.trimStart().startsWith("```")) {
-        codeLines.push(lines[i] ?? "");
-        i++;
-      }
-      i++; // 跳过结束的 ```
-      blocks.push(
-        <CodeBlock key={`code-${key++}`} code={codeLines.join("\n")} lang={lang} />,
-      );
+      const result = parseCodeBlock(lines, i, key++);
+      blocks.push(result.block!);
+      i = result.nextI;
       continue;
     }
 
     // 标题
-    const headingMatch = line?.match(/^(#{1,3})\s+(.*)$/);
-    if (headingMatch && headingMatch[1] && headingMatch[2]) {
-      const level = headingMatch[1].length;
-      const text = headingMatch[2];
-      const cls =
-        level === 1
-          ? "text-base font-bold mt-3 mb-1"
-          : level === 2
-            ? "text-sm font-bold mt-2 mb-1"
-            : "text-sm font-semibold mt-2 mb-0.5";
-      blocks.push(
-        <div key={`h-${key++}`} className={cls}>
-          {renderInline(text, `h-${key}`)}
-        </div>,
-      );
+    const heading = parseHeading(line ?? "", key++);
+    if (heading) {
+      blocks.push(heading.block!);
       i++;
       continue;
     }
 
     // 无序列表
-    if (line?.match(/^\s*[-*]\s+/)) {
-      const items: string[] = [];
-      while (i < lines.length && lines[i]?.match(/^\s*[-*]\s+/)) {
-        items.push(lines[i]!.replace(/^\s*[-*]\s+/, ""));
-        i++;
-      }
-      blocks.push(
-        <ul key={`ul-${key++}`} className="my-1 ml-4 list-disc space-y-0.5">
-          {items.map((item, idx) => (
-            <li key={idx} className="text-sm">
-              {renderInline(item, `ul-${key}-${idx}`)}
-            </li>
-          ))}
-        </ul>,
-      );
+    const ul = parseUnorderedList(lines, i, key++);
+    if (ul) {
+      blocks.push(ul.block!);
+      i = ul.nextI;
       continue;
     }
 
     // 有序列表
-    if (line?.match(/^\s*\d+\.\s+/)) {
-      const items: string[] = [];
-      while (i < lines.length && lines[i]?.match(/^\s*\d+\.\s+/)) {
-        items.push(lines[i]!.replace(/^\s*\d+\.\s+/, ""));
-        i++;
-      }
-      blocks.push(
-        <ol key={`ol-${key++}`} className="my-1 ml-4 list-decimal space-y-0.5">
-          {items.map((item, idx) => (
-            <li key={idx} className="text-sm">
-              {renderInline(item, `ol-${key}-${idx}`)}
-            </li>
-          ))}
-        </ol>,
-      );
+    const ol = parseOrderedList(lines, i, key++);
+    if (ol) {
+      blocks.push(ol.block!);
+      i = ol.nextI;
       continue;
     }
 
@@ -215,26 +293,10 @@ function parseMarkdown(content: string): React.ReactNode[] {
       continue;
     }
 
-    // 普通段落（连续非空行合并）
-    const paraLines: string[] = [];
-    while (
-      i < lines.length &&
-      lines[i]?.trim() !== "" &&
-      !lines[i]?.trimStart().startsWith("```") &&
-      !lines[i]?.match(/^(#{1,3})\s+/) &&
-      !lines[i]?.match(/^\s*[-*]\s+/) &&
-      !lines[i]?.match(/^\s*\d+\.\s+/)
-    ) {
-      paraLines.push(lines[i]!);
-      i++;
-    }
-    if (paraLines.length > 0) {
-      blocks.push(
-        <p key={`p-${key++}`} className="text-sm leading-relaxed">
-          {renderInline(paraLines.join(" "), `p-${key}`)}
-        </p>,
-      );
-    }
+    // 普通段落
+    const para = parseParagraph(lines, i, key++);
+    blocks.push(para.block!);
+    i = para.nextI;
   }
 
   return blocks;

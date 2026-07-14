@@ -19,8 +19,8 @@
  * - 参数类型转换：args 字段为 unknown，需 String()/Number()/Boolean() 转换
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import type {
   CreateCharacterInput,
   UpdateCharacterInput,

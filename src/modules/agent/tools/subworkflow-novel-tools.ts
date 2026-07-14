@@ -5,9 +5,9 @@
  * - auto_create_from_novel：小说一键转分镜（读取 → 分析 → 创建角色/场景 → 创建故事 → 规划分镜 → 生成关键帧）
  */
 
-import type { ToolImpl } from "../domain/types";
+import type { ToolImpl } from "@/domain/types/agent-tools";
 import type { StoryBeat, Story } from "@/domain/schemas";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import {
   generateJsonWithAI,

@@ -20,8 +20,8 @@
  * - 音频类工具当前无可用 provider，返回清晰错误信息和配置建议
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import type { Character, Scene } from "@/domain/schemas";
 

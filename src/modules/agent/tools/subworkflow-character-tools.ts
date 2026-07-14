@@ -5,8 +5,8 @@
  * - auto_create_character：一句话创建完整角色（推理设定 → 创建 → 生成图片）
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import { generateJsonWithAI, toStringArray } from "./subworkflow-helpers";
 

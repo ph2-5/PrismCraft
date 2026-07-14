@@ -26,7 +26,7 @@
  * - auto_polish_video：视频自动润色
  */
 
-import type { ToolImpl } from "../domain/types";
+import type { ToolImpl } from "@/domain/types/agent-tools";
 
 export { autoCreateCharacterTool } from "./subworkflow-character-tools";
 export { autoCreateSceneTool } from "./subworkflow-scene-tools";

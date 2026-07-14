@@ -23,8 +23,8 @@
  * 详见 MODULE.md "Agent 特权访问声明" 章节。
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 
 // ============= 辅助函数 =============
 

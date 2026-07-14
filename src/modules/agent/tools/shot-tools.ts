@@ -17,8 +17,8 @@
  * - 成功后通过 storyService.updateBeatMediaUrls 持久化媒体 URL 到数据库
  */
 
-import type { ToolImpl, ToolResult } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl, ToolResult } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import type { Story, StoryBeat, Character, Scene } from "@/domain/schemas";
 

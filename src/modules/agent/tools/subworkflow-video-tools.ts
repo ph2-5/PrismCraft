@@ -6,9 +6,9 @@
  * - auto_generate_video_full：一句话完成全片生成（批量生成 → 字幕 → 配乐）
  */
 
-import type { ToolImpl } from "../domain/types";
+import type { ToolImpl } from "@/domain/types/agent-tools";
 import type { StoryBeat, Story, Character, Scene } from "@/domain/schemas";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import { executeTool, pollVideoTask } from "./subworkflow-helpers";
 

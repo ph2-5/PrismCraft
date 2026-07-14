@@ -17,7 +17,7 @@
  * - create：limited（有副作用但可恢复）
  */
 
-import type { ToolImpl } from "../domain/types";
+import type { ToolImpl } from "@/domain/types/agent-tools";
 import {
   searchPromptTemplates,
   applyPromptTemplate,

@@ -16,8 +16,8 @@
  * - 所有操作返回 Result 模式：{ success, data?, error? }
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import {
   listFiles,
   copyFile,

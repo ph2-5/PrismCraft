@@ -5,11 +5,38 @@
  * - 所有类型自包含，不依赖 React 运行时
  * - 与 @/domain/ports/ai-provider-port 的 ToolDef/StreamChunk 对齐
  * - 工具实现接口 ToolImpl 统一规范，确保工具间无冲突
+ *
+ * 阶段3-1：工具相关类型（ToolImpl/ToolResult/ToolContext/ToolDomain/DangerLevel/
+ * ToolExecution/ToolExecutionStatus）已迁移至 @/domain/types/agent-tools，
+ * 此处 re-export 保持向后兼容（services/hooks/presentation 中的现有 import 不破坏）。
+ * 工具文件（tools/）应直接从 @/domain/types/agent-tools import，避免对 @/modules/agent 的依赖。
  */
 
 import type { ToolDef, ToolCall, StreamChunk } from "@/domain/ports/ai-provider-port";
 // SessionCheckpoint 类型已迁移至 @/modules/agent-session（阶段2-b），此处通过 barrel 导入
 import type { SessionCheckpoint } from "@/modules/agent-session";
+
+// 工具相关类型 re-export（阶段3-1 迁移至 @/domain/types/agent-tools）
+// import type 引入本文件作用域（AgentLoopCallbacks.onToolResult 等需要引用 ToolResult）
+// export type re-export 给外部消费者，保持向后兼容
+import type {
+  ToolResult,
+  ToolDomain,
+  DangerLevel,
+  ToolContext,
+  ToolImpl,
+  ToolExecutionStatus,
+  ToolExecution,
+} from "@/domain/types/agent-tools";
+export type {
+  ToolResult,
+  ToolDomain,
+  DangerLevel,
+  ToolContext,
+  ToolImpl,
+  ToolExecutionStatus,
+  ToolExecution,
+};
 
 /** Agent 消息角色 */
 export type AgentRole = "user" | "assistant" | "tool";
@@ -30,83 +57,6 @@ export interface AgentMessage {
   streaming?: boolean;
   /** 工具执行错误（role=tool 时） */
   error?: string;
-}
-
-/** 工具执行结果 */
-export interface ToolResult {
-  success: boolean;
-  data?: unknown;
-  error?: string;
-  /** 执行耗时（ms） */
-  duration?: number;
-}
-
-/** 工具业务域分类（用于按域过滤、权限控制） */
-export type ToolDomain =
-  | "asset"
-  | "generation"
-  | "story"
-  | "video"
-  | "shot"
-  | "config"
-  | "system"
-  | "web"
-  | "image-edit"
-  | "video-post"
-  | "audio"
-  | "template"
-  | "workflow"
-  | "help"
-  | "monitor"
-  | "diagnostic"
-  | "memory"
-  | "project-io"
-  | "file-management"
-  | "plugin";
-
-/**
- * 工具危险等级（用于权限分层控制）
- *
- * - safe：只读/无副作用操作，无需确认（如 list_characters、get_project_state）
- * - limited：有副作用但可恢复，可选确认（如 create_character、update_story）
- * - destructive：不可逆操作，必须确认（如 delete_file、import_project with replace）
- */
-export type DangerLevel = "safe" | "limited" | "destructive";
-
-/** 工具执行上下文 */
-export interface ToolContext {
-  /** 当前会话 ID */
-  sessionId: string;
-  /** 取消信号 */
-  signal?: AbortSignal;
-  /** 通知 UI 更新进度 */
-  onProgress?: (message: string) => void;
-  /** 当前会话的取消令牌（内部使用） */
-  _cancelled?: boolean;
-  /**
-   * 危险工具确认回调（用于子 Agent 向上传播）。
-   *
-   * 由 AgentLoop 从 callbacks.onConfirmationRequired 注入，
-   * delegate_to_specialist 工具将其传给 SubAgentRunner，
-   * 使子 Agent 的危险操作也能弹出用户确认。
-   */
-  _confirmDangerous?: (toolCall: ToolCall) => Promise<boolean>;
-}
-
-/** 工具实现接口 */
-export interface ToolImpl {
-  /** 工具定义（传给 LLM 的 function schema） */
-  def: ToolDef;
-  /** 业务域 */
-  domain: ToolDomain;
-  /** 执行函数 */
-  execute(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolResult>;
-  /** 是否需要用户确认（如删除操作）。destructive 级别工具自动视为 true */
-  requiresConfirmation?: boolean;
-  /** 危险等级（默认 safe） */
-  dangerLevel?: DangerLevel;
-  /** 工具超时（ms），未设置则使用默认值 */
-  timeoutMs?: number;
 }
 
 /** Agent 会话 */
@@ -222,23 +172,8 @@ export const DEFAULT_AGENT_CONFIG: AgentLoopConfig = {
   maxToolCallsPerMinute: 60,
 };
 
-/** 工具执行状态（用于 UI 展示） */
-export type ToolExecutionStatus = "pending" | "running" | "done" | "error" | "cancelled";
-
-/** 工具执行记录（UI 状态） */
-export interface ToolExecution {
-  /** 对应 ToolCall.id */
-  id: string;
-  toolCall: ToolCall;
-  status: ToolExecutionStatus;
-  result?: ToolResult;
-  /** 进度消息 */
-  progress?: string;
-  /** 开始时间 */
-  startedAt: number;
-  /** 结束时间 */
-  endedAt?: number;
-}
+// ToolExecutionStatus / ToolExecution 已迁移至 @/domain/types/agent-tools（阶段3-1）
+// 此处通过文件顶部 re-export 提供向后兼容
 
 /** Agent Loop 回调 */
 export interface AgentLoopCallbacks {

@@ -20,8 +20,8 @@
  * - 跨域图片设置 crossOrigin = "anonymous"
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 
 // ============= 类型定义（内部使用，不导出） =============
 

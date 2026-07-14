@@ -9,7 +9,8 @@
  * - 常量（NOVEL_TEXT_MAX_CHARS）
  */
 
-import type { ToolCall, ToolResult, ToolContext } from "../domain/types";
+import type { ToolResult, ToolContext } from "@/domain/types/agent-tools";
+import type { ToolCall } from "@/domain/ports/ai-provider-port";
 import { toolExecutor } from "../services/tool-executor";
 import { toolRegistry } from "../services/tool-registry";
 import { container } from "@/infrastructure/di";

@@ -5,8 +5,8 @@
  * - auto_polish_video：视频自动润色（字幕 → 配乐 → 调色）
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { executeTool, generateJsonArrayWithAI } from "./subworkflow-helpers";
 
 /** 9. 视频自动润色 */

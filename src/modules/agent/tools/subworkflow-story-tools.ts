@@ -5,8 +5,8 @@
  * - auto_plan_storyboard：一句话生成完整分镜计划（创建故事 → 规划分镜 → 校验）
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 
 /** 3. 一句话生成完整分镜计划（创建故事 → 规划分镜 → 校验） */
 export const autoPlanStoryboardTool: ToolImpl = {

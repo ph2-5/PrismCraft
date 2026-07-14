@@ -16,8 +16,8 @@
  * - 失败时给出明确错误原因和修复建议
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 
 /** 脱敏 API key */
 function maskApiKey(key: string): string {

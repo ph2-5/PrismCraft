@@ -5,8 +5,8 @@
  * - auto_create_scene：一句话创建完整场景（推理设定 → 创建 → 生成图片）
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import { generateJsonWithAI } from "./subworkflow-helpers";
 

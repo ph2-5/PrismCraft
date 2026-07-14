@@ -15,8 +15,8 @@
  * - 输出路径未指定时写入缓存目录
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { writeFile, readFile, getCacheDirectory } from "@/shared/file-http";
 
 // ============= 辅助函数 =============

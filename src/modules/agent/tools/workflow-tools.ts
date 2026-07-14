@@ -15,9 +15,10 @@
  * - 定时任务当前仅保存定义，实际定时执行需要主进程支持
  */
 
-import type { ToolImpl, ToolCall, ToolContext } from "../domain/types";
+import type { ToolImpl, ToolContext } from "@/domain/types/agent-tools";
+import type { ToolCall } from "@/domain/ports/ai-provider-port";
 import { toolExecutor } from "../services/tool-executor";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { toolRegistry } from "../services/tool-registry";
 
 // ============= 类型定义 =============

@@ -17,8 +17,8 @@
  * - 失败时返回友好错误信息，不阻断 Agent Loop
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import {
   saveFact,
   updatePreference,

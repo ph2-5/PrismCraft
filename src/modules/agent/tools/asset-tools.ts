@@ -15,8 +15,8 @@
  * - 错误处理完善，service 失败时返回友好错误信息
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 
 // ============= 工具实现 =============
 

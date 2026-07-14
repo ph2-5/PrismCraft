@@ -11,8 +11,8 @@
  * - 用于 Agent 启动时注入 system prompt 的项目状态
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { APP_VERSION } from "@/shared/constants/app-version";
 
 /** 获取项目统计 */

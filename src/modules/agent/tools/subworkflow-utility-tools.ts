@@ -6,8 +6,8 @@
  * - auto_fix_common_errors：常见错误自动修复
  */
 
-import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../domain/constants";
+import type { ToolImpl } from "@/domain/types/agent-tools";
+import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import { executeTool, generateJsonWithAI } from "./subworkflow-helpers";
 

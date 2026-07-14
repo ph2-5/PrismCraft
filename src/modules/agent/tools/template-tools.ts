@@ -106,6 +106,154 @@ function validateTemplateContent(data: unknown): data is TemplateContent {
 
 // ============= 工具实现 =============
 
+/** 获取模板元数据，失败时返回错误信息 */
+async function getTemplateMeta(
+  templateId: string,
+  storage: { getASTTemplate(id: string): Promise<Record<string, unknown> | null> },
+): Promise<{ ok: true; meta: Record<string, unknown> } | { ok: false; error: string }> {
+  try {
+    const meta = await storage.getASTTemplate(templateId);
+    if (!meta) {
+      return { ok: false, error: `模板不存在：${templateId}` };
+    }
+    return { ok: true, meta };
+  } catch (e) {
+    return { ok: false, error: `获取模板失败：${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+/** 从元数据构建最小模板内容（内容文件缺失时的回退） */
+function buildMinimalContent(meta: Record<string, unknown>): TemplateContent {
+  return {
+    name: String(meta.name ?? "未命名模板"),
+    description: String(meta.description ?? ""),
+    category: String(meta.category ?? "custom"),
+    genre: meta.genre !== undefined && meta.genre !== null ? String(meta.genre) : undefined,
+    tone: meta.tone !== undefined && meta.tone !== null ? String(meta.tone) : undefined,
+    characters: [],
+    scenes: [],
+    beats: [],
+    story: null,
+  };
+}
+
+/** 加载模板内容（优先读取内容文件，否则从元数据构建） */
+async function loadTemplateContent(meta: Record<string, unknown>): Promise<TemplateContent> {
+  const astFilePath = meta.astFilePath ?? meta.ast_file_path;
+  if (typeof astFilePath === "string" && astFilePath) {
+    const content = await readTemplateContent(astFilePath);
+    if (content) return content;
+  }
+  return buildMinimalContent(meta);
+}
+
+/** 从模板内容创建角色，返回创建成功的 ID 列表 */
+async function createCharactersFromTemplate(content: TemplateContent): Promise<string[]> {
+  if (!content.characters || content.characters.length === 0) return [];
+  const { characterService } = await import("@/modules/character");
+  const createdIds: string[] = [];
+  for (const charData of content.characters) {
+    const input: Record<string, unknown> = {
+      name: String(charData.name ?? `角色_${createdIds.length + 1}`),
+      description: charData.description !== undefined ? String(charData.description) : "",
+      gender: charData.gender !== undefined ? String(charData.gender) : "",
+      style: charData.style !== undefined ? String(charData.style) : "",
+      age: charData.age !== undefined ? Number(charData.age) : undefined,
+      tags: Array.isArray(charData.tags) ? charData.tags.map(String) : undefined,
+    };
+    const result = await characterService.create(input as never);
+    if (result.ok) {
+      createdIds.push(result.value.id);
+    }
+  }
+  return createdIds;
+}
+
+/** 从模板内容创建场景，返回创建成功的 ID 列表 */
+async function createScenesFromTemplate(content: TemplateContent): Promise<string[]> {
+  if (!content.scenes || content.scenes.length === 0) return [];
+  const { sceneService } = await import("@/modules/scene");
+  const createdIds: string[] = [];
+  for (const sceneData of content.scenes) {
+    const input: Record<string, unknown> = {
+      name: String(sceneData.name ?? `场景_${createdIds.length + 1}`),
+      description: sceneData.description !== undefined ? String(sceneData.description) : "",
+      type: sceneData.type !== undefined ? String(sceneData.type) : "",
+      timeOfDay: sceneData.timeOfDay !== undefined ? String(sceneData.timeOfDay) : "",
+      weather: sceneData.weather !== undefined ? String(sceneData.weather) : "",
+      mood: sceneData.mood !== undefined ? String(sceneData.mood) : "",
+      tags: Array.isArray(sceneData.tags) ? sceneData.tags.map(String) : undefined,
+    };
+    const result = await sceneService.create(input as never);
+    if (result.ok) {
+      createdIds.push(result.value.id);
+    }
+  }
+  return createdIds;
+}
+
+/** 创建新故事或合并到已有故事，返回故事 ID */
+async function createOrUpdateStory(
+  content: TemplateContent,
+  targetStoryId: string | undefined,
+  createdCharacters: string[],
+  createdScenes: string[],
+  applyStyle: boolean,
+): Promise<string | undefined> {
+  const { storyService } = await import("@/modules/storyboard");
+  if (targetStoryId) {
+    return await mergeIntoExistingStory(storyService, targetStoryId, createdCharacters, createdScenes);
+  }
+  return await createNewStoryFromTemplate(storyService, content, createdCharacters, createdScenes, applyStyle);
+}
+
+/** 合并到已有故事（仅更新角色/场景关联） */
+async function mergeIntoExistingStory(
+  storyService: { getById(id: string): Promise<unknown>; update(id: string, input: Record<string, unknown>): Promise<unknown> },
+  targetStoryId: string,
+  createdCharacters: string[],
+  createdScenes: string[],
+): Promise<string | undefined> {
+  const existingRes = await storyService.getById(targetStoryId) as { ok: boolean; value?: { characters?: string[]; scenes?: string[] } };
+  if (!existingRes.ok) return undefined;
+  const existing = existingRes.value;
+  const mergedCharacters = [...new Set([...(existing?.characters ?? []), ...createdCharacters])];
+  const mergedScenes = [...new Set([...(existing?.scenes ?? []), ...createdScenes])];
+  await storyService.update(targetStoryId, {
+    id: targetStoryId,
+    characters: mergedCharacters,
+    scenes: mergedScenes,
+  });
+  return targetStoryId;
+}
+
+/** 创建新故事 */
+async function createNewStoryFromTemplate(
+  storyService: { create(input: Record<string, unknown>): Promise<unknown> },
+  content: TemplateContent,
+  createdCharacters: string[],
+  createdScenes: string[],
+  applyStyle: boolean,
+): Promise<string | undefined> {
+  const storyTitle = content.story?.title
+    ? String(content.story.title)
+    : `${content.name} - 故事`;
+  const storyInput: Record<string, unknown> = {
+    title: storyTitle,
+    description: content.description,
+    characters: createdCharacters,
+    scenes: createdScenes,
+    beats: [],
+    elementIds: [],
+  };
+  if (applyStyle) {
+    if (content.genre) storyInput.genre = content.genre;
+    if (content.tone) storyInput.tone = content.tone;
+  }
+  const storyResult = await storyService.create(storyInput as never) as { ok: boolean; value?: { id: string } };
+  return storyResult.ok ? storyResult.value?.id : undefined;
+}
+
 /** 1. 列出模板 */
 export const listTemplatesTool: ToolImpl = {
   def: {
@@ -221,39 +369,13 @@ export const applyTemplateTool: ToolImpl = {
     const storage = container.templateStorage;
 
     // 1. 获取模板元数据
-    let meta: Record<string, unknown> | null;
-    try {
-      meta = await storage.getASTTemplate(templateId);
-    } catch (e) {
-      return {
-        success: false,
-        error: `获取模板失败：${e instanceof Error ? e.message : String(e)}`,
-      };
-    }
-    if (!meta) {
-      return { success: false, error: `模板不存在：${templateId}` };
+    const metaResult = await getTemplateMeta(templateId, storage);
+    if (!metaResult.ok) {
+      return { success: false, error: metaResult.error };
     }
 
-    // 2. 读取模板内容文件
-    const astFilePath = meta.astFilePath ?? meta.ast_file_path;
-    let content: TemplateContent | null = null;
-    if (typeof astFilePath === "string" && astFilePath) {
-      content = await readTemplateContent(astFilePath);
-    }
-    // 内容文件缺失时，使用元数据构建最小内容
-    if (!content) {
-      content = {
-        name: String(meta.name ?? "未命名模板"),
-        description: String(meta.description ?? ""),
-        category: String(meta.category ?? "custom"),
-        genre: meta.genre !== undefined && meta.genre !== null ? String(meta.genre) : undefined,
-        tone: meta.tone !== undefined && meta.tone !== null ? String(meta.tone) : undefined,
-        characters: [],
-        scenes: [],
-        beats: [],
-        story: null,
-      };
-    }
+    // 2. 读取模板内容文件（或从元数据构建）
+    const content = await loadTemplateContent(metaResult.meta);
 
     // 解析选项
     const opts = (args.options ?? {}) as Record<string, unknown>;
@@ -268,83 +390,19 @@ export const applyTemplateTool: ToolImpl = {
 
     try {
       // 3. 创建角色
-      if (includeCharacters && content.characters && content.characters.length > 0) {
-        const { characterService } = await import("@/modules/character");
-        for (const charData of content.characters) {
-          const input: Record<string, unknown> = {
-            name: String(charData.name ?? `角色_${createdCharacters.length + 1}`),
-            description: charData.description !== undefined ? String(charData.description) : "",
-            gender: charData.gender !== undefined ? String(charData.gender) : "",
-            style: charData.style !== undefined ? String(charData.style) : "",
-            age: charData.age !== undefined ? Number(charData.age) : undefined,
-            tags: Array.isArray(charData.tags) ? charData.tags.map(String) : undefined,
-          };
-          const result = await characterService.create(input as never);
-          if (result.ok) {
-            createdCharacters.push(result.value.id);
-          }
-        }
+      if (includeCharacters) {
+        const ids = await createCharactersFromTemplate(content);
+        createdCharacters.push(...ids);
       }
 
       // 4. 创建场景
-      if (includeScenes && content.scenes && content.scenes.length > 0) {
-        const { sceneService } = await import("@/modules/scene");
-        for (const sceneData of content.scenes) {
-          const input: Record<string, unknown> = {
-            name: String(sceneData.name ?? `场景_${createdScenes.length + 1}`),
-            description: sceneData.description !== undefined ? String(sceneData.description) : "",
-            type: sceneData.type !== undefined ? String(sceneData.type) : "",
-            timeOfDay: sceneData.timeOfDay !== undefined ? String(sceneData.timeOfDay) : "",
-            weather: sceneData.weather !== undefined ? String(sceneData.weather) : "",
-            mood: sceneData.mood !== undefined ? String(sceneData.mood) : "",
-            tags: Array.isArray(sceneData.tags) ? sceneData.tags.map(String) : undefined,
-          };
-          const result = await sceneService.create(input as never);
-          if (result.ok) {
-            createdScenes.push(result.value.id);
-          }
-        }
+      if (includeScenes) {
+        const ids = await createScenesFromTemplate(content);
+        createdScenes.push(...ids);
       }
 
       // 5. 创建/更新故事
-      const { storyService } = await import("@/modules/storyboard");
-      const storyTitle = content.story?.title
-        ? String(content.story.title)
-        : `${content.name} - 故事`;
-
-      if (targetStoryId) {
-        // 合并到已有故事（仅更新角色/场景关联）
-        const existingRes = await storyService.getById(targetStoryId);
-        if (existingRes.ok) {
-          const existing = existingRes.value;
-          const mergedCharacters = [...new Set([...(existing.characters ?? []), ...createdCharacters])];
-          const mergedScenes = [...new Set([...(existing.scenes ?? []), ...createdScenes])];
-          await storyService.update(targetStoryId, {
-            id: targetStoryId,
-            characters: mergedCharacters,
-            scenes: mergedScenes,
-          });
-          createdStory = targetStoryId;
-        }
-      } else {
-        // 创建新故事
-        const storyInput: Record<string, unknown> = {
-          title: storyTitle,
-          description: content.description,
-          characters: createdCharacters,
-          scenes: createdScenes,
-          beats: [],
-          elementIds: [],
-        };
-        if (applyStyle) {
-          if (content.genre) storyInput.genre = content.genre;
-          if (content.tone) storyInput.tone = content.tone;
-        }
-        const storyResult = await storyService.create(storyInput as never);
-        if (storyResult.ok) {
-          createdStory = storyResult.value.id;
-        }
-      }
+      createdStory = await createOrUpdateStory(content, targetStoryId, createdCharacters, createdScenes, applyStyle);
 
       // 6. 增加模板使用计数（best-effort）
       try {

@@ -41,7 +41,7 @@ vi.mock("@/shared/file-http", () => ({
   getCacheDirectory: mocks.getCacheDirectory,
 }));
 
-vi.mock("../../services/tool-executor", () => ({
+vi.mock("@/shared/constants/tool-timeouts", () => ({
   TOOL_TIMEOUTS: {
     query: 30_000,
     mutation: 60_000,
@@ -60,7 +60,7 @@ import {
   getDiskSpaceTool,
   fileManagementTools,
 } from "../file-management-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

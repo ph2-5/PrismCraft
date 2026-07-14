@@ -50,7 +50,7 @@ vi.mock("@/modules/ffmpeg-runner", () => ({
   composeFinalVideo: mocks.composeFinalVideo,
 }));
 
-vi.mock("../../services/tool-executor", () => ({
+vi.mock("@/shared/constants/tool-timeouts", () => ({
   TOOL_TIMEOUTS: {
     query: 30_000,
     mutation: 60_000,
@@ -72,7 +72,7 @@ import {
   composeFinalVideoTool,
   videoPostTools,
 } from "../video-post-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 // ============= Helpers =============
 

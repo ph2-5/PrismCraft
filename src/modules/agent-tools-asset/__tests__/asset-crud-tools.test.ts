@@ -57,7 +57,7 @@ vi.mock("@/modules/shot", () => ({
   checkSceneReferences: mocks.checkSceneReferences,
 }));
 
-vi.mock("../../services/tool-executor", () => ({
+vi.mock("@/shared/constants/tool-timeouts", () => ({
   TOOL_TIMEOUTS: {
     query: 30_000,
     mutation: 60_000,
@@ -79,7 +79,7 @@ import {
   deduplicateAssetsTool,
   assetCrudTools,
 } from "../asset-crud-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

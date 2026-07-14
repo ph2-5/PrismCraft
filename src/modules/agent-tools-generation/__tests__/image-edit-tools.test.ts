@@ -46,7 +46,7 @@ vi.mock("@/infrastructure/di", () => ({
   },
 }));
 
-vi.mock("../../services/tool-executor", () => ({
+vi.mock("@/shared/constants/tool-timeouts", () => ({
   TOOL_TIMEOUTS: {
     query: 30_000,
     mutation: 60_000,
@@ -69,7 +69,7 @@ import {
   resizeImageTool,
   imageEditTools,
 } from "../image-edit-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return { sessionId: "test-session", onProgress: vi.fn() };

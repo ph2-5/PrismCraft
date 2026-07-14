@@ -71,7 +71,7 @@ vi.mock("@/modules/scene", () => ({
   sceneService: mocks.sceneService,
 }));
 
-vi.mock("../../services/tool-executor", () => ({
+vi.mock("@/shared/constants/tool-timeouts", () => ({
   TOOL_TIMEOUTS: {
     query: 5000,
     mutation: 30000,
@@ -97,7 +97,7 @@ import {
   checkStoryConsistencyTool,
   storyTools,
 } from "../story-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

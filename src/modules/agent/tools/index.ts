@@ -10,18 +10,9 @@
  */
 
 import { toolRegistry } from "../services/tool-registry";
-import { assetTools } from "./asset-tools";
-import { assetCrudTools } from "./asset-crud-tools";
 import { configTools } from "./config-tools";
 import { systemTools } from "./system-tools";
-import { generationTools } from "./generation-tools";
-import { webTools } from "./web-tools";
-import { imageEditTools } from "./image-edit-tools";
-import { storyTools } from "./story-tools";
-import { videoTools } from "./video-tools";
 import { shotTools } from "./shot-tools";
-import { videoPostTools } from "./video-post-tools";
-import { audioTools } from "./audio-tools";
 import { templateTools } from "./template-tools";
 import { promptTemplateTools } from "./prompt-template-tools";
 import { workflowTools } from "./workflow-tools";
@@ -31,8 +22,17 @@ import { helpTools } from "./help-tools";
 import { subworkflowTools } from "./subworkflow-tools";
 import { memoryTools } from "./memory-tools";
 import { projectIoTools } from "./project-io-tools";
-import { fileManagementTools } from "./file-management-tools";
 import { specialistTools } from "./specialist-tools";
+// 阶段3-2：web-tools/file-management-tools 已拆分至独立模块
+import { webTools, fileManagementTools } from "@/modules/agent-tools-web-file";
+// 阶段3-2：audio/video/video-post 工具已拆分至独立模块
+import { audioTools, videoTools, videoPostTools } from "@/modules/agent-tools-media";
+// 阶段3-2：generation/image-edit 工具已拆分至独立模块
+import { generationTools, imageEditTools } from "@/modules/agent-tools-generation";
+// 阶段3-2：asset/asset-crud 工具已拆分至独立模块
+import { assetTools, assetCrudTools } from "@/modules/agent-tools-asset";
+// 阶段3-2：story 工具集已拆分至独立模块（含 story-tools + planning + generation + suggestions）
+import { storyTools } from "@/modules/agent-tools-story";
 import { specialistRegistry } from "@/modules/agent-specialist";
 
 let registered = false;

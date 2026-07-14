@@ -39,7 +39,7 @@ vi.mock("@/modules/ffmpeg-runner", () => ({
   splitAudio: mocks.splitAudio,
 }));
 
-vi.mock("../../services/tool-executor", () => ({
+vi.mock("@/shared/constants/tool-timeouts", () => ({
   TOOL_TIMEOUTS: {
     query: 30_000,
     mutation: 60_000,
@@ -57,7 +57,7 @@ import {
   splitAudioTool,
   audioTools,
 } from "../audio-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 // ============= Helpers =============
 

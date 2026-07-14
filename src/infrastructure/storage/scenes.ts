@@ -53,55 +53,115 @@ const SCENE_FIELD_TARGETS: Record<string, FieldTarget> = {
   relatedCharacters: { type: "json", container: "config", key: "relatedCharacters" },
 };
 
+// ============= 解析辅助函数（内部使用，不导出） =============
+
+/** 解析时间戳字段（number 秒 / string 秒 / undefined），失败时回退到 fallback */
+function parseTimestamp(raw: unknown, fallback: number): number {
+  if (typeof raw === "number") return raw * 1000;
+  if (typeof raw === "string") {
+    const n = parseInt(raw, 10);
+    return Number.isNaN(n) ? fallback : n * 1000;
+  }
+  return fallback;
+}
+
+/** 解析可选时间戳字段，缺失时返回 undefined */
+function parseOptionalTimestamp(raw: unknown): number | undefined {
+  if (typeof raw === "number") return raw * 1000;
+  return undefined;
+}
+
+/** 字符串字段，缺失时返回空字符串 */
+function strOr(val: unknown): string {
+  return (val as string) || "";
+}
+
+/** 可选字符串字段，缺失时返回 undefined */
+function optStrOr(val: unknown): string | undefined {
+  const s = val as string;
+  return s || undefined;
+}
+
+/** 数字字段，缺失时返回 0 */
+function numOr(val: unknown): number {
+  return (val as number) || 0;
+}
+
+/** 数组字段，缺失时返回空数组 */
+function arrOr<T>(val: unknown): T[] {
+  return (val as T[]) || [];
+}
+
+/** 从 appearance 容器提取外观字段 */
+function buildAppearanceFields(container: unknown): Pick<Scene, "thumbnailPath" | "previewPath" | "generatedImage" | "generatedVideo" | "videoGenerationStatus" | "videoGenerationTaskId" | "imageGenerationPrompt" | "scenePath" | "imageUrl"> {
+  if (!container) return {};
+  const a = container as Record<string, unknown>;
+  return {
+    thumbnailPath: a.thumbnailPath as string | undefined,
+    previewPath: a.previewPath as string | undefined,
+    generatedImage: a.generatedImage as string | undefined,
+    generatedVideo: a.generatedVideo as string | undefined,
+    videoGenerationStatus: a.videoGenerationStatus as "pending" | "generating" | "completed" | "failed" | undefined,
+    videoGenerationTaskId: a.videoGenerationTaskId as string | undefined,
+    imageGenerationPrompt: a.imageGenerationPrompt as string | undefined,
+    scenePath: a.scenePath as string | undefined,
+    imageUrl: a.imageUrl as string | undefined,
+  };
+}
+
+/** 从 atmosphere 容器提取氛围字段 */
+function buildAtmosphereFields(container: unknown): Pick<Scene, "mood" | "timeOfDay" | "weather" | "lighting" | "elements" | "colors"> {
+  if (!container) return { mood: "", timeOfDay: "", weather: "", lighting: "", elements: [], colors: [] };
+  const a = container as Record<string, unknown>;
+  return {
+    mood: strOr(a.mood),
+    timeOfDay: strOr(a.timeOfDay),
+    weather: strOr(a.weather),
+    lighting: strOr(a.lighting),
+    elements: arrOr<string>(a.elements),
+    colors: arrOr<string>(a.colors),
+  };
+}
+
+/** 从 generation 容器提取生成字段 */
+function buildGenerationFields(container: unknown): Pick<Scene, "prompt" | "generationPrompt" | "generationParams"> {
+  if (!container) return { prompt: "" };
+  const g = container as Record<string, unknown>;
+  return {
+    prompt: strOr(g.prompt),
+    generationPrompt: g.generationPrompt as string | undefined,
+    generationParams: g.generationParams as Record<string, unknown> | undefined,
+  };
+}
+
+/** 从 config 容器提取配置字段 */
+function buildConfigFields(container: unknown): Pick<Scene, "atmosphere" | "camera" | "tags"> {
+  if (!container) return {};
+  const c = container as Record<string, unknown>;
+  return {
+    atmosphere: c.atmosphere as string | undefined,
+    camera: c.camera as Record<string, unknown> | undefined,
+    tags: c.tags as string[] | undefined,
+  };
+}
+
 function parseScene(record: Record<string, unknown>): Scene {
   const now = Date.now();
-
-  const appearanceContainer = parseAppearance(record.appearance);
-  const atmosphereContainer = parseAtmosphere(record.atmosphere);
-  const generationContainer = parseGeneration(record.generation);
-  const configContainer = parseConfig(record.config);
-
-  const createdAtRaw = record.created_at;
-  const updatedAtRaw = record.updated_at;
-  const createdAt = typeof createdAtRaw === "number"
-    ? createdAtRaw * 1000
-    : (typeof createdAtRaw === "string" ? ((() => { const n = parseInt(createdAtRaw, 10); return Number.isNaN(n) ? now : n * 1000; })()) : now);
-  const updatedAt = typeof updatedAtRaw === "number"
-    ? updatedAtRaw * 1000
-    : (typeof updatedAtRaw === "string" ? ((() => { const n = parseInt(updatedAtRaw, 10); return Number.isNaN(n) ? now : n * 1000; })()) : now);
-
   return {
     id: record.id as string,
-    name: (record.name as string) || "",
-    description: (record.description as string) || "",
-    type: (record.type as string) || "",
-    refImagePath: (record.ref_image_path as string) || undefined,
-    thumbnailPath: appearanceContainer?.thumbnailPath as string | undefined,
-    previewPath: appearanceContainer?.previewPath as string | undefined,
-    generatedImage: appearanceContainer?.generatedImage as string | undefined,
-    generatedVideo: appearanceContainer?.generatedVideo as string | undefined,
-    videoGenerationStatus: appearanceContainer?.videoGenerationStatus as "pending" | "generating" | "completed" | "failed" | undefined,
-    videoGenerationTaskId: appearanceContainer?.videoGenerationTaskId as string | undefined,
-    imageGenerationPrompt: appearanceContainer?.imageGenerationPrompt as string | undefined,
-    scenePath: appearanceContainer?.scenePath as string | undefined,
-    imageUrl: appearanceContainer?.imageUrl as string | undefined,
-    mood: (atmosphereContainer?.mood as string) || "",
-    timeOfDay: (atmosphereContainer?.timeOfDay as string) || "",
-    weather: (atmosphereContainer?.weather as string) || "",
-    source: (record.source as string) || undefined,
-    useCount: (record.use_count as number) || 0,
-    lastUsedAt: record.last_used_at ? (typeof record.last_used_at === "number" ? record.last_used_at * 1000 : undefined) : undefined,
-    createdAt: createdAt.toString(),
-    updatedAt: updatedAt.toString(),
-    prompt: generationContainer?.prompt as string || "",
-    generationPrompt: generationContainer?.generationPrompt as string | undefined,
-    generationParams: generationContainer?.generationParams as Record<string, unknown> | undefined,
-    atmosphere: configContainer?.atmosphere as string | undefined,
-    lighting: (atmosphereContainer?.lighting as string) || "",
-    camera: configContainer?.camera as Record<string, unknown> | undefined,
-    tags: configContainer?.tags as string[] | undefined,
-    elements: (atmosphereContainer?.elements as string[]) || [],
-    colors: (atmosphereContainer?.colors as string[]) || [],
+    name: strOr(record.name),
+    description: strOr(record.description),
+    type: strOr(record.type),
+    refImagePath: optStrOr(record.ref_image_path),
+    source: optStrOr(record.source),
+    useCount: numOr(record.use_count),
+    lastUsedAt: parseOptionalTimestamp(record.last_used_at),
+    createdAt: parseTimestamp(record.created_at, now).toString(),
+    updatedAt: parseTimestamp(record.updated_at, now).toString(),
+    ...buildAppearanceFields(parseAppearance(record.appearance)),
+    ...buildAtmosphereFields(parseAtmosphere(record.atmosphere)),
+    ...buildGenerationFields(parseGeneration(record.generation)),
+    ...buildConfigFields(parseConfig(record.config)),
   };
 }
 

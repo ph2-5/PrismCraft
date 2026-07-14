@@ -1480,9 +1480,8 @@ ASA 导出格式:
 | `initSyncEngine` | Function | 初始化同步引擎 |
 | `updateSyncConfig` | Function | 更新同步配置 |
 | `performSync` | Function | 执行一次同步 |
-| `startAutoSync` | Function | 启动自动同步 |
-| `stopAutoSync` | Function | 停止自动同步 |
-| `getSyncConfig` | Function | 获取同步配置 |
+| `getSyncStatus` | Function | 获取同步状态 |
+| `setConflictCallback` | Function | 设置冲突回调 |
 | `SyncSettingsPanel` | Component | 同步设置面板 |
 
 ### 4.6 Prompt 模块

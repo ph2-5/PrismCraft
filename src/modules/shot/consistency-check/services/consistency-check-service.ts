@@ -3,6 +3,7 @@ import { ok, err, AppError } from "@/domain/types";
 import { container } from "@/infrastructure/di";
 import type { ConsistencyCheckResult, ElementBinding, StoryBeat, StoryElement } from "@/domain/schemas";
 import { safeJsonParse } from "@/shared/utils/safe-json";
+import { extractJsonObject } from "@/shared-logic/json";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants/messages";
 
@@ -160,9 +161,9 @@ function tryParseAnalysisJson(analysis: string): ConsistencyAnalysisResult | nul
     }
   }
 
-  const jsonMatch = analysis.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    const regexParsed = safeJsonParse<ConsistencyAnalysisResult | null>(jsonMatch[0], null);
+  const jsonStr = extractJsonObject(analysis);
+  if (jsonStr) {
+    const regexParsed = safeJsonParse<ConsistencyAnalysisResult | null>(jsonStr, null);
     if (regexParsed && typeof regexParsed === "object" && "scores" in regexParsed) {
       return regexParsed;
     }

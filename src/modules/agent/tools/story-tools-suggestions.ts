@@ -15,6 +15,7 @@
 import type { ToolImpl } from "../domain/types";
 import { TOOL_TIMEOUTS } from "../services/tool-executor";
 import { container } from "@/infrastructure/di";
+import { extractJsonObject } from "@/shared-logic/json";
 
 // ============= 工具实现 =============
 
@@ -258,11 +259,11 @@ ${beatsSummary}
     const text = (result.data?.text ?? "").trim();
     let analysis: { consistent: boolean; issues: Array<{ beatIndex: number; issue: string; suggestion: string }> };
     try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      const jsonStr = extractJsonObject(text);
+      if (!jsonStr) {
         return { success: false, error: "AI 返回格式错误：未找到 JSON" };
       }
-      analysis = JSON.parse(jsonMatch[0]);
+      analysis = JSON.parse(jsonStr);
     } catch (e) {
       return { success: false, error: `解析一致性分析结果失败：${e instanceof Error ? e.message : String(e)}` };
     }

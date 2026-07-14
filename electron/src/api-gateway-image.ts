@@ -1,5 +1,6 @@
 import { getLogger } from "./logging/logger";
 import { pluginRegistry } from "./plugins";
+import { extractJsonObject } from "@shared-logic/json";
 import { API_ERROR_CODES } from "./api-gateway-error-codes";
 import {
   type ApiResult,
@@ -98,10 +99,10 @@ async function analyzeImage(body: Record<string, unknown>): Promise<ApiResult> {
       : ((((response.choices as Record<string, unknown>[])?.[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string) || "";
 
     let analyzed: Record<string, unknown> | null = null;
-    const jsonMatch = analysis.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
+    const jsonStr = extractJsonObject(analysis);
+    if (jsonStr) {
       try {
-        analyzed = JSON.parse(jsonMatch[0]);
+        analyzed = JSON.parse(jsonStr);
       } catch (e) {
         logger.warn(`Failed to parse JSON from analysis response: ${e instanceof Error ? e.message : String(e)}`);
       }

@@ -15,6 +15,7 @@
 import type { ToolImpl } from "../domain/types";
 import { TOOL_TIMEOUTS } from "../services/tool-executor";
 import { container } from "@/infrastructure/di";
+import { extractJsonArray } from "@/shared-logic/json";
 
 // ============= 工具实现 =============
 
@@ -319,11 +320,11 @@ ${style ? `风格偏好：${style}` : ""}
     const text = result.data?.text?.trim() ?? "";
     let ideas: unknown[];
     try {
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
+      const jsonStr = extractJsonArray(text);
+      if (!jsonStr) {
         return { success: false, error: "AI 返回格式错误：未找到 JSON 数组" };
       }
-      ideas = JSON.parse(jsonMatch[0]);
+      ideas = JSON.parse(jsonStr);
     } catch (e) {
       return { success: false, error: `解析故事创意失败：${e instanceof Error ? e.message : String(e)}` };
     }

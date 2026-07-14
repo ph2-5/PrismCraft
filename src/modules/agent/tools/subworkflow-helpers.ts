@@ -13,6 +13,7 @@ import type { ToolCall, ToolResult, ToolContext } from "../domain/types";
 import { toolExecutor } from "../services/tool-executor";
 import { toolRegistry } from "../services/tool-registry";
 import { container } from "@/infrastructure/di";
+import { extractJsonObject, extractJsonArray } from "@/shared-logic/json";
 
 /** 小说转分镜时文本最大字符数（避免 token 超限） */
 export const NOVEL_TEXT_MAX_CHARS = 8000;
@@ -25,10 +26,10 @@ export async function generateJsonWithAI(prompt: string): Promise<Record<string,
   });
   if (!result.success || !result.data) return null;
   const text = result.data.text;
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
+  const jsonStr = extractJsonObject(text);
+  if (!jsonStr) return null;
   try {
-    return JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    return JSON.parse(jsonStr) as Record<string, unknown>;
   } catch {
     return null;
   }
@@ -42,10 +43,10 @@ export async function generateJsonArrayWithAI(prompt: string): Promise<unknown[]
   });
   if (!result.success || !result.data) return null;
   const text = result.data.text;
-  const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) return null;
+  const jsonStr = extractJsonArray(text);
+  if (!jsonStr) return null;
   try {
-    return JSON.parse(jsonMatch[0]) as unknown[];
+    return JSON.parse(jsonStr) as unknown[];
   } catch {
     return null;
   }

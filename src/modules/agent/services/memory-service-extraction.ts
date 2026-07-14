@@ -13,6 +13,7 @@
  */
 
 import { container } from "@/infrastructure/di";
+import { extractJsonObject } from "@/shared-logic/json";
 import type { AgentMessage, ExtractedMemory } from "../domain/types";
 
 // ============= 常量（与 memory-service.ts 保持一致） =============
@@ -105,10 +106,10 @@ ${conversationText}
     if (!result.success || !result.data) return null;
 
     const text = result.data.text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    const jsonStr = extractJsonObject(text);
+    if (!jsonStr) return null;
 
-    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
     const preferences: Record<string, string | number | boolean> = {};
     if (parsed.preferences && typeof parsed.preferences === "object") {

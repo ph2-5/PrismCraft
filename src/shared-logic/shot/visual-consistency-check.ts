@@ -1,3 +1,5 @@
+import { extractJsonObject } from "../json";
+
 export interface Element {
   id: string;
   name: string;
@@ -111,11 +113,11 @@ export function parseConsistencyAnalysis(
 }
 
 function tryParseJsonResult(analysis: string): ConsistencyResult | null {
-  const jsonMatch = analysis.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
+  const jsonStr = extractJsonObject(analysis);
+  if (!jsonStr) return null;
 
   try {
-    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
     if (typeof parsed.totalScore !== "number") return null;
 
     const totalScore = Math.min(100, Math.max(0, parsed.totalScore)) / 100;

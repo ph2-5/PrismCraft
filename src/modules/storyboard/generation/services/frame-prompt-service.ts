@@ -5,6 +5,7 @@ import type { ITextProvider } from "@/domain/ports";
 import { getBeatCharacterIds, resolveShotInstruction, SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS, CAMERA_ANGLE_OPTIONS } from "@/domain/utils";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { extractJsonObject } from "@/shared-logic/json";
 
 interface FramePromptInput {
   beat: StoryBeat;
@@ -115,8 +116,8 @@ ${contextSection}
 function parseFramePromptResult(text: string, beat: StoryBeat): FramePromptOutput {
   const fallback = beat.content || beat.description || "";
 
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
+  const jsonStr = extractJsonObject(text);
+  if (!jsonStr) {
     errorLogger.warn(
       { code: "FRAME_PROMPT_FORMAT_ERROR", message: `LLM 帧提示词返回格式异常: ${text.substring(0, 100)}` },
       "FramePromptService",
@@ -125,7 +126,7 @@ function parseFramePromptResult(text: string, beat: StoryBeat): FramePromptOutpu
   }
 
   try {
-    const parsed = JSON.parse(jsonMatch[0]) as FramePromptOutput;
+    const parsed = JSON.parse(jsonStr) as FramePromptOutput;
     return {
       firstFramePrompt: parsed.firstFramePrompt || fallback,
       lastFramePrompt: parsed.lastFramePrompt || fallback,

@@ -11,6 +11,8 @@
  * 这些数据为纯静态内容，无外部依赖，便于独立维护和测试。
  */
 
+import { extractJsonObject, extractJsonArray } from "@/shared-logic/json";
+
 // ============= 静态字典 =============
 
 /**
@@ -512,13 +514,13 @@ export function safeParseJson<T>(text: string): T | null {
   } catch {
     // 尝试从文本中提取 JSON 片段
     try {
-      const objMatch = text.match(/\{[\s\S]*\}/);
+      const objMatch = extractJsonObject(text);
       if (objMatch) {
-        return JSON.parse(objMatch[0]) as T;
+        return JSON.parse(objMatch) as T;
       }
-      const arrMatch = text.match(/\[[\s\S]*\]/);
+      const arrMatch = extractJsonArray(text);
       if (arrMatch) {
-        return JSON.parse(arrMatch[0]) as T;
+        return JSON.parse(arrMatch) as T;
       }
     } catch {
       // ignore

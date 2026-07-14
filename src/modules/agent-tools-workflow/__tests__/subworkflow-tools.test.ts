@@ -67,6 +67,8 @@ vi.mock("@/infrastructure/di", () => ({
     textProvider: mocks.textProvider,
     imageProvider: mocks.imageProvider,
     videoProvider: mocks.videoProvider,
+    agentToolExecutor: Promise.resolve(mocks.toolExecutor),
+    agentToolRegistry: Promise.resolve(mocks.toolRegistry),
   },
 }));
 
@@ -83,21 +85,6 @@ vi.mock("@/modules/storyboard", () => ({
   planStory: mocks.planStory,
   generateBeatFullWorkflow: mocks.generateBeatFullWorkflow,
   generateBeatKeyframe: mocks.generateBeatKeyframe,
-}));
-
-vi.mock("../../services/tool-executor", () => ({
-  TOOL_TIMEOUTS: {
-    query: 5000,
-    mutation: 30000,
-    generation: 120000,
-    videoTask: 600000,
-    download: 60000,
-  },
-  toolExecutor: mocks.toolExecutor,
-}));
-
-vi.mock("../../services/tool-registry", () => ({
-  toolRegistry: mocks.toolRegistry,
 }));
 
 vi.mock("@/shared/api-config", () => ({
@@ -131,7 +118,7 @@ import {
   autoCreateFromNovelTool,
   autoPolishVideoTool,
 } from "../subworkflow-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

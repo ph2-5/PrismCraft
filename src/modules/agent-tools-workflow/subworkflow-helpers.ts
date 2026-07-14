@@ -11,8 +11,6 @@
 
 import type { ToolResult, ToolContext } from "@/domain/types/agent-tools";
 import type { ToolCall } from "@/domain/ports/ai-provider-port";
-import { toolExecutor } from "../services/tool-executor";
-import { toolRegistry } from "../services/tool-registry";
 import { container } from "@/infrastructure/di";
 import { extractJsonObject, extractJsonArray } from "@/shared-logic/json";
 
@@ -59,6 +57,8 @@ export async function executeTool(
   args: Record<string, unknown>,
   onProgress?: (message: string) => void,
 ): Promise<ToolResult> {
+  const toolRegistry = await container.agentToolRegistry;
+  const toolExecutor = await container.agentToolExecutor;
   // 工具不存在时优雅降级
   if (!toolRegistry.has(name)) {
     return {

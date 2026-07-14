@@ -17,9 +17,8 @@
 
 import type { ToolImpl, ToolContext } from "@/domain/types/agent-tools";
 import type { ToolCall } from "@/domain/ports/ai-provider-port";
-import { toolExecutor } from "../services/tool-executor";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
-import { toolRegistry } from "../services/tool-registry";
+import { container } from "@/infrastructure/di";
 
 // ============= 类型定义 =============
 
@@ -140,6 +139,7 @@ async function executeTool(
       sessionId: "workflow",
       onProgress: () => {},
     };
+    const toolExecutor = await container.agentToolExecutor;
     const result = await toolExecutor.execute(toolCall, ctx);
     return {
       stepName: stepIdentifier,
@@ -208,6 +208,7 @@ export const createWorkflowTool: ToolImpl = {
     }
 
     // 验证所有 toolName 在 toolRegistry 中存在
+    const toolRegistry = await container.agentToolRegistry;
     for (const step of steps) {
       if (!step.toolName || typeof step.toolName !== "string") {
         return { success: false, error: "每个步骤必须包含 toolName 字符串" };
@@ -395,6 +396,7 @@ export const batchProcessTool: ToolImpl = {
     }
 
     // 验证 toolName 在 toolRegistry 中存在
+    const toolRegistry = await container.agentToolRegistry;
     if (!toolRegistry.has(toolName)) {
       return { success: false, error: `工具 "${toolName}" 不存在` };
     }
@@ -483,6 +485,7 @@ export const chainOperationsTool: ToolImpl = {
     }
 
     // 验证所有 toolName 存在
+    const toolRegistry = await container.agentToolRegistry;
     for (const op of operations) {
       if (!op.toolName || typeof op.toolName !== "string") {
         return { success: false, error: "每个操作必须包含 toolName 字符串" };
@@ -579,6 +582,7 @@ export const scheduleTaskTool: ToolImpl = {
     if (!action.toolName || typeof action.toolName !== "string") {
       return { success: false, error: "action.toolName 必须是字符串" };
     }
+    const toolRegistry = await container.agentToolRegistry;
     if (!toolRegistry.has(action.toolName)) {
       return { success: false, error: `工具 "${action.toolName}" 不存在` };
     }

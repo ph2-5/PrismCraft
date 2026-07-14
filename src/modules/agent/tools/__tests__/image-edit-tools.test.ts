@@ -148,10 +148,10 @@ function setupImageMock() {
 /** 安装 document.createElement mock：canvas 返回 fake canvas */
 function setupCanvasMock() {
   const origCreateElement = document.createElement.bind(document);
-  vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
+  vi.spyOn(document, "createElement").mockImplementation(((tag: string) => {
     if (tag === "canvas") return makeFakeCanvas().canvas as unknown as HTMLElement;
     return origCreateElement(tag as never);
-  });
+  }) as any);
 }
 
 beforeEach(() => {

@@ -18,9 +18,9 @@
  * - "委派专家"：触发 delegate_to_specialist（P4 多 Agent 编排）
  */
 
-import type { ITextProvider } from "@/domain/ports/ai-provider-port";
+import type { ITextProvider, StreamChunk, ToolDef } from "@/domain/ports/ai-provider-port";
 import type { LLMMessage } from "@/domain/schemas/llm-message";
-import type { StreamChunk, ApiResponse, ToolDef } from "@/domain/ports/ai-provider-port";
+import type { ApiResponse } from "@/domain/schemas/api";
 
 /** 场景定义 */
 export interface Scenario {
@@ -51,6 +51,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
       [
         { delta: "好的，我来帮你创建一个角色。" },
         {
+          delta: "",
           toolCalls: [
             {
               id: "tc-create-1",
@@ -65,12 +66,13 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
             },
           ],
         },
-        { finishReason: "tool_calls" },
+        { delta: "", finishReason: "tool_calls" },
       ],
       // 第 2 轮：调用 generate_character_image + list_scenes（P0 并行）
       [
         { delta: "角色创建成功，现在为你生成图片。" },
         {
+          delta: "",
           toolCalls: [
             {
               id: "tc-gen-img",
@@ -91,12 +93,12 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
             },
           ],
         },
-        { finishReason: "tool_calls" },
+        { delta: "", finishReason: "tool_calls" },
       ],
       // 第 3 轮：总结
       [
         { delta: "角色「赛博战士」已创建完成，图片也已生成。共找到 3 个可用场景。" },
-        { finishReason: "stop" },
+        { delta: "", finishReason: "stop" },
       ],
     ],
   },
@@ -107,6 +109,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
       [
         { delta: "好的，我来查询。" },
         {
+          delta: "",
           toolCalls: [
             {
               id: "tc-list-1",
@@ -117,11 +120,11 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
             },
           ],
         },
-        { finishReason: "tool_calls" },
+        { delta: "", finishReason: "tool_calls" },
       ],
       [
         { delta: "查询完成，共找到 5 个角色。" },
-        { finishReason: "stop" },
+        { delta: "", finishReason: "stop" },
       ],
     ],
   },
@@ -132,6 +135,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
       [
         { delta: "这个任务比较复杂，我委派给专家处理。" },
         {
+          delta: "",
           toolCalls: [
             {
               id: "tc-delegate-1",
@@ -146,11 +150,11 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
             },
           ],
         },
-        { finishReason: "tool_calls" },
+        { delta: "", finishReason: "tool_calls" },
       ],
       [
         { delta: "专家已完成任务，角色创建成功。" },
-        { finishReason: "stop" },
+        { delta: "", finishReason: "stop" },
       ],
     ],
   },
@@ -160,7 +164,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     turns: [
       [
         { delta: "你好！我是 AI 动画工作室的助手，有什么可以帮你的？" },
-        { finishReason: "stop" },
+        { delta: "", finishReason: "stop" },
       ],
     ],
   },
@@ -171,6 +175,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
       [
         { delta: "好的，我来帮你配置 API provider。" },
         {
+          delta: "",
           toolCalls: [
             {
               id: "tc-config-1",
@@ -184,11 +189,11 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
             },
           ],
         },
-        { finishReason: "tool_calls" },
+        { delta: "", finishReason: "tool_calls" },
       ],
       [
         { delta: "API 配置完成，已验证连接成功。" },
-        { finishReason: "stop" },
+        { delta: "", finishReason: "stop" },
       ],
     ],
   },
@@ -261,7 +266,7 @@ export class MockTextProvider implements ITextProvider {
     const response = `[Mock Stream] ${prompt.slice(0, 100)}`;
     options?.onChunk({ delta: response });
     chunks.push(response);
-    options?.onChunk({ finishReason: "stop" });
+    options?.onChunk({ delta: "", finishReason: "stop" });
     return { success: true, data: { text: chunks.join("") } };
   }
 
@@ -296,7 +301,7 @@ export class MockTextProvider implements ITextProvider {
       // 无匹配场景，返回默认文本
       const defaultResponse = `我理解了你的需求：「${userMessage.slice(0, 50)}」`;
       options?.onChunk?.({ delta: defaultResponse });
-      options?.onChunk?.({ finishReason: "stop" });
+      options?.onChunk?.({ delta: "", finishReason: "stop" });
       return { success: true, data: { text: defaultResponse } };
     }
 

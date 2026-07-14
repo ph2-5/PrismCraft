@@ -228,10 +228,11 @@ describe("SubAgentRunner (runSpecialist)", () => {
     const result = await runSpecialist("character-creator", "创建一个赛博朋克角色", "用户喜欢霓虹风格");
     expect(result.success).toBe(true);
     expect(result.data).toBeDefined();
-    expect(result.data?.specialist).toBe("角色创建专家");
-    expect(result.data?.task).toBe("创建一个赛博朋克角色");
-    expect(result.data?.result).toBeTruthy();
-    expect(typeof result.data?.toolCallsCount).toBe("number");
+    const data = result.data as { specialist?: string; task?: string; result?: string; toolCallsCount?: number };
+    expect(data.specialist).toBe("角色创建专家");
+    expect(data.task).toBe("创建一个赛博朋克角色");
+    expect(data.result).toBeTruthy();
+    expect(typeof data.toolCallsCount).toBe("number");
   });
 
   it("context 为空时也能运行", async () => {
@@ -247,13 +248,13 @@ describe("SubAgentRunner (runSpecialist)", () => {
     );
     expect(result.success).toBe(true);
     // mock 的 AgentLoop 会将 input 反射回来
-    expect(result.data?.result).toContain("项目背景");
+    expect((result.data as { result?: string })?.result).toContain("项目背景");
   });
 
   it("返回结果包含工具调用次数", async () => {
     const result = await runSpecialist("video-producer", "生成视频", "");
     expect(result.success).toBe(true);
-    expect(result.data?.toolCallsCount).toBeGreaterThan(0);
+    expect((result.data as { toolCallsCount?: number })?.toolCallsCount).toBeGreaterThan(0);
   });
 
   it("duration 字段被填充", async () => {
@@ -340,7 +341,7 @@ describe("delegate_to_specialist 工具", () => {
       { sessionId: "test" },
     );
     expect(result.success).toBe(true);
-    expect(result.data?.specialist).toBe("角色创建专家");
+    expect((result.data as { specialist?: string })?.specialist).toBe("角色创建专家");
   });
 
   it("onProgress 被调用", async () => {
@@ -366,16 +367,17 @@ describe("list_specialists 工具", () => {
   it("返回所有专家列表", async () => {
     const result = await listSpecialistsTool.execute({}, { sessionId: "test" });
     expect(result.success).toBe(true);
-    expect(result.data?.count).toBe(BUILTIN_SPECIALISTS.length);
-    expect(Array.isArray(result.data?.specialists)).toBe(true);
-    expect(result.data?.summary).toContain("character-creator");
+    const data = result.data as { count?: number; specialists?: unknown[]; summary?: string };
+    expect(data.count).toBe(BUILTIN_SPECIALISTS.length);
+    expect(Array.isArray(data.specialists)).toBe(true);
+    expect(data.summary).toContain("character-creator");
   });
 
   it("无专家时返回空列表", async () => {
     specialistRegistry.clear();
     const result = await listSpecialistsTool.execute({}, { sessionId: "test" });
     expect(result.success).toBe(true);
-    expect(result.data?.count).toBe(0);
+    expect((result.data as { count?: number })?.count).toBe(0);
   });
 });
 

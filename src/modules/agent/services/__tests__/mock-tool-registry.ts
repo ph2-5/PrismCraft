@@ -18,8 +18,14 @@ import type { ToolImpl } from "../../domain/types";
 export class MockToolRegistry implements IToolRegistry {
   private tools = new Map<string, ToolImpl>();
 
-  register(name: string, tool: ToolImpl): void {
-    this.tools.set(name, tool);
+  register(tool: ToolImpl): void {
+    this.tools.set(tool.def.function.name, tool);
+  }
+
+  registerAll(tools: ToolImpl[]): void {
+    for (const tool of tools) {
+      this.register(tool);
+    }
   }
 
   registerSimple(name: string, domain: ToolImpl["domain"] = "asset"): void {

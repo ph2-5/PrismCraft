@@ -104,10 +104,6 @@ function ok<T>(value: T): { ok: true; value: T } {
   return { ok: true, value };
 }
 
-/** 构造失败的 Result */
-function err(error: Error): { ok: false; error: Error } {
-  return { ok: false, error };
-}
 
 /** 构造文本 ArrayBuffer（模拟 readFile 返回的 data） */
 function textBuffer(text: string): ArrayBuffer {

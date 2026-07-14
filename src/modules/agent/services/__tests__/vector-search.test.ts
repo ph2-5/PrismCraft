@@ -18,7 +18,6 @@ import {
   keywordSearch,
   VectorSearchEngine,
   createDefaultEngine,
-  type EmbeddingStore,
   type RetrievalStrategy,
 } from "../vector-search";
 import type { ArchivalMemoryEntry } from "../memory-service";
@@ -100,7 +99,7 @@ describe("vector-search", () => {
     mocks.embeddingProvider.generateEmbeddings.mockResolvedValue({ success: false });
     mocks.detectLocalModel.mockResolvedValue({ available: false, info: null, missingFiles: [], directory: "" });
     mocks.getLocalEmbeddingProvider.mockResolvedValue(null);
-    mocks.findTopK.mockImplementation(<T>(query: number[], candidates: T[][], k: number) => {
+    mocks.findTopK.mockImplementation(<T>(_query: number[], candidates: T[][], k: number) => {
       // 简单实现：按 index 顺序返回前 k 个
       return candidates.slice(0, k).map((_, index) => ({ index, similarity: 1 - index * 0.1 }));
     });
@@ -407,8 +406,8 @@ describe("vector-search", () => {
       const strategy = new ApiVectorStrategy(store);
       const result = await strategy.search("feline", entries, 2);
       expect(result).toHaveLength(2);
-      expect(result[0].id).toBe("cat");
-      expect(result[1].id).toBe("dog");
+      expect(result![0].id).toBe("cat");
+      expect(result![1].id).toBe("dog");
     });
 
     it("22. search：store 缺 embedding 时懒生成并持久化", async () => {
@@ -428,7 +427,7 @@ describe("vector-search", () => {
       const strategy = new ApiVectorStrategy(store);
       const result = await strategy.search("cats", entries, 5);
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("1");
+      expect(result![0].id).toBe("1");
       // 持久化被调用
       expect(mocks.writeFile).toHaveBeenCalled();
     });
@@ -548,7 +547,7 @@ describe("vector-search", () => {
       const strategy = new LocalVectorStrategy(store);
       const result = await strategy.search("cats", entries, 5);
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("1");
+      expect(result![0].id).toBe("1");
       // 持久化使用 modelId = "test-model"
       const [, jsonStr] = mocks.writeFile.mock.calls[0]!;
       const saved = JSON.parse(jsonStr as string);

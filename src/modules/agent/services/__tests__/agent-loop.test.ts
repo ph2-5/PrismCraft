@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { StreamChunk, ToolCall, ApiResponse } from "@/domain/ports/ai-provider-port";
-import type { ToolResult } from "../../domain/types";
+import type { ToolCall } from "@/domain/ports/ai-provider-port";
+import type { ApiResponse } from "@/domain/schemas/api";
 import { createEmptySession } from "../../domain/types";
 
 // ── 用 vi.hoisted 声明 mock 变量（vi.mock 工厂会在文件顶部执行） ──

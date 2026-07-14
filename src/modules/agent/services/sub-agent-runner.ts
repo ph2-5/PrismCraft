@@ -26,7 +26,7 @@
 import type { AgentSession, AgentLoopCallbacks, ToolResult, ToolContext } from "../domain/types";
 import { AgentLoop } from "./agent-loop";
 import { ToolExecutor } from "./tool-executor";
-import { specialistRegistry } from "./specialist-registry";
+import { specialistRegistry } from "@/modules/agent-specialist";
 import { createEmptySession } from "../domain/types";
 
 /** 子 Agent 默认超时（60s） */

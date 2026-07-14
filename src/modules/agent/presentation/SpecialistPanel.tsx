@@ -15,7 +15,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { specialistRegistry } from "../services/specialist-registry";
+import { specialistRegistry } from "@/modules/agent-specialist";
 import { t } from "@/shared/constants";
 import {
   X,

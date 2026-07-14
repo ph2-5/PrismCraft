@@ -61,7 +61,7 @@ export type {
   ToolPluginLoadResult,
   ToolPluginsConfig,
 } from "./domain/tool-plugin-types";
-export type { SpecialistAgent } from "./domain/specialist-types";
+export type { SpecialistAgent } from "@/modules/agent-specialist";
 export type {
   SessionCheckpoint,
   CheckpointStatus,

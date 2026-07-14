@@ -33,7 +33,7 @@ import { memoryTools } from "./memory-tools";
 import { projectIoTools } from "./project-io-tools";
 import { fileManagementTools } from "./file-management-tools";
 import { specialistTools } from "./specialist-tools";
-import { specialistRegistry } from "../services/specialist-registry";
+import { specialistRegistry } from "@/modules/agent-specialist";
 
 let registered = false;
 

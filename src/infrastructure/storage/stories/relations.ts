@@ -18,6 +18,63 @@ function safeParseJson(raw: unknown): Record<string, unknown> | null {
   }
 }
 
+function parseCharacterIds(parsed: Record<string, unknown>): string[] {
+  const raw = parsed.character_ids_json;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string" && raw.startsWith("[")) return safeJsonParseArray(raw);
+  if (raw) return String(raw).split(",").filter(Boolean);
+  return [];
+}
+
+function applyGenerationFields(beat: Record<string, unknown>, gen: Record<string, unknown> | null): void {
+  if (!gen) return;
+  if (gen.keyframeImageUrl || gen.keyframePrompt) {
+    beat.keyframe = {
+      imageUrl: gen.keyframeImageUrl,
+      prompt: gen.keyframePrompt,
+      generatedAt: gen.keyframeGeneratedAt,
+    };
+  }
+  if (gen.firstFrameUrl || gen.lastFrameUrl) {
+    beat.framePair = {
+      firstFrame: { imageUrl: gen.firstFrameUrl, prompt: gen.firstFramePrompt },
+      ...(gen.lastFrameUrl ? { lastFrame: { imageUrl: gen.lastFrameUrl, prompt: gen.lastFramePrompt } } : {}),
+      generatedAt: gen.framePairGeneratedAt,
+    };
+  }
+  if (gen.videoUrl || gen.videoTaskId) {
+    beat.videoGen = { taskId: gen.videoTaskId, status: gen.videoStatus || "idle", videoUrl: gen.videoUrl };
+  }
+  if (gen.firstFramePromptGen) beat.firstFramePrompt = gen.firstFramePromptGen;
+  if (gen.lastFramePromptGen) beat.lastFramePrompt = gen.lastFramePromptGen;
+}
+
+function applyLocalPaths(beat: Record<string, unknown>, parsed: Record<string, unknown>): void {
+  if (parsed.local_video_path) beat.localVideoPath = parsed.local_video_path;
+  if (parsed.local_keyframe_path) beat.localKeyframePath = parsed.local_keyframe_path;
+  if (parsed.local_first_frame_path) beat.localFirstFramePath = parsed.local_first_frame_path;
+  if (parsed.local_last_frame_path) beat.localLastFramePath = parsed.local_last_frame_path;
+}
+
+function applyMetaFields(beat: Record<string, unknown>, meta: Record<string, unknown> | null): void {
+  if (!meta) return;
+  if (meta.elementIds != null) beat.elementIds = meta.elementIds;
+  if (meta.elementBindings != null) beat.elementBindings = meta.elementBindings;
+  for (const [k, v] of Object.entries(meta)) {
+    if (k === "elementIds" || k === "elementBindings") continue;
+    const parts = k.split(".");
+    let target: Record<string, unknown> = beat;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]!;
+      if (target[part] === undefined || target[part] === null || typeof target[part] !== "object") {
+        target[part] = {};
+      }
+      target = target[part] as Record<string, unknown>;
+    }
+    target[parts[parts.length - 1]!] = v;
+  }
+}
+
 function parseBeatRow(b: Record<string, unknown>) {
   const parsed = parseRecordWithTable(b, "story_beats");
   const cameraContainer = safeParseJson(parsed.camera);
@@ -34,15 +91,7 @@ function parseBeatRow(b: Record<string, unknown>) {
     type: parsed.type,
     title: parsed.title,
     content: parsed.content,
-    characterIds: (() => {
-      const raw = parsed.character_ids_json;
-      if (Array.isArray(raw)) return raw;
-      if (typeof raw === "string" && raw.startsWith("[")) {
-        return safeJsonParseArray(raw);
-      }
-      if (raw) return String(raw).split(",").filter(Boolean);
-      return [];
-    })(),
+    characterIds: parseCharacterIds(parsed),
     sceneId: parsed.scene_id,
     shotType: cameraContainer?.shotType && VALID_SHOT_TYPES.has(cameraContainer.shotType as string)
       ? cameraContainer.shotType
@@ -57,79 +106,12 @@ function parseBeatRow(b: Record<string, unknown>) {
 
   if (cameraContainer && Object.keys(cameraContainer).length > 0) {
     const { shotType: _shotType, ...cameraProps } = cameraContainer;
-    if (Object.keys(cameraProps).length > 0) {
-      beat.camera = cameraProps;
-    }
+    if (Object.keys(cameraProps).length > 0) beat.camera = cameraProps;
   }
 
-  if (generationContainer?.keyframeImageUrl || generationContainer?.keyframePrompt) {
-    beat.keyframe = {
-      imageUrl: generationContainer.keyframeImageUrl,
-      prompt: generationContainer.keyframePrompt,
-      generatedAt: generationContainer.keyframeGeneratedAt,
-    };
-  }
-
-  if (generationContainer?.firstFrameUrl || generationContainer?.lastFrameUrl) {
-    beat.framePair = {
-      firstFrame: {
-        imageUrl: generationContainer.firstFrameUrl,
-        prompt: generationContainer.firstFramePrompt,
-      },
-      ...(generationContainer.lastFrameUrl
-        ? {
-            lastFrame: {
-              imageUrl: generationContainer.lastFrameUrl,
-              prompt: generationContainer.lastFramePrompt,
-            },
-          }
-        : {}),
-      generatedAt: generationContainer.framePairGeneratedAt,
-    };
-  }
-
-  if (generationContainer?.videoUrl || generationContainer?.videoTaskId) {
-    beat.videoGen = {
-      taskId: generationContainer.videoTaskId,
-      status: generationContainer.videoStatus || "idle",
-      videoUrl: generationContainer.videoUrl,
-    };
-  }
-
-  if (generationContainer?.firstFramePromptGen) {
-    beat.firstFramePrompt = generationContainer.firstFramePromptGen;
-  }
-  if (generationContainer?.lastFramePromptGen) {
-    beat.lastFramePrompt = generationContainer.lastFramePromptGen;
-  }
-
-  if (parsed.local_video_path) beat.localVideoPath = parsed.local_video_path;
-  if (parsed.local_keyframe_path) beat.localKeyframePath = parsed.local_keyframe_path;
-  if (parsed.local_first_frame_path) beat.localFirstFramePath = parsed.local_first_frame_path;
-  if (parsed.local_last_frame_path) beat.localLastFramePath = parsed.local_last_frame_path;
-
-  if (metaContainer?.elementIds != null) beat.elementIds = metaContainer.elementIds;
-  if (metaContainer?.elementBindings != null) beat.elementBindings = metaContainer.elementBindings;
-
-  if (metaContainer) {
-    for (const [k, v] of Object.entries(metaContainer)) {
-      if (k === "elementIds" || k === "elementBindings") continue;
-      const parts = k.split(".");
-      let target: Record<string, unknown> = beat;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const part = parts[i]!;
-        if (
-          target[part] === undefined ||
-          target[part] === null ||
-          typeof target[part] !== "object"
-        ) {
-          target[part] = {};
-        }
-        target = target[part] as Record<string, unknown>;
-      }
-      target[parts[parts.length - 1]!] = v;
-    }
-  }
+  applyGenerationFields(beat, generationContainer);
+  applyLocalPaths(beat, parsed);
+  applyMetaFields(beat, metaContainer);
 
   return beat;
 }

@@ -60,7 +60,7 @@
     "findTopK 返回结果按相似度降序排列，长度不超过 k"
   ],
   "consumers": [
-    "@/modules/agent/services/vector-search/strategies.ts (LocalVectorStrategy)",
+    "@/modules/vector-search/strategies.ts (LocalVectorStrategy)",
     "@/modules/agent/services/memory-service.ts (searchArchivalMemory)",
     "@/app/settings/EmbeddingModelPanel.tsx (UI)"
   ]

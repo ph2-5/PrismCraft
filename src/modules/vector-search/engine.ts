@@ -24,7 +24,7 @@
  */
 
 import { errorLogger } from "@/shared/error-logger";
-import type { ArchivalMemoryEntry } from "../memory-service";
+import type { ArchivalMemoryEntry } from "@/domain/types/memory";
 import type { EmbeddingStore, RetrievalStrategy, ProgressCallback } from "./types";
 import { ApiVectorStrategy, LocalVectorStrategy, KeywordStrategy } from "./strategies";
 import { FileEmbeddingStore } from "./embedding-store";

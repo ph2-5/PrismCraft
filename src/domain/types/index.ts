@@ -1,3 +1,4 @@
+export type { ArchivalMemoryEntry } from "./memory";
 export type { CloudProviderInfo } from "./cloud-provider";
 export type { VideoModelFormat } from "./video-model";
 export type { Result } from "./result";

@@ -22,7 +22,7 @@
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
 import type { IEmbeddingProvider } from "@/domain/ports";
-import type { ArchivalMemoryEntry } from "../memory-service";
+import type { ArchivalMemoryEntry } from "@/domain/types/memory";
 import type { EmbeddingStore, RetrievalStrategy, ProgressCallback } from "./types";
 
 // ============= 通用工具 =============

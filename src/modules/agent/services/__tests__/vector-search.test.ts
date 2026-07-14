@@ -19,7 +19,7 @@ import {
   VectorSearchEngine,
   createDefaultEngine,
   type RetrievalStrategy,
-} from "../vector-search";
+} from "@/modules/vector-search";
 import type { ArchivalMemoryEntry } from "../memory-service";
 
 // ── vi.hoisted 声明 mock 变量 ──

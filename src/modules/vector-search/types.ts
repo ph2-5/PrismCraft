@@ -11,7 +11,7 @@
  * - 进度通知（S3）：backfill 大批量 embedding 时通过 onProgress 回调报告进度
  */
 
-import type { ArchivalMemoryEntry } from "../../domain/types";
+import type { ArchivalMemoryEntry } from "@/domain/types/memory";
 
 /**
  * Embedding 独立存储接口

@@ -138,6 +138,6 @@ src/infrastructure/embedding/
 
 ## 消费者
 
-- `src/modules/agent/services/vector-search/strategies.ts` — `LocalVectorStrategy` 使用 `detectLocalModel` / `getLocalEmbeddingProvider`
+- `src/modules/vector-search/strategies.ts` — `LocalVectorStrategy` 使用 `detectLocalModel` / `getLocalEmbeddingProvider`
 - `src/modules/agent/services/memory-service.ts` — `searchArchivalMemory` 通过 `VectorSearchEngine` 间接使用
 - `src/app/settings/EmbeddingModelPanel.tsx` — UI 使用 `listLocalModels` / `setActiveModel` / `removeModel` / `installModelFromFiles`

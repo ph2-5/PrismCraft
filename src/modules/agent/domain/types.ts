@@ -306,27 +306,9 @@ export interface MemoryFact {
   updatedAt: number;
 }
 
-/** 归档记忆条目 */
-export interface ArchivalMemoryEntry {
-  id: string;
-  type: "summary" | "fact" | "decision";
-  content: string;
-  /** 来源会话 ID */
-  sessionId?: string;
-  /** 创建时间戳 */
-  createdAt: number;
-  /** 标签（便于分类检索） */
-  tags?: string[];
-  /**
-   * 内容的向量嵌入（已废弃，不再使用）
-   *
-   * S5 之后 embedding 独立存储到 embeddings.json，由 EmbeddingStore 管理。
-   * 此字段保留仅为向后兼容旧 archival.json 数据的读取（解析时由 getAllArchivalMemory 忽略）。
-   * 新数据不再写入此字段；VectorSearchEngine 的策略从 EmbeddingStore 读取。
-   * @deprecated 使用 EmbeddingStore（vector-search/embedding-store）替代
-   */
-  embedding?: number[];
-}
+// 归档记忆条目类型已提取到 @/domain/types/memory.ts（供 vector-search 独立模块共享）
+// 此处 re-export 保持向后兼容（现有 import 路径不破坏）
+export type { ArchivalMemoryEntry } from "@/domain/types/memory";
 
 /** LLM 自动抽取结果 */
 export interface ExtractedMemory {

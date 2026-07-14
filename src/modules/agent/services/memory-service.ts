@@ -57,7 +57,7 @@ import {
   type VectorSearchEngine,
   type EmbeddingStore,
   type ProgressCallback,
-} from "./vector-search";
+} from "@/modules/vector-search";
 import { SEED_MEMORY_ENTRIES } from "./memory-service-seed-data";
 
 // Re-export memory types from domain/types for backward compatibility

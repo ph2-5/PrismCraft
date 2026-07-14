@@ -75,7 +75,7 @@ function applyMetaFields(beat: Record<string, unknown>, meta: Record<string, unk
   }
 }
 
-function parseBeatRow(b: Record<string, unknown>) {
+export function parseBeatRow(b: Record<string, unknown>) {
   const parsed = parseRecordWithTable(b, "story_beats");
   const cameraContainer = safeParseJson(parsed.camera);
   const generationContainer = safeParseJson(parsed.generation);

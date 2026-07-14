@@ -12,7 +12,7 @@
  * - generate_thumbnail：生成视频缩略图
  *
  * Mock 策略：
- * - ../../services/ffmpeg-service（被测工具真正调用的服务）
+ * - @/modules/ffmpeg-runner（被测工具真正调用的服务）
  * - ../../services/tool-executor（TOOL_TIMEOUTS 常量）
  *
  * 测试模式（每个工具 3 类场景）：
@@ -37,7 +37,7 @@ const mocks = vi.hoisted(() => ({
   composeFinalVideo: vi.fn(),
 }));
 
-vi.mock("../../services/ffmpeg-service", () => ({
+vi.mock("@/modules/ffmpeg-runner", () => ({
   checkFfmpegAvailable: mocks.checkFfmpegAvailable,
   mergeVideos: mocks.mergeVideos,
   trimVideo: mocks.trimVideo,

@@ -23,7 +23,7 @@ import {
   normalizeAudio,
   removeNoise,
   splitAudio,
-} from "../services/ffmpeg-service";
+} from "@/modules/ffmpeg-runner";
 
 // ============= 辅助函数（内部使用，不导出） =============
 

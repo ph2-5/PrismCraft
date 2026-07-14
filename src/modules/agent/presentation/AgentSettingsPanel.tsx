@@ -23,7 +23,7 @@ import { errorLogger } from "@/shared/error-logger";
 import {
   checkFfmpegAvailable,
   resetFfmpegCache,
-} from "../services/ffmpeg-service";
+} from "@/modules/ffmpeg-runner";
 import { searchArchivalMemory } from "../services/memory-service";
 import type { ArchivalMemoryEntry } from "../services/memory-service";
 import { formatRelativeTime } from "@/shared/utils/format";

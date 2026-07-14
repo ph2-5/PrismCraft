@@ -23,7 +23,7 @@
  */
 
 import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../services/tool-executor";
+import { TOOL_TIMEOUTS } from "../domain/constants";
 import { container } from "@/infrastructure/di";
 import type { VideoTask } from "@/domain/schemas";
 

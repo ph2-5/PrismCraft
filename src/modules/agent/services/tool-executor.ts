@@ -202,16 +202,5 @@ export class ToolExecutor implements IToolExecutor {
 /** 全局工具执行器单例 */
 export const toolExecutor = new ToolExecutor();
 
-/** 工具超时预设（按业务域） */
-export const TOOL_TIMEOUTS = {
-  /** 查询类：30 秒 */
-  query: 30_000,
-  /** 创建/更新类：60 秒 */
-  mutation: 60_000,
-  /** AI 生成类：5 分钟 */
-  generation: 5 * 60_000,
-  /** 视频任务类：30 分钟 */
-  videoTask: 30 * 60_000,
-  /** 网络下载类：10 分钟 */
-  download: 10 * 60_000,
-} as const;
+// TOOL_TIMEOUTS 已移至 domain/constants.ts，此处 re-export 保持向后兼容
+export { TOOL_TIMEOUTS } from "../domain/constants";

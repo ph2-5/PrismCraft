@@ -15,7 +15,7 @@
 
 import type { ToolImpl } from "../domain/types";
 import type { ToolContext, ToolResult } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../services/tool-executor";
+import { TOOL_TIMEOUTS } from "../domain/constants";
 import { runSpecialist, listAvailableSpecialists } from "../services/sub-agent-runner";
 import { specialistRegistry } from "../services/specialist-registry";
 

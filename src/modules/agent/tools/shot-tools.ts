@@ -18,7 +18,7 @@
  */
 
 import type { ToolImpl, ToolResult } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../services/tool-executor";
+import { TOOL_TIMEOUTS } from "../domain/constants";
 import { container } from "@/infrastructure/di";
 import type { Story, StoryBeat, Character, Scene } from "@/domain/schemas";
 

@@ -7,7 +7,7 @@
 
 import type { ToolImpl } from "../domain/types";
 import type { StoryBeat, Story } from "@/domain/schemas";
-import { TOOL_TIMEOUTS } from "../services/tool-executor";
+import { TOOL_TIMEOUTS } from "../domain/constants";
 import { container } from "@/infrastructure/di";
 import {
   generateJsonWithAI,

@@ -16,7 +16,8 @@
  */
 
 import type { ToolImpl, ToolCall, ToolContext } from "../domain/types";
-import { TOOL_TIMEOUTS, toolExecutor } from "../services/tool-executor";
+import { toolExecutor } from "../services/tool-executor";
+import { TOOL_TIMEOUTS } from "../domain/constants";
 import { toolRegistry } from "../services/tool-registry";
 
 // ============= 类型定义 =============

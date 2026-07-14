@@ -6,7 +6,7 @@
  */
 
 import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../services/tool-executor";
+import { TOOL_TIMEOUTS } from "../domain/constants";
 
 /** 3. 一句话生成完整分镜计划（创建故事 → 规划分镜 → 校验） */
 export const autoPlanStoryboardTool: ToolImpl = {

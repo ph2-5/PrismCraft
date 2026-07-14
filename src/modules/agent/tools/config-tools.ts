@@ -17,7 +17,7 @@
  */
 
 import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../services/tool-executor";
+import { TOOL_TIMEOUTS } from "../domain/constants";
 
 /** 脱敏 API key */
 function maskApiKey(key: string): string {

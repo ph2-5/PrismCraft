@@ -6,7 +6,7 @@
  */
 
 import type { ToolImpl } from "../domain/types";
-import { TOOL_TIMEOUTS } from "../services/tool-executor";
+import { TOOL_TIMEOUTS } from "../domain/constants";
 import { executeTool, generateJsonArrayWithAI } from "./subworkflow-helpers";
 
 /** 9. 视频自动润色 */

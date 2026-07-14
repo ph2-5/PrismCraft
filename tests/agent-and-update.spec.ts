@@ -90,8 +90,8 @@ test.describe("Settings - Update Check", () => {
     await systemTab.click({ force: true });
     await page.waitForTimeout(500);
 
-    // 验证版本号显示
-    await expect(page.locator("text=v1.2.2").first()).toBeVisible({ timeout: 5000 });
+    // 验证版本号显示（与 src/shared/constants/app-version.ts APP_VERSION 保持一致）
+    await expect(page.locator("text=v1.3.0").first()).toBeVisible({ timeout: 5000 });
 
     // 验证"检查更新"按钮存在
     await expect(page.locator("button", { hasText: "检查更新" })).toBeVisible({ timeout: 5000 });

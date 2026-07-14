@@ -1070,3 +1070,46 @@ export function registerObjectUrl(taskId: string, url: string): void {
 **Verification**: Reset modules, spy on `window.addEventListener`, dynamically `import()` the module. Verify spy NOT called with `"beforeunload"`. Call `registerObjectUrl()`. Verify `addEventListener` called once with `"beforeunload"`. Call `registerObjectUrl()` again — verify no second registration (idempotent). Call `cleanupVideoCache()`. Verify `removeEventListener` called.
 
 **Discovered in**: P0 fix audit found `video-cache.ts` registered `beforeunload` at module scope, causing duplicate listeners on HMR and making the module untestable in isolation. Test: `src/infrastructure/storage/__tests__/regression-r189-no-top-level-beforeunload.test.ts`.
+
+### R191: generateBeatImagePrompt Enhanced Mode Condition Must Be Separated
+
+`src/domain/utils/beat-prompt-builder.ts` `generateBeatImagePrompt` MUST use separated conditions for enhanced mode:
+- **Element description**: `isEnhanced && beat.sceneElements && beat.sceneElements.length > 0` → `buildEnhancedElementsSection`
+- **Otherwise**: `buildCharacterSection` (character description must NOT be lost)
+- **Shot instruction**: `isEnhanced` → `buildResolvedShotSection` (independent of sceneElements)
+
+Merging these conditions into a single `isEnhanced` check causes character description loss when `isEnhanced=true` but `sceneElements` is empty/undefined.
+
+**BAD** — Merged condition causes character loss:
+```typescript
+// ❌ When isEnhanced=true && sceneElements=[], this pushes empty array
+//    from buildEnhancedElementsSection, losing character description
+if (isEnhanced) {
+  parts.push(...buildEnhancedElementsSection(beat, characters));
+} else {
+  parts.push(...buildCharacterSection(beat, characters));
+}
+if (isEnhanced) {
+  parts.push(...buildResolvedShotSection(beat));
+}
+```
+
+**GOOD** — Separated conditions preserve character fallback:
+```typescript
+// ✅ Element description requires both isEnhanced AND non-empty sceneElements
+const hasEnhancedElements = isEnhanced && beat.sceneElements && beat.sceneElements.length > 0;
+if (hasEnhancedElements) {
+  parts.push(...buildEnhancedElementsSection(beat, characters));
+} else {
+  parts.push(...buildCharacterSection(beat, characters));  // Fallback preserves characters
+}
+
+// ✅ Shot instruction is independent of sceneElements
+if (isEnhanced) {
+  parts.push(...buildResolvedShotSection(beat));
+}
+```
+
+**Verification**: Test with `isEnhanced=true` and `sceneElements=[]`. Verify prompt contains character name and appearance. Test with `isEnhanced=true` and `sceneElements=[element]`. Verify prompt contains "画面内容：" prefix. Test with `isEnhanced=false`. Verify no "画面内容：" prefix.
+
+**Discovered in**: 2026-07-14 refactoring `generateBeatImagePrompt` (complexity 31→≤15) incorrectly merged the condition, causing character description loss in enhanced mode when `sceneElements` is empty. Fixed in commit `488c0a5`. Test: `src/domain/utils/__tests__/regression-r191-enhanced-mode-character-fallback.test.ts`.

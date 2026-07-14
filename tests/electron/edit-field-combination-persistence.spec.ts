@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "../helpers/electron-fixture";
 import { navigateTo, waitForAppReady, dismissOverlays } from "../helpers/electron-page-helpers";
+import { captureConsoleErrors } from "../helpers/console-errors";
 
 /**
  * 角色/场景/分镜编辑框排列组合持久化测试
@@ -10,8 +11,12 @@ import { navigateTo, waitForAppReady, dismissOverlays } from "../helpers/electro
  * 运行方式：npx playwright test --config playwright.electron-all.config.ts
  */
 
+let getErrors: () => string[] = () => [];
+
 // 自动接受 beforeunload 原生确认对话框（由 BeforeUnloadGuard 在有未保存更改时触发）
+// 同时安装控制台错误捕获，确保每个测试都检查关键控制台错误
 test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
   page.on("dialog", async (dialog) => {
     try {
       await dialog.accept();
@@ -19,6 +24,11 @@ test.beforeEach(async ({ page }) => {
       // Dialog may have been already dismissed, ignore
     }
   });
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
 });
 
 /**

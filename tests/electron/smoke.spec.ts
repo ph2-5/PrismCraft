@@ -14,6 +14,20 @@ const MAIN_PAGES = [
   { path: "/settings", name: "Settings" },
 ];
 
+// 全局控制台错误捕获：确保每个 test 都检查关键控制台错误
+// "JavaScript Error Detection" describe 块内的 test 自带内联检查（跨页面累积语义），
+// 此处全局检查覆盖其余所有 test（导航、404、响应式、性能等）
+let getErrors: () => string[] = () => [];
+
+test.beforeEach(async ({ page }) => {
+  getErrors = captureConsoleErrors(page);
+});
+
+test.afterEach(async () => {
+  const consoleErrors = getErrors();
+  expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
+});
+
 test.describe("Homepage Loading and Content Verification", () => {
   test("should launch and display homepage with correct title", async ({ page }) => {
     await navigateTo(page, "/");

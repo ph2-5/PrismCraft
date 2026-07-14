@@ -85,4 +85,13 @@ test.describe("Electron Integration Tests", () => {
     const value = await page.evaluate(() => (window as any).electronAPI.getConfig("test-key"));
     expect(value).toBeNull();
   });
+
+  test("should have no critical errors across all integration tests", async () => {
+    // 累积检查：兜底 beforeAll 启动阶段产生的错误（delta 模式无法捕获）
+    const criticalErrors = getErrors();
+    expect(
+      criticalErrors.length,
+      `Critical errors across integration tests: ${criticalErrors.join("\n")}`,
+    ).toBe(0);
+  });
 });

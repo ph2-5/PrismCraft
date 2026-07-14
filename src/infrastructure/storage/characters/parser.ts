@@ -19,85 +19,95 @@ function normalizeVideoGenStatus(raw: unknown): Character["videoGenerationStatus
   return undefined;
 }
 
+type AppearanceContainer = ReturnType<typeof parseAppearance>;
+type GenerationContainer = ReturnType<typeof parseGeneration>;
+type ConfigContainer = ReturnType<typeof parseConfig>;
+type MetaContainer = ReturnType<typeof parseMeta>;
+
+function strOr(value: unknown, defaultValue = ""): string {
+  return String(value || defaultValue);
+}
+
+function optStrOr(value: unknown): string | undefined {
+  return value ? String(value) : undefined;
+}
+
+function optNumOr(value: unknown): number | undefined {
+  return value !== undefined && value !== null ? Number(value) : undefined;
+}
+
+function optTsOr(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "number") return new Date(value * 1000).toISOString();
+  return String(value);
+}
+
+function buildAppearanceFields(container: AppearanceContainer): Pick<Character, "avatarPath" | "thumbnailPath" | "previewPath" | "generatedImage" | "generatedVideo" | "videoGenerationStatus" | "videoGenerationTaskId" | "imageGenerationPrompt"> {
+  return {
+    avatarPath: optStrOr(container.avatarPath),
+    thumbnailPath: optStrOr(container.thumbnailPath),
+    previewPath: optStrOr(container.previewPath),
+    generatedImage: optStrOr(container.generatedImage),
+    generatedVideo: optStrOr(container.generatedVideo),
+    videoGenerationStatus: normalizeVideoGenStatus(container.videoGenerationStatus),
+    videoGenerationTaskId: optStrOr(container.videoGenerationTaskId),
+    imageGenerationPrompt: optStrOr(container.imageGenerationPrompt),
+  };
+}
+
+function buildConfigFields(container: ConfigContainer): Pick<Character, "appearance" | "personality" | "traits"> {
+  return {
+    appearance: (container.appearance && typeof container.appearance === "object"
+      ? container.appearance
+      : { hairColor: "", hairStyle: "", eyeColor: "", height: "", build: "", clothing: "" }) as Character["appearance"],
+    personality: (Array.isArray(container.personality) ? container.personality : []) as string[],
+    traits: (Array.isArray(container.traits) ? container.traits : undefined) as string[] | undefined,
+  };
+}
+
+function buildGenerationFields(container: GenerationContainer): Pick<Character, "prompt" | "generationPrompt" | "generationParams"> {
+  return {
+    prompt: strOr(container.prompt),
+    generationPrompt: optStrOr(container.generationPrompt),
+    generationParams: (typeof container.generationParams === "object" && container.generationParams !== null
+      ? container.generationParams
+      : undefined) as Record<string, unknown> | undefined,
+  };
+}
+
+function buildMetaFields(container: MetaContainer): Pick<Character, "tags"> {
+  return {
+    tags: (Array.isArray(container.tags) ? container.tags : undefined) as string[] | undefined,
+  };
+}
+
+function buildTimestampFields(parsed: Record<string, unknown>): Pick<Character, "createdAt" | "updatedAt" | "lastUsedAt"> {
+  return {
+    createdAt: optTsOr(parsed.created_at),
+    updatedAt: optTsOr(parsed.updated_at),
+    lastUsedAt: optTsOr(parsed.last_used_at),
+  };
+}
+
 export function parseCharacter(record: Record<string, unknown>): Character {
   const parsed = parseRecordWithTable(record, "characters");
-  const appearanceContainer = parseAppearance(parsed.appearance);
-  const generationContainer = parseGeneration(parsed.generation);
-  const configContainer = parseConfig(parsed.config);
-  const metaContainer = parseMeta(parsed.meta);
 
   return {
-    id: String(parsed.id || ""),
-    name: String(parsed.name || ""),
-    description: String(parsed.description || ""),
-    gender: String(parsed.gender || "unknown"),
-    age:
-      parsed.age !== null && parsed.age !== undefined
-        ? Number(parsed.age)
-        : undefined,
-    style: String(parsed.style || ""),
-    appearance: (configContainer.appearance && typeof configContainer.appearance === "object"
-      ? configContainer.appearance
-      : {
-          hairColor: "",
-          hairStyle: "",
-          eyeColor: "",
-          height: "",
-          build: "",
-          clothing: "",
-        }) as Character["appearance"],
-    personality: (Array.isArray(configContainer.personality)
-      ? configContainer.personality
-      : []) as string[],
-    traits: (Array.isArray(configContainer.traits)
-      ? configContainer.traits
-      : undefined) as string[] | undefined,
-    prompt: String(generationContainer.prompt || ""),
-    source: String(parsed.source || "ai-generated"),
-    avatarPath: appearanceContainer.avatarPath ? String(appearanceContainer.avatarPath) : undefined,
-    refImagePath: parsed.ref_image_path
-      ? String(parsed.ref_image_path)
-      : undefined,
-    thumbnailPath: appearanceContainer.thumbnailPath ? String(appearanceContainer.thumbnailPath) : undefined,
-    previewPath: appearanceContainer.previewPath ? String(appearanceContainer.previewPath) : undefined,
-    generatedImage: appearanceContainer.generatedImage ? String(appearanceContainer.generatedImage) : undefined,
-    generatedVideo: appearanceContainer.generatedVideo ? String(appearanceContainer.generatedVideo) : undefined,
-    videoGenerationStatus: normalizeVideoGenStatus(appearanceContainer.videoGenerationStatus),
-    videoGenerationTaskId: appearanceContainer.videoGenerationTaskId
-      ? String(appearanceContainer.videoGenerationTaskId)
-      : undefined,
-    imageGenerationPrompt: appearanceContainer.imageGenerationPrompt
-      ? String(appearanceContainer.imageGenerationPrompt)
-      : undefined,
-    generationPrompt: generationContainer.generationPrompt
-      ? String(generationContainer.generationPrompt)
-      : undefined,
-    generationParams: (typeof generationContainer.generationParams === "object" &&
-    generationContainer.generationParams !== null
-      ? generationContainer.generationParams
-      : undefined) as Record<string, unknown> | undefined,
-    useCount:
-      parsed.use_count !== undefined ? Number(parsed.use_count) : undefined,
-    lastUsedAt:
-      parsed.last_used_at !== undefined
-        ? (typeof parsed.last_used_at === "number"
-          ? new Date(parsed.last_used_at * 1000).toISOString()
-          : String(parsed.last_used_at))
-        : undefined,
-    tags: (Array.isArray(metaContainer.tags) ? metaContainer.tags : undefined) as
-      | string[]
-      | undefined,
+    id: strOr(parsed.id),
+    name: strOr(parsed.name),
+    description: strOr(parsed.description),
+    gender: strOr(parsed.gender, "unknown"),
+    age: optNumOr(parsed.age),
+    style: strOr(parsed.style),
+    source: strOr(parsed.source, "ai-generated"),
+    refImagePath: optStrOr(parsed.ref_image_path),
+    useCount: optNumOr(parsed.use_count),
     outfits: undefined as CharacterOutfit[] | undefined,
-    createdAt: parsed.created_at
-      ? (typeof parsed.created_at === "number"
-        ? new Date(parsed.created_at * 1000).toISOString()
-        : String(parsed.created_at))
-      : undefined,
-    updatedAt: parsed.updated_at
-      ? (typeof parsed.updated_at === "number"
-        ? new Date(parsed.updated_at * 1000).toISOString()
-        : String(parsed.updated_at))
-      : undefined,
+    ...buildAppearanceFields(parseAppearance(parsed.appearance)),
+    ...buildConfigFields(parseConfig(parsed.config)),
+    ...buildGenerationFields(parseGeneration(parsed.generation)),
+    ...buildMetaFields(parseMeta(parsed.meta)),
+    ...buildTimestampFields(parsed),
   };
 }
 

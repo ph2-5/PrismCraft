@@ -9,89 +9,121 @@ import { extractErrorMessage } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
 
+export interface MultiApiOptions {
+  duration?: number;
+  textProviderId?: string;
+  textModelId?: string;
+  imageProviderId?: string;
+  imageModelId?: string;
+  visionProviderId?: string;
+  visionModelId?: string;
+  videoProviderId?: string;
+  videoModelId?: string;
+  onProgress?: (step: string, progress: number) => void;
+}
+
+/** Step 1: 生成视频描述文本 */
+async function generateVideoDescription(
+  prompt: string,
+  options?: MultiApiOptions,
+): Promise<string> {
+  options?.onProgress?.(t("progress.generatingVideoDesc"), 0.1);
+  const response = await generateText(
+    `请根据以下提示生成详细的视频描述，包括场景、角色、动作和情感：\n${prompt}\n\n要求：\n1. 描述要详细具体\n2. 适合用于视频生成\n3. 控制在200字以内`,
+    {
+      maxTokens: 500,
+      temperature: 0.7,
+      providerId: options?.textProviderId,
+      modelId: options?.textModelId,
+    },
+  );
+
+  if (!response.data?.text) {
+    throw new Error(t("error.videoDescGenFailed"));
+  }
+
+  options?.onProgress?.(t("progress.generatingVideoDesc"), 0.25);
+  return response.data.text;
+}
+
+/** Step 2: 生成封面图 */
+async function generateCoverImage(
+  description: string,
+  options?: MultiApiOptions,
+): Promise<string> {
+  options?.onProgress?.(t("progress.generatingVideoAssets"), 0.3);
+  const response = await generateImage(
+    `根据以下描述生成一张高质量的视频封面图：\n${description}\n\n要求：\n1. 画面精美，适合作为视频素材\n2. 清晰的主体和背景\n3. 符合描述的场景和氛围`,
+    "scene",
+    {
+      providerId: options?.imageProviderId,
+      modelId: options?.imageModelId,
+    },
+  );
+
+  if (!response.data?.imageUrl) {
+    throw new Error(t("error.videoImageGenFailed"));
+  }
+
+  options?.onProgress?.(t("progress.generatingVideoAssets"), 0.5);
+  return response.data.imageUrl;
+}
+
+/** Step 3: 分析封面图内容 */
+async function analyzeCoverImage(
+  imageUrl: string,
+  options?: MultiApiOptions,
+): Promise<string> {
+  options?.onProgress?.(t("progress.analyzingContent"), 0.55);
+  const response = await analyzeImage(
+    imageUrl,
+    "scene",
+    `请分析这张图片的内容，包括：\n1. 场景类型\n2. 主要元素\n3. 色彩风格\n4. 适合的视频风格和节奏`,
+    {
+      providerId: options?.visionProviderId,
+      modelId: options?.visionModelId,
+    },
+  );
+
+  if (!response.data?.analysis) {
+    throw new Error(t("error.analysisFailed"));
+  }
+
+  options?.onProgress?.(t("progress.analyzingContent"), 0.7);
+  return response.data.analysis;
+}
+
+/** Step 4: 生成最终视频 */
+async function generateFinalVideo(
+  description: string,
+  analysis: string,
+  imageUrl: string,
+  options?: MultiApiOptions,
+): Promise<ApiResponse<VideoGenerationResult>> {
+  options?.onProgress?.(t("progress.generatingVideo"), 0.75);
+  const response = await generateVideo(
+    `${description}\n\n视频风格参考：${analysis}`,
+    {
+      firstFrameUrl: imageUrl,
+      duration: options?.duration || 5,
+      providerId: options?.videoProviderId,
+      modelId: options?.videoModelId,
+    },
+  );
+
+  options?.onProgress?.(t("progress.generatingVideo"), 1.0);
+  return response;
+}
+
 export async function generateVideoWithMultiAPI(
   prompt: string,
-  options?: {
-    duration?: number;
-    textProviderId?: string;
-    textModelId?: string;
-    imageProviderId?: string;
-    imageModelId?: string;
-    visionProviderId?: string;
-    visionModelId?: string;
-    videoProviderId?: string;
-    videoModelId?: string;
-    onProgress?: (step: string, progress: number) => void;
-  },
+  options?: MultiApiOptions,
 ): Promise<ApiResponse<VideoGenerationResult>> {
   try {
-    options?.onProgress?.(t("progress.generatingVideoDesc"), 0.1);
-    const descriptionResponse = await generateText(
-      `请根据以下提示生成详细的视频描述，包括场景、角色、动作和情感：\n${prompt}\n\n要求：\n1. 描述要详细具体\n2. 适合用于视频生成\n3. 控制在200字以内`,
-      {
-        maxTokens: 500,
-        temperature: 0.7,
-        providerId: options?.textProviderId,
-        modelId: options?.textModelId,
-      },
-    );
-
-    if (!descriptionResponse.data?.text) {
-      throw new Error(t("error.videoDescGenFailed"));
-    }
-
-    const detailedDescription = descriptionResponse.data.text;
-    options?.onProgress?.(t("progress.generatingVideoDesc"), 0.25);
-
-    options?.onProgress?.(t("progress.generatingVideoAssets"), 0.3);
-    const imageResponse = await generateImage(
-      `根据以下描述生成一张高质量的视频封面图：\n${detailedDescription}\n\n要求：\n1. 画面精美，适合作为视频素材\n2. 清晰的主体和背景\n3. 符合描述的场景和氛围`,
-      "scene",
-      {
-        providerId: options?.imageProviderId,
-        modelId: options?.imageModelId,
-      },
-    );
-
-    if (!imageResponse.data?.imageUrl) {
-      throw new Error(t("error.videoImageGenFailed"));
-    }
-
-    const imageUrl = imageResponse.data.imageUrl;
-    options?.onProgress?.(t("progress.generatingVideoAssets"), 0.5);
-
-    options?.onProgress?.(t("progress.analyzingContent"), 0.55);
-    const analysisResponse = await analyzeImage(
-      imageUrl,
-      "scene",
-      `请分析这张图片的内容，包括：\n1. 场景类型\n2. 主要元素\n3. 色彩风格\n4. 适合的视频风格和节奏`,
-      {
-        providerId: options?.visionProviderId,
-        modelId: options?.visionModelId,
-      },
-    );
-
-    if (!analysisResponse.data?.analysis) {
-      throw new Error(t("error.analysisFailed"));
-    }
-
-    const analysis = analysisResponse.data.analysis;
-    options?.onProgress?.(t("progress.analyzingContent"), 0.7);
-
-    options?.onProgress?.(t("progress.generatingVideo"), 0.75);
-    const videoResponse = await generateVideo(
-      `${detailedDescription}\n\n视频风格参考：${analysis}`,
-      {
-        firstFrameUrl: imageUrl,
-        duration: options?.duration || 5,
-        providerId: options?.videoProviderId,
-        modelId: options?.videoModelId,
-      },
-    );
-
-    options?.onProgress?.(t("progress.generatingVideo"), 1.0);
-
-    return videoResponse;
+    const description = await generateVideoDescription(prompt, options);
+    const imageUrl = await generateCoverImage(description, options);
+    const analysis = await analyzeCoverImage(imageUrl, options);
+    return await generateFinalVideo(description, analysis, imageUrl, options);
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
     throw new Error(extractErrorMessage(error));

@@ -12,6 +12,8 @@
  * - 检索：根据用户查询做关键词匹配，返回相关工具的 few-shot
  *
  * 持久化：通过 @/shared/file-http（遵守架构规则，不直接调用 electronAPI）
+ *
+ * 从 @/modules/agent/services/ 迁移至 @/modules/agent-fewshot（阶段2-c）
  */
 
 import { getCacheDirectory, readFile, writeFile } from "@/shared/file-http";
@@ -22,19 +24,9 @@ import {
   BUILTIN_FEWSHOT_EXAMPLES,
 } from "./builtin-fewshot-examples";
 
-/** 单条 few-shot 缓存条目 */
-export interface FewShotEntry {
-  /** 工具名 */
-  toolName: string;
-  /** 用户查询摘要（截断到 100 字符） */
-  userQuery: string;
-  /** 工具参数摘要（JSON 截断到 200 字符） */
-  argsSummary: string;
-  /** 工具结果摘要（JSON 截断到 300 字符） */
-  resultSummary: string;
-  /** 记录时间戳（ms） */
-  timestamp: number;
-}
+// FewShotEntry 类型从 domain 层导入，消除 tool-fewshot-cache ↔ builtin-fewshot-examples 的循环依赖
+export type { FewShotEntry } from "../domain/types";
+import type { FewShotEntry } from "../domain/types";
 
 /** 缓存文件结构 */
 interface FewShotCacheData {

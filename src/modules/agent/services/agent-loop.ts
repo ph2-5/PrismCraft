@@ -46,7 +46,7 @@ import {
   clearCheckpoint,
   markInterrupted,
 } from "@/modules/agent-session";
-import { recordFewShot, buildFewShotPrompt } from "./tool-fewshot-cache";
+import { recordFewShot, buildFewShotPrompt } from "@/modules/agent-fewshot";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
 

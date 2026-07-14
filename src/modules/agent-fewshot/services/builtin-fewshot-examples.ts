@@ -12,9 +12,11 @@
  * - 每个 domain 5-10 个示例，覆盖常见参数组合
  *
  * 示例来源：基于项目工具定义的实际参数 schema 编写，确保参数格式正确
+ *
+ * 从 @/modules/agent/services/ 迁移至 @/modules/agent-fewshot（阶段2-c）
  */
 
-import type { FewShotEntry } from "./tool-fewshot-cache";
+import type { FewShotEntry } from "../domain/types";
 
 /** 内置示例的固定时间戳（早于任何运行时缓存，确保检索时优先级低于运行时缓存） */
 const BUILTIN_TIMESTAMP = 0;

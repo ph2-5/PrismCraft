@@ -95,7 +95,8 @@ test.describe("Asset Library Empty State", () => {
     // UI 重构后默认 tab 是"全部素材"，需要切换到"角色库"才能看到角色空状态
     // 测试环境可能累积角色数据，所以"空状态或角色卡片"任一存在即可
     await switchAssetTab(page, "角色库");
-    const emptyHint = page.locator("text=角色库为空").or(page.locator("text=暂无角色")).first();
+    // 实际 UI 文案: "还没有角色素材" (asset.characterLibraryEmpty)
+    const emptyHint = page.locator("text=还没有角色素材").or(page.locator("text=角色库为空")).or(page.locator("text=暂无角色")).first();
     // 按钮使用 aria-label（非可见文本），必须用 getByRole name 匹配
     const deleteBtn = page.getByRole("button", { name: "删除角色" });
     await expect.poll(
@@ -110,7 +111,8 @@ test.describe("Asset Library Empty State", () => {
 
   test("should display empty state hint when no scenes exist", async ({ page }) => {
     await switchAssetTab(page, "场景库");
-    const emptyHint = page.locator("text=场景库为空").or(page.locator("text=暂无场景")).first();
+    // 实际 UI 文案: "还没有场景素材" (asset.sceneLibraryEmpty)
+    const emptyHint = page.locator("text=还没有场景素材").or(page.locator("text=场景库为空")).or(page.locator("text=暂无场景")).first();
     const deleteBtn = page.getByRole("button", { name: /删除/ });
     await expect.poll(
       async () => {
@@ -123,8 +125,9 @@ test.describe("Asset Library Empty State", () => {
   });
 
   test("should display empty state hint when no collections exist", async ({ page }) => {
-    await switchAssetTab(page, "合集");
-    const emptyHint = page.locator("text=暂无合集").or(page.locator("text=合集为空")).first();
+    await switchAssetTab(page, "我的合集");
+    // 实际 UI 文案: "还没有合集" (asset.noCollections)
+    const emptyHint = page.locator("text=还没有合集").or(page.locator("text=暂无合集")).or(page.locator("text=合集为空")).first();
     const deleteBtn = page.getByRole("button", { name: /删除/ });
     await expect.poll(
       async () => {

@@ -3,9 +3,10 @@
   "description": "视频任务管理：任务状态追踪、任务列表展示、任务过滤与预览",
   "dependencies": ["video-cache", "video-recovery", "domain", "infrastructure/di", "shared-ui", "shared-utils", "shared-presentation"],
   "publicAPI": {
-    "hooks": ["useVideoTaskManager", "useVideoTaskStore", "useVideoTasks", "useFailedVideoTasks", "useRecoverVideo", "useCleanExpiredTasks", "useStartBackgroundRecovery"],
-    "services": ["TaskMachine", "mapApiStatus", "buildTrackingInfoByProviderId", "copyTrackingInfoToClipboard", "openTaskQueryLink", "isValidTransition", "isStuck", "STUCK_TASK_THRESHOLD_MS", "VALID_TRANSITIONS", "TERMINAL_STATUSES", "TransitionError"],
-    "components": ["VideoTaskManager", "VideoTaskManagerInitializer", "VideoTaskManagerUI"]
+    "hooks": ["useVideoTaskManager", "useVideoTaskStore", "useVideoTaskQueries", "useVideoTaskCommands", "useVideoTaskPolling", "useVideoTasks", "useFailedVideoTasks", "useRecoverVideo", "useCleanExpiredTasks", "useStartBackgroundRecovery"],
+    "services": ["TaskMachine", "mapApiStatus", "buildTrackingInfoByProviderId", "copyTrackingInfoToClipboard", "openTaskQueryLink", "isValidTransition", "isStuck", "STUCK_TASK_THRESHOLD_MS", "VALID_TRANSITIONS", "TERMINAL_STATUSES", "TransitionError", "removeTasksByBeatId", "removeTasksByStoryId"],
+    "components": ["VideoTaskManager", "VideoTaskManagerInitializer", "VideoTaskManagerUI"],
+    "types": ["VideoTask", "VideoTaskStatus"]
   },
   "invariants": [
     "任务状态变更必须通过 useVideoTaskStore 统一管理",

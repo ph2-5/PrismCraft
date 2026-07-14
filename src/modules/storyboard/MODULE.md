@@ -299,9 +299,7 @@ useUploadHandlers(setBeats: React.Dispatch<React.SetStateAction<StoryBeat[]>>, s
 
 #### Components
 
-- `ShotGenerationPanel` — 分镜生成面板
 - `KeyframePanel` — 关键帧面板
-- `KeyframeChainVisualizer` — 关键帧链可视化
 - `PromptPreview` — 提示词预览
 - `ShotReferenceConfig` — 分镜引用配置
 - `ReferenceVideoUploader` — 引用视频上传

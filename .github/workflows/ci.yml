@@ -238,6 +238,9 @@ jobs:
             }
           }
 
+      - name: Setup shared-logic symlink (required for electron type resolution)
+        run: node scripts/setup-shared-logic-symlink.mjs
+
       - name: Build for Electron
         run: npm run build:electron
 
@@ -301,6 +304,9 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Setup shared-logic symlink (required for electron type resolution)
+        run: node scripts/setup-shared-logic-symlink.mjs
 
       - name: Build for Electron
         run: npm run build:electron

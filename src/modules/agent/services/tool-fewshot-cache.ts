@@ -16,6 +16,7 @@
 
 import { getCacheDirectory, readFile, writeFile } from "@/shared/file-http";
 import { errorLogger } from "@/shared/error-logger";
+import { truncate } from "@/shared/utils/format";
 import {
   getRelevantBuiltinFewShots,
   BUILTIN_FEWSHOT_EXAMPLES,
@@ -55,12 +56,6 @@ let cacheData: FewShotCacheData | null = null;
 let loadingPromise: Promise<FewShotCacheData | null> | null = null;
 
 // ── 摘要化工具 ──
-
-/** 截断字符串到指定长度，超长则追加省略号 */
-function truncate(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen) + "…";
-}
 
 /** 将参数对象摘要化（JSON 截断） */
 function summarizeArgs(args: Record<string, unknown>): string {

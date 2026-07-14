@@ -10,9 +10,7 @@ export { performConsistencyCheck, performConfigCheck, checkVisualConsistency, pa
 export type { ConsistencyCheckInput } from "./consistency-check";
 export {
   validateFeatureAnchoringConfig,
-  validateFeatureAnchoringConfig as validateFeatureAnchoringConfigFull,
   validateNoFrameBinding,
-  validateNoFrameBinding as validateNoFrameBindingParams,
 } from "./consistency-check";
 
 // === 2. 元素引用检查（character / scene 模块删除前校验）===

@@ -31,6 +31,7 @@
 
 import { getCacheDirectory, readFile, writeFile, deleteFile } from "@/shared/file-http";
 import { errorLogger } from "@/shared/error-logger";
+import { truncate } from "@/shared/utils/format";
 
 /** 审计日志条目 */
 export interface AuditEntry {
@@ -107,12 +108,6 @@ let cachedBaseDir: string | null = null;
 const flushChains = new Map<string, Promise<void>>();
 
 // ── 辅助函数 ──
-
-/** 截断字符串 */
-function truncate(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen) + "…";
-}
 
 /** 获取审计日志目录绝对路径 */
 async function getBaseDir(): Promise<string> {

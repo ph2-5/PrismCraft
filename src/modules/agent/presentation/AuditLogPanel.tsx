@@ -13,7 +13,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   queryAuditLogs,
   getAuditStats,
@@ -51,6 +51,14 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<"idle" | "exporting" | "success" | "failed">("idle");
   const [exportCount, setExportCount] = useState(0);
+  const exportTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 组件卸载时清除定时器，防止 state update on unmounted component
+  useEffect(() => {
+    return () => {
+      if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
+    };
+  }, []);
 
   // 筛选条件
   const [filterTool, setFilterTool] = useState<string>("");
@@ -149,11 +157,13 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
       setExportCount(entries.length);
       setExportStatus("success");
       // 2 秒后恢复 idle
-      setTimeout(() => setExportStatus("idle"), 2000);
+      if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
+      exportTimerRef.current = setTimeout(() => setExportStatus("idle"), 2000);
     } catch (e) {
       errorLogger.warn("[Agent] 导出审计日志失败", e instanceof Error ? e : undefined);
       setExportStatus("failed");
-      setTimeout(() => setExportStatus("idle"), 2000);
+      if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
+      exportTimerRef.current = setTimeout(() => setExportStatus("idle"), 2000);
     }
   };
 

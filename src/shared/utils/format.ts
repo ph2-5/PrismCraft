@@ -73,3 +73,11 @@ export function formatBytes(bytes: number): string {
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${bytes} B`;
 }
+
+/**
+ * 截断字符串到指定长度，超长则追加省略号。
+ */
+export function truncate(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  return text.slice(0, maxLen) + "…";
+}

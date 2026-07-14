@@ -4,7 +4,6 @@ export {
   useStoryPlanner,
   useStories,
   useStory,
-  useStoryCount,
   useCreateStory,
   useUpdateStory,
   useDeleteStory,
@@ -14,7 +13,7 @@ export {
   beatTypes,
   useStorySaver,
 } from "./planning";
-export type { CreationMode, QuickInputMode, PlaceholderBinding, QuickStoryData } from "./planning";
+export type { CreationMode } from "./planning";
 
 export { resolveCharacterRef, resolveCharacterRefs, resolveSceneRef } from "@/domain/services/reference-resolver";
 
@@ -34,12 +33,10 @@ export {
   generateBeatVideo,
   generateBeatFullWorkflow,
   generateKeyframeChain,
-  generateFramePairChain,
   determineVideoGenerationMode,
   generateFramePrompts,
   batchGenerateFramePrompts,
   generateStyleGuide,
-  generateStylePromptOnly,
 } from "./generation";
 export type { AIGeneratorBaseProps, ResolvedRefs } from "./generation";
 export type { VideoGenerationMode } from "./generation";
@@ -73,7 +70,6 @@ export {
   deleteVersion,
   cleanupVersions,
   getVersionStats,
-  compareVersions,
   type StoryVersion,
   getRecommendedTemplates,
   applyTemplate,

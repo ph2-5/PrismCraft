@@ -554,6 +554,20 @@ async function generateVideo(body: Record<string, unknown>): Promise<ApiResult> 
     return { success: false, error: "unknown_provider", code: API_ERROR_CODES.UNKNOWN_PROVIDER, httpStatus: 400 };
   }
 
+  // Task 3.2 Step 4：防御性能力检查 — 记录 plugin 关键能力字段，便于排查渲染层/主进程能力不一致
+  const pluginVCaps = plugin.videoCapabilities;
+  if (process.env.NODE_ENV !== "production" || lastFrameUrl || characterRefsRaw || sceneRef) {
+    logger.debug(
+      `[CapabilityCheck] plugin=${plugin.id} model=${effectiveModel} ` +
+      `supportsLastFrame=${pluginVCaps.supportsLastFrame} ` +
+      `supportsCharacterRef=${pluginVCaps.supportsCharacterRef ?? false} ` +
+      `supportsSceneRef=${pluginVCaps.supportsSceneRef ?? false} ` +
+      `maxDuration=${pluginVCaps.maxDuration} ` +
+      `maxCharacterRefs=${pluginVCaps.maxCharacterRefs ?? "default"} ` +
+      `| request: lastFrame=${!!lastFrameUrl} charRefs=${Array.isArray(characterRefsRaw) ? characterRefsRaw.length : (characterRefRaw ? 1 : 0)} sceneRef=${!!sceneRef}`,
+    );
+  }
+
   const safeDuration = Math.min(
     Math.max((duration as number) || 5, 1),
     plugin.videoCapabilities.maxDuration,

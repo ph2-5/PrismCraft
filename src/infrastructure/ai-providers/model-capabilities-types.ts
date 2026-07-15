@@ -87,3 +87,10 @@ export interface VideoGenerationStrategy {
   promptLanguage: "en" | "zh" | "auto";
   supportsReferenceVideo: boolean;
 }
+
+/**
+ * Task 3.2 Step 3：未知模型的默认能力策略。
+ * - `conservative`（默认）：未知模型不支持 lastFrame/characterRefs/sceneRef，避免浪费生成内容
+ * - `aggressive`：未知模型默认支持所有能力（旧行为，依赖主进程兜底）
+ */
+export type UnknownModelStrategy = "conservative" | "aggressive";

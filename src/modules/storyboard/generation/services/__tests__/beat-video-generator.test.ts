@@ -128,7 +128,7 @@ describe("beat-video-generator strategy filtering", () => {
   });
 
   describe("unknown model (conservative default)", () => {
-    it("should pass characterRefs and sceneRef for unknown models", async () => {
+    it("should filter out characterRefs and sceneRef for unknown models (conservative)", async () => {
       const result = await generateBeatVideo(
         createBeat(),
         {
@@ -141,8 +141,10 @@ describe("beat-video-generator strategy filtering", () => {
 
       expect(result.ok).toBe(true);
       const callArgs = mockGenerateVideoWithFrames.mock.calls[0]![0];
-      expect(callArgs.characterRefs).toEqual(["https://char1.jpg"]);
-      expect(callArgs.sceneRef).toBe("https://scene.jpg");
+      expect(callArgs.characterRefs).toBeUndefined();
+      expect(callArgs.characterRef).toBeUndefined();
+      expect(callArgs.sceneRef).toBeUndefined();
+      expect(callArgs.lastFrameUrl).toBeUndefined();
     });
   });
 

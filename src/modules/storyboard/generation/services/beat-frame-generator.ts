@@ -4,7 +4,7 @@ import type { StoryBeat, StoryBeatKeyframe, Character, Scene, StoryElement, Stor
 import { generateBeatImagePrompt } from "@/domain/utils";
 import { generateFramePrompts } from "./frame-prompt-service";
 import { type ProviderDeps, buildStyleEnhancedPrompt } from "./video-generation-mode";
-import { getVideoGenerationStrategy } from "@/shared/model-capabilities";
+import { getModelCapabilities } from "@/shared/model-capabilities";
 import { t } from "@/shared/constants";
 
 function buildReferenceEnhancedPrompt(
@@ -79,7 +79,7 @@ export async function generateBeatKeyframe(
 
     content = buildStyleEnhancedPrompt(content, options.styleGuide);
     const keyframeUseEnglish = options.modelId
-      ? getVideoGenerationStrategy(options.modelId).promptLanguage === "en"
+      ? getModelCapabilities(options.modelId).promptLanguage === "en"
       : false;
     content = buildReferenceEnhancedPrompt(
       content,
@@ -274,7 +274,7 @@ async function prepareFramePrompts(
   const hasCharRef = !!(options.characterRefs?.length || options.characterRef);
   const hasSceneRef = !!options.sceneRef;
   const useEnglish = options.modelId
-    ? getVideoGenerationStrategy(options.modelId).promptLanguage === "en"
+    ? getModelCapabilities(options.modelId).promptLanguage === "en"
     : false;
 
   firstFramePrompt = applyPromptEnhancements(

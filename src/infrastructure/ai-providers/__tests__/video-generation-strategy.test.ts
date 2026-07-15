@@ -81,14 +81,14 @@ describe("getVideoGenerationStrategy", () => {
     });
   });
 
-  describe("text_append mode (unknown model)", () => {
-    it("unknown model falls back to conservative defaults with text_append", () => {
+  describe("conservative defaults (unknown model)", () => {
+    it("unknown model falls back to conservative defaults (bake_into_first)", () => {
       const strategy = getVideoGenerationStrategy("some-unknown-model-123");
-      expect(strategy.useCharacterRef).toBe(true);
-      expect(strategy.characterRefMode).toBe("text_append");
-      expect(strategy.useSceneRef).toBe(true);
-      expect(strategy.sceneRefMode).toBe("text_append");
-      expect(strategy.useLastFrame).toBe(true);
+      expect(strategy.useCharacterRef).toBe(false);
+      expect(strategy.characterRefMode).toBe("bake_into_first");
+      expect(strategy.useSceneRef).toBe(false);
+      expect(strategy.sceneRefMode).toBe("bake_into_first");
+      expect(strategy.useLastFrame).toBe(false);
       expect(strategy.referenceStrategy.characterRef).toBe("bake_into_first");
       expect(strategy.referenceStrategy.sceneRef).toBe("bake_into_first");
     });
@@ -153,15 +153,15 @@ describe("getVideoGenerationStrategy", () => {
       expect(filteredRefs).toEqual(characterRefs);
     });
 
-    it("unknown model with text_append still preserves refs", () => {
+    it("unknown model with conservative defaults filters out refs", () => {
       const strategy = getVideoGenerationStrategy("some-unknown-model-456");
-      expect(strategy.useCharacterRef).toBe(true);
-      expect(strategy.useSceneRef).toBe(true);
+      expect(strategy.useCharacterRef).toBe(false);
+      expect(strategy.useSceneRef).toBe(false);
 
       const characterRefs = ["https://example.com/char1.jpg"];
       const sceneRef = "https://example.com/scene.jpg";
-      expect(strategy.useCharacterRef ? characterRefs : undefined).toEqual(characterRefs);
-      expect(strategy.useSceneRef ? sceneRef : undefined).toBe(sceneRef);
+      expect(strategy.useCharacterRef ? characterRefs : undefined).toBeUndefined();
+      expect(strategy.useSceneRef ? sceneRef : undefined).toBeUndefined();
     });
   });
 
@@ -221,9 +221,9 @@ describe("getVideoGenerationStrategy", () => {
       expect(strategy.maxCharacterRefs).toBe(1);
     });
 
-    it("falls back to maxReferences when maxCharacterRefs not defined", () => {
+    it("falls back to maxReferences when maxCharacterRefs not defined (conservative=1)", () => {
       const strategy = getVideoGenerationStrategy("some-unknown-model-999");
-      expect(strategy.maxCharacterRefs).toBe(4);
+      expect(strategy.maxCharacterRefs).toBe(1);
     });
   });
 

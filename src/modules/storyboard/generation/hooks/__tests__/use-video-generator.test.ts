@@ -25,11 +25,23 @@ vi.mock("@/infrastructure/di", () => ({
 }));
 
 vi.mock("@/shared/model-capabilities", () => ({
-  getVideoGenerationStrategy: vi.fn().mockReturnValue({
-    useCharacterRef: true,
-    useSceneRef: true,
+  getEffectiveVideoParams: vi.fn().mockImplementation((params: {
+    modelId: string;
+    prompt: string;
+    firstFrameUrl?: string;
+    lastFrameUrl?: string;
+    characterRefs?: string[];
+    sceneRef?: string;
+  }) => ({
+    modelId: params.modelId,
+    prompt: params.prompt,
+    firstFrameUrl: params.firstFrameUrl,
+    lastFrameUrl: params.lastFrameUrl,
+    characterRefs: params.characterRefs,
+    sceneRef: params.sceneRef,
     promptLanguage: "auto",
-  }),
+    supportsReferenceVideo: false,
+  })),
 }));
 
 vi.mock("@/shared/constants", () => ({

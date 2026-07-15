@@ -3,11 +3,11 @@ export {
   getModelParameterProfile,
   getAllModelProfiles,
   getModelCapabilities,
-  getSupportedImageSizes,
   supportsLastFrame,
-  getMaxReferences,
   adjustReferenceImages,
   getVideoGenerationStrategy,
+  getUnknownModelStrategy,
+  setUnknownModelStrategy,
   setModelProfiles,
   loadModelProfilesFromServer,
   type ImageSizePurpose,
@@ -18,6 +18,13 @@ export {
   type VideoGenerationStrategy,
   type ReferenceStrategy,
   type ReferenceDeliveryMode,
+  type UnknownModelStrategy,
   ReferencePriority,
   BUILTIN_MODEL_CAPABILITIES,
 } from "@/infrastructure/ai-providers/model-capabilities";
+
+// Task 3.2 Step 2：视频生成有效参数（能力过滤后的），调用方无需再手动查询 strategy
+export {
+  getEffectiveVideoParams,
+  type EffectiveVideoParams,
+} from "@/infrastructure/ai-providers";

@@ -6,7 +6,7 @@ import { container } from "@/infrastructure/di";
 import { StoryGenerationService } from "@/domain/services";
 import { useAIGeneratorBase } from "./use-ai-generator-base";
 import { determineVideoGenerationMode, type VideoGenerationMode } from "../services/storyboard-generation-service";
-import { getVideoGenerationStrategy } from "@/shared/model-capabilities";
+import { getEffectiveVideoParams } from "@/shared/model-capabilities";
 import { t } from "@/shared/constants";
 
 interface UseVideoGeneratorProps {
@@ -96,14 +96,22 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
         });
 
         const videoMode = determineVideoGenerationMode(beat, prevBeat);
-        const strategy = selectedVideoModel?.modelId
-          ? getVideoGenerationStrategy(selectedVideoModel.modelId)
+        // Task 3.2 Step 2：使用 getEffectiveVideoParams 统一能力过滤，不再手动查询 strategy
+        const effectiveParams = selectedVideoModel?.modelId
+          ? getEffectiveVideoParams({
+              modelId: selectedVideoModel.modelId,
+              prompt: "",
+              firstFrameUrl,
+              lastFrameUrl: getLastFrameUrl(beat.framePair) || beat.uploadedFramePair?.lastFrame,
+              characterRefs: characterRefs.length > 0 ? characterRefs : undefined,
+              sceneRef,
+            })
           : null;
         const effectiveVideoMode: VideoGenerationMode =
           videoMode === "reference_video_continuation" && !prevVideoUrl
             ? "first_frame_anchor"
             : videoMode;
-        const referenceVideo = effectiveVideoMode === "reference_video_continuation" && prevVideoUrl && (strategy?.supportsReferenceVideo !== false)
+        const referenceVideo = effectiveVideoMode === "reference_video_continuation" && prevVideoUrl && (effectiveParams?.supportsReferenceVideo !== false)
           ? prevVideoUrl
           : null;
 
@@ -122,7 +130,7 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
               characterOutfits: beat.characterOutfits,
             });
 
-        const promptLanguage = strategy?.promptLanguage || "auto";
+        const promptLanguage = effectiveParams?.promptLanguage || "auto";
         const enhancedPrompt = StoryGenerationService.buildVideoPrompt(
           beat,
           basePrompt,
@@ -131,12 +139,10 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
           beat.shotInstruction,
         );
 
-        const effectiveCharacterRefs = strategy && !strategy.useCharacterRef
-          ? undefined
-          : (characterRefs.length > 0 ? characterRefs : undefined);
-        const effectiveSceneRef = strategy && !strategy.useSceneRef
-          ? undefined
-          : sceneRef;
+        // 能力过滤已由 getEffectiveVideoParams 完成，直接使用过滤后的值
+        const effectiveCharacterRefs = effectiveParams?.characterRefs;
+        const effectiveSceneRef = effectiveParams?.sceneRef;
+        const effectiveLastFrameUrl = effectiveParams?.lastFrameUrl;
 
         const result = await createTask(enhancedPrompt, undefined, {
           duration: beat.duration,
@@ -147,7 +153,7 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
           firstFrameUrl,
           fixedImageUrl: firstFrameUrl,
           fixedImageLockType: effectiveCharacterRefs ? "character" : effectiveSceneRef ? "scene" : undefined,
-          lastFrameUrl: getLastFrameUrl(beat.framePair) || beat.uploadedFramePair?.lastFrame,
+          lastFrameUrl: effectiveLastFrameUrl,
           providerId: selectedVideoModel?.providerId,
           modelId: selectedVideoModel?.modelId,
           format: selectedVideoModel?.format,

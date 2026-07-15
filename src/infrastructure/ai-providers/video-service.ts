@@ -22,12 +22,90 @@ import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { apiCallWithRetry, ApiClientError } from "./core";
 import { resolveCapability, safeTruncatePrompt } from "./config";
 import { imageToBase64 } from "./utils";
+import { getModelCapabilities, adjustReferenceImages } from "./model-capabilities-utils";
+import { ReferencePriority } from "./model-capabilities-types";
 import type {
   VideoGenerationRequestBody,
   FramePairGenerationRequestBody,
   KeyframeGenerationRequestBody,
   VideoStatusRequestBody,
 } from "./types";
+
+/**
+ * Task 3.2 Step 2：视频生成有效参数（能力过滤后的）。
+ *
+ * 调用方不再需要手动查询 getVideoGenerationStrategy 判断 useCharacterRef/useSceneRef，
+ * 统一通过此函数获取过滤后的参数 + 策略元信息（promptLanguage / supportsReferenceVideo）。
+ */
+export interface EffectiveVideoParams {
+  modelId: string;
+  prompt: string;
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
+  characterRefs?: string[];
+  sceneRef?: string;
+  /** 提示词语言（从模型能力解析） */
+  promptLanguage: "en" | "zh" | "auto";
+  /** 是否支持参考视频续写 */
+  supportsReferenceVideo: boolean;
+}
+
+/**
+ * Task 3.2 Step 2：根据模型能力过滤视频生成参数。
+ *
+ * 过滤规则：
+ * - `!supportsLastFrame` → 移除 lastFrameUrl
+ * - `!supportsCharacterRef` → 移除 characterRefs
+ * - `!supportsSceneRef` → 移除 sceneRef
+ * - `characterRefs.length > maxReferences` → 截断（复用 adjustReferenceImages，激活 Dead Code）
+ *
+ * 同时返回 promptLanguage 和 supportsReferenceVideo，调用方无需再查询 strategy。
+ */
+export function getEffectiveVideoParams(params: {
+  modelId: string;
+  prompt: string;
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
+  characterRefs?: string[];
+  sceneRef?: string;
+}): EffectiveVideoParams {
+  const caps = getModelCapabilities(params.modelId);
+
+  const effectiveLastFrameUrl = caps.supportsLastFrame ? params.lastFrameUrl : undefined;
+
+  // 与 getVideoGenerationStrategy 保持一致：bake_into_first / none 模式不传递 characterRefs
+  // bake_into_first 意味着参考图已在首帧生成阶段烘焙，视频生成阶段无需再传递
+  const charMode = caps.characterRefMode ?? (caps.supportsCharacterRef ? "text_append" : "none");
+  const sceneMode = caps.sceneRefMode ?? (caps.supportsSceneRef ? "text_append" : "none");
+  const useCharRef = charMode !== "none" && charMode !== "bake_into_first";
+  const useSceneRef = sceneMode !== "none" && sceneMode !== "bake_into_first";
+
+  // Task 3.2 Step 6：复用 adjustReferenceImages 做截断 + warn，激活 Dead Code。
+  // 将 URL 列表包装成 ReferenceImageItem（character 类型 + 递增 priority），过滤后提取 URL。
+  let effectiveCharacterRefs: string[] | undefined;
+  if (useCharRef && params.characterRefs?.length) {
+    const refItems = params.characterRefs.map((url, idx) => ({
+      url,
+      priority: ReferencePriority.CHARACTER_REF + idx,
+      type: "character" as const,
+    }));
+    const adjusted = adjustReferenceImages(refItems, params.modelId, "video");
+    effectiveCharacterRefs = adjusted.length > 0 ? adjusted.map((r) => r.url) : undefined;
+  }
+
+  const effectiveSceneRef = useSceneRef ? params.sceneRef : undefined;
+
+  return {
+    modelId: params.modelId,
+    prompt: params.prompt,
+    firstFrameUrl: params.firstFrameUrl,
+    lastFrameUrl: effectiveLastFrameUrl,
+    characterRefs: effectiveCharacterRefs,
+    sceneRef: effectiveSceneRef,
+    promptLanguage: caps.promptLanguage ?? "auto",
+    supportsReferenceVideo: caps.supportsReferenceVideo ?? false,
+  };
+}
 
 function isLocalUrl(url: string): boolean {
   return url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("file://") || url.startsWith("/");

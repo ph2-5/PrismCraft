@@ -127,7 +127,7 @@ describe("shot-recommender", () => {
 
   describe("映射表完整性", () => {
     it("MOOD_TO_CAMERA_MAPPING 每个映射都应有非空数组", () => {
-      for (const [mood, mapping] of Object.entries(MOOD_TO_CAMERA_MAPPING)) {
+      for (const [, mapping] of Object.entries(MOOD_TO_CAMERA_MAPPING)) {
         expect(mapping.shotSize.length).toBeGreaterThan(0);
         expect(mapping.cameraMovement.length).toBeGreaterThan(0);
         expect(mapping.cameraAngle.length).toBeGreaterThan(0);

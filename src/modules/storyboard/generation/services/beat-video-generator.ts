@@ -21,7 +21,7 @@ import { fromAsyncThrowable, ValidationError } from "@/domain/types";
 import type { StoryBeat } from "@/domain/schemas";
 import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { type ProviderDeps, type VideoGenerationMode, determineVideoGenerationMode } from "./video-generation-mode";
-import { getVideoGenerationStrategy } from "@/shared/model-capabilities";
+import { getEffectiveVideoParams } from "@/shared/model-capabilities";
 import { t } from "@/shared/constants";
 
 export async function generateBeatVideo(
@@ -62,8 +62,18 @@ export async function generateBeatVideo(
 
     let referenceVideo: string | null = null;
     if (resolvedVideoMode === "reference_video_continuation" && options.prevVideoUrl) {
-      const refVideoStrategy = options.modelId ? getVideoGenerationStrategy(options.modelId) : null;
-      if (refVideoStrategy?.supportsReferenceVideo !== false) {
+      // Task 3.2 Step 2：使用 getEffectiveVideoParams 获取 supportsReferenceVideo
+      const probeParams = options.modelId
+        ? getEffectiveVideoParams({
+            modelId: options.modelId,
+            prompt: "",
+            firstFrameUrl,
+            lastFrameUrl,
+            characterRefs: options.characterRefs,
+            sceneRef: options.sceneRef,
+          })
+        : null;
+      if (probeParams?.supportsReferenceVideo !== false) {
         referenceVideo = options.prevVideoUrl;
       }
     }
@@ -73,22 +83,37 @@ export async function generateBeatVideo(
       throw new ValidationError(t("error.videoEmptyPrompt"));
     }
 
-    const strategy = options.modelId ? getVideoGenerationStrategy(options.modelId) : null;
+    // Task 3.2 Step 2：能力过滤统一由 getEffectiveVideoParams 完成
+    // 合并 characterRefs 和 characterRef（单数），统一过滤
+    const allCharRefs = options.characterRefs?.length
+      ? options.characterRefs
+      : (options.characterRef ? [options.characterRef] : undefined);
 
-    const effectiveCharacterRefs = strategy && !strategy.useCharacterRef
-      ? undefined
-      : (options.characterRefs?.length ? options.characterRefs : undefined);
-    const effectiveCharacterRef = strategy && !strategy.useCharacterRef
-      ? undefined
-      : options.characterRef;
-    const effectiveSceneRef = strategy && !strategy.useSceneRef
-      ? undefined
-      : options.sceneRef;
+    const effectiveParams = options.modelId
+      ? getEffectiveVideoParams({
+          modelId: options.modelId,
+          prompt: promptText,
+          firstFrameUrl,
+          lastFrameUrl,
+          characterRefs: allCharRefs,
+          sceneRef: options.sceneRef,
+        })
+      : null;
+
+    // 无 modelId 时不做能力过滤，直接传递原始值
+    const noFiltering = !options.modelId;
+    const effectiveCharacterRefs = noFiltering ? allCharRefs : effectiveParams?.characterRefs;
+    const effectiveCharacterRef = noFiltering
+      ? (allCharRefs?.[0] ?? options.characterRef)
+      : effectiveCharacterRefs?.[0];
+    const effectiveSceneRef = noFiltering ? options.sceneRef : effectiveParams?.sceneRef;
+    // 有 modelId 时用 effectiveParams 过滤后的 lastFrameUrl（supportsLastFrame=false 时为 undefined）
+    const effectiveLastFrameUrl = noFiltering ? lastFrameUrl : effectiveParams?.lastFrameUrl;
 
     const result = await providers.videoProvider.generateVideoWithFrames({
       prompt: promptText,
       firstFrameUrl,
-      lastFrameUrl,
+      lastFrameUrl: effectiveLastFrameUrl,
       characterRefs: effectiveCharacterRefs,
       characterRef: effectiveCharacterRef,
       sceneRef: effectiveSceneRef,

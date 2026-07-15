@@ -9,11 +9,9 @@ vi.mock("@/shared/error-logger", () => ({
 import {
   getModelCapabilities,
   supportsLastFrame,
-  getMaxReferences,
   adjustReferenceImages,
   getVideoGenerationStrategy,
   resolveImageSize,
-  getSupportedImageSizes,
   setModelProfiles,
   getModelParameterProfile,
   getAllModelProfiles,
@@ -107,20 +105,22 @@ describe("model-capabilities", () => {
       expect(caps.supportsLastFrame).toBe(true);
     });
 
-    it("should fuzzy match by substring inclusion when key length >= 4", () => {
-      const caps = getModelCapabilities("my-kling-v2-master-plus");
+    it("should fuzzy match by prefix for custom model variants", () => {
+      const caps = getModelCapabilities("kling-v2-master-plus");
       expect(caps.maxReferences).toBe(4);
       expect(caps.supportsLastFrame).toBe(true);
     });
 
-    it("should return default capabilities for unknown models", () => {
+    it("should return conservative default capabilities for unknown models", () => {
       const caps = getModelCapabilities("totally-unknown-model");
-      expect(caps.maxReferences).toBe(4);
-      expect(caps.maxResolution).toBe(2048);
-      expect(caps.maxSizeMB).toBe(10);
-      expect(caps.supportsLastFrame).toBe(true);
+      expect(caps.maxReferences).toBe(1);
+      expect(caps.maxResolution).toBe(1024);
+      expect(caps.maxSizeMB).toBe(5);
+      expect(caps.supportsLastFrame).toBe(false);
       expect(caps.referenceMode).toBe("separate");
       expect(caps.urlTtl).toBe(3600);
+      expect(caps.supportsCharacterRef).toBe(false);
+      expect(caps.supportsSceneRef).toBe(false);
     });
 
     it("should return runway capabilities", () => {
@@ -157,20 +157,8 @@ describe("model-capabilities", () => {
       expect(supportsLastFrame("seedream-3.0")).toBe(false);
     });
 
-    it("should return default (true) for unknown models", () => {
-      expect(supportsLastFrame("unknown-model")).toBe(true);
-    });
-  });
-
-  describe("getMaxReferences", () => {
-    it("should return correct max references for known models", () => {
-      expect(getMaxReferences("doubao-seedance-2-0-260128")).toBe(4);
-      expect(getMaxReferences("runway-gen3")).toBe(2);
-      expect(getMaxReferences("dall-e-3")).toBe(1);
-    });
-
-    it("should return default (4) for unknown models", () => {
-      expect(getMaxReferences("unknown-model")).toBe(4);
+    it("should return default (false) for unknown models (conservative)", () => {
+      expect(supportsLastFrame("unknown-model")).toBe(false);
     });
   });
 
@@ -274,13 +262,14 @@ describe("model-capabilities", () => {
       expect(strategy.useLastFrame).toBe(false);
     });
 
-    it("should use text_append for unknown models (conservative default)", () => {
+    it("should use bake_into_first for unknown models (conservative default)", () => {
       const strategy = getVideoGenerationStrategy("unknown-model");
       expect(strategy.useFirstFrame).toBe(true);
-      expect(strategy.useCharacterRef).toBe(true);
-      expect(strategy.useSceneRef).toBe(true);
-      expect(strategy.characterRefMode).toBe("text_append");
-      expect(strategy.sceneRefMode).toBe("text_append");
+      expect(strategy.useLastFrame).toBe(false);
+      expect(strategy.useCharacterRef).toBe(false);
+      expect(strategy.useSceneRef).toBe(false);
+      expect(strategy.characterRefMode).toBe("bake_into_first");
+      expect(strategy.sceneRefMode).toBe("bake_into_first");
     });
 
     it("should disable characterRef/sceneRef for bake_into_first models", () => {
@@ -462,40 +451,6 @@ describe("model-capabilities", () => {
       });
       const result = resolveImageSize("purpose-model", "style_guide");
       expect(result).toBe("1920x1920");
-    });
-  });
-
-  describe("getSupportedImageSizes", () => {
-    it("should return supportedImageSizes for known model", () => {
-      const sizes = getSupportedImageSizes("doubao-seedance-2-0-260128");
-      expect(sizes.length).toBeGreaterThan(0);
-      expect(sizes[0]).toHaveProperty("width");
-      expect(sizes[0]).toHaveProperty("height");
-      expect(sizes[0]).toHaveProperty("label");
-      expect(sizes[0]).toHaveProperty("aspectRatio");
-    });
-
-    it("should return fallback size when model has no supportedImageSizes", () => {
-      setModelProfiles({
-        "no-sizes-model": {
-          modelId: "no-sizes-model",
-          capabilities: {
-            maxReferences: 4,
-            maxResolution: 1024,
-            maxSizeMB: 5,
-            supportsLastFrame: false,
-            referenceMode: "merged",
-          },
-          parameters: {},
-        },
-      });
-      const sizes = getSupportedImageSizes("no-sizes-model");
-      expect(sizes).toEqual([{ width: 1024, height: 1024, label: "1:1", aspectRatio: "1:1" }]);
-    });
-
-    it("should return fallback for unknown model using default supportedImageSizes", () => {
-      const sizes = getSupportedImageSizes("totally-unknown-model");
-      expect(sizes).toEqual([{ width: 1920, height: 1920, label: "1:1", aspectRatio: "1:1" }]);
     });
   });
 

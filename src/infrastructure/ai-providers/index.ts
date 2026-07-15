@@ -18,6 +18,7 @@ export {
   generateVideoWithFrames,
   queryVideoStatus,
 } from "./video";
+export { getEffectiveVideoParams, type EffectiveVideoParams } from "./video-service";
 export { generateEmbedding, generateEmbeddings } from "./embedding";
 export { synthesizeSpeech, transcribeAudio } from "./audio";
 export {

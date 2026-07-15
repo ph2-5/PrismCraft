@@ -21,8 +21,7 @@ import {
 import { parseStoryPlanJSON, convertToStoryBeats } from "./story-plan-parser";
 import { t } from "@/shared/constants";
 import {
-  getVideoGenerationStrategy,
-  supportsLastFrame,
+  getModelCapabilities,
 } from "@/shared/model-capabilities";
 import { validateReferenceImageQuality } from "../feature-extraction";
 import type { PipelineOptions, PipelineProgress } from "./story-generation-pipeline";
@@ -60,8 +59,9 @@ export function resolvePromptLanguage(
 ): "en" | "zh" {
   if (opts.promptLanguage === "en") return "en";
   if (opts.promptLanguage === "auto" && opts.videoModelId) {
-    const strategy = getVideoGenerationStrategy(opts.videoModelId);
-    return strategy.promptLanguage === "en" ? "en" : "zh";
+    // Task 3.2 Step 2：直接查询模型能力，不再经由 getVideoGenerationStrategy
+    const caps = getModelCapabilities(opts.videoModelId);
+    return caps.promptLanguage === "en" ? "en" : "zh";
   }
   return "zh";
 }
@@ -69,7 +69,8 @@ export function resolvePromptLanguage(
 export function resolveModelSupportsLastFrame(
   opts: PipelineOptions,
 ): boolean {
-  return opts.videoModelId ? supportsLastFrame(opts.videoModelId) : true;
+  // Task 3.2 Step 2：直接查询模型能力，不再经由 supportsLastFrame wrapper
+  return opts.videoModelId ? getModelCapabilities(opts.videoModelId).supportsLastFrame : true;
 }
 
 export function buildEnrichedPrompt(

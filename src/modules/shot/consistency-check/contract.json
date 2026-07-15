@@ -1,7 +1,7 @@
 {
   "name": "shot-consistency-check",
-  "description": "分镜视觉一致性检查与配置校验：检查分镜生成配置是否完整，验证特征锚定配置的有效性，评估生成结果的一致性评分，跨分镜一致性自动修复（Task 4.8）",
-  "dependencies": ["@/domain/schemas", "@/domain/types", "@/infrastructure/di"],
+  "description": "分镜视觉一致性检查与配置校验：检查分镜生成配置是否完整，验证特征锚定配置的有效性，评估生成结果的一致性评分，跨分镜一致性自动修复（Task 4.8），跨分镜 IP 安全改写一致性（Task 4.12）",
+  "dependencies": ["@/domain/schemas", "@/domain/types", "@/infrastructure/di", "@/shared-logic/prompt/safety"],
   "publicAPI": {
     "hooks": [],
     "services": [
@@ -12,7 +12,9 @@
       "validateNoFrameBinding",
       "checkCrossShotConsistency",
       "autoFixCrossShotConsistency",
-      "applyManualReferenceUrlFix"
+      "applyManualReferenceUrlFix",
+      "checkCrossShotIpConsistency",
+      "fixCrossShotIpConsistency"
     ],
     "components": []
   },
@@ -26,6 +28,11 @@
     "referenceImageUrl 漂移不自动修复，通过 manualConfirmFixes 提示用户确认",
     "applyManualReferenceUrlFix 同步用户选择的基准 URL 到所有分镜",
     "多数派选择策略：featureTags 出现次数最多的版本作为基准，并列时选第一个出现的",
+    "checkCrossShotIpConsistency 扫描所有分镜 prompt，检测同一 IP 关键词在不同分镜的改写结果是否一致",
+    "fixCrossShotIpConsistency 是纯函数，不修改原 beats 数组（返回 fixedBeats 副本）",
+    "fixCrossShotIpConsistency 统一策略：所有分镜的同一 IP 关键词改写为首次出现的改写版本",
+    "fixCrossShotIpConsistency 修复后自动重新运行一致性检查，确认冲突已消除",
+    "checkCrossShotIpConsistency 的 prompt 来源优先级：imageGenerationPrompt > description",
     "禁止直接导入 story 和 video 模块"
   ]
 }

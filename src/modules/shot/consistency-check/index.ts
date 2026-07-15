@@ -20,3 +20,12 @@ export type {
   ManualConfirmFix,
   AutoFixResult,
 } from "./services/cross-shot-auto-fix";
+
+// === Task 4.12: 跨分镜 IP 安全改写一致性 ===
+export { checkCrossShotIpConsistency, fixCrossShotIpConsistency } from "./services/cross-shot-safety-check";
+export type {
+  BeatIpRewriteSnapshot,
+  IpRewriteConflict,
+  CrossShotSafetyCheckResult,
+  CrossShotSafetyFixResult,
+} from "./services/cross-shot-safety-check";

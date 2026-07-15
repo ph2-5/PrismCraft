@@ -17,12 +17,12 @@ describe("BeatUploadPanel", () => {
     expect(inputs.length).toBe(4);
   });
 
-  it("3 个图片输入框应 accept='image/*'，1 个视频输入框应 accept='video/*'", () => {
+  it("3 个图片输入框应 accept 图片格式，1 个视频输入框应 accept 视频格式", () => {
     const { container } = render(<BeatUploadPanel beatId="beat-1" />);
     const inputs = Array.from(container.querySelectorAll<HTMLInputElement>("input[type='file']"));
     const acceptValues = inputs.map((i) => i.accept);
-    const imageCount = acceptValues.filter((a) => a === "image/*").length;
-    const videoCount = acceptValues.filter((a) => a === "video/*").length;
+    const imageCount = acceptValues.filter((a) => a === ".png,.jpg,.jpeg,.webp").length;
+    const videoCount = acceptValues.filter((a) => a === ".mp4,.mov").length;
     expect(imageCount).toBe(3);
     expect(videoCount).toBe(1);
   });

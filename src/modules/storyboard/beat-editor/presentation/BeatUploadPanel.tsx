@@ -1,4 +1,9 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
+import {
+  validateUploadFile,
+  IMAGE_ACCEPTED_EXTENSIONS,
+  VIDEO_ACCEPTED_EXTENSIONS,
+} from "@/shared/utils/upload-validation";
 
 export interface BeatUploadPanelHandle {
   triggerKeyframeUpload: () => void;
@@ -19,10 +24,14 @@ function handleFileSelect(
   e: React.ChangeEvent<HTMLInputElement>,
   beatId: string,
   handler?: (beatId: string, file: File) => void,
+  allowedExtensions?: readonly string[],
 ) {
   const file = e.target.files?.[0];
   if (file && handler) {
-    handler(beatId, file);
+    const result = validateUploadFile(file, { allowedExtensions });
+    if (result.ok) {
+      handler(beatId, file);
+    }
   }
   e.target.value = "";
 }
@@ -47,35 +56,38 @@ export const BeatUploadPanel = forwardRef<BeatUploadPanelHandle, BeatUploadPanel
       triggerVideoUpload: () => videoInputRef.current?.click(),
     }), []);
 
+    const imageAccept = IMAGE_ACCEPTED_EXTENSIONS.join(",");
+    const videoAccept = VIDEO_ACCEPTED_EXTENSIONS.join(",");
+
     return (
       <>
         <input
           ref={keyframeInputRef}
           type="file"
-          accept="image/*"
+          accept={imageAccept}
           className="hidden"
-          onChange={(e) => handleFileSelect(e, beatId, onUploadKeyframe)}
+          onChange={(e) => handleFileSelect(e, beatId, onUploadKeyframe, IMAGE_ACCEPTED_EXTENSIONS)}
         />
         <input
           ref={firstFrameInputRef}
           type="file"
-          accept="image/*"
+          accept={imageAccept}
           className="hidden"
-          onChange={(e) => handleFileSelect(e, beatId, onUploadFirstFrame)}
+          onChange={(e) => handleFileSelect(e, beatId, onUploadFirstFrame, IMAGE_ACCEPTED_EXTENSIONS)}
         />
         <input
           ref={lastFrameInputRef}
           type="file"
-          accept="image/*"
+          accept={imageAccept}
           className="hidden"
-          onChange={(e) => handleFileSelect(e, beatId, onUploadLastFrame)}
+          onChange={(e) => handleFileSelect(e, beatId, onUploadLastFrame, IMAGE_ACCEPTED_EXTENSIONS)}
         />
         <input
           ref={videoInputRef}
           type="file"
-          accept="video/*"
+          accept={videoAccept}
           className="hidden"
-          onChange={(e) => handleFileSelect(e, beatId, onUploadVideo)}
+          onChange={(e) => handleFileSelect(e, beatId, onUploadVideo, VIDEO_ACCEPTED_EXTENSIONS)}
         />
       </>
     );

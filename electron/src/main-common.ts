@@ -536,7 +536,7 @@ async function createWindow(options: CreateWindowOptions): Promise<Electron.Brow
     width: 1400,
     height: 900,
     minWidth: 1024,
-    minHeight: 680,
+    minHeight: 768,
     frame: false,
     webPreferences: {
       nodeIntegration: false,

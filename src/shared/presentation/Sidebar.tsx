@@ -163,10 +163,12 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
     } catch (e) {
       errorLogger.warn("[Sidebar] 保存折叠状态失败:", e instanceof Error ? e.message : e);
     }
-    document.documentElement.style.setProperty(
-      "--sidebar-width",
-      `${next ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}px`,
-    );
+    const nextWidth = `${next ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}px`;
+    // Task 4.9 子项 4：同步更新 --sidebar-w（globals.css 的 .sidebar min-width 引用此变量），
+    // 否则折叠时 min-width: 220px 会阻止内联 width: 60px 生效，导致 sidebar 实际宽度仍为 220px，
+    // 而主内容区 margin-left 已变为 60px，产生 160px 重叠遮挡。
+    document.documentElement.style.setProperty("--sidebar-width", nextWidth);
+    document.documentElement.style.setProperty("--sidebar-w", nextWidth);
     sidebarListeners.forEach(l => l());
   }, []);
 
@@ -175,10 +177,10 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
   }, [guardedPush]);
 
   useLayoutEffect(() => {
-    document.documentElement.style.setProperty(
-      "--sidebar-width",
-      `${collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}px`,
-    );
+    const widthPx = `${collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}px`;
+    // Task 4.9 子项 4：同步更新 --sidebar-w（见 toggleCollapsed 注释）。
+    document.documentElement.style.setProperty("--sidebar-width", widthPx);
+    document.documentElement.style.setProperty("--sidebar-w", widthPx);
   }, [collapsed]);
 
   useEffect(() => {

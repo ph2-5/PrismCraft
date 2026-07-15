@@ -7,6 +7,7 @@
 import { memo, useState } from "react";
 import { Plus, Trash2, ChevronUp, ChevronDown, Film } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import type { SubShot } from "@/domain/schemas";
 import { useSubShots } from "../hooks/use-sub-shots";
 
@@ -61,7 +62,7 @@ export const SubShotList = memo(function SubShotList({ beatId }: SubShotListProp
       {loading && <div className="text-muted text-xs">...</div>}
 
       {!loading && subShots.length === 0 && (
-        <div className="text-muted text-xs">{t("subShot.empty")}</div>
+        <EmptyState compact icon={Film} title={t("subShot.empty")} />
       )}
 
       {subShots.map((shot, index) => (

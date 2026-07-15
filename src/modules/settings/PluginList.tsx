@@ -1,5 +1,6 @@
 import { Trash2, ChevronDown, Puzzle, Code } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import { IconButton } from "@/shared/presentation/IconButton";
 import { PluginDetail } from "./PluginDetail";
 
@@ -199,10 +200,7 @@ export function PluginList({
       )}
 
       {!hasAnyPlugin && (
-        <div className="empty-state-box">
-          <Puzzle size={40} className="mx-auto mb-3 opacity-50 block" />
-          <p className="text-sm">{t("plugin.noPlugins")}</p>
-        </div>
+        <EmptyState icon={Puzzle} title={t("plugin.noPlugins")} />
       )}
     </>
   );

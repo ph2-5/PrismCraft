@@ -30,6 +30,7 @@ import {
   FileText,
 } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import {
@@ -380,11 +381,15 @@ export function PromptTemplatePanel() {
           <Loader2 className="inline-block animate-spin" size={16} /> ...
         </div>
       ) : templates.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground text-xs">
-          {keyword || categoryFilter || targetFilter
-            ? t("settings.promptTemplatesNoResults")
-            : t("settings.promptTemplatesEmpty")}
-        </div>
+        <EmptyState
+          compact
+          icon={FileText}
+          title={
+            keyword || categoryFilter || targetFilter
+              ? t("settings.promptTemplatesNoResults")
+              : t("settings.promptTemplatesEmpty")
+          }
+        />
       ) : (
         <div className="flex flex-col gap-2">
           {templates.map((template) => (

@@ -25,6 +25,7 @@ import { ToolPluginManager } from "./ToolPluginManager";
 import { SpecialistPanel } from "./SpecialistPanel";
 import { AuditLogPanel } from "./AuditLogPanel";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import { confirm } from "@/shared/utils/confirm";
 import {
   buildExportFilename,
@@ -353,7 +354,28 @@ export function AgentPage() {
           />
 
           {session.messages.length === 0 ? (
-            <EmptyState />
+            <EmptyState
+              icon={Bot}
+              title={t("agent.ready")}
+              description={t("agent.intro")}
+            >
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {[
+                  { icon: Search, text: t("agent.suggestion.queryCharacters") },
+                  { icon: SettingsIcon, text: t("agent.suggestion.configureApi") },
+                  { icon: BarChart3, text: t("agent.suggestion.projectStatus") },
+                  { icon: Video, text: t("agent.suggestion.failedTasks") },
+                ].map((s) => (
+                  <div
+                    key={s.text}
+                    className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                  >
+                    <s.icon className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">{s.text}</span>
+                  </div>
+                ))}
+              </div>
+            </EmptyState>
           ) : (
             <div className="mx-auto max-w-3xl space-y-4">
               {session.messages.map((msg) => (
@@ -417,37 +439,6 @@ export function AgentPage() {
             )}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/** 空状态引导 */
-function EmptyState() {
-  const suggestions = [
-    { icon: Search, text: t("agent.suggestion.queryCharacters") },
-    { icon: SettingsIcon, text: t("agent.suggestion.configureApi") },
-    { icon: BarChart3, text: t("agent.suggestion.projectStatus") },
-    { icon: Video, text: t("agent.suggestion.failedTasks") },
-  ];
-
-  return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-        <Bot className="h-8 w-8 text-primary" />
-      </div>
-      <h2 className="mb-2 text-lg font-semibold">{t("agent.ready")}</h2>
-      <p className="mb-6 max-w-md text-sm text-muted-foreground">{t("agent.intro")}</p>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {suggestions.map((s) => (
-          <div
-            key={s.text}
-            className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
-          >
-            <s.icon className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">{s.text}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

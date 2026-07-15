@@ -13,7 +13,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Image as ImageIcon,
   RotateCw,
   RotateCcw,
   Type,
@@ -25,7 +24,8 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-import { EmptyState } from "@/shared/presentation/EmptyState";
+import { PageLoader } from "@/shared/presentation/PageLoader";
+import { t } from "@/shared/constants";
 import {
   type ColorAdjustments,
   type Annotation,
@@ -407,7 +407,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
       {/* Canvas 编辑区 */}
       <div className="flex-1 min-h-0 border border-border rounded-md bg-card flex items-center justify-center overflow-auto p-3 relative">
         {!imageLoaded ? (
-          <EmptyState icon={ImageIcon} title="加载图片中..." description="正在加载图片到编辑器" />
+          <PageLoader label={t("asset.editor.loading")} />
         ) : (
           <canvas
             ref={canvasRef}

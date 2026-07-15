@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { EmptyState } from "@/shared/presentation/EmptyState";
+import { t } from "@/shared/constants";
 import { useVideoCompose } from "../hooks/use-video-compose";
 import { TRANSITION_OPTIONS } from "../services/video-composer";
 
@@ -113,8 +114,9 @@ export function VideoComposePanel() {
             ) : vm.availableSegments.length === 0 ? (
               <EmptyState
                 icon={FileVideo}
-                title="暂无可用片段"
-                description="生成视频后，已完成的任务会显示在这里"
+                title={t("compose.noSegments")}
+                description={t("compose.noSegmentsDesc")}
+                compact
               />
             ) : (
               vm.availableSegments.map((seg) => {
@@ -185,8 +187,9 @@ export function VideoComposePanel() {
             {vm.segments.length === 0 ? (
               <EmptyState
                 icon={Film}
-                title="合成列表为空"
-                description="从左侧添加至少 2 个片段，然后点击合成"
+                title={t("compose.emptyList")}
+                description={t("compose.emptyListDesc")}
+                compact
               />
             ) : (
               vm.segments.map((seg, idx) => (
@@ -268,8 +271,9 @@ export function VideoComposePanel() {
             {!vm.composeResult ? (
               <EmptyState
                 icon={Play}
-                title="尚未合成"
-                description="选择片段并点击「合成视频」按钮"
+                title={t("compose.notComposed")}
+                description={t("compose.notComposedDesc")}
+                compact
               />
             ) : !vm.composeResult.success ? (
               <div className="alert alert-error text-xs">

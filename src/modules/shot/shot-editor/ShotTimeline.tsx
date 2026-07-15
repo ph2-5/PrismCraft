@@ -1,6 +1,7 @@
 import { memo, type ReactNode } from "react";
 import { Plus, Film } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 
 interface ShotTimelineProps {
   /** 时间轴内容（通常是分镜卡片列表） */
@@ -53,9 +54,7 @@ export const ShotTimeline = memo(function ShotTimeline({
       </div>
       <div className="timeline-scroll">
         {isEmpty ? (
-          <div style={{ color: "var(--muted-fg)", textAlign: "center", padding: "12px 0", fontSize: 12 }}>
-            {t("beat.timelineEmpty")}
-          </div>
+          <EmptyState compact icon={Film} title={t("beat.timelineEmpty")} />
         ) : (
           children
         )}

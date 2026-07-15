@@ -17,6 +17,7 @@
 import { useState, useEffect } from "react";
 import { specialistRegistry } from "@/modules/agent-specialist";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import {
   X,
   Users,
@@ -111,12 +112,7 @@ export function SpecialistPanel({ onClose, onDelegate }: SpecialistPanelProps) {
       {/* 专家列表 */}
       <div className="max-h-96 space-y-2 overflow-y-auto">
         {specialists.length === 0 ? (
-          <div className="px-2 py-8 text-center">
-            <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
-            <div className="text-xs text-muted-foreground">
-              {t("agent.specialist.empty")}
-            </div>
-          </div>
+          <EmptyState compact icon={Users} title={t("agent.specialist.empty")} />
         ) : (
           specialists.map((specialist) => (
             <div key={specialist.id}>

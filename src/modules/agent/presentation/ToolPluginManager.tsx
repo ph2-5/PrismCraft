@@ -26,6 +26,7 @@ import type { ToolPluginConfig, ToolPluginsConfig } from "../domain/tool-plugin-
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import { errorLogger } from "@/shared/error-logger";
 import { getConfig, setConfig } from "@/shared/file-http";
 import {
@@ -351,15 +352,12 @@ export function ToolPluginManager({ onClose }: ToolPluginManagerProps) {
       {/* 插件列表 */}
       <div className="max-h-96 space-y-2 overflow-y-auto">
         {plugins.length === 0 ? (
-          <div className="px-2 py-8 text-center">
-            <Package className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
-            <div className="text-xs text-muted-foreground">
-              {t("agent.plugin.empty")}
-            </div>
-            <div className="mt-1 text-[10px] text-muted-foreground/70">
-              {t("agent.plugin.emptyHint")}
-            </div>
-          </div>
+          <EmptyState
+            compact
+            icon={Package}
+            title={t("agent.plugin.empty")}
+            hint={t("agent.plugin.emptyHint")}
+          />
         ) : (
           plugins.map(({ config, loaded, disabled }) => (
             <div

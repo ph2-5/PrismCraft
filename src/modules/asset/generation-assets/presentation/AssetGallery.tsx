@@ -6,6 +6,7 @@
 import { memo, useState } from "react";
 import { Trash2, Image, Film, FileVideo, Sparkles } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import type { GenerationAsset } from "@/domain/schemas";
 import { useGenerationAssets } from "../hooks/use-generation-assets";
 
@@ -73,9 +74,7 @@ export const AssetGallery = memo(function AssetGallery({ projectId }: AssetGalle
       {loading && <div className="text-muted text-sm">...</div>}
 
       {!loading && assets.length === 0 && (
-        <div className="text-muted text-sm flex items-center justify-center py-8">
-          {t("genAsset.empty")}
-        </div>
+        <EmptyState compact icon={Image} title={t("genAsset.empty")} />
       )}
 
       <div className="flex-1 overflow-y-auto">

@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { EmptyState } from "@/shared/presentation/EmptyState";
+import { t } from "@/shared/constants";
 import type { ShotVersion, DiffLine } from "./types";
 import { ComparePanel } from "./ComparePanel";
 import { diffText, countDifferences } from "./prompt-diff";
@@ -136,7 +137,7 @@ export function ShotCompareView({
           </div>
           <div className="flex-1 overflow-auto p-1.5 space-y-1">
             {versions.length === 0 ? (
-              <EmptyState icon={Columns2} title="无版本" description="生成分镜后会出现版本" />
+              <EmptyState icon={Columns2} title={t("shotCompare.noVersions")} description={t("shotCompare.noVersionsDesc")} compact />
             ) : (
               versions.map((v, idx) => {
                 const isSelected = selectedPair != null && (
@@ -182,8 +183,8 @@ export function ShotCompareView({
             <div className="flex-1 flex items-center justify-center">
               <EmptyState
                 icon={GitCompare}
-                title="选择 2 个版本开始对比"
-                description="从左侧勾选 2 个版本，点击「开始对比」查看差异"
+                title={t("shotCompare.selectToCompare")}
+                description={t("shotCompare.selectToCompareDesc")}
               />
             </div>
           ) : (

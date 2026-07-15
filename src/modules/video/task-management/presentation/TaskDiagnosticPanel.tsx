@@ -1,6 +1,7 @@
 import { memo, useMemo, useCallback, useState } from "react";
-import { Stethoscope } from "lucide-react";
+import { Stethoscope, CheckCircle2 } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import type { VideoTask } from "@/domain/schemas";
 import { classifyError, type ErrorCategory } from "@/domain/types";
 import { errorLogger } from "@/shared/error-logger";
@@ -150,9 +151,7 @@ export const TaskDiagnosticPanel = memo(function TaskDiagnosticPanel({
 
       {/* 错误分组 */}
       {nonEmptyGroups.length === 0 ? (
-        <div className="card !p-4 text-center text-sm text-muted-foreground">
-          {t("task.errorGroupEmpty")}
-        </div>
+        <EmptyState compact icon={CheckCircle2} title={t("task.errorGroupEmpty")} />
       ) : (
         <div className="space-y-2">
           {nonEmptyGroups.map(([category, list]) => (

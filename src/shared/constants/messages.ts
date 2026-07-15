@@ -2290,6 +2290,8 @@ const messages: Record<MessageKey, string> = {
   "task.promptTruncated": "提示词已被截断，实际发送内容可能不完整",
   "task.regenerateButton": "重新生成",
   "task.cancelButton": "取消",
+  "task.pauseButton": "暂停",
+  "task.resumeButton": "恢复",
   "task.trackingButton": "追踪",
   "task.consoleButton": "控制台",
   "task.videoGenerated": "视频已生成",

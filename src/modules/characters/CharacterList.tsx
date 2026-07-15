@@ -96,8 +96,13 @@ export const CharacterList = memo(function CharacterList({
         />
       ) : (
         <>
-          {visibleItems.map((char) => (
-            <div key={char.id} data-char-id={char.id}>
+          {visibleItems.map((char, idx) => (
+            <div
+              key={char.id}
+              data-char-id={char.id}
+              className="animate-slide-up"
+              style={{ animationDelay: `${Math.min(idx, 12) * 40}ms` }}
+            >
               <CharacterListItem
                 character={char}
                 onClick={() => onSelectCharacter(char)}

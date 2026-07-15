@@ -103,8 +103,13 @@ export const SceneList = memo(function SceneList({
         />
       ) : (
         <>
-          {visibleItems.map((scene) => (
-            <div key={scene.id} data-scene-id={scene.id}>
+          {visibleItems.map((scene, idx) => (
+            <div
+              key={scene.id}
+              data-scene-id={scene.id}
+              className="animate-slide-up"
+              style={{ animationDelay: `${Math.min(idx, 12) * 40}ms` }}
+            >
               <SceneListItem
                 scene={scene}
                 onClick={() => onSelectScene(scene)}

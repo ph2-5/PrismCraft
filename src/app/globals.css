@@ -499,6 +499,39 @@
 .animate-pulse-ring { animation: pulse-ring 1s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
 .animate-checkmark { stroke-dasharray: 24; stroke-dashoffset: 24; animation: checkmark-draw 0.3s ease-out forwards; }
 
+/* ════════════════════════════════════════════════════════════
+   Task 4.9 子项 10：微动效规范 — 4 类动效全局定义
+   1. fade-in：页面/组件进入 200ms（复用已有 .animate-fade-in / .fade-in）
+   2. slide-up：列表项进入 300ms，支持 stagger 交错动画
+   3. scale-press：按钮/卡片按压 scale-95（统一类，补充 :active 实现）
+   4. shimmer：骨架屏背景（复用已有 .skeleton-shimmer / .animate-shimmer）
+   ════════════════════════════════════════════════════════════ */
+
+/* 2. slide-up：列表项进入 300ms */
+.animate-slide-up { animation: slideUp 0.3s ease-out both; }
+/* stagger-list：为直接子元素设置递增 animation-delay（40ms 间隔，最多 12 项） */
+.stagger-list > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-list > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-list > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-list > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-list > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-list > *:nth-child(6) { animation-delay: 200ms; }
+.stagger-list > *:nth-child(7) { animation-delay: 240ms; }
+.stagger-list > *:nth-child(8) { animation-delay: 280ms; }
+.stagger-list > *:nth-child(9) { animation-delay: 320ms; }
+.stagger-list > *:nth-child(10) { animation-delay: 360ms; }
+.stagger-list > *:nth-child(11) { animation-delay: 400ms; }
+.stagger-list > *:nth-child(12) { animation-delay: 440ms; }
+
+/* 3. scale-press：按钮/卡片按压 scale-95（统一类，补充子项 7 的 :active 实现） */
+.animate-scale-press { transition: transform 0.1s ease-out; }
+.animate-scale-press:active { transform: scale(0.95); }
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up,
+  .stagger-list > *,
+  .animate-scale-press { animation: none !important; transition: none !important; }
+}
+
 /* Drag & Skeleton */
 .dragging { opacity: 0.5; transform: scale(1.02); }
 .skeleton-shimmer { background: linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }

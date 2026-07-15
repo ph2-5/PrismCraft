@@ -27,6 +27,7 @@ import {
   type FfmpegResult,
 } from "@/modules/ffmpeg-runner";
 import type { VideoTask } from "@/domain/schemas";
+import { t } from "@/shared/constants/messages";
 
 /** 可合成的视频片段 */
 export interface VideoSegment {
@@ -154,7 +155,7 @@ export async function pickLocalVideoFiles(): Promise<string[]> {
     };
   }).electronAPI;
   if (!electronAPI?.openFileDialog) {
-    throw new Error("当前环境不支持文件选择对话框");
+    throw new Error(t("error.fileDialogNotSupported"));
   }
   const result = await electronAPI.openFileDialog();
   // 兼容两种返回格式

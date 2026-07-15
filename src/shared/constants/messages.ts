@@ -91,6 +91,7 @@ const messages: Record<MessageKey, string> = {
   "error.fileTooLarge": "文件过大",
   "error.filePathNotAllowed": "路径不被允许，请检查文件路径",
   "error.fileNotFound": "文件未找到",
+  "error.fileDialogNotSupported": "当前环境不支持文件选择对话框",
   "error.fileInvalidKey": "文件名无效",
   "error.fileInvalidCategory": "文件类别无效",
   "error.fileSourcePathNotAllowed": "源文件路径不被允许",

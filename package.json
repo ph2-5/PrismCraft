@@ -156,6 +156,11 @@
       ],
       "icon": "public",
       "category": "Graphics"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "ph2-5",
+      "repo": "PrismCraft"
     }
   },
   "devDependencies": {

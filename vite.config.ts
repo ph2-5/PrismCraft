@@ -143,6 +143,11 @@ export default defineConfig({
               priority: 15,
             },
             {
+              name: "app-search",
+              test: /src[\\/]modules[\\/]search[\\/]/,
+              priority: 15,
+            },
+            {
               name: "common",
               minShareCount: 2,
               minSize: 10000,

@@ -227,18 +227,24 @@ export const getSceneTool: ToolImpl = {
   },
 };
 
-/** 跨资产搜索（角色 + 场景） */
+/** 跨资产搜索（角色 + 场景 + 故事 + 素材） */
 export const searchAssetsTool: ToolImpl = {
   def: {
     type: "function",
     function: {
       name: "search_assets",
-      description: "跨资产搜索（同时搜索角色和场景）。按关键词匹配名称、描述、标签。返回合并结果，标注类型。",
+      description: "跨资产搜索（同时搜索角色、场景、故事、媒体素材）。按关键词匹配名称、描述、标签，按相关度排序。返回合并结果，标注类型。Task 4.6 增强为调用全局搜索服务 globalSearch。",
       parameters: {
         type: "object",
         properties: {
           keyword: { type: "string", description: "搜索关键词（匹配名称、描述、标签）", maxLength: 500 },
-          assetType: { type: "string", enum: ["all", "character", "scene"], description: "资产类型过滤，默认 all", default: "all" },
+          assetType: {
+            type: "string",
+            enum: ["all", "character", "scene", "story", "media-asset"],
+            description: "资产类型过滤，默认 all（搜索全部四种类型）",
+            default: "all",
+          },
+          tag: { type: "string", description: "按标签过滤（仅返回 tags 数组中包含此值的结果）", maxLength: 200 },
           limit: { type: "number", description: "每类资产返回上限，默认 10", default: 10, minimum: 1, maximum: 50 },
         },
         required: ["keyword"],
@@ -249,39 +255,54 @@ export const searchAssetsTool: ToolImpl = {
   dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(args) {
-    const kw = String(args.keyword).toLowerCase();
+    const keyword = String(args.keyword);
     const limit = Math.min(Number(args.limit) || 10, 50);
-    const assetType = String(args.assetType || "all");
+    const assetType = String(args.assetType || "all") as
+      | "all"
+      | "character"
+      | "scene"
+      | "story"
+      | "media-asset";
+    const tag = args.tag ? String(args.tag) : undefined;
 
-    const result: { characters: unknown[]; scenes: unknown[] } = { characters: [], scenes: [] };
+    // 调用 global-search 服务（Task 4.6 统一搜索入口）
+    const { globalSearch } = await import("@/modules/search");
+    const { results, counts, total } = await globalSearch(keyword, {
+      assetType,
+      tag,
+      limitPerType: limit,
+      totalLimit: limit * 4,
+    });
 
-    if (assetType === "all" || assetType === "character") {
-      const { characterService } = await import("@/modules/character");
-      const r = await characterService.getAll();
-      if (r.ok) {
-        result.characters = r.value
-          .filter((c) =>
-            c.name.toLowerCase().includes(kw) ||
-            c.description.toLowerCase().includes(kw) ||
-            (c.tags?.some((t) => t.toLowerCase().includes(kw)) ?? false),
-          )
-          .slice(0, limit)
-          .map((c) => ({ id: c.id, name: c.name, style: c.style, type: "character" }));
-      }
-    }
+    // 按 type 分组（保持向后兼容的返回结构）
+    const characters: unknown[] = [];
+    const scenes: unknown[] = [];
+    const stories: unknown[] = [];
+    const mediaAssets: unknown[] = [];
 
-    if (assetType === "all" || assetType === "scene") {
-      const { sceneService } = await import("@/modules/scene");
-      const r = await sceneService.getAll();
-      if (r.ok) {
-        result.scenes = r.value
-          .filter((s) =>
-            s.name.toLowerCase().includes(kw) ||
-            s.description.toLowerCase().includes(kw) ||
-            (s.tags?.some((t) => t.toLowerCase().includes(kw)) ?? false),
-          )
-          .slice(0, limit)
-          .map((s) => ({ id: s.id, name: s.name, type: s.type, assetType: "scene" }));
+    for (const r of results) {
+      const item = {
+        id: r.id,
+        name: r.title,
+        type: r.type,
+        subtitle: r.subtitle,
+        thumbnailUrl: r.thumbnailUrl,
+        updatedAt: r.updatedAt,
+        tags: r.tags,
+      };
+      switch (r.type) {
+        case "character":
+          characters.push(item);
+          break;
+        case "scene":
+          scenes.push(item);
+          break;
+        case "story":
+          stories.push(item);
+          break;
+        case "media-asset":
+          mediaAssets.push(item);
+          break;
       }
     }
 
@@ -289,9 +310,12 @@ export const searchAssetsTool: ToolImpl = {
       success: true,
       data: {
         keyword: args.keyword,
-        characters: result.characters,
-        scenes: result.scenes,
-        total: result.characters.length + result.scenes.length,
+        characters,
+        scenes,
+        stories,
+        mediaAssets,
+        counts,
+        total,
       },
     };
   },

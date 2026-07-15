@@ -16,6 +16,7 @@ const ROUTE_MAP: Record<SearchResult["type"], string> = {
   character: "/characters",
   scene: "/scenes",
   story: "/storyboard",
+  "media-asset": "/asset-library",
 };
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -201,7 +202,9 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
                       ? t("search.typeCharacter")
                       : result.type === "scene"
                         ? t("search.typeScene")
-                        : t("search.typeStory")}
+                        : result.type === "story"
+                          ? t("search.typeStory")
+                          : t("search.typeMediaAsset")}
                   </span>
                   <span className="font-medium text-foreground truncate">
                     {result.title}

@@ -1474,12 +1474,16 @@ const messages: Record<MessageKey, string> = {
   "common.settings": "设置",
   "common.generate": "生成",
 
-  "search.placeholder": "搜索角色、场景、故事...",
+  "search.placeholder": "搜索角色、场景、故事、素材...",
   "search.searchPlaceholder": "搜索...",
   "search.noResults": "未找到匹配的结果",
   "search.typeCharacter": "角色",
   "search.typeScene": "场景",
   "search.typeStory": "故事",
+  "search.typeMediaAsset": "素材",
+  "search.filterAll": "全部",
+  "search.filterHint": "输入关键词搜索，可按类型筛选",
+  "search.tagSearch": "标签",
 
   "sync.description": "配置同步服务器和冲突解决策略",
   "sync.devWarning": "同步功能正在开发中，当前配置可能无法正常工作",

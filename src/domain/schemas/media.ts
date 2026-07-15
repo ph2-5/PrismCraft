@@ -103,10 +103,13 @@ export const asaExportDataSchema = z.object({
 });
 
 export const searchResultSchema = z.object({
-  type: z.enum(["character", "scene", "story"]),
+  type: z.enum(["character", "scene", "story", "media-asset"]),
   id: z.string(),
   title: z.string(),
   subtitle: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  updatedAt: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export const enhancedVideoGenerationParamsSchema = z.object({

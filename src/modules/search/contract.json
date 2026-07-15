@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "module": "search",
+  "version": "1.0.0",
+  "description": "全局搜索模块，提供跨角色/场景/故事/素材的统一搜索能力",
+  "subdomains": {
+    "services": {
+      "path": "./services/global-search.ts",
+      "publicAPI": [
+        "globalSearch(term: string, options?: GlobalSearchOptions): Promise<GlobalSearchResult>",
+        "quickSearch(term: string): Promise<SearchResult[]>",
+        "getSearchResultRoute(result: SearchResult): string"
+      ],
+      "invariants": [
+        "globalSearch 对空关键词 + 无标签参数返回空结果",
+        "各 service 失败时返回空数组而非抛异常",
+        "搜索结果按相关度排序（名称匹配 > 描述匹配 > 标签匹配）",
+        "每类资产返回上限不超过 50，总结果上限不超过 100",
+        "getSearchResultRoute 是纯函数，无副作用",
+        "所有 service 通过动态 import 加载，避免循环依赖"
+      ]
+    },
+    "presentation": {
+      "path": "./presentation/search-bar.tsx",
+      "publicAPI": [
+        "SearchBar(props: SearchBarProps): JSX.Element"
+      ],
+      "invariants": [
+        "Ctrl+K / Cmd+K 快捷键默认启用，可通过 enableShortcut=false 禁用",
+        "点击搜索结果使用 guardedPush 跳转，不直接修改 location",
+        "SearchDialog 由 @/shared/presentation 提供，本组件仅作为触发器"
+      ]
+    }
+  },
+  "dependencies": {
+    "external": [
+      "@/domain/schemas",
+      "@/modules/character (dynamic import)",
+      "@/modules/scene (dynamic import)",
+      "@/modules/storyboard (dynamic import)",
+      "@/modules/asset (dynamic import)",
+      "@/shared/presentation/SearchDialog",
+      "@/shared/presentation/BeforeUnloadGuard",
+      "@/shared/constants"
+    ],
+    "forbidden": [
+      "@/infrastructure/* (除 di)",
+      "electronAPI.*",
+      "localStorage"
+    ]
+  },
+  "consumers": [
+    "@/app/SidebarWithSearch.tsx",
+    "@/modules/agent-tools-asset/asset-tools.ts (search_assets 工具)"
+  ]
+}

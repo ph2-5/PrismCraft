@@ -15,5 +15,11 @@ export {
 export { VideoTaskManager } from "./presentation/VideoTaskManager";
 export { VideoTaskManagerInitializer } from "./presentation/VideoTaskManagerInitializer";
 export { VideoTaskManagerUI } from "./presentation/VideoTaskManagerUI";
+export { TaskDiagnosticPanel } from "./presentation/TaskDiagnosticPanel";
+export type { DiagnoseResult } from "./presentation/TaskDiagnosticPanel";
+export { AgentBar } from "./presentation/AgentBar";
+export { TaskErrorGroup } from "./presentation/TaskErrorGroup";
+export { ProviderHealthCard } from "./presentation/ProviderHealthCard";
+export type { ProviderHealth } from "./presentation/ProviderHealthCard";
 export { buildTrackingInfoByProviderId, copyTrackingInfoToClipboard, openTaskQueryLink } from "./services/video-tracker";
 export { removeTasksByBeatId, removeTasksByStoryId } from "./services/task-removal-service";

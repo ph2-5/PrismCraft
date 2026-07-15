@@ -43,6 +43,8 @@ export { downloadJSONFile } from "./utils";
 export { VideoTaskManager } from "./task-management";
 export { VideoTaskManagerInitializer } from "./task-management";
 export { VideoTaskManagerUI } from "./task-management";
+export { TaskDiagnosticPanel, AgentBar, TaskErrorGroup, ProviderHealthCard } from "./task-management";
+export type { DiagnoseResult, ProviderHealth } from "./task-management";
 export {
   videoTemplates,
   templateCategories,

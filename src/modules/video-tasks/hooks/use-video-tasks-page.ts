@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { useVideoTaskManager, useVideoTaskStore } from "@/modules/video";
+import type { DiagnoseResult } from "@/modules/video";
+import { classifyError } from "@/domain/types";
 import { confirm } from "@/shared/utils/confirm";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
@@ -8,6 +10,7 @@ import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { t } from "@/shared/constants";
 
 type StatusFilter = "all" | "processing" | "completed" | "failed";
+type PageTab = "list" | "diagnostic";
 
 export function useVideoTasksPage() {
   const { guardedPush } = useNavigationGuard();
@@ -24,6 +27,9 @@ export function useVideoTasksPage() {
   const [isClearingCompleted, setIsClearingCompleted] = useState(false);
   const [isClearingFailed, setIsClearingFailed] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [activeTab, setActiveTab] = useState<PageTab>("list");
+  const [diagnosisResults, setDiagnosisResults] = useState<Record<string, DiagnoseResult>>({});
+  const [diagnosingTaskId, setDiagnosingTaskId] = useState<string | null>(null);
 
   const tasks = allTasks ?? [];
 
@@ -134,6 +140,54 @@ export function useVideoTasksPage() {
   const navigateToStory = () => guardedPush("/storyboard");
   const navigateToQuickGenerate = () => guardedPush("/quick-generate");
 
+  // ── 诊断相关 ──
+  // 简单实现：基于 classifyError 给出建议；后续可替换为 Agent 调用
+  const handleDiagnose = useCallback(
+    (taskId: string) => {
+      const task = tasks.find((tk) => tk.taskId === taskId);
+      if (!task) return;
+      setDiagnosingTaskId(taskId);
+      try {
+        const category = classifyError(undefined, task.message);
+        const suggestions: Record<string, string> = {
+          timeout: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupTimeout"),
+          network: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupNetwork"),
+          rate_limit: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupRateLimit"),
+          quota: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupQuota"),
+          invalid_params: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupInvalidParams"),
+          server_error: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupServerError"),
+          database_busy: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupDatabaseBusy"),
+          auth: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupAuth"),
+          unknown: t("task.diagnoseSuggestion") + ": " + t("task.errorGroupUnknown"),
+        };
+        const recoverable = category !== "invalid_params" && category !== "auth";
+        const result: DiagnoseResult = {
+          category,
+          suggestion: suggestions[category] ?? suggestions.unknown!,
+          recoverable,
+        };
+        setDiagnosisResults((prev) => ({ ...prev, [taskId]: result }));
+      } finally {
+        setDiagnosingTaskId(null);
+      }
+    },
+    [tasks],
+  );
+
+  const handleAgentAsk = useCallback(
+    (question: string) => {
+      // 简单实现：记录问题并触发对所有失败任务的诊断
+      errorLogger.info("[VideoTasksPage] agent ask", question);
+      const failedTaskIds = tasks
+        .filter((tk) => tk.status === "failed" || tk.status === "timeout")
+        .map((tk) => tk.taskId);
+      for (const tid of failedTaskIds.slice(0, 10)) {
+        handleDiagnose(tid);
+      }
+    },
+    [tasks, handleDiagnose],
+  );
+
   return {
     // Stats
     totalTasks,
@@ -159,5 +213,13 @@ export function useVideoTasksPage() {
     handleClearFailed,
     navigateToStory,
     navigateToQuickGenerate,
+    // Tabs
+    activeTab,
+    setActiveTab,
+    // Diagnostic
+    diagnosisResults,
+    diagnosingTaskId,
+    handleDiagnose,
+    handleAgentAsk,
   };
 }

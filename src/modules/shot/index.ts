@@ -56,3 +56,10 @@ export {
 } from "./shot-generation";
 export type { ValidationResult, ShotParamsType } from "./shot-generation";
 export { generateStoryPlanWithValidation } from "./shot-generation";
+
+// === 8. 分镜编辑器布局组件（Task 2B.11）===
+export { ShotEditorLayout } from "./shot-editor";
+export { PromptEditorColumn } from "./shot-editor";
+export { ElementBindingColumn } from "./shot-editor";
+export { PreviewColumn } from "./shot-editor";
+export { ShotTimeline } from "./shot-editor";

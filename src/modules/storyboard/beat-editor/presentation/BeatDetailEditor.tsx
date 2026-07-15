@@ -3,6 +3,12 @@ import { User, Check, AlertTriangle, MapPin } from "lucide-react";
 import { t } from "@/shared/constants";
 import { getBeatCharacterIds } from "@/domain/utils";
 import { ShotReferenceConfig, ReferenceVideoUploader } from "@/modules/storyboard/generation";
+import {
+  ShotEditorLayout,
+  PromptEditorColumn,
+  ElementBindingColumn,
+  PreviewColumn,
+} from "@/modules/shot";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import type {
   StoryBeat,
@@ -137,186 +143,173 @@ export function BeatDetailEditor({
         onDeleteBeat={onDeleteBeat}
       />
 
-      {/* Three-column editor */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          padding: 12,
-          gap: 12,
-          overflowY: "auto",
-          minHeight: 0,
-        }}
-      >
-        {/* COLUMN 1: Prompt editor (3-tab) + Shot properties */}
-        <BeatPromptPanel
-          beat={beat}
-          characters={characters}
-          scenes={scenes}
-          elements={elements}
-          allShots={allShots}
-          onUpdateBeat={onUpdateBeat}
-          onPromptChange={onPromptChange}
-          onGenerateKeyframe={onGenerateKeyframe}
-          onGenerateFramePair={onGenerateFramePair}
-          onGenerateVideoNew={onGenerateVideoNew}
-          generatingKeyframe={generatingKeyframe}
-          imageProviderId={imageProviderId}
-          imageModelId={imageModelId}
-        />
+      {/* Three-column editor（Task 2B.11：使用 ShotEditorLayout 语义化布局） */}
+      <ShotEditorLayout
+        header={null}
+        promptColumn={
+          <PromptEditorColumn>
+            <BeatPromptPanel
+              beat={beat}
+              characters={characters}
+              scenes={scenes}
+              elements={elements}
+              allShots={allShots}
+              onUpdateBeat={onUpdateBeat}
+              onPromptChange={onPromptChange}
+              onGenerateKeyframe={onGenerateKeyframe}
+              onGenerateFramePair={onGenerateFramePair}
+              onGenerateVideoNew={onGenerateVideoNew}
+              generatingKeyframe={generatingKeyframe}
+              imageProviderId={imageProviderId}
+              imageModelId={imageModelId}
+            />
+          </PromptEditorColumn>
+        }
+        elementBindingColumn={
+          <ElementBindingColumn
+            badge={
+              <span className="badge badge-info">
+                {t("beat.boundCount", { count: boundElements.length })}
+              </span>
+            }
+          >
+            {/* Element binding panel - existing business logic */}
+            <ElementBindingPanel
+              beat={beat}
+              elements={elements}
+              characters={characters}
+              scenes={scenes}
+              assets={assets}
+              onUpdateBeat={onUpdateBeat}
+            />
 
-        {/* COLUMN 2: Element binding + consistency check */}
-        <div
-          style={{
-            width: 300,
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            overflowY: "auto",
-          }}
-        >
-          {/* Section header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div className="section-label" style={{ marginBottom: 0 }}>
-              <span className="dot ok"></span> {t("beat.elementBinding")}
+            {/* Divider */}
+            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>
+
+            {/* Shot reference config - moved from bottom panel to column 2 */}
+            <div className="section-label">
+              <span className="dot ok"></span> {t("beat.shotReference")}
             </div>
-            <span className="badge badge-info">
-              {t("beat.boundCount", { count: boundElements.length })}
-            </span>
-          </div>
+            <ShotReferenceConfig
+              beat={beat}
+              allShots={allShots}
+              onUpdateBeat={onUpdateBeat}
+            />
 
-          {/* Element binding panel - existing business logic */}
-          <ElementBindingPanel
-            beat={beat}
-            elements={elements}
-            characters={characters}
-            scenes={scenes}
-            assets={assets}
-            onUpdateBeat={onUpdateBeat}
-          />
+            {/* Divider */}
+            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>
 
-          {/* Divider */}
-          <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>
-
-          {/* Shot reference config - moved from bottom panel to column 2 */}
-          <div className="section-label">
-            <span className="dot ok"></span> {t("beat.shotReference")}
-          </div>
-          <ShotReferenceConfig
-            beat={beat}
-            allShots={allShots}
-            onUpdateBeat={onUpdateBeat}
-          />
-
-          {/* Divider */}
-          <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>
-
-          {/* Consistency check */}
-          <div className="section-label">
-            <span className="dot ok"></span> {t("beat.consistencyCheck")}
-          </div>
-          <div className="card" style={{ padding: 10, fontSize: 12 }}>
-            {consistencyCheck && consistencyCheck.characterScores.length > 0 ? (
-              consistencyCheck.characterScores.map((score) => {
-                const isPass = score.score >= 0.8;
-                return (
-                  <div key={score.elementId}>
+            {/* Consistency check */}
+            <div className="section-label">
+              <span className="dot ok"></span> {t("beat.consistencyCheck")}
+            </div>
+            <div className="card" style={{ padding: 10, fontSize: 12 }}>
+              {consistencyCheck && consistencyCheck.characterScores.length > 0 ? (
+                consistencyCheck.characterScores.map((score) => {
+                  const isPass = score.score >= 0.8;
+                  return (
+                    <div key={score.elementId}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span><User style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {score.elementName}</span>
+                        <span style={{ color: isPass ? "var(--success)" : "var(--warning)" }}>
+                          {isPass ? <Check style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> : <AlertTriangle style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} />} {(score.score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="progress-bar" style={{ marginBottom: 8 }}>
+                        <div
+                          className="progress-fill"
+                          style={{ width: `${score.score * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : boundCharacters.length === 0 ? (
+                <div style={{ color: "var(--muted-fg)", textAlign: "center", padding: "8px 0" }}>
+                  {t("beat.unboundCharacter")}
+                </div>
+              ) : (
+                boundCharacters.map((char) => (
+                  <div key={char.id}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span><User style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {score.elementName}</span>
-                      <span style={{ color: isPass ? "var(--success)" : "var(--warning)" }}>
-                        {isPass ? <Check style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> : <AlertTriangle style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} />} {(score.score * 100).toFixed(0)}%
-                      </span>
+                      <span><User style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {char.name}</span>
+                      <span style={{ color: "var(--muted-fg)" }}>—</span>
                     </div>
                     <div className="progress-bar" style={{ marginBottom: 8 }}>
-                      <div
-                        className="progress-fill"
-                        style={{ width: `${score.score * 100}%` }}
-                      ></div>
+                      <div className="progress-fill" style={{ width: "0%" }}></div>
                     </div>
                   </div>
-                );
-              })
-            ) : boundCharacters.length === 0 ? (
-              <div style={{ color: "var(--muted-fg)", textAlign: "center", padding: "8px 0" }}>
-                {t("beat.unboundCharacter")}
-              </div>
-            ) : (
-              boundCharacters.map((char) => (
-                <div key={char.id}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span><User style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {char.name}</span>
-                    <span style={{ color: "var(--muted-fg)" }}>—</span>
+                ))
+              )}
+              {selectedScene && (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span><MapPin style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {selectedScene.name}</span>
+                    <span style={{ color: "var(--success)" }}>
+                      {consistencyCheck ? <Check style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> : "—"}
+                    </span>
                   </div>
-                  <div className="progress-bar" style={{ marginBottom: 8 }}>
-                    <div className="progress-fill" style={{ width: "0%" }}></div>
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{ width: consistencyCheck ? `${consistencyCheck.overallScore * 100}%` : "0%" }}
+                    ></div>
                   </div>
-                </div>
-              ))
-            )}
-            {selectedScene && (
-              <>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span><MapPin style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {selectedScene.name}</span>
-                  <span style={{ color: "var(--success)" }}>
-                    {consistencyCheck ? <Check style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> : "—"}
-                  </span>
-                </div>
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    style={{ width: consistencyCheck ? `${consistencyCheck.overallScore * 100}%` : "0%" }}
-                  ></div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* COLUMN 3: Preview cards with full operations */}
-        <BeatGenerationPanel
-          beat={beat}
-          onGenerateKeyframe={onGenerateKeyframe}
-          onGenerateFramePair={onGenerateFramePair}
-          onGenerateVideoNew={onGenerateVideoNew}
-          onRegenerateKeyframe={onRegenerateKeyframe}
-          generatingKeyframe={generatingKeyframe}
-          imageModelId={imageModelId}
-          uploadPanelHandle={uploadPanelHandle}
-        />
-      </div>
-
-      {/* Collapsible reference video panel - default collapsed to avoid squeezing editor */}
-      <div style={{ flexShrink: 0, borderTop: "1px solid var(--border)" }}>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
-          style={{ width: "100%", justifyContent: "space-between", padding: "6px 12px", fontSize: 11 }}
-          onClick={() => setRefVideoExpanded((v) => !v)}
-          aria-expanded={refVideoExpanded}
-        >
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 10 }}>{refVideoExpanded ? "▼" : "▶"}</span>
-            <span style={{ fontWeight: 600, color: "var(--muted-fg)" }}>{t("beat.referenceVideo")}</span>
-            {beat.referenceVideo?.enabled && beat.referenceVideo?.videoUrl && (
-              <span className="badge badge-info" style={{ fontSize: 10, display: "inline-flex", alignItems: "center" }}><Check style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /></span>
-            )}
-          </span>
-          <span style={{ fontSize: 10, color: "var(--muted-fg)" }}>
-            {refVideoExpanded ? t("common.collapse") : t("common.expand")}
-          </span>
-        </button>
-        {refVideoExpanded && (
-          <div style={{ padding: "8px 12px 12px", maxHeight: 320, overflowY: "auto" }}>
-            <ReferenceVideoUploader
-              referenceVideo={beat.referenceVideo}
-              assets={assets}
-              onUpdate={(config) => onUpdateBeat({ ...beat, referenceVideo: config })}
-              onError={(message) => showError(t("error.uploadFailed"), message)}
+                </>
+              )}
+            </div>
+          </ElementBindingColumn>
+        }
+        previewColumn={
+          <PreviewColumn>
+            <BeatGenerationPanel
+              beat={beat}
+              onGenerateKeyframe={onGenerateKeyframe}
+              onGenerateFramePair={onGenerateFramePair}
+              onGenerateVideoNew={onGenerateVideoNew}
+              onRegenerateKeyframe={onRegenerateKeyframe}
+              generatingKeyframe={generatingKeyframe}
+              imageModelId={imageModelId}
+              uploadPanelHandle={uploadPanelHandle}
             />
-          </div>
-        )}
-      </div>
+          </PreviewColumn>
+        }
+        timeline={
+          <>
+            {/* Collapsible reference video panel - default collapsed to avoid squeezing editor */}
+            <div style={{ flexShrink: 0, borderTop: "1px solid var(--border)" }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ width: "100%", justifyContent: "space-between", padding: "6px 12px", fontSize: 11 }}
+                onClick={() => setRefVideoExpanded((v) => !v)}
+                aria-expanded={refVideoExpanded}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 10 }}>{refVideoExpanded ? "▼" : "▶"}</span>
+                  <span style={{ fontWeight: 600, color: "var(--muted-fg)" }}>{t("beat.referenceVideo")}</span>
+                  {beat.referenceVideo?.enabled && beat.referenceVideo?.videoUrl && (
+                    <span className="badge badge-info" style={{ fontSize: 10, display: "inline-flex", alignItems: "center" }}><Check style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /></span>
+                  )}
+                </span>
+                <span style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+                  {refVideoExpanded ? t("common.collapse") : t("common.expand")}
+                </span>
+              </button>
+              {refVideoExpanded && (
+                <div style={{ padding: "8px 12px 12px", maxHeight: 320, overflowY: "auto" }}>
+                  <ReferenceVideoUploader
+                    referenceVideo={beat.referenceVideo}
+                    assets={assets}
+                    onUpdate={(config) => onUpdateBeat({ ...beat, referenceVideo: config })}
+                    onError={(message) => showError(t("error.uploadFailed"), message)}
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        }
+      />
 
       {/* Hidden file inputs - rendered once and triggered via ref */}
       <BeatUploadPanel

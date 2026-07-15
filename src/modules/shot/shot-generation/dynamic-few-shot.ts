@@ -294,6 +294,67 @@ function calculateRelevance(example: FewShotExample, context: {
   return score;
 }
 
+/**
+ * Task 4.7：项目类型 → genre 映射。
+ *
+ * 项目类型（古装/现代/科幻/奇幻）与现有 genre（action/romance/mystery/comedy/scifi/fantasy/drama）
+ * 不是一一对应，需要映射函数。映射规则：
+ * - ancient（古装）→ drama + action（古装剧偏戏剧/武打）
+ * - modern（现代）→ drama + romance + comedy（现代剧偏生活/爱情/喜剧）
+ * - scifi（科幻）→ scifi + action（科幻偏科技/动作）
+ * - fantasy（奇幻）→ fantasy + action（奇幻偏冒险/动作）
+ * - unknown → 所有 genre 平等（不额外加分）
+ */
+const PROJECT_TYPE_TO_GENRES: Record<string, string[]> = {
+  ancient: ["drama", "action"],
+  modern: ["drama", "romance", "comedy"],
+  scifi: ["scifi", "action"],
+  fantasy: ["fantasy", "action"],
+};
+
+/**
+ * Task 4.7：根据项目类型推断合适的 genre 列表。
+ * 若项目类型未知或未指定，返回空数组（表示不限制 genre）。
+ */
+export function getGenresByProjectType(projectType: string): string[] {
+  return PROJECT_TYPE_TO_GENRES[projectType] ?? [];
+}
+
+/**
+ * Task 4.7：根据项目类型选择 Few-Shot 示例。
+ *
+ * 与 selectFewShotExamples 不同，本函数不需要显式 genre，
+ * 而是根据项目类型自动映射到合适的 genre，然后从这些 genre 中选择最相关的示例。
+ *
+ * @param projectType 项目类型（ancient/modern/scifi/fantasy/unknown）
+ * @param count 返回示例数量，默认 3
+ * @param language 语言，默认 "zh"
+ */
+export function selectFewShotByProjectType(
+  projectType: string,
+  count: number = 3,
+  language: "en" | "zh" | "auto" = "zh",
+): FewShotExample[] {
+  const genres = getGenresByProjectType(projectType);
+  const pool = language === "en" ? EN_FEW_SHOT_EXAMPLES : FEW_SHOT_EXAMPLES;
+
+  // 若项目类型未知，返回全部示例中前 count 个
+  if (genres.length === 0) {
+    return pool.slice(0, count);
+  }
+
+  // 筛选 genre 匹配的示例
+  const filtered = pool.filter((ex) => genres.includes(ex.input.genre));
+
+  // 若筛选后不足 count，补充其他示例
+  if (filtered.length < count) {
+    const others = pool.filter((ex) => !genres.includes(ex.input.genre));
+    return [...filtered, ...others].slice(0, count);
+  }
+
+  return filtered.slice(0, count);
+}
+
 export function selectFewShotExamples(context: {
   genre: string;
   tone: string;

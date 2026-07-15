@@ -60,6 +60,24 @@ export {
 
 export { ModelSelector, useModelSelection, type ModelSelection } from "./presentation";
 
+// Task 4.7：Prompt 配方库（Skill 调用模式）
+export {
+  getRecipe,
+  listRecipes,
+  applyRecipe,
+  getRecipeSkillIds,
+  registerCustomRecipe,
+  unregisterCustomRecipe,
+  PromptRecipePanel,
+} from "./prompt-recipes";
+export type {
+  RecipeId,
+  SkillCombination,
+  RecipeSkillParams,
+  Recipe,
+  PromptRecipePanelProps,
+} from "./prompt-recipes";
+
 // 提示词模板库（用户可编辑 + 内置高质量预设）
 export type {
   PromptTemplateCategory,

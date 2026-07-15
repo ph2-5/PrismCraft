@@ -37,4 +37,7 @@ export {
   selectFewShotExamples,
   buildFewShotPrompt,
   enrichPromptWithFewShot,
+  // Task 4.7：项目类型驱动的 Few-Shot 动态选择
+  getGenresByProjectType,
+  selectFewShotByProjectType,
 } from "./dynamic-few-shot";

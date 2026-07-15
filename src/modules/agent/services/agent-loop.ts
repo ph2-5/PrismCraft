@@ -47,6 +47,13 @@ import {
   markInterrupted,
 } from "@/modules/agent-session";
 import { recordFewShot, buildFewShotPrompt } from "@/modules/agent-fewshot";
+// Task 1.4 v5.3 增强：Skill 路由 + 安全改写
+import {
+  routeSkill,
+  rewriteIp,
+  filterAntislop,
+  type AgentContext,
+} from "@/shared-logic/prompt";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
 
@@ -152,11 +159,40 @@ export class AgentLoop {
 
   /** 运行 Agent Loop */
   async run(userInput: string): Promise<void> {
-    this.currentInput = userInput;
-    this.deps.conversationManager.appendUserMessage(this.session, userInput);
-    void initCheckpoint(this.session, userInput).catch(() => {});
+    // Task 1.4 v5.3 增强：safety 改写 — IP/名人/品牌安全改写 + 反空泛词汇过滤
+    // 改写顺序：先 IP 改写（替换敏感词），再 antislop（过滤空泛词）
+    const ipResult = rewriteIp(userInput);
+    const antislopResult = filterAntislop(ipResult.rewritten);
+    const processedInput = antislopResult.filtered;
 
-    const systemPrompt = await this.buildSystemPrompt(userInput);
+    // Task 1.4 v5.3 增强：safety 改写日志（暂存到 session metadata，便于 UI 展示）
+    // 审计日志系统（recordAudit）当前只支持工具调用记录，safety 改写日志暂不接入审计系统。
+    // 后续可通过扩展 AuditEntry 类型或独立 safety log 模块接入。
+    if (ipResult.changes.length > 0 || antislopResult.replacements.length > 0) {
+      try {
+        const safetyLog = {
+          timestamp: Date.now(),
+          originalInput: userInput,
+          ipChanges: ipResult.changes,
+          antislopReplacements: antislopResult.replacements,
+          finalInput: processedInput,
+        };
+        // 存储到 session metadata（若 session.metadata 不存在则跳过）
+        const sessionMeta = this.session as unknown as { safetyLog?: unknown[] };
+        if (!sessionMeta.safetyLog) {
+          sessionMeta.safetyLog = [];
+        }
+        (sessionMeta.safetyLog as unknown[]).push(safetyLog);
+      } catch {
+        // safety 日志失败静默，不阻断主流程
+      }
+    }
+
+    this.currentInput = processedInput;
+    this.deps.conversationManager.appendUserMessage(this.session, processedInput);
+    void initCheckpoint(this.session, processedInput).catch(() => {});
+
+    const systemPrompt = await this.buildSystemPrompt(processedInput);
     void this.maybeSummarizeConversation();
     this.loopStartTime = Date.now();
 
@@ -469,7 +505,7 @@ export class AgentLoop {
     }
   }
 
-  /** 构建 system prompt（动态注入项目状态 + 核心记忆 + RAG 检索 + 对话摘要 + few-shot） */
+  /** 构建 system prompt（动态注入项目状态 + 核心记忆 + RAG 检索 + 对话摘要 + few-shot + Skill 路由 + safety） */
   private async buildSystemPrompt(userMessage?: string): Promise<string> {
     const template = this.config.systemPromptOverride || DEFAULT_SYSTEM_PROMPT;
     const toolDescs = this.deps.toolRegistry.getToolDescriptions(this.config.enabledTools);
@@ -487,6 +523,24 @@ export class AgentLoop {
       .replace("{RELEVANT_MEMORY}", relevantMemory || "（无相关记忆）")
       .replace("{CONVERSATION_SUMMARY}", conversationSummary || "（暂无摘要）")
       .replace("{AVAILABLE_TOOLS}", buildAvailableToolsSummary(toolDescs));
+
+    // Task 1.4 v5.3 增强：Skill 路由 — 根据用户消息匹配 Skill，注入对应指令片段
+    if (userMessage) {
+      try {
+        const skillCtx: AgentContext = {
+          userMessage,
+          projectType: "unknown", // TODO: 从项目配置读取
+          recentFailures: [], // TODO: 从失败历史读取
+        };
+        const skill = routeSkill(userMessage);
+        const skillInstructions = skill.buildInstructions(skillCtx);
+        if (skillInstructions) {
+          prompt += "\n\n" + skillInstructions;
+        }
+      } catch {
+        // Skill 路由失败静默，不阻断主流程
+      }
+    }
 
     // 预训练数据-2：注入历史成功调用的 few-shot 示例（如有）
     if (userMessage) {

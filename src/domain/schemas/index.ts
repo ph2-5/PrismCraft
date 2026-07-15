@@ -20,3 +20,6 @@ export type { MediaAssetType, AssetLibraryType, ImportMode, MediaAsset, VideoTem
 
 export { subShotSchema } from "./shot";
 export type { SubShot } from "./shot";
+
+export { assetTypeEnum, generationAssetSchema } from "./asset";
+export type { AssetType as GenerationAssetType, GenerationAsset } from "./asset";

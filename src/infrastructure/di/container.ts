@@ -6,6 +6,7 @@ import type {
   ISceneStorage,
   IStoryStorage,
   ISubShotStorage,
+  IGenerationAssetStorage,
   IVideoProvider,
   IImageProvider,
   ITextProvider,
@@ -41,6 +42,7 @@ import { characterStorage } from "@/infrastructure/storage/characters";
 import { sceneStorage } from "@/infrastructure/storage/scenes";
 import { storyStorage } from "@/infrastructure/storage/stories";
 import { subShotStorage } from "@/infrastructure/storage/shot/sub-shot-storage";
+import { generationAssetStorage } from "@/infrastructure/storage/asset/asset-storage";
 import { versionStorage } from "@/infrastructure/storage/versions";
 import { elementStorage } from "@/infrastructure/storage/elements";
 import { videoCacheStorage } from "@/infrastructure/storage/video-cache";
@@ -124,6 +126,7 @@ const tokens = {
   sceneStorage: createToken<ISceneStorage>("sceneStorage", () => sceneStorage as ISceneStorage),
   storyStorage: createToken<IStoryStorage>("storyStorage", () => storyStorage as IStoryStorage),
   subShotStorage: createToken<ISubShotStorage>("subShotStorage", () => subShotStorage as ISubShotStorage),
+  generationAssetStorage: createToken<IGenerationAssetStorage>("generationAssetStorage", () => generationAssetStorage as IGenerationAssetStorage),
   videoProvider: createToken<IVideoProvider>("videoProvider", () => videoProvider),
   imageProvider: createToken<IImageProvider>("imageProvider", () => imageProvider),
   textProvider: createToken<ITextProvider>("textProvider", () => textProvider),
@@ -265,6 +268,7 @@ export function getTokenRegistry(): Array<{
     sceneStorage: "A",
     storyStorage: "A",
     subShotStorage: "A",
+    generationAssetStorage: "A",
     videoProvider: "A",
     imageProvider: "A",
     textProvider: "A",

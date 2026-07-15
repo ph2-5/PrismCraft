@@ -13,6 +13,7 @@
 |------|------|------|
 | `asset-library` | [asset-library/](./asset-library/) | 资产库服务：角色、场景、分镜资源、收藏集 CRUD 与本地文件管理、ASA 格式导出 |
 | `media-assets` | [media-assets/](./media-assets/) | 媒体资产管理：媒体文件的创建、更新、删除、批量操作 |
+| `generation-assets` | [generation-assets/](./generation-assets/) | 生成资产统一管理：AI 生成/上传/合成的图片视频资产的 CRUD、引用关系、批量清理（Task 4.11） |
 | `import-export` | [import-export/](./import-export/) | 项目数据导入导出：JSON 格式完整项目备份与恢复、合并策略 |
 | `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：媒体资产、导入导出、项目导出 |
 | `presentation` | [presentation/](./presentation/) | UI 组件：批量操作、媒体导出、项目导入导出 |
@@ -36,6 +37,23 @@
 | API | 签名 | 说明 |
 |-----|------|------|
 | `mediaAssetService` | MediaAssetService | 媒体资产服务（create, update, delete, batchDelete） |
+
+### generation-assets 子域（Task 4.11）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `listAssetsByType` | `(type: AssetType) → Promise<GenerationAsset[]>` | 按类型列出资产（keyframe/video/character_image 等） |
+| `listAssetsByProject` | `(projectId: string) → Promise<GenerationAsset[]>` | 按项目列出资产 |
+| `listAssetsByBeat` | `(storyBeatId: string) → Promise<GenerationAsset[]>` | 按分镜列出资产 |
+| `getAsset` | `(id: string) → Promise<GenerationAsset \| null>` | 获取单个资产 |
+| `createAsset` | `(input) → Promise<GenerationAsset>` | 创建生成资产（ID 自动加 `gen-asset-` 前缀） |
+| `updateAsset` | `(id, patch) → Promise<void>` | 更新资产字段 |
+| `deleteAsset` | `(id: string) → Promise<void>` | 软删除单个资产 |
+| `deleteUnreferencedAssets` | `() → Promise<number>` | 批量软删除无引用的资产，返回删除数量 |
+| `getReferenceInfo` | `(asset) → { kind, id } \| null` | 解析资产的引用源（StoryBeat/Character/Scene/Project） |
+| `useGenerationAssets` | `(filter?) → UseGenerationAssetsResult` | React Hook：按 type/projectId 筛选资产 |
+| `AssetGallery` | `React.FC` | 资产画廊 UI（筛选按钮 + 缩略图网格 + 详情弹窗） |
+| `UseGenerationAssetsResult` | `type` | useGenerationAssets 返回值类型 |
 
 ### import-export 子域
 
@@ -80,9 +98,10 @@
 ### 子域内部依赖图
 
 ```
-asset-library ← @/domain/schemas, @/infrastructure/di
-media-assets  ← @/domain/schemas, @/infrastructure/di
-import-export ← @/domain/schemas, @/infrastructure/di
+asset-library       ← @/domain/schemas, @/infrastructure/di
+media-assets        ← @/domain/schemas, @/infrastructure/di
+generation-assets   ← @/domain/schemas, @/infrastructure/di（Task 4.11）
+import-export       ← @/domain/schemas, @/infrastructure/di
   │
   ▼
 hooks ← asset-library, media-assets, import-export, @tanstack/react-query
@@ -91,7 +110,7 @@ hooks ← asset-library, media-assets, import-export, @tanstack/react-query
 presentation ← hooks, @/shared/ui
 ```
 
-- `asset-library`、`media-assets`、`import-export` 是底层服务子域，彼此独立
+- `asset-library`、`media-assets`、`generation-assets`、`import-export` 是底层服务子域，彼此独立
 - `hooks` 依赖三个底层子域，提供 React hooks
 - `presentation` 依赖 `hooks`，提供 UI 组件
 
@@ -123,6 +142,10 @@ presentation ← hooks, @/shared/ui
 - **INV-10**：使用 React Query 进行数据获取和缓存，mutation 成功后自动 `invalidateQueries`
 - **INV-11**：`presentation` 子域通过 hooks 获取数据，不直接调用 services
 - **INV-12**：导入使用 write-then-clean 模式（R13），禁止先删后写
+- **INV-13**（Task 4.11）：`generation-assets` 子域与 `media-assets` 相互独立——前者管理系统生成/上传的产出物，后者管理用户手动管理的素材库
+- **INV-14**（Task 4.11）：`generation_assets` 表的删除使用软删除（`is_deleted = 1`），不物理删除记录以支持审计和回滚
+- **INV-15**（Task 4.11）：`deleteUnreferencedAssets` 仅删除所有引用字段（storyBeatId/subShotId/characterId/sceneId/projectId 等）均为 NULL 的资产
+- **INV-16**（Task 4.11）：`generation-assets` 子域不依赖其他子域，仅通过 `@/infrastructure/di` 获取 `generationAssetStorage` token
 
 ---
 

@@ -1,0 +1,28 @@
+{
+  "name": "asset-generation-assets",
+  "description": "生成资产统一管理：AI生成/上传的图片视频入库、筛选、清理、引用追踪",
+  "dependencies": ["@/domain/schemas", "@/infrastructure/di"],
+  "publicAPI": {
+    "hooks": ["useGenerationAssets"],
+    "services": [
+      "listAssetsByType",
+      "listAssetsByProject",
+      "listAssetsByBeat",
+      "getAsset",
+      "createAsset",
+      "updateAsset",
+      "deleteAsset",
+      "deleteUnreferencedAssets",
+      "getReferenceInfo"
+    ],
+    "components": ["AssetGallery"]
+  },
+  "invariants": [
+    "generation_assets 表独立于 media_assets 表，前者管理系统生成资产，后者管理用户素材库",
+    "每个 GenerationAsset 必须有 type/sourceType/url 三个必填字段",
+    "删除资产为软删除（is_deleted = 1），不物理删除",
+    "deleteUnreferencedAssets 仅删除所有引用字段均为 NULL 的资产",
+    "getReferenceInfo 返回资产的第一个非空引用信息",
+    "禁止直接导入 infrastructure/storage"
+  ]
+}

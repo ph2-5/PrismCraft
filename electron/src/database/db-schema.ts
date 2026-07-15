@@ -325,6 +325,28 @@ const FEATURE_TABLES: TableDef[] = [
       transition: { type: "TEXT" },
     },
   },
+  {
+    name: "generation_assets",
+    featureGroup: "assets",
+    columns: {
+      type: { type: "TEXT", notNull: true, check: "IN ('keyframe', 'first_frame', 'last_frame', 'video', 'character_image', 'scene_image', 'variant_image', 'compositor_result', 'uploaded')" },
+      source_type: { type: "TEXT", notNull: true, check: "IN ('ai_generated', 'user_uploaded', 'composited')" },
+      url: { type: "TEXT", notNull: true },
+      local_path: { type: "TEXT" },
+      thumbnail_path: { type: "TEXT" },
+      prompt: { type: "TEXT" },
+      model_id: { type: "TEXT" },
+      provider_id: { type: "TEXT" },
+      metadata: { type: "TEXT", default: "'{}'" },
+      story_beat_id: { type: "TEXT" },
+      sub_shot_id: { type: "TEXT" },
+      character_id: { type: "TEXT" },
+      character_variant_id: { type: "TEXT" },
+      scene_id: { type: "TEXT" },
+      scene_variant_id: { type: "TEXT" },
+      project_id: { type: "TEXT" },
+    },
+  },
 ];
 
 const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; primaryKey: string[]; uniqueConstraints?: string[][] }[] = [

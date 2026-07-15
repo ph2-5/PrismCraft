@@ -14,3 +14,19 @@ export {
 } from "./hooks";
 export type { ProjectData, ExportResult } from "./hooks";
 export { BatchOperations, ProjectExportImport } from "./presentation";
+
+// Task 4.11: 生成资产统一管理（generation_assets 表）
+export {
+  listAssetsByType,
+  listAssetsByProject,
+  listAssetsByBeat,
+  getAsset,
+  createAsset,
+  updateAsset,
+  deleteAsset,
+  deleteUnreferencedAssets,
+  getReferenceInfo,
+  useGenerationAssets,
+  AssetGallery,
+} from "./generation-assets";
+export type { UseGenerationAssetsResult } from "./generation-assets";

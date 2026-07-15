@@ -3,6 +3,7 @@ import type { Character, CharacterOutfit } from "@/domain/schemas/character";
 import type { Scene } from "@/domain/schemas/scene";
 import type { Story } from "@/domain/schemas/story";
 import type { SubShot } from "@/domain/schemas/shot";
+import type { GenerationAsset } from "@/domain/schemas/asset";
 
 export interface IVideoTaskStorage {
   getVideoTasks(): Promise<VideoTask[]>;
@@ -63,4 +64,15 @@ export interface ISubShotStorage {
   deleteSubShot(id: string): Promise<void>;
   deleteSubShotsByBeatId(beatId: string): Promise<void>;
   reorderSubShots(beatId: string, orderedIds: string[]): Promise<void>;
+}
+
+export interface IGenerationAssetStorage {
+  getAssetsByType(type: string): Promise<GenerationAsset[]>;
+  getAssetsByProject(projectId: string): Promise<GenerationAsset[]>;
+  getAssetsByStoryBeat(beatId: string): Promise<GenerationAsset[]>;
+  getAssetById(id: string): Promise<GenerationAsset | null>;
+  createAsset(asset: Partial<GenerationAsset> & { id: string; type: string; sourceType: string; url: string }): Promise<void>;
+  updateAsset(id: string, updates: Partial<GenerationAsset>): Promise<void>;
+  deleteAsset(id: string): Promise<void>;
+  deleteUnreferencedAssets(): Promise<number>;
 }

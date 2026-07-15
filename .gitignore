@@ -22,6 +22,7 @@
 # runtime logs
 stderr.log
 stdout.log
+debug-storybook.log
 
 # vite
 /out/

@@ -482,12 +482,14 @@ describe("Full Pipeline Integration", () => {
     it("returns conservative defaults for unknown models", () => {
       const caps = getModelCapabilities("totally-unknown-model-xyz");
       expect(caps).toBeDefined();
-      expect(caps.maxReferences).toBe(4);
-      expect(caps.supportsLastFrame).toBe(true);
-      expect(caps.supportsCharacterRef).toBe(true);
-      expect(caps.supportsSceneRef).toBe(true);
-      expect(caps.characterRefMode).toBe("text_append");
-      expect(caps.sceneRefMode).toBe("text_append");
+      // Task 3.2：未知模型使用 conservative 默认值（maxReferences:1, supportsLastFrame:false,
+      // supportsCharacterRef:false, characterRefMode:"bake_into_first"）
+      expect(caps.maxReferences).toBe(1);
+      expect(caps.supportsLastFrame).toBe(false);
+      expect(caps.supportsCharacterRef).toBe(false);
+      expect(caps.supportsSceneRef).toBe(false);
+      expect(caps.characterRefMode).toBe("bake_into_first");
+      expect(caps.sceneRefMode).toBe("bake_into_first");
     });
 
     it("determines video generation strategy", () => {

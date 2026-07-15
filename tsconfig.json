@@ -63,6 +63,7 @@
     "scripts/*.ts",
     "vitest.config.ts",
     "vitest.config.electron.ts",
+    "vitest.config.stryker.ts",
     "playwright.config.ts"
   ]
 }

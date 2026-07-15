@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
       { path: "video-tasks", element: withSuspense(VideoTasksPage) },
       { path: "story", element: withSuspense(lazy(() => import("./app/coming-soon/StoryPage"))) },
       { path: "agent", element: withSuspense(lazy(() => import("./app/agent/page"))) },
-      { path: "composer", element: withSuspense(lazy(() => import("./app/coming-soon/ComposerPage"))) },
+      { path: "composer", element: withSuspense(lazy(() => import("./modules/video-compose/page"))) },
       { path: "plugins", element: withSuspense(lazy(() => import("./app/coming-soon/PluginsPage"))) },
       { path: "login", element: withSuspense(lazy(() => import("./app/coming-soon/LoginPage"))) },
       { path: "template-market", element: withSuspense(lazy(() => import("./app/coming-soon/TemplateMarketPage"))) },

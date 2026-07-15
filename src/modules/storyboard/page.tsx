@@ -7,7 +7,7 @@ import { VersionDialog } from "@/modules/storyboard";
 import { TemplateManagerDialog } from "@/modules/storyboard";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { Modal } from "@/shared/presentation/Modal";
-import { PageLoader } from "@/shared/presentation/PageLoader";
+import { Skeleton, SkeletonList } from "@/shared/presentation/Skeleton";
 import { Tabs } from "@/shared/presentation/Tabs";
 import { StoryProvider } from "./StoryProvider";
 import { StoryHeader } from "./StoryHeader";
@@ -74,8 +74,13 @@ function StoryPageContent() {
         </div>
 
         {story.isStoryLoading ? (
-          <div className="flex-1 min-h-0 flex items-center justify-center">
-            <PageLoader size="lg" label={t("common.loading")} />
+          <div className="flex-1 min-h-0 flex flex-col gap-3 p-4 overflow-hidden">
+            <Skeleton className="h-10 w-full shrink-0" />
+            <SkeletonList
+              count={5}
+              className="flex flex-col gap-2 flex-1 overflow-y-auto"
+              itemClassName="h-16 w-full shrink-0"
+            />
           </div>
         ) : activeTab === "storyboard" ? (
           <div className="flex-1 min-h-0 flex flex-col">

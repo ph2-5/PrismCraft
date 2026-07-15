@@ -3,7 +3,6 @@ import { useVirtualList } from "@/shared/hooks/use-virtual-list";
 import {
   Plus,
   Film,
-  Loader2,
   User,
   Clock,
   MapPin,
@@ -27,6 +26,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { t } from "@/shared/constants";
+import { SkeletonList } from "@/shared/presentation/Skeleton";
 import { getBeatCharacterIds } from "@/domain/utils";
 import { SHOT_SIZE_OPTIONS } from "@/modules/shot";
 import type { Character, Scene, StoryBeat } from "@/domain/schemas";
@@ -329,9 +329,11 @@ export function BeatListView({
       </div>
 
       {assetsLoading ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 0", color: "var(--muted-fg)", fontSize: 13, gap: 8 }}>
-          <Loader2 style={{ width: 24, height: 24, animation: "spin 1s linear infinite", opacity: 0.5 }} />
-          <p>{t("beat.loadingAssets")}</p>
+        <div className="flex flex-col gap-2 p-2">
+          <SkeletonList count={4} className="flex flex-col gap-2" itemClassName="h-16 w-full" />
+          <p style={{ textAlign: "center", color: "var(--muted-fg)", fontSize: 13, padding: "8px 0" }}>
+            {t("beat.loadingAssets")}
+          </p>
         </div>
       ) : beats.length === 0 ? (
         <div style={{ textAlign: "center", padding: "32px 0", color: "var(--muted-fg)", fontSize: 13 }}>

@@ -6,8 +6,9 @@ import { BatchOperations } from "@/modules/asset";
 import { errorLogger } from "@/shared/error-logger";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
+import { usePagination } from "@/shared/hooks/use-pagination";
 import type { Character } from "@/domain/schemas";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, ChevronDown } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 import { EmptyState } from "@/shared/presentation/EmptyState";
 
@@ -28,6 +29,9 @@ export const CharacterList = memo(function CharacterList({
 }: CharacterListProps) {
   const queryClient = useQueryClient();
   const { error: showError } = useToastHelpers();
+  const { visibleItems, hasMore, loadMore } = usePagination<Character>(characters, {
+    pageSize: 20,
+  });
 
   return (
     <div className="w-full md:w-[300px] md:shrink-0 border-b border-border md:border-b-0 md:border-r flex flex-col overflow-y-auto p-3 gap-1.5">
@@ -91,15 +95,26 @@ export const CharacterList = memo(function CharacterList({
           }
         />
       ) : (
-        characters.map((char) => (
-          <div key={char.id} data-char-id={char.id}>
-            <CharacterListItem
-              character={char}
-              onClick={() => onSelectCharacter(char)}
-              onDelete={onDeleteCharacter}
-            />
-          </div>
-        ))
+        <>
+          {visibleItems.map((char) => (
+            <div key={char.id} data-char-id={char.id}>
+              <CharacterListItem
+                character={char}
+                onClick={() => onSelectCharacter(char)}
+                onDelete={onDeleteCharacter}
+              />
+            </div>
+          ))}
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md transition-colors border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+              {t("common.loadMore")}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

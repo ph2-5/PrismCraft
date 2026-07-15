@@ -2,12 +2,13 @@ import { memo } from "react";
 import type { Scene } from "@/domain/schemas";
 import { SceneListItem } from "@/modules/scene";
 import { BatchOperations } from "@/modules/asset";
-import { ImageIcon, Plus } from "lucide-react";
+import { ImageIcon, Plus, ChevronDown } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants/messages";
 import { EmptyState } from "@/shared/presentation/EmptyState";
 import { sceneService } from "@/modules/scene";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePagination } from "@/shared/hooks/use-pagination";
 
 interface SceneListProps {
   scenes: Scene[];
@@ -29,6 +30,9 @@ export const SceneList = memo(function SceneList({
   onNewScene,
 }: SceneListProps) {
   const queryClient = useQueryClient();
+  const { visibleItems, hasMore, loadMore } = usePagination<Scene>(scenes, {
+    pageSize: 20,
+  });
 
   const handleDeleteScene = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -98,15 +102,26 @@ export const SceneList = memo(function SceneList({
           }
         />
       ) : (
-        scenes.map((scene) => (
-          <div key={scene.id} data-scene-id={scene.id}>
-            <SceneListItem
-              scene={scene}
-              onClick={() => onSelectScene(scene)}
-              onDelete={handleDeleteScene}
-            />
-          </div>
-        ))
+        <>
+          {visibleItems.map((scene) => (
+            <div key={scene.id} data-scene-id={scene.id}>
+              <SceneListItem
+                scene={scene}
+                onClick={() => onSelectScene(scene)}
+                onDelete={handleDeleteScene}
+              />
+            </div>
+          ))}
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md transition-colors border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+              {t("common.loadMore")}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

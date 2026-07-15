@@ -27,6 +27,8 @@ const messages: Record<MessageKey, string> = {
   "common.failed": "失败",
   "common.timeout": "超时",
   "common.generatingShort": "生成中",
+  "common.loadMore": "加载更多",
+  "common.noMoreData": "没有更多了",
   "common.pending": "等待中",
   "common.regenerate": "重新生成",
   "common.remove": "移除",

@@ -73,3 +73,14 @@ export { PromptEditorColumn } from "./shot-editor";
 export { ElementBindingColumn } from "./shot-editor";
 export { PreviewColumn } from "./shot-editor";
 export { ShotTimeline } from "./shot-editor";
+
+// === 9. 分镜对比视图（Task 4.4）===
+export { ShotCompareView, ComparePanel, diffText, countDifferences } from "./shot-comparison";
+export type {
+  ShotVersion,
+  ShotVersionType,
+  ShotVersionParameters,
+  DiffLine,
+  ShotCompareViewProps,
+  ComparePanelProps,
+} from "./shot-comparison";

@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useLayoutEffect,
   useMemo,
+  useRef,
 } from "react";
 import { preferencesStorage } from "@/shared/utils/preferences";
 import { errorLogger } from "@/shared/error-logger";
@@ -109,7 +110,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
+  const themeTransitionTimeoutRef = useRef<number | null>(null);
+
   const setTheme = useCallback((newTheme: ThemeId) => {
+    const root = document.documentElement;
+    // Task 4.9 子项 6：添加过渡 class，让颜色变化有 0.3s 过渡动画。
+    root.classList.add("theme-transitioning");
+    // 清除之前的 timeout，避免快速连续切换时过早移除 class。
+    if (themeTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(themeTransitionTimeoutRef.current);
+    }
+    themeTransitionTimeoutRef.current = window.setTimeout(() => {
+      root.classList.remove("theme-transitioning");
+      themeTransitionTimeoutRef.current = null;
+    }, 320);
+
     try {
       preferencesStorage.set(THEME_STORAGE_KEY, newTheme);
     } catch (e) {

@@ -602,6 +602,23 @@ a:focus:not(:focus-visible) {
 .embedding-active-card { border-color: rgba(34, 197, 94, 0.4); box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.1); }
 
 /* ════════════════════════════════════════════════════════════
+   Task 4.9 子项 6 — 主题切换颜色过渡
+   仅在切换时由 ThemeProvider 临时添加 .theme-transitioning class，
+   让所有元素的颜色相关属性有 0.3s 过渡，避免生硬闪烁。
+   使用 !important 覆盖日常交互的局部 transition（如 .nav-item 0.15s），
+   切换完成（320ms）后移除 class，不影响日常交互。
+   prefers-reduced-motion 已在下方自动将 transition-duration 降为 0.01ms。
+   ════════════════════════════════════════════════════════════ */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease,
+              color 0.3s ease, fill 0.3s ease, stroke 0.3s ease,
+              box-shadow 0.3s ease !important;
+}
+
+/* ════════════════════════════════════════════════════════════
    无障碍 — 减少动效（尊重用户系统偏好）
    ════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {

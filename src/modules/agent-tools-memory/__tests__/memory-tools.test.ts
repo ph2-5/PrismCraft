@@ -49,7 +49,7 @@ import {
   listArchivalMemoryTool,
   memoryTools,
 } from "../memory-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 // ============= Helpers =============
 

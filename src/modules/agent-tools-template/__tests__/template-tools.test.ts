@@ -72,16 +72,6 @@ vi.mock("@/shared/file-http", () => ({
   getCacheDirectory: mocks.getCacheDirectory,
 }));
 
-vi.mock("../../services/tool-executor", () => ({
-  TOOL_TIMEOUTS: {
-    query: 5000,
-    mutation: 30000,
-    generation: 120000,
-    videoTask: 600000,
-    download: 60000,
-  },
-}));
-
 import {
   listTemplatesTool,
   applyTemplateTool,
@@ -90,7 +80,7 @@ import {
   exportTemplateTool,
   templateTools,
 } from "../template-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

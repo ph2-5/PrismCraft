@@ -58,16 +58,6 @@ vi.mock("@/shared/file-http", () => ({
   getCacheDirectory: mocks.getCacheDirectory,
 }));
 
-vi.mock("../../services/tool-executor", () => ({
-  TOOL_TIMEOUTS: {
-    query: 30_000,
-    mutation: 60_000,
-    generation: 300_000,
-    videoTask: 1_800_000,
-    download: 600_000,
-  },
-}));
-
 import {
   exportProjectTool,
   importProjectTool,
@@ -75,7 +65,7 @@ import {
   exportScenesTool,
   projectIoTools,
 } from "../project-io-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

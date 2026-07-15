@@ -39,16 +39,6 @@ vi.mock("@/infrastructure/di", () => ({
   },
 }));
 
-vi.mock("../../services/tool-executor", () => ({
-  TOOL_TIMEOUTS: {
-    query: 30_000,
-    mutation: 60_000,
-    generation: 300_000,
-    videoTask: 1_800_000,
-    download: 600_000,
-  },
-}));
-
 vi.mock("@/shared/file-http", () => ({
   getConfig: mocks.getConfig,
   setConfig: mocks.setConfig,
@@ -62,7 +52,7 @@ import {
   getErrorHistoryTool,
   monitorTools,
 } from "../monitor-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

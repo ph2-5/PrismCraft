@@ -31,21 +31,8 @@ vi.mock("@/infrastructure/di", () => ({
   container: {
     textProvider: mocks.textProvider,
     videoTaskStorage: mocks.videoTaskStorage,
+    agentToolRegistry: Promise.resolve(mocks.toolRegistry),
   },
-}));
-
-vi.mock("../../services/tool-executor", () => ({
-  TOOL_TIMEOUTS: {
-    query: 30_000,
-    mutation: 60_000,
-    generation: 300_000,
-    videoTask: 1_800_000,
-    download: 600_000,
-  },
-}));
-
-vi.mock("../../services/tool-registry", () => ({
-  toolRegistry: mocks.toolRegistry,
 }));
 
 // 动态 import("@/modules/character") 等也可以被 vi.mock 拦截
@@ -70,7 +57,7 @@ import {
   getKeyboardShortcutsTool,
   helpTools,
 } from "../help-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

@@ -10,16 +10,18 @@
  */
 
 import { toolRegistry } from "../services/tool-registry";
-import { configTools } from "./config-tools";
-import { shotTools } from "./shot-tools";
-import { templateTools } from "./template-tools";
-import { promptTemplateTools } from "./prompt-template-tools";
-import { monitorTools } from "./monitor-tools";
-import { diagnosticTools } from "./diagnostic-tools";
-import { helpTools } from "./help-tools";
-import { memoryTools } from "./memory-tools";
-import { projectIoTools } from "./project-io-tools";
-import { specialistTools } from "./specialist-tools";
+// 阶段3-4：meta 工具（config/diagnostic/monitor/help）已拆分至独立模块
+import { configTools, monitorTools, diagnosticTools, helpTools } from "@/modules/agent-tools-meta";
+// 阶段3-4：shot 工具已拆分至独立模块
+import { shotTools } from "@/modules/agent-tools-shot";
+// 阶段3-4：template 工具已拆分至独立模块
+import { templateTools, promptTemplateTools } from "@/modules/agent-tools-template";
+// 阶段3-4：memory 工具已拆分至独立模块
+import { memoryTools } from "@/modules/agent-tools-memory";
+// 阶段3-4：project-io 工具已拆分至独立模块
+import { projectIoTools } from "@/modules/agent-tools-project-io";
+// 阶段3-4：specialist 工具已拆分至独立模块
+import { specialistTools } from "@/modules/agent-tools-specialist";
 // 阶段3-5：workflow/subworkflow 工具已拆分至独立模块
 import { workflowTools, subworkflowTools } from "@/modules/agent-tools-workflow";
 // 阶段3-3：system 工具已拆分至独立模块

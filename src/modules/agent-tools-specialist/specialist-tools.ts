@@ -15,7 +15,6 @@
 
 import type { ToolImpl, ToolContext, ToolResult } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
-import { runSpecialist, listAvailableSpecialists } from "../services/sub-agent-runner";
 import { specialistRegistry } from "@/modules/agent-specialist";
 
 /**
@@ -85,6 +84,8 @@ export const delegateToSpecialistTool: ToolImpl = {
 
     ctx.onProgress?.(`委派任务给 ${specialistRegistry.get(specialistId)?.name}...`);
 
+    // 动态 import 避免对 agent/services 的静态依赖，通过 barrel 导入
+    const { runSpecialist } = await import("@/modules/agent");
     // 传递父 Agent 的危险操作确认回调，使子 Agent 的危险操作也能弹出用户确认
     const result = await runSpecialist(specialistId, task, context, ctx, ctx._confirmDangerous);
 
@@ -119,6 +120,7 @@ export const listSpecialistsTool: ToolImpl = {
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute(): Promise<ToolResult> {
     const list = specialistRegistry.listSummaries();
+    const { listAvailableSpecialists } = await import("@/modules/agent");
     return {
       success: true,
       data: {

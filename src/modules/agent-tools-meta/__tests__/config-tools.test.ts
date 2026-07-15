@@ -62,7 +62,7 @@ import {
   checkApiHealthTool,
   _resetVendorPresetsCache,
 } from "../config-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 // 内联 mock 类型（避免在 modules 测试中直接 import infrastructure 类型，触发 ESLint）
 interface MockModel {

@@ -24,7 +24,6 @@
 
 import type { ToolImpl } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
-import { toolRegistry } from "../services/tool-registry";
 import { container } from "@/infrastructure/di";
 import {
   FEATURE_DOCS,
@@ -373,6 +372,7 @@ export const listAvailableCommandsTool: ToolImpl = {
 
     try {
       // 从 toolRegistry 动态获取所有工具描述
+      const toolRegistry = await container.agentToolRegistry;
       const allTools = toolRegistry.getToolDescriptions();
 
       // 按业务域过滤

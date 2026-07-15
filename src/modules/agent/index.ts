@@ -15,6 +15,8 @@ export { toolRegistry } from "./services/tool-registry";
 export { toolExecutor } from "./services/tool-executor";
 export { conversationManager } from "./services/conversation-manager";
 export { memoryService, MemoryService, prewarmEmbeddings } from "@/modules/agent-memory";
+// sub-agent-runner（供 specialist-tools 迁移后通过 barrel 导入，避免深路径）
+export { runSpecialist, listAvailableSpecialists } from "./services/sub-agent-runner";
 
 // 审计日志已拆分至 @/modules/audit-log
 

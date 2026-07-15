@@ -18,8 +18,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { specialistRegistry, SpecialistRegistry } from "@/modules/agent-specialist";
 import { BUILTIN_SPECIALISTS } from "@/modules/agent-specialist";
 import type { SpecialistAgent } from "@/modules/agent-specialist";
-import { runSpecialist, listAvailableSpecialists } from "../sub-agent-runner";
-import { delegateToSpecialistTool, listSpecialistsTool, specialistTools } from "../../tools/specialist-tools";
+import { runSpecialist, listAvailableSpecialists } from "@/modules/agent";
+import { delegateToSpecialistTool, listSpecialistsTool, specialistTools } from "@/modules/agent-tools-specialist";
 import { toolRegistry } from "../tool-registry";
 
 // ============= mock AgentLoop =============

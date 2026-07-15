@@ -7,6 +7,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants/messages";
 import { EmptyState } from "@/shared/presentation/EmptyState";
 import { Skeleton } from "@/shared/presentation/Skeleton";
+import { ErrorState } from "@/shared/presentation/ErrorState";
 import { sceneService } from "@/modules/scene";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePagination } from "@/shared/hooks/use-pagination";
@@ -14,6 +15,10 @@ import { usePagination } from "@/shared/hooks/use-pagination";
 interface SceneListProps {
   scenes: Scene[];
   scenesLoading: boolean;
+  /** Task 4.9 子项 12：加载失败时的错误对象。 */
+  scenesError?: Error | null;
+  /** Task 4.9 子项 12：重试回调。 */
+  onRetry?: () => void;
   currentSceneId: string;
   isDirty: boolean;
   onSelectScene: (scene: Scene) => void;
@@ -24,6 +29,8 @@ interface SceneListProps {
 export const SceneList = memo(function SceneList({
   scenes,
   scenesLoading,
+  scenesError,
+  onRetry,
   currentSceneId: _currentSceneId,
   isDirty: _isDirty,
   onSelectScene,
@@ -87,6 +94,13 @@ export const SceneList = memo(function SceneList({
             </div>
           </div>
         ))
+      ) : scenesError ? (
+        <ErrorState
+          severity="generic"
+          compact
+          hint={scenesError.message}
+          onRetry={onRetry ? () => onRetry() : undefined}
+        />
       ) : scenes.length === 0 ? (
         <EmptyState
           icon={ImageIcon}

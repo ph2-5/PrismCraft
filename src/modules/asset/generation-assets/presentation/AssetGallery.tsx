@@ -7,6 +7,7 @@ import { memo, useState } from "react";
 import { Trash2, Image, Film, FileVideo, Sparkles } from "lucide-react";
 import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
+import { ErrorState } from "@/shared/presentation/ErrorState";
 import type { GenerationAsset } from "@/domain/schemas";
 import { useGenerationAssets } from "../hooks/use-generation-assets";
 
@@ -34,7 +35,7 @@ interface AssetGalleryProps {
 
 export const AssetGallery = memo(function AssetGallery({ projectId }: AssetGalleryProps) {
   const [filterType, setFilterType] = useState<string>("");
-  const { assets, loading, remove, cleanUnreferenced } = useGenerationAssets({
+  const { assets, loading, error, refresh, remove, cleanUnreferenced } = useGenerationAssets({
     type: filterType || undefined,
     projectId,
   });
@@ -73,7 +74,16 @@ export const AssetGallery = memo(function AssetGallery({ projectId }: AssetGalle
 
       {loading && <div className="text-muted text-sm">...</div>}
 
-      {!loading && assets.length === 0 && (
+      {!loading && error && (
+        <ErrorState
+          severity="generic"
+          compact
+          hint={error}
+          onRetry={() => void refresh()}
+        />
+      )}
+
+      {!loading && !error && assets.length === 0 && (
         <EmptyState compact icon={Image} title={t("genAsset.empty")} />
       )}
 

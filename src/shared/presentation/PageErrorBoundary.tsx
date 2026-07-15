@@ -1,7 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants/messages";
+import { ErrorState } from "@/shared/presentation/ErrorState";
 
 interface Props {
   children: ReactNode;
@@ -39,33 +40,47 @@ export class PageErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       const canRetry = this.state.errorCount < MAX_RETRY_ATTEMPTS;
+      const title = this.props.pageName
+        ? t("error.pageProblemWith", { pageName: this.props.pageName })
+        : t("error.pageProblem");
+      const description = this.state.error?.message || t("error.unexpectedError");
+
+      if (!canRetry) {
+        return (
+          <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
+            <ErrorState
+              severity="generic"
+              title={title}
+              description={description}
+              hint={t("error.retryRepeatedShort")}
+              action={
+                <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
+                  {t("error.refreshPage")}
+                </button>
+              }
+            />
+          </div>
+        );
+      }
+
       return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] p-8 space-y-4">
-          <AlertCircle className="w-12 h-12 text-destructive" />
-          <h2 className="text-xl font-semibold">
-            {this.props.pageName
-              ? t("error.pageProblemWith", { pageName: this.props.pageName })
-              : t("error.pageProblem")}
-          </h2>
-          <p className="text-muted-foreground text-center max-w-md">
-            {this.state.error?.message || t("error.unexpectedError")}
-          </p>
-          {canRetry ? (
-            <div className="flex gap-3">
-              <button type="button" className="btn btn-outline" onClick={this.handleRetry}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                {t("common.retry")}
-              </button>
-              <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>{t("error.refreshPage")}</button>
-            </div>
-          ) : (
-            <div className="space-y-2 text-center">
-              <p className="text-sm text-muted-foreground">
-                {t("error.retryRepeatedShort")}
-              </p>
-              <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>{t("error.refreshPage")}</button>
-            </div>
-          )}
+        <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
+          <ErrorState
+            severity="generic"
+            title={title}
+            description={description}
+            action={
+              <div className="flex gap-3">
+                <button type="button" className="btn btn-outline" onClick={this.handleRetry}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {t("common.retry")}
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
+                  {t("error.refreshPage")}
+                </button>
+              </div>
+            }
+          />
         </div>
       );
     }

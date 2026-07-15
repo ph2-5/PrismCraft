@@ -40,7 +40,7 @@ export function useScenesPage() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
 
-  const { data: scenes = [], isLoading: scenesLoading } = useScenes();
+  const { data: scenes = [], isLoading: scenesLoading, error: scenesError, refetch: refetchScenes } = useScenes();
   const { data: stories = [] } = useStories();
   const { data: assets = [], isLoading: _assetsLoading } = useMediaAssets();
   const [showAssetSelector, setShowAssetSelector] = useState(false);
@@ -267,6 +267,8 @@ export function useScenesPage() {
     // 数据
     scenes,
     scenesLoading,
+    scenesError,
+    refetchScenes,
     assets,
     currentScene,
     setCurrentScene,

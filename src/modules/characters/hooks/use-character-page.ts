@@ -32,7 +32,7 @@ export function useCharacterPage() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
 
-  const { data: characters = [], isLoading: charactersLoading } = useCharacters();
+  const { data: characters = [], isLoading: charactersLoading, error: charactersError, refetch: refetchCharacters } = useCharacters();
   const { data: stories = [] } = useStories();
   const { data: assets = [], isLoading: _assetsLoading } = useMediaAssets();
   const [showAssetSelector, setShowAssetSelector] = useState(false);
@@ -238,7 +238,7 @@ export function useCharacterPage() {
 
   return {
     // 数据
-    characters, charactersLoading, assets,
+    characters, charactersLoading, charactersError, refetchCharacters, assets,
     currentCharacter, setCurrentCharacter,
     customTrait, setCustomTrait,
 

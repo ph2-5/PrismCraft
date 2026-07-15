@@ -12,10 +12,15 @@ import { Users, Plus, ChevronDown } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 import { EmptyState } from "@/shared/presentation/EmptyState";
 import { Skeleton } from "@/shared/presentation/Skeleton";
+import { ErrorState } from "@/shared/presentation/ErrorState";
 
 interface CharacterListProps {
   characters: Character[];
   charactersLoading: boolean;
+  /** Task 4.9 子项 12：加载失败时的错误对象。 */
+  charactersError?: Error | null;
+  /** Task 4.9 子项 12：重试回调。 */
+  onRetry?: () => void;
   onSelectCharacter: (char: Character) => void;
   onDeleteCharacter: (e: React.MouseEvent) => void;
   onCreateNew: () => void;
@@ -24,6 +29,8 @@ interface CharacterListProps {
 export const CharacterList = memo(function CharacterList({
   characters,
   charactersLoading,
+  charactersError,
+  onRetry,
   onSelectCharacter,
   onDeleteCharacter,
   onCreateNew,
@@ -80,6 +87,13 @@ export const CharacterList = memo(function CharacterList({
             </div>
           </div>
         ))
+      ) : charactersError ? (
+        <ErrorState
+          severity="generic"
+          compact
+          hint={charactersError.message}
+          onRetry={onRetry ? () => onRetry() : undefined}
+        />
       ) : characters.length === 0 ? (
         <EmptyState
           icon={Users}

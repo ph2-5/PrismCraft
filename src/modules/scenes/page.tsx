@@ -125,6 +125,8 @@ function ScenesPageContent() {
   const state = useScenesPage();
   const {
     scenesLoading,
+    scenesError,
+    refetchScenes,
     assets,
     currentScene,
     handleSelectScene,
@@ -159,6 +161,8 @@ function ScenesPageContent() {
           <SceneList
             scenes={filteredScenes}
             scenesLoading={scenesLoading}
+            scenesError={scenesError}
+            onRetry={refetchScenes}
             currentSceneId={currentScene.id}
             isDirty={isDirty}
             onSelectScene={handleSelectScene}

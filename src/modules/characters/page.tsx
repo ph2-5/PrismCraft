@@ -44,6 +44,8 @@ function CharactersPageContent() {
           <CharacterList
             characters={page.filteredCharacters}
             charactersLoading={page.charactersLoading}
+            charactersError={page.charactersError}
+            onRetry={page.refetchCharacters}
             onSelectCharacter={page.handleSelectCharacter}
             onDeleteCharacter={page.handleDeleteCharacter}
             onCreateNew={page.handleCreateNew}

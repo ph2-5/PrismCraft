@@ -2510,6 +2510,12 @@ const messages: Record<MessageKey, string> = {
 
   "keyboard.undoNotSupported": "当前页面不支持撤销操作",
   "keyboard.redoNotSupported": "当前页面不支持重做操作",
+  "keyboard.toggleSidebar": "切换侧边栏",
+  "keyboard.openAgent": "打开 Agent 面板",
+  "keyboard.globalSearch": "全局搜索",
+  "keyboard.save": "保存",
+  "keyboard.undo": "撤销",
+  "keyboard.redo": "重做",
 
   "memory.title": "内存监控",
   "memory.notSupported": "当前浏览器不支持内存监控 API",

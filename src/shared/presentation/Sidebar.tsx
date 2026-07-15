@@ -195,6 +195,20 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
         return;
       }
 
+      // Task 4.9 子项 3：Ctrl+B 切换侧边栏（文本字段聚焦时跳过，避免干扰输入）
+      if ((e.metaKey || e.ctrlKey) && e.key === "b" && !isInputFocused) {
+        e.preventDefault();
+        toggleCollapsed();
+        return;
+      }
+
+      // Task 4.9 子项 3：Ctrl+/ 跳转到 Agent 面板（文本字段聚焦时跳过）
+      if ((e.metaKey || e.ctrlKey) && e.key === "/" && !isInputFocused) {
+        e.preventDefault();
+        guardedPush("/agent");
+        return;
+      }
+
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "M") {
         e.preventDefault();
         guardedPush("/asset-library");
@@ -239,7 +253,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [guardedPush]);
+  }, [guardedPush, toggleCollapsed]);
 
   useEffect(() => {
     const api = window.electronAPI;

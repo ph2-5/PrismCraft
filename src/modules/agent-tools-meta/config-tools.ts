@@ -390,11 +390,127 @@ export function _resetVendorPresetsCache(): void {
   _vendorPresetsCache = null;
 }
 
+/** 列出支持视频生成的模型（Task 4.1） */
+export const listVideoModelsTool: ToolImpl = {
+  def: {
+    type: "function",
+    function: {
+      name: "list_video_models",
+      description:
+        "列出所有支持视频生成的模型。可按 providerId 筛选。返回模型 ID、名称、所属 provider 及关键能力（是否支持首尾帧、最大分辨率等）。",
+      parameters: {
+        type: "object",
+        properties: {
+          providerId: {
+            type: "string",
+            description: "按 provider ID 筛选（可选，不填返回全部）",
+          },
+        },
+      },
+    },
+  },
+  domain: "config",
+  dangerLevel: "safe",
+  timeoutMs: TOOL_TIMEOUTS.query,
+  async execute(args) {
+    const { loadConfig } = await import("@/shared/api-config");
+    const { getAllModelProfiles } = await import("@/shared/model-capabilities");
+    const config = await loadConfig();
+    const filterProviderId = args.providerId ? String(args.providerId) : undefined;
+
+    const profiles = getAllModelProfiles();
+    const videoModels: Array<Record<string, unknown>> = [];
+
+    for (const provider of config.providers) {
+      if (filterProviderId && provider.id !== filterProviderId) continue;
+      for (const model of provider.models ?? []) {
+        if (!model.capabilities?.includes("video")) continue;
+        const profile = profiles[model.id];
+        videoModels.push({
+          modelId: model.id,
+          name: model.name,
+          providerId: provider.id,
+          providerName: provider.name,
+          supportsLastFrame: profile?.capabilities?.supportsLastFrame ?? false,
+          maxResolution: profile?.capabilities?.maxResolution ?? "unknown",
+          maxReferences: profile?.capabilities?.maxReferences ?? 0,
+          durations: profile?.parameters?.durations ?? [],
+          resolutions: profile?.parameters?.resolutions ?? [],
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        count: videoModels.length,
+        models: videoModels,
+      },
+    };
+  },
+};
+
+/** 获取模型的推荐参数（Task 4.2） */
+export const getModelParametersTool: ToolImpl = {
+  def: {
+    type: "function",
+    function: {
+      name: "get_model_parameters",
+      description:
+        "获取指定模型的推荐参数（时长选项、分辨率选项、风格选项、是否支持负面提示词/seed/cfgScale/lora 等）。用于在生成前了解模型可用参数。",
+      parameters: {
+        type: "object",
+        properties: {
+          modelId: {
+            type: "string",
+            description: "模型 ID",
+          },
+        },
+        required: ["modelId"],
+      },
+    },
+  },
+  domain: "config",
+  dangerLevel: "safe",
+  timeoutMs: TOOL_TIMEOUTS.query,
+  async execute(args) {
+    const modelId = String(args.modelId);
+    const { getModelParameterProfile, getModelCapabilities } = await import("@/shared/model-capabilities");
+    const profile = getModelParameterProfile(modelId);
+    if (!profile) {
+      return {
+        success: false,
+        error: `未找到模型 ${modelId} 的参数配置。请先通过 list_providers 或 list_video_models 确认模型 ID。`,
+      };
+    }
+    const capabilities = getModelCapabilities(modelId);
+    return {
+      success: true,
+      data: {
+        modelId: profile.modelId,
+        displayName: profile.displayName,
+        providerId: profile.providerId,
+        capabilities: {
+          supportsLastFrame: capabilities.supportsLastFrame,
+          maxResolution: capabilities.maxResolution,
+          maxReferences: capabilities.maxReferences,
+          referenceMode: capabilities.referenceMode,
+          supportsCharacterRef: capabilities.supportsCharacterRef,
+          supportsSceneRef: capabilities.supportsSceneRef,
+        },
+        parameters: profile.parameters,
+      },
+    };
+  },
+};
+
 /** 导出所有配置工具 */
 export const configTools: ToolImpl[] = [
   getApiConfigTool,
   checkApiHealthTool,
   listProvidersTool,
+  listVideoModelsTool,
+  getModelParametersTool,
   testConnectionTool,
   validateApiKeyTool,
   configureApiProviderTool,

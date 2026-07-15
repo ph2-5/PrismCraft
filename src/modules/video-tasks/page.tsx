@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
+import { Skeleton } from "@/shared/presentation/Skeleton";
 import { useVideoTasksPage } from "./hooks/use-video-tasks-page";
 
 export default function VideoTasksPage() {
@@ -254,11 +255,11 @@ export default function VideoTasksPage() {
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="card">
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 skeleton-shimmer rounded shrink-0" />
-                      <div className="w-16 h-5 skeleton-shimmer rounded shrink-0" />
+                      <Skeleton className="w-4 h-4 shrink-0" />
+                      <Skeleton className="w-16 h-5 shrink-0" />
                       <div className="flex-1 min-w-0 space-y-2">
-                        <div className="h-4 w-1/2 skeleton-shimmer rounded" />
-                        <div className="h-3 w-1/3 skeleton-shimmer rounded" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-1/3" />
                       </div>
                     </div>
                   </div>

@@ -17,6 +17,7 @@ import type {
 } from "@/domain/schemas";
 import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
+import { Skeleton } from "@/shared/presentation/Skeleton";
 import { CharacterCard, SceneCard, StoryboardCard, CollectionCard } from "./AssetCards";
 import type { AssetTab, EditingItem } from "./asset-library-shared";
 export type { AssetTab, EditingItem } from "./asset-library-shared";
@@ -52,10 +53,10 @@ function LoadingState() {
     <div className={GRID_CLASS}>
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="card !p-0 overflow-hidden">
-          <div className="skeleton-shimmer aspect-square" />
+          <Skeleton className="aspect-square !rounded-none" />
           <div className="p-2.5">
-            <div className="h-3 w-3/4 skeleton-shimmer rounded mb-2" />
-            <div className="h-2.5 w-1/2 skeleton-shimmer rounded" />
+            <Skeleton className="h-3 w-3/4 mb-2" />
+            <Skeleton className="h-2.5 w-1/2" />
           </div>
         </div>
       ))}

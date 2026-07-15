@@ -43,7 +43,7 @@ export const videoGenerationResultSchema = z.object({
   urlTtl: z.number().optional(),
 });
 
-export const videoTaskStatusSchema = z.enum(["pending", "generating", "completed", "failed", "cancelled", "retrying", "timeout"]);
+export const videoTaskStatusSchema = z.enum(["pending", "generating", "completed", "failed", "cancelled", "retrying", "timeout", "paused"]);
 
 export const videoTaskSchema = z.object({
   taskId: z.string(),

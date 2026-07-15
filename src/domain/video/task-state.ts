@@ -15,7 +15,7 @@ export class TransitionError extends AppError {
 export const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
   // 允许 pending → completed：同步生成场景下服务端可能立即返回完成
   pending: ["generating", "failed", "cancelled", "timeout", "completed"],
-  generating: ["completed", "failed", "cancelled", "timeout"],
+  generating: ["completed", "failed", "cancelled", "timeout", "paused"],
   completed: ["pending"],
   // 允许 failed → completed：防止假失败导致已生成的视频被丢弃
   failed: ["retrying", "cancelled", "completed"],
@@ -32,6 +32,8 @@ export const VALID_TRANSITIONS: Record<VideoTaskStatus, VideoTaskStatus[]> = {
   retrying: ["generating", "completed", "failed", "cancelled", "timeout"],
   // 允许 timeout → completed：超时后云端可能仍在生成，恢复服务需要能标记完成
   timeout: ["retrying", "failed", "cancelled", "completed"],
+  // paused: 用户主动暂停生成中任务，可恢复或取消
+  paused: ["generating", "cancelled"],
 };
 
 export const TERMINAL_STATUSES: VideoTaskStatus[] = ["completed", "cancelled"];
@@ -48,6 +50,7 @@ export function isStuck(task: VideoTask, nowMs: number = Date.now()): boolean {
   if (task.status !== "generating" && task.status !== "pending" && task.status !== "retrying") {
     return false;
   }
+  // paused 任务不视为卡住（用户主动暂停）
   const lastActivity = task.updatedAt || task.lastPolledAt || task.createdAt;
   if (!lastActivity) return false;
   return nowMs - new Date(lastActivity).getTime() > STUCK_TASK_THRESHOLD_MS;
@@ -128,6 +131,10 @@ export const TaskMachine = {
       case "timeout":
         return {
           pollFailureCount: 0,
+          message: context?.error || "",
+        };
+      case "paused":
+        return {
           message: context?.error || "",
         };
       default:

@@ -188,7 +188,7 @@ describe("TaskMachine", () => {
 
     it("should return empty side effects for unknown target status", () => {
       const task = makeTask({ status: "pending" });
-      const result = TaskMachine.applySideEffects(task, "paused" as VideoTaskStatus);
+      const result = TaskMachine.applySideEffects(task, "unknown" as VideoTaskStatus);
 
       expect(result).toEqual({});
     });

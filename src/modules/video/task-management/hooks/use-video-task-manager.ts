@@ -186,6 +186,8 @@ interface VideoTaskManagerState {
   ) => Promise<(VideoTask & { promptWasTruncated?: boolean }) | null>;
   pollTask: (taskId: string) => Promise<void>;
   cancelTask: (taskId: string) => Promise<void>;
+  pauseTask: (taskId: string) => Promise<void>;
+  resumeTask: (taskId: string) => Promise<void>;
   recoverTask: (taskId: string, status: string, videoUrl?: string) => void;
   startBackgroundProcessing: () => void;
   cleanup: () => void;
@@ -486,6 +488,90 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     checkAndStartOrStopPolling();
   },
 
+  pauseTask: async (taskId) => {
+    const task = get().allTasks.find((task) => task.taskId === taskId);
+    if (!task) return;
+
+    const result = TaskMachine.transition(
+      task,
+      "paused",
+      { error: t("video.userPaused") },
+      t("video.taskTransitionError", { from: task.status, to: "paused" }),
+    );
+    if (!result.ok) {
+      errorLogger.warn(
+        { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=paused` },
+        "VideoTaskManager",
+      );
+      emitToast("warning", t("warning.cannotPause"), t("warning.cannotPauseDetail", { status: task.status }));
+      return;
+    }
+
+    // 暂停为本地行为：不通知服务端（云端任务一般无法真正暂停），
+    // 仅停止本地轮询。paused 状态不在 POLLABLE_STATUSES 中，
+    // checkAndStartOrStopPolling 会自动停止对该任务的轮询。
+
+    const updatedTask = result.value;
+
+    try {
+      await container.videoTaskStorage.updateVideoTask(taskId, {
+        status: "paused",
+        message: t("video.userPaused"),
+      });
+    } catch (e) {
+      errorLogger.warn("[VideoTaskManager] Failed to persist paused task", e);
+    }
+
+    get().setAllTasks((prev) =>
+      prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
+    );
+    scheduleSync();
+    checkAndStartOrStopPolling();
+    emitToast("info", t("video.taskPaused"), t("video.userPaused"));
+  },
+
+  resumeTask: async (taskId) => {
+    const task = get().allTasks.find((task) => task.taskId === taskId);
+    if (!task) return;
+
+    const result = TaskMachine.transition(
+      task,
+      "generating",
+      { error: t("video.userResumed") },
+      t("video.taskTransitionError", { from: task.status, to: "generating" }),
+    );
+    if (!result.ok) {
+      errorLogger.warn(
+        { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=generating` },
+        "VideoTaskManager",
+      );
+      emitToast("warning", t("warning.cannotResume"), t("warning.cannotResumeDetail", { status: task.status }));
+      return;
+    }
+
+    // 恢复为本地行为：不通知服务端。
+    // generating 状态在 POLLABLE_STATUSES 中，
+    // checkAndStartOrStopPolling 会自动重新启动轮询。
+
+    const updatedTask = result.value;
+
+    try {
+      await container.videoTaskStorage.updateVideoTask(taskId, {
+        status: "generating",
+        message: t("video.userResumed"),
+      });
+    } catch (e) {
+      errorLogger.warn("[VideoTaskManager] Failed to persist resumed task", e);
+    }
+
+    get().setAllTasks((prev) =>
+      prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
+    );
+    scheduleSync();
+    checkAndStartOrStopPolling();
+    emitToast("info", t("video.taskResumed"), t("video.userResumed"));
+  },
+
   recoverTask: (taskId, status, videoUrl) => {
     const task = get().allTasks.find((task) => task.taskId === taskId);
     if (!task) return;
@@ -553,6 +639,8 @@ export function useVideoTaskManager() {
     createTask: store.getState().createTask,
     pollTask: store.getState().pollTask,
     cancelTask: store.getState().cancelTask,
+    pauseTask: store.getState().pauseTask,
+    resumeTask: store.getState().resumeTask,
     recoverTask: store.getState().recoverTask,
     removeTask: store.getState().removeTask,
     removeTasks: store.getState().removeTasks,

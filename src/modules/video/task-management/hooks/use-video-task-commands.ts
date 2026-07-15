@@ -36,6 +36,8 @@ export interface VideoTaskCommands {
     },
   ) => Promise<(VideoTask & { promptWasTruncated?: boolean }) | null>;
   cancelTask: (taskId: string) => Promise<void>;
+  pauseTask: (taskId: string) => Promise<void>;
+  resumeTask: (taskId: string) => Promise<void>;
   recoverTask: (taskId: string, status: string, videoUrl?: string) => void;
   startBackgroundProcessing: () => void;
 }
@@ -60,6 +62,8 @@ export function useVideoTaskCommands(): VideoTaskCommands {
     createTask: (prompt, _deprecated, extraOptions) =>
       store.getState().createTask(prompt, _deprecated, extraOptions),
     cancelTask: (taskId) => store.getState().cancelTask(taskId),
+    pauseTask: (taskId) => store.getState().pauseTask(taskId),
+    resumeTask: (taskId) => store.getState().resumeTask(taskId),
     recoverTask: (taskId, status, videoUrl) =>
       store.getState().recoverTask(taskId, status, videoUrl),
     startBackgroundProcessing: () => store.getState().startBackgroundProcessing(),

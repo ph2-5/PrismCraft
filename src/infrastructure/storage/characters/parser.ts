@@ -108,6 +108,7 @@ export function parseCharacter(record: Record<string, unknown>): Character {
     ...buildGenerationFields(parseGeneration(parsed.generation)),
     ...buildMetaFields(parseMeta(parsed.meta)),
     ...buildTimestampFields(parsed),
+    version: optNumOr(parsed.version),
   };
 }
 

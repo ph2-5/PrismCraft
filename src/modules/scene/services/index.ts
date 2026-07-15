@@ -42,8 +42,9 @@ export const sceneService = {
     return fromAsyncThrowable(async () => {
       const existing = await container.sceneStorage.getSceneById(id);
       if (!existing) throw new NotFoundError("Scene", id);
-      const version = await container.sceneStorage.getSceneVersion(id);
-      await container.sceneStorage.updateScene(id, parsed.data, version ?? undefined);
+      // 使用实体携带的 version 进行乐观锁检查，而非重新读取 DB
+      const version = parsed.data.version;
+      await container.sceneStorage.updateScene(id, parsed.data, version);
       container.eventBus.emit(DomainEvents.SCENE_UPDATED, { id, sceneName: existing.name });
     });
   },

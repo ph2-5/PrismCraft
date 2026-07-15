@@ -162,6 +162,7 @@ function parseScene(record: Record<string, unknown>): Scene {
     ...buildAtmosphereFields(parseAtmosphere(record.atmosphere)),
     ...buildGenerationFields(parseGeneration(record.generation)),
     ...buildConfigFields(parseConfig(record.config)),
+    version: record.version as number | undefined,
   };
 }
 

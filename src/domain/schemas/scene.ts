@@ -42,6 +42,7 @@ export const sceneSchema = z.object({
   generationParams: z.record(z.string(), z.unknown()).optional(),
   useCount: z.number().nonnegative().optional(),
   lastUsedAt: z.number().optional(),
+  version: z.number().optional(),
 });
 
 export type Scene = z.output<typeof sceneSchema>;

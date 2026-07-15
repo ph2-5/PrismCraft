@@ -53,6 +53,7 @@ export const characterSchema = z.object({
   useCount: z.number().nonnegative().optional(),
   lastUsedAt: z.string().optional(),
   createdAt: z.string().optional(),
+  version: z.number().optional(),
 });
 
 export type Character = z.output<typeof characterSchema>;

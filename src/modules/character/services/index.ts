@@ -47,12 +47,13 @@ export const characterService = {
     return fromAsyncThrowable(async () => {
       const existing = await container.characterStorage.getCharacterById(id);
       if (!existing) throw new NotFoundError("Character", id);
-      const version = await container.characterStorage.getCharacterVersion(id);
+      // 使用实体携带的 version 进行乐观锁检查，而非重新读取 DB
+      const version = parsed.data.version;
       const dataWithNormalizedGender = {
         ...parsed.data,
         ...(parsed.data.gender !== undefined && { gender: normalizeGender(parsed.data.gender) }),
       };
-      await container.characterStorage.updateCharacter(id, dataWithNormalizedGender, version ?? undefined);
+      await container.characterStorage.updateCharacter(id, dataWithNormalizedGender, version);
       container.eventBus.emit(DomainEvents.CHARACTER_UPDATED, { id, characterName: existing.name });
     });
   },

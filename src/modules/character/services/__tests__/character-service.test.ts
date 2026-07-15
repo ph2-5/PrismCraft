@@ -129,11 +129,11 @@ describe("characterService", () => {
 
   describe("update", () => {
     it("应成功更新角色", async () => {
-      const existing = factories.character({ id: "char_1" });
+      const existing = factories.character({ id: "char_1", version: 1 });
       storage.getCharacterById.mockResolvedValue(existing);
       storage.updateCharacter.mockResolvedValue(undefined);
 
-      const result = await characterService.update("char_1", { id: "char_1", name: "新名称" });
+      const result = await characterService.update("char_1", { id: "char_1", name: "新名称", version: 1 });
 
       expectOk(result);
       expect(storage.updateCharacter).toHaveBeenCalledWith("char_1", expect.objectContaining({ name: "新名称" }), 1);

@@ -8,8 +8,9 @@ import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { confirm } from "@/shared/utils/confirm";
 import { t } from "@/shared/constants/messages";
 import type { SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
+import { VersionConflictError } from "@/shared/errors/version-conflict";
 
-export interface EntityCRUDConfig<T extends { id: string; name: string; prompt: string }> {
+export interface EntityCRUDConfig<T extends { id: string; name: string; prompt: string; version?: number }> {
   entity: T;
   setEntity: (update: T | ((prev: T) => T), shouldMarkDirty?: boolean) => void;
   generatedImage: string | null;
@@ -42,7 +43,7 @@ export interface EntityCRUDConfig<T extends { id: string; name: string; prompt: 
   onUpdateStoriesAfterDelete: (entityId: string, stories: Story[]) => Promise<void>;
 }
 
-export function useEntityCRUD<T extends { id: string; name: string; prompt: string }>({
+export function useEntityCRUD<T extends { id: string; name: string; prompt: string; version?: number }>({
   entity,
   setEntity,
   generatedImage,
@@ -128,12 +129,18 @@ export function useEntityCRUD<T extends { id: string; name: string; prompt: stri
       setSaveStatus("saved");
     } catch (err) {
       errorLogger.error(`[${entityLabel}] Save failed`, err);
-      const message = err instanceof Error ? err.message : t("error.unknown");
       const dirtyKey = queryKey[0];
       if (dirtyKey) markDirty(dirtyKey);
       setSaveStatus("error");
-      setSaveError(message);
-      showError(t("error.saveFailed"), message);
+      if (err instanceof VersionConflictError) {
+        const message = t("error.entityVersionConflict", { label: entityLabel });
+        setSaveError(message);
+        showError(t("error.saveFailed"), message);
+      } else {
+        const message = err instanceof Error ? err.message : t("error.unknown");
+        setSaveError(message);
+        showError(t("error.saveFailed"), message);
+      }
     } finally {
       savingRef.current = false;
     }

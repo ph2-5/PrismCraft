@@ -83,6 +83,7 @@ export const videoTaskSchema = z.object({
   syncStatus: z.enum(["pending", "synced", "conflict"]).optional(),
   urlObtainedAt: z.number().optional(),
   urlTtl: z.number().optional(),
+  priority: z.number().nonnegative().optional(),
 });
 
 export const healthStatusSchema = z.object({

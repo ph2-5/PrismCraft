@@ -4,7 +4,7 @@ import { errorLogger } from "@/shared/error-logger";
 
 const TIMESTAMP_THRESHOLD = 1e12;
 
-const VALID_TASK_STATUS = new Set(["pending", "generating", "completed", "failed", "cancelled", "retrying", "timeout"]);
+const VALID_TASK_STATUS = new Set(["pending", "generating", "completed", "failed", "cancelled", "retrying", "timeout", "paused"]);
 
 function normalizeTaskStatus(raw: unknown): VideoTask["status"] {
   if (raw == null) return "pending";
@@ -102,6 +102,7 @@ export function parseVideoTask(record: Record<string, unknown>): VideoTask {
     apiEndpoint: optionalString(provider.api_endpoint),
     urlObtainedAt: optionalNumber(tracking.url_obtained_at),
     urlTtl: optionalNumber(tracking.url_ttl),
+    priority: optionalNumber(record.priority),
   };
 }
 
@@ -121,6 +122,7 @@ export type FieldTarget = FixedColumnTarget | JsonContainerTarget;
 export const fieldTargets: Record<string, FieldTarget> = {
   status: { type: "fixed", column: "status" },
   progress: { type: "fixed", column: "progress" },
+  priority: { type: "fixed", column: "priority" },
   videoUrl: { type: "fixed", column: "video_url" },
   localVideoPath: { type: "fixed", column: "local_video_path" },
   message: { type: "fixed", column: "message" },

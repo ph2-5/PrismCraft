@@ -48,13 +48,14 @@ export async function bulkPutVideoTasks(
       const createdAtRaw = task.createdAt || new Date().toISOString();
       const createdAtSec = toStorageTimestamp(createdAtRaw) ?? nowSec;
       const columns = [
-        "id", "status", "progress", "video_url", "local_video_path", "story_id", "beat_id", "message",
+        "id", "status", "progress", "priority", "video_url", "local_video_path", "story_id", "beat_id", "message",
         "config", "provider", "media_refs", "tracking", "created_at",
       ];
       const values = [
         taskId,
         toStorageStatus(task.status || "pending"),
         task.progress || 0,
+        task.priority ?? 0,
         task.videoUrl || null,
         task.localVideoPath || null,
         task.storyId || null,

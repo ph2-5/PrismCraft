@@ -20,7 +20,7 @@ export { normalizeTimestamp, toStorageTimestamp, toStorageTimestampOrNow } from 
 export const videoTaskStorage = {
   async getVideoTasks<T = VideoTask>(): Promise<T[]> {
     const rows = await safeQuery<Record<string, unknown>>(
-      "SELECT * FROM video_tasks ORDER BY created_at DESC",
+      "SELECT * FROM video_tasks ORDER BY priority DESC, created_at DESC",
     );
     return rows.map((row) => parseVideoTask(row)) as T[];
   },
@@ -47,7 +47,7 @@ export const videoTaskStorage = {
     storyId: string,
   ): Promise<T[]> {
     const result = await safeQuery<Record<string, unknown>>(
-      "SELECT * FROM video_tasks WHERE story_id = ? ORDER BY created_at DESC",
+      "SELECT * FROM video_tasks WHERE story_id = ? ORDER BY priority DESC, created_at DESC",
       [storyId],
     );
     return result.map(parseVideoTask) as T[];
@@ -58,7 +58,7 @@ export const videoTaskStorage = {
   ): Promise<T[]> {
     const storageStatus = toStorageStatus(status);
     const result = await safeQuery<Record<string, unknown>>(
-      "SELECT * FROM video_tasks WHERE status = ? ORDER BY created_at DESC",
+      "SELECT * FROM video_tasks WHERE status = ? ORDER BY priority DESC, created_at DESC",
       [storageStatus],
     );
     return result.map(parseVideoTask) as T[];
@@ -66,7 +66,7 @@ export const videoTaskStorage = {
 
   async getPendingVideoTasks<T = VideoTask>(): Promise<T[]> {
     const result = await safeQuery<Record<string, unknown>>(
-      "SELECT * FROM video_tasks WHERE status IN ('pending', 'generating') ORDER BY created_at ASC",
+      "SELECT * FROM video_tasks WHERE status IN ('pending', 'generating') ORDER BY priority DESC, created_at ASC",
     );
     return result.map(parseVideoTask) as T[];
   },
@@ -77,13 +77,14 @@ export const videoTaskStorage = {
     const createdAtRaw = task.createdAt || new Date().toISOString();
     const createdAtSec = toStorageTimestamp(createdAtRaw) ?? nowSec;
     const columns = [
-      "id", "status", "progress", "video_url", "local_video_path", "story_id", "beat_id", "message",
+      "id", "status", "progress", "priority", "video_url", "local_video_path", "story_id", "beat_id", "message",
       "config", "provider", "media_refs", "tracking", "created_at",
     ];
     const values = [
       taskId,
       toStorageStatus(task.status || "pending"),
       task.progress || 0,
+      task.priority ?? 0,
       task.videoUrl || null,
       task.localVideoPath || null,
       task.storyId || null,

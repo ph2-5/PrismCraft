@@ -2,6 +2,7 @@ import type { VideoTask } from "@/domain/schemas/api";
 import type { Character, CharacterOutfit } from "@/domain/schemas/character";
 import type { Scene } from "@/domain/schemas/scene";
 import type { Story } from "@/domain/schemas/story";
+import type { SubShot } from "@/domain/schemas/shot";
 
 export interface IVideoTaskStorage {
   getVideoTasks(): Promise<VideoTask[]>;
@@ -52,4 +53,14 @@ export interface IStoryStorage {
   createStory(story: Partial<Story>): Promise<void>;
   updateStory(id: string, updates: Partial<Story>, version?: number): Promise<void>;
   deleteStory(id: string): Promise<void>;
+}
+
+export interface ISubShotStorage {
+  getSubShotsByBeatId(beatId: string): Promise<SubShot[]>;
+  getSubShotById(id: string): Promise<SubShot | null>;
+  createSubShot(subShot: Partial<SubShot> & { id: string; storyBeatId: string }): Promise<void>;
+  updateSubShot(id: string, updates: Partial<SubShot>): Promise<void>;
+  deleteSubShot(id: string): Promise<void>;
+  deleteSubShotsByBeatId(beatId: string): Promise<void>;
+  reorderSubShots(beatId: string, orderedIds: string[]): Promise<void>;
 }

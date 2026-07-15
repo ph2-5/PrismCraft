@@ -3283,6 +3283,21 @@ const messages: Record<MessageKey, string> = {
   "agent.toolResult.characters": "角色（{count}）",
   "agent.toolResult.scenes": "场景（{count}）",
   "agent.toolResult.noMatch": "无匹配结果",
+  "subShot.title": "子镜头",
+  "subShot.add": "添加子镜头",
+  "subShot.empty": "暂无子镜头，点击添加",
+  "subShot.shotN": "镜头 {n}",
+  "subShot.duration": "时长",
+  "subShot.shotType": "景别",
+  "subShot.cameraMovement": "运镜",
+  "subShot.cameraAngle": "角度",
+  "subShot.description": "描述",
+  "subShot.delete": "删除",
+  "subShot.moveUp": "上移",
+  "subShot.moveDown": "下移",
+  "subShot.generateImage": "生成图片",
+  "subShot.generateVideo": "生成视频",
+  "subShot.durationSeconds": "{n}秒",
 };
 
 export type Messages = typeof messages;

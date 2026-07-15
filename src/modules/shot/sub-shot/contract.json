@@ -1,0 +1,26 @@
+{
+  "name": "shot-sub-shot",
+  "description": "单分镜多镜头子实体管理：SubShot CRUD、排序、与 StoryBeat 关联",
+  "dependencies": ["@/domain/schemas", "@/infrastructure/di"],
+  "publicAPI": {
+    "hooks": ["useSubShots"],
+    "services": [
+      "listSubShots",
+      "createSubShot",
+      "updateSubShot",
+      "deleteSubShot",
+      "deleteSubShotsByBeatId",
+      "moveSubShot",
+      "reorderSubShots"
+    ],
+    "components": ["SubShotList"]
+  },
+  "invariants": [
+    "SubShot.storyBeatId 必须指向已存在的 StoryBeat",
+    "SubShot.sequence 在同一 StoryBeat 下必须唯一且连续（0-based）",
+    "删除 StoryBeat 时应级联删除其所有 SubShot（由 DB 外键 ON DELETE CASCADE 处理）",
+    "SubShot.duration 范围 1-30 秒",
+    "moveSubShot 后自动重新编号 sequence",
+    "禁止直接导入 story 或 video 模块"
+  ]
+}

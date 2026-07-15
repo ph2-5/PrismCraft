@@ -308,6 +308,23 @@ const FEATURE_TABLES: TableDef[] = [
       completed_at: { type: "INTEGER" },
     },
   },
+  {
+    name: "sub_shots",
+    featureGroup: "core",
+    columns: {
+      story_beat_id: { type: "TEXT", notNull: true, ref: "story_beats(id)" },
+      sequence: { type: "INTEGER", notNull: true },
+      shot_type: { type: "TEXT" },
+      camera_movement: { type: "TEXT" },
+      camera_angle: { type: "TEXT" },
+      duration: { type: "REAL", default: "5" },
+      description: { type: "TEXT" },
+      prompt: { type: "TEXT" },
+      image_url: { type: "TEXT" },
+      video_url: { type: "TEXT" },
+      transition: { type: "TEXT" },
+    },
+  },
 ];
 
 const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; primaryKey: string[]; uniqueConstraints?: string[][] }[] = [

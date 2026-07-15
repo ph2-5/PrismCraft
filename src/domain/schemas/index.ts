@@ -17,3 +17,6 @@ export type { LLMMessage, ToolDef, ToolCall, StreamChunk, ChatCompletionRequest,
 
 export { mediaAssetSchema, videoTemplateShotSchema, videoTemplateSchema, collectionSchema, collectionAssetSchema, batchTaskSchema, batchTaskResultSchema, storyboardAssetSchema, asaExportDataSchema, searchResultSchema, enhancedVideoGenerationParamsSchema } from "./media";
 export type { MediaAssetType, AssetLibraryType, ImportMode, MediaAsset, VideoTemplateShot, VideoTemplate, Collection, CollectionAsset, BatchTask, BatchTaskResult, StoryboardAsset, AsaExportData, SearchResult, EnhancedVideoGenerationParams } from "./media";
+
+export { subShotSchema } from "./shot";
+export type { SubShot } from "./shot";

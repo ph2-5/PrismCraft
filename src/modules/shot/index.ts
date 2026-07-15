@@ -84,3 +84,17 @@ export type {
   ShotCompareViewProps,
   ComparePanelProps,
 } from "./shot-comparison";
+
+// === 10. 单分镜多镜头 SubShot（Task 4.10）===
+export {
+  listSubShots,
+  createSubShot,
+  updateSubShot,
+  deleteSubShot,
+  deleteSubShotsByBeatId,
+  moveSubShot,
+  reorderSubShots,
+} from "./sub-shot";
+export { useSubShots } from "./sub-shot";
+export type { UseSubShotsResult } from "./sub-shot";
+export { SubShotList } from "./sub-shot";

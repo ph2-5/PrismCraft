@@ -22,6 +22,21 @@ export {
 } from "./services/session-storage";
 export type { SessionListItem } from "./services/session-storage";
 
+// 会话搜索与导出服务（Task 4.9 子项 2）
+export {
+  searchSessionList,
+  searchInSession,
+  searchAcrossSessions,
+  serializeSessionAsJSON,
+  serializeSessionAsMarkdown,
+  buildExportFilename,
+} from "./services/session-search";
+export type {
+  MessageSearchMatch,
+  SessionSearchResult,
+  ExportFormat,
+} from "./services/session-search";
+
 // 检查点服务
 export {
   saveCheckpoint,

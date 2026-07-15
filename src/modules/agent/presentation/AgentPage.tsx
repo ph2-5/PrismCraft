@@ -27,6 +27,13 @@ import { AuditLogPanel } from "./AuditLogPanel";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import {
+  buildExportFilename,
+  serializeSessionAsJSON,
+  serializeSessionAsMarkdown,
+  type ExportFormat,
+} from "@/modules/agent-session";
+import { downloadJSONFile, downloadMarkdownFile } from "@/shared/utils/file-download";
+import {
   Send,
   Square,
   Trash2,
@@ -42,6 +49,8 @@ import {
   Users,
   ScrollText,
   X,
+  Download,
+  ChevronDown,
 } from "lucide-react";
 
 export function AgentPage() {
@@ -73,6 +82,8 @@ export function AgentPage() {
   const [showSpecialists, setShowSpecialists] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
+  // Task 4.9 子项 2：导出下拉菜单
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   /** 关闭其他面板，仅保留目标面板 */
   const showOnly = (target: "audit" | "memory" | "plugins" | "specialists" | "settings") => {
@@ -81,6 +92,18 @@ export function AgentPage() {
     setShowPlugins(target === "plugins");
     setShowSpecialists(target === "specialists");
     setShowSettings(target === "settings");
+  };
+
+  /** Task 4.9 子项 2：导出当前会话 */
+  const handleExport = (format: ExportFormat) => {
+    if (session.messages.length === 0) return;
+    const filename = buildExportFilename(session, format);
+    if (format === "json") {
+      downloadJSONFile(JSON.parse(serializeSessionAsJSON(session)), filename);
+    } else {
+      downloadMarkdownFile(serializeSessionAsMarkdown(session), filename);
+    }
+    setShowExportMenu(false);
   };
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -242,6 +265,45 @@ export function AgentPage() {
               <Trash2 className="h-3.5 w-3.5" />
               {t("agent.clear")}
             </button>
+            {/* Task 4.9 子项 2：导出当前会话 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                disabled={isStreaming || session.messages.length === 0}
+                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                title={t("agent.history.exportSession")}
+                aria-label={t("agent.history.exportSession")}
+                aria-expanded={showExportMenu}
+              >
+                <Download className="h-3.5 w-3.5" />
+                {t("agent.history.export")}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              {showExportMenu && (
+                <>
+                  {/* 点击外部关闭 */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowExportMenu(false)}
+                    aria-hidden="true"
+                  />
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] overflow-hidden rounded-md border border-border bg-popover shadow-md">
+                    <button
+                      onClick={() => handleExport("json")}
+                      className="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-muted"
+                    >
+                      {t("agent.history.exportAsJson")}
+                    </button>
+                    <button
+                      onClick={() => handleExport("markdown")}
+                      className="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-muted"
+                    >
+                      {t("agent.history.exportAsMarkdown")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* 设置面板（下拉） */}

@@ -14,24 +14,48 @@
 | domain | `domain/checkpoint-types.ts` | 检查点类型定义 + createCheckpoint 工厂函数（零外部依赖） |
 | services | `services/session-storage.ts` | 会话保存/加载/列出/删除，会话索引维护 |
 | services | `services/session-checkpoint.ts` | 检查点初始化/更新/清除/中断检测，检查点索引维护 |
+| services | `services/session-search.ts` | 会话搜索（按标题/内容）+ 序列化导出（JSON/Markdown，Task 4.9 子项 2） |
 
 ## Public API
 
-```typescript
-// 会话存储
-import { saveSession, loadSession, listSessions, deleteSession, persistSession } from "@/modules/agent-session";
-import type { SessionListItem } from "@/modules/agent-session";
+### 会话存储（services/session-storage.ts）
 
-// 检查点
-import {
-  saveCheckpoint, initCheckpoint, clearCheckpoint,
-  markInterrupted, markRunningAsInterrupted,
-  listInterruptedSessions, listRunningSessions,
-  getCheckpoint, loadInterruptedSession,
-} from "@/modules/agent-session";
-import type { SessionCheckpoint, CheckpointIndexEntry, CheckpointStatus } from "@/modules/agent-session";
-import { createCheckpoint } from "@/modules/agent-session";
-```
+- `saveSession` — 保存会话到本地（覆盖同名文件）
+- `loadSession` — 加载会话
+- `listSessions` — 列出所有会话（精简字段）
+- `updateSessionIndex` — 更新会话索引
+- `deleteSession` — 删除会话
+- `persistSession` — 持久化当前会话（保存 + 更新索引）
+- `SessionListItem` — 会话列表项类型
+
+### 会话搜索与导出（services/session-search.ts，Task 4.9 子项 2）
+
+- `searchSessionList` — 按标题过滤会话列表项（快速过滤，不加载会话内容）
+- `searchInSession` — 单会话内搜索消息内容（返回 snippet + offset）
+- `searchAcrossSessions` — 跨多会话搜索（全局搜索历史消息）
+- `serializeSessionAsJSON` — 序列化为 JSON 字符串（重置 streaming 字段）
+- `serializeSessionAsMarkdown` — 序列化为 Markdown 字符串（含角色图标、toolCalls 代码块）
+- `buildExportFilename` — 生成导出文件名（清理非法字符、加日期时间戳）
+- `MessageSearchMatch` — 单消息匹配结果类型（messageId/snippet/matchOffset）
+- `SessionSearchResult` — 单会话搜索结果类型（sessionId/titleMatched/messageMatches）
+- `ExportFormat` — 导出格式类型（"json" | "markdown"）
+
+### 检查点（services/session-checkpoint.ts + domain/checkpoint-types.ts）
+
+- `saveCheckpoint` — 保存检查点
+- `initCheckpoint` — 初始化检查点
+- `clearCheckpoint` — 清除检查点
+- `markInterrupted` — 标记会话为中断
+- `markRunningAsInterrupted` — 启动时把所有 running 状态标记为 interrupted
+- `listInterruptedSessions` — 列出所有中断会话
+- `listRunningSessions` — 列出所有运行中会话
+- `getCheckpoint` — 获取检查点
+- `loadInterruptedSession` — 加载中断会话
+- `_resetCheckpointIndex` — 重置检查点索引（仅测试用）
+- `createCheckpoint` — 创建检查点工厂函数
+- `SessionCheckpoint` — 检查点类型
+- `CheckpointIndexEntry` — 检查点索引项类型
+- `CheckpointStatus` — 检查点状态类型
 
 ## 边界约束
 

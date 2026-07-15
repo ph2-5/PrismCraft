@@ -367,7 +367,7 @@
 ## Phase 4：Agent 完整版 + 后处理工具链（P1）
 
 > **依赖**：所有 Phase 1-3 完成。
-> **状态**：✅ 已实现（v1.2.0，实际 130+ 工具，18 域）；✅ 安全审查完成（v1.2.3，P0+P1 全部修复）
+> **状态**：✅ 已实现（v1.2.0，实际 130+ 工具，18 域）；✅ 安全审查完成（v1.2.3，P0+P1 全部修复）；✅ Phase 4 全部 Task 4.1-4.12 已完成（v1.3.0，2026-07-16）
 
 **本 Phase 完成后**：
 - Agent 含 18 个额外工具（10 生成类 + 8 素材/知识库类），加上 Phase 1 的 8 个基础工具，共计 26 个工具
@@ -408,6 +408,8 @@
 
 ### Task 4.1：增强 Agent 工具 — 生成类
 
+> **状态**：✅ 已完成（commit 752289a，v1.3.0）— 含补齐 list_video_models / get_model_parameters 两个工具
+
 **📋 前置阅读**：
 - `electron/src/agent/tools/index.ts` — 注册模式
 - `electron/src/agent/types.ts` — `ToolDef`, `ToolResult`
@@ -436,6 +438,8 @@
 
 ### Task 4.2：增强 Agent 工具 — 素材 + 知识库
 
+> **状态**：✅ 已完成（commit 752289a，v1.3.0）
+
 **📋 前置阅读**：
 - `electron/src/agent/tools/index.ts`
 - `src/infrastructure/storage/` — 素材存储结构
@@ -461,6 +465,8 @@
 
 ### Task 4.3：视频片段合成
 
+> **状态**：✅ 已完成（commit 73b8865，v1.3.0）
+
 **📋 前置阅读**：
 - `electron/src/services/video/` — 现有多机位布局
 - 确认 FFmpeg 是否已集成到项目
@@ -483,6 +489,8 @@
 ---
 
 ### Task 4.4：分镜对比视图
+
+> **状态**：✅ 已完成（commit dcca7c7，v1.3.0）
 
 **📋 前置阅读**：
 - `src/modules/shot/` — 分镜模块结构
@@ -528,6 +536,7 @@
 
 ### Task 4.5：简单图片编辑（Phase 4 内 Task）
 
+> **状态**：✅ 已完成（commit 34f5adc，v1.3.0）
 > **注意**：此 Task 4.5 属于 Phase 4，与 [Phase 4.5 网页基础设施](./phase-web.md#phase-45网页基础设施) 编号相同但含义不同。引用时请加注"Phase 4 内"。
 
 **📋 前置阅读**：`src/modules/asset/` 素材模块
@@ -551,6 +560,8 @@
 ---
 
 ### Task 4.6：素材搜索
+
+> **状态**：✅ 已完成（commit 557efc8，v1.3.0）
 
 **📋 前置阅读**：
 - `src/modules/character/`、`src/modules/scene/`、`src/modules/asset/` 各自的数据层
@@ -578,6 +589,7 @@
 
 ### Task 4.7：Prompt 配方库 + Few-Shot 动态选择
 
+> **状态**：✅ 已完成（commit f8a6ede，v1.3.0）
 > **v5.3 增强**：配方库从静态数据升级为"Skill 调用"，每个配方对应一组 Skill 组合。增强详情见下方"Task 4.7 v5.3 增强"小节。
 
 **📋 前置阅读**：
@@ -687,6 +699,8 @@ src/modules/prompt/prompt-recipes/
 
 ### Task 4.8：跨分镜一致性自动修复
 
+> **状态**：✅ 已完成（commit c20c130，v1.3.0）
+
 **📋 前置阅读**：
 - `src/modules/shot/consistency-check/services/cross-shot-consistency-service.ts` 跨分镜一致性检查
 - `src/modules/shot/element-binding/` 元素绑定模块
@@ -710,6 +724,8 @@ src/modules/prompt/prompt-recipes/
 ---
 
 ### Task 4.9：整体 UI 体验打磨
+
+> **状态**：✅ 已完成（commits af0c1ae~326a525 + 打磨 21b800d，v1.3.0）— 12 个子项全部交付 + i18n/代码质量打磨
 
 **📋 前置阅读**：全部页面
 
@@ -743,6 +759,7 @@ src/modules/prompt/prompt-recipes/
 
 ### Task 4.10：Shot/SubShot 实体（单分镜多镜头）
 
+> **状态**：✅ 已完成（commit 03aaf43，v1.3.0）
 > **来源**：豆包评审建议 — "Shot 实体：如果以后要做单分镜多镜头（SubShot），需要这层"（详见附录 I-10）。
 > **问题**：当前一个 StoryBeat 对应一个镜头。专业创作中，一个分镜（叙事节拍）可能包含多个镜头切换（如：全景建立场景 → 中景对话 → 特写反应）。
 > **方案**：在 StoryBeat 下新增 SubShot 子层，支持单分镜多镜头。保留现有 StoryBeat 作为叙事单位，新增 SubShot 作为镜头单位。
@@ -823,6 +840,7 @@ CREATE TABLE IF NOT EXISTS sub_shots (
 
 ### Task 4.11：Asset 独立资产表
 
+> **状态**：✅ 已完成（commit de308d5，v1.3.0）
 > **来源**：豆包评审建议 — "Asset 实体：生成的图片、视频，应该有独立的资产表，而不是 URL 塞在各个地方"（详见附录 I-11）。
 > **问题**：当前生成的图片/视频 URL 散落在 `StoryBeat.imageUrl`、`StoryBeat.videoReferenceUrl`、`SubShot.imageUrl`、`Character.generatedImage`、`CharacterVariant.imageUrl`、`SceneVariant.imageUrl` 等多个字段。无法统一管理、搜索、去重、清理。
 > **方案**：新建 `assets` 独立资产表，所有生成/上传的图片/视频统一入库管理，其他表只引用 `assetId`。
@@ -909,6 +927,7 @@ export type GenerationAsset = z.infer<typeof generationAssetSchema>;
 
 ### Task 4.12：IP 安全改写 + 误报修复（v5.3 新增，+4 天）
 
+> **状态**：✅ 已完成（commit 925e624，v1.3.0）
 > **来源**：seedance-2.0 仓库（MIT 许可）的 `skills/seedance-copyright/SKILL.md` + `skills/seedance-filter/SKILL.md` 安全改写与误报修复机制。借鉴详情见 [seedance-integration-notes.md](../seedance-integration-notes.md)。
 > **目标**：将 Task 1.4 v5.3 增强中的 ip-rewriter + antislop 完善为生产级安全系统。核心原则是"安全改写而非拒绝"——保留用户创意功能，替换不安全元素。同时支持跨分镜 IP 一致性（所有分镜的 IP 改写结果保持一致）和误报修复（澄清 benign context）。
 > **依赖**：Task 1.4 v5.3 增强（ip-rewriter + antislop 基础版本）+ Task 4.8（跨分镜一致性自动修复）。

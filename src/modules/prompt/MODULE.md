@@ -20,6 +20,7 @@
 | `builder` | [builder/](./builder/) | PromptBuilder 类、故事计划提示词、快速模式提示词、模型选项配置 |
 | `presentation` | [presentation/](./presentation/) | 模型选择器、配置检查横幅 |
 | `templates` | [templates/](./templates/) | 提示词模板库（内置 + 用户自定义）、负面提示词智能生成、LLM 提示词优化 |
+| `prompt-recipes` | [prompt-recipes/](./prompt-recipes/) | Prompt 配方库（Task 4.7）：配方 ↔ Skill 组合映射器，预设配方应用为 prompt 指令片段 |
 
 ---
 
@@ -157,6 +158,31 @@
 | `optimizePrompt` | `(prompt: string, type: string) → Promise<OptimizedPromptResult>` | 通用提示词优化 |
 | `getCharacterStyles` | `() → string[]` | 获取角色风格列表 |
 | `getVideoStyles` | `() → string[]` | 获取视频风格列表 |
+
+### prompt-recipes 子域（Task 4.7）
+
+#### 配方服务函数
+| API | 签名 | 说明 |
+|-----|------|------|
+| `getRecipe` | `(id: RecipeId) → Recipe \| null` | 按 id 获取配方 |
+| `listRecipes` | `() → Recipe[]` | 列出所有预设配方（内置 + 自定义） |
+| `applyRecipe` | `(id: RecipeId) → string` | 应用配方，按 Skill 组合构建完整 prompt 指令片段 |
+| `getRecipeSkillIds` | `(id: RecipeId) → string[]` | 获取配方涉及的 Skill id 列表 |
+| `registerCustomRecipe` | `(recipe: Recipe) → void` | 注册自定义配方（不持久化，由调用方负责） |
+| `unregisterCustomRecipe` | `(id: RecipeId) → void` | 注销自定义配方（不影响内置配方） |
+
+#### 配方 UI 组件
+| API | 签名 | 说明 |
+|-----|------|------|
+| `PromptRecipePanel` | `React.FC<PromptRecipePanelProps>` | 配方面板组件 |
+
+#### 配方类型
+| API | 签名 | 说明 |
+|-----|------|------|
+| `RecipeId` | `type` | 配方 id 联合（cyberpunk / anime / realistic_landscape / ink_wash / cinematic） |
+| `Recipe` | `type` | 配方（id / name / nameEn / skillCombination / preview） |
+| `SkillCombination` | `type` | Skill 组合（skillIds / params / description） |
+| `RecipeSkillParams` | `type` | Skill 参数（style? / lighting? / camera? / vfx? / characters? / audio?） |
 
 ---
 

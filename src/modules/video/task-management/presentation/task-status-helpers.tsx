@@ -6,9 +6,11 @@ import {
   RotateCcw,
   Ban,
   Timer,
+  PauseCircle,
 } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { VideoTaskStatus } from "@/domain/schemas";
+import type { ErrorCategory } from "@/domain/types";
 import { t } from "@/shared/constants";
 
 export function getStatusIcon(status: VideoTaskStatus) {
@@ -27,6 +29,8 @@ export function getStatusIcon(status: VideoTaskStatus) {
       return <Ban className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />;
     case "timeout":
       return <Timer className="w-4 h-4" style={{ color: "var(--warning)" }} />;
+    case "paused":
+      return <PauseCircle className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />;
     default:
       return <Clock className="w-4 h-4" style={{ color: "var(--muted-fg)" }} />;
   }
@@ -47,6 +51,8 @@ export function getStatusColor(status: VideoTaskStatus) {
     case "cancelled":
       return "";
     case "timeout":
+      return "";
+    case "paused":
       return "";
     default:
       return "";
@@ -69,6 +75,8 @@ export function getStatusStyle(status: VideoTaskStatus): CSSProperties {
       return { background: "var(--muted)", color: "var(--muted-fg)" };
     case "timeout":
       return { background: "rgba(var(--warning-rgb), 0.1)", color: "var(--warning)" };
+    case "paused":
+      return { background: "var(--muted)", color: "var(--muted-fg)" };
     default:
       return { background: "var(--muted)", color: "var(--muted-fg)" };
   }
@@ -90,7 +98,38 @@ export function getStatusLabel(status: VideoTaskStatus) {
       return t("task.retryingLabel");
     case "timeout":
       return t("task.timeoutLabel");
+    case "paused":
+      return t("task.pausedLabel");
     default:
       return status;
   }
+}
+
+/**
+ * 错误分类 → 边框颜色映射
+ * 用于 failed 任务按错误分类显示不同颜色边框。
+ */
+export function getErrorCategoryBorderColor(category: ErrorCategory): string {
+  switch (category) {
+    case "timeout":
+    case "network":
+      // 超时/网络 → 黄色边框
+      return "var(--warning)";
+    case "invalid_params":
+      // 内容拒绝 → 红色边框
+      return "var(--destructive)";
+    case "server_error":
+    case "database_busy":
+    case "auth":
+    case "rate_limit":
+    case "quota":
+      // 供应商/服务端错误 → 橙色边框（使用 warning 近似）
+      return "var(--warning)";
+    default:
+      return "var(--destructive)";
+  }
+}
+
+export function getErrorCategoryLabel(category: ErrorCategory): string {
+  return t(`error.category.${category}`);
 }

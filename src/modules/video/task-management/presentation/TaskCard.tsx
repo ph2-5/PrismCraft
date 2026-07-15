@@ -6,7 +6,8 @@ import {
   Film,
 } from "lucide-react";
 import type { VideoTask } from "@/modules/video/task-management";
-import { getStatusIcon, getStatusColor, getStatusStyle, getStatusLabel } from "./task-status-helpers";
+import { classifyError } from "@/domain/types";
+import { getStatusIcon, getStatusColor, getStatusStyle, getStatusLabel, getErrorCategoryBorderColor, getErrorCategoryLabel } from "./task-status-helpers";
 import { VideoPreview, TaskActions } from "./task-card";
 
 interface TaskCardProps {
@@ -60,6 +61,10 @@ export const TaskCard = React.memo(function TaskCard({
     task.taskId ||
     `task-${task.storyId || index}-${task.createdAt || index}-${index}`;
 
+  // failed 任务按错误分类显示不同颜色边框
+  const errorCategory = task.status === "failed" ? classifyError(undefined, task.message) : null;
+  const borderColor = errorCategory ? getErrorCategoryBorderColor(errorCategory) : (isSelected ? "var(--primary)" : "var(--border)");
+
   return (
     <div
       key={taskKey}
@@ -68,7 +73,7 @@ export const TaskCard = React.memo(function TaskCard({
           ? "border-primary bg-primary/10"
           : ""
       }`}
-      style={{ padding: 16, ...(isSelected ? undefined : { borderColor: "var(--border)" }) }}
+      style={{ padding: 16, borderColor }}
     >
       <div style={{ paddingBottom: 12 }}>
         <div className="flex items-center justify-between">
@@ -117,6 +122,17 @@ export const TaskCard = React.memo(function TaskCard({
           <div className="flex items-center space-x-2">
             {getStatusIcon(task.status)}
             <span className="text-sm">{task.message}</span>
+            {errorCategory && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded"
+                style={{
+                  color: getErrorCategoryBorderColor(errorCategory),
+                  border: `1px solid ${getErrorCategoryBorderColor(errorCategory)}`,
+                }}
+              >
+                {getErrorCategoryLabel(errorCategory)}
+              </span>
+            )}
           </div>
           {task.status === "generating" && (
             <>

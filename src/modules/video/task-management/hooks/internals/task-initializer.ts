@@ -81,7 +81,9 @@ export function loadTasksFromStorage(store: StoreAccessor): () => Promise<void> 
         errorLogger.debug("Failed to load video tasks (browser mode)", error);
         store.set((state) => ({ ...state, isInitialized: true, initError: null }));
       } else {
-        errorLogger.error("Failed to load video tasks", error);
+        // Task 4.9: 启动期 DB 不可用属于可降级场景，降级为 warn 避免污染 devtools console。
+        // 底层 safeQuery/safeRun 已移除 error 级别日志，此处保留 warn 提供问题追踪线索。
+        errorLogger.warn("Failed to load video tasks", error);
         const msg = extractErrorMessage(error);
         store.set((state) => ({ ...state, isInitialized: true, initError: msg }));
         emitToast("error", t("video.taskLoadFailed"), msg);

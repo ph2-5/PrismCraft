@@ -181,7 +181,8 @@ export async function loadConfig(): Promise<ApiConfig> {
           try {
             await saveConfig(migrated);
           } catch (e) {
-            errorLogger.error("[API Config] 迁移后保存配置失败:", e);
+            // Task 4.9: 迁移后保存失败仅影响下次启动的持久化，本次内存中已使用 migrated 配置，降级为 warn。
+            errorLogger.warn("[API Config] 迁移后保存配置失败:", e);
           }
           configCache = migrated;
           configCacheTimestamp = Date.now();
@@ -207,7 +208,8 @@ export async function loadConfig(): Promise<ApiConfig> {
       scheduleCacheClear();
       return result;
     } catch (error) {
-      errorLogger.error("[API Config] 加载配置失败:", error);
+      // Task 4.9: 配置加载失败已有 getDefaultConfig() 兜底，非致命错误，降级为 warn 避免污染 console。
+      errorLogger.warn("[API Config] 加载配置失败:", error);
       return getDefaultConfig();
     } finally {
       configLoadPromise = null;

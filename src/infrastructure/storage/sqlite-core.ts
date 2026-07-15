@@ -115,7 +115,9 @@ export async function safeQuery<T>(
       // Fallback: IPC
       const response = await getElectronAPI().dbQuery(sql, params);
       if (!response.success) {
-        errorLogger.error("SQLite query failed", { sql: sql.substring(0, 200) });
+        // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
+        // 错误信息已通过 throw 传递给调用方，由调用方决定日志级别。
+        errorLogger.debug("SQLite query failed", { sql: sql.substring(0, 200) });
         throw new Error(extractDbErrorMessage(response, "SQLite query failed"));
       }
       return (response.data ?? []) as T[];
@@ -133,7 +135,8 @@ export async function safeRun(
       const httpResult = await httpDbCall<{ changes?: number; lastInsertRowid?: number | bigint }>("db/run", { sql, params });
       if (httpResult !== null) {
         if (!httpResult.success) {
-          errorLogger.error("SQLite run failed", { sql: sql.substring(0, 200) });
+          // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
+          errorLogger.debug("SQLite run failed", { sql: sql.substring(0, 200) });
           throw new Error(extractDbErrorMessage(httpResult, "SQLite run failed"));
         }
         const data = httpResult.data;
@@ -146,7 +149,8 @@ export async function safeRun(
       // Fallback: IPC
       const response = await getElectronAPI().dbRun(sql, params);
       if (!response.success) {
-        errorLogger.error("SQLite run failed", { sql: sql.substring(0, 200) });
+        // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
+        errorLogger.debug("SQLite run failed", { sql: sql.substring(0, 200) });
         throw new Error(extractDbErrorMessage(response, "SQLite run failed"));
       }
       return { changes: response.data?.changes, lastInsertRowid: response.data?.lastInsertRowid };
@@ -164,7 +168,8 @@ export async function safeTransaction(
       if (httpResult !== null) {
         if (!httpResult.success) {
           const sqlPreview = statements.map((s) => s.sql.substring(0, 50)).join("; ");
-          errorLogger.error("SQLite transaction failed", { sql: sqlPreview });
+          // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
+          errorLogger.debug("SQLite transaction failed", { sql: sqlPreview });
           throw new Error(extractDbErrorMessage(httpResult, "SQLite transaction failed"));
         }
         return (httpResult.data ?? []) as unknown[];
@@ -173,7 +178,8 @@ export async function safeTransaction(
       const response = await getElectronAPI().dbTransaction(statements);
       if (!response.success) {
         const sqlPreview = statements.map((s) => s.sql.substring(0, 50)).join("; ");
-        errorLogger.error("SQLite transaction failed", { sql: sqlPreview });
+        // Task 4.9: 降级为 debug，避免与调用方 catch 中的日志重复输出 console.error。
+        errorLogger.debug("SQLite transaction failed", { sql: sqlPreview });
         throw new Error(extractDbErrorMessage(response, "SQLite transaction failed"));
       }
       return (response.data ?? []) as unknown[];

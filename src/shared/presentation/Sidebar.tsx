@@ -248,16 +248,17 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
     const controller = new AbortController();
     const { signal } = controller;
 
-    api.onMenuNewCharacter(() => {
+    // Task 4.9: 使用 optional chaining 防御 preload 部分注入或 HMR 后方法缺失的场景。
+    api.onMenuNewCharacter?.(() => {
       if (!signal.aborted) guardedPush("/characters");
     });
-    api.onMenuNewScene(() => {
+    api.onMenuNewScene?.(() => {
       if (!signal.aborted) guardedPush("/scenes");
     });
-    api.onMenuExport(() => {
+    api.onMenuExport?.(() => {
       if (!signal.aborted) guardedPush("/settings");
     });
-    api.onNavigate((targetPath: string) => {
+    api.onNavigate?.((targetPath: string) => {
       if (!signal.aborted && targetPath) {
         guardedPush(targetPath);
       }
@@ -265,7 +266,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
 
     return () => {
       controller.abort();
-      api.removeMenuListeners();
+      api.removeMenuListeners?.();
     };
   }, [guardedPush]);
 

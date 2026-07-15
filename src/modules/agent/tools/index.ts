@@ -11,7 +11,6 @@
 
 import { toolRegistry } from "../services/tool-registry";
 import { configTools } from "./config-tools";
-import { systemTools } from "./system-tools";
 import { shotTools } from "./shot-tools";
 import { templateTools } from "./template-tools";
 import { promptTemplateTools } from "./prompt-template-tools";
@@ -23,6 +22,8 @@ import { projectIoTools } from "./project-io-tools";
 import { specialistTools } from "./specialist-tools";
 // 阶段3-5：workflow/subworkflow 工具已拆分至独立模块
 import { workflowTools, subworkflowTools } from "@/modules/agent-tools-workflow";
+// 阶段3-3：system 工具已拆分至独立模块
+import { systemTools } from "@/modules/agent-tools-system";
 // 阶段3-2：web-tools/file-management-tools 已拆分至独立模块
 import { webTools, fileManagementTools } from "@/modules/agent-tools-web-file";
 // 阶段3-2：audio/video/video-post 工具已拆分至独立模块

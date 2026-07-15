@@ -56,18 +56,10 @@ vi.mock("@/shared/constants/app-version", () => ({
   APP_VERSION: "1.2.3-test",
 }));
 
-vi.mock("../../services/tool-executor", () => ({
-  TOOL_TIMEOUTS: {
-    query: 5000,
-    mutation: 30000,
-    generation: 120000,
-    videoTask: 600000,
-    download: 60000,
+vi.mock("@/infrastructure/di", () => ({
+  container: {
+    agentToolRegistry: Promise.resolve(mocks.toolRegistry),
   },
-}));
-
-vi.mock("../../services/tool-registry", () => ({
-  toolRegistry: mocks.toolRegistry,
 }));
 
 vi.mock("@/shared/file-http", () => ({
@@ -76,7 +68,7 @@ vi.mock("@/shared/file-http", () => ({
 }));
 
 import { getProjectStatsTool, getAppInfoTool, getDiskUsageTool } from "../system-tools";
-import type { ToolContext } from "../../domain/types";
+import type { ToolContext } from "@/domain/types/agent-tools";
 
 function makeCtx(): ToolContext {
   return {

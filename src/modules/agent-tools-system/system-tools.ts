@@ -14,6 +14,7 @@
 import type { ToolImpl } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { APP_VERSION } from "@/shared/constants/app-version";
+import { container } from "@/infrastructure/di";
 
 /** 获取项目统计 */
 export const getProjectStatsTool: ToolImpl = {
@@ -101,7 +102,7 @@ export const getAppInfoTool: ToolImpl = {
   dangerLevel: "safe",
   timeoutMs: TOOL_TIMEOUTS.query,
   async execute() {
-    const { toolRegistry } = await import("../services/tool-registry");
+    const toolRegistry = await container.agentToolRegistry;
     return {
       success: true,
       data: {

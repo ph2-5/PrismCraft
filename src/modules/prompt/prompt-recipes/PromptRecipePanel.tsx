@@ -10,6 +10,7 @@
 
 import { useState, useMemo } from "react";
 import { Palette, Sparkles, Check } from "lucide-react";
+import { t } from "@/shared/constants";
 import {
   listRecipes,
   applyRecipe,
@@ -75,7 +76,7 @@ export function PromptRecipePanel({
             color: "var(--text-primary, #111827)",
           }}
         >
-          {"Prompt 配方库"}
+          {t("prompt.recipePanelTitle")}
         </h3>
       </div>
 
@@ -190,7 +191,7 @@ export function PromptRecipePanel({
           }}
         >
           <Sparkles className="w-3 h-3" />
-          <span>{"点击配方应用对应 Skill 组合到提示词"}</span>
+          <span>{t("prompt.recipeFooterHint")}</span>
         </div>
       )}
     </div>

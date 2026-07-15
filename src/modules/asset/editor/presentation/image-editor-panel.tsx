@@ -255,7 +255,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
     try {
       const blob = await canvasToBlob(canvas, "image/png");
       if (!blob) {
-        setSaveResult({ success: false, error: "无法生成图片数据" });
+        setSaveResult({ success: false, error: t("asset.editor.noImageData") });
         return;
       }
       const path = originalPath ?? `${imageUrl.split("/").pop() ?? "image"}`;
@@ -264,6 +264,8 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
       if (result.success && result.path && onSaved) {
         onSaved(result.path);
       }
+    } catch (e) {
+      setSaveResult({ success: false, error: t("asset.editor.saveFailed", { error: e instanceof Error ? e.message : String(e) }) });
     } finally {
       setIsSaving(false);
     }
@@ -278,7 +280,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
       <div className="flex items-center gap-2 px-3 py-2 border border-border rounded-md bg-card flex-wrap">
         {/* 调色 */}
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">亮度</span>
+          <span className="text-[10px] text-muted-foreground">{t("asset.editor.brightness")}</span>
           <input
             type="range" min={-100} max={100} value={adjustments.brightness}
             onChange={(e) => setAdjustments((a) => ({ ...a, brightness: Number(e.target.value) }))}
@@ -287,7 +289,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
           <span className="text-[10px] w-8">{adjustments.brightness}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">对比度</span>
+          <span className="text-[10px] text-muted-foreground">{t("asset.editor.contrast")}</span>
           <input
             type="range" min={-100} max={100} value={adjustments.contrast}
             onChange={(e) => setAdjustments((a) => ({ ...a, contrast: Number(e.target.value) }))}
@@ -296,7 +298,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
           <span className="text-[10px] w-8">{adjustments.contrast}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">饱和度</span>
+          <span className="text-[10px] text-muted-foreground">{t("asset.editor.saturation")}</span>
           <input
             type="range" min={-100} max={100} value={adjustments.saturation}
             onChange={(e) => setAdjustments((a) => ({ ...a, saturation: Number(e.target.value) }))}
@@ -308,10 +310,10 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
         <div className="w-px h-5 bg-border mx-1" />
 
         {/* 旋转 */}
-        <button className="btn btn-ghost btn-xs" onClick={() => handleRotate(-90)} title="逆时针 90°">
+        <button className="btn btn-ghost btn-xs" onClick={() => handleRotate(-90)} title={t("asset.editor.rotateCCW")}>
           <RotateCcw size={12} />
         </button>
-        <button className="btn btn-ghost btn-xs" onClick={() => handleRotate(90)} title="顺时针 90°">
+        <button className="btn btn-ghost btn-xs" onClick={() => handleRotate(90)} title={t("asset.editor.rotateCW")}>
           <RotateCw size={12} />
         </button>
 
@@ -322,26 +324,26 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
           type="color" value={annotationColor}
           onChange={(e) => setAnnotationColor(e.target.value)}
           className="w-6 h-6 rounded cursor-pointer"
-          title="标注颜色"
+          title={t("asset.editor.annotateColor")}
         />
         <button
           className={`btn btn-xs ${tool === "text" ? "btn-primary" : "btn-ghost"}`}
           onClick={() => setTool(tool === "text" ? "none" : "text")}
-          title="文字标注"
+          title={t("asset.editor.textAnnotate")}
         >
           <Type size={12} />
         </button>
         <button
           className={`btn btn-xs ${tool === "arrow" ? "btn-primary" : "btn-ghost"}`}
           onClick={() => setTool(tool === "arrow" ? "none" : "arrow")}
-          title="箭头标注"
+          title={t("asset.editor.arrowAnnotate")}
         >
           <ArrowRight size={12} />
         </button>
         <button
           className={`btn btn-xs ${tool === "rect" ? "btn-primary" : "btn-ghost"}`}
           onClick={() => setTool(tool === "rect" ? "none" : "rect")}
-          title="矩形框标注"
+          title={t("asset.editor.rectAnnotate")}
         >
           <Square size={12} />
         </button>
@@ -349,7 +351,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
           <button
             className="btn btn-ghost btn-xs"
             onClick={() => setAnnotations((prev) => prev.slice(0, -1))}
-            title="撤销最后一个标注"
+            title={t("asset.editor.undoAnnotate")}
           >
             <Undo2 size={12} />
           </button>
@@ -357,8 +359,8 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
 
         <div className="flex-1" />
 
-        <button className="btn btn-ghost btn-xs" onClick={handleReset} title="重置所有编辑">
-          <Undo2 size={12} /> 重置
+        <button className="btn btn-ghost btn-xs" onClick={handleReset} title={t("asset.editor.reset")}>
+          <Undo2 size={12} /> {t("asset.editor.reset")}
         </button>
         <button
           className="btn btn-primary btn-xs"
@@ -366,7 +368,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
           disabled={isSaving || !imageLoaded}
         >
           {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-          保存为新版本
+          {t("asset.editor.saveAsNew")}
         </button>
       </div>
 
@@ -376,8 +378,8 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
           {saveResult.success ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
           <span>
             {saveResult.success
-              ? `已保存为新版本：${saveResult.path}`
-              : `保存失败：${saveResult.error}`}
+              ? t("asset.editor.savedAs", { path: saveResult.path ?? "" })
+              : t("asset.editor.saveFailed", { error: saveResult.error ?? "" })}
           </span>
         </div>
       )}
@@ -388,7 +390,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
           <input
             type="text"
             autoFocus
-            placeholder="输入标注文字..."
+            placeholder={t("asset.editor.annotatePlaceholder")}
             value={textInput.value}
             onChange={(e) => setTextInput((t) => ({ ...t, value: e.target.value }))}
             onKeyDown={(e) => {
@@ -398,8 +400,8 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
             className="input input-xs w-[200px]"
           />
           <div className="flex gap-1 mt-1">
-            <button className="btn btn-primary btn-xs flex-1" onClick={commitTextAnnotation}>确定</button>
-            <button className="btn btn-ghost btn-xs" onClick={() => setTextInput({ visible: false, x: 0, y: 0, value: "" })}>取消</button>
+            <button className="btn btn-primary btn-xs flex-1" onClick={commitTextAnnotation}>{t("asset.editor.confirm")}</button>
+            <button className="btn btn-ghost btn-xs" onClick={() => setTextInput({ visible: false, x: 0, y: 0, value: "" })}>{t("asset.editor.cancel")}</button>
           </div>
         </div>
       )}
@@ -424,11 +426,11 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
       {/* 底部状态栏 */}
       <div className="flex items-center justify-between px-2 py-1 text-[10px] text-muted-foreground">
         <span>
-          工具：{tool === "none" ? "浏览" : tool === "crop" ? "裁剪" : tool === "text" ? "文字" : tool === "arrow" ? "箭头" : "矩形"} ·
-          标注数：{annotations.length} ·
-          旋转：{rotation}°
+          {t("asset.editor.statusTool", { tool: tool === "none" ? t("asset.editor.toolBrowse") : tool === "crop" ? t("asset.editor.toolCrop") : tool === "text" ? t("asset.editor.toolText") : tool === "arrow" ? t("asset.editor.toolArrow") : t("asset.editor.toolRect") })} ·
+          {t("asset.editor.statusAnnotCount", { count: annotations.length })} ·
+          {t("asset.editor.statusRotation", { degree: rotation })}
         </span>
-        <span>所有编辑在本地 Canvas 完成，保存为新版本不覆盖原图</span>
+        <span>{t("asset.editor.statusHint")}</span>
       </div>
     </div>
   );

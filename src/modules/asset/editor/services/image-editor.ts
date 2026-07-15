@@ -13,6 +13,7 @@
 
 import { writeFile, getCacheDirectory } from "@/shared/file-http";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 
 /** 调色参数 */
 export interface ColorAdjustments {
@@ -46,12 +47,12 @@ export interface CropPreset {
 }
 
 export const CROP_PRESETS: CropPreset[] = [
-  { label: "自由", ratio: null },
-  { label: "1:1 正方形", ratio: 1 },
+  { label: "asset.editor.cropFree", ratio: null },
+  { label: "asset.editor.cropSquare", ratio: 1 },
   { label: "4:3", ratio: 4 / 3 },
   { label: "16:9", ratio: 16 / 9 },
-  { label: "3:4 竖版", ratio: 3 / 4 },
-  { label: "9:16 竖版", ratio: 9 / 16 },
+  { label: "asset.editor.cropPortrait34", ratio: 3 / 4 },
+  { label: "asset.editor.cropPortrait916", ratio: 9 / 16 },
 ];
 
 /** 标注类型 */
@@ -287,7 +288,7 @@ export async function saveEditedImage(
     const result = await writeFile(newPath, buffer);
 
     if (!result.success) {
-      return { success: false, error: result.error ?? "写入文件失败" };
+      return { success: false, error: result.error ?? t("asset.editor.writeFailed") };
     }
 
     return { success: true, path: newPath };

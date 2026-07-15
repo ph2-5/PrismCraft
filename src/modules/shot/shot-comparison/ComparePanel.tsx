@@ -6,6 +6,7 @@
 
 import { useRef, useEffect } from "react";
 import { CheckCircle2, Archive, Video, Image as ImageIcon } from "lucide-react";
+import { t } from "@/shared/constants";
 import type { ShotVersion } from "./types";
 
 export interface ComparePanelProps {
@@ -46,18 +47,8 @@ export function ComparePanel({
     } else {
       el.pause();
     }
-     
-  }, [playSignal?.nonce, playSignal?.playing]);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || playSignal?.time == null) return;
-    // 避免微小差异导致跳帧，只在差异 >0.3s 时同步
-    if (Math.abs(el.currentTime - playSignal.time) > 0.3) {
-      el.currentTime = playSignal.time;
-    }
-     
-  }, [playSignal?.nonce]);
+  }, [playSignal?.nonce, playSignal?.playing]);
 
   const isVideo = version.type === "video";
   const borderColor = side === "left" ? "border-l-4 border-l-blue-500" : "border-r-4 border-r-green-500";
@@ -68,10 +59,10 @@ export function ComparePanel({
       <div className="px-3 py-2 border-b border-border flex items-center justify-between">
         <span className="text-xs font-semibold flex items-center gap-1">
           {isVideo ? <Video size={12} /> : <ImageIcon size={12} />}
-          {version.label ?? `版本 ${version.versionId.slice(0, 6)}`}
+          {version.label ?? t("shotCompare.versionLabel", { id: version.versionId.slice(0, 6) })}
           {isSelected && <CheckCircle2 size={12} className="text-primary" />}
         </span>
-        <span className="text-[10px] text-muted-foreground">{side === "left" ? "左侧" : "右侧"}</span>
+        <span className="text-[10px] text-muted-foreground">{side === "left" ? t("shotCompare.leftSide") : t("shotCompare.rightSide")}</span>
       </div>
 
       {/* 媒体预览 */}
@@ -87,7 +78,7 @@ export function ComparePanel({
         ) : (
           <img
             src={version.url}
-            alt={version.label ?? "关键帧"}
+            alt={version.label ?? t("shotCompare.keyframeAlt")}
             className="max-w-full max-h-full object-contain"
           />
         )}
@@ -95,10 +86,10 @@ export function ComparePanel({
 
       {/* 参数表 */}
       <div className="px-3 py-2 border-t border-border text-[10px] space-y-0.5">
-        <ParamRow label="模型" value={version.parameters.model} />
-        <ParamRow label="时长" value={version.parameters.duration != null ? `${version.parameters.duration}s` : undefined} />
-        <ParamRow label="分辨率" value={version.parameters.resolution} />
-        <ParamRow label="风格" value={version.parameters.style} />
+        <ParamRow label={t("shotCompare.paramModel")} value={version.parameters.model} />
+        <ParamRow label={t("shotCompare.paramDuration")} value={version.parameters.duration != null ? `${version.parameters.duration}s` : undefined} />
+        <ParamRow label={t("shotCompare.paramResolution")} value={version.parameters.resolution} />
+        <ParamRow label={t("shotCompare.paramStyle")} value={version.parameters.style} />
         <ParamRow label="Provider" value={version.parameters.providerId} />
       </div>
 
@@ -109,15 +100,15 @@ export function ComparePanel({
           onClick={onSelect}
           disabled={isSelected}
         >
-          <CheckCircle2 size={12} /> {isSelected ? "已选用" : "选用此版本"}
+          <CheckCircle2 size={12} /> {isSelected ? t("shotCompare.selected") : t("shotCompare.selectThis")}
         </button>
         <button
           className="btn btn-ghost btn-xs"
           onClick={onArchive}
           disabled={isSelected}
-          title="归档为备选"
+          title={t("shotCompare.archiveTooltip")}
         >
-          <Archive size={12} /> 归档
+          <Archive size={12} /> {t("shotCompare.archive")}
         </button>
       </div>
     </div>

@@ -6,6 +6,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { errorLogger } from "@/shared/error-logger";
+import { t } from "@/shared/constants";
 import {
   type VideoSegment,
   type ComposeResult,
@@ -82,7 +83,7 @@ export function useVideoCompose(): UseVideoComposeResult {
         setFfmpegAvailable(check.available);
         availableCheckedRef.current = true;
         if (!check.available) {
-          setError("FFmpeg 不可用，请先在设置中配置 FFmpeg 路径");
+          setError(t("compose.ffmpegNotAvailable"));
         }
       }
     } catch (e) {
@@ -159,7 +160,7 @@ export function useVideoCompose(): UseVideoComposeResult {
 
   const compose = useCallback(async () => {
     if (segments.length < 2) {
-      setError("至少需要 2 个视频片段");
+      setError(t("compose.needTwoSegmentsShort"));
       return;
     }
     setIsComposing(true);

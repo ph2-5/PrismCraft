@@ -57,21 +57,21 @@ export interface TransitionOption {
 
 /** 支持的转场效果列表 */
 export const TRANSITION_OPTIONS: TransitionOption[] = [
-  { value: "none", label: "无转场（直接拼接）" },
-  { value: "fade", label: "淡入淡出" },
-  { value: "cut", label: "硬切" },
-  { value: "dissolve", label: "溶解" },
-  { value: "fadeblack", label: "黑场过渡" },
-  { value: "fadewhite", label: "白场过渡" },
-  { value: "slideleft", label: "左滑" },
-  { value: "slideright", label: "右滑" },
-  { value: "slideup", label: "上滑" },
-  { value: "slidedown", label: "下滑" },
-  { value: "wipeleft", label: "左擦除" },
-  { value: "wiperight", label: "右擦除" },
-  { value: "circleopen", label: "圆形打开" },
-  { value: "circleclose", label: "圆形关闭" },
-  { value: "zoomin", label: "放大" },
+  { value: "none", label: "compose.transition.none" },
+  { value: "fade", label: "compose.transition.fade" },
+  { value: "cut", label: "compose.transition.cut" },
+  { value: "dissolve", label: "compose.transition.dissolve" },
+  { value: "fadeblack", label: "compose.transition.fadeblack" },
+  { value: "fadewhite", label: "compose.transition.fadewhite" },
+  { value: "slideleft", label: "compose.transition.slideleft" },
+  { value: "slideright", label: "compose.transition.slideright" },
+  { value: "slideup", label: "compose.transition.slideup" },
+  { value: "slidedown", label: "compose.transition.slidedown" },
+  { value: "wipeleft", label: "compose.transition.wipeleft" },
+  { value: "wiperight", label: "compose.transition.wiperight" },
+  { value: "circleopen", label: "compose.transition.circleopen" },
+  { value: "circleclose", label: "compose.transition.circleclose" },
+  { value: "zoomin", label: "compose.transition.zoomin" },
 ];
 
 /** 合成结果 */
@@ -91,18 +91,18 @@ export async function listCompletedVideoTasks(storyId?: string): Promise<VideoSe
   const storage = container.videoTaskStorage;
   const allTasks: VideoTask[] = await storage.getVideoTasks();
   const completed = allTasks.filter(
-    (t) => t.status === "completed" && t.localVideoPath,
+    (task) => task.status === "completed" && task.localVideoPath,
   );
-  const filtered = storyId ? completed.filter((t) => t.storyId === storyId) : completed;
-  return filtered.map((t) => ({
-    id: t.taskId,
-    label: t.beatTitle ? `分镜：${t.beatTitle}` : `任务 ${t.taskId.slice(0, 8)}`,
-    path: t.localVideoPath!,
+  const filtered = storyId ? completed.filter((task) => task.storyId === storyId) : completed;
+  return filtered.map((task) => ({
+    id: task.taskId,
+    label: task.beatTitle ? t("compose.beatTitle", { title: task.beatTitle }) : t("compose.taskTitle", { id: task.taskId.slice(0, 8) }),
+    path: task.localVideoPath!,
     source: "task" as const,
-    taskId: t.taskId,
-    storyId: t.storyId,
-    beatId: t.beatId,
-    beatTitle: t.beatTitle,
+    taskId: task.taskId,
+    storyId: task.storyId,
+    beatId: task.beatId,
+    beatTitle: task.beatTitle,
   }));
 }
 
@@ -119,7 +119,7 @@ export async function composeVideoSegments(
   transitionDuration: number = 0.5,
 ): Promise<ComposeResult> {
   if (segments.length < 2) {
-    return { success: false, error: "至少需要 2 个视频片段才能合成" };
+    return { success: false, error: t("compose.needTwoSegments") };
   }
   const paths = segments.map((s) => s.path);
   const result: FfmpegResult = await mergeVideos(paths, transition, transitionDuration);

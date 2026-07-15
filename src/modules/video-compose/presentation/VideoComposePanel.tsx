@@ -9,7 +9,7 @@
  * 拖拽排序：HTML5 drag-and-drop（dragstart/dragover/drop）
  */
 
-import { useEffect, type DragEvent } from "react";
+import { useEffect, useRef, type DragEvent } from "react";
 import {
   Film,
   Plus,
@@ -31,7 +31,7 @@ import { TRANSITION_OPTIONS } from "../services/video-composer";
 
 export function VideoComposePanel() {
   const vm = useVideoCompose();
-  const dragIdRef = { current: "" };
+  const dragIdRef = useRef("");
 
   // 初始加载可用片段
   useEffect(() => {
@@ -61,7 +61,7 @@ export function VideoComposePanel() {
       {/* 顶部标题栏 */}
       <div className="top-tabs justify-between">
         <span className="font-semibold text-sm flex items-center gap-1.5">
-          <Film size={14} /> 视频片段合成
+          <Film size={14} /> {t("compose.title")}
         </span>
         <div className="toolbar">
           <button
@@ -70,7 +70,7 @@ export function VideoComposePanel() {
             disabled={vm.isLoadingAvailable}
           >
             {vm.isLoadingAvailable ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-            刷新片段库
+            {t("compose.refreshSegments")}
           </button>
         </div>
       </div>
@@ -79,7 +79,7 @@ export function VideoComposePanel() {
       {!vm.ffmpegAvailable && (
         <div className="alert alert-warning text-xs">
           <AlertCircle size={14} />
-          <span>FFmpeg 不可用，请先在「设置」中配置 FFmpeg 路径</span>
+          <span>{t("compose.ffmpegUnavailable")}</span>
         </div>
       )}
 
@@ -88,7 +88,7 @@ export function VideoComposePanel() {
         <div className="alert alert-error text-xs">
           <AlertCircle size={14} />
           <span>{vm.error}</span>
-          <button className="btn btn-ghost btn-xs ml-auto" onClick={vm.clearResult}>关闭</button>
+          <button className="btn btn-ghost btn-xs ml-auto" onClick={vm.clearResult}>{t("compose.close")}</button>
         </div>
       )}
 
@@ -97,19 +97,19 @@ export function VideoComposePanel() {
         {/* 左栏：可用片段库 */}
         <div className="col-span-3 border border-border rounded-md bg-card flex flex-col min-h-0">
           <div className="px-3 py-2 border-b border-border text-xs font-semibold text-muted-foreground flex items-center justify-between">
-            <span>可用片段</span>
+            <span>{t("compose.availableSegments")}</span>
             <button
               className="btn btn-ghost btn-xs"
               onClick={() => void vm.addLocalFiles()}
-              title="添加本地视频文件"
+              title={t("compose.addLocal")}
             >
-              <FileVideo size={12} /> 本地
+              <FileVideo size={12} /> {t("compose.local")}
             </button>
           </div>
           <div className="flex-1 overflow-auto p-2 space-y-1.5">
             {vm.isLoadingAvailable && vm.availableSegments.length === 0 ? (
               <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
-                <Loader2 size={14} className="animate-spin mr-1" /> 加载中...
+                <Loader2 size={14} className="animate-spin mr-1" /> {t("compose.loading")}
               </div>
             ) : vm.availableSegments.length === 0 ? (
               <EmptyState
@@ -132,7 +132,7 @@ export function VideoComposePanel() {
                         className="btn btn-ghost btn-xs shrink-0"
                         onClick={() => vm.addSegment(seg)}
                         disabled={added}
-                        title={added ? "已添加" : "添加到合成列表"}
+                        title={added ? t("compose.added") : t("compose.addToCompose")}
                       >
                         <Plus size={12} />
                       </button>
@@ -150,25 +150,25 @@ export function VideoComposePanel() {
         {/* 中栏：合成列表（拖拽排序） */}
         <div className="col-span-5 border border-border rounded-md bg-card flex flex-col min-h-0">
           <div className="px-3 py-2 border-b border-border text-xs font-semibold text-muted-foreground flex items-center justify-between">
-            <span>合成列表（拖拽排序）</span>
-            <span className="text-[10px] text-muted-foreground">{vm.segments.length} 个片段</span>
+            <span>{t("compose.composeList")}</span>
+            <span className="text-[10px] text-muted-foreground">{t("compose.segmentCount", { count: vm.segments.length })}</span>
           </div>
 
           {/* 转场配置 */}
           <div className="px-3 py-2 border-b border-border flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground">转场：</span>
+            <span className="text-xs text-muted-foreground">{t("compose.transition")}</span>
             <select
               className="select select-xs w-[140px]"
               value={vm.transition}
               onChange={(e) => vm.setTransition(e.target.value)}
             >
               {TRANSITION_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>{t(opt.label)}</option>
               ))}
             </select>
             {vm.transition !== "none" && vm.transition !== "cut" && (
               <>
-                <span className="text-xs text-muted-foreground">时长：</span>
+                <span className="text-xs text-muted-foreground">{t("compose.duration")}</span>
                 <input
                   type="number"
                   className="input input-xs w-[70px]"
@@ -178,7 +178,7 @@ export function VideoComposePanel() {
                   value={vm.transitionDuration}
                   onChange={(e) => vm.setTransitionDuration(Number(e.target.value))}
                 />
-                <span className="text-[10px] text-muted-foreground">秒</span>
+                <span className="text-[10px] text-muted-foreground">{t("compose.seconds")}</span>
               </>
             )}
           </div>
@@ -214,7 +214,7 @@ export function VideoComposePanel() {
                       className="btn btn-ghost btn-xs"
                       onClick={() => vm.moveSegment(idx, idx - 1)}
                       disabled={idx === 0}
-                      title="上移"
+                      title={t("compose.moveUp")}
                     >
                       <ArrowUp size={12} />
                     </button>
@@ -222,14 +222,14 @@ export function VideoComposePanel() {
                       className="btn btn-ghost btn-xs"
                       onClick={() => vm.moveSegment(idx, idx + 1)}
                       disabled={idx === vm.segments.length - 1}
-                      title="下移"
+                      title={t("compose.moveDown")}
                     >
                       <ArrowDown size={12} />
                     </button>
                     <button
                       className="btn btn-ghost btn-xs text-error"
                       onClick={() => vm.removeSegment(seg.id)}
-                      title="移除"
+                      title={t("compose.remove")}
                     >
                       <Trash2 size={12} />
                     </button>
@@ -247,9 +247,9 @@ export function VideoComposePanel() {
               disabled={vm.isComposing || vm.segments.length < 2 || !vm.ffmpegAvailable}
             >
               {vm.isComposing ? (
-                <><Loader2 size={14} className="animate-spin" /> 合成中...</>
+                <><Loader2 size={14} className="animate-spin" /> {t("compose.composing")}</>
               ) : (
-                <><Sparkles size={14} /> 合成视频</>
+                <><Sparkles size={14} /> {t("compose.composeVideo")}</>
               )}
             </button>
             <button
@@ -257,7 +257,7 @@ export function VideoComposePanel() {
               onClick={vm.clearSegments}
               disabled={vm.segments.length === 0 || vm.isComposing}
             >
-              <Trash2 size={14} /> 清空
+              <Trash2 size={14} /> {t("compose.clear")}
             </button>
           </div>
         </div>
@@ -265,7 +265,7 @@ export function VideoComposePanel() {
         {/* 右栏：合成结果 */}
         <div className="col-span-4 border border-border rounded-md bg-card flex flex-col min-h-0">
           <div className="px-3 py-2 border-b border-border text-xs font-semibold text-muted-foreground">
-            合成结果
+            {t("compose.composeResult")}
           </div>
           <div className="flex-1 overflow-auto p-3">
             {!vm.composeResult ? (
@@ -279,7 +279,7 @@ export function VideoComposePanel() {
               <div className="alert alert-error text-xs">
                 <AlertCircle size={14} />
                 <div>
-                  <div className="font-semibold">合成失败</div>
+                  <div className="font-semibold">{t("compose.composeFailed")}</div>
                   <div className="text-[10px] opacity-80">{vm.composeResult.error}</div>
                 </div>
               </div>
@@ -287,7 +287,7 @@ export function VideoComposePanel() {
               <div className="space-y-3">
                 <div className="alert alert-success text-xs">
                   <CheckCircle2 size={14} />
-                  <span>合成成功！</span>
+                  <span>{t("compose.composeSuccess")}</span>
                 </div>
                 {vm.composeResult.outputPath && (
                   <>
@@ -298,13 +298,13 @@ export function VideoComposePanel() {
                       style={{ maxHeight: "300px" }}
                     />
                     <div className="text-[10px] text-muted-foreground break-all">
-                      输出路径：{vm.composeResult.outputPath}
+                      {t("compose.outputPath")}{vm.composeResult.outputPath}
                     </div>
                     {vm.composeResult.metadata && (
                       <div className="text-[10px] text-muted-foreground">
-                        片段数：{String(vm.composeResult.metadata.videoCount ?? "?")}
+                        {t("compose.segmentCountLabel")}{String(vm.composeResult.metadata.videoCount ?? "?")}
                         {vm.composeResult.metadata.totalDuration != null && (
-                          <> · 总时长：{Number(vm.composeResult.metadata.totalDuration).toFixed(1)}s</>
+                          <> · {t("compose.totalDuration")}{Number(vm.composeResult.metadata.totalDuration).toFixed(1)}s</>
                         )}
                       </div>
                     )}

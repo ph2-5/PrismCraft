@@ -116,7 +116,7 @@ export function ShotCompareView({
       {/* 标题栏 */}
       <div className="flex items-center justify-between px-2 py-1.5 border-b border-border">
         <span className="text-xs font-semibold flex items-center gap-1">
-          <GitCompare size={12} /> 分镜对比视图
+          <GitCompare size={12} /> {t("shotCompare.title")}
           <span className="text-[10px] text-muted-foreground ml-1">（{shotId}）</span>
         </span>
         {selectedPair && (
@@ -124,7 +124,7 @@ export function ShotCompareView({
             className="btn btn-ghost btn-xs"
             onClick={() => { setSelectedPair(null); setPlaying(false); }}
           >
-            <X size={12} /> 清除选择
+            <X size={12} /> {t("shotCompare.clearSelection")}
           </button>
         )}
       </div>
@@ -133,7 +133,7 @@ export function ShotCompareView({
         {/* 左侧版本列表 */}
         <div className="w-[200px] shrink-0 border border-border rounded-md bg-card flex flex-col min-h-0">
           <div className="px-2 py-1.5 border-b border-border text-[10px] font-semibold text-muted-foreground">
-            版本列表（{versions.length}）
+            {t("shotCompare.versionList")}（{versions.length}）
           </div>
           <div className="flex-1 overflow-auto p-1.5 space-y-1">
             {versions.length === 0 ? (
@@ -159,7 +159,7 @@ export function ShotCompareView({
                       {isSelected && <CheckCircle2 size={10} className="text-primary shrink-0" />}
                     </div>
                     <div className="text-muted-foreground truncate">
-                      {v.type === "video" ? "视频" : "关键帧"} · {v.parameters.model ?? "未知模型"}
+                      {v.type === "video" ? t("shotCompare.videoType") : t("shotCompare.keyframeType")} · {v.parameters.model ?? t("shotCompare.unknownModel")}
                     </div>
                   </button>
                 );
@@ -172,7 +172,7 @@ export function ShotCompareView({
               onClick={startCompare}
               disabled={!canCompare}
             >
-              <Columns2 size={12} /> 开始对比
+              <Columns2 size={12} /> {t("shotCompare.startCompare")}
             </button>
           </div>
         </div>
@@ -191,17 +191,17 @@ export function ShotCompareView({
             <>
               {/* 播放控制条 */}
               <div className="flex items-center gap-1.5 px-2 py-1 border border-border rounded-md bg-card">
-                <button className="btn btn-ghost btn-xs" onClick={() => seekBoth(-2)} title="后退 2 秒">
+                <button className="btn btn-ghost btn-xs" onClick={() => seekBoth(-2)} title={t("shotCompare.back2s")}>
                   <SkipBack size={12} />
                 </button>
-                <button className="btn btn-ghost btn-xs" onClick={togglePlay} title={playing ? "暂停" : "播放"}>
+                <button className="btn btn-ghost btn-xs" onClick={togglePlay} title={playing ? t("shotCompare.pause") : t("shotCompare.play")}>
                   {playing ? <Pause size={12} /> : <Play size={12} />}
                 </button>
-                <button className="btn btn-ghost btn-xs" onClick={() => seekBoth(2)} title="前进 2 秒">
+                <button className="btn btn-ghost btn-xs" onClick={() => seekBoth(2)} title={t("shotCompare.forward2s")}>
                   <SkipForward size={12} />
                 </button>
                 <span className="text-[10px] text-muted-foreground ml-2">
-                  同步播放（两个视频同时播放/暂停/跳转）
+                  {t("shotCompare.syncPlay")}
                 </span>
               </div>
 
@@ -234,7 +234,7 @@ export function ShotCompareView({
               {/* 下半：提示词 diff */}
               <div className="flex-1 min-h-0 border border-border rounded-md bg-card flex flex-col">
                 <div className="px-3 py-1.5 border-b border-border text-[10px] font-semibold text-muted-foreground flex items-center justify-between">
-                  <span>提示词差异</span>
+                  <span>{t("shotCompare.promptDiff")}</span>
                   <span>
                     <span className="text-green-500">+{diffStats.added}</span>{" "}
                     <span className="text-red-500">-{diffStats.removed}</span>{" "}

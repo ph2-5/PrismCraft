@@ -22,10 +22,10 @@ const RATE_LIMIT_MIN_DELAY_MS = 60000;
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 60,
-  baseDelayMs: 10000,
+  baseDelayMs: 1000,
   maxDelayMs: 300000,
   exponentialBackoff: true,
-  jitter: true,
+  jitter: false,
 };
 
 export class SmartRetryEngine {

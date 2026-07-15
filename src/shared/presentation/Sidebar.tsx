@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, memo } from "react";
 import { SearchDialog } from "./SearchDialog";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useNavigationGuard } from "./BeforeUnloadGuard";
 import { errorLogger } from "@/shared/error-logger";
 import { preferencesStorage } from "@/shared/utils/preferences";
@@ -375,6 +376,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
         </nav>
 
         <div className="sidebar-footer">
+          <ThemeSwitcher collapsed={collapsed} />
           <button
             onClick={toggleCollapsed}
             className={cn("nav-item", collapsed && "is-collapsed")}

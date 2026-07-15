@@ -19,6 +19,7 @@ import {
 import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, memo } from "react";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { AgentStatusIndicator } from "./AgentStatusIndicator";
 import { useNavigationGuard } from "./BeforeUnloadGuard";
 import { errorLogger } from "@/shared/error-logger";
 import { preferencesStorage } from "@/shared/utils/preferences";
@@ -393,6 +394,7 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
         </nav>
 
         <div className="sidebar-footer">
+          <AgentStatusIndicator collapsed={collapsed} />
           <ThemeSwitcher collapsed={collapsed} />
           <button
             onClick={toggleCollapsed}

@@ -57,6 +57,8 @@ import { errorLogger } from "@/shared/error-logger";
 import { confirm } from "@/shared/utils/confirm";
 import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
+import { eventBus } from "@/shared/event-bus";
+import { DomainEvents } from "@/shared/event-types";
 import { toolRegistry } from "../services/tool-registry";
 import type { ModelSelection } from "@/domain/schemas";
 
@@ -291,6 +293,8 @@ export function useAgent(): UseAgentReturn {
 
       setError(null);
       setIsStreaming(true);
+      // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
+      eventBus.emit(DomainEvents.AGENT_THINKING, { sessionId: sessionRef.current.id });
 
       // 创建取消控制器
       const abortController = new AbortController();
@@ -416,11 +420,15 @@ export function useAgent(): UseAgentReturn {
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
         setError(err.message);
+        // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
+        eventBus.emit(DomainEvents.AGENT_ERROR, { sessionId: sessionRef.current.id, error: err.message });
       } finally {
         setIsStreaming(false);
         loopRef.current = null;
         abortControllerRef.current = null;
         triggerRender();
+        // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
+        eventBus.emit(DomainEvents.AGENT_COMPLETED, { sessionId: sessionRef.current.id });
       }
     },
     [isStreaming, buildConfig, triggerRender, saveCurrentSession],
@@ -434,6 +442,8 @@ export function useAgent(): UseAgentReturn {
       loopRef.current.abort();
     }
     setIsStreaming(false);
+    // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
+    eventBus.emit(DomainEvents.AGENT_COMPLETED, { sessionId: sessionRef.current.id });
   }, []);
 
   const clearSession = useCallback(() => {

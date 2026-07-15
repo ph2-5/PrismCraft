@@ -14,6 +14,9 @@ export const DomainEvents = {
   VIDEO_TASK_UPDATED: "videoTask:updated",
   VIDEO_TASK_COMPLETED: "videoTask:completed",
   VIDEO_TASK_FAILED: "videoTask:failed",
+  AGENT_THINKING: "agent:thinking",
+  AGENT_COMPLETED: "agent:completed",
+  AGENT_ERROR: "agent:error",
 } as const;
 
 export type DomainEventType = typeof DomainEvents[keyof typeof DomainEvents];
@@ -34,4 +37,7 @@ export interface EventPayloadMap {
   [DomainEvents.VIDEO_TASK_UPDATED]: { taskId: string };
   [DomainEvents.VIDEO_TASK_COMPLETED]: { taskId: string; videoUrl?: string };
   [DomainEvents.VIDEO_TASK_FAILED]: { taskId: string; error?: string };
+  [DomainEvents.AGENT_THINKING]: { sessionId: string };
+  [DomainEvents.AGENT_COMPLETED]: { sessionId: string };
+  [DomainEvents.AGENT_ERROR]: { sessionId: string; error: string };
 }

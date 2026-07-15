@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { User, Check, AlertTriangle, MapPin } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { User, Check, AlertTriangle, MapPin, Sparkles } from "lucide-react";
 import { t } from "@/shared/constants";
 import { getBeatCharacterIds } from "@/domain/utils";
 import { ShotReferenceConfig, ReferenceVideoUploader } from "@/modules/storyboard/generation";
@@ -8,6 +8,10 @@ import {
   PromptEditorColumn,
   ElementBindingColumn,
   PreviewColumn,
+  recommendShotBySceneVariant,
+  getRecommendationLabels,
+  recommendationToShotInstruction,
+  type ShotRecommendation,
 } from "@/modules/shot";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import type {
@@ -87,12 +91,39 @@ export function BeatDetailEditor({
   imageModelId,
 }: BeatDetailEditorProps) {
   const uploadPanelHandle = useRef<BeatUploadPanelHandle>(null);
-  const { error: showError } = useToastHelpers();
+  const { error: showError, success: showSuccess } = useToastHelpers();
   const [refVideoExpanded, setRefVideoExpanded] = useState(false);
 
   const selectedScene = scenes.find((scene) => scene.id === beat.sceneId);
   const _prevBeat = index > 0 ? allShots[index - 1]! : null;
   void _prevBeat;
+
+  // Task 2B.12：场景变体 → 镜头推荐
+  // 仅当 beat 绑定了场景且场景含 mood 字段时计算推荐
+  const shotRecommendation: ShotRecommendation | null = useMemo(() => {
+    if (!selectedScene || !selectedScene.mood) return null;
+    return recommendShotBySceneVariant({
+      mood: selectedScene.mood,
+      weather: selectedScene.weather,
+      lighting: selectedScene.lighting,
+    });
+  }, [selectedScene]);
+
+  const recommendationLabels = useMemo(() => {
+    if (!shotRecommendation) return null;
+    return getRecommendationLabels(shotRecommendation);
+  }, [shotRecommendation]);
+
+  // 应用推荐：将推荐结果写入 beat.shotInstruction
+  const handleApplyRecommendation = () => {
+    if (!shotRecommendation) return;
+    const newInstruction = recommendationToShotInstruction(shotRecommendation);
+    onUpdateBeat({
+      ...beat,
+      shotInstruction: newInstruction,
+    });
+    showSuccess(t("beat.recommendationApplied"));
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -182,6 +213,63 @@ export function BeatDetailEditor({
               assets={assets}
               onUpdateBeat={onUpdateBeat}
             />
+
+            {/* Divider */}
+            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>
+
+            {/* Task 2B.12：场景变体 → 镜头推荐 */}
+            <div className="section-label">
+              <Sparkles style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle", color: "var(--primary)" }} />
+              <span style={{ marginLeft: 4 }}>{t("beat.shotRecommendation")}</span>
+            </div>
+            {shotRecommendation && recommendationLabels ? (
+              <div className="card" style={{ padding: 10, fontSize: 12 }}>
+                <div style={{ marginBottom: 8, color: "var(--muted-fg)", fontSize: 11 }}>
+                  {t("beat.shotRecommendationHint")}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--muted-fg)" }}>{t("beat.recommendedShot")}</span>
+                    <span style={{ fontWeight: 500 }}>{recommendationLabels.shotSizeLabel}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--muted-fg)" }}>{t("beat.recommendedMovement")}</span>
+                    <span style={{ fontWeight: 500 }}>{recommendationLabels.cameraMovementLabel}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--muted-fg)" }}>{t("beat.recommendedAngle")}</span>
+                    <span style={{ fontWeight: 500 }}>{recommendationLabels.cameraAngleLabel}</span>
+                  </div>
+                </div>
+                {shotRecommendation.rationale && (
+                  <div style={{
+                    marginBottom: 8,
+                    padding: "6px 8px",
+                    background: "var(--muted)",
+                    borderRadius: 4,
+                    fontSize: 11,
+                    color: "var(--muted-fg)",
+                    lineHeight: 1.5,
+                  }}>
+                    <span style={{ fontWeight: 600 }}>{t("beat.recommendationRationale")}：</span>
+                    {shotRecommendation.rationale}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ width: "100%", fontSize: 11 }}
+                  onClick={handleApplyRecommendation}
+                >
+                  <Check style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} />
+                  <span style={{ marginLeft: 4 }}>{t("beat.applyRecommendation")}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 10, fontSize: 12, color: "var(--muted-fg)", textAlign: "center" }}>
+                {t("beat.noSceneForRecommendation")}
+              </div>
+            )}
 
             {/* Divider */}
             <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }}></div>

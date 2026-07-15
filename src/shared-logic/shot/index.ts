@@ -36,3 +36,18 @@ export {
   checkBeatElementConsistency,
 } from "./visual-consistency-check";
 export type { Element as VisualConsistencyElement, Beat as VisualConsistencyBeat } from "./visual-consistency-check";
+
+export {
+  MOOD_TO_CAMERA_MAPPING,
+  WEATHER_MODIFIERS,
+  CROWD_MODIFIERS,
+  recommendShotBySceneVariant,
+} from "./mood-shot-mapping";
+export type {
+  ShotSize as MoodShotSize,
+  CameraMovement as MoodCameraMovement,
+  CameraAngle as MoodCameraAngle,
+  MoodShotMapping,
+  SceneVariantInput,
+  ShotRecommendation,
+} from "./mood-shot-mapping";

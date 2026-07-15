@@ -29,6 +29,16 @@ export {
   buildPromptLayers,
 } from "./shot-instruction";
 
+// === 3.1 镜头推荐（Task 2B.12：场景变体 → 镜头语言联动）===
+export {
+  recommendShotBySceneVariant,
+  recommendationToShotInstruction,
+  recommendShotInstruction,
+  getRecommendationLabels,
+  type ShotRecommendation,
+  type SceneVariantInput,
+} from "./shot-instruction";
+
 // === 4. 元素管理（story 模块使用）===
 export { elementManager } from "./element-binding";
 

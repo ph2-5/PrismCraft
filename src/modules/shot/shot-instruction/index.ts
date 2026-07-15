@@ -11,3 +11,12 @@ export {
   type CameraConsistencyIssue,
   type CameraConsistencyResult,
 } from "./services/camera-consistency-validator";
+
+export {
+  recommendShotBySceneVariant,
+  recommendationToShotInstruction,
+  recommendShotInstruction,
+  getRecommendationLabels,
+  type ShotRecommendation,
+  type SceneVariantInput,
+} from "./services/shot-recommender";

@@ -1,16 +1,31 @@
 {
   "name": "shot-consistency-check",
-  "description": "分镜视觉一致性检查与配置校验：检查分镜生成配置是否完整，验证特征锚定配置的有效性，评估生成结果的一致性评分",
+  "description": "分镜视觉一致性检查与配置校验：检查分镜生成配置是否完整，验证特征锚定配置的有效性，评估生成结果的一致性评分，跨分镜一致性自动修复（Task 4.8）",
   "dependencies": ["@/domain/schemas", "@/domain/types", "@/infrastructure/di"],
   "publicAPI": {
     "hooks": [],
-    "services": ["checkVisualConsistency", "performConfigCheck", "performConsistencyCheck", "validateFeatureAnchoringConfig", "validateNoFrameBinding", "checkCrossShotConsistency"],
+    "services": [
+      "checkVisualConsistency",
+      "performConfigCheck",
+      "performConsistencyCheck",
+      "validateFeatureAnchoringConfig",
+      "validateNoFrameBinding",
+      "checkCrossShotConsistency",
+      "autoFixCrossShotConsistency",
+      "applyManualReferenceUrlFix"
+    ],
     "components": []
   },
   "invariants": [
     "checkVisualConsistency 评估分镜生成结果的视觉一致性评分",
     "performConfigCheck 和 validateFeatureAnchoringConfig 确保生成配置完整且有效",
     "checkCrossShotConsistency 检查同一角色在不同分镜间的特征漂移，featureTags 不一致视为漂移",
+    "autoFixCrossShotConsistency 仅当 referenceImageUrl 完全一致时才自动修复 featureTags 漂移",
+    "autoFixCrossShotConsistency 是纯函数，不修改原 beats 数组（返回 fixedBeats 副本）",
+    "autoFixCrossShotConsistency 修复后自动重新运行一致性检查，确认漂移已消除",
+    "referenceImageUrl 漂移不自动修复，通过 manualConfirmFixes 提示用户确认",
+    "applyManualReferenceUrlFix 同步用户选择的基准 URL 到所有分镜",
+    "多数派选择策略：featureTags 出现次数最多的版本作为基准，并列时选第一个出现的",
     "禁止直接导入 story 和 video 模块"
   ]
 }

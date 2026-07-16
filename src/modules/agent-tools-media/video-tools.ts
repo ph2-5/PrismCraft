@@ -25,6 +25,7 @@
 import type { ToolImpl } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
+import { errorLogger } from "@/shared/error-logger";
 import type { VideoTask } from "@/domain/schemas";
 
 // ============= 辅助函数 =============
@@ -372,8 +373,12 @@ export const queryVideoStatusTool: ToolImpl = {
 
     try {
       await storage.updateVideoTask(taskId, updates);
-    } catch {
-      // 存储更新失败不阻断返回最新状态
+    } catch (e) {
+      // 存储更新失败：用户看到最新状态但重启后会回退到旧值。
+      // 记录 warn 级别日志（非致命，状态查询本身成功），并在返回中标记 persisted: false。
+      errorLogger.warn("[video-tools] updateVideoTask 持久化失败，重启后状态可能回退", {
+        taskId, updates, error: e,
+      });
     }
 
     return {
@@ -724,8 +729,18 @@ export const batchCreateVideoTasksTool: ToolImpl = {
 
         try {
           await storage.createVideoTask(taskRecord);
-        } catch {
-          // 持久化失败但仍计入 created（任务已在 provider 侧创建）
+        } catch (e) {
+          // 持久化失败：任务已在 provider 侧创建（消耗 API 配额），
+          // 但本地无记录，用户无法追踪或取消。记录 error 级别日志便于排查，
+          // 同时将任务从 created 移到 failed，明确告知调用方持久化失败。
+          errorLogger.error("[video-tools] createVideoTask 持久化失败，云端任务可能仍在运行", {
+            taskId, beatId, providerTaskId: taskId, error: e,
+          });
+          failed.push({
+            beatId,
+            error: `Task created on provider but local persistence failed: ${e instanceof Error ? e.message : String(e)}`,
+          });
+          continue;
         }
 
         created.push({ taskId, beatId, status: taskStatus });

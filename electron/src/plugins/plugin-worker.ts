@@ -30,6 +30,7 @@
 import vm from "vm";
 import fs from "fs";
 import path from "path";
+import { CODE_PLUGINS_DIR } from "./code-plugin-loader";
 
 interface WorkerMessage {
   type: "load" | "call" | "ping" | "shutdown" | "setConfig";
@@ -102,9 +103,10 @@ export const SANITIZED_CODE_PREFIX = `
     var __forbiddenMethods = ['getPrototypeOf', 'getOwnPropertyDescriptors', 'getOwnPropertySymbols', 'setPrototypeOf'];
     for (var i = 0; i < __forbiddenMethods.length; i++) {
       var __m = __forbiddenMethods[i];
-      try { Object.defineProperty(Object, __m, { value: __blocker, writable: true, configurable: true }); } catch (e) {}
+      try { Object.defineProperty(Object, __m, { value: __blocker, writable: true, configurable: true }); }
+      catch (e) { console.warn('[plugin-worker] Failed to block Object.' + __m + ' (may be non-configurable):', e); }
     }
-  } catch (e) {}
+  } catch (e) { console.warn('[plugin-worker] Reflection API blocking setup failed:', e); }
 `;
 
 const SANITIZED_CODE_SUFFIX = `
@@ -184,6 +186,18 @@ function extractMetadata(exported: Record<string, unknown>): PluginMetadata {
 
 async function loadPlugin(filePath: string, callId: string): Promise<void> {
   const fileName = path.basename(filePath);
+
+  // 安全校验：filePath 必须位于 CODE_PLUGINS_DIR 下，防止加载任意路径的 JS 文件。
+  // plugin-worker 作为 fork 子进程，任何能向其发送 IPC 消息的进程都可能让它加载插件；
+  // 限制路径前缀确保只能加载用户主动安装到 CodePlugins 目录的代码插件。
+  const resolvedPath = path.resolve(filePath);
+  const allowedRoot = path.resolve(CODE_PLUGINS_DIR);
+  if (resolvedPath !== allowedRoot && !resolvedPath.startsWith(allowedRoot + path.sep)) {
+    const errorMsg = `[plugin-worker] Refused to load plugin outside CODE_PLUGINS_DIR: ${filePath} (resolved: ${resolvedPath}, allowed root: ${allowedRoot})`;
+    console.error(errorMsg);
+    process.send?.({ type: "loaded", id: callId, success: false, error: errorMsg });
+    return;
+  }
 
   try {
     const rawCode = await fs.promises.readFile(filePath, "utf-8");

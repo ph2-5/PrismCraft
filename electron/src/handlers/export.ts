@@ -13,11 +13,24 @@ const ALLOWED_EXPORT_DIRS: string[] = [
   path.join(os.homedir(), "AI Animation Studio"),
 ];
 
+/**
+ * 校验导出路径是否在允许的目录内。
+ *
+ * 安全要点：必须匹配完整目录段，避免 `startsWith` 前缀绕过。
+ * 例如 `Documents.evil\payload.json` 不应被 `Documents` 前缀放行。
+ *
+ * 匹配规则：
+ * - 路径等于允许目录本身（直接写目录，虽然实际不会发生），或
+ * - 路径以 `<allowed>+path.sep` 开头（即 allowed 是路径的一个完整目录段）
+ *
+ * 大小写不敏感（Windows 文件系统不区分大小写）。
+ */
 function isPathAllowed(filePath: string): boolean {
   const resolved = path.resolve(filePath).toLowerCase();
-  return ALLOWED_EXPORT_DIRS.some((allowed) =>
-    resolved.startsWith(allowed.toLowerCase()),
-  );
+  return ALLOWED_EXPORT_DIRS.some((allowed) => {
+    const allowedLower = allowed.toLowerCase();
+    return resolved === allowedLower || resolved.startsWith(allowedLower + path.sep);
+  });
 }
 
 export function registerExportHandlers(): void {

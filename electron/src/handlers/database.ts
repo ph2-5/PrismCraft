@@ -201,14 +201,31 @@ export function scheduleSave(): void {
 const SENSITIVE_TABLES = new Set(["sync_conflict_backup", "error_logs", "sessions"]);
 
 /**
- * 检测查询是否读取敏感表。
- * 处理 SELECT、WITH（CTE）、RETURNING 子句，以及双引号包裹的标识符。
+ * 检测查询是否涉及敏感表的数据读取。
+ *
+ * 检测策略：
+ * 1. SELECT/WITH 开头的查询，或包含 RETURNING 子句的写入：检查是否引用敏感表
+ * 2. INSERT...SELECT / UPDATE...FROM / DELETE...FROM 等带子查询的写入：
+ *    检查子查询是否从敏感表读取数据（防止跨表复制敏感数据到非敏感表后绕过脱敏读取）
+ *
+ * 攻击场景（修复前）：
+ *   INSERT INTO characters (name) SELECT password FROM sessions
+ *   → 原 isSensitiveQuery 仅检查 SELECT/WITH 开头，INSERT 语句返回 false，不脱敏
+ *   → 攻击者随后 SELECT name FROM characters WHERE name LIKE 'sk-%' 即可读取明文密钥
+ *
+ * 修复后：任何 FROM/JOIN 引用敏感表的 SQL 均视为敏感查询，结果被脱敏。
+ * 这不影响正常写入（INSERT INTO error_logs VALUES (?) 无 FROM 子句，不触发脱敏，
+ * 且 INSERT 不返回数据，redactResult 返回 [] 无副作用）。
  */
 function isSensitiveQuery(sql: string): boolean {
   // 检测读取类查询：SELECT、WITH（CTE）、或包含 RETURNING 子句
   const isReading = /^\s*(SELECT|WITH)\s/i.test(sql) || /\bRETURNING\b/i.test(sql);
-  if (!isReading) return false;
-  // 检测是否访问敏感表（支持双引号包裹的标识符）
+  // 检测带子查询的写入（INSERT...SELECT / UPDATE...FROM / DELETE...USING 等）
+  const hasSubqueryRead = /\bFROM\b/i.test(sql) || /\bJOIN\b/i.test(sql);
+  if (!isReading && !hasSubqueryRead) return false;
+
+  // 检测是否读取敏感表（FROM/JOIN 后跟敏感表名，支持双引号包裹的标识符）
+  // 同时检测 INTO/UPDATE 敏感表（用于 RETURNING 场景，写入敏感表并返回数据）
   for (const table of SENSITIVE_TABLES) {
     const regex = new RegExp(`\\b(FROM|JOIN|INTO|UPDATE)\\s+"?${table}"?(?:\\s|,|;|\\)|$)`, "i");
     if (regex.test(sql)) return true;

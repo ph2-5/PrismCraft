@@ -14,6 +14,7 @@ import {
   extractStatus,
   handleUpload,
   getUploadedFile,
+  extractTextFromResponse,
 } from "./api-gateway-utils";
 import {
   generateImage,
@@ -90,9 +91,7 @@ async function generateText(body: Record<string, unknown>): Promise<TextApiResul
       { maxRetries: 1, retryableCheck: isRetryableError },
     )) as Record<string, unknown>;
 
-    const text = plugin.extractTextContent
-      ? plugin.extractTextContent(response)
-      : ((((response.choices as Record<string, unknown>[])?.[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string) || "";
+    const text = extractTextFromResponse(response, plugin);
 
     return { success: true, data: { text } };
   } catch (error) {
@@ -337,9 +336,7 @@ async function generateChat(body: Record<string, unknown>): Promise<TextApiResul
       { maxRetries: 1, retryableCheck: isRetryableError },
     )) as Record<string, unknown>;
 
-    const text = plugin.extractTextContent
-      ? plugin.extractTextContent(response)
-      : ((((response.choices as Record<string, unknown>[])?.[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string) || "";
+    const text = extractTextFromResponse(response, plugin);
 
     return { success: true, data: { text } };
   } catch (error) {

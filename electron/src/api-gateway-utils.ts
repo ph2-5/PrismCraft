@@ -17,6 +17,44 @@ export function isAsyncPlugin(plugin: AIProviderPlugin): plugin is AIProviderPlu
   return "buildVideoRequestAsync" in plugin && typeof (plugin as AsyncAIProviderPlugin).buildVideoRequestAsync === "function";
 }
 
+/**
+ * 从 AI provider 的响应中提取文本内容（OpenAI 兼容格式）。
+ *
+ * 替代多处复制的 `((((response.choices as ...)[0] as ...).message as ...).content as string) || ""` 表达式。
+ * 使用类型守卫逐层安全访问，避免不安全断言；provider 协议异常时返回空字符串。
+ *
+ * @param response makeRequest 返回的未知响应数据
+ * @param plugin 若实现了 extractTextContent，优先委托给插件
+ * @returns 提取到的文本内容，失败返回空字符串
+ */
+export function extractTextFromResponse(
+  response: unknown,
+  plugin?: { extractTextContent?: (response: Record<string, unknown>) => string },
+): string {
+  if (plugin?.extractTextContent) {
+    try {
+      // plugin.extractTextContent 期望 Record<string, unknown>，此处做类型守卫
+      const resp = (response && typeof response === "object") ? response as Record<string, unknown> : {};
+      return plugin.extractTextContent(resp) || "";
+    } catch {
+      return "";
+    }
+  }
+
+  if (!response || typeof response !== "object") return "";
+  const resp = response as Record<string, unknown>;
+  if (!Array.isArray(resp.choices) || resp.choices.length === 0) return "";
+
+  const firstChoice = resp.choices[0] as Record<string, unknown> | undefined;
+  if (!firstChoice || typeof firstChoice !== "object") return "";
+
+  const message = firstChoice.message as Record<string, unknown> | undefined;
+  if (!message || typeof message !== "object") return "";
+
+  const content = message.content;
+  return typeof content === "string" ? content : "";
+}
+
 export async function buildVideoRequest(plugin: AIProviderPlugin, ctx: Parameters<AIProviderPlugin["buildVideoRequest"]>[0]) {
   if (isAsyncPlugin(plugin) && plugin.buildVideoRequestAsync) {
     return plugin.buildVideoRequestAsync(ctx);
@@ -240,6 +278,25 @@ export function registerUserEndpoint(urlStr: string): void {
 
 /** 共享的 SSRF 校验函数（带 loopback 旁路），供 api-gateway 和 test-connection 复用 */
 export async function isPrivateUrl(urlStr: string): Promise<boolean> {
+  const result = await validateUrlForRequest(urlStr);
+  return !result.safe;
+}
+
+/**
+ * URL 安全校验（带 resolvedIp 返回），供 makeRequest / makeStreamingRequest 使用。
+ *
+ * 与 isPrivateUrl 的区别：返回 resolvedIp 供调用方做 DNS Rebinding TOCTOU 防护。
+ * 调用方应使用 resolvedIp 直连，避免校验后 DNS 解析结果发生变化。
+ *
+ * 安全策略与 isPrivateUrl 一致：
+ * - 用户配置的 loopback 直接放行（无 resolvedIp，调用方回退到原始 URL）
+ * - 用户配置的非 loopback 仍做 SSRF 校验
+ * - 非用户配置的 URL 强制完整 SSRF 校验
+ * - 异常时 fail-close（返回 { safe: false }）
+ */
+export async function validateUrlForRequest(
+  urlStr: string,
+): Promise<{ safe: boolean; resolvedIp?: string; reason?: string }> {
   try {
     const parsed = new URL(urlStr);
     const hostKey = parsed.port
@@ -254,27 +311,84 @@ export async function isPrivateUrl(urlStr: string): Promise<boolean> {
     if (isUserConfigured) {
       // 用户配置的 loopback 地址（如 Ollama http://127.0.0.1:11434）直接放行
       if (isLoopbackHost(hostname)) {
-        return false;
+        return { safe: true };
       }
       // 用户配置的非 loopback 主机仍做 DNS rebinding 检查（解析 IP，检查是否私有）
       const result = await ssrfGuard.validate(urlStr);
       if (!result.safe) {
         logger.warn("User-configured host blocked by SSRF guard", { urlStr, reason: result.reason });
-        return true;
+        return { safe: false, reason: result.reason };
       }
-      return false;
+      return { safe: true, resolvedIp: result.resolvedIp };
     }
 
     // 非用户配置的 URL 强制走完整 SSRF 校验（含 DNS 解析）
     const result = await ssrfGuard.validate(urlStr);
     if (!result.safe) {
       logger.warn("URL blocked by SSRF guard", { urlStr, reason: result.reason });
-      return true;
+      return { safe: false, reason: result.reason };
     }
-    return false;
+    return { safe: true, resolvedIp: result.resolvedIp };
+  } catch (e) {
+    logger.warn("Failed to validate URL in SSRF guard, blocking by default (fail-close)", { urlStr, error: e instanceof Error ? e.message : String(e) });
+    return { safe: false, reason: "validation exception" };
+  }
+}
+
+/**
+ * 使用 resolvedIp 构造直连 URL，防止 DNS Rebinding TOCTOU 攻击。
+ *
+ * 攻击场景：ssrfGuard.validate 解析 DNS 得到公网 IP（通过校验），
+ * 但后续 http.request 再次 DNS 解析时，攻击者控制权威 DNS 返回内网 IP，
+ * 从而访问云元数据端点等内部服务。
+ *
+ * 防护：用校验时的 resolvedIp 替换 URL 的 hostname，确保 TCP 连接使用校验过的 IP。
+ * - Host header 设为原 hostname，确保虚拟主机正确响应
+ * - HTTPS 通过 servername 保留原 hostname 用于 TLS SNI 和证书验证
+ * - IPv6 地址用方括号包裹
+ *
+ * @returns { url: string | URL, headers, extraOptions } 用于 http.request
+ */
+function buildRequestWithResolvedIp(
+  originalUrl: string,
+  resolvedIp: string | undefined,
+  options: HttpRequestOptions,
+): { url: string | URL; headers: Record<string, string>; servername?: string } {
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string> | undefined) };
+
+  if (!resolvedIp) {
+    return { url: originalUrl, headers };
+  }
+
+  try {
+    const parsed = new URL(originalUrl);
+    const originalHost = parsed.host;
+    const originalHostname = parsed.hostname;
+    const isHttps = parsed.protocol === "https:";
+
+    // IPv6 地址需要用方括号包裹
+    const ipHost = resolvedIp.includes(":") ? `[${resolvedIp}]` : resolvedIp;
+
+    // 用 IP 替换 hostname，确保 TCP 连接使用校验过的 IP
+    parsed.host = parsed.port ? `${ipHost}:${parsed.port}` : ipHost;
+
+    // 设置 Host header 为原 hostname，确保服务器正确响应虚拟主机
+    headers["Host"] = originalHost;
+
+    const result: { url: string | URL; headers: Record<string, string>; servername?: string } = {
+      url: parsed,
+      headers,
+    };
+
+    // HTTPS 需要设置 servername 用于 TLS SNI 和证书验证
+    if (isHttps) {
+      result.servername = originalHostname;
+    }
+
+    return result;
   } catch {
-    logger.warn("Failed to validate URL in SSRF guard, blocking by default (fail-close)", { urlStr });
-    return true;
+    // URL 解析失败，回退到原始 URL（仍有 SSRF 校验）
+    return { url: originalUrl, headers };
   }
 }
 
@@ -385,13 +499,22 @@ export async function makeRequest(
   options: HttpRequestOptions,
 ): Promise<unknown> {
   const DEFAULT_TIMEOUT = 120000;
-  if (await isPrivateUrl(url)) {
-    throw new Error("Cannot access private/internal URLs");
+  // SSRF 校验 + 获取 resolvedIp 用于 DNS Rebinding TOCTOU 防护
+  const ssrfResult = await validateUrlForRequest(url);
+  if (!ssrfResult.safe) {
+    throw new Error(`Cannot access private/internal URLs: ${ssrfResult.reason ?? "blocked"}`);
+  }
+
+  // 使用 resolvedIp 直连，防止校验后 DNS 解析结果变化
+  const { url: requestUrl, headers, servername } = buildRequestWithResolvedIp(url, ssrfResult.resolvedIp, options);
+  const requestOptions: HttpRequestOptions & { servername?: string } = { ...options, headers };
+  if (servername) {
+    requestOptions.servername = servername;
   }
 
   return new Promise((resolve, reject) => {
     const client = url.startsWith("https") ? https : http;
-    const req = client.request(url, options, (res) => {
+    const req = client.request(requestUrl, requestOptions, (res) => {
       const chunks: Buffer[] = [];
       const MAX_RESPONSE_SIZE = 50 * 1024 * 1024;
       let totalSize = 0;
@@ -464,13 +587,22 @@ export async function makeStreamingRequest(
   options: StreamingRequestOptions,
 ): Promise<void> {
   const DEFAULT_TIMEOUT = 300000; // 流式生成可能较慢，5 分钟
-  if (await isPrivateUrl(url)) {
-    throw new Error("Cannot access private/internal URLs");
+  // SSRF 校验 + 获取 resolvedIp 用于 DNS Rebinding TOCTOU 防护
+  const ssrfResult = await validateUrlForRequest(url);
+  if (!ssrfResult.safe) {
+    throw new Error(`Cannot access private/internal URLs: ${ssrfResult.reason ?? "blocked"}`);
+  }
+
+  // 使用 resolvedIp 直连，防止校验后 DNS 解析结果变化
+  const { url: requestUrl, headers, servername } = buildRequestWithResolvedIp(url, ssrfResult.resolvedIp, options);
+  const requestOptions: StreamingRequestOptions & { servername?: string } = { ...options, headers };
+  if (servername) {
+    requestOptions.servername = servername;
   }
 
   return new Promise((resolve, reject) => {
     const client = url.startsWith("https") ? https : http;
-    const req = client.request(url, options, (res) => {
+    const req = client.request(requestUrl, requestOptions, (res) => {
       const statusCode = res.statusCode ?? 0;
 
       // 非 2xx：缓冲完整 body 后 reject（错误响应通常不大）

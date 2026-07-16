@@ -21,7 +21,11 @@ async function cancelActiveTasksForBeats(beatIds: string[]): Promise<void> {
     try {
       await removeTasksByBeatId(beatId);
     } catch (e) {
-      errorLogger.warn("[TransactionalDelete] 取消beat关联视频任务失败", { beatId, error: e });
+      // 升级为 error：取消云端任务失败后，云端可能继续运行消耗资源，
+      // 而本地关联已删除无法回溯。error 级别确保运维能发现并人工补救。
+      errorLogger.error("[TransactionalDelete] 取消beat关联视频任务失败，云端任务可能仍在运行", {
+        beatId, error: e,
+      });
     }
   }
 }

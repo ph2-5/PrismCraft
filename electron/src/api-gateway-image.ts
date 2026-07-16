@@ -10,6 +10,7 @@ import {
   makeRequest,
   extractImageUrl,
   cacheRemoteImageLocally,
+  extractTextFromResponse,
 } from "./api-gateway-utils";
 
 const logger = getLogger("api-gateway-image");
@@ -94,9 +95,7 @@ async function analyzeImage(body: Record<string, unknown>): Promise<ApiResult> {
       body: JSON.stringify(reqBody),
     })) as Record<string, unknown>;
 
-    const analysis = plugin.extractTextContent
-      ? plugin.extractTextContent(response)
-      : ((((response.choices as Record<string, unknown>[])?.[0] as Record<string, unknown>)?.message as Record<string, unknown>)?.content as string) || "";
+    const analysis = extractTextFromResponse(response, plugin);
 
     let analyzed: Record<string, unknown> | null = null;
     const jsonStr = extractJsonObject(analysis);

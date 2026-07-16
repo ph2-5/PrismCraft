@@ -27,6 +27,14 @@ const ALLOWED_CONFIG_KEYS = new Set([
   "ui",
   "theme",
   "ai_animation_studio_api_config",
+  // agent 命名空间：agent.coreMemory / agent.sessionIndex / agent.bookmarks /
+  // agent.activityLog / agent.notificationPrefs / agent.checkpoints.index / agent.workflows
+  "agent",
+  // 独立配置项（被 AgentSettingsPanel / web-tools 等通过 file-http 层读写）
+  "ffmpegPath",
+  "searchApiKey",
+  "searchEngine",
+  "searchEngineId",
 ]);
 
 const ALLOWED_CONFIG_VALUE_TYPES = new Set([

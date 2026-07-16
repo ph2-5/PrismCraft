@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: |
           for i in 1 2 3; do
-            if npm ci --ignore-scripts; then
+            if npm ci --ignore-scripts --legacy-peer-deps; then
               echo "Dependencies installed successfully"
               break
             elif [ $i -lt 3 ]; then
@@ -95,7 +95,7 @@ jobs:
       - name: Install dependencies
         run: |
           for i in 1 2 3; do
-            if npm ci --ignore-scripts; then
+            if npm ci --ignore-scripts --legacy-peer-deps; then
               echo "Dependencies installed successfully"
               break
             elif [ $i -lt 3 ]; then
@@ -154,7 +154,7 @@ jobs:
       - name: Install dependencies
         run: |
           for i in 1 2 3; do
-            if npm ci --ignore-scripts; then
+            if npm ci --ignore-scripts --legacy-peer-deps; then
               echo "Dependencies installed successfully"
               break
             elif [ $i -lt 3 ]; then
@@ -224,7 +224,7 @@ jobs:
         run: |
           $maxAttempts = 3
           for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
-            npm ci --ignore-scripts
+            npm ci --ignore-scripts --legacy-peer-deps
             if ($LASTEXITCODE -eq 0) {
               Write-Host "Dependencies installed successfully"
               break
@@ -293,7 +293,7 @@ jobs:
       - name: Install dependencies
         run: |
           for i in 1 2 3; do
-            if npm ci --ignore-scripts; then
+            if npm ci --ignore-scripts --legacy-peer-deps; then
               echo "Dependencies installed successfully"
               break
             elif [ $i -lt 3 ]; then

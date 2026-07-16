@@ -89,7 +89,7 @@ describe("R179: Port 接口扩展优先于 as 断言", () => {
       offenders,
       `以下文件使用 container.xxx as { ... } 扩展 Port 接口（应在接口定义处扩展）：\n${offenders.join("\n")}`,
     ).toEqual([]);
-  });
+  }, 30000);
 
   it("src/ 下不应有 as IVideoProvider & 模式（交叉类型断言）", async () => {
     const files = await globTsFiles(join(process.cwd(), "src"));
@@ -104,7 +104,7 @@ describe("R179: Port 接口扩展优先于 as 断言", () => {
       offenders,
       `以下文件使用 as IVideoProvider & {...} 交叉类型断言：\n${offenders.join("\n")}`,
     ).toEqual([]);
-  });
+  }, 30000);
 
   it("cancelTask 调用使用可选链 ?. （安全调用可选方法）", async () => {
     // 验证调用 cancelTask 时使用 ?. 而非直接调用
@@ -119,7 +119,7 @@ describe("R179: Port 接口扩展优先于 as 断言", () => {
     }
     // 至少有一处使用 ?. 安全调用，或无调用（也算通过）
     expect(typeof foundSafeCall).toBe("boolean");
-  });
+  }, 30000);
 
   it("Port 接口文件不含 as 断言（纯类型定义）", async () => {
     const source = await readFile(

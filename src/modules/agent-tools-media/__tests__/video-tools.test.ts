@@ -769,7 +769,7 @@ describe("batch_create_video_tasks", () => {
     expect(data.failed[0].error).toContain("network error");
   });
 
-  it("35. 持久化失败仍计入 created（任务已在 provider 侧创建）", async () => {
+  it("35. 持久化失败移入 failed（云端任务已创建但本地无记录，需明确告知调用方）", async () => {
     mocks.videoProvider.generateVideoWithFrames.mockResolvedValue({
       success: true,
       data: { taskId: "task_p", status: "pending" },
@@ -783,12 +783,13 @@ describe("batch_create_video_tasks", () => {
 
     expect(result.success).toBe(true);
     const data = result.data as {
-      created: Array<{ taskId: string }>;
-      failed: unknown[];
+      created: unknown[];
+      failed: Array<{ error: string }>;
     };
-    expect(data.created).toHaveLength(1);
-    expect(data.created[0].taskId).toBe("task_p");
-    expect(data.failed).toHaveLength(0);
+    // 持久化失败：任务从 created 移到 failed，防止云端任务失追踪
+    expect(data.created).toHaveLength(0);
+    expect(data.failed).toHaveLength(1);
+    expect(data.failed[0].error).toContain("local persistence failed");
   });
 });
 

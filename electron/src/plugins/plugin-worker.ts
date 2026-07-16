@@ -1,3 +1,32 @@
+/**
+ * 代码插件 Worker（fork 子进程）
+ *
+ * ⚠️ 安全模型说明（必读）：
+ *
+ * 1. Node.js vm 模块**不是安全沙箱**（官方明确警告）：
+ *    https://nodejs.org/api/vm.html#vm-executing-javascript
+ *    > The vm module is not a security mechanism. Do not use it to run untrusted code.
+ *
+ * 2. 本文件的主要安全边界是**进程级隔离**：plugin-worker 通过 child_process.fork 启动，
+ *    与主进程独立内存空间、独立 Node.js 运行时。即使插件逃逸 vm 沙箱，也只能访问
+ *    plugin-worker 子进程的全局对象，无法直接污染主进程或 Electron 渲染进程。
+ *
+ * 3. vm.createContext 仅作为**纵深防御层**：
+ *    - 静态逃逸模式检测（escapePatterns）拦截已知攻击签名
+ *    - Object.prototype.constructor 锁定（R123）切断 constructor 链逃逸
+ *    - 危险全局（require/process/global/eval/Function 等）设为 undefined
+ *    - 原型链冻结防止通过 prototype 篡改获取额外能力
+ *
+ * 4. **威胁模型**：本机制仅适用于加载用户**主动安装**的本地代码插件。
+ *    不应用于加载远程、不可信或第三方提供的代码。如需加载不可信代码，
+ *    应改用 isolated-vm（真正的 V8 Isolate）或独立容器/VM 隔离。
+ *
+ * 5. 已知限制：vm 沙箱无法完全阻止以下攻击向量（依赖进程级隔离兜底）：
+ *    - 新版 Node.js 添加的全局对象可能未及时屏蔽
+ *    - 通过原型链 + Symbol.toPrimitive 等元编程能力的未知逃逸路径
+ *    - Promise 异步回调中的 this 指向（已通过 freezePrototype 部分缓解）
+ */
+
 import vm from "vm";
 import fs from "fs";
 import path from "path";
@@ -58,12 +87,24 @@ let cachedConfig: { apiKey?: string; apiUrl?: string } = {};
  * 注意：在 IIFE 严格模式下 `this` 为 undefined，因此直接使用 Object.defineProperty
  * 而非通过 this.constructor 保存原始引用。
  *
+ * 此外尝试覆盖 Object 上的反射 API（getPrototypeOf / getOwnPropertyDescriptors 等）
+ * 为抛错函数，作为静态 escapePatterns 检测的运行时兜底。Object 上的方法多为
+ * configurable: false，覆盖可能失败，try/catch 静默处理。
+ *
  * 导出供回归测试 (regression-r123) 验证源码内容，避免测试自测自的假阳性。
  */
 export const SANITIZED_CODE_PREFIX = `
 (function() {
   'use strict';
   try { Object.defineProperty(Object.prototype, 'constructor', { value: Object, writable: false, configurable: false }); } catch (e) { console.warn('[plugin-worker] Failed to lock Object.prototype.constructor:', e); }
+  try {
+    var __blocker = function() { throw new Error('[plugin-worker] forbidden reflection API'); };
+    var __forbiddenMethods = ['getPrototypeOf', 'getOwnPropertyDescriptors', 'getOwnPropertySymbols', 'setPrototypeOf'];
+    for (var i = 0; i < __forbiddenMethods.length; i++) {
+      var __m = __forbiddenMethods[i];
+      try { Object.defineProperty(Object, __m, { value: __blocker, writable: true, configurable: true }); } catch (e) {}
+    }
+  } catch (e) {}
 `;
 
 const SANITIZED_CODE_SUFFIX = `
@@ -165,6 +206,14 @@ async function loadPlugin(filePath: string, callId: string): Promise<void> {
       /\bnew\s+Function\b/,
       // Buffer 构造逃逸
       /Buffer\.from\s*\(\s*\[/,
+      // AsyncFunction 构造器逃逸（通过 Object.getPrototypeOf(async function(){}).constructor 访问）
+      /\bAsyncFunction\b/,
+      // import.meta 元属性逃逸（ESM 模式下访问模块元数据）
+      /\bimport\.meta\b/,
+      // Symbol.toPrimitive / Symbol.hasInstance 元编程钩子逃逸
+      /Symbol\.(toPrimitive|hasInstance|species)/,
+      // Object.getOwnPropertyDescriptors / getOwnPropertySymbols 反射逃逸
+      /Object\.getOwnProperty(?:Descriptors|Symbols)/,
     ];
     for (const pattern of escapePatterns) {
       if (pattern.test(rawCode)) {

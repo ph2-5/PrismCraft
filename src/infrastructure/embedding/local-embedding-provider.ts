@@ -110,13 +110,13 @@ async function loadPipeline(): Promise<LoadedPipeline | null> {
       }
 
       // 2. 动态 import transformers.js（避免未安装时阻塞）
-      // 使用 Function 构造器彻底绕过 vite 静态分析，否则未安装时 dev server 报错
-      // 注意: /* @vite-ignore */ 在 vite 7+ 已失效，必须用 Function 构造器
+      // 通过变量拼接绕过 vite/rollup 静态分析：bundler 无法解析变量值，
+      // 会跳过该 import 的打包，未安装时运行时 fallback 到 warn。
+      // 替代 new Function 构造器（eval 类调用，CSP 与安全扫描会标记）。
       let transformers: { pipeline: PipelineFunction };
       try {
-         
-        const dynamicImport = new Function("m", "return import(m)") as (m: string) => Promise<{ pipeline: PipelineFunction }>;
-        transformers = await dynamicImport("@huggingface/transformers");
+        const pkgName = "@huggingface/" + "transformers";
+        transformers = await import(/* @vite-ignore */ pkgName) as unknown as { pipeline: PipelineFunction };
       } catch {
         errorLogger.warn("[local-embedding] transformers.js 未安装，本地 embedding 不可用");
         return null;

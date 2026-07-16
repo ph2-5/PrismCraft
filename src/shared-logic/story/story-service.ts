@@ -158,6 +158,32 @@ interface StoryBeatData {
   [key: string]: unknown;
 }
 
+interface EnumFixResult {
+  value: string | undefined;
+  message?: string;
+}
+
+function fixEnumField(
+  rawValue: string | undefined,
+  aliases: Record<string, string>,
+  validValues: string[],
+  defaultValue: string,
+  fieldName: string,
+  defaultOnMissing: boolean,
+): EnumFixResult {
+  const normalized = normalizeEnumValue(rawValue, aliases, validValues);
+  if (normalized && normalized !== rawValue) {
+    return { value: normalized, message: `${fieldName}: "${rawValue}" → "${normalized}"` };
+  }
+  if (!rawValue && defaultOnMissing) {
+    return { value: defaultValue };
+  }
+  if (!normalized && rawValue) {
+    return { value: defaultValue, message: `${fieldName}: "${rawValue}" 无效 → "${defaultValue}"` };
+  }
+  return { value: normalized ?? rawValue };
+}
+
 export function fixShotParams(data: ShotParamsData): {
   fixed: ShotParamsData;
   autoFixed: string[];
@@ -168,34 +194,17 @@ export function fixShotParams(data: ShotParamsData): {
   const validMovements = ["static", "push", "pull", "pan", "orbit", "crane_up", "crane_down", "tracking"];
   const validAngles = ["eye_level", "low", "high", "birds_eye", "worms_eye", "dutch"];
 
-  const normalizedShotType = normalizeEnumValue(data.shotType, SHOT_TYPE_ALIASES, validShotTypes);
-  if (normalizedShotType && normalizedShotType !== data.shotType) {
-    fixed.shotType = normalizedShotType;
-    autoFixed.push(`shotType: "${data.shotType}" → "${normalizedShotType}"`);
-  } else if (!data.shotType) {
-    fixed.shotType = "medium";
-  } else if (!normalizedShotType) {
-    fixed.shotType = "medium";
-    autoFixed.push(`shotType: "${data.shotType}" 无效 → "medium"`);
-  }
+  const shotTypeFix = fixEnumField(data.shotType, SHOT_TYPE_ALIASES, validShotTypes, "medium", "shotType", true);
+  fixed.shotType = shotTypeFix.value;
+  if (shotTypeFix.message) autoFixed.push(shotTypeFix.message);
 
-  const normalizedMovement = normalizeEnumValue(data.cameraMovement, CAMERA_MOVEMENT_ALIASES, validMovements);
-  if (normalizedMovement && normalizedMovement !== data.cameraMovement) {
-    fixed.cameraMovement = normalizedMovement;
-    autoFixed.push(`cameraMovement: "${data.cameraMovement}" → "${normalizedMovement}"`);
-  } else if (!normalizedMovement && data.cameraMovement) {
-    fixed.cameraMovement = "static";
-    autoFixed.push(`cameraMovement: "${data.cameraMovement}" 无效 → "static"`);
-  }
+  const movementFix = fixEnumField(data.cameraMovement, CAMERA_MOVEMENT_ALIASES, validMovements, "static", "cameraMovement", false);
+  fixed.cameraMovement = movementFix.value;
+  if (movementFix.message) autoFixed.push(movementFix.message);
 
-  const normalizedAngle = normalizeEnumValue(data.cameraAngle, CAMERA_ANGLE_ALIASES, validAngles);
-  if (normalizedAngle && normalizedAngle !== data.cameraAngle) {
-    fixed.cameraAngle = normalizedAngle;
-    autoFixed.push(`cameraAngle: "${data.cameraAngle}" → "${normalizedAngle}"`);
-  } else if (!normalizedAngle && data.cameraAngle) {
-    fixed.cameraAngle = "eye_level";
-    autoFixed.push(`cameraAngle: "${data.cameraAngle}" 无效 → "eye_level"`);
-  }
+  const angleFix = fixEnumField(data.cameraAngle, CAMERA_ANGLE_ALIASES, validAngles, "eye_level", "cameraAngle", false);
+  fixed.cameraAngle = angleFix.value;
+  if (angleFix.message) autoFixed.push(angleFix.message);
 
   if (typeof data.duration === "number") {
     if (data.duration < 2) { fixed.duration = 2; autoFixed.push(`duration: ${data.duration} → 2`); }

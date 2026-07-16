@@ -9,22 +9,14 @@
  * - 保存为新版本（不覆盖原图）
  *
  * 所有编辑在本地 Canvas 完成
+ *
+ * 本组件负责状态管理与业务逻辑编排，UI 拆分为子组件：
+ * - ImageEditorToolbar：工具栏（调色/旋转/标注/重置/保存）
+ * - ImageEditorCanvas：Canvas 画布与文字输入弹框
+ * - ImageEditorSaveResult：保存结果提示
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import {
-  RotateCw,
-  RotateCcw,
-  Type,
-  ArrowRight,
-  Square,
-  Save,
-  Undo2,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
-import { PageLoader } from "@/shared/presentation/PageLoader";
 import { t } from "@/shared/constants";
 import {
   type ColorAdjustments,
@@ -38,6 +30,9 @@ import {
   canvasToBlob,
   saveEditedImage,
 } from "../services/image-editor";
+import { ImageEditorToolbar } from "./ImageEditorToolbar";
+import { ImageEditorCanvas, type TextInputState } from "./ImageEditorCanvas";
+import { ImageEditorSaveResult } from "./ImageEditorSaveResult";
 
 export interface ImageEditorPanelProps {
   /** 初始图片 URL（file:// 协议或 http） */
@@ -48,7 +43,7 @@ export interface ImageEditorPanelProps {
   onSaved?: (newPath: string) => void;
 }
 
-type Tool = "none" | "crop" | "text" | "arrow" | "rect";
+export type Tool = "none" | "crop" | "text" | "arrow" | "rect";
 
 export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEditorPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -60,7 +55,7 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
   const [tool, setTool] = useState<Tool>("none");
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
-  const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, value: "" });
+  const [textInput, setTextInput] = useState<TextInputState>({ visible: false, x: 0, y: 0, value: "" });
   const [annotationColor, setAnnotationColor] = useState("#ff0000");
   const [isSaving, setIsSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<{ success: boolean; path?: string; error?: string } | null>(null);
@@ -271,157 +266,66 @@ export function ImageEditorPanel({ imageUrl, originalPath, onSaved }: ImageEdito
     }
   };
 
+  // 工具栏回调
+  const handleAdjustmentChange = (key: keyof ColorAdjustments, value: number) => {
+    setAdjustments((a) => ({ ...a, [key]: value }));
+  };
+
+  const handleToolToggle = (nextTool: Tool) => {
+    setTool(tool === nextTool ? "none" : nextTool);
+  };
+
+  const handleUndoAnnotation = () => {
+    setAnnotations((prev) => prev.slice(0, -1));
+  };
+
+  const handleTextInputChange = (value: string) => {
+    setTextInput((prev) => ({ ...prev, value }));
+  };
+
+  const handleCancelText = () => {
+    setTextInput({ visible: false, x: 0, y: 0, value: "" });
+  };
+
   // CSS filter 用于实时调色预览（Canvas 显示层）
   const cssFilter = `brightness(${1 + adjustments.brightness / 100}) contrast(${1 + adjustments.contrast / 100}) saturate(${1 + adjustments.saturation / 100})`;
 
   return (
     <div className="flex flex-col h-full gap-2">
       {/* 工具栏 */}
-      <div className="flex items-center gap-2 px-3 py-2 border border-border rounded-md bg-card flex-wrap">
-        {/* 调色 */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">{t("asset.editor.brightness")}</span>
-          <input
-            type="range" min={-100} max={100} value={adjustments.brightness}
-            onChange={(e) => setAdjustments((a) => ({ ...a, brightness: Number(e.target.value) }))}
-            className="range range-xs w-[80px]"
-          />
-          <span className="text-[10px] w-8">{adjustments.brightness}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">{t("asset.editor.contrast")}</span>
-          <input
-            type="range" min={-100} max={100} value={adjustments.contrast}
-            onChange={(e) => setAdjustments((a) => ({ ...a, contrast: Number(e.target.value) }))}
-            className="range range-xs w-[80px]"
-          />
-          <span className="text-[10px] w-8">{adjustments.contrast}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">{t("asset.editor.saturation")}</span>
-          <input
-            type="range" min={-100} max={100} value={adjustments.saturation}
-            onChange={(e) => setAdjustments((a) => ({ ...a, saturation: Number(e.target.value) }))}
-            className="range range-xs w-[80px]"
-          />
-          <span className="text-[10px] w-8">{adjustments.saturation}</span>
-        </div>
-
-        <div className="w-px h-5 bg-border mx-1" />
-
-        {/* 旋转 */}
-        <button className="btn btn-ghost btn-xs" onClick={() => handleRotate(-90)} title={t("asset.editor.rotateCCW")}>
-          <RotateCcw size={12} />
-        </button>
-        <button className="btn btn-ghost btn-xs" onClick={() => handleRotate(90)} title={t("asset.editor.rotateCW")}>
-          <RotateCw size={12} />
-        </button>
-
-        <div className="w-px h-5 bg-border mx-1" />
-
-        {/* 标注工具 */}
-        <input
-          type="color" value={annotationColor}
-          onChange={(e) => setAnnotationColor(e.target.value)}
-          className="w-6 h-6 rounded cursor-pointer"
-          title={t("asset.editor.annotateColor")}
-        />
-        <button
-          className={`btn btn-xs ${tool === "text" ? "btn-primary" : "btn-ghost"}`}
-          onClick={() => setTool(tool === "text" ? "none" : "text")}
-          title={t("asset.editor.textAnnotate")}
-        >
-          <Type size={12} />
-        </button>
-        <button
-          className={`btn btn-xs ${tool === "arrow" ? "btn-primary" : "btn-ghost"}`}
-          onClick={() => setTool(tool === "arrow" ? "none" : "arrow")}
-          title={t("asset.editor.arrowAnnotate")}
-        >
-          <ArrowRight size={12} />
-        </button>
-        <button
-          className={`btn btn-xs ${tool === "rect" ? "btn-primary" : "btn-ghost"}`}
-          onClick={() => setTool(tool === "rect" ? "none" : "rect")}
-          title={t("asset.editor.rectAnnotate")}
-        >
-          <Square size={12} />
-        </button>
-        {annotations.length > 0 && (
-          <button
-            className="btn btn-ghost btn-xs"
-            onClick={() => setAnnotations((prev) => prev.slice(0, -1))}
-            title={t("asset.editor.undoAnnotate")}
-          >
-            <Undo2 size={12} />
-          </button>
-        )}
-
-        <div className="flex-1" />
-
-        <button className="btn btn-ghost btn-xs" onClick={handleReset} title={t("asset.editor.reset")}>
-          <Undo2 size={12} /> {t("asset.editor.reset")}
-        </button>
-        <button
-          className="btn btn-primary btn-xs"
-          onClick={handleSave}
-          disabled={isSaving || !imageLoaded}
-        >
-          {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-          {t("asset.editor.saveAsNew")}
-        </button>
-      </div>
+      <ImageEditorToolbar
+        adjustments={adjustments}
+        tool={tool}
+        annotationColor={annotationColor}
+        annotationCount={annotations.length}
+        isSaving={isSaving}
+        imageLoaded={imageLoaded}
+        onAdjustmentChange={handleAdjustmentChange}
+        onRotate={handleRotate}
+        onAnnotationColorChange={setAnnotationColor}
+        onToolToggle={handleToolToggle}
+        onUndoAnnotation={handleUndoAnnotation}
+        onReset={handleReset}
+        onSave={handleSave}
+      />
 
       {/* 保存结果提示 */}
-      {saveResult && (
-        <div className={`alert text-xs ${saveResult.success ? "alert-success" : "alert-error"}`}>
-          {saveResult.success ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-          <span>
-            {saveResult.success
-              ? t("asset.editor.savedAs", { path: saveResult.path ?? "" })
-              : t("asset.editor.saveFailed", { error: saveResult.error ?? "" })}
-          </span>
-        </div>
-      )}
+      <ImageEditorSaveResult saveResult={saveResult} />
 
-      {/* 文字输入弹框 */}
-      {textInput.visible && (
-        <div className="absolute z-50 bg-card border border-border rounded-md p-2 shadow-lg" style={{ left: 100, top: 100 }}>
-          <input
-            type="text"
-            autoFocus
-            placeholder={t("asset.editor.annotatePlaceholder")}
-            value={textInput.value}
-            onChange={(e) => setTextInput((t) => ({ ...t, value: e.target.value }))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitTextAnnotation();
-              if (e.key === "Escape") setTextInput({ visible: false, x: 0, y: 0, value: "" });
-            }}
-            className="input input-xs w-[200px]"
-          />
-          <div className="flex gap-1 mt-1">
-            <button className="btn btn-primary btn-xs flex-1" onClick={commitTextAnnotation}>{t("asset.editor.confirm")}</button>
-            <button className="btn btn-ghost btn-xs" onClick={() => setTextInput({ visible: false, x: 0, y: 0, value: "" })}>{t("asset.editor.cancel")}</button>
-          </div>
-        </div>
-      )}
-
-      {/* Canvas 编辑区 */}
-      <div className="flex-1 min-h-0 border border-border rounded-md bg-card flex items-center justify-center overflow-auto p-3 relative">
-        {!imageLoaded ? (
-          <PageLoader label={t("asset.editor.loading")} />
-        ) : (
-          <canvas
-            ref={canvasRef}
-            className="max-w-full max-h-full"
-            style={{ filter: cssFilter, cursor: tool === "none" ? "default" : "crosshair" }}
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
-            onMouseLeave={handleCanvasMouseUp}
-          />
-        )}
-      </div>
+      {/* Canvas 编辑区 + 文字输入弹框 */}
+      <ImageEditorCanvas
+        canvasRef={canvasRef}
+        cssFilter={cssFilter}
+        tool={tool}
+        imageLoaded={imageLoaded}
+        textInput={textInput}
+        onCanvasMouseDown={handleCanvasMouseDown}
+        onCanvasMouseMove={handleCanvasMouseMove}
+        onCanvasMouseUp={handleCanvasMouseUp}
+        onTextInputChange={handleTextInputChange}
+        onCommitText={commitTextAnnotation}
+        onCancelText={handleCancelText}
+      />
 
       {/* 底部状态栏 */}
       <div className="flex items-center justify-between px-2 py-1 text-[10px] text-muted-foreground">

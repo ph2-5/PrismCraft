@@ -9,8 +9,9 @@ export default defineConfig({
     globals: true,
     exclude: ['tests/**', 'node_modules/**', 'out/**', 'electron/dist/**', 'electron/src/**', '.stryker-tmp/**'],
     setupFiles: ['./src/__tests__/setup.ts'],
-    pool: "forks",
-    forks: { maxForks: 2 },
+    // Vitest 4: poolOptions 已移除，maxWorkers/minWorkers 为顶层配置
+    // 限制并发为 2，避免高内存场景下的资源竞争
+    maxWorkers: 2,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],

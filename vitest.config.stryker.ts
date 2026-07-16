@@ -4,12 +4,14 @@
  * 继承主 vitest.config.ts，但禁用覆盖率阈值。
  * Stryker 初始测试运行（dry run）会运行所有测试，
  * 若 vitest 因覆盖率阈值失败，Stryker 会误判为测试失败。
+ *
+ * 注意：Vitest 4 中 mergeConfig 类型签名变化，使用类型断言绕过不兼容。
  */
 import { defineConfig, mergeConfig } from "vitest/config";
 import baseConfig from "./vitest.config";
 
 export default mergeConfig(
-  baseConfig,
+  baseConfig as never,
   defineConfig({
     test: {
       coverage: {
@@ -23,5 +25,5 @@ export default mergeConfig(
         },
       },
     },
-  }),
+  }) as never,
 );

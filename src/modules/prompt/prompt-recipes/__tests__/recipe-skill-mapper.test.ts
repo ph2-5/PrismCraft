@@ -47,7 +47,6 @@ describe("recipe-skill-mapper", () => {
     });
 
     it("未知配方返回 null", () => {
-      // @ts-expect-error 测试未知 id
       expect(getRecipe("nonexistent")).toBeNull();
     });
   });
@@ -109,10 +108,7 @@ describe("recipe-skill-mapper", () => {
     });
 
     it("未知配方抛错", () => {
-      expect(() =>
-        // @ts-expect-error 测试未知 id
-        applyRecipe("nonexistent"),
-      ).toThrow();
+      expect(() => applyRecipe("nonexistent")).toThrow();
     });
   });
 
@@ -132,14 +128,13 @@ describe("recipe-skill-mapper", () => {
     });
 
     it("未知配方返回空数组", () => {
-      // @ts-expect-error 测试未知 id
       expect(getRecipeSkillIds("nonexistent")).toEqual([]);
     });
   });
 
   describe("自定义配方注册", () => {
     it("注册自定义配方后可查询", () => {
-      const custom: Recipe = {
+      const custom: { id: string } & Omit<Recipe, "id"> = {
         id: "custom_test",
         name: "测试配方",
         nameEn: "Test",
@@ -158,7 +153,7 @@ describe("recipe-skill-mapper", () => {
     });
 
     it("注销自定义配方后不可查询", () => {
-      const custom: Recipe = {
+      const custom: { id: string } & Omit<Recipe, "id"> = {
         id: "custom_test_2",
         name: "测试配方2",
         nameEn: "Test2",

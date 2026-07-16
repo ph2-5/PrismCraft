@@ -188,20 +188,23 @@ const RECIPES: Record<RecipeId, Recipe> = {
 };
 
 // === 索引 ===
-const RECIPE_INDEX: Map<RecipeId, Recipe> = new Map(
+const RECIPE_INDEX: Map<string, Recipe> = new Map(
   Object.entries(RECIPES).map(([id, r]) => [id as RecipeId, r]),
 );
 
 // 内置配方 id 集合（用于区分内置与自定义，注销时只移除自定义）
 const BUILTIN_RECIPE_IDS: Set<string> = new Set(Object.keys(RECIPES));
 
-// 自定义配方存储（用于注销判断）
-const customRecipes = new Map<RecipeId, Recipe>();
+// 自定义配方存储（用于注销判断）—— key 为 string 以支持自定义配方 id
+const customRecipes = new Map<string, Recipe>();
 
 /**
  * 按 id 获取配方。
+ *
+ * 注意：参数类型为 string 而非 RecipeId，以支持自定义配方（registerCustomRecipe
+ * 允许任意 string 作为 id）。内置配方的 id 仍然是 RecipeId 字面量联合类型。
  */
-export function getRecipe(id: RecipeId): Recipe | null {
+export function getRecipe(id: string): Recipe | null {
   return RECIPE_INDEX.get(id) ?? null;
 }
 
@@ -217,7 +220,7 @@ export function listRecipes(): Recipe[] {
  *
  * 返回的字符串可直接拼入最终 prompt。
  */
-export function applyRecipe(id: RecipeId): string {
+export function applyRecipe(id: string): string {
   const recipe = getRecipe(id);
   if (!recipe) {
     throw new Error(`[applyRecipe] unknown recipe: ${id}`);
@@ -268,7 +271,7 @@ export function applyRecipe(id: RecipeId): string {
 /**
  * 获取配方涉及的 Skill id 列表（用于 UI 展示哪些 Skill 被激活）。
  */
-export function getRecipeSkillIds(id: RecipeId): string[] {
+export function getRecipeSkillIds(id: string): string[] {
   const recipe = getRecipe(id);
   return recipe ? recipe.skillCombination.skillIds : [];
 }
@@ -276,13 +279,16 @@ export function getRecipeSkillIds(id: RecipeId): string[] {
 /**
  * 自定义配方注册（用户可在 UI 创建自定义配方）。
  * 注意：自定义配方不会持久化到本文件，由调用方负责持久化。
+ *
+ * 类型设计：recipe.id 为 string 而非 RecipeId，允许用户使用任意字符串作为 id。
+ * RecipeId 字面量联合类型仅用于内置配方的类型保护。
  */
-export function registerCustomRecipe(recipe: Recipe): void {
-  customRecipes.set(recipe.id, recipe);
-  RECIPE_INDEX.set(recipe.id, recipe);
+export function registerCustomRecipe(recipe: { id: string } & Omit<Recipe, "id">): void {
+  customRecipes.set(recipe.id, recipe as Recipe);
+  RECIPE_INDEX.set(recipe.id, recipe as Recipe);
 }
 
-export function unregisterCustomRecipe(id: RecipeId): void {
+export function unregisterCustomRecipe(id: string): void {
   // 仅当该配方是自定义配方时才从索引移除（避免移除内置配方）
   if (customRecipes.has(id) && !BUILTIN_RECIPE_IDS.has(id)) {
     customRecipes.delete(id);

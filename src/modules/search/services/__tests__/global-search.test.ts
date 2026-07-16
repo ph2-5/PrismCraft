@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { AppError } from "@/domain/types/result";
 
 // ============= Mock 各 service =============
 
@@ -166,7 +167,7 @@ describe("global-search", () => {
       const { characterService } = await import("@/modules/character");
       vi.mocked(characterService.getAll).mockResolvedValueOnce({
         ok: false,
-        error: new Error("DB error"),
+        error: new AppError("DATABASE_ERROR", "DB error"),
       });
 
       const { counts } = await globalSearch("勇者", { assetType: "character" });

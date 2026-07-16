@@ -4,11 +4,25 @@ const logger = getLogger("migrations");
 
 const VALID_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
+/**
+ * 允许的列类型白名单（含简单 DEFAULT 字面量）。
+ * 迁移脚本中的 type 字段虽来自代码常量，但仍通过白名单校验
+ * 防止未来误拼接用户输入。
+ */
+const VALID_COLUMN_TYPE = /^(TEXT|INTEGER|REAL|BLOB|NUMERIC|BOOLEAN)(\s+DEFAULT\s+([0-9]+|'[a-zA-Z0-9_\-:]*'|\([^)]*\)))?$/i;
+
 function sanitizeIdentifier(name: string): string {
   if (!VALID_IDENTIFIER.test(name)) {
     throw new Error(`Invalid SQL identifier in migration: ${name}`);
   }
   return `"${name}"`;
+}
+
+function sanitizeColumnType(type: string): string {
+  if (!VALID_COLUMN_TYPE.test(type)) {
+    throw new Error(`Invalid SQL column type in migration: ${type}`);
+  }
+  return type;
 }
 
 export const CURRENT_SCHEMA_VERSION = 6;
@@ -30,7 +44,7 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     ];
     for (const { table, column, type } of columns) {
       try {
-        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${type};`);
+        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${sanitizeColumnType(type)};`);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         if (!msg.includes("duplicate column")) {
@@ -46,7 +60,7 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     ];
     for (const { table, column, type } of columns) {
       try {
-        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${type};`);
+        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${sanitizeColumnType(type)};`);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         if (!msg.includes("duplicate column")) {
@@ -63,7 +77,7 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     ];
     for (const { table, column, type } of columns) {
       try {
-        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${type};`);
+        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${sanitizeColumnType(type)};`);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         if (!msg.includes("duplicate column")) {
@@ -78,7 +92,7 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     ];
     for (const { table, column, type } of columns) {
       try {
-        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${type};`);
+        db.exec(`ALTER TABLE ${sanitizeIdentifier(table)} ADD COLUMN ${sanitizeIdentifier(column)} ${sanitizeColumnType(type)};`);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         if (!msg.includes("duplicate column")) {

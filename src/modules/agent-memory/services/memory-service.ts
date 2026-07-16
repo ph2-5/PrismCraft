@@ -156,11 +156,11 @@ export async function updatePreference(
 ): Promise<boolean> {
   if (!key || typeof key !== "string") return false;
   // 串行化 read-modify-write，防止并发覆盖（复用 archivalWriteChain）
-  const result = archivalWriteChain.then(async () => {
+  const result = archivalWriteChain.then(() => withWriteTimeout(async () => {
     const memory = await getCoreMemory();
     memory.preferences[key] = value;
     return saveCoreMemory(memory);
-  }).catch(() => false);
+  })).catch(() => false);
 
   archivalWriteChain = result.then(() => undefined).catch(() => undefined);
 
@@ -189,13 +189,13 @@ export async function saveFact(key: string, value: string): Promise<boolean> {
 /** 删除事实 */
 export async function removeFact(key: string): Promise<boolean> {
   // 串行化 read-modify-write，防止并发覆盖（复用 archivalWriteChain）
-  const result = archivalWriteChain.then(async () => {
+  const result = archivalWriteChain.then(() => withWriteTimeout(async () => {
     const memory = await getCoreMemory();
     const before = memory.facts.length;
     memory.facts = memory.facts.filter((f) => f.key !== key);
     if (memory.facts.length === before) return true; // 不存在也算成功
     return saveCoreMemory(memory);
-  }).catch(() => false);
+  })).catch(() => false);
 
   archivalWriteChain = result.then(() => undefined).catch(() => undefined);
 
@@ -252,12 +252,36 @@ export async function getAllArchivalMemory(): Promise<ArchivalMemoryEntry[]> {
  */
 let archivalWriteChain: Promise<unknown> = Promise.resolve();
 
+/**
+ * 为 archivalWriteChain 上的 read-modify-write 操作添加超时保护。
+ * 防止单次操作卡住（如 file-http 永久阻塞）导致整条串行链死锁。
+ */
+const WRITE_OP_TIMEOUT_MS = 10000;
+
+function withWriteTimeout<T>(op: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("[memory-service] archival write operation timed out"));
+    }, WRITE_OP_TIMEOUT_MS);
+    op().then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
 /** 追加归档记忆条目 */
 export async function addArchivalMemory(
   entry: Omit<ArchivalMemoryEntry, "id" | "createdAt"> & { id?: string; createdAt?: number },
 ): Promise<boolean> {
   // P1-2 修复：串行化整个 read-modify-write 流程
-  const result = archivalWriteChain.then(async () => {
+  const result = archivalWriteChain.then(() => withWriteTimeout(async () => {
     const all = await getAllArchivalMemory();
     const newEntry: ArchivalMemoryEntry = {
       id: entry.id ?? `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -277,7 +301,7 @@ export async function addArchivalMemory(
     }
 
     return saveArchivalMemory(all);
-  }).catch(() => false);
+  })).catch(() => false);
 
   // 更新链头，使后续调用排队
   archivalWriteChain = result.then(() => undefined).catch(() => undefined);

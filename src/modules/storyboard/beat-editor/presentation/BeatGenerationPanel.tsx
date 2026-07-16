@@ -54,8 +54,7 @@ export function BeatGenerationPanel({
   return (
     <div
       style={{
-        width: 220,
-        flexShrink: 0,
+        width: "100%",
         display: "flex",
         flexDirection: "column",
         gap: 10,

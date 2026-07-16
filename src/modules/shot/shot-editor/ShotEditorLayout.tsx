@@ -18,17 +18,17 @@ interface ShotEditorLayoutProps {
  *
  * ┌──────────────────────────────────────────┐
  * │ header（可选）                            │
- * ├──────────┬──────────┬───────────────────┤
- * │ prompt   │ element  │ preview           │
- * │ (flex:1) │ (300px)  │ (220px)           │
- * ├──────────┴──────────┴───────────────────┤
+ * ├──────────────────┬──────────┬───────────┤
+ * │ prompt           │ element  │ preview   │
+ * │ (flex:1,无上限)  │ (300px)  │ (280px)   │
+ * ├──────────────────┴──────────┴───────────┤
  * │ timeline（固定高度，水平滚动）            │
  * └──────────────────────────────────────────┘
  *
  * 三栏使用 flex 布局，最小窗口 1024×768 不溢出：
- * - 左栏 flex: 1, min-width: 280px
+ * - 左栏 flex: 1, min-width: 280px（无 max-width，占满剩余空间）
  * - 中栏 width: 300px, flex-shrink: 0
- * - 右栏 width: 220px, flex-shrink: 0
+ * - 右栏 width: 280px, flex-shrink: 0
  *
  * 当视口宽度不足时，三栏会出现水平滚动条而非压缩。
  */
@@ -53,10 +53,10 @@ export const ShotEditorLayout = memo(function ShotEditorLayout({
           overflowY: "hidden",
         }}
       >
-        {/* 左栏：提示词编辑 */}
+        {/* 左栏：提示词编辑（flex:1 占满剩余空间，无 max-width 限制） */}
         <section
           aria-label="Prompt editor column"
-          className="flex-1 flex flex-col min-w-[280px] max-w-[600px]"
+          className="flex-1 flex flex-col min-w-[280px]"
           style={{ overflowY: "auto" }}
         >
           {promptColumn}
@@ -71,11 +71,11 @@ export const ShotEditorLayout = memo(function ShotEditorLayout({
           {elementBindingColumn}
         </section>
 
-        {/* 右栏：预览 */}
+        {/* 右栏：预览（280px，比原 220px 更宽敞） */}
         <section
           aria-label="Preview column"
           className="flex-shrink-0 flex flex-col"
-          style={{ width: 220, overflowY: "auto" }}
+          style={{ width: 280, overflowY: "auto" }}
         >
           {previewColumn}
         </section>

@@ -326,7 +326,9 @@ export async function cacheRemoteImageLocally(remoteUrl: string): Promise<string
 
       const result = await new Promise<{ type: "redirect"; url: string } | { type: "data"; data: Buffer }>((resolve, reject) => {
         const client = currentUrl.startsWith("https") ? https : http;
-        client.get(currentUrl, { timeout: 30000 }, (res) => {
+        const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB 上限，防止恶意大图触发 OOM
+        let totalSize = 0;
+        const req = client.get(currentUrl, { timeout: 30000 }, (res) => {
           if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
             const redirectUrl = res.headers.location;
             // 校验重定向协议
@@ -340,7 +342,13 @@ export async function cacheRemoteImageLocally(remoteUrl: string): Promise<string
             return;
           }
           const chunks: Buffer[] = [];
-          res.on("data", (chunk: Buffer) => chunks.push(chunk));
+          res.on("data", (chunk: Buffer) => {
+            chunks.push(chunk);
+            totalSize += chunk.length;
+            if (totalSize > MAX_IMAGE_SIZE) {
+              req.destroy(new Error("Image too large (exceeds 20MB limit)"));
+            }
+          });
           res.on("end", () => resolve({ type: "data", data: Buffer.concat(chunks) }));
           res.on("error", reject);
         }).on("error", reject);

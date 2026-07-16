@@ -56,6 +56,7 @@ import {
 } from "@/shared-logic/prompt";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
+import { errorLogger } from "@/shared/error-logger";
 
 /** 动态查询项目状态，构建状态摘要注入 system prompt */
 async function buildDynamicProjectState(): Promise<string> {
@@ -154,7 +155,7 @@ export class AgentLoop {
       this.llmAbortController = null;
     }
     // P5 断点恢复：标记检查点为中断状态（异步，不阻断）
-    void markInterrupted(this.session.id).catch(() => {});
+    void markInterrupted(this.session.id).catch((e) => errorLogger.warn("[AgentLoop] markInterrupted failed during abort", e));
   }
 
   /** 运行 Agent Loop */
@@ -190,7 +191,7 @@ export class AgentLoop {
 
     this.currentInput = processedInput;
     this.deps.conversationManager.appendUserMessage(this.session, processedInput);
-    void initCheckpoint(this.session, processedInput).catch(() => {});
+    void initCheckpoint(this.session, processedInput).catch((e) => errorLogger.warn("[AgentLoop] initCheckpoint failed", e));
 
     const systemPrompt = await this.buildSystemPrompt(processedInput);
     void this.maybeSummarizeConversation();
@@ -213,19 +214,19 @@ export class AgentLoop {
         }
 
         this.deps.conversationManager.finishStreaming(this.session, finishReason);
-        void saveCheckpoint(this.session, { iteration: i + 1 }).catch(() => {});
+        void saveCheckpoint(this.session, { iteration: i + 1 }).catch((e) => errorLogger.warn("[AgentLoop] saveCheckpoint (iteration) failed", e));
 
         const toolCalls = Array.from(accumulatedToolCalls.values());
         if (toolCalls.length > 0) {
           this.deps.conversationManager.setToolCalls(this.session, toolCalls);
-          void saveCheckpoint(this.session, { toolCallsTotal: toolCalls.length }).catch(() => {});
+          void saveCheckpoint(this.session, { toolCallsTotal: toolCalls.length }).catch((e) => errorLogger.warn("[AgentLoop] saveCheckpoint (toolCallsTotal) failed", e));
           if (this.aborted) { this.handleAbort(); return; }
           const wasAborted = await this.processToolCalls(toolCalls, i);
           if (wasAborted) { this.handleAbort(); return; }
           continue;
         }
 
-        void clearCheckpoint(this.session.id).catch(() => {});
+        void clearCheckpoint(this.session.id).catch((e) => errorLogger.warn("[AgentLoop] clearCheckpoint failed", e));
         return;
       } catch (e) {
         this.handleLLMError(e, assistantMsg);
@@ -328,7 +329,7 @@ export class AgentLoop {
     // P5 断点恢复：工具执行完成后保存检查点
     void saveCheckpoint(this.session, {
       toolCallsCompleted: (this.session.checkpoint?.toolCallsCompleted ?? 0) + toolCalls.length,
-    }).catch(() => {});
+    }).catch((e) => errorLogger.warn("[AgentLoop] saveCheckpoint (toolCallsCompleted) failed", e));
 
     return false;
   }
@@ -404,7 +405,7 @@ export class AgentLoop {
     } catch {
       // 参数解析失败时记录空对象
     }
-    void recordFewShot(tc.function.name, parsedArgs, result, this.currentInput).catch(() => {});
+    void recordFewShot(tc.function.name, parsedArgs, result, this.currentInput).catch((e) => errorLogger.warn("[AgentLoop] recordFewShot failed", e));
   }
 
   /** P1-A：记录审计日志（异步，不阻断循环） */
@@ -440,7 +441,7 @@ export class AgentLoop {
         dangerLevel,
         confirmedByUser: needsConfirm ? !isRejected : undefined,
         specialist: this.config.specialistName,
-      }).catch(() => {});
+      }).catch((e) => errorLogger.warn("[AgentLoop] recordAudit failed", e));
     } catch {
       // 审计日志记录失败时静默，不影响主循环
     }
@@ -452,7 +453,7 @@ export class AgentLoop {
     const maxMinutes = Math.floor((this.config.maxTotalDurationMs ?? 0) / 60000);
     timeoutMsg.content = t("agent.totalDurationExceeded", { minutes: maxMinutes });
     this.deps.conversationManager.finishStreaming(this.session);
-    void markInterrupted(this.session.id).catch(() => {});
+    void markInterrupted(this.session.id).catch((e) => errorLogger.warn("[AgentLoop] markInterrupted failed (totalDurationExceeded)", e));
   }
 
   /** 处理达到最大循环次数 */
@@ -460,15 +461,14 @@ export class AgentLoop {
     const limitMsg = this.deps.conversationManager.startStreamingAssistant(this.session);
     limitMsg.content = t("agent.maxIterationsReached", { count: this.config.maxIterations });
     this.deps.conversationManager.finishStreaming(this.session);
-    void markInterrupted(this.session.id).catch(() => {});
-    void limitMsg;
+    void markInterrupted(this.session.id).catch((e) => errorLogger.warn("[AgentLoop] markInterrupted failed (maxIterationsReached)", e));
   }
 
   /** 处理 LLM 调用失败（返回 success=false） */
   private handleLLMFailure(errorMsg: string, assistantMsg: { content: string }): void {
     this.deps.conversationManager.finishStreaming(this.session);
     assistantMsg.content = assistantMsg.content || `调用失败：${errorMsg}`;
-    void markInterrupted(this.session.id).catch(() => {});
+    void markInterrupted(this.session.id).catch((e) => errorLogger.warn("[AgentLoop] markInterrupted failed (llmFailure)", e));
     this.callbacks.onError?.(new Error(errorMsg));
   }
 
@@ -478,7 +478,7 @@ export class AgentLoop {
     this.deps.conversationManager.finishStreaming(this.session);
     const err = e instanceof Error ? e : new Error(String(e));
     assistantMsg.content = assistantMsg.content || `发生错误：${err.message}`;
-    void markInterrupted(this.session.id).catch(() => {});
+    void markInterrupted(this.session.id).catch((e) => errorLogger.warn("[AgentLoop] markInterrupted failed (llmError)", e));
     this.callbacks.onError?.(err);
   }
 

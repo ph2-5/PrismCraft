@@ -24,19 +24,19 @@
 - `FewShotEntry` — 单条 few-shot 缓存条目类型
 
 ### 运行时缓存服务（services/tool-fewshot-cache.ts）
-- `recordFewShot(toolName, args, result, userQuery)` — 记录一条成功调用的 few-shot（仅 success=true）
-- `getFewShots(toolName, limit?)` — 获取指定工具的 few-shot 条目（最新 limit 条）
-- `getRelevantFewShots(userQuery, limit?)` — 根据用户查询检索相关 few-shot（合并内置 + 运行时，关键词匹配排序）
-- `buildFewShotPrompt(userQuery, limit?)` — 构建 few-shot 提示文本（注入 system prompt）
-- `clearFewShotCache()` — 清空所有运行时缓存
-- `getFewShotStats()` — 获取缓存统计信息（含内置示例统计）
+- `recordFewShot` — 记录一条成功调用的 few-shot（仅 success=true）
+- `getFewShots` — 获取指定工具的 few-shot 条目（最新 limit 条）
+- `getRelevantFewShots` — 根据用户查询检索相关 few-shot（合并内置 + 运行时，关键词匹配排序）
+- `buildFewShotPrompt` — 构建 few-shot 提示文本（注入 system prompt）
+- `clearFewShotCache` — 清空所有运行时缓存
+- `getFewShotStats` — 获取缓存统计信息（含内置示例统计）
 
 ### 内置示例库（services/builtin-fewshot-examples.ts）
 - `BUILTIN_FEWSHOT_EXAMPLES` — 内置示例常量数组（46 条，覆盖 5 个 domain）
-- `getBuiltinFewShotExamples()` — 获取所有内置示例（返回副本）
-- `getBuiltinFewShotsByTool(toolName, limit?)` — 按工具名筛选内置示例
-- `getRelevantBuiltinFewShots(userQuery, limit?)` — 按用户查询检索相关内置示例
-- `getBuiltinFewShotStats()` — 获取内置示例统计
+- `getBuiltinFewShotExamples` — 获取所有内置示例（返回副本）
+- `getBuiltinFewShotsByTool` — 按工具名筛选内置示例
+- `getRelevantBuiltinFewShots` — 按用户查询检索相关内置示例
+- `getBuiltinFewShotStats` — 获取内置示例统计
 
 ## 设计要点
 

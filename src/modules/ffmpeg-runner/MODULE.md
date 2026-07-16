@@ -24,9 +24,6 @@
 
 通过 `@/modules/ffmpeg-runner` 导入。
 
-### 类型
-- `FfmpegResult` — 操作结果结构
-
 ### 可用性检查
 - `checkFfmpegAvailable()` — 检查 ffmpeg 是否可用（带缓存，1 分钟 TTL）
 - `resetFfmpegCache()` — 重置可用性缓存（配置变更后调用）

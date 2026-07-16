@@ -52,6 +52,27 @@ import { FileEmbeddingStore, createEmbeddingStore } from "@/modules/vector-searc
 import type { EmbeddingStore, EmbeddingMeta, RetrievalStrategy, SearchProgress, ProgressCallback } from "@/modules/vector-search";
 ```
 
+### 引擎
+- `VectorSearchEngine` — 策略链调度器类
+- `createDefaultEngine` — 创建默认引擎（含三策略链）
+
+### 策略
+- `ApiVectorStrategy` — API embedding 策略（联网模式）
+- `LocalVectorStrategy` — 本地 ONNX 模型策略（离线模式）
+- `KeywordStrategy` — 关键词策略（兜底）
+- `keywordSearch` — 关键词检索函数
+
+### 存储
+- `FileEmbeddingStore` — 文件存储实现类
+- `createEmbeddingStore` — 创建嵌入存储实例
+
+### 类型
+- `EmbeddingStore` — 嵌入存储接口
+- `EmbeddingMeta` — 嵌入元信息（modelId/dimensions）
+- `RetrievalStrategy` — 检索策略接口
+- `SearchProgress` — 检索进度信息
+- `ProgressCallback` — 进度回调类型
+
 ## 依赖
 
 | 依赖 | 用途 |

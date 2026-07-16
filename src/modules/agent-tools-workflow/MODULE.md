@@ -40,6 +40,41 @@ agent 模块拆分阶段3-5：将 workflow 与 subworkflow 相关工具从 agent
 
 ## Public API
 
+通过 `@/modules/agent-tools-workflow` 导入。
+
+### Workflow 工具（5 个）
+- `createWorkflowTool` — 创建工作流工具（create_workflow）
+- `executeWorkflowTool` — 执行工作流工具（execute_workflow）
+- `batchProcessTool` — 批量处理工具（batch_process）
+- `chainOperationsTool` — 链式操作工具（chain_operations）
+- `scheduleTaskTool` — 调度任务工具（schedule_task）
+- `workflowTools` — 工作流编排工具聚合数组（5 个）
+
+### Subworkflow 工具（9 个）
+- `autoCreateCharacterTool` — 自动创建角色工具（auto_create_character）
+- `autoCreateSceneTool` — 自动创建场景工具（auto_create_scene）
+- `autoPlanStoryboardTool` — 自动规划分镜工具（auto_plan_storyboard）
+- `autoCreateFromNovelTool` — 从小说自动创建工具（auto_create_from_novel）
+- `autoGenerateBeatFullTool` — 完整自动生成分镜工具（auto_generate_beat_full）
+- `autoGenerateVideoFullTool` — 完整自动生成视频工具（auto_generate_video_full）
+- `autoPolishVideoTool` — 自动精修视频工具（auto_polish_video）
+- `autoFindAndImportAssetTool` — 自动查找并导入素材工具（auto_find_and_import_asset）
+- `autoFixCommonErrorsTool` — 自动修复常见错误工具（auto_fix_common_errors）
+- `subworkflowTools` — 子流程工具聚合数组（9 个）
+
+### 共享辅助函数与常量
+- `NOVEL_TEXT_MAX_CHARS` — 小说文本最大字符数常量（用于 auto_create_from_novel 输入校验）
+- `generateJsonWithAI` — 调用 AI 生成单个 JSON 对象的辅助函数
+- `generateJsonArrayWithAI` — 调用 AI 生成 JSON 数组的辅助函数
+- `executeTool` — 通过 DI container 执行工具调用的辅助函数
+- `pollVideoTask` — 轮询视频任务直至完成的辅助函数
+- `toStringArray` — 将未知类型安全转换为 string[] 的辅助函数
+
+### 工具聚合数组
+- `allWorkflowTools` — 全部 14 个工作流工具的聚合数组（workflow + subworkflow）
+
+### 类型签名
+
 ```typescript
 // 工具实现（14 个）
 export { createWorkflowTool, executeWorkflowTool, batchProcessTool, chainOperationsTool, scheduleTaskTool } from "./workflow-tools";

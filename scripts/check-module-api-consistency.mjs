@@ -60,20 +60,20 @@ function extractApiNamesFromModuleMd(content) {
 
   // 1. Explicit documentation: list format `- `apiName`` and table format | `apiName` |
   // These are "documented" — used for both missing and stale checks
-  const linePattern = /^-\s+`([a-zA-Z][a-zA-Z0-9_]+)`/gm;
+  const linePattern = /^-\s+`([a-zA-Z_][a-zA-Z0-9_]+)`/gm;
   let match;
   while ((match = linePattern.exec(apiSection)) !== null) {
     if (!skipWords.has(match[1])) result.documented.add(match[1]);
   }
 
-  const tablePattern = /\|\s*`?([a-zA-Z][a-zA-Z0-9_]+)`?\s*\|/g;
+  const tablePattern = /\|\s*`?([a-zA-Z_][a-zA-Z0-9_]+)`?\s*\|/g;
   while ((match = tablePattern.exec(apiSection)) !== null) {
     if (!skipWords.has(match[1])) result.documented.add(match[1]);
   }
 
   // 2. Inline code outside code blocks: `apiName`
   const textOutsideCodeBlocks = apiSection.replace(/```[\s\S]*?```/g, "");
-  const inlineCodePattern = /`([a-zA-Z][a-zA-Z0-9_]+)`/g;
+  const inlineCodePattern = /`([a-zA-Z_][a-zA-Z0-9_]+)`/g;
   while ((match = inlineCodePattern.exec(textOutsideCodeBlocks)) !== null) {
     if (!skipWords.has(match[1])) result.documented.add(match[1]);
   }
@@ -89,21 +89,21 @@ function extractApiNamesFromModuleMd(content) {
       if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("```") || trimmed.startsWith("*")) continue;
 
       // Match: `apiName(` — function call or declaration
-      const funcMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9_]+)\s*\(/);
+      const funcMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]+)\s*\(/);
       if (funcMatch && !skipWords.has(funcMatch[1])) {
         result.declared.add(funcMatch[1]);
         continue;
       }
 
       // Match: `apiName.something(` — service method call (extract service name)
-      const serviceMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9_]+)\.[a-zA-Z]/);
+      const serviceMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]+)\.[a-zA-Z]/);
       if (serviceMatch && !skipWords.has(serviceMatch[1])) {
         result.declared.add(serviceMatch[1]);
         continue;
       }
 
       // Match: `apiName:` or `apiName =` — constant/type declaration
-      const constMatch = trimmed.match(/^(?:export\s+)?(?:type\s+|const\s+|interface\s+|class\s+)?([a-zA-Z][a-zA-Z0-9_]+)\s*[:=]/);
+      const constMatch = trimmed.match(/^(?:export\s+)?(?:type\s+|const\s+|interface\s+|class\s+)?([a-zA-Z_][a-zA-Z0-9_]+)\s*[:=]/);
       if (constMatch && !skipWords.has(constMatch[1])) {
         result.declared.add(constMatch[1]);
         continue;

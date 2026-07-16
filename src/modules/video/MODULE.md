@@ -32,6 +32,14 @@
 
 **utils**: `detectVideoCodec`、`isCodecSupportedByProvider`、`extractVideoFrames`、`downloadJSONFile`、`videoTemplates`、`templateCategories`、`getTemplatesByCategory`、`applyVideoTemplate`、`VideoTemplate`
 
+### 诊断 UI 组件与类型（task-management）
+- `TaskDiagnosticPanel` — 任务诊断面板组件
+- `AgentBar` — Agent 状态栏组件
+- `TaskErrorGroup` — 任务错误分组组件
+- `ProviderHealthCard` — Provider 健康状态卡片组件
+- `DiagnoseResult` — 诊断结果类型
+- `ProviderHealth` — Provider 健康状态类型
+
 ---
 
 ### 任务管理子域 (`task-management`)

@@ -27,46 +27,47 @@
 - `ArchivalMemoryEntry` — 归档记忆条目（re-export from @/domain/types/memory）
 
 ### 核心记忆操作
-- `getCoreMemory()` — 读取核心记忆
-- `saveCoreMemory(memory)` — 保存核心记忆
-- `updatePreference(key, value)` — 更新单个偏好
-- `saveFact(key, value)` — 保存事实（同 key 覆盖）
-- `removeFact(key)` — 删除事实
-- `removePreference(key)` — 删除偏好
-- `clearCoreMemory()` — 清空核心记忆
-- `getCoreMemorySize()` — 获取核心记忆大小
-- `getArchivalMemoryCount()` — 获取归档记忆条数
+- `getCoreMemory` — 读取核心记忆
+- `saveCoreMemory` — 保存核心记忆
+- `updatePreference` — 更新单个偏好
+- `saveFact` — 保存事实（同 key 覆盖）
+- `removeFact` — 删除事实
+- `removePreference` — 删除偏好
+- `clearCoreMemory` — 清空核心记忆
+- `getCoreMemorySize` — 获取核心记忆大小
+- `getArchivalMemoryCount` — 获取归档记忆条数
 
 ### 归档记忆操作
-- `getAllArchivalMemory()` — 读取所有归档记忆
-- `addArchivalMemory(entry)` — 追加归档记忆（串行化锁防并发覆盖）
-- `searchArchivalMemory(query, limit?)` — 搜索归档记忆（向量检索 + 关键词降级）
-- `deleteArchivalMemory(id)` — 删除归档记忆
+- `getAllArchivalMemory` — 读取所有归档记忆
+- `addArchivalMemory` — 追加归档记忆（串行化锁防并发覆盖）
+- `searchArchivalMemory` — 搜索归档记忆（向量检索 + 关键词降级）
+- `deleteArchivalMemory` — 删除归档记忆
 
 ### System Prompt 注入
-- `buildCoreMemoryPrompt()` — 构建核心记忆 prompt 片段
-- `searchRelevantMemory(userMessage, limit?)` — RAG 检索相关记忆
+- `buildCoreMemoryPrompt` — 构建核心记忆 prompt 片段
+- `searchRelevantMemory` — RAG 检索相关记忆
 
 ### 自动抽取与摘要
-- `shouldExtract(messages)` — 判断是否触发自动抽取
-- `extractFromConversation(messages, sessionId?, options?)` — 从对话抽取记忆
-- `applyExtractedMemory(extracted, sessionId?)` — 应用抽取结果
-- `summarizeConversation(messages, existingSummary?)` — 摘要对话历史
-- `searchRelevant(userMessage, limit?)` — IMemoryService 接口方法
+- `shouldExtract` — 判断是否触发自动抽取
+- `extractFromConversation` — 从对话抽取记忆
+- `applyExtractedMemory` — 应用抽取结果
+- `summarizeConversation` — 摘要对话历史
 
 ### 种子记忆
-- `ensureSeedMemory()` — 确保种子记忆初始化（首次启动注入）
-- `getSeedMemoryStats()` — 获取种子记忆统计
-- `resetSeedMemoryFlag()` — 重置种子记忆标志
-- `prewarmEmbeddings()` — 预热嵌入向量
+- `ensureSeedMemory` — 确保种子记忆初始化（首次启动注入）
+- `getSeedMemoryStats` — 获取种子记忆统计
+- `resetSeedMemoryFlag` — 重置种子记忆标志
+- `prewarmEmbeddings` — 预热嵌入向量
 
-### 单例与测试工具
+### 单例
 - `memoryService` — MemoryService 单例
 - `MemoryService` — 服务类（implements IMemoryService）
-- `_setSearchEngine(engine)` — 测试用：设置搜索引擎
-- `_resetSearchEngine()` — 测试用：重置搜索引擎
-- `_getTestEmbeddingStore()` — 测试用：获取嵌入存储
-- `_resetAllMemory()` — 测试用：重置所有记忆
+
+### 测试辅助（_ 前缀，仅测试用）
+- `_setSearchEngine` — 测试用：设置搜索引擎
+- `_resetSearchEngine` — 测试用：重置搜索引擎
+- `_getTestEmbeddingStore` — 测试用：获取嵌入存储
+- `_resetAllMemory` — 测试用：重置所有记忆
 
 ## 设计要点
 

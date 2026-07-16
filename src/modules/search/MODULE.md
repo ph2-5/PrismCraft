@@ -31,9 +31,9 @@ Task 4.6 新增模块。统一搜索入口，支持模糊匹配 + 标签搜索 +
 通过 `@/modules/search` 导入。
 
 ### 搜索服务
-- `globalSearch(term, options?)` — 跨四类资源搜索，返回 `{ results, total, counts }`
-- `quickSearch(term)` — 简化搜索（仅返回 `SearchResult[]`，兼容 SearchDialog.onSearch 签名）
-- `getSearchResultRoute(result)` — 获取搜索结果对应的路由路径
+- `globalSearch` — 跨四类资源搜索，返回 `{ results, total, counts }`
+- `quickSearch` — 简化搜索（仅返回 `SearchResult[]`，兼容 SearchDialog.onSearch 签名）
+- `getSearchResultRoute` — 获取搜索结果对应的路由路径
 
 ### 类型
 - `GlobalSearchOptions` — 搜索选项（assetType / tag / limitPerType / totalLimit）

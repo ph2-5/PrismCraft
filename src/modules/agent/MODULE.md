@@ -24,85 +24,35 @@
 ## Public API
 
 ### Hooks
-- `useAgent` — 主 Hook，管理会话/流式/工具状态，返回 `UseAgentReturn`
 - `UseAgentReturn` — useAgent 返回值类型
 - `AgentSettings` — Agent 设置类型
 
 ### React 组件
 - `AgentPage` — 主页面组件
-- `MarkdownRenderer` — Markdown 渲染组件（带代码高亮）
-- `AgentSettingsPanel` — Agent 设置面板（API 配置、人格选择、参数调整）
-- `getPersonaPrompt` — 获取人格模板的提示词
-- `SessionHistory` — 会话历史组件
-- `CheckpointRecovery` — 断点恢复组件（P5）
-- `ToolPluginManager` — 工具插件管理组件（P3）
-- `ToolPluginEditor` — 工具插件编辑器组件（P3）
-- `SpecialistPanel` — 专家子 Agent 面板组件（P4）
 
 ### 核心服务（高级用法/测试）
-- `AgentLoop` — Agent Loop 核心类
-- `runAgentLoop` — 启动 Agent Loop
 - `toolRegistry` — 工具注册表（单例）
 - `toolExecutor` — 工具执行器（单例）
 - `conversationManager` — 会话管理器（单例）
 
 ### 记忆服务
+记忆系统（三层记忆架构 + 自动抽取 + 向量检索委托）已拆分至 `@/modules/agent-memory`，详见该模块的 MODULE.md。
+agent barrel 仍 re-export `memoryService` / `MemoryService` / `prewarmEmbeddings` 及相关类型保持向后兼容。
+`AgentMessage` 和 `IMemoryService` 仍归属于 agent 模块（Agent 核心类型/端口接口），agent-memory 通过 `import type` 引用。
 - `memoryService` — 记忆服务单例
 - `MemoryService` — 记忆服务类
-- `ensureSeedMemory` — 确保种子记忆初始化
-- `getSeedMemoryStats` — 获取种子记忆统计
-- `resetSeedMemoryFlag` — 重置种子记忆标志
 - `prewarmEmbeddings` — 预热嵌入向量
 
 ### 会话持久化
 会话存储 + 断点恢复已拆分至 `@/modules/agent-session`，详见该模块的 MODULE.md。
 agent barrel 仍 re-export `listSessions` 和 `SessionListItem` 保持向后兼容。
-
-### 工具注册
-- `registerAllTools` — 注册所有 150 个工具（幂等，应用启动时调用）
-- `loadToolPlugins` — 加载工具插件
-
-### 审计日志
-审计日志已拆分至 `@/modules/audit-log`，详见该模块的 MODULE.md。
-
-### Few-Shot 缓存
-工具调用 few-shot 缓存（内置示例 + 运行时缓存）已拆分至 `@/modules/agent-fewshot`，详见该模块的 MODULE.md。
-agent-loop 通过 `@/modules/agent-fewshot` 导入 `recordFewShot` / `buildFewShotPrompt` 完成调用记录与 system prompt 注入。
-
-### 记忆服务
-记忆系统（三层记忆架构 + 自动抽取 + 向量检索委托）已拆分至 `@/modules/agent-memory`，详见该模块的 MODULE.md。
-agent barrel 仍 re-export `memoryService` / `MemoryService` / `prewarmEmbeddings` 及相关类型保持向后兼容。
-`AgentMessage` 和 `IMemoryService` 仍归属于 agent 模块（Agent 核心类型/端口接口），agent-memory 通过 `import type` 引用。
-
-### 工具插件（P3）
-- `loadToolPlugin` — 加载单个工具插件
-- `unloadPlugin` — 卸载插件
-- `listLoadedPlugins` — 列出已加载插件
-- `saveToolPluginFile` — 保存插件文件
-- `deleteToolPluginFile` — 删除插件文件
-- `listToolPluginFiles` — 列出插件文件
-- `loadAllToolPlugins` — 加载所有工具插件
-- `ensureToolPluginsLoaded` — 确保插件已加载（幂等）
-- `ToolPluginConfig` — 工具插件配置类型
-- `ToolPluginTool` — 工具插件工具定义类型
-- `ToolPluginAction` — 工具插件动作类型
-- `HttpCallAction` — HTTP 调用动作类型
-- `BuiltinMirrorAction` — 内置镜像动作类型
-- `TextTemplateAction` — 文本模板动作类型
-- `ToolPluginLoadResult` — 插件加载结果类型
-- `ToolPluginsConfig` — 插件集合配置类型
+- `listSessions` — 列出所有会话
+- `SessionListItem` — 会话列表项类型
 
 ### 多 Agent 编排（P4）
-- `specialistRegistry` — 专家注册表单例
-- `SpecialistRegistry` — 专家注册表类
 - `runSpecialist` — 运行专家子 Agent
 - `listAvailableSpecialists` — 列出可用专家
 - `SpecialistAgent` — 专家 Agent 类型
-- `BUILTIN_SPECIALISTS` — 内置专家列表
-
-### 断点恢复（P5）
-断点恢复已拆分至 `@/modules/agent-session`，详见该模块的 MODULE.md。
-agent barrel 仍 re-export `SessionCheckpoint`/`CheckpointStatus`/`CheckpointIndexEntry` 类型保持向后兼容。
 
 ### Port 接口（DI 化）
 - `IConversationManager` — 会话管理器端口接口
@@ -129,11 +79,32 @@ agent barrel 仍 re-export `SessionCheckpoint`/`CheckpointStatus`/`CheckpointInd
 - `ArchivalMemoryEntry` — 归档记忆条目类型
 - `ExtractedMemory` — 提取记忆类型
 - `createEmptySession` — 创建空会话
-- `DEFAULT_AGENT_CONFIG` — 默认配置
-- `DEFAULT_CONTEXT_BUDGET` — 默认上下文预算
-- `AGENT_PERSONAS` — 人格模板映射
-- `DEFAULT_SYSTEM_PROMPT` — 默认系统提示词
+- `generateMessageId` — 生成消息 ID
 - `AgentPersona` — 人格模板类型
+
+### 工具插件类型
+- `ToolPluginConfig` — 工具插件配置类型
+- `ToolPluginTool` — 工具插件工具定义类型
+- `ToolPluginAction` — 工具插件动作类型
+- `HttpCallAction` — HTTP 调用动作类型
+- `BuiltinMirrorAction` — 内置镜像动作类型
+- `TextTemplateAction` — 文本模板动作类型
+- `ToolPluginLoadResult` — 插件加载结果类型
+- `ToolPluginsConfig` — 插件集合配置类型
+
+### 断点恢复（P5）
+断点恢复已拆分至 `@/modules/agent-session`，详见该模块的 MODULE.md。
+agent barrel 仍 re-export `SessionCheckpoint`/`CheckpointStatus`/`CheckpointIndexEntry` 类型保持向后兼容。
+- `SessionCheckpoint` — 会话检查点类型
+- `CheckpointStatus` — 检查点状态类型
+- `CheckpointIndexEntry` — 检查点索引条目类型
+
+### 审计日志
+审计日志已拆分至 `@/modules/audit-log`，详见该模块的 MODULE.md。
+
+### Few-Shot 缓存
+工具调用 few-shot 缓存（内置示例 + 运行时缓存）已拆分至 `@/modules/agent-fewshot`，详见该模块的 MODULE.md。
+agent-loop 通过 `@/modules/agent-fewshot` 导入 recordFewShot / buildFewShotPrompt 完成调用记录与 system prompt 注入。
 
 ## 边界约束
 

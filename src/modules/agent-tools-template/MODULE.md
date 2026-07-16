@@ -30,6 +30,24 @@ agent 模块拆分阶段：将项目模板管理与 Prompt 模板管理工具从
 
 ## Public API
 
+通过 `@/modules/agent-tools-template` 导入。
+
+### 项目模板工具（5 个）
+- `listTemplatesTool` — 列出模板工具（list_templates）
+- `applyTemplateTool` — 应用模板工具（apply_template）
+- `createTemplateTool` — 创建模板工具（create_template）
+- `importTemplateTool` — 导入模板工具（import_template）
+- `exportTemplateTool` — 导出模板工具（export_template）
+- `templateTools` — 项目模板工具聚合数组（5 个）
+
+### Prompt 模板工具（4 个）
+- `promptTemplateTools` — Prompt 模板管理工具聚合数组（4 个）
+
+### 工具聚合数组
+- `allTemplateTools` — 全部 9 个模板工具的聚合数组（项目模板 + Prompt 模板）
+
+### 类型签名
+
 ```typescript
 // template-tools（5 个）
 export {

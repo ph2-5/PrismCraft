@@ -121,7 +121,7 @@ interface StoryPlanningOptions { maxRetries?: number; autoFix?: boolean; fewShot
 interface StoryPlanningResult { beats: StoryBeat[]; autoFixedCount: number; retryCount: number; fixDetails: string[] }
 ```
 
-Exported types: `PlaceholderBinding`, `QuickStoryData`
+> Note: PlaceholderBinding 和 QuickStoryData 为 planning 子域内部类型，未通过 barrel 导出。
 
 ### 引用解析
 

@@ -298,14 +298,30 @@ class SsrfGuard {
         return;
       }
 
-      const timeout = setTimeout(() => {
-        const policy = this.dnsFailurePolicy ?? "deny";
-        if (policy === "deny") {
-          resolve({ safe: false, reason: "DNS resolution timeout" });
-        } else {
-          logger.warn("DNS resolution timed out, allowing due to policy", { hostname, timeoutMs: 3000 });
-          resolve({ safe: true });
+      // 标记是否已完成（防止超时和正常路径重复 resolve）
+      let settled = false;
+      const settleOnce = (result: SsrfValidationResult) => {
+        if (!settled) {
+          settled = true;
+          resolve(result);
         }
+      };
+
+      // 超时回调：c-ares 在某些 Windows 环境下会卡住或返回 ECONNREFUSED，
+      // 此时先尝试 dns.lookup（系统 DNS）fallback，而不是直接拒绝。
+      // 只有 dns.lookup 也失败时才按 dnsFailurePolicy 处理。
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        logger.warn("c-ares DNS resolution timed out, trying dns.lookup fallback", { hostname, timeoutMs: 3000 });
+        dns.lookup(hostname, { all: true, family: 0 }, (lookupErr, lookupAddresses) => {
+          if (settled) return;
+          if (lookupErr || lookupAddresses.length === 0) {
+            settleOnce(this.handleDnsFailure(hostname, "DNS resolution timeout"));
+            return;
+          }
+          const ips = lookupAddresses.map((a) => a.address);
+          settleOnce(this.checkIpsAndCache(hostname, ips, "DNS lookup (timeout fallback) resolved to private IP"));
+        });
       }, 3000);
 
       // 并行解析 IPv4 和 IPv6，对两个地址列表都做私有 IP 检查。
@@ -324,6 +340,7 @@ class SsrfGuard {
         }),
       ])
         .then(([v4Addrs, v6Addrs]) => {
+          if (settled) return;
           clearTimeout(timeout);
 
           const allAddrs = [...v4Addrs, ...v6Addrs];
@@ -332,12 +349,13 @@ class SsrfGuard {
           // 与 fetch/http.request 使用的解析方式一致，确保 DNS rebinding 防护仍然有效。
           if (allAddrs.length === 0) {
             dns.lookup(hostname, { all: true, family: 0 }, (lookupErr, lookupAddresses) => {
+              if (settled) return;
               if (lookupErr || lookupAddresses.length === 0) {
-                resolve(this.handleDnsFailure(hostname, `DNS resolution failed: ${lookupErr?.message || "no addresses returned"}`));
+                settleOnce(this.handleDnsFailure(hostname, `DNS resolution failed: ${lookupErr?.message || "no addresses returned"}`));
                 return;
               }
               const ips = lookupAddresses.map((a) => a.address);
-              resolve(this.checkIpsAndCache(hostname, ips, "DNS lookup resolved to private IP"));
+              settleOnce(this.checkIpsAndCache(hostname, ips, "DNS lookup resolved to private IP"));
             });
             return;
           }
@@ -345,7 +363,7 @@ class SsrfGuard {
           // 检查所有 IPv4 地址
           for (const ip of v4Addrs) {
             if (this.isPrivateIp(ip)) {
-              resolve({ safe: false, reason: `DNS resolved to private IPv4: ${ip}`, resolvedIp: ip });
+              settleOnce({ safe: false, reason: `DNS resolved to private IPv4: ${ip}`, resolvedIp: ip });
               return;
             }
           }
@@ -353,17 +371,18 @@ class SsrfGuard {
           // 检查所有 IPv6 地址
           for (const ip of v6Addrs) {
             if (this.isPrivateIp(ip)) {
-              resolve({ safe: false, reason: `DNS resolved to private IPv6: ${ip}`, resolvedIp: ip });
+              settleOnce({ safe: false, reason: `DNS resolved to private IPv6: ${ip}`, resolvedIp: ip });
               return;
             }
           }
 
           // 所有地址都是公网，优先使用第一个 IPv4 地址
-          resolve(this.checkIpsAndCache(hostname, allAddrs, "DNS resolved to private IP"));
+          settleOnce(this.checkIpsAndCache(hostname, allAddrs, "DNS resolved to private IP"));
         })
         .catch(() => {
+          if (settled) return;
           clearTimeout(timeout);
-          resolve(this.handleDnsFailure(hostname, "DNS resolution failed"));
+          settleOnce(this.handleDnsFailure(hostname, "DNS resolution failed"));
         });
     });
   }

@@ -188,7 +188,7 @@ describe("SsrfGuard", () => {
       });
       const result = await g.validate("https://nonexistent-domain-xyz123.com/api");
       expect(result.safe).toBe(true);
-    });
+    }, 15000);
 
     it("dnsFailurePolicy=deny 时 DNS 失败应拦截", async () => {
       const g = new SsrfGuard({
@@ -197,6 +197,6 @@ describe("SsrfGuard", () => {
       });
       const result = await g.validate("https://nonexistent-domain-xyz123.com/api");
       expect(result.safe).toBe(false);
-    });
+    }, 15000);
   });
 });

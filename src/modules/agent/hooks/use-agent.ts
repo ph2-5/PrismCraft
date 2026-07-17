@@ -185,7 +185,10 @@ export function useAgent(): UseAgentReturn {
   useEffect(() => {
     registerAllTools();
     // P3 工具插件化：异步加载用户工具插件（不阻塞 UI）
-    void loadToolPlugins();
+    // 失败时记录警告，不阻塞 UI 主流程
+    void loadToolPlugins().catch((err) => {
+      errorLogger.warn("[useAgent] loadToolPlugins 失败", err instanceof Error ? err : undefined);
+    });
   }, []);
 
   // 持久化设置
@@ -222,8 +225,8 @@ export function useAgent(): UseAgentReturn {
     try {
       const items = await listSessions();
       setHistorySessions(items);
-    } catch {
-      // 静默失败，历史列表不影响主流程
+    } catch (err) {
+      errorLogger.warn("[useAgent] 刷新历史会话列表失败", err instanceof Error ? err : undefined);
     }
   }, []);
 
@@ -232,8 +235,8 @@ export function useAgent(): UseAgentReturn {
     try {
       const items = await listInterruptedSessions();
       setInterruptedSessions(items);
-    } catch {
-      // 静默失败
+    } catch (err) {
+      errorLogger.warn("[useAgent] 刷新中断会话列表失败", err instanceof Error ? err : undefined);
     }
   }, []);
 

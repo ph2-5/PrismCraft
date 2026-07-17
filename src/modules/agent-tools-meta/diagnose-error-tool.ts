@@ -15,6 +15,7 @@
 import type { ToolImpl } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
+import { errorLogger } from "@/shared/error-logger";
 
 /** 诊断错误（用 AI 分析错误信息，推断原因与修复建议） */
 export const diagnoseErrorTool: ToolImpl = {
@@ -64,8 +65,8 @@ export const diagnoseErrorTool: ToolImpl = {
     if (errorContext.args) {
       try {
         contextLines.push(`- 参数: ${JSON.stringify(errorContext.args)}`);
-      } catch {
-        // ignore
+      } catch (err) {
+        errorLogger.warn("[DiagnoseErrorTool] 序列化错误参数失败", err);
       }
     }
     const contextStr = contextLines.length > 0 ? contextLines.join("\n") : "（无）";
@@ -123,8 +124,8 @@ ${contextStr}
         if (match) {
           try {
             parsed = JSON.parse(match[1]!.trim());
-          } catch {
-            // ignore
+          } catch (err) {
+            errorLogger.warn("[DiagnoseErrorTool] 解析 JSON 代码块失败", err);
           }
         }
       }

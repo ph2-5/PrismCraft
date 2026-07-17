@@ -61,6 +61,7 @@ import {
   type ProgressCallback,
 } from "@/modules/vector-search";
 import { SEED_MEMORY_ENTRIES } from "./memory-service-seed-data";
+import { errorLogger } from "@/shared/error-logger";
 
 // Re-export memory types from domain/types for backward compatibility
 export type {
@@ -134,7 +135,8 @@ export async function getCoreMemory(): Promise<CoreMemory> {
         )
       : [];
     return { preferences, facts };
-  } catch {
+  } catch (err) {
+    errorLogger.warn("[MemoryService] 读取核心记忆失败", err);
     return { ...EMPTY_CORE_MEMORY };
   }
 }

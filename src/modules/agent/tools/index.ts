@@ -10,6 +10,7 @@
  */
 
 import { toolRegistry } from "../services/tool-registry";
+import { errorLogger } from "@/shared/error-logger";
 // 阶段3-4：meta 工具（config/diagnostic/monitor/help）已拆分至独立模块
 import { configTools, monitorTools, diagnosticTools, helpTools } from "@/modules/agent-tools-meta";
 // 阶段3-4：shot 工具已拆分至独立模块
@@ -95,9 +96,13 @@ export function _resetRegistration(): void {
   registered = false;
   // 同步重置插件加载状态
   // 动态导入避免循环依赖
-  void import("../services/tool-plugin-loader").then(({ _resetToolPlugins }) => {
-    _resetToolPlugins();
-  });
+  void import("../services/tool-plugin-loader")
+    .then(({ _resetToolPlugins }) => {
+      _resetToolPlugins();
+    })
+    .catch((err) => {
+      errorLogger.warn("[tools] _resetToolPlugins 导入失败", err instanceof Error ? err : undefined);
+    });
 }
 
 export { toolRegistry } from "../services/tool-registry";

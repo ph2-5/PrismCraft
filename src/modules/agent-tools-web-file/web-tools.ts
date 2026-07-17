@@ -25,6 +25,7 @@
 
 import type { ToolImpl } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
+import { errorLogger } from "@/shared/error-logger";
 
 // ============= 辅助函数 =============
 
@@ -513,8 +514,8 @@ export const downloadWebAssetTool: ToolImpl = {
         const element = await container.elementStorage.createElement("prop", name);
         assetId = element.id;
       }
-    } catch {
-      // 入库失败不影响下载结果
+    } catch (err) {
+      errorLogger.warn("[WebTools] 素材入库失败", err);
     }
 
     return {

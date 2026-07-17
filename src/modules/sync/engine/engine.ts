@@ -18,6 +18,16 @@ export async function initSyncEngine(
   await engine.init(config);
 }
 
+/**
+ * 销毁 SyncEngine 单例：清理 autoSync timer + 注销 change tracker。
+ *
+ * 应用退出（beforeunload）或 HMR 时应调用，避免 timer 泄漏。
+ * 之后若需再次使用，需重新调用 initSyncEngine。
+ */
+export function destroySyncEngine(): void {
+  engine.destroy();
+}
+
 export function updateSyncConfig(config: Partial<SyncConfig>): void {
   engine.updateConfig(config);
 }

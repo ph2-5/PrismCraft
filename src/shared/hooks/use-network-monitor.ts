@@ -198,6 +198,8 @@ export function useNetworkMonitor(options: NetworkOptions = {}) {
 
   useEffect(() => {
     checkTimerRef.current = setInterval(() => {
+      // 组件卸载后不再 setState，避免 React 警告和无意义的渲染
+      if (!isMountedRef.current) return;
       updateOnlineStatus().catch((err) => {
         logger.warn("[NetworkMonitor] 定时在线状态检查失败:", err);
       });

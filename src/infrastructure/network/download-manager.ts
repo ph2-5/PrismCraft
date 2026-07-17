@@ -137,6 +137,12 @@ async function processTask(taskId: string): Promise<void> {
 function scheduleAutoCleanup(taskId: string): void {
   // 防止同一 taskId 重复调度清理定时器
   if (scheduledCleanups.has(taskId)) return;
+  // 释放 destination 回调闭包：任务已结束（completed/failed），回调不再需要
+  // 避免 30s 清理窗口内保留大块闭包内存
+  const task = tasks.get(taskId);
+  if (task) {
+    task.destination = undefined;
+  }
   const timer = setTimeout(() => {
     scheduledCleanups.delete(taskId);
     removeCompletedTask(taskId);

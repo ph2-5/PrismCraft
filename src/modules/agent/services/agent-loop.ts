@@ -184,8 +184,8 @@ export class AgentLoop {
           sessionMeta.safetyLog = [];
         }
         (sessionMeta.safetyLog as unknown[]).push(safetyLog);
-      } catch {
-        // safety 日志失败静默，不阻断主流程
+      } catch (err) {
+        errorLogger.warn("[AgentLoop] safety 日志记录失败", err);
       }
     }
 
@@ -442,8 +442,8 @@ export class AgentLoop {
         confirmedByUser: needsConfirm ? !isRejected : undefined,
         specialist: this.config.specialistName,
       }).catch((e) => errorLogger.warn("[AgentLoop] recordAudit failed", e));
-    } catch {
-      // 审计日志记录失败时静默，不影响主循环
+    } catch (err) {
+      errorLogger.warn("[AgentLoop] 审计日志记录失败", err);
     }
   }
 
@@ -622,8 +622,8 @@ export class AgentLoop {
           }
         }
       })
-      .catch(() => {
-        // 摘要失败静默，不阻断
+      .catch((err) => {
+        errorLogger.warn("[AgentLoop] 会话摘要失败", err);
       });
   }
 

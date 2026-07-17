@@ -159,3 +159,11 @@ class MemoryLeakDetector {
 
 export const memoryLeakDetector = new MemoryLeakDetector();
 export type { LeakSnapshot, LeakAlert };
+
+// HMR 安全：模块卸载时停止 interval，防止开发环境热更新时旧 singleton 的 timer 泄漏
+// 生产环境（无 import.meta.hot）此代码会被 tree-shake 移除
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    memoryLeakDetector.stop();
+  });
+}

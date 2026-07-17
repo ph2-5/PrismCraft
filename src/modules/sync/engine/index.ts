@@ -32,6 +32,7 @@ export {
 
 export {
   initSyncEngine,
+  destroySyncEngine,
   updateSyncConfig,
   startAutoSync,
   stopAutoSync,

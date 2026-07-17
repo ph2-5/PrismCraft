@@ -298,8 +298,8 @@ async function ensureOutputDir(args: string[]): Promise<void> {
         try {
           const dir = dirname(args[yIdx + 1]!);
           await mkdir(dir, { recursive: true });
-        } catch {
-          // 创建失败不阻断，让 ffmpeg 自己报错
+        } catch (err) {
+          console.warn("[FFmpegHandler] 创建输出目录失败", err);
         }
       }
     }

@@ -17,6 +17,7 @@ import type { ToolExecution } from "../domain/types";
 import { CheckCircle2, Loader2, XCircle, Wrench, Image as ImageIcon, AudioWaveform as AudioIcon, User as UserIcon, Map as MapIcon, Search as SearchIcon } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveImageUrl } from "@/shared/utils/image-url";
+import { errorLogger } from "@/shared/error-logger";
 
 interface ToolCallCardProps {
   execution: ToolExecution;
@@ -32,8 +33,8 @@ export function ToolCallCard({ execution }: ToolCallCardProps) {
     args = toolCall.function.arguments
       ? (JSON.parse(toolCall.function.arguments) as Record<string, unknown>)
       : {};
-  } catch {
-    // ignore
+  } catch (err) {
+    errorLogger.warn("[ToolCallCard] 解析工具参数失败", err);
   }
 
   return (

@@ -209,7 +209,14 @@ export function setupBeforeUnloadHandler(store: StoreAccessor): void {
                 }),
               );
             }
-            void Promise.all(promises);
+            // 防御性 catch：内层每个 promise 已有 .catch，但 Promise.all 本身仍可能
+            // 因 catch handler 抛出而 reject，外层再兜底一次
+            void Promise.all(promises).catch((err) => {
+              errorLogger.warn(
+                "[VideoTaskManager] beforeunload Promise.all 兜底失败",
+                err instanceof Error ? err : undefined,
+              );
+            });
           } else {
             // 未超限，单次发送
             void fetch(bulkSaveUrl, fetchOptions(fullPayload)).catch((err) => {

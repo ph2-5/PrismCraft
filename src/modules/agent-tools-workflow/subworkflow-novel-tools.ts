@@ -15,6 +15,7 @@ import {
   toStringArray,
   NOVEL_TEXT_MAX_CHARS,
 } from "./subworkflow-helpers";
+import { errorLogger } from "@/shared/error-logger";
 
 // ============= 辅助函数（内部使用，不导出） =============
 
@@ -145,8 +146,8 @@ async function createCharactersAndScenes(
         characterIds.push(r.value.id);
         characters.push({ id: r.value.id, name: r.value.name });
       }
-    } catch {
-      // 单个角色创建失败不影响其他
+    } catch (err) {
+      errorLogger.warn("[SubworkflowNovel] 创建角色失败", err);
     }
   }
 
@@ -318,8 +319,8 @@ async function generateKeyframesForBeats(
         validBeats[i] = { ...beat, keyframe: kfResult.value };
         generated++;
       }
-    } catch {
-      // 单个关键帧生成失败不影响其他
+    } catch (err) {
+      errorLogger.warn("[SubworkflowNovel] 生成关键帧失败", err);
     }
   }
   return generated;

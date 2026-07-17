@@ -195,8 +195,8 @@ async function flushToDisk(sessionId: string): Promise<void> {
  */
 function scheduleFlush(sessionId: string): void {
   const prev = flushChains.get(sessionId) ?? Promise.resolve();
-  const next = prev.then(() => flushToDisk(sessionId)).catch(() => {
-    // 单次 flush 失败不阻断后续 flush
+  const next = prev.then(() => flushToDisk(sessionId)).catch((err) => {
+    errorLogger.warn("[AuditStorage] flush 调度失败", err);
   });
   flushChains.set(sessionId, next);
   // 完成后清理引用，防止 Map 无限增长

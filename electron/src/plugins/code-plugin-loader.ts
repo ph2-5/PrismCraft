@@ -211,8 +211,8 @@ export function scanCodePluginFile(filePath: string): { valid: boolean; errors: 
             (p: unknown) => p && typeof p === "object" && typeof (p as Record<string, unknown>).urlPattern === "string",
           ) as Array<{ urlPattern: string; modelPattern?: string }>;
         }
-      } catch {
-        // matchPatterns 解析失败，忽略
+      } catch (err) {
+        console.warn("[CodePluginLoader] matchPatterns 解析失败", err);
       }
     }
 

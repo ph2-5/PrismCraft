@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { initSyncEngine, performSync } from "@/modules/sync";
+import { initSyncEngine, destroySyncEngine, performSync } from "@/modules/sync";
 import { processPendingQueue, cleanCompletedRequests, apiCall } from "@/shared/ai-providers";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
@@ -44,11 +44,26 @@ export function MigrationInitializer() {
       });
     }, 3600000);
 
+    // 应用退出时销毁 SyncEngine 单例的 timer，避免 timer 泄漏
+    // beforeunload 是同步事件，destroySyncEngine 内部只做 clearInterval + 状态重置，无 I/O
+    const handleBeforeUnload = () => {
+      try {
+        destroySyncEngine();
+      } catch (err) {
+        errorLogger.warn("[MigrationInitializer] SyncEngine destroy 失败:", err);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     window.addEventListener("online", handleOnline);
 
     return () => {
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       clearInterval(cleanupInterval);
+      // 组件卸载（HMR / 路由切换）时也销毁 engine，防止 timer 泄漏
+      // 再次挂载时 initSyncEngine 会重新启动
+      destroySyncEngine();
     };
   }, []);
 

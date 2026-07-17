@@ -14,6 +14,7 @@ import { ToolCallCard } from "./ToolCallCard";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { User, Bot, Copy, Check } from "lucide-react";
 import { t, COPY_RESET_DELAY_MS } from "@/shared/constants";
+import { errorLogger } from "@/shared/error-logger";
 
 interface AgentMessageViewProps {
   message: AgentMessage;
@@ -36,8 +37,8 @@ export const AgentMessageView = memo(function AgentMessageView({ message, toolEx
       setCopied(true);
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
       copyTimerRef.current = setTimeout(() => setCopied(false), COPY_RESET_DELAY_MS);
-    } catch {
-      // 剪贴板不可用时静默失败
+    } catch (err) {
+      errorLogger.warn("[AgentMessage] 复制消息失败", err);
     }
   }, [message.content]);
 

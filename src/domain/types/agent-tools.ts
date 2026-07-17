@@ -41,7 +41,8 @@ export type ToolDomain =
   | "memory"
   | "project-io"
   | "file-management"
-  | "plugin";
+  | "plugin"
+  | "novel";
 
 /**
  * 工具危险等级（用于权限分层控制）

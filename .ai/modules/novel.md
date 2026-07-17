@@ -1,6 +1,6 @@
 # Novel 模块 - AI 维护指南
 
-> **当前状态**：Task 2A.1 已完成（domain 层基础类型）。后续 Task 2A.2-2A.19 + 2A.20-2A.23 将逐步构建完整模块。
+> **当前状态**：Task 2A.1 + 2A.2 已完成（domain 类型 + 5 个 Agent 工具）。后续 Task 2A.3-2A.19 + 2A.20-2A.23 将逐步构建完整模块。
 
 ## 模块概述
 
@@ -15,7 +15,7 @@
 | 子域 | 风险 | 原因 | 状态 |
 |------|------|------|------|
 | domain | 🟢 低 | 仅类型定义（Task 2A.1），零外部依赖（仅依赖 @/domain/schemas/character） | ✅ 已完成 |
-| tools | 🟡 中 | Novel Agent 工具（Task 2A.2，6个工具），调用 container.textProvider，JSON 解析容错 | ⏳ 待实施 |
+| tools | 🟡 中 | Novel Agent 工具（Task 2A.2，5个工具），调用 container.textProvider，JSON 解析容错 | ✅ 已完成 |
 | hooks | 🟡 中 | 管道状态管理 hooks（Task 2A.3-2A.9），Zustand store + 流转逻辑 | ⏳ 待实施 |
 | presentation | 🟡 中 | 管道 UI（Task 2A.6 步骤指示器 + 上下文 AI 副驾驶） | ⏳ 待实施 |
 | services | 🟡 中 | 故事结构分析（2A.13）+ 节奏规划（2A.14）+ 连续性账本（2A.18） | ⏳ 待实施 |
@@ -98,7 +98,7 @@ services/*（Task 2A.13/2A.14/2A.18，分析与规划）
 ## 实施进度（Phase 2A）
 
 - [x] Task 2A.1：Domain 类型定义 ✅
-- [ ] Task 2A.2：Novel Agent 工具 6个
+- [x] Task 2A.2：Novel Agent 工具 5个 ✅（segment_novel_text / extract_characters / extract_scenes / match_entities / breakdown_text_to_shots）
 - [ ] Task 2A.3-2A.9：管道状态管理 + UI
 - [ ] Task 2A.10-2A.12：角色变体 + Element Binding + 一致性强化
 - [ ] Task 2A.13-2A.16：故事结构分析 + 节奏规划 + 概览视图 + 三档模式

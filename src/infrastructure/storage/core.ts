@@ -163,6 +163,19 @@ registerColumns("sync_conflict_backup", [
   ["remote_data", "json"],
 ]);
 
+// Task 2A.7: novel_projects 表 JSON 列
+registerColumns("novel_projects", [
+  ["pipeline_state_json", "json"],
+  ["is_deleted", "boolean"],
+]);
+
+// Task 2A.8: props 表 JSON 列
+registerColumns("props", [
+  ["tags_json", "json"],
+  ["metadata_json", "json"],
+  ["is_deleted", "boolean"],
+]);
+
 export function parseRecord(
   record: Record<string, unknown>,
   table?: string,

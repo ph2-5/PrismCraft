@@ -30,3 +30,24 @@ export {
   AssetGallery,
 } from "./generation-assets";
 export type { UseGenerationAssetsResult } from "./generation-assets";
+
+// Task 2A.8: 道具库管理（props 表）
+export {
+  getAllProps,
+  getPropById,
+  listPropsByType,
+  listPropsByTag,
+  createProp,
+  updateProp,
+  deleteProp,
+  migrateOutfitsToProps,
+  initializePropMigration,
+  useProps,
+  usePropsByType,
+  usePropsByTag,
+  useCreateProp,
+  useUpdateProp,
+  useDeleteProp,
+  useMigrateOutfits,
+  PROP_QUERY_KEYS,
+} from "./props";

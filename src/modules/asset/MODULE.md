@@ -15,6 +15,7 @@
 | `media-assets` | [media-assets/](./media-assets/) | 媒体资产管理：媒体文件的创建、更新、删除、批量操作 |
 | `generation-assets` | [generation-assets/](./generation-assets/) | 生成资产统一管理：AI 生成/上传/合成的图片视频资产的 CRUD、引用关系、批量清理（Task 4.11） |
 | `import-export` | [import-export/](./import-export/) | 项目数据导入导出：JSON 格式完整项目备份与恢复、合并策略 |
+| `props` | [props/](./props/) | 道具库管理：服装/武器/配饰/道具/其他 的 CRUD、类型/标签筛选、character_outfits 数据迁移（Task 2A.8） |
 | `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：媒体资产、导入导出、项目导出 |
 | `presentation` | [presentation/](./presentation/) | UI 组件：批量操作、媒体导出、项目导入导出 |
 
@@ -60,6 +61,27 @@
 | API | 签名 | 说明 |
 |-----|------|------|
 | `MergeStrategy` | `type: "replace" \| "merge" \| "skip"` | 合并策略类型 |
+
+### props 子域（Task 2A.8）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `getAllProps` | `() → Promise<Prop[]>` | 获取所有道具 |
+| `getPropById` | `(id) → Promise<Prop \| null>` | 获取单个道具 |
+| `listPropsByType` | `(type: PropType) → Promise<Prop[]>` | 按类型筛选（clothing/weapon/accessory/prop/other） |
+| `listPropsByTag` | `(tag) → Promise<Prop[]>` | 按标签筛选 |
+| `createProp` | `(input: CreatePropInput) → Promise<Prop>` | 创建道具 |
+| `updateProp` | `(id, patch: UpdatePropInput) → Promise<void>` | 更新道具 |
+| `deleteProp` | `(id) → Promise<void>` | 软删除道具 |
+| `migrateOutfitsToProps` | `() → Promise<number>` | 从 character_outfits 迁移服装数据（幂等） |
+| `initializePropMigration` | `() → Promise<number>` | 初始化迁移（幂等，多次调用只执行一次） |
+| `useProps` | `() → UseQueryResult<Prop[]>` | 获取所有道具（React Query） |
+| `usePropsByType` | `(type) → UseQueryResult<Prop[]>` | 按类型筛选 hook |
+| `usePropsByTag` | `(tag) → UseQueryResult<Prop[]>` | 按标签筛选 hook |
+| `useCreateProp` | `() → UseMutationResult` | 创建道具 hook |
+| `useUpdateProp` | `() → UseMutationResult` | 更新道具 hook |
+| `useDeleteProp` | `() → UseMutationResult` | 删除道具 hook |
+| `useMigrateOutfits` | `() → UseMutationResult` | 迁移服装数据 hook |
 
 ### hooks 子域
 

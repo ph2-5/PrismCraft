@@ -23,3 +23,7 @@ export type { SubShot } from "./shot";
 
 export { assetTypeEnum, generationAssetSchema } from "./asset";
 export type { AssetType as GenerationAssetType, GenerationAsset } from "./asset";
+
+// Task 2A.8: 道具库
+export { propTypeEnum, propSchema, createPropInputSchema, updatePropInputSchema } from "./prop";
+export type { PropType, Prop, CreatePropInput, UpdatePropInput } from "./prop";

@@ -3537,6 +3537,28 @@ const messages: Record<MessageKey, string> = {
   "novel.project.savedAt": "已保存",
   "novel.project.saving": "保存中...",
   "novel.project.unsaved": "未保存",
+  // Task 2A.8 道具库
+  "prop.title": "道具库",
+  "prop.empty": "暂无道具",
+  "prop.type.clothing": "服装",
+  "prop.type.weapon": "武器",
+  "prop.type.accessory": "配饰",
+  "prop.type.prop": "道具",
+  "prop.type.other": "其他",
+  "prop.type.all": "全部",
+  "prop.create": "新建道具",
+  "prop.edit": "编辑道具",
+  "prop.delete": "删除",
+  "prop.name": "名称",
+  "prop.type": "类型",
+  "prop.description": "描述",
+  "prop.tags": "标签",
+  "prop.referenceImage": "参考图",
+  "prop.migrateOutfits": "导入现有服装",
+  "prop.migrateOutfitsConfirm": "将所有角色的服装数据导入到道具库？此操作幂等，可重复执行。",
+  "prop.migrateOutfitsSuccess": "成功导入 {count} 条服装数据",
+  "prop.migrateOutfitsNoop": "没有需要迁移的服装数据",
+  "prop.searchPlaceholder": "搜索道具名称或标签...",
 };
 
 export type Messages = typeof messages;

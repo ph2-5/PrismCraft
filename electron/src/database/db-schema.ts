@@ -358,6 +358,24 @@ const FEATURE_TABLES: TableDef[] = [
       story_id: { type: "TEXT", ref: "stories(id)", onDelete: "SET NULL" },
     },
   },
+  // Task 2A.8: 道具库（服装/武器/配饰/道具/其他），独立于 elements 表
+  // 现有 character_outfits 数据可迁移到 props 表（type='clothing'）
+  {
+    name: "props",
+    featureGroup: "core",
+    columns: {
+      name: { type: "TEXT", notNull: true },
+      type: { type: "TEXT", notNull: true, check: "IN ('clothing', 'weapon', 'accessory', 'prop', 'other')", default: "'prop'" },
+      description: { type: "TEXT" },
+      reference_image: { type: "TEXT" },
+      local_image_path: { type: "TEXT" },
+      thumbnail_path: { type: "TEXT" },
+      tags_json: { type: "TEXT", default: "'[]'" },
+      source_character_id: { type: "TEXT", ref: "characters(id)", onDelete: "SET NULL" },
+      source_outfit_id: { type: "TEXT" },
+      metadata_json: { type: "TEXT", default: "'{}'" },
+    },
+  },
 ];
 
 const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; primaryKey: string[]; uniqueConstraints?: string[][] }[] = [
@@ -590,6 +608,8 @@ CREATE INDEX IF NOT EXISTS idx_sync_conflict_backup_entity ON sync_conflict_back
 CREATE INDEX IF NOT EXISTS idx_story_versions_auto ON story_versions(story_id, auto_saved);
 CREATE INDEX IF NOT EXISTS idx_novel_projects_updated ON novel_projects(updated_at);
 CREATE INDEX IF NOT EXISTS idx_novel_projects_story ON novel_projects(story_id);
+CREATE INDEX IF NOT EXISTS idx_props_type ON props(type);
+CREATE INDEX IF NOT EXISTS idx_props_source_character ON props(source_character_id);
 `;
 
 export function getSchemaSQL(): string {

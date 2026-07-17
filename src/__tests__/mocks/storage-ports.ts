@@ -57,6 +57,10 @@ const methodTemplates: Record<string, string[]> = {
     "updateProject", "deleteProject", "hardDeleteProject",
     "cleanExpiredProjects",
   ],
+  prop: [
+    "getAllProps", "getPropById", "getPropsByType", "getPropsByTag",
+    "createProp", "updateProp", "deleteProp", "migrateOutfitsToProps",
+  ],
 };
 
 export function createStoragePortMock(entityType: string): Record<string, ReturnType<typeof vi.fn>> {

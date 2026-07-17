@@ -74,6 +74,7 @@ import { autoSaveStorage } from "@/infrastructure/storage/auto-save";
 import { errorLogStorage } from "@/infrastructure/storage/error-logs";
 import { sessionStorage } from "@/infrastructure/storage/sessions";
 import { novelProjectStorage } from "@/infrastructure/storage/novel-projects";
+import { propStorage } from "@/infrastructure/storage/props";
 import { preferencesStorage } from "@/shared/utils/preferences";
 import { createToken, type Token } from "./types";
 import { ModuleRegistry } from "./registry";
@@ -161,6 +162,7 @@ const tokens = {
   errorLogStorage: createToken("errorLogStorage", () => errorLogStorage),
   sessionStorage: createToken("sessionStorage", () => sessionStorage),
   novelProjectStorage: createToken("novelProjectStorage", () => novelProjectStorage),
+  propStorage: createToken("propStorage", () => propStorage),
 
   // ── D. Repository 实例（Drizzle ORM，模块无法直接导入 infrastructure/database） ──
   mediaAssetRepository: createToken<IMediaAssetRepository>("mediaAssetRepository", () => mediaAssetRepository as IMediaAssetRepository),
@@ -297,6 +299,7 @@ export function getTokenRegistry(): Array<{
     errorLogStorage: "C",
     sessionStorage: "C",
     novelProjectStorage: "C",
+    propStorage: "C",
     mediaAssetRepository: "D",
     elementManager: "E",
     referenceEngine: "E",

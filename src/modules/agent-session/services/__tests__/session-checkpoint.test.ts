@@ -66,6 +66,8 @@ import {
   loadInterruptedSession,
   _resetCheckpointIndex,
 } from "../session-checkpoint";
+// 导入被 mock 的 session-storage（实际是 mock 实现，用于验证文件同步）
+import { loadSession } from "../session-storage";
 
 function createTestSession(id?: string): AgentSession {
   const session = createEmptySession();
@@ -175,6 +177,20 @@ describe("SessionCheckpoint", () => {
       const ok = await markInterrupted("not-exists");
       expect(ok).toBe(false);
     });
+
+    it("P1-1: 同步更新会话文件中的 checkpoint.status", async () => {
+      // 验证 markInterrupted 不仅更新索引，也更新会话文件
+      const session = createTestSession("p1-1-test");
+      await initCheckpoint(session, "输入");
+      // 此时 session 文件中 checkpoint.status = "running"
+
+      await markInterrupted("p1-1-test");
+
+      // 重新加载会话，验证文件中的 checkpoint.status 已同步
+      const reloaded = await loadSession("p1-1-test");
+      expect(reloaded?.checkpoint).toBeDefined();
+      expect(reloaded?.checkpoint?.status).toBe("interrupted");
+    });
   });
 
   describe("markRunningAsInterrupted", () => {
@@ -197,6 +213,24 @@ describe("SessionCheckpoint", () => {
     it("空索引时返回 0", async () => {
       const count = await markRunningAsInterrupted();
       expect(count).toBe(0);
+    });
+
+    it("P1-7: 批量同步会话文件中的 checkpoint.status", async () => {
+      // 验证 markRunningAsInterrupted 不仅更新索引，也批量更新会话文件
+      const s1 = createTestSession("p1-7-1");
+      const s2 = createTestSession("p1-7-2");
+      await initCheckpoint(s1, "输入1");
+      await initCheckpoint(s2, "输入2");
+      // 此时两个会话文件中 checkpoint.status 都 = "running"
+
+      const count = await markRunningAsInterrupted();
+      expect(count).toBe(2);
+
+      // 重新加载会话，验证两个文件中的 checkpoint.status 都已同步
+      const r1 = await loadSession("p1-7-1");
+      const r2 = await loadSession("p1-7-2");
+      expect(r1?.checkpoint?.status).toBe("interrupted");
+      expect(r2?.checkpoint?.status).toBe("interrupted");
     });
   });
 

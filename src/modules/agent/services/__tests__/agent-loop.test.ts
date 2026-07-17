@@ -333,4 +333,59 @@ describe("AgentLoop", () => {
       expect(callbacks.onError).toHaveBeenCalledWith(expect.any(Error));
     });
   });
+
+  describe("Task 1.12 意图路由集成", () => {
+    it("用户消息命中 interview 意图时，system prompt 应包含 '【意图：创意引导】'", async () => {
+      const session = createSession();
+      const callbacks = createMockCallbacks();
+
+      let capturedPrompt = "";
+      mockGenerateTextStream.mockImplementation(async (prompt, options) => {
+        capturedPrompt = prompt;
+        options?.onChunk({ delta: "ok", finishReason: "stop" });
+        return mockStreamSuccess("ok");
+      });
+
+      const loop = new AgentLoop(session, callbacks, { maxIterations: 1 });
+      await loop.run("我想做视频但不知道拍什么");
+
+      // 验证意图专属指引被注入到 system prompt
+      expect(capturedPrompt).toContain("【意图：创意引导】");
+    });
+
+    it("用户消息命中 troubleshoot 意图时，system prompt 应包含 '【意图：故障诊断】'", async () => {
+      const session = createSession();
+      const callbacks = createMockCallbacks();
+
+      let capturedPrompt = "";
+      mockGenerateTextStream.mockImplementation(async (prompt, options) => {
+        capturedPrompt = prompt;
+        options?.onChunk({ delta: "ok", finishReason: "stop" });
+        return mockStreamSuccess("ok");
+      });
+
+      const loop = new AgentLoop(session, callbacks, { maxIterations: 1 });
+      await loop.run("生成失败了，请帮诊断");
+
+      expect(capturedPrompt).toContain("【意图：故障诊断】");
+    });
+
+    it("用户消息无关键词命中时，不应注入任何意图专属指引", async () => {
+      const session = createSession();
+      const callbacks = createMockCallbacks();
+
+      let capturedPrompt = "";
+      mockGenerateTextStream.mockImplementation(async (prompt, options) => {
+        capturedPrompt = prompt;
+        options?.onChunk({ delta: "ok", finishReason: "stop" });
+        return mockStreamSuccess("ok");
+      });
+
+      const loop = new AgentLoop(session, callbacks, { maxIterations: 1 });
+      await loop.run("你好，今天天气怎么样");
+
+      // default 意图的 systemPromptAddon 为空字符串，不应出现 "【意图：" 前缀
+      expect(capturedPrompt).not.toContain("【意图：");
+    });
+  });
 });

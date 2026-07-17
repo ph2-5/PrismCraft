@@ -14,6 +14,7 @@
 
 import type { AgentSession } from "@/modules/agent";
 import { writeFile, readFile, getCacheDirectory, deleteFile } from "@/shared/file-http";
+import { errorLogger } from "@/shared/error-logger";
 
 /** 会话存储目录名（相对缓存目录） */
 const SESSIONS_DIR = "agent/sessions";
@@ -69,14 +70,45 @@ export async function saveSession(session: AgentSession): Promise<boolean> {
       streaming: false, // 持久化时重置流式状态
     })),
   };
+  // P0-1 修复：safetyLog 是运行时字段（仅 AgentLoop 运行期间暂存用于 UI 展示），
+  // 不参与持久化序列化。原 ...session 展开会把它写入磁盘，导致调试数据泄漏。
+  // 详见 agent/domain/types.ts 中 safetyLog 字段注释。
+  delete serializable.safetyLog;
 
   try {
     const jsonStr = JSON.stringify(serializable, null, 2);
     const result = await writeFile(filePath, jsonStr);
+    if (!result.success) {
+      // P1-5 修复：原 silent catch 吞掉错误，调用方无法感知失败。
+      errorLogger.warn("[SessionStorage] saveSession writeFile 失败", { sessionId: session.id, error: result.error });
+    }
     return result.success;
-  } catch {
+  } catch (e) {
+    errorLogger.warn("[SessionStorage] saveSession 异常", { sessionId: session.id, cause: e });
     return false;
   }
+}
+
+/**
+ * 校验解析后的会话对象是否具备 AgentSession 必需字段。
+ *
+ * P1-10 修复：原 loadSession 直接 `JSON.parse(text) as AgentSession`，
+ * 文件损坏（截断/部分写入）时会返回结构不完整的对象，调用方访问 `messages.map` 抛 TypeError。
+ * 此函数做最小必需字段校验，损坏时返回 false，由 loadSession 优雅降级。
+ */
+function isValidSessionShape(value: unknown): value is AgentSession {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  if (typeof v.id !== "string" || typeof v.title !== "string") return false;
+  if (typeof v.createdAt !== "number" || typeof v.updatedAt !== "number") return false;
+  if (!Array.isArray(v.messages)) return false;
+  // 每条消息至少要有 role 和 content 字段
+  for (const m of v.messages) {
+    if (!m || typeof m !== "object") return false;
+    const msg = m as Record<string, unknown>;
+    if (typeof msg.role !== "string" || typeof msg.content !== "string") return false;
+  }
+  return true;
 }
 
 /** 加载单个会话 */
@@ -88,11 +120,19 @@ export async function loadSession(sessionId: string): Promise<AgentSession | nul
     const result = await readFile(filePath);
     if (!result?.success || !result.data) return null;
     const text = new TextDecoder().decode(result.data);
-    const session = JSON.parse(text) as AgentSession;
+    const parsed: unknown = JSON.parse(text);
+    // P1-10 修复：schema 校验，防止文件损坏时返回结构不完整的对象
+    if (!isValidSessionShape(parsed)) {
+      errorLogger.warn("[SessionStorage] loadSession 文件结构损坏", { sessionId, filePath });
+      return null;
+    }
+    const session = parsed as AgentSession;
     // 加载时重置 streaming 状态（上次中断的流式状态无意义）
     session.messages = session.messages.map((m) => ({ ...m, streaming: false }));
     return session;
-  } catch {
+  } catch (e) {
+    // P1-5 修复：原 silent catch 吞掉错误，调用方无法区分"文件不存在"和"文件损坏"
+    errorLogger.warn("[SessionStorage] loadSession 异常", { sessionId, cause: e });
     return null;
   }
 }

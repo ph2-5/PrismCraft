@@ -26,6 +26,7 @@ import { createCheckpoint } from "../domain/checkpoint-types";
 export type { SessionCheckpoint, CheckpointIndexEntry, CheckpointStatus };
 import { saveSession, loadSession } from "./session-storage";
 import { getConfig, setConfig } from "@/shared/file-http";
+import { errorLogger } from "@/shared/error-logger";
 
 /** 检查点索引配置键 */
 const CHECKPOINT_INDEX_KEY = "agent.checkpoints.index";
@@ -115,44 +116,77 @@ export async function clearCheckpoint(sessionId: string): Promise<boolean> {
       delete session.checkpoint;
       await saveSession(session);
     }
-  } catch {
-    // 会话文件不存在或加载失败时静默（索引已清理，不影响主流程）
+  } catch (e) {
+    // P1-5 修复：原 silent catch 吞掉错误，添加日志便于排查
+    errorLogger.warn("[Checkpoint] clearCheckpoint 加载/保存会话失败", { sessionId, cause: e });
   }
   return true;
 }
 
 /**
  * 标记检查点为中断状态（AgentLoop abort/异常时调用）
+ *
+ * P1-1 修复：原实现只更新索引，会话文件中的 checkpoint.status 仍是 "running"，
+ * 导致通过 loadHistorySession → loadSession 加载的会话与索引状态不一致。
+ * 现同步更新会话文件中的 checkpoint.status 字段。
  */
 export async function markInterrupted(sessionId: string): Promise<boolean> {
-  return updateCheckpointIndexEntry(sessionId, { status: "interrupted" });
+  const indexUpdated = await updateCheckpointIndexEntry(sessionId, { status: "interrupted" });
+  // P1-1 修复：同步更新会话文件中的 checkpoint.status
+  try {
+    const session = await loadSession(sessionId);
+    if (session && session.checkpoint && session.checkpoint.status === "running") {
+      session.checkpoint.status = "interrupted";
+      session.checkpoint.updatedAt = Date.now();
+      await saveSession(session);
+    }
+  } catch (e) {
+    errorLogger.warn("[Checkpoint] markInterrupted 同步会话文件失败", { sessionId, cause: e });
+  }
+  return indexUpdated;
 }
 
 /**
  * 应用启动时调用：将所有 status=running 的检查点标记为 interrupted
  *
  * 因为应用崩溃时无法执行清理逻辑，所以重启后所有 running 状态都是过期的。
- * 此函数只更新索引（快速），不重新加载会话文件。
+ *
+ * P1-7 修复：原实现只更新索引，会话文件中的 checkpoint.status 仍是 "running"。
+ * 现批量加载并同步更新会话文件，保证索引与文件一致。
  *
  * @returns 被标记为 interrupted 的会话数量
  */
 export async function markRunningAsInterrupted(): Promise<number> {
   const index = await getCheckpointIndex();
-  let count = 0;
-  let changed = false;
+  const toUpdate = index.filter((e) => e.status === "running");
 
-  for (const entry of index) {
-    if (entry.status === "running") {
-      entry.status = "interrupted";
-      count++;
-      changed = true;
-    }
-  }
+  if (toUpdate.length === 0) return 0;
 
-  if (changed) {
-    await setCheckpointIndex(index);
+  // 更新索引
+  for (const entry of toUpdate) {
+    entry.status = "interrupted";
   }
-  return count;
+  await setCheckpointIndex(index);
+
+  // P1-7 修复：批量同步会话文件中的 checkpoint.status
+  // 并发加载 + 更新，避免串行阻塞启动时间
+  await Promise.all(
+    toUpdate.map(async (entry) => {
+      try {
+        const session = await loadSession(entry.sessionId);
+        if (session && session.checkpoint && session.checkpoint.status === "running") {
+          session.checkpoint.status = "interrupted";
+          session.checkpoint.updatedAt = Date.now();
+          await saveSession(session);
+        }
+      } catch (e) {
+        // 单个会话文件加载失败不阻断其他会话的修复
+        errorLogger.warn("[Checkpoint] markRunningAsInterrupted 同步会话文件失败", { sessionId: entry.sessionId, cause: e });
+      }
+    }),
+  );
+
+  return toUpdate.length;
 }
 
 /**

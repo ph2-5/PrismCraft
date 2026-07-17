@@ -50,10 +50,14 @@ import { recordFewShot, buildFewShotPrompt } from "@/modules/agent-fewshot";
 // Task 1.4 v5.3 增强：Skill 路由 + 安全改写
 import {
   routeSkill,
+  getSkill,
   rewriteIp,
   filterAntislop,
   type AgentContext,
 } from "@/shared-logic/prompt";
+// Task 1.12：意图路由表 — 在 routeSkill 之上增加意图分类层
+import { routeIntent, mapIntentToSkillId } from "./intent-router";
+import { buildRouteContext } from "./intent-routes";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
 import { errorLogger } from "@/shared/error-logger";
@@ -523,7 +527,10 @@ export class AgentLoop {
       .replace("{CONVERSATION_SUMMARY}", conversationSummary || "（暂无摘要）")
       .replace("{AVAILABLE_TOOLS}", buildAvailableToolsSummary(toolDescs));
 
-    // Task 1.4 v5.3 增强：Skill 路由 — 根据用户消息匹配 Skill，注入对应指令片段
+    // Task 1.12：意图路由表 — 先识别意图、注入意图专属指引，再加载 Skill 指令
+    // 流程：routeIntent(msg) → buildRouteContext(intent, ctx) → 拼接 systemPromptAddon
+    //       → mapIntentToSkillId(intent) → getSkill(skillId) → skill.buildInstructions(ctx)
+    // 回退：若意图对应的 Skill 未注册（如扩展 Skill 未加载），回退到 routeSkill
     if (userMessage) {
       try {
         const skillCtx: AgentContext = {
@@ -531,13 +538,34 @@ export class AgentLoop {
           projectType: "unknown", // TODO: 从项目配置读取
           recentFailures: [], // TODO: 从失败历史读取
         };
-        const skill = routeSkill(userMessage);
-        const skillInstructions = skill.buildInstructions(skillCtx);
-        if (skillInstructions) {
-          prompt += "\n\n" + skillInstructions;
+
+        // Step 1: 识别用户意图
+        const intent = routeIntent(userMessage);
+
+        // Step 2: 注入意图专属指引（systemPromptAddon）
+        const routeCtx = buildRouteContext(intent, skillCtx);
+        if (routeCtx.systemPromptAddon) {
+          prompt += "\n\n" + routeCtx.systemPromptAddon;
+        }
+
+        // Step 3: 通过意图映射加载 Skill，注入 Skill 指令
+        const skillId = mapIntentToSkillId(intent.type);
+        const skill = getSkill(skillId);
+        if (skill) {
+          const skillInstructions = skill.buildInstructions(skillCtx);
+          if (skillInstructions) {
+            prompt += "\n\n" + skillInstructions;
+          }
+        } else {
+          // 回退：意图对应的 Skill 未注册（如扩展 Skill 未加载），使用 routeSkill 兜底
+          const fallbackSkill = routeSkill(userMessage);
+          const skillInstructions = fallbackSkill.buildInstructions(skillCtx);
+          if (skillInstructions) {
+            prompt += "\n\n" + skillInstructions;
+          }
         }
       } catch {
-        // Skill 路由失败静默，不阻断主流程
+        // 意图路由失败静默，不阻断主流程
       }
     }
 

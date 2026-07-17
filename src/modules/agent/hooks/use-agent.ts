@@ -42,6 +42,7 @@ import {
 } from "@/modules/agent-session";
 import {
   markRunningAsInterrupted,
+  markInterrupted,
   listInterruptedSessions,
   loadInterruptedSession,
   type CheckpointIndexEntry,
@@ -210,6 +211,17 @@ export function useAgent(): UseAgentReturn {
    */
   const [renderVersion, setRenderVersion] = useState(0);
   const [isStreaming, setIsStreaming] = useState(false);
+  /**
+   * P1-2 修复：isStreaming 的 ref 镜像。
+   *
+   * beforeunload / visibilitychange 监听器在 mount 时注册一次，
+   * 闭包只能捕获当时的 isStreaming 值（始终为 false）。
+   * 通过 ref 同步最新值，让监听器能感知流式输出状态。
+   */
+  const isStreamingRef = useRef(false);
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [historySessions, setHistorySessions] = useState<SessionListItem[]>([]);
@@ -289,6 +301,78 @@ export function useAgent(): UseAgentReturn {
       emitToast("error", t("agent.saveFailedTitle"), t("agent.saveFailedMessage"));
     }
   }, [refreshHistory]);
+
+  /**
+   * P1-2 修复：窗口关闭/刷新/标签隐藏时自动保存当前会话。
+   *
+   * 原问题：用户在 Agent 对话进行中关闭窗口，最新消息（ sendMessage 完成但未触发
+   * 下一次保存的情况）会丢失。流式输出中的内容也完全丢失。
+   *
+   * 策略：
+   * - beforeunload：触发原生"确认离开"对话框，争取保存时间 + fire-and-forget 保存
+   * - visibilitychange：标签隐藏/最小化时触发（移动端/Electron 更可靠），fire-and-forget 保存
+   * - 流式输出中：先 abort 当前流 + markInterrupted（标记为中断，便于下次恢复）
+   * - 通过 ref（sessionRef / isStreamingRef / abortControllerRef / loopRef）同步最新状态
+   *   避免监听器闭包捕获旧值
+   *
+   * 限制：beforeunload 中无法可靠 await 异步操作（IPC 是异步的），采用 fire-and-forget。
+   * Electron 中 IPC 请求已发出，主进程会处理完写入再退出（除非强制 kill）。
+   */
+  useEffect(() => {
+    const triggerAutoSave = () => {
+      const session = sessionRef.current;
+      // 只有有消息的会话才保存
+      if (session.messages.length === 0) return;
+
+      // 流式输出中：先 abort + 标记中断（便于下次启动时 listInterruptedSessions 展示）
+      if (isStreamingRef.current) {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        if (loopRef.current) {
+          loopRef.current.abort();
+        }
+        // fire-and-forget 标记中断（不 await，避免阻塞 unload）
+        void markInterrupted(session.id).catch((e) => {
+          errorLogger.warn("[Agent] beforeunload markInterrupted 失败", e);
+        });
+      }
+
+      // fire-and-forget 保存会话（IPC 异步，但请求已发出主进程会处理）
+      void persistSession(session).catch((e) => {
+        errorLogger.warn("[Agent] beforeunload persistSession 失败", e);
+      });
+    };
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      const session = sessionRef.current;
+      // 空会话不触发对话框
+      if (session.messages.length === 0) return;
+
+      triggerAutoSave();
+
+      // Chromium / Electron：returnValue 非空触发"确认离开"对话框，争取 IPC 写入时间
+      // 注意：部分浏览器忽略自定义文案，只显示通用提示
+      event.preventDefault();
+      event.returnValue = "";
+      return "";
+    };
+
+    const handleVisibilityChange = () => {
+      // 页面隐藏（标签切换/最小化）时触发，比 beforeunload 更可靠
+      if (document.visibilityState === "hidden") {
+        triggerAutoSave();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []); // 空依赖：只在 mount 时注册一次，通过 ref 同步最新状态
 
   const sendMessage = useCallback(
     async (text: string) => {

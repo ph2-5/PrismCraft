@@ -17,6 +17,7 @@ export function createDiContainerMock(overrides: Record<string, unknown> = {}) {
     autoSaveStorage: createStoragePortMock("autoSave"),
     errorLogStorage: createStoragePortMock("errorLog"),
     sessionStorage: createStoragePortMock("session"),
+    novelProjectStorage: createStoragePortMock("novelProject"),
   };
 
   const providerMocks = {

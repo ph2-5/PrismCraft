@@ -3525,6 +3525,18 @@ const messages: Record<MessageKey, string> = {
   "novel.shell.progress": "进度",
   "novel.shell.segmentsLabel": "片段",
   "novel.shell.autoSaveReady": "就绪",
+  // Task 2A.7 持久化 / 恢复
+  "novel.project.recoveryTitle": "发现未完成的导入项目",
+  "novel.project.recoveryDesc": "上次有项目未完成导入，是否继续？",
+  "novel.project.continue": "继续编辑",
+  "novel.project.dismiss": "开始新项目",
+  "novel.project.delete": "删除",
+  "novel.project.empty": "暂无未完成项目",
+  "novel.project.lastModified": "最近修改：{time}",
+  "novel.project.stage": "阶段：{stage}",
+  "novel.project.savedAt": "已保存",
+  "novel.project.saving": "保存中...",
+  "novel.project.unsaved": "未保存",
 };
 
 export type Messages = typeof messages;

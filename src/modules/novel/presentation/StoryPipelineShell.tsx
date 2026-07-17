@@ -23,6 +23,7 @@ import { PhaseIndicator } from "./PhaseIndicator";
 import { SegmentNavColumn } from "./SegmentNavColumn";
 import { MainWorkArea } from "./MainWorkArea";
 import { ContextPanel } from "./ContextPanel";
+import { NovelProjectList } from "./NovelProjectList";
 
 export interface StoryPipelineShellProps {
   onComplete: () => void;
@@ -46,6 +47,10 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     showShotBreakdown,
     showFinalize,
     isDone,
+    // Task 2A.7 持久化
+    pendingRecoveryProjects,
+    isLoadingRecovery,
+    lastSavedAt,
     handleImport,
     handleToggle,
     handleSelectAll,
@@ -61,7 +66,21 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     handleFinalizeImport,
     handleAutoRun,
     setCurrentSegmentIndex,
+    recoverProject,
+    dismissRecovery,
+    deletePendingProject,
   } = pipeline;
+
+  // Task 2A.7: 显示恢复弹窗的条件
+  // - 已加载完成（isLoadingRecovery = false）
+  // - 有未完成项目
+  // - 当前不在 done 阶段（done 不需要恢复）
+  // - 当前 state 还是初始的 project_init 且无 rawText（用户尚未开始新输入）
+  const showRecoveryDialog =
+    !isLoadingRecovery &&
+    pendingRecoveryProjects.length > 0 &&
+    state.stage === "project_init" &&
+    state.rawText.length === 0;
 
   const nextLabel = isProcessing ? t("novel.controls.processing") : t("novel.controls.next");
   const nextDisabled = !canProceed || isProcessing;
@@ -129,9 +148,12 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
               {t("novel.shell.segmentsLabel")}: {state.currentSegmentIndex + 1}/{state.segments.length}
             </span>
           )}
+          {/* Task 2A.7: 显示保存状态 */}
           <span className="flex items-center gap-1">
             <Save size={10} />
-            {t("novel.shell.autoSaveReady")}
+            {lastSavedAt !== null
+              ? `${t("novel.project.savedAt")} ${new Date(lastSavedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`
+              : t("novel.project.unsaved")}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -167,6 +189,16 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
           </button>
         </div>
       </div>
+
+      {/* Task 2A.7: 未完成项目恢复弹窗 */}
+      {showRecoveryDialog && (
+        <NovelProjectList
+          projects={pendingRecoveryProjects}
+          onRecover={recoverProject}
+          onDismiss={dismissRecovery}
+          onDelete={deletePendingProject}
+        />
+      )}
     </div>
   );
 }

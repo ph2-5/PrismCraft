@@ -52,6 +52,11 @@ const methodTemplates: Record<string, string[]> = {
   session: [
     "getSession", "setSession", "deleteSession",
   ],
+  novelProject: [
+    "getAllProjects", "getProjectById", "createProject",
+    "updateProject", "deleteProject", "hardDeleteProject",
+    "cleanExpiredProjects",
+  ],
 };
 
 export function createStoragePortMock(entityType: string): Record<string, ReturnType<typeof vi.fn>> {

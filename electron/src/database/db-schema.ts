@@ -347,6 +347,17 @@ const FEATURE_TABLES: TableDef[] = [
       project_id: { type: "TEXT" },
     },
   },
+  // Task 2A.7: 小说导入项目持久化（保存 PipelineState 支持跨会话恢复）
+  {
+    name: "novel_projects",
+    featureGroup: "core",
+    columns: {
+      title: { type: "TEXT" },
+      raw_text: { type: "TEXT" },
+      pipeline_state_json: { type: "TEXT", default: "'{}'" },
+      story_id: { type: "TEXT", ref: "stories(id)", onDelete: "SET NULL" },
+    },
+  },
 ];
 
 const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; primaryKey: string[]; uniqueConstraints?: string[][] }[] = [
@@ -577,6 +588,8 @@ CREATE INDEX IF NOT EXISTS idx_ast_templates_parent ON ast_templates(parent_temp
 CREATE INDEX IF NOT EXISTS idx_sync_changelog_device ON sync_changelog(device_id);
 CREATE INDEX IF NOT EXISTS idx_sync_conflict_backup_entity ON sync_conflict_backup(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_story_versions_auto ON story_versions(story_id, auto_saved);
+CREATE INDEX IF NOT EXISTS idx_novel_projects_updated ON novel_projects(updated_at);
+CREATE INDEX IF NOT EXISTS idx_novel_projects_story ON novel_projects(story_id);
 `;
 
 export function getSchemaSQL(): string {

@@ -107,3 +107,7 @@ export { MainWorkArea } from "./presentation/MainWorkArea";
 export type { MainWorkAreaProps } from "./presentation/MainWorkArea";
 export { ContextPanel } from "./presentation/ContextPanel";
 export type { ContextPanelProps } from "./presentation/ContextPanel";
+
+// Presentation — 未完成项目恢复对话框（Task 2A.7）
+export { NovelProjectList } from "./presentation/NovelProjectList";
+export type { NovelProjectListProps } from "./presentation/NovelProjectList";

@@ -51,6 +51,8 @@
 
 **StoryPipelineShell 三栏布局（Task 2A.6）**：`StoryPipelineShell`、`PhaseIndicator`、`SegmentNavColumn`、`MainWorkArea`、`ContextPanel`
 
+**未完成项目恢复（Task 2A.7）**：`NovelProjectList`（恢复对话框，由 StoryPipelineShell 在挂载时检测到 DB 未完成项目时渲染）
+
 ---
 
 ## 关键不变量（详见 [domain/contract.json](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/domain/contract.json)）
@@ -108,4 +110,5 @@ novel/
 | 2A.4 | ✅ | UI Panel Part 1（导入+分段） |
 | 2A.5 | ✅ | UI Panel Part 2（提取+拆解+提示词） |
 | 2A.6 | ✅ | StoryPipelineShell 三栏布局 + useNovelPipeline Hook |
-| 2A.7-2A.23 | ⏳ | 待实施（持久化 / 道具库 / 变体 / Prompt 合成 / 结构分析 / 节奏规划 / 三档模式 / 联动机制 / 过期标记 / 一致性 QC 等） |
+| 2A.7 | ✅ | 小说项目持久化（novel_projects 表 + CRUD + 2秒防抖自动保存 + 恢复对话框） |
+| 2A.8-2A.23 | ⏳ | 待实施（道具库 / 变体 / Prompt 合成 / 结构分析 / 节奏规划 / 三档模式 / 联动机制 / 过期标记 / 一致性 QC 等） |

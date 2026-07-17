@@ -1,5 +1,5 @@
 /**
- * Task 2A.6 — useNovelPipeline Hook
+ * Task 2A.6 / 2A.7 — useNovelPipeline Hook
  *
  * 从 NovelImportPage 提取的管道状态管理逻辑，供 StoryPipelineShell 与
  * NovelImportPage 共享，避免代码重复。
@@ -12,14 +12,23 @@
  * - 所有 handler（导入/确认/编辑/重排/生成提示词/导入到故事板）
  * - 派生标志（showImportStep/showSegmentList/showEntityReview/showShotBreakdown/showFinalize/isDone）
  *
- * 依赖方向：仅依赖 domain/types + import/services/pipeline-machine（同模块内）。
+ * Task 2A.7 新增持久化：
+ * - 挂载时检测未完成项目，暴露 pendingRecoveryProjects 给 UI 显示恢复对话框
+ * - recoverProject(id) 从 DB 加载 pipeline_state_json 恢复状态
+ * - 状态变化时 2 秒防抖自动保存到 DB
+ * - 到达 done 阶段后清理项目记录
+ *
+ * 依赖方向：仅依赖 domain/types + import/services/pipeline-machine（同模块内）+
+ * @/infrastructure/di（访问 novelProjectStorage token）。
  */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { container } from "@/infrastructure/di";
 import type {
   PipelineState,
   PipelineConfig,
   NovelSegment,
+  NovelProject,
   CharacterInPipeline,
   SceneInPipeline,
   ShotBreakdown,
@@ -99,6 +108,15 @@ export interface UseNovelPipelineResult {
   showShotBreakdown: boolean;
   showFinalize: boolean;
   isDone: boolean;
+  // Task 2A.7 持久化状态
+  /** 待恢复的未完成项目列表（挂载时加载，用户恢复或新建后清空） */
+  pendingRecoveryProjects: NovelProject[];
+  /** 是否正在加载恢复项目 */
+  isLoadingRecovery: boolean;
+  /** 当前关联的 DB 项目 ID（null 表示尚未创建项目记录） */
+  currentProjectId: string | null;
+  /** 上次自动保存时间戳（用于 UI 显示"已保存"状态） */
+  lastSavedAt: number | null;
   // Handlers
   handleImport: (text: string) => void;
   handleToggle: (id: string) => void;
@@ -116,6 +134,13 @@ export interface UseNovelPipelineResult {
   handleAutoRun: () => void;
   /** 设置当前段落索引（SegmentNavColumn 使用） */
   setCurrentSegmentIndex: (index: number) => void;
+  // Task 2A.7 持久化 handlers
+  /** 恢复指定项目（从 DB 加载 PipelineState） */
+  recoverProject: (id: string) => Promise<void>;
+  /** 忽略恢复提示，开始新项目 */
+  dismissRecovery: () => void;
+  /** 删除指定未完成项目 */
+  deletePendingProject: (id: string) => Promise<void>;
 }
 
 /**
@@ -133,6 +158,15 @@ export function useNovelPipeline({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [shots, setShots] = useState<ShotBreakdown[]>([]);
+
+  // === Task 2A.7 持久化状态 ===
+  const [pendingRecoveryProjects, setPendingRecoveryProjects] = useState<NovelProject[]>([]);
+  const [isLoadingRecovery, setIsLoadingRecovery] = useState(true);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // hasRecoveredRef：恢复项目时跳过一次自动创建，避免立刻创建新记录覆盖刚恢复的项目
+  const hasRecoveredRef = useRef(false);
 
   // 根据当前模式计算阶段子集（用于进度条显示）
   const stagesForMode = useMemo(
@@ -325,7 +359,155 @@ export function useNovelPipeline({
       setState((prev) =>
         canTransition(prev.stage, "done") ? transition(prev, "done") : prev,
       );
+      // Task 2A.7: 导入完成后清理 DB 项目记录（物理删除，因为已转换为正式 Story）
+      if (currentProjectId !== null) {
+        container.novelProjectStorage
+          .hardDeleteProject(currentProjectId)
+          .catch(() => {
+            // 清理失败不阻塞 UI，后续 cleanExpiredProjects 会兜底
+          });
+        setCurrentProjectId(null);
+      }
     }, 500);
+  }, [currentProjectId]);
+
+  // === Task 2A.7 持久化 handlers ===
+
+  /**
+   * 将 storage 返回的 NovelProjectRecord（state: unknown）转换为
+   * NovelProject 域对象（state: PipelineState）。
+   * 如果 state 损坏或缺少必要字段，回退到 makeInitialState。
+   */
+  const recordToProject = useCallback(
+    (record: {
+      id: string;
+      title: string;
+      rawText: string;
+      state: unknown;
+      createdAt: number;
+      updatedAt: number;
+    }): NovelProject => {
+      const pipelineState =
+        record.state && typeof record.state === "object" && "stage" in record.state
+          ? (record.state as PipelineState)
+          : makeInitialState(makeDefaultConfig({ projectName: record.title }));
+      return {
+        id: record.id,
+        title: record.title,
+        rawText: record.rawText,
+        state: pipelineState,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+      };
+    },
+    [],
+  );
+
+  /** 挂载时加载未完成项目列表（仅一次），用于 UI 显示恢复对话框 */
+  useEffect(() => {
+    let cancelled = false;
+    const storage = container.novelProjectStorage;
+    storage
+      .getAllProjects()
+      .then((records) => {
+        if (cancelled) return;
+        const projects = records.map(recordToProject);
+        setPendingRecoveryProjects(projects);
+        setIsLoadingRecovery(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setIsLoadingRecovery(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [recordToProject]);
+
+  /** 自动保存：state 变化时 2 秒防抖保存到 DB（仅当用户输入了文本或已关联项目时） */
+  useEffect(() => {
+    // 跳过：项目刚恢复（避免立刻覆盖）、用户未输入任何内容、正在加载恢复列表
+    if (hasRecoveredRef.current) {
+      hasRecoveredRef.current = false;
+      return;
+    }
+    // 只在有 rawText 或已有 currentProjectId 时才自动保存（避免空项目污染 DB）
+    const hasContent = state.rawText.trim().length > 0 || currentProjectId !== null;
+    if (!hasContent || isLoadingRecovery) return;
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const storage = container.novelProjectStorage;
+        const title =
+          state.config.projectName ||
+          (state.rawText ? state.rawText.slice(0, 40) : "未命名项目");
+        if (currentProjectId === null) {
+          // 新项目：创建记录
+          const id = `np-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          await storage.createProject({
+            id,
+            title,
+            rawText: state.rawText,
+            state,
+          });
+          setCurrentProjectId(id);
+        } else {
+          // 已有项目：更新
+          await storage.updateProject(currentProjectId, {
+            title,
+            rawText: state.rawText,
+            state,
+          });
+        }
+        setLastSavedAt(Date.now());
+      } catch {
+        // 自动保存失败不阻塞 UI，下次 state 变化时会重试
+      }
+    }, 2000);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [state, currentProjectId, isLoadingRecovery]);
+
+  /** 恢复指定项目（从 DB 加载 pipeline_state_json） */
+  const recoverProject = useCallback(async (id: string) => {
+    try {
+      const storage = container.novelProjectStorage;
+      const record = await storage.getProjectById(id);
+      if (!record) return;
+      const project = recordToProject(record);
+      hasRecoveredRef.current = true;
+      setState(project.state);
+      setSelectedSegmentIds(project.state.segments.map((s) => s.id));
+      setCurrentProjectId(project.id);
+      setPendingRecoveryProjects([]);
+      setLastSavedAt(project.updatedAt);
+    } catch {
+      // 恢复失败：保留当前状态，不阻塞 UI
+    }
+  }, [recordToProject]);
+
+  /** 忽略恢复提示，开始新项目（清空恢复列表） */
+  const dismissRecovery = useCallback(() => {
+    setPendingRecoveryProjects([]);
+  }, []);
+
+  /** 删除指定未完成项目（从 DB 物理删除） */
+  const deletePendingProject = useCallback(async (id: string) => {
+    try {
+      const storage = container.novelProjectStorage;
+      await storage.hardDeleteProject(id);
+      setPendingRecoveryProjects((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      // 删除失败：UI 列表保持不变
+    }
   }, []);
 
   const handleAutoRun = useCallback(() => {
@@ -378,6 +560,11 @@ export function useNovelPipeline({
     showShotBreakdown,
     showFinalize,
     isDone,
+    // Task 2A.7 持久化
+    pendingRecoveryProjects,
+    isLoadingRecovery,
+    currentProjectId,
+    lastSavedAt,
     handleImport,
     handleToggle,
     handleSelectAll,
@@ -393,5 +580,9 @@ export function useNovelPipeline({
     handleFinalizeImport,
     handleAutoRun,
     setCurrentSegmentIndex,
+    // Task 2A.7 持久化 handlers
+    recoverProject,
+    dismissRecovery,
+    deletePendingProject,
   };
 }

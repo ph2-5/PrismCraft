@@ -6,13 +6,14 @@
  * - standard (6步)：+ 角色管理 + 场景管理
  * - professional (8步)：+ 故事结构分析 + 节奏规划
  *
- * 当前状态（Task 2A.1 + 2A.2 + 2A.3 + 2A.4）：
+ * 当前状态（Task 2A.1 + 2A.2 + 2A.3 + 2A.4 + 2A.5 + 2A.6）：
  * - ✅ domain/types.ts — 15 个类型定义
  * - ✅ tools/ — 5 个 Novel Agent 工具
  * - ✅ import/services/pipeline-machine.ts — 10 阶段状态机 + 三档模式 + 失败重试
  * - ✅ presentation/ — UI Panel Part 1（导入+分段）
- * - ⏳ hooks/ — 管道状态管理（Task 2A.5，待实施）
- * - ⏳ presentation/ — UI Panel Part 2（提取+拆解+提示词，Task 2A.5，待实施）
+ * - ✅ presentation/ — UI Panel Part 2（提取+拆解+提示词）
+ * - ✅ hooks/use-novel-pipeline.ts — 管道状态管理 Hook（Task 2A.6）
+ * - ✅ presentation/ — StoryPipelineShell 三栏布局 + PhaseIndicator + SegmentNavColumn + MainWorkArea + ContextPanel
  * - ⏳ services/ — 故事结构分析 + 节奏规划（Task 2A.13/2A.14，待实施）
  *
  * 依赖方向：
@@ -63,6 +64,10 @@ export {
   FALLBACK_STRATEGIES,
 } from "./import/services/pipeline-machine";
 
+// Hooks（Task 2A.6）
+export { useNovelPipeline } from "./hooks/use-novel-pipeline";
+export type { UseNovelPipelineOptions, UseNovelPipelineResult } from "./hooks/use-novel-pipeline";
+
 // Presentation — UI Panel Part 1（Task 2A.4）
 export { NovelImportPage } from "./presentation/NovelImportPage";
 export type { NovelImportPageProps } from "./presentation/NovelImportPage";
@@ -90,3 +95,15 @@ export { ShotCard } from "./presentation/ShotCard";
 export type { ShotCardProps } from "./presentation/ShotCard";
 export { FinalizePanel } from "./presentation/FinalizePanel";
 export type { FinalizePanelProps, FinalizeSummary } from "./presentation/FinalizePanel";
+
+// Presentation — StoryPipelineShell 三栏布局（Task 2A.6）
+export { StoryPipelineShell } from "./presentation/StoryPipelineShell";
+export type { StoryPipelineShellProps } from "./presentation/StoryPipelineShell";
+export { PhaseIndicator } from "./presentation/PhaseIndicator";
+export type { PhaseIndicatorProps } from "./presentation/PhaseIndicator";
+export { SegmentNavColumn } from "./presentation/SegmentNavColumn";
+export type { SegmentNavColumnProps } from "./presentation/SegmentNavColumn";
+export { MainWorkArea } from "./presentation/MainWorkArea";
+export type { MainWorkAreaProps } from "./presentation/MainWorkArea";
+export { ContextPanel } from "./presentation/ContextPanel";
+export type { ContextPanelProps } from "./presentation/ContextPanel";

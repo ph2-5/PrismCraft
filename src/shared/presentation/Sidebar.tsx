@@ -62,7 +62,7 @@ const freeCreationItems: NavEntry[] = [
 ];
 
 const storyCreationItems: NavEntry[] = [
-  { href: "/story", labelKey: "sidebar.story", icon: Book, comingSoon: true },
+  { href: "/story", labelKey: "sidebar.story", icon: Book },
 ];
 
 const toolItems: NavEntry[] = [

@@ -35,7 +35,11 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
 
   const [isPlanningStory, setIsPlanningStory] = useState(false);
 
-  const planStoryWithAI = useCallback(async () => {
+  /**
+   * 触发 AI 故事规划。
+   * @param userPrompt 可选的用户补充指令（来自底部输入栏），会拼接到基础 prompt 之后
+   */
+  const planStoryWithAI = useCallback(async (userPrompt?: string) => {
     if (!currentStory.title && !currentStory.description) {
       showError(t("story.addBeatFirst"));
       return;
@@ -90,6 +94,7 @@ export function useStoryPlanner(props: UseStoryPlannerProps) {
               errorLogger.info(`[Pipeline] 自动修复 ${progress.autoFixedCount} 处`);
             }
           },
+          userPrompt,
         },
         generationEnhanced,
       );

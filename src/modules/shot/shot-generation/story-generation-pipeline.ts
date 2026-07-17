@@ -81,6 +81,11 @@ export interface PipelineOptions {
   videoModelId?: string;
   promptLanguage?: "en" | "zh" | "auto";
   onProgress?: (progress: PipelineProgress) => void;
+  /**
+   * 用户补充的额外指令，会拼接到 buildStoryPlanPrompt 生成的基础 prompt 之后。
+   * 用于让底部输入栏收集的"用户描述"参与到 AI 故事规划中。
+   */
+  userPrompt?: string;
 }
 
 export const DEFAULT_OPTIONS: PipelineOptions = {

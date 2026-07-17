@@ -88,8 +88,13 @@ export function buildEnrichedPrompt(
     elements,
     resolvedLanguage,
   );
-  if (!opts.enhancedGeneration) return basePrompt;
-  return enrichPromptWithFewShot(basePrompt, {
+  // 将用户补充指令拼接到基础 prompt 之后（增强模式下也保留此段）
+  const userSection = opts.userPrompt?.trim()
+    ? `\n\n【用户补充要求】\n${opts.userPrompt.trim()}`
+    : "";
+  const promptWithUser = userSection ? `${basePrompt}${userSection}` : basePrompt;
+  if (!opts.enhancedGeneration) return promptWithUser;
+  return enrichPromptWithFewShot(promptWithUser, {
     genre: story.genre || "drama",
     tone: story.tone || "neutral",
     beatIndex: 0,

@@ -1,17 +1,98 @@
 import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from "react";
-import { Zap, Image as ImageIcon, User, Clapperboard, Play, MapPin, X } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Clapperboard, Play, X } from "lucide-react";
 import { errorLogger } from "@/shared/error-logger";
 import { isElectron } from "@/shared/utils/platform";
 import { container } from "@/infrastructure/di";
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
-import { getBeatCharacterIds } from "@/domain/utils";
-import { SHOT_SIZE_OPTIONS } from "@/modules/shot";
 import type { Character, Scene, StoryBeat, StoryElement } from "@/domain/schemas";
 import type { BatchOptions, BatchResult } from "@/modules/storyboard/generation";
 import type { PromptEditorContext } from "@/modules/storyboard/prompt-editor";
+import { ShotTimeline } from "@/modules/shot";
+import { useVideoTaskStore } from "@/modules/video";
 import { BeatListView } from "./BeatListView";
 import { BeatDetailView } from "./BeatDetailView";
+import { BeatThumbnailCard } from "./BeatThumbnailCard";
+import { StoryboardBottomInputBar } from "./StoryboardBottomInputBar";
+
+/**
+ * 可拖拽的分镜缩略图卡片（包装 BeatThumbnailCard + useSortable）。
+ *
+ * 使用 horizontalListSortingStrategy 支持水平时间轴拖拽排序。
+ * 拖拽手柄为整个卡片（cursor: grab），点击仍可选择分镜。
+ */
+interface SortableBeatThumbnailCardProps {
+  beat: StoryBeat;
+  index: number;
+  isSelected: boolean;
+  characters: Character[];
+  scenes: Scene[];
+  isGenerating?: boolean;
+  /** 视频生成进度（0-100），来自 VideoTask.progress */
+  progress?: number;
+  onClick: (beatId: string) => void;
+}
+
+function SortableBeatThumbnailCard({
+  beat,
+  index,
+  isSelected,
+  characters,
+  scenes,
+  isGenerating,
+  progress,
+  onClick,
+}: SortableBeatThumbnailCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: beat.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <BeatThumbnailCard
+      beat={beat}
+      index={index}
+      isSelected={isSelected}
+      characters={characters}
+      scenes={scenes}
+      isGenerating={isGenerating}
+      progress={progress}
+      onClick={onClick}
+      dragRef={setNodeRef}
+      dragStyle={style}
+      dragAttributes={attributes as unknown as Record<string, unknown>}
+      dragListeners={listeners as unknown as Record<string, unknown>}
+    />
+  );
+}
 
 interface MinimalAsset {
   id: string;
@@ -31,7 +112,7 @@ interface ProfessionalModeEditorProps {
   onDeleteBeat: (beatId: string) => void;
   onMoveBeat: (beatId: string, direction: "up" | "down") => void;
   onReorderBeats?: (beats: StoryBeat[]) => void;
-  onPlanStoryWithAI: () => Promise<void>;
+  onPlanStoryWithAI: (userPrompt?: string) => Promise<void>;
   onOpenTemplateDialog: () => void;
   onOpenVersionDialog: () => void;
   isGenerating: boolean;
@@ -95,6 +176,18 @@ export function ProfessionalModeEditor({
   const [elements, setElements] = useState<StoryElement[]>([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const pendingNewBeatRef = useRef<boolean>(false);
+
+  // 视频任务进度查询：从 VideoTaskStore 派生 beatId → progress 的稳定 Map
+  // 参考 use-beat-detail.ts:25-28 的 selector 模式；用浅比较避免 allTasks 引用变化触发全量 re-render
+  const progressByBeat = useVideoTaskStore((s) => {
+    const map = new Map<string, number>();
+    for (const task of s.allTasks) {
+      if (task.beatId && typeof task.progress === "number") {
+        map.set(task.beatId, task.progress);
+      }
+    }
+    return map;
+  });
 
   const editingBeat = useMemo(
     () => beats.find((b) => b.id === editingBeatId) || null,
@@ -221,74 +314,27 @@ export function ProfessionalModeEditor({
     return Promise.resolve();
   }, [editingBeat, onRegenerateKeyframe]);
 
-  const getShotSizeLabel = useCallback((beat: StoryBeat) => {
-    const shotSize = beat.shotInstruction?.shotSize || beat.shotType;
-    if (!shotSize) return "";
-    const option = SHOT_SIZE_OPTIONS.find((o) => o.value === shotSize);
-    return option ? t(option.labelKey) : String(shotSize);
-  }, []);
+  // 拖拽排序：水平时间轴（horizontalListSortingStrategy）
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
-  const renderTimelineCard = useCallback(
-    (beat: StoryBeat, index: number) => {
-      const keyframeImage = resolveMediaUrl(beat.localKeyframePath, beat.keyframe?.imageUrl);
-      const charIds = getBeatCharacterIds(beat);
-      const charNames = charIds
-        .map((id: string) => characters.find((c) => c.id === id)?.name)
-        .filter((n): n is string => Boolean(n));
-      const sceneName = beat.sceneId
-        ? scenes.find((s) => s.id === beat.sceneId)?.name
-        : null;
-      const shotLabel = getShotSizeLabel(beat);
-      const isSelected = editingBeatId === beat.id;
-      const isGenerating = generatingKeyframe?.has(beat.id) ?? false;
-      const generationStatus = beat.generationStatus || beat.videoGen?.status;
-      const isVideoGenerating = isGenerating || generationStatus === "generating" || generationStatus === "pending";
-
-      return (
-        <div
-          key={beat.id}
-          className={`timeline-card ${isSelected ? "selected" : ""}`}
-          onClick={() => setEditingBeatId(beat.id)}
-        >
-          <div className="tc-thumb">
-            {isVideoGenerating ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 4, width: "100%", height: "100%" }}>
-                <Zap size={20} />
-                <span style={{ fontSize: 10, color: "var(--muted-fg)" }}>{t("beat.generating")}</span>
-                <div className="progress-bar" style={{ width: 60 }}>
-                  <div className="progress-fill" style={{ width: "67%" }}></div>
-                </div>
-              </div>
-            ) : keyframeImage ? (
-              <img
-                src={keyframeImage}
-                alt={beat.title || ""}
-                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px 8px 0 0" }}
-              />
-            ) : (
-              <ImageIcon size={24} style={{ opacity: 0.6 }} aria-hidden="true" />
-            )}
-            <div className="tc-bindings">
-              {charNames.map((name: string, idx: number) => (
-                <span key={`char-${idx}`} className="tc-bind-tag"><User style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} />{name}</span>
-              ))}
-              {sceneName && (
-                <span className="tc-bind-tag"><MapPin style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} />{sceneName}</span>
-              )}
-            </div>
-          </div>
-          <div className="tc-info">
-            <div className="tc-title">
-              {index + 1} · {beat.title || t("beat.shotNumber", { number: index + 1 })}
-            </div>
-            <div className="tc-dur">
-              {beat.duration ?? 0}s{shotLabel ? ` · ${shotLabel}` : ""}
-            </div>
-          </div>
-        </div>
-      );
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = beats.findIndex((b) => b.id === active.id);
+      const newIndex = beats.findIndex((b) => b.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const reordered = arrayMove(beats, oldIndex, newIndex).map((beat, index) => ({
+        ...beat,
+        order: index,
+        sequence: index,
+      }));
+      onReorderBeats?.(reordered);
     },
-    [characters, scenes, editingBeatId, generatingKeyframe, getShotSizeLabel, t],
+    [beats, onReorderBeats],
   );
 
   return (
@@ -346,76 +392,101 @@ export function ProfessionalModeEditor({
         />
       </div>
 
-      <div className="timeline-panel">
-        <div className="timeline-header">
-          <span style={{ fontSize: 12, fontWeight: 600 }}>{t("story.timeline")}</span>
-          <div className="toolbar">
+      <ShotTimeline
+        isEmpty={beats.length === 0}
+        onAddBeat={handleAddBeat}
+        toolbar={
+          <>
             <button
               className="btn btn-outline btn-xs"
               onClick={() => onBatchGenerateVideos?.()}
               disabled={isPlanningStory || beats.length === 0}
+              title={t("story.generateAllVideos")}
             >
-              <Clapperboard style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("story.generateAllVideos")}
+              <Clapperboard style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.generateAllVideos")}
             </button>
             <button
               className="btn btn-outline btn-xs"
               onClick={() => setShowPreviewModal(true)}
               disabled={beats.length === 0}
+              title={t("story.preview")}
             >
-              <Play style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} /> {t("story.preview")}
+              <Play style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.preview")}
             </button>
-          </div>
-        </div>
-        <div className="timeline-scroll">
-          {beats.map((beat, index) => {
-            const prevBeat = index > 0 ? beats[index - 1] : null;
-            const hasKeyframe = !!beat.keyframe?.imageUrl;
-            const prevHasKeyframe = prevBeat ? !!prevBeat.keyframe?.imageUrl : false;
-            const isLinked =
-              hasKeyframe &&
-              prevHasKeyframe &&
-              beat.keyframe?.referencedPrevKeyframe === prevBeat?.id;
-            const linkColor = isLinked
-              ? "var(--primary)"
-              : hasKeyframe && prevHasKeyframe
-                ? "var(--warning)"
-                : "var(--border)";
-            const linkStyle: React.CSSProperties = isLinked
-              ? { background: linkColor }
-              : { background: `repeating-linear-gradient(90deg, ${linkColor} 0 4px, transparent 4px 8px)` };
-            return (
-              <Fragment key={beat.id}>
-                {index > 0 && (
-                  <div
-                    style={{
-                      width: 12,
-                      height: 2,
-                      flexShrink: 0,
-                      alignSelf: "center",
-                      ...linkStyle,
-                    }}
-                    title={
-                      isLinked
-                        ? t("keyframe.linked")
-                        : hasKeyframe && prevHasKeyframe
-                          ? t("keyframe.chainBroken")
-                          : t("keyframe.beatNoPreview")
-                    }
-                  />
-                )}
-                {renderTimelineCard(beat, index)}
-              </Fragment>
-            );
-          })}
-          <div
-            className="timeline-card"
-            style={{ borderStyle: "dashed", display: "flex", alignItems: "center", justifyContent: "center", minWidth: 60, cursor: "pointer" }}
-            onClick={handleAddBeat}
+          </>
+        }
+      >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={beats.map((b) => b.id)}
+            strategy={horizontalListSortingStrategy}
           >
-            <div style={{ fontSize: 20, color: "var(--muted-fg)" }}>+</div>
-          </div>
-        </div>
-      </div>
+            {beats.map((beat, index) => {
+              const prevBeat = index > 0 ? beats[index - 1] : null;
+              const hasKeyframe = !!beat.keyframe?.imageUrl;
+              const prevHasKeyframe = prevBeat ? !!prevBeat.keyframe?.imageUrl : false;
+              const isLinked =
+                hasKeyframe &&
+                prevHasKeyframe &&
+                beat.keyframe?.referencedPrevKeyframe === prevBeat?.id;
+              const linkColor = isLinked
+                ? "var(--primary)"
+                : hasKeyframe && prevHasKeyframe
+                  ? "var(--warning)"
+                  : "var(--border)";
+              const linkStyle: React.CSSProperties = isLinked
+                ? { background: linkColor }
+                : { background: `repeating-linear-gradient(90deg, ${linkColor} 0 4px, transparent 4px 8px)` };
+              return (
+                <Fragment key={beat.id}>
+                  {index > 0 && (
+                    <div
+                      style={{
+                        width: 12,
+                        height: 2,
+                        flexShrink: 0,
+                        alignSelf: "center",
+                        ...linkStyle,
+                      }}
+                      title={
+                        isLinked
+                          ? t("keyframe.linked")
+                          : hasKeyframe && prevHasKeyframe
+                            ? t("keyframe.chainBroken")
+                            : t("keyframe.beatNoPreview")
+                      }
+                    />
+                  )}
+                  <SortableBeatThumbnailCard
+                    beat={beat}
+                    index={index}
+                    isSelected={editingBeatId === beat.id}
+                    characters={characters}
+                    scenes={scenes}
+                    isGenerating={generatingKeyframe?.has(beat.id) ?? false}
+                    progress={progressByBeat.get(beat.id)}
+                    onClick={setEditingBeatId}
+                  />
+                </Fragment>
+              );
+            })}
+          </SortableContext>
+        </DndContext>
+      </ShotTimeline>
+
+      {/* Task 2B.11：底部 AI 输入栏（匹配 design-preview.html #bottom-bar-storyboard） */}
+      <StoryboardBottomInputBar
+        modelId={imageModelId}
+        isGenerating={isPlanningStory}
+        onGenerate={(prompt) => {
+          // 将底部输入栏收集的用户描述作为 userPrompt 传给 AI 规划管道
+          void onPlanStoryWithAI(prompt);
+        }}
+      />
 
       {/* Preview Modal - shows all generated videos */}
       {showPreviewModal && (

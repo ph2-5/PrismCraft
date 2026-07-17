@@ -237,7 +237,7 @@ interface BeatListViewProps {
   onMoveBeat: (beatId: string, direction: "up" | "down") => void;
   onDeleteBeat: (beatId: string) => void;
   onReorderBeats?: (beats: StoryBeat[]) => void;
-  onPlanStoryWithAI: () => Promise<void>;
+  onPlanStoryWithAI: (userPrompt?: string) => Promise<void>;
   onOpenTemplateDialog: () => void;
   onOpenVersionDialog: () => void;
   isPlanningStory: boolean;

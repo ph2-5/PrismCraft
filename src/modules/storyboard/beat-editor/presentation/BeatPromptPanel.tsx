@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Image as ImageIcon, Clapperboard, Film } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Image as ImageIcon, Clapperboard, Film, User, MapPin } from "lucide-react";
 import { t } from "@/shared/constants";
 import { Tabs } from "@/shared/presentation/Tabs";
 import { SHOT_SIZE_OPTIONS, CAMERA_MOVEMENT_OPTIONS } from "@/modules/shot";
+import { getBeatCharacterIds } from "@/domain/utils";
 import type {
   StoryBeat,
   Character,
@@ -48,6 +49,19 @@ export function BeatPromptPanel({
 }: BeatPromptPanelProps) {
   const { error: showError } = useToastHelpers();
   const [promptTab, setPromptTab] = useState<PromptEditorContext>("keyframe");
+
+  // Task 2B.11：提示词元素绑定高亮 — 计算当前 beat 绑定的角色/场景名称
+  // 用于在提示词编辑区上方显示 prompt-binding-tag 标签（.char 紫色 / .scene 绿色）
+  const { boundCharacterNames, boundSceneName } = useMemo(() => {
+    const charIds = getBeatCharacterIds(beat);
+    const charNames = charIds
+      .map((id) => characters.find((c) => c.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
+    const sceneName = beat.sceneId
+      ? scenes.find((s) => s.id === beat.sceneId)?.name ?? null
+      : null;
+    return { boundCharacterNames: charNames, boundSceneName: sceneName };
+  }, [beat, characters, scenes]);
 
   const handleUpdateField = (
     field: keyof StoryBeat,
@@ -126,6 +140,24 @@ export function BeatPromptPanel({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted-fg)" }}>{t("beat.promptLabel")}</span>
         </div>
+        {/* Task 2B.11：提示词元素绑定高亮 — 显示当前 beat 绑定的角色/场景名称 */}
+        {(boundCharacterNames.length > 0 || boundSceneName) && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", fontSize: 11 }}>
+            <span style={{ color: "var(--muted-fg)", marginRight: 2 }}>{t("beat.boundElements")}:</span>
+            {boundCharacterNames.map((name, idx) => (
+              <span key={`char-tag-${idx}`} className="prompt-binding-tag char">
+                <User style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
+                {name}
+              </span>
+            ))}
+            {boundSceneName && (
+              <span className="prompt-binding-tag scene">
+                <MapPin style={{ width: 10, height: 10, display: "inline", verticalAlign: "middle", marginRight: 2 }} aria-hidden="true" />
+                {boundSceneName}
+              </span>
+            )}
+          </div>
+        )}
         <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
           <PromptEditor
             beat={beat}

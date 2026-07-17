@@ -177,17 +177,20 @@ export function ProfessionalModeEditor({
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const pendingNewBeatRef = useRef<boolean>(false);
 
-  // 视频任务进度查询：从 VideoTaskStore 派生 beatId → progress 的稳定 Map
-  // 参考 use-beat-detail.ts:25-28 的 selector 模式；用浅比较避免 allTasks 引用变化触发全量 re-render
-  const progressByBeat = useVideoTaskStore((s) => {
+  // 视频任务进度查询：先通过 selector 获取 allTasks 引用（Zustand 用 Object.is 比较，稳定），
+  // 再用 useMemo 派生 beatId → progress 的 Map。
+  // 注意：不能在 selector 内直接返回新 Map，否则 Zustand v5 + useSyncExternalStore 会因
+  // 每次返回新引用而判定 store 持续变化，触发 "Maximum update depth exceeded" 无限循环。
+  const allTasks = useVideoTaskStore((s) => s.allTasks);
+  const progressByBeat = useMemo(() => {
     const map = new Map<string, number>();
-    for (const task of s.allTasks) {
+    for (const task of allTasks) {
       if (task.beatId && typeof task.progress === "number") {
         map.set(task.beatId, task.progress);
       }
     }
     return map;
-  });
+  }, [allTasks]);
 
   const editingBeat = useMemo(
     () => beats.find((b) => b.id === editingBeatId) || null,

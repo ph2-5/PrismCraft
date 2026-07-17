@@ -193,6 +193,42 @@ CREATE TABLE IF NOT EXISTS character_outfits (
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
 );
 
+-- Task 2A.10: 角色变体表
+CREATE TABLE IF NOT EXISTS character_variants (
+    id TEXT PRIMARY KEY,
+    owner_id INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER DEFAULT (strftime('%s','now')),
+    updated_at INTEGER DEFAULT (strftime('%s','now')),
+    is_deleted INTEGER DEFAULT 0,
+    deleted_at INTEGER,
+    version INTEGER DEFAULT 1,
+    sync_id TEXT,
+    character_id TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    description TEXT DEFAULT '',
+    prompt_fragment TEXT DEFAULT '',
+    reference_image_path TEXT,
+    image_url TEXT,
+    local_image_path TEXT,
+    thumbnail_path TEXT,
+    time_of_day TEXT,
+    weather TEXT,
+    lighting TEXT,
+    mood TEXT,
+    crowd_level TEXT,
+    camera_angle TEXT,
+    season TEXT,
+    color_palette TEXT,
+    source_outfit_id TEXT,
+    source_compositor_asset_id TEXT,
+    is_default INTEGER DEFAULT 0,
+    is_canonical INTEGER DEFAULT 0,
+    metadata_json TEXT DEFAULT '{}',
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_character_variants_character ON character_variants(character_id);
+CREATE INDEX IF NOT EXISTS idx_character_variants_default ON character_variants(character_id, is_default);
+
 CREATE TABLE IF NOT EXISTS elements (
     id TEXT PRIMARY KEY,
     owner_id INTEGER NOT NULL DEFAULT 1,

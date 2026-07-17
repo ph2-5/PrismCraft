@@ -48,8 +48,9 @@ export default {
 
   testRunner: "command",
   commandRunner: {
-    // Task 3.1：禁用覆盖率阈值，避免 Stryker 初始测试运行因覆盖率不足误判失败
-    command: "npx vitest run --coverage.enabled=false",
+    // Task 3.1：使用 vitest.config.stryker.ts 禁用覆盖率阈值，
+    // 避免 Stryker 初始测试运行因覆盖率不足误判失败
+    command: "npx vitest run --config vitest.config.stryker.ts --coverage.enabled=false",
   },
 
   coverageAnalysis: "off",

@@ -52,6 +52,9 @@ import {
   X,
   Download,
   ChevronDown,
+  Wrench,
+  BookOpen,
+  Stethoscope,
 } from "lucide-react";
 
 export function AgentPage() {
@@ -407,6 +410,49 @@ export function AgentPage() {
 
         {/* 输入区（固定底部） */}
         <div className="border-t border-border bg-background p-4">
+          {/* Task 1.12：意图快捷按钮（对应 design-preview.html 第 1874-1879 行） */}
+          <div className="mx-auto mb-2 flex max-w-3xl gap-2">
+            <button
+              type="button"
+              onClick={() => setInput("API 怎么配置")}
+              disabled={isStreaming}
+              className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
+              title={t("agent.quickActionApiConfig")}
+            >
+              <Wrench className="h-3 w-3" />
+              {t("agent.quickActionApiConfig")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInput("把这段小说变成视频")}
+              disabled={isStreaming}
+              className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
+              title={t("agent.quickActionImportNovel")}
+            >
+              <BookOpen className="h-3 w-3" />
+              {t("agent.quickActionImportNovel")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInput("搜索素材")}
+              disabled={isStreaming}
+              className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
+              title={t("agent.quickActionSearchAssets")}
+            >
+              <Search className="h-3 w-3" />
+              {t("agent.quickActionSearchAssets")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInput("生成失败了，请帮诊断")}
+              disabled={isStreaming}
+              className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
+              title={t("agent.quickActionDiagnose")}
+            >
+              <Stethoscope className="h-3 w-3" />
+              {t("agent.quickActionDiagnose")}
+            </button>
+          </div>
           <div className="mx-auto flex max-w-3xl items-end gap-2">
             <textarea
               value={input}

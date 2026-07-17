@@ -1,0 +1,64 @@
+{
+  "name": "novel-domain",
+  "description": "小说导入管道的所有领域类型定义（10步流水线）。包含 8 个核心类型 + 6 个辅助类型，遵循 v5.1 三档渐进式复杂度（quick/standard/professional）。",
+  "version": "1.0.0",
+  "taskRef": "Task 2A.1",
+  "dependencies": [
+    "@/domain/schemas/character"
+  ],
+  "dependencyNotes": [
+    "仅依赖 CharacterAppearance 类型（zod schema output），不引入任何 infrastructure / shared-logic / 其他 modules",
+    "v5.4 协同：ShotBreakdown 预留 shotStrategy / qcReport 字段位（Task 2A.23 实施时追加类型定义）"
+  ],
+  "publicAPI": [
+    "NovelSegment",
+    "ExtractedCharacter",
+    "ExtractedScene",
+    "ShotBreakdown",
+    "PipelineStage",
+    "PipelineConfig",
+    "Segment",
+    "CharacterVariant",
+    "CharacterInPipeline",
+    "SceneVariant",
+    "SceneInPipeline",
+    "SegmentPrompt",
+    "GenerationResult",
+    "PipelineState",
+    "NovelProject"
+  ],
+  "internalTypes": [
+    "CharacterVariant 与 SceneVariant 共享 8 维参数向量（timeOfDay/weather/lighting/mood/crowdLevel/cameraAngle/season/colorPalette），用于 v5.1 角色化产出与场景变体过渡"
+  ],
+  "invariants": [
+    "PipelineState.stage 从 project_init → done 单向流动（不可回退，但子步骤可重做）",
+    "PipelineState.step 在 stage 内从 1 递增，跨 stage 时重置为 1",
+    "v5.1: stage 流转顺序为 project_init → content_import → [structure_analysis] → [pacing_planning] → character_manage → scene_manage → review → storyboard → generation → done",
+    "v5.1: structure_analysis 和 pacing_planning 在 quick/standard 模式可跳过，professional 模式必须经过",
+    "v5.1: aiAssistLevel 决定 STAGE_ORDER 子集（getStagesForMode 函数）",
+    "v5.1: 上游 stage 产出变化时，必须通过 stalenessTracker 标记下游 stage 为 stale（Task 2A.17）",
+    "全自动模式减少用户确认节点，但保留 Phase 3/4 的角色场景确认",
+    "ExtractedCharacter.status 为 matched 时必须设置 matchedCharacterId",
+    "ExtractedScene.status 为 matched 时必须设置 matchedSceneId",
+    "角色/场景采用三级匹配（精确→模糊→向量），降低重复创建",
+    "场景变体用 8 维参数向量描述（timeOfDay/weather/lighting/mood/crowdLevel/cameraAngle/season/colorPalette）",
+    "角色变体同样使用 8 维参数向量（与场景变体一致），支持跨时间线状态推演（Phase 4.6）",
+    "Prompt 自动合成：片段描述 + 角色变体 promptFragment + 场景变体 promptFragment → 完整 Prompt",
+    "v5.1: Prompt 合成升级为分层式（核心层 core + 增强层 enhanced + 风格层 style），由 SegmentPrompt.layers 承载",
+    "NovelProject 持久化到 SQLite，每个项目独立的 PipelineState",
+    "v5.4: GenerationResult.storyBeatId 关联 StoryBeat 表，为 Task 2A.23 一致性 QC 闭环追踪预留",
+    "类型无循环引用：NovelSegment / ExtractedCharacter / ExtractedScene 为叶子类型；Segment 继承 NovelSegment；PipelineState 聚合其他类型"
+  ],
+  "stageFlow": {
+    "default": ["project_init", "content_import", "character_manage", "scene_manage", "review", "storyboard", "generation", "done"],
+    "professional": ["project_init", "content_import", "structure_analysis", "pacing_planning", "character_manage", "scene_manage", "review", "storyboard", "generation", "done"],
+    "quick": ["project_init", "content_import", "storyboard", "generation", "done"],
+    "standard": ["project_init", "content_import", "character_manage", "scene_manage", "storyboard", "generation", "done"]
+  },
+  "futureExtensions": {
+    "Task 2A.6": "Segment.shots?: ShotBreakdown[] — 剧本化阶段填充",
+    "Task 2A.17": "Segment.staleness?: 'fresh' | 'stale' | 'dirty' — 过期标记机制",
+    "Task 2A.23": "ShotBreakdown.shotStrategy? / ShotBreakdown.qcReport? — 一致性 QC 闭环（v5.4）",
+    "Phase 4.6": "CharacterVariant / SceneVariant 接入故事时间线变体系统"
+  }
+}

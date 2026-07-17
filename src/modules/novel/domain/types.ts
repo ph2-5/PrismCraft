@@ -256,6 +256,7 @@ export interface GenerationResult {
  * - stage 从 project_init → done 单向流动（不可回退，但子步骤可重做）
  * - step 在 stage 内从 1 递增，跨 stage 时重置为 1
  * - 上游 stage 产出变化时，必须通过 stalenessTracker 标记下游 stage 为 stale（Task 2A.17）
+ * - stepData[stage] = undefined 表示该阶段数据已重置，需要重新执行（Task 2A.3 retryStage）
  */
 export interface PipelineState {
   stage: PipelineStage;
@@ -271,6 +272,13 @@ export interface PipelineState {
   generationResults: GenerationResult[];
   storyId?: string;
   error?: string;
+  /**
+   * 各阶段产生的中间数据（Task 2A.3）。
+   * - key 为 PipelineStage，value 为该阶段的数据块（类型由调用方断言）
+   * - retryStage 时将对应 stage 的数据置 undefined
+   * - 持久化时整体序列化到 SQLite
+   */
+  stepData?: Partial<Record<PipelineStage, unknown>>;
 }
 
 /**

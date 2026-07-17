@@ -117,10 +117,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   setConfig: (key: string, value: unknown) => {
     try {
-      let parsedValue = value;
+      let parsedValue: unknown = value;
       if (typeof value === "string") {
         try {
-          parsedValue = JSON.parse(value);
+          parsedValue = JSON.parse(value) as unknown;
         } catch { /* ignore */ }
       }
       return createSecureSyncIpcInvoker("config:set")(key, parsedValue);

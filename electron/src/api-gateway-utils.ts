@@ -13,6 +13,30 @@ import { getUserDataRootDir } from "./app-paths";
 
 const logger = getLogger("api-gateway-utils");
 
+/**
+ * API 客户端错误（携带 HTTP 状态码）
+ *
+ * 替代历史上 `(error as Error & { statusCode?: number }).statusCode = ...` 的类型 hack。
+ * 消费方读取状态码时优先使用 `getApiErrorStatusCode(error)`，避免对裸 Error 做属性断言。
+ */
+export class ApiClientError extends Error {
+  statusCode?: number;
+  constructor(message: string, statusCode?: number) {
+    super(message);
+    this.name = "ApiClientError";
+    this.statusCode = statusCode;
+  }
+}
+
+/**
+ * 从未知错误中提取 HTTP 状态码（仅 ApiClientError 携带此字段）。
+ *
+ * 用于替代 `(error as Error & { statusCode?: number }).statusCode` 读取断言。
+ */
+export function getApiErrorStatusCode(error: unknown): number | undefined {
+  return error instanceof ApiClientError ? error.statusCode : undefined;
+}
+
 export function isAsyncPlugin(plugin: AIProviderPlugin): plugin is AIProviderPlugin & AsyncAIProviderPlugin {
   return "buildVideoRequestAsync" in plugin && typeof (plugin as AsyncAIProviderPlugin).buildVideoRequestAsync === "function";
 }
@@ -536,21 +560,19 @@ export async function makeRequest(
           if (statusCode >= 200 && statusCode < 300) {
             resolve(data);
           } else {
-            const error = new Error(`HTTP ${statusCode}: ${data}`);
-            (error as Error & { statusCode?: number }).statusCode = statusCode;
-            reject(error);
+            reject(new ApiClientError(`HTTP ${statusCode}: ${data}`, statusCode));
           }
           return;
         }
         if (statusCode >= 200 && statusCode < 300) {
           resolve(parsed);
         } else {
-          const error = new Error(
+          const error = new ApiClientError(
             (parsed as Record<string, unknown>)?.error
               ? String(((parsed as Record<string, unknown>).error as Record<string, unknown>)?.message || `HTTP ${statusCode}`)
               : `HTTP ${statusCode}`,
+            statusCode,
           );
-          (error as Error & { statusCode?: number }).statusCode = statusCode;
           reject(error);
         }
       });
@@ -619,9 +641,7 @@ export async function makeStreamingRequest(
         });
         res.on("end", () => {
           const data = Buffer.concat(chunks).toString("utf-8");
-          const error = new Error(`HTTP ${statusCode}: ${data}`);
-          (error as Error & { statusCode?: number }).statusCode = statusCode;
-          reject(error);
+          reject(new ApiClientError(`HTTP ${statusCode}: ${data}`, statusCode));
         });
         res.on("error", reject);
         return;

@@ -204,6 +204,76 @@ export const exportSchema = z.object({
 });
 export type ExportRequest = z.infer<typeof exportSchema>;
 
+// ── shared-logic mirror schemas (Electron cannot import @/domain/*) ────
+// These mirror the types exported from @shared-logic/shot/reference-engine.
+// Declared here (before the story* schemas) so they are initialized before use.
+
+// Mirror of Beat from @shared-logic/video/video-task-params (cannot be imported
+// into the Electron schema layer). Replaces the previous z.unknown() which
+// performed no runtime validation. passthrough() preserves provider-specific
+// extra keys so downstream shared-logic consumers are unaffected.
+const slVideoBeatSchema = z.object({
+  id: z.string(),
+  storyId: z.string().optional(),
+  content: z.string().optional(),
+  description: z.string().optional(),
+  duration: z.number().optional(),
+  imageGenerationPrompt: z.string().optional(),
+  firstFramePrompt: z.string().optional(),
+  lastFramePrompt: z.string().optional(),
+  shotType: z.string().optional(),
+  camera: z.object({ angle: z.string().optional(), movement: z.string().optional() }).optional(),
+  framePair: z.object({
+    firstFrame: z.object({ imageUrl: z.string().optional() }).optional(),
+    lastFrame: z.object({ imageUrl: z.string().optional() }).optional(),
+  }).optional(),
+  firstFrameUrl: z.string().optional(),
+  lastFrameUrl: z.string().optional(),
+  keyframe: z.object({ imageUrl: z.string().optional(), prompt: z.string().optional() }).optional(),
+}).passthrough();
+
+// Mirror of CharacterInput from @shared-logic/prompt/prompt-service.
+const slCharacterInputSchema = z.object({
+  name: z.string().optional(),
+  gender: z.string().optional(),
+  age: z.union([z.number(), z.string()]).optional(),
+  style: z.string().optional(),
+  appearance: z.object({
+    hairColor: z.string().optional(),
+    hairStyle: z.string().optional(),
+    eyeColor: z.string().optional(),
+    build: z.string().optional(),
+    clothing: z.string().optional(),
+    accessories: z.string().optional(),
+  }).optional(),
+  description: z.string().optional(),
+  personality: z.union([z.string(), z.array(z.string())]).optional(),
+  generatedImage: z.string().optional(),
+}).passthrough();
+
+// Mirror of SceneInput from @shared-logic/prompt/prompt-service.
+const slSceneInputSchema = z.object({
+  name: z.string().optional(),
+  type: z.string().optional(),
+  timeOfDay: z.string().optional(),
+  weather: z.string().optional(),
+  mood: z.string().optional(),
+  lighting: z.string().optional(),
+  atmosphere: z.string().optional(),
+  description: z.string().optional(),
+  elements: z.union([z.string(), z.array(z.string())]).optional(),
+  generatedImage: z.string().optional(),
+  colors: z.union([z.string(), z.array(z.string())]).optional(),
+}).passthrough();
+
+// Mirror of ElementInput from @shared-logic/prompt/prompt-service.
+const slElementInputSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().optional(),
+  type: z.string().optional(),
+  featureAnchor: z.object({ featureTags: z.array(z.string()).optional() }).optional(),
+}).passthrough();
+
 export const storyPlanSchema = z.object({
   story: z.record(z.string(), z.unknown()),
   characters: z.array(z.unknown()),
@@ -220,12 +290,13 @@ export const storyGenerateVideoSchema = z.object({
   beatId: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
-  // Fields used by buildVideoGenerationParams; declared as unknown because Beat/CharacterInput
-  // are shared-logic types that cannot be imported into the Electron schema layer.
-  beat: z.unknown().optional(),
-  characters: z.array(z.unknown()).optional(),
-  scenes: z.array(z.unknown()).optional(),
-  elements: z.array(z.unknown()).optional(),
+  // Fields used by buildVideoGenerationParams. Mirror schemas validate the
+  // object structure (replacing the previous z.unknown() which had no runtime
+  // validation) while passthrough() preserves extra keys for shared-logic.
+  beat: slVideoBeatSchema.optional(),
+  characters: z.array(slCharacterInputSchema).optional(),
+  scenes: z.array(slSceneInputSchema).optional(),
+  elements: z.array(slElementInputSchema).optional(),
   shotInstruction: z.string().optional(),
   firstFrameUrl: z.string().optional(),
   lastFrameUrl: z.string().optional(),
@@ -235,7 +306,7 @@ export const storyGenerateVideoSchema = z.object({
 export type StoryGenerateVideoRequest = z.infer<typeof storyGenerateVideoSchema>;
 
 export const storyGenerateKeyframeSchema = z.object({
-  beat: z.unknown().optional(),
+  beat: slVideoBeatSchema.optional(),
   storyId: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
@@ -243,7 +314,7 @@ export const storyGenerateKeyframeSchema = z.object({
 export type StoryGenerateKeyframeRequest = z.infer<typeof storyGenerateKeyframeSchema>;
 
 export const storyGenerateFramePairSchema = z.object({
-  beat: z.unknown().optional(),
+  beat: slVideoBeatSchema.optional(),
   storyId: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
@@ -336,8 +407,6 @@ export const videoProviderInfoSchema = z.object({
 });
 export type VideoProviderInfoRequest = z.infer<typeof videoProviderInfoSchema>;
 
-// ── shared-logic mirror schemas (Electron cannot import @/domain/*) ────
-// These mirror the types exported from @shared-logic/shot/reference-engine.
 const slShotSchema = z.object({
   id: z.string(),
   sequence: z.number().optional(),

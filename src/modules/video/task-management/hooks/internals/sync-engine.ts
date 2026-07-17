@@ -158,8 +158,10 @@ export function scheduleSync() {
   if (pollingState.syncTimeoutId) {
     clearTimeout(pollingState.syncTimeoutId);
   }
-  // P2-2 修复：新的外部同步请求，重置重试计数
-  syncRetryCount = 0;
+  // P2-2 竞态加固：外部触发的 scheduleSync 不再重置 syncRetryCount。
+  // 重试计数仅在 performSync 成功时（line 119）或达到 MAX_SYNC_RETRIES 放弃时（line 149）重置。
+  // 这样可以避免"重试途中遇到新的外部触发导致计数归零、底层持续故障时永远达不到上限"的竞态。
+  // 重试路径（performSync catch 分支）直接通过 setTimeout 调度，不走 scheduleSync，互不干扰。
   pollingState.syncTimeoutId = setTimeout(() => {
     void performSync();
   }, SYNC_DEBOUNCE_MS);

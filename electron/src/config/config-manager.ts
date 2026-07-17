@@ -100,7 +100,8 @@ class ConfigManager {
       // 尝试直接解析 JSON
       let parsed: AppConfig;
       try {
-        parsed = JSON.parse(data);
+        const raw: unknown = JSON.parse(data);
+        parsed = raw as AppConfig;
         if (parsed.providers || parsed.mapping) {
           this.cache = this.mergeWithDefaults(parsed);
           return this.cache;
@@ -112,7 +113,8 @@ class ConfigManager {
       // 尝试 base64 解码
       try {
         const decoded = Buffer.from(data, "base64").toString("utf-8");
-        parsed = JSON.parse(decoded);
+        const raw: unknown = JSON.parse(decoded);
+        parsed = raw as AppConfig;
         if (parsed.providers || parsed.mapping) {
           this.save(parsed); // 重新保存为明文 JSON
           this.cache = this.mergeWithDefaults(parsed);

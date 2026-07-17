@@ -82,7 +82,8 @@ async function loadConfigAsync(): Promise<AppConfig> {
     let config: AppConfig;
 
     try {
-      config = JSON.parse(data);
+      const parsed: unknown = JSON.parse(data);
+      config = parsed as AppConfig;
     } catch {
       // 不再尝试 base64 解码：base64 是编码而非加密，历史迁移已完成
       // 配置文件损坏时使用默认配置，避免明文凭据通过 base64 回退进入内存
@@ -135,8 +136,9 @@ function loadConfig(): AppConfig {
     if (!fs.existsSync(configFile)) return { ...DEFAULT_CONFIG };
     const data = fs.readFileSync(configFile, "utf-8").trim();
     if (!data) return { ...DEFAULT_CONFIG };
-    const parsed = JSON.parse(data);
-    return parsed.providers || parsed.mapping ? parsed : { ...DEFAULT_CONFIG };
+    const parsed: unknown = JSON.parse(data);
+    const cfg = parsed as AppConfig;
+    return cfg.providers || cfg.mapping ? cfg : { ...DEFAULT_CONFIG };
   } catch {
     logger.warn("Failed to load config file, using defaults");
     return { ...DEFAULT_CONFIG };

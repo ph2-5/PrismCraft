@@ -17,7 +17,7 @@ const { mockPluginRegistry, mockSaveUserPlugin, mockDeleteUserPlugin, mockListUs
   mockSaveUserPlugin: vi.fn(() => ({ success: true, filePath: "/test/plugin.json" })),
   mockDeleteUserPlugin: vi.fn(() => ({ success: true })),
   mockListUserPluginFiles: vi.fn(() => []),
-  mockValidatePluginConfig: vi.fn(() => ({ valid: true, errors: [] })),
+  mockValidatePluginConfig: vi.fn((config: unknown) => ({ valid: true, config, errors: [] })),
   mockGetAllProcessMetrics: vi.fn(() => []),
 }));
 
@@ -160,7 +160,7 @@ describe("Plugin API Routes", () => {
     });
 
     it("should reject config conflicting with built-in plugin", async () => {
-      mockValidatePluginConfig.mockReturnValue({ valid: true, errors: [] });
+      mockValidatePluginConfig.mockImplementation((config: unknown) => ({ valid: true, config, errors: [] }));
       mockPluginRegistry.selectById.mockReturnValue({ id: "volcengine" });
       mockPluginRegistry.isUserPlugin.mockReturnValue(false);
 
@@ -170,7 +170,7 @@ describe("Plugin API Routes", () => {
     });
 
     it("should add valid plugin and reload", async () => {
-      mockValidatePluginConfig.mockReturnValue({ valid: true, errors: [] });
+      mockValidatePluginConfig.mockImplementation((config: unknown) => ({ valid: true, config, errors: [] }));
       mockPluginRegistry.selectById.mockReturnValue(undefined);
       mockSaveUserPlugin.mockReturnValue({ success: true, filePath: "/plugins/test.json" });
       mockPluginRegistry.reloadUserPlugins.mockReturnValue({ loaded: 1, errors: [] });
@@ -186,7 +186,7 @@ describe("Plugin API Routes", () => {
     });
 
     it("should handle save failure", async () => {
-      mockValidatePluginConfig.mockReturnValue({ valid: true, errors: [] });
+      mockValidatePluginConfig.mockImplementation((config: unknown) => ({ valid: true, config, errors: [] }));
       mockPluginRegistry.selectById.mockReturnValue(undefined);
       mockSaveUserPlugin.mockReturnValue({ success: false, error: "磁盘写入失败" });
 
@@ -285,7 +285,7 @@ describe("Plugin API Routes", () => {
     });
 
     it("should return validation result for valid config", async () => {
-      mockValidatePluginConfig.mockReturnValue({ valid: true, errors: [] });
+      mockValidatePluginConfig.mockImplementation((config: unknown) => ({ valid: true, config, errors: [] }));
 
       const result = await callRoute("plugins/validate", "POST", { config: { id: "test" } });
       expect(result.success).toBe(true);
@@ -305,7 +305,7 @@ describe("Plugin API Routes", () => {
 
   describe("Cache Invalidation Token", () => {
     it("should increment token on add", async () => {
-      mockValidatePluginConfig.mockReturnValue({ valid: true, errors: [] });
+      mockValidatePluginConfig.mockImplementation((config: unknown) => ({ valid: true, config, errors: [] }));
       mockPluginRegistry.selectById.mockReturnValue(undefined);
       mockSaveUserPlugin.mockReturnValue({ success: true, filePath: "/test" });
       mockPluginRegistry.reloadUserPlugins.mockReturnValue({ loaded: 1, errors: [] });

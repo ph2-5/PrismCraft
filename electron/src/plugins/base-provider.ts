@@ -27,8 +27,176 @@ import {
   downloadAsBase64,
 } from "./utils";
 import { getLogger } from "../logging/logger";
+import { z } from "zod";
 
 const logger = getLogger("base-provider");
+
+// ───────────────────────────────────────────────────────────────────────────
+// Task 3: Provider response runtime validation schemas
+//
+// These lightweight Zod schemas replace the previous `as Record<string, unknown>`
+// (and the more dangerous `as Record<string, unknown>[]`) casts inside the
+// extract* methods. Each schema uses `.passthrough()` so provider-specific
+// extra keys are preserved for downstream consumers — we only validate the
+// narrow set of fields the base class actually reads.
+//
+// `.catch(undefined)` is applied to optional fields so that a single
+// wrong-type field (e.g. `status: 123`) degrades to "missing" instead of
+// failing the entire parse. This preserves the previous behavior of returning
+// a safe default for malformed sub-fields while still validating the overall
+// object shape.
+//
+// `safeParse` returns `{ success: true, data } | { success: false, error }`
+// without throwing, so malformed input degrades gracefully to `undefined` /
+// empty string instead of returning a value that violates the declared
+// TypeScript type.
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * Helper: an optional string field that falls back to `undefined` when the
+ * input is present but not a string (e.g. `id: 123`). Without `.catch()`,
+ * a single wrong-type field would fail the entire object parse.
+ */
+const optionalString = z.string().optional().catch(undefined);
+const optionalNumber = z.number().optional().catch(undefined);
+
+/**
+ * Helper: an object schema that becomes `undefined` when the input is missing
+ * OR not a plain object (string, number, array, null). The order matters:
+ * `.optional()` allows `undefined` as valid input, and `.catch(undefined)`
+ * catches validation failures (e.g. when input is a string) and returns
+ * `undefined` instead. Together they mirror the previous behavior where
+ * `as Record<string, unknown>` silently passed through wrong types.
+ */
+function optionalObject<T extends z.ZodRawShape>(shape: T) {
+  return z.object(shape).passthrough().optional().catch(undefined);
+}
+
+/** Nested object containing an optional `task_id` string. */
+const taskIdDataSchema = optionalObject({
+  task_id: optionalString,
+});
+
+/** Shape for `{ id?, task_id?, data?: { task_id? }, output?: { task_id? } }`. */
+const taskIdResponseSchema = z
+  .object({
+    id: optionalString,
+    task_id: optionalString,
+    data: taskIdDataSchema,
+    output: taskIdDataSchema,
+  })
+  .passthrough();
+
+/** Nested object containing an optional `video_url` string. */
+const videoUrlDataSchema = optionalObject({
+  video_url: optionalString,
+});
+
+/** Shape for `{ video_url?, url?, data?: { video_url? }, output?: { video_url? } }`. */
+const videoUrlResponseSchema = z
+  .object({
+    video_url: optionalString,
+    url: optionalString,
+    data: videoUrlDataSchema,
+    output: videoUrlDataSchema,
+  })
+  .passthrough();
+
+/** Single image entry inside the `data` array — either `url` or `b64_json`. */
+const imageEntrySchema = z
+  .object({
+    url: optionalString,
+    b64_json: optionalString,
+  })
+  .passthrough();
+
+/** Shape for `{ data?: [{ url?, b64_json? }] }` — the previously unsafe array cast. */
+const imageUrlResponseSchema = z
+  .object({
+    data: z.array(imageEntrySchema).optional().catch(undefined),
+  })
+  .passthrough();
+
+/** Shape for `{ choices?: [{ message?: { content? } }] }`. */
+const textContentResponseSchema = z
+  .object({
+    choices: z
+      .array(
+        z
+          .object({
+            message: optionalObject({ content: optionalString }),
+          })
+          .passthrough(),
+      )
+      .optional()
+      .catch(undefined),
+  })
+  .passthrough();
+
+/** Shape for `{ status?, progress?, progress_percentage?, message?, error?, msg? }`. */
+const statusResponseSchema = z
+  .object({
+    status: optionalString,
+    progress: optionalNumber,
+    progress_percentage: optionalNumber,
+    message: optionalString,
+    error: optionalString,
+    msg: optionalString,
+  })
+  .passthrough();
+
+/** Shape for a single OpenAI SSE tool_call function block. */
+const textStreamFunctionSchema = optionalObject({
+  name: optionalString,
+  arguments: optionalString,
+});
+
+/** Shape for a single OpenAI SSE tool_call entry. */
+const textStreamToolCallSchema = optionalObject({
+  id: optionalString,
+  function: textStreamFunctionSchema,
+});
+
+/** Shape for a single OpenAI SSE delta. */
+const textStreamDeltaSchema = optionalObject({
+  content: optionalString,
+  tool_calls: z.array(textStreamToolCallSchema).optional().catch(undefined),
+});
+
+/** Shape for a single OpenAI SSE choice. */
+const textStreamChoiceSchema = z
+  .object({
+    delta: textStreamDeltaSchema,
+    finish_reason: optionalString,
+  })
+  .passthrough();
+
+/** Shape for an OpenAI SSE chunk: `{ choices: [{ delta?, finish_reason? }] }`. */
+const textStreamChunkSchema = z
+  .object({
+    choices: z.array(textStreamChoiceSchema),
+  })
+  .passthrough();
+
+/**
+ * Utility: parse an unknown provider response against a Zod schema.
+ *
+ * Returns the parsed (and narrowed) data on success, or `null` on failure.
+ * Use this to replace `as Record<string, unknown>` casts with runtime-validated
+ * narrowing. Callers should check for `null` and fall back to a safe default.
+ *
+ * @example
+ * const parsed = parseProviderResponse(taskIdResponseSchema, data);
+ * if (!parsed) return undefined;
+ * return parsed.id ?? parsed.task_id ?? parsed.data?.task_id ?? parsed.output?.task_id;
+ */
+export function parseProviderResponse<T>(
+  schema: z.ZodType<T>,
+  response: unknown,
+): T | null {
+  const result = schema.safeParse(response);
+  return result.success ? result.data : null;
+}
 
 export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
   abstract readonly id: string;
@@ -53,34 +221,45 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
 
   extractTaskId(data: Record<string, unknown>): string | undefined {
     if (!data || typeof data !== "object") return undefined;
+    // Zod safeParse narrows the unknown shape — no more `as Record<string, unknown>`
+    // chains. If the response doesn't match (e.g. id is a number), we fall back
+    // to undefined instead of returning a value that violates the string type.
+    const parsed = parseProviderResponse(taskIdResponseSchema, data);
+    if (!parsed) return undefined;
     return (
-      (data.id as string | undefined) ||
-      (data.task_id as string | undefined) ||
-      ((data.data as Record<string, unknown>)?.task_id as string | undefined) ||
-      ((data.output as Record<string, unknown>)?.task_id as string | undefined)
+      parsed.id ??
+      parsed.task_id ??
+      parsed.data?.task_id ??
+      parsed.output?.task_id
     );
   }
 
   extractVideoUrl(data: Record<string, unknown>): string | undefined {
     if (!data || typeof data !== "object") return undefined;
+    const parsed = parseProviderResponse(videoUrlResponseSchema, data);
+    if (!parsed) return undefined;
     return (
-      (data.video_url as string | undefined) ||
-      (data.url as string | undefined) ||
-      ((data.data as Record<string, unknown>)?.video_url as
-        | string
-        | undefined) ||
-      ((data.output as Record<string, unknown>)?.video_url as
-        | string
-        | undefined)
+      parsed.video_url ??
+      parsed.url ??
+      parsed.data?.video_url ??
+      parsed.output?.video_url
     );
   }
 
   extractImageUrl(data: Record<string, unknown>): string | undefined {
     if (!data || typeof data !== "object") return undefined;
-    const responseData = (data.data as Record<string, unknown>[])?.[0];
-    if (responseData?.url) return responseData.url as string;
-    if (responseData?.b64_json)
-      return `data:image/png;base64,${responseData.b64_json as string}`;
+    // Previously: `(data.data as Record<string, unknown>[])?.[0]` — an unsafe
+    // array cast that lied about the shape when `data.data` was a string or
+    // number. Now Zod validates the array structure; non-array `data` or
+    // non-string `url`/`b64_json` fields are rejected at runtime.
+    const parsed = parseProviderResponse(imageUrlResponseSchema, data);
+    if (!parsed) return undefined;
+    const responseData = parsed.data?.[0];
+    if (!responseData) return undefined;
+    if (responseData.url) return responseData.url;
+    if (responseData.b64_json) {
+      return `data:image/png;base64,${responseData.b64_json}`;
+    }
     return undefined;
   }
 
@@ -170,31 +349,40 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
     }
 
     // 解析 JSON
-    let parsed: Record<string, unknown>;
+    let jsonValue: unknown;
     try {
-      parsed = JSON.parse(data) as Record<string, unknown>;
+      jsonValue = JSON.parse(data);
     } catch {
       // 非 JSON 行（如注释、心跳）直接跳过
       return undefined;
     }
 
-    const choices = parsed.choices as Record<string, unknown>[] | undefined;
-    if (!Array.isArray(choices) || choices.length === 0) return undefined;
+    // Zod safeParse narrows the unknown JSON to the OpenAI chunk shape —
+    // eliminates the previous `as Record<string, unknown>[]` casts for
+    // choices / delta / tool_calls / function. Non-array choices or
+    // non-string fields now fail validation and return undefined.
+    const parsed = parseProviderResponse(textStreamChunkSchema, jsonValue);
+    if (!parsed) return undefined;
+    if (parsed.choices.length === 0) return undefined;
 
-    const choice = choices[0] as Record<string, unknown>;
-    const delta = choice.delta as Record<string, unknown> | undefined;
-    const deltaText = (delta?.content as string) || "";
+    const choice = parsed.choices[0];
+    if (!choice) return undefined;
+    const delta = choice.delta;
+    const deltaText = delta?.content ?? "";
 
     // 提取增量 tool_calls（OpenAI 流式格式：每个 chunk 可能只含 index + 部分 arguments）
     let toolCalls: TextStreamToolCall[] | undefined;
-    const rawToolCalls = delta?.tool_calls as Record<string, unknown>[] | undefined;
-    if (Array.isArray(rawToolCalls) && rawToolCalls.length > 0) {
+    const rawToolCalls = delta?.tool_calls;
+    if (rawToolCalls && rawToolCalls.length > 0) {
       toolCalls = rawToolCalls
+        // `.catch(undefined)` on the tool_call schema turns invalid elements
+        // (strings, numbers) into undefined — filter them out before mapping.
+        .filter((tc): tc is NonNullable<typeof tc> => tc != null)
         .map((tc) => {
-          const fn = tc.function as Record<string, unknown> | undefined;
-          const id = (tc.id as string) || "";
-          const name = (fn?.name as string) || "";
-          const args = (fn?.arguments as string) || "";
+          const fn = tc.function;
+          const id = tc.id ?? "";
+          const name = fn?.name ?? "";
+          const args = fn?.arguments ?? "";
           // 完全空的 tool_call 片段（仅 index）跳过，避免产生噪声
           if (!id && !name && !args) return null;
           return {
@@ -207,7 +395,7 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
     }
 
     // 映射 finish_reason
-    const rawFinish = choice.finish_reason as string | undefined;
+    const rawFinish = choice.finish_reason;
     const mappedFinish: TextStreamChunk["finishReason"] | undefined =
       rawFinish === "stop" || rawFinish === "tool_calls" || rawFinish === "length"
         ? rawFinish
@@ -295,12 +483,17 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
 
   extractTextContent(response: Record<string, unknown>): string {
     if (!response || typeof response !== "object") return "";
-    const choices = response.choices as Record<string, unknown>[] | undefined;
-    if (choices && Array.isArray(choices) && choices.length > 0) {
-      const message = choices[0]?.message as Record<string, unknown> | undefined;
-      if (message?.content) return message.content as string;
-    }
-    return "";
+    // Zod safeParse validates that `choices` is an array of objects with an
+    // optional `message.content` string — no more `as Record<string, unknown>[]`
+    // chain. Non-string content now returns "" instead of leaking the raw
+    // (non-string) value through the declared string return type.
+    const parsed = parseProviderResponse(textContentResponseSchema, response);
+    if (!parsed) return "";
+    const choices = parsed.choices;
+    if (!choices || choices.length === 0) return "";
+    const message = choices[0]?.message;
+    if (!message?.content) return "";
+    return message.content;
   }
 
   extractStatus(response: Record<string, unknown>): {
@@ -311,10 +504,18 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
     if (!response || typeof response !== "object") {
       return { status: "unknown" };
     }
-    const r = response as Record<string, unknown>;
-    const status = (r.status as string) || "generating";
-    const progress = (r.progress as number) || (r.progress_percentage as number);
-    const message = (r.message as string) || (r.error as string) || (r.msg as string);
+    // Zod safeParse validates field types: status must be a string (else
+    // default to "generating"), progress must be a number (else undefined),
+    // message/error/msg must be strings (else undefined). Previously these
+    // were `as string` / `as number` casts that returned non-string /
+    // non-number values through the declared types.
+    const parsed = parseProviderResponse(statusResponseSchema, response);
+    if (!parsed) {
+      return { status: "unknown" };
+    }
+    const status = parsed.status ?? "generating";
+    const progress = parsed.progress ?? parsed.progress_percentage;
+    const message = parsed.message ?? parsed.error ?? parsed.msg;
     return { status, progress, message };
   }
 

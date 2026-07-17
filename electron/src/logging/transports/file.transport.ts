@@ -130,7 +130,9 @@ export class FileTransport implements LogTransport {
         .sort((a, b) => b.time - a.time);
 
       for (let i = this.maxFiles; i < files.length; i++) {
-        fs.unlinkSync(files[i]!.path);
+        const filePath = files[i]?.path;
+        if (!filePath) continue;
+        fs.unlinkSync(filePath);
       }
     } catch (error) {
       console.error("[FileTransport] Failed to cleanup old logs:", error);

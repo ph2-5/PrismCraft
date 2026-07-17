@@ -18,6 +18,21 @@ import { writeFile, readFile, getCacheDirectory, deleteFile } from "@/shared/fil
 /** 会话存储目录名（相对缓存目录） */
 const SESSIONS_DIR = "agent/sessions";
 
+/**
+ * 索引写入串行化链
+ *
+ * updateSessionIndex 与 deleteSession 中的索引移除都是 read-modify-write 模式，
+ * 并发调用会相互覆盖。用 promise 链串行化所有索引写操作
+ * （参考 memory-service.ts 的 archivalWriteChain）。
+ */
+let sessionIndexWriteChain: Promise<void> = Promise.resolve();
+
+async function serializeSessionIndexWrite<T>(fn: () => Promise<T>): Promise<T> {
+  const result = sessionIndexWriteChain.then(fn);
+  sessionIndexWriteChain = result.then(() => undefined, () => undefined);
+  return result;
+}
+
 /** 会话列表项（精简字段，用于侧边栏展示） */
 export interface SessionListItem {
   id: string;
@@ -115,27 +130,29 @@ export async function listSessions(): Promise<SessionListItem[]> {
 
 /** 更新会话索引（保存会话后调用） */
 export async function updateSessionIndex(session: AgentSession): Promise<void> {
-  const { getConfig, setConfig } = await import("@/shared/file-http");
-  const raw = await getConfig("agent.sessionIndex");
-  const items: Array<Record<string, unknown>> = Array.isArray(raw) ? [...raw] : [];
+  await serializeSessionIndexWrite(async () => {
+    const { getConfig, setConfig } = await import("@/shared/file-http");
+    const raw = await getConfig("agent.sessionIndex");
+    const items: Array<Record<string, unknown>> = Array.isArray(raw) ? [...raw] : [];
 
-  // 移除同 id 的旧记录
-  const filtered = items.filter((item) => item.id !== session.id);
+    // 移除同 id 的旧记录
+    const filtered = items.filter((item) => item.id !== session.id);
 
-  // 追加新记录
-  filtered.push({
-    id: session.id,
-    title: session.title,
-    messageCount: session.messages.length,
-    createdAt: session.createdAt,
-    updatedAt: session.updatedAt,
+    // 追加新记录
+    filtered.push({
+      id: session.id,
+      title: session.title,
+      messageCount: session.messages.length,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+    });
+
+    // 保留最近 50 条
+    filtered.sort((a, b) => (b.updatedAt as number) - (a.updatedAt as number));
+    const trimmed = filtered.slice(0, 50);
+
+    await setConfig("agent.sessionIndex", trimmed);
   });
-
-  // 保留最近 50 条
-  filtered.sort((a, b) => (b.updatedAt as number) - (a.updatedAt as number));
-  const trimmed = filtered.slice(0, 50);
-
-  await setConfig("agent.sessionIndex", trimmed);
 }
 
 /** 删除会话 */
@@ -150,15 +167,17 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
     // 文件不存在不算失败
   }
 
-  // 从索引中移除
-  const { getConfig, setConfig } = await import("@/shared/file-http");
-  const raw = await getConfig("agent.sessionIndex");
-  if (Array.isArray(raw)) {
-    const filtered = (raw as Array<Record<string, unknown>>).filter(
-      (item) => item.id !== sessionId,
-    );
-    await setConfig("agent.sessionIndex", filtered);
-  }
+  // 从索引中移除（串行化以防并发覆盖）
+  await serializeSessionIndexWrite(async () => {
+    const { getConfig, setConfig } = await import("@/shared/file-http");
+    const raw = await getConfig("agent.sessionIndex");
+    if (Array.isArray(raw)) {
+      const filtered = (raw as Array<Record<string, unknown>>).filter(
+        (item) => item.id !== sessionId,
+      );
+      await setConfig("agent.sessionIndex", filtered);
+    }
+  });
 
   return true;
 }

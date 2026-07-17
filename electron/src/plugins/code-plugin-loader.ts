@@ -205,11 +205,19 @@ export function scanCodePluginFile(filePath: string): { valid: boolean; errors: 
     const matchPatternsMatch = rawCode.match(/matchPatterns\s*:\s*(\[[\s\S]*?\])/);
     if (matchPatternsMatch) {
       try {
-        const parsed = JSON.parse((matchPatternsMatch[1] ?? "").replace(/'/g, '"'));
+        const parsed: unknown = JSON.parse((matchPatternsMatch[1] ?? "").replace(/'/g, '"'));
         if (Array.isArray(parsed)) {
-          matchPatterns = parsed.filter(
-            (p: unknown) => p && typeof p === "object" && typeof (p as Record<string, unknown>).urlPattern === "string",
-          ) as Array<{ urlPattern: string; modelPattern?: string }>;
+          matchPatterns = parsed
+            .filter(
+              (p: unknown): p is { urlPattern: string; modelPattern?: string } => {
+                if (!p || typeof p !== "object") return false;
+                const rec = p as Record<string, unknown>;
+                if (typeof rec.urlPattern !== "string") return false;
+                // modelPattern 必须为 string | undefined（消费方在 .includes() 中按字符串使用）
+                if (rec.modelPattern !== undefined && typeof rec.modelPattern !== "string") return false;
+                return true;
+              },
+            );
         }
       } catch (err) {
         console.warn("[CodePluginLoader] matchPatterns 解析失败", err);

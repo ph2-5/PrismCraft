@@ -394,7 +394,7 @@ function adaptTool(pluginTool: ToolPluginTool, prefix?: string): ToolImpl {
  * 不使用 Zod（避免引入依赖），手工校验关键字段。
  * 校验失败时返回错误信息列表。
  */
-function validateConfig(config: unknown): { ok: boolean; errors: string[] } {
+export function validateConfig(config: unknown): { ok: boolean; errors: string[] } {
   const errors: string[] = [];
   if (!config || typeof config !== "object") {
     return { ok: false, errors: ["配置必须为对象"] };

@@ -31,6 +31,21 @@ import { getConfig, setConfig } from "@/shared/file-http";
 const CHECKPOINT_INDEX_KEY = "agent.checkpoints.index";
 
 /**
+ * 索引写入串行化链
+ *
+ * updateCheckpointIndex / updateCheckpointIndexEntry / removeFromCheckpointIndex
+ * 都是 read-modify-write 模式，并发调用会相互覆盖。
+ * 用 promise 链串行化所有索引写操作（参考 memory-service.ts 的 archivalWriteChain）。
+ */
+let checkpointIndexWriteChain: Promise<void> = Promise.resolve();
+
+async function serializeCheckpointIndexWrite<T>(fn: () => Promise<T>): Promise<T> {
+  const result = checkpointIndexWriteChain.then(fn);
+  checkpointIndexWriteChain = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+/**
  * 保存检查点（会话 + 索引）
  *
  * 由 AgentLoop 在关键节点调用：
@@ -239,15 +254,17 @@ async function setCheckpointIndex(entries: CheckpointIndexEntry[]): Promise<void
 
 /** 更新或追加索引条目 */
 async function updateCheckpointIndex(checkpoint: SessionCheckpoint): Promise<void> {
-  const index = await getCheckpointIndex();
-  const filtered = index.filter((e) => e.sessionId !== checkpoint.sessionId);
-  filtered.push({
-    sessionId: checkpoint.sessionId,
-    status: checkpoint.status,
-    startedAt: checkpoint.startedAt,
-    updatedAt: checkpoint.updatedAt,
+  await serializeCheckpointIndexWrite(async () => {
+    const index = await getCheckpointIndex();
+    const filtered = index.filter((e) => e.sessionId !== checkpoint.sessionId);
+    filtered.push({
+      sessionId: checkpoint.sessionId,
+      status: checkpoint.status,
+      startedAt: checkpoint.startedAt,
+      updatedAt: checkpoint.updatedAt,
+    });
+    await setCheckpointIndex(filtered);
   });
-  await setCheckpointIndex(filtered);
 }
 
 /** 更新索引中指定会话的状态 */
@@ -255,26 +272,30 @@ async function updateCheckpointIndexEntry(
   sessionId: string,
   patch: Partial<CheckpointIndexEntry>,
 ): Promise<boolean> {
-  const index = await getCheckpointIndex();
-  let found = false;
-  for (const entry of index) {
-    if (entry.sessionId === sessionId) {
-      Object.assign(entry, patch, { updatedAt: Date.now() });
-      found = true;
-      break;
+  return serializeCheckpointIndexWrite(async () => {
+    const index = await getCheckpointIndex();
+    let found = false;
+    for (const entry of index) {
+      if (entry.sessionId === sessionId) {
+        Object.assign(entry, patch, { updatedAt: Date.now() });
+        found = true;
+        break;
+      }
     }
-  }
-  if (found) {
-    await setCheckpointIndex(index);
-  }
-  return found;
+    if (found) {
+      await setCheckpointIndex(index);
+    }
+    return found;
+  });
 }
 
 /** 从索引中移除指定会话 */
 async function removeFromCheckpointIndex(sessionId: string): Promise<void> {
-  const index = await getCheckpointIndex();
-  const filtered = index.filter((e) => e.sessionId !== sessionId);
-  await setCheckpointIndex(filtered);
+  await serializeCheckpointIndexWrite(async () => {
+    const index = await getCheckpointIndex();
+    const filtered = index.filter((e) => e.sessionId !== sessionId);
+    await setCheckpointIndex(filtered);
+  });
 }
 
 // ============= 测试辅助函数 =============

@@ -314,7 +314,8 @@ function showConfig(): void {
     config.testApiKeys.forEach((key) => {
       console.log(`  - ${key.name || key.providerId}`);
       console.log(`    ID: ${key.providerId}`);
-      console.log(`    Key: ${key.apiKey.substring(0, 5)}...`);
+      // 脱敏：仅展示末 4 位，前缀以圆点遮蔽
+      console.log(`    Key: ${"•".repeat(8)}${key.apiKey.slice(-4)}`);
       console.log(`    状态: ${key.enabled ? "已启用" : "已禁用"}`);
       if (key.baseUrl) console.log(`    Base URL: ${key.baseUrl}`);
     });

@@ -84,6 +84,13 @@ export interface AgentSession {
    * 用户可加载中断会话查看历史并重新发送消息继续。
    */
   checkpoint?: SessionCheckpoint;
+  /**
+   * safety 改写日志（IP/名人/品牌改写 + antislop 过滤）
+   *
+   * 由 AgentLoop.run 在用户输入被 safety 改写时暂存，便于 UI 展示。
+   * 仅运行时存在，不参与持久化序列化（可选字段，缺失时视为空数组）。
+   */
+  safetyLog?: unknown[];
 }
 
 /**

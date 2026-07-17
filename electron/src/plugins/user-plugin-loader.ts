@@ -47,8 +47,11 @@ export function loadUserPlugins(): AIProviderPlugin[] {
   for (const filePath of files) {
     try {
       const content = fs.readFileSync(filePath, "utf-8");
-      const config = JSON.parse(content) as UserPluginConfig;
-      const validation = validatePluginConfig(config);
+      // Parse as unknown and let validatePluginConfig narrow to UserPluginConfig
+      // (avoids the previous `JSON.parse(content) as UserPluginConfig` cast that
+      // asserted the shape before any runtime validation).
+      const parsed: unknown = JSON.parse(content);
+      const validation = validatePluginConfig(parsed);
 
       if (!validation.valid) {
         logger.warn(
@@ -57,6 +60,7 @@ export function loadUserPlugins(): AIProviderPlugin[] {
         continue;
       }
 
+      const config = validation.config;
       const plugin = new UserPluginAdapter(config);
       plugins.push(plugin);
       logger.info(
@@ -180,15 +184,22 @@ export function listUserPluginFiles(): Array<{
       const filePath = path.join(USER_PLUGINS_DIR, entry);
       try {
         const content = fs.readFileSync(filePath, "utf-8");
-        const config = JSON.parse(content);
-        const validation = validatePluginConfig(config);
+        // Parse as unknown; field access below is narrowed through a Record with
+        // runtime typeof checks (avoids implicit any from JSON.parse and the
+        // previous unguarded config.id / config.displayName access).
+        const parsed: unknown = JSON.parse(content);
+        const validation = validatePluginConfig(parsed);
+        const record: Record<string, unknown> =
+          parsed && typeof parsed === "object" && !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)
+            : {};
 
         result.push({
-          id: config.id || "unknown",
+          id: typeof record.id === "string" ? record.id : "unknown",
           fileName: entry,
           filePath,
-          displayName: config.displayName || "Unknown",
-          version: config.version || "0.0.0",
+          displayName: typeof record.displayName === "string" ? record.displayName : "Unknown",
+          version: typeof record.version === "string" ? record.version : "0.0.0",
           valid: validation.valid,
           errors: validation.errors,
         });

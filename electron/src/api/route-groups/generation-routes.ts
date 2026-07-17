@@ -138,12 +138,11 @@ export const generationRoutes: Record<string, Route> = {
   "story/generate-video": defineRoute({
     schema: storyGenerateVideoSchema,
     handler: async (_m, b) => {
-      // Schema uses z.unknown().optional() for beat/characters/scenes/elements because
-      // these are complex shared-logic types (Beat/CharacterInput/SceneInput) that
-      // cannot be imported into the Electron schema layer; buildVideoGenerationParams
-      // expects a strongly-typed input, so we cast through unknown.
+      // beat/characters/scenes/elements are validated as objects by mirror
+      // schemas (slVideoBeatSchema etc.). A single `as` narrows to the
+      // shared-logic parameter type; the schema guarantees the base structure.
       const params = videoTaskService.buildVideoGenerationParams(
-        b as unknown as Parameters<typeof videoTaskService.buildVideoGenerationParams>[0],
+        b as Parameters<typeof videoTaskService.buildVideoGenerationParams>[0],
       );
       // VideoGenerationParams is an interface (no implicit index signature), so it is not
       // directly assignable to Record<string, unknown> expected by generateVideo.
@@ -156,9 +155,9 @@ export const generationRoutes: Record<string, Route> = {
   "story/generate-keyframe": defineRoute({
     schema: storyGenerateKeyframeSchema,
     handler: async (_m, b) => {
-      // Schema uses z.unknown().optional() for beat because Beat is a complex shared-logic type;
-      // buildKeyframeGenerationParams expects { beat: Beat; ... } (beat required, typed).
-      const params = videoTaskService.buildKeyframeGenerationParams(b as unknown as Parameters<typeof videoTaskService.buildKeyframeGenerationParams>[0]);
+      // beat is validated as an object by slVideoBeatSchema; single `as` narrows
+      // to the shared-logic parameter type expected by buildKeyframeGenerationParams.
+      const params = videoTaskService.buildKeyframeGenerationParams(b as Parameters<typeof videoTaskService.buildKeyframeGenerationParams>[0]);
       return apiGateway.generateKeyframe(params);
     },
     methods: ["POST"],
@@ -166,9 +165,9 @@ export const generationRoutes: Record<string, Route> = {
   "story/generate-frame-pair": defineRoute({
     schema: storyGenerateFramePairSchema,
     handler: async (_m, b) => {
-      // Schema uses z.unknown().optional() for beat because Beat is a complex shared-logic type;
-      // buildFramePairGenerationParams expects { beat: Beat; ... } (beat required, typed).
-      const params = videoTaskService.buildFramePairGenerationParams(b as unknown as Parameters<typeof videoTaskService.buildFramePairGenerationParams>[0]);
+      // beat is validated as an object by slVideoBeatSchema; single `as` narrows
+      // to the shared-logic parameter type expected by buildFramePairGenerationParams.
+      const params = videoTaskService.buildFramePairGenerationParams(b as Parameters<typeof videoTaskService.buildFramePairGenerationParams>[0]);
       const firstFrameResult = await apiGateway.generateKeyframe({
         ...params.firstFrame,
         prompt:

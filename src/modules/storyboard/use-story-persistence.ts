@@ -114,7 +114,9 @@ export function useStoryPersistence({
 
       setIsVideoUrlPersisting(true);
       try {
+        if (isCancelled()) return; // 写入前检查：组件已卸载则跳过持久化
         await storyService.updateBeatMediaUrls(allPersistData);
+        if (isCancelled()) return; // 写入后检查：写入期间组件可能已卸载
         if (!isCancelled()) {
           setStoriesRef.current((prev) =>
             syncStoriesWithVideoUrls(prev, allCompletedTaskUrls),

@@ -101,7 +101,10 @@ async function analyzeImage(body: Record<string, unknown>): Promise<ApiResult> {
     const jsonStr = extractJsonObject(analysis);
     if (jsonStr) {
       try {
-        analyzed = JSON.parse(jsonStr);
+        const parsed: unknown = JSON.parse(jsonStr);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          analyzed = parsed as Record<string, unknown>;
+        }
       } catch (e) {
         logger.warn(`Failed to parse JSON from analysis response: ${e instanceof Error ? e.message : String(e)}`);
       }

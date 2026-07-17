@@ -164,7 +164,9 @@ export async function runSpecialist(
     if (parentCtx?.signal) {
       parentCtx.signal.removeEventListener("abort", onParentAbort);
     }
-    loop.abort(); // 确保子 Agent 的 LLM 调用被中止
+    // 防御性中止：无论 run() 是正常返回、抛错还是超时，都确保子 Agent 的 LLM 流式调用被中止。
+    // 若 loop 已完成，abort() 为 no-op；若未完成（异常路径），此处保证资源清理，避免悬挂的 LLM 请求。
+    loop.abort();
   }
 
   // 8. 收集最终结果

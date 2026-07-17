@@ -279,6 +279,9 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
     const failedTasks = tasks.filter((t) => t.status === "failed");
     if (failedTasks.length === 0) return;
 
+    // 重置取消标志：上一次批次若被取消，isCancelledRef 仍为 true，会导致重试立即退出
+    isCancelledRef.current = false;
+
     setTasks((prev) =>
       prev.map((t) =>
         t.status === "failed" ? { ...t, status: "pending", error: undefined } : t
@@ -286,6 +289,7 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
     );
 
     for (const task of failedTasks) {
+      if (isCancelledRef.current) break; // 用户取消后停止重试剩余任务
       const item = items.find((it) => it.id === task.itemId);
       if (item) {
         await executeTask(task, item);

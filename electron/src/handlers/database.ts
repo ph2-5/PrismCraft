@@ -147,7 +147,8 @@ function validateSql(sql: string): boolean {
   ];
 
   for (const match of tableMatches) {
-    const tableName = match[1]!.toLowerCase();
+    const tableName = match[1]?.toLowerCase();
+    if (!tableName) continue;
     if (!ALLOWED_TABLES.has(tableName)) {
       throw new Error(`Table "${tableName}" is not in the allowed list`);
     }

@@ -1,7 +1,6 @@
 import type { Route } from "../types";
 import { defineRoute } from "../types";
 import { pluginRegistry, saveUserPlugin, deleteUserPlugin, listUserPluginFiles, validatePluginConfig, getAllProcessMetrics } from "../../plugins";
-import type { UserPluginConfig } from "../../plugins";
 import { CODE_PLUGINS_DIR } from "../../plugins/code-plugin-loader";
 import fs from "fs";
 import path from "path";
@@ -165,17 +164,18 @@ export const pluginRoutes: Record<string, Route> = {
   "plugins/add": defineRoute({
     schema: pluginAddSchema,
     handler: async (_m, b) => {
-      // Schema uses z.record(z.string(), z.unknown()) for config because UserPluginConfig is a
-      // complex nested interface (match/capabilities/apiKeyDetection). A full Zod schema would be
-      // large and brittle. Validation is delegated to validatePluginConfig below.
-      const config = b.config as unknown as UserPluginConfig;
-      if (!config) {
+      // Schema validates config is a Record<string, unknown>; the full shape is
+      // verified by validatePluginConfig, which returns a narrowed UserPluginConfig
+      // on success (no `as unknown as` double-cast at the call site). The missing-
+      // config guard handles runtimes/tests that bypass schema validation.
+      if (!b.config) {
         return { success: false, error: t("error.pluginConfigMissing") };
       }
-      const validation = validatePluginConfig(config);
+      const validation = validatePluginConfig(b.config);
       if (!validation.valid) {
         return { success: false, error: t("error.pluginConfigInvalid", { errors: validation.errors.join("; ") }) };
       }
+      const config = validation.config;
       const existing = pluginRegistry.selectById(config.id);
       if (existing && !pluginRegistry.isUserPlugin(config.id)) {
         return { success: false, error: t("error.pluginIdConflict", { id: config.id }) };
@@ -239,13 +239,14 @@ export const pluginRoutes: Record<string, Route> = {
   "plugins/validate": defineRoute({
     schema: pluginValidateSchema,
     handler: async (_m, b) => {
-      // Schema uses z.record(z.string(), z.unknown()) for config; UserPluginConfig is a complex
-      // nested interface. Validation is performed by validatePluginConfig which checks the shape.
-      const config = b.config as unknown as UserPluginConfig;
-      if (!config) {
+      // Schema validates config is a Record<string, unknown>; the full shape is
+      // verified by validatePluginConfig, which returns a narrowed UserPluginConfig
+      // on success (no `as unknown as` double-cast at the call site). The missing-
+      // config guard handles runtimes/tests that bypass schema validation.
+      if (!b.config) {
         return { success: false, error: t("error.pluginConfigMissing") };
       }
-      const validation = validatePluginConfig(config);
+      const validation = validatePluginConfig(b.config);
       return { success: true, data: { valid: validation.valid, errors: validation.errors } };
     },
     methods: ["POST"],

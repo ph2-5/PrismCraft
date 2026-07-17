@@ -412,6 +412,7 @@ export function useAgent(): UseAgentReturn {
         // 自动生成会话标题（首次发送时）
         if (sessionRef.current.title === t("agent.newSession")) {
           sessionRef.current.title = generateSessionTitle(sessionRef.current);
+          triggerRender(); // 立即更新 UI，避免依赖 finally 中的 triggerRender 延迟刷新标题
         }
         // 发送完成后自动保存会话
         await saveCurrentSession();

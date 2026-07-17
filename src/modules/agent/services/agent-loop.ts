@@ -178,12 +178,11 @@ export class AgentLoop {
           antislopReplacements: antislopResult.replacements,
           finalInput: processedInput,
         };
-        // 存储到 session metadata（若 session.metadata 不存在则跳过）
-        const sessionMeta = this.session as unknown as { safetyLog?: unknown[] };
-        if (!sessionMeta.safetyLog) {
-          sessionMeta.safetyLog = [];
+        // 暂存到 session.safetyLog（运行时字段，便于 UI 展示）
+        if (!this.session.safetyLog) {
+          this.session.safetyLog = [];
         }
-        (sessionMeta.safetyLog as unknown[]).push(safetyLog);
+        this.session.safetyLog.push(safetyLog);
       } catch (err) {
         errorLogger.warn("[AgentLoop] safety 日志记录失败", err);
       }

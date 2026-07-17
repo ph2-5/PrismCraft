@@ -1,7 +1,7 @@
 import Module from "module";
 import path from "path";
 import fs from "fs";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 /**
  * 主进程运行时模块别名解析器。
@@ -39,10 +39,14 @@ if (!fs.existsSync(SHARED_LOGIC_DIR)) {
   const projectRoot = path.resolve(DIST_DIR, "..", "..");
   const tsconfigPath = path.join(projectRoot, "tsconfig.shared-logic.json");
   try {
-    execSync(`npx tsc -p "${tsconfigPath}"`, {
+    // 使用 execFileSync + 数组参数（shell: false），避免 shell 注入风险
+    // 注：Windows 上 npx 实为 npx.cmd，shell:false 直接调用会失败；此处通过 node 直接执行 tsc 入口
+    const tscBin = path.join(projectRoot, "node_modules", "typescript", "bin", "tsc");
+    execFileSync(process.execPath, [tscBin, "-p", tsconfigPath], {
       cwd: projectRoot,
       stdio: "pipe",
       timeout: 60000,
+      shell: false,
     });
     // 模块加载早期 logger 尚未初始化，使用 process.stdout 输出诊断信息
     process.stdout.write("[shared-logic-resolve] Auto-compiled shared-logic to electron/dist/shared-logic\n");

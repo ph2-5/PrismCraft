@@ -29,19 +29,6 @@ async function getAuthHeaders(plugin: AIProviderPlugin | undefined, apiKey: stri
   };
 }
 
-function buildAuthUrl(
-  baseUrl: string,
-  endpoint: string,
-  plugin: AIProviderPlugin | undefined,
-  apiKey: string,
-): string {
-  if (plugin?.id === "google") {
-    const separator = endpoint.includes("?") ? "&" : "?";
-    return `${baseUrl}${endpoint}${separator}key=${apiKey}`;
-  }
-  return `${baseUrl}${endpoint}`;
-}
-
 interface RequestOptions {
   method: string;
   headers: Record<string, string>;
@@ -78,7 +65,7 @@ async function makeRequest(
       res.on("end", () => {
         const data = Buffer.concat(chunks).toString("utf-8");
         try {
-          const parsed = JSON.parse(data);
+          const parsed: unknown = JSON.parse(data);
           resolve({ statusCode: res.statusCode, data: parsed });
         } catch {
           logger.warn("Failed to parse test connection response as JSON");
@@ -192,12 +179,7 @@ export async function handleTestConnection(
           "anthropic-version": "2023-06-01",
         };
       } else if (effectivePlugin?.id === "google") {
-        testUrl = buildAuthUrl(
-          apiUrl!,
-          `/models`,
-          effectivePlugin,
-          apiKey,
-        );
+        testUrl = `${apiUrl}/models`;
         testHeaders = await getAuthHeaders(effectivePlugin, apiKey);
       } else {
         testUrl = `${apiUrl}/models`;
@@ -243,12 +225,7 @@ export async function handleTestConnection(
             messages: [{ role: "user", content: "Hi" }],
           });
         } else if (effectivePlugin?.id === "google") {
-          textUrl = buildAuthUrl(
-            apiUrl!,
-            `/models/${effectiveModel || "gemini-3.1-pro"}:generateContent`,
-            effectivePlugin,
-            apiKey,
-          );
+          textUrl = `${apiUrl}/models/${effectiveModel || "gemini-3.1-pro"}:generateContent`;
           textHeaders = await getAuthHeaders(effectivePlugin, apiKey);
           textBody = JSON.stringify({
             contents: [{ parts: [{ text: "Hi" }] }],
@@ -286,15 +263,7 @@ export async function handleTestConnection(
       case "image":
       case "vision":
       case "video": {
-        const testUrl =
-          effectivePlugin?.id === "google"
-            ? buildAuthUrl(
-                apiUrl!,
-                `/models`,
-                effectivePlugin,
-                apiKey,
-              )
-            : `${apiUrl}/models`;
+        const testUrl = `${apiUrl}/models`;
         const response = await makeRequest(testUrl, {
           method: "GET",
           headers: await getAuthHeaders(effectivePlugin, apiKey),

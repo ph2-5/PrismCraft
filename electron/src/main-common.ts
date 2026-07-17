@@ -92,7 +92,7 @@ function applyConfigValue(config: Record<string, unknown>, key: string, value: u
     let apiConfig: unknown = value;
     if (typeof value === "string") {
       try {
-        apiConfig = JSON.parse(value);
+        apiConfig = JSON.parse(value) as unknown;
       } catch {
         logger.warn("[Main] applyConfigValue received malformed JSON string for ai_animation_studio_api_config, ignoring");
         return;
@@ -403,7 +403,9 @@ function startStaticServer(appPort: number, apiPort: number): http.Server | null
 
     let filePath = path.join(staticDir, pathname);
     const resolvedPath = path.resolve(filePath);
-    if (!resolvedPath.startsWith(path.resolve(staticDir))) {
+    const staticRoot = path.resolve(staticDir);
+    // 路径穿越防护：必须完整段匹配 staticRoot（避免前缀字符串匹配导致 /foo/bar 命中 /foo/barbaz）
+    if (resolvedPath !== staticRoot && !resolvedPath.startsWith(staticRoot + path.sep)) {
       res.writeHead(403);
       res.end("Forbidden");
       return;

@@ -271,19 +271,27 @@ export async function startBackgroundRecovery(): Promise<Result<void>> {
           `[VideoRecovery] 发现 ${stuckTasks.length} 个卡住的任务 (超过 ${STUCK_TASK_THRESHOLD_MS / 60000} 分钟无活动)`,
         );
         for (const stuckTask of stuckTasks) {
-          if (isValidTransition(stuckTask.status, "timeout")) {
-            try {
-              await container.videoTaskStorage.updateVideoTask(stuckTask.taskId, {
-                status: "timeout",
-                message: `任务卡住超过 ${STUCK_TASK_THRESHOLD_MS / 60000} 分钟`,
-                pollFailureCount: 0,
-              });
-            } catch (e) {
-              errorLogger.warn(
-                `[VideoRecovery] 标记卡住任务失败: ${stuckTask.taskId}`,
-                e,
-              );
-            }
+          // TOCTOU 修复：重新读取当前状态，避免覆盖用户刚执行的取消/完成等操作。
+          // stuckTask 来自之前的快照（allTasks），读取后可能已被用户取消或由轮询推进，
+          // 直接写入 timeout 会覆盖这些更新。
+          const currentResult = await fromAsyncThrowable(() =>
+            container.videoTaskStorage.getVideoTaskById(stuckTask.taskId),
+          );
+          const current = currentResult.ok ? currentResult.value : null;
+          if (!current || !isValidTransition(current.status, "timeout")) {
+            continue; // 状态已变（如用户已取消），跳过
+          }
+          try {
+            await container.videoTaskStorage.updateVideoTask(stuckTask.taskId, {
+              status: "timeout",
+              message: `任务卡住超过 ${STUCK_TASK_THRESHOLD_MS / 60000} 分钟`,
+              pollFailureCount: 0,
+            });
+          } catch (e) {
+            errorLogger.warn(
+              `[VideoRecovery] 标记卡住任务失败: ${stuckTask.taskId}`,
+              e,
+            );
           }
         }
       }

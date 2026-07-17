@@ -264,10 +264,10 @@ function getSchemaValidator() {
   try {
     const schemaPath = path.join(__dirname, "..", "..", "docs", "plugin-spec.schema.json");
     const schemaContent = fs.readFileSync(schemaPath, "utf-8");
-    const schema = JSON.parse(schemaContent);
+    const schema: unknown = JSON.parse(schemaContent);
 
     const ajv = new Ajv({ allErrors: true, strict: false });
-    cachedValidate = ajv.compile(schema);
+    cachedValidate = ajv.compile(schema as Record<string, unknown>);
     return cachedValidate;
   } catch {
     logger.warn("Failed to load or compile plugin schema");
@@ -277,11 +277,11 @@ function getSchemaValidator() {
 
 export function validatePluginConfig(
   config: unknown,
-): { valid: boolean; errors: string[] } {
+): { valid: true; config: UserPluginConfig; errors: string[] } | { valid: false; config: null; errors: string[] } {
   const errors: string[] = [];
 
   if (!config || typeof config !== "object") {
-    return { valid: false, errors: ["插件配置必须是一个对象"] };
+    return { valid: false, config: null, errors: ["插件配置必须是一个对象"] };
   }
 
   const c = config as Record<string, unknown>;
@@ -313,5 +313,10 @@ export function validatePluginConfig(
     if (!c.response || typeof c.response !== "object") errors.push("缺少必填字段: response");
   }
 
-  return { valid: errors.length === 0, errors };
+  if (errors.length > 0) {
+    return { valid: false, config: null, errors };
+  }
+  // Validation has confirmed the shape; the cast here is a single, validated
+  // narrowing from unknown to UserPluginConfig (no double `as unknown as`).
+  return { valid: true, config: config as UserPluginConfig, errors };
 }

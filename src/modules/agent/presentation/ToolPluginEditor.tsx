@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import type { ToolPluginConfig } from "../domain/tool-plugin-types";
+import { validateConfig } from "../services/tool-plugin-loader";
 import { t } from "@/shared/constants";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { X, FileJson, Check, AlertCircle, FileText } from "lucide-react";
@@ -80,25 +81,13 @@ export function ToolPluginEditor({
       return { ok: false, error: t("agent.plugin.validateEmpty") };
     }
     try {
-      const parsed = JSON.parse(text) as unknown;
-      // 基本字段校验
-      if (!parsed || typeof parsed !== "object") {
-        return { ok: false, error: t("agent.plugin.validateNotObject") };
+      const parsed: unknown = JSON.parse(text);
+      // 复用 loader 的运行时校验（包含 tools 数组元素、action.type 等完整字段校验）
+      const validation = validateConfig(parsed);
+      if (!validation.ok) {
+        return { ok: false, error: validation.errors.join("; ") };
       }
-      const c = parsed as Record<string, unknown>;
-      if (typeof c.id !== "string" || !c.id) {
-        return { ok: false, error: t("agent.plugin.validateIdRequired") };
-      }
-      if (typeof c.version !== "string" || !c.version) {
-        return { ok: false, error: t("agent.plugin.validateVersionRequired") };
-      }
-      if (typeof c.displayName !== "string" || !c.displayName) {
-        return { ok: false, error: t("agent.plugin.validateDisplayNameRequired") };
-      }
-      if (!Array.isArray(c.tools) || c.tools.length === 0) {
-        return { ok: false, error: t("agent.plugin.validateToolsRequired") };
-      }
-      return { ok: true, config: c as unknown as ToolPluginConfig };
+      return { ok: true, config: parsed as ToolPluginConfig };
     } catch (e) {
       return {
         ok: false,

@@ -55,8 +55,12 @@ async function getSyncConfig(): Promise<Record<string, unknown>> {
     const credResult = await keyStorage.load(SYNC_CREDENTIALS_KEY);
     if (credResult.ok && credResult.value) {
       try {
-        const parsed = JSON.parse(credResult.value);
-        credentials = { username: parsed.username || "", token: parsed.token || "" };
+        const parsed: unknown = JSON.parse(credResult.value);
+        const obj = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+        credentials = {
+          username: typeof obj.username === "string" ? obj.username : "",
+          token: typeof obj.token === "string" ? obj.token : "",
+        };
       } catch {
         logger.warn("Failed to parse sync credentials, using empty defaults");
         credentials = { username: "", token: "" };
@@ -200,7 +204,12 @@ async function handleSyncProxy(
 
   let credentials: { username: string; token: string };
   try {
-    credentials = JSON.parse(credResult.value);
+    const parsed: unknown = JSON.parse(credResult.value);
+    const obj = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    credentials = {
+      username: typeof obj.username === "string" ? obj.username : "",
+      token: typeof obj.token === "string" ? obj.token : "",
+    };
   } catch {
     logger.warn("Failed to parse sync credentials for proxy");
     return { success: false, error: "Invalid sync credentials" };

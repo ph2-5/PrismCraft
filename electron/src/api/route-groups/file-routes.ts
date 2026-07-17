@@ -559,7 +559,11 @@ export const fileRoutes: Record<string, Route> = {
     handler: async (_method, _body, req) => {
       try {
         // 从自定义 header 读取目标路径（header 须经 ELECTRON_APP_HEADERS 白名单）
-        const filePath = path.resolve(req.headers["x-file-path"] as string);
+        const rawPath = req.headers["x-file-path"];
+        if (typeof rawPath !== "string" || !rawPath) {
+          return { success: false, error: "Missing or invalid x-file-path header" };
+        }
+        const filePath = path.resolve(rawPath);
         if (!(await isPathAllowed(filePath))) {
           return { success: false, error: FILE_ERRORS.PATH_NOT_ALLOWED };
         }

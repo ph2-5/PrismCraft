@@ -1,0 +1,48 @@
+{
+  "name": "compositor",
+  "description": "全局编译器：组合角色+道具+场景 → AI 图像合成。三栏布局 UI + 持久化到 generation_assets 表",
+  "dependencies": [
+    "@/domain/schemas",
+    "@/infrastructure/di",
+    "@/shared-logic/prompt",
+    "@/shared/presentation",
+    "@/shared/constants",
+    "@/modules/character",
+    "@/modules/scene",
+    "@/modules/asset"
+  ],
+  "publicAPI": {
+    "schemas": [
+      "compositorInputSchema",
+      "compositorResultSchema",
+      "composerLayerSchema",
+      "composerLayerTypeSchema",
+      "compositorPresetSchema",
+      "compositorStatusSchema"
+    ],
+    "types": [
+      "CompositorInput",
+      "CompositorResult",
+      "ComposerLayer",
+      "ComposerLayerType",
+      "CompositorPreset",
+      "CompositorStatus"
+    ],
+    "services": [
+      "composeImage",
+      "buildCompositorPrompt",
+      "getCompositorErrorMessage"
+    ],
+    "hooks": ["useCompositor"],
+    "components": ["CompositorPanel"]
+  },
+  "invariants": [
+    "Compositor 模块是顶层功能模块，独立于 asset 模块，但通过 @/modules/asset 的 createAsset 持久化生成结果",
+    "CompositorInput.characterId 必填，propIds/sceneId/extraPrompt 可选",
+    "生成结果持久化到 generation_assets 表，type='compositor_result'，sourceType='composited'",
+    "图层在画布内通过 layerId 唯一标识，character/scene 单实例（替换），prop 可多实例（去重）",
+    "prompt 由 generateCompositorPrompt（shared-logic/prompt）自动拼装，用户 extraPrompt 作为补充",
+    "禁止直接导入 infrastructure/storage，必须通过 DI container",
+    "Compositor 模块不依赖其他 asset 子域的内部文件，仅通过 @/modules/asset barrel 复用 createAsset"
+  ]
+}

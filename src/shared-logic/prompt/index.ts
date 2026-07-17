@@ -28,6 +28,10 @@ export {
   generateCharacterAnalysisPrompt,
   generateSceneAnalysisPrompt,
 } from "./prompt-service";
+
+// === Task 2A.9: Compositor 合成 prompt ===
+export { generateCompositorPrompt } from "./compositor-prompt";
+export type { PropInput, CompositorPromptParams } from "./compositor-prompt";
 export type {
   CharacterInput,
   SceneInput,

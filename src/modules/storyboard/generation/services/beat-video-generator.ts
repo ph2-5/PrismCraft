@@ -21,7 +21,8 @@ import { fromAsyncThrowable, ValidationError } from "@/domain/types";
 import type { StoryBeat } from "@/domain/schemas";
 import { getFirstFrameUrl, getLastFrameUrl } from "@/domain/utils";
 import { type ProviderDeps, type VideoGenerationMode, determineVideoGenerationMode } from "./video-generation-mode";
-import { getEffectiveVideoParams } from "@/shared/model-capabilities";
+import { getEffectiveVideoParams, getModelCapabilities } from "@/shared/model-capabilities";
+import { buildConsistencyEnhancedCharacterRefs, type CharacterAssetInput, type ModelConsistencyCapability } from "@/shared-logic/shot";
 import { t } from "@/shared/constants";
 
 export async function generateBeatVideo(
@@ -36,6 +37,12 @@ export async function generateBeatVideo(
     modelId?: string;
     videoMode?: VideoGenerationMode;
     prevBeat?: StoryBeat | null;
+    /**
+     * Task 2A.12: 角色素材列表（用于自动一致性增强）。
+     * 当 characterRefs 为空且 modelId 提供时，自动调用 consistency-enhancer 提取参考图。
+     * 调用方只需提供角色素材（主图+变体+造型），无需手动选图。
+     */
+    characterAssets?: CharacterAssetInput[];
   },
   providers: ProviderDeps,
 ): Promise<Result<{ taskId: string; videoUrl?: string; status: string; videoMode: VideoGenerationMode }>> {
@@ -85,9 +92,23 @@ export async function generateBeatVideo(
 
     // Task 3.2 Step 2：能力过滤统一由 getEffectiveVideoParams 完成
     // 合并 characterRefs 和 characterRef（单数），统一过滤
-    const allCharRefs = options.characterRefs?.length
+    let allCharRefs = options.characterRefs?.length
       ? options.characterRefs
       : (options.characterRef ? [options.characterRef] : undefined);
+
+    // Task 2A.12: 自动一致性增强 — 当未手动指定 characterRefs 且提供了角色素材时，
+    // 调用 consistency-enhancer 根据模型能力自动提取参考图
+    if ((!allCharRefs || allCharRefs.length === 0) && options.characterAssets?.length && options.modelId) {
+      const caps = getModelCapabilities(options.modelId);
+      const consistencyCapability: ModelConsistencyCapability = {
+        modelId: options.modelId,
+        strategy: caps.consistencyStrategy ?? "unknown",
+        maxCharacterRefs: caps.maxCharacterRefs ?? (caps.supportsCharacterRef ? 1 : 0),
+      };
+      allCharRefs = options.characterAssets.flatMap((asset) =>
+        buildConsistencyEnhancedCharacterRefs(asset, consistencyCapability),
+      );
+    }
 
     const effectiveParams = options.modelId
       ? getEffectiveVideoParams({

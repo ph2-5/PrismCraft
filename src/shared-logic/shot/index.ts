@@ -51,3 +51,23 @@ export type {
   SceneVariantInput,
   ShotRecommendation,
 } from "./mood-shot-mapping";
+
+// Task 2A.12: 角色一致性增强器
+export {
+  DEFAULT_PREPROCESS_HINT,
+  extractCharacterReferenceCandidates,
+  selectConsistencyStrategy,
+  selectReferenceImages,
+  buildConsistencyEnhancedCharacterRefs,
+  listAllCharacterReferenceOptions,
+  buildManualCharacterRefs,
+  describeConsistencyStrategy,
+} from "./consistency-enhancer";
+export type {
+  ConsistencyStrategy,
+  CharacterRefSource,
+  CharacterRefCandidate,
+  PreprocessHint,
+  CharacterAssetInput,
+  ModelConsistencyCapability,
+} from "./consistency-enhancer";

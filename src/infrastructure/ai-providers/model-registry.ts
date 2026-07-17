@@ -73,6 +73,8 @@ const VOLCENGINE_PRO_VIDEO_CAPS = {
   sceneRefMode: "bake_into_first" as const,
   imageUploadMode: "base64" as const,
   maxCharacterRefs: 4,
+  // Task 2A.12: 烘焙到首帧但支持 4 张参考图 → 多参考图融合策略
+  consistencyStrategy: "multi_ref_fusion" as const,
 };
 
 const VOLCENGINE_LITE_I2V_CAPS = {
@@ -89,6 +91,8 @@ const VOLCENGINE_LITE_I2V_CAPS = {
   sceneRefMode: "ref_field" as const,
   imageUploadMode: "base64" as const,
   maxCharacterRefs: 4,
+  // Task 2A.12: 原生 reference_images 字段，支持 4 张 → 多参考图融合策略
+  consistencyStrategy: "multi_ref_fusion" as const,
 };
 
 const KUAISHOU_V1_VIDEO_CAPS = {
@@ -105,6 +109,8 @@ const KUAISHOU_V1_VIDEO_CAPS = {
   sceneRefMode: "bake_into_first" as const,
   imageUploadMode: "upload" as const,
   maxCharacterRefs: 1,
+  // Task 2A.12: 仅支持 1 张参考图 → 单参考图策略
+  consistencyStrategy: "single_ref" as const,
 };
 
 const KUAISHOU_V2_VIDEO_CAPS = {
@@ -121,6 +127,8 @@ const KUAISHOU_V2_VIDEO_CAPS = {
   sceneRefMode: "text_append" as const,
   imageUploadMode: "upload" as const,
   maxCharacterRefs: 1,
+  // Task 2A.12: subject_reference 原生字段，仅 1 张 → 单参考图策略
+  consistencyStrategy: "single_ref" as const,
 };
 
 const ZHIPU_VIDEO_CAPS = {
@@ -134,6 +142,8 @@ const ZHIPU_VIDEO_CAPS = {
   characterRefMode: "none" as const,
   sceneRefMode: "none" as const,
   imageUploadMode: "base64" as const,
+  // Task 2A.12: 不支持角色参考图 → 仅文本描述
+  consistencyStrategy: "text_only" as const,
 };
 
 const MINIMAX_VIDEO_CAPS = {
@@ -150,6 +160,8 @@ const MINIMAX_VIDEO_CAPS = {
   sceneRefMode: "text_append" as const,
   imageUploadMode: "base64" as const,
   maxCharacterRefs: 1,
+  // Task 2A.12: 原生字段但仅 1 张 → 单参考图策略
+  consistencyStrategy: "single_ref" as const,
 };
 
 const GOOGLE_VIDEO_CAPS = {
@@ -166,6 +178,8 @@ const GOOGLE_VIDEO_CAPS = {
   sceneRefMode: "bake_into_first" as const,
   imageUploadMode: "base64" as const,
   maxCharacterRefs: 2,
+  // Task 2A.12: maxCharacterRefs=2 不足 3，保守用 single_ref
+  consistencyStrategy: "single_ref" as const,
 };
 
 const VOLCENGINE_IMAGE_CAPS = {
@@ -177,6 +191,8 @@ const VOLCENGINE_IMAGE_CAPS = {
   providerId: "volcengine",
   supportsCharacterRef: false,
   supportsSceneRef: false,
+  // Task 2A.12: 图像模型不涉及视频角色一致性
+  consistencyStrategy: "text_only" as const,
 };
 
 const CAPABILITY_PRESETS: Record<string, Partial<ModelCapabilities>> = {
@@ -278,6 +294,8 @@ export function sanitizeModelCapabilities(raw: Record<string, unknown>): ModelCa
     ...(raw.maxCharacterRefs !== undefined ? { maxCharacterRefs: raw.maxCharacterRefs as number } : {}),
     ...(raw.promptLanguage ? { promptLanguage: raw.promptLanguage as ModelCapabilities["promptLanguage"] } : {}),
     ...(raw.supportsReferenceVideo !== undefined ? { supportsReferenceVideo: raw.supportsReferenceVideo as boolean } : {}),
+    // Task 2A.12: 一致性策略字段
+    ...(raw.consistencyStrategy ? { consistencyStrategy: raw.consistencyStrategy as ModelCapabilities["consistencyStrategy"] } : {}),
   };
 }
 

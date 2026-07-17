@@ -2104,6 +2104,10 @@ const messages: Record<MessageKey, string> = {
   "element.addBinding": "绑定角色或场景",
   "element.outfits": "服装",
   "element.noAssets": "暂无图片素材",
+  "element.refImageSource": "参考图来源（角色一致性）",
+  "element.refImageAuto": "自动选择（推荐）",
+  "element.refImagePrimary": "角色主图",
+  "element.refImageOutfit": "造型",
 
   "shot.notGenerated": "未生成",
   "shot.waiting": "等待中",

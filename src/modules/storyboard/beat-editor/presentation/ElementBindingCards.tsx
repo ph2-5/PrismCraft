@@ -23,6 +23,12 @@ interface CharacterElementCardProps {
   onRemove: (elementId: string) => void;
   onImageUpload: (elementId: string, event: Event) => void;
   onSelectFromAssetLibrary: (elementId: string) => void;
+  /**
+   * Task 2A.12: 角色参考图候选列表（主图+造型+变体）。
+   * 提供时显示"重选参考图"下拉框，用户可手动选择哪个来源作为参考图。
+   * 不提供时仅显示原有的"上传/从素材库选择"按钮。
+   */
+  characterRefCandidates?: { url: string; label: string }[];
 }
 
 export function CharacterElementCard({
@@ -33,6 +39,7 @@ export function CharacterElementCard({
   onRemove,
   onImageUpload,
   onSelectFromAssetLibrary,
+  characterRefCandidates,
 }: CharacterElementCardProps) {
   const imageUrl = binding.imageUrl || element.bindings?.find((b) => b.isPrimary)?.url;
   return (
@@ -120,6 +127,27 @@ export function CharacterElementCard({
           onImageUpload={onImageUpload}
           onSelectFromAssetLibrary={onSelectFromAssetLibrary}
         />
+        {characterRefCandidates && characterRefCandidates.length > 0 && (
+          <div>
+            <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>
+              {t("element.refImageSource")}
+            </label>
+            <select
+              className="select"
+              style={{ fontSize: 11, padding: "4px 6px", width: "100%" }}
+              value={binding.imageUrl || ""}
+              onChange={(e) => onUpdateBinding(element.id, "imageUrl", e.target.value)}
+              aria-label={t("element.refImageSource")}
+            >
+              <option value="">{t("element.refImageAuto")}</option>
+              {characterRefCandidates.map((candidate) => (
+                <option key={candidate.url} value={candidate.url}>
+                  {candidate.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <RemoveElementButton onClick={() => onRemove(element.id)} />
       </div>
     </div>

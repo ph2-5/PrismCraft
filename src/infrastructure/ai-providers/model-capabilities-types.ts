@@ -26,6 +26,18 @@ export interface ModelCapabilities {
   maxCharacterRefs?: number;
   promptLanguage?: "en" | "zh" | "auto";
   supportsReferenceVideo?: boolean;
+  /**
+   * Task 2A.12: 模型支持的最强角色一致性策略。
+   * - "multi_ref_fusion": 多参考图融合（IP-Adapter 风格，≥3 张参考图）
+   * - "single_ref": 单参考图（如 Kling subject_reference）
+   * - "text_only": 仅文本描述（无参考图能力）
+   * - "unknown": 未知模型（按 maxCharacterRefs 推断）
+   *
+   * 与 characterRefMode 的关系：
+   *   - consistencyStrategy 描述"能用几张图"
+   *   - characterRefMode 描述"怎么把图传给 provider"
+   */
+  consistencyStrategy?: "multi_ref_fusion" | "single_ref" | "text_only" | "unknown";
 }
 
 export interface ModelParameterProfile {

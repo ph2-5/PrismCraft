@@ -76,3 +76,17 @@ export { PipelineProgress } from "./presentation/PipelineProgress";
 export type { PipelineProgressProps } from "./presentation/PipelineProgress";
 export { PipelineControls } from "./presentation/PipelineControls";
 export type { PipelineControlsProps } from "./presentation/PipelineControls";
+
+// Presentation — UI Panel Part 2（Task 2A.5）
+export { EntityReviewPanel } from "./presentation/EntityReviewPanel";
+export type { EntityReviewPanelProps } from "./presentation/EntityReviewPanel";
+export { CharacterExtractCard } from "./presentation/CharacterExtractCard";
+export type { CharacterExtractCardProps } from "./presentation/CharacterExtractCard";
+export { SceneExtractCard } from "./presentation/SceneExtractCard";
+export type { SceneExtractCardProps } from "./presentation/SceneExtractCard";
+export { ShotBreakdownList } from "./presentation/ShotBreakdownList";
+export type { ShotBreakdownListProps } from "./presentation/ShotBreakdownList";
+export { ShotCard } from "./presentation/ShotCard";
+export type { ShotCardProps } from "./presentation/ShotCard";
+export { FinalizePanel } from "./presentation/FinalizePanel";
+export type { FinalizePanelProps, FinalizeSummary } from "./presentation/FinalizePanel";

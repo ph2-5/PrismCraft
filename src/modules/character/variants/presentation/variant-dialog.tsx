@@ -1,0 +1,230 @@
+/**
+ * Task 2A.10 — VariantDialog 组件
+ *
+ * 替代 OutfitDialog。支持编辑变体的：
+ *   - 基础字段：name / description / promptFragment
+ *   - 默认/正典开关：isDefault / isCanonical
+ *   - 8 维参数：timeOfDay / weather / lighting / mood / crowdLevel / cameraAngle / season / colorPalette
+ *   - 参考图路径（referenceImagePath）
+ */
+
+import { X } from "lucide-react";
+import { Modal } from "@/shared/presentation/Modal";
+import { t } from "@/shared/constants";
+import type { CharacterVariant } from "@/domain/schemas";
+
+export interface VariantFormState {
+  name: string;
+  description: string;
+  promptFragment: string;
+  referenceImagePath: string;
+  isDefault: boolean;
+  isCanonical: boolean;
+  timeOfDay: string;
+  weather: string;
+  lighting: string;
+  mood: string;
+  crowdLevel: string;
+  cameraAngle: string;
+  season: string;
+  colorPalette: string;
+}
+
+export function variantToForm(v?: Partial<CharacterVariant>): VariantFormState {
+  return {
+    name: v?.name ?? "",
+    description: v?.description ?? "",
+    promptFragment: v?.promptFragment ?? "",
+    referenceImagePath: v?.referenceImagePath ?? "",
+    isDefault: v?.isDefault ?? false,
+    isCanonical: v?.isCanonical ?? false,
+    timeOfDay: v?.timeOfDay ?? "",
+    weather: v?.weather ?? "",
+    lighting: v?.lighting ?? "",
+    mood: v?.mood ?? "",
+    crowdLevel: v?.crowdLevel ?? "",
+    cameraAngle: v?.cameraAngle ?? "",
+    season: v?.season ?? "",
+    colorPalette: v?.colorPalette ?? "",
+  };
+}
+
+interface VariantDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editingVariant: CharacterVariant | null;
+  form: VariantFormState;
+  setForm: (form: VariantFormState) => void;
+  onSubmit: () => void;
+}
+
+const PARAM_FIELDS: Array<{ key: keyof VariantFormState; labelKey: string }> = [
+  { key: "timeOfDay", labelKey: "character.variants.param.timeOfDay" },
+  { key: "weather", labelKey: "character.variants.param.weather" },
+  { key: "lighting", labelKey: "character.variants.param.lighting" },
+  { key: "mood", labelKey: "character.variants.param.mood" },
+  { key: "crowdLevel", labelKey: "character.variants.param.crowdLevel" },
+  { key: "cameraAngle", labelKey: "character.variants.param.cameraAngle" },
+  { key: "season", labelKey: "character.variants.param.season" },
+  { key: "colorPalette", labelKey: "character.variants.param.colorPalette" },
+];
+
+export function VariantDialog({
+  open,
+  onOpenChange,
+  editingVariant,
+  form,
+  setForm,
+  onSubmit,
+}: VariantDialogProps) {
+  return (
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      ariaLabel={editingVariant ? t("character.variants.editTitle") : t("character.variants.addTitle")}
+      style={{ maxWidth: "36rem" }}
+    >
+      <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>
+            {editingVariant ? t("character.variants.editTitle") : t("character.variants.addTitle")}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted-fg)" }}>
+            {t("character.variants.subtitle")}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs"
+          onClick={() => onOpenChange(false)}
+          aria-label={t("common.close")}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="space-y-4 py-2">
+        {/* 名称 */}
+        <div className="space-y-2">
+          <label htmlFor="variant-name" className="text-sm font-medium">
+            {t("character.variants.nameLabel")}
+          </label>
+          <input
+            id="variant-name"
+            className="input"
+            data-testid="variant-name-input"
+            placeholder={t("character.variants.namePlaceholder")}
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+        </div>
+
+        {/* 描述 */}
+        <div className="space-y-2">
+          <label htmlFor="variant-description" className="text-sm font-medium">
+            {t("character.variants.descriptionLabel")}
+          </label>
+          <textarea
+            id="variant-description"
+            className="textarea"
+            placeholder={t("character.variants.descriptionPlaceholder")}
+            rows={2}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </div>
+
+        {/* Prompt 片段 */}
+        <div className="space-y-2">
+          <label htmlFor="variant-prompt" className="text-sm font-medium">
+            {t("character.variants.promptFragmentLabel")}
+          </label>
+          <textarea
+            id="variant-prompt"
+            className="textarea"
+            placeholder={t("character.variants.promptFragmentPlaceholder")}
+            rows={3}
+            value={form.promptFragment}
+            onChange={(e) => setForm({ ...form, promptFragment: e.target.value })}
+          />
+        </div>
+
+        {/* 参考图路径 */}
+        <div className="space-y-2">
+          <label htmlFor="variant-reference" className="text-sm font-medium">
+            {t("character.variants.referenceImageLabel")}
+          </label>
+          <input
+            id="variant-reference"
+            className="input"
+            placeholder={t("character.variants.referenceImagePlaceholder")}
+            value={form.referenceImagePath}
+            onChange={(e) => setForm({ ...form, referenceImagePath: e.target.value })}
+          />
+        </div>
+
+        {/* 8 维参数 */}
+        <div className="border-t pt-3">
+          <div className="text-xs font-semibold text-muted-foreground mb-2">
+            {t("character.variants.paramSection")}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {PARAM_FIELDS.map(({ key, labelKey }) => (
+              <div key={key} className="space-y-1">
+                <label htmlFor={`variant-${key}`} className="text-xs">
+                  {t(labelKey)}
+                </label>
+                <input
+                  id={`variant-${key}`}
+                  className="input input-sm"
+                  value={form[key] as string}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 默认/正典 */}
+        <div className="flex gap-4 border-t pt-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.isDefault}
+              onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
+            />
+            <span className="text-sm">{t("character.variants.isDefault")}</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.isCanonical}
+              onChange={(e) => setForm({ ...form, isCanonical: e.target.checked })}
+            />
+            <span className="text-sm">{t("character.variants.isCanonical")}</span>
+          </label>
+        </div>
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => onOpenChange(false)}
+        >
+          {t("common.cancel")}
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={onSubmit}
+          disabled={!form.name.trim()}
+          data-testid="variant-submit"
+        >
+          {editingVariant ? t("common.save") : t("common.create")}
+        </button>
+      </div>
+    </Modal>
+  );
+}

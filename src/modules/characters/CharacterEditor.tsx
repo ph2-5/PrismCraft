@@ -5,6 +5,8 @@ import {
   genderSuggestions,
   heightSuggestions,
   buildSuggestions,
+  // Task 2A.10: 角色变体容器
+  VariantListContainer,
 } from "@/modules/character";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { SaveStatusIndicator, type SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
@@ -558,6 +560,11 @@ export function CharacterEditor({
         onSetDefaultOutfit={onSetDefaultOutfit}
         onGenerateOutfitImage={onGenerateOutfitImage}
       />
+
+      {/* Task 2A.10: 角色变体 card（新系统，与造型变体并存，向后兼容） */}
+      {currentCharacter.id && (
+        <VariantListContainer characterId={currentCharacter.id} />
+      )}
 
       {/* 引用此角色的分镜 card */}
       <ReferencedBeatsCard beats={referencedBeats} />

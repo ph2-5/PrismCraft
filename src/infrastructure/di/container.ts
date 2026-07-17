@@ -75,6 +75,7 @@ import { errorLogStorage } from "@/infrastructure/storage/error-logs";
 import { sessionStorage } from "@/infrastructure/storage/sessions";
 import { novelProjectStorage } from "@/infrastructure/storage/novel-projects";
 import { propStorage } from "@/infrastructure/storage/props";
+import { characterVariantStorage } from "@/infrastructure/storage/characters/variant-manager";
 import { preferencesStorage } from "@/shared/utils/preferences";
 import { createToken, type Token } from "./types";
 import { ModuleRegistry } from "./registry";
@@ -163,6 +164,7 @@ const tokens = {
   sessionStorage: createToken("sessionStorage", () => sessionStorage),
   novelProjectStorage: createToken("novelProjectStorage", () => novelProjectStorage),
   propStorage: createToken("propStorage", () => propStorage),
+  characterVariantStorage: createToken("characterVariantStorage", () => characterVariantStorage),
 
   // ── D. Repository 实例（Drizzle ORM，模块无法直接导入 infrastructure/database） ──
   mediaAssetRepository: createToken<IMediaAssetRepository>("mediaAssetRepository", () => mediaAssetRepository as IMediaAssetRepository),
@@ -300,6 +302,7 @@ export function getTokenRegistry(): Array<{
     sessionStorage: "C",
     novelProjectStorage: "C",
     propStorage: "C",
+    characterVariantStorage: "C",
     mediaAssetRepository: "D",
     elementManager: "E",
     referenceEngine: "E",

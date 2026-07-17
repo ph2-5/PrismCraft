@@ -376,6 +376,36 @@ const FEATURE_TABLES: TableDef[] = [
       metadata_json: { type: "TEXT", default: "'{}'" },
     },
   },
+  // Task 2A.10: 角色变体系统（替代 character_outfits 的功能）
+  // 一个角色可有多个变体（少年/老年/战损等），每个变体有独立的 prompt_fragment + 8 维参数 + 参考图
+  // 迁移自 character_outfits（通过 source_outfit_id 追溯），新变体由 Compositor 生成
+  {
+    name: "character_variants",
+    featureGroup: "core",
+    columns: {
+      character_id: { type: "TEXT", notNull: true, ref: "characters(id)", onDelete: "CASCADE" },
+      name: { type: "TEXT", notNull: true, default: "''" },
+      description: { type: "TEXT", default: "''" },
+      prompt_fragment: { type: "TEXT", default: "''" },
+      reference_image_path: { type: "TEXT" },
+      image_url: { type: "TEXT" },
+      local_image_path: { type: "TEXT" },
+      thumbnail_path: { type: "TEXT" },
+      time_of_day: { type: "TEXT" },
+      weather: { type: "TEXT" },
+      lighting: { type: "TEXT" },
+      mood: { type: "TEXT" },
+      crowd_level: { type: "TEXT" },
+      camera_angle: { type: "TEXT" },
+      season: { type: "TEXT" },
+      color_palette: { type: "TEXT" },
+      source_outfit_id: { type: "TEXT" },
+      source_compositor_asset_id: { type: "TEXT" },
+      is_default: { type: "INTEGER", default: "0" },
+      is_canonical: { type: "INTEGER", default: "0" },
+      metadata_json: { type: "TEXT", default: "'{}'" },
+    },
+  },
 ];
 
 const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; primaryKey: string[]; uniqueConstraints?: string[][] }[] = [
@@ -610,6 +640,8 @@ CREATE INDEX IF NOT EXISTS idx_novel_projects_updated ON novel_projects(updated_
 CREATE INDEX IF NOT EXISTS idx_novel_projects_story ON novel_projects(story_id);
 CREATE INDEX IF NOT EXISTS idx_props_type ON props(type);
 CREATE INDEX IF NOT EXISTS idx_props_source_character ON props(source_character_id);
+CREATE INDEX IF NOT EXISTS idx_character_variants_character ON character_variants(character_id);
+CREATE INDEX IF NOT EXISTS idx_character_variants_default ON character_variants(character_id, is_default);
 `;
 
 export function getSchemaSQL(): string {

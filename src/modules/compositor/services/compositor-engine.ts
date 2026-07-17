@@ -18,7 +18,7 @@
  */
 
 import { container } from "@/infrastructure/di";
-import type { Character, Scene, Prop } from "@/domain/schemas";
+import type { Character, Scene, Prop, CharacterVariant } from "@/domain/schemas";
 import {
   generateCompositorPrompt,
   type CharacterInput,
@@ -32,8 +32,21 @@ import type {
   CompositorResult,
 } from "../domain/compositor.schema";
 
-/** 将 Character 实体映射为 CharacterInput（prompt-service 输入） */
-function characterToInput(c: Character): CharacterInput {
+/**
+ * 将 Character 实体映射为 CharacterInput（prompt-service 输入）。
+ * Task 2A.10: 如果传入 variant，用 variant 的 promptFragment 覆盖 clothing，
+ * 并优先使用 variant 的参考图作为 generatedImage（保持外观一致性）。
+ */
+function characterToInput(c: Character, variant?: CharacterVariant | null): CharacterInput {
+  const baseClothing = c.appearance?.clothing || undefined;
+  const clothing = variant?.promptFragment
+    ? variant.promptFragment
+    : baseClothing;
+  const generatedImage =
+    variant?.imageUrl ||
+    variant?.referenceImagePath ||
+    c.generatedImage;
+
   return {
     name: c.name,
     gender: c.gender || undefined,
@@ -46,9 +59,9 @@ function characterToInput(c: Character): CharacterInput {
       hairStyle: c.appearance?.hairStyle || undefined,
       eyeColor: c.appearance?.eyeColor || undefined,
       build: c.appearance?.build || undefined,
-      clothing: c.appearance?.clothing || undefined,
+      clothing,
     },
-    generatedImage: c.generatedImage,
+    generatedImage,
   };
 }
 
@@ -103,6 +116,19 @@ export async function composeImage(
   }
   if (signal?.aborted) throw new Error("[Compositor] 已取消");
 
+  // Task 2A.10: 加载角色变体（可选）
+  let variant: CharacterVariant | null = null;
+  if (input.characterVariantId) {
+    variant = await container.characterVariantStorage.getVariantById(input.characterVariantId);
+    if (!variant) {
+      errorLogger.warn(`[Compositor] 角色变体不存在: ${input.characterVariantId}，将使用基础角色`);
+    } else if (variant.characterId !== input.characterId) {
+      errorLogger.warn(`[Compositor] 变体 ${input.characterVariantId} 不属于角色 ${input.characterId}，将忽略变体`);
+      variant = null;
+    }
+  }
+  if (signal?.aborted) throw new Error("[Compositor] 已取消");
+
   // 2. 加载场景（可选）
   let scene: Scene | null = null;
   if (input.sceneId) {
@@ -127,9 +153,9 @@ export async function composeImage(
   }
   if (signal?.aborted) throw new Error("[Compositor] 已取消");
 
-  // 4. 拼装 prompt
+  // 4. 拼装 prompt（Task 2A.10: 如果有变体，使用变体的 promptFragment + 参考图覆盖角色基础设定）
   const prompt = generateCompositorPrompt({
-    character: characterToInput(character),
+    character: characterToInput(character, variant),
     props: props.map(propToInput),
     scene: scene ? sceneToInput(scene) : undefined,
     extraPrompt: input.extraPrompt,
@@ -168,12 +194,14 @@ export async function composeImage(
       providerId: input.provider,
       metadata: {
         characterId: input.characterId,
+        characterVariantId: input.characterVariantId,
         propIds: input.propIds ?? [],
         sceneId: input.sceneId,
         extraPrompt: input.extraPrompt,
         resolution: input.resolution,
       },
       characterId: input.characterId,
+      characterVariantId: input.characterVariantId,
       sceneId: input.sceneId,
     });
     assetId = asset.id;
@@ -186,6 +214,7 @@ export async function composeImage(
   return {
     id: assetId,
     characterId: input.characterId,
+    characterVariantId: input.characterVariantId,
     propIds: input.propIds ?? [],
     sceneId: input.sceneId,
     imageUrl,

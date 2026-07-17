@@ -39,6 +39,8 @@ export type ComposerLayer = z.infer<typeof composerLayerSchema>;
 export const compositorInputSchema = z.object({
   /** 角色 ID（必填，编译器主对象） */
   characterId: z.string(),
+  /** Task 2A.10: 角色变体 ID（可选，使用变体的 promptFragment + 参考图覆盖角色基础设定） */
+  characterVariantId: z.string().optional(),
   /** 道具 ID 列表（可选，组合到角色身上） */
   propIds: z.array(z.string()).optional(),
   /** 场景 ID（可选，背景） */
@@ -59,6 +61,8 @@ export const compositorResultSchema = z.object({
   /** 生成结果 ID（与 generation_assets.id 一致） */
   id: z.string(),
   characterId: z.string(),
+  /** Task 2A.10: 角色变体 ID（如果使用了变体） */
+  characterVariantId: z.string().optional(),
   propIds: z.array(z.string()).default([]),
   sceneId: z.string().optional(),
   /** 生成的图像 URL（本地路径或 data: URL） */

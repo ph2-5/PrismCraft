@@ -61,6 +61,12 @@ const methodTemplates: Record<string, string[]> = {
     "getAllProps", "getPropById", "getPropsByType", "getPropsByTag",
     "createProp", "updateProp", "deleteProp", "migrateOutfitsToProps",
   ],
+  characterVariant: [
+    "getVariantsForCharacter", "getAllVariants", "getVariantById",
+    "getDefaultVariant", "createVariant", "updateVariant",
+    "deleteVariant", "deleteVariantsForCharacter", "setDefaultVariant",
+    "updateVariantImage", "migrateOutfitsToVariants",
+  ],
 };
 
 export function createStoragePortMock(entityType: string): Record<string, ReturnType<typeof vi.fn>> {

@@ -176,6 +176,14 @@ registerColumns("props", [
   ["is_deleted", "boolean"],
 ]);
 
+// Task 2A.10: character_variants 表 JSON 列
+registerColumns("character_variants", [
+  ["metadata_json", "json"],
+  ["is_default", "boolean"],
+  ["is_canonical", "boolean"],
+  ["is_deleted", "boolean"],
+]);
+
 export function parseRecord(
   record: Record<string, unknown>,
   table?: string,

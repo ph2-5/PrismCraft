@@ -1,0 +1,59 @@
+{
+  "name": "character-variants",
+  "description": "角色变体系统：管理角色的多个变体（少年/老年/战损等），每个变体有独立的 prompt_fragment + 8 维参数 + 参考图。替代 character_outfits 的功能",
+  "dependencies": [
+    "@/domain/schemas",
+    "@/infrastructure/di",
+    "@/shared/presentation",
+    "@/shared/constants",
+    "@/shared/utils/image-url",
+    "@/shared/error-logger"
+  ],
+  "publicAPI": {
+    "schemas": [
+      "characterVariantSchema",
+      "createCharacterVariantInputSchema",
+      "updateCharacterVariantInputSchema"
+    ],
+    "types": [
+      "CharacterVariant",
+      "CreateCharacterVariantInput",
+      "UpdateCharacterVariantInput"
+    ],
+    "services": [
+      "listVariantsForCharacter",
+      "listAllVariants",
+      "getVariantById",
+      "getDefaultVariant",
+      "createVariant",
+      "updateVariant",
+      "deleteVariant",
+      "setDefaultVariant",
+      "updateVariantImage",
+      "migrateOutfitsToVariants",
+      "createVariantFromCompositorAsset",
+      "initializeVariantMigration"
+    ],
+    "hooks": [
+      "useCharacterVariants",
+      "useAllCharacterVariants",
+      "useVariant",
+      "useCreateVariant",
+      "useUpdateVariant",
+      "useDeleteVariant",
+      "useSetDefaultVariant",
+      "useMigrateOutfitsToVariants"
+    ],
+    "components": ["VariantList", "VariantDialog"],
+    "constants": ["VARIANT_QUERY_KEYS"]
+  },
+  "invariants": [
+    "character_variants 表独立于 character_outfits 表（前者是新系统，后者保留兼容）",
+    "每个 CharacterVariant 必须有 characterId 和 name",
+    "每个角色最多一个 isDefault=true 的变体（由 setDefaultVariant 事务保证）",
+    "删除角色时必须级联删除其所有变体（deleteVariantsForCharacter）",
+    "character_outfits → character_variants 迁移幂等（通过 source_outfit_id 去重）",
+    "由 Compositor 生成的变体通过 source_compositor_asset_id 追溯生成资产",
+    "禁止直接导入 infrastructure/storage，必须通过 DI container"
+  ]
+}

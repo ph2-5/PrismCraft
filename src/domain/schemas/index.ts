@@ -27,3 +27,7 @@ export type { AssetType as GenerationAssetType, GenerationAsset } from "./asset"
 // Task 2A.8: 道具库
 export { propTypeEnum, propSchema, createPropInputSchema, updatePropInputSchema } from "./prop";
 export type { PropType, Prop, CreatePropInput, UpdatePropInput } from "./prop";
+
+// Task 2A.10: 角色变体
+export { characterVariantSchema, createCharacterVariantInputSchema, updateCharacterVariantInputSchema } from "./character-variant";
+export type { CharacterVariant, CreateCharacterVariantInput, UpdateCharacterVariantInput } from "./character-variant";

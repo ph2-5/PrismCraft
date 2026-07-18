@@ -127,7 +127,9 @@ describe("Task 2A.12 — consistency-enhancer", () => {
       const candidates = extractCharacterReferenceCandidates(input);
 
       expect(candidates).toHaveLength(1);
-      expect(candidates[0]!.url).toBe("/img/same.png#v=1".split("#")[0]);
+      // 第 6 轮审计修复：候选 URL 保留 hash fragment（可能用于 cache busting 或 SVG sprite）
+      // 去重时用移除 hash 的 key，但 result.url 保留原始 hash
+      expect(candidates[0]!.url).toBe("/img/same.png#v=1");
     });
 
     it("P2-6: 仅空白字符的 URL 被过滤", () => {
@@ -153,6 +155,32 @@ describe("Task 2A.12 — consistency-enhancer", () => {
 
       expect(candidates).toHaveLength(1);
       expect(candidates[0]!.url).toBe("/img/primary.png");
+    });
+
+    it("第 6 轮审计: 候选 URL 保留 hash fragment 用于 cache busting", () => {
+      const input: CharacterAssetInput = {
+        characterId: "char-audit6-hash",
+        primaryImageUrl: "/img/primary.png#v=2",
+      };
+
+      const candidates = extractCharacterReferenceCandidates(input);
+
+      expect(candidates).toHaveLength(1);
+      // 保留 hash fragment，因为可能用于 cache busting（#v=2）或 SVG sprite 引用（#icon-id）
+      expect(candidates[0]!.url).toBe("/img/primary.png#v=2");
+    });
+
+    it("第 6 轮审计: 同时含空白和 hash fragment 时 trim 但保留 hash", () => {
+      const input: CharacterAssetInput = {
+        characterId: "char-audit6-trim-hash",
+        primaryImageUrl: "  /img/primary.png#v=3  ",
+      };
+
+      const candidates = extractCharacterReferenceCandidates(input);
+
+      expect(candidates).toHaveLength(1);
+      // trim 处理空白，但保留 hash fragment
+      expect(candidates[0]!.url).toBe("/img/primary.png#v=3");
     });
   });
 

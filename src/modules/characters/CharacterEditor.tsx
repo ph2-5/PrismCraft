@@ -318,7 +318,9 @@ function CharacterHeader({
           value={character.name}
           onChange={(e) => onNameChange(e.target.value)}
           required
-          aria-label={`${t("character.name")}（${t("common.requiredAriaLabel")}）`}
+          // 第 6 轮审计修复：aria-label 简化为只含字段名
+          // required 属性会让屏幕阅读器自动宣告"必填"，无需在 aria-label 中重复
+          aria-label={t("character.name")}
           aria-invalid={!!nameError}
           aria-errormessage={nameError ? nameErrorId : undefined}
         />

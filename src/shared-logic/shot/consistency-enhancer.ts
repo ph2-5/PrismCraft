@@ -104,9 +104,10 @@ export function extractCharacterReferenceCandidates(
   const seen = new Set<string>();
   const result: CharacterRefCandidate[] = [];
 
-  // P2-6 修复：URL 规范化去重，处理 trim/hash fragment/重复斜杠 等差异
+  // P2-6 修复：URL 规范化去重，处理 trim 和 hash fragment 差异
   // 同一张图片可能因 hash fragment（#v=1）或前后空白被视为不同，导致重复参考图
-  const normalizeUrl = (url: string): string => {
+  // 注意：不规范化重复斜杠（//），因为不同服务器对 // 的处理可能不同
+  const normalizeUrlForKey = (url: string): string => {
     let n = url.trim();
     // 移除 hash fragment（#...），同一图片的不同 hash 视为相同
     const hashIdx = n.indexOf("#");
@@ -121,11 +122,18 @@ export function extractCharacterReferenceCandidates(
     sourceId?: string,
   ) => {
     if (!url) return;
-    const normalized = normalizeUrl(url);
-    if (!normalized) return;
-    if (seen.has(normalized)) return;
-    seen.add(normalized);
-    result.push({ url: normalized, source, isAuthoritative, sourceId });
+    // trim 处理前后空白（URL 中无意义）
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    // 去重 key 移除 hash fragment，让同一图片不同 hash 视为相同
+    const key = normalizeUrlForKey(trimmed);
+    if (!key) return;
+    if (seen.has(key)) return;
+    seen.add(key);
+    // 第 6 轮审计修复：候选 URL 保留 trim 后的值（含 hash fragment）
+    // hash fragment 可能有意义（cache busting 如 #v=1，或 SVG sprite 引用如 #icon-id）
+    // 仅用移除 hash 的 key 进行去重，避免破坏 URL 语义
+    result.push({ url: trimmed, source, isAuthoritative, sourceId });
   };
 
   push(input.primaryImageUrl, "primary", true);

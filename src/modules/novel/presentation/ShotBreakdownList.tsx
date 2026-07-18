@@ -85,8 +85,8 @@ export function ShotBreakdownList({
             key={shot.id}
             className="flex items-center gap-2"
             // P2-3: 长列表性能优化 — content-visibility 让浏览器跳过视口外卡片的渲染
-            // contain-intrinsic-size 提供占位高度避免滚动条频繁重算
-            style={{ contentVisibility: "auto", containIntrinsicSize: "160px" }}
+            // 第 6 轮审计修复：使用 "auto 160px" 让浏览器记住实际高度，减少滚动跳变
+            style={{ contentVisibility: "auto", containIntrinsicSize: "auto 160px" }}
           >
             {/* 拖拽手柄 + 上下移动按钮 */}
             <div className="flex flex-col shrink-0">

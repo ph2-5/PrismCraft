@@ -78,7 +78,8 @@ export function ImportStep({ onImport }: ImportStepProps) {
         onChange={handleTextChange}
         placeholder={`${t("novel.import.textareaPlaceholder")} *`}
         className="w-full h-72 p-3 rounded-md border border-border bg-background text-[13px] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
-        aria-label={`${t("novel.import.title")}（${t("common.requiredAriaLabel")}）`}
+        // 第 6 轮审计修复：aria-label 简化为只含字段名，required 属性会自动宣告必填
+        aria-label={t("novel.import.title")}
         required
       />
 

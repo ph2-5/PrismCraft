@@ -72,11 +72,11 @@ export function NovelProjectList({
       open={true}
       onClose={onDismiss}
       ariaLabel={t("novel.project.recoveryTitle")}
-      className="max-w-lg max-h-[80vh] flex flex-col"
+      className="max-w-lg max-h-[80vh] flex flex-col mx-4"
     >
-      <div className="card w-full flex flex-col">
+      <div className="card w-full flex-1 min-h-0 flex flex-col !p-0">
         {/* 头部 */}
-        <div className="flex items-start justify-between gap-2 p-4 border-b border-border">
+        <div className="flex items-start justify-between gap-2 p-4 border-b border-border shrink-0">
           <div className="flex items-start gap-2.5 flex-1 min-w-0">
             <div className="w-8 h-8 rounded-full bg-[rgba(var(--primary-rgb),0.1)] flex items-center justify-center shrink-0">
               <RotateCcw size={15} className="text-[var(--primary)]" />
@@ -104,7 +104,7 @@ export function NovelProjectList({
         </div>
 
         {/* 项目列表 */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[100px]">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
           {sortedProjects.length === 0 ? (
             <EmptyState
               icon={FileText}
@@ -177,7 +177,7 @@ export function NovelProjectList({
         </div>
 
         {/* 底部 */}
-        <div className="flex items-center justify-end p-3 border-t border-border">
+        <div className="flex items-center justify-end p-3 border-t border-border shrink-0">
           <button
             type="button"
             onClick={onDismiss}

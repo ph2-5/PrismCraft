@@ -60,7 +60,8 @@ export function SegmentList({ segments, selectedIds, onToggle, onSelectAll }: Se
           <div
             key={seg.id}
             // P2-3: 长列表性能优化 — content-visibility 跳过视口外卡片的渲染
-            style={{ contentVisibility: "auto", containIntrinsicSize: "200px" }}
+            // 第 6 轮审计修复：使用 "auto 200px" 让浏览器记住实际高度，减少滚动跳变
+            style={{ contentVisibility: "auto", containIntrinsicSize: "auto 200px" }}
           >
             <SegmentCard
               segment={seg}

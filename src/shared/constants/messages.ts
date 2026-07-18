@@ -5,8 +5,6 @@ const messages: Record<MessageKey, string> = {
   "common.delete": "删除",
   "common.cancel": "取消",
   "common.confirm": "确认",
-  "common.required": "必填",
-  "common.requiredAriaLabel": "必填字段",
   "common.skipToMainContent": "跳到主内容",
   "common.close": "关闭",
   "common.retry": "重试",

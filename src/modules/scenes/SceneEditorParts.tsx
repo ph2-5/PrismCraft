@@ -103,7 +103,9 @@ export function SceneDetailHeader({
           data-testid="scene-name-input"
           value={scene.name}
           placeholder={`${t("scene.namePlaceholder")} *`}
-          aria-label={`${t("scene.name")}（${t("common.requiredAriaLabel")}）`}
+          // 第 6 轮审计修复：aria-label 简化为只含字段名
+          // required 属性会让屏幕阅读器自动宣告"必填"，无需在 aria-label 中重复
+          aria-label={t("scene.name")}
           required
           onChange={(e) =>
             setCurrentScene((prev) => ({ ...prev, name: e.target.value }), true)

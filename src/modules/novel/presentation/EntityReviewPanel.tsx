@@ -13,6 +13,7 @@
 import { useMemo } from "react";
 import { AlertTriangle, CheckCircle2, Users, MapPin } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import type { ExtractedCharacter, ExtractedScene } from "../domain/types";
 import { CharacterExtractCard } from "./CharacterExtractCard";
 import { SceneExtractCard } from "./SceneExtractCard";
@@ -107,9 +108,12 @@ export function EntityReviewPanel({
           </div>
           <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1">
             {characters.length === 0 ? (
-              <div className="text-[11px] text-muted-foreground text-center py-8">
-                {t("novel.entityReview.emptyCharacters")}
-              </div>
+              <EmptyState
+                icon={Users}
+                title={t("novel.entityReview.emptyCharacters")}
+                hint={t("novel.entityReview.emptyCharactersHint")}
+                compact
+              />
             ) : (
               characters.map((c) => (
                 <CharacterExtractCard
@@ -132,9 +136,12 @@ export function EntityReviewPanel({
           </div>
           <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1">
             {scenes.length === 0 ? (
-              <div className="text-[11px] text-muted-foreground text-center py-8">
-                {t("novel.entityReview.emptyScenes")}
-              </div>
+              <EmptyState
+                icon={MapPin}
+                title={t("novel.entityReview.emptyScenes")}
+                hint={t("novel.entityReview.emptyScenesHint")}
+                compact
+              />
             ) : (
               scenes.map((s) => (
                 <SceneExtractCard

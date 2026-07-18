@@ -102,7 +102,9 @@ export function SceneDetailHeader({
           className="input !text-base !font-bold !py-1.5 !px-2.5"
           data-testid="scene-name-input"
           value={scene.name}
-          placeholder={t("scene.namePlaceholder")}
+          placeholder={`${t("scene.namePlaceholder")} *`}
+          aria-label={`${t("scene.name")}（${t("common.requiredAriaLabel")}）`}
+          required
           onChange={(e) =>
             setCurrentScene((prev) => ({ ...prev, name: e.target.value }), true)
           }

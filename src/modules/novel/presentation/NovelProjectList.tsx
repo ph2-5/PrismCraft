@@ -13,6 +13,8 @@
 import { useMemo } from "react";
 import { FileText, RotateCcw, Trash2, X, Clock } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
+import { Modal } from "@/shared/presentation/Modal";
 import type { NovelProject, PipelineStage } from "../domain/types";
 
 export interface NovelProjectListProps {
@@ -66,13 +68,13 @@ export function NovelProjectList({
   );
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="novel-project-list-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    <Modal
+      open={true}
+      onClose={onDismiss}
+      ariaLabel={t("novel.project.recoveryTitle")}
+      className="max-w-lg max-h-[80vh] flex flex-col"
     >
-      <div className="card w-full max-w-lg max-h-[80vh] flex flex-col mx-4">
+      <div className="card w-full flex flex-col">
         {/* 头部 */}
         <div className="flex items-start justify-between gap-2 p-4 border-b border-border">
           <div className="flex items-start gap-2.5 flex-1 min-w-0">
@@ -104,9 +106,12 @@ export function NovelProjectList({
         {/* 项目列表 */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[100px]">
           {sortedProjects.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-[11px] text-muted-foreground py-8">
-              {t("novel.project.empty")}
-            </div>
+            <EmptyState
+              icon={FileText}
+              title={t("novel.project.empty")}
+              hint={t("novel.project.emptyHint")}
+              compact
+            />
           ) : (
             sortedProjects.map((project) => (
               <div
@@ -182,6 +187,6 @@ export function NovelProjectList({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

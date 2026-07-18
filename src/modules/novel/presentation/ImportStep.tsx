@@ -76,9 +76,10 @@ export function ImportStep({ onImport }: ImportStepProps) {
       <textarea
         value={text}
         onChange={handleTextChange}
-        placeholder={t("novel.import.textareaPlaceholder")}
+        placeholder={`${t("novel.import.textareaPlaceholder")} *`}
         className="w-full h-72 p-3 rounded-md border border-border bg-background text-[13px] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
-        aria-label={t("novel.import.title")}
+        aria-label={`${t("novel.import.title")}（${t("common.requiredAriaLabel")}）`}
+        required
       />
 
       <div className="flex items-center justify-between">

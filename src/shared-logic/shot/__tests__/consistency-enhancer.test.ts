@@ -102,6 +102,58 @@ describe("Task 2A.12 — consistency-enhancer", () => {
       expect(candidates).toHaveLength(1);
       expect(candidates[0]!.isAuthoritative).toBe(true);
     });
+
+    it("P2-6: URL 前后空白被 trim 后去重", () => {
+      const input: CharacterAssetInput = {
+        characterId: "char-p2-6a",
+        primaryImageUrl: "  /img/same.png  ",
+        defaultVariantImageUrl: "/img/same.png",
+      };
+
+      const candidates = extractCharacterReferenceCandidates(input);
+
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]!.url).toBe("/img/same.png");
+    });
+
+    it("P2-6: URL hash fragment 差异视为相同（去重）", () => {
+      const input: CharacterAssetInput = {
+        characterId: "char-p2-6b",
+        primaryImageUrl: "/img/same.png#v=1",
+        defaultVariantImageUrl: "/img/same.png#v=2",
+        defaultOutfitImageUrl: "/img/same.png",
+      };
+
+      const candidates = extractCharacterReferenceCandidates(input);
+
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]!.url).toBe("/img/same.png#v=1".split("#")[0]);
+    });
+
+    it("P2-6: 仅空白字符的 URL 被过滤", () => {
+      const input: CharacterAssetInput = {
+        characterId: "char-p2-6c",
+        primaryImageUrl: "   ",
+        defaultVariantImageUrl: "/img/real.png",
+      };
+
+      const candidates = extractCharacterReferenceCandidates(input);
+
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]!.url).toBe("/img/real.png");
+    });
+
+    it("P2-6: trim 后的 URL 写入候选（不保留原始空白）", () => {
+      const input: CharacterAssetInput = {
+        characterId: "char-p2-6d",
+        primaryImageUrl: "\t/img/primary.png\n",
+      };
+
+      const candidates = extractCharacterReferenceCandidates(input);
+
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]!.url).toBe("/img/primary.png");
+    });
   });
 
   describe("selectConsistencyStrategy", () => {

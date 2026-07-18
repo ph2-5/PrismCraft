@@ -5,8 +5,9 @@
  * 顶部显示已选数量统计和全选按钮。
  */
 
-import { CheckSquare, Square } from "lucide-react";
+import { CheckSquare, Square, FileText } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import type { NovelSegment } from "../domain/types";
 import { SegmentCard } from "./SegmentCard";
 
@@ -24,9 +25,11 @@ export function SegmentList({ segments, selectedIds, onToggle, onSelectAll }: Se
 
   if (segments.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="text-[12px] text-muted-foreground">{t("novel.segments.empty")}</div>
-      </div>
+      <EmptyState
+        icon={FileText}
+        title={t("novel.segments.empty")}
+        hint={t("novel.segments.emptyHint")}
+      />
     );
   }
 
@@ -54,12 +57,17 @@ export function SegmentList({ segments, selectedIds, onToggle, onSelectAll }: Se
       {/* 段落卡片列表 */}
       <div className="grid grid-cols-1 gap-2">
         {segments.map((seg) => (
-          <SegmentCard
+          <div
             key={seg.id}
-            segment={seg}
-            isSelected={selectedSet.has(seg.id)}
-            onToggle={() => onToggle(seg.id)}
-          />
+            // P2-3: 长列表性能优化 — content-visibility 跳过视口外卡片的渲染
+            style={{ contentVisibility: "auto", containIntrinsicSize: "200px" }}
+          >
+            <SegmentCard
+              segment={seg}
+              isSelected={selectedSet.has(seg.id)}
+              onToggle={() => onToggle(seg.id)}
+            />
+          </div>
         ))}
       </div>
 

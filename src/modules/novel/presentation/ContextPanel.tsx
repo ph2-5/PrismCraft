@@ -10,8 +10,9 @@
  */
 
 import { useMemo } from "react";
-import { Settings, BarChart3, Trophy } from "lucide-react";
+import { Settings, BarChart3, Trophy, Users } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import type { PipelineState, CharacterInPipeline } from "../domain/types";
 
 export interface ContextPanelProps {
@@ -63,7 +64,7 @@ export function ContextPanel({ state, shotCount }: ContextPanelProps) {
 
   return (
     <aside
-      className="w-[280px] shrink-0 border-l border-border bg-card/20 flex flex-col overflow-hidden"
+      className="w-[200px] lg:w-[260px] xl:w-[280px] shrink-0 border-l border-border bg-card/20 flex flex-col overflow-hidden"
       aria-label={t("novel.shell.contextPanel")}
     >
       <div className="flex-1 overflow-y-auto">
@@ -154,9 +155,12 @@ export function ContextPanel({ state, shotCount }: ContextPanelProps) {
             </div>
           </div>
           {sortedCharacters.length === 0 ? (
-            <div className="text-[11px] text-muted-foreground/70 py-2 text-center">
-              {t("novel.shell.emptyCharacters")}
-            </div>
+            <EmptyState
+              icon={Users}
+              title={t("novel.shell.emptyCharacters")}
+              hint={t("novel.shell.emptyCharactersHint")}
+              compact
+            />
           ) : (
             <ul className="space-y-1 text-[12px]">
               {sortedCharacters.map((c: CharacterInPipeline) => {

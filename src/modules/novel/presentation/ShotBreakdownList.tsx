@@ -12,6 +12,7 @@
 import { useMemo } from "react";
 import { Sparkles, Film, ListOrdered } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import type { ShotBreakdown } from "../domain/types";
 import { ShotCard } from "./ShotCard";
 
@@ -40,10 +41,11 @@ export function ShotBreakdownList({
 
   if (shots.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Film size={32} className="text-muted-foreground/40 mb-2" />
-        <div className="text-[12px] text-muted-foreground">{t("novel.shotBreakdown.empty")}</div>
-      </div>
+      <EmptyState
+        icon={Film}
+        title={t("novel.shotBreakdown.empty")}
+        hint={t("novel.shotBreakdown.emptyHint")}
+      />
     );
   }
 
@@ -79,7 +81,13 @@ export function ShotBreakdownList({
       {/* 分镜列表 */}
       <div className="flex flex-col gap-2">
         {shots.map((shot, index) => (
-          <div key={shot.id} className="flex items-center gap-2">
+          <div
+            key={shot.id}
+            className="flex items-center gap-2"
+            // P2-3: 长列表性能优化 — content-visibility 让浏览器跳过视口外卡片的渲染
+            // contain-intrinsic-size 提供占位高度避免滚动条频繁重算
+            style={{ contentVisibility: "auto", containIntrinsicSize: "160px" }}
+          >
             {/* 拖拽手柄 + 上下移动按钮 */}
             <div className="flex flex-col shrink-0">
               <button

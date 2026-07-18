@@ -57,14 +57,7 @@ function AssetPanel({
 
   return (
     <div
-      style={{
-        width: 240,
-        flexShrink: 0,
-        borderRight: "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
+      className="w-[180px] lg:w-[220px] xl:w-[240px] shrink-0 border-r border-border flex flex-col overflow-hidden"
     >
       <Tabs
         tabs={tabs}
@@ -387,14 +380,7 @@ function ToolsSidebar({
 
   return (
     <div
-      style={{
-        width: 260,
-        flexShrink: 0,
-        borderLeft: "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
+      className="w-[200px] lg:w-[240px] xl:w-[260px] shrink-0 border-l border-border flex flex-col overflow-hidden"
     >
       {/* P 图工具区 */}
       <div style={{ flexShrink: 0, padding: 8, borderBottom: "1px solid var(--border)" }}>
@@ -429,9 +415,12 @@ function ToolsSidebar({
           {t("compositor.layers.title")}
         </div>
         {layers.length === 0 ? (
-          <div style={{ fontSize: 11, color: "var(--muted-fg)", padding: "8px 0" }}>
-            {t("compositor.layers.empty")}
-          </div>
+          <EmptyState
+            icon={ImagePlusIcon}
+            title={t("compositor.layers.empty")}
+            hint={t("compositor.layers.emptyHint")}
+            compact
+          />
         ) : (
           layers.map((layer) => (
             <div

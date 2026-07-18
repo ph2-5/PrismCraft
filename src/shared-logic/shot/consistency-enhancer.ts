@@ -104,6 +104,16 @@ export function extractCharacterReferenceCandidates(
   const seen = new Set<string>();
   const result: CharacterRefCandidate[] = [];
 
+  // P2-6 修复：URL 规范化去重，处理 trim/hash fragment/重复斜杠 等差异
+  // 同一张图片可能因 hash fragment（#v=1）或前后空白被视为不同，导致重复参考图
+  const normalizeUrl = (url: string): string => {
+    let n = url.trim();
+    // 移除 hash fragment（#...），同一图片的不同 hash 视为相同
+    const hashIdx = n.indexOf("#");
+    if (hashIdx >= 0) n = n.slice(0, hashIdx);
+    return n;
+  };
+
   const push = (
     url: string | undefined,
     source: CharacterRefSource,
@@ -111,9 +121,11 @@ export function extractCharacterReferenceCandidates(
     sourceId?: string,
   ) => {
     if (!url) return;
-    if (seen.has(url)) return;
-    seen.add(url);
-    result.push({ url, source, isAuthoritative, sourceId });
+    const normalized = normalizeUrl(url);
+    if (!normalized) return;
+    if (seen.has(normalized)) return;
+    seen.add(normalized);
+    result.push({ url: normalized, source, isAuthoritative, sourceId });
   };
 
   push(input.primaryImageUrl, "primary", true);

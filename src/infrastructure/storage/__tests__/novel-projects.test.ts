@@ -239,6 +239,40 @@ describe("storage/novel-projects", () => {
       expect(sql).toContain("story_id = ?");
       expect(params[0]).toBeNull();
     });
+
+    it("P2-7: 更新时 SQL 包含 version = version + 1", async () => {
+      await novelProjectStorage.updateProject("p1", { title: "新标题" });
+
+      const [sql] = mockSafeRun.mock.calls[0]!;
+      expect(sql).toContain("version = version + 1");
+    });
+
+    it("P2-7: 仅更新 state 时也递增 version", async () => {
+      await novelProjectStorage.updateProject("p1", { state: { stage: "review" } });
+
+      const [sql] = mockSafeRun.mock.calls[0]!;
+      expect(sql).toContain("version = version + 1");
+    });
+
+    it("P2-7: 更新多字段时 version 仅递增一次", async () => {
+      await novelProjectStorage.updateProject("p1", {
+        title: "新标题",
+        rawText: "新原文",
+        state: { stage: "review" },
+        storyId: "story1",
+      });
+
+      const [sql] = mockSafeRun.mock.calls[0]!;
+      // 只出现一次 version = version + 1
+      const matches = sql.match(/version = version \+ 1/g);
+      expect(matches).toHaveLength(1);
+    });
+
+    it("P2-7: 空 patch 时仍不调用 safeRun（version 不递增）", async () => {
+      await novelProjectStorage.updateProject("p1", {});
+
+      expect(mockSafeRun).not.toHaveBeenCalled();
+    });
   });
 
   describe("deleteProject (软删除)", () => {

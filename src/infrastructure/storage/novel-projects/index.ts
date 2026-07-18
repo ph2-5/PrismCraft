@@ -157,6 +157,8 @@ export const novelProjectStorage = {
 
     sets.push("updated_at = ?");
     params.push(String(Math.floor(Date.now() / 1000)));
+    // P2-7 修复：version 列每次更新递增 1，便于乐观锁/同步冲突检测
+    sets.push("version = version + 1");
     params.push(id);
 
     await safeRun(

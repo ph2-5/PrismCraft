@@ -314,10 +314,11 @@ function CharacterHeader({
         <input
           className="input !text-base !font-semibold"
           data-testid="character-name-input"
-          placeholder={t("character.namePlaceholder")}
+          placeholder={`${t("character.namePlaceholder")} *`}
           value={character.name}
           onChange={(e) => onNameChange(e.target.value)}
           required
+          aria-label={`${t("character.name")}（${t("common.requiredAriaLabel")}）`}
           aria-invalid={!!nameError}
           aria-errormessage={nameError ? nameErrorId : undefined}
         />

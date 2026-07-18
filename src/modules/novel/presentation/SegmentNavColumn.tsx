@@ -10,8 +10,9 @@
  * 顶部显示标题"片段导航"和总数。
  */
 
-import { Clock } from "lucide-react";
+import { Clock, ListCollapse } from "lucide-react";
 import { t } from "@/shared/constants";
+import { EmptyState } from "@/shared/presentation/EmptyState";
 import type { Segment } from "../domain/types";
 
 export interface SegmentNavColumnProps {
@@ -29,7 +30,7 @@ export function SegmentNavColumn({
 }: SegmentNavColumnProps) {
   return (
     <aside
-      className="w-[260px] shrink-0 border-r border-border bg-card/20 flex flex-col overflow-hidden"
+      className="w-[180px] lg:w-[220px] xl:w-[260px] shrink-0 border-r border-border bg-card/20 flex flex-col overflow-hidden"
       aria-label={t("novel.shell.segmentNav")}
     >
       <div className="px-4 py-3 border-b border-border">
@@ -42,9 +43,12 @@ export function SegmentNavColumn({
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-2">
         {segments.length === 0 ? (
-          <div className="text-[11px] text-muted-foreground/70 px-2 py-4 text-center">
-            {t("novel.shell.emptySegments")}
-          </div>
+          <EmptyState
+            icon={ListCollapse}
+            title={t("novel.shell.emptySegments")}
+            hint={t("novel.shell.emptySegmentsHint")}
+            compact
+          />
         ) : (
           <ul className="flex flex-col gap-1">
             {segments.map((seg, i) => {

@@ -48,17 +48,20 @@ export function CharacterElementCard({
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <input
+            id={`char-${element.id}-name`}
             className="input"
             style={{ fontSize: 13, fontWeight: 600, padding: "2px 4px", background: "transparent", border: "none" }}
             value={element.name}
             onChange={(e) => onUpdateElement(element.id, { name: e.target.value })}
+            aria-label={t("element.characterLabel")}
           />
           <span className="badge badge-info">{t("element.characterLabel")}</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
           <div>
-            <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.roleInShot")}</label>
+            <label htmlFor={`char-${element.id}-role`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.roleInShot")}</label>
             <select
+              id={`char-${element.id}-role`}
               className="select"
               style={{ fontSize: 11, padding: "4px 6px", width: "100%" }}
               value={binding.role || ""}
@@ -71,8 +74,9 @@ export function CharacterElementCard({
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.position")}</label>
+            <label htmlFor={`char-${element.id}-position`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.position")}</label>
             <select
+              id={`char-${element.id}-position`}
               className="select"
               style={{ fontSize: 11, padding: "4px 6px", width: "100%" }}
               value={binding.position || ""}
@@ -86,8 +90,9 @@ export function CharacterElementCard({
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.action")}</label>
+            <label htmlFor={`char-${element.id}-action`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.action")}</label>
             <input
+              id={`char-${element.id}-action`}
               className="input"
               style={{ fontSize: 11, padding: "4px 6px" }}
               value={binding.action || ""}
@@ -96,8 +101,9 @@ export function CharacterElementCard({
             />
           </div>
           <div>
-            <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.emotion")}</label>
+            <label htmlFor={`char-${element.id}-emotion`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.emotion")}</label>
             <select
+              id={`char-${element.id}-emotion`}
               className="select"
               style={{ fontSize: 11, padding: "4px 6px", width: "100%" }}
               value={binding.emotion || ""}
@@ -113,8 +119,9 @@ export function CharacterElementCard({
           </div>
         </div>
         <div>
-          <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.supplementaryDesc")}</label>
+          <label htmlFor={`char-${element.id}-desc`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.supplementaryDesc")}</label>
           <input
+            id={`char-${element.id}-desc`}
             className="input"
             style={{ fontSize: 11, padding: "4px 6px" }}
             value={binding.description || ""}
@@ -129,10 +136,11 @@ export function CharacterElementCard({
         />
         {characterRefCandidates && characterRefCandidates.length > 0 && (
           <div>
-            <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>
+            <label htmlFor={`char-${element.id}-ref`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>
               {t("element.refImageSource")}
             </label>
             <select
+              id={`char-${element.id}-ref`}
               className="select"
               style={{ fontSize: 11, padding: "4px 6px", width: "100%" }}
               value={binding.imageUrl || ""}
@@ -193,8 +201,9 @@ export function SceneElementCard({
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
           <div>
-            <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.sceneRole")}</label>
+            <label htmlFor={`scene-${element.id}-role`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.sceneRole")}</label>
             <select
+              id={`scene-${element.id}-role`}
               className="select"
               style={{ fontSize: 11, padding: "4px 6px", width: "100%" }}
               value={binding.role || ""}
@@ -207,8 +216,9 @@ export function SceneElementCard({
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.time")}</label>
+            <label htmlFor={`scene-${element.id}-time`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.time")}</label>
             <select
+              id={`scene-${element.id}-time`}
               className="select"
               style={{ fontSize: 11, padding: "4px 6px", width: "100%" }}
               value={(binding as Record<string, string>).time || ""}
@@ -223,8 +233,9 @@ export function SceneElementCard({
           </div>
         </div>
         <div>
-          <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.supplementaryDesc")}</label>
+          <label htmlFor={`scene-${element.id}-desc`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.supplementaryDesc")}</label>
           <input
+            id={`scene-${element.id}-desc`}
             className="input"
             style={{ fontSize: 11, padding: "4px 6px" }}
             value={binding.description || ""}
@@ -276,18 +287,21 @@ export function PropElementCard({
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <input
+            id={`prop-${element.id}-name`}
             className="input"
             style={{ fontSize: 13, fontWeight: 600, padding: "2px 4px", background: "transparent", border: "none" }}
             value={element.name}
             onChange={(e) => onUpdateElement(element.id, { name: e.target.value })}
+            aria-label={element.type === "prop" ? t("element.propLabel") : t("element.effectLabel")}
           />
           <span className="badge">
             {element.type === "prop" ? t("element.propLabel") : t("element.effectLabel")}
           </span>
         </div>
         <div>
-          <label style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.supplementaryDesc")}</label>
+          <label htmlFor={`prop-${element.id}-desc`} style={{ fontSize: 9, color: "var(--muted-fg)", display: "block" }}>{t("element.supplementaryDesc")}</label>
           <input
+            id={`prop-${element.id}-desc`}
             className="input"
             style={{ fontSize: 11, padding: "4px 6px" }}
             value={binding.description || ""}

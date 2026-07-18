@@ -11,6 +11,7 @@
 
 import { useMemo } from "react";
 import { Sparkles, Film, ListOrdered } from "lucide-react";
+import { t } from "@/shared/constants";
 import type { ShotBreakdown } from "../domain/types";
 import { ShotCard } from "./ShotCard";
 
@@ -41,7 +42,7 @@ export function ShotBreakdownList({
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <Film size={32} className="text-muted-foreground/40 mb-2" />
-        <div className="text-[12px] text-muted-foreground">暂无分镜，请先完成段落拆解</div>
+        <div className="text-[12px] text-muted-foreground">{t("novel.shotBreakdown.empty")}</div>
       </div>
     );
   }
@@ -53,23 +54,25 @@ export function ShotBreakdownList({
         <div className="flex items-center gap-3 text-[11px]">
           <div className="flex items-center gap-1">
             <ListOrdered size={11} className="text-muted-foreground" />
-            <span>{stats.total} 个分镜</span>
+            <span>{t("novel.shotBreakdown.totalCount", { count: stats.total })}</span>
           </div>
           <div className="text-muted-foreground">
-            草稿 {stats.draft} · 已编辑 {stats.edited} · 定稿 {stats.final}
+            {t("novel.shotBreakdown.draft", { count: stats.draft })} ·{" "}
+            {t("novel.shotBreakdown.edited", { count: stats.edited })} ·{" "}
+            {t("novel.shotBreakdown.final", { count: stats.final })}
           </div>
           <div className="text-muted-foreground">
-            提示词 {stats.withPrompt}/{stats.total}
+            {t("novel.shotBreakdown.promptCount", { count: stats.withPrompt, total: stats.total })}
           </div>
         </div>
         <button
           type="button"
           onClick={onGeneratePrompts}
           className="btn btn-primary text-[11px] px-3 py-1.5 flex items-center gap-1.5"
-          aria-label="生成提示词"
+          aria-label={t("novel.shotBreakdown.generatePrompts")}
         >
           <Sparkles size={11} />
-          生成提示词
+          {t("novel.shotBreakdown.generatePrompts")}
         </button>
       </div>
 
@@ -87,7 +90,7 @@ export function ShotBreakdownList({
                   "text-[10px] px-1 py-0.5",
                   index === 0 ? "text-muted-foreground/30 cursor-not-allowed" : "text-muted-foreground hover:text-foreground",
                 ].join(" ")}
-                aria-label="上移"
+                aria-label={t("novel.shotBreakdown.moveUpAriaLabel")}
               >
                 ▲
               </button>
@@ -99,7 +102,7 @@ export function ShotBreakdownList({
                   "text-[10px] px-1 py-0.5",
                   index === shots.length - 1 ? "text-muted-foreground/30 cursor-not-allowed" : "text-muted-foreground hover:text-foreground",
                 ].join(" ")}
-                aria-label="下移"
+                aria-label={t("novel.shotBreakdown.moveDownAriaLabel")}
               >
                 ▼
               </button>

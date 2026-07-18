@@ -10,6 +10,7 @@
 
 import type { ToolImpl } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
+import { errorLogger } from "@/shared/error-logger";
 import type { ShotBreakdown } from "../domain/types";
 import { generateJsonArrayWithAI, asString, asNumber, asStringArray } from "./helpers";
 
@@ -72,8 +73,9 @@ export const breakdownTextToShotsTool: ToolImpl = {
             })
             .filter((n) => n.length > 0);
         }
-      } catch {
-        // 解析失败时忽略
+      } catch (err) {
+        // P1-3: 解析失败时记录日志，按无角色引用处理继续
+        errorLogger.warn("[breakdown-shots] charactersJson 解析失败，按无角色引用处理", err);
       }
     }
 

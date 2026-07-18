@@ -82,12 +82,23 @@ export function asStringArray(value: unknown): string[] {
  *
  * 未来可提取到 @/shared-logic/string（目前 agent-tools-asset/asset-crud-tools.ts 也有同名私有实现）。
  * Task 2A.2 范围内先在 novel 模块本地实现，避免跨模块依赖。
+ *
+ * P1-11 修复：增加长度上限保护。Levenshtein 算法复杂度为 O(len1 * len2)，
+ * 超长字符串（如 AI 返回 10k+ 字符）会导致事件循环阻塞。当任一输入超过
+ * MAX_LEVENSHTEIN_LEN 时，降级为基于长度差异的快速估算，避免 DoS。
  */
+const MAX_LEVENSHTEIN_LEN = 256;
+
 export function levenshteinDistance(s1: string, s2: string): number {
   const len1 = s1.length;
   const len2 = s2.length;
   if (len1 === 0) return len2;
   if (len2 === 0) return len1;
+
+  // P1-11: 超长输入降级为长度差异（避免 O(n*m) 阻塞事件循环）
+  if (len1 > MAX_LEVENSHTEIN_LEN || len2 > MAX_LEVENSHTEIN_LEN) {
+    return Math.abs(len1 - len2);
+  }
 
   let prev = new Array<number>(len2 + 1).fill(0);
   let curr = new Array<number>(len2 + 1).fill(0);
@@ -111,10 +122,14 @@ export function levenshteinDistance(s1: string, s2: string): number {
 /**
  * 名称相似度匹配（0-1，1 表示完全相同）。
  * 基于 Levenshtein 距离归一化：1 - distance / max(len1, len2)
+ *
+ * P1-11 修复：两空字符串不再返回 1.0（"完全匹配"），改为返回 0（无信息，不匹配）。
+ * 原行为会导致两个空名称的实体被标记为 matched（置信度 1.0），这是错误的——
+ * 空名称意味着"没有名称信息"，不应被视为"名称相同"。
  */
 export function nameSimilarity(s1: string, s2: string): number {
   const maxLen = Math.max(s1.length, s2.length);
-  if (maxLen === 0) return 1;
+  if (maxLen === 0) return 0;
   return 1 - levenshteinDistance(s1, s2) / maxLen;
 }
 

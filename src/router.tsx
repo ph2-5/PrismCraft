@@ -40,6 +40,7 @@ export const router = createBrowserRouter([
       { path: "story", element: withSuspense(lazy(() => import("./app/story/page"))) },
       { path: "agent", element: withSuspense(lazy(() => import("./app/agent/page"))) },
       { path: "composer", element: withSuspense(lazy(() => import("./modules/video-compose/page"))) },
+      { path: "compositor", element: withSuspense(lazy(() => import("./modules/compositor/page"))) },
       { path: "plugins", element: withSuspense(lazy(() => import("./app/coming-soon/PluginsPage"))) },
       { path: "login", element: withSuspense(lazy(() => import("./app/coming-soon/LoginPage"))) },
       { path: "template-market", element: withSuspense(lazy(() => import("./app/coming-soon/TemplateMarketPage"))) },

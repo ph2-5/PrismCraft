@@ -41,8 +41,28 @@ export async function getDefaultVariant(characterId: string): Promise<CharacterV
 export async function createVariant(input: CreateCharacterVariantInput): Promise<CharacterVariant> {
   const variant = await container.characterVariantStorage.createVariant(input);
   // 如果新建时 isDefault=true，需要确保其他变体取消默认
+  // P1-9 修复：setDefaultVariant 失败时执行补偿（删除刚创建的 variant），避免出现
+  // "variant 已创建但默认状态不一致" 的中间态（其他 variant 仍标记为 default）。
   if (input.isDefault) {
-    await container.characterVariantStorage.setDefaultVariant(input.characterId, variant.id);
+    try {
+      await container.characterVariantStorage.setDefaultVariant(input.characterId, variant.id);
+    } catch (err) {
+      // 补偿：尝试删除刚创建的 variant，回滚到调用前状态
+      try {
+        await container.characterVariantStorage.deleteVariant(variant.id);
+      } catch (cleanupErr) {
+        // 补偿也失败：记录日志，variant 已存在但默认状态可能不一致
+        errorLogger.error(
+          {
+            code: "VariantCreateRollbackFailed",
+            message: `setDefaultVariant 失败后回滚删除 variant 也失败: ${variant.id}`,
+            cause: cleanupErr,
+          },
+          "variant-crud",
+        );
+      }
+      throw err;
+    }
   }
   return variant;
 }

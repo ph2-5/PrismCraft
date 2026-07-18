@@ -13,6 +13,7 @@
  */
 
 import { Edit, Check, Link2, User } from "lucide-react";
+import { t } from "@/shared/constants";
 import type { ExtractedCharacter } from "../domain/types";
 
 export interface CharacterExtractCardProps {
@@ -22,10 +23,10 @@ export interface CharacterExtractCardProps {
   onMatch: (id: string, existingId: string) => void;
 }
 
-const STATUS_LABEL: Record<ExtractedCharacter["status"], string> = {
-  new: "新角色",
-  matched: "已匹配",
-  conflict: "冲突",
+const STATUS_LABEL_KEY: Record<ExtractedCharacter["status"], string> = {
+  new: "novel.characterExtract.statusNew",
+  matched: "novel.characterExtract.statusMatched",
+  conflict: "novel.characterExtract.statusConflict",
 };
 
 const STATUS_BADGE: Record<ExtractedCharacter["status"], string> = {
@@ -61,11 +62,11 @@ export function CharacterExtractCard({
             <div className="text-[13px] font-bold truncate">{character.name}</div>
             <div className="flex items-center gap-1 shrink-0">
               <span className={`badge ${STATUS_BADGE[character.status]} text-[9px] px-1.5 py-0.5`}>
-                {STATUS_LABEL[character.status]}
+                {t(STATUS_LABEL_KEY[character.status])}
               </span>
               {isConfirmed && (
                 <span className="badge badge-success text-[9px] px-1.5 py-0.5">
-                  <Check size={9} className="mr-0.5" />已确认
+                  <Check size={9} className="mr-0.5" />{t("novel.characterExtract.confirmed")}
                 </span>
               )}
             </div>
@@ -73,21 +74,21 @@ export function CharacterExtractCard({
 
           {/* 详细信息 */}
           <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
-            {character.gender && <div>性别：{character.gender}</div>}
-            {character.age !== undefined && <div>年龄：{character.age}</div>}
+            {character.gender && <div>{t("novel.characterExtract.gender", { value: character.gender })}</div>}
+            {character.age !== undefined && <div>{t("novel.characterExtract.age", { value: character.age })}</div>}
             {character.description && (
               <div className="line-clamp-2">{character.description}</div>
             )}
-            {character.appearance.clothing && <div>服装：{character.appearance.clothing}</div>}
+            {character.appearance.clothing && <div>{t("novel.characterExtract.clothing", { value: character.appearance.clothing })}</div>}
             {character.firstAppearance && (
-              <div className="text-[10px] opacity-70">首次出现：{character.firstAppearance}</div>
+              <div className="text-[10px] opacity-70">{t("novel.characterExtract.firstAppearance", { value: character.firstAppearance })}</div>
             )}
           </div>
 
           {/* 匹配置信度（如果有） */}
           {character.matchConfidence !== undefined && (
             <div className="text-[10px] text-muted-foreground mt-1.5">
-              匹配置信度：{Math.round(character.matchConfidence * 100)}%
+              {t("novel.characterExtract.matchConfidence", { percent: Math.round(character.matchConfidence * 100) })}
             </div>
           )}
 
@@ -98,29 +99,29 @@ export function CharacterExtractCard({
                 type="button"
                 onClick={() => onEdit(character)}
                 className="btn btn-ghost text-[11px] px-2 py-1 flex items-center gap-1"
-                aria-label="编辑角色"
+                aria-label={t("novel.characterExtract.editAriaLabel")}
               >
                 <Edit size={10} />
-                编辑
+                {t("novel.characterExtract.edit")}
               </button>
               <button
                 type="button"
                 onClick={() => onConfirm(character.tempId)}
                 className="btn btn-ghost text-[11px] px-2 py-1 flex items-center gap-1 text-[var(--primary)]"
-                aria-label="确认角色"
+                aria-label={t("novel.characterExtract.confirmAriaLabel")}
               >
                 <Check size={10} />
-                确认
+                {t("novel.characterExtract.confirm")}
               </button>
               {isConflict && (
                 <button
                   type="button"
                   onClick={() => onMatch(character.tempId, "")}
                   className="btn btn-ghost text-[11px] px-2 py-1 flex items-center gap-1"
-                  aria-label="手动匹配"
+                  aria-label={t("novel.characterExtract.match")}
                 >
                   <Link2 size={10} />
-                  手动匹配
+                  {t("novel.characterExtract.match")}
                 </button>
               )}
             </div>

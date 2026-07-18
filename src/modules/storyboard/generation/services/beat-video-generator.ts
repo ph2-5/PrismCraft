@@ -97,17 +97,46 @@ export async function generateBeatVideo(
       : (options.characterRef ? [options.characterRef] : undefined);
 
     // Task 2A.12: 自动一致性增强 — 当未手动指定 characterRefs 且提供了角色素材时，
-    // 调用 consistency-enhancer 根据模型能力自动提取参考图
+    // 调用 consistency-enhancer 根据模型能力自动提取参考图。
+    // P0 修复：maxCharacterRefs 是模型全局上限，不能每角色独立截断后 flatMap
+    // （3 角色 × max3 = 9 张会超出全局上限）。改为按角色均分配额后全局截断。
     if ((!allCharRefs || allCharRefs.length === 0) && options.characterAssets?.length && options.modelId) {
       const caps = getModelCapabilities(options.modelId);
+      const globalMaxRefs = caps.maxCharacterRefs ?? (caps.supportsCharacterRef ? 1 : 0);
       const consistencyCapability: ModelConsistencyCapability = {
         modelId: options.modelId,
         strategy: caps.consistencyStrategy ?? "unknown",
-        maxCharacterRefs: caps.maxCharacterRefs ?? (caps.supportsCharacterRef ? 1 : 0),
+        maxCharacterRefs: globalMaxRefs,
       };
-      allCharRefs = options.characterAssets.flatMap((asset) =>
+      // 先按角色各自的优先级提取，每角色最多 globalMaxRefs 张候选
+      const perAssetCandidates = options.characterAssets.map((asset) =>
         buildConsistencyEnhancedCharacterRefs(asset, consistencyCapability),
       );
+      // 全局配额：每角色至少 1 张，最多 globalMaxRefs 张；总数不超过 globalMaxRefs
+      const numChars = perAssetCandidates.length;
+      if (numChars > 0 && globalMaxRefs > 0) {
+        const perCharQuota = Math.max(1, Math.floor(globalMaxRefs / numChars));
+        const collected: string[] = [];
+        // 第一轮：每角色取前 perCharQuota 张
+        for (const candidates of perAssetCandidates) {
+          for (let i = 0; i < perCharQuota && collected.length < globalMaxRefs; i++) {
+            const ref = candidates[i];
+            if (ref) collected.push(ref);
+          }
+          if (collected.length >= globalMaxRefs) break;
+        }
+        // 第二轮：若仍有余量，按角色顺序补足剩余候选
+        if (collected.length < globalMaxRefs) {
+          for (const candidates of perAssetCandidates) {
+            for (let i = perCharQuota; i < candidates.length && collected.length < globalMaxRefs; i++) {
+              const ref = candidates[i];
+              if (ref) collected.push(ref);
+            }
+            if (collected.length >= globalMaxRefs) break;
+          }
+        }
+        allCharRefs = collected;
+      }
     }
 
     const effectiveParams = options.modelId

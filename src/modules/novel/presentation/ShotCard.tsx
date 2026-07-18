@@ -25,10 +25,10 @@ const STATUS_BADGE: Record<ShotBreakdown["status"], string> = {
   final: "badge-success",
 };
 
-const STATUS_LABEL: Record<ShotBreakdown["status"], string> = {
-  draft: "草稿",
-  edited: "已编辑",
-  final: "定稿",
+const STATUS_LABEL_KEY: Record<ShotBreakdown["status"], string> = {
+  draft: "novel.shot.statusDraft",
+  edited: "novel.shot.statusEdited",
+  final: "novel.shot.statusFinal",
 };
 
 export function ShotCard({ shot, onEdit }: ShotCardProps) {
@@ -47,7 +47,7 @@ export function ShotCard({ shot, onEdit }: ShotCardProps) {
             </span>
           )}
           <span className={`badge ${STATUS_BADGE[shot.status]} text-[9px] px-1.5 py-0.5`}>
-            {STATUS_LABEL[shot.status]}
+            {t(STATUS_LABEL_KEY[shot.status])}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -59,10 +59,10 @@ export function ShotCard({ shot, onEdit }: ShotCardProps) {
             type="button"
             onClick={() => onEdit(shot)}
             className="btn btn-ghost text-[11px] px-2 py-1 flex items-center gap-1"
-            aria-label="编辑分镜"
+            aria-label={t("novel.shot.editAriaLabel")}
           >
             <Edit size={10} />
-            编辑
+            {t("novel.shot.edit")}
           </button>
         </div>
       </div>
@@ -75,16 +75,15 @@ export function ShotCard({ shot, onEdit }: ShotCardProps) {
       {/* 动作 */}
       {shot.action && (
         <div className="text-[11px] text-muted-foreground mb-1.5">
-          <span className="opacity-70">动作：</span>
-          {shot.action}
+          <span className="opacity-70">{t("novel.shot.action", { value: shot.action })}</span>
         </div>
       )}
 
       {/* 镜头参数 */}
       {(shot.cameraAngle || shot.cameraMovement) && (
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1.5">
-          {shot.cameraAngle && <span>角度：{shot.cameraAngle}</span>}
-          {shot.cameraMovement && <span>运镜：{shot.cameraMovement}</span>}
+          {shot.cameraAngle && <span>{t("novel.shot.cameraAngle", { value: shot.cameraAngle })}</span>}
+          {shot.cameraMovement && <span>{t("novel.shot.cameraMovement", { value: shot.cameraMovement })}</span>}
         </div>
       )}
 
@@ -107,7 +106,7 @@ export function ShotCard({ shot, onEdit }: ShotCardProps) {
             <div className="flex items-center gap-1">
               <MapPin size={10} className="text-muted-foreground" />
               <span className="badge badge-info text-[9px] px-1 py-0">
-                场景 {shot.sceneId.slice(0, 6)}
+                {t("novel.shot.sceneRef", { id: shot.sceneId.slice(0, 6) })}
               </span>
             </div>
           )}
@@ -119,7 +118,7 @@ export function ShotCard({ shot, onEdit }: ShotCardProps) {
         <div className="mt-2 pt-2 border-t border-border">
           {shot.prompt.zh && (
             <div className="text-[11px] mb-1">
-              <span className="text-muted-foreground opacity-70">中文：</span>
+              <span className="text-muted-foreground opacity-70">{t("novel.shot.promptZh")}</span>
               {shot.prompt.zh}
             </div>
           )}

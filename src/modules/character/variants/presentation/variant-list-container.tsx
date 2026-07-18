@@ -11,6 +11,7 @@
 import { useState, useCallback } from "react";
 import { t } from "@/shared/constants";
 import { errorLogger } from "@/shared/error-logger";
+import { confirm } from "@/shared/utils/confirm";
 import {
   useCharacterVariants,
   useCreateVariant,
@@ -56,7 +57,13 @@ export function VariantListContainer({
 
   const handleDelete = useCallback(
     async (variant: CharacterVariant) => {
-      if (!confirm(t("character.variants.delete") + ": " + variant.name)) return;
+      // P1-6: 使用项目统一的 confirm 工具（替代浏览器原生 confirm），保持 UI 一致性
+      const ok = await confirm({
+        title: t("character.variants.deleteConfirmTitle"),
+        description: t("character.variants.deleteConfirmDesc", { name: variant.name }),
+        variant: "danger",
+      });
+      if (!ok) return;
       try {
         await deleteMutation.mutateAsync(variant.id);
       } catch (err) {

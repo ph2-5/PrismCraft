@@ -8,6 +8,7 @@
 
 import type { ToolImpl } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
+import { errorLogger } from "@/shared/error-logger";
 import type { ExtractedScene } from "../domain/types";
 import { generateJsonArrayWithAI, asString } from "./helpers";
 
@@ -54,8 +55,9 @@ export const extractScenesFromTextTool: ToolImpl = {
         if (Array.isArray(parsed)) {
           existingPlaces = parsed.filter((v): v is string => typeof v === "string");
         }
-      } catch {
-        // 解析失败时忽略
+      } catch (err) {
+        // P1-3: 解析失败时记录日志，按无去重处理继续
+        errorLogger.warn("[extract-scenes] existingPlacesJson 解析失败，按无去重处理", err);
       }
     }
 

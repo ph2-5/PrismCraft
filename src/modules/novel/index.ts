@@ -69,8 +69,7 @@ export { useNovelPipeline } from "./hooks/use-novel-pipeline";
 export type { UseNovelPipelineOptions, UseNovelPipelineResult } from "./hooks/use-novel-pipeline";
 
 // Presentation — UI Panel Part 1（Task 2A.4）
-export { NovelImportPage } from "./presentation/NovelImportPage";
-export type { NovelImportPageProps } from "./presentation/NovelImportPage";
+// 注：NovelImportPage.tsx 已删除（P0 修复，被 StoryPipelineShell 完全替代）
 export { ImportStep } from "./presentation/ImportStep";
 export type { ImportStepProps } from "./presentation/ImportStep";
 export { SegmentList } from "./presentation/SegmentList";

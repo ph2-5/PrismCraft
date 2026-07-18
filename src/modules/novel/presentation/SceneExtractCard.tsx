@@ -12,6 +12,7 @@
  */
 
 import { Edit, Check, MapPin } from "lucide-react";
+import { t } from "@/shared/constants";
 import type { ExtractedScene } from "../domain/types";
 
 export interface SceneExtractCardProps {
@@ -20,10 +21,10 @@ export interface SceneExtractCardProps {
   onConfirm: (id: string) => void;
 }
 
-const STATUS_LABEL: Record<ExtractedScene["status"], string> = {
-  new: "新场景",
-  matched: "已匹配",
-  conflict: "冲突",
+const STATUS_LABEL_KEY: Record<ExtractedScene["status"], string> = {
+  new: "novel.sceneExtract.statusNew",
+  matched: "novel.sceneExtract.statusMatched",
+  conflict: "novel.sceneExtract.statusConflict",
 };
 
 const STATUS_BADGE: Record<ExtractedScene["status"], string> = {
@@ -54,11 +55,11 @@ export function SceneExtractCard({ scene, onEdit, onConfirm }: SceneExtractCardP
             <div className="text-[13px] font-bold truncate">{scene.name}</div>
             <div className="flex items-center gap-1 shrink-0">
               <span className={`badge ${STATUS_BADGE[scene.status]} text-[9px] px-1.5 py-0.5`}>
-                {STATUS_LABEL[scene.status]}
+                {t(STATUS_LABEL_KEY[scene.status])}
               </span>
               {isConfirmed && (
                 <span className="badge badge-success text-[9px] px-1.5 py-0.5">
-                  <Check size={9} className="mr-0.5" />已确认
+                  <Check size={9} className="mr-0.5" />{t("novel.sceneExtract.confirmed")}
                 </span>
               )}
             </div>
@@ -66,10 +67,10 @@ export function SceneExtractCard({ scene, onEdit, onConfirm }: SceneExtractCardP
 
           {/* 详细信息 */}
           <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
-            {scene.type && <div>类型：{scene.type}</div>}
-            {scene.location && <div>地点：{scene.location}</div>}
-            {scene.timeOfDay && <div>时间：{scene.timeOfDay}</div>}
-            {scene.atmosphere && <div>氛围：{scene.atmosphere}</div>}
+            {scene.type && <div>{t("novel.sceneExtract.type", { value: scene.type })}</div>}
+            {scene.location && <div>{t("novel.sceneExtract.location", { value: scene.location })}</div>}
+            {scene.timeOfDay && <div>{t("novel.sceneExtract.timeOfDay", { value: scene.timeOfDay })}</div>}
+            {scene.atmosphere && <div>{t("novel.sceneExtract.atmosphere", { value: scene.atmosphere })}</div>}
             {scene.description && (
               <div className="line-clamp-2">{scene.description}</div>
             )}
@@ -78,7 +79,7 @@ export function SceneExtractCard({ scene, onEdit, onConfirm }: SceneExtractCardP
           {/* 匹配置信度 */}
           {scene.matchConfidence !== undefined && (
             <div className="text-[10px] text-muted-foreground mt-1.5">
-              匹配置信度：{Math.round(scene.matchConfidence * 100)}%
+              {t("novel.sceneExtract.matchConfidence", { percent: Math.round(scene.matchConfidence * 100) })}
             </div>
           )}
 
@@ -89,19 +90,19 @@ export function SceneExtractCard({ scene, onEdit, onConfirm }: SceneExtractCardP
                 type="button"
                 onClick={() => onEdit(scene)}
                 className="btn btn-ghost text-[11px] px-2 py-1 flex items-center gap-1"
-                aria-label="编辑场景"
+                aria-label={t("novel.sceneExtract.editAriaLabel")}
               >
                 <Edit size={10} />
-                编辑
+                {t("novel.sceneExtract.edit")}
               </button>
               <button
                 type="button"
                 onClick={() => onConfirm(scene.tempId)}
                 className="btn btn-ghost text-[11px] px-2 py-1 flex items-center gap-1 text-[var(--primary)]"
-                aria-label="确认场景"
+                aria-label={t("novel.sceneExtract.confirmAriaLabel")}
               >
                 <Check size={10} />
-                确认
+                {t("novel.sceneExtract.confirm")}
               </button>
             </div>
           )}

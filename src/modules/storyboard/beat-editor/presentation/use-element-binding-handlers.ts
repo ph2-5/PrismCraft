@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
+import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants/messages";
 import type {
   StoryElement,
   ReferenceImageQuality,
@@ -112,7 +114,14 @@ export function useElementBindingHandlers({
     onUpdateBeat(addSceneTransitionAction(beat, targetSceneId));
   };
 
-  const handleRemoveSceneTransition = (targetSceneId: string) => {
+  const handleRemoveSceneTransition = async (targetSceneId: string) => {
+    // P1-6: 不可逆操作二次确认（场景过渡元数据将丢失）
+    const ok = await confirm({
+      title: t("element.removeTransitionConfirmTitle"),
+      description: t("element.removeTransitionConfirmDesc"),
+      variant: "warning",
+    });
+    if (!ok) return;
     onUpdateBeat(removeSceneTransitionAction(beat, targetSceneId));
   };
 
@@ -129,7 +138,14 @@ export function useElementBindingHandlers({
     setShowAddMenu(false);
   };
 
-  const handleRemoveElement = (elementId: string) => {
+  const handleRemoveElement = async (elementId: string) => {
+    // P1-6: 不可逆操作二次确认（元素绑定信息将丢失：角色定位、动作、情绪、描述、参考图）
+    const ok = await confirm({
+      title: t("element.removeConfirmTitle"),
+      description: t("element.removeConfirmDesc"),
+      variant: "warning",
+    });
+    if (!ok) return;
     onUpdateBeat(removeElementAction(beat, elementId));
   };
 

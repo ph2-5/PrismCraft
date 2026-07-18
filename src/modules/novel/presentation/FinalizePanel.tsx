@@ -10,6 +10,7 @@
 
 import { useMemo } from "react";
 import { FileText, Users, MapPin, Film, Sparkles, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import { t } from "@/shared/constants";
 import type { PipelineState } from "../domain/types";
 
 export interface FinalizeSummary {
@@ -49,11 +50,11 @@ export function FinalizePanel({ state, onImport, isImporting }: FinalizePanelPro
   const summary = useMemo(() => computeSummary(state), [state]);
 
   const items = [
-    { icon: FileText, label: "段落", value: summary.segmentCount, color: "text-foreground" },
-    { icon: Users, label: "角色", value: summary.characterCount, color: "text-foreground" },
-    { icon: MapPin, label: "场景", value: summary.sceneCount, color: "text-foreground" },
-    { icon: Film, label: "分镜", value: summary.shotCount, color: "text-foreground" },
-    { icon: Sparkles, label: "提示词", value: summary.promptCount, color: "text-foreground" },
+    { icon: FileText, label: t("novel.finalize.segmentLabel"), value: summary.segmentCount, color: "text-foreground" },
+    { icon: Users, label: t("novel.finalize.characterLabel"), value: summary.characterCount, color: "text-foreground" },
+    { icon: MapPin, label: t("novel.finalize.sceneLabel"), value: summary.sceneCount, color: "text-foreground" },
+    { icon: Film, label: t("novel.finalize.shotLabel"), value: summary.shotCount, color: "text-foreground" },
+    { icon: Sparkles, label: t("novel.finalize.promptLabel"), value: summary.promptCount, color: "text-foreground" },
   ];
 
   return (
@@ -69,12 +70,12 @@ export function FinalizePanel({ state, onImport, isImporting }: FinalizePanelPro
 
       {/* 标题 */}
       <h2 className="text-base font-bold mb-1">
-        {isImporting ? "正在导入..." : "管道完成 — 确认导入"}
+        {isImporting ? t("novel.finalize.importingTitle") : t("novel.finalize.completeTitle")}
       </h2>
       <p className="text-[11px] text-muted-foreground mb-5 text-center">
         {isImporting
-          ? "正在将管道产出导入故事板，请稍候"
-          : "以下是将要导入到故事板的内容汇总"}
+          ? t("novel.finalize.importingDesc")
+          : t("novel.finalize.summaryDesc")}
       </p>
 
       {/* 汇总卡片 */}
@@ -94,9 +95,12 @@ export function FinalizePanel({ state, onImport, isImporting }: FinalizePanelPro
         {/* 预计总时长 */}
         <div className="mt-3 pt-3 border-t border-border flex items-center justify-center gap-1.5 text-[11px]">
           <Clock size={11} className="text-muted-foreground" />
-          <span className="text-muted-foreground">预计总时长：</span>
+          <span className="text-muted-foreground">{t("novel.finalize.estimatedTotalDuration")}</span>
           <span className="font-bold text-foreground">
-            {Math.floor(summary.estimatedTotalDuration / 60)}分{Math.round(summary.estimatedTotalDuration % 60)}秒
+            {t("novel.finalize.durationFormat", {
+              minutes: Math.floor(summary.estimatedTotalDuration / 60),
+              seconds: Math.round(summary.estimatedTotalDuration % 60),
+            })}
           </span>
         </div>
       </div>
@@ -104,7 +108,10 @@ export function FinalizePanel({ state, onImport, isImporting }: FinalizePanelPro
       {/* 项目信息 */}
       {state.config.projectName && (
         <div className="text-[11px] text-muted-foreground mb-4">
-          项目：{state.config.projectName} · 风格：{state.config.style || "默认"}
+          {t("novel.finalize.projectInfo", {
+            project: state.config.projectName,
+            style: state.config.style || t("novel.finalize.defaultStyle"),
+          })}
         </div>
       )}
 
@@ -114,10 +121,10 @@ export function FinalizePanel({ state, onImport, isImporting }: FinalizePanelPro
           type="button"
           onClick={onImport}
           className="btn btn-primary text-[13px] px-6 py-2 flex items-center gap-2"
-          aria-label="导入到故事板"
+          aria-label={t("novel.finalize.importToStoryboard")}
         >
           <CheckCircle2 size={14} />
-          导入到故事板
+          {t("novel.finalize.importToStoryboard")}
         </button>
       )}
     </div>

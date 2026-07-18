@@ -27,6 +27,7 @@ import {
 } from "@/shared-logic/prompt";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { createAsset } from "@/modules/asset";
+import { t } from "@/shared/constants/messages";
 import type {
   CompositorInput,
   CompositorResult,
@@ -99,6 +100,30 @@ export interface ComposeOptions {
 }
 
 /**
+ * 将一个不支持 AbortSignal 的 Promise 包装为可取消的。
+ * 注意：底层请求不会被真正中止（imageProvider.generateImage 未暴露 signal 参数），
+ * 但调用方会立即收到 rejection，UI 可以快速响应取消操作。
+ */
+function withAbortSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(new Error(t("compositor.errorCancelled")));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new Error(t("compositor.errorCancelled")));
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (val) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(val);
+      },
+      (err) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(err);
+      },
+    );
+  });
+}
+
+/**
  * 执行一次合成：拼装 prompt → 调用图像模型 → 持久化结果
  *
  * @throws 当角色未找到、图像生成失败或持久化失败时抛出
@@ -112,9 +137,9 @@ export async function composeImage(
   // 1. 加载角色（必填）
   const character = await container.characterStorage.getCharacterById(input.characterId);
   if (!character) {
-    throw new Error(`[Compositor] 角色不存在: ${input.characterId}`);
+    throw new Error(t("compositor.errorCharacterNotFound", { id: input.characterId }));
   }
-  if (signal?.aborted) throw new Error("[Compositor] 已取消");
+  if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
   // Task 2A.10: 加载角色变体（可选）
   let variant: CharacterVariant | null = null;
@@ -127,7 +152,7 @@ export async function composeImage(
       variant = null;
     }
   }
-  if (signal?.aborted) throw new Error("[Compositor] 已取消");
+  if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
   // 2. 加载场景（可选）
   let scene: Scene | null = null;
@@ -137,7 +162,7 @@ export async function composeImage(
       errorLogger.warn(`[Compositor] 场景不存在: ${input.sceneId}，将忽略场景`);
     }
   }
-  if (signal?.aborted) throw new Error("[Compositor] 已取消");
+  if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
   // 3. 加载道具列表（可选）
   const props: Prop[] = [];
@@ -151,7 +176,7 @@ export async function composeImage(
       }
     }
   }
-  if (signal?.aborted) throw new Error("[Compositor] 已取消");
+  if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
   // 4. 拼装 prompt（Task 2A.10: 如果有变体，使用变体的 promptFragment + 参考图覆盖角色基础设定）
   const prompt = generateCompositorPrompt({
@@ -161,24 +186,29 @@ export async function composeImage(
     extraPrompt: input.extraPrompt,
   });
 
-  // 5. 调用图像生成
-  const result = await container.imageProvider.generateImage(prompt, "compositor", {
-    providerId: input.provider,
-    modelId: input.modelId,
-    purpose: "compositor",
-  });
+  // 5. 调用图像生成（P1-8: 通过 withAbortSignal 包装实现可取消）
+  const result = await withAbortSignal(
+    container.imageProvider.generateImage(prompt, "compositor", {
+      providerId: input.provider,
+      modelId: input.modelId,
+      purpose: "compositor",
+    }),
+    signal,
+  );
 
-  if (signal?.aborted) throw new Error("[Compositor] 已取消");
+  if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
   if (!result.success) {
     throw new Error(
-      `[Compositor] 图像生成失败: ${result.error || result.message || "未知错误"}`,
+      t("compositor.errorImageGenFailed", {
+        error: result.error || result.message || "unknown",
+      }),
     );
   }
 
   const imageUrl = result.data.imageUrl || "";
   if (!imageUrl) {
-    throw new Error("[Compositor] 图像生成返回空 URL");
+    throw new Error(t("compositor.errorEmptyImageUrl"));
   }
 
   // 6. 持久化到 generation_assets（type=compositor_result, sourceType=composited）
@@ -231,7 +261,7 @@ export async function buildCompositorPrompt(
 ): Promise<string> {
   const character = await container.characterStorage.getCharacterById(input.characterId);
   if (!character) {
-    throw new Error(`[Compositor] 角色不存在: ${input.characterId}`);
+    throw new Error(t("compositor.errorCharacterNotFound", { id: input.characterId }));
   }
 
   let scene: Scene | null = null;

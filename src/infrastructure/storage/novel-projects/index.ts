@@ -179,20 +179,26 @@ export const novelProjectStorage = {
     await safeRun("DELETE FROM novel_projects WHERE id = ?", [id]);
   },
 
-  /** 清理超过 maxAgeMs 的已完成/已删除项目 */
+  /**
+   * 清理超过 maxAgeMs 的已完成/已删除项目。
+   *
+   * P1-10 修复：原实现先 SELECT 再 DELETE，两步之间存在竞态——
+   * 其他事务可能在 SELECT 之后将某 id 的 updated_at 更新为当前时间（不再过期），
+   * 但本操作仍会按旧 id 列表删除它。改为单条 DELETE 带完整 WHERE 条件，
+   * 让 SQLite 在同一条语句内原子地完成"过期判断 + 删除"。
+   *
+   * 返回值：受影响行数（通过 changes() 获取），与原返回语义一致。
+   */
   async cleanExpiredProjects(maxAgeMs: number = 30 * 24 * 60 * 60 * 1000): Promise<number> {
     const cutoff = Math.floor((Date.now() - maxAgeMs) / 1000);
-    const expired = await safeQuery<{ id: string }>(
-      "SELECT id FROM novel_projects WHERE (is_deleted = 1 OR story_id IS NOT NULL) AND updated_at < ?",
+    // 单条原子 DELETE：WHERE 条件同时检查过期状态和时间戳，避免 SELECT-DELETE 竞态
+    const result = await safeRun(
+      `DELETE FROM novel_projects 
+       WHERE (is_deleted = 1 OR story_id IS NOT NULL) 
+         AND updated_at < ?`,
       [String(cutoff)],
     );
-    if (expired.length === 0) return 0;
-    const ids = expired.map((r) => r.id);
-    const placeholders = ids.map(() => "?").join(",");
-    await safeRun(
-      `DELETE FROM novel_projects WHERE id IN (${placeholders})`,
-      ids,
-    );
-    return expired.length;
+    // safeRun 返回 { changes: number }（受影响行数），即实际删除的项目数
+    return result.changes ?? 0;
   },
 };

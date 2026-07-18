@@ -97,7 +97,15 @@ export const matchEntitiesTool: ToolImpl = {
       try {
         const parsed = JSON.parse(charactersJson);
         if (Array.isArray(parsed)) {
-          inputCharacters = parsed as ExtractedCharacter[];
+          // P1-11 修复：schema 校验——仅保留含有 name 字符串字段的对象
+          // 防止 AI 返回 [{ foo: "bar" }] 等无效结构导致 findBestMatch 中 nameSimilarity(undefined, ...) 误判
+          inputCharacters = parsed.filter(
+            (item): item is ExtractedCharacter => {
+              if (item === null || typeof item !== "object") return false;
+              const name = (item as { name?: unknown }).name;
+              return typeof name === "string" && name.length > 0;
+            },
+          );
         }
       } catch {
         return { success: false, error: "charactersJson 解析失败" };
@@ -107,7 +115,14 @@ export const matchEntitiesTool: ToolImpl = {
       try {
         const parsed = JSON.parse(scenesJson);
         if (Array.isArray(parsed)) {
-          inputScenes = parsed as ExtractedScene[];
+          // P1-11 修复：同上，校验 name 字段
+          inputScenes = parsed.filter(
+            (item): item is ExtractedScene => {
+              if (item === null || typeof item !== "object") return false;
+              const name = (item as { name?: unknown }).name;
+              return typeof name === "string" && name.length > 0;
+            },
+          );
         }
       } catch {
         return { success: false, error: "scenesJson 解析失败" };

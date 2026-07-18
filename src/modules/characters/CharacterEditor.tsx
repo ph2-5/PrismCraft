@@ -1,26 +1,23 @@
-/* eslint-disable max-lines -- 组件已合理拆分至 AiRequestPreview.tsx，剩余子组件均为本文件专用 */
+ 
 import {
   personalitySuggestions,
   styleSuggestions,
   genderSuggestions,
   heightSuggestions,
   buildSuggestions,
-  // Task 2A.10: 角色变体容器
+  // Task 2A.10: 角色变体容器（替代原 OutfitList）
   VariantListContainer,
 } from "@/modules/character";
 import { resolveImageUrl } from "@/shared/utils/image-url";
 import { SaveStatusIndicator, type SaveStatus } from "@/shared/presentation/SaveStatusIndicator";
-import type { Character, CharacterOutfit, ModelSelection } from "@/domain/schemas";
+import type { Character, ModelSelection } from "@/domain/schemas";
 import {
-  Plus,
   X,
-  Wand2,
-  Loader2,
-  Shirt,
   Save,
   Trash2,
   Upload,
   User,
+  Loader2,
 } from "lucide-react";
 import { t } from "@/shared/constants/messages";
 import { useState, useId } from "react";
@@ -51,92 +48,12 @@ interface CharacterEditorProps {
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleAnalyzeFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setShowAssetSelector: (v: boolean) => void;
-  onAddOutfit: () => void;
-  onEditOutfit: (outfit: CharacterOutfit) => void;
-  onDeleteOutfit: (id: string) => void;
-  onSetDefaultOutfit: (id: string) => void;
-  onGenerateOutfitImage: (outfit: CharacterOutfit) => void;
   referencedBeats: { id: string; title: string; status?: string }[];
   isDirty: boolean;
   saveStatus: SaveStatus;
   saveError: string | null | undefined;
   handleSave: () => void;
   handleDelete: () => void;
-}
-
-interface OutfitListProps {
-  outfits: CharacterOutfit[];
-  isGenerating: boolean;
-  onAddOutfit: () => void;
-  onEditOutfit: (outfit: CharacterOutfit) => void;
-  onDeleteOutfit: (id: string) => void;
-  onSetDefaultOutfit: (id: string) => void;
-  onGenerateOutfitImage: (outfit: CharacterOutfit) => void;
-}
-
-function OutfitList({
-  outfits, isGenerating, onAddOutfit, onEditOutfit, onDeleteOutfit, onSetDefaultOutfit, onGenerateOutfitImage,
-}: OutfitListProps) {
-  return (
-    <div className="card">
-      <div className="flex justify-between items-center mb-2">
-        <div className="section-label">{t("character.outfitBranch")}</div>
-        <button className="btn btn-outline btn-xs gap-1" onClick={onAddOutfit}>
-          <Plus className="w-3 h-3" />
-          {t("character.addOutfit")}
-        </button>
-      </div>
-      {outfits && outfits.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          {outfits.map((outfit) => (
-            <div key={outfit.id} className="element-card !p-2">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-medium text-[13px]">{outfit.name}</span>
-                    {outfit.isDefault && <span className="badge badge-success">{t("character.defaultOutfit")}</span>}
-                  </div>
-                  {outfit.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{outfit.description}</p>
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  <button className="btn btn-ghost btn-xs gap-1" onClick={() => onEditOutfit(outfit)}>
-                    {t("character.edit")}
-                  </button>
-                  <button className="btn btn-ghost btn-xs gap-1" onClick={() => onDeleteOutfit(outfit.id)} aria-label={t("character.deleteOutfitLabel")}>
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-              {outfit.imageUrl && (
-                <div className="w-20 h-20 rounded-md overflow-hidden mt-1.5 border border-border">
-                  <img src={resolveImageUrl(outfit.imageUrl)} alt={outfit.name} className="w-full h-full object-cover" />
-                </div>
-              )}
-              <div className="flex gap-1.5 mt-1.5">
-                <button className="btn btn-primary btn-xs flex-1 gap-1" onClick={() => onGenerateOutfitImage(outfit)} disabled={isGenerating} aria-live="polite">
-                  {isGenerating ? <Loader2 className="animate-spin w-3 h-3" /> : <Wand2 className="w-3 h-3" />}
-                  {t("character.generateImage")}
-                </button>
-                {!outfit.isDefault && (
-                  <button className="btn btn-outline btn-xs" onClick={() => onSetDefaultOutfit(outfit.id)}>
-                    {t("character.setDefault")}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center p-6 text-muted-foreground">
-          <Shirt className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p className="text-[13px]">{t("character.noOutfits")}</p>
-          <p className="text-xs">{t("character.noOutfitsHint")}</p>
-        </div>
-      )}
-    </div>
-  );
 }
 
 function EquipmentCard() {
@@ -490,11 +407,6 @@ export function CharacterEditor({
   handleFileUpload,
   handleAnalyzeFileUpload,
   setShowAssetSelector,
-  onAddOutfit,
-  onEditOutfit,
-  onDeleteOutfit,
-  onSetDefaultOutfit,
-  onGenerateOutfitImage,
   referencedBeats,
   isDirty,
   saveStatus,
@@ -550,18 +462,7 @@ export function CharacterEditor({
       {/* 装备与道具 card (新功能，P2A 占位) */}
       <EquipmentCard />
 
-      {/* 造型变体 card */}
-      <OutfitList
-        outfits={currentCharacter.outfits || []}
-        isGenerating={isGenerating}
-        onAddOutfit={onAddOutfit}
-        onEditOutfit={onEditOutfit}
-        onDeleteOutfit={onDeleteOutfit}
-        onSetDefaultOutfit={onSetDefaultOutfit}
-        onGenerateOutfitImage={onGenerateOutfitImage}
-      />
-
-      {/* Task 2A.10: 角色变体 card（新系统，与造型变体并存，向后兼容） */}
+      {/* Task 2A.10: 角色变体 card（替代原 OutfitList，作为唯一的造型变体系统） */}
       {currentCharacter.id && (
         <VariantListContainer characterId={currentCharacter.id} />
       )}

@@ -23,17 +23,17 @@ export interface NovelProjectListProps {
 }
 
 /** 用户可见的阶段中文标签（合并 structure_analysis/pacing_planning 到内容导入） */
-const STAGE_LABELS: Partial<Record<PipelineStage, string>> = {
-  project_init: "项目初始化",
-  content_import: "内容导入",
-  structure_analysis: "结构分析",
-  pacing_planning: "节奏规划",
-  character_manage: "角色管理",
-  scene_manage: "场景管理",
-  review: "审阅",
-  storyboard: "分镜",
-  generation: "生成",
-  done: "已完成",
+const STAGE_LABEL_KEY: Partial<Record<PipelineStage, string>> = {
+  project_init: "novel.stages.project_init",
+  content_import: "novel.stages.content_import",
+  structure_analysis: "novel.stages.structure_analysis",
+  pacing_planning: "novel.stages.pacing_planning",
+  character_manage: "novel.stages.character_manage",
+  scene_manage: "novel.stages.scene_manage",
+  review: "novel.projectList.stageReview",
+  storyboard: "novel.projectList.stageStoryboard",
+  generation: "novel.stages.generation",
+  done: "novel.projectList.stageDone",
 };
 
 function formatTime(ts: number): string {
@@ -41,13 +41,17 @@ function formatTime(ts: number): string {
   const now = Date.now();
   const diff = now - ts;
   // 1 分钟内
-  if (diff < 60_000) return "刚刚";
+  if (diff < 60_000) return t("novel.projectList.justNow");
   // 1 小时内
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
+  if (diff < 3_600_000) return t("novel.projectList.minutesAgo", { count: Math.floor(diff / 60_000) });
   // 24 小时内
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`;
+  if (diff < 86_400_000) return t("novel.projectList.hoursAgo", { count: Math.floor(diff / 3_600_000) });
   // 超过 24 小时显示日期
-  return `${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  return t("novel.projectList.dateFormat", {
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    time: `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`,
+  });
 }
 
 export function NovelProjectList({
@@ -90,7 +94,7 @@ export function NovelProjectList({
           <button
             type="button"
             onClick={onDismiss}
-            aria-label="关闭"
+            aria-label={t("novel.projectList.close")}
             className="text-muted-foreground hover:text-foreground transition-colors p-1 -m-1 rounded"
           >
             <X size={15} />
@@ -115,7 +119,7 @@ export function NovelProjectList({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-bold truncate">
-                      {project.title || "未命名项目"}
+                      {project.title || t("novel.projectList.untitledProject")}
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-0.5">
@@ -127,16 +131,16 @@ export function NovelProjectList({
                       <span className="text-border">·</span>
                       <span>
                         {t("novel.project.stage", {
-                          stage:
-                            STAGE_LABELS[project.state.stage] ??
-                            project.state.stage,
+                          stage: STAGE_LABEL_KEY[project.state.stage]
+                            ? t(STAGE_LABEL_KEY[project.state.stage] as string)
+                            : project.state.stage,
                         })}
                       </span>
                       <span className="text-border">·</span>
                       <span>
-                        {project.state.segments.length} 段 ·{" "}
-                        {project.state.characters.length} 角色 ·{" "}
-                        {project.state.scenes.length} 场景
+                        {t("novel.projectList.segmentCount", { count: project.state.segments.length })} ·{" "}
+                        {t("novel.projectList.characterCount", { count: project.state.characters.length })} ·{" "}
+                        {t("novel.projectList.sceneCount", { count: project.state.scenes.length })}
                       </span>
                     </div>
                   </div>

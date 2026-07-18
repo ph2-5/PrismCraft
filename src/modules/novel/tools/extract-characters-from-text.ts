@@ -8,6 +8,7 @@
 
 import type { ToolImpl } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
+import { errorLogger } from "@/shared/error-logger";
 import type { ExtractedCharacter } from "../domain/types";
 import type { CharacterAppearance } from "@/domain/schemas/character";
 import { generateJsonArrayWithAI, asString, asStringArray } from "./helpers";
@@ -68,8 +69,9 @@ export const extractCharactersFromTextTool: ToolImpl = {
         if (Array.isArray(parsed)) {
           existingNames = parsed.filter((v): v is string => typeof v === "string");
         }
-      } catch {
-        // 解析失败时忽略，按无去重处理
+      } catch (err) {
+        // P1-3: 解析失败时记录日志，按无去重处理继续
+        errorLogger.warn("[extract-characters] existingNamesJson 解析失败，按无去重处理", err);
       }
     }
 

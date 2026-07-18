@@ -52,7 +52,7 @@ export function SegmentCard({ segment, isSelected, onToggle }: SegmentCardProps)
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-[13px] font-bold truncate">{segment.title || `段落 ${segment.id.slice(0, 6)}`}</div>
+            <div className="text-[13px] font-bold truncate">{segment.title || t("novel.segments.titleFallback", { id: segment.id.slice(0, 6) })}</div>
             <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
               <Clock size={10} />
               {t("novel.segments.duration", { n: Math.round(segment.estimatedDuration) })}

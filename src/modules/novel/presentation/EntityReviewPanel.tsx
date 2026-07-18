@@ -67,24 +67,24 @@ export function EntityReviewPanel({
           <div className="flex items-center gap-1">
             <Users size={11} className="text-muted-foreground" />
             <span>
-              角色 {stats.charConfirmed}/{stats.charTotal}
+              {t("novel.entityReview.characterStats", { confirmed: stats.charConfirmed, total: stats.charTotal })}
             </span>
             {stats.charConflict > 0 && (
               <span className="text-destructive flex items-center gap-0.5">
                 <AlertTriangle size={10} />
-                {stats.charConflict} 冲突
+                {t("novel.entityReview.conflict", { count: stats.charConflict })}
               </span>
             )}
           </div>
           <div className="flex items-center gap-1">
             <MapPin size={11} className="text-muted-foreground" />
             <span>
-              场景 {stats.sceneConfirmed}/{stats.sceneTotal}
+              {t("novel.entityReview.sceneStats", { confirmed: stats.sceneConfirmed, total: stats.sceneTotal })}
             </span>
             {stats.sceneConflict > 0 && (
               <span className="text-destructive flex items-center gap-0.5">
                 <AlertTriangle size={10} />
-                {stats.sceneConflict} 冲突
+                {t("novel.entityReview.conflict", { count: stats.sceneConflict })}
               </span>
             )}
           </div>
@@ -92,7 +92,7 @@ export function EntityReviewPanel({
         {stats.allConfirmed && (
           <div className="flex items-center gap-1 text-[11px] text-[var(--primary)]">
             <CheckCircle2 size={12} />
-            全部已确认
+            {t("novel.entityReview.allConfirmed")}
           </div>
         )}
       </div>
@@ -108,7 +108,7 @@ export function EntityReviewPanel({
           <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1">
             {characters.length === 0 ? (
               <div className="text-[11px] text-muted-foreground text-center py-8">
-                暂无提取的角色
+                {t("novel.entityReview.emptyCharacters")}
               </div>
             ) : (
               characters.map((c) => (
@@ -133,7 +133,7 @@ export function EntityReviewPanel({
           <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1">
             {scenes.length === 0 ? (
               <div className="text-[11px] text-muted-foreground text-center py-8">
-                暂无提取的场景
+                {t("novel.entityReview.emptyScenes")}
               </div>
             ) : (
               scenes.map((s) => (

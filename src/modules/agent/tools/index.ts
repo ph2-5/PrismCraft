@@ -37,6 +37,8 @@ import { generationTools, imageEditTools } from "@/modules/agent-tools-generatio
 import { assetTools, assetCrudTools } from "@/modules/agent-tools-asset";
 // 阶段3-2：story 工具集已拆分至独立模块（含 story-tools + planning + generation + suggestions）
 import { storyTools } from "@/modules/agent-tools-story";
+// Phase 2A：Novel Agent 工具集（5 个）
+import { novelTools } from "@/modules/novel";
 import { specialistRegistry } from "@/modules/agent-specialist";
 
 let registered = false;
@@ -71,6 +73,7 @@ export function registerAllTools(): void {
     ...projectIoTools,
     ...fileManagementTools,
     ...specialistTools,
+    ...novelTools,
   ]);
   registered = true;
 }

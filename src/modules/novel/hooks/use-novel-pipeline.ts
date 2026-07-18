@@ -24,6 +24,9 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { container } from "@/infrastructure/di";
+import { errorLogger } from "@/shared/error-logger";
+import { confirm } from "@/shared/utils/confirm";
+import { t } from "@/shared/constants/messages";
 import type {
   PipelineState,
   PipelineConfig,
@@ -42,6 +45,19 @@ import {
   canTransition,
   getAutoGates,
 } from "../import/services/pipeline-machine";
+// Task 2A.6+ 接入 5 个 Novel 工具
+import {
+  segmentNovelTextTool,
+  extractCharactersFromTextTool,
+  extractScenesFromTextTool,
+  matchEntitiesTool,
+  breakdownTextToShotsTool,
+} from "../tools";
+import type { ToolContext } from "@/domain/types/agent-tools";
+import type { StoryBeat } from "@/domain/schemas";
+
+/** Novel 工具调用时使用的最小 ToolContext（无取消信号、无进度回调） */
+const NOVEL_TOOL_CTX: ToolContext = { sessionId: "novel-pipeline" };
 
 /** 默认 PipelineConfig */
 function makeDefaultConfig(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
@@ -118,19 +134,19 @@ export interface UseNovelPipelineResult {
   /** 上次自动保存时间戳（用于 UI 显示"已保存"状态） */
   lastSavedAt: number | null;
   // Handlers
-  handleImport: (text: string) => void;
+  handleImport: (text: string) => Promise<void>;
   handleToggle: (id: string) => void;
   handleSelectAll: () => void;
-  handleNext: () => void;
+  handleNext: () => Promise<void>;
   handleConfirmCharacter: (id: string) => void;
   handleConfirmScene: (id: string) => void;
   handleEditCharacter: (c: ExtractedCharacter) => void;
   handleEditScene: (s: ExtractedScene) => void;
-  handleMatchCharacter: (id: string, existingId: string) => void;
+  handleMatchCharacter: (id: string, existingId: string) => Promise<void>;
   handleEditShot: (shot: ShotBreakdown) => void;
   handleReorderShots: (from: number, to: number) => void;
   handleGeneratePrompts: () => void;
-  handleFinalizeImport: () => void;
+  handleFinalizeImport: () => Promise<void>;
   handleAutoRun: () => void;
   /** 设置当前段落索引（SegmentNavColumn 使用） */
   setCurrentSegmentIndex: (index: number) => void;
@@ -141,6 +157,134 @@ export interface UseNovelPipelineResult {
   dismissRecovery: () => void;
   /** 删除指定未完成项目 */
   deletePendingProject: (id: string) => Promise<void>;
+}
+
+/**
+ * P1-2 拆分：content_import → character_manage 阶段的实体提取与匹配逻辑。
+ *
+ * 从 handleNext 中提取为独立函数，降低 handleNext 复杂度并便于单元测试。
+ * 调用 extractCharactersFromTextTool + extractScenesFromTextTool 并行提取，
+ * 再调用 matchEntitiesTool 做三级匹配。任一工具失败时降级使用未匹配的提取结果。
+ *
+ * @param text 原始小说文本
+ * @param isMounted 检查组件是否仍挂载（false 时提前返回 null）
+ * @returns 提取并匹配后的角色/场景，或 null（组件已卸载）
+ */
+async function extractAndMatchEntities(
+  text: string,
+  isMounted: () => boolean,
+): Promise<{ characters: ExtractedCharacter[]; scenes: ExtractedScene[] } | null> {
+  // 并行调用两个提取工具（任一失败不影响另一个）
+  const [charResult, sceneResult] = await Promise.allSettled([
+    extractCharactersFromTextTool.execute({ text }, NOVEL_TOOL_CTX),
+    extractScenesFromTextTool.execute({ text }, NOVEL_TOOL_CTX),
+  ]);
+
+  if (!isMounted()) return null;
+
+  const extractedCharacters: ExtractedCharacter[] = [];
+  const extractedScenes: ExtractedScene[] = [];
+
+  if (
+    charResult.status === "fulfilled" &&
+    charResult.value.success &&
+    charResult.value.data
+  ) {
+    const data = charResult.value.data as { characters: ExtractedCharacter[] };
+    if (Array.isArray(data.characters)) {
+      extractedCharacters.push(...data.characters);
+    }
+  }
+  if (
+    sceneResult.status === "fulfilled" &&
+    sceneResult.value.success &&
+    sceneResult.value.data
+  ) {
+    const data = sceneResult.value.data as { scenes: ExtractedScene[] };
+    if (Array.isArray(data.scenes)) {
+      extractedScenes.push(...data.scenes);
+    }
+  }
+
+  // 至少一个提取有结果时，调用 matchEntitiesTool 做匹配
+  let matchedCharacters = extractedCharacters;
+  let matchedScenes = extractedScenes;
+  if (extractedCharacters.length > 0 || extractedScenes.length > 0) {
+    try {
+      const matchResult = await matchEntitiesTool.execute(
+        {
+          charactersJson: JSON.stringify(extractedCharacters),
+          scenesJson: JSON.stringify(extractedScenes),
+        },
+        NOVEL_TOOL_CTX,
+      );
+      if (!isMounted()) return null;
+      if (matchResult.success && matchResult.data) {
+        const data = matchResult.data as {
+          characters: ExtractedCharacter[];
+          scenes: ExtractedScene[];
+        };
+        if (Array.isArray(data.characters)) {
+          matchedCharacters = data.characters;
+        }
+        if (Array.isArray(data.scenes)) {
+          matchedScenes = data.scenes;
+        }
+      }
+    } catch (err) {
+      // P1-3: 匹配失败时保留未匹配的提取结果（用户可手动匹配），记录日志
+      errorLogger.warn("[useNovelPipeline] matchEntities 调用失败，保留未匹配的提取结果", err);
+    }
+  }
+
+  return { characters: matchedCharacters, scenes: matchedScenes };
+}
+
+/**
+ * P1-2 拆分：review → storyboard 阶段的分镜拆解逻辑。
+ *
+ * 从 handleNext 中提取为独立函数。对每个选中段落调用 breakdownTextToShotsTool，
+ * 单个段落失败不阻塞后续。最终按 sequence 排序并重新分配连续序号。
+ *
+ * @param segments 选中的段落列表
+ * @param charactersJson 角色列表的 JSON 字符串（供拆解工具参考）
+ * @param isMounted 检查组件是否仍挂载（false 时提前返回 null）
+ * @returns 排序后的分镜列表，或 null（组件已卸载）
+ */
+async function breakdownShotsForSegments(
+  segments: NovelSegment[],
+  charactersJson: string,
+  isMounted: () => boolean,
+): Promise<ShotBreakdown[] | null> {
+  const allShots: ShotBreakdown[] = [];
+
+  for (const segment of segments) {
+    try {
+      const result = await breakdownTextToShotsTool.execute(
+        {
+          text: segment.text,
+          charactersJson,
+        },
+        NOVEL_TOOL_CTX,
+      );
+      if (!isMounted()) return null;
+      if (result.success && result.data) {
+        const data = result.data as { shots: ShotBreakdown[] };
+        if (Array.isArray(data.shots)) {
+          allShots.push(...data.shots);
+        }
+      }
+    } catch (err) {
+      // P1-3: 单个段落拆解失败：记录日志，继续处理后续段落
+      errorLogger.warn(`[useNovelPipeline] 段落 ${segment.id ?? ""} 拆解失败，跳过`, err);
+    }
+  }
+
+  if (!isMounted()) return null;
+
+  // 按 sequence 排序，并重新分配序号确保连续
+  allShots.sort((a, b) => a.sequence - b.sequence);
+  return allShots.map((s, i) => ({ ...s, sequence: i + 1 }));
 }
 
 /**
@@ -167,6 +311,20 @@ export function useNovelPipeline({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // hasRecoveredRef：恢复项目时跳过一次自动创建，避免立刻创建新记录覆盖刚恢复的项目
   const hasRecoveredRef = useRef(false);
+  // P1-7 修复：isMountedRef 防止 async handler 在组件卸载后 setState
+  const isMountedRef = useRef(true);
+
+  // P1-7 修复：组件卸载时标记为已卸载，并清理防抖定时器
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, []);
 
   // 根据当前模式计算阶段子集（用于进度条显示）
   const stagesForMode = useMemo(
@@ -176,15 +334,15 @@ export function useNovelPipeline({
 
   // === Handlers ===
 
-  const handleImport = useCallback((text: string) => {
+  const handleImport = useCallback(async (text: string) => {
     setState((prev) => {
       const next = canTransition(prev.stage, "content_import")
         ? transition(prev, "content_import")
         : prev;
       return { ...next, rawText: text };
     });
-    // TODO: Task 2A.6+ 接入 segmentNovelTextTool 实际分段
-    // 当前用简单分段占位（按段落分隔）
+
+    // 先用占位分段填充 UI（即使后续工具调用失败也有降级内容）
     const placeholderSegments: NovelSegment[] = text
       .split(/\n\s*\n/)
       .filter((p) => p.trim().length > 0)
@@ -201,6 +359,34 @@ export function useNovelPipeline({
       }));
     setState((prev) => ({ ...prev, segments: placeholderSegments }));
     setSelectedSegmentIds(placeholderSegments.map((s) => s.id));
+
+    // 接入 segmentNovelTextTool 实际分段（失败时保留上面的占位分段作为降级）
+    setIsProcessing(true);
+    try {
+      const result = await segmentNovelTextTool.execute({ text }, NOVEL_TOOL_CTX);
+      // P1-7 修复：组件卸载后不再 setState
+      if (!isMountedRef.current) return;
+      if (result.success && result.data) {
+        const data = result.data as { segments: NovelSegment[] };
+        if (Array.isArray(data.segments) && data.segments.length > 0) {
+          // 工具返回的 segment.text 为空，需要从原 text 按 startChar/endChar 截取填充
+          // 当 startChar=0 且 endChar=text.length 时直接使用原 text
+          const filledSegments = data.segments.map((seg) => {
+            const startChar = seg.startChar ?? 0;
+            const endChar = seg.endChar ?? text.length;
+            const segText =
+              startChar === 0 && endChar === text.length
+                ? text
+                : text.slice(startChar, endChar);
+            return { ...seg, text: segText };
+          });
+          setState((prev) => ({ ...prev, segments: filledSegments }));
+          setSelectedSegmentIds(filledSegments.map((s) => s.id));
+        }
+      }
+    } finally {
+      if (isMountedRef.current) setIsProcessing(false);
+    }
   }, []);
 
   const handleToggle = useCallback((id: string) => {
@@ -243,21 +429,75 @@ export function useNovelPipeline({
     }
   }, [state, selectedSegmentIds, isProcessing, shots]);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (!canProceed) return;
+
+    // 特殊处理：content_import → character_manage 需要先提取角色和场景
+    if (state.stage === "content_import") {
+      setIsProcessing(true);
+      try {
+        const result = await extractAndMatchEntities(
+          state.rawText,
+          () => isMountedRef.current,
+        );
+        if (!result) return; // 组件已卸载
+
+        // 转换为管道内的 CharacterInPipeline / SceneInPipeline（带空 variants）
+        const newCharacters: CharacterInPipeline[] = result.characters.map((c) => ({
+          ...c,
+          variants: [],
+        }));
+        const newScenes: SceneInPipeline[] = result.scenes.map((s) => ({ ...s, variants: [] }));
+
+        setState((prev) =>
+          canTransition(prev.stage, "character_manage")
+            ? {
+                ...transition(prev, "character_manage"),
+                characters: newCharacters,
+                scenes: newScenes,
+              }
+            : prev,
+        );
+      } finally {
+        if (isMountedRef.current) setIsProcessing(false);
+      }
+      return;
+    }
+
+    // 特殊处理：review → storyboard 需要先调用 breakdownTextToShotsTool 生成分镜
+    if (state.stage === "review") {
+      setIsProcessing(true);
+      try {
+        const selectedSegments = state.segments.filter((s) =>
+          selectedSegmentIds.includes(s.id),
+        );
+        const charactersJson = JSON.stringify(state.characters);
+        const orderedShots = await breakdownShotsForSegments(
+          selectedSegments,
+          charactersJson,
+          () => isMountedRef.current,
+        );
+        if (!orderedShots) return; // 组件已卸载
+
+        setShots(orderedShots);
+
+        setState((prev) =>
+          canTransition(prev.stage, "storyboard")
+            ? transition(prev, "storyboard")
+            : prev,
+        );
+      } finally {
+        if (isMountedRef.current) setIsProcessing(false);
+      }
+      return;
+    }
+
+    // 其他阶段转换：保留原同步逻辑
     setState((prev) => {
       switch (prev.stage) {
         case "project_init":
           return canTransition(prev.stage, "content_import")
             ? transition(prev, "content_import")
-            : prev;
-        case "content_import":
-          return canTransition(prev.stage, "character_manage")
-            ? {
-                ...transition(prev, "character_manage"),
-                characters: prev.characters,
-                scenes: prev.scenes,
-              }
             : prev;
         case "character_manage":
           return canTransition(prev.stage, "scene_manage")
@@ -266,10 +506,6 @@ export function useNovelPipeline({
         case "scene_manage":
           return canTransition(prev.stage, "review")
             ? transition(prev, "review")
-            : prev;
-        case "review":
-          return canTransition(prev.stage, "storyboard")
-            ? transition(prev, "storyboard")
             : prev;
         case "storyboard":
           return canTransition(prev.stage, "generation")
@@ -283,7 +519,7 @@ export function useNovelPipeline({
           return prev;
       }
     });
-  }, [canProceed, state.stage]);
+  }, [canProceed, state.stage, state.rawText, state.segments, state.characters, selectedSegmentIds]);
 
   // === EntityReviewPanel handlers ===
 
@@ -323,9 +559,66 @@ export function useNovelPipeline({
     }));
   }, []);
 
-  const handleMatchCharacter = useCallback((_id: string, _existingId: string) => {
-    // TODO: Task 2A.6+ 接入 matchEntitiesTool 进行手动匹配
-  }, []);
+  const handleMatchCharacter = useCallback(async (id: string, existingId: string) => {
+    // 简化实现：对该角色调用 matchEntitiesTool（传入单个角色的 JSON）
+    // 工具会自动与 DB 中的现有角色做匹配，返回 status/matchedCharacterId/matchConfidence
+    // 用户手动选择的 existingId 优先级最高（覆盖工具返回的 matchedCharacterId）
+    const character = state.characters.find((c) => c.tempId === id);
+    if (!character) return;
+
+    setIsProcessing(true);
+    try {
+      let updatedCharacter: CharacterInPipeline = {
+        ...character,
+        matchedCharacterId: existingId,
+        matchConfidence: 1.0,
+        status: "matched",
+      };
+
+      try {
+        const result = await matchEntitiesTool.execute(
+          { charactersJson: JSON.stringify([character]) },
+          NOVEL_TOOL_CTX,
+        );
+        // P1-7 修复：组件卸载后不再 setState
+        if (!isMountedRef.current) return;
+        if (result.success && result.data) {
+          const data = result.data as { characters: ExtractedCharacter[] };
+          const matchedChar = data.characters?.[0];
+          if (matchedChar) {
+            // 用工具返回的状态/confidence 覆盖，但保留用户手动选择的 existingId
+            updatedCharacter = {
+              ...character,
+              ...matchedChar,
+              // 工具若返回 new（无匹配），仍按用户手动选择标记为 matched
+              status: matchedChar.status === "new" ? "matched" : matchedChar.status,
+              matchedCharacterId: existingId,
+              matchConfidence: matchedChar.matchConfidence ?? 1.0,
+            };
+          }
+        }
+      } catch (err) {
+        // P1-3: 工具调用失败时使用默认值（直接标记为 matched），记录日志
+        errorLogger.warn(`[useNovelPipeline] 角色 ${id} 匹配工具调用失败，使用默认值 matched`, err);
+      }
+
+      // 保留 confirmed 状态和 variants 字段
+      setState((prev) => ({
+        ...prev,
+        characters: prev.characters.map((c) =>
+          c.tempId === id
+            ? {
+                ...updatedCharacter,
+                confirmed: c.confirmed,
+                variants: c.variants,
+              }
+            : c,
+        ),
+      }));
+    } finally {
+      if (isMountedRef.current) setIsProcessing(false);
+    }
+  }, [state.characters]);
 
   // === ShotBreakdownList handlers ===
 
@@ -345,31 +638,129 @@ export function useNovelPipeline({
   }, []);
 
   const handleGeneratePrompts = useCallback(() => {
-    // TODO: Task 2A.6+ 接入 generate_prompt 工具
-    setShots((prev) => prev.map((s) => ({ ...s, status: "final" as const })));
+    // generate_prompt 工具位于 agent-tools-story（不在 novelTools 中），
+    // 这里采用合理的本地实现：基于 shot.description + shot.action + 角色名拼接 prompt 字符串
+    setShots((prev) =>
+      prev.map((shot) => {
+        const charNames = shot.characters.join(", ");
+        const promptText = [
+          shot.description,
+          shot.action ? `动作: ${shot.action}` : "",
+          charNames ? `角色: ${charNames}` : "",
+          shot.shotType ? `景别: ${shot.shotType}` : "",
+          shot.cameraAngle ? `机位: ${shot.cameraAngle}` : "",
+          shot.cameraMovement ? `运镜: ${shot.cameraMovement}` : "",
+        ]
+          .filter(Boolean)
+          .join("; ");
+        return {
+          ...shot,
+          prompt: {
+            en: promptText,
+            zh: promptText,
+          },
+          status: "final" as const,
+        };
+      }),
+    );
   }, []);
 
   // === FinalizePanel handlers ===
 
-  const handleFinalizeImport = useCallback(() => {
+  const handleFinalizeImport = useCallback(async () => {
     setIsImporting(true);
-    // TODO: Task 2A.6+ 接入实际导入逻辑（创建 Story + Beats + 关联角色/场景）
-    window.setTimeout(() => {
-      setIsImporting(false);
+    try {
+      // 动态导入 storyService（避免在 novel 模块顶层依赖 storyboard 模块）
+      // 注：不存在独立的 createBeat 服务 — beats 数组作为 CreateStoryInput 的一部分
+      // 通过 storyService.create 一次性持久化
+      const { storyService } = await import("@/modules/storyboard");
+
+      // P1-7 修复：组件卸载后不再继续处理
+      if (!isMountedRef.current) return;
+
+      // 构建角色 ID 数组：仅匹配到现有 DB 角色的（新角色不会自动创建，留待用户在故事板中处理）
+      const characterIds = state.characters
+        .map((c) => c.matchedCharacterId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+      // 构建场景 ID 数组：仅匹配到现有 DB 场景的
+      const sceneIds = state.scenes
+        .map((s) => s.matchedSceneId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+      // 构建 StoryBeat[]：每个 shot 对应一个 beat
+      // characterIds 通过 shot.characters 名字反查 matchedCharacterId
+      const beats: StoryBeat[] = shots.map((shot, index) => {
+        const beatCharacterIds = shot.characters
+          .map((name) => state.characters.find((c) => c.name === name)?.matchedCharacterId)
+          .filter((id): id is string => typeof id === "string" && id.length > 0);
+        return {
+          id: `beat_${crypto.randomUUID()}`,
+          sequence: index + 1,
+          description: shot.description,
+          duration: shot.estimatedDuration,
+          characterIds: beatCharacterIds,
+          sceneId: shot.sceneId,
+          elementIds: [],
+        } as StoryBeat;
+      });
+
+      const title = state.config.projectName || state.rawText.slice(0, 40) || "未命名项目";
+      const description = state.rawText.slice(0, 500);
+
+      const result = await storyService.create({
+        title,
+        description,
+        characters: characterIds,
+        scenes: sceneIds,
+        beats,
+        elementIds: [],
+      });
+
+      // P1-7 修复：组件卸载后不再 setState
+      if (!isMountedRef.current) return;
+
+      if (!result.ok) {
+        // 创建失败：记录错误，保留当前状态允许用户重试
+        errorLogger.error(
+          {
+            code: "NovelPipelineFinalizeFailed",
+            message: result.error.message,
+          },
+          "useNovelPipeline",
+        );
+        return;
+      }
+
+      // 转换到 done 阶段
       setState((prev) =>
         canTransition(prev.stage, "done") ? transition(prev, "done") : prev,
       );
+
       // Task 2A.7: 导入完成后清理 DB 项目记录（物理删除，因为已转换为正式 Story）
       if (currentProjectId !== null) {
         container.novelProjectStorage
           .hardDeleteProject(currentProjectId)
-          .catch(() => {
-            // 清理失败不阻塞 UI，后续 cleanExpiredProjects 会兜底
+          .catch((err) => {
+            // P1-3: 清理失败不阻塞 UI，后续 cleanExpiredProjects 会兜底，记录日志
+            errorLogger.warn(`[useNovelPipeline] 清理已完成项目 ${currentProjectId} 失败，后续 cleanExpiredProjects 会兜底`, err);
           });
         setCurrentProjectId(null);
       }
-    }, 500);
-  }, [currentProjectId]);
+    } catch (err) {
+      // 异常路径：记录错误，不阻塞 UI（允许用户重试）
+      errorLogger.error(
+        {
+          code: "NovelPipelineFinalizeError",
+          message: err instanceof Error ? err.message : String(err),
+          cause: err,
+        },
+        "useNovelPipeline",
+      );
+    } finally {
+      if (isMountedRef.current) setIsImporting(false);
+    }
+  }, [state.config.projectName, state.rawText, state.characters, state.scenes, shots, currentProjectId]);
 
   // === Task 2A.7 持久化 handlers ===
 
@@ -415,8 +806,10 @@ export function useNovelPipeline({
         setPendingRecoveryProjects(projects);
         setIsLoadingRecovery(false);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
+        // P1-3: 加载未完成项目失败时记录日志，仅标记加载完成
+        errorLogger.warn("[useNovelPipeline] 挂载时加载未完成项目列表失败", err);
         setIsLoadingRecovery(false);
       });
     return () => {
@@ -463,8 +856,9 @@ export function useNovelPipeline({
           });
         }
         setLastSavedAt(Date.now());
-      } catch {
-        // 自动保存失败不阻塞 UI，下次 state 变化时会重试
+      } catch (err) {
+        // P1-3: 自动保存失败不阻塞 UI，下次 state 变化时会重试，记录日志
+        errorLogger.warn("[useNovelPipeline] 自动保存失败，下次 state 变化时会重试", err);
       }
     }, 2000);
 
@@ -489,8 +883,9 @@ export function useNovelPipeline({
       setCurrentProjectId(project.id);
       setPendingRecoveryProjects([]);
       setLastSavedAt(project.updatedAt);
-    } catch {
-      // 恢复失败：保留当前状态，不阻塞 UI
+    } catch (err) {
+      // P1-3: 恢复失败：保留当前状态，不阻塞 UI，记录日志
+      errorLogger.warn(`[useNovelPipeline] 恢复项目 ${id} 失败，保留当前状态`, err);
     }
   }, [recordToProject]);
 
@@ -501,12 +896,20 @@ export function useNovelPipeline({
 
   /** 删除指定未完成项目（从 DB 物理删除） */
   const deletePendingProject = useCallback(async (id: string) => {
+    // P1-6: 不可逆操作二次确认（项目数据将永久丢失）
+    const ok = await confirm({
+      title: t("novel.project.deleteConfirmTitle"),
+      description: t("novel.project.deleteConfirmDesc"),
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       const storage = container.novelProjectStorage;
       await storage.hardDeleteProject(id);
       setPendingRecoveryProjects((prev) => prev.filter((p) => p.id !== id));
-    } catch {
-      // 删除失败：UI 列表保持不变
+    } catch (err) {
+      // P1-3: 删除失败：UI 列表保持不变，记录日志
+      errorLogger.warn(`[useNovelPipeline] 删除未完成项目 ${id} 失败，UI 列表保持不变`, err);
     }
   }, []);
 

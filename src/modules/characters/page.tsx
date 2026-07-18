@@ -3,7 +3,6 @@ import { User } from "lucide-react";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
-import { OutfitDialog } from "@/modules/character";
 import { t } from "@/shared/constants/messages";
 import { CharacterList } from "./CharacterList";
 import { CharacterEditor } from "./CharacterEditor";
@@ -79,11 +78,6 @@ function CharactersPageContent() {
                 handleFileUpload={page.handleFileUpload}
                 handleAnalyzeFileUpload={page.handleAnalyzeFileUpload}
                 setShowAssetSelector={page.setShowAssetSelector}
-                onAddOutfit={page.handleAddOutfitClick}
-                onEditOutfit={page.handleEditOutfit}
-                onDeleteOutfit={page.handleDeleteOutfit}
-                onSetDefaultOutfit={page.handleSetDefaultOutfit}
-                onGenerateOutfitImage={page.handleGenerateOutfitImage}
                 referencedBeats={page.referencedBeats}
                 isDirty={page.isDirty}
                 saveStatus={page.saveStatus}
@@ -109,19 +103,6 @@ function CharactersPageContent() {
           isDeleting={page.isDeleting}
           onConfirm={() => page.characterToDelete && page.performDelete(page.characterToDelete)}
           referenceCheck={page.referenceCheck}
-        />
-
-        <OutfitDialog
-          open={page.showOutfitDialog}
-          onOpenChange={page.setShowOutfitDialog}
-          editingOutfit={page.editingOutfit}
-          outfitForm={page.outfitForm}
-          setOutfitForm={page.setOutfitForm}
-          customAccessory={page.customAccessory}
-          setCustomAccessory={page.setCustomAccessory}
-          onAddOutfit={page.handleAddOutfit}
-          onAddAccessory={page.addAccessory}
-          onRemoveAccessory={page.removeAccessory}
         />
 
         <AssetSelectorDialog

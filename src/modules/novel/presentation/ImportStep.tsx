@@ -41,7 +41,7 @@ export function ImportStep({ onImport }: ImportStepProps) {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      setError(`文件过大（${Math.round(file.size / 1024 / 1024)}MB），最大支持 5MB`);
+      setError(t("novel.import.fileTooLarge", { size: Math.round(file.size / 1024 / 1024) }));
       return;
     }
 
@@ -54,7 +54,7 @@ export function ImportStep({ onImport }: ImportStepProps) {
       }
     };
     reader.onerror = () => {
-      setError("文件读取失败");
+      setError(t("novel.import.fileReadError"));
     };
     reader.readAsText(file, "utf-8");
     // 重置 input 允许重复选择同一文件

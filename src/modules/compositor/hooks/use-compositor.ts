@@ -27,7 +27,7 @@
  * 参考实现：use-keyframe-generator.ts（callback + 状态机模式）
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { composeImage, buildCompositorPrompt, getCompositorErrorMessage } from "../services/compositor-engine";
 import type {
   ComposerLayer,
@@ -37,6 +37,7 @@ import type {
   CompositorPreset,
 } from "../domain/compositor.schema";
 import type { Character, Scene, Prop } from "@/domain/schemas";
+import { t } from "@/shared/constants/messages";
 
 /** 图层 emoji 默认值 */
 const LAYER_EMOJI: Record<ComposerLayerType, string> = {
@@ -82,10 +83,10 @@ export interface UseCompositorResult {
   reset: () => void;
 }
 
-let layerIdCounter = 0;
-function nextLayerId(): string {
-  layerIdCounter += 1;
-  return `composer-layer-${Date.now()}-${layerIdCounter}`;
+// P1-7 修复：layerIdCounter 从模块级移到实例级（useRef），避免多实例共享计数器
+// 模块级仅保留时间戳前缀函数，确保全局唯一性
+function createLayerId(instanceCounter: number): string {
+  return `composer-layer-${Date.now()}-${instanceCounter}`;
 }
 
 export function useCompositor(): UseCompositorResult {
@@ -100,6 +101,23 @@ export function useCompositor(): UseCompositorResult {
   const [resolution, setResolution] = useState<string | undefined>(undefined);
 
   const abortRef = useRef<AbortController | null>(null);
+  const layerIdCounterRef = useRef(0);
+  const isMountedRef = useRef(true);
+
+  // P1-7 修复：组件卸载时取消进行中的生成，并标记已卸载（防止 setState after unmount）
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
+  }, []);
+
+  const nextLayerId = useCallback((): string => {
+    layerIdCounterRef.current += 1;
+    return createLayerId(layerIdCounterRef.current);
+  }, []);
 
   const characterLayer = useMemo(
     () => layers.find((l) => l.type === "character") ?? null,
@@ -150,7 +168,7 @@ export function useCompositor(): UseCompositorResult {
       };
       return [...prev, newLayer];
     });
-  }, []);
+  }, [nextLayerId]);
 
   const addCharacterLayer = useCallback(
     (character: Character) => addLayerInternal(character, "character"),
@@ -187,13 +205,19 @@ export function useCompositor(): UseCompositorResult {
   }, []);
 
   const clearCanvas = useCallback(() => {
+    // P1-7 修复：清空画布时取消进行中的生成，避免结果落地到已清空的画布
+    abortRef.current?.abort();
+    abortRef.current = null;
     setLayers([]);
     setSelectedLayerId(null);
+    setStatus("idle");
+    setError(null);
+    setResult(null);
   }, []);
 
   const buildPrompt = useCallback(async (): Promise<string> => {
     if (!characterLayer) {
-      throw new Error("请先选择角色");
+      throw new Error(t("compositor.errorSelectCharacter"));
     }
     return buildCompositorPrompt({
       characterId: characterLayer.id,
@@ -231,11 +255,13 @@ export function useCompositor(): UseCompositorResult {
         },
         { signal: controller.signal },
       );
-      if (controller.signal.aborted) return;
+      // P1-7 修复：组件卸载后或请求被取消后不再 setState
+      if (controller.signal.aborted || !isMountedRef.current) return;
       setStatus("saving");
       setResult(res);
       setStatus("success");
     } catch (err) {
+      if (!isMountedRef.current) return;
       if (controller.signal.aborted) {
         setStatus("idle");
         return;

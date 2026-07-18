@@ -4,7 +4,6 @@ import {
   Film,
   FolderOpen,
   Plus,
-  Package,
   Layers,
   Image as MediaIcon,
 } from "lucide-react";
@@ -19,6 +18,7 @@ import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
 import { Skeleton } from "@/shared/presentation/Skeleton";
 import { CharacterCard, SceneCard, StoryboardCard, CollectionCard } from "./AssetCards";
+import { PropLibraryPanel } from "./PropLibraryPanel";
 import type { AssetTab, EditingItem } from "./asset-library-shared";
 export type { AssetTab, EditingItem } from "./asset-library-shared";
 export { fetchSecondaryData } from "./asset-library-shared";
@@ -364,7 +364,7 @@ export function AssetCardGrid(props: AssetCardGridProps) {
     );
   }
   if (PROPS_TABS.has(activeTab)) {
-    return <EmptyState icon={Package} title={t("asset.propsEmpty")} description={t("asset.propsEmptyDesc")} />;
+    return <PropLibraryPanel activeTab={activeTab} />;
   }
   if (activeTab === "media") {
     return <EmptyState icon={MediaIcon} title={t("asset.mediaEmpty")} description={t("asset.mediaEmptyDesc")} />;

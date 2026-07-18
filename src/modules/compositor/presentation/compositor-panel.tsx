@@ -57,7 +57,7 @@ function AssetPanel({
 
   return (
     <div
-      // 第 6 轮审计修复：最小宽度从 180px 提升到 200px，避免小屏拥挤
+      // 第 6 轮审计修复：base 断点宽度从 180px 提升到 200px，避免小屏拥挤
       className="w-[200px] lg:w-[240px] xl:w-[260px] shrink-0 border-r border-border flex flex-col overflow-hidden"
     >
       <Tabs
@@ -381,7 +381,7 @@ function ToolsSidebar({
 
   return (
     <div
-      // 第 6 轮审计修复：最小宽度从 200px 提升到 220px，与左栏 AssetPanel 视觉平衡
+      // 第 6 轮审计修复：base 断点宽度从 200px 提升到 220px，与左栏 AssetPanel 视觉平衡
       className="w-[220px] lg:w-[260px] xl:w-[280px] shrink-0 border-l border-border flex flex-col overflow-hidden"
     >
       {/* P 图工具区 */}

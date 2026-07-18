@@ -85,8 +85,9 @@ export function ShotBreakdownList({
             key={shot.id}
             className="flex items-center gap-2"
             // P2-3: 长列表性能优化 — content-visibility 让浏览器跳过视口外卡片的渲染
-            // 第 6 轮审计修复：使用 "auto 160px" 让浏览器记住实际高度，减少滚动跳变
-            style={{ contentVisibility: "auto", containIntrinsicSize: "auto 160px" }}
+            // 第 7 轮审计修复：回退到固定值 "160px"，避免 "auto 160px" 在 Safari 17.4-18.1
+            // 和 Firefox 107-116 上整体声明被丢弃导致回归（这些浏览器不支持 auto 关键字）
+            style={{ contentVisibility: "auto", containIntrinsicSize: "160px" }}
           >
             {/* 拖拽手柄 + 上下移动按钮 */}
             <div className="flex flex-col shrink-0">

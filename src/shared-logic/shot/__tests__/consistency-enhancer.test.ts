@@ -157,7 +157,7 @@ describe("Task 2A.12 — consistency-enhancer", () => {
       expect(candidates[0]!.url).toBe("/img/primary.png");
     });
 
-    it("第 6 轮审计: 候选 URL 保留 hash fragment 用于 cache busting", () => {
+    it("P2-6: 候选 URL 保留 hash fragment 用于 cache busting", () => {
       const input: CharacterAssetInput = {
         characterId: "char-audit6-hash",
         primaryImageUrl: "/img/primary.png#v=2",
@@ -170,7 +170,7 @@ describe("Task 2A.12 — consistency-enhancer", () => {
       expect(candidates[0]!.url).toBe("/img/primary.png#v=2");
     });
 
-    it("第 6 轮审计: 同时含空白和 hash fragment 时 trim 但保留 hash", () => {
+    it("P2-6: 同时含空白和 hash fragment 时 trim 但保留 hash", () => {
       const input: CharacterAssetInput = {
         characterId: "char-audit6-trim-hash",
         primaryImageUrl: "  /img/primary.png#v=3  ",

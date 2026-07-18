@@ -107,12 +107,11 @@ export function extractCharacterReferenceCandidates(
   // P2-6 修复：URL 规范化去重，处理 trim 和 hash fragment 差异
   // 同一张图片可能因 hash fragment（#v=1）或前后空白被视为不同，导致重复参考图
   // 注意：不规范化重复斜杠（//），因为不同服务器对 // 的处理可能不同
+  // 第 7 轮审计修复：normalizeUrlForKey 假定输入已 trim，避免重复 trim
   const normalizeUrlForKey = (url: string): string => {
-    let n = url.trim();
-    // 移除 hash fragment（#...），同一图片的不同 hash 视为相同
-    const hashIdx = n.indexOf("#");
-    if (hashIdx >= 0) n = n.slice(0, hashIdx);
-    return n;
+    // 调用方保证已 trim，这里只移除 hash fragment
+    const hashIdx = url.indexOf("#");
+    return hashIdx >= 0 ? url.slice(0, hashIdx) : url;
   };
 
   const push = (

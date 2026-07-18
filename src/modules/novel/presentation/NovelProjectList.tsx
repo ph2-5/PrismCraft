@@ -72,7 +72,10 @@ export function NovelProjectList({
       open={true}
       onClose={onDismiss}
       ariaLabel={t("novel.project.recoveryTitle")}
-      className="max-w-lg max-h-[80vh] flex flex-col mx-4"
+      // 第 7 轮审计修复：用 max-w-[calc(100vw-2rem)] 替代 mx-4
+      // mx-4 只提供 margin，无法约束 .modal { min-width: 360px }，窄屏（<392px）仍会溢出
+      // max-w 从约束 maxWidth 入手，确保 modal 宽度不超过视口减 2rem
+      className="max-w-lg max-h-[80vh] flex flex-col w-[calc(100vw-2rem)]"
     >
       <div className="card w-full flex-1 min-h-0 flex flex-col !p-0">
         {/* 头部 */}

@@ -75,6 +75,8 @@ import {
   type PacingConfig,
   type PacingResult,
 } from "../pacing";
+// Task 2A.16 接入示例项目数据
+import type { SampleProject } from "../services/sample-projects";
 
 /** Novel 工具调用时使用的最小 ToolContext（无取消信号、无进度回调） */
 const NOVEL_TOOL_CTX: ToolContext = { sessionId: "novel-pipeline" };
@@ -224,6 +226,15 @@ export interface UseNovelPipelineResult {
   dismissRecovery: () => void;
   /** 删除指定未完成项目 */
   deletePendingProject: (id: string) => Promise<void>;
+  // Task 2A.16 三档模式 + 示例项目 handlers
+  /** 切换 aiAssistLevel（会重置 PipelineState 到 project_init，避免脏数据） */
+  handleSelectMode: (level: "quick" | "standard" | "professional") => void;
+  /** 加载示例项目（写入 rawText + segments + characters + scenes，进入 content_import 阶段） */
+  handleLoadSampleProject: (project: SampleProject) => void;
+  /** 快速模式一键生成：从 rawText 跳过 structure/pacing，直接进入 character_manage */
+  handleQuickGenerate: () => Promise<void>;
+  /** 设置 rawText（QuickModePanel 文本框双向绑定用） */
+  setRawText: (text: string) => void;
 }
 
 /**
@@ -1246,8 +1257,125 @@ export function useNovelPipeline({
     window.setTimeout(() => setIsProcessing(false), 500);
   }, [isProcessing]);
 
+  // === Task 2A.16 三档模式 + 示例项目 handlers ===
+
+  /**
+   * 切换 aiAssistLevel。
+   *
+   * 切换时重置 PipelineState 到 project_init，清空所有中间产物（segments/characters/scenes/shots/
+   * storyStructure/treatment/shotContracts/pacingConfig），避免不同模式之间的脏数据污染。
+   *
+   * 保留 rawText — 用户可能切换模式后想用同一段故事文本重新开始。
+   */
+  const handleSelectMode = useCallback(
+    (level: "quick" | "standard" | "professional") => {
+      setState((prev) => ({
+        ...makeInitialState({ ...prev.config, aiAssistLevel: level }),
+        // 保留 rawText 让用户可以继续使用
+        rawText: prev.rawText,
+      }));
+      // 清空所有派生状态
+      setShots([]);
+      setStoryStructure(null);
+      setTreatment(null);
+      setShotContracts([]);
+      setPacingConfig(DEFAULT_PACING_CONFIG);
+      setSelectedSegmentIds([]);
+    },
+    [],
+  );
+
+  /**
+   * 加载示例项目。
+   *
+   * 将预置的 rawText/segments/characters/scenes 写入 PipelineState，
+   * 跳过 content_import 阶段（直接进入 character_manage）。
+   * 用户可在角色管理面板查看预置角色并继续后续流程。
+   *
+   * 注：示例项目的 segments 已预置，无需再调用 segmentNovelTextTool。
+   * 注：characters/scenes 的 confirmed 状态保持 false，让用户确认后再继续。
+   */
+  const handleLoadSampleProject = useCallback((project: SampleProject) => {
+    setState((prev) => ({
+      ...prev,
+      stage: "character_manage",
+      step: 1,
+      rawText: project.rawText,
+      segments: project.segments,
+      characters: project.characters,
+      scenes: project.scenes,
+      currentSegmentIndex: 0,
+    }));
+    // 清空派生状态
+    setShots([]);
+    setStoryStructure(null);
+    setTreatment(null);
+    setShotContracts([]);
+    setPacingConfig(DEFAULT_PACING_CONFIG);
+    setSelectedSegmentIds(project.segments.map((s) => s.id));
+  }, []);
+
+  /**
+   * 快速模式一键生成。
+   *
+   * quick 模式专属：从 rawText 直接调用 extractAndMatchEntities + breakdownShotsForSegments，
+   * 跳过 structure_analysis 和 pacing_planning 阶段。
+   *
+   * 生成完成后 shots 数组填充，QuickModePanel 右侧预览区显示分镜列表。
+   * 用户可继续点击"导出到故事板"或手动编辑分镜。
+   */
+  const handleQuickGenerate = useCallback(async () => {
+    if (isProcessing || state.rawText.trim().length === 0) return;
+    setIsProcessing(true);
+    try {
+      // 1. 提取角色/场景（与 content_import → character_manage 一致）
+      const entityResult = await extractAndMatchEntities(
+        state.rawText,
+        () => isMountedRef.current,
+      );
+      if (!isMountedRef.current || !entityResult) return;
+
+      const newCharacters: CharacterInPipeline[] = entityResult.characters.map((c) => ({
+        ...c,
+        variants: [],
+      }));
+      const newScenes: SceneInPipeline[] = entityResult.scenes.map((s) => ({ ...s, variants: [] }));
+
+      // 2. 生成分镜（使用全部 rawText，不依赖 segments 选中）
+      // quick 模式没有 segments 选中流程，直接对 rawText 调用 breakdownTextToShotsTool
+      const charactersJson = JSON.stringify(newCharacters);
+      const quickShots = await breakdownShotsForSegments(
+        // 包装成单元素 NovelSegment 数组（breakdownShotsForSegments 期望 segments）
+        [{ id: "quick-1", title: "快速模式", summary: "", startChar: 0, endChar: state.rawText.length, estimatedDuration: 30, keyEvents: [], text: state.rawText }],
+        charactersJson,
+        () => isMountedRef.current,
+      );
+      if (!isMountedRef.current || !quickShots) return;
+
+      // 3. 更新状态：进入 character_manage 阶段（让用户查看角色），同时填充 shots
+      setState((prev) => ({
+        ...prev,
+        stage: "character_manage",
+        step: 1,
+        characters: newCharacters,
+        scenes: newScenes,
+      }));
+      setShots(quickShots);
+    } catch (err) {
+      // P1-3: 快速生成失败不阻塞 UI，记录日志
+      errorLogger.warn("[useNovelPipeline] handleQuickGenerate 失败", err);
+    } finally {
+      if (isMountedRef.current) setIsProcessing(false);
+    }
+  }, [isProcessing, state.rawText]);
+
   const setCurrentSegmentIndex = useCallback((index: number) => {
     setState((prev) => ({ ...prev, currentSegmentIndex: index }));
+  }, []);
+
+  // Task 2A.16：QuickModePanel 文本框双向绑定用
+  const setRawText = useCallback((text: string) => {
+    setState((prev) => ({ ...prev, rawText: text }));
   }, []);
 
   // === done 阶段调用 onComplete ===
@@ -1325,5 +1453,10 @@ export function useNovelPipeline({
     recoverProject,
     dismissRecovery,
     deletePendingProject,
+    // Task 2A.16 三档模式 + 示例项目 handlers
+    handleSelectMode,
+    handleLoadSampleProject,
+    handleQuickGenerate,
+    setRawText,
   };
 }

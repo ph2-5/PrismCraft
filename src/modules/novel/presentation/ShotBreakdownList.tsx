@@ -87,7 +87,9 @@ export function ShotBreakdownList({
             // P2-3: 长列表性能优化 — content-visibility 让浏览器跳过视口外卡片的渲染
             // 第 7 轮审计修复：回退到固定值，避免 "auto Npx" 在早期浏览器上整体声明被丢弃
             // 第 8 轮审计修复：值从 160px 调整为 220px，匹配 ShotCard 完整状态高度（220-260px）
-            style={{ contentVisibility: "auto", containIntrinsicSize: "220px" }}
+            // 第 9 轮审计修复：折衷到 180px，避免 draft 状态（50-100px）与完整状态（220-260px）混合时滚动条跳变
+            //                  180px 是 draft (≈75px) 与完整 (≈240px) 的几何均值，单卡片误差 ≤60px
+            style={{ contentVisibility: "auto", containIntrinsicSize: "180px" }}
           >
             {/* 拖拽手柄 + 上下移动按钮 */}
             <div className="flex flex-col shrink-0">

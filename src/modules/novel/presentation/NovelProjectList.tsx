@@ -75,6 +75,10 @@ export function NovelProjectList({
       // 第 7 轮审计修复：用 w-[calc(100vw-2rem)] 约束 width，避免窄屏溢出
       // 第 8 轮审计修复：globals.css 已将 .modal min-width 改为响应式（<400px 时为 0）
       //                移除无效的 max-w-lg（.modal max-width: 500px 在 unlayered CSS 中胜出）
+      // 第 9 轮审计修复：澄清 w-[calc(100vw-2rem)] 仍生效——.modal 未设置 width 属性，
+      //                  Tailwind utilities 在 @layer utilities 中，可设置 width；
+      //                  max-width: 500px 来自 unlayered CSS 仍约束上限，
+      //                  实际宽度 = min(100vw-2rem, 500px)，配合 max-h-[80vh] 形成安全边界
       className="max-h-[80vh] flex flex-col w-[calc(100vw-2rem)]"
     >
       <div className="card w-full flex-1 min-h-0 flex flex-col !p-0">

@@ -108,11 +108,13 @@ export function extractCharacterReferenceCandidates(
   // 同一张图片可能因 hash fragment（#v=1）或前后空白被视为不同，导致重复参考图
   // 注意：不规范化重复斜杠（//），因为不同服务器对 // 的处理可能不同
   // 第 8 轮审计修复：normalizeUrlForKey 收回归 trim 责任，避免依赖外部调用契约
-  const normalizeUrlForKey = (url: string): string => {
+  // 第 9 轮审计修复：返回 {key, trimmedUrl} 避免 push 时重复调用 url.trim()
+  const normalizeUrlForKey = (url: string): { key: string; trimmedUrl: string } => {
     const trimmed = url.trim();
     // 移除 hash fragment（#...），同一图片的不同 hash 视为相同
     const hashIdx = trimmed.indexOf("#");
-    return hashIdx >= 0 ? trimmed.slice(0, hashIdx) : trimmed;
+    const key = hashIdx >= 0 ? trimmed.slice(0, hashIdx) : trimmed;
+    return { key, trimmedUrl: trimmed };
   };
 
   const push = (
@@ -122,14 +124,14 @@ export function extractCharacterReferenceCandidates(
     sourceId?: string,
   ) => {
     if (!url) return; // 过滤 undefined/null/空字符串
-    const key = normalizeUrlForKey(url);
+    const { key, trimmedUrl } = normalizeUrlForKey(url);
     if (!key) return; // 过滤纯空白或 trim 后仅剩 hash fragment 的情况
     if (seen.has(key)) return;
     seen.add(key);
     // 第 6 轮审计修复：候选 URL 保留 trim 后的值（含 hash fragment）
     // hash fragment 可能有意义（cache busting 如 #v=1，或 SVG sprite 引用如 #icon-id）
     // 仅用移除 hash 的 key 进行去重，避免破坏 URL 语义
-    result.push({ url: url.trim(), source, isAuthoritative, sourceId });
+    result.push({ url: trimmedUrl, source, isAuthoritative, sourceId });
   };
 
   push(input.primaryImageUrl, "primary", true);

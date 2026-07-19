@@ -128,6 +128,41 @@ const INTENT_TO_SKILL_ID: Record<IntentType, string> = {
   default: "prompt",
 };
 
+// === 意图 → 工具集映射（P3 动态工具过滤） ===
+
+/**
+ * 每个意图对应的「允许工具名列表」。
+ *
+ * - `undefined`：使用全部已注册工具（保持现有行为，适用于工具需求不明确的意图）
+ * - `string[]`：仅向 LLM 暴露这些工具（缩小选择空间，提高调用准确性）
+ *
+ * 设计原则（保守策略）：
+ * 1. 只对「工具需求明确且封闭」的意图限制工具集
+ * 2. 对「可能需要任意工具」的意图保持 undefined
+ * 3. 列表中的工具必须在 toolRegistry 中已注册（未注册的会被静默忽略）
+ *
+ * 当前限制的意图：
+ * - video-completed：QC 流程，只需 QC + 视频任务查询工具
+ *   理由：QC Skill 明确指导调用 check_video_consistency / dispatch_video_fallback，
+ *         无需暴露生成、编辑、音频等无关工具，避免 LLM 误调
+ */
+const INTENT_TO_TOOL_SET: Record<IntentType, string[] | undefined> = {
+  interview: undefined, // 引导式访谈，工具需求不确定
+  novel: undefined, // 小说导入，可能涉及多种工具
+  troubleshoot: undefined, // 诊断，可能需要查看任意状态
+  "character-scene": undefined, // 角色场景绑定，工具需求广泛
+  cinematographer: undefined, // 镜头调整，可能需要 shot 工具
+  "api-helper": undefined, // API 配置，可能需要 config 工具
+  "video-completed": [
+    "check_video_consistency", // QC 核心工具：检查视频一致性
+    "dispatch_video_fallback", // QC 核心工具：触发 fallback（regenerate/face_swap/manual_review）
+    "list_video_tasks", // 查询最近完成的视频任务
+    "get_video_task", // 获取单个视频任务详情
+    "query_video_status", // 查询视频任务状态
+  ],
+  default: undefined, // 默认意图，使用全部工具
+};
+
 // === 核心函数 ===
 
 /**
@@ -194,6 +229,23 @@ export function routeIntent(userMessage: string): Intent {
  */
 export function mapIntentToSkillId(intentType: IntentType): string {
   return INTENT_TO_SKILL_ID[intentType];
+}
+
+/**
+ * 将意图映射到「允许的工具名列表」（P3 动态工具过滤）。
+ *
+ * 返回值含义：
+ * - `undefined`：使用全部已注册工具（保持现有行为）
+ * - `string[]`：仅向 LLM 暴露这些工具
+ *
+ * agent-loop.ts 在 buildSystemPrompt 中根据意图调用此函数，
+ * 设置当前轮次的工具过滤器，streamLLM 和 buildSystemPrompt 优先使用它。
+ *
+ * @param intentType 意图类别
+ * @returns 允许的工具名列表，或 undefined 表示不限制
+ */
+export function mapIntentToToolSet(intentType: IntentType): string[] | undefined {
+  return INTENT_TO_TOOL_SET[intentType];
 }
 
 /**

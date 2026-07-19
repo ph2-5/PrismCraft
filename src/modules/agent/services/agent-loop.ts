@@ -56,7 +56,7 @@ import {
   type AgentContext,
 } from "@/shared-logic/prompt";
 // Task 1.12：意图路由表 — 在 routeSkill 之上增加意图分类层
-import { routeIntent, mapIntentToSkillId } from "./intent-router";
+import { routeIntent, mapIntentToSkillId, mapIntentToToolSet } from "./intent-router";
 import { buildRouteContext } from "./intent-routes";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
@@ -131,6 +131,24 @@ export class AgentLoop {
   private loopStartTime: number = 0;
   /** P1-D：工具调用时间戳记录（用于频率限制，滑动窗口） */
   private toolCallTimestamps: number[] = [];
+  /**
+   * P3 动态工具过滤：当前轮次的工具过滤器。
+   *
+   * - `undefined`：使用 config.enabledTools（保持现有行为）
+   * - `string[]`：仅使用这些工具（覆盖 config.enabledTools）
+   *
+   * 工作流程：
+   * 1. 每轮 buildSystemPrompt 开始时不重置（保留上一轮的意图过滤）
+   *    —— 因为同一轮对话中，streamLLM 会调用 buildSystemPrompt，二者需要使用相同的过滤
+   * 2. buildSystemPrompt 中根据当前用户消息的意图更新 currentToolFilter
+   * 3. streamLLM 和 buildSystemPrompt 优先使用 currentToolFilter
+   * 4. 新一轮 run() 调用时会重新计算意图，currentToolFilter 会被更新
+   *
+   * 注意：currentToolFilter 只在 buildSystemPrompt 中被设置（基于 userMessage），
+   * 工具调用后的回灌轮次（userMessage=undefined）不会更新它，保留上一轮的过滤。
+   * 这确保了「工具调用 → 结果回灌 → 继续工具调用」使用同一套工具集。
+   */
+  private currentToolFilter: string[] | undefined = undefined;
 
   constructor(
     session: AgentSession,
@@ -274,7 +292,8 @@ export class AgentLoop {
       temperature: this.config.temperature,
       providerId: this.config.providerId,
       modelId: this.config.modelId,
-      tools: this.deps.toolRegistry.getToolDefs(this.config.enabledTools),
+      // P3 动态工具过滤：优先使用 currentToolFilter（意图驱动），回退到 config.enabledTools（静态配置）
+      tools: this.deps.toolRegistry.getToolDefs(this.currentToolFilter ?? this.config.enabledTools),
       signal: this.llmAbortController.signal,
     };
 
@@ -511,7 +530,30 @@ export class AgentLoop {
   /** 构建 system prompt（动态注入项目状态 + 核心记忆 + RAG 检索 + 对话摘要 + few-shot + Skill 路由 + safety） */
   private async buildSystemPrompt(userMessage?: string): Promise<string> {
     const template = this.config.systemPromptOverride || DEFAULT_SYSTEM_PROMPT;
-    const toolDescs = this.deps.toolRegistry.getToolDescriptions(this.config.enabledTools);
+
+    // P3 动态工具过滤：在读取工具描述前，先根据意图更新 currentToolFilter
+    // 这样 toolDescs（用于 system prompt 的 {AVAILABLE_TOOLS}）和 streamLLM 的 toolDefs 保持一致
+    let intent: ReturnType<typeof routeIntent> | undefined;
+    if (userMessage) {
+      try {
+        intent = routeIntent(userMessage);
+        const toolSet = mapIntentToToolSet(intent.type);
+        if (toolSet !== undefined) {
+          // 意图有明确工具集 → 设置过滤器（覆盖 config.enabledTools）
+          this.currentToolFilter = toolSet;
+        } else {
+          // 意图无明确工具集 → 重置过滤器，使用 config.enabledTools
+          this.currentToolFilter = undefined;
+        }
+      } catch {
+        // 意图识别失败静默，currentToolFilter 保持原值
+      }
+    }
+    // 工具回灌轮次（userMessage=undefined）不更新 currentToolFilter，保留上一轮的过滤
+    // 这确保「工具调用 → 结果回灌 → 继续工具调用」使用同一套工具集
+
+    // 优先使用 currentToolFilter（意图驱动），回退到 config.enabledTools（静态配置）
+    const toolDescs = this.deps.toolRegistry.getToolDescriptions(this.currentToolFilter ?? this.config.enabledTools);
     const projectState = await buildDynamicProjectState();
     const coreMemory = await this.deps.memoryService.buildCoreMemoryPrompt();
     // P1 深化：RAG 自动注入 — 根据用户消息检索归档记忆
@@ -537,16 +579,14 @@ export class AgentLoop {
     // 流程：routeIntent(msg) → buildRouteContext(intent, ctx) → 拼接 systemPromptAddon
     //       → mapIntentToSkillId(intent) → getSkill(skillId) → skill.buildInstructions(ctx)
     // 回退：若意图对应的 Skill 未注册（如扩展 Skill 未加载），回退到 routeSkill
-    if (userMessage) {
+    // 注意：intent 已在上方 P3 动态工具过滤块中识别，此处复用
+    if (userMessage && intent) {
       try {
         const skillCtx: AgentContext = {
           userMessage,
           projectType: "unknown", // TODO: 从项目配置读取
           recentFailures: [], // TODO: 从失败历史读取
         };
-
-        // Step 1: 识别用户意图
-        const intent = routeIntent(userMessage);
 
         // Step 2: 注入意图专属指引（systemPromptAddon）
         const routeCtx = buildRouteContext(intent, skillCtx);

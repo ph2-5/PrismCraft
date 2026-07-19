@@ -30,7 +30,7 @@ import { systemTools } from "@/modules/agent-tools-system";
 // 阶段3-2：web-tools/file-management-tools 已拆分至独立模块
 import { webTools, fileManagementTools } from "@/modules/agent-tools-web-file";
 // 阶段3-2：audio/video/video-post 工具已拆分至独立模块
-import { audioTools, videoTools, videoPostTools } from "@/modules/agent-tools-media";
+import { audioTools, videoTools, videoPostTools, qcTools } from "@/modules/agent-tools-media";
 // 阶段3-2：generation/image-edit 工具已拆分至独立模块
 import { generationTools, imageEditTools } from "@/modules/agent-tools-generation";
 // 阶段3-2：asset/asset-crud 工具已拆分至独立模块
@@ -74,6 +74,7 @@ export function registerAllTools(): void {
     ...fileManagementTools,
     ...specialistTools,
     ...novelTools,
+    ...qcTools,
   ]);
   registered = true;
 }

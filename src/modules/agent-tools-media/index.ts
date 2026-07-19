@@ -45,3 +45,10 @@ export {
   composeFinalVideoTool,
   videoPostTools,
 } from "./video-post-tools";
+
+// 一致性 QC 工具（Task 2A.23 Agent 集成，2 个）
+export {
+  checkVideoConsistencyTool,
+  dispatchVideoFallbackTool,
+  qcTools,
+} from "./qc-tools";

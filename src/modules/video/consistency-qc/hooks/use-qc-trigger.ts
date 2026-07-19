@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef } from "react";
 import type { VideoTask, StoryBeat } from "@/domain/schemas";
-import { container } from "@/infrastructure/di";
+import { eventBus } from "@/shared/event-bus";
 import { DomainEvents } from "@/shared/event-types";
 import { errorLogger } from "@/shared/error-logger";
 import { runQualityCheck, type QCInput } from "../services/qc-orchestrator";
@@ -106,7 +106,6 @@ export function useQCTrigger(input: QCTriggerInput): void {
   useEffect(() => {
     if (!enabled) return;
 
-    const eventBus = container.eventBus;
     const subscription = eventBus.on(
       DomainEvents.VIDEO_TASK_COMPLETED,
       (payload: unknown) => {

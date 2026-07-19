@@ -95,7 +95,7 @@ export function buildPartialEditPrompt(
   options: PromptBuilderOptions = {},
 ): string {
   if (isEmptyPrompt(userPrompt)) {
-    throw new Error("buildPartialEditPrompt: userPrompt 不能为空");
+    throw new Error("PARTIAL_EDIT_PROMPT_EMPTY");
   }
 
   const strictness = options.strictness ?? "strict";
@@ -138,7 +138,7 @@ export function buildSimplePrompt(
   options: { preserveUnmasked?: boolean; language?: "zh" | "en" } = {},
 ): string {
   if (isEmptyPrompt(userPrompt)) {
-    throw new Error("buildSimplePrompt: userPrompt 不能为空");
+    throw new Error("SIMPLE_PROMPT_EMPTY");
   }
   const preserveUnmasked = options.preserveUnmasked ?? true;
   const language = options.language ?? detectLanguage(userPrompt);

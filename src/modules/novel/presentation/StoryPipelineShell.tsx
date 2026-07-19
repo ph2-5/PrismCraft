@@ -15,7 +15,8 @@
  * 三栏可独立滚动；窗口缩放时左右栏宽度固定，中栏 flex 自适应。
  */
 
-import { Loader2, ArrowRight, Zap, Save } from "lucide-react";
+import { useState } from "react";
+import { Loader2, ArrowRight, Zap, Save, BarChart3 } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { PipelineConfig, PipelineStage } from "../domain/types";
 import { useNovelPipeline } from "../hooks/use-novel-pipeline";
@@ -24,6 +25,7 @@ import { SegmentNavColumn } from "./SegmentNavColumn";
 import { MainWorkArea } from "./MainWorkArea";
 import { ContextPanel } from "./ContextPanel";
 import { NovelProjectList } from "./NovelProjectList";
+import { StoryOverviewPanel } from "./StoryOverviewPanel";
 
 export interface StoryPipelineShellProps {
   onComplete: () => void;
@@ -33,6 +35,8 @@ export interface StoryPipelineShellProps {
 
 export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineShellProps) {
   const pipeline = useNovelPipeline({ onComplete, initialConfig });
+  // Task 2A.15：概览模式切换（覆盖中栏和右栏，显示 StoryOverviewPanel）
+  const [overviewMode, setOverviewMode] = useState(false);
   const {
     state,
     shots,
@@ -123,42 +127,54 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
           selectedIds={selectedSegmentIds}
           onSelect={setCurrentSegmentIndex}
         />
-        <MainWorkArea
-          state={state}
-          shots={shots}
-          selectedSegmentIds={selectedSegmentIds}
-          isProcessing={isProcessing}
-          isImporting={isImporting}
-          showImportStep={showImportStep}
-          showSegmentList={showSegmentList}
-          showStructureAnalysis={showStructureAnalysis}
-          showEntityReview={showEntityReview}
-          showShotBreakdown={showShotBreakdown}
-          showFinalize={showFinalize}
-          isDone={isDone}
-          storyStructure={storyStructure}
-          shotContracts={shotContracts}
-          pacingConfig={pacingConfig}
-          onImport={handleImport}
-          onToggle={handleToggle}
-          onSelectAll={handleSelectAll}
-          onConfirmCharacter={handleConfirmCharacter}
-          onConfirmScene={handleConfirmScene}
-          onEditCharacter={handleEditCharacter}
-          onEditScene={handleEditScene}
-          onMatchCharacter={handleMatchCharacter}
-          onEditShot={handleEditShot}
-          onReorderShots={handleReorderShots}
-          onGeneratePrompts={handleGeneratePrompts}
-          onFinalizeImport={handleFinalizeImport}
-          onBeatsChange={handleBeatsChange}
-          onShotContractsChange={handleShotContractsChange}
-          onPacingConfigChange={handlePacingConfigChange}
-          onApplyPacing={handleApplyPacing}
-          onResetPacing={handleResetPacing}
-          showPacingPlanning={showPacingPlanning}
-        />
-        <ContextPanel state={state} shotCount={shots.length} />
+        {overviewMode ? (
+          // Task 2A.15：概览模式覆盖中栏 + 右栏
+          <StoryOverviewPanel
+            state={state}
+            shots={shots}
+            storyStructure={storyStructure}
+            onExit={() => setOverviewMode(false)}
+          />
+        ) : (
+          <>
+            <MainWorkArea
+              state={state}
+              shots={shots}
+              selectedSegmentIds={selectedSegmentIds}
+              isProcessing={isProcessing}
+              isImporting={isImporting}
+              showImportStep={showImportStep}
+              showSegmentList={showSegmentList}
+              showStructureAnalysis={showStructureAnalysis}
+              showEntityReview={showEntityReview}
+              showShotBreakdown={showShotBreakdown}
+              showFinalize={showFinalize}
+              isDone={isDone}
+              storyStructure={storyStructure}
+              shotContracts={shotContracts}
+              pacingConfig={pacingConfig}
+              onImport={handleImport}
+              onToggle={handleToggle}
+              onSelectAll={handleSelectAll}
+              onConfirmCharacter={handleConfirmCharacter}
+              onConfirmScene={handleConfirmScene}
+              onEditCharacter={handleEditCharacter}
+              onEditScene={handleEditScene}
+              onMatchCharacter={handleMatchCharacter}
+              onEditShot={handleEditShot}
+              onReorderShots={handleReorderShots}
+              onGeneratePrompts={handleGeneratePrompts}
+              onFinalizeImport={handleFinalizeImport}
+              onBeatsChange={handleBeatsChange}
+              onShotContractsChange={handleShotContractsChange}
+              onPacingConfigChange={handlePacingConfigChange}
+              onApplyPacing={handleApplyPacing}
+              onResetPacing={handleResetPacing}
+              showPacingPlanning={showPacingPlanning}
+            />
+            <ContextPanel state={state} shotCount={shots.length} />
+          </>
+        )}
       </div>
 
       {/* 底部状态栏 + 操作按钮 */}
@@ -186,6 +202,21 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
               {t("novel.controls.cannotProceed")}
             </span>
           )}
+          {/* Task 2A.15：概览模式切换按钮 */}
+          <button
+            type="button"
+            onClick={() => setOverviewMode((v) => !v)}
+            disabled={isProcessing || isImporting}
+            className={[
+              "btn text-[12px] px-3 py-1.5 flex items-center gap-1.5",
+              overviewMode ? "btn-primary" : "btn-ghost",
+            ].join(" ")}
+            aria-label={t("novel.overview.toggleAriaLabel")}
+            aria-pressed={overviewMode}
+          >
+            <BarChart3 size={12} />
+            {t("novel.overview.toggleButton")}
+          </button>
           {showAutoRun && (
             <button
               type="button"

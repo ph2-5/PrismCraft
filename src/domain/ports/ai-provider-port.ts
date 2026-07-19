@@ -104,6 +104,33 @@ export interface IVideoProvider {
   }): Promise<ApiResponse<VideoGenerationResult>>;
 
   /**
+   * Task 2A.22: 局部重绘（Seedance 2.5 局部编辑 API）
+   *
+   * 在已生成视频上做局部重绘 — 保持 mask 外像素不变，仅修改 mask 内区域。
+   * 仅 supportsPartialEdit=true 的模型支持（如 Seedance 2.5）。
+   *
+   * 实现端通过此方法走局部编辑专用 API（不同于 generateVideo）。
+   * 不改 generateVideo() — 隔离新功能。
+   *
+   * @param input.sourceVideoUrl 原视频 URL
+   * @param input.maskBase64 mask 的 base64 PNG（白色=重绘，黑色=保留）
+   * @param input.prompt 完整重绘指令（含"保持背景"等约束）
+   * @param input.videoTimestamp 标记帧的时间戳（秒）
+   * @param input.preserveUnmasked 是否保持 mask 外不变（默认 true）
+   */
+  generatePartialEdit?(input: {
+    sourceVideoUrl: string;
+    maskBase64: string;
+    prompt: string;
+    videoTimestamp: number;
+    preserveUnmasked: boolean;
+    providerId?: string;
+    modelId?: string;
+    format?: string;
+    duration?: number;
+  }): Promise<ApiResponse<VideoGenerationResult>>;
+
+  /**
    * Best-effort server-side task cancellation.
    * Implementations that support cancellation SHOULD override this;
    * callers treat failure as non-fatal (best-effort).

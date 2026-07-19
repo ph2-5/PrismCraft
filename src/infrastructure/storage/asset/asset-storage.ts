@@ -30,6 +30,7 @@ interface AssetRow {
   scene_id: string | null;
   scene_variant_id: string | null;
   project_id: string | null;
+  source_asset_id: string | null;  // Task 2A.22: 局部重绘 Asset 关联的原视频 Asset ID
   created_at: number | null;
 }
 
@@ -52,6 +53,7 @@ function rowToAsset(row: AssetRow): GenerationAsset {
     sceneId: row.scene_id ?? undefined,
     sceneVariantId: row.scene_variant_id ?? undefined,
     projectId: row.project_id ?? undefined,
+    sourceAssetId: row.source_asset_id ?? undefined,
     createdAt: row.created_at != null ? new Date(row.created_at * 1000).toISOString() : new Date().toISOString(),
   };
 }
@@ -74,6 +76,7 @@ function assetToFields(asset: Partial<GenerationAsset>): Record<string, unknown>
   if (asset.sceneId !== undefined) fields.scene_id = asset.sceneId;
   if (asset.sceneVariantId !== undefined) fields.scene_variant_id = asset.sceneVariantId;
   if (asset.projectId !== undefined) fields.project_id = asset.projectId;
+  if (asset.sourceAssetId !== undefined) fields.source_asset_id = asset.sourceAssetId;
   return fields;
 }
 
@@ -113,6 +116,20 @@ export const generationAssetStorage: IGenerationAssetStorage = {
       return rows.map(rowToAsset);
     } catch (e) {
       errorLogger.error("[asset-storage] getAssetsByStoryBeat failed", { beatId, error: e });
+      return [];
+    }
+  },
+
+  // Task 2A.22: 查询某原视频的所有局部重绘版本
+  async getAssetsBySourceAssetId(sourceAssetId: string): Promise<GenerationAsset[]> {
+    try {
+      const rows = await safeQuery<AssetRow>(
+        "SELECT * FROM generation_assets WHERE source_asset_id = ? AND is_deleted = 0 ORDER BY created_at DESC",
+        [sourceAssetId],
+      );
+      return rows.map(rowToAsset);
+    } catch (e) {
+      errorLogger.error("[asset-storage] getAssetsBySourceAssetId failed", { sourceAssetId, error: e });
       return [];
     }
   },

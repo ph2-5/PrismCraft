@@ -25,7 +25,7 @@ function sanitizeColumnType(type: string): string {
   return type;
 }
 
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;
 
 export interface MigrationDb {
   prepare(sql: string): { get(...params: unknown[]): Record<string, unknown> | undefined; run(...params: unknown[]): unknown };
@@ -100,6 +100,70 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
         }
       }
     }
+  },
+  // Task 2A.22: 重建 generation_assets 表以更新 CHECK 约束
+  // 同时修复 Task 2A.21 遗留问题（CHECK 未包含 preview_3d_snapshot/blockout_* 类型）
+  // SQLite 不支持 ALTER COLUMN，只能 CREATE-INSERT-DROP-RENAME 重建
+  7: (db) => {
+    // 1. 创建新表（无 CHECK 约束，类型由 Zod schema 在 app 层校验）
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS generation_assets_v7 (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        source_type TEXT NOT NULL CHECK(source_type IN ('ai_generated', 'user_uploaded', 'composited')),
+        url TEXT NOT NULL,
+        local_path TEXT,
+        thumbnail_path TEXT,
+        prompt TEXT,
+        model_id TEXT,
+        provider_id TEXT,
+        metadata TEXT DEFAULT '{}',
+        story_beat_id TEXT,
+        sub_shot_id TEXT,
+        character_id TEXT,
+        character_variant_id TEXT,
+        scene_id TEXT,
+        scene_variant_id TEXT,
+        project_id TEXT,
+        source_asset_id TEXT,
+        owner_id INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (strftime('%s','now')),
+        updated_at INTEGER DEFAULT (strftime('%s','now')),
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at INTEGER,
+        version INTEGER DEFAULT 1,
+        sync_id TEXT
+      );
+    `);
+
+    // 2. 检查旧表是否存在并迁移数据
+    const oldTableExists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='generation_assets'",
+    ).get();
+    if (oldTableExists) {
+      // 获取旧表的实际列
+      const oldCols = db.prepare("PRAGMA table_info(generation_assets)").all() as Array<{ name: string }>;
+      const oldColNames = oldCols.map((c) => c.name);
+      // 仅迁移两边都存在的列
+      const newColNames = [
+        "id", "type", "source_type", "url", "local_path", "thumbnail_path", "prompt",
+        "model_id", "provider_id", "metadata", "story_beat_id", "sub_shot_id", "character_id",
+        "character_variant_id", "scene_id", "scene_variant_id", "project_id", "source_asset_id",
+        "owner_id", "created_at", "updated_at", "is_deleted", "deleted_at", "version", "sync_id",
+      ];
+      const commonCols = newColNames.filter((c) => oldColNames.includes(c));
+      const colList = commonCols.map((c) => `"${c}"`).join(", ");
+      try {
+        db.exec(`INSERT INTO generation_assets_v7 (${colList}) SELECT ${colList} FROM generation_assets;`);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logger.warn(`[DB] migration v7: data migration failed (continuing): ${msg}`);
+      }
+      // 3. 删除旧表并重命名
+      db.exec("DROP TABLE generation_assets;");
+    }
+    db.exec("ALTER TABLE generation_assets_v7 RENAME TO generation_assets;");
+    logger.info("[DB] migration v7: generation_assets rebuilt (CHECK constraint relaxed, source_asset_id added)");
   },
 };
 

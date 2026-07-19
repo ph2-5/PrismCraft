@@ -13,7 +13,7 @@ interface SaveStatusIndicatorProps {
 const statusConfig: Record<
   SaveStatus,
   {
-    icon: React.ElementType;
+    icon: React.ComponentType<{ className?: string }>;
     label: string;
     className: string;
   }

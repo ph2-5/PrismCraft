@@ -70,6 +70,8 @@ export interface IGenerationAssetStorage {
   getAssetsByType(type: string): Promise<GenerationAsset[]>;
   getAssetsByProject(projectId: string): Promise<GenerationAsset[]>;
   getAssetsByStoryBeat(beatId: string): Promise<GenerationAsset[]>;
+  /** Task 2A.22: 查询某原视频的所有局部重绘版本 */
+  getAssetsBySourceAssetId(sourceAssetId: string): Promise<GenerationAsset[]>;
   getAssetById(id: string): Promise<GenerationAsset | null>;
   createAsset(asset: Partial<GenerationAsset> & { id: string; type: string; sourceType: string; url: string }): Promise<void>;
   updateAsset(id: string, updates: Partial<GenerationAsset>): Promise<void>;

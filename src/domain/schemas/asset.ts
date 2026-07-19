@@ -28,6 +28,8 @@ export const assetTypeEnum = z.enum([
   "blockout_glb",         // 3D 白盒 GLB 模型（用于 Seedance 2.5 输入）
   "blockout_seedance_input", // Seedance 2.5 完整输入包（GLB + JSON + MP4 组合）
   "blockout_fallback_frames", // Fallback 关键帧图集（5 张 PNG，用于不支持 3D 的模型）
+  // Task 2A.22: 局部重绘输出物（关联原视频 Asset）
+  "partial_edit_video",
 ]);
 
 export const generationAssetSchema = z.object({
@@ -49,6 +51,8 @@ export const generationAssetSchema = z.object({
   sceneVariantId: z.string().optional(),
   projectId: z.string().optional(),
   createdAt: z.string(),
+  // Task 2A.22: 局部重绘 Asset 关联的原视频 Asset ID
+  sourceAssetId: z.string().optional(),
 });
 
 export type AssetType = z.infer<typeof assetTypeEnum>;

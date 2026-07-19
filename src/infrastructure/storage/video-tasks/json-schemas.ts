@@ -8,6 +8,12 @@ export interface VideoTaskConfig {
   template_shots?: string;
   story_title?: string;
   beat_title?: string;
+  // Task 2A.22: 局部重绘扩展字段
+  task_subtype?: string;
+  source_video_asset_id?: string;
+  mask_data?: string;
+  mask_bounds?: { x: number; y: number; width: number; height: number };
+  edit_prompt?: string;
 }
 
 export interface VideoTaskProvider {

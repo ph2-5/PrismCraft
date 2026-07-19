@@ -329,7 +329,7 @@ const FEATURE_TABLES: TableDef[] = [
     name: "generation_assets",
     featureGroup: "assets",
     columns: {
-      type: { type: "TEXT", notNull: true, check: "IN ('keyframe', 'first_frame', 'last_frame', 'video', 'character_image', 'scene_image', 'variant_image', 'compositor_result', 'uploaded')" },
+      type: { type: "TEXT", notNull: true, check: "IN ('keyframe', 'first_frame', 'last_frame', 'video', 'character_image', 'scene_image', 'variant_image', 'compositor_result', 'uploaded', 'preview_3d_snapshot', 'blockout_animatic', 'blockout_glb', 'blockout_seedance_input', 'blockout_fallback_frames', 'partial_edit_video')" },
       source_type: { type: "TEXT", notNull: true, check: "IN ('ai_generated', 'user_uploaded', 'composited')" },
       url: { type: "TEXT", notNull: true },
       local_path: { type: "TEXT" },
@@ -345,6 +345,8 @@ const FEATURE_TABLES: TableDef[] = [
       scene_id: { type: "TEXT" },
       scene_variant_id: { type: "TEXT" },
       project_id: { type: "TEXT" },
+      // Task 2A.22: 局部重绘 Asset 关联的原视频 Asset ID
+      source_asset_id: { type: "TEXT" },
     },
   },
   // Task 2A.7: 小说导入项目持久化（保存 PipelineState 支持跨会话恢复）

@@ -103,6 +103,19 @@ export function parseVideoTask(record: Record<string, unknown>): VideoTask {
     urlObtainedAt: optionalNumber(tracking.url_obtained_at),
     urlTtl: optionalNumber(tracking.url_ttl),
     priority: optionalNumber(record.priority),
+    // Task 2A.22: 局部重绘扩展字段（存储在 config JSON 容器）
+    taskSubtype: optionalString(config.task_subtype) as VideoTask["taskSubtype"],
+    sourceVideoAssetId: optionalString(config.source_video_asset_id),
+    maskData: optionalString(config.mask_data),
+    maskBounds: config.mask_bounds
+      ? {
+          x: Number(config.mask_bounds.x ?? 0),
+          y: Number(config.mask_bounds.y ?? 0),
+          width: Number(config.mask_bounds.width ?? 0),
+          height: Number(config.mask_bounds.height ?? 0),
+        }
+      : undefined,
+    editPrompt: optionalString(config.edit_prompt),
   };
 }
 
@@ -151,6 +164,12 @@ export const fieldTargets: Record<string, FieldTarget> = {
   expiresAt: { type: "json", container: "tracking", key: "expires_at" },
   urlObtainedAt: { type: "json", container: "tracking", key: "url_obtained_at" },
   urlTtl: { type: "json", container: "tracking", key: "url_ttl" },
+  // Task 2A.22: 局部重绘扩展字段（存储在 config JSON 容器）
+  taskSubtype: { type: "json", container: "config", key: "task_subtype" },
+  sourceVideoAssetId: { type: "json", container: "config", key: "source_video_asset_id" },
+  maskData: { type: "json", container: "config", key: "mask_data" },
+  maskBounds: { type: "json", container: "config", key: "mask_bounds" },
+  editPrompt: { type: "json", container: "config", key: "edit_prompt" },
 };
 
 export function buildConfigJson(task: Partial<VideoTask>): string {
@@ -162,6 +181,12 @@ export function buildConfigJson(task: Partial<VideoTask>): string {
   if (task.templateShots !== undefined) config.template_shots = task.templateShots || null;
   if (task.storyTitle !== undefined) config.story_title = task.storyTitle || null;
   if (task.beatTitle !== undefined) config.beat_title = task.beatTitle || null;
+  // Task 2A.22: 局部重绘扩展字段
+  if (task.taskSubtype !== undefined) config.task_subtype = task.taskSubtype || null;
+  if (task.sourceVideoAssetId !== undefined) config.source_video_asset_id = task.sourceVideoAssetId || null;
+  if (task.maskData !== undefined) config.mask_data = task.maskData || null;
+  if (task.maskBounds !== undefined) config.mask_bounds = task.maskBounds ? JSON.stringify(task.maskBounds) : null;
+  if (task.editPrompt !== undefined) config.edit_prompt = task.editPrompt || null;
   return JSON.stringify(config);
 }
 

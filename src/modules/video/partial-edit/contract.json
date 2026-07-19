@@ -1,0 +1,35 @@
+{
+  "name": "partial-edit",
+  "description": "Task 2A.22 局部重绘编辑：在已生成视频上做局部重绘，保持 mask 外像素不变",
+  "dependencies": [
+    "@/domain/schemas (VideoTask, VideoTaskSubtype, MaskBounds, GenerationAsset)",
+    "@/domain/ports (IVideoProvider.generatePartialEdit, IGenerationAssetStorage.getAssetsBySourceAssetId)",
+    "@/infrastructure/di (container.videoProvider, container.generationAssetStorage)",
+    "@/shared/error-logger (errorLogger)",
+    "@/shared/utils/toast-bridge (emitToast)",
+    "@/shared/constants (t)",
+    "../task-management (useVideoTaskStore)"
+  ],
+  "publicAPI": {
+    "hooks": ["usePartialEdit"],
+    "services": [
+      "encodeMask", "encodeMaskSync", "estimateBase64Size", "isMaskSizeValid",
+      "buildPartialEditPrompt", "buildSimplePrompt", "detectLanguage", "isEmptyPrompt", "isPromptTooLong", "truncatePrompt", "containsSensitiveContent", "estimateTokenCount",
+      "startPartialEditTask", "savePartialEditAsset", "listPartialEditHistory",
+      "createEmptyMaskConfig", "isValidMaskShape", "isValidMaskConfig", "computeMaskBounds", "createRectangle", "createPolygon", "createBrush", "addShape", "popShape", "clearShapes", "toggleInverse",
+      "createPartialEditRequest", "validatePartialEditRequest", "isValidPartialEditRequest"
+    ],
+    "components": ["PartialEditPanel", "VideoMaskCanvas", "MaskToolbar", "EditPromptInput", "EditHistoryList"]
+  },
+  "invariants": [
+    "局部重绘任务必须设置 taskSubtype='partial_redraw'，与普通视频生成（'normal'）隔离",
+    "maskData 必须是 base64 PNG（白色=重绘区域，黑色=保留区域）",
+    "调用 provider.generatePartialEdit 前必须校验 mask 体积 < 1MB",
+    "原视频 Asset 不修改 — 局部重绘结果作为新 Asset（type='partial_edit_video'）保存",
+    "新 Asset 的 sourceAssetId 必须指向原视频 Asset ID",
+    "preserveUnmasked 当前仅支持 true（保持 mask 外不变）",
+    "不修改 provider.generateVideo() — 局部重绘走专用 API（generatePartialEdit）",
+    "新 Asset 继承原 Asset 的 storyBeatId / characterId / sceneId 等关联关系",
+    "VideoTask.maskBounds 由 computeMaskBounds 计算，用于持久化时快速查询 mask 范围"
+  ]
+}

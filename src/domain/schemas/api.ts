@@ -45,6 +45,23 @@ export const videoGenerationResultSchema = z.object({
 
 export const videoTaskStatusSchema = z.enum(["pending", "generating", "completed", "failed", "cancelled", "retrying", "timeout", "paused"]);
 
+/**
+ * Task 2A.22: VideoTask 子类型。
+ * - normal: 普通视频生成（默认）
+ * - partial_redraw: 局部重绘（基于已生成视频 + mask 做局部编辑）
+ */
+export const videoTaskSubtypeSchema = z.enum(["normal", "partial_redraw"]);
+
+/**
+ * Task 2A.22: Mask 边界框（用于持久化时快速查询 mask 范围）
+ */
+export const maskBoundsSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+});
+
 export const videoTaskSchema = z.object({
   taskId: z.string(),
   status: videoTaskStatusSchema,
@@ -84,6 +101,12 @@ export const videoTaskSchema = z.object({
   urlObtainedAt: z.number().optional(),
   urlTtl: z.number().optional(),
   priority: z.number().nonnegative().optional(),
+  // Task 2A.22: 局部重绘扩展字段（向后兼容，全部 optional）
+  taskSubtype: videoTaskSubtypeSchema.optional(),
+  sourceVideoAssetId: z.string().optional(),
+  maskData: z.string().optional(), // base64 PNG
+  maskBounds: maskBoundsSchema.optional(),
+  editPrompt: z.string().optional(),
 });
 
 export const healthStatusSchema = z.object({
@@ -122,6 +145,8 @@ export type HealthStatus = z.infer<typeof healthStatusSchema>;
 export type UserApiConfig = z.infer<typeof userApiConfigSchema>;
 
 export type VideoTaskStatus = z.infer<typeof videoTaskStatusSchema>;
+export type VideoTaskSubtype = z.infer<typeof videoTaskSubtypeSchema>;
+export type MaskBounds = z.infer<typeof maskBoundsSchema>;
 
 export type VideoTask = z.infer<typeof videoTaskSchema>;
 

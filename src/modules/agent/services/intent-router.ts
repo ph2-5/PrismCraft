@@ -25,6 +25,7 @@ export type IntentType =
   | "character-scene" // "用这个角色+这个场景" → 角色场景绑定
   | "cinematographer" // "这个镜头感觉不对" → 镜头参数调整
   | "api-helper" // "API 怎么配置" → 配置指引
+  | "video-completed" // "视频好了吗" / "检查一致性" → QC 流程
   | "default"; // 无关键词命中，走 default route
 
 export interface Intent {
@@ -100,6 +101,18 @@ const KEYWORD_MATCHERS: Record<Exclude<IntentType, "default">, string[]> = {
     "模型配置",
     "api key",
   ],
+  "video-completed": [
+    "视频好了",
+    "视频完成",
+    "生成完成",
+    "生成完了",
+    "一致性",
+    "漂移",
+    "qc",
+    "检查视频",
+    "视频质量",
+    "重新检查",
+  ],
 };
 
 // === 意图 → Skill id 映射 ===
@@ -111,6 +124,7 @@ const INTENT_TO_SKILL_ID: Record<IntentType, string> = {
   "character-scene": "characters", // 对应扩展 Skill: charactersSkill
   cinematographer: "camera", // 对应扩展 Skill: cameraSkill
   "api-helper": "prompt", // api-helper 复用 prompt skill，route 文件提供额外指引
+  "video-completed": "prompt", // video-completed 复用 prompt skill，route 文件提供 QC 引导
   default: "prompt",
 };
 
@@ -139,6 +153,7 @@ export function routeIntent(userMessage: string): Intent {
     "interview", // 引导式
     "character-scene", // 角色场景绑定
     "cinematographer", // 镜头调整
+    "video-completed", // 视频完成/QC 检查（含"QC"/"一致性"等明确关键词）
     "api-helper", // API 配置
   ];
 
@@ -192,6 +207,7 @@ export function listIntentTypes(): Array<Exclude<IntentType, "default">> {
     "troubleshoot",
     "character-scene",
     "cinematographer",
+    "video-completed",
     "api-helper",
   ];
 }

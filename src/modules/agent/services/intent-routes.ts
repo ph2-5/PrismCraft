@@ -112,6 +112,28 @@ const apiHelperRouteContext = (): RouteContext => ({
   suggestedTools: ["get_api_config", "set_api_config", "check_api_health", "list_providers"],
 });
 
+const videoCompletedRouteContext = (): RouteContext => ({
+  systemPromptAddon: [
+    "【意图：视频完成 / 一致性 QC 检查】",
+    "用户询问视频生成结果或希望检查视频一致性。",
+    "",
+    "响应流程：",
+    "1. 若用户未指定 taskId，先用 list_video_tasks(status=\"completed\") 查询最近完成的视频",
+    "2. 调用 check_video_consistency(taskId) 获取 QCReport（默认 forceRecheck=false 返回 cached）",
+    "3. 根据 verdict 决策：",
+    "   - verdict=pass / drift_warning → 告知用户视频质量良好",
+    "   - verdict=drift_critical → 询问是否触发 fallback（dispatch_video_fallback）",
+    "4. 若用户要求重新检查 → forceRecheck=true",
+    "5. 若用户要求交给人工 → dispatch_video_fallback(taskId, forceAction=\"manual_review\")",
+    "",
+    "注意：",
+    "- 不要对 verdict=pass 的视频调用 dispatch_video_fallback",
+    "- 不要主动传 forceAction=regenerate/face_swap（除非用户明确要求）",
+    "- QCReport 含 worstFrames（最差 3 帧），可用于定位漂移位置",
+  ].join("\n"),
+  suggestedTools: ["list_video_tasks", "check_video_consistency", "dispatch_video_fallback"],
+});
+
 const defaultRouteContext = (): RouteContext => ({
   systemPromptAddon: "",
   suggestedTools: [],
@@ -126,6 +148,7 @@ const ROUTE_BUILDERS: Record<IntentType, (ctx: AgentContext) => RouteContext> = 
   "character-scene": () => characterSceneRouteContext(),
   cinematographer: () => cinematographerRouteContext(),
   "api-helper": () => apiHelperRouteContext(),
+  "video-completed": () => videoCompletedRouteContext(),
   default: () => defaultRouteContext(),
 };
 

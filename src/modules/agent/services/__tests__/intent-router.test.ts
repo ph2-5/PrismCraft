@@ -124,6 +124,23 @@ describe("intent-router", () => {
     });
   });
 
+  // === video-completed 意图（2 用例） ===
+  describe("video-completed 意图", () => {
+    it("应识别 '视频好了吗' 为 video-completed", () => {
+      const intent = routeIntent("视频好了吗？检查一下一致性");
+      expect(intent.type).toBe("video-completed");
+      expect(intent.matchedKeywords).toContain("视频好了");
+      expect(intent.matchedKeywords).toContain("一致性");
+      expect(intent.routeId).toBe("video-completed-route");
+    });
+
+    it("应识别 'QC 结果如何' 为 video-completed", () => {
+      const intent = routeIntent("这个视频的 QC 结果如何");
+      expect(intent.type).toBe("video-completed");
+      expect(intent.matchedKeywords).toContain("qc");
+    });
+  });
+
   // === default 意图 ===
   describe("default 意图", () => {
     it("无关键词命中时返回 default", () => {
@@ -178,6 +195,7 @@ describe("intent-router", () => {
       ["character-scene", "characters"],
       ["cinematographer", "camera"],
       ["api-helper", "prompt"],
+      ["video-completed", "prompt"],
       ["default", "prompt"],
     ] as Array<[IntentType, string]>)(
       "意图 %s 映射到 Skill id %s",
@@ -189,9 +207,9 @@ describe("intent-router", () => {
 
   // === listIntentTypes ===
   describe("listIntentTypes", () => {
-    it("返回 6 种意图（不含 default）", () => {
+    it("返回 7 种意图（不含 default）", () => {
       const types = listIntentTypes();
-      expect(types).toHaveLength(6);
+      expect(types).toHaveLength(7);
       expect(types).not.toContain("default");
       expect(types).toContain("interview");
       expect(types).toContain("novel");
@@ -199,6 +217,7 @@ describe("intent-router", () => {
       expect(types).toContain("character-scene");
       expect(types).toContain("cinematographer");
       expect(types).toContain("api-helper");
+      expect(types).toContain("video-completed");
     });
   });
 });
@@ -258,6 +277,14 @@ describe("intent-routes (buildRouteContext)", () => {
     const ctx = buildRouteContext(intent, baseCtx);
     expect(ctx.systemPromptAddon).toContain("API 配置指引");
     expect(ctx.suggestedTools).toContain("set_api_config");
+  });
+
+  it("video-completed 意图返回 QC 检查指引", () => {
+    const intent = routeIntent("视频好了吗？检查一致性");
+    const ctx = buildRouteContext(intent, baseCtx);
+    expect(ctx.systemPromptAddon).toContain("一致性 QC 检查");
+    expect(ctx.suggestedTools).toContain("check_video_consistency");
+    expect(ctx.suggestedTools).toContain("dispatch_video_fallback");
   });
 
   it("default 意图返回空 addon 和空 tools", () => {

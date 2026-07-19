@@ -46,11 +46,12 @@ export const videoGenerationResultSchema = z.object({
 export const videoTaskStatusSchema = z.enum(["pending", "generating", "completed", "failed", "cancelled", "retrying", "timeout", "paused"]);
 
 /**
- * Task 2A.22: VideoTask 子类型。
+ * Task 2A.22 / 2A.23: VideoTask 子类型。
  * - normal: 普通视频生成（默认）
  * - partial_redraw: 局部重绘（基于已生成视频 + mask 做局部编辑）
+ * - face_swap: face-swap 修复（一致性 QC 触发，用参考图替换角色面部）
  */
-export const videoTaskSubtypeSchema = z.enum(["normal", "partial_redraw"]);
+export const videoTaskSubtypeSchema = z.enum(["normal", "partial_redraw", "face_swap"]);
 
 /**
  * Task 2A.22: Mask 边界框（用于持久化时快速查询 mask 范围）

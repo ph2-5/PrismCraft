@@ -46,12 +46,16 @@ export type {
   PartialEditRequest,
   PartialEditResult,
   PartialEditValidationError,
+  FaceSwapRequest,
+  FaceSwapValidationError,
 } from "./domain/edit-schema";
 
 export {
   createPartialEditRequest,
   validatePartialEditRequest,
   isValidPartialEditRequest,
+  validateFaceSwapRequest,
+  isValidFaceSwapRequest,
 } from "./domain/edit-schema";
 
 // ─── Services 层 ────────────────────────────────────────────────────────────
@@ -92,6 +96,7 @@ export type {
 
 export {
   startPartialEditTask,
+  startFaceSwapTask,
   savePartialEditAsset,
   listPartialEditHistory,
 } from "./services/partial-edit-service";

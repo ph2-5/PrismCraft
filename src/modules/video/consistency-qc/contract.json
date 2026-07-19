@@ -1,0 +1,43 @@
+{
+  "name": "consistency-qc",
+  "description": "Task 2A.23 一致性 QC 闭环：视频生成完成后自动抽帧检查 face/visual 一致性，超差触发重生成或 face-swap",
+  "dependencies": [
+    "@/domain/schemas (VideoTask, StoryBeat, GenerationAsset)",
+    "@/domain/types/result (Result, ok, err)",
+    "@/infrastructure/di (container.imageApi, container.generationAssetStorage)",
+    "@/shared/embedding (cosineSimilarity 代理)",
+    "@/shared/error-logger (errorLogger)",
+    "@/shared/utils/toast-bridge (emitToast)",
+    "@/shared/constants (t)",
+    "@/modules/ffmpeg-runner (generateThumbnail 抽帧)",
+    "../partial-edit (startFaceSwapTask 待扩展)"
+  ],
+  "publicAPI": {
+    "domain": [
+      "QCReport, FrameScore, Verdict, ActionTaken",
+      "createEmptyQCReport, computeAggregates, determineVerdict, shouldTriggerFallback, isQCReportComplete",
+      "ShotStrategy, ShotStrategyType, LastFrameUsage",
+      "inferStrategyFromShotType, createStrategy, describeStrategy, getStrategyThresholdMultiplier, usesLastFrame, isContinuousAction",
+      "DriftPolicy, DEFAULT_DRIFT_POLICY",
+      "resolvePolicy, validatePolicy, shouldFallbackToFaceSwap, shouldMarkManualReview"
+    ],
+    "services": [
+      "getFaceEmbeddingProvider, clearFaceEmbeddingProviderCache, isFaceEmbeddingAvailable, extractFaceEmbedding",
+      "computeFrameSimilarity, checkFrameConsistency, findWorstFrame, findWorstFrames, filterFramesWithFace, computeFrameStats",
+      "runQualityCheck, shouldTriggerFallback, decideFallbackAction, getFrameStats, shouldDispatchFallback",
+      "routeStrategy, applyStrategyToPrompt, getEffectiveThreshold, describeRoutedStrategy, shouldUseLastFrame, getLastFrameUsage, isStrategyLocked, buildStrategyAwarePrompt",
+      "dispatchFallback, listFallbackHistory, isFallbackTerminal, predictNextAction"
+    ]
+  },
+  "invariants": [
+    "QC 异步非阻塞 — QC 失败不阻塞 VideoTask 完成回调，错误信息存于 QCReport.error",
+    "Embedding provider 可插拔 — face-embedding-service 通过 FaceEmbeddingProvider 接口抽象，ONNX → VLM → noop 三级降级",
+    "Verdict 由阈值决定 — determineVerdict(minScore, policy) 严格按 warningThreshold/criticalThreshold 判定",
+    "重试计数不可重置 — QCReport.retryCount 单调递增，actionTaken 字段记录最终动作",
+    "ShotStrategy 不改 prompt 语义 — applyStrategyToPrompt 仅追加约束指令，不修改原始 prompt 内容",
+    "QCReport 持久化于 StoryBeat.qcReport — QC 完成后存于 StoryBeat，新 QC 覆盖旧 report",
+    "Fallback 链式降级 — regenerate → face-swap → manual_review，不可跳过 regenerate（除非 maxRegenerateAttempts=0）",
+    "不修改原视频 — QC 仅读取视频帧，regenerate/face-swap 创建新 VideoTask",
+    "face embedding 走 @/shared/embedding 代理导出，不直接导入 @/infrastructure/embedding"
+  ]
+}

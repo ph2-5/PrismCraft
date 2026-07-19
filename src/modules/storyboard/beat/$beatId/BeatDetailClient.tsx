@@ -11,6 +11,7 @@ import { PageLoader } from "@/shared/presentation/PageLoader";
 import { Tabs } from "@/shared/presentation/Tabs";
 import type { StoryBeat, Story } from "@/domain/schemas";
 import type { VideoTask } from "@/modules/video";
+import { QCDashboardPanel } from "@/modules/video/consistency-qc";
 import { useStory } from "@/modules/storyboard/StoryProvider";
 import { useBeatDetail } from "./use-beat-detail";
 import { useBeatDetailActions } from "./use-beat-detail-actions";
@@ -125,6 +126,7 @@ function BeatDetailContent({ story, beat, task, setBeat, onUpdateBeat }: BeatDet
                   { id: "video", label: t("beat.tabVideo") },
                   { id: "details", label: t("beat.tabDetails") },
                   { id: "tech", label: t("beat.tabTech") },
+                  { id: "qc", label: t("beat.tabQC") },
                 ]}
                 activeTab={activeTab}
                 onChange={setActiveTab}
@@ -168,6 +170,12 @@ function BeatDetailContent({ story, beat, task, setBeat, onUpdateBeat }: BeatDet
                     handleModelParamsChange={handleModelParamsChange}
                     handleCopyPrompt={handleCopyPrompt}
                   />
+                </div>
+              )}
+
+              {activeTab === "qc" && (
+                <div className="space-y-4">
+                  <QCDashboardPanel report={beat.qcReport} />
                 </div>
               )}
             </div>

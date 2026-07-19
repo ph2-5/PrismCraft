@@ -12,6 +12,7 @@ import {
   shotGenerationStatusSchema,
   shotGenerationResultSchema,
   beatCameraSchema,
+  qcReportSchema,
 } from "./shot-system";
 export { beatCameraSchema };
 
@@ -240,6 +241,14 @@ export const storyBeatSchema = z.object({
   reference: shotReferenceSchema.optional(),
   featureAnchoring: featureAnchoringSchema.optional(),
   consistencyCheck: consistencyCheckResultSchema.optional(),
+  /**
+   * Task 2A.23: 一致性 QC 报告。
+   *
+   * 视频生成完成后自动触发 QC，生成 QCReport 存于此字段。
+   * 结构等价于 modules/video/consistency-qc/domain/qc-schema.ts 的 QCReport interface。
+   * QCDashboardPanel 读取此字段展示帧级相似度曲线和漂移告警。
+   */
+  qcReport: qcReportSchema.optional(),
 
   // ── Generation config ──
   fixedImage: fixedImageSchema.optional(),

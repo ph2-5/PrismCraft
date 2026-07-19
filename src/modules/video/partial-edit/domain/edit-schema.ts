@@ -114,3 +114,69 @@ export function validatePartialEditRequest(req: PartialEditRequest): PartialEdit
 export function isValidPartialEditRequest(req: PartialEditRequest): boolean {
   return validatePartialEditRequest(req).length === 0;
 }
+
+// ─── Task 2A.23: Face-swap 请求（一致性 QC 触发） ─────────────────────────────
+
+/**
+ * Face-swap 请求。
+ *
+ * 与 PartialEditRequest 的区别：
+ *   - 不要求用户提供 mask（自动构造全帧 mask）
+ *   - 必须提供 characterRefImageUrl（角色参考图，作为 face-swap 目标）
+ *   - editPrompt 由调用方传入（fallback-dispatcher 用 i18n 模板生成）
+ *
+ * 调用方：fallback-dispatcher.executeFaceSwap()
+ */
+export interface FaceSwapRequest {
+  /** 原视频 GenerationAsset ID */
+  sourceVideoAssetId: string;
+  /** 角色参考图 URL（face-swap 目标） */
+  characterRefImageUrl: string;
+  /** 角色 ID（可选，用于关联） */
+  characterId?: string;
+  /** 重绘指令（自然语言，如"替换角色面部为参考图"） */
+  editPrompt: string;
+  /** 可选：指定 providerId */
+  providerId?: string;
+  /** 可选：指定 modelId */
+  modelId?: string;
+  /** 可选：视频时长（秒） */
+  duration?: number;
+  /** 可选：关联 storyId */
+  storyId?: string;
+  /** 可选：关联 beatId */
+  beatId?: string;
+}
+
+/** Face-swap 校验错误 */
+export interface FaceSwapValidationError {
+  field: string;
+  reason: string;
+}
+
+/** 校验 FaceSwapRequest 是否合法 */
+export function validateFaceSwapRequest(req: FaceSwapRequest): FaceSwapValidationError[] {
+  const errors: FaceSwapValidationError[] = [];
+  if (!req) {
+    errors.push({ field: "request", reason: "请求对象不能为空" });
+    return errors;
+  }
+  if (!req.sourceVideoAssetId || typeof req.sourceVideoAssetId !== "string" || req.sourceVideoAssetId.trim().length === 0) {
+    errors.push({ field: "sourceVideoAssetId", reason: "必须提供原视频 Asset ID" });
+  }
+  if (!req.characterRefImageUrl || typeof req.characterRefImageUrl !== "string" || req.characterRefImageUrl.trim().length === 0) {
+    errors.push({ field: "characterRefImageUrl", reason: "必须提供角色参考图 URL" });
+  }
+  if (!req.editPrompt || typeof req.editPrompt !== "string" || req.editPrompt.trim().length === 0) {
+    errors.push({ field: "editPrompt", reason: "重绘指令不能为空" });
+  }
+  if (req.editPrompt && req.editPrompt.length > 2000) {
+    errors.push({ field: "editPrompt", reason: "重绘指令过长（超过 2000 字符）" });
+  }
+  return errors;
+}
+
+/** 检查 face-swap 请求是否合法（快捷方式） */
+export function isValidFaceSwapRequest(req: FaceSwapRequest): boolean {
+  return validateFaceSwapRequest(req).length === 0;
+}

@@ -100,10 +100,11 @@ function stubCanvas() {
 
 import {
   startPartialEditTask,
+  startFaceSwapTask,
   savePartialEditAsset,
   listPartialEditHistory,
 } from "../partial-edit-service";
-import type { PartialEditRequest } from "../../domain/edit-schema";
+import type { PartialEditRequest, FaceSwapRequest } from "../../domain/edit-schema";
 import type { MaskConfig } from "../../domain/mask-types";
 
 // ── 工厂函数 ────────────────────────────────────────────────────────────────
@@ -449,6 +450,150 @@ describe("partial-edit-service", () => {
       const result = await listPartialEditHistory("asset-source-1");
       expect(result).toEqual(mockAssets);
       expect(mockGenerationAssetStorage.getAssetsBySourceAssetId).toHaveBeenCalledWith("asset-source-1");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Task 2A.23: startFaceSwapTask — face-swap 任务创建
+  // ─────────────────────────────────────────────────────────────────────────
+  describe("startFaceSwapTask", () => {
+    function makeValidFaceSwapRequest(overrides: Partial<FaceSwapRequest> = {}): FaceSwapRequest {
+      return {
+        sourceVideoAssetId: "asset-source-1",
+        characterRefImageUrl: "https://example.com/char.jpg",
+        characterId: "char-1",
+        editPrompt: "替换角色面部为参考图",
+        providerId: "seedance",
+        modelId: "seedance-2.5",
+        duration: 5,
+        storyId: "story-1",
+        beatId: "beat-1",
+        ...overrides,
+      };
+    }
+
+    it("空 characterRefImageUrl 应返回 validation 错误", async () => {
+      const req = makeValidFaceSwapRequest({ characterRefImageUrl: "" });
+      const store = makeMockVideoTaskStore();
+      const result = await startFaceSwapTask(req, store);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.kind).toBe("validation");
+        expect(result.error.errors.some((e) => e.field === "characterRefImageUrl")).toBe(true);
+      }
+      expect(mockVideoProvider.generatePartialEdit).not.toHaveBeenCalled();
+    });
+
+    it("空 editPrompt 应返回 validation 错误", async () => {
+      const req = makeValidFaceSwapRequest({ editPrompt: "" });
+      const store = makeMockVideoTaskStore();
+      const result = await startFaceSwapTask(req, store);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.kind).toBe("validation");
+      }
+    });
+
+    it("原视频 Asset 不存在应返回 source_video_not_found 错误", async () => {
+      mockGenerationAssetStorage.getAssetById.mockResolvedValue(null);
+      const req = makeValidFaceSwapRequest();
+      const store = makeMockVideoTaskStore();
+      const result = await startFaceSwapTask(req, store);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.kind).toBe("source_video_not_found");
+      }
+    });
+
+    it("provider 未实现 generatePartialEdit 应返回 provider_not_supported 错误", async () => {
+      const providerWithoutPartial = { ...mockVideoProvider };
+      delete (providerWithoutPartial as Partial<typeof mockVideoProvider>).generatePartialEdit;
+      mockContainer.videoProvider = providerWithoutPartial as typeof mockVideoProvider;
+
+      const req = makeValidFaceSwapRequest();
+      const store = makeMockVideoTaskStore();
+      const result = await startFaceSwapTask(req, store);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.kind).toBe("provider_not_supported");
+      }
+
+      mockContainer.videoProvider = mockVideoProvider;
+    });
+
+    it("provider 调用抛出异常应返回 provider_call_failed 错误", async () => {
+      mockVideoProvider.generatePartialEdit.mockRejectedValue(new Error("face-swap API error"));
+      const req = makeValidFaceSwapRequest();
+      const store = makeMockVideoTaskStore();
+      const result = await startFaceSwapTask(req, store);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.kind).toBe("provider_call_failed");
+        expect(result.error.message).toContain("face-swap API error");
+      }
+    });
+
+    it("成功路径应创建 taskSubtype=face_swap 的 VideoTask 并附加角色参考图", async () => {
+      const req = makeValidFaceSwapRequest();
+      const store = makeMockVideoTaskStore();
+      const result = await startFaceSwapTask(req, store);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.taskId).toBe("provider-task-id");
+      }
+
+      // 验证 addTask 收到正确参数
+      expect(store.addTask).toHaveBeenCalledTimes(1);
+      const addedTask = store.addTask.mock.calls[0]![0];
+      expect(addedTask.taskId).toBe("provider-task-id");
+      expect(addedTask.taskSubtype).toBe("face_swap");
+      expect(addedTask.sourceVideoAssetId).toBe("asset-source-1");
+      expect(addedTask.maskData).toBe("SGVsbG8="); // mock canvas 返回的 base64
+      expect(addedTask.editPrompt).toBe("替换角色面部为参考图");
+      expect(addedTask.fixedImageUrl).toBe("https://example.com/char.jpg");
+      expect(addedTask.fixedImageLockType).toBe("character");
+      // prompt 应包含参考图 URL
+      expect(addedTask.prompt).toContain("https://example.com/char.jpg");
+      expect(addedTask.prompt).toContain("[Face-swap target reference image]");
+      expect(addedTask.storyId).toBe("story-1");
+      expect(addedTask.beatId).toBe("beat-1");
+      expect(addedTask.maskBounds).toBeDefined();
+      // 全帧 mask 边界应为 (0,0,1000,1000)
+      expect(addedTask.maskBounds).toEqual({ x: 0, y: 0, width: 1000, height: 1000 });
+
+      // 验证 toast 通知
+      expect(mockEmitToast).toHaveBeenCalledWith(
+        "info",
+        expect.any(String),
+        expect.any(String),
+      );
+    });
+
+    it("provider 返回空 taskId 应返回 provider_call_failed 错误", async () => {
+      mockVideoProvider.generatePartialEdit.mockResolvedValue({
+        success: true,
+        data: { taskId: "" },
+      });
+      const req = makeValidFaceSwapRequest();
+      const store = makeMockVideoTaskStore();
+      const result = await startFaceSwapTask(req, store);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.kind).toBe("provider_call_failed");
+      }
+    });
+
+    it("addTask 失败应返回 provider_call_failed 错误", async () => {
+      const store = makeMockVideoTaskStore();
+      store.addTask.mockRejectedValue(new Error("db write failed"));
+      const req = makeValidFaceSwapRequest();
+      const result = await startFaceSwapTask(req, store);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.kind).toBe("provider_call_failed");
+        expect(result.error.message).toContain("db write failed");
+      }
     });
   });
 });

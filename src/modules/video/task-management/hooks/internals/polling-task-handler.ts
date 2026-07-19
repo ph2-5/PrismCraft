@@ -8,6 +8,7 @@ import { emitToast } from "@/shared/utils/toast-bridge";
 import { t } from "@/shared/constants";
 import { withTransitionGuard } from "./transition-guard";
 import { MAX_POLL_FAILURES, MAX_POLL_DURATION } from "./polling-constants";
+import { DomainEvents } from "@/shared/event-types";
 
 export interface PollResult {
   taskUpdates: Map<string, Partial<VideoTask>>;
@@ -217,6 +218,17 @@ async function handlePollSuccess(
     result.cacheTasks.push({ taskId: task.taskId, videoUrl: data.videoUrl });
     const taskLabel = task.beatTitle || task.storyTitle || task.taskId.slice(0, 8);
     emitToast("success", t("task.videoGenerated"), t("task.videoSavingLocal", { label: taskLabel }));
+
+    // Task 2A.23: emit VIDEO_TASK_COMPLETED 事件，触发一致性 QC（异步非阻塞）
+    // 监听方：useQCTrigger hook → runQualityCheck → 生成 QCReport 存于 StoryBeat.qcReport
+    try {
+      container.eventBus.emit(DomainEvents.VIDEO_TASK_COMPLETED, {
+        taskId: task.taskId,
+        videoUrl: data.videoUrl,
+      });
+    } catch (e) {
+      errorLogger.warn("[VideoTaskManager] emit VIDEO_TASK_COMPLETED 失败", e);
+    }
   }
   const mappedStatus = mapApiStatus(data.status || "generating", data.videoUrl);
   if (!isValidTransition(task.status, mappedStatus)) {

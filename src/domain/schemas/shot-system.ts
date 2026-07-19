@@ -249,6 +249,38 @@ export const elementLibrarySchema = z.object({
   nextCode: z.record(elementTypeSchema, z.number()),
 });
 
+// ── Task 2A.23: QC Report（一致性 QC 闭环）─────────────────────────────────
+//
+// 结构等价于 src/modules/video/consistency-qc/domain/qc-schema.ts 的 QCReport interface。
+// 此处独立定义 zod schema 用于 StoryBeat.qcReport 字段持久化校验；
+// modules 层通过结构子类型兼容（TS structural typing），无需相互导入。
+export const frameScoreSchema = z.object({
+  frameIndex: z.number(),
+  timestamp: z.number(),
+  /** 余弦相似度 [0, 1]，1 = 完全一致 */
+  cosineSimilarity: z.number(),
+  faceDetected: z.boolean(),
+});
+
+export const qcVerdictSchema = z.enum(["pass", "drift_warning", "drift_critical"]);
+export const qcActionTakenSchema = z.enum(["none", "regenerated", "face_swapped", "manual_review"]);
+
+export const qcReportSchema = z.object({
+  videoTaskId: z.string(),
+  characterId: z.string().optional(),
+  totalFrames: z.number(),
+  sampledFrames: z.number(),
+  frameScores: z.array(frameScoreSchema),
+  averageScore: z.number(),
+  minScore: z.number(),
+  verdict: qcVerdictSchema,
+  actionTaken: qcActionTakenSchema,
+  createdAt: z.string(),
+  strategy: z.string().optional(),
+  retryCount: z.number().optional(),
+  error: z.string().optional(),
+});
+
 export type ElementType = z.infer<typeof elementTypeSchema>;
 export type AssetType = z.infer<typeof assetTypeSchema>;
 export type AssetBinding = z.infer<typeof assetBindingSchema>;
@@ -267,3 +299,7 @@ export type ReferenceVideoConfig = z.infer<typeof referenceVideoSchema>;
 export type TemplateConfig = z.infer<typeof templateConfigSchema>;
 export type BeatCamera = z.infer<typeof beatCameraSchema>;
 export type ElementLibrary = z.infer<typeof elementLibrarySchema>;
+export type FrameScoreData = z.infer<typeof frameScoreSchema>;
+export type QCVerdictData = z.infer<typeof qcVerdictSchema>;
+export type QCActionTakenData = z.infer<typeof qcActionTakenSchema>;
+export type QCReportData = z.infer<typeof qcReportSchema>;

@@ -24,12 +24,18 @@ import { t } from "@/shared/constants";
 import type { VideoTask } from "@/domain/schemas";
 import {
   validatePartialEditRequest,
+  validateFaceSwapRequest,
   type PartialEditRequest,
   type PartialEditResult,
+  type FaceSwapRequest,
 } from "../domain/edit-schema";
 import {
   computeMaskBounds,
+  createEmptyMaskConfig,
+  createRectangle,
+  addShape,
   isValidMaskConfig,
+  type MaskConfig,
 } from "../domain/mask-types";
 import { encodeMask, isMaskSizeValid, type MaskEncodeSuccess } from "./mask-encoder";
 import { buildPartialEditPrompt } from "./prompt-builder";
@@ -379,4 +385,250 @@ export async function listPartialEditHistory(
   sourceVideoAssetId: string,
 ): Promise<import("@/domain/schemas").GenerationAsset[]> {
   return container.generationAssetStorage.getAssetsBySourceAssetId(sourceVideoAssetId);
+}
+
+// ─── Task 2A.23: Face-swap 实现 ─────────────────────────────────────────────
+
+/**
+ * 全帧 mask 的默认边界（覆盖整个画面）。
+ *
+ * face-swap 不知道角色面部在画面中的具体位置，所以采用全帧 mask：
+ *   - 让 provider 在整段视频上做面部替换
+ *   - preserveUnmasked=true 保证非面部区域（背景、服装）不变
+ *
+ * 这里的数值是相对坐标系（0-1000），mask-encoder 会按视频实际尺寸缩放。
+ */
+const FULL_FRAME_MASK_BOUNDS = { x: 0, y: 0, width: 1000, height: 1000 };
+
+/**
+ * 构造全帧 mask（用于 face-swap）。
+ *
+ * face-swap 不要求用户提供 mask，自动构造一个覆盖整个画面的矩形 mask。
+ * 这样 provider.generatePartialEdit 会对整段视频应用 face-swap prompt，
+ * 配合 preserveUnmasked=true 保护背景。
+ */
+function buildFullFrameMask(videoTimestamp: number = 0): MaskConfig {
+  const empty = createEmptyMaskConfig(videoTimestamp);
+  return addShape(empty, createRectangle(
+    FULL_FRAME_MASK_BOUNDS.x,
+    FULL_FRAME_MASK_BOUNDS.y,
+    FULL_FRAME_MASK_BOUNDS.width,
+    FULL_FRAME_MASK_BOUNDS.height,
+  ));
+}
+
+/**
+ * Task 2A.23: 启动 face-swap 任务。
+ *
+ * 与 startPartialEditTask 的区别：
+ *   1. 自动构造全帧 mask（调用方不需要传 mask）
+ *   2. taskSubtype='face_swap'（UI 分组显示）
+ *   3. 在 prompt 中附加角色参考图 URL，让 provider 知道用什么图替换面部
+ *   4. 仅在 drift_critical 时由 fallback-dispatcher 调用
+ *
+ * 复用 provider.generatePartialEdit — 不引入新 provider 接口。
+ *
+ * @param request face-swap 请求
+ * @param videoTaskStore VideoTaskManager store（用于 addTask）
+ * @returns 成功返回 { taskId }，失败返回错误
+ */
+export async function startFaceSwapTask(
+  request: FaceSwapRequest,
+  videoTaskStore: {
+    addTask: (task: Omit<VideoTask, "progress" | "createdAt">) => Promise<VideoTask>;
+  },
+): Promise<{ ok: true; value: { taskId: string } } | { ok: false; error: PartialEditServiceError }> {
+  // ── Step 1: 校验请求 ──────────────────────────────────────────────────────
+  const validationErrors = validateFaceSwapRequest(request);
+  if (validationErrors.length > 0) {
+    return {
+      ok: false,
+      error: {
+        kind: "validation",
+        message: "FaceSwapRequest 校验失败",
+        errors: validationErrors,
+      },
+    };
+  }
+
+  // ── Step 2: 构造全帧 mask ─────────────────────────────────────────────────
+  const mask: MaskConfig = buildFullFrameMask(request.duration ?? 0);
+  if (!isValidMaskConfig(mask)) {
+    return {
+      ok: false,
+      error: {
+        kind: "validation",
+        message: "自动构造的全帧 mask 无效",
+        errors: [{ field: "mask", reason: "MaskConfig 无效" }],
+      },
+    };
+  }
+
+  // ── Step 3: 编码 mask 为 base64 PNG ────────────────────────────────────────
+  const maskEncodeResult = await encodeMask(mask);
+  if (!maskEncodeResult.ok) {
+    return {
+      ok: false,
+      error: {
+        kind: "mask_encode",
+        message: maskEncodeResult.error.message,
+      },
+    };
+  }
+  const encodedMask: MaskEncodeSuccess = maskEncodeResult.value;
+
+  // ── Step 4: 校验 mask 大小 ────────────────────────────────────────────────
+  if (!isMaskSizeValid(encodedMask.base64)) {
+    const sizeBytes = Math.ceil(encodedMask.base64.length * 3 / 4);
+    return {
+      ok: false,
+      error: {
+        kind: "mask_too_large",
+        message: `Mask PNG 体积过大（${(sizeBytes / 1024).toFixed(1)}KB），超过 1MB 限制`,
+        sizeBytes,
+        maxBytes: 1024 * 1024,
+      },
+    };
+  }
+
+  // ── Step 5: 获取原视频 URL ─────────────────────────────────────────────────
+  const sourceVideoUrl = await getSourceVideoUrl(request.sourceVideoAssetId);
+  if (!sourceVideoUrl) {
+    return {
+      ok: false,
+      error: {
+        kind: "source_video_not_found",
+        message: `原视频 Asset 不存在：${request.sourceVideoAssetId}`,
+        sourceVideoAssetId: request.sourceVideoAssetId,
+      },
+    };
+  }
+
+  // ── Step 6: 构建完整 prompt（附加角色参考图 URL） ──────────────────────────
+  // face-swap prompt 在用户指令基础上附加参考图 URL，让 provider 知道目标面部
+  const faceSwapPromptSuffix = `[Face-swap target reference image]: ${request.characterRefImageUrl}`;
+  const fullPrompt = buildPartialEditPrompt(request.editPrompt, {
+    strictness: "strict",
+    preserveUnmasked: true,
+    duration: request.duration,
+  });
+  const finalPrompt = `${fullPrompt}\n${faceSwapPromptSuffix}`;
+
+  // ── Step 7: 检查 provider 是否支持 generatePartialEdit ──────────────────────
+  const provider = container.videoProvider;
+  if (typeof provider.generatePartialEdit !== "function") {
+    return {
+      ok: false,
+      error: {
+        kind: "provider_not_supported",
+        message: "当前 videoProvider 不支持 generatePartialEdit（face-swap 需要 supportsPartialEdit=true 的模型）",
+        providerId: request.providerId,
+      },
+    };
+  }
+
+  // ── Step 8: 调用 provider.generatePartialEdit ──────────────────────────────
+  let providerResult;
+  try {
+    providerResult = await provider.generatePartialEdit({
+      sourceVideoUrl,
+      maskBase64: encodedMask.base64,
+      prompt: finalPrompt,
+      videoTimestamp: 0, // 全帧 mask，timestamp 无意义
+      preserveUnmasked: true,
+      providerId: request.providerId,
+      modelId: request.modelId,
+      duration: request.duration,
+    });
+  } catch (e) {
+    return {
+      ok: false,
+      error: {
+        kind: "provider_call_failed",
+        message: e instanceof Error ? e.message : String(e),
+        cause: e,
+      },
+    };
+  }
+
+  if (!providerResult.success || !providerResult.data) {
+    return {
+      ok: false,
+      error: {
+        kind: "provider_call_failed",
+        message: providerResult.error || "Provider 返回失败结果",
+      },
+    };
+  }
+
+  // ── Step 9: 校验 taskId 合法性 ────────────────────────────────────────────
+  const taskId = providerResult.data.taskId;
+  if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
+    return {
+      ok: false,
+      error: {
+        kind: "provider_call_failed",
+        message: `Provider 返回的 taskId 无效：${taskId}`,
+      },
+    };
+  }
+
+  // ── Step 10: 计算 maskBounds ────────────────────────────────────────────────
+  const maskBounds = computeMaskBounds(mask);
+
+  // ── Step 11: 创建 VideoTask（taskSubtype='face_swap'） ──────────────────────
+  const newTask: Omit<VideoTask, "progress" | "createdAt"> = {
+    taskId,
+    status: "pending",
+    message: t("video.qcFaceSwapStarted"),
+    // Task 2A.23: face-swap 子类型
+    taskSubtype: "face_swap",
+    sourceVideoAssetId: request.sourceVideoAssetId,
+    maskData: encodedMask.base64,
+    maskBounds: maskBounds ?? undefined,
+    editPrompt: request.editPrompt,
+    // provider 信息
+    prompt: finalPrompt,
+    providerId: providerResult.data.providerId ?? request.providerId,
+    providerModelId: providerResult.data.providerModelId ?? request.modelId,
+    providerFormat: providerResult.data.providerFormat,
+    // 关联信息
+    storyId: request.storyId,
+    beatId: request.beatId,
+    // Task 2A.23: 角色 face-swap 元数据
+    fixedImageUrl: request.characterRefImageUrl,
+    fixedImageLockType: "character",
+  };
+
+  let createdTask: VideoTask;
+  try {
+    createdTask = await videoTaskStore.addTask(newTask);
+  } catch (e) {
+    return {
+      ok: false,
+      error: {
+        kind: "provider_call_failed",
+        message: `添加 VideoTask 失败：${e instanceof Error ? e.message : String(e)}`,
+        cause: e,
+      },
+    };
+  }
+
+  // ── Step 12: 发出 toast 通知 ──────────────────────────────────────────────
+  emitToast(
+    "info",
+    t("video.qcFaceSwapTitle"),
+    t("video.qcFaceSwapDetail"),
+  );
+
+  if (providerResult.data.promptWasTruncated) {
+    errorLogger.warn(
+      `[partial-edit-service] face-swap 提示词已被截断，原始长度: ${providerResult.data.originalPromptLength} 字符`,
+    );
+  }
+
+  return {
+    ok: true,
+    value: { taskId: createdTask.taskId },
+  };
 }

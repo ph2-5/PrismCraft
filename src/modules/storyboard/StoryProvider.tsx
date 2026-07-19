@@ -13,6 +13,7 @@ import { errorLogger } from "@/shared/error-logger";
 import { useAppStore } from "@/shared/app-store";
 import { container } from "@/infrastructure/di";
 import { useVideoTaskManager } from "@/modules/video";
+import { useQCTrigger } from "@/modules/video/consistency-qc";
 import { storyService } from "@/modules/storyboard";
 import { characterService } from "@/modules/character";
 import { sceneService } from "@/modules/scene";
@@ -63,6 +64,19 @@ function useStoryContext(): StoryContextValue {
   );
 
   const videoTaskManager = useVideoTaskManager();
+
+  // Task 2A.23: 为 useQCTrigger 提供稳定的 tasksRef
+  //（避免 useEffect 依赖频繁变化导致事件订阅反复重建）
+  const tasksRef = useRef(videoTaskManager.tasks);
+  tasksRef.current = videoTaskManager.tasks;
+
+  // Task 2A.23: 订阅 VIDEO_TASK_COMPLETED 事件，触发一致性 QC
+  // QCReport 通过 storyState.updateBeat 写回 StoryBeat.qcReport
+  useQCTrigger({
+    beatsRef: storyState.beatsRef,
+    tasksRef,
+    onReportReady: (beatId, report) => storyState.updateBeat(beatId, { qcReport: report }),
+  });
 
   // Derive activeVideoTaskCount without depending on the full tasks array
   const activeVideoTaskCount = useMemo(

@@ -143,7 +143,14 @@ export interface UseNovelPipelineResult {
   // Task 2A.13 故事结构分析状态
   /** AI 识别的叙事 beats + 情绪曲线 + 整体节奏（professional 模式） */
   storyStructure: StoryStructure | null;
-  /** AI 提取的 StoryTreatment（v5.3 增强） */
+  /**
+   * AI 提取的 StoryTreatment（v5.3 增强）。
+   *
+   * TODO(Task 2A.16): 当前 treatment 仅作为 buildShotContractsForBeats 的可选输入，
+   * 未在 UI 展示。三档模式完整实现时，应新建 TreatmentPanel 组件展示
+   * logline/theme/tone/characterArcs/settingDescription，让用户可编辑后回传。
+   * StoryPipelineShell 也需解构 treatment 并传递给 MainWorkArea。
+   */
   treatment: StoryTreatment | null;
   /** 每个 beat 产出的 ShotContract 列表（v5.3 增强） */
   shotContracts: ShotContract[];
@@ -598,7 +605,15 @@ export function useNovelPipeline({
             );
             if (!isMountedRef.current) return;
             // buildShotContractsForBeats 返回 { success, data, errors }，提取 data
+            // data 始终是数组（即使所有 beat 失败也是空数组），直接 set 安全
             setShotContracts(contractsResult.data);
+            // L-2 修复：部分 beat 构建失败时记录日志，便于排查 AI 调用问题
+            if (contractsResult.errors.length > 0) {
+              errorLogger.warn(
+                "[useNovelPipeline] buildShotContractsForBeats 部分 beat 失败",
+                new Error(contractsResult.errors.join("; ")),
+              );
+            }
           } catch (err) {
             // P1-3: ShotContract 构建失败不阻塞流程，记录日志
             errorLogger.warn("[useNovelPipeline] buildShotContractsForBeats 失败，跳过镜头契约生成", err);
@@ -1039,6 +1054,8 @@ export function useNovelPipeline({
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(async () => {
+      // L-1 修复：组件卸载后不再 setState（与 isMountedRef 模式保持一致）
+      if (!isMountedRef.current) return;
       try {
         const storage = container.novelProjectStorage;
         const title =
@@ -1053,6 +1070,7 @@ export function useNovelPipeline({
             rawText: state.rawText,
             state,
           });
+          if (!isMountedRef.current) return;
           setCurrentProjectId(id);
         } else {
           // 已有项目：更新
@@ -1062,10 +1080,13 @@ export function useNovelPipeline({
             state,
           });
         }
+        if (!isMountedRef.current) return;
         setLastSavedAt(Date.now());
       } catch (err) {
         // P1-3: 自动保存失败不阻塞 UI，下次 state 变化时会重试，记录日志
-        errorLogger.warn("[useNovelPipeline] 自动保存失败，下次 state 变化时会重试", err);
+        if (isMountedRef.current) {
+          errorLogger.warn("[useNovelPipeline] 自动保存失败，下次 state 变化时会重试", err);
+        }
       }
     }, 2000);
 

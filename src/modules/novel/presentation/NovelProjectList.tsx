@@ -79,6 +79,9 @@ export function NovelProjectList({
       //                  Tailwind utilities 在 @layer utilities 中，可设置 width；
       //                  max-width: 500px 来自 unlayered CSS 仍约束上限，
       //                  实际宽度 = min(100vw-2rem, 500px)，配合 max-h-[80vh] 形成安全边界
+      // 第 10 轮审计修复：补充层级关系说明——unlayered CSS 优先级高于 @layer utilities，
+      //                  所以 Tailwind max-w-* 会被 .modal max-width: 500px 击败（除非用 ! 前缀）；
+      //                  但 width 与 max-width 是不同属性，互不冲突，两者都生效
       className="max-h-[80vh] flex flex-col w-[calc(100vw-2rem)]"
     >
       <div className="card w-full flex-1 min-h-0 flex flex-col !p-0">

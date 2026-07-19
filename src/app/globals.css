@@ -398,9 +398,12 @@
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; animation: fadeIn 0.15s; }
 /* 第 8 轮审计修复：min-width 改为响应式，窄屏（<400px）移除约束避免溢出 */
 /* 第 9 轮审计修复：400px 断点说明 — 不属于 Tailwind 默认断点（sm:640/md:768/lg:1024），
-   此处为自定义断点，专门覆盖 iPhone SE (375px) / Android 主流窄屏 (360px) / Galaxy Fold 折叠外屏 (340px)。
-   选择 400px 是因为这些设备视口宽度都 < 400px，且 modal 需要 ~32px 两侧 padding/margin，
-   在 360px-399px 视口下 min-width:360px 仍能避免溢出（modal-box 360px + 容器 0 padding ≈ 视口）。 */
+   此处为自定义断点，专门覆盖 iPhone SE (375px) / Android 主流窄屏 (360px) / Galaxy Z Fold 外屏 (~360px)。
+   第 10 轮审计修复：澄清 min-width 行为——
+   - 视口 < 400px：min-width: 0（默认值），允许 modal 收缩到视口宽度避免溢出
+   - 视口 ≥ 400px：min-width: 360px 生效，提供可用性下限
+   选择 400px 而非 360px：在 360-399px 视口下若强制 360px min-width，加上 .modal-overlay 居中布局，
+   modal 会贴边无 margin，视觉上挤压。400px 以上才启用 360px 最小宽度，留出 ~20-40px 安全边距。 */
 .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-width: 0; max-width: 500px; }
 @media (min-width: 400px) {
   .modal { min-width: 360px; }

@@ -88,8 +88,12 @@ export function ShotBreakdownList({
             // 第 7 轮审计修复：回退到固定值，避免 "auto Npx" 在早期浏览器上整体声明被丢弃
             // 第 8 轮审计修复：值从 160px 调整为 220px，匹配 ShotCard 完整状态高度（220-260px）
             // 第 9 轮审计修复：折衷到 180px，避免 draft 状态（50-100px）与完整状态（220-260px）混合时滚动条跳变
-            //                  180px 是 draft (≈75px) 与完整 (≈240px) 的几何均值，单卡片误差 ≤60px
-            style={{ contentVisibility: "auto", containIntrinsicSize: "180px" }}
+            // 第 10 轮审计修复：按 shot.status 动态调整，避免 draft(≈75px) 在 180px 预留下产生 105px 跳变
+            //                  draft: 80px（误差≤5px），edited: 150px（折衷），final: 220px（误差≤20px）
+            style={{
+              contentVisibility: "auto",
+              containIntrinsicSize: shot.status === "draft" ? "80px" : shot.status === "edited" ? "150px" : "220px",
+            }}
           >
             {/* 拖拽手柄 + 上下移动按钮 */}
             <div className="flex flex-col shrink-0">

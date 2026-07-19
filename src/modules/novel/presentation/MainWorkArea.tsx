@@ -4,6 +4,7 @@
  * 根据 PipelineState.stage 渲染对应 Phase 内容：
  * - project_init / content_import(空) → ImportStep（文本导入）
  * - content_import(有文本) → SegmentList（段落列表）
+ * - structure_analysis → StructureAnalysisPanel + ShotContractPanel（Task 2A.13，professional 模式专属）
  * - character_manage / scene_manage → EntityReviewPanel（角色/场景审查）
  * - review / storyboard → ShotBreakdownList（分镜列表）
  * - generation → FinalizePanel（最终确认导入）
@@ -15,11 +16,14 @@
 import { CheckCircle2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { PipelineState, ShotBreakdown, ExtractedCharacter, ExtractedScene } from "../domain/types";
+import type { StoryStructure, ShotContract, NarrativeBeat } from "../structure";
 import { ImportStep } from "./ImportStep";
 import { SegmentList } from "./SegmentList";
 import { EntityReviewPanel } from "./EntityReviewPanel";
 import { ShotBreakdownList } from "./ShotBreakdownList";
 import { FinalizePanel } from "./FinalizePanel";
+import { StructureAnalysisPanel } from "./StructureAnalysisPanel";
+import { ShotContractPanel } from "./ShotContractPanel";
 
 export interface MainWorkAreaProps {
   state: PipelineState;
@@ -29,10 +33,14 @@ export interface MainWorkAreaProps {
   isImporting: boolean;
   showImportStep: boolean;
   showSegmentList: boolean;
+  showStructureAnalysis: boolean;
   showEntityReview: boolean;
   showShotBreakdown: boolean;
   showFinalize: boolean;
   isDone: boolean;
+  // Task 2A.13 故事结构分析状态
+  storyStructure: StoryStructure | null;
+  shotContracts: ShotContract[];
   // Handlers
   onImport: (text: string) => void;
   onToggle: (id: string) => void;
@@ -46,6 +54,9 @@ export interface MainWorkAreaProps {
   onReorderShots: (from: number, to: number) => void;
   onGeneratePrompts: () => void;
   onFinalizeImport: () => void;
+  // Task 2A.13 Structure handlers
+  onBeatsChange: (beats: NarrativeBeat[]) => void;
+  onShotContractsChange: (contracts: ShotContract[]) => void;
 }
 
 export function MainWorkArea({
@@ -56,10 +67,13 @@ export function MainWorkArea({
   isImporting,
   showImportStep,
   showSegmentList,
+  showStructureAnalysis,
   showEntityReview,
   showShotBreakdown,
   showFinalize,
   isDone,
+  storyStructure,
+  shotContracts,
   onImport,
   onToggle,
   onSelectAll,
@@ -72,6 +86,8 @@ export function MainWorkArea({
   onReorderShots,
   onGeneratePrompts,
   onFinalizeImport,
+  onBeatsChange,
+  onShotContractsChange,
 }: MainWorkAreaProps) {
   return (
     <main className="flex-1 min-w-0 overflow-y-auto p-6 bg-background" aria-label={t("novel.shell.mainWorkArea")}>
@@ -89,6 +105,20 @@ export function MainWorkArea({
           onToggle={onToggle}
           onSelectAll={onSelectAll}
         />
+      ) : showStructureAnalysis ? (
+        // Task 2A.13：professional 模式专属 — 叙事结构分析 + 镜头契约编辑
+        <div className="flex flex-col gap-6">
+          <StructureAnalysisPanel
+            structure={storyStructure}
+            onBeatsChange={onBeatsChange}
+            isProcessing={isProcessing}
+          />
+          <ShotContractPanel
+            contracts={shotContracts}
+            beats={storyStructure?.beats ?? []}
+            onChange={onShotContractsChange}
+          />
+        </div>
       ) : showEntityReview ? (
         <EntityReviewPanel
           characters={state.characters}

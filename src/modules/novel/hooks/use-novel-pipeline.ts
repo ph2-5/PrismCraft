@@ -55,9 +55,35 @@ import {
 } from "../tools";
 import type { ToolContext } from "@/domain/types/agent-tools";
 import type { StoryBeat } from "@/domain/schemas";
+// Task 2A.13 接入 structure 子域
+import {
+  analyzeStoryStructure,
+  extractTreatment,
+  buildShotContractsForBeats,
+  recalculateStoryStructure,
+  type StoryStructure,
+  type StoryTreatment,
+  type ShotContract,
+  type NarrativeBeat,
+  type GenerateTextFn,
+} from "../structure";
 
 /** Novel 工具调用时使用的最小 ToolContext（无取消信号、无进度回调） */
 const NOVEL_TOOL_CTX: ToolContext = { sessionId: "novel-pipeline" };
+
+/**
+ * Task 2A.13：将 container.textProvider.generateText 适配为 structure 子域所需的 GenerateTextFn 签名。
+ *
+ * GenerateTextFn 期望返回 { success, data?: { text }, error? }，
+ * 与 ApiResponse<{ text: string }> 结构兼容，直接透传。
+ */
+function createGenerateTextFn(): GenerateTextFn {
+  return (prompt, options) =>
+    container.textProvider.generateText(prompt, {
+      maxTokens: options?.maxTokens,
+      temperature: options?.temperature,
+    });
+}
 
 /** 默认 PipelineConfig */
 function makeDefaultConfig(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
@@ -114,12 +140,21 @@ export interface UseNovelPipelineResult {
   isProcessing: boolean;
   isImporting: boolean;
   shots: ShotBreakdown[];
+  // Task 2A.13 故事结构分析状态
+  /** AI 识别的叙事 beats + 情绪曲线 + 整体节奏（professional 模式） */
+  storyStructure: StoryStructure | null;
+  /** AI 提取的 StoryTreatment（v5.3 增强） */
+  treatment: StoryTreatment | null;
+  /** 每个 beat 产出的 ShotContract 列表（v5.3 增强） */
+  shotContracts: ShotContract[];
   // 派生数据
   stagesForMode: PipelineStage[];
   canProceed: boolean;
   // 派生渲染标志
   showImportStep: boolean;
   showSegmentList: boolean;
+  /** Task 2A.13：是否显示叙事结构分析面板（professional 模式专属） */
+  showStructureAnalysis: boolean;
   showEntityReview: boolean;
   showShotBreakdown: boolean;
   showFinalize: boolean;
@@ -150,6 +185,11 @@ export interface UseNovelPipelineResult {
   handleAutoRun: () => void;
   /** 设置当前段落索引（SegmentNavColumn 使用） */
   setCurrentSegmentIndex: (index: number) => void;
+  // Task 2A.13 Structure 面板 handlers
+  /** 用户在 StructureAnalysisPanel 编辑 beats 后回调 */
+  handleBeatsChange: (beats: NarrativeBeat[]) => void;
+  /** 用户在 ShotContractPanel 编辑 contracts 后回调 */
+  handleShotContractsChange: (contracts: ShotContract[]) => void;
   // Task 2A.7 持久化 handlers
   /** 恢复指定项目（从 DB 加载 PipelineState） */
   recoverProject: (id: string) => Promise<void>;
@@ -303,6 +343,14 @@ export function useNovelPipeline({
   const [isImporting, setIsImporting] = useState(false);
   const [shots, setShots] = useState<ShotBreakdown[]>([]);
 
+  // === Task 2A.13 故事结构分析 state ===
+  // storyStructure: AI 识别的叙事 beats + 情绪曲线 + 整体节奏
+  // treatment: AI 提取的 StoryTreatment（logline/theme/tone/characterArcs/setting）
+  // shotContracts: 每个 beat 产出的 1-3 个 ShotContract（v5.3 增强）
+  const [storyStructure, setStoryStructure] = useState<StoryStructure | null>(null);
+  const [treatment, setTreatment] = useState<StoryTreatment | null>(null);
+  const [shotContracts, setShotContracts] = useState<ShotContract[]>([]);
+
   // === Task 2A.7 持久化状态 ===
   const [pendingRecoveryProjects, setPendingRecoveryProjects] = useState<NovelProject[]>([]);
   const [isLoadingRecovery, setIsLoadingRecovery] = useState(true);
@@ -410,6 +458,10 @@ export function useNovelPipeline({
         return state.rawText.trim().length > 0;
       case "content_import":
         return selectedSegmentIds.length > 0;
+      case "structure_analysis":
+        // Task 2A.13：professional 模式经过此阶段，AI 识别 beats 后允许下一步
+        // 失败时 storyStructure 为 null，但仍允许跳过到 character_manage（不阻塞流程）
+        return true;
       case "character_manage":
       case "scene_manage":
         return (
@@ -432,10 +484,43 @@ export function useNovelPipeline({
   const handleNext = useCallback(async () => {
     if (!canProceed) return;
 
-    // 特殊处理：content_import → character_manage 需要先提取角色和场景
+    // 特殊处理：content_import → structure_analysis（professional）或 character_manage（quick/standard）
     if (state.stage === "content_import") {
       setIsProcessing(true);
       try {
+        // Task 2A.13：professional 模式先进入 structure_analysis
+        // 调用 analyzeStoryStructure 识别叙事 beats；失败时不阻塞，storyStructure 保持 null
+        if (state.config.aiAssistLevel === "professional") {
+          const generateTextFn = createGenerateTextFn();
+          try {
+            const result = await analyzeStoryStructure(
+              state.segments,
+              generateTextFn,
+            );
+            if (!isMountedRef.current) return;
+            // analyzeStoryStructure 返回 { success, data? | error? }，提取 data
+            setStoryStructure(result.success ? result.data : null);
+            if (!result.success) {
+              errorLogger.warn(
+                "[useNovelPipeline] analyzeStoryStructure 返回失败，storyStructure 设为 null",
+                new Error(result.error),
+              );
+            }
+          } catch (err) {
+            // P1-3: 结构分析失败不阻塞流程，记录日志，storyStructure 保持 null
+            errorLogger.warn("[useNovelPipeline] analyzeStoryStructure 失败，跳过结构分析阶段", err);
+            setStoryStructure(null);
+          }
+
+          setState((prev) =>
+            canTransition(prev.stage, "structure_analysis")
+              ? transition(prev, "structure_analysis")
+              : prev,
+          );
+          return;
+        }
+
+        // quick/standard 模式：直接提取角色/场景并进入 character_manage（原行为）
         const result = await extractAndMatchEntities(
           state.rawText,
           () => isMountedRef.current,
@@ -458,6 +543,85 @@ export function useNovelPipeline({
               }
             : prev,
         );
+      } finally {
+        if (isMountedRef.current) setIsProcessing(false);
+      }
+      return;
+    }
+
+    // 特殊处理：structure_analysis → character_manage（Task 2A.13）
+    // professional 模式专属：先生成 Treatment + ShotContract（v5.3 增强），再提取角色/场景
+    if (state.stage === "structure_analysis") {
+      setIsProcessing(true);
+      try {
+        const generateTextFn = createGenerateTextFn();
+
+        // 并行：1) 提取 Treatment（v5.3） 2) 提取角色/场景（与 content_import → character_manage 一致）
+        // extractTreatment 签名：(segments, generateTextFn, characters?)
+        const [treatmentResult, entityResult] = await Promise.allSettled([
+          extractTreatment(state.segments, generateTextFn, state.characters),
+          extractAndMatchEntities(state.rawText, () => isMountedRef.current),
+        ]);
+
+        if (!isMountedRef.current) return;
+
+        // 处理 Treatment 结果
+        // extractTreatment 返回 { success, data? | error? }，提取 data
+        let treatmentData: StoryTreatment | null = null;
+        if (treatmentResult.status === "fulfilled" && treatmentResult.value.success) {
+          treatmentData = treatmentResult.value.data;
+          setTreatment(treatmentData);
+        } else {
+          // Treatment 失败或被 reject：保持 null，不阻塞流程
+          setTreatment(null);
+        }
+
+        // Treatment 成功后，尝试为每个 beat 构建 ShotContract（v5.3 增强）
+        // buildShotContractsForBeats 签名：(beats, segments, generateTextFn, treatment?)
+        // 单个 beat 失败不阻塞，buildShotContractsForBeats 内部已容错
+        if (treatmentData && storyStructure && storyStructure.beats.length > 0) {
+          try {
+            const contractsResult = await buildShotContractsForBeats(
+              storyStructure.beats,
+              state.segments,
+              generateTextFn,
+              treatmentData,
+            );
+            if (!isMountedRef.current) return;
+            // buildShotContractsForBeats 返回 { success, data, errors }，提取 data
+            setShotContracts(contractsResult.data);
+          } catch (err) {
+            // P1-3: ShotContract 构建失败不阻塞流程，记录日志
+            errorLogger.warn("[useNovelPipeline] buildShotContractsForBeats 失败，跳过镜头契约生成", err);
+            setShotContracts([]);
+          }
+        }
+
+        // 处理角色/场景提取结果
+        if (entityResult.status === "fulfilled" && entityResult.value) {
+          const newCharacters: CharacterInPipeline[] = entityResult.value.characters.map((c) => ({
+            ...c,
+            variants: [],
+          }));
+          const newScenes: SceneInPipeline[] = entityResult.value.scenes.map((s) => ({ ...s, variants: [] }));
+
+          setState((prev) =>
+            canTransition(prev.stage, "character_manage")
+              ? {
+                  ...transition(prev, "character_manage"),
+                  characters: newCharacters,
+                  scenes: newScenes,
+                }
+              : prev,
+          );
+        } else {
+          // 提取失败：仅转换 stage，保留空 characters/scenes（用户可手动添加）
+          setState((prev) =>
+            canTransition(prev.stage, "character_manage")
+              ? transition(prev, "character_manage")
+              : prev,
+          );
+        }
       } finally {
         if (isMountedRef.current) setIsProcessing(false);
       }
@@ -519,7 +683,7 @@ export function useNovelPipeline({
           return prev;
       }
     });
-  }, [canProceed, state.stage, state.rawText, state.segments, state.characters, selectedSegmentIds]);
+  }, [canProceed, state.stage, state.rawText, state.segments, state.characters, state.config.aiAssistLevel, selectedSegmentIds, storyStructure]);
 
   // === EntityReviewPanel handlers ===
 
@@ -664,6 +828,37 @@ export function useNovelPipeline({
       }),
     );
   }, []);
+
+  // === Task 2A.13 Structure 面板 handlers ===
+
+  /**
+   * 用户在 StructureAnalysisPanel 编辑 beats 后回调。
+   *
+   * 接收新的 beats 数组，使用 recalculateStoryStructure 重新计算
+   * position/emotionCurve/overallPacing/climaxPosition（保持衍生数据一致性），
+   * 然后更新 storyStructure state。
+   */
+  const handleBeatsChange = useCallback(
+    (beats: NarrativeBeat[]) => {
+      // 重新计算衍生字段，确保 emotionCurve / climaxPosition / overallPacing 与新 beats 一致
+      // 即使 storyStructure 为 null（结构分析失败的场景），也允许基于空结构重建
+      const recalculated = recalculateStoryStructure(beats, state.segments);
+      setStoryStructure(recalculated);
+    },
+    [state.segments],
+  );
+
+  /**
+   * 用户在 ShotContractPanel 编辑单个 contract 后回调。
+   *
+   * 通过 contract.id 找到对应项并合并更新；其余 contract 保持不变。
+   */
+  const handleShotContractsChange = useCallback(
+    (contracts: ShotContract[]) => {
+      setShotContracts(contracts);
+    },
+    [],
+  );
 
   // === FinalizePanel handlers ===
 
@@ -943,6 +1138,8 @@ export function useNovelPipeline({
     state.stage === "project_init" ||
     (state.stage === "content_import" && state.rawText.length === 0);
   const showSegmentList = state.stage === "content_import" && state.rawText.length > 0;
+  // Task 2A.13：professional 模式专属 — 显示叙事结构分析面板
+  const showStructureAnalysis = state.stage === "structure_analysis";
   const showEntityReview =
     state.stage === "character_manage" || state.stage === "scene_manage";
   const showShotBreakdown = state.stage === "review" || state.stage === "storyboard";
@@ -955,10 +1152,15 @@ export function useNovelPipeline({
     isProcessing,
     isImporting,
     shots,
+    // Task 2A.13 故事结构分析状态
+    storyStructure,
+    treatment,
+    shotContracts,
     stagesForMode,
     canProceed,
     showImportStep,
     showSegmentList,
+    showStructureAnalysis,
     showEntityReview,
     showShotBreakdown,
     showFinalize,
@@ -983,6 +1185,9 @@ export function useNovelPipeline({
     handleFinalizeImport,
     handleAutoRun,
     setCurrentSegmentIndex,
+    // Task 2A.13 Structure 面板 handlers
+    handleBeatsChange,
+    handleShotContractsChange,
     // Task 2A.7 持久化 handlers
     recoverProject,
     dismissRecovery,

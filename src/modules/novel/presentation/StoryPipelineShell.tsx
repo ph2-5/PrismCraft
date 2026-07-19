@@ -39,10 +39,14 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     selectedSegmentIds,
     isProcessing,
     isImporting,
+    // Task 2A.13 故事结构分析状态
+    storyStructure,
+    shotContracts,
     stagesForMode,
     canProceed,
     showImportStep,
     showSegmentList,
+    showStructureAnalysis,
     showEntityReview,
     showShotBreakdown,
     showFinalize,
@@ -66,6 +70,9 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     handleFinalizeImport,
     handleAutoRun,
     setCurrentSegmentIndex,
+    // Task 2A.13 Structure handlers
+    handleBeatsChange,
+    handleShotContractsChange,
     recoverProject,
     dismissRecovery,
     deletePendingProject,
@@ -117,10 +124,13 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
           isImporting={isImporting}
           showImportStep={showImportStep}
           showSegmentList={showSegmentList}
+          showStructureAnalysis={showStructureAnalysis}
           showEntityReview={showEntityReview}
           showShotBreakdown={showShotBreakdown}
           showFinalize={showFinalize}
           isDone={isDone}
+          storyStructure={storyStructure}
+          shotContracts={shotContracts}
           onImport={handleImport}
           onToggle={handleToggle}
           onSelectAll={handleSelectAll}
@@ -133,6 +143,8 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
           onReorderShots={handleReorderShots}
           onGeneratePrompts={handleGeneratePrompts}
           onFinalizeImport={handleFinalizeImport}
+          onBeatsChange={handleBeatsChange}
+          onShotContractsChange={handleShotContractsChange}
         />
         <ContextPanel state={state} shotCount={shots.length} />
       </div>

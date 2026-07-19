@@ -383,6 +383,11 @@ export function useNovelPipeline({
   // === Handlers ===
 
   const handleImport = useCallback(async (text: string) => {
+    // H-1 修复：新项目导入时清空 structure 子域 state，避免上一次会话残留数据泄漏
+    setStoryStructure(null);
+    setTreatment(null);
+    setShotContracts([]);
+
     setState((prev) => {
       const next = canTransition(prev.stage, "content_import")
         ? transition(prev, "content_import")
@@ -492,6 +497,10 @@ export function useNovelPipeline({
         // 调用 analyzeStoryStructure 识别叙事 beats；失败时不阻塞，storyStructure 保持 null
         if (state.config.aiAssistLevel === "professional") {
           const generateTextFn = createGenerateTextFn();
+          // M-3 修复：进入 structure_analysis 前清空 treatment/shotContracts
+          // 避免用户从 structure_analysis 回退到 content_import 重试时残留旧数据
+          setTreatment(null);
+          setShotContracts([]);
           try {
             const result = await analyzeStoryStructure(
               state.segments,
@@ -836,12 +845,14 @@ export function useNovelPipeline({
    *
    * 接收新的 beats 数组，使用 recalculateStoryStructure 重新计算
    * position/emotionCurve/overallPacing/climaxPosition（保持衍生数据一致性），
-   * 然后更新 storyStructure state。
+   * 然后整体替换 storyStructure state。
+   *
+   * 前置条件：StructureAnalysisPanel 仅在 structure !== null && beats.length > 0
+   * 时才允许编辑（空状态显示 EmptyState），因此本回调被调用时 structure 必然非空。
    */
   const handleBeatsChange = useCallback(
     (beats: NarrativeBeat[]) => {
       // 重新计算衍生字段，确保 emotionCurve / climaxPosition / overallPacing 与新 beats 一致
-      // 即使 storyStructure 为 null（结构分析失败的场景），也允许基于空结构重建
       const recalculated = recalculateStoryStructure(beats, state.segments);
       setStoryStructure(recalculated);
     },
@@ -849,9 +860,10 @@ export function useNovelPipeline({
   );
 
   /**
-   * 用户在 ShotContractPanel 编辑单个 contract 后回调。
+   * 用户在 ShotContractPanel 编辑 contracts 后回调。
    *
-   * 通过 contract.id 找到对应项并合并更新；其余 contract 保持不变。
+   * 整体替换 shotContracts state（ShotContractPanel 内部已处理单行更新逻辑，
+   * 传入的 contracts 数组是用户编辑后的完整新数组）。
    */
   const handleShotContractsChange = useCallback(
     (contracts: ShotContract[]) => {
@@ -1078,6 +1090,13 @@ export function useNovelPipeline({
       setCurrentProjectId(project.id);
       setPendingRecoveryProjects([]);
       setLastSavedAt(project.updatedAt);
+      // H-1 修复：恢复项目时清空 structure 子域 state
+      // 当前这些 state 不在 PipelineState.stepData 中持久化，恢复后必然为空
+      // 清空以避免恢复前残留的旧数据污染恢复后的会话
+      // TODO(Task 2A.16): 将 storyStructure/treatment/shotContracts 持久化到 stepData["structure_analysis"]
+      setStoryStructure(null);
+      setTreatment(null);
+      setShotContracts([]);
     } catch (err) {
       // P1-3: 恢复失败：保留当前状态，不阻塞 UI，记录日志
       errorLogger.warn(`[useNovelPipeline] 恢复项目 ${id} 失败，保留当前状态`, err);
@@ -1087,6 +1106,10 @@ export function useNovelPipeline({
   /** 忽略恢复提示，开始新项目（清空恢复列表） */
   const dismissRecovery = useCallback(() => {
     setPendingRecoveryProjects([]);
+    // H-1 修复：忽略恢复提示意味着用户要开始新项目，清空 structure 子域 state
+    setStoryStructure(null);
+    setTreatment(null);
+    setShotContracts([]);
   }, []);
 
   /** 删除指定未完成项目（从 DB 物理删除） */

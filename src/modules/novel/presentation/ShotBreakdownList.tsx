@@ -88,11 +88,14 @@ export function ShotBreakdownList({
             // 第 7 轮审计修复：回退到固定值，避免 "auto Npx" 在早期浏览器上整体声明被丢弃
             // 第 8 轮审计修复：值从 160px 调整为 220px，匹配 ShotCard 完整状态高度（220-260px）
             // 第 9 轮审计修复：折衷到 180px，避免 draft 状态（50-100px）与完整状态（220-260px）混合时滚动条跳变
-            // 第 10 轮审计修复：按 shot.status 动态调整，避免 draft(≈75px) 在 180px 预留下产生 105px 跳变
-            //                  draft: 80px（误差≤5px），edited: 150px（折衷），final: 220px（误差≤20px）
+            // 第 10 轮审计修复：按 shot.status 动态调整（draft:80/edited:150/final:220）
+            // 第 11 轮审计修复：改为按 shot.prompt 判断——shot.status 仅影响 badge 颜色/标签，不影响内容渲染
+            //                  真实渲染驱动：无 prompt 时 ShotCard 高度 101-163px（典型 ~130px），有 prompt 时 169-253px（典型 ~220px）
+            //                  简化为二值判断：无 prompt 用 150px（误差≤20px），有 prompt 用 220px（误差≤33px）
+            //                  draft 与 edited 渲染完全相同，共用 150px；final 因同时设置 prompt 用 220px
             style={{
               contentVisibility: "auto",
-              containIntrinsicSize: shot.status === "draft" ? "80px" : shot.status === "edited" ? "150px" : "220px",
+              containIntrinsicSize: shot.prompt ? "220px" : "150px",
             }}
           >
             {/* 拖拽手柄 + 上下移动按钮 */}

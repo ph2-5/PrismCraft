@@ -1832,6 +1832,10 @@ const messages: Record<MessageKey, string> = {
   "beat.tabEdit": "编辑",
   "beat.tabDetails": "详情",
   "beat.tabTech": "技术",
+  "beat.tabBlockout3D": "3D 白模",
+  "beat.editorViewMode": "编辑器视图模式",
+  "beat.blockout3DSupported": "3D",
+  "beat.blockout3DSupportedHint": "当前模型支持 3D 白模输入（Seedance 2.5 等），可生成 GLB + animatic 输入包",
   "beat.genStatus": "生成状态",
   "beat.status": "状态",
   "beat.statusCompleted": "已完成",
@@ -3993,6 +3997,84 @@ const messages: Record<MessageKey, string> = {
   "character.variants.migrateOutfitsConfirm": "将所有角色的服装数据导入为变体？此操作幂等，可重复执行。",
   "character.variants.migrateOutfitsSuccess": "成功导入 {count} 条服装数据",
   "character.variants.migrateOutfitsNoop": "没有需要迁移的服装数据",
+
+  // Task 2A.21: 3D 白盒预览编辑器
+  "blockout.loading": "正在加载 3D 编辑器...",
+  "blockout.emptySceneName": "未命名场景",
+  "blockout.createEmptyScene": "创建空场景",
+  "blockout.switchPreset": "切换预设",
+  "blockout.statsLabel": "道具 {props} · 角色 {characters} · 三角形 {triangles}",
+  "blockout.exportComplete": "导出完成（{type}）",
+
+  // 预设选择器
+  "blockout.presetTitle": "选择场景预设",
+  "blockout.presetHint": "选择一个基础场景开始编辑，可随时调整人偶和道具位置",
+  "blockout.createScene": "创建场景",
+
+  // 场景大纲
+  "blockout.outlinerTitle": "场景大纲",
+  "blockout.charactersLabel": "人偶（{count}）",
+  "blockout.noCharacters": "暂无人偶",
+  "blockout.propsLabel": "道具（{count}）",
+  "blockout.noProps": "暂无道具",
+  "blockout.hide": "隐藏",
+  "blockout.show": "显示",
+
+  // 人偶控件
+  "blockout.selectMannequinHint": "在 3D 视图中点击人偶进行编辑",
+  "blockout.mannequinProps": "人偶属性",
+  "blockout.displayName": "显示名",
+  "blockout.positionX": "位置 X",
+  "blockout.positionZ": "位置 Z",
+  "blockout.rotation": "朝向",
+  "blockout.pose": "姿势",
+  "blockout.height": "身高",
+  "blockout.characterVariantId": "角色变体 ID",
+
+  // 镜头轨迹编辑器
+  "blockout.cameraPathTitle": "镜头轨迹",
+  "blockout.play": "播放",
+  "blockout.pause": "暂停",
+  "blockout.keyframeCount": "关键帧（{count}）",
+  "blockout.addKeyframe": "添加关键帧",
+  "blockout.noKeyframes": "暂无关键帧，点击上方按钮添加",
+  "blockout.kfTime": "时间（秒）",
+  "blockout.kfPosition": "相机位置",
+  "blockout.kfTarget": "目标点",
+  "blockout.kfInterpolation": "插值方式",
+  "blockout.kfFov": "FOV（可选）",
+  "blockout.minKeyframesWarning": "至少需要 2 个关键帧",
+  "blockout.interpolation.linear": "直线",
+  "blockout.interpolation.arc": "弧线",
+  "blockout.interpolation.orbit": "环绕",
+
+  // 导出面板
+  "blockout.exportTitle": "导出",
+  "blockout.modelSupports3D": "当前模型 {modelId} 支持 3D 白模输入（推荐导出 Seedance 输入包）",
+  "blockout.modelNotSupports3D": "当前模型 {modelId} 不支持 3D 白模输入（推荐导出 fallback 关键帧）",
+  "blockout.exportJson": "导出场景 JSON",
+  "blockout.exportJsonDesc": "导出场景图为 JSON 文件，可导入恢复",
+  "blockout.exportGlb": "导出 GLB 模型",
+  "blockout.exportGlbDesc": "导出 Three.js Scene 为 GLB 二进制文件",
+  "blockout.exportSnapshot": "导出预览快照",
+  "blockout.exportSnapshotDesc": "导出单帧 PNG，取相机轨迹中间时刻",
+  "blockout.exportAnimatic": "导出 Animatic 视频",
+  "blockout.exportAnimaticDesc": "渲染帧序列并通过 ffmpeg 合成 MP4",
+  "blockout.exportSeedance": "导出 Seedance 输入包",
+  "blockout.exportSeedanceDesc": "组合 GLB + JSON + MP4 为 Seedance 2.5 输入包",
+  "blockout.exportFallback": "导出 Fallback 关键帧",
+  "blockout.exportFallbackDesc": "导出 5 张关键帧 PNG，供不支持 3D 的模型参考",
+  "blockout.export": "导出",
+  "blockout.exporting": "导出中...",
+
+  // 侧边面板 Tab
+  "blockout.tabOutline": "大纲",
+  "blockout.tabMannequin": "人偶",
+  "blockout.tabCamera": "相机",
+  "blockout.tabExport": "导出",
+
+  // WebGL 不可用降级
+  "blockout.webglUnavailable": "WebGL 不可用，无法渲染 3D 场景。请检查浏览器或显卡驱动设置。",
 };
 
 export type Messages = typeof messages;

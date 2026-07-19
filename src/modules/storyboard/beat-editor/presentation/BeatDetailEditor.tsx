@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { User, Check, AlertTriangle, MapPin, Sparkles } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { User, Check, AlertTriangle, MapPin, Sparkles, Boxes, Loader2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { getBeatCharacterIds } from "@/domain/utils";
 import { ShotReferenceConfig, ReferenceVideoUploader } from "@/modules/storyboard/generation";
@@ -14,6 +14,7 @@ import {
   type ShotRecommendation,
 } from "@/modules/shot";
 import { useToastHelpers } from "@/shared/presentation/Toast";
+import { getModelCapabilities } from "@/shared/model-capabilities";
 import type {
   StoryBeat,
   Character,
@@ -25,6 +26,11 @@ import { BeatNavigation } from "./BeatNavigation";
 import { BeatPromptPanel } from "./BeatPromptPanel";
 import { BeatGenerationPanel } from "./BeatGenerationPanel";
 import { BeatUploadPanel, type BeatUploadPanelHandle } from "./BeatUploadPanel";
+
+// Task 2A.21：动态加载 Blockout3DPanel，避免 Three.js 进入首屏 bundle
+const Blockout3DPanel = lazy(() =>
+  import("@/modules/blockout-3d").then((m) => ({ default: m.Blockout3DPanel })),
+);
 
 interface MinimalAsset {
   id: string;
@@ -93,10 +99,33 @@ export function BeatDetailEditor({
   const uploadPanelHandle = useRef<BeatUploadPanelHandle>(null);
   const { error: showError, success: showSuccess } = useToastHelpers();
   const [refVideoExpanded, setRefVideoExpanded] = useState(false);
+  // Task 2A.21：分镜编辑器 Tab 切换（编辑 / 3D 白模）
+  const [activeTab, setActiveTab] = useState<"edit" | "blockout3d">("edit");
 
   const selectedScene = scenes.find((scene) => scene.id === beat.sceneId);
   const _prevBeat = index > 0 ? allShots[index - 1]! : null;
   void _prevBeat;
+
+  // Task 2A.21：探测当前模型是否支持 3D 白模输入（Seedance 2.5 等）
+  const modelSupports3D = useMemo(() => {
+    if (!imageModelId) return false;
+    try {
+      const caps = getModelCapabilities(imageModelId);
+      return caps?.supports3DPreview === true;
+    } catch {
+      return false;
+    }
+  }, [imageModelId]);
+
+  // Task 2A.21：场景数据变更回调（持久化到 beat.blockout3D）
+  const handleBlockoutSceneChange = useCallback((scene: import("@/domain/schemas").BlockoutScene) => {
+    onUpdateBeat({ ...beat, blockout3D: scene });
+  }, [beat, onUpdateBeat]);
+
+  // Task 2A.21：导出完成回调（暂仅 toast 提示，未来可持久化为 GenerationAsset）
+  const handleBlockoutExportComplete = useCallback((asset: import("@/modules/blockout-3d").ExportedAsset) => {
+    showSuccess(t("blockout.exportComplete", { type: asset.type }));
+  }, [showSuccess]);
 
   // Task 2B.12：场景变体 → 镜头推荐
   // 仅当 beat 绑定了场景且场景含 mood 字段时计算推荐
@@ -173,6 +202,87 @@ export function BeatDetailEditor({
         onMoveBeat={onMoveBeat}
         onDeleteBeat={onDeleteBeat}
       />
+
+      {/* Task 2A.21：编辑器视图切换 Tab（编辑 / 3D 白模） */}
+      <div
+        role="tablist"
+        aria-label={t("beat.editorViewMode")}
+        style={{
+          display: "flex",
+          gap: 0,
+          padding: "0 12px",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--muted)",
+          flexShrink: 0,
+        }}
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "edit"}
+          aria-controls="beat-edit-tabpanel"
+          id="beat-edit-tab"
+          onClick={() => setActiveTab("edit")}
+          style={{
+            padding: "6px 12px",
+            fontSize: 12,
+            fontWeight: activeTab === "edit" ? 600 : 400,
+            color: activeTab === "edit" ? "var(--primary)" : "var(--muted-fg)",
+            borderBottom: activeTab === "edit" ? "2px solid var(--primary)" : "2px solid transparent",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <Sparkles size={12} aria-hidden="true" />
+          {t("beat.tabEdit")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "blockout3d"}
+          aria-controls="beat-blockout3d-tabpanel"
+          id="beat-blockout3d-tab"
+          onClick={() => setActiveTab("blockout3d")}
+          style={{
+            padding: "6px 12px",
+            fontSize: 12,
+            fontWeight: activeTab === "blockout3d" ? 600 : 400,
+            color: activeTab === "blockout3d" ? "var(--primary)" : "var(--muted-fg)",
+            borderBottom: activeTab === "blockout3d" ? "2px solid var(--primary)" : "2px solid transparent",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <Boxes size={12} aria-hidden="true" />
+          {t("beat.tabBlockout3D")}
+          {modelSupports3D && (
+            <span
+              className="badge badge-info"
+              style={{ fontSize: 9, padding: "1px 4px", marginLeft: 2 }}
+              title={t("beat.blockout3DSupportedHint")}
+            >
+              {t("beat.blockout3DSupported")}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Tab 内容 */}
+      {activeTab === "edit" ? (
+        <div
+          id="beat-edit-tabpanel"
+          role="tabpanel"
+          aria-labelledby="beat-edit-tab"
+          className="flex-1 min-h-0 flex flex-col"
+        >
 
       {/* Three-column editor（Task 2B.11：使用 ShotEditorLayout 语义化布局） */}
       <ShotEditorLayout
@@ -399,7 +509,45 @@ export function BeatDetailEditor({
         }
       />
 
-      {/* Hidden file inputs - rendered once and triggered via ref */}
+        </div>
+      ) : (
+        <div
+          id="beat-blockout3d-tabpanel"
+          role="tabpanel"
+          aria-labelledby="beat-blockout3d-tab"
+          className="flex-1 min-h-0"
+        >
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  color: "var(--muted-fg)",
+                  fontSize: 12,
+                }}
+              >
+                <Loader2 size={32} className="animate-spin" aria-hidden="true" />
+                <span>{t("blockout.loading")}</span>
+              </div>
+            }
+          >
+            <Blockout3DPanel
+              scene={beat.blockout3D}
+              onSceneChange={handleBlockoutSceneChange}
+              modelId={imageModelId}
+              modelSupports3D={modelSupports3D}
+              onExportComplete={handleBlockoutExportComplete}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {/* Hidden file inputs - rendered once and triggered via ref（始终挂载，不随 Tab 切换卸载） */}
       <BeatUploadPanel
         ref={uploadPanelHandle}
         beatId={beat.id}

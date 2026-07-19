@@ -31,3 +31,26 @@ export type { PropType, Prop, CreatePropInput, UpdatePropInput } from "./prop";
 // Task 2A.10: 角色变体
 export { characterVariantSchema, createCharacterVariantInputSchema, updateCharacterVariantInputSchema } from "./character-variant";
 export type { CharacterVariant, CreateCharacterVariantInput, UpdateCharacterVariantInput } from "./character-variant";
+
+// Task 2A.21: 3D 白盒预览编辑器（类型定义在 domain 层，工厂函数/预设库在 @/modules/blockout-3d）
+export type {
+  Vec3,
+  Vec2,
+  GroundType,
+  GroundPlane,
+  PrimitiveType,
+  PrimitiveShape,
+  LightingType,
+  LightingPreset,
+  ShotCamera,
+  PosePreset,
+  PoseMetadata,
+  HeightPreset,
+  HeightMetadata,
+  Mannequin,
+  CameraInterpolation,
+  CameraKeyframe,
+  CameraPath,
+  CameraPathValidation,
+  BlockoutScene,
+} from "./blockout-scene";

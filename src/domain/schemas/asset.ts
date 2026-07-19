@@ -22,6 +22,12 @@ export const assetTypeEnum = z.enum([
   "variant_image",
   "compositor_result",
   "uploaded",
+  // Task 2A.21: 3D 白盒预览编辑器输出物
+  "preview_3d_snapshot",  // 3D 场景预览快照（单帧 PNG，取相机轨迹中间时刻）
+  "blockout_animatic",    // 3D 白盒 animatic 视频（MP4，由 ffmpeg-runner 合成）
+  "blockout_glb",         // 3D 白盒 GLB 模型（用于 Seedance 2.5 输入）
+  "blockout_seedance_input", // Seedance 2.5 完整输入包（GLB + JSON + MP4 组合）
+  "blockout_fallback_frames", // Fallback 关键帧图集（5 张 PNG，用于不支持 3D 的模型）
 ]);
 
 export const generationAssetSchema = z.object({

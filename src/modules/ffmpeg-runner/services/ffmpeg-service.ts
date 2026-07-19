@@ -115,6 +115,25 @@ async function executeFfmpegCommand(
   }
 }
 
+// ============= 低级执行接口（Task 2A.21：图像序列 → 视频） =============
+
+/**
+ * 执行原始 ffmpeg 命令（高级 API 不覆盖的场景使用）
+ *
+ * 用途：
+ * - 图像序列 → 视频（blockout-3d animatic-exporter 使用）
+ * - 自定义滤镜图（filter_complex）
+ * - 其他高级用法
+ *
+ * 注意：调用方需要自行构造 ffmpeg 参数，建议优先使用高级 API。
+ */
+export async function executeFfmpeg(
+  args: string[],
+  options?: { timeout?: number },
+): Promise<FfmpegResult> {
+  return executeFfmpegCommand(args, options);
+}
+
 // ============= 内部辅助函数 =============
 
 /**

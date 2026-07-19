@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { SceneElement } from "./scene";
+import type { BlockoutScene } from "./blockout-scene";
 import {
   fixedImageSchema,
   referenceVideoSchema,
@@ -287,6 +288,22 @@ export const storyBeatSchema = z.object({
   localKeyframePath: nullToUndef(z.string()),
   localFirstFramePath: nullToUndef(z.string()),
   localLastFramePath: nullToUndef(z.string()),
+
+  // ── 3D 白盒预览（Task 2A.21）──
+  /**
+   * 3D 白盒场景图 — provider-agnostic，可序列化为 JSON 持久化。
+   *
+   * 用于在视频生成前预演镜头与构图：
+   * - Seedance 2.5 原生支持 3D 白模输入（GLB + animatic MP4 + JSON 元数据）
+   * - 其他模型走 fallback 适配器（5 张关键帧 PNG）
+   *
+   * 通过 `@/modules/blockout-3d` 的 Blockout3DPanel 编辑，
+   * 通过 `validateBlockoutScene`（scene-io.ts）校验导入数据。
+   *
+   * 使用 `z.custom()` 因为 BlockoutScene 是复杂嵌套结构，
+   * 内部一致性由 `validateBlockoutScene` 在导入时保证。
+   */
+  blockout3D: z.custom<BlockoutScene>().optional(),
 });
 
 export const storyVersionSchema = z.object({

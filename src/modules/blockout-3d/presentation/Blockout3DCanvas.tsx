@@ -293,10 +293,6 @@ interface PropMeshProps {
 }
 
 function PropMesh({ prop, isSelected, onClick }: PropMeshProps) {
-  if (prop.visible === false) return null;
-
-  const color = prop.color ?? "#808080";
-
   const geometry = useMemo(() => {
     switch (prop.type) {
       case "box": return <boxGeometry args={[1, 1, 1]} />;
@@ -308,6 +304,10 @@ function PropMesh({ prop, isSelected, onClick }: PropMeshProps) {
       default: return <boxGeometry args={[1, 1, 1]} />;
     }
   }, [prop.type]);
+
+  if (prop.visible === false) return null;
+
+  const color = prop.color ?? "#808080";
 
   const handleClick = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
@@ -345,6 +345,8 @@ interface MannequinMeshProps {
 }
 
 function MannequinMesh({ mannequin, isSelected, onClick }: MannequinMeshProps) {
+  const color = useMemo(() => getMannequinColor(mannequin.id), [mannequin.id]);
+
   if (mannequin.visible === false) return null;
 
   const geom = getMannequinGeometry(mannequin);
@@ -353,8 +355,6 @@ function MannequinMesh({ mannequin, isSelected, onClick }: MannequinMeshProps) {
   const bodyHeight = geom.height * 0.7;
   const bodyRadius = Math.max(0.1, geom.width / 2);
   const headRadius = Math.max(0.08, bodyRadius * 0.7);
-
-  const color = useMemo(() => getMannequinColor(mannequin.id), [mannequin.id]);
 
   const handleClick = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();

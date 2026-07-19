@@ -24,24 +24,194 @@
 ### 顶层组件
 - `Blockout3DPanel` — 顶层容器组件（BeatDetailEditor 集成入口）
 
-### 数据类型（持久化到 StoryBeat.blockout3D）
-- `BlockoutScene` — provider-agnostic 场景图
-- `Mannequin` — 人偶 placeholder
-- `CameraKeyframe` / `CameraPath` — 镜头轨迹关键帧
-- `PrimitiveShape` / `GroundPlane` / `LightingPreset` / `ShotCamera`
+### Domain 层 — 场景图（scene-schema.ts）
 
-### 服务函数
-- `buildScene` / `disposeScene` — Three.js Scene 构建/释放
-- `renderFrame` / `renderFrameSequence` / `renderKeyframeSet` — WebGL 渲染
-- `exportAnimatic` / `exportPreviewSnapshot` — ffmpeg 合成视频 / 单帧 PNG
-- `exportSceneAsGlb` / `exportSceneAsJson` / `importSceneFromJson` — 场景 IO
-- `adaptToSeedanceInput` / `validateForSeedance` — Seedance 2.5 适配器
-- `adaptToFallbackKeyframes` / `validateForFallback` — fallback 适配器
+| API | 签名 | 说明 |
+|-----|------|------|
+| `Vec3` | type | 三维向量（x, y, z） |
+| `Vec2` | type | 二维向量（x, y） |
+| `GroundType` | type | 地面类型枚举 |
+| `PrimitiveType` | type | 基础几何体类型枚举 |
+| `LightingType` | type | 灯光类型枚举 |
+| `BlockoutScene` | type | provider-agnostic 场景图（持久化到 StoryBeat.blockout3D） |
+| `GroundPlane` | type | 地面平面 |
+| `PrimitiveShape` | type | 基础几何体 |
+| `LightingPreset` | type | 灯光预设 |
+| `ShotCamera` | type | 镜头相机 |
+| `createDefaultGround` | `() → GroundPlane` | 创建默认地面 |
+| `createDefaultLighting` | `() → LightingPreset` | 创建默认灯光 |
+| `createDefaultCamera` | `() → ShotCamera` | 创建默认相机 |
+| `createEmptyScene` | `() → BlockoutScene` | 创建空场景 |
 
-### 预设库
-- `SCENE_PRESETS` / `createSceneFromPreset` — 7 种预设场景（空房间/街角/办公室/公园/电影特写/远景/摄影棚）
-- `POSE_PRESETS` — 10 种姿势预设
-- `HEIGHT_PRESETS` — 5 种身高预设
+### Domain 层 — 人偶（mannequin-types.ts）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `PosePreset` | type | 姿势预设 ID |
+| `PoseMetadata` | type | 姿势元数据（名称 + 描述） |
+| `HeightPreset` | type | 身高预设 ID |
+| `HeightMetadata` | type | 身高元数据（名称 + 厘米值） |
+| `Mannequin` | type | 人偶 placeholder（含位置/旋转/姿势/身高/可见性） |
+| `POSE_PRESETS` | record | 10 种姿势预设映射 |
+| `POSE_PRESET_LIST` | `PoseMetadata[]` | 姿势预设列表（UI 用） |
+| `HEIGHT_PRESETS` | record | 5 种身高预设映射 |
+| `HEIGHT_PRESET_LIST` | `HeightMetadata[]` | 身高预设列表（UI 用） |
+| `createDefaultMannequin` | `(id?) → Mannequin` | 创建默认人偶 |
+| `getMannequinHeight` | `(preset: HeightPreset) → number` | 根据身高预设获取高度（cm） |
+| `getMannequinWidth` | `(preset: HeightPreset) → number` | 根据身高预设获取宽度 |
+
+### Domain 层 — 镜头轨迹（camera-path-types.ts）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `CameraInterpolation` | type | 插值类型（lerp / bezier2 / orbit） |
+| `CameraKeyframe` | type | 镜头关键帧 |
+| `CameraPath` | type | 镜头轨迹（关键帧序列） |
+| `CameraPathValidation` | type | 轨迹校验结果 |
+| `INTERPOLATION_TYPES` | record | 插值类型映射 |
+| `validateCameraPath` | `(path: CameraPath) → CameraPathValidation` | 校验镜头轨迹 |
+| `createDefaultCameraPath` | `() → CameraPath` | 创建默认镜头轨迹 |
+| `cameraPathToKeyframes` | `(path: CameraPath, fps: number) → CameraKeyframe[]` | 将轨迹转为关键帧序列 |
+
+### Domain 层 — 预设库（preset-library.ts）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `ScenePresetId` | type | 预设场景 ID |
+| `ScenePreset` | type | 预设场景元数据 |
+| `SCENE_PRESETS` | record | 7 种预设场景映射（空房间/街角/办公室/公园/电影特写/远景/摄影棚） |
+| `SCENE_PRESET_LIST` | `ScenePreset[]` | 预设场景列表（UI 用） |
+| `getScenePreset` | `(id: ScenePresetId) → ScenePreset \| undefined` | 获取预设场景 |
+| `createSceneFromPreset` | `(id: ScenePresetId) → BlockoutScene` | 根据预设创建场景 |
+
+### Services 层 — 镜头动画（camera-animator.ts，纯逻辑无 Three.js 依赖）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `CameraPose` | type | 相机姿态（位置 + 朝向） |
+| `AnimatorInterpolation` | type | 插值类型（CameraInterpolation 别名） |
+| `lerp` | `(a, b, t) → number` | 线性插值 |
+| `lerpVec3` | `(a, b, t) → Vec3` | 三维向量线性插值 |
+| `distanceVec3` | `(a, b) → number` | 三维向量距离 |
+| `arcMidpoint` | `(a, b, center) → Vec3` | 圆弧中点 |
+| `bezier2` | `(p0, p1, p2, t) → Vec3` | 二次贝塞尔曲线 |
+| `interpolateKeyframes` | `(keyframes, t) → CameraPose` | 关键帧插值 |
+| `getCameraPoseAtTime` | `(path, time, fps) → CameraPose` | 获取某时刻的相机姿态 |
+| `sampleCameraPoses` | `(path, fps, duration) → CameraPose[]` | 采样相机姿态序列 |
+| `sampleKeyframeThumbnails` | `(path, count) → CameraKeyframe[]` | 采样关键帧缩略图 |
+
+### Services 层 — 人偶服务（mannequin-service.ts，纯逻辑无 Three.js 依赖）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `MannequinGeometry` | type | 人偶几何信息（位置/尺寸） |
+| `createMannequin` | `(id?, preset?) → Mannequin` | 创建人偶 |
+| `moveMannequin` | `(mannequin, position) → Mannequin` | 移动人偶 |
+| `rotateMannequin` | `(mannequin, rotation) → Mannequin` | 旋转人偶 |
+| `applyPose` | `(mannequin, pose) → Mannequin` | 应用姿势 |
+| `applyHeight` | `(mannequin, height) → Mannequin` | 应用身高 |
+| `toggleVisibility` | `(mannequin) → Mannequin` | 切换可见性 |
+| `addMannequin` | `(scene, mannequin) → BlockoutScene` | 添加人偶到场景 |
+| `removeMannequin` | `(scene, id) → BlockoutScene` | 从场景移除人偶 |
+| `updateMannequin` | `(scene, id, patch) → BlockoutScene` | 更新人偶 |
+| `findMannequin` | `(scene, id) → Mannequin \| undefined` | 查找人偶 |
+| `getVisibleMannequins` | `(scene) → Mannequin[]` | 获取可见人偶列表 |
+| `getMannequinsByVariantId` | `(scene, variantId) → Mannequin[]` | 按变体 ID 筛选人偶 |
+| `getMannequinGeometry` | `(mannequin) → MannequinGeometry` | 获取人偶几何信息 |
+
+### Services 层 — Seedance 适配器（seedance-adapter.ts，纯逻辑无 Three.js 依赖）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `Seedance3DInput` | type | Seedance 2.5 3D 输入（GLB + JSON + MP4） |
+| `SeedanceSceneMetadata` | type | Seedance 场景元数据 |
+| `SeedanceAdapterOptions` | type | 适配器选项 |
+| `SeedanceAdapterValidation` | type | 适配器校验结果 |
+| `adaptToSeedanceInput` | `(scene, path, options?) → Seedance3DInput` | 适配为 Seedance 输入 |
+| `validateForSeedance` | `(scene) → SeedanceAdapterValidation` | 校验场景是否可用于 Seedance |
+
+### Services 层 — Fallback 适配器（fallback-adapter.ts，纯逻辑无 Three.js 依赖）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `FallbackKeyframeSet` | type | Fallback 关键帧图集（5 张 PNG） |
+| `FallbackKeyframe` | type | 单个 Fallback 关键帧 |
+| `FallbackAdapterValidation` | type | Fallback 适配器校验结果 |
+| `adaptToFallbackKeyframes` | `(scene, path, options?) → FallbackKeyframeSet` | 适配为关键帧图集 |
+| `validateForFallback` | `(scene) → FallbackAdapterValidation` | 校验场景是否可用于 Fallback |
+| `fillFramePaths` | `(set, basePath) → FallbackKeyframeSet` | 填充帧路径 |
+| `getFirstFramePath` | `(set) → string \| undefined` | 获取首帧路径 |
+| `getAllFramePaths` | `(set) → string[]` | 获取所有帧路径 |
+
+### Services 层 — 场景构建（scene-builder.ts，依赖 Three.js）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `BuiltScene` | type | 构建完成的 Three.js Scene（含 renderer + camera） |
+| `SceneBuilderOptions` | type | 构建选项 |
+| `Disposable` | type | 可释放资源接口 |
+| `SceneStats` | type | 场景统计（对象数/面数等） |
+| `buildScene` | `(scene, options?) → Promise<BuiltScene>` | 构建 Three.js Scene |
+| `disposeScene` | `(built) → void` | 释放 GPU 资源 |
+| `applyCameraPose` | `(camera, pose) → void` | 应用相机姿态 |
+| `applyShotCamera` | `(camera, shot) → void` | 应用镜头相机配置 |
+| `computeSceneStats` | `(scene) → SceneStats` | 计算场景统计 |
+
+### Services 层 — 渲染（render-service.ts，依赖 Three.js + WebGL）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `RenderOptions` | type | 渲染选项（分辨率/帧率/格式） |
+| `RenderResult` | type | 单帧渲染结果 |
+| `FrameSequenceResult` | type | 帧序列渲染结果 |
+| `FrameSequenceOptions` | type | 帧序列渲染选项 |
+| `KeyframeSetRenderResult` | type | 关键帧集渲染结果 |
+| `DEFAULT_RENDER_OPTIONS` | `RenderOptions` | 默认渲染选项（960x540, 24fps） |
+| `renderFrame` | `(built, options?) → Promise<RenderResult>` | 渲染单帧 |
+| `renderStaticView` | `(built, options?) → Promise<RenderResult>` | 渲染静态视图 |
+| `renderFrameSequence` | `(built, path, options?) → Promise<FrameSequenceResult>` | 渲染帧序列 |
+| `renderKeyframeSet` | `(built, path, keyframes, options?) → Promise<KeyframeSetRenderResult>` | 渲染关键帧集 |
+| `writeFramesToFiles` | `(frames, dir, prefix) → Promise<string[]>` | 写入帧到文件 |
+| `isWebGLAvailable` | `() → boolean` | 检测 WebGL 可用性 |
+| `isOffscreenCanvasAvailable` | `() → boolean` | 检测 OffscreenCanvas 可用性 |
+
+### Services 层 — 动画导出（animatic-exporter.ts，依赖 ffmpeg-runner）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `AnimaticExportOptions` | type | 动画导出选项（帧率/时长/分辨率） |
+| `AnimaticExportResult` | type | 动画导出结果（MP4 路径） |
+| `PreviewSnapshotResult` | type | 预览快照结果（PNG 路径） |
+| `exportAnimatic` | `(built, path, options?) → Promise<AnimaticExportResult>` | 导出动画（帧序列 → MP4） |
+| `exportPreviewSnapshot` | `(built, options?) → Promise<PreviewSnapshotResult>` | 导出预览快照 |
+
+### Services 层 — 场景 IO（scene-io.ts，依赖 Three.js + file-http）
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `GlbExportOptions` | type | GLB 导出选项 |
+| `JsonExportOptions` | type | JSON 导出选项 |
+| `JsonImportResult` | type | JSON 导入结果 |
+| `ExternalModelImportResult` | type | 外部模型导入结果 |
+| `exportSceneAsGlb` | `(scene, path, options?) → Promise<void>` | 导出为 GLB |
+| `exportSceneAsJson` | `(scene, path, options?) → Promise<void>` | 导出为 JSON |
+| `serializeSceneToJson` | `(scene) → string` | 序列化场景为 JSON 字符串 |
+| `parseSceneFromJson` | `(json) → BlockoutScene` | 从 JSON 解析场景 |
+| `importSceneFromJson` | `(path) → Promise<BlockoutScene>` | 从 JSON 文件导入场景 |
+| `importExternalModel` | `(path) → Promise<ExternalModelImportResult>` | 导入外部模型（GLTF/OBJ） |
+| `validateBlockoutScene` | `(scene) → BlockoutScene` | 校验场景数据 |
+
+### Presentation 层
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `Blockout3DCanvas` | `React.FC<Blockout3DCanvasProps>` | R3F Canvas 核心 3D 渲染 |
+| `SceneOutliner` | `React.FC<SceneOutlinerProps>` | 场景大纲 |
+| `PresetSelector` | `React.FC<PresetSelectorProps>` | 预设场景选择器 |
+| `MannequinControls` | `React.FC<MannequinControlsProps>` | 人偶摆位控件 |
+| `CameraPathEditor` | `React.FC<CameraPathEditorProps>` | 镜头轨迹编辑器 |
+| `ExportPanel` | `React.FC<ExportPanelProps>` | 导出面板 |
+| `ExportedAsset` | type | 导出资产类型（ExportPanel 使用） |
 
 ---
 

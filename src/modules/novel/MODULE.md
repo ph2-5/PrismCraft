@@ -43,12 +43,16 @@
 ### Hooks
 
 `useNovelPipeline` — 管道状态管理 Hook（state + handlers + 派生渲染标志）
+`UseNovelPipelineOptions` — useNovelPipeline 入参类型
+`UseNovelPipelineResult` — useNovelPipeline 返回值类型
 
 ### Presentation 组件
 
-**UI Panel Part 1（Task 2A.4）**：`NovelImportPage`、`ImportStep`、`SegmentList`、`SegmentCard`、`PipelineProgress`、`PipelineControls`
+**UI Panel Part 1（Task 2A.4）**：`ImportStep`、`SegmentList`、`SegmentCard`、`PipelineProgress`、`PipelineControls`
 
-**UI Panel Part 2（Task 2A.5）**：`EntityReviewPanel`、`CharacterExtractCard`、`SceneExtractCard`、`ShotBreakdownList`、`ShotCard`、`FinalizePanel`
+> 注：早期版本的 NovelImportPage 已在 P0 修复中删除，被 StoryPipelineShell 完全替代。
+
+**UI Panel Part 2（Task 2A.5）**：`EntityReviewPanel`、`CharacterExtractCard`、`SceneExtractCard`、`ShotBreakdownList`、`ShotCard`、`FinalizePanel`（含 `FinalizeSummary` 类型）
 
 **StoryPipelineShell 三栏布局（Task 2A.6）**：`StoryPipelineShell`、`PhaseIndicator`、`SegmentNavColumn`、`MainWorkArea`、`ContextPanel`
 
@@ -62,7 +66,7 @@
 
 **Domain 常量与函数**：`NARRATIVE_BEAT_TYPES`、`computeBeatPosition`、`findClimaxPosition`、`inferOverallPacing`、`computeEmotionCurve`、`STORY_TONES`、`EMPTY_TREATMENT`、`isTreatmentComplete`、`SHOT_SIZES`、`SHOT_MOVEMENTS`、`SHOT_LIGHTINGS`、`DEFAULT_LENS_BY_SIZE`、`DEFAULT_DURATION_BY_SIZE`、`validateShotContract`、`clampDuration`
 
-**Services**：`analyzeStoryStructure`、`buildStructureAnalysisPrompt`、`parseNarrativeBeats`、`populateBeatPositionsAndDurations`、`extractJsonArrayFromText`、`suggestDurationByStructure`、`recalculateStoryStructure`、`extractTreatment`、`buildTreatmentExtractionPrompt`、`parseTreatment`、`extractJsonObjectFromText`、`buildShotContractsForBeats`、`buildShotContractsForBeat`、`buildShotContractPrompt`、`parseShotContracts`、`getDefaultLighting`
+**Services**：`analyzeStoryStructure`、`buildStructureAnalysisPrompt`、`parseNarrativeBeats`、`populateBeatPositionsAndDurations`、`extractJsonArrayFromText`、`suggestDurationByStructure`、`recalculateStoryStructure`、`DEFAULT_DURATION_ADJUSTMENTS`（结构化时长调整常量）、`extractTreatment`、`buildTreatmentExtractionPrompt`、`parseTreatment`、`extractJsonObjectFromText`、`buildShotContractsForBeats`、`buildShotContractsForBeat`、`buildShotContractPrompt`、`parseShotContracts`、`getDefaultLighting`、`DEFAULT_SHOT_COUNT_BY_BEAT`（每 beat 默认镜头数）、`DEFAULT_SHOT_SIZE_BY_BEAT`（每 beat 默认景别）、`GenerateTextFn`（LLM 调用函数类型，供 services 注入）
 
 ---
 

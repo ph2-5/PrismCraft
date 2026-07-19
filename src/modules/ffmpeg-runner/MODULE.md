@@ -25,31 +25,33 @@
 通过 `@/modules/ffmpeg-runner` 导入。
 
 ### 可用性检查
-- `checkFfmpegAvailable()` — 检查 ffmpeg 是否可用（带缓存，1 分钟 TTL）
-- `resetFfmpegCache()` — 重置可用性缓存（配置变更后调用）
+- `checkFfmpegAvailable` — 检查 ffmpeg 是否可用（带缓存，1 分钟 TTL）
+- `resetFfmpegCache` — 重置可用性缓存（配置变更后调用）
+- `FfmpegResult` — FFmpeg 操作结果类型（{ ok: true, value } | { ok: false, error }）
+- `executeFfmpeg` — 低级 ffmpeg 命令执行（自定义滤镜图等高级用法，调用方自行构造 args）
 
 ### 音频操作（5 个）
-- `mixAudio(audioPaths, volumes, outputPath?)` — 多轨混音
-- `adjustAudioSpeed(audioPath, speed, preservePitch?, outputPath?)` — 调整音频速度
-- `normalizeAudio(audioPath, targetLevel?, outputPath?)` — 音量标准化
-- `removeNoise(audioPath, intensity?, outputPath?)` — 降噪
-- `splitAudio(audioPath, segments, outputDir?)` — 分割音频
+- `mixAudio` — 多轨混音（audioPaths, volumes, outputPath?）
+- `adjustAudioSpeed` — 调整音频速度（audioPath, speed, preservePitch?, outputPath?）
+- `normalizeAudio` — 音量标准化（audioPath, targetLevel?, outputPath?）
+- `removeNoise` — 降噪（audioPath, intensity?, outputPath?）
+- `splitAudio` — 分割音频（audioPath, segments, outputDir?）
 
 ### 视频操作（8 个）
-- `mergeVideos(videoPaths, transition?, transitionDuration?, outputPath?)` — 合并多段视频
-- `trimVideo(videoPath, startTime, endTime, outputPath?)` — 剪辑视频片段
-- `addTransition(videoPath, transitionType, position, duration?, outputPath?)` — 添加转场效果
-- `addSubtitle(videoPath, subtitles, options?)` — 添加字幕
-- `adjustVideoSpeed(videoPath, speed, preserveAudio?, outputPath?)` — 调整视频速度
-- `extractAudio(videoPath, outputFormat?, startTime?, endTime?, outputPath?)` — 提取音频
-- `replaceAudio(videoPath, audioPath, audioStartTime?, volume?, outputPath?)` — 替换音频轨道
-- `generateThumbnail(videoPath, timePoint?, width?, outputPath?)` — 生成缩略图
+- `mergeVideos` — 合并多段视频（videoPaths, transition?, transitionDuration?, outputPath?）
+- `trimVideo` — 剪辑视频片段（videoPath, startTime, endTime, outputPath?）
+- `addTransition` — 添加转场效果（videoPath, transitionType, position, duration?, outputPath?）
+- `addSubtitle` — 添加字幕（videoPath, subtitles, options?）
+- `adjustVideoSpeed` — 调整视频速度（videoPath, speed, preserveAudio?, outputPath?）
+- `extractAudio` — 提取音频（videoPath, outputFormat?, startTime?, endTime?, outputPath?）
+- `replaceAudio` — 替换音频轨道（videoPath, audioPath, audioStartTime?, volume?, outputPath?）
+- `generateThumbnail` — 生成缩略图（videoPath, timePoint?, width?, outputPath?）
 
 ### 组合操作
-- `composeFinalVideo(videoPaths, options?)` — 一键合成最终视频（合并 + 背景音乐 + 字幕 + 转场）
+- `composeFinalVideo` — 一键合成最终视频（合并 + 背景音乐 + 字幕 + 转场）
 
 ## 边界约束
 
 - 不依赖任何其他模块（modules/*）
 - 不直接调用 electronAPI；文件操作走 `@/shared/file-http`
-- 内部辅助函数（executeFfmpegCommand, probeVideoDuration, mapTransitionToXfade, resolveOutputPath, buildAtempoChain, formatSrtTime）不导出
+- 内部辅助函数（executeFfmpegCommand 内部实现、probeVideoDuration、mapTransitionToXfade、resolveOutputPath、buildAtempoChain、formatSrtTime）不导出

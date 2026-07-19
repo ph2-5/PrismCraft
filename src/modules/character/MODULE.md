@@ -3,7 +3,9 @@
 
 ## 模块概述
 
-角色管理模块，负责角色的 CRUD 操作、服装管理、角色图片生成。本模块使用 Result 模式处理所有异步操作错误，通过领域事件与其他模块解耦。
+角色管理模块，负责角色的 CRUD 操作、服装管理、角色图片生成、角色变体管理。本模块使用 Result 模式处理所有异步操作错误，通过领域事件与其他模块解耦。
+
+> Task 2A.10 引入 `variants` 子域替代 `character_outfits` 功能，提供更灵活的角色变体管理（8 维参数向量）。
 
 ---
 
@@ -15,6 +17,7 @@
 | `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：CRUD、图片生成、服装管理 |
 | `constants` | [constants.ts](./constants.ts) | 默认角色、性格建议等常量 |
 | `presentation` | [presentation/](./presentation/) | 角色列表项、服装对话框 |
+| `variants` | [variants/](./variants/) | Task 2A.10 角色变体子域：替代 character_outfits，提供 8 维参数向量的变体 CRUD、迁移、UI 组件 |
 
 ---
 
@@ -58,6 +61,62 @@
 |-----|------|------|
 | `CharacterListItem` | `React.FC<CharacterListItemProps>` | 角色列表项组件 |
 | `OutfitDialog` | `React.FC<OutfitDialogProps>` | 服装编辑对话框组件 |
+
+### variants 子域（Task 2A.10）
+
+> 替代 character_outfits 功能。每个角色可拥有多个变体，变体通过 8 维参数向量（timeOfDay / weather / lighting / mood / crowdLevel / cameraAngle / season / colorPalette）描述不同情境下的外观。
+
+#### Schemas 与类型
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `characterVariantSchema` | Zod schema | 角色变体验证 schema |
+| `createCharacterVariantInputSchema` | Zod schema | 创建变体入参验证 schema |
+| `updateCharacterVariantInputSchema` | Zod schema | 更新变体入参验证 schema |
+| `CharacterVariant` | type | 角色变体类型（含 8 维参数向量 + variantImage + isDefault） |
+| `CreateCharacterVariantInput` | type | 创建变体入参类型 |
+| `UpdateCharacterVariantInput` | type | 更新变体入参类型 |
+
+#### Services
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `listVariantsForCharacter` | `(characterId: string) → Promise<CharacterVariant[]>` | 列出某角色的所有变体 |
+| `listAllVariants` | `() → Promise<CharacterVariant[]>` | 列出所有变体 |
+| `getVariantById` | `(id: string) → Promise<CharacterVariant \| null>` | 获取单个变体 |
+| `getDefaultVariant` | `(characterId: string) → Promise<CharacterVariant \| null>` | 获取角色的默认变体 |
+| `createVariant` | `(input: CreateCharacterVariantInput) → Promise<CharacterVariant>` | 创建变体 |
+| `updateVariant` | `(id, patch: UpdateCharacterVariantInput) → Promise<void>` | 更新变体 |
+| `deleteVariant` | `(id: string) → Promise<void>` | 软删除变体 |
+| `setDefaultVariant` | `(characterId, variantId) → Promise<void>` | 设置角色的默认变体 |
+| `updateVariantImage` | `(id, imagePath) → Promise<void>` | 更新变体图片路径 |
+| `migrateOutfitsToVariants` | `() → Promise<number>` | 从 character_outfits 迁移到 variants（幂等） |
+| `createVariantFromCompositorAsset` | `(input) → Promise<CharacterVariant>` | 从 compositor 资产创建变体 |
+| `initializeVariantMigration` | `() → Promise<number>` | 初始化迁移（幂等，多次调用只执行一次） |
+
+#### Hooks
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `useCharacterVariants` | `(characterId) → UseQueryResult<CharacterVariant[]>` | 获取角色的变体列表 |
+| `useAllCharacterVariants` | `() → UseQueryResult<CharacterVariant[]>` | 获取所有变体 |
+| `useVariant` | `(id) → UseQueryResult<CharacterVariant \| null>` | 获取单个变体 |
+| `useCreateVariant` | `() → UseMutationResult` | 创建变体 hook |
+| `useUpdateVariant` | `() → UseMutationResult` | 更新变体 hook |
+| `useDeleteVariant` | `() → UseMutationResult` | 删除变体 hook |
+| `useSetDefaultVariant` | `() → UseMutationResult` | 设置默认变体 hook |
+| `useMigrateOutfitsToVariants` | `() → UseMutationResult` | 迁移服装数据到变体 hook |
+| `VARIANT_QUERY_KEYS` | `{ all, byCharacter, detail }` | React Query 查询键工厂 |
+
+#### Components
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `VariantList` | `React.FC<VariantListProps>` | 变体列表组件 |
+| `VariantListContainer` | `React.FC` | 变体列表容器（数据获取 + 状态管理） |
+| `VariantDialog` | `React.FC` | 变体编辑对话框 |
+| `variantToForm` | `(variant?) → VariantFormState` | 将变体转换为表单状态 |
+| `VariantFormState` | type | 变体表单状态类型 |
 
 ---
 

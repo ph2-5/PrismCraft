@@ -23,17 +23,47 @@ Task 2A.9 实现。
 
 ## 公共 API
 
+### Schemas
+
 | API | 签名 | 说明 |
 |-----|------|------|
 | `compositorInputSchema` | `z.ZodObject` | 编译器输入 schema（characterId 必填，propIds/sceneId/extraPrompt/provider/modelId/resolution 可选） |
 | `compositorResultSchema` | `z.ZodObject` | 生成结果 schema（id/characterId/propIds/sceneId/imageUrl/prompt/createdAt） |
 | `composerLayerSchema` | `z.ZodObject` | 画布图层 schema（layerId/id/type/name/emoji/x/y/scale/zIndex） |
+| `composerLayerTypeSchema` | `z.ZodEnum` | 图层类型枚举 schema（character/scene/prop/text） |
 | `compositorPresetSchema` | `z.ZodObject` | 预设 schema（保存常用组合） |
-| `compositorStatusSchema` | `z.ZodEnum` | 生成状态枚举（idle/building-prompt/generating/saving/success/error） |
+| `compositorStatusSchema` | `z.ZodEnum` | 生成状态枚举 schema（idle/building-prompt/generating/saving/success/error） |
+
+### Types
+
+| API | 签名 | 说明 |
+|-----|------|------|
+| `CompositorInput` | type | 编译器输入类型（compositorInputSchema 推断） |
+| `CompositorResult` | type | 生成结果类型（compositorResultSchema 推断） |
+| `ComposerLayer` | type | 画布图层类型（composerLayerSchema 推断） |
+| `ComposerLayerType` | type | 图层类型枚举（character/scene/prop/text） |
+| `CompositorPreset` | type | 预设类型（compositorPresetSchema 推断） |
+| `CompositorStatus` | type | 生成状态枚举类型 |
+
+### Services
+
+| API | 签名 | 说明 |
+|-----|------|------|
 | `composeImage` | `(input, options?) → Promise<CompositorResult>` | 执行一次合成：拼装 prompt → 调用图像模型 → 持久化 |
 | `buildCompositorPrompt` | `(input) → Promise<string>` | 仅拼装 prompt（不调用模型，用于预览） |
 | `getCompositorErrorMessage` | `(err) → string` | 提取错误信息 |
+
+### Hooks
+
+| API | 签名 | 说明 |
+|-----|------|------|
 | `useCompositor` | `() → UseCompositorResult` | React Hook：图层/状态/生成流程管理 |
+| `UseCompositorResult` | type | useCompositor 返回值类型（图层列表 + 选中状态 + 生成状态 + 操作方法） |
+
+### Components
+
+| API | 签名 | 说明 |
+|-----|------|------|
 | `CompositorPanel` | `React.FC` | 三栏布局 UI 组件 |
 
 ---

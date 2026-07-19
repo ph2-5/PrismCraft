@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readdir, readFile } from "fs/promises";
-import { join, relative } from "path";
+import { join, relative, dirname } from "path";
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
@@ -22,6 +22,7 @@ async function getModuleDirs() {
 
 function extractExportsFromIndexTs(content) {
   const exports = new Set();
+  const starExports = [];
   const normalized = content.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   const joined = normalized.replace(/\n/g, " ");
   const reExportRegex = /export\s+(?:type\s+)?\{([^}]+)\}/g;
@@ -36,11 +37,67 @@ function extractExportsFromIndexTs(content) {
       if (name) exports.add(name);
     }
   }
-  const namedRegex = /export\s+(?:const|function|class|type|interface)\s+(\w+)/g;
+  const namedRegex = /export\s+(?:async\s+)?(?:const|function|class|type|interface)\s+(\w+)/g;
   while ((match = namedRegex.exec(joined)) !== null) {
     exports.add(match[1]);
   }
-  return exports;
+  // 收集 `export * from "..."` 形式的重新导出，稍后递归处理
+  const starRegex = /export\s+\*\s+from\s+["']([^"']+)["']/g;
+  while ((match = starRegex.exec(joined)) !== null) {
+    starExports.push(match[1]);
+  }
+  return { exports, starExports };
+}
+
+// 递归解析 `export * from "..."` 引入的所有导出
+async function resolveStarExports(moduleIndexPath, starPaths, visited = new Set()) {
+  const allExports = new Set();
+  for (const starPath of starPaths) {
+    // 解析相对路径，自动尝试 index.ts / index.tsx
+    const baseDir = starPath.startsWith(".")
+      ? join(dirname(moduleIndexPath), starPath)
+      : join(SRC, starPath);
+    let targetPath;
+    try {
+      // 尝试直接作为文件
+      targetPath = baseDir;
+      await readFile(targetPath, "utf-8");
+    } catch {
+      try {
+        targetPath = baseDir + ".ts";
+        await readFile(targetPath, "utf-8");
+      } catch {
+        try {
+          targetPath = baseDir + ".tsx";
+          await readFile(targetPath, "utf-8");
+        } catch {
+          try {
+            targetPath = join(baseDir, "index.ts");
+            await readFile(targetPath, "utf-8");
+          } catch {
+            try {
+              targetPath = join(baseDir, "index.tsx");
+              await readFile(targetPath, "utf-8");
+            } catch {
+              continue; // 无法解析的路径，跳过
+            }
+          }
+        }
+      }
+    }
+    const resolved = targetPath.replace(/\\/g, "/");
+    if (visited.has(resolved)) continue; // 防止循环
+    visited.add(resolved);
+    const subContent = await readFile(targetPath, "utf-8");
+    const { exports: subExports, starExports: subStars } = extractExportsFromIndexTs(subContent);
+    for (const name of subExports) allExports.add(name);
+    // 递归处理子模块的 `export *`
+    if (subStars.length > 0) {
+      const nestedExports = await resolveStarExports(targetPath, subStars, visited);
+      for (const name of nestedExports) allExports.add(name);
+    }
+  }
+  return allExports;
 }
 
 function extractApiNamesFromModuleMd(content) {
@@ -129,7 +186,10 @@ async function checkModuleApiConsistency() {
       continue;
     }
 
-    const actualExports = extractExportsFromIndexTs(indexContent);
+    const { exports: directExports, starExports } = extractExportsFromIndexTs(indexContent);
+    // 递归解析 `export * from "..."` 引入的子模块导出
+    const starResolvedExports = await resolveStarExports(indexPath, starExports);
+    const actualExports = new Set([...directExports, ...starResolvedExports]);
 
     let mdContent;
     try {

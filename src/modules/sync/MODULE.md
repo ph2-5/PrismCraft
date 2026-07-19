@@ -23,6 +23,7 @@
 | API | 签名 | 说明 |
 |-----|------|------|
 | `initSyncEngine` | `(config?: Partial<SyncConfig>) → void` | 初始化同步引擎 |
+| `destroySyncEngine` | `() → void` | 销毁同步引擎，清理定时器与监听器，避免内存泄漏 |
 | `performSync` | `() → Promise<SyncPushResult & SyncPullResult>` | 执行同步（推送+拉取） |
 | `getSyncStatus` | `() → Promise<SyncStatusInfo>` | 获取当前同步状态（异步，因 getDeviceId 已异步化） |
 | `updateSyncConfig` | `(config: Partial<SyncConfig>) → void` | 更新同步配置 |

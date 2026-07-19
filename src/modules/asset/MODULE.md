@@ -82,6 +82,7 @@
 | `useUpdateProp` | `() → UseMutationResult` | 更新道具 hook |
 | `useDeleteProp` | `() → UseMutationResult` | 删除道具 hook |
 | `useMigrateOutfits` | `() → UseMutationResult` | 迁移服装数据 hook |
+| `PROP_QUERY_KEYS` | `{ all: readonly string[]; byType: (type: PropType) => readonly string[]; byTag: (tag: string) => readonly string[] }` | React Query 查询键工厂（["props"] / ["props","type",t] / ["props","tag",t]），供 mutation 成功后精确失效缓存使用 |
 
 ### hooks 子域
 

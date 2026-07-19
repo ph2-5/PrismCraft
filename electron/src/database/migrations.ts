@@ -28,7 +28,7 @@ function sanitizeColumnType(type: string): string {
 export const CURRENT_SCHEMA_VERSION = 7;
 
 export interface MigrationDb {
-  prepare(sql: string): { get(...params: unknown[]): Record<string, unknown> | undefined; run(...params: unknown[]): unknown };
+  prepare(sql: string): { get(...params: unknown[]): Record<string, unknown> | undefined; all(...params: unknown[]): Record<string, unknown>[]; run(...params: unknown[]): unknown };
   exec(sql: string): void;
   transaction(fn: () => void): void;
 }

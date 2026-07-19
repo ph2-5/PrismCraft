@@ -67,6 +67,13 @@ import {
   type NarrativeBeat,
   type GenerateTextFn,
 } from "../structure";
+// Task 2A.14 接入 pacing 子域
+import {
+  planPacing,
+  DEFAULT_PACING_CONFIG,
+  type PacingConfig,
+  type PacingResult,
+} from "../pacing";
 
 /** Novel 工具调用时使用的最小 ToolContext（无取消信号、无进度回调） */
 const NOVEL_TOOL_CTX: ToolContext = { sessionId: "novel-pipeline" };
@@ -154,6 +161,11 @@ export interface UseNovelPipelineResult {
   treatment: StoryTreatment | null;
   /** 每个 beat 产出的 ShotContract 列表（v5.3 增强） */
   shotContracts: ShotContract[];
+  // Task 2A.14 节奏规划状态
+  /** 节奏配置（预设 + 目标总时长 + 4 个 ratio） */
+  pacingConfig: PacingConfig;
+  /** 节奏规划结果（segmentDurations + emotionCurve + pacingNotes） */
+  pacingResult: PacingResult | null;
   // 派生数据
   stagesForMode: PipelineStage[];
   canProceed: boolean;
@@ -166,6 +178,8 @@ export interface UseNovelPipelineResult {
   showShotBreakdown: boolean;
   showFinalize: boolean;
   isDone: boolean;
+  /** Task 2A.14：是否显示节奏规划面板（professional 模式专属） */
+  showPacingPlanning: boolean;
   // Task 2A.7 持久化状态
   /** 待恢复的未完成项目列表（挂载时加载，用户恢复或新建后清空） */
   pendingRecoveryProjects: NovelProject[];
@@ -197,6 +211,13 @@ export interface UseNovelPipelineResult {
   handleBeatsChange: (beats: NarrativeBeat[]) => void;
   /** 用户在 ShotContractPanel 编辑 contracts 后回调 */
   handleShotContractsChange: (contracts: ShotContract[]) => void;
+  // Task 2A.14 Pacing 面板 handlers
+  /** 用户在 PacingPanel 修改配置后回调 */
+  handlePacingConfigChange: (config: PacingConfig) => void;
+  /** 用户点击"一键应用建议时长"后回调（将建议时长应用到 segments.estimatedDuration） */
+  handleApplyPacing: (result: PacingResult) => void;
+  /** 用户点击"恢复默认时长"后回调（重置 pacingConfig 为 DEFAULT_PACING_CONFIG） */
+  handleResetPacing: () => void;
   // Task 2A.7 持久化 handlers
   /** 恢复指定项目（从 DB 加载 PipelineState） */
   recoverProject: (id: string) => Promise<void>;
@@ -358,6 +379,11 @@ export function useNovelPipeline({
   const [treatment, setTreatment] = useState<StoryTreatment | null>(null);
   const [shotContracts, setShotContracts] = useState<ShotContract[]>([]);
 
+  // === Task 2A.14 节奏规划 state ===
+  // pacingConfig: 用户可调整的节奏配置（预设 + 目标总时长 + 4 个 ratio）
+  // pacingResult: 基于 structure + segments + pacingConfig 计算的派生结果（memo）
+  const [pacingConfig, setPacingConfig] = useState<PacingConfig>(DEFAULT_PACING_CONFIG);
+
   // === Task 2A.7 持久化状态 ===
   const [pendingRecoveryProjects, setPendingRecoveryProjects] = useState<NovelProject[]>([]);
   const [isLoadingRecovery, setIsLoadingRecovery] = useState(true);
@@ -387,6 +413,13 @@ export function useNovelPipeline({
     [state.config.aiAssistLevel],
   );
 
+  // Task 2A.14：pacingResult 派生 — 基于 structure + segments + pacingConfig 计算
+  // 仅在 pacing_planning 阶段或需要展示时计算，避免无谓重算
+  const pacingResult = useMemo<PacingResult | null>(() => {
+    if (!storyStructure || state.segments.length === 0) return null;
+    return planPacing(state.segments, storyStructure, pacingConfig);
+  }, [storyStructure, state.segments, pacingConfig]);
+
   // === Handlers ===
 
   const handleImport = useCallback(async (text: string) => {
@@ -394,6 +427,8 @@ export function useNovelPipeline({
     setStoryStructure(null);
     setTreatment(null);
     setShotContracts([]);
+    // Task 2A.14：清空 pacing 子域 state（pacingConfig 重置为默认，pacingResult 是 memo 会自动重算）
+    setPacingConfig(DEFAULT_PACING_CONFIG);
 
     setState((prev) => {
       const next = canTransition(prev.stage, "content_import")
@@ -474,6 +509,9 @@ export function useNovelPipeline({
         // Task 2A.13：professional 模式经过此阶段，AI 识别 beats 后允许下一步
         // 失败时 storyStructure 为 null，但仍允许跳过到 character_manage（不阻塞流程）
         return true;
+      case "pacing_planning":
+        // Task 2A.14：professional 模式经过此阶段，用户调整节奏配置后允许下一步
+        return true;
       case "character_manage":
       case "scene_manage":
         return (
@@ -508,6 +546,8 @@ export function useNovelPipeline({
           // 避免用户从 structure_analysis 回退到 content_import 重试时残留旧数据
           setTreatment(null);
           setShotContracts([]);
+          // Task 2A.14：进入 structure_analysis 前重置 pacingConfig
+          setPacingConfig(DEFAULT_PACING_CONFIG);
           try {
             const result = await analyzeStoryStructure(
               state.segments,
@@ -630,9 +670,9 @@ export function useNovelPipeline({
           const newScenes: SceneInPipeline[] = entityResult.value.scenes.map((s) => ({ ...s, variants: [] }));
 
           setState((prev) =>
-            canTransition(prev.stage, "character_manage")
+            canTransition(prev.stage, "pacing_planning")
               ? {
-                  ...transition(prev, "character_manage"),
+                  ...transition(prev, "pacing_planning"),
                   characters: newCharacters,
                   scenes: newScenes,
                 }
@@ -641,14 +681,26 @@ export function useNovelPipeline({
         } else {
           // 提取失败：仅转换 stage，保留空 characters/scenes（用户可手动添加）
           setState((prev) =>
-            canTransition(prev.stage, "character_manage")
-              ? transition(prev, "character_manage")
+            canTransition(prev.stage, "pacing_planning")
+              ? transition(prev, "pacing_planning")
               : prev,
           );
         }
       } finally {
         if (isMountedRef.current) setIsProcessing(false);
       }
+      return;
+    }
+
+    // 特殊处理：pacing_planning → character_manage（Task 2A.14）
+    // professional 模式专属：用户在 PacingPanel 调整节奏配置后，进入角色管理
+    if (state.stage === "pacing_planning") {
+      // 同步转换：无 AI 调用，直接 transition
+      setState((prev) =>
+        canTransition(prev.stage, "character_manage")
+          ? transition(prev, "character_manage")
+          : prev,
+      );
       return;
     }
 
@@ -887,6 +939,38 @@ export function useNovelPipeline({
     [],
   );
 
+  // === Task 2A.14 Pacing handlers ===
+
+  const handlePacingConfigChange = useCallback(
+    (config: PacingConfig) => {
+      setPacingConfig(config);
+    },
+    [],
+  );
+
+  /**
+   * 一键应用建议时长：将 pacingResult.segmentDurations 应用到 segments.estimatedDuration。
+   *
+   * 不修改 storyStructure.beats.estimatedDuration（beats 时长是 AI 识别的，用户编辑 beats
+   * 通过 handleBeatsChange）。仅更新 segments，影响后续分镜拆解的时长参考。
+   */
+  const handleApplyPacing = useCallback(
+    (result: PacingResult) => {
+      setState((prev) => ({
+        ...prev,
+        segments: prev.segments.map((seg) => {
+          const newDuration = result.segmentDurations.get(seg.id);
+          return newDuration !== undefined ? { ...seg, estimatedDuration: newDuration } : seg;
+        }),
+      }));
+    },
+    [],
+  );
+
+  const handleResetPacing = useCallback(() => {
+    setPacingConfig(DEFAULT_PACING_CONFIG);
+  }, []);
+
   // === FinalizePanel handlers ===
 
   const handleFinalizeImport = useCallback(async () => {
@@ -1118,6 +1202,8 @@ export function useNovelPipeline({
       setStoryStructure(null);
       setTreatment(null);
       setShotContracts([]);
+      // Task 2A.14：清空 pacing 子域 state
+      setPacingConfig(DEFAULT_PACING_CONFIG);
     } catch (err) {
       // P1-3: 恢复失败：保留当前状态，不阻塞 UI，记录日志
       errorLogger.warn(`[useNovelPipeline] 恢复项目 ${id} 失败，保留当前状态`, err);
@@ -1131,6 +1217,8 @@ export function useNovelPipeline({
     setStoryStructure(null);
     setTreatment(null);
     setShotContracts([]);
+    // Task 2A.14：清空 pacing 子域 state
+    setPacingConfig(DEFAULT_PACING_CONFIG);
   }, []);
 
   /** 删除指定未完成项目（从 DB 物理删除） */
@@ -1184,6 +1272,8 @@ export function useNovelPipeline({
   const showSegmentList = state.stage === "content_import" && state.rawText.length > 0;
   // Task 2A.13：professional 模式专属 — 显示叙事结构分析面板
   const showStructureAnalysis = state.stage === "structure_analysis";
+  // Task 2A.14：professional 模式专属 — 显示节奏规划面板
+  const showPacingPlanning = state.stage === "pacing_planning";
   const showEntityReview =
     state.stage === "character_manage" || state.stage === "scene_manage";
   const showShotBreakdown = state.stage === "review" || state.stage === "storyboard";
@@ -1200,11 +1290,15 @@ export function useNovelPipeline({
     storyStructure,
     treatment,
     shotContracts,
+    // Task 2A.14 节奏规划状态
+    pacingConfig,
+    pacingResult,
     stagesForMode,
     canProceed,
     showImportStep,
     showSegmentList,
     showStructureAnalysis,
+    showPacingPlanning,
     showEntityReview,
     showShotBreakdown,
     showFinalize,
@@ -1229,9 +1323,13 @@ export function useNovelPipeline({
     handleFinalizeImport,
     handleAutoRun,
     setCurrentSegmentIndex,
-    // Task 2A.13 Structure 面板 handlers
+    // Task 2A.13 Structure handlers
     handleBeatsChange,
     handleShotContractsChange,
+    // Task 2A.14 Pacing handlers
+    handlePacingConfigChange,
+    handleApplyPacing,
+    handleResetPacing,
     // Task 2A.7 持久化 handlers
     recoverProject,
     dismissRecovery,

@@ -5,6 +5,7 @@
  * - project_init / content_import(空) → ImportStep（文本导入）
  * - content_import(有文本) → SegmentList（段落列表）
  * - structure_analysis → StructureAnalysisPanel + ShotContractPanel（Task 2A.13，professional 模式专属）
+ * - pacing_planning → PacingPanel（Task 2A.14，professional 模式专属）
  * - character_manage / scene_manage → EntityReviewPanel（角色/场景审查）
  * - review / storyboard → ShotBreakdownList（分镜列表）
  * - generation → FinalizePanel（最终确认导入）
@@ -17,6 +18,7 @@ import { CheckCircle2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { PipelineState, ShotBreakdown, ExtractedCharacter, ExtractedScene } from "../domain/types";
 import type { StoryStructure, ShotContract, NarrativeBeat } from "../structure";
+import type { PacingConfig, PacingResult } from "../pacing";
 import { ImportStep } from "./ImportStep";
 import { SegmentList } from "./SegmentList";
 import { EntityReviewPanel } from "./EntityReviewPanel";
@@ -24,6 +26,7 @@ import { ShotBreakdownList } from "./ShotBreakdownList";
 import { FinalizePanel } from "./FinalizePanel";
 import { StructureAnalysisPanel } from "./StructureAnalysisPanel";
 import { ShotContractPanel } from "./ShotContractPanel";
+import { PacingPanel } from "./PacingPanel";
 
 export interface MainWorkAreaProps {
   state: PipelineState;
@@ -41,6 +44,8 @@ export interface MainWorkAreaProps {
   // Task 2A.13 故事结构分析状态
   storyStructure: StoryStructure | null;
   shotContracts: ShotContract[];
+  // Task 2A.14 节奏规划状态
+  pacingConfig: PacingConfig;
   // Handlers
   onImport: (text: string) => void;
   onToggle: (id: string) => void;
@@ -57,6 +62,12 @@ export interface MainWorkAreaProps {
   // Task 2A.13 Structure handlers
   onBeatsChange: (beats: NarrativeBeat[]) => void;
   onShotContractsChange: (contracts: ShotContract[]) => void;
+  // Task 2A.14 Pacing handlers
+  onPacingConfigChange: (config: PacingConfig) => void;
+  onApplyPacing: (result: PacingResult) => void;
+  onResetPacing: () => void;
+  // 派生渲染标志：pacing_planning 阶段
+  showPacingPlanning: boolean;
 }
 
 export function MainWorkArea({
@@ -74,6 +85,7 @@ export function MainWorkArea({
   isDone,
   storyStructure,
   shotContracts,
+  pacingConfig,
   onImport,
   onToggle,
   onSelectAll,
@@ -88,6 +100,10 @@ export function MainWorkArea({
   onFinalizeImport,
   onBeatsChange,
   onShotContractsChange,
+  onPacingConfigChange,
+  onApplyPacing,
+  onResetPacing,
+  showPacingPlanning,
 }: MainWorkAreaProps) {
   return (
     <main className="flex-1 min-w-0 overflow-y-auto p-6 bg-background" aria-label={t("novel.shell.mainWorkArea")}>
@@ -119,6 +135,17 @@ export function MainWorkArea({
             onChange={onShotContractsChange}
           />
         </div>
+      ) : showPacingPlanning ? (
+        // Task 2A.14：professional 模式专属 — 节奏规划（情绪曲线 + 时长分配 + 应用建议）
+        <PacingPanel
+          structure={storyStructure}
+          segments={state.segments}
+          config={pacingConfig}
+          onConfigChange={onPacingConfigChange}
+          onApply={onApplyPacing}
+          onReset={onResetPacing}
+          isProcessing={isProcessing}
+        />
       ) : showEntityReview ? (
         <EntityReviewPanel
           characters={state.characters}

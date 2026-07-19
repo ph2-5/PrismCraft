@@ -42,11 +42,14 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     // Task 2A.13 故事结构分析状态
     storyStructure,
     shotContracts,
+    // Task 2A.14 节奏规划状态
+    pacingConfig,
     stagesForMode,
     canProceed,
     showImportStep,
     showSegmentList,
     showStructureAnalysis,
+    showPacingPlanning,
     showEntityReview,
     showShotBreakdown,
     showFinalize,
@@ -73,6 +76,10 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     // Task 2A.13 Structure handlers
     handleBeatsChange,
     handleShotContractsChange,
+    // Task 2A.14 Pacing handlers
+    handlePacingConfigChange,
+    handleApplyPacing,
+    handleResetPacing,
     recoverProject,
     dismissRecovery,
     deletePendingProject,
@@ -131,6 +138,7 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
           isDone={isDone}
           storyStructure={storyStructure}
           shotContracts={shotContracts}
+          pacingConfig={pacingConfig}
           onImport={handleImport}
           onToggle={handleToggle}
           onSelectAll={handleSelectAll}
@@ -145,6 +153,10 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
           onFinalizeImport={handleFinalizeImport}
           onBeatsChange={handleBeatsChange}
           onShotContractsChange={handleShotContractsChange}
+          onPacingConfigChange={handlePacingConfigChange}
+          onApplyPacing={handleApplyPacing}
+          onResetPacing={handleResetPacing}
+          showPacingPlanning={showPacingPlanning}
         />
         <ContextPanel state={state} shotCount={shots.length} />
       </div>

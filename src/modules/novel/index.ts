@@ -110,3 +110,19 @@ export type { ContextPanelProps } from "./presentation/ContextPanel";
 // Presentation — 未完成项目恢复对话框（Task 2A.7）
 export { NovelProjectList } from "./presentation/NovelProjectList";
 export type { NovelProjectListProps } from "./presentation/NovelProjectList";
+
+// ============================================================================
+// Structure 子域（Task 2A.13）
+// ============================================================================
+// 故事结构分析层 — 叙事 beats + Treatment + ShotContract
+// domain + services 通过 structure/index.ts 桶文件统一导出
+// presentation 中的两个 UI Panel 直接从此处导出（与其他 presentation 组件保持一致）
+export * from "./structure";
+
+// Presentation — 故事结构分析面板（Task 2A.13）
+export { StructureAnalysisPanel } from "./presentation/StructureAnalysisPanel";
+export type { StructureAnalysisPanelProps } from "./presentation/StructureAnalysisPanel";
+
+// Presentation — 镜头契约编辑面板（Task 2A.13 v5.3 增强）
+export { ShotContractPanel } from "./presentation/ShotContractPanel";
+export type { ShotContractPanelProps } from "./presentation/ShotContractPanel";

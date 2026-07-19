@@ -20,8 +20,9 @@
 | `domain` | [domain/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/domain/) | 领域类型定义（15 个核心类型 + contract.json 不变量） |
 | `tools` | [tools/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/tools/) | 5 个 Novel Agent 工具（segmentNovelText / extractCharacters / extractScenes / matchEntities / breakdownTextToShots） |
 | `import/services` | [import/services/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/import/services/) | Pipeline 状态机（10 阶段转换 + 三档模式 + 失败重试 + FALLBACK_STRATEGIES） |
+| `structure` | [structure/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/structure/) | 故事结构分析层（Task 2A.13）：叙事 beats + Treatment + ShotContract（domain + services） |
 | `hooks` | [hooks/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/hooks/) | React Hooks（useNovelPipeline — 管道状态管理） |
-| `presentation` | [presentation/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/presentation/) | UI 组件（StoryPipelineShell 三栏布局 + Part 1/2 子组件） |
+| `presentation` | [presentation/](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/presentation/) | UI 组件（StoryPipelineShell 三栏布局 + Part 1/2 子组件 + Structure/ShotContract Panel） |
 
 ---
 
@@ -53,6 +54,16 @@
 
 **未完成项目恢复（Task 2A.7）**：`NovelProjectList`（恢复对话框，由 StoryPipelineShell 在挂载时检测到 DB 未完成项目时渲染）
 
+**故事结构分析层（Task 2A.13）**：`StructureAnalysisPanel`、`ShotContractPanel`（v5.3 增强）
+
+### Structure 子域 API（Task 2A.13）
+
+**Domain 类型**：`NarrativeBeat`、`NarrativeBeatType`、`EmotionPoint`、`OverallPacing`、`StoryStructure`、`StoryTone`、`CharacterArc`、`StoryTreatment`、`ShotSize`、`ShotMovement`、`ShotLighting`、`ShotContract`
+
+**Domain 常量与函数**：`NARRATIVE_BEAT_TYPES`、`computeBeatPosition`、`findClimaxPosition`、`inferOverallPacing`、`computeEmotionCurve`、`STORY_TONES`、`EMPTY_TREATMENT`、`isTreatmentComplete`、`SHOT_SIZES`、`SHOT_MOVEMENTS`、`SHOT_LIGHTINGS`、`DEFAULT_LENS_BY_SIZE`、`DEFAULT_DURATION_BY_SIZE`、`validateShotContract`、`clampDuration`
+
+**Services**：`analyzeStoryStructure`、`buildStructureAnalysisPrompt`、`parseNarrativeBeats`、`populateBeatPositionsAndDurations`、`extractJsonArrayFromText`、`suggestDurationByStructure`、`recalculateStoryStructure`、`extractTreatment`、`buildTreatmentExtractionPrompt`、`parseTreatment`、`extractJsonObjectFromText`、`buildShotContractsForBeats`、`buildShotContractsForBeat`、`buildShotContractPrompt`、`parseShotContracts`、`getDefaultLighting`
+
 ---
 
 ## 关键不变量（详见 [domain/contract.json](file:///c:/Users/23727/Desktop/重构/ai-animation-studio-source-code/src/modules/novel/domain/contract.json)）
@@ -74,8 +85,11 @@ novel/
   ├── domain/          → 仅依赖 @/domain/schemas/character（CharacterAppearance）
   ├── tools/           → 仅依赖 @/domain/* + @/shared-logic/* + 同模块 domain
   ├── import/services/ → 仅依赖同模块 domain（纯函数，零外部依赖）
+  ├── structure/
+  │   ├── domain/      → 仅依赖同模块 domain/types（NovelSegment），零外部依赖
+  │   └── services/    → 仅依赖同模块 structure/domain + tools/helpers，零外部依赖
   ├── hooks/           → 仅依赖同模块 domain + import/services
-  └── presentation/    → 仅依赖 @/shared/constants + @/shared/presentation + 同模块 domain/hooks
+  └── presentation/    → 仅依赖 @/shared/constants + @/shared/presentation + 同模块 domain/hooks/structure
 ```
 
 **禁止**：
@@ -111,4 +125,5 @@ novel/
 | 2A.5 | ✅ | UI Panel Part 2（提取+拆解+提示词） |
 | 2A.6 | ✅ | StoryPipelineShell 三栏布局 + useNovelPipeline Hook |
 | 2A.7 | ✅ | 小说项目持久化（novel_projects 表 + CRUD + 2秒防抖自动保存 + 恢复对话框） |
-| 2A.8-2A.23 | ⏳ | 待实施（道具库 / 变体 / Prompt 合成 / 结构分析 / 节奏规划 / 三档模式 / 联动机制 / 过期标记 / 一致性 QC 等） |
+| 2A.13 | ✅ | 故事结构分析层（叙事 beats + Treatment + ShotContract，domain + services + UI Panel + 106 个测试） |
+| 2A.8-2A.12, 2A.14-2A.23 | ⏳ | 待实施（道具库 / 变体 / Prompt 合成 / 节奏规划 / 三档模式 / 联动机制 / 过期标记 / 一致性 QC 等） |

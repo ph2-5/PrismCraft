@@ -77,6 +77,8 @@ import {
 } from "../pacing";
 // Task 2A.16 接入示例项目数据
 import type { SampleProject } from "../services/sample-projects";
+// Task 2A.19 接入 workflow 子域（仅类型 + 模式切换，不实际运行状态机）
+import type { WorkflowMode } from "../workflow";
 
 /** Novel 工具调用时使用的最小 ToolContext（无取消信号、无进度回调） */
 const NOVEL_TOOL_CTX: ToolContext = { sessionId: "novel-pipeline" };
@@ -235,6 +237,11 @@ export interface UseNovelPipelineResult {
   handleQuickGenerate: () => Promise<void>;
   /** 设置 rawText（QuickModePanel 文本框双向绑定用） */
   setRawText: (text: string) => void;
+  // Task 2A.19 工作流模式 handlers
+  /** 当前工作流模式（semi-auto / full-auto），与 config.mode 联动 */
+  workflowMode: WorkflowMode;
+  /** 切换工作流模式（立即应用，不丢失已生成内容；联动 config.mode 与 gates） */
+  handleWorkflowModeChange: (mode: WorkflowMode) => void;
 }
 
 /**
@@ -393,6 +400,13 @@ export function useNovelPipeline({
   // pacingConfig: 用户可调整的节奏配置（预设 + 目标总时长 + 4 个 ratio）
   // 注：pacingResult 不在此处计算（PacingPanel 内部 useMemo 计算并通过 onApply 传入）
   const [pacingConfig, setPacingConfig] = useState<PacingConfig>(DEFAULT_PACING_CONFIG);
+
+  // === Task 2A.19 工作流模式 state ===
+  // workflowMode: semi-auto（每步暂停可编辑）/ full-auto（仅关键节点暂停）
+  // 与 config.mode 联动：full-auto → config.mode="auto"（关闭门控），semi-auto → config.mode="semi"
+  // 注：当前不实际运行 AutoPipeline/SemiPipeline 状态机，仅用于 UI 切换 + 联动 config
+  //     深度集成（executor 注入、retake-protocol 触发）留待未来增强
+  const [workflowMode, setWorkflowMode] = useState<WorkflowMode>("semi-auto");
 
   // === Task 2A.7 持久化状态 ===
   const [pendingRecoveryProjects, setPendingRecoveryProjects] = useState<NovelProject[]>([]);
@@ -1378,6 +1392,50 @@ export function useNovelPipeline({
     setState((prev) => ({ ...prev, rawText: text }));
   }, []);
 
+  // === Task 2A.19 工作流模式 handlers ===
+
+  /**
+   * 切换工作流模式（semi-auto / full-auto）。
+   *
+   * 联动 config.mode 与 gates：
+   * - full-auto: config.mode = "auto" + 应用 getAutoGates 关闭所有门控
+   *   → handleAutoRun 仍由用户点击触发，但门控已关闭，handleNext 会自动推进
+   * - semi-auto: config.mode = "semi" + 恢复默认 gates（confirmSegments/Entities/Shots/Prompts 全开）
+   *
+   * 不重置 PipelineState — 模式切换应保留已生成的 segments/characters/scenes/shots。
+   * 这是 Task 2A.19 Done 标准"模式切换后立即应用，不丢失已生成内容"的要求。
+   */
+  const handleWorkflowModeChange = useCallback((mode: WorkflowMode) => {
+    setWorkflowMode(mode);
+    setState((prev) => {
+      if (mode === "full-auto") {
+        // 全自动：关闭所有门控，让 handleNext 自动推进
+        const autoConfig = { ...prev.config, mode: "auto" as const };
+        return {
+          ...prev,
+          config: {
+            ...autoConfig,
+            gates: getAutoGates(autoConfig),
+          },
+        };
+      }
+      // 半自动：恢复门控为默认（全部开启，让用户在每步确认）
+      return {
+        ...prev,
+        config: {
+          ...prev.config,
+          mode: "semi" as const,
+          gates: {
+            confirmSegments: true,
+            confirmEntities: true,
+            confirmShots: true,
+            confirmPrompts: true,
+          },
+        },
+      };
+    });
+  }, []);
+
   // === done 阶段调用 onComplete ===
   useEffect(() => {
     if (state.stage === "done") {
@@ -1458,5 +1516,8 @@ export function useNovelPipeline({
     handleLoadSampleProject,
     handleQuickGenerate,
     setRawText,
+    // Task 2A.19 工作流模式
+    workflowMode,
+    handleWorkflowModeChange,
   };
 }

@@ -36,6 +36,7 @@ import { ModeSelector, type AiAssistLevel } from "./ModeSelector";
 import { QuickModePanel } from "./QuickModePanel";
 import { SampleProjectLoader } from "./SampleProjectLoader";
 import { OnboardingGuide } from "./OnboardingGuide";
+import { WorkflowModeSelector } from "../workflow";
 import type { SampleProject } from "../services/sample-projects";
 
 /** localStorage 键：是否已完成模式选择（首次进入后置为 true） */
@@ -132,6 +133,9 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
     handleLoadSampleProject,
     handleQuickGenerate,
     setRawText,
+    // Task 2A.19 工作流模式
+    workflowMode,
+    handleWorkflowModeChange,
   } = pipeline;
 
   // Task 2A.7: 显示恢复弹窗的条件
@@ -366,6 +370,13 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
             <BarChart3 size={12} />
             {t("novel.overview.toggleButton")}
           </button>
+          {/* Task 2A.19：工作流模式切换（半自动/全自动） */}
+          <WorkflowModeSelector
+            mode={workflowMode}
+            onModeChange={handleWorkflowModeChange}
+            disabled={isProcessing || isImporting}
+            compact
+          />
           {/* Task 2A.16：切换模式按钮 */}
           <button
             type="button"

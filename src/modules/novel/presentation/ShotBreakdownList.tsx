@@ -85,9 +85,9 @@ export function ShotBreakdownList({
             key={shot.id}
             className="flex items-center gap-2"
             // P2-3: 长列表性能优化 — content-visibility 让浏览器跳过视口外卡片的渲染
-            // 第 7 轮审计修复：回退到固定值 "160px"，避免 "auto 160px" 在 Safari 17.4-18.1
-            // 和 Firefox 107-116 上整体声明被丢弃导致回归（这些浏览器不支持 auto 关键字）
-            style={{ contentVisibility: "auto", containIntrinsicSize: "160px" }}
+            // 第 7 轮审计修复：回退到固定值，避免 "auto Npx" 在早期浏览器上整体声明被丢弃
+            // 第 8 轮审计修复：值从 160px 调整为 220px，匹配 ShotCard 完整状态高度（220-260px）
+            style={{ contentVisibility: "auto", containIntrinsicSize: "220px" }}
           >
             {/* 拖拽手柄 + 上下移动按钮 */}
             <div className="flex flex-col shrink-0">

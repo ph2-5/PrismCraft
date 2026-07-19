@@ -182,6 +182,35 @@ describe("Task 2A.12 — consistency-enhancer", () => {
       // trim 处理空白，但保留 hash fragment
       expect(candidates[0]!.url).toBe("/img/primary.png#v=3");
     });
+
+    it("P2-6: 空白 + hash fragment URL 与无 hash URL 应去重", () => {
+      // 第 8 轮审计补充：验证 normalizeUrlForKey 内部 trim 后的去重正确性
+      const input: CharacterAssetInput = {
+        characterId: "char-p2-6e",
+        primaryImageUrl: "  /img/same.png#v=1  ",
+        defaultVariantImageUrl: "/img/same.png",
+      };
+
+      const candidates = extractCharacterReferenceCandidates(input);
+
+      expect(candidates).toHaveLength(1);
+      // 保留第一个出现的 URL（含 hash fragment 和原始空白经过 trim）
+      expect(candidates[0]!.url).toBe("/img/same.png#v=1");
+    });
+
+    it("P2-6: 纯空白 + hash URL 被过滤（trim 后仅剩 hash）", () => {
+      // 第 8 轮审计补充：验证 trim 后仅剩 hash fragment 的情况被正确过滤
+      const input: CharacterAssetInput = {
+        characterId: "char-p2-6f",
+        primaryImageUrl: "   #v=1",
+        defaultVariantImageUrl: "/img/real.png",
+      };
+
+      const candidates = extractCharacterReferenceCandidates(input);
+
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]!.url).toBe("/img/real.png");
+    });
   });
 
   describe("selectConsistencyStrategy", () => {

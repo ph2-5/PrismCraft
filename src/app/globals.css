@@ -396,7 +396,11 @@
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; animation: fadeIn 0.15s; }
-.modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-width: 360px; max-width: 500px; }
+/* 第 8 轮审计修复：min-width 改为响应式，窄屏（<400px）移除约束避免溢出 */
+.modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-width: 0; max-width: 500px; }
+@media (min-width: 400px) {
+  .modal { min-width: 360px; }
+}
 
 /* Video Grid */
 .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }

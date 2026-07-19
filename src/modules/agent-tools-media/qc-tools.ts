@@ -334,7 +334,8 @@ export const dispatchVideoFallbackTool: ToolImpl = {
             enum: ["regenerate", "face_swap", "manual_review"],
             description:
               "手动指定 fallback 动作（可选，默认 undefined 即自动决策）。" +
-              "用于 AI 明确要求执行特定动作时。",
+              "仅 manual_review 可跳过 fallback 链直接终止；" +
+              "regenerate/face_swap 必须与当前 retryCount 推断的自动决策匹配，否则返回错误。",
           },
         },
         required: ["taskId"],
@@ -429,11 +430,16 @@ export const dispatchVideoFallbackTool: ToolImpl = {
     if (forceAction === "regenerate" || forceAction === "face_swap") {
       const predictedAction = predictNextAction(baseReport, DEFAULT_DRIFT_POLICY);
       if (predictedAction !== forceAction) {
+        // 区分两种不匹配场景，给出更清晰的错误消息
+        const reason =
+          predictedAction === "none"
+            ? `verdict="${baseReport.verdict}" 非 drift_critical，无需触发 fallback`
+            : `根据 retryCount=${baseReport.retryCount ?? 0}，自动决策应为 "${predictedAction}"`;
         return {
           success: false,
           error:
             `forceAction="${forceAction}" 与当前 fallback 链不匹配。` +
-            `根据 retryCount=${baseReport.retryCount ?? 0}，自动决策应为 "${predictedAction}"。` +
+            `${reason}。` +
             `若要跳过中间步骤，请使用 forceAction="manual_review" 终止 fallback。`,
         };
       }

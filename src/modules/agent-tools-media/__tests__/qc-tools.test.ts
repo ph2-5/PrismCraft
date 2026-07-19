@@ -549,6 +549,28 @@ describe("dispatch_video_fallback", () => {
     expect(mockDispatchFallback).not.toHaveBeenCalled();
   });
 
+  it("forceAction=regenerate 但 verdict=pass 时返回错误（verdict 非 critical）", async () => {
+    const passReport = makePassReport();
+    mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(makeTask());
+    mockStoryStorage.getStoryByBeatId.mockResolvedValue(
+      makeStory([makeBeat({ qcReport: passReport })]),
+    );
+
+    // verdict=pass 时 predictNextAction 返回 "none"
+    mockPredictNextAction.mockReturnValue("none");
+
+    const result = await dispatchVideoFallbackTool.execute(
+      { taskId: "task_1", forceAction: "regenerate" },
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("forceAction=\"regenerate\"");
+    expect(result.error).toContain("verdict=\"pass\" 非 drift_critical");
+    expect(result.error).toContain("无需触发 fallback");
+    expect(mockDispatchFallback).not.toHaveBeenCalled();
+  });
+
   it("dispatchFallback 异常时返回错误", async () => {
     const criticalReport = makeCriticalReport(0);
     mockVideoTaskStorage.getVideoTaskById.mockResolvedValue(makeTask());

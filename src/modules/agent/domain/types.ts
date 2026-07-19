@@ -138,6 +138,14 @@ export interface AgentLoopConfig {
   temperature: number;
   /** system prompt 覆盖 */
   systemPromptOverride?: string;
+  /**
+   * 动态系统提示注入（P2 集成：来自外部事件，如 VIDEO_TASK_COMPLETED）。
+   *
+   * 注入位置：buildSystemPrompt 中 5 个占位符替换之后、意图路由之前。
+   * 用途：将异步事件转化为 Agent 上下文，让 Agent 在下次 sendMessage 时感知事件。
+   * 一次性消费：useAgent 在 sendMessage 完成后清空 ref，避免污染后续无关对话。
+   */
+  systemHint?: string;
   /** 启用的工具列表（undefined=全部） */
   enabledTools?: string[];
   /** LLM provider ID */

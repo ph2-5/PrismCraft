@@ -195,7 +195,7 @@ describe("intent-router", () => {
       ["character-scene", "characters"],
       ["cinematographer", "camera"],
       ["api-helper", "prompt"],
-      ["video-completed", "prompt"],
+      ["video-completed", "qc"],
       ["default", "prompt"],
     ] as Array<[IntentType, string]>)(
       "意图 %s 映射到 Skill id %s",

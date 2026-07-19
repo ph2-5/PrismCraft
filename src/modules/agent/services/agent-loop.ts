@@ -527,6 +527,12 @@ export class AgentLoop {
       .replace("{CONVERSATION_SUMMARY}", conversationSummary || "（暂无摘要）")
       .replace("{AVAILABLE_TOOLS}", buildAvailableToolsSummary(toolDescs));
 
+    // P2 集成：注入 systemHint（来自外部事件，如 VIDEO_TASK_COMPLETED）
+    // 注入位置在 5 个占位符之后、意图路由之前，作为「事件上下文」通知 Agent
+    if (this.config.systemHint) {
+      prompt += "\n\n" + this.config.systemHint;
+    }
+
     // Task 1.12：意图路由表 — 先识别意图、注入意图专属指引，再加载 Skill 指令
     // 流程：routeIntent(msg) → buildRouteContext(intent, ctx) → 拼接 systemPromptAddon
     //       → mapIntentToSkillId(intent) → getSkill(skillId) → skill.buildInstructions(ctx)

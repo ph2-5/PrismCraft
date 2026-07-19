@@ -113,15 +113,18 @@ export { interviewSkill } from "./interview-skill";
 export { promptSkill } from "./prompt-skill";
 export { compressSkill } from "./compress-skill";
 export { troubleshootSkill } from "./troubleshoot-skill";
+export { qcSkill } from "./qc-skill";
 
 import { interviewSkill } from "./interview-skill";
 import { promptSkill } from "./prompt-skill";
 import { compressSkill } from "./compress-skill";
 import { troubleshootSkill } from "./troubleshoot-skill";
+import { qcSkill } from "./qc-skill";
 
 // 注册顺序决定 routeSkill 的匹配优先级：
-// troubleshoot（诊断）→ interview（引导）→ compress（压缩）→ prompt（默认）
+// troubleshoot（诊断）→ qc（一致性检查）→ interview（引导）→ compress（压缩）→ prompt（默认）
 registerSkill(troubleshootSkill);
+registerSkill(qcSkill);
 registerSkill(interviewSkill);
 registerSkill(compressSkill);
 registerSkill(promptSkill);

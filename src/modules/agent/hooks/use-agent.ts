@@ -222,6 +222,48 @@ export function useAgent(): UseAgentReturn {
   useEffect(() => {
     isStreamingRef.current = isStreaming;
   }, [isStreaming]);
+
+  /**
+   * P2 集成：systemHint ref — 接收 VIDEO_TASK_COMPLETED 事件并注入下次 buildSystemPrompt。
+   *
+   * 工作流程：
+   * 1. VIDEO_TASK_COMPLETED 事件触发 → 回调写入 systemHintRef.current
+   * 2. 用户下次 sendMessage → buildConfig() 读取 ref → 传入 AgentLoop
+   * 3. AgentLoop.buildSystemPrompt 注入 systemHint 到 prompt 末尾
+   * 4. sendMessage 完成后清空 ref（一次性消费，避免污染后续无关对话）
+   *
+   * 注意：若多个 VIDEO_TASK_COMPLETED 事件在用户 sendMessage 前连续触发，
+   * 后到的会覆盖先到的（保留最新）。这样 Agent 总是感知最近完成的视频任务。
+   */
+  const systemHintRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const subscription = eventBus.on(
+      DomainEvents.VIDEO_TASK_COMPLETED,
+      (payload: unknown) => {
+        try {
+          const { taskId, videoUrl } = payload as { taskId: string; videoUrl?: string };
+          const urlHint = videoUrl ? `，videoUrl=${videoUrl}` : "";
+          systemHintRef.current = [
+            "## 系统事件通知",
+            "",
+            `视频任务刚刚完成：taskId=\`${taskId}\`${urlHint}。`,
+            "系统已自动执行一致性 QC 并将 QCReport 写入 StoryBeat.qcReport。",
+            "",
+            "响应建议：",
+            "- 若用户询问视频质量或一致性，优先调用 `check_video_consistency(taskId=\"" + taskId + "\")` 获取 cached QCReport",
+            "- 若 verdict=drift_critical，告知用户并询问是否触发 `dispatch_video_fallback`",
+            "- 不要主动调用 QC 工具，除非用户明确询问",
+          ].join("\n");
+        } catch (e) {
+          errorLogger.warn("[useAgent] VIDEO_TASK_COMPLETED 订阅处理失败", e);
+        }
+      },
+    );
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [historySessions, setHistorySessions] = useState<SessionListItem[]>([]);
@@ -282,6 +324,8 @@ export function useAgent(): UseAgentReturn {
       maxIterations: settings.maxIterations,
       temperature: settings.temperature,
       systemPromptOverride: settings.persona === "default" ? undefined : persona,
+      // P2 集成：注入 systemHint（VIDEO_TASK_COMPLETED 事件累积的提示）
+      systemHint: systemHintRef.current,
       providerId: settings.textModel?.providerId,
       modelId: settings.textModel?.modelId,
     };
@@ -514,6 +558,8 @@ export function useAgent(): UseAgentReturn {
         setIsStreaming(false);
         loopRef.current = null;
         abortControllerRef.current = null;
+        // P2 集成：清空 systemHint（一次性消费，避免污染后续无关对话）
+        systemHintRef.current = undefined;
         triggerRender();
         // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
         eventBus.emit(DomainEvents.AGENT_COMPLETED, { sessionId: sessionRef.current.id });

@@ -19,15 +19,18 @@ import { interviewSkill } from "../interview-skill";
 import { promptSkill } from "../prompt-skill";
 import { compressSkill } from "../compress-skill";
 import { troubleshootSkill } from "../troubleshoot-skill";
+import { qcSkill } from "../qc-skill";
 
-// skills/index.ts 在模块加载时自动注册 4 个核心 Skill。
+// skills/index.ts 在模块加载时自动注册 5 个核心 Skill。
 // 测试中可能需要重置注册表，因此用 beforeEach 重置并重新注册。
 
 describe("Skill 路由表", () => {
   beforeEach(() => {
     clearSkills();
-    // 注册顺序决定 routeSkill 匹配优先级
+    // 注册顺序决定 routeSkill 匹配优先级：
+    // troubleshoot → qc → interview → compress → prompt
     registerSkill(troubleshootSkill);
+    registerSkill(qcSkill);
     registerSkill(interviewSkill);
     registerSkill(compressSkill);
     registerSkill(promptSkill);
@@ -50,6 +53,14 @@ describe("Skill 路由表", () => {
       expect(routeSkill("帮我压缩这个 prompt").id).toBe("compress");
     });
 
+    it("含 QC 关键词应路由到 qc", () => {
+      expect(routeSkill("检查视频一致性").id).toBe("qc");
+    });
+
+    it("含漂移关键词应路由到 qc", () => {
+      expect(routeSkill("角色漂移了").id).toBe("qc");
+    });
+
     it("清晰概念应路由到 prompt（默认 fallback）", () => {
       expect(routeSkill("一个穿红裙子的女孩在雨中奔跑").id).toBe("prompt");
     });
@@ -69,17 +80,19 @@ describe("Skill 路由表", () => {
   describe("注册器 API", () => {
     it("listSkills 返回所有已注册 Skill", () => {
       const skills = listSkills();
-      expect(skills).toHaveLength(4);
+      expect(skills).toHaveLength(5);
       expect(skills.map((s) => s.id).sort()).toEqual([
         "compress",
         "interview",
         "prompt",
+        "qc",
         "troubleshoot",
       ]);
     });
 
     it("getSkill 按 id 获取 Skill", () => {
       expect(getSkill("interview")?.id).toBe("interview");
+      expect(getSkill("qc")?.id).toBe("qc");
       expect(getSkill("nonexistent")).toBeUndefined();
     });
 
@@ -241,6 +254,54 @@ describe("Skill 路由表", () => {
       const ctx: AgentContext = { userMessage: "修复", recentFailures: [] };
       const instructions = troubleshootSkill.buildInstructions(ctx);
       expect(instructions).not.toContain("已知失败上下文");
+    });
+  });
+
+  describe("qcSkill", () => {
+    it("matchers 包含 QC 关键词", () => {
+      expect(qcSkill.matchers).toContain("qc");
+      expect(qcSkill.matchers).toContain("一致性");
+      expect(qcSkill.matchers).toContain("漂移");
+      expect(qcSkill.matchers).toContain("检查视频");
+    });
+
+    it("buildInstructions 返回 QC 模式指令", () => {
+      const ctx: AgentContext = { userMessage: "检查视频一致性" };
+      const instructions = qcSkill.buildInstructions(ctx);
+      expect(instructions).toContain("QC");
+      expect(instructions).toContain("check_video_consistency");
+      expect(instructions).toContain("dispatch_video_fallback");
+    });
+
+    it("buildInstructions 包含 verdict 解读", () => {
+      const ctx: AgentContext = { userMessage: "QC 结果" };
+      const instructions = qcSkill.buildInstructions(ctx);
+      expect(instructions).toContain("pass");
+      expect(instructions).toContain("drift_warning");
+      expect(instructions).toContain("drift_critical");
+    });
+
+    it("buildInstructions 包含 forceAction 使用规则", () => {
+      const ctx: AgentContext = { userMessage: "QC" };
+      const instructions = qcSkill.buildInstructions(ctx);
+      expect(instructions).toContain("forceAction");
+      expect(instructions).toContain("manual_review");
+      expect(instructions).toContain("regenerate");
+      expect(instructions).toContain("face_swap");
+    });
+
+    it("buildInstructions 包含禁止行为说明", () => {
+      const ctx: AgentContext = { userMessage: "QC" };
+      const instructions = qcSkill.buildInstructions(ctx);
+      expect(instructions).toContain("禁止行为");
+      expect(instructions).toContain("不要对 verdict=pass");
+    });
+
+    it("buildInstructions 包含响应示例", () => {
+      const ctx: AgentContext = { userMessage: "QC" };
+      const instructions = qcSkill.buildInstructions(ctx);
+      expect(instructions).toContain("响应示例");
+      expect(instructions).toContain("视频好了吗");
     });
   });
 });

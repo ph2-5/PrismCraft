@@ -124,7 +124,7 @@ const INTENT_TO_SKILL_ID: Record<IntentType, string> = {
   "character-scene": "characters", // 对应扩展 Skill: charactersSkill
   cinematographer: "camera", // 对应扩展 Skill: cameraSkill
   "api-helper": "prompt", // api-helper 复用 prompt skill，route 文件提供额外指引
-  "video-completed": "prompt", // video-completed 复用 prompt skill，route 文件提供 QC 引导
+  "video-completed": "qc", // video-completed 映射到 qc skill（P2 集成）
   default: "prompt",
 };
 

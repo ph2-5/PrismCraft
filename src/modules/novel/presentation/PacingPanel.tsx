@@ -26,7 +26,6 @@ import type {
   StoryStructure,
 } from "../structure/domain/narrative-beats";
 import {
-  DEFAULT_PACING_CONFIG,
   type PacingConfig,
   type PacingPreset,
   type PacingResult,
@@ -218,7 +217,7 @@ export function PacingPanel({
     return planPacing(segments, structure, config);
   }, [structure, segments, config]);
 
-  // 空状态：structure 为 null
+  // 空状态：structure 为 null（未完成结构分析）
   if (!structure) {
     return (
       <EmptyState
@@ -230,13 +229,13 @@ export function PacingPanel({
     );
   }
 
-  // 空状态：segments 为空
+  // 空状态：segments 为空（未完成内容分段）
   if (segments.length === 0) {
     return (
       <EmptyState
         icon={Gauge}
         title={t("novel.pacing.title")}
-        description={t("novel.pacing.noStructure")}
+        description={t("novel.pacing.noSegments")}
         compact
       />
     );
@@ -247,7 +246,7 @@ export function PacingPanel({
   };
 
   const handleTargetDurationChange = (value: number) => {
-    // 夹紧到 10-300 秒
+    // 夹紧到 10-300 秒（防御性：input 已设 min/max，但仍处理非浏览器输入路径）
     const clamped = Math.max(10, Math.min(300, value));
     onConfigChange({ ...config, targetDuration: clamped });
   };
@@ -258,8 +257,9 @@ export function PacingPanel({
     }
   };
 
+  // M-2 修复：只调用 onReset，由父组件负责完整重置（避免同时调用 onConfigChange 导致双重 setPacingConfig）
+  // 父组件 useNovelPipeline.handleResetPacing 内部已 setPacingConfig(DEFAULT_PACING_CONFIG)
   const handleReset = () => {
-    onConfigChange({ ...DEFAULT_PACING_CONFIG });
     if (onReset) onReset();
   };
 

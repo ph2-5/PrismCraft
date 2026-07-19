@@ -409,6 +409,11 @@ export interface BeatWithDuration {
  * 一个 segment 可能拆分成多个 beats（分镜），此时 segment 时长平均分配到该 segment 下的所有 beats。
  *
  * 返回新的 beats 数组（不修改原数组）。
+ *
+ * 注：Task 2A.14 基础部分未在 useNovelPipeline 中调用此函数 —
+ * handleApplyPacing 直接修改 segments.estimatedDuration（影响后续分镜拆解的时长参考）。
+ * 预留给 Task 2A.14 v5.3 增强（角色化产出）或 Task 2A.16 三档模式完整实现时使用：
+ * 届时需要在 finalizeImport 前将 pacingResult 应用到 beats.duration（影响最终 StoryBeat 持久化）。
  */
 export function applyPacingToBeats<T extends BeatWithDuration>(
   beats: T[],

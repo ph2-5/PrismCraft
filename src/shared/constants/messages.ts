@@ -3680,6 +3680,7 @@ const messages: Record<MessageKey, string> = {
   "novel.pacing.totalDuration": "实际总时长",
   "novel.pacing.noEmotionData": "暂无情绪曲线数据",
   "novel.pacing.noStructure": "请先完成故事结构分析（structure_analysis 阶段）",
+  "novel.pacing.noSegments": "暂无可用的段落，请返回上一步完成内容分段",
   "novel.pacing.beatDuration": "{seconds} 秒",
   "novel.pacing.phaseSetup": "开端",
   "novel.pacing.phaseRising": "上升动作",

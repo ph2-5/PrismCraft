@@ -47,6 +47,16 @@ export interface PacingConfig {
 }
 
 /**
+ * 4 个阶段的比例字段集合（从 PacingConfig 中 Pick 出来）。
+ *
+ * 用于 DEFAULT_PACING_PRESETS 的类型定义，避免冗长的 Pick 内联写法。
+ */
+export type PacingRatios = Pick<
+  PacingConfig,
+  "setupDurationRatio" | "risingDurationRatio" | "climaxDurationRatio" | "resolutionDurationRatio"
+>;
+
+/**
  * 节奏规划结果。
  *
  * 由 planPacing 函数产出，包含：
@@ -77,7 +87,7 @@ export interface PacingResult {
  * - normal: 0.20 + 0.40 + 0.15 + 0.25 = 1.00 ✓
  * - fast:   0.15 + 0.45 + 0.20 + 0.20 = 1.00 ✓
  */
-export const DEFAULT_PACING_PRESETS: Record<PacingPreset, Partial<Pick<PacingConfig, "climaxDurationRatio" | "setupDurationRatio" | "risingDurationRatio" | "resolutionDurationRatio">>> = {
+export const DEFAULT_PACING_PRESETS: Record<PacingPreset, Partial<PacingRatios>> = {
   slow: {
     climaxDurationRatio: 0.10,
     setupDurationRatio: 0.25,

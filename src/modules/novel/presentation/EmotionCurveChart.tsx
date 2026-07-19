@@ -61,8 +61,9 @@ const BEAT_TYPE_COLOR: Record<NarrativeBeatType, string> = {
 };
 
 // SVG viewBox 常量
+// viewBox 高度随 height prop 1:1 映射（夹紧到 80-200），padding 保持固定像素值
+// preserveAspectRatio="none" 会拉伸 viewBox 到容器尺寸，padding 在 SVG 坐标系中保持固定
 const VIEWBOX_WIDTH = 100;
-const VIEWBOX_HEIGHT_BASE = 100;
 const PADDING_TOP = 8;
 const PADDING_BOTTOM = 16;
 const PADDING_LEFT = 4;
@@ -144,9 +145,10 @@ export function EmotionCurveChart({
   height = 120,
   showBeatLabels = true,
 }: EmotionCurveChartProps) {
-  // 计算 viewBox 高度（基于 height prop）
+  // viewBox 高度：夹紧到 80-200，与容器高度 1:1 映射
+  // （preserveAspectRatio="none" 拉伸 viewBox 到容器，padding 在 SVG 坐标系保持固定像素）
   const viewboxHeight = useMemo(() => {
-    return Math.max(80, Math.min(200, height * (VIEWBOX_HEIGHT_BASE / 120)));
+    return Math.max(80, Math.min(200, height));
   }, [height]);
 
   // 构建折线路径

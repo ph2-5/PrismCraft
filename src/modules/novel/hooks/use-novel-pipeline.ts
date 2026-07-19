@@ -68,8 +68,9 @@ import {
   type GenerateTextFn,
 } from "../structure";
 // Task 2A.14 接入 pacing 子域
+// 注：pacingResult 不在 hook 中计算 — PacingPanel 内部用 useMemo 计算并通过 onApply 回调传入
+// 避免与 PacingPanel 重复计算，且避免 handleApplyPacing 修改 segments 后触发 memo 重算导致 UI 建议值漂移
 import {
-  planPacing,
   DEFAULT_PACING_CONFIG,
   type PacingConfig,
   type PacingResult,
@@ -164,8 +165,6 @@ export interface UseNovelPipelineResult {
   // Task 2A.14 节奏规划状态
   /** 节奏配置（预设 + 目标总时长 + 4 个 ratio） */
   pacingConfig: PacingConfig;
-  /** 节奏规划结果（segmentDurations + emotionCurve + pacingNotes） */
-  pacingResult: PacingResult | null;
   // 派生数据
   stagesForMode: PipelineStage[];
   canProceed: boolean;
@@ -381,7 +380,7 @@ export function useNovelPipeline({
 
   // === Task 2A.14 节奏规划 state ===
   // pacingConfig: 用户可调整的节奏配置（预设 + 目标总时长 + 4 个 ratio）
-  // pacingResult: 基于 structure + segments + pacingConfig 计算的派生结果（memo）
+  // 注：pacingResult 不在此处计算（PacingPanel 内部 useMemo 计算并通过 onApply 传入）
   const [pacingConfig, setPacingConfig] = useState<PacingConfig>(DEFAULT_PACING_CONFIG);
 
   // === Task 2A.7 持久化状态 ===
@@ -412,13 +411,6 @@ export function useNovelPipeline({
     () => getStagesForMode(state.config.aiAssistLevel),
     [state.config.aiAssistLevel],
   );
-
-  // Task 2A.14：pacingResult 派生 — 基于 structure + segments + pacingConfig 计算
-  // 仅在 pacing_planning 阶段或需要展示时计算，避免无谓重算
-  const pacingResult = useMemo<PacingResult | null>(() => {
-    if (!storyStructure || state.segments.length === 0) return null;
-    return planPacing(state.segments, storyStructure, pacingConfig);
-  }, [storyStructure, state.segments, pacingConfig]);
 
   // === Handlers ===
 
@@ -1292,7 +1284,6 @@ export function useNovelPipeline({
     shotContracts,
     // Task 2A.14 节奏规划状态
     pacingConfig,
-    pacingResult,
     stagesForMode,
     canProceed,
     showImportStep,

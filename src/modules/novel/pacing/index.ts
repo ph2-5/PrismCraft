@@ -18,6 +18,7 @@
 export type {
   PacingPreset,
   PacingConfig,
+  PacingRatios,
   PacingResult,
 } from "./domain/pacing-types";
 

@@ -554,4 +554,76 @@ describe("model-capabilities", () => {
       expect(ReferencePriority.KEYFRAME_COMPOSITION).toBeLessThan(ReferencePriority.PREV_KEYFRAME_STYLE);
     });
   });
+
+  // ============================================================================
+  // Task 2A.20: Seedance 2.5 能力矩阵测试
+  // 验证 4 个新增字段（maxDuration / supportsPartialEdit / supports3DPreview / maxModalReferences）
+  // 在 BUILTIN_MODEL_CAPABILITIES 中正确注册并可通过 getModelCapabilities 读取
+  // ============================================================================
+  describe("Task 2A.20: Seedance 2.5 capability matrix", () => {
+    const SEEDANCE_2_5_ID = "doubao-seedance-2-5-pro-260715";
+
+    it("should register Seedance 2.5 in BUILTIN_MODEL_CAPABILITIES", () => {
+      expect(BUILTIN_MODEL_CAPABILITIES[SEEDANCE_2_5_ID]).toBeDefined();
+    });
+
+    it("should set maxDuration=30 (4K 30秒直出)", () => {
+      const caps = getModelCapabilities(SEEDANCE_2_5_ID);
+      expect(caps.maxDuration).toBe(30);
+    });
+
+    it("should set supportsPartialEdit=true (局部重绘)", () => {
+      const caps = getModelCapabilities(SEEDANCE_2_5_ID);
+      expect(caps.supportsPartialEdit).toBe(true);
+    });
+
+    it("should set supports3DPreview=true (3D 白膜预览输入)", () => {
+      const caps = getModelCapabilities(SEEDANCE_2_5_ID);
+      expect(caps.supports3DPreview).toBe(true);
+    });
+
+    it("should set maxModalReferences=50 (50 路全模态参考)", () => {
+      const caps = getModelCapabilities(SEEDANCE_2_5_ID);
+      expect(caps.maxModalReferences).toBe(50);
+    });
+
+    it("should preserve preset-inherited volcengine_pro_video fields", () => {
+      const caps = getModelCapabilities(SEEDANCE_2_5_ID);
+      // 继承自 VOLCENGINE_PRO_VIDEO_CAPS
+      expect(caps.providerId).toBe("volcengine");
+      expect(caps.supportsCharacterRef).toBe(true);
+      expect(caps.supportsSceneRef).toBe(true);
+      expect(caps.referenceMode).toBe("separate");
+      // overrides 应覆盖 preset
+      expect(caps.maxReferences).toBe(50);
+      expect(caps.maxResolution).toBe(3840);
+      expect(caps.supportsLastFrame).toBe(true);
+      expect(caps.defaultImageSize).toBe("3840x2160");
+    });
+
+    it("should support 4K resolutions (16:9 and 9:16)", () => {
+      const caps = getModelCapabilities(SEEDANCE_2_5_ID);
+      expect(caps.supportedImageSizes).toBeDefined();
+      expect(caps.supportedImageSizes).toHaveLength(2);
+      const sizes = caps.supportedImageSizes!.map((s) => `${s.width}x${s.height}`);
+      expect(sizes).toContain("3840x2160");
+      expect(sizes).toContain("2160x3840");
+    });
+
+    it("should NOT set new fields on Seedance 2.0 (backward compatibility)", () => {
+      const caps = getModelCapabilities("doubao-seedance-2-0-260128");
+      expect(caps.maxDuration).toBeUndefined();
+      expect(caps.supportsPartialEdit).toBeUndefined();
+      expect(caps.supports3DPreview).toBeUndefined();
+      expect(caps.maxModalReferences).toBeUndefined();
+    });
+
+    it("should NOT set new fields on unknown models (conservative default)", () => {
+      const caps = getModelCapabilities("totally-unknown-model-2-5-test");
+      expect(caps.maxDuration).toBeUndefined();
+      expect(caps.supportsPartialEdit).toBeUndefined();
+      expect(caps.supports3DPreview).toBeUndefined();
+      expect(caps.maxModalReferences).toBeUndefined();
+    });
+  });
 });

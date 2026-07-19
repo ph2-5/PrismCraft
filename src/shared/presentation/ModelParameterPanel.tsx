@@ -4,6 +4,7 @@ import { t } from "@/shared/constants";
 import {
   getModelParameterProfile,
   getVideoGenerationStrategy,
+  getModelCapabilities,
   type ModelParameterProfile,
 } from "@/shared/model-capabilities";
 
@@ -14,6 +15,24 @@ const FALLBACK_DURATIONS = [
   { value: 15, label: "15s" },
   { value: 30, label: "30s" },
 ];
+
+/**
+ * Task 2A.20: 根据模型 maxDuration 过滤时长选项。
+ *
+ * - 有 maxDuration：仅保留 <= maxDuration 的选项
+ * - 无 maxDuration：返回全部 FALLBACK_DURATIONS（旧行为）
+ *
+ * Seedance 2.5 maxDuration=30 → 显示全部 5 个选项（2/5/10/15/30）
+ * Seedance 2.0 maxDuration 未设置 → 显示全部（保守默认）
+ * 其他模型若 maxDuration=15 → 仅显示 2/5/10/15
+ */
+function filterDurationsByMaxDuration(
+  durations: Array<{ value: number; label: string }>,
+  maxDuration: number | undefined,
+): Array<{ value: number; label: string }> {
+  if (maxDuration === undefined) return durations;
+  return durations.filter((d) => d.value <= maxDuration);
+}
 
 const FALLBACK_RESOLUTIONS = [
   { value: "1280x720", label: "720p HD", width: 1280, height: 720 },
@@ -62,10 +81,16 @@ interface ResolvedProfile {
 }
 
 function resolveProfile(modelId: string | undefined): ResolvedProfile {
+  // Task 2A.20: 根据模型 maxDuration 过滤时长选项
+  const maxDuration = modelId ? getModelCapabilities(modelId)?.maxDuration : undefined;
+
   if (!modelId) {
     return {
       profile: undefined,
-      durations: FALLBACK_DURATIONS.map((d) => ({ value: d.value, label: t("modelParam.seconds", { count: d.value }) })),
+      durations: filterDurationsByMaxDuration(
+        FALLBACK_DURATIONS.map((d) => ({ value: d.value, label: t("modelParam.seconds", { count: d.value }) })),
+        maxDuration,
+      ),
       resolutions: FALLBACK_RESOLUTIONS,
       styles: FALLBACK_STYLES.map((s) => ({ value: s, label: t(`modelParam.style.${s}`) })),
       showNegativePrompt: false,
@@ -78,11 +103,13 @@ function resolveProfile(modelId: string | undefined): ResolvedProfile {
   const profile = getModelParameterProfile(modelId);
   const params = profile?.parameters;
 
+  const rawDurations = params?.durations?.length
+    ? params.durations.map((d) => ({ ...d, label: t("modelParam.seconds", { count: d.value }) }))
+    : FALLBACK_DURATIONS.map((d) => ({ value: d.value, label: t("modelParam.seconds", { count: d.value }) }));
+
   return {
     profile,
-    durations: params?.durations?.length
-      ? params.durations.map((d) => ({ ...d, label: t("modelParam.seconds", { count: d.value }) }))
-      : FALLBACK_DURATIONS.map((d) => ({ value: d.value, label: t("modelParam.seconds", { count: d.value }) })),
+    durations: filterDurationsByMaxDuration(rawDurations, maxDuration),
     resolutions: params?.resolutions?.length ? params.resolutions : FALLBACK_RESOLUTIONS,
     styles: params?.styles?.length
       ? params.styles.map((s) => ({ ...s, label: s.label || t(`modelParam.style.${s.value}`) }))

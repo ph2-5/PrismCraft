@@ -296,6 +296,11 @@ export function sanitizeModelCapabilities(raw: Record<string, unknown>): ModelCa
     ...(raw.supportsReferenceVideo !== undefined ? { supportsReferenceVideo: raw.supportsReferenceVideo as boolean } : {}),
     // Task 2A.12: 一致性策略字段
     ...(raw.consistencyStrategy ? { consistencyStrategy: raw.consistencyStrategy as ModelCapabilities["consistencyStrategy"] } : {}),
+    // Task 2A.20: Seedance 2.5 新增能力字段
+    ...(raw.maxDuration !== undefined ? { maxDuration: raw.maxDuration as number } : {}),
+    ...(raw.supportsPartialEdit !== undefined ? { supportsPartialEdit: raw.supportsPartialEdit as boolean } : {}),
+    ...(raw.supports3DPreview !== undefined ? { supports3DPreview: raw.supports3DPreview as boolean } : {}),
+    ...(raw.maxModalReferences !== undefined ? { maxModalReferences: raw.maxModalReferences as number } : {}),
   };
 }
 

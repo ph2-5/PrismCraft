@@ -38,6 +38,31 @@ export interface ModelCapabilities {
    *   - characterRefMode 描述"怎么把图传给 provider"
    */
   consistencyStrategy?: "multi_ref_fusion" | "single_ref" | "text_only" | "unknown";
+  /**
+   * Task 2A.20: 最大视频时长（秒）。
+   * - Seedance 2.5: 30
+   * - Seedance 2.0/1.5: 15/10
+   * - 未指定时 fallback 到 15 秒（ModelParameterPanel FALLBACK_DURATIONS）
+   */
+  maxDuration?: number;
+  /**
+   * Task 2A.20: 是否支持局部重绘（partial edit）。
+   * Seedance 2.5 原生支持，其他模型默认 false。
+   * 为 Task 2A.22（局部重绘）提供能力探测基础。
+   */
+  supportsPartialEdit?: boolean;
+  /**
+   * Task 2A.20: 是否支持 3D 白膜预览输入。
+   * Seedance 2.5 原生支持 3D 白盒输入，其他模型默认 false。
+   * 为 Task 2A.21（3D 白盒编辑器）提供能力探测基础。
+   */
+  supports3DPreview?: boolean;
+  /**
+   * Task 2A.20: 全模态参考素材上限（图/视频/音频混合）。
+   * - Seedance 2.5: 50（30 图 + 10 视频 + 10 音频）
+   * - 其他模型未指定时 fallback 到 maxReferences
+   */
+  maxModalReferences?: number;
 }
 
 export interface ModelParameterProfile {

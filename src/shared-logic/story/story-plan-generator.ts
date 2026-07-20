@@ -121,6 +121,10 @@ function applyShotParamsFixes(
       if (fixed.cameraAngle) beat.camera.angle = fixed.cameraAngle;
       if (fixed.cameraMovement) beat.camera.movement = fixed.cameraMovement;
     }
+    // PR 2a dual-write：同步更新 shotInstruction（fixShotParams 已填充 fixed.shotInstruction）
+    if (fixed.shotInstruction) {
+      beat.shotInstruction = fixed.shotInstruction as StoryBeat["shotInstruction"];
+    }
   }
   return count;
 }

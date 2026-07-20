@@ -16,6 +16,7 @@ import {
   NOVEL_TEXT_MAX_CHARS,
 } from "./subworkflow-helpers";
 import { errorLogger } from "@/shared/error-logger";
+import { buildShotInstructionFromLegacy } from "@/shared-logic/prompt";
 
 // ============= 辅助函数（内部使用，不导出） =============
 
@@ -252,6 +253,15 @@ async function planBeatsWithFallback(
 function buildStoryBeats(beatsData: unknown[], maxBeats: number): StoryBeat[] {
   return beatsData.slice(0, maxBeats).map((raw, i) => {
     const b = raw as Record<string, unknown>;
+    const shotType = b.shotType ? String(b.shotType) : undefined;
+    const cameraAngle = b.cameraAngle ? String(b.cameraAngle) : undefined;
+    const cameraMovement = b.cameraMovement ? String(b.cameraMovement) : undefined;
+    // PR 2a dual-write：同时构造 shotInstruction，让读取端优先读到新字段
+    const shotInstruction = buildShotInstructionFromLegacy({
+      shotType,
+      cameraAngle,
+      cameraMovement,
+    });
     return {
       id: `beat_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
       sequence: i,
@@ -266,11 +276,12 @@ function buildStoryBeats(beatsData: unknown[], maxBeats: number): StoryBeat[] {
         : [],
       sceneId: b.sceneId ? String(b.sceneId) : undefined,
       elementIds: [],
-      shotType: b.shotType ? String(b.shotType) : undefined,
+      shotType,
       camera: {
-        angle: b.cameraAngle ? String(b.cameraAngle) : undefined,
-        movement: b.cameraMovement ? String(b.cameraMovement) : undefined,
+        angle: cameraAngle,
+        movement: cameraMovement,
       },
+      shotInstruction,
     } as StoryBeat;
   });
 }

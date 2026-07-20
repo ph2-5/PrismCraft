@@ -6,6 +6,8 @@ export type {
   GenerateStoryPlanResult,
 } from "./story-plan-generator";
 export { generateStoryPlanWithValidation } from "./story-plan-generator";
+export { buildShotInstructionFromLegacy } from "../prompt/prompt-service";
+import { buildShotInstructionFromLegacy } from "../prompt/prompt-service";
 
 export interface RawStoryBeat {
   t?: string;
@@ -218,6 +220,16 @@ export function fixShotParams(data: ShotParamsData): {
     fixed.duration = 5;
   }
 
+  // PR 2a dual-write：同时填充 shotInstruction 字段，让读取端优先读到新字段
+  const shotInstruction = buildShotInstructionFromLegacy({
+    shotType: fixed.shotType as string | undefined,
+    cameraAngle: fixed.cameraAngle as string | undefined,
+    cameraMovement: fixed.cameraMovement as string | undefined,
+  });
+  if (shotInstruction) {
+    fixed.shotInstruction = shotInstruction;
+  }
+
   return { fixed, autoFixed };
 }
 
@@ -274,6 +286,17 @@ function applyStoryBeatAutoFixes(fixed: StoryBeatData, autoFixed: string[]): voi
   if (!fixed.type) {
     fixed.type = resolveTypeFromContent(String(fixed.content || ""));
     autoFixed.push(`type: 缺失 → "${fixed.type}"`);
+  }
+  // PR 2a dual-write：填充 shotInstruction（若尚未存在），让读取端优先读到新字段
+  if (!fixed.shotInstruction) {
+    const shotInstruction = buildShotInstructionFromLegacy({
+      shotType: fixed.shotType,
+      cameraAngle: fixed.cameraAngle,
+      cameraMovement: fixed.cameraMovement,
+    });
+    if (shotInstruction) {
+      fixed.shotInstruction = shotInstruction;
+    }
   }
 }
 

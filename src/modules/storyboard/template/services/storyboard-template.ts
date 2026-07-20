@@ -1,8 +1,9 @@
 import type { Result } from "@/domain/types";
 import { fromAsyncThrowable } from "@/domain/types";
-import type { StoryBeat } from "@/domain/schemas";
+import type { StoryBeat, ShotInstruction } from "@/domain/schemas";
 import { extractErrorMessage } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { buildShotInstructionFromLegacy } from "@/shared-logic/prompt";
 
 export interface StoryboardTemplate {
   id: string;
@@ -81,24 +82,33 @@ export function createTemplateFromBeats(
 export function applyTemplateToBeats(
   template: StoryboardTemplate,
 ): Array<Partial<StoryBeat>> {
-  return template.beats.map((beat, index) => ({
-    type: beat.type as StoryBeat["type"],
-    title: beat.title,
-    content: beat.content,
-    description: beat.content,
-    duration: beat.duration,
-    order: index,
-    shotType: beat.shotType as StoryBeat["shotType"],
-    camera: {
-      angle: beat.cameraAngle,
-      movement: beat.cameraMovement,
-      distance: beat.cameraDistance,
-      speed: beat.cameraSpeed,
-    },
-    imageGenerationPrompt: beat.imageGenerationPrompt,
-    firstFramePrompt: beat.firstFramePrompt,
-    lastFramePrompt: beat.lastFramePrompt,
-  }));
+  return template.beats.map((beat, index) => {
+    // PR 2a dual-write：同时构造 shotInstruction，让读取端优先读到新字段
+    const shotInstruction = buildShotInstructionFromLegacy({
+      shotType: beat.shotType,
+      cameraAngle: beat.cameraAngle,
+      cameraMovement: beat.cameraMovement,
+    }) as ShotInstruction | undefined;
+    return {
+      type: beat.type as StoryBeat["type"],
+      title: beat.title,
+      content: beat.content,
+      description: beat.content,
+      duration: beat.duration,
+      order: index,
+      shotType: beat.shotType as StoryBeat["shotType"],
+      camera: {
+        angle: beat.cameraAngle,
+        movement: beat.cameraMovement,
+        distance: beat.cameraDistance,
+        speed: beat.cameraSpeed,
+      },
+      shotInstruction,
+      imageGenerationPrompt: beat.imageGenerationPrompt,
+      firstFramePrompt: beat.firstFramePrompt,
+      lastFramePrompt: beat.lastFramePrompt,
+    };
+  });
 }
 
 export function exportTemplateToFile(template: StoryboardTemplate): void {

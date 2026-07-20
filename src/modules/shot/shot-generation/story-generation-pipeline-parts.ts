@@ -295,6 +295,7 @@ function applyShotAutoFixToBeat(
     duration?: StoryBeat["duration"];
     cameraAngle?: NonNullable<NonNullable<StoryBeat["camera"]>["angle"]>;
     cameraMovement?: NonNullable<NonNullable<StoryBeat["camera"]>["movement"]>;
+    shotInstruction?: StoryBeat["shotInstruction"];
   };
   for (const fix of shotValidation.autoFixed) {
     if (fix.includes("shotType")) {
@@ -309,6 +310,10 @@ function applyShotAutoFixToBeat(
     if (fix.includes("cameraMovement") && beat.camera) {
       beat.camera.movement = data.cameraMovement!;
     }
+  }
+  // PR 2a dual-write：同步更新 shotInstruction（fixShotParams 已填充 data.shotInstruction）
+  if (data.shotInstruction) {
+    beat.shotInstruction = data.shotInstruction;
   }
 }
 

@@ -70,6 +70,79 @@ export function resolveBeatShotInfo(beat: BeatInput): {
   };
 }
 
+/**
+ * 旧 shotType/camera 字段 → 新 shotInstruction 字段的映射表。
+ *
+ * 语义映射规则（PR 2a 关键）：
+ * - shotType 中的 size 类（wide/medium/close/extreme_close/extreme_wide）→ shotSize
+ * - shotType 中的 angle 类（low/high/birdseye/wormseye）→ cameraAngle（修正历史 bug：
+ *   旧实现把 angle 类 shotType 当成 size，丢失了角度信息）
+ * - cameraAngle → cameraAngle（优先级高于 shotType 推断的 angle）
+ * - cameraMovement → cameraMovement
+ */
+const SHOT_SIZE_FROM_LEGACY: Record<string, string> = {
+  extreme_close: "extreme_close",
+  close: "close",
+  medium: "medium",
+  wide: "wide",
+  extreme_wide: "extreme_wide",
+};
+
+const CAMERA_ANGLE_FROM_LEGACY: Record<string, string> = {
+  eye_level: "eye_level",
+  low: "low",
+  high: "high",
+  birds_eye: "birds_eye",
+  worms_eye: "worms_eye",
+  dutch: "dutch",
+  birdseye: "birds_eye",
+  wormseye: "worms_eye",
+};
+
+const CAMERA_MOVEMENT_FROM_LEGACY: Record<string, string> = {
+  static: "static",
+  push: "push",
+  pull: "pull",
+  pan: "pan",
+  orbit: "orbit",
+  crane_up: "crane_up",
+  crane_down: "crane_down",
+  tracking: "tracking",
+};
+
+/**
+ * 从旧的 shotType + camera 字段构建新的 shotInstruction 对象。
+ *
+ * 用途：PR 2a dual-write 策略 — 写入端在填充旧字段的同时也填充 shotInstruction，
+ * 让读取端（PR 1 dual-read）能优先读到新字段。修正旧 shotType 中 angle 类
+ * （low/high/birdseye/wormseye）被误认为 size 的语义错误。
+ *
+ * @returns 完整的 shotInstruction 对象，或 undefined（当所有输入都缺失/无效时）
+ */
+export function buildShotInstructionFromLegacy(params: {
+  shotType?: string;
+  cameraAngle?: string;
+  cameraMovement?: string;
+}): { shotSize: string; cameraAngle: string; cameraMovement: string } | undefined {
+  const { shotType, cameraAngle, cameraMovement } = params;
+
+  const shotSize = shotType ? SHOT_SIZE_FROM_LEGACY[shotType] : undefined;
+  // 旧 shotType 可能是 angle 类（low/high/birdseye/wormseye），若 size 映射失败则尝试 angle 映射
+  const angleFromShotType = shotType && !shotSize ? CAMERA_ANGLE_FROM_LEGACY[shotType] : undefined;
+  const mappedAngle = cameraAngle ? CAMERA_ANGLE_FROM_LEGACY[cameraAngle] : undefined;
+  const mappedMovement = cameraMovement ? CAMERA_MOVEMENT_FROM_LEGACY[cameraMovement] : undefined;
+
+  const finalAngle = mappedAngle ?? angleFromShotType;
+
+  if (!shotSize && !finalAngle && !mappedMovement) return undefined;
+
+  return {
+    shotSize: shotSize || "medium",
+    cameraAngle: finalAngle || "eye_level",
+    cameraMovement: mappedMovement || "static",
+  };
+}
+
 export interface ElementInput {
   id?: string;
   name?: string;

@@ -1,3 +1,5 @@
+import { buildShotInstructionFromLegacy } from "@/shared-logic/prompt";
+
 const SHOT_TYPE_ALIASES: Record<string, string> = {
   特写: "close",
   近景: "close",
@@ -253,6 +255,16 @@ export function fixShotParams(data: Record<string, unknown>): {
   fixed.prompt = promptFix.value;
   if (promptFix.message) autoFixed.push(promptFix.message);
 
+  // PR 2a dual-write：同时填充 shotInstruction 字段，让读取端优先读到新字段
+  const shotInstruction = buildShotInstructionFromLegacy({
+    shotType: fixed.shotType as string | undefined,
+    cameraAngle: fixed.cameraAngle as string | undefined,
+    cameraMovement: fixed.cameraMovement as string | undefined,
+  });
+  if (shotInstruction) {
+    fixed.shotInstruction = shotInstruction;
+  }
+
   return { fixed, autoFixed };
 }
 
@@ -327,6 +339,13 @@ export function generateFallbackParams(
 
   const defaults = genreDefaults[genre] ?? genreDefaults.drama!;
 
+  // PR 2a dual-write：同时填充 shotInstruction 字段
+  const shotInstruction = buildShotInstructionFromLegacy({
+    shotType: defaults.shotType,
+    cameraAngle: defaults.cameraAngle,
+    cameraMovement: defaults.cameraMovement,
+  });
+
   return {
     prompt:
       content.length >= 10
@@ -335,6 +354,7 @@ export function generateFallbackParams(
     shotType: defaults.shotType,
     cameraAngle: defaults.cameraAngle,
     cameraMovement: defaults.cameraMovement,
+    shotInstruction,
     duration: defaults.duration,
     characterIds: data.characterIds || [],
     sceneId: data.sceneId || undefined,
@@ -412,6 +432,18 @@ export function fixStoryBeat(data: Record<string, unknown>): {
     const content = (fixed.content || fixed.description || "") as string;
     fixed.type = inferBeatTypeFromContent(content);
     autoFixed.push(`type: 缺失 → "${fixed.type}" (根据内容推断)`);
+  }
+
+  // PR 2a dual-write：填充 shotInstruction（若尚未存在）
+  if (!fixed.shotInstruction) {
+    const shotInstruction = buildShotInstructionFromLegacy({
+      shotType: fixed.shotType as string | undefined,
+      cameraAngle: fixed.cameraAngle as string | undefined,
+      cameraMovement: fixed.cameraMovement as string | undefined,
+    });
+    if (shotInstruction) {
+      fixed.shotInstruction = shotInstruction;
+    }
   }
 
   return { fixed, autoFixed };

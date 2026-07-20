@@ -27,6 +27,8 @@ export {
   generateStoryPlanPrompt,
   generateCharacterAnalysisPrompt,
   generateSceneAnalysisPrompt,
+  resolveBeatShotInfo,
+  buildShotInstructionFromLegacy,
 } from "./prompt-service";
 
 // === Task 2A.9: Compositor 合成 prompt ===

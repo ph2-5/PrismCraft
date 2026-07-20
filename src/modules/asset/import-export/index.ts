@@ -192,6 +192,50 @@ export interface MigrationStats {
 }
 
 /**
+ * 迁移单条记录的单个字段路径。
+ *
+ * - 远程/协议路径：跳过
+ * - 绝对路径：目标机器不存在则清空
+ * - 相对路径：在 userDataImagesDir 下查找，找到则改写为本地绝对路径
+ *
+ * 返回 "skipped" | "cleared" | "remapped" | "kept"。
+ */
+async function migrateRecordField(
+  record: Record<string, unknown>,
+  field: string,
+  userDataImagesDir: string,
+): Promise<"skipped" | "cleared" | "remapped" | "kept"> {
+  const raw = record[field];
+  if (typeof raw !== "string" || raw === "") return "skipped";
+  // 远程/协议路径：跳过
+  if (isProtocolPath(raw)) return "skipped";
+
+  if (isAbsolutePath(raw)) {
+    // 绝对路径：检查目标机器上是否存在
+    const exists = await fileExists(raw);
+    if (!exists) {
+      record[field] = null;
+      errorLogger.warn(
+        "[Import] 路径迁移：清空不存在的绝对路径",
+        { field, path: raw },
+      );
+      return "cleared";
+    }
+    return "kept";
+  }
+
+  // 相对路径：在目标机器的 userData 图片目录下查找
+  const candidatePath = joinPath(userDataImagesDir, raw);
+  const exists = await fileExists(candidatePath);
+  if (exists) {
+    record[field] = candidatePath;
+    return "remapped";
+  }
+  // 未找到时保留原值（可能由 LocalFileStorage 按类别目录解析）
+  return "kept";
+}
+
+/**
  * 跨机器导入时迁移图片路径。
  *
  * - 绝对路径：若目标机器上文件不存在，清空该字段（让 UI 显示占位图）
@@ -209,46 +253,134 @@ export async function migrateImagePaths(
 ): Promise<MigrationStats> {
   const stats: MigrationStats = { cleared: 0, remapped: 0 };
 
-  for (const [, value] of Object.entries(data)) {
+  for (const value of Object.values(data)) {
     if (!Array.isArray(value)) continue;
-    const rows = value as readonly unknown[];
-    for (const row of rows) {
+    for (const row of value) {
       if (row === null || typeof row !== "object") continue;
       const record = row as Record<string, unknown>;
-
       for (const field of IMAGE_PATH_FIELDS) {
-        const raw = record[field];
-        if (typeof raw !== "string" || raw === "") continue;
-
-        // 远程/协议路径：跳过
-        if (isProtocolPath(raw)) continue;
-
-        if (isAbsolutePath(raw)) {
-          // 绝对路径：检查目标机器上是否存在
-          const exists = await fileExists(raw);
-          if (!exists) {
-            record[field] = null;
-            stats.cleared++;
-            errorLogger.warn(
-              "[Import] 路径迁移：清空不存在的绝对路径",
-              { field, path: raw },
-            );
-          }
-        } else {
-          // 相对路径：在目标机器的 userData 图片目录下查找
-          const candidatePath = joinPath(userDataImagesDir, raw);
-          const exists = await fileExists(candidatePath);
-          if (exists) {
-            record[field] = candidatePath;
-            stats.remapped++;
-          }
-          // 未找到时保留原值（可能由 LocalFileStorage 按类别目录解析）
-        }
+        const result = await migrateRecordField(record, field, userDataImagesDir);
+        if (result === "cleared") stats.cleared++;
+        else if (result === "remapped") stats.remapped++;
       }
     }
   }
 
   return stats;
+}
+
+/** 跨机器路径迁移：获取本地图片目录，检测并修正导入数据中的图片路径 */
+async function runImageMigration(validData: ImportData): Promise<MigrationStats | undefined> {
+  try {
+    const cacheDirResult = await getCacheDirectory();
+    if (!cacheDirResult.success || !cacheDirResult.path) return undefined;
+    const assetsDir = deriveAssetsDirFromCacheDir(cacheDirResult.path);
+    if (!assetsDir) return undefined;
+
+    const stats = await migrateImagePaths(validData, assetsDir);
+    if (stats.cleared > 0 || stats.remapped > 0) {
+      errorLogger.warn(
+        "[Import] 路径迁移完成",
+        { cleared: stats.cleared, remapped: stats.remapped },
+      );
+    }
+    return stats;
+  } catch (e) {
+    // 路径迁移失败不阻断导入流程
+    errorLogger.warn("[Import] 路径迁移失败，跳过", e instanceof Error ? e : new Error(String(e)));
+    return undefined;
+  }
+}
+
+/** 构建 storage 所需的 dataForStorage 对象（含 mediaAssets → assets 兼容） */
+function buildDataForStorage(validData: ImportData): Record<string, unknown[]> {
+  const dataForStorage: Record<string, unknown[]> = {};
+  for (const [key, value] of Object.entries(validData)) {
+    if (Array.isArray(value)) {
+      dataForStorage[key] = value;
+    }
+  }
+  if (validData.mediaAssets && !validData.assets) {
+    dataForStorage.assets = validData.mediaAssets;
+  }
+  return dataForStorage;
+}
+
+/** 导入 videoTemplates（若存在） */
+async function importVideoTemplates(
+  validData: ImportData,
+  mergeStrategy: MergeStrategy,
+): Promise<{ count: number; errors: string[] }> {
+  if (!validData.videoTemplates?.length) return { count: 0, errors: [] };
+  return await importItems({
+    items: validData.videoTemplates,
+    createFn: (template) => container.templateStorage.createVideoTemplate(template),
+    getId: (template) => (template.id && typeof template.id === "string" ? template.id : undefined),
+    errorCode: "IMPORT_VIDEO_TEMPLATE_SKIP",
+    errorLabel: "videoTemplate",
+    replaceTable: { table: "video_templates", idColumn: "id" },
+    mergeStrategy,
+  });
+}
+
+/** 导入 autoSaves（若存在） */
+async function importAutoSaves(
+  validData: ImportData,
+  mergeStrategy: MergeStrategy,
+): Promise<{ count: number; errors: string[] }> {
+  if (!validData.autoSaves?.length) return { count: 0, errors: [] };
+  return await importItems({
+    items: validData.autoSaves,
+    createFn: (save) => container.autoSaveStorage.createAutoSave({
+      id: save.id as string,
+      type: save.type as string,
+      data: (save as Record<string, unknown>).data_json || save.data,
+      timestamp: save.timestamp as number,
+    }),
+    getId: (save) => (save.id && typeof save.id === "string" ? save.id : undefined),
+    errorCode: "IMPORT_AUTO_SAVE_SKIP",
+    errorLabel: "autoSave",
+    replaceTable: { table: "auto_saves", idColumn: "id" },
+    mergeStrategy,
+  });
+}
+
+/** 导入 errorLogs（若存在） */
+async function importErrorLogs(
+  validData: ImportData,
+  mergeStrategy: MergeStrategy,
+): Promise<{ count: number; errors: string[] }> {
+  if (!validData.errorLogs?.length) return { count: 0, errors: [] };
+  return await importItems({
+    items: validData.errorLogs,
+    createFn: (log) => container.errorLogStorage.addErrorLog({
+      message: log.message as string,
+      stack: log.stack as string | undefined,
+      timestamp: log.timestamp as number,
+      component: log.component as string | undefined,
+    }),
+    errorCode: "IMPORT_ERROR_LOG_SKIP",
+    errorLabel: "errorLog",
+    mergeStrategy,
+    onReplaceAll: async () => { await safeRun("DELETE FROM error_logs"); },
+  });
+}
+
+/** 导入 sessions（若存在） */
+async function importSessions(
+  validData: ImportData,
+  mergeStrategy: MergeStrategy,
+): Promise<{ count: number; errors: string[] }> {
+  if (!validData.sessions?.length) return { count: 0, errors: [] };
+  return await importItems({
+    items: validData.sessions,
+    createFn: (session) => container.sessionStorage.setSession(session.key as string, session.value),
+    getId: (session) => (session.key && typeof session.key === "string" ? session.key : undefined),
+    errorCode: "IMPORT_SESSION_SKIP",
+    errorLabel: "session",
+    replaceTable: { table: "sessions", idColumn: "key" },
+    mergeStrategy,
+  });
 }
 
 export async function importData(
@@ -264,112 +396,45 @@ export async function importData(
   const { mergeStrategy = "merge" } = options;
   const errors: string[] = [];
   const imported: Record<string, number> = {};
-  let migrationStats: MigrationStats | undefined;
 
   try {
-    // 跨机器路径迁移：获取本地图片目录，检测并修正导入数据中的图片路径
-    try {
-      const cacheDirResult = await getCacheDirectory();
-      if (cacheDirResult.success && cacheDirResult.path) {
-        const assetsDir = deriveAssetsDirFromCacheDir(cacheDirResult.path);
-        if (assetsDir) {
-          migrationStats = await migrateImagePaths(validData, assetsDir);
-          if (migrationStats.cleared > 0 || migrationStats.remapped > 0) {
-            errorLogger.warn(
-              "[Import] 路径迁移完成",
-              { cleared: migrationStats.cleared, remapped: migrationStats.remapped },
-            );
-          }
-        }
-      }
-    } catch (e) {
-      // 路径迁移失败不阻断导入流程
-      errorLogger.warn("[Import] 路径迁移失败，跳过", e instanceof Error ? e : new Error(String(e)));
-    }
+    // 1. 跨机器路径迁移
+    const migrationStats = await runImageMigration(validData);
 
-    const dataForStorage: Record<string, unknown[]> = {};
-    for (const [key, value] of Object.entries(validData)) {
-      if (Array.isArray(value)) {
-        dataForStorage[key] = value;
-      }
-    }
-    if (validData.mediaAssets && !validData.assets) {
-      dataForStorage.assets = validData.mediaAssets;
-    }
-
+    // 2. 主存储导入
+    const dataForStorage = buildDataForStorage(validData);
     const storageResult = await container.importExportStorage.importData(dataForStorage, mergeStrategy);
     Object.assign(imported, storageResult);
 
-    if (validData.videoTemplates?.length) {
-      const result = await importItems({
-        items: validData.videoTemplates,
-        createFn: (template) => container.templateStorage.createVideoTemplate(template),
-        getId: (template) => (template.id && typeof template.id === "string" ? template.id : undefined),
-        errorCode: "IMPORT_VIDEO_TEMPLATE_SKIP",
-        errorLabel: "videoTemplate",
-        replaceTable: { table: "video_templates", idColumn: "id" },
-        mergeStrategy,
-      });
-      errors.push(...result.errors);
-      imported.videoTemplates = result.count;
-    }
+    // 3. 各可选集合导入
+    const [videoTemplates, autoSaves, errorLogs, sessions] = await Promise.all([
+      importVideoTemplates(validData, mergeStrategy),
+      importAutoSaves(validData, mergeStrategy),
+      importErrorLogs(validData, mergeStrategy),
+      importSessions(validData, mergeStrategy),
+    ]);
 
-    if (validData.autoSaves?.length) {
-      const result = await importItems({
-        items: validData.autoSaves,
-        createFn: (save) => container.autoSaveStorage.createAutoSave({
-          id: save.id as string,
-          type: save.type as string,
-          data: (save as Record<string, unknown>).data_json || save.data,
-          timestamp: save.timestamp as number,
-        }),
-        getId: (save) => (save.id && typeof save.id === "string" ? save.id : undefined),
-        errorCode: "IMPORT_AUTO_SAVE_SKIP",
-        errorLabel: "autoSave",
-        replaceTable: { table: "auto_saves", idColumn: "id" },
-        mergeStrategy,
-      });
-      errors.push(...result.errors);
-      imported.autoSaves = result.count;
-    }
-
-    if (validData.errorLogs?.length) {
-      const result = await importItems({
-        items: validData.errorLogs,
-        createFn: (log) => container.errorLogStorage.addErrorLog({
-          message: log.message as string,
-          stack: log.stack as string | undefined,
-          timestamp: log.timestamp as number,
-          component: log.component as string | undefined,
-        }),
-        errorCode: "IMPORT_ERROR_LOG_SKIP",
-        errorLabel: "errorLog",
-        mergeStrategy,
-        onReplaceAll: async () => { await safeRun("DELETE FROM error_logs"); },
-      });
-      errors.push(...result.errors);
-      imported.errorLogs = result.count;
-    }
-
-    if (validData.sessions?.length) {
-      const result = await importItems({
-        items: validData.sessions,
-        createFn: (session) => container.sessionStorage.setSession(session.key as string, session.value),
-        getId: (session) => (session.key && typeof session.key === "string" ? session.key : undefined),
-        errorCode: "IMPORT_SESSION_SKIP",
-        errorLabel: "session",
-        replaceTable: { table: "sessions", idColumn: "key" },
-        mergeStrategy,
-      });
-      errors.push(...result.errors);
-      imported.sessions = result.count;
-    }
+    pushImportResults(errors, imported, "videoTemplates", videoTemplates);
+    pushImportResults(errors, imported, "autoSaves", autoSaves);
+    pushImportResults(errors, imported, "errorLogs", errorLogs);
+    pushImportResults(errors, imported, "sessions", sessions);
 
     return ok({ success: true, imported, errors, migration: migrationStats });
   } catch (error) {
     const msg = extractErrorMessage(error);
     return err(new AppError("IMPORT_ERROR", msg, error));
   }
+}
+
+/** 将单个集合的导入结果合并到全局 errors/imported */
+function pushImportResults(
+  errors: string[],
+  imported: Record<string, number>,
+  key: string,
+  result: { count: number; errors: string[] },
+): void {
+  errors.push(...result.errors);
+  imported[key] = result.count;
 }
 
 export async function exportData(): Promise<Result<ImportData>> {

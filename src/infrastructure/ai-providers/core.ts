@@ -367,6 +367,80 @@ export async function checkApiHealth(): Promise<boolean> {
   }
 }
 
+type SSEEvent =
+  | { type: "chunk"; chunk: unknown }
+  | { type: "done"; result: unknown }
+  | { type: "error"; error: string }
+  | { type: "skip" };
+
+/** 解析一行 SSE 数据，返回结构化事件或 skip */
+function parseSSELine(line: string): SSEEvent {
+  const trimmed = line.trim();
+  if (!trimmed || !trimmed.startsWith("data:")) return { type: "skip" };
+
+  const data = trimmed.slice(5).trim();
+  if (!data) return { type: "skip" };
+
+  let parsed: { _t?: string; chunk?: unknown; result?: unknown; error?: string };
+  try {
+    parsed = JSON.parse(data);
+  } catch {
+    return { type: "skip" };
+  }
+
+  if (parsed._t === "chunk" && parsed.chunk !== undefined) {
+    return { type: "chunk", chunk: parsed.chunk };
+  }
+  if (parsed._t === "done") {
+    return { type: "done", result: parsed.result };
+  }
+  if (parsed._t === "error") {
+    return { type: "error", error: parsed.error || "流式响应错误" };
+  }
+  return { type: "skip" };
+}
+
+/** 消费 SSE 流，按事件分派回调。返回 done 事件的 result */
+async function consumeSSEStream<TChunk, TResult>(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onChunk: (chunk: TChunk) => void,
+): Promise<TResult> {
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      // 最后一段可能不完整，保留在 buffer
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const evt = parseSSELine(line);
+        if (evt.type === "chunk") {
+          onChunk(evt.chunk as TChunk);
+        } else if (evt.type === "done") {
+          return evt.result as TResult;
+        } else if (evt.type === "error") {
+          throw new ApiClientError(evt.error, 500, "STREAM_ERROR");
+        }
+      }
+    }
+
+    // 流结束但没收到 done 事件
+    throw new ApiClientError(
+      "流式响应意外结束",
+      500,
+      "STREAM_ENDED_PREMATURELY",
+    );
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 /**
  * 流式 API 调用（Task 1.0）。
  * 用于消费 server.ts 的 SSE 流式响应（Content-Type: text/event-stream）。
@@ -439,62 +513,7 @@ export async function apiCallStream<TChunk, TResult>(
     }
 
     const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        // 最后一段可能不完整，保留在 buffer
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data:")) continue;
-
-          const data = trimmed.slice(5).trim();
-          if (!data) continue;
-
-          let parsed: {
-            _t?: string;
-            chunk?: unknown;
-            result?: unknown;
-            error?: string;
-          };
-          try {
-            parsed = JSON.parse(data);
-          } catch {
-            // 非 JSON 行跳过
-            continue;
-          }
-
-          if (parsed._t === "chunk" && parsed.chunk !== undefined) {
-            callbacks.onChunk(parsed.chunk as TChunk);
-          } else if (parsed._t === "done") {
-            return parsed.result as TResult;
-          } else if (parsed._t === "error") {
-            throw new ApiClientError(
-              parsed.error || "流式响应错误",
-              500,
-              "STREAM_ERROR",
-            );
-          }
-        }
-      }
-
-      // 流结束但没收到 done 事件
-      throw new ApiClientError(
-        "流式响应意外结束",
-        500,
-        "STREAM_ENDED_PREMATURELY",
-      );
-    } finally {
-      reader.releaseLock();
-    }
+    return await consumeSSEStream<TChunk, TResult>(reader, callbacks.onChunk);
   } catch (error) {
     if (error instanceof ApiClientError) throw error;
     if (error instanceof Error && error.name === "AbortError") {

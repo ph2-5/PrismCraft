@@ -61,6 +61,7 @@ import { buildRouteContext } from "./intent-routes";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
 import { errorLogger } from "@/shared/error-logger";
+import { buildSkillContext } from "./agent-context-builder";
 
 /** 动态查询项目状态，构建状态摘要注入 system prompt */
 async function buildDynamicProjectState(): Promise<string> {
@@ -582,11 +583,7 @@ export class AgentLoop {
     // 注意：intent 已在上方 P3 动态工具过滤块中识别，此处复用
     if (userMessage && intent) {
       try {
-        const skillCtx: AgentContext = {
-          userMessage,
-          projectType: "unknown", // TODO: 从项目配置读取
-          recentFailures: [], // TODO: 从失败历史读取
-        };
+        const skillCtx: AgentContext = await buildSkillContext(userMessage, this.session.id);
 
         // Step 2: 注入意图专属指引（systemPromptAddon）
         const routeCtx = buildRouteContext(intent, skillCtx);

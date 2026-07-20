@@ -12,9 +12,11 @@ import { container } from "@/infrastructure/di";
 import {
   generateJsonWithAI,
   generateJsonArrayWithAI,
-  toStringArray,
   NOVEL_TEXT_MAX_CHARS,
 } from "./subworkflow-helpers";
+import {
+  createCharactersAndScenes,
+} from "./subworkflow-novel-helpers";
 import { errorLogger } from "@/shared/error-logger";
 import { buildShotInstructionFromLegacy } from "@/shared-logic/prompt";
 
@@ -103,81 +105,6 @@ ${truncatedText}
 3. plotPoints 提供 3-8 个关键情节节点
 4. customPrompt 用英文，便于图片生成`;
   return await generateJsonWithAI(prompt);
-}
-
-/** 创建角色和场景记录 */
-async function createCharactersAndScenes(
-  extractedCharacters: Record<string, unknown>[],
-  extractedScenes: Record<string, unknown>[],
-  genre: string | undefined,
-  onProgress?: (msg: string) => void,
-): Promise<{
-  characterIds: string[];
-  characters: Array<{ id: string; name: string }>;
-  sceneIds: string[];
-  scenes: Array<{ id: string; name: string }>;
-}> {
-  onProgress?.(`正在创建 ${extractedCharacters.length} 个角色和 ${extractedScenes.length} 个场景…`);
-  const { characterService } = await import("@/modules/character");
-  const { sceneService } = await import("@/modules/scene");
-
-  const characterIds: string[] = [];
-  const characters: Array<{ id: string; name: string }> = [];
-  for (const charData of extractedCharacters) {
-    try {
-      const appearance = (charData.appearance as Record<string, unknown> | undefined) ?? {};
-      const r = await characterService.create({
-        name: String(charData.name ?? `角色_${Date.now()}`),
-        description: String(charData.description ?? ""),
-        gender: String(charData.gender ?? ""),
-        style: genre ?? "",
-        age: charData.age != null ? Number(charData.age) : undefined,
-        personality: toStringArray(charData.personality),
-        appearance: {
-          hairColor: String(appearance.hairColor ?? ""),
-          hairStyle: String(appearance.hairStyle ?? ""),
-          eyeColor: String(appearance.eyeColor ?? ""),
-          height: String(appearance.height ?? ""),
-          build: String(appearance.build ?? ""),
-          clothing: String(appearance.clothing ?? ""),
-        },
-        prompt: String(charData.customPrompt ?? ""),
-      });
-      if (r.ok) {
-        characterIds.push(r.value.id);
-        characters.push({ id: r.value.id, name: r.value.name });
-      }
-    } catch (err) {
-      errorLogger.warn("[SubworkflowNovel] 创建角色失败", err);
-    }
-  }
-
-  const sceneIds: string[] = [];
-  const scenes: Array<{ id: string; name: string }> = [];
-  for (const sceneData of extractedScenes) {
-    try {
-      const r = await sceneService.create({
-        name: String(sceneData.name ?? `场景_${Date.now()}`),
-        description: String(sceneData.description ?? ""),
-        type: String(sceneData.type ?? ""),
-        timeOfDay: String(sceneData.timeOfDay ?? ""),
-        weather: String(sceneData.weather ?? ""),
-        mood: String(sceneData.mood ?? ""),
-        lighting: String(sceneData.lighting ?? ""),
-        elements: [],
-        colors: [],
-        prompt: String(sceneData.customPrompt ?? ""),
-      });
-      if (r.ok) {
-        sceneIds.push(r.value.id);
-        scenes.push({ id: r.value.id, name: r.value.name });
-      }
-    } catch {
-      // 单个场景创建失败不影响其他
-    }
-  }
-
-  return { characterIds, characters, sceneIds, scenes };
 }
 
 /** 用 AI 规划分镜，返回原始 beatsData 或 null（需回退） */
@@ -342,6 +269,101 @@ async function generateKeyframesForBeats(
 
 // ============= 工具实现 =============
 
+/** 解析 AI 分析结果，提取各字段（带类型安全 fallback） */
+function parseAnalysisResult(
+  analysis: Record<string, unknown>,
+  titleOverride: string | undefined,
+): {
+  title: string;
+  description: string;
+  genre: string | undefined;
+  extractedCharacters: Record<string, unknown>[];
+  extractedScenes: Record<string, unknown>[];
+  plotPoints: string[];
+} {
+  return {
+    title: titleOverride ?? String(analysis.title ?? `小说改编_${Date.now()}`),
+    description: String(analysis.description ?? ""),
+    genre: analysis.genre ? String(analysis.genre) : undefined,
+    extractedCharacters: Array.isArray(analysis.characters)
+      ? (analysis.characters as Record<string, unknown>[])
+      : [],
+    extractedScenes: Array.isArray(analysis.scenes)
+      ? (analysis.scenes as Record<string, unknown>[])
+      : [],
+    plotPoints: Array.isArray(analysis.plotPoints)
+      ? (analysis.plotPoints as string[]).map(String)
+      : [],
+  };
+}
+
+/** 规划分镜并保存到故事，返回最终结果（成功/失败/回退） */
+async function planAndSaveBeats(
+  params: {
+    story: Story;
+    title: string;
+    description: string;
+    characters: Array<{ id: string; name: string }>;
+    scenes: Array<{ id: string; name: string }>;
+    plotPoints: string[];
+    maxBeats: number;
+    steps: string[];
+    ctx: { onProgress?: (msg: string) => void };
+  },
+): Promise<{
+  ok: true;
+  beats: StoryBeat[];
+  fallback: boolean;
+} | {
+  ok: false;
+  error: string;
+  beats: StoryBeat[];
+}> {
+  const { story, title, description, characters, scenes, plotPoints, maxBeats, steps, ctx } = params;
+  const { storyService } = await import("@/modules/storyboard");
+  const beatsData = await planBeatsWithAI(title, description, characters, scenes, plotPoints, maxBeats, ctx.onProgress);
+
+  // 回退到 planStory
+  if (!beatsData) {
+    const fallbackBeats = await planBeatsWithFallback(story, maxBeats, ctx.onProgress);
+    if (fallbackBeats) {
+      await storyService.update(story.id, { id: story.id, beats: fallbackBeats });
+      steps.push("规划分镜（planStory 回退）");
+      return { ok: true, beats: fallbackBeats, fallback: true };
+    }
+    return { ok: false, error: "AI 分镜规划失败且 planStory 回退也失败", beats: [] };
+  }
+
+  // 构造、校验并保存分镜
+  const rawBeats = buildStoryBeats(beatsData, maxBeats);
+  const validBeats = await validateBeats(rawBeats);
+  ctx.onProgress?.("正在保存分镜到故事…");
+  const saveResult = await storyService.update(story.id, { id: story.id, beats: validBeats });
+  if (!saveResult.ok) {
+    ctx.onProgress?.(`警告：分镜已生成但保存失败：${saveResult.error.message}`);
+  }
+  steps.push(`规划 ${validBeats.length} 个分镜`);
+  return { ok: true, beats: validBeats, fallback: false };
+}
+
+/** 可选：自动生成关键帧并更新故事 */
+async function generateKeyframesIfNeeded(
+  story: Story,
+  validBeats: StoryBeat[],
+  autoGenerate: boolean,
+  steps: string[],
+  ctx: { onProgress?: (msg: string) => void },
+): Promise<number> {
+  if (!autoGenerate || validBeats.length === 0) return 0;
+  const generated = await generateKeyframesForBeats(validBeats, story, ctx.onProgress);
+  if (generated > 0) {
+    const { storyService } = await import("@/modules/storyboard");
+    await storyService.update(story.id, { id: story.id, beats: validBeats });
+    steps.push(`生成 ${generated} 个关键帧`);
+  }
+  return generated;
+}
+
 /** 8. 小说一键转分镜 */
 export const autoCreateFromNovelTool: ToolImpl = {
   def: {
@@ -415,18 +437,8 @@ export const autoCreateFromNovelTool: ToolImpl = {
     }
     steps.push("分析小说");
 
-    const title = titleOverride ?? String(analysis.title ?? `小说改编_${Date.now()}`);
-    const description = String(analysis.description ?? "");
-    const genre = analysis.genre ? String(analysis.genre) : undefined;
-    const extractedCharacters = Array.isArray(analysis.characters)
-      ? (analysis.characters as Record<string, unknown>[])
-      : [];
-    const extractedScenes = Array.isArray(analysis.scenes)
-      ? (analysis.scenes as Record<string, unknown>[])
-      : [];
-    const plotPoints = Array.isArray(analysis.plotPoints)
-      ? (analysis.plotPoints as string[]).map(String)
-      : [];
+    const { title, description, genre, extractedCharacters, extractedScenes, plotPoints } =
+      parseAnalysisResult(analysis, titleOverride);
 
     // Step 3: 创建角色和场景记录
     const { characterIds, characters, sceneIds, scenes } = await createCharactersAndScenes(
@@ -459,64 +471,23 @@ export const autoCreateFromNovelTool: ToolImpl = {
     }
     const story = createStoryResult.value;
 
-    // Step 5: 用 AI 规划分镜
-    const beatsData = await planBeatsWithAI(
-      title,
-      description,
-      characters,
-      scenes,
-      plotPoints,
-      maxBeats,
-      ctx.onProgress,
-    );
-
-    // 回退到 planStory
-    if (!beatsData) {
-      const fallbackBeats = await planBeatsWithFallback(
-        story,
-        maxBeats,
-        ctx.onProgress,
-      );
-      if (fallbackBeats) {
-        await storyService.update(story.id, { id: story.id, beats: fallbackBeats });
-        steps.push("规划分镜（planStory 回退）");
-        return {
-          success: true,
-          data: {
-            storyId: story.id,
-            createdCharacters: characters,
-            createdScenes: scenes,
-            beatCount: fallbackBeats.length,
-            steps,
-          },
-        };
-      }
+    // Step 5+6: 规划、校验并保存分镜（含 fallback）
+    const beatsResult = await planAndSaveBeats({
+      story, title, description, characters, scenes, plotPoints, maxBeats, steps, ctx,
+    });
+    if (!beatsResult.ok) {
       return {
         success: false,
-        error: "AI 分镜规划失败且 planStory 回退也失败",
+        error: beatsResult.error,
         data: { storyId: story.id, createdCharacters: characters, createdScenes: scenes, steps },
       };
     }
-
-    // Step 6: 构造、校验并保存分镜
-    const rawBeats = buildStoryBeats(beatsData, maxBeats);
-    const validBeats = await validateBeats(rawBeats);
-    ctx.onProgress?.("正在保存分镜到故事…");
-    const saveResult = await storyService.update(story.id, { id: story.id, beats: validBeats });
-    if (!saveResult.ok) {
-      ctx.onProgress?.(`警告：分镜已生成但保存失败：${saveResult.error.message}`);
-    }
-    steps.push(`规划 ${validBeats.length} 个分镜`);
+    const validBeats = beatsResult.beats;
 
     // Step 7: 自动生成关键帧（可选）
-    let generatedKeyframes = 0;
-    if (autoGenerate && validBeats.length > 0) {
-      generatedKeyframes = await generateKeyframesForBeats(validBeats, story, ctx.onProgress);
-      if (generatedKeyframes > 0) {
-        await storyService.update(story.id, { id: story.id, beats: validBeats });
-        steps.push(`生成 ${generatedKeyframes} 个关键帧`);
-      }
-    }
+    const generatedKeyframes = await generateKeyframesIfNeeded(
+      story, validBeats, autoGenerate, steps, ctx,
+    );
 
     return {
       success: true,

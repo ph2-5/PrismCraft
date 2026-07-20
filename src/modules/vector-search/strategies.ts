@@ -153,6 +153,65 @@ async function computeTopK(
   return topK.map(({ index }) => candidates[index]!.entry);
 }
 
+/** 批量生成缺失的 embedding 并写入 store，返回更新后的 allEmbeddings */
+async function fillMissingEmbeddings(
+  provider: IEmbeddingProvider,
+  entries: ArchivalMemoryEntry[],
+  store: EmbeddingStore,
+  modelId: string,
+  dimensions: number,
+  batchSize: number,
+  onProgress: ProgressCallback | undefined,
+  strategyName: string,
+): Promise<Map<string, number[]>> {
+  const ids = entries.map((e) => e.id);
+  const existing = await store.getEmbeddings(ids);
+  const missing = entries.filter(
+    (e) => !existing.has(e.id) || existing.get(e.id)!.length === 0,
+  );
+
+  if (missing.length > 0) {
+    const newEmbeddings = await generateBatchEmbeddings(
+      provider,
+      missing.map((e) => e.content),
+      batchSize,
+      onProgress,
+      strategyName,
+    );
+    if (newEmbeddings) {
+      const updates = new Map<string, number[]>();
+      for (let i = 0; i < missing.length && i < newEmbeddings.length; i++) {
+        const emb = newEmbeddings[i]!;
+        if (emb.length === dimensions) {
+          updates.set(missing[i]!.id, emb);
+        }
+      }
+      if (updates.size > 0) {
+        await store.setEmbeddings(updates, modelId, dimensions);
+      }
+    }
+  }
+
+  // 重新读取全部 embedding（包含刚写入的）
+  return store.getEmbeddings(ids);
+}
+
+/** 从 allEmbeddings 构建候选列表（维度匹配的 entry） */
+function buildCandidates(
+  entries: ArchivalMemoryEntry[],
+  allEmbeddings: Map<string, number[]>,
+  dimensions: number,
+): Array<{ entry: ArchivalMemoryEntry; embedding: number[] }> {
+  const candidates: Array<{ entry: ArchivalMemoryEntry; embedding: number[] }> = [];
+  for (const entry of entries) {
+    const emb = allEmbeddings.get(entry.id);
+    if (emb && emb.length === dimensions) {
+      candidates.push({ entry, embedding: emb });
+    }
+  }
+  return candidates;
+}
+
 // ============= 策略 1：API 向量检索 =============
 
 /**
@@ -202,44 +261,13 @@ export class ApiVectorStrategy implements RetrievalStrategy {
         await this.store.invalidateAll();
       }
 
-      // 3. 找出缺 embedding 的条目，懒生成（带进度通知）
-      const ids = entries.map((e) => e.id);
-      const existing = await this.store.getEmbeddings(ids);
-      const missing = entries.filter(
-        (e) => !existing.has(e.id) || existing.get(e.id)!.length === 0,
+      // 3. 懒生成缺失 embedding + 重新读取全部
+      const allEmbeddings = await fillMissingEmbeddings(
+        provider, entries, this.store, modelId, dimensions, API_BATCH_SIZE, onProgress, this.name,
       );
 
-      if (missing.length > 0) {
-        const newEmbeddings = await generateBatchEmbeddings(
-          provider,
-          missing.map((e) => e.content),
-          API_BATCH_SIZE,
-          onProgress,
-          this.name,
-        );
-        if (newEmbeddings) {
-          const updates = new Map<string, number[]>();
-          for (let i = 0; i < missing.length && i < newEmbeddings.length; i++) {
-            const emb = newEmbeddings[i]!;
-            if (emb.length === dimensions) {
-              updates.set(missing[i]!.id, emb);
-            }
-          }
-          if (updates.size > 0) {
-            await this.store.setEmbeddings(updates, modelId, dimensions);
-          }
-        }
-      }
-
-      // 4. 重新读取全部 embedding（包含刚写入的）
-      const allEmbeddings = await this.store.getEmbeddings(ids);
-      const candidates: Array<{ entry: ArchivalMemoryEntry; embedding: number[] }> = [];
-      for (const entry of entries) {
-        const emb = allEmbeddings.get(entry.id);
-        if (emb && emb.length === dimensions) {
-          candidates.push({ entry, embedding: emb });
-        }
-      }
+      // 4. 构建候选列表
+      const candidates = buildCandidates(entries, allEmbeddings, dimensions);
       if (candidates.length === 0) return null;
 
       // 5. 计算 Top-K
@@ -316,44 +344,13 @@ export class LocalVectorStrategy implements RetrievalStrategy {
         await this.store.invalidateAll();
       }
 
-      // 4. 懒生成缺失 embedding（带进度通知）
-      const ids = entries.map((e) => e.id);
-      const existing = await this.store.getEmbeddings(ids);
-      const missing = entries.filter(
-        (e) => !existing.has(e.id) || existing.get(e.id)!.length === 0,
+      // 4. 懒生成缺失 embedding + 重新读取全部
+      const allEmbeddings = await fillMissingEmbeddings(
+        provider, entries, this.store, modelId, dimensions, LOCAL_BATCH_SIZE, onProgress, this.name,
       );
 
-      if (missing.length > 0) {
-        const newEmbeddings = await generateBatchEmbeddings(
-          provider,
-          missing.map((e) => e.content),
-          LOCAL_BATCH_SIZE,
-          onProgress,
-          this.name,
-        );
-        if (newEmbeddings) {
-          const updates = new Map<string, number[]>();
-          for (let i = 0; i < missing.length && i < newEmbeddings.length; i++) {
-            const emb = newEmbeddings[i]!;
-            if (emb.length === dimensions) {
-              updates.set(missing[i]!.id, emb);
-            }
-          }
-          if (updates.size > 0) {
-            await this.store.setEmbeddings(updates, modelId, dimensions);
-          }
-        }
-      }
-
-      // 5. 重新读取全部 embedding
-      const allEmbeddings = await this.store.getEmbeddings(ids);
-      const candidates: Array<{ entry: ArchivalMemoryEntry; embedding: number[] }> = [];
-      for (const entry of entries) {
-        const emb = allEmbeddings.get(entry.id);
-        if (emb && emb.length === dimensions) {
-          candidates.push({ entry, embedding: emb });
-        }
-      }
+      // 5. 构建候选列表
+      const candidates = buildCandidates(entries, allEmbeddings, dimensions);
       if (candidates.length === 0) return null;
 
       // 6. 计算 Top-K

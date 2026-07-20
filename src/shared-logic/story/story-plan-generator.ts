@@ -104,10 +104,12 @@ function applyShotParamsFixes(
 ): number {
   let count = autoFixedCount;
   for (const beat of beats) {
-    if (!beat.shotType && !beat.camera) continue;
+    if (!beat.shotType && !beat.camera && !beat.shotInstruction) continue;
     const { fixed, autoFixed } = fixShotParams({
-      shotType: beat.shotType, cameraAngle: beat.camera?.angle,
-      cameraMovement: beat.camera?.movement, duration: beat.duration,
+      shotType: beat.shotInstruction?.shotSize ?? beat.shotType,
+      cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
+      cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
+      duration: beat.duration,
     });
     if (autoFixed.length === 0 || !autoFix) continue;
 

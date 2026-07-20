@@ -1,3 +1,5 @@
+import { resolveBeatShotInfo } from "../prompt/prompt-service";
+
 export interface Beat {
   id: string;
   content?: string;
@@ -5,6 +7,11 @@ export interface Beat {
   duration?: number;
   shotType?: string;
   camera?: { angle?: string; movement?: string };
+  shotInstruction?: {
+    shotSize?: string;
+    cameraAngle?: string;
+    cameraMovement?: string;
+  };
   enhancedGeneration?: boolean;
   imageGenerationPrompt?: string;
   firstFramePrompt?: string;
@@ -130,9 +137,7 @@ export async function generateBeatKeyframe(
   }
 
   const shotRequirement = {
-    shotType: beat.shotType,
-    cameraAngle: beat.camera?.angle,
-    cameraMovement: beat.camera?.movement,
+    ...resolveBeatShotInfo(beat),
     action: content,
   };
 

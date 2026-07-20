@@ -18,7 +18,18 @@ interface BeatDetailsTabProps {
   elementNames: Record<string, string>;
 }
 
+function resolveBeatShotDisplay(beat: StoryBeat) {
+  return {
+    shotSize: beat.shotInstruction?.shotSize ?? beat.shotType,
+    cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
+    cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
+    hasCameraInfo: !!(beat.camera || beat.shotInstruction),
+  };
+}
+
 export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
+  const { shotSize, cameraAngle, cameraMovement, hasCameraInfo } = resolveBeatShotDisplay(beat);
+
   return (
     <>
       <div className="card">
@@ -57,7 +68,7 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
         </div>
       </div>
 
-      {beat.camera && (
+      {hasCameraInfo && (
         <div className="card">
           <div className="pb-3">
             <div className="text-sm text-foreground font-semibold">
@@ -65,27 +76,27 @@ export function BeatDetailsTab({ beat, elementNames }: BeatDetailsTabProps) {
             </div>
           </div>
           <div className="space-y-2">
-            {beat.camera.angle && (
+            {cameraAngle && (
               <div className="flex justify-between">
                 <span className="text-xs text-muted-foreground">{t("beat.angle")}</span>
                 <span className="text-sm text-foreground">
-                  {beat.camera.angle}
+                  {cameraAngle}
                 </span>
               </div>
             )}
-            {beat.camera.movement && (
+            {cameraMovement && (
               <div className="flex justify-between">
                 <span className="text-xs text-muted-foreground">{t("beat.movement")}</span>
                 <span className="text-sm text-foreground">
-                  {beat.camera.movement}
+                  {cameraMovement}
                 </span>
               </div>
             )}
-            {beat.shotType && (
+            {shotSize && (
               <div className="flex justify-between">
                 <span className="text-xs text-muted-foreground">{t("beat.shotSize")}</span>
                 <span className="text-sm text-foreground">
-                  {beat.shotType}
+                  {shotSize}
                 </span>
               </div>
             )}

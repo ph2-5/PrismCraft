@@ -146,9 +146,9 @@ function SortableBeatItem({
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-        {beat.shotType && (
+        {(beat.shotInstruction?.shotSize ?? beat.shotType) && (
           <span className="badge badge-info" style={{ fontSize: 10 }}>
-            {beat.shotType}
+            {beat.shotInstruction?.shotSize ?? beat.shotType}
           </span>
         )}
         <span

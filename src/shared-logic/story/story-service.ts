@@ -51,6 +51,11 @@ export interface StoryBeat {
   description: string;
   shotType: string;
   camera?: { angle?: string; movement?: string };
+  shotInstruction?: {
+    shotSize?: string;
+    cameraAngle?: string;
+    cameraMovement?: string;
+  };
   duration: number;
   type: string;
   characterIds: string[];

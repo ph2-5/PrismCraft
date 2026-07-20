@@ -17,6 +17,11 @@ interface Beat {
   lastFramePrompt?: string;
   shotType?: string;
   camera?: { angle?: string; movement?: string };
+  shotInstruction?: {
+    shotSize?: string;
+    cameraAngle?: string;
+    cameraMovement?: string;
+  };
   framePair?: { firstFrame?: { imageUrl?: string }; lastFrame?: { imageUrl?: string } };
   firstFrameUrl?: string;
   lastFrameUrl?: string;
@@ -178,9 +183,9 @@ export function buildKeyframeGenerationParams(params: {
   const content =
     beat.imageGenerationPrompt || beat.content || beat.description || "";
   const shotRequirement = {
-    shotType: beat.shotType,
-    cameraAngle: beat.camera?.angle,
-    cameraMovement: beat.camera?.movement,
+    shotType: beat.shotInstruction?.shotSize ?? beat.shotType,
+    cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
+    cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
     action: content,
   };
 

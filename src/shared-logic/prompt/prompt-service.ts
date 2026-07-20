@@ -50,7 +50,24 @@ export interface BeatInput {
   description?: string;
   shotType?: string;
   camera?: { angle?: string; movement?: string };
+  shotInstruction?: {
+    shotSize?: string;
+    cameraAngle?: string;
+    cameraMovement?: string;
+  };
   duration?: number;
+}
+
+export function resolveBeatShotInfo(beat: BeatInput): {
+  shotSize?: string;
+  cameraAngle?: string;
+  cameraMovement?: string;
+} {
+  return {
+    shotSize: beat.shotInstruction?.shotSize ?? beat.shotType,
+    cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
+    cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
+  };
 }
 
 export interface ElementInput {
@@ -241,17 +258,15 @@ function generateVideoPrompt(params: VideoPromptParams): string {
   if (beat) {
     parts.push(`[Video Content]\n${beat.content || beat.description || ""}`);
 
-    if (beat.shotType) {
-      const shotTag = SHOT_TYPE_MAP[beat.shotType] || beat.shotType;
+    const shotInfo = resolveBeatShotInfo(beat);
+    if (shotInfo.shotSize) {
+      const shotTag = SHOT_TYPE_MAP[shotInfo.shotSize] || shotInfo.shotSize;
       parts.push(`[Shot Type] ${shotTag}`);
     }
-    if (beat.camera) {
-      if (beat.camera.angle) parts.push(`[Camera Angle] ${beat.camera.angle}`);
-      if (beat.camera.movement) {
-        const moveTag =
-          CAMERA_MOVEMENT_MAP[beat.camera.movement] || beat.camera.movement;
-        parts.push(`[Camera Movement] ${moveTag}`);
-      }
+    if (shotInfo.cameraAngle) parts.push(`[Camera Angle] ${shotInfo.cameraAngle}`);
+    if (shotInfo.cameraMovement) {
+      const moveTag = CAMERA_MOVEMENT_MAP[shotInfo.cameraMovement] || shotInfo.cameraMovement;
+      parts.push(`[Camera Movement] ${moveTag}`);
     }
     if (beat.duration) parts.push(`[Duration] ${beat.duration}s`);
   }

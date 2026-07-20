@@ -6,15 +6,23 @@
  * - standard (6步)：+ 角色管理 + 场景管理
  * - professional (8步)：+ 故事结构分析 + 节奏规划
  *
- * 当前状态（Task 2A.1 + 2A.2 + 2A.3 + 2A.4 + 2A.5 + 2A.6）：
- * - ✅ domain/types.ts — 15 个类型定义
- * - ✅ tools/ — 5 个 Novel Agent 工具
- * - ✅ import/services/pipeline-machine.ts — 10 阶段状态机 + 三档模式 + 失败重试
- * - ✅ presentation/ — UI Panel Part 1（导入+分段）
- * - ✅ presentation/ — UI Panel Part 2（提取+拆解+提示词）
- * - ✅ hooks/use-novel-pipeline.ts — 管道状态管理 Hook（Task 2A.6）
- * - ✅ presentation/ — StoryPipelineShell 三栏布局 + PhaseIndicator + SegmentNavColumn + MainWorkArea + ContextPanel
- * - ⏳ services/ — 故事结构分析 + 节奏规划（Task 2A.13/2A.14，待实施）
+ * 当前状态（Phase 2A 全部 23 个任务已于 2026-07-20 完成）：
+ * - ✅ domain/types.ts — 15 个类型定义（Task 2A.1）
+ * - ✅ tools/ — 5 个 Novel Agent 工具（Task 2A.2）
+ * - ✅ import/services/pipeline-machine.ts — 10 阶段状态机 + 三档模式 + 失败重试（Task 2A.3）
+ * - ✅ presentation/ — UI Panel Part 1（导入+分段）（Task 2A.4）
+ * - ✅ presentation/ — UI Panel Part 2（提取+拆解+提示词）（Task 2A.5）
+ * - ✅ hooks/use-novel-pipeline.ts — 管道状态管理 Hook + StoryPipelineShell 三栏布局（Task 2A.6/2A.8/2A.9）
+ * - ✅ presentation/NovelProjectList.tsx — 未完成项目恢复（Task 2A.7）
+ * - ✅ domain/types.ts — 角色变体 / 场景变体 8 维参数向量 + Element Binding + Prompt 分层合成（Task 2A.10/2A.11/2A.12）
+ * - ✅ structure/ — 故事结构分析层（叙事 beats + Treatment + ShotContract）（Task 2A.13）
+ * - ✅ pacing/ — 节奏规划子域（Task 2A.14）
+ * - ✅ presentation/ModeSelector.tsx + QuickModePanel.tsx — 三档模式（Task 2A.15）
+ * - ✅ presentation/StoryOverviewPanel.tsx + charts/* — 概览视图（Task 2A.16）
+ * - ✅ integration/ — 过期标记机制（staleness-tracker）（Task 2A.17）
+ * - ✅ continuity/ — 连续性账本（continuity-ledger + tracker + fixer）（Task 2A.18）
+ * - ✅ workflow/ — 工作流增强（auto/semi-pipeline + retake-protocol）（Task 2A.19）
+ * - ✅ 跨模块 v5.4 协同：@/modules/blockout-3d（Seedance 2.5 + 3D 白盒）、@/modules/video/partial-edit（局部重绘）、@/modules/video/consistency-qc（一致性 QC 闭环）（Task 2A.20/2A.21/2A.22/2A.23）
  *
  * 依赖方向：
  * - 仅依赖 @/domain/* + @/infrastructure/di + @/shared-logic/* + @/shared/*

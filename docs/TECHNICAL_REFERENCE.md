@@ -2216,10 +2216,6 @@ Shared 层提供跨切面 UI 组件、工具函数和错误处理。**Shared 层
 | `SaveStatusIndicator` | 保存状态指示器 |
 | `OnboardingGuide` | 新手引导 |
 
-#### ui/
-
-基础 UI 组件, 基于 **@base-ui/react** 构建。
-
 ### 7.4 Hooks
 
 | Hook | 说明 |

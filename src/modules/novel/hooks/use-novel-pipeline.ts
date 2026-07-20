@@ -49,11 +49,7 @@ export interface UseNovelPipelineResult {
   storyStructure: StoryStructure | null;
   /**
    * AI 提取的 StoryTreatment（v5.3 增强）。
-   *
-   * TODO(Task 2A.16): 当前 treatment 仅作为 buildShotContractsForBeats 的可选输入，
-   * 未在 UI 展示。三档模式完整实现时，应新建 TreatmentPanel 组件展示
-   * logline/theme/tone/characterArcs/settingDescription，让用户可编辑后回传。
-   * StoryPipelineShell 也需解构 treatment 并传递给 MainWorkArea。
+   * 作为 buildShotContractsForBeats 的可选输入，影响镜头契约的生成。
    */
   treatment: StoryTreatment | null;
   /** 每个 beat 产出的 ShotContract 列表（v5.3 增强） */

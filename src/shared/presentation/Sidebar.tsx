@@ -67,11 +67,11 @@ const storyCreationItems: NavEntry[] = [
 
 const toolItems: NavEntry[] = [
   { href: "/agent", labelKey: "sidebar.agent", icon: MapPin },
-  { href: "/composer", labelKey: "sidebar.composer", icon: ComposerIcon, comingSoon: true },
+  { href: "/composer", labelKey: "sidebar.composer", icon: ComposerIcon },
 ];
 
 const systemItems: NavEntry[] = [
-  { href: "/plugins", labelKey: "sidebar.plugins", icon: LinkIcon, comingSoon: true },
+  { href: "/plugins", labelKey: "sidebar.plugins", icon: LinkIcon },
   { href: "/settings", labelKey: "sidebar.settings", icon: Settings },
 ];
 

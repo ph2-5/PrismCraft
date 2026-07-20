@@ -2,10 +2,10 @@ import { test, expect } from "../helpers/electron-fixture";
 import { navigateTo, waitForAppReady, dismissOverlays, hasElectronAPI } from "../helpers/electron-page-helpers";
 import { captureConsoleErrors } from "../helpers/console-errors";
 
-// 注意：/story 路由映射到 ComingSoon 占位页（src/app/coming-soon/StoryPage.tsx），
-// 而非完整故事编辑器。完整故事编辑器在 /storyboard 路由（src/modules/storyboard/page.tsx）。
+// 注意：/story 路由映射到 StoryPipelineShell（src/app/story/page.tsx），
+// 完整故事编辑器在 /storyboard 路由（src/modules/storyboard/page.tsx）。
 const MAIN_PAGES = [
-  { path: "/story", name: "Story (ComingSoon placeholder)" },
+  { path: "/story", name: "Story" },
   { path: "/characters", name: "Characters" },
   { path: "/scenes", name: "Scenes" },
   { path: "/asset-library", name: "Asset Library" },

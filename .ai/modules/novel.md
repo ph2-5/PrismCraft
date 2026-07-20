@@ -1,6 +1,6 @@
 # Novel 模块 - AI 维护指南
 
-> **当前状态**：Task 2A.1 + 2A.2 已完成（domain 类型 + 5 个 Agent 工具）。后续 Task 2A.3-2A.19 + 2A.20-2A.23 将逐步构建完整模块。
+> **当前状态**：Phase 2A 全部 23 个任务（2A.1 ~ 2A.23）已于 2026-07-20 完成代码实现并通过代码审查。模块已具备完整的 10 阶段流水线、三档渐进式复杂度、故事结构分析、节奏规划、连续性账本、过期标记机制、工作流增强，以及与 blockout-3d / video/partial-edit / video/consistency-qc 等跨模块的 v5.4 协同。
 
 ## 模块概述
 
@@ -16,9 +16,11 @@
 |------|------|------|------|
 | domain | 🟢 低 | 仅类型定义（Task 2A.1），零外部依赖（仅依赖 @/domain/schemas/character） | ✅ 已完成 |
 | tools | 🟡 中 | Novel Agent 工具（Task 2A.2，5个工具），调用 container.textProvider，JSON 解析容错 | ✅ 已完成 |
-| hooks | 🟡 中 | 管道状态管理 hooks（Task 2A.3-2A.9），Zustand store + 流转逻辑 | ⏳ 待实施 |
-| presentation | 🟡 中 | 管道 UI（Task 2A.6 步骤指示器 + 上下文 AI 副驾驶） | ⏳ 待实施 |
-| services | 🟡 中 | 故事结构分析（2A.13）+ 节奏规划（2A.14）+ 连续性账本（2A.18） | ⏳ 待实施 |
+| hooks | 🟡 中 | 管道状态管理 hooks（Task 2A.3-2A.9），Zustand store + 流转逻辑 | ✅ 已完成 |
+| presentation | 🟡 中 | 管道 UI（Task 2A.6 步骤指示器 + 上下文 AI 副驾驶） | ✅ 已完成 |
+| services | 🟡 中 | 故事结构分析（2A.13）+ 节奏规划（2A.14）+ 连续性账本（2A.18） | ✅ 已完成 |
+| integration | 🟡 中 | 过期标记机制（Task 2A.17，staleness-tracker + trigger-dispatcher） | ✅ 已完成 |
+| workflow | 🟡 中 | 工作流增强（Task 2A.19，auto/semi-pipeline + retake-protocol） | ✅ 已完成 |
 
 ## 子域依赖图
 
@@ -97,10 +99,12 @@ services/*（Task 2A.13/2A.14/2A.18，分析与规划）
 
 ## 实施进度（Phase 2A）
 
+> 全部 23 个任务已于 **2026-07-20** 完成代码实现并通过代码审查。
+
 - [x] Task 2A.1：Domain 类型定义 ✅
 - [x] Task 2A.2：Novel Agent 工具 5个 ✅（segment_novel_text / extract_characters / extract_scenes / match_entities / breakdown_text_to_shots）
-- [ ] Task 2A.3-2A.9：管道状态管理 + UI
-- [ ] Task 2A.10-2A.12：角色变体 + Element Binding + 一致性强化
-- [ ] Task 2A.13-2A.16：故事结构分析 + 节奏规划 + 概览视图 + 三档模式
-- [ ] Task 2A.17-2A.19：功能联动 + 连续性账本 + 工作流增强
-- [ ] Task 2A.20-2A.23（v5.4）：Seedance 2.5 + 3D 白盒 + 局部重绘 + 一致性 QC
+- [x] Task 2A.3-2A.9：管道状态管理 + UI ✅（hooks/use-pipeline-state.ts + use-novel-stage-transitions.ts + use-novel-structure-stage-transitions.ts + use-pipeline-derived-flags.ts + use-pipeline-persistence.ts + use-novel-entity-handlers.ts + use-novel-import-handlers.ts + use-novel-mode-handlers.ts + use-novel-tools.ts + use-novel-quick-generate.ts + use-novel-finalize-import.ts + presentation/StoryPipelineShell.tsx 三栏布局）
+- [x] Task 2A.10-2A.12：角色变体 + Element Binding + 一致性强化 ✅（CharacterVariant / SceneVariant 8 维参数向量，SegmentPrompt.layers 三层 core+enhanced+style）
+- [x] Task 2A.13-2A.16：故事结构分析 + 节奏规划 + 概览视图 + 三档模式 ✅（structure/ 子域 + pacing/ 子域 + presentation/StoryOverviewPanel.tsx + charts/* + ModeSelector.tsx + QuickModePanel.tsx + getStagesForMode）
+- [x] Task 2A.17-2A.19：功能联动 + 连续性账本 + 工作流增强 ✅（integration/ 子域 staleness-tracker + continuity/ 子域 continuity-ledger + continuity-tracker + continuity-violation-fixer + workflow/ 子域 auto-pipeline + semi-pipeline + retake-protocol）
+- [x] Task 2A.20-2A.23（v5.4）：Seedance 2.5 + 3D 白盒 + 局部重绘 + 一致性 QC ✅（跨模块：@/modules/blockout-3d/services/seedance-adapter.ts + @/modules/blockout-3d/ + @/modules/video/partial-edit/ + @/modules/video/consistency-qc/）

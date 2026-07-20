@@ -1112,19 +1112,6 @@ export function TabsTrigger(props: React.ComponentProps<typeof TabsPrimitive.Tri
 export function TabsContent(props: React.ComponentProps<typeof TabsPrimitive.Content>): JSX.Element;
 ```
 
-#### command.tsx
-
-```typescript
-// 命令面板组件（基于 cmdk）
-export function Command(props: React.ComponentProps<typeof CommandPrimitive>): JSX.Element;
-export function CommandInput(props: React.ComponentProps<typeof CommandPrimitive.Input>): JSX.Element;
-export function CommandList(props: React.ComponentProps<typeof CommandPrimitive.List>): JSX.Element;
-export function CommandEmpty(props: React.ComponentProps<typeof CommandPrimitive.Empty>): JSX.Element;
-export function CommandGroup(props: React.ComponentProps<typeof CommandPrimitive.Group>): JSX.Element;
-export function CommandItem(props: React.ComponentProps<typeof CommandPrimitive.Item>): JSX.Element;
-export function CommandSeparator(props: React.ComponentProps<typeof CommandPrimitive.Separator>): JSX.Element;
-```
-
 #### card.tsx
 
 ```typescript

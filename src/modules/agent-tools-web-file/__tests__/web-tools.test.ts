@@ -192,23 +192,23 @@ describe("search_web_images", () => {
     expect(result.error).toContain("HTTP 401");
   });
 
-  it("4. baidu 搜索引擎暂未实现（返回支持列表）", async () => {
-    mocks.getConfig
-      .mockResolvedValueOnce("key")
-      .mockResolvedValueOnce("baidu");
+  it("4. baidu 不在 source 枚举中（已移除未实现的引擎）", () => {
+    // search_web_images 的 source 枚举不应包含 baidu
+    const imagesSource = searchWebImagesTool.def.function.parameters?.properties?.source as {
+      enum?: string[];
+    };
+    expect(imagesSource.enum).toBeDefined();
+    expect(imagesSource.enum).not.toContain("baidu");
+    // 已实现的搜索引擎仍保留
+    expect(imagesSource.enum).toEqual(["bing", "google", "unsplash", "pexels"]);
 
-    const result = await searchWebImagesTool.execute(
-      { query: "test", source: "baidu" },
-      makeCtx(),
-    );
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("暂未实现");
-    const data = result.data as { supportedEngines: string[] };
-    expect(data.supportedEngines).toContain("bing");
-    expect(data.supportedEngines).toContain("unsplash");
-    expect(data.supportedEngines).toContain("pexels");
-    expect(data.supportedEngines).toContain("google");
+    // search_web 的 source 枚举也不应包含 baidu
+    const webSource = searchWebTool.def.function.parameters?.properties?.source as {
+      enum?: string[];
+    };
+    expect(webSource.enum).toBeDefined();
+    expect(webSource.enum).not.toContain("baidu");
+    expect(webSource.enum).toEqual(["bing", "google"]);
   });
 
   it("4a. Unsplash 搜索正常返回（Client-ID 鉴权）", async () => {

@@ -120,6 +120,8 @@ novel/
 
 ## 实施进度
 
+> Phase 2A 全部 23 个任务已于 2026-07-20 完成代码实现并通过代码审查。
+
 | Task | 状态 | 说明 |
 |------|------|------|
 | 2A.1 | ✅ | domain 类型定义（15 个核心类型 + contract.json） |
@@ -129,5 +131,19 @@ novel/
 | 2A.5 | ✅ | UI Panel Part 2（提取+拆解+提示词） |
 | 2A.6 | ✅ | StoryPipelineShell 三栏布局 + useNovelPipeline Hook |
 | 2A.7 | ✅ | 小说项目持久化（novel_projects 表 + CRUD + 2秒防抖自动保存 + 恢复对话框） |
+| 2A.8 | ✅ | 管道状态管理子模块拆分（hooks/use-pipeline-state.ts + use-pipeline-derived-flags.ts + use-pipeline-persistence.ts + use-novel-stage-transitions.ts + use-novel-structure-stage-transitions.ts） |
+| 2A.9 | ✅ | 实体/导入处理 hooks（hooks/use-novel-entity-handlers.ts + use-novel-import-handlers.ts + use-novel-mode-handlers.ts + use-novel-tools.ts + use-novel-quick-generate.ts + use-novel-finalize-import.ts） |
+| 2A.10 | ✅ | 角色变体 / 场景变体系统（CharacterVariant / SceneVariant 8 维参数向量，domain/types.ts） |
+| 2A.11 | ✅ | Element Binding（ShotBreakdown.characters / sceneId + Segment 关联，hooks/pipeline-helpers.ts + presentation/SegmentCard.tsx） |
+| 2A.12 | ✅ | Prompt 分层合成（SegmentPrompt.layers 三层结构：core + enhanced + style，domain/types.ts + contract.json 不变量 #6） |
 | 2A.13 | ✅ | 故事结构分析层（叙事 beats + Treatment + ShotContract，domain + services + UI Panel + 106 个测试） |
-| 2A.8-2A.12, 2A.14-2A.23 | ⏳ | 待实施（道具库 / 变体 / Prompt 合成 / 节奏规划 / 三档模式 / 联动机制 / 过期标记 / 一致性 QC 等） |
+| 2A.14 | ✅ | 节奏规划（pacing/ 子域：domain/pacing-types.ts + services/pacing-engine.ts + presentation/PacingPanel.tsx） |
+| 2A.15 | ✅ | 三档模式（quick/standard/professional — presentation/ModeSelector.tsx + QuickModePanel.tsx + getStagesForMode） |
+| 2A.16 | ✅ | 概览视图（presentation/StoryOverviewPanel.tsx + charts/ShotDensityChart.tsx + ScenePacingChart.tsx + CharacterAppearanceChart.tsx + EmotionCurveChart.tsx） |
+| 2A.17 | ✅ | 过期标记机制（integration/ 子域：services/staleness-tracker.ts + domain/staleness-types.ts） |
+| 2A.18 | ✅ | 连续性账本（continuity/ 子域：domain/continuity-ledger.ts + services/continuity-tracker.ts + continuity-violation-fixer.ts + presentation/ContinuityLedgerPanel.tsx） |
+| 2A.19 | ✅ | 工作流增强（workflow/ 子域：domain/workflow-mode.ts + services/auto-pipeline.ts + semi-pipeline.ts + retake-protocol.ts + presentation/WorkflowModeSelector.tsx） |
+| 2A.20 | ✅ | Seedance 2.5 适配器（跨模块：@/modules/blockout-3d/services/seedance-adapter.ts） |
+| 2A.21 | ✅ | 3D 白盒模块（跨模块：@/modules/blockout-3d/ — Blockout3DPanel + scene-io + animatic-exporter + fallback-adapter） |
+| 2A.22 | ✅ | 局部重绘（跨模块：@/modules/video/partial-edit/ — partial-edit-service + mask-encoder + prompt-builder） |
+| 2A.23 | ✅ | 一致性 QC 闭环（跨模块：@/modules/video/consistency-qc/ — qc-orchestrator + fallback-dispatcher + QCDashboardPanel + domain/qc-schema.ts） |

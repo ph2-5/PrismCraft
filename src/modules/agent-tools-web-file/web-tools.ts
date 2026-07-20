@@ -115,7 +115,7 @@ export const searchWebImagesTool: ToolImpl = {
           count: { type: "number", description: "返回数量，默认 10，最大 30", default: 10, minimum: 1, maximum: 30 },
           source: {
             type: "string",
-            enum: ["bing", "google", "baidu", "unsplash", "pexels"],
+            enum: ["bing", "google", "unsplash", "pexels"],
             description: "搜索引擎/图源，默认 bing",
             default: "bing",
           },
@@ -144,7 +144,7 @@ export const searchWebImagesTool: ToolImpl = {
         error: "未配置搜索 API。请在设置中配置 Bing/Google 图片搜索 API key",
         data: {
           configGuide:
-            "在设置 → 搜索配置 中填写 searchApiKey（Bing Image Search API key），可选填 searchEngine（bing/google/baidu/unsplash/pexels）",
+            "在设置 → 搜索配置 中填写 searchApiKey（Bing Image Search API key），可选填 searchEngine（bing/google/unsplash/pexels）",
         },
       };
     }
@@ -326,7 +326,7 @@ export const searchWebTool: ToolImpl = {
           count: { type: "number", description: "返回数量，默认 5，最大 20", default: 5, minimum: 1, maximum: 20 },
           source: {
             type: "string",
-            enum: ["bing", "google", "baidu"],
+            enum: ["bing", "google"],
             description: "搜索引擎，默认 bing",
             default: "bing",
           },
@@ -353,7 +353,7 @@ export const searchWebTool: ToolImpl = {
         error: "未配置搜索 API。请在设置中配置 Bing/Google 网页搜索 API key",
         data: {
           configGuide:
-            "在设置 → 搜索配置 中填写 searchApiKey（Bing Web Search API key），可选填 searchEngine（bing/google/baidu）",
+            "在设置 → 搜索配置 中填写 searchApiKey（Bing Web Search API key），可选填 searchEngine（bing/google）",
         },
       };
     }

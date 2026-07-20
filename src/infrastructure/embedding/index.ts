@@ -36,6 +36,14 @@ export {
   clearLocalModelCache,
 } from "./local-embedding-provider";
 
+// Face embedding ONNX provider（image-feature-extraction pipeline）
+// 与 text embedding 独立，模型路径通过 faceEmbeddingModelPath 配置
+export {
+  createOnnxFaceEmbeddingProvider,
+  clearOnnxFaceEmbeddingCache,
+  type OnnxFaceEmbeddingRunner,
+} from "./face-embedding-onnx-provider";
+
 export { cosineSimilarity, batchCosineSimilarity, findTopK } from "./similarity";
 
 // L4：向量索引抽象（flat index 默认，未来可扩展 HNSW/IVF）

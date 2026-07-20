@@ -6,7 +6,8 @@
  * - normalizeVlmResult: score/similarityScore 归一化 / faceDetected 缺省
  * - NoopFaceEmbeddingProvider: isAvailable=false / extractEmbedding 返回错误
  * - VlmEmbeddingProvider: isAvailable 检查 / extractEmbedding 成功路径
- * - getFaceEmbeddingProvider: 降级链路
+ * - OnnxFaceEmbeddingProvider: 委托给 OnnxFaceEmbeddingRunner 的真实 ONNX 路径
+ * - getFaceEmbeddingProvider: 降级链路（ONNX → VLM → noop）
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -15,6 +16,8 @@ const {
   mockImageApi,
   mockContainer,
   mockErrorLogger,
+  mockOnnxRunner,
+  mockCreateOnnxFaceEmbeddingProvider,
 } = vi.hoisted(() => {
   const mockImageApi = {
     analyze: vi.fn(),
@@ -30,7 +33,23 @@ const {
     error: vi.fn(),
   };
 
-  return { mockImageApi, mockContainer, mockErrorLogger };
+  // Mock OnnxFaceEmbeddingRunner（隔离 infrastructure 层 ONNX 推理）
+  const mockOnnxRunner = {
+    isAvailable: vi.fn().mockResolvedValue(true),
+    extractEmbedding: vi.fn(),
+  };
+
+  // Mock createOnnxFaceEmbeddingProvider 工厂
+  // 默认返回 null（modelPath 未配置时不创建 runner）
+  const mockCreateOnnxFaceEmbeddingProvider = vi.fn().mockReturnValue(null);
+
+  return {
+    mockImageApi,
+    mockContainer,
+    mockErrorLogger,
+    mockOnnxRunner,
+    mockCreateOnnxFaceEmbeddingProvider,
+  };
 });
 
 vi.mock("@/infrastructure/di", () => ({
@@ -46,6 +65,13 @@ vi.mock("@/shared/file-http", () => ({
   getConfig: vi.fn().mockResolvedValue(undefined), // 默认无模型路径
 }));
 
+// mock @/shared/embedding（隔离 infrastructure 层 ONNX 推理）
+// 默认 createOnnxFaceEmbeddingProvider 返回 null（modelPath 未配置时）
+vi.mock("@/shared/embedding", () => ({
+  createOnnxFaceEmbeddingProvider: mockCreateOnnxFaceEmbeddingProvider,
+  clearOnnxFaceEmbeddingCache: vi.fn(),
+}));
+
 import {
   _testExports,
   clearFaceEmbeddingProviderCache,
@@ -54,7 +80,10 @@ import {
   extractFaceEmbedding,
 } from "../face-embedding-service";
 
-const { parseVlmAnalysis, normalizeVlmResult, NoopFaceEmbeddingProvider, VlmEmbeddingProvider } = _testExports;
+// 引入 file-http mock 引用，便于在测试中切换 getConfig 行为
+import { getConfig as mockGetConfig } from "@/shared/file-http";
+
+const { parseVlmAnalysis, normalizeVlmResult, NoopFaceEmbeddingProvider, VlmEmbeddingProvider, OnnxFaceEmbeddingProvider } = _testExports;
 
 describe("face-embedding-service", () => {
   beforeEach(() => {
@@ -215,6 +244,105 @@ describe("face-embedding-service", () => {
     });
   });
 
+  // ── OnnxFaceEmbeddingProvider（真实 ONNX 路径，委托给 runner） ─────────────
+
+  describe("OnnxFaceEmbeddingProvider", () => {
+    it("用例 Onnx-1: modelPath 未配置时 isAvailable 返回 false", async () => {
+      // 默认 getConfig mock 返回 undefined
+      const provider = new OnnxFaceEmbeddingProvider();
+      expect(await provider.isAvailable()).toBe(false);
+      // 不应调用 createOnnxFaceEmbeddingProvider（modelPath 检查在前）
+      expect(mockCreateOnnxFaceEmbeddingProvider).not.toHaveBeenCalled();
+    });
+
+    it("用例 Onnx-2: modelPath 配置存在且 runner 可用时 isAvailable 返回 true", async () => {
+      vi.mocked(mockGetConfig).mockResolvedValueOnce("/path/to/face-model");
+      mockCreateOnnxFaceEmbeddingProvider.mockReturnValueOnce(mockOnnxRunner);
+      mockOnnxRunner.isAvailable.mockResolvedValueOnce(true);
+
+      const provider = new OnnxFaceEmbeddingProvider();
+      expect(await provider.isAvailable()).toBe(true);
+      expect(mockCreateOnnxFaceEmbeddingProvider).toHaveBeenCalledWith("/path/to/face-model");
+      expect(mockOnnxRunner.isAvailable).toHaveBeenCalled();
+    });
+
+    it("用例 Onnx-3: runner.isAvailable 返回 false 时 isAvailable 返回 false", async () => {
+      vi.mocked(mockGetConfig).mockResolvedValueOnce("/path/to/face-model");
+      mockCreateOnnxFaceEmbeddingProvider.mockReturnValueOnce(mockOnnxRunner);
+      mockOnnxRunner.isAvailable.mockResolvedValueOnce(false);
+
+      const provider = new OnnxFaceEmbeddingProvider();
+      expect(await provider.isAvailable()).toBe(false);
+    });
+
+    it("用例 Onnx-4: extractEmbedding 委托给 runner 并返回真实 embedding", async () => {
+      vi.mocked(mockGetConfig).mockResolvedValueOnce("/path/to/face-model");
+      mockCreateOnnxFaceEmbeddingProvider.mockReturnValueOnce(mockOnnxRunner);
+      // isAvailable 检查（runner.isAvailable 返回 true）
+      mockOnnxRunner.isAvailable.mockResolvedValueOnce(true);
+      // 真实 ONNX 推理返回 192 维 embedding（MobileFaceNet 维度）
+      const fakeEmbedding = new Array(192).fill(0).map((_, i) => 0.1 * i);
+      mockOnnxRunner.extractEmbedding.mockResolvedValueOnce({
+        ok: true,
+        value: {
+          embedding: fakeEmbedding,
+          dimensions: 192,
+          faceDetected: true,
+        },
+      });
+
+      const provider = new OnnxFaceEmbeddingProvider();
+      const result = await provider.extractEmbedding("/local/path/frame-0.jpg");
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.embedding).toBe(fakeEmbedding);
+        expect(result.value.embedding.length).toBe(192);
+        expect(result.value.metadata.providerType).toBe("onnx_face");
+        expect(result.value.metadata.dimensions).toBe(192);
+        expect(result.value.metadata.faceDetected).toBe(true);
+        expect(result.value.metadata.providerId).toBe("onnx-face");
+      }
+      // 验证 imageUrl 透传给 runner
+      expect(mockOnnxRunner.extractEmbedding).toHaveBeenCalledWith("/local/path/frame-0.jpg");
+    });
+
+    it("用例 Onnx-5: runner.extractEmbedding 失败时返回错误", async () => {
+      vi.mocked(mockGetConfig).mockResolvedValueOnce("/path/to/face-model");
+      mockCreateOnnxFaceEmbeddingProvider.mockReturnValueOnce(mockOnnxRunner);
+      mockOnnxRunner.isAvailable.mockResolvedValueOnce(true);
+      const fakeError = new (class extends Error { code = "EXTRACT_FAILED"; })("推理失败");
+      mockOnnxRunner.extractEmbedding.mockResolvedValueOnce({ ok: false, error: fakeError });
+
+      const provider = new OnnxFaceEmbeddingProvider();
+      const result = await provider.extractEmbedding("/local/path/frame-0.jpg");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe(fakeError);
+      }
+    });
+
+    it("用例 Onnx-6: runner 创建失败时 extractEmbedding 返回 PROVIDER_UNAVAILABLE", async () => {
+      vi.mocked(mockGetConfig).mockResolvedValueOnce("/path/to/face-model");
+      // createOnnxFaceEmbeddingProvider 返回 null（runner 创建失败）
+      mockCreateOnnxFaceEmbeddingProvider.mockReturnValueOnce(null);
+
+      const provider = new OnnxFaceEmbeddingProvider();
+      const result = await provider.extractEmbedding("/local/path/frame-0.jpg");
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect((result.error as Error & { code?: string }).code).toBe("PROVIDER_UNAVAILABLE");
+      }
+    });
+
+    it("用例 Onnx-7: providerType 为 'onnx_face'", () => {
+      const provider = new OnnxFaceEmbeddingProvider();
+      expect(provider.providerType).toBe("onnx_face");
+    });
+  });
+
   // ── getFaceEmbeddingProvider（降级链路） ──────────────────────────────────
 
   describe("getFaceEmbeddingProvider", () => {
@@ -222,6 +350,15 @@ describe("face-embedding-service", () => {
       // file-http mock 默认返回 undefined（无模型路径）
       const provider = await getFaceEmbeddingProvider();
       expect(provider.providerType).toBe("vlm");
+    });
+
+    it("用例8b: ONNX 可用时优先使用 ONNX provider", async () => {
+      vi.mocked(mockGetConfig).mockResolvedValueOnce("/path/to/face-model");
+      mockCreateOnnxFaceEmbeddingProvider.mockReturnValueOnce(mockOnnxRunner);
+      mockOnnxRunner.isAvailable.mockResolvedValueOnce(true);
+
+      const provider = await getFaceEmbeddingProvider();
+      expect(provider.providerType).toBe("onnx_face");
     });
 
     it("用例9: 缓存机制 — 重复调用返回同一实例", async () => {

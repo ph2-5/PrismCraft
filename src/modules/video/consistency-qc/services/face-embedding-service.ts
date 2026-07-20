@@ -41,85 +41,107 @@ export interface FaceEmbeddingProvider {
   readonly providerType: EmbeddingMetadata["providerType"];
 }
 
-// ─── ONNX Face Embedding Provider（基于 transformers.js）─────────────────────
+// ─── ONNX Face Embedding Provider（基于 transformers.js image-feature-extraction）───
 
 /**
- * 通过 transformers.js 加载本地 ONNX face 模型（如 ArcFace/InsightFace ONNX）。
+ * 通过 transformers.js 加载本地 ONNX face 模型（如 MobileFaceNet / ArcFace / FaceNet）。
  *
  * 模型加载策略：
  *   - 模型路径通过 getConfig("faceEmbeddingModelPath") 读取
- *   - 不存在时 isAvailable() 返回 false
+ *   - 不存在时 isAvailable() 返回 false，降级为 VLM provider
  *   - 模型加载失败不抛异常，降级为 VLM provider
  *
- * 注意：当前实现是骨架，实际 transformers.js 调用通过动态 import，
- * 与 local-embedding-provider.ts 的 loadPipeline() 模式一致。
+ * 架构规则（contract.json invariant）：
+ *   - ONNX 推理属于 infrastructure 层，通过 @/shared/embedding 代理导入
+ *   - 不直接 import @huggingface/transformers（infrastructure 层封装）
+ *   - 失败时降级到 VLM provider（保留 fallback 机制）
+ *
+ * 类型设计：
+ *   - 本类只做接口适配（FaceEmbeddingProvider ↔ OnnxFaceEmbeddingRunner）
+ *   - 不直接接触 transformers.js 类型
  */
 class OnnxFaceEmbeddingProvider implements FaceEmbeddingProvider {
   readonly providerType = "onnx_face" as const;
   private available: boolean | null = null;
-  private loadingPromise: Promise<boolean> | null = null;
+  private runnerPromise: Promise<import("@/shared/embedding").OnnxFaceEmbeddingRunner | null> | null = null;
 
-  async isAvailable(): Promise<boolean> {
-    if (this.available !== null) return this.available;
-    if (this.loadingPromise) return this.loadingPromise;
+  /**
+   * 获取 infrastructure 层的 ONNX face embedding runner。
+   *
+   * 流程：
+   *   1. 通过 file-http 读取 faceEmbeddingModelPath 配置
+   *   2. 通过 @/shared/embedding 代理调用 createOnnxFaceEmbeddingProvider
+   *   3. 缓存 runner 实例（避免重复创建）
+   *
+   * 任一步骤失败返回 null，触发降级。
+   */
+  private async getRunner(): Promise<import("@/shared/embedding").OnnxFaceEmbeddingRunner | null> {
+    if (this.runnerPromise) return this.runnerPromise;
 
-    this.loadingPromise = (async () => {
+    this.runnerPromise = (async () => {
       try {
-        // 通过 file-http 读取配置（架构规则：禁止直接调用 electronAPI）
+        // 1. 通过 file-http 读取配置（架构规则：禁止直接调用 electronAPI）
         const { getConfig } = await import("@/shared/file-http");
         const modelPath = (await getConfig("faceEmbeddingModelPath")) as string | undefined;
         if (!modelPath) {
-          this.available = false;
-          return false;
+          return null;
         }
 
-        // 动态 import transformers.js（避免未安装时阻塞）
-        const pkgName = "@huggingface/" + "transformers";
-        const transformers = (await import(/* @vite-ignore */ pkgName)) as {
-          pipeline?: (task: string, model: string, options?: unknown) => Promise<unknown>;
-        };
-        if (typeof transformers.pipeline !== "function") {
-          this.available = false;
-          return false;
-        }
-
-        // 模型存在性检查（简化：直接认为 pipeline 可用）
-        // 真正的 pipeline 构建在 extractEmbedding() 首次调用时进行（lazy）
-        this.available = true;
-        return true;
+        // 2. 通过 @/shared/embedding 代理导入（架构规则：不直接导入 @/infrastructure/embedding）
+        const { createOnnxFaceEmbeddingProvider } = await import("@/shared/embedding");
+        const runner = createOnnxFaceEmbeddingProvider(modelPath);
+        return runner;
       } catch (e) {
-        errorLogger.warn("[face-embedding] ONNX provider 不可用", e);
-        this.available = false;
-        return false;
-      } finally {
-        this.loadingPromise = null;
+        errorLogger.warn("[face-embedding] ONNX runner 创建失败", e);
+        return null;
       }
     })();
 
-    return this.loadingPromise;
+    return this.runnerPromise;
+  }
+
+  async isAvailable(): Promise<boolean> {
+    if (this.available !== null) return this.available;
+
+    const runner = await this.getRunner();
+    if (!runner) {
+      this.available = false;
+      return false;
+    }
+
+    try {
+      // 委托给 runner.isAvailable()（轻量级检查：transformers.js 是否可加载）
+      // 真正的 pipeline 构建在 extractEmbedding() 首次调用时进行（lazy）
+      this.available = await runner.isAvailable();
+      return this.available;
+    } catch (e) {
+      errorLogger.warn("[face-embedding] ONNX provider 不可用", e);
+      this.available = false;
+      return false;
+    }
   }
 
   async extractEmbedding(imageUrl: string): Promise<Result<{ embedding: number[]; metadata: EmbeddingMetadata }>> {
-    const available = await this.isAvailable();
-    if (!available) {
+    const runner = await this.getRunner();
+    if (!runner) {
       return err(new (class extends Error {
         code = "PROVIDER_UNAVAILABLE";
-      })("ONNX face provider 不可用"));
+      })("ONNX face provider 不可用（modelPath 未配置或 runner 创建失败）"));
     }
 
-    // 骨架实现：实际 ONNX face 模型调用需要 image-to-tensor + 模型推理
-    // 当前阶段返回空 embedding，由 qc-orchestrator 降级为 VLM 检查
-    // 后续 Task 2A.23+1 会接入真实模型
-    // imageUrl 参数暂未使用，保留以匹配接口签名
-    void imageUrl;
-    errorLogger.warn("[face-embedding] ONNX provider 返回空 embedding（骨架实现，请启用 VLM 降级）");
+    // 委托给 infrastructure 层 runner 进行真实 ONNX 推理
+    const result = await runner.extractEmbedding(imageUrl);
+    if (!result.ok) {
+      return err(result.error);
+    }
+
     return ok({
-      embedding: [],
+      embedding: result.value.embedding,
       metadata: {
         providerType: "onnx_face",
-        dimensions: 0,
-        faceDetected: false,
-        providerId: "onnx-face-skeleton",
+        dimensions: result.value.dimensions,
+        faceDetected: result.value.faceDetected,
+        providerId: "onnx-face",
       },
     });
   }

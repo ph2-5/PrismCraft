@@ -21,6 +21,106 @@ const ROUTE_MAP: Record<SearchResult["type"], string> = {
 
 const SEARCH_DEBOUNCE_MS = 250;
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+function getSearchTypeLabel(type: SearchResult["type"]): string {
+  switch (type) {
+    case "character":
+      return t("search.typeCharacter");
+    case "scene":
+      return t("search.typeScene");
+    case "story":
+      return t("search.typeStory");
+    default:
+      return t("search.typeMediaAsset");
+  }
+}
+
+// Focus trap + auto-focus on open
+function useDialogFocusTrap(
+  dialogRef: React.RefObject<HTMLDivElement | null>,
+  isOpen: boolean,
+  onCloseRef: React.RefObject<() => void>,
+) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const container = dialogRef.current;
+    if (container) {
+      const firstFocusable = container.querySelector<HTMLElement>(
+        'input:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      );
+      (firstFocusable ?? container).focus();
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key === "Tab") {
+        const container = dialogRef.current;
+        if (!container) return;
+        const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusable.length === 0) {
+          e.preventDefault();
+          container.focus();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first || document.activeElement === container) {
+            e.preventDefault();
+            last?.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first?.focus();
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [isOpen, dialogRef, onCloseRef]);
+}
+
+interface SearchResultItemProps {
+  result: SearchResult;
+  onSelect: (result: SearchResult) => void;
+}
+
+function SearchResultItem({ result, onSelect }: SearchResultItemProps) {
+  return (
+    <button
+      key={`${result.type}-${result.id}`}
+      onClick={() => onSelect(result)}
+      className="w-full px-4 py-3 flex items-start gap-3 hover:bg-muted transition-colors text-left"
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+            {getSearchTypeLabel(result.type)}
+          </span>
+          <span className="font-medium text-foreground truncate">
+            {result.title}
+          </span>
+        </div>
+        {result.subtitle && (
+          <p className="mt-1 text-sm text-muted-foreground truncate">
+            {result.subtitle}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
 export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDialogProps) {
   const { guardedPush } = useNavigationGuard();
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,64 +174,7 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
     };
   }, []);
 
-  // Focus trap + auto-focus on open
-  useEffect(() => {
-    if (!isOpen) return;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    const container = dialogRef.current;
-    if (container) {
-      const firstFocusable = container.querySelector<HTMLElement>(
-        'input:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-      );
-      (firstFocusable ?? container).focus();
-    }
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onCloseRef.current();
-        return;
-      }
-      if (e.key === "Tab") {
-        const container = dialogRef.current;
-        if (!container) return;
-        const focusable = container.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) {
-          e.preventDefault();
-          container.focus();
-          return;
-        }
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first || document.activeElement === container) {
-            e.preventDefault();
-            last?.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first?.focus();
-          }
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      previouslyFocused?.focus?.();
-    };
-  }, [isOpen]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      onClose();
-    }
-  };
+  useDialogFocusTrap(dialogRef, isOpen, onCloseRef);
 
   const handleSelect = useCallback(
     (result: SearchResult) => {
@@ -165,8 +208,8 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
             type="text"
             aria-label={t("aria.searchDialog")}
             value={searchTerm}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
             placeholder={t("search.searchPlaceholder")}
             className="flex-1 bg-transparent outline-none text-foreground placeholder-muted-foreground"
           />
@@ -188,35 +231,8 @@ export function SearchDialog({ isOpen, onClose, onSelect, onSearch }: SearchDial
               {t("search.noResults")}
             </div>
           )}
-
           {results.map((result) => (
-            <button
-              key={`${result.type}-${result.id}`}
-              onClick={() => handleSelect(result)}
-              className="w-full px-4 py-3 flex items-start gap-3 hover:bg-muted transition-colors text-left"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                    {result.type === "character"
-                      ? t("search.typeCharacter")
-                      : result.type === "scene"
-                        ? t("search.typeScene")
-                        : result.type === "story"
-                          ? t("search.typeStory")
-                          : t("search.typeMediaAsset")}
-                  </span>
-                  <span className="font-medium text-foreground truncate">
-                    {result.title}
-                  </span>
-                </div>
-                {result.subtitle && (
-                  <p className="mt-1 text-sm text-muted-foreground truncate">
-                    {result.subtitle}
-                  </p>
-                )}
-              </div>
-            </button>
+            <SearchResultItem key={`${result.type}-${result.id}`} result={result} onSelect={handleSelect} />
           ))}
         </div>
       </div>

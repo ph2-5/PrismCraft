@@ -6,6 +6,7 @@ import {
   getVideoGenerationStrategy,
   getModelCapabilities,
   type ModelParameterProfile,
+  type VideoGenerationStrategy,
 } from "@/shared/model-capabilities";
 
 const FALLBACK_DURATIONS = [
@@ -121,6 +122,84 @@ function resolveProfile(modelId: string | undefined): ResolvedProfile {
   };
 }
 
+// 参考图模式 label 解析（提取以降低主组件 complexity）
+function getRefModeLabel(mode: string | undefined): string {
+  switch (mode) {
+    case "native_field":
+      return t("modelParam.refModeNative");
+    case "both":
+      return t("modelParam.refModeBoth");
+    case "bake_into_first":
+      return t("modelParam.refModeBake");
+    default:
+      return t("modelParam.refModeNone");
+  }
+}
+
+interface ButtonGroupFieldProps<T extends string | number> {
+  label: string;
+  labelClass: string;
+  options: Array<{ value: T; label: string }>;
+  currentValue: T;
+  btnDefaultClass: string;
+  btnOutlineClass: string;
+  onSelect: (value: T) => void;
+}
+
+function ButtonGroupField<T extends string | number>({
+  label,
+  labelClass,
+  options,
+  currentValue,
+  btnDefaultClass,
+  btnOutlineClass,
+  onSelect,
+}: ButtonGroupFieldProps<T>) {
+  return (
+    <div className="space-y-2">
+      <label className={labelClass}>{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={cn(
+              currentValue === opt.value ? "btn btn-primary" : "btn btn-outline",
+              "btn-sm",
+              currentValue === opt.value ? btnDefaultClass : btnOutlineClass,
+            )}
+            onClick={() => onSelect(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface RefStrategyInfoProps {
+  strategy: VideoGenerationStrategy;
+  labelClass: string;
+}
+
+function RefStrategyInfo({ strategy, labelClass }: RefStrategyInfoProps) {
+  return (
+    <div className="space-y-2">
+      <label className={labelClass}>{t("modelParam.refStrategy")}</label>
+      <p className="text-xs text-muted-foreground">{t("modelParam.refStrategyDesc")}</p>
+      <div className="flex flex-wrap gap-2">
+        <span className={cn("badge", strategy.useCharacterRef ? "border-success/50 text-success" : "border-border/50 text-muted-foreground")}>
+          {t("modelParam.charRefSupported")}: {getRefModeLabel(strategy.referenceStrategy.characterRef)}
+        </span>
+        <span className={cn("badge", strategy.useSceneRef ? "border-success/50 text-success" : "border-border/50 text-muted-foreground")}>
+          {t("modelParam.sceneRefSupported")}: {getRefModeLabel(strategy.referenceStrategy.sceneRef)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function ModelParameterPanel({
   modelId,
   values,
@@ -193,25 +272,15 @@ export function ModelParameterPanel({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <label className={labelClass}>{t("modelParam.duration")}</label>
-        <div className="flex flex-wrap gap-2">
-          {resolved.durations.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={cn(
-                values.duration === opt.value ? "btn btn-primary" : "btn btn-outline",
-                "btn-sm",
-                values.duration === opt.value ? btnDefaultClass : btnOutlineClass,
-              )}
-              onClick={() => handleDurationChange(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ButtonGroupField
+        label={t("modelParam.duration")}
+        labelClass={labelClass}
+        options={resolved.durations}
+        currentValue={values.duration}
+        btnDefaultClass={btnDefaultClass}
+        btnOutlineClass={btnOutlineClass}
+        onSelect={handleDurationChange}
+      />
 
       <div className="space-y-2">
         <label htmlFor={resolutionId} className={labelClass}>{t("modelParam.resolution")}</label>
@@ -229,25 +298,15 @@ export function ModelParameterPanel({
         </select>
       </div>
 
-      <div className="space-y-2">
-        <label className={labelClass}>{t("modelParam.style")}</label>
-        <div className="flex flex-wrap gap-2">
-          {resolved.styles.map((style) => (
-            <button
-              key={style.value}
-              type="button"
-              className={cn(
-                values.style === style.value ? "btn btn-primary" : "btn btn-outline",
-                "btn-sm",
-                values.style === style.value ? btnDefaultClass : btnOutlineClass,
-              )}
-              onClick={() => handleStyleChange(style.value)}
-            >
-              {style.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ButtonGroupField
+        label={t("modelParam.style")}
+        labelClass={labelClass}
+        options={resolved.styles}
+        currentValue={values.style}
+        btnDefaultClass={btnDefaultClass}
+        btnOutlineClass={btnOutlineClass}
+        onSelect={handleStyleChange}
+      />
 
       {resolved.showNegativePrompt && (
         <div className="space-y-2">
@@ -297,36 +356,7 @@ export function ModelParameterPanel({
         </div>
       )}
 
-      {strategy && (
-        <div className="space-y-2">
-          <label className={labelClass}>{t("modelParam.refStrategy")}</label>
-          <p className="text-xs text-muted-foreground">{t("modelParam.refStrategyDesc")}</p>
-          <div className="flex flex-wrap gap-2">
-            <span className={cn("badge", strategy.useCharacterRef ? "border-success/50 text-success" : "border-border/50 text-muted-foreground")}>
-              {t("modelParam.charRefSupported")}: {
-                strategy.referenceStrategy.characterRef === "native_field"
-                  ? t("modelParam.refModeNative")
-                  : strategy.referenceStrategy.characterRef === "both"
-                    ? t("modelParam.refModeBoth")
-                    : strategy.referenceStrategy.characterRef === "bake_into_first"
-                      ? t("modelParam.refModeBake")
-                      : t("modelParam.refModeNone")
-              }
-            </span>
-            <span className={cn("badge", strategy.useSceneRef ? "border-success/50 text-success" : "border-border/50 text-muted-foreground")}>
-              {t("modelParam.sceneRefSupported")}: {
-                strategy.referenceStrategy.sceneRef === "native_field"
-                  ? t("modelParam.refModeNative")
-                  : strategy.referenceStrategy.sceneRef === "both"
-                    ? t("modelParam.refModeBoth")
-                    : strategy.referenceStrategy.sceneRef === "bake_into_first"
-                      ? t("modelParam.refModeBake")
-                      : t("modelParam.refModeNone")
-              }
-            </span>
-          </div>
-        </div>
-      )}
+      {strategy && <RefStrategyInfo strategy={strategy} labelClass={labelClass} />}
     </div>
   );
 }

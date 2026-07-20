@@ -150,6 +150,223 @@ function NavGroupHeader({ icon, title, desc, collapsed, withBorderTop = false }:
   );
 }
 
+interface ShortcutContext {
+  setSearchOpen: (open: boolean) => void;
+  toggleCollapsed: () => void;
+  guardedPush: (path: string) => void;
+}
+
+interface ShortcutSpec {
+  test: (e: KeyboardEvent, isInputFocused: boolean) => boolean;
+  action: (e: KeyboardEvent, ctx: ShortcutContext) => void;
+}
+
+function isInputFocusedCheck(): boolean {
+  const activeElement = document.activeElement;
+  return (
+    activeElement?.tagName === "INPUT" ||
+    activeElement?.tagName === "TEXTAREA" ||
+    activeElement?.getAttribute("contenteditable") === "true"
+  );
+}
+
+// Task 4.9 子项 3：键盘快捷键映射表（拆分以降低主分派函数 complexity）
+const SIDEBAR_SHORTCUTS: ShortcutSpec[] = [
+  // Ctrl+K：打开搜索
+  {
+    test: (e) => (e.metaKey || e.ctrlKey) && e.key === "k",
+    action: (e, ctx) => { e.preventDefault(); ctx.setSearchOpen(true); },
+  },
+  // Ctrl+B：切换侧边栏（文本字段聚焦时跳过，避免干扰输入）
+  {
+    test: (e, focused) => (e.metaKey || e.ctrlKey) && e.key === "b" && !focused,
+    action: (e, ctx) => { e.preventDefault(); ctx.toggleCollapsed(); },
+  },
+  // Ctrl+/：跳转到 Agent 面板（文本字段聚焦时跳过）
+  {
+    test: (e, focused) => (e.metaKey || e.ctrlKey) && e.key === "/" && !focused,
+    action: (e, ctx) => { e.preventDefault(); ctx.guardedPush("/agent"); },
+  },
+  // Ctrl+Shift+M：跳转到素材库
+  {
+    test: (e) => (e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "M",
+    action: (e, ctx) => { e.preventDefault(); ctx.guardedPush("/asset-library"); },
+  },
+  // Ctrl+S：触发保存
+  {
+    test: (e) => (e.metaKey || e.ctrlKey) && e.key === "s",
+    action: (e) => { e.preventDefault(); document.dispatchEvent(new CustomEvent("app:save")); },
+  },
+  // Ctrl+Shift+Z：重做
+  {
+    test: (e) => (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "z" || e.key === "Z"),
+    action: (e) => { e.preventDefault(); document.dispatchEvent(new CustomEvent("app:redo")); },
+  },
+  // Ctrl+Z：撤销
+  {
+    test: (e) => (e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey,
+    action: (e) => { e.preventDefault(); document.dispatchEvent(new CustomEvent("app:undo")); },
+  },
+  // Escape：关闭搜索
+  {
+    test: (e) => e.key === "Escape",
+    action: (_e, ctx) => { ctx.setSearchOpen(false); },
+  },
+];
+
+function dispatchSidebarShortcut(e: KeyboardEvent, ctx: ShortcutContext): void {
+  const focused = isInputFocusedCheck();
+  for (const { test, action } of SIDEBAR_SHORTCUTS) {
+    if (test(e, focused)) {
+      action(e, ctx);
+      return;
+    }
+  }
+}
+
+interface UseSidebarKeyboardShortcutsOptions {
+  guardedPush: (path: string) => void;
+  toggleCollapsed: () => void;
+  setSearchOpen: (open: boolean) => void;
+}
+
+// Task 4.9 子项 3：键盘快捷键集中管理（提取以降低主组件 complexity）
+function useSidebarKeyboardShortcuts({ guardedPush, toggleCollapsed, setSearchOpen }: UseSidebarKeyboardShortcutsOptions) {
+  useEffect(() => {
+    const ctx: ShortcutContext = { setSearchOpen, toggleCollapsed, guardedPush };
+    const handleKeyDown = (e: KeyboardEvent) => dispatchSidebarShortcut(e, ctx);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [guardedPush, toggleCollapsed, setSearchOpen]);
+}
+
+// Task 4.9: 使用 optional chaining 防御 preload 部分注入或 HMR 后方法缺失的场景。
+function useElectronMenuListeners(guardedPush: (path: string) => void) {
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    api.onMenuNewCharacter?.(() => {
+      if (!signal.aborted) guardedPush("/characters");
+    });
+    api.onMenuNewScene?.(() => {
+      if (!signal.aborted) guardedPush("/scenes");
+    });
+    api.onMenuExport?.(() => {
+      if (!signal.aborted) guardedPush("/settings");
+    });
+    api.onNavigate?.((targetPath: string) => {
+      if (!signal.aborted && targetPath) {
+        guardedPush(targetPath);
+      }
+    });
+
+    return () => {
+      controller.abort();
+      api.removeMenuListeners?.();
+    };
+  }, [guardedPush]);
+}
+
+function SidebarLogo({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div className={cn("sidebar-logo", collapsed && "is-collapsed")}>
+      <Link to="/" title="PrismCraft">
+        <div className="sidebar-logo-icon">
+          <Film size={20} />
+        </div>
+        {!collapsed && <span className="sidebar-logo-text">PrismCraft</span>}
+      </Link>
+    </div>
+  );
+}
+
+interface SidebarNavProps {
+  pathname: string;
+  isHomeActive: boolean;
+  collapsed: boolean;
+  onNavigate: (href: string) => void;
+}
+
+function SidebarNav({ pathname, isHomeActive, collapsed, onNavigate }: SidebarNavProps) {
+  const renderItems = (items: NavEntry[], useHomeActive = false) =>
+    items.map((item) => (
+      <NavItem
+        key={item.href}
+        labelKey={item.labelKey}
+        icon={item.icon}
+        isActive={useHomeActive ? isHomeActive : pathname.startsWith(item.href)}
+        collapsed={collapsed}
+        href={item.href}
+        onNavigate={onNavigate}
+        comingSoon={item.comingSoon}
+      />
+    ));
+
+  return (
+    <nav className="sidebar-nav">
+      {/* 自由创作 */}
+      <NavGroupHeader
+        icon={<Wand2 size={14} />}
+        title={t("sidebar.freeCreation")}
+        desc={t("sidebar.freeCreationDesc")}
+        collapsed={collapsed}
+      />
+      {renderItems(freeCreationItems, true)}
+
+      {/* 故事创作 */}
+      <NavGroupHeader
+        icon={<Book size={14} />}
+        title={t("sidebar.storyCreation")}
+        desc={t("sidebar.storyCreationDesc")}
+        collapsed={collapsed}
+        withBorderTop
+      />
+      {renderItems(storyCreationItems)}
+
+      {/* 工具 */}
+      <NavGroupLabel collapsed={collapsed}>{t("sidebar.tools")}</NavGroupLabel>
+      {renderItems(toolItems)}
+
+      {/* 系统 */}
+      <NavGroupLabel collapsed={collapsed}>{t("sidebar.system")}</NavGroupLabel>
+      {renderItems(systemItems)}
+    </nav>
+  );
+}
+
+interface SidebarFooterProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+function SidebarFooter({ collapsed, onToggleCollapse }: SidebarFooterProps) {
+  return (
+    <div className="sidebar-footer">
+      <AgentStatusIndicator collapsed={collapsed} />
+      <ThemeSwitcher collapsed={collapsed} />
+      <button
+        onClick={onToggleCollapse}
+        className={cn("nav-item", collapsed && "is-collapsed")}
+        title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+        aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+      >
+        {collapsed ? (
+          <ChevronsRight className="icon" />
+        ) : (
+          <>
+            <ChevronsLeft className="icon" />
+            <span>{t("sidebar.collapseShort")}</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.ReactElement {
   const pathname = useLocation().pathname;
   const { guardedPush } = useNavigationGuard();
@@ -184,113 +401,10 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
     document.documentElement.style.setProperty("--sidebar-w", widthPx);
   }, [collapsed]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeElement = document.activeElement;
-      const isInputFocused =
-        activeElement?.tagName === "INPUT" ||
-        activeElement?.tagName === "TEXTAREA" ||
-        activeElement?.getAttribute("contenteditable") === "true";
+  useSidebarKeyboardShortcuts({ guardedPush, toggleCollapsed, setSearchOpen });
+  useElectronMenuListeners(guardedPush);
 
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setSearchOpen(true);
-        return;
-      }
-
-      // Task 4.9 子项 3：Ctrl+B 切换侧边栏（文本字段聚焦时跳过，避免干扰输入）
-      if ((e.metaKey || e.ctrlKey) && e.key === "b" && !isInputFocused) {
-        e.preventDefault();
-        toggleCollapsed();
-        return;
-      }
-
-      // Task 4.9 子项 3：Ctrl+/ 跳转到 Agent 面板（文本字段聚焦时跳过）
-      if ((e.metaKey || e.ctrlKey) && e.key === "/" && !isInputFocused) {
-        e.preventDefault();
-        guardedPush("/agent");
-        return;
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "M") {
-        e.preventDefault();
-        guardedPush("/asset-library");
-        return;
-      }
-
-      if (
-        e.key === "/" &&
-        e.shiftKey &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        !isInputFocused
-      ) {
-        return;
-      }
-
-      if (e.key === "Escape") {
-        setSearchOpen(false);
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-        e.preventDefault();
-        const saveEvent = new CustomEvent("app:save");
-        document.dispatchEvent(saveEvent);
-        return;
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "z" || e.key === "Z")) {
-        e.preventDefault();
-        const redoEvent = new CustomEvent("app:redo");
-        document.dispatchEvent(redoEvent);
-        return;
-      }
-
-      if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey) {
-        e.preventDefault();
-        const undoEvent = new CustomEvent("app:undo");
-        document.dispatchEvent(undoEvent);
-        return;
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [guardedPush, toggleCollapsed]);
-
-  useEffect(() => {
-    const api = window.electronAPI;
-    if (!api) return;
-
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    // Task 4.9: 使用 optional chaining 防御 preload 部分注入或 HMR 后方法缺失的场景。
-    api.onMenuNewCharacter?.(() => {
-      if (!signal.aborted) guardedPush("/characters");
-    });
-    api.onMenuNewScene?.(() => {
-      if (!signal.aborted) guardedPush("/scenes");
-    });
-    api.onMenuExport?.(() => {
-      if (!signal.aborted) guardedPush("/settings");
-    });
-    api.onNavigate?.((targetPath: string) => {
-      if (!signal.aborted && targetPath) {
-        guardedPush(targetPath);
-      }
-    });
-
-    return () => {
-      controller.abort();
-      api.removeMenuListeners?.();
-    };
-  }, [guardedPush]);
-
-  const sidebarWidth = collapsed
-    ? SIDEBAR_WIDTH_COLLAPSED
-    : SIDEBAR_WIDTH_EXPANDED;
-
+  const sidebarWidth = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
   const isHomeActive = pathname === "/";
   const electron = isElectron();
 
@@ -300,118 +414,14 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
         className={cn("sidebar", electron && "is-electron")}
         style={{ width: sidebarWidth }}
       >
-        <div
-          className={cn("sidebar-logo", collapsed && "is-collapsed")}
-        >
-          <Link
-            to="/"
-            title="PrismCraft"
-          >
-            <div
-              className="sidebar-logo-icon"
-            >
-              <Film size={20} />
-            </div>
-            {!collapsed && (
-              <span className="sidebar-logo-text">
-                PrismCraft
-              </span>
-            )}
-          </Link>
-        </div>
-
-        <nav className="sidebar-nav">
-          {/* 自由创作 */}
-          <NavGroupHeader
-            icon={<Wand2 size={14} />}
-            title={t("sidebar.freeCreation")}
-            desc={t("sidebar.freeCreationDesc")}
-            collapsed={collapsed}
-          />
-          {freeCreationItems.map((item) => (
-            <NavItem
-              key={item.href}
-              labelKey={item.labelKey}
-              icon={item.icon}
-              isActive={item.href === "/" ? isHomeActive : pathname.startsWith(item.href)}
-              collapsed={collapsed}
-              href={item.href}
-              onNavigate={handleNavClick}
-              comingSoon={item.comingSoon}
-            />
-          ))}
-
-          {/* 故事创作 */}
-          <NavGroupHeader
-            icon={<Book size={14} />}
-            title={t("sidebar.storyCreation")}
-            desc={t("sidebar.storyCreationDesc")}
-            collapsed={collapsed}
-            withBorderTop
-          />
-          {storyCreationItems.map((item) => (
-            <NavItem
-              key={item.href}
-              labelKey={item.labelKey}
-              icon={item.icon}
-              isActive={pathname.startsWith(item.href)}
-              collapsed={collapsed}
-              href={item.href}
-              onNavigate={handleNavClick}
-              comingSoon={item.comingSoon}
-            />
-          ))}
-
-          {/* 工具 */}
-          <NavGroupLabel collapsed={collapsed}>{t("sidebar.tools")}</NavGroupLabel>
-          {toolItems.map((item) => (
-            <NavItem
-              key={item.href}
-              labelKey={item.labelKey}
-              icon={item.icon}
-              isActive={pathname.startsWith(item.href)}
-              collapsed={collapsed}
-              href={item.href}
-              onNavigate={handleNavClick}
-              comingSoon={item.comingSoon}
-            />
-          ))}
-
-          {/* 系统 */}
-          <NavGroupLabel collapsed={collapsed}>{t("sidebar.system")}</NavGroupLabel>
-          {systemItems.map((item) => (
-            <NavItem
-              key={item.href}
-              labelKey={item.labelKey}
-              icon={item.icon}
-              isActive={pathname.startsWith(item.href)}
-              collapsed={collapsed}
-              href={item.href}
-              onNavigate={handleNavClick}
-              comingSoon={item.comingSoon}
-            />
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <AgentStatusIndicator collapsed={collapsed} />
-          <ThemeSwitcher collapsed={collapsed} />
-          <button
-            onClick={toggleCollapsed}
-            className={cn("nav-item", collapsed && "is-collapsed")}
-            title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
-            aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
-          >
-            {collapsed ? (
-              <ChevronsRight className="icon" />
-            ) : (
-              <>
-                <ChevronsLeft className="icon" />
-                <span>{t("sidebar.collapseShort")}</span>
-              </>
-            )}
-          </button>
-        </div>
+        <SidebarLogo collapsed={collapsed} />
+        <SidebarNav
+          pathname={pathname}
+          isHomeActive={isHomeActive}
+          collapsed={collapsed}
+          onNavigate={handleNavClick}
+        />
+        <SidebarFooter collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
       </aside>
 
       <SearchDialog

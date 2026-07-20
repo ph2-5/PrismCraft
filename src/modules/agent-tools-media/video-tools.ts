@@ -27,28 +27,14 @@ import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
 import type { VideoTask } from "@/domain/schemas";
-
-// ============= 辅助函数 =============
-
-/** 截断 prompt 到指定长度，避免 token 浪费 */
-function truncatePrompt(prompt: string | undefined, maxLen = 100): string | undefined {
-  if (!prompt) return undefined;
-  return prompt.length > maxLen ? `${prompt.slice(0, maxLen)}…` : prompt;
-}
-
-/** 将 VideoTask 映射为列表精简项 */
-function toListItem(task: VideoTask) {
-  return {
-    taskId: task.taskId,
-    prompt: truncatePrompt(task.prompt),
-    status: task.status,
-    progress: task.progress,
-    createdAt: task.createdAt,
-    videoUrl: task.videoUrl,
-    storyId: task.storyId,
-    beatId: task.beatId,
-  };
-}
+import {
+  toListItem,
+  parseCreateVideoTaskArgs,
+  buildVideoTaskRecord,
+  resubmitVideoTaskWithSameParams,
+  parseBatchTaskItem,
+  submitSingleBatchTask,
+} from "./video-tools-helpers";
 
 // ============= 工具实现 =============
 
@@ -115,26 +101,18 @@ export const createVideoTaskTool: ToolImpl = {
       return { success: false, error: "prompt 不能为空" };
     }
 
-    const firstFrameUrl = args.firstFrameUrl ? String(args.firstFrameUrl) : undefined;
-    const lastFrameUrl = args.lastFrameUrl ? String(args.lastFrameUrl) : undefined;
-    const characterRef = args.characterRef ? String(args.characterRef) : undefined;
-    const sceneRef = args.sceneRef ? String(args.sceneRef) : undefined;
-    const duration = args.duration != null ? Number(args.duration) : undefined;
-    const providerId = args.providerId ? String(args.providerId) : undefined;
-    const modelId = args.modelId ? String(args.modelId) : undefined;
-    const storyId = args.storyId ? String(args.storyId) : undefined;
-    const beatId = args.beatId ? String(args.beatId) : undefined;
+    const params = parseCreateVideoTaskArgs(args);
 
     // 1. 调用视频 provider 提交生成请求
     const result = await container.videoProvider.generateVideoWithFrames({
       prompt,
-      firstFrameUrl,
-      lastFrameUrl,
-      characterRef,
-      sceneRef,
-      duration,
-      providerId,
-      modelId,
+      firstFrameUrl: params.firstFrameUrl,
+      lastFrameUrl: params.lastFrameUrl,
+      characterRef: params.characterRef,
+      sceneRef: params.sceneRef,
+      duration: params.duration,
+      providerId: params.providerId,
+      modelId: params.modelId,
     });
 
     if (!result.success || !result.data) {
@@ -148,32 +126,7 @@ export const createVideoTaskTool: ToolImpl = {
     }
 
     // 2. 持久化任务记录到本地存储
-    // VideoTask 字段映射：firstFrameUrl→fixedImageUrl（遵循现有模式）
-    // 非直接字段的参数存入 parameters
-    const nowIso = new Date().toISOString();
-    const parameters: Record<string, unknown> = {};
-    if (lastFrameUrl) parameters.lastFrameUrl = lastFrameUrl;
-    if (duration != null) parameters.duration = duration;
-    if (characterRef) parameters.characterRef = characterRef;
-    if (sceneRef) parameters.sceneRef = sceneRef;
-
-    const taskRecord: Partial<VideoTask> & { taskId: string } = {
-      taskId,
-      status: (providerData.status as VideoTask["status"]) || "pending",
-      progress: 0,
-      message: "任务已提交",
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      prompt,
-      fixedImageUrl: firstFrameUrl,
-      providerId: providerData.providerId || providerId,
-      providerModelId: providerData.providerModelId || modelId,
-      providerFormat: providerData.providerFormat,
-      storyId,
-      beatId,
-      parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
-      promptWasTruncated: providerData.promptWasTruncated,
-    };
+    const taskRecord = buildVideoTaskRecord(taskId, prompt, params, providerData);
 
     try {
       await container.videoTaskStorage.createVideoTask(taskRecord);
@@ -544,69 +497,7 @@ export const recoverVideoTaskTool: ToolImpl = {
     }
 
     // 2b. retry=true：用相同参数重新提交生成
-    // 从 task 重建 provider 调用参数
-    const params = task.parameters || {};
-    const result = await container.videoProvider.generateVideoWithFrames({
-      prompt: task.prompt || "",
-      firstFrameUrl: task.fixedImageUrl,
-      lastFrameUrl: params.lastFrameUrl as string | undefined,
-      characterRef: params.characterRef as string | undefined,
-      sceneRef: params.sceneRef as string | undefined,
-      duration: params.duration as number | undefined,
-      providerId: task.providerId,
-      modelId: task.providerModelId,
-    });
-
-    if (!result.success || !result.data) {
-      return { success: false, error: result.error || "重新提交生成请求失败" };
-    }
-
-    const newTaskId = result.data.taskId;
-    if (!newTaskId) {
-      return { success: false, error: "provider 未返回新 taskId" };
-    }
-
-    // 创建新任务记录
-    const nowIso = new Date().toISOString();
-    const newTaskRecord: Partial<VideoTask> & { taskId: string } = {
-      taskId: newTaskId,
-      status: (result.data.status as VideoTask["status"]) || "pending",
-      progress: 0,
-      message: "用户重试，已重新提交",
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      prompt: task.prompt,
-      fixedImageUrl: task.fixedImageUrl,
-      providerId: result.data.providerId || task.providerId,
-      providerModelId: result.data.providerModelId || task.providerModelId,
-      providerFormat: result.data.providerFormat || task.providerFormat,
-      storyId: task.storyId,
-      storyTitle: task.storyTitle,
-      beatId: task.beatId,
-      beatTitle: task.beatTitle,
-      parameters: task.parameters,
-      recoveryAttempts: 0,
-    };
-
-    try {
-      await storage.createVideoTask(newTaskRecord);
-    } catch (e) {
-      return {
-        success: false,
-        error: `新任务已提交但本地存储失败：${e instanceof Error ? e.message : String(e)}`,
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        taskId: newTaskId,
-        oldTaskId: taskId,
-        status: newTaskRecord.status,
-        retry: true,
-        message: "已用相同参数重新提交生成请求",
-      },
-    };
+    return resubmitVideoTaskWithSameParams(task, taskId, storage);
   },
 };
 
@@ -669,86 +560,17 @@ export const batchCreateVideoTasksTool: ToolImpl = {
 
     // 逐个提交（避免并发过多导致 provider 限流）
     for (const item of tasksInput) {
-      const prompt = item?.prompt ? String(item.prompt) : "";
-      const beatId = item?.beatId ? String(item.beatId) : undefined;
-      const storyId = item?.storyId ? String(item.storyId) : undefined;
-
-      if (!prompt.trim()) {
-        failed.push({ beatId, error: "prompt 为空" });
+      const parsed = parseBatchTaskItem(item);
+      if (!parsed.prompt.trim()) {
+        failed.push({ beatId: parsed.beatId, error: "prompt 为空" });
         continue;
       }
 
-      const firstFrameUrl = item?.firstFrameUrl ? String(item.firstFrameUrl) : undefined;
-      const lastFrameUrl = item?.lastFrameUrl ? String(item.lastFrameUrl) : undefined;
-      const duration = item?.duration != null ? Number(item.duration) : undefined;
-
-      try {
-        const result = await container.videoProvider.generateVideoWithFrames({
-          prompt,
-          firstFrameUrl,
-          lastFrameUrl,
-          duration,
-          providerId,
-          modelId,
-        });
-
-        if (!result.success || !result.data) {
-          failed.push({ beatId, error: result.error || "视频生成请求失败" });
-          continue;
-        }
-
-        const taskId = result.data.taskId;
-        if (!taskId) {
-          failed.push({ beatId, error: "provider 未返回 taskId" });
-          continue;
-        }
-
-        // 持久化任务记录
-        const nowIso = new Date().toISOString();
-        const parameters: Record<string, unknown> = {};
-        if (lastFrameUrl) parameters.lastFrameUrl = lastFrameUrl;
-        if (duration != null) parameters.duration = duration;
-
-        const taskStatus: VideoTask["status"] = (result.data.status as VideoTask["status"]) || "pending";
-        const taskRecord: Partial<VideoTask> & { taskId: string } = {
-          taskId,
-          status: taskStatus,
-          progress: 0,
-          message: "批量任务已提交",
-          createdAt: nowIso,
-          updatedAt: nowIso,
-          prompt,
-          fixedImageUrl: firstFrameUrl,
-          providerId: result.data.providerId || providerId,
-          providerModelId: result.data.providerModelId || modelId,
-          providerFormat: result.data.providerFormat,
-          storyId,
-          beatId,
-          parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
-        };
-
-        try {
-          await storage.createVideoTask(taskRecord);
-        } catch (e) {
-          // 持久化失败：任务已在 provider 侧创建（消耗 API 配额），
-          // 但本地无记录，用户无法追踪或取消。记录 error 级别日志便于排查，
-          // 同时将任务从 created 移到 failed，明确告知调用方持久化失败。
-          errorLogger.error("[video-tools] createVideoTask 持久化失败，云端任务可能仍在运行", {
-            taskId, beatId, providerTaskId: taskId, error: e,
-          });
-          failed.push({
-            beatId,
-            error: `Task created on provider but local persistence failed: ${e instanceof Error ? e.message : String(e)}`,
-          });
-          continue;
-        }
-
-        created.push({ taskId, beatId, status: taskStatus });
-      } catch (e) {
-        failed.push({
-          beatId,
-          error: e instanceof Error ? e.message : String(e),
-        });
+      const result = await submitSingleBatchTask(parsed, providerId, modelId, storage);
+      if (result.ok) {
+        created.push({ taskId: result.taskId, beatId: parsed.beatId, status: result.status });
+      } else {
+        failed.push({ beatId: parsed.beatId, error: result.error });
       }
     }
 
@@ -766,11 +588,6 @@ export const batchCreateVideoTasksTool: ToolImpl = {
 
 /** 导出所有视频任务工具 */
 export const videoTools: ToolImpl[] = [
-  createVideoTaskTool,
-  listVideoTasksTool,
-  getVideoTaskTool,
-  queryVideoStatusTool,
-  cancelVideoTaskTool,
-  recoverVideoTaskTool,
-  batchCreateVideoTasksTool,
+  createVideoTaskTool, listVideoTasksTool, getVideoTaskTool, queryVideoStatusTool,
+  cancelVideoTaskTool, recoverVideoTaskTool, batchCreateVideoTasksTool,
 ];

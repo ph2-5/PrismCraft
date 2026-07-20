@@ -74,18 +74,19 @@ function buildBeatProviders(): BeatProviders {
 }
 
 /** 生成单个分镜视频任务，返回 taskId 等信息或失败 */
-async function generateBeatVideoTask(
-  beat: StoryBeat,
-  prevBeat: StoryBeat | null,
-  beatIndex: number,
-  story: Story,
-  characters: Character[],
-  scenes: Scene[],
-  providers: BeatProviders,
-  providerId: string | undefined,
-  modelId: string | undefined,
-  onProgress?: (msg: string) => void,
-): Promise<{ ok: true; keyframe: NonNullable<StoryBeat["keyframe"]>; framePair: NonNullable<StoryBeat["framePair"]>; videoTaskId: string } | { ok: false; error: string }> {
+async function generateBeatVideoTask(params: {
+  beat: StoryBeat;
+  prevBeat: StoryBeat | null;
+  beatIndex: number;
+  story: Story;
+  characters: Character[];
+  scenes: Scene[];
+  providers: BeatProviders;
+  providerId: string | undefined;
+  modelId: string | undefined;
+  onProgress?: (msg: string) => void;
+}): Promise<{ ok: true; keyframe: NonNullable<StoryBeat["keyframe"]>; framePair: NonNullable<StoryBeat["framePair"]>; videoTaskId: string } | { ok: false; error: string }> {
+  const { beat, prevBeat, beatIndex, story, characters, scenes, providers, providerId, modelId, onProgress } = params;
   const { generateBeatFullWorkflow } = await import("@/modules/storyboard");
   const workflowResult = await generateBeatFullWorkflow(
     beat,
@@ -136,18 +137,19 @@ function updateBeatWithVideoTask(
 }
 
 /** 遍历所有 beats 逐个生成视频任务 */
-async function generateAllBeats(
-  beatsToGenerate: StoryBeat[],
-  allBeats: StoryBeat[],
-  story: Story,
-  characters: Character[],
-  scenes: Scene[],
-  providers: BeatProviders,
-  providerId: string | undefined,
-  modelId: string | undefined,
-  steps: string[],
-  onProgress?: (msg: string) => void,
-): Promise<{ taskIds: string[]; failedBeats: string[]; updatedBeats: StoryBeat[] }> {
+async function generateAllBeats(params: {
+  beatsToGenerate: StoryBeat[];
+  allBeats: StoryBeat[];
+  story: Story;
+  characters: Character[];
+  scenes: Scene[];
+  providers: BeatProviders;
+  providerId: string | undefined;
+  modelId: string | undefined;
+  steps: string[];
+  onProgress?: (msg: string) => void;
+}): Promise<{ taskIds: string[]; failedBeats: string[]; updatedBeats: StoryBeat[] }> {
+  const { beatsToGenerate, allBeats, story, characters, scenes, providers, providerId, modelId, steps, onProgress } = params;
   const taskIds: string[] = [];
   const failedBeats: string[] = [];
   let updatedBeats = [...allBeats];
@@ -159,7 +161,7 @@ async function generateAllBeats(
     const prevBeat = beatIndex > 0 ? updatedBeats[beatIndex - 1]! : null;
 
     try {
-      const result = await generateBeatVideoTask(
+      const result = await generateBeatVideoTask({
         beat,
         prevBeat,
         beatIndex,
@@ -170,7 +172,7 @@ async function generateAllBeats(
         providerId,
         modelId,
         onProgress,
-      );
+      });
       if (!result.ok) {
         failedBeats.push(beat.id);
         onProgress?.(`警告：分镜 ${beat.id} 生成失败：${result.error}`);
@@ -489,9 +491,9 @@ export const autoGenerateVideoFullTool: ToolImpl = {
     const providers = buildBeatProviders();
 
     // Step 3: 逐个生成分镜
-    const genResult = await generateAllBeats(
+    const genResult = await generateAllBeats({
       beatsToGenerate,
-      story.beats || [],
+      allBeats: story.beats || [],
       story,
       characters,
       scenes,
@@ -499,8 +501,8 @@ export const autoGenerateVideoFullTool: ToolImpl = {
       providerId,
       modelId,
       steps,
-      ctx.onProgress,
-    );
+      onProgress: ctx.onProgress,
+    });
     const { taskIds, failedBeats } = genResult;
     let updatedBeats = genResult.updatedBeats;
 

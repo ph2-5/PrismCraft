@@ -32,7 +32,7 @@ describe("shot-strategy-router", () => {
         id: "beat-1",
         index: 0,
         shotInstruction: { shotSize: "close", cameraMovement: "static", cameraAngle: "eye_level" },
-      } as StoryBeat;
+      } as unknown as StoryBeat;
       const strategy = routeStrategy(beat, { type: "scene_transition" });
       expect(strategy.type).toBe("scene_transition");
       expect(strategy.useLastFrame).toBe("none");
@@ -44,7 +44,7 @@ describe("shot-strategy-router", () => {
         index: 0,
         shotInstruction: { shotSize: "close", cameraMovement: "static", cameraAngle: "eye_level" },
         shotType: "wide", // deprecated，应被忽略
-      } as StoryBeat;
+      } as unknown as StoryBeat;
       const strategy = routeStrategy(beat);
       expect(strategy.type).toBe("continuous_action"); // close → continuous_action
     });
@@ -54,7 +54,7 @@ describe("shot-strategy-router", () => {
         id: "beat-1",
         index: 0,
         shotType: "wide",
-      } as StoryBeat;
+      } as unknown as StoryBeat;
       const strategy = routeStrategy(beat);
       expect(strategy.type).toBe("scene_transition"); // wide → scene_transition
     });
@@ -63,7 +63,7 @@ describe("shot-strategy-router", () => {
       const beat: StoryBeat = {
         id: "beat-1",
         index: 0,
-      } as StoryBeat;
+      } as unknown as StoryBeat;
       const strategy = routeStrategy(beat);
       expect(strategy.type).toBe("angle_switch");
     });
@@ -79,7 +79,7 @@ describe("shot-strategy-router", () => {
         id: "beat-1",
         index: 0,
         shotInstruction: { shotSize: "medium", cameraMovement: "push", cameraAngle: "eye_level" },
-      } as StoryBeat;
+      } as unknown as StoryBeat;
       const strategy = routeStrategy(beat);
       expect(strategy.type).toBe("continuous_action");
     });

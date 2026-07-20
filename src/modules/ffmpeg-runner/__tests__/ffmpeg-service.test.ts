@@ -57,14 +57,14 @@ function mockResponse(options: {
   status?: number;
   statusText?: string;
   json?: () => Promise<unknown>;
-}) {
+}): Response {
   const ok = options.ok ?? true;
   return {
     ok,
     status: options.status ?? (ok ? 200 : 500),
     statusText: options.statusText ?? (ok ? "OK" : "Error"),
     json: options.json ?? (async () => ({})),
-  };
+  } as unknown as Response;
 }
 
 /** ffmpeg execute 成功响应 */

@@ -25,7 +25,7 @@ const DEFAULT_VALUES: ModelParameterValues = {
 function makeProfile(caps: Record<string, unknown>): ModelParameterProfile {
   return {
     modelId: "test-model",
-    capabilities: caps as ModelParameterProfile["capabilities"],
+    capabilities: caps as unknown as ModelParameterProfile["capabilities"],
     parameters: {},
   };
 }

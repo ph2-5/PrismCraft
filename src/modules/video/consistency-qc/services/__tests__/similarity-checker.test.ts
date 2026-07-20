@@ -50,8 +50,10 @@ describe("similarity-checker", () => {
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.kind).toBe("dimension_mismatch");
-        expect(result.error.frameDim).toBe(3);
-        expect(result.error.refDim).toBe(2);
+        if (result.error.kind === "dimension_mismatch") {
+          expect(result.error.frameDim).toBe(3);
+          expect(result.error.refDim).toBe(2);
+        }
       }
     });
 

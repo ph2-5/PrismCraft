@@ -194,21 +194,23 @@ describe("search_web_images", () => {
 
   it("4. baidu 不在 source 枚举中（已移除未实现的引擎）", () => {
     // search_web_images 的 source 枚举不应包含 baidu
-    const imagesSource = searchWebImagesTool.def.function.parameters?.properties?.source as {
-      enum?: string[];
-    };
-    expect(imagesSource.enum).toBeDefined();
-    expect(imagesSource.enum).not.toContain("baidu");
+    const imagesParams = searchWebImagesTool.def.function.parameters as {
+      properties?: Record<string, { enum?: string[] }>;
+    } | undefined;
+    const imagesSource = imagesParams?.properties?.source;
+    expect(imagesSource?.enum).toBeDefined();
+    expect(imagesSource?.enum).not.toContain("baidu");
     // 已实现的搜索引擎仍保留
-    expect(imagesSource.enum).toEqual(["bing", "google", "unsplash", "pexels"]);
+    expect(imagesSource?.enum).toEqual(["bing", "google", "unsplash", "pexels"]);
 
     // search_web 的 source 枚举也不应包含 baidu
-    const webSource = searchWebTool.def.function.parameters?.properties?.source as {
-      enum?: string[];
-    };
-    expect(webSource.enum).toBeDefined();
-    expect(webSource.enum).not.toContain("baidu");
-    expect(webSource.enum).toEqual(["bing", "google"]);
+    const webParams = searchWebTool.def.function.parameters as {
+      properties?: Record<string, { enum?: string[] }>;
+    } | undefined;
+    const webSource = webParams?.properties?.source;
+    expect(webSource?.enum).toBeDefined();
+    expect(webSource?.enum).not.toContain("baidu");
+    expect(webSource?.enum).toEqual(["bing", "google"]);
   });
 
   it("4a. Unsplash 搜索正常返回（Client-ID 鉴权）", async () => {
@@ -720,8 +722,8 @@ describe("fetch_web_content", () => {
 describe("open_in_browser", () => {
   it("22. Electron 环境：使用 openExternal 打开", async () => {
     const openExternal = vi.fn().mockResolvedValue(undefined);
-    const w = window as Window & { electronAPI?: { openExternal?: typeof openExternal } };
-    w.electronAPI = { openExternal } as Window["electronAPI"];
+    const w = window as unknown as { electronAPI?: { openExternal?: typeof openExternal } };
+    w.electronAPI = { openExternal };
 
     const result = await openInBrowserTool.execute(
       { url: "https://example.com" },

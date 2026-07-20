@@ -44,7 +44,6 @@ vi.mock("../agent-loop", () => ({
       // 模拟工具调用
       this.callbacks.onToolCall({
         id: "tc1",
-        type: "function",
         function: { name: "mock_tool", arguments: "{}" },
       });
       this.callbacks.onToolResult("tc1", { success: true, data: {}, duration: 0 });

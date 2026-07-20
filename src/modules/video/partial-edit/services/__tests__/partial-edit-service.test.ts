@@ -195,7 +195,9 @@ describe("partial-edit-service", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.kind).toBe("validation");
-      expect(result.error.errors.some((e) => e.field === "editPrompt")).toBe(true);
+      if (result.error.kind === "validation") {
+        expect(result.error.errors.some((e) => e.field === "editPrompt")).toBe(true);
+      }
     }
     // 不应调用 provider
     expect(mockVideoProvider.generatePartialEdit).not.toHaveBeenCalled();
@@ -212,7 +214,9 @@ describe("partial-edit-service", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.kind).toBe("validation");
-      expect(result.error.errors.some((e) => e.field === "preserveUnmasked")).toBe(true);
+      if (result.error.kind === "validation") {
+        expect(result.error.errors.some((e) => e.field === "preserveUnmasked")).toBe(true);
+      }
     }
   });
 
@@ -227,7 +231,9 @@ describe("partial-edit-service", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.kind).toBe("source_video_not_found");
-      expect(result.error.sourceVideoAssetId).toBe("asset-source-1");
+      if (result.error.kind === "source_video_not_found") {
+        expect(result.error.sourceVideoAssetId).toBe("asset-source-1");
+      }
     }
     expect(mockVideoProvider.generatePartialEdit).not.toHaveBeenCalled();
   });
@@ -479,7 +485,9 @@ describe("partial-edit-service", () => {
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.kind).toBe("validation");
-        expect(result.error.errors.some((e) => e.field === "characterRefImageUrl")).toBe(true);
+        if (result.error.kind === "validation") {
+          expect(result.error.errors.some((e) => e.field === "characterRefImageUrl")).toBe(true);
+        }
       }
       expect(mockVideoProvider.generatePartialEdit).not.toHaveBeenCalled();
     });

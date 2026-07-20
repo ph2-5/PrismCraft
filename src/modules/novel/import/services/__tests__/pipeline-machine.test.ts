@@ -40,12 +40,6 @@ function makeConfig(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
     format: "novel",
     aiModel: "test-model",
     autoCreateEntities: false,
-    gates: {
-      confirmSegments: true,
-      confirmEntities: true,
-      confirmShots: true,
-      confirmPrompts: true,
-    },
     ...overrides,
     // gates 单独覆盖（避免浅合并丢失内层字段）
     gates: {
@@ -199,7 +193,7 @@ describe("transition", () => {
     const state = makeState({
       stage: "content_import",
       rawText: "小说内容",
-      segments: [{ index: 0, text: "段落1", title: "段落1" }],
+      segments: [{ index: 0, text: "段落1", title: "段落1" }] as unknown as PipelineState["segments"],
     });
     const next = transition(state, "character_manage");
     expect(next.rawText).toBe("小说内容");

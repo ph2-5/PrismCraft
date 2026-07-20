@@ -28,11 +28,6 @@ function makeEntry(overrides: Partial<ArchivalMemoryEntry> = {}): ArchivalMemory
   };
 }
 
-interface MockStrategy extends RetrievalStrategy {
-  isAvailable: ReturnType<typeof vi.fn>;
-  search: ReturnType<typeof vi.fn>;
-}
-
 function mockStrategy(
   name: string,
   opts: {
@@ -40,13 +35,13 @@ function mockStrategy(
     result?: ArchivalMemoryEntry[] | null;
     throwError?: Error;
   } = {},
-): MockStrategy {
+): RetrievalStrategy {
   const isAvailable = vi.fn(async (): Promise<boolean> => opts.available ?? true);
   const search = vi.fn(async (): Promise<ArchivalMemoryEntry[] | null> => {
     if (opts.throwError) throw opts.throwError;
     return opts.result ?? null;
   });
-  return { name, isAvailable, search } as unknown as MockStrategy;
+  return { name, isAvailable, search } as unknown as RetrievalStrategy;
 }
 
 describe("VectorSearchEngine", () => {
@@ -269,7 +264,7 @@ describe("VectorSearchEngine", () => {
       await engine.prewarmEmbeddings(entries);
 
       expect(api.search).toHaveBeenCalledTimes(1);
-      const [query, , limit] = api.search.mock.calls[0]!;
+      const [query, , limit] = vi.mocked(api.search).mock.calls[0]!;
       expect(query).toBe("prewarm all archival memory embeddings");
       expect(limit).toBe(1);
     });

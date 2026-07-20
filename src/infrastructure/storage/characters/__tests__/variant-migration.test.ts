@@ -31,7 +31,7 @@ vi.mock("@/infrastructure/storage/sqlite-core", () => ({
 
 // Mock core 的 parseRecordWithTable
 vi.mock("@/infrastructure/storage/core", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     parseRecordWithTable: vi.fn((row: Record<string, unknown>) => {
@@ -100,6 +100,7 @@ interface VariantRow {
   is_canonical: number;
   metadata_json: string;
   is_deleted: number;
+  deleted_at?: number | null;
   created_at: number;
   updated_at: number;
 }

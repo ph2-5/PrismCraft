@@ -6,10 +6,138 @@
  * - auto_fix_common_errors：常见错误自动修复
  */
 
-import type { ToolImpl } from "@/domain/types/agent-tools";
+import type { ToolImpl, ToolContext } from "@/domain/types/agent-tools";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import { executeTool, generateJsonWithAI } from "./subworkflow-helpers";
+
+/** 修复策略执行结果（内部传递用） */
+interface FixResult {
+  fixed: boolean;
+  fixAction: string;
+  message: string;
+}
+
+/** 解析 AI 分析结果，提取错误类型和建议动作 */
+function parseErrorAnalysis(
+  analysis: Record<string, unknown> | null,
+): { errorType: string; suggestedAction: string } {
+  return {
+    errorType: String(analysis?.errorType ?? "unknown"),
+    suggestedAction: String(analysis?.suggestedAction ?? ""),
+  };
+}
+
+/** 处理 api_connection / config_missing 错误：检查配置并测试连接 */
+async function handleApiConnectionFix(
+  ctx: ToolContext,
+  suggestedAction: string,
+): Promise<FixResult> {
+  const { getConfig } = await import("@/shared/file-http");
+  const apiBaseUrl = await getConfig("apiBaseUrl");
+  const apiKey = await getConfig("apiKey");
+  // 配置缺失时直接给出修复建议
+  if (!apiBaseUrl || !apiKey) {
+    return {
+      fixed: false,
+      fixAction: "请在设置中配置 apiBaseUrl 和 apiKey",
+      message: "API 配置缺失，请在设置中完善 API 配置",
+    };
+  }
+  // 配置完整时尝试测试连接
+  const testResult = await executeTool("test_connection", {}, ctx.onProgress);
+  return {
+    fixed: testResult.success,
+    fixAction: suggestedAction,
+    message: testResult.success
+      ? "API 连接已恢复"
+      : `API 连接测试失败：${testResult.error ?? "未知"}`,
+  };
+}
+
+/** 处理 model_not_found 错误：列出可用模型 */
+async function handleModelNotFoundFix(): Promise<FixResult> {
+  const { loadConfig } = await import("@/shared/api-config");
+  const config = await loadConfig();
+  const models =
+    config?.providers?.flatMap((p) =>
+      (p.models ?? []).map((m) => `${p.id}/${m.id}`),
+    ) ?? [];
+  return {
+    fixed: false,
+    fixAction: `可用模型列表：${models.join(", ") || "无可用模型"}`,
+    message: "请使用可用模型列表中的模型 ID",
+  };
+}
+
+/** 处理 video_generation_failed 错误：根据 taskId 查询任务状态并尝试恢复 */
+async function handleVideoGenerationFailedFix(
+  errorContext: Record<string, unknown>,
+): Promise<FixResult> {
+  const taskId = errorContext.taskId ? String(errorContext.taskId) : undefined;
+  // 未提供 taskId 时无法恢复
+  if (!taskId) {
+    return {
+      fixed: false,
+      fixAction: "",
+      message: "未提供 taskId，无法恢复视频任务",
+    };
+  }
+  const statusResult = await container.videoProvider.queryVideoStatus(taskId);
+  // 查询失败时直接返回错误信息
+  if (!statusResult.success || !statusResult.data) {
+    return {
+      fixed: false,
+      fixAction: "",
+      message: `查询任务 ${taskId} 状态失败：${statusResult.error ?? "未知"}`,
+    };
+  }
+  // 已完成且有视频 URL → 视为已修复
+  if (statusResult.data.status === "completed" && statusResult.data.videoUrl) {
+    return {
+      fixed: true,
+      fixAction: "",
+      message: `任务 ${taskId} 实际已完成，视频 URL：${statusResult.data.videoUrl}`,
+    };
+  }
+  // 其它状态返回当前状态
+  return {
+    fixed: false,
+    fixAction: "",
+    message: `任务 ${taskId} 当前状态：${statusResult.data.status}`,
+  };
+}
+
+/** 根据错误类型分发修复策略 */
+async function dispatchFixStrategy(
+  errorType: string,
+  errorContext: Record<string, unknown>,
+  suggestedAction: string,
+  ctx: ToolContext,
+): Promise<FixResult> {
+  if (errorType === "api_connection" || errorType === "config_missing") {
+    return handleApiConnectionFix(ctx, suggestedAction);
+  }
+  if (errorType === "model_not_found") {
+    return handleModelNotFoundFix();
+  }
+  if (errorType === "quota_exceeded") {
+    return {
+      fixed: false,
+      fixAction: "API 配额已超限，请升级套餐或等待配额重置",
+      message: "配额超限，需用户手动处理",
+    };
+  }
+  if (errorType === "video_generation_failed") {
+    return handleVideoGenerationFailedFix(errorContext);
+  }
+  // 未知错误类型，给出建议动作
+  return {
+    fixed: false,
+    fixAction: suggestedAction,
+    message: `未知错误类型，建议操作：${suggestedAction || "请检查错误信息后重试"}`,
+  };
+}
 
 /** 6. AI 浏览器找素材并自动入库 */
 export const autoFindAndImportAssetTool: ToolImpl = {
@@ -166,11 +294,9 @@ ${JSON.stringify(errorContext, null, 2)}
 {
   "errorType": "api_connection | model_not_found | quota_exceeded | video_generation_failed | config_missing | unknown",
   "confidence": 0.9,
-  "suggestedAction": "建议的修复动作描述"
-}`;
+  "suggestedAction": "建议的修复动作描述"}`;
     const analysis = await generateJsonWithAI(prompt);
-    const errorType = String(analysis?.errorType ?? "unknown");
-    const suggestedAction = String(analysis?.suggestedAction ?? "");
+    const { errorType, suggestedAction } = parseErrorAnalysis(analysis);
 
     // Step 2: 根据错误类型执行修复策略
     ctx.onProgress?.(`正在执行修复策略（${errorType}）…`);
@@ -179,53 +305,15 @@ ${JSON.stringify(errorContext, null, 2)}
     let message = "";
 
     try {
-      if (errorType === "api_connection" || errorType === "config_missing") {
-        // 检查配置
-        const { getConfig } = await import("@/shared/file-http");
-        const apiBaseUrl = await getConfig("apiBaseUrl");
-        const apiKey = await getConfig("apiKey");
-        if (!apiBaseUrl || !apiKey) {
-          fixAction = "请在设置中配置 apiBaseUrl 和 apiKey";
-          message = "API 配置缺失，请在设置中完善 API 配置";
-        } else {
-          // 尝试测试连接
-          const testResult = await executeTool("test_connection", {}, ctx.onProgress);
-          fixed = testResult.success;
-          message = fixed ? "API 连接已恢复" : `API 连接测试失败：${testResult.error ?? "未知"}`;
-        }
-      } else if (errorType === "model_not_found") {
-        // 列出可用模型
-        const { loadConfig } = await import("@/shared/api-config");
-        const config = await loadConfig();
-        const models = config?.providers?.flatMap((p) =>
-          (p.models ?? []).map((m) => `${p.id}/${m.id}`),
-        ) ?? [];
-        fixAction = `可用模型列表：${models.join(", ") || "无可用模型"}`;
-        message = "请使用可用模型列表中的模型 ID";
-      } else if (errorType === "quota_exceeded") {
-        fixAction = "API 配额已超限，请升级套餐或等待配额重置";
-        message = "配额超限，需用户手动处理";
-      } else if (errorType === "video_generation_failed") {
-        // 尝试恢复视频任务
-        const taskId = errorContext.taskId ? String(errorContext.taskId) : undefined;
-        if (taskId) {
-          const statusResult = await container.videoProvider.queryVideoStatus(taskId);
-          if (statusResult.success && statusResult.data) {
-            if (statusResult.data.status === "completed" && statusResult.data.videoUrl) {
-              fixed = true;
-              message = `任务 ${taskId} 实际已完成，视频 URL：${statusResult.data.videoUrl}`;
-            } else {
-              message = `任务 ${taskId} 当前状态：${statusResult.data.status}`;
-            }
-          } else {
-            message = `查询任务 ${taskId} 状态失败：${statusResult.error ?? "未知"}`;
-          }
-        } else {
-          message = "未提供 taskId，无法恢复视频任务";
-        }
-      } else {
-        message = `未知错误类型，建议操作：${suggestedAction || "请检查错误信息后重试"}`;
-      }
+      const result = await dispatchFixStrategy(
+        errorType,
+        errorContext,
+        suggestedAction,
+        ctx,
+      );
+      fixed = result.fixed;
+      fixAction = result.fixAction;
+      message = result.message;
     } catch (e) {
       message = `修复策略执行异常：${e instanceof Error ? e.message : String(e)}`;
     }

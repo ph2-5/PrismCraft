@@ -36,6 +36,80 @@ const MEMORY_THRESHOLDS = {
   high: 1536   // 1.5GB
 };
 
+// 根据已用堆大小判定警告等级
+function getWarningLevel(usedJSHeapSize: number): MemoryState["warningLevel"] {
+  if (usedJSHeapSize > MEMORY_THRESHOLDS.high) {
+    return "high";
+  }
+  if (usedJSHeapSize > MEMORY_THRESHOLDS.medium) {
+    return "medium";
+  }
+  if (usedJSHeapSize > MEMORY_THRESHOLDS.low) {
+    return "low";
+  }
+  return "none";
+}
+
+// 收集页面中当前正在使用的 blob URL（src 与 href 两个来源）
+function collectActiveBlobUrls(): Set<string> {
+  const activeUrls = new Set<string>();
+  document.querySelectorAll('[src^="blob:"]').forEach(el => {
+    const src = el.getAttribute('src');
+    if (src && el.isConnected) activeUrls.add(src);
+  });
+  document.querySelectorAll('[href^="blob:"]').forEach(el => {
+    const href = el.getAttribute('href');
+    if (href && el.isConnected) activeUrls.add(href);
+  });
+  return activeUrls;
+}
+
+// 清理未被引用的 tracked blob URL，返回清理数量
+function cleanupInactiveBlobUrls(activeUrls: Set<string>): number {
+  const tracked = window.__trackedBlobUrls;
+  if (!tracked) return 0;
+
+  let cleanedCount = 0;
+  for (const url of tracked) {
+    if (!activeUrls.has(url)) {
+      URL.revokeObjectURL(url);
+      tracked.delete(url);
+      cleanedCount++;
+    }
+  }
+  return cleanedCount;
+}
+
+// 清理 sessionStorage 中非关键临时数据
+function cleanupSessionStorage(): void {
+  // 清理 sessionStorage 中的临时数据，保留重要数据。
+  // 注意：此操作会移除所有不在 keysToKeep 中的 sessionStorage 条目，
+  // 仅在内存紧张时触发（manualCleanup），正常流程不应依赖此行为。
+  const keysToKeep = ['ai-animation-last-session'];
+  Object.keys(sessionStorage).forEach(key => {
+    if (!keysToKeep.includes(key)) {
+      sessionStorage.removeItem(key);
+    }
+  });
+}
+
+// 在 Electron 环境中尝试清理缓存（不存在则跳过）
+function cleanupElectronCache(): void {
+  try {
+    // 检测是否在 Electron 环境
+    const isElectronEnv = typeof window !== 'undefined' && window.electronAPI;
+    if (!isElectronEnv || !window.electronAPI) return;
+
+    try {
+      (window.electronAPI as Window["electronAPI"] & { clearCache?: () => void }).clearCache?.();
+    } catch (e) {
+      errorLogger.warn('[MemoryMonitor] 清理 Electron 缓存失败', e);
+    }
+  } catch (e) {
+    errorLogger.warn('[MemoryMonitor] 清理缓存失败', e);
+  }
+}
+
 export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void> }) {
   const [state, setState] = useState<MemoryState>({
     memory: null,
@@ -59,7 +133,7 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
   // 获取内存信息
   const getMemoryInfo = useCallback((): MemoryInfo | null => {
     if (typeof window === "undefined") return null;
-    
+
     const memory = performance.memory;
     if (!memory) return null;
 
@@ -82,26 +156,7 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
 
     let cleanedCount = 0;
     try {
-      const activeUrls = new Set<string>();
-      document.querySelectorAll('[src^="blob:"]').forEach(el => {
-        const src = el.getAttribute('src');
-        if (src && el.isConnected) activeUrls.add(src);
-      });
-      document.querySelectorAll('[href^="blob:"]').forEach(el => {
-        const href = el.getAttribute('href');
-        if (href && el.isConnected) activeUrls.add(href);
-      });
-
-      const tracked = window.__trackedBlobUrls;
-      if (tracked) {
-        for (const url of tracked) {
-          if (!activeUrls.has(url)) {
-            URL.revokeObjectURL(url);
-            tracked.delete(url);
-            cleanedCount++;
-          }
-        }
-      }
+      cleanedCount = cleanupInactiveBlobUrls(collectActiveBlobUrls());
     } catch (e) {
       errorLogger.warn('[MemoryMonitor] blob清理异常', e);
     }
@@ -118,10 +173,8 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
       errorLogger.warn('[MemoryMonitor] 清理错误日志失败:', e);
     }
 
-    if (typeof window !== "undefined") {
-      if (window.gc) {
-        window.gc();
-      }
+    if (typeof window !== "undefined" && window.gc) {
+      window.gc();
     }
 
     lastCleanupRef.current = now;
@@ -141,15 +194,7 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
     const memory = getMemoryInfo();
     if (!memory) return;
 
-    let warningLevel: "none" | "low" | "medium" | "high" = "none";
-
-    if (memory.usedJSHeapSize > MEMORY_THRESHOLDS.high) {
-      warningLevel = "high";
-    } else if (memory.usedJSHeapSize > MEMORY_THRESHOLDS.medium) {
-      warningLevel = "medium";
-    } else if (memory.usedJSHeapSize > MEMORY_THRESHOLDS.low) {
-      warningLevel = "low";
-    }
+    const warningLevel = getWarningLevel(memory.usedJSHeapSize);
 
     setState(prev => ({
       ...prev,
@@ -168,52 +213,13 @@ export function useMemoryMonitor(options?: { clearErrorLogs?: () => Promise<void
 
     let cleanedCount = 0;
     try {
-      const activeBlobUrls = new Set<string>();
-      document.querySelectorAll('[src^="blob:"]').forEach(el => {
-        const src = el.getAttribute('src');
-        if (src && el.isConnected) activeBlobUrls.add(src);
-      });
-
-      if (activeBlobUrls.size > 0) {
-        const tracked = window.__trackedBlobUrls;
-        if (tracked) {
-          for (const url of tracked) {
-            if (!activeBlobUrls.has(url)) {
-              URL.revokeObjectURL(url);
-              tracked.delete(url);
-              cleanedCount++;
-            }
-          }
-        }
-      }
+      cleanedCount = cleanupInactiveBlobUrls(collectActiveBlobUrls());
     } catch (e) {
       errorLogger.warn('[MemoryMonitor] blob清理异常', e);
     }
 
-    // 清理 sessionStorage 中的临时数据，保留重要数据。
-    // 注意：此操作会移除所有不在 keysToKeep 中的 sessionStorage 条目，
-    // 仅在内存紧张时触发（manualCleanup），正常流程不应依赖此行为。
-    const keysToKeep = ['ai-animation-last-session'];
-    Object.keys(sessionStorage).forEach(key => {
-      if (!keysToKeep.includes(key)) {
-        sessionStorage.removeItem(key);
-      }
-    });
-
-    // 清理临时缓存
-    try {
-      // 检测是否在 Electron 环境
-      const isElectronEnv = typeof window !== 'undefined' && window.electronAPI;
-      if (isElectronEnv && window.electronAPI) {
-        try {
-          (window.electronAPI as Window["electronAPI"] & { clearCache?: () => void }).clearCache?.();
-        } catch (e) {
-          errorLogger.warn('[MemoryMonitor] 清理 Electron 缓存失败', e);
-        }
-      }
-    } catch (e) {
-      errorLogger.warn('[MemoryMonitor] 清理缓存失败', e);
-    }
+    cleanupSessionStorage();
+    cleanupElectronCache();
 
     setState(prev => ({
       ...prev,

@@ -43,6 +43,110 @@ function guessExtension(mimeType: string): string {
   return "jpg";
 }
 
+/** 清理已写入磁盘但数据库记录失败的缓存文件 */
+async function cleanupFailedCacheFile(filePath: string): Promise<void> {
+  try {
+    const exists = await httpFileExists(filePath);
+    if (exists) {
+      await httpDeleteFile(filePath);
+    }
+  } catch (cleanupError) {
+    errorLogger.warn("[ImageCache] 清理失败缓存文件失败", cleanupError);
+  }
+}
+
+/** 校验磁盘空间是否充足，不足则抛出错误 */
+function assertDiskSpaceAvailable(
+  diskSpace: { success?: boolean; availableBytes?: number } | null,
+): void {
+  if (!diskSpace?.success || diskSpace.availableBytes === undefined) {
+    return;
+  }
+  const minRequiredBytes = 1024 * 1024;
+  if (diskSpace.availableBytes < minRequiredBytes) {
+    throw new Error(`${t("error.diskFull")} (${Math.round(diskSpace.availableBytes / 1024 / 1024)}MB)`);
+  }
+}
+
+/** 校验下载文件大小是否匹配，不匹配则删除文件并抛出错误 */
+async function assertDownloadComplete(
+  filePath: string,
+  expectedBytes: number,
+): Promise<void> {
+  if (expectedBytes <= 0) return;
+  const fileInfo = await httpGetFileInfo(filePath);
+  if (fileInfo && fileInfo.success && fileInfo.size !== expectedBytes) {
+    await httpDeleteFile(filePath);
+    throw new Error(`下载不完整: ${fileInfo.size}/${expectedBytes} bytes`);
+  }
+}
+
+/** 单次下载并写入图片缓存，成功返回文件路径 */
+async function downloadAndWriteImage(
+  currentUrl: string,
+  cacheKey: string,
+): Promise<string> {
+  const cacheDirResult = await httpGetCacheDirectory();
+  if (!cacheDirResult?.success || !cacheDirResult.path) {
+    throw new Error("Failed to get cache directory");
+  }
+  const cacheDir = cacheDirResult.path;
+  const imageDir = `${cacheDir}/images`;
+  const mimeType = guessMimeType(currentUrl);
+  const ext = guessExtension(mimeType);
+  const hash = cacheKey.split("").reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+  const filePath = `${imageDir}/${Math.abs(hash).toString(36)}_${Date.now()}.${ext}`;
+
+  const diskSpace = await httpGetDiskSpace(cacheDir);
+  assertDiskSpaceAvailable(diskSpace);
+
+  const abortController = new AbortController();
+  const downloadCtx = { data: null as Uint8Array | null };
+
+  const result = await resilientFetch({
+    url: currentUrl,
+    destination: async (data: Uint8Array) => {
+      downloadCtx.data = data;
+    },
+    signal: abortController.signal,
+    onProgress: () => {},
+  });
+
+  if (!result.success || !downloadCtx.data) {
+    throw new Error("Download failed");
+  }
+
+  const downloadedData = downloadCtx.data;
+
+  const writeResult = await httpWriteFile(
+    filePath,
+    downloadedData.buffer as ArrayBuffer,
+  );
+  if (!writeResult?.success) {
+    throw new Error("Failed to write file to disk");
+  }
+
+  await assertDownloadComplete(filePath, result.totalBytes);
+
+  try {
+    await container.imageCacheStorage.cacheImageFile({
+      sourceUrl: cacheKey,
+      filePath,
+      mimeType,
+      fileSize: downloadedData.byteLength,
+    });
+  } catch (dbError) {
+    errorLogger.warn(
+      "[ImageCache] 数据库记录失败，清理已写入的缓存文件",
+      dbError,
+    );
+    await cleanupFailedCacheFile(filePath);
+    throw dbError;
+  }
+
+  return filePath;
+}
+
 export async function cacheImageBlob(
   sourceUrl: string,
 ): Promise<Result<string>> {
@@ -66,79 +170,7 @@ export async function cacheImageBlob(
 
     for (let attempt = 0; attempt < CACHE_RETRY_COUNT; attempt++) {
       try {
-        const cacheDirResult = await httpGetCacheDirectory();
-        if (!cacheDirResult?.success || !cacheDirResult.path) {
-          throw new Error("Failed to get cache directory");
-        }
-        const cacheDir = cacheDirResult.path;
-        const imageDir = `${cacheDir}/images`;
-        const mimeType = guessMimeType(currentUrl);
-        const ext = guessExtension(mimeType);
-        const hash = cacheKey.split("").reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
-        const filePath = `${imageDir}/${Math.abs(hash).toString(36)}_${Date.now()}.${ext}`;
-
-        const diskSpace = await httpGetDiskSpace(cacheDir);
-        if (diskSpace?.success && diskSpace.availableBytes !== undefined) {
-          const minRequiredBytes = 1024 * 1024;
-          if (diskSpace.availableBytes < minRequiredBytes) {
-            throw new Error(`${t("error.diskFull")} (${Math.round(diskSpace.availableBytes / 1024 / 1024)}MB)`);
-          }
-        }
-
-        const abortController = new AbortController();
-        const downloadCtx = { data: null as Uint8Array | null };
-
-        const result = await resilientFetch({
-          url: currentUrl,
-          destination: async (data: Uint8Array) => {
-            downloadCtx.data = data;
-          },
-          signal: abortController.signal,
-          onProgress: () => {},
-        });
-
-        if (!result.success || !downloadCtx.data) {
-          throw new Error("Download failed");
-        }
-
-        const downloadedData = downloadCtx.data;
-
-        const writeResult = await httpWriteFile(
-          filePath,
-          downloadedData.buffer as ArrayBuffer,
-        );
-        if (!writeResult?.success) {
-          throw new Error("Failed to write file to disk");
-        }
-
-        const fileInfo = await httpGetFileInfo(filePath);
-        if (fileInfo && fileInfo.success && result.totalBytes > 0 && fileInfo.size !== result.totalBytes) {
-          await httpDeleteFile(filePath);
-          throw new Error(`下载不完整: ${fileInfo.size}/${result.totalBytes} bytes`);
-        }
-
-        try {
-          await container.imageCacheStorage.cacheImageFile({
-            sourceUrl: cacheKey,
-            filePath,
-            mimeType,
-            fileSize: downloadedData.byteLength,
-          });
-        } catch (dbError) {
-          errorLogger.warn(
-            "[ImageCache] 数据库记录失败，清理已写入的缓存文件",
-            dbError,
-          );
-          try {
-            const exists = await httpFileExists(filePath);
-            if (exists) await httpDeleteFile(filePath);
-          } catch (cleanupError) {
-            errorLogger.warn("[ImageCache] 清理失败缓存文件失败", cleanupError);
-          }
-          throw dbError;
-        }
-
-        return filePath;
+        return await downloadAndWriteImage(currentUrl, cacheKey);
       } catch (error) {
         if (isHttpExpiredError(error) && attempt === 0) {
           errorLogger.warn("[ImageCache] URL过期，重试中...", error);

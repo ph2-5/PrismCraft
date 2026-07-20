@@ -145,6 +145,80 @@ export function setupCacheCleanupInterval(): void {
   }, CACHE_CLEANUP_INTERVAL_MS);
 }
 
+/**
+ * 在页面卸载前通过 HTTP keepalive 批量保存任务到后端。
+ *
+ * 使用 fetch + keepalive 替代已弃用的同步 XHR：keepalive 让请求在页面卸载后
+ * 仍能完成，且支持自定义 header。注意 keepalive 请求有 64KB body 限制，
+ * 超限时需分批发送。beforeunload 是同步事件，不能用 await。
+ */
+function persistTasksBeforeUnload(allTasks: VideoTask[]): void {
+  try {
+    const bulkData = allTasks.map((task) => ({
+      taskId: task.taskId,
+      status: task.status,
+      progress: task.progress,
+      videoUrl: task.videoUrl,
+      message: task.message,
+      storyId: task.storyId,
+      beatId: task.beatId,
+      createdAt: task.createdAt,
+      config: task.parameters ? { model: task.model, prompt: task.prompt, parameters: task.parameters, apiUrl: task.apiUrl, apiEndpoint: task.apiEndpoint } : undefined,
+      provider: task.providerId ? { providerId: task.providerId, providerModelId: task.providerModelId, providerFormat: task.providerFormat } : undefined,
+      mediaRefs: task.fixedImageUrl ? { fixedImageUrl: task.fixedImageUrl, fixedImageLockType: task.fixedImageLockType } : undefined,
+      tracking: undefined,
+    }));
+    const bulkSaveUrl = `http://localhost:${API_SERVER_PORT}/video-tasks/bulk-save`;
+    const fetchOptions = (body: string): RequestInit => ({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Electron-App": "true",
+      },
+      body,
+      keepalive: true,
+    });
+    const fullPayload = JSON.stringify({ tasks: bulkData });
+    const PAYLOAD_LIMIT = 60 * 1024; // 60KB, 留余量
+
+    if (fullPayload.length > PAYLOAD_LIMIT) {
+      // 超限时分批发送
+      const batchSize = Math.max(
+        1,
+        Math.floor((allTasks.length * PAYLOAD_LIMIT) / fullPayload.length),
+      );
+      const promises: Promise<unknown>[] = [];
+      for (let i = 0; i < allTasks.length; i += batchSize) {
+        const batch = bulkData.slice(i, i + batchSize);
+        const batchPayload = JSON.stringify({ tasks: batch });
+        promises.push(
+          fetch(bulkSaveUrl, fetchOptions(batchPayload)).catch((err) => {
+            errorLogger.warn(
+              "[VideoTaskManager] beforeunload 分批保存失败",
+              err instanceof Error ? err : undefined,
+            );
+          }),
+        );
+      }
+      // 防御性 catch：内层每个 promise 已有 .catch，但 Promise.all 本身仍可能
+      // 因 catch handler 抛出而 reject，外层再兜底一次
+      void Promise.all(promises).catch((err) => {
+        errorLogger.warn(
+          "[VideoTaskManager] beforeunload Promise.all 兜底失败",
+          err instanceof Error ? err : undefined,
+        );
+      });
+    } else {
+      // 未超限，单次发送
+      void fetch(bulkSaveUrl, fetchOptions(fullPayload)).catch((err) => {
+        errorLogger.warn("[VideoTaskManager] beforeunload keepalive 保存失败", err instanceof Error ? err : undefined);
+      });
+    }
+  } catch (err) {
+    errorLogger.error("[VideoTaskManager] beforeunload同步保存失败", err instanceof Error ? err : undefined);
+  }
+}
+
 export function setupBeforeUnloadHandler(store: StoreAccessor): void {
   if (typeof window === "undefined") return;
   // 幂等保护：先移除旧监听器，避免重复注册导致 beforeunload 触发多次
@@ -158,74 +232,9 @@ export function setupBeforeUnloadHandler(store: StoreAccessor): void {
     );
 
     if (typeof window !== "undefined" && !!window.electronAPI) {
+      // 存在任务时通过 keepalive 批量保存到后端
       if (allTasks.length > 0) {
-        try {
-          const bulkData = allTasks.map((task) => ({
-            taskId: task.taskId,
-            status: task.status,
-            progress: task.progress,
-            videoUrl: task.videoUrl,
-            message: task.message,
-            storyId: task.storyId,
-            beatId: task.beatId,
-            createdAt: task.createdAt,
-            config: task.parameters ? { model: task.model, prompt: task.prompt, parameters: task.parameters, apiUrl: task.apiUrl, apiEndpoint: task.apiEndpoint } : undefined,
-            provider: task.providerId ? { providerId: task.providerId, providerModelId: task.providerModelId, providerFormat: task.providerFormat } : undefined,
-            mediaRefs: task.fixedImageUrl ? { fixedImageUrl: task.fixedImageUrl, fixedImageLockType: task.fixedImageLockType } : undefined,
-            tracking: undefined,
-          }));
-          // 使用 fetch + keepalive 替代已弃用的同步 XHR
-          // keepalive: true 让请求在页面卸载后仍能完成，且支持自定义 header
-          // 注意: keepalive 请求有 64KB body 限制，超限时需分批发送
-          const bulkSaveUrl = `http://localhost:${API_SERVER_PORT}/video-tasks/bulk-save`;
-          const fetchOptions = (body: string): RequestInit => ({
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Electron-App": "true",
-            },
-            body,
-            keepalive: true,
-          });
-          const fullPayload = JSON.stringify({ tasks: bulkData });
-          const PAYLOAD_LIMIT = 60 * 1024; // 60KB, 留余量
-
-          if (fullPayload.length > PAYLOAD_LIMIT) {
-            // 超限时分批发送（beforeunload 是同步事件，不能用 await）
-            const batchSize = Math.max(
-              1,
-              Math.floor((allTasks.length * PAYLOAD_LIMIT) / fullPayload.length),
-            );
-            const promises: Promise<unknown>[] = [];
-            for (let i = 0; i < allTasks.length; i += batchSize) {
-              const batch = bulkData.slice(i, i + batchSize);
-              const batchPayload = JSON.stringify({ tasks: batch });
-              promises.push(
-                fetch(bulkSaveUrl, fetchOptions(batchPayload)).catch((err) => {
-                  errorLogger.warn(
-                    "[VideoTaskManager] beforeunload 分批保存失败",
-                    err instanceof Error ? err : undefined,
-                  );
-                }),
-              );
-            }
-            // 防御性 catch：内层每个 promise 已有 .catch，但 Promise.all 本身仍可能
-            // 因 catch handler 抛出而 reject，外层再兜底一次
-            void Promise.all(promises).catch((err) => {
-              errorLogger.warn(
-                "[VideoTaskManager] beforeunload Promise.all 兜底失败",
-                err instanceof Error ? err : undefined,
-              );
-            });
-          } else {
-            // 未超限，单次发送
-            void fetch(bulkSaveUrl, fetchOptions(fullPayload)).catch((err) => {
-              errorLogger.warn("[VideoTaskManager] beforeunload keepalive 保存失败", err instanceof Error ? err : undefined);
-            });
-          }
-        } catch (err) {
-          errorLogger.error("[VideoTaskManager] beforeunload同步保存失败", err instanceof Error ? err : undefined);
-        }
+        persistTasksBeforeUnload(allTasks);
       }
       if (pollingState.syncTimeoutId) {
         clearTimeout(pollingState.syncTimeoutId);

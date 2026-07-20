@@ -353,6 +353,14 @@ const eslintConfig = tseslint.config(
     },
   },
   {
+    // React 组件（presentation/ 下的 .tsx）天然包含 JSX 模板代码，
+    // 函数体长度合理放宽到 250 行（业务逻辑/hooks 仍保持 150 行严格限制）
+    files: ["src/modules/**/presentation/**/*.tsx", "src/modules/**/page.tsx"],
+    rules: {
+      "max-lines-per-function": ["warn", { max: 250, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
     files: ["src/infrastructure/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [

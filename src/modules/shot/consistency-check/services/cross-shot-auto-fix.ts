@@ -313,6 +313,8 @@ function applyFeatureTagsFix(
 ): { beatIds: string[]; beforeTags: string[] } {
   const beatIds: string[] = [];
   const beforeTagsSet = new Set<string>();
+  // 提前计算多数派 tagsKey，避免在循环内重复计算
+  const canonicalKey = tagsKey(canonicalTags);
 
   for (const beat of beats) {
     if (!beat.featureAnchoring?.enabled) continue;
@@ -320,26 +322,24 @@ function applyFeatureTagsFix(
     const characterAnchors = beat.featureAnchoring.characterAnchors ?? [];
     const propAnchors = beat.featureAnchoring.propAnchors ?? [];
 
+    // 修复角色锚点：通过早 continue 展平嵌套
     for (const anchor of characterAnchors) {
-      if (anchor.elementId === elementId) {
-        const beforeKey = tagsKey(anchor.featureTags);
-        if (beforeKey !== tagsKey(canonicalTags)) {
-          beforeTagsSet.add(tagsKey(anchor.featureTags));
-          anchor.featureTags = [...canonicalTags];
-          if (!beatIds.includes(beat.id)) beatIds.push(beat.id);
-        }
-      }
+      if (anchor.elementId !== elementId) continue;
+      const beforeKey = tagsKey(anchor.featureTags);
+      if (beforeKey === canonicalKey) continue;
+      beforeTagsSet.add(beforeKey);
+      anchor.featureTags = [...canonicalTags];
+      if (!beatIds.includes(beat.id)) beatIds.push(beat.id);
     }
 
+    // 修复道具锚点：同样使用早 continue 展平嵌套
     for (const anchor of propAnchors) {
-      if (anchor.elementId === elementId) {
-        const beforeKey = tagsKey(anchor.featureTags);
-        if (beforeKey !== tagsKey(canonicalTags)) {
-          beforeTagsSet.add(tagsKey(anchor.featureTags));
-          anchor.featureTags = [...canonicalTags];
-          if (!beatIds.includes(beat.id)) beatIds.push(beat.id);
-        }
-      }
+      if (anchor.elementId !== elementId) continue;
+      const beforeKey = tagsKey(anchor.featureTags);
+      if (beforeKey === canonicalKey) continue;
+      beforeTagsSet.add(beforeKey);
+      anchor.featureTags = [...canonicalTags];
+      if (!beatIds.includes(beat.id)) beatIds.push(beat.id);
     }
   }
 

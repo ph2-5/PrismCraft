@@ -96,6 +96,8 @@ export function parseBeatRow(b: Record<string, unknown>) {
     shotType: cameraContainer?.shotType && VALID_SHOT_TYPES.has(cameraContainer.shotType as string)
       ? cameraContainer.shotType
       : undefined,
+    // PR 2c：dual-read shotInstruction（从 camera 容器还原）
+    shotInstruction: cameraContainer?.shotInstruction ?? undefined,
     imageGenerationPrompt: generationContainer?.imageGenerationPrompt,
     firstFramePrompt: generationContainer?.firstFramePrompt,
     lastFramePrompt: generationContainer?.lastFramePrompt,
@@ -105,7 +107,8 @@ export function parseBeatRow(b: Record<string, unknown>) {
   };
 
   if (cameraContainer && Object.keys(cameraContainer).length > 0) {
-    const { shotType: _shotType, ...cameraProps } = cameraContainer;
+    // PR 2c：剥离 shotInstruction，避免在 beat.camera 中重复
+    const { shotType: _shotType, shotInstruction: _shotInstruction, ...cameraProps } = cameraContainer;
     if (Object.keys(cameraProps).length > 0) beat.camera = cameraProps;
   }
 

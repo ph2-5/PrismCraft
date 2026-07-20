@@ -439,4 +439,71 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
     );
     expect(genContainer?.characterOutfits).toEqual(outfits);
   });
+
+  it("PR 2c: shotInstruction 应存入 camera 容器并正确还原（dual-write + dual-read）", () => {
+    const beat = {
+      sequence: 1,
+      description: "带 shotInstruction 的 beat",
+      duration: 5,
+      shotType: "close", // 旧字段
+      shotInstruction: { // 新字段（dual-write）
+        shotSize: "close",
+        cameraAngle: "low",
+        cameraMovement: "push",
+      },
+    };
+
+    const flat = flattenBeat(beat, now);
+
+    // 验证 dual-write：camera 容器同时包含 shotType（旧）和 shotInstruction（新）
+    expect(flat.cameraContainer.shotType).toBe("close");
+    expect(flat.cameraContainer.shotInstruction).toEqual({
+      shotSize: "close",
+      cameraAngle: "low",
+      cameraMovement: "push",
+    });
+
+    const result = roundtrip(beat);
+
+    // 验证 dual-read：shotType 和 shotInstruction 都应正确还原
+    expect(result.shotType).toBe("close");
+    expect(result.shotInstruction).toEqual({
+      shotSize: "close",
+      cameraAngle: "low",
+      cameraMovement: "push",
+    });
+
+    // 验证 camera 容器剥离 shotInstruction 后不包含该字段（避免重复）
+    expect(result.camera).toBeUndefined();
+  });
+
+  it("PR 2c: 仅 shotInstruction（无 shotType）应正确序列化", () => {
+    const beat = {
+      sequence: 1,
+      description: "仅新格式 shotInstruction",
+      duration: 5,
+      shotInstruction: {
+        shotSize: "wide",
+        cameraAngle: "eye_level",
+        cameraMovement: "static",
+      },
+    };
+
+    const flat = flattenBeat(beat, now);
+
+    expect(flat.cameraContainer.shotInstruction).toEqual({
+      shotSize: "wide",
+      cameraAngle: "eye_level",
+      cameraMovement: "static",
+    });
+    expect(flat.cameraContainer.shotType).toBeUndefined();
+
+    const result = roundtrip(beat);
+    expect(result.shotInstruction).toEqual({
+      shotSize: "wide",
+      cameraAngle: "eye_level",
+      cameraMovement: "static",
+    });
+    expect(result.shotType).toBeUndefined();
+  });
 });

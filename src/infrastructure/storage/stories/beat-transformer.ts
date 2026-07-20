@@ -32,13 +32,16 @@ const FLATTENED_FRAMEPAIR_KEYS = new Set([
   "source",
 ]);
 const FLATTENED_VIDEOGEN_KEYS = new Set(["videoUrl", "taskId", "status", "prompt", "createdAt", "source", "error"]);
-const FLATTENED_CAMERA_KEYS = new Set(["angle", "movement", "distance", "speed"]);
+// PR 2c：shotInstruction 作为 camera 容器的子字段持久化（dual-write）
+const FLATTENED_CAMERA_KEYS = new Set(["angle", "movement", "distance", "speed", "shotInstruction"]);
 
 const KNOWN_BEAT_KEYS = new Set([
   "id", "sequence", "order", "description", "duration", "type", "title", "content",
   "characterIds", "character_ids", "character_ids_json",
   "sceneId", "scene_id", "scene",
   "shotType", "shot_type",
+  // PR 2c：新增 shotInstruction / shotSize / ss 字段（新格式）
+  "shotInstruction", "shotSize", "ss",
   "generationPrompt", "generation_prompt",
   "imageGenerationPrompt", "image_generation_prompt",
   "firstFramePrompt", "first_frame_prompt",
@@ -103,11 +106,17 @@ function buildCameraContainer(
   const distance = firstOf(camera?.distance, beat.cameraDistance, beat.camera_distance);
   const speed = firstOf(camera?.speed, beat.cameraSpeed, beat.camera_speed);
   const shotType = firstOf(beat.shotType, beat.shot_type);
+  // PR 2c：dual-write shotInstruction（优先 beat.shotInstruction，fallback camera.shotInstruction）
+  const shotInstruction = firstOf(
+    beat.shotInstruction,
+    camera?.shotInstruction,
+  );
   if (angle) container.angle = angle;
   if (movement) container.movement = movement;
   if (distance) container.distance = distance;
   if (speed) container.speed = speed;
   if (shotType) container.shotType = shotType;
+  if (shotInstruction) container.shotInstruction = shotInstruction;
   return container;
 }
 

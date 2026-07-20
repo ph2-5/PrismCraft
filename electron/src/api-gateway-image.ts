@@ -15,6 +15,105 @@ import { makeRequest } from "./http-request";
 
 const logger = getLogger("api-gateway-image");
 
+/**
+ * 解析有效的角色参考图 URL。
+ * 优先级：characterRef > legacy characterImageUrl > characterRefs[0]
+ *
+ * 把原始的 `a || b || (Array.isArray(c) && c.length > 0 ? c[0] : undefined)`
+ * 表达式提取为命名函数，降低 generateKeyframe / generateFramePair 的圈复杂度。
+ */
+function resolveEffectiveCharacterRef(
+  characterRef: unknown,
+  legacyChar: unknown,
+  characterRefs: unknown,
+): string | undefined {
+  if (characterRef) return characterRef as string;
+  if (legacyChar) return legacyChar as string;
+  if (Array.isArray(characterRefs) && characterRefs.length > 0) {
+    return characterRefs[0] as string;
+  }
+  return undefined;
+}
+
+/**
+ * 解析有效的场景参考图 URL。
+ * 优先级：sceneRef > legacy sceneImageUrl
+ */
+function resolveEffectiveSceneRef(
+  sceneRef: unknown,
+  legacyScene: unknown,
+): string | undefined {
+  return (sceneRef as string | undefined) || (legacyScene as string | undefined);
+}
+
+interface KeyframeReferenceTagSet {
+  characterRef?: string;
+  sceneRef?: string;
+  prevFrame?: string;
+  referenceImage?: string;
+}
+
+/**
+ * 当 plugin 不支持参考图时，把参考图信息以文本标签形式追加到 prompt 中。
+ * 顺序与原 generateKeyframe 实现一致：角色 → 场景 → 上一帧 → 参考图。
+ */
+function enrichPromptWithReferenceTags(prompt: string, refs: KeyframeReferenceTagSet): string {
+  let enriched = prompt;
+  if (refs.characterRef) enriched = `[参考角色] ${enriched}`;
+  if (refs.sceneRef) enriched = `[参考场景] ${enriched}`;
+  if (refs.prevFrame) enriched = `[上一帧参考] ${enriched}`;
+  if (refs.referenceImage) enriched = `[参考图] ${enriched}`;
+  return enriched;
+}
+
+interface FramePairReferenceTagSet {
+  characterRef?: string;
+  sceneRef?: string;
+  keyframeUrl?: string;
+}
+
+/**
+ * 把 keyframePrompt 上下文追加到 firstFrame / lastFrame prompt 末尾。
+ * 此操作在原 generateFramePair 实现中无论 supportsRef 与否都会执行，
+ * 因此独立为单一职责函数，由调用方按需调用。
+ */
+function appendKeyframePromptContext(
+  firstPrompt: string,
+  lastPrompt: string,
+  keyframePrompt: string | undefined,
+): { first: string; last: string } {
+  if (!keyframePrompt) return { first: firstPrompt, last: lastPrompt };
+  const ctx = `\n[预览图提示词参考] ${keyframePrompt}`;
+  return { first: firstPrompt + ctx, last: lastPrompt + ctx };
+}
+
+/**
+ * 当 plugin 不支持参考图时，把角色/场景/keyframeUrl 参考信息以文本标签形式
+ * 追加到 firstFrame / lastFrame prompt 前面。
+ * 顺序与原 generateFramePair 实现一致：角色 → 场景 → 预览图 URL。
+ */
+function prependFrameRefTags(
+  firstPrompt: string,
+  lastPrompt: string,
+  refs: FramePairReferenceTagSet,
+): { first: string; last: string } {
+  let first = firstPrompt;
+  let last = lastPrompt;
+  if (refs.characterRef) {
+    first = `[参考角色] ${first}`;
+    last = `[参考角色] ${last}`;
+  }
+  if (refs.sceneRef) {
+    first = `[参考场景] ${first}`;
+    last = `[参考场景] ${last}`;
+  }
+  if (refs.keyframeUrl) {
+    first = `[参考预览图 ${refs.keyframeUrl}] ${first}`;
+    last = `[参考预览图 ${refs.keyframeUrl}] ${last}`;
+  }
+  return { first, last };
+}
+
 async function analyzeImage(body: Record<string, unknown>): Promise<ApiResult> {
   const { imageUrl, prompt, type } = body as Record<string, unknown>;
   const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
@@ -235,9 +334,9 @@ async function generateKeyframe(body: Record<string, unknown>): Promise<ApiResul
     prevKeyframe,
   } = body as Record<string, unknown>;
 
-  const effectiveCharacterRef = characterRef || _legacyCharacterImageUrl || (Array.isArray(characterRefs) && characterRefs.length > 0 ? characterRefs[0] : undefined);
-  const effectiveSceneRef = sceneRef || _legacySceneImageUrl;
-  const effectivePrevFrame = previousFrameUrl || prevKeyframe;
+  const effectiveCharacterRef = resolveEffectiveCharacterRef(characterRef, _legacyCharacterImageUrl, characterRefs);
+  const effectiveSceneRef = resolveEffectiveSceneRef(sceneRef, _legacySceneImageUrl);
+  const effectivePrevFrame = (previousFrameUrl as string | undefined) || (prevKeyframe as string | undefined);
 
   const { effectiveApiUrl, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
@@ -254,10 +353,12 @@ async function generateKeyframe(body: Record<string, unknown>): Promise<ApiResul
     let enrichedPrompt = (content as string) || (prompt as string) || "";
 
     if (!supportsRef) {
-      if (effectiveCharacterRef) enrichedPrompt = `[参考角色] ${enrichedPrompt}`;
-      if (effectiveSceneRef) enrichedPrompt = `[参考场景] ${enrichedPrompt}`;
-      if (effectivePrevFrame) enrichedPrompt = `[上一帧参考] ${enrichedPrompt}`;
-      if (referenceImageUrl) enrichedPrompt = `[参考图] ${enrichedPrompt}`;
+      enrichedPrompt = enrichPromptWithReferenceTags(enrichedPrompt, {
+        characterRef: effectiveCharacterRef,
+        sceneRef: effectiveSceneRef,
+        prevFrame: effectivePrevFrame,
+        referenceImage: referenceImageUrl as string | undefined,
+      });
       logger.warn("Format does not support reference images, appended to prompt text");
     }
 
@@ -296,8 +397,8 @@ async function generateFramePair(body: Record<string, unknown>): Promise<ApiResu
     size,
   } = body as Record<string, unknown>;
 
-  const effectiveCharacterRef = characterRef || _legacyCharacterImageUrl || (Array.isArray(characterRefs) && characterRefs.length > 0 ? characterRefs[0] : undefined);
-  const effectiveSceneRef = sceneRef || _legacySceneImageUrl;
+  const effectiveCharacterRef = resolveEffectiveCharacterRef(characterRef, _legacyCharacterImageUrl, characterRefs);
+  const effectiveSceneRef = resolveEffectiveSceneRef(sceneRef, _legacySceneImageUrl);
 
   const { effectiveApiUrl, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
@@ -320,25 +421,23 @@ async function generateFramePair(body: Record<string, unknown>): Promise<ApiResu
     let firstFrameEnrichedPrompt = (firstFramePrompt as string) || `首帧: ${prompt}`;
     let lastFrameEnrichedPrompt = (lastFramePrompt as string) || `尾帧: ${prompt}`;
 
-    if (effectiveKeyframePrompt) {
-      const keyframeContext = `\n[预览图提示词参考] ${effectiveKeyframePrompt}`;
-      firstFrameEnrichedPrompt += keyframeContext;
-      lastFrameEnrichedPrompt += keyframeContext;
-    }
+    // keyframePrompt 上下文无论 supportsRef 与否都追加（与原实现保持一致）
+    const appended = appendKeyframePromptContext(
+      firstFrameEnrichedPrompt,
+      lastFrameEnrichedPrompt,
+      effectiveKeyframePrompt,
+    );
+    firstFrameEnrichedPrompt = appended.first;
+    lastFrameEnrichedPrompt = appended.last;
 
     if (!supportsRef) {
-      if (effectiveCharacterRef) {
-        firstFrameEnrichedPrompt = `[参考角色] ${firstFrameEnrichedPrompt}`;
-        lastFrameEnrichedPrompt = `[参考角色] ${lastFrameEnrichedPrompt}`;
-      }
-      if (effectiveSceneRef) {
-        firstFrameEnrichedPrompt = `[参考场景] ${firstFrameEnrichedPrompt}`;
-        lastFrameEnrichedPrompt = `[参考场景] ${lastFrameEnrichedPrompt}`;
-      }
-      if (keyframeUrl) {
-        firstFrameEnrichedPrompt = `[参考预览图 ${keyframeUrl}] ${firstFrameEnrichedPrompt}`;
-        lastFrameEnrichedPrompt = `[参考预览图 ${keyframeUrl}] ${lastFrameEnrichedPrompt}`;
-      }
+      const enriched = prependFrameRefTags(firstFrameEnrichedPrompt, lastFrameEnrichedPrompt, {
+        characterRef: effectiveCharacterRef,
+        sceneRef: effectiveSceneRef,
+        keyframeUrl: keyframeUrl as string | undefined,
+      });
+      firstFrameEnrichedPrompt = enriched.first;
+      lastFrameEnrichedPrompt = enriched.last;
     }
 
     const firstResult = await generateImage({

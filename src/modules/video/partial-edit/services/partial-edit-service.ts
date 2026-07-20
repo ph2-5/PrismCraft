@@ -55,6 +55,11 @@ export type PartialEditServiceResult =
   | { ok: true; value: PartialEditResult }
   | { ok: false; error: PartialEditServiceError };
 
+/** provider.generatePartialEdit 成功返回的 data 类型（去掉 success/error 后的有效载荷） */
+type ProviderPartialEditData = NonNullable<
+  Awaited<ReturnType<NonNullable<typeof container.videoProvider.generatePartialEdit>>>["data"]
+>;
+
 /** 获取原视频 Asset 的 URL */
 async function getSourceVideoUrl(sourceVideoAssetId: string): Promise<string | null> {
   const storage = container.generationAssetStorage;
@@ -65,6 +70,129 @@ async function getSourceVideoUrl(sourceVideoAssetId: string): Promise<string | n
   }
   // 优先用 localPath（本地缓存），否则用 url
   return asset.localPath ?? asset.url;
+}
+
+/** 构造 mask_too_large 错误对象 */
+function buildMaskTooLargeError(sizeBytes: number): PartialEditServiceError {
+  return {
+    kind: "mask_too_large",
+    message: `Mask PNG 体积过大（${(sizeBytes / 1024).toFixed(1)}KB），超过 1MB 限制`,
+    sizeBytes,
+    maxBytes: 1024 * 1024,
+  };
+}
+
+/** 构造 source_video_not_found 错误对象 */
+function buildSourceVideoNotFoundError(sourceVideoAssetId: string): PartialEditServiceError {
+  return {
+    kind: "source_video_not_found",
+    message: `原视频 Asset 不存在：${sourceVideoAssetId}`,
+    sourceVideoAssetId,
+  };
+}
+
+/** 构造 provider_not_supported 错误对象 */
+function buildProviderNotSupportedError(providerId: string | undefined, isFaceSwap: boolean): PartialEditServiceError {
+  const hint = isFaceSwap
+    ? "（face-swap 需要 supportsPartialEdit=true 的模型）"
+    : "（需要 supportsPartialEdit=true 的模型，如 Seedance 2.5）";
+  return {
+    kind: "provider_not_supported",
+    message: `当前 videoProvider 不支持 generatePartialEdit${hint}`,
+    providerId,
+  };
+}
+
+/** 构造 provider_call_failed 错误对象 */
+function buildProviderCallFailedError(message: string, cause?: unknown): PartialEditServiceError {
+  return { kind: "provider_call_failed", message, cause };
+}
+
+/**
+ * 编码 mask 为 base64 PNG 并校验大小。
+ * 成功返回 encodedMask，失败返回错误。
+ */
+async function encodeAndValidateMask(mask: MaskConfig): Promise<
+  { ok: true; encodedMask: MaskEncodeSuccess } | { ok: false; error: PartialEditServiceError }
+> {
+  const maskEncodeResult = await encodeMask(mask);
+  if (!maskEncodeResult.ok) {
+    return { ok: false, error: { kind: "mask_encode", message: maskEncodeResult.error.message } };
+  }
+  const encodedMask: MaskEncodeSuccess = maskEncodeResult.value;
+  if (!isMaskSizeValid(encodedMask.base64)) {
+    const sizeBytes = Math.ceil(encodedMask.base64.length * 3 / 4);
+    return { ok: false, error: buildMaskTooLargeError(sizeBytes) };
+  }
+  return { ok: true, encodedMask };
+}
+
+/** 调用 provider.generatePartialEdit（含支持性检查、异常处理、taskId 校验），返回 taskId + data 或 error */
+async function callProviderPartialEdit(
+  provider: typeof container.videoProvider,
+  params: {
+    sourceVideoUrl: string;
+    maskBase64: string;
+    prompt: string;
+    videoTimestamp: number;
+    preserveUnmasked: boolean;
+    providerId?: string;
+    modelId?: string;
+    duration?: number;
+  },
+  isFaceSwap: boolean,
+): Promise<
+  | { ok: true; taskId: string; data: ProviderPartialEditData }
+  | { ok: false; error: PartialEditServiceError }
+> {
+  // 局部变量保留 narrowing（跨函数调用 typeof 检查后，TS 无法在 provider.generatePartialEdit 上保持 narrowing）
+  const generateFn = provider.generatePartialEdit;
+  if (typeof generateFn !== "function") {
+    return { ok: false, error: buildProviderNotSupportedError(params.providerId, isFaceSwap) };
+  }
+  let providerResult;
+  try {
+    providerResult = await generateFn(params);
+  } catch (e) {
+    return { ok: false, error: buildProviderCallFailedError(e instanceof Error ? e.message : String(e), e) };
+  }
+  if (!providerResult.success || !providerResult.data) {
+    return { ok: false, error: buildProviderCallFailedError(providerResult.error || "Provider 返回失败结果") };
+  }
+  const taskId = providerResult.data.taskId;
+  if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
+    return { ok: false, error: buildProviderCallFailedError(`Provider 返回的 taskId 无效：${taskId}`) };
+  }
+  return { ok: true, taskId, data: providerResult.data };
+}
+
+/** 调用 videoTaskStore.addTask，处理异常 */
+async function createVideoTask(
+  videoTaskStore: { addTask: (task: Omit<VideoTask, "progress" | "createdAt">) => Promise<VideoTask> },
+  taskData: Omit<VideoTask, "progress" | "createdAt">,
+): Promise<
+  | { ok: true; task: VideoTask }
+  | { ok: false; error: PartialEditServiceError }
+> {
+  try {
+    const task = await videoTaskStore.addTask(taskData);
+    return { ok: true, task };
+  } catch (e) {
+    return {
+      ok: false,
+      error: buildProviderCallFailedError(`添加 VideoTask 失败：${e instanceof Error ? e.message : String(e)}`, e),
+    };
+  }
+}
+
+/** 提示词截断警告日志（统一处理） */
+function logPromptTruncationIfAny(providerData: { promptWasTruncated?: boolean; originalPromptLength?: number }, isFaceSwap: boolean): void {
+  if (providerData.promptWasTruncated) {
+    const label = isFaceSwap ? "face-swap " : "";
+    errorLogger.warn(
+      `[partial-edit-service] ${label}提示词已被截断，原始长度: ${providerData.originalPromptLength} 字符`,
+    );
+  }
 }
 
 /**
@@ -83,16 +211,8 @@ export async function startPartialEditTask(
   // ── Step 1: 校验请求 ──────────────────────────────────────────────────────
   const validationErrors = validatePartialEditRequest(request);
   if (validationErrors.length > 0) {
-    return {
-      ok: false,
-      error: {
-        kind: "validation",
-        message: "PartialEditRequest 校验失败",
-        errors: validationErrors,
-      },
-    };
+    return { ok: false, error: { kind: "validation", message: "PartialEditRequest 校验失败", errors: validationErrors } };
   }
-
   if (!isValidMaskConfig(request.mask)) {
     return {
       ok: false,
@@ -104,44 +224,15 @@ export async function startPartialEditTask(
     };
   }
 
-  // ── Step 2: 编码 mask 为 base64 PNG ────────────────────────────────────────
-  const maskEncodeResult = await encodeMask(request.mask);
-  if (!maskEncodeResult.ok) {
-    return {
-      ok: false,
-      error: {
-        kind: "mask_encode",
-        message: maskEncodeResult.error.message,
-      },
-    };
-  }
-  const encodedMask: MaskEncodeSuccess = maskEncodeResult.value;
-
-  // ── Step 3: 校验 mask 大小 ────────────────────────────────────────────────
-  if (!isMaskSizeValid(encodedMask.base64)) {
-    const sizeBytes = Math.ceil(encodedMask.base64.length * 3 / 4);
-    return {
-      ok: false,
-      error: {
-        kind: "mask_too_large",
-        message: `Mask PNG 体积过大（${(sizeBytes / 1024).toFixed(1)}KB），超过 1MB 限制`,
-        sizeBytes,
-        maxBytes: 1024 * 1024,
-      },
-    };
-  }
+  // ── Step 2-3: 编码 mask 为 base64 PNG 并校验大小 ────────────────────────────
+  const maskResult = await encodeAndValidateMask(request.mask);
+  if (!maskResult.ok) return { ok: false, error: maskResult.error };
+  const { encodedMask } = maskResult;
 
   // ── Step 4: 获取原视频 URL ─────────────────────────────────────────────────
   const sourceVideoUrl = await getSourceVideoUrl(request.sourceVideoAssetId);
   if (!sourceVideoUrl) {
-    return {
-      ok: false,
-      error: {
-        kind: "source_video_not_found",
-        message: `原视频 Asset 不存在：${request.sourceVideoAssetId}`,
-        sourceVideoAssetId: request.sourceVideoAssetId,
-      },
-    };
+    return { ok: false, error: buildSourceVideoNotFoundError(request.sourceVideoAssetId) };
   }
 
   // ── Step 5: 构建完整 prompt ───────────────────────────────────────────────
@@ -151,23 +242,11 @@ export async function startPartialEditTask(
     duration: request.duration,
   });
 
-  // ── Step 6: 检查 provider 是否支持 generatePartialEdit ──────────────────────
+  // ── Step 6-8: 检查 provider 支持并调用 generatePartialEdit（含 taskId 校验） ──
   const provider = container.videoProvider;
-  if (typeof provider.generatePartialEdit !== "function") {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_not_supported",
-        message: "当前 videoProvider 不支持 generatePartialEdit（需要 supportsPartialEdit=true 的模型，如 Seedance 2.5）",
-        providerId: request.providerId,
-      },
-    };
-  }
-
-  // ── Step 7: 调用 provider.generatePartialEdit ──────────────────────────────
-  let providerResult;
-  try {
-    providerResult = await provider.generatePartialEdit({
+  const callResult = await callProviderPartialEdit(
+    provider,
+    {
       sourceVideoUrl,
       maskBase64: encodedMask.base64,
       prompt: fullPrompt,
@@ -176,90 +255,41 @@ export async function startPartialEditTask(
       providerId: request.providerId,
       modelId: request.modelId,
       duration: request.duration,
-    });
-  } catch (e) {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_call_failed",
-        message: e instanceof Error ? e.message : String(e),
-        cause: e,
-      },
-    };
-  }
+    },
+    false,
+  );
+  if (!callResult.ok) return { ok: false, error: callResult.error };
+  const providerData = callResult.data;
 
-  if (!providerResult.success || !providerResult.data) {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_call_failed",
-        message: providerResult.error || "Provider 返回失败结果",
-      },
-    };
-  }
-
-  // ── Step 8: 校验 taskId 合法性 ────────────────────────────────────────────
-  const taskId = providerResult.data.taskId;
-  if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_call_failed",
-        message: `Provider 返回的 taskId 无效：${taskId}`,
-      },
-    };
-  }
-
-  // ── Step 9: 计算 maskBounds（用于持久化时快速查询） ────────────────────────
+  // ── Step 9-10: 计算 maskBounds 并创建 VideoTask ──────────────────────────────
   const maskBounds = computeMaskBounds(request.mask);
-
-  // ── Step 10: 创建 VideoTask 并加入 store ──────────────────────────────────
   const newTask: Omit<VideoTask, "progress" | "createdAt"> = {
-    taskId,
+    taskId: callResult.taskId,
     status: "pending",
     message: t("video.partialEditTaskSubmitted"),
-    // Task 2A.22 扩展字段
     taskSubtype: "partial_redraw",
     sourceVideoAssetId: request.sourceVideoAssetId,
     maskData: encodedMask.base64,
     maskBounds: maskBounds ?? undefined,
     editPrompt: request.editPrompt,
-    // provider 信息
     prompt: fullPrompt,
-    providerId: providerResult.data.providerId ?? request.providerId,
-    providerModelId: providerResult.data.providerModelId ?? request.modelId,
-    providerFormat: providerResult.data.providerFormat,
-    // 关联信息
+    providerId: providerData.providerId ?? request.providerId,
+    providerModelId: providerData.providerModelId ?? request.modelId,
+    providerFormat: providerData.providerFormat,
     storyId: request.storyId,
     beatId: request.beatId,
   };
-
-  let createdTask: VideoTask;
-  try {
-    createdTask = await videoTaskStore.addTask(newTask);
-  } catch (e) {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_call_failed",
-        message: `添加 VideoTask 失败：${e instanceof Error ? e.message : String(e)}`,
-        cause: e,
-      },
-    };
-  }
+  const taskResult = await createVideoTask(videoTaskStore, newTask);
+  if (!taskResult.ok) return { ok: false, error: taskResult.error };
+  const createdTask = taskResult.task;
 
   // ── Step 11: 发出 toast 通知 ──────────────────────────────────────────────
   emitToast(
     "success",
     t("video.partialEditTaskSubmittedTitle"),
-    t("video.partialEditTaskSubmittedDetail", { taskId: taskId.slice(0, 8) }),
+    t("video.partialEditTaskSubmittedDetail", { taskId: callResult.taskId.slice(0, 8) }),
   );
-
-  if (providerResult.data.promptWasTruncated) {
-    errorLogger.warn(
-      `[partial-edit-service] 提示词已被截断，原始长度: ${providerResult.data.originalPromptLength} 字符`,
-    );
-  }
+  logPromptTruncationIfAny(providerData, false);
 
   return {
     ok: true,
@@ -441,14 +471,7 @@ export async function startFaceSwapTask(
   // ── Step 1: 校验请求 ──────────────────────────────────────────────────────
   const validationErrors = validateFaceSwapRequest(request);
   if (validationErrors.length > 0) {
-    return {
-      ok: false,
-      error: {
-        kind: "validation",
-        message: "FaceSwapRequest 校验失败",
-        errors: validationErrors,
-      },
-    };
+    return { ok: false, error: { kind: "validation", message: "FaceSwapRequest 校验失败", errors: validationErrors } };
   }
 
   // ── Step 2: 构造全帧 mask ─────────────────────────────────────────────────
@@ -464,44 +487,15 @@ export async function startFaceSwapTask(
     };
   }
 
-  // ── Step 3: 编码 mask 为 base64 PNG ────────────────────────────────────────
-  const maskEncodeResult = await encodeMask(mask);
-  if (!maskEncodeResult.ok) {
-    return {
-      ok: false,
-      error: {
-        kind: "mask_encode",
-        message: maskEncodeResult.error.message,
-      },
-    };
-  }
-  const encodedMask: MaskEncodeSuccess = maskEncodeResult.value;
-
-  // ── Step 4: 校验 mask 大小 ────────────────────────────────────────────────
-  if (!isMaskSizeValid(encodedMask.base64)) {
-    const sizeBytes = Math.ceil(encodedMask.base64.length * 3 / 4);
-    return {
-      ok: false,
-      error: {
-        kind: "mask_too_large",
-        message: `Mask PNG 体积过大（${(sizeBytes / 1024).toFixed(1)}KB），超过 1MB 限制`,
-        sizeBytes,
-        maxBytes: 1024 * 1024,
-      },
-    };
-  }
+  // ── Step 3-4: 编码 mask 为 base64 PNG 并校验大小 ────────────────────────────
+  const maskResult = await encodeAndValidateMask(mask);
+  if (!maskResult.ok) return { ok: false, error: maskResult.error };
+  const { encodedMask } = maskResult;
 
   // ── Step 5: 获取原视频 URL ─────────────────────────────────────────────────
   const sourceVideoUrl = await getSourceVideoUrl(request.sourceVideoAssetId);
   if (!sourceVideoUrl) {
-    return {
-      ok: false,
-      error: {
-        kind: "source_video_not_found",
-        message: `原视频 Asset 不存在：${request.sourceVideoAssetId}`,
-        sourceVideoAssetId: request.sourceVideoAssetId,
-      },
-    };
+    return { ok: false, error: buildSourceVideoNotFoundError(request.sourceVideoAssetId) };
   }
 
   // ── Step 6: 构建完整 prompt（附加角色参考图 URL） ──────────────────────────
@@ -514,23 +508,11 @@ export async function startFaceSwapTask(
   });
   const finalPrompt = `${fullPrompt}\n${faceSwapPromptSuffix}`;
 
-  // ── Step 7: 检查 provider 是否支持 generatePartialEdit ──────────────────────
+  // ── Step 7-9: 检查 provider 支持并调用 generatePartialEdit（含 taskId 校验） ──
   const provider = container.videoProvider;
-  if (typeof provider.generatePartialEdit !== "function") {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_not_supported",
-        message: "当前 videoProvider 不支持 generatePartialEdit（face-swap 需要 supportsPartialEdit=true 的模型）",
-        providerId: request.providerId,
-      },
-    };
-  }
-
-  // ── Step 8: 调用 provider.generatePartialEdit ──────────────────────────────
-  let providerResult;
-  try {
-    providerResult = await provider.generatePartialEdit({
+  const callResult = await callProviderPartialEdit(
+    provider,
+    {
       sourceVideoUrl,
       maskBase64: encodedMask.base64,
       prompt: finalPrompt,
@@ -539,80 +521,35 @@ export async function startFaceSwapTask(
       providerId: request.providerId,
       modelId: request.modelId,
       duration: request.duration,
-    });
-  } catch (e) {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_call_failed",
-        message: e instanceof Error ? e.message : String(e),
-        cause: e,
-      },
-    };
-  }
+    },
+    true,
+  );
+  if (!callResult.ok) return { ok: false, error: callResult.error };
+  const providerData = callResult.data;
 
-  if (!providerResult.success || !providerResult.data) {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_call_failed",
-        message: providerResult.error || "Provider 返回失败结果",
-      },
-    };
-  }
-
-  // ── Step 9: 校验 taskId 合法性 ────────────────────────────────────────────
-  const taskId = providerResult.data.taskId;
-  if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_call_failed",
-        message: `Provider 返回的 taskId 无效：${taskId}`,
-      },
-    };
-  }
-
-  // ── Step 10: 计算 maskBounds ────────────────────────────────────────────────
+  // ── Step 10-11: 计算 maskBounds 并创建 VideoTask（taskSubtype='face_swap'） ───
   const maskBounds = computeMaskBounds(mask);
-
-  // ── Step 11: 创建 VideoTask（taskSubtype='face_swap'） ──────────────────────
   const newTask: Omit<VideoTask, "progress" | "createdAt"> = {
-    taskId,
+    taskId: callResult.taskId,
     status: "pending",
     message: t("video.qcFaceSwapStarted"),
-    // Task 2A.23: face-swap 子类型
     taskSubtype: "face_swap",
     sourceVideoAssetId: request.sourceVideoAssetId,
     maskData: encodedMask.base64,
     maskBounds: maskBounds ?? undefined,
     editPrompt: request.editPrompt,
-    // provider 信息
     prompt: finalPrompt,
-    providerId: providerResult.data.providerId ?? request.providerId,
-    providerModelId: providerResult.data.providerModelId ?? request.modelId,
-    providerFormat: providerResult.data.providerFormat,
-    // 关联信息
+    providerId: providerData.providerId ?? request.providerId,
+    providerModelId: providerData.providerModelId ?? request.modelId,
+    providerFormat: providerData.providerFormat,
     storyId: request.storyId,
     beatId: request.beatId,
-    // Task 2A.23: 角色 face-swap 元数据
     fixedImageUrl: request.characterRefImageUrl,
     fixedImageLockType: "character",
   };
-
-  let createdTask: VideoTask;
-  try {
-    createdTask = await videoTaskStore.addTask(newTask);
-  } catch (e) {
-    return {
-      ok: false,
-      error: {
-        kind: "provider_call_failed",
-        message: `添加 VideoTask 失败：${e instanceof Error ? e.message : String(e)}`,
-        cause: e,
-      },
-    };
-  }
+  const taskResult = await createVideoTask(videoTaskStore, newTask);
+  if (!taskResult.ok) return { ok: false, error: taskResult.error };
+  const createdTask = taskResult.task;
 
   // ── Step 12: 发出 toast 通知 ──────────────────────────────────────────────
   emitToast(
@@ -620,12 +557,7 @@ export async function startFaceSwapTask(
     t("video.qcFaceSwapTitle"),
     t("video.qcFaceSwapDetail"),
   );
-
-  if (providerResult.data.promptWasTruncated) {
-    errorLogger.warn(
-      `[partial-edit-service] face-swap 提示词已被截断，原始长度: ${providerResult.data.originalPromptLength} 字符`,
-    );
-  }
+  logPromptTruncationIfAny(providerData, true);
 
   return {
     ok: true,

@@ -19,6 +19,7 @@ import { specialistRegistry, SpecialistRegistry } from "@/modules/agent-speciali
 import { BUILTIN_SPECIALISTS } from "@/modules/agent-specialist";
 import type { SpecialistAgent } from "@/modules/agent-specialist";
 import { runSpecialist, listAvailableSpecialists } from "@/modules/agent";
+import type { AgentSession, AgentLoopCallbacks, AgentLoopConfig } from "@/modules/agent";
 import { delegateToSpecialistTool, listSpecialistsTool, specialistTools } from "@/modules/agent-tools-specialist";
 import { toolRegistry } from "../tool-registry";
 
@@ -28,10 +29,10 @@ import { toolRegistry } from "../tool-registry";
 
 vi.mock("../agent-loop", () => ({
   AgentLoop: class MockAgentLoop {
-    session: any;
-    callbacks: any;
-    config: any;
-    constructor(session: any, callbacks: any, config: any) {
+    session: AgentSession;
+    callbacks: AgentLoopCallbacks;
+    config: AgentLoopConfig;
+    constructor(session: AgentSession, callbacks: AgentLoopCallbacks, config: AgentLoopConfig) {
       this.session = session;
       this.callbacks = callbacks;
       this.config = config;

@@ -23,6 +23,30 @@ interface UseVideoTaskHandlersDeps {
   openPreview: (task: VideoTask) => void;
 }
 
+type ToastSuccess = (title: string, detail: string) => void;
+
+function exportTasksToCSV(
+  filteredTasks: VideoTask[],
+  revokeDelayMs: number,
+  blobUrlTimers: Set<ReturnType<typeof setTimeout>>,
+  onSuccess: ToastSuccess,
+): void {
+  const headers = [t("task.csvTaskId"), t("task.csvStatus"), t("task.csvProgress"), t("task.csvModel"), t("task.csvStory"), t("task.csvBeat"), t("task.csvCreatedAt"), t("task.csvVideoUrl")];
+  const rows = filteredTasks.map((task) => [task.taskId, task.status, `${task.progress}%`, task.model || "", task.storyTitle || "", task.beatTitle || "", new Date(task.createdAt).toLocaleString(), task.videoUrl || ""]);
+  const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `video-tasks-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  const timer = setTimeout(() => URL.revokeObjectURL(url), revokeDelayMs);
+  blobUrlTimers.add(timer);
+  onSuccess(t("success.exported"), t("video.exportedToCsv", { count: rows.length }));
+}
+
 export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   const { tasks, filteredTasks, completedTaskIds, pollTask, removeTasks, onTaskRecovered, openPreview } = deps;
   const { guardedPush } = useNavigationGuard();
@@ -126,20 +150,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   }, [success, error]);
 
   const handleExportCSV = useCallback(() => {
-    const headers = [t("task.csvTaskId"), t("task.csvStatus"), t("task.csvProgress"), t("task.csvModel"), t("task.csvStory"), t("task.csvBeat"), t("task.csvCreatedAt"), t("task.csvVideoUrl")];
-    const rows = filteredTasks.map((t) => [t.taskId, t.status, `${t.progress}%`, t.model || "", t.storyTitle || "", t.beatTitle || "", new Date(t.createdAt).toLocaleString(), t.videoUrl || ""]);
-    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `video-tasks-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    const timer = setTimeout(() => URL.revokeObjectURL(url), CSV_BLOB_REVOKE_DELAY_MS);
-    blobUrlTimersRef.current.add(timer);
-    success(t("success.exported"), t("video.exportedToCsv", { count: rows.length }));
+    exportTasksToCSV(filteredTasks, CSV_BLOB_REVOKE_DELAY_MS, blobUrlTimersRef.current, success);
   }, [filteredTasks, success]);
 
   const handleDownloadVideo = useCallback(async (task: VideoTask) => {

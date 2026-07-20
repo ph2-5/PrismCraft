@@ -40,12 +40,13 @@ const mimicryLevelDescriptions = {
   deep: t("refVideo.deepMimicryDesc"),
 };
 
-export function ReferenceVideoUploader({
+const MAX_VIDEO_SIZE = 20 * 1024 * 1024;
+
+function useReferenceVideoUploader({
   referenceVideo,
-  assets,
   onUpdate,
   onError,
-}: ReferenceVideoUploaderProps) {
+}: Omit<ReferenceVideoUploaderProps, "assets">) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [assetSelectorOpen, setAssetSelectorOpen] = useState(false);
@@ -78,7 +79,6 @@ export function ReferenceVideoUploader({
       return;
     }
 
-    const MAX_VIDEO_SIZE = 20 * 1024 * 1024;
     if (file.size > MAX_VIDEO_SIZE) {
       onError?.(t("refVideo.videoSizeLimit"));
       return;
@@ -166,6 +166,114 @@ export function ReferenceVideoUploader({
     });
     setAssetSelectorOpen(false);
   };
+
+  return {
+    isDragging,
+    isUploading,
+    assetSelectorOpen,
+    fileInputRef,
+    config,
+    setAssetSelectorOpen,
+    handleFileSelect,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleFileInputChange,
+    handleRemoveVideo,
+    toggleEnabled,
+    updateMimicryLevel,
+    handleSelectFromAssetLibrary,
+  };
+}
+
+interface AssetLibraryModalProps {
+  open: boolean;
+  onClose: () => void;
+  assets: MinimalAsset[];
+  onSelect: (asset: MinimalAsset) => void;
+}
+
+function AssetLibraryModal({ open, onClose, assets, onSelect }: AssetLibraryModalProps) {
+  const videoAssets = assets.filter((asset) => asset.type === "video");
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      ariaLabel={t("refVideo.selectFromLibrary")}
+      style={{ maxWidth: "56rem" }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 600 }}>{t("refVideo.selectFromLibrary")}</div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 py-4 max-h-96 overflow-y-auto">
+        {videoAssets.length > 0 ? (
+          videoAssets.map((asset) => (
+            <div
+              key={asset.id}
+              onClick={() => onSelect(asset)}
+              className="cursor-pointer group relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-all bg-background"
+              role="button"
+              tabIndex={0}
+              aria-label={asset.name}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(asset);
+                }
+              }}
+            >
+              <video
+                src={asset.url}
+                className="w-full h-full object-cover"
+                muted
+                onError={createSimpleVideoErrorHandler()}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                <p className="text-xs text-foreground font-medium truncate">
+                  {asset.name}
+                </p>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                <Video className="w-8 h-8 text-foreground" />
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            <Video className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-sm">{t("refVideo.noVideosInLibrary")}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("refVideo.uploadImageOrVideoFirst")}
+            </p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+export function ReferenceVideoUploader({
+  referenceVideo,
+  assets,
+  onUpdate,
+  onError,
+}: ReferenceVideoUploaderProps) {
+  const {
+    isDragging,
+    isUploading,
+    assetSelectorOpen,
+    fileInputRef,
+    config,
+    setAssetSelectorOpen,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleFileInputChange,
+    handleRemoveVideo,
+    toggleEnabled,
+    updateMimicryLevel,
+    handleSelectFromAssetLibrary,
+  } = useReferenceVideoUploader({ referenceVideo, onUpdate, onError });
 
   return (
     <div className="space-y-4">
@@ -308,61 +416,12 @@ export function ReferenceVideoUploader({
         </div>
       )}
 
-      <Modal
+      <AssetLibraryModal
         open={assetSelectorOpen}
         onClose={() => setAssetSelectorOpen(false)}
-        ariaLabel={t("refVideo.selectFromLibrary")}
-        style={{ maxWidth: "56rem" }}
-      >
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>{t("refVideo.selectFromLibrary")}</div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 py-4 max-h-96 overflow-y-auto">
-          {assets.filter((asset) => asset.type === "video").length > 0 ? (
-            assets
-              .filter((asset) => asset.type === "video")
-              .map((asset) => (
-                <div
-                  key={asset.id}
-                  onClick={() => handleSelectFromAssetLibrary(asset)}
-                  className="cursor-pointer group relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-all bg-background"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={asset.name}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleSelectFromAssetLibrary(asset);
-                    }
-                  }}
-                >
-                  <video
-                    src={asset.url}
-                    className="w-full h-full object-cover"
-                    muted
-                    onError={createSimpleVideoErrorHandler()}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                    <p className="text-xs text-foreground font-medium truncate">
-                      {asset.name}
-                    </p>
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                    <Video className="w-8 h-8 text-foreground" />
-                  </div>
-                </div>
-              ))
-          ) : (
-            <div className="col-span-full text-center py-8 text-muted-foreground">
-              <Video className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-sm">{t("refVideo.noVideosInLibrary")}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("refVideo.uploadImageOrVideoFirst")}
-              </p>
-            </div>
-          )}
-        </div>
-      </Modal>
+        assets={assets}
+        onSelect={handleSelectFromAssetLibrary}
+      />
     </div>
   );
 }

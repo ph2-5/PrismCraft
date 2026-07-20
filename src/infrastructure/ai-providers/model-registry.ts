@@ -272,6 +272,60 @@ function resolveModelCapabilities(entry: JsonModelEntry): ModelCapabilities | un
   return undefined;
 }
 
+/** 可选数值字段（仅在 raw 中存在时复制） */
+const OPTIONAL_NUMBER_FIELDS = [
+  "urlTtl",
+  "maxCharacterRefs",
+  "maxDuration",
+  "maxModalReferences",
+] as const;
+
+/** 可选布尔字段（仅在 raw 中存在时复制） */
+const OPTIONAL_BOOLEAN_FIELDS = [
+  "supportsCharacterRef",
+  "supportsSceneRef",
+  "nativeCharacterRef",
+  "nativeSceneRef",
+  "supportsReferenceVideo",
+  "supportsPartialEdit",
+  "supports3DPreview",
+] as const;
+
+/** 可选字符串/枚举字段（仅在 raw 中非空时复制） */
+const OPTIONAL_STRING_FIELDS = [
+  "defaultImageSize",
+  "providerId",
+  "characterRefMode",
+  "sceneRefMode",
+  "imageUploadMode",
+  "promptLanguage",
+  "consistencyStrategy",
+] as const;
+
+/** 提取可选字段（减少主函数分支复杂度） */
+function pickOptionalCapabilities(raw: Record<string, unknown>): Partial<ModelCapabilities> {
+  const result: Record<string, unknown> = {};
+
+  if (raw.supportedFormats) {
+    result.supportedFormats = raw.supportedFormats as string[];
+  }
+  if (raw.supportedImageSizes) {
+    result.supportedImageSizes = raw.supportedImageSizes as ModelCapabilities["supportedImageSizes"];
+  }
+
+  for (const key of OPTIONAL_NUMBER_FIELDS) {
+    if (typeof raw[key] === "number") result[key] = raw[key];
+  }
+  for (const key of OPTIONAL_BOOLEAN_FIELDS) {
+    if (raw[key] !== undefined) result[key] = raw[key];
+  }
+  for (const key of OPTIONAL_STRING_FIELDS) {
+    if (raw[key]) result[key] = raw[key];
+  }
+
+  return result as Partial<ModelCapabilities>;
+}
+
 export function sanitizeModelCapabilities(raw: Record<string, unknown>): ModelCapabilities {
   return {
     maxReferences: typeof raw.maxReferences === "number" ? raw.maxReferences : 4,
@@ -279,28 +333,7 @@ export function sanitizeModelCapabilities(raw: Record<string, unknown>): ModelCa
     maxSizeMB: typeof raw.maxSizeMB === "number" ? raw.maxSizeMB : 10,
     supportsLastFrame: typeof raw.supportsLastFrame === "boolean" ? raw.supportsLastFrame : false,
     referenceMode: raw.referenceMode === "merged" ? "merged" : "separate",
-    ...(raw.supportedFormats ? { supportedFormats: raw.supportedFormats as string[] } : {}),
-    ...(raw.supportedImageSizes ? { supportedImageSizes: raw.supportedImageSizes as ModelCapabilities["supportedImageSizes"] } : {}),
-    ...(raw.defaultImageSize ? { defaultImageSize: raw.defaultImageSize as string } : {}),
-    ...(raw.providerId ? { providerId: raw.providerId as string } : {}),
-    ...(raw.urlTtl ? { urlTtl: raw.urlTtl as number } : {}),
-    ...(raw.supportsCharacterRef !== undefined ? { supportsCharacterRef: raw.supportsCharacterRef as boolean } : {}),
-    ...(raw.supportsSceneRef !== undefined ? { supportsSceneRef: raw.supportsSceneRef as boolean } : {}),
-    ...(raw.nativeCharacterRef !== undefined ? { nativeCharacterRef: raw.nativeCharacterRef as boolean } : {}),
-    ...(raw.nativeSceneRef !== undefined ? { nativeSceneRef: raw.nativeSceneRef as boolean } : {}),
-    ...(raw.characterRefMode ? { characterRefMode: raw.characterRefMode as ModelCapabilities["characterRefMode"] } : {}),
-    ...(raw.sceneRefMode ? { sceneRefMode: raw.sceneRefMode as ModelCapabilities["sceneRefMode"] } : {}),
-    ...(raw.imageUploadMode ? { imageUploadMode: raw.imageUploadMode as ModelCapabilities["imageUploadMode"] } : {}),
-    ...(raw.maxCharacterRefs !== undefined ? { maxCharacterRefs: raw.maxCharacterRefs as number } : {}),
-    ...(raw.promptLanguage ? { promptLanguage: raw.promptLanguage as ModelCapabilities["promptLanguage"] } : {}),
-    ...(raw.supportsReferenceVideo !== undefined ? { supportsReferenceVideo: raw.supportsReferenceVideo as boolean } : {}),
-    // Task 2A.12: 一致性策略字段
-    ...(raw.consistencyStrategy ? { consistencyStrategy: raw.consistencyStrategy as ModelCapabilities["consistencyStrategy"] } : {}),
-    // Task 2A.20: Seedance 2.5 新增能力字段
-    ...(raw.maxDuration !== undefined ? { maxDuration: raw.maxDuration as number } : {}),
-    ...(raw.supportsPartialEdit !== undefined ? { supportsPartialEdit: raw.supportsPartialEdit as boolean } : {}),
-    ...(raw.supports3DPreview !== undefined ? { supports3DPreview: raw.supports3DPreview as boolean } : {}),
-    ...(raw.maxModalReferences !== undefined ? { maxModalReferences: raw.maxModalReferences as number } : {}),
+    ...pickOptionalCapabilities(raw),
   };
 }
 

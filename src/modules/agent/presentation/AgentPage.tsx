@@ -57,6 +57,165 @@ import {
   Stethoscope,
 } from "lucide-react";
 
+interface PanelToggleButtonProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+}
+
+/** 头部面板切换按钮（统一图标按钮样式） */
+function PanelToggleButton({ icon: Icon, label, onClick }: PanelToggleButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      title={label}
+      aria-label={label}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
+
+interface ExportMenuProps {
+  show: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+  onExport: (format: ExportFormat) => void;
+}
+
+/** 导出会话下拉菜单 */
+function ExportMenu({ show, disabled, onToggle, onExport }: ExportMenuProps) {
+  return (
+    <div className="relative">
+      <button
+        onClick={onToggle}
+        disabled={disabled}
+        className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+        title={t("agent.history.exportSession")}
+        aria-label={t("agent.history.exportSession")}
+        aria-expanded={show}
+      >
+        <Download className="h-3.5 w-3.5" />
+        {t("agent.history.export")}
+        <ChevronDown className="h-3 w-3" />
+      </button>
+      {show && (
+        <>
+          {/* 点击外部关闭 */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={onToggle}
+            aria-hidden="true"
+          />
+          <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] overflow-hidden rounded-md border border-border bg-popover shadow-md">
+            <button
+              onClick={() => onExport("json")}
+              className="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-muted"
+            >
+              {t("agent.history.exportAsJson")}
+            </button>
+            <button
+              onClick={() => onExport("markdown")}
+              className="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-muted"
+            >
+              {t("agent.history.exportAsMarkdown")}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+interface QuickActionsProps {
+  disabled: boolean;
+  onPick: (text: string) => void;
+}
+
+/** 输入框上方的意图快捷按钮 */
+function QuickActions({ disabled, onPick }: QuickActionsProps) {
+  const actions: Array<{ icon: React.ComponentType<{ className?: string }>; text: string; label: string }> = [
+    { icon: Wrench, text: "API 怎么配置", label: t("agent.quickActionApiConfig") },
+    { icon: BookOpen, text: "把这段小说变成视频", label: t("agent.quickActionImportNovel") },
+    { icon: Search, text: "搜索素材", label: t("agent.quickActionSearchAssets") },
+    { icon: Stethoscope, text: "生成失败了，请帮诊断", label: t("agent.quickActionDiagnose") },
+  ];
+  return (
+    <div className="mx-auto mb-2 flex max-w-3xl gap-2">
+      {actions.map((a) => (
+        <button
+          key={a.label}
+          type="button"
+          onClick={() => onPick(a.text)}
+          disabled={disabled}
+          className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
+          title={a.label}
+        >
+          <a.icon className="h-3 w-3" />
+          {a.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface AgentInputAreaProps {
+  input: string;
+  setInput: (v: string) => void;
+  isStreaming: boolean;
+  onSubmit: () => void;
+  onCancel: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+}
+
+/** 输入区：快捷按钮 + textarea + 发送/停止按钮 */
+function AgentInputArea({
+  input,
+  setInput,
+  isStreaming,
+  onSubmit,
+  onCancel,
+  onKeyDown,
+}: AgentInputAreaProps) {
+  return (
+    <div className="border-t border-border bg-background p-4">
+      <QuickActions disabled={isStreaming} onPick={setInput} />
+      <div className="mx-auto flex max-w-3xl items-end gap-2">
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={t("agent.inputPlaceholder")}
+          aria-label={t("agent.inputPlaceholder")}
+          rows={1}
+          className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          style={{ minHeight: "40px", maxHeight: "200px" }}
+          disabled={isStreaming}
+        />
+        {isStreaming ? (
+          <button
+            onClick={onCancel}
+            className="flex h-10 items-center gap-1 rounded-lg bg-destructive px-4 text-sm text-destructive-foreground hover:bg-destructive/90"
+          >
+            <Square className="h-4 w-4" />
+            {t("agent.stop")}
+          </button>
+        ) : (
+          <button
+            onClick={onSubmit}
+            disabled={!input.trim()}
+            className="flex h-10 items-center gap-1 rounded-lg bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" />
+            {t("agent.send")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AgentPage() {
   const {
     session,
@@ -202,51 +361,29 @@ export function AgentPage() {
             )}
           </div>
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                if (showMemory) setShowMemory(false);
-                else showOnly("memory");
-              }}
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title={t("agent.memory.management")}
-              aria-label={t("agent.memory.management")}
-            >
-              <Brain className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => {
-                if (showPlugins) setShowPlugins(false);
-                else showOnly("plugins");
-              }}
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title={t("agent.plugin.management")}
-              aria-label={t("agent.plugin.management")}
-            >
-              <Package className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => {
-                if (showSpecialists) setShowSpecialists(false);
-                else showOnly("specialists");
-              }}
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title={t("agent.specialist.management")}
-              aria-label={t("agent.specialist.management")}
-            >
-              <Users className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => {
-                if (showAudit) setShowAudit(false);
-                else showOnly("audit");
-              }}
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title={t("agent.audit.management")}
-              aria-label={t("agent.audit.management")}
-            >
-              <ScrollText className="h-4 w-4" />
-            </button>
-            <button
+            <PanelToggleButton
+              icon={Brain}
+              label={t("agent.memory.management")}
+              onClick={() => (showMemory ? setShowMemory(false) : showOnly("memory"))}
+            />
+            <PanelToggleButton
+              icon={Package}
+              label={t("agent.plugin.management")}
+              onClick={() => (showPlugins ? setShowPlugins(false) : showOnly("plugins"))}
+            />
+            <PanelToggleButton
+              icon={Users}
+              label={t("agent.specialist.management")}
+              onClick={() => (showSpecialists ? setShowSpecialists(false) : showOnly("specialists"))}
+            />
+            <PanelToggleButton
+              icon={ScrollText}
+              label={t("agent.audit.management")}
+              onClick={() => (showAudit ? setShowAudit(false) : showOnly("audit"))}
+            />
+            <PanelToggleButton
+              icon={SettingsIcon}
+              label={t("agent.settings")}
               onClick={() => {
                 if (showSettings) setShowSettings(false);
                 else {
@@ -254,12 +391,7 @@ export function AgentPage() {
                   void refreshHistory();
                 }
               }}
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title={t("agent.settings")}
-              aria-label={t("agent.settings")}
-            >
-              <SettingsIcon className="h-4 w-4" />
-            </button>
+            />
             <button
               onClick={handleClear}
               disabled={isStreaming}
@@ -269,45 +401,12 @@ export function AgentPage() {
               <Trash2 className="h-3.5 w-3.5" />
               {t("agent.clear")}
             </button>
-            {/* Task 4.9 子项 2：导出当前会话 */}
-            <div className="relative">
-              <button
-                onClick={() => setShowExportMenu(!showExportMenu)}
-                disabled={isStreaming || session.messages.length === 0}
-                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
-                title={t("agent.history.exportSession")}
-                aria-label={t("agent.history.exportSession")}
-                aria-expanded={showExportMenu}
-              >
-                <Download className="h-3.5 w-3.5" />
-                {t("agent.history.export")}
-                <ChevronDown className="h-3 w-3" />
-              </button>
-              {showExportMenu && (
-                <>
-                  {/* 点击外部关闭 */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowExportMenu(false)}
-                    aria-hidden="true"
-                  />
-                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] overflow-hidden rounded-md border border-border bg-popover shadow-md">
-                    <button
-                      onClick={() => handleExport("json")}
-                      className="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-muted"
-                    >
-                      {t("agent.history.exportAsJson")}
-                    </button>
-                    <button
-                      onClick={() => handleExport("markdown")}
-                      className="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-muted"
-                    >
-                      {t("agent.history.exportAsMarkdown")}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            <ExportMenu
+              show={showExportMenu}
+              disabled={isStreaming || session.messages.length === 0}
+              onToggle={() => setShowExportMenu(!showExportMenu)}
+              onExport={handleExport}
+            />
           </div>
 
           {/* 设置面板（下拉） */}
@@ -409,82 +508,14 @@ export function AgentPage() {
         )}
 
         {/* 输入区（固定底部） */}
-        <div className="border-t border-border bg-background p-4">
-          {/* Task 1.12：意图快捷按钮（对应 design-preview.html 第 1874-1879 行） */}
-          <div className="mx-auto mb-2 flex max-w-3xl gap-2">
-            <button
-              type="button"
-              onClick={() => setInput("API 怎么配置")}
-              disabled={isStreaming}
-              className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
-              title={t("agent.quickActionApiConfig")}
-            >
-              <Wrench className="h-3 w-3" />
-              {t("agent.quickActionApiConfig")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setInput("把这段小说变成视频")}
-              disabled={isStreaming}
-              className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
-              title={t("agent.quickActionImportNovel")}
-            >
-              <BookOpen className="h-3 w-3" />
-              {t("agent.quickActionImportNovel")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setInput("搜索素材")}
-              disabled={isStreaming}
-              className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
-              title={t("agent.quickActionSearchAssets")}
-            >
-              <Search className="h-3 w-3" />
-              {t("agent.quickActionSearchAssets")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setInput("生成失败了，请帮诊断")}
-              disabled={isStreaming}
-              className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
-              title={t("agent.quickActionDiagnose")}
-            >
-              <Stethoscope className="h-3 w-3" />
-              {t("agent.quickActionDiagnose")}
-            </button>
-          </div>
-          <div className="mx-auto flex max-w-3xl items-end gap-2">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t("agent.inputPlaceholder")}
-              aria-label={t("agent.inputPlaceholder")}
-              rows={1}
-              className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-              style={{ minHeight: "40px", maxHeight: "200px" }}
-              disabled={isStreaming}
-            />
-            {isStreaming ? (
-              <button
-                onClick={cancel}
-                className="flex h-10 items-center gap-1 rounded-lg bg-destructive px-4 text-sm text-destructive-foreground hover:bg-destructive/90"
-              >
-                <Square className="h-4 w-4" />
-                {t("agent.stop")}
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={!input.trim()}
-                className="flex h-10 items-center gap-1 rounded-lg bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" />
-                {t("agent.send")}
-              </button>
-            )}
-          </div>
-        </div>
+        <AgentInputArea
+          input={input}
+          setInput={setInput}
+          isStreaming={isStreaming}
+          onSubmit={handleSubmit}
+          onCancel={cancel}
+          onKeyDown={handleKeyDown}
+        />
       </div>
     </div>
   );

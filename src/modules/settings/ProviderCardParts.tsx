@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+ 
 import { useState } from "react";
 import { t } from "@/shared/constants";
 import {

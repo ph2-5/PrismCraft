@@ -9,6 +9,7 @@ import {
   Package,
   Plus,
 } from "lucide-react";
+import type { ReactNode, KeyboardEvent } from "react";
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { ApiKeyAlert } from "@/shared/presentation/onboarding";
@@ -68,98 +69,56 @@ export default function Home() {
 
         {/* 三工作流卡片 */}
         <div className="grid grid-cols-3 gap-4 p-6 border-b border-border">
-          {/* 故事模式 */}
-          <div
-            className="card home-card-primary p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
+          <WorkflowCard
+            cardClass="card home-card-primary"
+            iconBg="rgba(var(--primary-rgb),0.06)"
+            icon={<BookOpen size={32} />}
+            title={t("home.storyMode")}
+            desc={t("home.storyModeDesc")}
+            ctaText={t("home.storyModeCta")}
+            ctaColor="text-[var(--primary-hover)]"
+            badges={[
+              { text: t("home.importNovel"), cls: "badge-info" },
+              { text: t("home.aiSplit"), cls: "badge-info" },
+              { text: t("home.batchGenerate"), cls: "badge-info" },
+            ]}
             onClick={() => navigate("/story")}
-            role="button"
-            tabIndex={0}
-            aria-label={t("home.storyMode")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navigate("/story");
-              }
-            }}
-          >
-            <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-[rgba(var(--primary-rgb),0.06)]" />
-            <div className="text-[32px] mb-3 relative"><BookOpen size={32} /></div>
-            <div className="text-[15px] font-bold mb-1 relative">{t("home.storyMode")}</div>
-            <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
-              {t("home.storyModeDesc")}
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] relative text-[var(--primary-hover)]">
-              <span>{t("home.storyModeCta")}</span>
-              <span className="text-sm">→</span>
-            </div>
-            <div className="flex gap-1 mt-2.5 relative">
-              <span className="badge badge-info text-[9px]">{t("home.importNovel")}</span>
-              <span className="badge badge-info text-[9px]">{t("home.aiSplit")}</span>
-              <span className="badge badge-info text-[9px]">{t("home.batchGenerate")}</span>
-            </div>
-          </div>
+            ariaLabel={t("home.storyMode")}
+          />
 
-          {/* 分镜模式 */}
-          <div
-            className="card home-card-warning p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
+          <WorkflowCard
+            cardClass="card home-card-warning"
+            iconBg="rgba(var(--warning-rgb),0.06)"
+            icon={<Film size={32} />}
+            title={t("home.storyboardMode")}
+            desc={t("home.storyboardModeDesc")}
+            ctaText={t("home.storyboardModeCta")}
+            ctaColor="text-warning"
+            badges={[
+              { text: t("home.elementBinding"), cls: "badge-warning" },
+              { text: t("home.promptEdit"), cls: "badge-warning" },
+              { text: t("home.shotByShot"), cls: "badge-warning" },
+            ]}
             onClick={() => navigate("/storyboard")}
-            role="button"
-            tabIndex={0}
-            aria-label={t("home.storyboardMode")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navigate("/storyboard");
-              }
-            }}
-          >
-            <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-[rgba(var(--warning-rgb),0.06)]" />
-            <div className="text-[32px] mb-3 relative"><Film size={32} /></div>
-            <div className="text-[15px] font-bold mb-1 relative">{t("home.storyboardMode")}</div>
-            <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
-              {t("home.storyboardModeDesc")}
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] relative text-warning">
-              <span>{t("home.storyboardModeCta")}</span>
-              <span className="text-sm">→</span>
-            </div>
-            <div className="flex gap-1 mt-2.5 relative">
-              <span className="badge badge-warning text-[9px]">{t("home.elementBinding")}</span>
-              <span className="badge badge-warning text-[9px]">{t("home.promptEdit")}</span>
-              <span className="badge badge-warning text-[9px]">{t("home.shotByShot")}</span>
-            </div>
-          </div>
+            ariaLabel={t("home.storyboardMode")}
+          />
 
-          {/* 快速生成 */}
-          <div
-            className="card home-card-success p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5"
+          <WorkflowCard
+            cardClass="card home-card-success"
+            iconBg="rgba(var(--success-rgb),0.06)"
+            icon={<Zap size={32} />}
+            title={t("home.quickMode")}
+            desc={t("home.quickModeDesc")}
+            ctaText={t("home.quickModeCta")}
+            ctaColor="text-success"
+            badges={[
+              { text: t("home.textToImage"), cls: "badge-success" },
+              { text: t("home.textToVideo"), cls: "badge-success" },
+              { text: t("home.referenceImage"), cls: "badge-success" },
+            ]}
             onClick={() => navigate("/quick-generate")}
-            role="button"
-            tabIndex={0}
-            aria-label={t("home.quickMode")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navigate("/quick-generate");
-              }
-            }}
-          >
-            <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-[rgba(var(--success-rgb),0.06)]" />
-            <div className="text-[32px] mb-3 relative"><Zap size={32} /></div>
-            <div className="text-[15px] font-bold mb-1 relative">{t("home.quickMode")}</div>
-            <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">
-              {t("home.quickModeDesc")}
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] relative text-success">
-              <span>{t("home.quickModeCta")}</span>
-              <span className="text-sm">→</span>
-            </div>
-            <div className="flex gap-1 mt-2.5 relative">
-              <span className="badge badge-success text-[9px]">{t("home.textToImage")}</span>
-              <span className="badge badge-success text-[9px]">{t("home.textToVideo")}</span>
-              <span className="badge badge-success text-[9px]">{t("home.referenceImage")}</span>
-            </div>
-          </div>
+            ariaLabel={t("home.quickMode")}
+          />
         </div>
 
         {/* 最近项目 */}
@@ -251,6 +210,52 @@ function QuickEntryCard({ icon, title, subtitle, onClick }: { icon: string; titl
       <div className="text-2xl mb-1">{icon}</div>
       <div className="text-xs font-semibold">{title}</div>
       <div className="text-[10px] text-muted-foreground">{subtitle}</div>
+    </div>
+  );
+}
+
+interface WorkflowCardProps {
+  cardClass: string;
+  iconBg: string;
+  icon: ReactNode;
+  title: string;
+  desc: string;
+  ctaText: string;
+  ctaColor: string;
+  badges: { text: string; cls: string }[];
+  onClick: () => void;
+  ariaLabel: string;
+}
+
+function WorkflowCard({ cardClass, iconBg, icon, title, desc, ctaText, ctaColor, badges, onClick, ariaLabel }: WorkflowCardProps) {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  };
+  return (
+    <div
+      className={`${cardClass} p-5 cursor-pointer relative overflow-hidden transition-all hover:-translate-y-0.5`}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      onKeyDown={handleKeyDown}
+    >
+      <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full" style={{ background: iconBg }} />
+      <div className="text-[32px] mb-3 relative">{icon}</div>
+      <div className="text-[15px] font-bold mb-1 relative">{title}</div>
+      <div className="text-[11px] text-muted-foreground leading-relaxed mb-3 relative">{desc}</div>
+      <div className={`flex items-center gap-1.5 text-[11px] relative ${ctaColor}`}>
+        <span>{ctaText}</span>
+        <span className="text-sm">→</span>
+      </div>
+      <div className="flex gap-1 mt-2.5 relative">
+        {badges.map((b, i) => (
+          <span key={i} className={`badge ${b.cls} text-[9px]`}>{b.text}</span>
+        ))}
+      </div>
     </div>
   );
 }

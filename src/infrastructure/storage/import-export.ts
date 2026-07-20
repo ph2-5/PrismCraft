@@ -1,4 +1,4 @@
-/* eslint-disable max-lines -- import-export 包含大量表定义，拆分后仍超过 500 行 */
+ 
 import { parseRecordWithTable, toSqlValue } from "./core";
 import type { DbRunResult } from "./core";
 import type { StoryVersion } from "@/domain/schemas";

@@ -26,9 +26,10 @@ import type {
   ToolExecution,
   ToolResult,
   AgentLoopConfig,
+  AgentLoopCallbacks,
 } from "../domain/types";
 import { createEmptySession } from "../domain/types";
-import type { StreamChunk, ToolCall } from "@/domain/ports/ai-provider-port";
+import type { ToolCall } from "@/domain/ports/ai-provider-port";
 import { AgentLoop } from "../services/agent-loop";
 import { registerAllTools, loadToolPlugins } from "../tools";
 import { AGENT_PERSONAS, type AgentPersona } from "../domain/prompts";
@@ -127,6 +128,405 @@ async function triggerMemoryExtraction(
     // 记忆抽取失败不影响主流程，但记录日志便于排查
     errorLogger.warn("[Agent] 记忆抽取失败", e);
   }
+}
+
+/**
+ * 根据 VIDEO_TASK_COMPLETED 事件载荷构建系统提示（注入下次 buildSystemPrompt）。
+ *
+ * 提取自 useAgent 内部 useEffect 订阅回调，便于单测与复用。
+ */
+function buildVideoTaskCompletedHint(payload: unknown): string | undefined {
+  try {
+    const { taskId, videoUrl } = payload as { taskId: string; videoUrl?: string };
+    const urlHint = videoUrl ? `，videoUrl=${videoUrl}` : "";
+    return [
+      "## 系统事件通知",
+      "",
+      `视频任务刚刚完成：taskId=\`${taskId}\`${urlHint}。`,
+      "系统已自动执行一致性 QC 并将 QCReport 写入 StoryBeat.qcReport。",
+      "",
+      "响应建议：",
+      `- 若用户询问视频质量或一致性，优先调用 \`check_video_consistency(taskId="${taskId}")\` 获取 cached QCReport`,
+      "- 若 verdict=drift_critical，告知用户并询问是否触发 `dispatch_video_fallback`",
+      "- 不要主动调用 QC 工具，除非用户明确询问",
+    ].join("\n");
+  } catch (e) {
+    errorLogger.warn("[useAgent] VIDEO_TASK_COMPLETED 订阅处理失败", e);
+    return undefined;
+  }
+}
+
+/**
+ * 构建危险工具确认对话框的描述文本（工具名/描述/危险等级/参数列表）。
+ *
+ * 提取自 useAgent.sendMessage 内的 onConfirmationRequired 回调。
+ */
+function buildToolConfirmationDescription(toolCall: ToolCall): string {
+  const toolName = toolCall.function.name;
+
+  // P1-C：从 toolRegistry 获取工具描述和危险等级
+  const toolImpl = toolRegistry.get(toolName);
+  const toolDesc = toolImpl?.def.function.description ?? "";
+  const dangerLevel = toolImpl?.dangerLevel ?? (toolImpl?.requiresConfirmation ? "destructive" : "safe");
+
+  // 解析参数为 key-value 格式（字段化展示）
+  let parsedArgs: Record<string, unknown> = {};
+  try {
+    parsedArgs = toolCall.function.arguments ? JSON.parse(toolCall.function.arguments) : {};
+  } catch {
+    // 解析失败时用原始字符串
+  }
+
+  // 构建参数列表文本（key-value 格式）
+  const argEntries = Object.entries(parsedArgs);
+  let argsText: string;
+  if (argEntries.length > 0) {
+    argsText = argEntries.map(([key, val]) => {
+      const valStr = typeof val === "string" ? val : JSON.stringify(val);
+      const truncated = valStr.length > 100 ? valStr.slice(0, 100) + "…" : valStr;
+      return `  ${key}: ${truncated}`;
+    }).join("\n");
+  } else {
+    argsText = `  ${toolCall.function.arguments?.slice(0, 500) ?? "(无参数)"}`;
+  }
+
+  // 构建风险等级标签
+  const dangerLabel = dangerLevel === "destructive"
+    ? t("agent.dangerLevelDestructive")
+    : dangerLevel === "limited"
+      ? t("agent.dangerLevelLimited")
+      : t("agent.dangerLevelSafe");
+
+  // 构建描述：工具描述 + 风险等级 + 参数
+  const descParts: string[] = [
+    t("agent.confirmToolDescription"),
+    "",
+    `${t("agent.confirmToolName")}: ${toolName}`,
+  ];
+  if (toolDesc) {
+    const descTrunc = toolDesc.length > 200 ? toolDesc.slice(0, 200) + "…" : toolDesc;
+    descParts.push(`${t("agent.confirmToolDescLabel")}: ${descTrunc}`);
+  }
+  descParts.push(`${t("agent.confirmDangerLevel")}: ${dangerLabel}`);
+  descParts.push(`${t("agent.confirmToolArgs")}:`);
+  descParts.push(argsText);
+  return descParts.join("\n");
+}
+
+/** executeSendMessage 等函数共用的 ref 上下文类型 */
+interface AgentHookRefs {
+  sessionRef: React.MutableRefObject<AgentSession>;
+  abortControllerRef: React.MutableRefObject<AbortController | null>;
+  loopRef: React.MutableRefObject<AgentLoop | null>;
+  systemHintRef: React.MutableRefObject<string | undefined>;
+}
+
+/** executeSendMessage 等函数共用的 state setter 上下文类型 */
+interface AgentHookSetters {
+  setToolExecutions: React.Dispatch<React.SetStateAction<ToolExecution[]>>;
+  setError: React.Dispatch<React.SetStateAction<string | null>>;
+  setIsStreaming: React.Dispatch<React.SetStateAction<boolean>>;
+  triggerRender: () => void;
+}
+
+/**
+ * 创建 AgentLoop 的回调对象（onChunk/onToolCall/onToolResult/onError/onConfirmationRequired/signal）。
+ *
+ * 提取自 useAgent.sendMessage 内联对象字面量，便于复用与单测。
+ */
+function createAgentLoopCallbacks(
+  setters: AgentHookSetters,
+  signal: AbortSignal,
+): AgentLoopCallbacks {
+  const { triggerRender, setToolExecutions, setError } = setters;
+  return {
+    onChunk: () => triggerRender(),
+    onToolCall: (toolCall: ToolCall) => {
+      const exec: ToolExecution = {
+        id: toolCall.id,
+        toolCall,
+        status: "running",
+        startedAt: Date.now(),
+      };
+      setToolExecutions((prev) => [...prev, exec]);
+    },
+    onToolResult: (toolCallId: string, result: ToolResult) => {
+      setToolExecutions((prev) =>
+        prev.map((item) =>
+          item.id === toolCallId
+            ? {
+                ...item,
+                status: result.success ? "done" : "error",
+                result,
+                endedAt: Date.now(),
+              }
+            : item,
+        ),
+      );
+      triggerRender();
+    },
+    onError: (err: Error) => setError(err.message),
+    onConfirmationRequired: async (toolCall: ToolCall) => {
+      return confirm({
+        title: t("agent.confirmToolTitle"),
+        description: buildToolConfirmationDescription(toolCall),
+        confirmText: t("agent.confirmToolDanger"),
+        variant: "danger",
+      });
+    },
+    signal,
+  };
+}
+
+/** executeSendMessage 的上下文 */
+interface SendMessageContext {
+  isStreaming: boolean;
+  refs: AgentHookRefs;
+  setters: AgentHookSetters;
+  settings: AgentSettings;
+  buildConfig: () => Partial<AgentLoopConfig>;
+  saveCurrentSession: () => Promise<void>;
+}
+
+/**
+ * 执行发送消息（提取自 useAgent.sendMessage 的 useCallback 主体）。
+ *
+ * 包含：状态切换 → 构造 AgentLoop → 运行 → 标题更新 → 保存 → 记忆抽取 → 事件通知。
+ */
+async function executeSendMessage(text: string, ctx: SendMessageContext): Promise<void> {
+  if (!text.trim() || ctx.isStreaming) return;
+
+  ctx.setters.setError(null);
+  ctx.setters.setIsStreaming(true);
+  eventBus.emit(DomainEvents.AGENT_THINKING, { sessionId: ctx.refs.sessionRef.current.id });
+
+  const abortController = new AbortController();
+  ctx.refs.abortControllerRef.current = abortController;
+
+  const loop = new AgentLoop(
+    ctx.refs.sessionRef.current,
+    createAgentLoopCallbacks(ctx.setters, abortController.signal),
+    ctx.buildConfig(),
+  );
+  ctx.refs.loopRef.current = loop;
+
+  try {
+    await loop.run(text);
+    // 自动生成会话标题（首次发送时）
+    if (ctx.refs.sessionRef.current.title === t("agent.newSession")) {
+      ctx.refs.sessionRef.current.title = generateSessionTitle(ctx.refs.sessionRef.current);
+      ctx.setters.triggerRender();
+    }
+    await ctx.saveCurrentSession();
+    void triggerMemoryExtraction(ctx.refs.sessionRef.current, {
+      providerId: ctx.settings.textModel?.providerId,
+      modelId: ctx.settings.textModel?.modelId,
+    });
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    ctx.setters.setError(err.message);
+    eventBus.emit(DomainEvents.AGENT_ERROR, {
+      sessionId: ctx.refs.sessionRef.current.id,
+      error: err.message,
+    });
+  } finally {
+    ctx.setters.setIsStreaming(false);
+    ctx.refs.loopRef.current = null;
+    ctx.refs.abortControllerRef.current = null;
+    // P2 集成：清空 systemHint（一次性消费，避免污染后续无关对话）
+    ctx.refs.systemHintRef.current = undefined;
+    ctx.setters.triggerRender();
+    eventBus.emit(DomainEvents.AGENT_COMPLETED, { sessionId: ctx.refs.sessionRef.current.id });
+  }
+}
+
+/** executeClearSession 的上下文 */
+interface ClearSessionContext {
+  isStreaming: boolean;
+  cancel: () => void;
+  refs: Pick<AgentHookRefs, "sessionRef">;
+  setters: Pick<AgentHookSetters, "setToolExecutions" | "setError" | "triggerRender">;
+  refreshHistory: () => Promise<void>;
+  textModel?: ModelSelection | null;
+}
+
+/**
+ * 清空当前会话（提取自 useAgent.clearSession 的 useCallback 主体）。
+ *
+ * 流程：取消进行中的流式 → 异步触发记忆抽取并保存当前会话 → 创建新会话。
+ */
+function executeClearSession(ctx: ClearSessionContext): void {
+  if (ctx.isStreaming) {
+    ctx.cancel();
+  }
+  const currentSession = ctx.refs.sessionRef.current;
+  if (currentSession.messages.length > 0) {
+    void triggerMemoryExtraction(currentSession, {
+      providerId: ctx.textModel?.providerId,
+      modelId: ctx.textModel?.modelId,
+    })
+      .then(() =>
+        persistSession(currentSession)
+          .then(() => ctx.refreshHistory())
+          .catch((e) => {
+            errorLogger.warn("[Agent] 会话保存失败", e);
+            emitToast("error", t("agent.saveFailedTitle"), t("agent.saveFailedMessage"));
+          }),
+      )
+      .catch((e) => {
+        errorLogger.warn("[Agent] 记忆抽取或会话保存失败", e);
+        emitToast("error", t("agent.saveFailedTitle"), t("agent.saveFailedMessage"));
+      });
+  }
+  ctx.refs.sessionRef.current = createNewSession();
+  ctx.setters.setToolExecutions([]);
+  ctx.setters.setError(null);
+  ctx.setters.triggerRender();
+}
+
+/** 自动保存的依赖 */
+interface AutoSaveDeps {
+  session: AgentSession;
+  isStreaming: boolean;
+  abortController: AbortController | null;
+  loop: AgentLoop | null;
+}
+
+/**
+ * 窗口关闭/隐藏时自动保存当前会话（提取自 useAgent beforeunload useEffect）。
+ *
+ * - 流式输出中：先 abort + 标记中断
+ * - fire-and-forget 持久化会话
+ */
+function performAutoSave(deps: AutoSaveDeps): void {
+  const { session, isStreaming, abortController, loop } = deps;
+  if (session.messages.length === 0) return;
+
+  if (isStreaming) {
+    if (abortController) abortController.abort();
+    if (loop) loop.abort();
+    void markInterrupted(session.id).catch((e) => {
+      errorLogger.warn("[Agent] beforeunload markInterrupted 失败", e);
+    });
+  }
+
+  void persistSession(session).catch((e) => {
+    errorLogger.warn("[Agent] beforeunload persistSession 失败", e);
+  });
+}
+
+/** 初始化会话的依赖 */
+interface InitSessionDeps {
+  sessionRef: React.MutableRefObject<AgentSession>;
+  triggerRender: () => void;
+  refreshInterruptedSessions: () => Promise<void>;
+  refreshHistory: () => Promise<void>;
+}
+
+/**
+ * 启动时初始化（提取自 useAgent 内的 init useEffect）。
+ *
+ * 流程：标记中断会话 → 注入种子记忆 → 刷新列表 → 加载最近的会话。
+ */
+async function initializeAgentSession(deps: InitSessionDeps): Promise<void> {
+  await markRunningAsInterrupted();
+  await ensureSeedMemory();
+  await deps.refreshInterruptedSessions();
+  await deps.refreshHistory();
+  const items = await listSessions();
+  if (items.length > 0 && items[0]) {
+    const latest = await loadSession(items[0].id);
+    if (latest && latest.messages.length > 0) {
+      deps.sessionRef.current = latest;
+      deps.triggerRender();
+    }
+  }
+}
+
+/**
+ * 加载会话到当前 state（共享逻辑，loadHistorySession 和 resumeInterruptedSession 复用）。
+ */
+async function replaceCurrentSession(
+  loadFn: (sessionId: string) => Promise<AgentSession | null>,
+  sessionId: string,
+  setters: Pick<AgentHookSetters, "setToolExecutions" | "setError" | "triggerRender">,
+  sessionRef: React.MutableRefObject<AgentSession>,
+): Promise<boolean> {
+  const loaded = await loadFn(sessionId);
+  if (!loaded) return false;
+  sessionRef.current = loaded;
+  setters.setToolExecutions([]);
+  setters.setError(null);
+  setters.triggerRender();
+  return true;
+}
+
+/** performCancel 的依赖 */
+interface CancelDeps {
+  abortControllerRef: React.MutableRefObject<AbortController | null>;
+  loopRef: React.MutableRefObject<AgentLoop | null>;
+  setIsStreaming: React.Dispatch<React.SetStateAction<boolean>>;
+  sessionRef: React.MutableRefObject<AgentSession>;
+}
+
+/** 取消当前生成（提取自 useAgent.cancel 的 useCallback 主体）。 */
+function performCancel(deps: CancelDeps): void {
+  if (deps.abortControllerRef.current) {
+    deps.abortControllerRef.current.abort();
+  }
+  if (deps.loopRef.current) {
+    deps.loopRef.current.abort();
+  }
+  deps.setIsStreaming(false);
+  eventBus.emit(DomainEvents.AGENT_COMPLETED, { sessionId: deps.sessionRef.current.id });
+}
+
+/** setupAutoSaveHandlers 的依赖 */
+interface AutoSaveHandlersDeps {
+  sessionRef: React.MutableRefObject<AgentSession>;
+  isStreamingRef: React.MutableRefObject<boolean>;
+  abortControllerRef: React.MutableRefObject<AbortController | null>;
+  loopRef: React.MutableRefObject<AgentLoop | null>;
+}
+
+/**
+ * 注册 beforeunload / visibilitychange 自动保存监听器，返回清理函数。
+ *
+ * 提取自 useAgent 内的 beforeunload useEffect，通过 ref 同步最新状态，
+ * 避免监听器闭包捕获旧值。
+ */
+function setupAutoSaveHandlers(deps: AutoSaveHandlersDeps): () => void {
+  const triggerAutoSave = () => {
+    performAutoSave({
+      session: deps.sessionRef.current,
+      isStreaming: deps.isStreamingRef.current,
+      abortController: deps.abortControllerRef.current,
+      loop: deps.loopRef.current,
+    });
+  };
+
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    const session = deps.sessionRef.current;
+    if (session.messages.length === 0) return;
+    triggerAutoSave();
+    event.preventDefault();
+    event.returnValue = "";
+    return "";
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "hidden") {
+      triggerAutoSave();
+    }
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
 }
 
 export interface UseAgentReturn {
@@ -240,23 +640,8 @@ export function useAgent(): UseAgentReturn {
     const subscription = eventBus.on(
       DomainEvents.VIDEO_TASK_COMPLETED,
       (payload: unknown) => {
-        try {
-          const { taskId, videoUrl } = payload as { taskId: string; videoUrl?: string };
-          const urlHint = videoUrl ? `，videoUrl=${videoUrl}` : "";
-          systemHintRef.current = [
-            "## 系统事件通知",
-            "",
-            `视频任务刚刚完成：taskId=\`${taskId}\`${urlHint}。`,
-            "系统已自动执行一致性 QC 并将 QCReport 写入 StoryBeat.qcReport。",
-            "",
-            "响应建议：",
-            "- 若用户询问视频质量或一致性，优先调用 `check_video_consistency(taskId=\"" + taskId + "\")` 获取 cached QCReport",
-            "- 若 verdict=drift_critical，告知用户并询问是否触发 `dispatch_video_fallback`",
-            "- 不要主动调用 QC 工具，除非用户明确询问",
-          ].join("\n");
-        } catch (e) {
-          errorLogger.warn("[useAgent] VIDEO_TASK_COMPLETED 订阅处理失败", e);
-        }
+        const hint = buildVideoTaskCompletedHint(payload);
+        if (hint) systemHintRef.current = hint;
       },
     );
     return () => {
@@ -296,25 +681,12 @@ export function useAgent(): UseAgentReturn {
 
   // 初始化：标记中断会话 + 加载最近的会话 + 历史列表
   useEffect(() => {
-    void (async () => {
-      // P5 断点恢复：启动时将所有 running 状态的检查点标记为 interrupted
-      await markRunningAsInterrupted();
-      // 预训练数据-3：首次启动时注入种子记忆（通用动画创作知识 + 项目最佳实践）
-      // 幂等：已注入标记存在则跳过，不阻断主流程
-      await ensureSeedMemory();
-      await refreshInterruptedSessions();
-      await refreshHistory();
-      // 如果有历史会话，加载最近的一个
-      const items = await listSessions();
-      if (items.length > 0 && items[0]) {
-        const latest = await loadSession(items[0].id);
-        if (latest && latest.messages.length > 0) {
-          sessionRef.current = latest;
-          triggerRender();
-        }
-      }
-    })();
-
+    void initializeAgentSession({
+      sessionRef,
+      triggerRender,
+      refreshInterruptedSessions,
+      refreshHistory,
+    });
   }, []);
 
   /** 根据设置构建 AgentLoopConfig */
@@ -363,253 +735,36 @@ export function useAgent(): UseAgentReturn {
    * Electron 中 IPC 请求已发出，主进程会处理完写入再退出（除非强制 kill）。
    */
   useEffect(() => {
-    const triggerAutoSave = () => {
-      const session = sessionRef.current;
-      // 只有有消息的会话才保存
-      if (session.messages.length === 0) return;
-
-      // 流式输出中：先 abort + 标记中断（便于下次启动时 listInterruptedSessions 展示）
-      if (isStreamingRef.current) {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-        if (loopRef.current) {
-          loopRef.current.abort();
-        }
-        // fire-and-forget 标记中断（不 await，避免阻塞 unload）
-        void markInterrupted(session.id).catch((e) => {
-          errorLogger.warn("[Agent] beforeunload markInterrupted 失败", e);
-        });
-      }
-
-      // fire-and-forget 保存会话（IPC 异步，但请求已发出主进程会处理）
-      void persistSession(session).catch((e) => {
-        errorLogger.warn("[Agent] beforeunload persistSession 失败", e);
-      });
-    };
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      const session = sessionRef.current;
-      // 空会话不触发对话框
-      if (session.messages.length === 0) return;
-
-      triggerAutoSave();
-
-      // Chromium / Electron：returnValue 非空触发"确认离开"对话框，争取 IPC 写入时间
-      // 注意：部分浏览器忽略自定义文案，只显示通用提示
-      event.preventDefault();
-      event.returnValue = "";
-      return "";
-    };
-
-    const handleVisibilityChange = () => {
-      // 页面隐藏（标签切换/最小化）时触发，比 beforeunload 更可靠
-      if (document.visibilityState === "hidden") {
-        triggerAutoSave();
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []); // 空依赖：只在 mount 时注册一次，通过 ref 同步最新状态
+    return setupAutoSaveHandlers({ sessionRef, isStreamingRef, abortControllerRef, loopRef });
+  }, []);
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text.trim() || isStreaming) return;
-
-      setError(null);
-      setIsStreaming(true);
-      // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
-      eventBus.emit(DomainEvents.AGENT_THINKING, { sessionId: sessionRef.current.id });
-
-      // 创建取消控制器
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
-      const session = sessionRef.current;
-
-      const loop = new AgentLoop(
-        session,
-        {
-          onChunk: (_chunk: StreamChunk) => {
-            // session 已被 loop 直接修改，触发渲染
-            triggerRender();
-          },
-          onToolCall: (toolCall: ToolCall) => {
-            const exec: ToolExecution = {
-              id: toolCall.id,
-              toolCall,
-              status: "running",
-              startedAt: Date.now(),
-            };
-            setToolExecutions((prev) => [...prev, exec]);
-          },
-          onToolResult: (toolCallId: string, result: ToolResult) => {
-            setToolExecutions((prev) =>
-              prev.map((item) =>
-                item.id === toolCallId
-                  ? {
-                      ...item,
-                      status: result.success ? "done" : "error",
-                      result,
-                      endedAt: Date.now(),
-                    }
-                  : item,
-              ),
-            );
-            triggerRender();
-          },
-          onError: (err: Error) => {
-            setError(err.message);
-          },
-          // 危险工具确认回调：弹出确认对话框，用户确认后执行
-          onConfirmationRequired: async (toolCall: ToolCall) => {
-            const toolName = toolCall.function.name;
-
-            // P1-C：从 toolRegistry 获取工具描述和危险等级
-            const toolImpl = toolRegistry.get(toolName);
-            const toolDesc = toolImpl?.def.function.description ?? "";
-            const dangerLevel = toolImpl?.dangerLevel ?? (toolImpl?.requiresConfirmation ? "destructive" : "safe");
-
-            // 解析参数为 key-value 格式（字段化展示）
-            let parsedArgs: Record<string, unknown> = {};
-            try {
-              parsedArgs = toolCall.function.arguments
-                ? JSON.parse(toolCall.function.arguments)
-                : {};
-            } catch {
-              // 解析失败时用原始字符串
-            }
-
-            // 构建参数列表文本（key-value 格式）
-            const argEntries = Object.entries(parsedArgs);
-            let argsText: string;
-            if (argEntries.length > 0) {
-              argsText = argEntries.map(([key, val]) => {
-                const valStr = typeof val === "string" ? val : JSON.stringify(val);
-                const truncated = valStr.length > 100 ? valStr.slice(0, 100) + "…" : valStr;
-                return `  ${key}: ${truncated}`;
-              }).join("\n");
-            } else {
-              argsText = `  ${toolCall.function.arguments?.slice(0, 500) ?? "(无参数)"}`;
-            }
-
-            // 构建风险等级标签
-            const dangerLabel = dangerLevel === "destructive"
-              ? t("agent.dangerLevelDestructive")
-              : dangerLevel === "limited"
-                ? t("agent.dangerLevelLimited")
-                : t("agent.dangerLevelSafe");
-
-            // 构建描述：工具描述 + 风险等级 + 参数
-            const descParts: string[] = [
-              t("agent.confirmToolDescription"),
-              "",
-              `${t("agent.confirmToolName")}: ${toolName}`,
-            ];
-            if (toolDesc) {
-              // 工具描述截断到 200 字符
-              const descTrunc = toolDesc.length > 200 ? toolDesc.slice(0, 200) + "…" : toolDesc;
-              descParts.push(`${t("agent.confirmToolDescLabel")}: ${descTrunc}`);
-            }
-            descParts.push(`${t("agent.confirmDangerLevel")}: ${dangerLabel}`);
-            descParts.push(`${t("agent.confirmToolArgs")}:`);
-            descParts.push(argsText);
-
-            return confirm({
-              title: t("agent.confirmToolTitle"),
-              description: descParts.join("\n"),
-              confirmText: t("agent.confirmToolDanger"),
-              variant: "danger",
-            });
-          },
-          signal: abortController.signal,
-        },
-        buildConfig(),
-      );
-
-      loopRef.current = loop;
-
-      try {
-        await loop.run(text);
-        // 自动生成会话标题（首次发送时）
-        if (sessionRef.current.title === t("agent.newSession")) {
-          sessionRef.current.title = generateSessionTitle(sessionRef.current);
-          triggerRender(); // 立即更新 UI，避免依赖 finally 中的 triggerRender 延迟刷新标题
-        }
-        // 发送完成后自动保存会话
-        await saveCurrentSession();
-        // 异步触发记忆抽取（不阻断 UI，失败静默）
-        void triggerMemoryExtraction(sessionRef.current, {
-          providerId: settings.textModel?.providerId,
-          modelId: settings.textModel?.modelId,
-        });
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
-        setError(err.message);
-        // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
-        eventBus.emit(DomainEvents.AGENT_ERROR, { sessionId: sessionRef.current.id, error: err.message });
-      } finally {
-        setIsStreaming(false);
-        loopRef.current = null;
-        abortControllerRef.current = null;
-        // P2 集成：清空 systemHint（一次性消费，避免污染后续无关对话）
-        systemHintRef.current = undefined;
-        triggerRender();
-        // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
-        eventBus.emit(DomainEvents.AGENT_COMPLETED, { sessionId: sessionRef.current.id });
-      }
+      return executeSendMessage(text, {
+        isStreaming,
+        refs: { sessionRef, abortControllerRef, loopRef, systemHintRef },
+        setters: { setToolExecutions, setError, setIsStreaming, triggerRender },
+        settings,
+        buildConfig,
+        saveCurrentSession,
+      });
     },
-    [isStreaming, buildConfig, triggerRender, saveCurrentSession],
+    [isStreaming, buildConfig, triggerRender, saveCurrentSession, settings],
   );
 
   const cancel = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    if (loopRef.current) {
-      loopRef.current.abort();
-    }
-    setIsStreaming(false);
-    // Task 4.9 子项 8：通知侧边栏 AI 状态指示器
-    eventBus.emit(DomainEvents.AGENT_COMPLETED, { sessionId: sessionRef.current.id });
+    performCancel({ abortControllerRef, loopRef, setIsStreaming, sessionRef });
   }, []);
 
   const clearSession = useCallback(() => {
-    if (isStreaming) {
-      cancel();
-    }
-    // 保存当前会话前，先异步触发记忆抽取（不阻断清空操作）
-    const currentSession = sessionRef.current;
-    if (currentSession.messages.length > 0) {
-      void triggerMemoryExtraction(currentSession, {
-        providerId: settings.textModel?.providerId,
-        modelId: settings.textModel?.modelId,
-      })
-        .then(() =>
-          persistSession(currentSession)
-            .then(() => refreshHistory())
-            .catch((e) => {
-              // P1-4 修复：保存失败时通过 toast 提示用户
-              errorLogger.warn("[Agent] 会话保存失败", e);
-              emitToast("error", t("agent.saveFailedTitle"), t("agent.saveFailedMessage"));
-            }),
-        )
-        .catch((e) => {
-          errorLogger.warn("[Agent] 记忆抽取或会话保存失败", e);
-          emitToast("error", t("agent.saveFailedTitle"), t("agent.saveFailedMessage"));
-        });
-    }
-    // 创建新会话
-    sessionRef.current = createNewSession();
-    setToolExecutions([]);
-    setError(null);
-    triggerRender();
+    executeClearSession({
+      isStreaming,
+      cancel,
+      refs: { sessionRef },
+      setters: { setToolExecutions, setError, triggerRender },
+      refreshHistory,
+      textModel: settings.textModel,
+    });
   }, [isStreaming, cancel, refreshHistory, triggerRender, settings.textModel]);
 
   const setSessionTitle = useCallback(
@@ -624,16 +779,13 @@ export function useAgent(): UseAgentReturn {
   const loadHistorySession = useCallback(
     async (sessionId: string) => {
       if (isStreaming) return;
-      // 保存当前会话
       await saveCurrentSession();
-      // 加载目标会话
-      const loaded = await loadSession(sessionId);
-      if (loaded) {
-        sessionRef.current = loaded;
-        setToolExecutions([]);
-        setError(null);
-        triggerRender();
-      }
+      await replaceCurrentSession(
+        loadSession,
+        sessionId,
+        { setToolExecutions, setError, triggerRender },
+        sessionRef,
+      );
     },
     [isStreaming, saveCurrentSession, triggerRender],
   );
@@ -651,16 +803,13 @@ export function useAgent(): UseAgentReturn {
   const resumeInterruptedSession = useCallback(
     async (sessionId: string) => {
       if (isStreaming) return;
-      // 保存当前会话
       await saveCurrentSession();
-      // 加载中断会话（会自动修正过期的 running 状态）
-      const loaded = await loadInterruptedSession(sessionId);
-      if (loaded) {
-        sessionRef.current = loaded;
-        setToolExecutions([]);
-        setError(null);
-        triggerRender();
-      }
+      await replaceCurrentSession(
+        loadInterruptedSession,
+        sessionId,
+        { setToolExecutions, setError, triggerRender },
+        sessionRef,
+      );
       // 刷新中断列表（恢复的会话不再标记为中断）
       await refreshInterruptedSessions();
     },

@@ -9,14 +9,15 @@
  * - update_scene：更新场景
  * - delete_scene：删除场景（含引用检查）
  * - tag_asset：给素材打标签
- * - organize_assets：批量整理素材
- * - deduplicate_assets：去重检测
+ * - organize_assets：批量整理素材（实现见 ./asset-organize-tools）
+ * - deduplicate_assets：去重检测（实现见 ./asset-organize-tools）
  *
  * 设计要点：
  * - 调用 characterService / sceneService 的 public API（Result<T> 模式）
  * - 删除操作先检查引用（checkCharacterReferences / checkSceneReferences）
  * - 动态 import 避免循环依赖
  * - 参数类型转换：args 字段为 unknown，需 String()/Number()/Boolean() 转换
+ * - 辅助函数集中在 ./asset-crud-tools-helpers
  */
 
 import type { ToolImpl } from "@/domain/types/agent-tools";
@@ -27,138 +28,19 @@ import type {
   CreateSceneInput,
   UpdateSceneInput,
 } from "@/domain/schemas";
+import {
+  toStringArray,
+  toLightingString,
+  toAppearance,
+  toCamera,
+} from "./asset-crud-tools-helpers";
+import {
+  organizeAssetsTool,
+  deduplicateAssetsTool,
+} from "./asset-organize-tools";
 
-// ============= 辅助函数 =============
-
-/**
- * 将未知值转为字符串数组
- * 支持字符串（按 、，, 分隔）或字符串数组
- */
-function toStringArray(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map((v) => String(v)).filter(Boolean);
-  }
-  if (value === undefined || value === null) {
-    return [];
-  }
-  return String(value)
-    .split(/[、，,]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-/**
- * 将未知值转为 lighting 字符串
- * sceneSchema 中 lighting 为 string 类型，支持传入对象自动拼接
- */
-function toLightingString(value: unknown): string {
-  if (value === undefined || value === null) {
-    return "";
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  if (typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    const parts: string[] = [];
-    if (obj.type) parts.push(String(obj.type));
-    if (obj.intensity) parts.push(String(obj.intensity));
-    if (obj.color) parts.push(String(obj.color));
-    return parts.join(", ");
-  }
-  return String(value);
-}
-
-/** appearance 对象类型 */
-interface AppearanceInput {
-  hairColor: string;
-  hairStyle: string;
-  eyeColor: string;
-  height: string;
-  build: string;
-  clothing: string;
-}
-
-/** 将未知值转为 appearance 对象（匹配 CharacterAppearance schema） */
-function toAppearance(value: unknown): AppearanceInput {
-  const empty: AppearanceInput = {
-    hairColor: "",
-    hairStyle: "",
-    eyeColor: "",
-    height: "",
-    build: "",
-    clothing: "",
-  };
-  if (!value || typeof value !== "object") {
-    return empty;
-  }
-  const obj = value as Record<string, unknown>;
-  return {
-    hairColor: obj.hairColor !== undefined ? String(obj.hairColor) : "",
-    hairStyle: obj.hairStyle !== undefined ? String(obj.hairStyle) : "",
-    eyeColor: obj.eyeColor !== undefined ? String(obj.eyeColor) : "",
-    height: obj.height !== undefined ? String(obj.height) : "",
-    build: obj.build !== undefined ? String(obj.build) : "",
-    clothing: obj.clothing !== undefined ? String(obj.clothing) : "",
-  };
-}
-
-/** camera 对象类型（匹配 SceneCamera schema） */
-interface CameraInput {
-  position?: string;
-  angle?: string;
-  zoom?: number;
-  distance?: string;
-  movement?: string;
-}
-
-/** 将未知值转为 camera 对象 */
-function toCamera(value: unknown): CameraInput | undefined {
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-  const obj = value as Record<string, unknown>;
-  const camera: CameraInput = {};
-  if (obj.angle !== undefined) camera.angle = String(obj.angle);
-  if (obj.movement !== undefined) camera.movement = String(obj.movement);
-  if (obj.position !== undefined) camera.position = String(obj.position);
-  if (obj.zoom !== undefined) camera.zoom = Number(obj.zoom);
-  if (obj.distance !== undefined) camera.distance = String(obj.distance);
-  return camera;
-}
-
-/** 计算两个字符串的 Levenshtein 距离（滚动数组优化） */
-function levenshteinDistance(s1: string, s2: string): number {
-  const len1 = s1.length;
-  const len2 = s2.length;
-  if (len1 === 0) return len2;
-  if (len2 === 0) return len1;
-
-  let prev = new Array<number>(len2 + 1).fill(0);
-  let curr = new Array<number>(len2 + 1).fill(0);
-  for (let j = 0; j <= len2; j++) prev[j] = j;
-
-  for (let i = 1; i <= len1; i++) {
-    curr[0] = i;
-    for (let j = 1; j <= len2; j++) {
-      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
-      curr[j] = Math.min(
-        (prev[j] ?? 0) + 1,
-        (curr[j - 1] ?? 0) + 1,
-        (prev[j - 1] ?? 0) + cost,
-      );
-    }
-    [prev, curr] = [curr, prev];
-  }
-  return prev[len2] ?? 0;
-}
-
-/** 计算两个字符串的相似度（0-1，1 表示完全相同） */
-function stringSimilarity(s1: string, s2: string): number {
-  const maxLen = Math.max(s1.length, s2.length);
-  if (maxLen === 0) return 1;
-  return 1 - levenshteinDistance(s1, s2) / maxLen;
-}
+// 重新导出 organize/deduplicate 工具以保持原 API 不变
+export { organizeAssetsTool, deduplicateAssetsTool };
 
 // ============= 工具实现 =============
 
@@ -681,246 +563,6 @@ export const tagAssetTool: ToolImpl = {
     return {
       success: false,
       error: `无效的素材类型：${assetType}，仅支持 character 或 scene`,
-    };
-  },
-};
-
-/** 批量整理素材（排序 + 可选重命名） */
-export const organizeAssetsTool: ToolImpl = {
-  def: {
-    type: "function",
-    function: {
-      name: "organize_assets",
-      description:
-        "批量整理素材：按名称/风格/类型/创建时间/使用次数排序，并可统一命名格式为「风格-名称-序号」。dryRun=true 仅返回整理建议（不修改数据），dryRun=false 实际更新名称。",
-      parameters: {
-        type: "object",
-        properties: {
-          assetType: {
-            type: "string",
-            enum: ["character", "scene", "all"],
-            description: "素材类型，默认 all",
-            default: "all",
-          },
-          sortBy: {
-            type: "string",
-            enum: ["name", "style", "type", "createdAt", "useCount"],
-            description: "排序字段，默认 name",
-            default: "name",
-          },
-          dryRun: {
-            type: "boolean",
-            description: "是否仅预览不执行，默认 true",
-            default: true,
-          },
-        },
-      },
-    },
-  },
-  domain: "asset",
-  dangerLevel: "limited",
-  timeoutMs: TOOL_TIMEOUTS.query,
-  async execute(args) {
-    const assetType = String(args.assetType);
-    const sortBy = String(args.sortBy || "name");
-    const dryRun = args.dryRun === undefined ? true : Boolean(args.dryRun);
-
-    type Sortable = {
-      name: string;
-      style?: string;
-      type?: string;
-      createdAt?: string;
-      useCount?: number;
-    };
-
-    const sortFn = (a: Sortable, b: Sortable): number => {
-      switch (sortBy) {
-        case "style":
-          return (
-            String(a.style ?? "").localeCompare(String(b.style ?? "")) ||
-            a.name.localeCompare(b.name)
-          );
-        case "type":
-          return (
-            String(a.type ?? "").localeCompare(String(b.type ?? "")) ||
-            a.name.localeCompare(b.name)
-          );
-        case "createdAt":
-          return (
-            String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? "")) ||
-            a.name.localeCompare(b.name)
-          );
-        case "useCount":
-          return (b.useCount ?? 0) - (a.useCount ?? 0) || a.name.localeCompare(b.name);
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    };
-
-    const sorted: Array<{
-      id: string;
-      oldName: string;
-      newName?: string;
-      assetType: string;
-    }> = [];
-
-    if (assetType === "all" || assetType === "character") {
-      const { characterService } = await import("@/modules/character");
-      const res = await characterService.getAll();
-      if (res.ok) {
-        const chars = [...res.value].sort(sortFn);
-        for (let i = 0; i < chars.length; i++) {
-          const c = chars[i];
-          if (!c) continue;
-          const newName = `${c.style}-${c.name}-${String(i + 1).padStart(2, "0")}`;
-          if (!dryRun && newName !== c.name) {
-            await characterService.update(c.id, { id: c.id, name: newName });
-          }
-          sorted.push({
-            id: c.id,
-            oldName: c.name,
-            newName,
-            assetType: "character",
-          });
-        }
-      }
-    }
-
-    if (assetType === "all" || assetType === "scene") {
-      const { sceneService } = await import("@/modules/scene");
-      const res = await sceneService.getAll();
-      if (res.ok) {
-        const scenes = [...res.value].sort(sortFn);
-        for (let i = 0; i < scenes.length; i++) {
-          const s = scenes[i];
-          if (!s) continue;
-          const newName = `${s.type}-${s.name}-${String(i + 1).padStart(2, "0")}`;
-          if (!dryRun && newName !== s.name) {
-            await sceneService.update(s.id, { id: s.id, name: newName });
-          }
-          sorted.push({
-            id: s.id,
-            oldName: s.name,
-            newName,
-            assetType: "scene",
-          });
-        }
-      }
-    }
-
-    return {
-      success: true,
-      data: {
-        sorted,
-        total: sorted.length,
-        dryRun,
-      },
-    };
-  },
-};
-
-/** 去重检测（检测名称相似度高的素材） */
-export const deduplicateAssetsTool: ToolImpl = {
-  def: {
-    type: "function",
-    function: {
-      name: "deduplicate_assets",
-      description:
-        "检测名称相似度高的素材（可能重复）。使用 Levenshtein 距离归一化算法计算名称相似度，返回超过阈值的素材对。仅做检测，不自动删除。",
-      parameters: {
-        type: "object",
-        properties: {
-          assetType: {
-            type: "string",
-            enum: ["character", "scene", "all"],
-            description: "素材类型，默认 all",
-            default: "all",
-          },
-          threshold: {
-            type: "number",
-            description: "相似度阈值（0-1），默认 0.85。越高越严格",
-            default: 0.85,
-            minimum: 0,
-            maximum: 1,
-          },
-          dryRun: {
-            type: "boolean",
-            description: "是否仅预览（默认 true，当前仅支持预览检测）",
-            default: true,
-          },
-        },
-      },
-    },
-  },
-  domain: "asset",
-  dangerLevel: "limited",
-  timeoutMs: TOOL_TIMEOUTS.query,
-  async execute(args) {
-    const assetType = String(args.assetType);
-    const threshold = Math.min(Math.max(Number(args.threshold) || 0.85, 0), 1);
-
-    type DuplicatePair = {
-      asset1: { id: string; name: string; type: string };
-      asset2: { id: string; name: string; type: string };
-      similarity: number;
-    };
-
-    const duplicates: DuplicatePair[] = [];
-
-    /** 在同类素材中两两比对名称相似度 */
-    function findDuplicates(
-      items: Array<{ id: string; name: string }>,
-      typeLabel: string,
-    ): void {
-      for (let i = 0; i < items.length; i++) {
-        const a = items[i];
-        if (!a) continue;
-        for (let j = i + 1; j < items.length; j++) {
-          const b = items[j];
-          if (!b) continue;
-          const sim = stringSimilarity(
-            a.name.toLowerCase(),
-            b.name.toLowerCase(),
-          );
-          if (sim >= threshold) {
-            duplicates.push({
-              asset1: { id: a.id, name: a.name, type: typeLabel },
-              asset2: { id: b.id, name: b.name, type: typeLabel },
-              similarity: Math.round(sim * 100) / 100,
-            });
-          }
-        }
-      }
-    }
-
-    if (assetType === "all" || assetType === "character") {
-      const { characterService } = await import("@/modules/character");
-      const res = await characterService.getAll();
-      if (res.ok) {
-        findDuplicates(
-          res.value.map((c) => ({ id: c.id, name: c.name })),
-          "character",
-        );
-      }
-    }
-
-    if (assetType === "all" || assetType === "scene") {
-      const { sceneService } = await import("@/modules/scene");
-      const res = await sceneService.getAll();
-      if (res.ok) {
-        findDuplicates(
-          res.value.map((s) => ({ id: s.id, name: s.name })),
-          "scene",
-        );
-      }
-    }
-
-    return {
-      success: true,
-      data: {
-        duplicates,
-        total: duplicates.length,
-      },
     };
   },
 };

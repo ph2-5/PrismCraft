@@ -6,9 +6,98 @@
  */
 
 import type { ToolImpl } from "@/domain/types/agent-tools";
+import type { Character, CreateCharacterInput } from "@/domain/schemas";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
 import { container } from "@/infrastructure/di";
 import { generateJsonWithAI, toStringArray } from "./subworkflow-helpers";
+
+function buildCharacterSettingsPrompt(description: string): string {
+  return `你是一位角色设计师。请根据以下描述生成角色完整设定的 JSON。
+
+用户描述：${description}
+
+请严格按照以下 JSON 格式输出，不要输出任何其他内容：
+{
+  "name": "角色姓名（中文）",
+  "gender": "性别（男性/女性/中性/无性别）",
+  "age": 25,
+  "personality": "性格特征，可用、分隔多个",
+  "appearance": {
+    "hairColor": "发色",
+    "hairStyle": "发型",
+    "eyeColor": "瞳色",
+    "height": "身高",
+    "build": "体型",
+    "clothing": "服装描述"
+  },
+  "customPrompt": "用于 AI 图片生成的英文提示词，描述角色外观"
+}
+
+要求：
+1. 姓名要有特色，符合角色风格
+2. 外观要详细具体，便于生成图片
+3. customPrompt 用英文，包含角色全貌、服装、风格等关键信息`;
+}
+
+function buildCharacterCreateParams(
+  settings: Record<string, unknown>,
+  description: string,
+  styleOverride: string | undefined,
+): CreateCharacterInput {
+  const appearance = (settings.appearance as Record<string, unknown> | undefined) ?? {};
+  const style = styleOverride ?? (settings.style ? String(settings.style) : "");
+  return {
+    name: String(settings.name ?? `角色_${Date.now()}`),
+    description,
+    gender: String(settings.gender ?? ""),
+    style,
+    age: settings.age != null ? Number(settings.age) : undefined,
+    personality: toStringArray(settings.personality),
+    appearance: {
+      hairColor: String(appearance.hairColor ?? ""),
+      hairStyle: String(appearance.hairStyle ?? ""),
+      eyeColor: String(appearance.eyeColor ?? ""),
+      height: String(appearance.height ?? ""),
+      build: String(appearance.build ?? ""),
+      clothing: String(appearance.clothing ?? ""),
+    },
+    prompt: String(settings.customPrompt ?? ""),
+  };
+}
+
+async function tryGenerateCharacterImage(
+  settings: Record<string, unknown>,
+  character: Pick<Character, "id" | "name">,
+  description: string,
+  ctx: { onProgress?: (msg: string) => void },
+): Promise<string | undefined> {
+  ctx.onProgress?.("正在生成角色图片…");
+  try {
+    const imagePrompt =
+      String(settings.customPrompt ?? "") || `${character.name}, ${description}`;
+    const imageResult = await container.imageProvider.generateImage(imagePrompt, "character", {
+      purpose: "character",
+    });
+    if (!(imageResult.success && imageResult.data)) {
+      ctx.onProgress?.(`警告：角色图片生成失败：${imageResult.error ?? "未知错误"}`);
+      return undefined;
+    }
+    const imageUrl = imageResult.data.imageUrl;
+    const { characterService } = await import("@/modules/character");
+    const updateResult = await characterService.update(character.id, {
+      id: character.id,
+      thumbnailPath: imageUrl,
+      generatedImage: imageUrl,
+    });
+    if (!updateResult.ok) {
+      ctx.onProgress?.(`警告：角色图片已生成但更新记录失败：${updateResult.error.message}`);
+    }
+    return imageUrl;
+  } catch (e) {
+    ctx.onProgress?.(`警告：角色图片生成异常：${e instanceof Error ? e.message : String(e)}`);
+    return undefined;
+  }
+}
 
 /** 1. 一句话创建完整角色（推理设定 → 创建 → 生成图片） */
 export const autoCreateCharacterTool: ToolImpl = {
@@ -54,31 +143,7 @@ export const autoCreateCharacterTool: ToolImpl = {
 
     // Step 1: 用 textProvider 推理生成角色设定
     ctx.onProgress?.("正在用 AI 推理角色设定…");
-    const prompt = `你是一位角色设计师。请根据以下描述生成角色完整设定的 JSON。
-
-用户描述：${description}
-
-请严格按照以下 JSON 格式输出，不要输出任何其他内容：
-{
-  "name": "角色姓名（中文）",
-  "gender": "性别（男性/女性/中性/无性别）",
-  "age": 25,
-  "personality": "性格特征，可用、分隔多个",
-  "appearance": {
-    "hairColor": "发色",
-    "hairStyle": "发型",
-    "eyeColor": "瞳色",
-    "height": "身高",
-    "build": "体型",
-    "clothing": "服装描述"
-  },
-  "customPrompt": "用于 AI 图片生成的英文提示词，描述角色外观"
-}
-
-要求：
-1. 姓名要有特色，符合角色风格
-2. 外观要详细具体，便于生成图片
-3. customPrompt 用英文，包含角色全貌、服装、风格等关键信息`;
+    const prompt = buildCharacterSettingsPrompt(description);
     const settings = await generateJsonWithAI(prompt);
     if (!settings) {
       return { success: false, error: "AI 推理角色设定失败：无法解析返回的 JSON" };
@@ -88,25 +153,9 @@ export const autoCreateCharacterTool: ToolImpl = {
     // Step 2: 创建角色
     ctx.onProgress?.("正在创建角色记录…");
     const { characterService } = await import("@/modules/character");
-    const appearance = (settings.appearance as Record<string, unknown> | undefined) ?? {};
-    const style = styleOverride ?? (settings.style ? String(settings.style) : "");
-    const createResult = await characterService.create({
-      name: String(settings.name ?? `角色_${Date.now()}`),
-      description,
-      gender: String(settings.gender ?? ""),
-      style,
-      age: settings.age != null ? Number(settings.age) : undefined,
-      personality: toStringArray(settings.personality),
-      appearance: {
-        hairColor: String(appearance.hairColor ?? ""),
-        hairStyle: String(appearance.hairStyle ?? ""),
-        eyeColor: String(appearance.eyeColor ?? ""),
-        height: String(appearance.height ?? ""),
-        build: String(appearance.build ?? ""),
-        clothing: String(appearance.clothing ?? ""),
-      },
-      prompt: String(settings.customPrompt ?? ""),
-    });
+    const createResult = await characterService.create(
+      buildCharacterCreateParams(settings, description, styleOverride),
+    );
     if (!createResult.ok) {
       return {
         success: false,
@@ -120,31 +169,9 @@ export const autoCreateCharacterTool: ToolImpl = {
     // Step 3: 生成图片（可选）
     let imageUrl: string | undefined;
     if (autoGenerateImage) {
-      ctx.onProgress?.("正在生成角色图片…");
-      try {
-        const imagePrompt =
-          String(settings.customPrompt ?? "") || `${character.name}, ${description}`;
-        const imageResult = await container.imageProvider.generateImage(imagePrompt, "character", {
-          purpose: "character",
-        });
-        if (imageResult.success && imageResult.data) {
-          imageUrl = imageResult.data.imageUrl;
-          // 更新角色缩略图
-          const updateResult = await characterService.update(character.id, {
-            id: character.id,
-            thumbnailPath: imageUrl,
-            generatedImage: imageUrl,
-          });
-          if (!updateResult.ok) {
-            // 图片生成成功但更新失败，不阻断流程
-            ctx.onProgress?.(`警告：角色图片已生成但更新记录失败：${updateResult.error.message}`);
-          }
-          steps.push("生成图片");
-        } else {
-          ctx.onProgress?.(`警告：角色图片生成失败：${imageResult.error ?? "未知错误"}`);
-        }
-      } catch (e) {
-        ctx.onProgress?.(`警告：角色图片生成异常：${e instanceof Error ? e.message : String(e)}`);
+      imageUrl = await tryGenerateCharacterImage(settings, character, description, ctx);
+      if (imageUrl) {
+        steps.push("生成图片");
       }
     }
 

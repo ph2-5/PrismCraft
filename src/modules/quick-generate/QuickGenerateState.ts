@@ -1,4 +1,4 @@
-/* eslint-disable max-lines */
+ 
 import { useReducer, useEffect, useCallback, useMemo, useRef, useState } from "react";
 import {
   generateQuickModeVideoPrompt,

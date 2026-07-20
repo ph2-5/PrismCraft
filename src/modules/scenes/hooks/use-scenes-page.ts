@@ -27,7 +27,85 @@ import {
   useSceneCRUD,
 } from "@/modules/scene";
 import { confirm } from "@/shared/utils/confirm";
-import type { Scene } from "@/domain/schemas";
+import type { Scene, Story } from "@/domain/schemas";
+
+async function updateStoriesAfterSceneDelete(
+  sceneId: string,
+  storiesList: Story[],
+  showError: (title: string, desc?: string) => void,
+) {
+  const updatedStories = storiesList.map((story) => {
+    const updatedBeats = (story.beats || []).map((beat) => {
+      const updated = { ...beat };
+      if (updated.sceneId === sceneId) delete updated.sceneId;
+      return updated;
+    });
+    const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
+    return { ...story, scenes: updatedScenes, beats: updatedBeats };
+  });
+  const failedStories: string[] = [];
+  const affectedStories = updatedStories.filter((updatedStory) => {
+    const original = storiesList.find((s) => s.id === updatedStory.id);
+    return original?.beats?.some((b) => b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
+  });
+  const results = await Promise.allSettled(
+    affectedStories.map((updatedStory) =>
+      storyService.update(updatedStory.id, updatedStory),
+    ),
+  );
+  results.forEach((result, i) => {
+    if (result.status === "rejected") {
+      errorLogger.warn("[Scenes] 更新关联故事异常", result.reason);
+      failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
+    } else if (!result.value.ok) {
+      errorLogger.warn("[Scenes] 更新关联故事失败", { storyId: affectedStories[i]!.id, error: result.value.error });
+      failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
+    }
+  });
+  if (failedStories.length > 0) {
+    showError(t("story.partialUpdateFailed"), t("story.partialUpdateFailedDetail", { items: failedStories.join("、") }));
+  }
+}
+
+interface SceneReferencedBeat {
+  storyId: string;
+  storyTitle: string;
+  sequence: number;
+  title?: string;
+  description: string;
+  imageUrl?: string;
+  generationStatus?: string;
+}
+
+function computeReferencedBeatsForScene(
+  stories: Story[],
+  sceneId: string,
+): SceneReferencedBeat[] {
+  const result: SceneReferencedBeat[] = [];
+  for (const story of stories) {
+    for (const beat of story.beats || []) {
+      if (beat.sceneId === sceneId) {
+        result.push({
+          storyId: story.id,
+          storyTitle: story.title,
+          sequence: beat.sequence,
+          title: beat.title,
+          description: beat.description,
+          imageUrl: beat.imageUrl,
+          generationStatus: beat.generationStatus,
+        });
+      }
+    }
+  }
+  return result;
+}
+
+function filterScenesByQuery(scenes: Scene[], query: string): Scene[] {
+  if (!query.trim()) return scenes;
+  return scenes.filter((s) =>
+    s.name.toLowerCase().includes(query.toLowerCase()),
+  );
+}
 
 /**
  * 场景页面所有业务逻辑的 hook。
@@ -107,39 +185,8 @@ export function useScenesPage() {
     stories,
     markDirty,
     markClean,
-    onUpdateStoriesAfterDelete: async (sceneId, storiesList) => {
-      const updatedStories = storiesList.map((story) => {
-        const updatedBeats = (story.beats || []).map((beat) => {
-          const updated = { ...beat };
-          if (updated.sceneId === sceneId) delete updated.sceneId;
-          return updated;
-        });
-        const updatedScenes = (story.scenes || []).filter((sid) => sid !== sceneId);
-        return { ...story, scenes: updatedScenes, beats: updatedBeats };
-      });
-      const failedStories: string[] = [];
-      const affectedStories = updatedStories.filter((updatedStory) => {
-        const original = storiesList.find((s) => s.id === updatedStory.id);
-        return original?.beats?.some((b) => b.sceneId === sceneId) || original?.scenes?.includes(sceneId);
-      });
-      const results = await Promise.allSettled(
-        affectedStories.map((updatedStory) =>
-          storyService.update(updatedStory.id, updatedStory),
-        ),
-      );
-      results.forEach((result, i) => {
-        if (result.status === "rejected") {
-          errorLogger.warn("[Scenes] 更新关联故事异常", result.reason);
-          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
-        } else if (!result.value.ok) {
-          errorLogger.warn("[Scenes] 更新关联故事失败", { storyId: affectedStories[i]!.id, error: result.value.error });
-          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
-        }
-      });
-      if (failedStories.length > 0) {
-        showError(t("story.partialUpdateFailed"), t("story.partialUpdateFailedDetail", { items: failedStories.join("、") }));
-      }
-    },
+    onUpdateStoriesAfterDelete: (sceneId, storiesList) =>
+      updateStoriesAfterSceneDelete(sceneId, storiesList, showError),
   });
 
   // ── 保存快捷键 ──
@@ -221,42 +268,16 @@ export function useScenesPage() {
   );
 
   // ── 过滤后的场景列表（使用防抖搜索值） ──
-  const filteredScenes = useMemo(() => {
-    if (!debouncedSearchQuery.trim()) return scenes;
-    return scenes.filter((s) =>
-      s.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()),
-    );
-  }, [scenes, debouncedSearchQuery]);
+  const filteredScenes = useMemo(
+    () => filterScenesByQuery(scenes, debouncedSearchQuery),
+    [scenes, debouncedSearchQuery],
+  );
 
   // ── 引用当前场景的分镜 ──
-  const referencedBeats = useMemo(() => {
-    if (!currentScene.id) return [];
-    const result: Array<{
-      storyId: string;
-      storyTitle: string;
-      sequence: number;
-      title?: string;
-      description: string;
-      imageUrl?: string;
-      generationStatus?: string;
-    }> = [];
-    for (const story of stories) {
-      for (const beat of story.beats || []) {
-        if (beat.sceneId === currentScene.id) {
-          result.push({
-            storyId: story.id,
-            storyTitle: story.title,
-            sequence: beat.sequence,
-            title: beat.title,
-            description: beat.description,
-            imageUrl: beat.imageUrl,
-            generationStatus: beat.generationStatus,
-          });
-        }
-      }
-    }
-    return result;
-  }, [stories, currentScene.id]);
+  const referencedBeats = useMemo(
+    () => currentScene.id ? computeReferencedBeatsForScene(stories, currentScene.id) : [],
+    [stories, currentScene.id],
+  );
 
   // ── 头像图片 ──
   const avatarImage = resolveImageUrl(

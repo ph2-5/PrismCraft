@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { create } from "zustand";
+import { create, type StoreApi } from "zustand";
 import { container } from "@/infrastructure/di";
 import { errorLogger } from "@/shared/error-logger";
 import { emitToast } from "@/shared/utils/toast-bridge";
@@ -193,6 +193,342 @@ interface VideoTaskManagerState {
   cleanup: () => void;
 }
 
+type TaskStoreSet = StoreApi<VideoTaskManagerState>["setState"];
+type TaskStoreGet = () => VideoTaskManagerState;
+
+async function removeTaskImpl(_set: TaskStoreSet, get: TaskStoreGet, taskId: string): Promise<void> {
+  try {
+    await removeTaskFromStorageAndCache(taskId);
+    get().setAllTasks((prev) => prev.filter((task) => task.taskId !== taskId));
+    scheduleSync();
+    checkAndStartOrStopPolling();
+  } catch (error) {
+    errorLogger.error("Failed to remove video task", error);
+    emitToast("error", t("video.taskDeleteTitle"), t("video.taskDeleteFailed"));
+  }
+}
+
+async function removeTasksImpl(_set: TaskStoreSet, get: TaskStoreGet, taskIds: string[]): Promise<void> {
+  try {
+    await removeTasksFromStorageAndCache(taskIds);
+    get().setAllTasks((prev) => excludeTasksByIds(prev, taskIds));
+    scheduleSync();
+    checkAndStartOrStopPolling();
+  } catch (error) {
+    errorLogger.error("Failed to remove video tasks", error);
+  }
+}
+
+async function cancelPollableTasks(get: TaskStoreGet, tasks: VideoTask[], label: string): Promise<void> {
+  for (const task of tasks) {
+    if (TaskMachine.isPollable(task.status)) {
+      try {
+        await get().cancelTask(task.taskId);
+      } catch (e) {
+        errorLogger.warn(`[VideoTaskManager] ${label}`, e);
+      }
+    }
+  }
+}
+
+async function removeTasksByBeatIdImpl(_set: TaskStoreSet, get: TaskStoreGet, beatId: string): Promise<void> {
+  const tasks = get().allTasks.filter((task) => task.beatId === beatId);
+  await cancelPollableTasks(get, tasks, "取消beat关联任务失败");
+  try {
+    await container.videoTaskStorage.deleteVideoTasksByBeatId(beatId);
+  } catch (error) {
+    errorLogger.error("Failed to remove video tasks by beatId", error);
+    throw error;
+  }
+  await clearCacheForTasks(tasks.map((task) => task.taskId));
+  get().setAllTasks((prev) => prev.filter((task) => task.beatId !== beatId));
+  scheduleSync();
+  checkAndStartOrStopPolling();
+}
+
+async function removeTasksByStoryIdImpl(_set: TaskStoreSet, get: TaskStoreGet, storyId: string): Promise<void> {
+  const tasks = get().allTasks.filter((task) => task.storyId === storyId);
+  await cancelPollableTasks(get, tasks, "取消故事关联任务失败");
+  try {
+    await container.videoTaskStorage.deleteVideoTasksByStoryId(storyId);
+  } catch (error) {
+    errorLogger.error("Failed to remove video tasks by storyId", error);
+    throw error;
+  }
+  await clearCacheForTasks(tasks.map((task) => task.taskId));
+  get().setAllTasks((prev) => prev.filter((task) => task.storyId !== storyId));
+  scheduleSync();
+  checkAndStartOrStopPolling();
+}
+
+async function clearActiveTasksImpl(_set: TaskStoreSet, get: TaskStoreGet): Promise<void> {
+  const activeTasks = filterTasksByStatus(get().allTasks, ["pending", "generating"]);
+  await cancelPollableTasks(get, activeTasks, "clearActiveTasks 取消任务失败");
+  const activeIds = activeTasks.map((task) => task.taskId);
+  if (activeIds.length === 0) return;
+  try {
+    await container.videoTaskStorage.batchDeleteVideoTasks(activeIds);
+    await clearCacheForTasks(activeIds);
+    get().setAllTasks((prev) => excludeTasksByIds(prev, activeIds));
+    scheduleSync();
+    checkAndStartOrStopPolling();
+  } catch (error) {
+    errorLogger.error("Failed to clear active tasks", error);
+  }
+}
+
+async function clearAllTasksImpl(_set: TaskStoreSet, get: TaskStoreGet): Promise<void> {
+  const allTasks = get().allTasks;
+  await cancelPollableTasks(get, allTasks, "clearAllTasks 取消任务失败");
+  const taskIds = allTasks.map((task) => task.taskId);
+  try {
+    await container.videoTaskStorage.clearVideoTasks();
+    await clearCacheForTasks(taskIds);
+    get().setAllTasks([]);
+    scheduleSync();
+    checkAndStartOrStopPolling();
+  } catch (error) {
+    errorLogger.error("Failed to clear all video tasks", error);
+  }
+}
+
+async function clearCompletedTasksImpl(_set: TaskStoreSet, get: TaskStoreGet): Promise<void> {
+  try {
+    await container.videoTaskStorage.deleteVideoTasksByStatus(["completed"]);
+    get().setAllTasks((prev) => excludeTasksByStatus(prev, ["completed"]));
+    scheduleSync();
+  } catch (error) {
+    errorLogger.error("Failed to clear completed tasks", error);
+  }
+}
+
+async function clearFailedTasksImpl(_set: TaskStoreSet, get: TaskStoreGet): Promise<void> {
+  try {
+    await container.videoTaskStorage.deleteVideoTasksByStatus(["failed", "timeout"]);
+    get().setAllTasks((prev) => excludeTasksByStatus(prev, ["failed", "timeout"]));
+    scheduleSync();
+  } catch (error) {
+    errorLogger.error("Failed to clear failed tasks", error);
+  }
+}
+
+async function createTaskImpl(
+  set: TaskStoreSet,
+  get: TaskStoreGet,
+  prompt: string,
+  _deprecated: undefined,
+  extraOptions?: VideoTaskExtraOptions,
+): Promise<(VideoTask & { promptWasTruncated?: boolean }) | null> {
+  if (get().isCreating) {
+    errorLogger.warn("[VideoTaskManager] 已有任务创建中，请稍后重试");
+    return null;
+  }
+  set({ isCreating: true });
+  try {
+    const reused = await tryReuseDuplicateVideoTask(prompt, extraOptions, get().allTasks);
+    if (reused) return reused;
+
+    const result = await dispatchProviderVideoRequest(prompt, extraOptions);
+    if (!result.success || !result.data) {
+      throw new Error(result.error || "Failed to create video task");
+    }
+
+    const taskId = result.data.taskId;
+    if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
+      throw new Error("Invalid task ID from provider");
+    }
+
+    const newTask = buildNewVideoTask(prompt, extraOptions, {
+      taskId,
+      providerId: result.data.providerId!,
+      providerModelId: result.data.providerModelId!,
+      providerFormat: result.data.providerFormat,
+    });
+    const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
+    await persistVideoTask(newTask, {
+      logLabel: "持久化任务失败，仅保留在内存中",
+      toastOnFailure: {
+        titleKey: "warning.memoryOnly",
+        detailKey: "warning.memoryOnlyDetail",
+        detailArgs: { taskLabel },
+      },
+      catchExceptions: false,
+    });
+
+    get().setAllTasks((prev) => [newTask, ...prev]);
+    schedulePolling();
+    emitToast("success", t("video.taskSubmittedTitle"), t("video.taskSubmittedProcessing", { label: taskLabel }));
+
+    if (result.data?.promptWasTruncated) {
+      errorLogger.warn(
+        `[VideoTaskManager] 提示词已被截断，原始长度: ${result.data.originalPromptLength} 字符`,
+      );
+    }
+
+    return {
+      ...newTask,
+      promptWasTruncated: result.data?.promptWasTruncated || false,
+    };
+  } catch (error) {
+    errorLogger.error("Error creating video task", error);
+    throw error;
+  } finally {
+    set({ isCreating: false });
+  }
+}
+
+async function cancelTaskImpl(_set: TaskStoreSet, get: TaskStoreGet, taskId: string): Promise<void> {
+  const task = get().allTasks.find((task) => task.taskId === taskId);
+  if (!task) return;
+
+  const result = TaskMachine.transition(
+    task,
+    "cancelled",
+    { error: t("video.taskCancelled") },
+    t("video.taskTransitionError", { from: task.status, to: "cancelled" }),
+  );
+  if (!result.ok) {
+    errorLogger.warn(
+      { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=cancelled` },
+      "VideoTaskManager",
+    );
+    emitToast("warning", t("warning.cannotCancel"), t("warning.cannotCancelDetail", { status: task.status }));
+    return;
+  }
+
+  try {
+    const provider = container.videoProvider;
+    if (typeof provider.cancelTask === "function") {
+      await provider.cancelTask(taskId);
+    }
+  } catch (e) {
+    errorLogger.warn("Failed to cancel task on server side", e);
+  }
+
+  const updatedTask = result.value;
+
+  try {
+    await container.videoTaskStorage.updateVideoTask(taskId, {
+      status: "cancelled",
+      message: t("video.userCancelled"),
+      pollFailureCount: 0,
+    });
+  } catch (e) {
+    errorLogger.warn("[VideoTaskManager] Failed to persist cancelled task", e);
+  }
+
+  get().setAllTasks((prev) =>
+    prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
+  );
+  scheduleSync();
+  checkAndStartOrStopPolling();
+}
+
+async function pauseTaskImpl(_set: TaskStoreSet, get: TaskStoreGet, taskId: string): Promise<void> {
+  const task = get().allTasks.find((task) => task.taskId === taskId);
+  if (!task) return;
+
+  const result = TaskMachine.transition(
+    task,
+    "paused",
+    { error: t("video.userPaused") },
+    t("video.taskTransitionError", { from: task.status, to: "paused" }),
+  );
+  if (!result.ok) {
+    errorLogger.warn(
+      { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=paused` },
+      "VideoTaskManager",
+    );
+    emitToast("warning", t("warning.cannotPause"), t("warning.cannotPauseDetail", { status: task.status }));
+    return;
+  }
+
+  const updatedTask = result.value;
+
+  try {
+    await container.videoTaskStorage.updateVideoTask(taskId, {
+      status: "paused",
+      message: t("video.userPaused"),
+    });
+  } catch (e) {
+    errorLogger.warn("[VideoTaskManager] Failed to persist paused task", e);
+  }
+
+  get().setAllTasks((prev) =>
+    prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
+  );
+  scheduleSync();
+  checkAndStartOrStopPolling();
+  emitToast("info", t("video.taskPaused"), t("video.userPaused"));
+}
+
+async function resumeTaskImpl(_set: TaskStoreSet, get: TaskStoreGet, taskId: string): Promise<void> {
+  const task = get().allTasks.find((task) => task.taskId === taskId);
+  if (!task) return;
+
+  const result = TaskMachine.transition(
+    task,
+    "generating",
+    { error: t("video.userResumed") },
+    t("video.taskTransitionError", { from: task.status, to: "generating" }),
+  );
+  if (!result.ok) {
+    errorLogger.warn(
+      { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=generating` },
+      "VideoTaskManager",
+    );
+    emitToast("warning", t("warning.cannotResume"), t("warning.cannotResumeDetail", { status: task.status }));
+    return;
+  }
+
+  const updatedTask = result.value;
+
+  try {
+    await container.videoTaskStorage.updateVideoTask(taskId, {
+      status: "generating",
+      message: t("video.userResumed"),
+    });
+  } catch (e) {
+    errorLogger.warn("[VideoTaskManager] Failed to persist resumed task", e);
+  }
+
+  get().setAllTasks((prev) =>
+    prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
+  );
+  scheduleSync();
+  checkAndStartOrStopPolling();
+  emitToast("info", t("video.taskResumed"), t("video.userResumed"));
+}
+
+function recoverTaskImpl(_set: TaskStoreSet, get: TaskStoreGet, taskId: string, status: string, videoUrl?: string): void {
+  const task = get().allTasks.find((task) => task.taskId === taskId);
+  if (!task) return;
+
+  const mappedStatus = mapApiStatus(status, videoUrl);
+  const result = TaskMachine.transition(
+    task,
+    mappedStatus,
+    { videoUrl },
+    t("video.taskTransitionError", { from: task.status, to: mappedStatus }),
+  );
+  if (!result.ok) {
+    errorLogger.warn(
+      { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=${mappedStatus}` },
+      "VideoTaskManager",
+    );
+    return;
+  }
+
+  const updatedTask = result.value;
+  get().setAllTasks((prev) =>
+    prev.map((task) =>
+      task.taskId === taskId ? updatedTask : task,
+    ),
+  );
+  scheduleSync();
+  checkAndStartOrStopPolling();
+}
+
 export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   allTasks: [],
   isBackgroundProcessing: false,
@@ -230,376 +566,24 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
     return newTask;
   },
 
-  removeTask: async (taskId) => {
-    try {
-      await removeTaskFromStorageAndCache(taskId);
-      get().setAllTasks((prev) => prev.filter((task) => task.taskId !== taskId));
-      scheduleSync();
-      checkAndStartOrStopPolling();
-    } catch (error) {
-      errorLogger.error("Failed to remove video task", error);
-      emitToast("error", t("video.taskDeleteTitle"), t("video.taskDeleteFailed"));
-    }
-  },
-
-  removeTasks: async (taskIds) => {
-    try {
-      await removeTasksFromStorageAndCache(taskIds);
-      get().setAllTasks((prev) => excludeTasksByIds(prev, taskIds));
-      scheduleSync();
-      checkAndStartOrStopPolling();
-    } catch (error) {
-      errorLogger.error("Failed to remove video tasks", error);
-    }
-  },
-
-  removeTasksByBeatId: async (beatId) => {
-    const tasks = get().allTasks.filter((task) => task.beatId === beatId);
-    for (const task of tasks) {
-      if (TaskMachine.isPollable(task.status)) {
-        try {
-          await get().cancelTask(task.taskId);
-        } catch (e) {
-          errorLogger.warn("[VideoTaskManager] 取消beat关联任务失败", e);
-        }
-      }
-    }
-    try {
-      await container.videoTaskStorage.deleteVideoTasksByBeatId(beatId);
-    } catch (error) {
-      errorLogger.error("Failed to remove video tasks by beatId", error);
-      throw error;
-    }
-    await clearCacheForTasks(tasks.map((task) => task.taskId));
-    get().setAllTasks((prev) => prev.filter((task) => task.beatId !== beatId));
-    scheduleSync();
-    checkAndStartOrStopPolling();
-  },
-
-  removeTasksByStoryId: async (storyId) => {
-    const tasks = get().allTasks.filter((task) => task.storyId === storyId);
-    for (const task of tasks) {
-      if (TaskMachine.isPollable(task.status)) {
-        try {
-          await get().cancelTask(task.taskId);
-        } catch (e) {
-          errorLogger.warn("[VideoTaskManager] 取消故事关联任务失败", e);
-        }
-      }
-    }
-    try {
-      await container.videoTaskStorage.deleteVideoTasksByStoryId(storyId);
-    } catch (error) {
-      errorLogger.error("Failed to remove video tasks by storyId", error);
-      throw error;
-    }
-    await clearCacheForTasks(tasks.map((task) => task.taskId));
-    get().setAllTasks((prev) => prev.filter((task) => task.storyId !== storyId));
-    scheduleSync();
-    checkAndStartOrStopPolling();
-  },
-
-  clearActiveTasks: async () => {
-    const activeTasks = filterTasksByStatus(get().allTasks, ["pending", "generating"]);
-    // 先逐个通知服务端取消（best-effort），避免服务端继续生成造成 token 浪费
-    for (const task of activeTasks) {
-      if (TaskMachine.isPollable(task.status)) {
-        try {
-          await get().cancelTask(task.taskId);
-        } catch (e) {
-          errorLogger.warn("[VideoTaskManager] clearActiveTasks 取消任务失败", e);
-        }
-      }
-    }
-    const activeIds = activeTasks.map((task) => task.taskId);
-    if (activeIds.length === 0) return;
-    try {
-      await container.videoTaskStorage.batchDeleteVideoTasks(activeIds);
-      await clearCacheForTasks(activeIds);
-      get().setAllTasks((prev) => excludeTasksByIds(prev, activeIds));
-      scheduleSync();
-      checkAndStartOrStopPolling();
-    } catch (error) {
-      errorLogger.error("Failed to clear active tasks", error);
-    }
-  },
-
-  clearAllTasks: async () => {
-    const allTasks = get().allTasks;
-    // 先逐个通知服务端取消活跃任务（best-effort）
-    for (const task of allTasks) {
-      if (TaskMachine.isPollable(task.status)) {
-        try {
-          await get().cancelTask(task.taskId);
-        } catch (e) {
-          errorLogger.warn("[VideoTaskManager] clearAllTasks 取消任务失败", e);
-        }
-      }
-    }
-    const taskIds = allTasks.map((task) => task.taskId);
-    try {
-      await container.videoTaskStorage.clearVideoTasks();
-      await clearCacheForTasks(taskIds);
-      get().setAllTasks([]);
-      scheduleSync();
-      checkAndStartOrStopPolling();
-    } catch (error) {
-      errorLogger.error("Failed to clear all video tasks", error);
-    }
-  },
-
-  clearCompletedTasks: async () => {
-    try {
-      await container.videoTaskStorage.deleteVideoTasksByStatus(["completed"]);
-      get().setAllTasks((prev) => excludeTasksByStatus(prev, ["completed"]));
-      scheduleSync();
-    } catch (error) {
-      errorLogger.error("Failed to clear completed tasks", error);
-    }
-  },
-
-  clearFailedTasks: async () => {
-    try {
-      await container.videoTaskStorage.deleteVideoTasksByStatus(["failed", "timeout"]);
-      get().setAllTasks((prev) => excludeTasksByStatus(prev, ["failed", "timeout"]));
-      scheduleSync();
-    } catch (error) {
-      errorLogger.error("Failed to clear failed tasks", error);
-    }
-  },
-
-  createTask: async (prompt, _deprecated, extraOptions) => {
-    if (get().isCreating) {
-      errorLogger.warn("[VideoTaskManager] 已有任务创建中，请稍后重试");
-      return null;
-    }
-    set({ isCreating: true });
-    try {
-      // Pre-flight duplicate check: if a highly similar completed task exists,
-      // reuse it instead of burning tokens on a duplicate Provider request.
-      // Caller can still trigger a fresh generation by removing the existing
-      // task first (deleteTask) or using the retry path.
-      const reused = await tryReuseDuplicateVideoTask(prompt, extraOptions, get().allTasks);
-      if (reused) return reused;
-
-      // 派发 provider 请求（根据是否有首/尾/固定帧选择接口）
-      const result = await dispatchProviderVideoRequest(prompt, extraOptions);
-      if (!result.success || !result.data) {
-        throw new Error(result.error || "Failed to create video task");
-      }
-
-      // 校验 taskId 合法性
-      const taskId = result.data.taskId;
-      if (typeof taskId !== "string" || taskId.length === 0 || taskId.length > 256) {
-        throw new Error("Invalid task ID from provider");
-      }
-
-      // 构造 VideoTask 并持久化（持久化失败仅保留内存，不阻塞流程）
-      // 此处 result.data.providerId/providerModelId 已由 success 分支保证存在
-      const newTask = buildNewVideoTask(prompt, extraOptions, {
-        taskId,
-        providerId: result.data.providerId!,
-        providerModelId: result.data.providerModelId!,
-        providerFormat: result.data.providerFormat,
-      });
-      const taskLabel = extraOptions?.beatTitle || extraOptions?.storyTitle || newTask.taskId.slice(0, 8);
-      await persistVideoTask(newTask, {
-        logLabel: "持久化任务失败，仅保留在内存中",
-        toastOnFailure: {
-          titleKey: "warning.memoryOnly",
-          detailKey: "warning.memoryOnlyDetail",
-          detailArgs: { taskLabel },
-        },
-        catchExceptions: false,
-      });
-
-      // 更新内存状态并启动轮询
-      get().setAllTasks((prev) => [newTask, ...prev]);
-      schedulePolling();
-      emitToast("success", t("video.taskSubmittedTitle"), t("video.taskSubmittedProcessing", { label: taskLabel }));
-
-      if (result.data?.promptWasTruncated) {
-        errorLogger.warn(
-          `[VideoTaskManager] 提示词已被截断，原始长度: ${result.data.originalPromptLength} 字符`,
-        );
-      }
-
-      return {
-        ...newTask,
-        promptWasTruncated: result.data?.promptWasTruncated || false,
-      };
-    } catch (error) {
-      errorLogger.error("Error creating video task", error);
-      throw error;
-    } finally {
-      set({ isCreating: false });
-    }
-  },
+  removeTask: (taskId) => removeTaskImpl(set, get, taskId),
+  removeTasks: (taskIds) => removeTasksImpl(set, get, taskIds),
+  removeTasksByBeatId: (beatId) => removeTasksByBeatIdImpl(set, get, beatId),
+  removeTasksByStoryId: (storyId) => removeTasksByStoryIdImpl(set, get, storyId),
+  clearActiveTasks: () => clearActiveTasksImpl(set, get),
+  clearAllTasks: () => clearAllTasksImpl(set, get),
+  clearCompletedTasks: () => clearCompletedTasksImpl(set, get),
+  clearFailedTasks: () => clearFailedTasksImpl(set, get),
+  createTask: (prompt, _deprecated, extraOptions) => createTaskImpl(set, get, prompt, _deprecated, extraOptions),
 
   pollTask: async (taskId) => {
     await pollTaskShared({ getState: get, set } as PollingStoreAccessor, taskId);
   },
 
-  cancelTask: async (taskId) => {
-    const task = get().allTasks.find((task) => task.taskId === taskId);
-    if (!task) return;
-
-    const result = TaskMachine.transition(
-      task,
-      "cancelled",
-      { error: t("video.taskCancelled") },
-      t("video.taskTransitionError", { from: task.status, to: "cancelled" }),
-    );
-    if (!result.ok) {
-      errorLogger.warn(
-        { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=cancelled` },
-        "VideoTaskManager",
-      );
-      emitToast("warning", t("warning.cannotCancel"), t("warning.cannotCancelDetail", { status: task.status }));
-      return;
-    }
-
-    // 尝试通知服务端取消（best-effort，失败不影响本地取消）
-    try {
-      const provider = container.videoProvider;
-      if (typeof provider.cancelTask === "function") {
-        await provider.cancelTask(taskId);
-      }
-    } catch (e) {
-      errorLogger.warn("Failed to cancel task on server side", e);
-    }
-
-    const updatedTask = result.value;
-
-    try {
-      await container.videoTaskStorage.updateVideoTask(taskId, {
-        status: "cancelled",
-        message: t("video.userCancelled"),
-        pollFailureCount: 0,
-      });
-    } catch (e) {
-      errorLogger.warn("[VideoTaskManager] Failed to persist cancelled task", e);
-    }
-
-    get().setAllTasks((prev) =>
-      prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
-    );
-    scheduleSync();
-    checkAndStartOrStopPolling();
-  },
-
-  pauseTask: async (taskId) => {
-    const task = get().allTasks.find((task) => task.taskId === taskId);
-    if (!task) return;
-
-    const result = TaskMachine.transition(
-      task,
-      "paused",
-      { error: t("video.userPaused") },
-      t("video.taskTransitionError", { from: task.status, to: "paused" }),
-    );
-    if (!result.ok) {
-      errorLogger.warn(
-        { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=paused` },
-        "VideoTaskManager",
-      );
-      emitToast("warning", t("warning.cannotPause"), t("warning.cannotPauseDetail", { status: task.status }));
-      return;
-    }
-
-    // 暂停为本地行为：不通知服务端（云端任务一般无法真正暂停），
-    // 仅停止本地轮询。paused 状态不在 POLLABLE_STATUSES 中，
-    // checkAndStartOrStopPolling 会自动停止对该任务的轮询。
-
-    const updatedTask = result.value;
-
-    try {
-      await container.videoTaskStorage.updateVideoTask(taskId, {
-        status: "paused",
-        message: t("video.userPaused"),
-      });
-    } catch (e) {
-      errorLogger.warn("[VideoTaskManager] Failed to persist paused task", e);
-    }
-
-    get().setAllTasks((prev) =>
-      prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
-    );
-    scheduleSync();
-    checkAndStartOrStopPolling();
-    emitToast("info", t("video.taskPaused"), t("video.userPaused"));
-  },
-
-  resumeTask: async (taskId) => {
-    const task = get().allTasks.find((task) => task.taskId === taskId);
-    if (!task) return;
-
-    const result = TaskMachine.transition(
-      task,
-      "generating",
-      { error: t("video.userResumed") },
-      t("video.taskTransitionError", { from: task.status, to: "generating" }),
-    );
-    if (!result.ok) {
-      errorLogger.warn(
-        { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=generating` },
-        "VideoTaskManager",
-      );
-      emitToast("warning", t("warning.cannotResume"), t("warning.cannotResumeDetail", { status: task.status }));
-      return;
-    }
-
-    // 恢复为本地行为：不通知服务端。
-    // generating 状态在 POLLABLE_STATUSES 中，
-    // checkAndStartOrStopPolling 会自动重新启动轮询。
-
-    const updatedTask = result.value;
-
-    try {
-      await container.videoTaskStorage.updateVideoTask(taskId, {
-        status: "generating",
-        message: t("video.userResumed"),
-      });
-    } catch (e) {
-      errorLogger.warn("[VideoTaskManager] Failed to persist resumed task", e);
-    }
-
-    get().setAllTasks((prev) =>
-      prev.map((task) => (task.taskId === taskId ? updatedTask : task)),
-    );
-    scheduleSync();
-    checkAndStartOrStopPolling();
-    emitToast("info", t("video.taskResumed"), t("video.userResumed"));
-  },
-
-  recoverTask: (taskId, status, videoUrl) => {
-    const task = get().allTasks.find((task) => task.taskId === taskId);
-    if (!task) return;
-
-    const mappedStatus = mapApiStatus(status, videoUrl);
-    const result = TaskMachine.transition(
-      task,
-      mappedStatus,
-      { videoUrl },
-      t("video.taskTransitionError", { from: task.status, to: mappedStatus }),
-    );
-    if (!result.ok) {
-      errorLogger.warn(
-        { code: "INVALID_TRANSITION", message: `taskId=${taskId}, from=${task.status}, to=${mappedStatus}` },
-        "VideoTaskManager",
-      );
-      return;
-    }
-
-    const updatedTask = result.value;
-    get().setAllTasks((prev) =>
-      prev.map((task) =>
-        task.taskId === taskId ? updatedTask : task,
-      ),
-    );
-    scheduleSync();
-    checkAndStartOrStopPolling();
-  },
+  cancelTask: (taskId) => cancelTaskImpl(set, get, taskId),
+  pauseTask: (taskId) => pauseTaskImpl(set, get, taskId),
+  resumeTask: (taskId) => resumeTaskImpl(set, get, taskId),
+  recoverTask: (taskId, status, videoUrl) => recoverTaskImpl(set, get, taskId, status, videoUrl),
 
   startBackgroundProcessing: () => {
     set({ isBackgroundProcessing: true });

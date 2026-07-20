@@ -31,6 +31,120 @@ interface SyncSettingsPanelProps {
   onClose: () => void;
 }
 
+const CONFLICT_TABLE_MAP: Record<string, string> = {
+  character: "characters",
+  scene: "scenes",
+  story: "stories",
+  media_asset: "media_assets",
+  storyboard_asset: "storyboard_assets",
+  video_task: "video_tasks",
+  story_version: "story_versions",
+  collection: "collections",
+};
+
+async function resolveConflict(
+  conflictId: string,
+  resolution: "local" | "remote" | "merge",
+  mergedData: Record<string, unknown> | undefined,
+  conflicts: SyncConflict[],
+  removeConflict: (conflictId: string) => void,
+) {
+  const [entityType, entityId] = conflictId.split(":");
+  const tableName = CONFLICT_TABLE_MAP[entityType as keyof typeof CONFLICT_TABLE_MAP];
+  if (!tableName) return;
+
+  const pk = tableName === "video_tasks" ? "task_id" : "id";
+
+  try {
+    const sqliteRun = safeRun;
+    if (resolution === "local") {
+      await sqliteRun(
+        `UPDATE ${tableName} SET sync_status = 'pending' WHERE ${pk} = ?`,
+        [entityId],
+      );
+    } else if (resolution === "remote" || resolution === "merge") {
+      const data = resolution === "merge" ? mergedData : conflicts.find(
+        (c) => `${c.entityType}:${c.entityId}` === conflictId,
+      )?.remoteData;
+      const remoteVectorClock = conflicts.find(
+        (c) => `${c.entityType}:${c.entityId}` === conflictId,
+      )?.remoteVectorClock;
+      if (data) {
+        const columns = Object.keys(data).filter((k) =>
+          /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k),
+        );
+        const setClauses = columns.map((k) => `${k} = ?`).join(", ");
+        const values = columns.map((k) => data[k]);
+        await sqliteRun(
+          `UPDATE ${tableName} SET ${setClauses}, vector_clock = ?, sync_status = 'synced' WHERE ${pk} = ?`,
+          [...values, JSON.stringify(remoteVectorClock || {}), entityId],
+        );
+      }
+    }
+
+    removeConflict(conflictId);
+  } catch (error) {
+    errorLogger.warn("解决冲突失败", error);
+  }
+}
+
+function buildServerConfig(
+  serverUrl: string,
+  username: string,
+  password: string,
+  connectionStatus: ConnectionStatus,
+  serverVersion: string | null,
+): SyncServerConfig & { username?: string; token?: string } | null {
+  if (!serverUrl) return null;
+  return {
+    url: serverUrl,
+    connected: connectionStatus === "connected",
+    lastConnectedAt:
+      connectionStatus === "connected" ? Date.now() : null,
+    serverVersion,
+    username,
+    token: password,
+  };
+}
+
+async function testConnection(
+  serverUrl: string,
+  username: string,
+  password: string,
+  setConnectionStatus: (s: ConnectionStatus) => void,
+  setConnectionMessage: (m: string) => void,
+  setServerVersion: (v: string | null) => void,
+) {
+  if (!serverUrl || !username || !password) {
+    setConnectionStatus("error");
+    setConnectionMessage(t("sync.fillServerInfo"));
+    return;
+  }
+
+  setConnectionStatus("testing");
+  setConnectionMessage("");
+
+  try {
+    const result = await container.apiClient.post<SyncTestResult>("sync/test", {
+      url: serverUrl,
+      username,
+      password,
+    });
+
+    if (result.ok && result.value.success) {
+      setConnectionStatus("connected");
+      setConnectionMessage(`${t("sync.connectionSuccess")}${result.value.latency ? ` (${result.value.latency}ms)` : ""}`);
+      setServerVersion(result.value.serverVersion || null);
+    } else {
+      setConnectionStatus("error");
+      setConnectionMessage(result.ok ? result.value.message || t("sync.connectionFailed") : t("error.requestFailed"));
+    }
+  } catch (e) {
+    setConnectionStatus("error");
+    setConnectionMessage(`${t("sync.connectionFailed")}: ${(e as Error).message}`);
+  }
+}
+
 export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
   const [config, setConfig] = useState<SyncConfig & { server: SyncServerConfig | null }>({
     enabled: false,
@@ -109,51 +223,13 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
   }, []);
 
   const handleTestConnection = async () => {
-    if (!serverUrl || !username || !password) {
-      setConnectionStatus("error");
-      setConnectionMessage(t("sync.fillServerInfo"));
-      return;
-    }
-
-    setConnectionStatus("testing");
-    setConnectionMessage("");
-
-    try {
-      const result = await container.apiClient.post<SyncTestResult>("sync/test", {
-        url: serverUrl,
-        username,
-        password,
-      });
-
-      if (result.ok && result.value.success) {
-        setConnectionStatus("connected");
-        setConnectionMessage(`${t("sync.connectionSuccess")}${result.value.latency ? ` (${result.value.latency}ms)` : ""}`);
-        setServerVersion(result.value.serverVersion || null);
-      } else {
-        setConnectionStatus("error");
-        setConnectionMessage(result.ok ? result.value.message || t("sync.connectionFailed") : t("error.requestFailed"));
-      }
-    } catch (e) {
-      setConnectionStatus("error");
-      setConnectionMessage(`${t("sync.connectionFailed")}: ${(e as Error).message}`);
-    }
+    await testConnection(serverUrl, username, password, setConnectionStatus, setConnectionMessage, setServerVersion);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const serverConfig: SyncServerConfig & { username?: string; token?: string } | null =
-        serverUrl
-          ? {
-              url: serverUrl,
-              connected: connectionStatus === "connected",
-              lastConnectedAt:
-                connectionStatus === "connected" ? Date.now() : null,
-              serverVersion,
-              username,
-              token: password,
-            }
-          : null;
+      const serverConfig = buildServerConfig(serverUrl, username, password, connectionStatus, serverVersion);
 
       const newConfig = {
         ...config,
@@ -210,55 +286,11 @@ export function SyncSettingsPanel({ isOpen, onClose }: SyncSettingsPanelProps) {
     resolution: "local" | "remote" | "merge",
     mergedData?: Record<string, unknown>,
   ) => {
-    const [entityType, entityId] = conflictId.split(":");
-    const tableMap: Record<string, string> = {
-      character: "characters",
-      scene: "scenes",
-      story: "stories",
-      media_asset: "media_assets",
-      storyboard_asset: "storyboard_assets",
-      video_task: "video_tasks",
-      story_version: "story_versions",
-      collection: "collections",
-    };
-    const tableName = tableMap[entityType as keyof typeof tableMap];
-    if (!tableName) return;
-
-    const pk = tableName === "video_tasks" ? "task_id" : "id";
-
-    try {
-      const sqliteRun = safeRun;
-      if (resolution === "local") {
-        await sqliteRun(
-          `UPDATE ${tableName} SET sync_status = 'pending' WHERE ${pk} = ?`,
-          [entityId],
-        );
-      } else if (resolution === "remote" || resolution === "merge") {
-        const data = resolution === "merge" ? mergedData : conflicts.find(
-          (c) => `${c.entityType}:${c.entityId}` === conflictId,
-        )?.remoteData;
-        const remoteVectorClock = conflicts.find(
-          (c) => `${c.entityType}:${c.entityId}` === conflictId,
-        )?.remoteVectorClock;
-        if (data) {
-          const columns = Object.keys(data).filter((k) =>
-            /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k),
-          );
-          const setClauses = columns.map((k) => `${k} = ?`).join(", ");
-          const values = columns.map((k) => data[k]);
-          await sqliteRun(
-            `UPDATE ${tableName} SET ${setClauses}, vector_clock = ?, sync_status = 'synced' WHERE ${pk} = ?`,
-            [...values, JSON.stringify(remoteVectorClock || {}), entityId],
-          );
-        }
-      }
-
+    await resolveConflict(conflictId, resolution, mergedData, conflicts, (id) =>
       setConflicts((prev) =>
-        prev.filter((c) => `${c.entityType}:${c.entityId}` !== conflictId),
-      );
-    } catch (error) {
-      errorLogger.warn("解决冲突失败", error);
-    }
+        prev.filter((c) => `${c.entityType}:${c.entityId}` !== id),
+      ),
+    );
   };
 
   const handleResolveAll = async (resolution: "local" | "remote") => {

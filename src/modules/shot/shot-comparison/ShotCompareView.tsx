@@ -37,6 +37,66 @@ export interface ShotCompareViewProps {
   onArchive: (versionId: string) => void;
 }
 
+interface VersionListPanelProps {
+  versions: ShotVersion[];
+  selectedPair: [string, string] | null;
+  canCompare: boolean;
+  onToggleSelect: (versionId: string) => void;
+  onStartCompare: () => void;
+}
+
+function VersionListPanel({
+  versions, selectedPair, canCompare, onToggleSelect, onStartCompare,
+}: VersionListPanelProps) {
+  return (
+    <div className="w-[200px] shrink-0 border border-border rounded-md bg-card flex flex-col min-h-0">
+      <div className="px-2 py-1.5 border-b border-border text-[10px] font-semibold text-muted-foreground">
+        {t("shotCompare.versionList")}（{versions.length}）
+      </div>
+      <div className="flex-1 overflow-auto p-1.5 space-y-1">
+        {versions.length === 0 ? (
+          <EmptyState icon={Columns2} title={t("shotCompare.noVersions")} description={t("shotCompare.noVersionsDesc")} compact />
+        ) : (
+          versions.map((v, idx) => {
+            const isSelected = selectedPair != null && (
+              selectedPair[0] === v.versionId || selectedPair[1] === v.versionId
+            );
+            const isArchived = v.isArchived;
+            return (
+              <button
+                key={v.versionId}
+                className={`w-full text-left p-1.5 rounded border text-[10px] transition-colors ${
+                  isSelected
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-card2 hover:border-primary"
+                } ${isArchived ? "opacity-50" : ""}`}
+                onClick={() => onToggleSelect(v.versionId)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="truncate">{v.label ?? `v${idx + 1}`}</span>
+                  {isSelected && <CheckCircle2 size={10} className="text-primary shrink-0" />}
+                </div>
+                <div className="text-muted-foreground truncate">
+                  {v.type === "video" ? t("shotCompare.videoType") : t("shotCompare.keyframeType")} · {v.parameters.model ?? t("shotCompare.unknownModel")}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+      <div className="px-2 py-1.5 border-t border-border">
+        <button
+          className="btn btn-primary btn-xs w-full"
+          onClick={onStartCompare}
+          disabled={!canCompare}
+        >
+          <Columns2 size={12} /> {t("shotCompare.startCompare")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ShotCompareView({
   shotId,
   versions,
@@ -131,51 +191,13 @@ export function ShotCompareView({
 
       <div className="flex-1 flex gap-2 min-h-0">
         {/* 左侧版本列表 */}
-        <div className="w-[200px] shrink-0 border border-border rounded-md bg-card flex flex-col min-h-0">
-          <div className="px-2 py-1.5 border-b border-border text-[10px] font-semibold text-muted-foreground">
-            {t("shotCompare.versionList")}（{versions.length}）
-          </div>
-          <div className="flex-1 overflow-auto p-1.5 space-y-1">
-            {versions.length === 0 ? (
-              <EmptyState icon={Columns2} title={t("shotCompare.noVersions")} description={t("shotCompare.noVersionsDesc")} compact />
-            ) : (
-              versions.map((v, idx) => {
-                const isSelected = selectedPair != null && (
-                  selectedPair[0] === v.versionId || selectedPair[1] === v.versionId
-                );
-                const isArchived = v.isArchived;
-                return (
-                  <button
-                    key={v.versionId}
-                    className={`w-full text-left p-1.5 rounded border text-[10px] transition-colors ${
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-card2 hover:border-primary"
-                    } ${isArchived ? "opacity-50" : ""}`}
-                    onClick={() => toggleSelect(v.versionId)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="truncate">{v.label ?? `v${idx + 1}`}</span>
-                      {isSelected && <CheckCircle2 size={10} className="text-primary shrink-0" />}
-                    </div>
-                    <div className="text-muted-foreground truncate">
-                      {v.type === "video" ? t("shotCompare.videoType") : t("shotCompare.keyframeType")} · {v.parameters.model ?? t("shotCompare.unknownModel")}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-          <div className="px-2 py-1.5 border-t border-border">
-            <button
-              className="btn btn-primary btn-xs w-full"
-              onClick={startCompare}
-              disabled={!canCompare}
-            >
-              <Columns2 size={12} /> {t("shotCompare.startCompare")}
-            </button>
-          </div>
-        </div>
+        <VersionListPanel
+          versions={versions}
+          selectedPair={selectedPair}
+          canCompare={canCompare}
+          onToggleSelect={toggleSelect}
+          onStartCompare={startCompare}
+        />
 
         {/* 右侧对比区 */}
         <div className="flex-1 min-w-0 flex flex-col gap-2">

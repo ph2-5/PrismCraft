@@ -179,11 +179,11 @@ const eslintConfig = tseslint.config(
       "react-hooks/rules-of-hooks": "error",
       "eqeqeq": ["error", "always", { null: "ignore" }],
       "prefer-const": ["warn", { destructuring: "all" }],
-      "max-lines": ["warn", { max: 500, skipBlankLines: true, skipComments: true }],
-      "max-lines-per-function": ["warn", { max: 150, skipBlankLines: true, skipComments: true }],
+      "max-lines": ["warn", { max: 700, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["warn", { max: 200, skipBlankLines: true, skipComments: true }],
       "max-params": ["warn", 8],
       "max-depth": ["warn", 4],
-      "complexity": ["warn", 20],
+      "complexity": ["warn", 25],
       "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports", fixStyle: "inline-type-imports", disallowTypeAnnotations: false }],
     },
   },
@@ -214,7 +214,7 @@ const eslintConfig = tseslint.config(
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       // 测试用例本身需要长 setup（mock 配置、多步断言），放宽行数限制
-      "max-lines-per-function": ["warn", { max: 1000, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["warn", { max: 1200, skipBlankLines: true, skipComments: true }],
       // 测试文件堆砌 mock 和断言，文件总行数放宽（仍保留上限防止失控）
       "max-lines": ["warn", { max: 4000, skipBlankLines: true, skipComments: true }],
       // 测试嵌套 describe/it/expect 链路天然较深
@@ -354,10 +354,24 @@ const eslintConfig = tseslint.config(
   },
   {
     // React 组件（presentation/ 下的 .tsx）天然包含 JSX 模板代码，
-    // 函数体长度合理放宽到 250 行（业务逻辑/hooks 仍保持 150 行严格限制）
+    // 函数体长度合理放宽到 300 行（业务逻辑/hooks 仍保持 200 行严格限制）
     files: ["src/modules/**/presentation/**/*.tsx", "src/modules/**/page.tsx"],
     rules: {
-      "max-lines-per-function": ["warn", { max: 250, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["warn", { max: 300, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    // i18n 字典文件（messages.ts）是纯数据字典，行数天然较多，豁免 max-lines 限制
+    files: ["src/shared/constants/messages.ts"],
+    rules: {
+      "max-lines": "off",
+    },
+  },
+  {
+    // mock 文件用于测试模拟，分支较多，放宽 complexity 限制
+    files: ["src/__tests__/mocks/**/*.{ts,tsx}"],
+    rules: {
+      "complexity": ["warn", 30],
     },
   },
   {

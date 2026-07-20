@@ -224,107 +224,21 @@ function PropEditDialog({ open, editingProp, defaultType, onClose, onSubmit }: P
             <X size={14} />
           </button>
         </div>
-        <div className="p-3 flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="section-label !text-[11px]" htmlFor="prop-name-input">
-              {t("character.name")} <span className="text-destructive">*</span>
-            </label>
-            <input
-              id="prop-name-input"
-              className="input"
-              placeholder={t("asset.propNamePlaceholder")}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="section-label !text-[11px]" htmlFor="prop-type-select">
-              {t("asset.propTypeLabel")}
-            </label>
-            <select
-              id="prop-type-select"
-              className="select"
-              value={type}
-              onChange={(e) => setType(e.target.value as PropType)}
-            >
-              {ALL_PROP_TYPES.map((pt) => (
-                <option key={pt} value={pt}>{t(TYPE_TO_LABEL_KEY[pt])}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="section-label !text-[11px]" htmlFor="prop-desc-input">
-              {t("character.description")}
-            </label>
-            <textarea
-              id="prop-desc-input"
-              className="textarea"
-              placeholder={t("asset.propDescriptionPlaceholder")}
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="section-label !text-[11px]" htmlFor="prop-tags-input">
-              {t("asset.propTagsLabel")}
-            </label>
-            <input
-              id="prop-tags-input"
-              className="input"
-              placeholder={t("asset.propTagsPlaceholder")}
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="section-label !text-[11px]" htmlFor="prop-image-input">
-              {t("asset.propImageLabel")}
-            </label>
-            <div className="flex gap-1.5">
-              <input
-                id="prop-image-input"
-                className="input flex-1"
-                placeholder={t("asset.propImagePlaceholder")}
-                value={referenceImage}
-                onChange={(e) => setReferenceImage(e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn btn-outline btn-xs"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {t("asset.propUploadImage")}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-            </div>
-            {referenceImage && (
-              <div className="w-20 h-20 rounded-md overflow-hidden border border-border mt-1">
-                <img
-                  src={resolveImageUrl(referenceImage)}
-                  alt={name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-          </div>
-
-          {error && (
-            <p role="alert" className="text-xs text-destructive">{error}</p>
-          )}
-        </div>
+        <PropEditFormFields
+          name={name}
+          type={type}
+          description={description}
+          tagsInput={tagsInput}
+          referenceImage={referenceImage}
+          error={error}
+          fileInputRef={fileInputRef}
+          onNameChange={setName}
+          onTypeChange={(v) => setType(v as PropType)}
+          onDescriptionChange={setDescription}
+          onTagsInputChange={setTagsInput}
+          onReferenceImageChange={setReferenceImage}
+          onFileUpload={handleFileUpload}
+        />
         <div className="flex gap-2 p-3 border-t border-border">
           <button
             type="button"
@@ -345,6 +259,131 @@ function PropEditDialog({ open, editingProp, defaultType, onClose, onSubmit }: P
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+interface PropEditFormFieldsProps {
+  name: string;
+  type: PropType;
+  description: string;
+  tagsInput: string;
+  referenceImage: string;
+  error: string;
+  fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
+  onNameChange: (v: string) => void;
+  onTypeChange: (v: string) => void;
+  onDescriptionChange: (v: string) => void;
+  onTagsInputChange: (v: string) => void;
+  onReferenceImageChange: (v: string) => void;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+function PropEditFormFields({
+  name, type, description, tagsInput, referenceImage, error, fileInputRef,
+  onNameChange, onTypeChange, onDescriptionChange, onTagsInputChange, onReferenceImageChange, onFileUpload,
+}: PropEditFormFieldsProps) {
+  return (
+    <div className="p-3 flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <label className="section-label !text-[11px]" htmlFor="prop-name-input">
+          {t("character.name")} <span className="text-destructive">*</span>
+        </label>
+        <input
+          id="prop-name-input"
+          className="input"
+          placeholder={t("asset.propNamePlaceholder")}
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          required
+          autoFocus
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="section-label !text-[11px]" htmlFor="prop-type-select">
+          {t("asset.propTypeLabel")}
+        </label>
+        <select
+          id="prop-type-select"
+          className="select"
+          value={type}
+          onChange={(e) => onTypeChange(e.target.value)}
+        >
+          {ALL_PROP_TYPES.map((pt) => (
+            <option key={pt} value={pt}>{t(TYPE_TO_LABEL_KEY[pt])}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="section-label !text-[11px]" htmlFor="prop-desc-input">
+          {t("character.description")}
+        </label>
+        <textarea
+          id="prop-desc-input"
+          className="textarea"
+          placeholder={t("asset.propDescriptionPlaceholder")}
+          rows={2}
+          value={description}
+          onChange={(e) => onDescriptionChange(e.target.value)}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="section-label !text-[11px]" htmlFor="prop-tags-input">
+          {t("asset.propTagsLabel")}
+        </label>
+        <input
+          id="prop-tags-input"
+          className="input"
+          placeholder={t("asset.propTagsPlaceholder")}
+          value={tagsInput}
+          onChange={(e) => onTagsInputChange(e.target.value)}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="section-label !text-[11px]" htmlFor="prop-image-input">
+          {t("asset.propImageLabel")}
+        </label>
+        <div className="flex gap-1.5">
+          <input
+            id="prop-image-input"
+            className="input flex-1"
+            placeholder={t("asset.propImagePlaceholder")}
+            value={referenceImage}
+            onChange={(e) => onReferenceImageChange(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-outline btn-xs"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {t("asset.propUploadImage")}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFileUpload}
+          />
+        </div>
+        {referenceImage && (
+          <div className="w-20 h-20 rounded-md overflow-hidden border border-border mt-1">
+            <img
+              src={resolveImageUrl(referenceImage)}
+              alt={name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <p role="alert" className="text-xs text-destructive">{error}</p>
+      )}
     </div>
   );
 }

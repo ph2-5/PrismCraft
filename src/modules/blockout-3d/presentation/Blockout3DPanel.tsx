@@ -317,93 +317,156 @@ export function Blockout3DPanel({
       </div>
 
       {/* 右侧：侧边面板（Tab 切换） */}
+      <BlockoutSidePanel
+        scene={scene}
+        sidePanelTab={sidePanelTab}
+        onSidePanelTabChange={setSidePanelTab}
+        selectedMannequinId={selectedMannequinId}
+        selectedPropId={selectedPropId}
+        selectedKeyframeIndex={selectedKeyframeIndex}
+        playbackTime={playbackTime}
+        isPlaying={isPlaying}
+        modelId={modelId}
+        modelSupports3D={modelSupports3D}
+        selectedMannequin={selectedMannequin}
+        onExportComplete={onExportComplete}
+        onSelectMannequin={setSelectedMannequinId}
+        onSelectProp={setSelectedPropId}
+        onSelectKeyframe={setSelectedKeyframeIndex}
+        onPlaybackTimeChange={setPlaybackTime}
+        onTogglePlay={handleTogglePlay}
+        onUpdateKeyframes={handleUpdateKeyframes}
+        onUpdateMannequin={handleUpdateMannequin}
+        onToggleMannequinVisibility={handleToggleMannequinVisibility}
+        onTogglePropVisibility={handleTogglePropVisibility}
+        onDeleteMannequin={handleDeleteMannequin}
+        onDeleteProp={handleDeleteProp}
+      />
+    </div>
+  );
+}
+
+interface BlockoutSidePanelProps {
+  scene: BlockoutScene;
+  sidePanelTab: SidePanelTab;
+  onSidePanelTabChange: (tab: SidePanelTab) => void;
+  selectedMannequinId: string | undefined;
+  selectedPropId: string | undefined;
+  selectedKeyframeIndex: number | undefined;
+  playbackTime: number;
+  isPlaying: boolean;
+  modelId?: string;
+  modelSupports3D?: boolean;
+  selectedMannequin: Mannequin | undefined;
+  onExportComplete?: (asset: ExportedAsset) => void;
+  onSelectMannequin: (id: string | undefined) => void;
+  onSelectProp: (id: string | undefined) => void;
+  onSelectKeyframe: (idx: number | undefined) => void;
+  onPlaybackTimeChange: (t: number) => void;
+  onTogglePlay: () => void;
+  onUpdateKeyframes: (keyframes: CameraKeyframe[]) => void;
+  onUpdateMannequin: (id: string, updates: Partial<Omit<Mannequin, "id">>) => void;
+  onToggleMannequinVisibility: (id: string) => void;
+  onTogglePropVisibility: (id: string) => void;
+  onDeleteMannequin: (id: string) => void;
+  onDeleteProp: (id: string) => void;
+}
+
+function BlockoutSidePanel({
+  scene, sidePanelTab, onSidePanelTabChange,
+  selectedMannequinId, selectedPropId, selectedKeyframeIndex,
+  playbackTime, isPlaying, modelId, modelSupports3D, selectedMannequin, onExportComplete,
+  onSelectMannequin, onSelectProp, onSelectKeyframe, onPlaybackTimeChange, onTogglePlay,
+  onUpdateKeyframes, onUpdateMannequin,
+  onToggleMannequinVisibility, onTogglePropVisibility, onDeleteMannequin, onDeleteProp,
+}: BlockoutSidePanelProps) {
+  return (
+    <div
+      style={{
+        width: 280,
+        display: "flex",
+        flexDirection: "column",
+        border: "1px solid var(--border)",
+        borderRadius: 4,
+        background: "var(--card)",
+        overflow: "hidden",
+      }}
+    >
+      {/* Tab 栏 */}
       <div
         style={{
-          width: 280,
           display: "flex",
-          flexDirection: "column",
-          border: "1px solid var(--border)",
-          borderRadius: 4,
-          background: "var(--card)",
-          overflow: "hidden",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--muted)",
         }}
       >
-        {/* Tab 栏 */}
-        <div
-          style={{
-            display: "flex",
-            borderBottom: "1px solid var(--border)",
-            background: "var(--muted)",
-          }}
-        >
-          <TabButton
-            icon={<Boxes size={11} />}
-            label={t("blockout.tabOutline")}
-            isActive={sidePanelTab === "outline"}
-            onClick={() => setSidePanelTab("outline")}
-          />
-          <TabButton
-            icon={<User size={11} />}
-            label={t("blockout.tabMannequin")}
-            isActive={sidePanelTab === "mannequin"}
-            onClick={() => setSidePanelTab("mannequin")}
-          />
-          <TabButton
-            icon={<Camera size={11} />}
-            label={t("blockout.tabCamera")}
-            isActive={sidePanelTab === "camera"}
-            onClick={() => setSidePanelTab("camera")}
-          />
-          <TabButton
-            icon={<Download size={11} />}
-            label={t("blockout.tabExport")}
-            isActive={sidePanelTab === "export"}
-            onClick={() => setSidePanelTab("export")}
-          />
-        </div>
+        <TabButton
+          icon={<Boxes size={11} />}
+          label={t("blockout.tabOutline")}
+          isActive={sidePanelTab === "outline"}
+          onClick={() => onSidePanelTabChange("outline")}
+        />
+        <TabButton
+          icon={<User size={11} />}
+          label={t("blockout.tabMannequin")}
+          isActive={sidePanelTab === "mannequin"}
+          onClick={() => onSidePanelTabChange("mannequin")}
+        />
+        <TabButton
+          icon={<Camera size={11} />}
+          label={t("blockout.tabCamera")}
+          isActive={sidePanelTab === "camera"}
+          onClick={() => onSidePanelTabChange("camera")}
+        />
+        <TabButton
+          icon={<Download size={11} />}
+          label={t("blockout.tabExport")}
+          isActive={sidePanelTab === "export"}
+          onClick={() => onSidePanelTabChange("export")}
+        />
+      </div>
 
-        {/* Tab 内容 */}
-        <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-          {sidePanelTab === "outline" && (
-            <SceneOutliner
-              scene={scene}
-              selectedMannequinId={selectedMannequinId}
-              selectedPropId={selectedPropId}
-              onSelectMannequin={setSelectedMannequinId}
-              onSelectProp={setSelectedPropId}
-              onToggleMannequinVisibility={handleToggleMannequinVisibility}
-              onTogglePropVisibility={handleTogglePropVisibility}
-              onDeleteMannequin={handleDeleteMannequin}
-              onDeleteProp={handleDeleteProp}
-            />
-          )}
-          {sidePanelTab === "mannequin" && (
-            <MannequinControls
-              mannequin={selectedMannequin}
-              onUpdate={handleUpdateMannequin}
-            />
-          )}
-          {sidePanelTab === "camera" && (
-            <CameraPathEditor
-              scene={scene}
-              playbackTime={playbackTime}
-              onPlaybackTimeChange={setPlaybackTime}
-              isPlaying={isPlaying}
-              onTogglePlay={handleTogglePlay}
-              onUpdateKeyframes={handleUpdateKeyframes}
-              selectedIndex={selectedKeyframeIndex}
-              onSelectKeyframe={setSelectedKeyframeIndex}
-            />
-          )}
-          {sidePanelTab === "export" && (
-            <ExportPanel
-              scene={scene}
-              modelId={modelId}
-              modelSupports3D={modelSupports3D}
-              onExportComplete={onExportComplete}
-            />
-          )}
-        </div>
+      {/* Tab 内容 */}
+      <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+        {sidePanelTab === "outline" && (
+          <SceneOutliner
+            scene={scene}
+            selectedMannequinId={selectedMannequinId}
+            selectedPropId={selectedPropId}
+            onSelectMannequin={onSelectMannequin}
+            onSelectProp={onSelectProp}
+            onToggleMannequinVisibility={onToggleMannequinVisibility}
+            onTogglePropVisibility={onTogglePropVisibility}
+            onDeleteMannequin={onDeleteMannequin}
+            onDeleteProp={onDeleteProp}
+          />
+        )}
+        {sidePanelTab === "mannequin" && (
+          <MannequinControls
+            mannequin={selectedMannequin}
+            onUpdate={onUpdateMannequin}
+          />
+        )}
+        {sidePanelTab === "camera" && (
+          <CameraPathEditor
+            scene={scene}
+            playbackTime={playbackTime}
+            onPlaybackTimeChange={onPlaybackTimeChange}
+            isPlaying={isPlaying}
+            onTogglePlay={onTogglePlay}
+            onUpdateKeyframes={onUpdateKeyframes}
+            selectedIndex={selectedKeyframeIndex}
+            onSelectKeyframe={onSelectKeyframe}
+          />
+        )}
+        {sidePanelTab === "export" && (
+          <ExportPanel
+            scene={scene}
+            modelId={modelId}
+            modelSupports3D={modelSupports3D}
+            onExportComplete={onExportComplete}
+          />
+        )}
       </div>
     </div>
   );

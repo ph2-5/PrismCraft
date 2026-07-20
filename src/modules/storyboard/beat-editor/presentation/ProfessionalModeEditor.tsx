@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, Fragment } from "react";
 import {
   DndContext,
   closestCenter,
@@ -17,12 +17,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Clapperboard, Play, X } from "lucide-react";
-import { errorLogger } from "@/shared/error-logger";
-import { isElectron } from "@/shared/utils/platform";
-import { container } from "@/infrastructure/di";
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
-import type { Character, Scene, StoryBeat, StoryElement } from "@/domain/schemas";
+import type { Character, Scene, StoryBeat } from "@/domain/schemas";
 import type { BatchOptions, BatchResult } from "@/modules/storyboard/generation";
 import type { PromptEditorContext } from "@/modules/storyboard/prompt-editor";
 import { ShotTimeline } from "@/modules/shot";
@@ -31,6 +28,7 @@ import { BeatListView } from "./BeatListView";
 import { BeatDetailView } from "./BeatDetailView";
 import { BeatThumbnailCard } from "./BeatThumbnailCard";
 import { StoryboardBottomInputBar } from "./StoryboardBottomInputBar";
+import { useElementsSubscription } from "./use-elements-subscription";
 
 /**
  * 可拖拽的分镜缩略图卡片（包装 BeatThumbnailCard + useSortable）。
@@ -137,6 +135,208 @@ interface ProfessionalModeEditorProps {
   assetsLoading?: boolean;
 }
 
+interface PreviewModalProps {
+  beats: StoryBeat[];
+  onClose: () => void;
+}
+
+function PreviewModal({ beats, onClose }: PreviewModalProps) {
+  const videos = beats.filter((b) => b.videoGen?.videoUrl);
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.7)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("story.preview")}
+      tabIndex={-1}
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          maxWidth: 900,
+          width: "90%",
+          maxHeight: "80vh",
+          overflowY: "auto",
+          padding: 16,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{t("story.preview")}</span>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={onClose}
+            aria-label={t("aria.close")}
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+          {videos.length === 0 ? (
+            <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 24, color: "var(--muted-fg)" }}>
+              {t("story.noVideosToPreview")}
+            </div>
+          ) : (
+            videos.map((beat, idx) => {
+              const videoUrl = resolveMediaUrl(beat.localVideoPath, beat.videoGen?.videoUrl);
+              return (
+                <div key={beat.id} className="card2" style={{ padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <video
+                    src={videoUrl}
+                    controls
+                    style={{ width: "100%", aspectRatio: "16 / 9", borderRadius: 6, background: "var(--card2)" }}
+                  />
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>
+                    {idx + 1} · {beat.title || t("beat.shotNumber", { number: idx + 1 })}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>
+                    {beat.duration ?? 0}s
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface BeatTimelineSectionProps {
+  beats: StoryBeat[];
+  characters: Character[];
+  scenes: Scene[];
+  editingBeatId: string | null;
+  generatingKeyframe?: Set<string>;
+  progressByBeat: Map<string, number>;
+  isPlanningStory: boolean;
+  onAddBeat: () => void;
+  onBatchGenerateVideos: () => void;
+  onOpenPreview: () => void;
+  onBeatClick: (beatId: string) => void;
+  onDragEnd: (event: DragEndEvent) => void;
+}
+
+function BeatTimelineSection({
+  beats,
+  characters,
+  scenes,
+  editingBeatId,
+  generatingKeyframe,
+  progressByBeat,
+  isPlanningStory,
+  onAddBeat,
+  onBatchGenerateVideos,
+  onOpenPreview,
+  onBeatClick,
+  onDragEnd,
+}: BeatTimelineSectionProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  return (
+    <ShotTimeline
+      isEmpty={beats.length === 0}
+      onAddBeat={onAddBeat}
+      toolbar={
+        <>
+          <button
+            className="btn btn-outline btn-xs"
+            onClick={onBatchGenerateVideos}
+            disabled={isPlanningStory || beats.length === 0}
+            title={t("story.generateAllVideos")}
+          >
+            <Clapperboard style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.generateAllVideos")}
+          </button>
+          <button
+            className="btn btn-outline btn-xs"
+            onClick={onOpenPreview}
+            disabled={beats.length === 0}
+            title={t("story.preview")}
+          >
+            <Play style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.preview")}
+          </button>
+        </>
+      }
+    >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={onDragEnd}
+      >
+        <SortableContext
+          items={beats.map((b) => b.id)}
+          strategy={horizontalListSortingStrategy}
+        >
+          {beats.map((beat, index) => {
+            const prevBeat = index > 0 ? beats[index - 1] : null;
+            const hasKeyframe = !!beat.keyframe?.imageUrl;
+            const prevHasKeyframe = prevBeat ? !!prevBeat.keyframe?.imageUrl : false;
+            const isLinked =
+              hasKeyframe &&
+              prevHasKeyframe &&
+              beat.keyframe?.referencedPrevKeyframe === prevBeat?.id;
+            const linkColor = isLinked
+              ? "var(--primary)"
+              : hasKeyframe && prevHasKeyframe
+                ? "var(--warning)"
+                : "var(--border)";
+            const linkStyle: React.CSSProperties = isLinked
+              ? { background: linkColor }
+              : { background: `repeating-linear-gradient(90deg, ${linkColor} 0 4px, transparent 4px 8px)` };
+            return (
+              <Fragment key={beat.id}>
+                {index > 0 && (
+                  <div
+                    style={{
+                      width: 12,
+                      height: 2,
+                      flexShrink: 0,
+                      alignSelf: "center",
+                      ...linkStyle,
+                    }}
+                    title={
+                      isLinked
+                        ? t("keyframe.linked")
+                        : hasKeyframe && prevHasKeyframe
+                          ? t("keyframe.chainBroken")
+                          : t("keyframe.beatNoPreview")
+                    }
+                  />
+                )}
+                <SortableBeatThumbnailCard
+                  beat={beat}
+                  index={index}
+                  isSelected={editingBeatId === beat.id}
+                  characters={characters}
+                  scenes={scenes}
+                  isGenerating={generatingKeyframe?.has(beat.id) ?? false}
+                  progress={progressByBeat.get(beat.id)}
+                  onClick={onBeatClick}
+                />
+              </Fragment>
+            );
+          })}
+        </SortableContext>
+      </DndContext>
+    </ShotTimeline>
+  );
+}
+
 export function ProfessionalModeEditor({
   currentStory: _currentStory,
   beats,
@@ -173,9 +373,9 @@ export function ProfessionalModeEditor({
   assetsLoading = false,
 }: ProfessionalModeEditorProps) {
   const [editingBeatId, setEditingBeatId] = useState<string | null>(null);
-  const [elements, setElements] = useState<StoryElement[]>([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const pendingNewBeatRef = useRef<boolean>(false);
+  const elements = useElementsSubscription();
 
   // 视频任务进度查询：先通过 selector 获取 allTasks 引用（Zustand 用 Object.is 比较，稳定），
   // 再用 useMemo 派生 beatId → progress 的 Map。
@@ -208,56 +408,6 @@ export function ProfessionalModeEditor({
       setEditingBeatId(beats[beats.length - 1]!.id);
     }
   }, [beats]);
-
-  useEffect(() => {
-    let cancelled = false;
-    container.elementManager
-      .then((em) => em.getAllElements())
-      .then((els) => {
-        if (!cancelled) setElements(els);
-      })
-      .catch((err: unknown) => {
-        if (!isElectron()) return;
-        errorLogger.warn(
-          { code: "ElementLoadFailed", message: t("error.elementLoadFailed"), cause: err },
-          { component: "ProfessionalModeEditor", source: "getAllElements" },
-        );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    let unsubscribe: (() => void) | undefined;
-    container.elementManager.then((em) => {
-      if (cancelled) return;
-      unsubscribe = em.subscribe(() => {
-        em.getAllElements()
-          .then((els) => {
-            if (!cancelled) setElements(els);
-          })
-          .catch((err: unknown) => {
-            errorLogger.warn(
-              { code: "ElementSubscribeFailed", message: t("error.elementSubscribeFailed"), cause: err },
-              { component: "ProfessionalModeEditor", source: "subscribe" },
-            );
-          });
-      });
-    }).catch((err: unknown) => {
-      if (!cancelled) {
-        errorLogger.warn(
-          { code: "ElementManagerLoadFailed", message: t("error.elementLoadFailed"), cause: err },
-          { component: "ProfessionalModeEditor", source: "elementManager" },
-        );
-      }
-    });
-    return () => {
-      cancelled = true;
-      unsubscribe?.();
-    };
-  }, []);
 
   const handleAddBeat = useCallback(() => {
     pendingNewBeatRef.current = true;
@@ -317,12 +467,6 @@ export function ProfessionalModeEditor({
     return Promise.resolve();
   }, [editingBeat, onRegenerateKeyframe]);
 
-  // 拖拽排序：水平时间轴（horizontalListSortingStrategy）
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -339,6 +483,13 @@ export function ProfessionalModeEditor({
     },
     [beats, onReorderBeats],
   );
+
+  const handleBatchGenerateVideos = useCallback(() => {
+    onBatchGenerateVideos?.();
+  }, [onBatchGenerateVideos]);
+
+  const handleOpenPreview = useCallback(() => setShowPreviewModal(true), []);
+  const handleClosePreview = useCallback(() => setShowPreviewModal(false), []);
 
   return (
     <div className="flex flex-col h-full">
@@ -395,91 +546,20 @@ export function ProfessionalModeEditor({
         />
       </div>
 
-      <ShotTimeline
-        isEmpty={beats.length === 0}
+      <BeatTimelineSection
+        beats={beats}
+        characters={characters}
+        scenes={scenes}
+        editingBeatId={editingBeatId}
+        generatingKeyframe={generatingKeyframe}
+        progressByBeat={progressByBeat}
+        isPlanningStory={isPlanningStory}
         onAddBeat={handleAddBeat}
-        toolbar={
-          <>
-            <button
-              className="btn btn-outline btn-xs"
-              onClick={() => onBatchGenerateVideos?.()}
-              disabled={isPlanningStory || beats.length === 0}
-              title={t("story.generateAllVideos")}
-            >
-              <Clapperboard style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.generateAllVideos")}
-            </button>
-            <button
-              className="btn btn-outline btn-xs"
-              onClick={() => setShowPreviewModal(true)}
-              disabled={beats.length === 0}
-              title={t("story.preview")}
-            >
-              <Play style={{ width: 12, height: 12, display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> {t("story.preview")}
-            </button>
-          </>
-        }
-      >
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={beats.map((b) => b.id)}
-            strategy={horizontalListSortingStrategy}
-          >
-            {beats.map((beat, index) => {
-              const prevBeat = index > 0 ? beats[index - 1] : null;
-              const hasKeyframe = !!beat.keyframe?.imageUrl;
-              const prevHasKeyframe = prevBeat ? !!prevBeat.keyframe?.imageUrl : false;
-              const isLinked =
-                hasKeyframe &&
-                prevHasKeyframe &&
-                beat.keyframe?.referencedPrevKeyframe === prevBeat?.id;
-              const linkColor = isLinked
-                ? "var(--primary)"
-                : hasKeyframe && prevHasKeyframe
-                  ? "var(--warning)"
-                  : "var(--border)";
-              const linkStyle: React.CSSProperties = isLinked
-                ? { background: linkColor }
-                : { background: `repeating-linear-gradient(90deg, ${linkColor} 0 4px, transparent 4px 8px)` };
-              return (
-                <Fragment key={beat.id}>
-                  {index > 0 && (
-                    <div
-                      style={{
-                        width: 12,
-                        height: 2,
-                        flexShrink: 0,
-                        alignSelf: "center",
-                        ...linkStyle,
-                      }}
-                      title={
-                        isLinked
-                          ? t("keyframe.linked")
-                          : hasKeyframe && prevHasKeyframe
-                            ? t("keyframe.chainBroken")
-                            : t("keyframe.beatNoPreview")
-                      }
-                    />
-                  )}
-                  <SortableBeatThumbnailCard
-                    beat={beat}
-                    index={index}
-                    isSelected={editingBeatId === beat.id}
-                    characters={characters}
-                    scenes={scenes}
-                    isGenerating={generatingKeyframe?.has(beat.id) ?? false}
-                    progress={progressByBeat.get(beat.id)}
-                    onClick={setEditingBeatId}
-                  />
-                </Fragment>
-              );
-            })}
-          </SortableContext>
-        </DndContext>
-      </ShotTimeline>
+        onBatchGenerateVideos={handleBatchGenerateVideos}
+        onOpenPreview={handleOpenPreview}
+        onBeatClick={setEditingBeatId}
+        onDragEnd={handleDragEnd}
+      />
 
       {/* Task 2B.11：底部 AI 输入栏（匹配 design-preview.html #bottom-bar-storyboard） */}
       <StoryboardBottomInputBar
@@ -493,76 +573,7 @@ export function ProfessionalModeEditor({
 
       {/* Preview Modal - shows all generated videos */}
       {showPreviewModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
-          role="dialog"
-          aria-modal="true"
-          aria-label={t("story.preview")}
-          tabIndex={-1}
-          onClick={() => setShowPreviewModal(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowPreviewModal(false);
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              maxWidth: 900,
-              width: "90%",
-              maxHeight: "80vh",
-              overflowY: "auto",
-              padding: 16,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{t("story.preview")}</span>
-              <button
-                className="btn btn-ghost btn-xs"
-                onClick={() => setShowPreviewModal(false)}
-                aria-label={t("aria.close")}
-              >
-                <X size={14} aria-hidden="true" />
-              </button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
-              {beats.filter((b) => b.videoGen?.videoUrl).length === 0 ? (
-                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 24, color: "var(--muted-fg)" }}>
-                  {t("story.noVideosToPreview")}
-                </div>
-              ) : (
-                beats
-                  .filter((b) => b.videoGen?.videoUrl)
-                  .map((beat, idx) => {
-                    const videoUrl = resolveMediaUrl(beat.localVideoPath, beat.videoGen?.videoUrl);
-                    return (
-                      <div key={beat.id} className="card2" style={{ padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-                        <video
-                          src={videoUrl}
-                          controls
-                          style={{ width: "100%", aspectRatio: "16 / 9", borderRadius: 6, background: "var(--card2)" }}
-                        />
-                        <div style={{ fontSize: 12, fontWeight: 600 }}>
-                          {idx + 1} · {beat.title || t("beat.shotNumber", { number: idx + 1 })}
-                        </div>
-                        <div style={{ fontSize: 10, color: "var(--muted-fg)" }}>
-                          {beat.duration ?? 0}s
-                        </div>
-                      </div>
-                    );
-                  })
-              )}
-            </div>
-          </div>
-        </div>
+        <PreviewModal beats={beats} onClose={handleClosePreview} />
       )}
     </div>
   );

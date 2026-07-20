@@ -22,6 +22,44 @@ const CONCURRENCY_CONFIG = {
   delayBetweenBatches: 500,
 };
 
+const CHARACTER_STYLE_OPTIONS: readonly StyleOption[] = [
+  { value: "日式动漫", labelKey: "styleOption.japanese-anime" },
+  { value: "写实风格", labelKey: "styleOption.realistic" },
+  { value: "卡通风格", labelKey: "styleOption.cartoon" },
+  { value: "Q版/萌系", labelKey: "styleOption.chibi" },
+  { value: "像素风格", labelKey: "styleOption.pixel" },
+  { value: "水彩风格", labelKey: "styleOption.watercolor" },
+  { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
+  { value: "奇幻风格", labelKey: "styleOption.fantasy" },
+  { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
+  { value: "哥特风格", labelKey: "styleOption.gothic" },
+  { value: "浮世绘", labelKey: "styleOption.ukiyoe" },
+  { value: "油画风格", labelKey: "styleOption.oil-painting" },
+  { value: "素描风格", labelKey: "styleOption.sketch" },
+  { value: "3D渲染", labelKey: "styleOption.3d-render" },
+  { value: "低多边形", labelKey: "styleOption.low-poly" },
+  { value: "美式漫画", labelKey: "styleOption.american-comic" },
+  { value: "韩漫风格", labelKey: "styleOption.korean-comic" },
+  { value: "国风/古风", labelKey: "styleOption.chinese-classical" },
+  { value: "未来主义", labelKey: "styleOption.futurism" },
+  { value: "复古风", labelKey: "styleOption.retro" },
+];
+
+const SCENE_STYLE_OPTIONS: readonly StyleOption[] = [
+  { value: "写实风格", labelKey: "styleOption.realistic" },
+  { value: "卡通风格", labelKey: "styleOption.cartoon" },
+  { value: "水彩风格", labelKey: "styleOption.watercolor" },
+  { value: "油画风格", labelKey: "styleOption.oil-painting" },
+  { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
+  { value: "奇幻风格", labelKey: "styleOption.fantasy" },
+  { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
+  { value: "哥特风格", labelKey: "styleOption.gothic" },
+  { value: "未来主义", labelKey: "styleOption.futurism" },
+  { value: "复古风", labelKey: "styleOption.retro" },
+  { value: "极简风格", labelKey: "styleOption.minimalist" },
+  { value: "华丽风格", labelKey: "styleOption.ornate" },
+];
+
 export function BatchOperations({ type, items, onComplete, onSave }: BatchOperationsProps) {
   const [open, setOpen] = useState(false);
   const [variantCount, setVariantCount] = useState(3);
@@ -54,43 +92,10 @@ export function BatchOperations({ type, items, onComplete, onSave }: BatchOperat
   const typeLabel = type === "character" ? t("search.typeCharacter") : t("search.typeScene");
   const TypeIcon = type === "character" ? Users : Image;
 
-  const styleOptions = useMemo<readonly StyleOption[]>(() => type === "character"
-    ? [
-        { value: "日式动漫", labelKey: "styleOption.japanese-anime" },
-        { value: "写实风格", labelKey: "styleOption.realistic" },
-        { value: "卡通风格", labelKey: "styleOption.cartoon" },
-        { value: "Q版/萌系", labelKey: "styleOption.chibi" },
-        { value: "像素风格", labelKey: "styleOption.pixel" },
-        { value: "水彩风格", labelKey: "styleOption.watercolor" },
-        { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
-        { value: "奇幻风格", labelKey: "styleOption.fantasy" },
-        { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
-        { value: "哥特风格", labelKey: "styleOption.gothic" },
-        { value: "浮世绘", labelKey: "styleOption.ukiyoe" },
-        { value: "油画风格", labelKey: "styleOption.oil-painting" },
-        { value: "素描风格", labelKey: "styleOption.sketch" },
-        { value: "3D渲染", labelKey: "styleOption.3d-render" },
-        { value: "低多边形", labelKey: "styleOption.low-poly" },
-        { value: "美式漫画", labelKey: "styleOption.american-comic" },
-        { value: "韩漫风格", labelKey: "styleOption.korean-comic" },
-        { value: "国风/古风", labelKey: "styleOption.chinese-classical" },
-        { value: "未来主义", labelKey: "styleOption.futurism" },
-        { value: "复古风", labelKey: "styleOption.retro" },
-      ]
-    : [
-        { value: "写实风格", labelKey: "styleOption.realistic" },
-        { value: "卡通风格", labelKey: "styleOption.cartoon" },
-        { value: "水彩风格", labelKey: "styleOption.watercolor" },
-        { value: "油画风格", labelKey: "styleOption.oil-painting" },
-        { value: "赛博朋克", labelKey: "styleOption.cyberpunk" },
-        { value: "奇幻风格", labelKey: "styleOption.fantasy" },
-        { value: "蒸汽朋克", labelKey: "styleOption.steampunk" },
-        { value: "哥特风格", labelKey: "styleOption.gothic" },
-        { value: "未来主义", labelKey: "styleOption.futurism" },
-        { value: "复古风", labelKey: "styleOption.retro" },
-        { value: "极简风格", labelKey: "styleOption.minimalist" },
-        { value: "华丽风格", labelKey: "styleOption.ornate" },
-      ], [type]);
+  const styleOptions = useMemo<readonly StyleOption[]>(
+    () => type === "character" ? CHARACTER_STYLE_OPTIONS : SCENE_STYLE_OPTIONS,
+    [type],
+  );
 
   const initializeTasks = useCallback(() => {
     const newTasks: BatchTask[] = [];

@@ -36,6 +36,16 @@ import type { StoryContextValue } from "./story-context-types";
 
 const StoryContext = createContext<StoryContextValue | null>(null);
 
+function createAssetLoaderServices() {
+  return {
+    getAllCharacters: () => characterService.getAll(),
+    getAllScenes: () => sceneService.getAll(),
+    getStoryboardAssets: async () => {
+      return container.storyboardStorage.getStoryboardAssets();
+    },
+  };
+}
+
 function useStoryContext(): StoryContextValue {
   const { success, error: showError, warning: showWarning } = useToastHelpers();
 
@@ -43,16 +53,7 @@ function useStoryContext(): StoryContextValue {
   useEffect(() => { showErrorRef.current = showError; }, [showError]);
 
   const storyState = useStoryState();
-  const assetLoaderServices = useMemo(
-    () => ({
-      getAllCharacters: () => characterService.getAll(),
-      getAllScenes: () => sceneService.getAll(),
-      getStoryboardAssets: async () => {
-        return container.storyboardStorage.getStoryboardAssets();
-      },
-    }),
-    [],
-  );
+  const assetLoaderServices = useMemo(() => createAssetLoaderServices(), []);
   const assetLoader = useAssetLoader(assetLoaderServices);
 
   const uploadHandlers = useUploadHandlers(

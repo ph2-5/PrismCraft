@@ -39,6 +39,24 @@ interface VideoGenerationParams {
   storyId?: string;
 }
 
+function enhancePromptWithFrameConstraints(
+  prompt: string,
+  firstFrameUrl?: string,
+  lastFrameUrl?: string,
+): string {
+  if (!firstFrameUrl && !lastFrameUrl) return prompt;
+  const frameConstraints: string[] = [];
+  if (firstFrameUrl)
+    frameConstraints.push(
+      "首帧画面：视频必须从首帧画面开始，保持角色姿态、表情、场景完全一致",
+    );
+  if (lastFrameUrl)
+    frameConstraints.push(
+      "尾帧画面：视频必须以尾帧画面结束，保持角色姿态、表情、场景完全一致",
+    );
+  return `${prompt}\n\n【首尾帧画面约束】\n${frameConstraints.join("\n")}`;
+}
+
 export function buildVideoGenerationParams(params: {
   beat?: Beat;
   characters?: CharacterInput[];
@@ -76,19 +94,7 @@ export function buildVideoGenerationParams(params: {
       shotInstruction,
     });
 
-  let enhancedPrompt = prompt;
-  if (firstFrameUrl || lastFrameUrl) {
-    const frameConstraints: string[] = [];
-    if (firstFrameUrl)
-      frameConstraints.push(
-        "首帧画面：视频必须从首帧画面开始，保持角色姿态、表情、场景完全一致",
-      );
-    if (lastFrameUrl)
-      frameConstraints.push(
-        "尾帧画面：视频必须以尾帧画面结束，保持角色姿态、表情、场景完全一致",
-      );
-    enhancedPrompt = `${prompt}\n\n【首尾帧画面约束】\n${frameConstraints.join("\n")}`;
-  }
+  const enhancedPrompt = enhancePromptWithFrameConstraints(prompt, firstFrameUrl, lastFrameUrl);
 
   // Empty-prompt guard: previously this function returned a params object
   // even when prompt was an empty string (e.g., when beat/characters/scenes

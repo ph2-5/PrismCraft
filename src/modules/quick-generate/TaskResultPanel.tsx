@@ -134,123 +134,147 @@ export function TaskResultPanel({
       )}
 
       {tasks.filter((t) => t.taskId !== activeTaskId).length > 0 && (
-        <div
-          className="card"
-        >
-          <div className="px-4 pt-3 pb-1">
-            <div className="flex items-center justify-between">
-              <div className="text-lg font-semibold text-foreground">
-                {t("quickGenerate.history")}
-              </div>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={async () => {
-                  if (
-                    await confirm(t("confirm.clearCompletedTasks"), t("confirm.clearCompletedTasksTitle"))
-                  ) {
-                    onClearCompleted();
-                  }
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-1" />
-                {t("quickGenerate.clear")}
-              </button>
-            </div>
-          </div>
-          <div className="px-4 pb-4 space-y-3 max-h-96 overflow-y-auto">
-            {tasks
-              .filter((t) => t.taskId !== activeTaskId)
-              .slice()
-              .reverse()
-              .map((task) => (
-                <div
-                  key={task.taskId}
-                  className="p-3 rounded-lg border bg-muted border-border"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full"
-                      style={{
-                        background:
-                          task.status === "completed"
-                            ? "rgba(var(--success-rgb), 0.5)"
-                            : task.status === "failed"
-                              ? "rgba(var(--destructive-rgb), 0.5)"
-                              : "rgba(var(--warning-rgb), 0.5)",
-                        color:
-                          task.status === "completed"
-                            ? "var(--success)"
-                            : task.status === "failed"
-                              ? "var(--destructive)"
-                              : "var(--warning)",
-                      }}
-                    >
-                      {task.status === "completed" && t("quickGenerate.statusCompleted")}
-                      {task.status === "failed" && t("quickGenerate.statusFailed")}
-                      {task.status === "timeout" && t("quickGenerate.statusTimeout")}
-                      {["pending", "generating"].includes(task.status) &&
-                        t("quickGenerate.statusProcessing")}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(task.createdAt).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  {task.videoUrl && (
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm flex-1"
-                        onClick={() =>
-                          onDownload(
-                            task.videoUrl,
-                            `quick-video-${task.taskId}.mp4`,
-                          )
-                        }
-                      >
-                        <Download className="w-4 h-4 mr-1" />
-                        {t("beat.download")}
-                      </button>
-                    </div>
-                  )}
-                  {(task.status === "failed" || task.status === "timeout") && (
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm flex-1"
-                        disabled={isGenerating}
-                        onClick={() => {
-                          if (isGenerating) return;
-                          onRetry(task);
-                        }}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        {t("common.retry")}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-        </div>
+        <TaskHistoryList
+          tasks={tasks}
+          activeTaskId={activeTaskId}
+          isGenerating={isGenerating}
+          onDownload={onDownload}
+          onRetry={onRetry}
+          onClearCompleted={onClearCompleted}
+        />
       )}
 
-      <div
-        className="card quick-tips-card"
-      >
-        <div className="px-4 pt-3 pb-1">
+      <QuickTipsCard />
+    </div>
+  );
+}
+
+interface TaskHistoryListProps {
+  tasks: VideoTask[];
+  activeTaskId: string | null;
+  isGenerating: boolean;
+  onDownload: (videoUrl: string | undefined, filename: string) => void;
+  onRetry: (task: VideoTask) => void;
+  onClearCompleted: () => void;
+}
+
+function TaskHistoryList({
+  tasks, activeTaskId, isGenerating, onDownload, onRetry, onClearCompleted,
+}: TaskHistoryListProps) {
+  return (
+    <div className="card">
+      <div className="px-4 pt-3 pb-1">
+        <div className="flex items-center justify-between">
           <div className="text-lg font-semibold text-foreground">
-            {t("quickGenerate.tips")}
+            {t("quickGenerate.history")}
           </div>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={async () => {
+              if (
+                await confirm(t("confirm.clearCompletedTasks"), t("confirm.clearCompletedTasksTitle"))
+              ) {
+                onClearCompleted();
+              }
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            {t("quickGenerate.clear")}
+          </button>
         </div>
-        <div
-          className="px-4 pb-4 space-y-3 text-sm"
-        >
-          <p className="text-muted-foreground"><Lightbulb className="inline-block" size={12} /> {t("quickGenerate.tipDetailedDesc")}</p>
-          <p className="text-muted-foreground"><Drama className="inline-block" size={12} /> {t("quickGenerate.tipLockCharacter")}</p>
-          <p className="text-muted-foreground"><Home className="inline-block" size={12} /> {t("quickGenerate.tipLockScene")}</p>
-          <p className="text-muted-foreground"><Settings className="inline-block" size={12} /> {t("quickGenerate.tipProMode")}</p>
+      </div>
+      <div className="px-4 pb-4 space-y-3 max-h-96 overflow-y-auto">
+        {tasks
+          .filter((t) => t.taskId !== activeTaskId)
+          .slice()
+          .reverse()
+          .map((task) => (
+            <div
+              key={task.taskId}
+              className="p-3 rounded-lg border bg-muted border-border"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full"
+                  style={{
+                    background:
+                      task.status === "completed"
+                        ? "rgba(var(--success-rgb), 0.5)"
+                        : task.status === "failed"
+                          ? "rgba(var(--destructive-rgb), 0.5)"
+                          : "rgba(var(--warning-rgb), 0.5)",
+                    color:
+                      task.status === "completed"
+                        ? "var(--success)"
+                        : task.status === "failed"
+                          ? "var(--destructive)"
+                          : "var(--warning)",
+                  }}
+                >
+                  {task.status === "completed" && t("quickGenerate.statusCompleted")}
+                  {task.status === "failed" && t("quickGenerate.statusFailed")}
+                  {task.status === "timeout" && t("quickGenerate.statusTimeout")}
+                  {["pending", "generating"].includes(task.status) &&
+                    t("quickGenerate.statusProcessing")}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(task.createdAt).toLocaleTimeString()}
+                </span>
+              </div>
+              {task.videoUrl && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm flex-1"
+                    onClick={() =>
+                      onDownload(
+                        task.videoUrl,
+                        `quick-video-${task.taskId}.mp4`,
+                      )
+                    }
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    {t("beat.download")}
+                  </button>
+                </div>
+              )}
+              {(task.status === "failed" || task.status === "timeout") && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm flex-1"
+                    disabled={isGenerating}
+                    onClick={() => {
+                      if (isGenerating) return;
+                      onRetry(task);
+                    }}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    {t("common.retry")}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function QuickTipsCard() {
+  return (
+    <div className="card quick-tips-card">
+      <div className="px-4 pt-3 pb-1">
+        <div className="text-lg font-semibold text-foreground">
+          {t("quickGenerate.tips")}
         </div>
+      </div>
+      <div className="px-4 pb-4 space-y-3 text-sm">
+        <p className="text-muted-foreground"><Lightbulb className="inline-block" size={12} /> {t("quickGenerate.tipDetailedDesc")}</p>
+        <p className="text-muted-foreground"><Drama className="inline-block" size={12} /> {t("quickGenerate.tipLockCharacter")}</p>
+        <p className="text-muted-foreground"><Home className="inline-block" size={12} /> {t("quickGenerate.tipLockScene")}</p>
+        <p className="text-muted-foreground"><Settings className="inline-block" size={12} /> {t("quickGenerate.tipProMode")}</p>
       </div>
     </div>
   );

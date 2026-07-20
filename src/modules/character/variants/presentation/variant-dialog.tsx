@@ -30,23 +30,55 @@ export interface VariantFormState {
   colorPalette: string;
 }
 
+/** 字符串字段（与 CharacterVariant 同名） */
+const VARIANT_STRING_FIELDS = [
+  "name",
+  "description",
+  "promptFragment",
+  "referenceImagePath",
+  "timeOfDay",
+  "weather",
+  "lighting",
+  "mood",
+  "crowdLevel",
+  "cameraAngle",
+  "season",
+  "colorPalette",
+] as const;
+
+/** 布尔字段（与 CharacterVariant 同名） */
+const VARIANT_BOOLEAN_FIELDS = [
+  "isDefault",
+  "isCanonical",
+] as const;
+
 export function variantToForm(v?: Partial<CharacterVariant>): VariantFormState {
-  return {
-    name: v?.name ?? "",
-    description: v?.description ?? "",
-    promptFragment: v?.promptFragment ?? "",
-    referenceImagePath: v?.referenceImagePath ?? "",
-    isDefault: v?.isDefault ?? false,
-    isCanonical: v?.isCanonical ?? false,
-    timeOfDay: v?.timeOfDay ?? "",
-    weather: v?.weather ?? "",
-    lighting: v?.lighting ?? "",
-    mood: v?.mood ?? "",
-    crowdLevel: v?.crowdLevel ?? "",
-    cameraAngle: v?.cameraAngle ?? "",
-    season: v?.season ?? "",
-    colorPalette: v?.colorPalette ?? "",
+  const form: VariantFormState = {
+    name: "",
+    description: "",
+    promptFragment: "",
+    referenceImagePath: "",
+    isDefault: false,
+    isCanonical: false,
+    timeOfDay: "",
+    weather: "",
+    lighting: "",
+    mood: "",
+    crowdLevel: "",
+    cameraAngle: "",
+    season: "",
+    colorPalette: "",
   };
+  if (!v) return form;
+  for (const key of VARIANT_STRING_FIELDS) {
+    const val = v[key];
+    if (typeof val === "string") form[key] = val;
+  }
+  for (const key of VARIANT_BOOLEAN_FIELDS) {
+    const val = v[key];
+    if (typeof val === "boolean") form[key] = val;
+  }
+  return form;
 }
 
 interface VariantDialogProps {

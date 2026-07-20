@@ -39,6 +39,117 @@ const PAGE_SIZE = 20;
 /** 导出时使用的条数上限（足够大以导出全部） */
 const EXPORT_LIMIT = 100000;
 
+/** 格式化导出文件名时间戳：YYYYMMDD-HHmmss */
+function formatExportTimestamp(now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+type AuditStatsData = {
+  totalEntries: number;
+  sessionCount: number;
+  toolStats: Array<{ toolName: string; count: number; successCount: number; failCount: number }>;
+};
+
+interface AuditLogStatsProps {
+  stats: AuditStatsData | null;
+  failTotal: number;
+  topTools: AuditStatsData["toolStats"];
+}
+
+/** 统计概览 + Top N 工具调用 */
+function AuditLogStats({ stats, failTotal, topTools }: AuditLogStatsProps) {
+  return (
+    <>
+      {/* 统计概览 */}
+      <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+        <div className="rounded border border-border bg-background/50 py-1.5">
+          <div className="font-mono text-sm font-semibold">{stats?.totalEntries ?? 0}</div>
+          <div className="text-[10px] text-muted-foreground">{t("agent.audit.totalEntries")}</div>
+        </div>
+        <div className="rounded border border-border bg-background/50 py-1.5">
+          <div className="font-mono text-sm font-semibold">{stats?.sessionCount ?? 0}</div>
+          <div className="text-[10px] text-muted-foreground">{t("agent.audit.sessionCount")}</div>
+        </div>
+        <div className="rounded border border-border bg-background/50 py-1.5">
+          <div className="font-mono text-sm font-semibold text-destructive">{failTotal}</div>
+          <div className="text-[10px] text-muted-foreground">{t("agent.audit.failCount")}</div>
+        </div>
+      </div>
+
+      {/* 工具调用 Top N */}
+      {topTools.length > 0 && (
+        <div className="mb-3">
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+            {t("agent.audit.topTools")}
+          </div>
+          <div className="space-y-1">
+            {topTools.map((s) => (
+              <div
+                key={s.toolName}
+                className="flex items-center justify-between rounded border border-border bg-background/50 px-2 py-1 text-xs"
+              >
+                <span className="truncate font-mono" title={s.toolName}>{s.toolName}</span>
+                <span className="ml-2 shrink-0 font-mono text-muted-foreground">
+                  <span className="text-emerald-600 dark:text-emerald-400">{s.successCount}</span>
+                  {" / "}
+                  <span className="text-destructive">{s.failCount}</span>
+                  {" · "}
+                  {s.count}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+interface AuditLogPaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalLogs: number;
+  totalEntries: number;
+  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
+}
+
+/** 底部分页控件 */
+function AuditLogPagination({
+  currentPage,
+  totalPages,
+  totalLogs,
+  totalEntries,
+  setCurrentPage,
+}: AuditLogPaginationProps) {
+  return (
+    <div className="mt-2 border-t border-border pt-1.5" aria-label={t("agent.audit.page")}>
+      <div className="mb-1 text-center text-[10px] text-muted-foreground">
+        {t("agent.audit.showingCount", { count: totalLogs, total: totalEntries })}
+      </div>
+      <div className="flex items-center justify-between gap-1">
+        <button
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage <= 1}
+          className="rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {t("agent.audit.prevPage")}
+        </button>
+        <span className="text-[10px] text-muted-foreground">
+          {t("agent.audit.pageInfo", { current: Math.min(currentPage, totalPages), total: totalPages })}
+        </span>
+        <button
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage >= totalPages}
+          className="rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {t("agent.audit.nextPage")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [stats, setStats] = useState<{
@@ -149,22 +260,23 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
         toolName: filterTool || undefined,
         success: filterStatus === "success" ? true : filterStatus === "fail" ? false : undefined,
       });
-      const now = new Date();
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-      const filename = `audit-logs-all-${timestamp}.json`;
+      const filename = `audit-logs-all-${formatExportTimestamp(new Date())}.json`;
       downloadJSONFile(entries, filename);
       setExportCount(entries.length);
       setExportStatus("success");
       // 2 秒后恢复 idle
-      if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
-      exportTimerRef.current = setTimeout(() => setExportStatus("idle"), 2000);
+      resetExportStatusTimer();
     } catch (e) {
       errorLogger.warn("[Agent] 导出审计日志失败", e instanceof Error ? e : undefined);
       setExportStatus("failed");
-      if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
-      exportTimerRef.current = setTimeout(() => setExportStatus("idle"), 2000);
+      resetExportStatusTimer();
     }
+  };
+
+  /** 重置导出状态定时器（2 秒后恢复 idle） */
+  const resetExportStatusTimer = () => {
+    if (exportTimerRef.current) clearTimeout(exportTimerRef.current);
+    exportTimerRef.current = setTimeout(() => setExportStatus("idle"), 2000);
   };
 
   /** 工具名去重列表（来自 stats，用于筛选下拉） */
@@ -258,47 +370,12 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
         </div>
       )}
 
-      {/* 统计概览 */}
-      <div className="mb-3 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded border border-border bg-background/50 py-1.5">
-          <div className="font-mono text-sm font-semibold">{stats?.totalEntries ?? 0}</div>
-          <div className="text-[10px] text-muted-foreground">{t("agent.audit.totalEntries")}</div>
-        </div>
-        <div className="rounded border border-border bg-background/50 py-1.5">
-          <div className="font-mono text-sm font-semibold">{stats?.sessionCount ?? 0}</div>
-          <div className="text-[10px] text-muted-foreground">{t("agent.audit.sessionCount")}</div>
-        </div>
-        <div className="rounded border border-border bg-background/50 py-1.5">
-          <div className="font-mono text-sm font-semibold text-destructive">{failTotal}</div>
-          <div className="text-[10px] text-muted-foreground">{t("agent.audit.failCount")}</div>
-        </div>
-      </div>
-
-      {/* 工具调用 Top N */}
-      {topTools.length > 0 && (
-        <div className="mb-3">
-          <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-            {t("agent.audit.topTools")}
-          </div>
-          <div className="space-y-1">
-            {topTools.map((s) => (
-              <div
-                key={s.toolName}
-                className="flex items-center justify-between rounded border border-border bg-background/50 px-2 py-1 text-xs"
-              >
-                <span className="truncate font-mono" title={s.toolName}>{s.toolName}</span>
-                <span className="ml-2 shrink-0 font-mono text-muted-foreground">
-                  <span className="text-emerald-600 dark:text-emerald-400">{s.successCount}</span>
-                  {" / "}
-                  <span className="text-destructive">{s.failCount}</span>
-                  {" · "}
-                  {s.count}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* 统计概览 + Top N 工具 */}
+      <AuditLogStats
+        stats={stats}
+        failTotal={failTotal}
+        topTools={topTools}
+      />
 
       {/* 筛选器 */}
       <div className="mb-2 flex items-end gap-1.5">
@@ -357,30 +434,13 @@ export function AuditLogPanel({ onClose }: AuditLogPanelProps) {
 
       {/* 底部分页 */}
       {logs.length > 0 && (
-        <div className="mt-2 border-t border-border pt-1.5" aria-label={t("agent.audit.page")}>
-          <div className="mb-1 text-center text-[10px] text-muted-foreground">
-            {t("agent.audit.showingCount", { count: logs.length, total: stats?.totalEntries ?? 0 })}
-          </div>
-          <div className="flex items-center justify-between gap-1">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className="rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {t("agent.audit.prevPage")}
-            </button>
-            <span className="text-[10px] text-muted-foreground">
-              {t("agent.audit.pageInfo", { current: Math.min(currentPage, totalPages), total: totalPages })}
-            </span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-              className="rounded border border-border bg-background px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {t("agent.audit.nextPage")}
-            </button>
-          </div>
-        </div>
+        <AuditLogPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalLogs={logs.length}
+          totalEntries={stats?.totalEntries ?? 0}
+          setCurrentPage={setCurrentPage}
+        />
       )}
     </div>
   );

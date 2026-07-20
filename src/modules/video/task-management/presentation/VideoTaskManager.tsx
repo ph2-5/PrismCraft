@@ -33,6 +33,62 @@ interface VideoTaskManagerProps {
   removeTasks?: (taskIds: string[]) => Promise<void>;
 }
 
+interface VideoTaskManagerToolbarProps {
+  filteredTasks: VideoTask[];
+  selectedTaskIds: Set<string>;
+  onSelectAll: () => void;
+  onDeselectAll: () => void;
+  onBatchDownload: () => void;
+  onBulkDelete: () => void;
+  onExportCSV: () => void;
+}
+
+function VideoTaskManagerToolbar({
+  filteredTasks,
+  selectedTaskIds,
+  onSelectAll,
+  onDeselectAll,
+  onBatchDownload,
+  onBulkDelete,
+  onExportCSV,
+}: VideoTaskManagerToolbarProps) {
+  return (
+    <div className="flex items-center gap-2">
+      {filteredTasks.length > 0 && (
+        <>
+          {selectedTaskIds.size < filteredTasks.length ? (
+            <button type="button" className="btn btn-outline btn-sm gap-1" onClick={onSelectAll}>
+              <Square className="w-4 h-4" />
+              {t("task.selectAll")}
+            </button>
+          ) : (
+            <button type="button" className="btn btn-outline btn-sm gap-1" onClick={onDeselectAll}>
+              <CheckSquare className="w-4 h-4" />
+              {t("task.deselectAll")}
+            </button>
+          )}
+        </>
+      )}
+      {selectedTaskIds.size > 0 && (
+        <>
+          <button type="button" className="btn btn-outline btn-sm gap-1" onClick={onBatchDownload}>
+            <Download className="w-4 h-4" />
+            {t("video.batchDownload")}
+          </button>
+          <button type="button" className="btn btn-danger btn-sm gap-1" onClick={onBulkDelete}>
+            <Trash2 className="w-4 h-4" />
+            {t("task.batchDelete")}
+          </button>
+        </>
+      )}
+      <button type="button" className="btn btn-outline btn-sm gap-1" onClick={onExportCSV}>
+        <FileDown className="w-4 h-4" />
+        {t("task.exportCSV")}
+      </button>
+    </div>
+  );
+}
+
 export function VideoTaskManager({
   tasks,
   onBackgroundProcess,
@@ -163,39 +219,15 @@ export function VideoTaskManager({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {filteredTasks.length > 0 && (
-                <>
-                  {selectedTaskIds.size < filteredTasks.length ? (
-                    <button type="button" className="btn btn-outline btn-sm gap-1" onClick={selectAllFilteredTasks}>
-                      <Square className="w-4 h-4" />
-                      {t("task.selectAll")}
-                    </button>
-                  ) : (
-                    <button type="button" className="btn btn-outline btn-sm gap-1" onClick={deselectAllTasks}>
-                      <CheckSquare className="w-4 h-4" />
-                      {t("task.deselectAll")}
-                    </button>
-                  )}
-                </>
-              )}
-              {selectedTaskIds.size > 0 && (
-                <>
-                  <button type="button" className="btn btn-outline btn-sm gap-1" onClick={handleBatchDownload}>
-                    <Download className="w-4 h-4" />
-                    {t("video.batchDownload")}
-                  </button>
-                  <button type="button" className="btn btn-danger btn-sm gap-1" onClick={handleBulkDelete}>
-                    <Trash2 className="w-4 h-4" />
-                    {t("task.batchDelete")}
-                  </button>
-                </>
-              )}
-              <button type="button" className="btn btn-outline btn-sm gap-1" onClick={handleExportCSV}>
-                <FileDown className="w-4 h-4" />
-                {t("task.exportCSV")}
-              </button>
-            </div>
+            <VideoTaskManagerToolbar
+              filteredTasks={filteredTasks}
+              selectedTaskIds={selectedTaskIds}
+              onSelectAll={selectAllFilteredTasks}
+              onDeselectAll={deselectAllTasks}
+              onBatchDownload={handleBatchDownload}
+              onBulkDelete={handleBulkDelete}
+              onExportCSV={handleExportCSV}
+            />
           </div>
 
           <TaskFilterBar

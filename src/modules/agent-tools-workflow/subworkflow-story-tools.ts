@@ -6,7 +6,77 @@
  */
 
 import type { ToolImpl } from "@/domain/types/agent-tools";
+import type { Character, Scene, StoryBeat } from "@/domain/schemas";
 import { TOOL_TIMEOUTS } from "@/shared/constants/tool-timeouts";
+
+type ValidationIssue = { beatId: string; issue: string; severity: string };
+
+function validateStoryboardBeats(
+  beats: StoryBeat[],
+  characters: Character[],
+  scenes: Scene[],
+): ValidationIssue[] {
+  const validationIssues: ValidationIssue[] = [];
+  const charIdSet = new Set(characters.map((c) => c.id));
+  const sceneIdSet = new Set(scenes.map((s) => s.id));
+  for (const beat of beats) {
+    const desc = beat.content || beat.description;
+    if (!desc || !desc.trim()) {
+      validationIssues.push({
+        beatId: beat.id,
+        issue: "分镜缺少描述",
+        severity: "error",
+      });
+    }
+    if (beat.duration == null || beat.duration <= 0) {
+      validationIssues.push({
+        beatId: beat.id,
+        issue: "分镜时长无效",
+        severity: "warning",
+      });
+    }
+    for (const cid of beat.characterIds || []) {
+      if (!charIdSet.has(cid)) {
+        validationIssues.push({
+          beatId: beat.id,
+          issue: `角色引用无效：${cid}`,
+          severity: "warning",
+        });
+      }
+    }
+    if (beat.sceneId && !sceneIdSet.has(beat.sceneId)) {
+      validationIssues.push({
+        beatId: beat.id,
+        issue: `场景引用无效：${beat.sceneId}`,
+        severity: "warning",
+      });
+    }
+  }
+  return validationIssues;
+}
+
+function buildStoryboardPlanData(
+  storyId: string,
+  beats: StoryBeat[],
+  validationIssues: ValidationIssue[],
+  autoFixedCount: number,
+) {
+  return {
+    storyId,
+    beatCount: beats.length,
+    beats: beats.map((b, i) => ({
+      index: i,
+      id: b.id,
+      title: b.title,
+      description: b.content || b.description,
+      duration: b.duration,
+      characterIds: b.characterIds,
+      sceneId: b.sceneId,
+    })),
+    validationIssues: validationIssues.length > 0 ? validationIssues : undefined,
+    autoFixedCount,
+  };
+}
 
 /** 3. 一句话生成完整分镜计划（创建故事 → 规划分镜 → 校验） */
 export const autoPlanStoryboardTool: ToolImpl = {
@@ -125,60 +195,16 @@ export const autoPlanStoryboardTool: ToolImpl = {
 
     // Step 3: 校验分镜计划
     ctx.onProgress?.("正在校验分镜计划…");
-    const validationIssues: Array<{ beatId: string; issue: string; severity: string }> = [];
-    const charIdSet = new Set(characters.map((c) => c.id));
-    const sceneIdSet = new Set(scenes.map((s) => s.id));
-    for (const beat of beats) {
-      const desc = beat.content || beat.description;
-      if (!desc || !desc.trim()) {
-        validationIssues.push({
-          beatId: beat.id,
-          issue: "分镜缺少描述",
-          severity: "error",
-        });
-      }
-      if (beat.duration == null || beat.duration <= 0) {
-        validationIssues.push({
-          beatId: beat.id,
-          issue: "分镜时长无效",
-          severity: "warning",
-        });
-      }
-      for (const cid of beat.characterIds || []) {
-        if (!charIdSet.has(cid)) {
-          validationIssues.push({
-            beatId: beat.id,
-            issue: `角色引用无效：${cid}`,
-            severity: "warning",
-          });
-        }
-      }
-      if (beat.sceneId && !sceneIdSet.has(beat.sceneId)) {
-        validationIssues.push({
-          beatId: beat.id,
-          issue: `场景引用无效：${beat.sceneId}`,
-          severity: "warning",
-        });
-      }
-    }
+    const validationIssues = validateStoryboardBeats(beats, characters, scenes);
 
     return {
       success: true,
-      data: {
+      data: buildStoryboardPlanData(
         storyId,
-        beatCount: beats.length,
-        beats: beats.map((b, i) => ({
-          index: i,
-          id: b.id,
-          title: b.title,
-          description: b.content || b.description,
-          duration: b.duration,
-          characterIds: b.characterIds,
-          sceneId: b.sceneId,
-        })),
-        validationIssues: validationIssues.length > 0 ? validationIssues : undefined,
-        autoFixedCount: planResult.value.autoFixedCount,
-      },
+        beats,
+        validationIssues,
+        planResult.value.autoFixedCount,
+      ),
     };
   },
 };

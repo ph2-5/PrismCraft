@@ -13,6 +13,7 @@ import {
   Box,
   FileCode,
   Eye,
+  type LucideIcon,
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { WizardState, ModelDefinition } from "./plugin-creator-types";
@@ -26,7 +27,13 @@ import { PluginRequestFormat } from "./PluginRequestFormat";
 import { PluginResponseFormat } from "./PluginResponseFormat";
 import { PluginPreviewExport } from "./PluginPreviewExport";
 
-const STEPS = [
+interface StepDef {
+  id: string;
+  label: () => string;
+  icon: LucideIcon;
+}
+
+const STEPS: StepDef[] = [
   { id: "basic-info", label: () => t("plugin.basicInfo"), icon: Wand2 },
   { id: "api-config", label: () => t("plugin.apiConfig"), icon: Settings2 },
   { id: "url-match", label: () => t("plugin.urlMatch"), icon: Globe },
@@ -36,7 +43,123 @@ const STEPS = [
   { id: "preview-export", label: () => t("plugin.previewExport"), icon: Eye },
 ];
 
+const INITIAL_STATE: WizardState = {
+  id: "",
+  displayName: "",
+  version: "1.0.0",
+  description: "",
+  baseUrl: "",
+  authType: "bearer",
+  authHeader: "X-API-Key",
+  authQueryName: "api_key",
+  apiUrlPatterns: [],
+  matchMode: "contains",
+  supportsLastFrame: false,
+  supportsReferenceVideo: false,
+  supportsMimicryLevel: false,
+  supportsCharacterRef: false,
+  supportsSceneRef: false,
+  characterRefMode: "none",
+  sceneRefMode: "none",
+  characterRefField: "",
+  sceneRefField: "",
+  imageUploadMode: "base64",
+  maxCharacterRefs: 1,
+  supportsReferenceImage: false,
+  defaultVideoModel: "",
+  defaultImageModel: "",
+  maxDuration: 10,
+  imageMode: "base64",
+  videoMode: "url",
+  preferLocalData: true,
+  models: [createDefaultModel()],
+  bodyFormat: "openai-content",
+  promptField: "prompt",
+  modelField: "model",
+  durationField: "duration",
+  firstFrameField: "image_url",
+  lastFrameField: "last_frame_url",
+  extraFields: [],
+  videoGenerateEndpoint: "/v1/videos/generations",
+  videoStatusEndpoint: "/v1/videos/{taskId}",
+  imageGenerateEndpoint: "/v1/images/generations",
+  textGenerateEndpoint: "/v1/chat/completions",
+  visionGenerateEndpoint: "/v1/chat/completions",
+  taskIdPath: "data.task_id",
+  statusPath: "data.status",
+  videoUrlPath: "data.video_url",
+  imageUrlPath: "data.image_url",
+  statusMapping: [],
+};
+
 export default function PluginCreator({ onComplete }: { onComplete: () => void }) {
+  const {
+    state,
+    currentStep,
+    setCurrentStep,
+    isValidating,
+    isInstalling,
+    validationResult,
+    expandedModelParams,
+    updateField,
+    updateModel,
+    addModel,
+    removeModel,
+    toggleModelParams,
+    generatedJson,
+    canProceed,
+    handleValidate,
+    handleInstall,
+    handleCopy,
+    handleDownload,
+  } = usePluginCreatorState(onComplete);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <StepIndicator steps={STEPS} currentStep={currentStep} onSelect={setCurrentStep} />
+      {currentStep === 0 && <PluginBasicInfo state={state} updateField={updateField} />}
+      {currentStep === 1 && <PluginApiConfig state={state} updateField={updateField} />}
+      {currentStep === 2 && <PluginUrlRules state={state} updateField={updateField} />}
+      {currentStep === 3 && (
+        <PluginModelDefs
+          state={state}
+          updateModel={updateModel}
+          addModel={addModel}
+          removeModel={removeModel}
+          expandedModelParams={expandedModelParams}
+          toggleModelParams={toggleModelParams}
+        />
+      )}
+      {currentStep === 4 && <PluginRequestFormat state={state} updateField={updateField} />}
+      {currentStep === 5 && <PluginResponseFormat state={state} updateField={updateField} />}
+      {currentStep === 6 && (
+        <PluginPreviewExport
+          generatedJson={generatedJson}
+          validationResult={validationResult}
+          isValidating={isValidating}
+          isInstalling={isInstalling}
+          onValidate={handleValidate}
+          onInstall={handleInstall}
+          onCopy={handleCopy}
+          onDownload={handleDownload}
+        />
+      )}
+      <WizardFooter
+        currentStep={currentStep}
+        totalSteps={STEPS.length}
+        canProceed={canProceed}
+        isInstalling={isInstalling}
+        onPrev={() => setCurrentStep((s) => Math.max(0, s - 1))}
+        onNext={() => setCurrentStep((s) => s + 1)}
+        onInstall={handleInstall}
+      />
+    </div>
+  );
+}
+
+// ============= 状态 Hook =============
+
+function usePluginCreatorState(onComplete: () => void) {
   const { error: showError, success: showSuccess } = useToastHelpers();
   const [currentStep, setCurrentStep] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
@@ -44,54 +167,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
   const [validationResult, setValidationResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
   const [expandedModelParams, setExpandedModelParams] = useState<Set<number>>(new Set());
 
-  const [state, setState] = useState<WizardState>({
-    id: "",
-    displayName: "",
-    version: "1.0.0",
-    description: "",
-    baseUrl: "",
-    authType: "bearer",
-    authHeader: "X-API-Key",
-    authQueryName: "api_key",
-    apiUrlPatterns: [],
-    matchMode: "contains",
-    supportsLastFrame: false,
-    supportsReferenceVideo: false,
-    supportsMimicryLevel: false,
-    supportsCharacterRef: false,
-    supportsSceneRef: false,
-    characterRefMode: "none",
-    sceneRefMode: "none",
-    characterRefField: "",
-    sceneRefField: "",
-    imageUploadMode: "base64",
-    maxCharacterRefs: 1,
-    supportsReferenceImage: false,
-    defaultVideoModel: "",
-    defaultImageModel: "",
-    maxDuration: 10,
-    imageMode: "base64",
-    videoMode: "url",
-    preferLocalData: true,
-    models: [createDefaultModel()],
-    bodyFormat: "openai-content",
-    promptField: "prompt",
-    modelField: "model",
-    durationField: "duration",
-    firstFrameField: "image_url",
-    lastFrameField: "last_frame_url",
-    extraFields: [],
-    videoGenerateEndpoint: "/v1/videos/generations",
-    videoStatusEndpoint: "/v1/videos/{taskId}",
-    imageGenerateEndpoint: "/v1/images/generations",
-    textGenerateEndpoint: "/v1/chat/completions",
-    visionGenerateEndpoint: "/v1/chat/completions",
-    taskIdPath: "data.task_id",
-    statusPath: "data.status",
-    videoUrlPath: "data.video_url",
-    imageUrlPath: "data.image_url",
-    statusMapping: [],
-  });
+  const [state, setState] = useState<WizardState>(INITIAL_STATE);
 
   const updateField = useCallback(<K extends keyof WizardState>(key: K, value: WizardState[K]) => {
     setState((prev) => ({ ...prev, [key]: value }));
@@ -236,9 +312,42 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
     }
   };
 
-  const renderStepIndicator = () => (
+  return {
+    state,
+    currentStep,
+    setCurrentStep,
+    isValidating,
+    isInstalling,
+    validationResult,
+    expandedModelParams,
+    updateField,
+    updateModel,
+    addModel,
+    removeModel,
+    toggleModelParams,
+    generatedJson,
+    canProceed,
+    handleValidate,
+    handleInstall,
+    handleCopy,
+    handleDownload,
+  };
+}
+
+// ============= 子组件 =============
+
+function StepIndicator({
+  steps,
+  currentStep,
+  onSelect,
+}: {
+  steps: StepDef[];
+  currentStep: number;
+  onSelect: (step: number) => void;
+}) {
+  return (
     <div className="flex items-center gap-1 mb-4">
-      {STEPS.map((step, i) => {
+      {steps.map((step, i) => {
         const Icon = step.icon;
         const isActive = i === currentStep;
         const isPast = i < currentStep;
@@ -246,7 +355,7 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
           <button
             key={step.id}
             onClick={() => {
-              if (i < currentStep) setCurrentStep(i);
+              if (i < currentStep) onSelect(i);
             }}
             className={`wizard-step-btn ${isActive ? "active" : isPast ? "past" : "default"}`}
           >
@@ -257,67 +366,57 @@ export default function PluginCreator({ onComplete }: { onComplete: () => void }
       })}
     </div>
   );
+}
 
+interface WizardFooterProps {
+  currentStep: number;
+  totalSteps: number;
+  canProceed: boolean;
+  isInstalling: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onInstall: () => void;
+}
+
+function WizardFooter({
+  currentStep,
+  totalSteps,
+  canProceed,
+  isInstalling,
+  onPrev,
+  onNext,
+  onInstall,
+}: WizardFooterProps) {
   return (
-    <div className="flex flex-col gap-4">
-      {renderStepIndicator()}
-      {currentStep === 0 && <PluginBasicInfo state={state} updateField={updateField} />}
-      {currentStep === 1 && <PluginApiConfig state={state} updateField={updateField} />}
-      {currentStep === 2 && <PluginUrlRules state={state} updateField={updateField} />}
-      {currentStep === 3 && (
-        <PluginModelDefs
-          state={state}
-          updateModel={updateModel}
-          addModel={addModel}
-          removeModel={removeModel}
-          expandedModelParams={expandedModelParams}
-          toggleModelParams={toggleModelParams}
-        />
-      )}
-      {currentStep === 4 && <PluginRequestFormat state={state} updateField={updateField} />}
-      {currentStep === 5 && <PluginResponseFormat state={state} updateField={updateField} />}
-      {currentStep === 6 && (
-        <PluginPreviewExport
-          generatedJson={generatedJson}
-          validationResult={validationResult}
-          isValidating={isValidating}
-          isInstalling={isInstalling}
-          onValidate={handleValidate}
-          onInstall={handleInstall}
-          onCopy={handleCopy}
-          onDownload={handleDownload}
-        />
-      )}
-      <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between">
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={onPrev}
+        disabled={currentStep === 0}
+      >
+        <ChevronLeft size={16} className="mr-1" />
+        {t("plugin.prevStep")}
+      </button>
+      <span className="text-[11px] text-muted-foreground">
+        {currentStep + 1} / {totalSteps}
+      </span>
+      {currentStep < totalSteps - 1 ? (
         <button
           type="button"
-          className="btn btn-outline"
-          onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
+          className="btn btn-primary"
+          onClick={onNext}
+          disabled={!canProceed}
         >
-          <ChevronLeft size={16} className="mr-1" />
-          {t("plugin.prevStep")}
+          {t("plugin.nextStep")}
+          <ChevronRight size={16} className="ml-2" />
         </button>
-        <span className="text-[11px] text-muted-foreground">
-          {currentStep + 1} / {STEPS.length}
-        </span>
-        {currentStep < STEPS.length - 1 ? (
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setCurrentStep((s) => s + 1)}
-            disabled={!canProceed}
-          >
-            {t("plugin.nextStep")}
-            <ChevronRight size={16} className="ml-2" />
-          </button>
-        ) : (
-          <button type="button" className="btn btn-primary" onClick={handleInstall} disabled={isInstalling || !canProceed}>
-            {isInstalling ? <Loader2 size={16} className="animate-spin mr-1" /> : <Upload size={16} className="mr-1" />}
-            {t("plugin.installPlugin")}
-          </button>
-        )}
-      </div>
+      ) : (
+        <button type="button" className="btn btn-primary" onClick={onInstall} disabled={isInstalling || !canProceed}>
+          {isInstalling ? <Loader2 size={16} className="animate-spin mr-1" /> : <Upload size={16} className="mr-1" />}
+          {t("plugin.installPlugin")}
+        </button>
+      )}
     </div>
   );
 }

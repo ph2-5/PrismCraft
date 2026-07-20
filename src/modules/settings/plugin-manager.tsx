@@ -38,6 +38,128 @@ import { PluginSchemaViewer } from "./plugin-schema-viewer";
 import { PluginSpecViewer } from "./plugin-spec-viewer";
 
 export default function PluginManager() {
+  const {
+    plugins,
+    userPluginFiles,
+    isLoading,
+    showAddForm,
+    setShowAddForm,
+    isReloading,
+    isReloadingCode,
+    expandedPlugin,
+    setExpandedPlugin,
+    showSchema,
+    schemaData,
+    handleShowSchema,
+    showSpec,
+    specContent,
+    handleShowSpec,
+    showCreator,
+    setShowCreator,
+    loadPlugins,
+    handleDelete,
+    handleReload,
+    handleReloadCodePlugins,
+    handleOpenCodePluginDir,
+  } = usePluginManagerState();
+
+  const builtInPlugins = plugins.filter((p) => !p.isUserPlugin && !p.isCodePlugin);
+  const declarativePlugins = plugins.filter((p) => p.isUserPlugin && !p.isCodePlugin);
+  const codePlugins = plugins.filter((p) => p.isCodePlugin);
+
+  if (isLoading) {
+    return (
+      <div className="card">
+        <div className="pb-3">
+          <div className="flex items-center gap-2 text-base font-semibold">
+            <Puzzle size={20} />
+            {t("plugin.management")}
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 size={24} className="animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="card">
+        <PluginManagerHeader
+          showSchema={showSchema}
+          showSpec={showSpec}
+          isReloading={isReloading}
+          onShowSchema={handleShowSchema}
+          onShowSpec={handleShowSpec}
+          onReload={handleReload}
+        />
+        <div className="flex flex-col gap-4">
+          <PluginList
+            builtInPlugins={builtInPlugins}
+            declarativePlugins={declarativePlugins}
+            codePlugins={codePlugins}
+            userPluginFiles={userPluginFiles}
+            expandedPlugin={expandedPlugin}
+            onToggleExpand={(id) => setExpandedPlugin(id)}
+            onDelete={handleDelete}
+          />
+
+          {codePlugins.length > 0 && (
+            <CodePluginActions
+              isReloadingCode={isReloadingCode}
+              onReloadCodePlugins={handleReloadCodePlugins}
+              onOpenCodePluginDir={handleOpenCodePluginDir}
+            />
+          )}
+
+          <PluginImportActions
+            showAddForm={showAddForm}
+            showCreator={showCreator}
+            onShowAddForm={() => setShowAddForm(true)}
+            onShowCreator={() => setShowCreator(true)}
+            onAdded={() => {
+              setShowAddForm(false);
+              loadPlugins();
+            }}
+            onCancelAddForm={() => setShowAddForm(false)}
+          />
+
+          {userPluginFiles.some((f) => !f.valid) && (
+            <div className="plugin-invalid-box">
+              <div>
+                <span className="font-medium">{t("plugin.invalidPluginsExist")}</span>
+                {userPluginFiles.filter((f) => !f.valid).map((f) => f.fileName).join(", ")}
+                <span className="text-xs ml-2">{t("plugin.checkConfigOrDelete")}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showSchema && schemaData && (
+        <PluginSchemaViewer schemaData={schemaData} />
+      )}
+
+      {showSpec && specContent && (
+        <PluginSpecViewer specContent={specContent} />
+      )}
+
+      {showCreator && (
+        <PluginCreator
+          onComplete={() => {
+            setShowCreator(false);
+            loadPlugins();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ============= 状态 Hook =============
+
+function usePluginManagerState() {
   const { error: showError, success: showSuccess } = useToastHelpers();
   const invalidateModelCapabilities = useInvalidateModelCapabilities();
   const invalidateProviderTemplates = useInvalidateProviderTemplates();
@@ -178,142 +300,153 @@ export default function PluginManager() {
     setShowSpec(true);
   };
 
-  const builtInPlugins = plugins.filter((p) => !p.isUserPlugin && !p.isCodePlugin);
-  const declarativePlugins = plugins.filter((p) => p.isUserPlugin && !p.isCodePlugin);
-  const codePlugins = plugins.filter((p) => p.isCodePlugin);
+  return {
+    plugins,
+    userPluginFiles,
+    isLoading,
+    showAddForm,
+    setShowAddForm,
+    isReloading,
+    isReloadingCode,
+    expandedPlugin,
+    setExpandedPlugin,
+    showSchema,
+    schemaData,
+    handleShowSchema,
+    showSpec,
+    specContent,
+    handleShowSpec,
+    showCreator,
+    setShowCreator,
+    loadPlugins,
+    handleDelete,
+    handleReload,
+    handleReloadCodePlugins,
+    handleOpenCodePluginDir,
+  };
+}
 
-  if (isLoading) {
-    return (
-      <div className="card">
-        <div className="pb-3">
-          <div className="flex items-center gap-2 text-base font-semibold">
+// ============= 子组件 =============
+
+interface PluginManagerHeaderProps {
+  showSchema: boolean;
+  showSpec: boolean;
+  isReloading: boolean;
+  onShowSchema: () => void;
+  onShowSpec: () => void;
+  onReload: () => void;
+}
+
+function PluginManagerHeader({
+  showSchema,
+  showSpec,
+  isReloading,
+  onShowSchema,
+  onShowSpec,
+  onReload,
+}: PluginManagerHeaderProps) {
+  return (
+    <div className="pb-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-lg font-semibold">
             <Puzzle size={20} />
             {t("plugin.management")}
           </div>
+          <div className="text-sm text-muted-foreground">{t("plugin.managementDesc")}</div>
         </div>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 size={24} className="animate-spin" />
+        <div className="flex gap-2">
+          <button type="button" className="btn btn-outline btn-sm" onClick={onShowSchema}>
+            <BookOpen size={16} className="mr-1" />
+            {showSchema ? t("plugin.hideSpec") : t("plugin.showSpec")}
+          </button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onShowSpec}>
+            <FileText size={16} className="mr-1" />
+            {showSpec ? t("plugin.hideDoc") : t("plugin.showDoc")}
+          </button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onReload} disabled={isReloading}>
+            {isReloading ? <Loader2 size={16} className="animate-spin mr-1" /> : <RefreshCw size={16} className="mr-1" />}
+            {t("plugin.reload")}
+          </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface CodePluginActionsProps {
+  isReloadingCode: boolean;
+  onReloadCodePlugins: () => void;
+  onOpenCodePluginDir: () => void;
+}
+
+function CodePluginActions({
+  isReloadingCode,
+  onReloadCodePlugins,
+  onOpenCodePluginDir,
+}: CodePluginActionsProps) {
+  return (
+    <div className="flex gap-2">
+      <button
+        type="button"
+        className="btn btn-outline btn-sm"
+        onClick={onReloadCodePlugins}
+        disabled={isReloadingCode}
+      >
+        {isReloadingCode ? (
+          <Loader2 size={16} className="animate-spin mr-1" />
+        ) : (
+          <RefreshCw size={16} className="mr-1" />
+        )}
+        {t("plugin.reloadCodePlugins")}
+      </button>
+      <button
+        type="button"
+        className="btn btn-outline btn-sm"
+        onClick={onOpenCodePluginDir}
+      >
+        <FolderOpen size={16} className="mr-1" />
+        {t("plugin.openCodePluginDir")}
+      </button>
+    </div>
+  );
+}
+
+interface PluginImportActionsProps {
+  showAddForm: boolean;
+  showCreator: boolean;
+  onShowAddForm: () => void;
+  onShowCreator: () => void;
+  onAdded: () => void;
+  onCancelAddForm: () => void;
+}
+
+function PluginImportActions({
+  showAddForm,
+  showCreator,
+  onShowAddForm,
+  onShowCreator,
+  onAdded,
+  onCancelAddForm,
+}: PluginImportActionsProps) {
+  if (!showAddForm && !showCreator) {
+    return (
+      <div className="flex gap-2">
+        <button type="button" className="btn btn-outline btn-sm flex-1" onClick={onShowCreator}>
+          <Puzzle size={16} className="mr-2" />
+          {t("plugin.createPlugin")}
+        </button>
+        <button type="button" className="btn btn-outline btn-sm flex-1" onClick={onShowAddForm}>
+          <Upload size={16} className="mr-2" />
+          {t("plugin.importJson")}
+        </button>
       </div>
     );
   }
-
-  return (
-    <>
-      <div className="card">
-        <div className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-lg font-semibold">
-                <Puzzle size={20} />
-                {t("plugin.management")}
-              </div>
-              <div className="text-sm text-muted-foreground">{t("plugin.managementDesc")}</div>
-            </div>
-            <div className="flex gap-2">
-              <button type="button" className="btn btn-outline btn-sm" onClick={handleShowSchema}>
-                <BookOpen size={16} className="mr-1" />
-                {showSchema ? t("plugin.hideSpec") : t("plugin.showSpec")}
-              </button>
-              <button type="button" className="btn btn-outline btn-sm" onClick={handleShowSpec}>
-                <FileText size={16} className="mr-1" />
-                {showSpec ? t("plugin.hideDoc") : t("plugin.showDoc")}
-              </button>
-              <button type="button" className="btn btn-outline btn-sm" onClick={handleReload} disabled={isReloading}>
-                {isReloading ? <Loader2 size={16} className="animate-spin mr-1" /> : <RefreshCw size={16} className="mr-1" />}
-                {t("plugin.reload")}
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col gap-4">
-          <PluginList
-            builtInPlugins={builtInPlugins}
-            declarativePlugins={declarativePlugins}
-            codePlugins={codePlugins}
-            userPluginFiles={userPluginFiles}
-            expandedPlugin={expandedPlugin}
-            onToggleExpand={(id) => setExpandedPlugin(id)}
-            onDelete={handleDelete}
-          />
-
-          {codePlugins.length > 0 && (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={handleReloadCodePlugins}
-                disabled={isReloadingCode}
-              >
-                {isReloadingCode ? (
-                  <Loader2 size={16} className="animate-spin mr-1" />
-                ) : (
-                  <RefreshCw size={16} className="mr-1" />
-                )}
-                {t("plugin.reloadCodePlugins")}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={handleOpenCodePluginDir}
-              >
-                <FolderOpen size={16} className="mr-1" />
-                {t("plugin.openCodePluginDir")}
-              </button>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            {!showAddForm && !showCreator ? (
-              <>
-                <button type="button" className="btn btn-outline btn-sm flex-1" onClick={() => setShowCreator(true)}>
-                  <Puzzle size={16} className="mr-2" />
-                  {t("plugin.createPlugin")}
-                </button>
-                <button type="button" className="btn btn-outline btn-sm flex-1" onClick={() => setShowAddForm(true)}>
-                  <Upload size={16} className="mr-2" />
-                  {t("plugin.importJson")}
-                </button>
-              </>
-            ) : showAddForm ? (
-              <PluginAddForm
-                onAdded={() => {
-                  setShowAddForm(false);
-                  loadPlugins();
-                }}
-                onCancel={() => setShowAddForm(false)}
-              />
-            ) : null}
-          </div>
-
-          {userPluginFiles.some((f) => !f.valid) && (
-            <div className="plugin-invalid-box">
-              <div>
-                <span className="font-medium">{t("plugin.invalidPluginsExist")}</span>
-                {userPluginFiles.filter((f) => !f.valid).map((f) => f.fileName).join(", ")}
-                <span className="text-xs ml-2">{t("plugin.checkConfigOrDelete")}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {showSchema && schemaData && (
-        <PluginSchemaViewer schemaData={schemaData} />
-      )}
-
-      {showSpec && specContent && (
-        <PluginSpecViewer specContent={specContent} />
-      )}
-
-      {showCreator && (
-        <PluginCreator
-          onComplete={() => {
-            setShowCreator(false);
-            loadPlugins();
-          }}
-        />
-      )}
-    </>
-  );
+  if (showAddForm) {
+    return (
+      <PluginAddForm onAdded={onAdded} onCancel={onCancelAddForm} />
+    );
+  }
+  return null;
 }

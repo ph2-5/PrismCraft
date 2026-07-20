@@ -123,6 +123,80 @@ function withAbortSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<
   });
 }
 
+/** 加载角色变体（可选）。变体不存在或不属于该角色时返回 null 并记录告警。 */
+async function loadCharacterVariant(input: CompositorInput): Promise<CharacterVariant | null> {
+  if (!input.characterVariantId) return null;
+  const variant = await container.characterVariantStorage.getVariantById(input.characterVariantId);
+  if (!variant) {
+    errorLogger.warn(`[Compositor] 角色变体不存在: ${input.characterVariantId}，将使用基础角色`);
+    return null;
+  }
+  if (variant.characterId !== input.characterId) {
+    errorLogger.warn(`[Compositor] 变体 ${input.characterVariantId} 不属于角色 ${input.characterId}，将忽略变体`);
+    return null;
+  }
+  return variant;
+}
+
+/** 加载场景（可选）。场景不存在时返回 null 并记录告警。 */
+async function loadScene(sceneId?: string): Promise<Scene | null> {
+  if (!sceneId) return null;
+  const scene = await container.sceneStorage.getSceneById(sceneId);
+  if (!scene) {
+    errorLogger.warn(`[Compositor] 场景不存在: ${sceneId}，将忽略场景`);
+  }
+  return scene;
+}
+
+/** 加载道具列表（可选）。缺失道具跳过并记录告警。 */
+async function loadProps(propIds?: string[] | null): Promise<Prop[]> {
+  if (!propIds || propIds.length === 0) return [];
+  const props: Prop[] = [];
+  for (const propId of propIds) {
+    const prop = await container.propStorage.getPropById(propId);
+    if (prop) {
+      props.push(prop);
+    } else {
+      errorLogger.warn(`[Compositor] 道具不存在: ${propId}，跳过`);
+    }
+  }
+  return props;
+}
+
+/** 持久化合成结果到 generation_assets。失败不阻塞返回，仅记录日志。 */
+async function persistCompositorAsset(
+  input: CompositorInput,
+  imageUrl: string,
+  prompt: string,
+): Promise<string> {
+  const fallbackId = `compositor-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    const asset = await createAsset({
+      type: "compositor_result",
+      sourceType: "composited",
+      url: imageUrl,
+      prompt,
+      modelId: input.modelId,
+      providerId: input.provider,
+      metadata: {
+        characterId: input.characterId,
+        characterVariantId: input.characterVariantId,
+        propIds: input.propIds ?? [],
+        sceneId: input.sceneId,
+        extraPrompt: input.extraPrompt,
+        resolution: input.resolution,
+      },
+      characterId: input.characterId,
+      characterVariantId: input.characterVariantId,
+      sceneId: input.sceneId,
+    });
+    return asset.id;
+  } catch (err) {
+    errorLogger.warn("[Compositor] 生成结果持久化失败", err);
+    return fallbackId;
+  }
+}
+
 /**
  * 执行一次合成：拼装 prompt → 调用图像模型 → 持久化结果
  *
@@ -141,44 +215,19 @@ export async function composeImage(
   }
   if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
-  // Task 2A.10: 加载角色变体（可选）
-  let variant: CharacterVariant | null = null;
-  if (input.characterVariantId) {
-    variant = await container.characterVariantStorage.getVariantById(input.characterVariantId);
-    if (!variant) {
-      errorLogger.warn(`[Compositor] 角色变体不存在: ${input.characterVariantId}，将使用基础角色`);
-    } else if (variant.characterId !== input.characterId) {
-      errorLogger.warn(`[Compositor] 变体 ${input.characterVariantId} 不属于角色 ${input.characterId}，将忽略变体`);
-      variant = null;
-    }
-  }
+  // 2. 加载角色变体（可选）
+  const variant = await loadCharacterVariant(input);
   if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
-  // 2. 加载场景（可选）
-  let scene: Scene | null = null;
-  if (input.sceneId) {
-    scene = await container.sceneStorage.getSceneById(input.sceneId);
-    if (!scene) {
-      errorLogger.warn(`[Compositor] 场景不存在: ${input.sceneId}，将忽略场景`);
-    }
-  }
+  // 3. 加载场景（可选）
+  const scene = await loadScene(input.sceneId);
   if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
-  // 3. 加载道具列表（可选）
-  const props: Prop[] = [];
-  if (input.propIds && input.propIds.length > 0) {
-    for (const propId of input.propIds) {
-      const prop = await container.propStorage.getPropById(propId);
-      if (prop) {
-        props.push(prop);
-      } else {
-        errorLogger.warn(`[Compositor] 道具不存在: ${propId}，跳过`);
-      }
-    }
-  }
+  // 4. 加载道具列表（可选）
+  const props = await loadProps(input.propIds);
   if (signal?.aborted) throw new Error(t("compositor.errorCancelled"));
 
-  // 4. 拼装 prompt（Task 2A.10: 如果有变体，使用变体的 promptFragment + 参考图覆盖角色基础设定）
+  // 5. 拼装 prompt（Task 2A.10: 如果有变体，使用变体的 promptFragment + 参考图覆盖角色基础设定）
   const prompt = generateCompositorPrompt({
     character: characterToInput(character, variant),
     props: props.map(propToInput),
@@ -186,7 +235,7 @@ export async function composeImage(
     extraPrompt: input.extraPrompt,
   });
 
-  // 5. 调用图像生成（P1-8: 通过 withAbortSignal 包装实现可取消）
+  // 6. 调用图像生成（P1-8: 通过 withAbortSignal 包装实现可取消）
   const result = await withAbortSignal(
     container.imageProvider.generateImage(prompt, "compositor", {
       providerId: input.provider,
@@ -211,36 +260,11 @@ export async function composeImage(
     throw new Error(t("compositor.errorEmptyImageUrl"));
   }
 
-  // 6. 持久化到 generation_assets（type=compositor_result, sourceType=composited）
+  // 7. 持久化到 generation_assets（type=compositor_result, sourceType=composited）
   const createdAt = new Date().toISOString();
-  let assetId = `compositor-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  try {
-    const asset = await createAsset({
-      type: "compositor_result",
-      sourceType: "composited",
-      url: imageUrl,
-      prompt,
-      modelId: input.modelId,
-      providerId: input.provider,
-      metadata: {
-        characterId: input.characterId,
-        characterVariantId: input.characterVariantId,
-        propIds: input.propIds ?? [],
-        sceneId: input.sceneId,
-        extraPrompt: input.extraPrompt,
-        resolution: input.resolution,
-      },
-      characterId: input.characterId,
-      characterVariantId: input.characterVariantId,
-      sceneId: input.sceneId,
-    });
-    assetId = asset.id;
-  } catch (err) {
-    // 持久化失败不阻塞返回，只记录日志（用户已得到生成图）
-    errorLogger.warn("[Compositor] 生成结果持久化失败", err);
-  }
+  const assetId = await persistCompositorAsset(input, imageUrl, prompt);
 
-  // 7. 返回结果
+  // 8. 返回结果
   return {
     id: assetId,
     characterId: input.characterId,

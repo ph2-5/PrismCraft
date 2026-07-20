@@ -89,6 +89,38 @@ function createLayerId(instanceCounter: number): string {
   return `composer-layer-${Date.now()}-${instanceCounter}`;
 }
 
+function buildNewLayer(
+  entity: { id: string; name: string },
+  type: ComposerLayerType,
+  layerId: string,
+  prevLength: number,
+): ComposerLayer {
+  if (type === "character" || type === "scene") {
+    return {
+      layerId,
+      id: entity.id,
+      type,
+      name: entity.name,
+      emoji: LAYER_EMOJI[type],
+      x: 50,
+      y: 50,
+      scale: 1,
+      zIndex: type === "scene" ? 1 : 10,
+    };
+  }
+  return {
+    layerId,
+    id: entity.id,
+    type,
+    name: entity.name,
+    emoji: LAYER_EMOJI[type],
+    x: 50 + prevLength * 20,
+    y: 50 + prevLength * 20,
+    scale: 1,
+    zIndex: 20,
+  };
+}
+
 export function useCompositor(): UseCompositorResult {
   const [layers, setLayers] = useState<ComposerLayer[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
@@ -138,34 +170,14 @@ export function useCompositor(): UseCompositorResult {
       // 角色与场景单实例：替换已有
       if (type === "character" || type === "scene") {
         const filtered = prev.filter((l) => l.type !== type);
-        const newLayer: ComposerLayer = {
-          layerId: nextLayerId(),
-          id: entity.id,
-          type,
-          name: entity.name,
-          emoji: LAYER_EMOJI[type],
-          x: 50,
-          y: 50,
-          scale: 1,
-          zIndex: type === "scene" ? 1 : 10,
-        };
+        const newLayer = buildNewLayer(entity, type, nextLayerId(), 0);
         return [...filtered, newLayer];
       }
       // 道具：可多个，去重
       if (prev.some((l) => l.type === "prop" && l.id === entity.id)) {
         return prev;
       }
-      const newLayer: ComposerLayer = {
-        layerId: nextLayerId(),
-        id: entity.id,
-        type,
-        name: entity.name,
-        emoji: LAYER_EMOJI[type],
-        x: 50 + prev.length * 20,
-        y: 50 + prev.length * 20,
-        scale: 1,
-        zIndex: 20,
-      };
+      const newLayer = buildNewLayer(entity, type, nextLayerId(), prev.length);
       return [...prev, newLayer];
     });
   }, [nextLayerId]);

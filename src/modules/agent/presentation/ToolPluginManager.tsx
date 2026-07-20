@@ -55,6 +55,170 @@ interface PluginState {
   disabled: boolean;
 }
 
+/** 获取禁用的插件 ID 列表（模块级纯函数，不依赖组件状态） */
+async function getDisabledPluginIds(): Promise<Set<string>> {
+  try {
+    const raw = await getConfig(TOOL_PLUGINS_CONFIG_KEY);
+    if (!raw || typeof raw !== "object") return new Set();
+    const c = raw as Record<string, unknown>;
+    const disabled = Array.isArray(c.disabled)
+      ? c.disabled.filter((x): x is string => typeof x === "string")
+      : [];
+    return new Set(disabled);
+  } catch {
+    return new Set();
+  }
+}
+
+/** 读取插件配置（模块级纯函数） */
+async function readPluginsConfig(): Promise<ToolPluginsConfig> {
+  try {
+    const raw = await getConfig(TOOL_PLUGINS_CONFIG_KEY);
+    if (!raw || typeof raw !== "object") {
+      return { enabled: [], disabled: [] };
+    }
+    const c = raw as Record<string, unknown>;
+    return {
+      enabled: Array.isArray(c.enabled)
+        ? c.enabled.filter((x): x is string => typeof x === "string")
+        : [],
+      disabled: Array.isArray(c.disabled)
+        ? c.disabled.filter((x): x is string => typeof x === "string")
+        : [],
+    };
+  } catch {
+    return { enabled: [], disabled: [] };
+  }
+}
+
+/** 写入插件配置 */
+async function writePluginsConfig(config: ToolPluginsConfig): Promise<void> {
+  await setConfig(TOOL_PLUGINS_CONFIG_KEY, config);
+}
+
+interface PluginListItemProps {
+  config: ToolPluginConfig;
+  loaded: boolean;
+  disabled: boolean;
+  actionLoading: boolean;
+  onToggleDisable: (pluginId: string, currentlyDisabled: boolean) => void;
+  onReload: (pluginId: string) => void;
+  onEdit: (config: ToolPluginConfig) => void;
+  onDelete: (pluginId: string, displayName: string) => void;
+}
+
+/** 单个插件列表项（标题、状态、操作按钮、描述、元信息） */
+function PluginListItem({
+  config,
+  loaded,
+  disabled,
+  actionLoading,
+  onToggleDisable,
+  onReload,
+  onEdit,
+  onDelete,
+}: PluginListItemProps) {
+  return (
+    <div
+      className={`rounded border bg-background/50 p-2 ${
+        disabled
+          ? "border-amber-300/60 opacity-70"
+          : loaded
+            ? "border-green-300/60"
+            : "border-border"
+      }`}
+    >
+      {/* 标题行 */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-xs font-medium">
+              {config.displayName}
+            </span>
+            {loaded ? (
+              <CheckCircle2 className="h-3 w-3 shrink-0 text-green-600 dark:text-green-400" />
+            ) : disabled ? (
+              <XCircle className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" />
+            ) : null}
+          </div>
+          <div className="truncate text-[10px] text-muted-foreground">
+            {config.id} · {t("agent.plugin.version", { version: config.version })}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {/* 启用/禁用切换 */}
+          <button
+            onClick={() => onToggleDisable(config.id, disabled)}
+            disabled={actionLoading}
+            className={`rounded p-1 transition-colors disabled:opacity-50 ${
+              disabled
+                ? "text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/40"
+                : "text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/40"
+            }`}
+            title={disabled ? t("agent.plugin.enable") : t("agent.plugin.disable")}
+            aria-label={disabled ? t("agent.plugin.enable") : t("agent.plugin.disable")}
+          >
+            <Power className="h-3 w-3" />
+          </button>
+          {/* 重新加载 */}
+          <button
+            onClick={() => onReload(config.id)}
+            disabled={actionLoading || disabled}
+            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+            title={t("agent.plugin.reload")}
+            aria-label={t("agent.plugin.reload")}
+          >
+            <RefreshCw className="h-3 w-3" />
+          </button>
+          {/* 编辑 */}
+          <button
+            onClick={() => onEdit(config)}
+            disabled={actionLoading}
+            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+            title={t("agent.plugin.edit")}
+            aria-label={t("agent.plugin.edit")}
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          {/* 删除 */}
+          <button
+            onClick={() => onDelete(config.id, config.displayName)}
+            disabled={actionLoading}
+            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+            title={t("agent.plugin.delete")}
+            aria-label={t("agent.plugin.delete")}
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* 描述 */}
+      {config.description && (
+        <div className="mt-1 text-[10px] text-muted-foreground line-clamp-2">
+          {config.description}
+        </div>
+      )}
+
+      {/* 元信息 */}
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+        <span>{t("agent.plugin.tools", { count: config.tools.length })}</span>
+        {config.author && (
+          <span>· {t("agent.plugin.author", { author: config.author })}</span>
+        )}
+        {config.prefix && (
+          <span>· {t("agent.plugin.prefix", { prefix: config.prefix })}</span>
+        )}
+        {disabled && (
+          <span className="text-amber-600 dark:text-amber-400">
+            · {t("agent.plugin.disabled")}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ToolPluginManager({ onClose }: ToolPluginManagerProps) {
   const [plugins, setPlugins] = useState<PluginState[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,47 +269,6 @@ export function ToolPluginManager({ onClose }: ToolPluginManagerProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
-
-  /** 获取禁用的插件 ID 列表 */
-  const getDisabledPluginIds = async (): Promise<Set<string>> => {
-    try {
-      const raw = await getConfig(TOOL_PLUGINS_CONFIG_KEY);
-      if (!raw || typeof raw !== "object") return new Set();
-      const c = raw as Record<string, unknown>;
-      const disabled = Array.isArray(c.disabled)
-        ? c.disabled.filter((x): x is string => typeof x === "string")
-        : [];
-      return new Set(disabled);
-    } catch {
-      return new Set();
-    }
-  };
-
-  /** 读取插件配置 */
-  const readPluginsConfig = async (): Promise<ToolPluginsConfig> => {
-    try {
-      const raw = await getConfig(TOOL_PLUGINS_CONFIG_KEY);
-      if (!raw || typeof raw !== "object") {
-        return { enabled: [], disabled: [] };
-      }
-      const c = raw as Record<string, unknown>;
-      return {
-        enabled: Array.isArray(c.enabled)
-          ? c.enabled.filter((x): x is string => typeof x === "string")
-          : [],
-        disabled: Array.isArray(c.disabled)
-          ? c.disabled.filter((x): x is string => typeof x === "string")
-          : [],
-      };
-    } catch {
-      return { enabled: [], disabled: [] };
-    }
-  };
-
-  /** 写入插件配置 */
-  const writePluginsConfig = async (config: ToolPluginsConfig): Promise<void> => {
-    await setConfig(TOOL_PLUGINS_CONFIG_KEY, config);
-  };
 
   /** 切换插件启用/禁用状态 */
   const handleToggleDisable = async (pluginId: string, currentlyDisabled: boolean) => {
@@ -360,104 +483,17 @@ export function ToolPluginManager({ onClose }: ToolPluginManagerProps) {
           />
         ) : (
           plugins.map(({ config, loaded, disabled }) => (
-            <div
+            <PluginListItem
               key={config.id}
-              className={`rounded border bg-background/50 p-2 ${
-                disabled
-                  ? "border-amber-300/60 opacity-70"
-                  : loaded
-                    ? "border-green-300/60"
-                    : "border-border"
-              }`}
-            >
-              {/* 标题行 */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-xs font-medium">
-                      {config.displayName}
-                    </span>
-                    {loaded ? (
-                      <CheckCircle2 className="h-3 w-3 shrink-0 text-green-600 dark:text-green-400" />
-                    ) : disabled ? (
-                      <XCircle className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" />
-                    ) : null}
-                  </div>
-                  <div className="truncate text-[10px] text-muted-foreground">
-                    {config.id} · {t("agent.plugin.version", { version: config.version })}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-0.5">
-                  {/* 启用/禁用切换 */}
-                  <button
-                    onClick={() => void handleToggleDisable(config.id, disabled)}
-                    disabled={actionLoading}
-                    className={`rounded p-1 transition-colors disabled:opacity-50 ${
-                      disabled
-                        ? "text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/40"
-                        : "text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/40"
-                    }`}
-                    title={disabled ? t("agent.plugin.enable") : t("agent.plugin.disable")}
-                    aria-label={disabled ? t("agent.plugin.enable") : t("agent.plugin.disable")}
-                  >
-                    <Power className="h-3 w-3" />
-                  </button>
-                  {/* 重新加载 */}
-                  <button
-                    onClick={() => void handleReload(config.id)}
-                    disabled={actionLoading || disabled}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-                    title={t("agent.plugin.reload")}
-                    aria-label={t("agent.plugin.reload")}
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                  </button>
-                  {/* 编辑 */}
-                  <button
-                    onClick={() => handleOpenEditor(config)}
-                    disabled={actionLoading}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-                    title={t("agent.plugin.edit")}
-                    aria-label={t("agent.plugin.edit")}
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </button>
-                  {/* 删除 */}
-                  <button
-                    onClick={() => void handleDelete(config.id, config.displayName)}
-                    disabled={actionLoading}
-                    className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                    title={t("agent.plugin.delete")}
-                    aria-label={t("agent.plugin.delete")}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-
-              {/* 描述 */}
-              {config.description && (
-                <div className="mt-1 text-[10px] text-muted-foreground line-clamp-2">
-                  {config.description}
-                </div>
-              )}
-
-              {/* 元信息 */}
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-                <span>{t("agent.plugin.tools", { count: config.tools.length })}</span>
-                {config.author && (
-                  <span>· {t("agent.plugin.author", { author: config.author })}</span>
-                )}
-                {config.prefix && (
-                  <span>· {t("agent.plugin.prefix", { prefix: config.prefix })}</span>
-                )}
-                {disabled && (
-                  <span className="text-amber-600 dark:text-amber-400">
-                    · {t("agent.plugin.disabled")}
-                  </span>
-                )}
-              </div>
-            </div>
+              config={config}
+              loaded={loaded}
+              disabled={disabled}
+              actionLoading={actionLoading}
+              onToggleDisable={(id, cur) => void handleToggleDisable(id, cur)}
+              onReload={(id) => void handleReload(id)}
+              onEdit={(c) => handleOpenEditor(c)}
+              onDelete={(id, name) => void handleDelete(id, name)}
+            />
           ))
         )}
       </div>

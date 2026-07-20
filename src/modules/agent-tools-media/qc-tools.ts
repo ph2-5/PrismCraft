@@ -161,6 +161,89 @@ function createVideoTaskStoreAdapter() {
   };
 }
 
+async function persistReportSafely(
+  beatId: string | undefined,
+  report: QCReport,
+  taskId: string,
+): Promise<boolean> {
+  if (!beatId) return false;
+  try {
+    const result = await persistQCReportToBeat(beatId, report);
+    return result !== null;
+  } catch (e) {
+    errorLogger.warn(`[qc-tools] 持久化 QCReport 失败 taskId=${taskId}`, e);
+    return false;
+  }
+}
+
+async function handleManualReviewFallback(
+  task: VideoTask,
+  baseReport: QCReport,
+  taskId: string,
+) {
+  const updatedReport: QCReport = {
+    ...baseReport,
+    retryCount: (baseReport.retryCount ?? 0) + 1,
+    actionTaken: "manual_review",
+  };
+  const persisted = await persistReportSafely(task.beatId, updatedReport, taskId);
+  return {
+    success: true,
+    data: {
+      taskId,
+      action: "manual_review",
+      ok: true,
+      retryCount: updatedReport.retryCount,
+      isTerminal: true,
+      persisted,
+    },
+  };
+}
+
+function resolveCharacterRefImageUrl(task: VideoTask, beat?: StoryBeat): string | undefined {
+  if (task.fixedImageLockType === "character" && task.fixedImageUrl) {
+    return task.fixedImageUrl;
+  }
+  if (beat?.fixedImage?.imageUrl) {
+    return beat.fixedImage.imageUrl;
+  }
+  return undefined;
+}
+
+function buildFallbackInput(
+  task: VideoTask,
+  beat: StoryBeat | undefined,
+  baseReport: QCReport,
+): FallbackInput {
+  return {
+    report: baseReport,
+    originalTask: task,
+    policy: DEFAULT_DRIFT_POLICY,
+    currentRetryCount: baseReport.retryCount ?? 0,
+    characterRefImageUrl: resolveCharacterRefImageUrl(task, beat),
+    characterId: beat?.characterIds?.[0],
+    videoTaskStore: createVideoTaskStoreAdapter(),
+  };
+}
+
+function validateForceActionMatch(
+  forceAction: "regenerate" | "face_swap" | undefined,
+  baseReport: QCReport,
+): string | null {
+  if (forceAction !== "regenerate" && forceAction !== "face_swap") return null;
+  const predictedAction = predictNextAction(baseReport, DEFAULT_DRIFT_POLICY);
+  if (predictedAction === forceAction) return null;
+  const reason =
+    predictedAction === "none"
+      ? `verdict="${baseReport.verdict}" 非 drift_critical，无需触发 fallback`
+      : `根据 retryCount=${baseReport.retryCount ?? 0}，自动决策应为 "${predictedAction}"`;
+  return (
+    `forceAction="${forceAction}" 与当前 fallback 链不匹配。` +
+    `${reason}。` +
+    `若要跳过中间步骤，请使用 forceAction="manual_review" 终止 fallback。`
+  );
+}
+
 // ============= 工具实现 =============
 
 /**
@@ -370,55 +453,11 @@ export const dispatchVideoFallbackTool: ToolImpl = {
     // 3. 若 forceAction 指定 manual_review，直接走 manual_review 路径
     //    （无需调用 dispatchFallback，避免依赖 characterRefImageUrl 等 face-swap 输入）
     if (forceAction === "manual_review") {
-      const updatedReport: QCReport = {
-        ...baseReport,
-        retryCount: (baseReport.retryCount ?? 0) + 1,
-        actionTaken: "manual_review",
-      };
-
-      // 持久化 updatedReport
-      let persisted = false;
-      if (task.beatId) {
-        try {
-          const result = await persistQCReportToBeat(task.beatId, updatedReport);
-          persisted = result !== null;
-        } catch (e) {
-          errorLogger.warn(`[qc-tools] 持久化 manual_review QCReport 失败 taskId=${taskId}`, e);
-        }
-      }
-
-      return {
-        success: true,
-        data: {
-          taskId,
-          action: "manual_review",
-          ok: true,
-          retryCount: updatedReport.retryCount,
-          isTerminal: true,
-          persisted,
-        },
-      };
+      return handleManualReviewFallback(task, baseReport, taskId);
     }
 
     // 4. 构造 FallbackInput
-    //    characterRefImageUrl 从 QCInput 角度推断：优先 task.fixedImageUrl，其次 beat.fixedImage.imageUrl
-    let characterRefImageUrl: string | undefined;
-    if (task.fixedImageLockType === "character" && task.fixedImageUrl) {
-      characterRefImageUrl = task.fixedImageUrl;
-    } else if (beat?.fixedImage?.imageUrl) {
-      characterRefImageUrl = beat.fixedImage.imageUrl;
-    }
-    const characterId = beat?.characterIds?.[0];
-
-    const fallbackInput: FallbackInput = {
-      report: baseReport,
-      originalTask: task,
-      policy: DEFAULT_DRIFT_POLICY,
-      currentRetryCount: baseReport.retryCount ?? 0,
-      characterRefImageUrl,
-      characterId,
-      videoTaskStore: createVideoTaskStoreAdapter(),
-    };
+    const fallbackInput = buildFallbackInput(task, beat, baseReport);
 
     // 5. 若 forceAction 指定 regenerate / face_swap，但 dispatchFallback 仍按 retryCount 决策
     //    这里不直接绕过决策逻辑（避免破坏 INV-7: fallback 链式降级）。
@@ -427,22 +466,9 @@ export const dispatchVideoFallbackTool: ToolImpl = {
     //    这是设计决策：保持 fallback 链完整性优先于 forceAction（除非是 manual_review 终态）。
     //    forceAction 的主要用途是 manual_review 提前终止。
     //    注：步骤 3 已处理 manual_review，此处 forceAction 类型已收窄为 regenerate | face_swap。
-    if (forceAction === "regenerate" || forceAction === "face_swap") {
-      const predictedAction = predictNextAction(baseReport, DEFAULT_DRIFT_POLICY);
-      if (predictedAction !== forceAction) {
-        // 区分两种不匹配场景，给出更清晰的错误消息
-        const reason =
-          predictedAction === "none"
-            ? `verdict="${baseReport.verdict}" 非 drift_critical，无需触发 fallback`
-            : `根据 retryCount=${baseReport.retryCount ?? 0}，自动决策应为 "${predictedAction}"`;
-        return {
-          success: false,
-          error:
-            `forceAction="${forceAction}" 与当前 fallback 链不匹配。` +
-            `${reason}。` +
-            `若要跳过中间步骤，请使用 forceAction="manual_review" 终止 fallback。`,
-        };
-      }
+    const forceActionError = validateForceActionMatch(forceAction, baseReport);
+    if (forceActionError) {
+      return { success: false, error: forceActionError };
     }
 
     // 6. 调用 dispatchFallback
@@ -458,15 +484,11 @@ export const dispatchVideoFallbackTool: ToolImpl = {
     }
 
     // 7. 持久化 updatedReport 到 StoryBeat
-    let persisted = false;
-    if (task.beatId) {
-      try {
-        const result = await persistQCReportToBeat(task.beatId, fallbackResult.updatedReport);
-        persisted = result !== null;
-      } catch (e) {
-        errorLogger.warn(`[qc-tools] 持久化 updatedReport 失败 taskId=${taskId}`, e);
-      }
-    }
+    const persisted = await persistReportSafely(
+      task.beatId,
+      fallbackResult.updatedReport,
+      taskId,
+    );
 
     // 8. 计算是否为终态
     const policy = resolvePolicy(DEFAULT_DRIFT_POLICY);

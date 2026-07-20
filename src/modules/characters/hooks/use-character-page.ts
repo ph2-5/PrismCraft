@@ -19,7 +19,69 @@ import {
   useOutfitManagement,
 } from "@/modules/character";
 import { confirm } from "@/shared/utils/confirm";
-import type { Character } from "@/domain/schemas";
+import type { Character, Story } from "@/domain/schemas";
+
+interface CharacterReferencedBeat {
+  id: string;
+  title: string;
+  status?: string;
+}
+
+function computeReferencedBeatsForCharacter(
+  stories: Story[],
+  characterId: string,
+): CharacterReferencedBeat[] {
+  const beats: CharacterReferencedBeat[] = [];
+  for (const story of stories) {
+    for (const beat of story.beats || []) {
+      if (beat.characterIds?.includes(characterId)) {
+        beats.push({
+          id: beat.id,
+          title: `${t("scene.shotNumber", { n: beat.sequence ?? beat.order ?? 0 })} · ${beat.title || beat.description?.slice(0, 20) || t("story.unnamed")}`,
+          status: beat.generationStatus === "completed" ? "✓" : beat.generationStatus === "generating" ? "" : undefined,
+        });
+      }
+    }
+  }
+  return beats;
+}
+
+async function updateStoriesAfterCharacterDelete(
+  characterId: string,
+  storiesList: Story[],
+  showError: (title: string, desc?: string) => void,
+) {
+  const updatedStories = storiesList.map((story) => {
+    const updatedBeats = (story.beats || []).map((beat) => {
+      const updated = { ...beat };
+      if (updated.characterIds?.includes(characterId)) {
+        updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
+      }
+      return updated;
+    });
+    const updatedCharacters = (story.characters || []).filter((cid) => cid !== characterId);
+    return { ...story, characters: updatedCharacters, beats: updatedBeats };
+  });
+  const failedStories: string[] = [];
+  const affectedStories = updatedStories.filter((updatedStory) => {
+    const original = storiesList.find((s) => s.id === updatedStory.id);
+    return (
+      original?.characters?.includes(characterId) ||
+      original?.beats?.some((b) => b.characterIds?.includes(characterId))
+    );
+  });
+  const results = await Promise.allSettled(
+    affectedStories.map((updatedStory) => storyService.update(updatedStory.id, updatedStory)),
+  );
+  results.forEach((result, i) => {
+    if (result.status === "rejected" || (result.status === "fulfilled" && !result.value.ok)) {
+      failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
+    }
+  });
+  if (failedStories.length > 0) {
+    showError(t("story.partialRefFailed"), t("story.partialRefFailedDetail", { items: failedStories.join("、") }));
+  }
+}
 
 /**
  * 角色页面所有业务逻辑的 hook。
@@ -81,38 +143,8 @@ export function useCharacterPage() {
     setCustomTrait, setCustomStyle, setGeneratedImage: imageHook.setGeneratedImage,
     addAssetToLibrary, generatePrompt: imageHook.generatePrompt, success, showError,
     stories, markDirty, markClean,
-    onUpdateStoriesAfterDelete: async (characterId, storiesList) => {
-      const updatedStories = storiesList.map((story) => {
-        const updatedBeats = (story.beats || []).map((beat) => {
-          const updated = { ...beat };
-          if (updated.characterIds?.includes(characterId)) {
-            updated.characterIds = updated.characterIds.filter((cid) => cid !== characterId);
-          }
-          return updated;
-        });
-        const updatedCharacters = (story.characters || []).filter((cid) => cid !== characterId);
-        return { ...story, characters: updatedCharacters, beats: updatedBeats };
-      });
-      const failedStories: string[] = [];
-      const affectedStories = updatedStories.filter((updatedStory) => {
-        const original = storiesList.find((s) => s.id === updatedStory.id);
-        return (
-          original?.characters?.includes(characterId) ||
-          original?.beats?.some((b) => b.characterIds?.includes(characterId))
-        );
-      });
-      const results = await Promise.allSettled(
-        affectedStories.map((updatedStory) => storyService.update(updatedStory.id, updatedStory)),
-      );
-      results.forEach((result, i) => {
-        if (result.status === "rejected" || (result.status === "fulfilled" && !result.value.ok)) {
-          failedStories.push(affectedStories[i]!.title || affectedStories[i]!.id.slice(0, 8));
-        }
-      });
-      if (failedStories.length > 0) {
-        showError(t("story.partialRefFailed"), t("story.partialRefFailedDetail", { items: failedStories.join("、") }));
-      }
-    },
+    onUpdateStoriesAfterDelete: (characterId, storiesList) =>
+      updateStoriesAfterCharacterDelete(characterId, storiesList, showError),
   });
 
   // ── 造型变体 ──
@@ -205,22 +237,10 @@ export function useCharacterPage() {
   );
 
   // ── 引用当前角色的分镜 ──
-  const referencedBeats = useMemo(() => {
-    if (!currentCharacter.id) return [];
-    const beats: { id: string; title: string; status?: string }[] = [];
-    for (const story of stories) {
-      for (const beat of story.beats || []) {
-        if (beat.characterIds?.includes(currentCharacter.id)) {
-          beats.push({
-            id: beat.id,
-            title: `${t("scene.shotNumber", { n: beat.sequence ?? beat.order ?? 0 })} · ${beat.title || beat.description?.slice(0, 20) || t("story.unnamed")}`,
-            status: beat.generationStatus === "completed" ? "✓" : beat.generationStatus === "generating" ? "" : undefined,
-          });
-        }
-      }
-    }
-    return beats;
-  }, [stories, currentCharacter.id]);
+  const referencedBeats = useMemo(
+    () => currentCharacter.id ? computeReferencedBeatsForCharacter(stories, currentCharacter.id) : [],
+    [stories, currentCharacter.id],
+  );
 
   // ── 过滤后的角色列表（使用防抖搜索值） ──
   const filteredCharacters = useMemo(() => {

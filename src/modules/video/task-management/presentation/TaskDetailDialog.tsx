@@ -15,6 +15,68 @@ interface TaskDetailDialogProps {
   onRetryTask: (task: VideoTask) => void;
 }
 
+interface TaskDetailActionsProps {
+  task: VideoTask;
+  onOpenPreview: (task: VideoTask) => void;
+  onDownloadVideo: (task: VideoTask) => void;
+  onJumpToBeat: (task: VideoTask) => void;
+  onRetryTask: (task: VideoTask) => void;
+}
+
+function TaskDetailActions({
+  task,
+  onOpenPreview,
+  onDownloadVideo,
+  onJumpToBeat,
+  onRetryTask,
+}: TaskDetailActionsProps) {
+  const isFailed = task.status === "failed" || task.status === "timeout";
+  return (
+    <div className="flex gap-2 pt-2">
+      {task.videoUrl && (
+        <button
+          type="button"
+          className="btn btn-outline flex-1 gap-1"
+          onClick={() => onOpenPreview(task)}
+        >
+          <Play className="w-4 h-4" />
+          {t("task.previewButton")}
+        </button>
+      )}
+      {task.videoUrl && (
+        <button
+          type="button"
+          className="btn btn-outline flex-1 gap-1"
+          onClick={() => onDownloadVideo(task)}
+        >
+          <Download className="w-4 h-4" />
+          {t("task.downloadButton")}
+        </button>
+      )}
+      {task.beatId && (
+        <button
+          type="button"
+          className="btn btn-outline flex-1 gap-1"
+          onClick={() => onJumpToBeat(task)}
+        >
+          <Film className="w-4 h-4" />
+          {t("task.beatButton")}
+        </button>
+      )}
+      {isFailed && (
+        <button
+          type="button"
+          className="btn btn-outline flex-1 gap-1 text-warning"
+          onClick={() => onRetryTask(task)}
+        >
+          <RotateCcw className="w-4 h-4" />
+          {t("task.retryButton")}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function TaskDetailDialog({
   open,
   onOpenChange,
@@ -153,48 +215,13 @@ export function TaskDetailDialog({
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2">
-                {task.videoUrl && (
-                  <button
-                    type="button"
-                    className="btn btn-outline flex-1 gap-1"
-                    onClick={() => onOpenPreview(task)}
-                  >
-                    <Play className="w-4 h-4" />
-                    {t("task.previewButton")}
-                  </button>
-                )}
-                {task.videoUrl && (
-                  <button
-                    type="button"
-                    className="btn btn-outline flex-1 gap-1"
-                    onClick={() => onDownloadVideo(task)}
-                  >
-                    <Download className="w-4 h-4" />
-                    {t("task.downloadButton")}
-                  </button>
-                )}
-                {task.beatId && (
-                  <button
-                    type="button"
-                    className="btn btn-outline flex-1 gap-1"
-                    onClick={() => onJumpToBeat(task)}
-                  >
-                    <Film className="w-4 h-4" />
-                    {t("task.beatButton")}
-                  </button>
-                )}
-                {(task.status === "failed" || task.status === "timeout") && (
-                  <button
-                    type="button"
-                    className="btn btn-outline flex-1 gap-1 text-warning"
-                    onClick={() => onRetryTask(task)}
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    {t("task.retryButton")}
-                  </button>
-                )}
-              </div>
+              <TaskDetailActions
+                task={task}
+                onOpenPreview={onOpenPreview}
+                onDownloadVideo={onDownloadVideo}
+                onJumpToBeat={onJumpToBeat}
+                onRetryTask={onRetryTask}
+              />
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
               <button type="button" className="btn btn-ghost" onClick={() => onOpenChange(false)}>

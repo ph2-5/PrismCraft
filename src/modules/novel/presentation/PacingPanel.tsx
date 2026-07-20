@@ -193,6 +193,58 @@ function PacingNotesList({ notes }: PacingNotesProps) {
 // ============================================================================
 
 /**
+ * PacingPanel 内部状态 hook：集中管理 PacingResult 计算 + 4 个 handlers。
+ *
+ * 提取到模块级以减少 PacingPanel 函数体行数（max-lines-per-function 警告）。
+ */
+interface UsePacingPanelStateOptions {
+  structure: StoryStructure | null;
+  segments: NovelSegment[];
+  config: PacingConfig;
+  onConfigChange: (config: PacingConfig) => void;
+  onApply?: (result: PacingResult) => void;
+  onReset?: () => void;
+}
+
+interface UsePacingPanelStateResult {
+  pacingResult: PacingResult | null;
+  handlePresetChange: (preset: PacingPreset) => void;
+  handleTargetDurationChange: (value: number) => void;
+  handleApply: () => void;
+  handleReset: () => void;
+}
+
+function usePacingPanelState({
+  structure, segments, config, onConfigChange, onApply, onReset,
+}: UsePacingPanelStateOptions): UsePacingPanelStateResult {
+  const pacingResult = useMemo<PacingResult | null>(() => {
+    if (!structure || segments.length === 0) return null;
+    return planPacing(segments, structure, config);
+  }, [structure, segments, config]);
+
+  const handlePresetChange = (preset: PacingPreset) => {
+    onConfigChange({ ...config, preset });
+  };
+
+  const handleTargetDurationChange = (value: number) => {
+    // 夹紧到 10-300 秒（防御性：input 已设 min/max，但仍处理非浏览器输入路径）
+    const clamped = Math.max(10, Math.min(300, value));
+    onConfigChange({ ...config, targetDuration: clamped });
+  };
+
+  const handleApply = () => {
+    if (pacingResult && onApply) onApply(pacingResult);
+  };
+
+  // M-2 修复：只调用 onReset，由父组件负责完整重置（避免同时调用 onConfigChange 导致双重 setPacingConfig）
+  const handleReset = () => {
+    if (onReset) onReset();
+  };
+
+  return { pacingResult, handlePresetChange, handleTargetDurationChange, handleApply, handleReset };
+}
+
+/**
  * 节奏规划面板。
  *
  * 用户可：
@@ -211,11 +263,13 @@ export function PacingPanel({
   onReset,
   isProcessing = false,
 }: PacingPanelProps) {
-  // 计算 PacingResult（基于当前 config + structure + segments）
-  const pacingResult = useMemo<PacingResult | null>(() => {
-    if (!structure || segments.length === 0) return null;
-    return planPacing(segments, structure, config);
-  }, [structure, segments, config]);
+  const {
+    pacingResult,
+    handlePresetChange,
+    handleTargetDurationChange,
+    handleApply,
+    handleReset,
+  } = usePacingPanelState({ structure, segments, config, onConfigChange, onApply, onReset });
 
   // 空状态：structure 为 null（未完成结构分析）
   if (!structure) {
@@ -240,28 +294,6 @@ export function PacingPanel({
       />
     );
   }
-
-  const handlePresetChange = (preset: PacingPreset) => {
-    onConfigChange({ ...config, preset });
-  };
-
-  const handleTargetDurationChange = (value: number) => {
-    // 夹紧到 10-300 秒（防御性：input 已设 min/max，但仍处理非浏览器输入路径）
-    const clamped = Math.max(10, Math.min(300, value));
-    onConfigChange({ ...config, targetDuration: clamped });
-  };
-
-  const handleApply = () => {
-    if (pacingResult && onApply) {
-      onApply(pacingResult);
-    }
-  };
-
-  // M-2 修复：只调用 onReset，由父组件负责完整重置（避免同时调用 onConfigChange 导致双重 setPacingConfig）
-  // 父组件 useNovelPipeline.handleResetPacing 内部已 setPacingConfig(DEFAULT_PACING_CONFIG)
-  const handleReset = () => {
-    if (onReset) onReset();
-  };
 
   return (
     <div className="flex flex-col gap-4 p-4 border border-border rounded-lg bg-card/50">

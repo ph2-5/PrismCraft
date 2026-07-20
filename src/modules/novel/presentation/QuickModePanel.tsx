@@ -35,14 +35,27 @@ export interface QuickModePanelProps {
 
 type GenerationStatus = "idle" | "processing" | "success" | "error";
 
-export function QuickModePanel({
-  rawText,
-  onTextChange,
-  onGenerate,
-  isProcessing,
-  shots,
-  progressHint,
-}: QuickModePanelProps) {
+/**
+ * QuickModePanel 内部状态 hook：集中管理 status 计算 + handleGenerate。
+ *
+ * 提取到模块级以减少 QuickModePanel 函数体行数（max-lines-per-function 警告）。
+ */
+interface UseQuickModePanelStateOptions {
+  rawText: string;
+  onGenerate: () => void;
+  isProcessing: boolean;
+  shots: ShotBreakdown[];
+}
+
+interface UseQuickModePanelStateResult {
+  status: GenerationStatus;
+  canGenerate: boolean;
+  handleGenerate: () => void;
+}
+
+function useQuickModePanelState({
+  rawText, onGenerate, isProcessing, shots,
+}: UseQuickModePanelStateOptions): UseQuickModePanelStateResult {
   const [hasError, setHasError] = useState(false);
 
   const status: GenerationStatus = useMemo(() => {
@@ -62,6 +75,21 @@ export function QuickModePanel({
       setHasError(true);
     }
   };
+
+  return { status, canGenerate, handleGenerate };
+}
+
+export function QuickModePanel({
+  rawText,
+  onTextChange,
+  onGenerate,
+  isProcessing,
+  shots,
+  progressHint,
+}: QuickModePanelProps) {
+  const { status, canGenerate, handleGenerate } = useQuickModePanelState({
+    rawText, onGenerate, isProcessing, shots,
+  });
 
   return (
     <div className="flex flex-col h-full p-4 gap-3">

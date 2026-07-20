@@ -146,6 +146,136 @@ function StatCard({ icon: Icon, label, value, hint }: StatCardProps) {
 }
 
 // ============================================================================
+// 子组件：概览主体内容（统计卡片 + 所有图表）
+// ============================================================================
+
+interface OverviewContentProps {
+  shots: ShotBreakdown[];
+  characters: PipelineState["characters"];
+  scenes: SceneInPipeline[];
+  storyStructure: StoryStructure | null;
+  onJumpToStage?: (stage: PipelineState["stage"]) => void;
+}
+
+/**
+ * 概览主体内容：统计卡片 + 故事时间轴 + 情绪曲线 + 角色/场景图表 + 分镜密度。
+ *
+ * 提取到模块级以减少 StoryOverviewPanel 函数体行数（max-lines-per-function 警告）。
+ */
+function OverviewContent({
+  shots, characters, scenes, storyStructure, onJumpToStage,
+}: OverviewContentProps) {
+  const totalShots = shots.length;
+  const totalDuration = shots.reduce((sum, s) => sum + s.estimatedDuration, 0);
+  const avgDuration = totalShots > 0 ? totalDuration / totalShots : 0;
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* 顶部统计卡片 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <StatCard
+          icon={Film}
+          label={t("novel.overview.totalShots")}
+          value={totalShots}
+          hint={t("novel.overview.avgDuration", { n: avgDuration.toFixed(1) })}
+        />
+        <StatCard
+          icon={Clock}
+          label={t("novel.overview.totalDuration")}
+          value={`${totalDuration.toFixed(1)}s`}
+        />
+        <StatCard
+          icon={Users}
+          label={t("novel.overview.characterCount")}
+          value={characters.length}
+        />
+        <StatCard
+          icon={MapPin}
+          label={t("novel.overview.sceneCount")}
+          value={scenes.length}
+        />
+      </div>
+
+      {/* 故事结构时间轴（仅 professional 模式有数据） */}
+      {storyStructure && (
+        <section className="card p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp size={11} className="text-primary" />
+            <span className="text-[11px] font-medium">
+              {t("novel.overview.storyTimeline")}
+            </span>
+          </div>
+          <StoryTimeline structure={storyStructure} />
+        </section>
+      )}
+
+      {/* 情绪曲线（仅 professional 模式有数据） */}
+      {storyStructure && storyStructure.emotionCurve.length > 0 && (
+        <section className="card p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Gauge size={11} className="text-primary" />
+            <span className="text-[11px] font-medium">
+              {t("novel.pacing.emotionCurve")}
+            </span>
+          </div>
+          <EmotionCurveChart
+            points={storyStructure.emotionCurve}
+            climaxPosition={storyStructure.climaxPosition}
+            beats={storyStructure.beats}
+            height={100}
+            showBeatLabels={false}
+          />
+        </section>
+      )}
+
+      {/* 角色出场分布 + 场景变化节奏（并排） */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <section className="card p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Users size={11} className="text-primary" />
+            <span className="text-[11px] font-medium">
+              {t("novel.overview.characterAppearance")}
+            </span>
+          </div>
+          <CharacterAppearanceChart
+            shots={shots}
+            onCharacterClick={onJumpToStage ? () => onJumpToStage("character_manage") : undefined}
+          />
+        </section>
+
+        <section className="card p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <MapPin size={11} className="text-primary" />
+            <span className="text-[11px] font-medium">
+              {t("novel.overview.scenePacing")}
+            </span>
+          </div>
+          <ScenePacingChart
+            shots={shots}
+            scenes={scenes}
+            onSceneClick={onJumpToStage ? () => onJumpToStage("scene_manage") : undefined}
+          />
+        </section>
+      </div>
+
+      {/* 分镜密度 */}
+      <section className="card p-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Film size={11} className="text-primary" />
+          <span className="text-[11px] font-medium">
+            {t("novel.overview.shotDensity")}
+          </span>
+        </div>
+        <ShotDensityChart
+          shots={shots}
+          onShotTypeClick={onJumpToStage ? () => onJumpToStage("storyboard") : undefined}
+        />
+      </section>
+    </div>
+  );
+}
+
+// ============================================================================
 // 主组件
 // ============================================================================
 
@@ -159,11 +289,7 @@ export function StoryOverviewPanel({
   const segments = state.segments;
   const characters = state.characters;
   const scenes: SceneInPipeline[] = state.scenes;
-
-  // 统计数据
   const totalShots = shots.length;
-  const totalDuration = shots.reduce((sum, s) => sum + s.estimatedDuration, 0);
-  const avgDuration = totalShots > 0 ? totalDuration / totalShots : 0;
 
   // 空状态：没有足够数据展示
   if (segments.length === 0 && totalShots === 0 && !storyStructure) {
@@ -217,108 +343,13 @@ export function StoryOverviewPanel({
       </div>
 
       {/* 滚动主体 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* 顶部统计卡片 */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <StatCard
-            icon={Film}
-            label={t("novel.overview.totalShots")}
-            value={totalShots}
-            hint={t("novel.overview.avgDuration", { n: avgDuration.toFixed(1) })}
-          />
-          <StatCard
-            icon={Clock}
-            label={t("novel.overview.totalDuration")}
-            value={`${totalDuration.toFixed(1)}s`}
-          />
-          <StatCard
-            icon={Users}
-            label={t("novel.overview.characterCount")}
-            value={characters.length}
-          />
-          <StatCard
-            icon={MapPin}
-            label={t("novel.overview.sceneCount")}
-            value={scenes.length}
-          />
-        </div>
-
-        {/* 故事结构时间轴（仅 professional 模式有数据） */}
-        {storyStructure && (
-          <section className="card p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <TrendingUp size={11} className="text-primary" />
-              <span className="text-[11px] font-medium">
-                {t("novel.overview.storyTimeline")}
-              </span>
-            </div>
-            <StoryTimeline structure={storyStructure} />
-          </section>
-        )}
-
-        {/* 情绪曲线（仅 professional 模式有数据） */}
-        {storyStructure && storyStructure.emotionCurve.length > 0 && (
-          <section className="card p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Gauge size={11} className="text-primary" />
-              <span className="text-[11px] font-medium">
-                {t("novel.pacing.emotionCurve")}
-              </span>
-            </div>
-            <EmotionCurveChart
-              points={storyStructure.emotionCurve}
-              climaxPosition={storyStructure.climaxPosition}
-              beats={storyStructure.beats}
-              height={100}
-              showBeatLabels={false}
-            />
-          </section>
-        )}
-
-        {/* 角色出场分布 + 场景变化节奏（并排） */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <section className="card p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Users size={11} className="text-primary" />
-              <span className="text-[11px] font-medium">
-                {t("novel.overview.characterAppearance")}
-              </span>
-            </div>
-            <CharacterAppearanceChart
-              shots={shots}
-              onCharacterClick={onJumpToStage ? () => onJumpToStage("character_manage") : undefined}
-            />
-          </section>
-
-          <section className="card p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <MapPin size={11} className="text-primary" />
-              <span className="text-[11px] font-medium">
-                {t("novel.overview.scenePacing")}
-              </span>
-            </div>
-            <ScenePacingChart
-              shots={shots}
-              scenes={scenes}
-              onSceneClick={onJumpToStage ? () => onJumpToStage("scene_manage") : undefined}
-            />
-          </section>
-        </div>
-
-        {/* 分镜密度 */}
-        <section className="card p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Film size={11} className="text-primary" />
-            <span className="text-[11px] font-medium">
-              {t("novel.overview.shotDensity")}
-            </span>
-          </div>
-          <ShotDensityChart
-            shots={shots}
-            onShotTypeClick={onJumpToStage ? () => onJumpToStage("storyboard") : undefined}
-          />
-        </section>
-      </div>
+      <OverviewContent
+        shots={shots}
+        characters={characters}
+        scenes={scenes}
+        storyStructure={storyStructure}
+        onJumpToStage={onJumpToStage}
+      />
     </div>
   );
 }

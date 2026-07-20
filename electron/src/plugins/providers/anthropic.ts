@@ -119,35 +119,7 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
         });
       } else if (msg.role === "assistant") {
         flushToolResults();
-        if (msg.tool_calls) {
-          const content: unknown[] = [];
-          if (msg.content) {
-            content.push({ type: "text", text: msg.content });
-          }
-          const toolCalls = msg.tool_calls as Array<{
-            id?: string;
-            function?: { name?: string; arguments?: string };
-          }>;
-          for (const tc of toolCalls) {
-            let input: unknown = {};
-            if (tc.function?.arguments) {
-              try {
-                input = JSON.parse(tc.function.arguments);
-              } catch {
-                input = {};
-              }
-            }
-            content.push({
-              type: "tool_use",
-              id: tc.id || "",
-              name: tc.function?.name || "",
-              input,
-            });
-          }
-          result.push({ role: "assistant", content });
-        } else {
-          result.push({ role: "assistant", content: msg.content });
-        }
+        result.push(this.convertAssistantMessage(msg));
       } else {
         flushToolResults();
         result.push({ role: msg.role, content: msg.content });
@@ -156,6 +128,50 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
     flushToolResults();
 
     return { system, messages: result };
+  }
+
+  /**
+   * 将 assistant 消息转换为 Anthropic content blocks。
+   * - 若有 tool_calls：text + tool_use 块
+   * - 否则：纯文本
+   */
+  private convertAssistantMessage(msg: ChatBuildContext["messages"][number]): { role: string; content: unknown } {
+    if (!msg.tool_calls) {
+      return { role: "assistant", content: msg.content };
+    }
+    const content: unknown[] = [];
+    if (msg.content) {
+      content.push({ type: "text", text: msg.content });
+    }
+    const toolCalls = msg.tool_calls as Array<{
+      id?: string;
+      function?: { name?: string; arguments?: string };
+    }>;
+    for (const tc of toolCalls) {
+      content.push(this.buildToolUseBlock(tc));
+    }
+    return { role: "assistant", content };
+  }
+
+  /** 将单个 OpenAI tool_call 转换为 Anthropic tool_use content block */
+  private buildToolUseBlock(tc: {
+    id?: string;
+    function?: { name?: string; arguments?: string };
+  }): { type: string; id: string; name: string; input: unknown } {
+    let input: unknown = {};
+    if (tc.function?.arguments) {
+      try {
+        input = JSON.parse(tc.function.arguments);
+      } catch {
+        input = {};
+      }
+    }
+    return {
+      type: "tool_use",
+      id: tc.id || "",
+      name: tc.function?.name || "",
+      input,
+    };
   }
 
   /**
@@ -266,64 +282,73 @@ export class AnthropicPlugin extends BaseAIProviderPlugin {
     if (!type) return undefined;
 
     if (type === "content_block_delta") {
-      const delta = parsed.delta as Record<string, unknown> | undefined;
-      if (!delta) return undefined;
-
-      if (delta.type === "text_delta") {
-        const text = (delta.text as string) || "";
-        if (!text) return undefined;
-        return { delta: text };
-      }
-
-      if (delta.type === "input_json_delta") {
-        const partialJson = (delta.partial_json as string) || "";
-        if (!partialJson) return undefined;
-        return {
-          delta: "",
-          toolCalls: [{
-            id: "",
-            function: { name: "", arguments: partialJson },
-          }],
-        };
-      }
-      return undefined;
+      return this.extractContentBlockDelta(parsed);
     }
-
     if (type === "content_block_start") {
-      const contentBlock = parsed.content_block as Record<string, unknown> | undefined;
-      if (contentBlock?.type === "tool_use") {
-        return {
-          delta: "",
-          toolCalls: [{
-            id: (contentBlock.id as string) || "",
-            function: { name: (contentBlock.name as string) || "", arguments: "" },
-          }],
-        };
-      }
-      return undefined;
+      return this.extractContentBlockStart(parsed);
     }
-
     if (type === "message_delta") {
-      const delta = parsed.delta as Record<string, unknown> | undefined;
-      const stopReason = delta?.stop_reason as string | undefined;
-      if (stopReason === "end_turn") {
-        return { delta: "", finishReason: "stop" };
-      }
-      if (stopReason === "tool_use") {
-        return { delta: "", finishReason: "tool_calls" };
-      }
-      if (stopReason === "max_tokens") {
-        return { delta: "", finishReason: "length" };
-      }
-      return undefined;
+      return this.extractMessageDelta(parsed);
     }
-
     if (type === "message_stop") {
       return { delta: "", finishReason: "stop" };
     }
-
     // message_start, content_block_stop, ping 等事件跳过
     return undefined;
+  }
+
+  /** 处理 content_block_delta 事件：text_delta 或 input_json_delta */
+  private extractContentBlockDelta(parsed: Record<string, unknown>): TextStreamChunk | undefined {
+    const delta = parsed.delta as Record<string, unknown> | undefined;
+    if (!delta) return undefined;
+
+    if (delta.type === "text_delta") {
+      const text = (delta.text as string) || "";
+      if (!text) return undefined;
+      return { delta: text };
+    }
+
+    if (delta.type === "input_json_delta") {
+      const partialJson = (delta.partial_json as string) || "";
+      if (!partialJson) return undefined;
+      return {
+        delta: "",
+        toolCalls: [{
+          id: "",
+          function: { name: "", arguments: partialJson },
+        }],
+      };
+    }
+    return undefined;
+  }
+
+  /** 处理 content_block_start 事件：tool_use 块开始 */
+  private extractContentBlockStart(parsed: Record<string, unknown>): TextStreamChunk | undefined {
+    const contentBlock = parsed.content_block as Record<string, unknown> | undefined;
+    if (contentBlock?.type === "tool_use") {
+      return {
+        delta: "",
+        toolCalls: [{
+          id: (contentBlock.id as string) || "",
+          function: { name: (contentBlock.name as string) || "", arguments: "" },
+        }],
+      };
+    }
+    return undefined;
+  }
+
+  /** 处理 message_delta 事件：stop_reason → finishReason 映射 */
+  private extractMessageDelta(parsed: Record<string, unknown>): TextStreamChunk | undefined {
+    const delta = parsed.delta as Record<string, unknown> | undefined;
+    const stopReason = delta?.stop_reason as string | undefined;
+    const stopReasonMap: Record<string, TextStreamChunk["finishReason"]> = {
+      end_turn: "stop",
+      tool_use: "tool_calls",
+      max_tokens: "length",
+    };
+    const finishReason = stopReason ? stopReasonMap[stopReason] : undefined;
+    if (!finishReason) return undefined;
+    return { delta: "", finishReason };
   }
 
   getApiKeyDetection(): ApiKeyDetection {

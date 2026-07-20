@@ -125,6 +125,29 @@ function freezePrototype<T extends object>(obj: T): T {
   return obj;
 }
 
+const SANDBOX_FREEZE_KEYS = [
+  "Object", "Array", "Function", "Error", "TypeError", "RangeError",
+  "RegExp", "String", "Number", "Boolean", "Date", "Promise",
+] as const;
+
+/** 冻结 sandbox 中内置构造函数的 prototype，防止插件篡改内置行为 */
+function freezeSandboxPrototypes(sandbox: Record<string, unknown>): void {
+  for (const key of SANDBOX_FREEZE_KEYS) {
+    const ctor = sandbox[key];
+    if (!ctor || typeof ctor !== "function") continue;
+    const fn = ctor as (...args: unknown[]) => unknown;
+    freezePrototype(fn as object);
+    try {
+      const proto = fn.prototype;
+      if (proto && typeof proto === "object") {
+        Object.freeze(proto);
+      }
+    } catch (e) {
+      console.warn(`[plugin-worker] Failed to freeze prototype for ${key}:`, e);
+    }
+  }
+}
+
 function safeGet<T>(obj: Record<string, unknown>, key: string, fallback: T): T {
   const val = obj[key];
   if (val === undefined) return fallback;
@@ -141,47 +164,53 @@ function safeGet<T>(obj: Record<string, unknown>, key: string, fallback: T): T {
 function extractMetadata(exported: Record<string, unknown>): PluginMetadata {
   const vc = exported.videoCapabilities;
   const ic = exported.imageCapabilities;
-  const detection = exported.apiKeyDetection as Record<string, unknown> | undefined;
-
-  const rawCapabilities = exported.capabilities as Record<string, unknown> | undefined;
-  const capabilities: PluginMetadata["capabilities"] = {
-    video: rawCapabilities?.video !== undefined ? Boolean(rawCapabilities.video) : true,
-    image: rawCapabilities?.image !== undefined ? Boolean(rawCapabilities.image) : true,
-    text: rawCapabilities?.text !== undefined ? Boolean(rawCapabilities.text) : true,
-    vision: rawCapabilities?.vision !== undefined ? Boolean(rawCapabilities.vision) : true,
-    nativeCharacterRef: rawCapabilities?.nativeCharacterRef !== undefined ? Boolean(rawCapabilities.nativeCharacterRef) : undefined,
-    nativeSceneRef: rawCapabilities?.nativeSceneRef !== undefined ? Boolean(rawCapabilities.nativeSceneRef) : undefined,
-  };
-
-  let apiKeyDetection: PluginMetadata["apiKeyDetection"] = null;
-  if (detection && Array.isArray(detection.rules) && detection.rules.length > 0) {
-    apiKeyDetection = {
-      rules: detection.rules.map((r: Record<string, unknown>) => ({
-        pattern: String(r.pattern || ""),
-        confidence: String(r.confidence || "medium"),
-      })),
-      suggestedName: String(detection.suggestedName || exported.displayName || ""),
-      baseUrl: detection.baseUrl ? String(detection.baseUrl) : undefined,
-    };
-  }
-
-  let matchPatterns: PluginMetadata["matchPatterns"] = undefined;
-  const rawMatchPatterns = exported.matchPatterns;
-  if (Array.isArray(rawMatchPatterns)) {
-    matchPatterns = rawMatchPatterns.filter(
-      (p: unknown) => p && typeof p === "object" && typeof (p as Record<string, unknown>).urlPattern === "string",
-    ) as Array<{ urlPattern: string; modelPattern?: string }>;
-  }
 
   return {
-    capabilities,
+    capabilities: extractCapabilities(exported),
     videoCapabilities: (vc && typeof vc === "object" ? vc : {}) as Record<string, unknown>,
     imageCapabilities: (ic && typeof ic === "object" ? ic : {}) as Record<string, unknown>,
     availableModels: safeGet<string[]>(exported, "getAvailableModels", []),
-    apiKeyDetection,
+    apiKeyDetection: extractApiKeyDetection(exported),
     preferLocalData: exported.preferLocalData as boolean | undefined,
-    matchPatterns,
+    matchPatterns: extractMatchPatterns(exported),
   };
+}
+
+function extractCapabilities(exported: Record<string, unknown>): PluginMetadata["capabilities"] {
+  const raw = exported.capabilities as Record<string, unknown> | undefined;
+  const boolOr = (val: unknown, fallback: boolean): boolean =>
+    val !== undefined ? Boolean(val) : fallback;
+  return {
+    video: boolOr(raw?.video, true),
+    image: boolOr(raw?.image, true),
+    text: boolOr(raw?.text, true),
+    vision: boolOr(raw?.vision, true),
+    nativeCharacterRef: raw?.nativeCharacterRef !== undefined ? Boolean(raw.nativeCharacterRef) : undefined,
+    nativeSceneRef: raw?.nativeSceneRef !== undefined ? Boolean(raw.nativeSceneRef) : undefined,
+  };
+}
+
+function extractApiKeyDetection(exported: Record<string, unknown>): PluginMetadata["apiKeyDetection"] {
+  const detection = exported.apiKeyDetection as Record<string, unknown> | undefined;
+  if (!detection || !Array.isArray(detection.rules) || detection.rules.length === 0) {
+    return null;
+  }
+  return {
+    rules: detection.rules.map((r: Record<string, unknown>) => ({
+      pattern: String(r.pattern || ""),
+      confidence: String(r.confidence || "medium"),
+    })),
+    suggestedName: String(detection.suggestedName || exported.displayName || ""),
+    baseUrl: detection.baseUrl ? String(detection.baseUrl) : undefined,
+  };
+}
+
+function extractMatchPatterns(exported: Record<string, unknown>): PluginMetadata["matchPatterns"] {
+  const raw = exported.matchPatterns;
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(
+    (p: unknown) => p && typeof p === "object" && typeof (p as Record<string, unknown>).urlPattern === "string",
+  ) as Array<{ urlPattern: string; modelPattern?: string }>;
 }
 
 async function loadPlugin(filePath: string, callId: string): Promise<void> {
@@ -303,22 +332,7 @@ async function loadPlugin(filePath: string, callId: string): Promise<void> {
     });
 
     try {
-      const sandboxObj = sandbox as Record<string, unknown>;
-      for (const key of ["Object", "Array", "Function", "Error", "TypeError", "RangeError", "RegExp", "String", "Number", "Boolean", "Date", "Promise"]) {
-        const ctor = sandboxObj[key];
-        if (ctor && typeof ctor === "function") {
-          const fn = ctor as (...args: unknown[]) => unknown;
-          freezePrototype(fn as object);
-          try {
-            const proto = fn.prototype;
-            if (proto && typeof proto === "object") {
-              Object.freeze(proto);
-            }
-          } catch (e) {
-            console.warn(`[plugin-worker] Failed to freeze prototype for ${key}:`, e);
-          }
-        }
-      }
+      freezeSandboxPrototypes(sandbox as Record<string, unknown>);
     } catch (e) {
       console.warn("[plugin-worker] Sandbox hardening failed:", e);
     }

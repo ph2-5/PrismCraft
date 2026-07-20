@@ -7,11 +7,11 @@ import {
   resolveApiConfig,
   buildImageRequest,
   getAuthHeaders,
-  makeRequest,
   extractImageUrl,
   cacheRemoteImageLocally,
   extractTextFromResponse,
 } from "./api-gateway-utils";
+import { makeRequest } from "./http-request";
 
 const logger = getLogger("api-gateway-image");
 

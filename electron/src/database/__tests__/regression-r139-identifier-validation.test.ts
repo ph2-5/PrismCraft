@@ -14,17 +14,26 @@ import fs from "fs";
 import path from "path";
 
 // 从源文件中提取 VALID_TABLE_IDENTIFIER 正则
-const sourceContent = fs.readFileSync(
+// R139 修复：VALID_TABLE_IDENTIFIER 已从 db-connection.ts 提取到 db-schema-runner.ts，
+// 因此优先从 db-schema-runner.ts 读取，若未找到则回退到 db-connection.ts（向后兼容）。
+const dbSchemaRunnerContent = fs.readFileSync(
+  path.resolve(__dirname, "../db-schema-runner.ts"),
+  "utf-8",
+);
+const dbConnectionContent = fs.readFileSync(
   path.resolve(__dirname, "../db-connection.ts"),
   "utf-8",
 );
+const sourceContent = dbSchemaRunnerContent.includes("VALID_TABLE_IDENTIFIER")
+  ? dbSchemaRunnerContent
+  : dbConnectionContent;
 
 // 提取正则字面量（如 /^[a-zA-Z_][a-zA-Z0-9_]*$/）
 const regexMatch = sourceContent.match(
   /VALID_TABLE_IDENTIFIER\s*=\s*(\/(?:[^\\\/]|\\.)+\/[gimsuy]*)/,
 );
 if (!regexMatch) {
-  throw new Error("无法从 db-connection.ts 中提取 VALID_TABLE_IDENTIFIER 正则");
+  throw new Error("无法从 db-schema-runner.ts 或 db-connection.ts 中提取 VALID_TABLE_IDENTIFIER 正则");
 }
 const regexLiteral = regexMatch[1];
 const pattern = regexLiteral.slice(1, regexLiteral.lastIndexOf("/"));

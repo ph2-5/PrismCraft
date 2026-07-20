@@ -7,8 +7,6 @@ import {
   resolveApiConfig,
   buildVideoRequest,
   getAuthHeaders,
-  makeRequest,
-  makeStreamingRequest,
   extractTaskId,
   extractVideoUrl,
   extractStatus,
@@ -16,6 +14,7 @@ import {
   getUploadedFile,
   extractTextFromResponse,
 } from "./api-gateway-utils";
+import { makeRequest, makeStreamingRequest } from "./http-request";
 import {
   generateImage,
   generateKeyframe,

@@ -188,10 +188,12 @@ export function buildKeyframeGenerationParams(params: {
 
   const content =
     beat.imageGenerationPrompt || beat.content || beat.description || "";
+  // PR 2d：shotRequirement 仅从 shotInstruction 读取，不再 fallback 到旧字段
+  // prompt-service.ts 中使用 `if (shotType)` 防御，undefined 安全
   const shotRequirement = {
-    shotType: beat.shotInstruction?.shotSize ?? beat.shotType,
-    cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
-    cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
+    shotType: beat.shotInstruction?.shotSize,
+    cameraAngle: beat.shotInstruction?.cameraAngle,
+    cameraMovement: beat.shotInstruction?.cameraMovement,
     action: content,
   };
 

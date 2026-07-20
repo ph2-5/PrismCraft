@@ -227,7 +227,31 @@ describe("video-task-params", () => {
   });
 
   describe("buildKeyframeGenerationParams", () => {
-    it("应该构建关键帧生成参数", () => {
+    it("应该构建关键帧生成参数（从 shotInstruction 读取）", () => {
+      // PR 2d：shotRequirement 只从 shotInstruction 读取，不再 fallback 到旧字段
+      const result = buildKeyframeGenerationParams({
+        beat: {
+          id: "b1",
+          imageGenerationPrompt: "角色站立",
+          shotInstruction: {
+            shotSize: "medium",
+            cameraAngle: "eye-level",
+            cameraMovement: "static",
+          },
+        },
+      });
+      expect(result.prompt).toBe("角色站立");
+      expect(result.beatId).toBe("b1");
+      expect(result.shotRequirement.shotType).toBe("medium");
+      expect(result.shotRequirement.cameraAngle).toBe("eye-level");
+      expect(result.shotRequirement.cameraMovement).toBe("static");
+      expect(result.shotRequirement.action).toBe("角色站立");
+    });
+
+    it("PR 2d：beat 无 shotInstruction 时 shotRequirement 字段为 undefined", () => {
+      // 旧行为：从 beat.shotType / beat.camera fallback
+      // 新行为：仅从 shotInstruction 读取，未填充时为 undefined
+      // prompt-service.ts 用 `if (shotType)` 防御，undefined 安全
       const result = buildKeyframeGenerationParams({
         beat: {
           id: "b1",
@@ -236,11 +260,9 @@ describe("video-task-params", () => {
           camera: { angle: "eye-level", movement: "static" },
         },
       });
-      expect(result.prompt).toBe("角色站立");
-      expect(result.beatId).toBe("b1");
-      expect(result.shotRequirement.shotType).toBe("medium");
-      expect(result.shotRequirement.cameraAngle).toBe("eye-level");
-      expect(result.shotRequirement.cameraMovement).toBe("static");
+      expect(result.shotRequirement.shotType).toBeUndefined();
+      expect(result.shotRequirement.cameraAngle).toBeUndefined();
+      expect(result.shotRequirement.cameraMovement).toBeUndefined();
       expect(result.shotRequirement.action).toBe("角色站立");
     });
 

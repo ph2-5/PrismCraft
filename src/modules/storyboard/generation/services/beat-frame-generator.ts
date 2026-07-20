@@ -92,10 +92,11 @@ export async function generateBeatKeyframe(
       characterRef: options.characterRefs?.[0] || options.characterRef,
       sceneRef: options.sceneRef,
       prevKeyframe,
+      // PR 2d：shotRequirement 仅从 shotInstruction 读取，不再 fallback 到旧字段
       shotRequirement: {
-        shotType: beat.shotType,
-        cameraAngle: beat.camera?.angle,
-        cameraMovement: beat.camera?.movement,
+        shotType: beat.shotInstruction?.shotSize,
+        cameraAngle: beat.shotInstruction?.cameraAngle,
+        cameraMovement: beat.shotInstruction?.cameraMovement,
         action: beat.content,
       },
       content,

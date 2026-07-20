@@ -7,7 +7,7 @@ import { captureConsoleErrors } from "./helpers/console-errors";
 /**
  * Beat 详情页 e2e 测试
  *
- * 覆盖路由 /story/beat/:beatId，该路由此前无 e2e 覆盖。
+ * 覆盖路由 /storyboard/beat/:beatId，该路由此前无 e2e 覆盖。
  *
  * 注意：Story 页面存在 Playwright + @base-ui/react 兼容性问题，
  * 原生 click() 会挂起。必须使用 clickButtonByText 等 evaluate 变通方案。
@@ -20,7 +20,7 @@ test.describe("Beat Detail Page Access", () => {
   });
 
   test("should show not-found or error state for invalid beat id", async ({ page }) => {
-    await page.goto("/story/beat/invalid-beat-id-99999");
+    await page.goto("/storyboard/beat/invalid-beat-id-99999");
     await waitForAppReady(page);
 
     // 无效 beat id 应显示 404 或分镜未找到提示，而非白屏
@@ -30,7 +30,7 @@ test.describe("Beat Detail Page Access", () => {
 
   test("should not produce critical console errors for invalid beat route", async ({ page }) => {
     const getErrors = captureConsoleErrors(page);
-    await page.goto("/story/beat/invalid-beat-id-99999");
+    await page.goto("/storyboard/beat/invalid-beat-id-99999");
     await waitForAppReady(page);
     const criticalErrors = getErrors();
     expect(criticalErrors, criticalErrors.join("\n")).toHaveLength(0);

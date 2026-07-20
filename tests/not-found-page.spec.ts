@@ -51,7 +51,7 @@ test.describe("NotFound page content", () => {
 test.describe("NotFound page via deep invalid route", () => {
   test("should show 404 for deeply nested invalid route", async ({ page }) => {
     await installElectronMock(page);
-    await page.goto("/story/beat/invalid-beat-id-99999");
+    await page.goto("/storyboard/beat/invalid-beat-id-99999");
     await waitForAppReady(page);
 
     // 应显示 404 或分镜未找到提示（BeatDetailClient 在 beat 不存在时显示 notFound）
@@ -63,7 +63,7 @@ test.describe("NotFound page via deep invalid route", () => {
     await installElectronMock(page);
     const getErrors = captureConsoleErrors(page);
 
-    await page.goto("/story/beat/invalid-beat-id-99999");
+    await page.goto("/storyboard/beat/invalid-beat-id-99999");
     await waitForAppReady(page);
 
     const criticalErrors = getErrors();

@@ -24,7 +24,8 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        headless: false,
+        // CI 环境（ubuntu）无显示器，必须 headless；本地保留 headed 便于调试
+        headless: !!process.env.CI,
         launchOptions: {
           executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
         },
@@ -35,7 +36,8 @@ export default defineConfig({
     command: 'npx vite --port 3001',
     url: 'http://localhost:3001',
     reuseExistingServer: true,
-    timeout: 120000,
+    // CI 上首次构建 vite 较慢，给足启动时间
+    timeout: process.env.CI ? 300000 : 120000,
   },
   timeout: 60000,
   expect: {

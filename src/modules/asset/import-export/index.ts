@@ -374,7 +374,7 @@ async function importSessions(
   if (!validData.sessions?.length) return { count: 0, errors: [] };
   return await importItems({
     items: validData.sessions,
-    createFn: (session) => container.sessionStorage.setSession(session.key as string, session.value),
+    createFn: async (session) => { await container.sessionStorage.setSession(session.key as string, session.value); },
     getId: (session) => (session.key && typeof session.key === "string" ? session.key : undefined),
     errorCode: "IMPORT_SESSION_SKIP",
     errorLabel: "session",

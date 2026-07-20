@@ -263,3 +263,107 @@ export function listIntentTypes(): Array<Exclude<IntentType, "default">> {
     "api-helper",
   ];
 }
+
+// === LLM Fallback ===
+
+/**
+ * LLM 意图分类器接口。
+ *
+ * 调用方负责实现具体的 LLM 调用（封装 textProvider.generateText），
+ * intent-router 本身不依赖 infrastructure，保持纯函数 + 可测试。
+ *
+ * 返回 null 表示 LLM 分类失败或无置信结果，调用方应回退到 default。
+ */
+export type IntentClassifier = (
+  userMessage: string,
+) => Promise<{ type: Exclude<IntentType, "default">; confidence: number } | null>;
+
+/**
+ * 带关键词匹配 + LLM fallback 的意图识别。
+ *
+ * 流程：
+ * 1. 优先调用 routeIntent 做关键词匹配（confidence=1.0，零成本）
+ * 2. 关键词无命中（返回 default）且提供 classifier 时，调用 LLM 做分类
+ * 3. LLM 分类失败或未提供 classifier → 保持 default
+ *
+ * @param userMessage 用户输入
+ * @param classifier 可选的 LLM 分类器（仅在关键词无命中时调用，控制成本）
+ */
+export async function routeIntentWithLlmFallback(
+  userMessage: string,
+  classifier?: IntentClassifier,
+): Promise<Intent> {
+  const keywordIntent = routeIntent(userMessage);
+  if (keywordIntent.type !== "default" || !classifier) {
+    return keywordIntent;
+  }
+
+  try {
+    const llmResult = await classifier(userMessage);
+    if (!llmResult || llmResult.confidence < 0.5) {
+      return keywordIntent;
+    }
+    return {
+      type: llmResult.type,
+      confidence: llmResult.confidence,
+      matchedKeywords: [],
+      routeId: `${llmResult.type}-route`,
+    };
+  } catch {
+    return keywordIntent;
+  }
+}
+
+/** LLM 意图分类提示词模板（供调用方复用，避免重复构造） */
+export function buildIntentClassificationPrompt(userMessage: string): string {
+  return [
+    "你是一个意图分类器。请将用户消息分类到以下意图之一：",
+    "- interview: 用户想做视频但不知道拍什么，需要引导式访谈",
+    "- novel: 用户想将小说/故事文本变成视频",
+    "- troubleshoot: 用户报告生成失败、报错或异常，需要诊断",
+    '- character-scene: 用户想用特定角色+场景组合（含"用这个角色"等）',
+    "- cinematographer: 用户想调整镜头/运镜/构图/景别",
+    "- api-helper: 用户询问 API 配置/密钥设置/provider 连接",
+    "- video-completed: 用户询问视频是否完成、检查一致性/QC",
+    "",
+    `用户消息：${userMessage}`,
+    "",
+    '请只返回 JSON 格式：{"type": "<intent>", "confidence": <0-1>}',
+    "不要包含任何其他文字、解释或 markdown 标记。",
+  ].join("\n");
+}
+
+/** 解析 LLM 意图分类返回的 JSON（容错处理） */
+export function parseIntentJson(
+  raw: string,
+): { type: Exclude<IntentType, "default">; confidence: number } | null {
+  try {
+    // 容错：LLM 可能包裹 ```json ... ``` 或多余文字
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]) as { type?: string; confidence?: number };
+    if (typeof parsed.type !== "string" || typeof parsed.confidence !== "number") {
+      return null;
+    }
+    // 校验 type 是合法意图
+    const validTypes: ReadonlyArray<Exclude<IntentType, "default">> = [
+      "interview",
+      "novel",
+      "troubleshoot",
+      "character-scene",
+      "cinematographer",
+      "api-helper",
+      "video-completed",
+    ];
+    if (!validTypes.includes(parsed.type as Exclude<IntentType, "default">)) {
+      return null;
+    }
+    const confidence = Math.max(0, Math.min(1, parsed.confidence));
+    return {
+      type: parsed.type as Exclude<IntentType, "default">,
+      confidence,
+    };
+  } catch {
+    return null;
+  }
+}

@@ -56,7 +56,13 @@ import {
   type AgentContext,
 } from "@/shared-logic/prompt";
 // Task 1.12：意图路由表 — 在 routeSkill 之上增加意图分类层
-import { routeIntent, mapIntentToSkillId, mapIntentToToolSet } from "./intent-router";
+import {
+  routeIntent,
+  routeIntentWithLlmFallback,
+  mapIntentToSkillId,
+  mapIntentToToolSet,
+} from "./intent-router";
+import { createLlmIntentClassifier } from "./intent-llm-classifier";
 import { buildRouteContext } from "./intent-routes";
 import { recordAudit } from "@/modules/audit-log";
 import { t } from "@/shared/constants";
@@ -534,10 +540,19 @@ export class AgentLoop {
 
     // P3 动态工具过滤：在读取工具描述前，先根据意图更新 currentToolFilter
     // 这样 toolDescs（用于 system prompt 的 {AVAILABLE_TOOLS}）和 streamLLM 的 toolDefs 保持一致
-    let intent: ReturnType<typeof routeIntent> | undefined;
+    let intent: Awaited<ReturnType<typeof routeIntentWithLlmFallback>> | undefined;
     if (userMessage) {
       try {
-        intent = routeIntent(userMessage);
+        // 启用 LLM fallback 时使用 routeIntentWithLlmFallback，否则保持原 routeIntent 同步调用
+        intent = this.config.enableLlmIntentFallback
+          ? await routeIntentWithLlmFallback(
+              userMessage,
+              createLlmIntentClassifier(this.deps.textProvider, {
+                providerId: this.config.providerId,
+                modelId: this.config.modelId,
+              }),
+            )
+          : routeIntent(userMessage);
         const toolSet = mapIntentToToolSet(intent.type);
         if (toolSet !== undefined) {
           // 意图有明确工具集 → 设置过滤器（覆盖 config.enabledTools）

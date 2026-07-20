@@ -173,6 +173,21 @@ export interface AgentLoopConfig {
    * 用于审计日志区分工具调用来源。
    */
   specialistName?: string;
+  /**
+   * 是否启用 LLM 意图分类 fallback（默认 false）。
+   *
+   * 当 routeIntent 关键词匹配无命中（返回 default）时，调用 textProvider.generateText
+   * 做一次小型 LLM 分类，提升意图识别覆盖率。
+   *
+   * 默认关闭原因：
+   * - 每次用户消息增加一次 LLM 调用延迟（约 500-2000ms）
+   * - 关键词匹配已覆盖 80%+ 常见场景
+   *
+   * 启用建议：
+   * - 高端用户配置了快速文本模型（如 gpt-4o-mini/claude-haiku）时可开启
+   * - 需要更精准的意图识别以驱动 P3 动态工具过滤
+   */
+  enableLlmIntentFallback?: boolean;
 }
 
 /** Agent Loop 默认配置 */

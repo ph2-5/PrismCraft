@@ -14,9 +14,14 @@
 import { describe, it, expect } from "vitest";
 import {
   routeIntent,
+  routeIntentWithLlmFallback,
   mapIntentToSkillId,
+  mapIntentToToolSet,
   listIntentTypes,
+  buildIntentClassificationPrompt,
+  parseIntentJson,
   type IntentType,
+  type IntentClassifier,
 } from "../intent-router";
 import { buildRouteContext } from "../intent-routes";
 import type { AgentContext } from "@/shared-logic/prompt";
@@ -292,5 +297,150 @@ describe("intent-routes (buildRouteContext)", () => {
     const ctx = buildRouteContext(intent, baseCtx);
     expect(ctx.systemPromptAddon).toBe("");
     expect(ctx.suggestedTools).toEqual([]);
+  });
+});
+
+// === LLM Fallback 测试 ===
+
+describe("intent-router LLM fallback", () => {
+  it("关键词命中时不调用 classifier", async () => {
+    let classifierCalled = false;
+    const classifier: IntentClassifier = async () => {
+      classifierCalled = true;
+      return { type: "novel", confidence: 0.9 };
+    };
+    // "把小说变成视频" 命中 novel 关键词
+    const intent = await routeIntentWithLlmFallback("把小说变成视频", classifier);
+    expect(classifierCalled).toBe(false);
+    expect(intent.type).toBe("novel");
+    expect(intent.confidence).toBe(1.0);
+  });
+
+  it("关键词无命中且 classifier 返回高置信度时使用 LLM 结果", async () => {
+    const classifier: IntentClassifier = async () => ({
+      type: "cinematographer",
+      confidence: 0.85,
+    });
+    // "帮我调整一下画面" 无明确关键词命中
+    const intent = await routeIntentWithLlmFallback("帮我调整一下画面", classifier);
+    expect(intent.type).toBe("cinematographer");
+    expect(intent.confidence).toBe(0.85);
+    expect(intent.routeId).toBe("cinematographer-route");
+    expect(intent.matchedKeywords).toEqual([]);
+  });
+
+  it("classifier 返回 null 时回退到 default", async () => {
+    const classifier: IntentClassifier = async () => null;
+    const intent = await routeIntentWithLlmFallback("帮我调整一下画面", classifier);
+    expect(intent.type).toBe("default");
+    expect(intent.confidence).toBe(0.0);
+  });
+
+  it("classifier 返回低置信度时回退到 default", async () => {
+    const classifier: IntentClassifier = async () => ({
+      type: "novel",
+      confidence: 0.4, // 低于 0.5 阈值
+    });
+    const intent = await routeIntentWithLlmFallback("帮我调整一下画面", classifier);
+    expect(intent.type).toBe("default");
+  });
+
+  it("classifier 抛错时静默回退到 default", async () => {
+    const classifier: IntentClassifier = async () => {
+      throw new Error("LLM 调用失败");
+    };
+    const intent = await routeIntentWithLlmFallback("帮我调整一下画面", classifier);
+    expect(intent.type).toBe("default");
+  });
+
+  it("未提供 classifier 时保持 default 行为", async () => {
+    const intent = await routeIntentWithLlmFallback("帮我调整一下画面");
+    expect(intent.type).toBe("default");
+    expect(intent.confidence).toBe(0.0);
+  });
+});
+
+// === parseIntentJson 测试 ===
+
+describe("parseIntentJson", () => {
+  it("解析标准 JSON", () => {
+    const result = parseIntentJson('{"type": "novel", "confidence": 0.9}');
+    expect(result).toEqual({ type: "novel", confidence: 0.9 });
+  });
+
+  it("解析包裹 markdown 的 JSON", () => {
+    const result = parseIntentJson('```json\n{"type": "interview", "confidence": 0.8}\n```');
+    expect(result).toEqual({ type: "interview", confidence: 0.8 });
+  });
+
+  it("解析含多余文字的 JSON（提取首个 JSON 对象）", () => {
+    const result = parseIntentJson('分类结果：{"type": "troubleshoot", "confidence": 0.7} 完成');
+    expect(result).toEqual({ type: "troubleshoot", confidence: 0.7 });
+  });
+
+  it("非法 type 时返回 null", () => {
+    const result = parseIntentJson('{"type": "unknown_intent", "confidence": 0.9}');
+    expect(result).toBeNull();
+  });
+
+  it("confidence 超出 [0,1] 时夹紧", () => {
+    const result = parseIntentJson('{"type": "novel", "confidence": 1.5}');
+    expect(result).toEqual({ type: "novel", confidence: 1 });
+  });
+
+  it("缺少字段时返回 null", () => {
+    expect(parseIntentJson('{"type": "novel"}')).toBeNull();
+    expect(parseIntentJson('{"confidence": 0.9}')).toBeNull();
+  });
+
+  it("无效 JSON 返回 null", () => {
+    expect(parseIntentJson("not a json")).toBeNull();
+    expect(parseIntentJson("")).toBeNull();
+  });
+});
+
+// === buildIntentClassificationPrompt 测试 ===
+
+describe("buildIntentClassificationPrompt", () => {
+  it("包含用户消息", () => {
+    const prompt = buildIntentClassificationPrompt("用户输入内容");
+    expect(prompt).toContain("用户输入内容");
+  });
+
+  it("包含所有 7 种意图描述", () => {
+    const prompt = buildIntentClassificationPrompt("test");
+    expect(prompt).toContain("interview:");
+    expect(prompt).toContain("novel:");
+    expect(prompt).toContain("troubleshoot:");
+    expect(prompt).toContain("character-scene:");
+    expect(prompt).toContain("cinematographer:");
+    expect(prompt).toContain("api-helper:");
+    expect(prompt).toContain("video-completed:");
+  });
+
+  it("包含 JSON 输出格式要求", () => {
+    const prompt = buildIntentClassificationPrompt("test");
+    expect(prompt).toContain('"type"');
+    expect(prompt).toContain('"confidence"');
+  });
+});
+
+// === mapIntentToToolSet 测试（补充） ===
+
+describe("mapIntentToToolSet", () => {
+  it("video-completed 返回受限工具集", () => {
+    const tools = mapIntentToToolSet("video-completed");
+    expect(tools).toBeDefined();
+    expect(tools).toContain("check_video_consistency");
+    expect(tools).toContain("dispatch_video_fallback");
+    expect(tools).toContain("list_video_tasks");
+  });
+
+  it("interview 返回 undefined（不限制工具）", () => {
+    expect(mapIntentToToolSet("interview")).toBeUndefined();
+  });
+
+  it("default 返回 undefined", () => {
+    expect(mapIntentToToolSet("default")).toBeUndefined();
   });
 });

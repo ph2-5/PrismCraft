@@ -8,7 +8,7 @@
  * - listFallbackHistory: 返回空数组（stub）
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { VideoTask, GenerationAsset } from "@/domain/schemas";
+import type { VideoTask } from "@/domain/schemas";
 import { createEmptyQCReport } from "../../domain/qc-schema";
 import { DEFAULT_DRIFT_POLICY } from "../../domain/drift-policy";
 

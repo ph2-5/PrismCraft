@@ -23,9 +23,9 @@ export const Default: Story = {
   args: {
     sessions,
     currentSessionId: "s1",
-    onLoad: (id: string) => console.log("load", id),
-    onDelete: (id: string) => console.log("delete", id),
-    onNew: () => console.log("new session"),
+    onLoad: (_id: string) => {},
+    onDelete: (_id: string) => {},
+    onNew: () => {},
   },
 };
 

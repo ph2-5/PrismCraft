@@ -13,8 +13,7 @@ type Story = StoryObj<typeof SpecialistPanel>;
 
 export const Default: Story = {
   args: {
-    onClose: () => console.log("close"),
-    onDelegate: (specialistId: string, task: string, context: string) =>
-      console.log("delegate", { specialistId, task, context }),
+    onClose: () => {},
+    onDelegate: (_specialistId: string, _task: string, _context: string) => {},
   },
 };

@@ -18,8 +18,6 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-type SqlStatement = { sql: string; params: unknown[] };
-
 const { mockSafeQuery, mockSafeRun } = vi.hoisted(() => ({
   mockSafeQuery: vi.fn(),
   mockSafeRun: vi.fn(),
@@ -301,7 +299,7 @@ describe("storage/novel-projects", () => {
     it("P1-10: 使用单条原子 DELETE（而非 SELECT + DELETE 两步）", async () => {
       mockSafeRun.mockResolvedValueOnce({ changes: 5 });
 
-      const result = await novelProjectStorage.cleanExpiredProjects();
+      await novelProjectStorage.cleanExpiredProjects();
 
       // 只调用一次 safeRun（DELETE），没有 safeQuery（SELECT）
       expect(mockSafeRun).toHaveBeenCalledTimes(1);

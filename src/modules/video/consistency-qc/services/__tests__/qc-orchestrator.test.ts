@@ -58,14 +58,6 @@ import {
 import { createEmptyQCReport, type QCReport } from "../../domain/qc-schema";
 import { DEFAULT_DRIFT_POLICY } from "../../domain/drift-policy";
 
-// 获取 mockProvider 引用（从 hoisted 中）
-const { mockProvider } = vi.hoisted(() => {
-  // 这里需要重新声明以匹配上面的 mockProvider
-  // 实际上 vitest 的 hoisted 作用域是独立的，所以这里返回一个 dummy
-  // 真正的 mock 通过 mockGetFaceEmbeddingProvider 返回
-  return { mockProvider: null as unknown };
-});
-
 describe("qc-orchestrator", () => {
   beforeEach(() => {
     vi.clearAllMocks();

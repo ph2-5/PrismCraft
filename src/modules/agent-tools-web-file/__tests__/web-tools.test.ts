@@ -721,7 +721,7 @@ describe("open_in_browser", () => {
   it("22. Electron 环境：使用 openExternal 打开", async () => {
     const openExternal = vi.fn().mockResolvedValue(undefined);
     const w = window as Window & { electronAPI?: { openExternal?: typeof openExternal } };
-    w.electronAPI = { openExternal } as any;
+    w.electronAPI = { openExternal } as Window["electronAPI"];
 
     const result = await openInBrowserTool.execute(
       { url: "https://example.com" },

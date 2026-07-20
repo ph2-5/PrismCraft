@@ -214,7 +214,9 @@ const eslintConfig = tseslint.config(
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       // 测试用例本身需要长 setup（mock 配置、多步断言），放宽行数限制
-      "max-lines-per-function": ["warn", { max: 300, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["warn", { max: 1000, skipBlankLines: true, skipComments: true }],
+      // 测试文件堆砌 mock 和断言，文件总行数放宽（仍保留上限防止失控）
+      "max-lines": ["warn", { max: 4000, skipBlankLines: true, skipComments: true }],
       // 测试嵌套 describe/it/expect 链路天然较深
       "max-depth": ["warn", 5],
       // 测试分支覆盖多场景，复杂度适度放宽

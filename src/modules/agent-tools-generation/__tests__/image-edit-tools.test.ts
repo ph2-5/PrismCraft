@@ -151,7 +151,7 @@ function setupCanvasMock() {
   vi.spyOn(document, "createElement").mockImplementation(((tag: string) => {
     if (tag === "canvas") return makeFakeCanvas().canvas as unknown as HTMLElement;
     return origCreateElement(tag as never);
-  }) as any);
+  }) as typeof document.createElement);
 }
 
 beforeEach(() => {

@@ -176,7 +176,6 @@ function routeRun(sql: string, params: unknown[]): { changes: number; lastInsert
   // INSERT INTO character_variants
   if (normalizedSql.startsWith("INSERT")) {
     // 直接插入到 variants 数组
-    const row: Partial<VariantRow> = {};
     // 简单解析：以 VALUES 后的 ? 数量对应 params
     // 由于实际 SQL 字段顺序固定，我们直接按位置映射
     // 这里仅处理迁移场景的 INSERT（16 个 ? 字段）

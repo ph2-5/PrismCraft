@@ -55,6 +55,24 @@ function hasMessage(e: unknown): e is { message: unknown } {
   return typeof e === "object" && e !== null && "message" in e;
 }
 
+/** 填充 api_not_configured 错误的 params（type 字段） */
+function fillApiErrorParams(
+  params: Record<string, string | number>,
+  error: unknown,
+  code: string,
+): void {
+  if (!hasMessage(error)) return;
+  const message = error.message;
+  if (typeof message !== "string" || code !== "api_not_configured") return;
+  const typeMap: Record<string, string> = {
+    text: t("capability.text"),
+    video: t("capability.video"),
+    image: t("capability.image"),
+    vision: t("capability.vision"),
+  };
+  params.type = typeMap[message] || message;
+}
+
 export function mapUserFacingError(error: unknown): string {
   if (error instanceof VersionConflictError) {
     return t("error.versionConflict");
@@ -69,18 +87,7 @@ export function mapUserFacingError(error: unknown): string {
       const i18nKey = getApiErrorI18nKey(code);
       if (i18nKey) {
         const params: Record<string, string | number> = {};
-        if (hasMessage(error)) {
-          const message = error.message;
-          if (typeof message === "string" && code === "api_not_configured") {
-            const typeMap: Record<string, string> = {
-              text: t("capability.text"),
-              video: t("capability.video"),
-              image: t("capability.image"),
-              vision: t("capability.vision"),
-            };
-            params.type = typeMap[message] || message;
-          }
-        }
+        fillApiErrorParams(params, error, code);
         return t(i18nKey, params);
       }
     }

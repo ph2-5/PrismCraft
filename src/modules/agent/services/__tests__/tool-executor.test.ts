@@ -154,7 +154,7 @@ describe("ToolExecutor", () => {
           setTimeout(() => resolve({ success: true, data: "done" }), 500);
         });
       });
-      const tool = makeTool("abortable_tool", { execute: executeFn as any });
+      const tool = makeTool("abortable_tool", { execute: executeFn as never });
       toolRegistry.register(tool);
 
       const controller = new AbortController();

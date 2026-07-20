@@ -28,6 +28,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { mockWebGLRenderer } = vi.hoisted(() => ({
   // 必须用普通函数（不能用箭头函数），因为 WebGLRenderer 通过 new 调用
   // 普通函数作为构造函数时，this 绑定到新实例
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockWebGLRenderer: vi.fn(function (this: any, options: any) {
     this.options = options;
     this.setPixelRatio = vi.fn();
@@ -56,7 +57,6 @@ import {
   applyCameraPose,
   applyShotCamera,
   computeSceneStats,
-  type BuiltScene,
   type SceneBuilderOptions,
 } from "../scene-builder";
 import { createEmptyScene } from "../../domain/scene-schema";

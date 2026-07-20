@@ -385,7 +385,7 @@ export function PropLibraryPanel({ activeTab }: PropLibraryPanelProps) {
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
-    } catch (err) {
+    } catch (_err) {
       // 错误由 React Query 处理，这里仅关闭对话框
       setDeleteTarget(null);
     }

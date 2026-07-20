@@ -23,10 +23,12 @@ export {
   // Face embedding ONNX provider（供 consistency-qc/face-embedding-service 使用）
   createOnnxFaceEmbeddingProvider,
   clearOnnxFaceEmbeddingCache,
+  verifyFaceModelIntegrity,
   type EmbeddingModelInfo,
   type ModelStatus,
   type LocalModelEntry,
   type ModelRegistry,
   type VectorIndex,
   type OnnxFaceEmbeddingRunner,
+  type FaceModelIntegrityResult,
 } from "@/infrastructure/embedding";

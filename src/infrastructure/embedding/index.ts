@@ -41,7 +41,9 @@ export {
 export {
   createOnnxFaceEmbeddingProvider,
   clearOnnxFaceEmbeddingCache,
+  verifyFaceModelIntegrity,
   type OnnxFaceEmbeddingRunner,
+  type FaceModelIntegrityResult,
 } from "./face-embedding-onnx-provider";
 
 export { cosineSimilarity, batchCosineSimilarity, findTopK } from "./similarity";

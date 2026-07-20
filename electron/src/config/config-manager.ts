@@ -41,6 +41,8 @@ export interface AppConfig {
   mapping: Record<string, string>;
   fallback: { enabled: boolean; order: string[] };
   freeImageBackup?: boolean;
+  /** 本地 Face Embedding ONNX 模型路径（null=未配置，走 VLM/noop 降级） */
+  faceEmbeddingModelPath?: string | null;
   [key: string]: unknown;
 }
 
@@ -62,6 +64,7 @@ const DEFAULT_CONFIG: AppConfig = {
   providers: [],
   mapping: {},
   fallback: { enabled: true, order: ["text", "image", "vision", "video"] },
+  faceEmbeddingModelPath: null,
 };
 
 // --- 配置管理器 ---

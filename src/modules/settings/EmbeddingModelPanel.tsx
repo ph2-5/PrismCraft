@@ -21,12 +21,14 @@
 import { Loader2, Brain } from "lucide-react";
 import { t } from "@/shared/constants";
 import { useEmbeddingModelHandlers } from "./use-embedding-model-handlers";
+import { useFaceEmbeddingModel } from "./use-face-embedding-model";
 import {
   StatusCard,
   PrewarmCard,
   ModelCard,
   DownloadGuide,
   UploadArea,
+  FaceModelCard,
 } from "./EmbeddingModelPanelParts";
 
 export function EmbeddingModelPanel() {
@@ -52,6 +54,8 @@ export function EmbeddingModelPanel() {
     handleClick,
     handleFileInputChange,
   } = useEmbeddingModelHandlers();
+
+  const faceModel = useFaceEmbeddingModel();
 
   // ── 加载中占位 ──
   if (loading) {
@@ -121,6 +125,19 @@ export function EmbeddingModelPanel() {
           onOpenHuggingFace={handleOpenHuggingFace}
         />
       )}
+
+      {/* Face Embedding 模型配置（独立路径，不走 file 上传，配置本地目录） */}
+      <FaceModelCard
+        savedPath={faceModel.savedPath}
+        inputPath={faceModel.inputPath}
+        verifyStatus={faceModel.verifyStatus}
+        saving={faceModel.saving}
+        onInputChange={faceModel.setInputPath}
+        onBrowse={faceModel.handleBrowse}
+        onVerify={faceModel.handleVerify}
+        onSave={faceModel.handleSave}
+        onClear={faceModel.handleClear}
+      />
 
       {/* 上传区域（始终显示，支持追加安装新模型） */}
       <UploadArea

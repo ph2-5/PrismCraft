@@ -24,6 +24,11 @@ import {
   Copy,
   Terminal,
   Zap,
+  FolderOpen,
+  FlaskConical,
+  Save,
+  Eraser,
+  ScanFace,
 } from "lucide-react";
 import { t } from "@/shared/constants";
 import {
@@ -31,6 +36,9 @@ import {
   type ModelStatus,
   type LocalModelEntry,
 } from "@/shared/embedding";
+import type {
+  VerifyStatus,
+} from "./use-face-embedding-model";
 
 // ── 共享常量 ──
 
@@ -523,6 +531,181 @@ export function UploadArea({
         className="hidden"
         onChange={onFileInputChange}
       />
+    </div>
+  );
+}
+
+// ── Face Embedding 模型卡片 ──
+
+interface FaceModelCardProps {
+  savedPath: string | null;
+  inputPath: string;
+  verifyStatus: VerifyStatus;
+  saving: boolean;
+  onInputChange: (v: string) => void;
+  onBrowse: () => void;
+  onVerify: () => void;
+  onSave: () => void;
+  onClear: () => void;
+}
+
+/**
+ * Face Embedding 模型配置卡片。
+ *
+ * 与 text embedding 的 ModelCard 不同：
+ * - 不通过文件上传安装，而是直接配置本地模型目录路径
+ * - 提供"测试模型"按钮，调用 verifyFaceModelIntegrity 静态校验目录完整性
+ * - 模型路径保存到 config.faceEmbeddingModelPath（null=未配置，走 VLM/noop 降级）
+ *
+ * 配置后，consistency-qc/face-embedding-service.ts 在首次调用时通过
+ * getConfig("faceEmbeddingModelPath") 读取，自动激活 ONNX provider。
+ */
+export function FaceModelCard({
+  savedPath,
+  inputPath,
+  verifyStatus,
+  saving,
+  onInputChange,
+  onBrowse,
+  onVerify,
+  onSave,
+  onClear,
+}: FaceModelCardProps) {
+  const isConfigured = !!savedPath;
+  const isDirty = inputPath.trim() !== (savedPath ?? "");
+
+  return (
+    <div className="card mb-3">
+      {/* 标题行 */}
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <div className="flex items-center gap-2 text-[13px] font-semibold min-w-0">
+          {isConfigured ? (
+            <CheckCircle2 size={16} className="text-success shrink-0" />
+          ) : (
+            <ScanFace size={16} className="text-muted-foreground shrink-0" />
+          )}
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+            {t("settings.faceEmbeddingModelTitle")}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isConfigured ? (
+            <span className="enabled-badge">
+              <CheckCircle2 size={11} /> {t("settings.faceEmbeddingModelConfigured")}
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">
+              {t("settings.faceEmbeddingModelNotConfigured")}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 说明 */}
+      <div className="text-[11px] text-muted-foreground mb-2.5 leading-relaxed">
+        {t("settings.faceEmbeddingModelHint")}
+      </div>
+
+      {/* 路径输入框 + 浏览按钮 */}
+      <div className="flex items-center gap-1.5 mb-2">
+        <input
+          type="text"
+          className="input flex-1 text-[12px] font-mono"
+          value={inputPath}
+          onChange={(e) => onInputChange(e.target.value)}
+          placeholder={t("settings.faceEmbeddingModelPathPlaceholder")}
+          spellCheck={false}
+        />
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm text-[11px]"
+          onClick={onBrowse}
+          title={t("settings.faceEmbeddingModelBrowseTitle")}
+        >
+          <FolderOpen size={12} />
+          {t("settings.faceEmbeddingModelBrowseButton")}
+        </button>
+      </div>
+
+      {/* 已保存路径展示 */}
+      {isConfigured && (
+        <div className="info-row mb-2">
+          <span className="info-label">{t("settings.faceEmbeddingModelSavedPathLabel")}</span>
+          <span className="info-value font-mono text-[11px] break-all">{savedPath}</span>
+        </div>
+      )}
+
+      {/* 操作按钮 */}
+      <div className="flex items-center gap-1.5 mb-2">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm text-[11px]"
+          onClick={onVerify}
+          disabled={verifyStatus.kind === "verifying" || !inputPath.trim()}
+        >
+          {verifyStatus.kind === "verifying" ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <FlaskConical size={12} />
+          )}
+          {t("settings.faceEmbeddingModelVerifyButton")}
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm text-[11px]"
+          onClick={onSave}
+          disabled={saving || !isDirty}
+        >
+          {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+          {t("settings.faceEmbeddingModelSaveButton")}
+        </button>
+        {isConfigured && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm text-destructive text-[11px]"
+            onClick={onClear}
+            disabled={saving}
+          >
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <Eraser size={12} />}
+            {t("settings.faceEmbeddingModelClearButton")}
+          </button>
+        )}
+      </div>
+
+      {/* 校验结果 */}
+      {verifyStatus.kind === "ok" && (
+        <div className="ok-box">
+          <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+          <div>
+            <div className="font-semibold mb-0.5">
+              {t("settings.faceEmbeddingModelVerifyOkTitle")}
+            </div>
+            <div className="text-[11px]">
+              {t("settings.faceEmbeddingModelVerifyOkDetail", {
+                modelName: verifyStatus.result.modelName ?? "—",
+                dimensions: verifyStatus.result.dimensions ?? "—",
+                onnxFile: verifyStatus.result.onnxFileName ?? "—",
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+      {verifyStatus.kind === "error" && (
+        <div className="err-box">
+          <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+          <div>
+            <div className="font-semibold mb-0.5">
+              {t("settings.faceEmbeddingModelVerifyFailedTitle")}
+            </div>
+            <div className="text-[11px] break-all">{verifyStatus.message}</div>
+          </div>
+        </div>
+      )}
+
+      {/* 依赖说明 */}
+      <div className="tip-box mt-2">
+        <Brain className="inline-block" size={12} /> {t("settings.faceEmbeddingModelDependencyHint")}
+      </div>
     </div>
   );
 }

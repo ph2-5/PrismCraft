@@ -24,6 +24,11 @@
 
 import { errorLogger } from "@/shared/error-logger";
 import { ok, err, type Result } from "@/domain/types/result";
+import { fileExists, readFile } from "@/shared/file-http";
+import {
+  ONNX_FILE_CANDIDATES,
+  MIN_ONNX_SIZE,
+} from "./model-manager-types";
 
 // ============= transformers.js 本地类型定义 =============
 // 不使用 `import type` from "@huggingface/transformers"，因为该包是可选依赖
@@ -283,4 +288,242 @@ export function clearOnnxFaceEmbeddingCache(): void {
   _pipelineCache.clear();
   _loadingPromises.clear();
   _transformersAvailable = null;
+}
+
+// ─── 模型目录预校验（供 UI "测试模型" 按钮调用）────────────────────────────────
+
+/** face 模型目录预校验结果 */
+export interface FaceModelIntegrityResult {
+  /** 校验是否通过 */
+  ok: boolean;
+  /** 错误消息（ok=false 时填充，供 UI 直接展示） */
+  error: string | null;
+  /** 检测到的 ONNX 文件名（如 "model.onnx"） */
+  onnxFileName: string | null;
+  /** 从 config.json 解析出的模型名（若存在） */
+  modelName: string | null;
+  /** 从 config.json 解析出的 embedding 维度（若存在） */
+  dimensions: number | null;
+}
+
+/** 校验步骤统一返回类型 */
+interface StepResult {
+  ok: boolean;
+  error: string | null;
+}
+
+/** ONNX 文件查找 + 大小校验步骤返回类型 */
+interface OnnxStepResult extends StepResult {
+  onnxFileName: string | null;
+}
+
+/** config.json 解析步骤返回类型 */
+interface ConfigStepResult extends StepResult {
+  modelName: string | null;
+  dimensions: number | null;
+}
+
+/**
+ * 在目录中查找 ONNX 文件并校验大小。
+ *
+ * 按 ONNX_FILE_CANDIDATES 顺序探测，找到第一个存在的文件后校验大小 ≥ MIN_ONNX_SIZE。
+ */
+async function checkOnnxFile(dir: string): Promise<OnnxStepResult> {
+  let onnxFileName: string | null = null;
+  for (const candidate of ONNX_FILE_CANDIDATES) {
+    if (await fileExists(`${dir}/${candidate}`)) {
+      onnxFileName = candidate;
+      break;
+    }
+  }
+  if (!onnxFileName) {
+    return {
+      ok: false,
+      error: `目录中未找到 ONNX 模型文件（期望 model.onnx 或量化变体）：${dir}`,
+      onnxFileName: null,
+    };
+  }
+
+  const onnxPath = `${dir}/${onnxFileName}`;
+  const onnxResult = await readFile(onnxPath);
+  if (!onnxResult?.success || !onnxResult.data) {
+    return {
+      ok: false,
+      error: `无法读取 ONNX 文件：${onnxPath}`,
+      onnxFileName,
+    };
+  }
+  const onnxBytes = new Uint8Array(onnxResult.data);
+  if (onnxBytes.length < MIN_ONNX_SIZE) {
+    return {
+      ok: false,
+      error: `ONNX 文件过小（${onnxBytes.length} 字节，期望 ≥ ${MIN_ONNX_SIZE}）`,
+      onnxFileName,
+    };
+  }
+
+  return { ok: true, error: null, onnxFileName };
+}
+
+/**
+ * 校验 preprocessor_config.json 存在且为合法 JSON。
+ *
+ * face 模型使用 image-feature-extraction pipeline，依赖 preprocessor_config.json
+ * 而非 tokenizer.json。文件存在但 JSON 解析失败时返回错误。
+ */
+async function checkPreprocessor(dir: string): Promise<StepResult> {
+  const preprocessorPath = `${dir}/preprocessor_config.json`;
+  if (!(await fileExists(preprocessorPath))) {
+    return {
+      ok: false,
+      error: `缺少 preprocessor_config.json（face 模型必需）：${dir}`,
+    };
+  }
+  const preprocessorResult = await readFile(preprocessorPath);
+  if (!preprocessorResult?.success || !preprocessorResult.data) {
+    return {
+      ok: false,
+      error: `无法读取 preprocessor_config.json：${preprocessorPath}`,
+    };
+  }
+  try {
+    const text = new TextDecoder().decode(preprocessorResult.data);
+    JSON.parse(text);
+  } catch (e) {
+    return {
+      ok: false,
+      error: `preprocessor_config.json 不是合法 JSON：${e instanceof Error ? e.message : String(e)}`,
+    };
+  }
+  return { ok: true, error: null };
+}
+
+/**
+ * 校验 config.json 完整性（合法 JSON + modelName 字符串 + dimensions 正整数）。
+ *
+ * @param configPath config.json 完整路径（已确认存在）
+ */
+async function checkConfigFields(configPath: string): Promise<ConfigStepResult> {
+  const configResult = await readFile(configPath);
+  if (!configResult?.success || !configResult.data) {
+    return {
+      ok: false,
+      error: `无法读取 config.json：${configPath}`,
+      modelName: null,
+      dimensions: null,
+    };
+  }
+  let configObj: Record<string, unknown>;
+  try {
+    const text = new TextDecoder().decode(configResult.data);
+    configObj = JSON.parse(text) as Record<string, unknown>;
+  } catch (e) {
+    return {
+      ok: false,
+      error: `config.json 不是合法 JSON：${e instanceof Error ? e.message : String(e)}`,
+      modelName: null,
+      dimensions: null,
+    };
+  }
+  const modelName =
+    typeof configObj.modelName === "string" && configObj.modelName.trim()
+      ? configObj.modelName
+      : null;
+  if (!modelName) {
+    return {
+      ok: false,
+      error: "config.json 缺少 modelName（非空字符串）",
+      modelName: null,
+      dimensions: null,
+    };
+  }
+  const dims = Number(configObj.dimensions);
+  if (!Number.isFinite(dims) || dims <= 0 || !Number.isInteger(dims)) {
+    return {
+      ok: false,
+      error: "config.json dimensions 必须是正整数",
+      modelName,
+      dimensions: null,
+    };
+  }
+  return { ok: true, error: null, modelName, dimensions: dims };
+}
+
+/**
+ * 预校验 face embedding 模型目录完整性。
+ *
+ * 与 text embedding 的 verifyTokenizerIntegrity 不同，face 模型使用
+ * `image-feature-extraction` pipeline，依赖 `preprocessor_config.json`
+ * 而非 `tokenizer.json`。本函数校验：
+ *   1. 目录存在（通过 config.json 探测）
+ *   2. 目录中包含 ONNX 文件（model.onnx 或量化变体）+ 大小 ≥ MIN_ONNX_SIZE
+ *   3. 目录中包含 preprocessor_config.json（合法 JSON）
+ *   4. 目录中包含 config.json（含 modelName 字符串 + dimensions 正整数）
+ *
+ * 注意：本函数只做静态文件校验，不加载 transformers.js / 不构建 pipeline。
+ * 用户在 UI 配置 faceEmbeddingModelPath 时调用，立即得到反馈。
+ */
+export async function verifyFaceModelIntegrity(
+  dir: string,
+): Promise<FaceModelIntegrityResult> {
+  if (!dir || typeof dir !== "string") {
+    return { ok: false, error: "模型路径为空", onnxFileName: null, modelName: null, dimensions: null };
+  }
+
+  // 1. 目录存在性检查（通过 fileExists 探测 config.json）
+  const configPath = `${dir}/config.json`;
+  if (!(await fileExists(configPath))) {
+    return {
+      ok: false,
+      error: `目录不存在或缺少 config.json：${dir}`,
+      onnxFileName: null,
+      modelName: null,
+      dimensions: null,
+    };
+  }
+
+  // 2. ONNX 文件查找 + 大小校验
+  const onnxStep = await checkOnnxFile(dir);
+  if (!onnxStep.ok) {
+    return {
+      ok: false,
+      error: onnxStep.error,
+      onnxFileName: onnxStep.onnxFileName,
+      modelName: null,
+      dimensions: null,
+    };
+  }
+  const onnxFileName = onnxStep.onnxFileName!;
+
+  // 3. preprocessor_config.json 校验
+  const preprocessorStep = await checkPreprocessor(dir);
+  if (!preprocessorStep.ok) {
+    return {
+      ok: false,
+      error: preprocessorStep.error,
+      onnxFileName,
+      modelName: null,
+      dimensions: null,
+    };
+  }
+
+  // 4. config.json 字段校验
+  const configStep = await checkConfigFields(configPath);
+  if (!configStep.ok) {
+    return {
+      ok: false,
+      error: configStep.error,
+      onnxFileName,
+      modelName: configStep.modelName,
+      dimensions: configStep.dimensions,
+    };
+  }
+
+  return {
+    ok: true,
+    error: null,
+    onnxFileName,
+    modelName: configStep.modelName,
+    dimensions: configStep.dimensions,
+  };
 }

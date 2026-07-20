@@ -29,6 +29,9 @@
     "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
+  "optionalDependencies": {
+    "@huggingface/transformers": "^4.2.0"
+  },
   "main": "electron/dist/main.js",
   "scripts": {
     "postinstall": "node scripts/setup-shared-logic-symlink.mjs && electron-rebuild -f -w better-sqlite3",

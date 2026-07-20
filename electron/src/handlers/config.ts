@@ -47,6 +47,8 @@ interface AppConfig {
   mapping: Record<string, string>;
   fallback: { enabled: boolean; order: string[] };
   freeImageBackup?: boolean;
+  /** 本地 Face Embedding ONNX 模型路径（null=未配置，走 VLM/noop 降级） */
+  faceEmbeddingModelPath?: string | null;
   /** 标记是否已迁移到安全存储 */
   _migratedToSecureStorage?: boolean;
   [key: string]: unknown;
@@ -57,6 +59,7 @@ const DEFAULT_CONFIG: AppConfig = {
   providers: [],
   mapping: {},
   fallback: { enabled: true, order: ["text", "image", "vision", "video"] },
+  faceEmbeddingModelPath: null,
 };
 
 function ensureConfigDir(): void {

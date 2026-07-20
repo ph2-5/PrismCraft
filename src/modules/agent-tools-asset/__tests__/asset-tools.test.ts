@@ -28,6 +28,13 @@ const mocks = vi.hoisted(() => ({
     getAll: vi.fn(),
     getById: vi.fn(),
   },
+  // globalSearch 还会动态 import storyboard / asset，未 mock 会调用真实 service（DB/网络）导致超时
+  storyService: {
+    getAll: vi.fn(),
+  },
+  mediaAssetService: {
+    getAll: vi.fn(),
+  },
 }));
 
 vi.mock("@/modules/character", () => ({
@@ -36,6 +43,14 @@ vi.mock("@/modules/character", () => ({
 
 vi.mock("@/modules/scene", () => ({
   sceneService: mocks.sceneService,
+}));
+
+vi.mock("@/modules/storyboard", () => ({
+  storyService: mocks.storyService,
+}));
+
+vi.mock("@/modules/asset", () => ({
+  mediaAssetService: mocks.mediaAssetService,
 }));
 
 vi.mock("@/shared/constants/tool-timeouts", () => ({
@@ -157,6 +172,9 @@ beforeEach(() => {
   // 默认返回完整数据，便于过滤测试
   mocks.characterService.getAll.mockResolvedValue(ok(charactersData));
   mocks.sceneService.getAll.mockResolvedValue(ok(scenesData));
+  // storyService 返回 Result（空数组），mediaAssetService 直接返回数组（非 Result）
+  mocks.storyService.getAll.mockResolvedValue(ok([]));
+  mocks.mediaAssetService.getAll.mockResolvedValue([]);
 });
 
 // ============================================================

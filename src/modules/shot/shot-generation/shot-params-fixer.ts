@@ -366,13 +366,17 @@ function normalizeStoryBeatFields(data: Record<string, unknown>): Record<string,
     title: data.t || data.title,
     content: data.c || data.content,
     description: data.desc || data.description,
-    shotType: data.st || data.shotType,
+    // PR 2b：优先读取新格式 shotSize（缩写 ss），fallback 到旧格式 shotType（缩写 st）
+    shotSize: data.ss || data.shotSize || data.st || data.shotType,
+    shotType: data.st || data.shotType || data.ss || data.shotSize,
     cameraAngle: data.ca || data.cameraAngle,
     cameraMovement: data.cm || data.cameraMovement,
     duration: data.d ?? data.duration,
     type: data.tp || data.type,
     characterIds: data.ci || data.characterIds,
     sceneId: data.si || data.sceneId,
+    // PR 2b：保留 LLM 可能直接输出的 shotInstruction 嵌套对象
+    shotInstruction: data.shotInstruction,
   };
 }
 
@@ -423,20 +427,31 @@ export function fixStoryBeat(data: Record<string, unknown>): {
   }
 
   if (!fixed.shotType) {
-    const content = (fixed.content || fixed.description || "") as string;
-    fixed.shotType = inferShotTypeFromContent(content);
-    autoFixed.push(`shotType: 缺失 → "${fixed.shotType}" (根据内容推断)`);
+    // PR 2b：shotType 缺失时，优先用 shotSize，否则从 content 推断
+    const shotSize = fixed.shotSize as string | undefined;
+    if (shotSize) {
+      fixed.shotType = shotSize;
+    } else {
+      const content = (fixed.content || fixed.description || "") as string;
+      fixed.shotType = inferShotTypeFromContent(content);
+    }
+    autoFixed.push(`shotType: 缺失 → "${fixed.shotType as string}" (根据内容推断)`);
+  }
+  if (!fixed.shotSize) {
+    // PR 2b：shotSize 缺失时，从 shotType 同步
+    fixed.shotSize = fixed.shotType;
   }
 
   if (!fixed.type) {
     const content = (fixed.content || fixed.description || "") as string;
     fixed.type = inferBeatTypeFromContent(content);
-    autoFixed.push(`type: 缺失 → "${fixed.type}" (根据内容推断)`);
+    autoFixed.push(`type: 缺失 → "${fixed.type as string}" (根据内容推断)`);
   }
 
   // PR 2a dual-write：填充 shotInstruction（若尚未存在）
   if (!fixed.shotInstruction) {
     const shotInstruction = buildShotInstructionFromLegacy({
+      shotSize: fixed.shotSize as string | undefined,
       shotType: fixed.shotType as string | undefined,
       cameraAngle: fixed.cameraAngle as string | undefined,
       cameraMovement: fixed.cameraMovement as string | undefined,

@@ -111,22 +111,28 @@ const CAMERA_MOVEMENT_FROM_LEGACY: Record<string, string> = {
 };
 
 /**
- * 从旧的 shotType + camera 字段构建新的 shotInstruction 对象。
+ * 从旧的 shotType + camera 字段或新的 shotSize 字段构建 shotInstruction 对象。
  *
  * 用途：PR 2a dual-write 策略 — 写入端在填充旧字段的同时也填充 shotInstruction，
  * 让读取端（PR 1 dual-read）能优先读到新字段。修正旧 shotType 中 angle 类
  * （low/high/birdseye/wormseye）被误认为 size 的语义错误。
  *
+ * PR 2b 扩展：支持直接传入 shotSize（新格式），优先级 shotSize > shotType。
+ *
  * @returns 完整的 shotInstruction 对象，或 undefined（当所有输入都缺失/无效时）
  */
 export function buildShotInstructionFromLegacy(params: {
+  shotSize?: string;
   shotType?: string;
   cameraAngle?: string;
   cameraMovement?: string;
 }): { shotSize: string; cameraAngle: string; cameraMovement: string } | undefined {
-  const { shotType, cameraAngle, cameraMovement } = params;
+  const { shotSize: rawShotSize, shotType, cameraAngle, cameraMovement } = params;
 
-  const shotSize = shotType ? SHOT_SIZE_FROM_LEGACY[shotType] : undefined;
+  // PR 2b：shotSize 优先（新格式），fallback 到 shotType 推导
+  const shotSize = rawShotSize
+    ? (SHOT_SIZE_FROM_LEGACY[rawShotSize] ?? (SHOT_SIZE_FROM_LEGACY[shotType ?? ""] ?? undefined))
+    : (shotType ? SHOT_SIZE_FROM_LEGACY[shotType] : undefined);
   // 旧 shotType 可能是 angle 类（low/high/birdseye/wormseye），若 size 映射失败则尝试 angle 映射
   const angleFromShotType = shotType && !shotSize ? CAMERA_ANGLE_FROM_LEGACY[shotType] : undefined;
   const mappedAngle = cameraAngle ? CAMERA_ANGLE_FROM_LEGACY[cameraAngle] : undefined;

@@ -213,7 +213,7 @@ ${plotPoints.map((p, i) => `${i + 1}. ${p}`).join("\n")}
     "duration": 8,
     "characterIds": ["角色ID"],
     "sceneId": "场景ID",
-    "shotType": "景别（wide/medium/close/extreme_close/extreme_wide/low/high/birdseye/wormseye）",
+    "shotSize": "景别（wide/medium/close/extreme_close/extreme_wide）",
     "cameraAngle": "镜头角度",
     "cameraMovement": "镜头运动"
   }
@@ -253,11 +253,14 @@ async function planBeatsWithFallback(
 function buildStoryBeats(beatsData: unknown[], maxBeats: number): StoryBeat[] {
   return beatsData.slice(0, maxBeats).map((raw, i) => {
     const b = raw as Record<string, unknown>;
-    const shotType = b.shotType ? String(b.shotType) : undefined;
+    // PR 2b：优先读取 shotSize（新字段），fallback shotType（旧字段，向后兼容）
+    const shotSize = b.shotSize ? String(b.shotSize) : undefined;
+    const shotType = shotSize ?? (b.shotType ? String(b.shotType) : undefined);
     const cameraAngle = b.cameraAngle ? String(b.cameraAngle) : undefined;
     const cameraMovement = b.cameraMovement ? String(b.cameraMovement) : undefined;
     // PR 2a dual-write：同时构造 shotInstruction，让读取端优先读到新字段
     const shotInstruction = buildShotInstructionFromLegacy({
+      shotSize,
       shotType,
       cameraAngle,
       cameraMovement,

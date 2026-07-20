@@ -140,6 +140,11 @@ interface StoryBeatData {
   description?: string;
   st?: string;
   shotType?: string;
+  // PR 2b：新格式字段（缩写 ss / 全名 shotSize）
+  ss?: string;
+  shotSize?: string;
+  // PR 2b：完整 shotInstruction 嵌套对象（若 LLM 直接输出嵌套结构）
+  shotInstruction?: { shotSize?: string; cameraAngle?: string; cameraMovement?: string };
   ca?: string;
   cameraAngle?: string;
   cm?: string;
@@ -251,7 +256,9 @@ function normalizeStoryBeatData(data: StoryBeatData): StoryBeatData {
     title: data.t || data.title,
     content: data.c || data.content,
     description: data.desc || data.description,
-    shotType: data.st || data.shotType,
+    // PR 2b：优先读取新格式 shotSize（缩写 ss），fallback 到旧格式 shotType（缩写 st）
+    shotSize: data.ss || data.shotSize || data.st || data.shotType,
+    shotType: data.st || data.shotType || data.ss || data.shotSize,
     cameraAngle: data.ca || data.cameraAngle,
     cameraMovement: data.cm || data.cameraMovement,
     duration: data.d ?? data.duration,
@@ -263,6 +270,8 @@ function normalizeStoryBeatData(data: StoryBeatData): StoryBeatData {
     lastFramePrompt: data.lp || data.lastFramePrompt,
     elementIds: data.ei || data.elementIds,
     elementBindings: data.eb || data.elementBindings,
+    // PR 2b：保留 LLM 可能直接输出的 shotInstruction 嵌套对象
+    shotInstruction: data.shotInstruction,
   };
 }
 
@@ -280,8 +289,13 @@ function applyStoryBeatAutoFixes(fixed: StoryBeatData, autoFixed: string[]): voi
     autoFixed.push("duration: 缺失 → 5");
   }
   if (!fixed.shotType) {
-    fixed.shotType = resolveShotTypeFromContent(String(fixed.content || ""));
+    // PR 2b：shotType 缺失时，优先用 shotSize，否则从 content 推导（resolveShotTypeFromContent 返回合法 ShotSize）
+    fixed.shotType = fixed.shotSize || resolveShotTypeFromContent(String(fixed.content || ""));
     autoFixed.push(`shotType: 缺失 → "${fixed.shotType}"`);
+  }
+  if (!fixed.shotSize) {
+    // PR 2b：shotSize 缺失时，从 shotType 同步（resolveShotTypeFromContent 返回的都是合法 ShotSize）
+    fixed.shotSize = fixed.shotType;
   }
   if (!fixed.type) {
     fixed.type = resolveTypeFromContent(String(fixed.content || ""));
@@ -290,6 +304,7 @@ function applyStoryBeatAutoFixes(fixed: StoryBeatData, autoFixed: string[]): voi
   // PR 2a dual-write：填充 shotInstruction（若尚未存在），让读取端优先读到新字段
   if (!fixed.shotInstruction) {
     const shotInstruction = buildShotInstructionFromLegacy({
+      shotSize: fixed.shotSize,
       shotType: fixed.shotType,
       cameraAngle: fixed.cameraAngle,
       cameraMovement: fixed.cameraMovement,

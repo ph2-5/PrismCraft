@@ -149,7 +149,7 @@ function buildJsonSchema(ctx: StoryPlanPromptContext): string {
         "  {",
         '    "t": "Shot title",',
         '    "c": "Detailed visual description, including visual details, character actions, environmental atmosphere",',
-        '    "st": "wide|medium|close|extreme_close|low|high|birdseye|wormseye",',
+        '    "ss": "wide|medium|close|extreme_close|extreme_wide",',
         '    "ca": "eye_level|low|high|birds_eye|worms_eye|dutch",',
         '    "cm": "static|push|pull|pan|orbit|crane_up|crane_down|tracking",',
         '    "d": 5,',
@@ -167,7 +167,7 @@ function buildJsonSchema(ctx: StoryPlanPromptContext): string {
         "  {",
         '    "t": "分镜标题",',
         '    "c": "详细画面描述，含视觉细节、角色动作、环境氛围",',
-        '    "st": "wide|medium|close|extreme_close|low|high|birdseye|wormseye",',
+        '    "ss": "wide|medium|close|extreme_close|extreme_wide",',
         '    "ca": "eye_level|low|high|birds_eye|worms_eye|dutch",',
         '    "cm": "static|push|pull|pan|orbit|crane_up|crane_down|tracking",',
         '    "d": 5,',
@@ -200,7 +200,7 @@ function buildJsonSchema(ctx: StoryPlanPromptContext): string {
 function buildFieldLegend(ctx: StoryPlanPromptContext): string {
   const { elements, language } = ctx;
   const base =
-    "t=title, c=content, st=shotType, ca=cameraAngle, cm=cameraMovement, d=duration, tp=type, ci=characterIds, si=sceneId, kp=keyframePrompt, fp=firstFramePrompt, lp=lastFramePrompt";
+    "t=title, c=content, ss=shotSize, ca=cameraAngle, cm=cameraMovement, d=duration, tp=type, ci=characterIds, si=sceneId, kp=keyframePrompt, fp=firstFramePrompt, lp=lastFramePrompt";
   const parts: string[] = [base];
   if (elements.length > 0) parts.push("ei=elementIds, eb=elementBindings");
   return language === "en"

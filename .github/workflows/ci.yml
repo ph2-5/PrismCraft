@@ -110,8 +110,13 @@ jobs:
             fi
           done
 
-      - name: Run npm audit (critical vulnerabilities fail the build)
-        run: npm audit --audit-level=critical
+      - name: Run npm audit (critical vulnerabilities in production deps fail the build)
+        # --omit=dev: 排除 dev 依赖（electron-rebuild/stryker/storybook 等构建工具的漏洞
+        #              不影响最终用户，仅在开发环境运行）
+        # --audit-level=critical: 仅 critical 级别失败；optional 依赖中的 high 漏洞
+        #                         （如 @huggingface/transformers → adm-zip）不阻塞 CI
+        # 生产 dependencies 当前 0 漏洞；定期通过 `npm audit --omit=dev` 检查 optional 漏洞
+        run: npm audit --audit-level=critical --omit=dev
 
       - name: Secret Scan (hardcoded secrets fail the build)
         run: |

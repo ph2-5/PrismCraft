@@ -163,11 +163,6 @@ function parseSceneId(raw: unknown): string | undefined {
   return raw ? String(raw) : undefined;
 }
 
-/** Build camera object from angle/movement strings */
-function buildBeatCamera(angle: string, movement: string): StoryBeat["camera"] {
-  return { angle: angle || undefined, movement: movement || undefined };
-}
-
 /** Extract prompt fields from raw beat */
 function buildBeatPrompts(raw: Record<string, unknown>): Pick<StoryBeat, "imageGenerationPrompt" | "firstFramePrompt" | "lastFramePrompt"> {
   return {
@@ -210,11 +205,11 @@ function buildBeatFromRaw(
     description: text.description,
     duration: parseDuration(raw.d ?? raw.duration),
     type: (pickString(raw, "tp", "type") as StoryBeat["type"]) || "action",
-    shotType: (shotType as StoryBeat["shotType"]) || "medium",
+    // PR 2d Step 4c：清除写入端 dual-write — 不写 shotType / camera.angle / camera.movement
+    // 旧字段通过 buildShotInstruction 转换为 shotInstruction
     characterIds: parseCharacterIds(raw.ci || raw.characterIds),
     elementIds,
     sceneId: parseSceneId(raw.si || raw.sceneId),
-    camera: buildBeatCamera(cameraAngle, cameraMovement),
     ...buildBeatPrompts(raw),
     enhancedGeneration: globalEnhancedGeneration || false,
     elementBindings,

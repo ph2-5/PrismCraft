@@ -84,7 +84,8 @@ export function applyTemplateToBeats(
   template: StoryboardTemplate,
 ): Array<Partial<StoryBeat>> {
   return template.beats.map((beat, index) => {
-    // PR 2a dual-write：同时构造 shotInstruction，让读取端优先读到新字段
+    // PR 2d Step 4a：清除写入端 dual-write — 只写 shotInstruction，不写旧 shotType/camera.angle/movement
+    // 旧字段通过 buildShotInstructionFromLegacy 转换为 shotInstruction
     const shotInstruction = buildShotInstructionFromLegacy({
       shotType: beat.shotType,
       cameraAngle: beat.cameraAngle,
@@ -97,10 +98,8 @@ export function applyTemplateToBeats(
       description: beat.content,
       duration: beat.duration,
       order: index,
-      shotType: beat.shotType as StoryBeat["shotType"],
+      // camera 只保留独有字段（distance/speed），angle/movement 已迁移到 shotInstruction
       camera: {
-        angle: beat.cameraAngle,
-        movement: beat.cameraMovement,
         distance: beat.cameraDistance,
         speed: beat.cameraSpeed,
       },

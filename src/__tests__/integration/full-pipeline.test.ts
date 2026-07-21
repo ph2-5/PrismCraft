@@ -116,9 +116,10 @@ describe("Full Pipeline Integration", () => {
       expect(result.beats[0]!.title).toBe("开场");
       expect(result.beats[0]!.content).toBeTruthy();
       expect(result.beats[0]!.duration).toBe(5);
-      expect(result.beats[0]!.shotType).toBe("medium");
-      expect(result.beats[0]!.camera?.angle).toBe("eye_level");
-      expect(result.beats[0]!.camera?.movement).toBe("static");
+      // PR 2d Step 4d：shotType/camera.angle/camera.movement 迁移至 shotInstruction
+      expect(result.beats[0]!.shotInstruction?.shotSize).toBe("medium");
+      expect(result.beats[0]!.shotInstruction?.cameraAngle).toBe("eye_level");
+      expect(result.beats[0]!.shotInstruction?.cameraMovement).toBe("static");
       expect(result.retryCount).toBe(0);
     });
 

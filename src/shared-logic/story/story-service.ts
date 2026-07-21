@@ -206,16 +206,14 @@ export function fixShotParams(data: ShotParamsData): {
   const validMovements = ["static", "push", "pull", "pan", "orbit", "crane_up", "crane_down", "tracking"];
   const validAngles = ["eye_level", "low", "high", "birds_eye", "worms_eye", "dutch"];
 
+  // PR 2d Step 4d：清除写入端 dual-write — 不再写旧字段，只用于构造 shotInstruction
   const shotTypeFix = fixEnumField(data.shotType, SHOT_TYPE_ALIASES, validShotTypes, "medium", "shotType", true);
-  fixed.shotType = shotTypeFix.value;
   if (shotTypeFix.message) autoFixed.push(shotTypeFix.message);
 
   const movementFix = fixEnumField(data.cameraMovement, CAMERA_MOVEMENT_ALIASES, validMovements, "static", "cameraMovement", false);
-  fixed.cameraMovement = movementFix.value;
   if (movementFix.message) autoFixed.push(movementFix.message);
 
   const angleFix = fixEnumField(data.cameraAngle, CAMERA_ANGLE_ALIASES, validAngles, "eye_level", "cameraAngle", false);
-  fixed.cameraAngle = angleFix.value;
   if (angleFix.message) autoFixed.push(angleFix.message);
 
   if (typeof data.duration === "number") {
@@ -225,11 +223,11 @@ export function fixShotParams(data: ShotParamsData): {
     fixed.duration = 5;
   }
 
-  // PR 2a dual-write：同时填充 shotInstruction 字段，让读取端优先读到新字段
+  // PR 2d：只填充 shotInstruction 字段（读取端 PR 3 后只读 shotInstruction）
   const shotInstruction = buildShotInstructionFromLegacy({
-    shotType: fixed.shotType as string | undefined,
-    cameraAngle: fixed.cameraAngle as string | undefined,
-    cameraMovement: fixed.cameraMovement as string | undefined,
+    shotType: shotTypeFix.value as string | undefined,
+    cameraAngle: angleFix.value as string | undefined,
+    cameraMovement: movementFix.value as string | undefined,
   });
   if (shotInstruction) {
     fixed.shotInstruction = shotInstruction;
@@ -288,23 +286,20 @@ function applyStoryBeatAutoFixes(fixed: StoryBeatData, autoFixed: string[]): voi
     fixed.duration = 5;
     autoFixed.push("duration: 缺失 → 5");
   }
+  // PR 2d Step 4d：清除写入端 dual-write — 不再写 fixed.shotType / fixed.shotSize
+  // 推导出的 shotSize 仅用于构造 shotInstruction
+  const derivedShotSize = fixed.shotSize || fixed.shotType || resolveShotTypeFromContent(String(fixed.content || ""));
   if (!fixed.shotType) {
-    // PR 2b：shotType 缺失时，优先用 shotSize，否则从 content 推导（resolveShotTypeFromContent 返回合法 ShotSize）
-    fixed.shotType = fixed.shotSize || resolveShotTypeFromContent(String(fixed.content || ""));
-    autoFixed.push(`shotType: 缺失 → "${fixed.shotType}"`);
-  }
-  if (!fixed.shotSize) {
-    // PR 2b：shotSize 缺失时，从 shotType 同步（resolveShotTypeFromContent 返回的都是合法 ShotSize）
-    fixed.shotSize = fixed.shotType;
+    autoFixed.push(`shotType: 缺失 → "${derivedShotSize}" (仅用于构造 shotInstruction)`);
   }
   if (!fixed.type) {
     fixed.type = resolveTypeFromContent(String(fixed.content || ""));
     autoFixed.push(`type: 缺失 → "${fixed.type}"`);
   }
-  // PR 2a dual-write：填充 shotInstruction（若尚未存在），让读取端优先读到新字段
+  // PR 2d：只填充 shotInstruction（若尚未存在），读取端 PR 3 后只读 shotInstruction
   if (!fixed.shotInstruction) {
     const shotInstruction = buildShotInstructionFromLegacy({
-      shotSize: fixed.shotSize,
+      shotSize: derivedShotSize,
       shotType: fixed.shotType,
       cameraAngle: fixed.cameraAngle,
       cameraMovement: fixed.cameraMovement,
@@ -489,6 +484,12 @@ function buildBeatObject(
   elementBindings: Record<string, unknown> | undefined,
   idGenerator?: (index: number) => string,
 ): StoryBeat {
+  // PR 2d Step 4d：清除写入端 dual-write — 只写 shotInstruction，不写旧 shotType/camera.angle/movement
+  const shotInstruction = buildShotInstructionFromLegacy({
+    shotType: fields.shotType || "medium",
+    cameraAngle: fields.cameraAngle || undefined,
+    cameraMovement: fields.cameraMovement || undefined,
+  });
   return {
     id: idGenerator ? idGenerator(index) : `beat-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
     sequence: index + 1,
@@ -497,17 +498,16 @@ function buildBeatObject(
     description: fields.description || fields.content || "",
     duration: fields.duration,
     type: fields.type || "action",
-    shotType: fields.shotType || "medium",
     characterIds: fields.characterIds,
     sceneId: fields.sceneId,
-    camera: { angle: fields.cameraAngle || undefined, movement: fields.cameraMovement || undefined },
+    shotInstruction,
     imageGenerationPrompt: fields.keyframePrompt || undefined,
     firstFramePrompt: fields.firstFramePrompt || undefined,
     lastFramePrompt: fields.lastFramePrompt || undefined,
     enhancedGeneration,
     elementIds,
     elementBindings,
-  };
+  } as StoryBeat;
 }
 
 function appendDialogueAndEmotion(beat: StoryBeat, raw: RawStoryBeat): void {

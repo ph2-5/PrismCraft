@@ -32,7 +32,8 @@ const FLATTENED_FRAMEPAIR_KEYS = new Set([
   "source",
 ]);
 const FLATTENED_VIDEOGEN_KEYS = new Set(["videoUrl", "taskId", "status", "prompt", "createdAt", "source", "error"]);
-// PR 2c：shotInstruction 作为 camera 容器的子字段持久化（dual-write）
+// PR 2d：angle/movement 不再写入 camera 容器，但保留在 FLATTENED_CAMERA_KEYS 中
+// 防止它们被展开到 extra（meta 容器）；shotInstruction 作为 camera 容器的子字段持久化
 const FLATTENED_CAMERA_KEYS = new Set(["angle", "movement", "distance", "speed", "shotInstruction"]);
 
 const KNOWN_BEAT_KEYS = new Set([
@@ -101,21 +102,16 @@ function buildCameraContainer(
   camera: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
   const container: Record<string, unknown> = {};
-  const angle = firstOf(camera?.angle, beat.cameraAngle, beat.camera_angle);
-  const movement = firstOf(camera?.movement, beat.cameraMovement, beat.camera_movement);
+  // PR 2d Step 2：清除写入端 dual-write — 不再写入 shotType / angle / movement
+  // 旧字段已被 migration v8 迁移到 shotInstruction，读取端（PR 3）只读 shotInstruction
   const distance = firstOf(camera?.distance, beat.cameraDistance, beat.camera_distance);
   const speed = firstOf(camera?.speed, beat.cameraSpeed, beat.camera_speed);
-  const shotType = firstOf(beat.shotType, beat.shot_type);
-  // PR 2c：dual-write shotInstruction（优先 beat.shotInstruction，fallback camera.shotInstruction）
   const shotInstruction = firstOf(
     beat.shotInstruction,
     camera?.shotInstruction,
   );
-  if (angle) container.angle = angle;
-  if (movement) container.movement = movement;
   if (distance) container.distance = distance;
   if (speed) container.speed = speed;
-  if (shotType) container.shotType = shotType;
   if (shotInstruction) container.shotInstruction = shotInstruction;
   return container;
 }

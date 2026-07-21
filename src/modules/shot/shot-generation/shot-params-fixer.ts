@@ -160,21 +160,22 @@ function fixDurationField(rawValue: unknown): FieldFixResult {
 
 function fixPromptField(
   prompt: unknown,
-  fixed: Record<string, unknown>,
+  context: { shotType?: string; cameraMovement?: string; cameraAngle?: string },
 ): FieldFixResult {
   if (typeof prompt !== "string" || prompt.length >= 10) {
     return { value: prompt };
   }
-  const context = [
-    fixed.shotType ? `${fixed.shotType} shot` : "",
-    fixed.cameraMovement ? `${fixed.cameraMovement} camera` : "",
-    fixed.cameraAngle ? `${fixed.cameraAngle} angle` : "",
+  // PR 2d Step 4g：从传入的 context 读取（不再依赖 fixed 上的旧字段）
+  const contextParts = [
+    context.shotType ? `${context.shotType} shot` : "",
+    context.cameraMovement ? `${context.cameraMovement} camera` : "",
+    context.cameraAngle ? `${context.cameraAngle} angle` : "",
   ]
     .filter(Boolean)
     .join(", ");
-  if (!context) return { value: prompt };
+  if (!contextParts) return { value: prompt };
   return {
-    value: `${prompt}, ${context}`,
+    value: `${prompt}, ${contextParts}`,
     message: `prompt: 过短(${prompt.length}字符)，已补充镜头上下文`,
   };
 }
@@ -214,9 +215,11 @@ export function fixShotParams(data: Record<string, unknown>): {
   fixed: Record<string, unknown>;
   autoFixed: string[];
 } {
-  const fixed = { ...data };
+  const fixed: Record<string, unknown> = {};
   const autoFixed: string[] = [];
 
+  // PR 2d Step 4g：清除写入端 dual-write — 不再写 shotType / cameraAngle / cameraMovement 顶层字段
+  // 输入读取仍兼容旧字段名（data.shotType / data.cameraAngle / data.cameraMovement）
   const shotTypeFix = fixEnumField(
     data.shotType,
     SHOT_TYPE_ALIASES,
@@ -224,7 +227,6 @@ export function fixShotParams(data: Record<string, unknown>): {
     "medium",
     "shotType",
   );
-  fixed.shotType = shotTypeFix.value;
   if (shotTypeFix.message) autoFixed.push(shotTypeFix.message);
 
   const movementFix = fixOptionalEnumField(
@@ -234,7 +236,6 @@ export function fixShotParams(data: Record<string, unknown>): {
     "static",
     "cameraMovement",
   );
-  fixed.cameraMovement = movementFix.value;
   if (movementFix.message) autoFixed.push(movementFix.message);
 
   const angleFix = fixOptionalEnumField(
@@ -244,26 +245,33 @@ export function fixShotParams(data: Record<string, unknown>): {
     "eye_level",
     "cameraAngle",
   );
-  fixed.cameraAngle = angleFix.value;
   if (angleFix.message) autoFixed.push(angleFix.message);
 
   const durationFix = fixDurationField(data.duration);
   fixed.duration = durationFix.value;
   if (durationFix.message) autoFixed.push(durationFix.message);
 
-  const promptFix = fixPromptField(data.prompt, fixed);
+  const promptFix = fixPromptField(data.prompt, {
+    shotType: shotTypeFix.value as string | undefined,
+    cameraMovement: movementFix.value as string | undefined,
+    cameraAngle: angleFix.value as string | undefined,
+  });
   fixed.prompt = promptFix.value;
   if (promptFix.message) autoFixed.push(promptFix.message);
 
-  // PR 2a dual-write：同时填充 shotInstruction 字段，让读取端优先读到新字段
+  // PR 2d Step 4g：仅写入 shotInstruction（读取端已迁移至 shotInstruction，依赖 migration v8）
   const shotInstruction = buildShotInstructionFromLegacy({
-    shotType: fixed.shotType as string | undefined,
-    cameraAngle: fixed.cameraAngle as string | undefined,
-    cameraMovement: fixed.cameraMovement as string | undefined,
+    shotType: shotTypeFix.value as string | undefined,
+    cameraAngle: angleFix.value as string | undefined,
+    cameraMovement: movementFix.value as string | undefined,
   });
   if (shotInstruction) {
     fixed.shotInstruction = shotInstruction;
   }
+
+  // 透传非镜头相关字段
+  if (data.characterIds !== undefined) fixed.characterIds = data.characterIds;
+  if (data.sceneId !== undefined) fixed.sceneId = data.sceneId;
 
   return { fixed, autoFixed };
 }
@@ -339,7 +347,7 @@ export function generateFallbackParams(
 
   const defaults = genreDefaults[genre] ?? genreDefaults.drama!;
 
-  // PR 2a dual-write：同时填充 shotInstruction 字段
+  // PR 2d Step 4g：清除写入端 dual-write — 仅输出 shotInstruction，不再输出旧顶层字段
   const shotInstruction = buildShotInstructionFromLegacy({
     shotType: defaults.shotType,
     cameraAngle: defaults.cameraAngle,
@@ -351,9 +359,6 @@ export function generateFallbackParams(
       content.length >= 10
         ? content
         : `A ${genre} scene with cinematic composition`,
-    shotType: defaults.shotType,
-    cameraAngle: defaults.cameraAngle,
-    cameraMovement: defaults.cameraMovement,
     shotInstruction,
     duration: defaults.duration,
     characterIds: data.characterIds || [],
@@ -362,21 +367,33 @@ export function generateFallbackParams(
 }
 
 function normalizeStoryBeatFields(data: Record<string, unknown>): Record<string, unknown> {
+  // PR 2d Step 4g：清除写入端 dual-write — 不再输出 shotType / shotSize / cameraAngle / cameraMovement 顶层字段
+  // 输入读取仍兼容旧字段（用于推断 shotInstruction）
+  const shotSize = data.ss || data.shotSize || data.st || data.shotType;
+  const cameraAngle = data.ca || data.cameraAngle;
+  const cameraMovement = data.cm || data.cameraMovement;
+  const inputShotInstruction = data.shotInstruction as
+    | { shotSize?: string; cameraAngle?: string; cameraMovement?: string }
+    | undefined;
+
+  // PR 2d Step 4g：若输入已有 shotInstruction，优先保留；否则从旧字段构造
+  const shotInstruction =
+    inputShotInstruction ||
+    buildShotInstructionFromLegacy({
+      shotType: shotSize as string | undefined,
+      cameraAngle: cameraAngle as string | undefined,
+      cameraMovement: cameraMovement as string | undefined,
+    });
+
   return {
     title: data.t || data.title,
     content: data.c || data.content,
     description: data.desc || data.description,
-    // PR 2b：优先读取新格式 shotSize（缩写 ss），fallback 到旧格式 shotType（缩写 st）
-    shotSize: data.ss || data.shotSize || data.st || data.shotType,
-    shotType: data.st || data.shotType || data.ss || data.shotSize,
-    cameraAngle: data.ca || data.cameraAngle,
-    cameraMovement: data.cm || data.cameraMovement,
     duration: data.d ?? data.duration,
     type: data.tp || data.type,
     characterIds: data.ci || data.characterIds,
     sceneId: data.si || data.sceneId,
-    // PR 2b：保留 LLM 可能直接输出的 shotInstruction 嵌套对象
-    shotInstruction: data.shotInstruction,
+    ...(shotInstruction ? { shotInstruction } : {}),
   };
 }
 
@@ -426,39 +443,26 @@ export function fixStoryBeat(data: Record<string, unknown>): {
     autoFixed.push("duration: 缺失 → 5 (默认值)");
   }
 
-  if (!fixed.shotType) {
-    // PR 2b：shotType 缺失时，优先用 shotSize，否则从 content 推断
-    const shotSize = fixed.shotSize as string | undefined;
-    if (shotSize) {
-      fixed.shotType = shotSize;
-    } else {
-      const content = (fixed.content || fixed.description || "") as string;
-      fixed.shotType = inferShotTypeFromContent(content);
-    }
-    autoFixed.push(`shotType: 缺失 → "${fixed.shotType as string}" (根据内容推断)`);
-  }
-  if (!fixed.shotSize) {
-    // PR 2b：shotSize 缺失时，从 shotType 同步
-    fixed.shotSize = fixed.shotType;
+  // PR 2d Step 4g：清除写入端 dual-write — 不再赋值 fixed.shotType / fixed.shotSize
+  // 若 shotInstruction 缺失 shotSize，从 content 推断后补全 shotInstruction
+  const existingShotInstruction = fixed.shotInstruction as
+    | { shotSize?: string; cameraAngle?: string; cameraMovement?: string }
+    | undefined;
+  if (!existingShotInstruction?.shotSize) {
+    const inferred = inferShotTypeFromContent(
+      (fixed.content || fixed.description || "") as string,
+    );
+    autoFixed.push(`shotSize: 缺失 → "${inferred}" (根据内容推断)`);
+    fixed.shotInstruction = {
+      ...(existingShotInstruction || {}),
+      shotSize: inferred,
+    };
   }
 
   if (!fixed.type) {
     const content = (fixed.content || fixed.description || "") as string;
     fixed.type = inferBeatTypeFromContent(content);
     autoFixed.push(`type: 缺失 → "${fixed.type as string}" (根据内容推断)`);
-  }
-
-  // PR 2a dual-write：填充 shotInstruction（若尚未存在）
-  if (!fixed.shotInstruction) {
-    const shotInstruction = buildShotInstructionFromLegacy({
-      shotSize: fixed.shotSize as string | undefined,
-      shotType: fixed.shotType as string | undefined,
-      cameraAngle: fixed.cameraAngle as string | undefined,
-      cameraMovement: fixed.cameraMovement as string | undefined,
-    });
-    if (shotInstruction) {
-      fixed.shotInstruction = shotInstruction;
-    }
   }
 
   return { fixed, autoFixed };

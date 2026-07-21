@@ -174,7 +174,11 @@ export function validateShotParams(
     });
   }
 
-  if (!fixed.cameraMovement && !fixed.cameraAngle) {
+  // PR 2d Step 4g：检查 shotInstruction 中的 camera 字段（替代旧顶层字段）
+  const shotInstruction = fixed.shotInstruction as
+    | { cameraAngle?: string; cameraMovement?: string }
+    | undefined;
+  if (!shotInstruction?.cameraMovement && !shotInstruction?.cameraAngle) {
     warnings.push({
       field: "camera",
       message: "未指定镜头角度和运镜，将使用默认值",

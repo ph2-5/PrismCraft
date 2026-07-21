@@ -6,12 +6,11 @@ const NOW = 1700000000;
 describe("flattenBeat", () => {
   it("应将 camera 子字段展平到 cameraContainer", () => {
     const beat: Record<string, unknown> = {
+      // PR 2d Step 2：angle/movement 不再写入 cameraContainer，只保留 distance/speed/shotInstruction
       camera: { angle: "low", movement: "pan", distance: "medium", speed: "slow" },
     };
     const result = flattenBeat(beat, NOW);
     expect(result.cameraContainer).toEqual({
-      angle: "low",
-      movement: "pan",
       distance: "medium",
       speed: "slow",
     });
@@ -54,9 +53,11 @@ describe("flattenBeat", () => {
   });
 
   it("应将 shotType 放入 cameraContainer", () => {
+    // PR 2d Step 2：shotType 不再写入 cameraContainer（已被 shotInstruction 替代）
+    // 该测试保留以验证旧 shotType 字段不会被误写入 cameraContainer
     const beat: Record<string, unknown> = { shotType: "close_up" };
     const result = flattenBeat(beat, NOW);
-    expect(result.cameraContainer.shotType).toBe("close_up");
+    expect(result.cameraContainer.shotType).toBeUndefined();
   });
 
   it("应将未知字段放入 metaContainer", () => {
@@ -144,11 +145,9 @@ describe("flattenBeat", () => {
     const result = flattenBeat(beat, NOW);
 
     expect(result.cameraContainer).toEqual({
-      angle: "low",
-      movement: "pan",
+      // PR 2d Step 2：angle/movement/shotType 不再写入，只保留 distance/speed
       distance: "medium",
       speed: "slow",
-      shotType: "close_up",
     });
 
     expect(result.generationContainer.keyframeImageUrl).toBe("kurl");
@@ -255,8 +254,9 @@ describe("buildBeatInsert", () => {
   });
 
   it("应将 camera/generation/meta 序列化为 JSON", () => {
+    // PR 2d Step 2：cameraContainer 不再包含 angle/movement（只有 distance/speed/shotInstruction）
     const beat: Record<string, unknown> = {
-      camera: { angle: "low", movement: "pan" },
+      camera: { distance: "medium", speed: "slow" },
       keyframe: { imageUrl: "url", prompt: "p" },
       customField: "value",
     };
@@ -267,7 +267,7 @@ describe("buildBeatInsert", () => {
     const metaParam = result.params[13];
 
     expect(typeof cameraParam).toBe("string");
-    expect(JSON.parse(cameraParam as string)).toEqual({ angle: "low", movement: "pan" });
+    expect(JSON.parse(cameraParam as string)).toEqual({ distance: "medium", speed: "slow" });
 
     expect(typeof generationParam).toBe("string");
     const parsedGen = JSON.parse(generationParam as string);

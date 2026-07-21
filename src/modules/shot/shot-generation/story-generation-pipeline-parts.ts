@@ -261,13 +261,14 @@ export function applyShotParamsAutoFix(
   accumulator: ShotFixAccumulator,
 ): void {
   for (const beat of beats) {
-    if (!beat.shotType && !beat.camera) continue;
+    // PR 2d Step 4f：清除写入端 dual-write — 只读 shotInstruction（PR 3 后读取端已清除 fallback）
+    if (!beat.shotInstruction) continue;
     const shotValidation = validateShotParams({
       prompt: beat.content || beat.description || "",
-      shotType: beat.shotType,
+      shotType: beat.shotInstruction?.shotSize,
       duration: beat.duration,
-      cameraAngle: beat.camera?.angle,
-      cameraMovement: beat.camera?.movement,
+      cameraAngle: beat.shotInstruction?.cameraAngle,
+      cameraMovement: beat.shotInstruction?.cameraMovement,
     });
     accumulator.validationResults.push(shotValidation);
 
@@ -298,20 +299,12 @@ function applyShotAutoFixToBeat(
     shotInstruction?: StoryBeat["shotInstruction"];
   };
   for (const fix of shotValidation.autoFixed) {
-    if (fix.includes("shotType")) {
-      beat.shotType = data.shotType;
-    }
+    // PR 2d：不再回写旧 shotType / camera.angle / camera.movement，只更新 duration 和 shotInstruction
     if (fix.includes("duration")) {
       beat.duration = data.duration as StoryBeat["duration"];
     }
-    if (fix.includes("cameraAngle") && beat.camera) {
-      beat.camera.angle = data.cameraAngle!;
-    }
-    if (fix.includes("cameraMovement") && beat.camera) {
-      beat.camera.movement = data.cameraMovement!;
-    }
   }
-  // PR 2a dual-write：同步更新 shotInstruction（fixShotParams 已填充 data.shotInstruction）
+  // PR 2d：只写 shotInstruction（fixShotParams 已填充 data.shotInstruction）
   if (data.shotInstruction) {
     beat.shotInstruction = data.shotInstruction;
   }

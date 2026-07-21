@@ -170,11 +170,15 @@ describe("applyTemplateToBeats", () => {
   it("应正确映射 camera 字段", () => {
     const beats = applyTemplateToBeats(mockTemplate);
 
+    // PR 2d Step 4a：camera 只保留 distance/speed，angle/movement 迁移到 shotInstruction
     expect(beats[0]!.camera).toEqual({
-      angle: "low",
-      movement: "pan",
       distance: "medium",
       speed: "normal",
+    });
+    expect(beats[0]!.shotInstruction).toEqual({
+      shotSize: "wide",
+      cameraAngle: "low",
+      cameraMovement: "pan",
     });
   });
 
@@ -189,9 +193,8 @@ describe("applyTemplateToBeats", () => {
   it("缺少可选 camera 字段时应正确处理", () => {
     const beats = applyTemplateToBeats(mockTemplate);
 
+    // PR 2d Step 4a：camera 只保留 distance/speed
     expect(beats[1]!.camera).toEqual({
-      angle: undefined,
-      movement: undefined,
       distance: undefined,
       speed: undefined,
     });

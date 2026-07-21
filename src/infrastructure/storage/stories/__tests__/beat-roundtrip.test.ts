@@ -104,12 +104,10 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
 
     const flat = flattenBeat(beat, now);
 
+    // PR 2d Step 2：cameraContainer 不再写入 angle/movement/shotType（只保留 distance/speed/shotInstruction）
     expect(flat.cameraContainer).toEqual({
-      angle: "low",
-      movement: "pan_left",
       distance: "medium",
       speed: "slow",
-      shotType: "close",
     });
     expect(flat.generationContainer.keyframeImageUrl).toBe(
       "https://img.example.com/keyframe.png",
@@ -149,11 +147,10 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
     expect(result.content).toBe("详细内容");
     expect(result.characterIds).toEqual(["char-1", "char-2"]);
     expect(result.sceneId).toBe("scene-1");
-    expect(result.shotType).toBe("close");
+    // PR 2d Step 2：shotType 不再持久化（dual-write 已清除），读取端不再回退
+    expect(result.shotType).toBeUndefined();
     expect(result.enhancedGeneration).toBe(true);
     expect(result.camera).toEqual({
-      angle: "low",
-      movement: "pan_left",
       distance: "medium",
       speed: "slow",
     });
@@ -394,15 +391,16 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
     const flat1 = flattenBeat(beat1, now);
     const flat2 = flattenBeat(beat2, now);
 
-    expect(flat1.cameraContainer.angle).toBe("low");
-    expect(flat1.cameraContainer.movement).toBe("pan_left");
+    // PR 2d Step 2：angle/movement 不再写入 cameraContainer
+    expect(flat1.cameraContainer.angle).toBeUndefined();
+    expect(flat1.cameraContainer.movement).toBeUndefined();
     expect(flat1.generationContainer.keyframeImageUrl).toBe(
       "https://img.example.com/beat1.png",
     );
     expect(flat1.generationContainer.videoUrl).toBeUndefined();
 
-    expect(flat2.cameraContainer.angle).toBe("high");
-    expect(flat2.cameraContainer.movement).toBe("tilt");
+    expect(flat2.cameraContainer.angle).toBeUndefined();
+    expect(flat2.cameraContainer.movement).toBeUndefined();
     expect(flat2.generationContainer.keyframeImageUrl).toBeUndefined();
     expect(flat2.generationContainer.videoUrl).toBe(
       "https://video.example.com/beat2.mp4",
@@ -411,11 +409,12 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
     const result1 = roundtrip(beat1, "b1", "s1", 0);
     const result2 = roundtrip(beat2, "b2", "s1", 1);
 
-    expect(result1.camera).toEqual({ angle: "low", movement: "pan_left" });
+    // PR 2d Step 2：camera 不再包含 angle/movement
+    expect(result1.camera).toBeUndefined();
     expect(result1.keyframe).toBeDefined();
     expect(result1.videoGen).toBeUndefined();
 
-    expect(result2.camera).toEqual({ angle: "high", movement: "tilt" });
+    expect(result2.camera).toBeUndefined();
     expect(result2.keyframe).toBeUndefined();
     expect(result2.videoGen).toBeDefined();
   });
@@ -440,13 +439,13 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
     expect(genContainer?.characterOutfits).toEqual(outfits);
   });
 
-  it("PR 2c: shotInstruction 应存入 camera 容器并正确还原（dual-write + dual-read）", () => {
+  it("PR 2c: shotInstruction 应存入 camera 容器并正确还原（PR 2d 后仅 shotInstruction）", () => {
     const beat = {
       sequence: 1,
       description: "带 shotInstruction 的 beat",
       duration: 5,
-      shotType: "close", // 旧字段
-      shotInstruction: { // 新字段（dual-write）
+      shotType: "close", // 旧字段（PR 2d 后不再持久化）
+      shotInstruction: { // 新字段
         shotSize: "close",
         cameraAngle: "low",
         cameraMovement: "push",
@@ -455,8 +454,8 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
 
     const flat = flattenBeat(beat, now);
 
-    // 验证 dual-write：camera 容器同时包含 shotType（旧）和 shotInstruction（新）
-    expect(flat.cameraContainer.shotType).toBe("close");
+    // PR 2d Step 2：dual-write 已清除 — camera 容器只包含 shotInstruction，不再包含 shotType
+    expect(flat.cameraContainer.shotType).toBeUndefined();
     expect(flat.cameraContainer.shotInstruction).toEqual({
       shotSize: "close",
       cameraAngle: "low",
@@ -465,8 +464,8 @@ describe("StoryBeat 序列化 roundtrip 验证", () => {
 
     const result = roundtrip(beat);
 
-    // 验证 dual-read：shotType 和 shotInstruction 都应正确还原
-    expect(result.shotType).toBe("close");
+    // PR 2d：shotType 不再持久化（dual-write 已清除）
+    expect(result.shotType).toBeUndefined();
     expect(result.shotInstruction).toEqual({
       shotSize: "close",
       cameraAngle: "low",

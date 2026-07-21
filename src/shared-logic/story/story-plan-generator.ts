@@ -105,23 +105,19 @@ function applyShotParamsFixes(
   let count = autoFixedCount;
   for (const beat of beats) {
     if (!beat.shotType && !beat.camera && !beat.shotInstruction) continue;
+    // PR 2d Step 4e：清除写入端 dual-write — 只读 shotInstruction（PR 3 后读取端已清除 fallback）
     const { fixed, autoFixed } = fixShotParams({
-      shotType: beat.shotInstruction?.shotSize ?? beat.shotType,
-      cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
-      cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
+      shotType: beat.shotInstruction?.shotSize,
+      cameraAngle: beat.shotInstruction?.cameraAngle,
+      cameraMovement: beat.shotInstruction?.cameraMovement,
       duration: beat.duration,
     });
     if (autoFixed.length === 0 || !autoFix) continue;
 
     count += autoFixed.length;
     fixDetails.push(...autoFixed.map((f: string) => `[${beat.title}] ${f}`));
-    if (fixed.shotType) beat.shotType = fixed.shotType;
     if (fixed.duration) beat.duration = fixed.duration;
-    if (beat.camera) {
-      if (fixed.cameraAngle) beat.camera.angle = fixed.cameraAngle;
-      if (fixed.cameraMovement) beat.camera.movement = fixed.cameraMovement;
-    }
-    // PR 2a dual-write：同步更新 shotInstruction（fixShotParams 已填充 fixed.shotInstruction）
+    // PR 2d：只写 shotInstruction（fixShotParams 已填充 fixed.shotInstruction）
     if (fixed.shotInstruction) {
       beat.shotInstruction = fixed.shotInstruction as StoryBeat["shotInstruction"];
     }

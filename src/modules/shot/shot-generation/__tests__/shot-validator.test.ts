@@ -39,9 +39,10 @@ describe("shot-validator", () => {
         cameraAngle: "平视",
         duration: 3,
       });
-      expect(result.data.shotType).toBe("close");
-      expect(result.data.cameraMovement).toBe("push");
-      expect(result.data.cameraAngle).toBe("eye_level");
+      // PR 2d Step 4g：fixShotParams 仅输出 shotInstruction（不再 dual-write 顶层 shotType）
+      expect(result.data.shotInstruction?.shotSize).toBe("close");
+      expect(result.data.shotInstruction?.cameraMovement).toBe("push");
+      expect(result.data.shotInstruction?.cameraAngle).toBe("eye_level");
       expect(result.autoFixed.length).toBeGreaterThan(0);
     });
 
@@ -51,7 +52,8 @@ describe("shot-validator", () => {
         shotType: "invalid_type",
         duration: 5,
       });
-      expect(result.data.shotType).toBe("medium");
+      // PR 2d Step 4g：shotType 通过 shotInstruction.shotSize 输出
+      expect(result.data.shotInstruction?.shotSize).toBe("medium");
     });
 
     it("duration 小于 2 应修正为 2", () => {
@@ -74,20 +76,22 @@ describe("shot-validator", () => {
       const result: ValidationResult<ShotParamsType> = validateShotParams({
         prompt: "一个场景描述，足够长的提示词来通过验证",
       });
-      expect(result.data.shotType).toBe("medium");
+      // PR 2d Step 4g：默认值通过 shotInstruction.shotSize 输出
+      expect(result.data.shotInstruction?.shotSize).toBe("medium");
     });
   });
 
   describe("generateFallbackParams", () => {
     it("action 类型应生成快节奏参数", () => {
       const result = generateFallbackParams({}, { genre: "action" });
-      expect(result.shotType).toBe("close");
+      // PR 2d Step 4g：仅输出 shotInstruction
+      expect(result.shotInstruction?.shotSize).toBe("close");
       expect(result.duration).toBeLessThanOrEqual(4);
     });
 
     it("drama 类型应生成中等节奏参数", () => {
       const result = generateFallbackParams({}, { genre: "drama" });
-      expect(result.shotType).toBe("medium");
+      expect(result.shotInstruction?.shotSize).toBe("medium");
       expect(result.duration).toBe(5);
     });
 
@@ -98,7 +102,7 @@ describe("shot-validator", () => {
 
     it("未知类型应使用 drama 默认值", () => {
       const result = generateFallbackParams({}, { genre: "unknown_genre" });
-      expect(result.shotType).toBe("medium");
+      expect(result.shotInstruction?.shotSize).toBe("medium");
     });
   });
 
@@ -126,7 +130,8 @@ describe("shot-validator", () => {
         content: "全景展示城市的壮丽景色",
         duration: 5,
       }) as unknown as ValidationResult<BeatOutput>;
-      expect(result.data.shotType).toBe("wide");
+      // PR 2d Step 4g：shotSize 通过 shotInstruction.shotSize 输出
+      expect(result.data.shotInstruction?.shotSize).toBe("wide");
     });
 
     it("应推断 type", () => {
@@ -206,8 +211,9 @@ describe("shot-validator", () => {
       const result2 = validateShotParams(params2);
 
       expect(result1).not.toBe(result2);
-      expect(result1.data.shotType).toBe("wide");
-      expect(result2.data.shotType).toBe("close");
+      // PR 2d Step 4g：shotType 通过 shotInstruction.shotSize 输出
+      expect(result1.data.shotInstruction?.shotSize).toBe("wide");
+      expect(result2.data.shotInstruction?.shotSize).toBe("close");
     });
 
     it("useCache: false 应绕过缓存", () => {
@@ -262,7 +268,8 @@ describe("shot-validator", () => {
 
       const resultAfterEviction = validateShotParams(firstParams);
       expect(resultAfterEviction).toBeDefined();
-      expect(resultAfterEviction.data.shotType).toBe("wide");
+      // PR 2d Step 4g：shotType 通过 shotInstruction.shotSize 输出
+      expect(resultAfterEviction.data.shotInstruction?.shotSize).toBe("wide");
     });
   });
 });

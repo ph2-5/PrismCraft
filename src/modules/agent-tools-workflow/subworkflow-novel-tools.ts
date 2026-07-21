@@ -180,12 +180,12 @@ async function planBeatsWithFallback(
 function buildStoryBeats(beatsData: unknown[], maxBeats: number): StoryBeat[] {
   return beatsData.slice(0, maxBeats).map((raw, i) => {
     const b = raw as Record<string, unknown>;
-    // PR 2b：优先读取 shotSize（新字段），fallback shotType（旧字段，向后兼容）
+    // PR 2d Step 4b：清除写入端 dual-write — 只写 shotInstruction，不写旧 shotType/camera.angle/movement
+    // 读取 AI 输出的旧字段名（shotSize/shotType/cameraAngle/cameraMovement）用于构造 shotInstruction
     const shotSize = b.shotSize ? String(b.shotSize) : undefined;
     const shotType = shotSize ?? (b.shotType ? String(b.shotType) : undefined);
     const cameraAngle = b.cameraAngle ? String(b.cameraAngle) : undefined;
     const cameraMovement = b.cameraMovement ? String(b.cameraMovement) : undefined;
-    // PR 2a dual-write：同时构造 shotInstruction，让读取端优先读到新字段
     const shotInstruction = buildShotInstructionFromLegacy({
       shotSize,
       shotType,
@@ -206,11 +206,6 @@ function buildStoryBeats(beatsData: unknown[], maxBeats: number): StoryBeat[] {
         : [],
       sceneId: b.sceneId ? String(b.sceneId) : undefined,
       elementIds: [],
-      shotType,
-      camera: {
-        angle: cameraAngle,
-        movement: cameraMovement,
-      },
       shotInstruction,
     } as StoryBeat;
   });

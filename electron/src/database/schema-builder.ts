@@ -58,19 +58,7 @@ export function generateTableSQL(def: TableDef): string {
 
   for (const [name, col] of Object.entries(allColumns)) {
     if (name === "id" && pk === "id" && !allColumns.id) continue;
-    let line = `    "${name}" ${col.type}`;
-    if (name === pk && pk !== "id") line += " PRIMARY KEY";
-    if (name === pk && pk === "id" && allColumns.id) line += " PRIMARY KEY";
-    if (col.notNull) line += " NOT NULL";
-    if (col.default !== undefined) line += ` DEFAULT ${col.default}`;
-    if (col.check) line += ` CHECK("${name}" ${col.check})`;
-    if (col.unique) line += " UNIQUE";
-    if (col.ref) {
-      const onDelete = col.onDelete || "CASCADE";
-      const refQuoted = quoteRef(col.ref);
-      line += ` REFERENCES ${refQuoted} ON DELETE ${onDelete}`;
-    }
-    lines.push(line);
+    lines.push(buildColumnLine(name, col, pk, allColumns));
 
     if (col.ref || col.index) {
       indexes.push(`CREATE INDEX IF NOT EXISTS idx_${def.name}_${name} ON "${def.name}"("${name}");`);
@@ -94,6 +82,23 @@ export function generateTableSQL(def: TableDef): string {
     sql += `\n${idx}`;
   }
   return sql;
+}
+
+/** 构建单列的 SQL 定义行（提取以降低 generateTableSQL 复杂度） */
+function buildColumnLine(name: string, col: ColumnDef, pk: string, allColumns: Record<string, ColumnDef>): string {
+  let line = `    "${name}" ${col.type}`;
+  if (name === pk && pk !== "id") line += " PRIMARY KEY";
+  if (name === pk && pk === "id" && allColumns.id) line += " PRIMARY KEY";
+  if (col.notNull) line += " NOT NULL";
+  if (col.default !== undefined) line += ` DEFAULT ${col.default}`;
+  if (col.check) line += ` CHECK("${name}" ${col.check})`;
+  if (col.unique) line += " UNIQUE";
+  if (col.ref) {
+    const onDelete = col.onDelete || "CASCADE";
+    const refQuoted = quoteRef(col.ref);
+    line += ` REFERENCES ${refQuoted} ON DELETE ${onDelete}`;
+  }
+  return line;
 }
 
 export function generateJunctionTableSQL(

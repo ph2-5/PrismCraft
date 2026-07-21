@@ -24,7 +24,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const {
   mockKeyStorageSave,
   mockKeyStorageLoad,
-  mockSaveConfigAsync,
   mockReadFileSync,
   mockExistsSync,
   mockWriteFileSync,
@@ -33,16 +32,11 @@ const {
   const fnKeyStorageSave = vi.fn().mockResolvedValue({ ok: true });
   const fnKeyStorageLoad = vi.fn().mockResolvedValue({ ok: true, value: null });
   const fnSafeStorageEncrypt = vi.fn(() => Buffer.from("encrypted"));
-  // saveConfigAsync 的 mock 由 config 模块内部使用，这里只暴露给测试断言
-  const fnSaveConfigAsyncInternal = vi.fn().mockResolvedValue(true);
 
   // fs mocks 必须在 vi.hoisted 内定义，因为 vi.mock 工厂会被提升到文件顶部
   const fnReadFileSync = vi.fn();
   const fnExistsSync = vi.fn(() => false);
   const fnWriteFileSync = vi.fn();
-  const fnRenameSync = vi.fn();
-  const fnCopyFileSync = vi.fn();
-  const fnMkdirSync = vi.fn();
 
   const mock = {
     app: {
@@ -61,7 +55,6 @@ const {
   return {
     mockKeyStorageSave: fnKeyStorageSave,
     mockKeyStorageLoad: fnKeyStorageLoad,
-    mockSaveConfigAsync: fnSaveConfigAsyncInternal,
     mockReadFileSync: fnReadFileSync,
     mockExistsSync: fnExistsSync,
     mockWriteFileSync: fnWriteFileSync,

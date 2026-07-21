@@ -135,8 +135,7 @@ function setupApiHandlers() {
   // 配置 (26 行)
   ipcMain.on("config:get", ...);
 }`;
-    // 模拟 121 行
-    const lines = badFunction.split("\n").filter((l) => l.trim().length > 0);
+    // 模拟 121 行（行数估计：badFunction.split("\n").filter 非空行）
     // BAD 模式：单函数包含多类别注册
     expect(badFunction).toMatch(/ipcMain\.(on|handle)\(["']log/);
     expect(badFunction).toMatch(/ipcMain\.(on|handle)\(["']api:health/);
@@ -155,11 +154,8 @@ function setupApiHandlers() {
     );
     expect(match).not.toBeNull();
     const body = match![1];
-    // GOOD 模式：顶层函数仅含子函数调用
-    const nonCallLines = body
-      .split("\n")
-      .filter((l) => l.trim().length > 0)
-      .filter((l) => !/register\w+Handlers/.test(l) && !/^[\s{}]*$/.test(l));
+    // GOOD 模式：顶层函数仅含子函数调用（nonCallLines 应为空：
+    //   body.split("\n").filter 非空且非 register*Handlers 调用）
     // 不应含直接 ipcMain 注册
     expect(body).not.toMatch(/ipcMain\.(on|handle)\(/);
   });

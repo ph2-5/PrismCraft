@@ -21,6 +21,23 @@ const MODEL_ID = process.env.PRISMCRAFT_LLM_MODEL || "deepseek-chat";
 
 const shouldRun = !!API_KEY;
 
+// 辅助函数：从 SSE delta 中累积 tool_calls（提取以降低嵌套深度）
+type ToolCallAccumulator = { id: string; name: string; args: string };
+function accumulateToolCalls(
+  delta: { tool_calls?: Array<{ index?: number; id?: string; function?: { name?: string; arguments?: string } }> } | undefined,
+  toolCallsMap: Map<number, ToolCallAccumulator>,
+): void {
+  if (!delta?.tool_calls) return;
+  for (const tc of delta.tool_calls) {
+    const idx = tc.index ?? 0;
+    const existing = toolCallsMap.get(idx) || { id: "", name: "", args: "" };
+    if (tc.id) existing.id = tc.id;
+    if (tc.function?.name) existing.name = tc.function.name;
+    if (tc.function?.arguments) existing.args += tc.function.arguments;
+    toolCallsMap.set(idx, existing);
+  }
+}
+
 describe.skipIf(!shouldRun)("Agent 真实 LLM 集成测试", () => {
   it("非流式 generateChat 应返回有效响应", async () => {
     const response = await fetch(`${API_BASE_URL}/chat/completions`, {
@@ -194,16 +211,7 @@ describe.skipIf(!shouldRun)("Agent 真实 LLM 集成测试", () => {
         try {
           const parsed = JSON.parse(json);
           const delta = parsed.choices?.[0]?.delta;
-          if (delta?.tool_calls) {
-            for (const tc of delta.tool_calls) {
-              const idx = tc.index ?? 0;
-              const existing = toolCallsMap.get(idx) || { id: "", name: "", args: "" };
-              if (tc.id) existing.id = tc.id;
-              if (tc.function?.name) existing.name = tc.function.name;
-              if (tc.function?.arguments) existing.args += tc.function.arguments;
-              toolCallsMap.set(idx, existing);
-            }
-          }
+          accumulateToolCalls(delta, toolCallsMap);
           if (parsed.choices?.[0]?.finish_reason) {
             finishReason = parsed.choices[0].finish_reason;
           }

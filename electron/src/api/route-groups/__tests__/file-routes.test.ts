@@ -55,7 +55,7 @@ const TEST_FILE_PATH = path.join(TEST_FILE_DIR, "test.mp4");
 
 function createMockReq(
   filePath: string,
-  rawBuffer: Buffer,
+  _rawBuffer: Buffer,
 ): http.IncomingMessage & { __rawBuffer?: Buffer } {
   return {
     headers: { "x-file-path": filePath },

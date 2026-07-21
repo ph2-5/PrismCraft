@@ -92,13 +92,7 @@ function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {
       if (k === "videoGen") { extractExtraFromObject(obj, "videoGen", FLATTENED_VIDEOGEN_KEYS, extra); continue; }
       if (k === "camera") {
         // PR 7：先剥离 camera.angle/movement/shotType，再提取非已知子字段
-        const filtered: Record<string, unknown> = {};
-        for (const [sk, sv] of Object.entries(obj)) {
-          if (DEPRECATED_CAMERA_KEYS.has(sk)) continue;
-          if (sv === undefined || sv === null) continue;
-          filtered[sk] = sv;
-        }
-        extractExtraFromObject(filtered, "camera", FLATTENED_CAMERA_KEYS, extra);
+        extractExtraFromObject(filterDeprecatedCameraKeys(obj), "camera", FLATTENED_CAMERA_KEYS, extra);
         continue;
       }
     }
@@ -106,6 +100,17 @@ function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {
     extra[k] = v;
   }
   return extra;
+}
+
+// PR 7：剥离 camera 子对象中已废弃的 angle/movement/shotType 字段
+function filterDeprecatedCameraKeys(camera: Record<string, unknown>): Record<string, unknown> {
+  const filtered: Record<string, unknown> = {};
+  for (const [sk, sv] of Object.entries(camera)) {
+    if (DEPRECATED_CAMERA_KEYS.has(sk)) continue;
+    if (sv === undefined || sv === null) continue;
+    filtered[sk] = sv;
+  }
+  return filtered;
 }
 
 function buildMetaContainer(

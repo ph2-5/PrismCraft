@@ -202,8 +202,8 @@ async function checkMemoryBeforePersistence() {
   const setStatePattern = /\bset\w+\s*\(/;
   const asyncDbPattern = /\b(await\s+)?(delete|remove|update|create|save)\w*\s*\(/i;
   const storagePattern = /\b\w+Storage\.\w+/;
-  // UI loading states — immediate feedback is correct UX, not a persistence concern
-  const uiStatePattern = /\bset(Is|Loading|Fetching|Submitting|Processing|Busy|Pending|Disabled)\w*\s*\(/i;
+  // UI loading/error states — immediate feedback is correct UX, not a persistence concern
+  const uiStatePattern = /\bset(Is|Loading|Fetching|Submitting|Processing|Busy|Pending|Disabled|Error)\w*\s*\(/i;
 
   for (const file of files) {
     const content = await readFile(file, "utf-8");

@@ -180,6 +180,7 @@ export function useStorySaver(props: UseStorySaverProps) {
 
   const performDeleteStory = useCallback(async () => {
     if (!storyToDelete) return;
+    // cascade cleanup delegated to deleteStoryAndAssociatedTasks (removes associated VideoTasks)
     const result = await deleteStoryAndAssociatedTasks(storyToDelete);
     if (!result.ok) {
       errorLogger.warn("Failed to delete story from SQLite", result.error);

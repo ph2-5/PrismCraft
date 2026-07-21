@@ -63,9 +63,10 @@ export function createTemplateFromBeats(
       title: beat.title || "",
       content: beat.content || beat.description || "",
       duration: beat.duration || 5,
-      shotType: beat.shotInstruction?.shotSize ?? beat.shotType,
-      cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
-      cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
+      // PR 3：清除旧字段 fallback（依赖 migration v8 已迁移数据）
+      shotType: beat.shotInstruction?.shotSize,
+      cameraAngle: beat.shotInstruction?.cameraAngle,
+      cameraMovement: beat.shotInstruction?.cameraMovement,
       cameraDistance: beat.camera?.distance,
       cameraSpeed: beat.camera?.speed,
       imageGenerationPrompt: beat.imageGenerationPrompt,

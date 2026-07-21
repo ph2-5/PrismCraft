@@ -12,8 +12,9 @@ export function determineVideoGenerationMode(
   if (relationType === "continuous") return "reference_video_continuation";
   if (relationType === "contrast" || relationType === "parallel" || relationType === "fade") return "first_frame_anchor";
 
-  const prevShotType = prevBeat.shotType;
-  const currShotType = beat.shotType;
+  // PR 3：dual-read shotSize（优先 shotInstruction，fallback 旧 shotType，PR 7 后清除 fallback）
+  const prevShotType = prevBeat.shotInstruction?.shotSize ?? prevBeat.shotType;
+  const currShotType = beat.shotInstruction?.shotSize ?? beat.shotType;
   if (prevShotType && currShotType && prevShotType !== currShotType) return "first_frame_anchor";
 
   const prevScene = prevBeat.sceneId;

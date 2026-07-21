@@ -229,12 +229,11 @@ describe("prompt-service: generateVideoPrompt", () => {
     expect(result).toContain("visual features: metal");
   });
 
-  it("beat 含 shotType / camera.angle / camera.movement / duration 时应输出对应段", () => {
+  it("beat 含 shotInstruction / duration 时应输出对应段（PR 3：旧 shotType/camera fallback 已删除）", () => {
     const result = generateVideoPrompt({
       beat: {
         content: "fight scene",
-        shotType: "wide",
-        camera: { angle: "low", movement: "push" },
+        shotInstruction: { shotSize: "wide", cameraAngle: "low", cameraMovement: "push" },
         duration: 5,
       } as BeatInput,
     });
@@ -253,11 +252,10 @@ describe("prompt-service: generateVideoPrompt", () => {
     expect(result).toContain("[Shot Instruction] custom-shot-1");
   });
 
-  it("未知 shotType / camera.movement 应保留原值", () => {
+  it("未知 shotSize / cameraMovement 应保留原值（PR 3：通过 shotInstruction 字段）", () => {
     const result = generateVideoPrompt({
       beat: {
-        shotType: "unknown-shot",
-        camera: { movement: "unknown-move" },
+        shotInstruction: { shotSize: "unknown-shot", cameraMovement: "unknown-move" },
       } as BeatInput,
     });
     expect(result).toContain("[Shot Type] unknown-shot");

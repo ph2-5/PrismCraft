@@ -25,7 +25,74 @@ function sanitizeColumnType(type: string): string {
   return type;
 }
 
-export const CURRENT_SCHEMA_VERSION = 7;
+export const CURRENT_SCHEMA_VERSION = 8;
+
+// PR 3 Step 1：shotType 迁移映射表（内联，不导入 shared-logic 以遵守架构边界）
+// 语义：旧 shotType 中的 size 类 → shotSize
+const SHOT_SIZE_FROM_LEGACY: Record<string, string> = {
+  extreme_close: "extreme_close",
+  close: "close",
+  medium: "medium",
+  wide: "wide",
+  extreme_wide: "extreme_wide",
+};
+
+// 语义：旧 shotType 中的 angle 类 → cameraAngle（修正历史 bug：
+// 旧实现把 angle 类 shotType 当成 size，丢失了角度信息）
+const CAMERA_ANGLE_FROM_LEGACY: Record<string, string> = {
+  eye_level: "eye_level",
+  low: "low",
+  high: "high",
+  birds_eye: "birds_eye",
+  worms_eye: "worms_eye",
+  dutch: "dutch",
+  birdseye: "birds_eye",
+  wormseye: "worms_eye",
+};
+
+const CAMERA_MOVEMENT_FROM_LEGACY: Record<string, string> = {
+  static: "static",
+  push: "push",
+  pull: "pull",
+  pan: "pan",
+  orbit: "orbit",
+  crane_up: "crane_up",
+  crane_down: "crane_down",
+  tracking: "tracking",
+};
+
+/**
+ * PR 3 Step 1：从旧的 camera.shotType + camera.angle + camera.movement
+ * 构造 shotInstruction 子对象。
+ *
+ * 修正历史 bug：旧 shotType 可能是 angle 类（low/high/birdseye/wormseye），
+ * 被误认为 size。此函数按语义重新分配到 shotSize 或 cameraAngle。
+ */
+function buildShotInstructionFromCameraContainer(camera: {
+  shotType?: string;
+  angle?: string;
+  movement?: string;
+}): { shotSize: string; cameraAngle: string; cameraMovement: string } | undefined {
+  const shotType = camera.shotType;
+  const angle = camera.angle;
+  const movement = camera.movement;
+
+  const shotSize = shotType ? SHOT_SIZE_FROM_LEGACY[shotType] : undefined;
+  // shotType 若是 angle 类（size 映射失败），尝试 angle 映射
+  const angleFromShotType = shotType && !shotSize ? CAMERA_ANGLE_FROM_LEGACY[shotType] : undefined;
+  const mappedAngle = angle ? CAMERA_ANGLE_FROM_LEGACY[angle] : undefined;
+  const mappedMovement = movement ? CAMERA_MOVEMENT_FROM_LEGACY[movement] : undefined;
+
+  const finalAngle = mappedAngle ?? angleFromShotType;
+
+  if (!shotSize && !finalAngle && !mappedMovement) return undefined;
+
+  return {
+    shotSize: shotSize || "medium",
+    cameraAngle: finalAngle || "eye_level",
+    cameraMovement: mappedMovement || "static",
+  };
+}
 
 export interface MigrationDb {
   prepare(sql: string): { get(...params: unknown[]): Record<string, unknown> | undefined; all(...params: unknown[]): Record<string, unknown>[]; run(...params: unknown[]): unknown };
@@ -164,6 +231,61 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     }
     db.exec("ALTER TABLE generation_assets_v7 RENAME TO generation_assets;");
     logger.info("[DB] migration v7: generation_assets rebuilt (CHECK constraint relaxed, source_asset_id added)");
+  },
+  // PR 3 Step 1：数据迁移 — 把 camera JSON 中的 shotType/angle/movement 复制到 shotInstruction 子字段
+  // 必须在 PR 3 后续步骤清除读取端 fallback 之前运行，否则旧数据在 UI 上会显示为空
+  8: (db) => {
+    let rows: Array<{ id: string; camera: string | null }> = [];
+    try {
+      rows = db.prepare("SELECT id, camera FROM story_beats WHERE camera IS NOT NULL").all() as Array<{ id: string; camera: string | null }>;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logger.warn(`[DB] migration v8: failed to query story_beats (continuing): ${msg}`);
+      return;
+    }
+
+    let migrated = 0;
+    let skipped = 0;
+    for (const row of rows) {
+      if (!row.camera) continue;
+      let camera: Record<string, unknown>;
+      try {
+        camera = JSON.parse(row.camera);
+      } catch {
+        skipped++;
+        continue;
+      }
+
+      // 已有 shotInstruction 子字段，跳过（避免重复迁移）
+      if (camera.shotInstruction && typeof camera.shotInstruction === "object") {
+        skipped++;
+        continue;
+      }
+
+      // 从旧字段构造 shotInstruction
+      const shotInstruction = buildShotInstructionFromCameraContainer({
+        shotType: typeof camera.shotType === "string" ? camera.shotType : undefined,
+        angle: typeof camera.angle === "string" ? camera.angle : undefined,
+        movement: typeof camera.movement === "string" ? camera.movement : undefined,
+      });
+
+      if (!shotInstruction) {
+        skipped++;
+        continue;
+      }
+
+      camera.shotInstruction = shotInstruction;
+      try {
+        db.prepare("UPDATE story_beats SET camera = ? WHERE id = ?").run(JSON.stringify(camera), row.id);
+        migrated++;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logger.warn(`[DB] migration v8: failed to update beat ${row.id} (continuing): ${msg}`);
+        skipped++;
+      }
+    }
+
+    logger.info(`[DB] migration v8: shotInstruction backfill done (migrated=${migrated}, skipped=${skipped})`);
   },
 };
 

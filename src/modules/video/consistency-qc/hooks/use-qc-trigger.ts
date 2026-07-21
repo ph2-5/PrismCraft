@@ -73,9 +73,8 @@ export function buildQCInput(
   // 角色 ID：从 beat.characterIds 取首个
   const characterId = beat?.characterIds?.[0];
 
-  // 分镜策略：从 beat.shotInstruction.shotSize 或 beat.shotType 推断
-  const strategy =
-    beat?.shotInstruction?.shotSize ?? beat?.shotType ?? undefined;
+  // PR 3：仅读 shotInstruction.shotSize（依赖 migration v8 已迁移数据）
+  const strategy = beat?.shotInstruction?.shotSize ?? undefined;
 
   return {
     videoTaskId: task.taskId,

@@ -60,18 +60,13 @@ export function routeStrategy(
     return createStrategy("angle_switch");
   }
 
-  // 3. 优先读取 shotInstruction.shotSize
+  // 3. PR 3：仅读 shotInstruction.shotSize（依赖 migration v8 已迁移数据）
   const shotSize = beat.shotInstruction?.shotSize;
   if (shotSize) {
     return inferStrategyFromShotType(shotSize);
   }
 
-  // 4. fallback 到 beat.shotType（deprecated 但仍可能存在）
-  if (beat.shotType) {
-    return inferStrategyFromShotType(beat.shotType);
-  }
-
-  // 5. 默认 angle_switch
+  // 4. 默认 angle_switch
   return createStrategy("angle_switch");
 }
 

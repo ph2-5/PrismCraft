@@ -201,11 +201,13 @@ export const storyBeatSchema = z.object({
    *    （或直接让 LLM 输出 `shotInstruction` 子对象）
    * 2. 修改 `story-service.ts` 的 `fixStoryBeat` / `fixShotParams` 解析新缩写并写入 `shotInstruction.shotSize`
    * 3. 修改 `story-generation-pipeline.ts` 把校验结果写回 `shotInstruction.shotSize` 而非 `beat.shotType`
-   * 4. 修改消费者（prompt-service.ts / video-task-params.ts / storyboard-template.ts / UI 组件）
-   *    优先读取 `shotInstruction.shotSize`，fallback `beat.shotType`
-   * 5. 修改 `beat-transformer.ts` / `relations.ts` 持久化 `shotInstruction`
-   * 6. 编写数据迁移脚本：把现有 `shotType` / `camera.shotType` 复制到 `shotInstruction.shotSize`
-   * 7. 兼容期保留此字段（至少 2 个版本），之后删除
+   * 4. ✅ PR 2b：消费者优先读取 `shotInstruction.shotSize`，fallback `beat.shotType`（已清除 fallback 见 PR 3）
+   * 5. ✅ PR 2c：`beat-transformer.ts` / `relations.ts` 持久化 `shotInstruction`
+   * 6. ✅ PR 3：数据迁移脚本（migration v8）已编写，把现有 `shotType` / `camera.shotType`
+   *    语义映射到 `shotInstruction.shotSize` / `cameraAngle`（修正 angle 类 shotType 历史误判）
+   *    读取端 fallback 已清除（BeatDetailsTab / SortableBeatList / BeatThumbnailCard / BeatListView /
+   *    shot-strategy-router / use-qc-trigger / prompt-service / storyboard-template）
+   * 7. 兼容期保留此字段（至少 2 个版本），之后删除（PR 7）
    *
    * 当前使用点：61 个文件（远超 20 处阈值），迁移风险高，故仅做注释改进 + TODO 标记。
    */

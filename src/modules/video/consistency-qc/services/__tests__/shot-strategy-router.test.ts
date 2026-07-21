@@ -2,7 +2,7 @@
  * Task 2A.23: shot-strategy-router 单元测试
  *
  * 覆盖：
- * - routeStrategy: 显式覆盖 / shotInstruction.shotSize / beat.shotType fallback / 默认
+ * - routeStrategy: 显式覆盖 / shotInstruction.shotSize / 默认（PR 3：shotType fallback 已删除）
  * - applyStrategyToPrompt: 各策略追加约束 / 已包含关键词不重复 / 空 prompt
  * - getEffectiveThreshold: 阈值系数调整
  * - shouldUseLastFrame / getLastFrameUsage
@@ -49,14 +49,14 @@ describe("shot-strategy-router", () => {
       expect(strategy.type).toBe("continuous_action"); // close → continuous_action
     });
 
-    it("用例3: fallback 到 beat.shotType（deprecated）", () => {
+    it("用例3: PR 3 后旧 shotType 字段被忽略（fallback 已删除）", () => {
       const beat: StoryBeat = {
         id: "beat-1",
         index: 0,
-        shotType: "wide",
+        shotType: "wide", // 旧字段，PR 3 后不再触发策略推断
       } as unknown as StoryBeat;
       const strategy = routeStrategy(beat);
-      expect(strategy.type).toBe("scene_transition"); // wide → scene_transition
+      expect(strategy.type).toBe("angle_switch"); // 回退到默认
     });
 
     it("用例4: 两者都缺失时返回默认 angle_switch", () => {

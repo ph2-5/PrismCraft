@@ -63,10 +63,11 @@ export function resolveBeatShotInfo(beat: BeatInput): {
   cameraAngle?: string;
   cameraMovement?: string;
 } {
+  // PR 3：清除旧字段 fallback（依赖 migration v8 已迁移数据）
   return {
-    shotSize: beat.shotInstruction?.shotSize ?? beat.shotType,
-    cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
-    cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
+    shotSize: beat.shotInstruction?.shotSize,
+    cameraAngle: beat.shotInstruction?.cameraAngle,
+    cameraMovement: beat.shotInstruction?.cameraMovement,
   };
 }
 

@@ -19,10 +19,11 @@ interface BeatDetailsTabProps {
 }
 
 function resolveBeatShotDisplay(beat: StoryBeat) {
+  // PR 3：清除旧字段 fallback（依赖 migration v8 已把旧数据迁移到 shotInstruction）
   return {
-    shotSize: beat.shotInstruction?.shotSize ?? beat.shotType,
-    cameraAngle: beat.shotInstruction?.cameraAngle ?? beat.camera?.angle,
-    cameraMovement: beat.shotInstruction?.cameraMovement ?? beat.camera?.movement,
+    shotSize: beat.shotInstruction?.shotSize,
+    cameraAngle: beat.shotInstruction?.cameraAngle,
+    cameraMovement: beat.shotInstruction?.cameraMovement,
     hasCameraInfo: !!(beat.camera || beat.shotInstruction),
   };
 }

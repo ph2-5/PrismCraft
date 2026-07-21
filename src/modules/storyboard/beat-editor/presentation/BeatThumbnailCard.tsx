@@ -61,7 +61,8 @@ export const BeatThumbnailCard = memo(function BeatThumbnailCard({
     ? scenes.find((s) => s.id === beat.sceneId)?.name
     : null;
 
-  const shotSize = beat.shotInstruction?.shotSize || beat.shotType;
+  // PR 3：清除旧 shotType fallback（依赖 migration v8 已迁移数据）
+  const shotSize = beat.shotInstruction?.shotSize;
   const shotLabel = shotSize
     ? (() => {
         const option = SHOT_SIZE_OPTIONS.find((o) => o.value === shotSize);

@@ -73,6 +73,163 @@ function resolveTemplateValue(
   return template;
 }
 
+type VideoRequestConfig = NonNullable<UserPluginConfig["request"]["video"]>;
+type ImageRequestConfig = NonNullable<UserPluginConfig["request"]["image"]>;
+
+/** 根据 bodyFormat 分发 video 请求体构建（提取以降低 buildVideoRequest 复杂度） */
+function buildVideoBodyByFormat(
+  ctx: VideoBuildContext,
+  req: VideoRequestConfig,
+  defaultVideoModel: string,
+): Record<string, unknown> {
+  switch (req.bodyFormat) {
+    case "openai-content":
+      return buildVideoBodyOpenAIContent(ctx, req, defaultVideoModel);
+    case "dashscope":
+      return buildVideoBodyDashscope(ctx, req, defaultVideoModel);
+    case "custom": {
+      const body: Record<string, unknown> = {};
+      if (req.customBodyTemplate) {
+        Object.assign(body, resolveTemplateValue(req.customBodyTemplate, {
+          prompt: ctx.prompt,
+          model: ctx.model || defaultVideoModel,
+          duration: ctx.duration,
+          firstFrameUrl: ctx.firstFrameUrl,
+          lastFrameUrl: ctx.lastFrameUrl,
+          referenceVideoUrl: ctx.referenceVideoUrl,
+          characterRef: ctx.characterRef,
+          sceneRef: ctx.sceneRef,
+        }));
+      }
+      return body;
+    }
+    case "flat":
+    default:
+      return buildVideoBodyFlat(ctx, req, defaultVideoModel);
+  }
+}
+
+function buildVideoBodyOpenAIContent(
+  ctx: VideoBuildContext,
+  req: VideoRequestConfig,
+  defaultVideoModel: string,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  const content: Record<string, unknown>[] = [{ type: "text", text: ctx.prompt }];
+  if (ctx.firstFrameUrl) content.push({ type: "image_url", image_url: { url: ctx.firstFrameUrl } });
+  if (ctx.lastFrameUrl) content.push({ type: "image_url", image_url: { url: ctx.lastFrameUrl } });
+  if (ctx.characterRef) content.push({ type: "image_url", image_url: { url: ctx.characterRef } });
+  if (ctx.sceneRef) content.push({ type: "image_url", image_url: { url: ctx.sceneRef } });
+  body.content = content;
+  body.model = ctx.model || defaultVideoModel;
+  if (ctx.duration) body.duration = ctx.duration;
+  if (ctx.referenceVideoUrl) body[req.referenceVideoField || "reference_video"] = ctx.referenceVideoUrl;
+  if (ctx.referenceVideoMimicryLevel) body[req.mimicryLevelField || "mimicry_level"] = ctx.referenceVideoMimicryLevel;
+  return body;
+}
+
+function buildVideoBodyDashscope(
+  ctx: VideoBuildContext,
+  req: VideoRequestConfig,
+  defaultVideoModel: string,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  const input: Record<string, unknown> = { prompt: ctx.prompt };
+  if (ctx.firstFrameUrl) input.image_url = ctx.firstFrameUrl;
+  if (ctx.characterRef) input[req.characterRefField || "character_ref"] = ctx.characterRef;
+  if (ctx.sceneRef) input[req.sceneRefField || "scene_ref"] = ctx.sceneRef;
+  if (ctx.referenceVideoUrl) input[req.referenceVideoField || "reference_video_url"] = ctx.referenceVideoUrl;
+  const parameters: Record<string, unknown> = { size: "1280*720", duration: ctx.duration };
+  if (ctx.referenceVideoMimicryLevel) {
+    parameters[req.mimicryLevelField || "ref_mode"] = ctx.referenceVideoMimicryLevel;
+  }
+  body.model = ctx.model || defaultVideoModel;
+  body.input = input;
+  body.parameters = parameters;
+  return body;
+}
+
+function buildVideoBodyFlat(
+  ctx: VideoBuildContext,
+  req: VideoRequestConfig,
+  defaultVideoModel: string,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  body[req.promptField || "prompt"] = ctx.prompt;
+  body[req.modelField || "model"] = ctx.model || defaultVideoModel;
+  if (ctx.duration) body[req.durationField || "duration"] = ctx.duration;
+  if (ctx.firstFrameUrl) body[req.firstFrameField || "image_url"] = ctx.firstFrameUrl;
+  if (ctx.lastFrameUrl) body[req.lastFrameField || "last_frame_url"] = ctx.lastFrameUrl;
+  if (ctx.characterRef) body[req.characterRefField || "character_ref"] = ctx.characterRef;
+  if (ctx.sceneRef) body[req.sceneRefField || "scene_ref"] = ctx.sceneRef;
+  if (ctx.referenceVideoUrl) body[req.referenceVideoField || "reference_video_url"] = ctx.referenceVideoUrl;
+  if (ctx.referenceVideoMimicryLevel) body[req.mimicryLevelField || "mimicry_level"] = ctx.referenceVideoMimicryLevel;
+  return body;
+}
+
+/** 根据 bodyFormat 分发 image 请求体构建（提取以降低 buildImageRequest 复杂度） */
+function buildImageBodyByFormat(
+  ctx: ImageBuildContext,
+  req: ImageRequestConfig,
+  defaultImageModel: string,
+  supportsRefImage: boolean,
+): Record<string, unknown> {
+  switch (req.bodyFormat) {
+    case "openai":
+      return buildImageBodyOpenAI(ctx, defaultImageModel, supportsRefImage);
+    case "custom": {
+      const body: Record<string, unknown> = {};
+      if (req.customBodyTemplate) {
+        Object.assign(body, resolveTemplateValue(req.customBodyTemplate, {
+          prompt: ctx.prompt,
+          model: ctx.model || defaultImageModel,
+          size: ctx.size,
+          characterRef: ctx.characterRef,
+          sceneRef: ctx.sceneRef,
+        }));
+      }
+      return body;
+    }
+    case "flat":
+    default:
+      return buildImageBodyFlat(ctx, req, defaultImageModel, supportsRefImage);
+  }
+}
+
+function buildImageBodyOpenAI(
+  ctx: ImageBuildContext,
+  defaultImageModel: string,
+  supportsRefImage: boolean,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  body.model = ctx.model || defaultImageModel;
+  body.prompt = ctx.prompt;
+  body.n = 1;
+  body.size = ctx.size;
+  if (ctx.referenceImages.length > 0 && supportsRefImage) body.reference_images = ctx.referenceImages;
+  if (ctx.characterRef && supportsRefImage) body.character_ref = ctx.characterRef;
+  if (ctx.sceneRef && supportsRefImage) body.scene_ref = ctx.sceneRef;
+  return body;
+}
+
+function buildImageBodyFlat(
+  ctx: ImageBuildContext,
+  req: ImageRequestConfig,
+  defaultImageModel: string,
+  supportsRefImage: boolean,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  body[req.promptField || "prompt"] = ctx.prompt;
+  body[req.modelField || "model"] = ctx.model || defaultImageModel;
+  body[req.sizeField || "size"] = ctx.size;
+  if (ctx.referenceImages.length > 0 && supportsRefImage) {
+    body[req.referenceImageField || "reference_image"] = ctx.referenceImages[0];
+  }
+  if (ctx.characterRef && supportsRefImage) body[req.characterRefField || "character_ref"] = ctx.characterRef;
+  if (ctx.sceneRef && supportsRefImage) body[req.sceneRefField || "scene_ref"] = ctx.sceneRef;
+  return body;
+}
+
 export class UserPluginAdapter extends BaseAIProviderPlugin {
   readonly config: UserPluginConfig;
 
@@ -191,104 +348,7 @@ export class UserPluginAdapter extends BaseAIProviderPlugin {
       };
     }
     const defaultVideoModel = this.config.capabilities.video?.defaultModel || "";
-    const body: Record<string, unknown> = {};
-
-    switch (req.bodyFormat) {
-      case "openai-content": {
-        const content: Record<string, unknown>[] = [
-          { type: "text", text: ctx.prompt },
-        ];
-        if (ctx.firstFrameUrl) {
-          content.push({
-            type: "image_url",
-            image_url: { url: ctx.firstFrameUrl },
-          });
-        }
-        if (ctx.lastFrameUrl) {
-          content.push({
-            type: "image_url",
-            image_url: { url: ctx.lastFrameUrl },
-          });
-        }
-        if (ctx.characterRef) {
-          content.push({
-            type: "image_url",
-            image_url: { url: ctx.characterRef },
-          });
-        }
-        if (ctx.sceneRef) {
-          content.push({
-            type: "image_url",
-            image_url: { url: ctx.sceneRef },
-          });
-        }
-        body.content = content;
-        body.model = ctx.model || defaultVideoModel;
-        if (ctx.duration) body.duration = ctx.duration;
-        if (ctx.referenceVideoUrl) {
-          body[req.referenceVideoField || "reference_video"] = ctx.referenceVideoUrl;
-        }
-        if (ctx.referenceVideoMimicryLevel) {
-          body[req.mimicryLevelField || "mimicry_level"] = ctx.referenceVideoMimicryLevel;
-        }
-        break;
-      }
-      case "dashscope": {
-        const input: Record<string, unknown> = { prompt: ctx.prompt };
-        if (ctx.firstFrameUrl) input.image_url = ctx.firstFrameUrl;
-        if (ctx.characterRef) input[req.characterRefField || "character_ref"] = ctx.characterRef;
-        if (ctx.sceneRef) input[req.sceneRefField || "scene_ref"] = ctx.sceneRef;
-        if (ctx.referenceVideoUrl) {
-          input[req.referenceVideoField || "reference_video_url"] = ctx.referenceVideoUrl;
-        }
-        const parameters: Record<string, unknown> = {
-          size: "1280*720",
-          duration: ctx.duration,
-        };
-        if (ctx.referenceVideoMimicryLevel) {
-          parameters[req.mimicryLevelField || "ref_mode"] = ctx.referenceVideoMimicryLevel;
-        }
-        body.model = ctx.model || defaultVideoModel;
-        body.input = input;
-        body.parameters = parameters;
-        break;
-      }
-      case "custom": {
-        if (req.customBodyTemplate) {
-          Object.assign(
-            body,
-            resolveTemplateValue(req.customBodyTemplate, {
-              prompt: ctx.prompt,
-              model: ctx.model || defaultVideoModel,
-              duration: ctx.duration,
-              firstFrameUrl: ctx.firstFrameUrl,
-              lastFrameUrl: ctx.lastFrameUrl,
-              referenceVideoUrl: ctx.referenceVideoUrl,
-              characterRef: ctx.characterRef,
-              sceneRef: ctx.sceneRef,
-            }),
-          );
-        }
-        break;
-      }
-      case "flat":
-      default: {
-        body[req.promptField || "prompt"] = ctx.prompt;
-        body[req.modelField || "model"] = ctx.model || defaultVideoModel;
-        if (ctx.duration) body[req.durationField || "duration"] = ctx.duration;
-        if (ctx.firstFrameUrl) body[req.firstFrameField || "image_url"] = ctx.firstFrameUrl;
-        if (ctx.lastFrameUrl) body[req.lastFrameField || "last_frame_url"] = ctx.lastFrameUrl;
-        if (ctx.characterRef) body[req.characterRefField || "character_ref"] = ctx.characterRef;
-        if (ctx.sceneRef) body[req.sceneRefField || "scene_ref"] = ctx.sceneRef;
-        if (ctx.referenceVideoUrl) {
-          body[req.referenceVideoField || "reference_video_url"] = ctx.referenceVideoUrl;
-        }
-        if (ctx.referenceVideoMimicryLevel) {
-          body[req.mimicryLevelField || "mimicry_level"] = ctx.referenceVideoMimicryLevel;
-        }
-        break;
-      }
-    }
+    const body = buildVideoBodyByFormat(ctx, req, defaultVideoModel);
 
     if (req.extraFields) {
       Object.assign(body, req.extraFields);
@@ -314,57 +374,7 @@ export class UserPluginAdapter extends BaseAIProviderPlugin {
     }
     const defaultImageModel = this.config.capabilities.image?.defaultModel || "";
     const supportsRefImage = this.config.capabilities.image?.supportsReferenceImage ?? false;
-    const body: Record<string, unknown> = {};
-
-    switch (req.bodyFormat) {
-      case "openai": {
-        body.model = ctx.model || defaultImageModel;
-        body.prompt = ctx.prompt;
-        body.n = 1;
-        body.size = ctx.size;
-        if (ctx.referenceImages.length > 0 && supportsRefImage) {
-          body.reference_images = ctx.referenceImages;
-        }
-        if (ctx.characterRef && supportsRefImage) {
-          body.character_ref = ctx.characterRef;
-        }
-        if (ctx.sceneRef && supportsRefImage) {
-          body.scene_ref = ctx.sceneRef;
-        }
-        break;
-      }
-      case "custom": {
-        if (req.customBodyTemplate) {
-          Object.assign(
-            body,
-            resolveTemplateValue(req.customBodyTemplate, {
-              prompt: ctx.prompt,
-              model: ctx.model || defaultImageModel,
-              size: ctx.size,
-              characterRef: ctx.characterRef,
-              sceneRef: ctx.sceneRef,
-            }),
-          );
-        }
-        break;
-      }
-      case "flat":
-      default: {
-        body[req.promptField || "prompt"] = ctx.prompt;
-        body[req.modelField || "model"] = ctx.model || defaultImageModel;
-        body[req.sizeField || "size"] = ctx.size;
-        if (ctx.referenceImages.length > 0 && supportsRefImage) {
-          body[req.referenceImageField || "reference_image"] = ctx.referenceImages[0];
-        }
-        if (ctx.characterRef && supportsRefImage) {
-          body[req.characterRefField || "character_ref"] = ctx.characterRef;
-        }
-        if (ctx.sceneRef && supportsRefImage) {
-          body[req.sceneRefField || "scene_ref"] = ctx.sceneRef;
-        }
-        break;
-      }
-    }
+    const body = buildImageBodyByFormat(ctx, req, defaultImageModel, supportsRefImage);
 
     if (req.extraFields) {
       Object.assign(body, req.extraFields);

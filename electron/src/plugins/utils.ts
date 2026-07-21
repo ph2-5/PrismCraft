@@ -18,6 +18,91 @@ const UPLOAD_DIR =
 
 export { VIDEO_CACHE_DIR, ASSETS_BASE_DIR, UPLOAD_DIR };
 
+const MAX_BASE64_FILE_SIZE = 20 * 1024 * 1024;
+
+const MIME_BY_EXTENSION: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+};
+
+/** 读取文件并编码为 data URI；超过 20MB 或读取失败返回 null */
+function readFileAsDataUri(filePath: string, mime: string): string | null {
+  try {
+    if (!fs.existsSync(filePath)) {
+      logger.warn(`Local file not found: ${filePath}`);
+      return null;
+    }
+    const stat = fs.statSync(filePath);
+    if (stat.size > MAX_BASE64_FILE_SIZE) {
+      logger.warn(
+        `Local file too large for base64 encoding (${(stat.size / 1024 / 1024).toFixed(1)}MB): ${filePath}`,
+      );
+      return null;
+    }
+    const buffer = fs.readFileSync(filePath);
+    return `data:${mime};base64,${buffer.toString("base64")}`;
+  } catch (e) {
+    logger.warn(
+      `Failed to read local file: ${e instanceof Error ? e.message : String(e)}`,
+    );
+    return null;
+  }
+}
+
+/** 解析 vcache:// URL 为 base64（提取以降低 resolveLocalUrlToBase64 复杂度） */
+function resolveVcacheUrl(url: string): string | null {
+  let taskId = url.substring(9);
+  const hashIndex = taskId.indexOf("#");
+  if (hashIndex >= 0) taskId = taskId.substring(0, hashIndex);
+  const queryIndex = taskId.indexOf("?");
+  if (queryIndex >= 0) taskId = taskId.substring(0, queryIndex);
+
+  if (!taskId || taskId.includes("..") || taskId.includes("/") || taskId.includes("\\")) {
+    logger.warn(`Invalid vcache task ID: ${taskId}`);
+    return null;
+  }
+
+  const filePath = path.resolve(path.join(VIDEO_CACHE_DIR, `${taskId}.mp4`));
+  if (!filePath.startsWith(VIDEO_CACHE_DIR)) {
+    logger.warn(`vcache path traversal detected: ${filePath}`);
+    return null;
+  }
+
+  return readFileAsDataUri(filePath, "video/mp4");
+}
+
+/** 解析本地 file:// 或绝对路径 URL 为 base64（提取以降低 resolveLocalUrlToBase64 复杂度） */
+function resolveLocalFileUrl(url: string): string | null {
+  let filePath = url.startsWith("file://") ? url.substring(7) : url;
+  filePath = decodeURIComponent(filePath);
+
+  if (filePath.includes("..")) {
+    logger.warn(`Local path traversal detected: ${filePath}`);
+    return null;
+  }
+
+  const resolvedPath = path.resolve(filePath);
+  const isAllowed =
+    resolvedPath.startsWith(ASSETS_BASE_DIR) ||
+    resolvedPath.startsWith(VIDEO_CACHE_DIR) ||
+    resolvedPath.startsWith(UPLOAD_DIR) ||
+    resolvedPath.startsWith(os.tmpdir());
+
+  if (!isAllowed) {
+    logger.warn(`Local file access denied (outside allowed dirs): ${resolvedPath}`);
+    return null;
+  }
+
+  const ext = path.extname(resolvedPath).toLowerCase();
+  const mime = MIME_BY_EXTENSION[ext] || "application/octet-stream";
+  return readFileAsDataUri(resolvedPath, mime);
+}
+
 export function resolveLocalUrlToBase64(url: string): Promise<string | null> {
   return new Promise((resolve) => {
     if (!url || typeof url !== "string") {
@@ -31,122 +116,17 @@ export function resolveLocalUrlToBase64(url: string): Promise<string | null> {
     }
 
     if (url.startsWith("vcache://")) {
-      let taskId = url.substring(9);
-      const hashIndex = taskId.indexOf("#");
-      if (hashIndex >= 0) taskId = taskId.substring(0, hashIndex);
-      const queryIndex = taskId.indexOf("?");
-      if (queryIndex >= 0) taskId = taskId.substring(0, queryIndex);
-
-      if (
-        !taskId ||
-        taskId.includes("..") ||
-        taskId.includes("/") ||
-        taskId.includes("\\")
-      ) {
-        logger.warn(`Invalid vcache task ID: ${taskId}`);
-        resolve(null);
-        return;
-      }
-
-      const filePath = path.resolve(
-        path.join(VIDEO_CACHE_DIR, `${taskId}.mp4`),
-      );
-      if (!filePath.startsWith(VIDEO_CACHE_DIR)) {
-        logger.warn(`vcache path traversal detected: ${filePath}`);
-        resolve(null);
-        return;
-      }
-
-      try {
-        if (fs.existsSync(filePath)) {
-          const stat = fs.statSync(filePath);
-          if (stat.size > 20 * 1024 * 1024) {
-            logger.warn(
-              `vcache file too large for base64 encoding (${(stat.size / 1024 / 1024).toFixed(1)}MB): ${filePath}`,
-            );
-            resolve(null);
-            return;
-          }
-          const buffer = fs.readFileSync(filePath);
-          resolve(`data:video/mp4;base64,${buffer.toString("base64")}`);
-        } else {
-          logger.warn(`vcache file not found: ${filePath}`);
-          resolve(null);
-        }
-      } catch (e) {
-        logger.warn(
-          `Failed to read vcache file: ${e instanceof Error ? e.message : String(e)}`,
-        );
-        resolve(null);
-      }
+      resolve(resolveVcacheUrl(url));
       return;
     }
 
     if (url.startsWith("/") || url.startsWith("file://")) {
-      let filePath = url.startsWith("file://") ? url.substring(7) : url;
-      filePath = decodeURIComponent(filePath);
-
-      if (filePath.includes("..")) {
-        logger.warn(`Local path traversal detected: ${filePath}`);
-        resolve(null);
-        return;
-      }
-
-      const resolvedPath = path.resolve(filePath);
-      const isAllowed =
-        resolvedPath.startsWith(ASSETS_BASE_DIR) ||
-        resolvedPath.startsWith(VIDEO_CACHE_DIR) ||
-        resolvedPath.startsWith(UPLOAD_DIR) ||
-        resolvedPath.startsWith(os.tmpdir());
-
-      if (!isAllowed) {
-        logger.warn(
-          `Local file access denied (outside allowed dirs): ${resolvedPath}`,
-        );
-        resolve(null);
-        return;
-      }
-
-      try {
-        if (fs.existsSync(resolvedPath)) {
-          const stat = fs.statSync(resolvedPath);
-          if (stat.size > 20 * 1024 * 1024) {
-            logger.warn(
-              `Local file too large for base64 encoding (${(stat.size / 1024 / 1024).toFixed(1)}MB): ${resolvedPath}`,
-            );
-            resolve(null);
-            return;
-          }
-          const buffer = fs.readFileSync(resolvedPath);
-          const ext = path.extname(resolvedPath).toLowerCase();
-          const mimeMap: Record<string, string> = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".webp": "image/webp",
-            ".gif": "image/gif",
-            ".mp4": "video/mp4",
-            ".webm": "video/webm",
-          };
-          const mime = mimeMap[ext] || "application/octet-stream";
-          resolve(`data:${mime};base64,${buffer.toString("base64")}`);
-        } else {
-          logger.warn(`Local file not found: ${resolvedPath}`);
-          resolve(null);
-        }
-      } catch (e) {
-        logger.warn(
-          `Failed to read local file: ${e instanceof Error ? e.message : String(e)}`,
-        );
-        resolve(null);
-      }
+      resolve(resolveLocalFileUrl(url));
       return;
     }
 
     if (url.startsWith("blob:")) {
-      logger.warn(
-        `blob: URLs cannot be resolved server-side: ${url.substring(0, 50)}`,
-      );
+      logger.warn(`blob: URLs cannot be resolved server-side: ${url.substring(0, 50)}`);
       resolve(null);
       return;
     }

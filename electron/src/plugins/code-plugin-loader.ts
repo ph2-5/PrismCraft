@@ -139,41 +139,51 @@ const ESCAPE_PATTERNS = [
   /Reflect\.(get|set|construct|apply)/,
 ];
 
-export function validateCodePluginExport(obj: unknown): { valid: boolean; errors: string[]; export?: CodePluginExport } {
-  const errors: string[] = [];
+/** 校验必填字段和方法（提取以降低 validateCodePluginExport 复杂度） */
+function collectRequiredFieldErrors(e: Record<string, unknown>): string[] {
+  const errs: string[] = [];
+  if (!e.id || typeof e.id !== "string") errs.push("缺少必填字段: id (string)");
+  if (!e.displayName || typeof e.displayName !== "string") errs.push("缺少必填字段: displayName (string)");
+  if (typeof e.match !== "function") errs.push("缺少必填方法: match(apiUrl, model)");
+  if (!e.videoCapabilities || typeof e.videoCapabilities !== "object") errs.push("缺少必填字段: videoCapabilities");
+  if (!e.imageCapabilities || typeof e.imageCapabilities !== "object") errs.push("缺少必填字段: imageCapabilities");
+  if (typeof e.getModelCapabilities !== "function") errs.push("缺少必填方法: getModelCapabilities(modelId)");
+  if (typeof e.buildVideoRequest !== "function") errs.push("缺少必填方法: buildVideoRequest(ctx)");
+  if (typeof e.buildImageRequest !== "function") errs.push("缺少必填方法: buildImageRequest(ctx)");
+  if (typeof e.extractTaskId !== "function") errs.push("缺少必填方法: extractTaskId(data)");
+  if (typeof e.extractVideoUrl !== "function") errs.push("缺少必填方法: extractVideoUrl(data)");
+  if (typeof e.extractImageUrl !== "function") errs.push("缺少必填方法: extractImageUrl(data)");
+  if (typeof e.getAuthHeaders !== "function") errs.push("缺少必填方法: getAuthHeaders(apiKey)");
+  if (typeof e.getModelParameterProfile !== "function") errs.push("缺少必填方法: getModelParameterProfile(modelId)");
+  return errs;
+}
 
+/** 校验 matchPatterns 数组结构（提取以降低 validateCodePluginExport 复杂度） */
+function collectMatchPatternsErrors(matchPatterns: unknown): string[] {
+  const errs: string[] = [];
+  if (!Array.isArray(matchPatterns)) {
+    errs.push("matchPatterns 必须是数组");
+    return errs;
+  }
+  for (let i = 0; i < matchPatterns.length; i++) {
+    const p = matchPatterns[i] as Record<string, unknown>;
+    if (!p || typeof p !== "object" || typeof p.urlPattern !== "string") {
+      errs.push(`matchPatterns[${i}] 缺少 urlPattern (string)`);
+    }
+  }
+  return errs;
+}
+
+export function validateCodePluginExport(obj: unknown): { valid: boolean; errors: string[]; export?: CodePluginExport } {
   if (!obj || typeof obj !== "object") {
     return { valid: false, errors: ["插件导出必须是一个对象"] };
   }
 
   const e = obj as Record<string, unknown>;
-
-  if (!e.id || typeof e.id !== "string") errors.push("缺少必填字段: id (string)");
-  if (!e.displayName || typeof e.displayName !== "string") errors.push("缺少必填字段: displayName (string)");
-  if (typeof e.match !== "function") errors.push("缺少必填方法: match(apiUrl, model)");
-  if (!e.videoCapabilities || typeof e.videoCapabilities !== "object") errors.push("缺少必填字段: videoCapabilities");
-  if (!e.imageCapabilities || typeof e.imageCapabilities !== "object") errors.push("缺少必填字段: imageCapabilities");
-  if (typeof e.getModelCapabilities !== "function") errors.push("缺少必填方法: getModelCapabilities(modelId)");
-  if (typeof e.buildVideoRequest !== "function") errors.push("缺少必填方法: buildVideoRequest(ctx)");
-  if (typeof e.buildImageRequest !== "function") errors.push("缺少必填方法: buildImageRequest(ctx)");
-  if (typeof e.extractTaskId !== "function") errors.push("缺少必填方法: extractTaskId(data)");
-  if (typeof e.extractVideoUrl !== "function") errors.push("缺少必填方法: extractVideoUrl(data)");
-  if (typeof e.extractImageUrl !== "function") errors.push("缺少必填方法: extractImageUrl(data)");
-  if (typeof e.getAuthHeaders !== "function") errors.push("缺少必填方法: getAuthHeaders(apiKey)");
-  if (typeof e.getModelParameterProfile !== "function") errors.push("缺少必填方法: getModelParameterProfile(modelId)");
-
-  if (e.matchPatterns !== undefined) {
-    if (!Array.isArray(e.matchPatterns)) {
-      errors.push("matchPatterns 必须是数组");
-    } else {
-      for (let i = 0; i < e.matchPatterns.length; i++) {
-        const p = e.matchPatterns[i] as Record<string, unknown>;
-        if (!p || typeof p !== "object" || typeof p.urlPattern !== "string") {
-          errors.push(`matchPatterns[${i}] 缺少 urlPattern (string)`);
-        }
-      }
-    }
-  }
+  const errors: string[] = [
+    ...collectRequiredFieldErrors(e),
+    ...(e.matchPatterns !== undefined ? collectMatchPatternsErrors(e.matchPatterns) : []),
+  ];
 
   if (errors.length > 0) {
     return { valid: false, errors };

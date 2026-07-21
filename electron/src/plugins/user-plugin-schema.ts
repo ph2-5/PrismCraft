@@ -275,16 +275,50 @@ function getSchemaValidator() {
   }
 }
 
+/** 收集 AJV schema validator 错误（提取以降低 validatePluginConfig 复杂度） */
+function collectSchemaErrors(validate: ReturnType<Ajv["compile"]>, config: unknown): string[] {
+  const errs: string[] = [];
+  const valid = validate(config);
+  if (!valid && validate.errors) {
+    for (const err of validate.errors) {
+      const field = err.instancePath
+        ? err.instancePath.slice(1).replace(/\//g, ".")
+        : (err.params?.missingProperty as string || "unknown");
+      errs.push(`${field}: ${err.message || "验证失败"}`);
+    }
+  }
+  return errs;
+}
+
+/** schema validator 不可用时执行手动字段校验（提取以降低 validatePluginConfig 复杂度） */
+function collectManualValidationErrors(c: Record<string, unknown>): string[] {
+  const errs: string[] = [];
+  if (!c.id || typeof c.id !== "string") {
+    errs.push("缺少必填字段: id");
+  } else if (!/^[a-z0-9][a-z0-9\-]*[a-z0-9]$/.test(c.id as string)) {
+    errs.push("id 只能包含小写字母、数字和连字符");
+  }
+  if (!c.version || typeof c.version !== "string") errs.push("缺少必填字段: version");
+  if (!c.displayName || typeof c.displayName !== "string") errs.push("缺少必填字段: displayName");
+  if (!c.match || typeof c.match !== "object") errs.push("缺少必填字段: match");
+  if (!c.capabilities || typeof c.capabilities !== "object") errs.push("缺少必填字段: capabilities");
+  if (!c.transport || typeof c.transport !== "object") errs.push("缺少必填字段: transport");
+  if (!c.auth || typeof c.auth !== "object") errs.push("缺少必填字段: auth");
+  if (!c.endpoints || typeof c.endpoints !== "object") errs.push("缺少必填字段: endpoints");
+  if (!c.request || typeof c.request !== "object") errs.push("缺少必填字段: request");
+  if (!c.response || typeof c.response !== "object") errs.push("缺少必填字段: response");
+  return errs;
+}
+
 export function validatePluginConfig(
   config: unknown,
 ): { valid: true; config: UserPluginConfig; errors: string[] } | { valid: false; config: null; errors: string[] } {
-  const errors: string[] = [];
-
   if (!config || typeof config !== "object") {
     return { valid: false, config: null, errors: ["插件配置必须是一个对象"] };
   }
 
   const c = config as Record<string, unknown>;
+  const errors: string[] = [];
 
   if (c.id && typeof c.id === "string" && BUILT_IN_IDS.includes(c.id)) {
     errors.push(`id "${c.id}" 是内置插件保留 ID，请使用其他 ID`);
@@ -292,25 +326,9 @@ export function validatePluginConfig(
 
   const validate = getSchemaValidator();
   if (validate) {
-    const valid = validate(config);
-    if (!valid && validate.errors) {
-      for (const err of validate.errors) {
-        const field = err.instancePath ? err.instancePath.slice(1).replace(/\//g, ".") : (err.params?.missingProperty as string || "unknown");
-        errors.push(`${field}: ${err.message || "验证失败"}`);
-      }
-    }
+    errors.push(...collectSchemaErrors(validate, config));
   } else {
-    if (!c.id || typeof c.id !== "string") errors.push("缺少必填字段: id");
-    else if (!/^[a-z0-9][a-z0-9\-]*[a-z0-9]$/.test(c.id as string)) errors.push("id 只能包含小写字母、数字和连字符");
-    if (!c.version || typeof c.version !== "string") errors.push("缺少必填字段: version");
-    if (!c.displayName || typeof c.displayName !== "string") errors.push("缺少必填字段: displayName");
-    if (!c.match || typeof c.match !== "object") errors.push("缺少必填字段: match");
-    if (!c.capabilities || typeof c.capabilities !== "object") errors.push("缺少必填字段: capabilities");
-    if (!c.transport || typeof c.transport !== "object") errors.push("缺少必填字段: transport");
-    if (!c.auth || typeof c.auth !== "object") errors.push("缺少必填字段: auth");
-    if (!c.endpoints || typeof c.endpoints !== "object") errors.push("缺少必填字段: endpoints");
-    if (!c.request || typeof c.request !== "object") errors.push("缺少必填字段: request");
-    if (!c.response || typeof c.response !== "object") errors.push("缺少必填字段: response");
+    errors.push(...collectManualValidationErrors(c));
   }
 
   if (errors.length > 0) {

@@ -240,6 +240,96 @@ function redactResult(sql: string, data: unknown): unknown {
   return [];
 }
 
+/** db:transaction handler 实现（提取以降低 setupDatabaseHandlers 行数） */
+async function handleDbTransaction(
+  statements: Array<{ sql: string; params?: unknown[] }>
+): Promise<{ success: boolean; data?: unknown; error?: string }> {
+  try {
+    for (const stmt of statements) {
+      validateSql(stmt.sql);
+    }
+    await ensureDb();
+    const db = getDb();
+
+    const results = db.transaction(() => {
+      const innerResults: unknown[] = [];
+      for (const { sql, params } of statements) {
+        const cleanParams = (params || []).map((p) => (p === undefined ? null : p));
+        const stmt = db.prepare(sql);
+        const isSelect = /^\s*SELECT\s/i.test(sql);
+        if (isSelect) {
+          const rows = stmt.all(...cleanParams);
+          innerResults.push(redactResult(sql, rows));
+        } else {
+          const r = stmt.run(...cleanParams);
+          innerResults.push(r);
+        }
+      }
+      return innerResults;
+    });
+
+    scheduleSave();
+    return { success: true, data: results };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Transaction failed:", error instanceof Error ? error : new Error(String(error)));
+    return { success: false, error: msg || "Unknown database transaction error" };
+  }
+}
+
+/** db:batch-insert handler 实现（提取以降低 setupDatabaseHandlers 行数） */
+async function handleDbBatchInsert(
+  table: string,
+  columns: string[],
+  rows: Array<Record<string, unknown>>
+): Promise<{ success: boolean; data?: unknown; error?: string }> {
+  const VALID_TABLES = [...ALLOWED_TABLES];
+  try {
+    if (!VALID_TABLES.includes(table)) {
+      return { success: false, error: "Invalid table name" };
+    }
+    const sanitizedColumns = columns.filter((c) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(c));
+    if (sanitizedColumns.length !== columns.length) {
+      return { success: false, error: "Invalid column names in batch insert" };
+    }
+    await ensureDb();
+    const db = getDb();
+    try {
+      const tableInfo = db.prepare(`PRAGMA table_info("${table}")`).all() as Array<{ name: string }>;
+      const validColumns = new Set(tableInfo.map((col) => col.name));
+      for (const col of sanitizedColumns) {
+        if (!validColumns.has(col)) {
+          return { success: false, error: `Column does not exist in table` };
+        }
+      }
+    } catch {
+      logger.warn("Failed to validate column names", { table });
+      return { success: false, error: "Failed to validate column names" };
+    }
+
+    const placeholders = sanitizedColumns.map(() => "?").join(",");
+    const insertSql = `INSERT INTO "${table}" (${sanitizedColumns.map((c) => `"${c}"`).join(",")}) VALUES (${placeholders})`;
+    const insert = db.prepare(insertSql);
+
+    const doInsert = db.transaction(() => {
+      let count = 0;
+      for (const row of rows) {
+        const values = sanitizedColumns.map((col) => row[col] ?? null);
+        insert.run(...values);
+        count++;
+      }
+      return count;
+    }) as () => number;
+
+    const inserted = doInsert();
+    scheduleSave();
+    return { success: true, data: { inserted } };
+  } catch (error) {
+    logger.error("[DB] Batch insert failed:", error instanceof Error ? error : new Error(String(error)));
+    return { success: false, error: "Database batch insert failed" };
+  }
+}
+
 export function setupDatabaseHandlers(): void {
   ipcMain.handle("db:init", async () => {
     try {
@@ -310,44 +400,8 @@ export function setupDatabaseHandlers(): void {
     async (
       _event: Electron.IpcMainInvokeEvent,
       statements: Array<{ sql: string; params?: unknown[] }>
-    ) => {
-      try {
-        for (const stmt of statements) {
-          validateSql(stmt.sql);
-        }
-        await ensureDb();
-        const db = getDb();
-
-        const results = db.transaction(() => {
-          const innerResults: unknown[] = [];
-          for (const { sql, params } of statements) {
-            const cleanParams = (params || []).map((p) =>
-              p === undefined ? null : p
-            );
-            const stmt = db.prepare(sql);
-            const isSelect = /^\s*SELECT\s/i.test(sql);
-            if (isSelect) {
-              const rows = stmt.all(...cleanParams);
-              innerResults.push(redactResult(sql, rows));
-            } else {
-              const r = stmt.run(...cleanParams);
-              innerResults.push(r);
-            }
-          }
-          return innerResults;
-        });
-
-        scheduleSave();
-        return { success: true, data: results };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        logger.error("[DB] Transaction failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: msg || "Unknown database transaction error" };
-      }
-    }
+    ) => handleDbTransaction(statements)
   );
-
-  const VALID_TABLES = [...ALLOWED_TABLES];
 
   ipcMain.handle(
     "db:batch-insert",
@@ -356,57 +410,7 @@ export function setupDatabaseHandlers(): void {
       table: string,
       columns: string[],
       rows: Array<Record<string, unknown>>
-    ) => {
-      try {
-        if (!VALID_TABLES.includes(table)) {
-          return { success: false, error: "Invalid table name" };
-        }
-        const sanitizedColumns = columns.filter((c) =>
-          /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(c)
-        );
-        if (sanitizedColumns.length !== columns.length) {
-          return {
-            success: false,
-            error: "Invalid column names in batch insert",
-          };
-        }
-        await ensureDb();
-        const db = getDb();
-        try {
-          const tableInfo = db.prepare(`PRAGMA table_info("${table}")`).all() as Array<{ name: string }>;
-          const validColumns = new Set(tableInfo.map((col) => col.name));
-          for (const col of sanitizedColumns) {
-            if (!validColumns.has(col)) {
-              return { success: false, error: `Column does not exist in table` };
-            }
-          }
-        } catch {
-          logger.warn("Failed to validate column names", { table });
-          return { success: false, error: "Failed to validate column names" };
-        }
-
-        const placeholders = sanitizedColumns.map(() => "?").join(",");
-        const insertSql = `INSERT INTO "${table}" (${sanitizedColumns.map((c) => `"${c}"`).join(",")}) VALUES (${placeholders})`;
-        const insert = db.prepare(insertSql);
-
-        const doInsert = db.transaction(() => {
-          let count = 0;
-          for (const row of rows) {
-            const values = sanitizedColumns.map((col) => row[col] ?? null);
-            insert.run(...values);
-            count++;
-          }
-          return count;
-        }) as () => number;
-
-        const inserted = doInsert();
-        scheduleSave();
-        return { success: true, data: { inserted } };
-      } catch (error) {
-        logger.error("[DB] Batch insert failed:", error instanceof Error ? error : new Error(String(error)));
-        return { success: false, error: "Database batch insert failed" };
-      }
-    }
+    ) => handleDbBatchInsert(table, columns, rows)
   );
 
   ipcMain.handle("db:save", async () => {

@@ -14,7 +14,6 @@ const {
   mockPragma,
   mockCreateOptimalDatabase,
   mockGetDbPaths,
-  mockEnsureDbDir,
   mockRunMigrations,
 } = vi.hoisted(() => ({
   mockPragma: vi.fn(),
@@ -23,7 +22,6 @@ const {
     DB_PATH: "/tmp/test-r131-database.db",
     DB_TYPE_FILE: "/tmp/test-r131-database.db.type",
   })),
-  mockEnsureDbDir: vi.fn(),
   mockRunMigrations: vi.fn(),
 }));
 

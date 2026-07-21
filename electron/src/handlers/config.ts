@@ -297,6 +297,17 @@ function isMaskedApiKey(key: string): boolean {
   return key.includes("****");
 }
 
+/** 清除安全存储中所有 API Key（用于 config clear 操作） */
+async function clearSecureStorageKeys(): Promise<void> {
+  const keys = await keyStorage.list();
+  if (!keys.ok || !keys.value) return;
+  for (const key of keys.value) {
+    if (key.startsWith(KEY_STORAGE_PREFIX)) {
+      await keyStorage.delete(key);
+    }
+  }
+}
+
 async function handleConfig(method: string, _body: Record<string, unknown>): Promise<Record<string, unknown>> {
   const config = await loadConfigAsync();
 
@@ -380,14 +391,7 @@ async function handleSecureConfig(_method: string, body: Record<string, unknown>
           fs.unlinkSync(configFile);
         }
         // 清除安全存储中的 API Key
-        const keys = await keyStorage.list();
-        if (keys.ok && keys.value) {
-          for (const key of keys.value) {
-            if (key.startsWith(KEY_STORAGE_PREFIX)) {
-              await keyStorage.delete(key);
-            }
-          }
-        }
+        await clearSecureStorageKeys();
         return { success: true };
       } catch (error) {
         return { success: false, error: (error as Error).message };

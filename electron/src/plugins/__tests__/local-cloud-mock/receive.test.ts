@@ -38,7 +38,6 @@ vi.mock("../../utils", () => ({
 import { LocalCloudMockServer, sendRequest } from "./server";
 import { allProfiles, getProfile } from "./profiles";
 import { TEST_PROMPT, TEST_DURATION, MINIMAL_VIDEO_BUFFER } from "./fixtures";
-import type { ProviderProfile } from "./types";
 
 import { VolcenginePlugin } from "../../providers/volcengine";
 import { SeedancePlugin } from "../../providers/seedance";

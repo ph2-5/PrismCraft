@@ -226,7 +226,6 @@ describe("R136: bulk-save failures 收集", () => {
       {},
     ) as Record<string, unknown>;
 
-    const failures = result.failures as Array<{ taskId: string }>;
     // 无 taskId 的任务应被跳过（continue），不会进入 failures
     // 因为 taskId 为 undefined 时 `if (!taskId) continue` 跳过
     expect(result.saved).toBe(0);

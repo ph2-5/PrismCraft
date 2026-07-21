@@ -8,7 +8,7 @@
  * API Key 或密码等敏感信息，这些信息会写入日志文件，可能被攻击者通过日志
  * 访问获取凭证。
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { BetterSqlite3Statement } from "../../db-interface";
 
 describe("R137: db-interface 敏感参数脱敏", () => {

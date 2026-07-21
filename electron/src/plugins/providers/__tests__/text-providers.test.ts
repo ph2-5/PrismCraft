@@ -20,7 +20,6 @@ import type {
   TextBuildContext,
   ChatBuildContext,
   ChatStreamBuildContext,
-  TextStreamBuildContext,
 } from "../../types";
 
 const TEST_API_KEY = "test-api-key-12345";

@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from "vitest";
 import http from "http";
-import type { IncomingMessage, ServerResponse } from "http";
+import type { IncomingMessage } from "http";
 
 // mock loadConfigAsync 返回空配置，避免依赖真实配置文件
 vi.mock("../config", () => ({

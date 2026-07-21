@@ -8,11 +8,11 @@ import {
   Building2,
   Package,
   Plus,
+  Video,
 } from "lucide-react";
 import type { ReactNode, KeyboardEvent } from "react";
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
-import { ApiKeyAlert } from "@/shared/presentation/onboarding";
 import { useHomePage } from "./hooks/use-home-page";
 
 function HomeSkeleton() {
@@ -64,8 +64,7 @@ export default function Home() {
           <div className="text-[11px] text-muted-foreground opacity-60">{t("home.brandSub")}</div>
         </div>
 
-        {/* API Key 未配置警告 */}
-        <ApiKeyAlert />
+        {/* API Key 未配置警告已全局化至 layout.tsx */}
 
         {/* 三工作流卡片 */}
         <div className="grid grid-cols-3 gap-4 p-6 border-b border-border">
@@ -125,15 +124,25 @@ export default function Home() {
         <div className="p-6 flex-1 overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="text-[15px] font-bold"><FolderOpen className="inline-block" size={16} /> {t("home.recentProjects")}</div>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => navigate("/storyboard")}
-            >
-              + {t("home.newProject")}
-            </button>
+            <div className="flex gap-2">
+              {stories.length > 6 && (
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => navigate("/storyboard")}
+                >
+                  {t("home.viewAll")}
+                </button>
+              )}
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => navigate("/storyboard")}
+              >
+                + {t("home.newProject")}
+              </button>
+            </div>
           </div>
           <div className="grid gap-3.5 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
-            {stories.slice(0, 6).map((story) => {
+            {stories.map((story) => {
               const charCount = story.characters?.length ?? 0;
               const sceneCount = story.scenes?.length ?? 0;
               const beats = story.beats ?? [];
@@ -142,10 +151,16 @@ export default function Home() {
               const completedBeats = beats.filter((b) => Boolean(b.videoGen?.videoUrl)).length;
               const statusBadgeClass =
                 beatCount === 0
-                  ? "badge-warning"
+                  ? "badge-muted"
                   : completedBeats === beatCount
                     ? "badge-success"
                     : "badge-info";
+              const statusBadgeText =
+                beatCount === 0
+                  ? t("home.empty")
+                  : completedBeats === beatCount
+                    ? t("home.completed")
+                    : t("home.inProgress");
               return (
                 <div
                   key={story.id}
@@ -160,7 +175,7 @@ export default function Home() {
                       <div className="text-sm font-bold truncate">{story.title || t("story.unnamed")}</div>
                       <div className="text-[11px] text-muted-foreground truncate">{story.description || ""}</div>
                     </div>
-                    <span className={`badge ${statusBadgeClass} text-[9px]`}>{t("home.inProgress")}</span>
+                    <span className={`badge ${statusBadgeClass} text-[9px]`}>{statusBadgeText}</span>
                   </div>
                   <div className="flex gap-3.5 text-[11px] text-muted-foreground mb-2">
                     <span><Users className="inline-block" size={12} /> {charCount}</span>
@@ -189,10 +204,10 @@ export default function Home() {
           <div className="mt-6 border-t border-border pt-5">
             <div className="text-sm font-bold mb-3"><Zap className="inline-block" size={14} /> {t("home.quickEntry")}</div>
             <div className="grid grid-cols-4 gap-2.5">
-              <QuickEntryCard icon="" title={t("home.characterManage")} subtitle={`${characters.length} ${t("home.characters")}`} onClick={() => navigate("/characters")} />
-              <QuickEntryCard icon="" title={t("home.sceneManage")} subtitle={`${scenes.length} ${t("home.scenes")}`} onClick={() => navigate("/scenes")} />
-              <QuickEntryCard icon="" title={t("home.assetLibrary")} subtitle={t("home.assetManage")} onClick={() => navigate("/asset-library")} />
-              <QuickEntryCard icon="" title={t("home.videoTasks")} subtitle={t("home.taskManage")} onClick={() => navigate("/video-tasks")} />
+              <QuickEntryCard icon={<Users size={20} />} title={t("home.characterManage")} subtitle={`${characters.length} ${t("home.characters")}`} onClick={() => navigate("/characters")} />
+              <QuickEntryCard icon={<Building2 size={20} />} title={t("home.sceneManage")} subtitle={`${scenes.length} ${t("home.scenes")}`} onClick={() => navigate("/scenes")} />
+              <QuickEntryCard icon={<Package size={20} />} title={t("home.assetLibrary")} subtitle={t("home.assetManage")} onClick={() => navigate("/asset-library")} />
+              <QuickEntryCard icon={<Video size={20} />} title={t("home.videoTasks")} subtitle={t("home.taskManage")} onClick={() => navigate("/video-tasks")} />
             </div>
           </div>
         </div>
@@ -201,13 +216,13 @@ export default function Home() {
   );
 }
 
-function QuickEntryCard({ icon, title, subtitle, onClick }: { icon: string; title: string; subtitle: string; onClick: () => void }) {
+function QuickEntryCard({ icon, title, subtitle, onClick }: { icon: ReactNode; title: string; subtitle: string; onClick: () => void }) {
   return (
     <div
       className="card home-quick-entry p-3.5 text-center cursor-pointer transition-all"
       onClick={onClick}
     >
-      <div className="text-2xl mb-1">{icon}</div>
+      <div className="mb-1 flex justify-center" style={{ color: "var(--primary)" }}>{icon}</div>
       <div className="text-xs font-semibold">{title}</div>
       <div className="text-[10px] text-muted-foreground">{subtitle}</div>
     </div>

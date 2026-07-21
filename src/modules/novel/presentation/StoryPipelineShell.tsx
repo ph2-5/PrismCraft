@@ -24,6 +24,7 @@
 import { useState } from "react";
 import { Loader2, ArrowRight, Zap, Save, BarChart3, Settings } from "lucide-react";
 import { t } from "@/shared/constants";
+import { confirm } from "@/shared/utils/confirm";
 import type { PipelineConfig, PipelineStage } from "../domain/types";
 import { useNovelPipeline } from "../hooks/use-novel-pipeline";
 import { PhaseIndicator } from "./PhaseIndicator";
@@ -151,9 +152,12 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
   };
 
   // Task 2A.16：切换模式按钮回调（弹窗确认，避免丢失数据）
-  const handleSwitchMode = () => {
+  const handleSwitchMode = async () => {
     if (state.stage !== "project_init" || state.rawText.length > 0) {
-      const confirmed = window.confirm(t("novel.mode.switchConfirm"));
+      const confirmed = await confirm({
+        description: t("novel.mode.switchConfirm"),
+        variant: "warning",
+      });
       if (!confirmed) return;
     }
     setModeSelected(false);

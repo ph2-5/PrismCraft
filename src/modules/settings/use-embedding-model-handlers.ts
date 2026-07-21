@@ -22,6 +22,7 @@ import {
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
 import { t } from "@/shared/constants";
+import { confirm } from "@/shared/utils/confirm";
 import { prewarmEmbeddings } from "@/modules/agent";
 import {
   isAcceptedFile,
@@ -300,7 +301,10 @@ export function useEmbeddingModelHandlers(): EmbeddingModelHandlers {
   // 删除模型
   const handleRemove = useCallback(
     async (entry: LocalModelEntry) => {
-      if (!window.confirm(t("settings.embeddingModelRemoveConfirm", { name: entry.modelName }))) {
+      if (!await confirm({
+        description: t("settings.embeddingModelRemoveConfirm", { name: entry.modelName }),
+        variant: "danger",
+      })) {
         return;
       }
       setPendingId(entry.id);

@@ -15,9 +15,11 @@ import {
   MapPin,
   Link as LinkIcon,
   Film,
+  Keyboard,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, memo } from "react";
 import { SearchDialog } from "./SearchDialog";
+import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { AgentStatusIndicator } from "./AgentStatusIndicator";
 import { useNavigationGuard } from "./BeforeUnloadGuard";
@@ -341,13 +343,23 @@ function SidebarNav({ pathname, isHomeActive, collapsed, onNavigate }: SidebarNa
 interface SidebarFooterProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onShowShortcuts: () => void;
 }
 
-function SidebarFooter({ collapsed, onToggleCollapse }: SidebarFooterProps) {
+function SidebarFooter({ collapsed, onToggleCollapse, onShowShortcuts }: SidebarFooterProps) {
   return (
     <div className="sidebar-footer">
       <AgentStatusIndicator collapsed={collapsed} />
       <ThemeSwitcher collapsed={collapsed} />
+      <button
+        onClick={onShowShortcuts}
+        className={cn("nav-item", collapsed && "is-collapsed")}
+        title={t("sidebar.keyboardShortcuts")}
+        aria-label={t("sidebar.keyboardShortcuts")}
+      >
+        <Keyboard className="icon" />
+        {!collapsed && <span>{t("sidebar.shortcuts")}</span>}
+      </button>
       <button
         onClick={onToggleCollapse}
         className={cn("nav-item", collapsed && "is-collapsed")}
@@ -367,10 +379,23 @@ function SidebarFooter({ collapsed, onToggleCollapse }: SidebarFooterProps) {
   );
 }
 
+/** 快捷键列表（传给 KeyboardShortcutsDialog） */
+const SIDEBAR_SHORTCUT_LIST = [
+  { key: "k", ctrl: true, description: t("shortcut.search") },
+  { key: "b", ctrl: true, description: t("shortcut.toggleSidebar") },
+  { key: "/", ctrl: true, description: t("shortcut.goToAgent") },
+  { key: "m", ctrl: true, shift: true, description: t("shortcut.goToAssetLibrary") },
+  { key: "s", ctrl: true, description: t("shortcut.save") },
+  { key: "z", ctrl: true, description: t("shortcut.undo") },
+  { key: "z", ctrl: true, shift: true, description: t("shortcut.redo") },
+  { key: "Escape", description: t("shortcut.closeSearch") },
+];
+
 export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.ReactElement {
   const pathname = useLocation().pathname;
   const { guardedPush } = useNavigationGuard();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const collapsed = useSyncExternalStore(subscribeSidebar, getSidebarCollapsedSnapshot, getSidebarCollapsedServerSnapshot);
 
   const toggleCollapsed = useCallback(() => {
@@ -421,7 +446,11 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
           collapsed={collapsed}
           onNavigate={handleNavClick}
         />
-        <SidebarFooter collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
+        <SidebarFooter
+          collapsed={collapsed}
+          onToggleCollapse={toggleCollapsed}
+          onShowShortcuts={() => setShortcutsOpen(true)}
+        />
       </aside>
 
       <SearchDialog
@@ -429,6 +458,11 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
         onClose={() => setSearchOpen(false)}
         onSearch={onSearch || (async () => [])}
         onSelect={onSearchSelect || (() => {})}
+      />
+      <KeyboardShortcutsDialog
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+        shortcuts={SIDEBAR_SHORTCUT_LIST}
       />
     </>
   );

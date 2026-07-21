@@ -6,6 +6,7 @@ import { NetworkStatusAlert } from "@/shared/presentation/NetworkStatusAlert";
 import { UpdateNotification } from "@/shared/presentation/UpdateNotification";
 import { BeforeUnloadGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { GlobalKeyboardActions } from "@/shared/presentation/GlobalKeyboardActions";
+import { ApiKeyAlert } from "@/shared/presentation/onboarding";
 import { QueryProvider } from "@/presentation/providers/query-provider";
 import { ThemeProvider } from "@/shared/presentation/ThemeProvider";
 import { ClientProviders } from "./ClientProviders";
@@ -59,9 +60,12 @@ export function RootLayout() {
             <SidebarWithSearch />
             <main
               id="main-content"
-              className={`flex-1 h-full overflow-hidden transition-[margin-left] duration-200 ml-[var(--sidebar-width,220px)] bg-[var(--bg-subtle-gradient)]${electron ? " pt-9" : ""}`}
+              className={`flex flex-col flex-1 h-full overflow-hidden transition-[margin-left] duration-200 ml-[var(--sidebar-width,220px)] bg-[var(--bg-subtle-gradient)]${electron ? " pt-9" : ""}`}
             >
-              <Outlet />
+              <ApiKeyAlert />
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <Outlet />
+              </div>
             </main>
           </ToastProvider>
           <Suspense fallback={null}>

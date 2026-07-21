@@ -5,7 +5,7 @@ import { AssetLibraryContent } from "./AssetLibraryContent";
 
 export default function AssetLibraryPage() {
   const hookResult = useAssetLibraryPage();
-  const [showUploadArea, setShowUploadArea] = useState(false);
+  const [showUploadArea, setShowUploadArea] = useState(true);
 
   return (
     <PageErrorBoundary>

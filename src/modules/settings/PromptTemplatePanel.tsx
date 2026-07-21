@@ -27,6 +27,7 @@ import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { errorLogger } from "@/shared/error-logger";
+import { confirm } from "@/shared/utils/confirm";
 import {
   listPromptTemplates,
   searchPromptTemplates,
@@ -393,7 +394,10 @@ function useTemplateLifecycleActions(
   toast: ReturnType<typeof useToastHelpers>,
 ) {
   const handleDelete = useCallback(async (template: PromptTemplate) => {
-    if (!window.confirm(t("settings.promptTemplatesDeleteConfirm"))) return;
+    if (!await confirm({
+      description: t("settings.promptTemplatesDeleteConfirm"),
+      variant: "danger",
+    })) return;
     try {
       await deletePromptTemplate(template.id);
       toast.success(t("settings.promptTemplatesDeleteSuccess"), "");
@@ -406,7 +410,10 @@ function useTemplateLifecycleActions(
 
   const handleResetBuiltin = useCallback(async (template: PromptTemplate) => {
     if (!template.builtin) return;
-    if (!window.confirm(t("settings.promptTemplatesResetConfirm"))) return;
+    if (!await confirm({
+      description: t("settings.promptTemplatesResetConfirm"),
+      variant: "warning",
+    })) return;
     try {
       // 通过 delete 触发内置模板的重置逻辑
       await deletePromptTemplate(template.id);

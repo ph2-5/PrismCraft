@@ -15,8 +15,7 @@ interface Beat {
   imageGenerationPrompt?: string;
   firstFramePrompt?: string;
   lastFramePrompt?: string;
-  shotType?: string;
-  camera?: { angle?: string; movement?: string };
+  // PR 7：shotType/camera.angle/camera.movement 已删除，只保留 shotInstruction
   shotInstruction?: {
     shotSize?: string;
     cameraAngle?: string;
@@ -188,10 +187,9 @@ export function buildKeyframeGenerationParams(params: {
 
   const content =
     beat.imageGenerationPrompt || beat.content || beat.description || "";
-  // PR 2d：shotRequirement 仅从 shotInstruction 读取，不再 fallback 到旧字段
-  // prompt-service.ts 中使用 `if (shotType)` 防御，undefined 安全
+  // PR 7：shotRequirement 字段名统一为 shotSize（与 ShotInstructionTemplate 一致）
   const shotRequirement = {
-    shotType: beat.shotInstruction?.shotSize,
+    shotSize: beat.shotInstruction?.shotSize,
     cameraAngle: beat.shotInstruction?.cameraAngle,
     cameraMovement: beat.shotInstruction?.cameraMovement,
     action: content,

@@ -125,7 +125,7 @@ describe("server-prompt-service", () => {
       const result = generateKeyframePrompt({
         content: "A character",
         shotRequirement: {
-          shotType: "close-up",
+          shotSize: "close-up",
           cameraAngle: "low angle",
           cameraMovement: "push in",
           action: "walking",
@@ -140,7 +140,7 @@ describe("server-prompt-service", () => {
     it("should generate prompt with partial shotRequirement", () => {
       const result = generateKeyframePrompt({
         shotRequirement: {
-          shotType: "wide shot",
+          shotSize: "wide shot",
         },
       });
       expect(result).toContain("wide shot");
@@ -173,7 +173,7 @@ describe("server-prompt-service", () => {
         sceneRef: "scene-1",
         prevKeyframe: "prev-keyframe-url",
         shotRequirement: {
-          shotType: "medium shot",
+          shotSize: "medium shot",
           cameraAngle: "eye level",
           cameraMovement: "tracking",
           action: "running",

@@ -79,10 +79,11 @@ describe("Challenging Prompts Test Suite", () => {
         title: beatData.beat.title,
         content: beatData.beat.content,
         sceneId: beatData.beat.sceneId,
-        shotType: beatData.beat.shotType,
-        camera: {
-          angle: beatData.beat.cameraAngle,
-          movement: beatData.beat.cameraMovement,
+        // PR 7：shotType/camera.angle/camera.movement 已删除，使用 shotInstruction
+        shotInstruction: {
+          shotSize: beatData.beat.shotType ?? "medium",
+          cameraAngle: beatData.beat.cameraAngle ?? "eye_level",
+          cameraMovement: beatData.beat.cameraMovement ?? "static",
         },
         duration: beatData.beat.duration,
         elementIds: [],

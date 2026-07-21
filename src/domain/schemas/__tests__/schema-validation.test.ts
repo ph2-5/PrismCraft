@@ -1300,17 +1300,16 @@ describe("story schemas", () => {
   describe("beatCameraSchema", () => {
     it("should parse empty object (all fields optional)", () => {
       const result = beatCameraSchema.parse({});
-      expect(result.angle).toBeUndefined();
+      // PR 7：angle/movement 已删除，distance 仍存在
+      expect(result.distance).toBeUndefined();
     });
 
     it("should parse valid data", () => {
       const result = beatCameraSchema.parse({
-        angle: "low",
-        movement: "tracking",
         distance: "far",
         speed: "slow",
       });
-      expect(result.angle).toBe("low");
+      expect(result.distance).toBe("far");
     });
   });
 
@@ -1349,12 +1348,12 @@ describe("story schemas", () => {
         title: "Opening",
         content: "The hero arrives",
         sceneId: "scene-1",
-        shotType: "wide",
+        shotInstruction: { shotSize: "wide", cameraAngle: "low", cameraMovement: "pan" },
         elementBindings: {
           "elem-1": { role: "protagonist", position: "center" },
         },
         generationStatus: "idle",
-        camera: { angle: "low", movement: "pan" },
+        camera: { distance: "far", speed: "slow" },
         keyframe: { imageUrl: "https://example.com/kf.png" },
         framePair: { firstFrameUrl: "https://example.com/first.png" },
         videoGen: { videoUrl: "https://example.com/video.mp4" },
@@ -1366,8 +1365,10 @@ describe("story schemas", () => {
         chainMode: "auto",
       });
       expect(result.type).toBe("action");
-      expect(result.shotType).toBe("wide");
-      expect(result.camera?.angle).toBe("low");
+      // PR 7：shotType/camera.angle/camera.movement 已删除，验证 shotInstruction
+      expect(result.shotInstruction?.shotSize).toBe("wide");
+      expect(result.shotInstruction?.cameraAngle).toBe("low");
+      expect(result.camera?.distance).toBe("far");
       expect(result.chainMode).toBe("auto");
     });
 
@@ -1377,9 +1378,10 @@ describe("story schemas", () => {
       ).toThrow();
     });
 
-    it("should convert invalid shotType to undefined", () => {
-      const result = storyBeatSchema.parse({ ...validBeat, shotType: "dutch" });
-      expect(result.shotType).toBeUndefined();
+    it("PR 7: shotType 字段已从 schema 删除，传入会被 ignore", () => {
+      const result = storyBeatSchema.parse({ ...validBeat, shotType: "dutch" } as Record<string, unknown>);
+      // shotType 字段已删除，传入也会被 zod 默认 strip 掉
+      expect((result as Record<string, unknown>).shotType).toBeUndefined();
     });
 
     it("should reject invalid generationStatus enum", () => {

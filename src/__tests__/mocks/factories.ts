@@ -89,8 +89,7 @@ export const factories = {
   }),
 
   beatCamera: (overrides: Partial<BeatCamera> = {}): BeatCamera => ({
-    angle: "eye_level",
-    movement: "static",
+    // PR 7：angle/movement 已从 beatCameraSchema 删除，只保留 distance/speed 等独有字段
     distance: "medium",
     speed: "normal",
     ...overrides,

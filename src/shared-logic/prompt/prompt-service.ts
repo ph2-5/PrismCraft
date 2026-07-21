@@ -48,8 +48,7 @@ export interface SceneInput {
 export interface BeatInput {
   content?: string;
   description?: string;
-  shotType?: string;
-  camera?: { angle?: string; movement?: string };
+  // PR 7：shotType/camera.angle/camera.movement 已删除，只保留 shotInstruction
   shotInstruction?: {
     shotSize?: string;
     cameraAngle?: string;
@@ -431,7 +430,7 @@ function generateQuickModeVideoPrompt(params: QuickModeParams): string {
 function generateKeyframePrompt(params: {
   content?: string;
   shotRequirement?: {
-    shotType?: string;
+    shotSize?: string;
     cameraAngle?: string;
     cameraMovement?: string;
     action?: string;
@@ -442,9 +441,9 @@ function generateKeyframePrompt(params: {
   parts.push("Generate a high-quality storyboard preview image. Requirements:");
   if (params.content) parts.push(`Visual content: ${params.content}`);
   if (params.shotRequirement) {
-    const { shotType, cameraAngle, cameraMovement, action } =
+    const { shotSize, cameraAngle, cameraMovement, action } =
       params.shotRequirement;
-    if (shotType) parts.push(`Shot type: ${shotType}`);
+    if (shotSize) parts.push(`Shot size: ${shotSize}`);
     if (cameraAngle) parts.push(`Camera angle: ${cameraAngle}`);
     if (cameraMovement) parts.push(`Camera movement: ${cameraMovement}`);
     if (action) parts.push(`Action: ${action}`);

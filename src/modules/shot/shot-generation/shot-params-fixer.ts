@@ -218,19 +218,26 @@ export function fixShotParams(data: Record<string, unknown>): {
   const fixed: Record<string, unknown> = {};
   const autoFixed: string[] = [];
 
+  // PR 7：优先从 shotInstruction 读取（新格式），fallback 到顶层旧字段名（LLM 仍可能输出）
+  const shotInstructionInput = (data.shotInstruction ?? {}) as {
+    shotSize?: string;
+    cameraAngle?: string;
+    cameraMovement?: string;
+  };
+
   // PR 2d Step 4g：清除写入端 dual-write — 不再写 shotType / cameraAngle / cameraMovement 顶层字段
   // 输入读取仍兼容旧字段名（data.shotType / data.cameraAngle / data.cameraMovement）
   const shotTypeFix = fixEnumField(
-    data.shotType,
+    shotInstructionInput.shotSize ?? data.shotType,
     SHOT_TYPE_ALIASES,
     VALID_SHOT_TYPES,
     "medium",
-    "shotType",
+    "shotSize",
   );
   if (shotTypeFix.message) autoFixed.push(shotTypeFix.message);
 
   const movementFix = fixOptionalEnumField(
-    data.cameraMovement,
+    shotInstructionInput.cameraMovement ?? data.cameraMovement,
     CAMERA_MOVEMENT_ALIASES,
     VALID_CAMERA_MOVEMENTS,
     "static",
@@ -239,7 +246,7 @@ export function fixShotParams(data: Record<string, unknown>): {
   if (movementFix.message) autoFixed.push(movementFix.message);
 
   const angleFix = fixOptionalEnumField(
-    data.cameraAngle,
+    shotInstructionInput.cameraAngle ?? data.cameraAngle,
     CAMERA_ANGLE_ALIASES,
     VALID_CAMERA_ANGLES,
     "eye_level",
@@ -259,9 +266,10 @@ export function fixShotParams(data: Record<string, unknown>): {
   fixed.prompt = promptFix.value;
   if (promptFix.message) autoFixed.push(promptFix.message);
 
-  // PR 2d Step 4g：仅写入 shotInstruction（读取端已迁移至 shotInstruction，依赖 migration v8）
+  // PR 7：shotInstruction 优先使用已修复的值（来自 shotInstructionInput 或旧字段 fallback）
   const shotInstruction = buildShotInstructionFromLegacy({
-    shotType: shotTypeFix.value as string | undefined,
+    shotSize: shotInstructionInput.shotSize ? shotTypeFix.value as string | undefined : undefined,
+    shotType: shotInstructionInput.shotSize ? undefined : (shotTypeFix.value as string | undefined),
     cameraAngle: angleFix.value as string | undefined,
     cameraMovement: movementFix.value as string | undefined,
   });

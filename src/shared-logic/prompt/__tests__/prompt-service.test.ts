@@ -354,18 +354,18 @@ describe("prompt-service: generateKeyframePrompt", () => {
     expect(result).toContain("masterpiece");
   });
 
-  it("shotRequirement 应输出 Shot type / Camera angle / Camera movement / Action", () => {
+  it("shotRequirement 应输出 Shot size / Camera angle / Camera movement / Action", () => {
     const result = generateKeyframePrompt({
       content: "scene content",
       shotRequirement: {
-        shotType: "wide",
+        shotSize: "wide",
         cameraAngle: "low",
         cameraMovement: "push",
         action: "running",
       },
     });
     expect(result).toContain("Visual content: scene content");
-    expect(result).toContain("Shot type: wide");
+    expect(result).toContain("Shot size: wide");
     expect(result).toContain("Camera angle: low");
     expect(result).toContain("Camera movement: push");
     expect(result).toContain("Action: running");

@@ -313,7 +313,8 @@ describe("generateFramePrompts", () => {
   it("应正确处理镜头类型映射", async () => {
     const beatWithShot: StoryBeat = {
       ...mockBeat,
-      shotType: "close",
+      // PR 7：shotType 已删除，使用 shotInstruction
+      shotInstruction: { shotSize: "close", cameraAngle: "eye_level", cameraMovement: "static" },
     };
 
     (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -336,10 +337,9 @@ describe("generateFramePrompts", () => {
   it("应正确处理 camera 信息", async () => {
     const beatWithCamera: StoryBeat = {
       ...mockBeat,
-      camera: {
-        angle: "低角度",
-        movement: "推进",
-      },
+      // PR 7：camera.angle/movement 已删除，使用 shotInstruction
+      shotInstruction: { shotSize: "medium", cameraAngle: "low", cameraMovement: "push" },
+      camera: { distance: "medium", speed: "normal" },
     };
 
     (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -356,8 +356,9 @@ describe("generateFramePrompts", () => {
     });
 
     const prompt = (mockTextProvider.generateText as ReturnType<typeof vi.fn>).mock.calls[0]![0]!;
-    expect(prompt).toContain("低角度");
-    expect(prompt).toContain("推进");
+    // PR 7：cameraAngle "low" 对应 label "仰视"，cameraMovement "push" 对应 label "推"
+    expect(prompt).toContain("仰视");
+    expect(prompt).toContain("推");
   });
 
   it("beat 使用 characterIds 字段时应正确处理", async () => {

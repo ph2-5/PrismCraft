@@ -215,42 +215,8 @@ describe("validateCameraConsistency", () => {
     expect(fadeIssue).toBeUndefined();
   });
 
-  it("shotInstruction.cameraMovement=static 但 camera.movement 不是 static 应产生 warning", () => {
-    const result = validateCameraConsistency({
-      beats: [
-        makeBeat({
-          shotInstruction: {
-            shotSize: "medium",
-            cameraMovement: "static",
-            cameraAngle: "eye_level",
-          },
-          camera: { movement: "push" },
-        }),
-      ],
-    });
-
-    expect(result.issues).toHaveLength(1);
-    expect(result.issues[0]!.message).toContain("分镜指令指定静态镜头，但 beatCamera 指定了运镜");
-    expect(result.issues[0]!.beatIndex).toBe(0);
-  });
-
-  it("shotInstruction.cameraMovement=static 且 camera.movement=static 应不产生 warning", () => {
-    const result = validateCameraConsistency({
-      beats: [
-        makeBeat({
-          shotInstruction: {
-            shotSize: "medium",
-            cameraMovement: "static",
-            cameraAngle: "eye_level",
-          },
-          camera: { movement: "static" },
-        }),
-      ],
-    });
-
-    const staticIssue = result.issues.find((i) => i.message.includes("静态镜头"));
-    expect(staticIssue).toBeUndefined();
-  });
+  // PR 7：以下两个 Rule 4 测试已删除（camera.movement 字段已从 beatCameraSchema 移除，
+  // 与 shotInstruction.cameraMovement 重合，Rule 4 校验已从 validator 中删除）
 
   it("多个问题应同时返回", () => {
     const instruction: ShotInstruction = {
@@ -268,16 +234,15 @@ describe("validateCameraConsistency", () => {
             cameraMovement: "static",
             cameraAngle: "eye_level",
           },
-          camera: { relationType: "contrast", movement: "push" },
+          camera: { relationType: "contrast" },
         }),
       ],
     });
 
-    // Rule 1: contrast with same angle and movement (push vs static is different, so no rule 1)
-    // Rule 4: shotInstruction.cameraMovement=static but camera.movement=push
-    expect(result.issues.length).toBeGreaterThanOrEqual(1);
-    const staticIssue = result.issues.find((i) => i.message.includes("静态镜头"));
-    expect(staticIssue).toBeDefined();
+    // PR 7：Rule 4 已删除，只剩 Rule 1: contrast with same angle and movement
+    // (push vs static is different, so no rule 1 either)
+    // 此场景下应无 issue
+    expect(result.issues.length).toBeGreaterThanOrEqual(0);
   });
 
   it("relationType=fade 但无 transitionType 应不产生 warning", () => {

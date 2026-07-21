@@ -98,7 +98,8 @@ export interface KeyframeGenerationRequestBody {
   sceneRef?: string;
   prevKeyframe?: string;
   shotRequirement?: {
-    shotType?: string;
+    // PR 7：统一字段名为 shotSize
+    shotSize?: string;
     cameraAngle?: string;
     cameraMovement?: string;
     action?: string;

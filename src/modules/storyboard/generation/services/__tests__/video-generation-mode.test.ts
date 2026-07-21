@@ -43,15 +43,27 @@ describe("determineVideoGenerationMode", () => {
     expect(determineVideoGenerationMode(beat, prevBeat)).toBe("first_frame_anchor");
   });
 
-  it("returns first_frame_anchor when shotType changes between beats", () => {
-    const beat = buildBeat({ shotType: "close_up" } as Partial<StoryBeat>);
-    const prevBeat = buildBeat({ id: "beat-0", shotType: "wide" } as Partial<StoryBeat>);
+  it("returns first_frame_anchor when shotSize changes between beats", () => {
+    // PR 7：shotType 已删除，使用 shotInstruction.shotSize
+    const beat = buildBeat({
+      shotInstruction: { shotSize: "close", cameraAngle: "eye_level", cameraMovement: "static" },
+    } as Partial<StoryBeat>);
+    const prevBeat = buildBeat({
+      id: "beat-0",
+      shotInstruction: { shotSize: "wide", cameraAngle: "eye_level", cameraMovement: "static" },
+    } as Partial<StoryBeat>);
     expect(determineVideoGenerationMode(beat, prevBeat)).toBe("first_frame_anchor");
   });
 
-  it("returns reference_video_continuation when shotType is same", () => {
-    const beat = buildBeat({ shotType: "wide" } as Partial<StoryBeat>);
-    const prevBeat = buildBeat({ id: "beat-0", shotType: "wide" } as Partial<StoryBeat>);
+  it("returns reference_video_continuation when shotSize is same", () => {
+    // PR 7：shotType 已删除，使用 shotInstruction.shotSize
+    const beat = buildBeat({
+      shotInstruction: { shotSize: "wide", cameraAngle: "eye_level", cameraMovement: "static" },
+    } as Partial<StoryBeat>);
+    const prevBeat = buildBeat({
+      id: "beat-0",
+      shotInstruction: { shotSize: "wide", cameraAngle: "eye_level", cameraMovement: "static" },
+    } as Partial<StoryBeat>);
     expect(determineVideoGenerationMode(beat, prevBeat)).toBe("reference_video_continuation");
   });
 
@@ -73,12 +85,16 @@ describe("determineVideoGenerationMode", () => {
     expect(determineVideoGenerationMode(beat, prevBeat)).toBe("reference_video_continuation");
   });
 
-  it("prioritizes camera.relationType over shotType change", () => {
+  it("prioritizes camera.relationType over shotSize change", () => {
+    // PR 7：shotType 已删除，使用 shotInstruction.shotSize
     const beat = buildBeat({
-      shotType: "close_up",
+      shotInstruction: { shotSize: "close", cameraAngle: "eye_level", cameraMovement: "static" },
       camera: { relationType: "continuous" },
     } as Partial<StoryBeat>);
-    const prevBeat = buildBeat({ id: "beat-0", shotType: "wide" } as Partial<StoryBeat>);
+    const prevBeat = buildBeat({
+      id: "beat-0",
+      shotInstruction: { shotSize: "wide", cameraAngle: "eye_level", cameraMovement: "static" },
+    } as Partial<StoryBeat>);
     expect(determineVideoGenerationMode(beat, prevBeat)).toBe("reference_video_continuation");
   });
 });

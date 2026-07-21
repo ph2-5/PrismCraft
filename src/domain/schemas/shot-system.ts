@@ -132,21 +132,14 @@ export const templateConfigSchema = z.object({
 });
 
 /**
- * 旧版镜头属性容器。整体被 `storyBeatSchema.camera` 字段使用（标记为 @deprecated）。
+ * 镜头属性容器（`storyBeatSchema.camera` 字段使用）。
  *
- * 字段归属：
- * - `angle` / `movement`：与 `shotInstructionSchema.cameraAngle` / `cameraMovement` 重合，应迁移到 shotInstruction
- * - `distance` / `speed`：shotInstruction 中无对应字段，专业模式编辑独有，需保留在 camera 容器中
- * - `relationType` / `transitionType` / `transitionDuration`：镜头间关系/转场，camera-consistency-validator 使用，shotInstruction 中无对应字段
- *
- * 迁移时不要整体废弃此 schema：`distance`/`speed`/`relationType`/`transitionType`/`transitionDuration` 没有 shotInstruction 替代品。
- * 详见 `story.ts` 中 `camera` 字段的 @deprecated 注释和迁移路径 TODO。
+ * PR 7：已删除与 shotInstruction 重合的 `angle`/`movement` 字段。
+ * 当前只保留 shotInstruction 中无对应字段的独有字段：
+ * - `distance` / `speed`：镜头距离/速度，专业模式编辑独有
+ * - `relationType` / `transitionType` / `transitionDuration`：镜头间关系/转场，camera-consistency-validator 使用
  */
 export const beatCameraSchema = z.object({
-  /** @deprecated Use `shotInstruction.cameraAngle` instead. */
-  angle: z.string().optional(),
-  /** @deprecated Use `shotInstruction.cameraMovement` instead. */
-  movement: z.string().optional(),
   distance: z.string().optional(),
   speed: z.string().optional(),
   relationType: z.enum(["continuous", "contrast", "parallel", "fade"]).optional(),

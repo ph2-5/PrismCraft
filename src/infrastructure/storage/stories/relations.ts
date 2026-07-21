@@ -1,6 +1,5 @@
 import { safeQuery } from "../sqlite-core";
 import { parseRecordWithTable } from "../core";
-import { VALID_SHOT_TYPES } from "@/domain/schemas/story";
 import { safeJsonParse, safeJsonParseArray } from "@/shared/utils/safe-json";
 import { errorLogger } from "@/shared/error-logger";
 
@@ -93,10 +92,7 @@ export function parseBeatRow(b: Record<string, unknown>) {
     content: parsed.content,
     characterIds: parseCharacterIds(parsed),
     sceneId: parsed.scene_id,
-    shotType: cameraContainer?.shotType && VALID_SHOT_TYPES.has(cameraContainer.shotType as string)
-      ? cameraContainer.shotType
-      : undefined,
-    // PR 2c：dual-read shotInstruction（从 camera 容器还原）
+    // PR 7：shotType 已删除，只读取 shotInstruction
     shotInstruction: cameraContainer?.shotInstruction ?? undefined,
     imageGenerationPrompt: generationContainer?.imageGenerationPrompt,
     firstFramePrompt: generationContainer?.firstFramePrompt,
@@ -107,8 +103,8 @@ export function parseBeatRow(b: Record<string, unknown>) {
   };
 
   if (cameraContainer && Object.keys(cameraContainer).length > 0) {
-    // PR 2c：剥离 shotInstruction，避免在 beat.camera 中重复
-    const { shotType: _shotType, shotInstruction: _shotInstruction, ...cameraProps } = cameraContainer;
+    // PR 7：剥离 shotInstruction（已单独读取），camera 容器其余字段归入 beat.camera
+    const { shotInstruction: _shotInstruction, ...cameraProps } = cameraContainer;
     if (Object.keys(cameraProps).length > 0) beat.camera = cameraProps;
   }
 

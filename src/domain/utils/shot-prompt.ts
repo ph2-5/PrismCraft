@@ -1,4 +1,4 @@
-import type { ShotInstructionTemplate, BeatCamera } from "@/domain/schemas";
+import type { ShotInstructionTemplate } from "@/domain/schemas";
 
 export const SHOT_SIZE_OPTIONS: Array<{
   value: ShotInstructionTemplate["shotSize"];
@@ -193,39 +193,6 @@ export function shotInstructionToPrompt(instruction: ResolvedShotInstruction): s
   return parts.join(", ");
 }
 
-const SHOT_SIZE_ALIASES: Record<string, string> = {
-  "close-up": "close",
-  "medium-shot": "medium",
-  "wide-shot": "wide",
-  "extreme-close": "extreme_close",
-  "extreme-close-up": "extreme_close",
-  "medium-close": "medium",
-  "medium-close-up": "medium",
-  "full-shot": "wide",
-  full: "wide",
-  "over-shoulder": "medium",
-  ots: "medium",
-  "point-of-view": "medium",
-  pov: "medium",
-  "two-shot": "medium",
-  establishing: "extreme_wide",
-};
-
-function normalizeCameraValue(
-  value: string | undefined,
-  options: Array<{ value: string; label: string }>,
-  aliases: Record<string, string> = {},
-): string | undefined {
-  if (!value) return undefined;
-  const match = options.find((o) => o.value === value);
-  if (match) return match.value;
-  const labelMatch = options.find((o) => o.label === value);
-  if (labelMatch) return labelMatch.value;
-  const alias = aliases[value];
-  if (alias) return alias;
-  return value;
-}
-
 export interface ResolvedShotInstruction {
   shotSize?: string;
   cameraMovement?: string;
@@ -233,34 +200,19 @@ export interface ResolvedShotInstruction {
 }
 
 /**
- * Resolves the effective shot instruction from the three overlapping fields.
- * Priority: shotInstruction > camera > shotType
- * Normalizes Chinese labels to English enum values for shotInstructionToPrompt compatibility.
+ * Resolves the effective shot instruction.
+ *
+ * PR 7：旧字段 `beat.shotType` / `beat.camera.angle` / `beat.camera.movement` 已删除，
+ * 现在只从 `shotInstruction` 读取。旧数据由 migration v8 迁移到 shotInstruction。
  */
 export function resolveShotInstruction(beat: {
   shotInstruction?: ShotInstructionTemplate;
-  camera?: BeatCamera | string | null;
-  shotType?: string | null;
 }): ResolvedShotInstruction | null {
   if (beat.shotInstruction) {
     return {
       shotSize: beat.shotInstruction.shotSize,
       cameraMovement: beat.shotInstruction.cameraMovement,
       cameraAngle: beat.shotInstruction.cameraAngle,
-    };
-  }
-
-  if (beat.camera && typeof beat.camera === "object") {
-    return {
-      shotSize: normalizeCameraValue(beat.shotType || undefined, SHOT_SIZE_OPTIONS, SHOT_SIZE_ALIASES),
-      cameraMovement: normalizeCameraValue(beat.camera.movement, CAMERA_MOVEMENT_OPTIONS),
-      cameraAngle: normalizeCameraValue(beat.camera.angle, CAMERA_ANGLE_OPTIONS),
-    };
-  }
-
-  if (beat.shotType) {
-    return {
-      shotSize: normalizeCameraValue(beat.shotType, SHOT_SIZE_OPTIONS, SHOT_SIZE_ALIASES),
     };
   }
 

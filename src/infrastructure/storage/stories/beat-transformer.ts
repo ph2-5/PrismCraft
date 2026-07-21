@@ -32,16 +32,27 @@ const FLATTENED_FRAMEPAIR_KEYS = new Set([
   "source",
 ]);
 const FLATTENED_VIDEOGEN_KEYS = new Set(["videoUrl", "taskId", "status", "prompt", "createdAt", "source", "error"]);
-// PR 2d：angle/movement 不再写入 camera 容器，但保留在 FLATTENED_CAMERA_KEYS 中
-// 防止它们被展开到 extra（meta 容器）；shotInstruction 作为 camera 容器的子字段持久化
-const FLATTENED_CAMERA_KEYS = new Set(["angle", "movement", "distance", "speed", "shotInstruction"]);
+// PR 7：camera 容器只保留 distance/speed/shotInstruction（angle/movement 已删除）
+const FLATTENED_CAMERA_KEYS = new Set(["distance", "speed", "shotInstruction"]);
+
+// PR 7：已删除的旧字段，必须在 buildExtra 中显式丢弃，避免被当成"未知字段"放入 metaContainer
+// （否则 roundtrip 后会还原这些已废弃字段，破坏 PR 7 的语义）
+const DEPRECATED_BEAT_KEYS = new Set([
+  "shotType", "shot_type",           // 已被 shotInstruction.shotSize 替代
+  "cameraAngle", "camera_angle",     // 已被 shotInstruction.cameraAngle 替代
+  "cameraMovement", "camera_movement", // 已被 shotInstruction.cameraMovement 替代
+]);
+const DEPRECATED_CAMERA_KEYS = new Set([
+  "angle",     // 已被 shotInstruction.cameraAngle 替代
+  "movement",  // 已被 shotInstruction.cameraMovement 替代
+  "shotType",  // 已被 shotInstruction.shotSize 替代
+]);
 
 const KNOWN_BEAT_KEYS = new Set([
   "id", "sequence", "order", "description", "duration", "type", "title", "content",
   "characterIds", "character_ids", "character_ids_json",
   "sceneId", "scene_id", "scene",
-  "shotType", "shot_type",
-  // PR 2c：新增 shotInstruction / shotSize / ss 字段（新格式）
+  // PR 7：shotType 已删除，只保留 shotInstruction（含历史别名 shotSize/ss）
   "shotInstruction", "shotSize", "ss",
   "generationPrompt", "generation_prompt",
   "imageGenerationPrompt", "image_generation_prompt",
@@ -60,8 +71,7 @@ const KNOWN_BEAT_KEYS = new Set([
   "videoUrl", "video_url",
   "videoTaskId", "video_task_id",
   "videoStatus", "video_status",
-  "cameraAngle", "camera_angle",
-  "cameraMovement", "camera_movement",
+  // PR 7：cameraAngle/cameraMovement 已删除（camera.distance/speed 仍保留）
   "cameraDistance", "camera_distance",
   "cameraSpeed", "camera_speed",
   "characterOutfits", "character_outfits", "character_outfits_json",
@@ -73,12 +83,24 @@ function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {
   const extra: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(beat)) {
     if (v === undefined || v === null) continue;
+    // PR 7：显式丢弃已删除的旧字段，不放入 metaContainer
+    if (DEPRECATED_BEAT_KEYS.has(k)) continue;
     if (typeof v === "object" && v !== null) {
       const obj = v as Record<string, unknown>;
       if (k === "keyframe") { extractExtraFromObject(obj, "keyframe", FLATTENED_KEYFRAME_KEYS, extra); continue; }
       if (k === "framePair") { extractExtraFromObject(obj, "framePair", FLATTENED_FRAMEPAIR_KEYS, extra); continue; }
       if (k === "videoGen") { extractExtraFromObject(obj, "videoGen", FLATTENED_VIDEOGEN_KEYS, extra); continue; }
-      if (k === "camera") { extractExtraFromObject(obj, "camera", FLATTENED_CAMERA_KEYS, extra); continue; }
+      if (k === "camera") {
+        // PR 7：先剥离 camera.angle/movement/shotType，再提取非已知子字段
+        const filtered: Record<string, unknown> = {};
+        for (const [sk, sv] of Object.entries(obj)) {
+          if (DEPRECATED_CAMERA_KEYS.has(sk)) continue;
+          if (sv === undefined || sv === null) continue;
+          filtered[sk] = sv;
+        }
+        extractExtraFromObject(filtered, "camera", FLATTENED_CAMERA_KEYS, extra);
+        continue;
+      }
     }
     if (KNOWN_BEAT_KEYS.has(k)) continue;
     extra[k] = v;
@@ -102,8 +124,7 @@ function buildCameraContainer(
   camera: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
   const container: Record<string, unknown> = {};
-  // PR 2d Step 2：清除写入端 dual-write — 不再写入 shotType / angle / movement
-  // 旧字段已被 migration v8 迁移到 shotInstruction，读取端（PR 3）只读 shotInstruction
+  // PR 7：camera 容器只写入 distance/speed/shotInstruction（angle/movement/shotType 已删除）
   const distance = firstOf(camera?.distance, beat.cameraDistance, beat.camera_distance);
   const speed = firstOf(camera?.speed, beat.cameraSpeed, beat.camera_speed);
   const shotInstruction = firstOf(

@@ -68,10 +68,11 @@ export const integrationFactories = {
     description: "角色走进房间，环顾四周",
     duration: 5,
     type: "action",
-    shotType: "medium",
+    // PR 7：shotType/camera.angle/camera.movement 已删除，使用 shotInstruction
+    shotInstruction: { shotSize: "medium", cameraAngle: "eye_level", cameraMovement: "static" },
     characterIds: [],
     elementIds: [],
-    camera: { angle: "eye_level", movement: "static" },
+    camera: { distance: "medium", speed: "normal" },
     enhancedGeneration: false,
     ...overrides,
   }),

@@ -27,8 +27,9 @@ const mockBeat: StoryBeat = {
   content: "分镜内容",
   duration: 5,
   type: "scene",
-  shotType: "wide",
-  camera: { angle: "low", movement: "pan" },
+  // PR 7：shotType/camera.angle/camera.movement 已删除，使用 shotInstruction
+  shotInstruction: { shotSize: "wide", cameraAngle: "low", cameraMovement: "pan" },
+  camera: { distance: "medium", speed: "normal" },
   characterIds: [],
   enhancedGeneration: false,
   elementIds: [],

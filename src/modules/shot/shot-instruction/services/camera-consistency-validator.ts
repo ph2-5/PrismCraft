@@ -29,19 +29,8 @@ export function validateCameraConsistency(params: {
     const current = beats[i]!;
     const prev = i > 0 ? beats[i - 1] : undefined;
 
-    // Rule 4: shotInstruction.cameraMovement = "static" but camera.movement has a non-"static" value
-    if (
-      current.shotInstruction?.cameraMovement === "static" &&
-      current.camera?.movement &&
-      current.camera.movement !== "static"
-    ) {
-      issues.push({
-        beatIndex: i,
-        field: "cameraMovement",
-        message: "分镜指令指定静态镜头，但 beatCamera 指定了运镜",
-        severity: "warning",
-      });
-    }
+    // PR 7：Rule 4 已删除（camera.movement 字段已移除，与 shotInstruction.cameraMovement 重合）
+    // 旧 Rule 4 检查 shotInstruction.cameraMovement="static" 与 camera.movement 不一致，现已无意义
 
     if (!prev || !current.camera?.relationType) continue;
 

@@ -2,7 +2,7 @@ export const ShotParamsSchema = {
   $schema: "http://json-schema.org/draft-07/schema#",
   title: "ShotGenerationParams",
   type: "object",
-  // PR 2d Step 4g：移除 shotType required，改为 shotInstruction（PR 7 后旧字段彻底删除）
+  // PR 7：shotType/cameraAngle/cameraMovement 旧字段已彻底删除，只保留 shotInstruction
   required: ["prompt", "duration"],
   properties: {
     prompt: {
@@ -10,21 +10,6 @@ export const ShotParamsSchema = {
       minLength: 10,
       maxLength: 4000,
       description: "镜头生成提示词",
-    },
-    shotType: {
-      type: "string",
-      enum: [
-        "wide",
-        "medium",
-        "close",
-        "extreme_close",
-        "extreme_wide",
-        "low",
-        "high",
-        "birdseye",
-        "wormseye",
-      ],
-      description: "镜头景别（已废弃，使用 shotInstruction.shotSize；兼容期保留读取）",
     },
     shotInstruction: {
       type: "object",
@@ -71,39 +56,13 @@ export const ShotParamsSchema = {
           description: "运镜方式",
         },
       },
-      description: "镜头指令（新载体，替代 shotType + cameraAngle + cameraMovement）",
+      description: "镜头指令（替代旧 shotType + cameraAngle + cameraMovement 顶层字段）",
     },
     duration: {
       type: "number",
       minimum: 2,
       maximum: 30,
       description: "镜头时长(秒)",
-    },
-    cameraAngle: {
-      type: "string",
-      enum: [
-        "eye_level",
-        "low",
-        "high",
-        "birds_eye",
-        "worms_eye",
-        "dutch",
-      ],
-      description: "镜头角度（已废弃，使用 shotInstruction.cameraAngle）",
-    },
-    cameraMovement: {
-      type: "string",
-      enum: [
-        "static",
-        "push",
-        "pull",
-        "pan",
-        "orbit",
-        "crane_up",
-        "crane_down",
-        "tracking",
-      ],
-      description: "运镜方式（已废弃，使用 shotInstruction.cameraMovement）",
     },
     characterIds: {
       type: "array",
@@ -181,7 +140,7 @@ export const StoryBeatOutputSchema = {
   $schema: "http://json-schema.org/draft-07/schema#",
   title: "StoryBeatOutput",
   type: "object",
-  // PR 2d Step 4g：移除 shotType required，改为 shotInstruction
+  // PR 7：shotType/cameraAngle/cameraMovement 旧字段已彻底删除，只保留 shotInstruction
   required: ["title", "content", "duration"],
   properties: {
     title: {
@@ -202,21 +161,6 @@ export const StoryBeatOutputSchema = {
       type: "number",
       minimum: 2,
       maximum: 30,
-    },
-    shotType: {
-      type: "string",
-      enum: [
-        "wide",
-        "medium",
-        "close",
-        "extreme_close",
-        "extreme_wide",
-        "low",
-        "high",
-        "birdseye",
-        "wormseye",
-      ],
-      description: "已废弃，使用 shotInstruction.shotSize",
     },
     shotInstruction: {
       type: "object",
@@ -260,37 +204,11 @@ export const StoryBeatOutputSchema = {
           ],
         },
       },
-      description: "镜头指令（新载体）",
+      description: "镜头指令（替代旧 shotType + cameraAngle + cameraMovement 顶层字段）",
     },
     type: {
       type: "string",
       enum: ["action", "dialogue", "scene", "transition", "effect"],
-    },
-    cameraAngle: {
-      type: "string",
-      enum: [
-        "eye_level",
-        "low",
-        "high",
-        "birds_eye",
-        "worms_eye",
-        "dutch",
-      ],
-      description: "已废弃，使用 shotInstruction.cameraAngle",
-    },
-    cameraMovement: {
-      type: "string",
-      enum: [
-        "static",
-        "push",
-        "pull",
-        "pan",
-        "orbit",
-        "crane_up",
-        "crane_down",
-        "tracking",
-      ],
-      description: "已废弃，使用 shotInstruction.cameraMovement",
     },
     characterIds: {
       type: "array",
@@ -322,15 +240,12 @@ export const StoryPlanOutputSchema = {
 
 export type ShotParamsType = {
   prompt: string;
-  shotType?: string;
   shotInstruction?: {
     shotSize?: string;
     cameraAngle?: string;
     cameraMovement?: string;
   };
   duration: number;
-  cameraAngle?: string;
-  cameraMovement?: string;
   characterIds?: string[];
   sceneId?: string;
   referenceImageUrl?: string;

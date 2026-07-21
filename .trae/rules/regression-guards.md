@@ -3956,33 +3956,9 @@ const MAX_READ_SIZE = 50 * 1024 * 1024; // 50MB
 
 **Discovered in**: Main-process OOM audit found `file/read` reading unbounded file sizes. Test: `electron/src/api/__tests__/regression-r149-file-read-size-limit.test.ts`.
 
-### R150: normalizeCameraValue MUST Apply Alias Tables Correctly Without Cross-Table Pollution
+### R150: (已废弃 — PR 7 删除 normalizeCameraValue)
 
-`normalizeCameraValue` (private to `src/domain/utils/shot-prompt.ts`, exercised via public `resolveShotInstruction`) MUST apply each alias table only to its intended field. `SHOT_SIZE_ALIASES` (e.g. `full → wide`, `close-up → close`, `medium-shot → medium`, `extreme-close-up → extreme_close`, `establishing → extreme_wide`) MUST only normalize the `shotType` field, NOT camera `movement` or `angle`. The same literal value (e.g. `"full"`) MUST behave differently depending on context: as `shotType` it aliases to `wide`, but as camera `movement`/`angle` it stays `"full"`. Unknown values and standard values MUST pass through unchanged.
-
-**BAD** — Alias table applied to wrong field:
-```typescript
-// ❌ SHOT_SIZE_ALIASES leaks into camera movement/angle normalization
-function resolveShotInstruction(input) {
-  const movement = normalizeCameraValue(input.camera.movement, SHOT_SIZE_ALIASES);
-  // "full" movement wrongly becomes "wide"
-}
-```
-
-**GOOD** — Each alias table scoped to its field:
-```typescript
-// ✅ shotType uses SHOT_SIZE_ALIASES; camera movement/angle use their own (or none)
-function resolveShotInstruction(input) {
-  const shotSize = normalizeCameraValue(input.shotType, SHOT_SIZE_ALIASES);
-  // "full" → "wide" (alias), "close" → "close" (standard passthrough)
-  const movement = normalizeCameraValue(input.camera.movement, CAMERA_MOVEMENT_ALIASES);
-  // "full" stays "full" (no alias in movement table)
-}
-```
-
-**Verification**: Call `resolveShotInstruction({ shotType: "full" })`; assert `shotSize === "wide"`. Call with `shotType: "close-up"` → `close`, `"medium-shot"` → `medium`, `"extreme-close-up"` → `extreme_close`, `"establishing"` → `extreme_wide`. Assert standard values (`close`, `wide`, `medium`) pass through. Assert unknown values pass through unchanged. Cross-table: `{ camera: { movement: "full" }, shotType: "medium" }` MUST yield `cameraMovement === "full"` (no alias) and `shotSize === "medium"`.
-
-**Discovered in**: Camera-value normalization audit found alias tables cross-polluting between shot size and camera movement/angle. Test: `src/domain/__tests__/regression-r150-normalize-camera-value.test.ts`.
+PR 7 删除了 `normalizeCameraValue` / `SHOT_SIZE_ALIASES`（旧字段 `shotType` / `camera.angle` / `camera.movement` 已从 schema 中移除，resolveShotInstruction 只读 shotInstruction 子对象，不再需要别名归一化）。原测试 `regression-r150-normalize-camera-value.test.ts` 同步删除。
 
 ### R183: PageErrorBoundary.getDerivedStateFromError MUST Be Single-Argument
 

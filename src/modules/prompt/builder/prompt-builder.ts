@@ -401,13 +401,9 @@ export class PromptBuilder {
     const parts: string[] = [];
 
     if (shot.camera) {
-      const cameraObj =
-        typeof shot.camera === "string"
-          ? { movement: shot.camera }
-          : shot.camera;
-      if (cameraObj.angle) parts.push(`角度：${cameraObj.angle}`);
-      if (cameraObj.movement) parts.push(`运镜：${cameraObj.movement}`);
-      if (cameraObj.distance) parts.push(`距离：${cameraObj.distance}`);
+      // PR 7：camera 已删除 angle/movement 字段，只保留 distance/speed 等独有字段
+      // angle/movement 信息从 shotInstruction 读取（见 buildShotInstructionDescription）
+      if (shot.camera.distance) parts.push(`距离：${shot.camera.distance}`);
     }
 
     if (shot.content || shot.description) {

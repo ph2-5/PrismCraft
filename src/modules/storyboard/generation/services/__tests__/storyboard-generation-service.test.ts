@@ -106,9 +106,10 @@ describe("determineVideoGenerationMode", () => {
     expect(determineVideoGenerationMode(beat, prevBeat)).toBe("first_frame_anchor");
   });
 
-  it("shotType 不同时应返回 first_frame_anchor", () => {
-    const beat = { ...mockBeat, shotType: "close" as const };
-    const prevBeat = { ...mockBeat, id: "prev-1", shotType: "wide" as const };
+  it("shotSize 不同时应返回 first_frame_anchor", () => {
+    // PR 7：shotType 已删除，使用 shotInstruction.shotSize
+    const beat = { ...mockBeat, shotInstruction: { shotSize: "close" as const, cameraAngle: "eye_level" as const, cameraMovement: "static" as const } };
+    const prevBeat = { ...mockBeat, id: "prev-1", shotInstruction: { shotSize: "wide" as const, cameraAngle: "eye_level" as const, cameraMovement: "static" as const } };
     expect(determineVideoGenerationMode(beat, prevBeat)).toBe("first_frame_anchor");
   });
 

@@ -152,11 +152,10 @@ function makeFullBeat(): StoryBeat {
         description: "站在溪流旁",
       },
     },
-    shotType: "medium",
+    // PR 7：shotType/camera.angle/camera.movement 已删除，统一用 shotInstruction
+    shotInstruction: { shotSize: "medium", cameraAngle: "eye_level", cameraMovement: "push" },
     type: "dialogue",
     camera: {
-      angle: "平视",
-      movement: "推",
       distance: "中景",
     },
     sceneElements: [
@@ -472,9 +471,10 @@ describe("端到端提示词组合测试 - SingleBeatPrompt", () => {
     expect(result).not.toContain("战斗服");
   });
 
-  it("shotInstruction 与 camera 互斥：有 shotInstruction 时不输出 camera 运镜", () => {
+  it("shotInstruction 单独存在时输出镜头指令", () => {
+    // PR 7：camera.movement 已删除，shotInstruction 是唯一的镜头指令来源
     const beat = makeBeat({
-      camera: { movement: "推" },
+      shotInstruction: { shotSize: "medium", cameraAngle: "eye_level", cameraMovement: "push" },
     });
 
     const resultWithInstruction = generateSingleBeatPrompt({
@@ -489,10 +489,9 @@ describe("端到端提示词组合测试 - SingleBeatPrompt", () => {
     expect(resultWithInstruction).toContain("push in");
   });
 
-  it("无 shotInstruction 时输出 camera 运镜", () => {
-    const beat = makeBeat({
-      camera: { movement: "推" },
-    });
+  it("无 shotInstruction 时不输出镜头指令", () => {
+    // PR 7：camera.movement 已删除，无 shotInstruction 即无镜头指令
+    const beat = makeBeat();
 
     const result = generateSingleBeatPrompt({
       beat,
@@ -501,8 +500,7 @@ describe("端到端提示词组合测试 - SingleBeatPrompt", () => {
       scenes: [],
     });
 
-    expect(result).toContain("镜头指令");
-    expect(result).toContain("push in");
+    expect(result).not.toContain("镜头指令");
   });
 
   it("fixedImageConfig 回退：无 featureAnchoring 时使用 fixedImageConfig", () => {
@@ -666,8 +664,9 @@ describe("端到端提示词组合测试 - EnhancedVideoPrompt", () => {
   });
 
   it("运镜关键词映射", () => {
+    // PR 7：camera.movement 已删除，运镜信息从 shotInstruction.cameraMovement 读取
     const beat = makeBeat({
-      camera: { movement: "推" },
+      shotInstruction: { shotSize: "medium", cameraAngle: "eye_level", cameraMovement: "push" },
       description: "测试",
     });
 

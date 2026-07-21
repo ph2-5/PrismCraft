@@ -22,9 +22,11 @@ describe("shot-validator", () => {
     it("应接受有效的镜头参数", () => {
       const result = validateShotParams({
         prompt: "一个英雄站在山顶，俯瞰远方的城市",
-        shotType: "wide",
-        cameraAngle: "eye_level",
-        cameraMovement: "push",
+        shotInstruction: {
+          shotSize: "wide",
+          cameraAngle: "eye_level",
+          cameraMovement: "push",
+        },
         duration: 5,
       });
       expect(result.valid).toBe(true);
@@ -34,9 +36,11 @@ describe("shot-validator", () => {
     it("应自动修复中文景别别名", () => {
       const result: ValidationResult<ShotParamsType> = validateShotParams({
         prompt: "英雄的面部特写，眼中闪烁着坚定的光芒",
-        shotType: "特写",
-        cameraMovement: "推",
-        cameraAngle: "平视",
+        shotInstruction: {
+          shotSize: "特写",
+          cameraMovement: "推",
+          cameraAngle: "平视",
+        },
         duration: 3,
       });
       // PR 2d Step 4g：fixShotParams 仅输出 shotInstruction（不再 dual-write 顶层 shotType）
@@ -46,13 +50,15 @@ describe("shot-validator", () => {
       expect(result.autoFixed.length).toBeGreaterThan(0);
     });
 
-    it("无效 shotType 应回退为 medium", () => {
+    it("无效 shotSize 应回退为 medium", () => {
       const result: ValidationResult<ShotParamsType> = validateShotParams({
         prompt: "一个场景描述，足够长的提示词来通过验证",
-        shotType: "invalid_type",
+        shotInstruction: {
+          shotSize: "invalid_type",
+        },
         duration: 5,
       });
-      // PR 2d Step 4g：shotType 通过 shotInstruction.shotSize 输出
+      // PR 2d Step 4g：shotSize 通过 shotInstruction.shotSize 输出
       expect(result.data.shotInstruction?.shotSize).toBe("medium");
     });
 
@@ -83,14 +89,14 @@ describe("shot-validator", () => {
 
   describe("generateFallbackParams", () => {
     it("action 类型应生成快节奏参数", () => {
-      const result = generateFallbackParams({}, { genre: "action" });
+      const result = generateFallbackParams({}, { genre: "action" }) as unknown as ShotParamsType;
       // PR 2d Step 4g：仅输出 shotInstruction
       expect(result.shotInstruction?.shotSize).toBe("close");
       expect(result.duration).toBeLessThanOrEqual(4);
     });
 
     it("drama 类型应生成中等节奏参数", () => {
-      const result = generateFallbackParams({}, { genre: "drama" });
+      const result = generateFallbackParams({}, { genre: "drama" }) as unknown as ShotParamsType;
       expect(result.shotInstruction?.shotSize).toBe("medium");
       expect(result.duration).toBe(5);
     });
@@ -101,7 +107,7 @@ describe("shot-validator", () => {
     });
 
     it("未知类型应使用 drama 默认值", () => {
-      const result = generateFallbackParams({}, { genre: "unknown_genre" });
+      const result = generateFallbackParams({}, { genre: "unknown_genre" }) as unknown as ShotParamsType;
       expect(result.shotInstruction?.shotSize).toBe("medium");
     });
   });
@@ -131,7 +137,8 @@ describe("shot-validator", () => {
         duration: 5,
       }) as unknown as ValidationResult<BeatOutput>;
       // PR 2d Step 4g：shotSize 通过 shotInstruction.shotSize 输出
-      expect(result.data.shotInstruction?.shotSize).toBe("wide");
+      const shotInstruction = result.data.shotInstruction as { shotSize?: string } | undefined;
+      expect(shotInstruction?.shotSize).toBe("wide");
     });
 
     it("应推断 type", () => {

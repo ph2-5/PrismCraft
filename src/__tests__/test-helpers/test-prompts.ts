@@ -22,9 +22,29 @@ export interface StoryBeatTestData {
     character?: string;
     characters?: string[];
     sceneId?: string;
-    shotType?: string;
-    cameraAngle?: string;
-    cameraMovement?: string;
+    // PR 7：使用 ShotInstructionTemplate 中的精确字面量类型
+    shotType?:
+      | "extreme_close"
+      | "close"
+      | "medium"
+      | "wide"
+      | "extreme_wide";
+    cameraAngle?:
+      | "eye_level"
+      | "low"
+      | "high"
+      | "birds_eye"
+      | "worms_eye"
+      | "dutch";
+    cameraMovement?:
+      | "static"
+      | "push"
+      | "pull"
+      | "pan"
+      | "orbit"
+      | "crane_up"
+      | "crane_down"
+      | "tracking";
     cameraDistance?: string;
     cameraSpeed?: string;
     duration?: number;

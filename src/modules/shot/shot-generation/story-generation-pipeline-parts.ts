@@ -292,10 +292,7 @@ function applyShotAutoFixToBeat(
   shotValidation: ValidationResult,
 ): void {
   const data = shotValidation.data as {
-    shotType?: StoryBeat["shotType"];
     duration?: StoryBeat["duration"];
-    cameraAngle?: NonNullable<NonNullable<StoryBeat["camera"]>["angle"]>;
-    cameraMovement?: NonNullable<NonNullable<StoryBeat["camera"]>["movement"]>;
     shotInstruction?: StoryBeat["shotInstruction"];
   };
   for (const fix of shotValidation.autoFixed) {

@@ -146,14 +146,6 @@ export const VALID_SHOT_TYPES = new Set([
   "wormseye",
 ]);
 
-const shotTypeSchema = z.preprocess(
-  (v): unknown => {
-    if (typeof v === "string" && VALID_SHOT_TYPES.has(v)) return v;
-    return undefined;
-  },
-  z.string().optional(),
-);
-
 export const storyBeatSchema = z.object({
   // ── Core identity ──
   id: z.string(),
@@ -185,58 +177,12 @@ export const storyBeatSchema = z.object({
 
   // ── Shot system ──
   /**
-   * @deprecated Use `shotInstruction.shotSize` instead.
+   * 镜头属性容器：仅保留 shotInstruction 中无对应字段的独有字段
+   * （`distance`/`speed`/`relationType`/`transitionType`/`transitionDuration`）。
    *
-   * 该字段是景别（shot size）的旧载体，与 `shotInstruction.shotSize` 概念重合。
-   * 保留是为了向后兼容：
-   * - LLM 生成管线仍以 `st` 缩写输出（见 `story-plan-prompt.ts` 的 buildFieldLegend）
-   * - `fixStoryBeat` / `fixShotParams` 将 `st` 归一化后写入此字段
-   * - 数据库通过 `beat-transformer.ts` 持久化到 `camera` JSON 容器的 `shotType` 键
-   * - UI 展示（SortableBeatList / TemplateCard / AssetCards / BeatDetailsTab）仍读取此字段
-   * - prompt 生成（prompt-service.ts）将此字段渲染为【景别】
-   * - 视频生成参数（video-task-params.ts）将此字段透传
-   *
-   * 迁移路径（TODO，分多 PR 推进）：
-   * 1. 修改 `story-plan-prompt.ts` 的 buildFieldLegend，将 `st=shotType` 改为 `ss=shotSize`
-   *    （或直接让 LLM 输出 `shotInstruction` 子对象）
-   * 2. 修改 `story-service.ts` 的 `fixStoryBeat` / `fixShotParams` 解析新缩写并写入 `shotInstruction.shotSize`
-   * 3. 修改 `story-generation-pipeline.ts` 把校验结果写回 `shotInstruction.shotSize` 而非 `beat.shotType`
-   * 4. ✅ PR 2b：消费者优先读取 `shotInstruction.shotSize`，fallback `beat.shotType`（已清除 fallback 见 PR 3）
-   * 5. ✅ PR 2c：`beat-transformer.ts` / `relations.ts` 持久化 `shotInstruction`
-   * 6. ✅ PR 3：数据迁移脚本（migration v8）已编写，把现有 `shotType` / `camera.shotType`
-   *    语义映射到 `shotInstruction.shotSize` / `cameraAngle`（修正 angle 类 shotType 历史误判）
-   *    读取端 fallback 已清除（BeatDetailsTab / SortableBeatList / BeatThumbnailCard / BeatListView /
-   *    shot-strategy-router / use-qc-trigger / prompt-service / storyboard-template）
-   * 7. 兼容期保留此字段（至少 2 个版本），之后删除（PR 7）
-   *
-   * 当前使用点：61 个文件（远超 20 处阈值），迁移风险高，故仅做注释改进 + TODO 标记。
-   */
-  shotType: shotTypeSchema,
-  /**
-   * @deprecated Use `shotInstruction` instead. `angle`/`movement` 与 `shotInstruction.cameraAngle`/`cameraMovement` 重合。
-   *
-   * 该字段是镜头属性的旧载体。`beatCameraSchema` 的字段按替代关系分为两类：
-   * - **可替代**（与 shotInstruction 重合）：
-   *   - `angle` → `shotInstruction.cameraAngle`
-   *   - `movement` → `shotInstruction.cameraMovement`
-   * - **独有**（shotInstruction 中无对应字段，需保留）：
-   *   - `distance`、`speed`：镜头距离/速度（专业模式编辑使用）
-   *   - `relationType`、`transitionType`、`transitionDuration`：镜头间关系/转场类型（camera-consistency-validator 使用）
-   *
-   * LLM 生成管线仍以 `ca`/`cm` 缩写输出 `angle`/`movement`（见 `story-plan-prompt.ts`），
-   * `fixStoryBeat` 解析后由 `story-generation-pipeline.ts` 写回 `beat.camera.angle`/`movement`。
-   *
-   * 迁移路径（TODO，与 shotType 迁移同步推进）：
-   * 1. 修改 LLM prompt（buildFieldLegend）将 `ca=cameraAngle, cm=cameraMovement` 直接对应到 shotInstruction
-   * 2. 修改 `fixStoryBeat` / `fixShotParams` 把校验结果写入 `shotInstruction.cameraAngle`/`cameraMovement`
-   * 3. 修改消费者（prompt-service.ts / video-task-params.ts / storyboard-template.ts / BeatDetailsTab.tsx）
-   *    优先读取 `shotInstruction.*`，fallback `beat.camera.*`
-   * 4. `beat.transformer.ts` / `relations.ts` 把 shotInstruction 持久化为独立 JSON 容器
-   *    （`distance`/`speed`/`relationType`/`transitionType`/`transitionDuration` 仍需保留在 camera 容器中）
-   * 5. 数据迁移脚本：把 `camera.angle`/`movement` 复制到 `shotInstruction.cameraAngle`/`cameraMovement`
-   * 6. 兼容期保留此字段（至少 2 个版本），之后只保留 shotInstruction + camera 中的独有字段
-   *
-   * 当前使用点：30+ 文件，迁移风险高，故仅做注释改进 + TODO 标记。
+   * PR 7：已删除 `angle`/`movement` 子字段（与 shotInstruction 重合）；
+   * 已删除顶层 `shotType` 字段（与 `shotInstruction.shotSize` 重合）。
+   * 旧数据中残留的 angle/movement/shotType 由 migration v8 迁移到 shotInstruction。
    */
   camera: beatCameraSchema.optional(),
   shotInstruction: shotInstructionSchema.optional(),

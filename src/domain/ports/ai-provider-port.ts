@@ -44,7 +44,8 @@ export interface IVideoProvider {
     sceneRef?: string;
     prevKeyframe?: string;
     shotRequirement?: {
-      shotType?: string;
+      // PR 7：统一字段名为 shotSize（与 ShotInstructionTemplate 一致）
+      shotSize?: string;
       cameraAngle?: string;
       cameraMovement?: string;
       action?: string;

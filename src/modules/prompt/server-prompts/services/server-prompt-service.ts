@@ -53,7 +53,7 @@ interface KeyframePromptParams {
   sceneRef?: string;
   prevKeyframe?: string;
   shotRequirement?: {
-    shotType?: string;
+    shotSize?: string;
     cameraAngle?: string;
     cameraMovement?: string;
     action?: string;
@@ -71,8 +71,8 @@ export function generateKeyframePrompt(params: KeyframePromptParams): string {
   }
 
   if (params.shotRequirement) {
-    const { shotType, cameraAngle, cameraMovement, action } = params.shotRequirement;
-    if (shotType) parts.push(`景别：${shotType}`);
+    const { shotSize, cameraAngle, cameraMovement, action } = params.shotRequirement;
+    if (shotSize) parts.push(`景别：${shotSize}`);
     if (cameraAngle) parts.push(`镜头角度：${cameraAngle}`);
     if (cameraMovement) parts.push(`运镜方式：${cameraMovement}`);
     if (action) parts.push(`动作：${action}`);

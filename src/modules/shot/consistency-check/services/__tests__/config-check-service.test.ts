@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   performConfigCheck,
-  performConsistencyCheck,
   validateFeatureAnchoringConfig,
   validateNoFrameBinding,
 } from "@/modules/shot";

@@ -52,6 +52,7 @@ export function ModelSelector({
       modelName: string;
       value: string;
       format?: string;
+      deprecated?: boolean;
     }>
   >([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +74,7 @@ export function ModelSelector({
                 modelName: model.name,
                 value: `${provider.id}/${model.id}`,
                 format: provider.format,
+                deprecated: model.deprecated,
               });
             }
           }
@@ -149,7 +151,7 @@ export function ModelSelector({
         <option value="">{t("model.defaultOption")}</option>
         {availableModels.map((m) => (
           <option key={m.value} value={m.value}>
-            {m.providerName} / {m.modelName}
+            {m.deprecated ? `⚠ ${m.providerName} / ${m.modelName}` : `${m.providerName} / ${m.modelName}`}
           </option>
         ))}
       </select>

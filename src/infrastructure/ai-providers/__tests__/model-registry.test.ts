@@ -133,6 +133,21 @@ describe("model-registry", () => {
         expect(template.models.length).toBeGreaterThan(0);
       }
     });
+
+    it("PrismCraft 第五章: 应将 verifiedAt/deprecated 从 registry 传递到模板", () => {
+      // runway 不废弃（provider 级），应存在于 PROVIDER_TEMPLATES
+      const runwayTemplate = PROVIDER_TEMPLATES["runway"];
+      expect(runwayTemplate).toBeDefined();
+      // gen4_turbo 应有 verifiedAt
+      const gen4 = runwayTemplate!.models.find((m) => m.id === "gen4_turbo");
+      expect(gen4).toBeDefined();
+      expect(gen4!.verifiedAt).toBeTruthy();
+      // gen3a_turbo 应有 deprecated + deprecatedReason
+      const gen3a = runwayTemplate!.models.find((m) => m.id === "gen3a_turbo");
+      expect(gen3a).toBeDefined();
+      expect(gen3a!.deprecated).toBe(true);
+      expect(gen3a!.deprecatedReason).toBeTruthy();
+    });
   });
 
   describe("BUILTIN_DETECTION_RULES", () => {

@@ -39,6 +39,7 @@ function getAvailableModels(config: ApiConfig, capability: ApiCapability) {
     modelId: string;
     modelName: string;
     value: string;
+    deprecated?: boolean;
   }[] = [];
 
   for (const provider of config.providers) {
@@ -50,6 +51,7 @@ function getAvailableModels(config: ApiConfig, capability: ApiCapability) {
           modelId: model.id,
           modelName: model.name,
           value: `${provider.id}/${model.id}`,
+          deprecated: model.deprecated,
         });
       }
     }
@@ -126,7 +128,7 @@ export function ModelMappingSection({
                 ) : (
                   models.map((m) => (
                     <option key={m.value} value={m.value}>
-                      {m.providerName} / {m.modelName}
+                      {m.deprecated ? `⚠ ${m.providerName} / ${m.modelName}` : `${m.providerName} / ${m.modelName}`}
                     </option>
                   ))
                 )}

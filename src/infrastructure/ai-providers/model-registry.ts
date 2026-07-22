@@ -231,6 +231,10 @@ interface JsonModelEntry {
   modelCapabilitiesPreset?: string;
   modelCapabilitiesOverrides?: Record<string, unknown>;
   modelCapabilities?: Record<string, unknown>;
+  // 模型保鲜元数据（PrismCraft 第五章）
+  verifiedAt?: string;
+  deprecated?: boolean;
+  deprecatedReason?: string;
 }
 
 interface JsonDetectionRule {
@@ -375,6 +379,9 @@ function buildProviderDefinition(json: ProviderJsonData): ProviderDefinition {
       capabilities: m.capabilities as ApiCapability[],
       defaultParams: m.defaultParams,
       modelCapabilities: resolveModelCapabilities(m),
+      verifiedAt: m.verifiedAt,
+      deprecated: m.deprecated,
+      deprecatedReason: m.deprecatedReason,
     })),
   };
 }
@@ -456,6 +463,9 @@ function buildProviderTemplates(): Record<string, Omit<import("./api-config/type
         name: m.name,
         capabilities: m.capabilities,
         defaultParams: m.defaultParams,
+        verifiedAt: m.verifiedAt,
+        deprecated: m.deprecated,
+        deprecatedReason: m.deprecatedReason,
       })),
     };
   }

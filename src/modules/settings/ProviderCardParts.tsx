@@ -379,6 +379,35 @@ export function useApiKeyVerify(caps: ApiCapability[], provider: ProviderConfig)
   return { apiKeyState, setApiKeyState, handleVerifyApiKey };
 }
 
+function ModelFreshnessBadge({ model }: { model: ModelConfig }) {
+  if (model.deprecated) {
+    return (
+      <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-md bg-destructive/10 border border-destructive/30 text-destructive">
+        <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+        <div className="flex flex-col gap-0.5 text-[11px]">
+          <span className="font-medium">{t("provider.modelDeprecated")}</span>
+          {model.deprecatedReason && (
+            <span className="opacity-80">
+              {t("provider.modelDeprecatedReason", { reason: model.deprecatedReason })}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (model.verifiedAt) {
+    return (
+      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        <CheckCircle2 size={11} className="shrink-0 opacity-60" />
+        <span>{t("provider.modelVerifiedAt", { date: model.verifiedAt })}</span>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 interface ModelRowProps {
   model: ModelConfig;
   index: number;
@@ -433,6 +462,8 @@ function ModelRow({ model, index, capabilities, onUpdateModel, onRemoveModel }: 
           onUpdateModel(index, { capabilities: newCaps });
         }}
       />
+
+      <ModelFreshnessBadge model={model} />
 
       <ModelParameterProfile modelId={model.id} />
     </div>

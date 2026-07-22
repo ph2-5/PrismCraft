@@ -41,6 +41,10 @@ export interface ModelConfig {
     maxKeyframes?: number;
     [key: string]: unknown;
   };
+  // 模型保鲜元数据（PrismCraft 第五章）— 从 provider JSON 传递，供 UI 展示
+  verifiedAt?: string;
+  deprecated?: boolean;
+  deprecatedReason?: string;
 }
 
 export interface CapabilityMapping {

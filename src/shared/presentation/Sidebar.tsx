@@ -281,19 +281,24 @@ function SidebarLogo({ collapsed }: { collapsed: boolean }) {
 
 interface SidebarNavProps {
   pathname: string;
-  isHomeActive: boolean;
   collapsed: boolean;
   onNavigate: (href: string) => void;
 }
 
-function SidebarNav({ pathname, isHomeActive, collapsed, onNavigate }: SidebarNavProps) {
-  const renderItems = (items: NavEntry[], useHomeActive = false) =>
+function SidebarNav({ pathname, collapsed, onNavigate }: SidebarNavProps) {
+  // 修复：路径段边界匹配，避免 /story 误匹配 /storyboard；
+  // home 项特判精确匹配，避免 pathname.startsWith("/") 永真。
+  const renderItems = (items: NavEntry[]) =>
     items.map((item) => (
       <NavItem
         key={item.href}
         labelKey={item.labelKey}
         icon={item.icon}
-        isActive={useHomeActive ? isHomeActive : pathname.startsWith(item.href)}
+        isActive={
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(item.href + "/")
+        }
         collapsed={collapsed}
         href={item.href}
         onNavigate={onNavigate}
@@ -309,7 +314,7 @@ function SidebarNav({ pathname, isHomeActive, collapsed, onNavigate }: SidebarNa
         desc={t("sidebar.freeCreationDesc")}
         collapsed={collapsed}
       />
-      {renderItems(freeCreationItems, true)}
+      {renderItems(freeCreationItems)}
 
       {/* 故事创作 */}
       <NavGroupHeader
@@ -422,7 +427,6 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
   useElectronMenuListeners(guardedPush);
 
   const sidebarWidth = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
-  const isHomeActive = pathname === "/";
   const electron = isElectron();
 
   return (
@@ -434,7 +438,6 @@ export function Sidebar({ onSearch, onSearchSelect }: SidebarProps): React.React
         <SidebarLogo collapsed={collapsed} />
         <SidebarNav
           pathname={pathname}
-          isHomeActive={isHomeActive}
           collapsed={collapsed}
           onNavigate={handleNavClick}
         />

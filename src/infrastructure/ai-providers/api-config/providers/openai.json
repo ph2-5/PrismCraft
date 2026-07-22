@@ -56,7 +56,9 @@
         "maxTokens": 4096,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已被 GPT-4o 和 GPT-5 系列替代，建议升级"
     },
     {
       "id": "gpt-3.5-turbo",
@@ -68,7 +70,9 @@
         "maxTokens": 4096,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "老一代模型，建议升级到 GPT-4o-mini 或 GPT-5 系列"
     },
     {
       "id": "dall-e-3",
@@ -122,7 +126,9 @@
       "defaultParams": {
         "size": "1024x1024"
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "2026-05-12 从 API 移除，已被 DALL-E 3 替代"
     }
   ]
 }

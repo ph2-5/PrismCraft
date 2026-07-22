@@ -25,7 +25,9 @@
         "maxTokens": 4096,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "2026-07-24 停用，需迁移到 deepseek-v4-flash 或 deepseek-v4-pro"
     },
     {
       "id": "deepseek-llm-7b-chat",
@@ -37,7 +39,9 @@
         "maxTokens": 4096,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "老一代 7B 模型，建议升级到 deepseek-v4-flash"
     }
   ]
 }

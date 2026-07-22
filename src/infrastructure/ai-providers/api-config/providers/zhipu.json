@@ -92,7 +92,9 @@
         "maxTokens": 4096,
         "temperature": 0.7
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "GLM-3 系列已过时，建议升级到 GLM-4.7"
     },
     {
       "id": "cogview-3",
@@ -103,7 +105,9 @@
       "defaultParams": {
         "size": "1024x1024"
       },
-      "verifiedAt": "2026-07-23"
+      "verifiedAt": "2026-07-23",
+      "deprecated": true,
+      "deprecatedReason": "已被 CogView-4 替代，建议升级"
     },
     {
       "id": "cogview-4",

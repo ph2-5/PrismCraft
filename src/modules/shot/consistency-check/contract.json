@@ -1,13 +1,12 @@
 {
   "name": "shot-consistency-check",
-  "description": "分镜视觉一致性检查与配置校验：检查分镜生成配置是否完整，验证特征锚定配置的有效性，评估生成结果的一致性评分，跨分镜一致性自动修复（Task 4.8），跨分镜 IP 安全改写一致性（Task 4.12）",
+  "description": "分镜视觉一致性检查与配置校验：检查分镜生成配置是否完整，验证特征锚定配置的有效性，评估生成结果的一致性评分，跨分镜一致性自动修复，跨分镜 IP 安全改写一致性",
   "dependencies": ["@/domain/schemas", "@/domain/types", "@/infrastructure/di", "@/shared-logic/prompt/safety"],
   "publicAPI": {
     "hooks": [],
     "services": [
       "checkVisualConsistency",
       "performConfigCheck",
-      "performConsistencyCheck",
       "validateFeatureAnchoringConfig",
       "validateNoFrameBinding",
       "checkCrossShotConsistency",

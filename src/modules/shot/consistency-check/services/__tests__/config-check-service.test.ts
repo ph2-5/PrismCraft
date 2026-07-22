@@ -158,22 +158,6 @@ describe("performConfigCheck", () => {
   });
 });
 
-describe("performConsistencyCheck", () => {
-  it("应委托给 performConfigCheck", () => {
-    const config = makeFeatureAnchoringConfig();
-    const elements = [makeElement()];
-
-    const result = performConsistencyCheck({
-      videoUrl: "https://example.com/video.mp4",
-      featureAnchoring: config,
-      elements,
-    });
-
-    const expected = performConfigCheck({ featureAnchoring: config, elements });
-    expect(result).toEqual(expected);
-  });
-});
-
 describe("validateFeatureAnchoringConfig", () => {
   it("禁用配置应返回 valid:true", () => {
     const config = makeFeatureAnchoringConfig({ enabled: false });

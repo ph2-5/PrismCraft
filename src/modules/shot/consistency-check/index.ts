@@ -1,6 +1,5 @@
 export {
   performConfigCheck,
-  performConsistencyCheck,
   validateFeatureAnchoringConfig,
   validateNoFrameBinding,
 } from "./services/config-check-service";

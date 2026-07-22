@@ -56,17 +56,6 @@ export function performConfigCheck(params: {
   };
 }
 
-export function performConsistencyCheck(params: {
-  videoUrl: string;
-  featureAnchoring: FeatureAnchoringConfig;
-  elements: StoryElement[];
-}): ConsistencyCheckResult {
-  return performConfigCheck({
-    featureAnchoring: params.featureAnchoring,
-    elements: params.elements,
-  });
-}
-
 export function validateFeatureAnchoringConfig(
   config: FeatureAnchoringConfig,
 ): { valid: boolean; warnings: string[]; errors: string[] } {

@@ -645,7 +645,7 @@ Hooks：`useSceneVariants`、`useAllSceneVariants`、`useSceneVariant`、`useCre
 
 #### 一致性检查
 
-- `performConsistencyCheck`、`performConfigCheck`、`checkVisualConsistency`、`parseConsistencyAnalysisFromStructured`
+- `performConfigCheck`、`checkVisualConsistency`、`parseConsistencyAnalysisFromStructured`
 - `validateFeatureAnchoringConfig`、`validateNoFrameBinding`
 - 类型：`ConsistencyCheckInput`
 

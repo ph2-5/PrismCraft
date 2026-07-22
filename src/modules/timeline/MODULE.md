@@ -44,15 +44,26 @@ PlotNode 1 ──→ PlotNode 2 ──→ ... ──→ PlotNode N
 ## 边界约束
 
 - 禁止直接导入 `infrastructure/storage`，必须通过 DI container
-- 复杂嵌套类型以 JSON 列存储，完整类型定义在状态推演引擎实现时细化
+- 复杂嵌套类型（CharacterStateSnapshot / SceneStateSnapshot / StateTransition / NodeBinding）以 JSON 列存储
 - `PlotNode.segmentId` ↔ `NovelSegment.id`（Q2-1 原文回溯锚点）
 - `PlotNode.beatId` ↔ `StoryBeat.id`（可选直接关联）
 - 删除 `StoryTimeline` 时级联删除其所有 `PlotNode`（FK ON DELETE CASCADE）
 
-## 未来扩展（Phase 4.6）
+## 实现状态
 
-- 状态推演引擎（`timeline-engine.ts`）：基于 PlotEvent 自动推演状态变化
-- React Query hooks：`useTimeline`, `usePlotNodes`, `useStatePropagation`
-- UI 组件：`TimelineEditor`, `TimelineTrack`, `NodeDetailPanel`, `StateSnapshotView`
-- Prompt 合成增强：StateSnapshot + Binding → Enhanced Prompt
-- 三层快照架构：PinnedSnapshot / ActiveSnapshot / DiffOnlySnapshot（治理状态爆炸）
+| 能力 | 状态 | 位置 |
+|------|------|------|
+| 状态推演引擎 | ✅ 已实现 | `@/shared-logic/timeline/state-propagation-engine.ts`（441 行 + 完整测试） |
+| 状态推演算法 | ✅ 已实现 | `propagateStates` / `computeNextNodeSnapshots` / 事件规则（compound / NO_OP / 常规） |
+| 状态转换规则 | ✅ 已实现 | `CHARACTER_RULES` / `SCENE_RULES` / `CASCADE_RULES` |
+| 首节点初始化 | ✅ 已实现 | `initializeCharacterSnapshots` / `initializeSceneSnapshots` |
+| React Hooks | ✅ 已实现 | `use-timeline-binding` / `use-snapshot-window` / `use-multi-timeline` / `use-enhanced-prompt` / `use-cascade-update` |
+| UI 组件 | ✅ 已实现 | `TimelineEditor` / `TimelineTrack` / `NodeDetailPanel` / `StateSnapshotView` |
+| Prompt 合成增强 | ✅ 已实现 | `use-enhanced-prompt`（StateSnapshot + Binding → Enhanced Prompt） |
+| 三层快照架构 | ✅ 已实现 | PinnedSnapshot / ActiveSnapshot / DiffOnlySnapshot（治理状态爆炸） |
+
+## 后续扩展方向
+
+- 更多 PlotEventType 规则（当前覆盖核心事件，可按需扩展）
+- 状态推演性能优化（大规模 PlotNode 链的增量推演）
+- UI 可视化增强（时间线轨迹图、状态差异高亮）

@@ -865,8 +865,7 @@ export * as timeline from "./timeline";
 
 | 函数 | 签名 | 说明 |
 |------|------|------|
-| `performConfigCheck` | `(params: ConfigCheckParams): ConfigCheckResult` | 执行配置检查 |
-| `performConsistencyCheck` | `(params: ConfigCheckParams): ConfigCheckResult` | 执行一致性检查（封装 `performConfigCheck`） |
+| `performConfigCheck` | `(params: ConfigCheckParams): ConfigCheckResult` | 执行生成配置完整性检查（参考图/特征标签是否就绪） |
 | `validateFeatureAnchoringConfig` | `(config: FeatureAnchoringConfig): ValidationConfigResult` | 校验特征锚定配置 |
 | `validateNoFrameBinding` | `(params: { videoRequestParams?: { previousLastFrameUrl?; fixedImage?: { lockType? } } }): ...` | 校验无帧绑定 |
 

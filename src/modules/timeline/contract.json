@@ -41,7 +41,7 @@
     "PlotNode.segmentId 可选关联 NovelSegment.id（Q2-1 原文回溯锚点）",
     "PlotNode.beatId 可选关联 StoryBeat.id（直接关联）",
     "删除 StoryTimeline 时级联删除其所有 PlotNode（FK ON DELETE CASCADE）",
-    "复杂嵌套类型（CharacterStateSnapshot / SceneStateSnapshot / StateTransition / NodeBinding）以 JSON 列存储，完整类型在状态推演引擎实现时细化",
+    "复杂嵌套类型（CharacterStateSnapshot / SceneStateSnapshot / StateTransition / NodeBinding）以 JSON 列存储，状态推演引擎已实现（@/shared-logic/timeline/state-propagation-engine.ts）",
     "禁止直接导入 infrastructure/storage，必须通过 DI container"
   ]
 }

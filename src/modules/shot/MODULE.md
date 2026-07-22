@@ -27,9 +27,8 @@
 ## 公共 API（index.ts）
 
 ### 一致性检查子域
-- `performConsistencyCheck` — 执行视觉一致性检查（含配置校验 + 一致性评分）
-- `checkVisualConsistency` — 评估分镜生成结果的视觉一致性评分
-- `performConfigCheck` — 执行生成配置检查
+- `performConfigCheck` — 执行生成配置完整性检查（参考图/特征标签是否就绪，返回配置就绪度评分）
+- `checkVisualConsistency` — 评估分镜生成结果的视觉一致性评分（VLM 路径，调用视觉模型对生成图与元素描述打分）
 - `validateFeatureAnchoringConfig` — 验证特征锚定配置有效性
 - `validateNoFrameBinding` — 验证无帧绑定参数
 - `parseConsistencyAnalysisFromStructured` — 从结构化输出解析一致性分析结果

@@ -41,6 +41,10 @@ export interface ModelRegistryEntry {
     [key: string]: unknown;
   };
   modelCapabilities?: ModelCapabilities;
+  // 模型保鲜元数据（PrismCraft 第五章）
+  verifiedAt?: string;
+  deprecated?: boolean;
+  deprecatedReason?: string;
 }
 
 export interface DetectionRule {

@@ -63,6 +63,13 @@ const ModelEntrySchema = z.object({
   modelCapabilitiesPreset: z.string().optional(),
   modelCapabilitiesOverrides: ModelCapabilitiesOverridesSchema.optional(),
   modelCapabilities: ModelCapabilitiesSchema.optional(),
+  // 模型保鲜元数据（PrismCraft 第五章）：标记模型适配最后验证日期与废弃状态
+  // verifiedAt: ISO 日期字符串（YYYY-MM-DD），表示该模型能力适配的最后验证日期
+  // deprecated: 标记模型已被 provider 官方废弃，设置页应显示警示
+  // deprecatedReason: 废弃原因说明（如 sunset 日期、替代模型）
+  verifiedAt: z.string().optional(),
+  deprecated: z.boolean().optional(),
+  deprecatedReason: z.string().optional(),
 }).refine(
   (data) => {
     const hasPreset = !!data.modelCapabilitiesPreset;

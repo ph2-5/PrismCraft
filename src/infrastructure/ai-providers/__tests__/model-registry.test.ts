@@ -104,7 +104,8 @@ describe("model-registry", () => {
 
     it("数值字段应为正数", () => {
       for (const caps of Object.values(BUILTIN_MODEL_CAPABILITIES)) {
-        expect(caps.maxReferences).toBeGreaterThan(0);
+        // maxReferences 可以为 0（表示模型不支持参考图，如 Runway gen4）
+        expect(caps.maxReferences).toBeGreaterThanOrEqual(0);
         expect(caps.maxResolution).toBeGreaterThan(0);
         expect(caps.maxSizeMB).toBeGreaterThan(0);
       }

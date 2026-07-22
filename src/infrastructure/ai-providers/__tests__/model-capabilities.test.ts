@@ -43,7 +43,8 @@ describe("model-capabilities", () => {
 
     it("should have positive values for numeric fields", () => {
       for (const caps of Object.values(BUILTIN_MODEL_CAPABILITIES)) {
-        expect(caps.maxReferences).toBeGreaterThan(0);
+        // maxReferences can be 0 for models that don't support reference images (e.g. Runway gen4)
+        expect(caps.maxReferences).toBeGreaterThanOrEqual(0);
         expect(caps.maxResolution).toBeGreaterThan(0);
         expect(caps.maxSizeMB).toBeGreaterThan(0);
       }

@@ -11,9 +11,12 @@
   "models": [
     {
       "id": "gen3a",
-      "name": "Gen-3 Alpha",
+      "name": "Gen-3 Alpha (deprecated)",
       "capabilities": ["video"],
       "defaultParams": { "duration": 10 },
+      "verifiedAt": "2025-03-15",
+      "deprecated": true,
+      "deprecatedReason": "Runway 已标记为 deprecated，2026-07-30 sunset。请迁移到 gen4_turbo 或 gen4.5",
       "modelCapabilities": {
         "maxReferences": 2,
         "maxResolution": 1024,
@@ -38,9 +41,12 @@
     },
     {
       "id": "gen3a_turbo",
-      "name": "Gen-3 Alpha Turbo",
+      "name": "Gen-3 Alpha Turbo (deprecated)",
       "capabilities": ["video"],
       "defaultParams": { "duration": 10 },
+      "verifiedAt": "2025-03-15",
+      "deprecated": true,
+      "deprecatedReason": "Runway 已标记为 deprecated，2026-07-30 sunset。请迁移到 gen4_turbo 或 gen4.5",
       "modelCapabilities": {
         "maxReferences": 2,
         "maxResolution": 1024,
@@ -54,6 +60,61 @@
           { "width": 1024, "height": 1024, "label": "1:1", "aspectRatio": "1:1" },
           { "width": 1280, "height": 768, "label": "5:3", "aspectRatio": "5:3" },
           { "width": 768, "height": 1280, "label": "3:5", "aspectRatio": "3:5" }
+        ],
+        "supportsCharacterRef": false,
+        "supportsSceneRef": false,
+        "characterRefMode": "none",
+        "sceneRefMode": "none",
+        "imageUploadMode": "url",
+        "maxCharacterRefs": 0
+      }
+    },
+    {
+      "id": "gen4_turbo",
+      "name": "Gen-4 Turbo",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 10 },
+      "verifiedAt": "2026-07-22",
+      "modelCapabilities": {
+        "maxReferences": 0,
+        "maxResolution": 1920,
+        "maxSizeMB": 10,
+        "supportsLastFrame": false,
+        "referenceMode": "merged",
+        "providerId": "runway",
+        "urlTtl": 86400,
+        "defaultImageSize": "1920x1080",
+        "supportedImageSizes": [
+          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
+          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" },
+          { "width": 1280, "height": 720, "label": "16:9 (720p)", "aspectRatio": "16:9" }
+        ],
+        "supportsCharacterRef": false,
+        "supportsSceneRef": false,
+        "characterRefMode": "none",
+        "sceneRefMode": "none",
+        "imageUploadMode": "url",
+        "maxCharacterRefs": 0
+      }
+    },
+    {
+      "id": "gen4.5",
+      "name": "Gen-4.5 (highest quality)",
+      "capabilities": ["video"],
+      "defaultParams": { "duration": 10 },
+      "verifiedAt": "2026-07-22",
+      "modelCapabilities": {
+        "maxReferences": 0,
+        "maxResolution": 1920,
+        "maxSizeMB": 10,
+        "supportsLastFrame": false,
+        "referenceMode": "merged",
+        "providerId": "runway",
+        "urlTtl": 86400,
+        "defaultImageSize": "1920x1080",
+        "supportedImageSizes": [
+          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
+          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
         ],
         "supportsCharacterRef": false,
         "supportsSceneRef": false,

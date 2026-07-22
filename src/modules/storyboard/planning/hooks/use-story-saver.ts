@@ -20,7 +20,7 @@ import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
 import { mapUserFacingError } from "@/shared/utils/user-facing-error";
 import { fromAsyncThrowable } from "@/domain/types/result";
 import { removeTasksByStoryId } from "@/modules/video/task-management";
-import { t } from "@/shared/constants/messages";
+import { t } from "@/shared/constants";
 
 interface UseStorySaverProps {
   stories: Story[];
@@ -121,89 +121,22 @@ function buildStoryForSave(currentStory: Story, beats: StoryBeat[]): Story {
   };
 }
 
-export function useStorySaver(props: UseStorySaverProps) {
-  const {
-    setStories,
-    currentStory,
-    setCurrentStory,
-    beats,
-    setBeats,
-    markClean,
-    markDirty,
-  } = props;
+// ── 模板操作 Hook（从 useStorySaver 提取，降低主函数行数）─────────────────
 
-  const { success, error: showError } = useToastHelpers();
+type ToastHelpers = ReturnType<typeof useToastHelpers>;
 
+interface UseStoryTemplateActionsProps {
+  setBeats: React.Dispatch<React.SetStateAction<StoryBeat[]>>;
+  success: ToastHelpers["success"];
+  showError: ToastHelpers["error"];
+}
+
+function useStoryTemplateActions({ setBeats, success, showError }: UseStoryTemplateActionsProps) {
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
-  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [storyToDelete, setStoryToDelete] = useState<string | null>(null);
-  const [recommendedTemplates, setRecommendedTemplates] = useState<
-    StoryTemplate[]
-  >([]);
   const savedTemplatesQuery = useSavedTemplates();
   const createTemplateMutation = useCreateSavedTemplate();
   const deleteTemplateMutation = useDeleteSavedTemplate();
   const savedTemplates: StoryboardTemplate[] = savedTemplatesQuery.data ?? [];
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [saveError, setSaveError] = useState<string>("");
-  const savingRef = useRef(false);
-
-  const updateRecommendedTemplates = useCallback(
-    (genre: string, tone: string) => {
-      const templates = recommendTemplates(genre || "drama", tone || "neutral");
-      setRecommendedTemplates(templates);
-    },
-    [],
-  );
-
-  const handleRestoreVersion = useCallback(
-    async (version: StoryVersion) => {
-      const result = await restoreVersion(version, currentStory, beats);
-      if (result.ok) {
-        const { story: restoredStory, beats: restoredBeats } = result.value;
-        setCurrentStory(restoredStory, true);
-        setBeats(restoredBeats);
-        setVersionDialogOpen(false);
-        success(
-          t("success.versionRestored"),
-          t("success.versionRestoredDetail", { time: formatVersionTime(version.timestamp) }),
-        );
-      } else {
-        showError(
-          t("error.restoreFailed"),
-          mapUserFacingError(result.error),
-        );
-      }
-    },
-    [currentStory, beats, setCurrentStory, setBeats, success, showError],
-  );
-
-  const handleDeleteStory = useCallback((storyId: string) => {
-    setStoryToDelete(storyId);
-    setDeleteDialogOpen(true);
-  }, []);
-
-  const performDeleteStory = useCallback(async () => {
-    if (!storyToDelete) return;
-    // cascade cleanup delegated to deleteStoryAndAssociatedTasks (removes associated VideoTasks)
-    const result = await deleteStoryAndAssociatedTasks(storyToDelete);
-    if (!result.ok) {
-      errorLogger.warn("Failed to delete story from SQLite", result.error);
-      setDeleteDialogOpen(false);
-      setStoryToDelete(null);
-      showError(t("error.deleteFailed"), t("story.dbDeleteFailed"));
-      return;
-    }
-    setStories((prev) => prev.filter((s) => s.id !== storyToDelete));
-    if (currentStory.id === storyToDelete) {
-      setCurrentStory(DEFAULT_STORY, true);
-      setBeats([]);
-    }
-    setDeleteDialogOpen(false);
-    setStoryToDelete(null);
-    success(t("success.deleted"), t("success.storyDeleted"));
-  }, [storyToDelete, setStories, currentStory, setCurrentStory, setBeats, success, showError]);
 
   const applyStoryTemplate = useCallback(
     (template: StoryTemplate) => {
@@ -260,6 +193,106 @@ export function useStorySaver(props: UseStorySaverProps) {
     },
     [deleteTemplateMutation, success, showError],
   );
+
+  return {
+    templateDialogOpen,
+    setTemplateDialogOpen,
+    applyStoryTemplate,
+    applyStoryboardTemplate,
+    handleSaveTemplate,
+    handleDeleteTemplate,
+    savedTemplates,
+  };
+}
+
+export function useStorySaver(props: UseStorySaverProps) {
+  const {
+    setStories,
+    currentStory,
+    setCurrentStory,
+    beats,
+    setBeats,
+    markClean,
+    markDirty,
+  } = props;
+
+  const { success, error: showError } = useToastHelpers();
+
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [storyToDelete, setStoryToDelete] = useState<string | null>(null);
+  const [recommendedTemplates, setRecommendedTemplates] = useState<
+    StoryTemplate[]
+  >([]);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [saveError, setSaveError] = useState<string>("");
+  const savingRef = useRef(false);
+
+  const {
+    templateDialogOpen,
+    setTemplateDialogOpen,
+    applyStoryTemplate,
+    applyStoryboardTemplate,
+    handleSaveTemplate,
+    handleDeleteTemplate,
+    savedTemplates,
+  } = useStoryTemplateActions({ setBeats, success, showError });
+
+  const updateRecommendedTemplates = useCallback(
+    (genre: string, tone: string) => {
+      const templates = recommendTemplates(genre || "drama", tone || "neutral");
+      setRecommendedTemplates(templates);
+    },
+    [],
+  );
+
+  const handleRestoreVersion = useCallback(
+    async (version: StoryVersion) => {
+      const result = await restoreVersion(version, currentStory, beats);
+      if (result.ok) {
+        const { story: restoredStory, beats: restoredBeats } = result.value;
+        setCurrentStory(restoredStory, true);
+        setBeats(restoredBeats);
+        setVersionDialogOpen(false);
+        success(
+          t("success.versionRestored"),
+          t("success.versionRestoredDetail", { time: formatVersionTime(version.timestamp) }),
+        );
+      } else {
+        showError(
+          t("error.restoreFailed"),
+          mapUserFacingError(result.error),
+        );
+      }
+    },
+    [currentStory, beats, setCurrentStory, setBeats, success, showError],
+  );
+
+  const handleDeleteStory = useCallback((storyId: string) => {
+    setStoryToDelete(storyId);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const performDeleteStory = useCallback(async () => {
+    if (!storyToDelete) return;
+    // cascade cleanup delegated to deleteStoryAndAssociatedTasks (removes associated VideoTasks)
+    const result = await deleteStoryAndAssociatedTasks(storyToDelete);
+    if (!result.ok) {
+      errorLogger.warn("Failed to delete story from SQLite", result.error);
+      setDeleteDialogOpen(false);
+      setStoryToDelete(null);
+      showError(t("error.deleteFailed"), t("story.dbDeleteFailed"));
+      return;
+    }
+    setStories((prev) => prev.filter((s) => s.id !== storyToDelete));
+    if (currentStory.id === storyToDelete) {
+      setCurrentStory(DEFAULT_STORY, true);
+      setBeats([]);
+    }
+    setDeleteDialogOpen(false);
+    setStoryToDelete(null);
+    success(t("success.deleted"), t("success.storyDeleted"));
+  }, [storyToDelete, setStories, currentStory, setCurrentStory, setBeats, success, showError]);
 
   const currentStoryIdRef = useRef(currentStory.id);
   useEffect(() => {

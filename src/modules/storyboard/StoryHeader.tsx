@@ -14,14 +14,17 @@ interface StoryHeaderProps {
   onSwitchStory: (s: StoryValue["stories"][number]) => void;
 }
 
-export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
-  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
-  const [showNovelSourceDialog, setShowNovelSourceDialog] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+// ── 项目下拉菜单（从 StoryHeader 提取，降低主函数行数）─────────────────────
 
-  // 查询当前 Story 关联的原始小说来源（novel_projects.story_id 回溯）
-  const novelSourceQuery = useStoryNovelSource(story.currentStory.id ?? "");
-  const novelSource = novelSourceQuery.data?.novelSource ?? null;
+function StoryProjectDropdown({
+  story,
+  onSwitchStory,
+}: {
+  story: StoryValue;
+  onSwitchStory: (s: StoryValue["stories"][number]) => void;
+}) {
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -39,96 +42,110 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
   }, [showProjectDropdown]);
 
   return (
-    <>
-      <div className="relative" ref={dropdownRef}>
-        <button
-          type="button"
-          className="btn btn-outline btn-sm gap-2 min-w-[160px] justify-between"
-          onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        className="btn btn-outline btn-sm gap-2 min-w-[160px] justify-between"
+        onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+      >
+        <span className="truncate">
+          {story.currentStory.title || t("beat.unnamedProject")}
+        </span>
+        <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+      </button>
+      {showProjectDropdown && (
+        <div
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setShowProjectDropdown(false);
+            }
+          }}
+          className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto"
         >
-          <span className="truncate">
-            {story.currentStory.title || t("beat.unnamedProject")}
-          </span>
-          <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-        </button>
-        {showProjectDropdown && (
-          <div
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                setShowProjectDropdown(false);
+          <button
+            className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
+            onClick={async () => {
+              if (story.hasUnsavedChanges && story.beats.length > 0) {
+                const confirmed = await confirm(
+                  t("beat.unsavedCreateConfirm"),
+                  t("beat.unsavedChanges"),
+                );
+                if (!confirmed) return;
               }
+              story.setCurrentStory(DEFAULT_STORY, true);
+              story.setBeats([]);
+              setShowProjectDropdown(false);
             }}
-            className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto"
           >
-            <button
-              className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
-              onClick={async () => {
-                if (story.hasUnsavedChanges && story.beats.length > 0) {
-                  const confirmed = await confirm(
-                    t("beat.unsavedCreateConfirm"),
-                    t("beat.unsavedChanges"),
-                  );
-                  if (!confirmed) return;
-                }
-                story.setCurrentStory(DEFAULT_STORY, true);
-                story.setBeats([]);
-                setShowProjectDropdown(false);
-              }}
-            >
-              <Plus className="w-4 h-4 text-primary" />
-              {t("story.newProject")}
-            </button>
-            {story.stories.length > 0 && (
-              <div className="border-t border-border my-1" />
-            )}
-            {story.stories.map((s) => (
-              <div
-                key={s.id}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setShowProjectDropdown(false);
-                    onSwitchStory(s);
-                  }
-                }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center justify-between group ${
-                  s.id === story.currentStory.id ? "bg-muted" : ""
-                }`}
-                onClick={() => {
+            <Plus className="w-4 h-4 text-primary" />
+            {t("story.newProject")}
+          </button>
+          {story.stories.length > 0 && (
+            <div className="border-t border-border my-1" />
+          )}
+          {story.stories.map((s) => (
+            <div
+              key={s.id}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
                   setShowProjectDropdown(false);
                   onSwitchStory(s);
-                }}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="story-project-avatar w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0">
-                    {(s.title || "?").charAt(0)}
-                  </div>
-                  <span className="truncate">
-                    {s.title || t("beat.unnamedProject")}
-                  </span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {t("story.beatCount", { count: (s.beats || []).length })}
-                  </span>
+                }
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center justify-between group ${
+                s.id === story.currentStory.id ? "bg-muted" : ""
+              }`}
+              onClick={() => {
+                setShowProjectDropdown(false);
+                onSwitchStory(s);
+              }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="story-project-avatar w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0">
+                  {(s.title || "?").charAt(0)}
                 </div>
-                <button
-                  type="button"
-                  className="p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    story.handleDeleteStory(s.id);
-                  }}
-                  aria-label={t("aria.deleteStory")}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <span className="truncate">
+                  {s.title || t("beat.unnamedProject")}
+                </span>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {t("story.beatCount", { count: (s.beats || []).length })}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <button
+                type="button"
+                className="p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  story.handleDeleteStory(s.id);
+                }}
+                aria-label={t("aria.deleteStory")}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 故事头部 ──────────────────────────────────────────────────────────────
+
+export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
+  const [showNovelSourceDialog, setShowNovelSourceDialog] = useState(false);
+
+  // 查询当前 Story 关联的原始小说来源（novel_projects.story_id 回溯）
+  const novelSourceQuery = useStoryNovelSource(story.currentStory.id ?? "");
+  const novelSource = novelSourceQuery.data?.novelSource ?? null;
+
+  return (
+    <>
+      <StoryProjectDropdown story={story} onSwitchStory={onSwitchStory} />
 
       <input
         data-testid="story-title-input"

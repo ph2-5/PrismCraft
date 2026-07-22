@@ -57,6 +57,7 @@ export const integrationFactories = {
     updatedAt: Date.now(),
     beats: [],
     elementIds: [],
+    status: "in_progress",
     ...overrides,
   }),
 

@@ -65,6 +65,7 @@ export const factories = {
     updatedAt: Date.now(),
     beats: [],
     elementIds: [],
+    status: "in_progress",
     ...overrides,
   }),
 

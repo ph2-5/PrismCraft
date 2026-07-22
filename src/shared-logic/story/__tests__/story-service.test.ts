@@ -62,7 +62,7 @@ describe("story-service", () => {
     it("duration 为 null 时应设为默认值 5（不进 autoFixed）", () => {
       const result = fixShotParams({
         shotType: "medium",
-        duration: null,
+        duration: undefined,
       });
       expect(result.fixed.duration).toBe(5);
     });

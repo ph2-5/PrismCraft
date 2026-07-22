@@ -20,6 +20,7 @@ import {
   clearAllDirty,
   serializeDirtyMap,
   deserializeDirtyMap,
+  type DirtyMap,
 } from "../cascade-update";
 import { propagateStates } from "../state-propagation-engine";
 import type {
@@ -29,7 +30,6 @@ import type {
   PlotEventParameters,
   CharacterInitialState,
   SceneInitialState,
-  DirtyMap,
 } from "../snapshot-types";
 
 // ─────────────────────────────────────────────────────────────

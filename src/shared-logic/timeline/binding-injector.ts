@@ -26,6 +26,9 @@
 
 import type { TimelineBindingLike, StoryTimelineLike } from "./snapshot-types";
 
+// Re-export input types so consumers can import everything from this module's public API.
+export type { TimelineBindingLike, StoryTimelineLike } from "./snapshot-types";
+
 // ─────────────────────────────────────────────────────────────
 // BindingType — 10 种绑定类型
 // 设计文档 docs/timeline-variant-design.md:364-384

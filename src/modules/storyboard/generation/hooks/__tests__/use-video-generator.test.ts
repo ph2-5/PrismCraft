@@ -72,7 +72,7 @@ function createProps(overrides = {}) {
     beatsRef: { current: beats },
     charactersRef: { current: [] },
     scenesRef: { current: [] },
-    currentStory: { id: "story-1", title: "Test", description: "", characters: [], scenes: [], beats: [], createdAt: 0, updatedAt: 0, isDeleted: false, deletedAt: null, version: 1, syncId: "", ownerId: "", elementIds: [] },
+    currentStory: { id: "story-1", title: "Test", description: "", characters: [], scenes: [], beats: [], createdAt: 0, updatedAt: 0, isDeleted: false, deletedAt: null, version: 1, syncId: "", ownerId: "", elementIds: [], status: "in_progress" as const },
     selectedVideoModel: { providerId: "p1", modelId: "m1", providerName: "Test Provider", modelName: "Test Model" },
     createTask: mockCreateTask,
     success: mockSuccess,

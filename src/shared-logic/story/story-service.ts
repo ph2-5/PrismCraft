@@ -128,6 +128,7 @@ interface ShotParamsData {
   cameraMovement?: string;
   cameraAngle?: string;
   duration?: number;
+  shotInstruction?: { shotSize?: string; cameraAngle?: string; cameraMovement?: string };
   [key: string]: unknown;
 }
 

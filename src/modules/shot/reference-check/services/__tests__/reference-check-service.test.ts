@@ -17,6 +17,7 @@ function buildStory(overrides: Partial<Story> = {}): Story {
     updatedAt: Date.now(),
     beats: [],
     elementIds: [],
+    status: "in_progress",
     ...overrides,
   };
 }

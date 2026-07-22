@@ -1,6 +1,8 @@
 # 贡献指南
 
-感谢您考虑为 PrismCraft 贡献代码！PrismCraft 是一款本地优先的 AI 动画创作桌面应用（Electron + React + TypeScript），采用 CC-BY-NC-4.0 协议。本文档说明了参与贡献的流程与规范。
+感谢您考虑为 PrismCraft 贡献代码！PrismCraft 是一款本地优先的 AI 动画创作桌面应用（Electron + React + TypeScript），采用双协议模式（AGPL-3.0-only + 商业授权，详见 [LICENSE](./LICENSE) 与 [COMMERCIAL_LICENSE.md](./COMMERCIAL_LICENSE.md)）。本文档说明了参与贡献的流程与规范。
+
+> ⚠️ **贡献者许可**：提交 PR 即表示您同意将贡献的代码以 AGPL-3.0-only 协议开源，并授予项目维护者在商业授权版本中使用您贡献代码的权利。请勿提交与 AGPL-3.0 不兼容的代码。
 
 ## 贡献流程概要
 

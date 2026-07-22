@@ -1,6 +1,6 @@
 # PrismCraft — 项目全方位指南
 
-> 版本：1.3.0 | 许可证：CC-BY-NC-4.0 | 最后更新：2026-07-14
+> 版本：1.3.0 | 许可证：AGPL-3.0-only（双协议，详见 LICENSE 与 COMMERCIAL_LICENSE.md） | 最后更新：2026-07-23
 
 ---
 

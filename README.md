@@ -3,7 +3,8 @@
 > 本地优先的 AI 动画创作桌面应用，覆盖故事构思 → 角色设计 → 场景搭建 → 分镜编排 → AI 视频生成 → 导出成品的完整工作流。
 
 [![Version](https://img.shields.io/badge/version-1.3.0-blue)](package.json)
-[![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-blue)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0--only-blue)](LICENSE)
+[![Commercial License](https://img.shields.io/badge/commercial-license%20available-orange)](COMMERCIAL_LICENSE.md)
 [![Tests](https://img.shields.io/badge/tests-6026%2B-brightgreen)](docs/DEVELOPMENT.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
 [![Updated](https://img.shields.io/badge/updated-2026--07--14-green)]()
@@ -163,44 +164,45 @@ prismcraft/
 - **插件沙箱**：vm 沙箱 + 原型冻结 + 逃逸检测 + 进程隔离
 - **网络防护**：SSRF guard 拦截云元数据端点
 
-## 许可
+## 许可（双协议 Dual Licensing）
 
-本项目采用 [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](LICENSE) 协议。
+本项目采用**双协议模式**，由 [LICENSE](./LICENSE)（AGPL-3.0-only）与 [COMMERCIAL_LICENSE.md](./COMMERCIAL_LICENSE.md) 共同约束。
 
-### 个人 / 教育 / 研究用途（免费）
+### AGPL-3.0-only（开源免费）
 
-- ✅ **署名**：必须给出适当署名，提供协议链接，并注明是否作了修改
-- ✅ **共享**：可以在任何媒介中以任何格式复制和分发材料
-- ✅ **改编**：可以混合、转换材料并在此基础上创作
-- ❌ **非商业性使用**：不得将材料用于商业目的
+适用于个人学习、研究、教学、开源社区贡献、非商业性学术项目。
 
-### 商业授权
+- ✅ **使用与修改**：可在 AGPL-3.0 条款下自由使用与修改
+- ✅ **共享**：可复制分发
+- ⚠️ **Copyleft 强约束**：任何修改或网络服务部署**必须以 AGPL-3.0 开源全部衍生代码**
+- ❌ **不适合商业闭源场景**：企业法务通常不接受 AGPL 网络服务条款
 
-如需将本项目或其衍生作品用于商业用途，欢迎联系作者获取商业授权。
+详见 [GNU AGPL-3.0 全文](https://www.gnu.org/licenses/agpl-3.0.txt)。
 
-**需要商业授权的场景**：
+### Commercial License（商业授权）
 
-- 闭源商业产品集成
-- SaaS 服务部署
-- 企业内部生产环境
-- 二次开发后销售
+适用于闭源商业产品、SaaS 部署、企业内部生产环境、二次开发销售。
 
-**授权类型**：
+提供多种授权类型以满足不同场景：个人/小团队、企业、SaaS、永久买断。**定价根据使用场景灵活议定，不公开报价。**
 
-| 类型 | 适用场景 | 说明 |
-|------|---------|------|
-| 一次性买断 | 闭源商业产品 | 一次性付费，永久使用，可定制交付内容 |
-| 年度商业许可 | SaaS / 企业内部 | 按年付费，含版本升级与技术支持 |
-| 定制开发 | 特定需求 | 按项目报价，含源码交付与部署指导 |
+详见 [COMMERCIAL_LICENSE.md](./COMMERCIAL_LICENSE.md) 了解授权类型、条款与购买流程。
 
-**为什么需要商业授权**：本项目历经 3 个月持续开发，累计 237,000+ 行 TypeScript 代码、6,026+ 测试用例、151 条回归防护规则，覆盖 13 家 AI 提供商集成。商业授权是对项目质量的认可，也是持续维护的资金保障。
+### 为什么选择双协议
 
-如需商业授权、技术支持或定制开发，请联系作者：
+| 维度 | CC-BY-NC（旧） | AGPL + 商业授权（新） |
+|------|---------------|---------------------|
+| 法律成熟度 | CC 主要为创意作品，代码用 CC 罕见 | AGPL 专为软件设计，企业法务熟悉 |
+| 商业压力 | NC 直接禁止商用，无引导购买路径 | AGPL 允许试用，但商业部署必须买授权 |
+| 社区口碑 | NC 阻挡开源贡献 | AGPL 是 OSI 认证的开源协议 |
+| 行业先例 | 少 | MongoDB/GitLab/Elastic/Redis 等都用此模式 |
+
+### 联系咨询
 
 - **GitHub Issues**：[ph2-5/PrismCraft/issues](https://github.com/ph2-5/PrismCraft/issues)（推荐，公开透明）
 - **Trae 社区**：[@ph2.5](https://forum.trae.cn/u/ph2.5)（私信）
 
 > 💡 **欢迎询价**：无论预算大小，都欢迎联系讨论。可根据具体使用场景灵活定价。
+> 长期合作、教育机构、开源项目可享优惠。
 
 ## 商标免责声明
 

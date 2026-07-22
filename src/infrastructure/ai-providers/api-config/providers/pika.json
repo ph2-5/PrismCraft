@@ -12,8 +12,12 @@
     {
       "id": "pika-1.0",
       "name": "Pika 1.0",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilities": {
         "maxReferences": 2,
         "maxResolution": 2048,
@@ -24,8 +28,18 @@
         "urlTtl": 86400,
         "defaultImageSize": "1920x1080",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ],
         "supportsCharacterRef": false,
         "supportsSceneRef": false,
@@ -33,13 +47,18 @@
         "sceneRefMode": "none",
         "imageUploadMode": "url",
         "maxCharacterRefs": 0
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "pika-2.0",
       "name": "Pika 2.0",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilities": {
         "maxReferences": 2,
         "maxResolution": 2048,
@@ -50,8 +69,18 @@
         "urlTtl": 86400,
         "defaultImageSize": "1920x1080",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ],
         "supportsCharacterRef": false,
         "supportsSceneRef": false,
@@ -59,7 +88,8 @@
         "sceneRefMode": "none",
         "imageUploadMode": "url",
         "maxCharacterRefs": 0
-      }
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

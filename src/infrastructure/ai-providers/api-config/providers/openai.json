@@ -5,8 +5,15 @@
   "baseUrl": "https://api.openai.com/v1",
   "detection": {
     "rules": [
-      { "pattern": "^sk-proj-[a-zA-Z0-9_-]+$", "confidence": "high" },
-      { "pattern": "^sk-[a-zA-Z0-9]{48}$", "confidence": "high", "checkId": "openai_exclude_or_proj_ant" }
+      {
+        "pattern": "^sk-proj-[a-zA-Z0-9_-]+$",
+        "confidence": "high"
+      },
+      {
+        "pattern": "^sk-[a-zA-Z0-9]{48}$",
+        "confidence": "high",
+        "checkId": "openai_exclude_or_proj_ant"
+      }
     ],
     "suggestedName": "OpenAI",
     "baseUrl": "https://api.openai.com/v1"
@@ -15,32 +22,64 @@
     {
       "id": "gpt-4o",
       "name": "GPT-4o",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "gpt-4o-mini",
       "name": "GPT-4o Mini",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "gpt-4-turbo",
       "name": "GPT-4 Turbo",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "gpt-3.5-turbo",
       "name": "GPT-3.5 Turbo",
-      "capabilities": ["text"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "dall-e-3",
       "name": "DALL-E 3",
-      "capabilities": ["image"],
-      "defaultParams": { "size": "1024x1024", "quality": "standard" },
+      "capabilities": [
+        "image"
+      ],
+      "defaultParams": {
+        "size": "1024x1024",
+        "quality": "standard"
+      },
       "modelCapabilities": {
         "maxReferences": 1,
         "maxResolution": 1024,
@@ -50,19 +89,40 @@
         "providerId": "openai-compatible",
         "defaultImageSize": "1024x1024",
         "supportedImageSizes": [
-          { "width": 1024, "height": 1024, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1024, "height": 1792, "label": "2:3", "aspectRatio": "2:3" },
-          { "width": 1792, "height": 1024, "label": "3:2", "aspectRatio": "3:2" }
+          {
+            "width": 1024,
+            "height": 1024,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1024,
+            "height": 1792,
+            "label": "2:3",
+            "aspectRatio": "2:3"
+          },
+          {
+            "width": 1792,
+            "height": 1024,
+            "label": "3:2",
+            "aspectRatio": "3:2"
+          }
         ],
         "supportsCharacterRef": false,
         "supportsSceneRef": false
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "dall-e-2",
       "name": "DALL-E 2",
-      "capabilities": ["image"],
-      "defaultParams": { "size": "1024x1024" }
+      "capabilities": [
+        "image"
+      ],
+      "defaultParams": {
+        "size": "1024x1024"
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

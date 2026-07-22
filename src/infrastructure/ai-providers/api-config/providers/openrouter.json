@@ -5,7 +5,10 @@
   "baseUrl": "https://openrouter.ai/api/v1",
   "detection": {
     "rules": [
-      { "pattern": "^sk-or-[a-zA-Z0-9_-]+$", "confidence": "high" }
+      {
+        "pattern": "^sk-or-[a-zA-Z0-9_-]+$",
+        "confidence": "high"
+      }
     ],
     "suggestedName": "OpenRouter",
     "baseUrl": "https://openrouter.ai/api/v1"
@@ -14,20 +17,41 @@
     {
       "id": "openai/gpt-4o",
       "name": "GPT-4o (OR)",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "anthropic/claude-3.5-sonnet",
       "name": "Claude 3.5 Sonnet",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "google/gemini-pro",
       "name": "Gemini Pro",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

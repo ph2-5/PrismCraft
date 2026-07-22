@@ -5,7 +5,11 @@
   "baseUrl": "https://dashscope.aliyuncs.com/api/v1",
   "detection": {
     "rules": [
-      { "pattern": "^sk-[a-zA-Z0-9]{24,}$", "confidence": "medium", "checkId": "qwen_exclude_known_prefixes" }
+      {
+        "pattern": "^sk-[a-zA-Z0-9]{24,}$",
+        "confidence": "medium",
+        "checkId": "qwen_exclude_known_prefixes"
+      }
     ],
     "suggestedName": "通义千问",
     "baseUrl": "https://dashscope.aliyuncs.com/api/v1"
@@ -14,26 +18,50 @@
     {
       "id": "qwen-max",
       "name": "通义千问 Max",
-      "capabilities": ["text"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "qwen-plus",
       "name": "通义千问 Plus",
-      "capabilities": ["text"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "qwen-turbo",
       "name": "通义千问 Turbo",
-      "capabilities": ["text"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "qwen-vl-max",
       "name": "通义千问 VL Max",
-      "capabilities": ["vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

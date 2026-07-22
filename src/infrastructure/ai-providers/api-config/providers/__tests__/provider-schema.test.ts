@@ -5,6 +5,31 @@ import {
 } from "../provider-schema";
 import runwayJson from "../runway.json";
 
+// 批量加载所有 provider JSON（eager: true 同步加载）
+// 排除 standalone-model-capabilities.json (数组结构) 和 custom.json (用户自定义模板)
+const providerModules = import.meta.glob("../*.json", {
+  eager: true,
+  import: "default",
+}) as Record<string, unknown>;
+
+const SKIP_FILES = new Set([
+  "standalone-model-capabilities.json",
+  "custom.json",
+]);
+
+type ProviderJson = {
+  id: string;
+  name: string;
+  models: Array<{ id: string; verifiedAt?: string; deprecated?: boolean }>;
+};
+
+const allProviders = Object.entries(providerModules)
+  .filter(([path]) => {
+    const filename = path.split("/").pop()!;
+    return !SKIP_FILES.has(filename);
+  })
+  .map(([path, data]) => ({ path, data: data as ProviderJson }));
+
 describe("ProviderJsonSchema - 模型保鲜元数据", () => {
   it("应接受 verifiedAt 字段（ISO 日期字符串）", () => {
     const provider = {
@@ -93,4 +118,28 @@ describe("runway.json - 模型清单完整性", () => {
     const result = validateProviderJson(runwayJson);
     expect(result.success).toBe(true);
   });
+});
+
+describe("所有 provider JSON - 批量保鲜元数据契约", () => {
+  it("应加载到至少 20 个 provider JSON", () => {
+    expect(allProviders.length).toBeGreaterThanOrEqual(20);
+  });
+
+  for (const { path, data } of allProviders) {
+    describe(`${path}`, () => {
+      it("所有模型应有 verifiedAt 字段", () => {
+        for (const model of data.models) {
+          expect(
+            model.verifiedAt,
+            `${path} 的模型 ${model.id} 缺少 verifiedAt`,
+          ).toBeDefined();
+        }
+      });
+
+      it("应通过 schema 校验", () => {
+        const result = validateProviderJson(data);
+        expect(result.success, `${path} schema 校验失败`).toBe(true);
+      });
+    });
+  }
 });

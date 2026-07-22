@@ -5,8 +5,14 @@
   "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
   "detection": {
     "rules": [
-      { "pattern": "^00[a-f0-9]{32}\\.[a-z0-9]{16}$", "confidence": "high" },
-      { "pattern": "^[a-f0-9]{32}\\.[a-zA-Z0-9]{20}$", "confidence": "high" }
+      {
+        "pattern": "^00[a-f0-9]{32}\\.[a-z0-9]{16}$",
+        "confidence": "high"
+      },
+      {
+        "pattern": "^[a-f0-9]{32}\\.[a-zA-Z0-9]{20}$",
+        "confidence": "high"
+      }
     ],
     "suggestedName": "智谱 AI",
     "baseUrl": "https://open.bigmodel.cn/api/paas/v4"
@@ -15,110 +21,203 @@
     {
       "id": "glm-4.7",
       "name": "GLM-4.7",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 8192, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 8192,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "glm-4.6",
       "name": "GLM-4.6",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 8192, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 8192,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "glm-4.5",
       "name": "GLM-4.5",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 8192, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 8192,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "glm-4",
       "name": "GLM-4",
-      "capabilities": ["text"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "glm-4v",
       "name": "GLM-4V",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "glm-3-turbo",
       "name": "GLM-3 Turbo",
-      "capabilities": ["text"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "cogview-3",
       "name": "CogView-3",
-      "capabilities": ["image"],
-      "defaultParams": { "size": "1024x1024" }
+      "capabilities": [
+        "image"
+      ],
+      "defaultParams": {
+        "size": "1024x1024"
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "cogview-4",
       "name": "CogView-4",
-      "capabilities": ["image"],
-      "defaultParams": { "size": "1024x1024" }
+      "capabilities": [
+        "image"
+      ],
+      "defaultParams": {
+        "size": "1024x1024"
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "cogvideox-flash",
       "name": "CogVideoX Flash (免费版)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 6 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 6
+      },
       "modelCapabilitiesPreset": "zhipu_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "cogvideox-2",
       "name": "CogVideoX-2",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 8, "maxKeyframes": 2 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 8,
+        "maxKeyframes": 2
+      },
       "modelCapabilitiesPreset": "zhipu_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "cogvideox-3",
       "name": "CogVideoX-3",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 10, "maxKeyframes": 3 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 10,
+        "maxKeyframes": 3
+      },
       "modelCapabilitiesPreset": "zhipu_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "cogvideox-4",
       "name": "CogVideoX-4",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 10, "maxKeyframes": 4 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 10,
+        "maxKeyframes": 4
+      },
       "modelCapabilitiesPreset": "zhipu_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

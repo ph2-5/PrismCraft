@@ -12,14 +12,26 @@
     {
       "id": "accounts/fireworks/models/llama-v3-70b-instruct",
       "name": "Llama 3 70B Instruct",
-      "capabilities": ["text"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "accounts/fireworks/models/mixtral-8x7b-instruct",
       "name": "Mixtral 8x7B Instruct",
-      "capabilities": ["text"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

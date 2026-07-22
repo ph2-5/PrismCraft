@@ -12,50 +12,97 @@
     {
       "id": "seed-1-8-251228",
       "name": "Seed 1.8",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 4096, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 4096,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kimi-k2-5",
       "name": "Kimi K2.5",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 8192, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 8192,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "glm-4-7",
       "name": "GLM-4.7",
-      "capabilities": ["text", "vision"],
-      "defaultParams": { "maxTokens": 8192, "temperature": 0.7 }
+      "capabilities": [
+        "text",
+        "vision"
+      ],
+      "defaultParams": {
+        "maxTokens": 8192,
+        "temperature": 0.7
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "seedance-1-0-lite-t2v-250428",
       "name": "Seedance 1.0 Lite (文本到视频)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 }
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "seedance-1-0-lite-i2v-250428",
       "name": "Seedance 1.0 Lite (图片到视频)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 }
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "seedance-1-0-pro-250528",
       "name": "Seedance 1.0 Pro",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 8 }
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 8
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "seedance-1-5-pro-251215",
       "name": "Seedance 1.5 Pro",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 12 }
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 12
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "seedance-2-0-260128",
       "name": "Seedance 2.0",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 15, "maxKeyframes": 9 }
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 15,
+        "maxKeyframes": 9
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

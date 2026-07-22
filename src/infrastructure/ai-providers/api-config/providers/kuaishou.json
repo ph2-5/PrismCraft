@@ -12,171 +12,366 @@
     {
       "id": "kling-v1",
       "name": "Kling V1",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "kuaishou_v1_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 1080,
         "defaultImageSize": "1080x1080",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-v1-5",
       "name": "Kling V1.5",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "kuaishou_v1_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 1080,
         "defaultImageSize": "1080x1080",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-v1-6",
       "name": "Kling V1.6",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "kuaishou_v1_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 1080,
         "defaultImageSize": "1080x1080",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-v2-master",
       "name": "Kling V2 Master",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "kuaishou_v2_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-v2-1-master",
       "name": "Kling V2.1 Master",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "kuaishou_v2_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-v2-5-turbo",
       "name": "Kling V2.5 Turbo",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "kuaishou_v2_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-v3-pro",
       "name": "Kling V3 Pro",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 10 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 10
+      },
       "modelCapabilitiesPreset": "kuaishou_v2_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-v3-omni-video-generation",
       "name": "Kling V3 Omni (全能视频生成)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 10 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 10
+      },
       "modelCapabilitiesPreset": "kuaishou_v2_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-native-4k",
       "name": "Kling Native 4K (原生4K)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 15 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 15
+      },
       "modelCapabilitiesPreset": "kuaishou_v2_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 4096,
         "defaultImageSize": "3840x2160",
         "supportedImageSizes": [
-          { "width": 3840, "height": 2160, "label": "16:9 4K", "aspectRatio": "16:9" },
-          { "width": 2160, "height": 3840, "label": "9:16 4K", "aspectRatio": "9:16" }
+          {
+            "width": 3840,
+            "height": 2160,
+            "label": "16:9 4K",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 2160,
+            "height": 3840,
+            "label": "9:16 4K",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "kling-video-o1",
       "name": "Kling Video O1",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 10 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 10
+      },
       "modelCapabilitiesPreset": "kuaishou_v2_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" },
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          },
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

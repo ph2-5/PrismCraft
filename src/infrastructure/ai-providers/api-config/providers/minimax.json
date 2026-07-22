@@ -12,93 +12,158 @@
     {
       "id": "MiniMax-Hailuo-02",
       "name": "Hailuo 02 (新一代)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 6 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 6
+      },
       "modelCapabilitiesPreset": "minimax_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1080",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1080, "label": "16:9", "aspectRatio": "16:9" },
-          { "width": 1080, "height": 1920, "label": "9:16", "aspectRatio": "9:16" }
+          {
+            "width": 1920,
+            "height": 1080,
+            "label": "16:9",
+            "aspectRatio": "16:9"
+          },
+          {
+            "width": 1080,
+            "height": 1920,
+            "label": "9:16",
+            "aspectRatio": "9:16"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "T2V-01-Director",
       "name": "Hailuo T2V-01 Director (文生视频导演版)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "minimax_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "I2V-01-Director",
       "name": "Hailuo I2V-01 Director (图生视频导演版)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "minimax_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "I2V-01-live",
       "name": "Hailuo I2V-01 Live (卡通/漫画风格)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "minimax_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "S2V-01",
       "name": "Hailuo S2V-01 (主体参考视频生成)",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 5 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 5
+      },
       "modelCapabilitiesPreset": "minimax_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": true,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     },
     {
       "id": "hailuo-2.3",
       "name": "Hailuo 2.3",
-      "capabilities": ["video"],
-      "defaultParams": { "duration": 10 },
+      "capabilities": [
+        "video"
+      ],
+      "defaultParams": {
+        "duration": 10
+      },
       "modelCapabilitiesPreset": "minimax_video",
       "modelCapabilitiesOverrides": {
         "supportsLastFrame": false,
         "maxResolution": 2048,
         "defaultImageSize": "1920x1920",
         "supportedImageSizes": [
-          { "width": 1920, "height": 1920, "label": "1:1", "aspectRatio": "1:1" }
+          {
+            "width": 1920,
+            "height": 1920,
+            "label": "1:1",
+            "aspectRatio": "1:1"
+          }
         ]
-      }
+      },
+      "verifiedAt": "2026-07-23"
     }
   ]
 }

@@ -94,10 +94,10 @@ export interface NovelProjectPatch {
 }
 
 export const novelProjectStorage = {
-  /** 获取所有未完成的项目（按 updated_at 降序） */
+  /** 获取所有未完成的项目（story_id IS NULL，按 updated_at 降序） */
   async getAllProjects(): Promise<NovelProjectRecord[]> {
     const rows = await safeQuery<NovelProjectRow>(
-      "SELECT * FROM novel_projects WHERE is_deleted = 0 ORDER BY updated_at DESC",
+      "SELECT * FROM novel_projects WHERE is_deleted = 0 AND story_id IS NULL ORDER BY updated_at DESC",
     );
     return rows.map(rowToProject);
   },
@@ -107,6 +107,16 @@ export const novelProjectStorage = {
     const rows = await safeQuery<NovelProjectRow>(
       "SELECT * FROM novel_projects WHERE id = ? AND is_deleted = 0",
       [id],
+    );
+    if (rows.length === 0) return null;
+    return rowToProject(rows[0]!);
+  },
+
+  /** 获取关联到指定 Story 的 novel_project（用于 Story 详情页回溯原始小说） */
+  async getProjectByStoryId(storyId: string): Promise<NovelProjectRecord | null> {
+    const rows = await safeQuery<NovelProjectRow>(
+      "SELECT * FROM novel_projects WHERE story_id = ? AND is_deleted = 0 ORDER BY updated_at DESC LIMIT 1",
+      [storyId],
     );
     if (rows.length === 0) return null;
     return rowToProject(rows[0]!);

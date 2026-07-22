@@ -1,7 +1,8 @@
 import type { Result } from "@/domain/types";
 import { err, fromAsyncThrowable, NotFoundError, ValidationError } from "@/domain/types";
-import type { Story, CreateStoryInput, UpdateStoryInput } from "@/domain/schemas";
-import { createStoryInputSchema, updateStoryInputSchema } from "@/domain/schemas";
+import type { Story, CreateStoryInput, UpdateStoryInput, StoryStatus } from "@/domain/schemas";
+import { createStoryInputSchema, updateStoryInputSchema, storyStatusSchema } from "@/domain/schemas";
+import type { StorySearchOptions } from "@/domain/ports/storage-port";
 import { container } from "@/infrastructure/di";
 import { safeTransaction } from "@/shared/db-core";
 import { DomainEvents } from "@/shared/event-types";
@@ -11,6 +12,24 @@ import { t } from "@/shared/constants";
 
 function generateStoryId(): string {
   return `story_${crypto.randomUUID()}`;
+}
+
+/**
+ * Story 关联的原始小说来源信息（从 novel_projects 表回溯）。
+ * 当 Story 由小说导入管道创建时，novelSource 不为 null。
+ */
+export interface NovelSource {
+  id: string;
+  title: string;
+  rawText: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Story + 关联的原始小说来源（如果存在） */
+export interface StoryWithNovelSource {
+  story: Story;
+  novelSource: NovelSource | null;
 }
 
 export const storyService = {
@@ -56,6 +75,43 @@ export const storyService = {
     });
   },
 
+  /**
+   * 更新 Story 状态。验证 status 必须为合法枚举值，并触发 STORY_UPDATED 事件。
+   * 与 `update` 不同，此方法不要求乐观锁版本号，仅修改 status 字段。
+   */
+  async updateStatus(id: string, status: StoryStatus): Promise<Result<void>> {
+    const parsed = storyStatusSchema.safeParse(status);
+    if (!parsed.success) {
+      return err(new ValidationError(`Invalid story status: ${status}`));
+    }
+    return fromAsyncThrowable(async () => {
+      const existing = await container.storyStorage.getStoryById(id);
+      if (!existing) throw new NotFoundError("Story", id);
+      await container.storyStorage.updateStoryStatus(id, parsed.data);
+      container.eventBus.emit(DomainEvents.STORY_UPDATED, {
+        id,
+        storyTitle: existing.title || id,
+      });
+    });
+  },
+
+  /**
+   * 按状态过滤故事。当 status 为 undefined 时返回全部故事（等价于 getAll）。
+   */
+  async getByStatus(status?: StoryStatus): Promise<Result<Story[]>> {
+    if (status === undefined) {
+      return fromAsyncThrowable(() => container.storyStorage.getStories());
+    }
+    const parsed = storyStatusSchema.safeParse(status);
+    if (!parsed.success) {
+      return err(new ValidationError(`Invalid story status: ${status}`));
+    }
+    return fromAsyncThrowable(async () => {
+      const all = await container.storyStorage.getStories();
+      return all.filter((s) => s.status === parsed.data);
+    });
+  },
+
   async delete(id: string): Promise<Result<void>> {
     return fromAsyncThrowable(async () => {
       const existing = await container.storyStorage.getStoryById(id);
@@ -70,10 +126,46 @@ export const storyService = {
     });
   },
 
-  async count(): Promise<Result<number>> {
+  async count(options?: StorySearchOptions): Promise<Result<number>> {
     return fromAsyncThrowable(async () => {
+      // 当传入 options 时，使用 countStories 走 SQL COUNT 路径（支持过滤条件）
+      if (options !== undefined) {
+        return container.storyStorage.countStories(options);
+      }
+      // 无 options 时保持原有行为（getStories().length），向后兼容
       const stories = await container.storyStorage.getStories();
       return stories.length;
+    });
+  },
+
+  /**
+   * 按条件搜索故事。支持 query 模糊匹配（title + description）、status/genre/tone 多选过滤、
+   * 字段排序与分页。空 options 等价于 getAll，但走 SQL 路径而非全表加载。
+   */
+  async search(options: StorySearchOptions): Promise<Result<Story[]>> {
+    return fromAsyncThrowable(() => container.storyStorage.searchStories<Story>(options));
+  },
+
+  /**
+   * 复制故事。基于现有故事创建变体：
+   * - 复制 stories 记录（新 ID、新标题、status='draft'）
+   * - 复制 story_beats（新 ID、新 story_id，保留 sequence/description/character_ids_json/scene_id/camera/generation/meta）
+   * - 复制 story_characters / story_scenes / story_elements 关联
+   * - 不复制 story_versions / video_tasks / media_assets
+   * 返回包含新 Story 对象的 Result。
+   */
+  async duplicate(sourceId: string, newTitle: string): Promise<Result<Story>> {
+    return fromAsyncThrowable(async () => {
+      const existing = await container.storyStorage.getStoryById(sourceId);
+      if (!existing) throw new NotFoundError("Story", sourceId);
+      const newId = await container.storyStorage.duplicateStory(sourceId, newTitle);
+      const created = await container.storyStorage.getStoryById(newId);
+      if (!created) throw new NotFoundError("Story", newId);
+      container.eventBus.emit(DomainEvents.STORY_CREATED, {
+        id: newId,
+        storyTitle: created.title,
+      });
+      return created;
     });
   },
 
@@ -82,6 +174,28 @@ export const storyService = {
       const story = await container.storyStorage.getStoryByBeatId(beatId);
       if (!story) throw new NotFoundError("StoryBeat", beatId);
       return story;
+    });
+  },
+
+  /**
+   * 查询 Story 及其关联的原始小说来源（novel_projects.story_id 回溯）。
+   * 如果 Story 不是由小说导入管道创建，novelSource 为 null。
+   */
+  async getStoryWithNovelSource(id: string): Promise<Result<StoryWithNovelSource>> {
+    return fromAsyncThrowable(async () => {
+      const story = await container.storyStorage.getStoryById(id);
+      if (!story) throw new NotFoundError("Story", id);
+      const novelRecord = await container.novelProjectStorage.getProjectByStoryId(id);
+      const novelSource: NovelSource | null = novelRecord
+        ? {
+            id: novelRecord.id,
+            title: novelRecord.title,
+            rawText: novelRecord.rawText,
+            createdAt: novelRecord.createdAt,
+            updatedAt: novelRecord.updatedAt,
+          }
+        : null;
+      return { story, novelSource };
     });
   },
 

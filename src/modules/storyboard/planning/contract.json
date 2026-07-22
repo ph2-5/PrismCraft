@@ -1,15 +1,16 @@
 {
   "name": "storyboard-planning",
   "description": "故事规划：AI生成分镜大纲、规划故事结构",
-  "dependencies": ["story-core", "shot-generation", "ai-providers", "storage/elementStorage"],
+  "dependencies": ["story-core", "shot-generation", "ai-providers", "storage/elementStorage", "storage/novelProjectStorage"],
   "publicAPI": {
-    "hooks": ["useStoryPlanner", "useStories", "useStory", "useStoryCount", "useCreateStory", "useUpdateStory", "useDeleteStory", "useStorySaver"],
+    "hooks": ["useStoryPlanner", "useStories", "useStory", "useStoryCount", "useCreateStory", "useUpdateStory", "useDeleteStory", "useStorySaver", "useStoryNovelSource"],
     "services": ["planStory", "checkTextApiConfig", "storyService", "DEFAULT_STORY", "genres", "tones", "beatTypes"],
     "components": []
   },
   "invariants": [
     "规划前必须检查文本API配置",
     "规划会覆盖现有分镜，需用户确认",
-    "增强模式使用 Few-shot + Schema 校验"
+    "增强模式使用 Few-shot + Schema 校验",
+    "getStoryWithNovelSource 通过 DI container 访问 novelProjectStorage，不在 planning 子域直接 import @/modules/novel"
   ]
 }

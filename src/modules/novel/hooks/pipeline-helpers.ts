@@ -178,6 +178,9 @@ export async function extractAndMatchEntities(
  * 对每个选中段落调用 breakdownTextToShotsTool，单个段落失败不阻塞后续。
  * 最终按 sequence 排序并重新分配连续序号。
  *
+ * Q2-1: 调用 breakdownTextToShotsTool 时传递 segment 上下文（segmentId/startChar/endChar/chapterIndex/chapterTitle），
+ * 使生成的 ShotBreakdown 携带原文回溯字段。
+ *
  * @param segments 选中的段落列表
  * @param charactersJson 角色列表的 JSON 字符串（供拆解工具参考）
  * @param isMounted 检查组件是否仍挂载（false 时提前返回 null）
@@ -196,6 +199,12 @@ export async function breakdownShotsForSegments(
         {
           text: segment.text,
           charactersJson,
+          // Q2-1: 传递原文回溯上下文
+          segmentId: segment.id,
+          segmentStartChar: segment.startChar,
+          segmentEndChar: segment.endChar,
+          chapterIndex: segment.chapterIndex,
+          chapterTitle: segment.chapterTitle,
         },
         NOVEL_TOOL_CTX,
       );

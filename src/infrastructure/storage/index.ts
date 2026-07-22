@@ -12,6 +12,8 @@ export { autoSaveStorage } from "./auto-save";
 export { sessionStorage } from "./sessions";
 export { importExportStorage } from "./import-export";
 export { elementStorage } from "./elements";
+export { storyTemplateStorage } from "./story-templates";
+export type { StoryTemplateRecord, StoryTemplateInput, StoryTemplatePatch } from "./story-templates";
 export { safeQuery, safeRun, safeTransaction } from "./sqlite-core";
 export {
   parseRecord,

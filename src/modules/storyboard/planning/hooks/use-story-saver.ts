@@ -11,6 +11,9 @@ import {
   type StoryboardTemplate,
   storyService,
   DEFAULT_STORY,
+  useSavedTemplates,
+  useCreateSavedTemplate,
+  useDeleteSavedTemplate,
 } from "@/modules/storyboard";
 import type { Story, StoryBeat } from "@/domain/schemas";
 import { errorLogger, extractErrorMessage } from "@/shared/error-logger";
@@ -138,7 +141,10 @@ export function useStorySaver(props: UseStorySaverProps) {
   const [recommendedTemplates, setRecommendedTemplates] = useState<
     StoryTemplate[]
   >([]);
-  const [savedTemplates, setSavedTemplates] = useState<StoryboardTemplate[]>([]);
+  const savedTemplatesQuery = useSavedTemplates();
+  const createTemplateMutation = useCreateSavedTemplate();
+  const deleteTemplateMutation = useDeleteSavedTemplate();
+  const savedTemplates: StoryboardTemplate[] = savedTemplatesQuery.data ?? [];
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string>("");
   const savingRef = useRef(false);
@@ -227,26 +233,32 @@ export function useStorySaver(props: UseStorySaverProps) {
 
   const handleSaveTemplate = useCallback(
     (template: StoryboardTemplate) => {
-      setSavedTemplates((prev) => {
-        const existing = prev.findIndex((t) => t.id === template.id);
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = template;
-          return updated;
-        }
-        return [...prev, template];
+      createTemplateMutation.mutate(template, {
+        onSuccess: () => {
+          success(t("success.templateSaved"), t("success.templateSavedDesc", { name: template.name }));
+        },
+        onError: (err) => {
+          errorLogger.warn("[StorySaver] 保存模板失败", err);
+          showError(t("error.saveFailed"), mapUserFacingError(err));
+        },
       });
-      success(t("success.templateSaved"), t("success.templateSavedDesc", { name: template.name }));
     },
-    [success],
+    [createTemplateMutation, success, showError],
   );
 
   const handleDeleteTemplate = useCallback(
     (id: string) => {
-      setSavedTemplates((prev) => prev.filter((t) => t.id !== id));
-      success(t("success.templateDeleted"), t("success.templateDeletedDesc"));
+      deleteTemplateMutation.mutate(id, {
+        onSuccess: () => {
+          success(t("success.templateDeleted"), t("success.templateDeletedDesc"));
+        },
+        onError: (err) => {
+          errorLogger.warn("[StorySaver] 删除模板失败", err);
+          showError(t("error.deleteFailed"), mapUserFacingError(err));
+        },
+      });
     },
-    [success],
+    [deleteTemplateMutation, success, showError],
   );
 
   const currentStoryIdRef = useRef(currentStory.id);

@@ -5,12 +5,18 @@
  * - handleImport：调用 segmentNovelTextTool 实际分段，失败时降级到占位分段
  * - handleToggle / handleSelectAll：段落选中状态操作
  *
+ * Q2-1: handleImport 增强：
+ * - 调用 detectChapters 识别章节，填充 PipelineState.chapters
+ * - 占位分段使用累计偏移计算真实 startChar/endChar（相对于全文 rawText）
+ * - 每个 segment 填充 chapterIndex/chapterTitle（通过 findChapterByOffset 查找）
+ * - 调用 segmentNovelTextTool 后保留工具返回的真实偏移，并补充章节归属
+ *
  * 这部分逻辑独立于 entity/shot/mode 等 handlers，单独拆出便于维护。
  */
 
 import { useCallback } from "react";
-import type { NovelSegment } from "../domain/types";
-import { segmentNovelTextTool } from "../tools";
+import type { NovelChapter, NovelSegment } from "../domain/types";
+import { segmentNovelTextTool, detectChapters, findChapterByOffset } from "../tools";
 import { canTransition, transition } from "../import/services/pipeline-machine";
 import { DEFAULT_PACING_CONFIG } from "../pacing";
 import { NOVEL_TOOL_CTX } from "./pipeline-helpers";
@@ -35,6 +41,35 @@ export interface UseNovelImportHandlersResult {
 }
 
 /**
+ * 为 segments 填充章节归属，并更新 chapters 的 segmentIds。
+ * Q2-1: 统一处理章节关联逻辑，避免占位分段和工具分段两处重复代码。
+ */
+function attachChaptersToSegments(
+  segments: NovelSegment[],
+  chapters: NovelChapter[],
+): { segments: NovelSegment[]; chapters: NovelChapter[] } {
+  if (chapters.length === 0) {
+    return { segments, chapters };
+  }
+  const updatedSegments = segments.map((seg) => {
+    const ch = findChapterByOffset(chapters, seg.startChar);
+    return {
+      ...seg,
+      chapterIndex: ch?.index,
+      chapterTitle: ch?.title,
+    };
+  });
+  // 更新每个 chapter 的 segmentIds
+  const updatedChapters = chapters.map((ch) => ({
+    ...ch,
+    segmentIds: updatedSegments
+      .filter((s) => s.chapterIndex === ch.index)
+      .map((s) => s.id),
+  }));
+  return { segments: updatedSegments, chapters: updatedChapters };
+}
+
+/**
  * 导入与段落选中 Handlers Hook。
  */
 export function useNovelImportHandlers({
@@ -56,30 +91,52 @@ export function useNovelImportHandlers({
     setShotContracts([]);
     setPacingConfig(DEFAULT_PACING_CONFIG);
 
+    // Q2-1: 章节识别（正则，零依赖，失败返回空数组）
+    const chapters = detectChapters(text);
+
     setState((prev) => {
       const next = canTransition(prev.stage, "content_import")
         ? transition(prev, "content_import")
         : prev;
-      return { ...next, rawText: text };
+      return { ...next, rawText: text, chapters };
     });
 
-    // 先用占位分段填充 UI（即使后续工具调用失败也有降级内容）
-    const placeholderSegments: NovelSegment[] = text
+    // Q2-1: 占位分段使用累计偏移计算真实 startChar/endChar（相对于全文 rawText）
+    // 旧实现 startChar=0/endChar=para.length 是相对于单段，导致偏移错乱
+    const placeholderSegments: NovelSegment[] = [];
+    let placeholderCursor = 0;
+    text
       .split(/\n\s*\n/)
       .filter((p) => p.trim().length > 0)
       .slice(0, 20)
-      .map((para, i) => ({
-        id: `seg-${i + 1}`,
-        title: `段落 ${i + 1}`,
-        summary: para.slice(0, 80) + (para.length > 80 ? "..." : ""),
-        startChar: 0,
-        endChar: para.length,
-        estimatedDuration: Math.max(3, Math.min(15, Math.round(para.length / 50))),
-        keyEvents: [],
-        text: para,
-      }));
-    setState((prev) => ({ ...prev, segments: placeholderSegments }));
-    setSelectedSegmentIds(placeholderSegments.map((s) => s.id));
+      .forEach((para, i) => {
+        // 在 placeholderCursor 之后查找段落真实起始（跳过空行/空白）
+        const found = text.indexOf(para, placeholderCursor);
+        const startChar = found >= 0 ? found : placeholderCursor;
+        const endChar = startChar + para.length;
+        placeholderCursor = endChar;
+        placeholderSegments.push({
+          id: `seg-${i + 1}`,
+          title: `段落 ${i + 1}`,
+          summary: para.slice(0, 80) + (para.length > 80 ? "..." : ""),
+          startChar,
+          endChar,
+          estimatedDuration: Math.max(3, Math.min(15, Math.round(para.length / 50))),
+          keyEvents: [],
+          text: para,
+        });
+      });
+
+    // Q2-1: 为占位分段填充章节归属
+    const { segments: placeholderWithChapters, chapters: chaptersWithPlaceholderSegs } =
+      attachChaptersToSegments(placeholderSegments, chapters);
+
+    setState((prev) => ({
+      ...prev,
+      segments: placeholderWithChapters,
+      chapters: chaptersWithPlaceholderSegs,
+    }));
+    setSelectedSegmentIds(placeholderWithChapters.map((s) => s.id));
 
     // 接入 segmentNovelTextTool 实际分段（失败时保留占位分段作为降级）
     setIsProcessing(true);
@@ -89,17 +146,20 @@ export function useNovelImportHandlers({
       if (result.success && result.data) {
         const data = result.data as { segments: NovelSegment[] };
         if (Array.isArray(data.segments) && data.segments.length > 0) {
+          // Q2-1: 工具已返回真实偏移，直接填充 text 并补充章节归属
           const filledSegments = data.segments.map((seg) => {
-            const startChar = seg.startChar ?? 0;
-            const endChar = seg.endChar ?? text.length;
-            const segText =
-              startChar === 0 && endChar === text.length
-                ? text
-                : text.slice(startChar, endChar);
+            const segText = text.slice(seg.startChar, seg.endChar);
             return { ...seg, text: segText };
           });
-          setState((prev) => ({ ...prev, segments: filledSegments }));
-          setSelectedSegmentIds(filledSegments.map((s) => s.id));
+          // 为工具分段填充章节归属
+          const { segments: filledWithChapters, chapters: chaptersWithFilledSegs } =
+            attachChaptersToSegments(filledSegments, chapters);
+          setState((prev) => ({
+            ...prev,
+            segments: filledWithChapters,
+            chapters: chaptersWithFilledSegs,
+          }));
+          setSelectedSegmentIds(filledWithChapters.map((s) => s.id));
         }
       }
     } finally {

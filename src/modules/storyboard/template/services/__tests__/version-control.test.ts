@@ -43,6 +43,7 @@ const mockStory: Story = {
   genre: "drama",
   tone: "neutral",
   targetDuration: 60,
+  status: "in_progress",
 };
 
 const mockBeats: StoryBeat[] = [

@@ -146,6 +146,30 @@ export const VALID_SHOT_TYPES = new Set([
   "wormseye",
 ]);
 
+/**
+ * Story 状态枚举。
+ * - draft：草稿（仅创建，未编排 beats）
+ * - in_progress：进行中（正在编排/生成）
+ * - completed：已完成（所有视频生成完毕）
+ * - archived：归档（不再展示在最近项目，但保留数据）
+ * - abandoned：放弃（不再展示在最近项目，但保留数据）
+ *
+ * 与首页派生状态（empty/inProgress/completed）的关系：
+ * - status 是显式持久化字段；首页派生状态是运行时计算结果。
+ * - 首页过滤时 archived/abandoned 不出现在「最近项目」。
+ */
+export const storyStatusSchema = z.enum([
+  "draft",
+  "in_progress",
+  "completed",
+  "archived",
+  "abandoned",
+]);
+
+export type StoryStatus = z.infer<typeof storyStatusSchema>;
+
+export const STORY_STATUSES: readonly StoryStatus[] = storyStatusSchema.options;
+
 export const storyBeatSchema = z.object({
   // ── Core identity ──
   id: z.string(),
@@ -261,6 +285,25 @@ export const storyBeatSchema = z.object({
    * 内部一致性由 `validateBlockoutScene` 在导入时保证。
    */
   blockout3D: z.custom<BlockoutScene>().optional(),
+
+  // ── 原文回溯（Q2-1: 章节识别 + 字符偏移追踪）──
+  /**
+   * 以下字段用于建立 beat ↔ 原文 的精确回溯关系，支持原文↔分镜对照视图。
+   * 字符偏移相对于导入时的全文 rawText（统一坐标系统）。
+   * 全部 optional，旧数据无此字段时按 undefined 处理，不影响现有逻辑。
+   */
+  /** 源文文本片段（segment.text，便于回溯展示） */
+  sourceText: z.string().optional(),
+  /** 源 segment ID（beat 由该 segment 拆解而来） */
+  sourceSegmentId: z.string().optional(),
+  /** 源文起始偏移（相对于全文 rawText） */
+  sourceStartChar: z.number().optional(),
+  /** 源文结束偏移（相对于全文 rawText） */
+  sourceEndChar: z.number().optional(),
+  /** 所属章节序号（1-based） */
+  chapterIndex: z.number().optional(),
+  /** 所属章节标题 */
+  chapterTitle: z.string().optional(),
 });
 
 export const storyVersionSchema = z.object({
@@ -298,6 +341,7 @@ export const storySchema = z.object({
   elementIds: z.array(z.string()),
   elementBindings: z.record(z.string(), elementBindingSchema).optional(),
   styleGuide: storyStyleGuideSchema.optional(),
+  status: storyStatusSchema.default("in_progress"),
 });
 
 export type StoryVersion = z.infer<typeof storyVersionSchema>;

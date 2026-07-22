@@ -20,6 +20,7 @@ const methodTemplates: Record<string, string[]> = {
   story: [
     "getStories", "getStoryById", "getStoryByBeatId",
     "createStory", "updateStory", "deleteStory",
+    "searchStories", "countStories",
   ],
   version: [
     "getVersions", "createVersion", "deleteVersion",
@@ -53,7 +54,7 @@ const methodTemplates: Record<string, string[]> = {
     "getSession", "setSession", "deleteSession",
   ],
   novelProject: [
-    "getAllProjects", "getProjectById", "createProject",
+    "getAllProjects", "getProjectById", "getProjectByStoryId", "createProject",
     "updateProject", "deleteProject", "hardDeleteProject",
     "cleanExpiredProjects",
   ],

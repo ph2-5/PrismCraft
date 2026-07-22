@@ -48,6 +48,9 @@ vi.mock("@/modules/storyboard", () => ({
     createdAt: expect.any(Number),
     updatedAt: expect.any(Number),
   },
+  useSavedTemplates: vi.fn(() => ({ data: [] })),
+  useCreateSavedTemplate: vi.fn(() => ({ mutate: vi.fn() })),
+  useDeleteSavedTemplate: vi.fn(() => ({ mutate: vi.fn() })),
 }));
 
 vi.mock("@/shared/error-logger", () => ({
@@ -107,6 +110,7 @@ function createDefaultProps() {
     elementIds: [],
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
+    status: "in_progress",
   };
 
   return {

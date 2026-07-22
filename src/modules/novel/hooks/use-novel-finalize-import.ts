@@ -9,7 +9,10 @@
  * 3. 构建 StoryBeat[]（每个 shot 对应一个 beat）
  * 4. 调用 storyService.create 创建 Story
  * 5. 转换 pipeline stage 到 done
- * 6. 清理 DB 项目记录（物理删除，因为已转换为正式 Story）
+ * 6. 软关联：更新 novel_projects.story_id 指向已创建的 Story，保留原始小说文本用于回溯
+ *
+ * Q2-1: 构建 StoryBeat[] 时携带原文回溯字段（sourceText/sourceSegmentId/
+ * sourceStartChar/sourceEndChar/chapterIndex/chapterTitle），支持原文↔分镜对照视图。
  *
  * 这部分逻辑独立于自动保存 / recoverProject / dismissRecovery 等持久化操作。
  */
@@ -67,6 +70,7 @@ export function useNovelFinalizeImport({
         .filter((id): id is string => typeof id === "string" && id.length > 0);
 
       // 构建 StoryBeat[]：每个 shot 对应一个 beat
+      // Q2-1: 携带原文回溯字段（sourceText/sourceSegmentId/sourceStartChar/sourceEndChar/chapterIndex/chapterTitle）
       const beats: StoryBeat[] = shots.map((shot, index) => {
         const beatCharacterIds = shot.characters
           .map((name) => state.characters.find((c) => c.name === name)?.matchedCharacterId)
@@ -79,6 +83,13 @@ export function useNovelFinalizeImport({
           characterIds: beatCharacterIds,
           sceneId: shot.sceneId,
           elementIds: [],
+          // Q2-1: 原文回溯字段
+          sourceText: shot.sourceText,
+          sourceSegmentId: shot.sourceSegmentId,
+          sourceStartChar: shot.sourceStartChar,
+          sourceEndChar: shot.sourceEndChar,
+          chapterIndex: shot.chapterIndex,
+          chapterTitle: shot.chapterTitle,
         } as StoryBeat;
       });
 
@@ -113,13 +124,17 @@ export function useNovelFinalizeImport({
         canTransition(prev.stage, "done") ? transition(prev, "done") : prev,
       );
 
-      // Task 2A.7: 导入完成后清理 DB 项目记录（物理删除，因为已转换为正式 Story）
+      // 软关联：将 novel_projects.story_id 指向已创建的 Story，保留原始小说文本用于回溯
+      // 不再物理删除 novel_projects 记录，Story 详情页可通过 story_id 回溯到原始小说
       if (currentProjectId !== null) {
         container.novelProjectStorage
-          .hardDeleteProject(currentProjectId)
+          .updateProject(currentProjectId, { storyId: result.value.id })
           .catch((err) => {
-            // P1-3: 清理失败不阻塞 UI，后续 cleanExpiredProjects 会兜底
-            errorLogger.warn(`[useNovelPipeline] 清理已完成项目 ${currentProjectId} 失败，后续 cleanExpiredProjects 会兜底`, err);
+            // P1-3: 关联失败不阻塞 UI，后续 cleanExpiredProjects 会兜底清理过期记录
+            errorLogger.warn(
+              `[useNovelPipeline] 关联 novel_project ${currentProjectId} → story ${result.value.id} 失败`,
+              err,
+            );
           });
         setCurrentProjectId(null);
       }

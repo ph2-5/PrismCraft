@@ -54,6 +54,7 @@ const mockStory: Story = {
   updatedAt: Date.now(),
   beats: [],
   elementIds: [],
+  status: "in_progress",
 };
 
 const validCreateInput = {

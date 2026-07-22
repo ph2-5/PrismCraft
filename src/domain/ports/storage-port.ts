@@ -1,7 +1,7 @@
 import type { VideoTask } from "@/domain/schemas/api";
 import type { Character, CharacterOutfit } from "@/domain/schemas/character";
 import type { Scene } from "@/domain/schemas/scene";
-import type { Story } from "@/domain/schemas/story";
+import type { Story, StoryStatus } from "@/domain/schemas/story";
 import type { SubShot } from "@/domain/schemas/shot";
 import type { GenerationAsset } from "@/domain/schemas/asset";
 
@@ -46,6 +46,25 @@ export interface ISceneStorage {
   deleteScene(id: string): Promise<void>;
 }
 
+/**
+ * 故事搜索与筛选选项。
+ *
+ * - `query` 非空时对 title + description 做 LIKE 模糊匹配
+ * - `status` / `genre` / `tone` 数组非空时按 IN 条件过滤；空数组忽略
+ * - `sortBy` 默认 `updatedAt`；`sortOrder` 默认 `desc`
+ * - `limit` / `offset` 用于分页；同时提供时分页生效
+ */
+export interface StorySearchOptions {
+  query?: string;
+  status?: StoryStatus[];
+  genre?: string[];
+  tone?: string[];
+  sortBy?: "updatedAt" | "createdAt" | "title";
+  sortOrder?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+}
+
 export interface IStoryStorage {
   getStories(): Promise<Story[]>;
   getStoryById(id: string): Promise<Story | null>;
@@ -53,7 +72,11 @@ export interface IStoryStorage {
   getStoryVersion(id: string): Promise<number | null>;
   createStory(story: Partial<Story>): Promise<void>;
   updateStory(id: string, updates: Partial<Story>, version?: number): Promise<void>;
+  updateStoryStatus(id: string, status: StoryStatus): Promise<void>;
   deleteStory(id: string): Promise<void>;
+  duplicateStory(sourceId: string, newTitle: string): Promise<string>;
+  searchStories<T = Story>(options: StorySearchOptions): Promise<T[]>;
+  countStories(options: StorySearchOptions): Promise<number>;
 }
 
 export interface ISubShotStorage {

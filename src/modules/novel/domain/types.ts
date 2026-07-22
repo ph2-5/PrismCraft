@@ -23,18 +23,46 @@ import type { CharacterAppearance } from "@/domain/schemas/character";
 // ============================================================================
 
 /**
+ * 小说章节（Q2-1: 章节识别 + 字符偏移追踪）。
+ * 通过正则识别"第X章"/"Chapter X"等标题建立 chapter 层级。
+ * 不依赖 AI，由 chapter-detector.ts 纯函数计算。
+ */
+export interface NovelChapter {
+  id: string;
+  /** 章节序号（1-based） */
+  index: number;
+  /** 章节标题（含"第一章"等前缀） */
+  title: string;
+  /** 章节起始偏移（含标题行，相对于全文 rawText） */
+  startChar: number;
+  /** 章节结束偏移（下一个章节标题起始，或全文长度） */
+  endChar: number;
+  /** 该章节下的 segment ID 列表（由调用方填充） */
+  segmentIds: string[];
+}
+
+/**
  * 小说分段（基础单元）。
  * 一段 ≈ 一个视频分镜单元，对应 PipelineState.segments[] 一项。
+ *
+ * Q2-1: 新增 chapterIndex/chapterTitle 字段，建立 segment↔chapter 归属关系。
+ * 字符偏移 startChar/endChar 相对于全文 rawText（统一坐标系统）。
  */
 export interface NovelSegment {
   id: string;
   title: string;
   summary: string;
+  /** 段落起始偏移（相对于全文 rawText） */
   startChar: number;
+  /** 段落结束偏移（相对于全文 rawText） */
   endChar: number;
   estimatedDuration: number;
   keyEvents: string[];
   text: string;
+  /** Q2-1: 所属章节序号（1-based，无章节时为 undefined） */
+  chapterIndex?: number;
+  /** Q2-1: 所属章节标题 */
+  chapterTitle?: string;
 }
 
 /**
@@ -77,6 +105,10 @@ export interface ExtractedScene {
 /**
  * 分镜拆解（单片段 → 多分镜）。
  * v5.4: shotType / qcReport 字段为 Task 2A.23 一致性 QC 闭环预留（全部 optional）。
+ *
+ * Q2-1: 新增原文回溯字段（sourceSegmentId/sourceStartChar/sourceEndChar/sourceText/chapterIndex/chapterTitle），
+ * 使每个 shot 能精确定位到原文中的字符范围，支持原文↔分镜对照视图。
+ * 字符偏移相对于全文 rawText（与 NovelSegment 同坐标系）。
  */
 export interface ShotBreakdown {
   id: string;
@@ -94,6 +126,19 @@ export interface ShotBreakdown {
     zh: string;
   };
   status: "draft" | "edited" | "final";
+  // === Q2-1: 原文回溯字段（全部 optional，旧数据无此字段时按 undefined 处理） ===
+  /** 源 segment ID（shot 由该 segment 拆解而来） */
+  sourceSegmentId?: string;
+  /** 源文起始偏移（相对于全文 rawText） */
+  sourceStartChar?: number;
+  /** 源文结束偏移（相对于全文 rawText） */
+  sourceEndChar?: number;
+  /** 源文文本片段（segment.text，便于回溯展示） */
+  sourceText?: string;
+  /** 所属章节序号（1-based） */
+  chapterIndex?: number;
+  /** 所属章节标题 */
+  chapterTitle?: string;
   // === v5.4 Task 2A.23 一致性 QC 闭环预留字段（Task 2A.23 实施时追加，全部 optional） ===
   // shotStrategy?: "continuous_action" | "angle_switch" | "scene_transition";
   // qcReport?: QCReport;  ← 类型定义见 Task 2A.23 的 domain/qc-schema.ts

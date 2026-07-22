@@ -4,16 +4,23 @@ export {
   useStoryPlanner,
   useStories,
   useStory,
+  useStoryCount,
+  useSearchStories,
   useCreateStory,
   useUpdateStory,
   useDeleteStory,
+  useUpdateStoryStatus,
+  useStoriesByStatus,
+  useDuplicateStory,
+  useStoryNovelSource,
+  NOVEL_SOURCE_QUERY_KEY,
   DEFAULT_STORY,
   genres,
   tones,
   beatTypes,
   useStorySaver,
 } from "./planning";
-export type { CreationMode } from "./planning";
+export type { CreationMode, NovelSource, StoryWithNovelSource, StorySearchOptions } from "./planning";
 
 export { resolveCharacterRef, resolveCharacterRefs, resolveSceneRef } from "@/domain/services/reference-resolver";
 
@@ -63,6 +70,16 @@ export {
   applyTemplateToBeats,
   exportTemplateToFile,
   importTemplateFromFile,
+  getAllSavedTemplates,
+  saveSavedTemplate,
+  deleteSavedTemplate,
+  updateSavedTemplate,
+  getSavedTemplateById,
+  deleteAllSavedTemplates,
+  useSavedTemplates,
+  useCreateSavedTemplate,
+  useDeleteSavedTemplate,
+  SAVED_TEMPLATE_QUERY_KEYS,
   restoreVersion,
   formatVersionTime,
   saveVersion,

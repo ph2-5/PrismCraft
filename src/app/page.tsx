@@ -128,7 +128,7 @@ export default function Home() {
               {stories.length > 6 && (
                 <button
                   className="btn btn-outline btn-sm"
-                  onClick={() => navigate("/storyboard")}
+                  onClick={() => navigate("/stories")}
                 >
                   {t("home.viewAll")}
                 </button>

@@ -16,6 +16,7 @@ import {
   Link as LinkIcon,
   Film,
   Keyboard,
+  Library,
 } from "lucide-react";
 import { useState, useEffect, useCallback, useLayoutEffect, useSyncExternalStore, memo } from "react";
 import { SearchDialog } from "./SearchDialog";
@@ -63,6 +64,7 @@ const freeCreationItems: NavEntry[] = [
 ];
 
 const storyCreationItems: NavEntry[] = [
+  { href: "/stories", labelKey: "sidebar.stories", icon: Library },
   { href: "/story", labelKey: "sidebar.story", icon: Book },
 ];
 

@@ -90,6 +90,7 @@ export async function restoreVersion(
       elementIds: [],
       createdAt: Math.floor(version.timestamp / 1000),
       updatedAt: Math.floor(Date.now() / 1000),
+      status: currentStory.status,
     };
 
     return { story, beats: structuredClone(version.beats) };

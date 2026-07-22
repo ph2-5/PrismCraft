@@ -77,6 +77,13 @@ const KNOWN_BEAT_KEYS = new Set([
   "characterOutfits", "character_outfits", "character_outfits_json",
   "camera", "generation", "meta", "keyframe", "framePair", "videoGen",
   "elementIds", "elementBindings",
+  // Q2-1: 原文回溯字段（chapter 识别 + 字符偏移追踪）
+  "sourceText", "source_text",
+  "sourceSegmentId", "source_segment_id",
+  "sourceStartChar", "source_start_char",
+  "sourceEndChar", "source_end_char",
+  "chapterIndex", "chapter_index",
+  "chapterTitle", "chapter_title",
 ]);
 
 function buildExtra(beat: Record<string, unknown>): Record<string, unknown> {

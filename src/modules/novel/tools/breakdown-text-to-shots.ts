@@ -5,6 +5,10 @@
  * 每个分镜包含：description、shotType、cameraAngle、cameraMovement、action、characters（引用）、estimatedDuration。
  * 返回 { shots: ShotBreakdown[] }。
  *
+ * Q2-1: 入参新增 segmentId/segmentStartChar/segmentEndChar/chapterIndex/chapterTitle 上下文，
+ * 输出 ShotBreakdown 携带原文回溯字段（sourceSegmentId/sourceStartChar/sourceEndChar/sourceText/chapterIndex/chapterTitle），
+ * 使每个 shot 能精确定位到原文中的字符范围。
+ *
  * 注：分镜转提示词使用统一的 generate_prompt 工具（模式 2），无需单独工具。
  */
 
@@ -41,6 +45,27 @@ export const breakdownTextToShotsTool: ToolImpl = {
             type: "string",
             description: "段落对应的场景 ID（可选，关联到场景库）",
           },
+          // Q2-1: 原文回溯上下文（全部可选，由调用方传入）
+          segmentId: {
+            type: "string",
+            description: "源 segment ID（可选，用于回溯）",
+          },
+          segmentStartChar: {
+            type: "number",
+            description: "源 segment 在全文 rawText 中的起始偏移（可选，用于回溯）",
+          },
+          segmentEndChar: {
+            type: "number",
+            description: "源 segment 在全文 rawText 中的结束偏移（可选，用于回溯）",
+          },
+          chapterIndex: {
+            type: "number",
+            description: "所属章节序号（可选，1-based）",
+          },
+          chapterTitle: {
+            type: "string",
+            description: "所属章节标题（可选）",
+          },
         },
         required: ["text"],
       },
@@ -55,6 +80,12 @@ export const breakdownTextToShotsTool: ToolImpl = {
       return { success: false, error: "参数 text 不能为空" };
     }
     const sceneId = asString(args.sceneId);
+    // Q2-1: 读取原文回溯上下文
+    const segmentId = asString(args.segmentId);
+    const segmentStartChar = asNumber(args.segmentStartChar);
+    const segmentEndChar = asNumber(args.segmentEndChar);
+    const chapterIndex = asNumber(args.chapterIndex);
+    const chapterTitle = asString(args.chapterTitle);
 
     let characterNames: string[] = [];
     const charactersJson = asString(args.charactersJson);
@@ -105,6 +136,9 @@ ${text}
       return { success: false, error: "AI 分镜拆解失败或返回格式解析失败" };
     }
 
+    // Q2-1: 构建 ShotBreakdown 时携带原文回溯字段
+    // sourceStartChar/sourceEndChar 使用 segment 的整体范围（无法精确定位到 shot 级别）
+    // sourceText 为 segment 全文（便于回溯展示）
     const shots: ShotBreakdown[] = raw.map((item, i) => {
       const s = (item ?? {}) as Record<string, unknown>;
       return {
@@ -119,6 +153,13 @@ ${text}
         sceneId: sceneId || undefined,
         estimatedDuration: asNumber(s.estimatedDuration, 5),
         status: "draft" as const,
+        // Q2-1: 原文回溯字段
+        sourceSegmentId: segmentId,
+        sourceStartChar: segmentStartChar,
+        sourceEndChar: segmentEndChar,
+        sourceText: text,
+        chapterIndex: chapterIndex,
+        chapterTitle: chapterTitle,
       };
     });
 

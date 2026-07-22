@@ -159,6 +159,11 @@ const FEATURE_TABLES: TableDef[] = [
       style_guide_json: { type: "TEXT" },
       element_ids_json: { type: "TEXT" },
       element_bindings_json: { type: "TEXT" },
+      status: {
+        type: "TEXT",
+        default: "'in_progress'",
+        check: "IN ('draft', 'in_progress', 'completed', 'archived', 'abandoned')",
+      },
     },
   },
   {
@@ -177,6 +182,21 @@ const FEATURE_TABLES: TableDef[] = [
       scenes_json: { type: "TEXT" },
       change_summary: { type: "TEXT" },
       auto_saved: { type: "INTEGER", default: "0" },
+    },
+  },
+  {
+    name: "story_templates",
+    featureGroup: "core",
+    columns: {
+      name: { type: "TEXT", notNull: true },
+      description: { type: "TEXT" },
+      beats_json: { type: "TEXT", notNull: true },
+      category: { type: "TEXT" },
+      genre: { type: "TEXT" },
+      tone: { type: "TEXT" },
+      tags_json: { type: "TEXT" },
+      author: { type: "TEXT" },
+      total_duration: { type: "INTEGER" },
     },
   },
   {
@@ -598,6 +618,8 @@ CREATE INDEX IF NOT EXISTS idx_video_tasks_story_id ON video_tasks(story_id);
 CREATE INDEX IF NOT EXISTS idx_video_tasks_status_updated ON video_tasks(status, updated_at);
 CREATE INDEX IF NOT EXISTS idx_story_beats_story ON story_beats(story_id);
 CREATE INDEX IF NOT EXISTS idx_story_versions_story ON story_versions(story_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_story_templates_updated ON story_templates(updated_at);
+CREATE INDEX IF NOT EXISTS idx_story_templates_category ON story_templates(category);
 CREATE INDEX IF NOT EXISTS idx_character_outfits_character ON character_outfits(character_id);
 CREATE INDEX IF NOT EXISTS idx_video_cache_cached_at ON video_cache(cached_at);
 CREATE INDEX IF NOT EXISTS idx_video_cache_size ON video_cache(file_size);
@@ -644,6 +666,7 @@ CREATE INDEX IF NOT EXISTS idx_props_type ON props(type);
 CREATE INDEX IF NOT EXISTS idx_props_source_character ON props(source_character_id);
 CREATE INDEX IF NOT EXISTS idx_character_variants_character ON character_variants(character_id);
 CREATE INDEX IF NOT EXISTS idx_character_variants_default ON character_variants(character_id, is_default);
+CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(status);
 `;
 
 export function getSchemaSQL(): string {

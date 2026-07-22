@@ -29,6 +29,9 @@ vi.mock("@/modules/storyboard", () => ({
   formatVersionTime: vi.fn(),
   getRecommendedTemplates: vi.fn(() => []),
   applyTemplate: vi.fn(() => []),
+  useSavedTemplates: vi.fn(() => ({ data: [] })),
+  useCreateSavedTemplate: vi.fn(() => ({ mutate: vi.fn() })),
+  useDeleteSavedTemplate: vi.fn(() => ({ mutate: vi.fn() })),
 }));
 
 vi.mock("@/infrastructure/di", () => ({
@@ -63,6 +66,7 @@ function buildProps(overrides = {}) {
     elementIds: [],
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
+    status: "in_progress",
   };
   return {
     stories: [story],

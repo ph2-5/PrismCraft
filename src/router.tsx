@@ -38,6 +38,7 @@ export const router = createBrowserRouter([
       { path: "settings", element: withSuspense(SettingsPage) },
       { path: "video-tasks", element: withSuspense(VideoTasksPage) },
       { path: "story", element: withSuspense(lazy(() => import("./app/story/page"))) },
+      { path: "stories", element: withSuspense(lazy(() => import("./app/stories/page"))) },
       { path: "agent", element: withSuspense(lazy(() => import("./app/agent/page"))) },
       { path: "agent/settings", element: withSuspense(lazy(() => import("./app/agent/settings/page"))) },
       { path: "composer", element: withSuspense(lazy(() => import("./modules/video-compose/page"))) },

@@ -119,6 +119,10 @@ export type { ContextPanelProps } from "./presentation/ContextPanel";
 export { NovelProjectList } from "./presentation/NovelProjectList";
 export type { NovelProjectListProps } from "./presentation/NovelProjectList";
 
+// Presentation — 原始小说回溯对话框（Novel → Story 软关联）
+export { NovelSourceDialog } from "./presentation/NovelSourceDialog";
+export type { NovelSourceDialogProps, NovelSourceDialogData } from "./presentation/NovelSourceDialog";
+
 // ============================================================================
 // Structure 子域（Task 2A.13）
 // ============================================================================

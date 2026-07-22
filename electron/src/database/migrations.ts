@@ -25,7 +25,7 @@ function sanitizeColumnType(type: string): string {
   return type;
 }
 
-export const CURRENT_SCHEMA_VERSION = 8;
+export const CURRENT_SCHEMA_VERSION = 10;
 
 // PR 3 Step 1：shotType 迁移映射表（内联，不导入 shared-logic 以遵守架构边界）
 // 语义：旧 shotType 中的 size 类 → shotSize
@@ -286,6 +286,47 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
     }
 
     logger.info(`[DB] migration v8: shotInstruction backfill done (migrated=${migrated}, skipped=${skipped})`);
+  },
+  // 故事模板持久化：创建 story_templates 表（与 getSchemaSQL 中的 CREATE TABLE IF NOT EXISTS 互为安全网）
+  9: (db) => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS story_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        beats_json TEXT NOT NULL,
+        category TEXT,
+        genre TEXT,
+        tone TEXT,
+        tags_json TEXT,
+        author TEXT,
+        total_duration INTEGER,
+        owner_id INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER DEFAULT (strftime('%s','now')),
+        updated_at INTEGER DEFAULT (strftime('%s','now')),
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at INTEGER,
+        version INTEGER DEFAULT 1,
+        sync_id TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_story_templates_updated ON story_templates(updated_at);
+      CREATE INDEX IF NOT EXISTS idx_story_templates_category ON story_templates(category);
+    `);
+    logger.info("[DB] migration v9: story_templates table ensured");
+  },
+  // Story 状态字段：支持 draft / in_progress / completed / archived / abandoned
+  // 旧数据无 status 列时默认设为 'in_progress'，与既有派生逻辑保持一致
+  10: (db) => {
+    try {
+      db.exec(`ALTER TABLE "stories" ADD COLUMN "status" TEXT DEFAULT 'in_progress';`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes("duplicate column")) {
+        throw e;
+      }
+    }
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(status);`);
+    logger.info("[DB] migration v10: stories.status column ensured");
   },
 };
 

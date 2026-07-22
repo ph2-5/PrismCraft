@@ -1,7 +1,7 @@
 /**
  * Novel Tools Barrel — Task 2A.2
  *
- * 导出 5 个 Novel Agent 工具 + novelTools 数组。
+ * 导出 5 个 Novel Agent 工具 + novelTools 数组 + 章节识别纯函数。
  *
  * 工具清单：
  * 1. segment_novel_text        — 小说文本分段
@@ -9,6 +9,9 @@
  * 3. extract_scenes_from_text  — 提取场景
  * 4. match_entities            — 实体三级匹配（精确/模糊/冲突）
  * 5. breakdown_text_to_shots   — 段落转分镜
+ *
+ * 纯函数（Q2-1）：
+ * - detectChapters / findChapterByOffset — 章节识别（正则，零依赖）
  *
  * 注：分镜转提示词复用统一的 generate_prompt 工具（agent-tools-story），不在本模块定义。
  *
@@ -27,6 +30,8 @@ export { extractCharactersFromTextTool } from "./extract-characters-from-text";
 export { extractScenesFromTextTool } from "./extract-scenes-from-text";
 export { matchEntitiesTool } from "./match-entities";
 export { breakdownTextToShotsTool } from "./breakdown-text-to-shots";
+// Q2-1: 章节识别纯函数（非 Agent 工具，供 hooks 直接调用）
+export { detectChapters, findChapterByOffset } from "./chapter-detector";
 
 /** Novel 工具集（5 个） */
 export const novelTools: ToolImpl[] = [

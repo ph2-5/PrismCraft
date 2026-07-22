@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, ChevronDown, Trash2, Save } from "lucide-react";
-import { DEFAULT_STORY, genres, tones } from "@/modules/storyboard";
+import { Plus, ChevronDown, Trash2, Save, BookOpen } from "lucide-react";
+import { DEFAULT_STORY, genres, tones, useStoryNovelSource } from "@/modules/storyboard";
+import { NovelSourceDialog } from "@/modules/novel";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
 import { SaveStatusIndicator } from "@/shared/presentation/SaveStatusIndicator";
@@ -15,7 +16,12 @@ interface StoryHeaderProps {
 
 export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const [showNovelSourceDialog, setShowNovelSourceDialog] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 查询当前 Story 关联的原始小说来源（novel_projects.story_id 回溯）
+  const novelSourceQuery = useStoryNovelSource(story.currentStory.id ?? "");
+  const novelSource = novelSourceQuery.data?.novelSource ?? null;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -190,6 +196,18 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
 
       <div className="flex-1" />
 
+      {novelSource && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm gap-1.5 h-8"
+          onClick={() => setShowNovelSourceDialog(true)}
+          title={t("novel.source.viewOriginal")}
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+          {t("novel.source.viewOriginal")}
+        </button>
+      )}
+
       <SaveStatusIndicator
         status={story.hasUnsavedChanges ? "unsaved" : story.saveStatus}
         errorMessage={story.saveError}
@@ -208,6 +226,12 @@ export function StoryHeader({ story, onSwitchStory }: StoryHeaderProps) {
         <Save className="w-3.5 h-3.5" />
         {t("common.save")}
       </button>
+
+      <NovelSourceDialog
+        open={showNovelSourceDialog}
+        onClose={() => setShowNovelSourceDialog(false)}
+        novelSource={novelSource}
+      />
     </>
   );
 }

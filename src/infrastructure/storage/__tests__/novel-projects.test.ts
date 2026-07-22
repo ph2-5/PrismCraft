@@ -58,7 +58,7 @@ describe("storage/novel-projects", () => {
   }
 
   describe("getAllProjects", () => {
-    it("查询未删除的项目（is_deleted=0），按 updated_at 降序", async () => {
+    it("查询未删除且未完成的项目（is_deleted=0 AND story_id IS NULL），按 updated_at 降序", async () => {
       mockSafeQuery.mockResolvedValueOnce([
         makeRow({ id: "p1", title: "项目1" }),
         makeRow({ id: "p2", title: "项目2" }),
@@ -67,7 +67,7 @@ describe("storage/novel-projects", () => {
       const result = await novelProjectStorage.getAllProjects();
 
       expect(mockSafeQuery).toHaveBeenCalledWith(
-        "SELECT * FROM novel_projects WHERE is_deleted = 0 ORDER BY updated_at DESC",
+        "SELECT * FROM novel_projects WHERE is_deleted = 0 AND story_id IS NULL ORDER BY updated_at DESC",
       );
       expect(result).toHaveLength(2);
       expect(result[0]!.id).toBe("p1");
@@ -81,6 +81,28 @@ describe("storage/novel-projects", () => {
       mockSafeQuery.mockResolvedValueOnce([]);
       const result = await novelProjectStorage.getAllProjects();
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("getProjectByStoryId", () => {
+    it("找到关联项目时返回 NovelProjectRecord", async () => {
+      mockSafeQuery.mockResolvedValueOnce([makeRow({ id: "p1", story_id: "story1" })]);
+
+      const result = await novelProjectStorage.getProjectByStoryId("story1");
+
+      expect(mockSafeQuery).toHaveBeenCalledWith(
+        "SELECT * FROM novel_projects WHERE story_id = ? AND is_deleted = 0 ORDER BY updated_at DESC LIMIT 1",
+        ["story1"],
+      );
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe("p1");
+    });
+
+    it("未找到关联项目时返回 null", async () => {
+      mockSafeQuery.mockResolvedValueOnce([]);
+
+      const result = await novelProjectStorage.getProjectByStoryId("nonexistent");
+      expect(result).toBeNull();
     });
   });
 

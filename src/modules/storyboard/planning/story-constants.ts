@@ -28,6 +28,7 @@ export const DEFAULT_STORY: Story = {
   elementIds: [],
   createdAt: Math.floor(Date.now() / 1000),
   updatedAt: Math.floor(Date.now() / 1000),
+  status: "in_progress",
 };
 
 export const genres = [

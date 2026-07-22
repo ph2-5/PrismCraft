@@ -1,15 +1,17 @@
 {
   "name": "storyboard-template",
-  "description": "模板与版本管理：故事模板CRUD、版本控制、资产选择",
-  "dependencies": ["story-core", "storage/storyStorage", "domain-schemas"],
+  "description": "模板与版本管理：故事模板CRUD、模板持久化、版本控制、资产选择",
+  "dependencies": ["story-core", "storage/storyStorage", "storage/storyTemplateStorage", "domain-schemas"],
   "publicAPI": {
-    "hooks": [],
-    "services": ["createTemplateFromBeats", "applyTemplateToBeats", "exportTemplateToFile", "importTemplateFromFile", "restoreVersion", "formatVersionTime", "saveVersion", "getVersions", "deleteVersion", "cleanupVersions", "getVersionStats", "compareVersions", "getRecommendedTemplates", "applyTemplate"],
+    "hooks": ["useSavedTemplates", "useCreateSavedTemplate", "useDeleteSavedTemplate"],
+    "services": ["createTemplateFromBeats", "applyTemplateToBeats", "exportTemplateToFile", "importTemplateFromFile", "getAllSavedTemplates", "saveSavedTemplate", "deleteSavedTemplate", "updateSavedTemplate", "getSavedTemplateById", "deleteAllSavedTemplates", "restoreVersion", "formatVersionTime", "saveVersion", "getVersions", "deleteVersion", "cleanupVersions", "getVersionStats", "compareVersions", "getRecommendedTemplates", "applyTemplate"],
     "components": ["TemplateManagerDialog", "VersionDialog", "AssetPicker"]
   },
   "invariants": [
     "版本保存时必须快照完整的 beat 数据",
     "版本数量上限 50，超出自动清理最旧版本",
-    "模板导入必须校验格式兼容性"
+    "模板导入必须校验格式兼容性",
+    "模板持久化通过 story_templates 表实现，重启后可恢复",
+    "模板保存为 upsert 语义（INSERT OR REPLACE），相同 id 的模板会被替换"
   ]
 }

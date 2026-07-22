@@ -9,6 +9,20 @@ export {
   importTemplateFromFile,
 } from "./services/storyboard-template";
 export {
+  getAllSavedTemplates,
+  saveSavedTemplate,
+  deleteSavedTemplate,
+  updateSavedTemplate,
+  getSavedTemplateById,
+  deleteAllSavedTemplates,
+} from "./services/template-storage-service";
+export {
+  useSavedTemplates,
+  useCreateSavedTemplate,
+  useDeleteSavedTemplate,
+  SAVED_TEMPLATE_QUERY_KEYS,
+} from "./hooks/use-saved-templates";
+export {
   restoreVersion,
   formatVersionTime,
   saveVersion,

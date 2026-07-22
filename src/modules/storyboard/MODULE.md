@@ -35,6 +35,7 @@ storyService.update(id: string, input: UpdateStoryInput): Promise<Result<void>>
 storyService.delete(id: string): Promise<Result<void>>
 storyService.count(): Promise<Result<number>>
 storyService.getByBeatId(beatId: string): Promise<Result<Story>>
+storyService.getStoryWithNovelSource(id: string): Promise<Result<StoryWithNovelSource>>
 storyService.updateBeatMediaUrls(beats: Array<{
   id: string;
   keyframeImageUrl?: string;
@@ -50,6 +51,8 @@ storyService.updateBeatMediaUrls(beats: Array<{
 planStory(story: Story, characters: Character[], scenes: Scene[], options?: StoryPlanningOptions): Promise<Result<StoryPlanningResult>>
 checkTextApiConfig(): Promise<Result<boolean>>
 ```
+
+> `getStoryWithNovelSource` 通过 DI container（`container.novelProjectStorage.getProjectByStoryId`）回溯 `novel_projects.story_id` 关联，返回 Story + 原始小说来源信息。当 Story 不是由小说导入管道创建时，`novelSource` 为 null。
 
 #### Hooks
 
@@ -72,6 +75,7 @@ useStoryCount(): UseQueryResult<number>
 useCreateStory(): UseMutationResult<Story, Error, CreateStoryInput>
 useUpdateStory(): UseMutationResult<void, Error, UpdateStoryInput>
 useDeleteStory(): UseMutationResult<void, Error, string>
+useStoryNovelSource(storyId: string): UseQueryResult<StoryWithNovelSource>
 
 useStorySaver(props: {
   stories: Story[];
@@ -389,6 +393,18 @@ exportTemplateToFile(template: StoryboardTemplate): void
 
 importTemplateFromFile(file: File): Promise<Result<StoryboardTemplate>>
 
+getAllSavedTemplates(): Promise<Result<StoryboardTemplate[]>>
+
+getSavedTemplateById(id: string): Promise<Result<StoryboardTemplate | null>>
+
+saveSavedTemplate(template: StoryboardTemplate): Promise<Result<void>>
+
+updateSavedTemplate(id: string, patch: Partial<StoryboardTemplate>): Promise<Result<void>>
+
+deleteSavedTemplate(id: string): Promise<Result<void>>
+
+deleteAllSavedTemplates(): Promise<Result<void>>
+
 saveVersion(story: Story, beats: StoryBeat[], changeSummary?: string, autoSaved?: boolean): Promise<Result<StoryVersion | null>>
 
 restoreVersion(version: StoryVersion, currentStory: Story, currentBeats: StoryBeat[]): Promise<Result<{ story: Story; beats: StoryBeat[] }>>
@@ -414,6 +430,14 @@ formatVersionTime(timestamp: number): string
 getRecommendedTemplates(genre: string, tone: string): StoryTemplate[]
 
 applyTemplate(template: StoryTemplate, characters?: string[], scenes?: string[]): StoryBeat[]
+```
+
+#### Hooks
+
+```typescript
+useSavedTemplates(): UseQueryResult<StoryboardTemplate[]>
+useCreateSavedTemplate(): UseMutationResult<StoryboardTemplate, Error, StoryboardTemplate>
+useDeleteSavedTemplate(): UseMutationResult<string, Error, string>
 ```
 
 #### Components

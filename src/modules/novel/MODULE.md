@@ -58,6 +58,8 @@
 
 **未完成项目恢复（Task 2A.7）**：`NovelProjectList`（恢复对话框，由 StoryPipelineShell 在挂载时检测到 DB 未完成项目时渲染）
 
+**原始小说回溯（Novel → Story 软关联）**：`NovelSourceDialog`（Story 详情页"查看原始小说"对话框，展示 `novel_projects.story_id` 关联的原始小说文本）。导入完成时不再物理删除 `novel_projects` 记录，改为填充 `story_id` 字段软关联到已创建的 Story，支持从 Story 回溯原始小说。
+
 **故事结构分析层（Task 2A.13）**：`StructureAnalysisPanel`、`ShotContractPanel`（v5.3 增强）
 
 ### Structure 子域 API（Task 2A.13）

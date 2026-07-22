@@ -253,6 +253,84 @@ function buildPassthroughTransition(
 // ─────────────────────────────────────────────────────────────
 
 /**
+ * 计算单个节点的状态快照（基于前一节点快照 + 当前节点事件）
+ *
+ * 这是 propagateStates 主循环的单步逻辑，提取为独立函数以便：
+ *   - propagateStates 在主循环中调用
+ *   - incrementalUpdate（级联更新）在增量重算时调用
+ *
+ * @param prevSnapshots 前一节点的完整快照
+ * @param currentNode 当前节点（包含 PlotEvent 信息）
+ * @param prevNodeId 前一节点 ID（用于构造 transition）
+ * @returns 新节点的角色快照、场景快照、transitions
+ */
+export function computeNextNodeSnapshots(
+  prevSnapshots: NodeSnapshots,
+  currentNode: PlotNodeLike,
+  prevNodeId: string,
+): {
+  characterSnapshots: CharacterStateSnapshot[];
+  sceneSnapshots: SceneStateSnapshot[];
+  transitions: StateTransition[];
+} {
+  const event = buildPlotEvent(currentNode);
+  const eventType: PlotEventType = event.type;
+
+  if (isCompoundEvent(eventType)) {
+    // ── compound 事件：递归处理 subEvents ──
+    const compoundResult = applyCompoundEvent(
+      prevSnapshots.characterSnapshots,
+      prevSnapshots.sceneSnapshots,
+      event,
+      currentNode.id,
+    );
+    return {
+      characterSnapshots: compoundResult.characters,
+      sceneSnapshots: compoundResult.scenes,
+      transitions: [
+        {
+          id: generateId("transition"),
+          nodeId: currentNode.id,
+          previousNodeId: prevNodeId,
+          trigger: { type: "plot_event", eventId: event.id },
+          characterChanges: [],
+          sceneChanges: [],
+          narrativeDescription: event.description,
+          visualDescription: `复合事件（${event.parameters.subEvents?.length ?? 0} 个子事件）`,
+        },
+      ],
+    };
+  }
+
+  if (NO_OP_EVENTS.has(eventType)) {
+    // ── NO_OP 事件：透传前一节点状态 ──
+    return {
+      characterSnapshots: prevSnapshots.characterSnapshots.map((s) => ({
+        ...s,
+        nodeId: currentNode.id,
+      })),
+      sceneSnapshots: prevSnapshots.sceneSnapshots.map((s) => ({
+        ...s,
+        nodeId: currentNode.id,
+      })),
+      transitions: [createNoOpTransition(currentNode.id, prevNodeId, event)],
+    };
+  }
+
+  // ── 常规事件：应用角色/场景规则 ──
+  return {
+    characterSnapshots: prevSnapshots.characterSnapshots.map((s) =>
+      applyCharacterRule(s, event, currentNode.id),
+    ),
+    sceneSnapshots: prevSnapshots.sceneSnapshots.map((s) =>
+      applySceneRule(s, event, currentNode.id),
+    ),
+    // 构造透传 transition（规则内部已记录具体变化到 stateSource.transitions）
+    transitions: [buildPassthroughTransition(currentNode.id, prevNodeId, event)],
+  };
+}
+
+/**
  * 状态推演主函数
  *
  * 输入：StoryTimelineLike（包含有序 nodes + bindings）
@@ -306,62 +384,13 @@ export function propagateStates(
       continue;
     }
 
-    const event = buildPlotEvent(currentNode);
-    const eventType: PlotEventType = event.type;
-
-    let newCharSnapshots: CharacterStateSnapshot[];
-    let newSceneSnapshots: SceneStateSnapshot[];
-    let transitions: StateTransition[];
-
-    if (isCompoundEvent(eventType)) {
-      // ── compound 事件：递归处理 subEvents ──
-      const compoundResult = applyCompoundEvent(
-        prevSnapshots.characterSnapshots,
-        prevSnapshots.sceneSnapshots,
-        event,
-        currentNode.id,
-      );
-      newCharSnapshots = compoundResult.characters;
-      newSceneSnapshots = compoundResult.scenes;
-      transitions = [
-        {
-          id: generateId("transition"),
-          nodeId: currentNode.id,
-          previousNodeId: prevNode.id,
-          trigger: { type: "plot_event", eventId: event.id },
-          characterChanges: [],
-          sceneChanges: [],
-          narrativeDescription: event.description,
-          visualDescription: `复合事件（${event.parameters.subEvents?.length ?? 0} 个子事件）`,
-        },
-      ];
-    } else if (NO_OP_EVENTS.has(eventType)) {
-      // ── NO_OP 事件：透传前一节点状态 ──
-      newCharSnapshots = prevSnapshots.characterSnapshots.map((s) => ({
-        ...s,
-        nodeId: currentNode.id,
-      }));
-      newSceneSnapshots = prevSnapshots.sceneSnapshots.map((s) => ({
-        ...s,
-        nodeId: currentNode.id,
-      }));
-      transitions = [createNoOpTransition(currentNode.id, prevNode.id, event)];
-    } else {
-      // ── 常规事件：应用角色/场景规则 ──
-      newCharSnapshots = prevSnapshots.characterSnapshots.map((s) =>
-        applyCharacterRule(s, event, currentNode.id),
-      );
-      newSceneSnapshots = prevSnapshots.sceneSnapshots.map((s) =>
-        applySceneRule(s, event, currentNode.id),
-      );
-      // 构造透传 transition（规则内部已记录具体变化到 stateSource.transitions）
-      transitions = [buildPassthroughTransition(currentNode.id, prevNode.id, event)];
-    }
+    const { characterSnapshots, sceneSnapshots, transitions } =
+      computeNextNodeSnapshots(prevSnapshots, currentNode, prevNode.id);
 
     result.set(currentNode.id, {
       nodeId: currentNode.id,
-      characterSnapshots: newCharSnapshots,
-      sceneSnapshots: newSceneSnapshots,
+      characterSnapshots,
+      sceneSnapshots,
       transitions,
     });
   }

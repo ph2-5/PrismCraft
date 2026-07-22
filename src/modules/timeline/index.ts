@@ -40,3 +40,7 @@ export type {
   TimelineType,
   SnapshotStrategy,
 } from "@/domain/schemas/timeline";
+
+// Hooks（Q3-5 / Task 4.6.3）
+export { useCascadeUpdate } from "./hooks/use-cascade-update";
+export type { CascadeUpdateApi } from "./hooks/use-cascade-update";

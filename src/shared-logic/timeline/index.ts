@@ -8,6 +8,7 @@
 // ── 主算法 ──
 export {
   propagateStates,
+  computeNextNodeSnapshots,
   computeCascadeEffects,
   getNodeSnapshots,
   getAllSnapshots,
@@ -25,6 +26,27 @@ export {
   isCompoundEvent,
   createNoOpTransition,
 } from "./state-transition-rules";
+
+// ── 级联更新与脏标记 ──
+export {
+  markDirty,
+  incrementalUpdate,
+  isDirty,
+  getDirtyEntry,
+  getDirtyNodeIds,
+  getDirectDirtyNodeIds,
+  clearDirty,
+  clearAllDirty,
+  serializeDirtyMap,
+  deserializeDirtyMap,
+} from "./cascade-update";
+export type {
+  CascadeUpdateMode,
+  DirtyLevel,
+  DirtyEntry,
+  DirtyMap,
+  IncrementalUpdateResult,
+} from "./cascade-update";
 
 // ── 类型 ──
 export type {

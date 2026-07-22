@@ -49,6 +49,10 @@ export type { CascadeUpdateApi } from "./hooks/use-cascade-update";
 export { useTimelineBinding } from "./hooks/use-timeline-binding";
 export type { TimelineBindingApi, UseTimelineBindingOptions } from "./hooks/use-timeline-binding";
 
+// Hooks（Q3-8 / Task 4.6.6）
+export { useEnhancedPrompt } from "./hooks/use-enhanced-prompt";
+export type { EnhancedPromptApi, UseEnhancedPromptOptions } from "./hooks/use-enhanced-prompt";
+
 // Presentation 组件（Q3-7 / Task 4.6.5）
 export { TimelineEditor } from "./presentation/TimelineEditor";
 export { TimelineTrack } from "./presentation/TimelineTrack";

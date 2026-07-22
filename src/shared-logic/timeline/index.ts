@@ -72,6 +72,21 @@ export type {
   InjectionResult,
 } from "./binding-injector";
 
+// ── 增强 Prompt 合成 ──
+export {
+  enhancePrompt,
+  formatTimelinePosition,
+  formatCharacterStates,
+  formatSceneStates,
+  formatPlotEvent,
+  assembleFinalPrompt,
+  batchEnhancePrompts,
+} from "./prompt-enhancer";
+export type {
+  PromptSections,
+  EnhancedPrompt,
+} from "./prompt-enhancer";
+
 // ── 类型 ──
 export type {
   PlotEventType,

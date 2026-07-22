@@ -29,7 +29,7 @@ import {
 import { confirm } from "@/shared/utils/confirm";
 import type { Scene, Story } from "@/domain/schemas";
 
-async function updateStoriesAfterSceneDelete(
+export async function updateStoriesAfterSceneDelete(
   sceneId: string,
   storiesList: Story[],
   showError: (title: string, desc?: string) => void,
@@ -67,7 +67,7 @@ async function updateStoriesAfterSceneDelete(
   }
 }
 
-interface SceneReferencedBeat {
+export interface SceneReferencedBeat {
   storyId: string;
   storyTitle: string;
   sequence: number;
@@ -77,7 +77,7 @@ interface SceneReferencedBeat {
   generationStatus?: string;
 }
 
-function computeReferencedBeatsForScene(
+export function computeReferencedBeatsForScene(
   stories: Story[],
   sceneId: string,
 ): SceneReferencedBeat[] {
@@ -100,7 +100,7 @@ function computeReferencedBeatsForScene(
   return result;
 }
 
-function filterScenesByQuery(scenes: Scene[], query: string): Scene[] {
+export function filterScenesByQuery(scenes: Scene[], query: string): Scene[] {
   if (!query.trim()) return scenes;
   return scenes.filter((s) =>
     s.name.toLowerCase().includes(query.toLowerCase()),

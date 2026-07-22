@@ -82,6 +82,7 @@ describe("RunwayPlugin", () => {
       expect(plugin.matchPatterns).toEqual([
         { urlPattern: "api.dev.runwayml.com" },
         { urlPattern: "", modelPattern: "gen3a" },
+        { urlPattern: "", modelPattern: "gen4" },
       ]);
     });
   });

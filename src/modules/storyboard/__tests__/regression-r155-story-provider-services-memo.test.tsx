@@ -36,6 +36,7 @@ const {
   mockUseStoryVideo,
   mockUseStoryPersistence,
   mockUseVideoTaskManager,
+  mockUseQCTrigger,
   mockStoryService,
   mockCharacterService,
   mockSceneService,
@@ -152,6 +153,9 @@ const {
     clearFailedTasks: vi.fn(),
     recoverTask: vi.fn(),
   })),
+  // R155 修复：StoryProvider 现在通过 barrel 导入 useQCTrigger（@/modules/video），
+  // 测试 mock 需同步提供该桩函数，否则会触发 "No useQCTrigger export defined" 错误。
+  mockUseQCTrigger: vi.fn(),
   mockStoryService: { getAll: vi.fn().mockResolvedValue({ ok: true, value: [] }) },
   mockCharacterService: { getAll: vi.fn().mockResolvedValue({ ok: true, value: [] }) },
   mockSceneService: { getAll: vi.fn().mockResolvedValue({ ok: true, value: [] }) },
@@ -190,6 +194,7 @@ vi.mock("@/modules/scene", () => ({
 
 vi.mock("@/modules/video", () => ({
   useVideoTaskManager: mockUseVideoTaskManager,
+  useQCTrigger: mockUseQCTrigger,
 }));
 
 vi.mock("@/infrastructure/di", () => ({

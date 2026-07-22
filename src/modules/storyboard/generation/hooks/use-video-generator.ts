@@ -18,7 +18,6 @@ interface UseVideoGeneratorProps {
   selectedVideoModel: ModelSelection | null;
   createTask: (
     prompt: string,
-    _deprecated?: undefined,
     extraOptions?: {
       duration?: number;
       beatId?: string;
@@ -255,7 +254,7 @@ export function useVideoGenerator(props: UseVideoGeneratorProps) {
         );
 
         // 能力过滤已由 getEffectiveVideoParams 完成，直接使用过滤后的值
-        const result = await createTask(enhancedPrompt, undefined, buildVideoTaskOptions({
+        const result = await createTask(enhancedPrompt, buildVideoTaskOptions({
           beat,
           beatId,
           currentStory,

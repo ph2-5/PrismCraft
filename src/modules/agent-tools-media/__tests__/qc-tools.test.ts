@@ -7,14 +7,14 @@
  *
  * Mock 策略：
  * - container.videoTaskStorage / container.storyStorage
- * - @/modules/video/consistency-qc 的所有导出（runQualityCheck / dispatchFallback / buildQCInput 等）
+ * - @/modules/video 的所有 QC 相关导出（runQualityCheck / dispatchFallback / buildQCInput 等）
  * - TOOL_TIMEOUTS 常量
  * - errorLogger
  */
 
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import type { VideoTask, StoryBeat, Story } from "@/domain/schemas";
-import type { QCReport } from "@/modules/video/consistency-qc";
+import type { QCReport } from "@/modules/video";
 
 // ── Mock 依赖 ──────────────────────────────────────────────────────────────
 const {
@@ -75,7 +75,7 @@ vi.mock("@/shared/constants/tool-timeouts", () => ({
   },
 }));
 
-vi.mock("@/modules/video/consistency-qc", () => ({
+vi.mock("@/modules/video", () => ({
   runQualityCheck: mockRunQualityCheck,
   dispatchFallback: mockDispatchFallback,
   buildQCInput: mockBuildQCInput,
@@ -109,7 +109,7 @@ import {
   qcTools,
 } from "../qc-tools";
 import type { ToolContext } from "@/domain/types/agent-tools";
-import { createEmptyQCReport } from "@/modules/video/consistency-qc";
+import { createEmptyQCReport } from "@/modules/video";
 
 function makeCtx(): ToolContext {
   return {

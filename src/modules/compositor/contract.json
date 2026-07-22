@@ -7,8 +7,7 @@
     "@/shared-logic/prompt",
     "@/shared/presentation",
     "@/shared/constants",
-    "@/modules/character",
-    "@/modules/scene",
+    "@/shared/error-logger",
     "@/modules/asset"
   ],
   "publicAPI": {

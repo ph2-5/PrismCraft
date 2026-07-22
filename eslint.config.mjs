@@ -308,17 +308,7 @@ const eslintConfig = tseslint.config(
                 "\uD83C\uDFD7\uFE0F DDD: modules \u5C42\u7981\u6B62\u76F4\u63A5\u4F9D\u8D56 infrastructure \u5B50\u57DF\uFF0C\u8BF7\u901A\u8FC7 DI \u5BB9\u5668 (@/infrastructure/di) \u89E3\u8026",
             },
             {
-              group: [
-                "@/modules/video/*/*",
-                "@/modules/storyboard/*/*",
-                "@/modules/character/*/*",
-                "@/modules/scene/*/*",
-                "@/modules/shot/*/*",
-                "@/modules/prompt/*/*",
-                "@/modules/asset/*/*",
-                "@/modules/sync/*/*",
-                "@/modules/persistence/*/*",
-              ],
+              group: ["@/modules/*/*/*"],
               message:
                 "\uD83C\uDFD7\uFE0F DDD: \u7981\u6B62\u8DE8\u6A21\u5757\u6DF1\u8DEF\u5F84\u5BFC\u5165\uFF0C\u8BF7\u4F7F\u7528\u6876\u5BFC\u5165 @/modules/xxx \u6216\u901A\u8FC7 DI \u5BB9\u5668\u89E3\u8026",
             },

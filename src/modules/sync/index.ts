@@ -1,4 +1,4 @@
-export { initSyncEngine, destroySyncEngine, performSync, getSyncStatus, updateSyncConfig, setConflictCallback } from "./engine/engine";
+export { initSyncEngine, destroySyncEngine, performSync, getSyncStatus, updateSyncConfig, setConflictCallback, syncEngine } from "./engine/engine";
 export type {
   SyncEntityType,
   ChangeOperation,

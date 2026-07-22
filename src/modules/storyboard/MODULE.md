@@ -266,7 +266,7 @@ useVideoGenerator(props: {
   styleGuideRef?: React.MutableRefObject<StoryStyleGuide | undefined>;
   currentStory: Story;
   selectedVideoModel: ModelSelection | null;
-  createTask: (prompt: string, _deprecated?: undefined, extraOptions?: { duration?: number; beatId?: string; storyId?: string; storyTitle?: string; beatTitle?: string; firstFrameUrl?: string; fixedImageUrl?: string; fixedImageLockType?: "character" | "scene"; lastFrameUrl?: string; providerId?: string; modelId?: string; format?: string; characterRef?: string; sceneRef?: string; referenceVideo?: string | null }) => Promise<(VideoTask & { promptWasTruncated?: boolean }) | null>;
+  createTask: (prompt: string, extraOptions?: { duration?: number; beatId?: string; storyId?: string; storyTitle?: string; beatTitle?: string; firstFrameUrl?: string; fixedImageUrl?: string; fixedImageLockType?: "character" | "scene"; lastFrameUrl?: string; providerId?: string; modelId?: string; format?: string; characterRef?: string; sceneRef?: string; referenceVideo?: string | null }) => Promise<(VideoTask & { promptWasTruncated?: boolean }) | null>;
   success: (title: string, description?: string) => void;
   showError: (title: string, description?: string) => void;
   showWarning?: (title: string, description?: string) => void;

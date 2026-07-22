@@ -83,7 +83,7 @@ export function PhaseIndicator({ stage, onStageClick }: PhaseIndicatorProps) {
                 disabled={!clickable}
                 className={[
                   "flex items-center gap-2 py-1 px-1 rounded-md transition-colors",
-                  clickable ? "hover:bg-muted/50 cursor-pointer" : "cursor-default",
+                  "cursor-default",
                 ].join(" ")}
                 aria-current={isCurrent ? "step" : undefined}
                 aria-label={stageLabel(s)}

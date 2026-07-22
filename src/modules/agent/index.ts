@@ -9,6 +9,8 @@
 
 // 主页面组件
 export { AgentPage } from "./presentation/AgentPage";
+// P1-4：Agent 设置独立页面（路由 /agent/settings）
+export { AgentSettingsPage } from "./presentation/AgentSettingsPage";
 
 // 核心服务（供 container.ts 动态导入）
 export { toolRegistry } from "./services/tool-registry";

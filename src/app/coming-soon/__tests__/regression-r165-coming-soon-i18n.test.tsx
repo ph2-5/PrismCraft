@@ -43,7 +43,7 @@ vi.mock("@/shared/presentation/ComingSoon", () => ({
   ComingSoon: mockComingSoon,
 }));
 
-// coming-soon 页面清单（AgentPage 已升级为真实 UI，不再在此列表；PluginsPage 是文档页；
+// coming-soon 页面清单（AgentPage 已升级为真实 UI，不再在此列表；PluginsPage 已移至 src/app/plugins/page.tsx；
 // ComposerPage 与 StoryPage 已被真实功能页替换，不再在此列表）
 const COMING_SOON_PAGES = [
   { file: "src/app/coming-soon/LoginPage.tsx", expectedKey: "sidebar.login" },

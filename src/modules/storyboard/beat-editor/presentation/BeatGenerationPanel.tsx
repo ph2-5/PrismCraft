@@ -16,7 +16,7 @@ import {
 
 // Task 2A.22：动态加载 PartialEditPanel，避免 Canvas/Mask 代码进入首屏 bundle
 const PartialEditPanel = lazy(() =>
-  import("@/modules/video/partial-edit").then((m) => ({ default: m.PartialEditPanel })),
+  import("@/modules/video").then((m) => ({ default: m.PartialEditPanel })),
 );
 
 interface BeatGenerationPanelProps {

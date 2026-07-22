@@ -863,7 +863,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should create a task via generateVideoWithFrames when frame options present", async () => {
-      const result = await useVideoTaskStore.getState().createTask("a cat walking", undefined, {
+      const result = await useVideoTaskStore.getState().createTask("a cat walking", {
         firstFrameUrl: "https://example.com/first.jpg",
         lastFrameUrl: "https://example.com/last.jpg",
       });
@@ -879,7 +879,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should use generateVideoWithFrames when fixedImageUrl is provided", async () => {
-      await useVideoTaskStore.getState().createTask("a dog running", undefined, {
+      await useVideoTaskStore.getState().createTask("a dog running", {
         fixedImageUrl: "https://example.com/fixed.jpg",
       });
 
@@ -888,7 +888,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should use generateVideo when only duration is provided without frame options", async () => {
-      await useVideoTaskStore.getState().createTask("a bird flying", undefined, {
+      await useVideoTaskStore.getState().createTask("a bird flying", {
         duration: 5,
       });
 
@@ -897,7 +897,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should pass extraOptions to generateVideo", async () => {
-      await useVideoTaskStore.getState().createTask("test prompt", undefined, {
+      await useVideoTaskStore.getState().createTask("test prompt", {
         duration: 10,
         referenceVideo: "https://example.com/ref.mp4",
         providerId: "provider-1",
@@ -997,7 +997,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should include beatTitle in message when provided", async () => {
-      const result = await useVideoTaskStore.getState().createTask("test", undefined, {
+      const result = await useVideoTaskStore.getState().createTask("test", {
         beatTitle: "Scene 1",
       });
 
@@ -1036,7 +1036,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should pass fixedImageUrl as firstFrameUrl to generateVideoWithFrames", async () => {
-      await useVideoTaskStore.getState().createTask("test", undefined, {
+      await useVideoTaskStore.getState().createTask("test", {
         fixedImageUrl: "https://example.com/fixed.jpg",
         fixedImageLockType: "character",
       });
@@ -1049,7 +1049,7 @@ describe("useVideoTaskStore", () => {
     });
 
     it("should prefer firstFrameUrl over fixedImageUrl in generateVideoWithFrames", async () => {
-      await useVideoTaskStore.getState().createTask("test", undefined, {
+      await useVideoTaskStore.getState().createTask("test", {
         firstFrameUrl: "https://example.com/first.jpg",
         fixedImageUrl: "https://example.com/fixed.jpg",
         lastFrameUrl: "https://example.com/last.jpg",

@@ -15,7 +15,6 @@ export interface VideoTaskCommands {
   clearFailedTasks: () => Promise<void>;
   createTask: (
     prompt: string,
-    _deprecated?: undefined,
     extraOptions?: {
       fixedImageUrl?: string;
       fixedImageLockType?: "character" | "scene";
@@ -59,8 +58,8 @@ export function useVideoTaskCommands(): VideoTaskCommands {
     clearAllTasks: () => store.getState().clearAllTasks(),
     clearCompletedTasks: () => store.getState().clearCompletedTasks(),
     clearFailedTasks: () => store.getState().clearFailedTasks(),
-    createTask: (prompt, _deprecated, extraOptions) =>
-      store.getState().createTask(prompt, _deprecated, extraOptions),
+    createTask: (prompt, extraOptions) =>
+      store.getState().createTask(prompt, extraOptions),
     cancelTask: (taskId) => store.getState().cancelTask(taskId),
     pauseTask: (taskId) => store.getState().pauseTask(taskId),
     resumeTask: (taskId) => store.getState().resumeTask(taskId),

@@ -26,9 +26,10 @@ export function IconButton({
   children,
   ...rest
 }: IconButtonProps) {
+  const focusVisibleRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
   const combinedClassName = className
-    ? `${VARIANT_CLASS[variant]} ${className}`
-    : VARIANT_CLASS[variant];
+    ? `${VARIANT_CLASS[variant]} ${focusVisibleRing} ${className}`
+    : `${VARIANT_CLASS[variant]} ${focusVisibleRing}`;
   return (
     <button
       type={type}

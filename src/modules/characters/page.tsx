@@ -51,7 +51,7 @@ function CharactersPageContent() {
           />
 
           {/* Right: Detail Editor */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 gap-3">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {page.showEditor ? (
               <CharacterEditor
                 currentCharacter={page.currentCharacter}

@@ -1,13 +1,17 @@
-import fs from "fs";
 import path from "path";
 import os from "os";
 import type { VectorClock } from "./types";
 import { errorLogger } from "@/shared/error-logger";
+import {
+  writeFile as httpWriteFile,
+  readFile as httpReadFile,
+  fileExists as httpFileExists,
+  deleteFile as httpDeleteFile,
+} from "@/shared/file-http";
 
 const SYNC_DATA_DIR = path.join(os.homedir(), ".ai-animation-studio", "sync-server");
 const CHANGE_LOG_FILE = path.join(SYNC_DATA_DIR, "changelog.json");
 const VECTOR_CLOCK_FILE = path.join(SYNC_DATA_DIR, "vector-clock.json");
-const LOCK_FILE = path.join(SYNC_DATA_DIR, ".lock");
 
 interface ServerChange {
   id: string;
@@ -20,79 +24,33 @@ interface ServerChange {
   deviceId: string;
 }
 
-function ensureDir() {
-  if (!fs.existsSync(SYNC_DATA_DIR)) {
-    fs.mkdirSync(SYNC_DATA_DIR, { recursive: true });
-    try {
-      fs.chmodSync(SYNC_DATA_DIR, 0o700);
-    } catch (e) {
-      errorLogger.warn("[SyncStore] 设置目录权限失败:", e);
-    }
-  }
-}
+let _mutex: Promise<void> = Promise.resolve();
 
-const LOCK_TTL_MS = 30000;
-
-function acquireLock(): boolean {
+async function withLock<T>(fn: () => Promise<T>): Promise<T> {
+  const previous = _mutex;
+  let release!: () => void;
+  _mutex = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await previous;
   try {
-    ensureDir();
-    if (fs.existsSync(LOCK_FILE)) {
-      try {
-        const content = fs.readFileSync(LOCK_FILE, "utf-8");
-        const lockInfo = JSON.parse(content) as { pid: number; timestamp: number };
-        if (Date.now() - lockInfo.timestamp > LOCK_TTL_MS) {
-          fs.unlinkSync(LOCK_FILE);
-        } else {
-          return false;
-        }
-      } catch (e) {
-        errorLogger.warn("[SyncStore] Failed to read or parse lock file, removing stale lock", e as Error);
-        fs.unlinkSync(LOCK_FILE);
-      }
-    }
-    const lockData = JSON.stringify({ pid: process.pid, timestamp: Date.now() });
-    fs.writeFileSync(LOCK_FILE, lockData, { flag: "wx" });
-    return true;
-  } catch (e) {
-    errorLogger.warn("[SyncStore] Failed to acquire file lock", e as Error);
-    return false;
+    return await fn();
+  } finally {
+    release();
   }
 }
 
-function releaseLock(): void {
+function decodeBuffer(data: ArrayBuffer): string {
+  return new TextDecoder().decode(data);
+}
+
+async function readJsonFile<T>(filePath: string, defaultValue: T): Promise<T> {
   try {
-    if (fs.existsSync(LOCK_FILE)) {
-      fs.unlinkSync(LOCK_FILE);
-    }
-  } catch (e) {
-    errorLogger.warn("[SyncStore] 释放锁文件失败:", e);
-  }
-}
-
-function withLock<T>(fn: () => T): T {
-  let retries = 10;
-  while (retries > 0) {
-    if (acquireLock()) {
-      try {
-        return fn();
-      } finally {
-        releaseLock();
-      }
-    }
-    retries--;
-    const delay = Math.floor(Math.random() * 50) + 10;
-    const start = Date.now();
-    while (Date.now() - start < delay) {
-      // busy wait
-    }
-  }
-  throw new Error("Failed to acquire file lock for sync data");
-}
-
-function readJsonFile<T>(filePath: string, defaultValue: T): T {
-  try {
-    if (!fs.existsSync(filePath)) return defaultValue;
-    const content = fs.readFileSync(filePath, "utf-8");
+    const exists = await httpFileExists(filePath);
+    if (!exists) return defaultValue;
+    const result = await httpReadFile(filePath);
+    if (!result || !result.success || !result.data) return defaultValue;
+    const content = decodeBuffer(result.data);
     return JSON.parse(content) as T;
   } catch (e) {
     errorLogger.warn("[SyncStore] Failed to read sync data file", e as Error);
@@ -100,48 +58,43 @@ function readJsonFile<T>(filePath: string, defaultValue: T): T {
   }
 }
 
-function writeJsonFile(filePath: string, data: unknown): void {
-  ensureDir();
-  const tempPath = `${filePath}.tmp`;
-  fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf-8");
-  fs.renameSync(tempPath, filePath);
-  try {
-    fs.chmodSync(filePath, 0o600);
-  } catch (e) {
-    errorLogger.warn("[SyncStore] 设置文件权限失败:", e);
+async function writeJsonFile(filePath: string, data: unknown): Promise<void> {
+  const content = JSON.stringify(data, null, 2);
+  const result = await httpWriteFile(filePath, content);
+  if (!result.success) {
+    errorLogger.warn("[SyncStore] Failed to write sync data file", result.error);
   }
 }
 
-export function getServerChangeLog(): ServerChange[] {
+export async function getServerChangeLog(): Promise<ServerChange[]> {
   return readJsonFile<ServerChange[]>(CHANGE_LOG_FILE, []);
 }
 
-export function appendServerChanges(changes: ServerChange[]): void {
-  withLock(() => {
-    const log = getServerChangeLog();
+export async function appendServerChanges(changes: ServerChange[]): Promise<void> {
+  await withLock(async () => {
+    const log = await getServerChangeLog();
     log.push(...changes);
     const maxEntries = 10000;
     const trimmed = log.length > maxEntries ? log.slice(-maxEntries) : log;
-    writeJsonFile(CHANGE_LOG_FILE, trimmed);
+    await writeJsonFile(CHANGE_LOG_FILE, trimmed);
   });
 }
 
-export function getServerVectorClock(): VectorClock {
+export async function getServerVectorClock(): Promise<VectorClock> {
   return readJsonFile<VectorClock>(VECTOR_CLOCK_FILE, {});
 }
 
-export function saveServerVectorClock(vc: VectorClock): void {
-  withLock(() => {
-    writeJsonFile(VECTOR_CLOCK_FILE, vc);
+export async function saveServerVectorClock(vc: VectorClock): Promise<void> {
+  await withLock(async () => {
+    await writeJsonFile(VECTOR_CLOCK_FILE, vc);
   });
 }
 
-export function clearServerSyncData(): void {
-  ensureDir();
-  if (fs.existsSync(CHANGE_LOG_FILE)) {
-    fs.unlinkSync(CHANGE_LOG_FILE);
+export async function clearServerSyncData(): Promise<void> {
+  if (await httpFileExists(CHANGE_LOG_FILE)) {
+    await httpDeleteFile(CHANGE_LOG_FILE);
   }
-  if (fs.existsSync(VECTOR_CLOCK_FILE)) {
-    fs.unlinkSync(VECTOR_CLOCK_FILE);
+  if (await httpFileExists(VECTOR_CLOCK_FILE)) {
+    await httpDeleteFile(VECTOR_CLOCK_FILE);
   }
 }

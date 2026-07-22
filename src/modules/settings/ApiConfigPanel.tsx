@@ -6,7 +6,6 @@ import {
   Video,
   Eye,
 } from "lucide-react";
-import PluginManager from "./plugin-manager";
 import {
   type ApiCapability,
 } from "@/shared/api-config";
@@ -152,8 +151,6 @@ export function ApiConfigPanel() {
         onSetCustomVision={setUseCustomVision}
         capabilities={capabilities}
       />
-
-      <PluginManager />
 
       <TestResultsList
         testResults={testResults}

@@ -1,9 +1,10 @@
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { t } from "@/shared/constants/messages";
 import { SceneList } from "./components/SceneList";
 import { DeleteConfirmDialog } from "@/shared/presentation/DeleteConfirmDialog";
 import { AssetSelectorDialog } from "@/shared/presentation/AssetSelectorDialog";
+import { Tabs, type TabItem } from "@/shared/presentation/Tabs";
 import { useScenesPage } from "./hooks/use-scenes-page";
 import {
   ScenePageHeader,
@@ -55,51 +56,84 @@ function SceneDetailContainer(state: ScenesPageState) {
     referencedBeats,
     avatarImage,
   } = state;
+  const [activeTab, setActiveTab] = useState("basic");
+  const tabItems: TabItem[] = [
+    { id: "basic", label: t("editor.tab.basic") },
+    { id: "references", label: t("editor.tab.references") },
+    { id: "generation", label: t("editor.tab.generation") },
+  ];
   return (
-    <div
-      className="flex-1 flex flex-col overflow-y-auto p-4 gap-3 min-w-0"
-    >
-      <SceneDetailHeader
-        scene={currentScene}
-        avatarImage={avatarImage}
-        referencedBeats={referencedBeats}
-        setCurrentScene={setCurrentScene}
-        onChangeCover={() => setShowAssetSelector(true)}
-      />
-      <SceneBasicInfoCard scene={currentScene} setCurrentScene={setCurrentScene} />
-      <SceneAtmosphereCard scene={currentScene} setCurrentScene={setCurrentScene} />
-      <SceneSpaceCard scene={currentScene} setCurrentScene={setCurrentScene} />
-      <SceneElementsCard
-        scene={currentScene}
-        customElement={customElement}
-        setCustomElement={setCustomElement}
-        showElementInput={showElementInput}
-        setShowElementInput={setShowElementInput}
-        onAddItem={addItem}
-        onRemoveItem={removeItem}
-      />
-      <SceneReferencedBeatsCard beats={referencedBeats} />
-      <SceneImageGenerationCard
-        scene={currentScene}
-        avatarImage={avatarImage}
-        generatedImage={generatedImage}
-        isGenerating={isGenerating}
-        isUploading={isUploading}
-        isAnalyzing={isAnalyzing}
-        isOptimizingPrompt={isOptimizingPrompt}
-        selectedImageModel={selectedImageModel}
-        setSelectedImageModel={setSelectedImageModel}
-        generatePrompt={generatePrompt}
-        optimizePrompt={optimizePrompt}
-        generateImage={generateImage}
-        saveImageToScene={saveImageToScene}
-        clearImage={clearImage}
-        fileInputRef={fileInputRef}
-        analyzeFileInputRef={analyzeFileInputRef}
-        handleFileUpload={handleFileUpload}
-        handleAnalyzeFileUpload={handleAnalyzeFileUpload}
-        setShowAssetSelector={setShowAssetSelector}
-      />
+    <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      {/* Header - 固定不滚动 */}
+      <div className="p-4 pb-2 flex-shrink-0">
+        <SceneDetailHeader
+          scene={currentScene}
+          avatarImage={avatarImage}
+          referencedBeats={referencedBeats}
+          setCurrentScene={setCurrentScene}
+          onChangeCover={() => setShowAssetSelector(true)}
+        />
+      </div>
+
+      {/* Tabs - 固定不滚动 */}
+      <div className="px-4 flex-shrink-0">
+        <Tabs
+          tabs={tabItems}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          className="!px-0"
+        />
+      </div>
+
+      {/* Tab 内容 - 滚动区域 */}
+      <div className="flex-1 overflow-y-auto px-4 pt-2 pb-4 flex flex-col gap-3 min-h-0">
+        {activeTab === "basic" && (
+          <>
+            <SceneBasicInfoCard scene={currentScene} setCurrentScene={setCurrentScene} />
+            <SceneAtmosphereCard scene={currentScene} setCurrentScene={setCurrentScene} />
+            <SceneSpaceCard scene={currentScene} setCurrentScene={setCurrentScene} />
+            <SceneElementsCard
+              scene={currentScene}
+              customElement={customElement}
+              setCustomElement={setCustomElement}
+              showElementInput={showElementInput}
+              setShowElementInput={setShowElementInput}
+              onAddItem={addItem}
+              onRemoveItem={removeItem}
+            />
+          </>
+        )}
+
+        {activeTab === "references" && (
+          <SceneReferencedBeatsCard beats={referencedBeats} />
+        )}
+
+        {activeTab === "generation" && (
+          <SceneImageGenerationCard
+            scene={currentScene}
+            avatarImage={avatarImage}
+            generatedImage={generatedImage}
+            isGenerating={isGenerating}
+            isUploading={isUploading}
+            isAnalyzing={isAnalyzing}
+            isOptimizingPrompt={isOptimizingPrompt}
+            selectedImageModel={selectedImageModel}
+            setSelectedImageModel={setSelectedImageModel}
+            generatePrompt={generatePrompt}
+            optimizePrompt={optimizePrompt}
+            generateImage={generateImage}
+            saveImageToScene={saveImageToScene}
+            clearImage={clearImage}
+            fileInputRef={fileInputRef}
+            analyzeFileInputRef={analyzeFileInputRef}
+            handleFileUpload={handleFileUpload}
+            handleAnalyzeFileUpload={handleAnalyzeFileUpload}
+            setShowAssetSelector={setShowAssetSelector}
+          />
+        )}
+      </div>
+
+      {/* 底部操作栏 - 固定不滚动 */}
       <SceneActionFooter
         isDirty={isDirty}
         saveStatus={saveStatus}

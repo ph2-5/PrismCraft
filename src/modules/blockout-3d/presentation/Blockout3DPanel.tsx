@@ -20,7 +20,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { Boxes, User, Camera, Download, Plus } from "lucide-react";
+import { Boxes, User, Camera, Download, Plus, Play, Pause } from "lucide-react";
 import { t } from "@/shared/constants";
 import type { BlockoutScene } from "../domain/scene-schema";
 import type { CameraKeyframe } from "../domain/camera-path-types";
@@ -76,13 +76,6 @@ export function Blockout3DPanel({
       setShowPresetSelector(false);
     }
   }, [scene]);
-
-  // 自动切换 tab：选中人偶时切到 mannequin
-  useEffect(() => {
-    if (selectedMannequinId) {
-      setSidePanelTab("mannequin");
-    }
-  }, [selectedMannequinId]);
 
   // 播放：当 isPlaying 时根据 RAF 更新 playbackTime
   const duration = scene?.cameraPath && scene.cameraPath.length > 0
@@ -296,8 +289,9 @@ export function Blockout3DPanel({
                 onClick={handleTogglePlay}
                 className="btn btn-ghost btn-sm"
                 style={{ padding: "1px 6px", fontSize: 11 }}
+                aria-label={isPlaying ? t("blockout.pause") : t("blockout.play")}
               >
-                {isPlaying ? "⏸" : "▶"}
+                {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
               </button>
               <input
                 type="range"
@@ -307,6 +301,7 @@ export function Blockout3DPanel({
                 value={playbackTime}
                 onChange={(e) => setPlaybackTime(parseFloat(e.target.value))}
                 style={{ flex: 1 }}
+                aria-label={t("blockout.playbackPosition")}
               />
               <span style={{ color: "var(--muted-fg)", minWidth: 80, textAlign: "right" }}>
                 {playbackTime.toFixed(2)}s / {duration.toFixed(2)}s

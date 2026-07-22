@@ -26,6 +26,7 @@ export default function VideoTasksPage() {
     completionRate,
     isLoading,
     allTasks,
+    allFailedTasks,
     startBackgroundProcessing,
     recoverTask,
     statusFilter,
@@ -120,7 +121,7 @@ export default function VideoTasksPage() {
             aria-live="polite"
           >
             {/* 总任务数 */}
-            <div className="card !p-3.5">
+            <div className="card !p-3.5" aria-label={t("task.totalTasks")}>
               <div
                 className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
               >
@@ -149,6 +150,7 @@ export default function VideoTasksPage() {
             {/* 待处理 */}
             <div
               className="card !p-3.5 !bg-[rgba(var(--warning-rgb),0.1)] !border-[rgba(var(--warning-rgb),0.3)]"
+              aria-label={t("task.pendingCount")}
             >
               <div
                 className="flex items-center gap-2 text-xs text-warning mb-2"
@@ -164,6 +166,7 @@ export default function VideoTasksPage() {
             {/* 生成中 */}
             <div
               className="card !p-3.5 !bg-[rgba(var(--primary-rgb),0.1)] !border-[rgba(var(--primary-rgb),0.3)]"
+              aria-label={t("task.generatingCount")}
             >
               <div
                 className="flex items-center gap-2 text-xs text-primary mb-2"
@@ -179,6 +182,7 @@ export default function VideoTasksPage() {
             {/* 失败 */}
             <div
               className="card !p-3.5 !bg-[rgba(var(--destructive-rgb),0.1)] !border-[rgba(var(--destructive-rgb),0.3)]"
+              aria-label={t("task.failedCount")}
             >
               <div
                 className="flex items-center gap-2 text-xs text-destructive mb-2"
@@ -284,13 +288,15 @@ export default function VideoTasksPage() {
             ) : (
               <VideoTaskManagerComponent
                 tasks={allTasks}
+                failedTasks={allFailedTasks}
                 onBackgroundProcess={startBackgroundProcessing}
                 onTaskRecovered={recoverTask}
+                onDiagnose={handleDiagnose}
               />
             )
           ) : (
             <TaskDiagnosticPanel
-              filteredTasks={allTasks}
+              filteredTasks={allFailedTasks}
               onDiagnose={handleDiagnose}
               onRecover={(taskId) => {
                 // recoverTask 签名为 (taskId, status, videoUrl?)，诊断恢复时无法预知新状态，

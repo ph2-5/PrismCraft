@@ -25,7 +25,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { X, AlertTriangle, Film } from "lucide-react";
+import { X, AlertTriangle, Film, Loader2 } from "lucide-react";
 import { t } from "@/shared/constants";
 import { resolveMediaUrl } from "@/shared/utils/image-url";
 import { Modal } from "@/shared/presentation/Modal";
@@ -240,6 +240,23 @@ function PanelContent({
           >
             {t("video.partialEditDescription")}
           </span>
+          {isGenerating && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 11,
+                color: "var(--primary)",
+                marginLeft: 4,
+              }}
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+              {t("video.partialEditGenerating")}
+            </span>
+          )}
         </div>
         {onClose && (
           <button
@@ -248,7 +265,7 @@ function PanelContent({
             onClick={onClose}
             disabled={isGenerating}
             aria-label={t("common.close")}
-            title={t("common.close")}
+            title={isGenerating ? t("video.partialEditCannotCloseWhileGenerating") : t("common.close")}
           >
             <X size={14} aria-hidden="true" />
           </button>

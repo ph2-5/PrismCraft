@@ -179,7 +179,7 @@ const tokens = {
     return referenceEngine;
   }),
   syncEngine: createToken("syncEngine", async () => {
-    const { syncEngine } = await import("@/modules/sync/engine/engine");
+    const { syncEngine } = await import("@/modules/sync");
     return syncEngine;
   }),
 

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Lightbulb, RefreshCw, Settings, Download } from "lucide-react";
+import { Lightbulb, RefreshCw, Settings, Download, Puzzle, Key, Save, Boxes, FileText, Activity } from "lucide-react";
 import { t, APP_VERSION } from "@/shared/constants";
 import { PageErrorBoundary } from "@/shared/presentation/PageErrorBoundary";
 import { MemoryMonitorPanel } from "@/shared/presentation/MemoryMonitorPanel";
 import { ErrorLogViewer } from "@/shared/presentation/ErrorBoundary";
 import { ApiConfigPanel } from "./ApiConfigPanel";
+import PluginManager from "./plugin-manager";
 import { EmbeddingModelPanel } from "./EmbeddingModelPanel";
 import { PromptTemplatePanel } from "./PromptTemplatePanel";
 import { SyncSettingsPanel } from "@/modules/sync";
@@ -130,7 +131,7 @@ function SystemInfoCard() {
         }
       } catch {
         if (!cancelled) {
-          setDiskInfo({ text: "—", ok: false });
+          setDiskInfo({ text: t("settings.loadFailed"), ok: false });
           setProjectCount(null);
         }
       }
@@ -232,13 +233,14 @@ export default function SettingsPage() {
     clearErrorLogsAll,
   } = useSettingsPage();
 
-  const tabs: { id: SettingsTab; icon: string; label: string }[] = [
-    { id: "api", icon: "", label: t("settings.apiConfig") },
-    { id: "autosave", icon: "", label: t("settings.autoSave") },
-    { id: "sync", icon: "", label: t("sync.settingsTitle") },
-    { id: "embedding", icon: "", label: t("settings.embeddingModel") },
-    { id: "prompt-templates", icon: "", label: t("settings.promptTemplates") },
-    { id: "system", icon: "", label: t("settings.systemStatus") },
+  const tabs: { id: SettingsTab; icon: React.ReactNode; label: string }[] = [
+    { id: "api", icon: <Key className="inline-block" size={12} />, label: t("settings.apiConfig") },
+    { id: "autosave", icon: <Save className="inline-block" size={12} />, label: t("settings.autoSave") },
+    { id: "sync", icon: <RefreshCw className="inline-block" size={12} />, label: t("sync.settingsTitle") },
+    { id: "embedding", icon: <Boxes className="inline-block" size={12} />, label: t("settings.embeddingModel") },
+    { id: "prompt-templates", icon: <FileText className="inline-block" size={12} />, label: t("settings.promptTemplates") },
+    { id: "plugins", icon: <Puzzle className="inline-block" size={12} />, label: t("settings.plugins") },
+    { id: "system", icon: <Activity className="inline-block" size={12} />, label: t("settings.systemStatus") },
   ];
 
   return (
@@ -248,7 +250,7 @@ export default function SettingsPage() {
         <div className="top-tabs justify-between">
           <span className="font-semibold text-sm"><Settings className="inline-block" size={14} /> {t("page.settings")}</span>
           <span className="text-[11px] text-muted-foreground">
-            {t("settings.apiConfig")} · {t("settings.autoSave")} · {t("sync.settingsTitle")} · {t("settings.embeddingModel")} · {t("settings.promptTemplates")} · {t("settings.systemStatus")}
+            {t("settings.apiConfig")} · {t("settings.autoSave")} · {t("sync.settingsTitle")} · {t("settings.embeddingModel")} · {t("settings.promptTemplates")} · {t("settings.plugins")} · {t("settings.systemStatus")}
           </span>
         </div>
 
@@ -315,6 +317,13 @@ export default function SettingsPage() {
           {activeTab === "prompt-templates" && (
             <div role="tabpanel" aria-label={t("settings.promptTemplates")}>
               <PromptTemplatePanel />
+            </div>
+          )}
+
+          {/* Tab: 插件管理 */}
+          {activeTab === "plugins" && (
+            <div role="tabpanel" aria-label={t("settings.plugins")}>
+              <PluginManager />
             </div>
           )}
 

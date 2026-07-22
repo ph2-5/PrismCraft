@@ -177,7 +177,7 @@ function StoryPageContent() {
             <button
               type="button"
               className="btn btn-danger btn-sm"
-              disabled={deleteConfirmInput !== (story.currentStory.title || t("story.unnamed"))}
+              disabled={deleteConfirmInput.trim().toLowerCase() !== (story.currentStory.title || t("story.unnamed")).trim().toLowerCase()}
               onClick={story.performDeleteStory}
             >
               {t("story.confirmDeleteButton")}

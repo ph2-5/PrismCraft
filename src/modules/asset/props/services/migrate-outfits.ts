@@ -13,29 +13,21 @@
  *   - 不强制迁移，保留用户选择权（可手动触发）
  *   - 迁移失败不阻塞 UI，仅记录日志
  */
+import { createIdempotentMigration } from "@/shared-logic/migration";
 import { migrateOutfitsToProps } from "./prop-crud";
 import { errorLogger } from "@/shared/error-logger";
 
-let migrationPromise: Promise<number> | null = null;
+const migration = createIdempotentMigration(
+  migrateOutfitsToProps,
+  (err) => errorLogger.warn("[PropMigration] 服装数据迁移失败", err),
+);
 
 /**
  * 初始化服装数据迁移（幂等，多次调用只执行一次）
  *
  * @returns 迁移的记录数（0 表示无需迁移或已迁移过）
  */
-export async function initializePropMigration(): Promise<number> {
-  if (migrationPromise !== null) {
-    return migrationPromise;
-  }
-  migrationPromise = migrateOutfitsToProps().catch((err) => {
-    errorLogger.warn("[PropMigration] 服装数据迁移失败", err);
-    migrationPromise = null; // 失败后允许重试
-    return 0;
-  });
-  return migrationPromise;
-}
+export const initializePropMigration = migration.initialize;
 
 /** 重置迁移状态（仅用于测试） */
-export function _resetMigrationState(): void {
-  migrationPromise = null;
-}
+export const _resetMigrationState = migration.resetState;

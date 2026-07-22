@@ -181,7 +181,6 @@ interface VideoTaskManagerState {
   clearFailedTasks: () => Promise<void>;
   createTask: (
     prompt: string,
-    _deprecated?: undefined,
     extraOptions?: VideoTaskExtraOptions,
   ) => Promise<(VideoTask & { promptWasTruncated?: boolean }) | null>;
   pollTask: (taskId: string) => Promise<void>;
@@ -316,7 +315,6 @@ async function createTaskImpl(
   set: TaskStoreSet,
   get: TaskStoreGet,
   prompt: string,
-  _deprecated: undefined,
   extraOptions?: VideoTaskExtraOptions,
 ): Promise<(VideoTask & { promptWasTruncated?: boolean }) | null> {
   if (get().isCreating) {
@@ -574,7 +572,7 @@ export const useVideoTaskStore = create<VideoTaskManagerState>((set, get) => ({
   clearAllTasks: () => clearAllTasksImpl(set, get),
   clearCompletedTasks: () => clearCompletedTasksImpl(set, get),
   clearFailedTasks: () => clearFailedTasksImpl(set, get),
-  createTask: (prompt, _deprecated, extraOptions) => createTaskImpl(set, get, prompt, _deprecated, extraOptions),
+  createTask: (prompt, extraOptions) => createTaskImpl(set, get, prompt, extraOptions),
 
   pollTask: async (taskId) => {
     await pollTaskShared({ getState: get, set } as PollingStoreAccessor, taskId);

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { type VideoTask, useVideoTaskStore } from "@/modules/video/task-management";
-import { recoverVideoByTaskId } from "@/modules/video/recovery";
 import { getVideoUrlWithCache } from "@/modules/video/cache";
 import { useToastHelpers } from "@/shared/presentation/Toast";
 import { buildTrackingInfoByProviderId, copyTrackingInfoToClipboard, openTaskQueryLink } from "@/modules/video/task-management";
@@ -12,6 +11,7 @@ import { t } from "@/shared/constants/messages";
 import { BATCH_OPERATION_INTERVAL_MS, MINUTE_MS } from "@/shared/constants";
 import { useCacheOperations } from "./use-cache-operations";
 import { useTaskSelection } from "./use-task-selection";
+import { useTaskRecovery } from "./use-task-recovery";
 
 interface UseVideoTaskHandlersDeps {
   tasks: VideoTask[];
@@ -65,8 +65,8 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     onAfterDelete: cacheOps.refreshCacheStats,
   });
 
-  const [recoveryTaskId, setRecoveryTaskId] = useState("");
-  const [isRecovering, setIsRecovering] = useState(false);
+  const recovery = useTaskRecovery({ onTaskRecovered });
+
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<VideoTask | null>(null);
   const [pollingTaskId, setPollingTaskId] = useState<string | null>(null);
@@ -82,22 +82,6 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
       currentTimers.clear();
     };
   }, []);
-
-  const handleRecoverVideo = async () => {
-    if (!recoveryTaskId.trim()) { error(t("video.enterTaskId"), t("video.enterTaskIdHint")); return; }
-    setIsRecovering(true);
-    try {
-      const result = await recoverVideoByTaskId(recoveryTaskId.trim());
-      if (result.ok) {
-        success(t("video.recovered"), result.value.message);
-        setRecoveryTaskId("");
-        if (onTaskRecovered && result.value.status) onTaskRecovered(recoveryTaskId.trim(), result.value.status, result.value.videoUrl);
-      } else {
-        error(t("error.operationFailed"), mapUserFacingError(result.error));
-      }
-    } catch (err) { error(t("error.operationFailed"), mapUserFacingError(err)); }
-    finally { setIsRecovering(false); }
-  };
 
   const handleCopyTracking = useCallback(async (task: VideoTask) => {
     const trackingInfo = buildTrackingInfoByProviderId(task.taskId, task.apiUrl, undefined, task.model);
@@ -209,9 +193,7 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
   const hasActiveTasks = tasks.some((task) => task.status === "pending" || task.status === "generating");
 
   return {
-    recoveryTaskId,
-    setRecoveryTaskId,
-    isRecovering,
+    ...recovery,
     trackingDialogOpen,
     setTrackingDialogOpen,
     selectedTask,
@@ -238,7 +220,6 @@ export function useVideoTaskHandlers(deps: UseVideoTaskHandlersDeps) {
     deselectAllTasks: selection.deselectAllTasks,
     handleBulkDelete: selection.handleBulkDelete,
     confirmBulkDelete: selection.confirmBulkDelete,
-    handleRecoverVideo,
     handleCopyTracking,
     handleOpenCloudLink,
     handleOpenPreview,

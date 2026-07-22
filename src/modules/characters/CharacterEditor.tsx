@@ -22,6 +22,7 @@ import {
 import { t } from "@/shared/constants/messages";
 import { useState, useId } from "react";
 import { AiRequestPreview } from "./AiRequestPreview";
+import { Tabs, type TabItem } from "@/shared/presentation/Tabs";
 
 interface CharacterEditorProps {
   currentCharacter: Character;
@@ -419,6 +420,14 @@ export function CharacterEditor({
 }: CharacterEditorProps) {
   const avatarUrl = generatedImage || currentCharacter.avatarPath || currentCharacter.generatedImage || currentCharacter.refImagePath;
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState("basic");
+
+  const tabItems: TabItem[] = [
+    { id: "basic", label: t("editor.tab.basic") },
+    { id: "variants", label: t("editor.tab.variants") },
+    { id: "references", label: t("editor.tab.references") },
+    { id: "generation", label: t("editor.tab.generation") },
+  ];
 
   const validateAndSave = () => {
     const newErrors: Record<string, string> = {};
@@ -431,73 +440,93 @@ export function CharacterEditor({
   };
 
   return (
-    <>
-      <CharacterHeader
-        character={currentCharacter}
-        avatarUrl={avatarUrl}
-        isUploading={isUploading}
-        referencedBeats={referencedBeats}
-        fileInputRef={fileInputRef}
-        onFileUpload={handleFileUpload}
-        onNameChange={(name) => {
-          setCurrentCharacter({ ...currentCharacter, name }, true);
-          if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
-        }}
-        nameError={errors.name}
-      />
+    <div className="flex flex-col h-full">
+      {/* Header - 固定不滚动 */}
+      <div className="p-4 pb-2 flex-shrink-0">
+        <CharacterHeader
+          character={currentCharacter}
+          avatarUrl={avatarUrl}
+          isUploading={isUploading}
+          referencedBeats={referencedBeats}
+          fileInputRef={fileInputRef}
+          onFileUpload={handleFileUpload}
+          onNameChange={(name) => {
+            setCurrentCharacter({ ...currentCharacter, name }, true);
+            if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+          }}
+          nameError={errors.name}
+        />
+      </div>
 
-      {/* 基本信息 card */}
-      <BasicInfoCard character={currentCharacter} setCurrentCharacter={setCurrentCharacter} />
+      {/* Tabs - 固定不滚动 */}
+      <div className="px-4 flex-shrink-0">
+        <Tabs
+          tabs={tabItems}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          className="!px-0"
+        />
+      </div>
 
-      {/* 外观描述 card */}
-      <AppearanceCard character={currentCharacter} setCurrentCharacter={setCurrentCharacter} />
+      {/* Tab 内容 - 滚动区域 */}
+      <div className="flex-1 overflow-y-auto px-4 pt-2 pb-4 flex flex-col gap-3 min-h-0">
+        {activeTab === "basic" && (
+          <>
+            <BasicInfoCard character={currentCharacter} setCurrentCharacter={setCurrentCharacter} />
+            <AppearanceCard character={currentCharacter} setCurrentCharacter={setCurrentCharacter} />
+            <PersonalityStyleCard
+              character={currentCharacter}
+              setCurrentCharacter={setCurrentCharacter}
+              customTrait={customTrait}
+              setCustomTrait={setCustomTrait}
+              addTrait={addTrait}
+              removeTrait={removeTrait}
+            />
+            <EquipmentCard />
+          </>
+        )}
 
-      {/* 性格与风格 card */}
-      <PersonalityStyleCard
-        character={currentCharacter}
-        setCurrentCharacter={setCurrentCharacter}
-        customTrait={customTrait}
-        setCustomTrait={setCustomTrait}
-        addTrait={addTrait}
-        removeTrait={removeTrait}
-      />
+        {activeTab === "variants" && (
+          currentCharacter.id ? (
+            <VariantListContainer characterId={currentCharacter.id} />
+          ) : (
+            <div className="card flex items-center justify-center text-muted-foreground text-xs py-6">
+              {t("editor.tab.variantsEmpty")}
+            </div>
+          )
+        )}
 
-      {/* 装备与道具 card (新功能，P2A 占位) */}
-      <EquipmentCard />
+        {activeTab === "references" && (
+          <ReferencedBeatsCard beats={referencedBeats} />
+        )}
 
-      {/* Task 2A.10: 角色变体 card（替代原 OutfitList，作为唯一的造型变体系统） */}
-      {currentCharacter.id && (
-        <VariantListContainer characterId={currentCharacter.id} />
-      )}
+        {activeTab === "generation" && (
+          <AiRequestPreview
+            currentCharacter={currentCharacter}
+            generatedImage={generatedImage}
+            useDetailedPrompt={useDetailedPrompt}
+            setUseDetailedPrompt={setUseDetailedPrompt}
+            selectedImageModel={selectedImageModel}
+            setSelectedImageModel={setSelectedImageModel}
+            imageSize={imageSize}
+            isGenerating={isGenerating}
+            isUploading={isUploading}
+            isAnalyzing={isAnalyzing}
+            generatePrompt={generatePrompt}
+            generateImage={generateImage}
+            saveImageToCharacter={saveImageToCharacter}
+            fileInputRef={fileInputRef}
+            analyzeFileInputRef={analyzeFileInputRef}
+            handleFileUpload={handleFileUpload}
+            handleAnalyzeFileUpload={handleAnalyzeFileUpload}
+            setShowAssetSelector={setShowAssetSelector}
+            setGeneratedImage={setGeneratedImage}
+            referencedBeats={referencedBeats}
+          />
+        )}
+      </div>
 
-      {/* 引用此角色的分镜 card */}
-      <ReferencedBeatsCard beats={referencedBeats} />
-
-      {/* AI 请求预览区（展示最终发送给大模型的完整内容） */}
-      <AiRequestPreview
-        currentCharacter={currentCharacter}
-        generatedImage={generatedImage}
-        useDetailedPrompt={useDetailedPrompt}
-        setUseDetailedPrompt={setUseDetailedPrompt}
-        selectedImageModel={selectedImageModel}
-        setSelectedImageModel={setSelectedImageModel}
-        imageSize={imageSize}
-        isGenerating={isGenerating}
-        isUploading={isUploading}
-        isAnalyzing={isAnalyzing}
-        generatePrompt={generatePrompt}
-        generateImage={generateImage}
-        saveImageToCharacter={saveImageToCharacter}
-        fileInputRef={fileInputRef}
-        analyzeFileInputRef={analyzeFileInputRef}
-        handleFileUpload={handleFileUpload}
-        handleAnalyzeFileUpload={handleAnalyzeFileUpload}
-        setShowAssetSelector={setShowAssetSelector}
-        setGeneratedImage={setGeneratedImage}
-        referencedBeats={referencedBeats}
-      />
-
-      {/* 底部吸底操作栏 */}
+      {/* 底部操作栏 - 固定不滚动 */}
       <CharacterActionFooter
         isDirty={isDirty}
         saveStatus={saveStatus}
@@ -506,6 +535,6 @@ export function CharacterEditor({
         onSave={validateAndSave}
         onDelete={handleDelete}
       />
-    </>
+    </div>
   );
 }

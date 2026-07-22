@@ -12,7 +12,7 @@
  *   └─────────────────────────────────────────────────────────┘
  *
  * Task 2A.16 三档模式集成：
- *   - 首次进入显示 ModeSelector（localStorage 标记 novel_mode_selected）
+ *   - 首次进入显示 ModeSelector（preference 标记 novel_mode_selected）
  *   - quick 模式：渲染 QuickModePanel，隐藏 PhaseIndicator/片段导航/上下文面板
  *   - standard/professional 模式：渲染完整三栏布局
  *   - 底部状态栏新增"切换模式"按钮
@@ -25,6 +25,8 @@ import { useState } from "react";
 import { Loader2, ArrowRight, Zap, Save, BarChart3, Settings } from "lucide-react";
 import { t } from "@/shared/constants";
 import { confirm } from "@/shared/utils/confirm";
+import { usePreference } from "@/shared/utils/preferences";
+import { emitToast } from "@/shared/utils/toast-bridge";
 import type { PipelineConfig, PipelineStage } from "../domain/types";
 import { useNovelPipeline } from "../hooks/use-novel-pipeline";
 import { PhaseIndicator } from "./PhaseIndicator";
@@ -40,28 +42,10 @@ import { OnboardingGuide } from "./OnboardingGuide";
 import { WorkflowModeSelector } from "../workflow";
 import type { SampleProject } from "../services/sample-projects";
 
-/** localStorage 键：是否已完成模式选择（首次进入后置为 true） */
+/** preference 键：是否已完成模式选择（首次进入后置为 true） */
 const MODE_SELECTED_KEY = "novel_mode_selected";
-/** localStorage 键：是否已完成新手引导 */
+/** preference 键：是否已完成新手引导 */
 const ONBOARDING_COMPLETED_KEY = "novel_onboarding_completed";
-
-/** 读取 localStorage 标记（容错：SSR 或隐私模式下返回 false） */
-function readFlag(key: string): boolean {
-  try {
-    return localStorage.getItem(key) === "true";
-  } catch {
-    return false;
-  }
-}
-
-/** 写入 localStorage 标记（容错：SSR 或隐私模式下静默失败） */
-function writeFlag(key: string, value: boolean): void {
-  try {
-    localStorage.setItem(key, value ? "true" : "false");
-  } catch {
-    // 静默失败：隐私模式或存储已满
-  }
-}
 
 export interface StoryPipelineShellProps {
   onComplete: () => void;
@@ -117,11 +101,19 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
   } = pipeline;
 
   const [overviewMode, setOverviewMode] = useState(false);
-  const [modeSelected, setModeSelected] = useState<boolean>(() => readFlag(MODE_SELECTED_KEY));
+  const [modeSelected, setModeSelected] = usePreference<boolean>(MODE_SELECTED_KEY, false);
   const [showSampleLoader, setShowSampleLoader] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState<boolean>(
-    () => !readFlag(ONBOARDING_COMPLETED_KEY),
+  const [onboardingCompleted, setOnboardingCompleted] = usePreference<boolean>(
+    ONBOARDING_COMPLETED_KEY,
+    false,
   );
+  const showOnboarding = !onboardingCompleted;
+  const setShowOnboarding = (updater: boolean | ((prev: boolean) => boolean)) => {
+    setOnboardingCompleted((prev) => {
+      const nextShow = typeof updater === "function" ? updater(!prev) : updater;
+      return !nextShow;
+    });
+  };
 
   // Task 2A.7: 显示恢复弹窗的条件
   const showRecoveryDialog =
@@ -138,16 +130,16 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
   const currentStageIdx = stagesForMode.indexOf(state.stage);
   const progressStep = currentStageIdx >= 0 ? currentStageIdx + 1 : 1;
 
-  // PhaseIndicator 点击回退（仅展示，不重置数据）
+  // PhaseIndicator 点击：仅显示当前阶段信息，不切换 stage（不支持回退）
   const handleStageClick = (_stage: PipelineStage) => {
-    // 当前实现：PhaseIndicator 点击仅作为视觉反馈，不切换 stage
+    const currentStageLabel = t(`novel.stages.${state.stage}` as Parameters<typeof t>[0]);
+    emitToast("info", currentStageLabel);
   };
 
   // Task 2A.16：模式选择回调
   const handleModeSelect = (level: AiAssistLevel) => {
     handleSelectMode(level);
     setModeSelected(true);
-    writeFlag(MODE_SELECTED_KEY, true);
     setShowSampleLoader(false);
   };
 
@@ -161,7 +153,6 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
       if (!confirmed) return;
     }
     setModeSelected(false);
-    writeFlag(MODE_SELECTED_KEY, false);
   };
 
   // Task 2A.16：加载示例项目回调
@@ -169,14 +160,11 @@ function useShellState({ pipeline }: UseShellStateOptions): UseShellStateResult 
     handleLoadSampleProject(project);
     setShowSampleLoader(false);
     setModeSelected(true);
-    writeFlag(MODE_SELECTED_KEY, true);
-    writeFlag(ONBOARDING_COMPLETED_KEY, true);
     setShowOnboarding(false);
   };
 
   // Task 2A.16：新手引导完成回调
   const handleOnboardingComplete = () => {
-    writeFlag(ONBOARDING_COMPLETED_KEY, true);
     setShowOnboarding(false);
   };
 
@@ -437,7 +425,6 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
         onOnboardingLoadSample={() => {
           setShowOnboarding(false);
           setModeSelected(false);
-          writeFlag(MODE_SELECTED_KEY, false);
           setShowSampleLoader(true);
         }}
       />
@@ -538,7 +525,6 @@ export function StoryPipelineShell({ onComplete, initialConfig }: StoryPipelineS
           onLoadSample={() => {
             setShowOnboarding(false);
             setModeSelected(false);
-            writeFlag(MODE_SELECTED_KEY, false);
             setShowSampleLoader(true);
           }}
         />

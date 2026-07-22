@@ -23,14 +23,128 @@ import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 
+/** 计算失败任务恢复列表（优先用外部传入的全量失败任务，未传则从 tasks 兜底） */
+function useFailedTasksForRecovery(
+  failedTasks: VideoTask[] | undefined,
+  tasks: VideoTask[],
+): VideoTask[] {
+  return useMemo(
+    () =>
+      failedTasks ??
+      tasks.filter(
+        (task) => task.status === "failed" || task.status === "timeout" || task.status === "cancelled",
+      ),
+    [failedTasks, tasks],
+  );
+}
+
+/** 提取所有 Dialog 渲染为子组件以降低主函数行数 */
+interface VideoTaskDialogsProps {
+  trackingDialogOpen: boolean;
+  setTrackingDialogOpen: (open: boolean) => void;
+  selectedTask: VideoTask | null;
+  toastSuccess: (title: string, detail: string) => void;
+  toastError: (title: string, detail: string) => void;
+  previewDialogOpen: boolean;
+  setPreviewDialogOpen: (open: boolean) => void;
+  setPreviewTask: (task: VideoTask | null) => void;
+  previewTask: VideoTask | null;
+  cachedVideoUrl: string | null;
+  videoLoadError: boolean;
+  videoLoading: boolean;
+  setVideoLoadError: (err: boolean) => void;
+  handleDownloadVideo: (task: VideoTask) => Promise<void>;
+  deleteConfirmOpen: boolean;
+  setDeleteConfirmOpen: (open: boolean) => void;
+  taskToDelete: VideoTask | null;
+  isDeleting: boolean;
+  confirmDeleteCache: () => Promise<void>;
+  cacheStates: Map<string, { exists: boolean; fileSizeMB?: number }>;
+  bulkDeleteConfirmOpen: boolean;
+  setBulkDeleteConfirmOpen: (open: boolean) => void;
+  selectedTaskIds: Set<string>;
+  filteredTasks: VideoTask[];
+  confirmBulkDelete: () => Promise<void>;
+  detailDrawerOpen: boolean;
+  setDetailDrawerOpen: (open: boolean) => void;
+  detailTask: VideoTask | null;
+  handleOpenPreview: (task: VideoTask) => void;
+  handleJumpToBeat: (task: VideoTask) => void;
+  handleRetryTask: (task: VideoTask) => Promise<void>;
+}
+
+function VideoTaskDialogs(props: VideoTaskDialogsProps) {
+  const {
+    trackingDialogOpen, setTrackingDialogOpen, selectedTask, toastSuccess, toastError,
+    previewDialogOpen, setPreviewDialogOpen, setPreviewTask, previewTask,
+    cachedVideoUrl, videoLoadError, videoLoading, setVideoLoadError, handleDownloadVideo,
+    deleteConfirmOpen, setDeleteConfirmOpen, taskToDelete, isDeleting, confirmDeleteCache, cacheStates,
+    bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen, selectedTaskIds, filteredTasks, confirmBulkDelete,
+    detailDrawerOpen, setDetailDrawerOpen, detailTask, handleOpenPreview, handleJumpToBeat, handleRetryTask,
+  } = props;
+  return (
+    <>
+      <TaskTrackingDialog
+        open={trackingDialogOpen}
+        onOpenChange={setTrackingDialogOpen}
+        task={selectedTask}
+        onToastSuccess={toastSuccess}
+        onToastError={toastError}
+      />
+      <VideoPreviewDialog
+        open={previewDialogOpen}
+        onOpenChange={(open) => {
+          setPreviewDialogOpen(open);
+          if (!open) setPreviewTask(null);
+        }}
+        task={previewTask}
+        cachedVideoUrl={cachedVideoUrl}
+        videoLoadError={videoLoadError}
+        videoLoading={videoLoading}
+        onSetVideoLoadError={setVideoLoadError}
+        onDownloadVideo={handleDownloadVideo}
+      />
+      <DeleteConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        task={taskToDelete}
+        isDeleting={isDeleting}
+        onConfirm={confirmDeleteCache}
+        cacheFileSizeMB={taskToDelete ? cacheStates.get(taskToDelete.taskId)?.fileSizeMB : undefined}
+      />
+      <BulkDeleteDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={setBulkDeleteConfirmOpen}
+        selectedTaskIds={selectedTaskIds}
+        filteredTasks={filteredTasks}
+        isDeleting={isDeleting}
+        onConfirm={confirmBulkDelete}
+      />
+      <TaskDetailDialog
+        open={detailDrawerOpen}
+        onOpenChange={setDetailDrawerOpen}
+        task={detailTask}
+        onOpenPreview={handleOpenPreview}
+        onDownloadVideo={handleDownloadVideo}
+        onJumpToBeat={handleJumpToBeat}
+        onRetryTask={handleRetryTask}
+      />
+    </>
+  );
+}
+
 interface VideoTaskManagerProps {
   tasks: VideoTask[];
+  /** 跨筛选器的全量失败任务（用于失败恢复列表；不传则从 tasks 计算） */
+  failedTasks?: VideoTask[];
   onClose?: () => void;
   onBackgroundProcess?: () => void;
   onTaskRecovered?: (taskId: string, status: string, videoUrl?: string) => void;
   pollTask?: (taskId: string) => Promise<void>;
   removeTask?: (taskId: string) => Promise<void>;
   removeTasks?: (taskIds: string[]) => Promise<void>;
+  /** 可选：诊断回调（如提供则在失败列表展示诊断按钮） */
+  onDiagnose?: (taskId: string) => void;
 }
 
 interface VideoTaskManagerToolbarProps {
@@ -91,10 +205,12 @@ function VideoTaskManagerToolbar({
 
 export function VideoTaskManager({
   tasks,
+  failedTasks,
   onBackgroundProcess,
   onTaskRecovered,
   pollTask,
   removeTasks,
+  onDiagnose,
 }: VideoTaskManagerProps) {
   const taskListRef = useRef<HTMLDivElement>(null);
 
@@ -168,6 +284,9 @@ export function VideoTaskManager({
     handleBulkDelete,
     confirmBulkDelete,
     handleRecoverVideo,
+    handleRecoverTaskById,
+    handleRecoverAllFailed,
+    recoveringTaskIds,
     handleCopyTracking,
     handleOpenCloudLink,
     handleOpenPreview,
@@ -197,6 +316,10 @@ export function VideoTaskManager({
     setSelectedTask(task);
     setTrackingDialogOpen(true);
   }, []);
+
+  // 失败任务恢复列表：优先使用外部传入的 failedTasks（跨筛选器全量），
+  // 未传则从 tasks 计算（仍受筛选器影响，作为兜底）
+  const failedTasksForRecovery = useFailedTasksForRecovery(failedTasks, tasks);
 
   return (
     <div className="w-full">
@@ -330,10 +453,15 @@ export function VideoTaskManager({
           )}
 
           <RecoverySection
+            failedTasks={failedTasksForRecovery}
             recoveryTaskId={recoveryTaskId}
             onRecoveryTaskIdChange={setRecoveryTaskId}
             onRecover={handleRecoverVideo}
             isRecovering={isRecovering}
+            onRecoverTaskById={handleRecoverTaskById}
+            onRecoverAllFailed={handleRecoverAllFailed}
+            recoveringTaskIds={recoveringTaskIds}
+            onDiagnose={onDiagnose}
           />
 
           {hasActiveTasks && onBackgroundProcess && (
@@ -345,54 +473,38 @@ export function VideoTaskManager({
         </div>
       </div>
 
-      <TaskTrackingDialog
-        open={trackingDialogOpen}
-        onOpenChange={setTrackingDialogOpen}
-        task={selectedTask}
-        onToastSuccess={toastSuccess}
-        onToastError={toastError}
-      />
-
-      <VideoPreviewDialog
-        open={previewDialogOpen}
-        onOpenChange={(open) => {
-          setPreviewDialogOpen(open);
-          if (!open) setPreviewTask(null);
-        }}
-        task={previewTask}
+      <VideoTaskDialogs
+        trackingDialogOpen={trackingDialogOpen}
+        setTrackingDialogOpen={setTrackingDialogOpen}
+        selectedTask={selectedTask}
+        toastSuccess={toastSuccess}
+        toastError={toastError}
+        previewDialogOpen={previewDialogOpen}
+        setPreviewDialogOpen={setPreviewDialogOpen}
+        setPreviewTask={setPreviewTask}
+        previewTask={previewTask}
         cachedVideoUrl={cachedVideoUrl}
         videoLoadError={videoLoadError}
         videoLoading={videoLoading}
-        onSetVideoLoadError={setVideoLoadError}
-        onDownloadVideo={handleDownloadVideo}
-      />
-
-      <DeleteConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        task={taskToDelete}
+        setVideoLoadError={setVideoLoadError}
+        handleDownloadVideo={handleDownloadVideo}
+        deleteConfirmOpen={deleteConfirmOpen}
+        setDeleteConfirmOpen={setDeleteConfirmOpen}
+        taskToDelete={taskToDelete}
         isDeleting={isDeleting}
-        onConfirm={confirmDeleteCache}
-        cacheFileSizeMB={taskToDelete ? cacheStates.get(taskToDelete.taskId)?.fileSizeMB : undefined}
-      />
-
-      <BulkDeleteDialog
-        open={bulkDeleteConfirmOpen}
-        onOpenChange={setBulkDeleteConfirmOpen}
+        confirmDeleteCache={confirmDeleteCache}
+        cacheStates={cacheStates}
+        bulkDeleteConfirmOpen={bulkDeleteConfirmOpen}
+        setBulkDeleteConfirmOpen={setBulkDeleteConfirmOpen}
         selectedTaskIds={selectedTaskIds}
         filteredTasks={filteredTasks}
-        isDeleting={isDeleting}
-        onConfirm={confirmBulkDelete}
-      />
-
-      <TaskDetailDialog
-        open={detailDrawerOpen}
-        onOpenChange={setDetailDrawerOpen}
-        task={detailTask}
-        onOpenPreview={handleOpenPreview}
-        onDownloadVideo={handleDownloadVideo}
-        onJumpToBeat={handleJumpToBeat}
-        onRetryTask={handleRetryTask}
+        confirmBulkDelete={confirmBulkDelete}
+        detailDrawerOpen={detailDrawerOpen}
+        setDetailDrawerOpen={setDetailDrawerOpen}
+        detailTask={detailTask}
+        handleOpenPreview={handleOpenPreview}
+        handleJumpToBeat={handleJumpToBeat}
+        handleRetryTask={handleRetryTask}
       />
     </div>
   );

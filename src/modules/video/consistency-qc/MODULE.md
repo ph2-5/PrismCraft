@@ -52,17 +52,27 @@ interface QCReport { videoTaskId, characterId?, totalFrames, sampledFrames, fram
 function createEmptyQCReport(videoTaskId): QCReport
 function computeAggregates(frameScores): { averageScore, minScore }
 function determineVerdict(minScore, policy): Verdict
+function shouldTriggerFallback(verdict): boolean
+function isQCReportComplete(report): boolean
 
 // shot-strategy.ts
 type ShotStrategyType = 'continuous_action' | 'angle_switch' | 'scene_transition'
+type LastFrameUsage = 'none' | 'first' | 'last' | 'both'
 interface ShotStrategy { type, useLastFrame, preferExtend?, asSceneReference?, sceneRefOnly? }
 function inferStrategyFromShotType(shotType): ShotStrategy
+function createStrategy(overrides?): ShotStrategy
 function describeStrategy(strategy): string
+function getStrategyThresholdMultiplier(strategy): number
+function usesLastFrame(strategy): boolean
+function isContinuousAction(strategy): boolean
 
 // drift-policy.ts
 interface DriftPolicy { warningThreshold, criticalThreshold, maxRegenerateAttempts, fallbackToFaceSwap, autoMarkManualReview }
 const DEFAULT_DRIFT_POLICY: DriftPolicy
 function resolvePolicy(overrides?): DriftPolicy
+function validatePolicy(policy): Result<DriftPolicy>
+function shouldFallbackToFaceSwap(policy): boolean
+function shouldMarkManualReview(policy): boolean
 ```
 
 ### Services 层
@@ -74,21 +84,41 @@ interface FaceEmbeddingProvider {
   extractEmbedding(imageUrl: string): Promise<Result<number[]>>
 }
 function getFaceEmbeddingProvider(): FaceEmbeddingProvider
+function clearFaceEmbeddingProviderCache(): void
+function isFaceEmbeddingAvailable(): Promise<boolean>
+function extractFaceEmbedding(imageUrl: string): Promise<Result<number[]>>
 
 // similarity-checker.ts
 function computeFrameSimilarity(frameEmbedding, referenceEmbedding): number
 function checkFrameConsistency(frameEmbeddings, referenceEmbedding): FrameScore[]
+function findWorstFrame(frameScores): FrameScore | null
+function findWorstFrames(frameScores, n): FrameScore[]
+function filterFramesWithFace(frameScores): FrameScore[]
+function computeFrameStats(frameScores): FrameScoreStats
 
 // qc-orchestrator.ts
 function runQualityCheck(input: QCInput): Promise<QCReport>
+function shouldTriggerFallback(report): boolean
+function decideFallbackAction(report, policy): FallbackAction
+function getFrameStats(report): FrameScoreStats
+function shouldDispatchFallback(report, policy): boolean
 interface QCInput { videoTaskId, videoUrl, characterRefImageUrl?, beatId?, policy? }
 
 // shot-strategy-router.ts
 function routeStrategy(beat): ShotStrategy
 function applyStrategyToPrompt(strategy, prompt): string
+function getEffectiveThreshold(strategy, policy): number
+function describeRoutedStrategy(strategy): string
+function shouldUseLastFrame(strategy): boolean
+function getLastFrameUsage(strategy): LastFrameUsage
+function isStrategyLocked(strategy): boolean
+function buildStrategyAwarePrompt(strategy, prompt): string
 
 // fallback-dispatcher.ts
 function dispatchFallback(input: FallbackInput): Promise<FallbackResult>
+function listFallbackHistory(report): FallbackAction[]
+function isFallbackTerminal(action): boolean
+function predictNextAction(report, policy): FallbackAction
 ```
 
 ### Presentation 层
@@ -116,7 +146,7 @@ interface QCSettingsPanelProps { policy, onPolicyChange }
 |------|------|
 | `@/domain/schemas` | `VideoTask`、`StoryBeat`、`GenerationAsset` |
 | `@/modules/shot/consistency-check` | `checkVisualConsistency`（VLM 主路径） |
-| `@/infrastructure/embedding` | `cosineSimilarity`、`getLocalEmbeddingProvider`（face embedding 可选） |
+| `@/shared/embedding` | `cosineSimilarity`、`getLocalEmbeddingProvider`（face embedding 可选，代理导出） |
 | `@/modules/ffmpeg-runner` | `generateThumbnail`、`executeFfmpeg`（抽帧） |
 | `@/infrastructure/di` | `container.eventBus`、`container.generationAssetStorage` |
 | `@/shared/error-logger` | `errorLogger` |
@@ -161,6 +191,12 @@ QC 完成后 report 存于 `StoryBeat.qcReport`（optional 字段），新 QC �
 
 ### INV-7: Fallback 链式降级
 `fallback-dispatcher` 按固定链路降级：regenerate → face-swap → manual_review。不可跳过 regenerate 直接 face-swap（除非 maxRegenerateAttempts=0）。
+
+### INV-8: 不修改原视频
+QC 仅读取视频帧进行比对，不修改原视频文件。regenerate / face-swap 均创建新的 VideoTask，原任务保持不变。
+
+### INV-9: face embedding 走代理导出
+face embedding 相关函数（`cosineSimilarity`、`getLocalEmbeddingProvider` 等）通过 `@/shared/embedding` 代理导出访问，不直接导入 `@/infrastructure/embedding`，保持依赖方向合规。
 
 ## AI 维护指南
 

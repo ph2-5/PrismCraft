@@ -5,10 +5,14 @@
  * 参考实现：src/modules/asset/props/services/migrate-outfits.ts
  */
 
+import { createIdempotentMigration } from "@/shared-logic/migration";
 import { migrateOutfitsToVariants } from "./variant-crud";
 import { errorLogger } from "@/shared/error-logger";
 
-let migrationPromise: Promise<number> | null = null;
+const migration = createIdempotentMigration(
+  migrateOutfitsToVariants,
+  (err) => errorLogger.warn("[VariantMigration] 服装数据迁移失败", err),
+);
 
 /**
  * 初始化服装 → 变体迁移（幂等）。
@@ -17,19 +21,7 @@ let migrationPromise: Promise<number> | null = null;
  *
  * @returns 迁移的记录数
  */
-export async function initializeVariantMigration(): Promise<number> {
-  if (migrationPromise !== null) {
-    return migrationPromise;
-  }
-  migrationPromise = migrateOutfitsToVariants().catch((err) => {
-    errorLogger.warn("[VariantMigration] 服装数据迁移失败", err);
-    migrationPromise = null;
-    return 0;
-  });
-  return migrationPromise;
-}
+export const initializeVariantMigration = migration.initialize;
 
 /** 仅测试用：重置单例状态 */
-export function _resetVariantMigrationState(): void {
-  migrationPromise = null;
-}
+export const _resetVariantMigrationState = migration.resetState;

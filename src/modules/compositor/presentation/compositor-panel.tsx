@@ -14,7 +14,7 @@
  */
 
 import { useState, useRef } from "react";
-import { ImagePlus as ImagePlusIcon } from "lucide-react";
+import { ImagePlus as ImagePlusIcon, AlertCircle } from "lucide-react";
 import { useCharacters } from "@/modules/character";
 import { useScenes } from "@/modules/scene";
 import { useProps } from "@/modules/asset";
@@ -190,7 +190,6 @@ function CompositorCanvas({
   selectedLayerId,
   onSelectLayer,
   onMoveLayer,
-  onRemoveLayer,
   resultImageUrl,
   status,
 }: {
@@ -198,7 +197,6 @@ function CompositorCanvas({
   selectedLayerId: string | null;
   onSelectLayer: (id: string | null) => void;
   onMoveLayer: (id: string, x: number, y: number) => void;
-  onRemoveLayer: (id: string) => void;
   resultImageUrl?: string;
   status: string;
 }) {
@@ -307,7 +305,7 @@ function CompositorCanvas({
                 color: "#fff",
               }}
               onMouseDown={(e) => handleMouseDown(e, layer)}
-              onDoubleClick={() => onRemoveLayer(layer.layerId)}
+              title={t("compositor.layerDragHint")}
             >
               <span>{layer.emoji}</span>
               <span>{layer.name}</span>
@@ -400,8 +398,9 @@ function ToolsSidebar({
             <button
               key={tool.id}
               type="button"
-              className="btn btn-ghost btn-xs"
-              title={tool.label}
+              className="btn btn-ghost btn-xs opacity-50 cursor-not-allowed"
+              disabled
+              title={t("compositor.comingSoon")}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px" }}
             >
               <span style={{ fontSize: 16 }}>{tool.emoji}</span>
@@ -511,8 +510,11 @@ export function CompositorPanel() {
 
   if (!isElectron()) {
     return (
-      <div style={{ padding: 24, textAlign: "center", color: "var(--muted-fg)" }}>
-        {t("compositor.requiresDesktop")}
+      <div className="fade-in flex flex-col h-full p-3">
+        <div className="alert alert-warning text-xs">
+          <AlertCircle size={14} />
+          <span>{t("compositor.requiresDesktop")}</span>
+        </div>
       </div>
     );
   }
@@ -532,7 +534,6 @@ export function CompositorPanel() {
           selectedLayerId={compositor.selectedLayerId}
           onSelectLayer={compositor.selectLayer}
           onMoveLayer={compositor.moveLayer}
-          onRemoveLayer={compositor.removeLayer}
           resultImageUrl={compositor.result?.imageUrl}
           status={compositor.status}
         />

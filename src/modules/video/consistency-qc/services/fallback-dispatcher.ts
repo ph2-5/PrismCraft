@@ -26,7 +26,7 @@ import {
   type DriftPolicy,
 } from "../domain/drift-policy";
 import type { QCReport } from "../domain/qc-schema";
-import type { FaceSwapRequest } from "@/modules/video/partial-edit";
+import type { FaceSwapRequest } from "../../partial-edit";
 
 /** Fallback 动作类型 */
 export type FallbackAction = "regenerate" | "face_swap" | "manual_review" | "none";

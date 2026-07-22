@@ -50,7 +50,6 @@ interface NavEntry {
   href: string;
   labelKey: string;
   icon: React.ComponentType<{ className?: string }>;
-  comingSoon?: boolean;
 }
 
 const freeCreationItems: NavEntry[] = [
@@ -88,25 +87,19 @@ interface NavItemProps {
   collapsed: boolean;
   href: string;
   onNavigate: (href: string) => void;
-  comingSoon?: boolean;
 }
 
-const NavItem = memo(function NavItem({ labelKey, icon: Icon, emoji, isActive, collapsed, href, onNavigate, comingSoon }: NavItemProps) {
+const NavItem = memo(function NavItem({ labelKey, icon: Icon, emoji, isActive, collapsed, href, onNavigate }: NavItemProps) {
   return (
     <button
       onClick={() => onNavigate(href)}
-      className={cn("nav-item", isActive && "active", collapsed && "is-collapsed", comingSoon && "is-coming-soon")}
+      className={cn("nav-item", isActive && "active", collapsed && "is-collapsed")}
       title={collapsed ? t(labelKey) : undefined}
       aria-label={t(labelKey)}
     >
       {Icon && <Icon className="icon" />}
       {emoji && <span className="icon">{emoji}</span>}
-      {!collapsed && <span className={cn("nav-item-label", comingSoon && "is-coming-soon")}>{t(labelKey)}</span>}
-      {!collapsed && comingSoon && (
-        <span className="badge badge-muted nav-item-badge">
-          {t("sidebar.comingSoon")}
-        </span>
-      )}
+      {!collapsed && <span className="nav-item-label">{t(labelKey)}</span>}
     </button>
   );
 });
@@ -304,7 +297,6 @@ function SidebarNav({ pathname, isHomeActive, collapsed, onNavigate }: SidebarNa
         collapsed={collapsed}
         href={item.href}
         onNavigate={onNavigate}
-        comingSoon={item.comingSoon}
       />
     ));
 

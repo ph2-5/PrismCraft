@@ -144,11 +144,11 @@ export const TaskCardBase = memo(function TaskCardBase({
                   target="_blank"
                   rel="noopener noreferrer"
                   download
+                  className="btn btn-outline btn-sm"
+                  aria-label={t("beat.download")}
                 >
-                  <button type="button" className="btn btn-outline btn-sm">
-                    <Download className="w-4 h-4 mr-2" />
-                    {t("beat.download")}
-                  </button>
+                  <Download className="w-4 h-4 mr-2" />
+                  {t("beat.download")}
                 </a>
               </div>
             </div>

@@ -189,7 +189,8 @@ export const autoPolishVideoTool: ToolImpl = {
       name: "auto_polish_video",
       description:
         "一站式工具：视频自动润色。内部流程：1) 如 addSubtitles=true（默认），用 AI 根据故事生成分镜字幕文本并调用 add_subtitle 工具添加字幕；2) 如 addMusic=true，调用 generate_music（当前优雅降级）；3) 如 colorGrade != none，调用 apply_filter（当前对视频不可用，优雅降级）；4) 返回润色结果。" +
-        "适用于：用户要求「给视频加字幕」、「润色视频」、「给视频配乐」等场景。",
+        "适用于：用户要求「给视频加字幕」、「润色视频」、「给视频配乐」等场景。" +
+        "注意：当前版本仅支持字幕添加，配乐/调色功能暂未实现，调用时请勿设置 addMusic/colorGrade 参数。",
       parameters: {
         type: "object",
         properties: {

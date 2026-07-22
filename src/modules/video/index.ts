@@ -93,3 +93,7 @@ export {
   cleanExpiredTasks,
   getAllTaskHistory,
 } from "./recovery";
+
+// Task P2: consistency-qc & partial-edit 子模块公共 API barrel 导出
+export * from "./consistency-qc";
+export * from "./partial-edit";

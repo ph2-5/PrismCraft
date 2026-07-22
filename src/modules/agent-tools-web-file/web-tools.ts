@@ -246,7 +246,7 @@ export const searchWebTool: ToolImpl = {
 
       return {
         success: false,
-        error: `搜索引擎 "${engine}" 暂未实现。当前仅支持 bing。`,
+        error: `当前网页搜索仅支持 bing，图片搜索支持 bing/unsplash/pexels/google。`,
         data: { supportedEngines: ["bing"] },
       };
     } catch (e) {

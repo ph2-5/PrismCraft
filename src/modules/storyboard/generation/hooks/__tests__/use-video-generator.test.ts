@@ -125,7 +125,6 @@ describe("useVideoGenerator", () => {
     });
     expect(mockCreateTask).toHaveBeenCalledWith(
       expect.any(String),
-      undefined,
       expect.objectContaining({
         firstFrameUrl: "https://cdn.com/ff.jpg",
         lastFrameUrl: "https://cdn.com/lf.jpg",
@@ -155,7 +154,6 @@ describe("useVideoGenerator", () => {
     });
     expect(mockCreateTask).toHaveBeenCalledWith(
       expect.any(String),
-      undefined,
       expect.objectContaining({
         firstFrameUrl: "https://cdn.com/nested-ff.jpg",
         lastFrameUrl: "https://cdn.com/nested-lf.jpg",

@@ -304,7 +304,6 @@ interface GenerateDeps {
   getSelectedSceneObject: () => Scene | null;
   createTask: (
     prompt: string,
-    _unused?: undefined,
     opts?: {
       fixedImageUrl?: string;
       fixedImageLockType?: "scene" | "character";
@@ -382,7 +381,7 @@ async function executeGenerate(
     const referenceVideoBase64 = await readReferenceVideo(params.referenceVideoFile, deps.showError);
 
     const videoModel = deps.selectedVideoModel;
-    const task = await deps.createTask(prompt, undefined, {
+    const task = await deps.createTask(prompt, {
       fixedImageUrl: imageUrl,
       fixedImageLockType: selectedSceneObj ? "scene" : "character",
       referenceVideo: referenceVideoBase64,

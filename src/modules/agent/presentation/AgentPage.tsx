@@ -17,7 +17,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useAgent } from "../hooks/use-agent";
 import { AgentMessageView } from "./AgentMessage";
-import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { CheckpointRecovery } from "./CheckpointRecovery";
 import { MemoryPanel } from "./MemoryPanel";
 import { SessionHistory } from "./SessionHistory";
@@ -26,6 +25,7 @@ import { SpecialistPanel } from "./SpecialistPanel";
 import { AuditLogPanel } from "./AuditLogPanel";
 import { t } from "@/shared/constants";
 import { EmptyState } from "@/shared/presentation/EmptyState";
+import { useNavigationGuard } from "@/shared/presentation/BeforeUnloadGuard";
 import { confirm } from "@/shared/utils/confirm";
 import {
   buildExportFilename,
@@ -55,6 +55,7 @@ import {
   Wrench,
   BookOpen,
   Stethoscope,
+  ExternalLink,
 } from "lucide-react";
 
 interface PanelToggleButtonProps {
@@ -229,17 +230,13 @@ export function AgentPage() {
     historySessions,
     loadHistorySession,
     deleteHistorySession,
-    refreshHistory,
     interruptedSessions,
     resumeInterruptedSession,
     dismissInterruptedSession,
-    settings,
-    updateSettings,
     dismissError,
   } = useAgent();
 
   const [input, setInput] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
   const [showPlugins, setShowPlugins] = useState(false);
   const [showSpecialists, setShowSpecialists] = useState(false);
@@ -248,13 +245,18 @@ export function AgentPage() {
   // Task 4.9 子项 2：导出下拉菜单
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  /** 关闭其他面板，仅保留目标面板 */
-  const showOnly = (target: "audit" | "memory" | "plugins" | "specialists" | "settings") => {
+  // P1-4：跳转到独立设置页（替代原下拉面板）
+  const { guardedPush } = useNavigationGuard();
+  const handleOpenSettingsPage = () => {
+    void guardedPush("/agent/settings");
+  };
+
+  /** 关闭其他面板，仅保留目标面板（设置已迁移到独立页面，不再列入） */
+  const showOnly = (target: "audit" | "memory" | "plugins" | "specialists") => {
     setShowAudit(target === "audit");
     setShowMemory(target === "memory");
     setShowPlugins(target === "plugins");
     setShowSpecialists(target === "specialists");
-    setShowSettings(target === "settings");
   };
 
   /** Task 4.9 子项 2：导出当前会话 */
@@ -381,17 +383,16 @@ export function AgentPage() {
               label={t("agent.audit.management")}
               onClick={() => (showAudit ? setShowAudit(false) : showOnly("audit"))}
             />
-            <PanelToggleButton
-              icon={SettingsIcon}
-              label={t("agent.settings")}
-              onClick={() => {
-                if (showSettings) setShowSettings(false);
-                else {
-                  showOnly("settings");
-                  void refreshHistory();
-                }
-              }}
-            />
+            {/* P1-4：设置已迁移到独立页面 /agent/settings */}
+            <button
+              onClick={handleOpenSettingsPage}
+              className="relative rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={t("agent.openSettingsPage")}
+              aria-label={t("agent.openSettingsPage")}
+            >
+              <SettingsIcon className="h-4 w-4" />
+              <ExternalLink className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 text-muted-foreground/70" />
+            </button>
             <button
               onClick={handleClear}
               disabled={isStreaming}
@@ -409,36 +410,59 @@ export function AgentPage() {
             />
           </div>
 
-          {/* 设置面板（下拉） */}
-          {showSettings && (
-            <AgentSettingsPanel
-              settings={settings}
-              onUpdate={updateSettings}
-              onClose={() => setShowSettings(false)}
-            />
-          )}
-
           {/* 记忆管理面板（下拉） */}
           {showMemory && (
-            <MemoryPanel onClose={() => setShowMemory(false)} />
+            <>
+              {/* 点击外部关闭 */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowMemory(false)}
+                aria-hidden="true"
+              />
+              <MemoryPanel onClose={() => setShowMemory(false)} />
+            </>
           )}
 
           {/* 工具插件管理面板（下拉） */}
           {showPlugins && (
-            <ToolPluginManager onClose={() => setShowPlugins(false)} />
+            <>
+              {/* 点击外部关闭 */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowPlugins(false)}
+                aria-hidden="true"
+              />
+              <ToolPluginManager onClose={() => setShowPlugins(false)} />
+            </>
           )}
 
           {/* 专家 Agent 管理面板（下拉） */}
           {showSpecialists && (
-            <SpecialistPanel
-              onClose={() => setShowSpecialists(false)}
-              onDelegate={handleDelegate}
-            />
+            <>
+              {/* 点击外部关闭 */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowSpecialists(false)}
+                aria-hidden="true"
+              />
+              <SpecialistPanel
+                onClose={() => setShowSpecialists(false)}
+                onDelegate={handleDelegate}
+              />
+            </>
           )}
 
           {/* 审计日志面板（下拉） */}
           {showAudit && (
-            <AuditLogPanel onClose={() => setShowAudit(false)} />
+            <>
+              {/* 点击外部关闭 */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowAudit(false)}
+                aria-hidden="true"
+              />
+              <AuditLogPanel onClose={() => setShowAudit(false)} />
+            </>
           )}
         </div>
 

@@ -146,7 +146,6 @@ interface VideoTaskManagerState {
   clearFailedTasks(): Promise<void>  // 清除 failed + timeout 状态的任务
   createTask(
     prompt: string,
-    _deprecated?: undefined,
     extraOptions?: {
       fixedImageUrl?: string
       fixedImageLockType?: "character" | "scene"

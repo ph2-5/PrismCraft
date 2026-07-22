@@ -71,12 +71,13 @@ export const CharacterListItem = React.memo(function CharacterListItem({
         </div>
         <button
           type="button"
-          className="p-1 rounded bg-transparent text-destructive flex items-center justify-center shrink-0 cursor-pointer border-none"
+          className="p-1 rounded bg-transparent text-destructive hover:bg-destructive/10 flex items-center justify-center shrink-0 cursor-pointer border-none transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(e);
           }}
           aria-label={t("character.deleteLabel")}
+          title={t("common.delete")}
         >
           <svg
             width={14}

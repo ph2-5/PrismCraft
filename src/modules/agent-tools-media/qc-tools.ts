@@ -30,10 +30,11 @@ import {
   buildQCInput,
   isFallbackTerminal,
   predictNextAction,
+  resolvePolicy,
+  DEFAULT_DRIFT_POLICY,
   type FallbackInput,
-} from "@/modules/video/consistency-qc";
-import { resolvePolicy, DEFAULT_DRIFT_POLICY } from "@/modules/video/consistency-qc";
-import type { QCReport } from "@/modules/video/consistency-qc";
+  type QCReport,
+} from "@/modules/video";
 
 // ============= 辅助函数 =============
 

@@ -291,10 +291,10 @@ describe("R115: useVideoTaskCommands 必须委托给 store action", () => {
 
     const commands = useVideoTaskCommands();
     const extraOptions = { storyId: "story-1", beatId: "beat-1" };
-    await commands.createTask("a prompt", undefined, extraOptions);
+    await commands.createTask("a prompt", extraOptions);
 
     expect(createTaskSpy).toHaveBeenCalledTimes(1);
-    expect(createTaskSpy).toHaveBeenCalledWith("a prompt", undefined, extraOptions);
+    expect(createTaskSpy).toHaveBeenCalledWith("a prompt", extraOptions);
   });
 
   it("cancelTask 应委托给 store.getState().cancelTask", async () => {

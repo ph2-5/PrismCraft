@@ -1862,7 +1862,7 @@ interface UseVideoGeneratorProps {
   styleGuideRef?: React.MutableRefObject<StoryStyleGuide | undefined>;
   currentStory: Story;
   selectedVideoModel: ModelSelection | null;
-  createTask: (prompt: string, _deprecated?: undefined, extraOptions?: { ... }) => Promise<VideoTask>;
+  createTask: (prompt: string, extraOptions?: { ... }) => Promise<VideoTask>;
   setBeats: React.Dispatch<React.SetStateAction<StoryBeat[]>>;
   success: (title: string, description?: string) => void;
   showError: (title: string, description?: string) => void;
@@ -3069,7 +3069,7 @@ function useVideoTaskManager(): {
   clearAllTasks: () => Promise<void>;
   clearCompletedTasks: () => Promise<void>;
   clearFailedTasks: () => Promise<void>;
-  createTask: (prompt: string, _deprecated?: undefined, extraOptions?: {
+  createTask: (prompt: string, extraOptions?: {
     fixedImageUrl?: string;
     fixedImageLockType?: "character" | "scene";
     referenceVideo?: string | null;
@@ -3137,7 +3137,7 @@ interface VideoTaskCommands {
   clearAllTasks: () => Promise<void>;
   clearCompletedTasks: () => Promise<void>;
   clearFailedTasks: () => Promise<void>;
-  createTask: (prompt: string, _deprecated?: undefined, extraOptions?: { ... }) => Promise<VideoTask>;
+  createTask: (prompt: string, extraOptions?: { ... }) => Promise<VideoTask>;
   cancelTask: (taskId: string) => Promise<void>;
   recoverTask: (taskId: string) => Promise<void>;
 }

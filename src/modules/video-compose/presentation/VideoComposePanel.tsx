@@ -177,6 +177,7 @@ export function VideoComposePanel() {
                   step={0.1}
                   value={vm.transitionDuration}
                   onChange={(e) => vm.setTransitionDuration(Number(e.target.value))}
+                  aria-label={t("compose.durationAriaLabel")}
                 />
                 <span className="text-[10px] text-muted-foreground">{t("compose.seconds")}</span>
               </>
@@ -200,6 +201,9 @@ export function VideoComposePanel() {
                   onDragStart={(e) => handleDragStart(e, seg.id)}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, seg.id)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t("compose.segmentAriaLabel", { label: seg.label, index: idx + 1 })}
                 >
                   <GripVertical size={12} className="text-muted-foreground shrink-0" />
                   <span className="badge badge-muted shrink-0">{idx + 1}</span>
@@ -292,7 +296,12 @@ export function VideoComposePanel() {
                 {vm.composeResult.outputPath && (
                   <>
                     <video
-                      src={`file:///${vm.composeResult.outputPath.replace(/\\/g, "/")}`}
+                      src={((): string => {
+                        const normalized = vm.composeResult.outputPath.replace(/\\/g, "/");
+                        return normalized.startsWith("/")
+                          ? `file://${normalized}`
+                          : `file:///${normalized}`;
+                      })()}
                       controls
                       className="w-full rounded border border-border bg-black"
                       style={{ maxHeight: "300px" }}

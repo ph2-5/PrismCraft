@@ -63,12 +63,13 @@ export const SceneListItem = React.memo(function SceneListItem({
         </div>
       </div>
       <button
-        className="p-2 hover:bg-destructive/10 rounded-full transition-colors"
+        className="p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(e);
         }}
         aria-label={t("scene.deleteLabel")}
+        title={t("common.delete")}
       >
         <svg
           className="w-4 h-4 text-destructive"

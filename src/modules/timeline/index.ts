@@ -44,3 +44,7 @@ export type {
 // Hooks（Q3-5 / Task 4.6.3）
 export { useCascadeUpdate } from "./hooks/use-cascade-update";
 export type { CascadeUpdateApi } from "./hooks/use-cascade-update";
+
+// Hooks（Q3-6 / Task 4.6.4）
+export { useTimelineBinding } from "./hooks/use-timeline-binding";
+export type { TimelineBindingApi, UseTimelineBindingOptions } from "./hooks/use-timeline-binding";

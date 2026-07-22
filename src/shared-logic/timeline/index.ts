@@ -48,6 +48,30 @@ export type {
   IncrementalUpdateResult,
 } from "./cascade-update";
 
+// ── TimelineBinding 注入层 ──
+export {
+  normalizeBinding,
+  estimateTokenCount,
+  injectBindings,
+  buildInjectionBlock,
+  computeCascadeAffectedNodeIds,
+  getInjectableBindings,
+  getNodeBindings,
+  getDownstreamNodeIds,
+  extractBindingsFromTimeline,
+} from "./binding-injector";
+export type {
+  BindingType,
+  BindingImportance,
+  BindingPropagation,
+  BindingForInjection,
+  InjectedBindingInfo,
+  SkippedBindingInfo,
+  SkipReason,
+  TokenBudget,
+  InjectionResult,
+} from "./binding-injector";
+
 // ── 类型 ──
 export type {
   PlotEventType,

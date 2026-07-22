@@ -46,8 +46,17 @@ export async function checkVisualConsistency(
   }
 
   try {
-    const prompt = buildConsistencyPrompt(boundElements, beat);
-    const analysisResult = await container.imageApi.analyze(generatedImageUrl!, "scene", prompt);
+    // PrismCraft 第三章: 提取元素参考图 URL，传给 VLM 做多图比对
+    const referenceImageUrls = collectReferenceImageUrls(boundElements);
+    const prompt = buildConsistencyPrompt(boundElements, beat, referenceImageUrls);
+    const analysisResult = await container.imageApi.analyze(
+      generatedImageUrl!,
+      "scene",
+      prompt,
+      undefined,
+      undefined,
+      referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
+    );
 
     if (!analysisResult.ok) {
       return err(new AppError("CONSISTENCY_CHECK_FAILED", t("error.consistencyCheckFailed"), analysisResult.error));
@@ -62,7 +71,22 @@ export async function checkVisualConsistency(
   }
 }
 
-function buildConsistencyPrompt(elements: StoryElement[], beat: StoryBeat): string {
+/**
+ * PrismCraft 第三章: 从元素的 image 类型 bindings 提取参考图 URL。
+ * 用于 VLM 多图比对（角色参考图 + 生成图），让视觉模型做真实比对而非只看文字描述。
+ */
+function collectReferenceImageUrls(elements: StoryElement[]): string[] {
+  const urls: string[] = [];
+  for (const el of elements) {
+    const imageBinding = el.bindings?.find((b) => b.type === "image");
+    if (imageBinding?.url) {
+      urls.push(imageBinding.url);
+    }
+  }
+  return urls;
+}
+
+function buildConsistencyPrompt(elements: StoryElement[], beat: StoryBeat, referenceImageUrls: string[] = []): string {
   const elementDescriptions = elements
     .map((el) => {
       const binding = (beat.elementBindings?.[el.id] || {}) as Partial<ElementBinding>;
@@ -73,10 +97,15 @@ function buildConsistencyPrompt(elements: StoryElement[], beat: StoryBeat): stri
 
   const featureAnchoringSection = buildFeatureAnchoringSection(beat);
 
+  // PrismCraft 第三章: 当有参考图时，明确指示 VLM 比对生成图与参考图
+  const referenceSection = referenceImageUrls.length > 0
+    ? `\n参考图说明：已提供 ${referenceImageUrls.length} 张参考图（角色/场景的原始设计图），请严格比对生成图与参考图中的元素一致性，重点关注外观特征、配色、风格的差异。\n`
+    : "";
+
   return `请分析这张图片中以下元素的一致性：
 
 ${elementDescriptions}
-${featureAnchoringSection}
+${featureAnchoringSection}${referenceSection}
 请评估每个元素的外观一致性，给出0-1的分数，并指出不一致的地方。
 请用以下JSON格式回复：
 {

@@ -105,11 +105,12 @@ describe("checkVisualConsistency", () => {
     expect(result.value.characterScores).toHaveLength(1);
     expect(result.value.characterScores[0]!.elementId).toBe("elem-1");
     expect(result.value.characterScores[0]!.score).toBe(0.9);
-    expect(mockAnalyze).toHaveBeenCalledWith(
-      "https://example.com/image.png",
-      "scene",
-      expect.any(String),
-    );
+    // PrismCraft 第三章: analyze 现在支持 referenceImageUrls 参数（第 6 个参数）
+    // 无参考图时传 undefined，这里只校验前 3 个参数
+    const callArgs = mockAnalyze.mock.calls[0]!;
+    expect(callArgs[0]).toBe("https://example.com/image.png");
+    expect(callArgs[1]).toBe("scene");
+    expect(typeof callArgs[2]).toBe("string");
   });
 
   it("绑定元素且图片分析失败时应返回错误", async () => {
@@ -206,6 +207,73 @@ describe("checkVisualConsistency", () => {
     expect(prompt).toContain("角色A");
     expect(prompt).toContain("character");
     expect(prompt).toContain("主角");
+  });
+
+  it("PrismCraft 第三章: 应将元素参考图 URL 传给 imageApi.analyze 用于 VLM 多图比对", async () => {
+    const beat = makeBeat({ elementIds: ["elem-1"] });
+    const elements = [makeElement({
+      id: "elem-1",
+      name: "角色A",
+      type: "character",
+      bindings: [{ type: "image", url: "https://example.com/ref-char.png" }],
+    })];
+
+    mockAnalyze.mockResolvedValue({
+      ok: true,
+      value: {
+        analysis: JSON.stringify({
+          scores: [{ name: "角色A", score: 0.85, issues: [] }],
+          overallScore: 0.85,
+          recommendation: "accept",
+        }),
+      },
+    });
+
+    await checkVisualConsistency({
+      beat,
+      elements,
+      generatedImageUrl: "https://example.com/generated.png",
+    });
+
+    // imageApi.analyze 签名: (imageUrl, type, prompt, providerId?, modelId?, referenceImageUrls?)
+    // 第 6 个参数应是参考图 URL 数组
+    const callArgs = mockAnalyze.mock.calls[0]!;
+    expect(callArgs[0]).toBe("https://example.com/generated.png");
+    // referenceImageUrls 参数（第 6 个参数，index 5）
+    const referenceImageUrls = callArgs[5];
+    expect(referenceImageUrls).toEqual(["https://example.com/ref-char.png"]);
+  });
+
+  it("PrismCraft 第三章: prompt 应包含参考图比对说明", async () => {
+    const beat = makeBeat({ elementIds: ["elem-1"] });
+    const elements = [makeElement({
+      id: "elem-1",
+      name: "角色A",
+      type: "character",
+      bindings: [{ type: "image", url: "https://example.com/ref-char.png" }],
+    })];
+
+    mockAnalyze.mockResolvedValue({
+      ok: true,
+      value: {
+        analysis: JSON.stringify({
+          scores: [{ name: "角色A", score: 0.85, issues: [] }],
+          overallScore: 0.85,
+          recommendation: "accept",
+        }),
+      },
+    });
+
+    await checkVisualConsistency({
+      beat,
+      elements,
+      generatedImageUrl: "https://example.com/generated.png",
+    });
+
+    const prompt = mockAnalyze.mock.calls[0]![2]! as string;
+    // prompt 应明确指示 VLM 比对生成图与参考图
+    expect(prompt).toContain("参考图");
+    expect(prompt).toContain("比对");
   });
 });
 

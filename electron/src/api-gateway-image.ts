@@ -115,7 +115,7 @@ function prependFrameRefTags(
 }
 
 async function analyzeImage(body: Record<string, unknown>): Promise<ApiResult> {
-  const { imageUrl, prompt, type } = body as Record<string, unknown>;
+  const { imageUrl, prompt, type, referenceImageUrls } = body as Record<string, unknown>;
   const { effectiveApiUrl, effectiveApiKey, effectiveModel, resolvedPlugin } = await resolveApiConfig(
     body,
     "vision",
@@ -178,6 +178,8 @@ async function analyzeImage(body: Record<string, unknown>): Promise<ApiResult> {
       model: effectiveModel,
       imageUrl: accessibleImageUrl,
       maxTokens: 4096,
+      // PrismCraft 第三章: 传参考图 URL 数组给 plugin，支持 VLM 多图比对
+      referenceImageUrls: Array.isArray(referenceImageUrls) ? referenceImageUrls as string[] : undefined,
     });
 
     const requestUrl = plugin.appendAuthToUrl

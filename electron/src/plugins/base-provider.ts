@@ -412,16 +412,27 @@ export abstract class BaseAIProviderPlugin implements AIProviderPlugin {
   }
 
   buildVisionRequest(ctx: VisionBuildContext): VisionRequestResult {
+    // PrismCraft 第三章: 当有参考图时，构造多图 messages（参考图 + 生成图）
+    // 让 VLM 做真实视觉比对，而非只看文字描述
+    const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+      { type: "text", text: ctx.prompt },
+      { type: "image_url", image_url: { url: ctx.imageUrl } },
+    ];
+
+    if (ctx.referenceImageUrls && ctx.referenceImageUrls.length > 0) {
+      // 参考图排在生成图之后，prompt 中已说明比对意图
+      for (const refUrl of ctx.referenceImageUrls) {
+        content.push({ type: "image_url", image_url: { url: refUrl } });
+      }
+    }
+
     return {
       body: {
         model: ctx.model || "gpt-4o",
         messages: [
           {
             role: "user",
-            content: [
-              { type: "text", text: ctx.prompt },
-              { type: "image_url", image_url: { url: ctx.imageUrl } },
-            ],
+            content,
           },
         ],
       },

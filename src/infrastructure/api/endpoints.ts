@@ -12,13 +12,15 @@ export const imageApi = {
     }, 120000);
   },
 
-  async analyze(imageUrl: string, type: string = "scene", prompt?: string, providerId?: string, modelId?: string): Promise<Result<{ analysis: string }>> {
+  async analyze(imageUrl: string, type: string = "scene", prompt?: string, providerId?: string, modelId?: string, referenceImageUrls?: string[]): Promise<Result<{ analysis: string }>> {
     return apiClient.post<{ analysis: string }>("analyze-image", {
       imageUrl,
       type,
       prompt,
       providerId,
       modelId,
+      // PrismCraft 第三章: 参考图 URL 数组，供 VLM 多图比对（角色参考图 + 生成图）
+      referenceImageUrls,
     });
   },
 };

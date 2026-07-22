@@ -13,6 +13,8 @@ export const analyzeImageSchema = z.object({
   prompt: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
+  // PrismCraft 第三章: 参考图 URL 数组，供 VLM 多图比对（角色参考图 + 生成图）
+  referenceImageUrls: z.array(z.string()).optional(),
 });
 export type AnalyzeImageRequest = z.infer<typeof analyzeImageSchema>;
 

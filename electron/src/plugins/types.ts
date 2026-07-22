@@ -165,6 +165,9 @@ export interface VisionBuildContext {
   model?: string;
   imageUrl: string;
   maxTokens?: number;
+  // PrismCraft 第三章: 参考图 URL 数组，用于 VLM 多图比对（如角色参考图 + 生成图）
+  // 支持的 provider 会在 messages 中构造多图输入；不支持的 provider 静默忽略
+  referenceImageUrls?: string[];
 }
 
 export interface VideoRequestResult {

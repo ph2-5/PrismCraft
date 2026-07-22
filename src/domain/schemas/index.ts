@@ -36,6 +36,10 @@ export type { CharacterVariant, CreateCharacterVariantInput, UpdateCharacterVari
 export { sceneVariantSchema, createSceneVariantInputSchema, updateSceneVariantInputSchema } from "./scene-variant";
 export type { SceneVariant, CreateSceneVariantInput, UpdateSceneVariantInput } from "./scene-variant";
 
+// Q3-3: 时间线维度建模（StoryTimeline + PlotNode）
+export { storyTimelineSchema, createStoryTimelineInputSchema, updateStoryTimelineInputSchema, plotNodeSchema, createPlotNodeInputSchema, updatePlotNodeInputSchema, plotEventTypeSchema, timelineTypeSchema, snapshotStrategySchema } from "./timeline";
+export type { StoryTimeline, CreateStoryTimelineInput, UpdateStoryTimelineInput, PlotNode, CreatePlotNodeInput, UpdatePlotNodeInput, PlotEventType, TimelineType, SnapshotStrategy } from "./timeline";
+
 // Task 2A.21: 3D 白盒预览编辑器（类型定义在 domain 层，工厂函数/预设库在 @/modules/blockout-3d）
 export type {
   Vec3,

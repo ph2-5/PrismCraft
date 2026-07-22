@@ -25,7 +25,7 @@ function sanitizeColumnType(type: string): string {
   return type;
 }
 
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 12;
 
 // PR 3 Step 1：shotType 迁移映射表（内联，不导入 shared-logic 以遵守架构边界）
 // 语义：旧 shotType 中的 size 类 → shotSize
@@ -346,6 +346,67 @@ export const MIGRATIONS: Record<number, (db: MigrationDb) => void> = {
       }
     }
     logger.info("[DB] migration v11: story_beats variant columns ensured");
+  },
+  // Q3-3: 时间线维度建模 — 创建 story_timelines + plot_nodes 表
+  // 设计来源：docs/timeline-variant-design.md（故事时间线变体系统）
+  // story_timelines 是项目主轴，plot_nodes 是时间线上的最小单位（对应 NovelSegment）
+  12: (db) => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS story_timelines (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL DEFAULT 'default',
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        type TEXT NOT NULL DEFAULT 'main',
+        is_parallel INTEGER DEFAULT 0,
+        parent_timeline_id TEXT,
+        merge_node_id TEXT,
+        bindings_json TEXT DEFAULT '{}',
+        metadata_json TEXT DEFAULT '{}',
+        owner_id INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (strftime('%s','now')),
+        updated_at INTEGER DEFAULT (strftime('%s','now')),
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at INTEGER,
+        version INTEGER DEFAULT 1,
+        sync_id TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_story_timelines_project ON story_timelines(project_id);
+      CREATE INDEX IF NOT EXISTS idx_story_timelines_type ON story_timelines(type);
+
+      CREATE TABLE IF NOT EXISTS plot_nodes (
+        id TEXT PRIMARY KEY,
+        timeline_id TEXT NOT NULL,
+        order_num INTEGER NOT NULL DEFAULT 0,
+        chapter_index INTEGER,
+        chapter_title TEXT,
+        segment_id TEXT,
+        beat_id TEXT,
+        plot_event_type TEXT NOT NULL DEFAULT 'narration',
+        plot_event_description TEXT DEFAULT '',
+        plot_event_parameters_json TEXT DEFAULT '{}',
+        ai_analysis_json TEXT,
+        character_snapshots_json TEXT DEFAULT '[]',
+        scene_snapshots_json TEXT DEFAULT '[]',
+        transitions_json TEXT DEFAULT '[]',
+        bindings_json TEXT DEFAULT '[]',
+        snapshot_strategy TEXT NOT NULL DEFAULT 'active',
+        cached_prompt TEXT,
+        metadata_json TEXT DEFAULT '{}',
+        owner_id INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (strftime('%s','now')),
+        updated_at INTEGER DEFAULT (strftime('%s','now')),
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at INTEGER,
+        version INTEGER DEFAULT 1,
+        sync_id TEXT,
+        FOREIGN KEY (timeline_id) REFERENCES story_timelines(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_plot_nodes_timeline ON plot_nodes(timeline_id, order_num);
+      CREATE INDEX IF NOT EXISTS idx_plot_nodes_segment ON plot_nodes(segment_id);
+      CREATE INDEX IF NOT EXISTS idx_plot_nodes_beat ON plot_nodes(beat_id);
+    `);
+    logger.info("[DB] migration v12: story_timelines + plot_nodes tables ensured");
   },
 };
 

@@ -267,6 +267,61 @@ CREATE TABLE IF NOT EXISTS scene_variants (
 CREATE INDEX IF NOT EXISTS idx_scene_variants_scene ON scene_variants(scene_id);
 CREATE INDEX IF NOT EXISTS idx_scene_variants_default ON scene_variants(scene_id, is_default);
 
+-- Q3-3: 故事时间线系统
+CREATE TABLE IF NOT EXISTS story_timelines (
+    id TEXT PRIMARY KEY,
+    owner_id INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER DEFAULT (strftime('%s','now')),
+    updated_at INTEGER DEFAULT (strftime('%s','now')),
+    is_deleted INTEGER DEFAULT 0,
+    deleted_at INTEGER,
+    version INTEGER DEFAULT 1,
+    sync_id TEXT,
+    project_id TEXT NOT NULL DEFAULT 'default',
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    type TEXT NOT NULL DEFAULT 'main',
+    is_parallel INTEGER DEFAULT 0,
+    parent_timeline_id TEXT,
+    merge_node_id TEXT,
+    bindings_json TEXT DEFAULT '{}',
+    metadata_json TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_story_timelines_project ON story_timelines(project_id);
+CREATE INDEX IF NOT EXISTS idx_story_timelines_type ON story_timelines(type);
+
+CREATE TABLE IF NOT EXISTS plot_nodes (
+    id TEXT PRIMARY KEY,
+    owner_id INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER DEFAULT (strftime('%s','now')),
+    updated_at INTEGER DEFAULT (strftime('%s','now')),
+    is_deleted INTEGER DEFAULT 0,
+    deleted_at INTEGER,
+    version INTEGER DEFAULT 1,
+    sync_id TEXT,
+    timeline_id TEXT NOT NULL,
+    order_num INTEGER NOT NULL DEFAULT 0,
+    chapter_index INTEGER,
+    chapter_title TEXT,
+    segment_id TEXT,
+    beat_id TEXT,
+    plot_event_type TEXT NOT NULL DEFAULT 'narration',
+    plot_event_description TEXT DEFAULT '',
+    plot_event_parameters_json TEXT DEFAULT '{}',
+    ai_analysis_json TEXT,
+    character_snapshots_json TEXT DEFAULT '[]',
+    scene_snapshots_json TEXT DEFAULT '[]',
+    transitions_json TEXT DEFAULT '[]',
+    bindings_json TEXT DEFAULT '[]',
+    snapshot_strategy TEXT NOT NULL DEFAULT 'active',
+    cached_prompt TEXT,
+    metadata_json TEXT DEFAULT '{}',
+    FOREIGN KEY (timeline_id) REFERENCES story_timelines(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_plot_nodes_timeline ON plot_nodes(timeline_id, order_num);
+CREATE INDEX IF NOT EXISTS idx_plot_nodes_segment ON plot_nodes(segment_id);
+CREATE INDEX IF NOT EXISTS idx_plot_nodes_beat ON plot_nodes(beat_id);
+
 CREATE TABLE IF NOT EXISTS elements (
     id TEXT PRIMARY KEY,
     owner_id INTEGER NOT NULL DEFAULT 1,

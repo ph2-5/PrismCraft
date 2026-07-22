@@ -193,6 +193,24 @@ registerColumns("scene_variants", [
   ["is_deleted", "boolean"],
 ]);
 
+// Q3-3: story_timelines + plot_nodes 表 JSON/boolean 列
+registerColumns("story_timelines", [
+  ["bindings_json", "json"],
+  ["metadata_json", "json"],
+  ["is_parallel", "boolean"],
+  ["is_deleted", "boolean"],
+]);
+registerColumns("plot_nodes", [
+  ["plot_event_parameters_json", "json"],
+  ["ai_analysis_json", "json"],
+  ["character_snapshots_json", "json"],
+  ["scene_snapshots_json", "json"],
+  ["transitions_json", "json"],
+  ["bindings_json", "json"],
+  ["metadata_json", "json"],
+  ["is_deleted", "boolean"],
+]);
+
 export function parseRecord(
   record: Record<string, unknown>,
   table?: string,

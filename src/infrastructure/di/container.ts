@@ -77,6 +77,8 @@ import { novelProjectStorage } from "@/infrastructure/storage/novel-projects";
 import { propStorage } from "@/infrastructure/storage/props";
 import { characterVariantStorage } from "@/infrastructure/storage/characters/variant-manager";
 import { sceneVariantStorage } from "@/infrastructure/storage/scenes/variant-manager";
+import { timelineStorage } from "@/infrastructure/storage/timelines/timeline-manager";
+import { plotNodeStorage } from "@/infrastructure/storage/timelines/plot-node-manager";
 import { storyTemplateStorage } from "@/infrastructure/storage/story-templates";
 import { preferencesStorage } from "@/shared/utils/preferences";
 import { createToken, type Token } from "./types";
@@ -168,6 +170,8 @@ const tokens = {
   propStorage: createToken("propStorage", () => propStorage),
   characterVariantStorage: createToken("characterVariantStorage", () => characterVariantStorage),
   sceneVariantStorage: createToken("sceneVariantStorage", () => sceneVariantStorage),
+  timelineStorage: createToken("timelineStorage", () => timelineStorage),
+  plotNodeStorage: createToken("plotNodeStorage", () => plotNodeStorage),
   storyTemplateStorage: createToken("storyTemplateStorage", () => storyTemplateStorage),
 
   // ── D. Repository 实例（Drizzle ORM，模块无法直接导入 infrastructure/database） ──
@@ -308,6 +312,8 @@ export function getTokenRegistry(): Array<{
     propStorage: "C",
     characterVariantStorage: "C",
     sceneVariantStorage: "C",
+    timelineStorage: "C",
+    plotNodeStorage: "C",
     storyTemplateStorage: "C",
     mediaAssetRepository: "D",
     elementManager: "E",

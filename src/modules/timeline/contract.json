@@ -1,0 +1,47 @@
+{
+  "name": "timeline",
+  "description": "时间线维度建模：故事时间线系统的核心实体（StoryTimeline + PlotNode）。角色/场景的状态是故事时间线的函数，而非独立配置项。设计来源：docs/timeline-variant-design.md",
+  "dependencies": [
+    "@/domain/schemas",
+    "@/infrastructure/di",
+    "@/infrastructure/storage/timelines"
+  ],
+  "publicAPI": {
+    "schemas": [
+      "storyTimelineSchema",
+      "createStoryTimelineInputSchema",
+      "updateStoryTimelineInputSchema",
+      "plotNodeSchema",
+      "createPlotNodeInputSchema",
+      "updatePlotNodeInputSchema",
+      "plotEventTypeSchema",
+      "timelineTypeSchema",
+      "snapshotStrategySchema"
+    ],
+    "types": [
+      "StoryTimeline",
+      "CreateStoryTimelineInput",
+      "UpdateStoryTimelineInput",
+      "PlotNode",
+      "CreatePlotNodeInput",
+      "UpdatePlotNodeInput",
+      "PlotEventType",
+      "TimelineType",
+      "SnapshotStrategy"
+    ],
+    "storage": [
+      "container.timelineStorage",
+      "container.plotNodeStorage"
+    ]
+  },
+  "invariants": [
+    "每个 StoryTimeline 必须有 name 和 type（main/branch/flashback）",
+    "每个项目最多一个 type='main' 的时间线（由 ensureMainTimeline 保证）",
+    "每个 PlotNode 必须有 timelineId 和 order",
+    "PlotNode.segmentId 可选关联 NovelSegment.id（Q2-1 原文回溯锚点）",
+    "PlotNode.beatId 可选关联 StoryBeat.id（直接关联）",
+    "删除 StoryTimeline 时级联删除其所有 PlotNode（FK ON DELETE CASCADE）",
+    "复杂嵌套类型（CharacterStateSnapshot / SceneStateSnapshot / StateTransition / NodeBinding）以 JSON 列存储，完整类型在状态推演引擎实现时细化",
+    "禁止直接导入 infrastructure/storage，必须通过 DI container"
+  ]
+}

@@ -460,6 +460,49 @@ const FEATURE_TABLES: TableDef[] = [
       metadata_json: { type: "TEXT", default: "'{}'" },
     },
   },
+  // Q3-3: 故事时间线系统（StoryTimeline + PlotNode）
+  // 设计来源：docs/timeline-variant-design.md
+  // 时间线是项目的主轴，角色/场景的状态挂载在时间线上
+  {
+    name: "story_timelines",
+    featureGroup: "core",
+    columns: {
+      project_id: { type: "TEXT", notNull: true, default: "'default'" },
+      name: { type: "TEXT", notNull: true },
+      description: { type: "TEXT", default: "''" },
+      type: { type: "TEXT", notNull: true, default: "'main'" },
+      is_parallel: { type: "INTEGER", default: "0" },
+      parent_timeline_id: { type: "TEXT" },
+      merge_node_id: { type: "TEXT" },
+      bindings_json: { type: "TEXT", default: "'{}'" },
+      metadata_json: { type: "TEXT", default: "'{}'" },
+    },
+  },
+  // Q3-3: 剧情节点（PlotNode）— 时间线上的最小单位
+  // 每个 PlotNode 对应一个 NovelSegment，包含剧情事件 + 状态快照 + 状态转换 + 绑定
+  {
+    name: "plot_nodes",
+    featureGroup: "core",
+    columns: {
+      timeline_id: { type: "TEXT", notNull: true, ref: "story_timelines(id)", onDelete: "CASCADE" },
+      order_num: { type: "INTEGER", notNull: true, default: "0" },
+      chapter_index: { type: "INTEGER" },
+      chapter_title: { type: "TEXT" },
+      segment_id: { type: "TEXT" },
+      beat_id: { type: "TEXT" },
+      plot_event_type: { type: "TEXT", notNull: true, default: "'narration'" },
+      plot_event_description: { type: "TEXT", default: "''" },
+      plot_event_parameters_json: { type: "TEXT", default: "'{}'" },
+      ai_analysis_json: { type: "TEXT" },
+      character_snapshots_json: { type: "TEXT", default: "'[]'" },
+      scene_snapshots_json: { type: "TEXT", default: "'[]'" },
+      transitions_json: { type: "TEXT", default: "'[]'" },
+      bindings_json: { type: "TEXT", default: "'[]'" },
+      snapshot_strategy: { type: "TEXT", notNull: true, default: "'active'" },
+      cached_prompt: { type: "TEXT" },
+      metadata_json: { type: "TEXT", default: "'{}'" },
+    },
+  },
 ];
 
 const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; primaryKey: string[]; uniqueConstraints?: string[][] }[] = [
@@ -699,6 +742,13 @@ CREATE INDEX IF NOT EXISTS idx_props_source_character ON props(source_character_
 CREATE INDEX IF NOT EXISTS idx_character_variants_character ON character_variants(character_id);
 CREATE INDEX IF NOT EXISTS idx_character_variants_default ON character_variants(character_id, is_default);
 CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(status);
+CREATE INDEX IF NOT EXISTS idx_scene_variants_scene ON scene_variants(scene_id);
+CREATE INDEX IF NOT EXISTS idx_scene_variants_default ON scene_variants(scene_id, is_default);
+CREATE INDEX IF NOT EXISTS idx_story_timelines_project ON story_timelines(project_id);
+CREATE INDEX IF NOT EXISTS idx_story_timelines_type ON story_timelines(type);
+CREATE INDEX IF NOT EXISTS idx_plot_nodes_timeline ON plot_nodes(timeline_id, order_num);
+CREATE INDEX IF NOT EXISTS idx_plot_nodes_segment ON plot_nodes(segment_id);
+CREATE INDEX IF NOT EXISTS idx_plot_nodes_beat ON plot_nodes(beat_id);
 `;
 
 export function getSchemaSQL(): string {

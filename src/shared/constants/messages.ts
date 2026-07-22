@@ -4441,6 +4441,62 @@ const messages: Record<MessageKey, string> = {
   "timeline.snapshot.entities": "实体",
   "timeline.snapshot.persistentChanges": "持续变化",
 
+  // Q3-9 / Task 4.6.7: 多时间线支持
+  "timeline.multi.title": "多时间线视图",
+  "timeline.multi.subtitle": "《盗梦空间》式多层时间线结构",
+  "timeline.multi.empty": "暂无时间线",
+  "timeline.multi.addTimeline": "添加时间线",
+  "timeline.multi.addRelationship": "添加关系",
+  "timeline.multi.addCrossBinding": "添加跨时间线绑定",
+  "timeline.multi.timelineList": "时间线列表",
+  "timeline.multi.relationshipGraph": "关系图",
+  "timeline.multi.crossBindings": "跨时间线绑定",
+  "timeline.multi.depth": "层级",
+  "timeline.multi.parent": "父时间线",
+  "timeline.multi.children": "子时间线",
+  "timeline.multi.noParent": "无（顶层时间线）",
+  "timeline.multi.noChildren": "无子时间线",
+  "timeline.multi.selectTimeline": "选择时间线",
+  "timeline.multi.selectNode": "选择节点",
+  "timeline.multi.injectTest": "测试注入",
+  "timeline.multi.injectionResult": "注入结果",
+  "timeline.multi.noInjections": "无跨时间线注入",
+  "timeline.multi.inboundBindings": "入站绑定",
+  "timeline.multi.outboundBindings": "出站绑定",
+  "timeline.multi.injectionText": "注入文本",
+  "timeline.multi.relationshipDescription": "关系描述",
+  "timeline.multi.cascadeEffect": "级联效应",
+  "timeline.multi.autoInject": "自动注入",
+  "timeline.multi.sourceTimeline": "源时间线",
+  "timeline.multi.targetTimeline": "目标时间线",
+  "timeline.multi.sourceNode": "源节点",
+  "timeline.multi.targetNode": "目标节点",
+
+  // 时间线关系类型
+  "timeline.relationship.type.prequel": "前传",
+  "timeline.relationship.type.sequel": "后传",
+  "timeline.relationship.type.parallel": "并行",
+  "timeline.relationship.type.flashback": "回忆",
+  "timeline.relationship.type.flashforward": "闪前",
+  "timeline.relationship.type.alternate": "替代线",
+
+  // 跨时间线绑定类型
+  "timeline.crossBinding.type.foreshadow": "伏笔",
+  "timeline.crossBinding.type.callback": "呼应",
+  "timeline.crossBinding.type.parallel": "并行对照",
+  "timeline.crossBinding.type.cause_effect": "因果链",
+  "timeline.crossBinding.type.mystery_reveal": "谜团揭示",
+  "timeline.crossBinding.type.user_manual": "自定义",
+
+  // 跨时间线跳过原因
+  "timeline.crossBinding.skipReason.timeline_mismatch": "时间线不匹配",
+  "timeline.crossBinding.skipReason.node_mismatch": "节点不匹配",
+  "timeline.crossBinding.skipReason.auto_inject_disabled": "自动注入已禁用",
+  "timeline.crossBinding.skipReason.not_confirmed": "未确认",
+  "timeline.crossBinding.skipReason.empty_injection_text": "注入文本为空",
+  "timeline.crossBinding.skipReason.duplicate": "重复绑定",
+  "timeline.crossBinding.skipReason.invalid_timeline_ref": "无效时间线引用",
+
 
   // Task 2A.21: 3D 白盒预览编辑器
   "blockout.loading": "正在加载 3D 编辑器...",

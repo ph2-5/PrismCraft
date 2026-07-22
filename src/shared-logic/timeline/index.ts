@@ -87,6 +87,29 @@ export type {
   EnhancedPrompt,
 } from "./prompt-enhancer";
 
+// ── 跨时间线绑定注入（Q3-9 / Task 4.6.7）──
+export {
+  injectCrossTimelineBindings,
+  normalizeCrossTimelineBinding,
+  buildCrossTimelineInjectionBlock,
+  findRelationship,
+  getInboundCrossTimelineBindings,
+  getOutboundCrossTimelineBindings,
+  getBindingsBetweenTimelines,
+  getTimelineRelationships,
+  computeTimelineLayers,
+} from "./cross-timeline-injector";
+export type {
+  CrossTimelineBindingType,
+  TimelineRelationshipType,
+  CrossTimelineBindingLike,
+  TimelineRelationshipLike,
+  MultiTimelineLike,
+  CrossTimelineInjectionResult,
+  CrossTimelineSkipReason,
+  TimelineLayerInfoLike,
+} from "./cross-timeline-injector";
+
 // ── 类型 ──
 export type {
   PlotEventType,

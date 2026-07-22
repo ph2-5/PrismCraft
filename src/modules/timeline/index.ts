@@ -53,6 +53,10 @@ export type { TimelineBindingApi, UseTimelineBindingOptions } from "./hooks/use-
 export { useEnhancedPrompt } from "./hooks/use-enhanced-prompt";
 export type { EnhancedPromptApi, UseEnhancedPromptOptions } from "./hooks/use-enhanced-prompt";
 
+// Hooks（Q3-9 / Task 4.6.7）
+export { useMultiTimeline } from "./hooks/use-multi-timeline";
+export type { MultiTimelineApi } from "./hooks/use-multi-timeline";
+
 // Presentation 组件（Q3-7 / Task 4.6.5）
 export { TimelineEditor } from "./presentation/TimelineEditor";
 export { TimelineTrack } from "./presentation/TimelineTrack";
@@ -62,3 +66,19 @@ export { CharacterStateTrack } from "./presentation/CharacterStateTrack";
 export { BindingGraph } from "./presentation/BindingGraph";
 export { BindingCreatorDialog } from "./presentation/BindingCreatorDialog";
 export type { BindingCreatorResult } from "./presentation/BindingCreatorDialog";
+
+// Presentation 组件（Q3-9 / Task 4.6.7）
+export { MultiTimelineView } from "./presentation/MultiTimelineView";
+
+// Domain 类型（Q3-9 / Task 4.6.7）
+export type {
+  TimelineRelationshipType,
+  CrossTimelineBindingType,
+  NodeMapping,
+  TimelineRelationship,
+  CrossTimelineBinding,
+  MultiTimelineView as MultiTimelineViewData,
+  TimelineLayerInfo,
+  CrossTimelineInjectionResult as DomainCrossTimelineInjectionResult,
+} from "./domain/multi-timeline-types";
+export { TIMELINE_RELATIONSHIP_TYPES } from "./domain/multi-timeline-types";

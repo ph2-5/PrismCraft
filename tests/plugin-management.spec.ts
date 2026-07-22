@@ -7,6 +7,16 @@ let getErrors: () => string[] = () => [];
 
 test.beforeEach(async ({ page }) => {
   getErrors = captureConsoleErrors(page);
+  // Mock plugin list API: web 环境下无本地 API server，fetchPlugins 请求会挂起
+  // 导致 isLoading 卡 true、PluginManagerHeader（含“规范文档/重载”等按钮）不渲染。
+  // 参考: src/modules/settings/plugin-manager.tsx useEffect → loadPlugins → fetchPlugins
+  await page.route("**/api/plugins/list", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true, data: { plugins: [], userPluginFiles: [] } }),
+    }),
+  );
 });
 
 test.afterEach(async () => {
@@ -18,6 +28,9 @@ test.describe("Plugin Management Page Load", () => {
   test.beforeEach(async ({ page }) => {
     await installElectronMock(page);
     await navigateTo(page, "/settings");
+    await dismissOverlays(page);
+    // 切换到"插件管理"Tab：749976a 后 PluginManager 仅在 plugins tab 激活时渲染
+    await page.locator('button[role="tab"]', { hasText: "插件管理" }).click();
   });
 
   test("should load settings page and display plugin section", async ({ page }) => {
@@ -50,6 +63,9 @@ test.describe("Plugin List", () => {
   test.beforeEach(async ({ page }) => {
     await installElectronMock(page);
     await navigateTo(page, "/settings");
+    await dismissOverlays(page);
+    // 切换到"插件管理"Tab：749976a 后 PluginManager 仅在 plugins tab 激活时渲染
+    await page.locator('button[role="tab"]', { hasText: "插件管理" }).click();
   });
 
   test("should display no plugins hint when list is empty", async ({ page }) => {
@@ -61,9 +77,7 @@ test.describe("Plugin List", () => {
   test("should display builtin plugin badge if plugins exist", async ({ page }) => {
     const builtinBadge = page.locator("text=内置").first();
     const noPluginsHint = page.locator("text=暂无插件").first();
-    const hasBuiltin = await builtinBadge.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasNoPlugins = await noPluginsHint.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasBuiltin || hasNoPlugins).toBe(true);
+    await expect(builtinBadge.or(noPluginsHint)).toBeVisible({ timeout: 10000 });
   });
 
   test("should expand plugin detail on click", async ({ page }) => {
@@ -83,6 +97,8 @@ test.describe("Add Custom Plugin (JSON)", () => {
     await installElectronMock(page);
     await navigateTo(page, "/settings");
     await dismissOverlays(page);
+    // 切换到“插件管理”Tab：749976a 后 PluginManager 仅在 plugins tab 激活时渲染
+    await page.locator('button[role="tab"]', { hasText: "插件管理" }).click();
   });
 
   test("should display import JSON button", async ({ page }) => {
@@ -153,6 +169,8 @@ test.describe("Delete Plugin", () => {
     await installElectronMock(page);
     await navigateTo(page, "/settings");
     await dismissOverlays(page);
+    // 切换到“插件管理”Tab：749976a 后 PluginManager 仅在 plugins tab 激活时渲染
+    await page.locator('button[role="tab"]', { hasText: "插件管理" }).click();
   });
 
   test("should display delete button on user plugin items", async ({ page }) => {
@@ -198,6 +216,8 @@ test.describe("Plugin Spec and Schema", () => {
     );
     await navigateTo(page, "/settings");
     await dismissOverlays(page);
+    // 切换到“插件管理”Tab：749976a 后 PluginManager 仅在 plugins tab 激活时渲染
+    await page.locator('button[role="tab"]', { hasText: "插件管理" }).click();
   });
 
   test("should toggle plugin spec view", async ({ page }) => {

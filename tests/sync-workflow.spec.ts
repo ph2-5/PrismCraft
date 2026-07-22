@@ -24,7 +24,7 @@ async function openSyncDialog(page: import("@playwright/test").Page) {
     await syncTab.click({ force: true });
     await page.waitForTimeout(500);
 
-    const syncButton = page.locator("button", { hasText: /同步设置|同步配置/i }).first();
+    const syncButton = page.locator('button:not([role="tab"])', { hasText: /同步设置|同步配置/i }).first();
     await syncButton.waitFor({ state: "visible", timeout: 10000 });
     await syncButton.click({ force: true });
     await page.waitForTimeout(1000);
@@ -72,8 +72,7 @@ test.describe("Sync Settings Dialog", () => {
     if (!dialogOpened) return;
 
     const dialog = page.locator('[role="dialog"]').first();
-    const syncTitle = page.locator("text=/同步设置|同步配置/i").first();
-    await expect(dialog.or(syncTitle)).toBeVisible({ timeout: 5000 });
+    await expect(dialog).toBeVisible({ timeout: 5000 });
   });
 
   test("should display server configuration section in sync dialog", async ({ page }) => {
@@ -132,9 +131,12 @@ test.describe("Sync Server Configuration", () => {
     const dialogOpened = await openSyncDialog(page);
     if (!dialogOpened) return;
 
-    const urlInput = page.locator('[data-testid="sync-server-url-input"]').first();
-    if (!(await urlInput.isVisible({ timeout: 5000 }).catch(() => false))) return;
+    // 启用 sync toggle 让 input 变为 enabled（ServerConfigSection disabled={!enabled}）
+    const enableCheckbox = page.locator('[role="dialog"] input[type="checkbox"]').first();
+    await enableCheckbox.click();
+    await page.waitForTimeout(300);
 
+    const urlInput = page.locator('[data-testid="sync-server-url-input"]').first();
     await urlInput.fill("https://sync.example.com");
     await expect(urlInput).toHaveValue("https://sync.example.com");
   });
@@ -143,9 +145,12 @@ test.describe("Sync Server Configuration", () => {
     const dialogOpened = await openSyncDialog(page);
     if (!dialogOpened) return;
 
-    const usernameInput = page.locator('[data-testid="sync-username-input"]').first();
-    if (!(await usernameInput.isVisible({ timeout: 5000 }).catch(() => false))) return;
+    // 启用 sync toggle 让 input 变为 enabled（ServerConfigSection disabled={!enabled}）
+    const enableCheckbox = page.locator('[role="dialog"] input[type="checkbox"]').first();
+    await enableCheckbox.click();
+    await page.waitForTimeout(300);
 
+    const usernameInput = page.locator('[data-testid="sync-username-input"]').first();
     await usernameInput.fill("testuser");
     await expect(usernameInput).toHaveValue("testuser");
   });
@@ -221,12 +226,9 @@ test.describe("Conflict Resolution", () => {
     const dialogOpened = await openSyncDialog(page);
     if (!dialogOpened) return;
 
-    const lastWriteWins = page.locator("text=/最后写入胜|Last Write/i").first();
-    const localWins = page.locator("text=/本地优先|Local/i").first();
-    const remoteWins = page.locator("text=/远程优先|Remote/i").first();
-    const manual = page.locator("text=/手动/i").first();
-
-    await expect(lastWriteWins.or(localWins).or(remoteWins).or(manual)).toBeVisible({ timeout: 5000 });
+    // conflict 选项是 combobox 内的 option，检查 combobox 可见（限定在 dialog 内避免匹配侧边栏文本）
+    const combobox = page.locator('[role="dialog"] select').first();
+    await expect(combobox).toBeVisible({ timeout: 5000 });
   });
 
   test("should display auto sync toggle in sync dialog", async ({ page }) => {
@@ -241,9 +243,9 @@ test.describe("Conflict Resolution", () => {
     const dialogOpened = await openSyncDialog(page);
     if (!dialogOpened) return;
 
-    const intervalLabel = page.locator("text=/同步间隔/i").first();
-    const intervalInput = page.locator('input[type="number"]').first();
-    await expect(intervalLabel.or(intervalInput)).toBeVisible({ timeout: 5000 });
+    // 限定在 dialog 内避免 strict mode violation（"同步间隔" label + input 都匹配）
+    const intervalInput = page.locator('[role="dialog"] input[type="number"]').first();
+    await expect(intervalInput).toBeVisible({ timeout: 5000 });
   });
 });
 

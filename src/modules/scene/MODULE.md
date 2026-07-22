@@ -15,6 +15,7 @@
 | `hooks` | [hooks/](./hooks/) | React Query Hooks 封装：CRUD、图片生成 |
 | `constants` | [constants.ts](./constants.ts) | 默认场景、类型建议等常量 |
 | `presentation` | [presentation/](./presentation/) | 场景列表项 |
+| `variants` | [variants/](./variants/) | Q3-1 场景变体子域：管理场景的多个变体（白天/夜晚/战损/雨景等），每个变体有独立的 prompt_fragment + 8 维参数 + 参考图。对称 `@/modules/character/variants` |
 
 ---
 
@@ -59,6 +60,37 @@
 | API | 签名 | 说明 |
 |-----|------|------|
 | `SceneListItem` | `React.FC<SceneListItemProps>` | 场景列表项组件 |
+
+### variants 子域（Q3-1）
+
+通过 `@/modules/scene/variants` 直接访问时使用原始名（如 `createVariant`），通过 `@/modules/scene` 桶导出访问时使用带 `Scene` 前缀的别名（如 `createSceneVariant`）以避免与 character variants 冲突。
+
+| API（桶导出名） | 签名 | 说明 |
+|-----|------|------|
+| `sceneVariantSchema` | `ZodSchema<SceneVariant>` | 场景变体 Zod schema |
+| `createSceneVariantInputSchema` | `ZodSchema<CreateSceneVariantInput>` | 创建入参 schema |
+| `updateSceneVariantInputSchema` | `ZodSchema<UpdateSceneVariantInput>` | 更新入参 schema |
+| `listVariantsForScene` | `(sceneId: string) → Promise<SceneVariant[]>` | 获取场景变体列表 |
+| `listAllVariants` | `() → Promise<Map<string, SceneVariant[]>>` | 获取所有变体（按 scene_id 分组） |
+| `getVariantById` | `(id: string) → Promise<SceneVariant \| null>` | 获取单个变体 |
+| `getDefaultVariant` | `(sceneId: string) → Promise<SceneVariant \| null>` | 获取场景的默认变体 |
+| `createSceneVariant` | `(input: CreateSceneVariantInput) → Promise<SceneVariant>` | 创建变体（含 isDefault 一致性补偿） |
+| `updateSceneVariant` | `(id: string, patch: UpdateSceneVariantInput) → Promise<void>` | 更新变体 |
+| `deleteSceneVariant` | `(id: string) → Promise<void>` | 软删除变体 |
+| `setDefaultSceneVariant` | `(sceneId: string, variantId: string) → Promise<void>` | 设置默认变体（事务保证唯一） |
+| `updateSceneVariantImage` | `(variantId, imageUrl, localImagePath?) → Promise<void>` | 更新变体生成图 |
+| `useSceneVariants` | `(sceneId) → UseQueryResult<SceneVariant[]>` | 查询场景变体列表 |
+| `useAllSceneVariants` | `() → UseQueryResult<Map<string, SceneVariant[]>>` | 查询所有变体（分组） |
+| `useSceneVariant` | `(variantId) → UseQueryResult<SceneVariant \| null>` | 查询单个变体 |
+| `useCreateSceneVariant` | `() → UseMutationResult<SceneVariant>` | 创建变体 |
+| `useUpdateSceneVariant` | `() → UseMutationResult<void>` | 更新变体 |
+| `useDeleteSceneVariant` | `() → UseMutationResult<void>` | 删除变体 |
+| `useSetDefaultSceneVariant` | `() → UseMutationResult<void>` | 设置默认变体 |
+| `SceneVariantList` | `React.FC<SceneVariantListProps>` | 变体列表展示组件 |
+| `SceneVariantListContainer` | `React.FC<{ sceneId: string }>` | 变体列表容器组件（自管理 state） |
+| `SceneVariantDialog` | `React.FC<SceneVariantDialogProps>` | 变体编辑对话框 |
+| `sceneVariantToForm` | `(v?: Partial<SceneVariant>) → SceneVariantFormState` | 变体 → 表单状态转换 |
+| `SCENE_VARIANT_QUERY_KEYS` | `object` | React Query queryKey 常量 |
 
 ---
 
@@ -112,6 +144,11 @@ hooks ← services, @/domain/schemas, @/domain/types, @/shared/event-types
 - **INV-10**：mutation hooks 必须触发事件通知（通过 `@/shared/event-types`）
 - **INV-11**：`markClean("scenes")` 必须在保存成功且 `setCurrentScene` 之后调用，确保 dirty 状态正确清除
 - **INV-12**：保存失败时 dirty 状态必须保留，用户离开页面时应收到未保存修改警告
+- **INV-13**（Q3-1）：每个 SceneVariant 必须有 sceneId 和 name
+- **INV-14**（Q3-1）：每个场景最多一个 isDefault=true 的变体（由 setDefaultVariant 事务保证）
+- **INV-15**（Q3-1）：删除场景时必须级联删除其所有变体（FK ON DELETE CASCADE + deleteVariantsForScene）
+- **INV-16**（Q3-1）：禁止直接导入 infrastructure/storage，必须通过 DI container（container.sceneVariantStorage）
+- **INV-17**（Q3-1）：持久化层 SceneVariant（@/domain/schemas）与管道瞬时态 SceneVariant（@/modules/novel/domain/types）同名但职责不同，消费者按需导入
 
 ---
 

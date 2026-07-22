@@ -1,0 +1,54 @@
+{
+  "name": "scene-variants",
+  "description": "场景变体系统：管理场景的多个变体（白天/夜晚/战损/雨景等），每个变体有独立的 prompt_fragment + 8 维参数 + 参考图。对称 character-variants 子域",
+  "dependencies": [
+    "@/domain/schemas",
+    "@/infrastructure/di",
+    "@/shared/presentation",
+    "@/shared/constants",
+    "@/shared/utils/image-url",
+    "@/shared/error-logger"
+  ],
+  "publicAPI": {
+    "schemas": [
+      "sceneVariantSchema",
+      "createSceneVariantInputSchema",
+      "updateSceneVariantInputSchema"
+    ],
+    "types": [
+      "SceneVariant",
+      "CreateSceneVariantInput",
+      "UpdateSceneVariantInput"
+    ],
+    "services": [
+      "listVariantsForScene",
+      "listAllVariants",
+      "getVariantById",
+      "getDefaultVariant",
+      "createVariant",
+      "updateVariant",
+      "deleteVariant",
+      "setDefaultVariant",
+      "updateVariantImage"
+    ],
+    "hooks": [
+      "useSceneVariants",
+      "useAllSceneVariants",
+      "useSceneVariant",
+      "useCreateSceneVariant",
+      "useUpdateSceneVariant",
+      "useDeleteSceneVariant",
+      "useSetDefaultSceneVariant"
+    ],
+    "components": ["SceneVariantList", "SceneVariantDialog"],
+    "constants": ["SCENE_VARIANT_QUERY_KEYS"]
+  },
+  "invariants": [
+    "每个 SceneVariant 必须有 sceneId 和 name",
+    "每个场景最多一个 isDefault=true 的变体（由 setDefaultVariant 事务保证）",
+    "删除场景时必须级联删除其所有变体（deleteVariantsForScene）",
+    "由 Compositor 生成的变体通过 source_compositor_asset_id 追溯生成资产",
+    "禁止直接导入 infrastructure/storage，必须通过 DI container",
+    "持久化层 SceneVariant（@/domain/schemas）与管道瞬时态 SceneVariant（@/modules/novel/domain/types）同名但职责不同，消费者按需导入"
+  ]
+}

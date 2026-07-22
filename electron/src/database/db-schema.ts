@@ -428,6 +428,35 @@ const FEATURE_TABLES: TableDef[] = [
       metadata_json: { type: "TEXT", default: "'{}'" },
     },
   },
+  // Q3-1: 场景变体系统（对称 character_variants）
+  // 一个场景可有多个变体（白天/夜晚/战损/雨景等），每个变体有独立的 prompt_fragment + 8 维参数 + 参考图
+  // 由 Compositor 生成（通过 source_compositor_asset_id 追溯）
+  {
+    name: "scene_variants",
+    featureGroup: "core",
+    columns: {
+      scene_id: { type: "TEXT", notNull: true, ref: "scenes(id)", onDelete: "CASCADE" },
+      name: { type: "TEXT", notNull: true, default: "''" },
+      description: { type: "TEXT", default: "''" },
+      prompt_fragment: { type: "TEXT", default: "''" },
+      reference_image_path: { type: "TEXT" },
+      image_url: { type: "TEXT" },
+      local_image_path: { type: "TEXT" },
+      thumbnail_path: { type: "TEXT" },
+      time_of_day: { type: "TEXT" },
+      weather: { type: "TEXT" },
+      lighting: { type: "TEXT" },
+      mood: { type: "TEXT" },
+      crowd_level: { type: "TEXT" },
+      camera_angle: { type: "TEXT" },
+      season: { type: "TEXT" },
+      color_palette: { type: "TEXT" },
+      source_compositor_asset_id: { type: "TEXT" },
+      is_default: { type: "INTEGER", default: "0" },
+      is_canonical: { type: "INTEGER", default: "0" },
+      metadata_json: { type: "TEXT", default: "'{}'" },
+    },
+  },
 ];
 
 const JUNCTION_TABLES: { name: string; columns: Record<string, ColumnDef>; primaryKey: string[]; uniqueConstraints?: string[][] }[] = [

@@ -184,6 +184,14 @@ registerColumns("character_variants", [
   ["is_deleted", "boolean"],
 ]);
 
+// Q3-1: scene_variants 表 JSON 列（对称 character_variants）
+registerColumns("scene_variants", [
+  ["metadata_json", "json"],
+  ["is_default", "boolean"],
+  ["is_canonical", "boolean"],
+  ["is_deleted", "boolean"],
+]);
+
 export function parseRecord(
   record: Record<string, unknown>,
   table?: string,

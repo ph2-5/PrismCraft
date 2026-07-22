@@ -32,6 +32,10 @@ export type { PropType, Prop, CreatePropInput, UpdatePropInput } from "./prop";
 export { characterVariantSchema, createCharacterVariantInputSchema, updateCharacterVariantInputSchema } from "./character-variant";
 export type { CharacterVariant, CreateCharacterVariantInput, UpdateCharacterVariantInput } from "./character-variant";
 
+// Q3-1: 场景变体（对称角色变体）
+export { sceneVariantSchema, createSceneVariantInputSchema, updateSceneVariantInputSchema } from "./scene-variant";
+export type { SceneVariant, CreateSceneVariantInput, UpdateSceneVariantInput } from "./scene-variant";
+
 // Task 2A.21: 3D 白盒预览编辑器（类型定义在 domain 层，工厂函数/预设库在 @/modules/blockout-3d）
 export type {
   Vec3,

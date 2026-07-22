@@ -6,3 +6,4 @@ export * as retry from "./retry";
 export * as agent from "./agent";
 export * as json from "./json";
 export * as migration from "./migration";
+export * as timeline from "./timeline";

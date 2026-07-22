@@ -16,23 +16,26 @@ test.afterEach(async () => {
 });
 
 async function openSyncDialog(page: import("@playwright/test").Page) {
-  const syncTab = page.locator('[role="tab"]', { hasText: /同步/i }).first();
-  if (await syncTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+  // waitFor 确保元素渲染完成后再操作，比 isVisible().catch() 更稳健；
+  // try-catch 保持"dialog 打不开就 skip"的向后兼容行为（web 环境下 sync dialog 可能不可用）
+  try {
+    const syncTab = page.locator('[role="tab"]', { hasText: /同步/i }).first();
+    await syncTab.waitFor({ state: "visible", timeout: 10000 });
     await syncTab.click({ force: true });
     await page.waitForTimeout(500);
-  }
 
-  const syncButton = page.locator("button", { hasText: /同步设置|同步配置/i }).first();
-
-  if (await syncButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+    const syncButton = page.locator("button", { hasText: /同步设置|同步配置/i }).first();
+    await syncButton.waitFor({ state: "visible", timeout: 10000 });
     await syncButton.click({ force: true });
     await page.waitForTimeout(1000);
+
     const dialog = page.locator('[role="dialog"]').first();
-    if (await dialog.isVisible({ timeout: 5000 }).catch(() => false)) {
-      return true;
-    }
+    // dialog 在 click 后应立即出现，3 秒足够；缩短 timeout 避免 skip 测试等待过久
+    await dialog.waitFor({ state: "visible", timeout: 3000 });
+    return true;
+  } catch {
+    return false;
   }
-  return false;
 }
 
 test.describe("Sync Configuration Access", () => {
@@ -44,8 +47,7 @@ test.describe("Sync Configuration Access", () => {
 
   test("should display sync-related UI on settings page", async ({ page }) => {
     const syncElement = page.locator("text=/同步|Sync/i").first();
-    const hasSync = await syncElement.isVisible({ timeout: 10000 }).catch(() => false);
-    expect(hasSync).toBe(true);
+    await expect(syncElement).toBeVisible({ timeout: 10000 });
   });
 
   test("should find sync entry point in settings or sidebar", async ({ page }) => {
@@ -53,11 +55,7 @@ test.describe("Sync Configuration Access", () => {
     const syncBadge = page.locator("[class*='badge']").filter({ hasText: /同步/i }).first();
     const syncLink = page.locator("a", { hasText: /同步/i }).first();
     const syncTab = page.locator('[role="tab"]', { hasText: /同步/i }).first();
-    const hasSyncBtn = await syncBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasSyncBadge = await syncBadge.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasSyncLink = await syncLink.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasSyncTab = await syncTab.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasSyncBtn || hasSyncBadge || hasSyncLink || hasSyncTab).toBe(true);
+    await expect(syncBtn.or(syncBadge).or(syncLink).or(syncTab)).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -75,9 +73,7 @@ test.describe("Sync Settings Dialog", () => {
 
     const dialog = page.locator('[role="dialog"]').first();
     const syncTitle = page.locator("text=/同步设置|同步配置/i").first();
-    const dialogVisible = await dialog.isVisible({ timeout: 5000 }).catch(() => false);
-    const titleVisible = await syncTitle.isVisible({ timeout: 3000 }).catch(() => false);
-    expect(dialogVisible || titleVisible).toBe(true);
+    await expect(dialog.or(syncTitle)).toBeVisible({ timeout: 5000 });
   });
 
   test("should display server configuration section in sync dialog", async ({ page }) => {
@@ -168,9 +164,7 @@ test.describe("Sync Server Configuration", () => {
 
     const enableSwitch = page.locator("button[role='switch']").first();
     const enableLabel = page.locator("text=/启用同步|开启同步/i").first();
-    const hasSwitch = await enableSwitch.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasLabel = await enableLabel.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasSwitch || hasLabel).toBe(true);
+    await expect(enableSwitch.or(enableLabel)).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -232,11 +226,7 @@ test.describe("Conflict Resolution", () => {
     const remoteWins = page.locator("text=/远程优先|Remote/i").first();
     const manual = page.locator("text=/手动/i").first();
 
-    const hasLastWrite = await lastWriteWins.isVisible({ timeout: 3000 }).catch(() => false);
-    const hasLocal = await localWins.isVisible({ timeout: 3000 }).catch(() => false);
-    const hasRemote = await remoteWins.isVisible({ timeout: 3000 }).catch(() => false);
-    const hasManual = await manual.isVisible({ timeout: 3000 }).catch(() => false);
-    expect(hasLastWrite || hasLocal || hasRemote || hasManual).toBe(true);
+    await expect(lastWriteWins.or(localWins).or(remoteWins).or(manual)).toBeVisible({ timeout: 5000 });
   });
 
   test("should display auto sync toggle in sync dialog", async ({ page }) => {
@@ -253,9 +243,7 @@ test.describe("Conflict Resolution", () => {
 
     const intervalLabel = page.locator("text=/同步间隔/i").first();
     const intervalInput = page.locator('input[type="number"]').first();
-    const hasLabel = await intervalLabel.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasInput = await intervalInput.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasLabel || hasInput).toBe(true);
+    await expect(intervalLabel.or(intervalInput)).toBeVisible({ timeout: 5000 });
   });
 });
 

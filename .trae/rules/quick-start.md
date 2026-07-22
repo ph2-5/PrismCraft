@@ -23,6 +23,7 @@ FORBIDDEN patterns (will cause bugs):
 - Never static-import Node.js-only modules in browser-reachable code — use @/shared/file-http or Vite plugin stub
 
 REGRESSION GUARDS: Search .trae/rules/regression/{category}.md for relevant rules before modifying code.
+DEAD CODE CLEANUP: Before deleting any unused function/export, follow .trae/rules/code-cleanup.md 4-step judgment flow. Never mechanically delete.
 -->
 
 ## Development Commands

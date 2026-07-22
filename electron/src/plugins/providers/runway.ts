@@ -23,10 +23,15 @@ export class RunwayPlugin extends BaseAIProviderPlugin implements AIProviderPlug
   readonly matchPatterns: MatchPattern[] = [
     { urlPattern: "api.dev.runwayml.com" },
     { urlPattern: "", modelPattern: "gen3a" },
+    { urlPattern: "", modelPattern: "gen4" },
   ];
 
   match(apiUrl: string, model?: string): boolean {
-    return apiUrl.includes("api.dev.runwayml.com") || apiUrl.includes("runwayml.com") || (model?.toLowerCase().includes("gen3") ?? false);
+    if (apiUrl.includes("api.dev.runwayml.com") || apiUrl.includes("runwayml.com")) {
+      return true;
+    }
+    const m = model?.toLowerCase() ?? "";
+    return m.includes("gen3") || m.includes("gen4");
   }
 
   get capabilities(): ProviderCapabilities {
@@ -47,7 +52,10 @@ export class RunwayPlugin extends BaseAIProviderPlugin implements AIProviderPlug
     characterRefMode: "none" as ImageRefMode,
     sceneRefMode: "none" as ImageRefMode,
     imageUploadMode: "url" as const,
-    defaultModel: "gen3a_turbo",
+    // gen3a_turbo 已被 Runway 标记为 deprecated（2026-07-30 sunset），迁移到 gen4_turbo
+    // gen4_turbo: 5 credits/sec, 支持 image_to_video (首帧 + 文本), 5/10s, 不支持尾帧/参考视频
+    // gen4.5: 25 credits/sec, 2026-01 起支持首帧，质量更高但成本更高，作为可选高质量模型
+    defaultModel: "gen4_turbo",
     maxDuration: 10,
     supportedCodecs: ["h264", "h265"],
     urlTtl: 86400,
@@ -55,7 +63,7 @@ export class RunwayPlugin extends BaseAIProviderPlugin implements AIProviderPlug
 
   readonly imageCapabilities = {
     supportsReferenceImage: false,
-    defaultModel: "gen3a_turbo",
+    defaultModel: "gen4_turbo",
   };
 
   getModelCapabilities(_modelId: string): ModelCapabilities {

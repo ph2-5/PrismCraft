@@ -46,7 +46,8 @@ describe("RunwayPlugin", () => {
       expect(plugin.videoCapabilities.supportsCharacterRef).toBe(false);
       expect(plugin.videoCapabilities.supportsSceneRef).toBe(false);
       expect(plugin.videoCapabilities.maxDuration).toBe(10);
-      expect(plugin.videoCapabilities.defaultModel).toBe("gen3a_turbo");
+      // gen3a_turbo 已 deprecated (2026-07-30 sunset)，默认模型迁移到 gen4_turbo
+      expect(plugin.videoCapabilities.defaultModel).toBe("gen4_turbo");
       expect(plugin.videoCapabilities.imageUploadMode).toBe("url");
     });
   });
@@ -60,11 +61,16 @@ describe("RunwayPlugin", () => {
       expect(plugin.match("https://api.runwayml.com/v1")).toBe(true);
     });
 
-    it("should match model containing 'gen3'", () => {
+    it("should match model containing 'gen3' (backward compat)", () => {
       expect(plugin.match("https://some-api.com/v1", "gen3a_turbo")).toBe(true);
     });
 
-    it("should not match unrelated URLs without gen3 model", () => {
+    it("should match model containing 'gen4'", () => {
+      expect(plugin.match("https://some-api.com/v1", "gen4_turbo")).toBe(true);
+      expect(plugin.match("https://some-api.com/v1", "gen4.5")).toBe(true);
+    });
+
+    it("should not match unrelated URLs without gen3/gen4 model", () => {
       expect(plugin.match("https://api.openai.com/v1", "gpt-4")).toBe(false);
     });
 
@@ -85,7 +91,7 @@ describe("RunwayPlugin", () => {
       const ctx: VideoBuildContext = { prompt: "a bird flying", duration: 5 };
       const result = plugin.buildVideoRequest(ctx);
       expect(result.body.promptText).toBe("a bird flying");
-      expect(result.body.model).toBe("gen3a_turbo");
+      expect(result.body.model).toBe("gen4_turbo");
       expect(result.endpoint).toBe("/image_to_video");
     });
 
